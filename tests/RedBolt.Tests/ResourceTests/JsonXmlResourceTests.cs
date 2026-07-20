@@ -188,7 +188,7 @@ public sealed class JsonXmlResourceTests
         child.SetResourceRef("material", materialRef);
         Assert.True(child.GetVector3("position").ApproximatelyEquivalent(new Vector3f(1.0f, 2.0f, 3.0f)));
         Assert.Equal(materialRef, child.GetResourceRef("material"));
-        Assert.Equal(2u, child.GetNumAttributes());
+        Assert.Equal(2, child.GetNumAttributes());
     }
 
     [Fact]
@@ -229,6 +229,92 @@ public sealed class JsonXmlResourceTests
     }
 
     [Fact]
+    public void XMLElement_matches_native_class_and_copy_shape()
+    {
+        Assert.True(typeof(XMLElement).IsClass);
+        Assert.False(typeof(XMLElement).IsSealed);
+        Assert.Contains(typeof(ICloneable), typeof(XMLElement).GetInterfaces());
+        Assert.Contains(typeof(IDisposable), typeof(XMLElement).GetInterfaces());
+
+        var xml = new XMLFile("test.xml");
+        Assert.True(xml.FromString("<root><first/><second/></root>"));
+        var source = xml.Root.GetChild("first");
+        var copy = Assert.IsType<XMLElement>(source.Clone());
+        Assert.Equal("first", copy.Name);
+        copy.Dispose();
+        Assert.Equal("first", source.Name);
+
+        var assigned = new XMLElement();
+        Assert.Same(assigned, assigned.CopyFrom(source));
+        Assert.Equal("first", assigned.Name);
+        Assert.Same(xml, assigned.GetFile());
+    }
+
+    [Fact]
+    public void XMLElement_native_child_text_and_buffer_semantics_work()
+    {
+        var xml = new XMLFile("test.xml");
+        Assert.True(xml.FromString("<root><holder><child/></holder><empty/></root>"));
+        var holder = xml.Root.GetChild("holder");
+        Assert.True(holder.SetValue("first"));
+        Assert.True(holder.HasChild("child"));
+        Assert.True(holder.SetValue("second"));
+        Assert.True(holder.HasChild("child"));
+        Assert.Contains("second", holder.ToString(), StringComparison.Ordinal);
+        Assert.True(xml.Root.GetChild("empty").RemoveChildren());
+
+        var bytes = new byte[] { 1, 20, 255 };
+        Assert.True(holder.SetBuffer("buffer", bytes));
+        Assert.Equal("1 20 255", holder.GetAttribute("buffer"));
+        Assert.Equal(bytes, holder.GetBuffer("buffer"));
+        Span<byte> destination = stackalloc byte[3];
+        Assert.True(holder.GetBuffer("buffer", destination));
+        Assert.True(destination.SequenceEqual(bytes));
+        Span<byte> tooSmall = stackalloc byte[2];
+        Assert.False(holder.GetBuffer("buffer", tooSmall));
+    }
+
+    [Fact]
+    public void XMLElement_native_bounding_box_and_named_variant_map_work()
+    {
+        var xml = new XMLFile("test.xml");
+        Assert.True(xml.FromString("<root/>"));
+        var bounds = new BoundingBox(new Vector3f(-1.0f, -2.0f, -3.0f), new Vector3f(4.0f, 5.0f, 6.0f));
+        Assert.True(xml.Root.SetBoundingBox(bounds));
+        Assert.Equal("-1 -2 -3", xml.Root.GetAttribute("min"));
+        Assert.True(xml.Root.GetBoundingBox().Min.ApproximatelyEquivalent(bounds.Min));
+        Assert.True(xml.Root.GetBoundingBox().Max.ApproximatelyEquivalent(bounds.Max));
+
+        var child = xml.Root.CreateChild("variant");
+        child.SetString("name", "named-key");
+        child.SetString("type", "Int");
+        child.SetInt("value", 42);
+        var map = xml.Root.GetVariantMap();
+        Assert.Equal(42, map[new StringHash("named-key")].GetInt());
+    }
+
+    [Fact]
+    public void XMLElement_xpath_results_are_independent_and_iterable()
+    {
+        Assert.False(typeof(XPathResultSet).IsSealed);
+        Assert.Contains(typeof(ICloneable), typeof(XPathResultSet).GetInterfaces());
+        Assert.Contains(typeof(IDisposable), typeof(XPathResultSet).GetInterfaces());
+
+        var xml = new XMLFile("test.xml");
+        Assert.True(xml.FromString("<root><item id=\"1\"/><item id=\"2\"/></root>"));
+        var results = xml.Root.Select("item");
+        Assert.Equal(2, results.Size());
+        using var resultsCopy = Assert.IsType<XPathResultSet>(results.Clone());
+        Assert.Equal(2, resultsCopy.Size());
+        var first = results.FirstResult();
+        var firstAgain = results.FirstResult();
+        Assert.NotSame(first, firstAgain);
+        Assert.Equal("1", first.GetAttribute("id"));
+        Assert.Equal("2", first.NextResult().GetAttribute("id"));
+        Assert.True(first.NextResult().IsNull);
+    }
+
+    [Fact]
     public void XMLElement_xpath_and_complex_variants_work()
     {
         var xml = new XMLFile("test.xml");
@@ -236,7 +322,7 @@ public sealed class JsonXmlResourceTests
         var query = new XPathQuery("item[@id=$id]");
         Assert.True(query.SetVariable("id", "2"));
         var results = xml.Root.SelectPrepared(query);
-        Assert.Equal(1u, results.Size());
+        Assert.Equal(1, results.Size());
         Assert.Equal("2", results.FirstResult().GetAttribute("id"));
 
         var holder = xml.Root.CreateChild("variant");

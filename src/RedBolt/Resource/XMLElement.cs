@@ -1,21 +1,69 @@
 using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using System.Xml.XPath;
 
 namespace RedBolt;
 
-public sealed class XMLElement
+/// <summary>Element in an XML file.</summary>
+public class XMLElement : ICloneable, IDisposable
 {
     private static readonly Regex NumberPattern = new(@"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", RegexOptions.Compiled);
 
-    private readonly XMLFile? _file;
-    private readonly XElement? _element;
+    private XMLFile? _file;
+    private XElement? _element;
+    private XPathResultSet? _xpathResultSet;
+    private int _xpathResultIndex;
+
+    /// <summary>Construct null element.</summary>
+    public XMLElement()
+    {
+    }
 
     internal XMLElement(XMLFile? file, XElement? element)
     {
-        this._file = file;
-        this._element = element;
+        _file = file;
+        _element = element;
+    }
+
+    internal XMLElement(XMLFile? file, XPathResultSet resultSet, XElement element, int xpathResultIndex)
+    {
+        _file = file;
+        _element = element;
+        _xpathResultSet = resultSet;
+        _xpathResultIndex = xpathResultIndex;
+    }
+
+    /// <summary>Copy-construct from another element.</summary>
+    public object Clone()
+    {
+        return new XMLElement
+        {
+            _file = _file,
+            _element = _element,
+            _xpathResultSet = _xpathResultSet,
+            _xpathResultIndex = _xpathResultIndex
+        };
+    }
+
+    /// <summary>Destruct.</summary>
+    public void Dispose()
+    {
+        _file = null;
+        _element = null;
+        _xpathResultSet = null;
+        _xpathResultIndex = 0;
+    }
+
+    public XMLElement CopyFrom(XMLElement rhs)
+    {
+        ArgumentNullException.ThrowIfNull(rhs);
+        _file = rhs._file;
+        _element = rhs._element;
+        _xpathResultSet = rhs._xpathResultSet;
+        _xpathResultIndex = rhs._xpathResultIndex;
+        return this;
     }
 
     public bool IsNull => _element is null;
@@ -102,14 +150,15 @@ public sealed class XMLElement
         if (_element is null)
             return false;
 
-        var children = string.IsNullOrEmpty(name)
-            ? _element.Elements().ToArray()
-            : _element.Elements(name).ToArray();
-        if (children.Length == 0)
-            return false;
-
-        foreach (var child in children)
+        for (;;)
+        {
+            var child = string.IsNullOrEmpty(name)
+                ? _element.Elements().LastOrDefault()
+                : _element.Element(name);
+            if (child is null)
+                break;
             child.Remove();
+        }
 
         NotifyChanged();
         return true;
@@ -148,7 +197,17 @@ public sealed class XMLElement
         if (_element is null)
             return false;
 
-        _element.Value = value ?? string.Empty;
+        foreach (var node in _element.Nodes())
+        {
+            if (node is XText text && node is not XCData)
+            {
+                text.Value = value;
+                NotifyChanged();
+                return true;
+            }
+        }
+
+        _element.Add(new XText(value));
         NotifyChanged();
         return true;
     }
@@ -188,13 +247,13 @@ public sealed class XMLElement
 
     public bool SetVector4(string name, Vector4f value) => SetAttribute(name, value.ToString());
 
-    public bool SetVectorVariant(string name, Variant value) => value.Type switch
+    public bool SetVectorVariant(string name, Variant value)
     {
-        VariantType.Vector2 => SetVector2(name, value.GetVector2()),
-        VariantType.Vector3 => SetVector3(name, value.GetVector3()),
-        VariantType.Vector4 => SetVector4(name, value.GetVector4()),
-        _ => false
-    };
+        if (value.Type is VariantType.Float or VariantType.Vector2 or VariantType.Vector3 or VariantType.Vector4
+            or VariantType.Matrix3 or VariantType.Matrix3x4 or VariantType.Matrix4)
+            return SetAttribute(name, value.ToString());
+        return false;
+    }
 
     public bool SetQuaternion(string name, Quaternion value) => SetAttribute(name, value.ToString());
 
@@ -214,13 +273,32 @@ public sealed class XMLElement
 
     public bool SetBoundingBox(string name, BoundingBox value) => SetAttribute(name, FormatFloats(value.Min.X, value.Min.Y, value.Min.Z, value.Max.X, value.Max.Y, value.Max.Z));
 
-    public bool SetBoundingBox(BoundingBox value) => SetValue(FormatFloats(value.Min.X, value.Min.Y, value.Min.Z, value.Max.X, value.Max.Y, value.Max.Z));
+    public bool SetBoundingBox(BoundingBox value)
+    {
+        if (!SetVector3("min", value.Min))
+            return false;
+        return SetVector3("max", value.Max);
+    }
 
     public bool SetResourceRef(string name, ResourceRef value) => SetAttribute(name, value.ToString());
 
     public bool SetResourceRefList(string name, ResourceRefList value) => SetAttribute(name, value.ToString());
 
-    public bool SetBuffer(string name, ReadOnlySpan<byte> value) => SetAttribute(name, Convert.ToBase64String(value));
+    public bool SetResourceRef(ResourceRef value) => SetAttribute("value", value.ToString(Context.Instance));
+
+    public bool SetResourceRefList(ResourceRefList value) => SetAttribute("value", value.ToString(Context.Instance));
+
+    public bool SetBuffer(string name, ReadOnlySpan<byte> value)
+    {
+        var result = new StringBuilder(value.Length * 4);
+        for (var i = 0; i < value.Length; ++i)
+        {
+            if (i != 0)
+                result.Append(' ');
+            result.Append(value[i].ToString(CultureInfo.InvariantCulture));
+        }
+        return SetAttribute(name, result.ToString());
+    }
 
     public bool SetVariant(Variant value)
     {
@@ -235,15 +313,16 @@ public sealed class XMLElement
             VariantType.StringVector => SetStringVector(value.GetStringVector()),
             VariantType.VariantMap => SetVariantMap(value.GetVariantMap()),
             VariantType.StringVariantMap => SetStringVariantMap(value.GetStringVariantMap()),
-            VariantType.ResourceRef => SetAttribute("value", value.GetResourceRef().ToString()),
-            VariantType.ResourceRefList => SetAttribute("value", value.GetResourceRefList().ToString()),
+            VariantType.ResourceRef => SetResourceRef(value.GetResourceRef()),
+            VariantType.ResourceRefList => SetResourceRefList(value.GetResourceRefList()),
             _ => SetAttribute("value", value.ToString())
         };
     }
 
     public bool SetVariantVector(VariantVector values)
     {
-        RemoveChildren("variant");
+        if (!RemoveChildren("variant"))
+            return false;
         foreach (var value in values)
             if (!CreateChild("variant").SetVariant(value)) return false;
         return true;
@@ -251,7 +330,8 @@ public sealed class XMLElement
 
     public bool SetStringVector(StringVector values)
     {
-        RemoveChildren("string");
+        if (!RemoveChildren("string"))
+            return false;
         foreach (var value in values)
             if (!CreateChild("string").SetAttribute("value", value)) return false;
         return true;
@@ -259,7 +339,8 @@ public sealed class XMLElement
 
     public bool SetVariantMap(VariantMap values)
     {
-        RemoveChildren("variant");
+        if (!RemoveChildren("variant"))
+            return false;
         foreach (var (key, value) in values)
         {
             var element = CreateChild("variant");
@@ -271,7 +352,8 @@ public sealed class XMLElement
 
     public bool SetStringVariantMap(StringVariantMap values)
     {
-        RemoveChildren("variant");
+        if (!RemoveChildren("variant"))
+            return false;
         foreach (var (key, value) in values)
         {
             var element = CreateChild("variant");
@@ -311,7 +393,7 @@ public sealed class XMLElement
 
     public XMLElement GetParent() => new(_file, _element?.Parent);
 
-    public uint GetNumAttributes() => (uint)(_element?.Attributes().Count() ?? 0);
+    public int GetNumAttributes() => _element?.Attributes().Count() ?? 0;
 
     public bool HasAttribute(string name)
     {
@@ -347,17 +429,28 @@ public sealed class XMLElement
     public byte[] GetBuffer(string name)
     {
         var value = GetAttribute(name);
-        if (string.IsNullOrEmpty(value))
+        if (string.IsNullOrWhiteSpace(value))
             return [];
 
-        try
+        var values = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var result = new byte[values.Length];
+        for (var i = 0; i < values.Length; ++i)
         {
-            return Convert.FromBase64String(value);
+            byte.TryParse(values[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out result[i]);
         }
-        catch (FormatException)
-        {
-            return [];
-        }
+        return result;
+    }
+
+    public bool GetBuffer(string name, Span<byte> destination)
+    {
+        var value = GetAttribute(name);
+        var values = value.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (destination.Length < values.Length)
+            return false;
+
+        for (var i = 0; i < values.Length; ++i)
+            byte.TryParse(values[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out destination[i]);
+        return true;
     }
 
     public Variant GetVariant()
@@ -373,10 +466,13 @@ public sealed class XMLElement
             VariantType.StringVector => new Variant(GetStringVector()),
             VariantType.VariantMap => new Variant(GetVariantMap()),
             VariantType.StringVariantMap => new Variant(GetStringVariantMap()),
+            VariantType.ResourceRef => new Variant(GetResourceRef()),
+            VariantType.ResourceRefList => new Variant(GetResourceRefList()),
             _ => default
         };
 
-        if (type is not (VariantType.VariantVector or VariantType.StringVector or VariantType.VariantMap or VariantType.StringVariantMap))
+        if (type is not (VariantType.VariantVector or VariantType.StringVector or VariantType.VariantMap or VariantType.StringVariantMap
+            or VariantType.ResourceRef or VariantType.ResourceRefList))
             result.FromString(type, GetAttribute("value"));
 
         return result;
@@ -402,7 +498,16 @@ public sealed class XMLElement
     {
         var result = new VariantMap();
         for (var element = GetChild("variant"); element.NotNull; element = element.GetNext("variant"))
-            result[new StringHash(element.GetUInt("hash"))] = element.GetVariant();
+        {
+            StringHash key;
+            if (element.HasAttribute("name"))
+                key = new StringHash(element.GetAttribute("name"));
+            else if (element.HasAttribute("hash"))
+                key = new StringHash(element.GetUInt("hash"));
+            else
+                continue;
+            result[key] = element.GetVariant();
+        }
         return result;
     }
 
@@ -414,7 +519,7 @@ public sealed class XMLElement
         return result;
     }
 
-    public BoundingBox GetBoundingBox() => ParseBoundingBox(GetValue());
+    public BoundingBox GetBoundingBox() => new(GetVector3("min"), GetVector3("max"));
 
     public BoundingBox GetBoundingBox(string name) => ParseBoundingBox(GetAttribute(name));
 
@@ -447,6 +552,10 @@ public sealed class XMLElement
     public ResourceRef GetResourceRef(string name) => ResourceRef.Parse(GetAttribute(name));
 
     public ResourceRefList GetResourceRefList(string name) => ResourceRefList.Parse(GetAttribute(name));
+
+    public ResourceRef GetResourceRef() => ResourceRef.Parse(GetAttribute("value"));
+
+    public ResourceRefList GetResourceRefList() => ResourceRefList.Parse(GetAttribute("value"));
 
     public Vector2f GetVector2(string name) => ParseVector2(GetAttribute(name));
 
@@ -487,6 +596,15 @@ public sealed class XMLElement
     public Matrix3x4 GetMatrix3x4(string name) => ParseMatrix3x4(GetAttribute(name));
 
     public Matrix4 GetMatrix4(string name) => ParseMatrix4(GetAttribute(name));
+
+    public XMLFile? GetFile() => _file;
+
+    public XMLElement NextResult()
+    {
+        if (_xpathResultSet is null || _element is null)
+            return new XMLElement();
+        return _xpathResultSet[++_xpathResultIndex];
+    }
 
     public override string ToString() => _element?.ToString() ?? string.Empty;
 

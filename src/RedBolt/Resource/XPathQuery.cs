@@ -5,30 +5,49 @@ using System.Xml.XPath;
 
 namespace RedBolt;
 
-public sealed class XPathResultSet : IReadOnlyList<XMLElement>
+public class XPathResultSet : IReadOnlyList<XMLElement>, ICloneable, IDisposable
 {
-    private readonly IReadOnlyList<XMLElement> _results;
+    private IReadOnlyList<XElement>? _results;
+    private XMLFile? _file;
 
-    public XPathResultSet() : this([]) { }
+    public XPathResultSet() : this([], null) { }
 
     internal XPathResultSet(IEnumerable<XElement> results, XMLFile? file = null)
-        : this(results.Select(element => new XMLElement(file, element)).ToArray())
+        : this(results.ToArray(), file)
     {
     }
 
-    private XPathResultSet(IReadOnlyList<XMLElement> results) => _results = results;
+    private XPathResultSet(IReadOnlyList<XElement>? results, XMLFile? file)
+    {
+        _results = results;
+        _file = file;
+    }
 
-    public XMLElement this[int index] => index >= 0 && index < _results.Count ? _results[index] : new XMLElement(null, null);
+    public object Clone() => new XPathResultSet(_results?.ToArray(), _file);
 
-    public int Count => _results.Count;
+    public void Dispose()
+    {
+        _results = null;
+        _file = null;
+    }
+
+    public XMLElement this[int index] => _results is not null && index >= 0 && index < _results.Count
+        ? new XMLElement(_file, this, _results[index], index)
+        : new XMLElement();
+
+    public int Count => _results?.Count ?? 0;
 
     public XMLElement FirstResult() => this[0];
 
-    public uint Size() => (uint)Count;
+    public int Size() => Count;
 
     public bool Empty() => Count == 0;
 
-    public IEnumerator<XMLElement> GetEnumerator() => _results.GetEnumerator();
+    public IEnumerator<XMLElement> GetEnumerator()
+    {
+        for (var i = 0; i < Count; ++i)
+            yield return this[i];
+    }
 
     System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 }
