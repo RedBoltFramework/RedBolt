@@ -1,5 +1,6 @@
 using System.Text;
 using System.Xml.Linq;
+using System.Xml.XPath;
 using RedBolt;
 
 namespace RedBolt.Tests;
@@ -320,7 +321,7 @@ public sealed class JsonXmlResourceTests
     {
         var xml = new XMLFile("test.xml");
         Assert.True(xml.FromString("<root><item id=\"1\"/><item id=\"2\"/></root>"));
-        var query = new XPathQuery("item[@id=$id]");
+        var query = new XPathQuery("item[@id=$id]", "id:String");
         Assert.True(query.SetVariable("id", "2"));
         var results = xml.Root.SelectPrepared(query);
         Assert.Equal(1, results.Size());
@@ -334,6 +335,102 @@ public sealed class JsonXmlResourceTests
         });
         Assert.True(holder.SetVariant(value));
         Assert.Equal(value, holder.GetVariant());
+    }
+
+    [Fact]
+    public void XPathQuery_matches_native_class_lifetime_and_binding()
+    {
+        Assert.True(typeof(XPathQuery).IsClass);
+        Assert.False(typeof(XPathQuery).IsSealed);
+        Assert.Contains(typeof(IDisposable), typeof(XPathQuery).GetInterfaces());
+        Assert.DoesNotContain(typeof(ICloneable), typeof(XPathQuery).GetInterfaces());
+
+        var xml = new XMLFile("test.xml");
+        Assert.True(xml.FromString("<root><item/><item/></root>"));
+        var query = new XPathQuery();
+        Assert.Equal(string.Empty, query.Query);
+        Assert.Null(query.GetXPathQuery());
+        Assert.Null(query.GetXPathVariableSet());
+        Assert.False(query.EvaluateToBool(xml.Root));
+        Assert.Equal(0.0f, query.EvaluateToFloat(xml.Root));
+        Assert.Equal(string.Empty, query.EvaluateToString(xml.Root));
+        Assert.True(query.Evaluate(xml.Root).Empty());
+
+        Assert.True(query.SetQuery("count(item)", bind: false));
+        Assert.Null(query.GetXPathQuery());
+        Assert.Equal(0.0f, query.EvaluateToFloat(xml.Root));
+        query.Bind();
+        Assert.True(query.EvaluateToBool(xml.Root));
+        Assert.Equal(2.0f, query.EvaluateToFloat(xml.Root));
+        Assert.Equal("2", query.EvaluateToString(xml.Root));
+        Assert.Throws<XPathException>(() => query.Evaluate(xml.Root));
+
+        Assert.True(query.SetQuery("100000000000000000000"));
+        Assert.Equal("100000000000000000000", query.EvaluateToString(xml.Root));
+        Assert.True(query.SetQuery("0.0000001"));
+        Assert.Equal("0.0000001", query.EvaluateToString(xml.Root));
+
+        query.Dispose();
+        Assert.Equal(string.Empty, query.Query);
+        Assert.Null(query.GetXPathQuery());
+        Assert.Null(query.GetXPathVariableSet());
+    }
+
+    [Fact]
+    public void XPathQuery_uses_native_typed_variable_set_semantics()
+    {
+        var xml = new XMLFile("test.xml");
+        Assert.True(xml.FromString("<root><item enabled=\"true\" weight=\"2.5\" name=\"O'Reilly\"/></root>"));
+        using var query = new XPathQuery(
+            "item[@enabled=$enabled and @weight=$weight and @name=$name]",
+            "enabled:Bool, weight:Float, name:String");
+
+        Assert.False(query.SetVariable("enabled", 1.0f));
+        Assert.True(query.SetVariable("enabled", true));
+        Assert.True(query.SetVariable("weight", 2.5f));
+        Assert.True(query.SetVariable("name", "O'Reilly"));
+        Assert.True(query.SetVariable("unused", true));
+        Assert.Equal(1, query.Evaluate(xml.Root).Size());
+
+        Assert.True(query.SetQuery("item[@name=$name]"));
+        Assert.Equal(1, query.Evaluate(xml.Root).Size());
+
+        Assert.False(query.SetQuery("$value", "value:Bool,value:String", bind: false));
+        Assert.Equal(string.Empty, query.Query);
+        Assert.Null(query.GetXPathQuery());
+        Assert.False(query.SetQuery("$value", "value:Unknown", bind: false));
+        Assert.Equal(string.Empty, query.Query);
+    }
+
+    [Fact]
+    public void XPathQuery_result_set_variables_are_independent_snapshots()
+    {
+        var xml = new XMLFile("test.xml");
+        Assert.True(xml.FromString("<root><item id=\"1\"/><item id=\"2\"/></root>"));
+        var source = xml.Root.Select("item");
+        using var query = new XPathQuery("$items[@id='2']", "items:ResultSet");
+
+        Assert.False(query.SetVariable("items", new XPathResultSet()));
+        Assert.True(query.SetVariable("items", source));
+        source.Dispose();
+
+        var result = query.Evaluate(xml.Root);
+        Assert.Equal(1, result.Size());
+        Assert.Equal("2", result.FirstResult().GetAttribute("id"));
+    }
+
+    [Fact]
+    public void XPathQuery_bind_failure_preserves_previous_compiled_query()
+    {
+        var xml = new XMLFile("test.xml");
+        Assert.True(xml.FromString("<root><item id=\"1\"/><item id=\"2\"/></root>"));
+        using var query = new XPathQuery("item[@id='1']");
+
+        Assert.True(query.SetQuery("item[", bind: false));
+        Assert.Equal("1", query.Evaluate(xml.Root).FirstResult().GetAttribute("id"));
+        Assert.Throws<XPathException>(() => query.Bind());
+        Assert.Equal("1", query.Evaluate(xml.Root).FirstResult().GetAttribute("id"));
+        Assert.Throws<XPathException>(() => new XPathQuery("item[@id=$id]"));
     }
 
     [Fact]

@@ -170,7 +170,7 @@ public class XMLElement : ICloneable, IDisposable
 
     public XMLElement SelectSingle(string query) => Select(query).FirstResult();
 
-    public XMLElement SelectSinglePrepared(XPathQuery query) => SelectPrepared(query).FirstResult();
+    public XMLElement SelectSinglePrepared(XPathQuery query) => query.Evaluate(this).FirstResult();
 
     public XPathResultSet Select(string query)
     {
@@ -180,8 +180,7 @@ public class XMLElement : ICloneable, IDisposable
 
     public XPathResultSet SelectPrepared(XPathQuery query)
     {
-        ArgumentNullException.ThrowIfNull(query);
-        return Select(query.GetExpandedQuery());
+        return query.Evaluate(this);
     }
 
     public bool SetValue(string value)
