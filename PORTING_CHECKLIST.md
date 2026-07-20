@@ -411,7 +411,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [ ] `Microphone : Object` — recording buffer, linked stream, enable state, wake threshold, sleeping state, recording events, and queued SDL capture/device lifecycle are ported; SDL callback binding remains unavailable
 - [ ] `Audio.h`
   - [ ] `Audio : Object` — SDL audio device init, queued output, direct managed mix output, master gain types, sound source management, render-update driven mixing, native microphone enumeration, and queued microphone capture are ported; SDL callback binding remains unavailable
-  - [x] `14_SoundEffects` sample — sound effect playback, music control, volume/panning/reach/LFE, microphone controls, and ImGui controls ported; startup WAV playback verified
+  - [x] `14_SoundEffects` sample — extensible native class/method/field order, explicit construction and base startup, non-rendered scene-owned sound sources, sound effect and music playback, volume/panning/reach/LFE, microphone selection/recording/playback, shared stream ownership, reverse deterministic teardown, and Dear ImGui controls are reconciled and runtime-verified without the invented startup playback or rendered camera scene
   - [x] `29_SoundSynthesis` sample — procedural audio synthesis ported with rbfx buffering, degree-based dual oscillators (including the C++ 180-degree second-oscillator start), filter, and ImGui instructions
 
 ## B3. UI `EXCLUDED` — retained-mode UI; depends on Graphics, Resource, Input
