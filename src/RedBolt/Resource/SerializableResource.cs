@@ -1,22 +1,28 @@
 namespace RedBolt;
 
+/// <summary>Base class for serializable resource that uses Archive serialization.</summary>
 public class SerializableResource : SimpleResource
 {
     private static readonly byte[] SerializableBinaryMagic = [0, (byte)'S', (byte)'R', (byte)'L'];
+
+    /// <summary>Construct.</summary>
+    public SerializableResource()
+    {
+    }
+
     public SerializableResource(string name)
         : base(name)
     {
     }
 
-    public Serializable? Value { get; private set; }
-
-    public Serializable? GetValue() => Value;
-
-    public void SetValue(Serializable? serializable)
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
     {
-        Value = serializable;
+        _value = null;
+        base.Dispose();
     }
 
+    /// <summary>Override of SerializeInBlock.</summary>
     public override void SerializeInBlock(Archive archive)
     {
         if (archive.IsInput)
@@ -24,36 +30,49 @@ public class SerializableResource : SimpleResource
             var typeName = string.Empty;
             if (!archive.IsUnorderedAccessSupportedInCurrentBlock || archive.HasElementOrBlock("type"))
                 ArchiveSerialization.SerializeValue(archive, "type", ref typeName);
-            if (string.IsNullOrEmpty(typeName))
+            if (!string.IsNullOrEmpty(typeName))
             {
-                Value = null;
-                return;
+                using var valueBlock = archive.OpenUnorderedBlock("value");
+                _value = Context.CreateObject(new StringHash(typeName)) as Serializable;
+                if (_value is not null)
+                {
+                    _value.SerializeInBlock(archive);
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Failed to create object of type '{typeName}'.");
+                }
             }
-
-            var serializable = CreateSerializable(typeName);
-            using (archive.OpenUnorderedBlock("value"))
-                serializable.SerializeInBlock(archive);
-            Value = serializable;
         }
-        else if (Value is not null)
+        else
         {
-            var typeName = Value.GetTypeName();
-            ArchiveSerialization.SerializeValue(archive, "type", ref typeName);
-            using (archive.OpenUnorderedBlock("value"))
-                Value.SerializeInBlock(archive);
+            if (_value is not null)
+            {
+                var typeName = _value.GetTypeName();
+                ArchiveSerialization.SerializeValue(archive, "type", ref typeName);
+                using var valueBlock = archive.OpenUnorderedBlock("value");
+                _value.SerializeInBlock(archive);
+            }
         }
     }
 
+    /// <summary>Get resource value.</summary>
+    public Serializable? GetValue()
+    {
+        return _value;
+    }
+
+    /// <summary>Set value of the resource.</summary>
+    public void SetValue(Serializable? serializable)
+    {
+        _value = serializable;
+    }
+
+    /// <summary>Binary archive magic word. Should be 4 bytes.</summary>
     protected override byte[] GetBinaryMagic() => SerializableBinaryMagic;
 
+    /// <summary>Root block name. Used for XML serialization only.</summary>
     protected override string GetRootBlockName() => "serializable";
 
-    private static Serializable CreateSerializable(string typeName)
-    {
-        if (Context.Instance.CreateObject(new StringHash(typeName)) is not Serializable serializable)
-            throw new InvalidOperationException($"Failed to create object of type '{typeName}'.");
-
-        return serializable;
-    }
-
+    private Serializable? _value;
 }

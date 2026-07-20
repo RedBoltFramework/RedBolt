@@ -4,6 +4,36 @@ namespace RedBolt.Tests;
 
 public sealed class SerializableResourceTests
 {
+    [Fact]
+    public void Serializable_resource_preserves_cpp_class_kind_and_missing_value_load()
+    {
+        var previousContext = Context.Instance;
+        var context = new Context();
+        Context.SetInstance(context);
+
+        try
+        {
+            using var resource = new SerializableResource();
+            using var empty = new SerializableResource();
+            var camera = new Camera();
+            resource.SetValue(camera);
+
+            using var buffer = new MemoryStream();
+            Assert.True(empty.Save(buffer, InternalResourceFormat.Json));
+            buffer.Position = 0;
+            Assert.True(resource.Load(buffer));
+
+            Assert.True(typeof(SerializableResource).IsClass);
+            Assert.False(typeof(SerializableResource).IsSealed);
+            Assert.DoesNotContain(typeof(ICloneable), typeof(SerializableResource).GetInterfaces());
+            Assert.Same(camera, resource.GetValue());
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+    }
+
     [Theory]
     [InlineData(InternalResourceFormat.Json)]
     [InlineData(InternalResourceFormat.Xml)]
@@ -17,7 +47,7 @@ public sealed class SerializableResourceTests
 
         try
         {
-        var resource = new SerializableResource("Data/camera.serializable.json");
+        using var resource = new SerializableResource("Data/camera.serializable.json");
         var camera = new Camera();
         camera.SetFov(72.0f);
         camera.SetNearClip(0.5f);
@@ -29,7 +59,7 @@ public sealed class SerializableResourceTests
         Assert.True(resource.Save(buffer, format));
         buffer.Position = 0;
 
-        var loaded = new SerializableResource("Data/loaded.serializable.json");
+        using var loaded = new SerializableResource("Data/loaded.serializable.json");
         Assert.True(loaded.Load(buffer));
 
         var loadedCamera = Assert.IsType<Camera>(loaded.GetValue());

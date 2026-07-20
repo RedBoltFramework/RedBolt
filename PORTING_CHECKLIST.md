@@ -197,6 +197,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 - [x] `BinaryFile.h` / `BinaryFile.cpp` — extensible non-POD class kind, factory construction, owned VectorBuffer teardown, callback/archive RAII, byte-copy semantics, borrowed stream views, and reflection registration reconciled
 - [~] `Resource.h` / `Resource.cpp` — ResourceWithMetadata is fully reconciled; Resource base state and SimpleResource format selection, optional-field order, load completion, logging, and file lifetime are reconciled, while the hierarchy-wide Deserializer/Serializer, cache-construction, direct archive/VFS-file, subsystem-lookup, and struct reload-event migration remains pending
+- [~] `SerializableResource.h` / `SerializableResource.cpp` — class kind, native parameterless construction, archive state ordering, value aliasing, missing-type behavior, binary/root identity, and derived-to-base teardown reconciled; inherited Resource/SimpleResource signature and cache construction migration remains pending
 - [~] `ResourceCache.h` / `ResourceCache.cpp` — temporary-resource empty-name/null behavior and canonical VFS sanitization reconciled while auditing LightProbeGroup; complete class-wide lifetime/copy audit remains pending
 
 ## [~] A6. Scene — depends on Resource, Core
