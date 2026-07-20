@@ -1,7 +1,7 @@
 namespace RedBolt;
 
 /// <summary>Component that instantiates prefab resource into the parent Node.</summary>
-public sealed class PrefabReference : Component
+public class PrefabReference : Component
 {
     public PrefabReference()
     {
@@ -10,22 +10,35 @@ public sealed class PrefabReference : Component
             typeof(ResourceRef),
             self => ((PrefabReference)self).GetPrefabAttr(),
             (self, value) => ((PrefabReference)self).SetPrefabAttr(value is ResourceRef resourceRef ? resourceRef : ResourceRef.Empty),
-            ResourceRef.Empty,
-            AttributeMode.Default);
+            new ResourceRef(nameof(PrefabResource)),
+            AttributeMode.Default)
+            .SetScopeHint(AttributeScopeHint.Node);
         RegisterAttribute(
             "Path",
             typeof(string),
             self => ((PrefabReference)self).GetPath(),
             (self, value) => ((PrefabReference)self).SetPath(value as string ?? string.Empty),
             string.Empty,
-            AttributeMode.Default);
+            AttributeMode.Default)
+            .SetScopeHint(AttributeScopeHint.Node);
+    }
+
+    public override void Dispose()
+    {
+        RemoveInstance();
+        if (_prefab is not null)
+            _prefab.ReloadFinished -= OnPrefabReloadFinished;
+        _path = string.Empty;
+        _prefabRef = ResourceRef.Empty;
+        _prefab = null;
+        base.Dispose();
     }
 
     public static void RegisterObject(Context context)
     {
-        ArgumentNullException.ThrowIfNull(context);
         context.AddFactoryReflection<PrefabReference>(ObjectCategory.Category_Scene);
 
+        // TODO: port reflection actions.
         // URHO3D_ACTION_STATIC_LABEL("Inline", InlineConservative, "Convert prefab reference to nodes and components");
         // URHO3D_ACTION_STATIC_LABEL("Inline+", InlineAggressive, "Same as Inline. Also converts all temporary objects to persistent");
         // URHO3D_ACTION_STATIC_LABEL("Commit", CommitChanges, "Commit changes in this instance to the prefab resource");
@@ -55,12 +68,13 @@ public sealed class PrefabReference : Component
         _path = path;
 
         if (_prefab is not null)
-            _prefabRef = new ResourceRef("PrefabResource", _prefab.Name);
-        else
-            _prefabRef = ResourceRef.Empty;
-
-        if (_prefab is not null)
+        {
             _prefab.ReloadFinished += OnPrefabReloadFinished;
+            _prefabRef = new ResourceRef(nameof(PrefabResource), _prefab.Name);
+        }
+        else
+            _prefabRef = new ResourceRef(nameof(PrefabResource));
+
         if (createInstance)
             CreateInstance(false, instanceFlags);
     }
@@ -83,8 +97,8 @@ public sealed class PrefabReference : Component
         }
         else
         {
-            var cache = GetSubsystem<ResourceCache>();
-            SetPrefab(cache?.GetResourceOrNull<PrefabResource>(prefab.Name), _path, false);
+            var cache = GetSubsystem<ResourceCache>()!;
+            SetPrefab(cache.GetResourceOrNull<PrefabResource>(prefab.Name), _path, false);
         }
 
         _prefabRef = prefab;
@@ -107,7 +121,7 @@ public sealed class PrefabReference : Component
         // Other temporary components and children may be spawned by the components in prefab.
         if ((flags & PrefabInlineFlag.KeepOtherTemporary) != 0)
         {
-            var temporaryComponentIndex = 0u;
+            var temporaryComponentIndex = 0;
             foreach (var component in node.Components)
             {
                 // Break when first N temporary components are converted
@@ -122,7 +136,7 @@ public sealed class PrefabReference : Component
                 ++temporaryComponentIndex;
             }
 
-            var temporaryChildIndex = 0u;
+            var temporaryChildIndex = 0;
             foreach (var child in node.Children)
             {
                 // Break when first N temporary children are converted
@@ -155,7 +169,7 @@ public sealed class PrefabReference : Component
     {
         if (!string.IsNullOrEmpty(_path))
         {
-            // URHO3D_LOGERROR("Cannot commit changes to a prefab slice");
+            Log.GetLogger().Error("Cannot commit changes to a prefab slice");
             return;
         }
 
@@ -168,8 +182,7 @@ public sealed class PrefabReference : Component
                    newNodePrefab,
                    PrefabSaveFlag.EnumsAsStrings | PrefabSaveFlag.Prefab | PrefabSaveFlag.SaveTemporary))
         {
-            if (!Node.Save(writer))
-                return;
+            Node.Save(writer);
         }
         for (var index = newNodePrefab.Node.Attributes.Count - 1; index >= 0; --index)
             newNodePrefab.Node.Attributes[index].Dispose();
@@ -197,15 +210,13 @@ public sealed class PrefabReference : Component
 
         // Create and save resource.
         using var newResource = new PrefabResource();
-        newResource.SetName(_prefab.Name);
         var scenePrefab = newResource.GetMutableScenePrefab();
         scenePrefab.CopyFrom(_prefab.GetScenePrefab());
 
         var nodeDestination = newResource.GetMutableNodePrefab();
         nodeDestination.CopyFrom(newNodePrefab);
         newResource.NormalizeIds();
-        if (!string.IsNullOrEmpty(_prefab.GetAbsoluteFileName()))
-            newResource.SaveFile(_prefab.GetAbsoluteFileName());
+        newResource.SaveFile(_prefab.GetAbsoluteFileName());
     }
 
     public override void OnSetEnabled()
@@ -243,7 +254,7 @@ public sealed class PrefabReference : Component
                 return true;
             if (temporaryOnly && !component.IsTemporary)
                 continue;
-            if (component.GetTypeName() != componentPrefabs[index].TypeName)
+            if (component.GetTypeNameHash() != componentPrefabs[index].TypeNameHash)
                 return false;
             ++index;
         }
@@ -315,7 +326,7 @@ public sealed class PrefabReference : Component
                 node.RemoveComponent(component);
             else
             {
-                // URHO3D_LOGWARNING("PrefabReference component should not be temporary");
+                Log.GetLogger().Warning("PrefabReference component should not be temporary");
                 component.SetTemporary(false);
             }
         }
@@ -331,33 +342,9 @@ public sealed class PrefabReference : Component
         }
     }
 
-    private void RemoveInstance()
-    {
-        if (_instanceNode is not null)
-        {
-            RemoveTemporaryComponents(_instanceNode);
-            RemoveTemporaryChildren(_instanceNode);
-        }
-        _instanceNode = null;
-    }
-
-    private bool TryCreateInplace()
-    {
-        var nodePrefab = GetNodePrefab();
-        if (nodePrefab.IsEmpty() || Node is null)
-            return false;
-        if (!IsInstanceMatching(Node, nodePrefab, true))
-            return false;
-        ExportInstance(Node, nodePrefab, true);
-        return true;
-    }
-
     private void InstantiatePrefab(NodePrefab nodePrefab, PrefabInstanceFlag instanceFlags)
     {
-        if (Node is null)
-            return;
-
-        var node = Node;
+        var node = Node!;
         var flags = PrefabLoadFlag.KeepExistingComponents | PrefabLoadFlag.KeepExistingChildren
             | PrefabLoadFlag.LoadAsTemporary | PrefabLoadFlag.IgnoreRootAttributes;
         using var reader = new PrefabReaderFromMemory(nodePrefab);
@@ -383,6 +370,41 @@ public sealed class PrefabReference : Component
         }
     }
 
+    private void MarkPrefabDirty()
+    {
+        _prefabDirty = true;
+    }
+
+    /// <summary>Try to create instance without spawning any new nodes or components.</summary>
+    /// <remarks>
+    /// It may cause some nodes or components to remain if prefab is different.
+    /// So, this method is not completely reliable, but it's the best we can do.
+    /// It's the Editor only issue anyway.
+    /// </remarks>
+    private bool TryCreateInplace()
+    {
+        var nodePrefab = GetNodePrefab();
+        if (nodePrefab.IsEmpty())
+            return false;
+        if (!IsInstanceMatching(Node!, nodePrefab, true))
+            return false;
+        ExportInstance(Node!, nodePrefab, true);
+        return true;
+    }
+
+    /// <summary>Remove prefab instance. Removes all children and components except this PrefabReference.</summary>
+    private void RemoveInstance()
+    {
+        if (_instanceNode is not null)
+        {
+            RemoveTemporaryComponents(_instanceNode);
+            RemoveTemporaryChildren(_instanceNode);
+        }
+        _instanceNode = null;
+    }
+
+    /// <summary>Create prefab instance. Spawns all nodes and components in the prefab.</summary>
+    /// <remarks>Removes all existing children and components except this PrefabReference.</remarks>
     private void CreateInstance(bool tryInplace = false, PrefabInstanceFlag instanceFlags = PrefabInstanceFlag.None)
     {
         // Remove existing instance if moved to another node
@@ -395,8 +417,8 @@ public sealed class PrefabReference : Component
 
         var nodePrefab = GetNodePrefab();
         _instanceNode = Node;
-        _numInstanceComponents = (uint)nodePrefab.Components.Count;
-        _numInstanceChildren = (uint)nodePrefab.Children.Count;
+        _numInstanceComponents = nodePrefab.Components.Count;
+        _numInstanceChildren = nodePrefab.Children.Count;
 
         // Try to create inplace first
         if (tryInplace && TryCreateInplace())
@@ -407,21 +429,16 @@ public sealed class PrefabReference : Component
         InstantiatePrefab(nodePrefab, instanceFlags);
     }
 
-    private void MarkPrefabDirty()
-    {
-        _prefabDirty = true;
-    }
-
     private void OnPrefabReloadFinished(Resource resource)
     {
         CreateInstance();
     }
 
     private PrefabResource? _prefab;
-    private ResourceRef _prefabRef = ResourceRef.Empty;
+    private ResourceRef _prefabRef = new(nameof(PrefabResource));
     private string _path = string.Empty;
     private bool _prefabDirty;
     private Node? _instanceNode;
-    private uint _numInstanceComponents;
-    private uint _numInstanceChildren;
+    private int _numInstanceComponents;
+    private int _numInstanceChildren;
 }
