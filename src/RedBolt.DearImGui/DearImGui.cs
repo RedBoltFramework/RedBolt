@@ -131,10 +131,10 @@ public class DearImGui : Object
                 throw new InvalidOperationException("Not implemented");
         }
 
-        _renderer = new ImGuiDiligentRendererEx(Context);
+        _renderer = new ImGuiDiligentRendererEx(renderDevice);
 
         // Ensure that swap chain is initialized
-        _renderer.NewFrame((uint)size.X, (uint)size.Y);
+        _renderer.NewFrame();
 
         // TODO: port ImGui_ImplSDL2_UpdateMonitors when it is exposed by generated bindings.
     }
@@ -266,8 +266,7 @@ public class DearImGui : Object
 
         // TODO: port per-screen font texture allocation and TexID assignment when SharpCpp exposes ImFontAtlas.
 
-        var size = renderDevice.GetSwapChainSize();
-        _renderer!.NewFrame((uint)size.X, (uint)size.Y);
+        _renderer!.NewFrame();
         ImGui.ImGuiBackendNewFrame();
 
         ImGui.NewFrame();

@@ -798,8 +798,8 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [ ] ImGui integration helpers
 - [ ] `Widgets.h`
   - [ ] shared widget free functions
-- [ ] `ImGuiDiligentRendererEx.h`
-  - [ ] `ImGuiDiligentRendererEx`
+- [~] `ImGuiDiligentRendererEx.h`
+  - [~] `ImGuiDiligentRendererEx` — native constructor/destructor, base renderer ownership, main-viewport frame/render path, render pipelines, class shape, sizes, and failure unwinding reconciled; secondary OS-window callbacks and implicit-copy cloning remain exact `TODO: port` items because SharpCpp excludes `ImGuiPlatformIO` function-pointer fields and does not expose native `ImGuiDiligentRenderer` base copy construction
 - [~] `SystemUI.h`
   - [~] `SystemUI : Object` — class shape, lifecycle, event flow, relative mouse mode, style, rendering, and texture-reference lifetime reconciled as `DearImGui`; three font-loading overloads, per-screen font atlases/TexID assignment, monitor refresh, ImGuizmo frame start, and managed `io.UserData` remain explicit `TODO: port` items until generated bindings expose the required native APIs
 - [ ] `Console.h`
