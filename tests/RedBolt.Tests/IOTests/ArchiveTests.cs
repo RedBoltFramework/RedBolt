@@ -108,7 +108,7 @@ public sealed class ArchiveTests
         var input = new JSONInputArchive(output.ToJsonString().Replace("010203", "invalid"));
         var destination = new byte[] { 4, 5, 6 };
         using (input.OpenUnorderedBlock("Root"))
-            Assert.Throws<InvalidOperationException>(() => input.SerializeBytes("data", destination));
+            Assert.Throws<ArchiveException>(() => input.SerializeBytes("data", destination));
 
         Assert.Equal(new byte[] { 4, 5, 6 }, destination);
     }
@@ -423,7 +423,9 @@ public sealed class ArchiveTests
     {
         Assert.True(ArchiveSerialization.ConsumeArchiveException(() => { }));
         Assert.False(ArchiveSerialization.ConsumeArchiveException(
-            () => throw new InvalidOperationException("serialization failure"), false));
+            () => throw new ArchiveException("serialization failure"), false));
+        Assert.Throws<InvalidOperationException>(() => ArchiveSerialization.ConsumeArchiveException(
+            () => throw new InvalidOperationException("unrelated failure"), false));
         Assert.Throws<NotSupportedException>(() => ArchiveSerialization.ConsumeArchiveException(
             () => throw new NotSupportedException("unrelated failure"), false));
     }

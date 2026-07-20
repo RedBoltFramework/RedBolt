@@ -95,7 +95,7 @@ public sealed class Base64ArchiveTests
         archive.Serialize("value", ref value);
         archive.EndBlock();
 
-        var exception = Assert.Throws<InvalidOperationException>(() =>
+        var exception = Assert.Throws<ArchiveException>(() =>
             archive.BeginBlock("Next", ref sizeHint, false, ArchiveBlockType.Sequential));
         Assert.Contains("Root/<block guard>", exception.Message);
     }

@@ -33,7 +33,7 @@ public sealed class XMLArchiveTests
                 Assert.True(output.IsEof);
                 Assert.Equal(xmlFile.Name, output.Name);
                 Assert.Contains("value=\"2\"", output.ToXmlString());
-                Assert.Throws<InvalidOperationException>(() => output.OpenUnorderedBlock("Again"));
+                Assert.Throws<ArchiveException>(() => output.OpenUnorderedBlock("Again"));
             }
 
             using var input = new XMLInputArchive(xmlFile);

@@ -160,7 +160,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [-] `Thread.h` — **EXCLUDED** · reason: OS thread wrapper · replaced-by: `System.Threading.Thread` / TPL
 - [-] `PE.h` — **EXCLUDED** · reason: Win32 PE parsing · replaced-by: n/a (platform-specific)
 - [-] `TypeInfo.h` - **EXCLUDED** · reason: use C# type system
-- [-] `Exception.h` - **EXCLUDED** · reason: use C# `RuntimeException` / `ArgumentException` or similar.
+- [~] `Exception.h` — native `ArchiveException` type and archive exception boundaries reconciled using the standard managed exception hierarchy; remaining engine exception types use C# equivalents
 - [-] `StringUtils.h` — **EXCLUDED** · reason: string parsing and formatting utilities · replaced-by: .NET string APIs
 - [-] `Signal.h` - **EXCLUDED** · reason: use C# events
 
@@ -200,6 +200,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `SerializableResource.h` / `SerializableResource.cpp` — class kind, native parameterless construction, archive state ordering, value aliasing, missing-type behavior, binary/root identity, and derived-to-base teardown reconciled; inherited Resource/SimpleResource signature and cache construction migration remains pending
 - [~] `XMLArchive.h` / `XMLArchive.cpp` — XML base, value-reference, block, and archive class kinds; node/file aliasing; block ownership; root/EOF lifecycle; sequential traversal; and unordered attribute/child behavior reconciled, while the hierarchy-wide `Archive` size-hint `int` migration and managed compatibility surfaces remain pending
 - [~] `XMLElement.h` / `XMLElement.cpp` — extensible non-POD class kind, copy/assignment/destruction, XML file and XPath result aliases, result iteration, text/child behavior, native buffer/bounding-box formats, resource references, variant maps, and allowed `int` sizes reconciled; XPath attribute-only nodes, custom Serializable variants, and managed compatibility surfaces remain pending
+- [~] `XMLFile.h` / `XMLFile.cpp` — extensible noncopyable resource kind, document ownership/disposal, loading/inheritance, native default parsing/output, archive callbacks, patch operations, memory accounting, diagnostics, and allowed `int` sizes reconciled; inherited Resource stream compatibility, pugixml-only document semantics, and managed compatibility surfaces remain pending
 - [~] `ResourceCache.h` / `ResourceCache.cpp` — temporary-resource empty-name/null behavior and canonical VFS sanitization reconciled while auditing LightProbeGroup; complete class-wide lifetime/copy audit remains pending
 
 ## [~] A6. Scene — depends on Resource, Core

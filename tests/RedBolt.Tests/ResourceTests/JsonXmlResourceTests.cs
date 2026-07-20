@@ -1,4 +1,5 @@
 using System.Text;
+using System.Xml.Linq;
 using RedBolt;
 
 namespace RedBolt.Tests;
@@ -366,6 +367,105 @@ public sealed class JsonXmlResourceTests
             archive.Serialize("value", ref input);
         }));
         Assert.Equal(42, input);
+    }
+
+    [Fact]
+    public void XMLFile_matches_native_class_ownership_and_empty_source_behavior()
+    {
+        Assert.True(typeof(XMLFile).IsClass);
+        Assert.False(typeof(XMLFile).IsSealed);
+        Assert.DoesNotContain(typeof(ICloneable), typeof(XMLFile).GetInterfaces());
+
+        var xml = new XMLFile();
+        Assert.Equal("<?xml version=\"1.0\"?>\n", xml.ToString());
+        Assert.True(xml.FromString("<root/>"));
+        Assert.StartsWith("<?xml version=\"1.0\"?>\n<root />", xml.ToString(), StringComparison.Ordinal);
+        var memoryUse = xml.GetMemoryUse();
+        Assert.False(xml.FromString(string.Empty));
+        Assert.Equal("root", xml.GetRoot().Name);
+        xml.GetRoot().CreateChild("child");
+        Assert.Equal(memoryUse, xml.GetMemoryUse());
+        xml.Dispose();
+        Assert.Null(xml.GetDocument());
+    }
+
+    [Fact]
+    public void XMLFile_load_uses_native_default_node_set()
+    {
+        var xml = new XMLFile();
+        Assert.True(xml.FromString("<?xml version=\"1.0\"?><root>  <child/><!--comment--><?pi data?></root>"));
+        var nodes = xml.Document.Root!.Nodes().ToArray();
+        Assert.Single(nodes);
+        Assert.IsType<XElement>(nodes[0]);
+    }
+
+    [Fact]
+    public void XMLFile_archive_callbacks_only_consume_archive_exceptions()
+    {
+        var xml = new XMLFile();
+        Assert.True(xml.FromString("<old/>"));
+        Assert.False(xml.SaveObjectCallback(_ => throw new ArchiveException("archive failure")));
+        Assert.True(xml.GetRoot().IsNull);
+        Assert.Throws<ArgumentException>(() => xml.SaveObjectCallback(_ => throw new ArgumentException("user failure")));
+
+        Assert.True(xml.FromString("<root/>"));
+        Assert.False(xml.LoadObjectCallback(_ => throw new ArchiveException("archive failure")));
+        Assert.Throws<ArgumentException>(() => xml.LoadObjectCallback(_ => throw new ArgumentException("user failure")));
+    }
+
+    [Fact]
+    public void XMLFile_patch_replaces_with_first_node_and_keeps_text_kinds_separate()
+    {
+        var xml = new XMLFile();
+        Assert.True(xml.FromString("<root><![CDATA[a]]><old/></root>"));
+        var patch = new XMLFile();
+        Assert.True(patch.FromString("""
+            <patch>
+              <add sel="/root/old" pos="before">b</add>
+              <replace sel="/root/old"><first/><second/></replace>
+            </patch>
+            """));
+
+        xml.Patch(patch);
+
+        var nodes = xml.Document.Root!.Nodes().ToArray();
+        Assert.IsType<XCData>(nodes[0]);
+        Assert.IsType<XText>(nodes[1]);
+        Assert.Equal("first", Assert.IsType<XElement>(nodes[2]).Name.LocalName);
+        Assert.False(xml.Root.HasChild("second"));
+    }
+
+    [Fact]
+    public void XMLFile_inherit_patches_independent_document()
+    {
+        var tempDir = CreateTempDir();
+        var id = Guid.NewGuid().ToString("N");
+        var baseName = $"Data/{id}-base.xml";
+        var patchName = $"Data/{id}-patch.xml";
+        try
+        {
+            System.IO.File.WriteAllText(Path.Combine(tempDir, baseName), "<root><base/></root>");
+            System.IO.File.WriteAllText(Path.Combine(tempDir, patchName),
+                $"<patch inherit=\"{baseName}\"><add sel=\"/root\"><added/></add></patch>");
+            Resources.AddResourceDir(tempDir);
+
+            var patched = Resources.GetResourceOrNull<XMLFile>(patchName);
+            var original = Resources.GetResourceOrNull<XMLFile>(baseName);
+
+            Assert.NotNull(patched);
+            Assert.NotNull(original);
+            Assert.True(patched.Root.HasChild("base"));
+            Assert.True(patched.Root.HasChild("added"));
+            Assert.True(original.Root.HasChild("base"));
+            Assert.False(original.Root.HasChild("added"));
+        }
+        finally
+        {
+            Resources.ReleaseResource<XMLFile>(patchName);
+            Resources.ReleaseResource<XMLFile>(baseName);
+            Resources.RemoveResourceDir(tempDir);
+            Directory.Delete(tempDir, recursive: true);
+        }
     }
 
     [Fact]

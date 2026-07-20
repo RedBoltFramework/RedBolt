@@ -1,15 +1,38 @@
 using System.Text;
+using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
-public sealed class XMLFile : Resource
+/// <summary>XML document resource.</summary>
+public class XMLFile : Resource
 {
+    /// <summary>Construct.</summary>
+    public XMLFile()
+    {
+        Document = new XDocument();
+    }
+
     public XMLFile(string name)
         : base(name)
     {
         Document = new XDocument();
+    }
+
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        Document = null!;
+        base.Dispose();
+    }
+
+    /// <summary>Register object factory.</summary>
+    public static void RegisterObject(Context context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        context.AddFactoryReflection<XMLFile>();
     }
 
     public XDocument Document { get; private set; }
@@ -18,11 +41,64 @@ public sealed class XMLFile : Resource
 
     public override bool BeginLoad(Stream source)
     {
-
-
         ArgumentNullException.ThrowIfNull(source);
+        var dataSize = source.CanSeek ? checked((int)(source.Length - source.Position)) : -1;
+        if (dataSize == 0 && !string.IsNullOrEmpty(Name))
+        {
+            Log.GetLogger().LogError("Zero sized XML data in {Name}", Name);
+            return false;
+        }
+
         using var reader = new StreamReader(source, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
-        return FromString(reader.ReadToEnd());
+        var text = reader.ReadToEnd();
+        try
+        {
+            Document = XDocument.Parse(text);
+            Document.Declaration = null;
+            foreach (var node in Document.DescendantNodes()
+                         .Where(static node => node is XComment or XProcessingInstruction or XDocumentType)
+                         .ToArray())
+                node.Remove();
+        }
+        catch (System.Xml.XmlException)
+        {
+            Log.GetLogger().LogError("Could not parse XML data from {Name}", Name);
+            Document = new XDocument();
+            return false;
+        }
+
+        var rootElement = GetRoot();
+        var inherit = rootElement.GetAttribute("inherit");
+        if (!string.IsNullOrEmpty(inherit))
+        {
+            // The existence of this attribute indicates this is an RFC 5261 patch file
+            var cache = GetSubsystem<ResourceCache>()!;
+            // If being async loaded, GetResource() is not safe, so use GetTempResource() instead
+            var inheritedXmlFile = GetAsyncLoadState() == AsyncLoadState.Done
+                ? cache.GetResourceOrNull<XMLFile>(inherit)
+                : cache.GetTempResource<XMLFile>(inherit);
+            if (inheritedXmlFile is null)
+            {
+                Log.GetLogger().LogError("Could not find inherited XML file: {Inherit}", inherit);
+                return false;
+            }
+
+            // Patch this XMLFile and leave the original inherited XMLFile as it is
+            var patchDocument = Document;
+            Document = new XDocument(inheritedXmlFile.Document);
+            Patch(rootElement);
+            GC.KeepAlive(patchDocument);
+
+            // Store resource dependencies so we know when to reload/repatch when the inherited resource changes
+            cache.StoreResourceDependency(this, inherit);
+
+            // Approximate patched data size
+            dataSize = (dataSize >= 0 ? dataSize : Encoding.UTF8.GetByteCount(text)) + inheritedXmlFile.GetMemoryUse();
+        }
+
+        // Note: this probably does not reflect internal data structure size accurately
+        SetMemoryUse(dataSize >= 0 ? dataSize : Encoding.UTF8.GetByteCount(text));
+        return true;
     }
 
     public XMLElement CreateRoot(string name)
@@ -30,24 +106,16 @@ public sealed class XMLFile : Resource
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var root = new XElement(name);
         Document = new XDocument(root);
-        RefreshMemoryUse();
         return new XMLElement(this, root);
     }
 
     public bool FromString(string source)
     {
-        try
-        {
-            Document = XDocument.Parse(source, LoadOptions.PreserveWhitespace);
-            RefreshMemoryUse();
-            return true;
-        }
-        catch (System.Xml.XmlException)
-        {
-            Document = new XDocument();
-            MemoryUse = 0;
+        if (source.Length == 0)
             return false;
-        }
+
+        using var buffer = new MemoryStream(Encoding.UTF8.GetBytes(source));
+        return Load(buffer);
     }
 
     public XDocument GetDocument() => Document;
@@ -62,7 +130,12 @@ public sealed class XMLFile : Resource
     public XMLElement GetOrCreateRoot(string name)
     {
         var root = GetRoot(name);
-        return root.NotNull ? root : CreateRoot(name);
+        if (root.NotNull)
+            return root;
+        root = GetRoot();
+        if (root.NotNull)
+            Log.GetLogger().LogWarning("XMLFile already has root {Root}, deleting it and creating root {Name}", root.Name, name);
+        return CreateRoot(name);
     }
 
     public override bool Save(Stream destination)
@@ -86,14 +159,15 @@ public sealed class XMLFile : Resource
         ArgumentNullException.ThrowIfNull(serializeValue);
         try
         {
-            var archive = new XMLOutputArchive(Context.Instance);
+            Document.RemoveNodes();
+            using var archive = new XMLOutputArchive(this);
             serializeValue(archive);
-            archive.Flush();
-            return FromString(archive.ToXmlString());
+            return true;
         }
-        catch
+        catch (ArchiveException exception)
         {
-            Document = new XDocument();
+            Document.RemoveNodes();
+            Log.GetLogger().LogError(exception, "Failed to save object to XML");
             return false;
         }
     }
@@ -103,13 +177,13 @@ public sealed class XMLFile : Resource
         ArgumentNullException.ThrowIfNull(serializeValue);
         try
         {
-            var archive = new XMLInputArchive(Context.Instance, Document.Root ?? throw new InvalidOperationException("XML root is missing."));
+            using var archive = new XMLInputArchive(this);
             serializeValue(archive);
-            archive.Flush();
             return true;
         }
-        catch
+        catch (ArchiveException exception)
         {
+            Log.GetLogger().LogError(exception, "Failed to load object from XML");
             return false;
         }
     }
@@ -128,25 +202,42 @@ public sealed class XMLFile : Resource
     {
         ArgumentNullException.ThrowIfNull(patchElement);
         if (Document.Root is null || patchElement.Element is null) return;
-        foreach (var patch in patchElement.Element.Elements().ToArray())
+        foreach (var patch in patchElement.Element.Elements())
         {
             var selection = patch.Attribute("sel")?.Value;
-            if (string.IsNullOrWhiteSpace(selection)) continue;
+            if (string.IsNullOrEmpty(selection))
+            {
+                Log.GetLogger().LogError("XML Patch failed due to node not having a sel attribute.");
+                continue;
+            }
             var selected = Document.XPathEvaluate(selection);
-            var original = selected is IEnumerable<object> objects ? objects.FirstOrDefault() : selected;
+            var original = selected is IEnumerable<object> objects ? objects.FirstOrDefault() : null;
+            if (original is null)
+            {
+                Log.GetLogger().LogError("XML Patch failed with bad select: {Selection}.", selection);
+                continue;
+            }
             switch (patch.Name.LocalName)
             {
                 case "add": PatchAdd(patch, original); break;
                 case "replace": PatchReplace(patch, original); break;
                 case "remove": PatchRemove(original); break;
+                default:
+                    Log.GetLogger().LogError("XMLFiles used for patching should only use 'add', 'replace' or 'remove' elements.");
+                    break;
             }
         }
-        RefreshMemoryUse();
     }
 
-    private static void PatchAdd(XElement patch, object? original)
+    private void PatchAdd(XElement patch, object? original)
     {
-        if (original is not XElement element) return;
+        if (original is XAttribute attribute)
+        {
+            Log.GetLogger().LogError("XML Patch failed calling Add due to not selecting a node, {Attribute} attribute was selected.", attribute.Name.LocalName);
+            return;
+        }
+        if (original is not XElement element)
+            return;
         var type = patch.Attribute("type")?.Value;
         if (string.IsNullOrEmpty(type))
         {
@@ -155,12 +246,10 @@ public sealed class XMLFile : Resource
         }
 
         if (type.StartsWith('@'))
-        {
-            element.SetAttributeValue(type[1..], patch.Value);
-        }
+            AddAttribute(patch, element);
     }
 
-    private static void AddNode(XElement patch, XElement original)
+    private void AddNode(XElement patch, XElement original)
     {
         var nodes = patch.Nodes().ToArray();
         switch (patch.Attribute("pos")?.Value)
@@ -192,32 +281,51 @@ public sealed class XMLFile : Resource
         }
     }
 
-    private static bool CombineText(XNode? patch, XNode? original, bool prepend)
+    private void AddAttribute(XElement patch, XElement original)
     {
-        if (patch is XText patchText && original is XText originalText)
+        var attribute = patch.Attribute("type");
+        if (patch.FirstNode is null)
         {
-            originalText.Value = prepend ? patchText.Value + originalText.Value : originalText.Value + patchText.Value;
-            return true;
+            Log.GetLogger().LogError("XML Patch failed calling Add due to attempting to add non text to an attribute for {Attribute}.", attribute?.Value);
+            return;
         }
 
+        var name = attribute!.Value[1..];
+        original.Add(new XAttribute(name, patch.Value));
+    }
+
+    private bool CombineText(XNode? patch, XNode? original, bool prepend)
+    {
         if (patch is XCData patchCdata && original is XCData originalCdata)
         {
             originalCdata.Value = prepend ? patchCdata.Value + originalCdata.Value : originalCdata.Value + patchCdata.Value;
             return true;
         }
 
+        if (patch is XText patchText && patch is not XCData && original is XText originalText && original is not XCData)
+        {
+            originalText.Value = prepend ? patchText.Value + originalText.Value : originalText.Value + patchText.Value;
+            return true;
+        }
+
         return false;
     }
 
-    private static void PatchReplace(XElement patch, object? original)
+    private void PatchReplace(XElement patch, object? original)
     {
-        if (original is XElement element)
-            element.ReplaceWith(patch.Nodes().Select(CloneNode));
+        if (original is XNode node)
+        {
+            var replacement = patch.FirstNode;
+            if (replacement is not null)
+                node.ReplaceWith(CloneNode(replacement));
+            else
+                node.Remove();
+        }
         else if (original is XAttribute attribute)
             attribute.Value = patch.Value;
     }
 
-    private static void PatchRemove(object? original)
+    private void PatchRemove(object? original)
     {
         if (original is XNode node) node.Remove();
         else if (original is XAttribute attribute) attribute.Remove();
@@ -229,6 +337,7 @@ public sealed class XMLFile : Resource
         XCData cdata => new XCData(cdata.Value),
         XText text => new XText(text.Value),
         XComment comment => new XComment(comment.Value),
+        XProcessingInstruction instruction => new XProcessingInstruction(instruction.Target, instruction.Data),
         _ => new XText(node.ToString())
     };
 
@@ -236,16 +345,23 @@ public sealed class XMLFile : Resource
 
     public string ToString(string indentation)
     {
+        var result = new StringBuilder("<?xml version=\"1.0\"?>\n");
         if (Document.Root is null)
-            return string.Empty;
+            return result.ToString();
 
-        return string.IsNullOrEmpty(indentation)
-            ? Document.ToString(SaveOptions.DisableFormatting)
-            : Document.ToString();
+        var settings = new XmlWriterSettings
+        {
+            OmitXmlDeclaration = true,
+            Indent = true,
+            IndentChars = indentation,
+            NewLineChars = "\n",
+            NewLineHandling = NewLineHandling.None
+        };
+        using (var writer = XmlWriter.Create(result, settings))
+            Document.Save(writer);
+        if (result[^1] != '\n')
+            result.Append('\n');
+        return result.ToString();
     }
 
-    internal void RefreshMemoryUse()
-    {
-        MemoryUse = Encoding.UTF8.GetByteCount(ToString());
-    }
 }

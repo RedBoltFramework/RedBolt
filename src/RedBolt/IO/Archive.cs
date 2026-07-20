@@ -146,12 +146,12 @@ public abstract class ArchiveBase : Archive
         return version;
     }
 
-    public InvalidOperationException IoFailureException(string elementName) => new($"Unspecified I/O failure before '{CurrentBlockPath}/{elementName}'");
-    public InvalidOperationException DuplicateElementException(string elementName) => new($"'{CurrentBlockPath}/{elementName}' is serialized several times");
-    public InvalidOperationException ElementNotFoundException(string elementName) => new($"'{CurrentBlockPath}/{elementName}' is not found");
-    public InvalidOperationException ElementNotFoundException(string elementName, uint elementIndex) => new($"'{CurrentBlockPath}/{elementName}#{elementIndex}' is not found");
-    public InvalidOperationException UnexpectedElementValueException(string elementName) => new($"'{CurrentBlockPath}/{elementName}' has unexpected type");
-    public InvalidOperationException UnexpectedEofException(string elementName) => new($"Unexpected end of file before '{CurrentBlockPath}/{elementName}'");
+    public ArchiveException IoFailureException(string elementName) => new($"Unspecified I/O failure before '{CurrentBlockPath}/{elementName}'");
+    public ArchiveException DuplicateElementException(string elementName) => new($"'{CurrentBlockPath}/{elementName}' is serialized several times");
+    public ArchiveException ElementNotFoundException(string elementName) => new($"'{CurrentBlockPath}/{elementName}' is not found");
+    public ArchiveException ElementNotFoundException(string elementName, uint elementIndex) => new($"'{CurrentBlockPath}/{elementName}#{elementIndex}' is not found");
+    public ArchiveException UnexpectedElementValueException(string elementName) => new($"'{CurrentBlockPath}/{elementName}' has unexpected type");
+    public ArchiveException UnexpectedEofException(string elementName) => new($"Unexpected end of file before '{CurrentBlockPath}/{elementName}'");
 
     protected ArchiveBase(Context context)
     {

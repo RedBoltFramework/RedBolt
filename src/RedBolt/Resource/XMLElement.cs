@@ -83,7 +83,6 @@ public class XMLElement : ICloneable, IDisposable
             return;
 
         _element.Name = name;
-        NotifyChanged();
     }
 
     public XMLElement CreateChild(string name)
@@ -94,7 +93,6 @@ public class XMLElement : ICloneable, IDisposable
 
         var child = new XElement(name);
         _element.Add(child);
-        NotifyChanged();
         return new XMLElement(_file, child);
     }
 
@@ -112,8 +110,6 @@ public class XMLElement : ICloneable, IDisposable
 
         var child = asCopy ? new XElement(other._element) : other._element;
         _element.Add(child);
-        NotifyChanged();
-        other._file?.RefreshMemoryUse();
         return true;
     }
 
@@ -123,7 +119,6 @@ public class XMLElement : ICloneable, IDisposable
             return false;
 
         _element.Remove();
-        NotifyChanged();
         return true;
     }
 
@@ -134,7 +129,6 @@ public class XMLElement : ICloneable, IDisposable
             return false;
 
         child._element.Remove();
-        NotifyChanged();
         return true;
     }
 
@@ -160,7 +154,6 @@ public class XMLElement : ICloneable, IDisposable
             child.Remove();
         }
 
-        NotifyChanged();
         return true;
     }
 
@@ -172,7 +165,6 @@ public class XMLElement : ICloneable, IDisposable
             return false;
 
         attribute.Remove();
-        NotifyChanged();
         return true;
     }
 
@@ -202,13 +194,11 @@ public class XMLElement : ICloneable, IDisposable
             if (node is XText text && node is not XCData)
             {
                 text.Value = value;
-                NotifyChanged();
                 return true;
             }
         }
 
         _element.Add(new XText(value));
-        NotifyChanged();
         return true;
     }
 
@@ -219,7 +209,6 @@ public class XMLElement : ICloneable, IDisposable
             return false;
 
         _element.SetAttributeValue(name, value ?? string.Empty);
-        NotifyChanged();
         return true;
     }
 
@@ -723,5 +712,4 @@ public class XMLElement : ICloneable, IDisposable
         return parsed.Length >= 4 ? new Vector4f(parsed[0], parsed[1], parsed[2], parsed[3]) : Vector4f.Zero;
     }
 
-    private void NotifyChanged() => _file?.RefreshMemoryUse();
 }

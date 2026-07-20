@@ -880,7 +880,7 @@ public static partial class ArchiveSerialization
             action();
             return true;
         }
-        catch (InvalidOperationException exception)
+        catch (ArchiveException exception)
         {
             if (errorOnException)
                 Log.GetLogger().LogError("Serialization error: {Message}", exception.Message);
