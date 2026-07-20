@@ -696,6 +696,9 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
         return VariantType.None;
     }
 
+    /// <summary>Empty variant.</summary>
+    public static readonly Variant Empty = new();
+
     public Variant Convert(VariantType targetType)
     {
         if (targetType == _type)

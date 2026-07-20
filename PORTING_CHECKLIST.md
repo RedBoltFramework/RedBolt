@@ -196,7 +196,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 ## [x] A5. Resource — depends on IO, Core
 
 - [x] `BinaryFile.h` / `BinaryFile.cpp` — extensible non-POD class kind, factory construction, owned VectorBuffer teardown, callback/archive RAII, byte-copy semantics, borrowed stream views, and reflection registration reconciled
-- [~] `Resource.h` / `Resource.cpp` — concrete Resource and ResourceWithMetadata class kinds and public constructor access synchronized; complete class-wide lifetime/copy audits remain pending
+- [~] `Resource.h` / `Resource.cpp` — ResourceWithMetadata class kind, full member/body order, StringHash-keyed metadata ownership, independent Variant insertion/replacement/copy, borrowed lookup, XML/JSON serialization, and reverse deterministic teardown reconciled; the base Resource class-wide lifetime/copy audit remains pending
 - [~] `ResourceCache.h` / `ResourceCache.cpp` — temporary-resource empty-name/null behavior and canonical VFS sanitization reconciled while auditing LightProbeGroup; complete class-wide lifetime/copy audit remains pending
 
 ## [~] A6. Scene — depends on Resource, Core

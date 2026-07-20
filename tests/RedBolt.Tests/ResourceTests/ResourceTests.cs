@@ -5,6 +5,35 @@ namespace RedBolt.Tests;
 public sealed class ResourceTests
 {
     [Fact]
+    public void Resource_with_metadata_preserves_cpp_class_kind()
+    {
+        Assert.True(typeof(ResourceWithMetadata).IsClass);
+        Assert.False(typeof(ResourceWithMetadata).IsSealed);
+        Assert.DoesNotContain(typeof(ICloneable), typeof(ResourceWithMetadata).GetInterfaces());
+    }
+
+    [Fact]
+    public void Resource_metadata_copies_owned_variant_values()
+    {
+        using var source = new MetadataResource();
+        using var copy = new MetadataResource();
+        using var value = new Variant(new byte[] { 1, 2, 3 });
+
+        source.AddMetadata("Buffer", value);
+        value.GetBuffer()[0] = 9;
+        copy.CopyMetadata(source);
+        source.GetMetadata("Buffer").GetBuffer()[0] = 8;
+        source.CopyMetadata(source);
+
+        Assert.Equal(8, source.GetMetadata("Buffer").GetBuffer()[0]);
+        Assert.Equal(1, copy.GetMetadata("Buffer").GetBuffer()[0]);
+
+        source.RemoveMetadata("Buffer");
+        Assert.True(source.GetMetadata("Buffer").IsEmpty);
+        Assert.Equal(1, copy.GetMetadata("Buffer").GetBuffer()[0]);
+    }
+
+    [Fact]
     public void Failed_load_restores_done_state()
     {
         var resource = new FailingResource();
