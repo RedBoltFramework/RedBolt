@@ -2,7 +2,7 @@ namespace RedBolt;
 
 public enum AutoRemoveMode { Disabled, Component, Node }
 
-public abstract class Component : Animatable
+public abstract class Component : Serializable
 {
     private bool _enabled = true;
     private Node? _node;

@@ -28,7 +28,7 @@ public sealed class PrefabTests
     [Fact]
     public void Animatable_registers_object_animation_resource_attribute()
     {
-        var animatable = new Animatable();
+        var animatable = new TestAnimatable();
 
         var value = Assert.IsType<ResourceRef>(animatable.GetAttribute("Object Animation"));
 

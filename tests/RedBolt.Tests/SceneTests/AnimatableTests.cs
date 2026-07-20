@@ -2,53 +2,100 @@ using RedBolt;
 
 namespace RedBolt.Tests;
 
+internal sealed class TestAnimatable : Animatable
+{
+    public TestAnimatable()
+    {
+        RegisterAttribute(
+            "Value",
+            typeof(float),
+            self => ((TestAnimatable)self).Value,
+            (self, value) => ((TestAnimatable)self).Value = value is float typedValue ? typedValue : 0.0f,
+            0.0f);
+    }
+
+    public float Value { get; private set; }
+
+    public int AddedCount { get; private set; }
+
+    public int RemovedCount { get; private set; }
+
+    public void Update(float timeStep)
+    {
+        UpdateAttributeAnimations(timeStep);
+    }
+
+    protected override void OnAttributeAnimationAdded()
+    {
+        ++AddedCount;
+    }
+
+    protected override void OnAttributeAnimationRemoved()
+    {
+        ++RemovedCount;
+    }
+}
+
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class AnimatableTests
 {
     [Fact]
-    public void Node_attribute_animation_time_works()
+    public void Class_kinds_and_bases_match_rbfx()
     {
-        var scene = new Scene();
-        var node = scene.CreateChild("Animated");
-        var animation = new ValueAnimation("Animations/NodePosition");
-        animation.SetKeyFrame(0.0f, new Vector3f(0.0f, 0.0f, 0.0f));
-        animation.SetKeyFrame(1.0f, new Vector3f(10.0f, 0.0f, 0.0f));
-
-        node.SetAttributeAnimation("Position", animation);
-        node.SetAnimationTime(0.5f);
-
-        Assert.True(node.Position.ApproximatelyEquivalent(new Vector3f(5.0f, 0.0f, 0.0f)));
-        Assert.Same(animation, node.GetAttributeAnimation("Position"));
+        Assert.True(typeof(Animatable).IsAbstract);
+        Assert.False(typeof(AttributeAnimationInfo).IsValueType);
+        Assert.Equal(typeof(Serializable), typeof(Node).BaseType);
+        Assert.Equal(typeof(Serializable), typeof(Component).BaseType);
     }
 
     [Fact]
-    public void Component_attribute_animation_time_works()
+    public void Attribute_animation_time_works()
     {
-        var scene = new Scene();
-        var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
-        var animation = new ValueAnimation("Animations/Fov");
-        animation.SetKeyFrame(0.0f, 45.0f);
-        animation.SetKeyFrame(1.0f, 90.0f);
+        var animatable = new TestAnimatable();
+        var animation = new ValueAnimation("Animations/Value");
+        animation.SetKeyFrame(0.0f, 0.0f);
+        animation.SetKeyFrame(1.0f, 10.0f);
 
-        camera.SetAttributeAnimation("FOV", animation, WrapMode.Clamp, 2.0f);
-        camera.SetAttributeAnimationTime("FOV", 0.5f);
+        animatable.SetAttributeAnimation("Value", animation);
+        animatable.SetAnimationTime(0.5f);
 
-        Assert.True(MathDefs.Equals(camera.GetFov(), 67.5f));
-        Assert.Equal(WrapMode.Clamp, camera.GetAttributeAnimationWrapMode("FOV"));
-        Assert.True(MathDefs.Equals(camera.GetAttributeAnimationSpeed("FOV"), 2.0f));
+        Assert.True(MathDefs.Equals(animatable.Value, 5.0f));
+        Assert.Same(animation, animatable.GetAttributeAnimation("Value"));
+        Assert.Equal(1, animatable.AddedCount);
     }
 
     [Fact]
-    public void Attribute_animation_can_be_removed()
+    public void Once_attribute_animation_is_removed_when_finished()
     {
-        var node = new Scene().CreateChild("Animated");
-        var animation = new ValueAnimation("Animations/NodePosition");
-        animation.SetKeyFrame(0.0f, new Vector3f(0.0f, 0.0f, 0.0f));
-        animation.SetKeyFrame(1.0f, new Vector3f(1.0f, 0.0f, 0.0f));
+        var animatable = new TestAnimatable();
+        var animation = new ValueAnimation("Animations/Value");
+        animation.SetKeyFrame(0.0f, 0.0f);
+        animation.SetKeyFrame(1.0f, 10.0f);
 
-        node.SetAttributeAnimation("Position", animation);
-        node.RemoveAttributeAnimation("Position");
+        animatable.SetAttributeAnimation("Value", animation, WrapMode.Once);
+        animatable.Update(1.0f);
 
-        Assert.Null(node.GetAttributeAnimation("Position"));
+        Assert.Null(animatable.GetAttributeAnimation("Value"));
+        Assert.Equal(1, animatable.RemovedCount);
+    }
+
+    [Fact]
+    public void Attribute_animation_copy_resets_time_and_keeps_target_and_configuration()
+    {
+        var animatable = new TestAnimatable();
+        var animation = new ValueAnimation("Animations/Value");
+        animation.SetKeyFrame(0.0f, 0.0f);
+        animation.SetKeyFrame(1.0f, 10.0f);
+        var info = new AttributeAnimationInfo(animatable, animatable.GetAttributes()[1], animation, WrapMode.Clamp, 2.0f);
+        info.SetTime(0.5f);
+
+        var clone = Assert.IsType<AttributeAnimationInfo>(info.Clone());
+
+        Assert.Same(animatable, clone.GetTarget());
+        Assert.Same(animation, clone.GetAnimation());
+        Assert.Same(info.GetAttributeInfo(), clone.GetAttributeInfo());
+        Assert.Equal(WrapMode.Clamp, clone.GetWrapMode());
+        Assert.True(MathDefs.Equals(clone.GetSpeed(), 2.0f));
+        Assert.True(MathDefs.Equals(clone.GetTime(), 0.0f));
     }
 }

@@ -1,6 +1,6 @@
 namespace RedBolt;
 
-public sealed class Node : Animatable
+public sealed class Node : Serializable
 {
     private Matrix3x4 _worldTransform = Matrix3x4.Identity;
     private bool _dirty;

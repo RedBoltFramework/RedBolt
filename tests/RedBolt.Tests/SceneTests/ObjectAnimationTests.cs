@@ -49,22 +49,22 @@ public sealed class ObjectAnimationTests
     [Fact]
     public void Animatable_applies_object_animation()
     {
-        var node = new Scene().CreateChild("Animated");
-        var animation = new ValueAnimation("Animations/Position");
-        animation.SetKeyFrame(0.0f, new Vector3f(0.0f, 0.0f, 0.0f));
-        animation.SetKeyFrame(1.0f, new Vector3f(10.0f, 0.0f, 0.0f));
+        var animatable = new TestAnimatable();
+        var animation = new ValueAnimation("Animations/Value");
+        animation.SetKeyFrame(0.0f, 0.0f);
+        animation.SetKeyFrame(1.0f, 10.0f);
         var objectAnimation = new ObjectAnimation("Animations/Object");
-        objectAnimation.AddAttributeAnimation("Position", animation);
+        objectAnimation.AddAttributeAnimation("Value", animation);
 
-        node.SetObjectAnimation(objectAnimation);
-        node.SetAnimationTime(0.5f);
+        animatable.SetObjectAnimation(objectAnimation);
+        animatable.SetAnimationTime(0.5f);
 
-        Assert.True(node.Position.ApproximatelyEquivalent(new Vector3f(5.0f, 0.0f, 0.0f)));
-        Assert.Same(objectAnimation, node.GetObjectAnimation());
+        Assert.True(MathDefs.Equals(animatable.Value, 5.0f));
+        Assert.Same(objectAnimation, animatable.GetObjectAnimation());
 
-        node.RemoveObjectAnimation();
-        Assert.Null(node.GetObjectAnimation());
-        Assert.Null(node.GetAttributeAnimation("Position"));
+        animatable.RemoveObjectAnimation();
+        Assert.Null(animatable.GetObjectAnimation());
+        Assert.Null(animatable.GetAttributeAnimation("Value"));
     }
 
     [Fact]

@@ -1026,8 +1026,6 @@ public sealed class Scene : Serializable
                     TimeStep = effectiveTimeStep
                 };
                 SendEvent(ref attributeAnimationUpdateEvent);
-                UpdateAttributeAnimations(effectiveTimeStep);
-
                 var subsystemUpdateEvent = new SceneEvents.SceneSubsystemUpdateEvent
                 {
                     Scene = this,
@@ -1204,31 +1202,6 @@ public sealed class Scene : Serializable
                 foreach (var child in node.GetChildren())
                     UpdateNodeWorldOrigin(child, offset);
                 break;
-        }
-    }
-
-    private void UpdateAttributeAnimations(float timeStep)
-    {
-        var nodeSnapshot = SnapshotValues(_nodes);
-        try
-        {
-            for (var i = 0; i < nodeSnapshot.Count; ++i)
-                nodeSnapshot.Array[i]!.ApplyAttributeAnimations(timeStep);
-        }
-        finally
-        {
-            nodeSnapshot.Dispose();
-        }
-
-        var componentSnapshot = SnapshotValues(_components);
-        try
-        {
-            for (var i = 0; i < componentSnapshot.Count; ++i)
-                componentSnapshot.Array[i]!.ApplyAttributeAnimations(timeStep);
-        }
-        finally
-        {
-            componentSnapshot.Dispose();
         }
     }
 
