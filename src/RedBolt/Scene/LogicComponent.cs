@@ -1,8 +1,15 @@
+using System.Reflection;
+
 namespace RedBolt;
 
 /// <summary>Helper base class for user-defined game logic components that hooks up to update events and forwards them to virtual functions similar to ScriptInstance class.</summary>
 public class LogicComponent : Component
 {
+    private delegate void SceneUpdateHandler(float timeStep);
+
+    private static readonly MethodInfo SubscribeToSceneUpdateEventMethod = typeof(LogicComponent).GetMethod(
+        nameof(SubscribeToSceneUpdateEventCore), BindingFlags.Instance | BindingFlags.NonPublic)!;
+
     private UpdateEvent _updateEventMask;
     private UpdateEvent _currentEventMask;
     private bool _delayedStartCalled;
@@ -69,8 +76,11 @@ public class LogicComponent : Component
     {
     }
 
-    // TODO: port virtual StringHash GetUpdateEvent() const;
-    // TODO: port virtual StringHash GetPostUpdateEvent() const;
+    /// <summary>Return update event type. Should stay the same for any given instance of the component. DelayedStart is invoked before the first update event of this type.</summary>
+    public virtual Type GetUpdateEvent() => typeof(SceneEvents.SceneUpdateEvent);
+
+    /// <summary>Return post update event type. Should stay the same for any given instance of the component.</summary>
+    public virtual Type GetPostUpdateEvent() => typeof(SceneEvents.ScenePostUpdateEvent);
 
     /// <summary>Set what update events should be subscribed to. Use this for optimization: by default all are in use. Note that this is not an attribute and is not saved or network-serialized, therefore it should always be called eg. in the subclass constructor.</summary>
     public void SetUpdateEventMask(UpdateEvent mask)
@@ -126,7 +136,7 @@ public class LogicComponent : Component
         var needSubscription = enabled && (((_updateEventMask & UpdateEvent.UseUpdate) != 0) || !_delayedStartCalled);
         if (needSubscription && !hasSubscription)
         {
-            _updateSubscription = SubscribeToEvent<SceneEvents.SceneUpdateEvent>(scene, HandleSceneUpdate);
+            _updateSubscription = SubscribeToSceneUpdateEvent(scene, GetUpdateEvent(), HandleSceneUpdate);
             _currentEventMask |= UpdateEvent.UseUpdate;
         }
         else if (!needSubscription && hasSubscription)
@@ -140,7 +150,7 @@ public class LogicComponent : Component
         needSubscription = enabled && (_updateEventMask & UpdateEvent.UsePostUpdate) != 0;
         if (needSubscription && !hasSubscription)
         {
-            _postUpdateSubscription = SubscribeToEvent<SceneEvents.ScenePostUpdateEvent>(scene, HandleScenePostUpdate);
+            _postUpdateSubscription = SubscribeToSceneUpdateEvent(scene, GetPostUpdateEvent(), HandleScenePostUpdate);
             _currentEventMask |= UpdateEvent.UsePostUpdate;
         }
         else if (!needSubscription && hasSubscription)
@@ -179,7 +189,20 @@ public class LogicComponent : Component
         }
     }
 
-    private void HandleSceneUpdate(ref SceneEvents.SceneUpdateEvent eventData)
+    private ContextEventSubscription SubscribeToSceneUpdateEvent(
+        Scene scene, Type eventType, SceneUpdateHandler handler)
+    {
+        return (ContextEventSubscription)SubscribeToSceneUpdateEventMethod.MakeGenericMethod(eventType)
+            .Invoke(this, [scene, handler])!;
+    }
+
+    private ContextEventSubscription SubscribeToSceneUpdateEventCore<T>(Scene scene, SceneUpdateHandler handler)
+        where T : struct, SceneEvents.ISceneUpdateEvent
+    {
+        return SubscribeToEvent<T>(scene, (ref T eventData) => handler(eventData.TimeStep));
+    }
+
+    private void HandleSceneUpdate(float timeStep)
     {
         // Execute user-defined delayed start function before first update
         if (!_delayedStartCalled)
@@ -198,13 +221,13 @@ public class LogicComponent : Component
         }
 
         // Then execute user-defined update function
-        Update(eventData.TimeStep);
+        Update(timeStep);
     }
 
-    private void HandleScenePostUpdate(ref SceneEvents.ScenePostUpdateEvent eventData)
+    private void HandleScenePostUpdate(float timeStep)
     {
         // Execute user-defined post-update function
-        PostUpdate(eventData.TimeStep);
+        PostUpdate(timeStep);
     }
 
     private void HandleWorldOriginUpdate(ref SceneEvents.WorldOriginUpdateEvent eventData)

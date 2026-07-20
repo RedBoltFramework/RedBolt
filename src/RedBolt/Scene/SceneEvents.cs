@@ -2,6 +2,11 @@ namespace RedBolt;
 
 public static class SceneEvents
 {
+    public interface ISceneUpdateEvent
+    {
+        float TimeStep { get; }
+    }
+
     public struct NodeAddedEvent
     {
         public Scene Scene;
@@ -100,40 +105,52 @@ public static class SceneEvents
         public bool UpdateEnabled;
     }
 
-    public struct SceneForcedUpdateEvent
+    public struct SceneForcedUpdateEvent : ISceneUpdateEvent
     {
         public Scene Scene;
         public float TimeStep;
+
+        float ISceneUpdateEvent.TimeStep => TimeStep;
     }
 
-    public struct SceneUpdateEvent
+    public struct SceneUpdateEvent : ISceneUpdateEvent
     {
         public Scene Scene;
         public float TimeStep;
+
+        float ISceneUpdateEvent.TimeStep => TimeStep;
     }
 
-    public struct AttributeAnimationUpdateEvent
+    public struct AttributeAnimationUpdateEvent : ISceneUpdateEvent
     {
         public Scene Scene;
         public float TimeStep;
+
+        float ISceneUpdateEvent.TimeStep => TimeStep;
     }
 
-    public struct SceneSubsystemUpdateEvent
+    public struct SceneSubsystemUpdateEvent : ISceneUpdateEvent
     {
         public Scene Scene;
         public float TimeStep;
+
+        float ISceneUpdateEvent.TimeStep => TimeStep;
     }
 
-    public struct ScenePostUpdateEvent
+    public struct ScenePostUpdateEvent : ISceneUpdateEvent
     {
         public Scene Scene;
         public float TimeStep;
+
+        float ISceneUpdateEvent.TimeStep => TimeStep;
     }
 
-    public struct SceneForcedPostUpdateEvent
+    public struct SceneForcedPostUpdateEvent : ISceneUpdateEvent
     {
         public Scene Scene;
         public float TimeStep;
+
+        float ISceneUpdateEvent.TimeStep => TimeStep;
     }
 
     public struct SceneNetworkUpdateEvent
@@ -150,10 +167,12 @@ public static class SceneEvents
         public float TimeStepInput;
     }
 
-    public struct SceneDrawableUpdateFinishedEvent
+    public struct SceneDrawableUpdateFinishedEvent : ISceneUpdateEvent
     {
         public Scene Scene;
         public float TimeStep;
+
+        float ISceneUpdateEvent.TimeStep => TimeStep;
     }
 
     public struct AsyncLoadProgressEvent

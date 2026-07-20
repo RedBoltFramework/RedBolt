@@ -139,6 +139,54 @@ public sealed class LogicComponentTests
         void HandleAfter(ref SceneEvents.SceneUpdateEvent eventData) => calls.Add("After");
     }
 
+    [Fact]
+    public void Virtual_update_event_types_select_typed_struct_events()
+    {
+        using var scene = new Scene();
+        using var otherScene = new Scene();
+        var logic = scene.CreateChild("LogicNode").CreateComponent<CustomEventLogic>();
+
+        Assert.Equal(typeof(CustomUpdateEvent), logic.GetUpdateEvent());
+        Assert.Equal(typeof(CustomPostUpdateEvent), logic.GetPostUpdateEvent());
+
+        var ignoredUpdate = new CustomUpdateEvent { TimeStep = 1.0f };
+        otherScene.SendEvent(ref ignoredUpdate);
+
+        var update = new CustomUpdateEvent { TimeStep = 0.25f };
+        scene.SendEvent(ref update);
+        var postUpdate = new CustomPostUpdateEvent { TimeStep = 0.5f };
+        scene.SendEvent(ref postUpdate);
+
+        Assert.Equal(1, logic.DelayedStartCount);
+        Assert.Equal(1, logic.UpdateCount);
+        Assert.Equal(1, logic.PostUpdateCount);
+        Assert.True(MathDefs.Equals(0.25f, logic.LastUpdateTimeStep));
+        Assert.True(MathDefs.Equals(0.5f, logic.LastPostUpdateTimeStep));
+
+        scene.Update(0.1f);
+
+        Assert.Equal(1, logic.UpdateCount);
+        Assert.Equal(1, logic.PostUpdateCount);
+    }
+
+    [Fact]
+    public void Typed_custom_update_dispatch_does_not_allocate_after_warmup()
+    {
+        using var scene = new Scene();
+        scene.CreateChild("LogicNode").CreateComponent<CustomEventLogic>();
+        var update = new CustomUpdateEvent { TimeStep = 0.25f };
+
+        for (var i = 0; i < 16; ++i)
+            scene.SendEvent(ref update);
+
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 128; ++i)
+            scene.SendEvent(ref update);
+        var allocatedAfter = GC.GetAllocatedBytesForCurrentThread();
+
+        Assert.Equal(allocatedBefore, allocatedAfter);
+    }
+
     private sealed class CountingLogic : LogicComponent
     {
         public int StartCount { get; private set; }
@@ -181,5 +229,49 @@ public sealed class LogicComponentTests
         }
 
         public override void Update(float timeStep) => _calls.Add("Logic");
+    }
+
+    private struct CustomUpdateEvent : SceneEvents.ISceneUpdateEvent
+    {
+        public float TimeStep;
+
+        float SceneEvents.ISceneUpdateEvent.TimeStep => TimeStep;
+    }
+
+    private struct CustomPostUpdateEvent : SceneEvents.ISceneUpdateEvent
+    {
+        public float TimeStep;
+
+        float SceneEvents.ISceneUpdateEvent.TimeStep => TimeStep;
+    }
+
+    private sealed class CustomEventLogic : LogicComponent
+    {
+        public int DelayedStartCount { get; private set; }
+        public int UpdateCount { get; private set; }
+        public int PostUpdateCount { get; private set; }
+        public float LastUpdateTimeStep { get; private set; }
+        public float LastPostUpdateTimeStep { get; private set; }
+
+        public CustomEventLogic()
+        {
+            SetUpdateEventMask(UpdateEvent.UseUpdate | UpdateEvent.UsePostUpdate);
+        }
+
+        public override Type GetUpdateEvent() => typeof(CustomUpdateEvent);
+        public override Type GetPostUpdateEvent() => typeof(CustomPostUpdateEvent);
+        public override void DelayedStart() => ++DelayedStartCount;
+
+        public override void Update(float timeStep)
+        {
+            ++UpdateCount;
+            LastUpdateTimeStep = timeStep;
+        }
+
+        public override void PostUpdate(float timeStep)
+        {
+            ++PostUpdateCount;
+            LastPostUpdateTimeStep = timeStep;
+        }
     }
 }
