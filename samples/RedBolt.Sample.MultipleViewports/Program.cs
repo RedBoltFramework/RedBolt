@@ -157,7 +157,7 @@ public class MultipleViewports : Application
     /// </summary>
     private void CreateInstructions()
     {
-        Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
+        Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
         _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
 
         // Construct new Text object, set string to display and font to use
@@ -202,7 +202,7 @@ public class MultipleViewports : Application
     private void MoveCamera(float timeStep)
     {
         // Do not move if the UI has a focused element (the console)
-        if (GetSubsystem<DearImGui>()?.WantCaptureKeyboard == true)
+        if (ImGui.GetIO().WantCaptureKeyboard)
             return;
 
         // Toggle debug geometry with space

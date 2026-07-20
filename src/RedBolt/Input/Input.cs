@@ -407,8 +407,6 @@ public class Input : Object
         if (!Enabled || !IsInitialized || _nativeEvent is null)
             return;
 
-        var dearImGui = GetSubsystem<IDearImGuiInputSink>();
-
         while (SdlNativeBindings.SdlPollEvent(_nativeEvent) != 0)
         {
             var eventType = (SdlEventType)_nativeEvent.Type;
@@ -416,22 +414,6 @@ public class Input : Object
             SendEvent(ref rawEvent);
             if (rawEvent.Consumed)
                 continue;
-            var eventHandledByDearImGui = dearImGui?.ProcessEvent(_nativeEvent.Handle) == true;
-
-            if (eventHandledByDearImGui || ShouldConsumeEventByDearImGui(dearImGui, eventType))
-            {
-                if (eventType == SdlEventType.SdlKeydown)
-                    HandleKeyDown(_nativeEvent);
-                else if (eventType == SdlEventType.SdlKeyup)
-                    HandleKeyUp(_nativeEvent);
-                else if (eventType == SdlEventType.SdlMousebuttondown)
-                    HandleMouseButtonDown(_nativeEvent);
-                else if (eventType == SdlEventType.SdlMousebuttonup)
-                    HandleMouseButtonUp(_nativeEvent);
-                else if (eventType == SdlEventType.SdlMousemotion)
-                    HandleMouseMotion(_nativeEvent);
-                continue;
-            }
 
             if (!HasFocus && eventType == SdlEventType.SdlMousebuttondown)
             {
@@ -631,19 +613,6 @@ public class Input : Object
             SetMousePosition(backbufferPosition);
             SuppressNextMouseMove();
         }
-    }
-
-    private static bool ShouldConsumeEventByDearImGui(IDearImGuiInputSink? dearImGui, SdlEventType eventType)
-    {
-        if (dearImGui is null)
-            return false;
-
-        return eventType switch
-        {
-            SdlEventType.SdlKeydown or SdlEventType.SdlKeyup => dearImGui.WantCaptureKeyboard,
-            SdlEventType.SdlMousebuttondown or SdlEventType.SdlMousebuttonup or SdlEventType.SdlMousemotion or SdlEventType.SdlMousewheel => dearImGui.WantCaptureMouse,
-            _ => false
-        };
     }
 
     public static Key GetKeyFromName(string name)

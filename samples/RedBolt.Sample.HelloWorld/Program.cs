@@ -44,7 +44,7 @@ public class HelloWorld : Application
         // Execute base class startup
         base.Start();
 
-        Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
+        Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
 
         // Create "Hello World" Text
         CreateText();

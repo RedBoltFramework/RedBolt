@@ -1,281 +1,333 @@
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
 
 namespace RedBolt;
 
-public sealed class DearImGui : IDisposable, IDearImGuiInputSink
+public class DearImGui : Object
 {
-    private readonly Context _context;
-    private nint _imContext;
-    private ImGuiIO? _io;
-    private ImDrawData? _pendingDrawData;
-    private ImGuiDiligentRendererEx? _renderer;
-    private ContextEventSubscription? _inputEndSubscription;
-    private ContextEventSubscription? _endRenderingSubscription;
-    private bool _isFrameActive;
-    private bool _isInitialized;
+    public const float DefaultFontSize = 14.0f;
 
-    public DearImGui(Context context, uint flags = 0)
-    {
-        this._context = context ?? throw new ArgumentNullException(nameof(context));
-        Initialize(flags);
-
-        if (_isInitialized)
-            SubscribeToEvents();
-    }
-
-    public bool IsInitialized => _isInitialized;
-
-    public void Dispose()
-    {
-        Shutdown();
-    }
-
-    private void Initialize(uint flags)
+    /// <summary>Construct.</summary>
+    public DearImGui(ImGuiConfigFlags flags = 0)
     {
         _imContext = ImGui.ImGuiBackendCreateContext(0);
-        if (_imContext == 0)
-        {
-            Console.Error.WriteLine("DearImGui: failed to create ImGui context.");
-            return;
-        }
-
         SetCurrentContext();
 
-        _io = ImGui.GetIO();
-        _io.ConfigFlags = (ImGuiConfigFlags)flags;
-
-        var renderDevice = _context.GetSubsystem<RenderDevice>();
-        if (renderDevice is not null)
-        {
-            var size = renderDevice.GetSwapChainSize();
-            _io.DisplaySizeX = size.X;
-            _io.DisplaySizeY = size.Y;
-        }
+        var io = ImGui.GetIO();
+        // TODO: port io.UserData = this when generated bindings can retain a managed Object pointer as native user data.
+        // UI subsystem is responsible for managing cursors and that interferes with ImGui.
+        io.ConfigFlags |= flags;
 
         PlatformInitialize();
 
-        _isInitialized = true;
+        // Subscribe to events
+        SubscribeToEvent<InputEvents.SDLRawInputEvent>(OnRawEvent);
+        SubscribeToEvent<GraphicsEvents.ScreenModeEvent>(OnScreenMode);
+        SubscribeToEvent<InputEvents.InputBeginEvent>((ref InputEvents.InputBeginEvent _) => OnInputBegin());
+        SubscribeToEvent<InputEvents.InputEndEvent>((ref InputEvents.InputEndEvent _) => OnInputEnd());
+        SubscribeToEvent<GraphicsEvents.EndRenderingEvent>((ref GraphicsEvents.EndRenderingEvent _) => OnRenderEnd());
+        SubscribeToEvent<CoreEvents.EndFrameEvent>((ref CoreEvents.EndFrameEvent _) => ClearReferencedTextures());
+        SubscribeToEvent<GraphicsEvents.DeviceLostEvent>((ref GraphicsEvents.DeviceLostEvent _) => PlatformShutdown());
+        SubscribeToEvent<GraphicsEvents.DeviceResetEvent>((ref GraphicsEvents.DeviceResetEvent _) => PlatformInitialize());
+        SubscribeToEvent<InputEvents.MouseVisibleChangedEvent>(OnMouseVisibilityChanged);
     }
 
-    public void Shutdown()
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
     {
-        if (!_isInitialized)
-        {
-            UnsubscribeFromEvents();
+        if (_imContext == 0)
             return;
-        }
 
         SetCurrentContext();
-        if (_isFrameActive)
-        {
-            ImGui.EndFrame();
-            _pendingDrawData = null;
-            _isFrameActive = false;
-        }
-
         PlatformShutdown();
+        ImGui.ImGuiBackendDestroyContext(_imContext);
+        _imContext = 0;
+        base.Dispose();
+    }
 
-        if (_imContext != 0)
+    /// <summary>Enable or disable relative mouse movement.</summary>
+    /// <remarks>
+    /// Should be called withing ImGUI window.
+    /// Relative mouse movement is automatically disabled when all mouse buttons are released.
+    /// </remarks>
+    public void SetRelativeMouseMove(bool enabled, bool revertMousePositionOnDisable)
+    {
+        SetCurrentContext();
+        if (!enabled || !ImGui.ImGuiBackendHasCurrentWindow())
         {
-            ImGui.ImGuiBackendDestroyContext(_imContext);
-            _imContext = 0;
+            _enableRelativeMouseMove = false;
+            SdlNativeBindings.SdlSetRelativeMouseMode(SdlBool.SdlFalse);
+            return;
         }
 
-        _io = null;
-        _isInitialized = false;
+        _enableRelativeMouseMove = true;
+        SdlNativeBindings.SdlSetRelativeMouseMode(SdlBool.SdlTrue);
+
+        var io = ImGui.GetIO();
+        _revertMousePositionOnDisable = revertMousePositionOnDisable;
+        _revertMousePosition = new Vector2f(io.MousePosX, io.MousePosY);
     }
 
-    public void EndFrame()
+    /// <summary>Return relative mouse movement value.</summary>
+    public Vector2f RelativeMouseMove => _relativeMouseMove;
+
+    // TODO: port ImFont* AddFont(const ea::string& fontPath, const ImWchar* ranges = nullptr, float size = 0, bool merge = false)
+    // when SharpCpp exposes ImFontAtlas and ImFontConfig.
+    // TODO: port ImFont* AddFont(const void* data, unsigned dsize, const char* name, const ImWchar* ranges = nullptr,
+    // float size = 0, bool merge = false) when SharpCpp exposes ImFontAtlas and ImFontConfig.
+    // TODO: port ImFont* AddFontCompressed(const void* data, unsigned dsize, const char* name,
+    // const ImWchar* ranges = nullptr, float size = 0, bool merge = false) when SharpCpp exposes ImFontAtlas and ImFontConfig.
+
+    /// <summary>Apply built-in system ui style.</summary>
+    /// <param name="darkStyle">Enables dark style, otherwise it is a light style.</param>
+    /// <param name="alpha">Value between 0.0f - 1.0f.</param>
+    public void ApplyStyleDefault(bool darkStyle, float alpha)
     {
         SetCurrentContext();
-        if (!_isInitialized || !_isFrameActive)
-            return;
-
-        ImGui.Render();
-
-        var drawData = ImGui.GetDrawData();
-        _pendingDrawData = drawData.IsNull ? null : drawData;
-        _isFrameActive = false;
+        var style = ImGui.GetStyle();
+        style.ScrollbarSize = 10.0f;
+        if (darkStyle)
+            ImGui.StyleColorsDark(style);
+        else
+            ImGui.StyleColorsLight(style);
+        style.Alpha = 1.0f;
+        style.FrameRounding = 3.0f;
     }
 
-    public void Render()
+    /// <summary>Hold a reference to this texture until end of frame.</summary>
+    public void ReferenceTexture(Texture2D texture)
     {
-        SetCurrentContext();
-        if (!_isInitialized || _pendingDrawData is null || _pendingDrawData.IsNull)
-            return;
-
-        var renderDevice = _context.GetSubsystem<RenderDevice>();
-        var renderContext = renderDevice?.GetRenderContext();
-        renderContext?.SetSwapChainRenderTargets();
-        renderContext?.SetFullViewport();
-        _renderer?.RenderDrawData(_pendingDrawData);
-        _renderer?.RenderSecondaryWindows();
-        _pendingDrawData = null;
+        var textureView = texture.GetRawTexture()!.GetHandles().ShaderResourceView!;
+        _ = textureView.AddRef();
+        _referencedTextures.Add(textureView);
     }
 
-    public bool ProcessEvent(nint sdlEvent)
-    {
-        SetCurrentContext();
-        if (!_isInitialized)
-            return false;
-
-        return ImGui.ImGuiBackendProcessEvent(sdlEvent);
-    }
-
-    public bool WantCaptureKeyboard
-    {
-        get
-        {
-            if (!_isInitialized)
-                return false;
-            return _io?.WantCaptureKeyboard == true;
-        }
-    }
-
-    public bool WantCaptureMouse
-    {
-        get
-        {
-            if (!_isInitialized)
-                return false;
-            return _io?.WantCaptureMouse == true;
-        }
-    }
-
-    public void BeginFrame()
-    {
-        SetCurrentContext();
-        if (!_isInitialized)
-            return;
-
-        if (_isFrameActive)
-        {
-            ImGui.EndFrame();
-            ImGui.UpdatePlatformWindows();
-            _pendingDrawData = null;
-            _isFrameActive = false;
-        }
-
-        var io = this._io;
-        if (io is null)
-            return;
-        io.DeltaTime = _context.GetSubsystem<Time>()?.TimeStep ?? 0.0f;
-
-        var renderDevice = _context.GetSubsystem<RenderDevice>();
-        if (renderDevice == null)
-            return;
-
-        var size = renderDevice.GetSwapChainSize();
-        if (size.X <= 0 || size.Y <= 0)
-            return;
-
-        io.DisplaySizeX = size.X;
-        io.DisplaySizeY = size.Y;
-        _renderer?.NewFrame((uint)size.X, (uint)size.Y);
-
-        ImGui.ImGuiImplSDL2NewFrame();
-        ImGui.NewFrame();
-        _isFrameActive = true;
-    }
-
-    private void OnInputEnd()
-    {
-        SetCurrentContext();
-        if (!_isInitialized)
-            return;
-
-        if (_isFrameActive)
-        {
-            ImGui.EndFrame();
-            ImGui.UpdatePlatformWindows();
-            _pendingDrawData = null;
-            _isFrameActive = false;
-        }
-
-        var renderDevice = _context.GetSubsystem<RenderDevice>();
-        if (renderDevice is null)
-            return;
-
-        BeginFrame();
-    }
-
-    private void OnEndRendering()
-    {
-        SetCurrentContext();
-        if (!_isInitialized)
-            return;
-
-        if (!_isFrameActive)
-            BeginFrame();
-        if (!_isFrameActive)
-            return;
-
-        _context.SendEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>();
-        EndFrame();
-        if (!_isInitialized || _pendingDrawData is null)
-            return;
-
-        Render();
-    }
+    /// <summary>When set to true, DearImGui will not consume SDL events and they will be passed to Input and other subsystems.</summary>
+    public bool PassThroughEvents { get; set; }
 
     private void PlatformInitialize()
     {
         SetCurrentContext();
-        var renderDevice = _context.GetSubsystem<RenderDevice>();
-        if (renderDevice == null)
-            return;
+        var renderDevice = GetSubsystem<RenderDevice>()!;
+        var size = renderDevice.GetSwapChainSize();
+        ImGui.ImGuiBackendSetDisplaySize(size.X, size.Y);
 
-        var backend = renderDevice.GetBackend();
-        var input = _context.GetSubsystem<Input>();
-        if (input == null || !input.IsInitialized)
-            return;
-
-        var sdlWindow = input.GetWindowHandle();
-
-        switch (backend)
+        var sdlWindow = renderDevice.GetSDLWindow()!;
+        switch (renderDevice.GetBackend())
         {
             case RenderBackend.OpenGL:
-                ImGui.ImGuiBackendInitForOpenGL(sdlWindow, SdlNativeBindings.SdlGlGetCurrentContext());
+                ImGui.ImGuiBackendInitForOpenGL(sdlWindow.Handle, SdlNativeBindings.SdlGlGetCurrentContext());
                 break;
             case RenderBackend.Vulkan:
-                ImGui.ImGuiBackendInitForOther(sdlWindow);
+                // Diligent manages Vulkan on its own.
+                ImGui.ImGuiBackendInitForOther(sdlWindow.Handle);
                 break;
             case RenderBackend.D3D11:
             case RenderBackend.D3D12:
-                ImGui.ImGuiBackendInitForD3D(sdlWindow);
+                ImGui.ImGuiBackendInitForD3D(sdlWindow.Handle);
                 break;
+            default:
+                throw new InvalidOperationException("Not implemented");
         }
 
-        _renderer = new ImGuiDiligentRendererEx(_context);
-        var size = renderDevice.GetSwapChainSize();
-        if (size.X > 0 && size.Y > 0)
-            _renderer.NewFrame((uint)size.X, (uint)size.Y);
+        _renderer = new ImGuiDiligentRendererEx(Context);
+
+        // Ensure that swap chain is initialized
+        _renderer.NewFrame((uint)size.X, (uint)size.Y);
+
+        // TODO: port ImGui_ImplSDL2_UpdateMonitors when it is exposed by generated bindings.
     }
 
     private void PlatformShutdown()
     {
         SetCurrentContext();
+        ClearReferencedTextures();
+        ClearPerScreenFonts();
+
         _renderer?.Dispose();
         _renderer = null;
-        UnsubscribeFromEvents();
-
-        if (_imContext != 0)
-            ImGui.ImGuiImplSDL2Shutdown();
+        ImGui.ImGuiBackendShutdown();
     }
 
-    private void SubscribeToEvents()
+    private void ReallocateFontTexture()
     {
-        _inputEndSubscription = _context.SubscribeToEvent<InputEvents.InputEndEvent>((ref InputEvents.InputEndEvent _) => OnInputEnd());
-        _endRenderingSubscription = _context.SubscribeToEvent<GraphicsEvents.EndRenderingEvent>((ref GraphicsEvents.EndRenderingEvent _) => OnEndRendering());
+        // TODO: port the complete C++ body when SharpCpp exposes ImFontAtlas and its per-monitor atlas collection.
     }
 
-    private void UnsubscribeFromEvents()
+    private void ClearPerScreenFonts()
     {
-        _inputEndSubscription?.Dispose();
-        _endRenderingSubscription?.Dispose();
-        _inputEndSubscription = null;
-        _endRenderingSubscription = null;
+        for (var i = _fontTextures.Count - 1; i >= 0; --i)
+            _fontTextures[i].Dispose();
+        _fontTextures.Clear();
+        // TODO: port deletion of io.AllFonts[1..] when SharpCpp exposes ImFontAtlas and ImGuiIO::AllFonts.
+    }
+
+    // TODO: port SharedPtr<Texture2D> AllocateFontTexture(ImFontAtlas* atlas) const when SharpCpp exposes ImFontAtlas.
+
+    private void OnRawEvent(ref InputEvents.SDLRawInputEvent args)
+    {
+        SetCurrentContext();
+        var sdlEvent = SdlEvent.CreateManagedWrapper(args.SDLEvent, ownsHandle: false);
+        var eventType = (SdlEventType)sdlEvent.Type;
+        var io = ImGui.GetIO();
+
+        switch (eventType)
+        {
+            case SdlEventType.SdlMousemotion:
+                _relativeMouseMove.X += sdlEvent.MotionXrel;
+                _relativeMouseMove.Y += sdlEvent.MotionYrel;
+                break;
+            case SdlEventType.SdlFingerup:
+                io.AddMouseSourceEvent((ImGuiMouseSource)1);
+                io.AddMouseButtonEvent(0, false);
+                io.AddMousePosEvent(-1.0f, -1.0f);
+                break;
+            case SdlEventType.SdlFingerdown:
+            {
+                io.AddMouseSourceEvent((ImGuiMouseSource)1);
+                var mousePosition = new Vector2f(sdlEvent.TfingerX, sdlEvent.TfingerY);
+                // TODO: is this condition actually relevant, looks not?
+                if ((io.ConfigFlags & ImGuiConfigFlags.ImGuiConfigFlagsViewportsEnable) != 0)
+                {
+                    var window = SdlNativeBindings.SdlGetWindowFromID(sdlEvent.TfingerWindowID);
+                    SdlNativeBindings.SdlGetWindowPosition(window, out var windowX, out var windowY);
+                    SdlNativeBindings.SdlGetWindowSize(window, out var sizeX, out var sizeY);
+                    mousePosition.X = mousePosition.X * sizeX + windowX;
+                    mousePosition.Y = mousePosition.Y * sizeY + windowY;
+                }
+                io.AddMousePosEvent(mousePosition.X, mousePosition.Y);
+                io.AddMouseButtonEvent(0, true);
+                io.AddMousePosEvent(mousePosition.X, mousePosition.Y);
+                break;
+            }
+            case SdlEventType.SdlFingermotion:
+            {
+                var mousePosition = new Vector2f(sdlEvent.TfingerX, sdlEvent.TfingerY);
+                if ((io.ConfigFlags & ImGuiConfigFlags.ImGuiConfigFlagsViewportsEnable) != 0)
+                {
+                    var window = SdlNativeBindings.SdlGetWindowFromID(sdlEvent.TfingerWindowID);
+                    SdlNativeBindings.SdlGetWindowPosition(window, out var windowX, out var windowY);
+                    SdlNativeBindings.SdlGetWindowSize(window, out var sizeX, out var sizeY);
+                    mousePosition.X = mousePosition.X * sizeX + windowX;
+                    mousePosition.Y = mousePosition.Y * sizeY + windowY;
+                }
+                io.AddMouseSourceEvent((ImGuiMouseSource)1);
+                io.AddMousePosEvent(mousePosition.X, mousePosition.Y);
+                break;
+            }
+        }
+
+        // Disable mouse button press and movement events when in "relative" mode
+        // so that invisible cursor does not interact with UI widgets.
+        // Mouse button release is allowed because relative mouse mode is usually disabled on release.
+        var isRelativeMouseEventConsumed = _enableRelativeMouseMove
+            && eventType is SdlEventType.SdlMousebuttondown or SdlEventType.SdlMousemotion;
+        if (!isRelativeMouseEventConsumed)
+            ImGui.ImGuiBackendProcessEvent(args.SDLEvent);
+
+        // Consume events handled by imgui, unless explicitly told not to.
+        if (!PassThroughEvents)
+        {
+            args.Consumed = eventType switch
+            {
+                SdlEventType.SdlKeydown or SdlEventType.SdlKeyup => io.WantCaptureKeyboard,
+                SdlEventType.SdlTextinput => io.WantTextInput,
+                SdlEventType.SdlMousemotion or SdlEventType.SdlMousebuttondown or SdlEventType.SdlMousebuttonup
+                    or SdlEventType.SdlMousewheel or SdlEventType.SdlFingerdown or SdlEventType.SdlFingerup
+                    or SdlEventType.SdlFingermotion => io.WantCaptureMouse || isRelativeMouseEventConsumed,
+                _ => args.Consumed
+            };
+        }
+    }
+
+    private void OnScreenMode(ref GraphicsEvents.ScreenModeEvent args)
+    {
+        SetCurrentContext();
+        ImGui.ImGuiBackendSetDisplaySize(args.Width, args.Height);
+    }
+
+    private void OnInputBegin()
+    {
+        _relativeMouseMove = Vector2f.Zero;
+    }
+
+    private void OnInputEnd()
+    {
+        SetCurrentContext();
+        if (ImGui.ImGuiBackendIsWithinFrameScope())
+        {
+            ImGui.EndFrame();
+            ImGui.UpdatePlatformWindows();
+        }
+
+        var input = GetSubsystem<Input>()!;
+        var renderDevice = GetSubsystem<RenderDevice>()!;
+
+        // TODO: port per-screen font texture allocation and TexID assignment when SharpCpp exposes ImFontAtlas.
+
+        var size = renderDevice.GetSwapChainSize();
+        _renderer!.NewFrame((uint)size.X, (uint)size.Y);
+        ImGui.ImGuiBackendNewFrame();
+
+        ImGui.NewFrame();
+
+        if (!input.IsMouseVisible())
+            ImGui.SetMouseCursor(ImGuiMouseCursor.ImGuiMouseCursorNone);
+
+        // TODO: port ImGuizmo::BeginFrame when ImGuizmo is exposed by generated bindings.
+    }
+
+    private void OnRenderEnd()
+    {
+        SetCurrentContext();
+        // When DearImGui subsystem is recreated during runtime this method may be called without UI being rendered.
+        if (!ImGui.ImGuiBackendIsWithinFrameScope())
+            return;
+
+        SendEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>();
+
+        // Disable relative mouse movement automatically if none of mouse buttons are down
+        if (_enableRelativeMouseMove && !ImGui.IsAnyMouseDown())
+        {
+            _enableRelativeMouseMove = false;
+            SdlNativeBindings.SdlSetRelativeMouseMode(SdlBool.SdlFalse);
+        }
+
+        var io = ImGui.GetIO();
+        if (ImGui.ImGuiBackendIsWithinFrameScope())
+            ImGui.Render();
+
+        // Revert mouse position after relative movement
+        if (!_enableRelativeMouseMove && _revertMousePositionOnDisable)
+        {
+            _revertMousePositionOnDisable = false;
+            io.MousePosX = _revertMousePosition.X;
+            io.MousePosY = _revertMousePosition.Y;
+            io.MousePosPrevX = _revertMousePosition.X;
+            io.MousePosPrevY = _revertMousePosition.Y;
+            io.WantSetMousePos = true;
+        }
+
+        var renderContext = GetSubsystem<RenderDevice>()!.GetRenderContext();
+        renderContext.SetSwapChainRenderTargets();
+        renderContext.SetFullViewport();
+
+        _renderer!.RenderDrawData(ImGui.GetDrawData());
+        _renderer.RenderSecondaryWindows();
+    }
+
+    private void OnMouseVisibilityChanged(ref InputEvents.MouseVisibleChangedEvent args)
+    {
+        SetCurrentContext();
+        ImGui.SetMouseCursor(args.Visible ? ImGuiMouseCursor.ImGuiMouseCursorArrow : ImGuiMouseCursor.ImGuiMouseCursorNone);
+    }
+
+    private void ClearReferencedTextures()
+    {
+        for (var i = _referencedTextures.Count - 1; i >= 0; --i)
+            _ = _referencedTextures[i].Release();
+        _referencedTextures.Clear();
     }
 
     private void SetCurrentContext()
@@ -283,4 +335,14 @@ public sealed class DearImGui : IDisposable, IDearImGuiInputSink
         if (_imContext != 0)
             ImGui.ImGuiBackendSetCurrentContext(_imContext);
     }
+
+    private readonly List<Texture2D> _fontTextures = [];
+    private readonly List<float> _fontSizes = [];
+    private nint _imContext;
+    private readonly List<ITextureView> _referencedTextures = [];
+    private bool _enableRelativeMouseMove;
+    private Vector2f _relativeMouseMove;
+    private bool _revertMousePositionOnDisable;
+    private Vector2f _revertMousePosition;
+    private ImGuiDiligentRendererEx? _renderer;
 }

@@ -17,6 +17,8 @@ RB_IMGUI_EXPORT void ImGuiBackend_DestroyContext(void* ctx);
 RB_IMGUI_EXPORT void* ImGuiBackend_GetCurrentContext();
 RB_IMGUI_EXPORT void ImGuiBackend_SetCurrentContext(void* ctx);
 RB_IMGUI_EXPORT void ImGuiBackend_SetDisplaySize(float width, float height);
+RB_IMGUI_EXPORT bool ImGuiBackend_IsWithinFrameScope();
+RB_IMGUI_EXPORT bool ImGuiBackend_HasCurrentWindow();
 
 // SDL2 backend
 RB_IMGUI_EXPORT bool ImGuiBackend_InitForOther(void* sdlWindow);
@@ -58,4 +60,3 @@ RB_IMGUI_EXPORT void ImGuiBackend_Renderer_CreateDeviceObjects(void* renderer);
 RB_IMGUI_EXPORT bool ImGuiBackend_BuildFontAtlas();
 
 }
-

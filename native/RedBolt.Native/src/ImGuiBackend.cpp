@@ -1,6 +1,7 @@
 #include "RedBolt/ImGuiBackend.hpp"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 #define IMGUI_IMPL_API IMGUI_API
 #include <imgui_impl_sdl2.h>
@@ -39,6 +40,16 @@ void ImGuiBackend_SetCurrentContext(void* ctx)
 void ImGuiBackend_SetDisplaySize(float width, float height)
 {
     ImGui::GetIO().DisplaySize = ImVec2(width, height);
+}
+
+bool ImGuiBackend_IsWithinFrameScope()
+{
+    return ImGui::GetCurrentContext()->WithinFrameScope;
+}
+
+bool ImGuiBackend_HasCurrentWindow()
+{
+    return ImGui::GetCurrentWindowRead() != nullptr;
 }
 
 // ---- SDL2 backend ----

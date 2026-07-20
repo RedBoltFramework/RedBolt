@@ -309,7 +309,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `MultitouchAdapter.h` / `MultitouchAdapter.cpp` — default-int event enum, nested POD touch value, extensible noncopyable adapter, inherited event teardown, subscription transitions, input-touch filtering, unsorted erasure, and gesture payload value flow reconciled
 - [x] `PointerAdapter.h` / `PointerAdapter.cpp` — unsigned mask value enum, extensible noncopyable adapter, owned direction-adapter teardown, subsystem construction, incremental subscriptions, touch ownership, pointer value conversion, synthesized events, and native warp-only mouse positioning reconciled; excluded built-in UI members remain exact TODOs
 - [x] `Log.h` / `Log.cpp` — enum and struct value kinds, copyable logger-wrapper cloning, noncopyable subsystem ownership and teardown, native logger call shape, threaded queue pumping, duplicate filtering, file parameters, and actual main-thread/end-frame `LogMessage` event emission reconciled
-- [x] `IDearImGuiInputSink.cs` — accepted stateless assembly-boundary facade for native `SystemUI::OnRawEvent` under the allowed `SystemUI` → `DearImGui` replacement; no owned or copied state
+- [x] `IDearImGuiInputSink.cs` — removed after full `Input::OnRawInput` / `SystemUI::OnRawEvent` reconciliation showed that the facade duplicated SDL event processing instead of matching the native single raw-event path
 
 ## [~] A12. Engine — top-level orchestration, depends on all Part-A above
 
@@ -792,16 +792,16 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 
 ## B14. SystemUI `OPTIONAL` — Dear ImGui editor/debug; depends on Graphics, Input
 
-- [ ] `SystemUIEvents.h`
-  - [ ] system-UI event definitions
+- [x] `SystemUIEvents.h`
+  - [x] system-UI event definitions
 - [ ] `ImGui.h`
   - [ ] ImGui integration helpers
 - [ ] `Widgets.h`
   - [ ] shared widget free functions
 - [ ] `ImGuiDiligentRendererEx.h`
   - [ ] `ImGuiDiligentRendererEx`
-- [ ] `SystemUI.h`
-  - [ ] `SystemUI : Object`
+- [~] `SystemUI.h`
+  - [~] `SystemUI : Object` — class shape, lifecycle, event flow, relative mouse mode, style, rendering, and texture-reference lifetime reconciled as `DearImGui`; three font-loading overloads, per-screen font atlases/TexID assignment, monitor refresh, ImGuizmo frame start, and managed `io.UserData` remain explicit `TODO: port` items until generated bindings expose the required native APIs
 - [ ] `Console.h`
   - [ ] `Console : Object`
 - [ ] `DebugHud.h`

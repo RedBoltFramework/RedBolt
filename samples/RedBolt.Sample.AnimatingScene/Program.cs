@@ -39,7 +39,7 @@ public class AnimatingScene : Application
     {
         // Execute base class startup
         base.Start();
-        Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
+        Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
 
         // Create the scene content
         CreateScene();

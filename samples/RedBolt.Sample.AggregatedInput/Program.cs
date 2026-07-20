@@ -28,7 +28,7 @@ sealed class AggregatedInputApplication : Application
 
     protected override void Start()
     {
-        Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
+        Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
         _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => Draw());
         SetupViewport();
         _directionAggregator = new DirectionAggregator();

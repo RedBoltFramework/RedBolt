@@ -51,7 +51,7 @@ sealed class BillboardsApplication : Application
     /// <summary>Setup after engine initialization and before running the main loop.</summary>
     protected override void Start()
     {
-        Context.RegisterSubsystem(new DearImGui(Context, Engine.Parameters.DearImGuiFlags));
+        Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
         _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
 
         // Execute base class startup
@@ -224,7 +224,7 @@ sealed class BillboardsApplication : Application
     private void MoveCamera(float timeStep)
     {
         // Do not move if the UI has a focused element (the console)
-        if (Context.GetSubsystem<DearImGui>()?.WantCaptureKeyboard == true)
+        if (ImGui.GetIO().WantCaptureKeyboard)
             return;
 
         // Toggle debug geometry with space
