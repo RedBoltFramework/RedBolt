@@ -246,6 +246,6 @@ public sealed class XMLFile : Resource
 
     internal void RefreshMemoryUse()
     {
-        MemoryUse = (uint)Encoding.UTF8.GetByteCount(ToString());
+        MemoryUse = Encoding.UTF8.GetByteCount(ToString());
     }
 }

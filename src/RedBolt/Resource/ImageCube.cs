@@ -100,7 +100,7 @@ public sealed class ImageCube : Resource
         }
 
         var expectedSize = 0;
-        var memoryUse = 0u;
+        var memoryUse = 0;
         foreach (var image in _faceImages)
         {
             if (image is null)

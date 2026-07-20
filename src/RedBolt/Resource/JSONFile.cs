@@ -45,7 +45,7 @@ public sealed class JSONFile : Resource
         }
 
         Root = value;
-        SetMemoryUse((uint)(dataSize >= 0 ? dataSize : Encoding.UTF8.GetByteCount(text)));
+        SetMemoryUse(dataSize >= 0 ? checked((int)dataSize) : Encoding.UTF8.GetByteCount(text));
         return true;
     }
 
@@ -55,7 +55,7 @@ public sealed class JSONFile : Resource
             return false;
 
         Root = value;
-        SetMemoryUse((uint)Encoding.UTF8.GetByteCount(source));
+        SetMemoryUse(Encoding.UTF8.GetByteCount(source));
         return true;
     }
 

@@ -393,7 +393,7 @@ public class Texture : ResourceWithMetadata
             }
         }
 
-        MemoryUse = unchecked((uint)_rawTexture.CalculateMemoryUseGPU());
+        MemoryUse = checked((int)_rawTexture.CalculateMemoryUseGPU());
     }
 
     private void OnDestroyGPU()

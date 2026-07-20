@@ -222,7 +222,7 @@ public sealed class RenderPath : SimpleResource
         if (!loaded)
             return false;
 
-        MemoryUse = (uint)(_passes.Count * 256);
+        MemoryUse = _passes.Count * 256;
         return true;
     }
 

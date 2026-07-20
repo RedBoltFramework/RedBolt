@@ -190,7 +190,7 @@ public sealed class ResourceCache : Object
         ArgumentNullException.ThrowIfNull(type);
         return _cache
             .Where(item => item.Key.Type == type)
-            .Aggregate(0ul, static (sum, item) => sum + item.Value.MemoryUse);
+            .Aggregate(0ul, static (sum, item) => sum + checked((ulong)item.Value.MemoryUse));
     }
 
     public ulong GetMemoryUse(StringHash type)
@@ -202,7 +202,7 @@ public sealed class ResourceCache : Object
 
     public ulong GetTotalMemoryUse()
     {
-        return _cache.Values.Aggregate(0ul, static (sum, resource) => sum + resource.MemoryUse);
+        return _cache.Values.Aggregate(0ul, static (sum, resource) => sum + checked((ulong)resource.MemoryUse));
     }
 
     public void SetReturnFailedResources(bool enable)
@@ -945,7 +945,7 @@ public sealed class ResourceCache : Object
 
             foreach (var resource in group.Resources.Values)
             {
-                memoryUse += resource.MemoryUse;
+                memoryUse += checked((ulong)resource.MemoryUse);
                 var useTimer = resource.GetUseTimer();
                 if (useTimer > oldestTimer)
                 {

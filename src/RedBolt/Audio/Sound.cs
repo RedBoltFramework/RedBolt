@@ -147,7 +147,7 @@ public sealed class Sound : ResourceWithMetadata
         _sixteenBit = true;
         _compressed = true;
 
-        SetMemoryUse(dataSize);
+        SetMemoryUse(checked((int)dataSize));
         return true;
     }
 
@@ -158,7 +158,7 @@ public sealed class Sound : ResourceWithMetadata
         _dataSize = dataSize;
         _compressed = false;
         SetLooped(false);
-        SetMemoryUse(dataSize + 4);
+        SetMemoryUse(checked((int)dataSize + 4));
     }
 
     public void SetData(byte[] data, uint dataSize)

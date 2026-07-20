@@ -496,7 +496,7 @@ public class Technique : Resource
                 pass.SetAlphaToCoverage(passElement.GetBool("alphatocoverage"));
         }
 
-        MemoryUse = (uint)(_passes.Count * 128);
+        MemoryUse = _passes.Count * 128;
         return true;
     }
 
@@ -515,7 +515,7 @@ public class Technique : Resource
         }
 
         _passes[(int)pass.Index] = pass;
-        MemoryUse = (uint)(GetNumPasses() * 128);
+        MemoryUse = checked((int)GetNumPasses() * 128);
         return pass;
     }
 
@@ -528,7 +528,7 @@ public class Technique : Resource
         {
             _passes[(int)index]!.Dispose();
             _passes[(int)index] = null;
-            MemoryUse = (uint)(GetNumPasses() * 128);
+            MemoryUse = checked((int)GetNumPasses() * 128);
         }
     }
 

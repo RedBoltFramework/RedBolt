@@ -372,7 +372,7 @@ public sealed class Shader : Resource
 
     private void RefreshMemoryUse()
     {
-        SetMemoryUse((uint)(Encoding.UTF8.GetByteCount(_sourceCode) + _numVariations));
+        SetMemoryUse(checked((int)(Encoding.UTF8.GetByteCount(_sourceCode) + _numVariations)));
     }
 
     private static IEnumerable<string> NormalizeDefines(string defines)

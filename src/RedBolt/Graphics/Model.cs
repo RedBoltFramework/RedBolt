@@ -397,7 +397,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
             totalBytes += desc.DataSize;
         foreach (var desc in _loadIndexBuffers)
             totalBytes += desc.DataSize;
-        MemoryUse = (uint)totalBytes;
+        MemoryUse = checked((int)totalBytes);
         return true;
     }
 

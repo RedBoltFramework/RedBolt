@@ -1052,9 +1052,9 @@ public sealed class Material : Resource
 
     private void RefreshMemoryUse()
     {
-        MemoryUse = (uint)(_techniques.Count * 32
+        MemoryUse = _techniques.Count * 32
             + _textures.Count * IntPtr.Size
-            + _shaderParameters.Count * 48);
+            + _shaderParameters.Count * 48;
     }
 
     private uint RecalculatePipelineStateHash()

@@ -40,7 +40,7 @@ public class BinaryFile : Resource
         using var memory = new MemoryStream();
         source.CopyTo(memory);
         _buffer.SetData(memory.ToArray());
-        SetMemoryUse((uint)_buffer.Buffer.Length);
+        SetMemoryUse(_buffer.Buffer.Length);
         return true;
     }
 
@@ -120,7 +120,7 @@ public class BinaryFile : Resource
     {
         ArgumentNullException.ThrowIfNull(value);
         _buffer.SetData(value.ToArray());
-        SetMemoryUse((uint)_buffer.Buffer.Length);
+        SetMemoryUse(_buffer.Buffer.Length);
     }
 
     /// <summary>Set data from text.</summary>
@@ -128,7 +128,7 @@ public class BinaryFile : Resource
     {
         ArgumentNullException.ThrowIfNull(text);
         _buffer.SetData(Encoding.UTF8.GetBytes(text));
-        SetMemoryUse((uint)_buffer.Buffer.Length);
+        SetMemoryUse(_buffer.Buffer.Length);
     }
 
     /// <summary>Return immutable data.</summary>

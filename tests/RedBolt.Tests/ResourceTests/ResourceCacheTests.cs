@@ -492,12 +492,12 @@ public sealed class ResourceCacheTests
     {
         var r = new BinaryFile("Data/test.bin");
         r.SetName("Data/renamed.bin");
-        r.SetMemoryUse(123u);
+        r.SetMemoryUse(123);
         r.SetAsyncLoadState(AsyncLoadState.Queued);
         r.SetAbsoluteFileName("/tmp/test.bin");
         Assert.Equal("Data/renamed.bin", r.GetName());
         Assert.Equal(StringHash.Calculate("Data/renamed.bin"), r.GetNameHash().Value);
-        Assert.Equal(123u, r.GetMemoryUse());
+        Assert.Equal(123, r.GetMemoryUse());
         Assert.Equal(AsyncLoadState.Queued, r.GetAsyncLoadState());
         Assert.Equal("/tmp/test.bin", r.GetAbsoluteFileName());
     }

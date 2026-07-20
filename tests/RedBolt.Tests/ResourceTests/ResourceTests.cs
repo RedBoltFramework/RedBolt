@@ -5,6 +5,22 @@ namespace RedBolt.Tests;
 public sealed class ResourceTests
 {
     [Fact]
+    public void Resource_preserves_cpp_class_kind_and_base_state()
+    {
+        using var resource = new Resource();
+
+        Assert.True(typeof(Resource).IsClass);
+        Assert.False(typeof(Resource).IsSealed);
+        Assert.DoesNotContain(typeof(ICloneable), typeof(Resource).GetInterfaces());
+        Assert.Equal(typeof(int), typeof(Resource).GetProperty(nameof(Resource.MemoryUse))!.PropertyType);
+        Assert.Equal(string.Empty, resource.GetName());
+        Assert.Equal(StringHash.Empty, resource.GetNameHash());
+        Assert.Equal(0, resource.GetMemoryUse());
+        Assert.Equal(AsyncLoadState.Done, resource.GetAsyncLoadState());
+        Assert.Equal(string.Empty, resource.GetAbsoluteFileName());
+    }
+
+    [Fact]
     public void Resource_with_metadata_preserves_cpp_class_kind()
     {
         Assert.True(typeof(ResourceWithMetadata).IsClass);

@@ -327,7 +327,7 @@ public sealed class Image : Resource
         Depth = depth;
         Components = components;
         _data = new byte[checked(width * height * depth * (int)components)];
-        MemoryUse = (uint)_data.Length;
+        MemoryUse = _data.Length;
         _compressedFormat = CompressedFormat.None;
         _numCompressedLevels = 0;
         _nextLevel = null;
@@ -851,7 +851,7 @@ public sealed class Image : Resource
         Cubemap = cubemap;
         Array = array;
         SRGB = sRgb;
-        MemoryUse = (uint)pixelData.Length;
+        MemoryUse = pixelData.Length;
         _nextLevel = null;
     }
 

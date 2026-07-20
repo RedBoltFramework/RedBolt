@@ -269,7 +269,7 @@ public class Animation : ResourceWithMetadata
             LoadMetadataFromXML(root);
         }
 
-        SetMemoryUse(checked((uint)data.Length));
+        SetMemoryUse(data.Length);
         return true;
     }
 

@@ -142,7 +142,7 @@ public class ParticleEffect : Resource
         var rootElem = file.GetRoot();
         var success = Load(rootElem);
         if (success)
-            SetMemoryUse(checked((uint)source.Length));
+            SetMemoryUse(checked((int)source.Length));
         return success;
     }
 

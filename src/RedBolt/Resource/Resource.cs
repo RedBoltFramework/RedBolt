@@ -1,32 +1,34 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
+/// <summary>Base class for resources.</summary>
 public class Resource : Object
 {
-    private readonly System.Diagnostics.Stopwatch _useTimer = System.Diagnostics.Stopwatch.StartNew();
+    /// <summary>Construct.</summary>
+    public Resource()
+    {
+    }
 
-    public Resource(string name) : base()
+    public Resource(string name)
+        : this()
     {
         SetName(name);
     }
 
-    public string Name { get; private set; } = string.Empty;
+    /// <summary>Load resource by reference.</summary>
+    public static Resource? LoadFromCache(Context context, StringHash type, string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return null;
 
-    public string AbsoluteFileName { get; set; } = string.Empty;
+        var cache = context.GetSubsystem<ResourceCache>();
+        return cache!.GetResource(type, name);
+    }
 
-    internal ResourceCache? OwnerCache { get; set; }
-
-    public AsyncLoadState AsyncLoadState { get; internal set; } = AsyncLoadState.Done;
-
-    public uint MemoryUse { get; set; }
-
-    public event Action<Resource>? ReloadFinished;
-
-    public uint NameHash => StringHash.Calculate(Name);
-
+    /// <summary>Load resource synchronously. Call both BeginLoad() and EndLoad() and return true if both succeeded.</summary>
     public bool Load(Stream source)
     {
-        ArgumentNullException.ThrowIfNull(source);
-
         AsyncLoadState = Environment.CurrentManagedThreadId == WorkQueue.GetMainThreadId()
             ? AsyncLoadState.Done
             : AsyncLoadState.Loading;
@@ -37,17 +39,20 @@ public class Resource : Object
         return success;
     }
 
-    internal void NotifyReloadFinished()
-    {
-        ReloadFinished?.Invoke(this);
-    }
-
+    /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
     public virtual bool BeginLoad(Stream source) => false;
 
+    /// <summary>Finish resource loading. Always called from the main thread. Return true if successful.</summary>
     public virtual bool EndLoad() => true;
 
-    public virtual bool Save(Stream destination) => false;
+    /// <summary>Save resource. Return true if successful.</summary>
+    public virtual bool Save(Stream destination)
+    {
+        Log.GetLogger().LogError("Save not supported for " + GetTypeName());
+        return false;
+    }
 
+    /// <summary>Load resource from file.</summary>
     public bool LoadFile(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
@@ -97,11 +102,7 @@ public class Resource : Object
         }
     }
 
-    public bool Reload()
-    {
-        return !string.IsNullOrWhiteSpace(AbsoluteFileName) && LoadFile(AbsoluteFileName);
-    }
-
+    /// <summary>Save resource to file.</summary>
     public virtual bool SaveFile(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
@@ -144,54 +145,57 @@ public class Resource : Object
         }
     }
 
+    /// <summary>Set name.</summary>
     public void SetName(string name)
     {
-        Name = name ?? string.Empty;
+        _name = name;
+        _nameHash = name;
     }
 
-    public string GetName() => Name;
-
-    public StringHash GetNameHash() => Name;
-
-    public void SetMemoryUse(uint size)
+    /// <summary>Set memory use in bytes, possibly approximate.</summary>
+    public void SetMemoryUse(int size)
     {
-        MemoryUse = size;
+        _memoryUse = size;
     }
 
-    public uint GetMemoryUse() => MemoryUse;
-
-    public uint GetUseTimer()
-    {
-        return (uint)Math.Min(uint.MaxValue, _useTimer.ElapsedMilliseconds);
-    }
-
+    /// <summary>Reset last used timer.</summary>
     public void ResetUseTimer()
     {
         _useTimer.Restart();
     }
 
+    /// <summary>Set the asynchronous loading state. Called by ResourceCache. Resources in the middle of asynchronous loading are not normally returned to user.</summary>
     public void SetAsyncLoadState(AsyncLoadState newState)
     {
-        AsyncLoadState = newState;
+        _asyncLoadState = newState;
     }
 
-    public AsyncLoadState GetAsyncLoadState() => AsyncLoadState;
-
-    public static Resource? LoadFromCache(Context context, StringHash type, string name)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        if (string.IsNullOrEmpty(name))
-            return null;
-
-        return context.GetSubsystem<ResourceCache>()?.GetResource(type, name);
-    }
-
+    /// <summary>Set absolute file name.</summary>
     public void SetAbsoluteFileName(string fileName)
     {
-        AbsoluteFileName = fileName ?? string.Empty;
+        _absoluteFileName = fileName;
     }
 
-    public string GetAbsoluteFileName() => AbsoluteFileName;
+    /// <summary>Return name.</summary>
+    public string GetName() => _name;
+
+    /// <summary>Return name hash.</summary>
+    public StringHash GetNameHash() => _nameHash;
+
+    /// <summary>Return memory use in bytes, possibly approximate.</summary>
+    public int GetMemoryUse() => _memoryUse;
+
+    /// <summary>Return time since last use in milliseconds.</summary>
+    public uint GetUseTimer()
+    {
+        return unchecked((uint)_useTimer.ElapsedMilliseconds);
+    }
+
+    /// <summary>Return the asynchronous loading state.</summary>
+    public AsyncLoadState GetAsyncLoadState() => _asyncLoadState;
+
+    /// <summary>Return absolute file name.</summary>
+    public string GetAbsoluteFileName() => _absoluteFileName;
 
     public static string GetResourceName(Resource? resource)
     {
@@ -223,4 +227,57 @@ public class Resource : Object
     {
         return new ResourceRefList(typeof(T).GetTypeId(), GetResourceNames(resources));
     }
+
+    public string Name
+    {
+        get => _name;
+        private set => SetName(value);
+    }
+
+    public StringHash NameHash => _nameHash;
+
+    public string AbsoluteFileName
+    {
+        get => _absoluteFileName;
+        set => SetAbsoluteFileName(value);
+    }
+
+    public int MemoryUse
+    {
+        get => _memoryUse;
+        set => SetMemoryUse(value);
+    }
+
+    public AsyncLoadState AsyncLoadState
+    {
+        get => _asyncLoadState;
+        internal set => SetAsyncLoadState(value);
+    }
+
+    internal ResourceCache? OwnerCache { get; set; }
+
+    public event Action<Resource>? ReloadFinished;
+
+    internal void NotifyReloadFinished()
+    {
+        ReloadFinished?.Invoke(this);
+    }
+
+    public bool Reload()
+    {
+        return !string.IsNullOrWhiteSpace(AbsoluteFileName) && LoadFile(AbsoluteFileName);
+    }
+
+    /// <summary>Name.</summary>
+    private string _name = string.Empty;
+    /// <summary>Name hash.</summary>
+    private StringHash _nameHash = new();
+    /// <summary>Absolute file name.</summary>
+    private string _absoluteFileName = string.Empty;
+    /// <summary>Last used timer.</summary>
+    private readonly System.Diagnostics.Stopwatch _useTimer = System.Diagnostics.Stopwatch.StartNew();
+    /// <summary>Memory use in bytes.</summary>
+    private int _memoryUse;
+    /// <summary>Asynchronous loading state.</summary>
+    private AsyncLoadState _asyncLoadState = AsyncLoadState.Done;
 }
