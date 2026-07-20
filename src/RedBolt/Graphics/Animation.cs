@@ -21,6 +21,8 @@
 //
 
 using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
@@ -92,6 +94,8 @@ public class Animation : ResourceWithMetadata
         foreach (var track in _variantTracks.Values)
             track.Dispose();
         _variantTracks.Clear();
+        foreach (var track in _tracks.Values)
+            track.Dispose();
         _tracks.Clear();
 
         base.Dispose();
@@ -153,11 +157,7 @@ public class Animation : ResourceWithMetadata
         source.CopyTo(dataStream);
         var data = dataStream.ToArray();
 
-        var firstNonWhitespace = 0;
-        while (firstNonWhitespace < data.Length && char.IsWhiteSpace((char)data[firstNonWhitespace]))
-            ++firstNonWhitespace;
-
-        if (firstNonWhitespace < data.Length && data[firstNonWhitespace] == '<')
+        if (Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
         {
             using var xmlFile = new XMLFile(GetName());
             if (!xmlFile.BeginLoad(new MemoryStream(data)))
@@ -179,8 +179,8 @@ public class Animation : ResourceWithMetadata
         _animationNameHash = new StringHash(_animationName);
         _length = input.ReadFloat();
 
-        var trackCount = input.ReadUInt();
-        for (var i = 0u; i < trackCount; ++i)
+        var trackCount = checked((int)input.ReadUInt());
+        for (var i = 0; i < trackCount; ++i)
         {
             var newTrack = CreateTrack(input.ReadString());
             newTrack.ChannelMask = (AnimationChannel)input.ReadUByte();
@@ -199,9 +199,9 @@ public class Animation : ResourceWithMetadata
                 newTrack.ScaleWeight = weight;
             }
 
-            var keyFrameCount = input.ReadUInt();
+            var keyFrameCount = checked((int)input.ReadUInt());
             newTrack.KeyFrames.Clear();
-            for (var j = 0u; j < keyFrameCount; ++j)
+            for (var j = 0; j < keyFrameCount; ++j)
             {
                 var keyFrame = new AnimationKeyFrame
                 {
@@ -219,8 +219,8 @@ public class Animation : ResourceWithMetadata
 
         if (version >= VariantTrackVersion)
         {
-            var variantTrackCount = input.ReadUInt();
-            for (var i = 0u; i < variantTrackCount; ++i)
+            var variantTrackCount = checked((int)input.ReadUInt());
+            for (var i = 0; i < variantTrackCount; ++i)
             {
                 var newTrack = CreateVariantTrack(input.ReadString());
                 var trackType = (VariantType)input.ReadUByte();
@@ -229,11 +229,11 @@ public class Animation : ResourceWithMetadata
                 if (version >= TrackWeightVersion)
                     newTrack.Weight = input.ReadFloat();
 
-                var keyFrameCount = input.ReadUInt();
+                var keyFrameCount = checked((int)input.ReadUInt());
                 newTrack.KeyFrames.Clear();
                 newTrack.InTangents.Clear();
                 newTrack.OutTangents.Clear();
-                for (var j = 0u; j < keyFrameCount; ++j)
+                for (var j = 0; j < keyFrameCount; ++j)
                 {
                     newTrack.KeyFrames.Add(new VariantCurvePoint
                     {
@@ -244,7 +244,7 @@ public class Animation : ResourceWithMetadata
 
                 if (newTrack.Interpolation == KeyFrameInterpolation.TangentSpline)
                 {
-                    for (var j = 0u; j < keyFrameCount; ++j)
+                    for (var j = 0; j < keyFrameCount; ++j)
                     {
                         newTrack.InTangents.Add(input.ReadVariant(trackType));
                         newTrack.OutTangents.Add(input.ReadVariant(trackType));
@@ -256,28 +256,17 @@ public class Animation : ResourceWithMetadata
         }
 
         // Optionally read triggers from an XML file.
-        var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
-        if (virtualFileSystem is not null && !string.IsNullOrEmpty(Name))
+        var cache = GetSubsystem<ResourceCache>()!;
+        var xmlName = Path.ChangeExtension(Name, ".xml");
+        using var file = cache.GetTempResource<XMLFile>(xmlName, false);
+        if (file is not null)
         {
-            var xmlName = Name;
-            var extensionPosition = xmlName.LastIndexOf('.');
-            xmlName = extensionPosition >= 0 ? xmlName[..extensionPosition] + ".xml" : xmlName + ".xml";
-            var xmlSource = virtualFileSystem.OpenFile(new FileIdentifier(xmlName), FileMode.Read);
-            if (xmlSource is not null)
-            {
-                var xmlData = new byte[checked((int)xmlSource.Size)];
-                var readBytes = xmlSource.Read(xmlData);
-                xmlSource.Close();
-                using var xmlFile = new XMLFile(xmlName);
-                if (readBytes == xmlData.Length && xmlFile.BeginLoad(new MemoryStream(xmlData)))
-                {
-                    var root = xmlFile.GetRoot();
-                    LoadTracksFromXML(root);
-                    LoadVariantTracksFromXML(root);
-                    LoadTriggersFromXML(root);
-                    LoadMetadataFromXML(root);
-                }
-            }
+            cache.StoreResourceDependency(this, xmlName);
+            var root = file.GetRoot();
+            LoadTracksFromXML(root);
+            LoadVariantTracksFromXML(root);
+            LoadTriggersFromXML(root);
+            LoadMetadataFromXML(root);
         }
 
         SetMemoryUse(checked((uint)data.Length));
@@ -291,7 +280,7 @@ public class Animation : ResourceWithMetadata
     {
         ArgumentNullException.ThrowIfNull(destination);
 
-        var output = new VectorBuffer();
+        using var output = new VectorBuffer();
         output.WriteFileID("UAN2");
         output.WriteUInt(CurrentVersion);
         output.WriteString(_animationName);
@@ -477,16 +466,16 @@ public class Animation : ResourceWithMetadata
     /// <summary>
     /// Set a trigger point at index.
     /// </summary>
-    public void SetTrigger(uint index, AnimationTriggerPoint trigger)
+    public void SetTrigger(int index, AnimationTriggerPoint trigger)
     {
         if (index == _triggers.Count)
             AddTrigger(trigger);
-        else if (index < _triggers.Count)
+        else if (index >= 0 && index < _triggers.Count)
         {
             var replacement = trigger.Clone();
-            var oldTrigger = _triggers[checked((int)index)];
+            var oldTrigger = _triggers[index];
             oldTrigger.Dispose();
-            _triggers[checked((int)index)] = replacement;
+            _triggers[index] = replacement;
             _triggers.Sort(static (lhs, rhs) => lhs.Time.CompareTo(rhs.Time));
         }
     }
@@ -517,13 +506,13 @@ public class Animation : ResourceWithMetadata
     /// <summary>
     /// Remove a trigger point by index.
     /// </summary>
-    public void RemoveTrigger(uint index)
+    public void RemoveTrigger(int index)
     {
-        if (index < _triggers.Count)
+        if (index >= 0 && index < _triggers.Count)
         {
-            var trigger = _triggers[checked((int)index)];
+            var trigger = _triggers[index];
             trigger.Dispose();
-            _triggers.RemoveAt(checked((int)index));
+            _triggers.RemoveAt(index);
         }
     }
 
@@ -543,9 +532,10 @@ public class Animation : ResourceWithMetadata
     /// <summary>
     /// Resize trigger point vector.
     /// </summary>
-    public void SetNumTriggers(uint num)
+    public void SetNumTriggers(int num)
     {
-        var count = checked((int)num);
+        ArgumentOutOfRangeException.ThrowIfNegative(num);
+        var count = num;
         if (count < _triggers.Count)
         {
             for (var i = _triggers.Count - 1; i >= count; --i)
@@ -609,14 +599,14 @@ public class Animation : ResourceWithMetadata
     /// <summary>
     /// Return number of animation tracks.
     /// </summary>
-    public uint NumTracks => checked((uint)_tracks.Count);
+    public int NumTracks => _tracks.Count;
 
     /// <summary>
     /// Return animation track by index.
     /// </summary>
-    public AnimationTrack? GetTrack(uint index)
+    public AnimationTrack? GetTrack(int index)
     {
-        if (index >= _tracks.Count)
+        if (index < 0 || index >= _tracks.Count)
             return null;
 
         foreach (var track in _tracks.Values)
@@ -653,14 +643,14 @@ public class Animation : ResourceWithMetadata
     /// <summary>
     /// Return number of generic variant animation tracks.
     /// </summary>
-    public uint NumVariantTracks => checked((uint)_variantTracks.Count);
+    public int NumVariantTracks => _variantTracks.Count;
 
     /// <summary>
     /// Return generic variant animation track by index.
     /// </summary>
-    public VariantAnimationTrack? GetVariantTrack(uint index)
+    public VariantAnimationTrack? GetVariantTrack(int index)
     {
-        if (index >= _variantTracks.Count)
+        if (index < 0 || index >= _variantTracks.Count)
             return null;
 
         foreach (var track in _variantTracks.Values)
@@ -697,14 +687,16 @@ public class Animation : ResourceWithMetadata
     /// <summary>
     /// Return number of animation trigger points.
     /// </summary>
-    public uint NumTriggers => checked((uint)_triggers.Count);
+    public int NumTriggers => _triggers.Count;
 
     /// <summary>
     /// Return a trigger point by index.
     /// </summary>
-    public AnimationTriggerPoint? GetTrigger(uint index)
+    public ref AnimationTriggerPoint GetTrigger(int index)
     {
-        return index < _triggers.Count ? _triggers[checked((int)index)] : null;
+        if (index >= 0 && index < _triggers.Count)
+            return ref CollectionsMarshal.AsSpan(_triggers)[index];
+        return ref Unsafe.NullRef<AnimationTriggerPoint>();
     }
 
     /// <summary>

@@ -939,10 +939,11 @@ public class AnimationController : AnimationStateSource
         if (fireTriggers && parameters.GetAnimation() is { } animation)
         {
             var length = animation.Length;
-            foreach (var trigger in animation.Triggers)
+            for (var triggerIndex = 0; triggerIndex < animation.NumTriggers; ++triggerIndex)
             {
+                ref var trigger = ref animation.GetTrigger(triggerIndex);
                 if (delta.ContainsExcludingBegin(Math.Min(trigger.Time, length)))
-                    _pendingTriggers.Add((animation, trigger));
+                    _pendingTriggers.Add((animation, triggerIndex));
             }
         }
 
@@ -1038,13 +1039,14 @@ public class AnimationController : AnimationStateSource
     {
         foreach (var pendingTrigger in _pendingTriggers)
         {
+            ref var trigger = ref pendingTrigger.Animation.GetTrigger(pendingTrigger.TriggerIndex);
             var eventData = new DrawableEvents.AnimationTriggerEvent
             {
                 Node = Node,
                 Animation = pendingTrigger.Animation,
                 Name = pendingTrigger.Animation.AnimationName,
-                Time = pendingTrigger.Trigger.Time,
-                Data = pendingTrigger.Trigger.Data.Clone()
+                Time = trigger.Time,
+                Data = trigger.Data.Clone()
             };
             Node.SendEvent(ref eventData);
         }
@@ -1072,7 +1074,7 @@ public class AnimationController : AnimationStateSource
 
     private readonly List<AnimationInstance> _animations = [];
     private readonly List<AnimationInstance> _tempAnimations = [];
-    private readonly List<(Animation Animation, AnimationTriggerPoint Trigger)> _pendingTriggers = [];
+    private readonly List<(Animation Animation, int TriggerIndex)> _pendingTriggers = [];
     private uint _revision;
     private bool _animationStatesDirty;
     private bool _revisionDirty;

@@ -5,6 +5,28 @@ namespace RedBolt.Tests;
 public sealed class AnimationTests
 {
     [Fact]
+    public void Animation_types_preserve_cpp_kinds()
+    {
+        Assert.True(typeof(Animation).IsClass);
+        Assert.False(typeof(Animation).IsSealed);
+        Assert.True(typeof(AnimationTriggerPoint).IsValueType);
+    }
+
+    [Fact]
+    public void GetTrigger_returns_borrowed_vector_element()
+    {
+        var animation = new Animation();
+        animation.SetNumTriggers(1);
+
+        ref var trigger = ref animation.GetTrigger(0);
+        trigger.Time = 2.0f;
+        ref var missingTrigger = ref animation.GetTrigger(-1);
+
+        Assert.Equal(2.0f, animation.Triggers[0].Time);
+        Assert.True(System.Runtime.CompilerServices.Unsafe.IsNullRef(ref missingTrigger));
+    }
+
+    [Fact]
     public void Animation_registers_empty_named_factory()
     {
         var context = new Context();
@@ -26,7 +48,7 @@ public sealed class AnimationTests
         animation.SetLength(2.0f);
         var track = animation.CreateTrack("root");
         Assert.Same(track, animation.CreateTrack("root"));
-        Assert.Equal(1u, animation.NumTracks);
+        Assert.Equal(1, animation.NumTracks);
 
         animation.AddTrigger(1.5f, false, 1);
         animation.AddTrigger(0.5f, true, 2);
@@ -35,9 +57,9 @@ public sealed class AnimationTests
         Assert.Equal(2, animation.Triggers[0].Data.GetInt());
 
         animation.SetNumTriggers(3);
-        Assert.Equal(3u, animation.NumTriggers);
+        Assert.Equal(3, animation.NumTriggers);
         animation.RemoveTrigger(2);
-        Assert.Equal(2u, animation.NumTriggers);
+        Assert.Equal(2, animation.NumTriggers);
         Assert.True(animation.RemoveTrack("root"));
         Assert.False(animation.RemoveTrack("root"));
     }
@@ -111,10 +133,22 @@ public sealed class AnimationTests
         Assert.Equal(1.0f, variantTrack.KeyFrames[0].Value.GetFloat());
         Assert.Equal(2.0f, variantTrack.KeyFrames[1].Value.GetFloat());
 
-        Assert.Equal(1u, animation.NumTriggers);
+        Assert.Equal(1, animation.NumTriggers);
         Assert.Equal(1.0f, animation.Triggers[0].Time);
         Assert.Equal("footstep", animation.Triggers[0].Data.GetString());
         Assert.Equal("test", animation.GetMetadata("source").GetString());
+    }
+
+    [Fact]
+    public void Animation_begin_load_selects_xml_by_resource_name()
+    {
+        var animation = new Animation("walk.xml");
+        using var source = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(
+            "<animation name=\"walk\" length=\"2\" />"));
+
+        Assert.True(animation.BeginLoad(source));
+        Assert.Equal("walk", animation.AnimationName);
+        Assert.Equal(2.0f, animation.Length);
     }
 
     [Fact]
@@ -125,6 +159,9 @@ public sealed class AnimationTests
 
         try
         {
+            using var cache = new ResourceCache();
+            cache.RegisterDefaultResources();
+            Context.Instance.RegisterSubsystem(cache);
             var animation = new Animation();
             animation.SetAnimationName("walk");
             animation.SetLength(1.0f);
@@ -146,8 +183,8 @@ public sealed class AnimationTests
             Assert.True(loaded.BeginLoad(stream));
             Assert.Equal("walk", loaded.AnimationName);
             Assert.Equal(1.0f, loaded.Length);
-            Assert.Equal(1u, loaded.NumTracks);
-            Assert.Equal(1u, loaded.NumVariantTracks);
+            Assert.Equal(1, loaded.NumTracks);
+            Assert.Equal(1, loaded.NumVariantTracks);
             var loadedTrack = loaded.GetTrack("root");
             var loadedVariantTrack = loaded.GetVariantTrack("speed");
             Assert.NotNull(loadedTrack);
