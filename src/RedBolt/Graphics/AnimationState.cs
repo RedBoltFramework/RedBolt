@@ -91,7 +91,7 @@ public struct AnimatedAttributeReference : IEquatable<AnimatedAttributeReference
         readonly get => _serializable is not null && _serializable.TryGetTarget(out var serializable) ? serializable : null;
         set => _serializable = value is null ? null : new WeakReference<Serializable>(value);
     }
-    public uint AttributeIndex;
+    public int AttributeIndex;
     public AnimatedAttributeType AttributeType;
     public uint SubAttributeKey;
 
@@ -128,7 +128,7 @@ public struct AnimatedAttributeReference : IEquatable<AnimatedAttributeReference
         CombineHash(ref result, Serializable is { } serializable
             ? unchecked((uint)System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(serializable))
             : 0u);
-        CombineHash(ref result, AttributeIndex);
+        CombineHash(ref result, unchecked((uint)AttributeIndex));
         CombineHash(ref result, SubAttributeKey);
         return result;
     }

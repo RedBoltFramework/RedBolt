@@ -77,7 +77,7 @@ public sealed class Scene : Serializable
 
     public Scene()
     {
-        Root = new Node(this, parent: null, name: string.Empty, AllocateNodeId(0));
+        Root = new Node();
         NodeAdded(Root);
         SetUpdateEvents(DefaultUpdateEvents);
         Root.SetWorldOriginUpdateMode(WorldOriginUpdateMode.Recurse);
@@ -177,6 +177,9 @@ public sealed class Scene : Serializable
         _resourceBackgroundLoadedSubscription?.Dispose();
         Root.RemoveAllComponents();
         Root.RemoveAllChildren();
+        foreach (var node in _nodes.Values)
+            node.ResetScene();
+        Root.Dispose();
         base.Dispose();
     }
 
@@ -1096,11 +1099,29 @@ public sealed class Scene : Serializable
 
     public void NodeAdded(Node node)
     {
-        if (_nodes.TryGetValue(node.Id, out var existingNode) && !ReferenceEquals(existingNode, node))
-            existingNode.Parent?.RemoveChild(existingNode);
-
-        if (!_nodes.TryAdd(node.Id, node))
+        if (node is null || ReferenceEquals(node.GetScene(), this))
             return;
+
+        var oldScene = node.GetScene();
+        if (oldScene is not null)
+            oldScene.NodeRemoved(node);
+
+        node.SetScene(this);
+
+        var id = node.Id;
+        if (id == 0)
+        {
+            id = GetFreeNodeID();
+            node.SetID(id);
+        }
+
+        if (_nodes.TryGetValue(id, out var existingNode) && !ReferenceEquals(existingNode, node))
+        {
+            Log.GetLogger().Warning("Overwriting node with ID {0}", id);
+            NodeRemoved(existingNode);
+        }
+
+        _nodes[id] = node;
 
         foreach (var tag in node.Tags)
             NodeTagAdded(node, tag);
@@ -1114,17 +1135,20 @@ public sealed class Scene : Serializable
 
     public void NodeRemoved(Node node)
     {
-        if (!_nodes.Remove(node.Id))
+        if (node is null || !ReferenceEquals(node.GetScene(), this))
             return;
 
-        foreach (var child in node.Children)
-            NodeRemoved(child);
+        _nodes.Remove(node.Id);
+        node.ResetScene();
+
+        foreach (var tag in node.Tags)
+            NodeTagRemoved(node, tag);
 
         foreach (var component in node.Components)
             ComponentRemoved(component);
 
-        foreach (var tag in node.Tags)
-            NodeTagRemoved(node, tag);
+        foreach (var child in node.Children)
+            NodeRemoved(child);
     }
 
     public void NodeTagAdded(Node node, string tag)

@@ -398,27 +398,11 @@ public abstract class Serializable : Object
 
         Temporary = enable;
 
-        switch (this)
+        var eventData = new SceneEvents.TemporaryChangedEvent
         {
-            case Node node:
-            {
-                var eventData = new SceneEvents.TemporaryChangedEvent
-                {
-                    Serializable = this
-                };
-                node.Scene.SendEvent(ref eventData);
-                break;
-            }
-            case Component { Scene: { } scene }:
-            {
-                var eventData = new SceneEvents.TemporaryChangedEvent
-                {
-                    Serializable = this
-                };
-                scene.SendEvent(ref eventData);
-                break;
-            }
-        }
+            Serializable = this
+        };
+        SendEvent(ref eventData);
     }
 
     protected AttributeHandle RegisterAttribute(

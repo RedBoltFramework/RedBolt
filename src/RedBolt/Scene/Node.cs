@@ -1,11 +1,15 @@
 namespace RedBolt;
 
-public sealed class Node : Serializable
+/// <summary>Scene node that may contain components and child nodes.</summary>
+public class Node : Serializable
 {
     private Matrix3x4 _worldTransform = Matrix3x4.Identity;
     private bool _dirty;
     private bool _enabled = true;
     private bool _enabledPrev = true;
+    private Node? _parent;
+    private Scene? _scene;
+    private uint _id;
     private Vector3f _position = Vector3f.Zero;
     private Quaternion _rotation = Quaternion.IDENTITY;
     private Vector3f _scale = Vector3f.One;
@@ -17,17 +21,14 @@ public sealed class Node : Serializable
     private readonly List<Node> _dependencyNodes = [];
     private string _name = string.Empty;
     private readonly List<string> _tags = [];
+    private StringHash _nameHash;
+    private readonly VectorBuffer _attributeBuffer = new();
     private readonly Dictionary<StringHash, object?> _variables = new();
     private WorldOriginUpdateMode _worldOriginUpdateMode = WorldOriginUpdateMode.Move;
 
-    internal Node(Scene scene, Node? parent, string name, uint id, bool temporary = false)
+    /// <summary>Construct.</summary>
+    public Node()
     {
-        Scene = scene;
-        Parent = parent;
-        Id = id;
-        SetName(name);
-        SetTemporary(temporary);
-
         RegisterAttribute(
             "Is Enabled",
             typeof(bool),
@@ -72,26 +73,74 @@ public sealed class Node : Serializable
                 ? variantMap.Select(static pair => new KeyValuePair<StringHash, object?>(pair.Key, pair.Value.GetObject()))
                 : value is IEnumerable<KeyValuePair<StringHash, object?>> variablesValue ? variablesValue : []),
             new Dictionary<StringHash, object?>());
+        RegisterAttribute(
+            "World Origin Update Mode",
+            typeof(WorldOriginUpdateMode),
+            self => ((Node)self)._worldOriginUpdateMode,
+            (self, value) => ((Node)self)._worldOriginUpdateMode = value is WorldOriginUpdateMode mode
+                ? mode
+                : WorldOriginUpdateMode.Move,
+            WorldOriginUpdateMode.Move);
     }
 
-    public static IReadOnlyList<Node> GetNodes(IEnumerable<Component> components)
+    /// <summary>Register object factory.</summary>
+    public static void RegisterObject(Context context)
     {
-        ArgumentNullException.ThrowIfNull(components);
-        return components
-            .Select(static component => component.Node)
-            .Where(static node => node is not null)
-            .Select(static node => node!)
-            .Distinct()
-            .ToArray();
+        context.AddFactoryReflection<Node>();
     }
 
+    /// <summary>Destruct. Any child nodes are detached.</summary>
+    public override void Dispose()
+    {
+        RemoveAllChildren();
+        RemoveAllComponents();
+
+        if (_scene is not null)
+            _scene.NodeRemoved(this);
+
+        _variables.Clear();
+        _attributeBuffer.Dispose();
+        _tags.Clear();
+        _name = string.Empty;
+        _dependencyNodes.Clear();
+        _listeners.Clear();
+        base.Dispose();
+    }
+
+    /// <summary>For given set of components, return all nodes they belong to.</summary>
+    public static IReadOnlyList<Node?> GetNodes(IEnumerable<Component> components)
+    {
+        var result = new List<Node?>();
+        foreach (var component in components)
+        {
+            var node = component.Node;
+            if (!result.Contains(node))
+                result.Add(node);
+        }
+        return result;
+    }
+
+    /// <summary>For given set of nodes, exclude all children nodes and return all root nodes only.</summary>
     public static IReadOnlyList<Node> GetParentNodes(IEnumerable<Node> nodes)
     {
-        ArgumentNullException.ThrowIfNull(nodes);
-        var candidates = nodes.Distinct().ToArray();
-        return candidates
-            .Where(node => !candidates.Any(other => !ReferenceEquals(node, other) && node.IsChildOf(other)))
-            .ToArray();
+        var candidates = nodes.ToArray();
+        var result = new List<Node>();
+        foreach (var candidate in candidates)
+        {
+            var isChildOfAny = false;
+            foreach (var node in candidates)
+            {
+                if (candidate.IsChildOf(node))
+                {
+                    isChildOfAny = true;
+                    break;
+                }
+            }
+
+            if (!isChildOfAny)
+                result.Add(candidate);
+        }
+        return result;
     }
 
     public override void SerializeInBlock(Archive archive)
@@ -115,7 +164,7 @@ public sealed class Node : Serializable
         {
             using var reader = new PrefabReaderFromArchive(archive, blockName: null, flags: archiveFlags);
             if (!Load(reader, loadFlags))
-                throw new InvalidOperationException("Failed to load node hierarchy from archive.");
+                throw new ArchiveException("Failed to load node hierarchy from archive");
         }
         else
         {
@@ -124,7 +173,7 @@ public sealed class Node : Serializable
 
             using var writer = new PrefabWriterToArchive(archive, blockName: null, saveFlags: saveFlags, archiveFlags: archiveFlags);
             if (!Save(writer))
-                throw new InvalidOperationException("Failed to save node hierarchy to archive.");
+                throw new ArchiveException("Failed to save node hierarchy to archive");
         }
     }
 
@@ -135,7 +184,7 @@ public sealed class Node : Serializable
         {
             var nodePrefab = reader.ReadNode();
             if (nodePrefab is null)
-                return false;
+                throw new ArchiveException("Failed to read node prefab");
 
             var resolver = new SceneResolver();
             LoadInternal(nodePrefab, reader, resolver, flags);
@@ -144,8 +193,9 @@ public sealed class Node : Serializable
                 ApplyAttributes();
             return true;
         }
-        catch (Exception)
+        catch (ArchiveException exception)
         {
+            Log.GetLogger().Error("{0}", exception.Message);
             return false;
         }
     }
@@ -158,10 +208,36 @@ public sealed class Node : Serializable
             SaveInternal(writer);
             return true;
         }
-        catch (Exception)
+        catch (ArchiveException exception)
         {
+            Log.GetLogger().Error("{0}", exception.Message);
             return false;
         }
+    }
+
+    /// <summary>Instantiate scene content from prefab. Return root node if successful.</summary>
+    public Node? InstantiatePrefab(
+        PrefabResource? prefabResource, Vector3f? position = null, Quaternion? rotation = null)
+    {
+        return prefabResource is null
+            ? null
+            : InstantiatePrefab(prefabResource.GetNodePrefab(), position, rotation);
+    }
+
+    /// <summary>Instantiate scene content from prefab. Return root node if successful.</summary>
+    public Node? InstantiatePrefab(NodePrefab prefab, Vector3f? position = null, Quaternion? rotation = null)
+    {
+        var childNode = CreateChild();
+        var reader = new PrefabReaderFromMemory(prefab);
+        if (!childNode.Load(reader, PrefabLoadFlag.None))
+        {
+            childNode.Remove();
+            return null;
+        }
+
+        childNode.SetPosition(position ?? Vector3f.Zero);
+        childNode.SetRotation(rotation ?? Quaternion.IDENTITY);
+        return childNode;
     }
 
     public override bool Load(Stream source)
@@ -210,7 +286,7 @@ public sealed class Node : Serializable
         if (!base.Save(destination))
             return false;
 
-        destination.WriteVLE(GetNumPersistentComponents());
+        destination.WriteVLE(checked((uint)GetNumPersistentComponents()));
         foreach (var component in _components)
         {
             if (component.IsTemporary)
@@ -224,7 +300,7 @@ public sealed class Node : Serializable
             destination.Write(componentBuffer.Buffer);
         }
 
-        destination.WriteVLE(GetNumPersistentChildren());
+        destination.WriteVLE(checked((uint)GetNumPersistentChildren()));
         foreach (var child in _children)
         {
             if (child.IsTemporary)
@@ -237,65 +313,18 @@ public sealed class Node : Serializable
         return true;
     }
 
-    public NodePrefab GeneratePrefab(bool includeTemporary = false)
+    public void GeneratePrefab(NodePrefab prefab)
+    {
+        var flags = PrefabSaveFlag.EnumsAsStrings | PrefabSaveFlag.Prefab;
+        var writer = new PrefabWriterToMemory(prefab, flags);
+        Save(writer);
+    }
+
+    public NodePrefab GeneratePrefab()
     {
         var prefab = new NodePrefab();
-        FillSerializablePrefab(prefab.Node, this, Id);
-        foreach (var component in _components.Where(component => includeTemporary || !component.IsTemporary))
-        {
-            var componentPrefab = new SerializablePrefab();
-            FillSerializablePrefab(componentPrefab, component, component.Id);
-            prefab.Components.Add(componentPrefab);
-        }
-        foreach (var child in _children.Where(child => includeTemporary || !child.IsTemporary))
-            prefab.Children.Add(child.GeneratePrefab(includeTemporary));
+        GeneratePrefab(prefab);
         return prefab;
-    }
-
-    public void GeneratePrefab(NodePrefab prefab, bool includeTemporary = false)
-    {
-        ArgumentNullException.ThrowIfNull(prefab);
-
-        var generated = GeneratePrefab(includeTemporary);
-        prefab.Clear();
-        prefab.Node.TypeName = generated.Node.TypeName;
-        prefab.Node.Id = generated.Node.Id;
-        prefab.Node.Temporary = generated.Node.Temporary;
-        foreach (var attribute in generated.Node.Attributes)
-            prefab.Node.Attributes.Add((AttributePrefab)attribute.Clone());
-        foreach (var component in generated.Components)
-            prefab.Components.Add((SerializablePrefab)component.Clone());
-        foreach (var child in generated.Children)
-            prefab.Children.Add((NodePrefab)child.Clone());
-    }
-
-    public void LoadPrefab(NodePrefab prefab, bool clearExisting = true)
-    {
-        ArgumentNullException.ThrowIfNull(prefab);
-        if (clearExisting)
-        {
-            RemoveAllChildren();
-            RemoveAllComponents();
-        }
-        ApplySerializablePrefab(this, prefab.Node);
-        foreach (var componentPrefab in prefab.Components)
-        {
-            var type = ResolveComponentType(componentPrefab.TypeName);
-            Component component;
-            if (type is null || CreateComponent(type, componentPrefab.Id) is not { } created)
-            {
-                component = CreateComponent<UnknownComponent>(componentPrefab.Id);
-                ((UnknownComponent)component).SetOriginalTypeName(componentPrefab.TypeName);
-            }
-            else component = created;
-            ApplySerializablePrefab(component, componentPrefab);
-        }
-        foreach (var childPrefab in prefab.Children)
-        {
-            var child = CreateChild(id: childPrefab.Node.Id, temporary: childPrefab.Node.Temporary);
-            child.LoadPrefab(childPrefab);
-        }
-        ApplyAttributes();
     }
 
     public override bool LoadXML(XMLElement source)
@@ -335,13 +364,7 @@ public sealed class Node : Serializable
         {
             var typeName = componentElement.GetAttribute("type");
             var componentId = componentElement.GetUInt("id");
-            var componentType = ResolveComponentType(typeName);
-            if (componentType is null)
-                continue;
-
-            var component = CreateComponent(componentType, rewriteIds ? 0u : componentId);
-            if (component is null)
-                continue;
+            var component = SafeCreateComponent(typeName, new StringHash(typeName), rewriteIds ? 0u : componentId);
 
             resolver.AddComponent(componentId, component);
             if (!component.LoadXML(componentElement))
@@ -398,13 +421,7 @@ public sealed class Node : Serializable
         {
             var typeName = componentValue.Get("type").GetString();
             var componentId = componentValue.Get("id").GetUInt();
-            var componentType = ResolveComponentType(typeName);
-            if (componentType is null)
-                continue;
-
-            var component = CreateComponent(componentType, rewriteIds ? 0u : componentId);
-            if (component is null)
-                continue;
+            var component = SafeCreateComponent(typeName, new StringHash(typeName), rewriteIds ? 0u : componentId);
 
             resolver.AddComponent(componentId, component);
             if (!component.LoadJSON(componentValue))
@@ -493,6 +510,22 @@ public sealed class Node : Serializable
         return true;
     }
 
+    /// <summary>Apply attribute changes that can not be applied immediately recursively to child nodes and components.</summary>
+    public override void ApplyAttributes()
+    {
+        foreach (var component in _components)
+            component.ApplyAttributes();
+
+        foreach (var child in _children)
+            child.ApplyAttributes();
+    }
+
+    /// <summary>Return whether should save default-valued attributes into XML.</summary>
+    public override bool SaveDefaultAttributes(AttributeInfo attribute)
+    {
+        return true;
+    }
+
     public bool SaveXML(Stream destination, string indentation = "\t")
     {
         ArgumentNullException.ThrowIfNull(destination);
@@ -548,23 +581,6 @@ public sealed class Node : Serializable
         return true;
     }
 
-    private static void FillSerializablePrefab(SerializablePrefab prefab, Serializable value, uint id)
-    {
-        prefab.TypeName = value.GetTypeName(); prefab.Id = id; prefab.Temporary = value.IsTemporary;
-        foreach (var attribute in value.Attributes.Where(static attribute => attribute.ShouldSave))
-        {
-            Variant variant;
-            if (value is Node node && attribute.Name == "Variables")
-            {
-                var map = new VariantMap();
-                foreach (var (key, item) in node._variables) map[key] = Variant.FromObject(item);
-                variant = new Variant(map);
-            }
-            else variant = Variant.FromObject(value.GetAttribute(attribute.Name));
-            prefab.Attributes.Add(new AttributePrefab { Name = attribute.Name, Value = variant });
-        }
-    }
-
     private static void ApplySerializablePrefab(
         Serializable value, SerializablePrefab prefab, PrefabLoadFlag flags = PrefabLoadFlag.None)
     {
@@ -597,7 +613,7 @@ public sealed class Node : Serializable
             value.ApplyAttributes();
     }
 
-    private void LoadInternal(
+    public void LoadInternal(
         SerializablePrefab nodePrefab, PrefabReader reader, SceneResolver resolver, PrefabLoadFlag flags)
     {
         var discardIds = (flags & PrefabLoadFlag.DiscardIds) != 0;
@@ -614,22 +630,15 @@ public sealed class Node : Serializable
         resolver.AddNode(nodePrefab.Id, this);
 
         var numComponents = reader.ReadNumComponents();
-        for (var index = 0u; index < numComponents; ++index)
+        for (var index = 0; index < checked((int)numComponents); ++index)
         {
             var componentPrefab = reader.ReadComponent();
             if (componentPrefab is null)
-                throw new InvalidOperationException("Failed to read component prefab.");
+                throw new ArchiveException("Failed to read component prefab");
 
             var componentId = (flags & PrefabLoadFlag.DiscardIds) != 0 ? 0u : componentPrefab.Id;
-            var type = ResolveComponentType(componentPrefab.TypeName);
-            Component component;
-            if (type is null || CreateComponent(type, componentId) is not { } created)
-            {
-                component = CreateComponent<UnknownComponent>(componentId);
-                ((UnknownComponent)component).SetOriginalTypeName(componentPrefab.TypeName);
-            }
-            else
-                component = created;
+            var component = SafeCreateComponent(
+                componentPrefab.TypeName, componentPrefab.TypeNameHash, componentId);
 
             resolver.AddComponent(componentPrefab.Id, component);
             ApplySerializablePrefab(component, componentPrefab, flags);
@@ -638,12 +647,12 @@ public sealed class Node : Serializable
         }
 
         var numChildren = reader.ReadNumChildren();
-        for (var index = 0u; index < numChildren; ++index)
+        for (var index = 0; index < checked((int)numChildren); ++index)
         {
             reader.BeginChild();
             var childPrefab = reader.ReadNode();
             if (childPrefab is null)
-                throw new InvalidOperationException("Failed to read child prefab.");
+                throw new ArchiveException("Failed to read child prefab");
 
             var childId = (flags & PrefabLoadFlag.DiscardIds) != 0 ? 0u : childPrefab.Id;
             var child = CreateChild(childId);
@@ -655,19 +664,19 @@ public sealed class Node : Serializable
         }
     }
 
-    private void SaveInternal(PrefabWriter writer)
+    public void SaveInternal(PrefabWriter writer)
     {
         var saveTemporary = (writer.GetFlags() & PrefabSaveFlag.SaveTemporary) != 0;
 
         writer.WriteNode(Id, this);
-        writer.WriteNumComponents(saveTemporary ? GetNumComponents() : GetNumPersistentComponents());
+        writer.WriteNumComponents(checked((uint)(saveTemporary ? GetNumComponents() : GetNumPersistentComponents())));
         foreach (var component in _components)
         {
             if (saveTemporary || !component.IsTemporary)
                 writer.WriteComponent(component.Id, component);
         }
 
-        writer.WriteNumChildren(saveTemporary ? GetNumChildren() : GetNumPersistentChildren());
+        writer.WriteNumChildren(checked((uint)(saveTemporary ? GetNumChildren() : GetNumPersistentChildren())));
         foreach (var child in _children)
         {
             if (saveTemporary || !child.IsTemporary)
@@ -703,7 +712,23 @@ public sealed class Node : Serializable
         return null;
     }
 
-    internal bool Load(Deserializer source, SceneResolver resolver, bool loadChildren = true, bool rewriteIds = false)
+    /// <summary>Create component, allowing UnknownComponent if actual type is not supported.</summary>
+    private Component SafeCreateComponent(string typeName, StringHash type, uint id)
+    {
+        var componentType = !string.IsNullOrEmpty(typeName)
+            ? ResolveComponentType(typeName)
+            : ResolveComponentType(type);
+        if (componentType is not null && CreateComponent(componentType, id) is { } component)
+            return component;
+
+        Log.GetLogger().Warning("Component type {0} not known, creating UnknownComponent as placeholder", type);
+        var unknownComponent = CreateComponent<UnknownComponent>(id);
+        if (!string.IsNullOrEmpty(typeName))
+            unknownComponent.SetOriginalTypeName(typeName);
+        return unknownComponent;
+    }
+
+    public bool Load(Deserializer source, SceneResolver resolver, bool loadChildren = true, bool rewriteIds = false)
     {
         RemoveAllChildren();
         RemoveAllComponents();
@@ -712,14 +737,12 @@ public sealed class Node : Serializable
             return false;
 
         var numComponents = source.ReadVLE();
-        for (var index = 0u; index < numComponents; ++index)
+        for (var index = 0; index < checked((int)numComponents); ++index)
         {
             var componentBuffer = new VectorBuffer(source, source.ReadVLE());
             var componentType = componentBuffer.ReadStringHash();
             var componentId = componentBuffer.ReadUInt();
-            var component = ResolveComponentType(componentType) is { } type
-                ? CreateComponent(type, rewriteIds ? 0u : componentId)
-                : CreateComponent<UnknownComponent>(rewriteIds ? 0u : componentId);
+            var component = SafeCreateComponent(string.Empty, componentType, rewriteIds ? 0u : componentId);
 
             if (component is not null)
             {
@@ -732,7 +755,7 @@ public sealed class Node : Serializable
             return true;
 
         var numChildren = source.ReadVLE();
-        for (var index = 0u; index < numChildren; ++index)
+        for (var index = 0; index < checked((int)numChildren); ++index)
         {
             var nodeId = source.ReadUInt();
             var child = CreateChild(rewriteIds ? 0u : nodeId);
@@ -763,9 +786,6 @@ public sealed class Node : Serializable
     //
     public void TraverseDepthFirst(Func<Node, bool> nodeCallback, Action<Component> componentCallback)
     {
-        ArgumentNullException.ThrowIfNull(nodeCallback);
-        ArgumentNullException.ThrowIfNull(componentCallback);
-
         foreach (var component in _components)
             componentCallback(component);
 
@@ -780,19 +800,27 @@ public sealed class Node : Serializable
     {
         if (childNode is not null)
         {
-            var isNameGood = !flags.HasFlag(SceneLookupFlag.ValidateName) || childNode.NameHash == nameHash;
-            var isRelationGood = !flags.HasFlag(SceneLookupFlag.ValidateRelation) || childNode.IsChildOf(this);
+            var isNameGood = (flags & SceneLookupFlag.ValidateName) == 0 || childNode.NameHash == nameHash;
+            var isRelationGood = (flags & SceneLookupFlag.ValidateRelation) == 0 || childNode.IsChildOf(this);
             if (isNameGood && isRelationGood)
+            {
+#if DEBUG
+                if (childNode.NameHash != nameHash)
+                    Log.GetLogger().Warning("Change of node name is ignored during lazy lookup");
+                if (!childNode.IsChildOf(this))
+                    Log.GetLogger().Warning("Change of node hierarchy is ignored during lazy lookup");
+#endif
                 return true;
+            }
 
             childNode = null;
         }
 
-        childNode = GetChild(nameHash, flags.HasFlag(SceneLookupFlag.Recursive));
+        childNode = GetChild(nameHash, (flags & SceneLookupFlag.Recursive) != 0);
         return childNode is not null;
     }
 
-    public bool GetNthComponentLazy<T>(ref T? childComponent, uint index = 0)
+    public bool GetNthComponentLazy<T>(ref T? childComponent, int index = 0)
         where T : Component
     {
         if (childComponent is not null)
@@ -801,17 +829,6 @@ public sealed class Node : Serializable
         childComponent = GetNthComponent<T>(index);
         return childComponent is not null;
     }
-    //
-    // C++ Node constructor takes Context* only; C# takes scene/parent/name/id/temporary.
-    // C++ uses PIMPL via NodeImpl (name_, tags_, nameHash_, dependencyNodes_, attrBuffer_);
-    // C# inlines those fields directly.
-    //
-    // Scene lifetime helpers - the managed Scene is currently constructor-owned and non-nullable,
-    // so these mutators do not yet map onto the C# API surface:
-    //
-    // void Node::SetScene(Scene* scene) { scene_ = scene; }
-    // void Node::ResetScene() { SetID(0); SetScene(nullptr); }
-
     public IReadOnlyList<Node> Children => _children;
 
     public IReadOnlyList<Component> Components => _components;
@@ -820,13 +837,11 @@ public sealed class Node : Serializable
 
     public IReadOnlyDictionary<StringHash, object?> Variables => _variables;
 
-    public IReadOnlyDictionary<StringHash, object?> Vars => Variables;
-
-    public uint Id { get; private set; }
+    public uint Id => _id;
 
     public string Name => _name;
 
-    public StringHash NameHash => Name;
+    public StringHash NameHash => _nameHash;
 
     public bool Enabled
     {
@@ -840,7 +855,7 @@ public sealed class Node : Serializable
 
     public bool IsDirty => _dirty;
 
-    public Node? Parent { get; private set; }
+    public Node? Parent => _parent;
 
     public Vector3f Position
     {
@@ -860,7 +875,7 @@ public sealed class Node : Serializable
         set => SetScale(value);
     }
 
-    public Scene Scene { get; }
+    public Scene? Scene => _scene;
 
     public WorldOriginUpdateMode WorldOriginUpdateMode
     {
@@ -946,14 +961,27 @@ public sealed class Node : Serializable
 
     public Node CreateChild(string name = "", uint id = 0, bool temporary = false)
     {
-        var child = new Node(Scene, parent: null, name: name, id: Scene.AllocateNodeId(id), temporary: temporary);
-        AddChild(child);
-        return child;
+        var newNode = CreateChild(id, temporary);
+        newNode.SetName(name);
+        return newNode;
     }
 
     public Node CreateChild(uint id, bool temporary = false)
     {
-        return CreateChild(name: string.Empty, id: id, temporary: temporary);
+        var newNode = new Node();
+        newNode.SetTemporary(temporary);
+
+        if (_scene is not null)
+        {
+            if (id == 0 || _scene.GetNode(id) is not null)
+                id = _scene.GetFreeNodeID();
+            newNode.SetID(id);
+        }
+        else
+            newNode.SetID(id);
+
+        AddChild(newNode);
+        return newNode;
     }
 
     public Node CreateTemporaryChild(string name = "", uint id = 0)
@@ -986,22 +1014,37 @@ public sealed class Node : Serializable
     {
         ArgumentNullException.ThrowIfNull(component);
 
+        _components.Add(component);
+
         if (component.Node is not null)
             Log.GetLogger().Warning("Component {0} already belongs to a node!", component.GetTypeName());
 
-        _components.Add(component);
-        component.SetID(Scene.AllocateComponentId(id));
-        component.SetNode(this);
-        Scene.ComponentAdded(component);
+        if (_scene is not null)
+        {
+            if (id == 0 || _scene.GetComponent(id) is not null)
+                id = _scene.GetFreeComponentID();
+            component.SetID(id);
+            component.SetNode(this);
+            _scene.ComponentAdded(component);
+        }
+        else
+        {
+            component.SetID(id);
+            component.SetNode(this);
+        }
+
         component.OnMarkedDirty(this);
 
-        var eventData = new SceneEvents.ComponentAddedEvent
+        if (_scene is not null)
         {
-            Scene = Scene,
-            Node = this,
-            Component = component
-        };
-        Scene.SendEvent(ref eventData);
+            var eventData = new SceneEvents.ComponentAddedEvent
+            {
+                Scene = _scene,
+                Node = this,
+                Component = component
+            };
+            _scene.SendEvent(ref eventData);
+        }
     }
 
     public T GetOrCreateComponent<T>(uint id = 0)
@@ -1018,34 +1061,43 @@ public sealed class Node : Serializable
 
     public Component? CloneComponent(Component component, uint id = 0)
     {
-        ArgumentNullException.ThrowIfNull(component);
-
-        if (Activator.CreateInstance(component.GetType()) is not Component clone)
+        if (component is null)
+        {
+            Log.GetLogger().Error("Null source component given for CloneComponent");
             return null;
+        }
 
-        clone.SetID(Scene.AllocateComponentId(id));
-        clone.SetNode(this);
-        _components.Add(clone);
-        Scene.ComponentAdded(clone);
-        clone.CopyAttributes(component);
-        clone.SetTemporary(component.IsTemporary);
+        var clone = SafeCreateComponent(component.GetTypeName(), component.GetTypeNameHash(), 0);
+        if (clone is null)
+        {
+            Log.GetLogger().Error("Could not clone component {0}", component.GetTypeName());
+            return null;
+        }
+
+        var componentAttributes = component.GetAttributes();
+        var cloneAttributes = clone.GetAttributes();
+        for (var index = 0; index < componentAttributes.Count && index < cloneAttributes.Count; ++index)
+        {
+            var attribute = componentAttributes[index];
+            var cloneAttribute = cloneAttributes[index];
+            if ((attribute.Mode & AttributeMode.File) != 0)
+            {
+                var value = component.OnGetAttribute(attribute);
+                clone.OnSetAttribute(cloneAttribute, value);
+            }
+        }
         clone.ApplyAttributes();
 
-        var componentAddedEvent = new SceneEvents.ComponentAddedEvent
+        if (_scene is not null)
         {
-            Scene = Scene,
-            Node = this,
-            Component = clone
-        };
-        Scene.SendEvent(ref componentAddedEvent);
-
-        var componentClonedEvent = new SceneEvents.ComponentClonedEvent
-        {
-            Scene = Scene,
-            Component = component,
-            CloneComponent = clone
-        };
-        Scene.SendEvent(ref componentClonedEvent);
+            var componentClonedEvent = new SceneEvents.ComponentClonedEvent
+            {
+                Scene = _scene,
+                Component = component,
+                CloneComponent = clone
+            };
+            _scene.SendEvent(ref componentClonedEvent);
+        }
         return clone;
     }
 
@@ -1109,30 +1161,29 @@ public sealed class Node : Serializable
         return result;
     }
 
-    public Component? GetComponent(uint index)
+    public Component? GetComponent(int index)
     {
-        return index < _components.Count ? _components[(int)index] : null;
+        return index >= 0 && index < _components.Count ? _components[index] : null;
     }
 
-    public T? GetNthComponent<T>(uint index)
+    public T? GetNthComponent<T>(int index)
         where T : Component
     {
-        var current = 0u;
         foreach (var component in _components)
         {
             if (component.GetType() != typeof(T) || component is not T typed)
                 continue;
 
-            if (current == index)
+            if (index == 0)
                 return typed;
 
-            ++current;
+            --index;
         }
 
         return null;
     }
 
-    public Component? GetNthComponent(Type componentType, uint index)
+    public Component? GetNthComponent(Type componentType, int index)
     {
         ValidateComponentType(componentType, nameof(componentType));
 
@@ -1186,11 +1237,11 @@ public sealed class Node : Serializable
         return GetComponent(componentType) is not null;
     }
 
-    public uint GetNumComponents() => (uint)_components.Count;
+    public int GetNumComponents() => _components.Count;
 
-    public uint GetNumPersistentComponents()
+    public int GetNumPersistentComponents()
     {
-        uint count = 0;
+        var count = 0;
         foreach (var component in _components)
         {
             if (!component.IsTemporary)
@@ -1222,12 +1273,12 @@ public sealed class Node : Serializable
 
     public IReadOnlyList<string> GetTags() => Tags;
 
-    public uint GetComponentIndex(Component component)
+    public int GetComponentIndex(Component component)
     {
         ArgumentNullException.ThrowIfNull(component);
 
         var index = _components.IndexOf(component);
-        return index >= 0 ? (uint)index : uint.MaxValue;
+        return index >= 0 ? index : int.MaxValue;
     }
 
     public uint GetID()
@@ -1241,32 +1292,32 @@ public sealed class Node : Serializable
         return prefix + (string.IsNullOrEmpty(Name) ? nameof(Node) : Name);
     }
 
-    public uint GetChildIndex(Node child)
+    public int GetChildIndex(Node child)
     {
         ArgumentNullException.ThrowIfNull(child);
         var index = _children.IndexOf(child);
-        return index >= 0 ? (uint)index : uint.MaxValue;
+        return index >= 0 ? index : int.MaxValue;
     }
 
-    public uint GetIndexInParent()
+    public int GetIndexInParent()
     {
-        return Parent?.GetChildIndex(this) ?? uint.MaxValue;
+        return Parent?.GetChildIndex(this) ?? int.MaxValue;
     }
 
-    public uint GetNumChildren(bool recursive = false)
+    public int GetNumChildren(bool recursive = false)
     {
         if (!recursive)
-            return (uint)_children.Count;
+            return _children.Count;
 
-        uint count = (uint)_children.Count;
+        var count = _children.Count;
         foreach (var child in _children)
             count += child.GetNumChildren(recursive: true);
         return count;
     }
 
-    public uint GetNumPersistentChildren()
+    public int GetNumPersistentChildren()
     {
-        uint count = 0;
+        var count = 0;
         foreach (var child in _children)
         {
             if (!child.IsTemporary)
@@ -1276,9 +1327,9 @@ public sealed class Node : Serializable
         return count;
     }
 
-    public Node? GetChild(uint index)
+    public Node? GetChild(int index)
     {
-        return index < _children.Count ? _children[(int)index] : null;
+        return index >= 0 && index < _children.Count ? _children[index] : null;
     }
 
     public Node? GetChild(StringHash nameHash, bool recursive = false)
@@ -1301,7 +1352,6 @@ public sealed class Node : Serializable
 
     public Node? GetChild(string name, bool recursive = false)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         return GetChild(new StringHash(name), recursive);
     }
 
@@ -1385,14 +1435,14 @@ public sealed class Node : Serializable
             GetChildrenWithComponentRecursive(dest, componentType);
     }
 
-    public Node? GetChildByNameOrIndex(string name, bool recursive = false)
+    private Node? GetChildByNameOrIndex(string name, bool recursive = false)
     {
         if (string.IsNullOrEmpty(name))
             return null;
 
         if (name[0] == '#')
         {
-            if (uint.TryParse(name.AsSpan(1), out var index) || (name.Length == 2 && name[1] == '0'))
+            if (int.TryParse(name.AsSpan(1), out var index) || (name.Length == 2 && name[1] == '0'))
                 return GetChild(index);
         }
 
@@ -1401,7 +1451,6 @@ public sealed class Node : Serializable
 
     public Node? FindChild(string path, bool firstRecursive = false)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
         var separator = path.IndexOf('/');
         var isLast = separator < 0;
         var childName = isLast ? path : path[..separator];
@@ -1412,13 +1461,13 @@ public sealed class Node : Serializable
         if (childName == "**")
             return FindChild(subPath, firstRecursive: true);
 
-        var child = childName.StartsWith("#", StringComparison.Ordinal) && uint.TryParse(childName[1..], out var index)
+        var child = childName.StartsWith("#", StringComparison.Ordinal) && int.TryParse(childName[1..], out var index)
             ? GetChild(index)
             : GetChild(childName, firstRecursive);
         return child is not null && !isLast ? child.FindChild(subPath) : child;
     }
 
-    public (Serializable? Serializable, uint AttributeIndex) FindComponentAttribute(string path)
+    public (Serializable? Serializable, int AttributeIndex) FindComponentAttribute(string path)
     {
         if (string.IsNullOrEmpty(path) || path[0] != '@')
             return default;
@@ -1437,15 +1486,14 @@ public sealed class Node : Serializable
         for (var i = 0; i < attributes.Count; ++i)
         {
             if (string.Equals(attributes[i].Name, attributeName, StringComparison.OrdinalIgnoreCase))
-                return (serializable, (uint)i);
+                return (serializable, i);
         }
 
         return default;
     }
 
-    public bool IsChildOf(Node node)
+    public bool IsChildOf(Node? node)
     {
-        ArgumentNullException.ThrowIfNull(node);
         var parent = Parent;
         while (parent is not null)
         {
@@ -1459,10 +1507,6 @@ public sealed class Node : Serializable
 
     public Node? GetDirectChildFor(Node indirectChild)
     {
-        ArgumentNullException.ThrowIfNull(indirectChild);
-        if (ReferenceEquals(indirectChild, this))
-            return null;
-
         var child = indirectChild;
         while (child.Parent is not null && !ReferenceEquals(child.Parent, this))
             child = child.Parent;
@@ -1541,19 +1585,15 @@ public sealed class Node : Serializable
 
     public bool HasTag(string tag) => _tags.Contains(tag);
 
-    public bool HasVar(string key) => _variables.ContainsKey(new StringHash(key));
-
-    public bool HasVar(StringHash key) => _variables.ContainsKey(key);
-
     public Vector3f LocalToWorld(Vector3f localPosition) => GetWorldTransform() * localPosition;
 
     public Vector3f LocalToWorld(Vector4f localVector) => GetWorldTransform() * localVector;
 
     public Vector2f LocalToWorld2D(Vector2f localVector) => LocalToWorld(new Vector3f(localVector.X, localVector.Y, 0.0f)).ToVector2();
 
-    public Vector3f WorldToLocal(Vector3f worldPosition) => WorldRotation.Inverse * (worldPosition - WorldPosition) / WorldScale;
+    public Vector3f WorldToLocal(Vector3f worldPosition) => GetWorldTransform().Inverse * worldPosition;
 
-    public Vector3f WorldToLocal(Vector4f worldVector) => WorldRotation.Inverse * (new Vector3f(worldVector.X, worldVector.Y, worldVector.Z) - WorldPosition * worldVector.W) / WorldScale;
+    public Vector3f WorldToLocal(Vector4f worldVector) => GetWorldTransform().Inverse * worldVector;
 
     public Vector2f WorldToLocal2D(Vector2f worldVector) => WorldToLocal(new Vector3f(worldVector.X, worldVector.Y, 0.0f)).ToVector2();
 
@@ -1710,33 +1750,37 @@ public sealed class Node : Serializable
 
     public void RemoveComponent(Component component)
     {
-        ArgumentNullException.ThrowIfNull(component);
+        var index = _components.IndexOf(component);
+        if (index < 0)
+            return;
 
-        if (_components.Remove(component))
+        if (_scene is not null)
         {
             var eventData = new SceneEvents.ComponentRemovedEvent
             {
-                Scene = Scene,
+                Scene = _scene,
                 Node = this,
                 Component = component
             };
-            Scene.SendEvent(ref eventData);
-
-            RemoveListener(component);
-            Scene.ComponentRemoved(component);
-            component.SetNode(null);
+            _scene.SendEvent(ref eventData);
         }
+
+        RemoveListener(component);
+        if (_scene is not null)
+            _scene.ComponentRemoved(component);
+        component.SetNode(null);
+        _components.RemoveAt(index);
     }
 
-    public void ReorderComponent(Component component, uint index)
+    public void ReorderComponent(Component component, int index)
     {
         ArgumentNullException.ThrowIfNull(component);
         var oldIndex = _components.IndexOf(component);
-        if (oldIndex < 0 || index >= _components.Count)
+        if (oldIndex < 0 || index < 0 || index >= _components.Count)
             return;
 
         _components.RemoveAt(oldIndex);
-        _components.Insert((int)Math.Min(index, (uint)_components.Count), component);
+        _components.Insert(Math.Min(index, _components.Count), component);
     }
 
     public void RemoveComponents()
@@ -1750,12 +1794,17 @@ public sealed class Node : Serializable
     public Node? Clone(Node? parent = null)
     {
         var destination = parent ?? Parent;
-        if (destination is null)
+        if (ReferenceEquals(this, _scene?.Root) || destination is null)
+        {
+            Log.GetLogger().Error("Can not clone node without a parent");
             return null;
-        if (!ReferenceEquals(destination.Scene, Scene))
-            throw new InvalidOperationException("Cross-scene cloning is not supported by the managed scene slice.");
+        }
 
-        return CloneRecursive(destination);
+        var resolver = new SceneResolver();
+        var clone = CloneRecursive(destination, resolver);
+        resolver.Resolve();
+        clone.ApplyAttributes();
+        return clone;
     }
 
     public void Remove()
@@ -1765,59 +1814,88 @@ public sealed class Node : Serializable
 
     public void RemoveChild(Node node)
     {
-        ArgumentNullException.ThrowIfNull(node);
-
-        if (!ReferenceEquals(node.Parent, this) || !_children.Remove(node))
+        if (node is null)
             return;
 
-        var eventData = new SceneEvents.NodeRemovedEvent
-        {
-            Scene = Scene,
-            Parent = this,
-            Node = node
-        };
-        Scene.SendEvent(ref eventData);
+        var index = _children.IndexOf(node);
+        if (index < 0)
+            return;
 
-        node.Parent = null;
+        if (_scene is not null)
+        {
+            var eventData = new SceneEvents.NodeRemovedEvent
+            {
+                Scene = _scene,
+                Parent = this,
+                Node = node
+            };
+            _scene.SendEvent(ref eventData);
+        }
+
+        node._parent = null;
         node.MarkDirty();
-        Scene.NodeRemoved(node);
+        if (_scene is not null)
+            _scene.NodeRemoved(node);
+
+        _children.RemoveAt(index);
     }
 
-    public void AddChild(Node node, uint index = uint.MaxValue)
+    public void AddChild(Node node, int index = int.MaxValue)
     {
-        ArgumentNullException.ThrowIfNull(node);
-        if (ReferenceEquals(node, this) || IsChildOf(node))
-            throw new InvalidOperationException("A node cannot be added to itself or its descendant.");
-        if (!ReferenceEquals(node.Scene, Scene))
-            throw new InvalidOperationException("Cross-scene parenting is not supported by the managed scene slice.");
+        if (node is null || ReferenceEquals(node, this) || ReferenceEquals(node._parent, this))
+            return;
+        if (IsChildOf(node))
+            return;
 
-        var wasAttached = node.Parent is not null;
+        var oldParent = node._parent;
+        if (oldParent is not null)
+        {
+            if (!ReferenceEquals(oldParent.GetScene(), _scene))
+                oldParent.RemoveChild(node);
+            else
+            {
+                if (_scene is not null)
+                {
+                    var removedEventData = new SceneEvents.NodeRemovedEvent
+                    {
+                        Scene = _scene,
+                        Parent = oldParent,
+                        Node = node
+                    };
+                    _scene.SendEvent(ref removedEventData);
+                }
 
-        node.Parent?.DetachChildForReparent(node, this);
-        var insertIndex = index >= _children.Count ? _children.Count : (int)index;
-        _children.Insert(insertIndex, node);
-        node.Parent = this;
-        if (!wasAttached)
-            Scene.NodeAdded(node);
+                oldParent._children.Remove(node);
+            }
+        }
+
+        _children.Insert(Math.Min(index, _children.Count), node);
+        node._parent = this;
+
+        if (_scene is not null && !ReferenceEquals(node.GetScene(), _scene))
+            _scene.NodeAdded(node);
         node.MarkDirty();
 
-        var eventData = new SceneEvents.NodeAddedEvent
+        if (_scene is not null)
         {
-            Scene = Scene,
-            Parent = this,
-            Node = node
-        };
-        Scene.SendEvent(ref eventData);
+            var eventData = new SceneEvents.NodeAddedEvent
+            {
+                Scene = _scene,
+                Parent = this,
+                Node = node
+            };
+            _scene.SendEvent(ref eventData);
+        }
     }
 
-    public void ReorderChild(Node child, uint index)
+    public void ReorderChild(Node child, int index)
     {
         ArgumentNullException.ThrowIfNull(child);
-        if (!ReferenceEquals(child.Parent, this) || index >= _children.Count)
+        if (!ReferenceEquals(child.Parent, this) || index < 0 || index >= _children.Count)
             return;
 
         _children.Remove(child);
-        _children.Insert((int)Math.Min(index, (uint)_children.Count), child);
+        _children.Insert(Math.Min(index, _children.Count), child);
     }
 
     public void RemoveAllChildren() => RemoveChildren(recursive: true);
@@ -1858,39 +1936,20 @@ public sealed class Node : Serializable
 
     public void SetParent(Node? parent)
     {
-        if (parent is null)
+        if (parent is not null)
         {
-            Remove();
-            return;
+            var oldWorldTransform = GetWorldTransform();
+
+            parent.AddChild(this);
+
+            if (!ReferenceEquals(parent, _scene?.Root))
+            {
+                var newTransform = parent.GetWorldTransform().Inverse * oldWorldTransform;
+                SetTransform(newTransform.Translation, newTransform.Rotation, newTransform.Scale);
+            }
+            else
+                SetTransform(oldWorldTransform.Translation, oldWorldTransform.Rotation, oldWorldTransform.Scale);
         }
-
-        if (ReferenceEquals(parent, this) || parent.IsChildOf(this))
-            throw new InvalidOperationException("A node cannot be reparented to itself or its descendant.");
-        if (!ReferenceEquals(parent.Scene, Scene))
-            throw new InvalidOperationException("Cross-scene reparenting is not supported by the managed scene slice.");
-        if (ReferenceEquals(Parent, parent))
-            return;
-
-        var worldPosition = WorldPosition;
-        var worldRotation = WorldRotation;
-        var worldScale = WorldScale;
-        var wasAttached = Parent is not null;
-
-        Parent?.DetachChildForReparent(this, parent);
-        parent._children.Add(this);
-        Parent = parent;
-        if (!wasAttached)
-            Scene.NodeAdded(this);
-        SetWorldTransform(worldPosition, worldRotation, worldScale);
-        MarkDirty();
-
-        var eventData = new SceneEvents.NodeAddedEvent
-        {
-            Scene = Scene,
-            Parent = parent,
-            Node = this
-        };
-        Scene.SendEvent(ref eventData);
     }
 
     public void AddTag(string tag)
@@ -1898,22 +1957,24 @@ public sealed class Node : Serializable
         if (!string.IsNullOrEmpty(tag) && !_tags.Contains(tag))
         {
             _tags.Add(tag);
-            Scene.NodeTagAdded(this, tag);
-
-            var eventData = new SceneEvents.NodeTagAddedEvent
+            if (_scene is not null)
             {
-                Scene = Scene,
-                Node = this,
-                Tag = tag
-            };
-            Scene.SendEvent(ref eventData);
+                _scene.NodeTagAdded(this, tag);
+
+                var eventData = new SceneEvents.NodeTagAddedEvent
+                {
+                    Scene = _scene,
+                    Node = this,
+                    Tag = tag
+                };
+                _scene.SendEvent(ref eventData);
+            }
         }
     }
 
     public void AddTags(string tags, char separator = ';')
     {
-        ArgumentNullException.ThrowIfNull(tags);
-        AddTags(tags.Split([separator], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        AddTags(tags.Split(separator));
     }
 
     public void AddTags(IEnumerable<string> tags)
@@ -2014,35 +2075,59 @@ public sealed class Node : Serializable
 
     public void MarkDirty()
     {
-        if (_dirty)
-            return;
-
-        _dirty = true;
-
-        for (var i = 0; i < _listeners.Count;)
+        var current = this;
+        for (;;)
         {
-            if (_listeners[i].TryGetTarget(out var listener))
+            if (current._dirty)
+                return;
+            current._dirty = true;
+
+            for (var index = 0; index < current._listeners.Count;)
             {
-                listener.OnMarkedDirty(this);
-                ++i;
+                if (current._listeners[index].TryGetTarget(out var listener))
+                {
+                    listener.OnMarkedDirty(current);
+                    ++index;
+                }
+                else
+                {
+                    current._listeners[index] = current._listeners[^1];
+                    current._listeners.RemoveAt(current._listeners.Count - 1);
+                }
+            }
+
+            if (current._children.Count != 0)
+            {
+                for (var index = 1; index < current._children.Count; ++index)
+                    current._children[index].MarkDirty();
+                current = current._children[0];
             }
             else
-            {
-                _listeners[i] = _listeners[^1];
-                _listeners.RemoveAt(_listeners.Count - 1);
-            }
+                return;
         }
-
-        foreach (var child in _children)
-            child.MarkDirty();
     }
 
     public void Pitch(float angle, TransformSpace space = TransformSpace.Local) => Rotate(new Quaternion(angle, Vector3f.Right), space);
 
     public void RemoveAllTags()
     {
-        for (var index = _tags.Count - 1; index >= 0; --index)
-            RemoveTag(_tags[index]);
+        if (_scene is not null)
+        {
+            foreach (var tag in _tags)
+            {
+                _scene.NodeTagRemoved(this, tag);
+
+                var eventData = new SceneEvents.NodeTagRemovedEvent
+                {
+                    Scene = _scene,
+                    Node = this,
+                    Tag = tag
+                };
+                _scene.SendEvent(ref eventData);
+            }
+        }
+
+        _tags.Clear();
     }
 
     public bool RemoveTag(string tag)
@@ -2050,20 +2135,19 @@ public sealed class Node : Serializable
         if (!_tags.Remove(tag))
             return false;
 
-        Scene.NodeTagRemoved(this, tag);
-        var eventData = new SceneEvents.NodeTagRemovedEvent
+        if (_scene is not null)
         {
-            Scene = Scene,
-            Node = this,
-            Tag = tag
-        };
-        Scene.SendEvent(ref eventData);
+            _scene.NodeTagRemoved(this, tag);
+            var eventData = new SceneEvents.NodeTagRemovedEvent
+            {
+                Scene = _scene,
+                Node = this,
+                Tag = tag
+            };
+            _scene.SendEvent(ref eventData);
+        }
         return true;
     }
-
-    public bool RemoveVar(string key) => _variables.Remove(new StringHash(key));
-
-    public bool RemoveVarByHash(StringHash key) => _variables.Remove(key);
 
     public void Roll(float angle, TransformSpace space = TransformSpace.Local) => Rotate(new Quaternion(angle, Vector3f.Forward), space);
 
@@ -2083,7 +2167,7 @@ public sealed class Node : Serializable
                 else
                 {
                     var worldRotation = WorldRotation;
-                    SetRotation((_rotation * worldRotation.Inverse * delta * worldRotation).Normalized);
+                    SetRotation(_rotation * worldRotation.Inverse * delta * worldRotation);
                 }
                 break;
         }
@@ -2107,7 +2191,7 @@ public sealed class Node : Serializable
             TransformSpace.Local => (_rotation * delta).Normalized,
             TransformSpace.Parent => (delta * _rotation).Normalized,
             TransformSpace.World when IsTransformHierarchyRoot() => (delta * _rotation).Normalized,
-            TransformSpace.World => (_rotation * WorldRotation.Inverse * delta * WorldRotation).Normalized,
+            TransformSpace.World => _rotation * WorldRotation.Inverse * delta * WorldRotation,
             _ => _rotation
         };
 
@@ -2140,7 +2224,7 @@ public sealed class Node : Serializable
 
     public void SetRotation(Quaternion rotation)
     {
-        this._rotation = rotation.Normalized;
+        this._rotation = rotation;
         MarkDirty();
     }
 
@@ -2155,10 +2239,13 @@ public sealed class Node : Serializable
 
     public void SetScale(Vector3f scale)
     {
-        this._scale = new Vector3f(
-            Math.Abs(scale.X) <= MathDefs.Epsilon ? MathDefs.Epsilon : scale.X,
-            Math.Abs(scale.Y) <= MathDefs.Epsilon ? MathDefs.Epsilon : scale.Y,
-            Math.Abs(scale.Z) <= MathDefs.Epsilon ? MathDefs.Epsilon : scale.Z);
+        this._scale = scale;
+        if (this._scale.X == 0.0f)
+            this._scale.X = MathDefs.Epsilon;
+        if (this._scale.Y == 0.0f)
+            this._scale.Y = MathDefs.Epsilon;
+        if (this._scale.Z == 0.0f)
+            this._scale.Z = MathDefs.Epsilon;
         MarkDirty();
     }
 
@@ -2209,7 +2296,7 @@ public sealed class Node : Serializable
     public void SetTransform(Vector3f position, Quaternion rotation)
     {
         this._position = position;
-        this._rotation = rotation.Normalized;
+        this._rotation = rotation;
         MarkDirty();
     }
 
@@ -2218,7 +2305,7 @@ public sealed class Node : Serializable
     public void SetTransform(Vector3f position, Quaternion rotation, Vector3f scale)
     {
         this._position = position;
-        this._rotation = rotation.Normalized;
+        this._rotation = rotation;
         this._scale = scale;
         MarkDirty();
     }
@@ -2238,7 +2325,7 @@ public sealed class Node : Serializable
 
     public void SetTransform2D(Vector2f position, float rotation) => SetTransform(new Vector3f(position.X, position.Y, 0.0f), new Quaternion(rotation));
 
-    public void SetTransform2D(Vector2f position, float rotation, float scale) => SetTransform(new Vector3f(position.X, position.Y, 0.0f), new Quaternion(rotation), new Vector3f(scale, scale, 1.0f));
+    public void SetTransform2D(Vector2f position, float rotation, float scale) => SetTransform(new Vector3f(position.X, position.Y, 0.0f), new Quaternion(rotation), scale);
 
     public void SetTransform2D(Vector2f position, float rotation, Vector2f scale) => SetTransform(new Vector3f(position.X, position.Y, 0.0f), new Quaternion(rotation), new Vector3f(scale.X, scale.Y, 1.0f));
 
@@ -2246,7 +2333,8 @@ public sealed class Node : Serializable
 
     public void SetVarByHash(StringHash key, object? value)
     {
-        _variables[key] = value;
+        if (_variables.ContainsKey(key))
+            _variables[key] = value;
     }
 
     public void SetVariables(IEnumerable<KeyValuePair<StringHash, object?>> variables)
@@ -2258,8 +2346,8 @@ public sealed class Node : Serializable
 
     public void SetWorldDirection(Vector3f direction)
     {
-        if (direction.LengthSquared > 0.0f)
-            SetWorldRotation(new Quaternion(Vector3f.Forward, direction.NormalizedOrDefault()));
+        var localDirection = IsTransformHierarchyRoot() ? direction : Parent!.WorldRotation.Inverse * direction;
+        SetRotation(new Quaternion(Vector3f.Forward, localDirection));
     }
 
     public void SetWorldPosition(Vector3f position)
@@ -2313,7 +2401,7 @@ public sealed class Node : Serializable
 
     public void SetWorldTransform2D(Vector2f position, float rotation) => SetWorldTransform(new Vector3f(position.X, position.Y, 0.0f), new Quaternion(rotation));
 
-    public void SetWorldTransform2D(Vector2f position, float rotation, float scale) => SetWorldTransform(new Vector3f(position.X, position.Y, 0.0f), new Quaternion(rotation), new Vector3f(scale, scale, 1.0f));
+    public void SetWorldTransform2D(Vector2f position, float rotation, float scale) => SetWorldTransform(new Vector3f(position.X, position.Y, 0.0f), new Quaternion(rotation), scale);
 
     public void SetWorldTransform2D(Vector2f position, float rotation, Vector2f scale) => SetWorldTransform(new Vector3f(position.X, position.Y, 0.0f), new Quaternion(rotation), new Vector3f(scale.X, scale.Y, 1.0f));
 
@@ -2328,7 +2416,10 @@ public sealed class Node : Serializable
                 SetPosition(_position + delta);
                 break;
             case TransformSpace.World:
-                SetWorldPosition(WorldPosition + delta);
+                _position += IsTransformHierarchyRoot()
+                    ? delta
+                    : Parent!.GetWorldTransform().Inverse * new Vector4f(delta.X, delta.Y, delta.Z, 0.0f);
+                MarkDirty();
                 break;
         }
     }
@@ -2344,67 +2435,90 @@ public sealed class Node : Serializable
             return;
 
         this._name = name;
-        var eventData = new SceneEvents.NodeNameChangedEvent
+        _nameHash = name;
+
+        if (_scene is not null)
         {
-            Scene = Scene,
-            Node = this
-        };
-        Scene.SendEvent(ref eventData);
+            var eventData = new SceneEvents.NodeNameChangedEvent
+            {
+                Scene = _scene,
+                Node = this
+            };
+            _scene.SendEvent(ref eventData);
+        }
     }
 
-    internal void SetId(uint id)
+    /// <summary>Set ID. Called by Scene.</summary>
+    public void SetID(uint id)
     {
-        Id = id;
+        _id = id;
+    }
+
+    /// <summary>Set scene. Called by Scene.</summary>
+    public void SetScene(Scene? scene)
+    {
+        _scene = scene;
+    }
+
+    /// <summary>Reset scene and ID. Called by Scene.</summary>
+    public void ResetScene()
+    {
+        SetID(0);
+        SetScene(null);
     }
 
     private void SetEnabled(bool enable, bool recursive, bool storeSelf)
     {
-        if (storeSelf)
-            _enabledPrev = enable;
-
-        if (enable == _enabled)
+        if (ReferenceEquals(this, _scene?.Root))
         {
-            if (recursive)
-            {
-                foreach (var child in _children)
-                    child.SetEnabled(enable, recursive: true, storeSelf: storeSelf);
-            }
-
+            Log.GetLogger().Error("Can not change enabled state of the Scene");
             return;
         }
 
-        _enabled = enable;
+        if (storeSelf)
+            _enabledPrev = enable;
 
-        for (var i = 0; i < _listeners.Count;)
+        if (enable != _enabled)
         {
-            if (_listeners[i].TryGetTarget(out var listener))
+            _enabled = enable;
+
+            for (var i = 0; i < _listeners.Count;)
             {
-                listener.OnNodeSetEnabled(this);
-                ++i;
+                if (_listeners[i].TryGetTarget(out var listener))
+                {
+                    listener.OnNodeSetEnabled(this);
+                    ++i;
+                }
+                else
+                    _listeners.RemoveAt(i);
             }
-            else
-                _listeners.RemoveAt(i);
-        }
 
-        foreach (var component in _components)
-        {
-            component.OnSetEnabled();
-
-            var componentEventData = new SceneEvents.ComponentEnabledChangedEvent
+            if (_scene is not null)
             {
-                Scene = Scene,
-                Node = this,
-                Component = component
-            };
-            Scene.SendEvent(ref componentEventData);
-        }
+                var eventData = new SceneEvents.NodeEnabledChangedEvent
+                {
+                    Scene = _scene,
+                    Node = this
+                };
+                _scene.SendEvent(ref eventData);
+            }
 
-        var eventData = new SceneEvents.NodeEnabledChangedEvent
-        {
-            Scene = Scene,
-            Node = this
-        };
-        Scene.SendEvent(ref eventData);
+            foreach (var component in _components)
+            {
+                component.OnSetEnabled();
+
+                if (_scene is not null)
+                {
+                    var componentEventData = new SceneEvents.ComponentEnabledChangedEvent
+                    {
+                        Scene = _scene,
+                        Node = this,
+                        Component = component
+                    };
+                    _scene.SendEvent(ref componentEventData);
+                }
+            }
+        }
 
         if (recursive)
         {
@@ -2445,33 +2559,50 @@ public sealed class Node : Serializable
         }
     }
 
-    private Node CloneRecursive(Node parent)
+    private Node CloneRecursive(Node parent, SceneResolver resolver)
     {
-        var clone = parent.CreateChild(_name, temporary: Temporary);
-        clone.CopyAttributes(this);
-        clone.SetTemporary(Temporary);
+        var clone = parent.CreateChild(0);
+        resolver.AddNode(_id, clone);
+
+        var attributes = GetAttributes();
+        for (var index = 0; index < attributes.Count; ++index)
+        {
+            var attribute = attributes[index];
+            if ((attribute.Mode & AttributeMode.File) != 0)
+            {
+                var value = OnGetAttribute(attribute);
+                clone.OnSetAttribute(attribute, value);
+            }
+        }
 
         foreach (var component in _components)
         {
-            if (!component.IsTemporary)
-                clone.CloneComponent(component);
+            if (component.IsTemporary)
+                continue;
+
+            var cloneComponent = clone.CloneComponent(component);
+            if (cloneComponent is not null)
+                resolver.AddComponent(component.Id, cloneComponent);
         }
 
         foreach (var child in _children)
         {
-            if (!child.IsTemporary)
-                child.CloneRecursive(clone);
+            if (child.IsTemporary)
+                continue;
+
+            child.CloneRecursive(clone, resolver);
         }
 
-        clone.ApplyAttributes();
-
-        var eventData = new SceneEvents.NodeClonedEvent
+        if (_scene is not null)
         {
-            Scene = Scene,
-            Node = this,
-            CloneNode = clone
-        };
-        Scene.SendEvent(ref eventData);
+            var eventData = new SceneEvents.NodeClonedEvent
+            {
+                Scene = _scene,
+                Node = this,
+                CloneNode = clone
+            };
+            _scene.SendEvent(ref eventData);
+        }
         return clone;
     }
 
@@ -2566,18 +2697,18 @@ public sealed class Node : Serializable
         if (string.IsNullOrEmpty(name))
             return this;
 
-        var index = 0u;
+        var index = 0;
         var separator = name.IndexOf('#');
         if (separator >= 0)
         {
-            if (!uint.TryParse(name[(separator + 1)..], out index))
-                return null;
+            int.TryParse(name[(separator + 1)..], out index);
             name = name[..separator];
         }
 
+        var type = new StringHash(name);
         foreach (var component in _components)
         {
-            if (!string.Equals(component.GetType().Name, name, StringComparison.Ordinal))
+            if (component.GetTypeNameHash() != type)
                 continue;
 
             if (index == 0)
@@ -2615,24 +2746,4 @@ public sealed class Node : Serializable
         _dirty = false;
     }
 
-    private void DetachChildForReparent(Node child, Node newParent)
-    {
-        if (!_children.Remove(child))
-            return;
-
-        if (!ReferenceEquals(newParent.Scene, Scene))
-        {
-            RemoveChild(child);
-            return;
-        }
-
-        var eventData = new SceneEvents.NodeRemovedEvent
-        {
-            Scene = Scene,
-            Parent = this,
-            Node = child
-        };
-        Scene.SendEvent(ref eventData);
-        child.Parent = null;
-    }
 }

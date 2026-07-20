@@ -191,11 +191,14 @@ public sealed class SceneTests
     {
         var scene = new Scene();
         scene.CreateChild("Temporary").CreateComponent<Camera>();
+        var rootId = scene.Root.Id;
 
         scene.Dispose();
 
         Assert.Single(scene.GetAllNodes());
-        Assert.Same(scene.Root, scene.GetNode(scene.Root.Id));
+        Assert.Same(scene.Root, scene.GetNode(rootId));
+        Assert.Null(scene.Root.Scene);
+        Assert.Equal(0u, scene.Root.Id);
         Assert.Empty(scene.GetAllComponents());
     }
 

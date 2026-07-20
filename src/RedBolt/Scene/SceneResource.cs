@@ -147,10 +147,13 @@ public sealed class SceneResource : Resource
     {
         if (asPrefab)
         {
-            var prefab = archive.IsInput ? new NodePrefab() : scene.Root.GeneratePrefab(includeTemporary: true);
+            var prefab = archive.IsInput ? new NodePrefab() : scene.Root.GeneratePrefab();
             prefab.SerializeInBlock(archive, PrefabArchiveFlag.SerializeTemporary);
             if (archive.IsInput)
-                scene.Root.LoadPrefab(prefab, clearExisting: true);
+            {
+                var reader = new PrefabReaderFromMemory(prefab);
+                scene.Root.Load(reader);
+            }
             return;
         }
 

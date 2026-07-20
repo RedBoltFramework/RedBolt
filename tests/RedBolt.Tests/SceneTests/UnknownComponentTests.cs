@@ -21,7 +21,7 @@ public sealed class UnknownComponentTests
     public void SceneResource_creates_unknown_component_placeholder()
     {
         var source = new SceneResource("Scenes/Test.scene");
-        source.GetScene().Root.LoadPrefab(new NodePrefab
+        var prefab = new NodePrefab
         {
             Components =
             {
@@ -32,7 +32,9 @@ public sealed class UnknownComponentTests
                     Temporary = false
                 }
             }
-        });
+        };
+        var reader = new PrefabReaderFromMemory(prefab);
+        Assert.True(source.GetScene().Root.Load(reader));
 
         using var stream = new MemoryStream();
         Assert.True(source.Save(stream, SceneResourceFormat.Json));

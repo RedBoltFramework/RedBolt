@@ -361,19 +361,10 @@ public sealed class PrefabReference : Component
             return;
 
         var node = Node;
-        var componentCount = node.Components.Count;
-        var childCount = node.Children.Count;
-
-        // PrefabReader flags: KeepExistingComponents | KeepExistingChildren | LoadAsTemporary | IgnoreRootAttributes.
-        var loadPrefab = new NodePrefab();
-        loadPrefab.Components.AddRange(nodePrefab.Components);
-        loadPrefab.Children.AddRange(nodePrefab.Children);
-        node.LoadPrefab(loadPrefab, clearExisting: false);
-
-        for (var index = componentCount; index < node.Components.Count; ++index)
-            node.Components[index].SetTemporary(true);
-        for (var index = childCount; index < node.Children.Count; ++index)
-            node.Children[index].SetTemporary(true);
+        var flags = PrefabLoadFlag.KeepExistingComponents | PrefabLoadFlag.KeepExistingChildren
+            | PrefabLoadFlag.LoadAsTemporary | PrefabLoadFlag.IgnoreRootAttributes;
+        var reader = new PrefabReaderFromMemory(nodePrefab);
+        node.Load(reader, flags);
 
         if (instanceFlags != PrefabInstanceFlag.None)
         {

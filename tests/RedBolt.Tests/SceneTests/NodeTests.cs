@@ -104,6 +104,60 @@ public sealed class NodeTests
         }
     }
 
+    private sealed class DerivedNode : Node
+    {
+    }
+
+    [Fact]
+    public void Node_is_extensible_and_may_exist_without_scene()
+    {
+        var node = new DerivedNode();
+
+        Assert.Null(node.Scene);
+        Assert.Null(node.Parent);
+        Assert.Equal(0u, node.Id);
+
+        node.SetName("Standalone");
+        node.SetTemporary(true);
+
+        Assert.Equal("Standalone", node.Name);
+        Assert.True(node.IsTemporary);
+    }
+
+    [Fact]
+    public void Parenting_transfers_node_between_scenes_and_null_parent_is_ignored()
+    {
+        var firstScene = new Scene();
+        var secondScene = new Scene();
+        var child = firstScene.CreateChild("Child");
+        var oldId = child.Id;
+
+        secondScene.Root.AddChild(child);
+
+        Assert.Same(secondScene, child.Scene);
+        Assert.Same(secondScene.Root, child.Parent);
+        Assert.Null(firstScene.GetNode(oldId));
+
+        child.SetParent(null);
+
+        Assert.Same(secondScene.Root, child.Parent);
+    }
+
+    [Fact]
+    public void Local_rotation_and_scale_preserve_native_input_rules()
+    {
+        var node = new Node();
+        var rotation = new Quaternion(2.0f, 3.0f, 4.0f, 5.0f);
+
+        node.SetRotation(rotation);
+        node.SetScale(new Vector3f(float.Epsilon, 0.0f, -float.Epsilon));
+
+        Assert.Equal(rotation, node.Rotation);
+        Assert.Equal(float.Epsilon, node.Scale.X);
+        Assert.Equal(MathDefs.Epsilon, node.Scale.Y);
+        Assert.Equal(-float.Epsilon, node.Scale.Z);
+    }
+
     [Fact]
     public void Component_is_queryable_during_node_attachment()
     {
@@ -168,18 +222,17 @@ public sealed class NodeTests
     }
 
     [Fact]
-    public void Variables_get_set_remove_work()
+    public void Variables_get_set_and_update_by_hash_work()
     {
         var scene = new Scene();
         var node = scene.CreateChild("Vars");
         node.SetVar("Health", 100);
         Assert.Equal(100, node.GetVar("Health"));
+        node.SetVar("Armor", 25);
         node.SetVarByHash(new StringHash("Armor"), 50);
         Assert.Equal(50, node.GetVar("Armor"));
         Assert.Equal(100, node.GetMutableVar("Health"));
         Assert.Equal(50, node.GetMutableVarByHash(new StringHash("Armor")));
-        Assert.True(node.RemoveVar("Health"));
-        Assert.Null(node.GetVar("Health"));
     }
 
     [Fact]
@@ -393,8 +446,8 @@ public sealed class NodeTests
         Assert.Equal(123u, temporaryChild.Id);
         Assert.Equal(string.Empty, temporaryChild.Name);
         Assert.True(temporaryChild.IsTemporaryEffective());
-        Assert.Equal(1u, node.GetNumPersistentChildren());
-        Assert.Equal(1u, node.GetNumPersistentComponents());
+        Assert.Equal(1, node.GetNumPersistentChildren());
+        Assert.Equal(1, node.GetNumPersistentComponents());
     }
 
     [Fact]
@@ -469,7 +522,7 @@ public sealed class NodeTests
         var child = parent.CreateChild("Child");
         parent.RemoveChild(child);
         Assert.Null(child.Parent);
-        Assert.Equal(0u, parent.GetNumChildren());
+        Assert.Equal(0, parent.GetNumChildren());
     }
 
     [Fact]
@@ -479,7 +532,7 @@ public sealed class NodeTests
         var parent = scene.CreateChild("Parent");
         parent.CreateChild("Nested");
         scene.Root.RemoveChildren(recursive: false);
-        Assert.Equal(0u, scene.Root.GetNumChildren());
+        Assert.Equal(0, scene.Root.GetNumChildren());
         Assert.Null(parent.Parent);
     }
 
@@ -565,7 +618,7 @@ public sealed class NodeTests
         var second = parent.CreateChild("Second");
         parent.ReorderChild(second, 0);
         Assert.Same(second, parent.GetChild(0));
-        Assert.Equal(0u, second.GetIndexInParent());
+        Assert.Equal(0, second.GetIndexInParent());
     }
 
     [Fact]
@@ -588,7 +641,7 @@ public sealed class NodeTests
         var model = node.CreateComponent<StaticModel>();
         node.CreateComponent<Camera>();
 
-        Assert.Equal(2u, node.GetNumComponents());
+        Assert.Equal(2, node.GetNumComponents());
         Assert.Same(model, node.GetComponent(0));
         Assert.NotNull(node.GetNthComponent<Camera>(0));
         Assert.True(node.HasComponent<StaticModel>());
