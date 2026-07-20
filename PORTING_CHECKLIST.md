@@ -412,7 +412,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 - [ ] `Audio.h`
   - [ ] `Audio : Object` — SDL audio device init, queued output, direct managed mix output, master gain types, sound source management, render-update driven mixing, native microphone enumeration, and queued microphone capture are ported; SDL callback binding remains unavailable
   - [x] `14_SoundEffects` sample — extensible native class/method/field order, explicit construction and base startup, non-rendered scene-owned sound sources, sound effect and music playback, volume/panning/reach/LFE, microphone selection/recording/playback, shared stream ownership, reverse deterministic teardown, and Dear ImGui controls are reconciled and runtime-verified without the invented startup playback or rendered camera scene
-  - [x] `29_SoundSynthesis` sample — procedural audio synthesis ported with rbfx buffering, degree-based dual oscillators (including the C++ 180-degree second-oscillator start), filter, and ImGui instructions
+  - [x] `29_SoundSynthesis` sample — extensible native class/method/field order, explicit construction and base startup, standalone node-owned sound source, retained buffered stream and generated sample buffers, exact scalar synthesis with approved `int` sizes/indices, reverse deterministic teardown, and Dear ImGui instructions are reconciled and runtime-verified without the invented audio mode, global audio stop, or rendered scene/camera/viewport
 
 ## B3. UI `EXCLUDED` — retained-mode UI; depends on Graphics, Resource, Input
 
