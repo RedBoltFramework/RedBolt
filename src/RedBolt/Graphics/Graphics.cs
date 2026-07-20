@@ -3375,7 +3375,8 @@ layout(std140) uniform Material
         if (view is not null && !view.IsNull)
             return RetainDefaultTextureView(view);
 
-        using var textureViewDesc = depthView.GetDesc();
+        using var depthViewDesc = depthView.GetDesc();
+        using var textureViewDesc = depthViewDesc.Clone();
         textureViewDesc.ViewType = TextureViewType.TextureViewReadOnlyDepthStencil;
         texture.CreateView(textureViewDesc, out var createdView);
         if (createdView.IsNull)
@@ -5197,6 +5198,10 @@ layout(std140) uniform Material
             _memory = Marshal.AllocHGlobal(size);
             Marshal.Copy(new byte[size], 0, _memory, size);
             Desc = TextureDesc.CreateManagedWrapper(_memory, ownsHandle: false);
+            Desc.ArraySize = 1;
+            Desc.MipLevels = 1;
+            Desc.SampleCount = 1;
+            Desc.ImmediateContextMask = 1;
         }
 
         public TextureDesc Desc { get; }

@@ -719,7 +719,8 @@ public class RawTexture : DeviceObject
             Height = checked((uint)_parameters.Size.Y),
             MipLevels = checked((uint)_parameters.NumLevelsRtv),
             SampleCount = checked((uint)_parameters.MultiSample),
-            BindFlags = BindFlags.BindShaderResource
+            BindFlags = BindFlags.BindShaderResource,
+            ImmediateContextMask = 1
         };
         if (_parameters.Type == TextureType.Texture3D)
             textureDesc.Depth = checked((uint)_parameters.Size.Z);
