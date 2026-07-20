@@ -581,38 +581,6 @@ public class Node : Serializable
         return true;
     }
 
-    private static void ApplySerializablePrefab(
-        Serializable value, SerializablePrefab prefab, PrefabLoadFlag flags = PrefabLoadFlag.None)
-    {
-        if ((flags & PrefabLoadFlag.KeepTemporaryState) == 0)
-            value.SetTemporary(prefab.Temporary);
-        foreach (var attributePrefab in prefab.Attributes)
-        {
-            if (value is Node node
-                && (attributePrefab.Name == "Variables" || attributePrefab.NameHash == new StringHash("Variables")))
-            {
-                node.SetVariables(attributePrefab.Value.GetVariantMap().Select(static pair => new KeyValuePair<StringHash, object?>(pair.Key, pair.Value.GetObject())));
-                continue;
-            }
-            AttributeInfo? attribute = null;
-            foreach (var candidate in value.Attributes)
-            {
-                if (candidate.Name == attributePrefab.Name || candidate.NameHash == attributePrefab.NameHash)
-                {
-                    attribute = candidate;
-                    break;
-                }
-            }
-
-            if (attribute is null) continue;
-            object? converted = attribute.ValueType.IsEnum ? Enum.ToObject(attribute.ValueType, attributePrefab.Value.GetInt()) : attributePrefab.Value.GetObject();
-            if (attribute.ValueType == typeof(uint)) converted = attributePrefab.Value.GetUInt();
-            value.SetAttribute(attribute.Name, converted);
-        }
-        if ((flags & PrefabLoadFlag.SkipApplyAttributes) == 0)
-            value.ApplyAttributes();
-    }
-
     public void LoadInternal(
         SerializablePrefab nodePrefab, PrefabReader reader, SceneResolver resolver, PrefabLoadFlag flags)
     {
@@ -625,9 +593,10 @@ public class Node : Serializable
             RemoveAllChildren();
 
         if ((flags & PrefabLoadFlag.IgnoreRootAttributes) == 0)
-            ApplySerializablePrefab(this, nodePrefab, flags);
+            nodePrefab.Export(this, flags);
 
-        resolver.AddNode(nodePrefab.Id, this);
+        var oldId = (uint)nodePrefab.Id;
+        resolver.AddNode(oldId, this);
 
         var numComponents = reader.ReadNumComponents();
         for (var index = 0; index < checked((int)numComponents); ++index)
@@ -636,12 +605,12 @@ public class Node : Serializable
             if (componentPrefab is null)
                 throw new ArchiveException("Failed to read component prefab");
 
-            var componentId = (flags & PrefabLoadFlag.DiscardIds) != 0 ? 0u : componentPrefab.Id;
+            var oldComponentId = (uint)componentPrefab.Id;
             var component = SafeCreateComponent(
-                componentPrefab.TypeName, componentPrefab.TypeNameHash, componentId);
+                componentPrefab.TypeName, componentPrefab.TypeNameHash, discardIds ? 0u : oldComponentId);
 
-            resolver.AddComponent(componentPrefab.Id, component);
-            ApplySerializablePrefab(component, componentPrefab, flags);
+            resolver.AddComponent(oldComponentId, component);
+            componentPrefab.Export(component, flags);
             if (loadAsTemporary)
                 component.SetTemporary(true);
         }
@@ -654,8 +623,8 @@ public class Node : Serializable
             if (childPrefab is null)
                 throw new ArchiveException("Failed to read child prefab");
 
-            var childId = (flags & PrefabLoadFlag.DiscardIds) != 0 ? 0u : childPrefab.Id;
-            var child = CreateChild(childId);
+            var oldChildId = (uint)childPrefab.Id;
+            var child = CreateChild(discardIds ? 0u : oldChildId);
             var childFlags = flags & ~PrefabLoadFlag.LoadAsTemporary & ~PrefabLoadFlag.IgnoreRootAttributes;
             child.LoadInternal(childPrefab, reader, resolver, childFlags);
             if (loadAsTemporary)
@@ -669,14 +638,14 @@ public class Node : Serializable
         var saveTemporary = (writer.GetFlags() & PrefabSaveFlag.SaveTemporary) != 0;
 
         writer.WriteNode(Id, this);
-        writer.WriteNumComponents(checked((uint)(saveTemporary ? GetNumComponents() : GetNumPersistentComponents())));
+        writer.WriteNumComponents(saveTemporary ? GetNumComponents() : GetNumPersistentComponents());
         foreach (var component in _components)
         {
             if (saveTemporary || !component.IsTemporary)
                 writer.WriteComponent(component.Id, component);
         }
 
-        writer.WriteNumChildren(checked((uint)(saveTemporary ? GetNumChildren() : GetNumPersistentChildren())));
+        writer.WriteNumChildren(saveTemporary ? GetNumChildren() : GetNumPersistentChildren());
         foreach (var child in _children)
         {
             if (saveTemporary || !child.IsTemporary)

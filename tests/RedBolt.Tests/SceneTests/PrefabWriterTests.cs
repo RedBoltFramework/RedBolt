@@ -23,13 +23,13 @@ public sealed class PrefabWriterTests
 
         Assert.True(writer.IsEOF());
         Assert.Equal(PrefabSaveFlag.EnumsAsStrings, writer.GetFlags());
-        Assert.Equal(1u, prefab.Node.Id);
+        Assert.Equal((SerializableId)1, prefab.Node.Id);
         Assert.Empty(prefab.Node.TypeName);
         Assert.Single(prefab.Components);
-        Assert.Equal(2u, prefab.Components[0].Id);
+        Assert.Equal((SerializableId)2, prefab.Components[0].Id);
         Assert.Equal("component", prefab.Components[0].Attributes.Single(attribute => attribute.Name == "Label").Value.GetString());
         Assert.Single(prefab.Children);
-        Assert.Equal(3u, prefab.Children[0].Node.Id);
+        Assert.Equal((SerializableId)3, prefab.Children[0].Node.Id);
         Assert.Empty(prefab.Children[0].Node.TypeName);
     }
 
@@ -50,9 +50,9 @@ public sealed class PrefabWriterTests
 
         var input = new JSONInputArchive(output.ToJsonString());
         using var reader = new PrefabReaderFromArchive(input, blockName: "root");
-        Assert.Equal(1u, reader.ReadNode()!.Id);
+        Assert.Equal((SerializableId)1, reader.ReadNode()!.Id);
         Assert.Equal(1u, reader.ReadNumComponents());
-        Assert.Equal(2u, reader.ReadComponent()!.Id);
+        Assert.Equal((SerializableId)2, reader.ReadComponent()!.Id);
         Assert.Equal(0u, reader.ReadNumChildren());
         Assert.True(reader.IsEOF());
     }
@@ -86,5 +86,10 @@ public sealed class PrefabWriterTests
 
         public int Number { get; set; }
         public string Label { get; set; } = string.Empty;
+
+        public override ObjectReflection? GetReflection()
+        {
+            return Context.Instance.Reflect<TestSerializable>();
+        }
     }
 }

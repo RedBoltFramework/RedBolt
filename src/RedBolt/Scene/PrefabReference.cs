@@ -163,52 +163,46 @@ public sealed class PrefabReference : Component
             return;
 
         var originalNodePrefab = GetNodePrefab();
-        var newNodePrefab = new NodePrefab();
+        using var newNodePrefab = new NodePrefab();
         var writer = new PrefabWriterToMemory(
             newNodePrefab,
             PrefabSaveFlag.EnumsAsStrings | PrefabSaveFlag.Prefab | PrefabSaveFlag.SaveTemporary);
         if (!Node.Save(writer))
             return;
+        for (var index = newNodePrefab.Node.Attributes.Count - 1; index >= 0; --index)
+            newNodePrefab.Node.Attributes[index].Dispose();
         newNodePrefab.Node.Attributes.Clear();
         foreach (var attribute in originalNodePrefab.Node.Attributes)
-            newNodePrefab.Node.Attributes.Add(attribute);
+            newNodePrefab.Node.Attributes.Add((AttributePrefab)attribute.Clone());
 
         for (var index = newNodePrefab.Components.Count - 1; index >= 0; --index)
         {
             if (!Node.Components[index].IsTemporary)
+            {
+                newNodePrefab.Components[index].Dispose();
                 newNodePrefab.Components.RemoveAt(index);
+            }
         }
 
         for (var index = newNodePrefab.Children.Count - 1; index >= 0; --index)
         {
             if (!Node.Children[index].IsTemporary)
+            {
+                newNodePrefab.Children[index].Dispose();
                 newNodePrefab.Children.RemoveAt(index);
+            }
         }
 
         // Create and save resource.
-        var newResource = new PrefabResource(_prefab.Name);
+        using var newResource = new PrefabResource(_prefab.Name);
         var scenePrefab = newResource.GetMutableScenePrefab();
-        CopyPrefab(scenePrefab, _prefab.GetScenePrefab());
+        scenePrefab.CopyFrom(_prefab.GetScenePrefab());
 
         var nodeDestination = newResource.GetMutableNodePrefab();
-        CopyPrefab(nodeDestination, newNodePrefab);
+        nodeDestination.CopyFrom(newNodePrefab);
         newResource.NormalizeIds();
         if (!string.IsNullOrEmpty(_prefab.GetAbsoluteFileName()))
             newResource.SaveFile(_prefab.GetAbsoluteFileName());
-    }
-
-    private static void CopyPrefab(NodePrefab destination, NodePrefab source)
-    {
-        destination.Clear();
-        destination.Node.TypeName = source.Node.TypeName;
-        destination.Node.Id = source.Node.Id;
-        destination.Node.Temporary = source.Node.Temporary;
-        foreach (var attribute in source.Node.Attributes)
-            destination.Node.Attributes.Add((AttributePrefab)attribute.Clone());
-        foreach (var component in source.Components)
-            destination.Components.Add((SerializablePrefab)component.Clone());
-        foreach (var child in source.Children)
-            destination.Children.Add((NodePrefab)child.Clone());
     }
 
     public override void OnSetEnabled()

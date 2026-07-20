@@ -8,6 +8,17 @@ public sealed class PrefabResourceTests
     public PrefabResourceTests(HeadlessEngineFixture fixture)
     {
         this._fixture = fixture;
+        if (!Context.Instance.IsReflected<Node>())
+            Node.RegisterObject(Context.Instance);
+        if (!Context.Instance.IsReflected<Scene>())
+            Scene.RegisterObject(Context.Instance);
+    }
+
+    private static AttributePrefab CreateAttribute(string name, Variant value)
+    {
+        var result = new AttributePrefab(name);
+        result.SetValue(ref value);
+        return result;
     }
 
     [Fact]
@@ -15,12 +26,12 @@ public sealed class PrefabResourceTests
     {
         var resource = new PrefabResource("Assets/Tree.prefab");
         var scenePrefab = resource.GetMutableScenePrefab();
-        scenePrefab.Node.Attributes.Add(new AttributePrefab { Name = "Name", Value = new Variant("Scene") });
+        scenePrefab.Node.Attributes.Add(CreateAttribute("Name", new Variant("Scene")));
 
         var rootPrefab = resource.GetMutableNodePrefab();
-        rootPrefab.Node.Attributes.Add(new AttributePrefab { Name = "Name", Value = new Variant("Root") });
+        rootPrefab.Node.Attributes.Add(CreateAttribute("Name", new Variant("Root")));
         var childPrefab = new NodePrefab();
-        childPrefab.Node.Attributes.Add(new AttributePrefab { Name = "Name", Value = new Variant("Branch") });
+        childPrefab.Node.Attributes.Add(CreateAttribute("Name", new Variant("Branch")));
         rootPrefab.Children.Add(childPrefab);
 
         Assert.Same(scenePrefab, resource.GetScenePrefab());
@@ -36,8 +47,8 @@ public sealed class PrefabResourceTests
     {
         var resource = new PrefabResource("Tree.prefab");
         var rootPrefab = resource.GetMutableNodePrefab();
-        rootPrefab.Node.Attributes.Add(new AttributePrefab { Name = "Name", Value = new Variant("Root") });
-        rootPrefab.Node.Attributes.Add(new AttributePrefab { Name = "Next Node ID", Value = new Variant(12u) });
+        rootPrefab.Node.Attributes.Add(CreateAttribute("Name", new Variant("Root")));
+        rootPrefab.Node.Attributes.Add(CreateAttribute("Next Node ID", new Variant(12u)));
 
         using var stream = new MemoryStream();
         Assert.True(resource.Save(stream));
@@ -53,9 +64,9 @@ public sealed class PrefabResourceTests
     {
         var resource = new PrefabResource();
         var scenePrefab = resource.GetMutableScenePrefab();
-        scenePrefab.Node.Attributes.Add(new AttributePrefab { Name = "Next Node ID", Value = new Variant(3u) });
-        scenePrefab.Node.Attributes.Add(new AttributePrefab { Name = "Next Component ID", Value = new Variant(4u) });
-        scenePrefab.Node.Attributes.Add(new AttributePrefab { Name = "Name", Value = new Variant("Scene") });
+        scenePrefab.Node.Attributes.Add(CreateAttribute("Next Node ID", new Variant(3u)));
+        scenePrefab.Node.Attributes.Add(CreateAttribute("Next Component ID", new Variant(4u)));
+        scenePrefab.Node.Attributes.Add(CreateAttribute("Name", new Variant("Scene")));
 
         resource.NormalizeIds();
 
@@ -69,7 +80,7 @@ public sealed class PrefabResourceTests
         var scene = new Scene();
         var resource = new PrefabResource("Tree.prefab");
         var rootPrefab = resource.GetMutableNodePrefab();
-        rootPrefab.Node.Attributes.Add(new AttributePrefab { Name = "Name", Value = new Variant("Tree") });
+        rootPrefab.Node.Attributes.Add(CreateAttribute("Name", new Variant("Tree")));
         rootPrefab.Children.Add(new NodePrefab());
 
         var instance = resource.InstantiateReference(scene.Root);
@@ -93,18 +104,11 @@ public sealed class PrefabResourceTests
         {
             resources.AddResourceDir(tempDir);
             var sourceResource = new PrefabResource("Tree.prefab");
-            sourceResource.GetMutableNodePrefab().Components.Add(new SerializablePrefab
-            {
-                TypeName = "Node",
-                Attributes =
-                {
-                    new AttributePrefab
-                    {
-                        Name = "Dependency",
-                        Value = new Variant(new ResourceRef("BinaryFile", "Data/dependency.bin"))
-                    }
-                }
-            });
+            var component = new SerializablePrefab();
+            component.SetType("Node");
+            component.Attributes.Add(CreateAttribute(
+                "Dependency", new Variant(new ResourceRef("BinaryFile", "Data/dependency.bin"))));
+            sourceResource.GetMutableNodePrefab().Components.Add(component);
 
             using var stream = new MemoryStream();
             Assert.True(sourceResource.Save(stream));

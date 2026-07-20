@@ -15,10 +15,10 @@ namespace RedBolt;
 /// </summary>
 public abstract class PrefabWriter
 {
-    public abstract void WriteNode(uint id, Serializable? node);
-    public abstract void WriteNumComponents(uint numComponents);
-    public abstract void WriteComponent(uint id, Serializable? component);
-    public abstract void WriteNumChildren(uint numChildren);
+    public abstract void WriteNode(uint id, Serializable node);
+    public abstract void WriteNumComponents(int numComponents);
+    public abstract void WriteComponent(uint id, Serializable component);
+    public abstract void WriteNumChildren(int numChildren);
     public abstract void BeginChild();
     public abstract void EndChild();
     public abstract bool IsEOF();
@@ -37,49 +37,60 @@ public sealed class PrefabWriterToMemory : PrefabWriter
         _nodePrefab.Clear();
     }
 
-    public override void WriteNode(uint id, Serializable? node)
+    public override void WriteNode(uint id, Serializable node)
     {
         Debug.Assert(!IsEOF(), "There is no more data to write");
 
         var nodePrefab = CurrentNode().Node;
-        nodePrefab.Id = id;
+        nodePrefab.SetId((SerializableId)id);
         nodePrefab.Import(node, _flags);
-        nodePrefab.TypeName = string.Empty;
+        nodePrefab.SetType(StringHash.Empty);
     }
 
-    public override void WriteNumComponents(uint numComponents)
+    public override void WriteNumComponents(int numComponents)
     {
         Debug.Assert(!IsEOF(), "There is no more data to write");
 
         var components = CurrentNode().Components;
-        components.Clear();
-        for (var index = 0u; index < numComponents; ++index)
+        var size = numComponents;
+        for (var index = components.Count - 1; index >= size; --index)
+        {
+            components[index].Dispose();
+            components.RemoveAt(index);
+        }
+        for (var index = components.Count; index < size; ++index)
             components.Add(new SerializablePrefab());
+        _componentIndex = 0;
     }
 
-    public override void WriteComponent(uint id, Serializable? component)
+    public override void WriteComponent(uint id, Serializable component)
     {
         Debug.Assert(!IsEOF(), "There is no more data to write");
 
         var components = CurrentNode().Components;
         Debug.Assert(_componentIndex < components.Count);
 
-        var componentPrefab = components[(int)_componentIndex];
-        componentPrefab.Id = id;
+        var componentPrefab = components[_componentIndex];
+        componentPrefab.SetId((SerializableId)id);
         componentPrefab.Import(component, _flags);
 
         ++_componentIndex;
     }
 
-    public override void WriteNumChildren(uint numChildren)
+    public override void WriteNumChildren(int numChildren)
     {
         Debug.Assert(!IsEOF(), "There is no more data to write");
 
         if (numChildren > 0)
         {
             var children = CurrentNode().Children;
-            children.Clear();
-            for (var index = 0u; index < numChildren; ++index)
+            var size = numChildren;
+            for (var index = children.Count - 1; index >= size; --index)
+            {
+                children[index].Dispose();
+                children.RemoveAt(index);
+            }
+            for (var index = children.Count; index < size; ++index)
                 children.Add(new NodePrefab());
             StartChildren();
         }
@@ -107,7 +118,7 @@ public sealed class PrefabWriterToMemory : PrefabWriter
     private NodePrefab CurrentNode()
     {
         var (parentNode, childIndex) = _stack[^1];
-        return parentNode is not null ? parentNode.Children[(int)childIndex] : _nodePrefab;
+        return parentNode is not null ? parentNode.Children[childIndex] : _nodePrefab;
     }
 
     private void StartChildren()
@@ -119,7 +130,7 @@ public sealed class PrefabWriterToMemory : PrefabWriter
     {
         var (parentNode, childIndex) = _stack[^1];
 
-        var maxChildren = parentNode is not null ? (uint)parentNode.Children.Count : 1u;
+        var maxChildren = parentNode is not null ? parentNode.Children.Count : 1;
         ++childIndex;
         if (childIndex >= maxChildren)
             _stack.RemoveAt(_stack.Count - 1);
@@ -136,8 +147,8 @@ public sealed class PrefabWriterToMemory : PrefabWriter
     private readonly NodePrefab _nodePrefab;
     private readonly PrefabSaveFlag _flags;
 
-    private readonly List<(NodePrefab? ParentNode, uint ChildIndex)> _stack = [];
-    private uint _componentIndex;
+    private readonly List<(NodePrefab? ParentNode, int ChildIndex)> _stack = [];
+    private int _componentIndex;
 }
 
 /// <summary>Utility class to write prefab data to Archive.</summary>
@@ -164,22 +175,22 @@ public sealed class PrefabWriterToArchive : PrefabWriter, IDisposable
         Debug.Assert(!_archive.IsInput);
     }
 
-    public override void WriteNode(uint id, Serializable? node)
+    public override void WriteNode(uint id, Serializable node)
     {
         Debug.Assert(!IsEOF(), "There is no more data to write");
 
-        _buffer.Id = id;
+        _buffer.SetId((SerializableId)id);
         _buffer.Import(node, _saveFlags);
         _buffer.SerializeInBlock(_archive, _nodeFlags);
     }
 
-    public override void WriteNumComponents(uint numComponents)
+    public override void WriteNumComponents(int numComponents)
     {
         Debug.Assert(!IsEOF(), "There is no more data to write");
 
         if (numComponents > 0 || !_archive.IsUnorderedAccessSupportedInCurrentBlock)
         {
-            var block = _archive.OpenArrayBlock("components", numComponents);
+            var block = _archive.OpenArrayBlock("components", checked((uint)numComponents));
             if (numComponents > 0)
                 _stack.Add((new ArchiveBlock(block), numComponents));
             else
@@ -187,11 +198,11 @@ public sealed class PrefabWriterToArchive : PrefabWriter, IDisposable
         }
     }
 
-    public override void WriteComponent(uint id, Serializable? component)
+    public override void WriteComponent(uint id, Serializable component)
     {
         Debug.Assert(!IsEOF(), "There is no more data to write");
 
-        _buffer.Id = id;
+        _buffer.SetId((SerializableId)id);
         _buffer.Import(component, _saveFlags);
 
         using (var block = _archive.OpenUnorderedBlock("component"))
@@ -202,13 +213,13 @@ public sealed class PrefabWriterToArchive : PrefabWriter, IDisposable
         NextSerializable();
     }
 
-    public override void WriteNumChildren(uint numChildren)
+    public override void WriteNumChildren(int numChildren)
     {
         Debug.Assert(!IsEOF(), "There is no more data to write");
 
         if (numChildren > 0 || !_archive.IsUnorderedAccessSupportedInCurrentBlock)
         {
-            var block = _archive.OpenArrayBlock("nodes", numChildren);
+            var block = _archive.OpenArrayBlock("nodes", checked((uint)numChildren));
             if (numChildren > 0)
                 _stack.Add((new ArchiveBlock(block), numChildren));
             else
@@ -248,6 +259,7 @@ public sealed class PrefabWriterToArchive : PrefabWriter, IDisposable
         for (var index = _stack.Count - 1; index >= 0; --index)
             _stack[index].Block.Dispose();
         _stack.Clear();
+        _buffer.Dispose();
         _eof = true;
     }
 
@@ -283,6 +295,6 @@ public sealed class PrefabWriterToArchive : PrefabWriter, IDisposable
     private readonly SerializablePrefab _buffer = new();
 
     private bool _hasRootBlock;
-    private readonly List<(ArchiveBlock Block, uint Count)> _stack = [];
+    private readonly List<(ArchiveBlock Block, int Count)> _stack = [];
     private bool _eof;
 }

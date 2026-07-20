@@ -10,6 +10,13 @@ public sealed class ArchiveTests
         Zero
     }
 
+    private static AttributePrefab CreateAttribute(string name, Variant value)
+    {
+        var result = new AttributePrefab(name);
+        result.SetValue(ref value);
+        return result;
+    }
+
     [Theory]
     [InlineData("Root", true)]
     [InlineData("_private.Item:1", true)]
@@ -197,11 +204,8 @@ public sealed class ArchiveTests
     {
         var context = new Context();
         using var buffer = new VectorBuffer();
-        var source = new AttributePrefab
-        {
-            Name = "Dependency",
-            Value = new Variant(new ResourceRef("BinaryFile", "Data/dependency.bin"))
-        };
+        var source = CreateAttribute(
+            "Dependency", new Variant(new ResourceRef("BinaryFile", "Data/dependency.bin")));
         using var output = new BinaryOutputArchive(context, buffer);
         using (output.OpenUnorderedBlock("Root"))
             source.SerializeInBlock(output);
@@ -224,18 +228,11 @@ public sealed class ArchiveTests
         using var buffer = new VectorBuffer();
         var source = new NodePrefab();
         var child = new NodePrefab();
-        child.Components.Add(new SerializablePrefab
-        {
-            TypeName = "Node",
-            Attributes =
-            {
-                new AttributePrefab
-                {
-                    Name = "Dependency",
-                    Value = new Variant(new ResourceRef("BinaryFile", "Data/dependency.bin"))
-                }
-            }
-        });
+        var component = new SerializablePrefab();
+        component.SetType("Node");
+        component.Attributes.Add(CreateAttribute(
+            "Dependency", new Variant(new ResourceRef("BinaryFile", "Data/dependency.bin"))));
+        child.Components.Add(component);
         source.Children.Add(child);
         using var output = new BinaryOutputArchive(context, buffer);
         using (output.OpenUnorderedBlock("Root"))
@@ -257,18 +254,11 @@ public sealed class ArchiveTests
     {
         var source = new NodePrefab();
         var child = new NodePrefab();
-        child.Components.Add(new SerializablePrefab
-        {
-            TypeName = "Node",
-            Attributes =
-            {
-                new AttributePrefab
-                {
-                    Name = "Dependency",
-                    Value = new Variant(new ResourceRef("BinaryFile", "Data/dependency.bin"))
-                }
-            }
-        });
+        var component = new SerializablePrefab();
+        component.SetType("Node");
+        component.Attributes.Add(CreateAttribute(
+            "Dependency", new Variant(new ResourceRef("BinaryFile", "Data/dependency.bin"))));
+        child.Components.Add(component);
         source.Children.Add(child);
         var file = new BinaryFile();
         Assert.True(file.SaveObjectCallback(archive =>

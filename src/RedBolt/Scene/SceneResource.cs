@@ -147,7 +147,7 @@ public sealed class SceneResource : Resource
     {
         if (asPrefab)
         {
-            var prefab = archive.IsInput ? new NodePrefab() : scene.Root.GeneratePrefab();
+            using var prefab = archive.IsInput ? new NodePrefab() : scene.Root.GeneratePrefab();
             prefab.SerializeInBlock(archive, PrefabArchiveFlag.SerializeTemporary);
             if (archive.IsInput)
             {

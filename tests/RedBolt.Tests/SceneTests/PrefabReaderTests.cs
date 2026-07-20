@@ -9,13 +9,16 @@ public sealed class PrefabReaderTests
     public void Memory_reader_walks_components_and_nested_children()
     {
         var prefab = new NodePrefab();
-        prefab.Node.TypeName = "Root";
-        prefab.Node.Id = 1;
-        prefab.Components.Add(new SerializablePrefab { TypeName = "Camera", Id = 2 });
+        prefab.Node.SetType("Root");
+        prefab.Node.SetId((SerializableId)1);
+        var component = new SerializablePrefab();
+        component.SetType("Camera");
+        component.SetId((SerializableId)2);
+        prefab.Components.Add(component);
 
         var child = new NodePrefab();
-        child.Node.TypeName = "Child";
-        child.Node.Id = 3;
+        child.Node.SetType("Child");
+        child.Node.SetId((SerializableId)3);
         prefab.Children.Add(child);
 
         var reader = new PrefabReaderFromMemory(prefab);
@@ -43,9 +46,9 @@ public sealed class PrefabReaderTests
             var type = "Root";
             var id = 1u;
             var temporary = false;
-            ArchiveSerialization.SerializeValue(output, "type", ref type);
-            ArchiveSerialization.SerializeValue(output, "id", ref id);
-            ArchiveSerialization.SerializeValue(output, "temporary", ref temporary);
+            ArchiveSerialization.SerializeValue(output, "_typeName", ref type);
+            output.SerializeVle("_id", ref id);
+            ArchiveSerialization.SerializeValue(output, "_temporary", ref temporary);
             using (output.OpenArrayBlock("attributes", 0))
             {
             }
@@ -56,9 +59,9 @@ public sealed class PrefabReaderTests
                 var componentType = "Camera";
                 var componentId = 2u;
                 var componentTemporary = false;
-                ArchiveSerialization.SerializeValue(output, "type", ref componentType);
-                ArchiveSerialization.SerializeValue(output, "id", ref componentId);
-                ArchiveSerialization.SerializeValue(output, "temporary", ref componentTemporary);
+                ArchiveSerialization.SerializeValue(output, "_typeName", ref componentType);
+                output.SerializeVle("_id", ref componentId);
+                ArchiveSerialization.SerializeValue(output, "_temporary", ref componentTemporary);
                 using (output.OpenArrayBlock("attributes", 0))
                 {
                 }

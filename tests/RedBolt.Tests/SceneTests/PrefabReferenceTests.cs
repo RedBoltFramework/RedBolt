@@ -11,7 +11,7 @@ public sealed class PrefabReferenceTests
         var resource = new PrefabResource("Tree.prefab");
         var prefab = resource.GetMutableNodePrefab();
         var child = new NodePrefab();
-        child.Node.Attributes.Add(new AttributePrefab { Name = "Name", Value = new Variant("Generated") });
+        child.Node.Attributes.Add(CreateAttribute("Name", new Variant("Generated")));
         prefab.Children.Add(child);
 
         var reference = host.CreateComponent<PrefabReference>();
@@ -45,5 +45,12 @@ public sealed class PrefabReferenceTests
         Assert.Null(host.GetComponent<PrefabReference>());
         Assert.Single(host.Children);
         Assert.False(host.Children[0].IsTemporary);
+    }
+
+    private static AttributePrefab CreateAttribute(string name, Variant value)
+    {
+        var result = new AttributePrefab(name);
+        result.SetValue(ref value);
+        return result;
     }
 }

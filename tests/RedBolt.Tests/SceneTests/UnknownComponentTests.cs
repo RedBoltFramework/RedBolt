@@ -20,19 +20,18 @@ public sealed class UnknownComponentTests
     [Fact]
     public void SceneResource_creates_unknown_component_placeholder()
     {
+        if (!Context.Instance.IsReflected<Node>())
+            Node.RegisterObject(Context.Instance);
+        if (!Context.Instance.IsReflected<Scene>())
+            Scene.RegisterObject(Context.Instance);
+        if (!Context.Instance.IsReflected<UnknownComponent>())
+            UnknownComponent.RegisterObject(Context.Instance);
         var source = new SceneResource("Scenes/Test.scene");
-        var prefab = new NodePrefab
-        {
-            Components =
-            {
-                new SerializablePrefab
-                {
-                    TypeName = "Missing.Component",
-                    Id = 42,
-                    Temporary = false
-                }
-            }
-        };
+        var prefab = new NodePrefab();
+        var componentPrefab = new SerializablePrefab();
+        componentPrefab.SetType("Missing.Component");
+        componentPrefab.SetId((SerializableId)42);
+        prefab.Components.Add(componentPrefab);
         var reader = new PrefabReaderFromMemory(prefab);
         Assert.True(source.GetScene().Root.Load(reader));
 

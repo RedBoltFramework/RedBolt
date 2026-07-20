@@ -11,6 +11,7 @@ public sealed class NodeTests
         var previous = Context.Instance; Context.SetInstance(new Context());
         try
         {
+            RegisterPrefabTypes();
             var scene = new Scene();
             var child = scene.CreateChild("Child");
             child.SetPosition(new Vector3f(1, 2, 3));
@@ -35,6 +36,7 @@ public sealed class NodeTests
     [Fact]
     public void Node_prefab_reader_writer_roundtrip_loads_hierarchy()
     {
+        RegisterPrefabTypes();
         var sourceScene = new Scene();
         var source = sourceScene.CreateChild("Child");
         source.SetVar("score", 42);
@@ -44,6 +46,7 @@ public sealed class NodeTests
         var writer = new PrefabWriterToMemory(prefab, PrefabSaveFlag.SaveTemporary);
         Assert.True(sourceScene.Root.Save(writer));
         Assert.True(writer.IsEOF());
+        Assert.Equal("Child", Assert.Single(prefab.Children).GetNodeName());
 
         var destinationScene = new Scene();
         var reader = new PrefabReaderFromMemory(prefab);
@@ -59,23 +62,42 @@ public sealed class NodeTests
     public void Node_prefab_clone_copies_nested_values()
     {
         var source = new NodePrefab();
-        source.Node.TypeName = "Node";
-        source.Node.Attributes.Add(new AttributePrefab { Name = "Name", Value = new Variant("Source") });
-        var component = new SerializablePrefab { TypeName = "Component", Id = 7, Temporary = true };
-        component.Attributes.Add(new AttributePrefab { Name = "Value", Value = new Variant(42) });
+        source.Node.SetType("Node");
+        source.Node.Attributes.Add(CreateAttribute("Name", new Variant("Source")));
+        var component = new SerializablePrefab();
+        component.SetType("Component");
+        component.SetId((SerializableId)7);
+        component.Attributes.Add(CreateAttribute("Value", new Variant(42)));
         source.Components.Add(component);
         var child = new NodePrefab();
-        child.Node.TypeName = "Child";
+        child.Node.SetType("Child");
         source.Children.Add(child);
 
         var clone = (NodePrefab)source.Clone();
-        clone.Node.Attributes[0].Name = "Changed";
-        clone.Components[0].Attributes[0].Value = new Variant(99);
-        clone.Children[0].Node.TypeName = "ChangedChild";
+        var changedValue = new Variant(99);
+        clone.Components[0].Attributes[0].SetValue(ref changedValue);
+        clone.Children[0].Node.SetType("ChangedChild");
 
         Assert.Equal("Name", source.Node.Attributes[0].Name);
         Assert.Equal(42, source.Components[0].Attributes[0].Value.GetInt());
         Assert.Equal("Child", source.Children[0].Node.TypeName);
+    }
+
+    private static AttributePrefab CreateAttribute(string name, Variant value)
+    {
+        var result = new AttributePrefab(name);
+        result.SetValue(ref value);
+        return result;
+    }
+
+    private static void RegisterPrefabTypes()
+    {
+        if (!Context.Instance.IsReflected<Node>())
+            Node.RegisterObject(Context.Instance);
+        if (!Context.Instance.IsReflected<Scene>())
+            Scene.RegisterObject(Context.Instance);
+        if (!Context.Instance.IsReflected<Camera>())
+            Context.Instance.AddFactoryReflection<Camera>();
     }
 
     private sealed class ListenerProbe : Component

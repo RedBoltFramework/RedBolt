@@ -17,6 +17,11 @@ public sealed class UnknownComponent : Component
             AttributeMode.Default | AttributeMode.NoEdit);
     }
 
+    public static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<UnknownComponent>();
+    }
+
     public void SetOriginalTypeName(string typeName)
     {
         OriginalTypeName = typeName ?? string.Empty;
