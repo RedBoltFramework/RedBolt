@@ -2,27 +2,37 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
-public sealed class Engine : Object
+public class Engine : Object
 {
     private static readonly string ExecutableDirectory =
         Path.GetDirectoryName(typeof(Engine).Assembly.Location) ?? AppContext.BaseDirectory;
 
     private readonly record struct ResourceRootEntry(string FullName, string ShortName);
 
-    private readonly Dictionary<string, object?> _customParameters = new(StringComparer.Ordinal);
+    private readonly ConfigFile _configFile = new();
+    private string _appPreferencesDir = string.Empty;
     private readonly HiresTimer _frameTimer = new();
-    private float _currentTimeStep;
     private readonly List<float> _lastTimeSteps = [];
+    private float _timeStep;
+    private int _timeStepSmoothing = 2;
+    private int _minFps = 10;
+    private int _maxFps = 200;
+    private int _maxInactiveFps = 60;
+    private bool _pauseMinimized;
     private long _timeOut;
-    private bool _audioPaused;
+    private bool _autoExit = true;
+    private bool _initialized;
     private bool _exitRequired;
+    private bool _exiting;
+    private bool _headless;
+    private bool _audioPaused;
+
+    private readonly Dictionary<string, object?> _customParameters = new(StringComparer.Ordinal);
     private bool _screenshotCapturedForExit;
     private int _screenshotIndex;
     private int _screenshotFrameDelay;
     private Context _previousContext = Context.Instance;
     private readonly Context _context = new();
-    private readonly ConfigFile _configFile = new();
-    private string _appPreferencesDir = string.Empty;
 
     public Engine()
     {
@@ -33,23 +43,59 @@ public sealed class Engine : Object
 
     public EngineParameters Parameters { get; private set; } = new();
 
-    public bool IsInitialized { get; private set; }
+    public bool IsInitialized
+    {
+        get => _initialized;
+        private set => _initialized = value;
+    }
 
-    public bool IsExiting { get; private set; }
+    public bool IsExiting
+    {
+        get => _exiting;
+        private set => _exiting = value;
+    }
 
-    public bool IsHeadless { get; private set; }
+    public bool IsHeadless
+    {
+        get => _headless;
+        private set => _headless = value;
+    }
 
-    public bool AutoExit { get; private set; } = true;
+    public bool AutoExit
+    {
+        get => _autoExit;
+        private set => _autoExit = value;
+    }
 
-    public int MaxFps { get; private set; } = 200;
+    public int MaxFps
+    {
+        get => _maxFps;
+        private set => _maxFps = value;
+    }
 
-    public int MaxInactiveFps { get; private set; } = 60;
+    public int MaxInactiveFps
+    {
+        get => _maxInactiveFps;
+        private set => _maxInactiveFps = value;
+    }
 
-    public int MinFps { get; private set; } = 10;
+    public int MinFps
+    {
+        get => _minFps;
+        private set => _minFps = value;
+    }
 
-    public bool PauseMinimized { get; private set; }
+    public bool PauseMinimized
+    {
+        get => _pauseMinimized;
+        private set => _pauseMinimized = value;
+    }
 
-    public int TimeStepSmoothing { get; private set; } = 2;
+    public int TimeStepSmoothing
+    {
+        get => _timeStepSmoothing;
+        private set => _timeStepSmoothing = value;
+    }
 
     public override void Dispose()
     {
@@ -113,7 +159,7 @@ public sealed class Engine : Object
         _screenshotCapturedForExit = false;
         _screenshotIndex = 0;
         _screenshotFrameDelay = 0;
-        _currentTimeStep = 0.0f;
+        _timeStep = 0.0f;
         _lastTimeSteps.Clear();
         _frameTimer.Reset();
         Log.GetLogger().LogInformation("Initialized engine");
@@ -142,7 +188,7 @@ public sealed class Engine : Object
             return;
         }
 
-        var timeStep = _currentTimeStep;
+        var timeStep = _timeStep;
         if (timeStep < 0.0f)
             timeStep = 0.0f;
 
@@ -265,10 +311,10 @@ public sealed class Engine : Object
 
     public void SetNextTimeStep(float seconds)
     {
-        _currentTimeStep = Math.Max(seconds, 0.0f);
+        _timeStep = Math.Max(seconds, 0.0f);
     }
 
-    public float GetNextTimeStep() => _currentTimeStep;
+    public float GetNextTimeStep() => _timeStep;
 
     public void SetParameter(string name, object? value)
     {
@@ -331,7 +377,7 @@ public sealed class Engine : Object
         IsInitialized = false;
         IsExiting = false;
         IsHeadless = false;
-        _currentTimeStep = 0.0f;
+        _timeStep = 0.0f;
         _lastTimeSteps.Clear();
         _timeOut = 0;
         _audioPaused = false;
@@ -420,7 +466,7 @@ public sealed class Engine : Object
     {
         if (!IsInitialized)
             throw new InvalidOperationException("Engine must be initialized before sending update events.");
-        SendCoreEvents(_currentTimeStep);
+        SendCoreEvents(_timeStep);
     }
 
     public void Render()
@@ -830,17 +876,17 @@ public sealed class Engine : Object
                 elapsed = targetMin;
         }
 
-        _currentTimeStep = 0.0f;
+        _timeStep = 0.0f;
         _lastTimeSteps.Add(elapsed / 1_000_000.0f);
         if (_lastTimeSteps.Count > TimeStepSmoothing)
         {
             _lastTimeSteps.RemoveRange(0, TimeStepSmoothing);
             foreach (var value in _lastTimeSteps)
-                _currentTimeStep += value;
-            _currentTimeStep /= _lastTimeSteps.Count;
+                _timeStep += value;
+            _timeStep /= _lastTimeSteps.Count;
         }
         else
-            _currentTimeStep = _lastTimeSteps[^1];
+            _timeStep = _lastTimeSteps[^1];
 
     }
 

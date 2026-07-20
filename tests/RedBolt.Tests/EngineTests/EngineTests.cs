@@ -13,6 +13,62 @@ public sealed class EngineTests
     }
 
     [Fact]
+    public void Engine_has_native_reference_class_and_field_lifetime_shape()
+    {
+        var type = typeof(Engine);
+        Assert.False(type.IsSealed);
+        Assert.True(typeof(RedBolt.Object).IsAssignableFrom(type));
+        Assert.False(typeof(ICloneable).IsAssignableFrom(type));
+
+        var fields = type.GetFields(
+                System.Reflection.BindingFlags.Instance
+                | System.Reflection.BindingFlags.NonPublic
+                | System.Reflection.BindingFlags.Public)
+            .OrderBy(field => field.MetadataToken)
+            .Select(field => field.Name)
+            .ToArray();
+        Assert.Equal(
+        [
+            "_configFile",
+            "_appPreferencesDir",
+            "_frameTimer",
+            "_lastTimeSteps",
+            "_timeStep",
+            "_timeStepSmoothing",
+            "_minFps",
+            "_maxFps",
+            "_maxInactiveFps",
+            "_pauseMinimized",
+            "_timeOut",
+            "_autoExit",
+            "_initialized",
+            "_exitRequired",
+            "_exiting",
+            "_headless",
+            "_audioPaused"
+        ], fields[..17]);
+
+        var resourceRootEntry = type.GetNestedType(
+            "ResourceRootEntry", System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(resourceRootEntry);
+        Assert.True(resourceRootEntry!.IsValueType);
+    }
+
+    [Fact]
+    public void Engine_disposal_restores_the_borrowed_global_context()
+    {
+        var previousContext = Context.Instance;
+        var engine = new Engine();
+
+        Assert.NotSame(previousContext, Context.Instance);
+        Assert.Same(engine, Context.Instance.GetSubsystem<Engine>());
+
+        engine.Dispose();
+
+        Assert.Same(previousContext, Context.Instance);
+    }
+
+    [Fact]
     public void Engine_constructor_uses_executable_directory_and_staged_resources()
     {
         var executableDirectory = Path.GetDirectoryName(typeof(Engine).Assembly.Location)!;
