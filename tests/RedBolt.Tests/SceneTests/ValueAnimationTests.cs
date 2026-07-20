@@ -5,6 +5,17 @@ namespace RedBolt.Tests;
 public sealed class ValueAnimationTests
 {
     [Fact]
+    public void WrapMode_matches_rbfx_value_enum()
+    {
+        Assert.True(typeof(WrapMode).IsEnum);
+        Assert.True(typeof(WrapMode).IsValueType);
+        Assert.Equal(typeof(int), Enum.GetUnderlyingType(typeof(WrapMode)));
+        Assert.Equal(0, (int)WrapMode.Loop);
+        Assert.Equal(1, (int)WrapMode.Once);
+        Assert.Equal(2, (int)WrapMode.Clamp);
+    }
+
+    [Fact]
     public void Linear_float_interpolation_works()
     {
         var animation = new ValueAnimation("Animations/Test");
