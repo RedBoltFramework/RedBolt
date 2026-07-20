@@ -206,7 +206,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [~] A6. Scene — depends on Resource, Core
 
-- [~] `Node.h` / `Node.cpp` — listener ownership and expired-listener cleanup reconciled while auditing CameraOperator; the complete Node lifetime/copy audit remains pending
+- [~] `Node.h` / `Node.cpp` — listener ownership and expired-listener cleanup reconciled while auditing CameraOperator; `ComponentSearchFlag` value semantics, one-level/recursive traversal, enabled/derived filtering, and allocation-free first-result lookup reconciled; the complete Node lifetime/copy audit remains pending
 
 ## [x] A7. RenderAPI — depends on Core, Math (current effort)
 

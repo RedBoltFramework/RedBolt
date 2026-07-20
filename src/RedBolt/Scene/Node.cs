@@ -1560,18 +1560,99 @@ public sealed class Node : Serializable
     public T? FindComponent<T>(ComponentSearchFlag flags = ComponentSearchFlag.Default)
         where T : Component
     {
-        foreach (var component in FindComponents<T>(flags))
-            return component;
+        return Find(this, flags);
 
-        return null;
+        static T? Find(Node node, ComponentSearchFlag flags)
+        {
+            var includeDisabled = (flags & ComponentSearchFlag.EnabledOnly) == 0;
+            var includeDerived = (flags & ComponentSearchFlag.Derived) != 0;
+
+            if ((flags & ComponentSearchFlag.Self) != 0 && (includeDisabled || node.IsEnabled))
+            {
+                foreach (var component in node._components)
+                {
+                    if ((includeDisabled || component.Enabled)
+                        && (includeDerived ? component is T : component.GetType() == typeof(T)))
+                        return (T)component;
+                }
+            }
+
+            if ((flags & ComponentSearchFlag.Parent) != 0 && node.Parent is { } parent)
+            {
+                var recursionFlag = flags & ~ComponentSearchFlag.ChildrenRecursive;
+                recursionFlag |= ComponentSearchFlag.Self;
+                if ((recursionFlag & ComponentSearchFlag.ParentRecursive) != ComponentSearchFlag.ParentRecursive)
+                    recursionFlag &= ~ComponentSearchFlag.ParentRecursive;
+
+                if (Find(parent, recursionFlag) is { } result)
+                    return result;
+            }
+
+            if ((flags & ComponentSearchFlag.Children) != 0)
+            {
+                var recursionFlag = flags & ~ComponentSearchFlag.ParentRecursive;
+                recursionFlag |= ComponentSearchFlag.Self;
+                if ((recursionFlag & ComponentSearchFlag.ChildrenRecursive) != ComponentSearchFlag.ChildrenRecursive)
+                    recursionFlag &= ~ComponentSearchFlag.ChildrenRecursive;
+
+                foreach (var child in node._children)
+                {
+                    if (Find(child, recursionFlag) is { } result)
+                        return result;
+                }
+            }
+
+            return null;
+        }
     }
 
     public Component? FindComponent(Type componentType, ComponentSearchFlag flags = ComponentSearchFlag.Default)
     {
-        foreach (var component in FindComponents(componentType, flags))
-            return component;
+        ValidateComponentType(componentType, nameof(componentType));
+        return Find(this, componentType, flags);
 
-        return null;
+        static Component? Find(Node node, Type componentType, ComponentSearchFlag flags)
+        {
+            var includeDisabled = (flags & ComponentSearchFlag.EnabledOnly) == 0;
+            var includeDerived = (flags & ComponentSearchFlag.Derived) != 0;
+
+            if ((flags & ComponentSearchFlag.Self) != 0 && (includeDisabled || node.IsEnabled))
+            {
+                foreach (var component in node._components)
+                {
+                    if ((includeDisabled || component.Enabled)
+                        && (includeDerived ? componentType.IsInstanceOfType(component) : component.GetType() == componentType))
+                        return component;
+                }
+            }
+
+            if ((flags & ComponentSearchFlag.Parent) != 0 && node.Parent is { } parent)
+            {
+                var recursionFlag = flags & ~ComponentSearchFlag.ChildrenRecursive;
+                recursionFlag |= ComponentSearchFlag.Self;
+                if ((recursionFlag & ComponentSearchFlag.ParentRecursive) != ComponentSearchFlag.ParentRecursive)
+                    recursionFlag &= ~ComponentSearchFlag.ParentRecursive;
+
+                if (Find(parent, componentType, recursionFlag) is { } result)
+                    return result;
+            }
+
+            if ((flags & ComponentSearchFlag.Children) != 0)
+            {
+                var recursionFlag = flags & ~ComponentSearchFlag.ParentRecursive;
+                recursionFlag |= ComponentSearchFlag.Self;
+                if ((recursionFlag & ComponentSearchFlag.ChildrenRecursive) != ComponentSearchFlag.ChildrenRecursive)
+                    recursionFlag &= ~ComponentSearchFlag.ChildrenRecursive;
+
+                foreach (var child in node._children)
+                {
+                    if (Find(child, componentType, recursionFlag) is { } result)
+                        return result;
+                }
+            }
+
+            return null;
+        }
     }
 
     public IReadOnlyList<T> FindComponents<T>(ComponentSearchFlag flags = ComponentSearchFlag.Default)
@@ -2402,19 +2483,23 @@ public sealed class Node : Serializable
 
         if ((flags & ComponentSearchFlag.Parent) != 0)
         {
-            var parentFlags = (flags & ComponentSearchFlag.ParentRecursive) != 0
-                ? flags & ~(ComponentSearchFlag.Children | ComponentSearchFlag.ChildrenRecursive)
-                : flags & ~(ComponentSearchFlag.Parent | ComponentSearchFlag.Children | ComponentSearchFlag.ChildrenRecursive);
-            Parent?.FindComponents(parentFlags | ComponentSearchFlag.Self, result);
+            var recursionFlag = flags & ~ComponentSearchFlag.ChildrenRecursive;
+            recursionFlag |= ComponentSearchFlag.Self;
+            if ((recursionFlag & ComponentSearchFlag.ParentRecursive) != ComponentSearchFlag.ParentRecursive)
+                recursionFlag &= ~ComponentSearchFlag.ParentRecursive;
+
+            Parent?.FindComponents(recursionFlag, result);
         }
 
         if ((flags & ComponentSearchFlag.Children) != 0)
         {
-            var childFlags = (flags & ComponentSearchFlag.ChildrenRecursive) != 0
-                ? flags & ~(ComponentSearchFlag.Parent | ComponentSearchFlag.ParentRecursive)
-                : flags & ~(ComponentSearchFlag.Children | ComponentSearchFlag.ChildrenRecursive | ComponentSearchFlag.Parent | ComponentSearchFlag.ParentRecursive);
+            var recursionFlag = flags & ~ComponentSearchFlag.ParentRecursive;
+            recursionFlag |= ComponentSearchFlag.Self;
+            if ((recursionFlag & ComponentSearchFlag.ChildrenRecursive) != ComponentSearchFlag.ChildrenRecursive)
+                recursionFlag &= ~ComponentSearchFlag.ChildrenRecursive;
+
             foreach (var child in _children)
-                child.FindComponents(childFlags | ComponentSearchFlag.Self, result);
+                child.FindComponents(recursionFlag, result);
         }
     }
 
@@ -2425,19 +2510,23 @@ public sealed class Node : Serializable
 
         if ((flags & ComponentSearchFlag.Parent) != 0)
         {
-            var parentFlags = (flags & ComponentSearchFlag.ParentRecursive) != 0
-                ? flags & ~(ComponentSearchFlag.Children | ComponentSearchFlag.ChildrenRecursive)
-                : flags & ~(ComponentSearchFlag.Parent | ComponentSearchFlag.Children | ComponentSearchFlag.ChildrenRecursive);
-            Parent?.FindComponents(parentFlags | ComponentSearchFlag.Self, componentType, result);
+            var recursionFlag = flags & ~ComponentSearchFlag.ChildrenRecursive;
+            recursionFlag |= ComponentSearchFlag.Self;
+            if ((recursionFlag & ComponentSearchFlag.ParentRecursive) != ComponentSearchFlag.ParentRecursive)
+                recursionFlag &= ~ComponentSearchFlag.ParentRecursive;
+
+            Parent?.FindComponents(recursionFlag, componentType, result);
         }
 
         if ((flags & ComponentSearchFlag.Children) != 0)
         {
-            var childFlags = (flags & ComponentSearchFlag.ChildrenRecursive) != 0
-                ? flags & ~(ComponentSearchFlag.Parent | ComponentSearchFlag.ParentRecursive)
-                : flags & ~(ComponentSearchFlag.Children | ComponentSearchFlag.ChildrenRecursive | ComponentSearchFlag.Parent | ComponentSearchFlag.ParentRecursive);
+            var recursionFlag = flags & ~ComponentSearchFlag.ParentRecursive;
+            recursionFlag |= ComponentSearchFlag.Self;
+            if ((recursionFlag & ComponentSearchFlag.ChildrenRecursive) != ComponentSearchFlag.ChildrenRecursive)
+                recursionFlag &= ~ComponentSearchFlag.ChildrenRecursive;
+
             foreach (var child in _children)
-                child.FindComponents(childFlags | ComponentSearchFlag.Self, componentType, result);
+                child.FindComponents(recursionFlag, componentType, result);
         }
     }
 
@@ -2451,7 +2540,7 @@ public sealed class Node : Serializable
         foreach (var component in node._components)
         {
             var matches = (flags & ComponentSearchFlag.Derived) != 0 ? component is T : component.GetType() == typeof(T);
-            if (matches && component is T typed && (!enabledOnly || component.IsEnabledEffective))
+            if (matches && component is T typed && (!enabledOnly || component.Enabled))
                 result.Add(typed);
         }
     }
@@ -2467,7 +2556,7 @@ public sealed class Node : Serializable
             var matches = (flags & ComponentSearchFlag.Derived) != 0
                 ? componentType.IsInstanceOfType(component)
                 : component.GetType() == componentType;
-            if (matches && (!enabledOnly || component.IsEnabledEffective))
+            if (matches && (!enabledOnly || component.Enabled))
                 result.Add(component);
         }
     }

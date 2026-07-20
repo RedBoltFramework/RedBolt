@@ -11,7 +11,10 @@ public enum ComponentSearchFlag
     ChildrenRecursive = Children | 1 << 4,
     Derived = 1 << 8,
     EnabledOnly = 1 << 9,
+
     SelfOrParentRecursive = Self | ParentRecursive,
     SelfOrChildrenRecursive = Self | ChildrenRecursive,
+
+    /// <summary>Default search option - to find components in the given node and all children recursively.</summary>
     Default = SelfOrChildrenRecursive
 }
