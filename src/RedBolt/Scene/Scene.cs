@@ -43,7 +43,6 @@ public sealed class Scene : Serializable
     private readonly Dictionary<string, List<Node>> _taggedNodes = new(StringComparer.Ordinal);
     private readonly List<(StringHash Type, HashSet<Component> Components)> _componentIndexes = [];
     private readonly List<PackageFile> _requiredPackageFiles = [];
-    private readonly List<ISceneUpdateListener> _updateListeners = [];
     private readonly List<Component> _delayedDirtyComponents = [];
     private readonly List<StaticModel> _staticModels = [];
     private readonly List<string> _lightmapNames = [];
@@ -1008,48 +1007,36 @@ public sealed class Scene : Serializable
 
         if (UpdateEnabled)
         {
-            var listenerSnapshot = SnapshotUpdateListeners();
-            try
+            var sceneUpdateEvent = new SceneEvents.SceneUpdateEvent
             {
-                var sceneUpdateEvent = new SceneEvents.SceneUpdateEvent
-                {
-                    Scene = this,
-                    TimeStep = effectiveTimeStep
-                };
-                SendEvent(ref sceneUpdateEvent);
-                for (var i = 0; i < listenerSnapshot.Count; ++i)
-                    listenerSnapshot.Array[i]!.OnSceneUpdate(effectiveTimeStep);
+                Scene = this,
+                TimeStep = effectiveTimeStep
+            };
+            SendEvent(ref sceneUpdateEvent);
 
-                var attributeAnimationUpdateEvent = new SceneEvents.AttributeAnimationUpdateEvent
-                {
-                    Scene = this,
-                    TimeStep = effectiveTimeStep
-                };
-                SendEvent(ref attributeAnimationUpdateEvent);
-                var subsystemUpdateEvent = new SceneEvents.SceneSubsystemUpdateEvent
-                {
-                    Scene = this,
-                    TimeStep = effectiveTimeStep
-                };
-                SendEvent(ref subsystemUpdateEvent);
-
-                var postUpdateEvent = new SceneEvents.ScenePostUpdateEvent
-                {
-                    Scene = this,
-                    TimeStep = effectiveTimeStep
-                };
-                SendEvent(ref postUpdateEvent);
-                for (var i = 0; i < listenerSnapshot.Count; ++i)
-                    listenerSnapshot.Array[i]!.OnScenePostUpdate(effectiveTimeStep);
-
-                _elapsedTimes += new Vector3d(effectiveTimeStep, effectiveTimeStep, effectiveTimeStep);
-                WrapElapsedTime();
-                _elapsedTime = (float)_elapsedTimes.X;
-            }
-            finally
+            var attributeAnimationUpdateEvent = new SceneEvents.AttributeAnimationUpdateEvent
             {
-                listenerSnapshot.Dispose();
-            }
+                Scene = this,
+                TimeStep = effectiveTimeStep
+            };
+            SendEvent(ref attributeAnimationUpdateEvent);
+            var subsystemUpdateEvent = new SceneEvents.SceneSubsystemUpdateEvent
+            {
+                Scene = this,
+                TimeStep = effectiveTimeStep
+            };
+            SendEvent(ref subsystemUpdateEvent);
+
+            var postUpdateEvent = new SceneEvents.ScenePostUpdateEvent
+            {
+                Scene = this,
+                TimeStep = effectiveTimeStep
+            };
+            SendEvent(ref postUpdateEvent);
+
+            _elapsedTimes += new Vector3d(effectiveTimeStep, effectiveTimeStep, effectiveTimeStep);
+            WrapElapsedTime();
+            _elapsedTime = (float)_elapsedTimes.X;
         }
 
         var forcedPostUpdateEvent = new SceneEvents.SceneForcedPostUpdateEvent
@@ -1174,8 +1161,6 @@ public sealed class Scene : Serializable
 
         GetMutableComponentIndex(component.GetTypeNameHash())?.Add(component);
 
-        if (component is ISceneUpdateListener listener)
-            _updateListeners.Add(listener);
         if (component is StaticModel staticModel)
             _staticModels.Add(staticModel);
     }
@@ -1186,8 +1171,6 @@ public sealed class Scene : Serializable
 
         GetMutableComponentIndex(component.GetTypeNameHash())?.Remove(component);
 
-        if (component is ISceneUpdateListener listener)
-            _updateListeners.Remove(listener);
         if (component is StaticModel staticModel)
             _staticModels.Remove(staticModel);
 
@@ -1637,13 +1620,6 @@ public sealed class Scene : Serializable
                 }
             }
         }
-    }
-
-    private Snapshot<ISceneUpdateListener> SnapshotUpdateListeners()
-    {
-        var array = ArrayPool<ISceneUpdateListener>.Shared.Rent(_updateListeners.Count);
-        _updateListeners.CopyTo(array, 0);
-        return new Snapshot<ISceneUpdateListener>(array, _updateListeners.Count);
     }
 
     private static Snapshot<T> SnapshotValues<T>(Dictionary<uint, T> objects)

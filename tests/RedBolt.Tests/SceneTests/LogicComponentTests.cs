@@ -6,6 +6,25 @@ namespace RedBolt.Tests;
 public sealed class LogicComponentTests
 {
     [Fact]
+    public void LogicComponent_matches_rbfx_concrete_class_shape()
+    {
+        var type = typeof(LogicComponent);
+
+        Assert.Equal(typeof(Component), type.BaseType);
+        Assert.False(type.IsAbstract);
+        Assert.False(type.IsSealed);
+        Assert.False(type.IsValueType);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(type));
+        Assert.Null(type.Assembly.GetType("RedBolt.ISceneUpdateListener"));
+
+        using var logic = new LogicComponent();
+        Assert.Equal(
+            UpdateEvent.UseUpdate | UpdateEvent.UsePostUpdate | UpdateEvent.UseFixedUpdate | UpdateEvent.UseFixedPostUpdate,
+            logic.GetUpdateEventMask());
+        Assert.False(logic.IsDelayedStartCalled());
+    }
+
+    [Fact]
     public void Scene_update_lifecycle_works()
     {
         var scene = new Scene();
@@ -64,6 +83,62 @@ public sealed class LogicComponentTests
         Assert.Equal(1, logic.WorldOriginPostUpdateCount);
     }
 
+    [Fact]
+    public void Disabled_component_unsubscribes_until_reenabled()
+    {
+        using var scene = new Scene();
+        var logic = scene.CreateChild("LogicNode").CreateComponent<CountingLogic>();
+
+        logic.SetEnabled(false);
+        scene.Update(0.1f);
+
+        Assert.Equal(0, logic.DelayedStartCount);
+        Assert.Equal(0, logic.UpdateCount);
+        Assert.Equal(0, logic.PostUpdateCount);
+
+        logic.SetEnabled(true);
+        scene.Update(0.1f);
+
+        Assert.Equal(1, logic.DelayedStartCount);
+        Assert.Equal(1, logic.UpdateCount);
+        Assert.Equal(1, logic.PostUpdateCount);
+    }
+
+    [Fact]
+    public void Delayed_start_runs_once_without_requested_update_events()
+    {
+        using var scene = new Scene();
+        var logic = new CountingLogic();
+        logic.SetUpdateEventMask(UpdateEvent.UseNoEvent);
+        scene.CreateChild("LogicNode").AddComponent(logic);
+
+        scene.Update(0.1f);
+        scene.Update(0.1f);
+
+        Assert.Equal(1, logic.DelayedStartCount);
+        Assert.Equal(0, logic.UpdateCount);
+        Assert.Equal(0, logic.PostUpdateCount);
+    }
+
+    [Fact]
+    public void Logic_update_uses_scene_event_subscription_order()
+    {
+        using var scene = new Scene();
+        var calls = new List<string>();
+        using var before = scene.SubscribeToEvent<SceneEvents.SceneUpdateEvent>(scene, HandleBefore);
+        var logic = new OrderedLogic(calls);
+        logic.SetUpdateEventMask(UpdateEvent.UseUpdate);
+        scene.CreateChild("LogicNode").AddComponent(logic);
+        using var after = scene.SubscribeToEvent<SceneEvents.SceneUpdateEvent>(scene, HandleAfter);
+
+        scene.Update(0.1f);
+
+        Assert.Equal(["Before", "Logic", "After"], calls);
+
+        void HandleBefore(ref SceneEvents.SceneUpdateEvent eventData) => calls.Add("Before");
+        void HandleAfter(ref SceneEvents.SceneUpdateEvent eventData) => calls.Add("After");
+    }
+
     private sealed class CountingLogic : LogicComponent
     {
         public int StartCount { get; private set; }
@@ -94,5 +169,17 @@ public sealed class LogicComponentTests
 
         public override void UpdateWorldOrigin(IntVector3 oldOrigin, IntVector3 newOrigin, IntVector3 delta) => ++WorldOriginUpdateCount;
         public override void PostUpdateWorldOrigin(IntVector3 oldOrigin, IntVector3 newOrigin, IntVector3 delta) => ++WorldOriginPostUpdateCount;
+    }
+
+    private sealed class OrderedLogic : LogicComponent
+    {
+        private readonly List<string> _calls;
+
+        public OrderedLogic(List<string> calls)
+        {
+            _calls = calls;
+        }
+
+        public override void Update(float timeStep) => _calls.Add("Logic");
     }
 }

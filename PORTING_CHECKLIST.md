@@ -206,6 +206,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [~] A6. Scene — depends on Resource, Core
 
+- [~] `LogicComponent.h` / `LogicComponent.cpp` — concrete noncopyable class kind, native event-mask state, direct sender-filtered Scene subscriptions, delayed-start/update/post-update/world-origin dispatch, enable and attachment lifecycle, and deterministic unsubscription reconciled; typed custom update-event selection and optional physics step branches remain pending
 - [~] `Node.h` / `Node.cpp` — listener ownership and expired-listener cleanup reconciled while auditing CameraOperator; `ComponentSearchFlag` value semantics, one-level/recursive traversal, enabled/derived filtering, and allocation-free first-result lookup reconciled; the complete Node lifetime/copy audit remains pending
 
 ## [x] A7. RenderAPI — depends on Core, Math (current effort)
