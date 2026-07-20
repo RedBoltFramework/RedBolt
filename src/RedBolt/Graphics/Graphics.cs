@@ -1230,7 +1230,7 @@ layout(std140) uniform Material
         SetSwapChainRenderTargets(viewportRect);
         var camera = viewport.GetCamera()!;
         var scene = viewport.GetScene()!;
-        var cameraPosition = camera.IsAttached ? camera.Node.WorldPosition : Vector3f.Zero;
+        var cameraPosition = camera.Node is not null ? camera.Node.WorldPosition : Vector3f.Zero;
         var fogColorGamma = FindZone(scene, cameraPosition)?.GetFogColor() ?? Color.Black;
         var effectiveFogColor = GetSwapChainOutputTarget().LinearColorSpace
             ? fogColorGamma.GammaToLinear()
@@ -1260,7 +1260,7 @@ layout(std140) uniform Material
         SetRenderTargets(viewportRect, colorTarget, depthStencil);
         var camera = viewport.GetCamera()!;
         var scene = viewport.GetScene()!;
-        var cameraPosition = camera.IsAttached ? camera.Node.WorldPosition : Vector3f.Zero;
+        var cameraPosition = camera.Node is not null ? camera.Node.WorldPosition : Vector3f.Zero;
         var fogColorGamma = FindZone(scene, cameraPosition)?.GetFogColor() ?? Color.Black;
         var outputTexture = renderSurface.GetParentTexture()!;
         var linearColorSpace = outputTexture.GetLinear() || outputTexture.GetSRGB()
@@ -1429,7 +1429,7 @@ layout(std140) uniform Material
         for (var i = 0; i < _lightsScratch.Count; ++i)
         {
             var light = _lightsScratch[i];
-            if (!light.IsAttached || !light.IsEnabledEffective || light.GetLightType() != LightType.Directional)
+            if (light.Node is null || !light.IsEnabledEffective || light.GetLightType() != LightType.Directional)
                 continue;
 
             directionalLight = light;
@@ -1885,14 +1885,14 @@ layout(std140) uniform Material
 
     private (uint DrawCalls, uint Primitives) RenderStaticModel(Viewport viewport, StaticModel staticModel, MaterialQuality materialQuality, Light? directionalLight)
     {
-        if (!staticModel.IsAttached || !staticModel.IsEnabledEffective || staticModel.GetModel() is not { } model)
+        if (staticModel.Node is null || !staticModel.IsEnabledEffective || staticModel.GetModel() is not { } model)
             return default;
 
         uint drawCalls = 0;
         uint primitives = 0;
         var camera = viewport.GetCamera()!;
         var scene = viewport.GetScene()!;
-        var cameraZone = FindZone(scene, camera.IsAttached ? camera.Node.WorldPosition : Vector3f.Zero);
+        var cameraZone = FindZone(scene, camera.Node is not null ? camera.Node.WorldPosition : Vector3f.Zero);
         var drawableZone = FindZone(scene, staticModel.Node.WorldPosition);
         var drawableAmbient = drawableZone is not null ? new Vector4f(drawableZone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
         for (var geometryIndex = 0u; geometryIndex < model.GetNumGeometries(); ++geometryIndex)
@@ -1970,14 +1970,14 @@ layout(std140) uniform Material
     private (uint DrawCalls, uint Primitives) RenderOutlinedStaticModel(Viewport viewport, StaticModel staticModel,
         MaterialQuality materialQuality, OutlineGroup outlineGroup)
     {
-        if (!staticModel.IsAttached || !staticModel.IsEnabledEffective || staticModel.GetModel() is not { } model)
+        if (staticModel.Node is null || !staticModel.IsEnabledEffective || staticModel.GetModel() is not { } model)
             return default;
 
         uint drawCalls = 0;
         uint primitives = 0;
         var camera = viewport.GetCamera()!;
         var scene = viewport.GetScene()!;
-        var cameraZone = FindZone(scene, camera.IsAttached ? camera.Node.WorldPosition : Vector3f.Zero);
+        var cameraZone = FindZone(scene, camera.Node is not null ? camera.Node.WorldPosition : Vector3f.Zero);
         var drawableZone = FindZone(scene, staticModel.Node.WorldPosition);
         var drawableAmbient = drawableZone is not null ? new Vector4f(drawableZone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
         for (var geometryIndex = 0u; geometryIndex < model.GetNumGeometries(); ++geometryIndex)
@@ -2021,14 +2021,14 @@ layout(std140) uniform Material
     private (uint DrawCalls, uint Primitives) RenderNormalStaticModel(Viewport viewport, StaticModel staticModel,
         MaterialQuality materialQuality)
     {
-        if (!staticModel.IsAttached || !staticModel.IsEnabledEffective || staticModel.GetModel() is not { } model)
+        if (staticModel.Node is null || !staticModel.IsEnabledEffective || staticModel.GetModel() is not { } model)
             return default;
 
         uint drawCalls = 0;
         uint primitives = 0;
         var camera = viewport.GetCamera()!;
         var scene = viewport.GetScene()!;
-        var cameraZone = FindZone(scene, camera.IsAttached ? camera.Node.WorldPosition : Vector3f.Zero);
+        var cameraZone = FindZone(scene, camera.Node is not null ? camera.Node.WorldPosition : Vector3f.Zero);
         var drawableZone = FindZone(scene, staticModel.Node.WorldPosition);
         var drawableAmbient = drawableZone is not null ? new Vector4f(drawableZone.GetAmbientLighting(), 1.0f) : DefaultAmbient;
 
@@ -3868,7 +3868,7 @@ layout(std140) uniform Material
         WriteMatrix4Raw(data, 64, camera.GetInverseView().Matrix4);
         WriteMatrix4Raw(data, 128, camera.GetGPUViewProj());
         WriteVector4(data, 192, new Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
-        var cameraPosition = camera.IsAttached ? camera.Node.WorldPosition : Vector3f.Zero;
+        var cameraPosition = camera.Node is not null ? camera.Node.WorldPosition : Vector3f.Zero;
         WriteVector4(data, 208, new Vector4f(cameraPosition, 0.0f));
         WriteFloat(data, 224, camera.GetNearClip());
         WriteFloat(data, 228, camera.GetFarClip());
@@ -3924,7 +3924,7 @@ layout(std140) uniform Material
     private void UpdateLightBuffer(IBuffer buffer, Light? light)
     {
         Span<byte> data = stackalloc byte[LightBufferSize];
-        if (light is not null && light.IsAttached)
+        if (light is not null && light.Node is not null)
         {
             WriteVector4(data, 0, new Vector4f(light.Node.WorldPosition, 0.0f));
             WriteVector4(data, 16, new Vector4f((-light.Node.WorldDirection).Normalized, 0.0f));
@@ -4460,7 +4460,7 @@ layout(std140) uniform Material
         for (var i = 0; i < _zonesScratch.Count; ++i)
         {
             var zone = _zonesScratch[i];
-            if (!zone.IsAttached || !zone.IsEnabledEffective || !zone.IsInside(worldPosition))
+            if (zone.Node is null || !zone.IsEnabledEffective || !zone.IsInside(worldPosition))
                 continue;
 
             if (bestZone is null || zone.GetPriority() > bestZone.GetPriority())

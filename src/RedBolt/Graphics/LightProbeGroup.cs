@@ -118,6 +118,8 @@ public class LightProbeGroup : Component
     /// <summary>Construct.</summary>
     public LightProbeGroup()
     {
+        RegisterAttribute("Is Enabled", typeof(bool), self => ((LightProbeGroup)self).Enabled,
+            (self, value) => ((LightProbeGroup)self).SetEnabled(value is bool enabled && enabled), true);
         RegisterAttribute("Light Mask", typeof(uint), self => ((LightProbeGroup)self)._lightMask,
             (self, value) => ((LightProbeGroup)self)._lightMask = (uint)value!, Drawable.DefaultLightMask);
         RegisterAttribute("Zone Mask", typeof(uint), self => ((LightProbeGroup)self)._zoneMask,

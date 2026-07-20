@@ -78,8 +78,9 @@ public sealed class Node : Serializable
     {
         ArgumentNullException.ThrowIfNull(components);
         return components
-            .Where(static component => component.IsAttached)
             .Select(static component => component.Node)
+            .Where(static node => node is not null)
+            .Select(static node => node!)
             .Distinct()
             .ToArray();
     }
@@ -984,12 +985,13 @@ public sealed class Node : Serializable
     public void AddComponent(Component component, uint id = 0)
     {
         ArgumentNullException.ThrowIfNull(component);
-        if (component.IsAttached)
-            throw new InvalidOperationException("Component already belongs to a node.");
+
+        if (component.Node is not null)
+            Log.GetLogger().Warning("Component {0} already belongs to a node!", component.GetTypeName());
 
         _components.Add(component);
-        component.SetId(Scene.AllocateComponentId(id));
-        component.Attach(this);
+        component.SetID(Scene.AllocateComponentId(id));
+        component.SetNode(this);
         Scene.ComponentAdded(component);
         component.OnMarkedDirty(this);
 
@@ -1021,8 +1023,8 @@ public sealed class Node : Serializable
         if (Activator.CreateInstance(component.GetType()) is not Component clone)
             return null;
 
-        clone.SetId(Scene.AllocateComponentId(id));
-        clone.Attach(this);
+        clone.SetID(Scene.AllocateComponentId(id));
+        clone.SetNode(this);
         _components.Add(clone);
         Scene.ComponentAdded(clone);
         clone.CopyAttributes(component);
@@ -1641,7 +1643,7 @@ public sealed class Node : Serializable
 
             RemoveListener(component);
             Scene.ComponentRemoved(component);
-            component.Detach();
+            component.SetNode(null);
         }
     }
 

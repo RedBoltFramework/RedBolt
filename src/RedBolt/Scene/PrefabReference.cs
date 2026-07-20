@@ -96,7 +96,7 @@ public sealed class PrefabReference : Component
     /// <summary>Make all prefab nodes not temporary and remove component.</summary>
     public void Inline(PrefabInlineFlag flags)
     {
-        if (!IsAttached)
+        if (Node is null)
             return;
 
         var node = Node;
@@ -159,7 +159,7 @@ public sealed class PrefabReference : Component
             return;
         }
 
-        if (!IsAttached || _prefab is null)
+        if (Node is null || _prefab is null)
             return;
 
         var originalNodePrefab = GetNodePrefab();
@@ -215,13 +215,13 @@ public sealed class PrefabReference : Component
     {
         if (!IsEnabledEffective)
             RemoveInstance();
-        else if (!ReferenceEquals(_instanceNode, IsAttached ? Node : null))
+        else if (!ReferenceEquals(_instanceNode, Node))
             CreateInstance(true);
     }
 
     private NodePrefab GetNodePrefab()
     {
-        if (IsAttached && _prefab is not null)
+        if (Node is not null && _prefab is not null)
             return _prefab.GetNodePrefabSlice(_path);
 
         return NodePrefab.Empty;
@@ -347,7 +347,7 @@ public sealed class PrefabReference : Component
     private bool TryCreateInplace()
     {
         var nodePrefab = GetNodePrefab();
-        if (nodePrefab.IsEmpty() || !IsAttached)
+        if (nodePrefab.IsEmpty() || Node is null)
             return false;
         if (!IsInstanceMatching(Node, nodePrefab, true))
             return false;
@@ -357,7 +357,7 @@ public sealed class PrefabReference : Component
 
     private void InstantiatePrefab(NodePrefab nodePrefab, PrefabInstanceFlag instanceFlags)
     {
-        if (!IsAttached)
+        if (Node is null)
             return;
 
         var node = Node;
@@ -398,11 +398,11 @@ public sealed class PrefabReference : Component
     private void CreateInstance(bool tryInplace = false, PrefabInstanceFlag instanceFlags = PrefabInstanceFlag.None)
     {
         // Remove existing instance if moved to another node
-        if (_instanceNode is not null && !ReferenceEquals(_instanceNode, IsAttached ? Node : null))
+        if (_instanceNode is not null && !ReferenceEquals(_instanceNode, Node))
             RemoveInstance();
 
         // Cannot spawn instance without node
-        if (!IsAttached)
+        if (Node is null)
             return;
 
         var nodePrefab = GetNodePrefab();

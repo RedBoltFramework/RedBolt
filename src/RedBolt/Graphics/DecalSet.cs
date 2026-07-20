@@ -128,6 +128,9 @@ public class DecalSet : Drawable
     public DecalSet()
         : base(DrawableFlags.Geometry)
     {
+        RegisterAttribute("Is Enabled", typeof(bool), self => ((DecalSet)self).Enabled,
+            (self, value) => ((DecalSet)self).SetEnabled(value is bool enabled && enabled), true);
+
         _vertexBuffer.SetShadowed(true);
         _indexBuffer.SetShadowed(true);
         _geometry.SetIndexBuffer(_indexBuffer);
@@ -302,7 +305,7 @@ public class DecalSet : Drawable
         if (!_boundingBoxDirty)
         {
             _boundingBoxDirty = true;
-            if (IsAttached)
+            if (Node is not null)
                 OnMarkedDirty(Node);
         }
         _bufferDirty = true;
@@ -355,10 +358,10 @@ public class DecalSet : Drawable
         float normalCutoff = 0.1f, uint subGeometry = uint.MaxValue)
     {
         // Do not add decals in headless mode
-        if (!IsAttached || GetSubsystem<Graphics>() is null)
+        if (Node is null || GetSubsystem<Graphics>() is null)
             return false;
 
-        if (target is null || !target.IsAttached)
+        if (target is null || target.Node is null)
         {
             Log.GetLogger().LogError("Null target drawable for decal");
             return false;
@@ -951,7 +954,7 @@ public class DecalSet : Drawable
         else
         {
             batch.GeometryType = GeometryType.Static;
-            _nodeWorldTransform[0] = IsAttached ? Node.GetWorldTransform() : Matrix3x4.Identity;
+            _nodeWorldTransform[0] = Node is not null ? Node.GetWorldTransform() : Matrix3x4.Identity;
             batch.WorldTransform = _nodeWorldTransform;
             batch.NumWorldTransforms = 1;
         }
@@ -961,7 +964,7 @@ public class DecalSet : Drawable
     private void AssignBoneNodes()
     {
         _assignBonesPending = false;
-        if (!IsAttached)
+        if (Node is null)
             return;
         foreach (var bone in _bones)
         {

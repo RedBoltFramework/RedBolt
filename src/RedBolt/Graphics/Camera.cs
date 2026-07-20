@@ -56,6 +56,7 @@ public sealed class Camera : Component
     {
         var graphics = GetSubsystem<Graphics>();
         _graphics = graphics is not null ? new WeakReference<Graphics>(graphics) : null;
+        RegisterAttribute("Is Enabled", typeof(bool), self => ((Camera)self).Enabled, (self, value) => ((Camera)self).SetEnabled(value is bool enabled && enabled), true);
         RegisterAttribute("Near Clip", typeof(float), self => ((Camera)self).GetNearClip(), (self, value) => ((Camera)self).SetNearClip((float)value!), DefaultNearClip);
         RegisterAttribute("Far Clip", typeof(float), self => ((Camera)self).GetFarClip(), (self, value) => ((Camera)self).SetFarClip((float)value!), DefaultFarClip);
         RegisterAttribute("FOV", typeof(float), self => ((Camera)self).GetFov(), (self, value) => ((Camera)self).SetFov((float)value!), DefaultFov);
@@ -280,7 +281,7 @@ public sealed class Camera : Component
     {
         if (!Orthographic)
         {
-            var cameraPos = IsAttached ? Node.WorldPosition : Vector3f.Zero;
+            var cameraPos = Node is not null ? Node.WorldPosition : Vector3f.Zero;
             return (worldPos - cameraPos).Length;
         }
 
@@ -292,7 +293,7 @@ public sealed class Camera : Component
     {
         if (!Orthographic)
         {
-            var cameraPos = IsAttached ? Node.WorldPosition : Vector3f.Zero;
+            var cameraPos = Node is not null ? Node.WorldPosition : Vector3f.Zero;
             return (worldPos - cameraPos).LengthSquared;
         }
 
@@ -412,8 +413,8 @@ public sealed class Camera : Component
         {
             var result = new Ray
             {
-                Origin = IsAttached ? Node.WorldPosition : Vector3f.Zero,
-                Direction = IsAttached ? Node.WorldDirection : Vector3f.Forward
+                Origin = Node is not null ? Node.WorldPosition : Vector3f.Zero,
+                Direction = Node is not null ? Node.WorldDirection : Vector3f.Forward
             };
             return result;
         }
@@ -495,7 +496,7 @@ public sealed class Camera : Component
     public Quaternion GetFaceCameraRotation(
         Vector3f position, Quaternion rotation, FaceCameraMode mode, float minAngle = 0.0f)
     {
-        if (!IsAttached)
+        if (Node is null)
             return rotation;
 
         switch (mode)
@@ -770,7 +771,7 @@ public sealed class Camera : Component
 
     public Matrix3x4 GetEffectiveWorldTransform()
     {
-        var worldTransform = IsAttached
+        var worldTransform = Node is not null
             ? new Matrix3x4(Node.WorldPosition, Node.WorldRotation, 1.0f)
             : Matrix3x4.Identity;
         return UseReflection ? _reflectionMatrix * worldTransform : worldTransform;

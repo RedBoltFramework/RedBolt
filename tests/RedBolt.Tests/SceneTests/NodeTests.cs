@@ -576,8 +576,8 @@ public sealed class NodeTests
         var camera = node.CreateComponent<Camera>();
         var model = node.CreateComponent<StaticModel>();
         node.ReorderComponent(model, 0);
-        Assert.Equal(0u, model.GetIndexInParent());
-        Assert.Equal(1u, camera.GetIndexInParent());
+        Assert.Equal(0, model.GetIndexInParent());
+        Assert.Equal(1, camera.GetIndexInParent());
     }
 
     [Fact]

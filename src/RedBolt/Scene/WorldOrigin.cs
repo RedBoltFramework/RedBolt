@@ -15,6 +15,12 @@ public sealed class WorldOrigin : LogicComponent
         SetUpdateEventMask(UpdateEvent.UseUpdate);
 
         RegisterAttribute(
+            "Is Enabled",
+            typeof(bool),
+            self => ((WorldOrigin)self).Enabled,
+            (self, value) => ((WorldOrigin)self).SetEnabled(value is bool enabled && enabled),
+            true);
+        RegisterAttribute(
             "Max Distance",
             typeof(uint),
             self => ((WorldOrigin)self)._maxDistance,

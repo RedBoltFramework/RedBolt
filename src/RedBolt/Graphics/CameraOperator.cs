@@ -52,6 +52,12 @@ public class CameraOperator : Component
         _boundingBox = new BoundingBox(-Vector3f.One, Vector3f.One);
 
         RegisterAttribute(
+            "Is Enabled",
+            typeof(bool),
+            self => ((CameraOperator)self).Enabled,
+            (self, value) => ((CameraOperator)self).SetEnabled(value is bool enabled && enabled),
+            true);
+        RegisterAttribute(
             "Padding",
             typeof(Rect),
             self => ((CameraOperator)self).GetPadding(),
@@ -335,7 +341,7 @@ public class CameraOperator : Component
     /// </summary>
     public void MoveCamera()
     {
-        if (!IsAttached)
+        if (Node is null)
             return;
 
         var camera = Node.GetComponent<Camera>();
@@ -433,7 +439,7 @@ public class CameraOperator : Component
             return;
         }
 
-        if (!IsAttached)
+        if (Node is null)
         {
             Log.GetLogger().LogError("No Node to move");
             return;

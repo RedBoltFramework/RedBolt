@@ -93,6 +93,9 @@ public class RibbonTrail : Drawable
     public RibbonTrail()
         : base(DrawableFlags.Geometry)
     {
+        RegisterAttribute("Is Enabled", typeof(bool), self => ((RibbonTrail)self).Enabled,
+            (self, value) => ((RibbonTrail)self).SetEnabled(value is bool enabled && enabled), true);
+
         _geometry.SetVertexBuffer(0, _vertexBuffer);
         _geometry.SetIndexBuffer(_indexBuffer);
 

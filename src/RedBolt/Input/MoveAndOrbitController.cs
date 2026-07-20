@@ -217,7 +217,7 @@ public class MoveAndOrbitController : Component
     /// <summary>Connect to MoveAndOrbitComponent if possible.</summary>
     private void ConnectToComponent()
     {
-        if (IsAttached)
+        if (Node is not null)
         {
             _component = Node.GetDerivedComponent<MoveAndOrbitComponent>();
             if (_component is null)

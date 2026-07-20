@@ -49,6 +49,8 @@ public class Zone : Drawable
     {
         _boundingBox = new BoundingBox(DefaultBoundingBoxMin, DefaultBoundingBoxMax);
 
+        RegisterAttribute("Is Enabled", typeof(bool), self => ((Zone)self).Enabled,
+            (self, value) => ((Zone)self).SetEnabled(value is bool enabled && enabled), true);
         RegisterAttribute("Bounding Box Min", typeof(Vector3f), self => ((Zone)self)._boundingBox.Min,
             (self, value) =>
             {
@@ -114,7 +116,7 @@ public class Zone : Drawable
     public void SetBoundingBox(BoundingBox box)
     {
         _boundingBox = box;
-        OnMarkedDirty(GetNode()!);
+        OnMarkedDirty(Node!);
     }
 
     public void SetAmbientColor(Color color)
@@ -250,7 +252,7 @@ public class Zone : Drawable
     {
         if (_inverseWorldDirty)
         {
-            _inverseWorld = IsAttached ? Node.GetWorldTransform().Inverse : Matrix3x4.Identity;
+            _inverseWorld = Node is not null ? Node.GetWorldTransform().Inverse : Matrix3x4.Identity;
             _inverseWorldDirty = false;
         }
 
@@ -432,7 +434,7 @@ public class Zone : Drawable
         SetWorldBoundingBox(BoundingBox.Transformed(Node.GetWorldTransform()));
     }
 
-    private void MarkNodeDirty() => OnMarkedDirty(GetNode()!);
+    private void MarkNodeDirty() => OnMarkedDirty(Node!);
 
     private void MarkCachedAmbientDirty()
     {

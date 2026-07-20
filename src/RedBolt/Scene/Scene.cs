@@ -1159,8 +1159,15 @@ public sealed class Scene : Serializable
 
     public void ComponentAdded(Component component)
     {
+        var id = component.Id;
+        if (id == 0)
+        {
+            id = GetFreeComponentID();
+            component.SetID(id);
+        }
+
         if (_components.TryGetValue(component.Id, out var existingComponent) && !ReferenceEquals(existingComponent, component))
-            existingComponent.Node.RemoveComponent(existingComponent);
+            ComponentRemoved(existingComponent);
 
         _components[component.Id] = component;
         component.OnSceneSet(null, this);
@@ -1175,8 +1182,7 @@ public sealed class Scene : Serializable
 
     public void ComponentRemoved(Component component)
     {
-        if (!_components.Remove(component.Id))
-            return;
+        _components.Remove(component.Id);
 
         GetMutableComponentIndex(component.GetTypeNameHash())?.Remove(component);
 
@@ -1185,7 +1191,7 @@ public sealed class Scene : Serializable
         if (component is StaticModel staticModel)
             _staticModels.Remove(staticModel);
 
-        component.SetId(0);
+        component.SetID(0);
         component.OnSceneSet(this, null);
     }
 

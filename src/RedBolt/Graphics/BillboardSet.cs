@@ -98,6 +98,9 @@ public class BillboardSet : Drawable
     public BillboardSet()
         : base(DrawableFlags.Geometry)
     {
+        RegisterAttribute("Is Enabled", typeof(bool), self => ((BillboardSet)self).Enabled,
+            (self, value) => ((BillboardSet)self).SetEnabled(value is bool enabled && enabled), true);
+
         _geometry.SetVertexBuffer(0, _vertexBuffer);
         _geometry.SetIndexBuffer(_indexBuffer);
 
@@ -551,7 +554,7 @@ public class BillboardSet : Drawable
     /// <summary>Mark billboard vertex buffer to need an update.</summary>
     protected void MarkPositionsDirty()
     {
-        if (IsAttached)
+        if (Node is not null)
             OnMarkedDirty(Node);
         _bufferDirty = true;
     }

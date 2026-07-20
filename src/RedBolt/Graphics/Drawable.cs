@@ -604,7 +604,7 @@ public abstract class Drawable : Component
     {
         _zoneMask = mask;
         _cachedZone.CacheInvalidationDistanceSquared = -1.0f;
-        if (IsAttached)
+        if (Node is not null)
             OnMarkedDirty(Node);
         else
         {
@@ -715,7 +715,7 @@ public abstract class Drawable : Component
         MarkForUpdate();
 
         // Mark zone assignment dirty when transform changes
-        if (ReferenceEquals(node, GetNode()))
+        if (ReferenceEquals(node, Node))
             _zoneDirty = true;
     }
 

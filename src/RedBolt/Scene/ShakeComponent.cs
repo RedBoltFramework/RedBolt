@@ -80,7 +80,7 @@ public sealed class ShakeComponent : LogicComponent
 
     public override void Update(float timeStep)
     {
-        if (!IsAttached)
+        if (Node is null)
             return;
 
         var currentPosition = Node.Position;

@@ -37,6 +37,8 @@ public class SoundSource : Component
         Audio = GetSubsystem<Audio>()!;
         Audio.AddSoundSource(this);
         UpdateMasterGain();
+        RegisterAttribute("Is Enabled", typeof(bool), self => ((SoundSource)self).Enabled,
+            (self, value) => ((SoundSource)self).SetEnabled(value is bool enabled && enabled), true);
     }
 
     public override void Dispose()
@@ -193,7 +195,7 @@ public class SoundSource : Component
                 StopLockless();
         }
 
-        if (_position.HasValue || !_sendFinishedEvent || !IsAttached)
+        if (_position.HasValue || !_sendFinishedEvent || Node is null)
             return;
 
         _sendFinishedEvent = false;
@@ -390,7 +392,7 @@ public class SoundSource : Component
         if (_ignoreSceneTimeScale)
             return 1.0f;
         var scene = Scene;
-        if (!IsAttached || scene == null || !IsEnabledEffective)
+        if (Node is null || scene == null || !IsEnabledEffective)
             return 0.0f;
         return scene.GetEffectiveTimeScale();
     }

@@ -88,6 +88,8 @@ public class Terrain : Component
     /// <summary>Construct.</summary>
     public Terrain()
     {
+        RegisterAttribute("Is Enabled", typeof(bool), self => ((Terrain)self).Enabled,
+            (self, value) => ((Terrain)self).SetEnabled(value is bool enabled && enabled), true);
         _indexBuffer.SetShadowed(true);
     }
 
@@ -226,11 +228,11 @@ public class Terrain : Component
         if (ReferenceEquals(north, oldNorth))
             return;
 
-        if (oldNorth?.GetNode() is { } oldNode)
+        if (oldNorth?.Node is { } oldNode)
             UnsubscribeFromEvent<DrawableEvents.TerrainCreatedEvent>(oldNode);
 
         _north = north is null ? null : new WeakReference<Terrain>(north);
-        if (north?.GetNode() is { } node)
+        if (north?.Node is { } node)
         {
             _northID = node.Id;
             SubscribeToEvent<DrawableEvents.TerrainCreatedEvent>(node, HandleNeighborTerrainCreated);
@@ -247,11 +249,11 @@ public class Terrain : Component
         if (ReferenceEquals(south, oldSouth))
             return;
 
-        if (oldSouth?.GetNode() is { } oldNode)
+        if (oldSouth?.Node is { } oldNode)
             UnsubscribeFromEvent<DrawableEvents.TerrainCreatedEvent>(oldNode);
 
         _south = south is null ? null : new WeakReference<Terrain>(south);
-        if (south?.GetNode() is { } node)
+        if (south?.Node is { } node)
         {
             _southID = node.Id;
             SubscribeToEvent<DrawableEvents.TerrainCreatedEvent>(node, HandleNeighborTerrainCreated);
@@ -268,11 +270,11 @@ public class Terrain : Component
         if (ReferenceEquals(west, oldWest))
             return;
 
-        if (oldWest?.GetNode() is { } oldNode)
+        if (oldWest?.Node is { } oldNode)
             UnsubscribeFromEvent<DrawableEvents.TerrainCreatedEvent>(oldNode);
 
         _west = west is null ? null : new WeakReference<Terrain>(west);
-        if (west?.GetNode() is { } node)
+        if (west?.Node is { } node)
         {
             _westID = node.Id;
             SubscribeToEvent<DrawableEvents.TerrainCreatedEvent>(node, HandleNeighborTerrainCreated);
@@ -289,11 +291,11 @@ public class Terrain : Component
         if (ReferenceEquals(east, oldEast))
             return;
 
-        if (oldEast?.GetNode() is { } oldNode)
+        if (oldEast?.Node is { } oldNode)
             UnsubscribeFromEvent<DrawableEvents.TerrainCreatedEvent>(oldNode);
 
         _east = east is null ? null : new WeakReference<Terrain>(east);
-        if (east?.GetNode() is { } node)
+        if (east?.Node is { } node)
         {
             _eastID = node.Id;
             SubscribeToEvent<DrawableEvents.TerrainCreatedEvent>(node, HandleNeighborTerrainCreated);
@@ -305,35 +307,35 @@ public class Terrain : Component
     /// <summary>Set all neighbor terrains at once.</summary>
     public void SetNeighbors(Terrain? north, Terrain? south, Terrain? west, Terrain? east)
     {
-        if (_north is not null && _north.TryGetTarget(out var oldNorth) && oldNorth.GetNode() is { } n)
+        if (_north is not null && _north.TryGetTarget(out var oldNorth) && oldNorth.Node is { } n)
             UnsubscribeFromEvent<DrawableEvents.TerrainCreatedEvent>(n);
-        if (_south is not null && _south.TryGetTarget(out var oldSouth) && oldSouth.GetNode() is { } s)
+        if (_south is not null && _south.TryGetTarget(out var oldSouth) && oldSouth.Node is { } s)
             UnsubscribeFromEvent<DrawableEvents.TerrainCreatedEvent>(s);
-        if (_west is not null && _west.TryGetTarget(out var oldWest) && oldWest.GetNode() is { } w)
+        if (_west is not null && _west.TryGetTarget(out var oldWest) && oldWest.Node is { } w)
             UnsubscribeFromEvent<DrawableEvents.TerrainCreatedEvent>(w);
-        if (_east is not null && _east.TryGetTarget(out var oldEast) && oldEast.GetNode() is { } e)
+        if (_east is not null && _east.TryGetTarget(out var oldEast) && oldEast.Node is { } e)
             UnsubscribeFromEvent<DrawableEvents.TerrainCreatedEvent>(e);
 
         _north = north is null ? null : new WeakReference<Terrain>(north);
-        if (north?.GetNode() is { } nn)
+        if (north?.Node is { } nn)
         {
             _northID = nn.Id;
             SubscribeToEvent<DrawableEvents.TerrainCreatedEvent>(nn, HandleNeighborTerrainCreated);
         }
         _south = south is null ? null : new WeakReference<Terrain>(south);
-        if (south?.GetNode() is { } sn)
+        if (south?.Node is { } sn)
         {
             _southID = sn.Id;
             SubscribeToEvent<DrawableEvents.TerrainCreatedEvent>(sn, HandleNeighborTerrainCreated);
         }
         _west = west is null ? null : new WeakReference<Terrain>(west);
-        if (west?.GetNode() is { } wn)
+        if (west?.Node is { } wn)
         {
             _westID = wn.Id;
             SubscribeToEvent<DrawableEvents.TerrainCreatedEvent>(wn, HandleNeighborTerrainCreated);
         }
         _east = east is null ? null : new WeakReference<Terrain>(east);
-        if (east?.GetNode() is { } en)
+        if (east?.Node is { } en)
         {
             _eastID = en.Id;
             SubscribeToEvent<DrawableEvents.TerrainCreatedEvent>(en, HandleNeighborTerrainCreated);
@@ -482,7 +484,7 @@ public class Terrain : Component
 
     public float GetHeight(Vector3f worldPosition)
     {
-        var node = GetNode();
+        var node = Node;
         if (node is null)
             return 0.0f;
 
@@ -515,7 +517,7 @@ public class Terrain : Component
 
     public Vector3f GetNormal(Vector3f worldPosition)
     {
-        var node = GetNode();
+        var node = Node;
         if (node is null)
             return Vector3f.Up;
 
@@ -547,7 +549,7 @@ public class Terrain : Component
 
     public Vector2i WorldToHeightMap(Vector3f worldPosition)
     {
-        var node = GetNode();
+        var node = Node;
         if (node is null)
             return Vector2i.Zero;
 
@@ -561,7 +563,7 @@ public class Terrain : Component
 
     public Vector3f HeightMapToWorld(Vector2i pixelPosition)
     {
-        var node = GetNode();
+        var node = Node;
         if (node is null)
             return Vector3f.Zero;
 
@@ -853,7 +855,7 @@ public class Terrain : Component
     {
         _recreateTerrain = false;
 
-        var node = GetNode();
+        var node = Node;
         if (node is null)
             return;
 

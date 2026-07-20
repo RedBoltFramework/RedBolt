@@ -156,6 +156,8 @@ public sealed class Light : Drawable
     public Light()
         : base(DrawableFlags.Light)
     {
+        RegisterAttribute("Is Enabled", typeof(bool), self => ((Light)self).Enabled,
+            (self, value) => ((Light)self).SetEnabled(value is bool enabled && enabled), true);
     }
 
     /// <summary>Destruct.</summary>
@@ -265,7 +267,7 @@ public sealed class Light : Drawable
     public void SetLightType(LightType type)
     {
         _lightType = type;
-        OnMarkedDirty(GetNode()!);
+        OnMarkedDirty(Node!);
     }
 
     public LightType GetLightType() => _lightType;
@@ -378,7 +380,7 @@ public sealed class Light : Drawable
     public void SetRange(float range)
     {
         this._range = Math.Max(range, 0.0f);
-        OnMarkedDirty(GetNode()!);
+        OnMarkedDirty(Node!);
     }
 
     public float GetRange() => _range;
@@ -386,7 +388,7 @@ public sealed class Light : Drawable
     public void SetFov(float fov)
     {
         this._fov = MathDefs.Clamp(fov, 0.0f, MathDefs.MaxFov);
-        OnMarkedDirty(GetNode()!);
+        OnMarkedDirty(Node!);
     }
 
     public float GetFov() => _fov;
@@ -394,7 +396,7 @@ public sealed class Light : Drawable
     public void SetAspectRatio(float aspectRatio)
     {
         this._aspectRatio = Math.Max(aspectRatio, MathDefs.Epsilon);
-        OnMarkedDirty(GetNode()!);
+        OnMarkedDirty(Node!);
     }
 
     public float GetAspectRatio() => _aspectRatio;
@@ -482,7 +484,7 @@ public sealed class Light : Drawable
     /// <summary>Return spotlight frustum.</summary>
     public Frustum GetFrustum()
     {
-        var transform = IsAttached
+        var transform = Node is not null
             ? new Matrix3x4(Node.WorldPosition, Node.WorldRotation, 1.0f)
             : Matrix3x4.Identity;
         var frustum = new Frustum();
@@ -493,7 +495,7 @@ public sealed class Light : Drawable
     /// <summary>Return spotlight frustum in the specified view space.</summary>
     public Frustum GetViewSpaceFrustum(Matrix3x4 view)
     {
-        var transform = IsAttached
+        var transform = Node is not null
             ? new Matrix3x4(Node.WorldPosition, Node.WorldRotation, 1.0f)
             : Matrix3x4.Identity;
         var frustum = new Frustum();
@@ -503,7 +505,7 @@ public sealed class Light : Drawable
 
     public Matrix3x4 GetVolumeTransform(Camera? camera)
     {
-        if (!IsAttached)
+        if (Node is null)
             return Matrix3x4.Identity;
 
         switch (_lightType)
@@ -570,7 +572,7 @@ public sealed class Light : Drawable
     public float GetDistanceTo(Drawable drawable)
     {
         ArgumentNullException.ThrowIfNull(drawable);
-        return _lightType == LightType.Directional || !IsAttached ? 0.0f : drawable.GetWorldBoundingBox().DistanceToPoint(Node.WorldPosition);
+        return _lightType == LightType.Directional || Node is null ? 0.0f : drawable.GetWorldBoundingBox().DistanceToPoint(Node.WorldPosition);
     }
 
     public int GetNumShadowSplits()
@@ -722,7 +724,7 @@ public sealed class Light : Drawable
             Normal = -query.Ray.Direction,
             Distance = distance,
             Drawable = this,
-            Node = IsAttached ? Node : null,
+            Node = Node,
             SubObject = uint.MaxValue
         });
     }

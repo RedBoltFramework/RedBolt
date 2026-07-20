@@ -90,7 +90,7 @@ public sealed class SceneResolver
                     {
                         if (_componentLookup.TryGetValue(oldComponentId, out var resolvedComponent) && resolvedComponent is not null)
                         {
-                            var newComponentId = resolvedComponent.GetID();
+                            var newComponentId = resolvedComponent.Id;
                             component.SetAttribute(j, newComponentId);
                         }
                         else

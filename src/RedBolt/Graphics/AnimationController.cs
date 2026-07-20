@@ -57,6 +57,12 @@ public class AnimationController : AnimationStateSource
     public AnimationController()
     {
         RegisterAttribute(
+            "Is Enabled",
+            typeof(bool),
+            self => ((AnimationController)self).Enabled,
+            (self, value) => ((AnimationController)self).SetEnabled(value is bool enabled && enabled),
+            true);
+        RegisterAttribute(
             "Reset Skeleton",
             typeof(bool),
             self => ((AnimationController)self).IsSkeletonReset(),

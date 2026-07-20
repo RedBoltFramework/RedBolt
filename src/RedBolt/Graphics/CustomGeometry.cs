@@ -32,6 +32,9 @@ public sealed class CustomGeometry : Drawable
     public CustomGeometry()
         : base(DrawableFlags.Geometry)
     {
+        RegisterAttribute("Is Enabled", typeof(bool), self => ((CustomGeometry)self).Enabled,
+            (self, value) => ((CustomGeometry)self).SetEnabled(value is bool enabled && enabled), true);
+
         _vertexBuffer.SetDebugName("CustomGeometry Geometry");
         _vertexBuffer.SetShadowed(true);
         SetNumGeometries(1u);
@@ -454,7 +457,7 @@ public sealed class CustomGeometry : Drawable
     {
         SetWorldBoundingBox(!BoundingBox.Defined
             ? CreateUndefinedBoundingBox()
-            : IsAttached ? BoundingBox.Transformed(Node.GetWorldTransform()) : BoundingBox);
+            : Node is not null ? BoundingBox.Transformed(Node.GetWorldTransform()) : BoundingBox);
     }
 
     private void WriteVertex(VectorBuffer buffer, in CustomGeometryVertex vertex)

@@ -16,6 +16,8 @@ public class StaticModel : Drawable
     public StaticModel()
         : base(DrawableFlags.Geometry)
     {
+        RegisterAttribute("Is Enabled", typeof(bool), self => ((StaticModel)self).Enabled,
+            (self, value) => ((StaticModel)self).SetEnabled(value is bool enabled && enabled), true);
         _materialsAttr = new ResourceRefList(nameof(Material));
     }
 
@@ -82,7 +84,7 @@ public class StaticModel : Drawable
         if (ReferenceEquals(_model, model))
             return;
 
-        if (!IsAttached)
+        if (Node is null)
         {
             Microsoft.Extensions.Logging.LoggerExtensions.LogError(
                 Log.GetLogger(), "Can not set model while model component is not attached to a scene node.");
@@ -445,7 +447,7 @@ public class StaticModel : Drawable
 
     public bool IsInside(Vector3f point)
     {
-        if (!IsAttached)
+        if (Node is null)
             return false;
 
         return IsInsideLocal(Node.WorldToLocal(point));

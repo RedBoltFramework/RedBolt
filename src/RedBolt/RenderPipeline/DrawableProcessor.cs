@@ -405,7 +405,7 @@ public class DrawableProcessor : Object
             var rhsNegative = rhs.IsNegative();
             if (lhsNegative != rhsNegative)
                 return lhsNegative.CompareTo(rhsNegative);
-            return lhs.GetID().CompareTo(rhs.GetID());
+            return lhs.Id.CompareTo(rhs.Id);
         });
 
         _lightProcessors.Clear();
@@ -583,7 +583,7 @@ public class DrawableProcessor : Object
             var rhsLen = (long)rhsSize.X * rhsSize.X + (long)rhsSize.Y * rhsSize.Y;
             if (lhsLen != rhsLen)
                 return rhsLen.CompareTo(lhsLen);
-            return lhs.GetLight().GetID().CompareTo(rhs.GetLight().GetID());
+            return lhs.GetLight().Id.CompareTo(rhs.GetLight().Id);
         });
     }
 

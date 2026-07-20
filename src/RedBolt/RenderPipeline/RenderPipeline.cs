@@ -388,7 +388,7 @@ public class RenderPipeline : Component
             ArgumentNullException.ThrowIfNull(viewport);
             ArgumentNullException.ThrowIfNull(graphics);
 
-            if (!_renderPipeline.IsAttached || !ReferenceEquals(_renderPipeline.Scene, viewport.GetScene()))
+            if (_renderPipeline.Node is null || !ReferenceEquals(_renderPipeline.Scene, viewport.GetScene()))
                 return false;
 
             this._viewport = viewport;
@@ -854,7 +854,7 @@ public class RenderPipeline : Component
             for (var i = _outlineGroups.Count - 1; i >= 0; --i)
             {
                 var outlineGroup = _outlineGroups[i];
-                if (!outlineGroup.IsAttached || !outlineGroup.IsEnabledEffective)
+                if (outlineGroup.Node is null || !outlineGroup.IsEnabledEffective)
                 {
                     _outlineGroups.RemoveAt(i);
                     continue;

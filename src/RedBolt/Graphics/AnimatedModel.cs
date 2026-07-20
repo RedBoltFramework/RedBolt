@@ -270,7 +270,7 @@ public class AnimatedModel : StaticModel
         if (ReferenceEquals(GetModel(), model))
             return;
 
-        if (!IsAttached)
+        if (Node is null)
         {
             Log.GetLogger().LogError("Can not set model while model component is not attached to a scene node");
             return;
