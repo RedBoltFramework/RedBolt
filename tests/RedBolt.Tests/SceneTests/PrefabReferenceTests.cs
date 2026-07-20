@@ -8,7 +8,8 @@ public sealed class PrefabReferenceTests
     {
         var scene = new Scene();
         var host = scene.CreateChild("Host");
-        var resource = new PrefabResource("Tree.prefab");
+        using var resource = new PrefabResource();
+        resource.SetName("Tree.prefab");
         var prefab = resource.GetMutableNodePrefab();
         var child = new NodePrefab();
         child.Node.Attributes.Add(CreateAttribute("Name", new Variant("Generated")));
@@ -34,7 +35,8 @@ public sealed class PrefabReferenceTests
     {
         var scene = new Scene();
         var host = scene.CreateChild("Host");
-        var resource = new PrefabResource("Tree.prefab");
+        using var resource = new PrefabResource();
+        resource.SetName("Tree.prefab");
         var prefab = resource.GetMutableNodePrefab();
         prefab.Children.Add(new NodePrefab());
 

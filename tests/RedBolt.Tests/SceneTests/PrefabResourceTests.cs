@@ -22,9 +22,29 @@ public sealed class PrefabResourceTests
     }
 
     [Fact]
+    public void Prefab_resource_matches_native_extensible_noncopyable_class_and_owned_value_lifetime()
+    {
+        Assert.False(typeof(PrefabResource).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(PrefabResource)));
+        Assert.Single(typeof(PrefabResource).GetConstructors());
+        Assert.NotNull(typeof(PrefabResource).GetConstructor(Type.EmptyTypes));
+        Assert.Equal(typeof(PrefabResource),
+            typeof(PrefabResource).GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);
+
+        var resource = new PrefabResource();
+        var ownedPrefab = resource.GetMutableScenePrefab();
+        ownedPrefab.Node.Attributes.Add(CreateAttribute("Name", new Variant("Scene")));
+
+        resource.Dispose();
+
+        Assert.True(ownedPrefab.IsEmpty());
+    }
+
+    [Fact]
     public void Mutable_node_prefab_and_slices_follow_scene_layout()
     {
-        var resource = new PrefabResource("Assets/Tree.prefab");
+        using var resource = new PrefabResource();
+        resource.SetName("Assets/Tree.prefab");
         var scenePrefab = resource.GetMutableScenePrefab();
         scenePrefab.Node.Attributes.Add(CreateAttribute("Name", new Variant("Scene")));
 
@@ -45,7 +65,8 @@ public sealed class PrefabResourceTests
     [Fact]
     public void Prefab_resource_roundtrips_through_simple_resource_archive()
     {
-        var resource = new PrefabResource("Tree.prefab");
+        using var resource = new PrefabResource();
+        resource.SetName("Tree.prefab");
         var rootPrefab = resource.GetMutableNodePrefab();
         rootPrefab.Node.Attributes.Add(CreateAttribute("Name", new Variant("Root")));
         rootPrefab.Node.Attributes.Add(CreateAttribute("Next Node ID", new Variant(12u)));
@@ -54,7 +75,7 @@ public sealed class PrefabResourceTests
         Assert.True(resource.Save(stream));
 
         stream.Position = 0;
-        var loaded = new PrefabResource();
+        using var loaded = new PrefabResource();
         Assert.True(loaded.Load(stream));
         Assert.Equal("Root", loaded.GetNodePrefab().GetNodeName());
     }
@@ -62,31 +83,42 @@ public sealed class PrefabResourceTests
     [Fact]
     public void Normalize_ids_removes_scene_id_attributes()
     {
-        var resource = new PrefabResource();
+        using var resource = new PrefabResource();
         var scenePrefab = resource.GetMutableScenePrefab();
-        scenePrefab.Node.Attributes.Add(CreateAttribute("Next Node ID", new Variant(3u)));
-        scenePrefab.Node.Attributes.Add(CreateAttribute("Next Component ID", new Variant(4u)));
+        var nextNodeId = new AttributePrefab(new StringHash("Next Node ID"));
+        var nextNodeIdValue = new Variant(3u);
+        nextNodeId.SetValue(ref nextNodeIdValue);
+        var nextComponentId = CreateAttribute("Next Component ID", new Variant(4u));
+        scenePrefab.Node.Attributes.Add(nextNodeId);
+        scenePrefab.Node.Attributes.Add(nextComponentId);
         scenePrefab.Node.Attributes.Add(CreateAttribute("Name", new Variant("Scene")));
 
         resource.NormalizeIds();
 
         Assert.Single(scenePrefab.Node.Attributes);
         Assert.Equal("Name", scenePrefab.Node.Attributes[0].Name);
+        Assert.True(nextNodeId.Value.IsEmpty);
+        Assert.True(nextComponentId.Value.IsEmpty);
     }
 
     [Fact]
     public void Instantiate_reference_creates_prefab_reference_and_instance()
     {
         var scene = new Scene();
-        var resource = new PrefabResource("Tree.prefab");
+        using var resource = new PrefabResource();
+        resource.SetName("Tree.prefab");
         var rootPrefab = resource.GetMutableNodePrefab();
-        rootPrefab.Node.Attributes.Add(CreateAttribute("Name", new Variant("Tree")));
+        using var sourceNode = new Node();
+        sourceNode.SetName("Tree");
+        sourceNode.SetTemporary(true);
+        rootPrefab.Node.Import(sourceNode, PrefabSaveFlag.SaveTemporary);
         rootPrefab.Children.Add(new NodePrefab());
 
         var instance = resource.InstantiateReference(scene.Root);
 
         Assert.NotNull(instance);
         Assert.Equal("Tree", instance!.Name);
+        Assert.False(instance.IsTemporary);
         Assert.NotNull(instance.GetComponent<PrefabReference>());
         Assert.Single(instance.Children);
     }
@@ -103,7 +135,8 @@ public sealed class PrefabResourceTests
         try
         {
             resources.AddResourceDir(tempDir);
-            var sourceResource = new PrefabResource("Tree.prefab");
+            using var sourceResource = new PrefabResource();
+            sourceResource.SetName("Tree.prefab");
             var component = new SerializablePrefab();
             component.SetType("Node");
             component.Attributes.Add(CreateAttribute(
@@ -116,7 +149,8 @@ public sealed class PrefabResourceTests
                 Assert.Single(Assert.Single(sourceResource.GetNodePrefab().Components).Attributes).Value.GetResourceRef());
             stream.Position = 0;
 
-            var loadedResource = new PrefabResource("Tree.prefab");
+            using var loadedResource = new PrefabResource();
+            loadedResource.SetName("Tree.prefab");
             loadedResource.SetAsyncLoadState(AsyncLoadState.Loading);
             Assert.True(loadedResource.BeginLoad(stream));
             var loadedValue = Assert.Single(Assert.Single(loadedResource.GetNodePrefab().Components).Attributes).Value;
@@ -148,7 +182,8 @@ public sealed class PrefabResourceTests
             </scene>
             """;
         using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(xml));
-        var resource = new PrefabResource("Legacy.scene");
+        using var resource = new PrefabResource();
+        resource.SetName("Legacy.scene");
 
         Assert.True(resource.Load(stream));
         Assert.Equal("LegacyScene", resource.GetScenePrefab().GetNodeName());

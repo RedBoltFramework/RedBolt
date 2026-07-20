@@ -196,7 +196,8 @@ public sealed class PrefabReference : Component
         }
 
         // Create and save resource.
-        using var newResource = new PrefabResource(_prefab.Name);
+        using var newResource = new PrefabResource();
+        newResource.SetName(_prefab.Name);
         var scenePrefab = newResource.GetMutableScenePrefab();
         scenePrefab.CopyFrom(_prefab.GetScenePrefab());
 
