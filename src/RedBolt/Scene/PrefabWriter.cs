@@ -13,8 +13,12 @@ namespace RedBolt;
 /// - BeginChild() and then EndChild() should be called after WriteNumChildren() the exact number of times.
 /// - The sequence above should be recursively repeated between BeginChild() and EndChild().
 /// </summary>
-public abstract class PrefabWriter
+public abstract class PrefabWriter : IDisposable
 {
+    public virtual void Dispose()
+    {
+    }
+
     public abstract void WriteNode(uint id, Serializable node);
     public abstract void WriteNumComponents(int numComponents);
     public abstract void WriteComponent(uint id, Serializable component);
@@ -26,7 +30,7 @@ public abstract class PrefabWriter
 }
 
 /// <summary>Utility class to write prefab data to NodePrefab.</summary>
-public sealed class PrefabWriterToMemory : PrefabWriter
+public class PrefabWriterToMemory : PrefabWriter
 {
     public PrefabWriterToMemory(NodePrefab nodePrefab, PrefabSaveFlag flags = PrefabSaveFlag.None)
     {
@@ -115,6 +119,12 @@ public sealed class PrefabWriterToMemory : PrefabWriter
 
     public override PrefabSaveFlag GetFlags() => _flags;
 
+    public override void Dispose()
+    {
+        _stack.Clear();
+        base.Dispose();
+    }
+
     private NodePrefab CurrentNode()
     {
         var (parentNode, childIndex) = _stack[^1];
@@ -152,7 +162,7 @@ public sealed class PrefabWriterToMemory : PrefabWriter
 }
 
 /// <summary>Utility class to write prefab data to Archive.</summary>
-public sealed class PrefabWriterToArchive : PrefabWriter, IDisposable
+public class PrefabWriterToArchive : PrefabWriter
 {
     public PrefabWriterToArchive(
         Archive archive,
@@ -254,13 +264,14 @@ public sealed class PrefabWriterToArchive : PrefabWriter, IDisposable
 
     public override PrefabSaveFlag GetFlags() => _saveFlags;
 
-    public void Dispose()
+    public override void Dispose()
     {
         for (var index = _stack.Count - 1; index >= 0; --index)
             _stack[index].Block.Dispose();
         _stack.Clear();
         _buffer.Dispose();
         _eof = true;
+        base.Dispose();
     }
 
     private void NextSerializable()
@@ -283,7 +294,9 @@ public sealed class PrefabWriterToArchive : PrefabWriter, IDisposable
     {
         if (_stack.Count == (_hasRootBlock ? 1 : 0))
         {
-            Dispose();
+            for (var index = _stack.Count - 1; index >= 0; --index)
+                _stack[index].Block.Dispose();
+            _stack.Clear();
             _eof = true;
         }
     }

@@ -14,12 +14,16 @@ namespace RedBolt;
 /// - The sequence above should be recursively repeated between BeginChild() and EndChild().
 /// - Previously returned pointers should not be used after the call to ReadNode() or ReadComponent().
 /// </summary>
-public abstract class PrefabReader
+public abstract class PrefabReader : IDisposable
 {
+    public virtual void Dispose()
+    {
+    }
+
     public abstract SerializablePrefab? ReadNode();
-    public abstract uint ReadNumComponents();
+    public abstract int ReadNumComponents();
     public abstract SerializablePrefab? ReadComponent();
-    public abstract uint ReadNumChildren();
+    public abstract int ReadNumChildren();
     public abstract void BeginChild();
     public abstract void EndChild();
     public abstract bool IsEOF();
@@ -28,7 +32,7 @@ public abstract class PrefabReader
 /// <summary>
 /// Utility class to read prefab data from NodePrefab.
 /// </summary>
-public sealed class PrefabReaderFromMemory : PrefabReader
+public class PrefabReaderFromMemory : PrefabReader
 {
     public PrefabReaderFromMemory(NodePrefab nodePrefab)
     {
@@ -42,12 +46,12 @@ public sealed class PrefabReaderFromMemory : PrefabReader
         return CurrentNode().Node;
     }
 
-    public override uint ReadNumComponents()
+    public override int ReadNumComponents()
     {
         Debug.Assert(!IsEOF(), "There is no more data to read");
 
         _componentIndex = 0;
-        return (uint)CurrentNode().Components.Count;
+        return CurrentNode().Components.Count;
     }
 
     public override SerializablePrefab? ReadComponent()
@@ -57,16 +61,16 @@ public sealed class PrefabReaderFromMemory : PrefabReader
         var components = CurrentNode().Components;
         Debug.Assert(_componentIndex < components.Count);
 
-        var component = components[(int)_componentIndex];
+        var component = components[_componentIndex];
         ++_componentIndex;
         return component;
     }
 
-    public override uint ReadNumChildren()
+    public override int ReadNumChildren()
     {
         Debug.Assert(!IsEOF(), "There is no more data to read");
 
-        var numChildren = (uint)CurrentNode().Children.Count;
+        var numChildren = CurrentNode().Children.Count;
         if (numChildren > 0)
             StartChildren();
         else
@@ -89,10 +93,16 @@ public sealed class PrefabReaderFromMemory : PrefabReader
 
     public override bool IsEOF() => _stack.Count == 0;
 
+    public override void Dispose()
+    {
+        _stack.Clear();
+        base.Dispose();
+    }
+
     private NodePrefab CurrentNode()
     {
         var (parentNode, childIndex) = _stack[^1];
-        return parentNode is not null ? parentNode.Children[(int)childIndex] : _nodePrefab;
+        return parentNode is not null ? parentNode.Children[childIndex] : _nodePrefab;
     }
 
     private void StartChildren()
@@ -119,14 +129,14 @@ public sealed class PrefabReaderFromMemory : PrefabReader
     }
 
     private readonly NodePrefab _nodePrefab;
-    private readonly List<(NodePrefab? ParentNode, uint ChildIndex)> _stack = [];
-    private uint _componentIndex;
+    private readonly List<(NodePrefab? ParentNode, int ChildIndex)> _stack = [];
+    private int _componentIndex;
 }
 
 /// <summary>
 /// Utility class to read prefab data from Archive.
 /// </summary>
-public sealed class PrefabReaderFromArchive : PrefabReader, IDisposable
+public class PrefabReaderFromArchive : PrefabReader
 {
     public PrefabReaderFromArchive(Archive archive, string? blockName, PrefabArchiveFlag flags = PrefabArchiveFlag.None)
     {
@@ -152,15 +162,15 @@ public sealed class PrefabReaderFromArchive : PrefabReader, IDisposable
         return _buffer;
     }
 
-    public override uint ReadNumComponents()
+    public override int ReadNumComponents()
     {
         Debug.Assert(!IsEOF(), "There is no more data to read");
 
-        var numComponents = 0u;
+        var numComponents = 0;
         if (!_archive.IsUnorderedAccessSupportedInCurrentBlock || _archive.HasElementOrBlock("components"))
         {
             var block = _archive.OpenArrayBlock("components");
-            numComponents = block.SizeHint;
+            numComponents = checked((int)block.SizeHint);
             if (numComponents > 0)
                 _stack.Add((new ArchiveBlock(block), numComponents));
             else
@@ -182,15 +192,15 @@ public sealed class PrefabReaderFromArchive : PrefabReader, IDisposable
         return _buffer;
     }
 
-    public override uint ReadNumChildren()
+    public override int ReadNumChildren()
     {
         Debug.Assert(!IsEOF(), "There is no more data to read");
 
-        var numChildren = 0u;
+        var numChildren = 0;
         if (!_archive.IsUnorderedAccessSupportedInCurrentBlock || _archive.HasElementOrBlock("nodes"))
         {
             var block = _archive.OpenArrayBlock("nodes");
-            numChildren = block.SizeHint;
+            numChildren = checked((int)block.SizeHint);
             if (numChildren > 0)
                 _stack.Add((new ArchiveBlock(block), numChildren));
             else
@@ -225,12 +235,14 @@ public sealed class PrefabReaderFromArchive : PrefabReader, IDisposable
 
     public override bool IsEOF() => _eof;
 
-    public void Dispose()
+    public override void Dispose()
     {
         for (var i = _stack.Count - 1; i >= 0; --i)
             _stack[i].Block.Dispose();
         _stack.Clear();
+        _buffer.Dispose();
         _eof = true;
+        base.Dispose();
     }
 
     private void NextSerializable()
@@ -266,6 +278,6 @@ public sealed class PrefabReaderFromArchive : PrefabReader, IDisposable
     private readonly SerializablePrefab _buffer = new();
 
     private bool _hasRootBlock;
-    private readonly List<(ArchiveBlock Block, uint Count)> _stack = [];
+    private readonly List<(ArchiveBlock Block, int Count)> _stack = [];
     private bool _eof;
 }

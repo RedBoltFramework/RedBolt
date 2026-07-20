@@ -151,7 +151,7 @@ public sealed class SceneResource : Resource
             prefab.SerializeInBlock(archive, PrefabArchiveFlag.SerializeTemporary);
             if (archive.IsInput)
             {
-                var reader = new PrefabReaderFromMemory(prefab);
+                using var reader = new PrefabReaderFromMemory(prefab);
                 scene.Root.Load(reader);
             }
             return;

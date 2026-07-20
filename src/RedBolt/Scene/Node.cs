@@ -228,7 +228,7 @@ public class Node : Serializable
     public Node? InstantiatePrefab(NodePrefab prefab, Vector3f? position = null, Quaternion? rotation = null)
     {
         var childNode = CreateChild();
-        var reader = new PrefabReaderFromMemory(prefab);
+        using var reader = new PrefabReaderFromMemory(prefab);
         if (!childNode.Load(reader, PrefabLoadFlag.None))
         {
             childNode.Remove();
@@ -316,7 +316,7 @@ public class Node : Serializable
     public void GeneratePrefab(NodePrefab prefab)
     {
         var flags = PrefabSaveFlag.EnumsAsStrings | PrefabSaveFlag.Prefab;
-        var writer = new PrefabWriterToMemory(prefab, flags);
+        using var writer = new PrefabWriterToMemory(prefab, flags);
         Save(writer);
     }
 
@@ -599,7 +599,7 @@ public class Node : Serializable
         resolver.AddNode(oldId, this);
 
         var numComponents = reader.ReadNumComponents();
-        for (var index = 0; index < checked((int)numComponents); ++index)
+        for (var index = 0; index < numComponents; ++index)
         {
             var componentPrefab = reader.ReadComponent();
             if (componentPrefab is null)
@@ -616,7 +616,7 @@ public class Node : Serializable
         }
 
         var numChildren = reader.ReadNumChildren();
-        for (var index = 0; index < checked((int)numChildren); ++index)
+        for (var index = 0; index < numChildren; ++index)
         {
             reader.BeginChild();
             var childPrefab = reader.ReadNode();

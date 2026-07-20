@@ -32,7 +32,7 @@ public sealed class UnknownComponentTests
         componentPrefab.SetType("Missing.Component");
         componentPrefab.SetId((SerializableId)42);
         prefab.Components.Add(componentPrefab);
-        var reader = new PrefabReaderFromMemory(prefab);
+        using var reader = new PrefabReaderFromMemory(prefab);
         Assert.True(source.GetScene().Root.Load(reader));
 
         using var stream = new MemoryStream();

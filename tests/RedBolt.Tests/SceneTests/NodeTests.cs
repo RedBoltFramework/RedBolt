@@ -43,13 +43,13 @@ public sealed class NodeTests
         source.CreateComponent<Camera>().SetFov(73);
 
         var prefab = new NodePrefab();
-        var writer = new PrefabWriterToMemory(prefab, PrefabSaveFlag.SaveTemporary);
+        using var writer = new PrefabWriterToMemory(prefab, PrefabSaveFlag.SaveTemporary);
         Assert.True(sourceScene.Root.Save(writer));
         Assert.True(writer.IsEOF());
         Assert.Equal("Child", Assert.Single(prefab.Children).GetNodeName());
 
         var destinationScene = new Scene();
-        var reader = new PrefabReaderFromMemory(prefab);
+        using var reader = new PrefabReaderFromMemory(prefab);
         Assert.True(destinationScene.Root.Load(reader));
 
         var child = destinationScene.Root.GetChild("Child");

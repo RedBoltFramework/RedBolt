@@ -4,12 +4,48 @@ namespace RedBolt.Tests;
 public sealed class PrefabWriterTests
 {
     [Fact]
+    public void Writer_types_match_native_extensible_noncopyable_classes_and_managed_size_mapping()
+    {
+        Assert.True(typeof(PrefabWriter).IsAbstract);
+        Assert.False(typeof(PrefabWriterToMemory).IsSealed);
+        Assert.False(typeof(PrefabWriterToArchive).IsSealed);
+        Assert.True(typeof(IDisposable).IsAssignableFrom(typeof(PrefabWriter)));
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(PrefabWriter)));
+        Assert.Equal(typeof(int), typeof(PrefabWriter).GetMethod(nameof(PrefabWriter.WriteNumComponents))!
+            .GetParameters()[0].ParameterType);
+        Assert.Equal(typeof(int), typeof(PrefabWriter).GetMethod(nameof(PrefabWriter.WriteNumChildren))!
+            .GetParameters()[0].ParameterType);
+    }
+
+    [Fact]
+    public void Archive_writer_keeps_buffer_alive_until_destruction()
+    {
+        var source = new TestSerializable { Number = 42, Label = "root" };
+        var output = new JSONOutputArchive();
+        var writer = new PrefabWriterToArchive(output, blockName: "root");
+
+        writer.WriteNode(1, source);
+        writer.WriteNumComponents(0);
+        writer.WriteNumChildren(0);
+
+        var buffer = (SerializablePrefab)typeof(PrefabWriterToArchive)
+            .GetField("_buffer", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(writer)!;
+        Assert.True(writer.IsEOF());
+        Assert.NotEmpty(buffer.Attributes);
+
+        writer.Dispose();
+
+        Assert.Empty(buffer.Attributes);
+    }
+
+    [Fact]
     public void Memory_writer_writes_nested_nodes_and_components()
     {
         var source = new TestSerializable { Number = 42, Label = "root" };
         var component = new TestSerializable { Number = 7, Label = "component" };
         var prefab = new NodePrefab();
-        var writer = new PrefabWriterToMemory(prefab, PrefabSaveFlag.EnumsAsStrings);
+        using var writer = new PrefabWriterToMemory(prefab, PrefabSaveFlag.EnumsAsStrings);
 
         writer.WriteNode(1, source);
         writer.WriteNumComponents(1);
@@ -51,9 +87,9 @@ public sealed class PrefabWriterTests
         var input = new JSONInputArchive(output.ToJsonString());
         using var reader = new PrefabReaderFromArchive(input, blockName: "root");
         Assert.Equal((SerializableId)1, reader.ReadNode()!.Id);
-        Assert.Equal(1u, reader.ReadNumComponents());
+        Assert.Equal(1, reader.ReadNumComponents());
         Assert.Equal((SerializableId)2, reader.ReadComponent()!.Id);
-        Assert.Equal(0u, reader.ReadNumChildren());
+        Assert.Equal(0, reader.ReadNumChildren());
         Assert.True(reader.IsEOF());
     }
 

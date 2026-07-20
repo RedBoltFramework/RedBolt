@@ -164,11 +164,13 @@ public sealed class PrefabReference : Component
 
         var originalNodePrefab = GetNodePrefab();
         using var newNodePrefab = new NodePrefab();
-        var writer = new PrefabWriterToMemory(
-            newNodePrefab,
-            PrefabSaveFlag.EnumsAsStrings | PrefabSaveFlag.Prefab | PrefabSaveFlag.SaveTemporary);
-        if (!Node.Save(writer))
-            return;
+        using (var writer = new PrefabWriterToMemory(
+                   newNodePrefab,
+                   PrefabSaveFlag.EnumsAsStrings | PrefabSaveFlag.Prefab | PrefabSaveFlag.SaveTemporary))
+        {
+            if (!Node.Save(writer))
+                return;
+        }
         for (var index = newNodePrefab.Node.Attributes.Count - 1; index >= 0; --index)
             newNodePrefab.Node.Attributes[index].Dispose();
         newNodePrefab.Node.Attributes.Clear();
@@ -357,7 +359,7 @@ public sealed class PrefabReference : Component
         var node = Node;
         var flags = PrefabLoadFlag.KeepExistingComponents | PrefabLoadFlag.KeepExistingChildren
             | PrefabLoadFlag.LoadAsTemporary | PrefabLoadFlag.IgnoreRootAttributes;
-        var reader = new PrefabReaderFromMemory(nodePrefab);
+        using var reader = new PrefabReaderFromMemory(nodePrefab);
         node.Load(reader, flags);
 
         if (instanceFlags != PrefabInstanceFlag.None)

@@ -6,6 +6,18 @@ namespace RedBolt.Tests;
 public sealed class PrefabReaderTests
 {
     [Fact]
+    public void Reader_types_match_native_extensible_noncopyable_classes_and_managed_size_mapping()
+    {
+        Assert.True(typeof(PrefabReader).IsAbstract);
+        Assert.False(typeof(PrefabReaderFromMemory).IsSealed);
+        Assert.False(typeof(PrefabReaderFromArchive).IsSealed);
+        Assert.True(typeof(IDisposable).IsAssignableFrom(typeof(PrefabReader)));
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(PrefabReader)));
+        Assert.Equal(typeof(int), typeof(PrefabReader).GetMethod(nameof(PrefabReader.ReadNumComponents))!.ReturnType);
+        Assert.Equal(typeof(int), typeof(PrefabReader).GetMethod(nameof(PrefabReader.ReadNumChildren))!.ReturnType);
+    }
+
+    [Fact]
     public void Memory_reader_walks_components_and_nested_children()
     {
         var prefab = new NodePrefab();
@@ -21,17 +33,17 @@ public sealed class PrefabReaderTests
         child.Node.SetId((SerializableId)3);
         prefab.Children.Add(child);
 
-        var reader = new PrefabReaderFromMemory(prefab);
+        using var reader = new PrefabReaderFromMemory(prefab);
         Assert.False(reader.IsEOF());
         Assert.Equal("Root", reader.ReadNode()!.TypeName);
-        Assert.Equal(1u, reader.ReadNumComponents());
+        Assert.Equal(1, reader.ReadNumComponents());
         Assert.Equal("Camera", reader.ReadComponent()!.TypeName);
-        Assert.Equal(1u, reader.ReadNumChildren());
+        Assert.Equal(1, reader.ReadNumChildren());
 
         reader.BeginChild();
         Assert.Equal("Child", reader.ReadNode()!.TypeName);
-        Assert.Equal(0u, reader.ReadNumComponents());
-        Assert.Equal(0u, reader.ReadNumChildren());
+        Assert.Equal(0, reader.ReadNumComponents());
+        Assert.Equal(0, reader.ReadNumChildren());
         reader.EndChild();
 
         Assert.True(reader.IsEOF());
@@ -77,9 +89,9 @@ public sealed class PrefabReaderTests
         using (var reader = new PrefabReaderFromArchive(input, blockName: null))
         {
             Assert.Empty(reader.ReadNode()!.TypeName);
-            Assert.Equal(1u, reader.ReadNumComponents());
+            Assert.Equal(1, reader.ReadNumComponents());
             Assert.Equal("Camera", reader.ReadComponent()!.TypeName);
-            Assert.Equal(0u, reader.ReadNumChildren());
+            Assert.Equal(0, reader.ReadNumChildren());
             Assert.True(reader.IsEOF());
         }
     }
