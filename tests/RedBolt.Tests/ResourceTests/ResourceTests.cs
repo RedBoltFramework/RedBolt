@@ -21,6 +21,23 @@ public sealed class ResourceTests
     }
 
     [Fact]
+    public void Simple_resource_preserves_cpp_class_kind_and_save_format_selection()
+    {
+        using var resource = new EmptySimpleResource();
+        using var destination = new MemoryStream();
+
+        Assert.True(typeof(SimpleResource).IsClass);
+        Assert.True(typeof(SimpleResource).IsAbstract);
+        Assert.False(typeof(SimpleResource).IsSealed);
+        Assert.DoesNotContain(typeof(ICloneable), typeof(SimpleResource).GetInterfaces());
+        Assert.True(typeof(InternalResourceFormat).IsValueType);
+
+        resource.SetSaveFormatHint(InternalResourceFormat.Binary);
+        Assert.True(resource.Save(destination));
+        Assert.Equal((byte)'{', destination.ToArray()[0]);
+    }
+
+    [Fact]
     public void Resource_with_metadata_preserves_cpp_class_kind()
     {
         Assert.True(typeof(ResourceWithMetadata).IsClass);
@@ -132,6 +149,13 @@ public sealed class ResourceTests
         }
 
         public override bool BeginLoad(Stream source) => false;
+    }
+
+    private sealed class EmptySimpleResource : SimpleResource
+    {
+        public override void SerializeInBlock(Archive archive)
+        {
+        }
     }
 
     private sealed class MetadataResource : ResourceWithMetadata

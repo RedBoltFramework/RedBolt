@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
@@ -10,11 +11,15 @@ public enum InternalResourceFormat
     Binary
 }
 
+/// <summary>Base class for simple resource that uses Archive serialization.</summary>
 public abstract class SimpleResource : Resource
 {
     public static readonly byte[] DefaultBinaryMagic = [0, (byte)'B', (byte)'I', (byte)'N'];
-    private InternalResourceFormat? _loadFormat;
-    private InternalResourceFormat? _saveFormat;
+
+    /// <summary>Construct.</summary>
+    public SimpleResource()
+    {
+    }
 
     protected SimpleResource(string name)
         : base(name)
@@ -35,19 +40,22 @@ public abstract class SimpleResource : Resource
         try
         {
             var data = ReadAllBytes(source);
-            _loadFormat = PeekResourceFormat(data, GetBinaryMagic());
-            switch (_loadFormat)
+            var format = PeekResourceFormat(data, GetBinaryMagic());
+            switch (format)
             {
                 case InternalResourceFormat.Json:
                 {
                     using var jsonFile = new JSONFile(Name);
                     if (!jsonFile.BeginLoad(new MemoryStream(data, writable: false)))
                         return false;
-                    return jsonFile.LoadObjectCallback(archive =>
+                    var success = jsonFile.LoadObjectCallback(archive =>
                     {
                         using var block = archive.OpenUnorderedBlock(GetRootBlockName());
                         SerializeInBlock(archive);
                     });
+                    if (success)
+                        _loadFormat = format;
+                    return success;
                 }
 
                 case InternalResourceFormat.Xml:
@@ -69,6 +77,7 @@ public abstract class SimpleResource : Resource
                     else if (!LoadLegacyXML(xmlFile.Root))
                         return false;
 
+                    _loadFormat = format;
                     return true;
                 }
 
@@ -79,19 +88,24 @@ public abstract class SimpleResource : Resource
                         data.Length - GetBinaryMagic().Length, writable: false);
                     if (!binaryFile.BeginLoad(payload))
                         return false;
-                    return binaryFile.LoadObjectCallback(archive =>
+                    var success = binaryFile.LoadObjectCallback(archive =>
                     {
                         using var block = archive.OpenUnorderedBlock(GetRootBlockName());
                         SerializeInBlock(archive);
                     });
+                    if (success)
+                        _loadFormat = format;
+                    return success;
                 }
 
                 default:
+                    Log.GetLogger().LogError("Unknown resource format");
                     return false;
             }
         }
-        catch
+        catch (InvalidOperationException exception)
         {
+            Log.GetLogger().LogError(exception, "Cannot load SimpleResource");
             return false;
         }
     }
@@ -100,7 +114,7 @@ public abstract class SimpleResource : Resource
 
     public override bool Save(Stream destination)
     {
-        return Save(destination, _saveFormat ?? GetDefaultInternalFormat());
+        return Save(destination, _loadFormat ?? GetDefaultInternalFormat());
     }
 
     public bool Save(Stream destination, InternalResourceFormat format)
@@ -147,8 +161,9 @@ public abstract class SimpleResource : Resource
                     return false;
             }
         }
-        catch
+        catch (InvalidOperationException exception)
         {
+            Log.GetLogger().LogError(exception, "Cannot save SimpleResource");
             return false;
         }
     }
@@ -158,22 +173,16 @@ public abstract class SimpleResource : Resource
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
 
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
-        var identifier = new FileIdentifier(fileName);
-        using var rootMount = identifier.Scheme == "file"
-            ? new MountPointGuard(virtualFileSystem.MountRoot())
-            : null;
-        var file = virtualFileSystem.OpenFile(identifier, FileMode.Write);
+        using var file = virtualFileSystem.OpenFile(new FileIdentifier(fileName), FileMode.Write);
         if (file is not File outputFile || outputFile.Handle is null)
             return false;
 
-        try
-        {
-            return Save(outputFile.Handle, format);
-        }
-        finally
-        {
-            outputFile.Close();
-        }
+        return Save(outputFile.Handle, format);
+    }
+
+    public override bool SaveFile(string fileName)
+    {
+        return SaveFile(fileName, _loadFormat ?? GetDefaultInternalFormat());
     }
 
     protected virtual byte[] GetBinaryMagic() => DefaultBinaryMagic;
@@ -242,6 +251,9 @@ public abstract class SimpleResource : Resource
         if (!allBlank)
             return InternalResourceFormat.Unknown;
 
+        Log.GetLogger().LogWarning(
+            "File starts with whitespace, peeking more data to determine format. It may cause performance penalty.");
+
         for (var i = peekCount; i < data.Length; ++i)
         {
             if (data[i] == (byte)'<')
@@ -254,4 +266,7 @@ public abstract class SimpleResource : Resource
 
         return InternalResourceFormat.Unknown;
     }
+
+    private InternalResourceFormat? _loadFormat;
+    private InternalResourceFormat? _saveFormat;
 }
