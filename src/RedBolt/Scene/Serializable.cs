@@ -493,6 +493,8 @@ public abstract class Serializable : Object
             return value;
 
         var defaultValue = attribute.DefaultValue.GetObject();
+        if (defaultValue is null)
+            return null;
         if (attribute.ValueType.IsEnum)
             return Enum.ToObject(attribute.ValueType, attribute.DefaultValue.GetInt());
         if (attribute.ValueType == typeof(uint))

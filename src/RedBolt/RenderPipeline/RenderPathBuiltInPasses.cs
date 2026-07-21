@@ -20,8 +20,7 @@ public sealed class FullScreenShaderPass : RenderPass
     private bool _disableOnDefaultParameters;
     private string _parametersPrefix = string.Empty;
 
-    public FullScreenShaderPass(string? passName = null)
-        : base(passName)
+    public FullScreenShaderPass()
     {
         RegisterAttribute(
             "Shader Name",
@@ -112,8 +111,8 @@ public sealed class FullScreenShaderPass : RenderPass
             }
         }
 
-        SetTraits(new RenderPassTraits(_needReadWriteColorOutput, _bilinearColorSampler));
-        SetInternallyEnabled(!shouldBeDisabled);
+        _traits = new RenderPassTraits(_needReadWriteColorOutput, _bilinearColorSampler);
+        _isEnabledInternally = !shouldBeDisabled;
     }
 
     public override void Dispose()
@@ -154,24 +153,6 @@ public sealed class FullScreenShaderPass : RenderPass
             renderBufferManager.DrawViewportQuad(
                 _debugComment, _pipelineStateId, _shaderResources, _shaderParameters);
         }
-    }
-
-    public override RenderPass Clone()
-    {
-        var clone = new FullScreenShaderPass(GetPassName())
-        {
-            _shaderName = _shaderName,
-            _shaderDefines = _shaderDefines,
-            _blendMode = _blendMode,
-            _needReadWriteColorOutput = _needReadWriteColorOutput,
-            _bilinearColorSampler = _bilinearColorSampler,
-            _disableOnDefaultParameters = _disableOnDefaultParameters,
-            _parametersPrefix = _parametersPrefix
-        };
-        clone.SetEnabledByDefault(IsEnabledByDefault());
-        clone.SetComment(GetComment());
-        clone.SetParameters(_parameters);
-        return clone;
     }
 
     private void SetParameters(object? value)
@@ -265,11 +246,10 @@ public sealed class ToneMappingPass : RenderPass
     private StaticPipelineStateId? _pipelineState;
     private Mode _mode;
 
-    public ToneMappingPass(string? passName = null)
-        : base(passName)
+    public ToneMappingPass()
     {
         SetComment(DefaultComment);
-        SetTraits(new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: false));
+        _traits = new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: false);
     }
 
     public override void CollectParameters(StringVariantMap parameters)
@@ -291,12 +271,12 @@ public sealed class ToneMappingPass : RenderPass
 
         if (settings.RenderBufferManager.ColorSpace != RenderPipelineColorSpace.LinearHDR)
         {
-            SetInternallyEnabled(false);
+            _isEnabledInternally = false;
             InvalidateCache();
             return;
         }
 
-        SetInternallyEnabled(true);
+        _isEnabledInternally = true;
         ref readonly var value = ref LoadParameter(ModeName, parameters);
         if (value.Type == VariantType.Int)
         {
@@ -322,17 +302,6 @@ public sealed class ToneMappingPass : RenderPass
             _pipelineState!.Value,
             EmptyResources,
             EmptyParameters);
-    }
-
-    public override RenderPass Clone()
-    {
-        var clone = new ToneMappingPass(GetPassName())
-        {
-            _mode = _mode
-        };
-        clone.SetEnabledByDefault(IsEnabledByDefault());
-        clone.SetComment(GetComment());
-        return clone;
     }
 
     private enum Mode
@@ -389,11 +358,10 @@ public sealed class AutoExposurePass : RenderPass
     private bool _isAdaptedLuminanceInitialized;
     private ContextEventSubscription? _deviceResetSubscription;
 
-    public AutoExposurePass(string? passName = null)
-        : base(passName)
+    public AutoExposurePass()
     {
         SetComment(DefaultComment);
-        SetTraits(new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: false));
+        _traits = new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: false);
     }
 
     public override void CollectParameters(StringVariantMap parameters)
@@ -425,7 +393,7 @@ public sealed class AutoExposurePass : RenderPass
 
         if (settings.RenderBufferManager.ColorSpace != RenderPipelineColorSpace.LinearHDR)
         {
-            SetInternallyEnabled(false);
+            _isEnabledInternally = false;
             return;
         }
 
@@ -446,7 +414,7 @@ public sealed class AutoExposurePass : RenderPass
         if (_currentParameters.AutoExposure != updated.AutoExposure)
             _cachedBuffers = null;
 
-        SetInternallyEnabled(true);
+        _isEnabledInternally = true;
         _currentParameters = updated;
     }
 
@@ -497,17 +465,6 @@ public sealed class AutoExposurePass : RenderPass
             applyExposureParameters,
             renderBufferManager.GetInvOutputSize(),
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
-    }
-
-    public override RenderPass Clone()
-    {
-        var clone = new AutoExposurePass(GetPassName())
-        {
-            _currentParameters = _currentParameters
-        };
-        clone.SetEnabledByDefault(IsEnabledByDefault());
-        clone.SetComment(GetComment());
-        return clone;
     }
 
     private struct Parameters
@@ -661,11 +618,10 @@ public sealed class BloomPass : RenderPass
     private Parameters _currentParameters = new();
     private bool _isHdr;
 
-    public BloomPass(string? passName = null)
-        : base(passName)
+    public BloomPass()
     {
         SetComment(DefaultComment);
-        SetTraits(new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: true));
+        _traits = new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: true);
     }
 
     public override void CollectParameters(StringVariantMap parameters)
@@ -709,7 +665,7 @@ public sealed class BloomPass : RenderPass
             InvalidateTextureCache();
 
         _currentParameters = updated;
-        SetInternallyEnabled(true);
+        _isEnabledInternally = true;
     }
 
     public override void Update(SharedRenderPassState sharedState)
@@ -769,17 +725,6 @@ public sealed class BloomPass : RenderPass
             var normalizedIntensity = _intensityMultipliers[i] * _currentParameters.Intensity / totalIntensity;
             ApplyBloom(renderBufferManager, graphics, _textures[i].Final, normalizedIntensity);
         }
-    }
-
-    public override RenderPass Clone()
-    {
-        var clone = new BloomPass(GetPassName())
-        {
-            _currentParameters = _currentParameters
-        };
-        clone.SetEnabledByDefault(IsEnabledByDefault());
-        clone.SetComment(GetComment());
-        return clone;
     }
 
     private struct Parameters
@@ -980,8 +925,7 @@ public sealed class AmbientOcclusionPass : RenderPass
     private TextureCache? _textures;
     private Parameters _currentParameters = new();
 
-    public AmbientOcclusionPass(string? passName = null)
-        : base(passName)
+    public AmbientOcclusionPass()
     {
         SetComment(DefaultComment);
     }
@@ -1011,7 +955,7 @@ public sealed class AmbientOcclusionPass : RenderPass
     {
         if (!settings.RenderBufferManager.ReadableDepth)
         {
-            SetInternallyEnabled(false);
+            _isEnabledInternally = false;
             return;
         }
 
@@ -1054,7 +998,7 @@ public sealed class AmbientOcclusionPass : RenderPass
             InvalidateTextureCache();
 
         _currentParameters = updated;
-        SetInternallyEnabled(true);
+        _isEnabledInternally = true;
     }
 
     public override void Update(SharedRenderPassState sharedState)
@@ -1095,17 +1039,6 @@ public sealed class AmbientOcclusionPass : RenderPass
         EvaluateAO(renderBufferManager, graphics, camera, depthTexture, viewToTextureSpace, textureToViewSpace);
         BlurTexture(renderBufferManager, graphics, depthTexture, textureToViewSpace);
         Blit(renderBufferManager, graphics);
-    }
-
-    public override RenderPass Clone()
-    {
-        var clone = new AmbientOcclusionPass(GetPassName())
-        {
-            _currentParameters = _currentParameters
-        };
-        clone.SetEnabledByDefault(IsEnabledByDefault());
-        clone.SetComment(GetComment());
-        return clone;
     }
 
     private struct Parameters
@@ -1317,8 +1250,7 @@ public sealed class OutlineRenderPass : RenderPass
     public static readonly StringHash ColorBufferId = "outline";
     private RenderBuffer? _colorBuffer;
 
-    public OutlineRenderPass(string? passName = null)
-        : base(passName)
+    public OutlineRenderPass()
     {
         SetComment(DefaultComment);
     }
@@ -1368,14 +1300,6 @@ public sealed class OutlineRenderPass : RenderPass
             outlineParameters,
             renderBufferManager.GetInvOutputSize(),
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
-    }
-
-    public override RenderPass Clone()
-    {
-        var clone = new OutlineRenderPass(GetPassName());
-        clone.SetEnabledByDefault(IsEnabledByDefault());
-        clone.SetComment(GetComment());
-        return clone;
     }
 
     private struct OutlineParameters

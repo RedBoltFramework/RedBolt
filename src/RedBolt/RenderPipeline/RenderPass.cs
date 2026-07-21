@@ -18,18 +18,15 @@ public readonly record struct RenderPassTraits(
 /// </summary>
 public abstract class RenderPass : Serializable
 {
-    private string _passName = string.Empty;
-    private bool _enabledByDefault = true;
-    private string _comment = string.Empty;
-    private bool _isEnabledByUser;
-    private bool _isEnabledInternally = true;
-    private RenderPassTraits _traits;
+    protected string _passName = string.Empty;
+    protected bool _enabledByDefault = true;
+    protected string _comment = string.Empty;
+    protected bool _isEnabledByUser;
+    protected bool _isEnabledInternally = true;
+    protected RenderPassTraits _traits;
 
-    protected RenderPass(string? passName = null)
+    public RenderPass()
     {
-        this._passName = passName ?? string.Empty;
-        _isEnabledByUser = _enabledByDefault;
-
         RegisterAttribute(
             "Pass Name",
             typeof(string),
@@ -50,10 +47,15 @@ public abstract class RenderPass : Serializable
             string.Empty);
     }
 
+    public override void Dispose()
+    {
+        base.Dispose();
+    }
+
     /// <summary>
     /// Return unique pass name.
     /// </summary>
-    public virtual string GetPassName() => string.IsNullOrEmpty(_passName) ? GetType().Name : _passName;
+    public virtual string GetPassName() => string.IsNullOrEmpty(_passName) ? GetTypeName() : _passName;
 
     /// <summary>
     /// Create missing parameters in the global map with default values.
@@ -91,7 +93,7 @@ public abstract class RenderPass : Serializable
     {
     }
 
-    public abstract RenderPass Clone();
+    public virtual RenderPass Clone() => (RenderPass)base.Clone();
 
     public void SetEnabled(bool enabled)
     {
@@ -107,24 +109,13 @@ public abstract class RenderPass : Serializable
     public void SetEnabledByDefault(bool enabled)
     {
         _enabledByDefault = enabled;
-        _isEnabledByUser = enabled;
     }
 
     public string GetComment() => _comment;
 
     public void SetComment(string value)
     {
-        _comment = value ?? string.Empty;
-    }
-
-    protected void SetTraits(RenderPassTraits value)
-    {
-        _traits = value;
-    }
-
-    protected void SetInternallyEnabled(bool enabled)
-    {
-        _isEnabledInternally = enabled;
+        _comment = value;
     }
 
     protected void DeclareParameter(string name, Variant value, StringVariantMap parameters)
@@ -140,22 +131,20 @@ public abstract class RenderPass : Serializable
         return ref Variant.Empty;
     }
 
-    protected bool ConnectToRenderBuffer(ref RenderBuffer? renderBuffer, StringHash name, SharedRenderPassState sharedState, bool required = true)
+    protected void ConnectToRenderBuffer(ref RenderBuffer? renderBuffer, StringHash name, SharedRenderPassState sharedState, bool required = true)
     {
         if (renderBuffer is null)
         {
-            if (!sharedState.RenderBuffers.TryGetValue(name, out var value))
+            if (!sharedState.RenderBuffers.TryGetValue(name, out var value) || value is null)
             {
                 if (required)
                 {
                     Log.GetLogger().LogError("Render buffer '{RenderBuffer}' required by render pass '{RenderPass}' was not found.", name, GetPassName());
                 }
-                return false;
+                return;
             }
 
             renderBuffer = value;
         }
-
-        return true;
     }
 }

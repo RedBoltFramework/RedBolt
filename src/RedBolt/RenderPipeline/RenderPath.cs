@@ -564,8 +564,8 @@ public sealed class RenderPath : SimpleResource
         private readonly StringVariantMap _parameters = new();
 
         public SerializedRenderPass(string passName)
-            : base(passName)
         {
+            _passName = passName;
         }
 
         public IReadOnlyDictionary<string, Variant> Parameters => _parameters;
@@ -638,8 +638,8 @@ public sealed class RenderPath : SimpleResource
                 }
             }
 
-            SetTraits(new RenderPassTraits(needReadWriteColorBuffer, needBilinearColorSampler));
-            SetInternallyEnabled(!shouldBeDisabled);
+            _traits = new RenderPassTraits(needReadWriteColorBuffer, needBilinearColorSampler);
+            _isEnabledInternally = !shouldBeDisabled;
         }
 
         public override RenderPass Clone()

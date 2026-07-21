@@ -420,7 +420,7 @@ public sealed class RenderPipelineTests
             var renderPath = new RenderPath("RenderPaths/Test.xml");
             var capturePass = new BufferCaptureRenderPass("Capture", SharedRenderPassState.NormalBufferId);
             renderPath.AddPass(capturePass);
-            renderPath.AddPass(new AmbientOcclusionPass("AmbientOcclusion"));
+            renderPath.AddPass(new AmbientOcclusionPass());
             renderPipeline.SetRenderPath(renderPath);
 
             var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
@@ -1100,7 +1100,7 @@ public sealed class RenderPipelineTests
         });
         manager.OnViewportDefined(null, new IntRect(0, 0, 128, 64));
 
-        var bloom = new BloomPass("Bloom");
+        var bloom = new BloomPass();
         using var parameters = new StringVariantMap();
         bloom.UpdateParameters(new RenderPipelineSettings(), parameters);
 
@@ -1158,7 +1158,7 @@ public sealed class RenderPipelineTests
         });
         manager.OnViewportDefined(null, new IntRect(0, 0, 128, 64));
 
-        var bloom = new BloomPass("Bloom");
+        var bloom = new BloomPass();
         using var parameters = new StringVariantMap();
         bloom.UpdateParameters(new RenderPipelineSettings(), parameters);
         var sharedState = new SharedRenderPassState
@@ -1298,8 +1298,8 @@ public sealed class RenderPipelineTests
         private readonly Variant _value;
 
         public ParameterRenderPass(string parameterName, Variant value)
-            : base(parameterName)
         {
+            _passName = parameterName;
             this._parameterName = parameterName;
             this._value = value.Clone();
         }
@@ -1392,8 +1392,8 @@ public sealed class RenderPipelineTests
         }
 
         private TrackingRenderPass(string passName, Counter counter)
-            : base(passName)
         {
+            _passName = passName;
             this._counter = counter;
         }
 
@@ -1438,8 +1438,8 @@ public sealed class RenderPipelineTests
         }
 
         private BufferCaptureRenderPass(string passName, StringHash bufferId, State state)
-            : base(passName)
         {
+            _passName = passName;
             this._bufferId = bufferId;
             this._state = state;
         }

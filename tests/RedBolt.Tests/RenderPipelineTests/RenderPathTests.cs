@@ -118,7 +118,7 @@ public sealed class RenderPathTests
     public void Render_path_aggregates_readable_depth_trait_from_ssao()
     {
         var renderPath = new RenderPath("RenderPaths/Test.xml");
-        renderPath.AddPass(new AmbientOcclusionPass("SSAO"));
+        renderPath.AddPass(new AmbientOcclusionPass());
 
         using var parameters = new StringVariantMap();
         renderPath.UpdateParameters(new RenderPipelineSettings(), renderPath.RepairEnabledRenderPasses([]), parameters);
@@ -317,8 +317,8 @@ public sealed class RenderPathTests
     private sealed class TrackingRenderPass : RenderPass
     {
         public TrackingRenderPass(string passName)
-            : base(passName)
         {
+            _passName = passName;
         }
 
         public bool EnabledByDefaultValue
@@ -328,7 +328,7 @@ public sealed class RenderPathTests
 
         public bool InternallyEnabledValue
         {
-            set => SetInternallyEnabled(value);
+            set => _isEnabledInternally = value;
         }
 
         public int UpdateCalls { get; private set; }
@@ -337,7 +337,7 @@ public sealed class RenderPathTests
 
         public override void UpdateParameters(RenderPipelineSettings settings, StringVariantMap parameters)
         {
-            SetTraits(new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: true));
+            _traits = new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: true);
         }
 
         public override void Update(SharedRenderPassState sharedState)

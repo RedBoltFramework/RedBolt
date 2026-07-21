@@ -3,6 +3,47 @@ namespace RedBolt.Tests;
 public sealed class RenderPassTests
 {
     [Fact]
+    public void Default_enabled_attribute_does_not_change_runtime_user_state()
+    {
+        var pass = new TrackingRenderPass();
+
+        Assert.True(pass.IsEnabledByDefault());
+        Assert.False(pass.IsEnabledEffectively());
+
+        pass.SetEnabled(true);
+        pass.SetEnabledByDefault(false);
+
+        Assert.False(pass.IsEnabledByDefault());
+        Assert.True(pass.IsEnabledEffectively());
+    }
+
+    [Fact]
+    public void Clone_copies_attributes_without_copying_runtime_user_state()
+    {
+        var pass = new TrackingRenderPass();
+        pass.SetEnabled(true);
+        pass.SetEnabledByDefault(false);
+        pass.SetComment("Comment");
+
+        var clone = Assert.IsType<TrackingRenderPass>(pass.Clone());
+
+        Assert.Equal("Tracking", clone.GetPassName());
+        Assert.False(clone.IsEnabledByDefault());
+        Assert.Equal("Comment", clone.GetComment());
+        Assert.False(clone.IsEnabledEffectively());
+    }
+
+    [Fact]
+    public void Clone_resets_empty_variant_default_without_dereferencing_it()
+    {
+        var pass = new NullableAttributeRenderPass();
+
+        var clone = Assert.IsType<NullableAttributeRenderPass>(pass.Clone());
+
+        Assert.Null(clone.Optional);
+    }
+
+    [Fact]
     public void Connect_to_render_buffer_keeps_existing_buffer_when_shared_state_changes()
     {
         var pass = new TrackingRenderPass();
@@ -11,15 +52,15 @@ public sealed class RenderPassTests
         var sharedState = new SharedRenderPassState();
 
         sharedState.RenderBuffers["Test"] = firstBuffer;
-        Assert.True(pass.Connect(sharedState, required: false));
+        pass.Connect(sharedState, required: false);
         Assert.Same(firstBuffer, pass.Buffer);
 
         sharedState.RenderBuffers["Test"] = secondBuffer;
-        Assert.True(pass.Connect(sharedState, required: false));
+        pass.Connect(sharedState, required: false);
         Assert.Same(firstBuffer, pass.Buffer);
 
         sharedState.RenderBuffers.Clear();
-        Assert.True(pass.Connect(sharedState, required: false));
+        pass.Connect(sharedState, required: false);
         Assert.Same(firstBuffer, pass.Buffer);
     }
 
@@ -28,18 +69,16 @@ public sealed class RenderPassTests
         private RenderBuffer? _buffer;
 
         public TrackingRenderPass()
-            : base("Tracking")
         {
+            _passName = "Tracking";
         }
 
         public RenderBuffer? Buffer => _buffer;
 
-        public bool Connect(SharedRenderPassState sharedState, bool required)
+        public void Connect(SharedRenderPassState sharedState, bool required)
         {
-            return ConnectToRenderBuffer(ref _buffer, "Test", sharedState, required);
+            ConnectToRenderBuffer(ref _buffer, "Test", sharedState, required);
         }
-
-        public override RenderPass Clone() => new TrackingRenderPass();
     }
 
     private sealed class StubRenderBuffer : RenderBuffer
@@ -51,5 +90,21 @@ public sealed class RenderPassTests
         public override RenderTargetView GetReadOnlyDepthView(uint slice = 0u) => default;
 
         public override IntRect GetViewportRect() => new(0, 0, 1, 1);
+    }
+
+    private sealed class NullableAttributeRenderPass : RenderPass
+    {
+        private string? _optional;
+
+        public NullableAttributeRenderPass()
+        {
+            RegisterAttribute(
+                "Optional",
+                typeof(string),
+                self => ((NullableAttributeRenderPass)self)._optional,
+                (self, value) => ((NullableAttributeRenderPass)self)._optional = value as string);
+        }
+
+        public string? Optional => _optional;
     }
 }

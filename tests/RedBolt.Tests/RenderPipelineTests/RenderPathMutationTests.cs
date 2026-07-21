@@ -17,8 +17,13 @@ public sealed class RenderPathMutationTests
         Assert.Same(second, Assert.Single(renderPath.GetPasses()));
     }
 
-    private sealed class TestRenderPass(string passName) : RenderPass(passName)
+    private sealed class TestRenderPass : RenderPass
     {
+        public TestRenderPass(string passName)
+        {
+            _passName = passName;
+        }
+
         public override RenderPass Clone() => new TestRenderPass(GetPassName());
     }
 }

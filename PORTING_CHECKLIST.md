@@ -300,6 +300,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)
 
+- [x] `RenderPass.h` / `RenderPass.cpp` — value-type traits, reflected attribute construction, independent runtime enablement, inherited reflection cloning, protected pass state, parameter helpers, render-buffer connection, and explicit empty destructor reconciled
+
 ## [x] A11. Input — depends on Core, Graphics (window)
 
 - [x] `InputEvents.h` — all 29 native event namespaces reconciled with the allowed struct-event format as ordered mutable value-type payloads; scalar, enum, immutable string, borrowed SDL pointer, mutable consumed flag, and `Vector2i` value-copy semantics verified, with native documentation restored
