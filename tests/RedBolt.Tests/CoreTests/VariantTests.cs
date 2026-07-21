@@ -173,7 +173,7 @@ public sealed class VariantTests
         Assert.Empty(new Variant(1).GetBuffer());
         Assert.Equal(ResourceRef.Empty, new Variant(1).GetResourceRef());
         Assert.Empty(new Variant(1).GetVariantVector());
-        Assert.Equal(Matrix3.IDENTITY, new Variant(1).GetMatrix3());
+        Assert.Equal(Matrix3.Identity, new Variant(1).GetMatrix3());
         Assert.Equal(3, new Variant(3.9f).Get<int>());
         Assert.Equal(TestEnum.Value, new Variant(1).Get<TestEnum>());
         Assert.Equal(Color.White, new Variant("value").Get<Color>());

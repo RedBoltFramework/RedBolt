@@ -37,6 +37,49 @@ public class MatrixParityTests
     }
 
     [Fact]
+    public void Matrix3PreservesNativeValueLayoutAndCopySemantics()
+    {
+        Assert.Equal(36, System.Runtime.CompilerServices.Unsafe.SizeOf<Matrix3>());
+        Assert.False(System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<Matrix3>());
+        Assert.Equal(Matrix3.Identity, new Matrix3());
+
+        ReadOnlySpan<float> values = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+        var matrix = new Matrix3(values);
+        var copy = matrix;
+        copy.M00 = 10.0f;
+
+        Assert.Equal(1.0f, matrix.M00);
+        Assert.Equal(values.ToArray(), matrix.Data.ToArray());
+        Assert.Equal(6.0f, matrix.Element(1, 2));
+        Assert.Equal(new Vector3f(4, 5, 6), matrix.Row(1));
+        Assert.Equal(new Vector3f(3, 6, 9), matrix.Column(2));
+        Assert.Equal(new Matrix3(1, 4, 7, 2, 5, 8, 3, 6, 9), matrix.Transpose);
+
+        var source = new float[]
+        {
+            1, 2, 3, 4, 5, 6, 7, 8, 9,
+            10, 11, 12, 13, 14, 15, 16, 17, 18
+        };
+        var destination = new float[source.Length];
+        Matrix3.BulkTranspose(destination, source, 2);
+        Assert.Equal(
+            new float[]
+            {
+                1, 4, 7, 2, 5, 8, 3, 6, 9,
+                10, 13, 16, 11, 14, 17, 12, 15, 18
+            },
+            destination);
+    }
+
+    [Fact]
+    public void Matrix3AngleAxisMatchesQuaternionRotationMatrix()
+    {
+        var axis = new Vector3f(1.0f, -2.0f, 3.0f).Normalized;
+
+        Assert.True(new Matrix3(30.0f, axis).ApproximatelyEquivalent(new Quaternion(30.0f, axis).RotationMatrix));
+    }
+
+    [Fact]
     public void Matrix4DeterminantAndInverseMatchRbfxContract()
     {
         var matrix = new Matrix4(

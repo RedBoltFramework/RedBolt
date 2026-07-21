@@ -250,7 +250,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             VariantType.VariantMap => new Variant(new VariantMap()),
             VariantType.IntRect => new Variant(IntRect.Zero),
             VariantType.Vector2i => new Variant(Vector2i.Zero),
-            VariantType.Matrix3 => new Variant(Matrix3.ZERO),
+            VariantType.Matrix3 => new Variant(Matrix3.Zero),
             VariantType.Matrix3x4 => new Variant(Matrix3x4.ZERO),
             VariantType.Matrix4 => new Variant(Matrix4.ZERO),
             VariantType.Double => new Variant(0.0),
@@ -685,7 +685,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
 
     public ResourceRefList GetResourceRefList() => _type == VariantType.ResourceRefList ? ResourceRefListValue : ResourceRefList.Empty;
 
-    public Matrix3 GetMatrix3() => _type == VariantType.Matrix3 ? Matrix3Value : Matrix3.IDENTITY;
+    public Matrix3 GetMatrix3() => _type == VariantType.Matrix3 ? Matrix3Value : Matrix3.Identity;
 
     public Matrix3x4 GetMatrix3x4() => _type == VariantType.Matrix3x4 ? Matrix3x4Value : Matrix3x4.IDENTITY;
 
@@ -925,7 +925,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             VariantType.IntRect => _value.IntRect == IntRect.Zero,
             VariantType.Vector2i => _value.IntVector2 == Vector2i.Zero,
             VariantType.Vector3i => _value.IntVector3 == Vector3i.Zero,
-            VariantType.Matrix3 => Matrix3Value == Matrix3.IDENTITY,
+            VariantType.Matrix3 => Matrix3Value == Matrix3.Identity,
             VariantType.Matrix3x4 => Matrix3x4Value == Matrix3x4.IDENTITY,
             VariantType.Matrix4 => Matrix4Value == Matrix4.IDENTITY,
             VariantType.Rect => _value.Rect == Rect.Zero,

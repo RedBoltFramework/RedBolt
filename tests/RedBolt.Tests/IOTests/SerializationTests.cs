@@ -238,14 +238,14 @@ public sealed class SerializationTests
     public void Variant_default_values_and_string_contract_match_rbfx_slice()
     {
         Assert.Equal(Color.Black, new Variant(VariantType.Color).GetColor());
-        Assert.Equal(Matrix3.ZERO, new Variant(VariantType.Matrix3).GetMatrix3());
+        Assert.Equal(Matrix3.Zero, new Variant(VariantType.Matrix3).GetMatrix3());
         Assert.Equal(Matrix3x4.ZERO, new Variant(VariantType.Matrix3x4).GetMatrix3x4());
         Assert.Equal(Matrix4.ZERO, new Variant(VariantType.Matrix4).GetMatrix4());
         Assert.Equal("Color", new Variant(Color.White).GetTypeName());
         Assert.Equal(VariantType.DoubleVector3, Variant.GetTypeFromName("DoubleVector3"));
         Assert.Equal("1 2 3", new Variant(new byte[] { 1, 2, 3 }).ToString());
         Assert.True(new Variant(Color.White).IsZero());
-        Assert.True(new Variant(Matrix3.IDENTITY).IsZero());
+        Assert.True(new Variant(Matrix3.Identity).IsZero());
         Assert.False(new Variant(Color.Black).IsZero());
         Assert.Equal(new StringHash(123u), new Variant(123u).GetStringHash());
     }

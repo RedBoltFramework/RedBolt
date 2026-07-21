@@ -325,7 +325,7 @@ public sealed class ArchiveTests
     public void Human_readable_variant_input_default_constructs_compound_value()
     {
         var output = new JSONOutputArchive();
-        var source = new Variant(Matrix3.IDENTITY);
+        var source = new Variant(Matrix3.Identity);
         using (output.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeVariantAsType(output, "value", ref source, VariantType.Matrix3);
 

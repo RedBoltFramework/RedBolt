@@ -777,7 +777,7 @@ public static partial class ArchiveSerialization
         else if (typeof(T) == typeof(Color))
             value = (T)(object)Color.White;
         else if (typeof(T) == typeof(Matrix3))
-            value = (T)(object)Matrix3.IDENTITY;
+            value = (T)(object)Matrix3.Identity;
         else if (typeof(T) == typeof(Matrix3x4))
             value = (T)(object)Matrix3x4.IDENTITY;
         else if (typeof(T) == typeof(Matrix4))
