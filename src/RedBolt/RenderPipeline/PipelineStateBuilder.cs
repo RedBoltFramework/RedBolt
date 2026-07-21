@@ -71,7 +71,7 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
                 return null;
 
             _compositor.ProcessShadowBatch(_shaderProgramDesc,
-                key.Geometry, key.GeometryType, key.Material, key.Pass, light);
+                key.Geometry, key.GeometryType, key.Material, key.Pass, light!);
             SetupShadowPassState(ctx.ShadowSplitIndex, key.PixelLight, key.Material, key.Pass);
 
             SetupSamplersForUserOrShadowPass(key.Material, false, false, false);
@@ -254,7 +254,7 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
         _shaderProgramDesc.Clear();
     }
 
-    private void SetupShadowPassState(uint splitIndex, LightProcessor lightProcessor,
+    private void SetupShadowPassState(int splitIndex, LightProcessor lightProcessor,
         Material material, Pass pass)
     {
         if (_shadowMapAllocator is null)
@@ -262,7 +262,7 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
 
         var settings = _shadowMapAllocator.Settings;
         ref readonly var lightParams = ref lightProcessor.Params;
-        var biasMultiplier = lightParams.ShadowDepthBiasMultiplier[checked((int)splitIndex)] * settings.DepthBiasScale;
+        var biasMultiplier = lightParams.ShadowDepthBiasMultiplier[splitIndex] * settings.DepthBiasScale;
         var biasParameters = lightProcessor.Light.GetShadowBias();
 
         _pipelineStateDesc.DebugName = $"Shadow Pass for material '{material.Name}'";

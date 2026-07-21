@@ -44,6 +44,19 @@ public class BatchCompositorPass : DrawableProcessorPass
 
     public override void Dispose()
     {
+        _delayedNegativeLightBatches.Clear();
+        _delayedLightBatches.Clear();
+        _delayedLitBaseBatches.Clear();
+        _delayedUnlitBaseBatches.Clear();
+        _delayedDeferredBatches.Clear();
+        _lightCache.Dispose();
+        _litBaseCache.Dispose();
+        _unlitBaseCache.Dispose();
+        _deferredCache.Dispose();
+        NegativeLightBatches.Clear();
+        LightBatches.Clear();
+        BaseBatches.Clear();
+        DeferredBatches.Clear();
         RenderPipeline.PipelineStatesInvalidated -= OnPipelineStatesInvalidated;
         base.Dispose();
     }
@@ -201,7 +214,7 @@ public class BatchCompositorPass : DrawableProcessorPass
         if (_batchStateCacheCallback is null)
             return;
 
-        var ctx = new BatchStateCreateContext(this, (uint)subpass, 0);
+        var ctx = new BatchStateCreateContext(this, (int)subpass, 0);
         foreach (var desc in delayedBatches)
         {
             var pipelineState = cache.GetOrCreatePipelineState(desc.GetKey(), ctx, _batchStateCacheCallback);
@@ -309,9 +322,16 @@ public class BatchCompositor : Object
 
     public override void Dispose()
     {
+        _sortedLightVolumeBatches.Clear();
+        _lightVolumeBatches.Clear();
+        _delayedShadowBatches.Clear();
+        _lightVolumeCache.Dispose();
+        _shadowCache.Dispose();
         _lightVolumePass.Dispose();
         _negativeLightVolumeMaterial?.Dispose();
         _lightVolumeMaterial?.Dispose();
+        _passes.Clear();
+        _allPasses.Clear();
         _renderPipeline.UpdateBegin -= OnUpdateBegin;
         _renderPipeline.PipelineStatesInvalidated -= OnPipelineStatesInvalidated;
         base.Dispose();
@@ -548,7 +568,7 @@ public class BatchCompositor : Object
 
         foreach (var (split, desc) in _delayedShadowBatches)
         {
-            ctx = new BatchStateCreateContext(this, ShadowSubpass, checked((uint)split.SplitIndex));
+            ctx = new BatchStateCreateContext(this, ShadowSubpass, split.SplitIndex);
             var pipelineState = _shadowCache.GetOrCreatePipelineState(desc.GetKey(), ctx, _batchStateCacheCallback);
             if (pipelineState is not null && pipelineState.IsValid)
             {

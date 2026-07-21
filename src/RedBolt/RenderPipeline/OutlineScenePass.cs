@@ -88,7 +88,7 @@ public class OutlineScenePass : ScenePass
 
         var compositor = builder.GetShaderProgramCompositor();
 
-        desc.DebugName = $"Outline Pass for material '{key.Material.GetName()}'";
+        desc.DebugName = $"Outline Pass for material '{key.Material!.GetName()}'";
 
         desc.DepthWriteEnabled = false;
         desc.DepthCompareFunction = CompareMode.Always;
@@ -104,14 +104,14 @@ public class OutlineScenePass : ScenePass
 
         _shaderProgramDesc.Clear();
         compositor.ProcessUserBatch(_shaderProgramDesc, GetFlags(),
-            key.Drawable!, key.Geometry, key.GeometryType, key.Material, key.Pass,
+            key.Drawable!, key.Geometry!, key.GeometryType, key.Material, key.Pass!,
             null, false, BatchCompositorSubpass.Ignored);
 
         _shaderProgramDesc.ShaderName[(int)ShaderType.PS] = "v2/M_OutlinePixel";
         _shaderProgramDesc.ShaderDefines[(int)ShaderType.PS] = string.Empty;
 
-        var diffMap = key.Material.GetTexture(ShaderResources.Albedo);
-        var needAlphaMask = (key.Pass.IsAlphaMask || key.Pass.BlendMode != BlendMode.Replace) && diffMap is not null;
+        var diffMap = key.Material!.GetTexture(ShaderResources.Albedo);
+        var needAlphaMask = (key.Pass!.IsAlphaMask || key.Pass!.BlendMode != BlendMode.Replace) && diffMap is not null;
         if (needAlphaMask)
         {
             _shaderProgramDesc.AddShaderDefines(ShaderType.PS, "ALPHAMASK");
@@ -119,7 +119,7 @@ public class OutlineScenePass : ScenePass
         }
 
         var isStereo = IsFlagSet(DrawableProcessorPassFlag.StereoInstancing);
-        builder.SetupInputLayoutAndPrimitiveType(ref desc, _shaderProgramDesc, key.Geometry, isStereo);
+        builder.SetupInputLayoutAndPrimitiveType(ref desc, _shaderProgramDesc, key.Geometry!, isStereo);
         builder.SetupShaders(ref desc, _shaderProgramDesc);
 
         return true;

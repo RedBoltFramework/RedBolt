@@ -74,6 +74,40 @@ public sealed class BatchStateCacheTests
         Assert.Equal(1, callback.PlaceholderCount);
     }
 
+    [Fact]
+    public void Cache_shape_and_teardown_match_cpp()
+    {
+        Assert.False(typeof(BatchStateCache).IsSealed);
+        Assert.True(typeof(CachedBatchState).IsValueType);
+        Assert.Equal(typeof(bool), typeof(CachedBatchState).GetField(nameof(CachedBatchState.Invalidated))!.FieldType);
+        Assert.Equal(typeof(int), typeof(BatchStateCreateContext).GetProperty(nameof(BatchStateCreateContext.SubpassIndex))!.PropertyType);
+        Assert.Equal(typeof(int), typeof(BatchStateCreateContext).GetProperty(nameof(BatchStateCreateContext.ShadowSplitIndex))!.PropertyType);
+
+        var key = new BatchStateLookupKey();
+        var copy = key;
+        key.DrawableHash = 1;
+        Assert.Equal(0u, copy.DrawableHash);
+
+        using var state = new PipelineState(_fixture.PipelineStateCache, CreateUnavailablePipelineStateDesc());
+        var callback = new BatchCallback { State = state };
+        var cache = new BatchStateCache();
+        cache.SetOutputDesc(new PipelineStateOutputDesc());
+        cache.GetOrCreatePlaceholderPipelineState(24, callback);
+
+        cache.Dispose();
+
+        var cacheEntries = typeof(BatchStateCache).GetField("_cache", System.Reflection.BindingFlags.Instance
+            | System.Reflection.BindingFlags.NonPublic)!.GetValue(cache) as System.Collections.ICollection;
+        var placeholders = typeof(BatchStateCache).GetField("_placeholderCache", System.Reflection.BindingFlags.Instance
+            | System.Reflection.BindingFlags.NonPublic)!.GetValue(cache) as System.Collections.ICollection;
+        Assert.NotNull(cacheEntries);
+        Assert.NotNull(placeholders);
+        Assert.Equal(0, cacheEntries.Count);
+        Assert.Equal(0, placeholders.Count);
+        Assert.Null(typeof(BatchStateCache).GetField("_outputDesc", System.Reflection.BindingFlags.Instance
+            | System.Reflection.BindingFlags.NonPublic)!.GetValue(cache));
+    }
+
     private static PipelineStateDesc CreateUnavailablePipelineStateDesc()
     {
         return new PipelineStateDesc(new GraphicsPipelineStateDesc
