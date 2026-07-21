@@ -102,6 +102,7 @@ public class SceneProcessor : Object, LightProcessorCallback
         ShadowMapAllocator? shadowMapAllocator, InstancingBuffer? instancingBuffer)
     {
         ArgumentNullException.ThrowIfNull(renderPipeline);
+        _ = shadowTechnique;
         RenderPipeline = renderPipeline;
         GraphicsDevice = GetSubsystem<Graphics>();
         RenderDevice = GetSubsystem<RenderDevice>();
@@ -114,10 +115,10 @@ public class SceneProcessor : Object, LightProcessorCallback
         CameraProcessor = new CameraProcessor();
         PipelineStateBuilder = new PipelineStateBuilder(this, CameraProcessor, shadowMapAllocator, instancingBuffer);
         DrawableProcessor = new DrawableProcessor(renderPipeline);
-        BatchStateCacheCallback = PipelineStateBuilder;
-        BatchCompositor = new BatchCompositor(renderPipeline, DrawableProcessor, BatchStateCacheCallback,
-            checked((int)Technique.GetPassIndex(string.IsNullOrEmpty(shadowTechnique) ? "shadow" : shadowTechnique)));
+        BatchCompositor = new BatchCompositor(renderPipeline, DrawableProcessor, PipelineStateBuilder,
+            checked((int)Technique.GetPassIndex("shadow")));
         BatchRenderer = new BatchRenderer(renderPipeline, DrawableProcessor, instancingBuffer);
+        BatchStateCacheCallback = PipelineStateBuilder;
 
         renderPipeline.UpdateBegin += OnUpdateBegin;
         renderPipeline.RenderBegin += OnRenderBegin;
@@ -128,10 +129,19 @@ public class SceneProcessor : Object, LightProcessorCallback
 
     public override void Dispose()
     {
+        Drawables.Clear();
+        Occluders.Clear();
+        CurrentOcclusionBuffer = null;
+        Passes.Clear();
+        OcclusionBuffer?.Dispose();
+        BatchRenderer.Dispose();
+        BatchCompositor.Dispose();
+        DrawableProcessor.Dispose();
+        PipelineStateBuilder.Dispose();
+        CameraProcessor.Dispose();
         RenderPipeline.UpdateBegin -= OnUpdateBegin;
         RenderPipeline.RenderBegin -= OnRenderBegin;
         RenderPipeline.RenderEnd -= OnRenderEnd;
-        OcclusionBuffer?.Dispose();
         base.Dispose();
     }
 

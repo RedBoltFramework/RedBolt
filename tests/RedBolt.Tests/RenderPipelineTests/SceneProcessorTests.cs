@@ -86,6 +86,27 @@ public sealed class SceneProcessorTests
         Assert.Equal(invalidationSubscribers, pipeline.PipelineStatesInvalidatedSubscriberCount);
     }
 
+    [Fact]
+    public void Dispose_releases_owned_processors_and_pipeline_subscriptions()
+    {
+        var pipeline = new TestRenderPipelineInterface();
+        var processor = new SceneProcessor(pipeline, "unused", null, null);
+
+        Assert.Equal(3, pipeline.UpdateBeginSubscriberCount);
+        Assert.Equal(1, pipeline.RenderBeginSubscriberCount);
+        Assert.Equal(1, pipeline.RenderEndSubscriberCount);
+        Assert.Equal(1, pipeline.PipelineStatesInvalidatedSubscriberCount);
+        Assert.Equal(1, pipeline.CollectStatisticsSubscriberCount);
+
+        processor.Dispose();
+
+        Assert.Equal(0, pipeline.UpdateBeginSubscriberCount);
+        Assert.Equal(0, pipeline.RenderBeginSubscriberCount);
+        Assert.Equal(0, pipeline.RenderEndSubscriberCount);
+        Assert.Equal(0, pipeline.PipelineStatesInvalidatedSubscriberCount);
+        Assert.Equal(0, pipeline.CollectStatisticsSubscriberCount);
+    }
+
     private sealed class TestRenderPipelineInterface : IRenderPipelineInterface
     {
         public Context? GetContext() => Context.Instance;
@@ -99,6 +120,9 @@ public sealed class SceneProcessorTests
         public event Action<RenderPipelineStats>? CollectStatistics;
 
         public int UpdateBeginSubscriberCount => UpdateBegin?.GetInvocationList().Length ?? 0;
+        public int RenderBeginSubscriberCount => RenderBegin?.GetInvocationList().Length ?? 0;
+        public int RenderEndSubscriberCount => RenderEnd?.GetInvocationList().Length ?? 0;
         public int PipelineStatesInvalidatedSubscriberCount => PipelineStatesInvalidated?.GetInvocationList().Length ?? 0;
+        public int CollectStatisticsSubscriberCount => CollectStatistics?.GetInvocationList().Length ?? 0;
     }
 }
