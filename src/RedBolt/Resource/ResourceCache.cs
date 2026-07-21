@@ -228,9 +228,13 @@ public sealed class ResourceCache : Object
 
     public void AddResourceRouter(ResourceRouter router, bool addAsFirst = false)
     {
-        ArgumentNullException.ThrowIfNull(router);
-        if (_resourceRouters.Contains(router))
-            return;
+        // Check for duplicate
+        for (var i = 0; i < _resourceRouters.Count; ++i)
+        {
+            if (ReferenceEquals(_resourceRouters[i], router))
+                return;
+        }
+
         if (addAsFirst)
             _resourceRouters.Insert(0, router);
         else
@@ -239,11 +243,17 @@ public sealed class ResourceCache : Object
 
     public void RemoveResourceRouter(ResourceRouter router)
     {
-        ArgumentNullException.ThrowIfNull(router);
-        _resourceRouters.Remove(router);
+        for (var i = 0; i < _resourceRouters.Count; ++i)
+        {
+            if (ReferenceEquals(_resourceRouters[i], router))
+            {
+                _resourceRouters.RemoveAt(i);
+                return;
+            }
+        }
     }
 
-    public ResourceRouter? GetResourceRouter(uint index) => index < _resourceRouters.Count ? _resourceRouters[(int)index] : null;
+    public ResourceRouter? GetResourceRouter(int index) => index >= 0 && index < _resourceRouters.Count ? _resourceRouters[index] : null;
 
     public void RouteResourceName(ref FileIdentifier name)
     {

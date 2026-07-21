@@ -2,8 +2,16 @@ using RedBolt;
 
 namespace RedBolt.Tests;
 
+[Collection(nameof(HeadlessEngineCollection))]
 public sealed class ImageTests
 {
+    private readonly HeadlessEngineFixture _fixture;
+
+    public ImageTests(HeadlessEngineFixture fixture)
+    {
+        _fixture = fixture;
+    }
+
     [Fact]
     public void Pixel_roundtrip_and_clear_work()
     {
@@ -240,7 +248,7 @@ public sealed class ImageTests
         var tempRoot = Path.Combine(Path.GetTempPath(), "RedBolt.ImageCubeTests", Guid.NewGuid().ToString("N"));
         var textureDir = Path.Combine(tempRoot, "Textures");
         Directory.CreateDirectory(textureDir);
-        var resources = new ResourceCache();
+        var resources = _fixture.Resources;
         resources.AddResourceDir(tempRoot);
 
         try

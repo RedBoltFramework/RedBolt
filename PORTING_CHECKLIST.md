@@ -206,6 +206,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `XPathQuery` in `XMLElement.h` / `XMLElement.cpp` — extensible noncopyable class kind, construction/destruction, owned compiled query and typed variable set, binding/rebinding, query replacement, scalar and result-set evaluation, independent node-set values, and native number/string conversions reconciled; System.Xml attribute/text result nodes and cross-document node ordering remain pending
 - [~] `XMLFile.h` / `XMLFile.cpp` — extensible noncopyable resource kind, document ownership/disposal, loading/inheritance, native default parsing/output, archive callbacks, patch operations, memory accounting, diagnostics, and allowed `int` sizes reconciled; inherited Resource stream compatibility, pugixml-only document semantics, and managed compatibility surfaces remain pending
 - [~] `ResourceCache.h` / `ResourceCache.cpp` — temporary-resource empty-name/null behavior and canonical VFS sanitization reconciled while auditing LightProbeGroup; complete class-wide lifetime/copy audit remains pending
+- [x] `ResourceRouter` in `ResourceCache.h` / `ResourceCache.cpp` — abstract noncopyable class kind, construction, inherited teardown, mutable identifier aliasing, cache-held pointer identity, routing order, reentrancy guard, and allowed `int` indices reconciled
 
 ## [~] A6. Scene — depends on Resource, Core
 

@@ -359,6 +359,7 @@ public sealed class ResourceCacheTests
         var second = new PrefixRouter("Final/");
         var first = new PrefixRouter("Intermediate/");
         cache.AddResourceRouter(second);
+        cache.AddResourceRouter(second);
         cache.AddResourceRouter(first, addAsFirst: true);
 
         var resolved = cache.GetResolvedIdentifier(new FileIdentifier("Data/file.txt"));
@@ -634,6 +635,10 @@ public sealed class ResourceCacheTests
 
 internal sealed class PrefixRouter(string prefix) : ResourceRouter
 {
+    public override bool Equals(object? obj) => obj is PrefixRouter;
+
+    public override int GetHashCode() => 0;
+
     public override void Route(ref FileIdentifier name)
     {
         name.FileName = prefix + name.FileName;
