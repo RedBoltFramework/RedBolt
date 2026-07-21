@@ -15,11 +15,11 @@ public sealed class CameraProcessorTests
 
         processor.SetCameras([camera]);
 
-        Assert.True(processor.IsCameraOrthographic());
-        Assert.True(processor.IsCameraClipped());
-        Assert.False(processor.IsCameraReversed());
-        Assert.Equal(FillMode.Wireframe, processor.GetCameraFillMode());
-        Assert.NotEqual(0u, processor.GetPipelineStateHash());
+        Assert.True(processor.IsCameraOrthographic);
+        Assert.True(processor.IsCameraClipped);
+        Assert.False(processor.IsCameraReversed);
+        Assert.Equal(FillMode.Wireframe, processor.CameraFillMode);
+        Assert.NotEqual(0u, processor.PipelineStateHash);
     }
 
     [Fact]
@@ -35,5 +35,20 @@ public sealed class CameraProcessorTests
 
         processor.OnRenderEnd(new CommonFrameInfo());
         Assert.True(camera.GetFlipVertical());
+    }
+
+    [Fact]
+    public void Dispose_releases_camera_vector_before_base()
+    {
+        var processor = new CameraProcessor();
+        processor.SetCameras([new Camera()]);
+
+        processor.Dispose();
+
+        var cameras = typeof(CameraProcessor).GetField("_cameras", System.Reflection.BindingFlags.Instance
+            | System.Reflection.BindingFlags.NonPublic)!.GetValue(processor) as System.Collections.ICollection;
+        Assert.NotNull(cameras);
+        Assert.Equal(0, cameras.Count);
+        Assert.False(typeof(CameraProcessor).IsSealed);
     }
 }

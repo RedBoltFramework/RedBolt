@@ -86,9 +86,9 @@ public sealed class ShaderProgramCompositor : Object
 
     public void SetFrameSettings(CameraProcessor cameraProcessor, bool linearColorSpace)
     {
-        _isCameraOrthographic = cameraProcessor.IsCameraOrthographic();
-        _isCameraClipped = cameraProcessor.IsCameraClipped();
-        _isCameraReversed = cameraProcessor.IsCameraReversed();
+        _isCameraOrthographic = cameraProcessor.IsCameraOrthographic;
+        _isCameraClipped = cameraProcessor.IsCameraClipped;
+        _isCameraReversed = cameraProcessor.IsCameraReversed;
         _linearColorSpace = linearColorSpace;
     }
 

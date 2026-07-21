@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 namespace RedBolt;
 
 /// <summary>Utility to process render camera (not cull camera!).</summary>
-public sealed class CameraProcessor : Object
+public class CameraProcessor : Object
 {
     private bool _isCameraOrthographic;
     private bool _isCameraFlippedByUser;
@@ -19,6 +19,12 @@ public sealed class CameraProcessor : Object
     public CameraProcessor()
     {
         _graphics = GetSubsystem<Graphics>();
+    }
+
+    public override void Dispose()
+    {
+        _cameras.Clear();
+        base.Dispose();
     }
 
     public void SetCameras(ReadOnlySpan<Camera?> cameras)
@@ -60,25 +66,28 @@ public sealed class CameraProcessor : Object
         }
     }
 
-    public uint GetPipelineStateHash()
+    public uint PipelineStateHash
     {
-        var hash = 0u;
-        CombineHash(ref hash, _isCameraOrthographic);
-        CombineHash(ref hash, _isCameraFlippedByUser);
-        CombineHash(ref hash, _isReflectionCamera);
-        CombineHash(ref hash, _isCameraClipped);
-        CombineHash(ref hash, _flipCameraForRendering);
-        CombineHash(ref hash, (uint)_cameraFillMode);
-        return hash;
+        get
+        {
+            var hash = 0u;
+            CombineHash(ref hash, _isCameraOrthographic);
+            CombineHash(ref hash, _isCameraFlippedByUser);
+            CombineHash(ref hash, _isReflectionCamera);
+            CombineHash(ref hash, _isCameraClipped);
+            CombineHash(ref hash, _flipCameraForRendering);
+            CombineHash(ref hash, (uint)_cameraFillMode);
+            return hash;
+        }
     }
 
-    public bool IsCameraReversed() => _flipCameraForRendering ^ _isCameraFlippedByUser ^ _isReflectionCamera;
+    public bool IsCameraReversed => _flipCameraForRendering ^ _isCameraFlippedByUser ^ _isReflectionCamera;
 
-    public bool IsCameraOrthographic() => _isCameraOrthographic;
+    public bool IsCameraOrthographic => _isCameraOrthographic;
 
-    public bool IsCameraClipped() => _isCameraClipped;
+    public bool IsCameraClipped => _isCameraClipped;
 
-    public FillMode GetCameraFillMode() => _cameraFillMode;
+    public FillMode CameraFillMode => _cameraFillMode;
 
     /// <summary>Callbacks from SceneProcessor</summary>
     /// <remarks>Called at the beginning of the update.</remarks>
@@ -114,7 +123,7 @@ public sealed class CameraProcessor : Object
         }
     }
 
-    private static void UpdateCamera(CommonFrameInfo frameInfo, Camera camera)
+    private void UpdateCamera(CommonFrameInfo frameInfo, Camera camera)
     {
         var cameraPosition = camera.Node!.GetWorldPosition();
         var cameraZone = frameInfo.Octree!.QueryZone(cameraPosition, camera.GetZoneMask()).Zone;

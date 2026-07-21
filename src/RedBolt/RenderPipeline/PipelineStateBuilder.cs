@@ -298,12 +298,12 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
         {
             if (lightProcessor.DoesOverlapCamera)
             {
-                _pipelineStateDesc.CullMode = GetEffectiveCullMode(CullMode.Clockwise, _cameraProcessor!.IsCameraReversed());
+                _pipelineStateDesc.CullMode = GetEffectiveCullMode(CullMode.Clockwise, _cameraProcessor!.IsCameraReversed);
                 _pipelineStateDesc.DepthCompareFunction = CompareMode.Greater;
             }
             else
             {
-                _pipelineStateDesc.CullMode = GetEffectiveCullMode(CullMode.CounterClockwise, _cameraProcessor!.IsCameraReversed());
+                _pipelineStateDesc.CullMode = GetEffectiveCullMode(CullMode.CounterClockwise, _cameraProcessor!.IsCameraReversed);
                 _pipelineStateDesc.DepthCompareFunction = CompareMode.LessEqual;
             }
         }
@@ -334,10 +334,10 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
         _pipelineStateDesc.ConstantDepthBias = depthBias.ConstantBias;
         _pipelineStateDesc.SlopeScaledDepthBias = depthBias.SlopeScaledBias;
 
-        var cameraFill = _cameraProcessor?.GetCameraFillMode() ?? FillMode.Solid;
+        var cameraFill = _cameraProcessor?.CameraFillMode ?? FillMode.Solid;
         _pipelineStateDesc.FillMode = (FillMode)Math.Max((int)cameraFill, (int)material.GetFillMode());
         _pipelineStateDesc.CullMode = GetEffectiveCullMode(pass.CullMode,
-            material.GetCullMode(), _cameraProcessor?.IsCameraReversed() ?? false);
+            material.GetCullMode(), _cameraProcessor?.IsCameraReversed ?? false);
 
         if (lightMaskToStencil)
         {
