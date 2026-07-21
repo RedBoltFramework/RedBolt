@@ -121,6 +121,21 @@ public sealed class RenderContextTests
         });
     }
 
+    [Fact]
+    public void Disabled_render_scope_does_not_format_debug_group_name()
+    {
+        using var scope = new RenderScope(null, "{", 0u);
+    }
+
+    [Fact]
+    public void Render_scope_is_extensible_and_noncopyable()
+    {
+        Assert.False(typeof(RenderScope).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(RenderScope)));
+        Assert.DoesNotContain(typeof(RenderScope).GetConstructors(), constructor =>
+            constructor.GetParameters().Any(parameter => parameter.GetCustomAttributes(typeof(ParamArrayAttribute), false).Length != 0));
+    }
+
     private void WithInitializedGraphics(Action action)
     {
         var parameters = new EngineParameters
