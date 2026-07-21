@@ -58,8 +58,8 @@ public class ApplicationState : Object
         if (_viewports.Count != 0)
         {
             renderer.SetNumViewports((uint)_viewports.Count);
-            for (uint i = 0; i < _viewports.Count; ++i)
-                renderer.SetViewport(i, _viewports[(int)i]);
+            for (var i = 0; i < _viewports.Count; ++i)
+                renderer.SetViewport((uint)i, _viewports[i]);
         }
     }
 
@@ -137,26 +137,26 @@ public class ApplicationState : Object
     public MouseMode GetMouseMode() => _mouseMode;
 
     /// <summary>Set number of backbuffer viewports to render.</summary>
-    public void SetNumViewports(uint num)
+    public void SetNumViewports(int num)
     {
         while (_viewports.Count < num)
             _viewports.Add(null);
         if (_viewports.Count > num)
-            _viewports.RemoveRange((int)num, _viewports.Count - (int)num);
+            _viewports.RemoveRange(num, _viewports.Count - num);
 
         if (_active)
-            GetSubsystem<Renderer>()!.SetNumViewports(num);
+            GetSubsystem<Renderer>()!.SetNumViewports((uint)num);
     }
 
     /// <summary>Set a backbuffer viewport.</summary>
-    public void SetViewport(uint index, Viewport? viewport)
+    public void SetViewport(int index, Viewport? viewport)
     {
         while (_viewports.Count <= index)
             _viewports.Add(null);
 
-        _viewports[(int)index] = viewport;
+        _viewports[index] = viewport;
         if (_active)
-            GetSubsystem<Renderer>()!.SetViewport(index, viewport);
+            GetSubsystem<Renderer>()!.SetViewport((uint)index, viewport);
     }
 
     /// <summary>Set default zone fog color.</summary>
@@ -168,10 +168,10 @@ public class ApplicationState : Object
     }
 
     /// <summary>Return backbuffer viewport by index.</summary>
-    public Viewport? GetViewport(uint index) => index < _viewports.Count ? _viewports[(int)index] : null;
+    public Viewport? GetViewport(int index) => index >= 0 && index < _viewports.Count ? _viewports[index] : null;
 
     /// <summary>Return nth backbuffer viewport associated to a scene. Index 0 returns the first.</summary>
-    public Viewport? GetViewportForScene(Scene? scene, uint index)
+    public Viewport? GetViewportForScene(Scene? scene, int index)
     {
         for (var i = 0; i < _viewports.Count; ++i)
         {

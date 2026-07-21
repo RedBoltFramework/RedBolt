@@ -5,6 +5,20 @@ namespace RedBolt.Tests;
 public sealed class StateManagerTests
 {
     [Fact]
+    public void Application_state_uses_int_viewport_counts_and_indices()
+    {
+        using var state = new TestState();
+        var count = 2;
+        var index = 1;
+
+        state.SetNumViewports(count);
+        state.SetViewport(index, null);
+
+        Assert.Null(state.GetViewport(index));
+        Assert.Null(state.GetViewportForScene(null, index));
+    }
+
+    [Fact]
     public void State_manager_copies_queued_bundle_values()
     {
         using var engine = new Engine();
