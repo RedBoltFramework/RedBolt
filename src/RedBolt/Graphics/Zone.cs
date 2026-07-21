@@ -222,9 +222,6 @@ public class Zone : Drawable
 
     public void SetZoneTexture(Texture? texture)
     {
-        if (_zoneTexture is not null)
-            _zoneTexture.ReloadFinished -= HandleZoneTextureReloadFinished;
-
         _zoneTexture = texture;
         UpdateZoneTextureSubscription();
         MarkCachedTextureDirty();
@@ -234,9 +231,6 @@ public class Zone : Drawable
 
     public void SetZoneTextureAttr(ResourceRef value)
     {
-        if (_zoneTexture is not null)
-            _zoneTexture.ReloadFinished -= HandleZoneTextureReloadFinished;
-
         var cache = GetSubsystem<ResourceCache>()!;
         _zoneTexture = cache.GetResource(value.Type, value.Name) as Texture;
         UpdateZoneTextureSubscription();
@@ -451,11 +445,12 @@ public class Zone : Drawable
 
     private void UpdateZoneTextureSubscription()
     {
+        UnsubscribeFromEvent<ResourceEvents.ReloadFinished>();
         if (_zoneTexture is not null)
-            _zoneTexture.ReloadFinished += HandleZoneTextureReloadFinished;
+            SubscribeToEvent<ResourceEvents.ReloadFinished>(_zoneTexture, HandleZoneTextureReloadFinished);
     }
 
-    private void HandleZoneTextureReloadFinished(Resource resource)
+    private void HandleZoneTextureReloadFinished(ref ResourceEvents.ReloadFinished eventData)
     {
         MarkCachedTextureDirty();
     }
@@ -500,8 +495,6 @@ public class Zone : Drawable
         _reflectionProbeData.GetStorage().Value = default;
         _lastAmbientEndZone.SetTarget(null!);
         _lastAmbientStartZone.SetTarget(null!);
-        if (_zoneTexture is not null)
-            _zoneTexture.ReloadFinished -= HandleZoneTextureReloadFinished;
         _zoneTexture = null;
 
         base.Dispose();

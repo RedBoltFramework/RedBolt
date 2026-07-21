@@ -63,6 +63,27 @@ public sealed class ZoneTests
     }
 
     [Fact]
+    public void Zone_texture_reload_event_invalidates_only_the_current_texture()
+    {
+        var zone = new Zone();
+        var firstTexture = new Texture2D("FirstZoneTexture");
+        var secondTexture = new Texture2D("SecondZoneTexture");
+        zone.SetZoneTexture(firstTexture);
+        zone.SetZoneTexture(secondTexture);
+        zone.UpdateCachedData();
+
+        var cache = Assert.IsType<ThreadSafeCache<SphericalHarmonicsDot9>>(
+            GetPrivateField("_cachedTextureLighting").GetValue(zone));
+        Assert.False(cache.IsInvalidated());
+
+        firstTexture.SendEvent<ResourceEvents.ReloadFinished>();
+        Assert.False(cache.IsInvalidated());
+
+        secondTexture.SendEvent<ResourceEvents.ReloadFinished>();
+        Assert.True(cache.IsInvalidated());
+    }
+
+    [Fact]
     public void BoundingBox_and_ambient_roundtrip()
     {
         var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
