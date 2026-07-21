@@ -113,10 +113,10 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     private readonly Matrix3 _matrix3Value;
     private readonly Matrix3x4 _matrix3x4Value;
     private readonly Matrix4 _matrix4Value;
-    private readonly VariantVector _variantVectorValue = new();
-    private readonly StringVector _stringVectorValue = new();
-    private readonly VariantMap _variantMapValue = new();
-    private readonly StringVariantMap _stringVariantMapValue = new();
+    private readonly VariantVector? _variantVectorValue;
+    private readonly StringVector? _stringVectorValue;
+    private readonly VariantMap? _variantMapValue;
+    private readonly StringVariantMap? _stringVariantMapValue;
     private readonly VariantCurve _variantCurveValue = EmptyVariantCurve;
     private readonly CustomVariantValue _customValue = CustomVariantValue.Empty;
 
@@ -381,10 +381,10 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             VariantType.Buffer => new Variant(_bufferValue),
             VariantType.CString => new Variant(_cstringValue),
             VariantType.ResourceRefList => new Variant(_resourceRefListValue),
-            VariantType.VariantVector => new Variant(_variantVectorValue),
-            VariantType.StringVector => new Variant(_stringVectorValue),
-            VariantType.VariantMap => new Variant(_variantMapValue),
-            VariantType.StringVariantMap => new Variant(_stringVariantMapValue),
+            VariantType.VariantVector => new Variant(_variantVectorValue!),
+            VariantType.StringVector => new Variant(_stringVectorValue!),
+            VariantType.VariantMap => new Variant(_variantMapValue!),
+            VariantType.StringVariantMap => new Variant(_stringVariantMapValue!),
             VariantType.VariantCurve => new Variant(_variantCurveValue),
             VariantType.Custom => new Variant((CustomVariantValue)_customValue.Clone()),
             _ => this
@@ -401,13 +401,13 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             _cstringValue?.Dispose();
             break;
         case VariantType.VariantVector:
-            _variantVectorValue.Dispose();
+            _variantVectorValue!.Dispose();
             break;
         case VariantType.VariantMap:
-            _variantMapValue.Dispose();
+            _variantMapValue!.Dispose();
             break;
         case VariantType.StringVariantMap:
-            _stringVariantMapValue.Dispose();
+            _stringVariantMapValue!.Dispose();
             break;
         case VariantType.Custom:
             if (!ReferenceEquals(_customValue, CustomVariantValue.Empty))
@@ -591,13 +591,13 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
 
     public Matrix4 GetMatrix4() => _type == VariantType.Matrix4 ? _matrix4Value : Matrix4.IDENTITY;
 
-    public VariantVector GetVariantVector() => _type == VariantType.VariantVector ? _variantVectorValue : EmptyVariantVector;
+    public VariantVector GetVariantVector() => _type == VariantType.VariantVector ? _variantVectorValue! : EmptyVariantVector;
 
-    public StringVector GetStringVector() => _type == VariantType.StringVector ? _stringVectorValue : EmptyStringVector;
+    public StringVector GetStringVector() => _type == VariantType.StringVector ? _stringVectorValue! : EmptyStringVector;
 
-    public VariantMap GetVariantMap() => _type == VariantType.VariantMap ? _variantMapValue : EmptyVariantMap;
+    public VariantMap GetVariantMap() => _type == VariantType.VariantMap ? _variantMapValue! : EmptyVariantMap;
 
-    public StringVariantMap GetStringVariantMap() => _type == VariantType.StringVariantMap ? _stringVariantMapValue : EmptyStringVariantMap;
+    public StringVariantMap GetStringVariantMap() => _type == VariantType.StringVariantMap ? _stringVariantMapValue! : EmptyStringVariantMap;
 
     public VariantCurve GetVariantCurve() => _type == VariantType.VariantCurve ? _variantCurveValue : EmptyVariantCurve;
 
@@ -819,9 +819,9 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             VariantType.VoidPtr => _voidPtrValue == IntPtr.Zero,
             VariantType.ResourceRef => string.IsNullOrEmpty(_resourceRefValue.Name),
             VariantType.ResourceRefList => AllNullOrEmpty(_resourceRefListValue.Names),
-            VariantType.VariantVector => _variantVectorValue.Count == 0,
-            VariantType.StringVector => _stringVectorValue.Count == 0,
-            VariantType.VariantMap => _variantMapValue.Count == 0,
+            VariantType.VariantVector => _variantVectorValue!.Count == 0,
+            VariantType.StringVector => _stringVectorValue!.Count == 0,
+            VariantType.VariantMap => _variantMapValue!.Count == 0,
             VariantType.IntRect => _intRectValue == IntRect.Zero,
             VariantType.Vector2i => _intVector2Value == Vector2i.Zero,
             VariantType.Vector3i => _intVector3Value == Vector3i.Zero,
@@ -830,7 +830,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             VariantType.Matrix4 => _matrix4Value == Matrix4.IDENTITY,
             VariantType.Rect => _rectValue == Rect.Zero,
             VariantType.Custom => _customValue.IsZero(),
-            VariantType.StringVariantMap => _stringVariantMapValue.Count == 0,
+            VariantType.StringVariantMap => _stringVariantMapValue!.Count == 0,
             VariantType.VariantCurve => _variantCurveValue.KeyFrames.Count == 0,
             _ => true
         };
@@ -866,10 +866,10 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             VariantType.Matrix3 => _matrix3Value,
             VariantType.Matrix3x4 => _matrix3x4Value,
             VariantType.Matrix4 => _matrix4Value,
-            VariantType.VariantVector => new VariantVector(_variantVectorValue),
-            VariantType.StringVector => new StringVector(_stringVectorValue),
-            VariantType.VariantMap => new VariantMap(_variantMapValue),
-            VariantType.StringVariantMap => new StringVariantMap(_stringVariantMapValue),
+            VariantType.VariantVector => new VariantVector(_variantVectorValue!),
+            VariantType.StringVector => new StringVector(_stringVectorValue!),
+            VariantType.VariantMap => new VariantMap(_variantMapValue!),
+            VariantType.StringVariantMap => new StringVariantMap(_stringVariantMapValue!),
             VariantType.VariantCurve => _variantCurveValue.Clone(),
             VariantType.Custom => _customValue.Value is ICloneable cloneable ? cloneable.Clone() : _customValue.Value,
             _ => null!
@@ -966,10 +966,10 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             VariantType.Matrix3 => _matrix3Value.Equals(other._matrix3Value),
             VariantType.Matrix3x4 => _matrix3x4Value.Equals(other._matrix3x4Value),
             VariantType.Matrix4 => _matrix4Value.Equals(other._matrix4Value),
-            VariantType.VariantVector => SequenceEqual(_variantVectorValue, other._variantVectorValue),
-            VariantType.StringVector => SequenceEqual(_stringVectorValue, other._stringVectorValue),
-            VariantType.VariantMap => DictionaryEqual(_variantMapValue, other._variantMapValue),
-            VariantType.StringVariantMap => DictionaryEqual(_stringVariantMapValue, other._stringVariantMapValue),
+            VariantType.VariantVector => SequenceEqual(_variantVectorValue!, other._variantVectorValue!),
+            VariantType.StringVector => SequenceEqual(_stringVectorValue!, other._stringVectorValue!),
+            VariantType.VariantMap => DictionaryEqual(_variantMapValue!, other._variantMapValue!),
+            VariantType.StringVariantMap => DictionaryEqual(_stringVariantMapValue!, other._stringVariantMapValue!),
             VariantType.VariantCurve => _variantCurveValue.Equals(other._variantCurveValue),
             VariantType.Custom => _customValue.Equals(other._customValue),
             _ => false
@@ -1061,16 +1061,16 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             hash.Add(_matrix4Value);
             break;
         case VariantType.VariantVector:
-            AddSequenceHash(ref hash, _variantVectorValue);
+            AddSequenceHash(ref hash, _variantVectorValue!);
             break;
         case VariantType.StringVector:
-            AddSequenceHash(ref hash, _stringVectorValue);
+            AddSequenceHash(ref hash, _stringVectorValue!);
             break;
         case VariantType.VariantMap:
-            AddDictionaryHash(ref hash, _variantMapValue);
+            AddDictionaryHash(ref hash, _variantMapValue!);
             break;
         case VariantType.StringVariantMap:
-            AddDictionaryHash(ref hash, _stringVariantMapValue);
+            AddDictionaryHash(ref hash, _stringVariantMapValue!);
             break;
         case VariantType.VariantCurve:
             hash.Add(_variantCurveValue);

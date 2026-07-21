@@ -100,6 +100,28 @@ public sealed class VariantTests
     }
 
     [Fact]
+    public void Scalar_variant_constructs_no_inactive_container_payloads()
+    {
+        var variant = new Variant(42);
+        var fieldNames = new[]
+        {
+            "_variantVectorValue",
+            "_stringVectorValue",
+            "_variantMapValue",
+            "_stringVariantMapValue"
+        };
+
+        foreach (var fieldName in fieldNames)
+        {
+            var field = typeof(Variant).GetField(
+                fieldName,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(field);
+            Assert.Null(field.GetValue(variant));
+        }
+    }
+
+    [Fact]
     public void Mutating_methods_match_rbfx_variant_contracts()
     {
         var variant = new Variant(1);
