@@ -49,6 +49,28 @@ public sealed class StaticModelTests
     }
 
     [Fact]
+    public void Model_reload_event_reapplies_only_the_current_model()
+    {
+        var firstModel = new Model("First");
+        var secondModel = new Model("Second");
+        secondModel.SetBoundingBox(new BoundingBox(
+            new Vector3f(-2.0f, -2.0f, -2.0f), new Vector3f(2.0f, 2.0f, 2.0f)));
+        var staticModel = new Scene().CreateChild("StaticModel").CreateComponent<StaticModel>();
+        staticModel.SetModel(firstModel);
+        staticModel.SetModel(secondModel);
+
+        firstModel.SetBoundingBox(new BoundingBox(
+            new Vector3f(-3.0f, -3.0f, -3.0f), new Vector3f(3.0f, 3.0f, 3.0f)));
+        firstModel.SendEvent<ResourceEvents.ReloadFinished>();
+        Assert.Equal(secondModel.GetBoundingBox(), staticModel.GetBoundingBox());
+
+        secondModel.SetBoundingBox(new BoundingBox(
+            new Vector3f(-4.0f, -4.0f, -4.0f), new Vector3f(4.0f, 4.0f, 4.0f)));
+        secondModel.SendEvent<ResourceEvents.ReloadFinished>();
+        Assert.Equal(secondModel.GetBoundingBox(), staticModel.GetBoundingBox());
+    }
+
+    [Fact]
     public void Resource_attributes_roundtrip()
     {
         var model = Resources.Get<Model>("Models/ProceduralBox");

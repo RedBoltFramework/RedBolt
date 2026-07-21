@@ -24,8 +24,6 @@ public class StaticModel : Drawable
     /// <summary>Destruct.</summary>
     public override void Dispose()
     {
-        if (_model is not null)
-            _model.ReloadFinished -= HandleModelReloadFinished;
         _materialsAttr.Names.Clear();
         _model = null;
         _geometries.Clear();
@@ -92,12 +90,12 @@ public class StaticModel : Drawable
         }
 
         if (_model is not null)
-            _model.ReloadFinished -= HandleModelReloadFinished;
+            UnsubscribeFromEvent<ResourceEvents.ReloadFinished>(_model);
 
         _model = model;
         if (model is not null)
         {
-            model.ReloadFinished += HandleModelReloadFinished;
+            SubscribeToEvent<ResourceEvents.ReloadFinished>(model, HandleModelReloadFinished);
 
             SetNumGeometries(model.GetNumGeometries());
             var geometries = model.GetGeometries();
@@ -490,7 +488,7 @@ public class StaticModel : Drawable
         UpdateBatchesLightmaps();
     }
 
-    private void HandleModelReloadFinished(Resource resource)
+    private void HandleModelReloadFinished(ref ResourceEvents.ReloadFinished eventData)
     {
         var currentModel = _model;
         _model = null;
