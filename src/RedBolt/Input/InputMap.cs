@@ -285,10 +285,7 @@ public class InputMap : SimpleResource
     /// <summary>Add new metadata variable or overwrite old value.</summary>
     public void AddMetadata(string name, Variant value)
     {
-        var copy = value.Clone();
-        if (_metadata.Remove(name, out var previous))
-            previous.Dispose();
-        _metadata[name] = copy;
+        _metadata[name] = value;
     }
 
     public void AddMetadata(string name, object? value)
@@ -300,8 +297,7 @@ public class InputMap : SimpleResource
     /// <summary>Remove metadata variable.</summary>
     public void RemoveMetadata(string name)
     {
-        if (_metadata.Remove(name, out var value))
-            value.Dispose();
+        _metadata.Remove(name);
     }
 
     /// <summary>Remove all metadata variables.</summary>

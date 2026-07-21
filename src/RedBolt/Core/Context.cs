@@ -1,5 +1,7 @@
 using RedBolt.Bindings.Sdl;
 using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
@@ -467,19 +469,19 @@ public class Context : ObjectReflectionRegistry
         return _activeEventInvocations.Count > 0 ? _activeEventInvocations[^1].Handler : null;
     }
 
-    public Variant GetGlobalVar(StringHash key)
+    public ref readonly Variant GetGlobalVar(StringHash key)
     {
-        return _globalVars.TryGetValue(key, out var value) ? value : default;
+        ref var value = ref CollectionsMarshal.GetValueRefOrNullRef(_globalVars, key);
+        if (!Unsafe.IsNullRef(ref value))
+            return ref value;
+        return ref Variant.Empty;
     }
 
     public IReadOnlyDictionary<StringHash, Variant> GetGlobalVars() => _globalVars;
 
     public void SetGlobalVar(StringHash key, Variant value)
     {
-        var copy = value.Clone();
-        if (_globalVars.Remove(key, out var previousValue))
-            previousValue.Dispose();
-        _globalVars[key] = copy;
+        _globalVars[key] = value;
     }
 
     public void SendEvent<T>() where T : struct

@@ -100,7 +100,7 @@ public class OutlineGroup : Component
         {
             _drawablesAttr.Dispose();
             foreach (var drawable in drawables)
-                _drawablesAttr.Add((Variant)drawable.Clone());
+                _drawablesAttr.Add(drawable);
         }
         _drawablesDirty = _drawablesAttr.Count != 0;
     }

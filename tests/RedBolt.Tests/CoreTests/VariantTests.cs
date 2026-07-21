@@ -100,6 +100,54 @@ public sealed class VariantTests
     }
 
     [Fact]
+    public void Variant_vector_copies_inserted_values_and_destroys_replaced_or_erased_values()
+    {
+        using var source = Variant.MakeCustomValue(new CloneableCustomValue(1));
+        using var replacement = Variant.MakeCustomValue(new CloneableCustomValue(2));
+        using var values = new VariantVector();
+        IList<Variant> valuesInterface = values;
+
+        valuesInterface.Add(source);
+        var stored = values[0].GetCustom<CloneableCustomValue>();
+        Assert.NotSame(source.GetCustom<CloneableCustomValue>(), stored);
+
+        valuesInterface[0] = replacement;
+        Assert.True(stored.IsDisposed);
+
+        var replacementStored = values[0].GetCustom<CloneableCustomValue>();
+        valuesInterface.RemoveAt(0);
+        Assert.True(replacementStored.IsDisposed);
+        Assert.False(replacement.GetCustom<CloneableCustomValue>().IsDisposed);
+    }
+
+    [Fact]
+    public void Variant_maps_copy_inserted_values_and_destroy_replaced_or_erased_values()
+    {
+        using var source = Variant.MakeCustomValue(new CloneableCustomValue(1));
+        using var replacement = Variant.MakeCustomValue(new CloneableCustomValue(2));
+        using var variantMap = new VariantMap();
+        using var stringVariantMap = new StringVariantMap();
+
+        IDictionary<StringHash, Variant> mapInterface = variantMap;
+        mapInterface.Add(new StringHash("Value"), source);
+        var stored = variantMap[new StringHash("Value")].GetCustom<CloneableCustomValue>();
+        Assert.NotSame(source.GetCustom<CloneableCustomValue>(), stored);
+
+        mapInterface[new StringHash("Value")] = replacement;
+        Assert.True(stored.IsDisposed);
+        var replacementStored = variantMap[new StringHash("Value")].GetCustom<CloneableCustomValue>();
+        Assert.True(mapInterface.Remove(new StringHash("Value")));
+        Assert.True(replacementStored.IsDisposed);
+
+        IDictionary<string, Variant> stringMapInterface = stringVariantMap;
+        stringMapInterface["Value"] = source;
+        var stringStored = stringVariantMap["Value"].GetCustom<CloneableCustomValue>();
+        stringMapInterface.Clear();
+        Assert.True(stringStored.IsDisposed);
+        Assert.False(source.GetCustom<CloneableCustomValue>().IsDisposed);
+    }
+
+    [Fact]
     public void Variant_uses_explicit_union_and_single_reference_storage()
     {
         var bindingFlags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;

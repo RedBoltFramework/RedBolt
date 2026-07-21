@@ -525,9 +525,9 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     public void Clear() => Dispose();
 
     /// <summary>Set buffer type from a memory area.</summary>
-    public void SetBuffer(ReadOnlySpan<byte> data, uint size)
+    public void SetBuffer(ReadOnlySpan<byte> data, int size)
     {
-        var replacement = new Variant(data[..(int)size].ToArray());
+        var replacement = new Variant(data[..size].ToArray());
         Dispose();
         this = replacement;
     }
@@ -1520,48 +1520,260 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     }
 }
 
-public sealed class VariantMap : Dictionary<StringHash, Variant>, IDisposable
+public sealed class VariantMap : Dictionary<StringHash, Variant>, IDictionary<StringHash, Variant>, IDisposable
 {
     public VariantMap()
     {
     }
 
     public VariantMap(IDictionary<StringHash, Variant> dictionary)
-        : base(dictionary.ToDictionary(static pair => pair.Key, static pair => pair.Value.Clone()))
     {
+        try
+        {
+            foreach (var (key, value) in dictionary)
+                Add(key, value);
+        }
+        catch
+        {
+            Clear();
+            throw;
+        }
     }
 
-    public void Dispose()
+    public new Variant this[StringHash key]
+    {
+        get => base[key];
+        set
+        {
+            var copy = value.Clone();
+            if (TryGetValue(key, out var previousValue))
+            {
+                base[key] = copy;
+                previousValue.Dispose();
+            }
+            else
+            {
+                try
+                {
+                    base[key] = copy;
+                }
+                catch
+                {
+                    copy.Dispose();
+                    throw;
+                }
+            }
+        }
+    }
+
+    public new void Add(StringHash key, Variant value)
+    {
+        var copy = value.Clone();
+        try
+        {
+            base.Add(key, copy);
+        }
+        catch
+        {
+            copy.Dispose();
+            throw;
+        }
+    }
+
+    public new bool TryAdd(StringHash key, Variant value)
+    {
+        var copy = value.Clone();
+        if (base.TryAdd(key, copy))
+            return true;
+        copy.Dispose();
+        return false;
+    }
+
+    public new bool Remove(StringHash key)
+    {
+        if (!TryGetValue(key, out var value) || !base.Remove(key))
+            return false;
+        value.Dispose();
+        return true;
+    }
+
+    public new bool Remove(StringHash key, out Variant value)
+    {
+        if (!TryGetValue(key, out value) || !base.Remove(key))
+        {
+            value = default;
+            return false;
+        }
+        return true;
+    }
+
+    public new void Clear()
     {
         foreach (var value in Values)
         {
             var copy = value;
             copy.Dispose();
         }
+        base.Clear();
+    }
+
+    public void Dispose()
+    {
         Clear();
+    }
+
+    Variant IDictionary<StringHash, Variant>.this[StringHash key]
+    {
+        get => this[key];
+        set => this[key] = value;
+    }
+
+    void IDictionary<StringHash, Variant>.Add(StringHash key, Variant value) => Add(key, value);
+
+    bool IDictionary<StringHash, Variant>.Remove(StringHash key) => Remove(key);
+
+    void ICollection<KeyValuePair<StringHash, Variant>>.Add(KeyValuePair<StringHash, Variant> item) => Add(item.Key, item.Value);
+
+    void ICollection<KeyValuePair<StringHash, Variant>>.Clear() => Clear();
+
+    bool ICollection<KeyValuePair<StringHash, Variant>>.Remove(KeyValuePair<StringHash, Variant> item)
+    {
+        return TryGetValue(item.Key, out var value) && value.Equals(item.Value) && Remove(item.Key);
     }
 }
 
-public sealed class VariantVector : List<Variant>, IDisposable
+public sealed class VariantVector : List<Variant>, IList<Variant>, IDisposable
 {
     public VariantVector()
     {
     }
 
     public VariantVector(IEnumerable<Variant> collection)
-        : base(collection.Select(static value => value.Clone()))
     {
+        try
+        {
+            AddRange(collection);
+        }
+        catch
+        {
+            Clear();
+            throw;
+        }
+    }
+
+    public new Variant this[int index]
+    {
+        get => base[index];
+        set
+        {
+            var copy = value.Clone();
+            var previousValue = base[index];
+            base[index] = copy;
+            previousValue.Dispose();
+        }
+    }
+
+    public new void Add(Variant value)
+    {
+        var copy = value.Clone();
+        try
+        {
+            base.Add(copy);
+        }
+        catch
+        {
+            copy.Dispose();
+            throw;
+        }
+    }
+
+    public new void AddRange(IEnumerable<Variant> collection)
+    {
+        foreach (var value in collection)
+            Add(value);
+    }
+
+    public new void Insert(int index, Variant value)
+    {
+        var copy = value.Clone();
+        try
+        {
+            base.Insert(index, copy);
+        }
+        catch
+        {
+            copy.Dispose();
+            throw;
+        }
+    }
+
+    public new void InsertRange(int index, IEnumerable<Variant> collection)
+    {
+        foreach (var value in collection)
+            Insert(index++, value);
+    }
+
+    public new bool Remove(Variant value)
+    {
+        var index = IndexOf(value);
+        if (index < 0)
+            return false;
+        RemoveAt(index);
+        return true;
+    }
+
+    public new int RemoveAll(Predicate<Variant> match)
+    {
+        var removed = 0;
+        for (var i = Count - 1; i >= 0; --i)
+        {
+            if (!match(base[i]))
+                continue;
+            RemoveAt(i);
+            ++removed;
+        }
+        return removed;
+    }
+
+    public new void RemoveAt(int index)
+    {
+        var value = base[index];
+        base.RemoveAt(index);
+        value.Dispose();
+    }
+
+    public new void RemoveRange(int index, int count)
+    {
+        for (var i = index + count - 1; i >= index; --i)
+            RemoveAt(i);
+    }
+
+    public new void Clear()
+    {
+        for (var i = Count - 1; i >= 0; --i)
+        {
+            var value = base[i];
+            value.Dispose();
+        }
+        base.Clear();
     }
 
     public void Dispose()
     {
-        for (var i = Count - 1; i >= 0; --i)
-        {
-            var value = this[i];
-            value.Dispose();
-        }
         Clear();
     }
+
+    Variant IList<Variant>.this[int index]
+    {
+        get => this[index];
+        set => this[index] = value;
+    }
+
+    void ICollection<Variant>.Add(Variant item) => Add(item);
+
+    void ICollection<Variant>.Clear() => Clear();
+
+    bool ICollection<Variant>.Remove(Variant item) => Remove(item);
 }
 
 public sealed class StringVector : List<string>
@@ -1576,7 +1788,7 @@ public sealed class StringVector : List<string>
     }
 }
 
-public sealed class StringVariantMap : Dictionary<string, Variant>, IDisposable
+public sealed class StringVariantMap : Dictionary<string, Variant>, IDictionary<string, Variant>, IDisposable
 {
     public StringVariantMap()
         : base(StringComparer.Ordinal)
@@ -1584,18 +1796,119 @@ public sealed class StringVariantMap : Dictionary<string, Variant>, IDisposable
     }
 
     public StringVariantMap(IDictionary<string, Variant> dictionary)
-        : base(dictionary.ToDictionary(static pair => pair.Key, static pair => pair.Value.Clone()), StringComparer.Ordinal)
+        : base(StringComparer.Ordinal)
     {
+        try
+        {
+            foreach (var (key, value) in dictionary)
+                Add(key, value);
+        }
+        catch
+        {
+            Clear();
+            throw;
+        }
     }
 
-    public void Dispose()
+    public new Variant this[string key]
+    {
+        get => base[key];
+        set
+        {
+            var copy = value.Clone();
+            if (TryGetValue(key, out var previousValue))
+            {
+                base[key] = copy;
+                previousValue.Dispose();
+            }
+            else
+            {
+                try
+                {
+                    base[key] = copy;
+                }
+                catch
+                {
+                    copy.Dispose();
+                    throw;
+                }
+            }
+        }
+    }
+
+    public new void Add(string key, Variant value)
+    {
+        var copy = value.Clone();
+        try
+        {
+            base.Add(key, copy);
+        }
+        catch
+        {
+            copy.Dispose();
+            throw;
+        }
+    }
+
+    public new bool TryAdd(string key, Variant value)
+    {
+        var copy = value.Clone();
+        if (base.TryAdd(key, copy))
+            return true;
+        copy.Dispose();
+        return false;
+    }
+
+    public new bool Remove(string key)
+    {
+        if (!TryGetValue(key, out var value) || !base.Remove(key))
+            return false;
+        value.Dispose();
+        return true;
+    }
+
+    public new bool Remove(string key, out Variant value)
+    {
+        if (!TryGetValue(key, out value) || !base.Remove(key))
+        {
+            value = default;
+            return false;
+        }
+        return true;
+    }
+
+    public new void Clear()
     {
         foreach (var value in Values)
         {
             var copy = value;
             copy.Dispose();
         }
+        base.Clear();
+    }
+
+    public void Dispose()
+    {
         Clear();
+    }
+
+    Variant IDictionary<string, Variant>.this[string key]
+    {
+        get => this[key];
+        set => this[key] = value;
+    }
+
+    void IDictionary<string, Variant>.Add(string key, Variant value) => Add(key, value);
+
+    bool IDictionary<string, Variant>.Remove(string key) => Remove(key);
+
+    void ICollection<KeyValuePair<string, Variant>>.Add(KeyValuePair<string, Variant> item) => Add(item.Key, item.Value);
+
+    void ICollection<KeyValuePair<string, Variant>>.Clear() => Clear();
+
+    bool ICollection<KeyValuePair<string, Variant>>.Remove(KeyValuePair<string, Variant> item)
+    {
+        return TryGetValue(item.Key, out var value) && value.Equals(item.Value) && Remove(item.Key);
     }
 }
 

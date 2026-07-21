@@ -80,18 +80,18 @@ public class Spline : ICloneable, IDisposable, IEquatable<Spline>
                     // Non-cyclic case: duplicate start and end
                     if (!_knots[0].Equals(_knots[^1]))
                     {
-                        _fullKnotsScratch.Add(_knots[0].Clone());
+                        _fullKnotsScratch.Add(_knots[0]);
                         foreach (var knot in _knots)
-                            _fullKnotsScratch.Add(knot.Clone());
-                        _fullKnotsScratch.Add(_knots[^1].Clone());
+                            _fullKnotsScratch.Add(knot);
+                        _fullKnotsScratch.Add(_knots[^1]);
                     }
                     // Cyclic case: smooth the tangents
                     else
                     {
-                        _fullKnotsScratch.Add(_knots[^2].Clone());
+                        _fullKnotsScratch.Add(_knots[^2]);
                         foreach (var knot in _knots)
-                            _fullKnotsScratch.Add(knot.Clone());
-                        _fullKnotsScratch.Add(_knots[1].Clone());
+                            _fullKnotsScratch.Add(knot);
+                        _fullKnotsScratch.Add(_knots[1]);
                     }
                 }
                 return CatmullRomInterpolation(_fullKnotsScratch, f);
@@ -122,19 +122,16 @@ public class Spline : ICloneable, IDisposable, IEquatable<Spline>
     }
 
     /// <summary>Set the value of an existing knot.</summary>
-    public void SetKnot(Variant knot, uint index)
+    public void SetKnot(Variant knot, int index)
     {
         if (index < _knots.Count)
         {
             if (_knots.Count > 0 && _knots[0].Type == knot.Type)
             {
-                var copy = knot.Clone();
-                var previousValue = _knots[(int)index];
-                previousValue.Dispose();
-                _knots[(int)index] = copy;
+                _knots[index] = knot;
             }
             else if (_knots.Count == 0)
-                _knots.Add(knot.Clone());
+                _knots.Add(knot);
             else
                 Log.GetLogger().LogError(
                     "Attempted to set a Spline's Knot value of type {KnotType} where elements are already using {ExistingType}",
@@ -147,9 +144,9 @@ public class Spline : ICloneable, IDisposable, IEquatable<Spline>
     public void AddKnot(Variant knot)
     {
         if (_knots.Count > 0 && _knots[0].Type == knot.Type)
-            _knots.Add(knot.Clone());
+            _knots.Add(knot);
         else if (_knots.Count == 0)
-            _knots.Add(knot.Clone());
+            _knots.Add(knot);
         else
             Log.GetLogger().LogError(
                 "Attempted to add Knot to Spline of type {KnotType} where elements are already using {ExistingType}",
@@ -158,15 +155,15 @@ public class Spline : ICloneable, IDisposable, IEquatable<Spline>
     }
 
     /// <summary>Add a knot to the spline at a specific index.</summary>
-    public void AddKnot(Variant knot, uint index)
+    public void AddKnot(Variant knot, int index)
     {
         if (index > _knots.Count)
-            index = (uint)_knots.Count;
+            index = _knots.Count;
 
         if (_knots.Count > 0 && _knots[0].Type == knot.Type)
-            _knots.Insert((int)index, knot.Clone());
+            _knots.Insert(index, knot);
         else if (_knots.Count == 0)
-            _knots.Add(knot.Clone());
+            _knots.Add(knot);
         else
             Log.GetLogger().LogError(
                 "Attempted to add Knot to Spline of type {KnotType} where elements are already using {ExistingType}",
@@ -177,17 +174,13 @@ public class Spline : ICloneable, IDisposable, IEquatable<Spline>
     /// <summary>Remove the last knot on the spline.</summary>
     public void RemoveKnot()
     {
-        var knot = _knots[^1];
-        knot.Dispose();
         _knots.RemoveAt(_knots.Count - 1);
     }
 
     /// <summary>Remove the knot at the specific index.</summary>
-    public void RemoveKnot(uint index)
+    public void RemoveKnot(int index)
     {
-        var knot = _knots[(int)index];
-        knot.Dispose();
-        _knots.RemoveAt((int)index);
+        _knots.RemoveAt(index);
     }
 
     /// <summary>Clear the spline.</summary>

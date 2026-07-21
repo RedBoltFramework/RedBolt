@@ -131,11 +131,7 @@ public sealed class ConfigFile : Object
                         ArchiveSerialization.SerializeValue(archive, "key", ref key);
                         ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
                         if (!string.IsNullOrEmpty(key))
-                        {
-                            if (varMap.Remove(key, out var previous))
-                                previous.Dispose();
-                            varMap[key] = value.Clone();
-                        }
+                            varMap[key] = value;
                     }
                     finally
                     {
@@ -215,10 +211,10 @@ public sealed class ConfigFile : Object
     public void SetVariable(string name, Variant value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (_variables.Remove(name, out var previous))
-            previous.Dispose();
         if (!value.IsEmpty)
-            _variables[name] = value.Clone();
+            _variables[name] = value;
+        else
+            _variables.Remove(name);
     }
 
     public bool HasVariable(string name)
@@ -349,9 +345,7 @@ public sealed class ConfigFile : Object
                     if (!string.IsNullOrEmpty(key))
                     {
                         using var value = JSONValue.FromJsonNode(variableObject).GetVariant();
-                        if (configFlavor.Variables.Remove(key, out var previous))
-                            previous.Dispose();
-                        configFlavor.Variables[key] = value.Clone();
+                        configFlavor.Variables[key] = value;
                     }
                 }
             }
@@ -450,11 +444,7 @@ public sealed class ConfigFile : Object
             if (variables is null)
                 continue;
             foreach (var (key, value) in variables)
-            {
-                if (result.Remove(key, out var previous))
-                    previous.Dispose();
-                result[key] = value.Clone();
-            }
+                result[key] = value;
         }
         return result;
     }
@@ -463,21 +453,17 @@ public sealed class ConfigFile : Object
     {
         using var defaultValues = new StringVariantMap();
         foreach (var (name, def) in _definitions)
-            defaultValues[name] = def.DefaultValue.Clone();
+            defaultValues[name] = def.DefaultValue;
 
         using var flavorVars = GetFlavorVariables(flavor);
         foreach (var (name, value) in flavorVars)
-        {
-            if (defaultValues.Remove(name, out var previous))
-                previous.Dispose();
-            defaultValues[name] = value.Clone();
-        }
+            defaultValues[name] = value;
 
         var overrides = new StringVariantMap();
         foreach (var (name, value) in _variables)
         {
             if (!defaultValues.TryGetValue(name, out var defVal)) continue;
-            if (!defVal.Equals(value)) overrides[name] = value.Clone();
+            if (!defVal.Equals(value)) overrides[name] = value;
         }
         return overrides;
     }
