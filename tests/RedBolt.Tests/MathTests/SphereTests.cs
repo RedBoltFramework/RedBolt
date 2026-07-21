@@ -12,6 +12,7 @@ public sealed class SphereTests
         Assert.True(typeof(Circle).IsValueType);
         Assert.True(typeof(Sphere).IsValueType);
         Assert.True(typeof(ICloneable).IsAssignableFrom(typeof(Sphere)));
+        Assert.False(typeof(IApproximateEquatable<Sphere>).IsAssignableFrom(typeof(Sphere)));
         Assert.False(RuntimeHelpers.IsReferenceOrContainsReferences<Circle>());
         Assert.False(RuntimeHelpers.IsReferenceOrContainsReferences<Sphere>());
         Assert.Equal(28, Marshal.SizeOf<Circle>());

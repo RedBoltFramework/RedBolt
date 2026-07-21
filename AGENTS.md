@@ -282,6 +282,7 @@ These are the ONLY places C# is allowed to differ from C++:
 - Minor API tweaks are allowed ONLY to avoid GC churn.
 - C# indices and sizes use `int`, including when the corresponding C++ type is unsigned.
 - Prefer property syntax alone when it can faithfully represent a C++ member and its public accessors; do not add a private backing field only to wrap it in a public property. Private fields remain allowed when required by behavior or storage semantics.
+- `IApproximateEquatable<T>` is a managed addition used to expose strongly typed epsilon-based equality across math value types and is to be kept.
 - Do NOT re-port things C# already has, for example:
     - Threading primitives (locks, tasks, thread pools)
     - Math functions and constants

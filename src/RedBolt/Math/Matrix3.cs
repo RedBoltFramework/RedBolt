@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 namespace RedBolt;
 
 [StructLayout(LayoutKind.Sequential)]
-public struct Matrix3 : IEquatable<Matrix3>
+public struct Matrix3 : IEquatable<Matrix3>, IApproximateEquatable<Matrix3>
 {
     /// <summary>Construct an identity matrix.</summary>
     public Matrix3()
