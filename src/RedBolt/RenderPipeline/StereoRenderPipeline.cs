@@ -793,7 +793,7 @@ public class StereoRenderPipelineView : RenderPipelineView
         _renderOutputFlags = default;
         if (_renderPath is not null)
         {
-            var aggregatedTraits = _renderPath.GetAggregatedPassTraits();
+            var aggregatedTraits = _renderPath.AggregatedPassTraits;
             if (aggregatedTraits.NeedReadWriteColorBuffer)
                 _renderOutputFlags |= RenderOutputFlag.NeedColorOutputReadAndWrite;
             if (aggregatedTraits.NeedBilinearColorSampler)

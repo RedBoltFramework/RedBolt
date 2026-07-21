@@ -576,6 +576,18 @@ public class Engine : Object
         RedBolt.Context.SetInstance(_context);
         WorkQueue.SetMainThread();
         _context.InitializeEngineSubsystems(this);
+
+        // Register render pipeline.
+        // Extract this code into function if you are adding more.
+        RenderPipeline.RegisterObject(_context);
+        RenderPath.RegisterObject(_context);
+        RenderPass.RegisterObject(_context);
+        AmbientOcclusionPass.RegisterObject(_context);
+        AutoExposurePass.RegisterObject(_context);
+        BloomPass.RegisterObject(_context);
+        FullScreenShaderPass.RegisterObject(_context);
+        OutlineRenderPass.RegisterObject(_context);
+        ToneMappingPass.RegisterObject(_context);
     }
 
     private void ApplyInitializationParameters()

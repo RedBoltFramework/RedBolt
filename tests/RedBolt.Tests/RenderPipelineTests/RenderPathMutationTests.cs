@@ -14,7 +14,7 @@ public sealed class RenderPathMutationTests
         renderPath.ReorderPass(second, 0);
         renderPath.RemovePass(first);
 
-        Assert.Same(second, Assert.Single(renderPath.GetPasses()));
+        Assert.Same(second, Assert.Single(renderPath.Passes));
     }
 
     private sealed class TestRenderPass : RenderPass

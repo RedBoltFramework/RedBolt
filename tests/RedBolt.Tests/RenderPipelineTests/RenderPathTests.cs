@@ -2,8 +2,14 @@ using RedBolt;
 
 namespace RedBolt.Tests;
 
+[Collection(nameof(HeadlessEngineCollection))]
 public sealed class RenderPathTests
 {
+    public RenderPathTests(HeadlessEngineFixture fixture)
+    {
+        ArgumentNullException.ThrowIfNull(fixture);
+    }
+
     [Fact]
     public void Render_path_repairs_enabled_passes_by_name()
     {
@@ -26,7 +32,7 @@ public sealed class RenderPathTests
     }
 
     [Fact]
-    public void Render_path_repair_returns_matching_passes_without_copy()
+    public void Render_path_repair_returns_independent_matching_passes_copy()
     {
         var renderPath = new RenderPath("RenderPaths/Test.xml");
         renderPath.AddPass(new TrackingRenderPass("Alpha"));
@@ -40,7 +46,115 @@ public sealed class RenderPathTests
 
         var repaired = renderPath.RepairEnabledRenderPasses(matchingPasses);
 
-        Assert.Same(matchingPasses, repaired);
+        Assert.NotSame(matchingPasses, repaired);
+        Assert.Equal(matchingPasses, repaired);
+    }
+
+    [Fact]
+    public void Render_path_clone_deep_copies_passes_without_copying_resource_state()
+    {
+        using var renderPath = new RenderPath("RenderPaths/Test.renderpath");
+        var pass = new TrackingRenderPass("Alpha");
+        pass.SetComment("Comment");
+        renderPath.AddPass(pass);
+        using var parameters = new StringVariantMap();
+        renderPath.UpdateParameters(
+            new RenderPipelineSettings(),
+            [new RenderPassToggle("Alpha", true)],
+            parameters);
+
+        using var clone = renderPath.Clone();
+
+        Assert.Equal(string.Empty, clone.Name);
+        var clonedPass = Assert.IsType<TrackingRenderPass>(Assert.Single(clone.Passes));
+        Assert.NotSame(pass, clonedPass);
+        Assert.Equal("Alpha", clonedPass.GetPassName());
+        Assert.Equal("Comment", clonedPass.GetComment());
+        Assert.Equal(default, clone.AggregatedPassTraits);
+    }
+
+    [Fact]
+    public void Render_path_omits_empty_optional_passes_and_clears_on_missing_input()
+    {
+        using var renderPath = new RenderPath();
+        using var output = new JSONOutputArchive();
+        using (output.OpenUnorderedBlock("resource"))
+            renderPath.SerializeInBlock(output);
+
+        Assert.DoesNotContain("\"passes\"", output.ToJsonString());
+
+        renderPath.AddPass(new TrackingRenderPass("Alpha"));
+        using var input = new JSONInputArchive("{}");
+        using (input.OpenUnorderedBlock("resource"))
+            renderPath.SerializeInBlock(input);
+
+        Assert.Empty(renderPath.Passes);
+    }
+
+    [Fact]
+    public void Render_path_deserialization_creates_registered_render_pass_type()
+    {
+        var context = Context.Instance;
+        context.AddFactoryReflection<TrackingRenderPass>(ObjectCategory.Category_RenderPass);
+        try
+        {
+            string json;
+            using (var source = new RenderPath())
+            using (var output = new JSONOutputArchive())
+            {
+                source.AddPass(new TrackingRenderPass("Custom"));
+                using (output.OpenUnorderedBlock("resource"))
+                    source.SerializeInBlock(output);
+                json = output.ToJsonString();
+            }
+
+            using var restored = new RenderPath();
+            using var input = new JSONInputArchive(json);
+            using (input.OpenUnorderedBlock("resource"))
+                restored.SerializeInBlock(input);
+
+            Assert.IsType<TrackingRenderPass>(Assert.Single(restored.Passes));
+            Assert.Equal("Custom", restored.Passes[0].GetPassName());
+        }
+        finally
+        {
+            context.RemoveReflection<TrackingRenderPass>();
+        }
+    }
+
+    [Fact]
+    public void Render_path_binary_serialization_uses_registered_render_pass_type_hash()
+    {
+        var context = Context.Instance;
+        context.AddFactoryReflection<TrackingRenderPass>(ObjectCategory.Category_RenderPass);
+        try
+        {
+            using var buffer = new VectorBuffer();
+            using var source = new RenderPath();
+            source.AddPass(new TrackingRenderPass("Custom"));
+            using (var output = new BinaryOutputArchive(context, buffer))
+            {
+                using (output.OpenUnorderedBlock("resource"))
+                    source.SerializeInBlock(output);
+                output.Flush();
+            }
+
+            buffer.Seek(0);
+            using var restored = new RenderPath();
+            using (var input = new BinaryInputArchive(context, buffer))
+            {
+                using (input.OpenUnorderedBlock("resource"))
+                    restored.SerializeInBlock(input);
+                input.Flush();
+            }
+
+            Assert.IsType<TrackingRenderPass>(Assert.Single(restored.Passes));
+            Assert.Equal("Custom", restored.Passes[0].GetPassName());
+        }
+        finally
+        {
+            context.RemoveReflection<TrackingRenderPass>();
+        }
     }
 
     [Fact]
@@ -54,7 +168,7 @@ public sealed class RenderPathTests
 
         renderPath.ReorderPass(beta, -1);
 
-        Assert.Equal([alpha, beta], renderPath.GetPasses());
+        Assert.Equal([alpha, beta], renderPath.Passes);
     }
 
     [Fact]
@@ -110,8 +224,8 @@ public sealed class RenderPathTests
         Assert.Equal(1, first.RenderCalls);
         Assert.Equal(0, second.UpdateCalls);
         Assert.Equal(0, second.RenderCalls);
-        Assert.True(renderPath.GetAggregatedPassTraits().NeedReadWriteColorBuffer);
-        Assert.True(renderPath.GetAggregatedPassTraits().NeedBilinearColorSampler);
+        Assert.True(renderPath.AggregatedPassTraits.NeedReadWriteColorBuffer);
+        Assert.True(renderPath.AggregatedPassTraits.NeedBilinearColorSampler);
     }
 
     [Fact]
@@ -123,46 +237,6 @@ public sealed class RenderPathTests
         using var parameters = new StringVariantMap();
         renderPath.UpdateParameters(new RenderPipelineSettings(), renderPath.RepairEnabledRenderPasses([]), parameters);
 
-    }
-
-    [Fact]
-    public void Render_path_xml_loads_through_resource_cache()
-    {
-        var tempRoot = Path.Combine(Path.GetTempPath(), "RedBolt.RenderPathTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(Path.Combine(tempRoot, "RenderPaths"));
-        var resources = new ResourceCache();
-        resources.RegisterDefaultResources();
-        resources.AddResourceDir(tempRoot);
-
-        try
-        {
-            System.IO.File.WriteAllText(Path.Combine(tempRoot, "RenderPaths", "Simple.xml"), """
-                <renderpath>
-                    <pass name="Opaque" enabled="true" comment="Geometry pass">
-                        <parameter name="Exposure" type="Float" value="1.25" />
-                    </pass>
-                    <pass name="PostProcess" enabled="false">
-                        <parameter name="Enabled" type="Bool" value="true" />
-                    </pass>
-                </renderpath>
-                """);
-
-            var renderPath = resources.GetResource<RenderPath>("RenderPaths/Simple.xml");
-
-            Assert.Equal(2, renderPath.GetPasses().Count);
-
-            using var collectedParameters = new StringVariantMap();
-            renderPath.CollectParameters(collectedParameters);
-
-            Assert.Equal(1.25f, collectedParameters["Exposure"].GetFloat());
-            Assert.True(collectedParameters["Enabled"].GetBool());
-        }
-        finally
-        {
-            resources.RemoveResourceDir(tempRoot);
-            if (Directory.Exists(tempRoot))
-                Directory.Delete(tempRoot, recursive: true);
-        }
     }
 
     [Fact]
@@ -192,7 +266,7 @@ public sealed class RenderPathTests
                             "name": "Parameters",
                             "type": "StringVariantMap",
                             "value": [
-                              { "key": "HSVParams", "type": "Vector4f", "value": "1 1 1 1" }
+                              { "key": "HSVParams", "type": "Vector4", "value": "1 1 1 1" }
                             ]
                           }
                         ]
@@ -202,18 +276,26 @@ public sealed class RenderPathTests
                 }
                 """);
 
+            {
+                var source = System.IO.File.ReadAllText(Path.Combine(tempRoot, "RenderPaths", "Simple.renderpath"));
+                using var archive = new JSONInputArchive(source);
+                using var rootBlock = archive.OpenUnorderedBlock("resource");
+                using var directRenderPath = new RenderPath();
+                directRenderPath.SerializeInBlock(archive);
+            }
+
             var renderPath = resources.GetResource<RenderPath>("RenderPaths/Simple");
 
             using var collectedParameters = new StringVariantMap();
             renderPath.CollectParameters(collectedParameters);
             renderPath.UpdateParameters(new RenderPipelineSettings(), renderPath.RepairEnabledRenderPasses([]), collectedParameters);
 
-            var pass = Assert.IsType<FullScreenShaderPass>(Assert.Single(renderPath.GetPasses()));
+            var pass = Assert.IsType<FullScreenShaderPass>(Assert.Single(renderPath.Passes));
             Assert.Equal("Postprocess: Adjust Color", pass.GetPassName());
             Assert.Equal("Adjust output color RGB and HSV.", pass.GetComment());
             Assert.Equal(new Vector4f(1.0f, 1.0f, 1.0f, 1.0f), collectedParameters["Adjust Color: HSVParams"].GetVector4());
-            Assert.True(renderPath.GetAggregatedPassTraits().NeedReadWriteColorBuffer);
-            Assert.True(renderPath.GetAggregatedPassTraits().NeedBilinearColorSampler);
+            Assert.True(renderPath.AggregatedPassTraits.NeedReadWriteColorBuffer);
+            Assert.True(renderPath.AggregatedPassTraits.NeedBilinearColorSampler);
         }
         finally
         {
@@ -235,15 +317,15 @@ public sealed class RenderPathTests
         {
             var renderPath = resources.GetResource<RenderPath>(RenderPipeline.DefaultRenderPathName);
 
-            Assert.NotEmpty(renderPath.GetPasses());
+            Assert.NotEmpty(renderPath.Passes);
             Assert.Collection(
-                renderPath.GetPasses().Take(5),
+                renderPath.Passes.Take(5),
                 pass => Assert.IsType<AutoExposurePass>(pass),
                 pass => Assert.IsType<AmbientOcclusionPass>(pass),
                 pass => Assert.IsType<BloomPass>(pass),
                 pass => Assert.IsType<OutlineRenderPass>(pass),
                 pass => Assert.IsType<ToneMappingPass>(pass));
-            Assert.Contains(renderPath.GetPasses(), static pass => pass is FullScreenShaderPass);
+            Assert.Contains(renderPath.Passes, static pass => pass is FullScreenShaderPass);
 
             using var collectedParameters = new StringVariantMap();
             renderPath.CollectParameters(collectedParameters);
@@ -253,8 +335,8 @@ public sealed class RenderPathTests
             Assert.Contains("Bloom: Num Iterations", collectedParameters.Keys);
             Assert.Contains("Tone Mapping: Mode", collectedParameters.Keys);
             Assert.Equal(new Vector4f(1.0f, 1.0f, 1.0f, 1.0f), collectedParameters["Adjust Color: HSVParams"].GetVector4());
-            Assert.True(renderPath.GetAggregatedPassTraits().NeedReadWriteColorBuffer);
-            Assert.True(renderPath.GetAggregatedPassTraits().NeedBilinearColorSampler);
+            Assert.True(renderPath.AggregatedPassTraits.NeedReadWriteColorBuffer);
+            Assert.True(renderPath.AggregatedPassTraits.NeedBilinearColorSampler);
         }
         finally
         {
@@ -316,6 +398,11 @@ public sealed class RenderPathTests
 
     private sealed class TrackingRenderPass : RenderPass
     {
+        public TrackingRenderPass()
+            : this(string.Empty)
+        {
+        }
+
         public TrackingRenderPass(string passName)
         {
             _passName = passName;

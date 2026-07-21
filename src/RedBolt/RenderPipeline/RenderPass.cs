@@ -52,6 +52,11 @@ public abstract class RenderPass : Serializable
         base.Dispose();
     }
 
+    public static void RegisterObject(Context context)
+    {
+        context.AddAbstractReflection<RenderPass>();
+    }
+
     /// <summary>
     /// Return unique pass name.
     /// </summary>

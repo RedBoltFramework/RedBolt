@@ -72,6 +72,11 @@ public sealed class FullScreenShaderPass : RenderPass
             null);
     }
 
+    public new static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<FullScreenShaderPass>(ObjectCategory.Category_RenderPass);
+    }
+
     public override void CollectParameters(StringVariantMap target)
     {
         foreach (var (name, defaultValue) in _parameters)
@@ -252,6 +257,11 @@ public sealed class ToneMappingPass : RenderPass
         _traits = new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: false);
     }
 
+    public new static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<ToneMappingPass>(ObjectCategory.Category_RenderPass);
+    }
+
     public override void CollectParameters(StringVariantMap parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
@@ -362,6 +372,11 @@ public sealed class AutoExposurePass : RenderPass
     {
         SetComment(DefaultComment);
         _traits = new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: false);
+    }
+
+    public new static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<AutoExposurePass>(ObjectCategory.Category_RenderPass);
     }
 
     public override void CollectParameters(StringVariantMap parameters)
@@ -622,6 +637,11 @@ public sealed class BloomPass : RenderPass
     {
         SetComment(DefaultComment);
         _traits = new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: true);
+    }
+
+    public new static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<BloomPass>(ObjectCategory.Category_RenderPass);
     }
 
     public override void CollectParameters(StringVariantMap parameters)
@@ -928,6 +948,11 @@ public sealed class AmbientOcclusionPass : RenderPass
     public AmbientOcclusionPass()
     {
         SetComment(DefaultComment);
+    }
+
+    public new static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<AmbientOcclusionPass>(ObjectCategory.Category_RenderPass);
     }
 
     public override void CollectParameters(StringVariantMap parameters)
@@ -1255,6 +1280,11 @@ public sealed class OutlineRenderPass : RenderPass
         SetComment(DefaultComment);
     }
 
+    public new static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<OutlineRenderPass>(ObjectCategory.Category_RenderPass);
+    }
+
     public override void CollectParameters(StringVariantMap parameters)
     {
     }
@@ -1307,26 +1337,6 @@ public sealed class OutlineRenderPass : RenderPass
         [ShaderParameterName("InputInvSize")]
         public Vector2f InputInvSize;
     }
-}
-
-internal static class RenderPathBuiltInPassFactory
-{
-    public static RenderPass? Create(string typeName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(typeName);
-
-        return typeName switch
-        {
-            nameof(AutoExposurePass) => new AutoExposurePass(),
-            nameof(AmbientOcclusionPass) => new AmbientOcclusionPass(),
-            nameof(BloomPass) => new BloomPass(),
-            nameof(FullScreenShaderPass) => new FullScreenShaderPass(),
-            nameof(OutlineRenderPass) => new OutlineRenderPass(),
-            nameof(ToneMappingPass) => new ToneMappingPass(),
-            _ => null
-        };
-    }
-
 }
 
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]

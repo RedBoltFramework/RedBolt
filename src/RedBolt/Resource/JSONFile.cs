@@ -106,8 +106,9 @@ public sealed class JSONFile : Resource
             archive.Flush();
             return true;
         }
-        catch
+        catch (ArchiveException exception)
         {
+            Log.GetLogger().LogError(exception, "Failed to load object from JSON");
             return false;
         }
     }

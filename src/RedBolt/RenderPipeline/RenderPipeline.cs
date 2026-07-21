@@ -38,6 +38,11 @@ public class RenderPipeline : Component
         base.Dispose();
     }
 
+    public static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<RenderPipeline>();
+    }
+
     public RenderPipelineSettings Settings => _settings;
 
     public RenderPath? GetRenderPath() => _renderPath;
@@ -847,7 +852,7 @@ public class RenderPipeline : Component
             if (_renderPath is null)
                 return false;
 
-            var passes = _renderPath.GetPasses();
+            var passes = _renderPath.Passes;
             for (var passIndex = 0; passIndex < passes.Count; ++passIndex)
             {
                 var pass = passes[passIndex];

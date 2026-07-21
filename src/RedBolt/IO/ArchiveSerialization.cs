@@ -42,6 +42,20 @@ public static partial class ArchiveSerialization
             value = new StringHash(rawValue);
     }
 
+    public static void SerializeStringHash(Archive archive, string name, ref StringHash value, string stringHint)
+    {
+        if (!archive.IsHumanReadable)
+        {
+            SerializeValue(archive, name, ref value);
+            return;
+        }
+
+        var serializedValue = archive.IsInput ? string.Empty : stringHint;
+        SerializeValue(archive, name, ref serializedValue);
+        if (archive.IsInput)
+            value = new StringHash(serializedValue);
+    }
+
     public static void SerializeValue(Archive archive, string name, ref Vector2f value) =>
         SerializeCompound(archive, name, ref value);
 

@@ -315,12 +315,21 @@ public abstract class Serializable : Object
             for (var i = 0u; i < block.SizeHint; ++i)
             {
                 using var item = archive.OpenUnorderedBlock("attribute");
-                var name = string.Empty; ArchiveSerialization.SerializeValue(archive, "name", ref name);
+                var name = string.Empty;
+                ArchiveSerialization.SerializeOptionalValue(
+                    archive, "name", ref name, string.Empty,
+                    static (Archive valueArchive, string valueName, ref string value) =>
+                        ArchiveSerialization.SerializeValue(valueArchive, valueName, ref value));
                 var attribute = FindAttribute(name);
-                var value = new Variant(attribute?.DefaultValue.Type ?? VariantType.None);
+                var type = attribute?.DefaultValue.Type ?? VariantType.None;
+                ArchiveSerialization.SerializeOptionalValue(
+                    archive, "type", ref type, VariantType.None,
+                    static (Archive valueArchive, string valueName, ref VariantType value) =>
+                        ArchiveSerialization.SerializeValue(valueArchive, valueName, ref value));
+                var value = new Variant(type);
                 try
                 {
-                    using (archive.OpenUnorderedBlock("value")) ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
+                    ArchiveSerialization.SerializeVariantAsType(archive, "value", ref value, type);
                     if (attribute is not null && (attribute.ShouldLoad || serializeTemporary && (attribute.Mode & AttributeMode.Temporary) != 0))
                         OnSetAttribute(attribute, ConvertVariant(attribute, value));
                 }
@@ -337,11 +346,20 @@ public abstract class Serializable : Object
                 attribute.ShouldSave || serializeTemporary && (attribute.Mode & AttributeMode.Temporary) != 0))
             {
                 using var item = archive.OpenUnorderedBlock("attribute");
-                var name = attribute.Name; ArchiveSerialization.SerializeValue(archive, "name", ref name);
+                var name = attribute.Name;
+                ArchiveSerialization.SerializeOptionalValue(
+                    archive, "name", ref name, string.Empty,
+                    static (Archive valueArchive, string valueName, ref string value) =>
+                        ArchiveSerialization.SerializeValue(valueArchive, valueName, ref value));
                 var value = Variant.FromObject(OnGetAttribute(attribute));
                 try
                 {
-                    using (archive.OpenUnorderedBlock("value")) ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
+                    var type = value.Type;
+                    ArchiveSerialization.SerializeOptionalValue(
+                        archive, "type", ref type, VariantType.None,
+                        static (Archive valueArchive, string valueName, ref VariantType valueType) =>
+                            ArchiveSerialization.SerializeValue(valueArchive, valueName, ref valueType));
+                    ArchiveSerialization.SerializeVariantAsType(archive, "value", ref value, type);
                 }
                 finally
                 {

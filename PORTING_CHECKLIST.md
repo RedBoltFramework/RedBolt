@@ -145,6 +145,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A3. Core — depends on Container, Math
 
+- [~] `Variant.h` / `Variant.cpp` — explicit CLR-safe union storage, deterministic owned-payload teardown, native archive type identifiers for managed math aliases, and many copy boundaries reconciled; remaining copy/assignment sites depend on unchecked inventory rows
 - [x] `Attribute.h` — non-POD AttributeInfo value copies, pointer-like POD AttributeHandle class kind and borrowed alias copies, owned Variant/default/metadata cloning, replacement/removal/clear teardown, registration temporary lifetimes, retained ObjectReflection destruction, per-instance reflection-facade teardown, and approved managed `int` enum indices reconciled
 - [x] `Context.h` / `Context.cpp` — extensible noncopyable class kind, independent owned global-Variant assignment, borrowed read-only global access, replacement/reset destruction, subsystem/event teardown, and inherited reflection-registry lifetime reconciled
 - [x] `ObjectReflection.h` / `ObjectReflection.cpp` — noncopyable class kinds, independent attribute/metadata value copies, borrowed reflection APIs, signal-before-destruction removal lifetime, registry ownership, and Context base teardown reconciled
@@ -171,7 +172,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 - [x] `AbstractFile.h` — extensible abstract non-POD class kind, public base construction, name ownership, explicit virtual destruction, and derived teardown dispatch reconciled
 - [x] `Archive.h` / `Archive.cpp` / `ArchiveBase.h` / `ArchiveBase.cpp` — enum/class kinds, move-only block ownership, deterministic block teardown, abstract/helper API shape, context nullability, delayed-exception lifetime, hex decoding, and virtual destruction reconciled
-- [x] `ArchiveSerialization.h` / `ArchiveSerialization.cpp` / serialization helper headers — native free-function/static utility shape, POD and enum storage, direct POD compound overloads, primitive/compound Variant formats, replacement lifetimes, container ownership, ResourceRef/List paths, generic optional/pair value helpers, and exception consumption reconciled
+- [x] `ArchiveSerialization.h` / `ArchiveSerialization.cpp` / serialization helper headers — native free-function/static utility shape, POD and enum storage, direct POD compound overloads, primitive/compound Variant formats, replacement lifetimes, container ownership, ResourceRef/List paths, human-name/binary-hash `StringHash` serialization, generic optional/pair value helpers, and exception consumption reconciled
 - [x] `TetrahedralMesh.h` / `TetrahedralMesh.cpp` archive serialization — POD tetrahedron layout/copy/default construction, primitive-array parsing, and object-versus-byte vector serialization reconciled
 - [x] `Base64Archive.h` / `Base64Archive.cpp` — extensible non-POD class kinds, binary inheritance, owned VectorBuffer construction/reverse teardown, and direct encode/decode behavior reconciled
 - [x] `BinaryArchive.h` / `BinaryArchive.cpp` — extensible non-POD archive/block kinds, input-block copy construction, borrowed streams, owned safe buffers, deterministic teardown, paths, guards, and delayed exceptions reconciled
@@ -209,9 +210,11 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `ResourceRouter` in `ResourceCache.h` / `ResourceCache.cpp` — abstract noncopyable class kind, construction, inherited teardown, mutable identifier aliasing, cache-held pointer identity, routing order, reentrancy guard, and allowed `int` indices reconciled
 - [x] `PListValue` in `PListFile.h` / `PListFile.cpp` — extensible non-POD value owner, CLR-safe active union storage, complete construction/copy/assignment/destruction, recursive container ownership, property getters, equality, and `PListFile` copy-insertion lifetimes reconciled
 - [~] `PListFile` in `PListFile.h` / `PListFile.cpp` — local XML/value RAII, root destruction, copy insertion, loading, and diagnostics reconciled; inherited Resource stream/construction/cache migration remains pending
+- [~] `JSONFile.h` / `JSONFile.cpp` — native object-load `ArchiveException` boundary and diagnostics reconciled; complete document ownership, save, construction, and destruction audit remains pending
 
 ## [~] A6. Scene — depends on Resource, Core
 
+- [~] `Serializable.h` / `Serializable.cpp` — native human-readable attribute `type` and direct `value` archive layout plus several local-Variant lifetimes reconciled; complete class shape, construction, clone/copy, attribute storage, and destruction audit remains pending
 - [x] `LogicComponent.h` / `LogicComponent.cpp` — complete concrete noncopyable class shape, native event-mask state, typed virtual update-event selection, direct sender-filtered Scene subscriptions, delayed-start/update/post-update/world-origin dispatch, enable and attachment lifecycle, and deterministic unsubscription reconciled; optional physics step branches are compile-time excluded in the current configuration
 - [x] `Node.h` / `Node.cpp` — complete class shape, lifetime/copy behavior, prefab and clone paths, scene attachment, transforms, tags/variables, listener cleanup, and int-mapped indices/sizes reconciled
 
@@ -298,9 +301,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `LightBakingSettings.h` — all eleven settings aggregates, defaults, constructors, independent nested value copies, immutable string mappings, and trivial destruction verified
 - [x] `LightProbeGroup.h` / `LightProbeGroup.cpp` — probe POD values, deep collection copies, reflected attributes, collection/arrangement/bounds, binary/base64 serialization, baked-data load/save, resource aliases, and default derived teardown reconciled
 
-## [x] A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)
+## [~] A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)
 
 - [x] `RenderPass.h` / `RenderPass.cpp` — value-type traits, reflected attribute construction, independent runtime enablement, inherited reflection cloning, protected pass state, parameter helpers, render-buffer connection, and explicit empty destructor reconciled
+- [~] `RenderPath.h` / `RenderPath.cpp` — destructor/owned-pass teardown, deep clone and independent enabled-pass returns, native optional polymorphic JSON/binary serialization, archive-context construction, and factory registration reconciled; constructor closure awaits removal of the inherited resource name-taking compatibility path
 
 ## [x] A11. Input — depends on Core, Graphics (window)
 

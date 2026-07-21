@@ -185,6 +185,16 @@ public sealed class VariantTests
         Assert.Equal(unchecked((uint)parsed.GetHashCode()), parsed.ToHash());
     }
 
+    [Theory]
+    [InlineData(VariantType.Vector4, "Vector4")]
+    [InlineData(VariantType.Vector2i, "IntVector2")]
+    [InlineData(VariantType.Vector3i, "IntVector3")]
+    public void Type_names_use_native_archive_identifiers(VariantType type, string typeName)
+    {
+        Assert.Equal(typeName, Variant.GetTypeName(type));
+        Assert.Equal(type, Variant.GetTypeFromName(typeName));
+    }
+
     [Fact]
     public void Mutating_methods_destroy_the_previous_owned_payload()
     {
