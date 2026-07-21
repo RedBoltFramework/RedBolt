@@ -287,7 +287,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
 
     public IEnumerable<ReflectionProbe> GetReflectionProbes()
     {
-        foreach (var component in GetTrackedComponents())
+        foreach (var component in TrackedComponents)
         {
             if (component is ReflectionProbe probe)
                 yield return probe;
@@ -300,18 +300,18 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
 
     public bool HasDynamicProbes() => _spatial.MovableProbes.Count > 0;
 
-    protected internal override void OnAddedToScene(Scene scene)
+    protected override void OnAddedToScene(Scene scene)
     {
         _cubemapRenderer = new CubemapRenderer(scene);
     }
 
-    protected internal override void OnRemovedFromScene()
+    protected override void OnRemovedFromScene()
     {
         _cubemapRenderer?.Dispose();
         _cubemapRenderer = null;
     }
 
-    protected internal override void OnComponentAdded(TrackedComponentBase baseComponent)
+    protected override void OnComponentAdded(TrackedComponentBase baseComponent)
     {
         if (baseComponent is not ReflectionProbe probe)
             return;
@@ -320,7 +320,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
             probe.QueueRender();
     }
 
-    protected internal override void OnComponentRemoved(TrackedComponentBase baseComponent)
+    protected override void OnComponentRemoved(TrackedComponentBase baseComponent)
     {
         if (baseComponent is ReflectionProbe probe)
             MarkProbeDirty(probe);
@@ -662,7 +662,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
 }
 
 /// <summary>Reflection probe component that specifies reflection applied within a region.</summary>
-public class ReflectionProbe : TrackedComponent<TrackedComponentBase, ReflectionProbeManager>
+public class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
 {
     private static readonly string[] ReflectionProbeTypeNames = ["Baked", "Mixed", "Dynamic", "Custom Texture"];
 
@@ -774,7 +774,7 @@ public class ReflectionProbe : TrackedComponent<TrackedComponentBase, Reflection
     }
 
     /// <summary>Queue ReflectionProbe to be re-rendered as soon as possible.</summary>
-    public void QueueRender() => GetRegistry()?.QueueProbeUpdate(this);
+    public void QueueRender() => Registry?.QueueProbeUpdate(this);
 
     /// <summary>Return cubemap renderer, available for dynamic probes.</summary>
     public CubemapRenderer? GetCubemapRenderer() => _dynamicProbeRenderer;
@@ -937,15 +937,15 @@ public class ReflectionProbe : TrackedComponent<TrackedComponentBase, Reflection
         MarkTransformDirty();
     }
 
-    private void MarkComponentDirty() => GetRegistry()?.MarkProbeDirty(this);
+    private void MarkComponentDirty() => Registry?.MarkProbeDirty(this);
 
     private void MarkTransformDirty()
     {
-        GetRegistry()?.MarkProbeTransformDirty(this);
+        Registry?.MarkProbeTransformDirty(this);
         UpdateProbeBoxData();
     }
 
-    private void MarkRealtimeDirty() => GetRegistry()?.MarkProbeRealtimeDirty(this);
+    private void MarkRealtimeDirty() => Registry?.MarkProbeRealtimeDirty(this);
 
     private void UpdateCubemapRenderer()
     {

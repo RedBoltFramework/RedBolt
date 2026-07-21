@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
@@ -14,26 +15,21 @@ public abstract class TrackedComponentBase : Component
     {
     }
 
-    /// <summary>
-    /// Manage index of the component in the registry.
-    /// </summary>
-    public void SetIndexInArray(uint index) => _indexInArray = index;
+    /// <summary>Manage index of the component in the registry.</summary>
+    public int IndexInArray { get; set; } = -1;
 
-    public uint GetIndexInArray() => _indexInArray;
-
-    public bool IsTrackedInRegistry() => _indexInArray != uint.MaxValue;
+    public bool IsTrackedInRegistry => IndexInArray != -1;
 
     /// <summary>
     /// Returns whether the component should be tracked by the registry.
     /// </summary>
-    public virtual bool ShouldBeTrackedInRegistry() => false;
+    public virtual bool ShouldBeTrackedInRegistry => false;
 
     /// <summary>
     /// Reconnect component to registry of the current scene.
     /// </summary>
     public abstract void ReconnectToRegistry();
 
-    private uint _indexInArray = uint.MaxValue;
 }
 
 /// <summary>
@@ -48,38 +44,44 @@ public class TrackedComponentRegistryBase : Component
         _componentType = componentType;
     }
 
-    public TrackedComponentBase? GetTrackedComponentByIndex(uint index)
+    public override void Dispose()
     {
-        return index < _componentsArray.Count ? _componentsArray[(int)index] : null;
+        _componentsArray.Clear();
+        base.Dispose();
     }
 
-    public uint GetNumTrackedComponents() => (uint)_componentsArray.Count;
+    public TrackedComponentBase? GetTrackedComponentByIndex(int index)
+    {
+        return index >= 0 && index < _componentsArray.Count ? _componentsArray[index] : null;
+    }
 
-    public IReadOnlyList<TrackedComponentBase> GetTrackedComponents() => _componentsArray;
+    public int NumTrackedComponents => _componentsArray.Count;
+
+    public IReadOnlyList<TrackedComponentBase> TrackedComponents => _componentsArray;
 
     /// <summary>
     /// Internal. Manage tracked components.
     /// </summary>
     public void AddTrackedComponent(TrackedComponentBase component)
     {
-        var oldIndex = component.GetIndexInArray();
-        if (oldIndex != uint.MaxValue)
+        var oldIndex = component.IndexInArray;
+        if (oldIndex != -1)
         {
             Debug.Assert(GetTrackedComponentByIndex(oldIndex) == component, "Component array is corrupted");
             Debug.Assert(false, $"Component is already tracked at #{oldIndex}");
             return;
         }
 
-        var index = (uint)_componentsArray.Count;
+        var index = _componentsArray.Count;
         _componentsArray.Add(component);
-        component.SetIndexInArray(index);
+        component.IndexInArray = index;
         OnComponentAdded(component);
     }
 
     public void RemoveTrackedComponent(TrackedComponentBase component)
     {
-        var index = component.GetIndexInArray();
-        if (index == uint.MaxValue)
+        var index = component.IndexInArray;
+        if (index == -1)
         {
             Debug.Assert(false, "Component is not tracked");
             return;
@@ -93,17 +95,17 @@ public class TrackedComponentRegistryBase : Component
         OnComponentRemoved(component);
 
         // Do swap-erase trick if possible
-        var numComponents = (uint)_componentsArray.Count;
+        var numComponents = _componentsArray.Count;
         if (numComponents > 1 && index + 1 != numComponents)
         {
             var replacement = _componentsArray[^1];
-            _componentsArray[(int)index] = replacement;
-            replacement.SetIndexInArray(index);
+            _componentsArray[index] = replacement;
+            replacement.IndexInArray = index;
             OnComponentMoved(replacement, numComponents - 1);
         }
 
         _componentsArray.RemoveAt(_componentsArray.Count - 1);
-        component.SetIndexInArray(uint.MaxValue);
+        component.IndexInArray = -1;
     }
 
     protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
@@ -120,23 +122,23 @@ public class TrackedComponentRegistryBase : Component
         }
     }
 
-    protected internal virtual void OnComponentAdded(TrackedComponentBase baseComponent)
+    protected virtual void OnComponentAdded(TrackedComponentBase baseComponent)
     {
     }
 
-    protected internal virtual void OnComponentMoved(TrackedComponentBase baseComponent, uint oldIndex)
+    protected virtual void OnComponentMoved(TrackedComponentBase baseComponent, int oldIndex)
     {
     }
 
-    protected internal virtual void OnComponentRemoved(TrackedComponentBase baseComponent)
+    protected virtual void OnComponentRemoved(TrackedComponentBase baseComponent)
     {
     }
 
-    protected internal virtual void OnAddedToScene(Scene scene)
+    protected virtual void OnAddedToScene(Scene scene)
     {
     }
 
-    protected internal virtual void OnRemovedFromScene()
+    protected virtual void OnRemovedFromScene()
     {
     }
 
@@ -159,7 +161,7 @@ public class TrackedComponentRegistryBase : Component
             if (!IsInstanceOfTrackedComponent(component))
                 continue;
 
-            if (component.ShouldBeTrackedInRegistry())
+            if (component.ShouldBeTrackedInRegistry)
             {
                 component.ReconnectToRegistry();
                 AddTrackedComponent(component);
@@ -172,7 +174,7 @@ public class TrackedComponentRegistryBase : Component
         foreach (var component in _componentsArray)
         {
             OnComponentRemoved(component);
-            component.SetIndexInArray(uint.MaxValue);
+            component.IndexInArray = -1;
         }
 
         _componentsArray.Clear();
@@ -203,20 +205,22 @@ public enum ComponentReference : uint
 
 public static class TrackedComponent
 {
-    public static ComponentReference ConstructComponentReference(uint index, uint version)
+    public static ComponentReference ConstructComponentReference(int index, uint version)
     {
         const uint maxIndex = 0xffffff;
         const uint maxVersion = 0xff;
         const uint indexOffset = 0;
         const uint versionOffset = 24;
 
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+
         uint result = 0;
-        result |= (index & maxIndex) << (int)indexOffset;
+        result |= ((uint)index & maxIndex) << (int)indexOffset;
         result |= (version & maxVersion) << (int)versionOffset;
         return (ComponentReference)result;
     }
 
-    public static (uint Index, uint Version) DeconstructComponentReference(ComponentReference componentId)
+    public static (int Index, uint Version) DeconstructComponentReference(ComponentReference componentId)
     {
         const uint indexOffset = 0;
         const uint versionOffset = 24;
@@ -224,7 +228,7 @@ public static class TrackedComponent
         const uint maxVersion = 0xff;
 
         var value = (uint)componentId;
-        return ((value >> (int)indexOffset) & maxIndex, (value >> (int)versionOffset) & maxVersion);
+        return ((int)((value >> (int)indexOffset) & maxIndex), (value >> (int)versionOffset) & maxVersion);
     }
 
     public static string ToString(ComponentReference value)
@@ -243,14 +247,8 @@ public abstract class ReferencedComponentBase : TrackedComponentBase
     {
     }
 
-    /// <summary>
-    /// Manage reference to this component.
-    /// </summary>
-    public void SetReference(ComponentReference reference) => _componentReference = reference;
-
-    public ComponentReference GetReference() => _componentReference;
-
-    private ComponentReference _componentReference;
+    /// <summary>Manage reference to this component.</summary>
+    public ComponentReference Reference { get; set; }
 }
 
 /// <summary>
@@ -263,33 +261,34 @@ public class ReferencedComponentRegistryBase : TrackedComponentRegistryBase
     {
     }
 
+    public override void Dispose()
+    {
+        _referenceIndexToEntry.Clear();
+        _referenceIndexAllocator.Clear();
+        base.Dispose();
+    }
+
     public ReferencedComponentBase? GetTrackedComponentByReference(ComponentReference id, bool checkVersion = true)
     {
         var (index, version) = TrackedComponent.DeconstructComponentReference(id);
         if (index >= _referenceIndexToEntry.Count)
             return null;
 
-        var entry = _referenceIndexToEntry[(int)index];
+        var entry = _referenceIndexToEntry[index];
         return !checkVersion || entry.Version == version ? entry.Component : null;
     }
 
-    public ReferencedComponentBase? GetTrackedComponentByReferenceIndex(uint index)
+    public ReferencedComponentBase? GetTrackedComponentByReferenceIndex(int index)
     {
-        return index < _referenceIndexToEntry.Count ? _referenceIndexToEntry[(int)index].Component : null;
+        return index >= 0 && index < _referenceIndexToEntry.Count ? _referenceIndexToEntry[index].Component : null;
     }
 
-    public uint GetReferenceIndexUpperBound() => (uint)_referenceIndexToEntry.Count;
+    public int ReferenceIndexUpperBound => _referenceIndexToEntry.Count;
 
-    private sealed class RegistryEntry
-    {
-        public ReferencedComponentBase? Component;
-        public uint Version;
-    }
-
-    protected internal override void OnComponentAdded(TrackedComponentBase baseComponent)
+    protected override void OnComponentAdded(TrackedComponentBase baseComponent)
     {
         var component = (ReferencedComponentBase)baseComponent;
-        var reference = component.GetReference();
+        var reference = component.Reference;
 
         // Try to reuse existing ID if possible
         if (reference != ComponentReference.None)
@@ -310,7 +309,8 @@ public class ReferencedComponentRegistryBase : TrackedComponentRegistryBase
             else
             {
                 EnsureIndex(index);
-                _referenceIndexToEntry[(int)index].Version = version;
+                ref var reusedEntry = ref CollectionsMarshal.AsSpan(_referenceIndexToEntry)[index];
+                reusedEntry.Version = version;
             }
         }
 
@@ -318,21 +318,21 @@ public class ReferencedComponentRegistryBase : TrackedComponentRegistryBase
         if (reference == ComponentReference.None)
         {
             var index = AllocateReferenceIndex();
-            reference = TrackedComponent.ConstructComponentReference(index, _referenceIndexToEntry[(int)index].Version);
+            reference = TrackedComponent.ConstructComponentReference(index, _referenceIndexToEntry[index].Version);
         }
 
         var (entryIndex, _) = TrackedComponent.DeconstructComponentReference(reference);
 
-        var entry = _referenceIndexToEntry[(int)entryIndex];
+        ref var entry = ref CollectionsMarshal.AsSpan(_referenceIndexToEntry)[entryIndex];
         entry.Component = component;
 
-        component.SetReference(reference);
+        component.Reference = reference;
     }
 
-    protected internal override void OnComponentRemoved(TrackedComponentBase baseComponent)
+    protected override void OnComponentRemoved(TrackedComponentBase baseComponent)
     {
         var component = (ReferencedComponentBase)baseComponent;
-        var reference = component.GetReference();
+        var reference = component.Reference;
 
         if (reference == ComponentReference.None)
         {
@@ -345,25 +345,31 @@ public class ReferencedComponentRegistryBase : TrackedComponentRegistryBase
             return;
         }
 
-        component.SetReference(ComponentReference.None);
+        component.Reference = ComponentReference.None;
 
         var (index, _) = TrackedComponent.DeconstructComponentReference(reference);
 
-        var entry = _referenceIndexToEntry[(int)index];
+        ref var entry = ref CollectionsMarshal.AsSpan(_referenceIndexToEntry)[index];
         entry.Component = null;
         entry.Version = (entry.Version + 1) % 0xff;
 
-        _referenceIndexAllocator.Release(index);
+        _referenceIndexAllocator.Release((uint)index);
     }
 
-    private uint AllocateReferenceIndex()
+    private struct RegistryEntry
+    {
+        public ReferencedComponentBase? Component;
+        public uint Version;
+    }
+
+    private int AllocateReferenceIndex()
     {
         // May need more than one attept if some indices are taken bypassing IndexAllocator
-        for (uint i = 0; i <= 0xffffff; ++i)
+        for (var i = 0; i <= 0xffffff; ++i)
         {
-            var index = _referenceIndexAllocator.Allocate();
+            var index = checked((int)_referenceIndexAllocator.Allocate());
             EnsureIndex(index);
-            if (_referenceIndexToEntry[(int)index].Component is null)
+            if (_referenceIndexToEntry[index].Component is null)
                 return index;
         }
 
@@ -372,7 +378,7 @@ public class ReferencedComponentRegistryBase : TrackedComponentRegistryBase
         return 0;
     }
 
-    private void EnsureIndex(uint index)
+    private void EnsureIndex(int index)
     {
         if (index >= _referenceIndexToEntry.Count)
         {
@@ -388,22 +394,30 @@ public class ReferencedComponentRegistryBase : TrackedComponentRegistryBase
 /// <summary>
 /// Template base of any TrackedComponent that automatically registers itself in registry.
 /// </summary>
-public class TrackedComponent<ComponentType, RegistryComponentType> : TrackedComponentBase
-    where ComponentType : Component
+public class TrackedComponent<RegistryComponentType> : TrackedComponentBase
     where RegistryComponentType : TrackedComponentRegistryBase
 {
     public TrackedComponent()
     {
     }
 
-    public RegistryComponentType? GetRegistry() => _registry;
-
-    public override bool ShouldBeTrackedInRegistry()
+    public override void Dispose()
     {
-        if (_registry?.IsOnlyEnabledTracked == true)
-            return IsEnabledEffective;
-        else
-            return true;
+        _registry = null;
+        base.Dispose();
+    }
+
+    public RegistryComponentType? Registry => _registry;
+
+    public override bool ShouldBeTrackedInRegistry
+    {
+        get
+        {
+            if (_registry?.IsOnlyEnabledTracked == true)
+                return IsEnabledEffective;
+            else
+                return true;
+        }
     }
 
     public override void ReconnectToRegistry()
@@ -416,8 +430,8 @@ public class TrackedComponent<ComponentType, RegistryComponentType> : TrackedCom
     {
         if (_registry?.IsOnlyEnabledTracked == true)
         {
-            var wasEnabled = IsTrackedInRegistry();
-            var isEnabled = ShouldBeTrackedInRegistry();
+            var wasEnabled = IsTrackedInRegistry;
+            var isEnabled = ShouldBeTrackedInRegistry;
             if (_registry is not null && wasEnabled != isEnabled)
             {
                 if (isEnabled)
@@ -434,12 +448,12 @@ public class TrackedComponent<ComponentType, RegistryComponentType> : TrackedCom
         if (ReferenceEquals(newRegistry, _registry))
             return;
 
-        if (_registry is not null && IsTrackedInRegistry())
+        if (_registry is not null && IsTrackedInRegistry)
             _registry.RemoveTrackedComponent(this);
 
         _registry = newRegistry;
 
-        if (_registry is not null && ShouldBeTrackedInRegistry())
+        if (_registry is not null && ShouldBeTrackedInRegistry)
             _registry.AddTrackedComponent(this);
     }
 

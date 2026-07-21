@@ -13,17 +13,17 @@ public sealed class TrackedComponentTests
         var first = scene.CreateComponent<TestTracked>();
         var second = scene.CreateComponent<TestTracked>();
 
-        Assert.Equal(2u, registry.GetNumTrackedComponents());
-        Assert.Equal(0u, first.GetIndexInArray());
-        Assert.Equal(1u, second.GetIndexInArray());
+        Assert.Equal(2, registry.NumTrackedComponents);
+        Assert.Equal(0, first.IndexInArray);
+        Assert.Equal(1, second.IndexInArray);
         Assert.Same(first, registry.GetTrackedComponentByIndex(0));
         Assert.Same(second, registry.GetTrackedComponentByIndex(1));
 
         first.Remove();
 
-        Assert.Equal(1u, registry.GetNumTrackedComponents());
-        Assert.Equal(uint.MaxValue, first.GetIndexInArray());
-        Assert.Equal(0u, second.GetIndexInArray());
+        Assert.Equal(1, registry.NumTrackedComponents);
+        Assert.Equal(-1, first.IndexInArray);
+        Assert.Equal(0, second.IndexInArray);
         Assert.Same(second, registry.GetTrackedComponentByIndex(0));
     }
 
@@ -33,21 +33,21 @@ public sealed class TrackedComponentTests
         var scene = new Scene();
         var registry = scene.CreateComponent<ReferencedTestRegistry>();
         var component = scene.CreateComponent<ReferencedTestComponent>();
-        var firstReference = component.GetReference();
+        var firstReference = component.Reference;
 
         registry.AddTrackedComponent(component);
-        firstReference = component.GetReference();
+        firstReference = component.Reference;
 
         Assert.NotEqual(ComponentReference.None, firstReference);
         Assert.Same(component, registry.GetTrackedComponentByReference(firstReference));
 
         component.Remove();
         registry.RemoveTrackedComponent(component);
-        Assert.Equal(ComponentReference.None, component.GetReference());
+        Assert.Equal(ComponentReference.None, component.Reference);
 
         scene.Root.AddComponent(component);
         registry.AddTrackedComponent(component);
-        var secondReference = component.GetReference();
+        var secondReference = component.Reference;
 
         Assert.NotEqual(firstReference, secondReference);
         Assert.Null(registry.GetTrackedComponentByReference(firstReference));
@@ -60,10 +60,26 @@ public sealed class TrackedComponentTests
     {
         var reference = TrackedComponent.ConstructComponentReference(0x123456, 0xab);
 
-        Assert.Equal((uint)0x123456, TrackedComponent.DeconstructComponentReference(reference).Index);
+        Assert.Equal(0x123456, TrackedComponent.DeconstructComponentReference(reference).Index);
         Assert.Equal(0xabu, TrackedComponent.DeconstructComponentReference(reference).Version);
         Assert.Equal("1193046:171", TrackedComponent.ToString(reference));
         Assert.Equal("(null)", TrackedComponent.ToString(ComponentReference.None));
+    }
+
+    [Fact]
+    public void Registry_disposal_releases_owned_containers()
+    {
+        var registry = new ReferencedTestRegistry();
+        var component = new ReferencedTestComponent();
+        registry.AddTrackedComponent(component);
+
+        Assert.Single(registry.TrackedComponents);
+        Assert.Equal(2, registry.ReferenceIndexUpperBound);
+
+        registry.Dispose();
+
+        Assert.Empty(registry.TrackedComponents);
+        Assert.Equal(0, registry.ReferenceIndexUpperBound);
     }
 
     private sealed class TestRegistry : TrackedComponentRegistryBase
@@ -74,7 +90,7 @@ public sealed class TrackedComponentTests
         }
     }
 
-    private sealed class TestTracked : TrackedComponent<TrackedComponentBase, TestRegistry>
+    private sealed class TestTracked : TrackedComponent<TestRegistry>
     {
         public TestTracked()
         {

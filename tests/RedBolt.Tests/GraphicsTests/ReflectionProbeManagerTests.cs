@@ -63,7 +63,7 @@ public sealed class ReflectionProbeManagerTests
 
         Assert.NotNull(probe.GetCubemapRenderer());
         Assert.Null(probe.GetMixedProbeTexture());
-        Assert.Same(manager, probe.GetRegistry());
+        Assert.Same(manager, probe.Registry);
     }
 
     [Fact]
