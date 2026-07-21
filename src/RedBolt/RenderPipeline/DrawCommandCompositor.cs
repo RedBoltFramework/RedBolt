@@ -155,7 +155,7 @@ internal sealed class ObjectParameterBuilder
 }
 
 /// <summary>Batch renderer to command queue. Port of C++ DrawCommandCompositor.</summary>
-internal sealed class DrawCommandCompositor
+internal ref struct DrawCommandCompositor
 {
     public const uint VertexLightStride = 3;
     private const uint PortableLightMask = 0xff;
@@ -168,7 +168,7 @@ internal sealed class DrawCommandCompositor
     private readonly RenderPipelineDebugger? _debugger;
     private readonly bool _debuggerEnabled;
     private readonly DrawableProcessor _drawableProcessor;
-    private readonly InstancingBuffer? _instancingBuffer;
+    private readonly InstancingBuffer _instancingBuffer;
     private readonly CommonFrameInfo _frameInfo;
     private readonly Scene _scene;
     private readonly IReadOnlyList<LightProcessor?> _lights;
@@ -185,7 +185,7 @@ internal sealed class DrawCommandCompositor
     private readonly Vector4f[] _vertexLightsData = new Vector4f[LightAccumulator.MaxVertexLights * VertexLightStride];
 
     public DrawCommandCompositor(BatchRenderingContext ctx, BatchRendererSettings settings,
-        RenderPipelineDebugger? debugger, DrawableProcessor drawableProcessor, InstancingBuffer? instancingBuffer,
+        RenderPipelineDebugger? debugger, DrawableProcessor drawableProcessor, InstancingBuffer instancingBuffer,
         BatchRenderFlag flags, int startInstance, bool debuggerEnabled)
     {
         _ctx = ctx;
@@ -519,7 +519,7 @@ internal sealed class DrawCommandCompositor
             return;
 
         var drawQueue = _ctx.DrawQueue;
-        foreach (var desc in _ctx.GlobalResources.Span)
+        foreach (var desc in _ctx.GlobalResources)
         {
             if (desc.Texture is not null)
                 GraphicsUtils.AddShaderResource(drawQueue, desc.Name, desc.Texture);
@@ -562,7 +562,7 @@ internal sealed class DrawCommandCompositor
     private void AddFrameConstants()
     {
         var drawQueue = _ctx.DrawQueue;
-        foreach (var shaderParameter in _ctx.FrameParameters.Span)
+        foreach (var shaderParameter in _ctx.FrameParameters)
             drawQueue.AddShaderParameter(shaderParameter.Name, shaderParameter.Value);
 
         drawQueue.AddShaderParameter(ShaderConsts.Frame_DeltaTime, _frameInfo.TimeStep);
@@ -574,7 +574,7 @@ internal sealed class DrawCommandCompositor
     {
         var drawQueue = _ctx.DrawQueue;
         var camera = _ctx.Camera;
-        foreach (var shaderParameter in _ctx.CameraParameters.Span)
+        foreach (var shaderParameter in _ctx.CameraParameters)
             drawQueue.AddShaderParameter(shaderParameter.Name, shaderParameter.Value);
 
         if (_ctx.InstanceMultiplier > 1 && _frameInfo.Cameras.First == camera)
@@ -740,10 +740,10 @@ internal sealed class DrawCommandCompositor
             {
                 if (hasIndexBuffer)
                     drawQueue.DrawIndexedInstanced(checked((int)_current.Geometry.GetIndexStart()),
-                        checked((int)_current.Geometry.GetIndexCount()), 0, checked((int)_ctx.InstanceMultiplier));
+                        checked((int)_current.Geometry.GetIndexCount()), 0, _ctx.InstanceMultiplier);
                 else
                     drawQueue.DrawInstanced(checked((int)_current.Geometry.GetVertexStart()),
-                        checked((int)_current.Geometry.GetVertexCount()), 0, checked((int)_ctx.InstanceMultiplier));
+                        checked((int)_current.Geometry.GetVertexCount()), 0, _ctx.InstanceMultiplier);
             }
         }
     }
@@ -761,10 +761,10 @@ internal sealed class DrawCommandCompositor
             return;
         }
 
-        GraphicsUtils.SetBuffersFromGeometry(_ctx.DrawQueue, geometry, _instancingBuffer?.VertexBuffer);
+        GraphicsUtils.SetBuffersFromGeometry(_ctx.DrawQueue, geometry, _instancingBuffer.VertexBuffer);
         _ctx.DrawQueue.DrawIndexedInstanced(checked((int)geometry.GetIndexStart()),
             checked((int)geometry.GetIndexCount()), checked((int)_instancingGroup.Start),
-            checked((int)(_instancingGroup.Count * _ctx.InstanceMultiplier)));
+            checked(_instancingGroup.Count * _ctx.InstanceMultiplier));
         _instancingGroup.Count = 0;
     }
 

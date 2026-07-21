@@ -342,7 +342,7 @@ public class SceneProcessor : Object, LightProcessorCallback
         ReadOnlySpan<ShaderResourceDesc> globalResources = default,
         ReadOnlySpan<ShaderParameterDesc> cameraParameters = default,
         ReadOnlySpan<ShaderParameterDesc> frameParameters = default,
-        uint instanceMultiplier = 1u)
+        int instanceMultiplier = 1)
     {
         RenderBatchesInternal(debugName, camera, batchGroup, globalResources, cameraParameters, frameParameters,
             instanceMultiplier);
@@ -353,7 +353,7 @@ public class SceneProcessor : Object, LightProcessorCallback
         ReadOnlySpan<ShaderResourceDesc> globalResources = default,
         ReadOnlySpan<ShaderParameterDesc> cameraParameters = default,
         ReadOnlySpan<ShaderParameterDesc> frameParameters = default,
-        uint instanceMultiplier = 1u)
+        int instanceMultiplier = 1)
     {
         RenderBatchesInternal(debugName, camera, batchGroup, globalResources, cameraParameters, frameParameters,
             instanceMultiplier);
@@ -363,7 +363,7 @@ public class SceneProcessor : Object, LightProcessorCallback
         ReadOnlySpan<ShaderResourceDesc> globalResources,
         ReadOnlySpan<ShaderParameterDesc> cameraParameters,
         ReadOnlySpan<ShaderParameterDesc> frameParameters = default,
-        uint instanceMultiplier = 1u)
+        int instanceMultiplier = 1)
     {
         if (DrawQueue is null || RenderContext is null)
             return;
@@ -378,9 +378,9 @@ public class SceneProcessor : Object, LightProcessorCallback
         var ctx = new BatchRenderingContext(DrawQueue, camera)
         {
             InstanceMultiplier = instanceMultiplier,
-            GlobalResources = globalResources.ToArray(),
-            CameraParameters = cameraParameters.ToArray(),
-            FrameParameters = frameParameters.ToArray()
+            GlobalResources = globalResources,
+            CameraParameters = cameraParameters,
+            FrameParameters = frameParameters
         };
 
         var lightVolumeBatches = GetLightVolumeBatches();
@@ -477,7 +477,7 @@ public class SceneProcessor : Object, LightProcessorCallback
         ReadOnlySpan<ShaderResourceDesc> globalResources,
         ReadOnlySpan<ShaderParameterDesc> cameraParameters,
         ReadOnlySpan<ShaderParameterDesc> frameParameters,
-        uint instanceMultiplier)
+        int instanceMultiplier)
     {
         if (DrawQueue is null || RenderContext is null)
             return;
@@ -495,9 +495,9 @@ public class SceneProcessor : Object, LightProcessorCallback
         var ctx = new BatchRenderingContext(DrawQueue, camera)
         {
             InstanceMultiplier = instanceMultiplier,
-            GlobalResources = globalResources.ToArray(),
-            CameraParameters = cameraParameters.ToArray(),
-            FrameParameters = frameParameters.ToArray()
+            GlobalResources = globalResources,
+            CameraParameters = cameraParameters,
+            FrameParameters = frameParameters
         };
 
         if (batchGroup.ScissorRect != IntRect.Zero)

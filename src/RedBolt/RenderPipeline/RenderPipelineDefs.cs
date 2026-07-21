@@ -535,37 +535,46 @@ public struct InstancingBufferSettings : IEquatable<InstancingBufferSettings>
     public override readonly int GetHashCode() => unchecked((int)CalculatePipelineStateHash());
 }
 
-public sealed class BatchRendererSettings : IEquatable<BatchRendererSettings>
+public struct BatchRendererSettings : IEquatable<BatchRendererSettings>
 {
     public bool CubemapBoxProjection { get; set; }
 
-    public DrawableAmbientMode AmbientMode { get; set; } = DrawableAmbientMode.Directional;
+    public DrawableAmbientMode AmbientMode { get; set; }
 
-    public Vector2f VarianceShadowMapParams { get; set; } = new(0.0000001f, 0.9f);
+    public Vector2f VarianceShadowMapParams { get; set; }
 
-    public uint CalculatePipelineStateHash()
+    public BatchRendererSettings()
     {
-        var hash = new HashCode();
-        hash.Add(CubemapBoxProjection);
-        hash.Add(AmbientMode);
-        return unchecked((uint)hash.ToHashCode());
+        AmbientMode = DrawableAmbientMode.Directional;
+        VarianceShadowMapParams = new Vector2f(0.0000001f, 0.9f);
+    }
+
+    public readonly uint CalculatePipelineStateHash()
+    {
+        var hash = 0u;
+        hash ^= (CubemapBoxProjection ? 1u : 0u) + 0x9e3779b9u + (hash << 6) + (hash >> 2);
+        hash ^= unchecked((uint)AmbientMode) + 0x9e3779b9u + (hash << 6) + (hash >> 2);
+        return hash;
     }
 
     public void Validate()
     {
     }
 
-    public bool Equals(BatchRendererSettings? other)
+    public readonly bool Equals(BatchRendererSettings other)
     {
-        return other is not null
-            && CubemapBoxProjection == other.CubemapBoxProjection
+        return CubemapBoxProjection == other.CubemapBoxProjection
             && AmbientMode == other.AmbientMode
             && VarianceShadowMapParams.Equals(other.VarianceShadowMapParams);
     }
 
-    public override bool Equals(object? obj) => Equals(obj as BatchRendererSettings);
+    public static bool operator ==(BatchRendererSettings left, BatchRendererSettings right) => left.Equals(right);
 
-    public override int GetHashCode() => HashCode.Combine(CubemapBoxProjection, AmbientMode, VarianceShadowMapParams);
+    public static bool operator !=(BatchRendererSettings left, BatchRendererSettings right) => !left.Equals(right);
+
+    public override readonly bool Equals(object? obj) => obj is BatchRendererSettings other && Equals(other);
+
+    public override readonly int GetHashCode() => HashCode.Combine(CubemapBoxProjection, AmbientMode, VarianceShadowMapParams);
 }
 
 public sealed class ShadowMapAllocatorSettings : IEquatable<ShadowMapAllocatorSettings>

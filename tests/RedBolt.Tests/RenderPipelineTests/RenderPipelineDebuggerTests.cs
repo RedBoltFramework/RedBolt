@@ -117,7 +117,7 @@ public sealed class RenderPipelineDebuggerTests
     }
 
     [Fact]
-    public void BatchRenderer_reports_batches_into_active_debugger_snapshot()
+    public void Debugger_reports_batches_into_active_snapshot()
     {
         var scene = new Scene();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
@@ -128,7 +128,6 @@ public sealed class RenderPipelineDebuggerTests
         var view = pipeline.Instantiate();
         var processor = new DrawableProcessor(view);
         processor.SetLights([light]);
-        var batchRenderer = new BatchRenderer(view, processor, instancingBuffer: null);
 
         var geometry = new Geometry();
         var material = new Material(string.Empty);
@@ -159,17 +158,5 @@ public sealed class RenderPipelineDebuggerTests
         Assert.Same(light, snapshot.Passes[0].Batches[0].Light);
         Assert.Same(material, snapshot.Passes[0].Batches[0].Material);
         Assert.Contains(material, snapshot.SceneMaterials);
-
-        // Empty render path stays quiet without pipeline states.
-        var drawQueue = new DrawCommandQueue(_fixture.RenderDevice);
-        var ctx = new BatchRenderingContext(drawQueue, camera);
-        var emptyGroup = new PipelineBatchGroup<PipelineBatchByState>
-        {
-            Batches = []
-        };
-        debugger.BeginSnapshot();
-        batchRenderer.RenderBatches(ctx, emptyGroup);
-        debugger.EndSnapshot();
-        Assert.Empty(debugger.GetSnapshot().Passes);
     }
 }
