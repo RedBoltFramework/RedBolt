@@ -23,6 +23,21 @@ public sealed class DecompressTests
     }
 
     [Fact]
+    public void Dxt1_endpoints_use_native_bit_replication()
+    {
+        var blocks = new byte[8];
+        blocks[1] = 0x20;
+        var rgba = new byte[4 * 4 * 4];
+
+        Decompress.DecompressImageDXT(rgba, blocks, 4, 4, 1, CompressedFormat.Dxt1);
+
+        Assert.Equal(33, rgba[0]);
+        Assert.Equal(0, rgba[1]);
+        Assert.Equal(0, rgba[2]);
+        Assert.Equal(255, rgba[3]);
+    }
+
+    [Fact]
     public void Dxt_block_flips_preserve_supported_formats()
     {
         Assert.True(Decompress.IsFlipBlockImplemented(CompressedFormat.Rgba));

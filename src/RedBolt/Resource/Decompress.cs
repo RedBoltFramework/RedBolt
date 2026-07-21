@@ -143,7 +143,8 @@ public static class Decompress
 
         Span<int> modulationValues = stackalloc int[8 * 16];
         Span<int> modulationModes = stackalloc int[8 * 16];
-        Span<uint> previousBlocks = stackalloc uint[4];
+        Span<int> previousBlocks = stackalloc int[4];
+        previousBlocks.Fill(-1);
         Span<int> colours = stackalloc int[2 * 2 * 2 * 4];
         Span<int> aSignal = stackalloc int[4];
         Span<int> bSignal = stackalloc int[4];
@@ -162,15 +163,15 @@ public static class Decompress
                 var blockYPlusOne = LimitCoordinate(blockY + 1, blockYDim);
 
                 // Map to block memory locations
-                var block00 = (int)(TwiddleUv((uint)blockYDim, (uint)blockXDim, (uint)blockY, (uint)blockX) * 8);
-                var block01 = (int)(TwiddleUv((uint)blockYDim, (uint)blockXDim, (uint)blockY, (uint)blockXPlusOne) * 8);
-                var block10 = (int)(TwiddleUv((uint)blockYDim, (uint)blockXDim, (uint)blockYPlusOne, (uint)blockX) * 8);
-                var block11 = (int)(TwiddleUv((uint)blockYDim, (uint)blockXDim, (uint)blockYPlusOne, (uint)blockXPlusOne) * 8);
+                var block00 = TwiddleUv(blockYDim, blockXDim, blockY, blockX) * 8;
+                var block01 = TwiddleUv(blockYDim, blockXDim, blockY, blockXPlusOne) * 8;
+                var block10 = TwiddleUv(blockYDim, blockXDim, blockYPlusOne, blockX) * 8;
+                var block11 = TwiddleUv(blockYDim, blockXDim, blockYPlusOne, blockXPlusOne) * 8;
 
                 // Extract the colours and the modulation information IF the previous values
                 // have changed.
-                if (previousBlocks[0] != (uint)block00 || previousBlocks[1] != (uint)block01
-                    || previousBlocks[2] != (uint)block10 || previousBlocks[3] != (uint)block11)
+                if (previousBlocks[0] != block00 || previousBlocks[1] != block01
+                    || previousBlocks[2] != block10 || previousBlocks[3] != block11)
                 {
                     var startY = 0;
                     for (var i = 0; i < 2; ++i)
@@ -187,10 +188,10 @@ public static class Decompress
                         startY += 4;
                     }
 
-                    previousBlocks[0] = (uint)block00;
-                    previousBlocks[1] = (uint)block01;
-                    previousBlocks[2] = (uint)block10;
-                    previousBlocks[3] = (uint)block11;
+                    previousBlocks[0] = block00;
+                    previousBlocks[1] = block01;
+                    previousBlocks[2] = block10;
+                    previousBlocks[3] = block11;
                 }
 
                 // Decompress the pixel. First compute the interpolated A and B signals
@@ -1082,10 +1083,10 @@ public static class Decompress
         }
     }
 
-    private static uint TwiddleUv(uint ySize, uint xSize, uint yPosition, uint xPosition)
+    private static int TwiddleUv(int ySize, int xSize, int yPosition, int xPosition)
     {
-        uint minDimension;
-        uint maxValue;
+        int minDimension;
+        int maxValue;
         if (ySize < xSize)
         {
             minDimension = ySize;
@@ -1098,9 +1099,9 @@ public static class Decompress
         }
 
         // Step through all the bits in the "minimum" dimension
-        uint sourceBitPosition = 1;
-        uint destinationBitPosition = 1;
-        uint twiddled = 0;
+        var sourceBitPosition = 1;
+        var destinationBitPosition = 1;
+        var twiddled = 0;
         var shiftCount = 0;
         while (sourceBitPosition < minDimension)
         {
@@ -1154,8 +1155,8 @@ public static class Decompress
 
     private static void BuildBc1Palette(ReadOnlySpan<byte> colorBlock, Span<uint> palette, bool opaqueOnly)
     {
-        var c0 = BitConverter.ToUInt16(colorBlock[..2]);
-        var c1 = BitConverter.ToUInt16(colorBlock[2..4]);
+        var c0 = BinaryPrimitives.ReadUInt16LittleEndian(colorBlock[..2]);
+        var c1 = BinaryPrimitives.ReadUInt16LittleEndian(colorBlock[2..4]);
         palette[0] = ExpandRgb565(c0, 255);
         palette[1] = ExpandRgb565(c1, 255);
         var c0Channels = ToChannels(palette[0]);
@@ -1211,7 +1212,7 @@ public static class Decompress
 
     private static void WriteColorIndices(ReadOnlySpan<byte> indexData, ReadOnlySpan<uint> palette, Span<byte> output)
     {
-        var indices = BitConverter.ToUInt32(indexData);
+        var indices = BinaryPrimitives.ReadUInt32LittleEndian(indexData);
         for (var i = 0; i < 16; ++i)
         {
             var color = palette[(int)((indices >> (2 * i)) & 0x3)];
@@ -1224,9 +1225,12 @@ public static class Decompress
 
     private static uint ExpandRgb565(ushort value, byte alpha)
     {
-        var r = (byte)(((value >> 11) & 0x1f) * 255 / 31);
-        var g = (byte)(((value >> 5) & 0x3f) * 255 / 63);
-        var b = (byte)((value & 0x1f) * 255 / 31);
+        var red = (byte)((value >> 11) & 0x1f);
+        var green = (byte)((value >> 5) & 0x3f);
+        var blue = (byte)(value & 0x1f);
+        var r = (byte)((red << 3) | (red >> 2));
+        var g = (byte)((green << 2) | (green >> 4));
+        var b = (byte)((blue << 3) | (blue >> 2));
         return ToPackedColor(r, g, b, alpha);
     }
 
