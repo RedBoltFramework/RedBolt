@@ -1,7 +1,7 @@
 namespace RedBolt;
 
 /// <summary>Instancing buffer compositor.</summary>
-public sealed class InstancingBuffer : Object
+public class InstancingBuffer : Object
 {
     /// <summary>Stride of one element in bytes.</summary>
     public const int ElementStride = 4 * sizeof(float);
@@ -12,16 +12,9 @@ public sealed class InstancingBuffer : Object
 
     public void SetSettings(InstancingBufferSettings settings)
     {
-        ArgumentNullException.ThrowIfNull(settings);
-        if (!_settings.Equals(settings))
+        if (_settings != settings)
         {
-            _settings = new InstancingBufferSettings
-            {
-                EnableInstancing = settings.EnableInstancing,
-                FirstInstancingTexCoord = settings.FirstInstancingTexCoord,
-                NumInstancingTexCoords = settings.NumInstancingTexCoords,
-                StepRate = settings.StepRate
-            };
+            _settings = settings;
             Initialize();
         }
     }
@@ -39,7 +32,7 @@ public sealed class InstancingBuffer : Object
     }
 
     /// <summary>Return index of next added instance.</summary>
-    public int GetNextInstanceIndex() => checked((int)_vertexBuffer!.GetVertexCount());
+    public int NextInstanceIndex => checked((int)_vertexBuffer!.GetVertexCount());
 
     /// <summary>Add instance to buffer. Use SetElements to fill it after.</summary>
     public int AddInstance()
@@ -66,26 +59,35 @@ public sealed class InstancingBuffer : Object
     }
 
     /// <summary>Return settings.</summary>
-    public InstancingBufferSettings GetSettings() => _settings;
+    public ref readonly InstancingBufferSettings Settings => ref _settings;
 
     /// <summary>Return vertex buffer.</summary>
-    public VertexBuffer? GetVertexBuffer() => _vertexBuffer?.GetVertexBuffer();
+    public VertexBuffer? VertexBuffer => _vertexBuffer?.GetVertexBuffer();
 
     /// <summary>Return whether instancing is enabled.</summary>
-    public bool IsEnabled() => _settings.EnableInstancing;
+    public bool IsEnabled => _settings.EnableInstancing;
+
+    public override void Dispose()
+    {
+        _currentInstanceData = default;
+        _vertexBuffer?.Dispose();
+        _vertexBuffer = null;
+        base.Dispose();
+    }
 
     private void Initialize()
     {
+        _vertexBuffer?.Dispose();
         _vertexBuffer = null;
 
         if (_settings.EnableInstancing)
         {
             var vertexElements = new List<VertexElement>();
-            for (uint i = 0; i < _settings.NumInstancingTexCoords; ++i)
+            for (var i = 0; i < _settings.NumInstancingTexCoords; ++i)
             {
                 var index = _settings.FirstInstancingTexCoord + i;
                 vertexElements.Add(new VertexElement(VertexElementType.Vector4, VertexElementSemantic.TexCoord,
-                    checked((byte)index), _settings.StepRate));
+                    checked((byte)index), checked((uint)_settings.StepRate)));
             }
 
             _vertexBuffer = new DynamicVertexBuffer();

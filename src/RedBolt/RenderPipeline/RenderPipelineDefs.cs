@@ -513,42 +513,50 @@ public sealed class DrawableProcessorSettings : IEquatable<DrawableProcessorSett
     public override int GetHashCode() => HashCode.Combine(MaterialQuality, MaxVertexLights, MaxPixelLights, PcfKernelSize, NormalOffsetScale, LightProcessorCache);
 }
 
-public sealed class InstancingBufferSettings : IEquatable<InstancingBufferSettings>
+public struct InstancingBufferSettings : IEquatable<InstancingBufferSettings>
 {
     public bool EnableInstancing { get; set; }
 
-    public uint FirstInstancingTexCoord { get; set; }
+    public int FirstInstancingTexCoord { get; set; }
 
-    public uint NumInstancingTexCoords { get; set; }
+    public int NumInstancingTexCoords { get; set; }
 
-    public uint StepRate { get; set; } = 1;
+    public int StepRate { get; set; }
 
-    public uint CalculatePipelineStateHash()
+    public InstancingBufferSettings()
     {
-        var hash = new HashCode();
-        hash.Add(EnableInstancing);
-        hash.Add(FirstInstancingTexCoord);
-        hash.Add(NumInstancingTexCoords);
-        hash.Add(StepRate);
-        return unchecked((uint)hash.ToHashCode());
+        StepRate = 1;
+    }
+
+    public readonly uint CalculatePipelineStateHash()
+    {
+        var hash = 0u;
+        hash ^= (EnableInstancing ? 1u : 0u) + 0x9e3779b9u + (hash << 6) + (hash >> 2);
+        hash ^= unchecked((uint)FirstInstancingTexCoord) + 0x9e3779b9u + (hash << 6) + (hash >> 2);
+        hash ^= unchecked((uint)NumInstancingTexCoords) + 0x9e3779b9u + (hash << 6) + (hash >> 2);
+        hash ^= unchecked((uint)StepRate) + 0x9e3779b9u + (hash << 6) + (hash >> 2);
+        return hash;
     }
 
     public void Validate()
     {
     }
 
-    public bool Equals(InstancingBufferSettings? other)
+    public readonly bool Equals(InstancingBufferSettings other)
     {
-        return other is not null
-            && EnableInstancing == other.EnableInstancing
+        return EnableInstancing == other.EnableInstancing
             && FirstInstancingTexCoord == other.FirstInstancingTexCoord
             && NumInstancingTexCoords == other.NumInstancingTexCoords
             && StepRate == other.StepRate;
     }
 
-    public override bool Equals(object? obj) => Equals(obj as InstancingBufferSettings);
+    public static bool operator ==(InstancingBufferSettings left, InstancingBufferSettings right) => left.Equals(right);
 
-    public override int GetHashCode() => HashCode.Combine(EnableInstancing, FirstInstancingTexCoord, NumInstancingTexCoords, StepRate);
+    public static bool operator !=(InstancingBufferSettings left, InstancingBufferSettings right) => !left.Equals(right);
+
+    public override readonly bool Equals(object? obj) => obj is InstancingBufferSettings other && Equals(other);
+
+    public override readonly int GetHashCode() => unchecked((int)CalculatePipelineStateHash());
 }
 
 public sealed class BatchRendererSettings : IEquatable<BatchRendererSettings>
@@ -810,7 +818,7 @@ public class ShaderProgramCompositorSettings : IEquatable<ShaderProgramComposito
 
     public ShadowMapAllocatorSettings ShadowMapAllocator { get; } = new();
 
-    public InstancingBufferSettings InstancingBuffer { get; } = new();
+    public InstancingBufferSettings InstancingBuffer { get; set; } = new();
 
     public uint CalculatePipelineStateHash()
     {
@@ -827,7 +835,9 @@ public class ShaderProgramCompositorSettings : IEquatable<ShaderProgramComposito
         RenderBufferManager.Validate();
         SceneProcessor.Validate();
         ShadowMapAllocator.Validate();
-        InstancingBuffer.Validate();
+        var instancingBuffer = InstancingBuffer;
+        instancingBuffer.Validate();
+        InstancingBuffer = instancingBuffer;
     }
 
     public bool Equals(ShaderProgramCompositorSettings? other)
@@ -902,14 +912,16 @@ public sealed class RenderPipelineSettings : ShaderProgramCompositorSettings, IE
         // Setup instancing buffer format
         if (InstancingBuffer.EnableInstancing)
         {
-            InstancingBuffer.FirstInstancingTexCoord = 4;
-            InstancingBuffer.NumInstancingTexCoords = SceneProcessor.AmbientMode switch
+            var instancingBuffer = InstancingBuffer;
+            instancingBuffer.FirstInstancingTexCoord = 4;
+            instancingBuffer.NumInstancingTexCoords = SceneProcessor.AmbientMode switch
             {
                 DrawableAmbientMode.Constant => 3,
                 DrawableAmbientMode.Flat => 4,
                 DrawableAmbientMode.Directional => 10,
                 _ => 3
             };
+            InstancingBuffer = instancingBuffer;
         }
     }
 

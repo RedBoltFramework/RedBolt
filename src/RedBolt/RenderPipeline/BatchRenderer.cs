@@ -115,7 +115,7 @@ public class BatchRenderer : Object
         if (!objectParameterBuilder.IsInstancingSupported())
             return;
 
-        batches.StartInstance = _instancingBuffer.GetNextInstanceIndex();
+        batches.StartInstance = _instancingBuffer.NextInstanceIndex;
         foreach (var sortedBatch in batches.Batches.Span)
         {
             PipelineBatch? pipelineBatch = sortedBatch switch
@@ -140,7 +140,7 @@ public class BatchRenderer : Object
 
     private BatchRenderFlag AdjustRenderFlags(BatchRenderFlag flags)
     {
-        if (_instancingBuffer is null || !_instancingBuffer.IsEnabled())
+        if (_instancingBuffer is null || !_instancingBuffer.IsEnabled)
             flags &= ~BatchRenderFlag.EnableInstancingForStaticGeometry;
         return flags;
     }

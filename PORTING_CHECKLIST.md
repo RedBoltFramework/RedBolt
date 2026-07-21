@@ -304,6 +304,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [~] A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)
 
+- [x] `InstancingBuffer.h` / `InstancingBuffer.cpp` and `InstancingBufferSettings` — extensible noncopyable buffer ownership, immediate replacement and reverse deterministic teardown, borrowed current-data/settings/buffer views, POD settings defaults/copies/hash/equality, exact composition flow, property-form getters, and approved managed `int` indices/sizes reconciled
 - [x] `PipelineBatchSortKey.h` — all three mutable value-struct kinds, key layouts, constructors, borrowed batch/span aliases, independent scalar copies, exact ordering including unordered floats, automatic lifetime, and approved connected `int` indices/sizes reconciled
 - [x] `RenderPass.h` / `RenderPass.cpp` — value-type traits, reflected attribute construction, independent runtime enablement, inherited reflection cloning, protected pass state, parameter helpers, render-buffer connection, and explicit empty destructor reconciled
 - [~] `RenderPath.h` / `RenderPath.cpp` — destructor/owned-pass teardown, deep clone and independent enabled-pass returns, native optional polymorphic JSON/binary serialization, archive-context construction, and factory registration reconciled; constructor closure awaits removal of the inherited resource name-taking compatibility path

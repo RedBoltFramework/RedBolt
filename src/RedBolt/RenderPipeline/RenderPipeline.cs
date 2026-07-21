@@ -24,7 +24,9 @@ public class RenderPipeline : Component
         SetRenderPathAttr(new ResourceRef(new StringHash(nameof(RenderPath)), DefaultRenderPathName));
 
         // Enable instancing by default for default render pipeline
-        _settings.InstancingBuffer.EnableInstancing = true;
+        var instancingBuffer = _settings.InstancingBuffer;
+        instancingBuffer.EnableInstancing = true;
+        _settings.InstancingBuffer = instancingBuffer;
         _settings.Validate();
         _settings.AdjustToSupported(GetSubsystem<Graphics>());
     }

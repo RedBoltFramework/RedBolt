@@ -183,7 +183,7 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
         if (shaderProgramDesc.IsInstancingUsed)
         {
             GraphicsUtils.InitializeInputLayoutAndPrimitiveType(pipelineStateDesc, geometry,
-                _instancingBuffer?.GetVertexBuffer());
+                _instancingBuffer?.VertexBuffer);
 
             if (isStereoPass)
             {

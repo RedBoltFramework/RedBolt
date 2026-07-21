@@ -266,7 +266,7 @@ public class SceneProcessor : Object, LightProcessorCallback
 
     public void PrepareInstancingBuffer()
     {
-        if (InstancingBuffer is null || !InstancingBuffer.IsEnabled())
+        if (InstancingBuffer is null || !InstancingBuffer.IsEnabled)
             return;
 
         InstancingBuffer.Begin();

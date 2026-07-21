@@ -754,7 +754,7 @@ internal sealed class DrawCommandCompositor
             return;
         }
 
-        GraphicsUtils.SetBuffersFromGeometry(_ctx.DrawQueue, geometry, _instancingBuffer?.GetVertexBuffer());
+        GraphicsUtils.SetBuffersFromGeometry(_ctx.DrawQueue, geometry, _instancingBuffer?.VertexBuffer);
         _ctx.DrawQueue.DrawIndexedInstanced(checked((int)geometry.GetIndexStart()),
             checked((int)geometry.GetIndexCount()), checked((int)_instancingGroup.Start),
             checked((int)(_instancingGroup.Count * _ctx.InstanceMultiplier)));

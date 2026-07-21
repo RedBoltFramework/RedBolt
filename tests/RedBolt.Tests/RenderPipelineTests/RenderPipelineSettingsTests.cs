@@ -7,7 +7,9 @@ public sealed class RenderPipelineSettingsTests
     {
         var settings = new RenderPipelineSettings();
         settings.SceneProcessor.LightingMode = DirectLightingMode.DeferredBlinnPhong;
-        settings.InstancingBuffer.EnableInstancing = true;
+        var instancingBuffer = settings.InstancingBuffer;
+        instancingBuffer.EnableInstancing = true;
+        settings.InstancingBuffer = instancingBuffer;
 
         settings.PropagateImpliedSettings();
 
@@ -15,6 +17,6 @@ public sealed class RenderPipelineSettingsTests
         Assert.True(settings.RenderBufferManager.StencilBuffer);
         Assert.True(settings.RenderBufferManager.ReadableDepth);
         Assert.False(settings.RenderBufferManager.InheritMultiSampleLevel);
-        Assert.Equal(10u, settings.InstancingBuffer.NumInstancingTexCoords);
+        Assert.Equal(10, settings.InstancingBuffer.NumInstancingTexCoords);
     }
 }
