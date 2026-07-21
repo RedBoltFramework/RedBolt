@@ -40,7 +40,7 @@ public sealed class FrustumTests
         Assert.Equal(Intersection.Inside, frustum.IsInside(new Vector3f(0.0f, 0.0f, 2.0f)));
         Assert.Equal(Intersection.Outside, frustum.IsInside(new Vector3f(2.0f, 0.0f, 2.0f)));
 
-        var translated = frustum.Transformed(new Matrix3x4(1.0f, 0.0f, 0.0f, 5.0f));
+        var translated = frustum.Transformed(Matrix3x4.FromTranslation(new Vector3f(5.0f, 0.0f, 0.0f)));
 
         Assert.Equal(Intersection.Inside, translated.IsInside(new Vector3f(5.0f, 0.0f, 2.0f)));
         Assert.Equal(Intersection.Outside, translated.IsInside(new Vector3f(0.0f, 0.0f, 2.0f)));

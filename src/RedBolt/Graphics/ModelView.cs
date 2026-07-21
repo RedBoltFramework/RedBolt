@@ -751,7 +751,7 @@ public struct BoneView : IEquatable<BoneView>
         Position = Vector3f.Zero;
         Rotation = Quaternion.IDENTITY;
         Scale = Vector3f.One;
-        OffsetMatrix = Matrix3x4.IDENTITY;
+        OffsetMatrix = Matrix3x4.Identity;
         ShapeFlags = BoneCollisionShape.None;
         BoundingSphereRadius = 0;
         LocalBoundingBox = new BoundingBox();

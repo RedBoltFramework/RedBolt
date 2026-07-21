@@ -573,7 +573,7 @@ public sealed class Material : Resource
 
     public void SetUVTransform(Vector2f offset, float rotation, Vector2f repeat)
     {
-        var transform = Matrix3x4.IDENTITY;
+        var transform = Matrix3x4.Identity;
         transform = Matrix3x4.FromTranslation(new Vector3f(-0.5f, -0.5f, 0.0f)) * transform;
         transform = Matrix3x4.FromScale(new Vector3f(repeat.X, repeat.Y, 1.0f)) * transform;
         transform = new Matrix3x4(Vector3f.Zero, new Quaternion(rotation, Vector3f.Forward), Vector3f.One) * transform;

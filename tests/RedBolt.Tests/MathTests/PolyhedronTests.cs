@@ -106,11 +106,11 @@ public sealed class PolyhedronTests
         polyhedron.AddFace(Vector3f.Zero, new Vector3f(1.0f, 0.0f, 0.0f), new Vector3f(0.0f, 1.0f, 0.0f));
         polyhedron.AddFace(new Vector3f(0.0f, 0.0f, 1.0f), new Vector3f(1.0f, 0.0f, 1.0f), new Vector3f(1.0f, 1.0f, 1.0f), new Vector3f(0.0f, 1.0f, 1.0f));
 
-        var translated = polyhedron.Transformed(new Matrix3x4(1.0f, 0.0f, 0.0f, 5.0f));
+        var translated = polyhedron.Transformed(Matrix3x4.FromTranslation(new Vector3f(5.0f, 0.0f, 0.0f)));
 
         Assert.Equal(2, translated.Faces.Count);
         Assert.Equal(6.0f, translated.Faces[0][1].X);
-        polyhedron.Transform(new Matrix3x4(1.0f, 0.0f, 0.0f, 5.0f));
+        polyhedron.Transform(Matrix3x4.FromTranslation(new Vector3f(5.0f, 0.0f, 0.0f)));
         Assert.Equal(6.0f, polyhedron.Faces[0][1].X);
         polyhedron.Clear();
         Assert.True(polyhedron.Empty());

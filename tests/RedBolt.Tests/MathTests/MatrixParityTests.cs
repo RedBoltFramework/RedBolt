@@ -80,6 +80,29 @@ public class MatrixParityTests
     }
 
     [Fact]
+    public void Matrix3x4PreservesNativeValueLayoutAndCopySemantics()
+    {
+        Assert.Equal(48, System.Runtime.CompilerServices.Unsafe.SizeOf<Matrix3x4>());
+        Assert.False(System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<Matrix3x4>());
+        Assert.Equal(Matrix3x4.Identity, new Matrix3x4());
+
+        ReadOnlySpan<float> values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        var matrix = new Matrix3x4(values);
+        var copy = matrix;
+        copy.M00 = 13.0f;
+
+        Assert.Equal(1.0f, matrix.M00);
+        Assert.Equal(values.ToArray(), matrix.Data.ToArray());
+        Assert.Equal(8.0f, matrix.Element(1, 3));
+        Assert.Equal(new Vector4f(5, 6, 7, 8), matrix.Row(1));
+        Assert.Equal(new Vector3f(3, 7, 11), matrix.Column(2));
+
+        var translation = new Vector3f(2.0f, 3.0f, 4.0f);
+        Assert.Equal(translation, Matrix3x4.FromTranslation(translation).Translation);
+        Assert.Equal(new Vector3f(2.0f, 3.0f, 4.0f), Matrix3x4.FromScale(new Vector3f(2.0f, 3.0f, 4.0f)).Scale);
+    }
+
+    [Fact]
     public void Matrix4DeterminantAndInverseMatchRbfxContract()
     {
         var matrix = new Matrix4(

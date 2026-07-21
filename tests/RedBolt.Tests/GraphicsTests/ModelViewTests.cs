@@ -186,7 +186,7 @@ public sealed class ModelViewTests
         bone.SetLocalBoundingSphere(2);
         Assert.Equal(BoneCollisionShape.Sphere, bone.ShapeFlags);
         bone.RecalculateOffsetMatrix();
-        Assert.Equal(Matrix3x4.IDENTITY, bone.OffsetMatrix);
+        Assert.Equal(Matrix3x4.Identity, bone.OffsetMatrix);
     }
 
     [Fact]
@@ -244,7 +244,7 @@ public sealed class ModelViewTests
             Position = new Vector3f(1, 2, 3),
             Rotation = Quaternion.IDENTITY,
             Scale = Vector3f.One,
-            OffsetMatrix = Matrix3x4.IDENTITY,
+            OffsetMatrix = Matrix3x4.Identity,
             ShapeFlags = BoneCollisionShape.Sphere,
             BoundingSphereRadius = 2.0f
         }]);
