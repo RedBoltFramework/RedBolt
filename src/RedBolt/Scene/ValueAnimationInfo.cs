@@ -1,138 +1,197 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
-public class ValueAnimationInfo : ICloneable
+/// <summary>Base class for a value animation instance, which includes animation runtime information and updates the target object's value automatically.</summary>
+public class ValueAnimationInfo : ICloneable, IDisposable
 {
-    private static readonly object _emptyTarget = new();
-    private readonly WeakReference<object> _target;
-    private readonly bool _hasTarget;
-    private float _lastScaledTime;
+    /// <summary>Target object.</summary>
+    protected WeakReference<Object>? _target;
+    /// <summary>Attribute animation.</summary>
+    protected ValueAnimation? _animation;
+    /// <summary>Wrap mode.</summary>
+    protected WrapMode _wrapMode;
+    /// <summary>Animation speed.</summary>
+    protected float _speed;
+    /// <summary>Current time.</summary>
+    protected float _currentTime;
+    /// <summary>Last scaled time.</summary>
+    protected float _lastScaledTime;
 
-    public ValueAnimationInfo(ValueAnimation animation, WrapMode wrapMode, float speed)
+    /// <summary>Construct without target object.</summary>
+    public ValueAnimationInfo(ValueAnimation? animation, WrapMode wrapMode, float speed)
     {
-        _target = new WeakReference<object>(_emptyTarget);
-        Animation = animation ?? throw new ArgumentNullException(nameof(animation));
-        WrapMode = wrapMode;
-        Speed = Math.Max(speed, 0.0f);
+        _animation = animation;
+        _wrapMode = wrapMode;
+        _speed = speed;
+        _currentTime = 0.0f;
+        _lastScaledTime = 0.0f;
+        _speed = Math.Max(0.0f, _speed);
     }
 
-    public ValueAnimationInfo(object target, ValueAnimation animation, WrapMode wrapMode, float speed)
+    /// <summary>Construct with target object.</summary>
+    public ValueAnimationInfo(Object? target, ValueAnimation? animation, WrapMode wrapMode, float speed)
     {
-        this._target = new WeakReference<object>(target ?? throw new ArgumentNullException(nameof(target)));
-        _hasTarget = true;
-        Animation = animation ?? throw new ArgumentNullException(nameof(animation));
-        WrapMode = wrapMode;
-        Speed = Math.Max(speed, 0.0f);
+        _target = target is null ? null : new WeakReference<Object>(target);
+        _animation = animation;
+        _wrapMode = wrapMode;
+        _speed = speed;
+        _currentTime = 0.0f;
+        _lastScaledTime = 0.0f;
+        _speed = Math.Max(0.0f, _speed);
     }
 
-    public ValueAnimationInfo(ValueAnimationInfo rhs)
+    /// <summary>Copy construct.</summary>
+    public ValueAnimationInfo(ValueAnimationInfo other)
     {
-        ArgumentNullException.ThrowIfNull(rhs);
-        _hasTarget = rhs._hasTarget;
-        _target = rhs._target;
-        Animation = rhs.Animation;
-        WrapMode = rhs.WrapMode;
-        Speed = rhs.Speed;
+        var target = other.Target;
+        _target = target is null ? null : new WeakReference<Object>(target);
+        _animation = other._animation;
+        _wrapMode = other._wrapMode;
+        _speed = other._speed;
+        _currentTime = 0.0f;
+        _lastScaledTime = 0.0f;
     }
 
     public event Action<VAnimEventFrame>? EventTriggered;
 
-    public ValueAnimation Animation { get; }
-
-    public WrapMode WrapMode { get; private set; }
-
-    public float Speed { get; private set; }
-
-    public float Time { get; private set; }
-
     public virtual object Clone() => new ValueAnimationInfo(this);
 
-    public object GetTarget()
+    /// <summary>Destruct.</summary>
+    public virtual void Dispose()
     {
-        return _hasTarget && _target.TryGetTarget(out var value) ? value : null!;
+        EventTriggered = null;
+        _animation = null;
+        _target = null;
+        GC.SuppressFinalize(this);
     }
 
-    public ValueAnimation GetAnimation() => Animation;
-
-    public WrapMode GetWrapMode() => WrapMode;
-
-    public float GetSpeed() => Speed;
-
-    public float GetTime() => Time;
-
-    public void SetWrapMode(WrapMode wrapMode)
-    {
-        WrapMode = wrapMode;
-    }
-
-    public void SetSpeed(float speed)
-    {
-        Speed = Math.Max(speed, 0.0f);
-    }
-
+    /// <summary>Advance time position and apply. Return true when the animation is finished. No-op when the target object is not defined.</summary>
     public bool Update(float timeStep)
     {
-        if (!_hasTarget || GetTarget() is null)
+        if (_animation is null || Target is null)
             return true;
 
-        return SetTime(Time + timeStep * Speed);
+        return SetTime(_currentTime + timeStep * _speed);
     }
 
+    /// <summary>Set time position and apply. Return true when the animation is finished. No-op when the target object is not defined.</summary>
     public bool SetTime(float time)
     {
-        if (!_hasTarget || GetTarget() is null)
+        var animation = _animation;
+        var target = Target;
+        if (animation is null || target is null)
             return true;
 
-        Time = time;
-        if (!Animation.IsValid())
+        _currentTime = time;
+
+        if (!animation.IsValid())
             return true;
 
         var finished = false;
-        var scaledTime = CalculateScaledTime(Time, ref finished);
-        ApplyValue(Animation.GetAnimationValue(scaledTime));
+        var scaledTime = CalculateScaledTime(_currentTime, ref finished);
 
-        if (Animation.HasEventFrames())
+        using (var newValue = animation.GetAnimationValue(scaledTime))
+            ApplyValue(newValue);
+
+        if (animation.HasEventFrames)
         {
-            foreach (var frame in GetEventFrames(_lastScaledTime, scaledTime))
-                EventTriggered?.Invoke(frame);
+            var eventFrames = new List<VAnimEventFrame>();
+            GetEventFrames(_lastScaledTime, scaledTime, eventFrames);
+
+            if (eventFrames.Count != 0)
+            {
+                var targetWeak = new WeakReference<Object>(target);
+
+                for (var i = 0; i < eventFrames.Count; ++i)
+                    EventTriggered?.Invoke(eventFrames[i]);
+
+                if (!targetWeak.TryGetTarget(out _))
+                    return true;
+            }
         }
 
         _lastScaledTime = scaledTime;
+
         return finished;
     }
 
-    protected virtual void ApplyValue(object? newValue)
+    /// <summary>Set wrap mode.</summary>
+    public WrapMode WrapMode
+    {
+        get => _wrapMode;
+        set => _wrapMode = value;
+    }
+
+    /// <summary>Set speed.</summary>
+    public float Speed
+    {
+        get => _speed;
+        set => _speed = value;
+    }
+
+    /// <summary>Return target object.</summary>
+    public Object? Target => _target is not null && _target.TryGetTarget(out var target) ? target : null;
+
+    /// <summary>Return animation.</summary>
+    public ValueAnimation? Animation => _animation;
+
+    /// <summary>Return time position.</summary>
+    public float Time => _currentTime;
+
+    /// <summary>Apply new animation value to the target object. Called by Update().</summary>
+    protected virtual void ApplyValue(in Variant newValue)
     {
     }
 
+    /// <summary>Calculate scaled time.</summary>
     protected float CalculateScaledTime(float currentTime, ref bool finished)
     {
-        var beginTime = Animation.BeginTime;
-        var endTime = Animation.EndTime;
-        return WrapMode switch
-        {
-            WrapMode.Loop => beginTime + MathDefs.AbsMod(currentTime - beginTime, endTime - beginTime),
-            WrapMode.Once => ClampAndSetFinished(currentTime, beginTime, endTime, ref finished),
-            WrapMode.Clamp => MathDefs.Clamp(currentTime, beginTime, endTime),
-            _ => beginTime
-        };
-    }
+        var animation = _animation!;
+        var beginTime = animation.BeginTime;
+        var endTime = animation.EndTime;
 
-    protected IReadOnlyList<VAnimEventFrame> GetEventFrames(float beginTime, float endTime)
-    {
-        if (WrapMode == WrapMode.Loop && beginTime > endTime)
+        switch (_wrapMode)
         {
-            var result = new List<VAnimEventFrame>();
-            result.AddRange(Animation.GetEventFrames(beginTime, Animation.EndTime));
-            result.AddRange(Animation.GetEventFrames(Animation.BeginTime, endTime));
-            return result;
+        case WrapMode.Loop:
+        {
+            var span = endTime - beginTime;
+            var time = (currentTime - beginTime) % span;
+            if (time < 0.0f)
+                time += span;
+            return beginTime + time;
         }
-
-        return Animation.GetEventFrames(beginTime, endTime);
+        case WrapMode.Once:
+            finished = currentTime >= endTime;
+            goto case WrapMode.Clamp;
+        case WrapMode.Clamp:
+            return MathDefs.Clamp(currentTime, beginTime, endTime);
+        default:
+            Log.GetLogger().LogError("Unsupported attribute animation wrap mode");
+            return beginTime;
+        }
     }
 
-    private static float ClampAndSetFinished(float currentTime, float beginTime, float endTime, ref bool finished)
+    /// <summary>Return event frames.</summary>
+    protected void GetEventFrames(float beginTime, float endTime, List<VAnimEventFrame> eventFrames)
     {
-        finished = currentTime >= endTime;
-        return MathDefs.Clamp(currentTime, beginTime, endTime);
+        var animation = _animation!;
+        switch (_wrapMode)
+        {
+        case WrapMode.Loop:
+            // TODO: This can miss an event if the deltatime is exactly the animation's length
+            if (beginTime <= endTime)
+                animation.GetEventFrames(beginTime, endTime, eventFrames);
+            else
+            {
+                animation.GetEventFrames(beginTime, animation.EndTime, eventFrames);
+                animation.GetEventFrames(animation.BeginTime, endTime, eventFrames);
+            }
+            break;
+        case WrapMode.Once:
+        case WrapMode.Clamp:
+            animation.GetEventFrames(beginTime, endTime, eventFrames);
+            break;
+        }
     }
 }

@@ -1,458 +1,637 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
+/// <summary>Interpolation method.</summary>
 public enum InterpMethod
 {
+    /// <summary>No interpolation.</summary>
     None = 0,
+    /// <summary>Linear interpolation (default).</summary>
     Linear,
+    /// <summary>Cardinal spline interpolation, default tension value is 0.5f. For more information please refer to http://cubic.org/docs/hermite.htm.</summary>
     Spline
 }
 
-public struct VAnimKeyFrame
+/// <summary>Value animation key frame.</summary>
+public struct VAnimKeyFrame : ICloneable, IDisposable
 {
+    /// <summary>Time.</summary>
     public float Time;
-    public object? Value;
+    /// <summary>Value.</summary>
+    public Variant Value;
+
+    public readonly VAnimKeyFrame Clone() => new() { Time = Time, Value = Value.Clone() };
+
+    readonly object ICloneable.Clone() => Clone();
+
+    public void Dispose() => Value.Dispose();
 }
 
-public struct VAnimEventFrame
+/// <summary>Value animation event frame.</summary>
+public struct VAnimEventFrame : ICloneable, IDisposable
 {
+    /// <summary>Time.</summary>
     public float Time;
+    /// <summary>Event type.</summary>
     public StringHash EventType;
+    /// <summary>Event data.</summary>
     public VariantMap EventData;
+
+    public VAnimEventFrame()
+    {
+        EventData = new VariantMap();
+    }
+
+    public readonly VAnimEventFrame Clone()
+    {
+        var result = new VAnimEventFrame
+        {
+            Time = Time,
+            EventType = EventType
+        };
+        result.EventData.Dispose();
+        result.EventData = new VariantMap(EventData);
+        return result;
+    }
+
+    readonly object ICloneable.Clone() => Clone();
+
+    public void Dispose() => EventData?.Dispose();
 }
 
-public sealed class ValueAnimation : Resource
+/// <summary>Value animation class.</summary>
+public class ValueAnimation : Resource
 {
-    private readonly List<VAnimKeyFrame> _keyFrames = [];
-    private readonly List<VAnimEventFrame> _eventFrames = [];
-    private readonly List<object?> _splineTangents = [];
-    private bool _splineTangentsDirty;
+    /// <summary>Owner.</summary>
     private object? _owner;
+    /// <summary>Interpolation method.</summary>
+    private InterpMethod _interpolationMethod = InterpMethod.Linear;
+    /// <summary>Spline tension.</summary>
+    private float _splineTension = 0.5f;
+    /// <summary>Value type.</summary>
+    private VariantType _valueType;
+    /// <summary>Interpolatable flag.</summary>
     private bool _interpolatable;
-    private VariantType _valueType = VariantType.None;
+    /// <summary>Begin time.</summary>
+    private float _beginTime = MathDefs.Infinity;
+    /// <summary>End time.</summary>
+    private float _endTime = -MathDefs.Infinity;
+    /// <summary>Key frames.</summary>
+    private readonly List<VAnimKeyFrame> _keyFrames = [];
+    /// <summary>Spline tangents.</summary>
+    private readonly List<Variant> _splineTangents = [];
+    /// <summary>Spline tangents dirty.</summary>
+    private bool _splineTangentsDirty;
+    /// <summary>Event frames.</summary>
+    private readonly List<VAnimEventFrame> _eventFrames = [];
+
+    /// <summary>Construct.</summary>
+    public ValueAnimation()
+    {
+    }
 
     public ValueAnimation(string name)
         : base(name)
     {
     }
 
-    public InterpMethod InterpolationMethod { get; private set; } = InterpMethod.Linear;
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        ClearEventFrames();
+        ClearSplineTangents();
+        ClearKeyFrames();
+        _owner = null;
+        base.Dispose();
+    }
 
-    public float SplineTension { get; private set; } = 0.5f;
+    /// <summary>Register object factory.</summary>
+    public static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<ValueAnimation>();
+    }
 
-    public VariantType ValueType => _valueType;
-
-    public float BeginTime { get; private set; } = MathDefs.Infinity;
-
-    public float EndTime { get; private set; } = -MathDefs.Infinity;
-
+    /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
     public override bool BeginLoad(Stream source)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        var xml = new XMLFile(Name);
-        return xml.Load(source) && LoadXML(xml.GetRoot());
+        using var xmlFile = new XMLFile(Name);
+        if (!xmlFile.Load(source))
+            return false;
+
+        return LoadXML(xmlFile.GetRoot());
     }
 
+    /// <summary>Save resource. Return true if successful.</summary>
     public override bool Save(Stream destination)
     {
-        ArgumentNullException.ThrowIfNull(destination);
-        var xml = new XMLFile(Name);
-        var root = xml.CreateRoot("valueanimation");
-        return SaveXML(root) && xml.Save(destination);
+        using var xmlFile = new XMLFile(Name);
+
+        var rootElement = xmlFile.CreateRoot("valueanimation");
+        if (!SaveXML(rootElement))
+            return false;
+
+        return xmlFile.Save(destination);
     }
 
+    /// <summary>Load from XML data. Return true if successful.</summary>
     public bool LoadXML(XMLElement source)
     {
-        Reset();
-        SetInterpolationMethod(ParseInterpolationMethod(source.GetAttribute("interpolationmethod")));
-        if (InterpolationMethod == InterpMethod.Spline && source.HasAttribute("splinetension"))
-            SetSplineTension(source.GetFloat("splinetension"));
+        _valueType = VariantType.None;
+        ClearEventFrames();
+
+        var method = ParseInterpolationMethod(source.GetAttribute("interpolationmethod"));
+
+        InterpolationMethod = method;
+        if (_interpolationMethod == InterpMethod.Spline)
+            _splineTension = source.GetFloat("splinetension");
 
         for (var keyFrameElement = source.GetChild("keyframe"); keyFrameElement.NotNull; keyFrameElement = keyFrameElement.GetNext("keyframe"))
         {
-            var type = ParseVariantType(keyFrameElement.GetAttribute("type"));
-            var value = VariantTypeUtility.Deserialize(keyFrameElement.GetValue(), type);
-            if (!SetKeyFrame(keyFrameElement.GetFloat("time"), value))
-                return false;
+            var time = keyFrameElement.GetFloat("time");
+            using var value = keyFrameElement.GetVariant();
+            SetKeyFrame(time, value);
         }
 
         for (var eventFrameElement = source.GetChild("eventframe"); eventFrameElement.NotNull; eventFrameElement = eventFrameElement.GetNext("eventframe"))
         {
-            var eventData = new VariantMap();
-            for (var dataElement = eventFrameElement.GetChild("eventdata").GetChild("item"); dataElement.NotNull; dataElement = dataElement.GetNext("item"))
-            {
-                var type = ParseVariantType(dataElement.GetAttribute("type"));
-                eventData[new StringHash(dataElement.GetUInt("key"))] = VariantTypeUtility.DeserializeVariant(dataElement.GetValue(), type);
-            }
+            var time = eventFrameElement.GetFloat("time");
+            var eventType = eventFrameElement.GetUInt("eventtype");
+            using var eventData = eventFrameElement.GetChild("eventdata").GetVariantMap();
 
-            SetEventFrame(eventFrameElement.GetFloat("time"), new StringHash(eventFrameElement.GetUInt("eventtype")), eventData);
+            SetEventFrame(time, new StringHash(eventType), eventData);
         }
 
         return true;
     }
 
+    /// <summary>Save as XML data. Return true if successful.</summary>
     public bool SaveXML(XMLElement dest)
     {
-        dest.SetAttribute("interpolationmethod", InterpolationMethod.ToString());
-        if (InterpolationMethod == InterpMethod.Spline)
-            dest.SetFloat("splinetension", SplineTension);
+        dest.SetAttribute("interpolationmethod", _interpolationMethod.ToString());
+        if (_interpolationMethod == InterpMethod.Spline)
+            dest.SetFloat("splinetension", _splineTension);
 
-        foreach (var keyFrame in _keyFrames)
+        for (var i = 0; i < _keyFrames.Count; ++i)
         {
-            var element = dest.CreateChild("keyframe");
-            element.SetFloat("time", keyFrame.Time);
-            var type = VariantTypeUtility.GetVariantType(keyFrame.Value);
-            element.SetAttribute("type", type.ToString());
-            element.SetValue(VariantTypeUtility.Serialize(keyFrame.Value, type));
+            var keyFrame = _keyFrames[i];
+            var keyFrameElement = dest.CreateChild("keyframe");
+            keyFrameElement.SetFloat("time", keyFrame.Time);
+            keyFrameElement.SetVariant(keyFrame.Value);
         }
 
-        foreach (var eventFrame in _eventFrames)
+        for (var i = 0; i < _eventFrames.Count; ++i)
         {
-            var element = dest.CreateChild("eventframe");
-            element.SetFloat("time", eventFrame.Time);
-            element.SetUInt("eventtype", eventFrame.EventType.Value);
-            var eventDataElement = element.CreateChild("eventdata");
-            foreach (var pair in eventFrame.EventData)
-            {
-                var dataElement = eventDataElement.CreateChild("item");
-                dataElement.SetUInt("key", pair.Key.Value);
-                var type = pair.Value.Type;
-                dataElement.SetAttribute("type", type.ToString());
-                dataElement.SetValue(VariantTypeUtility.Serialize(pair.Value));
-            }
+            var eventFrame = _eventFrames[i];
+            var eventFrameElement = dest.CreateChild("eventframe");
+            eventFrameElement.SetFloat("time", eventFrame.Time);
+            eventFrameElement.SetUInt("eventtype", eventFrame.EventType.Value);
+            eventFrameElement.CreateChild("eventdata").SetVariantMap(eventFrame.EventData);
         }
 
         return true;
     }
 
+    /// <summary>Load from JSON data. Return true if successful.</summary>
     public bool LoadJSON(JSONValue source)
     {
-        Reset();
-        SetInterpolationMethod(ParseInterpolationMethod(source.Get("interpolationmethod").GetString()));
-        if (InterpolationMethod == InterpMethod.Spline)
-            SetSplineTension(source.Get("splinetension").GetFloat());
+        _valueType = VariantType.None;
+        ClearEventFrames();
 
-        foreach (var frameValue in source.Get("keyframes").GetArray())
-        {
-            var type = ParseVariantType(frameValue.Get("type").GetString());
-            var value = VariantTypeUtility.Deserialize(frameValue.Get("json").GetString(), type);
-            if (!SetKeyFrame(frameValue.Get("time").GetFloat(), value))
-                return false;
-        }
-
-        foreach (var eventFrameValue in source.Get("eventframes").GetArray())
-        {
-            var eventData = new VariantMap();
-            foreach (var item in eventFrameValue.Get("eventdata").GetArray())
-            {
-                var type = ParseVariantType(item.Get("type").GetString());
-                eventData[new StringHash(item.Get("key").GetUInt())] = VariantTypeUtility.DeserializeVariant(item.Get("json").GetString(), type);
-            }
-
-            SetEventFrame(eventFrameValue.Get("time").GetFloat(), new StringHash(eventFrameValue.Get("eventtype").GetUInt()), eventData);
-        }
-
-        return true;
-    }
-
-    public bool SaveJSON(JSONValue dest)
-    {
-        dest.Set("interpolationmethod", new JSONValue(InterpolationMethod.ToString()));
-        if (InterpolationMethod == InterpMethod.Spline)
-            dest.Set("splinetension", new JSONValue(SplineTension));
-
-        var keyFrameArray = new JSONValue(JSONValueType.Array);
-        foreach (var keyFrame in _keyFrames)
-        {
-            var type = VariantTypeUtility.GetVariantType(keyFrame.Value);
-            var frame = new JSONValue(JSONValueType.Object);
-            frame.Set("time", new JSONValue(keyFrame.Time));
-            frame.Set("type", new JSONValue(type.ToString()));
-            frame.Set("json", new JSONValue(VariantTypeUtility.Serialize(keyFrame.Value, type)));
-            keyFrameArray.Push(frame);
-        }
-        dest.Set("keyframes", keyFrameArray);
-
-        var eventFrameArray = new JSONValue(JSONValueType.Array);
-        foreach (var eventFrame in _eventFrames)
-        {
-            var frame = new JSONValue(JSONValueType.Object);
-            frame.Set("time", new JSONValue(eventFrame.Time));
-            frame.Set("eventtype", new JSONValue(eventFrame.EventType.Value));
-            var eventDataArray = new JSONValue(JSONValueType.Array);
-            foreach (var pair in eventFrame.EventData)
-            {
-                var type = pair.Value.Type;
-                var item = new JSONValue(JSONValueType.Object);
-                item.Set("key", new JSONValue(pair.Key.Value));
-                item.Set("type", new JSONValue(type.ToString()));
-                item.Set("json", new JSONValue(VariantTypeUtility.Serialize(pair.Value)));
-                eventDataArray.Push(item);
-            }
-            frame.Set("eventdata", eventDataArray);
-            eventFrameArray.Push(frame);
-        }
-        dest.Set("eventframes", eventFrameArray);
-
-        return true;
-    }
-
-    public void SetOwner(object? owner)
-    {
-        this._owner = owner;
-    }
-
-    public object? GetOwner() => _owner;
-
-    public InterpMethod GetInterpolationMethod() => InterpolationMethod;
-
-    public float GetSplineTension() => SplineTension;
-
-    public VariantType GetValueType() => _valueType;
-
-    public void SetInterpolationMethod(InterpMethod method)
-    {
-        if (method == InterpMethod.Spline && _valueType is VariantType.IntRect or VariantType.Vector2i or VariantType.Vector3i)
-            method = InterpMethod.Linear;
+        var method = ParseInterpolationMethod(source.Get("interpolationmethod").GetString());
 
         InterpolationMethod = method;
-        _splineTangentsDirty = true;
-    }
+        if (_interpolationMethod == InterpMethod.Spline)
+            _splineTension = source.Get("splinetension").GetFloat();
 
-    public void SetSplineTension(float tension)
-    {
-        SplineTension = tension;
-        _splineTangentsDirty = true;
-    }
-
-    public void SetValueType(VariantType valueType)
-    {
-        if (this._valueType == valueType)
-            return;
-
-        this._valueType = valueType;
-        _interpolatable = VariantTypeUtility.IsInterpolatable(valueType);
-        if (valueType is VariantType.IntRect or VariantType.Vector2i or VariantType.Vector3i && InterpolationMethod == InterpMethod.Spline)
-            InterpolationMethod = InterpMethod.Linear;
-        _keyFrames.Clear();
-        _eventFrames.Clear();
-        BeginTime = MathDefs.Infinity;
-        EndTime = -MathDefs.Infinity;
-    }
-
-    public bool SetKeyFrame(float time, object? value)
-    {
-        var type = VariantTypeUtility.GetVariantType(value);
-        if (type == VariantType.None)
-            return false;
-
-        if (_valueType == VariantType.None)
-            SetValueType(type);
-        else if (type != _valueType)
-            return false;
-
-        foreach (var existingFrame in _keyFrames)
+        var keyFramesArray = source.Get("keyframes").GetArray();
+        for (var i = 0; i < keyFramesArray.Count; ++i)
         {
-            if (existingFrame.Time == time)
-                return false;
+            var valueElement = keyFramesArray[i];
+            var time = valueElement.Get("time").GetFloat();
+            using var value = valueElement.Get("value").GetVariant();
+            SetKeyFrame(time, value);
         }
 
-        _keyFrames.Add(new VAnimKeyFrame { Time = time, Value = value });
-        _keyFrames.Sort(static (left, right) => left.Time.CompareTo(right.Time));
-        BeginTime = Math.Min(BeginTime, time);
-        EndTime = Math.Max(EndTime, time);
-        _splineTangentsDirty = true;
+        var eventFramesArray = source.Get("eventframes").GetArray();
+        for (var i = 0; i < eventFramesArray.Count; ++i)
+        {
+            var eventFrameValue = eventFramesArray[i];
+            var time = eventFrameValue.Get("time").GetFloat();
+            var eventType = eventFrameValue.Get("eventtype").GetUInt();
+            using var eventData = eventFrameValue.Get("eventdata").GetVariantMap();
+            SetEventFrame(time, new StringHash(eventType), eventData);
+        }
+
         return true;
     }
 
-    public void SetEventFrame(float time, StringHash eventType, VariantMap? eventData = null)
+    /// <summary>Save as XML data. Return true if successful.</summary>
+    public bool SaveJSON(JSONValue dest)
     {
-        _eventFrames.Add(new VAnimEventFrame
+        dest.Set("interpolationmethod", new JSONValue(_interpolationMethod.ToString()));
+        if (_interpolationMethod == InterpMethod.Spline)
+            dest.Set("splinetension", new JSONValue(_splineTension));
+
+        var keyFramesArray = new JSONValue(JSONValueType.Array);
+        for (var i = 0; i < _keyFrames.Count; ++i)
         {
-            Time = time,
-            EventType = eventType,
-            EventData = eventData is null ? new VariantMap() : new VariantMap(eventData)
-        });
-        _eventFrames.Sort(static (left, right) => left.Time.CompareTo(right.Time));
-        BeginTime = Math.Min(BeginTime, time);
-        EndTime = Math.Max(EndTime, time);
+            var keyFrame = _keyFrames[i];
+            var keyFrameValue = new JSONValue(JSONValueType.Object);
+            keyFrameValue.Set("time", new JSONValue(keyFrame.Time));
+            var valueValue = new JSONValue();
+            valueValue.SetVariant(keyFrame.Value);
+            keyFrameValue.Set("value", valueValue);
+            keyFramesArray.Push(keyFrameValue);
+        }
+        dest.Set("keyframes", keyFramesArray);
+
+        var eventFramesArray = new JSONValue(JSONValueType.Array);
+        for (var i = 0; i < _eventFrames.Count; ++i)
+        {
+            var eventFrame = _eventFrames[i];
+            var eventFrameValue = new JSONValue(JSONValueType.Object);
+            eventFrameValue.Set("time", new JSONValue(eventFrame.Time));
+            eventFrameValue.Set("eventtype", new JSONValue(eventFrame.EventType.Value));
+            var eventDataValue = new JSONValue();
+            eventDataValue.SetVariantMap(eventFrame.EventData);
+            eventFrameValue.Set("eventdata", eventDataValue);
+            eventFramesArray.Push(eventFrameValue);
+        }
+        dest.Set("eventframes", eventFramesArray);
+
+        return true;
     }
 
+    /// <summary>Set owner.</summary>
+    public object? Owner
+    {
+        get => _owner;
+        set => _owner = value;
+    }
+
+    /// <summary>Set interpolation method.</summary>
+    public InterpMethod InterpolationMethod
+    {
+        get => _interpolationMethod;
+        set
+        {
+            var method = value;
+            if (method == _interpolationMethod)
+                return;
+
+            if (method == InterpMethod.Spline && _valueType is VariantType.IntRect or VariantType.Vector2i or VariantType.Vector3i)
+                method = InterpMethod.Linear;
+
+            _interpolationMethod = method;
+            _splineTangentsDirty = true;
+        }
+    }
+
+    /// <summary>Set spline tension, should be between 0.0f and 1.0f, but this is not a must.</summary>
+    public float SplineTension
+    {
+        get => _splineTension;
+        set
+        {
+            _splineTension = value;
+            _splineTangentsDirty = true;
+        }
+    }
+
+    /// <summary>Set value type.</summary>
+    public VariantType ValueType
+    {
+        get => _valueType;
+        set
+        {
+            if (value == _valueType)
+                return;
+
+            _valueType = value;
+            _interpolatable = _valueType is VariantType.Float or VariantType.Vector2 or VariantType.Vector3 or VariantType.Vector4
+                or VariantType.Quaternion or VariantType.Color;
+
+            if (_valueType is VariantType.IntRect or VariantType.Vector2i or VariantType.Vector3i)
+            {
+                _interpolatable = true;
+                if (_interpolationMethod == InterpMethod.Spline)
+                    _interpolationMethod = InterpMethod.Linear;
+            }
+
+            ClearKeyFrames();
+            ClearEventFrames();
+            _beginTime = MathDefs.Infinity;
+            _endTime = -MathDefs.Infinity;
+        }
+    }
+
+    /// <summary>Set key frame.</summary>
+    public bool SetKeyFrame(float time, in Variant value)
+    {
+        if (_valueType == VariantType.None)
+            ValueType = value.Type;
+        else if (value.Type != _valueType)
+            return false;
+
+        var keyFrame = new VAnimKeyFrame { Time = time, Value = value.Clone() };
+
+        if (_keyFrames.Count == 0 || time > _keyFrames[^1].Time)
+            _keyFrames.Add(keyFrame);
+        else
+        {
+            for (var i = 0; i < _keyFrames.Count; ++i)
+            {
+                if (time == _keyFrames[i].Time)
+                {
+                    keyFrame.Dispose();
+                    return false;
+                }
+                if (time < _keyFrames[i].Time)
+                {
+                    _keyFrames.Insert(i, keyFrame);
+                    break;
+                }
+            }
+        }
+
+        _beginTime = Math.Min(time, _beginTime);
+        _endTime = Math.Max(time, _endTime);
+        _splineTangentsDirty = true;
+
+        return true;
+    }
+
+    /// <summary>Set event frame.</summary>
+    public void SetEventFrame(float time, StringHash eventType, VariantMap? eventData = null)
+    {
+        var eventFrame = new VAnimEventFrame
+        {
+            Time = time,
+            EventType = eventType
+        };
+        eventFrame.EventData.Dispose();
+        eventFrame.EventData = eventData is null ? new VariantMap() : new VariantMap(eventData);
+
+        if (_eventFrames.Count == 0 || time >= _eventFrames[^1].Time)
+            _eventFrames.Add(eventFrame);
+        else
+        {
+            for (var i = 0; i < _eventFrames.Count; ++i)
+            {
+                if (time < _eventFrames[i].Time)
+                {
+                    _eventFrames.Insert(i, eventFrame);
+                    break;
+                }
+            }
+        }
+
+        _beginTime = Math.Min(time, _beginTime);
+        _endTime = Math.Max(time, _endTime);
+    }
+
+    /// <summary>Return animation is valid.</summary>
     public bool IsValid()
     {
-        return InterpolationMethod switch
+        return _interpolationMethod == InterpMethod.None
+            || _interpolationMethod == InterpMethod.Linear && _keyFrames.Count > 1
+            || _interpolationMethod == InterpMethod.Spline && _keyFrames.Count > 2;
+    }
+
+    /// <summary>Return begin time.</summary>
+    public float BeginTime => _beginTime;
+
+    /// <summary>Return end time.</summary>
+    public float EndTime => _endTime;
+
+    /// <summary>Return animation value.</summary>
+    public Variant GetAnimationValue(float scaledTime)
+    {
+        var index = 1;
+        for (; index < _keyFrames.Count; ++index)
         {
-            InterpMethod.None => true,
-            InterpMethod.Linear => _keyFrames.Count > 1,
-            InterpMethod.Spline => _keyFrames.Count > 2,
-            _ => false
+            if (scaledTime < _keyFrames[index].Time)
+                break;
+        }
+
+        if (index >= _keyFrames.Count || !_interpolatable || _interpolationMethod == InterpMethod.None)
+            return _keyFrames[index - 1].Value.Clone();
+
+        return _interpolationMethod == InterpMethod.Linear
+            ? LinearInterpolation(index - 1, index, scaledTime)
+            : SplineInterpolation(index - 1, index, scaledTime);
+    }
+
+    /// <summary>Return all key frames.</summary>
+    public IReadOnlyList<VAnimKeyFrame> KeyFrames => _keyFrames;
+
+    /// <summary>Has event frames.</summary>
+    public bool HasEventFrames => _eventFrames.Count != 0;
+
+    /// <summary>Return all event frames between time.</summary>
+    public void GetEventFrames(float beginTime, float endTime, List<VAnimEventFrame> eventFrames)
+    {
+        for (var i = 0; i < _eventFrames.Count; ++i)
+        {
+            var eventFrame = _eventFrames[i];
+            if (eventFrame.Time > endTime)
+                break;
+
+            if (eventFrame.Time >= beginTime)
+                eventFrames.Add(eventFrame);
+        }
+    }
+
+    /// <summary>Linear interpolation.</summary>
+    private Variant LinearInterpolation(int index1, int index2, float scaledTime)
+    {
+        var keyFrame1 = _keyFrames[index1];
+        var keyFrame2 = _keyFrames[index2];
+
+        var t = (scaledTime - keyFrame1.Time) / (keyFrame2.Time - keyFrame1.Time);
+        var value1 = keyFrame1.Value;
+        var value2 = keyFrame2.Value;
+
+        switch (_valueType)
+        {
+        case VariantType.Float:
+            return new Variant(MathDefs.Lerp(value1.GetFloat(), value2.GetFloat(), t));
+        case VariantType.Vector2:
+            return new Variant(value1.GetVector2().Lerp(value2.GetVector2(), t));
+        case VariantType.Vector3:
+            return new Variant(value1.GetVector3().Lerp(value2.GetVector3(), t));
+        case VariantType.Vector4:
+            return new Variant(value1.GetVector4().Lerp(value2.GetVector4(), t));
+        case VariantType.Quaternion:
+            return new Variant(value1.GetQuaternion().Slerp(value2.GetQuaternion(), t));
+        case VariantType.Color:
+            return new Variant(value1.GetColor().Lerp(value2.GetColor(), t));
+        case VariantType.IntRect:
+        {
+            var s = 1.0f - t;
+            var r1 = value1.GetIntRect();
+            var r2 = value2.GetIntRect();
+            return new Variant(new IntRect((int)(r1.Left * s + r2.Left * t), (int)(r1.Top * s + r2.Top * t),
+                (int)(r1.Right * s + r2.Right * t), (int)(r1.Bottom * s + r2.Bottom * t)));
+        }
+        case VariantType.Vector2i:
+        {
+            var s = 1.0f - t;
+            var v1 = value1.GetIntVector2();
+            var v2 = value2.GetIntVector2();
+            return new Variant(new Vector2i((int)(v1.X * s + v2.X * t), (int)(v1.Y * s + v2.Y * t)));
+        }
+        case VariantType.Vector3i:
+        {
+            var s = 1.0f - t;
+            var v1 = value1.GetIntVector3();
+            var v2 = value2.GetIntVector3();
+            return new Variant(new Vector3i((int)(v1.X * s + v2.X * t), (int)(v1.Y * s + v2.Y * t),
+                (int)(v1.Z * s + v2.Z * t)));
+        }
+        case VariantType.Double:
+            return new Variant(value1.GetDouble() * (1.0f - t) + value2.GetDouble() * t);
+        default:
+            Log.GetLogger().LogError("Invalid value type for linear interpolation");
+            return default;
+        }
+    }
+
+    /// <summary>Spline interpolation.</summary>
+    private Variant SplineInterpolation(int index1, int index2, float scaledTime)
+    {
+        if (_splineTangentsDirty)
+            UpdateSplineTangents();
+
+        var keyFrame1 = _keyFrames[index1];
+        var keyFrame2 = _keyFrames[index2];
+        var t = (scaledTime - keyFrame1.Time) / (keyFrame2.Time - keyFrame1.Time);
+        var tt = t * t;
+        var ttt = t * tt;
+        var h1 = 2.0f * ttt - 3.0f * tt + 1.0f;
+        var h2 = -2.0f * ttt + 3.0f * tt;
+        var h3 = ttt - 2.0f * tt + t;
+        var h4 = ttt - tt;
+        var v1 = keyFrame1.Value;
+        var v2 = keyFrame2.Value;
+        var tangent1 = _splineTangents[index1];
+        var tangent2 = _splineTangents[index2];
+
+        return _valueType switch
+        {
+            VariantType.Float => new Variant(v1.GetFloat() * h1 + v2.GetFloat() * h2 + tangent1.GetFloat() * h3 + tangent2.GetFloat() * h4),
+            VariantType.Vector2 => new Variant(v1.GetVector2() * h1 + v2.GetVector2() * h2 + tangent1.GetVector2() * h3 + tangent2.GetVector2() * h4),
+            VariantType.Vector3 => new Variant(v1.GetVector3() * h1 + v2.GetVector3() * h2 + tangent1.GetVector3() * h3 + tangent2.GetVector3() * h4),
+            VariantType.Vector4 => new Variant(v1.GetVector4() * h1 + v2.GetVector4() * h2 + tangent1.GetVector4() * h3 + tangent2.GetVector4() * h4),
+            VariantType.Quaternion => new Variant(v1.GetQuaternion() * h1 + v2.GetQuaternion() * h2 + tangent1.GetQuaternion() * h3 + tangent2.GetQuaternion() * h4),
+            VariantType.Color => new Variant(v1.GetColor() * h1 + v2.GetColor() * h2 + tangent1.GetColor() * h3 + tangent2.GetColor() * h4),
+            VariantType.Double => new Variant(v1.GetDouble() * h1 + v2.GetDouble() * h2 + tangent1.GetDouble() * h3 + tangent2.GetDouble() * h4),
+            _ => InvalidSplineInterpolation()
         };
     }
 
-    public object? GetAnimationValue(float scaledTime)
-    {
-        if (_keyFrames.Count == 0)
-            return null;
-        if (_keyFrames.Count == 1)
-            return _keyFrames[0].Value;
-
-        var index = 1;
-        while (index < _keyFrames.Count && scaledTime >= _keyFrames[index].Time)
-            ++index;
-
-        if (index >= _keyFrames.Count)
-            return _keyFrames[^1].Value;
-        if (!_interpolatable || InterpolationMethod == InterpMethod.None)
-            return _keyFrames[index - 1].Value;
-
-        return InterpolationMethod == InterpMethod.Spline
-            ? SplineInterpolation(index - 1, index, scaledTime)
-            : LinearInterpolation(index - 1, index, scaledTime);
-    }
-
-    public IReadOnlyList<VAnimKeyFrame> GetKeyFrames() => _keyFrames;
-
-    public bool HasEventFrames() => _eventFrames.Count != 0;
-
-    public IReadOnlyList<VAnimEventFrame> GetEventFrames(float beginTime, float endTime)
-    {
-        var result = new List<VAnimEventFrame>();
-        foreach (var frame in _eventFrames)
-        {
-            if (frame.Time >= beginTime && frame.Time <= endTime)
-                result.Add(frame);
-        }
-
-        return result;
-    }
-
-    private object? LinearInterpolation(int index1, int index2, float scaledTime)
-    {
-        var lhs = _keyFrames[index1].Value;
-        var rhs = _keyFrames[index2].Value;
-        var denominator = _keyFrames[index2].Time - _keyFrames[index1].Time;
-        var t = denominator == 0.0f ? 0.0f : (scaledTime - _keyFrames[index1].Time) / denominator;
-        return Interpolate(lhs, rhs, t);
-    }
-
-    private object? SplineInterpolation(int index1, int index2, float scaledTime)
-    {
-        var denominator = _keyFrames[index2].Time - _keyFrames[index1].Time;
-        var t = denominator == 0.0f ? 0.0f : (scaledTime - _keyFrames[index1].Time) / denominator;
-        UpdateSplineTangents();
-        return Hermite(_keyFrames[index1].Value, _splineTangents[index1], _keyFrames[index2].Value, _splineTangents[index2], t);
-    }
-
+    /// <summary>Update spline tangents.</summary>
     private void UpdateSplineTangents()
     {
-        if (!_splineTangentsDirty)
-            return;
-
-        _splineTangents.Clear();
+        ClearSplineTangents();
 
         if (!IsValid())
             return;
 
         var size = _keyFrames.Count;
         for (var i = 0; i < size; ++i)
-            _splineTangents.Add(null);
+            _splineTangents.Add(default);
 
         for (var i = 1; i < size - 1; ++i)
-            _splineTangents[i] = SubtractAndMultiply(_keyFrames[i + 1].Value, _keyFrames[i - 1].Value, SplineTension);
-
-        if (!Equals(_keyFrames[0].Value, _keyFrames[^1].Value))
         {
-            var tangent = SubtractAndMultiply(_keyFrames[0].Value, _keyFrames[0].Value, SplineTension);
-            _splineTangents[0] = tangent;
-            _splineTangents[^1] = tangent;
+            using var tangent = SubstractAndMultiply(_keyFrames[i + 1].Value, _keyFrames[i - 1].Value, _splineTension);
+            SetSplineTangent(i, tangent);
+        }
+
+        if (_keyFrames[0].Value != _keyFrames[size - 1].Value)
+        {
+            using var tangent = SubstractAndMultiply(_keyFrames[0].Value, _keyFrames[0].Value, _splineTension);
+            SetSplineTangent(size - 1, tangent);
+            SetSplineTangent(0, tangent);
         }
         else
         {
-            var tangent = SubtractAndMultiply(_keyFrames[1].Value, _keyFrames[^2].Value, SplineTension);
-            _splineTangents[0] = tangent;
-            _splineTangents[^1] = tangent;
+            using var tangent = SubstractAndMultiply(_keyFrames[1].Value, _keyFrames[size - 2].Value, _splineTension);
+            SetSplineTangent(size - 1, tangent);
+            SetSplineTangent(0, tangent);
         }
 
         _splineTangentsDirty = false;
     }
 
-    private static object? Interpolate(object? lhs, object? rhs, float t)
+    /// <summary>Return (value1 - value2) * t.</summary>
+    private Variant SubstractAndMultiply(in Variant value1, in Variant value2, float t)
     {
-        return (lhs, rhs) switch
+        return _valueType switch
         {
-            (float left, float right) => MathDefs.Lerp(left, right, t),
-            (Vector2f left, Vector2f right) => left.Lerp(right, t),
-            (Vector3f left, Vector3f right) => left.Lerp(right, t),
-            (Vector4f left, Vector4f right) => left.Lerp(right, t),
-            (Quaternion left, Quaternion right) => left.Slerp(right, t),
-            (Color left, Color right) => left.Lerp(right, t),
-            (Vector2i left, Vector2i right) => new Vector2i((int)(left.X * (1.0f - t) + right.X * t), (int)(left.Y * (1.0f - t) + right.Y * t)),
-            (Vector3i left, Vector3i right) => new Vector3i((int)(left.X * (1.0f - t) + right.X * t), (int)(left.Y * (1.0f - t) + right.Y * t), (int)(left.Z * (1.0f - t) + right.Z * t)),
-            (IntRect left, IntRect right) => new IntRect(
-                (int)(left.Left * (1.0f - t) + right.Left * t),
-                (int)(left.Top * (1.0f - t) + right.Top * t),
-                (int)(left.Right * (1.0f - t) + right.Right * t),
-                (int)(left.Bottom * (1.0f - t) + right.Bottom * t)),
-            _ => lhs
-        };
-    }
-
-    private static object? SubtractAndMultiply(object? value1, object? value2, float t)
-    {
-        return (value1, value2) switch
-        {
-            (float left, float right) => (left - right) * t,
-            (Vector2f left, Vector2f right) => (left - right) * t,
-            (Vector3f left, Vector3f right) => (left - right) * t,
-            (Vector4f left, Vector4f right) => (left - right) * t,
-            (Quaternion left, Quaternion right) => (left - right) * t,
-            (Color left, Color right) => (left - right) * t,
-            _ => null
-        };
-    }
-
-    private static object? Hermite(object? value1, object? tangent1, object? value2, object? tangent2, float t)
-    {
-        var t2 = t * t;
-        var t3 = t2 * t;
-        var h1 = 2.0f * t3 - 3.0f * t2 + 1.0f;
-        var h2 = -2.0f * t3 + 3.0f * t2;
-        var h3 = t3 - 2.0f * t2 + t;
-        var h4 = t3 - t2;
-
-        return (value1, tangent1, value2, tangent2) switch
-        {
-            (float v1, float m1, float v2, float m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
-            (Vector2f v1, Vector2f m1, Vector2f v2, Vector2f m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
-            (Vector3f v1, Vector3f m1, Vector3f v2, Vector3f m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
-            (Vector4f v1, Vector4f m1, Vector4f v2, Vector4f m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
-            (Quaternion v1, Quaternion m1, Quaternion v2, Quaternion m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
-            (Color v1, Color m1, Color v2, Color m2) => v1 * h1 + v2 * h2 + m1 * h3 + m2 * h4,
-            _ => Interpolate(value1, value2, t)
+            VariantType.Float => new Variant((value1.GetFloat() - value2.GetFloat()) * t),
+            VariantType.Vector2 => new Variant((value1.GetVector2() - value2.GetVector2()) * t),
+            VariantType.Vector3 => new Variant((value1.GetVector3() - value2.GetVector3()) * t),
+            VariantType.Vector4 => new Variant((value1.GetVector4() - value2.GetVector4()) * t),
+            VariantType.Quaternion => new Variant((value1.GetQuaternion() - value2.GetQuaternion()) * t),
+            VariantType.Color => new Variant((value1.GetColor() - value2.GetColor()) * t),
+            VariantType.Double => new Variant((value1.GetDouble() - value2.GetDouble()) * t),
+            _ => InvalidSplineSubtraction()
         };
     }
 
     private static InterpMethod ParseInterpolationMethod(string value)
     {
-        return Enum.TryParse<InterpMethod>(value, ignoreCase: true, out var method) ? method : InterpMethod.Linear;
+        return Enum.TryParse<InterpMethod>(value, true, out var method) ? method : InterpMethod.Linear;
     }
 
-    private static VariantType ParseVariantType(string value)
+    private Variant InvalidSplineInterpolation()
     {
-        if (Enum.TryParse<VariantType>(value, ignoreCase: true, out var type))
-            return type;
-
-        return Variant.GetTypeFromName(value);
+        Log.GetLogger().LogError("Invalid value type for spline interpolation");
+        return default;
     }
 
-    private void Reset()
+    private Variant InvalidSplineSubtraction()
     {
+        Log.GetLogger().LogError("Invalid value type for spline interpolation's subtract and multiply operation");
+        return default;
+    }
+
+    private void SetSplineTangent(int index, in Variant value)
+    {
+        var previous = _splineTangents[index];
+        _splineTangents[index] = value.Clone();
+        previous.Dispose();
+    }
+
+    private void ClearKeyFrames()
+    {
+        for (var i = _keyFrames.Count - 1; i >= 0; --i)
+        {
+            var keyFrame = _keyFrames[i];
+            keyFrame.Dispose();
+        }
         _keyFrames.Clear();
+    }
+
+    private void ClearSplineTangents()
+    {
+        for (var i = _splineTangents.Count - 1; i >= 0; --i)
+        {
+            var tangent = _splineTangents[i];
+            tangent.Dispose();
+        }
+        _splineTangents.Clear();
+    }
+
+    private void ClearEventFrames()
+    {
+        for (var i = _eventFrames.Count - 1; i >= 0; --i)
+        {
+            var eventFrame = _eventFrames[i];
+            eventFrame.Dispose();
+        }
         _eventFrames.Clear();
-        _valueType = VariantType.None;
-        _interpolatable = false;
-        InterpolationMethod = InterpMethod.Linear;
-        SplineTension = 0.5f;
-        BeginTime = MathDefs.Infinity;
-        EndTime = -MathDefs.Infinity;
     }
 }

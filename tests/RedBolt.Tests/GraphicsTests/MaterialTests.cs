@@ -83,7 +83,7 @@ public sealed class MaterialTests
     {
         var material = Resources.Get<Material>("Materials/FirstCube");
         var animation = new ValueAnimation("Animations/MaterialParameter");
-        animation.SetValueType(VariantType.Float);
+        animation.ValueType = VariantType.Float;
         animation.SetKeyFrame(0.0f, 0.0f);
         animation.SetKeyFrame(1.0f, 1.0f);
 

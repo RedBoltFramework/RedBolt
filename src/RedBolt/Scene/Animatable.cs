@@ -3,35 +3,33 @@ namespace RedBolt;
 /// <summary>Attribute animation instance.</summary>
 public class AttributeAnimationInfo : ValueAnimationInfo
 {
-    private readonly AttributeInfo _attributeInfo;
-
     /// <summary>Construct.</summary>
     public AttributeAnimationInfo(Animatable animatable, AttributeInfo attributeInfo,
         ValueAnimation attributeAnimation, WrapMode wrapMode, float speed)
         : base(animatable, attributeAnimation, wrapMode, speed)
     {
-        _attributeInfo = attributeInfo;
+        AttributeInfo = attributeInfo;
     }
 
     /// <summary>Copy construct.</summary>
     public AttributeAnimationInfo(AttributeAnimationInfo other)
         : base(other)
     {
-        _attributeInfo = other._attributeInfo;
+        AttributeInfo = other.AttributeInfo;
     }
 
     /// <summary>Return attribute information.</summary>
-    public AttributeInfo GetAttributeInfo() => _attributeInfo;
+    public AttributeInfo AttributeInfo { get; }
 
     /// <inheritdoc />
     public override object Clone() => new AttributeAnimationInfo(this);
 
     /// <summary>Apply new animation value to the target object.</summary>
-    protected override void ApplyValue(object? newValue)
+    protected override void ApplyValue(in Variant newValue)
     {
-        if (GetTarget() is Animatable animatable)
+        if (Target is Animatable animatable)
         {
-            animatable.OnSetAttribute(_attributeInfo, newValue);
+            animatable.OnSetAttribute(AttributeInfo, newValue.GetObject());
             animatable.ApplyAttributes();
         }
     }
@@ -65,7 +63,7 @@ public abstract class Animatable : Serializable
     /// <summary>Destruct.</summary>
     public override void Dispose()
     {
-        _attributeAnimationInfos.Clear();
+        ClearAttributeAnimationInfos();
         _objectAnimation = null;
         base.Dispose();
     }
@@ -83,7 +81,7 @@ public abstract class Animatable : Serializable
             return false;
 
         SetObjectAnimation(null);
-        _attributeAnimationInfos.Clear();
+        ClearAttributeAnimationInfos();
 
         var objectAnimationElement = source.GetChild("objectanimation");
         if (objectAnimationElement.NotNull)
@@ -141,16 +139,16 @@ public abstract class Animatable : Serializable
 
         foreach (var info in _attributeAnimationInfos.Values)
         {
-            if (info.GetAnimation().GetOwner() is not null)
+            if (info.Animation!.Owner is not null)
                 continue;
 
-            var attributeInfo = info.GetAttributeInfo();
+            var attributeInfo = info.AttributeInfo;
             var element = destination.CreateChild("attributeanimation");
             element.SetString("name", attributeInfo.Name);
-            if (!info.GetAnimation().SaveXML(element))
+            if (!info.Animation!.SaveXML(element))
                 return false;
-            element.SetString("wrapmode", info.GetWrapMode().ToString());
-            element.SetFloat("speed", info.GetSpeed());
+            element.SetString("wrapmode", info.WrapMode.ToString());
+            element.SetFloat("speed", info.Speed);
         }
 
         return true;
@@ -163,7 +161,7 @@ public abstract class Animatable : Serializable
             return false;
 
         SetObjectAnimation(null);
-        _attributeAnimationInfos.Clear();
+        ClearAttributeAnimationInfos();
 
         var objectAnimationValue = source.Get("objectanimation");
         if (!objectAnimationValue.IsNull)
@@ -231,16 +229,16 @@ public abstract class Animatable : Serializable
         var attributeAnimationsValue = new JSONValue(JSONValueType.Object);
         foreach (var info in _attributeAnimationInfos.Values)
         {
-            if (info.GetAnimation().GetOwner() is not null)
+            if (info.Animation!.Owner is not null)
                 continue;
 
-            var attributeInfo = info.GetAttributeInfo();
+            var attributeInfo = info.AttributeInfo;
             var animationValue = new JSONValue(JSONValueType.Object);
             animationValue.Set("name", new JSONValue(attributeInfo.Name));
-            if (!info.GetAnimation().SaveJSON(animationValue))
+            if (!info.Animation!.SaveJSON(animationValue))
                 return false;
-            animationValue.Set("wrapmode", new JSONValue(info.GetWrapMode().ToString()));
-            animationValue.Set("speed", new JSONValue(info.GetSpeed()));
+            animationValue.Set("wrapmode", new JSONValue(info.WrapMode.ToString()));
+            animationValue.Set("speed", new JSONValue(info.Speed));
             attributeAnimationsValue.Set(attributeInfo.Name, animationValue);
         }
 
@@ -257,7 +255,7 @@ public abstract class Animatable : Serializable
         {
             // In object animation there may be targets in hierarchy. Set same enable/disable state in all
             var targets = new HashSet<Animatable>();
-            foreach (var pair in _objectAnimation.GetAttributeAnimationInfos())
+            foreach (var pair in _objectAnimation.AttributeAnimationInfos)
             {
                 var target = FindAttributeAnimationTarget(pair.Key, out _);
                 if (target is not null && !ReferenceEquals(target, this))
@@ -277,7 +275,7 @@ public abstract class Animatable : Serializable
         if (_objectAnimation is not null)
         {
             // In object animation there may be targets in hierarchy. Set same time in all
-            foreach (var pair in _objectAnimation.GetAttributeAnimationInfos())
+            foreach (var pair in _objectAnimation.AttributeAnimationInfos)
             {
                 var target = FindAttributeAnimationTarget(pair.Key, out var outName);
                 target?.SetAttributeAnimationTime(outName, time);
@@ -321,16 +319,16 @@ public abstract class Animatable : Serializable
 
         if (attributeAnimation is not null)
         {
-            if (info is not null && ReferenceEquals(attributeAnimation, info.GetAnimation()))
+            if (info is not null && ReferenceEquals(attributeAnimation, info.Animation))
             {
-                info.SetWrapMode(wrapMode);
-                info.SetSpeed(speed);
+                info.WrapMode = wrapMode;
+                info.Speed = speed;
                 return;
             }
 
             AttributeInfo? attributeInfo = null;
             if (info is not null)
-                attributeInfo = info.GetAttributeInfo();
+                attributeInfo = info.AttributeInfo;
             else
             {
                 foreach (var attribute in GetAttributes())
@@ -349,14 +347,15 @@ public abstract class Animatable : Serializable
                 return;
             }
 
-            if (attributeAnimation.GetValueType() != attributeInfo.DefaultValue.Type)
+            if (attributeAnimation.ValueType != attributeInfo.DefaultValue.Type)
             {
                 Log.GetLogger().Error("Invalid value type");
                 return;
             }
 
-            _attributeAnimationInfos[name] = new AttributeAnimationInfo(
-                this, attributeInfo, attributeAnimation, wrapMode, speed);
+            var animationInfo = new AttributeAnimationInfo(this, attributeInfo, attributeAnimation, wrapMode, speed);
+            _attributeAnimationInfos[name] = animationInfo;
+            info?.Dispose();
 
             if (info is null)
                 OnAttributeAnimationAdded();
@@ -367,6 +366,7 @@ public abstract class Animatable : Serializable
                 return;
 
             _attributeAnimationInfos.Remove(name);
+            info.Dispose();
             OnAttributeAnimationRemoved();
         }
     }
@@ -375,14 +375,16 @@ public abstract class Animatable : Serializable
     public void SetAttributeAnimationWrapMode(string name, WrapMode wrapMode)
     {
         var info = GetAttributeAnimationInfo(name);
-        info?.SetWrapMode(wrapMode);
+        if (info is not null)
+            info.WrapMode = wrapMode;
     }
 
     /// <summary>Set attribute animation speed.</summary>
     public void SetAttributeAnimationSpeed(string name, float speed)
     {
         var info = GetAttributeAnimationInfo(name);
-        info?.SetSpeed(speed);
+        if (info is not null)
+            info.Speed = speed;
     }
 
     /// <summary>Set attribute animation time position manually. Automatic update should be disabled in this case.</summary>
@@ -417,28 +419,28 @@ public abstract class Animatable : Serializable
     public ValueAnimation? GetAttributeAnimation(string name)
     {
         var info = GetAttributeAnimationInfo(name);
-        return info?.GetAnimation();
+        return info?.Animation;
     }
 
     /// <summary>Return attribute animation wrap mode.</summary>
     public WrapMode GetAttributeAnimationWrapMode(string name)
     {
         var info = GetAttributeAnimationInfo(name);
-        return info?.GetWrapMode() ?? WrapMode.Loop;
+        return info?.WrapMode ?? WrapMode.Loop;
     }
 
     /// <summary>Return attribute animation speed.</summary>
     public float GetAttributeAnimationSpeed(string name)
     {
         var info = GetAttributeAnimationInfo(name);
-        return info?.GetSpeed() ?? 1.0f;
+        return info?.Speed ?? 1.0f;
     }
 
     /// <summary>Return attribute animation time position.</summary>
     public float GetAttributeAnimationTime(string name)
     {
         var info = GetAttributeAnimationInfo(name);
-        return info?.GetTime() ?? 0.0f;
+        return info?.Time ?? 0.0f;
     }
 
     /// <summary>Set object animation attribute.</summary>
@@ -486,10 +488,10 @@ public abstract class Animatable : Serializable
             return;
 
         // Set all attribute animations from the object animation
-        foreach (var pair in objectAnimation.GetAttributeAnimationInfos())
+        foreach (var pair in objectAnimation.AttributeAnimationInfos)
         {
             var info = pair.Value;
-            SetObjectAttributeAnimation(pair.Key, info.GetAnimation(), info.GetWrapMode(), info.GetSpeed());
+            SetObjectAttributeAnimation(pair.Key, info.Animation, info.WrapMode, info.Speed);
         }
     }
 
@@ -500,7 +502,7 @@ public abstract class Animatable : Serializable
             return;
 
         // Just remove all attribute animations listed by the object animation
-        foreach (var pair in objectAnimation.GetAttributeAnimationInfos())
+        foreach (var pair in objectAnimation.AttributeAnimationInfos)
             SetObjectAttributeAnimation(pair.Key, null, WrapMode.Loop, 1.0f);
     }
 
@@ -515,7 +517,7 @@ public abstract class Animatable : Serializable
         {
             var finished = info.Update(timeStep);
             if (finished)
-                finishedNames.Add(info.GetAttributeInfo().Name);
+                finishedNames.Add(info.AttributeInfo.Name);
         }
 
         for (var i = 0; i < finishedNames.Count; ++i)
@@ -538,7 +540,7 @@ public abstract class Animatable : Serializable
         if (info is null)
             return;
 
-        SetObjectAttributeAnimation(eventData.AttributeAnimationName, info.GetAnimation(), info.GetWrapMode(), info.GetSpeed());
+        SetObjectAttributeAnimation(eventData.AttributeAnimationName, info.Animation, info.WrapMode, info.Speed);
     }
 
     /// <summary>Handle attribute animation removed.</summary>
@@ -548,5 +550,12 @@ public abstract class Animatable : Serializable
             return;
 
         SetObjectAttributeAnimation(eventData.AttributeAnimationName, null, WrapMode.Loop, 1.0f);
+    }
+
+    private void ClearAttributeAnimationInfos()
+    {
+        foreach (var info in _attributeAnimationInfos.Values)
+            info.Dispose();
+        _attributeAnimationInfos.Clear();
     }
 }

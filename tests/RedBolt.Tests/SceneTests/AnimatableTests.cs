@@ -91,11 +91,11 @@ public sealed class AnimatableTests
 
         var clone = Assert.IsType<AttributeAnimationInfo>(info.Clone());
 
-        Assert.Same(animatable, clone.GetTarget());
-        Assert.Same(animation, clone.GetAnimation());
-        Assert.Same(info.GetAttributeInfo(), clone.GetAttributeInfo());
-        Assert.Equal(WrapMode.Clamp, clone.GetWrapMode());
-        Assert.True(MathDefs.Equals(clone.GetSpeed(), 2.0f));
-        Assert.True(MathDefs.Equals(clone.GetTime(), 0.0f));
+        Assert.Same(animatable, clone.Target);
+        Assert.Same(animation, clone.Animation);
+        Assert.Same(info.AttributeInfo, clone.AttributeInfo);
+        Assert.Equal(WrapMode.Clamp, clone.WrapMode);
+        Assert.True(MathDefs.Equals(clone.Speed, 2.0f));
+        Assert.True(MathDefs.Equals(clone.Time, 0.0f));
     }
 }

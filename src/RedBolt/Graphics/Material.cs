@@ -62,30 +62,31 @@ public readonly record struct MaterialTexture(string Name, Texture Texture);
 /// <summary>
 /// Material's shader parameter animation instance.
 /// </summary>
-public sealed class ShaderParameterAnimationInfo : ValueAnimationInfo
+public class ShaderParameterAnimationInfo : ValueAnimationInfo
 {
-    private readonly string _name;
-
+    /// <summary>Construct.</summary>
     public ShaderParameterAnimationInfo(Material material, string name, ValueAnimation attributeAnimation, WrapMode wrapMode, float speed)
         : base(material, attributeAnimation, wrapMode, speed)
     {
-        _name = name;
+        Name = name;
     }
 
-    private ShaderParameterAnimationInfo(ShaderParameterAnimationInfo rhs)
+    /// <summary>Copy construct.</summary>
+    public ShaderParameterAnimationInfo(ShaderParameterAnimationInfo rhs)
         : base(rhs)
     {
-        _name = rhs._name;
+        Name = rhs.Name;
     }
 
     public override object Clone() => new ShaderParameterAnimationInfo(this);
 
-    public string GetName() => _name;
+    /// <summary>Return shader parameter name.</summary>
+    public string Name { get; }
 
-    protected override void ApplyValue(object? newValue)
+    /// <summary>Apply new animation value to the target object. Called by Update().</summary>
+    protected override void ApplyValue(in Variant newValue)
     {
-        if (GetTarget() is Material material)
-            material.SetShaderParameter(_name, newValue);
+        ((Material)Target!).SetShaderParameter(Name, newValue.GetObject());
     }
 }
 
@@ -175,7 +176,7 @@ public sealed class Material : Resource
         SetScene(null);
         _loadXmlFile?.Dispose();
         _loadXmlFile = null;
-        _shaderParameterAnimationInfos.Clear();
+        ClearShaderParameterAnimationInfos();
         foreach (var parameter in _shaderParameters.Values)
             parameter.Dispose();
         _shaderParameters.Clear();
@@ -309,19 +310,19 @@ public sealed class Material : Resource
     public ValueAnimation? GetShaderParameterAnimation(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return GetShaderParameterAnimationInfo(name)?.GetAnimation();
+        return GetShaderParameterAnimationInfo(name)?.Animation;
     }
 
     public WrapMode GetShaderParameterAnimationWrapMode(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return GetShaderParameterAnimationInfo(name)?.GetWrapMode() ?? WrapMode.Loop;
+        return GetShaderParameterAnimationInfo(name)?.WrapMode ?? WrapMode.Loop;
     }
 
     public float GetShaderParameterAnimationSpeed(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return GetShaderParameterAnimationInfo(name)?.GetSpeed() ?? 0.0f;
+        return GetShaderParameterAnimationInfo(name)?.Speed ?? 0.0f;
     }
 
     public ShaderParameterAnimationInfo? GetShaderParameterAnimationInfo(string name)
@@ -531,23 +532,31 @@ public sealed class Material : Resource
 
         if (animation is not null)
         {
-            if (info is not null && ReferenceEquals(info.GetAnimation(), animation))
+            if (info is not null && ReferenceEquals(info.Animation, animation))
             {
-                info.SetWrapMode(wrapMode);
-                info.SetSpeed(speed);
+                info.WrapMode = wrapMode;
+                info.Speed = speed;
                 return;
             }
 
             if (!_shaderParameters.ContainsKey(name))
                 return;
 
-            _shaderParameterAnimationInfos[new StringHash(name)] =
-                new ShaderParameterAnimationInfo(this, name, animation, wrapMode, speed);
+            var nameHash = new StringHash(name);
+            var animationInfo = new ShaderParameterAnimationInfo(this, name, animation, wrapMode, speed);
+            if (_shaderParameterAnimationInfos.TryGetValue(nameHash, out var previousInfo))
+            {
+                _shaderParameterAnimationInfos[nameHash] = animationInfo;
+                previousInfo.Dispose();
+            }
+            else
+                _shaderParameterAnimationInfos[nameHash] = animationInfo;
             UpdateEventSubscription();
         }
         else if (info is not null)
         {
             _shaderParameterAnimationInfos.Remove(new StringHash(name));
+            info.Dispose();
             UpdateEventSubscription();
         }
     }
@@ -555,13 +564,17 @@ public sealed class Material : Resource
     public void SetShaderParameterAnimationWrapMode(string name, WrapMode wrapMode)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        GetShaderParameterAnimationInfo(name)?.SetWrapMode(wrapMode);
+        var info = GetShaderParameterAnimationInfo(name);
+        if (info is not null)
+            info.WrapMode = wrapMode;
     }
 
     public void SetShaderParameterAnimationSpeed(string name, float speed)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        GetShaderParameterAnimationInfo(name)?.SetSpeed(speed);
+        var info = GetShaderParameterAnimationInfo(name);
+        if (info is not null)
+            info.Speed = speed;
     }
 
     public void SetUVTransform(Vector2f offset, float rotation, float repeat)
@@ -932,7 +945,7 @@ public sealed class Material : Resource
 
     private void ResetToDefaults()
     {
-        _shaderParameterAnimationInfos.Clear();
+        ClearShaderParameterAnimationInfos();
         UnsubscribeFromEvent<CoreEvents.UpdateEvent>();
         _sceneAttributeAnimationSubscription?.Dispose();
         _sceneAttributeAnimationSubscription = null;
@@ -1005,7 +1018,7 @@ public sealed class Material : Resource
         foreach (var info in _shaderParameterAnimationInfos.Values)
         {
             if (info.Update(timeStep))
-                finishedNames.Add(info.GetName());
+                finishedNames.Add(info.Name);
         }
 
         foreach (var name in finishedNames)
@@ -1044,6 +1057,13 @@ public sealed class Material : Resource
         MemoryUse = _techniques.Count * 32
             + _textures.Count * IntPtr.Size
             + _shaderParameters.Count * 48;
+    }
+
+    private void ClearShaderParameterAnimationInfos()
+    {
+        foreach (var info in _shaderParameterAnimationInfos.Values)
+            info.Dispose();
+        _shaderParameterAnimationInfos.Clear();
     }
 
     private uint RecalculatePipelineStateHash()
