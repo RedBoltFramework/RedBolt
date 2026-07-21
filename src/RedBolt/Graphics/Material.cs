@@ -154,7 +154,6 @@ public sealed class Material : Resource
     private readonly Dictionary<StringHash, ShaderParameterAnimationInfo> _shaderParameterAnimationInfos = new();
     private readonly Dictionary<StringHash, MaterialTexture> _textures = new();
     private readonly List<TechniqueEntry> _techniques = [];
-    private readonly HashSet<Texture> _subscribedTextures = [];
     private XMLFile? _loadXmlFile;
     private uint _shaderParameterHash;
     private bool _batchedParameterUpdate;
@@ -180,7 +179,6 @@ public sealed class Material : Resource
         foreach (var parameter in _shaderParameters.Values)
             parameter.Dispose();
         _shaderParameters.Clear();
-        RefreshTextureEventSubscriptions(clear: true);
         _textures.Clear();
         _techniques.Clear();
         _idFamily.Dispose();
@@ -951,8 +949,8 @@ public sealed class Material : Resource
         foreach (var parameter in _shaderParameters.Values)
             parameter.Dispose();
         _shaderParameters.Clear();
-        RefreshTextureEventSubscriptions(clear: true);
         _textures.Clear();
+        RefreshTextureEventSubscriptions();
         _techniques.Clear();
 
         SetNumTechniques(1);
@@ -1027,25 +1025,16 @@ public sealed class Material : Resource
         };
     }
 
-    private void RefreshTextureEventSubscriptions(bool clear = false)
+    private void RefreshTextureEventSubscriptions()
     {
-        foreach (var texture in _subscribedTextures)
-            texture.ReloadFinished -= HandleTextureReloadFinished;
-        _subscribedTextures.Clear();
-
-        if (!clear)
-        {
-            foreach (var texture in _textures.Values)
-            {
-                if (_subscribedTextures.Add(texture.Texture))
-                    texture.Texture.ReloadFinished += HandleTextureReloadFinished;
-            }
-        }
+        UnsubscribeFromEvent<ResourceEvents.ReloadFinished>();
+        foreach (var item in _textures.Values)
+            SubscribeToEvent<ResourceEvents.ReloadFinished>(item.Texture, HandleTextureReloadFinished);
 
         _pipelineStateTracker.MarkPipelineStateHashDirty();
     }
 
-    private void HandleTextureReloadFinished(Resource resource)
+    private void HandleTextureReloadFinished(ref ResourceEvents.ReloadFinished eventData)
     {
         _pipelineStateTracker.MarkPipelineStateHashDirty();
     }

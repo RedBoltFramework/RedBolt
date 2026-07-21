@@ -1,4 +1,5 @@
 using RedBolt;
+using System.Reflection;
 
 namespace RedBolt.Tests;
 
@@ -137,6 +138,27 @@ public sealed class MaterialTests
         material.SetTexture("diffuse", albedo);
         Assert.Same(albedo, material.GetTexture("diffuse"));
         Assert.Null(material.GetTexture("Albedo"));
+    }
+
+    [Fact]
+    public void Texture_reload_event_invalidates_only_the_current_texture()
+    {
+        var material = new Material("Materials/Reload");
+        var firstTexture = new Texture2D("Textures/First");
+        var secondTexture = new Texture2D("Textures/Second");
+        material.SetTexture("Albedo", firstTexture);
+        material.SetTexture("Albedo", secondTexture);
+        material.GetPipelineStateHash();
+
+        var tracker = typeof(Material).GetField("_pipelineStateTracker", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(material)!;
+        var hashField = typeof(PipelineStateTracker).GetField("_pipelineStateHash", BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+        firstTexture.SendEvent<ResourceEvents.ReloadFinished>();
+        Assert.NotEqual(0u, (uint)hashField.GetValue(tracker)!);
+
+        secondTexture.SendEvent<ResourceEvents.ReloadFinished>();
+        Assert.Equal(0u, (uint)hashField.GetValue(tracker)!);
     }
 
     [Fact]
