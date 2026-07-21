@@ -100,25 +100,22 @@ public sealed class VariantTests
     }
 
     [Fact]
-    public void Scalar_variant_constructs_no_inactive_container_payloads()
+    public void Variant_uses_explicit_union_and_single_reference_storage()
     {
-        var variant = new Variant(42);
-        var fieldNames = new[]
-        {
-            "_variantVectorValue",
-            "_stringVectorValue",
-            "_variantMapValue",
-            "_stringVariantMapValue"
-        };
+        var bindingFlags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        var nestedType = typeof(Variant).GetNestedType("VariantValue", System.Reflection.BindingFlags.NonPublic);
+        var referenceField = typeof(Variant).GetField("_referenceValue", bindingFlags);
+        var scalar = new Variant(42);
+        var text = "value";
+        var reference = new Variant(text);
 
-        foreach (var fieldName in fieldNames)
-        {
-            var field = typeof(Variant).GetField(
-                fieldName,
-                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
-            Assert.NotNull(field);
-            Assert.Null(field.GetValue(variant));
-        }
+        Assert.NotNull(nestedType);
+        Assert.Equal(System.Runtime.InteropServices.LayoutKind.Explicit, nestedType.StructLayoutAttribute!.Value);
+        Assert.Equal(4 * IntPtr.Size, System.Runtime.InteropServices.Marshal.SizeOf(nestedType));
+        Assert.Equal(4 * IntPtr.Size + 2 * IntPtr.Size, System.Runtime.CompilerServices.Unsafe.SizeOf<Variant>());
+        Assert.NotNull(referenceField);
+        Assert.Null(referenceField.GetValue(scalar));
+        Assert.Same(text, referenceField.GetValue(reference));
     }
 
     [Fact]

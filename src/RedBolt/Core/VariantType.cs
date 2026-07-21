@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
@@ -42,8 +43,34 @@ public enum VariantType : byte
     CString
 }
 
+[StructLayout(LayoutKind.Sequential)]
 public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
 {
+#if REDBOLT_PLATFORM_WEB
+    [StructLayout(LayoutKind.Explicit, Size = 4 * sizeof(int))]
+#else
+    [StructLayout(LayoutKind.Explicit, Size = 4 * sizeof(long))]
+#endif
+    private struct VariantValue
+    {
+        [FieldOffset(0)] public bool Bool;
+        [FieldOffset(0)] public int Int;
+        [FieldOffset(0)] public long Int64;
+        [FieldOffset(0)] public float Float;
+        [FieldOffset(0)] public double Double;
+        [FieldOffset(0)] public Vector2f Vector2;
+        [FieldOffset(0)] public Vector2d DoubleVector2;
+        [FieldOffset(0)] public Vector3f Vector3;
+        [FieldOffset(0)] public Vector4f Vector4;
+        [FieldOffset(0)] public Quaternion Quaternion;
+        [FieldOffset(0)] public Color Color;
+        [FieldOffset(0)] public Rect Rect;
+        [FieldOffset(0)] public IntRect IntRect;
+        [FieldOffset(0)] public Vector2i IntVector2;
+        [FieldOffset(0)] public Vector3i IntVector3;
+        [FieldOffset(0)] public IntPtr VoidPtr;
+    }
+
     private static readonly string[] TypeNames =
     [
         "None",
@@ -88,42 +115,115 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     private static readonly VariantCurve EmptyVariantCurve = new();
 
     private readonly VariantType _type;
-    private readonly bool _boolValue;
-    private readonly int _intValue;
-    private readonly long _int64Value;
-    private readonly float _floatValue;
-    private readonly double _doubleValue;
-    private readonly Vector2f _vector2Value;
-    private readonly Vector2d _doubleVector2Value;
-    private readonly Vector3f _vector3Value;
-    private readonly Vector3d _doubleVector3Value;
-    private readonly Vector4f _vector4Value;
-    private readonly Quaternion _quaternionValue;
-    private readonly Color _colorValue;
-    private readonly Rect _rectValue;
-    private readonly IntRect _intRectValue;
-    private readonly Vector2i _intVector2Value;
-    private readonly Vector3i _intVector3Value;
-    private readonly string _stringValue = string.Empty;
-    private readonly CString _cstringValue = CString.Empty;
-    private readonly byte[] _bufferValue = [];
-    private readonly IntPtr _voidPtrValue;
-    private readonly ResourceRef _resourceRefValue;
-    private readonly ResourceRefList _resourceRefListValue = ResourceRefList.Empty;
-    private readonly Matrix3 _matrix3Value;
-    private readonly Matrix3x4 _matrix3x4Value;
-    private readonly Matrix4 _matrix4Value;
-    private readonly VariantVector? _variantVectorValue;
-    private readonly StringVector? _stringVectorValue;
-    private readonly VariantMap? _variantMapValue;
-    private readonly StringVariantMap? _stringVariantMapValue;
-    private readonly VariantCurve _variantCurveValue = EmptyVariantCurve;
-    private readonly CustomVariantValue _customValue = CustomVariantValue.Empty;
+    private VariantValue _value;
+    private object? _referenceValue;
+
+    private string StringValue
+    {
+        readonly get => (string?)_referenceValue ?? string.Empty;
+        set => _referenceValue = value;
+    }
+
+    private CString CStringValue
+    {
+        readonly get => (CString?)_referenceValue ?? CString.Empty;
+        set => _referenceValue = value;
+    }
+
+    private byte[] BufferValue
+    {
+        readonly get => (byte[]?)_referenceValue ?? Array.Empty<byte>();
+        set => _referenceValue = value;
+    }
+
+    private Vector3d DoubleVector3Value
+    {
+        readonly get => (Vector3d)_referenceValue!;
+        set => _referenceValue = value;
+    }
+
+    private Matrix3 Matrix3Value
+    {
+        readonly get => (Matrix3)_referenceValue!;
+        set => _referenceValue = value;
+    }
+
+    private Matrix3x4 Matrix3x4Value
+    {
+        readonly get => (Matrix3x4)_referenceValue!;
+        set => _referenceValue = value;
+    }
+
+    private Matrix4 Matrix4Value
+    {
+        readonly get => (Matrix4)_referenceValue!;
+        set => _referenceValue = value;
+    }
+
+    private ResourceRef ResourceRefValue
+    {
+        readonly get => new(new StringHash(unchecked((uint)_value.Int)), (string?)_referenceValue ?? string.Empty);
+        set
+        {
+            _value.Int = unchecked((int)value.Type.Value);
+            _referenceValue = value.Name;
+        }
+    }
+
+    private ResourceRefList ResourceRefListValue
+    {
+        readonly get => new()
+        {
+            Type = new StringHash(unchecked((uint)_value.Int)),
+            Names = (List<string>)_referenceValue!
+        };
+        set
+        {
+            _value.Int = unchecked((int)value.Type.Value);
+            _referenceValue = value.Names;
+        }
+    }
+
+    private VariantVector VariantVectorValue
+    {
+        readonly get => (VariantVector?)_referenceValue ?? EmptyVariantVector;
+        set => _referenceValue = value;
+    }
+
+    private StringVector StringVectorValue
+    {
+        readonly get => (StringVector?)_referenceValue ?? EmptyStringVector;
+        set => _referenceValue = value;
+    }
+
+    private VariantMap VariantMapValue
+    {
+        readonly get => (VariantMap?)_referenceValue ?? EmptyVariantMap;
+        set => _referenceValue = value;
+    }
+
+    private StringVariantMap StringVariantMapValue
+    {
+        readonly get => (StringVariantMap?)_referenceValue ?? EmptyStringVariantMap;
+        set => _referenceValue = value;
+    }
+
+    private VariantCurve VariantCurveValue
+    {
+        readonly get => (VariantCurve?)_referenceValue ?? EmptyVariantCurve;
+        set => _referenceValue = value;
+    }
+
+    private CustomVariantValue CustomValue
+    {
+        readonly get => (CustomVariantValue?)_referenceValue ?? CustomVariantValue.Empty;
+        set => _referenceValue = value;
+    }
 
     private Variant(CustomVariantValue value)
     {
         _type = VariantType.Custom;
-        _customValue = value;
+        CustomValue = value;
     }
 
     public Variant(VariantType type)
@@ -168,13 +268,13 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     public Variant(bool value)
     {
         _type = VariantType.Bool;
-        _boolValue = value;
+        _value.Bool = value;
     }
 
     public Variant(int value)
     {
         _type = VariantType.Int;
-        _intValue = value;
+        _value.Int = value;
     }
 
     public Variant(uint value)
@@ -185,7 +285,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     public Variant(long value)
     {
         _type = VariantType.Int64;
-        _int64Value = value;
+        _value.Int64 = value;
     }
 
     public Variant(ulong value)
@@ -196,79 +296,79 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     public Variant(float value)
     {
         _type = VariantType.Float;
-        _floatValue = value;
+        _value.Float = value;
     }
 
     public Variant(double value)
     {
         _type = VariantType.Double;
-        _doubleValue = value;
+        _value.Double = value;
     }
 
     public Variant(Vector2f value)
     {
         _type = VariantType.Vector2;
-        _vector2Value = value;
+        _value.Vector2 = value;
     }
 
     public Variant(Vector2d value)
     {
         _type = VariantType.DoubleVector2;
-        _doubleVector2Value = value;
+        _value.DoubleVector2 = value;
     }
 
     public Variant(Vector3f value)
     {
         _type = VariantType.Vector3;
-        _vector3Value = value;
+        _value.Vector3 = value;
     }
 
     public Variant(Vector3d value)
     {
         _type = VariantType.DoubleVector3;
-        _doubleVector3Value = value;
+        DoubleVector3Value = value;
     }
 
     public Variant(Vector4f value)
     {
         _type = VariantType.Vector4;
-        _vector4Value = value;
+        _value.Vector4 = value;
     }
 
     public Variant(Quaternion value)
     {
         _type = VariantType.Quaternion;
-        _quaternionValue = value;
+        _value.Quaternion = value;
     }
 
     public Variant(Color value)
     {
         _type = VariantType.Color;
-        _colorValue = value;
+        _value.Color = value;
     }
 
     public Variant(Rect value)
     {
         _type = VariantType.Rect;
-        _rectValue = value;
+        _value.Rect = value;
     }
 
     public Variant(IntRect value)
     {
         _type = VariantType.IntRect;
-        _intRectValue = value;
+        _value.IntRect = value;
     }
 
     public Variant(Vector2i value)
     {
         _type = VariantType.Vector2i;
-        _intVector2Value = value;
+        _value.IntVector2 = value;
     }
 
     public Variant(Vector3i value)
     {
         _type = VariantType.Vector3i;
-        _intVector3Value = value;
+        _value.IntVector3 = value;
     }
 
     public Variant(StringHash value)
@@ -279,7 +379,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     public Variant(byte[] value)
     {
         _type = VariantType.Buffer;
-        _bufferValue = value is null ? [] : (byte[])value.Clone();
+        BufferValue = value is null ? [] : (byte[])value.Clone();
     }
 
     /// <summary>
@@ -296,67 +396,67 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     public Variant(IntPtr value)
     {
         _type = VariantType.VoidPtr;
-        _voidPtrValue = value;
+        _value.VoidPtr = value;
     }
 
     public Variant(ResourceRef value)
     {
         _type = VariantType.ResourceRef;
-        _resourceRefValue = value;
+        ResourceRefValue = value;
     }
 
     public Variant(ResourceRefList value)
     {
         _type = VariantType.ResourceRefList;
-        _resourceRefListValue = new ResourceRefList(value.Type, value.Names);
+        ResourceRefListValue = new ResourceRefList(value.Type, value.Names);
     }
 
     public Variant(Matrix3 value)
     {
         _type = VariantType.Matrix3;
-        _matrix3Value = value;
+        Matrix3Value = value;
     }
 
     public Variant(Matrix3x4 value)
     {
         _type = VariantType.Matrix3x4;
-        _matrix3x4Value = value;
+        Matrix3x4Value = value;
     }
 
     public Variant(Matrix4 value)
     {
         _type = VariantType.Matrix4;
-        _matrix4Value = value;
+        Matrix4Value = value;
     }
 
     public Variant(VariantVector value)
     {
         _type = VariantType.VariantVector;
-        _variantVectorValue = value is null ? new VariantVector() : new VariantVector(value);
+        VariantVectorValue = value is null ? new VariantVector() : new VariantVector(value);
     }
 
     public Variant(StringVector value)
     {
         _type = VariantType.StringVector;
-        _stringVectorValue = value is null ? new StringVector() : new StringVector(value);
+        StringVectorValue = value is null ? new StringVector() : new StringVector(value);
     }
 
     public Variant(VariantMap value)
     {
         _type = VariantType.VariantMap;
-        _variantMapValue = value is null ? new VariantMap() : new VariantMap(value);
+        VariantMapValue = value is null ? new VariantMap() : new VariantMap(value);
     }
 
     public Variant(StringVariantMap value)
     {
         _type = VariantType.StringVariantMap;
-        _stringVariantMapValue = value is null ? new StringVariantMap() : new StringVariantMap(value);
+        StringVariantMapValue = value is null ? new StringVariantMap() : new StringVariantMap(value);
     }
 
     public Variant(VariantCurve value)
     {
         _type = VariantType.VariantCurve;
-        _variantCurveValue = value?.Clone() ?? new VariantCurve();
+        VariantCurveValue = value?.Clone() ?? new VariantCurve();
     }
 
     public Variant(string value)
@@ -365,28 +465,28 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             return;
 
         _type = VariantType.String;
-        _stringValue = value;
+        StringValue = value;
     }
 
     public Variant(CString value)
     {
         _type = VariantType.CString;
-        _cstringValue = value is null ? new CString() : (CString)value.Clone();
+        CStringValue = value is null ? new CString() : (CString)value.Clone();
     }
 
     public Variant Clone()
     {
         return _type switch
         {
-            VariantType.Buffer => new Variant(_bufferValue),
-            VariantType.CString => new Variant(_cstringValue),
-            VariantType.ResourceRefList => new Variant(_resourceRefListValue),
-            VariantType.VariantVector => new Variant(_variantVectorValue!),
-            VariantType.StringVector => new Variant(_stringVectorValue!),
-            VariantType.VariantMap => new Variant(_variantMapValue!),
-            VariantType.StringVariantMap => new Variant(_stringVariantMapValue!),
-            VariantType.VariantCurve => new Variant(_variantCurveValue),
-            VariantType.Custom => new Variant((CustomVariantValue)_customValue.Clone()),
+            VariantType.Buffer => new Variant(BufferValue),
+            VariantType.CString => new Variant(CStringValue),
+            VariantType.ResourceRefList => new Variant(ResourceRefListValue),
+            VariantType.VariantVector => new Variant(VariantVectorValue!),
+            VariantType.StringVector => new Variant(StringVectorValue!),
+            VariantType.VariantMap => new Variant(VariantMapValue!),
+            VariantType.StringVariantMap => new Variant(StringVariantMapValue!),
+            VariantType.VariantCurve => new Variant(VariantCurveValue),
+            VariantType.Custom => new Variant((CustomVariantValue)CustomValue.Clone()),
             _ => this
         };
     }
@@ -398,24 +498,24 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
         switch (_type)
         {
         case VariantType.CString:
-            _cstringValue?.Dispose();
+            CStringValue?.Dispose();
             break;
         case VariantType.VariantVector:
-            _variantVectorValue!.Dispose();
+            VariantVectorValue!.Dispose();
             break;
         case VariantType.VariantMap:
-            _variantMapValue!.Dispose();
+            VariantMapValue!.Dispose();
             break;
         case VariantType.StringVariantMap:
-            _stringVariantMapValue!.Dispose();
+            StringVariantMapValue!.Dispose();
             break;
         case VariantType.Custom:
-            if (!ReferenceEquals(_customValue, CustomVariantValue.Empty))
-                _customValue.Dispose();
+            if (!ReferenceEquals(CustomValue, CustomVariantValue.Empty))
+                CustomValue.Dispose();
             break;
         case VariantType.VariantCurve:
-            if (!ReferenceEquals(_variantCurveValue, EmptyVariantCurve))
-                _variantCurveValue.Dispose();
+            if (!ReferenceEquals(VariantCurveValue, EmptyVariantCurve))
+                VariantCurveValue.Dispose();
             break;
         }
         this = default;
@@ -448,12 +548,12 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     {
         return _type switch
         {
-            VariantType.Bool => _boolValue,
-            VariantType.Int => _intValue != 0,
-            VariantType.Int64 => _int64Value != 0,
-            VariantType.Float => _floatValue != 0.0f,
-            VariantType.Double => _doubleValue != 0.0,
-            VariantType.VoidPtr => _voidPtrValue != IntPtr.Zero,
+            VariantType.Bool => _value.Bool,
+            VariantType.Int => _value.Int != 0,
+            VariantType.Int64 => _value.Int64 != 0,
+            VariantType.Float => _value.Float != 0.0f,
+            VariantType.Double => _value.Double != 0.0,
+            VariantType.VoidPtr => _value.VoidPtr != IntPtr.Zero,
             _ => false
         };
     }
@@ -462,11 +562,11 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     {
         return _type switch
         {
-            VariantType.Int => _intValue,
-            VariantType.Int64 => unchecked((int)_int64Value),
-            VariantType.Float => unchecked((int)_floatValue),
-            VariantType.Double => unchecked((int)_doubleValue),
-            VariantType.Bool => _boolValue ? 1 : 0,
+            VariantType.Int => _value.Int,
+            VariantType.Int64 => unchecked((int)_value.Int64),
+            VariantType.Float => unchecked((int)_value.Float),
+            VariantType.Double => unchecked((int)_value.Double),
+            VariantType.Bool => _value.Bool ? 1 : 0,
             _ => 0
         };
     }
@@ -475,11 +575,11 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     {
         return _type switch
         {
-            VariantType.Int64 => _int64Value,
-            VariantType.Int => _intValue,
-            VariantType.Float => unchecked((long)_floatValue),
-            VariantType.Double => unchecked((long)_doubleValue),
-            VariantType.Bool => _boolValue ? 1L : 0L,
+            VariantType.Int64 => _value.Int64,
+            VariantType.Int => _value.Int,
+            VariantType.Float => unchecked((long)_value.Float),
+            VariantType.Double => unchecked((long)_value.Double),
+            VariantType.Bool => _value.Bool ? 1L : 0L,
             _ => 0L
         };
     }
@@ -488,11 +588,11 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     {
         return _type switch
         {
-            VariantType.Float => _floatValue,
-            VariantType.Double => unchecked((float)_doubleValue),
-            VariantType.Int => _intValue,
-            VariantType.Int64 => _int64Value,
-            VariantType.Bool => _boolValue ? 1.0f : 0.0f,
+            VariantType.Float => _value.Float,
+            VariantType.Double => unchecked((float)_value.Double),
+            VariantType.Int => _value.Int,
+            VariantType.Int64 => _value.Int64,
+            VariantType.Bool => _value.Bool ? 1.0f : 0.0f,
             _ => 0.0f
         };
     }
@@ -501,51 +601,51 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     {
         return _type switch
         {
-            VariantType.Double => _doubleValue,
-            VariantType.Float => _floatValue,
-            VariantType.Int => _intValue,
-            VariantType.Int64 => _int64Value,
-            VariantType.Bool => _boolValue ? 1.0 : 0.0,
+            VariantType.Double => _value.Double,
+            VariantType.Float => _value.Float,
+            VariantType.Int => _value.Int,
+            VariantType.Int64 => _value.Int64,
+            VariantType.Bool => _value.Bool ? 1.0 : 0.0,
             _ => 0.0
         };
     }
 
-    public Vector2f GetVector2() => _type == VariantType.Vector2 ? _vector2Value : Vector2f.Zero;
+    public Vector2f GetVector2() => _type == VariantType.Vector2 ? _value.Vector2 : Vector2f.Zero;
 
-    public Vector2d GetDoubleVector2() => _type == VariantType.DoubleVector2 ? _doubleVector2Value : Vector2d.Zero;
+    public Vector2d GetDoubleVector2() => _type == VariantType.DoubleVector2 ? _value.DoubleVector2 : Vector2d.Zero;
 
-    public Vector3f GetVector3() => _type == VariantType.Vector3 ? _vector3Value : Vector3f.Zero;
+    public Vector3f GetVector3() => _type == VariantType.Vector3 ? _value.Vector3 : Vector3f.Zero;
 
-    public Vector3d GetDoubleVector3() => _type == VariantType.DoubleVector3 ? _doubleVector3Value : Vector3d.Zero;
+    public Vector3d GetDoubleVector3() => _type == VariantType.DoubleVector3 ? DoubleVector3Value : Vector3d.Zero;
 
-    public Vector4f GetVector4() => _type == VariantType.Vector4 ? _vector4Value : Vector4f.Zero;
+    public Vector4f GetVector4() => _type == VariantType.Vector4 ? _value.Vector4 : Vector4f.Zero;
 
-    public Quaternion GetQuaternion() => _type == VariantType.Quaternion ? _quaternionValue : Quaternion.IDENTITY;
+    public Quaternion GetQuaternion() => _type == VariantType.Quaternion ? _value.Quaternion : Quaternion.IDENTITY;
 
     public Color GetColor() => _type switch
     {
-        VariantType.Color => _colorValue,
-        VariantType.Vector4 => new Color(_vector4Value.X, _vector4Value.Y, _vector4Value.Z, _vector4Value.W),
+        VariantType.Color => _value.Color,
+        VariantType.Vector4 => new Color(_value.Vector4.X, _value.Vector4.Y, _value.Vector4.Z, _value.Vector4.W),
         _ => Color.White
     };
 
-    public Rect GetRect() => _type == VariantType.Rect ? _rectValue : Rect.Zero;
+    public Rect GetRect() => _type == VariantType.Rect ? _value.Rect : Rect.Zero;
 
-    public IntRect GetIntRect() => _type == VariantType.IntRect ? _intRectValue : IntRect.Zero;
+    public IntRect GetIntRect() => _type == VariantType.IntRect ? _value.IntRect : IntRect.Zero;
 
-    public Vector2i GetIntVector2() => _type == VariantType.Vector2i ? _intVector2Value : Vector2i.Zero;
+    public Vector2i GetIntVector2() => _type == VariantType.Vector2i ? _value.IntVector2 : Vector2i.Zero;
 
-    public Vector3i GetIntVector3() => _type == VariantType.Vector3i ? _intVector3Value : Vector3i.Zero;
+    public Vector3i GetIntVector3() => _type == VariantType.Vector3i ? _value.IntVector3 : Vector3i.Zero;
 
     public uint GetUInt()
     {
         return _type switch
         {
-            VariantType.Int => unchecked((uint)_intValue),
-            VariantType.Int64 => unchecked((uint)_int64Value),
-            VariantType.Float => unchecked((uint)_floatValue),
-            VariantType.Double => unchecked((uint)_doubleValue),
-            VariantType.Bool => _boolValue ? 1u : 0u,
+            VariantType.Int => unchecked((uint)_value.Int),
+            VariantType.Int64 => unchecked((uint)_value.Int64),
+            VariantType.Float => unchecked((uint)_value.Float),
+            VariantType.Double => unchecked((uint)_value.Double),
+            VariantType.Bool => _value.Bool ? 1u : 0u,
             _ => 0u
         };
     }
@@ -554,22 +654,22 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     {
         return _type switch
         {
-            VariantType.Int64 => unchecked((ulong)_int64Value),
-            VariantType.Int => unchecked((ulong)_intValue),
-            VariantType.Float => unchecked((ulong)_floatValue),
-            VariantType.Double => unchecked((ulong)_doubleValue),
-            VariantType.Bool => _boolValue ? 1u : 0u,
+            VariantType.Int64 => unchecked((ulong)_value.Int64),
+            VariantType.Int => unchecked((ulong)_value.Int),
+            VariantType.Float => unchecked((ulong)_value.Float),
+            VariantType.Double => unchecked((ulong)_value.Double),
+            VariantType.Bool => _value.Bool ? 1u : 0u,
             _ => 0u
         };
     }
 
     public StringHash GetStringHash() => _type == VariantType.Int ? new StringHash(GetUInt()) : StringHash.Empty;
 
-    public string GetString() => _type == VariantType.String ? _stringValue : string.Empty;
+    public string GetString() => _type == VariantType.String ? StringValue : string.Empty;
 
-    public CString GetCString() => _type == VariantType.CString ? _cstringValue : CString.Empty;
+    public CString GetCString() => _type == VariantType.CString ? CStringValue : CString.Empty;
 
-    public byte[] GetBuffer() => _type == VariantType.Buffer ? _bufferValue : Array.Empty<byte>();
+    public byte[] GetBuffer() => _type == VariantType.Buffer ? BufferValue : Array.Empty<byte>();
 
     /// <summary>
     /// Return VectorBuffer containing the buffer or empty on type mismatch.
@@ -579,48 +679,48 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
     /// <summary>
     /// Return void pointer or null on type mismatch.
     /// </summary>
-    public IntPtr GetVoidPtr() => _type == VariantType.VoidPtr ? _voidPtrValue : IntPtr.Zero;
+    public IntPtr GetVoidPtr() => _type == VariantType.VoidPtr ? _value.VoidPtr : IntPtr.Zero;
 
-    public ResourceRef GetResourceRef() => _type == VariantType.ResourceRef ? _resourceRefValue : ResourceRef.Empty;
+    public ResourceRef GetResourceRef() => _type == VariantType.ResourceRef ? ResourceRefValue : ResourceRef.Empty;
 
-    public ResourceRefList GetResourceRefList() => _type == VariantType.ResourceRefList ? _resourceRefListValue : ResourceRefList.Empty;
+    public ResourceRefList GetResourceRefList() => _type == VariantType.ResourceRefList ? ResourceRefListValue : ResourceRefList.Empty;
 
-    public Matrix3 GetMatrix3() => _type == VariantType.Matrix3 ? _matrix3Value : Matrix3.IDENTITY;
+    public Matrix3 GetMatrix3() => _type == VariantType.Matrix3 ? Matrix3Value : Matrix3.IDENTITY;
 
-    public Matrix3x4 GetMatrix3x4() => _type == VariantType.Matrix3x4 ? _matrix3x4Value : Matrix3x4.IDENTITY;
+    public Matrix3x4 GetMatrix3x4() => _type == VariantType.Matrix3x4 ? Matrix3x4Value : Matrix3x4.IDENTITY;
 
-    public Matrix4 GetMatrix4() => _type == VariantType.Matrix4 ? _matrix4Value : Matrix4.IDENTITY;
+    public Matrix4 GetMatrix4() => _type == VariantType.Matrix4 ? Matrix4Value : Matrix4.IDENTITY;
 
-    public VariantVector GetVariantVector() => _type == VariantType.VariantVector ? _variantVectorValue! : EmptyVariantVector;
+    public VariantVector GetVariantVector() => _type == VariantType.VariantVector ? VariantVectorValue! : EmptyVariantVector;
 
-    public StringVector GetStringVector() => _type == VariantType.StringVector ? _stringVectorValue! : EmptyStringVector;
+    public StringVector GetStringVector() => _type == VariantType.StringVector ? StringVectorValue! : EmptyStringVector;
 
-    public VariantMap GetVariantMap() => _type == VariantType.VariantMap ? _variantMapValue! : EmptyVariantMap;
+    public VariantMap GetVariantMap() => _type == VariantType.VariantMap ? VariantMapValue! : EmptyVariantMap;
 
-    public StringVariantMap GetStringVariantMap() => _type == VariantType.StringVariantMap ? _stringVariantMapValue! : EmptyStringVariantMap;
+    public StringVariantMap GetStringVariantMap() => _type == VariantType.StringVariantMap ? StringVariantMapValue! : EmptyStringVariantMap;
 
-    public VariantCurve GetVariantCurve() => _type == VariantType.VariantCurve ? _variantCurveValue : EmptyVariantCurve;
+    public VariantCurve GetVariantCurve() => _type == VariantType.VariantCurve ? VariantCurveValue : EmptyVariantCurve;
 
     public T GetCustom<T>()
     {
-        return _type == VariantType.Custom && _customValue.TryGetValue(out T value) ? value : default!;
+        return _type == VariantType.Custom && CustomValue.TryGetValue(out T value) ? value : default!;
     }
 
     public bool IsCustomType<T>()
     {
-        return _type == VariantType.Custom && _customValue.IsType<T>();
+        return _type == VariantType.Custom && CustomValue.IsType<T>();
     }
 
     public bool TryGetCustom<T>(out T value)
     {
         if (_type == VariantType.Custom)
-            return _customValue.TryGetValue(out value);
+            return CustomValue.TryGetValue(out value);
 
         value = default!;
         return false;
     }
 
-    public CustomVariantValue GetCustomVariantValue() => _type == VariantType.Custom ? _customValue : CustomVariantValue.Empty;
+    public CustomVariantValue GetCustomVariantValue() => _type == VariantType.Custom ? CustomValue : CustomVariantValue.Empty;
 
     public static Variant MakeCustomValue<T>(T value)
     {
@@ -711,7 +811,7 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
         if (_type == VariantType.String)
         {
             var result = default(Variant);
-            result.FromString(targetType, _stringValue);
+            result.FromString(targetType, StringValue);
             return result;
         }
 
@@ -801,37 +901,37 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
         return _type switch
         {
             VariantType.None => true,
-            VariantType.Bool => !_boolValue,
-            VariantType.Int => _intValue == 0,
-            VariantType.Int64 => _int64Value == 0,
-            VariantType.Float => _floatValue == 0.0f,
-            VariantType.Double => _doubleValue == 0.0,
-            VariantType.Vector2 => _vector2Value == Vector2f.Zero,
-            VariantType.DoubleVector2 => _doubleVector2Value == Vector2d.Zero,
-            VariantType.Vector3 => _vector3Value == Vector3f.Zero,
-            VariantType.DoubleVector3 => _doubleVector3Value == Vector3d.Zero,
-            VariantType.Vector4 => _vector4Value == Vector4f.Zero,
-            VariantType.Quaternion => _quaternionValue == Quaternion.IDENTITY,
-            VariantType.Color => _colorValue == Color.White,
-            VariantType.String => string.IsNullOrEmpty(_stringValue),
-            VariantType.CString => _cstringValue.ByteLength == 0,
-            VariantType.Buffer => _bufferValue.Length == 0,
-            VariantType.VoidPtr => _voidPtrValue == IntPtr.Zero,
-            VariantType.ResourceRef => string.IsNullOrEmpty(_resourceRefValue.Name),
-            VariantType.ResourceRefList => AllNullOrEmpty(_resourceRefListValue.Names),
-            VariantType.VariantVector => _variantVectorValue!.Count == 0,
-            VariantType.StringVector => _stringVectorValue!.Count == 0,
-            VariantType.VariantMap => _variantMapValue!.Count == 0,
-            VariantType.IntRect => _intRectValue == IntRect.Zero,
-            VariantType.Vector2i => _intVector2Value == Vector2i.Zero,
-            VariantType.Vector3i => _intVector3Value == Vector3i.Zero,
-            VariantType.Matrix3 => _matrix3Value == Matrix3.IDENTITY,
-            VariantType.Matrix3x4 => _matrix3x4Value == Matrix3x4.IDENTITY,
-            VariantType.Matrix4 => _matrix4Value == Matrix4.IDENTITY,
-            VariantType.Rect => _rectValue == Rect.Zero,
-            VariantType.Custom => _customValue.IsZero(),
-            VariantType.StringVariantMap => _stringVariantMapValue!.Count == 0,
-            VariantType.VariantCurve => _variantCurveValue.KeyFrames.Count == 0,
+            VariantType.Bool => !_value.Bool,
+            VariantType.Int => _value.Int == 0,
+            VariantType.Int64 => _value.Int64 == 0,
+            VariantType.Float => _value.Float == 0.0f,
+            VariantType.Double => _value.Double == 0.0,
+            VariantType.Vector2 => _value.Vector2 == Vector2f.Zero,
+            VariantType.DoubleVector2 => _value.DoubleVector2 == Vector2d.Zero,
+            VariantType.Vector3 => _value.Vector3 == Vector3f.Zero,
+            VariantType.DoubleVector3 => DoubleVector3Value == Vector3d.Zero,
+            VariantType.Vector4 => _value.Vector4 == Vector4f.Zero,
+            VariantType.Quaternion => _value.Quaternion == Quaternion.IDENTITY,
+            VariantType.Color => _value.Color == Color.White,
+            VariantType.String => string.IsNullOrEmpty(StringValue),
+            VariantType.CString => CStringValue.ByteLength == 0,
+            VariantType.Buffer => BufferValue.Length == 0,
+            VariantType.VoidPtr => _value.VoidPtr == IntPtr.Zero,
+            VariantType.ResourceRef => string.IsNullOrEmpty(ResourceRefValue.Name),
+            VariantType.ResourceRefList => AllNullOrEmpty(ResourceRefListValue.Names),
+            VariantType.VariantVector => VariantVectorValue!.Count == 0,
+            VariantType.StringVector => StringVectorValue!.Count == 0,
+            VariantType.VariantMap => VariantMapValue!.Count == 0,
+            VariantType.IntRect => _value.IntRect == IntRect.Zero,
+            VariantType.Vector2i => _value.IntVector2 == Vector2i.Zero,
+            VariantType.Vector3i => _value.IntVector3 == Vector3i.Zero,
+            VariantType.Matrix3 => Matrix3Value == Matrix3.IDENTITY,
+            VariantType.Matrix3x4 => Matrix3x4Value == Matrix3x4.IDENTITY,
+            VariantType.Matrix4 => Matrix4Value == Matrix4.IDENTITY,
+            VariantType.Rect => _value.Rect == Rect.Zero,
+            VariantType.Custom => CustomValue.IsZero(),
+            VariantType.StringVariantMap => StringVariantMapValue!.Count == 0,
+            VariantType.VariantCurve => VariantCurveValue.KeyFrames.Count == 0,
             _ => true
         };
     }
@@ -841,37 +941,37 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
         return _type switch
         {
             VariantType.None => null!,
-            VariantType.Bool => _boolValue,
-            VariantType.Int => _intValue,
-            VariantType.Int64 => _int64Value,
-            VariantType.Float => _floatValue,
-            VariantType.Double => _doubleValue,
-            VariantType.Vector2 => _vector2Value,
-            VariantType.DoubleVector2 => _doubleVector2Value,
-            VariantType.Vector3 => _vector3Value,
-            VariantType.DoubleVector3 => _doubleVector3Value,
-            VariantType.Vector4 => _vector4Value,
-            VariantType.Quaternion => _quaternionValue,
-            VariantType.Color => _colorValue,
-            VariantType.Rect => _rectValue,
-            VariantType.IntRect => _intRectValue,
-            VariantType.Vector2i => _intVector2Value,
-            VariantType.Vector3i => _intVector3Value,
-            VariantType.String => _stringValue,
-            VariantType.CString => _cstringValue.Clone(),
-            VariantType.Buffer => _bufferValue.Clone(),
-            VariantType.VoidPtr => _voidPtrValue,
-            VariantType.ResourceRef => _resourceRefValue,
-            VariantType.ResourceRefList => new ResourceRefList(_resourceRefListValue.Type, _resourceRefListValue.Names),
-            VariantType.Matrix3 => _matrix3Value,
-            VariantType.Matrix3x4 => _matrix3x4Value,
-            VariantType.Matrix4 => _matrix4Value,
-            VariantType.VariantVector => new VariantVector(_variantVectorValue!),
-            VariantType.StringVector => new StringVector(_stringVectorValue!),
-            VariantType.VariantMap => new VariantMap(_variantMapValue!),
-            VariantType.StringVariantMap => new StringVariantMap(_stringVariantMapValue!),
-            VariantType.VariantCurve => _variantCurveValue.Clone(),
-            VariantType.Custom => _customValue.Value is ICloneable cloneable ? cloneable.Clone() : _customValue.Value,
+            VariantType.Bool => _value.Bool,
+            VariantType.Int => _value.Int,
+            VariantType.Int64 => _value.Int64,
+            VariantType.Float => _value.Float,
+            VariantType.Double => _value.Double,
+            VariantType.Vector2 => _value.Vector2,
+            VariantType.DoubleVector2 => _value.DoubleVector2,
+            VariantType.Vector3 => _value.Vector3,
+            VariantType.DoubleVector3 => DoubleVector3Value,
+            VariantType.Vector4 => _value.Vector4,
+            VariantType.Quaternion => _value.Quaternion,
+            VariantType.Color => _value.Color,
+            VariantType.Rect => _value.Rect,
+            VariantType.IntRect => _value.IntRect,
+            VariantType.Vector2i => _value.IntVector2,
+            VariantType.Vector3i => _value.IntVector3,
+            VariantType.String => StringValue,
+            VariantType.CString => CStringValue.Clone(),
+            VariantType.Buffer => BufferValue.Clone(),
+            VariantType.VoidPtr => _value.VoidPtr,
+            VariantType.ResourceRef => ResourceRefValue,
+            VariantType.ResourceRefList => new ResourceRefList(ResourceRefListValue.Type, ResourceRefListValue.Names),
+            VariantType.Matrix3 => Matrix3Value,
+            VariantType.Matrix3x4 => Matrix3x4Value,
+            VariantType.Matrix4 => Matrix4Value,
+            VariantType.VariantVector => new VariantVector(VariantVectorValue!),
+            VariantType.StringVector => new StringVector(StringVectorValue!),
+            VariantType.VariantMap => new VariantMap(VariantMapValue!),
+            VariantType.StringVariantMap => new StringVariantMap(StringVariantMapValue!),
+            VariantType.VariantCurve => VariantCurveValue.Clone(),
+            VariantType.Custom => CustomValue.Value is ICloneable cloneable ? cloneable.Clone() : CustomValue.Value,
             _ => null!
         };
     }
@@ -941,37 +1041,37 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
         return _type switch
         {
             VariantType.None => true,
-            VariantType.Bool => _boolValue == other._boolValue,
-            VariantType.Int => _intValue == other._intValue,
-            VariantType.Int64 => _int64Value == other._int64Value,
-            VariantType.Float => _floatValue.Equals(other._floatValue),
-            VariantType.Double => _doubleValue.Equals(other._doubleValue),
-            VariantType.Vector2 => _vector2Value.Equals(other._vector2Value),
-            VariantType.DoubleVector2 => _doubleVector2Value.Equals(other._doubleVector2Value),
-            VariantType.Vector3 => _vector3Value.Equals(other._vector3Value),
-            VariantType.DoubleVector3 => _doubleVector3Value.Equals(other._doubleVector3Value),
-            VariantType.Vector4 => _vector4Value.Equals(other._vector4Value),
-            VariantType.Quaternion => _quaternionValue.Equals(other._quaternionValue),
-            VariantType.Color => _colorValue.Equals(other._colorValue),
-            VariantType.Rect => _rectValue.Equals(other._rectValue),
-            VariantType.IntRect => _intRectValue.Equals(other._intRectValue),
-            VariantType.Vector2i => _intVector2Value.Equals(other._intVector2Value),
-            VariantType.Vector3i => _intVector3Value.Equals(other._intVector3Value),
-            VariantType.String => string.Equals(_stringValue, other._stringValue, StringComparison.Ordinal),
-            VariantType.CString => _cstringValue.Equals(other._cstringValue),
-            VariantType.Buffer => _bufferValue.AsSpan().SequenceEqual(other._bufferValue),
-            VariantType.VoidPtr => _voidPtrValue == other._voidPtrValue,
-            VariantType.ResourceRef => _resourceRefValue.Equals(other._resourceRefValue),
-            VariantType.ResourceRefList => _resourceRefListValue.Equals(other._resourceRefListValue),
-            VariantType.Matrix3 => _matrix3Value.Equals(other._matrix3Value),
-            VariantType.Matrix3x4 => _matrix3x4Value.Equals(other._matrix3x4Value),
-            VariantType.Matrix4 => _matrix4Value.Equals(other._matrix4Value),
-            VariantType.VariantVector => SequenceEqual(_variantVectorValue!, other._variantVectorValue!),
-            VariantType.StringVector => SequenceEqual(_stringVectorValue!, other._stringVectorValue!),
-            VariantType.VariantMap => DictionaryEqual(_variantMapValue!, other._variantMapValue!),
-            VariantType.StringVariantMap => DictionaryEqual(_stringVariantMapValue!, other._stringVariantMapValue!),
-            VariantType.VariantCurve => _variantCurveValue.Equals(other._variantCurveValue),
-            VariantType.Custom => _customValue.Equals(other._customValue),
+            VariantType.Bool => _value.Bool == other._value.Bool,
+            VariantType.Int => _value.Int == other._value.Int,
+            VariantType.Int64 => _value.Int64 == other._value.Int64,
+            VariantType.Float => _value.Float.Equals(other._value.Float),
+            VariantType.Double => _value.Double.Equals(other._value.Double),
+            VariantType.Vector2 => _value.Vector2.Equals(other._value.Vector2),
+            VariantType.DoubleVector2 => _value.DoubleVector2.Equals(other._value.DoubleVector2),
+            VariantType.Vector3 => _value.Vector3.Equals(other._value.Vector3),
+            VariantType.DoubleVector3 => DoubleVector3Value.Equals(other.DoubleVector3Value),
+            VariantType.Vector4 => _value.Vector4.Equals(other._value.Vector4),
+            VariantType.Quaternion => _value.Quaternion.Equals(other._value.Quaternion),
+            VariantType.Color => _value.Color.Equals(other._value.Color),
+            VariantType.Rect => _value.Rect.Equals(other._value.Rect),
+            VariantType.IntRect => _value.IntRect.Equals(other._value.IntRect),
+            VariantType.Vector2i => _value.IntVector2.Equals(other._value.IntVector2),
+            VariantType.Vector3i => _value.IntVector3.Equals(other._value.IntVector3),
+            VariantType.String => string.Equals(StringValue, other.StringValue, StringComparison.Ordinal),
+            VariantType.CString => CStringValue.Equals(other.CStringValue),
+            VariantType.Buffer => BufferValue.AsSpan().SequenceEqual(other.BufferValue),
+            VariantType.VoidPtr => _value.VoidPtr == other._value.VoidPtr,
+            VariantType.ResourceRef => ResourceRefValue.Equals(other.ResourceRefValue),
+            VariantType.ResourceRefList => ResourceRefListValue.Equals(other.ResourceRefListValue),
+            VariantType.Matrix3 => Matrix3Value.Equals(other.Matrix3Value),
+            VariantType.Matrix3x4 => Matrix3x4Value.Equals(other.Matrix3x4Value),
+            VariantType.Matrix4 => Matrix4Value.Equals(other.Matrix4Value),
+            VariantType.VariantVector => SequenceEqual(VariantVectorValue!, other.VariantVectorValue!),
+            VariantType.StringVector => SequenceEqual(StringVectorValue!, other.StringVectorValue!),
+            VariantType.VariantMap => DictionaryEqual(VariantMapValue!, other.VariantMapValue!),
+            VariantType.StringVariantMap => DictionaryEqual(StringVariantMapValue!, other.StringVariantMapValue!),
+            VariantType.VariantCurve => VariantCurveValue.Equals(other.VariantCurveValue),
+            VariantType.Custom => CustomValue.Equals(other.CustomValue),
             _ => false
         };
     }
@@ -985,98 +1085,98 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
         switch (_type)
         {
         case VariantType.Bool:
-            hash.Add(_boolValue);
+            hash.Add(_value.Bool);
             break;
         case VariantType.Int:
-            hash.Add(_intValue);
+            hash.Add(_value.Int);
             break;
         case VariantType.Int64:
-            hash.Add(_int64Value);
+            hash.Add(_value.Int64);
             break;
         case VariantType.Float:
-            hash.Add(_floatValue);
+            hash.Add(_value.Float);
             break;
         case VariantType.Double:
-            hash.Add(_doubleValue);
+            hash.Add(_value.Double);
             break;
         case VariantType.Vector2:
-            hash.Add(_vector2Value);
+            hash.Add(_value.Vector2);
             break;
         case VariantType.DoubleVector2:
-            hash.Add(_doubleVector2Value);
+            hash.Add(_value.DoubleVector2);
             break;
         case VariantType.Vector3:
-            hash.Add(_vector3Value);
+            hash.Add(_value.Vector3);
             break;
         case VariantType.DoubleVector3:
-            hash.Add(_doubleVector3Value);
+            hash.Add(DoubleVector3Value);
             break;
         case VariantType.Vector4:
-            hash.Add(_vector4Value);
+            hash.Add(_value.Vector4);
             break;
         case VariantType.Quaternion:
-            hash.Add(_quaternionValue);
+            hash.Add(_value.Quaternion);
             break;
         case VariantType.Color:
-            hash.Add(_colorValue);
+            hash.Add(_value.Color);
             break;
         case VariantType.Rect:
-            hash.Add(_rectValue);
+            hash.Add(_value.Rect);
             break;
         case VariantType.IntRect:
-            hash.Add(_intRectValue);
+            hash.Add(_value.IntRect);
             break;
         case VariantType.Vector2i:
-            hash.Add(_intVector2Value);
+            hash.Add(_value.IntVector2);
             break;
         case VariantType.Vector3i:
-            hash.Add(_intVector3Value);
+            hash.Add(_value.IntVector3);
             break;
         case VariantType.String:
-            hash.Add(_stringValue, StringComparer.Ordinal);
+            hash.Add(StringValue, StringComparer.Ordinal);
             break;
         case VariantType.CString:
-            hash.Add(_cstringValue);
+            hash.Add(CStringValue);
             break;
         case VariantType.Buffer:
-            foreach (var item in _bufferValue)
+            foreach (var item in BufferValue)
                 hash.Add(item);
             break;
         case VariantType.VoidPtr:
-            hash.Add(_voidPtrValue);
+            hash.Add(_value.VoidPtr);
             break;
         case VariantType.ResourceRef:
-            hash.Add(_resourceRefValue);
+            hash.Add(ResourceRefValue);
             break;
         case VariantType.ResourceRefList:
-            hash.Add(_resourceRefListValue);
+            hash.Add(ResourceRefListValue);
             break;
         case VariantType.Matrix3:
-            hash.Add(_matrix3Value);
+            hash.Add(Matrix3Value);
             break;
         case VariantType.Matrix3x4:
-            hash.Add(_matrix3x4Value);
+            hash.Add(Matrix3x4Value);
             break;
         case VariantType.Matrix4:
-            hash.Add(_matrix4Value);
+            hash.Add(Matrix4Value);
             break;
         case VariantType.VariantVector:
-            AddSequenceHash(ref hash, _variantVectorValue!);
+            AddSequenceHash(ref hash, VariantVectorValue!);
             break;
         case VariantType.StringVector:
-            AddSequenceHash(ref hash, _stringVectorValue!);
+            AddSequenceHash(ref hash, StringVectorValue!);
             break;
         case VariantType.VariantMap:
-            AddDictionaryHash(ref hash, _variantMapValue!);
+            AddDictionaryHash(ref hash, VariantMapValue!);
             break;
         case VariantType.StringVariantMap:
-            AddDictionaryHash(ref hash, _stringVariantMapValue!);
+            AddDictionaryHash(ref hash, StringVariantMapValue!);
             break;
         case VariantType.VariantCurve:
-            hash.Add(_variantCurveValue);
+            hash.Add(VariantCurveValue);
             break;
         case VariantType.Custom:
-            hash.Add(_customValue);
+            hash.Add(CustomValue);
             break;
         }
 
@@ -1091,32 +1191,32 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
         return _type switch
         {
             VariantType.None => string.Empty,
-            VariantType.Int => _intValue.ToString(CultureInfo.InvariantCulture),
-            VariantType.Int64 => _int64Value.ToString(CultureInfo.InvariantCulture),
-            VariantType.Bool => _boolValue ? "true" : "false",
-            VariantType.Float => _floatValue.ToString(CultureInfo.InvariantCulture),
-            VariantType.Vector2 => _vector2Value.ToString(),
-            VariantType.Vector3 => _vector3Value.ToString(),
-            VariantType.Vector4 => _vector4Value.ToString(),
-            VariantType.DoubleVector2 => _doubleVector2Value.ToString(),
-            VariantType.DoubleVector3 => _doubleVector3Value.ToString(),
-            VariantType.Quaternion => _quaternionValue.ToString(),
-            VariantType.Color => _colorValue.ToString(),
-            VariantType.String => _stringValue,
-            VariantType.CString => _cstringValue.ToString(),
-            VariantType.Buffer => BufferToString(_bufferValue),
+            VariantType.Int => _value.Int.ToString(CultureInfo.InvariantCulture),
+            VariantType.Int64 => _value.Int64.ToString(CultureInfo.InvariantCulture),
+            VariantType.Bool => _value.Bool ? "true" : "false",
+            VariantType.Float => _value.Float.ToString(CultureInfo.InvariantCulture),
+            VariantType.Vector2 => _value.Vector2.ToString(),
+            VariantType.Vector3 => _value.Vector3.ToString(),
+            VariantType.Vector4 => _value.Vector4.ToString(),
+            VariantType.DoubleVector2 => _value.DoubleVector2.ToString(),
+            VariantType.DoubleVector3 => DoubleVector3Value.ToString(),
+            VariantType.Quaternion => _value.Quaternion.ToString(),
+            VariantType.Color => _value.Color.ToString(),
+            VariantType.String => StringValue,
+            VariantType.CString => CStringValue.ToString(),
+            VariantType.Buffer => BufferToString(BufferValue),
             VariantType.VoidPtr => string.Empty,
-            VariantType.ResourceRef => _resourceRefValue.ToString(Context.Instance),
-            VariantType.ResourceRefList => _resourceRefListValue.ToString(Context.Instance),
-            VariantType.IntRect => _intRectValue.ToString(),
-            VariantType.Vector2i => _intVector2Value.ToString(),
-            VariantType.Vector3i => _intVector3Value.ToString(),
-            VariantType.Matrix3 => _matrix3Value.ToString(),
-            VariantType.Matrix3x4 => _matrix3x4Value.ToString(),
-            VariantType.Matrix4 => _matrix4Value.ToString(),
-            VariantType.Double => _doubleValue.ToString(CultureInfo.InvariantCulture),
-            VariantType.Rect => _rectValue.ToString(),
-            VariantType.Custom => _customValue.ToString(),
+            VariantType.ResourceRef => ResourceRefValue.ToString(Context.Instance),
+            VariantType.ResourceRefList => ResourceRefListValue.ToString(Context.Instance),
+            VariantType.IntRect => _value.IntRect.ToString(),
+            VariantType.Vector2i => _value.IntVector2.ToString(),
+            VariantType.Vector3i => _value.IntVector3.ToString(),
+            VariantType.Matrix3 => Matrix3Value.ToString(),
+            VariantType.Matrix3x4 => Matrix3x4Value.ToString(),
+            VariantType.Matrix4 => Matrix4Value.ToString(),
+            VariantType.Double => _value.Double.ToString(CultureInfo.InvariantCulture),
+            VariantType.Rect => _value.Rect.ToString(),
+            VariantType.Custom => CustomValue.ToString(),
             _ => string.Empty
         };
     }
