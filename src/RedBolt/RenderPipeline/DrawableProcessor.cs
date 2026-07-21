@@ -259,16 +259,8 @@ public class DrawableProcessor : Object
 
     public uint GetNumShadowedLights() => _numShadowedLights;
 
-    public LightAccumulator GetGeometryLighting(uint drawableIndex) => drawableIndex < (uint)_geometryLighting.Length
-        ? _geometryLighting[(int)drawableIndex]
-        : new LightAccumulator();
-
-    public void SetGeometryLighting(uint drawableIndex, LightAccumulator lighting)
-    {
-        if (drawableIndex >= (uint)_geometryLighting.Length)
-            Array.Resize(ref _geometryLighting, checked((int)drawableIndex + 1));
-        _geometryLighting[(int)drawableIndex] = lighting;
-    }
+    public ref readonly LightAccumulator GetGeometryLighting(uint drawableIndex) =>
+        ref _geometryLighting[checked((int)drawableIndex)];
 
     public GeometryRenderFlag GetGeometryRenderFlags(uint drawableIndex) => drawableIndex < (uint)_geometryRenderFlags.Length
         ? _geometryRenderFlags[(int)drawableIndex]
@@ -331,8 +323,6 @@ public class DrawableProcessor : Object
         Array.Clear(_geometryRenderFlags);
         Array.Resize(ref _geometryZRanges, numDrawables);
         Array.Resize(ref _geometryLighting, numDrawables);
-        for (var i = 0; i < _geometryLighting.Length; ++i)
-            _geometryLighting[i] ??= new LightAccumulator();
         _queuedDrawableUpdates.Clear();
         _threadedGeometryUpdates.Clear();
         _nonThreadedGeometryUpdates.Clear();
@@ -529,7 +519,12 @@ public class DrawableProcessor : Object
         var isNegative = light.IsNegative();
         var lightImportance = hasShadow ? LightImportance.Important : light.GetLightImportance();
 
-        var ctx = new LightAccumulatorContext(_lightDataForAccumulator, _settings.MaxVertexLights, _settings.MaxPixelLights);
+        var ctx = new LightAccumulatorContext
+        {
+            MaxVertexLights = checked((int)_settings.MaxVertexLights),
+            MaxPixelLights = checked((int)_settings.MaxPixelLights),
+            Lights = _lightDataForAccumulator
+        };
 
         foreach (var geometry in litGeometries)
         {
@@ -546,9 +541,8 @@ public class DrawableProcessor : Object
             var distance = Math.Max(light.GetDistanceTo(geometry), MathDefs.LargeEpsilon);
             var penalty = GetDrawableLightPenalty(distance * lightIntensityPenalty,
                 isNegative, lightImportance, lightType);
-            var lighting = GetGeometryLighting(drawableIndex);
-            lighting.AccumulateLight(ctx, geometry, lightImportance, lightIndex, penalty);
-            SetGeometryLighting(drawableIndex, lighting);
+            ref var lighting = ref _geometryLighting[checked((int)drawableIndex)];
+            lighting.AccumulateLight(ctx, geometry, lightImportance, checked((int)lightIndex), penalty);
         }
     }
 
@@ -562,9 +556,8 @@ public class DrawableProcessor : Object
             var flags = GetGeometryRenderFlags(drawableIndex);
             if ((flags & GeometryRenderFlag.ForwardLit) != 0)
             {
-                var lightAccumulator = GetGeometryLighting(drawableIndex);
+                ref var lightAccumulator = ref _geometryLighting[checked((int)drawableIndex)];
                 lightAccumulator.Cook();
-                SetGeometryLighting(drawableIndex, lightAccumulator);
             }
         }
     }
@@ -670,7 +663,7 @@ public class DrawableProcessor : Object
             }
 
             // Always reset lights in case of material change
-            var lightAccumulator = GetGeometryLighting(drawableIndex);
+            ref var lightAccumulator = ref _geometryLighting[checked((int)drawableIndex)];
             lightAccumulator.ResetLights();
 
             // Collect batches
@@ -759,8 +752,6 @@ public class DrawableProcessor : Object
                     }
                 }
             }
-
-            SetGeometryLighting(drawableIndex, lightAccumulator);
 
             // Store geometry
             _geometries.PushBack(WorkQueue.GetThreadIndex(), drawable);

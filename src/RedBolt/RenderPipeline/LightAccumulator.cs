@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace RedBolt;
@@ -7,11 +8,6 @@ namespace RedBolt;
 /// </summary>
 public struct LightDataForAccumulator
 {
-    public LightDataForAccumulator()
-    {
-        Color = new Color();
-    }
-
     public Color Color;
     public Vector3f Position;
     public Vector3f Direction;
@@ -19,6 +15,11 @@ public struct LightDataForAccumulator
     public float Range;
     public float SpotCutoff;
     public float InverseSpotCutoff;
+
+    public LightDataForAccumulator()
+    {
+        Color = new Color();
+    }
 
     /// <summary>
     /// Construct from light.
@@ -81,8 +82,8 @@ public struct LightDataForAccumulator
 /// </summary>
 public struct LightAccumulatorContext
 {
-    public uint MaxVertexLights = 4;
-    public uint MaxPixelLights = 1;
+    public int MaxVertexLights = 4;
+    public int MaxPixelLights = 1;
     /// <summary>
     /// Array of lights to be indexed.
     /// </summary>
@@ -91,37 +92,39 @@ public struct LightAccumulatorContext
     public LightAccumulatorContext()
     {
     }
-
-    public LightAccumulatorContext(IReadOnlyList<LightDataForAccumulator> lights,
-        uint maxVertexLights = 4, uint maxPixelLights = 1)
-    {
-        MaxVertexLights = maxVertexLights;
-        MaxPixelLights = maxPixelLights;
-        Lights = lights;
-    }
 }
 
 /// <summary>
 /// Accumulated light for forward rendering.
 /// </summary>
-public sealed class LightAccumulator
+public struct LightAccumulator
 {
     /// <summary>
     /// Hints used for small buffer optimization
     /// </summary>
-    public const uint MaxPixelLights = 4;
-    public const uint MaxVertexLights = 4;
-    public const uint NumElements = 9;
+    public const int MaxPixelLights = 4;
+    public const int MaxVertexLights = 4;
+    public const int NumElements = 9;
 
-    public readonly record struct LightData(float Penalty, uint LightIndex);
-
-    [InlineArray((int)MaxVertexLights)]
-    public struct VertexLightContainer
+    public struct LightData
     {
-        private uint _element0;
+        public LightData(float penalty, int lightIndex)
+        {
+            Penalty = penalty;
+            LightIndex = lightIndex;
+        }
+
+        public float Penalty;
+        public int LightIndex;
     }
 
-    [InlineArray((int)NumElements)]
+    [InlineArray(MaxVertexLights)]
+    public struct VertexLightContainer
+    {
+        private int _element0;
+    }
+
+    [InlineArray(NumElements)]
     private struct LightContainer
     {
         private LightData _element0;
@@ -132,28 +135,6 @@ public sealed class LightAccumulator
     {
         private StrongBox<ReflectionProbeData>? _element0;
     }
-
-    /// <summary>
-    /// Accumulated SH lights and ambient light.
-    /// </summary>
-    public SphericalHarmonicsDot9 SphericalHarmonics;
-    /// <summary>
-    /// Reflection probe.
-    /// </summary>
-    public ReflectionProbeContainer ReflectionProbes;
-    public float ReflectionProbesBlendFactor;
-
-    private LightContainer _lights;
-    private int _numLights;
-
-    private uint _numImportantLights;
-    private uint _numAutoLights;
-    private uint _firstVertexLight;
-
-    /// <summary>
-    /// Hash of vertex lights. Non-zero.
-    /// </summary>
-    private uint _vertexLightsHash;
 
     /// <summary>
     /// Reset lights.
@@ -171,7 +152,7 @@ public sealed class LightAccumulator
     /// Accumulate light.
     /// </summary>
     public void AccumulateLight(in LightAccumulatorContext ctx,
-        Drawable geometry, LightImportance lightImportance, uint lightIndex, float penalty)
+        Drawable geometry, LightImportance lightImportance, int lightIndex, float penalty)
     {
         System.Diagnostics.Debug.Assert(_vertexLightsHash == 0);
         if (lightImportance == LightImportance.Important)
@@ -193,7 +174,7 @@ public sealed class LightAccumulator
         var maxLights = ctx.MaxVertexLights + _firstVertexLight;
         if (_numLights > maxLights)
         {
-            var lightData = ctx.Lights![(int)_lights[_numLights - 1].LightIndex];
+            var lightData = ctx.Lights![_lights[_numLights - 1].LightIndex];
             var samplePosition = geometry.GetWorldBoundingBox().Center;
             SphericalHarmonics += lightData.GetLightingAtPoint(samplePosition);
             --_numLights;
@@ -208,45 +189,61 @@ public sealed class LightAccumulator
         if (_vertexLightsHash != 0)
             return;
 
-        var numLights = (uint)_numLights;
+        var numLights = _numLights;
         if (_firstVertexLight < numLights)
-        {
-            for (var i = (int)_firstVertexLight + 1; i < _numLights; ++i)
-            {
-                var light = _lights[i];
-                var j = i;
-                while (j > _firstVertexLight && _lights[j - 1].LightIndex > light.LightIndex)
-                {
-                    _lights[j] = _lights[j - 1];
-                    --j;
-                }
-                _lights[j] = light;
-            }
-        }
+            _lights[_firstVertexLight..numLights].Sort(
+                static (lhs, rhs) => lhs.LightIndex.CompareTo(rhs.LightIndex));
 
         for (var i = _firstVertexLight; i < numLights; ++i)
-            CombineHash(ref _vertexLightsHash, (_lights[(int)i].LightIndex + 1) * 2654435761);
+            CombineHash(ref _vertexLightsHash,
+                unchecked(((uint)_lights[i].LightIndex + 1u) * 2654435761u));
         _vertexLightsHash += _vertexLightsHash == 0 ? 1u : 0u;
     }
 
     /// <summary>
     /// Return light info, valid after cooking
     /// </summary>
-    public VertexLightContainer GetVertexLights()
+    public readonly VertexLightContainer VertexLights
     {
-        VertexLightContainer vertexLights = default;
-        for (uint i = 0; i < 4; ++i)
+        get
         {
-            var index = i + _firstVertexLight;
-            vertexLights[(int)i] = index < _numLights ? _lights[(int)index].LightIndex : uint.MaxValue;
+            VertexLightContainer vertexLights = default;
+            for (var i = 0; i < 4; ++i)
+            {
+                var index = i + _firstVertexLight;
+                vertexLights[i] = index < _numLights ? _lights[index].LightIndex : int.MaxValue;
+            }
+            return vertexLights;
         }
-        return vertexLights;
     }
 
-    public ReadOnlySpan<LightData> GetPixelLights() =>
-        _lights[..Math.Min(_numLights, (int)_firstVertexLight)];
+    [UnscopedRef]
+    public readonly ReadOnlySpan<LightData> PixelLights =>
+        _lights[..Math.Min(_numLights, _firstVertexLight)];
 
-    public uint GetVertexLightsHash() => _vertexLightsHash;
+    public readonly uint VertexLightsHash => _vertexLightsHash;
+
+    /// <summary>
+    /// Accumulated SH lights and ambient light.
+    /// </summary>
+    public SphericalHarmonicsDot9 SphericalHarmonics;
+    /// <summary>
+    /// Reflection probe.
+    /// </summary>
+    public ReflectionProbeContainer ReflectionProbes;
+    public float ReflectionProbesBlendFactor;
+
+    private LightContainer _lights;
+    private int _numLights;
+
+    private int _numImportantLights;
+    private int _numAutoLights;
+    private int _firstVertexLight;
+
+    /// <summary>
+    /// Hash of vertex lights. Non-zero.
+    /// </summary>
+    private uint _vertexLightsHash;
 
     private static void CombineHash(ref uint result, uint hash)
     {

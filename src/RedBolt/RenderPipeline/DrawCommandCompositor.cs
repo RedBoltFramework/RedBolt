@@ -83,7 +83,7 @@ internal sealed class ObjectParameterBuilder
         => _instancingEnabled && pipelineBatch.Geometry is not null
            && pipelineBatch.Geometry.IsInstanced(pipelineBatch.GeometryType);
 
-    public void SetBatchAmbient(LightAccumulator lightAccumulator)
+    public void SetBatchAmbient(in LightAccumulator lightAccumulator)
     {
         if (_ambientMode == DrawableAmbientMode.Flat)
         {
@@ -243,18 +243,18 @@ internal sealed class DrawCommandCompositor
         if (pipelineBatch.Geometry is null || pipelineBatch.Geometry.GetEffectiveIndexCount() == 0)
             return;
 
-        LightAccumulator? lightAccumulator = null;
+        ref readonly var lightAccumulator = ref Unsafe.NullRef<LightAccumulator>();
         if (_enabled.AmbientLighting || _enabled.VertexLighting)
-            lightAccumulator = _drawableProcessor.GetGeometryLighting(pipelineBatch.DrawableIndex);
+            lightAccumulator = ref _drawableProcessor.GetGeometryLighting(pipelineBatch.DrawableIndex);
 
         CheckDirtyCommonState(pipelineBatch);
         if (_enabled.PixelLighting)
             CheckDirtyPixelLight(pipelineBatch);
-        if (_enabled.VertexLighting && lightAccumulator is not null)
-            CheckDirtyVertexLight(lightAccumulator);
-        if (_enabled.AmbientLighting && lightAccumulator is not null)
+        if (_enabled.VertexLighting)
+            CheckDirtyVertexLight(in lightAccumulator);
+        if (_enabled.AmbientLighting)
         {
-            CheckDirtyReflectionProbe(lightAccumulator);
+            CheckDirtyReflectionProbe(in lightAccumulator);
             CheckDirtyLightmap(sourceBatch);
         }
 
@@ -289,8 +289,8 @@ internal sealed class DrawCommandCompositor
             }
             else
             {
-                if (_objectParameterBuilder.IsAmbientEnabled() && lightAccumulator is not null)
-                    _objectParameterBuilder.SetBatchAmbient(lightAccumulator);
+                if (_objectParameterBuilder.IsAmbientEnabled())
+                    _objectParameterBuilder.SetBatchAmbient(in lightAccumulator);
                 CommitDrawCalls(numBatchInstances, sourceBatch);
             }
         }
@@ -321,7 +321,7 @@ internal sealed class DrawCommandCompositor
         _current.Drawable = pipelineBatch.Drawable;
     }
 
-    private void CheckDirtyReflectionProbe(LightAccumulator lightAccumulator)
+    private void CheckDirtyReflectionProbe(in LightAccumulator lightAccumulator)
     {
         var p0 = lightAccumulator.ReflectionProbes[0];
         var p1 = lightAccumulator.ReflectionProbes[1];
@@ -363,12 +363,12 @@ internal sealed class DrawCommandCompositor
         }
     }
 
-    private void CheckDirtyVertexLight(LightAccumulator lightAccumulator)
+    private void CheckDirtyVertexLight(in LightAccumulator lightAccumulator)
     {
         var previous = _current.VertexLights;
-        _current.VertexLights = lightAccumulator.GetVertexLights();
+        _current.VertexLights = lightAccumulator.VertexLights;
         var changed = false;
-        for (var i = 0; i < (int)LightAccumulator.MaxVertexLights; ++i)
+        for (var i = 0; i < LightAccumulator.MaxVertexLights; ++i)
         {
             if (previous[i] != _current.VertexLights[i])
             {
@@ -380,11 +380,11 @@ internal sealed class DrawCommandCompositor
         if (!_dirty.VertexLightConstants)
             return;
 
-        for (var i = 0u; i < LightAccumulator.MaxVertexLights; ++i)
+        for (var i = 0; i < LightAccumulator.MaxVertexLights; ++i)
         {
             CookedLightParams params_ = default;
-            var lightIndex = _current.VertexLights[(int)i];
-            if (lightIndex != uint.MaxValue && lightIndex < (uint)_lights.Count && _lights[(int)lightIndex] is { } lp)
+            var lightIndex = _current.VertexLights[i];
+            if (lightIndex != int.MaxValue && lightIndex < _lights.Count && _lights[lightIndex] is { } lp)
                 params_ = lp.GetParams();
             var color = params_.GetColor(_enabled.LinearColorSpace);
             _vertexLightsData[i * VertexLightStride] = new Vector4f(color, params_.InverseRange);

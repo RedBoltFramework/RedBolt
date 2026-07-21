@@ -7,8 +7,8 @@ public sealed class LightAccumulatorTests
     {
         var context = new LightAccumulatorContext();
 
-        Assert.Equal(4u, context.MaxVertexLights);
-        Assert.Equal(1u, context.MaxPixelLights);
+        Assert.Equal(4, context.MaxVertexLights);
+        Assert.Equal(1, context.MaxPixelLights);
         Assert.Null(context.Lights);
     }
 
@@ -47,7 +47,12 @@ public sealed class LightAccumulatorTests
     public void AccumulatorPartitionsAndSortsPixelAndVertexLights()
     {
         var lightData = new LightDataForAccumulator[3];
-        var context = new LightAccumulatorContext(lightData, maxVertexLights: 2, maxPixelLights: 1);
+        var context = new LightAccumulatorContext
+        {
+            MaxVertexLights = 2,
+            MaxPixelLights = 1,
+            Lights = lightData
+        };
         var geometry = new CustomGeometry();
         var accumulator = new LightAccumulator();
 
@@ -56,15 +61,15 @@ public sealed class LightAccumulatorTests
         accumulator.AccumulateLight(context, geometry, LightImportance.Auto, 1, 1.0f);
         accumulator.Cook();
 
-        var pixelLights = accumulator.GetPixelLights();
+        var pixelLights = accumulator.PixelLights;
         Assert.Equal(1, pixelLights.Length);
-        Assert.Equal(0u, pixelLights[0].LightIndex);
-        var vertexLights = accumulator.GetVertexLights();
-        Assert.Equal(1u, vertexLights[0]);
-        Assert.Equal(2u, vertexLights[1]);
-        Assert.Equal(uint.MaxValue, vertexLights[2]);
-        Assert.Equal(uint.MaxValue, vertexLights[3]);
-        Assert.NotEqual(0u, accumulator.GetVertexLightsHash());
+        Assert.Equal(0, pixelLights[0].LightIndex);
+        var vertexLights = accumulator.VertexLights;
+        Assert.Equal(1, vertexLights[0]);
+        Assert.Equal(2, vertexLights[1]);
+        Assert.Equal(int.MaxValue, vertexLights[2]);
+        Assert.Equal(int.MaxValue, vertexLights[3]);
+        Assert.NotEqual(0u, accumulator.VertexLightsHash);
     }
 
     [Fact]
@@ -87,21 +92,29 @@ public sealed class LightAccumulatorTests
                 InverseSpotCutoff = 1.0f
             }
         };
-        var context = new LightAccumulatorContext(lightData, maxVertexLights: 0, maxPixelLights: 1);
+        var context = new LightAccumulatorContext
+        {
+            MaxVertexLights = 0,
+            MaxPixelLights = 1,
+            Lights = lightData
+        };
         var accumulator = new LightAccumulator();
 
         accumulator.AccumulateLight(context, new CustomGeometry(), LightImportance.Auto, 0, 0.0f);
         accumulator.AccumulateLight(context, new CustomGeometry(), LightImportance.Auto, 1, 1.0f);
 
         Assert.NotEqual(Vector3f.Zero, accumulator.SphericalHarmonics.EvaluateAverage());
-        Assert.Equal(1, accumulator.GetPixelLights().Length);
-        Assert.Equal(0u, accumulator.GetPixelLights()[0].LightIndex);
+        Assert.Equal(1, accumulator.PixelLights.Length);
+        Assert.Equal(0, accumulator.PixelLights[0].LightIndex);
     }
 
     [Fact]
     public void ResetClearsIndexedLightsButPreservesAccumulatedLighting()
     {
-        var context = new LightAccumulatorContext(new LightDataForAccumulator[1]);
+        var context = new LightAccumulatorContext
+        {
+            Lights = new LightDataForAccumulator[1]
+        };
         var accumulator = new LightAccumulator
         {
             SphericalHarmonics = new SphericalHarmonicsDot9(Vector3f.One)
@@ -112,9 +125,35 @@ public sealed class LightAccumulatorTests
         accumulator.ResetLights();
         accumulator.Cook();
 
-        Assert.Equal(0, accumulator.GetPixelLights().Length);
-        Assert.Equal(uint.MaxValue, accumulator.GetVertexLights()[0]);
-        Assert.NotEqual(0u, accumulator.GetVertexLightsHash());
+        Assert.Equal(0, accumulator.PixelLights.Length);
+        Assert.Equal(int.MaxValue, accumulator.VertexLights[0]);
+        Assert.NotEqual(0u, accumulator.VertexLightsHash);
         Assert.Equal(Vector3f.One, accumulator.SphericalHarmonics.EvaluateAverage());
+    }
+
+    [Fact]
+    public void AccumulatorIsPodValueWithIndependentLightStorage()
+    {
+        Assert.True(typeof(LightDataForAccumulator).IsValueType);
+        Assert.True(typeof(LightAccumulatorContext).IsValueType);
+        Assert.True(typeof(LightAccumulator).IsValueType);
+        Assert.Equal(Color.White, new LightDataForAccumulator().Color);
+
+        var context = new LightAccumulatorContext
+        {
+            Lights = new LightDataForAccumulator[1]
+        };
+        var original = new LightAccumulator();
+        original.AccumulateLight(context, new CustomGeometry(), LightImportance.Auto, 0, 0.0f);
+
+        var probe = new System.Runtime.CompilerServices.StrongBox<ReflectionProbeData>();
+        original.ReflectionProbes[0] = probe;
+
+        var copy = original;
+        copy.ResetLights();
+
+        Assert.Equal(1, original.PixelLights.Length);
+        Assert.Equal(0, copy.PixelLights.Length);
+        Assert.Same(probe, copy.ReflectionProbes[0]);
     }
 }

@@ -141,32 +141,32 @@ public class BatchCompositorPass : DrawableProcessorPass
         }
 
         // Process forward lighting if applicable
-        var litBaseLightIndex = uint.MaxValue;
+        var litBaseLightIndex = int.MaxValue;
         if (geometryBatch.LightPass is not null)
         {
             var drawableIndex = desc.Drawable!.GetDrawableIndex();
-            var lightAccumulator = _drawableProcessor.GetGeometryLighting(drawableIndex);
-            var pixelLights = lightAccumulator.GetPixelLights();
+            ref readonly var lightAccumulator = ref _drawableProcessor.GetGeometryLighting(drawableIndex);
+            var pixelLights = lightAccumulator.PixelLights;
 
             // Add light batches
             desc.Pass = geometryBatch.LightPass;
             for (var i = 0; i < pixelLights.Length; ++i)
             {
                 var lightIndex = pixelLights[i].LightIndex;
-                var lightProcessor = _drawableProcessor.GetLightProcessor(lightIndex);
+                var lightProcessor = _drawableProcessor.GetLightProcessor(checked((uint)lightIndex));
                 if (lightProcessor is null)
                     continue;
                 var light = lightProcessor.GetLight();
 
                 // Combine first directional additive light with base pass, if possible
-                if (geometryBatch.LitBasePass is not null && litBaseLightIndex == uint.MaxValue
+                if (geometryBatch.LitBasePass is not null && litBaseLightIndex == int.MaxValue
                     && light.GetLightType() == LightType.Directional && !light.IsNegative())
                 {
                     litBaseLightIndex = lightIndex;
                     continue;
                 }
 
-                desc.InitializeLitBatch(lightProcessor, lightIndex, lightProcessor.GetForwardLitHash());
+                desc.InitializeLitBatch(lightProcessor, checked((uint)lightIndex), lightProcessor.GetForwardLitHash());
 
                 if (light.IsNegative())
                     AddPipelineBatch(desc, _lightCache, NegativeLightBatches, _delayedNegativeLightBatches);
@@ -175,14 +175,14 @@ public class BatchCompositorPass : DrawableProcessorPass
             }
 
             // Initialize vertex lights after all light batches
-            desc.VertexLightsHash = lightAccumulator.GetVertexLightsHash();
+            desc.VertexLightsHash = lightAccumulator.VertexLightsHash;
         }
 
         // Add base pass if needed
-        if (litBaseLightIndex != uint.MaxValue)
+        if (litBaseLightIndex != int.MaxValue)
         {
-            var light = _drawableProcessor.GetLightProcessor(litBaseLightIndex)!;
-            desc.InitializeLitBatch(light, litBaseLightIndex, light.GetForwardLitHash());
+            var light = _drawableProcessor.GetLightProcessor(checked((uint)litBaseLightIndex))!;
+            desc.InitializeLitBatch(light, checked((uint)litBaseLightIndex), light.GetForwardLitHash());
             desc.Pass = geometryBatch.LitBasePass;
             AddPipelineBatch(desc, _litBaseCache, BaseBatches, _delayedLitBaseBatches);
         }
