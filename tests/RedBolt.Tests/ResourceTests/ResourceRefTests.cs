@@ -12,7 +12,12 @@ public sealed class ResourceRefTests
         Assert.Equal("Materials/FirstCube", materialRef.Name);
         Assert.Equal("Material;Materials/FirstCube", materialRef.ToString());
         Assert.NotEqual(0u, materialRef.ToHash());
-        Assert.False(ResourceRef.IsNullOrEmpty(materialRef));
+
+        var copy = materialRef.Clone();
+        Assert.Equal(materialRef, copy);
+        Assert.Equal(new StringHash("123"), ResourceRef.Parse("123;Name").Type);
+        Assert.Equal(" Name ", ResourceRef.Parse(" Material ; Name ;Ignored").Name);
+        Assert.Equal(ResourceRef.Empty, ResourceRef.Parse(null));
     }
 
     [Fact]
