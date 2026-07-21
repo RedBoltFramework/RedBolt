@@ -111,17 +111,17 @@ public sealed class DrawCommandQueueTests
     {
         var queue = _fixture.RenderDevice.GetDefaultQueue();
         var pipelineState = CreateGraphicsPipelineState();
-        var reflection = new ShaderProgramReflection();
+        var reflection = new ShaderProgramReflection(Array.Empty<RawShader?>());
         SetField(pipelineState, "_reflection", reflection);
         var uniformBuffers = GetPrivateField<UniformBufferReflection?[]>(reflection, "_uniformBuffers");
         var uniformBuffer = new UniformBufferReflection();
-        SetProperty(uniformBuffer, nameof(UniformBufferReflection.Size), 16u);
+        SetProperty(uniformBuffer, nameof(UniformBufferReflection.Size), 16);
         SetProperty(uniformBuffer, nameof(UniformBufferReflection.Hash), 42u);
         uniformBuffers[(int)ShaderParameterGroup.Material] = uniformBuffer;
         var uniforms = GetPrivateField<Dictionary<StringHash, UniformReflection>>(reflection, "_uniforms");
         var parameterName = new StringHash("MatValue");
         uniforms[parameterName] = new UniformReflection(
-            "MatValue", ShaderParameterGroup.Material, 4, 4,
+            parameterName, ShaderParameterGroup.Material, 4, 4,
             RedBolt.Bindings.Diligent.ShaderCodeVariableClass.ShaderCodeVariableClassScalar,
             RedBolt.Bindings.Diligent.ShaderCodeBasicType.ShaderCodeBasicTypeFloat, 1, 1, 0);
 

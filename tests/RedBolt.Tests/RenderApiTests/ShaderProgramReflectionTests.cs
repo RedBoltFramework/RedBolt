@@ -13,6 +13,13 @@ public sealed class ShaderProgramReflectionTests
         this._fixture = fixture;
     }
 
+    [Fact]
+    public void Uniform_reflection_is_a_pod_value()
+    {
+        Assert.True(typeof(UniformReflection).IsValueType);
+        Assert.False(System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<UniformReflection>());
+    }
+
     [Theory]
     [InlineData("cLightMatrices[0]", true, "LightMatrices")]
     [InlineData("Light.cLightMatrices[0]", true, "LightMatrices")]
@@ -20,12 +27,12 @@ public sealed class ShaderProgramReflectionTests
     public void OpenGL_uniform_names_match_cpp_sanitization(string internalName, bool expectedResult, string expectedName)
     {
         var method = typeof(ShaderProgramReflection).GetMethod(
-            "TrySanitizeUniformName",
+            "TrySanitizeGlUniformName",
             System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static,
             binder: null,
             [typeof(string), typeof(string).MakeByRefType()],
             modifiers: null)
-            ?? throw new InvalidOperationException("ShaderProgramReflection.TrySanitizeUniformName was not found.");
+            ?? throw new InvalidOperationException("ShaderProgramReflection.TrySanitizeGlUniformName was not found.");
         object?[] arguments = [internalName, null];
 
         var result = Assert.IsType<bool>(method.Invoke(null, arguments));
@@ -71,16 +78,16 @@ public sealed class ShaderProgramReflectionTests
 
             Assert.NotNull(frameBuffer);
             Assert.Equal("Frame", frameBuffer!.InternalName);
-            Assert.True(frameBuffer.Size > 0u);
+            Assert.True(frameBuffer.Size > 0);
             Assert.True(frameBuffer.Hash != 0u);
 
             Assert.NotNull(cameraBuffer);
             Assert.Equal("Camera", cameraBuffer!.InternalName);
-            Assert.True(cameraBuffer.Size > 0u);
+            Assert.True(cameraBuffer.Size > 0);
 
             Assert.NotNull(customBuffer);
             Assert.Equal("Custom", customBuffer!.InternalName);
-            Assert.True(customBuffer.Size > 0u);
+            Assert.True(customBuffer.Size > 0);
         });
     }
 
@@ -99,15 +106,15 @@ public sealed class ShaderProgramReflectionTests
             var inputInvSize = reflection.GetUniform(new StringHash("InputInvSize"));
 
             Assert.NotNull(inputInvSize);
-            Assert.Equal("InputInvSize", inputInvSize!.Value.Name);
+            Assert.Equal(new StringHash("InputInvSize"), inputInvSize!.Value.NameHash);
             Assert.Equal(ShaderParameterGroup.Custom, inputInvSize.Value.Group);
-            Assert.Equal(0u, inputInvSize.Value.Offset);
-            Assert.Equal(8u, inputInvSize.Value.Size);
+            Assert.Equal(0, inputInvSize.Value.Offset);
+            Assert.Equal(8, inputInvSize.Value.Size);
             Assert.Equal(ShaderCodeVariableClass.ShaderCodeVariableClassVector, inputInvSize.Value.VariableClass);
             Assert.Equal(ShaderCodeBasicType.ShaderCodeBasicTypeFloat, inputInvSize.Value.BasicType);
-            Assert.Equal((byte)2, inputInvSize.Value.NumRows);
-            Assert.Equal((byte)1, inputInvSize.Value.NumColumns);
-            Assert.Equal(0u, inputInvSize.Value.ArraySize);
+            Assert.Equal(2, inputInvSize.Value.NumRows);
+            Assert.Equal(1, inputInvSize.Value.NumColumns);
+            Assert.Equal(0, inputInvSize.Value.ArraySize);
         });
     }
 

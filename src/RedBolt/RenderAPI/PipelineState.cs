@@ -502,7 +502,7 @@ public class PipelineState : DeviceObject
         public TemporaryImmutableSamplers(ImmutableSamplersDesc overrides, ShaderProgramReflection reflection,
             RenderDevice renderDevice, RedBolt.Bindings.Diligent.ShaderType stages)
         {
-            var resources = reflection.GetShaderResources().ToArray();
+            var resources = reflection.ShaderResources.ToArray();
             Count = resources.Length;
             _names = new CString[resources.Length];
             _descriptions = new SamplerDesc[resources.Length];

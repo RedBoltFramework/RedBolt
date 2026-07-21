@@ -2897,11 +2897,11 @@ layout(std140) uniform Material
         ArgumentNullException.ThrowIfNull(reflection);
 
         var customBuffer = reflection.GetUniformBuffer(ShaderParameterGroup.Custom);
-        if (customBuffer is null || customBuffer.Size == 0u)
+        if (customBuffer is null || customBuffer.Size == 0)
             return new CustomUniformLayout(0u, []);
 
         var customUniforms = new List<UniformReflection>();
-        foreach (var uniform in reflection.GetUniforms().Values)
+        foreach (var uniform in reflection.Uniforms.Values)
         {
             if (uniform.Group == ShaderParameterGroup.Custom)
                 customUniforms.Add(uniform);
@@ -2912,21 +2912,22 @@ layout(std140) uniform Material
             var offsetComparison = left.Offset.CompareTo(right.Offset);
             return offsetComparison != 0
                 ? offsetComparison
-                : string.CompareOrdinal(left.Name, right.Name);
+                : left.NameHash.Value.CompareTo(right.NameHash.Value);
         });
 
         var fields = new CustomUniformField[customUniforms.Count];
         for (var i = 0; i < fields.Length; ++i)
         {
             var uniform = customUniforms[i];
+            var uniformName = reflection.GetUniformName(uniform.NameHash);
             fields[i] = new CustomUniformField(
-                uniform.Name,
-                GetCustomParameterName(uniform.Name),
-                MapCustomUniformKind(uniform),
+                uniformName,
+                GetCustomParameterName(uniformName),
+                MapCustomUniformKind(uniform, uniformName),
                 checked((int)uniform.Offset));
         }
 
-        return new CustomUniformLayout(customBuffer.Size, fields);
+        return new CustomUniformLayout(checked((uint)customBuffer.Size), fields);
     }
 
     private static string GetCustomParameterName(string uniformName)
@@ -2936,10 +2937,10 @@ layout(std140) uniform Material
             : uniformName;
     }
 
-    private static CustomUniformKind MapCustomUniformKind(UniformReflection uniform)
+    private static CustomUniformKind MapCustomUniformKind(UniformReflection uniform, string uniformName)
     {
-        if (uniform.ArraySize > 1u)
-            throw new NotSupportedException($"Custom uniform arrays are not implemented yet: {uniform.Name}[{uniform.ArraySize}].");
+        if (uniform.ArraySize > 1)
+            throw new NotSupportedException($"Custom uniform arrays are not implemented yet: {uniformName}[{uniform.ArraySize}].");
 
         return uniform.VariableClass switch
         {
@@ -2949,21 +2950,21 @@ layout(std140) uniform Material
                 ShaderCodeBasicType.ShaderCodeBasicTypeUint or ShaderCodeBasicType.ShaderCodeBasicTypeUint16 or ShaderCodeBasicType.ShaderCodeBasicTypeUint8 => CustomUniformKind.UInt,
                 ShaderCodeBasicType.ShaderCodeBasicTypeInt or ShaderCodeBasicType.ShaderCodeBasicTypeInt16 or ShaderCodeBasicType.ShaderCodeBasicTypeInt8 => CustomUniformKind.Int,
                 ShaderCodeBasicType.ShaderCodeBasicTypeFloat or ShaderCodeBasicType.ShaderCodeBasicTypeFloat16 => CustomUniformKind.Float,
-                _ => throw new NotSupportedException($"Unsupported custom scalar uniform type {uniform.BasicType} for {uniform.Name}.")
+                _ => throw new NotSupportedException($"Unsupported custom scalar uniform type {uniform.BasicType} for {uniformName}.")
             },
             ShaderCodeVariableClass.ShaderCodeVariableClassVector => (Math.Max(uniform.NumRows, uniform.NumColumns), uniform.BasicType) switch
             {
                 (2, ShaderCodeBasicType.ShaderCodeBasicTypeFloat or ShaderCodeBasicType.ShaderCodeBasicTypeFloat16) => CustomUniformKind.Vector2,
                 (3, ShaderCodeBasicType.ShaderCodeBasicTypeFloat or ShaderCodeBasicType.ShaderCodeBasicTypeFloat16) => CustomUniformKind.Vector3,
                 (4, ShaderCodeBasicType.ShaderCodeBasicTypeFloat or ShaderCodeBasicType.ShaderCodeBasicTypeFloat16) => CustomUniformKind.Vector4,
-                _ => throw new NotSupportedException($"Unsupported custom vector uniform type {uniform.BasicType}x{Math.Max(uniform.NumRows, uniform.NumColumns)} for {uniform.Name}.")
+                _ => throw new NotSupportedException($"Unsupported custom vector uniform type {uniform.BasicType}x{Math.Max(uniform.NumRows, uniform.NumColumns)} for {uniformName}.")
             },
             ShaderCodeVariableClass.ShaderCodeVariableClassMatrixColumns
                 when (uniform.BasicType is ShaderCodeBasicType.ShaderCodeBasicTypeFloat or ShaderCodeBasicType.ShaderCodeBasicTypeFloat16)
                      && uniform.NumRows == 4
                      && uniform.NumColumns == 4
                 => CustomUniformKind.Matrix4,
-            _ => throw new NotSupportedException($"Unsupported custom uniform layout for {uniform.Name}: class={uniform.VariableClass}, type={uniform.BasicType}, rows={uniform.NumRows}, columns={uniform.NumColumns}.")
+            _ => throw new NotSupportedException($"Unsupported custom uniform layout for {uniformName}: class={uniform.VariableClass}, type={uniform.BasicType}, rows={uniform.NumRows}, columns={uniform.NumColumns}.")
         };
     }
 
@@ -4743,10 +4744,10 @@ layout(std140) uniform Material
                 AddShaderVariableLookupEntries(result, shaderResources, uniformBuffer.InternalName);
         }
 
-        foreach (var resource in reflection.GetShaderResources().Values)
+        foreach (var resource in reflection.ShaderResources.Values)
             AddShaderVariableLookupEntries(result, shaderResources, resource.InternalName);
 
-        foreach (var resource in reflection.GetUnorderedAccessViews().Values)
+        foreach (var resource in reflection.UnorderedAccessViews.Values)
             AddShaderVariableLookupEntries(result, shaderResources, resource.InternalName);
 
         return result;
@@ -5194,7 +5195,7 @@ layout(std140) uniform Material
         public TemporaryImmutableSamplers(ImmutableSamplersDesc overrides, ShaderProgramReflection reflection,
             RenderDevice? renderDevice, global::RedBolt.Bindings.Diligent.ShaderType stages)
         {
-            var resources = reflection.GetShaderResources().ToArray();
+            var resources = reflection.ShaderResources.ToArray();
             Count = (uint)resources.Length;
             _names = new CString[resources.Length];
             _descriptions = new SamplerDesc[resources.Length];
