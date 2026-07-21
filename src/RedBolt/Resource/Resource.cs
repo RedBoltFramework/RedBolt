@@ -256,18 +256,6 @@ public class Resource : Object
 
     internal ResourceCache? OwnerCache { get; set; }
 
-    public event Action<Resource>? ReloadFinished;
-
-    internal void NotifyReloadFinished()
-    {
-        ReloadFinished?.Invoke(this);
-    }
-
-    public bool Reload()
-    {
-        return !string.IsNullOrWhiteSpace(AbsoluteFileName) && LoadFile(AbsoluteFileName);
-    }
-
     /// <summary>Name.</summary>
     private string _name = string.Empty;
     /// <summary>Name hash.</summary>

@@ -117,7 +117,7 @@ public sealed class ShaderFileTests
             var variationReloadCount = 0;
             first.OnReloaded += () => ++variationReloadCount;
 
-            Assert.True(shader.Reload());
+            Assert.True(Resources.ReloadResource(shader));
             Assert.Equal(1, reloadCount);
             Assert.True(variationReloadCount > 0);
 

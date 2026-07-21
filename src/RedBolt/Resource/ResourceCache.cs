@@ -605,13 +605,15 @@ public sealed class ResourceCache : Object
         return ReloadResource(resource);
     }
 
-    public bool ReloadResource(Resource resource)
+    public bool ReloadResource(Resource? resource)
     {
-        ArgumentNullException.ThrowIfNull(resource);
+        if (resource is null)
+            return false;
+
         resource.SendEvent<ResourceEvents.ReloadStarted>();
 
         var success = false;
-        using (var file = GetFile(resource.Name, sendEventOnFailure: false))
+        using (var file = GetFile(resource.Name))
         {
             if (file is not null)
                 success = resource.Load(file);
@@ -619,13 +621,16 @@ public sealed class ResourceCache : Object
 
         if (success)
         {
-            resource.NotifyReloadFinished();
+            resource.ResetUseTimer();
+            UpdateResourceGroup(resource.GetType());
             resource.SendEvent<ResourceEvents.ReloadFinished>();
+            return true;
         }
-        else
-            resource.SendEvent<ResourceEvents.ReloadFailed>();
 
-        return success;
+        // If reloading failed, do not remove the resource from cache, to allow for a new live edit to
+        // attempt loading again
+        resource.SendEvent<ResourceEvents.ReloadFailed>();
+        return false;
     }
 
     public void StoreResourceDependency(Resource resource, string dependency)
@@ -655,7 +660,7 @@ public sealed class ResourceCache : Object
                 || string.Equals(resource.Name, dependency, StringComparison.OrdinalIgnoreCase);
             var isDependency = _resourceDependencies.TryGetValue(resource, out var dependencies) && dependencies.Contains(dependency);
             if (isResource || isDependency)
-                resource.Reload();
+                ReloadResource(resource);
         }
     }
 

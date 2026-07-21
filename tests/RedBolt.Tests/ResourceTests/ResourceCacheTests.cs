@@ -353,6 +353,48 @@ public sealed class ResourceCacheTests
     }
 
     [Fact]
+    public void Reload_resource_matches_native_struct_event_flow()
+    {
+        Assert.Null(typeof(Resource).GetEvent("ReloadFinished"));
+        Assert.Null(typeof(Resource).GetMethod("Reload", Type.EmptyTypes));
+        Assert.Null(typeof(Resource).GetMethod("NotifyReloadFinished", System.Reflection.BindingFlags.Instance
+            | System.Reflection.BindingFlags.NonPublic));
+        Assert.False(Resources.ReloadResource(null));
+
+        var tempDir = CreateTempDir();
+        try
+        {
+            var fileName = Path.Combine(tempDir, "Data", "reload-direct.dat");
+            System.IO.File.WriteAllText(fileName, "first");
+            Resources.AddResourceDir(tempDir);
+            var resource = Resources.GetResource<ReloadableResource>("Data/reload-direct.dat");
+            using var observer = new ReloadableResource("observer");
+            var events = new List<string>();
+            observer.SubscribeToEvent<ResourceEvents.ReloadStarted>(resource,
+                (ref ResourceEvents.ReloadStarted _) => events.Add("started"));
+            observer.SubscribeToEvent<ResourceEvents.ReloadFinished>(resource,
+                (ref ResourceEvents.ReloadFinished _) => events.Add("finished"));
+            observer.SubscribeToEvent<ResourceEvents.ReloadFailed>(resource,
+                (ref ResourceEvents.ReloadFailed _) => events.Add("failed"));
+
+            Assert.True(Resources.ReloadResource(resource));
+            Assert.Equal(["started", "finished"], events);
+            Assert.Equal(2, resource.ReloadCount);
+
+            events.Clear();
+            System.IO.File.Delete(fileName);
+            Assert.False(Resources.ReloadResource(resource));
+            Assert.Equal(["started", "failed"], events);
+            Assert.Equal(2, resource.ReloadCount);
+        }
+        finally
+        {
+            Resources.RemoveResourceDir(tempDir);
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Resource_routers_apply_in_order_to_resolved_identifiers()
     {
         var cache = new ResourceCache();
