@@ -17,6 +17,14 @@ public sealed class RenderPipelineSettingsTests
     }
 
     [Fact]
+    public void Batch_renderer_helpers_use_stack_only_value_storage()
+    {
+        var assembly = typeof(BatchRenderer).Assembly;
+        Assert.True(assembly.GetType("RedBolt.ObjectParameterBuilder", true)!.IsValueType);
+        Assert.True(assembly.GetType("RedBolt.DrawCommandCompositor", true)!.IsByRefLike);
+    }
+
+    [Fact]
     public void Propagate_implied_settings_matches_default_pipeline_rules()
     {
         var settings = new RenderPipelineSettings();

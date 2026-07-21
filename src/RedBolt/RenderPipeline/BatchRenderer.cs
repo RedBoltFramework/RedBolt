@@ -61,12 +61,19 @@ public class BatchRenderer : Object
         var debuggerEnabled = RenderPipelineDebugger.IsSnapshotInProgress(_debugger);
         var compositor = new DrawCommandCompositor(ctx, _settings, debuggerEnabled ? _debugger : null,
             _drawableProcessor!, _instancingBuffer!, batchGroup.Flags, batchGroup.StartInstance, debuggerEnabled);
-        if (batchGroup.Batches is not null)
+        try
         {
-            foreach (var sortedBatch in batchGroup.Batches)
-                compositor.ProcessSceneBatch(sortedBatch.PipelineBatch!.Value);
+            if (batchGroup.Batches is not null)
+            {
+                foreach (var sortedBatch in batchGroup.Batches)
+                    compositor.ProcessSceneBatch(sortedBatch.PipelineBatch!.Value);
+            }
+            compositor.FlushDrawCommands(batchGroup.StartInstance + batchGroup.NumInstances);
         }
-        compositor.FlushDrawCommands(batchGroup.StartInstance + batchGroup.NumInstances);
+        finally
+        {
+            compositor.Dispose();
+        }
     }
 
     public void RenderBatches(BatchRenderingContext ctx, PipelineBatchGroup<PipelineBatchBackToFront> batchGroup)
@@ -75,12 +82,19 @@ public class BatchRenderer : Object
         var debuggerEnabled = RenderPipelineDebugger.IsSnapshotInProgress(_debugger);
         var compositor = new DrawCommandCompositor(ctx, _settings, debuggerEnabled ? _debugger : null,
             _drawableProcessor!, _instancingBuffer!, batchGroup.Flags, batchGroup.StartInstance, debuggerEnabled);
-        if (batchGroup.Batches is not null)
+        try
         {
-            foreach (var sortedBatch in batchGroup.Batches)
-                compositor.ProcessSceneBatch(sortedBatch.PipelineBatch!.Value);
+            if (batchGroup.Batches is not null)
+            {
+                foreach (var sortedBatch in batchGroup.Batches)
+                    compositor.ProcessSceneBatch(sortedBatch.PipelineBatch!.Value);
+            }
+            compositor.FlushDrawCommands(batchGroup.StartInstance + batchGroup.NumInstances);
         }
-        compositor.FlushDrawCommands(batchGroup.StartInstance + batchGroup.NumInstances);
+        finally
+        {
+            compositor.Dispose();
+        }
     }
 
     public void RenderLightVolumeBatches(BatchRenderingContext ctx, ReadOnlySpan<PipelineBatchByState> batches)
@@ -88,9 +102,16 @@ public class BatchRenderer : Object
         var debuggerEnabled = RenderPipelineDebugger.IsSnapshotInProgress(_debugger);
         var compositor = new DrawCommandCompositor(ctx, _settings, debuggerEnabled ? _debugger : null,
             _drawableProcessor!, _instancingBuffer!, BatchRenderFlag.EnablePixelLights, 0, debuggerEnabled);
-        foreach (var sortedBatch in batches)
-            compositor.ProcessLightVolumeBatch(sortedBatch.PipelineBatch!.Value);
-        compositor.FlushDrawCommands(0);
+        try
+        {
+            foreach (var sortedBatch in batches)
+                compositor.ProcessLightVolumeBatch(sortedBatch.PipelineBatch!.Value);
+            compositor.FlushDrawCommands(0);
+        }
+        finally
+        {
+            compositor.Dispose();
+        }
     }
 
     public void PrepareInstancingBuffer(ref PipelineBatchGroup<PipelineBatchByState> batches)
@@ -118,7 +139,8 @@ public class BatchRenderer : Object
 
             var numWorldTransforms = checked((int)sourceBatch.NumWorldTransforms);
             for (var i = 0; i < numWorldTransforms; ++i)
-                objectParameterBuilder.AddBatchesToInstancingBuffer(_instancingBuffer, sourceBatch, i);
+                objectParameterBuilder.AddBatchesToInstancingBuffer(
+                    _instancingBuffer, sourceBatch, sourceBatch.WorldTransform, i);
             batches.NumInstances += numWorldTransforms;
         }
     }
@@ -147,7 +169,8 @@ public class BatchRenderer : Object
 
             var numWorldTransforms = checked((int)sourceBatch.NumWorldTransforms);
             for (var i = 0; i < numWorldTransforms; ++i)
-                objectParameterBuilder.AddBatchesToInstancingBuffer(_instancingBuffer, sourceBatch, i);
+                objectParameterBuilder.AddBatchesToInstancingBuffer(
+                    _instancingBuffer, sourceBatch, sourceBatch.WorldTransform, i);
             batches.NumInstances += numWorldTransforms;
         }
     }
