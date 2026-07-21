@@ -1,14 +1,14 @@
 namespace RedBolt;
 
-internal sealed class BackgroundLoadItem
-{
-    public required Type Type { get; init; }
+using Microsoft.Extensions.Logging;
 
-    public required string Name { get; init; }
+public sealed class BackgroundLoadItem
+{
+    public Resource? Resource { get; set; }
 
     public required bool SendEventOnFailure { get; init; }
 
-    public Task<Resource?> LoadTask { get; set; } = Task.FromResult<Resource?>(null);
+    public Task LoadTask { get; set; } = Task.CompletedTask;
 
     public HashSet<(Type Type, string Name)> Dependencies { get; } = [];
 
@@ -21,7 +21,7 @@ public sealed class BackgroundLoader : IDisposable
     private readonly object _sync = new();
     private readonly Dictionary<(Type Type, string Name), BackgroundLoadItem> _queue = new();
 
-    internal BackgroundLoader(ResourceCache owner)
+    public BackgroundLoader(ResourceCache owner)
     {
         this._owner = owner;
     }
@@ -30,68 +30,63 @@ public sealed class BackgroundLoader : IDisposable
     {
         BackgroundLoadItem[] items;
         lock (_sync)
-            items = _queue.Values.ToArray();
-
-        foreach (var item in items)
         {
-            try
-            {
-                item.LoadTask.GetAwaiter().GetResult();
-            }
-            catch
-            {
-            }
+            items = _queue.Values.ToArray();
+            _queue.Clear();
         }
 
-        lock (_sync)
-            _queue.Clear();
+        foreach (var item in items)
+            item.LoadTask.GetAwaiter().GetResult();
     }
 
-    public bool QueueResource(Type type, string name, bool sendEventOnFailure = true, Resource? caller = null)
+    public bool QueueResource(Type type, string name, bool sendEventOnFailure, Resource? caller)
     {
-        ArgumentNullException.ThrowIfNull(type);
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-
-        if (!_owner.CanBackgroundLoad(type))
-            return false;
-
-        var sanitizedName = _owner.SanitateResourceName(name);
-        var key = (type, sanitizedName);
+        var key = (type, name);
 
         lock (_sync)
         {
-            if (_queue.ContainsKey(key) || _owner.HasResource(type, sanitizedName))
+            if (_queue.ContainsKey(key))
                 return false;
 
             var item = new BackgroundLoadItem
             {
-                Type = type,
-                Name = sanitizedName,
                 SendEventOnFailure = sendEventOnFailure
             };
             _queue.Add(key, item);
 
+            var resource = Context.Instance.CreateObject(type.GetClassName()) as Resource;
+            if (resource is null)
+            {
+                Log.GetLogger().LogError("Could not load unknown resource type {ResourceType}", type.GetClassName());
+                if (sendEventOnFailure && Environment.CurrentManagedThreadId == WorkQueue.GetMainThreadId())
+                {
+                    var eventData = new ResourceEvents.UnknownResourceType { ResourceType = type.GetClassName() };
+                    _owner.SendEvent(ref eventData);
+                }
+                _queue.Remove(key);
+                return false;
+            }
+
+            item.Resource = resource;
+            resource.OwnerCache = _owner;
+            resource.SetName(name);
+            resource.SetAsyncLoadState(AsyncLoadState.Queued);
+
             if (caller is not null)
             {
-                var callerKey = (caller.GetType(), _owner.SanitateResourceName(caller.Name));
+                var callerKey = (caller.GetType(), caller.Name);
                 if (_queue.TryGetValue(callerKey, out var callerItem))
                 {
                     item.Dependents.Add(callerKey);
                     callerItem.Dependencies.Add(key);
                 }
+                else
+                    Log.GetLogger().LogWarning(
+                        "Resource {ResourceName} requested for a background loaded resource but was not in the background load queue",
+                        caller.Name);
             }
 
-            item.LoadTask = Task.Run(() =>
-            {
-                try
-                {
-                    return _owner.LoadBackgroundResource(type, sanitizedName, item.SendEventOnFailure);
-                }
-                finally
-                {
-                    NotifyLoadComplete(key);
-                }
-            });
+            item.LoadTask = Task.Run(() => ThreadFunction(key, item));
         }
 
         return true;
@@ -110,45 +105,60 @@ public sealed class BackgroundLoader : IDisposable
         if (item is null)
             return;
 
-        item.LoadTask.Wait();
-        List<(Type Type, string Name)> dependencies;
+        for (;;)
+        {
+            int numDependencies;
+            AsyncLoadState state;
+            lock (_sync)
+            {
+                numDependencies = item.Dependencies.Count;
+                state = item.Resource!.AsyncLoadState;
+            }
+
+            if (numDependencies > 0 || state == AsyncLoadState.Queued || state == AsyncLoadState.Loading)
+                Thread.Sleep(1);
+            else
+                break;
+        }
+
+        FinishBackgroundLoading(item);
         lock (_sync)
-            dependencies = item.Dependencies.ToList();
-        foreach (var dependency in dependencies)
-            WaitForResource(dependency.Type, dependency.Name);
-        FinishResource(key, item);
+            _queue.Remove(key);
     }
 
     public void FinishResources(int maxMs)
     {
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        var timer = System.Diagnostics.Stopwatch.StartNew();
         while (true)
         {
-            List<KeyValuePair<(Type Type, string Name), BackgroundLoadItem>> completed;
+            (Type Type, string Name) key = default;
+            BackgroundLoadItem? item = null;
+            var numDependencies = 0;
+            var state = AsyncLoadState.Done;
             lock (_sync)
             {
-                completed = _queue
-                    .Where(static item => item.Value.LoadTask.IsCompleted && item.Value.Dependencies.Count == 0)
-                    .ToList();
-            }
-
-            if (completed.Count == 0)
-            {
-                lock (_sync)
+                foreach (var candidate in _queue)
                 {
-                    if (_queue.Count == 0 || stopwatch.ElapsedMilliseconds >= Math.Max(maxMs, 1))
-                        break;
+                    key = candidate.Key;
+                    item = candidate.Value;
+                    numDependencies = item.Dependencies.Count;
+                    state = item.Resource!.AsyncLoadState;
+                    break;
                 }
-                Thread.Yield();
-                continue;
             }
 
-            foreach (var item in completed)
+            if (item is null)
+                break;
+
+            if (numDependencies == 0 && state != AsyncLoadState.Queued && state != AsyncLoadState.Loading)
             {
-                FinishResource(item.Key, item.Value);
-                if (stopwatch.ElapsedMilliseconds >= Math.Max(maxMs, 1))
-                    return;
+                FinishBackgroundLoading(item);
+                lock (_sync)
+                    _queue.Remove(key);
             }
+
+            if (timer.ElapsedMilliseconds >= maxMs)
+                break;
         }
     }
 
@@ -158,28 +168,35 @@ public sealed class BackgroundLoader : IDisposable
             return _queue.Count;
     }
 
-    private void FinishResource((Type Type, string Name) key, BackgroundLoadItem item)
+    private void ThreadFunction((Type Type, string Name) key, BackgroundLoadItem item)
     {
-        Resource? resource;
-        try
+        var resource = item.Resource!;
+        var success = false;
+        using var file = _owner.GetFile(resource.Name, item.SendEventOnFailure);
+        if (file is not null)
         {
-            resource = item.LoadTask.GetAwaiter().GetResult();
-        }
-        catch
-        {
-            resource = null;
+            resource.SetAsyncLoadState(AsyncLoadState.Loading);
+            success = resource.BeginLoad(file);
         }
 
         lock (_sync)
         {
-            if (!_queue.Remove(key))
-                return;
+            foreach (var dependent in item.Dependents)
+            {
+                if (_queue.TryGetValue(dependent, out var dependentItem))
+                    dependentItem.Dependencies.Remove(key);
+            }
+            item.Dependents.Clear();
+            resource.SetAsyncLoadState(success ? AsyncLoadState.Success : AsyncLoadState.Fail);
         }
+    }
 
-        if (resource is null)
-            return;
-
-        var success = resource.AsyncLoadState == AsyncLoadState.Success && resource.EndLoad();
+    private void FinishBackgroundLoading(BackgroundLoadItem item)
+    {
+        var resource = item.Resource!;
+        var success = resource.AsyncLoadState == AsyncLoadState.Success;
+        if (success)
+            success = resource.EndLoad();
         resource.SetAsyncLoadState(AsyncLoadState.Done);
 
         if (!success && item.SendEventOnFailure)
@@ -189,7 +206,7 @@ public sealed class BackgroundLoader : IDisposable
         }
 
         if (success || _owner.GetReturnFailedResources())
-            _owner.StoreBackgroundResource(key.Type, key.Name, resource);
+            _owner.AddManualResource(resource);
 
         var backgroundLoadedEventData = new ResourceEvents.ResourceBackgroundLoaded
         {
@@ -198,20 +215,5 @@ public sealed class BackgroundLoader : IDisposable
             Resource = resource
         };
         _owner.SendEvent(ref backgroundLoadedEventData);
-    }
-
-    private void NotifyLoadComplete((Type Type, string Name) key)
-    {
-        lock (_sync)
-        {
-            if (!_queue.TryGetValue(key, out var item))
-                return;
-            foreach (var dependent in item.Dependents)
-            {
-                if (_queue.TryGetValue(dependent, out var dependentItem))
-                    dependentItem.Dependencies.Remove(key);
-            }
-            item.Dependents.Clear();
-        }
     }
 }

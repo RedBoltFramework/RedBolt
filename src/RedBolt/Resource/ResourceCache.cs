@@ -313,7 +313,13 @@ public sealed class ResourceCache : Object
         if (!typeof(Resource).IsAssignableFrom(type))
             throw new ArgumentException("Type must derive from Resource.", nameof(type));
 
-        return _backgroundLoader.QueueResource(type, name, sendEventOnFailure, caller);
+        var sanitatedName = SanitateResourceName(name);
+        if (string.IsNullOrEmpty(sanitatedName))
+            return false;
+        if (_cache.ContainsKey((type, sanitatedName)))
+            return false;
+
+        return _backgroundLoader.QueueResource(type, sanitatedName, sendEventOnFailure, caller);
     }
 
     public bool BackgroundLoadResource(StringHash type, string name, bool sendEventOnFailure = true, Resource? caller = null)
@@ -322,7 +328,7 @@ public sealed class ResourceCache : Object
         return resourceType is not null && BackgroundLoadResource(resourceType, name, sendEventOnFailure, caller);
     }
 
-    public uint GetNumBackgroundLoadResources() => (uint)_backgroundLoader.GetNumQueuedResources();
+    public int GetNumBackgroundLoadResources() => _backgroundLoader.GetNumQueuedResources();
 
     public void FinishBackgroundResources(int? maxMs = null)
     {
@@ -790,12 +796,6 @@ public sealed class ResourceCache : Object
             .Select(static item => $"{item.Key.Type.Name};{item.Key.Name};{item.Value.MemoryUse}"));
     }
 
-    internal bool CanBackgroundLoad(Type type)
-    {
-        ArgumentNullException.ThrowIfNull(type);
-        return _loaders.ContainsKey(type) || type.GetConstructor([typeof(string)]) is not null;
-    }
-
     private VirtualFileSystem GetVirtualFileSystem()
     {
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
@@ -973,43 +973,6 @@ public sealed class ResourceCache : Object
         UpdateResourceGroup(reflection.ManagedType);
     }
 
-    internal Resource? LoadBackgroundResource(Type type, string name, bool sendEventOnFailure)
-    {
-        ArgumentNullException.ThrowIfNull(type);
-        var fileName = GetResourceFileName(name);
-        if (string.IsNullOrEmpty(fileName))
-            return null;
-
-        Resource? resource;
-        try
-        {
-            resource = Activator.CreateInstance(type, name) as Resource;
-        }
-        catch (MissingMethodException)
-        {
-            return null;
-        }
-
-        if (resource is null)
-            return null;
-
-        resource.OwnerCache = this;
-        resource.SetAbsoluteFileName(fileName);
-        resource.SetAsyncLoadState(AsyncLoadState.Loading);
-        try
-        {
-            using var stream = GetFile(name, sendEventOnFailure);
-            resource.SetAsyncLoadState(stream is not null && resource.BeginLoad(stream)
-                ? AsyncLoadState.Success
-                : AsyncLoadState.Fail);
-        }
-        catch
-        {
-            resource.SetAsyncLoadState(AsyncLoadState.Fail);
-        }
-        return resource;
-    }
-
     private Resource? GetResourceByType(Type type, string name, bool sendEventOnFailure)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -1045,17 +1008,6 @@ public sealed class ResourceCache : Object
         AddResourceToGroup(type, resource);
         UpdateResourceGroup(type);
         return resource;
-    }
-
-    internal void StoreBackgroundResource(Type type, string name, Resource resource)
-    {
-        ArgumentNullException.ThrowIfNull(type);
-        ArgumentNullException.ThrowIfNull(resource);
-        resource.OwnerCache = this;
-        RemoveCachedResource((type, name));
-        _cache[(type, name)] = resource;
-        AddResourceToGroup(type, resource);
-        UpdateResourceGroup(type);
     }
 
     private T? TryLoadResource<T>(string name)

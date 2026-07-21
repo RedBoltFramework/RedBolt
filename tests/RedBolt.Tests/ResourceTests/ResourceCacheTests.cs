@@ -207,11 +207,17 @@ public sealed class ResourceCacheTests
         {
             System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "bg.txt"), "background");
             Resources.AddResourceDir(tempDir);
+            var queuedDuringCompletion = 0;
+            using var subscription = Resources.SubscribeToEvent<ResourceEvents.ResourceBackgroundLoaded>(
+                (ref ResourceEvents.ResourceBackgroundLoaded eventData) =>
+                    queuedDuringCompletion = Resources.GetNumBackgroundLoadResources());
             Assert.True(Resources.BackgroundLoadResource<BinaryFile>("Data/bg.txt"));
             Resources.FinishBackgroundResources(1000);
             var bg = Resources.GetExistingResource<BinaryFile>("Data/bg.txt");
             Assert.NotNull(bg);
             Assert.Equal("background", bg.GetText());
+            Assert.Equal(1, queuedDuringCompletion);
+            Assert.Equal(0, Resources.GetNumBackgroundLoadResources());
         }
         finally
         {
@@ -226,6 +232,9 @@ public sealed class ResourceCacheTests
         var tempDir = CreateTempDir();
         try
         {
+            if (!Context.Instance.IsReflected<FailedResource>())
+                Context.Instance.AddFactoryReflection<FailedResource>();
+
             System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "background-failure.dat"), "failure");
             Resources.AddResourceDir(tempDir);
             Resources.SetReturnFailedResources(false);
@@ -252,6 +261,61 @@ public sealed class ResourceCacheTests
         }
         finally
         {
+            Resources.RemoveResourceDir(tempDir);
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void BackgroundLoad_unknown_type_sends_event_before_removing_queue_item()
+    {
+        StringHash observedType = default;
+        var queuedDuringEvent = 0;
+        using var subscription = Resources.SubscribeToEvent<ResourceEvents.UnknownResourceType>(
+            (ref ResourceEvents.UnknownResourceType eventData) =>
+            {
+                observedType = eventData.ResourceType;
+                queuedDuringEvent = Resources.GetNumBackgroundLoadResources();
+            });
+
+        Assert.False(Resources.BackgroundLoadResource<UnregisteredBackgroundResource>(
+            $"Data/unregistered-{Guid.NewGuid():N}.dat"));
+
+        Assert.Equal(new StringHash(typeof(UnregisteredBackgroundResource).GetClassName()), observedType);
+        Assert.Equal(1, queuedDuringEvent);
+        Assert.Equal(0, Resources.GetNumBackgroundLoadResources());
+    }
+
+    [Fact]
+    public void BackgroundLoader_dispose_clears_queue_before_waiting_for_loads()
+    {
+        if (!Context.Instance.IsReflected<BlockingBackgroundResource>())
+            Context.Instance.AddFactoryReflection<BlockingBackgroundResource>();
+
+        var tempDir = CreateTempDir();
+        var loader = new BackgroundLoader(Resources);
+        BlockingBackgroundResource.Reset();
+        try
+        {
+            System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "blocking.dat"), "blocking");
+            Resources.AddResourceDir(tempDir);
+            Assert.True(loader.QueueResource(
+                typeof(BlockingBackgroundResource), "Data/blocking.dat", sendEventOnFailure: true, caller: null));
+            Assert.Equal(1, BlockingBackgroundResource.NumCreated);
+            Assert.True(BlockingBackgroundResource.Started.Wait(TimeSpan.FromSeconds(5)));
+
+            var disposeTask = Task.Run(loader.Dispose);
+            Assert.True(SpinWait.SpinUntil(
+                () => loader.GetNumQueuedResources() == 0, TimeSpan.FromSeconds(5)));
+            Assert.False(disposeTask.IsCompleted);
+
+            BlockingBackgroundResource.Release.Set();
+            Assert.True(disposeTask.Wait(TimeSpan.FromSeconds(5)));
+        }
+        finally
+        {
+            BlockingBackgroundResource.Release.Set();
+            loader.Dispose();
             Resources.RemoveResourceDir(tempDir);
             Directory.Delete(tempDir, recursive: true);
         }
@@ -587,9 +651,52 @@ internal sealed class ReentrantRouter(ResourceCache cache) : ResourceRouter
     }
 }
 
-public sealed class FailedResource(string name) : Resource(name)
+public sealed class FailedResource : Resource
 {
+    public FailedResource()
+    {
+    }
+
+    public FailedResource(string name)
+        : base(name)
+    {
+    }
+
     public override bool BeginLoad(Stream source) => false;
+}
+
+public sealed class UnregisteredBackgroundResource : Resource
+{
+}
+
+public sealed class BlockingBackgroundResource : Resource
+{
+    private static int _numCreated;
+
+    public BlockingBackgroundResource()
+    {
+        Interlocked.Increment(ref _numCreated);
+    }
+
+    public static ManualResetEventSlim Started { get; } = new();
+
+    public static ManualResetEventSlim Release { get; } = new();
+
+    public static int NumCreated => _numCreated;
+
+    public static void Reset()
+    {
+        _numCreated = 0;
+        Started.Reset();
+        Release.Reset();
+    }
+
+    public override bool BeginLoad(Stream source)
+    {
+        Started.Set();
+        Release.Wait();
+        return true;
+    }
 }
 
 public sealed class ReloadableResource(string name) : Resource(name)
