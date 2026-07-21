@@ -179,6 +179,7 @@ public sealed class Scene : Serializable
         Root.RemoveAllChildren();
         foreach (var node in _nodes.Values)
             node.ResetScene();
+        _resolver.Dispose();
         Root.Dispose();
         base.Dispose();
     }
@@ -643,7 +644,7 @@ public sealed class Scene : Serializable
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        var resolver = new SceneResolver();
+        using var resolver = new SceneResolver();
         var nodeId = source.ReadUInt();
         var node = Root.CreateChild(0);
         resolver.AddNode(nodeId, node);
@@ -663,7 +664,7 @@ public sealed class Scene : Serializable
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        var resolver = new SceneResolver();
+        using var resolver = new SceneResolver();
         var nodeId = source.GetUInt("id");
         var node = Root.CreateChild(0);
         resolver.AddNode(nodeId, node);
@@ -683,7 +684,7 @@ public sealed class Scene : Serializable
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        var resolver = new SceneResolver();
+        using var resolver = new SceneResolver();
         var nodeId = source.Get("id").GetUInt();
         var node = Root.CreateChild(0);
         resolver.AddNode(nodeId, node);

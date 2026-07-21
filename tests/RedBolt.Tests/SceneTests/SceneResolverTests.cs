@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace RedBolt.Tests;
 
 public sealed class SceneResolverTests
@@ -5,7 +7,7 @@ public sealed class SceneResolverTests
     [Fact]
     public void Resolve_rewrites_node_component_and_node_vector_ids()
     {
-        var scene = new Scene();
+        using var scene = new Scene();
         var sourceNode = scene.CreateChild("Source");
         var probe = sourceNode.CreateComponent<ResolverProbe>(9u);
         var targetNode = scene.CreateChild("Target", 77u);
@@ -15,7 +17,7 @@ public sealed class SceneResolverTests
         probe.SetAttribute("Component ID", 8u);
         probe.SetAttribute("Node IDs", new VariantVector { new Variant(2u), new Variant(7u), new Variant(999u) });
 
-        var resolver = new SceneResolver();
+        using var resolver = new SceneResolver();
         resolver.AddNode(7u, targetNode);
         resolver.AddComponent(9u, probe);
         resolver.AddComponent(8u, targetComponent);
@@ -26,6 +28,40 @@ public sealed class SceneResolverTests
         Assert.Equal(
             [new Variant(2u), new Variant(targetNode.Id), new Variant(0u)],
             probe.NodeIds);
+    }
+
+    [Fact]
+    public void Class_shape_and_weak_ownership_match_native()
+    {
+        Assert.False(typeof(SceneResolver).IsSealed);
+        Assert.True(typeof(IDisposable).IsAssignableFrom(typeof(SceneResolver)));
+
+        using var resolver = new SceneResolver();
+        var nodeReference = AddTemporaryNode(resolver);
+        var componentReference = AddTemporaryComponent(resolver);
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        Assert.False(nodeReference.TryGetTarget(out _));
+        Assert.False(componentReference.TryGetTarget(out _));
+        resolver.Resolve();
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference<Node> AddTemporaryNode(SceneResolver resolver)
+    {
+        var node = new Node();
+        resolver.AddNode(1u, node);
+        return new WeakReference<Node>(node);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference<ResolverProbe> AddTemporaryComponent(SceneResolver resolver)
+    {
+        var component = new ResolverProbe();
+        resolver.AddComponent(1u, component);
+        return new WeakReference<ResolverProbe>(component);
     }
 
     private sealed class ResolverProbe : Component
@@ -54,7 +90,13 @@ public sealed class SceneResolverTests
                 "Node IDs",
                 typeof(VariantVector),
                 self => ((ResolverProbe)self)._nodeIds,
-                (self, value) => ((ResolverProbe)self)._nodeIds = value as VariantVector ?? [],
+                (self, value) =>
+                {
+                    var probe = (ResolverProbe)self;
+                    var nodeIds = value as VariantVector ?? [];
+                    probe._nodeIds.Dispose();
+                    probe._nodeIds = new VariantVector(nodeIds);
+                },
                 new VariantVector(),
                 AttributeMode.NodeIdVector);
         }
@@ -64,5 +106,11 @@ public sealed class SceneResolverTests
         public uint ComponentId => _componentId;
 
         public VariantVector NodeIds => _nodeIds;
+
+        public override void Dispose()
+        {
+            _nodeIds.Dispose();
+            base.Dispose();
+        }
     }
 }

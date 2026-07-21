@@ -186,7 +186,7 @@ public class Node : Serializable
             if (nodePrefab is null)
                 throw new ArchiveException("Failed to read node prefab");
 
-            var resolver = new SceneResolver();
+            using var resolver = new SceneResolver();
             LoadInternal(nodePrefab, reader, resolver, flags);
             resolver.Resolve();
             if ((flags & PrefabLoadFlag.SkipApplyAttributes) == 0)
@@ -253,7 +253,7 @@ public class Node : Serializable
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        var resolver = new SceneResolver();
+        using var resolver = new SceneResolver();
         var nodeId = source.ReadUInt();
         resolver.AddNode(nodeId, this);
 
@@ -329,7 +329,7 @@ public class Node : Serializable
 
     public override bool LoadXML(XMLElement source)
     {
-        var resolver = new SceneResolver();
+        using var resolver = new SceneResolver();
         resolver.AddNode(source.GetUInt("id"), this);
 
         var success = LoadXML(source, resolver);
@@ -389,7 +389,7 @@ public class Node : Serializable
 
     public override bool LoadJSON(JSONValue source)
     {
-        var resolver = new SceneResolver();
+        using var resolver = new SceneResolver();
         resolver.AddNode(source.Get("id").GetUInt(), this);
 
         var success = LoadJSON(source, resolver);
@@ -1769,7 +1769,7 @@ public class Node : Serializable
             return null;
         }
 
-        var resolver = new SceneResolver();
+        using var resolver = new SceneResolver();
         var clone = CloneRecursive(destination, resolver);
         resolver.Resolve();
         clone.ApplyAttributes();

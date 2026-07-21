@@ -5,13 +5,23 @@ namespace RedBolt;
 /// <summary>
 /// Utility class that resolves node &amp; component IDs after a scene or partial scene load.
 /// </summary>
-public sealed class SceneResolver
+public class SceneResolver : IDisposable
 {
     /// <summary>
     /// Construct.
     /// </summary>
     public SceneResolver()
     {
+    }
+
+    /// <summary>
+    /// Destruct.
+    /// </summary>
+    public void Dispose()
+    {
+        _components.Clear();
+        _componentLookup.Clear();
+        _nodeLookup.Clear();
     }
 
     /// <summary>
@@ -29,7 +39,7 @@ public sealed class SceneResolver
     public void AddNode(uint oldId, Node? node)
     {
         if (node is not null)
-            _nodeLookup[oldId] = node;
+            _nodeLookup[oldId] = new WeakReference<Node>(node);
     }
 
     /// <summary>
@@ -39,8 +49,8 @@ public sealed class SceneResolver
     {
         if (component is not null)
         {
-            _componentLookup[oldId] = component;
-            _components.Add(component);
+            _componentLookup[oldId] = new WeakReference<Component>(component);
+            _components.Add(new WeakReference<Component>(component));
         }
     }
 
@@ -51,9 +61,10 @@ public sealed class SceneResolver
     {
         // Nodes do not have component or node ID attributes, so only have to go through components
         var noIdAttributes = new HashSet<StringHash>();
-        foreach (var component in _components)
+        foreach (var componentWeakReference in _components)
         {
-            if (component is null || noIdAttributes.Contains(component.GetTypeNameHash()))
+            if (!componentWeakReference.TryGetTarget(out var component)
+                || noIdAttributes.Contains(component.GetTypeNameHash()))
                 continue;
 
             var hasIdAttributes = false;
@@ -70,10 +81,12 @@ public sealed class SceneResolver
                 if ((info.Mode & AttributeMode.NodeId) != 0)
                 {
                     hasIdAttributes = true;
-                    var oldNodeId = component.GetAttribute(j) is uint value ? value : 0u;
+                    using var attrValue = Variant.FromObject(component.GetAttribute(j));
+                    var oldNodeId = attrValue.GetUInt();
                     if (oldNodeId != 0)
                     {
-                        if (_nodeLookup.TryGetValue(oldNodeId, out var node) && node is not null)
+                        if (_nodeLookup.TryGetValue(oldNodeId, out var nodeReference)
+                            && nodeReference.TryGetTarget(out var node))
                         {
                             var newNodeId = node.GetID();
                             component.SetAttribute(j, newNodeId);
@@ -85,10 +98,12 @@ public sealed class SceneResolver
                 else if ((info.Mode & AttributeMode.ComponentId) != 0)
                 {
                     hasIdAttributes = true;
-                    var oldComponentId = component.GetAttribute(j) is uint value ? value : 0u;
+                    using var attrValue = Variant.FromObject(component.GetAttribute(j));
+                    var oldComponentId = attrValue.GetUInt();
                     if (oldComponentId != 0)
                     {
-                        if (_componentLookup.TryGetValue(oldComponentId, out var resolvedComponent) && resolvedComponent is not null)
+                        if (_componentLookup.TryGetValue(oldComponentId, out var componentReference)
+                            && componentReference.TryGetTarget(out var resolvedComponent))
                         {
                             var newComponentId = resolvedComponent.Id;
                             component.SetAttribute(j, newComponentId);
@@ -100,16 +115,18 @@ public sealed class SceneResolver
                 else if ((info.Mode & AttributeMode.NodeIdVector) != 0)
                 {
                     hasIdAttributes = true;
-                    var attrValue = component.GetAttribute(j) is VariantVector value ? value : new VariantVector();
-                    if (attrValue.Count != 0)
+                    using var attrValue = Variant.FromObject(component.GetAttribute(j));
+                    var ids = attrValue.GetVariantVector();
+                    if (ids.Count != 0)
                     {
                         // first index stores number redundantly. This is for editing
-                        var numIds = attrValue[0].GetUInt();
-                        var newIds = new VariantVector { new Variant(numIds) };
-                        for (var k = 1; k < attrValue.Count; ++k)
+                        var numIds = ids[0].GetUInt();
+                        using var newIds = new VariantVector { new Variant(numIds) };
+                        for (var k = 1; k < ids.Count; ++k)
                         {
-                            var oldNodeId = attrValue[k].GetUInt();
-                            if (_nodeLookup.TryGetValue(oldNodeId, out var node) && node is not null)
+                            var oldNodeId = ids[k].GetUInt();
+                            if (_nodeLookup.TryGetValue(oldNodeId, out var nodeReference)
+                                && nodeReference.TryGetTarget(out var node))
                                 newIds.Add(new Variant(node.GetID()));
                             else
                             {
@@ -134,15 +151,15 @@ public sealed class SceneResolver
     /// <summary>
     /// Node by old Id.
     /// </summary>
-    private readonly Dictionary<uint, Node?> _nodeLookup = [];
+    private readonly Dictionary<uint, WeakReference<Node>> _nodeLookup = [];
 
     /// <summary>
     /// Component by old Id.
     /// </summary>
-    private readonly Dictionary<uint, Component?> _componentLookup = [];
+    private readonly Dictionary<uint, WeakReference<Component>> _componentLookup = [];
 
     /// <summary>
     /// Components to resolve.
     /// </summary>
-    private readonly List<Component?> _components = [];
+    private readonly List<WeakReference<Component>> _components = [];
 }
