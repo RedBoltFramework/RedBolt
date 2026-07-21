@@ -44,15 +44,15 @@ public sealed class InstancingBufferTests
         });
 
         buffer.Begin();
-        Assert.Equal(0u, buffer.GetNextInstanceIndex());
-        Assert.Equal(0u, buffer.AddInstance());
+        Assert.Equal(0, buffer.GetNextInstanceIndex());
+        Assert.Equal(0, buffer.AddInstance());
         buffer.SetElements(new byte[checked((int)(2 * InstancingBuffer.ElementStride))], 0, 2);
-        Assert.Equal(1u, buffer.GetNextInstanceIndex());
-        Assert.Equal(1u, buffer.AddInstance());
-        Assert.Equal(2u, buffer.GetNextInstanceIndex());
+        Assert.Equal(1, buffer.GetNextInstanceIndex());
+        Assert.Equal(1, buffer.AddInstance());
+        Assert.Equal(2, buffer.GetNextInstanceIndex());
 
         buffer.Begin();
-        Assert.Equal(0u, buffer.GetNextInstanceIndex());
+        Assert.Equal(0, buffer.GetNextInstanceIndex());
     }
 
     private static void AssertElement(VertexElement element, byte index)

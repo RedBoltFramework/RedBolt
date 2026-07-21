@@ -3,7 +3,7 @@ namespace RedBolt;
 /// <summary>
 /// Scene batch sorted by pipeline state, material and geometry. Also sorted front to back.
 /// </summary>
-public readonly struct PipelineBatchByState : IComparable<PipelineBatchByState>
+public struct PipelineBatchByState : IComparable<PipelineBatchByState>
 {
     public const ulong PixelLightBits = 8;
     public const ulong LightmapBits = 8;
@@ -35,9 +35,9 @@ public readonly struct PipelineBatchByState : IComparable<PipelineBatchByState>
     public const ulong VertexLightsOffset = ReservedOffset + ReservedBits;
     public const ulong GeometryOffset = VertexLightsOffset + VertexLightsBits;
 
-    public readonly ulong PrimaryKey;
-    public readonly ulong SecondaryKey;
-    public readonly PipelineBatch? PipelineBatch;
+    public ulong PrimaryKey;
+    public ulong SecondaryKey;
+    public PipelineBatch? PipelineBatch;
 
     public PipelineBatchByState(PipelineBatch pipelineBatch)
     {
@@ -58,8 +58,10 @@ public readonly struct PipelineBatchByState : IComparable<PipelineBatchByState>
     public int CompareTo(PipelineBatchByState other)
     {
         if (PrimaryKey != other.PrimaryKey)
-            return PrimaryKey.CompareTo(other.PrimaryKey);
-        return SecondaryKey.CompareTo(other.SecondaryKey);
+            return PrimaryKey < other.PrimaryKey ? -1 : 1;
+        if (SecondaryKey != other.SecondaryKey)
+            return SecondaryKey < other.SecondaryKey ? -1 : 1;
+        return 0;
     }
 }
 
@@ -82,8 +84,12 @@ public struct PipelineBatchBackToFront : IComparable<PipelineBatchBackToFront>
     public int CompareTo(PipelineBatchBackToFront other)
     {
         if (RenderOrder != other.RenderOrder)
-            return RenderOrder.CompareTo(other.RenderOrder);
-        return other.Distance.CompareTo(Distance);
+            return RenderOrder < other.RenderOrder ? -1 : 1;
+        if (Distance > other.Distance)
+            return -1;
+        if (other.Distance > Distance)
+            return 1;
+        return 0;
     }
 }
 
@@ -94,7 +100,7 @@ public struct PipelineBatchGroup<T>
 {
     public ReadOnlyMemory<T> Batches;
     public BatchRenderFlag Flags;
-    public uint StartInstance;
-    public uint NumInstances;
+    public int StartInstance;
+    public int NumInstances;
     public IntRect ScissorRect;
 }

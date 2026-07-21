@@ -4,7 +4,7 @@ namespace RedBolt;
 public sealed class InstancingBuffer : Object
 {
     /// <summary>Stride of one element in bytes.</summary>
-    public const uint ElementStride = 4 * sizeof(float);
+    public const int ElementStride = 4 * sizeof(float);
 
     private InstancingBufferSettings _settings = new();
     private DynamicVertexBuffer? _vertexBuffer;
@@ -39,26 +39,26 @@ public sealed class InstancingBuffer : Object
     }
 
     /// <summary>Return index of next added instance.</summary>
-    public uint GetNextInstanceIndex() => _vertexBuffer!.GetVertexCount();
+    public int GetNextInstanceIndex() => checked((int)_vertexBuffer!.GetVertexCount());
 
     /// <summary>Add instance to buffer. Use SetElements to fill it after.</summary>
-    public uint AddInstance()
+    public int AddInstance()
     {
         var indexAndData = _vertexBuffer!.AddVertices(1);
         _currentInstanceData = indexAndData.Data;
-        return indexAndData.StartVertex;
+        return checked((int)indexAndData.StartVertex);
     }
 
     /// <summary>Set one or more 4-float elements in current instance.</summary>
-    public void SetElements(ReadOnlySpan<byte> data, uint index, uint count)
+    public void SetElements(ReadOnlySpan<byte> data, int index, int count)
     {
-        var offset = checked((int)(index * ElementStride));
-        var size = checked((int)(count * ElementStride));
+        var offset = checked(index * ElementStride);
+        var size = checked(count * ElementStride);
         data[..size].CopyTo(_currentInstanceData.Span.Slice(offset, size));
     }
 
     /// <summary>Set one or more 4-float elements from an unmanaged value (matches C++ SetElements(const void*, ...)).</summary>
-    public void SetElements<T>(in T value, uint index, uint count) where T : unmanaged
+    public void SetElements<T>(in T value, int index, int count) where T : unmanaged
     {
         SetElements(System.Runtime.InteropServices.MemoryMarshal.AsBytes(
             System.Runtime.InteropServices.MemoryMarshal.CreateReadOnlySpan(ref System.Runtime.CompilerServices.Unsafe.AsRef(in value), 1)),

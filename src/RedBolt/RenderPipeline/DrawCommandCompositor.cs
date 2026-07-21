@@ -96,7 +96,7 @@ internal sealed class ObjectParameterBuilder
             _ambientValueSh = lightAccumulator.SphericalHarmonics;
     }
 
-    public void AddBatchesToInstancingBuffer(InstancingBuffer instancingBuffer, SourceBatch sourceBatch, uint instanceIndex)
+    public void AddBatchesToInstancingBuffer(InstancingBuffer instancingBuffer, SourceBatch sourceBatch, int instanceIndex)
     {
         instancingBuffer.AddInstance();
         instancingBuffer.SetElements(in sourceBatch.WorldTransform[instanceIndex], 0, 3);
@@ -109,7 +109,7 @@ internal sealed class ObjectParameterBuilder
         }
     }
 
-    public void AddBatchUniformsToDrawQueue(DrawCommandQueue drawQueue, Node cameraNode, SourceBatch sourceBatch, uint instanceIndex)
+    public void AddBatchUniformsToDrawQueue(DrawCommandQueue drawQueue, Node cameraNode, SourceBatch sourceBatch, int instanceIndex)
     {
         if (!drawQueue.BeginShaderParameterGroup(ShaderParameterGroup.Object, true))
             return;
@@ -180,12 +180,12 @@ internal sealed class DrawCommandCompositor
     private CachedSharedState _current;
     private InstancingGroupState _instancingGroup;
     private LightVolumeBatchHelpers _lightVolumeHelpers;
-    private uint _instanceIndex;
+    private int _instanceIndex;
     private readonly Vector4f[] _vertexLightsData = new Vector4f[LightAccumulator.MaxVertexLights * VertexLightStride];
 
     public DrawCommandCompositor(BatchRenderingContext ctx, BatchRendererSettings settings,
         RenderPipelineDebugger? debugger, DrawableProcessor drawableProcessor, InstancingBuffer? instancingBuffer,
-        BatchRenderFlag flags, uint startInstance, bool debuggerEnabled)
+        BatchRenderFlag flags, int startInstance, bool debuggerEnabled)
     {
         _ctx = ctx;
         _settings = settings;
@@ -227,7 +227,7 @@ internal sealed class DrawCommandCompositor
         ProcessBatch(pipelineBatch, _lightVolumeHelpers.SourceBatch);
     }
 
-    public void FlushDrawCommands(uint nextInstanceIndex)
+    public void FlushDrawCommands(int nextInstanceIndex)
     {
         if (_instancingGroup.Count > 0)
             CommitInstancedDrawCalls();
@@ -259,7 +259,7 @@ internal sealed class DrawCommandCompositor
         }
 
         var numBatchInstances = pipelineBatch.GeometryType == GeometryType.Static
-            ? sourceBatch.NumWorldTransforms : 1u;
+            ? checked((int)sourceBatch.NumWorldTransforms) : 1;
         var resetInstancingGroup = _instancingGroup.Count == 0 || _dirty.IsAnythingDirty();
 
         if (_debuggerEnabled && _debugger is not null)
@@ -697,7 +697,7 @@ internal sealed class DrawCommandCompositor
         }
     }
 
-    private void CommitDrawCalls(uint numInstances, SourceBatch sourceBatch)
+    private void CommitDrawCalls(int numInstances, SourceBatch sourceBatch)
     {
         if (_current.Geometry is null)
             return;
@@ -715,7 +715,7 @@ internal sealed class DrawCommandCompositor
             }
         }
 
-        for (var i = 0u; i < numInstances; ++i)
+        for (var i = 0; i < numInstances; ++i)
         {
             var cameraNode = _frameInfo.ViewReferenceNode ?? _cameraNode;
             _objectParameterBuilder.AddBatchUniformsToDrawQueue(drawQueue, cameraNode, sourceBatch, i);
@@ -836,8 +836,8 @@ internal sealed class DrawCommandCompositor
     {
         public Geometry? Geometry;
         public Drawable? FirstDrawable;
-        public uint Start;
-        public uint Count;
+        public int Start;
+        public int Count;
     }
 
     private struct LightVolumeBatchHelpers

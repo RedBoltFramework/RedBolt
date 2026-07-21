@@ -72,7 +72,7 @@ public class BatchRenderer : Object
         RunCompositor(ctx, BatchRenderFlag.EnablePixelLights, 0, 0, batches, static b => b.PipelineBatch, lightVolume: true);
     }
 
-    private void RunCompositor<T>(BatchRenderingContext ctx, BatchRenderFlag flags, uint startInstance, uint nextInstance,
+    private void RunCompositor<T>(BatchRenderingContext ctx, BatchRenderFlag flags, int startInstance, int nextInstance,
         ReadOnlySpan<T> batches, Func<T, PipelineBatch?> select, bool lightVolume)
     {
         // Empty groups need no compositor work (and drawable processor may lack a scene in unit tests).
@@ -131,9 +131,10 @@ public class BatchRenderer : Object
             if (objectParameterBuilder.IsAmbientEnabled())
                 objectParameterBuilder.SetBatchAmbient(_drawableProcessor.GetGeometryLighting(pipelineBatch.DrawableIndex));
 
-            for (var i = 0u; i < sourceBatch.NumWorldTransforms; ++i)
+            var numWorldTransforms = checked((int)sourceBatch.NumWorldTransforms);
+            for (var i = 0; i < numWorldTransforms; ++i)
                 objectParameterBuilder.AddBatchesToInstancingBuffer(_instancingBuffer, sourceBatch, i);
-            batches.NumInstances += sourceBatch.NumWorldTransforms;
+            batches.NumInstances += numWorldTransforms;
         }
     }
 
@@ -144,4 +145,3 @@ public class BatchRenderer : Object
         return flags;
     }
 }
-
