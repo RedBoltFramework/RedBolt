@@ -1,4 +1,6 @@
 using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
@@ -56,7 +58,7 @@ public abstract class RenderPass : Serializable
     /// <summary>
     /// Create missing parameters in the global map with default values.
     /// </summary>
-    public virtual void CollectParameters(IDictionary<string, object?> parameters)
+    public virtual void CollectParameters(StringVariantMap parameters)
     {
     }
 
@@ -71,7 +73,7 @@ public abstract class RenderPass : Serializable
     /// Update settings and parameters of the pass.
     /// This function is always called before any rendering updates or getters.
     /// </summary>
-    public virtual void UpdateParameters(RenderPipelineSettings settings, IReadOnlyDictionary<string, object?> parameters)
+    public virtual void UpdateParameters(RenderPipelineSettings settings, StringVariantMap parameters)
     {
     }
 
@@ -125,15 +127,17 @@ public abstract class RenderPass : Serializable
         _isEnabledInternally = enabled;
     }
 
-    protected void DeclareParameter(string name, object? value, IDictionary<string, object?> parameters)
+    protected void DeclareParameter(string name, Variant value, StringVariantMap parameters)
     {
-        if (!parameters.ContainsKey(name))
-            parameters[name] = value;
+        parameters.TryAdd(name, value);
     }
 
-    protected object? LoadParameter(string name, IReadOnlyDictionary<string, object?> parameters)
+    protected ref readonly Variant LoadParameter(string name, StringVariantMap parameters)
     {
-        return parameters.TryGetValue(name, out var value) ? value : null;
+        ref var value = ref CollectionsMarshal.GetValueRefOrNullRef(parameters, name);
+        if (!Unsafe.IsNullRef(ref value))
+            return ref value;
+        return ref Variant.Empty;
     }
 
     protected bool ConnectToRenderBuffer(ref RenderBuffer? renderBuffer, StringHash name, SharedRenderPassState sharedState, bool required = true)

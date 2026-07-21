@@ -149,7 +149,8 @@ public abstract class Serializable : Object
         {
             if (!attribute.ShouldLoad) continue;
             if (source.IsEof()) return false;
-            OnSetAttribute(attribute, ConvertVariant(attribute, source.ReadVariant(attribute.DefaultValue.Type)));
+            using var value = source.ReadVariant(attribute.DefaultValue.Type);
+            OnSetAttribute(attribute, ConvertVariant(attribute, value));
         }
         return true;
     }
@@ -208,7 +209,8 @@ public abstract class Serializable : Object
         foreach (var attribute in _attributes)
         {
             if (!attribute.ShouldSave) continue;
-            if (!destination.WriteVariantData(Variant.FromObject(OnGetAttribute(attribute)))) return false;
+            using var value = Variant.FromObject(OnGetAttribute(attribute));
+            if (!destination.WriteVariantData(value)) return false;
         }
         return true;
     }
@@ -221,7 +223,7 @@ public abstract class Serializable : Object
         {
             var attribute = FindAttribute(element.GetAttribute("name"));
             if (attribute is null || !attribute.ShouldLoad) continue;
-            var value = attribute.EnumNames.Count != 0 && attribute.DefaultValue.Type == VariantType.Int
+            using var value = attribute.EnumNames.Count != 0 && attribute.DefaultValue.Type == VariantType.Int
                 ? ParseEnum(attribute, element.GetAttribute("value"))
                 : element.GetVariantValue(attribute.DefaultValue.Type);
             if (!value.IsEmpty) OnSetAttribute(attribute, ConvertVariant(attribute, value));
@@ -238,7 +240,7 @@ public abstract class Serializable : Object
         {
             var attribute = _attributes[i];
             if (!attribute.ShouldSave) continue;
-            var value = Variant.FromObject(OnGetAttribute(attribute));
+            using var value = Variant.FromObject(OnGetAttribute(attribute));
             if (value == attribute.DefaultValue && !SaveDefaultAttributes(attribute)) continue;
             var element = destination.CreateChild("attribute");
             element.SetString("name", attribute.Name);
@@ -260,7 +262,7 @@ public abstract class Serializable : Object
             if (!attribute.ShouldLoad) continue;
             var json = attributes.Get(attribute.Name);
             if (json.IsNull) continue;
-            var value = attribute.EnumNames.Count != 0 && attribute.DefaultValue.Type == VariantType.Int
+            using var value = attribute.EnumNames.Count != 0 && attribute.DefaultValue.Type == VariantType.Int
                 ? ParseEnum(attribute, json.GetString())
                 : json.GetVariantValue(attribute.DefaultValue.Type);
             if (!value.IsEmpty) OnSetAttribute(attribute, ConvertVariant(attribute, value));
@@ -277,7 +279,7 @@ public abstract class Serializable : Object
         {
             var attribute = _attributes[i];
             if (!attribute.ShouldSave) continue;
-            var value = Variant.FromObject(OnGetAttribute(attribute));
+            using var value = Variant.FromObject(OnGetAttribute(attribute));
             if (value == attribute.DefaultValue && !SaveDefaultAttributes(attribute)) continue;
             if (attribute.EnumNames.Count != 0 && value.Type == VariantType.Int && value.GetInt() >= 0 && value.GetInt() < attribute.EnumNames.Count)
                 attributes.Set(attribute.Name, new JSONValue(attribute.EnumNames[value.GetInt()]));
@@ -316,9 +318,16 @@ public abstract class Serializable : Object
                 var name = string.Empty; ArchiveSerialization.SerializeValue(archive, "name", ref name);
                 var attribute = FindAttribute(name);
                 var value = new Variant(attribute?.DefaultValue.Type ?? VariantType.None);
-                using (archive.OpenUnorderedBlock("value")) ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
-                if (attribute is not null && (attribute.ShouldLoad || serializeTemporary && (attribute.Mode & AttributeMode.Temporary) != 0))
-                    OnSetAttribute(attribute, ConvertVariant(attribute, value));
+                try
+                {
+                    using (archive.OpenUnorderedBlock("value")) ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
+                    if (attribute is not null && (attribute.ShouldLoad || serializeTemporary && (attribute.Mode & AttributeMode.Temporary) != 0))
+                        OnSetAttribute(attribute, ConvertVariant(attribute, value));
+                }
+                finally
+                {
+                    value.Dispose();
+                }
             }
             ApplyAttributes();
         }
@@ -330,7 +339,14 @@ public abstract class Serializable : Object
                 using var item = archive.OpenUnorderedBlock("attribute");
                 var name = attribute.Name; ArchiveSerialization.SerializeValue(archive, "name", ref name);
                 var value = Variant.FromObject(OnGetAttribute(attribute));
-                using (archive.OpenUnorderedBlock("value")) ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
+                try
+                {
+                    using (archive.OpenUnorderedBlock("value")) ArchiveSerialization.SerializeVariantInBlock(archive, ref value);
+                }
+                finally
+                {
+                    value.Dispose();
+                }
             }
         }
     }

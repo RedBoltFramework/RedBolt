@@ -58,7 +58,7 @@ public sealed class RenderPath : SimpleResource
     /// <summary>
     /// Fill missing parameters with defaults.
     /// </summary>
-    public void CollectParameters(IDictionary<string, object?> parameters)
+    public void CollectParameters(StringVariantMap parameters)
     {
         foreach (var pass in _passes)
             pass.CollectParameters(parameters);
@@ -76,7 +76,7 @@ public sealed class RenderPath : SimpleResource
     /// <summary>
     /// Update settings for all passes.
     /// </summary>
-    public void UpdateParameters(RenderPipelineSettings settings, IReadOnlyList<RenderPassToggle> enabledPasses, IReadOnlyDictionary<string, object?> parameters)
+    public void UpdateParameters(RenderPipelineSettings settings, IReadOnlyList<RenderPassToggle> enabledPasses, StringVariantMap parameters)
     {
         if (enabledPasses.Count != _passes.Count)
         {
@@ -189,9 +189,9 @@ public sealed class RenderPath : SimpleResource
         _passes.Remove(pass);
     }
 
-    public void ReorderPass(RenderPass pass, uint index)
+    public void ReorderPass(RenderPass pass, int index)
     {
-        if (index >= _passes.Count)
+        if (index < 0 || index >= _passes.Count)
             return;
 
         var oldIndex = _passes.IndexOf(pass);
@@ -199,7 +199,7 @@ public sealed class RenderPath : SimpleResource
             return;
 
         _passes.RemoveAt(oldIndex);
-        _passes.Insert((int)index, pass);
+        _passes.Insert(index, pass);
     }
 
     public override bool BeginLoad(Stream source)
@@ -329,26 +329,44 @@ public sealed class RenderPath : SimpleResource
             if (pass is null)
                 return false;
 
-            foreach (var attributeElement in attributesElement.EnumerateArray())
+            var added = false;
+            try
             {
-                if (!attributeElement.TryGetProperty("name", out var nameElement) || nameElement.ValueKind != JsonValueKind.String)
-                    return false;
-                if (!attributeElement.TryGetProperty("type", out var attributeTypeElement) || attributeTypeElement.ValueKind != JsonValueKind.String)
-                    return false;
-                if (!attributeElement.TryGetProperty("value", out var attributeValueElement))
-                    return false;
+                foreach (var attributeElement in attributesElement.EnumerateArray())
+                {
+                    if (!attributeElement.TryGetProperty("name", out var nameElement) || nameElement.ValueKind != JsonValueKind.String)
+                        return false;
+                    if (!attributeElement.TryGetProperty("type", out var attributeTypeElement) || attributeTypeElement.ValueKind != JsonValueKind.String)
+                        return false;
+                    if (!attributeElement.TryGetProperty("value", out var attributeValueElement))
+                        return false;
 
-                var attributeName = nameElement.GetString();
-                var attributeTypeName = attributeTypeElement.GetString();
-                if (string.IsNullOrWhiteSpace(attributeName) || string.IsNullOrWhiteSpace(attributeTypeName))
-                    return false;
+                    var attributeName = nameElement.GetString();
+                    var attributeTypeName = attributeTypeElement.GetString();
+                    if (string.IsNullOrWhiteSpace(attributeName) || string.IsNullOrWhiteSpace(attributeTypeName))
+                        return false;
 
-                var attributeValue = DeserializeAttributeValue(attributeValueElement, attributeTypeName);
-                if (!pass.SetAttribute(attributeName, attributeValue))
-                    return false;
+                    var attributeValue = DeserializeAttributeValue(attributeValueElement, attributeTypeName);
+                    try
+                    {
+                        if (!pass.SetAttribute(attributeName, attributeValue))
+                            return false;
+                    }
+                    finally
+                    {
+                        if (attributeValue is IDisposable disposable)
+                            disposable.Dispose();
+                    }
+                }
+
+                AddPass(pass);
+                added = true;
             }
-
-            AddPass(pass);
+            finally
+            {
+                if (!added)
+                    pass.Dispose();
+            }
         }
 
         return true;
@@ -373,9 +391,9 @@ public sealed class RenderPath : SimpleResource
             : DeserializeVariantElement(valueElement, variantType);
     }
 
-    private static Dictionary<string, object?> DeserializeStringVariantMap(JsonElement valueElement)
+    private static StringVariantMap DeserializeStringVariantMap(JsonElement valueElement)
     {
-        var result = new Dictionary<string, object?>(StringComparer.Ordinal);
+        var result = new StringVariantMap();
         if (valueElement.ValueKind != JsonValueKind.Array)
             return result;
 
@@ -397,7 +415,8 @@ public sealed class RenderPath : SimpleResource
             if (variantType == VariantType.None)
                 continue;
 
-            result[key] = DeserializeVariantElement(innerValueElement, variantType);
+            using var value = Variant.FromObject(DeserializeVariantElement(innerValueElement, variantType));
+            result[key] = value;
         }
 
         return result;
@@ -542,19 +561,20 @@ public sealed class RenderPath : SimpleResource
     private sealed class SerializedRenderPass : RenderPass
     {
         private readonly Dictionary<string, object?> _attributes = new(StringComparer.Ordinal);
-        private readonly Dictionary<string, object?> _parameters = new(StringComparer.Ordinal);
+        private readonly StringVariantMap _parameters = new();
 
         public SerializedRenderPass(string passName)
             : base(passName)
         {
         }
 
-        public IReadOnlyDictionary<string, object?> Parameters => _parameters;
+        public IReadOnlyDictionary<string, Variant> Parameters => _parameters;
 
         public void SetParameter(string name, object? value)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(name);
-            _parameters[name] = value;
+            using var variant = Variant.FromObject(value);
+            _parameters[name] = variant;
         }
 
         public bool ApplyAttribute(string name, object? value)
@@ -563,7 +583,7 @@ public sealed class RenderPath : SimpleResource
 
             if (string.Equals(name, "Parameters", StringComparison.Ordinal))
             {
-                if (value is Dictionary<string, object?> parameterValues)
+                if (value is IReadOnlyDictionary<string, Variant> parameterValues)
                 {
                     _parameters.Clear();
                     foreach (var (parameterName, parameterValue) in parameterValues)
@@ -581,7 +601,7 @@ public sealed class RenderPath : SimpleResource
             return true;
         }
 
-        public override void CollectParameters(IDictionary<string, object?> target)
+        public override void CollectParameters(StringVariantMap target)
         {
             ArgumentNullException.ThrowIfNull(target);
 
@@ -592,7 +612,7 @@ public sealed class RenderPath : SimpleResource
             }
         }
 
-        public override void UpdateParameters(RenderPipelineSettings settings, IReadOnlyDictionary<string, object?> parameters)
+        public override void UpdateParameters(RenderPipelineSettings settings, StringVariantMap parameters)
         {
             ArgumentNullException.ThrowIfNull(settings);
             ArgumentNullException.ThrowIfNull(parameters);
@@ -613,7 +633,7 @@ public sealed class RenderPath : SimpleResource
                 var externalName = GetExternalParameterName(parameterName);
                 if (parameters.TryGetValue(externalName, out var value))
                 {
-                    if (shouldBeDisabled && !Equals(value, defaultValue))
+                    if (shouldBeDisabled && value != defaultValue)
                         shouldBeDisabled = false;
                 }
             }
@@ -632,6 +652,12 @@ public sealed class RenderPath : SimpleResource
             foreach (var parameter in _parameters)
                 clone.SetParameter(parameter.Key, parameter.Value);
             return clone;
+        }
+
+        public override void Dispose()
+        {
+            _parameters.Dispose();
+            base.Dispose();
         }
 
         private string GetExternalParameterName(string parameterName)

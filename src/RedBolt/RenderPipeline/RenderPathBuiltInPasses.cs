@@ -5,11 +5,7 @@ namespace RedBolt;
 /// </summary>
 public sealed class FullScreenShaderPass : RenderPass
 {
-    private readonly record struct ParameterBinding(string Name, string ExternalName, object? DefaultValue);
-
-    private readonly Dictionary<string, object?> _parameters = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, object?> _currentParameters = new(StringComparer.Ordinal);
-    private readonly List<ParameterBinding> _parameterBindings = [];
+    private readonly StringVariantMap _parameters = new();
     private readonly List<StringHash> _shaderParameterSources = [];
     private readonly List<Variant> _shaderParameterDefaults = [];
     private readonly List<ShaderParameterDesc> _shaderParameters = [];
@@ -71,50 +67,48 @@ public sealed class FullScreenShaderPass : RenderPass
             string.Empty);
         RegisterAttribute(
             "Parameters",
-            typeof(Dictionary<string, object?>),
-            self => new Dictionary<string, object?>(((FullScreenShaderPass)self)._parameters, StringComparer.Ordinal),
+            typeof(StringVariantMap),
+            self => ((FullScreenShaderPass)self)._parameters,
             (self, value) => ((FullScreenShaderPass)self).SetParameters(value),
             null);
     }
 
-    public override void CollectParameters(IDictionary<string, object?> target)
+    public override void CollectParameters(StringVariantMap target)
     {
-        foreach (var binding in _parameterBindings)
-            DeclareParameter(binding.ExternalName, binding.DefaultValue, target);
+        foreach (var (name, defaultValue) in _parameters)
+            DeclareParameter(_parametersPrefix + name, defaultValue, target);
     }
 
     public override void InitializeView(RenderPipelineView view)
     {
-        _currentParameters.Clear();
-        RefreshParameterBindings();
         ClearShaderParameterStorage();
 
         foreach (var (name, defaultValue) in _parameters)
         {
-            using var value = Variant.FromObject(defaultValue);
             _shaderParameterSources.Add(new StringHash(_parametersPrefix + name));
-            _shaderParameterDefaults.Add(value.Clone());
-            _shaderParameters.Add(new ShaderParameterDesc(new StringHash(name), value.Clone()));
+            _shaderParameterDefaults.Add(defaultValue.Clone());
+            _shaderParameters.Add(new ShaderParameterDesc(new StringHash(name), defaultValue.Clone()));
         }
         _pipelineStateId = StaticPipelineStateId.Invalid;
     }
 
-    public override void UpdateParameters(RenderPipelineSettings settings, IReadOnlyDictionary<string, object?> externalParameters)
+    public override void UpdateParameters(RenderPipelineSettings settings, StringVariantMap parameters)
     {
-        _currentParameters.Clear();
         var shouldBeDisabled = _disableOnDefaultParameters;
         for (var i = 0; i < _shaderParameters.Count; ++i)
         {
-            var sourceName = _parameterBindings[i].ExternalName;
-            if (externalParameters.TryGetValue(sourceName, out var value))
+            foreach (var (name, value) in parameters)
             {
-                using var variant = Variant.FromObject(value);
+                if (StringHash.Calculate(name) != _shaderParameterSources[i].Value)
+                    continue;
+
                 var parameter = _shaderParameters[i];
                 var oldValue = parameter.Value;
-                _shaderParameters[i] = new ShaderParameterDesc(parameter.Name, variant.Clone());
+                _shaderParameters[i] = new ShaderParameterDesc(parameter.Name, value.Clone());
                 oldValue.Dispose();
-                if (shouldBeDisabled && variant != _shaderParameterDefaults[i])
+                if (shouldBeDisabled && value != _shaderParameterDefaults[i])
                     shouldBeDisabled = false;
+                break;
             }
         }
 
@@ -125,6 +119,7 @@ public sealed class FullScreenShaderPass : RenderPass
     public override void Dispose()
     {
         ClearShaderParameterStorage();
+        _parameters.Dispose();
         base.Dispose();
     }
 
@@ -182,13 +177,11 @@ public sealed class FullScreenShaderPass : RenderPass
     private void SetParameters(object? value)
     {
         _parameters.Clear();
-        _parameterBindings.Clear();
-        if (value is not IReadOnlyDictionary<string, object?> values)
+        if (value is not IReadOnlyDictionary<string, Variant> values)
             return;
 
         foreach (var (name, parameterValue) in values)
             _parameters[name] = parameterValue;
-        RefreshParameterBindings();
     }
 
     private void SetShaderName(string value)
@@ -224,14 +217,6 @@ public sealed class FullScreenShaderPass : RenderPass
     private void SetParametersPrefix(string prefix)
     {
         _parametersPrefix = prefix;
-        RefreshParameterBindings();
-    }
-
-    private void RefreshParameterBindings()
-    {
-        _parameterBindings.Clear();
-        foreach (var (name, defaultValue) in _parameters)
-            _parameterBindings.Add(new ParameterBinding(name, _parametersPrefix + name, defaultValue));
     }
 
     private void ClearShaderParameterStorage()
@@ -272,8 +257,12 @@ public sealed class ToneMappingPass : RenderPass
     private const string DefaultComment = "Convert color from linear HDR space to gamma LDR space";
     private const string ModeName = "Tone Mapping: Mode";
     private const string ModeMetadataName = "Tone Mapping: Mode@";
-    private static readonly string[] ModeMetadata = ["None", "Reinhard", "ReinhardWhite", "Uncharted2"];
-    private static readonly IReadOnlyDictionary<string, object?> EmptyParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
+    private static readonly StringVector ModeMetadata = ["None", "Reinhard", "ReinhardWhite", "Uncharted2"];
+    private static readonly NamedSamplerStateDesc[] Samplers =
+        [new NamedSamplerStateDesc(new StringHash("Albedo"), SamplerStateDesc.Bilinear())];
+    private static readonly ShaderResourceDesc[] EmptyResources = [];
+    private static readonly ShaderParameterDesc[] EmptyParameters = [];
+    private StaticPipelineStateId? _pipelineState;
     private Mode _mode;
 
     public ToneMappingPass(string? passName = null)
@@ -283,18 +272,19 @@ public sealed class ToneMappingPass : RenderPass
         SetTraits(new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: false));
     }
 
-    public override void CollectParameters(IDictionary<string, object?> parameters)
+    public override void CollectParameters(StringVariantMap parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
         DeclareParameter(ModeName, (int)Mode.None, parameters);
-        DeclareParameter(ModeMetadataName, ModeMetadata, parameters);
+        using var modeMetadata = new Variant(ModeMetadata);
+        DeclareParameter(ModeMetadataName, modeMetadata, parameters);
     }
 
     public override void InitializeView(RenderPipelineView view)
     {
     }
 
-    public override void UpdateParameters(RenderPipelineSettings settings, IReadOnlyDictionary<string, object?> parameters)
+    public override void UpdateParameters(RenderPipelineSettings settings, StringVariantMap parameters)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(parameters);
@@ -302,31 +292,36 @@ public sealed class ToneMappingPass : RenderPass
         if (settings.RenderBufferManager.ColorSpace != RenderPipelineColorSpace.LinearHDR)
         {
             SetInternallyEnabled(false);
+            InvalidateCache();
             return;
         }
 
         SetInternallyEnabled(true);
-        if (LoadParameter(ModeName, parameters) is int modeValue)
-            _mode = (Mode)Math.Clamp(modeValue, 0, (int)Mode.Count);
+        ref readonly var value = ref LoadParameter(ModeName, parameters);
+        if (value.Type == VariantType.Int)
+        {
+            var newMode = (Mode)Math.Clamp(value.GetInt(), 0, (int)Mode.Count);
+            if (_mode != newMode)
+            {
+                _mode = newMode;
+                InvalidateCache();
+            }
+        }
     }
 
     public override void Render(SharedRenderPassState sharedState)
     {
-        base.Render(sharedState);
-
         if (sharedState.RenderBufferManager is not { } renderBufferManager || sharedState.Graphics is not { } graphics)
             return;
 
+        RestoreCache(sharedState);
         renderBufferManager.SwapColorBuffers(synchronizeContents: false);
         renderBufferManager.SetOutputRenderTargets(graphics);
         renderBufferManager.DrawFeedbackViewportQuad(
-            graphics,
-            "P_ToneMapping",
-            GetModeDefines(_mode),
-            BlendMode.Replace,
-            bilinearColorSampler: true,
-            parameters: EmptyParameters,
-            debugComment: "Apply tone mapping");
+            "Apply tone mapping",
+            _pipelineState!.Value,
+            EmptyResources,
+            EmptyParameters);
     }
 
     public override RenderPass Clone()
@@ -353,12 +348,30 @@ public sealed class ToneMappingPass : RenderPass
     {
         return mode switch
         {
-            Mode.Reinhard => "REINHARD",
-            Mode.ReinhardWhite => "REINHARDWHITE",
-            Mode.Uncharted2 => "UNCHARTED2",
+            Mode.Reinhard => "REINHARD ",
+            Mode.ReinhardWhite => "REINHARDWHITE ",
+            Mode.Uncharted2 => "UNCHARTED2 ",
             _ => string.Empty
         };
     }
+
+    private void InvalidateCache()
+    {
+        _pipelineState = null;
+    }
+
+    private void RestoreCache(SharedRenderPassState sharedState)
+    {
+        if (_pipelineState.HasValue || sharedState.RenderBufferManager is not { } renderBufferManager)
+            return;
+
+        _pipelineState = renderBufferManager.CreateQuadPipelineState(
+            BlendMode.Replace,
+            "v2/P_ToneMapping",
+            GetModeDefines(_mode),
+            Samplers);
+    }
+
 }
 
 /// <summary>
@@ -383,7 +396,7 @@ public sealed class AutoExposurePass : RenderPass
         SetTraits(new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: false));
     }
 
-    public override void CollectParameters(IDictionary<string, object?> parameters)
+    public override void CollectParameters(StringVariantMap parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
         var defaults = new Parameters();
@@ -405,7 +418,7 @@ public sealed class AutoExposurePass : RenderPass
         }
     }
 
-    public override void UpdateParameters(RenderPipelineSettings settings, IReadOnlyDictionary<string, object?> parameters)
+    public override void UpdateParameters(RenderPipelineSettings settings, StringVariantMap parameters)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(parameters);
@@ -417,17 +430,24 @@ public sealed class AutoExposurePass : RenderPass
         }
 
         var updated = new Parameters();
-        if (LoadParameter(AutoExposureName, parameters) is bool automatic)
-            updated.AutoExposure = automatic;
-        if (RenderPathParameterHelpers.TryGetFloat(MinExposureName, parameters, out var minExposure))
-            updated.MinExposure = minExposure;
-        if (RenderPathParameterHelpers.TryGetFloat(MaxExposureName, parameters, out var maxExposure))
-            updated.MaxExposure = maxExposure;
-        if (RenderPathParameterHelpers.TryGetFloat(AdaptRateName, parameters, out var adaptRate))
-            updated.AdaptRate = adaptRate;
+        ref readonly var autoExposure = ref LoadParameter(AutoExposureName, parameters);
+        if (autoExposure.Type == VariantType.Bool)
+            updated.AutoExposure = autoExposure.GetBool();
+        ref readonly var minExposure = ref LoadParameter(MinExposureName, parameters);
+        if (minExposure.Type == VariantType.Float)
+            updated.MinExposure = minExposure.GetFloat();
+        ref readonly var maxExposure = ref LoadParameter(MaxExposureName, parameters);
+        if (maxExposure.Type == VariantType.Float)
+            updated.MaxExposure = maxExposure.GetFloat();
+        ref readonly var adaptRate = ref LoadParameter(AdaptRateName, parameters);
+        if (adaptRate.Type == VariantType.Float)
+            updated.AdaptRate = adaptRate.GetFloat();
 
-        _currentParameters = updated;
+        if (_currentParameters.AutoExposure != updated.AutoExposure)
+            _cachedBuffers = null;
+
         SetInternallyEnabled(true);
+        _currentParameters = updated;
     }
 
     public override void Update(SharedRenderPassState sharedState)
@@ -627,7 +647,7 @@ public sealed class AutoExposurePass : RenderPass
 /// </summary>
 public sealed class BloomPass : RenderPass
 {
-    private const uint MaxIterations = 16;
+    private const int MaxIterations = 16;
     private const string DefaultComment = "Create bloom around bright parts of the image";
     private const string NumIterationsName = "Bloom: Num Iterations";
     private const string MinBrightnessName = "Bloom: Min Brightness";
@@ -648,7 +668,7 @@ public sealed class BloomPass : RenderPass
         SetTraits(new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: true));
     }
 
-    public override void CollectParameters(IDictionary<string, object?> parameters)
+    public override void CollectParameters(StringVariantMap parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
         var defaults = new Parameters();
@@ -663,22 +683,27 @@ public sealed class BloomPass : RenderPass
     {
     }
 
-    public override void UpdateParameters(RenderPipelineSettings settings, IReadOnlyDictionary<string, object?> parameters)
+    public override void UpdateParameters(RenderPipelineSettings settings, StringVariantMap parameters)
     {
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(parameters);
 
         var updated = new Parameters();
-        if (RenderPathParameterHelpers.TryGetUInt(NumIterationsName, parameters, out var numIterations))
-            updated.NumIterations = Math.Clamp(numIterations, 1u, MaxIterations);
-        if (RenderPathParameterHelpers.TryGetFloat(MinBrightnessName, parameters, out var minBrightness))
-            updated.MinBrightness = minBrightness;
-        if (RenderPathParameterHelpers.TryGetFloat(MaxBrightnessName, parameters, out var maxBrightness))
-            updated.MaxBrightness = maxBrightness;
-        if (RenderPathParameterHelpers.TryGetFloat(IntensityName, parameters, out var intensity))
-            updated.Intensity = intensity;
-        if (RenderPathParameterHelpers.TryGetFloat(IterationFactorName, parameters, out var iterationFactor))
-            updated.IterationFactor = iterationFactor;
+        ref readonly var numIterations = ref LoadParameter(NumIterationsName, parameters);
+        if (numIterations.Type == VariantType.Int)
+            updated.NumIterations = Math.Clamp(numIterations.GetInt(), 1, MaxIterations);
+        ref readonly var minBrightness = ref LoadParameter(MinBrightnessName, parameters);
+        if (minBrightness.Type == VariantType.Float)
+            updated.MinBrightness = minBrightness.GetFloat();
+        ref readonly var maxBrightness = ref LoadParameter(MaxBrightnessName, parameters);
+        if (maxBrightness.Type == VariantType.Float)
+            updated.MaxBrightness = maxBrightness.GetFloat();
+        ref readonly var intensity = ref LoadParameter(IntensityName, parameters);
+        if (intensity.Type == VariantType.Float)
+            updated.Intensity = intensity.GetFloat();
+        ref readonly var iterationFactor = ref LoadParameter(IterationFactorName, parameters);
+        if (iterationFactor.Type == VariantType.Float)
+            updated.IterationFactor = iterationFactor.GetFloat();
 
         if (_currentParameters.NumIterations != updated.NumIterations)
             InvalidateTextureCache();
@@ -717,17 +742,17 @@ public sealed class BloomPass : RenderPass
         renderBufferManager.SwapColorBuffers(synchronizeContents: false);
 
         var numIterations = GatherBrightRegions(renderBufferManager, graphics, _textures[0].Final, luminanceWeights);
-        for (var i = 0u; i < numIterations; ++i)
+        for (var i = 0; i < numIterations; ++i)
         {
             if (i > 0)
-                CopyTexture(renderBufferManager, graphics, _textures[(int)i - 1].Final, _textures[(int)i].Final);
+                CopyTexture(renderBufferManager, graphics, _textures[i - 1].Final, _textures[i].Final);
 
-            BlurTexture(renderBufferManager, graphics, _textures[(int)i].Final, _textures[(int)i].Temporary, luminanceWeights);
+            BlurTexture(renderBufferManager, graphics, _textures[i].Final, _textures[i].Temporary, luminanceWeights);
         }
 
         _intensityMultipliers.Clear();
         var totalIntensity = 0.0f;
-        for (var i = 0u; i < numIterations; ++i)
+        for (var i = 0; i < numIterations; ++i)
         {
             var intensity = MathF.Pow(_currentParameters.IterationFactor, i);
             _intensityMultipliers.Add(intensity);
@@ -759,7 +784,7 @@ public sealed class BloomPass : RenderPass
 
     private struct Parameters
     {
-        public uint NumIterations = 5;
+        public int NumIterations = 5;
         public float MinBrightness = 0.8f;
         public float MaxBrightness = 1.0f;
         public float Intensity = 1.0f;
@@ -801,11 +826,11 @@ public sealed class BloomPass : RenderPass
         if (_textures.Count > 0 || sharedState.RenderBufferManager is not { } renderBufferManager)
             return;
 
-        for (var i = 0u; i < _currentParameters.NumIterations; ++i)
+        for (var i = 0; i < _currentParameters.NumIterations; ++i)
         {
             var format = _isHdr ? TextureFormat.RGBA16F : TextureFormat.RGBA8;
             var bufferParams = new RenderBufferParams(format, 1, RenderBufferFlag.BilinearFiltering);
-            var sizeMultiplier = Vector2f.One / (1u << (int)i);
+            var sizeMultiplier = Vector2f.One / (1 << i);
             _textures.Add(new TextureCache
             {
                 Final = renderBufferManager.CreateColorBuffer(bufferParams, sizeMultiplier),
@@ -814,7 +839,7 @@ public sealed class BloomPass : RenderPass
         }
     }
 
-    private uint GatherBrightRegions(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer destination, Vector3f luminanceWeights)
+    private int GatherBrightRegions(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer destination, Vector3f luminanceWeights)
     {
         var viewportTexture = renderBufferManager.GetSecondaryColorTexture();
         if (viewportTexture is null)
@@ -843,14 +868,14 @@ public sealed class BloomPass : RenderPass
             renderBufferManager.GetInvOutputSize(),
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
 
-        var numIterations = 0u;
+        var numIterations = 0;
         while (minDimension > 1 && numIterations < _currentParameters.NumIterations)
         {
             minDimension >>= 1;
             ++numIterations;
         }
 
-        return Math.Clamp(numIterations, 1u, _currentParameters.NumIterations);
+        return Math.Clamp(numIterations, 1, _currentParameters.NumIterations);
     }
 
     private void BlurTexture(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer final,
@@ -961,7 +986,7 @@ public sealed class AmbientOcclusionPass : RenderPass
         SetComment(DefaultComment);
     }
 
-    public override void CollectParameters(IDictionary<string, object?> parameters)
+    public override void CollectParameters(StringVariantMap parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
         var defaults = new Parameters();
@@ -982,31 +1007,48 @@ public sealed class AmbientOcclusionPass : RenderPass
     {
     }
 
-    public override void UpdateParameters(RenderPipelineSettings settings, IReadOnlyDictionary<string, object?> parameters)
+    public override void UpdateParameters(RenderPipelineSettings settings, StringVariantMap parameters)
     {
+        if (!settings.RenderBufferManager.ReadableDepth)
+        {
+            SetInternallyEnabled(false);
+            return;
+        }
+
         var updated = new Parameters();
-        if (RenderPathParameterHelpers.TryGetUInt(DownscaleName, parameters, out var downscale))
-            updated.Downscale = downscale;
-        if (RenderPathParameterHelpers.TryGetFloat(StrengthName, parameters, out var strength))
-            updated.Strength = strength;
-        if (RenderPathParameterHelpers.TryGetFloat(ExponentName, parameters, out var exponent))
-            updated.Exponent = exponent;
-        if (RenderPathParameterHelpers.TryGetFloat(RadiusNearName, parameters, out var radiusNear))
-            updated.RadiusNear = radiusNear;
-        if (RenderPathParameterHelpers.TryGetFloat(DistanceNearName, parameters, out var distanceNear))
-            updated.DistanceNear = distanceNear;
-        if (RenderPathParameterHelpers.TryGetFloat(RadiusFarName, parameters, out var radiusFar))
-            updated.RadiusFar = radiusFar;
-        if (RenderPathParameterHelpers.TryGetFloat(DistanceFarName, parameters, out var distanceFar))
-            updated.DistanceFar = distanceFar;
-        if (RenderPathParameterHelpers.TryGetFloat(FadeDistanceBeginName, parameters, out var fadeDistanceBegin))
-            updated.FadeDistanceBegin = fadeDistanceBegin;
-        if (RenderPathParameterHelpers.TryGetFloat(FadeDistanceEndName, parameters, out var fadeDistanceEnd))
-            updated.FadeDistanceEnd = fadeDistanceEnd;
-        if (RenderPathParameterHelpers.TryGetFloat(BlurDepthThresholdName, parameters, out var blurDepthThreshold))
-            updated.BlurDepthThreshold = blurDepthThreshold;
-        if (RenderPathParameterHelpers.TryGetFloat(BlurNormalThresholdName, parameters, out var blurNormalThreshold))
-            updated.BlurNormalThreshold = blurNormalThreshold;
+        ref readonly var downscale = ref LoadParameter(DownscaleName, parameters);
+        if (downscale.Type == VariantType.Int)
+            updated.Downscale = downscale.GetInt();
+        ref readonly var strength = ref LoadParameter(StrengthName, parameters);
+        if (strength.Type == VariantType.Float)
+            updated.Strength = strength.GetFloat();
+        ref readonly var exponent = ref LoadParameter(ExponentName, parameters);
+        if (exponent.Type == VariantType.Float)
+            updated.Exponent = exponent.GetFloat();
+        ref readonly var radiusNear = ref LoadParameter(RadiusNearName, parameters);
+        if (radiusNear.Type == VariantType.Float)
+            updated.RadiusNear = radiusNear.GetFloat();
+        ref readonly var distanceNear = ref LoadParameter(DistanceNearName, parameters);
+        if (distanceNear.Type == VariantType.Float)
+            updated.DistanceNear = distanceNear.GetFloat();
+        ref readonly var radiusFar = ref LoadParameter(RadiusFarName, parameters);
+        if (radiusFar.Type == VariantType.Float)
+            updated.RadiusFar = radiusFar.GetFloat();
+        ref readonly var distanceFar = ref LoadParameter(DistanceFarName, parameters);
+        if (distanceFar.Type == VariantType.Float)
+            updated.DistanceFar = distanceFar.GetFloat();
+        ref readonly var fadeDistanceBegin = ref LoadParameter(FadeDistanceBeginName, parameters);
+        if (fadeDistanceBegin.Type == VariantType.Float)
+            updated.FadeDistanceBegin = fadeDistanceBegin.GetFloat();
+        ref readonly var fadeDistanceEnd = ref LoadParameter(FadeDistanceEndName, parameters);
+        if (fadeDistanceEnd.Type == VariantType.Float)
+            updated.FadeDistanceEnd = fadeDistanceEnd.GetFloat();
+        ref readonly var blurDepthThreshold = ref LoadParameter(BlurDepthThresholdName, parameters);
+        if (blurDepthThreshold.Type == VariantType.Float)
+            updated.BlurDepthThreshold = blurDepthThreshold.GetFloat();
+        ref readonly var blurNormalThreshold = ref LoadParameter(BlurNormalThresholdName, parameters);
+        if (blurNormalThreshold.Type == VariantType.Float)
+            updated.BlurNormalThreshold = blurNormalThreshold.GetFloat();
 
         if (_currentParameters.Downscale != updated.Downscale)
             InvalidateTextureCache();
@@ -1068,7 +1110,7 @@ public sealed class AmbientOcclusionPass : RenderPass
 
     private struct Parameters
     {
-        public uint Downscale;
+        public int Downscale;
         public float Strength = 0.7f;
         public float Exponent = 1.5f;
         public float RadiusNear = 0.05f;
@@ -1141,7 +1183,7 @@ public sealed class AmbientOcclusionPass : RenderPass
             return;
 
             var resourceCache = GetSubsystem<ResourceCache>();
-        var sizeMultiplier = Vector2f.One / (1u << (int)_currentParameters.Downscale);
+        var sizeMultiplier = Vector2f.One / (1 << _currentParameters.Downscale);
         var bufferParams = new RenderBufferParams(TextureFormat.RGBA8, 1, RenderBufferFlag.BilinearFiltering);
         _textures = new TextureCache
         {
@@ -1281,7 +1323,7 @@ public sealed class OutlineRenderPass : RenderPass
         SetComment(DefaultComment);
     }
 
-    public override void CollectParameters(IDictionary<string, object?> parameters)
+    public override void CollectParameters(StringVariantMap parameters)
     {
     }
 
@@ -1289,7 +1331,7 @@ public sealed class OutlineRenderPass : RenderPass
     {
     }
 
-    public override void UpdateParameters(RenderPipelineSettings settings, IReadOnlyDictionary<string, object?> parameters)
+    public override void UpdateParameters(RenderPipelineSettings settings, StringVariantMap parameters)
     {
     }
 
@@ -1361,56 +1403,6 @@ internal static class RenderPathBuiltInPassFactory
         };
     }
 
-}
-
-internal static class RenderPathParameterHelpers
-{
-    public static bool TryGetFloat(string name, IReadOnlyDictionary<string, object?> parameters, out float value)
-    {
-        if (Load(name, parameters) is float floatValue)
-        {
-            value = floatValue;
-            return true;
-        }
-
-        if (Load(name, parameters) is double doubleValue)
-        {
-            value = (float)doubleValue;
-            return true;
-        }
-
-        if (Load(name, parameters) is int intValue)
-        {
-            value = intValue;
-            return true;
-        }
-
-        value = 0.0f;
-        return false;
-    }
-
-    public static bool TryGetUInt(string name, IReadOnlyDictionary<string, object?> parameters, out uint value)
-    {
-        if (Load(name, parameters) is uint uintValue)
-        {
-            value = uintValue;
-            return true;
-        }
-
-        if (Load(name, parameters) is int intValue && intValue >= 0)
-        {
-            value = (uint)intValue;
-            return true;
-        }
-
-        value = 0u;
-        return false;
-    }
-
-    private static object? Load(string name, IReadOnlyDictionary<string, object?> parameters)
-    {
-        return parameters.TryGetValue(name, out var value) ? value : null;
-    }
 }
 
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]

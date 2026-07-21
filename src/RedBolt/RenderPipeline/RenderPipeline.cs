@@ -9,7 +9,7 @@ public class RenderPipeline : Component
 {
     public const string DefaultRenderPathName = "RenderPaths/Default.renderpath";
 
-    private readonly Dictionary<string, object?> _renderPathParameters = new(StringComparer.Ordinal);
+    private readonly StringVariantMap _renderPathParameters = new();
     private readonly StringVariantMap _frameShaderParameters = new();
     private IReadOnlyList<RenderPassToggle> _renderPasses = [];
     private RenderPath? _renderPath;
@@ -34,6 +34,7 @@ public class RenderPipeline : Component
         if (_renderPath is not null)
             _renderPath.ReloadFinished -= OnRenderPathReloadFinished;
         _frameShaderParameters.Dispose();
+        _renderPathParameters.Dispose();
         base.Dispose();
     }
 
@@ -75,9 +76,9 @@ public class RenderPipeline : Component
         SetRenderPasses(renderPasses);
     }
 
-    public IReadOnlyDictionary<string, object?> GetRenderPathParameters() => _renderPathParameters;
+    public StringVariantMap GetRenderPathParameters() => _renderPathParameters;
 
-    public IReadOnlyDictionary<string, Variant> GetFrameShaderParameters() => _frameShaderParameters;
+    public StringVariantMap GetFrameShaderParameters() => _frameShaderParameters;
 
     public uint Revision => _revision;
 
@@ -169,16 +170,19 @@ public class RenderPipeline : Component
         RaiseParametersChanged();
     }
 
-    public void SetRenderPathParameters(IEnumerable<KeyValuePair<string, object?>> parameters)
+    public void SetRenderPathParameters(IReadOnlyDictionary<string, Variant> parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
+        if (ReferenceEquals(parameters, _renderPathParameters))
+            return;
+
         _renderPathParameters.Clear();
         foreach (var (name, value) in parameters)
             _renderPathParameters[name] = value;
         RaiseParametersChanged();
     }
 
-    public void UpdateRenderPathParameters(IReadOnlyDictionary<StringHash, object?> parameters)
+    public void UpdateRenderPathParameters(VariantMap parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
 
@@ -190,7 +194,7 @@ public class RenderPipeline : Component
                 if (StringHash.Calculate(name) != nameHash.Value)
                     continue;
 
-                if (!EqualityComparer<object?>.Default.Equals(currentValue, newValue))
+                if (currentValue != newValue)
                 {
                     _renderPathParameters[name] = newValue;
                     modified = true;
@@ -206,18 +210,20 @@ public class RenderPipeline : Component
     /// <summary>
     /// Update existing render path parameter.
     /// </summary>
-    public void UpdateRenderPathParameter(string name, object? value)
+    public void UpdateRenderPathParameter(StringHash nameHash, Variant value)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        foreach (var (name, currentValue) in _renderPathParameters)
+        {
+            if (StringHash.Calculate(name) != nameHash.Value)
+                continue;
 
-        if (!_renderPathParameters.TryGetValue(name, out var currentValue))
+            if (currentValue != value)
+            {
+                _renderPathParameters[name] = value;
+                RaiseParametersChanged();
+            }
             return;
-
-        if (EqualityComparer<object?>.Default.Equals(currentValue, value))
-            return;
-
-        _renderPathParameters[name] = value;
-        RaiseParametersChanged();
+        }
     }
 
     public void SetFrameShaderParameters(IReadOnlyDictionary<string, Variant> parameters)
@@ -232,7 +238,7 @@ public class RenderPipeline : Component
             _frameShaderParameters[name] = value;
     }
 
-    public void UpdateFrameShaderParameters(IReadOnlyDictionary<StringHash, Variant> parameters)
+    public void UpdateFrameShaderParameters(VariantMap parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
 
@@ -291,7 +297,7 @@ public class RenderPipeline : Component
         if (_renderPath is null)
             return;
 
-        var collected = new Dictionary<string, object?>(StringComparer.Ordinal);
+        using var collected = new StringVariantMap();
         _renderPath.CollectParameters(collected);
         foreach (var (name, value) in collected)
         {
@@ -372,7 +378,6 @@ public class RenderPipeline : Component
         private BackToFrontScenePass? _postAlphaPass;
         private OutlineScenePass? _outlineScenePass;
         private readonly SharedRenderPassState _sharedState = new();
-        private readonly Dictionary<string, object?> _effectiveRenderPathParameters = new(StringComparer.Ordinal);
         private readonly RenderPipelineStats _stats = new();
         private readonly List<OutlineGroup> _outlineGroups = [];
         private TextureRenderBuffer? _outlineBuffer;
@@ -496,7 +501,7 @@ public class RenderPipeline : Component
             {
                 _parametersDirty = false;
                 _renderPath.UpdateParameters(
-                    _renderPipeline.Settings, _renderPipeline.GetRenderPasses(), _effectiveRenderPathParameters);
+                    _renderPipeline.Settings, _renderPipeline.GetRenderPasses(), _renderPipeline._renderPathParameters);
             }
 
             _renderBufferManager!.SetSettings(_renderPipeline.Settings.RenderBufferManager);
@@ -571,7 +576,7 @@ public class RenderPipeline : Component
 
             if (_renderPath is not null)
             {
-                _renderPath.UpdateParameters(_renderPipeline.Settings, _renderPipeline.GetRenderPasses(), _effectiveRenderPathParameters);
+                _renderPath.UpdateParameters(_renderPipeline.Settings, _renderPipeline.GetRenderPasses(), _renderPipeline._renderPathParameters);
                 _renderPath.Update(_sharedState);
             }
 
@@ -746,11 +751,6 @@ public class RenderPipeline : Component
 
             _syncedRevision = _renderPipeline.Revision;
             _renderPath = _renderPipeline.GetRenderPath()?.Clone();
-            _effectiveRenderPathParameters.Clear();
-            if (_renderPath is not null)
-                _renderPath.CollectParameters(_effectiveRenderPathParameters);
-            foreach (var (name, value) in _renderPipeline.GetRenderPathParameters())
-                _effectiveRenderPathParameters[name] = value;
             _renderPath?.InitializeView(this);
         }
 

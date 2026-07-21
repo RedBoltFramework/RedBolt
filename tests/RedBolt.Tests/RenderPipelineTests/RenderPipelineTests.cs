@@ -34,7 +34,7 @@ public sealed class RenderPipelineTests
 
         renderPipeline.SetRenderPath(renderPath);
 
-        Assert.Equal(1.25f, Assert.IsType<float>(renderPipeline.GetRenderPathParameters()["Exposure"]));
+        Assert.Equal(1.25f, renderPipeline.GetRenderPathParameters()["Exposure"].GetFloat());
     }
 
     [Fact]
@@ -118,7 +118,7 @@ public sealed class RenderPipelineTests
         renderPipeline.UpdateRenderPathParameter("Exposure", 2.0f);
 
         Assert.Equal(initialRevision + 1, renderPipeline.Revision);
-        Assert.Equal(2.0f, Assert.IsType<float>(renderPipeline.GetRenderPathParameters()["Exposure"]));
+        Assert.Equal(2.0f, renderPipeline.GetRenderPathParameters()["Exposure"].GetFloat());
     }
 
     [Fact]
@@ -133,14 +133,15 @@ public sealed class RenderPipelineTests
         var parameterEvents = 0;
         renderPipeline.ParametersChanged += _ => ++parameterEvents;
 
-        renderPipeline.UpdateRenderPathParameters(new Dictionary<StringHash, object?>
+        using var parameters = new VariantMap
         {
             [new StringHash("Exposure")] = 2.0f,
             [new StringHash("Missing")] = 3.0f
-        });
+        };
+        renderPipeline.UpdateRenderPathParameters(parameters);
 
         Assert.Equal(1, parameterEvents);
-        Assert.Equal(2.0f, Assert.IsType<float>(renderPipeline.GetRenderPathParameters()["Exposure"]));
+        Assert.Equal(2.0f, renderPipeline.GetRenderPathParameters()["Exposure"].GetFloat());
         Assert.DoesNotContain("Missing", renderPipeline.GetRenderPathParameters().Keys);
     }
 
@@ -230,6 +231,36 @@ public sealed class RenderPipelineTests
         Assert.True(secondViewValue.IsDisposed);
 
         var replacementMapValue = renderPipeline.GetFrameShaderParameters()["Value"].GetCustom<FrameParameterValue>();
+        renderPipeline.Dispose();
+        Assert.True(replacementMapValue.IsDisposed);
+        Assert.False(source.GetCustom<FrameParameterValue>().IsDisposed);
+        Assert.False(replacement.GetCustom<FrameParameterValue>().IsDisposed);
+    }
+
+    [Fact]
+    public void Render_path_parameters_own_independent_variants()
+    {
+        var renderPipeline = new RenderPipeline();
+        using var source = Variant.MakeCustomValue(new FrameParameterValue(1));
+        using var parameters = new StringVariantMap
+        {
+            ["Value"] = source
+        };
+        renderPipeline.SetRenderPathParameters(parameters);
+
+        var parameterValue = parameters["Value"].GetCustom<FrameParameterValue>();
+        var mapValue = renderPipeline.GetRenderPathParameters()["Value"].GetCustom<FrameParameterValue>();
+        Assert.NotSame(source.GetCustom<FrameParameterValue>(), mapValue);
+        Assert.NotSame(parameterValue, mapValue);
+
+        using var replacement = Variant.MakeCustomValue(new FrameParameterValue(2));
+        renderPipeline.UpdateRenderPathParameter(new StringHash("Value"), replacement);
+        Assert.True(mapValue.IsDisposed);
+        Assert.False(parameterValue.IsDisposed);
+
+        var replacementMapValue = renderPipeline.GetRenderPathParameters()["Value"].GetCustom<FrameParameterValue>();
+        Assert.Equal(2, replacementMapValue.Value);
+
         renderPipeline.Dispose();
         Assert.True(replacementMapValue.IsDisposed);
         Assert.False(source.GetCustom<FrameParameterValue>().IsDisposed);
@@ -1070,7 +1101,8 @@ public sealed class RenderPipelineTests
         manager.OnViewportDefined(null, new IntRect(0, 0, 128, 64));
 
         var bloom = new BloomPass("Bloom");
-        bloom.UpdateParameters(new RenderPipelineSettings(), new Dictionary<string, object?>());
+        using var parameters = new StringVariantMap();
+        bloom.UpdateParameters(new RenderPipelineSettings(), parameters);
 
         var sharedState = new SharedRenderPassState
         {
@@ -1127,7 +1159,8 @@ public sealed class RenderPipelineTests
         manager.OnViewportDefined(null, new IntRect(0, 0, 128, 64));
 
         var bloom = new BloomPass("Bloom");
-        bloom.UpdateParameters(new RenderPipelineSettings(), new Dictionary<string, object?>());
+        using var parameters = new StringVariantMap();
+        bloom.UpdateParameters(new RenderPipelineSettings(), parameters);
         var sharedState = new SharedRenderPassState
         {
             RenderBufferManager = manager
@@ -1207,7 +1240,7 @@ public sealed class RenderPipelineTests
 
             Assert.NotNull(renderPipeline.GetRenderPath());
             Assert.Equal(RenderPipeline.DefaultRenderPathName, renderPipeline.GetRenderPath()!.Name);
-            Assert.Equal(1.25f, Assert.IsType<float>(renderPipeline.GetRenderPathParameters()["Exposure"]));
+            Assert.Equal(1.25f, renderPipeline.GetRenderPathParameters()["Exposure"].GetFloat());
         }
         finally
         {
@@ -1240,15 +1273,15 @@ public sealed class RenderPipelineTests
             var renderPathChangedEvents = 0;
             renderPipeline.RenderPathChanged += (_, _) => ++renderPathChangedEvents;
 
-            Assert.Equal(1.25f, Assert.IsType<float>(renderPipeline.GetRenderPathParameters()["Exposure"]));
+            Assert.Equal(1.25f, renderPipeline.GetRenderPathParameters()["Exposure"].GetFloat());
             Assert.DoesNotContain("BloomStrength", renderPipeline.GetRenderPathParameters().Keys);
 
             WriteRenderPath(renderPathFile, 2.5f, includeBloom: true);
             Assert.True(_fixture.Resources.ReloadResource<RenderPath>(renderPathName));
 
             Assert.Equal(1, renderPathChangedEvents);
-            Assert.Equal(1.25f, Assert.IsType<float>(renderPipeline.GetRenderPathParameters()["Exposure"]));
-            Assert.Equal(0.8f, Assert.IsType<float>(renderPipeline.GetRenderPathParameters()["BloomStrength"]));
+            Assert.Equal(1.25f, renderPipeline.GetRenderPathParameters()["Exposure"].GetFloat());
+            Assert.Equal(0.8f, renderPipeline.GetRenderPathParameters()["BloomStrength"].GetFloat());
         }
         finally
         {
@@ -1262,21 +1295,27 @@ public sealed class RenderPipelineTests
     private sealed class ParameterRenderPass : RenderPass
     {
         private readonly string _parameterName;
-        private readonly object? _value;
+        private readonly Variant _value;
 
-        public ParameterRenderPass(string parameterName, object? value)
+        public ParameterRenderPass(string parameterName, Variant value)
             : base(parameterName)
         {
             this._parameterName = parameterName;
-            this._value = value;
+            this._value = value.Clone();
         }
 
-        public override void CollectParameters(IDictionary<string, object?> parameters)
+        public override void CollectParameters(StringVariantMap parameters)
         {
             DeclareParameter(_parameterName, _value, parameters);
         }
 
         public override RenderPass Clone() => new ParameterRenderPass(_parameterName, _value);
+
+        public override void Dispose()
+        {
+            _value.Dispose();
+            base.Dispose();
+        }
     }
 
     private sealed class FrameParameterRenderPipelineView : RenderPipelineView

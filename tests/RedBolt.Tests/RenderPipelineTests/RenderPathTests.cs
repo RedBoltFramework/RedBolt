@@ -44,6 +44,46 @@ public sealed class RenderPathTests
     }
 
     [Fact]
+    public void Render_path_reorder_ignores_negative_index()
+    {
+        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        var alpha = new TrackingRenderPass("Alpha");
+        var beta = new TrackingRenderPass("Beta");
+        renderPath.AddPass(alpha);
+        renderPath.AddPass(beta);
+
+        renderPath.ReorderPass(beta, -1);
+
+        Assert.Equal([alpha, beta], renderPath.GetPasses());
+    }
+
+    [Fact]
+    public void Tone_mapping_invalidates_pipeline_state_only_for_native_parameter_type_changes()
+    {
+        var pass = new ToneMappingPass();
+        var pipelineState = typeof(ToneMappingPass).GetField(
+            "_pipelineState", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        var settings = new RenderPipelineSettings();
+        settings.RenderBufferManager.ColorSpace = RenderPipelineColorSpace.LinearHDR;
+
+        pipelineState.SetValue(pass, (StaticPipelineStateId)1);
+        using var mode = new Variant(1);
+        using var parameters = new StringVariantMap { ["Tone Mapping: Mode"] = mode };
+        pass.UpdateParameters(settings, parameters);
+        Assert.Null(pipelineState.GetValue(pass));
+
+        pipelineState.SetValue(pass, (StaticPipelineStateId)1);
+        using var wrongTypeMode = new Variant(2.0f);
+        using var wrongTypeParameters = new StringVariantMap { ["Tone Mapping: Mode"] = wrongTypeMode };
+        pass.UpdateParameters(settings, wrongTypeParameters);
+        Assert.NotNull(pipelineState.GetValue(pass));
+
+        settings.RenderBufferManager.ColorSpace = RenderPipelineColorSpace.GammaLDR;
+        pass.UpdateParameters(settings, parameters);
+        Assert.Null(pipelineState.GetValue(pass));
+    }
+
+    [Fact]
     public void Render_path_updates_and_renders_only_enabled_passes()
     {
         var renderPath = new RenderPath("RenderPaths/Test.xml");
@@ -53,7 +93,7 @@ public sealed class RenderPathTests
         renderPath.AddPass(second);
 
         var settings = new RenderPipelineSettings();
-        var parameters = new Dictionary<string, object?>();
+        using var parameters = new StringVariantMap();
         renderPath.UpdateParameters(
         settings,
         [
@@ -80,7 +120,8 @@ public sealed class RenderPathTests
         var renderPath = new RenderPath("RenderPaths/Test.xml");
         renderPath.AddPass(new AmbientOcclusionPass("SSAO"));
 
-        renderPath.UpdateParameters(new RenderPipelineSettings(), renderPath.RepairEnabledRenderPasses([]), new Dictionary<string, object?>());
+        using var parameters = new StringVariantMap();
+        renderPath.UpdateParameters(new RenderPipelineSettings(), renderPath.RepairEnabledRenderPasses([]), parameters);
 
     }
 
@@ -110,11 +151,11 @@ public sealed class RenderPathTests
 
             Assert.Equal(2, renderPath.GetPasses().Count);
 
-            var collectedParameters = new Dictionary<string, object?>();
+            using var collectedParameters = new StringVariantMap();
             renderPath.CollectParameters(collectedParameters);
 
-            Assert.Equal(1.25f, Assert.IsType<float>(collectedParameters["Exposure"]));
-            Assert.True(Assert.IsType<bool>(collectedParameters["Enabled"]));
+            Assert.Equal(1.25f, collectedParameters["Exposure"].GetFloat());
+            Assert.True(collectedParameters["Enabled"].GetBool());
         }
         finally
         {
@@ -163,14 +204,14 @@ public sealed class RenderPathTests
 
             var renderPath = resources.GetResource<RenderPath>("RenderPaths/Simple");
 
-            var collectedParameters = new Dictionary<string, object?>();
+            using var collectedParameters = new StringVariantMap();
             renderPath.CollectParameters(collectedParameters);
             renderPath.UpdateParameters(new RenderPipelineSettings(), renderPath.RepairEnabledRenderPasses([]), collectedParameters);
 
             var pass = Assert.IsType<FullScreenShaderPass>(Assert.Single(renderPath.GetPasses()));
             Assert.Equal("Postprocess: Adjust Color", pass.GetPassName());
             Assert.Equal("Adjust output color RGB and HSV.", pass.GetComment());
-            Assert.Equal(new Vector4f(1.0f, 1.0f, 1.0f, 1.0f), Assert.IsType<Vector4f>(collectedParameters["Adjust Color: HSVParams"]));
+            Assert.Equal(new Vector4f(1.0f, 1.0f, 1.0f, 1.0f), collectedParameters["Adjust Color: HSVParams"].GetVector4());
             Assert.True(renderPath.GetAggregatedPassTraits().NeedReadWriteColorBuffer);
             Assert.True(renderPath.GetAggregatedPassTraits().NeedBilinearColorSampler);
         }
@@ -204,14 +245,14 @@ public sealed class RenderPathTests
                 pass => Assert.IsType<ToneMappingPass>(pass));
             Assert.Contains(renderPath.GetPasses(), static pass => pass is FullScreenShaderPass);
 
-            var collectedParameters = new Dictionary<string, object?>();
+            using var collectedParameters = new StringVariantMap();
             renderPath.CollectParameters(collectedParameters);
             renderPath.UpdateParameters(new RenderPipelineSettings(), renderPath.RepairEnabledRenderPasses([]), collectedParameters);
 
             Assert.Contains("Exposure: Automatic", collectedParameters.Keys);
             Assert.Contains("Bloom: Num Iterations", collectedParameters.Keys);
             Assert.Contains("Tone Mapping: Mode", collectedParameters.Keys);
-            Assert.Equal(new Vector4f(1.0f, 1.0f, 1.0f, 1.0f), Assert.IsType<Vector4f>(collectedParameters["Adjust Color: HSVParams"]));
+            Assert.Equal(new Vector4f(1.0f, 1.0f, 1.0f, 1.0f), collectedParameters["Adjust Color: HSVParams"].GetVector4());
             Assert.True(renderPath.GetAggregatedPassTraits().NeedReadWriteColorBuffer);
             Assert.True(renderPath.GetAggregatedPassTraits().NeedBilinearColorSampler);
         }
@@ -234,7 +275,9 @@ public sealed class RenderPathTests
         var pass = new FullScreenShaderPass();
         var setParameters = typeof(FullScreenShaderPass).GetMethod(
             "SetParameters", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
-        setParameters.Invoke(pass, [new Dictionary<string, object?> { ["Value"] = defaultSource }]);
+        using var defaultVariant = new Variant(defaultSource);
+        using var defaultParameters = new StringVariantMap { ["Value"] = defaultVariant };
+        setParameters.Invoke(pass, [defaultParameters]);
 
         pass.InitializeView(null!);
 
@@ -249,7 +292,9 @@ public sealed class RenderPathTests
         Assert.NotSame(defaultSource, initialValue);
         Assert.NotSame(defaultValue, initialValue);
 
-        pass.UpdateParameters(new RenderPipelineSettings(), new Dictionary<string, object?> { ["Value"] = updatedSource });
+        using var updatedVariant = new Variant(updatedSource);
+        using var updatedParameters = new StringVariantMap { ["Value"] = updatedVariant };
+        pass.UpdateParameters(new RenderPipelineSettings(), updatedParameters);
 
         var updatedValue = parameters[0].Value.GetCString();
         Assert.Equal(string.Empty, initialValue.ConvertToString());
@@ -290,7 +335,7 @@ public sealed class RenderPathTests
 
         public int RenderCalls { get; private set; }
 
-        public override void UpdateParameters(RenderPipelineSettings settings, IReadOnlyDictionary<string, object?> parameters)
+        public override void UpdateParameters(RenderPipelineSettings settings, StringVariantMap parameters)
         {
             SetTraits(new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: true));
         }
