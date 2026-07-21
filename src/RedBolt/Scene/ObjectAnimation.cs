@@ -109,7 +109,7 @@ public sealed class ObjectAnimation : Resource
         var eventData = new SceneEvents.AttributeAnimationAddedEvent
         {
             ObjectAnimation = this,
-            Name = name
+            AttributeAnimationName = name
         };
         SendEvent(ref eventData);
     }
@@ -122,7 +122,7 @@ public sealed class ObjectAnimation : Resource
             var eventData = new SceneEvents.AttributeAnimationRemovedEvent
             {
                 ObjectAnimation = this,
-                Name = name
+                AttributeAnimationName = name
             };
             SendEvent(ref eventData);
             info.GetAnimation().SetOwner(null);

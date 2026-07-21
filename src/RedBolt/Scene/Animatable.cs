@@ -534,11 +534,11 @@ public abstract class Animatable : Serializable
         if (_objectAnimation is null)
             return;
 
-        var info = _objectAnimation.GetAttributeAnimationInfo(eventData.Name);
+        var info = _objectAnimation.GetAttributeAnimationInfo(eventData.AttributeAnimationName);
         if (info is null)
             return;
 
-        SetObjectAttributeAnimation(eventData.Name, info.GetAnimation(), info.GetWrapMode(), info.GetSpeed());
+        SetObjectAttributeAnimation(eventData.AttributeAnimationName, info.GetAnimation(), info.GetWrapMode(), info.GetSpeed());
     }
 
     /// <summary>Handle attribute animation removed.</summary>
@@ -547,6 +547,6 @@ public abstract class Animatable : Serializable
         if (_objectAnimation is null)
             return;
 
-        SetObjectAttributeAnimation(eventData.Name, null, WrapMode.Loop, 1.0f);
+        SetObjectAttributeAnimation(eventData.AttributeAnimationName, null, WrapMode.Loop, 1.0f);
     }
 }
