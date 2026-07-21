@@ -204,7 +204,7 @@ public class RawBuffer : DeviceObject
         // If hardware static buffer, return temporary buffer
         var renderPool = GetRenderDevice()!.GetRenderPool();
 
-        _mappedScratchBuffer = renderPool.AllocateScratchBuffer(checked((uint)_parameters.Size));
+        _mappedScratchBuffer = renderPool.AllocateScratchBuffer(_parameters.Size);
         _mapKind = MapKind.Scratch;
         return new Span<byte>((void*)_mappedScratchBuffer, _parameters.Size);
     }

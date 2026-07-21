@@ -439,7 +439,7 @@ public class DrawCommandQueue
         for (var i = 0; i < numUniformBuffers; ++i)
         {
             var size = _constantBuffers.Collection.GetGPUBufferSize(i);
-            var uniformBuffer = renderPool.GetUniformBuffer(checked((uint)i), checked((uint)size));
+            var uniformBuffer = renderPool.GetUniformBuffer(i, size);
             uniformBuffer.Update(_constantBuffers.Collection.GetBufferData(i).Span);
             _temp.UniformBuffers[i] = uniformBuffer.GetHandle();
         }

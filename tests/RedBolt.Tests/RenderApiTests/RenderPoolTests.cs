@@ -18,8 +18,8 @@ public sealed class RenderPoolTests
     {
         var renderPool = _fixture.RenderDevice.GetRenderPool();
 
-        var first = renderPool.AllocateScratchBuffer(1u);
-        var second = renderPool.AllocateScratchBuffer(17u);
+        var first = renderPool.AllocateScratchBuffer(1);
+        var second = renderPool.AllocateScratchBuffer(17);
 
         Assert.NotEqual(nint.Zero, first);
         Assert.NotEqual(nint.Zero, second);
@@ -30,7 +30,7 @@ public sealed class RenderPoolTests
         renderPool.ReleaseScratchBuffer(first);
         renderPool.ReleaseScratchBuffer(second);
 
-        var reused = renderPool.AllocateScratchBuffer(1u);
+        var reused = renderPool.AllocateScratchBuffer(1);
         Assert.Equal(first, reused);
 
         renderPool.ReleaseScratchBuffer(reused);
@@ -42,7 +42,7 @@ public sealed class RenderPoolTests
         var renderPool = _fixture.RenderDevice.GetRenderPool();
         var initialCapacity = GetScratchBufferCapacity(renderPool);
 
-        var temporary = renderPool.AllocateScratchBuffer(initialCapacity + 16u);
+        var temporary = renderPool.AllocateScratchBuffer(initialCapacity + 16);
         Assert.NotEqual(nint.Zero, temporary);
 
         renderPool.ReleaseScratchBuffer(temporary);
@@ -69,12 +69,28 @@ public sealed class RenderPoolTests
         var parameters = new RawTextureParams(TextureType.Texture2D, TextureFormat.TexFormatRgba8Unorm, TextureFlag.None,
             new Vector3i(8, 8, 1));
         var texture = renderPool.GetTexture(parameters, (nint)17);
-        var uniformBuffer = renderPool.GetUniformBuffer(2u, 64u);
+        var uniformBuffer = renderPool.GetUniformBuffer(2, 64);
 
         renderPool.Invalidate();
 
+        Assert.Null(uniformBuffer.GetRenderDevice());
         Assert.Same(texture, renderPool.GetTexture(parameters, (nint)17));
-        Assert.NotSame(uniformBuffer, renderPool.GetUniformBuffer(2u, 64u));
+        Assert.NotSame(uniformBuffer, renderPool.GetUniformBuffer(2, 64));
+    }
+
+    [Fact]
+    public void Render_pool_dispose_destroys_owned_resources()
+    {
+        var renderPool = new RenderPool(_fixture.RenderDevice);
+        var parameters = new RawTextureParams(TextureType.Texture2D, TextureFormat.TexFormatRgba8Unorm, TextureFlag.None,
+            new Vector3i(8, 8, 1));
+        var texture = renderPool.GetTexture(parameters, (nint)31);
+        var uniformBuffer = renderPool.GetUniformBuffer(3, 64);
+
+        renderPool.Dispose();
+
+        Assert.Null(texture.GetRenderDevice());
+        Assert.Null(uniformBuffer.GetRenderDevice());
     }
 
     [Fact]
@@ -93,10 +109,10 @@ public sealed class RenderPoolTests
         Assert.Equal(0, allocated);
     }
 
-    private static uint GetScratchBufferCapacity(RenderPool renderPool)
+    private static int GetScratchBufferCapacity(RenderPool renderPool)
     {
         var field = typeof(RenderPool).GetField("_scratchBufferCapacity", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("RenderPool.scratchBufferCapacity was not found.");
-        return Assert.IsType<uint>(field.GetValue(renderPool));
+        return Assert.IsType<int>(field.GetValue(renderPool));
     }
 }

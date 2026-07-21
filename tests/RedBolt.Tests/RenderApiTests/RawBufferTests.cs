@@ -53,9 +53,9 @@ public sealed class RawBufferTests
     {
         var renderPool = _fixture.RenderDevice.GetRenderPool();
 
-        var first = renderPool.GetUniformBuffer(3u, 513u);
-        var second = renderPool.GetUniformBuffer(3u, 600u);
-        var third = renderPool.GetUniformBuffer(4u, 513u);
+        var first = renderPool.GetUniformBuffer(3, 513);
+        var second = renderPool.GetUniformBuffer(3, 600);
+        var third = renderPool.GetUniformBuffer(4, 513);
 
         Assert.Same(first, second);
         Assert.NotSame(first, third);
@@ -63,7 +63,7 @@ public sealed class RawBufferTests
 
         renderPool.Invalidate();
 
-        var recreated = renderPool.GetUniformBuffer(3u, 513u);
+        var recreated = renderPool.GetUniformBuffer(3, 513);
         Assert.NotSame(first, recreated);
     }
 

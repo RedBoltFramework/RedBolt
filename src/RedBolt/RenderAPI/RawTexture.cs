@@ -431,7 +431,7 @@ public class RawTexture : DeviceObject
                     var alignedRowStride = (rowStride + 3) & ~3;
                     var alignedSliceStride = checked(alignedRowStride * heightInBlocks);
                     scratchBuffer = GetRenderDevice()?.GetRenderPool().AllocateScratchBuffer(
-                        checked((uint)(alignedSliceStride * size.Z))) ?? 0;
+                        checked(alignedSliceStride * size.Z)) ?? 0;
                     if (scratchBuffer == 0)
                         throw new OutOfMemoryException("Failed to allocate texture upload scratch buffer.");
                     var destination = (byte*)scratchBuffer;
