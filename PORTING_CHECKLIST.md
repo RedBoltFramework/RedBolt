@@ -212,6 +212,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `PListValue` in `PListFile.h` / `PListFile.cpp` — extensible non-POD value owner, CLR-safe active union storage, complete construction/copy/assignment/destruction, recursive container ownership, property getters, equality, and `PListFile` copy-insertion lifetimes reconciled
 - [~] `PListFile` in `PListFile.h` / `PListFile.cpp` — local XML/value RAII, root destruction, copy insertion, loading, and diagnostics reconciled; inherited Resource stream/construction/cache migration remains pending
 - [~] `JSONFile.h` / `JSONFile.cpp` — native object-load `ArchiveException` boundary and diagnostics reconciled; complete document ownership, save, construction, and destruction audit remains pending
+- [x] C#-only `JSONResource<TValue>` / `JSONResourceBase` — removed with their invented serializer test; native archive-backed resources use `SimpleResource` and no rbfx counterpart or production consumer exists
 
 ## [~] A6. Scene — depends on Resource, Core
 

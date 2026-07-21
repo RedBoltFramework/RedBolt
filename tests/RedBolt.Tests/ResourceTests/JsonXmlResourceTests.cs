@@ -1,4 +1,3 @@
-using System.Text;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using RedBolt;
@@ -636,29 +635,4 @@ public sealed class JsonXmlResourceTests
         Assert.Equal("Hei", loc.Get("Hello"));
     }
 
-    [Fact]
-    public void JSONResourceBase_serialization_roundtrips()
-    {
-        using var source = new MemoryStream(Encoding.UTF8.GetBytes("{\"Name\":\"redbolt\",\"Count\":3}"));
-        var resource = new SmokeJsonResource("Data/smoke.json");
-        Assert.True(resource.Load(source));
-        Assert.Equal("redbolt", resource.Value?.Name);
-        Assert.Equal(3, resource.Value?.Count);
-
-        using var dest = new MemoryStream();
-        resource.Value = new SmokeJsonPayload { Name = "serialized", Count = 7 };
-        Assert.True(resource.Save(dest));
-        Assert.Contains("serialized", Encoding.UTF8.GetString(dest.ToArray()), StringComparison.Ordinal);
-    }
-
-    private sealed class SmokeJsonResource : JSONResource<SmokeJsonPayload>
-    {
-        public SmokeJsonResource(string name) : base(name) { }
-    }
-
-    private sealed class SmokeJsonPayload
-    {
-        public string Name { get; set; } = string.Empty;
-        public int Count { get; set; }
-    }
 }
