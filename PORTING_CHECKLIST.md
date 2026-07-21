@@ -110,6 +110,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 ## [x] A2. Math — depends on Container
 
 - [-] `ApproximateEqualityComparer.cs` — **REMOVED** · reason: unused C#-only generic comparer with no rbfx counterpart
+- [x] `IApproximateEquatable.cs` — approved managed interface for strongly typed epsilon-based equality; fieldless contract has no construction, destruction, or copy state
 - [x] `AreaAllocator.h` / `AreaAllocator.cpp` — extensible copyable class kind, independent free-rectangle container copies, POD rectangle values, constructors, allocation paths, and automatic field lifetime reconciled
 - [x] `BoundingBox.h` / `BoundingBox.cpp` — 32-byte all-float value layout, independent copies, native undefined construction at stored call sites, equality/merge surface, padding and intersection behavior, and automatic lifetime reconciled
 - [x] `Color.h` / `Color.cpp` — 16-byte standard-layout, trivially copyable non-POD value class, POD channel mask, opaque-white default construction, independent copies, conversions, color-space logic, and automatic lifetime reconciled
@@ -216,8 +217,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 - [x] `PrefabReference.h` / `PrefabReference.cpp` — extensible noncopyable component lifetime, prefab value copies, instance teardown, and sender-specific struct prefab-reload observation reconciled
 - [~] `Serializable.h` / `Serializable.cpp` — native human-readable attribute `type` and direct `value` archive layout plus several local-Variant lifetimes reconciled; complete class shape, construction, clone/copy, attribute storage, and destruction audit remains pending
-- [x] `LogicComponent.h` / `LogicComponent.cpp` — complete concrete noncopyable class shape, native event-mask state, typed virtual update-event selection, direct sender-filtered Scene subscriptions, delayed-start/update/post-update/world-origin dispatch, enable and attachment lifecycle, and deterministic unsubscription reconciled; optional physics step branches are compile-time excluded in the current configuration
-- [x] `Node.h` / `Node.cpp` — complete class shape, lifetime/copy behavior, prefab and clone paths, scene attachment, transforms, tags/variables, listener cleanup, and int-mapped indices/sizes reconciled
+- [x] `LogicComponent.h` / `LogicComponent.cpp` — complete concrete noncopyable class shape, native `UpdateEvent` flag kind and values, event-mask state, typed virtual update-event selection, direct sender-filtered Scene subscriptions, delayed-start/update/post-update/world-origin dispatch, enable and attachment lifecycle, and deterministic unsubscription reconciled; optional physics step branches are compile-time excluded in the current configuration
+- [x] `Node.h` / `Node.cpp` — complete class shape, lifetime/copy behavior, prefab and clone paths, scene attachment, transforms, tags/variables, listener cleanup, `SceneLookupFlag`/`TransformSpace`/`WorldOriginUpdateMode` value kinds, and int-mapped indices/sizes reconciled
 
 ## [x] A7. RenderAPI — depends on Core, Math (current effort)
 

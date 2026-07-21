@@ -8,6 +8,8 @@ public enum SceneLookupFlag
     /// <summary>Whether to do recursive search in the scene subtree.</summary>
     Recursive = 0x1,
 
+    //IgnoreTemporary = 0x2,
+
     /// <summary>Used for lazy node lookup. Whether to validate the existing node name.</summary>
     ValidateName = 0x4,
 

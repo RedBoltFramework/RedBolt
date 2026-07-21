@@ -22,9 +22,9 @@ Excluded:
 - Tests and vendored third-party code.
 - Global aliases/usings files that contain no ported class implementation.
 
-Pending managed files inventoried: **75**
+Pending managed files inventoried: **70**
 Pending files with likely C++ counterpart paths: **62**
-Pending files requiring counterpart discovery: **13**
+Pending files requiring counterpart discovery: **8**
 
 ## Required review for every row
 
@@ -78,7 +78,6 @@ Check a column only after completing the corresponding full C++ review and recor
 | `src/RedBolt/Graphics/AnimationController.cs` | `Source/Urho3D/Graphics/AnimationController.h`<br>`Source/Urho3D/Graphics/AnimationController.cpp` | ☑ | ☐ | ☐ |
 | 2026-07-21 partial outcome | Corrected the remaining controller animation-output map boundary against `AnimationController::CommitNodeAndAttributeAnimations` and `AnimationState::CalculateAttributeTracks`: reset and track calculation now mutate addressable `Variant` entries directly, so replacement destruction and subsequent reads operate on the same native-equivalent storage. Focused animation/controller and Variant tests pass. The unchecked complete-body and copy/destruction columns remain open until the full controller audit is rerun and reconciled. | — | — | — |
 | 2026-07-20 partial outcome | Constructor defaults, base construction, field initialization order, and factory registration VERIFIED. The default C++ destructor is represented by deterministic teardown of controller-owned attribute `Variant` payloads and containers in reverse declaration order before base teardown; per-frame attribute-buffer replacement also destroys the previous payload. `AnimationInstance` implements the implicit C++ value copy by independently cloning `AnimationParameters` while preserving the shared `AnimationState` alias, and replacement/sort call sites use that copy. State-vector synchronization, animated-model connection, skeletal track resolution, renderer frame statistics, and animation-attribute subspan serialization follow the C++ update path. The pending-trigger vector now preserves C++ borrowed element semantics by retaining animation/index pairs and resolving refs from `Animation` at dispatch. Final destructor and copy-expression closure remains dependent only on the remaining controller-wide `Variant` call-site audit. | — | — | — |
-| `src/RedBolt/Math/IApproximateEquatable.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |
 | `src/RedBolt/RenderAPI/RawTexture.cs` | `Source/Urho3D/RenderAPI/RawTexture.h`<br>`Source/Urho3D/RenderAPI/RawTexture.cpp` | ☐ | ☐ | ☐ |
 | 2026-07-20 partial outcome | The complete native RawTexture declaration and every implementation body were read. Native `RawTextureParams`, `RawTextureUAVKey`, and `RawTextureHandles` are POD/value structs; managed preserves all three as C# structs, and the managed `RawTexture` remains an extensible noncopyable reference class. Under the approved deviation, array sizes, mip levels, sample counts, slice/level indices, view counts, and upload strides are managed `int`, with checked conversions at Diligent ABI boundaries. RawTexture now owns the native Diligent texture, resolved texture, default views, per-slice render surfaces, and UAV cache directly through the native-shaped handle aggregate. Parameter validation, capability fallback, GPU creation, default-view creation, reference-counted aliases, failed-creation cleanup, destruction callbacks, DeviceObject lifecycle, public/protected/private member order, and field declaration order follow the native call path. External imports use the owning RenderDevice, emit the native unsupported-dimension diagnostic, and reproduce unsupported-platform assertions as Debug exceptions. Update/read block-row behavior, diagnostics, default-view ownership, imported-handle lifetime, and teardown order are reconciled. The two MultipleViewports depth-stencil mipmap warnings are native behavior: Texture2D passes zero requested levels and RawTexture computes then demotes the full chain. Focused RawTexture tests pass 22/22; recursive submodules are current, the full desktop/WebAssembly solution builds with zero errors, all 1,596 tests pass, and MultipleViewports shows the correct main scene and inset. This row remains open because the sole native `RawTextureHandles` consumer copy in `Texture::OnCreateGPU` independently copies and retains the render-surface vector while managed currently aliases the array, and the managed split TextureFormat/SRGB representation must be reconciled during the Texture/RenderAPIDefs audits. | — | — | — |
 | 2026-07-20 follow-up outcome | The previously open `Texture::OnCreateGPU` consumer-copy gap is closed: managed now independently copies and retains every render-surface view from `RawTextureHandles`, restores managed surface owners from that copy, and releases the temporary retained references at the native lifetime boundary. The RawTexture row remains open only for the complete RenderAPIDefs audit and managed split TextureFormat/SRGB representation. Full gates pass as recorded in the Texture follow-up above. | — | — | — |
@@ -160,7 +159,6 @@ Check a column only after completing the corresponding full C++ review and recor
 | `src/RedBolt/Scene/ObjectAnimation.cs` | `Source/Urho3D/Scene/ObjectAnimation.h`<br>`Source/Urho3D/Scene/ObjectAnimation.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Scene/Scene.cs` | `Source/Urho3D/Scene/Scene.h`<br>`Source/Urho3D/Scene/Scene.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Scene/SceneEvents.cs` | `Source/Urho3D/Scene/SceneEvents.h` | ☐ | ☐ | ☐ |
-| `src/RedBolt/Scene/SceneLookupFlag.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |
 | `src/RedBolt/Scene/SceneResolver.cs` | `Source/Urho3D/Scene/SceneResolver.h`<br>`Source/Urho3D/Scene/SceneResolver.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Scene/SceneResource.cs` | `Source/Urho3D/Scene/SceneResource.h`<br>`Source/Urho3D/Scene/SceneResource.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Scene/Serializable.cs` | `Source/Urho3D/Scene/Serializable.h`<br>`Source/Urho3D/Scene/Serializable.cpp` | ☐ | ☐ | ☐ |
@@ -170,12 +168,9 @@ Check a column only after completing the corresponding full C++ review and recor
 | `src/RedBolt/Scene/ShakeComponent.cs` | `Source/Urho3D/Scene/ShakeComponent.h`<br>`Source/Urho3D/Scene/ShakeComponent.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Scene/SplinePath.cs` | `Source/Urho3D/Scene/SplinePath.h`<br>`Source/Urho3D/Scene/SplinePath.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Scene/TrackedComponent.cs` | `Source/Urho3D/Scene/TrackedComponent.h`<br>`Source/Urho3D/Scene/TrackedComponent.cpp` | ☐ | ☐ | ☐ |
-| `src/RedBolt/Scene/TransformSpace.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |
 | `src/RedBolt/Scene/UnknownComponent.cs` | `Source/Urho3D/Scene/UnknownComponent.h`<br>`Source/Urho3D/Scene/UnknownComponent.cpp` | ☐ | ☐ | ☐ |
-| `src/RedBolt/Scene/UpdateEvent.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |
 | `src/RedBolt/Scene/ValueAnimation.cs` | `Source/Urho3D/Scene/ValueAnimation.h`<br>`Source/Urho3D/Scene/ValueAnimation.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Scene/WorldOrigin.cs` | `Source/Urho3D/Scene/WorldOrigin.h`<br>`Source/Urho3D/Scene/WorldOrigin.cpp` | ☐ | ☐ | ☐ |
-| `src/RedBolt/Scene/WorldOriginUpdateMode.cs` | **UNRESOLVED — search by class name** | ☐ | ☐ | ☐ |
 
 ## Outcome notation for future passes
 
