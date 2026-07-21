@@ -97,6 +97,28 @@ public sealed class AnimationTests
     }
 
     [Fact]
+    public void Animation_clone_values_survive_source_destruction()
+    {
+        var source = new Animation("animation");
+        using var triggerData = new Variant(new byte[] { 1, 2, 3 });
+        source.AddTrigger(0.5f, false, triggerData);
+
+        var variantTrack = source.CreateVariantTrack("buffer");
+        variantTrack.KeyFrames.Add(new VariantCurvePoint
+        {
+            Time = 0.0f,
+            Value = new Variant(new byte[] { 4, 5, 6 })
+        });
+        variantTrack.Commit();
+
+        using var clone = source.Clone("clone");
+        source.Dispose();
+
+        Assert.Equal(1, clone.Triggers[0].Data.GetBuffer()[0]);
+        Assert.Equal(4, clone.GetVariantTrack("buffer")!.KeyFrames[0].Value.GetBuffer()[0]);
+    }
+
+    [Fact]
     public void Animation_loads_xml_tracks_variants_triggers_and_metadata()
     {
         var xml = new XMLFile("walk.xml");

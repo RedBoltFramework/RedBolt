@@ -815,9 +815,15 @@ public class Animation : ResourceWithMetadata
         for (var triggerElement = source.GetChild("trigger"); triggerElement.NotNull; triggerElement = triggerElement.GetNext("trigger"))
         {
             if (triggerElement.HasAttribute("normalizedtime"))
-                AddTrigger(triggerElement.GetFloat("normalizedtime"), true, triggerElement.GetVariant());
+            {
+                using var data = triggerElement.GetVariant();
+                AddTrigger(triggerElement.GetFloat("normalizedtime"), true, data);
+            }
             else if (triggerElement.HasAttribute("time"))
-                AddTrigger(triggerElement.GetFloat("time"), false, triggerElement.GetVariant());
+            {
+                using var data = triggerElement.GetVariant();
+                AddTrigger(triggerElement.GetFloat("time"), false, data);
+            }
         }
     }
 
