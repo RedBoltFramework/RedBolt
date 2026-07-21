@@ -29,8 +29,17 @@ public sealed class ResourceRefTests
         Assert.Equal("Material;Materials/One;Materials/Two", list.ToString());
         Assert.Equal("Material;", new ResourceRefList("Material").ToString());
         Assert.NotEqual(0u, list.ToHash());
-        Assert.False(ResourceRefList.IsNullOrEmpty(list));
-        Assert.True(ResourceRefList.IsNullOrEmpty(ResourceRefList.Empty));
+
+        var copy = list.Clone();
+        copy.Names.Add("Materials/Three");
+        Assert.Equal(["Materials/One", "Materials/Two"], list.Names);
+        Assert.NotEqual(list, copy);
+
+        var parsed = ResourceRefList.Parse(" Material ; A ;;B");
+        Assert.Equal(new StringHash(" Material "), parsed.Type);
+        Assert.Equal([" A ", "", "B"], parsed.Names);
+        Assert.Equal(new StringHash("123"), ResourceRefList.Parse("123;Name").Type);
+        Assert.Equal(ResourceRefList.Empty, ResourceRefList.Parse(null));
     }
 
     [Fact]

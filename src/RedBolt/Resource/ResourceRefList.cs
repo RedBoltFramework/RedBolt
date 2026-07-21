@@ -1,6 +1,6 @@
 namespace RedBolt;
 
-public struct ResourceRefList : IEquatable<ResourceRefList>
+public struct ResourceRefList : IEquatable<ResourceRefList>, ICloneable
 {
     public StringHash Type;
     public List<string> Names;
@@ -35,26 +35,24 @@ public struct ResourceRefList : IEquatable<ResourceRefList>
 
     public static ResourceRefList Empty { get; } = new();
 
-    public static bool IsNullOrEmpty(ResourceRefList resourceRefList)
+    public static ResourceRefList Parse(string? value)
     {
-        return resourceRefList.Type.IsEmpty() || resourceRefList.Names.Count == 0;
-    }
-
-    public static ResourceRefList Parse(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
+        if (value is null)
             return Empty;
 
-        var parts = value.Split(';', StringSplitOptions.TrimEntries);
-        if (parts.Length == 0 || string.IsNullOrEmpty(parts[0]))
+        var values = value.Split(';', StringSplitOptions.None);
+        if (values.Length == 0)
             return Empty;
 
-        var type = uint.TryParse(parts[0], out var parsedType) ? new StringHash(parsedType) : new StringHash(parts[0]);
-        if (parts.Length == 1)
-            return new ResourceRefList(type);
-
-        return new ResourceRefList(type, parts[1..].Where(static name => !string.IsNullOrEmpty(name)));
+        var result = new ResourceRefList(new StringHash(values[0]));
+        for (var i = 1; i < values.Length; ++i)
+            result.Names.Add(values[i]);
+        return result;
     }
+
+    public readonly ResourceRefList Clone() => new(Type, Names);
+
+    readonly object ICloneable.Clone() => Clone();
 
     public uint ToHash()
     {
@@ -76,6 +74,10 @@ public struct ResourceRefList : IEquatable<ResourceRefList>
     public override bool Equals(object? obj) => obj is ResourceRefList other && Equals(other);
 
     public override int GetHashCode() => unchecked((int)ToHash());
+
+    public static bool operator ==(ResourceRefList left, ResourceRefList right) => left.Equals(right);
+
+    public static bool operator !=(ResourceRefList left, ResourceRefList right) => !left.Equals(right);
 
     public override string ToString() => $"{Type.Reverse()};{string.Join(';', Names)}";
 
