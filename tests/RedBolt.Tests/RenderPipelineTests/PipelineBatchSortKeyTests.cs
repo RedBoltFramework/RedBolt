@@ -116,7 +116,7 @@ public sealed class PipelineBatchSortKeyTests
     public void Batch_group_copy_preserves_borrowed_batch_view_and_copies_scalar_state()
     {
         var batch = new PipelineBatch();
-        var storage = new[] { new PipelineBatchByState { PipelineBatch = batch } };
+        var storage = new List<PipelineBatchByState> { new() { PipelineBatch = batch } };
         var group = new PipelineBatchGroup<PipelineBatchByState>
         {
             Batches = storage,
@@ -126,13 +126,17 @@ public sealed class PipelineBatchSortKeyTests
 
         var copy = group;
         copy.StartInstance = 8;
-        storage[0].PrimaryKey = 7;
+        var storedBatch = storage[0];
+        storedBatch.PrimaryKey = 7;
+        storage[0] = storedBatch;
 
         Assert.Equal(4, group.StartInstance);
         Assert.Equal(8, copy.StartInstance);
-        Assert.Equal(7ul, group.Batches.Span[0].PrimaryKey);
-        Assert.Equal(7ul, copy.Batches.Span[0].PrimaryKey);
-        Assert.Same(batch, copy.Batches.Span[0].PipelineBatch);
+        Assert.Same(storage, group.Batches);
+        Assert.Same(storage, copy.Batches);
+        Assert.Equal(7ul, group.Batches![0].PrimaryKey);
+        Assert.Equal(7ul, copy.Batches![0].PrimaryKey);
+        Assert.Same(batch, copy.Batches[0].PipelineBatch);
         Assert.Equal(typeof(int), typeof(PipelineBatchGroup<PipelineBatchByState>)
             .GetField(nameof(PipelineBatchGroup<PipelineBatchByState>.StartInstance))!.FieldType);
         Assert.Equal(typeof(int), typeof(PipelineBatchGroup<PipelineBatchByState>)

@@ -156,7 +156,7 @@ public class BatchCompositorPass : DrawableProcessorPass
                 var lightProcessor = _drawableProcessor.GetLightProcessor(checked((uint)lightIndex));
                 if (lightProcessor is null)
                     continue;
-                var light = lightProcessor.GetLight();
+                var light = lightProcessor.Light;
 
                 // Combine first directional additive light with base pass, if possible
                 if (geometryBatch.LitBasePass is not null && litBaseLightIndex == int.MaxValue
@@ -166,7 +166,7 @@ public class BatchCompositorPass : DrawableProcessorPass
                     continue;
                 }
 
-                desc.InitializeLitBatch(lightProcessor, checked((uint)lightIndex), lightProcessor.GetForwardLitHash());
+                desc.InitializeLitBatch(lightProcessor, checked((uint)lightIndex), lightProcessor.ForwardLitHash);
 
                 if (light.IsNegative())
                     AddPipelineBatch(desc, _lightCache, NegativeLightBatches, _delayedNegativeLightBatches);
@@ -182,7 +182,7 @@ public class BatchCompositorPass : DrawableProcessorPass
         if (litBaseLightIndex != int.MaxValue)
         {
             var light = _drawableProcessor.GetLightProcessor(checked((uint)litBaseLightIndex))!;
-            desc.InitializeLitBatch(light, checked((uint)litBaseLightIndex), light.GetForwardLitHash());
+            desc.InitializeLitBatch(light, checked((uint)litBaseLightIndex), light.ForwardLitHash);
             desc.Pass = geometryBatch.LitBasePass;
             AddPipelineBatch(desc, _litBaseCache, BaseBatches, _delayedLitBaseBatches);
         }
@@ -349,8 +349,8 @@ public class BatchCompositor : Object
             var lightProcessor = lightProcessors[(int)lightIndex];
             if (lightProcessor is null)
                 continue;
-            var numSplits = lightProcessor.GetNumSplits();
-            for (var splitIndex = 0u; splitIndex < numSplits; ++splitIndex)
+            var numSplits = lightProcessor.NumSplits;
+            for (var splitIndex = 0; splitIndex < numSplits; ++splitIndex)
             {
                 var capturedLightIndex = lightIndex;
                 var split = lightProcessor.GetMutableSplit(splitIndex);
@@ -389,13 +389,13 @@ public class BatchCompositor : Object
         for (var lightIndex = 0u; lightIndex < (uint)lightProcessors.Count; ++lightIndex)
         {
             var lightProcessor = lightProcessors[(int)lightIndex];
-            if (lightProcessor is null || !lightProcessor.HasLitGeometries())
+            if (lightProcessor is null || !lightProcessor.HasLitGeometries)
                 continue;
 
-            var light = lightProcessor.GetLight();
+            var light = lightProcessor.Light;
 
             var desc = new PipelineBatchDesc();
-            desc.InitializeLitBatch(lightProcessor, lightIndex, lightProcessor.GetLightVolumeHash());
+            desc.InitializeLitBatch(lightProcessor, lightIndex, lightProcessor.LightVolumeHash);
             desc.DrawableHash = 0;
             desc.SourceBatchIndex = uint.MaxValue;
             desc.GeometryType = GeometryType.StaticNoInstancing;
@@ -488,13 +488,13 @@ public class BatchCompositor : Object
     /// <summary>Safe to call from worker thread.</summary>
     protected void BeginShadowBatchesComposition(uint lightIndex, ShadowSplitProcessor splitProcessor)
     {
-        var lightProcessor = splitProcessor.GetLightProcessor();
-        var lightHash = lightProcessor.GetShadowHash(splitProcessor.GetSplitIndex());
+        var lightProcessor = splitProcessor.LightProcessor;
+        var lightHash = lightProcessor.GetShadowHash(splitProcessor.SplitIndex);
 
         var threadIndex = WorkQueue.GetThreadIndex();
-        var shadowCasters = splitProcessor.GetShadowCasters();
-        var shadowBatches = splitProcessor.GetMutableUnsortedShadowBatches();
-        var lightMask = splitProcessor.GetLight().GetLightMask();
+        var shadowCasters = splitProcessor.ShadowCasters;
+        var shadowBatches = splitProcessor.MutableUnsortedShadowBatches;
+        var lightMask = splitProcessor.Light.GetLightMask();
 
         foreach (var drawable in shadowCasters)
         {
@@ -558,13 +558,13 @@ public class BatchCompositor : Object
 
         foreach (var (split, desc) in _delayedShadowBatches)
         {
-            ctx = new BatchStateCreateContext(this, ShadowSubpass, split.GetSplitIndex());
+            ctx = new BatchStateCreateContext(this, ShadowSubpass, checked((uint)split.SplitIndex));
             var pipelineState = _shadowCache.GetOrCreatePipelineState(desc.GetKey(), ctx, _batchStateCacheCallback);
             if (pipelineState is not null && pipelineState.IsValid)
             {
                 var pipelineBatch = CopyBatch(desc);
                 pipelineBatch.PipelineState = pipelineState;
-                split.GetMutableUnsortedShadowBatches().Add(pipelineBatch);
+                split.MutableUnsortedShadowBatches.Add(pipelineBatch);
             }
         }
 
@@ -575,8 +575,8 @@ public class BatchCompositor : Object
             var lightProcessor = lightProcessors[(int)lightIndex];
             if (lightProcessor is null)
                 continue;
-            var numSplits = lightProcessor.GetNumSplits();
-            for (var splitIndex = 0u; splitIndex < numSplits; ++splitIndex)
+            var numSplits = lightProcessor.NumSplits;
+            for (var splitIndex = 0; splitIndex < numSplits; ++splitIndex)
             {
                 var split = lightProcessor.GetMutableSplit(splitIndex);
                 if (_workQueue is not null)

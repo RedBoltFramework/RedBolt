@@ -50,8 +50,8 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
 
         var caps = _renderDevice.GetCaps();
 
-        var light = key.PixelLight?.GetLight();
-        var hasShadow = key.PixelLight is not null && key.PixelLight.HasShadow();
+        var light = key.PixelLight?.Light;
+        var hasShadow = key.PixelLight is not null && key.PixelLight.HasShadow;
 
         var batchCompositorPass = _sceneProcessor.GetUserPass(ctx.Pass);
         var isShadowPass = batchCompositorPass is null && ctx.SubpassIndex == BatchCompositor.ShadowSubpass;
@@ -269,9 +269,9 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
             return;
 
         var settings = _shadowMapAllocator.Settings;
-        ref readonly var lightParams = ref lightProcessor.GetParams();
-        var biasMultiplier = lightParams.ShadowDepthBiasMultiplier![splitIndex] * settings.DepthBiasScale;
-        var biasParameters = lightProcessor.GetLight().GetShadowBias();
+        ref readonly var lightParams = ref lightProcessor.Params;
+        var biasMultiplier = lightParams.ShadowDepthBiasMultiplier[checked((int)splitIndex)] * settings.DepthBiasScale;
+        var biasParameters = lightProcessor.Light.GetShadowBias();
 
         _pipelineStateDesc.DebugName = $"Shadow Pass for material '{material.Name}'";
 
@@ -297,14 +297,14 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
 
     private void SetupLightVolumePassState(LightProcessor lightProcessor)
     {
-        var light = lightProcessor.GetLight();
+        var light = lightProcessor.Light;
         _pipelineStateDesc.DebugName = "Light Volume Pass";
         _pipelineStateDesc.ColorWriteEnabled = true;
         _pipelineStateDesc.BlendMode = light.IsNegative() ? BlendMode.Subtract : BlendMode.Add;
 
         if (light.GetLightType() != LightType.Directional)
         {
-            if (lightProcessor.DoesOverlapCamera())
+            if (lightProcessor.DoesOverlapCamera)
             {
                 _pipelineStateDesc.CullMode = GetEffectiveCullMode(CullMode.Clockwise, _cameraProcessor!.IsCameraReversed());
                 _pipelineStateDesc.DepthCompareFunction = CompareMode.Greater;
@@ -357,7 +357,7 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
 
     private void SetupLightSamplers(LightProcessor? lightProcessor)
     {
-        var light = lightProcessor?.GetLight();
+        var light = lightProcessor?.Light;
         if (light is not null)
         {
             if (light.GetRampTexture() is { } rampTexture)
@@ -365,7 +365,7 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
             if (light.GetShapeTexture() is { } shapeTexture)
                 _pipelineStateDesc.Samplers.Add(ShaderResources.LightShape, shapeTexture.GetSamplerStateDesc());
         }
-        if (lightProcessor is not null && lightProcessor.HasShadow() && _shadowMapAllocator is not null)
+        if (lightProcessor is not null && lightProcessor.HasShadow && _shadowMapAllocator is not null)
             _pipelineStateDesc.Samplers.Add(ShaderResources.ShadowMap, _shadowMapAllocator.SamplerStateDesc);
     }
 

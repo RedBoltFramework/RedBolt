@@ -342,12 +342,12 @@ public readonly record struct ShadowMapRegion(uint PageIndex, Texture2D? Texture
     /// <summary>
     /// Return shadow map region for one split.
     /// </summary>
-    public ShadowMapRegion GetSplit(uint split, Vector2i numSplits)
+    public ShadowMapRegion GetSplit(int split, Vector2i numSplits)
     {
         var splitSize = new Vector2i(Rect.Width / numSplits.X, Rect.Height / numSplits.Y);
         System.Diagnostics.Debug.Assert(splitSize.X * numSplits.X == Rect.Width);
         System.Diagnostics.Debug.Assert(splitSize.Y * numSplits.Y == Rect.Height);
-        var splitIndex = new Vector2i((int)(split % (uint)numSplits.X), (int)(split / (uint)numSplits.X));
+        var splitIndex = new Vector2i(split % numSplits.X, split / numSplits.X);
         var splitBegin = Rect.Min + splitIndex * splitSize;
         return this with { Rect = new IntRect(splitBegin, splitBegin + splitSize) };
     }
@@ -399,7 +399,7 @@ public interface LightProcessorCallback
     /// <summary>
     /// Return best shadow map size for given light. Should be safe to call from multiple threads.
     /// </summary>
-    uint GetShadowMapSize(Light light, uint numActiveSplits);
+    int GetShadowMapSize(Light light, int numActiveSplits);
 
     /// <summary>
     /// Allocate shadow map for one frame.

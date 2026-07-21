@@ -276,8 +276,8 @@ public class SceneProcessor : Object, LightProcessorCallback
         {
             if (sceneLight is null)
                 continue;
-            foreach (var split in sceneLight.GetMutableSplits())
-                BatchRenderer.PrepareInstancingBuffer(ref split.GetMutableShadowBatches());
+            foreach (var split in sceneLight.MutableSplits)
+                BatchRenderer.PrepareInstancingBuffer(ref split.MutableShadowBatches);
         }
 
         foreach (var pass in Passes)
@@ -304,21 +304,21 @@ public class SceneProcessor : Object, LightProcessorCallback
             if (sceneLight is null)
                 continue;
             using var renderScopeLight = new RenderScope(RenderContext, "Light 0x{0} '{1}'",
-                sceneLight.GetLight().GetHashCode(), sceneLight.GetLight().Node?.Name ?? string.Empty);
+                sceneLight.Light.GetHashCode(), sceneLight.Light.Node?.Name ?? string.Empty);
 
-            foreach (var split in sceneLight.GetSplits())
+            foreach (var split in sceneLight.Splits)
             {
-                using var renderScopeSplit = new RenderScope(RenderContext, "Split #{0}", split.GetSplitIndex());
+                using var renderScopeSplit = new RenderScope(RenderContext, "Split #{0}", checked((uint)split.SplitIndex));
 
                 if (RenderPipelineDebugger.IsSnapshotInProgress(Debugger))
                 {
-                    var passName = $"ShadowMap.[{split.GetLight().GetFullNameDebug()}].{split.GetSplitIndex()}";
+                    var passName = $"ShadowMap.[{split.Light.GetFullNameDebug()}].{split.SplitIndex}";
                     Debugger!.BeginPass(passName);
                 }
 
                 DrawQueue.Reset();
-                BatchRenderer.RenderBatches(new BatchRenderingContext(DrawQueue, split), split.GetShadowBatches());
-                ShadowMapAllocator?.BeginShadowMapRendering(split.GetShadowMap());
+                BatchRenderer.RenderBatches(new BatchRenderingContext(DrawQueue, split), split.ShadowBatches);
+                ShadowMapAllocator?.BeginShadowMapRendering(split.ShadowMap);
                 RenderContext.Execute(DrawQueue);
 
                 if (RenderPipelineDebugger.IsSnapshotInProgress(Debugger))
@@ -537,7 +537,7 @@ public class SceneProcessor : Object, LightProcessorCallback
         return true;
     }
 
-    public uint GetShadowMapSize(Light light, uint numActiveSplits)
+    public int GetShadowMapSize(Light light, int numActiveSplits)
     {
         _ = numActiveSplits;
         var parameters = light.GetShadowFocus();
@@ -549,7 +549,7 @@ public class SceneProcessor : Object, LightProcessorCallback
         var baseShadowSize = parameters.AutoSize ? lightSizeInPixels : maxShadowSize;
         var shadowSize = MathDefs.NextPowerOfTwo((uint)(baseShadowSize * shadowResolutionScale));
 
-        return Math.Clamp(shadowSize, (uint)ShadowMinPixels, maxShadowSize);
+        return checked((int)Math.Clamp(shadowSize, (uint)ShadowMinPixels, maxShadowSize));
     }
 
     public ShadowMapRegion AllocateTransientShadowMap(Vector2i size) =>

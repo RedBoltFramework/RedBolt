@@ -442,8 +442,8 @@ public class DrawableProcessor : Object
         {
             if (lightProcessor is null)
                 continue;
-            lightProcessor.EndUpdate(this, callback, _settings.PcfKernelSize);
-            if (lightProcessor.HasShadow())
+            lightProcessor.EndUpdate(this, callback, checked((int)_settings.PcfKernelSize));
+            if (lightProcessor.HasShadow)
                 ++_numShadowedLights;
         }
 
@@ -458,9 +458,9 @@ public class DrawableProcessor : Object
         for (var i = 0; i < _lightProcessors.Count; ++i)
         {
             var lightProcessor = _lightProcessors[i];
-            if (lightProcessor is not null && lightProcessor.HasForwardLitGeometries())
+            if (lightProcessor is not null && lightProcessor.HasForwardLitGeometries)
             {
-                ProcessForwardLightingForLight((uint)i, lightProcessor.GetLitGeometries());
+                ProcessForwardLightingForLight((uint)i, lightProcessor.LitGeometries);
                 hasForwardLights = true;
             }
         }
@@ -515,7 +515,7 @@ public class DrawableProcessor : Object
 
         var lightType = light.GetLightType();
         var lightIntensityPenalty = 1.0f / light.GetIntensityDivisor();
-        var hasShadow = _lightProcessors[(int)lightIndex]?.HasShadow() == true;
+        var hasShadow = _lightProcessors[(int)lightIndex]?.HasShadow == true;
         var isNegative = light.IsNegative();
         var lightImportance = hasShadow ? LightImportance.Important : light.GetLightImportance();
 
@@ -570,13 +570,13 @@ public class DrawableProcessor : Object
         {
             if (lhs is null || rhs is null)
                 return 0;
-            var lhsSize = lhs.GetShadowMapSize();
-            var rhsSize = rhs.GetShadowMapSize();
+            var lhsSize = lhs.ShadowMapSize;
+            var rhsSize = rhs.ShadowMapSize;
             var lhsLen = (long)lhsSize.X * lhsSize.X + (long)lhsSize.Y * lhsSize.Y;
             var rhsLen = (long)rhsSize.X * rhsSize.X + (long)rhsSize.Y * rhsSize.Y;
             if (lhsLen != rhsLen)
                 return rhsLen.CompareTo(lhsLen);
-            return lhs.GetLight().Id.CompareTo(rhs.GetLight().Id);
+            return lhs.Light.Id.CompareTo(rhs.Light.Id);
         });
     }
 
@@ -588,7 +588,7 @@ public class DrawableProcessor : Object
         {
             if (lhs is null || rhs is null)
                 return 0;
-            return Comparer<Texture2D?>.Default.Compare(lhs.GetShadowMap().Texture, rhs.GetShadowMap().Texture);
+            return Comparer<Texture2D?>.Default.Compare(lhs.ShadowMap.Texture, rhs.ShadowMap.Texture);
         });
     }
 

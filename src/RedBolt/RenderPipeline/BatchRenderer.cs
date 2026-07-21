@@ -26,8 +26,7 @@ public sealed class BatchRenderingContext
     {
         DrawQueue = drawQueue ?? throw new ArgumentNullException(nameof(drawQueue));
         OutputShadowSplit = outputShadowSplit ?? throw new ArgumentNullException(nameof(outputShadowSplit));
-        Camera = outputShadowSplit.GetShadowCamera()
-            ?? throw new InvalidOperationException("Shadow split has no camera.");
+        Camera = outputShadowSplit.ShadowCamera;
     }
 }
 
@@ -56,15 +55,21 @@ public class BatchRenderer : Object
     public void RenderBatches(BatchRenderingContext ctx, PipelineBatchGroup<PipelineBatchByState> batchGroup)
     {
         batchGroup.Flags = AdjustRenderFlags(batchGroup.Flags);
+        ReadOnlySpan<PipelineBatchByState> batches = batchGroup.Batches is not null
+            ? CollectionsMarshal.AsSpan(batchGroup.Batches)
+            : [];
         RunCompositor(ctx, batchGroup.Flags, batchGroup.StartInstance, batchGroup.StartInstance + batchGroup.NumInstances,
-            batchGroup.Batches.Span, static b => b.PipelineBatch, lightVolume: false);
+            batches, static b => b.PipelineBatch, lightVolume: false);
     }
 
     public void RenderBatches(BatchRenderingContext ctx, PipelineBatchGroup<PipelineBatchBackToFront> batchGroup)
     {
         batchGroup.Flags = AdjustRenderFlags(batchGroup.Flags);
+        ReadOnlySpan<PipelineBatchBackToFront> batches = batchGroup.Batches is not null
+            ? CollectionsMarshal.AsSpan(batchGroup.Batches)
+            : [];
         RunCompositor(ctx, batchGroup.Flags, batchGroup.StartInstance, batchGroup.StartInstance + batchGroup.NumInstances,
-            batchGroup.Batches.Span, static b => b.PipelineBatch, lightVolume: false);
+            batches, static b => b.PipelineBatch, lightVolume: false);
     }
 
     public void RenderLightVolumeBatches(BatchRenderingContext ctx, ReadOnlySpan<PipelineBatchByState> batches)
@@ -116,7 +121,9 @@ public class BatchRenderer : Object
             return;
 
         batches.StartInstance = _instancingBuffer.NextInstanceIndex;
-        foreach (var sortedBatch in batches.Batches.Span)
+        if (batches.Batches is null)
+            return;
+        foreach (var sortedBatch in batches.Batches)
         {
             PipelineBatch? pipelineBatch = sortedBatch switch
             {

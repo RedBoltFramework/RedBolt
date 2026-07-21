@@ -6,12 +6,12 @@ namespace RedBolt;
 /// Directions lights have one split per cascade.
 /// Point lights always have six splits.
 /// </summary>
-public class ShadowSplitProcessor
+public class ShadowSplitProcessor : IDisposable
 {
     /// <summary>Immutable.</summary>
     private readonly LightProcessor _lightProcessor;
-    private readonly Light _light;
-    private readonly uint _splitIndex;
+    private readonly WeakReference<Light> _light;
+    private readonly int _splitIndex;
     private readonly RenderBackend _renderBackend;
 
     /// <summary>Internal cached objects.</summary>
@@ -30,19 +30,19 @@ public class ShadowSplitProcessor
 
     private ShadowMapRegion _shadowMap;
     private float _shadowMapWorldSpaceTexelSize;
-    private uint _shadowMapPadding;
+    private int _shadowMapPadding;
 
     /// <summary>Shadow casters.</summary>
     private readonly List<PipelineBatch> _unsortedShadowBatches = [];
     private readonly List<PipelineBatchByState> _sortedShadowBatches = [];
     private PipelineBatchGroup<PipelineBatchByState> _shadowBatches;
 
-    public ShadowSplitProcessor(LightProcessor owner, uint splitIndex)
+    public ShadowSplitProcessor(LightProcessor owner, int splitIndex)
     {
-        _lightProcessor = owner ?? throw new ArgumentNullException(nameof(owner));
-        _light = owner.GetLight();
+        _lightProcessor = owner;
+        _light = new WeakReference<Light>(owner.Light);
         _splitIndex = splitIndex;
-        _renderBackend = _light.GetSubsystem<Graphics>()?.GetRenderBackend() ?? default;
+        _renderBackend = Light.GetSubsystem<Graphics>()!.GetRenderBackend();
         _shadowScene = new Scene();
         _shadowCameraNode = _shadowScene.CreateChild("ShadowCamera", temporary: true);
         _shadowCamera = _shadowCameraNode.CreateComponent<Camera>();
@@ -50,9 +50,11 @@ public class ShadowSplitProcessor
 
     public void Dispose()
     {
-        _shadowCasters.Clear();
-        _unsortedShadowBatches.Clear();
+        _shadowBatches = default;
         _sortedShadowBatches.Clear();
+        _unsortedShadowBatches.Clear();
+        _shadowMap = default;
+        _shadowCasters.Clear();
         _shadowScene.Dispose();
     }
 
@@ -61,7 +63,7 @@ public class ShadowSplitProcessor
         FloatRange splitRange, IReadOnlyList<Drawable> litGeometries)
     {
         var cullCamera = drawableProcessor.GetFrameInfo().Camera!;
-        var focusParameters = _light.GetShadowFocus();
+        var focusParameters = Light.GetShadowFocus();
 
         // Initialize split Z ranges
         _cascadeZRange = splitRange;
@@ -80,12 +82,12 @@ public class ShadowSplitProcessor
 
     public void InitializeSpot()
     {
-        var lightNode = _light.Node!;
+        var lightNode = Light.Node!;
         _shadowCameraNode.SetTransform(lightNode.GetWorldPosition(), lightNode.GetWorldRotation());
-        _shadowCamera.SetNearClip(_light.GetShadowNearFarRatio() * _light.GetRange());
-        _shadowCamera.SetFarClip(_light.GetRange());
-        _shadowCamera.SetFov(_light.GetFov());
-        _shadowCamera.SetAspectRatio(_light.GetAspectRatio());
+        _shadowCamera.SetNearClip(Light.GetShadowNearFarRatio() * Light.GetRange());
+        _shadowCamera.SetFarClip(Light.GetRange());
+        _shadowCamera.SetFov(Light.GetFov());
+        _shadowCamera.SetAspectRatio(Light.GetAspectRatio());
         _shadowCamera.SetOrthographic(false);
         _shadowCamera.SetZoom(1.0f);
     }
@@ -93,7 +95,7 @@ public class ShadowSplitProcessor
     public void InitializePoint(CubeMapFace face)
     {
         // When making a shadowed point light, align the splits along X, Y and Z axes regardless of light rotation
-        _shadowCameraNode.SetPosition(_light.Node!.GetWorldPosition());
+        _shadowCameraNode.SetPosition(Light.Node!.GetWorldPosition());
         _shadowCameraNode.SetDirection(face switch
         {
             CubeMapFace.PositiveX => Vector3f.Right,
@@ -103,8 +105,8 @@ public class ShadowSplitProcessor
             CubeMapFace.PositiveZ => Vector3f.Forward,
             _ => Vector3f.Back
         });
-        _shadowCamera.SetNearClip(_light.GetShadowNearFarRatio() * _light.GetRange());
-        _shadowCamera.SetFarClip(_light.GetRange());
+        _shadowCamera.SetNearClip(Light.GetShadowNearFarRatio() * Light.GetRange());
+        _shadowCamera.SetFarClip(Light.GetRange());
         _shadowCamera.SetFov(90.0f);
         _shadowCamera.SetAspectRatio(1.0f);
         _shadowCamera.SetOrthographic(false);
@@ -129,12 +131,12 @@ public class ShadowSplitProcessor
         var octree = frameInfo.Octree!;
 
         var query = new DirectionalLightShadowCasterQuery(
-            shadowCastersBuffer, _shadowCamera.GetFrustum(), DrawableFlags.Geometry, _light,
+            shadowCastersBuffer, _shadowCamera.GetFrustum(), DrawableFlags.Geometry, Light,
             cullCamera.GetShadowViewMask());
         octree.GetDrawables(query);
 
         // Preprocess shadow casters
-        drawableProcessor.PreprocessShadowCasters(_shadowCasters, shadowCastersBuffer, _cascadeZRange, _light, _shadowCamera);
+        drawableProcessor.PreprocessShadowCasters(_shadowCasters, shadowCastersBuffer, _cascadeZRange, Light, _shadowCamera);
     }
 
     public void ProcessSpotShadowCasters(
@@ -145,7 +147,7 @@ public class ShadowSplitProcessor
         _sortedShadowBatches.Clear();
 
         // Preprocess shadow casters
-        drawableProcessor.PreprocessShadowCasters(_shadowCasters, shadowCasterCandidates, default, _light, _shadowCamera);
+        drawableProcessor.PreprocessShadowCasters(_shadowCasters, shadowCasterCandidates, default, Light, _shadowCamera);
     }
 
     public void ProcessPointShadowCasters(
@@ -164,15 +166,15 @@ public class ShadowSplitProcessor
             return;
 
         // Preprocess shadow casters
-        drawableProcessor.PreprocessShadowCasters(_shadowCasters, shadowCasterCandidates, default, _light, _shadowCamera);
+        drawableProcessor.PreprocessShadowCasters(_shadowCasters, shadowCasterCandidates, default, Light, _shadowCamera);
     }
 
-    public void FinalizeShadow(ShadowMapRegion shadowMap, uint pcfKernelSize)
+    public void FinalizeShadow(ShadowMapRegion shadowMap, int pcfKernelSize)
     {
         _shadowMap = shadowMap;
 
         var shadowMapWidth = (float)_shadowMap.Rect.Width;
-        var lightType = _light.GetLightType();
+        var lightType = Light.GetLightType();
 
         if (lightType == LightType.Directional)
         {
@@ -186,7 +188,7 @@ public class ShadowSplitProcessor
             AdjustDirectionalLightCamera(shadowBox, shadowMapWidth);
         }
 
-        _shadowMapPadding = Math.Min(4u, 1 + pcfKernelSize / 2);
+        _shadowMapPadding = Math.Min(4, 1 + pcfKernelSize / 2);
         var effectiveShadowMapWidth = shadowMapWidth - 2.0f * _shadowMapPadding;
         _shadowCamera.SetZoom(effectiveShadowMapWidth / shadowMapWidth);
 
@@ -201,22 +203,29 @@ public class ShadowSplitProcessor
         _sortedShadowBatches.Sort();
         _shadowBatches = new PipelineBatchGroup<PipelineBatchByState>
         {
-            Batches = _sortedShadowBatches.ToArray(),
+            Batches = _sortedShadowBatches,
             Flags = BatchRenderFlag.EnableInstancingForStaticGeometry | BatchRenderFlag.DisableColorOutput
         };
     }
 
     /// <summary>Return immutable.</summary>
-    public LightProcessor GetLightProcessor() => _lightProcessor;
+    public LightProcessor LightProcessor => _lightProcessor;
 
-    public Light GetLight() => _light;
+    public Light Light
+    {
+        get
+        {
+            _light.TryGetTarget(out var light);
+            return light!;
+        }
+    }
 
-    public uint GetSplitIndex() => _splitIndex;
+    public int SplitIndex => _splitIndex;
 
     /// <summary>Return values are valid after shadow casters are processed.</summary>
-    public IReadOnlyList<Drawable> GetShadowCasters() => _shadowCasters;
+    public IReadOnlyList<Drawable> ShadowCasters => _shadowCasters;
 
-    public bool HasShadowCasters() => _shadowCasters.Count > 0;
+    public bool HasShadowCasters => _shadowCasters.Count > 0;
 
     /// <summary>Return values are valid after shadow map is finalized.</summary>
     public Matrix4 GetWorldToShadowSpaceMatrix(float subPixelOffset)
@@ -265,26 +274,26 @@ public class ShadowSplitProcessor
         return texAdjust * shadowProj * shadowView.Matrix4;
     }
 
-    public ShadowMapRegion GetShadowMap() => _shadowMap;
+    public ref readonly ShadowMapRegion ShadowMap => ref _shadowMap;
 
-    public float GetShadowMapTexelSizeInWorldSpace() => _shadowMapWorldSpaceTexelSize;
+    public float ShadowMapTexelSizeInWorldSpace => _shadowMapWorldSpaceTexelSize;
 
-    public uint GetShadowMapPadding() => _shadowMapPadding;
+    public int ShadowMapPadding => _shadowMapPadding;
 
-    public FloatRange GetCascadeZRange() => _cascadeZRange;
+    public ref readonly FloatRange CascadeZRange => ref _cascadeZRange;
 
-    public Camera GetShadowCamera() => _shadowCamera;
+    public Camera ShadowCamera => _shadowCamera;
 
-    public List<PipelineBatch> GetMutableUnsortedShadowBatches() => _unsortedShadowBatches;
+    public List<PipelineBatch> MutableUnsortedShadowBatches => _unsortedShadowBatches;
 
-    public ref PipelineBatchGroup<PipelineBatchByState> GetMutableShadowBatches() => ref _shadowBatches;
+    public ref PipelineBatchGroup<PipelineBatchByState> MutableShadowBatches => ref _shadowBatches;
 
-    public PipelineBatchGroup<PipelineBatchByState> GetShadowBatches() => _shadowBatches;
+    public ref readonly PipelineBatchGroup<PipelineBatchByState> ShadowBatches => ref _shadowBatches;
 
     private void InitializeBaseDirectionalCamera(Camera cullCamera)
     {
-        var lightNode = _light.Node!;
-        var extrusionDistance = Math.Min(cullCamera.GetFarClip(), _light.GetShadowMaxExtrusion());
+        var lightNode = Light.Node!;
+        var extrusionDistance = Math.Min(cullCamera.GetFarClip(), Light.GetShadowMaxExtrusion());
 
         var position = cullCamera.Node!.GetWorldPosition() - extrusionDistance * lightNode.GetWorldDirection();
         _shadowCameraNode.SetTransform(position, lightNode.GetWorldRotation());
@@ -313,7 +322,7 @@ public class ShadowSplitProcessor
         DrawableProcessor drawableProcessor, IReadOnlyList<Drawable> litGeometries)
     {
         var cullCamera = drawableProcessor.GetFrameInfo().Camera!;
-        var focusParameters = _light.GetShadowFocus();
+        var focusParameters = Light.GetShadowFocus();
         var splitFrustum = cullCamera.GetSplitFrustum(_focusedCascadeZRange.First, _focusedCascadeZRange.Second);
 
         var frustumVolume = new Polyhedron();
@@ -352,7 +361,7 @@ public class ShadowSplitProcessor
 
     private void AdjustDirectionalLightCamera(BoundingBox lightSpaceBoundingBox, float shadowMapSize)
     {
-        var focusParameters = _light.GetShadowFocus();
+        var focusParameters = Light.GetShadowFocus();
 
         // Evaluate shadow split rectangle in light space
         var lightSpaceRect = new Rect(lightSpaceBoundingBox.Min.ToVector2(), lightSpaceBoundingBox.Max.ToVector2());

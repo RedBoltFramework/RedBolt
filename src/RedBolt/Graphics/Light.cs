@@ -126,7 +126,7 @@ public sealed class Light : Drawable
     public const float ShadowMinQuantize = 0.1f;
     public const float ShadowMinView = 1.0f;
     public const int MaxLightSplits = 6;
-    public const uint MaxCascadeSplits = 4;
+    public const int MaxCascadeSplits = 4;
     public const float DefaultRange = 10.0f;
     public const float DefaultLightFov = 30.0f;
     public const float DefaultSpecularIntensity = 1.0f;

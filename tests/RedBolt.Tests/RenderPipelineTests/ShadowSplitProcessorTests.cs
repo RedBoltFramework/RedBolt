@@ -15,19 +15,59 @@ public sealed class ShadowSplitProcessorTests
     {
         using var scene = new Scene();
         var light = scene.CreateChild("Light").CreateComponent<Light>();
-        var processor = new LightProcessor(light);
+        using var processor = new LightProcessor(light);
 
-        try
-        {
-            ref readonly var parameters = ref processor.GetParams();
-            Assert.Equal(Matrix4.Identity, parameters.LightShapeMatrix);
-            Assert.All(parameters.LightMatrices, matrix => Assert.Equal(Matrix4.Identity, matrix));
-        }
-        finally
-        {
-            processor.Dispose();
-        }
+        ref readonly var parameters = ref processor.Params;
+        Assert.Equal(Matrix4.Identity, parameters.LightShapeMatrix);
+        for (var i = 0; i < Light.MaxCascadeSplits; ++i)
+            Assert.Equal(Matrix4.Identity, parameters.LightMatrices[i]);
     }
+
+    [Fact]
+    public void CookedLightParams_CopyHasIndependentInlineStorage()
+    {
+        var original = new CookedLightParams();
+        original.LightMatrices[0] = Matrix4.Identity;
+        original.ShadowNormalBias[0] = 2.0f;
+        original.ShadowDepthBiasMultiplier[0] = 3.0f;
+
+        var copy = original;
+        copy.LightMatrices[0] = Matrix4.Zero;
+        copy.ShadowNormalBias[0] = 5.0f;
+        copy.ShadowDepthBiasMultiplier[0] = 7.0f;
+
+        Assert.Equal(Matrix4.Identity, original.LightMatrices[0]);
+        Assert.Equal(2.0f, original.ShadowNormalBias[0]);
+        Assert.Equal(3.0f, original.ShadowDepthBiasMultiplier[0]);
+    }
+
+    [Fact]
+    public void LightProcessorCache_DoesNotKeepLightAlive()
+    {
+        using var cache = new LightProcessorCache();
+        var weakLight = AddTransientLight(cache);
+
+        for (var i = 0; i < 3 && IsAlive(weakLight); ++i)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+        }
+
+        Assert.False(IsAlive(weakLight));
+        cache.Update(1.0f);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static WeakReference<Light> AddTransientLight(LightProcessorCache cache)
+    {
+        var light = new Light();
+        cache.GetLightProcessor(light);
+        return new WeakReference<Light>(light);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static bool IsAlive(WeakReference<Light> light) => light.TryGetTarget(out _);
 
     [Fact]
     public void InitializeSpot_ConfiguresShadowCameraFromLight()
@@ -43,12 +83,12 @@ public sealed class ShadowSplitProcessorTests
         light.SetAspectRatio(1.5f);
         light.SetShadowNearFarRatio(0.01f);
 
-        var processor = new LightProcessor(light);
-        var split = new ShadowSplitProcessor(processor, 0);
+        using var processor = new LightProcessor(light);
+        using var split = new ShadowSplitProcessor(processor, 0);
 
         split.InitializeSpot();
 
-        var camera = split.GetShadowCamera();
+        var camera = split.ShadowCamera;
         Assert.False(camera.IsOrthographic());
         Assert.Equal(25.0f, camera.GetFarClip(), 0.001f);
         Assert.Equal(25.0f * 0.01f, camera.GetNearClip(), 0.001f);
@@ -68,11 +108,11 @@ public sealed class ShadowSplitProcessorTests
         light.SetLightType(LightType.Point);
         light.SetRange(10.0f);
 
-        var processor = new LightProcessor(light);
-        var split = new ShadowSplitProcessor(processor, (uint)CubeMapFace.PositiveX);
+        using var processor = new LightProcessor(light);
+        using var split = new ShadowSplitProcessor(processor, (int)CubeMapFace.PositiveX);
         split.InitializePoint(CubeMapFace.PositiveX);
 
-        var camera = split.GetShadowCamera();
+        var camera = split.ShadowCamera;
         Assert.Equal(90.0f, camera.GetFov(), 0.001f);
         Assert.Equal(1.0f, camera.GetAspectRatio(), 0.001f);
         Assert.False(camera.IsOrthographic());
@@ -87,15 +127,15 @@ public sealed class ShadowSplitProcessorTests
         using var scene = new Scene();
         var lightNode = scene.CreateChild("Light");
         var light = lightNode.CreateComponent<Light>();
-        var processor = new LightProcessor(light);
-        var split = new ShadowSplitProcessor(processor, 0);
+        using var processor = new LightProcessor(light);
+        using var split = new ShadowSplitProcessor(processor, 0);
 
         split.FinalizeShadowBatches();
 
-        var batches = split.GetShadowBatches();
+        ref readonly var batches = ref split.ShadowBatches;
         Assert.True((batches.Flags & BatchRenderFlag.DisableColorOutput) != 0);
         Assert.True((batches.Flags & BatchRenderFlag.EnableInstancingForStaticGeometry) != 0);
-        Assert.Equal(0, batches.Batches.Length);
+        Assert.Empty(batches.Batches!);
     }
 
     [Fact]

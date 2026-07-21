@@ -159,6 +159,7 @@ internal sealed class DrawCommandCompositor
 {
     public const uint VertexLightStride = 3;
     private const uint PortableLightMask = 0xff;
+    private static readonly CookedLightParams NullVertexLight;
 
     private readonly BatchRenderingContext _ctx;
     private readonly BatchRendererSettings _settings;
@@ -215,7 +216,7 @@ internal sealed class DrawCommandCompositor
     {
         if (pipelineBatch.PixelLightIndex >= (uint)_lights.Count)
             return;
-        var light = _lights[(int)pipelineBatch.PixelLightIndex]?.GetLight();
+        var light = _lights[(int)pipelineBatch.PixelLightIndex]?.Light;
         if (light is null)
             return;
         _lightVolumeHelpers.Transform = light.GetVolumeTransform(_ctx.Camera);
@@ -349,8 +350,8 @@ internal sealed class DrawCommandCompositor
             && _lights[(int)_current.PixelLightIndex] is not null;
         if (_current.PixelLightEnabled)
         {
-            ref readonly var params_ = ref _lights[(int)_current.PixelLightIndex]!.GetParams();
-            _current.PixelLightParams = params_;
+            _current.PixelLightProcessor = _lights[(int)_current.PixelLightIndex];
+            ref readonly var params_ = ref _current.PixelLightProcessor!.Params;
             _dirty.PixelLightTextures = !ReferenceEquals(_current.PixelLightRamp, params_.LightRamp)
                 || !ReferenceEquals(_current.PixelLightShape, params_.LightShape)
                 || !ReferenceEquals(_current.PixelLightShadowMap, params_.ShadowMap);
@@ -382,10 +383,13 @@ internal sealed class DrawCommandCompositor
 
         for (var i = 0; i < LightAccumulator.MaxVertexLights; ++i)
         {
-            CookedLightParams params_ = default;
             var lightIndex = _current.VertexLights[i];
-            if (lightIndex != int.MaxValue && lightIndex < _lights.Count && _lights[lightIndex] is { } lp)
-                params_ = lp.GetParams();
+            var lightProcessor = lightIndex != int.MaxValue && lightIndex < _lights.Count
+                ? _lights[lightIndex]
+                : null;
+            ref readonly var params_ = ref (lightProcessor is not null
+                ? ref lightProcessor.Params
+                : ref NullVertexLight);
             var color = params_.GetColor(_enabled.LinearColorSpace);
             _vertexLightsData[i * VertexLightStride] = new Vector4f(color, params_.InverseRange);
             _vertexLightsData[i * VertexLightStride + 1] = new Vector4f(params_.Direction, params_.SpotCutoff);
@@ -437,7 +441,7 @@ internal sealed class DrawCommandCompositor
         {
             if (drawQueue.BeginShaderParameterGroup(ShaderParameterGroup.Light, false))
             {
-                AddPixelLightConstants(_ctx.OutputShadowSplit.GetLightProcessor()!.GetParams());
+                AddPixelLightConstants(_ctx.OutputShadowSplit.LightProcessor.Params);
                 drawQueue.CommitShaderParameterGroup(ShaderParameterGroup.Light);
             }
         }
@@ -449,7 +453,7 @@ internal sealed class DrawCommandCompositor
                 if (_enabled.VertexLighting)
                     AddVertexLightConstants();
                 if (_current.PixelLightEnabled)
-                    AddPixelLightConstants(_current.PixelLightParams);
+                    AddPixelLightConstants(_current.PixelLightProcessor!.Params);
                 drawQueue.CommitShaderParameterGroup(ShaderParameterGroup.Light);
             }
             _dirty.PixelLightConstants = false;
@@ -614,9 +618,9 @@ internal sealed class DrawCommandCompositor
 
         if (_ctx.OutputShadowSplit is not null)
         {
-            ref readonly var lightParams = ref _ctx.OutputShadowSplit.GetLightProcessor()!.GetParams();
+            ref readonly var lightParams = ref _ctx.OutputShadowSplit.LightProcessor.Params;
             drawQueue.AddShaderParameter(ShaderConsts.Camera_NormalOffsetScale,
-                lightParams.ShadowNormalBias![_ctx.OutputShadowSplit.GetSplitIndex()]);
+                lightParams.ShadowNormalBias[_ctx.OutputShadowSplit.SplitIndex]);
         }
 
         if (_enabled.ColorOutput)
@@ -682,8 +686,11 @@ internal sealed class DrawCommandCompositor
         if (params_.LightShape is not null)
             drawQueue.AddShaderParameter(ShaderConsts.Light_LightShapeMatrix, params_.LightShapeMatrix);
 
-        if (params_.NumLightMatrices > 0 && params_.LightMatrices is not null)
-            drawQueue.AddShaderParameter(ShaderConsts.Light_LightMatrices, params_.LightMatrices.AsSpan(0, (int)params_.NumLightMatrices));
+        if (params_.NumLightMatrices > 0)
+        {
+            ReadOnlySpan<Matrix4> lightMatrices = params_.LightMatrices;
+            drawQueue.AddShaderParameter(ShaderConsts.Light_LightMatrices, lightMatrices[..params_.NumLightMatrices]);
+        }
 
         if (params_.ShadowMap is not null)
         {
@@ -813,7 +820,7 @@ internal sealed class DrawCommandCompositor
         public float ReflectionProbesBlendFactor;
         public uint PixelLightIndex;
         public bool PixelLightEnabled;
-        public CookedLightParams PixelLightParams;
+        public LightProcessor? PixelLightProcessor;
         public Texture? PixelLightRamp;
         public Texture? PixelLightShape;
         public Texture2D? PixelLightShadowMap;

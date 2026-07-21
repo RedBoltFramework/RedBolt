@@ -146,7 +146,7 @@ public class OutlineScenePass : ScenePass
 
         _batchGroup = new PipelineBatchGroup<PipelineBatchByState>
         {
-            Batches = _sortedBatches.ToArray(),
+            Batches = _sortedBatches,
             Flags = BatchRenderFlag.EnableInstancingForStaticGeometry
         };
         if (LinearColorSpace)

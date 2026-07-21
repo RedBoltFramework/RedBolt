@@ -98,7 +98,7 @@ public struct PipelineBatchBackToFront : IComparable<PipelineBatchBackToFront>
 /// </summary>
 public struct PipelineBatchGroup<T>
 {
-    public ReadOnlyMemory<T> Batches;
+    public List<T>? Batches;
     public BatchRenderFlag Flags;
     public int StartInstance;
     public int NumInstances;

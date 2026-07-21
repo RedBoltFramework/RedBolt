@@ -85,15 +85,15 @@ public class UnorderedScenePass : ScenePass
 
         _deferredBatchGroup = new PipelineBatchGroup<PipelineBatchByState>
         {
-            Batches = _sortedDeferredBatches.ToArray()
+            Batches = _sortedDeferredBatches
         };
         _baseBatchGroup = new PipelineBatchGroup<PipelineBatchByState>
         {
-            Batches = _sortedBaseBatches.ToArray()
+            Batches = _sortedBaseBatches
         };
         _lightBatchGroup = new PipelineBatchGroup<PipelineBatchByState>
         {
-            Batches = _sortedLightBatches.ToArray()
+            Batches = _sortedLightBatches
         };
 
         if (!IsFlagSet(DrawableProcessorPassFlag.DisableInstancing))
@@ -226,7 +226,7 @@ public class BackToFrontScenePass : ScenePass
 
         _batchGroup = new PipelineBatchGroup<PipelineBatchBackToFront>
         {
-            Batches = _sortedBatches.ToArray()
+            Batches = _sortedBatches
         };
         if (IsFlagSet(DrawableProcessorPassFlag.HasAmbientLighting))
             _batchGroup.Flags |= BatchRenderFlag.EnableAmbientAndVertexLighting;

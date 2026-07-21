@@ -165,7 +165,7 @@ public sealed class RenderPipelineDebuggerTests
         var ctx = new BatchRenderingContext(drawQueue, camera);
         var emptyGroup = new PipelineBatchGroup<PipelineBatchByState>
         {
-            Batches = ReadOnlyMemory<PipelineBatchByState>.Empty
+            Batches = []
         };
         debugger.BeginSnapshot();
         batchRenderer.RenderBatches(ctx, emptyGroup);
