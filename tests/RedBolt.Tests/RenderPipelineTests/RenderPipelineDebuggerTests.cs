@@ -105,7 +105,7 @@ public sealed class RenderPipelineDebuggerTests
         Assert.Same(geometry, batch.Geometry);
         Assert.Same(material, batch.Material);
         Assert.Same(light, batch.Light);
-        Assert.Equal(0u, batch.SourceBatchIndex);
+        Assert.Equal(0, batch.SourceBatchIndex);
         Assert.Equal(12.5f, batch.Distance);
         Assert.True(batch.NewInstancingGroup);
         Assert.Equal(0u, batch.NumVertices);

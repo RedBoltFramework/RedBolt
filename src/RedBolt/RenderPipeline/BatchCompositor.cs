@@ -125,7 +125,7 @@ public class BatchCompositorPass : DrawableProcessorPass
     private void ProcessGeometryBatch(GeometryBatch geometryBatch)
     {
         // Skip invalid batches. It may happen if UpdateGeometry removed some source batches.
-        var desc = new PipelineBatchDesc(geometryBatch.Drawable!, geometryBatch.SourceBatchIndex,
+        var desc = new PipelineBatchDesc(geometryBatch.Drawable!, checked((int)geometryBatch.SourceBatchIndex),
             geometryBatch.DeferredPass, geometryBatch.UserData);
         if (desc.Geometry is null)
             return;
@@ -166,7 +166,7 @@ public class BatchCompositorPass : DrawableProcessorPass
                     continue;
                 }
 
-                desc.InitializeLitBatch(lightProcessor, checked((uint)lightIndex), lightProcessor.ForwardLitHash);
+                desc.InitializeLitBatch(lightProcessor, lightIndex, lightProcessor.ForwardLitHash);
 
                 if (light.IsNegative())
                     AddPipelineBatch(desc, _lightCache, NegativeLightBatches, _delayedNegativeLightBatches);
@@ -182,13 +182,13 @@ public class BatchCompositorPass : DrawableProcessorPass
         if (litBaseLightIndex != int.MaxValue)
         {
             var light = _drawableProcessor.GetLightProcessor(checked((uint)litBaseLightIndex))!;
-            desc.InitializeLitBatch(light, checked((uint)litBaseLightIndex), light.ForwardLitHash);
+            desc.InitializeLitBatch(light, litBaseLightIndex, light.ForwardLitHash);
             desc.Pass = geometryBatch.LitBasePass;
             AddPipelineBatch(desc, _litBaseCache, BaseBatches, _delayedLitBaseBatches);
         }
         else
         {
-            desc.InitializeLitBatch(null, uint.MaxValue, 0);
+            desc.InitializeLitBatch(null, int.MaxValue, 0);
             desc.Pass = geometryBatch.UnlitBasePass;
             AddPipelineBatch(desc, _unlitBaseCache, BaseBatches, _delayedUnlitBaseBatches);
         }
@@ -208,7 +208,7 @@ public class BatchCompositorPass : DrawableProcessorPass
             if (pipelineState is null)
                 continue;
 
-            var pipelineBatch = batches.Emplace(() => CopyBatch(desc));
+            ref var pipelineBatch = ref batches.Emplace(() => new PipelineBatch(desc));
             if (pipelineState.IsValid)
                 pipelineBatch.PipelineState = pipelineState;
             else if (GetPlaceholderPipelineState(cache, pipelineState) is { } placeholder)
@@ -230,7 +230,7 @@ public class BatchCompositorPass : DrawableProcessorPass
         var pipelineState = cache.GetPipelineState(desc.GetKey().LookupKey);
         if (pipelineState is not null && pipelineState.IsValid)
         {
-            var pipelineBatch = batches.Emplace(() => CopyBatch(desc));
+            ref var pipelineBatch = ref batches.Emplace(() => new PipelineBatch(desc));
             pipelineBatch.PipelineState = pipelineState;
         }
         else
@@ -250,21 +250,6 @@ public class BatchCompositorPass : DrawableProcessorPass
         return cache.GetOrCreatePlaceholderPipelineState(vertexSize, _batchStateCacheCallback);
     }
 
-    private static PipelineBatch CopyBatch(PipelineBatchDesc desc) => new()
-    {
-        Drawable = desc.Drawable,
-        Geometry = desc.Geometry,
-        Material = desc.Material,
-        PipelineState = desc.PipelineState,
-        UserData = desc.UserData,
-        DrawableIndex = desc.DrawableIndex,
-        PixelLightIndex = desc.PixelLightIndex,
-        VertexLightsHash = desc.VertexLightsHash,
-        SourceBatchIndex = desc.SourceBatchIndex,
-        LightmapIndex = desc.LightmapIndex,
-        Distance = desc.Distance,
-        GeometryType = desc.GeometryType
-    };
 }
 
 /// <summary>Batch composition manager.</summary>
@@ -400,9 +385,9 @@ public class BatchCompositor : Object
             var light = lightProcessor.Light;
 
             var desc = new PipelineBatchDesc();
-            desc.InitializeLitBatch(lightProcessor, checked((uint)lightIndex), lightProcessor.LightVolumeHash);
+            desc.InitializeLitBatch(lightProcessor, lightIndex, lightProcessor.LightVolumeHash);
             desc.DrawableHash = 0;
-            desc.SourceBatchIndex = uint.MaxValue;
+            desc.SourceBatchIndex = int.MaxValue;
             desc.GeometryType = GeometryType.StaticNoInstancing;
             desc.Geometry = _renderer.GetLightGeometry(light);
             desc.Material = light.IsNegative() ? _negativeLightVolumeMaterial : _lightVolumeMaterial;
@@ -416,7 +401,7 @@ public class BatchCompositor : Object
             var pipelineState = _lightVolumeCache.GetOrCreatePipelineState(desc.GetKey(), ctx, _batchStateCacheCallback);
             if (pipelineState is not null && pipelineState.IsValid)
             {
-                var pipelineBatch = CopyBatch(desc);
+                var pipelineBatch = new PipelineBatch(desc);
                 pipelineBatch.PipelineState = pipelineState;
                 _lightVolumeBatches.Add(pipelineBatch);
             }
@@ -533,22 +518,22 @@ public class BatchCompositor : Object
                 if (pass is null)
                     continue;
 
-                var desc = new PipelineBatchDesc(drawable, checked((uint)j), pass);
+                var desc = new PipelineBatchDesc(drawable, j, pass);
                 desc.Material = material;
-                desc.InitializeShadowBatch(lightProcessor, checked((uint)lightIndex), lightHash);
+                desc.InitializeShadowBatch(lightProcessor, lightIndex, lightHash);
 
                 var pipelineState = _shadowCache.GetPipelineState(desc.GetKey().LookupKey);
                 if (pipelineState is not null)
                 {
                     if (pipelineState.IsValid)
                     {
-                        var pipelineBatch = CopyBatch(desc);
+                        var pipelineBatch = new PipelineBatch(desc);
                         pipelineBatch.PipelineState = pipelineState;
                         shadowBatches.Add(pipelineBatch);
                     }
                 }
                 else
-                    _delayedShadowBatches.PushBack(threadIndex, (splitProcessor, (PipelineBatchDesc)desc.Clone()));
+                    _delayedShadowBatches.PushBack(threadIndex, (splitProcessor, desc));
             }
         }
     }
@@ -567,7 +552,7 @@ public class BatchCompositor : Object
             var pipelineState = _shadowCache.GetOrCreatePipelineState(desc.GetKey(), ctx, _batchStateCacheCallback);
             if (pipelineState is not null && pipelineState.IsValid)
             {
-                var pipelineBatch = CopyBatch(desc);
+                var pipelineBatch = new PipelineBatch(desc);
                 pipelineBatch.PipelineState = pipelineState;
                 split.MutableUnsortedShadowBatches.Add(pipelineBatch);
             }
@@ -596,19 +581,4 @@ public class BatchCompositor : Object
         _workQueue?.CompleteImmediateForThisThread();
     }
 
-    private static PipelineBatch CopyBatch(PipelineBatchDesc desc) => new()
-    {
-        Drawable = desc.Drawable,
-        Geometry = desc.Geometry,
-        Material = desc.Material,
-        PipelineState = desc.PipelineState,
-        UserData = desc.UserData,
-        DrawableIndex = desc.DrawableIndex,
-        PixelLightIndex = desc.PixelLightIndex,
-        VertexLightsHash = desc.VertexLightsHash,
-        SourceBatchIndex = desc.SourceBatchIndex,
-        LightmapIndex = desc.LightmapIndex,
-        Distance = desc.Distance,
-        GeometryType = desc.GeometryType
-    };
 }

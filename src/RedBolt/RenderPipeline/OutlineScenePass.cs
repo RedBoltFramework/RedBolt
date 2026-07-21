@@ -136,10 +136,15 @@ public class OutlineScenePass : ScenePass
 
     protected override void OnBatchesReady()
     {
-        foreach (var batch in DeferredBatches)
+        foreach (var batches in DeferredBatches.GetUnderlyingCollection())
         {
-            var outlineGroup = (OutlineGroup)batch.UserData!;
-            batch.Material = outlineGroup.GetOutlineMaterial(batch.Material!);
+            var span = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(batches);
+            for (var i = 0; i < span.Length; ++i)
+            {
+                ref var batch = ref span[i];
+                var outlineGroup = (OutlineGroup)batch.UserData!;
+                batch.Material = outlineGroup.GetOutlineMaterial(batch.Material!);
+            }
         }
 
         BatchCompositor.FillSortKeys(_sortedBatches, DeferredBatches);

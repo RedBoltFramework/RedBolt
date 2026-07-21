@@ -294,7 +294,7 @@ public readonly record struct BatchStateCreateKey(
     Pass Pass,
     Drawable? Drawable,
     LightProcessor? PixelLight,
-    uint PixelLightIndex)
+    int PixelLightIndex)
 {
     public BatchStateLookupKey LookupKey => new(DrawableHash, PixelLightHash, GeometryType, Geometry, Material, Pass);
 }

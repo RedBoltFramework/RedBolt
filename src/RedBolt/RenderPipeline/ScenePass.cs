@@ -186,7 +186,7 @@ public class BackToFrontScenePass : ScenePass
             if (float.IsFinite(sortedBatch.Distance))
                 continue;
 
-            var batch = sortedBatch.PipelineBatch!;
+            var batch = sortedBatch.PipelineBatch!.Value;
             Log.GetLogger().LogError("Drawable batch [{Drawable}].{Index} has NaN distance",
                 batch.Drawable?.GetFullNameDebug(), batch.SourceBatchIndex);
             sortedBatch.Distance = MathDefs.LargeValue;

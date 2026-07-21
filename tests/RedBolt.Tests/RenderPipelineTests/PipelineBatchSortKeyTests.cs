@@ -49,11 +49,13 @@ public sealed class PipelineBatchSortKeyTests
         expectedSecondary |= 17ul << (int)PipelineBatchByState.VertexLightsOffset;
         Assert.Equal(expectedPrimary, key.PrimaryKey);
         Assert.Equal(expectedSecondary, key.SecondaryKey);
-        Assert.Same(batch, key.PipelineBatch);
+        Assert.Equal(batch, key.PipelineBatch);
+        Assert.True(typeof(PipelineBatch).IsValueType);
+        Assert.True(typeof(PipelineBatchDesc).IsValueType);
     }
 
     [Fact]
-    public void State_sort_key_is_mutable_value_and_copy_preserves_borrowed_batch()
+    public void State_sort_key_and_pipeline_batch_are_mutable_values()
     {
         var batch = new PipelineBatch();
         var key = new PipelineBatchByState
@@ -68,7 +70,7 @@ public sealed class PipelineBatchSortKeyTests
 
         Assert.Equal(1ul, key.PrimaryKey);
         Assert.Equal(3ul, copy.PrimaryKey);
-        Assert.Same(batch, copy.PipelineBatch);
+        Assert.Equal(batch, copy.PipelineBatch);
         Assert.Equal(ulong.MaxValue,
             (PipelineBatchByState.PixelLightMask << (int)PipelineBatchByState.PixelLightOffset)
             | (PipelineBatchByState.LightmapMask << (int)PipelineBatchByState.LightmapOffset)
@@ -113,7 +115,7 @@ public sealed class PipelineBatchSortKeyTests
     }
 
     [Fact]
-    public void Batch_group_copy_preserves_borrowed_batch_view_and_copies_scalar_state()
+    public void Batch_group_copy_preserves_batch_storage_and_copies_scalar_state()
     {
         var batch = new PipelineBatch();
         var storage = new List<PipelineBatchByState> { new() { PipelineBatch = batch } };
@@ -136,7 +138,7 @@ public sealed class PipelineBatchSortKeyTests
         Assert.Same(storage, copy.Batches);
         Assert.Equal(7ul, group.Batches![0].PrimaryKey);
         Assert.Equal(7ul, copy.Batches![0].PrimaryKey);
-        Assert.Same(batch, copy.Batches[0].PipelineBatch);
+        Assert.Equal(batch, copy.Batches[0].PipelineBatch);
         Assert.Equal(typeof(int), typeof(PipelineBatchGroup<PipelineBatchByState>)
             .GetField(nameof(PipelineBatchGroup<PipelineBatchByState>.StartInstance))!.FieldType);
         Assert.Equal(typeof(int), typeof(PipelineBatchGroup<PipelineBatchByState>)

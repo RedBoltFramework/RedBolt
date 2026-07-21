@@ -3,91 +3,132 @@ namespace RedBolt;
 /// <summary>
 /// Self-sufficient batch that can be sorted and rendered by RenderPipeline.
 /// </summary>
-public class PipelineBatch : ICloneable
+public struct PipelineBatch
 {
-    public Drawable? Drawable;
-    public Geometry? Geometry;
-    public Material? Material;
-    public PipelineState? PipelineState;
-    public object? UserData;
-    public uint DrawableIndex;
-    public uint PixelLightIndex = uint.MaxValue;
-    public uint VertexLightsHash;
-    public uint SourceBatchIndex;
-    public uint LightmapIndex;
-    public float Distance;
-    public GeometryType GeometryType;
+    public Drawable? Drawable { get; set; }
+    public Geometry? Geometry { get; set; }
+    public Material? Material { get; set; }
+    public PipelineState? PipelineState { get; set; }
+    public object? UserData { get; set; }
+    public int DrawableIndex { get; set; }
+    public int PixelLightIndex { get; set; }
+    public uint VertexLightsHash { get; set; }
+    public int SourceBatchIndex { get; set; }
+    public int LightmapIndex { get; set; }
+    public float Distance { get; set; }
+    public GeometryType GeometryType { get; set; }
 
     public SourceBatch GetSourceBatch()
     {
-        return SourceBatchIndex != uint.MaxValue ? Drawable!.GetBatches()[(int)SourceBatchIndex] : default;
+        return SourceBatchIndex != int.MaxValue ? Drawable!.GetBatches()[SourceBatchIndex] : default;
     }
 
     public PipelineBatch()
     {
+        PixelLightIndex = int.MaxValue;
     }
 
-    public PipelineBatch(Drawable drawable, uint sourceBatchIndex, object? userData = null)
+    public PipelineBatch(Drawable drawable, int sourceBatchIndex, object? userData = null)
     {
         Drawable = drawable;
-        Geometry = null;
-        Material = null;
-        PipelineState = null;
         UserData = userData;
-        DrawableIndex = drawable.GetDrawableIndex();
-        PixelLightIndex = uint.MaxValue;
-        VertexLightsHash = 0;
+        var drawableIndex = drawable.GetDrawableIndex();
+        DrawableIndex = drawableIndex == uint.MaxValue ? int.MaxValue : checked((int)drawableIndex);
+        PixelLightIndex = int.MaxValue;
         SourceBatchIndex = sourceBatchIndex;
-        LightmapIndex = 0;
-        Distance = 0;
-        GeometryType = default;
 
         var sourceBatch = GetSourceBatch();
         Geometry = sourceBatch.Geometry;
         Material = sourceBatch.Material;
-        LightmapIndex = sourceBatch.LightmapIndex;
+        LightmapIndex = checked((int)sourceBatch.LightmapIndex);
         Distance = sourceBatch.Distance;
         GeometryType = sourceBatch.GeometryType;
     }
 
-    public object Clone() => MemberwiseClone();
+    public PipelineBatch(PipelineBatchDesc desc)
+    {
+        Drawable = desc.Drawable;
+        Geometry = desc.Geometry;
+        Material = desc.Material;
+        PipelineState = desc.PipelineState;
+        UserData = desc.UserData;
+        DrawableIndex = desc.DrawableIndex;
+        PixelLightIndex = desc.PixelLightIndex;
+        VertexLightsHash = desc.VertexLightsHash;
+        SourceBatchIndex = desc.SourceBatchIndex;
+        LightmapIndex = desc.LightmapIndex;
+        Distance = desc.Distance;
+        GeometryType = desc.GeometryType;
+    }
 }
 
 /// <summary>
 /// Information needed to fully create PipelineBatch.
 /// </summary>
-public class PipelineBatchDesc : PipelineBatch
+public struct PipelineBatchDesc
 {
-    public Pass? Pass;
-    public uint DrawableHash;
+    public Drawable? Drawable { get; set; }
+    public Geometry? Geometry { get; set; }
+    public Material? Material { get; set; }
+    public PipelineState? PipelineState { get; set; }
+    public object? UserData { get; set; }
+    public int DrawableIndex { get; set; }
+    public int PixelLightIndex { get; set; }
+    public uint VertexLightsHash { get; set; }
+    public int SourceBatchIndex { get; set; }
+    public int LightmapIndex { get; set; }
+    public float Distance { get; set; }
+    public GeometryType GeometryType { get; set; }
+
+    public Pass? Pass { get; set; }
+    public uint DrawableHash { get; set; }
     /// <summary>
     /// Light that contributes to pipeline state.
     /// For scene batches: per-pixel forward light applied to object.
     /// For shadow batches: owner shadow split.
     /// </summary>
-    public LightProcessor? PixelLightForPipelineState;
-    public uint PixelLightForPipelineStateIndex;
-    public uint PixelLightForPipelineStateHash;
+    public LightProcessor? PixelLightForPipelineState { get; set; }
+    public int PixelLightForPipelineStateIndex { get; set; }
+    public uint PixelLightForPipelineStateHash { get; set; }
+
+    public SourceBatch GetSourceBatch()
+    {
+        return SourceBatchIndex != int.MaxValue ? Drawable!.GetBatches()[SourceBatchIndex] : default;
+    }
 
     public PipelineBatchDesc()
     {
+        PixelLightIndex = int.MaxValue;
     }
 
-    public PipelineBatchDesc(Drawable drawable, uint sourceBatchIndex, Pass? pass, object? userData = null)
-        : base(drawable, sourceBatchIndex, userData)
+    public PipelineBatchDesc(Drawable drawable, int sourceBatchIndex, Pass? pass, object? userData = null)
     {
+        Drawable = drawable;
+        UserData = userData;
+        var drawableIndex = drawable.GetDrawableIndex();
+        DrawableIndex = drawableIndex == uint.MaxValue ? int.MaxValue : checked((int)drawableIndex);
+        PixelLightIndex = int.MaxValue;
+        SourceBatchIndex = sourceBatchIndex;
+
+        var sourceBatch = GetSourceBatch();
+        Geometry = sourceBatch.Geometry;
+        Material = sourceBatch.Material;
+        LightmapIndex = checked((int)sourceBatch.LightmapIndex);
+        Distance = sourceBatch.Distance;
+        GeometryType = sourceBatch.GeometryType;
+
         Pass = pass;
         DrawableHash = drawable.GetPipelineStateHash();
     }
 
-    public void InitializeShadowBatch(LightProcessor light, uint lightIndex, uint lightHash)
+    public void InitializeShadowBatch(LightProcessor light, int lightIndex, uint lightHash)
     {
         PixelLightForPipelineState = light;
         PixelLightForPipelineStateIndex = lightIndex;
         PixelLightForPipelineStateHash = lightHash;
     }
 
-    public void InitializeLitBatch(LightProcessor? light, uint lightIndex, uint lightHash)
+    public void InitializeLitBatch(LightProcessor? light, int lightIndex, uint lightHash)
     {
         PixelLightIndex = lightIndex;
         PixelLightForPipelineState = light;

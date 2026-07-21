@@ -214,9 +214,9 @@ internal sealed class DrawCommandCompositor
 
     public void ProcessLightVolumeBatch(PipelineBatch pipelineBatch)
     {
-        if (pipelineBatch.PixelLightIndex >= (uint)_lights.Count)
+        if (pipelineBatch.PixelLightIndex >= _lights.Count)
             return;
-        var light = _lights[(int)pipelineBatch.PixelLightIndex]?.Light;
+        var light = _lights[pipelineBatch.PixelLightIndex]?.Light;
         if (light is null)
             return;
         _lightVolumeHelpers.Transform = light.GetVolumeTransform(_ctx.Camera);
@@ -246,7 +246,7 @@ internal sealed class DrawCommandCompositor
 
         ref readonly var lightAccumulator = ref Unsafe.NullRef<LightAccumulator>();
         if (_enabled.AmbientLighting || _enabled.VertexLighting)
-            lightAccumulator = ref _drawableProcessor.GetGeometryLighting(pipelineBatch.DrawableIndex);
+            lightAccumulator = ref _drawableProcessor.GetGeometryLighting(checked((uint)pipelineBatch.DrawableIndex));
 
         CheckDirtyCommonState(pipelineBatch);
         if (_enabled.PixelLighting)
@@ -345,12 +345,12 @@ internal sealed class DrawCommandCompositor
             return;
 
         _current.PixelLightIndex = pipelineBatch.PixelLightIndex;
-        _current.PixelLightEnabled = _current.PixelLightIndex != uint.MaxValue
-            && _current.PixelLightIndex < (uint)_lights.Count
-            && _lights[(int)_current.PixelLightIndex] is not null;
+        _current.PixelLightEnabled = _current.PixelLightIndex != int.MaxValue
+            && _current.PixelLightIndex < _lights.Count
+            && _lights[_current.PixelLightIndex] is not null;
         if (_current.PixelLightEnabled)
         {
-            _current.PixelLightProcessor = _lights[(int)_current.PixelLightIndex];
+            _current.PixelLightProcessor = _lights[_current.PixelLightIndex];
             ref readonly var params_ = ref _current.PixelLightProcessor!.Params;
             _dirty.PixelLightTextures = !ReferenceEquals(_current.PixelLightRamp, params_.LightRamp)
                 || !ReferenceEquals(_current.PixelLightShape, params_.LightShape)
@@ -818,7 +818,7 @@ internal sealed class DrawCommandCompositor
         public StrongBox<ReflectionProbeData>?[] ReflectionProbes;
         public TextureCube?[] ReflectionProbeTextures;
         public float ReflectionProbesBlendFactor;
-        public uint PixelLightIndex;
+        public int PixelLightIndex;
         public bool PixelLightEnabled;
         public LightProcessor? PixelLightProcessor;
         public Texture? PixelLightRamp;
@@ -835,7 +835,7 @@ internal sealed class DrawCommandCompositor
         {
             ReflectionProbes = new StrongBox<ReflectionProbeData>?[2];
             ReflectionProbeTextures = new TextureCube?[2];
-            PixelLightIndex = uint.MaxValue;
+            PixelLightIndex = int.MaxValue;
         }
     }
 

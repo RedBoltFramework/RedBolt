@@ -95,9 +95,9 @@ public class BatchRenderer : Object
             if (pipelineBatch is null)
                 continue;
             if (lightVolume)
-                compositor.ProcessLightVolumeBatch(pipelineBatch);
+                compositor.ProcessLightVolumeBatch(pipelineBatch.Value);
             else
-                compositor.ProcessSceneBatch(pipelineBatch);
+                compositor.ProcessSceneBatch(pipelineBatch.Value);
         }
         compositor.FlushDrawCommands(nextInstance);
     }
@@ -131,12 +131,13 @@ public class BatchRenderer : Object
                 PipelineBatchBackToFront backToFront => backToFront.PipelineBatch,
                 _ => null
             };
-            if (pipelineBatch is null || !objectParameterBuilder.IsBatchInstanced(pipelineBatch))
+            if (pipelineBatch is null || !objectParameterBuilder.IsBatchInstanced(pipelineBatch.Value))
                 continue;
 
-            var sourceBatch = pipelineBatch.GetSourceBatch();
+            var batch = pipelineBatch.Value;
+            var sourceBatch = batch.GetSourceBatch();
             if (objectParameterBuilder.IsAmbientEnabled())
-                objectParameterBuilder.SetBatchAmbient(_drawableProcessor.GetGeometryLighting(pipelineBatch.DrawableIndex));
+                objectParameterBuilder.SetBatchAmbient(_drawableProcessor.GetGeometryLighting(checked((uint)batch.DrawableIndex)));
 
             var numWorldTransforms = checked((int)sourceBatch.NumWorldTransforms);
             for (var i = 0; i < numWorldTransforms; ++i)

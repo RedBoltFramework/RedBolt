@@ -11,7 +11,7 @@ public sealed class DebugFrameSnapshotBatch
     public Material? Material;
     public Light? Light;
     public PipelineState? PipelineState;
-    public uint SourceBatchIndex;
+    public int SourceBatchIndex;
     public float Distance;
     public uint NumVertices;
     public uint NumPrimitives;
@@ -34,12 +34,12 @@ public sealed class DebugFrameSnapshotBatch
         NewInstancingGroup = newInstancingGroup;
 
         var lights = drawableProcessor.GetLights();
-        Light = pipelineBatch.PixelLightIndex < (uint)lights.Count ? lights[(int)pipelineBatch.PixelLightIndex] : null;
+        Light = pipelineBatch.PixelLightIndex < lights.Count ? lights[pipelineBatch.PixelLightIndex] : null;
     }
 
     public override string ToString()
     {
-        var drawableName = Drawable is not null && SourceBatchIndex != uint.MaxValue
+        var drawableName = Drawable is not null && SourceBatchIndex != int.MaxValue
             ? Drawable.GetFullNameDebug()
             : string.Empty;
         var lightName = Light is not null ? Light.GetFullNameDebug() : "null";

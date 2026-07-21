@@ -145,16 +145,16 @@ public sealed class DrawableProcessorTests
 
         batch.InitializeShadowBatch(lightProcessor, 3, 17);
 
-        Assert.Equal(uint.MaxValue, batch.PixelLightIndex);
+        Assert.Equal(int.MaxValue, batch.PixelLightIndex);
         Assert.Same(lightProcessor, batch.PixelLightForPipelineState);
-        Assert.Equal(3u, batch.PixelLightForPipelineStateIndex);
+        Assert.Equal(3, batch.PixelLightForPipelineStateIndex);
         Assert.Equal(17u, batch.PixelLightForPipelineStateHash);
 
         batch.InitializeLitBatch(lightProcessor, 5, 23);
 
-        Assert.Equal(5u, batch.PixelLightIndex);
+        Assert.Equal(5, batch.PixelLightIndex);
         Assert.Same(lightProcessor, batch.PixelLightForPipelineState);
-        Assert.Equal(5u, batch.PixelLightForPipelineStateIndex);
+        Assert.Equal(5, batch.PixelLightForPipelineStateIndex);
         Assert.Equal(23u, batch.PixelLightForPipelineStateHash);
     }
 
