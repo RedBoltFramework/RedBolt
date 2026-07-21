@@ -281,6 +281,7 @@ These are the ONLY places C# is allowed to differ from C++:
 - WorkQueue is rebuilt using a thread-pool.
 - Minor API tweaks are allowed ONLY to avoid GC churn.
 - C# indices and sizes use `int`, including when the corresponding C++ type is unsigned.
+- Prefer property syntax alone when it can faithfully represent a public member; do not add a private backing field only to wrap it in a public property. Private fields remain allowed when required by behavior or storage semantics.
 - Do NOT re-port things C# already has, for example:
     - Threading primitives (locks, tasks, thread pools)
     - Math functions and constants

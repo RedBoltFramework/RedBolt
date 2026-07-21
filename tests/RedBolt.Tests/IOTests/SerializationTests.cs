@@ -240,7 +240,7 @@ public sealed class SerializationTests
         Assert.Equal(Color.Black, new Variant(VariantType.Color).GetColor());
         Assert.Equal(Matrix3.Zero, new Variant(VariantType.Matrix3).GetMatrix3());
         Assert.Equal(Matrix3x4.Zero, new Variant(VariantType.Matrix3x4).GetMatrix3x4());
-        Assert.Equal(Matrix4.ZERO, new Variant(VariantType.Matrix4).GetMatrix4());
+        Assert.Equal(Matrix4.Zero, new Variant(VariantType.Matrix4).GetMatrix4());
         Assert.Equal("Color", new Variant(Color.White).GetTypeName());
         Assert.Equal(VariantType.DoubleVector3, Variant.GetTypeFromName("DoubleVector3"));
         Assert.Equal("1 2 3", new Variant(new byte[] { 1, 2, 3 }).ToString());

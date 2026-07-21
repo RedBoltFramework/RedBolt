@@ -781,7 +781,7 @@ public static partial class ArchiveSerialization
         else if (typeof(T) == typeof(Matrix3x4))
             value = (T)(object)Matrix3x4.Identity;
         else if (typeof(T) == typeof(Matrix4))
-            value = (T)(object)Matrix4.IDENTITY;
+            value = (T)(object)Matrix4.Identity;
         else
             value = default;
 

@@ -344,7 +344,7 @@ public sealed class ArchiveTests
         var doubleVector2 = new Vector2d(3.0, 4.0);
         var doubleVector3 = new Vector3d(5.0, 6.0, 7.0);
         var matrix3 = new Matrix3(1, 2, 3, 4, 5, 6, 7, 8, 9);
-        var matrix4 = Matrix4.IDENTITY;
+        var matrix4 = Matrix4.Identity;
         var rect = new Rect(1.0f, 2.0f, 3.0f, 4.0f);
         var quaternion = new Quaternion(10.0f, 20.0f, 30.0f);
         var color = new Color(0.1f, 0.2f, 0.3f, 0.4f);

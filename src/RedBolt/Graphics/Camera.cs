@@ -419,7 +419,7 @@ public sealed class Camera : Component
             return result;
         }
 
-        var viewProjInverse = (GetProjection() * GetView().Matrix4).Inverted;
+        var viewProjInverse = (GetProjection() * GetView().Matrix4).Inverse;
         x = 2.0f * x - 1.0f;
         y = 1.0f - 2.0f * y;
         var nearPlane = new Vector3f(x, y, 0.0f);
@@ -757,7 +757,7 @@ public sealed class Camera : Component
 
     public void SetProjection(Matrix4 projection)
     {
-        var projectionInverse = projection.Inverted;
+        var projectionInverse = projection.Inverse;
         _projection = projection;
         _inverseProjection = projectionInverse;
         _projectionNearClip = (projectionInverse * new Vector3f(0.0f, 0.0f, 0.0f)).Z;
@@ -832,7 +832,7 @@ public sealed class Camera : Component
         }
 
         _projection = projection;
-        _inverseProjection = projection.Inverted;
+        _inverseProjection = projection.Inverse;
         _projectionDirty = false;
     }
 
@@ -847,7 +847,7 @@ public sealed class Camera : Component
     private void UpdateViewProjectionMatrices()
     {
         _viewProj = GetProjection() * GetView().Matrix4;
-        _inverseViewProj = _viewProj.Inverted;
+        _inverseViewProj = _viewProj.Inverse;
         _viewProjDirty = false;
     }
 

@@ -1020,11 +1020,11 @@ public sealed class AmbientOcclusionPass : RenderPass
             return;
 
         var clipToTextureSpace = Matrix4.Identity;
-        clipToTextureSpace.Scale = new Vector3f(0.5f, 0.5f, 1.0f);
-        clipToTextureSpace.Translation = new Vector3f(0.5f, 0.5f, 0.0f);
+        clipToTextureSpace.SetScale(new Vector3f(0.5f, 0.5f, 1.0f));
+        clipToTextureSpace.SetTranslation(new Vector3f(0.5f, 0.5f, 0.0f));
 
         var viewToTextureSpace = clipToTextureSpace * camera.GetGPUProjection();
-        var textureToViewSpace = viewToTextureSpace.Inverted;
+        var textureToViewSpace = viewToTextureSpace.Inverse;
 
         EvaluateAO(renderBufferManager, graphics, camera, depthTexture, viewToTextureSpace, textureToViewSpace);
         BlurTexture(renderBufferManager, graphics, depthTexture, textureToViewSpace);

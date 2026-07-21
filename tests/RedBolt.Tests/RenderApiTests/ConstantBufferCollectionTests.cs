@@ -54,8 +54,8 @@ public sealed class ConstantBufferCollectionTests
             MemoryMarshal.Cast<byte, float>(matrix3Bytes).ToArray());
 
         var matrix4Bytes = new byte[64];
-        Assert.True(ConstantBufferCollection.StoreParameter(matrix4Bytes, new Variant(Matrix4.IDENTITY)));
-        Assert.Equal(Matrix4.IDENTITY.Data, MemoryMarshal.Cast<byte, float>(matrix4Bytes).ToArray());
+        Assert.True(ConstantBufferCollection.StoreParameter(matrix4Bytes, new Variant(Matrix4.Identity)));
+        Assert.Equal(Matrix4.Identity.Data.ToArray(), MemoryMarshal.Cast<byte, float>(matrix4Bytes).ToArray());
 
         var doubleBytes = new byte[sizeof(float)];
         Assert.True(ConstantBufferCollection.StoreParameter(doubleBytes, new Variant(2.5)));

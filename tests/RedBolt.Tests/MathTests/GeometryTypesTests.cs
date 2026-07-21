@@ -177,7 +177,7 @@ public sealed class GeometryTypesTests
         var m4 = new Matrix3x4(new Vector3f(1.0f, 2.0f, 3.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 3.0f, 4.0f)).Matrix4;
         var transformed = m4 * Vector3f.One;
         Assert.True(transformed.ApproximatelyEquivalent(new Vector3f(3.0f, 5.0f, 7.0f)));
-        Assert.True((m4.Inverted * transformed).ApproximatelyEquivalent(Vector3f.One));
+        Assert.True((m4.Inverse * transformed).ApproximatelyEquivalent(Vector3f.One));
     }
 
     [Fact]

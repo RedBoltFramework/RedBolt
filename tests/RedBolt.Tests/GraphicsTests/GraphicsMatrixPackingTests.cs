@@ -20,7 +20,7 @@ public sealed class GraphicsMatrixPackingTests
 
         var uploaded = new float[16];
         Buffer.BlockCopy(buffer, 0, uploaded, 0, buffer.Length);
-        Assert.Equal(matrix.Data, uploaded);
+        Assert.Equal(matrix.Data.ToArray(), uploaded);
     }
 
     [Fact]

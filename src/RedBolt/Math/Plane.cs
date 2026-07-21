@@ -81,19 +81,19 @@ public struct Plane : ICloneable
     /// <summary>Transform with a 3x3 matrix.</summary>
     public void Transform(Matrix3 transform)
     {
-        Define(new Matrix4(transform).Inverted.Transposed * ToVector4());
+        Define(new Matrix4(transform).Inverse.Transpose * ToVector4());
     }
 
     /// <summary>Transform with a 3x4 matrix.</summary>
     public void Transform(Matrix3x4 transform)
     {
-        Define(transform.Matrix4.Inverted.Transposed * ToVector4());
+        Define(transform.Matrix4.Inverse.Transpose * ToVector4());
     }
 
     /// <summary>Transform with a 4x4 matrix.</summary>
     public void Transform(Matrix4 transform)
     {
-        Define(transform.Inverted.Transposed * ToVector4());
+        Define(transform.Inverse.Transpose * ToVector4());
     }
 
     /// <summary>Project a point on the plane.</summary>
@@ -123,19 +123,19 @@ public struct Plane : ICloneable
     /// <summary>Return transformed by a 3x3 matrix.</summary>
     public readonly Plane Transformed(Matrix3 transform)
     {
-        return new Plane(new Matrix4(transform).Inverted.Transposed * ToVector4());
+        return new Plane(new Matrix4(transform).Inverse.Transpose * ToVector4());
     }
 
     /// <summary>Return transformed by a 3x4 matrix.</summary>
     public readonly Plane Transformed(Matrix3x4 transform)
     {
-        return new Plane(transform.Matrix4.Inverted.Transposed * ToVector4());
+        return new Plane(transform.Matrix4.Inverse.Transpose * ToVector4());
     }
 
     /// <summary>Return transformed by a 4x4 matrix.</summary>
     public readonly Plane Transformed(Matrix4 transform)
     {
-        return new Plane(transform.Inverted.Transposed * ToVector4());
+        return new Plane(transform.Inverse.Transpose * ToVector4());
     }
 
     /// <summary>Returns closest point to origin.</summary>

@@ -103,6 +103,43 @@ public class MatrixParityTests
     }
 
     [Fact]
+    public void Matrix4PreservesNativeValueLayoutAndCopySemantics()
+    {
+        Assert.Equal(64, System.Runtime.CompilerServices.Unsafe.SizeOf<Matrix4>());
+        Assert.False(System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<Matrix4>());
+        Assert.Equal(Matrix4.Identity, new Matrix4());
+
+        ReadOnlySpan<float> values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+        var matrix = new Matrix4(values);
+        var copy = matrix;
+        copy.M00 = 17.0f;
+
+        Assert.Equal(1.0f, matrix.M00);
+        Assert.Equal(values.ToArray(), matrix.Data.ToArray());
+        Assert.Equal(10.0f, matrix.Element(2, 1));
+        Assert.Equal(new Vector4f(5, 6, 7, 8), matrix.Row(1));
+        Assert.Equal(new Vector4f(3, 7, 11, 15), matrix.Column(2));
+        Assert.Equal(
+            new Matrix4(1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 4, 8, 12, 16),
+            matrix.Transpose);
+
+        var source = new float[]
+        {
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+            17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32
+        };
+        var destination = new float[source.Length];
+        Matrix4.BulkTranspose(destination, source, 2);
+        Assert.Equal(
+            new float[]
+            {
+                1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 4, 8, 12, 16,
+                17, 21, 25, 29, 18, 22, 26, 30, 19, 23, 27, 31, 20, 24, 28, 32
+            },
+            destination);
+    }
+
+    [Fact]
     public void Matrix4DeterminantAndInverseMatchRbfxContract()
     {
         var matrix = new Matrix4(
@@ -113,6 +150,6 @@ public class MatrixParityTests
 
         Assert.Equal(24.0f, matrix.Determinant);
         Assert.True((matrix * matrix.Inverse).ApproximatelyEquivalent(Matrix4.Identity, 0.0001f));
-        Assert.Equal(matrix[2, 1], matrix.Element(2, 1));
+        Assert.Equal(0.0f, matrix.Element(2, 1));
     }
 }

@@ -259,7 +259,7 @@ public class ShadowSplitProcessor
 
         // Make final matrix
         var texAdjust = Matrix4.Identity;
-        texAdjust.Translation = offset;
+        texAdjust.SetTranslation(offset);
         texAdjust.SetScale(scale);
 
         return texAdjust * shadowProj * shadowView.Matrix4;
