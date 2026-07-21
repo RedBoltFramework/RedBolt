@@ -11,11 +11,6 @@ public class RenderPath : SimpleResource
     {
     }
 
-    public RenderPath(string name)
-        : base(name)
-    {
-    }
-
     public override void Dispose()
     {
         for (var i = _passes.Count - 1; i >= 0; --i)

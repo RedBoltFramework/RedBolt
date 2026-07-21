@@ -11,9 +11,18 @@ public sealed class RenderPathTests
     }
 
     [Fact]
+    public void Render_path_matches_native_constructor_shape()
+    {
+        Assert.Single(typeof(RenderPath).GetConstructors());
+        using var renderPath = new RenderPath();
+        Assert.Equal(string.Empty, renderPath.Name);
+    }
+
+    [Fact]
     public void Render_path_repairs_enabled_passes_by_name()
     {
-        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        var renderPath = new RenderPath();
+        renderPath.SetName("RenderPaths/Test.xml");
         var alpha = new TrackingRenderPass("Alpha") { EnabledByDefaultValue = false };
         var beta = new TrackingRenderPass("Beta");
         renderPath.AddPass(alpha);
@@ -34,7 +43,8 @@ public sealed class RenderPathTests
     [Fact]
     public void Render_path_repair_returns_independent_matching_passes_copy()
     {
-        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        var renderPath = new RenderPath();
+        renderPath.SetName("RenderPaths/Test.xml");
         renderPath.AddPass(new TrackingRenderPass("Alpha"));
         renderPath.AddPass(new TrackingRenderPass("Beta"));
 
@@ -53,7 +63,8 @@ public sealed class RenderPathTests
     [Fact]
     public void Render_path_clone_deep_copies_passes_without_copying_resource_state()
     {
-        using var renderPath = new RenderPath("RenderPaths/Test.renderpath");
+        using var renderPath = new RenderPath();
+        renderPath.SetName("RenderPaths/Test.renderpath");
         var pass = new TrackingRenderPass("Alpha");
         pass.SetComment("Comment");
         renderPath.AddPass(pass);
@@ -160,7 +171,8 @@ public sealed class RenderPathTests
     [Fact]
     public void Render_path_reorder_ignores_negative_index()
     {
-        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        var renderPath = new RenderPath();
+        renderPath.SetName("RenderPaths/Test.xml");
         var alpha = new TrackingRenderPass("Alpha");
         var beta = new TrackingRenderPass("Beta");
         renderPath.AddPass(alpha);
@@ -200,7 +212,8 @@ public sealed class RenderPathTests
     [Fact]
     public void Render_path_updates_and_renders_only_enabled_passes()
     {
-        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        var renderPath = new RenderPath();
+        renderPath.SetName("RenderPaths/Test.xml");
         var first = new TrackingRenderPass("First");
         var second = new TrackingRenderPass("Second") { InternallyEnabledValue = false };
         renderPath.AddPass(first);
@@ -231,7 +244,8 @@ public sealed class RenderPathTests
     [Fact]
     public void Render_path_aggregates_readable_depth_trait_from_ssao()
     {
-        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        var renderPath = new RenderPath();
+        renderPath.SetName("RenderPaths/Test.xml");
         renderPath.AddPass(new AmbientOcclusionPass());
 
         using var parameters = new StringVariantMap();

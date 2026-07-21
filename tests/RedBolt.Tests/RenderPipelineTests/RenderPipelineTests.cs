@@ -29,7 +29,8 @@ public sealed class RenderPipelineTests
     {
         var scene = new Scene();
         var renderPipeline = scene.CreateComponent<RenderPipeline>();
-        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        var renderPath = new RenderPath();
+        renderPath.SetName("RenderPaths/Test.xml");
         renderPath.AddPass(new ParameterRenderPass("Exposure", 1.25f));
 
         renderPipeline.SetRenderPath(renderPath);
@@ -42,7 +43,8 @@ public sealed class RenderPipelineTests
     {
         var scene = new Scene();
         var renderPipeline = scene.CreateComponent<RenderPipeline>();
-        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        var renderPath = new RenderPath();
+        renderPath.SetName("RenderPaths/Test.xml");
         renderPath.AddPass(new TrackingRenderPass("First"));
         renderPath.AddPass(new TrackingRenderPass("Second"));
         renderPipeline.SetRenderPath(renderPath);
@@ -75,7 +77,8 @@ public sealed class RenderPipelineTests
     {
         var scene = new Scene();
         var renderPipeline = scene.CreateComponent<RenderPipeline>();
-        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        var renderPath = new RenderPath();
+        renderPath.SetName("RenderPaths/Test.xml");
         renderPath.AddPass(new ParameterRenderPass("Exposure", 1.25f));
 
         var settingsEvents = 0;
@@ -104,7 +107,8 @@ public sealed class RenderPipelineTests
     {
         var scene = new Scene();
         var renderPipeline = scene.CreateComponent<RenderPipeline>();
-        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        var renderPath = new RenderPath();
+        renderPath.SetName("RenderPaths/Test.xml");
         renderPath.AddPass(new ParameterRenderPass("Exposure", 1.25f));
         renderPipeline.SetRenderPath(renderPath);
 
@@ -126,7 +130,8 @@ public sealed class RenderPipelineTests
     {
         var scene = new Scene();
         var renderPipeline = scene.CreateComponent<RenderPipeline>();
-        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        var renderPath = new RenderPath();
+        renderPath.SetName("RenderPaths/Test.xml");
         renderPath.AddPass(new ParameterRenderPass("Exposure", 1.25f));
         renderPipeline.SetRenderPath(renderPath);
 
@@ -272,7 +277,8 @@ public sealed class RenderPipelineTests
     {
         var scene = new Scene();
         var renderPipeline = scene.CreateComponent<RenderPipeline>();
-        var renderPath = new RenderPath("RenderPaths/Test.xml");
+        var renderPath = new RenderPath();
+        renderPath.SetName("RenderPaths/Test.xml");
         renderPath.AddPass(new TrackingRenderPass("Tracking"));
         renderPipeline.SetRenderPath(renderPath);
 
@@ -305,7 +311,8 @@ public sealed class RenderPipelineTests
             var scene = new Scene();
             scene.CreateComponent<Octree>();
             var renderPipeline = scene.CreateComponent<RenderPipeline>();
-            var renderPath = new RenderPath("RenderPaths/Test.xml");
+            var renderPath = new RenderPath();
+            renderPath.SetName("RenderPaths/Test.xml");
             var trackingPass = new TrackingRenderPass("Tracking");
             renderPath.AddPass(trackingPass);
             renderPipeline.SetRenderPath(renderPath);
@@ -417,7 +424,8 @@ public sealed class RenderPipelineTests
             var scene = new Scene();
             scene.CreateComponent<Octree>();
             var renderPipeline = scene.CreateComponent<RenderPipeline>();
-            var renderPath = new RenderPath("RenderPaths/Test.xml");
+            var renderPath = new RenderPath();
+            renderPath.SetName("RenderPaths/Test.xml");
             var capturePass = new BufferCaptureRenderPass("Capture", SharedRenderPassState.NormalBufferId);
             renderPath.AddPass(capturePass);
             renderPath.AddPass(new AmbientOcclusionPass());
@@ -1296,8 +1304,10 @@ public sealed class RenderPipelineTests
     public void Render_pipeline_reload_event_observes_only_the_current_render_path()
     {
         var renderPipeline = new RenderPipeline();
-        var firstRenderPath = new RenderPath("RenderPaths/First.renderpath");
-        var secondRenderPath = new RenderPath("RenderPaths/Second.renderpath");
+        var firstRenderPath = new RenderPath();
+        firstRenderPath.SetName("RenderPaths/First.renderpath");
+        var secondRenderPath = new RenderPath();
+        secondRenderPath.SetName("RenderPaths/Second.renderpath");
         renderPipeline.SetRenderPath(firstRenderPath);
         renderPipeline.SetRenderPath(secondRenderPath);
         var renderPathChangedEvents = 0;
