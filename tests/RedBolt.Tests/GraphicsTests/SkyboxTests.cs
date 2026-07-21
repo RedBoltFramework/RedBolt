@@ -50,7 +50,7 @@ public sealed class SkyboxTests
         var cameraNode = scene.CreateChild("Camera");
         cameraNode.SetPosition(new Vector3f(10.0f, 20.0f, 30.0f));
         var camera = cameraNode.CreateComponent<Camera>();
-        var frame = new CommonFrameInfo { FrameNumber = 1, Camera = camera };
+        var frame = new FrameInfo { FrameNumber = 1, Camera = camera };
 
         skybox.UpdateBatches(frame);
 

@@ -337,7 +337,7 @@ public sealed class ParticleEmitterTests
 
         var postUpdate = new SceneEvents.ScenePostUpdateEvent { Scene = scene, TimeStep = 0.1f };
         scene.SendEvent(ref postUpdate);
-        emitter.Update(new CommonFrameInfo { Scene = scene });
+        emitter.Update(new FrameInfo { Scene = scene });
 
         ref var billboard = ref emitter.GetBillboard(0);
         Assert.True(billboard.Enabled);
@@ -413,11 +413,11 @@ public sealed class ParticleEmitterTests
 
         // Drive one post-update + drawable update cycle.
         emitter.OnSetEnabled();
-        var frame = new CommonFrameInfo
+        var frame = new FrameInfo
         {
             FrameNumber = 1,
             TimeStep = 1.0f / 60.0f,
-            ViewportSize = new Vector2i(1280, 720),
+            ViewSize = new Vector2i(1280, 720),
             Scene = scene
         };
 

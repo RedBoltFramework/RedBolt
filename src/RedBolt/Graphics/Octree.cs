@@ -605,7 +605,7 @@ public sealed class Octree : Component
         _zones.UpdateZone(zone);
     }
 
-    public void Update(CommonFrameInfo frame)
+    public void Update(FrameInfo frame)
     {
         // Let drawables update themselves before reinsertion. This can be used for animation
         if (_drawableUpdates.Count != 0)
@@ -837,7 +837,7 @@ public sealed class Octree : Component
         if (scene is null || !scene.IsUpdateEnabled())
             return;
 
-        var frame = new CommonFrameInfo
+        var frame = new FrameInfo
         {
             FrameNumber = GetSubsystem<Time>()!.GetFrameNumber(),
             TimeStep = eventData.TimeStep,

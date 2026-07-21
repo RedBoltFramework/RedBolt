@@ -225,7 +225,7 @@ public sealed class LightTests
         var light = scene.CreateChild("Light").CreateComponent<Light>();
         light.Node.SetPosition(new Vector3f(5.0f, 0.0f, 0.0f));
         var camera = new Camera();
-        var frame = new CommonFrameInfo { Camera = camera };
+        var frame = new FrameInfo { Camera = camera };
 
         light.UpdateBatches(frame);
 

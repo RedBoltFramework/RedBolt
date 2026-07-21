@@ -487,13 +487,13 @@ internal ref struct DrawCommandCompositor
         // for good measure check the camera matches the first camera of additional cameras.
         // Would need to change if shadows ever used multiplexed instancing to write
         // to layers / viewports / or manually-clip.
-        if (_ctx.InstanceMultiplier > 1 && _frameInfo.Cameras.First == camera)
+        if (_ctx.InstanceMultiplier > 1 && _frameInfo.AdditionalCameras.First == camera)
         {
             // Stereoscopic, pull parameters for both eyes.
             // Assumption: quad-views eye-focus targets would be best done as a second stereo target pass
             // because of the difference in frustum sizes (large for far field, narrow for focus).
-            var camera0 = _frameInfo.Cameras.First!;
-            var camera1 = _frameInfo.Cameras.Second!;
+            var camera0 = _frameInfo.AdditionalCameras.First!;
+            var camera1 = _frameInfo.AdditionalCameras.Second!;
             Span<Matrix4> cameraTransform = stackalloc Matrix4[2]
                 { camera0.GetEffectiveWorldTransform().Matrix4, camera1.GetEffectiveWorldTransform().Matrix4 };
             Span<Vector4f> cameraPosition = stackalloc Vector4f[2]
@@ -765,7 +765,7 @@ internal ref struct DrawCommandCompositor
     private readonly bool _debuggerEnabled;
     private readonly DrawableProcessor _drawableProcessor;
     private readonly InstancingBuffer _instancingBuffer;
-    private readonly CommonFrameInfo _frameInfo;
+    private readonly FrameInfo _frameInfo;
     private readonly Scene _scene;
     private readonly IReadOnlyList<LightProcessor?> _lights;
     private readonly Node _cameraNode;

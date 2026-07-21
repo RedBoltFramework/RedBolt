@@ -311,7 +311,7 @@ public class StaticModel : Drawable
         }
     }
 
-    public override void UpdateBatches(CommonFrameInfo frame)
+    public override void UpdateBatches(FrameInfo frame)
     {
         var worldBoundingBox = GetWorldBoundingBox();
         var camera = frame.Camera!;

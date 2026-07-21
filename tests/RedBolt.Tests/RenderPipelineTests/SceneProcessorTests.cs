@@ -44,17 +44,13 @@ public sealed class SceneProcessorTests
         // No octree yet
         Assert.False(processor.Define(new CommonFrameInfo
         {
-            Viewport = viewport,
-            Camera = camera,
-            Scene = scene
+            Viewport = viewport
         }));
 
         scene.Root.CreateComponent<Octree>();
         Assert.True(processor.Define(new CommonFrameInfo
         {
-            Viewport = viewport,
-            Camera = camera,
-            Scene = scene
+            Viewport = viewport
         }));
         Assert.NotNull(processor.GetFrameInfo().Octree);
         Assert.NotNull(processor.GetFrameInfo().Camera);
@@ -102,7 +98,7 @@ public sealed class SceneProcessorTests
         var pipeline = new TestRenderPipelineInterface();
         var processor = new SceneProcessor(pipeline, "unused", null, null);
 
-        Assert.Equal(3, pipeline.UpdateBeginSubscriberCount);
+        Assert.Equal(2, pipeline.UpdateBeginSubscriberCount);
         Assert.Equal(1, pipeline.RenderBeginSubscriberCount);
         Assert.Equal(1, pipeline.RenderEndSubscriberCount);
         Assert.Equal(1, pipeline.PipelineStatesInvalidatedSubscriberCount);

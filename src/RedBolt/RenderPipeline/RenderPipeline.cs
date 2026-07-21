@@ -457,13 +457,11 @@ public class RenderPipeline : Component
 
             var viewportRect = viewport.GetEffectiveRect(renderTarget);
             var engineTime = _renderPipeline.GetSubsystem<Time>();
-            _frameInfo.FrameNumber = checked((uint)(engineTime?.FrameNumber ?? 0U));
+            _frameInfo.FrameNumber = engineTime?.FrameNumber ?? 0U;
             _frameInfo.TimeStep = engineTime?.TimeStep ?? 0.0f;
             _frameInfo.Viewport = viewport;
             _frameInfo.ViewportRect = viewportRect;
             _frameInfo.ViewportSize = viewportRect.Size;
-            _frameInfo.Scene = viewport.GetScene();
-            _frameInfo.Camera = viewport.GetCamera();
             _frameInfo.Cameras.First = viewport.GetCamera();
             _frameInfo.Cameras.Second = viewport.IsStereo() ? viewport.GetEye(1) : null;
 
@@ -722,13 +720,13 @@ public class RenderPipeline : Component
             }
         }
 
-        public override CommonFrameInfo GetFrameInfo() => _frameInfo;
+        public override FrameInfo GetFrameInfo() => _sceneProcessor?.GetFrameInfo() ?? default;
 
         public override RenderPipelineStats GetStats() => _stats;
 
         public override void DrawDebugGeometries(bool depthTest)
         {
-            var scene = _frameInfo.Scene;
+            var scene = _sceneProcessor?.GetFrameInfo().Scene;
             var debug = scene?.Root.GetComponent<DebugRenderer>();
             if (scene is null || debug is null)
                 return;
@@ -742,7 +740,7 @@ public class RenderPipeline : Component
 
         public override void DrawDebugLights(bool depthTest)
         {
-            var scene = _frameInfo.Scene;
+            var scene = _sceneProcessor?.GetFrameInfo().Scene;
             var debug = scene?.Root.GetComponent<DebugRenderer>();
             if (scene is null || debug is null)
                 return;

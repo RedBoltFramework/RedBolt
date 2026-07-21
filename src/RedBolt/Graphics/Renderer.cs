@@ -155,7 +155,7 @@ public sealed class Renderer : Object
     private readonly List<RenderPipelineView> _renderPipelineViews = [];
     private readonly HashSet<Octree> _updatedOctrees = [];
     private readonly HashSet<Technique> _shaderErrorDisplayed = [];
-    private CommonFrameInfo _frameInfo;
+    private FrameInfo _frameInfo;
     private int _textureAnisotropy = 4;
     private TextureFilterMode _textureFilterMode = TextureFilterMode.Trilinear;
     private MaterialQuality _textureQuality = MaterialQuality.High;
@@ -207,7 +207,7 @@ public sealed class Renderer : Object
 
     public ref FrameStatistics GetMutableFrameStats() => ref _frameStats;
 
-    public ref readonly CommonFrameInfo GetFrameInfo() => ref _frameInfo;
+    public ref readonly FrameInfo GetFrameInfo() => ref _frameInfo;
 
     public Zone GetDefaultZone() => _defaultZone;
 
@@ -495,9 +495,9 @@ public sealed class Renderer : Object
         if (_updatedOctrees.Add(octree))
         {
             _frameInfo.Camera = viewport.GetCamera();
-            _frameInfo.ViewportSize = viewRect.Size;
-            if (_frameInfo.ViewportSize == Vector2i.Zero)
-                _frameInfo.ViewportSize = new Vector2i(_graphics!.Width, _graphics.Height);
+            _frameInfo.ViewSize = viewRect.Size;
+            if (_frameInfo.ViewSize == Vector2i.Zero)
+                _frameInfo.ViewSize = new Vector2i(_graphics!.Width, _graphics.Height);
             octree.Update(_frameInfo);
             octree.SetLocked(true);
 

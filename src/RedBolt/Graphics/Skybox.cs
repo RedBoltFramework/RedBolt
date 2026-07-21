@@ -29,7 +29,7 @@ public class Skybox : StaticModel
     }
 
     /// <summary>Calculate distance and prepare batches for rendering. May be called from worker thread(s), possibly re-entrantly.</summary>
-    public override void UpdateBatches(CommonFrameInfo frame)
+    public override void UpdateBatches(FrameInfo frame)
     {
         SetDistance(0.0f);
         var camera = frame.Camera!;

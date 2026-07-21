@@ -91,7 +91,7 @@ public class CameraProcessor : Object
 
     /// <summary>Callbacks from SceneProcessor</summary>
     /// <remarks>Called at the beginning of the update.</remarks>
-    public void OnUpdateBegin(CommonFrameInfo frameInfo)
+    public void OnUpdateBegin(FrameInfo frameInfo)
     {
         // On OpenGL, flip the projection if rendering to a texture so that the texture can be addressed in the same way
         // as a render texture produced on Direct3D
@@ -105,7 +105,7 @@ public class CameraProcessor : Object
         }
     }
 
-    public void OnRenderBegin(CommonFrameInfo frameInfo)
+    public void OnRenderBegin(FrameInfo frameInfo)
     {
         foreach (var camera in _cameras)
         {
@@ -114,7 +114,7 @@ public class CameraProcessor : Object
         }
     }
 
-    public void OnRenderEnd(CommonFrameInfo frameInfo)
+    public void OnRenderEnd(FrameInfo frameInfo)
     {
         foreach (var camera in _cameras)
         {
@@ -123,14 +123,14 @@ public class CameraProcessor : Object
         }
     }
 
-    private void UpdateCamera(CommonFrameInfo frameInfo, Camera camera)
+    private void UpdateCamera(FrameInfo frameInfo, Camera camera)
     {
         var cameraPosition = camera.Node!.GetWorldPosition();
         var cameraZone = frameInfo.Octree!.QueryZone(cameraPosition, camera.GetZoneMask()).Zone;
         camera.SetZone(cameraZone);
 
         if (camera.GetAutoAspectRatio())
-            camera.SetAspectRatioInternal((float)frameInfo.ViewportSize.X / frameInfo.ViewportSize.Y);
+            camera.SetAspectRatioInternal((float)frameInfo.ViewSize.X / frameInfo.ViewSize.Y);
     }
 
     private static void CombineHash(ref uint result, bool value) => CombineHash(ref result, value ? 1u : 0u);

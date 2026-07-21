@@ -346,7 +346,7 @@ public sealed class CameraTests
         {
         }
 
-        public override CommonFrameInfo GetFrameInfo() => default;
+        public override FrameInfo GetFrameInfo() => default;
 
         public override RenderPipelineStats GetStats() => new();
 

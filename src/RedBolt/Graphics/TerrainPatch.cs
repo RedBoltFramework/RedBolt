@@ -118,7 +118,7 @@ public class TerrainPatch : Drawable
     }
 
     /// <summary>Calculate distance and prepare batches for rendering.</summary>
-    public override void UpdateBatches(CommonFrameInfo frame)
+    public override void UpdateBatches(FrameInfo frame)
     {
         _worldTransform[0] = Node.GetWorldTransform();
         SetDistance(frame.Camera!.GetDistance(GetWorldBoundingBox().Center));
@@ -143,7 +143,7 @@ public class TerrainPatch : Drawable
     }
 
     /// <summary>Prepare geometry for rendering.</summary>
-    public override void UpdateGeometry(CommonFrameInfo frame)
+    public override void UpdateGeometry(FrameInfo frame)
     {
         if (_vertexBuffer!.GetRawBuffer()?.IsDataLost() == true)
         {

@@ -115,7 +115,7 @@ public class ParticleEmitter : BillboardSet
     }
 
     /// <summary>Update before octree reinsertion. Is called from a worker thread.</summary>
-    public override void Update(CommonFrameInfo frame)
+    public override void Update(FrameInfo frame)
     {
         if (_effect is null)
             return;

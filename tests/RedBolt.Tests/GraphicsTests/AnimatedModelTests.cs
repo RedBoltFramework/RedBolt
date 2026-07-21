@@ -331,7 +331,7 @@ public sealed class AnimatedModelTests
         var cameraNode = scene.CreateChild("Camera");
         cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -10.0f));
         var camera = cameraNode.CreateComponent<Camera>();
-        var frame = new CommonFrameInfo { Camera = camera, FrameNumber = 7 };
+        var frame = new FrameInfo { Camera = camera, FrameNumber = 7 };
 
         animatedModel.UpdateBatches(frame);
 

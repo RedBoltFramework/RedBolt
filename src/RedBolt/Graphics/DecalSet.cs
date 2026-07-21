@@ -174,7 +174,7 @@ public class DecalSet : Drawable
         // Do not return raycast hits
     }
 
-    public override void UpdateBatches(CommonFrameInfo frame)
+    public override void UpdateBatches(FrameInfo frame)
     {
         var worldBoundingBox = GetWorldBoundingBox();
         _nodeWorldTransform[0] = Node.GetWorldTransform();
@@ -194,9 +194,9 @@ public class DecalSet : Drawable
             RequestUpdateBatchesDelayed(frame);
     }
 
-    public override void UpdateBatchesDelayed(CommonFrameInfo frame) => UpdateBuffers();
+    public override void UpdateBatchesDelayed(FrameInfo frame) => UpdateBuffers();
 
-    public override void UpdateGeometry(CommonFrameInfo frame)
+    public override void UpdateGeometry(FrameInfo frame)
     {
         if (_skinningDirty)
             UpdateSkinning();

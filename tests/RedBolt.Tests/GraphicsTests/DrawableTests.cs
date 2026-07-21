@@ -7,7 +7,7 @@ public sealed class DrawableTests
         public int NumUpdates { get; private set; }
         public int NumBoundingBoxUpdates { get; private set; }
 
-        public override void Update(CommonFrameInfo frame)
+        public override void Update(FrameInfo frame)
         {
             ++NumUpdates;
         }
@@ -44,10 +44,10 @@ public sealed class DrawableTests
     {
         using var drawable = new CustomGeometry();
         var camera = new Camera();
-        var frame = new CommonFrameInfo
+        var frame = new FrameInfo
         {
             FrameNumber = 4,
-            Cameras = (camera, null)
+            AdditionalCameras = (camera, null)
         };
 
         drawable.MarkInView(frame);
@@ -67,7 +67,7 @@ public sealed class DrawableTests
         var drawable = scene.CreateChild("Drawable").CreateComponent<CustomGeometry>();
         drawable.Node.SetPosition(new Vector3f(5.0f, 0.0f, 0.0f));
         var camera = new Camera();
-        var frame = new CommonFrameInfo { Camera = camera };
+        var frame = new FrameInfo { Camera = camera };
 
         drawable.UpdateBatches(frame);
 
@@ -92,7 +92,7 @@ public sealed class DrawableTests
             using var drawable = new CustomGeometry();
             var camera = new Camera();
             var frameNumber = renderer.GetFrameInfo().FrameNumber;
-            drawable.MarkInView(new CommonFrameInfo { FrameNumber = frameNumber, Cameras = (camera, null) });
+            drawable.MarkInView(new FrameInfo { FrameNumber = frameNumber, AdditionalCameras = (camera, null) });
 
             Assert.True(drawable.IsInView());
             Assert.True(drawable.IsInView(camera));
@@ -144,7 +144,7 @@ public sealed class DrawableTests
         octree.QueueUpdate(drawable);
 
         drawable.Dispose();
-        octree.Update(new CommonFrameInfo());
+        octree.Update(new FrameInfo());
 
         Assert.Equal(0, drawable.NumUpdates);
         Assert.Equal(0, drawable.NumBoundingBoxUpdates);

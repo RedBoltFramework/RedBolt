@@ -374,7 +374,7 @@ public sealed class RenderPipelineTests
 
             Assert.Equal(1, trackingPass.UpdateCalls);
             Assert.Equal(1, trackingPass.RenderCalls);
-            Assert.Equal(new Vector2i(64, 64), view.GetFrameInfo().ViewportSize);
+            Assert.Equal(new Vector2i(64, 64), view.GetFrameInfo().ViewSize);
             Assert.Equal(0u, view.GetStats().NumGeometries);
             Assert.Equal(1, beginUpdateCalls);
             Assert.Equal(1, endUpdateCalls);
@@ -1350,7 +1350,7 @@ public sealed class RenderPipelineTests
         {
         }
 
-        public override CommonFrameInfo GetFrameInfo() => default;
+        public override FrameInfo GetFrameInfo() => default;
 
         public override RenderPipelineStats GetStats() => new();
 

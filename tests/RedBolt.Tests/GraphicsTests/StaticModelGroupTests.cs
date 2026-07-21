@@ -227,7 +227,7 @@ public sealed class StaticModelGroupTests
         group.SetBoundingBox(new BoundingBox(-1.0f, 1.0f));
         group.AddInstanceNode(scene.CreateChild("Instance"));
 
-        group.UpdateBatches(new CommonFrameInfo { Camera = camera });
+        group.UpdateBatches(new FrameInfo { Camera = camera });
 
         Assert.True(group.GetDistance() > 0.0f);
         Assert.True(group.GetLodDistance() > 0.0f);

@@ -189,7 +189,7 @@ public class RibbonTrail : Drawable
         }
     }
 
-    public override void Update(CommonFrameInfo frame)
+    public override void Update(FrameInfo frame)
     {
         base.Update(frame);
 
@@ -345,7 +345,7 @@ public class RibbonTrail : Drawable
         _bufferSizeDirty = true;
     }
 
-    public override void UpdateBatches(CommonFrameInfo frame)
+    public override void UpdateBatches(FrameInfo frame)
     {
         SetDistance(frame.Camera!.GetDistance(GetWorldBoundingBox().Center));
         var batch = _batches[0];
@@ -370,9 +370,9 @@ public class RibbonTrail : Drawable
             RequestUpdateBatchesDelayed(frame);
     }
 
-    public override void UpdateBatchesDelayed(CommonFrameInfo frame) => UpdateBufferSize();
+    public override void UpdateBatchesDelayed(FrameInfo frame) => UpdateBufferSize();
 
-    public override void UpdateGeometry(CommonFrameInfo frame)
+    public override void UpdateGeometry(FrameInfo frame)
     {
         if (_bufferDirty || (_vertexBuffer.GetRawBuffer()?.IsDataLost() ?? false))
             UpdateVertexBuffer(frame);
@@ -519,7 +519,7 @@ public class RibbonTrail : Drawable
         _indexBuffer.GetRawBuffer().ClearDataLost();
     }
 
-    private void UpdateVertexBuffer(CommonFrameInfo frame)
+    private void UpdateVertexBuffer(FrameInfo frame)
     {
         if (_animationLodBias > 0.0f && GetLodDistance() > 0.0f)
         {

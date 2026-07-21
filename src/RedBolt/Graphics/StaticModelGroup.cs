@@ -153,7 +153,7 @@ public class StaticModelGroup : StaticModel
     }
 
     /// <summary>Calculate distance and prepare batches for rendering. May be called from worker thread(s), possibly re-entrantly.</summary>
-    public override void UpdateBatches(CommonFrameInfo frame)
+    public override void UpdateBatches(FrameInfo frame)
     {
         // Getting the world bounding box ensures the transforms are updated
         var worldBoundingBox = GetWorldBoundingBox();

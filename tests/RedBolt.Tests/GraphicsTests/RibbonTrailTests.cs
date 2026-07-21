@@ -121,14 +121,14 @@ public sealed class RibbonTrailTests
         // First post-update seeds previous position.
         var post = new SceneEvents.ScenePostUpdateEvent { Scene = scene, TimeStep = 1.0f / 60.0f };
         scene.SendEvent(ref post);
-        trail.Update(new CommonFrameInfo { FrameNumber = 1, TimeStep = 1.0f / 60.0f, Scene = scene });
+        trail.Update(new FrameInfo { FrameNumber = 1, TimeStep = 1.0f / 60.0f, Scene = scene });
 
         node.SetWorldPosition(new Vector3f(0, 0, 1));
         post = new SceneEvents.ScenePostUpdateEvent { Scene = scene, TimeStep = 1.0f / 60.0f };
         scene.SendEvent(ref post);
-        trail.Update(new CommonFrameInfo { FrameNumber = 2, TimeStep = 1.0f / 60.0f, Scene = scene });
+        trail.Update(new FrameInfo { FrameNumber = 2, TimeStep = 1.0f / 60.0f, Scene = scene });
 
-        var frame = new CommonFrameInfo { FrameNumber = 2, TimeStep = 1.0f / 60.0f, Scene = scene };
+        var frame = new FrameInfo { FrameNumber = 2, TimeStep = 1.0f / 60.0f, Scene = scene };
         trail.UpdateBatchesDelayed(frame);
         Assert.True(trail.GetBatches()[0].Geometry!.GetIndexCount() > 0);
     }

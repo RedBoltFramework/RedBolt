@@ -61,7 +61,7 @@ public sealed class OctreeTests
         var cube = scene.CreateChild("Cube").CreateComponent<StaticModel>();
         cube.Node.SetPosition(new Vector3f(10.0f, 0.0f, 0.0f));
         octree.QueueUpdate(cube);
-        octree.Update(new CommonFrameInfo());
+        octree.Update(new FrameInfo());
 
         Assert.Contains(cube, octree.GetAllDrawables());
     }
@@ -77,7 +77,7 @@ public sealed class OctreeTests
         cube.SetModel(Resources.Get<Model>("Models/ProceduralBox"));
         cube.Node.SetPosition(new Vector3f(10.0f, 0.0f, 0.0f));
         octree.QueueUpdate(cube);
-        octree.Update(new CommonFrameInfo());
+        octree.Update(new FrameInfo());
 
         var result = new List<Drawable>();
         using var query = new BoxOctreeQuery(result, cube.GetWorldBoundingBox());
@@ -96,7 +96,7 @@ public sealed class OctreeTests
         cubeNode.SetPosition(new Vector3f(10.0f, 0.0f, 0.0f));
         var cube = cubeNode.CreateComponent<StaticModel>();
         octree.QueueUpdate(cube);
-        octree.Update(new CommonFrameInfo());
+        octree.Update(new FrameInfo());
 
         var ray = new Ray(cube.GetWorldBoundingBox().Center - Vector3f.Forward * 10.0f, Vector3f.Forward);
         using var query = new RayOctreeQuery(ray, RayQueryLevel.RayAabb, maxDistance: 100.0f);
@@ -198,7 +198,7 @@ public sealed class OctreeTests
         Assert.Same(octree.GetRootOctant(), manual.GetOctant());
         Assert.Equal(1u, octree.GetRootOctant().GetNumDrawables());
 
-        octree.Update(new CommonFrameInfo());
+        octree.Update(new FrameInfo());
         Assert.NotNull(manual.GetOctant());
         Assert.NotEqual(uint.MaxValue, manual.GetDrawableIndex());
     }
@@ -231,7 +231,7 @@ public sealed class OctreeTests
         SceneEvents.SceneDrawableUpdateFinishedEvent? received = null;
         scene.SubscribeToEvent<SceneEvents.SceneDrawableUpdateFinishedEvent>((ref SceneEvents.SceneDrawableUpdateFinishedEvent eventData) => received = eventData);
 
-        octree.Update(new CommonFrameInfo { TimeStep = 0.25f });
+        octree.Update(new FrameInfo { TimeStep = 0.25f });
 
         Assert.True(received.HasValue);
         Assert.Same(scene, received.Value.Scene);

@@ -234,14 +234,14 @@ public sealed class BillboardSetTests
         second.Enabled = false;
         set.Commit();
 
-        var frame = new CommonFrameInfo
+        var frame = new FrameInfo
         {
             FrameNumber = 1,
             TimeStep = 1.0f / 60.0f,
-            ViewportSize = new Vector2i(1280, 720),
+            ViewSize = new Vector2i(1280, 720),
             Camera = camera,
             Scene = scene,
-            Cameras = (camera, null)
+            AdditionalCameras = (camera, null)
         };
 
         set.UpdateBatches(frame);

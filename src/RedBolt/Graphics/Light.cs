@@ -203,7 +203,7 @@ public sealed class Light : Drawable
         }
     }
 
-    public override void UpdateBatches(CommonFrameInfo frame)
+    public override void UpdateBatches(FrameInfo frame)
     {
         switch (_lightType)
         {

@@ -91,7 +91,7 @@ public class SceneProcessor : Object, LightProcessorCallback
     protected SceneProcessorSettings Settings = new();
     protected readonly List<ScenePass> Passes = [];
 
-    protected CommonFrameInfo FrameInfo = new();
+    protected FrameInfo FrameInfo = new();
     protected bool FlipCameraForRendering;
 
     protected OcclusionBuffer? CurrentOcclusionBuffer;
@@ -194,8 +194,8 @@ public class SceneProcessor : Object, LightProcessorCallback
 
         FrameInfo.Viewport = frameInfo.Viewport;
         FrameInfo.RenderTarget = frameInfo.RenderTarget;
-        FrameInfo.ViewportRect = frameInfo.ViewportRect;
-        FrameInfo.ViewportSize = frameInfo.ViewportSize;
+        FrameInfo.ViewRect = frameInfo.ViewportRect;
+        FrameInfo.ViewSize = frameInfo.ViewportSize;
 
         FrameInfo.Scene = FrameInfo.Viewport!.GetScene();
         FrameInfo.Camera = FrameInfo.Viewport.GetCullCamera()
@@ -203,10 +203,11 @@ public class SceneProcessor : Object, LightProcessorCallback
         FrameInfo.ViewReferenceNode = FrameInfo.Camera?.Node;
 
         FrameInfo.Octree = FrameInfo.Scene?.Root.GetComponent<Octree>();
-        if (FrameInfo.Octree is not null)
-            FrameInfo.Scene!.Root.GetOrCreateComponent<ReflectionProbeManager>();
+        FrameInfo.ReflectionProbeManager = FrameInfo.Octree is not null
+            ? FrameInfo.Scene!.Root.GetOrCreateComponent<ReflectionProbeManager>()
+            : null;
 
-        FrameInfo.Cameras = frameInfo.Cameras;
+        FrameInfo.AdditionalCameras = frameInfo.Cameras;
 
         return FrameInfo.Octree is not null && FrameInfo.Camera is not null;
     }
@@ -391,7 +392,7 @@ public class SceneProcessor : Object, LightProcessorCallback
 
     public SceneProcessorSettings GetSettings() => Settings;
 
-    public CommonFrameInfo GetFrameInfo() => FrameInfo;
+    public FrameInfo GetFrameInfo() => FrameInfo;
 
     /// <summary>
     /// Takes pass object from BatchStateCreateContext.
@@ -477,7 +478,7 @@ public class SceneProcessor : Object, LightProcessorCallback
 
         DrawQueue.Reset();
 
-        var needClipping = camera.GetUseClipping() || FrameInfo.Cameras.Second is not null;
+        var needClipping = camera.GetUseClipping() || FrameInfo.AdditionalCameras.Second is not null;
         DrawQueue.SetClipPlaneMask(needClipping ? 1u << 0 : 0u);
 
         var ctx = new BatchRenderingContext(DrawQueue, camera)
@@ -513,7 +514,7 @@ public class SceneProcessor : Object, LightProcessorCallback
 
         DrawQueue.Reset();
 
-        var needClipping = camera.GetUseClipping() || FrameInfo.Cameras.Second is not null;
+        var needClipping = camera.GetUseClipping() || FrameInfo.AdditionalCameras.Second is not null;
         DrawQueue.SetClipPlaneMask(needClipping ? 1u << 0 : 0u);
 
         var ctx = new BatchRenderingContext(DrawQueue, camera)
@@ -615,9 +616,9 @@ public class SceneProcessor : Object, LightProcessorCallback
         }
     }
 
-    private static float GetLightSizeInPixels(Light light, CommonFrameInfo frameInfo)
+    private static float GetLightSizeInPixels(Light light, FrameInfo frameInfo)
     {
-        var viewSize = new Vector2f(frameInfo.ViewportSize.X, frameInfo.ViewportSize.Y);
+        var viewSize = new Vector2f(frameInfo.ViewSize.X, frameInfo.ViewSize.Y);
         var lightType = light.GetLightType();
         if (lightType == LightType.Directional)
             return Math.Max(viewSize.X, viewSize.Y);

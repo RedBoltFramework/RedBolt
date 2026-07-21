@@ -1239,14 +1239,6 @@ public struct CommonFrameInfo
 
     public Viewport? Viewport;
 
-    public Scene? Scene;
-
-    public Node? ViewReferenceNode;
-
-    public Camera? Camera;
-
-    public Octree? Octree;
-
     public RenderOutputTargetInfo? RenderTarget;
 
     public (Camera? First, Camera? Second) Cameras;
@@ -1339,7 +1331,7 @@ public abstract class RenderPipelineView : Object, IRenderPipelineInterface
     /// <summary>
     /// Return frame info with all members filled.
     /// </summary>
-    public abstract CommonFrameInfo GetFrameInfo();
+    public abstract FrameInfo GetFrameInfo();
 
     /// <summary>
     /// Return render pipeline statistics for profiling.

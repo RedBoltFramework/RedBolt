@@ -34,6 +34,43 @@ public enum ReflectionMode
     BlendProbesAndZone
 }
 
+/// <summary>Rendering frame update parameters.</summary>
+public struct FrameInfo
+{
+    /// <summary>Frame number.</summary>
+    public uint FrameNumber;
+
+    /// <summary>Time elapsed since last frame.</summary>
+    public float TimeStep;
+
+    /// <summary>Viewport size.</summary>
+    public Vector2i ViewSize;
+
+    /// <summary>Viewport rectangle.</summary>
+    public IntRect ViewRect;
+
+    /// <summary>Destination viewport.</summary>
+    public Viewport? Viewport;
+
+    /// <summary>Destination render surface.</summary>
+    public RenderOutputTargetInfo? RenderTarget;
+
+    /// <summary>Scene and pre-fetched Scene components.</summary>
+    public Scene? Scene;
+
+    /// <summary>Node to be used as a point-of-view reference, typically the camera's node.</summary>
+    public Node? ViewReferenceNode;
+
+    public Camera? Camera;
+
+    /// <summary>Optional list of additional cameras that may be attached, such as eyes, etc.</summary>
+    public (Camera? First, Camera? Second) AdditionalCameras;
+
+    public Octree? Octree;
+
+    public ReflectionProbeManager? ReflectionProbeManager;
+}
+
 /// <summary>Cached info about current zone.</summary>
 public struct CachedDrawableZone
 {
@@ -461,11 +498,11 @@ public abstract class Drawable : Component
     }
 
     /// <summary>Update before octree reinsertion. May be called from a worker thread.</summary>
-    public virtual void Update(CommonFrameInfo frame)
+    public virtual void Update(FrameInfo frame)
     {
     }
 
-    public virtual void UpdateBatches(CommonFrameInfo frame)
+    public virtual void UpdateBatches(FrameInfo frame)
     {
         var worldBoundingBox = GetWorldBoundingBox();
         _worldTransform[0] = Node.GetWorldTransform();
@@ -486,12 +523,12 @@ public abstract class Drawable : Component
     }
 
     /// <summary>Batch update from the main thread.</summary>
-    public virtual void UpdateBatchesDelayed(CommonFrameInfo frame)
+    public virtual void UpdateBatchesDelayed(FrameInfo frame)
     {
     }
 
     /// <summary>Prepare geometry for rendering.</summary>
-    public virtual void UpdateGeometry(CommonFrameInfo frame)
+    public virtual void UpdateGeometry(FrameInfo frame)
     {
     }
 
@@ -517,10 +554,10 @@ public abstract class Drawable : Component
     /// <summary>Draw to occlusion buffer. Return true if did not run out of triangles.</summary>
     public virtual bool DrawOcclusion(OcclusionBuffer buffer) => true;
 
-    public bool IsInView(CommonFrameInfo frame, bool anyCamera = false)
+    public bool IsInView(FrameInfo frame, bool anyCamera = false)
     {
         return _viewFrameNumber == frame.FrameNumber &&
-            (anyCamera || frame.Cameras.First is { } camera && ContainsViewCamera(camera));
+            (anyCamera || frame.AdditionalCameras.First is { } camera && ContainsViewCamera(camera));
     }
 
     public BoundingBox GetWorldBoundingBox()
@@ -559,7 +596,7 @@ public abstract class Drawable : Component
         _lodDistance = distance;
     }
 
-    public void MarkInView(CommonFrameInfo frame)
+    public void MarkInView(FrameInfo frame)
     {
         if (frame.FrameNumber != _viewFrameNumber)
         {
@@ -567,7 +604,7 @@ public abstract class Drawable : Component
             _numViewCameras = 0;
         }
 
-        SetViewCamera(_numViewCameras++, frame.Cameras.First);
+        SetViewCamera(_numViewCameras++, frame.AdditionalCameras.First);
     }
 
     public void MarkInView(uint frameNumber)
@@ -668,7 +705,7 @@ public abstract class Drawable : Component
     }
 
     /// <summary>Request UpdateBatchesDelayed call from the main thread.</summary>
-    protected void RequestUpdateBatchesDelayed(CommonFrameInfo frame)
+    protected void RequestUpdateBatchesDelayed(FrameInfo frame)
     {
         var workQueue = GetSubsystem<WorkQueue>();
         workQueue?.PostTaskForMainThread(() => UpdateBatchesDelayed(frame), TaskPriority.Immediate);

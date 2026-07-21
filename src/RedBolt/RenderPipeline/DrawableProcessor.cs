@@ -202,20 +202,18 @@ public class DrawableProcessor : Object
     private Vector3f _cullCameraZAxisAbs;
     private Matrix3x4 _cullCameraViewMatrix;
     private DrawableProcessorSettings _settings = new();
-    private CommonFrameInfo _frameInfo = new();
+    private FrameInfo _frameInfo = new();
     private FloatRange _sceneZRange;
 
     public DrawableProcessor(IRenderPipelineInterface renderPipeline)
     {
         _renderPipeline = renderPipeline ?? throw new ArgumentNullException(nameof(renderPipeline));
-        _renderPipeline.UpdateBegin += OnUpdateBegin;
         _renderPipeline.CollectStatistics += OnCollectStatistics;
         _defaultMaterial = GetSubsystem<Renderer>()?.GetDefaultMaterial();
     }
 
     public override void Dispose()
     {
-        _renderPipeline.UpdateBegin -= OnUpdateBegin;
         _renderPipeline.CollectStatistics -= OnCollectStatistics;
         base.Dispose();
     }
@@ -233,7 +231,7 @@ public class DrawableProcessor : Object
         _lightProcessorCache.SetSettings(settings.LightProcessorCache);
     }
 
-    public CommonFrameInfo GetFrameInfo() => _frameInfo;
+    public FrameInfo GetFrameInfo() => _frameInfo;
 
     public DrawableProcessorSettings GetSettings() => _settings;
 
@@ -307,7 +305,7 @@ public class DrawableProcessor : Object
         }
     }
 
-    public void OnUpdateBegin(CommonFrameInfo frameInfo)
+    public void OnUpdateBegin(FrameInfo frameInfo)
     {
         _frameInfo = frameInfo;
         _sortedOccluders.Clear();
@@ -923,7 +921,7 @@ public class DrawableProcessor : Object
         if (mode == ReflectionMode.Zone)
             return;
 
-        var manager = _frameInfo.Scene?.Root.GetComponent<ReflectionProbeManager>();
+        var manager = _frameInfo.ReflectionProbeManager;
         if (manager is null)
             return;
 

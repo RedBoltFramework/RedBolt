@@ -191,7 +191,7 @@ public class BillboardSet : Drawable
     }
 
     /// <summary>Calculate distance and prepare batches for rendering. May be called from worker thread(s), possibly re-entrantly.</summary>
-    public override void UpdateBatches(CommonFrameInfo frame)
+    public override void UpdateBatches(FrameInfo frame)
     {
         // If beginning a new frame, assume no sorting first
         if (frame.FrameNumber != _sortFrameNumber)
@@ -248,13 +248,13 @@ public class BillboardSet : Drawable
     }
 
     /// <summary>Batch update from main thread. Called on demand only if RequestUpdateBatchesDelayed() is called from UpdateBatches().</summary>
-    public override void UpdateBatchesDelayed(CommonFrameInfo frame)
+    public override void UpdateBatchesDelayed(FrameInfo frame)
     {
         UpdateBufferSize();
     }
 
     /// <summary>Prepare geometry for rendering. Called from a worker thread if possible (no GPU update).</summary>
-    public override void UpdateGeometry(CommonFrameInfo frame)
+    public override void UpdateGeometry(FrameInfo frame)
     {
         // If rendering from multiple views and fixed screen size is in use, re-update scale factors before each render
         if (_fixedScreenSize && _viewCameras.Count > 1)
@@ -781,7 +781,7 @@ public class BillboardSet : Drawable
     }
 
     /// <summary>Rewrite billboard vertex buffer.</summary>
-    private void UpdateVertexBuffer(CommonFrameInfo frame)
+    private void UpdateVertexBuffer(FrameInfo frame)
     {
         // If using animation LOD, accumulate time and see if it is time to update
         if (_animationLodBias > 0.0f && GetLodDistance() > 0.0f)
@@ -864,9 +864,9 @@ public class BillboardSet : Drawable
     }
 
     /// <summary>Calculate billboard scale factors in fixed screen size mode.</summary>
-    private void CalculateFixedScreenSize(CommonFrameInfo frame)
+    private void CalculateFixedScreenSize(FrameInfo frame)
     {
-        var invViewHeight = 1.0f / frame.ViewportSize.Y;
+        var invViewHeight = 1.0f / frame.ViewSize.Y;
         var halfViewWorldSize = frame.Camera!.GetHalfViewSize();
         var scaleFactorChanged = false;
 

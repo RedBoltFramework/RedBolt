@@ -51,7 +51,7 @@ public sealed class OctreeQueryTests
         var octree = scene.CreateComponent<Octree>();
         var drawable = scene.CreateChild("Drawable").CreateComponent<StaticModel>();
         drawable.SetBoundingBox(new BoundingBox(-1.0f, 1.0f));
-        octree.Update(new CommonFrameInfo());
+        octree.Update(new FrameInfo());
 
         var drawableResults = new List<Drawable> { drawable };
         octree.GetDrawables(new BoxOctreeQuery(drawableResults, new BoundingBox(-2.0f, 2.0f)));

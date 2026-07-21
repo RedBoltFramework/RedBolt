@@ -30,10 +30,10 @@ public sealed class CameraProcessorTests
         var processor = new CameraProcessor();
         processor.SetCameras([camera]);
 
-        processor.OnRenderBegin(new CommonFrameInfo());
+        processor.OnRenderBegin(new FrameInfo());
         Assert.True(camera.GetFlipVertical());
 
-        processor.OnRenderEnd(new CommonFrameInfo());
+        processor.OnRenderEnd(new FrameInfo());
         Assert.True(camera.GetFlipVertical());
     }
 

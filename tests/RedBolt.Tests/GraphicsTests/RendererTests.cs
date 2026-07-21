@@ -281,6 +281,20 @@ public sealed class RendererTests
     }
 
     [Fact]
+    public void Frame_info_types_match_native_pod_shapes()
+    {
+        Assert.True(typeof(CommonFrameInfo).IsValueType);
+        Assert.True(typeof(FrameInfo).IsValueType);
+        Assert.Null(typeof(CommonFrameInfo).GetField("Scene"));
+        Assert.Null(typeof(CommonFrameInfo).GetField("Camera"));
+        Assert.Null(typeof(CommonFrameInfo).GetField("Octree"));
+        Assert.NotNull(typeof(FrameInfo).GetField("Scene"));
+        Assert.NotNull(typeof(FrameInfo).GetField("Camera"));
+        Assert.NotNull(typeof(FrameInfo).GetField("Octree"));
+        Assert.NotNull(typeof(FrameInfo).GetField("ReflectionProbeManager"));
+    }
+
+    [Fact]
     public void Uninitialized_renderer_does_not_create_light_geometries()
     {
         var directionalLight = new Light();

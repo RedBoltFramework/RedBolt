@@ -151,15 +151,15 @@ public class StereoSceneProcessor : SceneProcessor
         CurrentOcclusionBuffer = null;
         _currentOcclusionBuffers = [null, null];
 
-        System.Diagnostics.Debug.Assert(FrameInfo.Cameras.First is not null);
+        System.Diagnostics.Debug.Assert(FrameInfo.AdditionalCameras.First is not null);
 
         // get our frustums
         Frustum[] frustums =
         [
             FrameInfo.Camera!.GetFrustum(),
-            FrameInfo.Cameras.Second!.GetFrustum()
+            FrameInfo.AdditionalCameras.Second!.GetFrustum()
         ];
-        Camera[] cameras = [FrameInfo.Camera, FrameInfo.Cameras.Second!];
+        Camera[] cameras = [FrameInfo.Camera, FrameInfo.AdditionalCameras.Second!];
 
         if (Settings.MaxOccluderTriangles > 0)
         {
@@ -408,8 +408,6 @@ public class StereoRenderPipelineView : RenderPipelineView
         _frameInfo.ViewportSize = _frameInfo.ViewportRect.Size;
         _frameInfo.Cameras.First = viewport.GetEye(0);
         _frameInfo.Cameras.Second = viewport.GetEye(1);
-        _frameInfo.Camera = viewport.GetEye(0);
-        _frameInfo.Scene = viewport.GetScene();
 
         var colorTexture = renderTarget?.GetParentTexture();
         var depthSurface = renderTarget?.GetLinkedDepthStencil();
@@ -731,13 +729,13 @@ public class StereoRenderPipelineView : RenderPipelineView
         sender.SendEvent(ref eventData);
     }
 
-    public override CommonFrameInfo GetFrameInfo() => _frameInfo;
+    public override FrameInfo GetFrameInfo() => _sceneProcessor?.GetFrameInfo() ?? default;
 
     public override RenderPipelineStats GetStats() => _stats;
 
     public override void DrawDebugGeometries(bool depthTest)
     {
-        var scene = _frameInfo.Scene;
+        var scene = _sceneProcessor?.GetFrameInfo().Scene;
         var debug = scene?.Root.GetComponent<DebugRenderer>();
         if (scene is null || debug is null)
             return;
@@ -751,7 +749,7 @@ public class StereoRenderPipelineView : RenderPipelineView
 
     public override void DrawDebugLights(bool depthTest)
     {
-        var scene = _frameInfo.Scene;
+        var scene = _sceneProcessor?.GetFrameInfo().Scene;
         var debug = scene?.Root.GetComponent<DebugRenderer>();
         if (scene is null || debug is null)
             return;

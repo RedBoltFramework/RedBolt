@@ -123,7 +123,7 @@ public class AnimatedModel : StaticModel
     }
 
     /// <summary>Update animation before octree reinsertion.</summary>
-    public override void Update(CommonFrameInfo frame)
+    public override void Update(FrameInfo frame)
     {
         if (!PrepareForThreadedUpdate(frame.Camera, frame.FrameNumber))
             return;
@@ -174,7 +174,7 @@ public class AnimatedModel : StaticModel
     }
 
     /// <summary>Calculate distance and prepare batches for rendering. May be called from worker thread(s), possibly re-entrantly.</summary>
-    public override void UpdateBatches(CommonFrameInfo frame)
+    public override void UpdateBatches(FrameInfo frame)
     {
         var camera = frame.Camera!;
         var worldTransform = Node.GetWorldTransform();
@@ -223,7 +223,7 @@ public class AnimatedModel : StaticModel
     }
 
     /// <summary>Prepare geometry for rendering.</summary>
-    public override void UpdateGeometry(CommonFrameInfo frame)
+    public override void UpdateGeometry(FrameInfo frame)
     {
         // Late update in case the model came into view and animation was dirtied in the meanwhile
         if (_forceAnimationUpdate)
