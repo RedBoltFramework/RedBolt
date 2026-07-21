@@ -17,7 +17,7 @@ public class RenderScope : IDisposable
             BeginGroup(name);
     }
 
-    public RenderScope(RenderContext? renderContext, string format, uint arg)
+    public RenderScope(RenderContext? renderContext, string format, int arg)
     {
         _renderContext = renderContext is not null && renderContext.IsDebugScopeEnabled() ? renderContext : null;
         if (_renderContext is not null)

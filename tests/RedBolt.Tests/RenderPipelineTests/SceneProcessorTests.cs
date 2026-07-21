@@ -69,6 +69,16 @@ public sealed class SceneProcessorTests
     }
 
     [Fact]
+    public void CreatePass_ForwardsProcessorDependenciesAndArguments()
+    {
+        var pipeline = new TestRenderPipelineInterface();
+        using var processor = new SceneProcessor(pipeline, "shadow", null, null);
+        using var pass = processor.CreatePass<UnorderedScenePass>(DrawableProcessorPassFlag.None, "base");
+
+        Assert.NotNull(pass);
+    }
+
+    [Fact]
     public void BatchCompositor_dispose_releases_pipeline_subscriptions()
     {
         var pipeline = new TestRenderPipelineInterface();

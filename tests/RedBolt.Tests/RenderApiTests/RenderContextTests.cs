@@ -129,7 +129,7 @@ public sealed class RenderContextTests
     [Fact]
     public void Disabled_render_scope_does_not_format_debug_group_name()
     {
-        using var scope = new RenderScope(null, "{", 0u);
+        using var scope = new RenderScope(null, "{", 0);
     }
 
     [Fact]
