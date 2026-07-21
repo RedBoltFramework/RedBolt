@@ -1,12 +1,22 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
-public sealed class PListFile : Resource
+public class PListFile : Resource
 {
     private readonly Dictionary<string, PListValue> _root = new(StringComparer.Ordinal);
 
     public PListFile(string name = "")
         : base(name)
     {
+    }
+
+    public override void Dispose()
+    {
+        foreach (var value in _root.Values)
+            value.Dispose();
+        _root.Clear();
+        base.Dispose();
     }
 
     public static void RegisterObject(Context context)
@@ -16,8 +26,6 @@ public sealed class PListFile : Resource
 
     public IReadOnlyDictionary<string, PListValue> Root => _root;
 
-    public IReadOnlyDictionary<string, PListValue> GetRoot() => Root;
-
     public override bool BeginLoad(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -25,14 +33,22 @@ public sealed class PListFile : Resource
         if (Name.Length == 0 && source is FileStream fileStream)
             SetName(fileStream.Name);
 
-        var xmlFile = new XMLFile(Name);
+        using var xmlFile = new XMLFile();
         if (!xmlFile.Load(source))
+        {
+            Log.GetLogger().LogError("Could not load property list");
             return false;
+        }
 
         var plistElement = xmlFile.GetRoot("plist");
         if (plistElement.IsNull)
+        {
+            Log.GetLogger().LogError("Invalid property list file");
             return false;
+        }
 
+        foreach (var value in _root.Values)
+            value.Dispose();
         _root.Clear();
         var dictElement = plistElement.GetChild("dict");
         if (!LoadDict(_root, dictElement))
@@ -54,11 +70,14 @@ public sealed class PListFile : Resource
             if (valueElement.IsNull)
                 return false;
 
-            var value = new PListValue();
+            using var value = new PListValue();
             if (!LoadValue(value, valueElement))
                 return false;
 
-            destination[keyElement.GetValue()] = value;
+            var key = keyElement.GetValue();
+            if (destination.TryGetValue(key, out var previousValue))
+                previousValue.Dispose();
+            destination[key] = new PListValue(value);
             keyElement = valueElement.GetNext("key");
         }
 
@@ -72,11 +91,11 @@ public sealed class PListFile : Resource
 
         for (var valueElement = arrayElement.GetChild(); valueElement.NotNull; valueElement = valueElement.GetNext())
         {
-            var value = new PListValue();
+            using var value = new PListValue();
             if (!LoadValue(value, valueElement))
                 return false;
 
-            destination.Add(value);
+            destination.Add(new PListValue(value));
         }
 
         return true;
@@ -84,7 +103,6 @@ public sealed class PListFile : Resource
 
     private bool LoadValue(PListValue value, XMLElement valueElement)
     {
-        ArgumentNullException.ThrowIfNull(value);
         var valueType = valueElement.Name;
         switch (valueType)
         {
@@ -115,6 +133,7 @@ public sealed class PListFile : Resource
                 return LoadArray(value.ConvertToValueVector(), valueElement);
 
             default:
+                Log.GetLogger().LogError("Supported value type");
                 return false;
         }
     }

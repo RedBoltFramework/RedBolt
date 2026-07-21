@@ -207,6 +207,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [~] `XMLFile.h` / `XMLFile.cpp` — extensible noncopyable resource kind, document ownership/disposal, loading/inheritance, native default parsing/output, archive callbacks, patch operations, memory accounting, diagnostics, and allowed `int` sizes reconciled; inherited Resource stream compatibility, pugixml-only document semantics, and managed compatibility surfaces remain pending
 - [~] `ResourceCache.h` / `ResourceCache.cpp` — temporary-resource empty-name/null behavior and canonical VFS sanitization reconciled while auditing LightProbeGroup; complete class-wide lifetime/copy audit remains pending
 - [x] `ResourceRouter` in `ResourceCache.h` / `ResourceCache.cpp` — abstract noncopyable class kind, construction, inherited teardown, mutable identifier aliasing, cache-held pointer identity, routing order, reentrancy guard, and allowed `int` indices reconciled
+- [x] `PListValue` in `PListFile.h` / `PListFile.cpp` — extensible non-POD value owner, CLR-safe active union storage, complete construction/copy/assignment/destruction, recursive container ownership, property getters, equality, and `PListFile` copy-insertion lifetimes reconciled
+- [~] `PListFile` in `PListFile.h` / `PListFile.cpp` — local XML/value RAII, root destruction, copy insertion, loading, and diagnostics reconciled; inherited Resource stream/construction/cache migration remains pending
 
 ## [~] A6. Scene — depends on Resource, Core
 
