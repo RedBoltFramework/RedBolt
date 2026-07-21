@@ -11,13 +11,20 @@ public partial class Graph : Object
     {
     }
 
+    /// <summary>Destruct. Free all resources.</summary>
+    public override void Dispose()
+    {
+        Clear();
+        base.Dispose();
+    }
+
     /// <summary>Register object factory.</summary>
     public static void RegisterObject(Context context)
     {
     }
 
     /// <summary>Get number of nodes in the graph.</summary>
-    public uint GetNumNodes() => checked((uint)_nodes.Count);
+    public int GetNumNodes() => _nodes.Count;
 
     /// <summary>Get node ids.</summary>
     public void GetNodeIds(List<uint> ids)
@@ -38,7 +45,7 @@ public partial class Graph : Object
     public bool LoadXML(string xml)
     {
         using var buffer = new MemoryStream(Encoding.UTF8.GetBytes(xml));
-        var file = new XMLFile(string.Empty);
+        using var file = new XMLFile(string.Empty);
         if (!file.Load(buffer))
             return false;
 
@@ -59,20 +66,21 @@ public partial class Graph : Object
     /// <summary>Serialize content from/to archive.</summary>
     public override void SerializeInBlock(Archive archive)
     {
-        var size = archive.IsInput ? 0u : checked((uint)_nodes.Count);
-        using var block = archive.OpenArrayBlock("nodes", size);
+        var size = archive.IsInput ? 0 : _nodes.Count;
+        using var block = archive.OpenArrayBlock("nodes", checked((uint)size));
         if (archive.IsInput)
         {
             _nodes.Clear();
-            for (var index = 0u; index < block.SizeHint; ++index)
+            size = checked((int)block.SizeHint);
+            for (var index = 0; index < size; ++index)
             {
                 using var nodeBlock = archive.OpenUnorderedBlock("node");
                 var id = 0u;
                 ArchiveSerialization.SerializeValue(archive, "id", ref id);
                 var node = new GraphNode();
                 node.SetGraph(this, id);
-                node.SerializeInBlock(archive);
                 _nodes[id] = node;
+                node.SerializeInBlock(archive);
             }
         }
         else

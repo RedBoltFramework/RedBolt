@@ -20,11 +20,31 @@ public sealed class GraphPinTests
     [Fact]
     public void Graph_input_pin_value_disconnects_target()
     {
-        var pin = new GraphInPin();
+        using var pin = new GraphInPin();
         pin.SetValue(new Variant(42));
 
         Assert.False(pin.IsConnected());
         Assert.Equal(42, pin.GetValue().GetInt());
+    }
+
+    [Fact]
+    public void Graph_input_pin_owns_an_independent_variant_value()
+    {
+        using var values = new VariantVector();
+        values.Add(new Variant(42));
+        using var source = new Variant(values);
+        using var pin = new GraphInPin();
+
+        pin.SetValue(source);
+        source.GetVariantVector().Clear();
+
+        Assert.Equal(42, pin.GetValue().GetVariantVector()[0].GetInt());
+
+        var previousValue = pin.GetValue().GetVariantVector();
+        pin.SetValue(new Variant(7));
+
+        Assert.Empty(previousValue);
+        Assert.Equal(7, pin.GetValue().GetInt());
     }
 
     [Fact]

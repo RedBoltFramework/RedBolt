@@ -1,8 +1,12 @@
 namespace RedBolt;
 
 /// <summary>Abstract graph node pin.</summary>
-public class GraphPin : IArchiveSerializable
+public class GraphPin : IArchiveSerializable, IDisposable
 {
+    public virtual void Dispose()
+    {
+    }
+
     /// <summary>Get name of the pin.</summary>
     public string GetName() => _name;
 
@@ -80,12 +84,14 @@ public class GraphInPin : GraphDataPin
     public bool IsConnected() => _targetNode != 0;
 
     /// <summary>Get value.</summary>
-    public Variant GetValue() => _value;
+    public ref readonly Variant GetValue() => ref _value;
 
     /// <summary>Set value. Disconnects pin from an Out pin.</summary>
-    public void SetValue(Variant variant)
+    public void SetValue(in Variant variant)
     {
-        _value = variant;
+        var replacement = variant.Clone();
+        _value.Dispose();
+        _value = replacement;
         Disconnect();
     }
 
@@ -99,12 +105,13 @@ public class GraphInPin : GraphDataPin
             ArchiveSerialization.SerializeValue(archive, "pin", ref _targetPin);
 
         if (_type != VariantType.None && (!archive.IsInput || archive.HasElementOrBlock("value")))
-        {
-            var value = _value;
-            ArchiveSerialization.SerializeVariantAsType(archive, "value", ref value, _type);
-            if (archive.IsInput)
-                _value = value;
-        }
+            ArchiveSerialization.SerializeVariantAsType(archive, "value", ref _value, _type);
+    }
+
+    public override void Dispose()
+    {
+        _value.Dispose();
+        base.Dispose();
     }
 
     /// <summary>Target node.</summary>
@@ -113,7 +120,7 @@ public class GraphInPin : GraphDataPin
     /// <summary>Target pin name.</summary>
     internal string _targetPin = string.Empty;
 
-    /// <summary>Value.</summary>
+    /// <summary>Target node.</summary>
     internal Variant _value;
 }
 
@@ -189,14 +196,13 @@ public readonly struct GraphPinRef<TPin> where TPin : GraphPin
 
     public GraphPinRef<TConnectedPin> GetConnectedPin<TConnectedPin>() where TConnectedPin : GraphPin
     {
-        if (_node?.GetGraph() is not Graph graph || _pin is null)
-            return default;
+        var graph = _node!.GetGraph()!;
 
-        if (_pin is GraphExitPin exitPin && typeof(TConnectedPin) == typeof(GraphEnterPin))
+        if (_pin is GraphExitPin exitPin)
             return (GraphPinRef<TConnectedPin>)(object)graph.GetConnectedPin(exitPin);
-        if (_pin is GraphInPin inputPin && typeof(TConnectedPin) == typeof(GraphOutPin))
+        if (_pin is GraphInPin inputPin)
             return (GraphPinRef<TConnectedPin>)(object)graph.GetConnectedPin(inputPin);
-        return default;
+        throw new InvalidOperationException();
     }
 
     private readonly GraphNode? _node;

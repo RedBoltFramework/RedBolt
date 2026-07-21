@@ -1,8 +1,9 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
-public class GraphNodeProperty : IArchiveSerializable
+public class GraphNodeProperty : IArchiveSerializable, IDisposable
 {
     /// <summary>Property value.</summary>
     public Variant Value;
@@ -27,6 +28,11 @@ public class GraphNodeProperty : IArchiveSerializable
         ArchiveSerialization.SerializeVariantInBlock(archive, ref Value);
     }
 
+    public void Dispose()
+    {
+        Value.Dispose();
+    }
+
     /// <summary>Property name.</summary>
     private string _name = string.Empty;
 
@@ -38,6 +44,31 @@ public partial class GraphNode : Object
 {
     public GraphNode()
     {
+    }
+
+    public override void Dispose()
+    {
+        for (var index = _outputPins.Count - 1; index >= 0; --index)
+            _outputPins[index].Dispose();
+        _outputPins.Clear();
+
+        for (var index = _inputPins.Count - 1; index >= 0; --index)
+            _inputPins[index].Dispose();
+        _inputPins.Clear();
+
+        for (var index = _exitPins.Count - 1; index >= 0; --index)
+            _exitPins[index].Dispose();
+        _exitPins.Clear();
+
+        for (var index = _enterPins.Count - 1; index >= 0; --index)
+            _enterPins[index].Dispose();
+        _enterPins.Clear();
+
+        for (var index = _properties.Count - 1; index >= 0; --index)
+            _properties[index].Dispose();
+        _properties.Clear();
+
+        base.Dispose();
     }
 
     /// <summary>Register object factory.</summary>
@@ -74,23 +105,26 @@ public partial class GraphNode : Object
     }
 
     /// <summary>Get node property. Returns null if property is not found.</summary>
-    public Variant? GetProperty(string name)
+    public ref Variant GetProperty(string name)
     {
         for (var index = 0; index < _properties.Count; ++index)
         {
             if (_properties[index].GetName() == name)
-                return _properties[index].Value;
+                return ref CollectionsMarshal.AsSpan(_properties)[index].Value;
         }
-        return null;
+        return ref Unsafe.NullRef<Variant>();
     }
 
     /// <summary>Get properties.</summary>
     public IReadOnlyList<GraphNodeProperty> GetProperties() => _properties;
 
     /// <summary>Add property with value.</summary>
-    public GraphNode WithProperty(string name, Variant value)
+    public GraphNode WithProperty(string name, in Variant value)
     {
-        GetOrAddProperty(name) = value;
+        var replacement = value.Clone();
+        ref var property = ref GetOrAddProperty(name);
+        property.Dispose();
+        property = replacement;
         return this;
     }
 
@@ -106,15 +140,15 @@ public partial class GraphNode : Object
     }
 
     /// <summary>Get input pin by index.</summary>
-    public GraphPinRef<GraphInPin> GetInput(uint index)
+    public GraphPinRef<GraphInPin> GetInput(int index)
     {
-        if (index >= _inputPins.Count)
+        if (index < 0 || index >= _inputPins.Count)
             return default;
-        return new GraphPinRef<GraphInPin>(this, _inputPins[checked((int)index)]);
+        return new GraphPinRef<GraphInPin>(this, _inputPins[index]);
     }
 
     /// <summary>Get number of input pins.</summary>
-    public uint GetNumInputs() => checked((uint)_inputPins.Count);
+    public int GetNumInputs() => _inputPins.Count;
 
     /// <summary>Get or add input pin.</summary>
     public GraphPinRef<GraphInPin> GetOrAddInput(string name)
@@ -141,7 +175,7 @@ public partial class GraphNode : Object
     }
 
     /// <summary>Add input pin with value.</summary>
-    public GraphNode WithInput(string name, Variant value)
+    public GraphNode WithInput(string name, in Variant value)
     {
         var pin = GetOrAddInput(name);
         pin.GetPin()!.SetName(name);
@@ -197,15 +231,15 @@ public partial class GraphNode : Object
     }
 
     /// <summary>Get output pin by index.</summary>
-    public GraphPinRef<GraphOutPin> GetOutput(uint index)
+    public GraphPinRef<GraphOutPin> GetOutput(int index)
     {
-        if (index >= _outputPins.Count)
+        if (index < 0 || index >= _outputPins.Count)
             return default;
-        return new GraphPinRef<GraphOutPin>(this, _outputPins[checked((int)index)]);
+        return new GraphPinRef<GraphOutPin>(this, _outputPins[index]);
     }
 
     /// <summary>Get number of output pins.</summary>
-    public uint GetNumOutputs() => checked((uint)_outputPins.Count);
+    public int GetNumOutputs() => _outputPins.Count;
 
     /// <summary>Get or add enter pin.</summary>
     public GraphPinRef<GraphEnterPin> GetOrAddEnter(string name)
@@ -234,15 +268,15 @@ public partial class GraphNode : Object
     }
 
     /// <summary>Get enter pin by index.</summary>
-    public GraphPinRef<GraphEnterPin> GetEnter(uint index)
+    public GraphPinRef<GraphEnterPin> GetEnter(int index)
     {
-        if (index >= _enterPins.Count)
+        if (index < 0 || index >= _enterPins.Count)
             return default;
-        return new GraphPinRef<GraphEnterPin>(this, _enterPins[checked((int)index)]);
+        return new GraphPinRef<GraphEnterPin>(this, _enterPins[index]);
     }
 
     /// <summary>Get number of enter pins.</summary>
-    public uint GetNumEnters() => checked((uint)_enterPins.Count);
+    public int GetNumEnters() => _enterPins.Count;
 
     /// <summary>Get exit pin by name.</summary>
     public GraphPinRef<GraphExitPin> GetExit(string name)
@@ -256,11 +290,11 @@ public partial class GraphNode : Object
     }
 
     /// <summary>Get exit pin by index.</summary>
-    public GraphPinRef<GraphExitPin> GetExit(uint index)
+    public GraphPinRef<GraphExitPin> GetExit(int index)
     {
-        if (index >= _exitPins.Count)
+        if (index < 0 || index >= _exitPins.Count)
             return default;
-        return new GraphPinRef<GraphExitPin>(this, _exitPins[checked((int)index)]);
+        return new GraphPinRef<GraphExitPin>(this, _exitPins[index]);
     }
 
     /// <summary>Get or add exit pin.</summary>
@@ -279,13 +313,16 @@ public partial class GraphNode : Object
     }
 
     /// <summary>Get number of exit pins.</summary>
-    public uint GetNumExits() => checked((uint)_exitPins.Count);
+    public int GetNumExits() => _exitPins.Count;
 
     /// <summary>Set name of the graph node.</summary>
     public void SetName(string name)
     {
-        _name = name;
-        _nameHash = name;
+        if (_name != name)
+        {
+            _name = name;
+            _nameHash = name;
+        }
     }
 
     /// <summary>Serialize content from/to archive.</summary>
@@ -310,27 +347,33 @@ public partial class GraphNode : Object
     }
 
     private static void SerializeObjectVector<T>(Archive archive, string name, string itemName, List<T> values)
-        where T : IArchiveSerializable, new()
+        where T : IArchiveSerializable, IDisposable, new()
     {
         if (archive.IsInput && !archive.HasElementOrBlock(name))
         {
+            for (var index = values.Count - 1; index >= 0; --index)
+                values[index].Dispose();
             values.Clear();
             return;
         }
         if (!archive.IsInput && values.Count == 0)
             return;
 
-        var size = archive.IsInput ? 0u : checked((uint)values.Count);
-        using var block = archive.OpenArrayBlock(name, size);
+        var size = archive.IsInput ? 0 : values.Count;
+        using var block = archive.OpenArrayBlock(name, checked((uint)size));
         if (archive.IsInput)
         {
+            for (var index = values.Count - 1; index >= 0; --index)
+                values[index].Dispose();
             values.Clear();
-            for (var index = 0u; index < block.SizeHint; ++index)
+            size = checked((int)block.SizeHint);
+            for (var index = 0; index < size; ++index)
+                values.Add(new T());
+
+            for (var index = 0; index < size; ++index)
             {
                 using var itemBlock = archive.OpenUnorderedBlock(itemName);
-                var value = new T();
-                value.SerializeInBlock(archive);
-                values.Add(value);
+                values[index].SerializeInBlock(archive);
             }
         }
         else
