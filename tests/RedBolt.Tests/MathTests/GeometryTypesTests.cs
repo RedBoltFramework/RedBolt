@@ -196,6 +196,28 @@ public sealed class GeometryTypesTests
     }
 
     [Fact]
+    public void Matrix2_preserves_native_value_layout_and_copy_semantics()
+    {
+        Assert.Equal(16, System.Runtime.CompilerServices.Unsafe.SizeOf<Matrix2>());
+        Assert.False(System.Runtime.CompilerServices.RuntimeHelpers.IsReferenceOrContainsReferences<Matrix2>());
+        Assert.Equal(Matrix2.Identity, new Matrix2());
+
+        ReadOnlySpan<float> values = [1.0f, 2.0f, 3.0f, 4.0f];
+        var matrix = new Matrix2(values);
+        var copy = matrix;
+        copy.M00 = 5.0f;
+
+        Assert.Equal(1.0f, matrix.M00);
+        Assert.Equal(values.ToArray(), matrix.Data.ToArray());
+        Assert.Equal(new Matrix2(1.0f, 3.0f, 2.0f, 4.0f), matrix.Transpose);
+
+        var source = new[] { 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f };
+        var destination = new float[source.Length];
+        Matrix2.BulkTranspose(destination, source, 2);
+        Assert.Equal(new[] { 1.0f, 3.0f, 2.0f, 4.0f, 5.0f, 7.0f, 6.0f, 8.0f }, destination);
+    }
+
+    [Fact]
     public void Matrix3x4_decompose_roundtrips_transform_components()
     {
         var matrix = new Matrix3x4(

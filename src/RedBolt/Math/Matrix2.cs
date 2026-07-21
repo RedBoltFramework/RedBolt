@@ -7,12 +7,14 @@ namespace RedBolt;
 [StructLayout(LayoutKind.Sequential)]
 public struct Matrix2 : IEquatable<Matrix2>, IApproximateEquatable<Matrix2>
 {
-    public float M00;
-    public float M01;
-    public float M10;
-    public float M11;
+    /// <summary>Construct an identity matrix.</summary>
+    public Matrix2()
+        : this(1.0f, 0.0f, 0.0f, 1.0f)
+    {
+    }
 
-    public Matrix2(float v00 = 1.0f, float v01 = 0.0f, float v10 = 0.0f, float v11 = 1.0f)
+    /// <summary>Construct from values.</summary>
+    public Matrix2(float v00, float v01, float v10, float v11)
     {
         M00 = v00;
         M01 = v01;
@@ -20,7 +22,8 @@ public struct Matrix2 : IEquatable<Matrix2>, IApproximateEquatable<Matrix2>
         M11 = v11;
     }
 
-    public Matrix2(IReadOnlyList<float> data)
+    /// <summary>Construct from a float array.</summary>
+    public Matrix2(ReadOnlySpan<float> data)
     {
         M00 = data[0];
         M01 = data[1];
@@ -28,19 +31,90 @@ public struct Matrix2 : IEquatable<Matrix2>, IApproximateEquatable<Matrix2>
         M11 = data[3];
     }
 
-    public static readonly Matrix2 ZERO = new(0.0f, 0.0f, 0.0f, 0.0f);
-    public static readonly Matrix2 IDENTITY = new(1.0f, 0.0f, 0.0f, 1.0f);
+    /// <summary>Test for equality with another matrix without epsilon.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator ==(Matrix2 lhs, Matrix2 rhs) => lhs.M00 == rhs.M00 && lhs.M01 == rhs.M01 && lhs.M10 == rhs.M10 && lhs.M11 == rhs.M11;
 
-    public static Matrix2 Zero => ZERO;
-    public static Matrix2 Identity => IDENTITY;
+    /// <summary>Test for inequality with another matrix without epsilon.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool operator !=(Matrix2 lhs, Matrix2 rhs) => !(lhs == rhs);
 
-    public Vector2f Scale => new(
+    /// <summary>Multiply a Vector2.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector2f operator *(Matrix2 lhs, Vector2f rhs) => new(
+        lhs.M00 * rhs.X + lhs.M01 * rhs.Y,
+        lhs.M10 * rhs.X + lhs.M11 * rhs.Y);
+
+    /// <summary>Add a matrix.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix2 operator +(Matrix2 lhs, Matrix2 rhs) => new(
+        lhs.M00 + rhs.M00,
+        lhs.M01 + rhs.M01,
+        lhs.M10 + rhs.M10,
+        lhs.M11 + rhs.M11);
+
+    /// <summary>Subtract a matrix.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix2 operator -(Matrix2 lhs, Matrix2 rhs) => new(
+        lhs.M00 - rhs.M00,
+        lhs.M01 - rhs.M01,
+        lhs.M10 - rhs.M10,
+        lhs.M11 - rhs.M11);
+
+    /// <summary>Multiply with a scalar.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix2 operator *(Matrix2 lhs, float rhs) => new(
+        lhs.M00 * rhs,
+        lhs.M01 * rhs,
+        lhs.M10 * rhs,
+        lhs.M11 * rhs);
+
+    /// <summary>Multiply a matrix.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Matrix2 operator *(Matrix2 lhs, Matrix2 rhs) => new(
+        lhs.M00 * rhs.M00 + lhs.M01 * rhs.M10,
+        lhs.M00 * rhs.M01 + lhs.M01 * rhs.M11,
+        lhs.M10 * rhs.M00 + lhs.M11 * rhs.M10,
+        lhs.M10 * rhs.M01 + lhs.M11 * rhs.M11);
+
+    /// <summary>Set scaling elements.</summary>
+    public void SetScale(Vector2f scale)
+    {
+        M00 = scale.X;
+        M11 = scale.Y;
+    }
+
+    /// <summary>Set uniform scaling elements.</summary>
+    public void SetScale(float scale)
+    {
+        M00 = scale;
+        M11 = scale;
+    }
+
+    /// <summary>Return the scaling part.</summary>
+    public readonly Vector2f Scale => new(
         MathF.Sqrt(M00 * M00 + M10 * M10),
         MathF.Sqrt(M01 * M01 + M11 * M11));
 
-    public Matrix2 Transposed => new(M00, M10, M01, M11);
+    /// <summary>Return transpose.</summary>
+    public readonly Matrix2 Transpose => new(M00, M10, M01, M11);
 
-    public Matrix2 Inverse
+    /// <summary>Return scaled by a vector.</summary>
+    public readonly Matrix2 Scaled(Vector2f scale) => new(
+        M00 * scale.X,
+        M01 * scale.Y,
+        M10 * scale.X,
+        M11 * scale.Y);
+
+    /// <summary>Test for equality with another matrix with epsilon.</summary>
+    public readonly bool ApproximatelyEquivalent(Matrix2 rhs, float epsilon = MathDefs.Epsilon) =>
+        MathDefs.Equals(M00, rhs.M00, epsilon) &&
+        MathDefs.Equals(M01, rhs.M01, epsilon) &&
+        MathDefs.Equals(M10, rhs.M10, epsilon) &&
+        MathDefs.Equals(M11, rhs.M11, epsilon);
+
+    /// <summary>Return inverse.</summary>
+    public readonly Matrix2 Inverse
     {
         get
         {
@@ -50,19 +124,29 @@ public struct Matrix2 : IEquatable<Matrix2>, IApproximateEquatable<Matrix2>
         }
     }
 
-    public float[] Data => [M00, M01, M10, M11];
-    public bool IsNaN => float.IsNaN(M00) || float.IsNaN(M01) || float.IsNaN(M10) || float.IsNaN(M11);
-    public bool IsInf => float.IsInfinity(M00) || float.IsInfinity(M01) || float.IsInfinity(M10) || float.IsInfinity(M11);
+    /// <summary>Return float data.</summary>
+    public readonly ReadOnlySpan<float> Data => MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in M00), 4);
 
-    public static void BulkTranspose(float[] destination, float[] source, uint count)
+    /// <summary>Return whether any element is NaN.</summary>
+    public readonly bool IsNaN => float.IsNaN(M00) || float.IsNaN(M01) || float.IsNaN(M10) || float.IsNaN(M11);
+
+    /// <summary>Return whether any element is Inf.</summary>
+    public readonly bool IsInf => float.IsInfinity(M00) || float.IsInfinity(M01) || float.IsInfinity(M10) || float.IsInfinity(M11);
+
+    /// <summary>Return as string.</summary>
+    public override readonly string ToString() => string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", M00, M01, M10, M11);
+
+    public float M00;
+    public float M01;
+    public float M10;
+    public float M11;
+
+    /// <summary>Bulk transpose matrices.</summary>
+    public static void BulkTranspose(Span<float> destination, ReadOnlySpan<float> source, int count)
     {
-        ArgumentNullException.ThrowIfNull(destination);
-        ArgumentNullException.ThrowIfNull(source);
-        if (destination.Length < count * 4 || source.Length < count * 4)
-            throw new ArgumentException("Source and destination must contain count matrices.");
         for (var i = 0; i < count; ++i)
         {
-            var offset = (int)i * 4;
+            var offset = i * 4;
             destination[offset] = source[offset];
             destination[offset + 1] = source[offset + 2];
             destination[offset + 2] = source[offset + 1];
@@ -70,74 +154,17 @@ public struct Matrix2 : IEquatable<Matrix2>, IApproximateEquatable<Matrix2>
         }
     }
 
-    public void SetScale(Vector2f scale)
-    {
-        M00 = scale.X;
-        M11 = scale.Y;
-    }
+    /// <summary>Zero matrix.</summary>
+    public static readonly Matrix2 Zero = new(0.0f, 0.0f, 0.0f, 0.0f);
 
-    public void SetScale(float scale)
-    {
-        M00 = scale;
-        M11 = scale;
-    }
+    /// <summary>Identity matrix.</summary>
+    public static readonly Matrix2 Identity = new();
 
-    public Matrix2 Scaled(Vector2f scale) => new(
-        M00 * scale.X,
-        M01 * scale.Y,
-        M10 * scale.X,
-        M11 * scale.Y);
-
-    public bool ApproximatelyEquivalent(Matrix2 rhs, float epsilon = MathDefs.Epsilon) =>
-        MathDefs.Equals(M00, rhs.M00, epsilon) &&
-        MathDefs.Equals(M01, rhs.M01, epsilon) &&
-        MathDefs.Equals(M10, rhs.M10, epsilon) &&
-        MathDefs.Equals(M11, rhs.M11, epsilon);
-
-    public bool Equals(Matrix2 other) => this == other;
-    public override bool Equals(object? obj) => obj is Matrix2 other && Equals(other);
-    public override int GetHashCode() => HashCode.Combine(M00, M01, M10, M11);
-    public override string ToString() => string.Format(CultureInfo.InvariantCulture, "{0} {1} {2} {3}", M00, M01, M10, M11);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(Matrix2 lhs, Matrix2 rhs) => lhs.M00 == rhs.M00 && lhs.M01 == rhs.M01 && lhs.M10 == rhs.M10 && lhs.M11 == rhs.M11;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(Matrix2 lhs, Matrix2 rhs) => !(lhs == rhs);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector2f operator *(Matrix2 lhs, Vector2f rhs) => new(
-        lhs.M00 * rhs.X + lhs.M01 * rhs.Y,
-        lhs.M10 * rhs.X + lhs.M11 * rhs.Y);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix2 operator +(Matrix2 lhs, Matrix2 rhs) => new(
-        lhs.M00 + rhs.M00,
-        lhs.M01 + rhs.M01,
-        lhs.M10 + rhs.M10,
-        lhs.M11 + rhs.M11);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix2 operator -(Matrix2 lhs, Matrix2 rhs) => new(
-        lhs.M00 - rhs.M00,
-        lhs.M01 - rhs.M01,
-        lhs.M10 - rhs.M10,
-        lhs.M11 - rhs.M11);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix2 operator *(Matrix2 lhs, float rhs) => new(
-        lhs.M00 * rhs,
-        lhs.M01 * rhs,
-        lhs.M10 * rhs,
-        lhs.M11 * rhs);
-
+    /// <summary>Multiply a 2x2 matrix with a scalar.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Matrix2 operator *(float lhs, Matrix2 rhs) => rhs * lhs;
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Matrix2 operator *(Matrix2 lhs, Matrix2 rhs) => new(
-        lhs.M00 * rhs.M00 + lhs.M01 * rhs.M10,
-        lhs.M00 * rhs.M01 + lhs.M01 * rhs.M11,
-        lhs.M10 * rhs.M00 + lhs.M11 * rhs.M10,
-        lhs.M10 * rhs.M01 + lhs.M11 * rhs.M11);
+    public readonly bool Equals(Matrix2 other) => this == other;
+    public override readonly bool Equals(object? obj) => obj is Matrix2 other && Equals(other);
+    public override readonly int GetHashCode() => HashCode.Combine(M00, M01, M10, M11);
 }
