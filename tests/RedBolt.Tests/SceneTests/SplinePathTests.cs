@@ -92,8 +92,8 @@ public sealed class SplinePathTests
         var scene = new Scene();
         var pathNode = scene.CreateChild("Path");
         var path = pathNode.CreateComponent<SplinePath>();
-        path.SetInterpolationMode(InterpolationMode.LinearCurve);
-        path.SetSpeed(5.0f);
+        path.InterpolationMode = InterpolationMode.LinearCurve;
+        path.Speed = 5.0f;
         var a = scene.CreateChild("A", 10);
         a.SetWorldPosition(new Vector3f(0.0f, 0.0f, 0.0f));
         var b = scene.CreateChild("B", 11);
@@ -102,18 +102,18 @@ public sealed class SplinePathTests
 
         path.AddControlPoint(a);
         path.AddControlPoint(b);
-        path.SetControlledNode(controlled);
+        path.ControlledNode = controlled;
         path.Reset();
         path.Move(1.0f);
 
-        Assert.Equal((uint)2, path.GetControlPointIdsAttr()[0]);
-        Assert.True(path.GetLength() > 0.0f);
+        Assert.Equal(2u, path.ControlPointIdsAttr[0].GetUInt());
+        Assert.True(path.Length > 0.0f);
         Assert.True(controlled.GetWorldPosition().ApproximatelyEquivalent(new Vector3f(5.0f, 0.0f, 0.0f), 0.05f));
 
         path.RemoveControlPoint(a);
-        Assert.Equal((uint)1, path.GetControlPointIdsAttr()[0]);
+        Assert.Equal(1u, path.ControlPointIdsAttr[0].GetUInt());
         path.ClearControlPoints();
-        Assert.Equal((uint)0, path.GetControlPointIdsAttr()[0]);
+        Assert.Equal(0u, path.ControlPointIdsAttr[0].GetUInt());
     }
 
     [Fact]
@@ -127,13 +127,66 @@ public sealed class SplinePathTests
         var b = scene.CreateChild("B", 31);
         b.SetWorldPosition(new Vector3f(20.0f, 0.0f, 0.0f));
         var controlled = scene.CreateChild("Controlled", 32);
-        path.SetControlPointIdsAttr([2u, 30u, 31u]);
-        path.SetControlledIdAttr(32u);
+        using var controlPointIds = new VariantVector([new Variant(2u), new Variant(30u), new Variant(31u)]);
+        path.ControlPointIdsAttr = controlPointIds;
+        path.ControlledIdAttr = 32u;
         path.ApplyAttributes();
-        path.SetInterpolationMode(InterpolationMode.LinearCurve);
+        path.InterpolationMode = InterpolationMode.LinearCurve;
         path.SetPosition(0.25f);
 
-        Assert.Same(controlled, path.GetControlledNode());
+        Assert.Same(controlled, path.ControlledNode);
         Assert.True(path.GetPoint(0.25f).ApproximatelyEquivalent(new Vector3f(5.0f, 0.0f, 0.0f), 0.05f));
+    }
+
+    [Fact]
+    public void Class_shape_listener_updates_and_attribute_value_ownership_match_cpp()
+    {
+        Assert.False(typeof(SplinePath).IsSealed);
+
+        var scene = new Scene();
+        var path = scene.CreateChild("Path").CreateComponent<SplinePath>();
+        path.InterpolationMode = InterpolationMode.LinearCurve;
+        var a = scene.CreateChild("A", 40);
+        var b = scene.CreateChild("B", 41);
+        a.SetWorldPosition(Vector3f.Zero);
+        b.SetWorldPosition(new Vector3f(10.0f, 0.0f, 0.0f));
+
+        path.AddControlPoint(a);
+        path.AddControlPoint(b);
+        Assert.Contains(path, a.GetListeners());
+        Assert.Contains(path, b.GetListeners());
+
+        a.SetWorldPosition(new Vector3f(2.0f, 0.0f, 0.0f));
+        Assert.True(path.GetPoint(0.0f).ApproximatelyEquivalent(new Vector3f(2.0f, 0.0f, 0.0f)));
+
+        using var ids = new VariantVector([new Variant(3u), new Variant(40u)]);
+        path.ControlPointIdsAttr = ids;
+        ids.Dispose();
+
+        Assert.Equal(4, path.ControlPointIdsAttr.Count);
+        Assert.Equal(3u, path.ControlPointIdsAttr[0].GetUInt());
+        Assert.Equal(40u, path.ControlPointIdsAttr[1].GetUInt());
+        Assert.Equal(0u, path.ControlPointIdsAttr[2].GetUInt());
+        Assert.Equal(0u, path.ControlPointIdsAttr[3].GetUInt());
+
+        path.ClearControlPoints();
+        Assert.DoesNotContain(path, a.GetListeners());
+        Assert.DoesNotContain(path, b.GetListeners());
+    }
+
+    [Fact]
+    public void Null_controlled_node_and_missing_controlled_id_preserve_existing_target()
+    {
+        var scene = new Scene();
+        var path = scene.CreateChild("Path").CreateComponent<SplinePath>();
+        var controlled = scene.CreateChild("Controlled", 50);
+        path.ControlledNode = controlled;
+
+        path.ControlledNode = null;
+        Assert.Same(controlled, path.ControlledNode);
+
+        path.ControlledIdAttr = 51u;
+        path.ApplyAttributes();
+        Assert.Same(controlled, path.ControlledNode);
     }
 }
