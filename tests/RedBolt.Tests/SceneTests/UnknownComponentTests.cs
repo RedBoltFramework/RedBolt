@@ -8,11 +8,22 @@ public sealed class UnknownComponentTests
     [Fact]
     public void Placeholder_load_helpers_mark_temporary()
     {
-        var component = new UnknownComponent();
-        using var stream = new MemoryStream();
-        Assert.True(component.Load(stream));
+        using var component = new UnknownComponent();
+        using var binary = new MemoryBuffer(new byte[] { 1, 2, 3 });
+        binary.Seek(1);
+
+        Assert.False(typeof(UnknownComponent).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(UnknownComponent)));
+        Assert.True(component.Load(binary));
         Assert.True(component.IsTemporary);
-        Assert.True(component.LoadXML(new XMLFile("test.xml").CreateRoot("unknown")));
+        Assert.Equal(1u, binary.Position);
+
+        component.SetTemporary(false);
+        using var xmlFile = new XMLFile("test.xml");
+        Assert.True(component.LoadXML(xmlFile.CreateRoot("unknown")));
+        Assert.True(component.IsTemporary);
+
+        component.SetTemporary(false);
         Assert.True(component.LoadJSON(new JSONValue(JSONValueType.Object)));
         Assert.True(component.IsTemporary);
     }
@@ -26,8 +37,8 @@ public sealed class UnknownComponentTests
             Scene.RegisterObject(Context.Instance);
         if (!Context.Instance.IsReflected<UnknownComponent>())
             UnknownComponent.RegisterObject(Context.Instance);
-        var source = new SceneResource("Scenes/Test.scene");
-        var prefab = new NodePrefab();
+        using var source = new SceneResource("Scenes/Test.scene");
+        using var prefab = new NodePrefab();
         var componentPrefab = new SerializablePrefab();
         componentPrefab.SetType("Missing.Component");
         componentPrefab.SetId((SerializableId)42);
@@ -38,11 +49,11 @@ public sealed class UnknownComponentTests
         using var stream = new MemoryStream();
         Assert.True(source.Save(stream, SceneResourceFormat.Json));
         stream.Position = 0;
-        var resource = new SceneResource("Scenes/Loaded.scene");
+        using var resource = new SceneResource("Scenes/Loaded.scene");
         Assert.True(resource.Load(stream));
 
         var unknown = Assert.IsType<UnknownComponent>(resource.GetScene().GetComponent(42));
-        Assert.Equal("Missing.Component", unknown.GetOriginalTypeName());
+        Assert.DoesNotContain(unknown.Attributes, attribute => attribute.Name == "Original Type Name");
         Assert.False(unknown.IsTemporary);
     }
 }

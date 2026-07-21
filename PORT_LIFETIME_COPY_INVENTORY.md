@@ -22,8 +22,8 @@ Excluded:
 - Tests and vendored third-party code.
 - Global aliases/usings files that contain no ported class implementation.
 
-Pending managed files inventoried: **67**
-Pending files with likely C++ counterpart paths: **59**
+Pending managed files inventoried: **66**
+Pending files with likely C++ counterpart paths: **58**
 Pending files requiring counterpart discovery: **8**
 
 ## Required review for every row
@@ -166,7 +166,6 @@ Check a column only after completing the corresponding full C++ review and recor
 | 2026-07-21 partial outcome | FIXED the native local-`Variant` lifetime boundaries in binary, XML, JSON, and archive load/save paths. Values read from deserializers and archives are destroyed after attribute assignment; values copied from attribute accessors are destroyed after writing, including early-return and exception paths. This also lets direct-field container accessors follow the native accessor contract without an extra undisposed getter-side copy. The complete `Serializable` class-shape, attribute-copy/default storage, clone, and destruction audit remains pending, so all row checkboxes remain open. | — | — | — |
 | `src/RedBolt/Scene/SplinePath.cs` | `Source/Urho3D/Scene/SplinePath.h`<br>`Source/Urho3D/Scene/SplinePath.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Scene/TrackedComponent.cs` | `Source/Urho3D/Scene/TrackedComponent.h`<br>`Source/Urho3D/Scene/TrackedComponent.cpp` | ☐ | ☐ | ☐ |
-| `src/RedBolt/Scene/UnknownComponent.cs` | `Source/Urho3D/Scene/UnknownComponent.h`<br>`Source/Urho3D/Scene/UnknownComponent.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Scene/ValueAnimation.cs` | `Source/Urho3D/Scene/ValueAnimation.h`<br>`Source/Urho3D/Scene/ValueAnimation.cpp` | ☐ | ☐ | ☐ |
 
 ## Outcome notation for future passes

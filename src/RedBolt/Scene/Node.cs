@@ -691,10 +691,7 @@ public class Node : Serializable
             return component;
 
         Log.GetLogger().Warning("Component type {0} not known, creating UnknownComponent as placeholder", type);
-        var unknownComponent = CreateComponent<UnknownComponent>(id);
-        if (!string.IsNullOrEmpty(typeName))
-            unknownComponent.SetOriginalTypeName(typeName);
-        return unknownComponent;
+        return CreateComponent<UnknownComponent>(id);
     }
 
     public bool Load(Deserializer source, SceneResolver resolver, bool loadChildren = true, bool rewriteIds = false)

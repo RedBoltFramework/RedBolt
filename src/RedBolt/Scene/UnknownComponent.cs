@@ -1,58 +1,36 @@
 namespace RedBolt;
 
-public sealed class UnknownComponent : Component
+/// <summary>Placeholder for allowing unregistered components to be loaded &amp; saved along with scenes.</summary>
+public class UnknownComponent : Component
 {
-    public string OriginalTypeName { get; private set; } = string.Empty;
-
-    // C# adds OriginalTypeName which does not exist in C++ UnknownComponent.
-
+    /// <summary>Construct.</summary>
     public UnknownComponent()
     {
-        RegisterAttribute(
-            "Original Type Name",
-            typeof(string),
-            self => ((UnknownComponent)self).GetOriginalTypeName(),
-            (self, value) => ((UnknownComponent)self).SetOriginalTypeName(value as string ?? string.Empty),
-            string.Empty,
-            AttributeMode.Default | AttributeMode.NoEdit);
     }
 
+    /// <summary>Register object factory.</summary>
     public static void RegisterObject(Context context)
     {
         context.AddFactoryReflection<UnknownComponent>();
     }
 
-    public void SetOriginalTypeName(string typeName)
-    {
-        OriginalTypeName = typeName ?? string.Empty;
-    }
-
-    public string GetOriginalTypeName() => OriginalTypeName;
-
-    public override bool Load(Stream source)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        SetTemporary(true);
-        return true;
-    }
-
+    /// <summary>Load from binary data. Return true if successful.</summary>
     public override bool Load(Deserializer source)
     {
-        ArgumentNullException.ThrowIfNull(source);
         SetTemporary(true);
         return true;
     }
 
+    /// <summary>Load from XML data. Return true if successful.</summary>
     public override bool LoadXML(XMLElement source)
     {
-        ArgumentNullException.ThrowIfNull(source);
         SetTemporary(true);
         return true;
     }
 
+    /// <summary>Load from JSON data. Return true if successful.</summary>
     public override bool LoadJSON(JSONValue source)
     {
-        ArgumentNullException.ThrowIfNull(source);
         SetTemporary(true);
         return true;
     }
