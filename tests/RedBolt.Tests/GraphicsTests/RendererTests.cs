@@ -76,7 +76,7 @@ public sealed class RendererTests
         Renderer.SetBackbufferRenderSurface(firstSurface);
         Renderer.SetBackbufferRenderSurface(null);
 
-        Assert.Equal(0u, firstSurface.GetNumViewports());
+        Assert.Equal(0, firstSurface.GetNumViewports());
     }
 
     [Fact]

@@ -32,13 +32,13 @@ public sealed class ViewportColorRenderBuffer : RenderBuffer
         return _renderTarget is not null ? _texture : null;
     }
 
-    public override RenderTargetView GetView(uint slice = 0u)
+    public override RenderTargetView GetView(int slice = 0)
     {
         CheckIfBufferIsReady();
-        return _renderTarget ?? RenderTargetView.SwapChainColor(_renderDevice);
+        return _renderTarget ?? RenderTargetView.SwapChainColor(_renderDevice!);
     }
 
-    public override RenderTargetView GetReadOnlyDepthView(uint slice = 0u)
+    public override RenderTargetView GetReadOnlyDepthView(int slice = 0)
     {
         Debug.Assert(false);
         return GetView(slice);

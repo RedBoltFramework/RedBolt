@@ -264,9 +264,8 @@ public sealed class RawTextureTests
             var renderTargetView = RenderTargetView.Texture(rawTexture);
             var readOnlyDepthView = RenderTargetView.ReadOnlyDepth(rawDepthTexture);
 
-            Assert.Null(renderTargetView.RenderTexture);
-            Assert.Null(readOnlyDepthView.RenderTexture);
-            Assert.Throws<ArgumentException>(() => RenderTargetView.ReadOnlyDepth(rawTexture));
+            Assert.Equal(TextureFormat.TexFormatRgba8Unorm, renderTargetView.GetFormat());
+            Assert.Equal(TextureFormat.TexFormatD24UnormS8Uint, readOnlyDepthView.GetFormat());
         });
     }
 

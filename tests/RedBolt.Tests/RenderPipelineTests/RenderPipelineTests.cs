@@ -1204,8 +1204,8 @@ public sealed class RenderPipelineTests
         var cubeTexture = Assert.IsType<TextureCube>(cubemap.Texture);
         Assert.Equal((32, 32), (cubeTexture.Width, cubeTexture.Height));
         Assert.Equal(new IntRect(0, 0, 32, 32), cubemap.GetViewportRect());
-        Assert.Equal(new RenderTargetView(cubeTexture, RenderTargetViewType.ResourceSlice, 0u), cubemap.GetView());
-        Assert.Equal(new RenderTargetView(cubeTexture, RenderTargetViewType.ResourceSlice, 5u), cubemap.GetView(5u));
+        Assert.Equal(RenderTargetView.TextureSlice(cubeTexture, 0), cubemap.GetView());
+        Assert.Equal(RenderTargetView.TextureSlice(cubeTexture, 5), cubemap.GetView(5));
     }
 
     [Fact]

@@ -26,7 +26,7 @@ public class RenderContext : Object
     private ITextureView? _currentDepthStencilHandle;
     private global::RedBolt.Bindings.Diligent.Viewport? _diligentViewport;
     private int _numCurrentRenderTargets;
-    private OptionalRawTextureRTV _currentDepthStencil;
+    private RenderTargetView? _currentDepthStencil;
     private PipelineStateOutputDesc _currentOutputDesc = new();
     private bool _isSwapChain;
     private Vector2i _currentDimensions;
@@ -84,13 +84,13 @@ public class RenderContext : Object
     /// <summary>
     /// Set specified render targets and depth-stencil buffer. Either can be null.
     /// </summary>
-    public void SetRenderTargets(OptionalRawTextureRTV depthStencil, ReadOnlySpan<RenderTargetView> renderTargets)
+    public void SetRenderTargets(RenderTargetView? depthStencil, ReadOnlySpan<RenderTargetView> renderTargets)
     {
         // C++ RenderContext::SetRenderTargets — bind via handle_ directly, do not set viewport.
         if (renderTargets.Length > RenderApiLimits.MaxRenderTargets)
             throw new ArgumentOutOfRangeException(nameof(renderTargets));
 
-        var isDepthSwapChain = depthStencil.GetValueOrDefault()?.IsSwapChain == true;
+        var isDepthSwapChain = depthStencil.GetValueOrDefault().IsSwapChain;
         var isColorSwapChain = renderTargets.Length == 1 && renderTargets[0].IsSwapChain;
         var isSingleView = renderTargets.Length + (depthStencil.HasValue ? 1 : 0) == 1;
         if (isDepthSwapChain != isColorSwapChain && !isSingleView)
@@ -103,7 +103,7 @@ public class RenderContext : Object
         _isSwapChain = isDepthSwapChain || isColorSwapChain;
         if (!_isSwapChain)
         {
-            if (depthStencil.GetValueOrDefault() is { } depthStencilView)
+            if (depthStencil is { } depthStencilView)
                 depthStencilView.MarkDirty();
             for (var i = 0; i < renderTargets.Length; ++i)
                 renderTargets[i].MarkDirty();
@@ -125,7 +125,7 @@ public class RenderContext : Object
             return;
 
         // C++: currentDepthStencil_ = depthStencil ? depthStencil->GetView() : nullptr;
-        _currentDepthStencilHandle = depthStencil.GetValueOrDefault() is { } depthView
+        _currentDepthStencilHandle = depthStencil is { } depthView
             ? depthView.GetView()
             : null;
         for (var i = 0; i < _numCurrentRenderTargets; ++i)
@@ -374,7 +374,7 @@ public class RenderContext : Object
         if (graphics is null)
             return;
 
-        var depthStencilView = _currentDepthStencil.GetValueOrDefault();
+        var depthStencilView = _currentDepthStencil;
         _currentOutputDesc.DepthStencilFormat = depthStencilView is { } depthView
             ? GetRenderTargetFormat(depthView, graphics)
             : TextureFormat.TexFormatUnknown;
@@ -396,9 +396,9 @@ public class RenderContext : Object
 
     private Graphics? GetGraphics() => GetSubsystem<Graphics>();
 
-    private Vector2i ResolveRenderTargetSize(ReadOnlySpan<RenderTargetView> colorTargets, OptionalRawTextureRTV depthStencil)
+    private Vector2i ResolveRenderTargetSize(ReadOnlySpan<RenderTargetView> colorTargets, RenderTargetView? depthStencil)
     {
-        var depthStencilView = depthStencil.GetValueOrDefault();
+        var depthStencilView = depthStencil;
         if ((colorTargets.Length != 0 && colorTargets[0].IsSwapChain) || depthStencilView?.IsSwapChain == true)
             return _renderDevice.GetSwapChainSize();
         if (colorTargets.Length != 0 && colorTargets[0].RenderTexture is { } colorTexture)

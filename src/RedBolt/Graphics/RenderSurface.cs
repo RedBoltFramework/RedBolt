@@ -10,7 +10,7 @@ public sealed class RenderSurface : IDisposable
     private readonly Texture? _parentTexture;
 
     /// <summary>Slice of the parent texture.</summary>
-    private readonly uint _slice;
+    private readonly int _slice;
 
     /// <summary>Diligent render target or depth-stencil view.</summary>
     private ITextureView? _renderTargetView;
@@ -33,7 +33,7 @@ public sealed class RenderSurface : IDisposable
     /// <summary>Multisampled resolve dirty flag.</summary>
     private bool _resolveDirty;
 
-    public RenderSurface(Texture? parentTexture, uint slice)
+    public RenderSurface(Texture? parentTexture, int slice)
     {
         _parentTexture = parentTexture;
         _slice = slice;
@@ -71,25 +71,24 @@ public sealed class RenderSurface : IDisposable
     }
 
     /// <summary>Set number of viewports.</summary>
-    public void SetNumViewports(uint num)
+    public void SetNumViewports(int num)
     {
-        var count = checked((int)num);
-        if (count < _viewports.Count)
-            _viewports.RemoveRange(count, _viewports.Count - count);
+        if (num < _viewports.Count)
+            _viewports.RemoveRange(num, _viewports.Count - num);
         else
         {
-            while (_viewports.Count < count)
+            while (_viewports.Count < num)
                 _viewports.Add(null);
         }
     }
 
     /// <summary>Set viewport.</summary>
-    public void SetViewport(uint index, Viewport? viewport)
+    public void SetViewport(int index, Viewport? viewport)
     {
-        if (index >= (uint)_viewports.Count)
+        if (index >= _viewports.Count)
             SetNumViewports(index + 1);
 
-        _viewports[checked((int)index)] = viewport;
+        _viewports[index] = viewport;
     }
 
     /// <summary>Set viewport update mode. Default is to update when visible.</summary>
@@ -134,12 +133,12 @@ public sealed class RenderSurface : IDisposable
     public bool GetAutoResolve() => _parentTexture!.GetAutoResolve();
 
     /// <summary>Return number of viewports.</summary>
-    public uint GetNumViewports() => checked((uint)_viewports.Count);
+    public int GetNumViewports() => _viewports.Count;
 
     /// <summary>Return viewport by index.</summary>
-    public Viewport? GetViewport(uint index)
+    public Viewport? GetViewport(int index)
     {
-        return index < (uint)_viewports.Count ? _viewports[checked((int)index)] : null;
+        return index < _viewports.Count ? _viewports[index] : null;
     }
 
     /// <summary>Return viewport update mode.</summary>
@@ -164,7 +163,7 @@ public sealed class RenderSurface : IDisposable
     public Texture? GetParentTexture() => _parentTexture;
 
     /// <summary>Return slice of the parent texture.</summary>
-    public uint GetSlice() => _slice;
+    public int GetSlice() => _slice;
 
     /// <summary>Return render target view for this surface.</summary>
     public RenderTargetView GetView() => RenderTargetView.TextureSlice(_parentTexture!, _slice);

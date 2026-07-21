@@ -30,16 +30,16 @@ public sealed class ViewportDepthStencilRenderBuffer : RenderBuffer
         return _depthStencil is not null ? _texture : null;
     }
 
-    public override RenderTargetView GetView(uint slice = 0u)
+    public override RenderTargetView GetView(int slice = 0)
     {
         CheckIfBufferIsReady();
-        return _depthStencil ?? RenderTargetView.SwapChainDepthStencil(_renderDevice);
+        return _depthStencil ?? RenderTargetView.SwapChainDepthStencil(_renderDevice!);
     }
 
-    public override RenderTargetView GetReadOnlyDepthView(uint slice = 0u)
+    public override RenderTargetView GetReadOnlyDepthView(int slice = 0)
     {
         CheckIfBufferIsReady();
-        return _depthStencil ?? RenderTargetView.SwapChainDepthStencil(_renderDevice);
+        return _depthStencil ?? RenderTargetView.SwapChainDepthStencil(_renderDevice!);
     }
 
     public override IntRect GetViewportRect() => CheckIfBufferIsReady() ? _viewportRect : IntRect.Zero;

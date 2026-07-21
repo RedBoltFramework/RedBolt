@@ -2,35 +2,7 @@ using RedBolt.Bindings.Diligent;
 
 namespace RedBolt;
 
-public readonly struct OptionalRawTextureRTV : IEquatable<OptionalRawTextureRTV>
-{
-    private readonly RenderTargetView? _value;
-
-    public OptionalRawTextureRTV(RenderTargetView value)
-    {
-        this._value = value;
-    }
-
-    public bool HasValue => _value.HasValue;
-
-    public RenderTargetView Value => _value ?? throw new InvalidOperationException("Optional render target view has no value.");
-
-    public RenderTargetView? GetValueOrDefault() => _value;
-
-    public bool Equals(OptionalRawTextureRTV other) => Nullable.Equals(_value, other._value);
-
-    public override bool Equals(object? obj) => obj is OptionalRawTextureRTV other && Equals(other);
-
-    public override int GetHashCode() => _value?.GetHashCode() ?? 0;
-
-    public static implicit operator OptionalRawTextureRTV(RenderTargetView value) => new(value);
-
-    public static implicit operator OptionalRawTextureRTV(RenderTargetView? value) => value.HasValue ? new OptionalRawTextureRTV(value.Value) : default;
-
-    public static implicit operator RenderTargetView?(OptionalRawTextureRTV value) => value._value;
-}
-
-public enum RenderTargetViewType
+internal enum RenderTargetViewType
 {
     Resource,
     ResourceSlice,
@@ -43,99 +15,95 @@ public enum RenderTargetViewType
 /// <summary>
 /// Lightweight reference to a render target view in texture or in swap chain.
 /// </summary>
-public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTargetViewType Type, uint Slice = 0u)
+public readonly struct RenderTargetView
 {
     private readonly RenderDevice? _renderDevice;
     private readonly RawTexture? _rawTexture;
+    private readonly Texture? _renderTexture;
+    private readonly RenderTargetViewType _type;
+    private readonly int _slice;
 
-    private RenderTargetView(Texture? renderTexture, RawTexture? rawTexture, RenderTargetViewType type, uint slice,
+    private RenderTargetView(Texture? renderTexture, RawTexture? rawTexture, RenderTargetViewType type, int slice,
         RenderDevice? renderDevice)
-        : this(renderTexture, type, slice)
     {
-        _rawTexture = rawTexture;
         _renderDevice = renderDevice;
+        _rawTexture = rawTexture;
+        _renderTexture = renderTexture;
+        _type = type;
+        _slice = slice;
     }
 
-    public bool Equals(RenderTargetView other) =>
-        ReferenceEquals(RenderTexture, other.RenderTexture) && ReferenceEquals(_rawTexture, other._rawTexture)
-        && Type == other.Type && Slice == other.Slice;
-
-    public override int GetHashCode() => HashCode.Combine(RenderTexture, _rawTexture, Type, Slice);
-
-    public static RenderTargetView SwapChainColor(RenderDevice? renderDevice)
+    public static RenderTargetView SwapChainColor(RenderDevice renderDevice)
     {
+        System.Diagnostics.Debug.Assert(renderDevice is not null);
         return new RenderTargetView(null, null, RenderTargetViewType.SwapChainColor, 0, renderDevice);
     }
 
-    public static RenderTargetView SwapChainDepthStencil(RenderDevice? renderDevice)
+    public static RenderTargetView SwapChainDepthStencil(RenderDevice renderDevice)
     {
+        System.Diagnostics.Debug.Assert(renderDevice is not null);
         return new RenderTargetView(null, null, RenderTargetViewType.SwapChainDepthStencil, 0, renderDevice);
-    }
-
-    public static RenderTargetView Texture(Texture texture)
-    {
-        ArgumentNullException.ThrowIfNull(texture);
-        return new RenderTargetView(texture, null, RenderTargetViewType.Resource, 0,
-            texture.GetSubsystem<RenderDevice>()!);
     }
 
     public static RenderTargetView Texture(RawTexture texture)
     {
-        ArgumentNullException.ThrowIfNull(texture);
+        System.Diagnostics.Debug.Assert(texture is not null);
         return new RenderTargetView(null, texture, RenderTargetViewType.Resource, 0,
             texture.GetRenderDevice()!);
     }
 
-    public static RenderTargetView TextureSlice(Texture texture, uint slice)
+    public static RenderTargetView Texture(Texture texture)
     {
-        ArgumentNullException.ThrowIfNull(texture);
-        return new RenderTargetView(texture, null, RenderTargetViewType.ResourceSlice, slice,
+        System.Diagnostics.Debug.Assert(texture is not null);
+        return new RenderTargetView(texture, null, RenderTargetViewType.Resource, 0,
             texture.GetSubsystem<RenderDevice>()!);
     }
 
-    public static RenderTargetView TextureSlice(RawTexture texture, uint slice)
+    public static RenderTargetView TextureSlice(RawTexture texture, int slice)
     {
-        ArgumentNullException.ThrowIfNull(texture);
+        System.Diagnostics.Debug.Assert(texture is not null);
         return new RenderTargetView(null, texture, RenderTargetViewType.ResourceSlice, slice,
             texture.GetRenderDevice()!);
     }
 
-    public static RenderTargetView ReadOnlyDepth(Texture texture)
+    public static RenderTargetView TextureSlice(Texture texture, int slice)
     {
-        ArgumentNullException.ThrowIfNull(texture);
-        return new RenderTargetView(texture, null, RenderTargetViewType.ReadOnlyResource, 0,
+        System.Diagnostics.Debug.Assert(texture is not null);
+        return new RenderTargetView(texture, null, RenderTargetViewType.ResourceSlice, slice,
             texture.GetSubsystem<RenderDevice>()!);
     }
 
     public static RenderTargetView ReadOnlyDepth(RawTexture texture)
     {
-        ArgumentNullException.ThrowIfNull(texture);
-        if ((texture.GetParams().Flags & TextureFlag.BindDepthStencil) != TextureFlag.BindDepthStencil)
-            throw new ArgumentException("Raw texture is not a depth-stencil texture.", nameof(texture));
+        System.Diagnostics.Debug.Assert(texture is not null);
+        System.Diagnostics.Debug.Assert((texture.GetParams().Flags & TextureFlag.BindDepthStencil) != 0);
         return new RenderTargetView(null, texture, RenderTargetViewType.ReadOnlyResource, 0,
             texture.GetRenderDevice()!);
     }
 
-    public static RenderTargetView ReadOnlyDepthSlice(Texture texture, uint slice)
+    public static RenderTargetView ReadOnlyDepth(Texture texture)
     {
-        ArgumentNullException.ThrowIfNull(texture);
-        return new RenderTargetView(texture, null, RenderTargetViewType.ReadOnlyResourceSlice, slice,
+        System.Diagnostics.Debug.Assert(texture is not null);
+        System.Diagnostics.Debug.Assert(texture.IsDepthStencil());
+        return new RenderTargetView(texture, null, RenderTargetViewType.ReadOnlyResource, 0,
             texture.GetSubsystem<RenderDevice>()!);
     }
 
-    public static RenderTargetView ReadOnlyDepthSlice(RawTexture texture, uint slice)
+    public static RenderTargetView ReadOnlyDepthSlice(RawTexture texture, int slice)
     {
-        ArgumentNullException.ThrowIfNull(texture);
-        if ((texture.GetParams().Flags & TextureFlag.BindDepthStencil) != TextureFlag.BindDepthStencil)
-            throw new ArgumentException("Raw texture is not a depth-stencil texture.", nameof(texture));
+        System.Diagnostics.Debug.Assert(texture is not null);
+        System.Diagnostics.Debug.Assert((texture.GetParams().Flags & TextureFlag.BindDepthStencil) != 0);
         return new RenderTargetView(null, texture, RenderTargetViewType.ReadOnlyResourceSlice, slice,
             texture.GetRenderDevice()!);
     }
 
-    /// <summary>
-    /// Return whether the view belongs to the swap chain.
-    /// </summary>
-    public bool IsSwapChain => Type is RenderTargetViewType.SwapChainColor or RenderTargetViewType.SwapChainDepthStencil;
+    public static RenderTargetView ReadOnlyDepthSlice(Texture texture, int slice)
+    {
+        System.Diagnostics.Debug.Assert(texture is not null);
+        System.Diagnostics.Debug.Assert(texture.IsDepthStencil());
+        return new RenderTargetView(texture, null, RenderTargetViewType.ReadOnlyResourceSlice, slice,
+            texture.GetSubsystem<RenderDevice>()!);
+    }
 
     /// <summary>
     /// Mark referenced texture as dirty.
@@ -163,13 +131,13 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
     {
         if (_rawTexture is not null)
             return _rawTexture.GetParams().Format;
-        if (RenderTexture is not null)
-            return RenderTexture.Format;
+        if (_renderTexture is not null)
+            return _renderTexture.Format;
 
-        var graphics = ResolveGraphics();
-        return Type == RenderTargetViewType.SwapChainDepthStencil
-            ? graphics.GetSwapChainDepthTextureFormat()
-            : graphics.GetSwapChainColorTextureFormat(out _);
+        var outputTarget = ResolveRenderDevice().GetSwapChainOutputTarget();
+        return _type == RenderTargetViewType.SwapChainDepthStencil
+            ? outputTarget.DepthStencilFormat
+            : outputTarget.ColorFormat;
     }
 
     /// <summary>
@@ -179,18 +147,21 @@ public readonly record struct RenderTargetView(Texture? RenderTexture, RenderTar
     {
         if (_rawTexture is not null)
             return checked((int)_rawTexture.GetParams().MultiSample);
-        if (RenderTexture is not null)
-            return RenderTexture.MultiSample;
+        if (_renderTexture is not null)
+            return _renderTexture.MultiSample;
 
-        return ResolveGraphics().GetSwapChainMultiSample();
+        return ResolveRenderDevice().GetWindowSettings().MultiSample;
     }
 
-    private Graphics ResolveGraphics()
-    {
-        return _renderDevice!.GetSubsystem<Graphics>() ?? throw new InvalidOperationException("Graphics subsystem is not available.");
-    }
+    /// <summary>
+    /// Return whether the view belongs to swap chain.
+    /// </summary>
+    public bool IsSwapChain => _type is RenderTargetViewType.SwapChainColor or RenderTargetViewType.SwapChainDepthStencil;
 
     private RenderDevice ResolveRenderDevice() => _renderDevice!;
 
+    internal Texture? RenderTexture => _renderTexture;
+    internal RenderTargetViewType Type => _type;
+    internal int Slice => _slice;
     internal RawTexture? GetRawTexture() => _rawTexture;
 }

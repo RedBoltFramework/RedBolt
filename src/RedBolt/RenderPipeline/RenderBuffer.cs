@@ -46,9 +46,9 @@ public abstract class RenderBuffer
     /// <summary>
     /// Return render surface. Face could be specified for cubemap texture.
     /// </summary>
-    public abstract RenderTargetView GetView(uint slice = 0u);
+    public abstract RenderTargetView GetView(int slice = 0);
 
-    public abstract RenderTargetView GetReadOnlyDepthView(uint slice = 0u);
+    public abstract RenderTargetView GetReadOnlyDepthView(int slice = 0);
 
     /// <summary>
     /// Return effective viewport rectangle.
@@ -95,17 +95,17 @@ public sealed class TextureRenderBuffer : RenderBuffer
 
     public override Texture? GetTexture() => Texture;
 
-    public override RenderTargetView GetView(uint slice = 0u)
+    public override RenderTargetView GetView(int slice = 0)
     {
-        if (Texture is Texture2D && slice == 0u)
+        if (Texture is Texture2D && slice == 0)
             return RenderTargetView.Texture(Texture);
 
         return RenderTargetView.TextureSlice(Texture, slice);
     }
 
-    public override RenderTargetView GetReadOnlyDepthView(uint slice = 0u)
+    public override RenderTargetView GetReadOnlyDepthView(int slice = 0)
     {
-        if (Texture is Texture2D && slice == 0u)
+        if (Texture is Texture2D && slice == 0)
             return RenderTargetView.ReadOnlyDepth(Texture);
 
         return RenderTargetView.ReadOnlyDepthSlice(Texture, slice);

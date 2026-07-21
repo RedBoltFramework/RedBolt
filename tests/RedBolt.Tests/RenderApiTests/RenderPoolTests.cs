@@ -51,17 +51,15 @@ public sealed class RenderPoolTests
     }
 
     [Fact]
-    public void Optional_raw_texture_rtv_wraps_nullable_render_target_view()
+    public void Optional_raw_texture_rtv_maps_to_nullable_render_target_view()
     {
-        OptionalRawTextureRTV empty = default;
-        OptionalRawTextureRTV filled = RenderTargetView.SwapChainColor(_fixture.RenderDevice);
+        RenderTargetView? empty = default;
+        RenderTargetView? filled = RenderTargetView.SwapChainColor(_fixture.RenderDevice);
 
         Assert.False(empty.HasValue);
-        Assert.Null(empty.GetValueOrDefault());
 
         Assert.True(filled.HasValue);
-        Assert.Equal(RenderTargetViewType.SwapChainColor, filled.Value.Type);
-        Assert.Equal(RenderTargetViewType.SwapChainColor, ((RenderTargetView?)filled)!.Value.Type);
+        Assert.True(filled.Value.IsSwapChain);
     }
 
     [Fact]

@@ -28,15 +28,14 @@ public sealed class RenderSurfaceTests
         Assert.Equal(4, surface.GetMultiSample());
         Assert.False(surface.GetAutoResolve());
         Assert.Same(texture, surface.GetParentTexture());
-        Assert.Equal(2u, surface.GetSlice());
-        Assert.Equal(RenderTargetViewType.ResourceSlice, surface.GetView().Type);
-        Assert.Equal(RenderTargetViewType.ReadOnlyResourceSlice, surface.GetReadOnlyDepthView().Type);
+        Assert.Equal(2, surface.GetSlice());
+        Assert.Equal(RenderTargetView.TextureSlice(texture, 2), surface.GetView());
 
         surface.SetNumViewports(2);
-        Assert.Equal(2u, surface.GetNumViewports());
+        Assert.Equal(2, surface.GetNumViewports());
         Assert.Null(surface.GetViewport(1));
         surface.SetViewport(3, viewport);
-        Assert.Equal(4u, surface.GetNumViewports());
+        Assert.Equal(4, surface.GetNumViewports());
         Assert.Null(surface.GetViewport(3));
 
         surface.SetLinkedRenderTarget(surface);
@@ -66,7 +65,7 @@ public sealed class RenderSurfaceTests
         Assert.Equal(new IntRect(0, 0, 64, 32), RenderSurface.GetRect(graphics, surface));
 
         surface.Dispose();
-        Assert.Equal(0u, surface.GetNumViewports());
+        Assert.Equal(0, surface.GetNumViewports());
         Assert.Null(surface.GetLinkedRenderTarget());
         Assert.Null(surface.GetLinkedDepthStencil());
     }

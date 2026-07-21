@@ -18,6 +18,19 @@ public sealed class GraphicsRenderTargetViewTests
     }
 
     [Fact]
+    public void Render_target_view_matches_cpp_value_type()
+    {
+        Assert.True(typeof(RenderTargetView).IsValueType);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(RenderTargetView)));
+
+        var original = RenderTargetView.SwapChainColor(_fixture.RenderDevice);
+        var copy = original;
+
+        Assert.Equal(original, copy);
+        Assert.True(copy.IsSwapChain);
+    }
+
+    [Fact]
     public void Graphics_resolves_cubemap_face_render_target_views_as_2d_slices()
     {
         WithInitializedGraphics(() =>
@@ -25,8 +38,8 @@ public sealed class GraphicsRenderTargetViewTests
             var texture = new TextureCube("Textures/RenderTargetCube");
             Assert.True(texture.SetSize(16, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
 
-            var firstView = ResolveRenderTargetView(RenderTargetView.TextureSlice(texture, 3u));
-            var secondView = ResolveRenderTargetView(RenderTargetView.TextureSlice(texture, 3u));
+            var firstView = ResolveRenderTargetView(RenderTargetView.TextureSlice(texture, 3));
+            var secondView = ResolveRenderTargetView(RenderTargetView.TextureSlice(texture, 3));
             Assert.Same(firstView, secondView);
 
             var desc = firstView.GetDesc();
@@ -118,8 +131,8 @@ public sealed class GraphicsRenderTargetViewTests
             var texture = new Texture2DArray("Textures/RenderTargetArray");
             Assert.True(texture.SetSize(4, 16, 16, TextureFormat.TexFormatD24UnormS8Uint, TextureFlag.BindDepthStencil));
 
-            var firstView = ResolveRenderTargetView(RenderTargetView.ReadOnlyDepthSlice(texture, 2u));
-            var secondView = ResolveRenderTargetView(RenderTargetView.ReadOnlyDepthSlice(texture, 2u));
+            var firstView = ResolveRenderTargetView(RenderTargetView.ReadOnlyDepthSlice(texture, 2));
+            var secondView = ResolveRenderTargetView(RenderTargetView.ReadOnlyDepthSlice(texture, 2));
             Assert.Same(firstView, secondView);
 
             var desc = firstView.GetDesc();

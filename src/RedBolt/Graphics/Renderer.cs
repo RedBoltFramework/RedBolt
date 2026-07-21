@@ -379,7 +379,7 @@ public sealed class Renderer : Object
         if (renderTarget is null)
             return;
 
-        for (var i = 0u; i < renderTarget.GetNumViewports(); ++i)
+        for (var i = 0; i < renderTarget.GetNumViewports(); ++i)
         {
             if (renderTarget.GetViewport(i) is { } viewport)
                 QueueViewport(renderTarget, viewport);
@@ -413,10 +413,10 @@ public sealed class Renderer : Object
             _backbufferSurfaceViewportsDirty = false;
             if (_backbufferSurface is not null)
             {
-                var numViewports = (uint)_viewports.Count;
+                var numViewports = _viewports.Count;
                 _backbufferSurface.SetNumViewports(numViewports);
-                for (var i = 0u; i < numViewports; ++i)
-                    _backbufferSurface.SetViewport(i, _viewports[(int)i]);
+                for (var i = 0; i < numViewports; ++i)
+                    _backbufferSurface.SetViewport(i, _viewports[i]);
             }
         }
 

@@ -344,7 +344,7 @@ public class Texture : ResourceWithMetadata
                         _renderSurfaces[i].Dispose();
                     _renderSurfaces = new RenderSurface[renderSurfaceHandles.Length];
                     for (var i = 0; i < renderSurfaceHandles.Length; ++i)
-                        _renderSurfaces[i] = new RenderSurface(this, checked((uint)i));
+                        _renderSurfaces[i] = new RenderSurface(this, i);
                 }
 
                 for (var i = 0; i < renderSurfaceHandles.Length; ++i)

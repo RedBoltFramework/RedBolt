@@ -3437,9 +3437,9 @@ layout(std140) uniform Material
                     ?? throw new InvalidOperationException("Raw texture was not created with a render-target or depth-stencil view.");
 
             var surfaces = handles.RenderSurfaces;
-            if (view.Slice >= (uint)surfaces.Length)
+            if (view.Slice >= surfaces.Length)
                 throw new ArgumentOutOfRangeException(nameof(view), view.Slice, "Invalid raw texture slice index.");
-            return surfaces[(int)view.Slice];
+            return surfaces[view.Slice];
         }
 
         if (view.RenderTexture is not { } texture)
@@ -3469,9 +3469,9 @@ layout(std140) uniform Material
                     ?? throw new InvalidOperationException("Raw texture was not created with a read-only depth-stencil view.");
 
             var surfaces = handles.ReadOnlyRenderSurfaces;
-            if (view.Slice >= (uint)surfaces.Length)
+            if (view.Slice >= surfaces.Length)
                 throw new ArgumentOutOfRangeException(nameof(view), view.Slice, "Invalid raw texture slice index.");
-            return surfaces[(int)view.Slice];
+            return surfaces[view.Slice];
         }
 
         if (view.RenderTexture is not { } texture)
@@ -3488,7 +3488,7 @@ layout(std140) uniform Material
             ?? throw new InvalidOperationException($"Texture '{texture.Name}' was not created with a read-only depth view.");
     }
 
-    private ITextureView GetOrCreateTextureSliceView(UploadedTexture uploaded, Texture texture, uint slice, bool readOnlyDepth)
+    private ITextureView GetOrCreateTextureSliceView(UploadedTexture uploaded, Texture texture, int slice, bool readOnlyDepth)
     {
         var viewType = readOnlyDepth ? TextureViewType.TextureViewReadOnlyDepthStencil : IsDepthTextureFormat(texture.Format)
             ? TextureViewType.TextureViewDepthStencil
@@ -3503,7 +3503,7 @@ layout(std140) uniform Material
         textureViewDesc.Format = texture.Format;
         textureViewDesc.MostDetailedMip = 0;
         textureViewDesc.NumMipLevels = 1;
-        textureViewDesc.FirstArraySlice = slice;
+        textureViewDesc.FirstArraySlice = checked((uint)slice);
         textureViewDesc.NumArraySlices = 1;
         uploaded.Texture.CreateView(textureViewDesc, out var createdView);
         if (createdView.IsNull)
@@ -5303,7 +5303,7 @@ layout(std140) uniform Material
 
     private sealed class UploadedTexture : IDisposable
     {
-        private readonly Dictionary<(TextureViewType ViewType, uint Slice), ITextureView> _sliceViews = [];
+        private readonly Dictionary<(TextureViewType ViewType, int Slice), ITextureView> _sliceViews = [];
         private readonly Dictionary<RawTextureUAVKey, ITextureView> _uavs = [];
 
         public UploadedTexture(Texture sourceTexture, ITexture texture, ITextureView shaderView, ITextureView? renderTargetView,
@@ -5359,12 +5359,12 @@ layout(std140) uniform Material
 
         public bool ResolveDirty { get; private set; }
 
-        public bool TryGetSliceView(TextureViewType viewType, uint slice, out ITextureView view)
+        public bool TryGetSliceView(TextureViewType viewType, int slice, out ITextureView view)
         {
             return _sliceViews.TryGetValue((viewType, slice), out view!);
         }
 
-        public void CacheSliceView(TextureViewType viewType, uint slice, ITextureView view)
+        public void CacheSliceView(TextureViewType viewType, int slice, ITextureView view)
         {
             _sliceViews[(viewType, slice)] = view;
         }

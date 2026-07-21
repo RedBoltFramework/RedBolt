@@ -85,9 +85,9 @@ public sealed class RenderPassTests
     {
         public override Texture? GetTexture() => null;
 
-        public override RenderTargetView GetView(uint slice = 0u) => default;
+        public override RenderTargetView GetView(int slice = 0) => default;
 
-        public override RenderTargetView GetReadOnlyDepthView(uint slice = 0u) => default;
+        public override RenderTargetView GetReadOnlyDepthView(int slice = 0) => default;
 
         public override IntRect GetViewportRect() => new(0, 0, 1, 1);
     }

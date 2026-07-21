@@ -587,19 +587,19 @@ public sealed class RenderBufferManager
             return;
 
         IntRect? defaultViewportRect = null;
-        OptionalRawTextureRTV depthStencilRef = default;
+        RenderTargetView? depthStencilRef = default;
         if (depthStencilBuffer is not null)
         {
             depthStencilRef = readOnlyDepth
-                ? depthStencilBuffer.GetReadOnlyDepthView((uint)face)
-                : depthStencilBuffer.GetView((uint)face);
+                ? depthStencilBuffer.GetReadOnlyDepthView((int)face)
+                : depthStencilBuffer.GetView((int)face);
             defaultViewportRect = depthStencilBuffer.GetViewportRect();
         }
 
         for (var i = 0; i < colorBuffers.Count; ++i)
         {
             var colorBuffer = colorBuffers[i];
-            _renderTargetViews[i] = colorBuffer.GetView((uint)face);
+            _renderTargetViews[i] = colorBuffer.GetView((int)face);
             if (defaultViewportRect is null)
                 defaultViewportRect = colorBuffer.GetViewportRect();
         }
@@ -636,7 +636,7 @@ public sealed class RenderBufferManager
             return;
 
         // C++: SetRenderTargets(depth, {}); SetFullViewport(); ClearDepthStencil(...)
-        _renderContext.SetRenderTargets(depthStencilBuffer.GetView((uint)face), ReadOnlySpan<RenderTargetView>.Empty);
+        _renderContext.SetRenderTargets(depthStencilBuffer.GetView((int)face), ReadOnlySpan<RenderTargetView>.Empty);
         _renderContext.SetFullViewport();
         _renderContext.ClearDepthStencil(flags, depth, stencil);
     }
