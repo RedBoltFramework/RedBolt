@@ -89,8 +89,6 @@ public class ParticleEmitter : BillboardSet
     public override void Dispose()
     {
         _particles.Clear();
-        if (_effect is not null)
-            _effect.ReloadFinished -= HandleEffectReloadFinished;
         _effect = null;
         base.Dispose();
     }
@@ -296,12 +294,12 @@ public class ParticleEmitter : BillboardSet
 
         // Unsubscribe from the reload event of previous effect (if any), then subscribe to the new
         if (_effect is not null)
-            _effect.ReloadFinished -= HandleEffectReloadFinished;
+            UnsubscribeFromEvent<ResourceEvents.ReloadFinished>(_effect);
 
         _effect = effect;
 
         if (_effect is not null)
-            _effect.ReloadFinished += HandleEffectReloadFinished;
+            SubscribeToEvent<ResourceEvents.ReloadFinished>(_effect, HandleEffectReloadFinished);
 
         ApplyEffect();
     }
@@ -655,7 +653,7 @@ public class ParticleEmitter : BillboardSet
     }
 
     /// <summary>Handle live reload of the particle effect.</summary>
-    private void HandleEffectReloadFinished(Resource resource)
+    private void HandleEffectReloadFinished(ref ResourceEvents.ReloadFinished eventData)
     {
         // When particle effect file is live-edited, remove existing particles and reapply the effect parameters
         Reset();

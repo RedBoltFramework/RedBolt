@@ -375,6 +375,26 @@ public sealed class ParticleEmitterTests
     }
 
     [Fact]
+    public void Effect_reload_event_reapplies_only_the_current_effect()
+    {
+        var firstEffect = new ParticleEffect();
+        firstEffect.SetNumParticles(2);
+        var secondEffect = new ParticleEffect();
+        secondEffect.SetNumParticles(3);
+        var emitter = new Scene().CreateChild("Emitter").CreateComponent<ParticleEmitter>();
+        emitter.SetEffect(firstEffect);
+        emitter.SetEffect(secondEffect);
+
+        firstEffect.SetNumParticles(5);
+        firstEffect.SendEvent<ResourceEvents.ReloadFinished>();
+        Assert.Equal(3u, emitter.GetNumParticles());
+
+        secondEffect.SetNumParticles(7);
+        secondEffect.SendEvent<ResourceEvents.ReloadFinished>();
+        Assert.Equal(7u, emitter.GetNumParticles());
+    }
+
+    [Fact]
     public void Emit_and_update_enables_billboards_and_advances_particle_timers()
     {
         var scene = new Scene();
