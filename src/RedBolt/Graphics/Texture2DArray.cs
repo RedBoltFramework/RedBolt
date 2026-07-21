@@ -49,6 +49,10 @@ public class Texture2DArray : Texture
 
         cache.ResetDependencies(this);
 
+        var normalizedName = Name.Replace('\\', '/');
+        var separatorIndex = normalizedName.LastIndexOf('/');
+        var texturePath = separatorIndex >= 0 ? normalizedName[..(separatorIndex + 1)] : string.Empty;
+
         _loadParameters?.Dispose();
         _loadParameters = new XMLFile($"{Name}#params")
         {
@@ -68,8 +72,11 @@ public class Texture2DArray : Texture
         for (var layerElement = _loadParameters.Root.GetChild("layer"); layerElement.NotNull;
              layerElement = layerElement.GetNext("layer"))
         {
+            var name = layerElement.GetAttribute("name");
             // If path is empty, add the XML file path
-            var name = ResourceLoading.ResolveRelativeResourceName(this, layerElement.GetAttribute("name"));
+            if (!name.Contains('/') && !name.Contains('\\'))
+                name = texturePath + name;
+
             _loadImages.Add(cache.GetTempResource<Image>(name));
             cache.StoreResourceDependency(this, name);
         }

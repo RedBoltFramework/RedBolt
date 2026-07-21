@@ -58,8 +58,9 @@ public class Texture2D : Texture
             _loadImage.PrecalculateLevels();
 
         // Load the optional parameters file
+        var cache = GetSubsystem<ResourceCache>()!;
         var parametersName = Path.ChangeExtension(Name, ".xml");
-        _loadParameters = ResourceLoading.LoadDependentResource<XMLFile>(this, parametersName);
+        _loadParameters = cache.GetTempResource<XMLFile>(parametersName, false);
         return true;
     }
 

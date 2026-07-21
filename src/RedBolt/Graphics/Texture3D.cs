@@ -50,6 +50,10 @@ public class Texture3D : Texture
 
         cache.ResetDependencies(this);
 
+        var normalizedName = Name.Replace('\\', '/');
+        var separatorIndex = normalizedName.LastIndexOf('/');
+        var texturePath = separatorIndex >= 0 ? normalizedName[..(separatorIndex + 1)] : string.Empty;
+
         _loadParameters?.Dispose();
         _loadParameters = new XMLFile($"{Name}#params")
         {
@@ -68,8 +72,11 @@ public class Texture3D : Texture
 
         if (volumeElement.NotNull)
         {
+            var name = volumeElement.GetAttribute("name");
             // If path is empty, add the XML file path
-            var name = ResourceLoading.ResolveRelativeResourceName(this, volumeElement.GetAttribute("name"));
+            if (!name.Contains('/') && !name.Contains('\\'))
+                name = texturePath + name;
+
             var image = cache.GetTempResource<Image>(name);
             _loadImage?.Dispose();
             _loadImage = image;
@@ -81,9 +88,12 @@ public class Texture3D : Texture
         }
         else if (colorLutElement.NotNull)
         {
+            var name = colorLutElement.GetAttribute("name");
             // If path is empty, add the XML file path
-            var name = ResourceLoading.ResolveRelativeResourceName(this, colorLutElement.GetAttribute("name"));
-            using var file = ResourceLoading.OpenDependentResource(this, name);
+            if (!name.Contains('/') && !name.Contains('\\'))
+                name = texturePath + name;
+
+            using var file = cache.GetFile(name);
             _loadImage?.Dispose();
             _loadImage = new Image($"{Name}#colorlut")
             {

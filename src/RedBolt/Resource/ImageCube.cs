@@ -16,7 +16,13 @@ public sealed class ImageCube : Resource
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        OwnerCache?.ResetDependencies(this);
+        var cache = GetSubsystem<ResourceCache>()!;
+        cache.ResetDependencies(this);
+
+        var normalizedName = Name.Replace('\\', '/');
+        var separatorIndex = normalizedName.LastIndexOf('/');
+        var texturePath = separatorIndex >= 0 ? normalizedName[..(separatorIndex + 1)] : string.Empty;
+
         _parametersXml = new XMLFile(Name + "#params");
         if (!_parametersXml.Load(source))
         {
@@ -30,12 +36,14 @@ public sealed class ImageCube : Resource
         var imageElement = root.GetChild("image");
         if (imageElement.NotNull)
         {
-            var imageName = ResourceLoading.ResolveRelativeResourceName(this, imageElement.GetAttribute("name"));
-            var image = ResourceLoading.LoadDependentResource<Image>(this, imageName);
+            var imageName = imageElement.GetAttribute("name");
+            // If path is empty, add the XML file path
+            if (!imageName.Contains('/') && !imageName.Contains('\\'))
+                imageName = texturePath + imageName;
+
+            var image = cache.GetTempResource<Image>(imageName);
             if (image is null)
                 return false;
-
-            OwnerCache?.StoreResourceDependency(this, imageName);
 
             if (image.IsCubemap())
             {
@@ -61,12 +69,16 @@ public sealed class ImageCube : Resource
             var faceIndex = 0;
             while (faceElement.NotNull && faceIndex < _faceImages.Length)
             {
-                var imageName = ResourceLoading.ResolveRelativeResourceName(this, faceElement.GetAttribute("name"));
-                var image = ResourceLoading.LoadDependentResource<Image>(this, imageName);
+                var imageName = faceElement.GetAttribute("name");
+                // If path is empty, add the XML file path
+                if (!imageName.Contains('/') && !imageName.Contains('\\'))
+                    imageName = texturePath + imageName;
+
+                var image = cache.GetTempResource<Image>(imageName);
                 if (image is null)
                     return false;
 
-                OwnerCache?.StoreResourceDependency(this, imageName);
+                cache.StoreResourceDependency(this, imageName);
 
                 SetImage((CubeMapFace)faceIndex, image);
                 ++faceIndex;
