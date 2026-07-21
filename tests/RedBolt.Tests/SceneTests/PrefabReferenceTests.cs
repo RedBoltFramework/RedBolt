@@ -37,9 +37,30 @@ public sealed class PrefabReferenceTests
         reference.Dispose();
         Assert.Empty(host.Children);
 
-        typeof(Resource).GetMethod("NotifyReloadFinished", System.Reflection.BindingFlags.Instance
-            | System.Reflection.BindingFlags.NonPublic)!.Invoke(resource, null);
+        resource.SendEvent<ResourceEvents.ReloadFinished>();
         Assert.Empty(host.Children);
+    }
+
+    [Fact]
+    public void Prefab_reference_reload_event_observes_only_the_current_prefab()
+    {
+        using var scene = new Scene();
+        var host = scene.CreateChild("Host");
+        using var firstResource = new PrefabResource();
+        using var secondResource = new PrefabResource();
+        firstResource.GetMutableNodePrefab().Children.Add(new NodePrefab());
+        secondResource.GetMutableNodePrefab().Children.Add(new NodePrefab());
+
+        var reference = host.CreateComponent<PrefabReference>();
+        reference.SetPrefab(firstResource);
+        reference.SetPrefab(secondResource);
+        secondResource.GetMutableNodePrefab().Children.Add(new NodePrefab());
+
+        firstResource.SendEvent<ResourceEvents.ReloadFinished>();
+        Assert.Single(host.Children);
+
+        secondResource.SendEvent<ResourceEvents.ReloadFinished>();
+        Assert.Equal(2, host.Children.Count);
     }
 
     [Fact]

@@ -26,8 +26,6 @@ public class PrefabReference : Component
     public override void Dispose()
     {
         RemoveInstance();
-        if (_prefab is not null)
-            _prefab.ReloadFinished -= OnPrefabReloadFinished;
         _path = string.Empty;
         _prefabRef = ResourceRef.Empty;
         _prefab = null;
@@ -62,14 +60,14 @@ public class PrefabReference : Component
             return;
 
         if (_prefab is not null)
-            _prefab.ReloadFinished -= OnPrefabReloadFinished;
+            UnsubscribeFromEvent<ResourceEvents.ReloadFinished>(_prefab);
 
         _prefab = prefab;
         _path = path;
 
         if (_prefab is not null)
         {
-            _prefab.ReloadFinished += OnPrefabReloadFinished;
+            SubscribeToEvent<ResourceEvents.ReloadFinished>(_prefab, OnPrefabReloadFinished);
             _prefabRef = new ResourceRef(nameof(PrefabResource), _prefab.Name);
         }
         else
@@ -429,7 +427,7 @@ public class PrefabReference : Component
         InstantiatePrefab(nodePrefab, instanceFlags);
     }
 
-    private void OnPrefabReloadFinished(Resource resource)
+    private void OnPrefabReloadFinished(ref ResourceEvents.ReloadFinished eventData)
     {
         CreateInstance();
     }

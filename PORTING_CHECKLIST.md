@@ -214,6 +214,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [~] A6. Scene — depends on Resource, Core
 
+- [x] `PrefabReference.h` / `PrefabReference.cpp` — extensible noncopyable component lifetime, prefab value copies, instance teardown, and sender-specific struct prefab-reload observation reconciled
 - [~] `Serializable.h` / `Serializable.cpp` — native human-readable attribute `type` and direct `value` archive layout plus several local-Variant lifetimes reconciled; complete class shape, construction, clone/copy, attribute storage, and destruction audit remains pending
 - [x] `LogicComponent.h` / `LogicComponent.cpp` — complete concrete noncopyable class shape, native event-mask state, typed virtual update-event selection, direct sender-filtered Scene subscriptions, delayed-start/update/post-update/world-origin dispatch, enable and attachment lifecycle, and deterministic unsubscription reconciled; optional physics step branches are compile-time excluded in the current configuration
 - [x] `Node.h` / `Node.cpp` — complete class shape, lifetime/copy behavior, prefab and clone paths, scene attachment, transforms, tags/variables, listener cleanup, and int-mapped indices/sizes reconciled
