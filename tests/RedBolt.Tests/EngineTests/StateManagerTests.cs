@@ -14,8 +14,13 @@ public sealed class StateManagerTests
         state.SetNumViewports(count);
         state.SetViewport(index, null);
 
+        Assert.False(state.IsActive);
+        Assert.True(state.IsMouseVisible);
+        Assert.False(state.IsMouseGrabbed);
+        Assert.Equal(MouseMode.Free, state.MouseMode);
         Assert.Null(state.GetViewport(index));
         Assert.Null(state.GetViewportForScene(null, index));
+        Assert.Equal(new Color(0.0f, 0.0f, 0.0f), state.DefaultFogColor);
     }
 
     [Fact]
@@ -24,6 +29,8 @@ public sealed class StateManagerTests
         using var engine = new Engine();
         var stateManager = engine.GetSubsystem<StateManager>()!;
         stateManager.Reset();
+        stateManager.FadeInDuration = 0.0f;
+        stateManager.FadeOutDuration = 0.0f;
         using var initialState = new TestState();
         using var targetState = new TestState();
 
@@ -40,6 +47,10 @@ public sealed class StateManagerTests
 
         stateManager.Update(1.0f);
 
+        Assert.Same(targetState, stateManager.State);
+        Assert.Equal(targetState.GetTypeNameHash(), stateManager.TargetState);
+        Assert.Equal(MathDefs.Epsilon, stateManager.FadeInDuration);
+        Assert.Equal(MathDefs.Epsilon, stateManager.FadeOutDuration);
         Assert.Equal(1, targetState.Value);
         stateManager.Reset();
     }

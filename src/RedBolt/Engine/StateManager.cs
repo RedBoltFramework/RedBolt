@@ -101,13 +101,13 @@ public class ApplicationState : Object
     }
 
     /// <summary>Get activation flag. Returns true if game screen is active.</summary>
-    public bool IsActive() => _active;
+    public bool IsActive => _active;
 
     /// <summary>Set whether the operating system mouse cursor is visible.</summary>
     public void SetMouseVisible(bool enable)
     {
         _mouseVisible = enable;
-        if (IsActive())
+        if (IsActive)
             GetSubsystem<Input>()!.SetMouseVisible(enable);
     }
 
@@ -115,7 +115,7 @@ public class ApplicationState : Object
     public void SetMouseGrabbed(bool grab)
     {
         _mouseGrabbed = grab;
-        if (IsActive())
+        if (IsActive)
             GetSubsystem<Input>()!.SetMouseGrabbed(_mouseGrabbed);
     }
 
@@ -123,18 +123,18 @@ public class ApplicationState : Object
     public void SetMouseMode(MouseMode mode)
     {
         _mouseMode = mode;
-        if (IsActive())
+        if (IsActive)
             InitMouseMode();
     }
 
     /// <summary>Return whether the operating system mouse cursor is visible.</summary>
-    public bool IsMouseVisible() => _mouseVisible;
+    public bool IsMouseVisible => _mouseVisible;
 
     /// <summary>Return whether the mouse is currently being grabbed by an operation.</summary>
-    public bool IsMouseGrabbed() => _mouseGrabbed;
+    public bool IsMouseGrabbed => _mouseGrabbed;
 
     /// <summary>Return the mouse mode.</summary>
-    public MouseMode GetMouseMode() => _mouseMode;
+    public MouseMode MouseMode => _mouseMode;
 
     /// <summary>Set number of backbuffer viewports to render.</summary>
     public void SetNumViewports(int num)
@@ -187,7 +187,7 @@ public class ApplicationState : Object
     }
 
     /// <summary>Get default zone fog color.</summary>
-    public Color GetDefaultFogColor() => _fogColor;
+    public ref readonly Color DefaultFogColor => ref _fogColor;
 
     // TODO: port URHO3D_ACTIONS when the Actions subsystem is available.
     // ActionManager* GetActionManager() const { return actionManager_; }
@@ -455,37 +455,36 @@ public class StateManager : Object
     }
 
     /// <summary>Get current application state.</summary>
-    public ApplicationState? GetState() => _activeState;
+    public ApplicationState? State => _activeState;
 
     /// <summary>Get target application state.</summary>
-    public StringHash GetTargetState()
+    public StringHash TargetState
     {
-        if (_stateQueue.Count == 0)
-            return _activeState?.GetTypeNameHash() ?? StringHash.Empty;
+        get
+        {
+            if (_stateQueue.Count == 0)
+                return _activeState?.GetTypeNameHash() ?? StringHash.Empty;
 
-        var stateType = StringHash.Empty;
-        foreach (var queueItem in _stateQueue)
-            stateType = queueItem.StateType;
-        return stateType;
+            var stateType = StringHash.Empty;
+            foreach (var queueItem in _stateQueue)
+                stateType = queueItem.StateType;
+            return stateType;
+        }
     }
 
-    /// <summary>Set fade in animation duration.</summary>
-    public void SetFadeInDuration(float durationInSeconds)
+    /// <summary>Set or get fade in animation duration.</summary>
+    public float FadeInDuration
     {
-        _fadeInDuration = Math.Clamp(durationInSeconds, MathDefs.Epsilon, float.MaxValue);
+        get => _fadeInDuration;
+        set => _fadeInDuration = Math.Clamp(value, MathDefs.Epsilon, float.MaxValue);
     }
 
-    /// <summary>Set fade out animation duration.</summary>
-    public void SetFadeOutDuration(float durationInSeconds)
+    /// <summary>Set or get fade out animation duration.</summary>
+    public float FadeOutDuration
     {
-        _fadeOutDuration = Math.Clamp(durationInSeconds, MathDefs.Epsilon, float.MaxValue);
+        get => _fadeOutDuration;
+        set => _fadeOutDuration = Math.Clamp(value, MathDefs.Epsilon, float.MaxValue);
     }
-
-    /// <summary>Get fade in animation duration.</summary>
-    public float GetFadeInDuration() => _fadeInDuration;
-
-    /// <summary>Get fade out animation duration.</summary>
-    public float GetFadeOutDuration() => _fadeOutDuration;
 
     /// <summary>Initiate state transition if necessary.</summary>
     private void InitiateTransition()
