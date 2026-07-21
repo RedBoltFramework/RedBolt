@@ -52,6 +52,26 @@ public sealed class TerrainTests
     }
 
     [Fact]
+    public void Heightmap_reload_event_rebuilds_only_from_the_current_image()
+    {
+        var terrain = new Scene().CreateChild("Terrain").CreateComponent<Terrain>();
+        var firstImage = new Image("FirstHeightMap");
+        Assert.True(firstImage.SetSize(33, 33, 1));
+        var secondImage = new Image("SecondHeightMap");
+        Assert.True(secondImage.SetSize(65, 65, 1));
+        Assert.True(terrain.SetHeightMap(firstImage));
+        Assert.True(terrain.SetHeightMap(secondImage));
+        Assert.Equal(new Vector2i(65, 65), terrain.GetNumVertices());
+
+        Assert.True(secondImage.SetSize(33, 33, 1));
+        firstImage.SendEvent<ResourceEvents.ReloadFinished>();
+        Assert.Equal(new Vector2i(65, 65), terrain.GetNumVertices());
+
+        secondImage.SendEvent<ResourceEvents.ReloadFinished>();
+        Assert.Equal(new Vector2i(33, 33), terrain.GetNumVertices());
+    }
+
+    [Fact]
     public void UpdatePatchLod_selects_base_draw_range()
     {
         var scene = new Scene();

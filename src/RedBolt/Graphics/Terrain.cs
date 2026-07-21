@@ -105,8 +105,6 @@ public class Terrain : Component
         _material = null;
         _sourceHeightData = null;
         _heightData = null;
-        if (_heightMap is not null)
-            _heightMap.ReloadFinished -= HandleHeightMapReloadFinished;
         _heightMap = null;
         _indexBuffer = null;
         base.Dispose();
@@ -1439,9 +1437,9 @@ public class Terrain : Component
 
         // Unsubscribe from the reload event of previous image (if any), then subscribe to the new
         if (_heightMap is not null)
-            _heightMap.ReloadFinished -= HandleHeightMapReloadFinished;
+            UnsubscribeFromEvent<ResourceEvents.ReloadFinished>(_heightMap);
         if (image is not null)
-            image.ReloadFinished += HandleHeightMapReloadFinished;
+            SubscribeToEvent<ResourceEvents.ReloadFinished>(image, HandleHeightMapReloadFinished);
 
         _heightMap = image;
 
@@ -1453,7 +1451,7 @@ public class Terrain : Component
         return true;
     }
 
-    private void HandleHeightMapReloadFinished(Resource resource) => CreateGeometry();
+    private void HandleHeightMapReloadFinished(ref ResourceEvents.ReloadFinished eventData) => CreateGeometry();
 
     private void HandleNeighborTerrainCreated(ref DrawableEvents.TerrainCreatedEvent eventData) =>
         UpdateEdgePatchNeighbors();
