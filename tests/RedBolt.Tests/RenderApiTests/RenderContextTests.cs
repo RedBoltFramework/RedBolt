@@ -73,6 +73,11 @@ public sealed class RenderContextTests
             Assert.False(renderContext.IsBoundAsRenderTarget(colorTexture.GetRawTexture()));
             Assert.Equal(default, renderContext.GetCurrentRenderTargetSize());
             Assert.Equal(0, renderContext.GetCurrentRenderTargetsDesc().NumRenderTargets);
+
+            renderContext.SetRenderTargets(RenderTargetView.Texture(depthTexture), ReadOnlySpan<RenderTargetView>.Empty);
+            outputDesc = renderContext.GetCurrentRenderTargetsDesc();
+            Assert.Equal(0, outputDesc.NumRenderTargets);
+            Assert.Equal(TextureFormat.TexFormatD24UnormS8Uint, outputDesc.DepthStencilFormat);
         });
     }
 

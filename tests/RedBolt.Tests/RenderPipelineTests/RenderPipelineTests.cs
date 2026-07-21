@@ -641,26 +641,6 @@ public sealed class RenderPipelineTests
     }
 
     [Fact]
-    public void Render_buffer_manager_clears_depth_without_binding_color_target()
-    {
-        var manager = new RenderBufferManager();
-        manager.SetSettings(new RenderBufferManagerSettings
-        {
-            ReadableDepth = true
-        });
-        manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
-        manager.OnViewportDefined(null, new IntRect(0, 0, 320, 200));
-
-        manager.ClearDepthStencil(_fixture.Graphics, manager.GetDepthStencilOutput(), ClearTarget.Depth | ClearTarget.Stencil, 0.5f, 7);
-
-        // C++ ClearDepthStencil binds depth only via RenderContext (no color RTs).
-        var renderContext = _fixture.RenderDevice.GetRenderContext();
-        var outputDesc = renderContext.GetCurrentRenderTargetsDesc();
-        Assert.Equal(0, outputDesc.NumRenderTargets);
-        Assert.NotEqual(TextureFormat.TexFormatUnknown, outputDesc.DepthStencilFormat);
-    }
-
-    [Fact]
     public void Render_buffer_manager_uses_fullscreen_quad_for_partial_output_clears()
     {
         var method = typeof(RenderBufferManager).GetMethod("ShouldUseFullscreenQuadClear", BindingFlags.NonPublic | BindingFlags.Static);

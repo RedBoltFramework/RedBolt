@@ -20,13 +20,10 @@ public class RenderContext : Object
     private readonly bool _debugScopeEnabled;
     private RenderDeviceStats _stats = new();
     private readonly RenderTargetView[] _swapChainColorTarget;
-    private readonly RenderTargetView[] _currentRenderTargets = new RenderTargetView[RenderApiLimits.MaxRenderTargets];
-    // C++: currentDepthStencil_ / currentRenderTargets_ store Diligent ITextureView*.
     private readonly ITextureView?[] _currentRenderTargetHandles = new ITextureView?[RenderApiLimits.MaxRenderTargets];
     private ITextureView? _currentDepthStencilHandle;
     private global::RedBolt.Bindings.Diligent.Viewport? _diligentViewport;
     private int _numCurrentRenderTargets;
-    private RenderTargetView? _currentDepthStencil;
     private PipelineStateOutputDesc _currentOutputDesc = new();
     private bool _isSwapChain;
     private Vector2i _currentDimensions;
@@ -86,7 +83,6 @@ public class RenderContext : Object
     /// </summary>
     public void SetRenderTargets(RenderTargetView? depthStencil, ReadOnlySpan<RenderTargetView> renderTargets)
     {
-        // C++ RenderContext::SetRenderTargets — bind via handle_ directly, do not set viewport.
         if (renderTargets.Length > RenderApiLimits.MaxRenderTargets)
             throw new ArgumentOutOfRangeException(nameof(renderTargets));
 
@@ -109,29 +105,20 @@ public class RenderContext : Object
                 renderTargets[i].MarkDirty();
         }
 
-        Array.Clear(_currentRenderTargets, 0, _numCurrentRenderTargets);
-        Array.Clear(_currentRenderTargetHandles, 0, _currentRenderTargetHandles.Length);
-        renderTargets.CopyTo(_currentRenderTargets);
-        _numCurrentRenderTargets = renderTargets.Length;
-        _currentDepthStencil = depthStencil;
-        _currentDepthStencilHandle = null;
-
-        UpdateCurrentRenderTargetInfo();
-
-        // C++ always has a live device context; managed Graphics may be uninitialized
-        // (e.g. Renderer.Render before Graphics.Initialize). Skip GPU bind until ready.
         var handle = GetHandle();
         if (handle is null || handle.IsNull)
             return;
 
-        // C++: currentDepthStencil_ = depthStencil ? depthStencil->GetView() : nullptr;
         _currentDepthStencilHandle = depthStencil is { } depthView
             ? depthView.GetView()
             : null;
+        Array.Clear(_currentRenderTargetHandles, 0, _numCurrentRenderTargets);
+        _numCurrentRenderTargets = renderTargets.Length;
         for (var i = 0; i < _numCurrentRenderTargets; ++i)
-            _currentRenderTargetHandles[i] = _currentRenderTargets[i].GetView();
+            _currentRenderTargetHandles[i] = renderTargets[i].GetView();
 
-        // C++: handle_->SetRenderTargets(..., TRANSITION); — no viewport change here.
+        UpdateCurrentRenderTargetInfo();
+
         handle.SetRenderTargets(
             (uint)_numCurrentRenderTargets,
             _currentRenderTargetHandles.AsSpan(0, _numCurrentRenderTargets),
@@ -159,7 +146,6 @@ public class RenderContext : Object
     /// </summary>
     public void SetViewport(IntRect viewport)
     {
-        // C++ RenderContext::SetViewport — clamp then handle_->SetViewports.
         var viewportMin = viewport.Min;
         var viewportMax = viewport.Max;
         _currentViewport = new IntRect(
@@ -185,7 +171,6 @@ public class RenderContext : Object
     /// </summary>
     public void ClearDepthStencil(ClearTarget flags, float depth = 1.0f, uint stencil = 0)
     {
-        // C++ RenderContext::ClearDepthStencil clears currentDepthStencil_ via handle_ directly.
         if ((flags & ClearTarget.Depth) == 0 && (flags & ClearTarget.Stencil) == 0)
         {
             Log.GetLogger().LogError("At least one of CLEAR_DEPTH or CLEAR_STENCIL must be set to call ClearDepthStencil");
@@ -205,7 +190,6 @@ public class RenderContext : Object
         var internalFlags = ClearDepthStencilFlags.ClearDepthFlagNone;
         if ((flags & ClearTarget.Depth) != 0)
             internalFlags |= ClearDepthStencilFlags.ClearDepthFlag;
-        // C++: only clear stencil when the bound view format is depth-stencil.
         if ((flags & ClearTarget.Stencil) != 0 && IsBoundDepthStencilFormat(_currentDepthStencilHandle))
             internalFlags |= ClearDepthStencilFlags.ClearStencilFlag;
 
@@ -220,7 +204,7 @@ public class RenderContext : Object
     /// <summary>
     /// Clear render target at given index. Viewport and scissor are ignored.
     /// </summary>
-    public void ClearRenderTarget(uint index, Color color)
+    public void ClearRenderTarget(int index, Color color)
     {
         if (index >= _numCurrentRenderTargets)
         {
@@ -235,7 +219,6 @@ public class RenderContext : Object
             return;
         }
 
-        // C++ RenderContext::ClearRenderTarget clears via handle_ directly.
         var handle = GetHandle();
         if (handle is null || handle.IsNull)
             return;
@@ -268,8 +251,6 @@ public class RenderContext : Object
         _clipPlaneMask = mask;
         if (_renderDevice.GetBackend() != RenderBackend.OpenGL)
             return;
-        if (GetGraphics() is null)
-            return;
 
         _glEnable ??= TryLoadOpenGlProcedure<OpenGlStateFunction>("glEnable");
         _glDisable ??= TryLoadOpenGlProcedure<OpenGlStateFunction>("glDisable");
@@ -300,7 +281,6 @@ public class RenderContext : Object
     /// </summary>
     public bool IsBoundAsRenderTarget(RawTexture? texture)
     {
-        // C++ only checks color RTs (currentRenderTargets_), not depth-stencil.
         if (texture is null)
             return false;
 
@@ -314,7 +294,7 @@ public class RenderContext : Object
         return false;
     }
 
-    public IDeviceContext? GetHandle() => GetGraphics()?.GetImmediateContext();
+    public IDeviceContext? GetHandle() => _renderDevice.GetImmediateContext();
 
     public RenderDeviceStats GetStats() => _stats;
 
@@ -344,12 +324,9 @@ public class RenderContext : Object
         _glDisable = null;
     }
 
-    /// <summary>
-    /// C++ IsDepthStencilTextureFormat(currentDepthStencil_->GetTexture()->GetDesc().Format).
-    /// </summary>
     private static bool IsBoundDepthStencilFormat(ITextureView depthStencilView)
     {
-        using var texture = depthStencilView.GetTexture();
+        var texture = depthStencilView.GetTexture();
         if (texture is null || texture.IsNull)
             return false;
         using var desc = texture.GetDesc();
@@ -370,77 +347,32 @@ public class RenderContext : Object
 
     private void UpdateCurrentRenderTargetInfo()
     {
-        var graphics = GetGraphics();
-        if (graphics is null)
-            return;
+        if (_currentDepthStencilHandle is not null)
+        {
+            using var depthStencilDesc = _currentDepthStencilHandle.GetDesc();
+            _currentOutputDesc.DepthStencilFormat = (TextureFormat)depthStencilDesc.Format;
+        }
+        else
+            _currentOutputDesc.DepthStencilFormat = TextureFormat.TexFormatUnknown;
 
-        var depthStencilView = _currentDepthStencil;
-        _currentOutputDesc.DepthStencilFormat = depthStencilView is { } depthView
-            ? GetRenderTargetFormat(depthView, graphics)
-            : TextureFormat.TexFormatUnknown;
-
-        Span<TextureFormat> renderTargetFormats = stackalloc TextureFormat[checked((int)RenderApiLimits.MaxRenderTargets)];
-        for (var i = 0; i < _numCurrentRenderTargets; ++i)
-            renderTargetFormats[i] = GetRenderTargetFormat(_currentRenderTargets[i], graphics);
         _currentOutputDesc.NumRenderTargets = _numCurrentRenderTargets;
-        renderTargetFormats[.._numCurrentRenderTargets].CopyTo(_currentOutputDesc.RenderTargetFormats);
+        for (var i = 0; i < _numCurrentRenderTargets; ++i)
+        {
+            using var renderTargetDesc = _currentRenderTargetHandles[i]!.GetDesc();
+            _currentOutputDesc.RenderTargetFormats[i] = (TextureFormat)renderTargetDesc.Format;
+        }
 
-        RenderTargetView? view = _numCurrentRenderTargets != 0
-            ? _currentRenderTargets[0]
-            : depthStencilView;
-        _currentDimensions = view is { } target ? GetRenderTargetDimensions(target) : default;
-        _currentOutputDesc.MultiSample = view is { } multisampledTarget
-            ? GetRenderTargetMultiSample(multisampledTarget, graphics)
-            : 1;
-    }
+        var view = _numCurrentRenderTargets != 0 ? _currentRenderTargetHandles[0] : _currentDepthStencilHandle;
+        if (view is null)
+        {
+            _currentDimensions = Vector2i.Zero;
+            _currentOutputDesc.MultiSample = 1;
+            return;
+        }
 
-    private Graphics? GetGraphics() => GetSubsystem<Graphics>();
-
-    private Vector2i ResolveRenderTargetSize(ReadOnlySpan<RenderTargetView> colorTargets, RenderTargetView? depthStencil)
-    {
-        var depthStencilView = depthStencil;
-        if ((colorTargets.Length != 0 && colorTargets[0].IsSwapChain) || depthStencilView?.IsSwapChain == true)
-            return _renderDevice.GetSwapChainSize();
-        if (colorTargets.Length != 0 && colorTargets[0].RenderTexture is { } colorTexture)
-            return new Vector2i(colorTexture.Width, colorTexture.Height);
-        if (colorTargets.Length != 0 && colorTargets[0].GetRawTexture() is { } colorRawTexture)
-            return new Vector2i(colorRawTexture.GetParams().Size.X, colorRawTexture.GetParams().Size.Y);
-        if (depthStencilView?.RenderTexture is { } depthTexture)
-            return new Vector2i(depthTexture.Width, depthTexture.Height);
-        if (depthStencilView?.GetRawTexture() is { } depthRawTexture)
-            return new Vector2i(depthRawTexture.GetParams().Size.X, depthRawTexture.GetParams().Size.Y);
-        return default;
-    }
-
-    private TextureFormat GetRenderTargetFormat(RenderTargetView view, Graphics graphics)
-    {
-        if (view.GetRawTexture() is { } rawTexture)
-            return rawTexture.GetParams().Format;
-        if (view.RenderTexture is { } texture)
-            return texture.Format;
-
-        return view.Type == RenderTargetViewType.SwapChainDepthStencil
-            ? graphics.GetSwapChainDepthTextureFormat()
-            : graphics.GetSwapChainColorTextureFormat(out _);
-    }
-
-    private int GetRenderTargetMultiSample(RenderTargetView view, Graphics graphics)
-    {
-        if (view.GetRawTexture() is { } rawTexture)
-            return checked((int)rawTexture.GetParams().MultiSample);
-        return view.RenderTexture is { } texture
-            ? texture.MultiSample
-            : graphics.GetSwapChainMultiSample();
-    }
-
-    private Vector2i GetRenderTargetDimensions(RenderTargetView view)
-    {
-        if (view.IsSwapChain)
-            return _renderDevice.GetSwapChainSize();
-        if (view.GetRawTexture() is { } rawTexture)
-            return new Vector2i(rawTexture.GetParams().Size.X, rawTexture.GetParams().Size.Y);
-        if (view.RenderTexture is { } texture)
-            return new Vector2i(texture.Width, texture.Height);
-        return default;
+        var texture = view.GetTexture();
+        using var textureDesc = texture.GetDesc();
+        _currentDimensions = new Vector2i(checked((int)textureDesc.Width), checked((int)textureDesc.Height));
+        _currentOutputDesc.MultiSample = checked((int)textureDesc.SampleCount);
     }
 }
