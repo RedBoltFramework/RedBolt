@@ -3,6 +3,30 @@ namespace RedBolt.Tests;
 public sealed class RenderPipelineSettingsTests
 {
     [Fact]
+    public void Native_settings_pods_have_value_semantics()
+    {
+        Assert.True(typeof(RenderBufferManagerSettings).IsValueType);
+        Assert.True(typeof(LightProcessorCacheSettings).IsValueType);
+        Assert.True(typeof(DrawableProcessorSettings).IsValueType);
+        Assert.True(typeof(InstancingBufferSettings).IsValueType);
+        Assert.True(typeof(BatchRendererSettings).IsValueType);
+        Assert.True(typeof(ShadowMapAllocatorSettings).IsValueType);
+        Assert.True(typeof(OcclusionBufferSettings).IsValueType);
+        Assert.True(typeof(SceneProcessorSettings).IsValueType);
+        Assert.True(typeof(ShaderProgramCompositorSettings).IsValueType);
+        Assert.True(typeof(RenderPipelineSettings).IsValueType);
+
+        var source = new RenderPipelineSettings();
+        var copy = source;
+        var sceneProcessor = copy.SceneProcessor;
+        sceneProcessor.MaxPixelLights = 17;
+        copy.SceneProcessor = sceneProcessor;
+
+        Assert.Equal(4, source.SceneProcessor.MaxPixelLights);
+        Assert.Equal(17, copy.SceneProcessor.MaxPixelLights);
+    }
+
+    [Fact]
     public void Batch_renderer_settings_have_value_semantics()
     {
         var source = new BatchRendererSettings();
@@ -28,7 +52,9 @@ public sealed class RenderPipelineSettingsTests
     public void Propagate_implied_settings_matches_default_pipeline_rules()
     {
         var settings = new RenderPipelineSettings();
-        settings.SceneProcessor.LightingMode = DirectLightingMode.DeferredBlinnPhong;
+        var sceneProcessor = settings.SceneProcessor;
+        sceneProcessor.LightingMode = DirectLightingMode.DeferredBlinnPhong;
+        settings.SceneProcessor = sceneProcessor;
         var instancingBuffer = settings.InstancingBuffer;
         instancingBuffer.EnableInstancing = true;
         settings.InstancingBuffer = instancingBuffer;

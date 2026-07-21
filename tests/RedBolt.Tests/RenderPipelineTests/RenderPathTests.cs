@@ -190,7 +190,9 @@ public sealed class RenderPathTests
         var pipelineState = typeof(ToneMappingPass).GetField(
             "_pipelineState", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
         var settings = new RenderPipelineSettings();
-        settings.RenderBufferManager.ColorSpace = RenderPipelineColorSpace.LinearHDR;
+        var renderBufferManager = settings.RenderBufferManager;
+        renderBufferManager.ColorSpace = RenderPipelineColorSpace.LinearHDR;
+        settings.RenderBufferManager = renderBufferManager;
 
         pipelineState.SetValue(pass, (StaticPipelineStateId)1);
         using var mode = new Variant(1);
@@ -204,7 +206,9 @@ public sealed class RenderPathTests
         pass.UpdateParameters(settings, wrongTypeParameters);
         Assert.NotNull(pipelineState.GetValue(pass));
 
-        settings.RenderBufferManager.ColorSpace = RenderPipelineColorSpace.GammaLDR;
+        renderBufferManager = settings.RenderBufferManager;
+        renderBufferManager.ColorSpace = RenderPipelineColorSpace.GammaLDR;
+        settings.RenderBufferManager = renderBufferManager;
         pass.UpdateParameters(settings, parameters);
         Assert.Null(pipelineState.GetValue(pass));
     }

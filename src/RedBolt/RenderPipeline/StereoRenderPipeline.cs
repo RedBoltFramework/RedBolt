@@ -232,7 +232,7 @@ public class StereoSceneProcessor : SceneProcessor
             if (occlusionBuffer is null)
                 continue;
 
-            occlusionBuffer.SetMaxTriangles(Settings.MaxOccluderTriangles);
+            occlusionBuffer.SetMaxTriangles(checked((uint)Settings.MaxOccluderTriangles));
             occlusionBuffer.Clear();
 
             if (!occlusionBuffer.IsThreaded())
@@ -312,7 +312,9 @@ public class StereoRenderPipelineView : RenderPipelineView
         : base(pipeline)
     {
         var settings = pipeline.Settings;
-        settings.SceneProcessor.LightingMode = DirectLightingMode.Forward;
+        var sceneProcessor = settings.SceneProcessor;
+        sceneProcessor.LightingMode = DirectLightingMode.Forward;
+        settings.SceneProcessor = sceneProcessor;
         SetSettings(settings);
         SetRenderPath(pipeline.GetRenderPath());
         MarkParametersDirty();
@@ -322,12 +324,13 @@ public class StereoRenderPipelineView : RenderPipelineView
 
     public void SetSettings(RenderPipelineSettings settings)
     {
-        ArgumentNullException.ThrowIfNull(settings);
         _settings = settings;
-        _settings.RenderBufferManager.ColorSpace = RenderPipelineColorSpace.Optimized;
+        var renderBufferManager = _settings.RenderBufferManager;
+        renderBufferManager.ColorSpace = RenderPipelineColorSpace.Optimized;
+        _settings.RenderBufferManager = renderBufferManager;
 
         _settings.Validate();
-        _settings.AdjustToSupported(GetRenderPipeline().GetSubsystem<Graphics>());
+        _settings.AdjustToSupported(Context.Instance);
         _settings.PropagateImpliedSettings();
 
         _settingsHash = _settings.CalculatePipelineStateHash();

@@ -170,13 +170,8 @@ public class SceneProcessor : Object, LightProcessorCallback
         if (!Settings.Equals(settings.SceneProcessor))
         {
             Settings = settings.SceneProcessor;
-            DrawableProcessor.SetSettings(ToDrawableProcessorSettings(Settings));
-            BatchRenderer.SetSettings(new BatchRendererSettings
-            {
-                CubemapBoxProjection = Settings.CubemapBoxProjection,
-                AmbientMode = Settings.AmbientMode,
-                VarianceShadowMapParams = Settings.VarianceShadowMapParams
-            });
+            DrawableProcessor.SetSettings(settings.SceneProcessor);
+            BatchRenderer.SetSettings(settings.SceneProcessor);
             BatchCompositor.SetShadowMaterialQuality(Settings.MaterialQuality);
         }
     }
@@ -427,7 +422,7 @@ public class SceneProcessor : Object, LightProcessorCallback
     {
         var activeOccluders = DrawableProcessor.GetOccluders();
 
-        OcclusionBuffer!.SetMaxTriangles(Settings.MaxOccluderTriangles);
+        OcclusionBuffer!.SetMaxTriangles(checked((uint)Settings.MaxOccluderTriangles));
         OcclusionBuffer.Clear();
 
         if (!OcclusionBuffer.IsThreaded())
@@ -642,19 +637,4 @@ public class SceneProcessor : Object, LightProcessorCallback
             _ => Math.Min(settings.SpotShadowSize, pageSize)
         };
 
-    private static DrawableProcessorSettings ToDrawableProcessorSettings(SceneProcessorSettings settings)
-    {
-        var result = new DrawableProcessorSettings
-        {
-            MaterialQuality = settings.MaterialQuality,
-            MaxVertexLights = settings.MaxVertexLights,
-            MaxPixelLights = settings.MaxPixelLights,
-            PcfKernelSize = settings.PcfKernelSize,
-            NormalOffsetScale = settings.NormalOffsetScale
-        };
-        result.LightProcessorCache.Budget = settings.LightProcessorCache.Budget;
-        result.LightProcessorCache.NormalTimeToLive = settings.LightProcessorCache.NormalTimeToLive;
-        result.LightProcessorCache.AggressiveTimeToLive = settings.LightProcessorCache.AggressiveTimeToLive;
-        return result;
-    }
 }

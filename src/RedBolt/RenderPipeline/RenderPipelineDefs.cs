@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 public readonly record struct RenderPassToggle(string Name, bool Enabled);
@@ -140,7 +142,7 @@ internal static class RenderPipelineColorSpaceUtility
 /// <summary>
 /// Rarely-changing settings of render buffer manager.
 /// </summary>
-public sealed class RenderBufferManagerSettings : IEquatable<RenderBufferManagerSettings>
+public struct RenderBufferManagerSettings : IEquatable<RenderBufferManagerSettings>
 {
     /// <summary>
     /// Whether to inherit multisample level from output render texture.
@@ -178,11 +180,17 @@ public sealed class RenderBufferManagerSettings : IEquatable<RenderBufferManager
     /// </summary>
     public bool ColorUsableWithMultipleRenderTargets { get; set; }
 
+    public RenderBufferManagerSettings()
+    {
+        InheritMultiSampleLevel = true;
+        MultiSampleLevel = 1;
+    }
+
     public uint CalculatePipelineStateHash()
     {
-        var hash = new HashCode();
-        hash.Add(ReadableDepth);
-        return unchecked((uint)hash.ToHashCode());
+        var hash = 0u;
+        CombineHash(ref hash, ReadableDepth ? 1u : 0u);
+        return hash;
     }
 
     public void Validate()
@@ -190,11 +198,8 @@ public sealed class RenderBufferManagerSettings : IEquatable<RenderBufferManager
         MultiSampleLevel = (int)Math.Clamp(MathDefs.ClosestPowerOfTwo((uint)Math.Max(MultiSampleLevel, 1)), 1u, 16u);
     }
 
-    public bool Equals(RenderBufferManagerSettings? other)
+    public readonly bool Equals(RenderBufferManagerSettings other)
     {
-        if (other is null)
-            return false;
-
         return InheritMultiSampleLevel == other.InheritMultiSampleLevel
             && MultiSampleLevel == other.MultiSampleLevel
             && ColorSpace == other.ColorSpace
@@ -204,9 +209,13 @@ public sealed class RenderBufferManagerSettings : IEquatable<RenderBufferManager
             && ColorUsableWithMultipleRenderTargets == other.ColorUsableWithMultipleRenderTargets;
     }
 
-    public override bool Equals(object? obj) => Equals(obj as RenderBufferManagerSettings);
+    public static bool operator ==(RenderBufferManagerSettings left, RenderBufferManagerSettings right) => left.Equals(right);
 
-    public override int GetHashCode()
+    public static bool operator !=(RenderBufferManagerSettings left, RenderBufferManagerSettings right) => !left.Equals(right);
+
+    public override readonly bool Equals(object? obj) => obj is RenderBufferManagerSettings other && Equals(other);
+
+    public override readonly int GetHashCode()
     {
         var hash = new HashCode();
         hash.Add(InheritMultiSampleLevel);
@@ -218,6 +227,9 @@ public sealed class RenderBufferManagerSettings : IEquatable<RenderBufferManager
         hash.Add(ColorUsableWithMultipleRenderTargets);
         return hash.ToHashCode();
     }
+
+    private static void CombineHash(ref uint result, uint hash) =>
+        result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
 }
 
 /// <summary>
@@ -410,73 +422,92 @@ public enum ReflectionQuality
     Pixel
 }
 
-public sealed class LightProcessorCacheSettings : IEquatable<LightProcessorCacheSettings>
+public struct LightProcessorCacheSettings : IEquatable<LightProcessorCacheSettings>
 {
     /// <summary>
     /// How many lights there could be before cache is cleaned up aggressively.
     /// </summary>
-    public uint Budget { get; set; } = 64;
+    public int Budget { get; set; }
 
     /// <summary>
     /// Number of seconds to keep cached LightProcessor if cache size is within the budget.
     /// </summary>
-    public uint NormalTimeToLive { get; set; } = 60;
+    public int NormalTimeToLive { get; set; }
 
     /// <summary>
     /// Number of seconds to keep cached LightProcessor if cache size is out of the budget.
     /// </summary>
-    public uint AggressiveTimeToLive { get; set; } = 2;
+    public int AggressiveTimeToLive { get; set; }
 
-    public bool Equals(LightProcessorCacheSettings? other)
+    public LightProcessorCacheSettings()
     {
-        return other is not null
-            && Budget == other.Budget
+        Budget = 64;
+        NormalTimeToLive = 60;
+        AggressiveTimeToLive = 2;
+    }
+
+    public readonly bool Equals(LightProcessorCacheSettings other)
+    {
+        return Budget == other.Budget
             && NormalTimeToLive == other.NormalTimeToLive
             && AggressiveTimeToLive == other.AggressiveTimeToLive;
     }
 
-    public override bool Equals(object? obj) => Equals(obj as LightProcessorCacheSettings);
+    public static bool operator ==(LightProcessorCacheSettings left, LightProcessorCacheSettings right) => left.Equals(right);
 
-    public override int GetHashCode() => HashCode.Combine(Budget, NormalTimeToLive, AggressiveTimeToLive);
+    public static bool operator !=(LightProcessorCacheSettings left, LightProcessorCacheSettings right) => !left.Equals(right);
+
+    public override readonly bool Equals(object? obj) => obj is LightProcessorCacheSettings other && Equals(other);
+
+    public override readonly int GetHashCode() => HashCode.Combine(Budget, NormalTimeToLive, AggressiveTimeToLive);
 }
 
-public sealed class DrawableProcessorSettings : IEquatable<DrawableProcessorSettings>
+public struct DrawableProcessorSettings : IEquatable<DrawableProcessorSettings>
 {
-    public MaterialQuality MaterialQuality { get; set; } = MaterialQuality.High;
+    public MaterialQuality MaterialQuality { get; set; }
 
-    public uint MaxVertexLights { get; set; } = 4;
+    public int MaxVertexLights { get; set; }
 
-    public uint MaxPixelLights { get; set; } = 4;
+    public int MaxPixelLights { get; set; }
 
-    public uint PcfKernelSize { get; set; } = 1;
+    public int PcfKernelSize { get; set; }
 
-    public float NormalOffsetScale { get; set; } = 1.0f;
+    public float NormalOffsetScale { get; set; }
 
-    public LightProcessorCacheSettings LightProcessorCache { get; } = new();
+    public LightProcessorCacheSettings LightProcessorCache { get; set; }
+
+    public DrawableProcessorSettings()
+    {
+        MaterialQuality = MaterialQuality.High;
+        MaxVertexLights = 4;
+        MaxPixelLights = 4;
+        PcfKernelSize = 1;
+        NormalOffsetScale = 1.0f;
+        LightProcessorCache = new LightProcessorCacheSettings();
+    }
 
     public uint CalculatePipelineStateHash()
     {
-        var hash = new HashCode();
-        hash.Add(MaxVertexLights);
-        hash.Add(PcfKernelSize);
-        hash.Add(NormalOffsetScale);
-        return unchecked((uint)hash.ToHashCode());
+        var hash = 0u;
+        CombineHash(ref hash, unchecked((uint)MaxVertexLights));
+        CombineHash(ref hash, unchecked((uint)PcfKernelSize));
+        CombineHash(ref hash, unchecked((uint)BitConverter.SingleToInt32Bits(NormalOffsetScale)));
+        return hash;
     }
 
     public void Validate()
     {
-        MaxVertexLights = Math.Clamp(MaxVertexLights, 0u, 4u);
-        MaxPixelLights = Math.Clamp(MaxPixelLights, 0u, 256u);
-        PcfKernelSize = Math.Clamp(PcfKernelSize, 1u, 5u);
+        MaxVertexLights = Math.Clamp(MaxVertexLights, 0, 4);
+        MaxPixelLights = Math.Clamp(MaxPixelLights, 0, 256);
+        PcfKernelSize = Math.Clamp(PcfKernelSize, 1, 5);
         NormalOffsetScale = Math.Max(0.0f, NormalOffsetScale);
         if (PcfKernelSize == 4)
             PcfKernelSize = 3;
     }
 
-    public bool Equals(DrawableProcessorSettings? other)
+    public readonly bool Equals(DrawableProcessorSettings other)
     {
-        return other is not null
-            && MaterialQuality == other.MaterialQuality
+        return MaterialQuality == other.MaterialQuality
             && MaxVertexLights == other.MaxVertexLights
             && MaxPixelLights == other.MaxPixelLights
             && PcfKernelSize == other.PcfKernelSize
@@ -484,9 +515,16 @@ public sealed class DrawableProcessorSettings : IEquatable<DrawableProcessorSett
             && LightProcessorCache.Equals(other.LightProcessorCache);
     }
 
-    public override bool Equals(object? obj) => Equals(obj as DrawableProcessorSettings);
+    public static bool operator ==(DrawableProcessorSettings left, DrawableProcessorSettings right) => left.Equals(right);
 
-    public override int GetHashCode() => HashCode.Combine(MaterialQuality, MaxVertexLights, MaxPixelLights, PcfKernelSize, NormalOffsetScale, LightProcessorCache);
+    public static bool operator !=(DrawableProcessorSettings left, DrawableProcessorSettings right) => !left.Equals(right);
+
+    public override readonly bool Equals(object? obj) => obj is DrawableProcessorSettings other && Equals(other);
+
+    public override readonly int GetHashCode() => HashCode.Combine(MaterialQuality, MaxVertexLights, MaxPixelLights, PcfKernelSize, NormalOffsetScale, LightProcessorCache);
+
+    private static void CombineHash(ref uint result, uint hash) =>
+        result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
 }
 
 public struct InstancingBufferSettings : IEquatable<InstancingBufferSettings>
@@ -577,28 +615,35 @@ public struct BatchRendererSettings : IEquatable<BatchRendererSettings>
     public override readonly int GetHashCode() => HashCode.Combine(CubemapBoxProjection, AmbientMode, VarianceShadowMapParams);
 }
 
-public sealed class ShadowMapAllocatorSettings : IEquatable<ShadowMapAllocatorSettings>
+public struct ShadowMapAllocatorSettings : IEquatable<ShadowMapAllocatorSettings>
 {
     public bool EnableVarianceShadowMaps { get; set; }
 
-    public int VarianceShadowMapMultiSample { get; set; } = 1;
+    public int VarianceShadowMapMultiSample { get; set; }
 
     public bool Use16BitShadowMaps { get; set; }
 
-    public int ShadowAtlasPageSize { get; set; } = 2048;
+    public int ShadowAtlasPageSize { get; set; }
 
-    public float DepthBiasScale { get; set; } = 1.0f;
+    public float DepthBiasScale { get; set; }
 
     public float DepthBiasOffset { get; set; }
 
+    public ShadowMapAllocatorSettings()
+    {
+        VarianceShadowMapMultiSample = 1;
+        ShadowAtlasPageSize = 2048;
+        DepthBiasScale = 1.0f;
+    }
+
     public uint CalculatePipelineStateHash()
     {
-        var hash = new HashCode();
-        hash.Add(EnableVarianceShadowMaps);
-        hash.Add(Use16BitShadowMaps);
-        hash.Add(DepthBiasScale);
-        hash.Add(DepthBiasOffset);
-        return unchecked((uint)hash.ToHashCode());
+        var hash = 0u;
+        CombineHash(ref hash, EnableVarianceShadowMaps ? 1u : 0u);
+        CombineHash(ref hash, Use16BitShadowMaps ? 1u : 0u);
+        CombineHash(ref hash, unchecked((uint)BitConverter.SingleToInt32Bits(DepthBiasScale)));
+        CombineHash(ref hash, unchecked((uint)BitConverter.SingleToInt32Bits(DepthBiasOffset)));
+        return hash;
     }
 
     public void Validate()
@@ -609,10 +654,9 @@ public sealed class ShadowMapAllocatorSettings : IEquatable<ShadowMapAllocatorSe
         DepthBiasScale = Math.Max(0.0f, DepthBiasScale);
     }
 
-    public bool Equals(ShadowMapAllocatorSettings? other)
+    public readonly bool Equals(ShadowMapAllocatorSettings other)
     {
-        return other is not null
-            && EnableVarianceShadowMaps == other.EnableVarianceShadowMaps
+        return EnableVarianceShadowMaps == other.EnableVarianceShadowMaps
             && VarianceShadowMapMultiSample == other.VarianceShadowMapMultiSample
             && Use16BitShadowMaps == other.Use16BitShadowMaps
             && ShadowAtlasPageSize == other.ShadowAtlasPageSize
@@ -620,125 +664,185 @@ public sealed class ShadowMapAllocatorSettings : IEquatable<ShadowMapAllocatorSe
             && DepthBiasOffset.Equals(other.DepthBiasOffset);
     }
 
-    public override bool Equals(object? obj) => Equals(obj as ShadowMapAllocatorSettings);
+    public static bool operator ==(ShadowMapAllocatorSettings left, ShadowMapAllocatorSettings right) => left.Equals(right);
 
-    public override int GetHashCode() => HashCode.Combine(EnableVarianceShadowMaps, VarianceShadowMapMultiSample, Use16BitShadowMaps, ShadowAtlasPageSize, DepthBiasScale, DepthBiasOffset);
+    public static bool operator !=(ShadowMapAllocatorSettings left, ShadowMapAllocatorSettings right) => !left.Equals(right);
+
+    public override readonly bool Equals(object? obj) => obj is ShadowMapAllocatorSettings other && Equals(other);
+
+    public override readonly int GetHashCode() => HashCode.Combine(EnableVarianceShadowMaps, VarianceShadowMapMultiSample, Use16BitShadowMaps, ShadowAtlasPageSize, DepthBiasScale, DepthBiasOffset);
+
+    private static void CombineHash(ref uint result, uint hash) =>
+        result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
 }
 
-public sealed class OcclusionBufferSettings : IEquatable<OcclusionBufferSettings>
+public struct OcclusionBufferSettings : IEquatable<OcclusionBufferSettings>
 {
     public bool ThreadedOcclusion { get; set; }
 
-    public uint MaxOccluderTriangles { get; set; } = 5000;
+    public int MaxOccluderTriangles { get; set; }
 
-    public uint OcclusionBufferSize { get; set; } = 256;
+    public int OcclusionBufferSize { get; set; }
 
-    public float OccluderSizeThreshold { get; set; } = 0.025f;
+    public float OccluderSizeThreshold { get; set; }
+
+    public OcclusionBufferSettings()
+    {
+        MaxOccluderTriangles = 5000;
+        OcclusionBufferSize = 256;
+        OccluderSizeThreshold = 0.025f;
+    }
 
     public uint CalculatePipelineStateHash() => 0;
 
     public void Validate()
     {
-        OcclusionBufferSize = Math.Clamp(OcclusionBufferSize, 1u, 16u * 1024u);
+        OcclusionBufferSize = Math.Clamp(OcclusionBufferSize, 1, 16 * 1024);
     }
 
-    public bool Equals(OcclusionBufferSettings? other)
+    public readonly bool Equals(OcclusionBufferSettings other)
     {
-        return other is not null
-            && ThreadedOcclusion == other.ThreadedOcclusion
+        return ThreadedOcclusion == other.ThreadedOcclusion
             && MaxOccluderTriangles == other.MaxOccluderTriangles
             && OcclusionBufferSize == other.OcclusionBufferSize
             && OccluderSizeThreshold.Equals(other.OccluderSizeThreshold);
     }
 
-    public override bool Equals(object? obj) => Equals(obj as OcclusionBufferSettings);
+    public static bool operator ==(OcclusionBufferSettings left, OcclusionBufferSettings right) => left.Equals(right);
 
-    public override int GetHashCode() => HashCode.Combine(ThreadedOcclusion, MaxOccluderTriangles, OcclusionBufferSize, OccluderSizeThreshold);
+    public static bool operator !=(OcclusionBufferSettings left, OcclusionBufferSettings right) => !left.Equals(right);
+
+    public override readonly bool Equals(object? obj) => obj is OcclusionBufferSettings other && Equals(other);
+
+    public override readonly int GetHashCode() => HashCode.Combine(ThreadedOcclusion, MaxOccluderTriangles, OcclusionBufferSize, OccluderSizeThreshold);
 }
 
-public sealed class SceneProcessorSettings : IEquatable<SceneProcessorSettings>
+public struct SceneProcessorSettings : IEquatable<SceneProcessorSettings>
 {
-    public MaterialQuality MaterialQuality { get; set; } = MaterialQuality.High;
+    public MaterialQuality MaterialQuality { get; set; }
 
-    public uint MaxVertexLights { get; set; } = 4;
+    public int MaxVertexLights { get; set; }
 
-    public uint MaxPixelLights { get; set; } = 4;
+    public int MaxPixelLights { get; set; }
 
-    public uint PcfKernelSize { get; set; } = 1;
+    public int PcfKernelSize { get; set; }
 
-    public float NormalOffsetScale { get; set; } = 1.0f;
+    public float NormalOffsetScale { get; set; }
 
-    public LightProcessorCacheSettings LightProcessorCache { get; } = new();
+    public LightProcessorCacheSettings LightProcessorCache { get; set; }
 
     public bool ThreadedOcclusion { get; set; }
 
-    public uint MaxOccluderTriangles { get; set; } = 5000;
+    public int MaxOccluderTriangles { get; set; }
 
-    public uint OcclusionBufferSize { get; set; } = 256;
+    public int OcclusionBufferSize { get; set; }
 
-    public float OccluderSizeThreshold { get; set; } = 0.025f;
+    public float OccluderSizeThreshold { get; set; }
 
     public bool CubemapBoxProjection { get; set; }
 
-    public DrawableAmbientMode AmbientMode { get; set; } = DrawableAmbientMode.Directional;
+    public DrawableAmbientMode AmbientMode { get; set; }
 
-    public Vector2f VarianceShadowMapParams { get; set; } = new(0.0000001f, 0.9f);
+    public Vector2f VarianceShadowMapParams { get; set; }
 
-    public SpecularQuality SpecularQuality { get; set; } = SpecularQuality.Simple;
+    public SpecularQuality SpecularQuality { get; set; }
 
-    public ReflectionQuality ReflectionQuality { get; set; } = ReflectionQuality.Pixel;
+    public ReflectionQuality ReflectionQuality { get; set; }
 
     public bool LinearReflectionMaps { get; set; }
 
     public bool DepthPrePass { get; set; }
 
-    public bool EnableShadows { get; set; } = true;
+    public bool EnableShadows { get; set; }
 
     public DirectLightingMode LightingMode { get; set; }
 
-    public int DirectionalShadowSize { get; set; } = 1024;
+    public int DirectionalShadowSize { get; set; }
 
-    public int SpotShadowSize { get; set; } = 1024;
+    public int SpotShadowSize { get; set; }
 
-    public int PointShadowSize { get; set; } = 256;
+    public int PointShadowSize { get; set; }
+
+    public SceneProcessorSettings()
+    {
+        MaterialQuality = MaterialQuality.High;
+        MaxVertexLights = 4;
+        MaxPixelLights = 4;
+        PcfKernelSize = 1;
+        NormalOffsetScale = 1.0f;
+        LightProcessorCache = new LightProcessorCacheSettings();
+        MaxOccluderTriangles = 5000;
+        OcclusionBufferSize = 256;
+        OccluderSizeThreshold = 0.025f;
+        AmbientMode = DrawableAmbientMode.Directional;
+        VarianceShadowMapParams = new Vector2f(0.0000001f, 0.9f);
+        SpecularQuality = SpecularQuality.Simple;
+        ReflectionQuality = ReflectionQuality.Pixel;
+        EnableShadows = true;
+        DirectionalShadowSize = 1024;
+        SpotShadowSize = 1024;
+        PointShadowSize = 256;
+    }
 
     public bool IsDeferredLighting() => LightingMode is DirectLightingMode.DeferredBlinnPhong or DirectLightingMode.DeferredPBR;
 
+    public static implicit operator DrawableProcessorSettings(SceneProcessorSettings settings) => new()
+    {
+        MaterialQuality = settings.MaterialQuality,
+        MaxVertexLights = settings.MaxVertexLights,
+        MaxPixelLights = settings.MaxPixelLights,
+        PcfKernelSize = settings.PcfKernelSize,
+        NormalOffsetScale = settings.NormalOffsetScale,
+        LightProcessorCache = settings.LightProcessorCache
+    };
+
+    public static implicit operator OcclusionBufferSettings(SceneProcessorSettings settings) => new()
+    {
+        ThreadedOcclusion = settings.ThreadedOcclusion,
+        MaxOccluderTriangles = settings.MaxOccluderTriangles,
+        OcclusionBufferSize = settings.OcclusionBufferSize,
+        OccluderSizeThreshold = settings.OccluderSizeThreshold
+    };
+
+    public static implicit operator BatchRendererSettings(SceneProcessorSettings settings) => new()
+    {
+        CubemapBoxProjection = settings.CubemapBoxProjection,
+        AmbientMode = settings.AmbientMode,
+        VarianceShadowMapParams = settings.VarianceShadowMapParams
+    };
+
     public uint CalculatePipelineStateHash()
     {
-        var hash = new HashCode();
-        hash.Add(MaxVertexLights);
-        hash.Add(PcfKernelSize);
-        hash.Add(NormalOffsetScale);
-        hash.Add(CubemapBoxProjection);
-        hash.Add(AmbientMode);
-        hash.Add(SpecularQuality);
-        hash.Add(ReflectionQuality);
-        hash.Add(LinearReflectionMaps);
-        hash.Add(EnableShadows);
-        hash.Add(LightingMode);
-        return unchecked((uint)hash.ToHashCode());
+        var hash = 0u;
+        CombineHash(ref hash, ((DrawableProcessorSettings)this).CalculatePipelineStateHash());
+        CombineHash(ref hash, ((OcclusionBufferSettings)this).CalculatePipelineStateHash());
+        CombineHash(ref hash, ((BatchRendererSettings)this).CalculatePipelineStateHash());
+        CombineHash(ref hash, unchecked((uint)SpecularQuality));
+        CombineHash(ref hash, unchecked((uint)ReflectionQuality));
+        CombineHash(ref hash, LinearReflectionMaps ? 1u : 0u);
+        CombineHash(ref hash, EnableShadows ? 1u : 0u);
+        CombineHash(ref hash, unchecked((uint)LightingMode));
+        return hash;
     }
 
     public void Validate()
     {
-        MaxVertexLights = Math.Clamp(MaxVertexLights, 0u, 4u);
-        MaxPixelLights = Math.Clamp(MaxPixelLights, 0u, 256u);
-        PcfKernelSize = Math.Clamp(PcfKernelSize, 1u, 5u);
+        MaxVertexLights = Math.Clamp(MaxVertexLights, 0, 4);
+        MaxPixelLights = Math.Clamp(MaxPixelLights, 0, 256);
+        PcfKernelSize = Math.Clamp(PcfKernelSize, 1, 5);
         NormalOffsetScale = Math.Max(0.0f, NormalOffsetScale);
         if (PcfKernelSize == 4)
             PcfKernelSize = 3;
 
-        OcclusionBufferSize = Math.Clamp(OcclusionBufferSize, 1u, 16u * 1024u);
+        OcclusionBufferSize = Math.Clamp(OcclusionBufferSize, 1, 16 * 1024);
         DirectionalShadowSize = checked((int)MathDefs.ClosestPowerOfTwo(checked((uint)DirectionalShadowSize)));
         SpotShadowSize = checked((int)MathDefs.ClosestPowerOfTwo(checked((uint)SpotShadowSize)));
         PointShadowSize = checked((int)MathDefs.ClosestPowerOfTwo(checked((uint)PointShadowSize)));
     }
 
-    public bool Equals(SceneProcessorSettings? other)
+    public readonly bool Equals(SceneProcessorSettings other)
     {
-        return other is not null
-            && MaterialQuality == other.MaterialQuality
+        return MaterialQuality == other.MaterialQuality
             && MaxVertexLights == other.MaxVertexLights
             && MaxPixelLights == other.MaxPixelLights
             && PcfKernelSize == other.PcfKernelSize
@@ -762,9 +866,13 @@ public sealed class SceneProcessorSettings : IEquatable<SceneProcessorSettings>
             && PointShadowSize == other.PointShadowSize;
     }
 
-    public override bool Equals(object? obj) => Equals(obj as SceneProcessorSettings);
+    public static bool operator ==(SceneProcessorSettings left, SceneProcessorSettings right) => left.Equals(right);
 
-    public override int GetHashCode()
+    public static bool operator !=(SceneProcessorSettings left, SceneProcessorSettings right) => !left.Equals(right);
+
+    public override readonly bool Equals(object? obj) => obj is SceneProcessorSettings other && Equals(other);
+
+    public override readonly int GetHashCode()
     {
         var hash = new HashCode();
         hash.Add(MaterialQuality);
@@ -791,97 +899,175 @@ public sealed class SceneProcessorSettings : IEquatable<SceneProcessorSettings>
         hash.Add(PointShadowSize);
         return hash.ToHashCode();
     }
+
+    private static void CombineHash(ref uint result, uint hash) =>
+        result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
 }
 
 /// <summary>
 /// Settings that contribute to shader defines.
 /// </summary>
-public class ShaderProgramCompositorSettings : IEquatable<ShaderProgramCompositorSettings>
+public struct ShaderProgramCompositorSettings : IEquatable<ShaderProgramCompositorSettings>
 {
-    public RenderBufferManagerSettings RenderBufferManager { get; } = new();
+    public RenderBufferManagerSettings RenderBufferManager { get; set; }
 
-    public SceneProcessorSettings SceneProcessor { get; } = new();
+    public SceneProcessorSettings SceneProcessor { get; set; }
 
-    public ShadowMapAllocatorSettings ShadowMapAllocator { get; } = new();
+    public ShadowMapAllocatorSettings ShadowMapAllocator { get; set; }
 
-    public InstancingBufferSettings InstancingBuffer { get; set; } = new();
+    public InstancingBufferSettings InstancingBuffer { get; set; }
 
-    public uint CalculatePipelineStateHash()
+    public ShaderProgramCompositorSettings()
     {
-        var hash = new HashCode();
-        hash.Add(RenderBufferManager.CalculatePipelineStateHash());
-        hash.Add(SceneProcessor.CalculatePipelineStateHash());
-        hash.Add(ShadowMapAllocator.CalculatePipelineStateHash());
-        hash.Add(InstancingBuffer.CalculatePipelineStateHash());
-        return unchecked((uint)hash.ToHashCode());
+        RenderBufferManager = new RenderBufferManagerSettings();
+        SceneProcessor = new SceneProcessorSettings();
+        ShadowMapAllocator = new ShadowMapAllocatorSettings();
+        InstancingBuffer = new InstancingBufferSettings();
+    }
+
+    public readonly uint CalculatePipelineStateHash()
+    {
+        var hash = 0u;
+        CombineHash(ref hash, RenderBufferManager.CalculatePipelineStateHash());
+        CombineHash(ref hash, SceneProcessor.CalculatePipelineStateHash());
+        CombineHash(ref hash, ShadowMapAllocator.CalculatePipelineStateHash());
+        CombineHash(ref hash, InstancingBuffer.CalculatePipelineStateHash());
+        return hash;
     }
 
     public void Validate()
     {
-        RenderBufferManager.Validate();
-        SceneProcessor.Validate();
-        ShadowMapAllocator.Validate();
+        var renderBufferManager = RenderBufferManager;
+        renderBufferManager.Validate();
+        RenderBufferManager = renderBufferManager;
+        var sceneProcessor = SceneProcessor;
+        sceneProcessor.Validate();
+        SceneProcessor = sceneProcessor;
+        var shadowMapAllocator = ShadowMapAllocator;
+        shadowMapAllocator.Validate();
+        ShadowMapAllocator = shadowMapAllocator;
         var instancingBuffer = InstancingBuffer;
         instancingBuffer.Validate();
         InstancingBuffer = instancingBuffer;
     }
 
-    public bool Equals(ShaderProgramCompositorSettings? other)
+    public readonly bool Equals(ShaderProgramCompositorSettings other)
     {
-        return other is not null
-            && RenderBufferManager.Equals(other.RenderBufferManager)
+        return RenderBufferManager.Equals(other.RenderBufferManager)
             && SceneProcessor.Equals(other.SceneProcessor)
             && ShadowMapAllocator.Equals(other.ShadowMapAllocator)
             && InstancingBuffer.Equals(other.InstancingBuffer);
     }
 
-    public override bool Equals(object? obj) => Equals(obj as ShaderProgramCompositorSettings);
+    public static bool operator ==(ShaderProgramCompositorSettings left, ShaderProgramCompositorSettings right) => left.Equals(right);
 
-    public override int GetHashCode() => HashCode.Combine(RenderBufferManager, SceneProcessor, ShadowMapAllocator, InstancingBuffer);
+    public static bool operator !=(ShaderProgramCompositorSettings left, ShaderProgramCompositorSettings right) => !left.Equals(right);
+
+    public override readonly bool Equals(object? obj) => obj is ShaderProgramCompositorSettings other && Equals(other);
+
+    public override readonly int GetHashCode() => HashCode.Combine(RenderBufferManager, SceneProcessor, ShadowMapAllocator, InstancingBuffer);
+
+    private static void CombineHash(ref uint result, uint hash) =>
+        result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
 }
 
 /// <summary>
 /// Settings of default render pipeline.
 /// </summary>
-public sealed class RenderPipelineSettings : ShaderProgramCompositorSettings, IEquatable<RenderPipelineSettings>
+public struct RenderPipelineSettings : IEquatable<RenderPipelineSettings>
 {
-    public bool DrawDebugGeometry { get; set; } = true;
+    public RenderBufferManagerSettings RenderBufferManager { get; set; }
 
-    public new uint CalculatePipelineStateHash()
+    public SceneProcessorSettings SceneProcessor { get; set; }
+
+    public ShadowMapAllocatorSettings ShadowMapAllocator { get; set; }
+
+    public InstancingBufferSettings InstancingBuffer { get; set; }
+
+    public bool DrawDebugGeometry { get; set; }
+
+    public RenderPipelineSettings()
     {
-        var hash = new HashCode();
-        hash.Add(base.CalculatePipelineStateHash());
-        hash.Add(DrawDebugGeometry);
-        return unchecked((uint)hash.ToHashCode());
+        RenderBufferManager = new RenderBufferManagerSettings();
+        SceneProcessor = new SceneProcessorSettings();
+        ShadowMapAllocator = new ShadowMapAllocatorSettings();
+        InstancingBuffer = new InstancingBufferSettings();
+        DrawDebugGeometry = true;
     }
 
-    public new void Validate()
+    public static implicit operator ShaderProgramCompositorSettings(RenderPipelineSettings settings) => new()
     {
-        base.Validate();
+        RenderBufferManager = settings.RenderBufferManager,
+        SceneProcessor = settings.SceneProcessor,
+        ShadowMapAllocator = settings.ShadowMapAllocator,
+        InstancingBuffer = settings.InstancingBuffer
+    };
+
+    public readonly uint CalculatePipelineStateHash()
+    {
+        return ((ShaderProgramCompositorSettings)this).CalculatePipelineStateHash();
     }
 
-    public void AdjustToSupported(Graphics? graphics)
+    public void Validate()
     {
-        if (graphics is null)
+        var renderBufferManager = RenderBufferManager;
+        renderBufferManager.Validate();
+        RenderBufferManager = renderBufferManager;
+        var sceneProcessor = SceneProcessor;
+        sceneProcessor.Validate();
+        SceneProcessor = sceneProcessor;
+        var shadowMapAllocator = ShadowMapAllocator;
+        shadowMapAllocator.Validate();
+        ShadowMapAllocator = shadowMapAllocator;
+        var instancingBuffer = InstancingBuffer;
+        instancingBuffer.Validate();
+        InstancingBuffer = instancingBuffer;
+    }
+
+    public void AdjustToSupported(Context context)
+    {
+        var renderDevice = context.GetSubsystem<RenderDevice>();
+        if (renderDevice is null || renderDevice.GetRenderDevice() is null)
             return;
 
-        var caps = graphics.GetRenderDeviceCaps();
-        if (RenderBufferManager.ColorSpace == RenderPipelineColorSpace.LinearHDR && !caps.HdrOutput)
-            RenderBufferManager.ColorSpace = RenderPipelineColorSpace.LinearLDR;
+        var caps = renderDevice.GetCaps();
+        var renderBufferManager = RenderBufferManager;
+        if (renderBufferManager.ColorSpace == RenderPipelineColorSpace.LinearHDR && !caps.HdrOutput)
+        {
+            Log.GetLogger().LogWarning("HDR rendering is not supported, falling back to LDR");
+            renderBufferManager.ColorSpace = RenderPipelineColorSpace.LinearLDR;
+        }
 
-        if (RenderBufferManager.ColorSpace == RenderPipelineColorSpace.LinearLDR && !caps.SrgbOutput)
-            RenderBufferManager.ColorSpace = RenderPipelineColorSpace.GammaLDR;
+        if (renderBufferManager.ColorSpace == RenderPipelineColorSpace.LinearLDR && !caps.SrgbOutput)
+        {
+            Log.GetLogger().LogWarning("sRGB render targets are not supported, falling back to gamma color space");
+            renderBufferManager.ColorSpace = RenderPipelineColorSpace.GammaLDR;
+        }
 
-        RenderBufferManager.MultiSampleLevel = graphics.GetSupportedMultiSample(RenderPipelineColorSpaceUtility.GetTextureFormat(RenderBufferManager.ColorSpace), RenderBufferManager.MultiSampleLevel);
+        var multiSample = renderDevice.GetSupportedMultiSample(
+            RenderPipelineColorSpaceUtility.GetTextureFormat(renderBufferManager.ColorSpace),
+            renderBufferManager.MultiSampleLevel);
+        if (multiSample != renderBufferManager.MultiSampleLevel)
+        {
+            Log.GetLogger().LogWarning("MSAA level {RequestedLevel} is not supported, falling back to {SupportedLevel}",
+                renderBufferManager.MultiSampleLevel, multiSample);
+            renderBufferManager.MultiSampleLevel = multiSample;
+        }
+        RenderBufferManager = renderBufferManager;
 
-        if (SceneProcessor.IsDeferredLighting() && !caps.ReadOnlyDepth)
-            SceneProcessor.LightingMode = DirectLightingMode.Forward;
+        var sceneProcessor = SceneProcessor;
+        if (sceneProcessor.IsDeferredLighting() && !caps.ReadOnlyDepth)
+            sceneProcessor.LightingMode = DirectLightingMode.Forward;
+        SceneProcessor = sceneProcessor;
 
-        if (!graphics.IsRenderTargetFormatSupported(TextureFormat.TexFormatRg16Float))
-            ShadowMapAllocator.EnableVarianceShadowMaps = false;
+        var shadowMapAllocator = ShadowMapAllocator;
+        if (!renderDevice.IsRenderTargetFormatSupported(TextureFormat.TexFormatRg32Float))
+            shadowMapAllocator.EnableVarianceShadowMaps = false;
 
-        ShadowMapAllocator.VarianceShadowMapMultiSample = graphics.GetSupportedMultiSample(TextureFormat.TexFormatRg16Float, ShadowMapAllocator.VarianceShadowMapMultiSample);
-        ShadowMapAllocator.ShadowAtlasPageSize = Math.Min(ShadowMapAllocator.ShadowAtlasPageSize, caps.MaxRenderTargetSize);
+        shadowMapAllocator.VarianceShadowMapMultiSample = renderDevice.GetSupportedMultiSample(
+            TextureFormat.TexFormatRg32Float, shadowMapAllocator.VarianceShadowMapMultiSample);
+        shadowMapAllocator.ShadowAtlasPageSize = Math.Min(shadowMapAllocator.ShadowAtlasPageSize, caps.MaxRenderTargetSize);
+        ShadowMapAllocator = shadowMapAllocator;
     }
 
     public void PropagateImpliedSettings()
@@ -889,10 +1075,12 @@ public sealed class RenderPipelineSettings : ShaderProgramCompositorSettings, IE
         // Deferred rendering expects certain properties from render textures
         if (SceneProcessor.IsDeferredLighting())
         {
-            RenderBufferManager.ColorUsableWithMultipleRenderTargets = true;
-            RenderBufferManager.StencilBuffer = true;
-            RenderBufferManager.ReadableDepth = true;
-            RenderBufferManager.InheritMultiSampleLevel = false;
+            var renderBufferManager = RenderBufferManager;
+            renderBufferManager.ColorUsableWithMultipleRenderTargets = true;
+            renderBufferManager.StencilBuffer = true;
+            renderBufferManager.ReadableDepth = true;
+            renderBufferManager.InheritMultiSampleLevel = false;
+            RenderBufferManager = renderBufferManager;
         }
 
         // Setup instancing buffer format
@@ -913,24 +1101,33 @@ public sealed class RenderPipelineSettings : ShaderProgramCompositorSettings, IE
 
     public void AdjustForRenderPath(RenderOutputFlag flags)
     {
-        RenderBufferManager.FilteredColor = (flags & RenderOutputFlag.NeedColorOutputBilinear) == RenderOutputFlag.NeedColorOutputBilinear;
+        var renderBufferManager = RenderBufferManager;
+        renderBufferManager.FilteredColor = (flags & RenderOutputFlag.NeedColorOutputBilinear) == RenderOutputFlag.NeedColorOutputBilinear;
+        RenderBufferManager = renderBufferManager;
     }
 
-    public bool Equals(RenderPipelineSettings? other)
+    public readonly bool Equals(RenderPipelineSettings other)
     {
-        if (other is null)
-            return false;
-
-        return base.Equals(other)
+        return RenderBufferManager.Equals(other.RenderBufferManager)
+            && SceneProcessor.Equals(other.SceneProcessor)
+            && ShadowMapAllocator.Equals(other.ShadowMapAllocator)
+            && InstancingBuffer.Equals(other.InstancingBuffer)
             && DrawDebugGeometry == other.DrawDebugGeometry;
     }
 
-    public override bool Equals(object? obj) => Equals(obj as RenderPipelineSettings);
+    public static bool operator ==(RenderPipelineSettings left, RenderPipelineSettings right) => left.Equals(right);
 
-    public override int GetHashCode()
+    public static bool operator !=(RenderPipelineSettings left, RenderPipelineSettings right) => !left.Equals(right);
+
+    public override readonly bool Equals(object? obj) => obj is RenderPipelineSettings other && Equals(other);
+
+    public override readonly int GetHashCode()
     {
         var hash = new HashCode();
-        hash.Add(base.GetHashCode());
+        hash.Add(RenderBufferManager);
+        hash.Add(SceneProcessor);
+        hash.Add(ShadowMapAllocator);
+        hash.Add(InstancingBuffer);
         hash.Add(DrawDebugGeometry);
         return hash.ToHashCode();
     }

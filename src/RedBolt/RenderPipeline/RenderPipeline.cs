@@ -28,7 +28,7 @@ public class RenderPipeline : Component
         instancingBuffer.EnableInstancing = true;
         _settings.InstancingBuffer = instancingBuffer;
         _settings.Validate();
-        _settings.AdjustToSupported(GetSubsystem<Graphics>());
+        _settings.AdjustToSupported(Context.Instance);
     }
 
     public override void Dispose()
@@ -104,8 +104,9 @@ public class RenderPipeline : Component
 
     public void SetSettings(RenderPipelineSettings settings)
     {
-        ArgumentNullException.ThrowIfNull(settings);
-        this._settings = settings;
+        _settings = settings;
+        _settings.Validate();
+        _settings.AdjustToSupported(Context.Instance);
         MarkSettingsDirty();
     }
 
@@ -316,7 +317,7 @@ public class RenderPipeline : Component
     private void MarkSettingsDirty()
     {
         _settings.Validate();
-        _settings.AdjustToSupported(GetSubsystem<Graphics>());
+        _settings.AdjustToSupported(Context.Instance);
         SettingsChanged?.Invoke(this, _settings);
     }
 
@@ -701,13 +702,14 @@ public class RenderPipeline : Component
 
         private void ApplySettings()
         {
-            _renderPipeline.Settings.Validate();
-            _renderPipeline.Settings.AdjustToSupported(_renderPipeline.GetSubsystem<Graphics>()!);
-            _renderPipeline.Settings.PropagateImpliedSettings();
-            _sceneProcessor?.SetSettings(_renderPipeline.Settings);
-            _instancingBuffer?.SetSettings(_renderPipeline.Settings.InstancingBuffer);
-            _shadowMapAllocator?.SetSettings(_renderPipeline.Settings.ShadowMapAllocator);
-            _renderBufferManager?.SetSettings(_renderPipeline.Settings.RenderBufferManager);
+            var settings = _renderPipeline.Settings;
+            settings.Validate();
+            settings.AdjustToSupported(Context.Instance);
+            settings.PropagateImpliedSettings();
+            _sceneProcessor?.SetSettings(settings);
+            _instancingBuffer?.SetSettings(settings.InstancingBuffer);
+            _shadowMapAllocator?.SetSettings(settings.ShadowMapAllocator);
+            _renderBufferManager?.SetSettings(settings.RenderBufferManager);
 
             if (_renderPipeline.Settings.SceneProcessor.DepthPrePass && _depthPrePass is null && _sceneProcessor is not null)
             {

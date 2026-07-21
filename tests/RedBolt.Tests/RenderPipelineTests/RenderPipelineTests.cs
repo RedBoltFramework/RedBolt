@@ -88,7 +88,7 @@ public sealed class RenderPipelineTests
         renderPipeline.SettingsChanged += (_, settings) =>
         {
             ++settingsEvents;
-            Assert.Same(renderPipeline.Settings, settings);
+            Assert.Equal(renderPipeline.Settings, settings);
         };
         renderPipeline.ParametersChanged += _ => ++parameterEvents;
         renderPipeline.RenderPathChanged += (_, newRenderPath) => changedRenderPath = newRenderPath;
