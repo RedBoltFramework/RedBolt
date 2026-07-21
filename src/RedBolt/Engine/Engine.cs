@@ -365,9 +365,8 @@ public class Engine : Object
     {
         if (IsInitialized)
         {
-            GetSubsystem<RenderDevice>()?.OnEngineShutdown();
-            GetSubsystem<Graphics>()!.Shutdown();
             GetSubsystem<Renderer>()!.SetNumViewports(0);
+            GetSubsystem<Graphics>()!.Close();
             GetSubsystem<Input>()!.Shutdown();
         }
         _configFile.Dispose();

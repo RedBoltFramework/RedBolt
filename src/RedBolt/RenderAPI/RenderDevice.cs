@@ -755,14 +755,6 @@ public sealed class RenderDevice : Object
             _deviceObjects.Remove(deviceObject);
     }
 
-    internal void OnEngineShutdown()
-    {
-        SendDeviceObjectEvent(DeviceObjectEvent.Destroy);
-        lock (_deviceObjectsLock)
-            _deviceObjects.Clear();
-        _renderPool.Invalidate();
-    }
-
     internal void ResetWindowSettings()
     {
         _windowSettings = null;
