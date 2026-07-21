@@ -33,8 +33,6 @@ public class RenderPipeline : Component
 
     public override void Dispose()
     {
-        if (_renderPath is not null)
-            _renderPath.ReloadFinished -= OnRenderPathReloadFinished;
         _frameShaderParameters.Dispose();
         _renderPathParameters.Dispose();
         base.Dispose();
@@ -114,12 +112,12 @@ public class RenderPipeline : Component
     public void SetRenderPath(RenderPath? renderPath)
     {
         if (this._renderPath is not null)
-            this._renderPath.ReloadFinished -= OnRenderPathReloadFinished;
+            UnsubscribeFromEvent<ResourceEvents.ReloadFinished>(this._renderPath);
 
         this._renderPath = renderPath;
         OnRenderPathReloaded();
         if (this._renderPath is not null)
-            this._renderPath.ReloadFinished += OnRenderPathReloadFinished;
+            SubscribeToEvent<ResourceEvents.ReloadFinished>(this._renderPath, OnRenderPathReloadFinished);
     }
 
     public bool SetRenderPath(string resourceName)
@@ -344,10 +342,9 @@ public class RenderPipeline : Component
         RenderPathChanged?.Invoke(this, _renderPath);
     }
 
-    private void OnRenderPathReloadFinished(Resource resource)
+    private void OnRenderPathReloadFinished(ref ResourceEvents.ReloadFinished eventData)
     {
-        if (ReferenceEquals(resource, _renderPath))
-            OnRenderPathReloaded();
+        OnRenderPathReloaded();
     }
 
     private void Touch()

@@ -1292,6 +1292,24 @@ public sealed class RenderPipelineTests
         }
     }
 
+    [Fact]
+    public void Render_pipeline_reload_event_observes_only_the_current_render_path()
+    {
+        var renderPipeline = new RenderPipeline();
+        var firstRenderPath = new RenderPath("RenderPaths/First.renderpath");
+        var secondRenderPath = new RenderPath("RenderPaths/Second.renderpath");
+        renderPipeline.SetRenderPath(firstRenderPath);
+        renderPipeline.SetRenderPath(secondRenderPath);
+        var renderPathChangedEvents = 0;
+        renderPipeline.RenderPathChanged += (_, _) => ++renderPathChangedEvents;
+
+        firstRenderPath.SendEvent<ResourceEvents.ReloadFinished>();
+        Assert.Equal(0, renderPathChangedEvents);
+
+        secondRenderPath.SendEvent<ResourceEvents.ReloadFinished>();
+        Assert.Equal(1, renderPathChangedEvents);
+    }
+
     private sealed class ParameterRenderPass : RenderPass
     {
         private readonly string _parameterName;
