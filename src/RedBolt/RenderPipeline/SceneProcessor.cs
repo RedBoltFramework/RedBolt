@@ -116,7 +116,7 @@ public class SceneProcessor : Object, LightProcessorCallback
         DrawableProcessor = new DrawableProcessor(renderPipeline);
         BatchStateCacheCallback = PipelineStateBuilder;
         BatchCompositor = new BatchCompositor(renderPipeline, DrawableProcessor, BatchStateCacheCallback,
-            Technique.GetPassIndex(string.IsNullOrEmpty(shadowTechnique) ? "shadow" : shadowTechnique));
+            checked((int)Technique.GetPassIndex(string.IsNullOrEmpty(shadowTechnique) ? "shadow" : shadowTechnique)));
         BatchRenderer = new BatchRenderer(renderPipeline, DrawableProcessor, instancingBuffer);
 
         renderPipeline.UpdateBegin += OnUpdateBegin;

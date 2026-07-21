@@ -8,6 +8,11 @@ public class BatchCompositorPass : DrawableProcessorPass
     private readonly DrawableProcessor _drawableProcessor;
     private readonly BatchStateCacheCallback? _batchStateCacheCallback;
 
+    protected readonly WorkQueueVector<PipelineBatch> DeferredBatches = new();
+    protected readonly WorkQueueVector<PipelineBatch> BaseBatches = new();
+    protected readonly WorkQueueVector<PipelineBatch> LightBatches = new();
+    protected readonly WorkQueueVector<PipelineBatch> NegativeLightBatches = new();
+
     private readonly BatchStateCache _deferredCache = new();
     private readonly BatchStateCache _unlitBaseCache = new();
     private readonly BatchStateCache _litBaseCache = new();
@@ -18,11 +23,6 @@ public class BatchCompositorPass : DrawableProcessorPass
     private readonly WorkQueueVector<PipelineBatchDesc> _delayedLitBaseBatches = new();
     private readonly WorkQueueVector<PipelineBatchDesc> _delayedLightBatches = new();
     private readonly WorkQueueVector<PipelineBatchDesc> _delayedNegativeLightBatches = new();
-
-    protected readonly WorkQueueVector<PipelineBatch> DeferredBatches = new();
-    protected readonly WorkQueueVector<PipelineBatch> BaseBatches = new();
-    protected readonly WorkQueueVector<PipelineBatch> LightBatches = new();
-    protected readonly WorkQueueVector<PipelineBatch> NegativeLightBatches = new();
 
     public BatchCompositorPass(
         IRenderPipelineInterface renderPipeline,
@@ -270,10 +270,11 @@ public class BatchCompositorPass : DrawableProcessorPass
 /// <summary>Batch composition manager.</summary>
 public class BatchCompositor : Object
 {
-    public const uint ShadowSubpass = 0;
-    public const uint LitVolumeSubpass = 1;
+    public const int ShadowSubpass = 0;
+    public const int LitVolumeSubpass = 1;
 
-    private readonly uint _shadowPassIndex;
+    private readonly IRenderPipelineInterface _renderPipeline;
+    private readonly int _shadowPassIndex;
     private readonly WorkQueue? _workQueue;
     private readonly Renderer? _renderer;
     private readonly DrawableProcessor _drawableProcessor;
@@ -295,9 +296,10 @@ public class BatchCompositor : Object
     private readonly List<PipelineBatchByState> _sortedLightVolumeBatches = [];
 
     public BatchCompositor(IRenderPipelineInterface renderPipeline, DrawableProcessor drawableProcessor,
-        BatchStateCacheCallback? callback, uint shadowPassIndex)
+        BatchStateCacheCallback? callback, int shadowPassIndex)
     {
         ArgumentNullException.ThrowIfNull(renderPipeline);
+        _renderPipeline = renderPipeline;
         _drawableProcessor = drawableProcessor ?? throw new ArgumentNullException(nameof(drawableProcessor));
         _batchStateCacheCallback = callback;
         _shadowPassIndex = shadowPassIndex;
@@ -307,8 +309,8 @@ public class BatchCompositor : Object
 
         if (_defaultMaterial is not null)
         {
-            _lightVolumeMaterial = _defaultMaterial.Clone("[Internal]LightVolume");
-            _negativeLightVolumeMaterial = _defaultMaterial.Clone("[Internal]NegativeLightVolume");
+            _lightVolumeMaterial = _defaultMaterial.Clone("[Internal]/LightVolume");
+            _negativeLightVolumeMaterial = _defaultMaterial.Clone("[Internal]/NegativeLightVolume");
             _negativeLightVolumeMaterial.SetRenderOrder((byte)(128 + 1));
         }
 
@@ -322,8 +324,11 @@ public class BatchCompositor : Object
 
     public override void Dispose()
     {
-        _lightVolumeMaterial?.Dispose();
+        _lightVolumePass.Dispose();
         _negativeLightVolumeMaterial?.Dispose();
+        _lightVolumeMaterial?.Dispose();
+        _renderPipeline.UpdateBegin -= OnUpdateBegin;
+        _renderPipeline.PipelineStatesInvalidated -= OnPipelineStatesInvalidated;
         base.Dispose();
     }
 
@@ -344,9 +349,9 @@ public class BatchCompositor : Object
     {
         // Collect shadow caster batches in worker threads
         var lightProcessors = _drawableProcessor.GetLightProcessors();
-        for (var lightIndex = 0u; lightIndex < (uint)lightProcessors.Count; ++lightIndex)
+        for (var lightIndex = 0; lightIndex < lightProcessors.Count; ++lightIndex)
         {
-            var lightProcessor = lightProcessors[(int)lightIndex];
+            var lightProcessor = lightProcessors[lightIndex];
             if (lightProcessor is null)
                 continue;
             var numSplits = lightProcessor.NumSplits;
@@ -386,16 +391,16 @@ public class BatchCompositor : Object
         var ctx = new BatchStateCreateContext(this, LitVolumeSubpass, 0);
 
         var lightProcessors = _drawableProcessor.GetLightProcessors();
-        for (var lightIndex = 0u; lightIndex < (uint)lightProcessors.Count; ++lightIndex)
+        for (var lightIndex = 0; lightIndex < lightProcessors.Count; ++lightIndex)
         {
-            var lightProcessor = lightProcessors[(int)lightIndex];
+            var lightProcessor = lightProcessors[lightIndex];
             if (lightProcessor is null || !lightProcessor.HasLitGeometries)
                 continue;
 
             var light = lightProcessor.Light;
 
             var desc = new PipelineBatchDesc();
-            desc.InitializeLitBatch(lightProcessor, lightIndex, lightProcessor.LightVolumeHash);
+            desc.InitializeLitBatch(lightProcessor, checked((uint)lightIndex), lightProcessor.LightVolumeHash);
             desc.DrawableHash = 0;
             desc.SourceBatchIndex = uint.MaxValue;
             desc.GeometryType = GeometryType.StaticNoInstancing;
@@ -486,7 +491,7 @@ public class BatchCompositor : Object
     }
 
     /// <summary>Safe to call from worker thread.</summary>
-    protected void BeginShadowBatchesComposition(uint lightIndex, ShadowSplitProcessor splitProcessor)
+    protected void BeginShadowBatchesComposition(int lightIndex, ShadowSplitProcessor splitProcessor)
     {
         var lightProcessor = splitProcessor.LightProcessor;
         var lightHash = lightProcessor.GetShadowHash(splitProcessor.SplitIndex);
@@ -512,9 +517,9 @@ public class BatchCompositor : Object
 
             // Add batches
             var sourceBatches = drawable.GetBatches();
-            for (var j = 0u; j < (uint)sourceBatches.Count; ++j)
+            for (var j = 0; j < sourceBatches.Count; ++j)
             {
-                var sourceBatch = sourceBatches[(int)j];
+                var sourceBatch = sourceBatches[j];
                 if (sourceBatch.Geometry is null || sourceBatch.NumWorldTransforms == 0)
                     continue;
 
@@ -524,13 +529,13 @@ public class BatchCompositor : Object
                 var tech = material.FindTechnique(drawable, _shadowMaterialQuality);
                 if (tech is null)
                     continue;
-                var pass = tech.GetPass(_shadowPassIndex);
+                var pass = tech.GetPass(checked((uint)_shadowPassIndex));
                 if (pass is null)
                     continue;
 
-                var desc = new PipelineBatchDesc(drawable, j, pass);
+                var desc = new PipelineBatchDesc(drawable, checked((uint)j), pass);
                 desc.Material = material;
-                desc.InitializeShadowBatch(lightProcessor, lightIndex, lightHash);
+                desc.InitializeShadowBatch(lightProcessor, checked((uint)lightIndex), lightHash);
 
                 var pipelineState = _shadowCache.GetPipelineState(desc.GetKey().LookupKey);
                 if (pipelineState is not null)
@@ -570,9 +575,9 @@ public class BatchCompositor : Object
 
         // Finalize shadow batches
         var lightProcessors = _drawableProcessor.GetLightProcessors();
-        for (var lightIndex = 0u; lightIndex < (uint)lightProcessors.Count; ++lightIndex)
+        for (var lightIndex = 0; lightIndex < lightProcessors.Count; ++lightIndex)
         {
-            var lightProcessor = lightProcessors[(int)lightIndex];
+            var lightProcessor = lightProcessors[lightIndex];
             if (lightProcessor is null)
                 continue;
             var numSplits = lightProcessor.NumSplits;

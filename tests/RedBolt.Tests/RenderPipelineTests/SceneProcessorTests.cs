@@ -68,6 +68,24 @@ public sealed class SceneProcessorTests
         Assert.Null(processor.GetUserPass(processor.GetBatchCompositor()));
     }
 
+    [Fact]
+    public void BatchCompositor_dispose_releases_pipeline_subscriptions()
+    {
+        var pipeline = new TestRenderPipelineInterface();
+        using var drawableProcessor = new DrawableProcessor(pipeline);
+        var updateSubscribers = pipeline.UpdateBeginSubscriberCount;
+        var invalidationSubscribers = pipeline.PipelineStatesInvalidatedSubscriberCount;
+        var compositor = new BatchCompositor(pipeline, drawableProcessor, null, 0);
+
+        Assert.Equal(updateSubscribers + 1, pipeline.UpdateBeginSubscriberCount);
+        Assert.Equal(invalidationSubscribers + 1, pipeline.PipelineStatesInvalidatedSubscriberCount);
+
+        compositor.Dispose();
+
+        Assert.Equal(updateSubscribers, pipeline.UpdateBeginSubscriberCount);
+        Assert.Equal(invalidationSubscribers, pipeline.PipelineStatesInvalidatedSubscriberCount);
+    }
+
     private sealed class TestRenderPipelineInterface : IRenderPipelineInterface
     {
         public Context? GetContext() => Context.Instance;
@@ -79,5 +97,8 @@ public sealed class SceneProcessorTests
         public event Action<CommonFrameInfo>? RenderEnd;
         public event Action? PipelineStatesInvalidated;
         public event Action<RenderPipelineStats>? CollectStatistics;
+
+        public int UpdateBeginSubscriberCount => UpdateBegin?.GetInvocationList().Length ?? 0;
+        public int PipelineStatesInvalidatedSubscriberCount => PipelineStatesInvalidated?.GetInvocationList().Length ?? 0;
     }
 }
