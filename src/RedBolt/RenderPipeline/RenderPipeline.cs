@@ -383,7 +383,7 @@ public class RenderPipeline : Component
         private BackToFrontScenePass? _postAlphaPass;
         private OutlineScenePass? _outlineScenePass;
         private readonly SharedRenderPassState _sharedState = new();
-        private readonly RenderPipelineStats _stats = new();
+        private RenderPipelineStats _stats;
         private readonly List<OutlineGroup> _outlineGroups = [];
         private TextureRenderBuffer? _outlineBuffer;
         private CommonFrameInfo _frameInfo = new();
@@ -585,9 +585,6 @@ public class RenderPipeline : Component
             }
 
             UpdateFrameParameters();
-            _stats.NumGeometries = _sceneProcessor.GetFrameInfo().Scene is { } scene
-                ? (uint)scene.StaticModels.Count
-                : 0u;
 
             SendEndViewUpdateEvent();
             RaiseUpdateEnd(_frameInfo);
@@ -689,7 +686,8 @@ public class RenderPipeline : Component
             graphics.UnbindRenderTargets();
             RaiseRenderEnd(_frameInfo);
             SendEndViewRenderEvent();
-            RaiseCollectStatistics(_stats);
+            _stats = default;
+            RaiseCollectStatistics(ref _stats);
 
             if (GetDebugger().IsSnapshotInProgress())
             {
@@ -722,7 +720,7 @@ public class RenderPipeline : Component
 
         public override FrameInfo GetFrameInfo() => _sceneProcessor?.GetFrameInfo() ?? default;
 
-        public override RenderPipelineStats GetStats() => _stats;
+        public override ref readonly RenderPipelineStats GetStats() => ref _stats;
 
         public override void DrawDebugGeometries(bool depthTest)
         {

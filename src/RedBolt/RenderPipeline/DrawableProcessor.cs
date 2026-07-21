@@ -197,7 +197,7 @@ public class DrawableProcessor : Object
     private Material? _defaultMaterial;
     private MaterialQuality _materialQuality = MaterialQuality.High;
     private GlobalIllumination? _gi;
-    private uint _numShadowedLights;
+    private int _numShadowedLights;
     private Vector3f _cullCameraZAxis;
     private Vector3f _cullCameraZAxisAbs;
     private Matrix3x4 _cullCameraViewMatrix;
@@ -255,7 +255,7 @@ public class DrawableProcessor : Object
     public LightProcessor? GetLightProcessor(uint lightIndex) =>
         lightIndex < (uint)_lightProcessors.Count ? _lightProcessors[(int)lightIndex] : null;
 
-    public uint GetNumShadowedLights() => _numShadowedLights;
+    public int GetNumShadowedLights() => _numShadowedLights;
 
     public ref readonly LightAccumulator GetGeometryLighting(uint drawableIndex) =>
         ref _geometryLighting[checked((int)drawableIndex)];
@@ -1025,10 +1025,12 @@ public class DrawableProcessor : Object
         return IsBoundingBoxShadowInPerspectiveFrustum(lightSpaceBoundingBox, lightSpaceFrustum, shadowCamera.GetFarClip());
     }
 
-    public void OnCollectStatistics(RenderPipelineStats stats)
+    public void OnCollectStatistics(ref RenderPipelineStats stats)
     {
-        stats.NumGeometries += _geometries.Size();
-        stats.NumLights += (uint)_lights.Count;
+        stats.NumOccluders += _sortedOccluders.Count;
+        stats.NumLights += _lights.Count;
+        stats.NumGeometries += checked((int)_geometries.Size());
+        stats.NumShadowedLights += _numShadowedLights;
     }
 
     public void ProcessOccluders(IReadOnlyList<Drawable> occluders, float sizeThreshold)

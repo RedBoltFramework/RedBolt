@@ -123,7 +123,7 @@ public sealed class SceneProcessorTests
         public event Action<CommonFrameInfo>? RenderBegin;
         public event Action<CommonFrameInfo>? RenderEnd;
         public event Action? PipelineStatesInvalidated;
-        public event Action<RenderPipelineStats>? CollectStatistics;
+        public event RenderPipelineStatsHandler? CollectStatistics;
 
         public int UpdateBeginSubscriberCount => UpdateBegin?.GetInvocationList().Length ?? 0;
         public int RenderBeginSubscriberCount => RenderBegin?.GetInvocationList().Length ?? 0;

@@ -235,33 +235,33 @@ public sealed class Renderer : Object
         return (uint)_renderPipelineViews.Count;
     }
 
-    public uint GetNumGeometries()
+    public int GetNumGeometries()
     {
-        var count = 0u;
+        var count = 0;
         foreach (var renderPipelineView in _renderPipelineViews)
             count += renderPipelineView.GetStats().NumGeometries;
         return count;
     }
 
-    public uint GetNumLights()
+    public int GetNumLights()
     {
-        var count = 0u;
+        var count = 0;
         foreach (var renderPipelineView in _renderPipelineViews)
             count += renderPipelineView.GetStats().NumLights;
         return count;
     }
 
-    public uint GetNumShadowMaps()
+    public int GetNumShadowMaps()
     {
-        var count = 0u;
+        var count = 0;
         foreach (var renderPipelineView in _renderPipelineViews)
             count += renderPipelineView.GetStats().NumShadowedLights;
         return count;
     }
 
-    public uint GetNumOccluders()
+    public int GetNumOccluders()
     {
-        var count = 0u;
+        var count = 0;
         foreach (var renderPipelineView in _renderPipelineViews)
             count += renderPipelineView.GetStats().NumOccluders;
         return count;

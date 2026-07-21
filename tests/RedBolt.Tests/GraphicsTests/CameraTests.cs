@@ -327,6 +327,8 @@ public sealed class CameraTests
 
     private sealed class TrackingRenderPipelineView : RenderPipelineView
     {
+        private RenderPipelineStats _stats;
+
         public TrackingRenderPipelineView(RenderPipeline renderPipeline)
             : base(renderPipeline)
         {
@@ -348,7 +350,7 @@ public sealed class CameraTests
 
         public override FrameInfo GetFrameInfo() => default;
 
-        public override RenderPipelineStats GetStats() => new();
+        public override ref readonly RenderPipelineStats GetStats() => ref _stats;
 
         public override void DrawDebugGeometries(bool depthTest)
         {

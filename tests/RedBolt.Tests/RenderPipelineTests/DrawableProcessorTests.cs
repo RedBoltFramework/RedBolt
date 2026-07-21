@@ -4,6 +4,38 @@ namespace RedBolt.Tests;
 public sealed class DrawableProcessorTests
 {
     [Fact]
+    public void RenderPipelineStatsHasValueSemantics()
+    {
+        var stats = new RenderPipelineStats { NumLights = 1 };
+        var copy = stats;
+
+        copy.NumLights = 2;
+
+        Assert.True(typeof(RenderPipelineStats).IsValueType);
+        Assert.Equal(1, stats.NumLights);
+        Assert.Equal(2, copy.NumLights);
+    }
+
+    [Fact]
+    public void CollectStatisticsMutatesStatsByReference()
+    {
+        var pipeline = new TestRenderPipelineInterface();
+        using var processor = new DrawableProcessor(pipeline);
+        processor.SetLights([new Light(), new Light()]);
+        processor.SetGeometries([new CustomGeometry()]);
+        var stats = new RenderPipelineStats
+        {
+            NumLights = 3,
+            NumGeometries = 4
+        };
+
+        pipeline.RaiseCollectStatistics(ref stats);
+
+        Assert.Equal(5, stats.NumLights);
+        Assert.Equal(5, stats.NumGeometries);
+    }
+
+    [Fact]
     public void DeferredBatchContainsOnlyDeferredPass()
     {
         var drawable = new CustomGeometry();
@@ -182,8 +214,9 @@ public sealed class DrawableProcessorTests
         public event Action<CommonFrameInfo>? RenderBegin;
         public event Action<CommonFrameInfo>? RenderEnd;
         public event Action? PipelineStatesInvalidated;
-        public event Action<RenderPipelineStats>? CollectStatistics;
+        public event RenderPipelineStatsHandler? CollectStatistics;
 
         public void RaiseUpdateBegin() => UpdateBegin?.Invoke(default);
+        public void RaiseCollectStatistics(ref RenderPipelineStats stats) => CollectStatistics?.Invoke(ref stats);
     }
 }

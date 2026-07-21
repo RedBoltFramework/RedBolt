@@ -159,6 +159,6 @@ public sealed class ShadowSplitProcessorTests
         public event Action<CommonFrameInfo>? RenderBegin;
         public event Action<CommonFrameInfo>? RenderEnd;
         public event Action? PipelineStatesInvalidated;
-        public event Action<RenderPipelineStats>? CollectStatistics;
+        public event RenderPipelineStatsHandler? CollectStatistics;
     }
 }

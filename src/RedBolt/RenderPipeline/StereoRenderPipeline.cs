@@ -287,7 +287,7 @@ public class StereoRenderPipelineView : RenderPipelineView
     private RenderSurface? _renderTarget;
     private RenderOutputFlag _renderOutputFlags;
 
-    private readonly RenderPipelineStats _stats = new();
+    private RenderPipelineStats _stats;
     private readonly SharedRenderPassState _state = new();
 
     private RenderBufferManager? _renderBufferManager;
@@ -648,8 +648,8 @@ public class StereoRenderPipelineView : RenderPipelineView
         SendEndViewRenderEvent();
 
         // Update statistics
-        // stats_ = {};  — C# reuses instance; OnCollectStatistics fills it
-        RaiseCollectStatistics(_stats);
+        _stats = default;
+        RaiseCollectStatistics(ref _stats);
 
         if (GetDebugger().IsSnapshotInProgress())
         {
@@ -731,7 +731,7 @@ public class StereoRenderPipelineView : RenderPipelineView
 
     public override FrameInfo GetFrameInfo() => _sceneProcessor?.GetFrameInfo() ?? default;
 
-    public override RenderPipelineStats GetStats() => _stats;
+    public override ref readonly RenderPipelineStats GetStats() => ref _stats;
 
     public override void DrawDebugGeometries(bool depthTest)
     {

@@ -151,5 +151,5 @@ public class LightmapRenderPipelineView : Object, IRenderPipelineInterface
 
     public event Action? PipelineStatesInvalidated;
 
-    public event Action<RenderPipelineStats>? CollectStatistics;
+    public event RenderPipelineStatsHandler? CollectStatistics;
 }

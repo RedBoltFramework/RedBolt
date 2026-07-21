@@ -375,7 +375,7 @@ public sealed class RenderPipelineTests
             Assert.Equal(1, trackingPass.UpdateCalls);
             Assert.Equal(1, trackingPass.RenderCalls);
             Assert.Equal(new Vector2i(64, 64), view.GetFrameInfo().ViewSize);
-            Assert.Equal(0u, view.GetStats().NumGeometries);
+            Assert.Equal(0, view.GetStats().NumGeometries);
             Assert.Equal(1, beginUpdateCalls);
             Assert.Equal(1, endUpdateCalls);
             Assert.Equal(1, beginRenderCalls);
@@ -1328,6 +1328,8 @@ public sealed class RenderPipelineTests
 
     private sealed class FrameParameterRenderPipelineView : RenderPipelineView
     {
+        private RenderPipelineStats _stats;
+
         public FrameParameterRenderPipelineView(RenderPipeline renderPipeline)
             : base(renderPipeline)
         {
@@ -1352,7 +1354,7 @@ public sealed class RenderPipelineTests
 
         public override FrameInfo GetFrameInfo() => default;
 
-        public override RenderPipelineStats GetStats() => new();
+        public override ref readonly RenderPipelineStats GetStats() => ref _stats;
 
         public override void DrawDebugGeometries(bool depthTest)
         {

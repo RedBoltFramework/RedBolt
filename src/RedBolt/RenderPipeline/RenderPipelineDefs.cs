@@ -266,28 +266,30 @@ public enum RenderOutputFlag
 /// <summary>
 /// Render pipeline frame statistics.
 /// </summary>
-public sealed class RenderPipelineStats
+public struct RenderPipelineStats
 {
     /// <summary>
     /// Total number of lights processed.
     /// </summary>
-    public uint NumLights { get; set; }
+    public int NumLights { get; set; }
 
     /// <summary>
     /// Total number of lights with shadows processed.
     /// </summary>
-    public uint NumShadowedLights { get; set; }
+    public int NumShadowedLights { get; set; }
 
     /// <summary>
     /// Total number of geometries in the frame (excluding shadow casters).
     /// </summary>
-    public uint NumGeometries { get; set; }
+    public int NumGeometries { get; set; }
 
     /// <summary>
     /// Number of occluders rendered.
     /// </summary>
-    public uint NumOccluders { get; set; }
+    public int NumOccluders { get; set; }
 }
+
+public delegate void RenderPipelineStatsHandler(ref RenderPipelineStats stats);
 
 /// <summary>
 /// ID of static pipeline state.
@@ -1265,7 +1267,7 @@ public interface IRenderPipelineInterface
 
     event Action? PipelineStatesInvalidated;
 
-    event Action<RenderPipelineStats>? CollectStatistics;
+    event RenderPipelineStatsHandler? CollectStatistics;
 }
 
 /// <summary>
@@ -1336,7 +1338,7 @@ public abstract class RenderPipelineView : Object, IRenderPipelineInterface
     /// <summary>
     /// Return render pipeline statistics for profiling.
     /// </summary>
-    public abstract RenderPipelineStats GetStats();
+    public abstract ref readonly RenderPipelineStats GetStats();
 
     /// <summary>Draw debug geometries, if applicable.</summary>
     public abstract void DrawDebugGeometries(bool depthTest);
@@ -1354,7 +1356,7 @@ public abstract class RenderPipelineView : Object, IRenderPipelineInterface
 
     public event Action? PipelineStatesInvalidated;
 
-    public event Action<RenderPipelineStats>? CollectStatistics;
+    public event RenderPipelineStatsHandler? CollectStatistics;
 
     protected void RaiseUpdateBegin(CommonFrameInfo frameInfo) => UpdateBegin?.Invoke(frameInfo);
 
@@ -1366,5 +1368,5 @@ public abstract class RenderPipelineView : Object, IRenderPipelineInterface
 
     protected void RaisePipelineStatesInvalidated() => PipelineStatesInvalidated?.Invoke();
 
-    protected void RaiseCollectStatistics(RenderPipelineStats stats) => CollectStatistics?.Invoke(stats);
+    protected void RaiseCollectStatistics(ref RenderPipelineStats stats) => CollectStatistics?.Invoke(ref stats);
 }
