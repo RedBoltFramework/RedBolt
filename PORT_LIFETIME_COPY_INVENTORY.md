@@ -22,8 +22,8 @@ Excluded:
 - Tests and vendored third-party code.
 - Global aliases/usings files that contain no ported class implementation.
 
-Pending managed files inventoried: **69**
-Pending files with likely C++ counterpart paths: **61**
+Pending managed files inventoried: **68**
+Pending files with likely C++ counterpart paths: **60**
 Pending files requiring counterpart discovery: **8**
 
 ## Required review for every row
@@ -164,7 +164,6 @@ Check a column only after completing the corresponding full C++ review and recor
 | 2026-07-21 partial outcome | FIXED the human-readable `AttributePrefab` archive layout required by native render-path resources. Managed serialization now emits and reads the optional native `type` identifier and serializes the attribute `value` directly under that name instead of adding a non-native nested object block. This restores scalar and `StringVariantMap` values from rbfx JSON. The complete `Serializable` class-shape, construction, clone/copy, attribute storage, and destruction audit remains pending, so all row checkboxes remain open. | — | — | — |
 | 2026-07-21 partial outcome | While validating reflection-based render-pass cloning, reconciled the native empty-`Variant` default path: an empty default remains an empty/null value and is passed to the attribute setter without dereferencing a payload. A focused clone regression test covers this dependency. The complete `Serializable` construction/copy/destruction audit remains open, so no checkbox is closed by this slice. | — | — | — |
 | 2026-07-21 partial outcome | FIXED the native local-`Variant` lifetime boundaries in binary, XML, JSON, and archive load/save paths. Values read from deserializers and archives are destroyed after attribute assignment; values copied from attribute accessors are destroyed after writing, including early-return and exception paths. This also lets direct-field container accessors follow the native accessor contract without an extra undisposed getter-side copy. The complete `Serializable` class-shape, attribute-copy/default storage, clone, and destruction audit remains pending, so all row checkboxes remain open. | — | — | — |
-| `src/RedBolt/Scene/ShakeComponent.cs` | `Source/Urho3D/Scene/ShakeComponent.h`<br>`Source/Urho3D/Scene/ShakeComponent.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Scene/SplinePath.cs` | `Source/Urho3D/Scene/SplinePath.h`<br>`Source/Urho3D/Scene/SplinePath.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Scene/TrackedComponent.cs` | `Source/Urho3D/Scene/TrackedComponent.h`<br>`Source/Urho3D/Scene/TrackedComponent.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Scene/UnknownComponent.cs` | `Source/Urho3D/Scene/UnknownComponent.h`<br>`Source/Urho3D/Scene/UnknownComponent.cpp` | ☐ | ☐ | ☐ |
