@@ -30,18 +30,24 @@ public class AttributeTests
         Assert.Equal("metadata", attribute.GetMetadata<CString>("Metadata").ToString());
         Assert.Equal(0, attribute.GetMetadata<int>("missing"));
 
+        ref readonly var borrowedMetadata = ref attribute.GetMetadata("Metadata");
+        using var replacementText = new CString("replacement");
+        using var replacementMetadata = new Variant(replacementText);
+        attribute.SetMetadata("Metadata", replacementMetadata);
+        Assert.Equal("replacement", borrowedMetadata.GetCString().ToString());
+
         using var copy = Assert.IsType<AttributeInfo>(((ICloneable)attribute).Clone());
         Assert.Equal(attribute.Name, copy.Name);
         Assert.Equal(attribute.DefaultValue, copy.DefaultValue);
         Assert.Equal(attribute.ScopeHint, copy.ScopeHint);
-        Assert.Equal("metadata", copy.GetMetadata<CString>("Metadata").ToString());
+        Assert.Equal("replacement", copy.GetMetadata<CString>("Metadata").ToString());
 
         defaultValue.Dispose();
         metadataValue.Dispose();
         Assert.Equal("default", attribute.DefaultValue.GetCString().ToString());
-        Assert.Equal("metadata", attribute.GetMetadata<CString>("Metadata").ToString());
+        Assert.Equal("replacement", attribute.GetMetadata<CString>("Metadata").ToString());
         Assert.Equal("default", copy.DefaultValue.GetCString().ToString());
-        Assert.Equal("metadata", copy.GetMetadata<CString>("Metadata").ToString());
+        Assert.Equal("replacement", copy.GetMetadata<CString>("Metadata").ToString());
     }
 
     [Fact]

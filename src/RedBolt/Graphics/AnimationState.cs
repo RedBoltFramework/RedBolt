@@ -2,6 +2,8 @@
 // This work is licensed under the terms of the MIT license.
 // For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
+using System.Runtime.InteropServices;
+
 namespace RedBolt;
 
 /// <summary>
@@ -412,7 +414,7 @@ public sealed class AnimationState : IDisposable
     /// <summary>
     /// Apply animation to attributes.
     /// </summary>
-    public void CalculateAttributeTracks(IDictionary<AnimatedAttributeReference, Variant> output)
+    public void CalculateAttributeTracks(Dictionary<AnimatedAttributeReference, Variant> output)
     {
         if (_animation is null || !IsEnabled())
             return;
@@ -420,12 +422,12 @@ public sealed class AnimationState : IDisposable
         for (var i = 0; i < _attributeTracks.Count; ++i)
         {
             var stateTrack = _attributeTracks[i];
-            output.TryGetValue(stateTrack.Attribute, out var trackOutput);
+            ref var trackOutput = ref CollectionsMarshal.GetValueRefOrAddDefault(
+                output, stateTrack.Attribute, out _);
             var keyFrame = stateTrack.KeyFrame;
             CalculateAttributeTrack(ref trackOutput, stateTrack.Track!, ref keyFrame, _weight);
             stateTrack.KeyFrame = keyFrame;
             _attributeTracks[i] = stateTrack;
-            output[stateTrack.Attribute] = trackOutput;
         }
     }
 

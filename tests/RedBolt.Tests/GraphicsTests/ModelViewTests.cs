@@ -94,6 +94,9 @@ public sealed class ModelViewTests
         value.Dispose();
 
         Assert.Equal("Value", view.GetMetadata("Value").GetVariantVector()[0].GetString());
+        ref readonly var borrowedValue = ref view.GetMetadata("Value");
+        view.AddMetadata("Value", new Variant(42));
+        Assert.Equal(42, borrowedValue.GetInt());
     }
 
     [Fact]

@@ -226,6 +226,49 @@ public sealed class RenderPathTests
         return RbfxTestData.CoreData;
     }
 
+    [Fact]
+    public void Full_screen_shader_pass_owns_independent_parameter_variants()
+    {
+        using var defaultSource = new CString(new string('d', 32));
+        using var updatedSource = new CString(new string('u', 32));
+        var pass = new FullScreenShaderPass();
+        var setParameters = typeof(FullScreenShaderPass).GetMethod(
+            "SetParameters", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        setParameters.Invoke(pass, [new Dictionary<string, object?> { ["Value"] = defaultSource }]);
+
+        pass.InitializeView(null!);
+
+        var defaults = Assert.IsType<List<Variant>>(typeof(FullScreenShaderPass).GetField(
+            "_shaderParameterDefaults", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(pass));
+        var parameters = Assert.IsType<List<ShaderParameterDesc>>(typeof(FullScreenShaderPass).GetField(
+            "_shaderParameters", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(pass));
+        var defaultValue = defaults[0].GetCString();
+        var initialValue = parameters[0].Value.GetCString();
+
+        Assert.NotSame(defaultSource, defaultValue);
+        Assert.NotSame(defaultSource, initialValue);
+        Assert.NotSame(defaultValue, initialValue);
+
+        pass.UpdateParameters(new RenderPipelineSettings(), new Dictionary<string, object?> { ["Value"] = updatedSource });
+
+        var updatedValue = parameters[0].Value.GetCString();
+        Assert.Equal(string.Empty, initialValue.ConvertToString());
+        Assert.Equal(new string('d', 32), defaultValue.ConvertToString());
+        Assert.NotSame(updatedSource, updatedValue);
+
+        pass.InitializeView(null!);
+
+        Assert.Equal(string.Empty, defaultValue.ConvertToString());
+        Assert.Equal(string.Empty, updatedValue.ConvertToString());
+        var currentDefaultValue = defaults[0].GetCString();
+        var currentValue = parameters[0].Value.GetCString();
+
+        pass.Dispose();
+
+        Assert.Equal(string.Empty, currentDefaultValue.ConvertToString());
+        Assert.Equal(string.Empty, currentValue.ConvertToString());
+    }
+
     private sealed class TrackingRenderPass : RenderPass
     {
         public TrackingRenderPass(string passName)

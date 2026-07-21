@@ -110,10 +110,21 @@ public sealed class InputMapTests
     [Fact]
     public void Metadata_works()
     {
-        var map = new InputMap("Input/Smoke");
-        map.AddMetadata("Sensitivity", 2.0f);
+        using var source = new CString(new string('a', 32));
+        using var replacement = new CString(new string('b', 32));
+        using var map = new InputMap("Input/Smoke");
+        map.AddMetadata("Sensitivity", source);
+        ref readonly var value = ref map.GetMetadata("Sensitivity");
+
         Assert.True(map.HasMetadata());
-        Assert.Equal(new Variant(2.0f), map.GetMetadata("Sensitivity"));
+        Assert.Equal(new string('a', 32), value.GetCString().ConvertToString());
+        Assert.NotSame(source, value.GetCString());
+
+        map.AddMetadata("Sensitivity", replacement);
+
+        Assert.Equal(new string('b', 32), value.GetCString().ConvertToString());
+        Assert.NotSame(replacement, value.GetCString());
+        Assert.Equal(Variant.Empty, map.GetMetadata("Missing"));
     }
 
     [Fact]

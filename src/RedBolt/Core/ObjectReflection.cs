@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
@@ -85,7 +87,7 @@ public sealed class ObjectReflection : IDisposable
     {
         var attribute = GetAttribute(nameHash);
         if (attribute is not null)
-            attribute.DefaultValue = value;
+            attribute.SetDefaultValue(value);
         else
             Log.GetLogger().LogWarning("Cannot find attribute {NameHash}", nameHash.ToDebugString());
     }
@@ -120,16 +122,23 @@ public sealed class ObjectReflection : IDisposable
 
     public AttributeInfo GetAttributeByIndex(uint index) => _attributes[(int)index];
 
-    public Variant GetMetadata(StringHash key) => _metadata.GetValueOrDefault(key);
+    public ref readonly Variant GetMetadata(StringHash key)
+    {
+        ref var value = ref CollectionsMarshal.GetValueRefOrNullRef(_metadata, key);
+        if (!Unsafe.IsNullRef(ref value))
+            return ref value;
+        return ref Variant.Empty;
+    }
 
     public T GetMetadata<T>(StringHash key) => GetMetadata(key).Get<T>();
 
     public void SetMetadata(StringHash key, Variant value)
     {
         var copy = value.Clone();
-        if (_metadata.Remove(key, out var previousValue))
-            previousValue.Dispose();
-        _metadata[key] = copy;
+        ref var storedValue = ref CollectionsMarshal.GetValueRefOrAddDefault(_metadata, key, out var exists);
+        if (exists)
+            storedValue.Dispose();
+        storedValue = copy;
     }
 
     public void SetScopeHint(AttributeScopeHint hint) => ScopeHint = hint;

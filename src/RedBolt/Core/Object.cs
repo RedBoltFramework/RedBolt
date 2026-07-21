@@ -119,9 +119,9 @@ public abstract class Object : IArchiveSerializable, IDisposable
         Context.SendEvent(this, ref args);
     }
 
-    public Variant GetGlobalVar(StringHash key)
+    public ref readonly Variant GetGlobalVar(StringHash key)
     {
-        return Context.GetGlobalVar(key);
+        return ref Context.GetGlobalVar(key);
     }
 
     public IReadOnlyDictionary<StringHash, Variant> GetGlobalVars() => Context.GetGlobalVars();

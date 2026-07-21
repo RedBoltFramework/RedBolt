@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace RedBolt.Tests;
 
 public sealed class AnimationStateTests
@@ -169,17 +171,18 @@ public sealed class AnimationStateTests
 
         using var oldValue = new CString("old");
         var outputValue = new Variant(oldValue);
-        var disposedOutput = outputValue.GetCString();
-        var output = new Dictionary<AnimatedAttributeReference, Variant> { [attribute] = outputValue };
+        var output = new Dictionary<AnimatedAttributeReference, Variant> { [attribute] = outputValue.Clone() };
+        outputValue.Dispose();
+        ref var storedOutput = ref CollectionsMarshal.GetValueRefOrNullRef(output, attribute);
+        var disposedOutput = storedOutput.GetCString();
 
         state.CalculateAttributeTracks(output);
 
         Assert.Equal(0, disposedOutput.ByteLength);
-        Assert.Equal("sample", output[attribute].GetCString().ConvertToString());
-        Assert.NotSame(track.KeyFrames[0].Value.GetCString(), output[attribute].GetCString());
+        Assert.Equal("sample", storedOutput.GetCString().ConvertToString());
+        Assert.NotSame(track.KeyFrames[0].Value.GetCString(), storedOutput.GetCString());
 
-        outputValue = output[attribute];
-        outputValue.Dispose();
+        storedOutput.Dispose();
     }
 
     [Fact]

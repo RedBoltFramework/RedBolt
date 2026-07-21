@@ -35,6 +35,30 @@ public sealed class PrefabTests
     }
 
     [Fact]
+    public void Attribute_prefab_value_is_a_borrowed_view()
+    {
+        using var source = new CString(new string('a', 32));
+        using var replacement = new CString(new string('b', 32));
+        using var sourceValue = new Variant(source);
+        using var replacementValue = new Variant(replacement);
+        var attribute = new AttributePrefab("Name");
+        attribute.SetValue(sourceValue);
+        ref readonly var value = ref attribute.Value;
+
+        Assert.Equal(new string('a', 32), value.GetCString().ConvertToString());
+        Assert.NotSame(source, value.GetCString());
+
+        attribute.SetValue(replacementValue);
+
+        Assert.Equal(new string('b', 32), value.GetCString().ConvertToString());
+        Assert.NotSame(replacement, value.GetCString());
+
+        attribute.Dispose();
+
+        Assert.Equal(VariantType.None, value.Type);
+    }
+
+    [Fact]
     public void Empty_prefab_scope_hint_defaults_to_attribute()
     {
         Assert.Equal(AttributeScopeHint.Attribute, new SerializablePrefab().GetEffectiveScopeHint());

@@ -48,7 +48,7 @@ public sealed class MaterialShaderParameter : ICloneable, IDisposable
 
     public object? Value => _value.GetObject();
 
-    public Variant VariantValue => _value;
+    public ref readonly Variant VariantValue => ref _value;
 
     public bool IsCustom { get; }
 

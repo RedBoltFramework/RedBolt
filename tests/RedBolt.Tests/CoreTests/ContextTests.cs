@@ -402,6 +402,7 @@ public sealed class ContextTests
             var sender = new TestObject();
 
             context.SetGlobalVar(key, 42);
+            ref readonly var borrowedValue = ref sender.GetGlobalVar(key);
 
             Assert.Equal(42, sender.GetGlobalVar(key).GetInt());
             Assert.Equal(42, context.GetGlobalVars()[key].GetInt());
@@ -409,6 +410,7 @@ public sealed class ContextTests
             sender.SetGlobalVar(key, 64);
 
             Assert.Equal(64, context.GetGlobalVar(key).GetInt());
+            Assert.Equal(64, borrowedValue.GetInt());
         }
         finally
         {
@@ -425,7 +427,7 @@ public sealed class ContextTests
         var firstValue = new Variant(firstText);
 
         context.SetGlobalVar(key, firstValue);
-        var firstStoredValue = context.GetGlobalVar(key);
+        ref readonly var firstStoredValue = ref context.GetGlobalVar(key);
         firstValue.Dispose();
 
         Assert.Equal("first", firstStoredValue.GetCString().ToString());
@@ -433,15 +435,14 @@ public sealed class ContextTests
         using var secondText = new CString("second");
         var secondValue = new Variant(secondText);
         context.SetGlobalVar(key, secondValue);
-        var secondStoredValue = context.GetGlobalVar(key);
+        ref readonly var secondStoredValue = ref context.GetGlobalVar(key);
         secondValue.Dispose();
 
-        Assert.Equal(string.Empty, firstStoredValue.GetCString().ToString());
+        Assert.Equal("second", firstStoredValue.GetCString().ToString());
         Assert.Equal("second", secondStoredValue.GetCString().ToString());
 
         context.Reset();
 
-        Assert.Equal(string.Empty, secondStoredValue.GetCString().ToString());
         Assert.True(context.GetGlobalVar(key).IsEmpty);
         Assert.False(typeof(Context).IsSealed);
         Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(Context)));

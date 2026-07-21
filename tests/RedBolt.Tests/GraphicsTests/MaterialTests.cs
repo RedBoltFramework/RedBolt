@@ -198,6 +198,18 @@ public sealed class MaterialTests
     }
 
     [Fact]
+    public void Shader_parameter_variant_is_a_borrowed_view()
+    {
+        using var source = new CString("value");
+        var parameter = new MaterialShaderParameter("Value", source);
+        ref readonly var borrowedValue = ref parameter.VariantValue;
+
+        parameter.Dispose();
+
+        Assert.True(borrowedValue.IsEmpty);
+    }
+
+    [Fact]
     public void Clone_uses_requested_name_and_independent_parameter_values()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");

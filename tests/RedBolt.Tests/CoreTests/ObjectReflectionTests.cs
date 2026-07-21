@@ -53,6 +53,7 @@ public sealed class ObjectReflectionTests
         var attribute = new AttributeInfo("Value", typeof(int), 1);
 
         reflection.AddAttribute(attribute).SetScopeHint(AttributeScopeHint.Node);
+        ref readonly var defaultValue = ref reflection.GetAttribute("Value").DefaultValue;
         reflection.UpdateAttributeDefaultValue("Value", new Variant(2));
 
         Assert.True(registry.IsReflected<FactoryObject>());
@@ -61,6 +62,7 @@ public sealed class ObjectReflectionTests
         Assert.IsType<FactoryObject>(registry.CreateObject(typeId));
         Assert.Equal(new[] { typeId }, registry.GetObjectCategories()["Core"]);
         Assert.Equal(2, reflection.GetAttribute("Value").DefaultValue);
+        Assert.Equal(2, defaultValue);
         Assert.Equal(AttributeScopeHint.Node, reflection.GetEffectiveScopeHint());
 
         registry.RemoveReflection<FactoryObject>();
@@ -100,22 +102,22 @@ public sealed class ObjectReflectionTests
         reflection.SetMetadata("Metadata", metadata);
         reflection.AddAttribute(source);
         var storedAttribute = reflection.GetAttribute("Value");
-        var replacedMetadata = reflection.GetMetadata("Metadata");
+        ref readonly var replacedMetadata = ref reflection.GetMetadata("Metadata");
         using var replacementText = new CString("replacement");
         var replacement = new Variant(replacementText);
         reflection.SetMetadata("Metadata", replacement);
-        var storedMetadata = reflection.GetMetadata("Metadata");
+        ref readonly var storedMetadata = ref reflection.GetMetadata("Metadata");
         var metadataWasLiveDuringRemoval = false;
         registry.ReflectionRemoved += removed =>
             metadataWasLiveDuringRemoval = removed.GetMetadata<CString>("Metadata").ToString() == "replacement";
 
         metadata.Dispose();
         replacement.Dispose();
-        Assert.Equal(string.Empty, replacedMetadata.GetCString().ToString());
+        Assert.Equal("replacement", replacedMetadata.GetCString().ToString());
+        Assert.Equal("replacement", storedMetadata.GetCString().ToString());
         registry.RemoveReflection<FactoryObject>();
 
         Assert.True(metadataWasLiveDuringRemoval);
-        Assert.Equal(string.Empty, storedMetadata.GetCString().ToString());
         Assert.True(storedAttribute.DefaultValue.IsEmpty);
         Assert.Equal("default", source.DefaultValue.GetCString().ToString());
     }

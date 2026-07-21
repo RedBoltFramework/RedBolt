@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Buffers.Binary;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
@@ -1891,5 +1892,11 @@ public sealed class ModelView : Object
     public List<GeometryView> GetGeometries() => _geometries;
     public List<BoneView> GetBones() => _bones;
     public List<ModelMorphView> GetMorphs() => _morphs;
-    public Variant GetMetadata(string key) => _metadata.TryGetValue(key, out var value) ? value : default;
+    public ref readonly Variant GetMetadata(string key)
+    {
+        ref var value = ref CollectionsMarshal.GetValueRefOrNullRef(_metadata, key);
+        if (!Unsafe.IsNullRef(ref value))
+            return ref value;
+        return ref Variant.Empty;
+    }
 }

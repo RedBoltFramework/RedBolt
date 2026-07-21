@@ -60,7 +60,7 @@ public class AttributePrefab : ICloneable, IEquatable<AttributePrefab>, IDisposa
     public string Name => _name;
     public StringHash NameHash => _nameHash;
     public VariantType Type => _value.Type;
-    public Variant Value => _value;
+    public ref readonly Variant Value => ref _value;
 
     public IdentifierType GetIdentifierType()
     {

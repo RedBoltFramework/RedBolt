@@ -1011,8 +1011,8 @@ public class AnimationController : AnimationStateSource
 
         foreach (var attribute in _animatedAttributes.Keys)
         {
-            _animatedAttributes[attribute].Dispose();
-            _animatedAttributes[attribute] = default;
+            ref var value = ref CollectionsMarshal.GetValueRefOrNullRef(_animatedAttributes, attribute);
+            value.Dispose();
         }
 
         for (var i = 0; i < _animationStates.Count; ++i)

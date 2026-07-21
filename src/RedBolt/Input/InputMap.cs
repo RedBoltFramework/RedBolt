@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using Microsoft.Extensions.Logging;
@@ -307,9 +308,13 @@ public class InputMap : SimpleResource
     }
 
     /// <summary>Return metadata variable.</summary>
-    public Variant GetMetadata(string name)
+    public ref readonly Variant GetMetadata(string name)
     {
-        return _metadata.GetValueOrDefault(name);
+        ref var value = ref CollectionsMarshal.GetValueRefOrNullRef(_metadata, name);
+        if (!Unsafe.IsNullRef(ref value))
+            return ref value;
+
+        return ref Variant.Empty;
     }
 
     /// <summary>Return whether the resource has metadata.</summary>

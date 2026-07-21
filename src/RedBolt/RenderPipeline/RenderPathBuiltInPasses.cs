@@ -87,17 +87,14 @@ public sealed class FullScreenShaderPass : RenderPass
     {
         _currentParameters.Clear();
         RefreshParameterBindings();
-        _shaderParameterSources.Clear();
-        _shaderParameterDefaults.Clear();
-        _shaderParameters.Clear();
-        _shaderResources.Clear();
+        ClearShaderParameterStorage();
 
         foreach (var (name, defaultValue) in _parameters)
         {
-            var value = Variant.FromObject(defaultValue);
+            using var value = Variant.FromObject(defaultValue);
             _shaderParameterSources.Add(new StringHash(_parametersPrefix + name));
-            _shaderParameterDefaults.Add(value);
-            _shaderParameters.Add(new ShaderParameterDesc(new StringHash(name), value));
+            _shaderParameterDefaults.Add(value.Clone());
+            _shaderParameters.Add(new ShaderParameterDesc(new StringHash(name), value.Clone()));
         }
         _pipelineStateId = StaticPipelineStateId.Invalid;
     }
@@ -111,8 +108,11 @@ public sealed class FullScreenShaderPass : RenderPass
             var sourceName = _parameterBindings[i].ExternalName;
             if (externalParameters.TryGetValue(sourceName, out var value))
             {
-                var variant = Variant.FromObject(value);
-                _shaderParameters[i] = _shaderParameters[i] with { Value = variant };
+                using var variant = Variant.FromObject(value);
+                var parameter = _shaderParameters[i];
+                var oldValue = parameter.Value;
+                _shaderParameters[i] = new ShaderParameterDesc(parameter.Name, variant.Clone());
+                oldValue.Dispose();
                 if (shouldBeDisabled && variant != _shaderParameterDefaults[i])
                     shouldBeDisabled = false;
             }
@@ -120,6 +120,12 @@ public sealed class FullScreenShaderPass : RenderPass
 
         SetTraits(new RenderPassTraits(_needReadWriteColorOutput, _bilinearColorSampler));
         SetInternallyEnabled(!shouldBeDisabled);
+    }
+
+    public override void Dispose()
+    {
+        ClearShaderParameterStorage();
+        base.Dispose();
     }
 
     public override void Render(SharedRenderPassState sharedState)
@@ -226,6 +232,24 @@ public sealed class FullScreenShaderPass : RenderPass
         _parameterBindings.Clear();
         foreach (var (name, defaultValue) in _parameters)
             _parameterBindings.Add(new ParameterBinding(name, _parametersPrefix + name, defaultValue));
+    }
+
+    private void ClearShaderParameterStorage()
+    {
+        for (var i = _shaderParameters.Count - 1; i >= 0; --i)
+        {
+            var value = _shaderParameters[i].Value;
+            value.Dispose();
+        }
+        _shaderParameters.Clear();
+
+        var defaults = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_shaderParameterDefaults);
+        for (var i = defaults.Length - 1; i >= 0; --i)
+            defaults[i].Dispose();
+        _shaderParameterDefaults.Clear();
+
+        _shaderParameterSources.Clear();
+        _shaderResources.Clear();
     }
 
     private static BlendMode ParseBlendMode(object? value)
