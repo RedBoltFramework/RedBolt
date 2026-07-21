@@ -3,7 +3,7 @@ namespace RedBolt;
 /// <summary>Scene pass that collects outlined drawables into a deferred outline mask.</summary>
 public class OutlineScenePass : ScenePass
 {
-    private static readonly TextureFormat OutlineTextureFormat = TextureFormat.RGBA8;
+    private static readonly TextureFormat OutlineTextureFormat = TextureFormat.TexFormatRgba8Unorm;
 
     private readonly List<uint> _outlinedPasses = [];
     private readonly List<OutlineGroup> _outlineGroups = [];
@@ -25,9 +25,10 @@ public class OutlineScenePass : ScenePass
 
         var outputDesc = new PipelineStateOutputDesc
         {
-            DepthStencilFormat = TextureFormat.Unknown
+            DepthStencilFormat = TextureFormat.TexFormatUnknown
         };
-        outputDesc.SetRenderTargetFormat(OutlineTextureFormat);
+        outputDesc.NumRenderTargets = 1;
+        outputDesc.RenderTargetFormats[0] = OutlineTextureFormat;
         SetDeferredOutputDesc(outputDesc);
     }
 
@@ -79,7 +80,7 @@ public class OutlineScenePass : ScenePass
         return new AddBatchResult(batchAdded, false);
     }
 
-    public override bool CreatePipelineState(GraphicsPipelineStateDesc desc, PipelineStateBuilder? builder,
+    public override bool CreatePipelineState(ref GraphicsPipelineStateDesc desc, PipelineStateBuilder? builder,
         BatchStateCreateKey key, BatchStateCreateContext ctx)
     {
         if (builder is null)
@@ -118,8 +119,8 @@ public class OutlineScenePass : ScenePass
         }
 
         var isStereo = IsFlagSet(DrawableProcessorPassFlag.StereoInstancing);
-        builder.SetupInputLayoutAndPrimitiveType(desc, _shaderProgramDesc, key.Geometry, isStereo);
-        builder.SetupShaders(desc, _shaderProgramDesc);
+        builder.SetupInputLayoutAndPrimitiveType(ref desc, _shaderProgramDesc, key.Geometry, isStereo);
+        builder.SetupShaders(ref desc, _shaderProgramDesc);
 
         return true;
     }

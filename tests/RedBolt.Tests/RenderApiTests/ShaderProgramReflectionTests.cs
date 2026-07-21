@@ -122,18 +122,19 @@ public sealed class ShaderProgramReflectionTests
                 VertexShader = _fixture.Graphics.GetShader(ShaderType.VS, "P_Outline", "URHO3D_GEOMETRY_STATIC"),
                 PixelShader = _fixture.Graphics.GetShader(ShaderType.PS, "P_Outline", "URHO3D_GEOMETRY_STATIC")
             };
-            graphicsDesc.Output.SetRenderTargetFormats(TextureFormat.RGBA8);
+            graphicsDesc.Output.NumRenderTargets = 1;
+            graphicsDesc.Output.RenderTargetFormats[0] = TextureFormat.TexFormatRgba8Unorm;
 
             var pipelineState = _fixture.PipelineStateCache.GetGraphicsPipelineState(graphicsDesc);
 
             if (pipelineState is null
-                && _fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4) <= 1)
+                && _fixture.Graphics.GetSupportedMultiSample(TextureFormat.TexFormatRgba8Unorm, 4) <= 1)
                 return;
 
             Assert.NotNull(pipelineState);
             var reflection = pipelineState!.GetReflection();
             if (reflection is null
-                && _fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4) <= 1)
+                && _fixture.Graphics.GetSupportedMultiSample(TextureFormat.TexFormatRgba8Unorm, 4) <= 1)
                 return;
             Assert.NotNull(reflection);
             Assert.NotNull(reflection!.GetUniformBuffer(ShaderParameterGroup.Camera));

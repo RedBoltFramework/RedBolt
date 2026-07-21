@@ -51,7 +51,7 @@ public sealed class RendererTests
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
         var texture = new Texture2D("Textures/QueueTarget");
-        Assert.True(texture.SetSize(320, 200, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+        Assert.True(texture.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
         var renderSurface = new RenderSurface(texture, 0);
 
         Renderer.QueueViewport(renderSurface, viewport);
@@ -86,7 +86,7 @@ public sealed class RendererTests
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
         var texture = new Texture2D("Textures/BackbufferViewports");
-        Assert.True(texture.SetSize(320, 200, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+        Assert.True(texture.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
         var renderSurface = new RenderSurface(texture, 0);
 
         Renderer.SetNumViewports(1u);
@@ -133,7 +133,7 @@ public sealed class RendererTests
     public void Headless_render_target_texture_does_not_queue_surface_on_render_surface_update_event()
     {
         var texture = new Texture2D("Textures/EventTarget");
-        Assert.True(texture.SetSize(320, 200, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+        Assert.True(texture.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
         Assert.Null(texture.GetRenderSurface());
 
         _fixture.Context.SendEvent<GraphicsEvents.RenderSurfaceUpdateEvent>();

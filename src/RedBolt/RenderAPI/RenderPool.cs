@@ -24,6 +24,7 @@ public class RenderPool : Object
     }
 
     private readonly RenderDevice _renderDevice;
+    private RenderPoolSettings _settings = new();
     private readonly Dictionary<ulong, RawBuffer> _uniformBuffers = [];
     private readonly Dictionary<RawTextureParams, TextureCacheEntryGroup> _transientTextures = [];
     private readonly Dictionary<(RawTextureParams Params, nint PersistenceKey), TextureCacheEntry> _persistentTextures = [];
@@ -46,8 +47,6 @@ public class RenderPool : Object
         if (_scratchBuffer == nint.Zero)
             throw new OutOfMemoryException("Failed to allocate RenderPool scratch buffer.");
     }
-
-    public RenderPoolSettings Settings { get; } = new();
 
     public void Invalidate()
     {
@@ -178,7 +177,7 @@ public class RenderPool : Object
 
         var currentFrame = _renderDevice.GetFrameIndex();
         var framesSinceLastLog = (long)currentFrame - (long)_lastLogFrame;
-        if ((_numAddedTextures > 0u || _numRemovedTextures > 0u) && framesSinceLastLog >= Settings.LogPeriod)
+        if ((_numAddedTextures > 0u || _numRemovedTextures > 0u) && framesSinceLastLog >= _settings.LogPeriod)
         {
             var totalTextures = _persistentTextures.Count;
             foreach (var group in _transientTextures.Values)
@@ -245,7 +244,7 @@ public class RenderPool : Object
         foreach (var allocations in _transientTextures.Values)
         {
             allocations.NumUsed = 0u;
-            _numRemovedTextures += RemoveOldEntries(allocations.Entries, Settings.TextureCacheMaxFrames);
+            _numRemovedTextures += RemoveOldEntries(allocations.Entries, _settings.TextureCacheMaxFrames);
         }
 
         RemoveEmptyTransientGroups();
@@ -253,7 +252,7 @@ public class RenderPool : Object
         _persistentKeysToRemove.Clear();
         foreach (var pair in _persistentTextures)
         {
-            if (GetAge(pair.Value) >= Settings.TextureCacheMaxFrames)
+            if (GetAge(pair.Value) >= _settings.TextureCacheMaxFrames)
                 _persistentKeysToRemove.Add(pair.Key);
         }
         foreach (var key in _persistentKeysToRemove)
@@ -273,7 +272,7 @@ public class RenderPool : Object
             foreach (var entry in allocations.Entries)
             {
                 ++totalTextures;
-                if (GetAge(entry) >= Settings.TextureCacheMinFrames)
+                if (GetAge(entry) >= _settings.TextureCacheMinFrames)
                     ++totalOldTextures;
             }
         }
@@ -281,23 +280,23 @@ public class RenderPool : Object
         foreach (var entry in _persistentTextures.Values)
         {
             ++totalTextures;
-            if (GetAge(entry) >= Settings.TextureCacheMinFrames)
+            if (GetAge(entry) >= _settings.TextureCacheMinFrames)
                 ++totalOldTextures;
         }
 
-        var maxOldTextures = (int)Math.Ceiling(totalTextures * (1.0f - Settings.TextureCacheMinLoadFactor));
+        var maxOldTextures = (int)Math.Ceiling(totalTextures * (1.0f - _settings.TextureCacheMinLoadFactor));
         if (totalOldTextures < maxOldTextures)
             return;
 
         foreach (var allocations in _transientTextures.Values)
-            _numRemovedTextures += RemoveOldEntries(allocations.Entries, Settings.TextureCacheMinFrames);
+            _numRemovedTextures += RemoveOldEntries(allocations.Entries, _settings.TextureCacheMinFrames);
 
         RemoveEmptyTransientGroups();
 
         _persistentKeysToRemove.Clear();
         foreach (var pair in _persistentTextures)
         {
-            if (GetAge(pair.Value) >= Settings.TextureCacheMinFrames)
+            if (GetAge(pair.Value) >= _settings.TextureCacheMinFrames)
                 _persistentKeysToRemove.Add(pair.Key);
         }
         foreach (var key in _persistentKeysToRemove)
@@ -319,7 +318,7 @@ public class RenderPool : Object
             _transientTextures.Remove(key);
     }
 
-    private uint RemoveOldEntries(List<TextureCacheEntry> entries, uint minimumAge)
+    private uint RemoveOldEntries(List<TextureCacheEntry> entries, int minimumAge)
     {
         var removed = 0u;
         for (var i = entries.Count - 1; i >= 0; --i)

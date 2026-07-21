@@ -68,7 +68,7 @@ public sealed class RenderPoolTests
     public void Render_pool_invalidation_only_discards_uniform_buffers()
     {
         var renderPool = _fixture.RenderDevice.GetRenderPool();
-        var parameters = new RawTextureParams(TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.None,
+        var parameters = new RawTextureParams(TextureType.Texture2D, TextureFormat.TexFormatRgba8Unorm, TextureFlag.None,
             new Vector3i(8, 8, 1));
         var texture = renderPool.GetTexture(parameters, (nint)17);
         var uniformBuffer = renderPool.GetUniformBuffer(2u, 64u);
@@ -83,7 +83,7 @@ public sealed class RenderPoolTests
     public void Render_pool_recycling_does_not_allocate_when_cache_shape_is_stable()
     {
         var renderPool = _fixture.RenderDevice.GetRenderPool();
-        var parameters = new RawTextureParams(TextureType.Texture2D, TextureFormat.RGBA8, TextureFlag.None,
+        var parameters = new RawTextureParams(TextureType.Texture2D, TextureFormat.TexFormatRgba8Unorm, TextureFlag.None,
             new Vector3i(8, 8, 1));
         _ = renderPool.GetTexture(parameters, (nint)29);
         renderPool.RecycleTextures();

@@ -33,7 +33,7 @@ public sealed class StaticPipelineStateCache : Object
             return existingIndex;
 
         var index = (StaticPipelineStateId)(_descriptions.Count + 1);
-        var storedDescription = new GraphicsPipelineStateDesc(description);
+        var storedDescription = description;
         _descriptions.Add(storedDescription);
         _descriptionToIndex.Add(storedDescription, index);
         return index;
@@ -62,12 +62,10 @@ public sealed class StaticPipelineStateCache : Object
             cache = new PerOutputCache();
             _caches.Add(outputHash, cache);
         }
-        cache.OutputDesc = new PipelineStateOutputDesc(outputDescription);
+        cache.OutputDesc = outputDescription;
 
-        var pipelineDescription = new GraphicsPipelineStateDesc(_descriptions[(int)index]);
-        pipelineDescription.Output.DepthStencilFormat = outputDescription.DepthStencilFormat;
-        pipelineDescription.Output.MultiSample = outputDescription.MultiSample;
-        pipelineDescription.Output.SetRenderTargetFormats(outputDescription.RenderTargetFormats);
+        var pipelineDescription = _descriptions[(int)index];
+        pipelineDescription.Output = outputDescription;
 
         var pipelineStateCache = GetSubsystem<PipelineStateCache>();
         var pipelineState = pipelineStateCache?.GetGraphicsPipelineState(pipelineDescription);

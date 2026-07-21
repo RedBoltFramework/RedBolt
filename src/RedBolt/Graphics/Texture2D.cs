@@ -96,7 +96,9 @@ public class Texture2D : Texture
     {
         var parameters = new RawTextureParams(
             TextureType.Texture2D, format, flags, new Vector3i(width, height, 1),
-            NumLevels: _requestedLevels, MultiSample: multiSample, SRGB: _requestedSRGB);
+            NumLevels: _requestedLevels, MultiSample: multiSample);
+        if (_requestedSRGB)
+            parameters = parameters with { Format = RenderAPIUtils.SetTextureFormatSRGB(parameters.Format) };
         return Create(parameters);
     }
 
@@ -115,7 +117,7 @@ public class Texture2D : Texture
     public bool SetData(Image? image)
     {
         var parameters = new RawTextureParams(
-            TextureType.Texture2D, TextureFormat.Unknown, TextureFlag.None, Vector3i.Zero,
+            TextureType.Texture2D, TextureFormat.TexFormatUnknown, TextureFlag.None, Vector3i.Zero,
             NumLevels: _requestedLevels);
         if (!CreateForImage(parameters, image))
             return false;

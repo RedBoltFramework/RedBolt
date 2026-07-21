@@ -118,9 +118,9 @@ public sealed class MaterialTests
     {
         var material = Resources.Get<Material>("Materials/FirstCube");
         var albedo = new Texture2D("Textures/Albedo");
-        albedo.SetSize(2, 2, TextureFormat.RGBA8);
+        albedo.SetSize(2, 2, TextureFormat.TexFormatRgba8Unorm);
         var reflection = new TextureCube("Textures/Reflection");
-        reflection.SetSize(2, TextureFormat.RGBA8);
+        reflection.SetSize(2, TextureFormat.TexFormatRgba8Unorm);
 
         material.SetTexture("Albedo", albedo);
         material.SetTexture("Reflection1", reflection);

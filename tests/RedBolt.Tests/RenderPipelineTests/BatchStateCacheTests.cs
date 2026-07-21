@@ -18,7 +18,7 @@ public sealed class BatchStateCacheTests
             return State;
         }
 
-        public PipelineState? CreateBatchPipelineStatePlaceholder(uint vertexStride,
+        public PipelineState? CreateBatchPipelineStatePlaceholder(int vertexStride,
             PipelineStateOutputDesc outputDesc)
         {
             ++PlaceholderCount;

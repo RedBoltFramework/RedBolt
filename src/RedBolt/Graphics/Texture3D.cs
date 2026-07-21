@@ -149,7 +149,9 @@ public class Texture3D : Texture
     {
         var parameters = new RawTextureParams(
             TextureType.Texture3D, format, TextureFlag.None, new Vector3i(width, height, depth),
-            NumLevels: _requestedLevels, SRGB: _requestedSRGB);
+            NumLevels: _requestedLevels);
+        if (_requestedSRGB)
+            parameters = parameters with { Format = RenderAPIUtils.SetTextureFormatSRGB(parameters.Format) };
         return Create(parameters);
     }
 
@@ -169,7 +171,7 @@ public class Texture3D : Texture
     public bool SetData(Image? image)
     {
         var parameters = new RawTextureParams(
-            TextureType.Texture3D, TextureFormat.Unknown, TextureFlag.None, Vector3i.Zero,
+            TextureType.Texture3D, TextureFormat.TexFormatUnknown, TextureFlag.None, Vector3i.Zero,
             NumLevels: _requestedLevels);
         if (!CreateForImage(parameters, image))
             return false;

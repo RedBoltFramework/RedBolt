@@ -1,28 +1,30 @@
 using RedBolt.Bindings.Diligent;
+using System.Collections.Immutable;
+using System.Runtime.CompilerServices;
 
 namespace RedBolt;
 
 public static class RenderApiLimits
 {
     /// <summary>Maximum number of bound render targets supported by the engine. Hardware limit could be lower.</summary>
-    public const uint MaxRenderTargets = 8;
+    public const int MaxRenderTargets = 8;
 
     /// <summary>Maximum number of bound vertex buffers supported by the engine.</summary>
-    public const uint MaxVertexStreams = 4;
+    public const int MaxVertexStreams = 4;
 
     /// <summary>
     /// Some vertex elements in layout may be unused and the hard GPU limit is only applied to the used ones.
     /// </summary>
-    public const uint MaxNumVertexElements = 32;
+    public const int MaxNumVertexElements = 32;
 
     /// <summary>
     /// Max number of immutable samplers on CPU side. Can be extended freely if needed.
     /// </summary>
-    public const uint MaxNumImmutableSamplers = 16;
+    public const int MaxNumImmutableSamplers = 16;
 
-    public const uint MaxShaderParameterGroups = 7;
+    public const int MaxShaderParameterGroups = 7;
 
-    public const uint MaxTextureCoordinates = 3;
+    public const int MaxTextureCoordinates = 3;
 }
 
 /// <summary>Index of the frame, counted by the presents of the primary swap chain.</summary>
@@ -83,8 +85,13 @@ public enum ShaderTranslationPolicy
 public readonly record struct FullscreenMode(Vector2i Size, int RefreshRate);
 
 /// <summary>Description of the window and GAPI. Some settings may be changed in real time.</summary>
-public sealed class WindowSettings
+public struct WindowSettings
 {
+    public WindowSettings()
+    {
+        Orientations = ["LandscapeLeft", "LandscapeRight"];
+    }
+
     /// <summary>Type of window (windowed, borderless fullscreen, native fullscreen).</summary>
     public WindowMode Mode { get; set; }
 
@@ -121,12 +128,109 @@ public sealed class WindowSettings
     /// Mobiles: orientation hints.
     /// Could be any combination of "LandscapeLeft", "LandscapeRight", "Portrait" and "PortraitUpsideDown".
     /// </summary>
-    public IReadOnlyList<string> Orientations { get; set; } = ["LandscapeLeft", "LandscapeRight"];
+    public ImmutableArray<string> Orientations { get; set; }
+}
+
+public struct VulkanDescriptorPoolSize
+{
+    public int MaxDescriptorSets { get; set; }
+    public int NumSeparateSamplerDescriptors { get; set; }
+    public int NumCombinedSamplerDescriptors { get; set; }
+    public int NumSampledImageDescriptors { get; set; }
+    public int NumStorageImageDescriptors { get; set; }
+    public int NumUniformBufferDescriptors { get; set; }
+    public int NumStorageBufferDescriptors { get; set; }
+    public int NumUniformTexelBufferDescriptors { get; set; }
+    public int NumStorageTexelBufferDescriptors { get; set; }
+    public int NumInputAttachmentDescriptors { get; set; }
+    public int NumAccelStructDescriptors { get; set; }
+}
+
+/// <summary>Extra tweaks for Vulkan backend.</summary>
+public struct RenderDeviceSettingsVulkan
+{
+    [InlineArray((int)QueryType.QueryTypeNumTypes)]
+    public struct QueryPoolSizeBuffer
+    {
+        private int? _element0;
+    }
+
+    public RenderDeviceSettingsVulkan()
+    {
+        InstanceExtensions = [];
+        DeviceExtensions = [];
+    }
+
+    public ImmutableArray<string> InstanceExtensions { get; set; }
+
+    public ImmutableArray<string> DeviceExtensions { get; set; }
+
+    public VulkanDescriptorPoolSize? MainDescriptorPoolSize { get; set; }
+
+    public VulkanDescriptorPoolSize? DynamicDescriptorPoolSize { get; set; }
+
+    public int? DeviceLocalMemoryPageSize { get; set; }
+
+    public int? HostVisibleMemoryPageSize { get; set; }
+
+    public int? DeviceLocalMemoryReserveSize { get; set; }
+
+    public int? HostVisibleMemoryReserveSize { get; set; }
+
+    public int? UploadHeapPageSize { get; set; }
+
+    public int? DynamicHeapSize { get; set; }
+
+    public int? DynamicHeapPageSize { get; set; }
+
+    public QueryPoolSizeBuffer QueryPoolSizes;
+}
+
+/// <summary>Extra tweaks for D3D12 backend.</summary>
+public struct RenderDeviceSettingsD3D12
+{
+    [InlineArray(4)]
+    public struct CpuDescriptorHeapAllocationSizeBuffer
+    {
+        private int? _element0;
+    }
+
+    [InlineArray(2)]
+    public struct DescriptorHeapSizeBuffer
+    {
+        private int? _element0;
+    }
+
+    [InlineArray((int)QueryType.QueryTypeNumTypes)]
+    public struct QueryPoolSizeBuffer
+    {
+        private int? _element0;
+    }
+
+    public CpuDescriptorHeapAllocationSizeBuffer CpuDescriptorHeapAllocationSize;
+
+    public DescriptorHeapSizeBuffer GpuDescriptorHeapSize;
+
+    public DescriptorHeapSizeBuffer GpuDescriptorHeapDynamicSize;
+
+    public DescriptorHeapSizeBuffer DynamicDescriptorAllocationChunkSize;
+
+    public int? DynamicHeapPageSize { get; set; }
+
+    public int? NumDynamicHeapPagesToReserve { get; set; }
+
+    public QueryPoolSizeBuffer QueryPoolSizes;
 }
 
 /// <summary>Immutable settings of the render device.</summary>
-public sealed class RenderDeviceSettings
+public struct RenderDeviceSettings
 {
+    public RenderDeviceSettings()
+    {
+        Vulkan = new();
+        D3D12 = new();
+    }
+
     /// <summary>Render backend to use.</summary>
     public RenderBackend Backend { get; set; }
 
@@ -137,63 +241,17 @@ public sealed class RenderDeviceSettings
     public bool GpuDebug { get; set; }
 
     /// <summary>Adapter ID.</summary>
-    public uint? AdapterId { get; set; }
+    public int? AdapterId { get; set; }
 
     /// <summary>Extra tweaks for Vulkan backend.</summary>
-    public RenderDeviceSettingsVulkan Vulkan { get; set; } = new();
+    public RenderDeviceSettingsVulkan Vulkan;
 
     /// <summary>Extra tweaks for D3D12 backend.</summary>
-    public RenderDeviceSettingsD3D12 D3D12 { get; set; } = new();
-}
-
-/// <summary>Extra tweaks for Vulkan backend.</summary>
-public sealed class RenderDeviceSettingsVulkan
-{
-    public List<string> InstanceExtensions { get; } = [];
-
-    public List<string> DeviceExtensions { get; } = [];
-
-    public VulkanDescriptorPoolSize? MainDescriptorPoolSize { get; set; }
-
-    public VulkanDescriptorPoolSize? DynamicDescriptorPoolSize { get; set; }
-
-    public uint? DeviceLocalMemoryPageSize { get; set; }
-
-    public uint? HostVisibleMemoryPageSize { get; set; }
-
-    public uint? DeviceLocalMemoryReserveSize { get; set; }
-
-    public uint? HostVisibleMemoryReserveSize { get; set; }
-
-    public uint? UploadHeapPageSize { get; set; }
-
-    public uint? DynamicHeapSize { get; set; }
-
-    public uint? DynamicHeapPageSize { get; set; }
-
-    public uint?[] QueryPoolSizes { get; } = new uint?[(int)QueryType.QueryTypeNumTypes];
-}
-
-/// <summary>Extra tweaks for D3D12 backend.</summary>
-public sealed class RenderDeviceSettingsD3D12
-{
-    public uint?[] CpuDescriptorHeapAllocationSize { get; } = new uint?[4];
-
-    public uint?[] GpuDescriptorHeapSize { get; } = new uint?[2];
-
-    public uint?[] GpuDescriptorHeapDynamicSize { get; } = new uint?[2];
-
-    public uint?[] DynamicDescriptorAllocationChunkSize { get; } = new uint?[2];
-
-    public uint? DynamicHeapPageSize { get; set; }
-
-    public uint? NumDynamicHeapPagesToReserve { get; set; }
-
-    public uint?[] QueryPoolSizes { get; } = new uint?[(int)QueryType.QueryTypeNumTypes];
+    public RenderDeviceSettingsD3D12 D3D12;
 }
 
 /// <summary>Capabilities of the render device.</summary>
-public sealed class RenderDeviceCaps
+public struct RenderDeviceCaps
 {
     public bool ComputeShaders { get; set; }
 
@@ -209,35 +267,43 @@ public sealed class RenderDeviceCaps
 
     public bool HdrOutput { get; set; }
 
-    public uint ConstantBufferOffsetAlignment { get; set; }
+    public int ConstantBufferOffsetAlignment { get; set; }
 
-    public uint MaxTextureSize { get; set; }
+    public int MaxTextureSize { get; set; }
 
-    public uint MaxRenderTargetSize { get; set; }
+    public int MaxRenderTargetSize { get; set; }
 }
 
 /// <summary>Statistics of the render device and/or context.</summary>
-public sealed class RenderDeviceStats
+public struct RenderDeviceStats
 {
     /// <summary>Number of primitives drawn (triangles, lines, patches, etc.)</summary>
-    public uint NumPrimitives { get; set; }
+    public int NumPrimitives { get; set; }
 
     /// <summary>Number of draw operations.</summary>
-    public uint NumDraws { get; set; }
+    public int NumDraws { get; set; }
 
     /// <summary>Number of compute dispatches.</summary>
-    public uint NumDispatches { get; set; }
+    public int NumDispatches { get; set; }
 }
 
-public sealed class RenderPoolSettings
+public struct RenderPoolSettings
 {
-    public uint TextureCacheMinFrames { get; set; } = 1u;
+    public RenderPoolSettings()
+    {
+        TextureCacheMinFrames = 1;
+        TextureCacheMaxFrames = 1000;
+        TextureCacheMinLoadFactor = 0.1f;
+        LogPeriod = 1000;
+    }
 
-    public uint TextureCacheMaxFrames { get; set; } = 1000u;
+    public int TextureCacheMinFrames { get; set; } = 1;
+
+    public int TextureCacheMaxFrames { get; set; } = 1000;
 
     public float TextureCacheMinLoadFactor { get; set; } = 0.1f;
 
-    public uint LogPeriod { get; set; } = 1000u;
+    public int LogPeriod { get; set; } = 1000;
 }
 
 /// <summary>Parameters of the RawBuffer.</summary>
@@ -253,7 +319,6 @@ public readonly record struct RawBufferParams(BufferType Type, int Size, int Str
 /// multi-sampled texture with single mip level (aka NumLevelsRtv) used as RTV,
 /// and resolved texture with multiple mip levels (aka NumLevels) used as SRV.
 /// Otherwise, NumLevelsRtv is equal to NumLevels.</param>
-/// <param name="SRGB">Whether the texture uses sRGB color space.</param>
 public readonly record struct RawTextureParams(
     TextureType Type,
     TextureFormat Format,
@@ -262,8 +327,7 @@ public readonly record struct RawTextureParams(
     int ArraySize = 1,
     int NumLevels = 0,
     int MultiSample = 1,
-    int NumLevelsRtv = 0,
-    bool SRGB = false);
+    int NumLevelsRtv = 0);
 
 /// <param name="FirstSlice">The first array slice or cube face to be viewed.</param>
 /// <param name="FirstLevel">The first mip level to be viewed.</param>
@@ -368,6 +432,27 @@ public enum ShaderType
     DS,
     CS,
     MaxShaderTypes
+}
+
+/// <summary>
+/// Describes invariant texture format attributes. These attributes are intrinsic to the texture format itself and do
+/// not depend on the format support.
+/// </summary>
+public readonly record struct TextureFormatInfo(
+    string Name,
+    TextureFormat Format,
+    byte ComponentSize,
+    byte NumComponents,
+    global::RedBolt.Bindings.Diligent.ComponentType ComponentType,
+    bool IsTypeless,
+    byte BlockWidth,
+    byte BlockHeight)
+{
+    /// <summary>
+    /// For non-compressed formats, returns the texel size. For block-compressed formats, returns the block size.
+    /// </summary>
+    public int GetElementSize() => ComponentSize *
+        (ComponentType != global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeCompressed ? NumComponents : 1);
 }
 
 /// <summary>Texture formats emulated by the engine when the backend does not expose them.</summary>
@@ -620,113 +705,82 @@ public enum PipelineStateType
 
 /// <summary>Description of input layout element.</summary>
 public readonly record struct InputLayoutElementDesc(
-    uint BufferIndex,
-    uint BufferStride,
-    uint ElementOffset,
-    uint InstanceStepRate,
+    int BufferIndex,
+    int BufferStride,
+    int ElementOffset,
+    int InstanceStepRate,
     VertexElementType ElementType,
     VertexElementSemantic ElementSemantic,
-    byte ElementSemanticIndex);
+    byte ElementSemanticIndex)
+{
+    public uint ToHash() => unchecked((uint)GetHashCode());
+}
 
 /// <summary>Description of input layout of graphics pipeline state.</summary>
-public sealed class InputLayoutDesc : IEquatable<InputLayoutDesc>
+public struct InputLayoutDesc : IEquatable<InputLayoutDesc>
 {
-    private readonly InputLayoutElementDesc[] _elements = new InputLayoutElementDesc[RenderApiLimits.MaxNumVertexElements];
-
-    public InputLayoutDesc()
+    [InlineArray(RenderApiLimits.MaxNumVertexElements)]
+    public struct ElementBuffer
     {
+        private InputLayoutElementDesc _element0;
     }
 
-    public InputLayoutDesc(InputLayoutDesc? other)
+    public int Size { get; set; }
+
+    public ElementBuffer Elements;
+
+    public readonly bool Equals(InputLayoutDesc other)
     {
-        if (other is not null)
-            SetElements(other.Elements.ToArray());
-    }
-
-    public uint Size { get; private set; }
-
-    public ReadOnlySpan<InputLayoutElementDesc> Elements => _elements.AsSpan(0, checked((int)Size));
-
-    public void Clear()
-    {
-        Array.Clear(_elements, 0, _elements.Length);
-        Size = 0;
-    }
-
-    public void SetElements(ReadOnlySpan<InputLayoutElementDesc> value)
-    {
-        if (value.Length > RenderApiLimits.MaxNumVertexElements)
-            throw new ArgumentOutOfRangeException(nameof(value));
-
-        Array.Clear(_elements, 0, _elements.Length);
-        value.CopyTo(_elements);
-        Size = (uint)value.Length;
-    }
-
-    public void SetElements(params InputLayoutElementDesc[] value)
-    {
-        ArgumentNullException.ThrowIfNull(value);
-        SetElements(value.AsSpan());
-    }
-
-    public bool Equals(InputLayoutDesc? other)
-    {
-        if (other is null || Size != other.Size)
+        if (Size != other.Size)
             return false;
 
         for (var i = 0; i < Size; ++i)
         {
-            if (_elements[i] != other._elements[i])
+            if (Elements[i] != other.Elements[i])
                 return false;
         }
 
         return true;
     }
 
-    public override bool Equals(object? obj) => Equals(obj as InputLayoutDesc);
+    public override readonly bool Equals(object? obj) => obj is InputLayoutDesc other && Equals(other);
 
-    public override int GetHashCode()
+    public override readonly int GetHashCode()
     {
         var hash = new HashCode();
         hash.Add(Size);
         for (var i = 0; i < Size; ++i)
-            hash.Add(_elements[i]);
+            hash.Add(Elements[i]);
         return hash.ToHashCode();
     }
+
+    public readonly uint ToHash() => unchecked((uint)GetHashCode());
 }
 
-public readonly record struct NamedSamplerStateDesc(StringHash Name, SamplerStateDesc Desc);
-
 /// <summary>Description of immutable texture samplers used by the pipeline.</summary>
-public sealed class ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
+public struct ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
 {
-    private readonly StringHash[] _names = new StringHash[RenderApiLimits.MaxNumImmutableSamplers];
-    private readonly SamplerStateDesc[] _desc = new SamplerStateDesc[RenderApiLimits.MaxNumImmutableSamplers];
-
-    public ImmutableSamplersDesc()
+    [InlineArray(RenderApiLimits.MaxNumImmutableSamplers)]
+    public struct NameBuffer
     {
+        private StringHash _element0;
     }
 
-    public ImmutableSamplersDesc(ImmutableSamplersDesc? other)
+    [InlineArray(RenderApiLimits.MaxNumImmutableSamplers)]
+    public struct DescBuffer
     {
-        if (other is null)
-            return;
-
-        for (var i = 0; i < other.Size; ++i)
-            Add(other._names[i], other._desc[i]);
+        private SamplerStateDesc _element0;
     }
 
-    public uint Size { get; private set; }
+    public int Size { get; set; }
 
-    public ReadOnlySpan<StringHash> Names => _names.AsSpan(0, checked((int)Size));
+    public NameBuffer Names;
 
-    public ReadOnlySpan<SamplerStateDesc> Descriptions => _desc.AsSpan(0, checked((int)Size));
+    public DescBuffer Descriptions;
 
     /// <summary>Clear the collection.</summary>
     public void Clear()
     {
-        Array.Clear(_names, 0, _names.Length);
-        Array.Clear(_desc, 0, _desc.Length);
         Size = 0;
     }
 
@@ -734,144 +788,106 @@ public sealed class ImmutableSamplersDesc : IEquatable<ImmutableSamplersDesc>
     public void Add(StringHash name, SamplerStateDesc samplerDesc)
     {
         if (Size >= RenderApiLimits.MaxNumImmutableSamplers)
-            throw new InvalidOperationException("Too many immutable samplers.");
+        {
+            System.Diagnostics.Debug.Assert(false,
+                "Too many immutable samplers, increase MaxNumImmutableSamplers");
+            return;
+        }
 
-        _names[Size] = name;
-        _desc[Size] = samplerDesc;
+        Names[Size] = name;
+        Descriptions[Size] = samplerDesc;
         ++Size;
     }
 
-    public void Add(NamedSamplerStateDesc sampler)
+    public readonly bool Equals(ImmutableSamplersDesc other)
     {
-        Add(sampler.Name, sampler.Desc);
-    }
-
-    public bool Equals(ImmutableSamplersDesc? other)
-    {
-        if (other is null || Size != other.Size)
+        if (Size != other.Size)
             return false;
 
         for (var i = 0; i < Size; ++i)
         {
-            if (_names[i] != other._names[i] || !_desc[i].Equals(other._desc[i]))
+            if (Names[i] != other.Names[i] || !Descriptions[i].Equals(other.Descriptions[i]))
                 return false;
         }
 
         return true;
     }
 
-    public override bool Equals(object? obj) => Equals(obj as ImmutableSamplersDesc);
+    public override readonly bool Equals(object? obj) => obj is ImmutableSamplersDesc other && Equals(other);
 
-    public override int GetHashCode()
+    public override readonly int GetHashCode()
     {
         var hash = new HashCode();
         hash.Add(Size);
         for (var i = 0; i < Size; ++i)
         {
-            hash.Add(_names[i]);
-            hash.Add(_desc[i]);
+            hash.Add(Names[i]);
+            hash.Add(Descriptions[i]);
         }
 
         return hash.ToHashCode();
     }
+
+    public readonly uint ToHash() => unchecked((uint)GetHashCode());
 }
 
 /// <summary>Description of pipeline state output (depth-stencil and render targets).</summary>
-public sealed class PipelineStateOutputDesc : IEquatable<PipelineStateOutputDesc>
+public struct PipelineStateOutputDesc : IEquatable<PipelineStateOutputDesc>
 {
-    private readonly TextureFormat[] _renderTargetFormats = new TextureFormat[RenderApiLimits.MaxRenderTargets];
+    [InlineArray(RenderApiLimits.MaxRenderTargets)]
+    public struct RenderTargetFormatBuffer
+    {
+        private TextureFormat _element0;
+    }
 
     public PipelineStateOutputDesc()
     {
+        DepthStencilFormat = TextureFormat.TexFormatUnknown;
+        MultiSample = 1;
     }
 
-    public PipelineStateOutputDesc(PipelineStateOutputDesc? other)
-    {
-        if (other is null)
-            return;
+    public TextureFormat DepthStencilFormat { get; set; }
 
-        DepthStencilFormat = other.DepthStencilFormat;
-        MultiSample = other.MultiSample;
-        SetRenderTargetFormats(other.RenderTargetFormats);
-    }
+    public int NumRenderTargets { get; set; }
 
-    public TextureFormat DepthStencilFormat { get; set; } = TextureFormat.Unknown;
+    public RenderTargetFormatBuffer RenderTargetFormats;
 
-    public uint NumRenderTargets { get; private set; }
+    public int MultiSample { get; set; }
 
-    public uint MultiSample { get; set; } = 1u;
-
-    public ReadOnlySpan<TextureFormat> RenderTargetFormats => _renderTargetFormats.AsSpan(0, checked((int)NumRenderTargets));
-
-    public void ClearRenderTargetFormats()
-    {
-        Array.Clear(_renderTargetFormats, 0, _renderTargetFormats.Length);
-        NumRenderTargets = 0u;
-    }
-
-    public void SetRenderTargetFormat(TextureFormat format)
-    {
-        Array.Clear(_renderTargetFormats, 0, _renderTargetFormats.Length);
-        _renderTargetFormats[0] = format;
-        NumRenderTargets = 1u;
-    }
-
-    public void SetRenderTargetFormats(ReadOnlySpan<TextureFormat> formats)
-    {
-        if (formats.Length > RenderApiLimits.MaxRenderTargets)
-            throw new ArgumentOutOfRangeException(nameof(formats), $"At most {RenderApiLimits.MaxRenderTargets} render targets are supported.");
-
-        Array.Clear(_renderTargetFormats, 0, _renderTargetFormats.Length);
-        formats.CopyTo(_renderTargetFormats);
-        NumRenderTargets = (uint)formats.Length;
-    }
-
-    public void SetRenderTargetFormats(params TextureFormat[] formats)
-    {
-        ArgumentNullException.ThrowIfNull(formats);
-        SetRenderTargetFormats(formats.AsSpan());
-    }
-
-    public uint ToHash()
+    public readonly uint ToHash()
     {
         var hash = new HashCode();
         hash.Add(DepthStencilFormat);
         hash.Add(NumRenderTargets);
         hash.Add(MultiSample);
         for (var i = 0; i < NumRenderTargets; ++i)
-            hash.Add(_renderTargetFormats[i]);
+            hash.Add(RenderTargetFormats[i]);
         return unchecked((uint)hash.ToHashCode());
     }
 
-    public bool Equals(PipelineStateOutputDesc? other)
+    public readonly bool Equals(PipelineStateOutputDesc other)
     {
-        if (other is null)
-            return false;
-
-        if (ReferenceEquals(this, other))
-            return true;
-
         if (DepthStencilFormat != other.DepthStencilFormat || NumRenderTargets != other.NumRenderTargets || MultiSample != other.MultiSample)
             return false;
 
         for (var i = 0; i < NumRenderTargets; ++i)
         {
-            if (_renderTargetFormats[i] != other._renderTargetFormats[i])
+            if (RenderTargetFormats[i] != other.RenderTargetFormats[i])
                 return false;
         }
 
         return true;
     }
 
-    public override bool Equals(object? obj) => Equals(obj as PipelineStateOutputDesc);
+    public override readonly bool Equals(object? obj) => obj is PipelineStateOutputDesc other && Equals(other);
 
-    public override int GetHashCode() => unchecked((int)ToHash());
+    public override readonly int GetHashCode() => unchecked((int)ToHash());
 }
 
 /// <summary>
 /// Description of graphics pipeline state.
 /// </summary>
-public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineStateDesc>
+public struct GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineStateDesc>
 {
     public string DebugName { get; set; } = string.Empty;
 
@@ -914,7 +930,7 @@ public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineState
     /// <summary>
     /// Input layout.
     /// </summary>
-    public InputLayoutDesc InputLayout { get; } = new();
+    public InputLayoutDesc InputLayout;
 
     /// <summary>
     /// Primitive topology.
@@ -924,12 +940,12 @@ public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineState
     /// <summary>
     /// Render Target(s) and Depth Stencil formats.
     /// </summary>
-    public PipelineStateOutputDesc Output { get; } = new();
+    public PipelineStateOutputDesc Output = new();
 
     /// <summary>
     /// Immutable Samplers.
     /// </summary>
-    public ImmutableSamplersDesc Samplers { get; } = new();
+    public ImmutableSamplersDesc Samplers;
 
     /// <summary>
     /// Whether to use depth-stencil in read-only mode.
@@ -948,45 +964,8 @@ public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineState
 
     public GraphicsPipelineStateDesc()
     {
-    }
-
-    public GraphicsPipelineStateDesc(GraphicsPipelineStateDesc? other)
-    {
-        if (other is null)
-            return;
-
-        DebugName = other.DebugName;
-        ColorWriteEnabled = other.ColorWriteEnabled;
-        BlendMode = other.BlendMode;
-        AlphaToCoverageEnabled = other.AlphaToCoverageEnabled;
-        FillMode = other.FillMode;
-        CullMode = other.CullMode;
-        ConstantDepthBias = other.ConstantDepthBias;
-        SlopeScaledDepthBias = other.SlopeScaledDepthBias;
-        ScissorTestEnabled = other.ScissorTestEnabled;
-        LineAntiAlias = other.LineAntiAlias;
-        DepthWriteEnabled = other.DepthWriteEnabled;
-        StencilTestEnabled = other.StencilTestEnabled;
-        DepthCompareFunction = other.DepthCompareFunction;
-        StencilCompareFunction = other.StencilCompareFunction;
-        StencilOperationOnPassed = other.StencilOperationOnPassed;
-        StencilOperationOnStencilFailed = other.StencilOperationOnStencilFailed;
-        StencilOperationOnDepthFailed = other.StencilOperationOnDepthFailed;
-        StencilCompareMask = other.StencilCompareMask;
-        StencilWriteMask = other.StencilWriteMask;
-        InputLayout.SetElements(other.InputLayout.Elements.ToArray());
-        PrimitiveType = other.PrimitiveType;
-        Output.DepthStencilFormat = other.Output.DepthStencilFormat;
-        Output.MultiSample = other.Output.MultiSample;
-        Output.SetRenderTargetFormats(other.Output.RenderTargetFormats);
-        for (var samplerIndex = 0; samplerIndex < other.Samplers.Size; ++samplerIndex)
-            Samplers.Add(other.Samplers.Names[samplerIndex], other.Samplers.Descriptions[samplerIndex]);
-        ReadOnlyDepth = other.ReadOnlyDepth;
-        VertexShader = other.VertexShader;
-        PixelShader = other.PixelShader;
-        DomainShader = other.DomainShader;
-        HullShader = other.HullShader;
-        GeometryShader = other.GeometryShader;
+        DebugName = string.Empty;
+        Output = new();
     }
 
     public bool IsInitialized() => VertexShader is not null && PixelShader is not null;
@@ -1025,11 +1004,8 @@ public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineState
         return Math.Max(unchecked((uint)hash.ToHashCode()), 1u);
     }
 
-    public bool Equals(GraphicsPipelineStateDesc? other)
+    public readonly bool Equals(GraphicsPipelineStateDesc other)
     {
-        if (other is null)
-            return false;
-
         return ColorWriteEnabled == other.ColorWriteEnabled
             && BlendMode == other.BlendMode
             && AlphaToCoverageEnabled == other.AlphaToCoverageEnabled
@@ -1060,9 +1036,9 @@ public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineState
             && RawShaderEquals(GeometryShader, other.GeometryShader);
     }
 
-    public override bool Equals(object? obj) => Equals(obj as GraphicsPipelineStateDesc);
+    public override readonly bool Equals(object? obj) => obj is GraphicsPipelineStateDesc other && Equals(other);
 
-    public override int GetHashCode() => unchecked((int)ToHash());
+    public override readonly int GetHashCode() => unchecked((int)ToHash());
 
     internal static void AddRawShaderHash(ref HashCode hash, RawShader? shader)
     {
@@ -1078,14 +1054,14 @@ public sealed class GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineState
 /// <summary>
 /// Description of compute pipeline state.
 /// </summary>
-public sealed class ComputePipelineStateDesc : IEquatable<ComputePipelineStateDesc>
+public struct ComputePipelineStateDesc : IEquatable<ComputePipelineStateDesc>
 {
     public string DebugName { get; set; } = string.Empty;
 
     /// <summary>
     /// Immutable Samplers.
     /// </summary>
-    public ImmutableSamplersDesc Samplers { get; } = new();
+    public ImmutableSamplersDesc Samplers;
 
     /// <summary>
     /// Compute shader.
@@ -1094,17 +1070,7 @@ public sealed class ComputePipelineStateDesc : IEquatable<ComputePipelineStateDe
 
     public ComputePipelineStateDesc()
     {
-    }
-
-    public ComputePipelineStateDesc(ComputePipelineStateDesc? other)
-    {
-        if (other is null)
-            return;
-
-        DebugName = other.DebugName;
-        for (var samplerIndex = 0; samplerIndex < other.Samplers.Size; ++samplerIndex)
-            Samplers.Add(other.Samplers.Names[samplerIndex], other.Samplers.Descriptions[samplerIndex]);
-        ComputeShader = other.ComputeShader;
+        DebugName = string.Empty;
     }
 
     public bool IsInitialized() => ComputeShader is not null;
@@ -1117,18 +1083,15 @@ public sealed class ComputePipelineStateDesc : IEquatable<ComputePipelineStateDe
         return Math.Max(unchecked((uint)hash.ToHashCode()), 1u);
     }
 
-    public bool Equals(ComputePipelineStateDesc? other)
+    public readonly bool Equals(ComputePipelineStateDesc other)
     {
-        if (other is null)
-            return false;
-
         return Samplers.Equals(other.Samplers)
             && GraphicsPipelineStateDesc.RawShaderEquals(ComputeShader, other.ComputeShader);
     }
 
-    public override bool Equals(object? obj) => Equals(obj as ComputePipelineStateDesc);
+    public override readonly bool Equals(object? obj) => obj is ComputePipelineStateDesc other && Equals(other);
 
-    public override int GetHashCode() => unchecked((int)ToHash());
+    public override readonly int GetHashCode() => unchecked((int)ToHash());
 }
 
 public sealed class PipelineStateDesc : IEquatable<PipelineStateDesc>
@@ -1144,16 +1107,14 @@ public sealed class PipelineStateDesc : IEquatable<PipelineStateDesc>
 
     public PipelineStateDesc(GraphicsPipelineStateDesc desc)
     {
-        ArgumentNullException.ThrowIfNull(desc);
-        _graphicsDesc = new GraphicsPipelineStateDesc(desc);
-        _hash = _graphicsDesc.ToHash();
+        _graphicsDesc = desc;
+        _hash = desc.ToHash();
     }
 
     public PipelineStateDesc(ComputePipelineStateDesc desc)
     {
-        ArgumentNullException.ThrowIfNull(desc);
-        _computeDesc = new ComputePipelineStateDesc(desc);
-        _hash = _computeDesc.ToHash();
+        _computeDesc = desc;
+        _hash = desc.ToHash();
     }
 
     public uint ToHash() => _hash;
@@ -1162,9 +1123,9 @@ public sealed class PipelineStateDesc : IEquatable<PipelineStateDesc>
 
     public string GetDebugName() => _graphicsDesc?.DebugName ?? _computeDesc?.DebugName ?? string.Empty;
 
-    public GraphicsPipelineStateDesc? AsGraphics() => _graphicsDesc is not null ? new GraphicsPipelineStateDesc(_graphicsDesc) : null;
+    public GraphicsPipelineStateDesc? AsGraphics() => _graphicsDesc;
 
-    public ComputePipelineStateDesc? AsCompute() => _computeDesc is not null ? new ComputePipelineStateDesc(_computeDesc) : null;
+    public ComputePipelineStateDesc? AsCompute() => _computeDesc;
 
     public bool Equals(PipelineStateDesc? other)
     {

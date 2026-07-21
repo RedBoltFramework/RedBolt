@@ -23,6 +23,16 @@ public static class RenderAPIUtils
         "Compute"
     ];
 
+    private static readonly global::RedBolt.Bindings.Diligent.ShaderType[] ShaderTypes =
+    [
+        global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
+        global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
+        global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeGeometry,
+        global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeHull,
+        global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeDomain,
+        global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeCompute
+    ];
+
     private static readonly RenderBackend[] SupportedBackends =
     [
 #if REDBOLT_D3D11_SUPPORTED
@@ -39,18 +49,38 @@ public static class RenderAPIUtils
 #endif
     ];
 
+    private static readonly ShaderTranslationPolicy[] SupportedShaderPolicies =
+    [
+        ShaderTranslationPolicy.Translate,
+        ShaderTranslationPolicy.Optimize
+    ];
+
+    private static readonly ShaderTranslationPolicy[] SupportedOpenGLShaderPolicies =
+    [
+        ShaderTranslationPolicy.Verbatim,
+        ShaderTranslationPolicy.Translate,
+        ShaderTranslationPolicy.Optimize
+    ];
+
     private static readonly string[] ShaderInputNames =
     [
-        "iPos",
-        "iNormal",
-        "iBinormal",
-        "iTangent",
-        "iTexCoord",
-        "iColor",
-        "iBlendWeights",
-        "iBlendIndices",
-        ""
+        "iPos", // SEM_POSITION
+        "iNormal", // SEM_NORMAL
+        "iBinormal", // SEM_BINORMAL
+        "iTangent", // SEM_TANGENT
+        "iTexCoord", // SEM_TEXCOORD
+        "iColor", // SEM_COLOR
+        "iBlendWeights", // SEM_BLENDWEIGHTS
+        "iBlendIndices", // SEM_BLENDINDICES
+        "" // SEM_OBJECTINDEX
     ];
+
+    private static readonly TextureFormatInfo[] NativeTextureFormatInfos =
+        CreateNativeTextureFormatInfos();
+
+    private static readonly Dictionary<global::RedBolt.Bindings.Diligent.TextureFormat,
+        TextureFormatInfo> EmulatedTextureFormatInfos =
+        CreateEmulatedTextureFormatInfos();
 
     public static bool IsOpenGLESBackend(RenderBackend backend)
     {
@@ -77,6 +107,8 @@ public static class RenderAPIUtils
         for (var index = 0; index < ShaderInputNames.Length; ++index)
         {
             var semanticName = ShaderInputNames[index];
+            var semanticValue = (VertexElementSemantic)index;
+
             var semanticPosition = name.IndexOf(semanticName, StringComparison.Ordinal);
             if (semanticPosition < 0)
                 continue;
@@ -93,7 +125,7 @@ public static class RenderAPIUtils
                 ++semanticIndexPosition;
             }
 
-            return new VertexShaderAttribute((VertexElementSemantic)index, semanticIndex, 0);
+            return new VertexShaderAttribute(semanticValue, semanticIndex, 0);
         }
 
         return null;
@@ -101,103 +133,70 @@ public static class RenderAPIUtils
 
     public static string ToShaderInputName(VertexElementSemantic semantic) => ShaderInputNames[(int)semantic];
 
-    public static global::RedBolt.Bindings.Diligent.ShaderType ToInternalShaderType(ShaderType type) => type switch
-    {
-        ShaderType.VS => global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
-        ShaderType.PS => global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
-        ShaderType.GS => global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeGeometry,
-        ShaderType.HS => global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeHull,
-        ShaderType.DS => global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeDomain,
-        ShaderType.CS => global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeCompute,
-        _ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
-    };
+    public static global::RedBolt.Bindings.Diligent.ShaderType ToInternalShaderType(ShaderType type) =>
+        ShaderTypes[(int)type];
 
-    public static uint GetMipLevelCount(Vector3i size)
+    public static int GetMipLevelCount(Vector3i size)
     {
-        var largestDimension = Math.Max(size.X, Math.Max(size.Y, size.Z));
-        var levels = 1u;
-        while (largestDimension > 1)
+        var maxLevels = 1;
+        var dim = size;
+        while (dim.X > 1 || dim.Y > 1 || dim.Z > 1)
         {
-            largestDimension >>= 1;
-            ++levels;
+            ++maxLevels;
+            dim.X = dim.X > 1 ? dim.X >> 1 : 1;
+            dim.Y = dim.Y > 1 ? dim.Y >> 1 : 1;
+            dim.Z = dim.Z > 1 ? dim.Z >> 1 : 1;
         }
 
-        return levels;
+        return maxLevels;
     }
 
-    public static Vector3i GetMipLevelSize(Vector3i size, uint level) => new(
-        Math.Max(size.X >> (int)level, 1),
-        Math.Max(size.Y >> (int)level, 1),
-        Math.Max(size.Z >> (int)level, 1));
-
-    public static uint GetMipLevelSizeInBytes(TextureFormat textureFormat, Vector3i size, uint level)
+    public static Vector3i GetMipLevelSize(Vector3i size, int level)
     {
-        var levelSize = GetMipLevelSize(size, level);
-        return checked((uint)levelSize.X * (uint)levelSize.Y * (uint)levelSize.Z * GetTexelSize(textureFormat));
+        var dim = size;
+        dim.X >>= level;
+        dim.Y >>= level;
+        dim.Z >>= level;
+        return Vector3i.Max(dim, Vector3i.One);
     }
 
-    public static bool IsDepthTextureFormat(TextureFormat format) =>
-        format is TextureFormat.Depth16 or TextureFormat.Depth32 or TextureFormat.Depth24Stencil8 or TextureFormat.Depth32Stencil8;
+    public static int GetMipLevelSizeInBytes(TextureFormat textureFormat, Vector3i size, int level)
+    {
+        var formatAttribs = GetTextureFormatInfo(textureFormat);
+        var levelSize = GetMipLevelSize(size, level);
+        var widthInBlocks = (levelSize.X + formatAttribs.BlockWidth - 1) / formatAttribs.BlockWidth;
+        var heightInBlocks = (levelSize.Y + formatAttribs.BlockHeight - 1) / formatAttribs.BlockHeight;
+        var elementSize = formatAttribs.ComponentSize *
+            (formatAttribs.ComponentType != global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeCompressed
+                ? formatAttribs.NumComponents
+                : 1);
+        return elementSize * widthInBlocks * heightInBlocks * levelSize.Z;
+    }
+
+    public static bool IsDepthTextureFormat(TextureFormat format)
+    {
+        var componentType = NativeTextureFormatInfos[(int)format].ComponentType;
+        return componentType is global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeDepth
+            or global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeDepthStencil;
+    }
 
     public static bool IsDepthStencilTextureFormat(TextureFormat format) =>
-        format is TextureFormat.Depth24Stencil8 or TextureFormat.Depth32Stencil8;
+        NativeTextureFormatInfos[(int)format].ComponentType ==
+        global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeDepthStencil;
 
-    public static bool IsColorTextureFormat(TextureFormat format) => format is
-        TextureFormat.R8 or TextureFormat.RG16F or TextureFormat.RGB8 or TextureFormat.RGBA8
-        or TextureFormat.RGBA16F or TextureFormat.RGBA32F;
+    public static bool IsColorTextureFormat(TextureFormat format) =>
+        NativeTextureFormatInfos[(int)format].ComponentType !=
+        global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeUndefined && !IsDepthTextureFormat(format);
 
-    public static global::RedBolt.Bindings.Diligent.TextureFormatAttribs GetTextureFormatInfo(
+    public static TextureFormatInfo GetTextureFormatInfo(
         global::RedBolt.Bindings.Diligent.TextureFormat textureFormat)
     {
-        var nativeFormatCount = (int)global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatNumFormats;
         var formatValue = (int)textureFormat;
-        if (formatValue < nativeFormatCount)
-        {
-            var nativeInfoHandle = global::RedBolt.Bindings.Diligent.DiligentNativeBindings.GetTextureFormatAttribs(textureFormat);
-            return global::RedBolt.Bindings.Diligent.TextureFormatAttribs.CreateManagedWrapper(nativeInfoHandle, false);
-        }
-
-        var info = new global::RedBolt.Bindings.Diligent.TextureFormatAttribs
-        {
-            Format = textureFormat,
-            ComponentType = global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeCompressed,
-            IsTypeless = false
-        };
-
-        switch (formatValue - nativeFormatCount)
-        {
-            case 1:
-                info.ComponentSize = 8;
-                info.NumComponents = 3;
-                info.BlockWidth = 8;
-                info.BlockHeight = 4;
-                break;
-            case 2:
-                info.ComponentSize = 8;
-                info.NumComponents = 4;
-                info.BlockWidth = 8;
-                info.BlockHeight = 4;
-                break;
-            case 3:
-                info.ComponentSize = 8;
-                info.NumComponents = 3;
-                info.BlockWidth = 4;
-                info.BlockHeight = 4;
-                break;
-            case 4:
-                info.ComponentSize = 8;
-                info.NumComponents = 4;
-                info.BlockWidth = 4;
-                info.BlockHeight = 4;
-                break;
-            default:
-                info.Dispose();
-                var nativeInfoHandle = global::RedBolt.Bindings.Diligent.DiligentNativeBindings.GetTextureFormatAttribs(
-                    global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatUnknown);
-                return global::RedBolt.Bindings.Diligent.TextureFormatAttribs.CreateManagedWrapper(nativeInfoHandle, false);
-        }
-
-        return info;
+        if (formatValue < NativeTextureFormatInfos.Length)
+            return NativeTextureFormatInfos[formatValue];
+        if (EmulatedTextureFormatInfos.TryGetValue(textureFormat, out var formatInfo))
+            return formatInfo;
+        return NativeTextureFormatInfos[(int)global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatUnknown];
     }
 
     public static bool IsTextureFormatSRGB(global::RedBolt.Bindings.Diligent.TextureFormat format) => format is
@@ -279,19 +278,23 @@ public static class RenderAPIUtils
             _ => ShaderTranslationPolicy.Verbatim
         };
 
-        // The managed project does not currently expose the native shader translator or optimizer.
-        // OpenGL therefore supports only verbatim shaders until those APIs are ported.
-        if (backend == RenderBackend.OpenGL)
-            return ShaderTranslationPolicy.Verbatim;
+        var supportedPolicies = backend == RenderBackend.OpenGL
+            ? SupportedOpenGLShaderPolicies
+            : SupportedShaderPolicies;
+        var policy = requestedPolicy ?? defaultPolicy;
+        foreach (var supportedPolicy in supportedPolicies)
+        {
+            if (supportedPolicy == policy)
+                return policy;
+        }
 
-        return requestedPolicy ?? defaultPolicy;
+        return supportedPolicies[0];
     }
 
-    public static void SerializeValue(Archive archive, string name, RenderDeviceSettingsVulkan value)
+    public static void SerializeValue(Archive archive, string name, ref RenderDeviceSettingsVulkan value)
     {
         ArgumentNullException.ThrowIfNull(archive);
         ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(value);
 
         using var block = archive.OpenUnorderedBlock(name);
         var mainDescriptorPoolSize = value.MainDescriptorPoolSize;
@@ -304,104 +307,149 @@ public static class RenderAPIUtils
         value.DynamicDescriptorPoolSize = dynamicDescriptorPoolSize;
         var deviceLocalMemoryPageSize = value.DeviceLocalMemoryPageSize;
         ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "deviceLocalMemoryPageSize",
-            ref deviceLocalMemoryPageSize, null, SerializeOptionalUInt);
+            ref deviceLocalMemoryPageSize, null, SerializeOptionalInt);
         value.DeviceLocalMemoryPageSize = deviceLocalMemoryPageSize;
         var hostVisibleMemoryPageSize = value.HostVisibleMemoryPageSize;
         ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "hostVisibleMemoryPageSize",
-            ref hostVisibleMemoryPageSize, null, SerializeOptionalUInt);
+            ref hostVisibleMemoryPageSize, null, SerializeOptionalInt);
         value.HostVisibleMemoryPageSize = hostVisibleMemoryPageSize;
         var deviceLocalMemoryReserveSize = value.DeviceLocalMemoryReserveSize;
         ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "deviceLocalMemoryReserveSize",
-            ref deviceLocalMemoryReserveSize, null, SerializeOptionalUInt);
+            ref deviceLocalMemoryReserveSize, null, SerializeOptionalInt);
         value.DeviceLocalMemoryReserveSize = deviceLocalMemoryReserveSize;
         var hostVisibleMemoryReserveSize = value.HostVisibleMemoryReserveSize;
         ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "hostVisibleMemoryReserveSize",
-            ref hostVisibleMemoryReserveSize, null, SerializeOptionalUInt);
+            ref hostVisibleMemoryReserveSize, null, SerializeOptionalInt);
         value.HostVisibleMemoryReserveSize = hostVisibleMemoryReserveSize;
         var uploadHeapPageSize = value.UploadHeapPageSize;
         ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "uploadHeapPageSize",
-            ref uploadHeapPageSize, null, SerializeOptionalUInt);
+            ref uploadHeapPageSize, null, SerializeOptionalInt);
         value.UploadHeapPageSize = uploadHeapPageSize;
         var dynamicHeapSize = value.DynamicHeapSize;
         ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "dynamicHeapSize",
-            ref dynamicHeapSize, null, SerializeOptionalUInt);
+            ref dynamicHeapSize, null, SerializeOptionalInt);
         value.DynamicHeapSize = dynamicHeapSize;
         var dynamicHeapPageSize = value.DynamicHeapPageSize;
         ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "dynamicHeapPageSize",
-            ref dynamicHeapPageSize, null, SerializeOptionalUInt);
+            ref dynamicHeapPageSize, null, SerializeOptionalInt);
         value.DynamicHeapPageSize = dynamicHeapPageSize;
-        SerializeQueryTypes(archive, value.QueryPoolSizes);
+        SerializeQueryTypes(archive, ref value);
     }
 
-    public static void SerializeValue(Archive archive, string name, RenderDeviceSettingsD3D12 value)
+    public static void SerializeValue(Archive archive, string name, ref RenderDeviceSettingsD3D12 value)
     {
         ArgumentNullException.ThrowIfNull(archive);
         ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(value);
 
         using var block = archive.OpenUnorderedBlock(name);
-        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "mainDescriptorPoolSize_cvb_srv_uav",
-            ref value.CpuDescriptorHeapAllocationSize[0], null, SerializeOptionalUInt);
-        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "mainDescriptorPoolSize_sampler",
-            ref value.CpuDescriptorHeapAllocationSize[1], null, SerializeOptionalUInt);
-        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "mainDescriptorPoolSize_rtv",
-            ref value.CpuDescriptorHeapAllocationSize[2], null, SerializeOptionalUInt);
-        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "mainDescriptorPoolSize_dsv",
-            ref value.CpuDescriptorHeapAllocationSize[3], null, SerializeOptionalUInt);
-        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "gpuDescriptorHeapSize_cvb_srv_uav",
-            ref value.GpuDescriptorHeapSize[0], null, SerializeOptionalUInt);
-        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "gpuDescriptorHeapSize_sampler",
-            ref value.GpuDescriptorHeapSize[1], null, SerializeOptionalUInt);
-        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "gpuDescriptorHeapDynamicSize_cvb_srv_uav",
-            ref value.GpuDescriptorHeapDynamicSize[0], null, SerializeOptionalUInt);
-        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "gpuDescriptorHeapDynamicSize_sampler",
-            ref value.GpuDescriptorHeapDynamicSize[1], null, SerializeOptionalUInt);
-        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "dynamicDescriptorAllocationChunkSize_cvb_srv_uav",
-            ref value.DynamicDescriptorAllocationChunkSize[0], null, SerializeOptionalUInt);
-        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "dynamicDescriptorAllocationChunkSize_sampler",
-            ref value.DynamicDescriptorAllocationChunkSize[1], null, SerializeOptionalUInt);
+        SerializeCpuDescriptorHeapAllocationSize(archive, "mainDescriptorPoolSize_cvb_srv_uav", ref value, 0);
+        SerializeCpuDescriptorHeapAllocationSize(archive, "mainDescriptorPoolSize_sampler", ref value, 1);
+        SerializeCpuDescriptorHeapAllocationSize(archive, "mainDescriptorPoolSize_rtv", ref value, 2);
+        SerializeCpuDescriptorHeapAllocationSize(archive, "mainDescriptorPoolSize_dsv", ref value, 3);
+        SerializeGpuDescriptorHeapSize(archive, "gpuDescriptorHeapSize_cvb_srv_uav", ref value, 0);
+        SerializeGpuDescriptorHeapSize(archive, "gpuDescriptorHeapSize_sampler", ref value, 1);
+        SerializeGpuDescriptorHeapDynamicSize(archive, "gpuDescriptorHeapDynamicSize_cvb_srv_uav", ref value, 0);
+        SerializeGpuDescriptorHeapDynamicSize(archive, "gpuDescriptorHeapDynamicSize_sampler", ref value, 1);
+        SerializeDynamicDescriptorAllocationChunkSize(archive,
+            "dynamicDescriptorAllocationChunkSize_cvb_srv_uav", ref value, 0);
+        SerializeDynamicDescriptorAllocationChunkSize(archive,
+            "dynamicDescriptorAllocationChunkSize_sampler", ref value, 1);
         var dynamicHeapPageSize = value.DynamicHeapPageSize;
         ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "dynamicHeapPageSize",
-            ref dynamicHeapPageSize, null, SerializeOptionalUInt);
+            ref dynamicHeapPageSize, null, SerializeOptionalInt);
         value.DynamicHeapPageSize = dynamicHeapPageSize;
         var numDynamicHeapPagesToReserve = value.NumDynamicHeapPagesToReserve;
         ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "numDynamicHeapPagesToReserve",
-            ref numDynamicHeapPagesToReserve, null, SerializeOptionalUInt);
+            ref numDynamicHeapPagesToReserve, null, SerializeOptionalInt);
         value.NumDynamicHeapPagesToReserve = numDynamicHeapPagesToReserve;
-        SerializeQueryTypes(archive, value.QueryPoolSizes);
+        SerializeQueryTypes(archive, ref value);
     }
 
-    private static void SerializeQueryTypes(Archive archive, uint?[] sizes)
+    private static void SerializeQueryTypes(Archive archive, ref RenderDeviceSettingsVulkan value)
     {
         var occlusion = (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypeOcclusion;
         var binaryOcclusion = (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypeBinaryOcclusion;
         var timestamp = (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypeTimestamp;
         var pipelineStatistics = (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypePipelineStatistics;
         var duration = (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypeDuration;
-        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "queryPoolSize_occlusion",
-            ref sizes[occlusion], null, SerializeOptionalUInt);
-        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "queryPoolSize_binaryOcclusion",
-            ref sizes[binaryOcclusion], null, SerializeOptionalUInt);
-        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "queryPoolSize_timestamp",
-            ref sizes[timestamp], null, SerializeOptionalUInt);
-        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "queryPoolSize_pipelineStatistics",
-            ref sizes[pipelineStatistics], null, SerializeOptionalUInt);
-        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, "queryPoolSize_duration",
-            ref sizes[duration], null, SerializeOptionalUInt);
+        SerializeQueryType(archive, "queryPoolSize_occlusion", ref value, occlusion);
+        SerializeQueryType(archive, "queryPoolSize_binaryOcclusion", ref value, binaryOcclusion);
+        SerializeQueryType(archive, "queryPoolSize_timestamp", ref value, timestamp);
+        SerializeQueryType(archive, "queryPoolSize_pipelineStatistics", ref value, pipelineStatistics);
+        SerializeQueryType(archive, "queryPoolSize_duration", ref value, duration);
     }
 
-    public static void SerializeValue(
-        Archive archive, string name, global::RedBolt.Bindings.Diligent.VulkanDescriptorPoolSize value)
+    private static void SerializeQueryTypes(Archive archive, ref RenderDeviceSettingsD3D12 value)
+    {
+        SerializeQueryType(archive, "queryPoolSize_occlusion", ref value,
+            (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypeOcclusion);
+        SerializeQueryType(archive, "queryPoolSize_binaryOcclusion", ref value,
+            (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypeBinaryOcclusion);
+        SerializeQueryType(archive, "queryPoolSize_timestamp", ref value,
+            (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypeTimestamp);
+        SerializeQueryType(archive, "queryPoolSize_pipelineStatistics", ref value,
+            (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypePipelineStatistics);
+        SerializeQueryType(archive, "queryPoolSize_duration", ref value,
+            (int)global::RedBolt.Bindings.Diligent.QueryType.QueryTypeDuration);
+    }
+
+    public static void SerializeValue(Archive archive, string name, ref VulkanDescriptorPoolSize value)
     {
         ArgumentNullException.ThrowIfNull(archive);
         ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(value);
-
         using var block = archive.OpenUnorderedBlock(name);
-        SerializeVulkanDescriptorPoolSizeFields(archive, value);
+        SerializeVulkanDescriptorPoolSizeFields(archive, ref value);
     }
 
-    private static void SerializeOptionalUInt(Archive archive, string name, ref uint? value)
+    private static void SerializeCpuDescriptorHeapAllocationSize(Archive archive, string name,
+        ref RenderDeviceSettingsD3D12 value, int index)
+    {
+        var size = value.CpuDescriptorHeapAllocationSize[index];
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, name, ref size, null, SerializeOptionalInt);
+        value.CpuDescriptorHeapAllocationSize[index] = size;
+    }
+
+    private static void SerializeGpuDescriptorHeapSize(Archive archive, string name,
+        ref RenderDeviceSettingsD3D12 value, int index)
+    {
+        var size = value.GpuDescriptorHeapSize[index];
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, name, ref size, null, SerializeOptionalInt);
+        value.GpuDescriptorHeapSize[index] = size;
+    }
+
+    private static void SerializeGpuDescriptorHeapDynamicSize(Archive archive, string name,
+        ref RenderDeviceSettingsD3D12 value, int index)
+    {
+        var size = value.GpuDescriptorHeapDynamicSize[index];
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, name, ref size, null, SerializeOptionalInt);
+        value.GpuDescriptorHeapDynamicSize[index] = size;
+    }
+
+    private static void SerializeDynamicDescriptorAllocationChunkSize(Archive archive, string name,
+        ref RenderDeviceSettingsD3D12 value, int index)
+    {
+        var size = value.DynamicDescriptorAllocationChunkSize[index];
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, name, ref size, null, SerializeOptionalInt);
+        value.DynamicDescriptorAllocationChunkSize[index] = size;
+    }
+
+    private static void SerializeQueryType(Archive archive, string name,
+        ref RenderDeviceSettingsVulkan value, int index)
+    {
+        var size = value.QueryPoolSizes[index];
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, name, ref size, null, SerializeOptionalInt);
+        value.QueryPoolSizes[index] = size;
+    }
+
+    private static void SerializeQueryType(Archive archive, string name,
+        ref RenderDeviceSettingsD3D12 value, int index)
+    {
+        var size = value.QueryPoolSizes[index];
+        ArchiveSerialization.SerializeStrictlyOptionalValue(archive, name, ref size, null, SerializeOptionalInt);
+        value.QueryPoolSizes[index] = size;
+    }
+
+    private static void SerializeOptionalInt(Archive archive, string name, ref int? value)
     {
         if (!value.HasValue)
         {
@@ -414,18 +462,20 @@ public static class RenderAPIUtils
     }
 
     private static void SerializeOptionalVulkanDescriptorPoolSize(Archive archive, string name,
-        ref global::RedBolt.Bindings.Diligent.VulkanDescriptorPoolSize? value)
+        ref VulkanDescriptorPoolSize? value)
     {
-        if (value is null)
+        if (!value.HasValue)
         {
             System.Diagnostics.Debug.Assert(archive.IsInput);
-            value = new global::RedBolt.Bindings.Diligent.VulkanDescriptorPoolSize();
+            value = new VulkanDescriptorPoolSize();
         }
-        SerializeValue(archive, name, value);
+        var serializedValue = value.Value;
+        SerializeValue(archive, name, ref serializedValue);
+        value = serializedValue;
     }
 
     private static void SerializeVulkanDescriptorPoolSizeFields(
-        Archive archive, global::RedBolt.Bindings.Diligent.VulkanDescriptorPoolSize value)
+        Archive archive, ref VulkanDescriptorPoolSize value)
     {
         var maxDescriptorSets = value.MaxDescriptorSets;
         archive.Serialize("maxDescriptorSets", ref maxDescriptorSets);
@@ -469,58 +519,87 @@ public static class RenderAPIUtils
     {
         switch (backend)
         {
+#if REDBOLT_D3D11_SUPPORTED || REDBOLT_D3D12_SUPPORTED
             case RenderBackend.D3D11:
             case RenderBackend.D3D12:
                 return internalFormat switch
                 {
-                    28u => TextureFormat.RGBA8,
-                    29u => TextureFormat.RGBA8,
-                    55u => TextureFormat.Depth16,
-                    45u => TextureFormat.Depth24Stencil8,
-                    40u => TextureFormat.Depth32,
-                    20u => TextureFormat.Depth32Stencil8,
-                    _ => TextureFormat.Unknown
+                    28u => TextureFormat.TexFormatRgba8Unorm,
+                    29u => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb,
+                    55u => TextureFormat.TexFormatD16Unorm,
+                    45u => TextureFormat.TexFormatD24UnormS8Uint,
+                    40u => TextureFormat.TexFormatD32Float,
+                    20u => TextureFormat.TexFormatD32FloatS8x24Uint,
+                    _ => TextureFormat.TexFormatUnknown
                 };
+#endif
+#if REDBOLT_VULKAN_SUPPORTED
             case RenderBackend.Vulkan:
                 return internalFormat switch
                 {
-                    37u => TextureFormat.RGBA8,
-                    43u => TextureFormat.RGBA8,
-                    124u => TextureFormat.Depth16,
-                    129u => TextureFormat.Depth24Stencil8,
-                    126u => TextureFormat.Depth32,
-                    130u => TextureFormat.Depth32Stencil8,
-                    _ => TextureFormat.Unknown
+                    37u => TextureFormat.TexFormatRgba8Unorm,
+                    43u => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb,
+                    124u => TextureFormat.TexFormatD16Unorm,
+                    129u => TextureFormat.TexFormatD24UnormS8Uint,
+                    126u => TextureFormat.TexFormatD32Float,
+                    130u => TextureFormat.TexFormatD32FloatS8x24Uint,
+                    _ => TextureFormat.TexFormatUnknown
                 };
+#endif
+#if REDBOLT_GL_SUPPORTED || REDBOLT_GLES_SUPPORTED
             case RenderBackend.OpenGL:
                 return internalFormat switch
                 {
-                    0x8051u or 0x8058u => TextureFormat.RGBA8,
-                    0x8C41u or 0x8C43u => TextureFormat.RGBA8,
-                    0x81A5u => TextureFormat.Depth16,
-                    0x81A6u or 0x88F0u => TextureFormat.Depth24Stencil8,
-                    0x8CACu => TextureFormat.Depth32,
-                    0x8CADu => TextureFormat.Depth32Stencil8,
-                    _ => TextureFormat.Unknown
+                    0x8051u or 0x8058u => TextureFormat.TexFormatRgba8Unorm,
+                    0x8C41u or 0x8C43u => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb,
+                    0x81A5u => TextureFormat.TexFormatD16Unorm,
+                    0x81A6u or 0x88F0u => TextureFormat.TexFormatD24UnormS8Uint,
+                    0x8CACu => TextureFormat.TexFormatD32Float,
+                    0x8CADu => TextureFormat.TexFormatD32FloatS8x24Uint,
+                    _ => TextureFormat.TexFormatUnknown
                 };
+#endif
             default:
-                return TextureFormat.Unknown;
+                return TextureFormat.TexFormatUnknown;
         }
     }
 
-    private static uint GetTexelSize(TextureFormat format) => format switch
+    private static TextureFormatInfo[] CreateNativeTextureFormatInfos()
     {
-        TextureFormat.R8 => 1u,
-        TextureFormat.RG16F => 4u,
-        TextureFormat.RGB8 => 4u,
-        TextureFormat.RGBA8 => 4u,
-        TextureFormat.RGBA16F => 8u,
-        TextureFormat.RGBA32F => 16u,
-        TextureFormat.Depth16 => 2u,
-        TextureFormat.Depth32 => 4u,
-        TextureFormat.Depth24Stencil8 => 4u,
-        TextureFormat.Depth32Stencil8 => 8u,
-        _ => throw new NotSupportedException($"Texture format '{format}' is not supported.")
-    };
+        var infos = new TextureFormatInfo[
+            (int)global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatNumFormats];
+        for (var i = 0; i < infos.Length; ++i)
+        {
+            var format = (global::RedBolt.Bindings.Diligent.TextureFormat)i;
+            var handle = global::RedBolt.Bindings.Diligent.DiligentNativeBindings.GetTextureFormatAttribs(format);
+            using var info = global::RedBolt.Bindings.Diligent.TextureFormatAttribs.CreateManagedWrapper(handle, false);
+            infos[i] = new TextureFormatInfo(
+                global::System.Runtime.InteropServices.Marshal.PtrToStringUTF8(info.Name) ?? string.Empty,
+                info.Format, info.ComponentSize, info.NumComponents,
+                info.ComponentType, info.IsTypeless, info.BlockWidth, info.BlockHeight);
+        }
+        return infos;
+    }
+
+    private static Dictionary<global::RedBolt.Bindings.Diligent.TextureFormat,
+        TextureFormatInfo> CreateEmulatedTextureFormatInfos()
+    {
+        return new Dictionary<global::RedBolt.Bindings.Diligent.TextureFormat,
+            TextureFormatInfo>
+        {
+            [EmulatedTextureFormat.PvrtcRgb2Bpp] = new("TEX_FORMAT_PVRTC_RGB_2BPP",
+                EmulatedTextureFormat.PvrtcRgb2Bpp, 8, 3,
+                global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeCompressed, false, 8, 4),
+            [EmulatedTextureFormat.PvrtcRgba2Bpp] = new("TEX_FORMAT_PVRTC_RGBA_2BPP",
+                EmulatedTextureFormat.PvrtcRgba2Bpp, 8, 4,
+                global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeCompressed, false, 8, 4),
+            [EmulatedTextureFormat.PvrtcRgb4Bpp] = new("TEX_FORMAT_PVRTC_RGB_4BPP",
+                EmulatedTextureFormat.PvrtcRgb4Bpp, 8, 3,
+                global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeCompressed, false, 4, 4),
+            [EmulatedTextureFormat.PvrtcRgba4Bpp] = new("TEX_FORMAT_PVRTC_RGBA_4BPP",
+                EmulatedTextureFormat.PvrtcRgba4Bpp, 8, 4,
+                global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeCompressed, false, 4, 4)
+        };
+    }
 
 }

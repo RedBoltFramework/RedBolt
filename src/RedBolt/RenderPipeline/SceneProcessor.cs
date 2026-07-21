@@ -542,14 +542,14 @@ public class SceneProcessor : Object, LightProcessorCallback
         _ = numActiveSplits;
         var parameters = light.GetShadowFocus();
         var shadowResolutionScale = light.GetShadowResolution();
-        var pageSize = ShadowMapAllocator?.Settings.ShadowAtlasPageSize ?? 2048u;
+        var pageSize = ShadowMapAllocator?.Settings.ShadowAtlasPageSize ?? 2048;
         var maxShadowSize = GetMaxShadowSplitSize(Settings, pageSize, light);
 
         var lightSizeInPixels = GetLightSizeInPixels(light, FrameInfo);
         var baseShadowSize = parameters.AutoSize ? lightSizeInPixels : maxShadowSize;
-        var shadowSize = MathDefs.NextPowerOfTwo((uint)(baseShadowSize * shadowResolutionScale));
+        var shadowSize = checked((int)MathDefs.NextPowerOfTwo((uint)(baseShadowSize * shadowResolutionScale)));
 
-        return checked((int)Math.Clamp(shadowSize, (uint)ShadowMinPixels, maxShadowSize));
+        return Math.Clamp(shadowSize, ShadowMinPixels, maxShadowSize);
     }
 
     public ShadowMapRegion AllocateTransientShadowMap(Vector2i size) =>
@@ -598,7 +598,7 @@ public class SceneProcessor : Object, LightProcessorCallback
         return Math.Max(projectionSize.X, projectionSize.Y);
     }
 
-    private static uint GetMaxShadowSplitSize(SceneProcessorSettings settings, uint pageSize, Light light) =>
+    private static int GetMaxShadowSplitSize(SceneProcessorSettings settings, int pageSize, Light light) =>
         light.GetLightType() switch
         {
             LightType.Directional => Math.Min(settings.DirectionalShadowSize,

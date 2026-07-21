@@ -152,7 +152,7 @@ public class RenderToTexture : Application
 
                 // Create a renderable texture (1024x768, RGB format), enable bilinear filtering on it
                 _renderTexture = new Texture2D("");
-                _renderTexture.SetSize(1024, 768, TextureFormat.RGBA8, TextureFlag.BindRenderTarget, 4);
+                _renderTexture.SetSize(1024, 768, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget, 4);
                 _renderTexture.SetFilterMode(TextureFilterMode.Bilinear);
 
                 // Create a new material from scratch, use the diffuse unlit technique, assign the render texture

@@ -18,7 +18,7 @@ public class RenderContext : Object
     private readonly RenderDevice _renderDevice;
     private readonly RenderPool _renderPool;
     private readonly bool _debugScopeEnabled;
-    private readonly RenderDeviceStats _stats = new();
+    private RenderDeviceStats _stats = new();
     private readonly RenderTargetView[] _swapChainColorTarget;
     private readonly RenderTargetView[] _currentRenderTargets = new RenderTargetView[RenderApiLimits.MaxRenderTargets];
     // C++: currentDepthStencil_ / currentRenderTargets_ store Diligent ITextureView*.
@@ -318,7 +318,7 @@ public class RenderContext : Object
 
     public RenderDeviceStats GetStats() => _stats;
 
-    public RenderDeviceStats GetMutableStats() => _stats;
+    public ref RenderDeviceStats GetMutableStats() => ref _stats;
 
     public RenderDevice GetRenderDevice() => _renderDevice;
 
@@ -377,20 +377,21 @@ public class RenderContext : Object
         var depthStencilView = _currentDepthStencil.GetValueOrDefault();
         _currentOutputDesc.DepthStencilFormat = depthStencilView is { } depthView
             ? GetRenderTargetFormat(depthView, graphics)
-            : TextureFormat.Unknown;
+            : TextureFormat.TexFormatUnknown;
 
         Span<TextureFormat> renderTargetFormats = stackalloc TextureFormat[checked((int)RenderApiLimits.MaxRenderTargets)];
         for (var i = 0; i < _numCurrentRenderTargets; ++i)
             renderTargetFormats[i] = GetRenderTargetFormat(_currentRenderTargets[i], graphics);
-        _currentOutputDesc.SetRenderTargetFormats(renderTargetFormats[.._numCurrentRenderTargets]);
+        _currentOutputDesc.NumRenderTargets = _numCurrentRenderTargets;
+        renderTargetFormats[.._numCurrentRenderTargets].CopyTo(_currentOutputDesc.RenderTargetFormats);
 
         RenderTargetView? view = _numCurrentRenderTargets != 0
             ? _currentRenderTargets[0]
             : depthStencilView;
         _currentDimensions = view is { } target ? GetRenderTargetDimensions(target) : default;
         _currentOutputDesc.MultiSample = view is { } multisampledTarget
-            ? checked((uint)GetRenderTargetMultiSample(multisampledTarget, graphics))
-            : 1u;
+            ? GetRenderTargetMultiSample(multisampledTarget, graphics)
+            : 1;
     }
 
     private Graphics? GetGraphics() => GetSubsystem<Graphics>();

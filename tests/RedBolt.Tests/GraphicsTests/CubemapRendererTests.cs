@@ -143,7 +143,7 @@ public sealed class CubemapRendererTests
 
         Assert.Equal(64, texture.Width);
         Assert.Equal(64, texture.Height);
-        Assert.Equal(TextureFormat.RGBA8, texture.Format);
+        Assert.Equal(TextureFormat.TexFormatRgba8Unorm, texture.Format);
         Assert.True(texture.IsRenderTarget());
         Assert.Equal(TextureFilterMode.Trilinear, texture.GetFilterMode());
     }

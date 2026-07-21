@@ -49,7 +49,7 @@ public class BatchCompositorPass : DrawableProcessorPass
     }
 
     /// <summary>Callback for pipeline state initialization.</summary>
-    public virtual bool CreatePipelineState(GraphicsPipelineStateDesc desc, PipelineStateBuilder? builder,
+    public virtual bool CreatePipelineState(ref GraphicsPipelineStateDesc desc, PipelineStateBuilder? builder,
         BatchStateCreateKey key, BatchStateCreateContext ctx) => false;
 
     public void SetForwardOutputDesc(PipelineStateOutputDesc desc)
@@ -243,10 +243,10 @@ public class BatchCompositorPass : DrawableProcessorPass
             return null;
         var desc = original.GetDesc();
         var graphicsDesc = desc.AsGraphics();
-        if (graphicsDesc is null || graphicsDesc.InputLayout.Size == 0)
+        if (graphicsDesc is not { } graphics || graphics.InputLayout.Size == 0)
             return null;
 
-        var vertexSize = graphicsDesc.InputLayout.Elements[0].BufferStride;
+        var vertexSize = graphics.InputLayout.Elements[0].BufferStride;
         return cache.GetOrCreatePlaceholderPipelineState(vertexSize, _batchStateCacheCallback);
     }
 

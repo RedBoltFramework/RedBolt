@@ -42,12 +42,12 @@ public class ImGuiDiligentRendererEx : IDisposable
             using var backBuffer = renderTarget.GetTexture();
             using var backBufferDesc = backBuffer.GetDesc();
             var multiSample = checked((int)backBufferDesc.SampleCount);
-            var colorBufferFormat = MapPipelineTextureFormat(swapChainDesc.ColorBufferFormat);
-            var depthBufferFormat = MapPipelineTextureFormat(swapChainDesc.DepthBufferFormat);
+            var colorBufferFormat = swapChainDesc.ColorBufferFormat;
+            var depthBufferFormat = swapChainDesc.DepthBufferFormat;
             _primaryPipelineState = CreateRenderPipeline(
                 renderDevice, colorBufferFormat, depthBufferFormat, multiSample);
             _secondaryPipelineState =
-                CreateRenderPipeline(renderDevice, colorBufferFormat, TextureFormat.Unknown, 1);
+                CreateRenderPipeline(renderDevice, colorBufferFormat, TextureFormat.TexFormatUnknown, 1);
         }
         catch
         {
@@ -153,7 +153,7 @@ public class ImGuiDiligentRendererEx : IDisposable
 
     private static bool IsSRGBTextureFormat(TextureFormat format)
     {
-        return format is TextureFormat.RGBA8Srgb or TextureFormat.BGRA8Srgb;
+        return format is TextureFormat.TexFormatRgba8UnormSrgb or TextureFormat.TexFormatBgra8UnormSrgb;
     }
 
     private static PipelineState CreateRenderPipeline(
@@ -167,14 +167,18 @@ public class ImGuiDiligentRendererEx : IDisposable
             DebugName = $"ImGUI Render Pipeline (Color: {colorBufferFormat}, Depth: {depthBufferFormat})"
         };
 
-        desc.Output.SetRenderTargetFormat(colorBufferFormat);
+        desc.Output.NumRenderTargets = 1;
+        desc.Output.RenderTargetFormats[0] = colorBufferFormat;
         desc.Output.DepthStencilFormat = depthBufferFormat;
-        desc.Output.MultiSample = checked((uint)multiSample);
+        desc.Output.MultiSample = multiSample;
 
-        desc.InputLayout.SetElements(
-            new InputLayoutElementDesc(0, ImDrawVertSize, 0, 0, VertexElementType.Vector2, VertexElementSemantic.Position, 0),
-            new InputLayoutElementDesc(0, ImDrawVertSize, 8, 0, VertexElementType.Vector2, VertexElementSemantic.TexCoord, 0),
-            new InputLayoutElementDesc(0, ImDrawVertSize, 16, 0, VertexElementType.UByte4Norm, VertexElementSemantic.Color, 0));
+        desc.InputLayout.Size = 3;
+        desc.InputLayout.Elements[0] = new InputLayoutElementDesc(
+            0, ImDrawVertSize, 0, 0, VertexElementType.Vector2, VertexElementSemantic.Position, 0);
+        desc.InputLayout.Elements[1] = new InputLayoutElementDesc(
+            0, ImDrawVertSize, 8, 0, VertexElementType.Vector2, VertexElementSemantic.TexCoord, 0);
+        desc.InputLayout.Elements[2] = new InputLayoutElementDesc(
+            0, ImDrawVertSize, 16, 0, VertexElementType.UByte4Norm, VertexElementSemantic.Color, 0);
         desc.ColorWriteEnabled = true;
 
         var shaderDefines = string.Empty;
@@ -199,23 +203,6 @@ public class ImGuiDiligentRendererEx : IDisposable
     // SwapBuffers, and CreateSwapChainForViewport when SharpCpp supports ImGuiPlatformIO function pointer fields.
     // TODO: port the implicit C++ copy constructor as ICloneable.Clone() when native ImGuiDiligentRenderer
     // base copy construction is available through generated bindings. There are no native copy call sites.
-
-    private static TextureFormat MapPipelineTextureFormat(global::RedBolt.Bindings.Diligent.TextureFormat format)
-    {
-        return format switch
-        {
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm => TextureFormat.BGRA8,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb => TextureFormat.BGRA8Srgb,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm => TextureFormat.RGBA8,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb => TextureFormat.RGBA8Srgb,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm => TextureFormat.Depth16,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float => TextureFormat.Depth32,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint => TextureFormat.Depth24Stencil8,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8x24Uint => TextureFormat.Depth32Stencil8,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatUnknown => TextureFormat.Unknown,
-            _ => TextureFormat.Unknown
-        };
-    }
 
     private nint _nativeRenderer;
     private readonly RenderDevice _renderDevice;

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
+using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 
 namespace RedBolt;
@@ -31,8 +32,8 @@ public sealed class RenderDevice : Object
     private RenderDeviceStats _maxStats = new();
     private RenderDeviceStats _previousMaxStats = new();
     // C++: defaultDepthStencilFormat_ / defaultDepthFormat_ selected at device init.
-    private TextureFormat _defaultDepthStencilFormat = TextureFormat.Depth24Stencil8;
-    private TextureFormat _defaultDepthFormat = TextureFormat.Depth24Stencil8;
+    private TextureFormat _defaultDepthStencilFormat = TextureFormat.TexFormatD24UnormS8Uint;
+    private TextureFormat _defaultDepthFormat = TextureFormat.TexFormatD24UnormS8Uint;
     private bool _defaultDepthFormatsInitialized;
     private const uint StatsPeriodMs = 333;
 
@@ -45,7 +46,7 @@ public sealed class RenderDevice : Object
         try
         {
             var archive = new JSONInputArchive(Context.Instance, parameters.TweakVulkan);
-            RenderAPIUtils.SerializeValue(archive, "object", vulkanSettings);
+            RenderAPIUtils.SerializeValue(archive, "object", ref vulkanSettings);
             archive.Flush();
         }
         catch (Exception exception) when (exception is System.Text.Json.JsonException or InvalidOperationException)
@@ -57,7 +58,7 @@ public sealed class RenderDevice : Object
         try
         {
             var archive = new JSONInputArchive(Context.Instance, parameters.TweakD3D12);
-            RenderAPIUtils.SerializeValue(archive, "object", d3D12Settings);
+            RenderAPIUtils.SerializeValue(archive, "object", ref d3D12Settings);
             archive.Flush();
         }
         catch (Exception exception) when (exception is System.Text.Json.JsonException or InvalidOperationException)
@@ -70,7 +71,7 @@ public sealed class RenderDevice : Object
             Backend = RenderAPIUtils.SelectRenderBackend(parameters.RenderBackend),
             ExternalWindowHandle = parameters.ExternalWindow,
             GpuDebug = parameters.GPUDebug,
-            AdapterId = parameters.RenderAdapterId,
+            AdapterId = parameters.RenderAdapterId.HasValue ? checked((int)parameters.RenderAdapterId.Value) : null,
             Vulkan = vulkanSettings,
             D3D12 = d3D12Settings
         };
@@ -156,11 +157,9 @@ public sealed class RenderDevice : Object
     /// </summary>
     public void UpdateWindowSettings(WindowSettings settings)
     {
-        ArgumentNullException.ThrowIfNull(settings);
-
         var oldSettings = GetWindowSettings();
-        var newSettings = CloneWindowSettings(settings);
-        ValidateWindowSettings(newSettings);
+        var newSettings = settings;
+        ValidateWindowSettings(ref newSettings);
         var graphics = GetSubsystem<Graphics>();
         graphics?.UpdateWindowSettings(oldSettings, newSettings);
 
@@ -442,8 +441,8 @@ public sealed class RenderDevice : Object
         if (_statsTimer.GetMSec() >= StatsPeriodMs)
         {
             _statsTimer.Reset();
-            CopyStats(_previousMaxStats, _maxStats);
-            CopyStats(_maxStats, _stats);
+            _previousMaxStats = _maxStats;
+            _maxStats = _stats;
         }
         else
         {
@@ -460,7 +459,7 @@ public sealed class RenderDevice : Object
     /// </summary>
     public bool IsTextureFormatSupported(TextureFormat format)
     {
-        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(Graphics.MapTextureFormat(format));
+        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(format);
         return formatInfo.BindFlags != BindFlags.BindNone;
     }
 
@@ -469,7 +468,7 @@ public sealed class RenderDevice : Object
     /// </summary>
     public bool IsRenderTargetFormatSupported(TextureFormat format)
     {
-        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(Graphics.MapTextureFormat(format));
+        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(format);
         return (formatInfo.BindFlags & (BindFlags.BindRenderTarget | BindFlags.BindDepthStencil)) != BindFlags.BindNone;
     }
 
@@ -478,7 +477,7 @@ public sealed class RenderDevice : Object
     /// </summary>
     public bool IsUnorderedAccessFormatSupported(TextureFormat format)
     {
-        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(Graphics.MapTextureFormat(format));
+        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(format);
         return (formatInfo.BindFlags & BindFlags.BindUnorderedAccess) != BindFlags.BindNone;
     }
 
@@ -487,7 +486,7 @@ public sealed class RenderDevice : Object
     /// </summary>
     public bool IsMultiSampleSupported(TextureFormat format, int multiSample)
     {
-        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(Graphics.MapTextureFormat(format));
+        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(format);
         return ((int)formatInfo.SampleCounts & multiSample) != 0;
     }
 
@@ -497,7 +496,7 @@ public sealed class RenderDevice : Object
     public int GetSupportedMultiSample(TextureFormat format, int multiSample)
     {
         multiSample = (int)MathDefs.NextPowerOfTwo((uint)Math.Clamp(multiSample, 1, 16));
-        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(Graphics.MapTextureFormat(format));
+        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(format);
         while (multiSample > 1 && ((int)formatInfo.SampleCounts & multiSample) == 0)
             multiSample >>= 1;
         return Math.Max(1, multiSample);
@@ -511,7 +510,7 @@ public sealed class RenderDevice : Object
     {
         var graphics = GetSubsystem<Graphics>();
         if (_windowSettings is not null && graphics is { IsInitialized: true })
-            return _windowSettings;
+            return _windowSettings.Value;
 
         _windowSettings = null;
 
@@ -552,11 +551,11 @@ public sealed class RenderDevice : Object
             DrawBaseVertex = (adapterInfo.DrawCommandCapFlags & DrawCommandCapFlags.DrawCommandCapFlagBaseVertex) != 0,
             DrawBaseInstance = !RenderAPIUtils.IsOpenGLESBackend(GetBackend()) && !OperatingSystem.IsMacOS(),
             ReadOnlyDepth = !OperatingSystem.IsBrowser(),
-            SrgbOutput = IsRenderTargetFormatSupported(TextureFormat.RGBA8),
-            HdrOutput = IsRenderTargetFormatSupported(TextureFormat.RGBA16F),
-            ConstantBufferOffsetAlignment = adapterInfo.BufferConstantBufferOffsetAlignment,
-            MaxTextureSize = adapterInfo.TextureMaxTexture2DDimension,
-            MaxRenderTargetSize = adapterInfo.TextureMaxTexture2DDimension
+            SrgbOutput = IsRenderTargetFormatSupported(TextureFormat.TexFormatRgba8Unorm),
+            HdrOutput = IsRenderTargetFormatSupported(TextureFormat.TexFormatRgba16Float),
+            ConstantBufferOffsetAlignment = checked((int)adapterInfo.BufferConstantBufferOffsetAlignment),
+            MaxTextureSize = checked((int)adapterInfo.TextureMaxTexture2DDimension),
+            MaxRenderTargetSize = checked((int)adapterInfo.TextureMaxTexture2DDimension)
         };
 
         caps.ClipDistance = !RenderAPIUtils.IsOpenGLESBackend(GetBackend());
@@ -791,7 +790,7 @@ public sealed class RenderDevice : Object
 
     private void InitializeDefaultTexture(TextureType type, ReadOnlySpan<byte> data)
     {
-        var texture = new RawTexture(new RawTextureParams(type, TextureFormat.RGBA8, TextureFlag.None, Vector3i.One));
+        var texture = new RawTexture(new RawTextureParams(type, TextureFormat.TexFormatRgba8Unorm, TextureFlag.None, Vector3i.One));
         if (!texture.GetHandles().IsValid())
         {
             texture.Dispose();
@@ -883,7 +882,7 @@ public sealed class RenderDevice : Object
 
         var graphics = GetSubsystem<Graphics>()!;
         var depthFormat = SelectDefaultDepthFormat(GetRenderDevice()!, true);
-        var colorFormat = Graphics.UnmapTextureFormat(swapChainDesc.ColorBufferFormat, out _);
+        var colorFormat = swapChainDesc.ColorBufferFormat;
         var multiSample = GetSupportedMultiSample(colorFormat, GetWindowSettings().MultiSample);
         if (!graphics.RestoreVulkanSwapChain(swapChainDesc, depthFormat, multiSample))
         {
@@ -950,52 +949,27 @@ public sealed class RenderDevice : Object
             if (graphics is { IsInitialized: true })
                 _defaultDepthStencilFormat = graphics.GetSwapChainDepthTextureFormat();
             else
-                _defaultDepthStencilFormat = UnmapDepthFormat(SelectDefaultDepthFormat(device, needStencil: true));
+                _defaultDepthStencilFormat = SelectDefaultDepthFormat(device, needStencil: true);
         }
         else
         {
-            _defaultDepthStencilFormat = UnmapDepthFormat(SelectDefaultDepthFormat(device, needStencil: true));
+            _defaultDepthStencilFormat = SelectDefaultDepthFormat(device, needStencil: true);
         }
 
-        _defaultDepthFormat = UnmapDepthFormat(SelectDefaultDepthFormat(device, needStencil: false));
+        _defaultDepthFormat = SelectDefaultDepthFormat(device, needStencil: false);
         _defaultDepthFormatsInitialized = true;
     }
 
-    private static TextureFormat UnmapDepthFormat(global::RedBolt.Bindings.Diligent.TextureFormat format) => format switch
-    {
-        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm => TextureFormat.Depth16,
-        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float => TextureFormat.Depth32,
-        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint => TextureFormat.Depth24Stencil8,
-        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8x24Uint => TextureFormat.Depth32Stencil8,
-        _ => TextureFormat.Depth24Stencil8
-    };
-
-    private static IReadOnlyList<string> ParseOrientations(string orientations)
+    private static ImmutableArray<string> ParseOrientations(string orientations)
     {
         if (string.IsNullOrWhiteSpace(orientations))
             return [];
 
-        return orientations.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return orientations.Split([' ', '\t', '\r', '\n'],
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToImmutableArray();
     }
 
-    private static WindowSettings CloneWindowSettings(WindowSettings settings)
-    {
-        return new WindowSettings
-        {
-            Mode = settings.Mode,
-            Size = settings.Size,
-            Title = settings.Title,
-            Resizable = settings.Resizable,
-            Monitor = settings.Monitor,
-            VSync = settings.VSync,
-            RefreshRate = settings.RefreshRate,
-            MultiSample = settings.MultiSample,
-            SRgb = settings.SRgb,
-            Orientations = [.. settings.Orientations]
-        };
-    }
-
-    private static void ValidateWindowSettings(WindowSettings settings)
+    private static void ValidateWindowSettings(ref WindowSettings settings)
     {
         var numMonitors = SdlNativeBindings.SdlGetNumVideoDisplays();
         if (settings.Monitor < 0 || settings.Monitor >= numMonitors)
@@ -1061,10 +1035,4 @@ public sealed class RenderDevice : Object
         return comparison != 0 ? comparison : mode.RefreshRate.CompareTo(refreshRate);
     }
 
-    private static void CopyStats(RenderDeviceStats destination, RenderDeviceStats source)
-    {
-        destination.NumPrimitives = source.NumPrimitives;
-        destination.NumDraws = source.NumDraws;
-        destination.NumDispatches = source.NumDispatches;
-    }
 }

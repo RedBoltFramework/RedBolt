@@ -33,8 +33,8 @@ public class LightmapRenderPipelineView : Object, IRenderPipelineInterface
 
         var size = Vector2f.One * textureSize;
         var flags = RenderBufferFlag.FixedTextureSize | RenderBufferFlag.Persistent;
-        var depthFormat = TextureFormat.Depth24Stencil8;
-        var colorFormat = TextureFormat.RGBA32F;
+        var depthFormat = TextureFormat.TexFormatD24UnormS8Uint;
+        var colorFormat = TextureFormat.TexFormatRgba32Float;
         _depthBuffer = renderBufferManager.CreateColorBuffer(new RenderBufferParams(depthFormat, 1, flags), size);
         _positionBuffer = renderBufferManager.CreateColorBuffer(new RenderBufferParams(colorFormat, 1, flags), size);
         _smoothPositionBuffer = renderBufferManager.CreateColorBuffer(new RenderBufferParams(colorFormat, 1, flags), size);
@@ -47,8 +47,9 @@ public class LightmapRenderPipelineView : Object, IRenderPipelineInterface
         {
             DepthStencilFormat = depthFormat
         };
-        outputDesc.SetRenderTargetFormats(
-            colorFormat, colorFormat, colorFormat, colorFormat, colorFormat, colorFormat);
+        outputDesc.NumRenderTargets = 6;
+        for (var i = 0; i < outputDesc.NumRenderTargets; ++i)
+            outputDesc.RenderTargetFormats[i] = colorFormat;
         pass.SetDeferredOutputDesc(outputDesc);
 
         // Use main viewport as render target because it's not used anyway

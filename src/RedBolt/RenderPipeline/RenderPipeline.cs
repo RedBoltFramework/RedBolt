@@ -447,7 +447,7 @@ public class RenderPipeline : Component
                     _depthPrePass, _opaquePass, null, _postOpaquePass, _alphaPass, _postAlphaPass, _outlineScenePass
                 ]);
 
-                var outlineParams = new RenderBufferParams(TextureFormat.RGBA8, 1, RenderBufferFlag.BilinearFiltering);
+                var outlineParams = new RenderBufferParams(TextureFormat.TexFormatRgba8Unorm, 1, RenderBufferFlag.BilinearFiltering);
                 _outlineBuffer = _renderBufferManager.CreateColorBuffer(outlineParams) as TextureRenderBuffer;
                 _outlineBuffer?.SetEnabled(false);
                 if (_outlineBuffer is not null)
@@ -475,7 +475,7 @@ public class RenderPipeline : Component
                     new IntRect(0, 0, renderTarget.GetWidth(), renderTarget.GetHeight()),
                     colorTexture.Format,
                     depthSurface?.GetView(),
-                    depthTexture?.Format ?? TextureFormat.Unknown,
+                    depthTexture?.Format ?? TextureFormat.TexFormatUnknown,
                     renderTarget.GetMultiSample(),
                     colorTexture,
                     depthTexture,
@@ -485,7 +485,7 @@ public class RenderPipeline : Component
                         || TextureFormatUtility.IsFloatColorFormat(colorTexture.Format),
                     TextureFormatUtility.IsFloatColorFormat(colorTexture.Format),
                     depthTexture is not null,
-                    depthTexture?.Format == TextureFormat.Depth24Stencil8)
+                    depthTexture?.Format == TextureFormat.TexFormatD24UnormS8Uint)
                 : null;
 
             if (!_sceneProcessor!.Define(_frameInfo))
@@ -515,9 +515,10 @@ public class RenderPipeline : Component
             var standardOutputDesc = new PipelineStateOutputDesc
             {
                 DepthStencilFormat = _renderBufferManager.GetOutputDepthStencilFormat(),
-                MultiSample = (uint)_renderBufferManager.GetOutputMultiSample()
+                MultiSample = _renderBufferManager.GetOutputMultiSample()
             };
-            standardOutputDesc.SetRenderTargetFormat(_renderBufferManager.GetOutputColorFormat());
+            standardOutputDesc.NumRenderTargets = 1;
+            standardOutputDesc.RenderTargetFormats[0] = _renderBufferManager.GetOutputColorFormat();
 
             _opaquePass!.SetForwardOutputDesc(standardOutputDesc);
             _depthPrePass?.SetForwardOutputDesc(standardOutputDesc);
@@ -899,7 +900,7 @@ public class RenderPipeline : Component
                 return _outlineBuffer;
             }
 
-            _outlineBuffer = _renderBufferManager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RGBA8)) as TextureRenderBuffer
+            _outlineBuffer = _renderBufferManager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRgba8Unorm)) as TextureRenderBuffer
                 ?? throw new InvalidOperationException("Outline render buffer must be backed by a TextureRenderBuffer.");
             _outlineBuffer.SetViewportRect(_frameInfo.ViewportRect);
             return _outlineBuffer;

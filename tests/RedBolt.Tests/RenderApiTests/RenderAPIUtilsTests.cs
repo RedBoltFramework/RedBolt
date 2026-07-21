@@ -20,28 +20,43 @@ public sealed class RenderAPIUtilsTests
         Assert.Equal(RenderBackend.Vulkan, RenderAPIUtils.SelectRenderBackend(RenderBackend.Vulkan));
         Assert.Equal(RenderBackend.OpenGL, RenderAPIUtils.SelectRenderBackend());
         Assert.Equal(ShaderTranslationPolicy.Verbatim, RenderAPIUtils.SelectShaderTranslationPolicy(RenderBackend.OpenGL));
-        Assert.Equal(TextureFormat.RGBA8, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.OpenGL, 0x8058u));
-        Assert.Equal(TextureFormat.Depth24Stencil8, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.OpenGL, 0x88F0u));
-        Assert.Equal(TextureFormat.Depth32, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.Vulkan, 126u));
-        Assert.Equal(TextureFormat.Depth16, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.Vulkan, 124u));
-        Assert.Equal(TextureFormat.Depth32Stencil8, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.Vulkan, 130u));
-        Assert.Equal(TextureFormat.Depth32Stencil8, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.D3D11, 20u));
-        Assert.Equal(TextureFormat.Unknown, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.OpenGL, 0u));
+        Assert.Equal(TextureFormat.TexFormatRgba8Unorm, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.OpenGL, 0x8058u));
+        Assert.Equal(TextureFormat.TexFormatD24UnormS8Uint, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.OpenGL, 0x88F0u));
+#if REDBOLT_VULKAN_SUPPORTED
+        Assert.Equal(TextureFormat.TexFormatD32Float, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.Vulkan, 126u));
+        Assert.Equal(TextureFormat.TexFormatD16Unorm, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.Vulkan, 124u));
+        Assert.Equal(TextureFormat.TexFormatD32FloatS8x24Uint, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.Vulkan, 130u));
+        Assert.Equal(RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb,
+            RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.Vulkan, 43u));
+#endif
+#if REDBOLT_D3D11_SUPPORTED || REDBOLT_D3D12_SUPPORTED
+        Assert.Equal(TextureFormat.TexFormatD32FloatS8x24Uint, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.D3D11, 20u));
+        Assert.Equal(RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb,
+            RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.D3D11, 29u));
+#endif
+        Assert.Equal(RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb,
+            RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.OpenGL, 0x8C43u));
+        Assert.Equal(TextureFormat.TexFormatUnknown, RenderAPIUtils.GetTextureFormatFromInternal(RenderBackend.OpenGL, 0u));
     }
 
     [Fact]
     public void Texture_mip_helpers_and_format_categories_match_cpp_rules()
     {
-        Assert.Equal(4u, RenderAPIUtils.GetMipLevelCount(new Vector3i(8, 4, 2)));
+        Assert.Equal(4, RenderAPIUtils.GetMipLevelCount(new Vector3i(8, 4, 2)));
         Assert.Equal(new Vector3i(2, 1, 1), RenderAPIUtils.GetMipLevelSize(new Vector3i(8, 4, 2), 2));
-        Assert.Equal(8u, RenderAPIUtils.GetMipLevelSizeInBytes(TextureFormat.RGBA8, new Vector3i(8, 4, 2), 2));
+        Assert.Equal(8, RenderAPIUtils.GetMipLevelSizeInBytes(TextureFormat.TexFormatRgba8Unorm, new Vector3i(8, 4, 2), 2));
+        Assert.Equal(48, RenderAPIUtils.GetMipLevelSizeInBytes(
+            RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc1Unorm, new Vector3i(9, 5, 1), 0));
 
-        Assert.True(RenderAPIUtils.IsDepthTextureFormat(TextureFormat.Depth32));
-        Assert.True(RenderAPIUtils.IsDepthStencilTextureFormat(TextureFormat.Depth24Stencil8));
-        Assert.True(RenderAPIUtils.IsDepthTextureFormat(TextureFormat.Depth16));
-        Assert.True(RenderAPIUtils.IsDepthStencilTextureFormat(TextureFormat.Depth32Stencil8));
-        Assert.False(RenderAPIUtils.IsColorTextureFormat(TextureFormat.Depth24Stencil8));
-        Assert.True(RenderAPIUtils.IsColorTextureFormat(TextureFormat.RGBA16F));
+        Assert.True(RenderAPIUtils.IsDepthTextureFormat(TextureFormat.TexFormatD32Float));
+        Assert.True(RenderAPIUtils.IsDepthStencilTextureFormat(TextureFormat.TexFormatD24UnormS8Uint));
+        Assert.True(RenderAPIUtils.IsDepthTextureFormat(TextureFormat.TexFormatD16Unorm));
+        Assert.True(RenderAPIUtils.IsDepthStencilTextureFormat(TextureFormat.TexFormatD32FloatS8x24Uint));
+        Assert.False(RenderAPIUtils.IsColorTextureFormat(TextureFormat.TexFormatD24UnormS8Uint));
+        Assert.True(RenderAPIUtils.IsColorTextureFormat(TextureFormat.TexFormatRgba16Float));
+        Assert.True(RenderAPIUtils.IsColorTextureFormat(
+            RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc1Unorm));
+        Assert.False(RenderAPIUtils.IsColorTextureFormat(TextureFormat.TexFormatUnknown));
     }
 
     [Fact]
@@ -52,6 +67,8 @@ public sealed class RenderAPIUtilsTests
             RenderAPIUtils.ParseVertexAttribute("input_iTexCoord3"));
         Assert.Equal(RedBolt.Bindings.Diligent.ShaderType.ShaderTypeCompute,
             RenderAPIUtils.ToInternalShaderType(ShaderType.CS));
+        Assert.Equal(new VertexShaderAttribute(VertexElementSemantic.ObjectIndex, 12, 0),
+            RenderAPIUtils.ParseVertexAttribute("12custom"));
     }
 
     [Fact]
@@ -69,8 +86,11 @@ public sealed class RenderAPIUtilsTests
     [Fact]
     public void Texture_format_info_matches_native_and_emulated_attributes()
     {
+        Assert.True(typeof(TextureFormatInfo).IsValueType);
+
         var native = RenderAPIUtils.GetTextureFormatInfo(
             RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm);
+        Assert.Equal("TEX_FORMAT_RGBA8_UNORM", native.Name);
         Assert.Equal((byte)1, native.ComponentSize);
         Assert.Equal((byte)4, native.NumComponents);
         Assert.Equal((byte)1, native.BlockWidth);
@@ -78,6 +98,7 @@ public sealed class RenderAPIUtilsTests
 
         var emulated = RenderAPIUtils.GetTextureFormatInfo(
             (RedBolt.Bindings.Diligent.TextureFormat)(int)EmulatedTextureFormat.PvrtcRgba2Bpp);
+        Assert.Equal("TEX_FORMAT_PVRTC_RGBA_2BPP", emulated.Name);
         Assert.Equal((byte)8, emulated.ComponentSize);
         Assert.Equal((byte)4, emulated.NumComponents);
         Assert.Equal((byte)8, emulated.BlockWidth);
@@ -100,23 +121,23 @@ public sealed class RenderAPIUtilsTests
 
         using var output = new BinaryOutputArchive(context, buffer);
         using (output.OpenUnorderedBlock("Root"))
-            RenderAPIUtils.SerializeValue(output, "settings", settings);
+            RenderAPIUtils.SerializeValue(output, "settings", ref settings);
         output.Flush();
 
         buffer.Seek(0);
         var loadedSettings = new RenderDeviceSettingsD3D12();
         using var input = new BinaryInputArchive(context, buffer);
         using (input.OpenUnorderedBlock("Root"))
-            RenderAPIUtils.SerializeValue(input, "settings", loadedSettings);
+            RenderAPIUtils.SerializeValue(input, "settings", ref loadedSettings);
         input.Flush();
 
-        Assert.Equal((uint?)128, loadedSettings.CpuDescriptorHeapAllocationSize[0]);
+        Assert.Equal(128, loadedSettings.CpuDescriptorHeapAllocationSize[0]);
         Assert.Null(loadedSettings.CpuDescriptorHeapAllocationSize[1]);
-        Assert.Equal((uint?)256, loadedSettings.GpuDescriptorHeapSize[1]);
-        Assert.Equal((uint?)4096, loadedSettings.DynamicHeapPageSize);
+        Assert.Equal(256, loadedSettings.GpuDescriptorHeapSize[1]);
+        Assert.Equal(4096, loadedSettings.DynamicHeapPageSize);
         Assert.Null(loadedSettings.QueryPoolSizes[(int)RedBolt.Bindings.Diligent.QueryType.QueryTypeUndefined]);
-        Assert.Equal((uint?)4, loadedSettings.QueryPoolSizes[(int)RedBolt.Bindings.Diligent.QueryType.QueryTypeOcclusion]);
-        Assert.Equal((uint?)8, loadedSettings.QueryPoolSizes[(int)RedBolt.Bindings.Diligent.QueryType.QueryTypeTimestamp]);
+        Assert.Equal(4, loadedSettings.QueryPoolSizes[(int)RedBolt.Bindings.Diligent.QueryType.QueryTypeOcclusion]);
+        Assert.Equal(8, loadedSettings.QueryPoolSizes[(int)RedBolt.Bindings.Diligent.QueryType.QueryTypeTimestamp]);
     }
 
     [Fact]
@@ -124,7 +145,7 @@ public sealed class RenderAPIUtilsTests
     {
         var context = new Context();
         using var buffer = new VectorBuffer();
-        var value = new RedBolt.Bindings.Diligent.VulkanDescriptorPoolSize
+        var value = new VulkanDescriptorPoolSize
         {
             MaxDescriptorSets = 1,
             NumSeparateSamplerDescriptors = 2,
@@ -141,14 +162,14 @@ public sealed class RenderAPIUtilsTests
 
         using var output = new BinaryOutputArchive(context, buffer);
         using (output.OpenUnorderedBlock("Root"))
-            RenderAPIUtils.SerializeValue(output, "pool", value);
+            RenderAPIUtils.SerializeValue(output, "pool", ref value);
         output.Flush();
 
         buffer.Seek(0);
-        var loadedValue = new RedBolt.Bindings.Diligent.VulkanDescriptorPoolSize();
+        var loadedValue = new VulkanDescriptorPoolSize();
         using var input = new BinaryInputArchive(context, buffer);
         using (input.OpenUnorderedBlock("Root"))
-            RenderAPIUtils.SerializeValue(input, "pool", loadedValue);
+            RenderAPIUtils.SerializeValue(input, "pool", ref loadedValue);
         input.Flush();
 
         Assert.Equal(value.MaxDescriptorSets, loadedValue.MaxDescriptorSets);

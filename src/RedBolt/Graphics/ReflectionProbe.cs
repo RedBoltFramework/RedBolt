@@ -538,7 +538,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
     private static bool SupportFiltering(RenderDevice? device) =>
         device is not null
         && device.GetCaps().ComputeShaders
-        && device.IsUnorderedAccessFormatSupported(TextureFormat.RGBA8);
+        && device.IsUnorderedAccessFormatSupported(TextureFormat.TexFormatRgba8Unorm);
 
     private static void AppendReference(Span<ReflectionProbeReference> result, ReflectionProbeReference newReference)
     {

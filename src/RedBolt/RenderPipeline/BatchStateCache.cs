@@ -13,7 +13,7 @@ public sealed class BatchStateCache
 
     private PipelineStateOutputDesc? _outputDesc;
     private readonly Dictionary<BatchStateLookupKey, CachedBatchState> _cache = [];
-    private readonly Dictionary<uint, PipelineState?> _placeholderCache = [];
+    private readonly Dictionary<int, PipelineState?> _placeholderCache = [];
 
     public void Invalidate() => _cache.Clear();
 
@@ -21,7 +21,7 @@ public sealed class BatchStateCache
     {
         if (_outputDesc?.Equals(outputDesc) != true)
         {
-            _outputDesc = new PipelineStateOutputDesc(outputDesc);
+            _outputDesc = outputDesc;
             Invalidate();
         }
     }
@@ -57,7 +57,7 @@ public sealed class BatchStateCache
             || key.Material.GetPipelineStateHash() != entry.MaterialHash
             || key.Pass.GetPipelineStateHash() != entry.PassHash)
         {
-            entry.PipelineState = callback.CreateBatchPipelineState(key, context, _outputDesc!);
+            entry.PipelineState = callback.CreateBatchPipelineState(key, context, _outputDesc!.Value);
             entry.GeometryHash = key.Geometry.GetPipelineStateHash();
             entry.MaterialHash = key.Material.GetPipelineStateHash();
             entry.PassHash = key.Pass.GetPipelineStateHash();
@@ -66,11 +66,11 @@ public sealed class BatchStateCache
         return entry.PipelineState;
     }
 
-    public PipelineState? GetOrCreatePlaceholderPipelineState(uint vertexStride, BatchStateCacheCallback callback)
+    public PipelineState? GetOrCreatePlaceholderPipelineState(int vertexStride, BatchStateCacheCallback callback)
     {
         if (!_placeholderCache.TryGetValue(vertexStride, out var entry) || entry is null)
         {
-            entry = callback.CreateBatchPipelineStatePlaceholder(vertexStride, _outputDesc!);
+            entry = callback.CreateBatchPipelineStatePlaceholder(vertexStride, _outputDesc!.Value);
             _placeholderCache[vertexStride] = entry;
         }
         return entry?.IsValid == true ? entry : null;

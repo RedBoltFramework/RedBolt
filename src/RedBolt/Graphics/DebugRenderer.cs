@@ -714,7 +714,7 @@ public class DebugRenderer : Component
                 PixelShader = graphics.GetShader(ShaderType.PS, "v2/X_Basic", "VERTEXCOLOR "),
                 DebugName = $"DebugRenderer for {debugName}"
             };
-            GraphicsUtils.InitializeInputLayout(desc.InputLayout, [_vertexBuffer.GetVertexBuffer()]);
+            GraphicsUtils.InitializeInputLayout(ref desc.InputLayout, [_vertexBuffer.GetVertexBuffer()]);
             return _pipelineStates.CreateState(desc);
         }
 

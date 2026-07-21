@@ -425,7 +425,7 @@ public class DrawCommandQueue
 
         var renderPool = renderContext.GetRenderPool();
         var deviceContext = renderContext.GetHandle()!;
-        var stats = renderContext.GetMutableStats();
+        ref var stats = ref renderContext.GetMutableStats();
 
         var backend = renderContext.GetRenderDevice().GetBackend();
         var caps = renderContext.GetRenderDevice().GetCaps();
@@ -646,8 +646,8 @@ public class DrawCommandQueue
 
                     deviceContext.DrawIndexed(drawAttrs);
 
-                    stats.NumDraws += 1u;
-                    stats.NumPrimitives += drawAttrs.NumIndices * drawAttrs.NumInstances;
+                    stats.NumDraws += 1;
+                    stats.NumPrimitives += checked((int)(drawAttrs.NumIndices * drawAttrs.NumInstances));
                 }
                 else
                 {
@@ -662,8 +662,8 @@ public class DrawCommandQueue
 
                     deviceContext.Draw(drawAttrs);
 
-                    stats.NumDraws += 1u;
-                    stats.NumPrimitives += drawAttrs.NumVertices * drawAttrs.NumInstances;
+                    stats.NumDraws += 1;
+                    stats.NumPrimitives += checked((int)(drawAttrs.NumVertices * drawAttrs.NumInstances));
                 }
             }
             else if (currentPipelineState.GetPipelineType() == PipelineStateType.Compute)
@@ -676,7 +676,7 @@ public class DrawCommandQueue
                 };
                 deviceContext.DispatchCompute(dispatchAttrs);
 
-                stats.NumDispatches += 1u;
+                stats.NumDispatches += 1;
             }
         }
     }

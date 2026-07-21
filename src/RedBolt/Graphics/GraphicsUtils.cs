@@ -26,35 +26,35 @@ public static class GraphicsUtils
 
     }
 
-    public static void InitializeInputLayout(InputLayoutDesc desc, ReadOnlySpan<VertexBuffer?> vertexBuffers)
+    public static void InitializeInputLayout(ref InputLayoutDesc desc, ReadOnlySpan<VertexBuffer?> vertexBuffers)
     {
-        Span<InputLayoutElementDesc> layoutElements = stackalloc InputLayoutElementDesc[(int)RenderApiLimits.MaxNumVertexElements];
-        uint size = 0;
+        Span<InputLayoutElementDesc> layoutElements = stackalloc InputLayoutElementDesc[RenderApiLimits.MaxNumVertexElements];
+        var size = 0;
 
-        for (uint bufferIndex = 0; bufferIndex < RenderApiLimits.MaxVertexStreams && bufferIndex < vertexBuffers.Length; ++bufferIndex)
+        for (var bufferIndex = 0; bufferIndex < RenderApiLimits.MaxVertexStreams && bufferIndex < vertexBuffers.Length; ++bufferIndex)
         {
             VertexBuffer? vertexBuffer = vertexBuffers[(int)bufferIndex];
             if (vertexBuffer is null)
                 continue;
 
             var elements = vertexBuffer.GetElements();
-            var numElements = Math.Min(elements.Count, checked((int)(RenderApiLimits.MaxNumVertexElements - size)));
+            var numElements = Math.Min(elements.Count, RenderApiLimits.MaxNumVertexElements - size);
             if (numElements > 0)
             {
                 for (var i = 0; i < numElements; ++i)
                 {
                     VertexElement vertexElement = elements[i];
-                    layoutElements[checked((int)size) + i] = new InputLayoutElementDesc(
+                    layoutElements[size + i] = new InputLayoutElementDesc(
                         bufferIndex,
-                        vertexBuffer.GetVertexSize(),
-                        vertexElement.Offset,
-                        vertexElement.StepRate,
+                        checked((int)vertexBuffer.GetVertexSize()),
+                        checked((int)vertexElement.Offset),
+                        checked((int)vertexElement.StepRate),
                         vertexElement.Type,
                         vertexElement.Semantic,
                         vertexElement.Index);
                 }
 
-                size += (uint)numElements;
+                size += numElements;
             }
 
             if (elements.Count != numElements)
@@ -64,18 +64,19 @@ public static class GraphicsUtils
             }
         }
 
-        desc.SetElements(layoutElements[..checked((int)size)]);
+        desc.Size = size;
+        layoutElements[..size].CopyTo(desc.Elements);
     }
 
     public static void InitializeInputLayoutAndPrimitiveType(
-        GraphicsPipelineStateDesc desc, Geometry geometry, VertexBuffer? instancingBuffer = null)
+        ref GraphicsPipelineStateDesc desc, Geometry geometry, VertexBuffer? instancingBuffer = null)
     {
         var vertexBuffers = ArrayPool<VertexBuffer?>.Shared.Rent((int)RenderApiLimits.MaxVertexStreams);
         try
         {
             var vertexBufferSpan = vertexBuffers.AsSpan(0, (int)RenderApiLimits.MaxVertexStreams);
             ToVertexBufferArray(geometry, instancingBuffer, vertexBufferSpan);
-            InitializeInputLayout(desc.InputLayout, vertexBufferSpan);
+            InitializeInputLayout(ref desc.InputLayout, vertexBufferSpan);
             desc.PrimitiveType = geometry.GetPrimitiveType();
         }
         finally

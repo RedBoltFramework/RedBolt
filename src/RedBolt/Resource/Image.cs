@@ -578,11 +578,11 @@ public sealed class Image : Resource
         {
             return Components switch
             {
-                1 => TextureFormat.R8,
-                2 => TextureFormat.RG8,
-                3 => TextureFormat.Unknown,
-                4 => TextureFormat.RGBA8,
-                _ => TextureFormat.Unknown
+                1 => TextureFormat.TexFormatR8Unorm,
+                2 => TextureFormat.TexFormatRg8Unorm,
+                3 => TextureFormat.TexFormatUnknown,
+                4 => TextureFormat.TexFormatRgba8Unorm,
+                _ => TextureFormat.TexFormatUnknown
             };
         }
 
@@ -591,7 +591,7 @@ public sealed class Image : Resource
             || compressedFormat == EmulatedTextureFormat.PvrtcRgba2Bpp
             || compressedFormat == EmulatedTextureFormat.PvrtcRgb4Bpp
             || compressedFormat == EmulatedTextureFormat.PvrtcRgba4Bpp
-                ? TextureFormat.Unknown
+                ? TextureFormat.TexFormatUnknown
                 : compressedFormat;
     }
 
@@ -611,19 +611,19 @@ public sealed class Image : Resource
 
     public TextureFormat GetCompressedFormat() => _compressedFormat switch
     {
-        CompressedFormat.None => TextureFormat.Unknown,
-        CompressedFormat.Rgba => TextureFormat.RGBA8,
-        CompressedFormat.Dxt1 => TextureFormat.BC1,
-        CompressedFormat.Dxt3 => TextureFormat.BC2,
-        CompressedFormat.Dxt5 => TextureFormat.BC3,
-        CompressedFormat.Etc1 => TextureFormat.ETC2Rgb8,
-        CompressedFormat.Etc2Rgb => TextureFormat.ETC2Rgb8,
-        CompressedFormat.Etc2Rgba => TextureFormat.ETC2Rgba8,
+        CompressedFormat.None => TextureFormat.TexFormatUnknown,
+        CompressedFormat.Rgba => TextureFormat.TexFormatRgba8Unorm,
+        CompressedFormat.Dxt1 => TextureFormat.TexFormatBc1Unorm,
+        CompressedFormat.Dxt3 => TextureFormat.TexFormatBc2Unorm,
+        CompressedFormat.Dxt5 => TextureFormat.TexFormatBc3Unorm,
+        CompressedFormat.Etc1 => TextureFormat.TexFormatEtc2Rgb8Unorm,
+        CompressedFormat.Etc2Rgb => TextureFormat.TexFormatEtc2Rgb8Unorm,
+        CompressedFormat.Etc2Rgba => TextureFormat.TexFormatEtc2Rgba8Unorm,
         CompressedFormat.PvrtcRgb2Bpp => EmulatedTextureFormat.PvrtcRgb2Bpp,
         CompressedFormat.PvrtcRgba2Bpp => EmulatedTextureFormat.PvrtcRgba2Bpp,
         CompressedFormat.PvrtcRgb4Bpp => EmulatedTextureFormat.PvrtcRgb4Bpp,
         CompressedFormat.PvrtcRgba4Bpp => EmulatedTextureFormat.PvrtcRgba4Bpp,
-        _ => TextureFormat.Unknown
+        _ => TextureFormat.TexFormatUnknown
     };
 
     public bool IsCubemap() => Cubemap;

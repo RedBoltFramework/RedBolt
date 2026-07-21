@@ -644,7 +644,7 @@ public sealed class Renderer : Object
 
         _blackCubeMap = new TextureCube("BlackCubeMap");
         _blackCubeMap.SetNumLevels(1);
-        _blackCubeMap.SetSize(1, TextureFormat.RGBA8);
+        _blackCubeMap.SetSize(1, TextureFormat.TexFormatRgba8Unorm);
         _blackCubeMap.SetFilterMode(TextureFilterMode.Nearest);
         var blackCubeMapData = new byte[] { 0, 0, 0, 255 };
         for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; ++face)

@@ -17,7 +17,7 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
     private readonly ShaderProgramCompositor _compositor;
 
     /// <summary>Re-used objects.</summary>
-    private readonly GraphicsPipelineStateDesc _pipelineStateDesc = new();
+    private GraphicsPipelineStateDesc _pipelineStateDesc = new();
     private readonly ShaderProgramDesc _shaderProgramDesc = new();
 
     public PipelineStateBuilder(SceneProcessor? sceneProcessor, CameraProcessor? cameraProcessor,
@@ -63,9 +63,7 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
 
         ClearState();
 
-        _pipelineStateDesc.Output.DepthStencilFormat = outputDesc.DepthStencilFormat;
-        _pipelineStateDesc.Output.MultiSample = outputDesc.MultiSample;
-        _pipelineStateDesc.Output.SetRenderTargetFormats(outputDesc.RenderTargetFormats);
+        _pipelineStateDesc.Output = outputDesc;
 
         if (isShadowPass)
         {
@@ -77,8 +75,8 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
             SetupShadowPassState(ctx.ShadowSplitIndex, key.PixelLight, key.Material, key.Pass);
 
             SetupSamplersForUserOrShadowPass(key.Material, false, false, false);
-            SetupInputLayoutAndPrimitiveType(_pipelineStateDesc, _shaderProgramDesc, key.Geometry, false);
-            SetupShaders(_pipelineStateDesc, _shaderProgramDesc);
+            SetupInputLayoutAndPrimitiveType(ref _pipelineStateDesc, _shaderProgramDesc, key.Geometry, false);
+            SetupShaders(ref _pipelineStateDesc, _shaderProgramDesc);
         }
         else if (isLightVolumePass)
         {
@@ -91,15 +89,15 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
 
             SetupLightSamplers(key.PixelLight);
             SetupGeometryBufferSamplers();
-            SetupInputLayoutAndPrimitiveType(_pipelineStateDesc, _shaderProgramDesc, key.Geometry, false);
-            SetupShaders(_pipelineStateDesc, _shaderProgramDesc);
+            SetupInputLayoutAndPrimitiveType(ref _pipelineStateDesc, _shaderProgramDesc, key.Geometry, false);
+            SetupShaders(ref _pipelineStateDesc, _shaderProgramDesc);
 
             _pipelineStateDesc.ReadOnlyDepth = true;
         }
         else if (batchCompositorPass is not null
                  && batchCompositorPass.IsFlagSet(DrawableProcessorPassFlag.PipelineStateCallback))
         {
-            batchCompositorPass.CreatePipelineState(_pipelineStateDesc, this, key, ctx);
+            batchCompositorPass.CreatePipelineState(ref _pipelineStateDesc, this, key, ctx);
         }
         else if (batchCompositorPass is not null)
         {
@@ -133,15 +131,15 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
 
             SetupLightSamplers(key.PixelLight);
             SetupSamplersForUserOrShadowPass(key.Material, hasLightmap, hasAmbient, isRefractionPass);
-            SetupInputLayoutAndPrimitiveType(_pipelineStateDesc, _shaderProgramDesc, key.Geometry, isStereoPass);
-            SetupShaders(_pipelineStateDesc, _shaderProgramDesc);
+            SetupInputLayoutAndPrimitiveType(ref _pipelineStateDesc, _shaderProgramDesc, key.Geometry, isStereoPass);
+            SetupShaders(ref _pipelineStateDesc, _shaderProgramDesc);
         }
 
         return _pipelineStateCache.GetGraphicsPipelineState(_pipelineStateDesc);
     }
 
     public PipelineState? CreateBatchPipelineStatePlaceholder(
-        uint vertexStride, PipelineStateOutputDesc outputDesc)
+        int vertexStride, PipelineStateOutputDesc outputDesc)
     {
         if (_graphics is null || _pipelineStateCache is null)
             return null;
@@ -154,21 +152,17 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
             DepthCompareFunction = CompareMode.Always
         };
 
-        desc.InputLayout.SetElements(
-        [
-            new InputLayoutElementDesc(
-                0,
-                vertexStride,
-                0,
-                0,
-                VertexElementType.Vector3,
-                VertexElementSemantic.Position,
-                0)
-        ]);
+        desc.InputLayout.Size = 1;
+        desc.InputLayout.Elements[0] = new InputLayoutElementDesc(
+            0,
+            vertexStride,
+            0,
+            0,
+            VertexElementType.Vector3,
+            VertexElementSemantic.Position,
+            0);
 
-        desc.Output.DepthStencilFormat = outputDesc.DepthStencilFormat;
-        desc.Output.MultiSample = outputDesc.MultiSample;
-        desc.Output.SetRenderTargetFormats(outputDesc.RenderTargetFormats);
+        desc.Output = outputDesc;
 
         desc.VertexShader = _graphics.GetShader(ShaderType.VS, "v2/X_PlaceholderShader", string.Empty);
         desc.PixelShader = _graphics.GetShader(ShaderType.PS, "v2/X_PlaceholderShader", string.Empty);
@@ -177,37 +171,35 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
     }
 
     /// <summary>Helpers for passes that override pipeline state creation.</summary>
-    public void SetupInputLayoutAndPrimitiveType(GraphicsPipelineStateDesc pipelineStateDesc,
+    public void SetupInputLayoutAndPrimitiveType(ref GraphicsPipelineStateDesc pipelineStateDesc,
         ShaderProgramDesc shaderProgramDesc, Geometry geometry, bool isStereoPass)
     {
         if (shaderProgramDesc.IsInstancingUsed)
         {
-            GraphicsUtils.InitializeInputLayoutAndPrimitiveType(pipelineStateDesc, geometry,
+            GraphicsUtils.InitializeInputLayoutAndPrimitiveType(ref pipelineStateDesc, geometry,
                 _instancingBuffer?.VertexBuffer);
 
             if (isStereoPass)
             {
                 // Patch step rates for stereo rendering.
                 // TODO: Do we want to have something nicer?
-                var elements = pipelineStateDesc.InputLayout.Elements.ToArray();
-                for (var i = 0; i < elements.Length; ++i)
+                for (var i = 0; i < pipelineStateDesc.InputLayout.Size; ++i)
                 {
-                    if (elements[i].InstanceStepRate != 0)
+                    if (pipelineStateDesc.InputLayout.Elements[i].InstanceStepRate != 0)
                     {
-                        elements[i] = elements[i] with { InstanceStepRate = 2 };
+                        pipelineStateDesc.InputLayout.Elements[i] =
+                            pipelineStateDesc.InputLayout.Elements[i] with { InstanceStepRate = 2 };
                     }
                 }
-
-                pipelineStateDesc.InputLayout.SetElements(elements);
             }
         }
         else
         {
-            GraphicsUtils.InitializeInputLayoutAndPrimitiveType(pipelineStateDesc, geometry);
+            GraphicsUtils.InitializeInputLayoutAndPrimitiveType(ref pipelineStateDesc, geometry);
         }
     }
 
-    public void SetupShaders(GraphicsPipelineStateDesc pipelineStateDesc, ShaderProgramDesc shaderProgramDesc)
+    public void SetupShaders(ref GraphicsPipelineStateDesc pipelineStateDesc, ShaderProgramDesc shaderProgramDesc)
     {
         if (_graphics is null)
             return;
@@ -247,10 +239,10 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
         _pipelineStateDesc.StencilOperationOnDepthFailed = default;
         _pipelineStateDesc.StencilCompareMask = 0;
         _pipelineStateDesc.StencilWriteMask = 0;
-        _pipelineStateDesc.InputLayout.Clear();
+        _pipelineStateDesc.InputLayout = default;
         _pipelineStateDesc.PrimitiveType = default;
-        _pipelineStateDesc.Output.ClearRenderTargetFormats();
-        _pipelineStateDesc.Output.DepthStencilFormat = TextureFormat.Unknown;
+        _pipelineStateDesc.Output.NumRenderTargets = 0;
+        _pipelineStateDesc.Output.DepthStencilFormat = TextureFormat.TexFormatUnknown;
         _pipelineStateDesc.Output.MultiSample = 1;
         _pipelineStateDesc.Samplers.Clear();
         _pipelineStateDesc.ReadOnlyDepth = false;

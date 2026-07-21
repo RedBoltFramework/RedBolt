@@ -76,15 +76,18 @@ public sealed class PipelineStateCacheTests
             VertexShader = vertexShader,
             PixelShader = pixelShader
         };
-        first.InputLayout.SetElements(
-            new InputLayoutElementDesc(0, 32, 0, 0, VertexElementType.Vector3, VertexElementSemantic.Position, 0),
-            new InputLayoutElementDesc(0, 32, 12, 0, VertexElementType.Vector3, VertexElementSemantic.Normal, 0));
-        first.Output.DepthStencilFormat = TextureFormat.Depth32;
+        first.InputLayout.Size = 2;
+        first.InputLayout.Elements[0] = new InputLayoutElementDesc(
+            0, 32, 0, 0, VertexElementType.Vector3, VertexElementSemantic.Position, 0);
+        first.InputLayout.Elements[1] = new InputLayoutElementDesc(
+            0, 32, 12, 0, VertexElementType.Vector3, VertexElementSemantic.Normal, 0);
+        first.Output.DepthStencilFormat = TextureFormat.TexFormatD32Float;
         first.Output.MultiSample = 4;
-        first.Output.SetRenderTargetFormats(TextureFormat.RGBA8);
-        first.Samplers.Add(new NamedSamplerStateDesc(new StringHash("sAlbedo"), SamplerStateDesc.Trilinear()));
+        first.Output.NumRenderTargets = 1;
+        first.Output.RenderTargetFormats[0] = TextureFormat.TexFormatRgba8Unorm;
+        first.Samplers.Add(new StringHash("sAlbedo"), SamplerStateDesc.Trilinear());
 
-        var second = new GraphicsPipelineStateDesc(first);
+        var second = first;
 
         Assert.True(first.IsInitialized());
         Assert.Equal(first, second);
@@ -101,24 +104,28 @@ public sealed class PipelineStateCacheTests
             VertexShader = CreateRawShader(ShaderType.VS),
             PixelShader = CreateRawShader(ShaderType.PS)
         };
-        graphicsDesc.InputLayout.SetElements(
-            new InputLayoutElementDesc(0, 16, 0, 0, VertexElementType.Vector4, VertexElementSemantic.Position, 0));
-        graphicsDesc.Output.DepthStencilFormat = TextureFormat.Depth24Stencil8;
-        graphicsDesc.Output.SetRenderTargetFormats(TextureFormat.RGBA8);
-        graphicsDesc.Samplers.Add(new NamedSamplerStateDesc(new StringHash("Sampler"), SamplerStateDesc.Bilinear()));
+        graphicsDesc.InputLayout.Size = 1;
+        graphicsDesc.InputLayout.Elements[0] = new InputLayoutElementDesc(
+            0, 16, 0, 0, VertexElementType.Vector4, VertexElementSemantic.Position, 0);
+        graphicsDesc.Output.DepthStencilFormat = TextureFormat.TexFormatD24UnormS8Uint;
+        graphicsDesc.Output.NumRenderTargets = 1;
+        graphicsDesc.Output.RenderTargetFormats[0] = TextureFormat.TexFormatRgba8Unorm;
+        graphicsDesc.Samplers.Add(new StringHash("Sampler"), SamplerStateDesc.Bilinear());
 
         var desc = new PipelineStateDesc(graphicsDesc);
         var clonedGraphics = desc.AsGraphics();
 
         Assert.NotNull(clonedGraphics);
 
-        graphicsDesc.InputLayout.Clear();
-        graphicsDesc.Output.ClearRenderTargetFormats();
+        graphicsDesc.InputLayout = default;
+        graphicsDesc.Output.NumRenderTargets = 0;
         graphicsDesc.Samplers.Clear();
 
-        Assert.Single(clonedGraphics!.InputLayout.Elements.ToArray());
-        Assert.Single(clonedGraphics.Output.RenderTargetFormats.ToArray());
-        Assert.Equal<uint>(1u, clonedGraphics.Samplers.Size);
+        Assert.True(clonedGraphics.HasValue);
+        var cloned = clonedGraphics.Value;
+        Assert.Equal(1, cloned.InputLayout.Size);
+        Assert.Equal(1, cloned.Output.NumRenderTargets);
+        Assert.Equal(1, cloned.Samplers.Size);
     }
 
     [Fact]
@@ -130,9 +137,10 @@ public sealed class PipelineStateCacheTests
             VertexShader = CreateRawShader(ShaderType.VS),
             PixelShader = CreateRawShader(ShaderType.PS)
         };
-        first.Output.SetRenderTargetFormats(TextureFormat.RGBA8);
+        first.Output.NumRenderTargets = 1;
+        first.Output.RenderTargetFormats[0] = TextureFormat.TexFormatRgba8Unorm;
 
-        var second = new GraphicsPipelineStateDesc(first);
+        var second = first;
 
         var firstState = _fixture.PipelineStateCache.GetGraphicsPipelineState(first);
         var secondState = _fixture.PipelineStateCache.GetGraphicsPipelineState(second);
@@ -161,7 +169,8 @@ public sealed class PipelineStateCacheTests
             VertexShader = CreateRawShader(ShaderType.VS),
             PixelShader = CreateRawShader(ShaderType.PS)
         };
-        desc.Output.SetRenderTargetFormats(TextureFormat.RGBA8);
+        desc.Output.NumRenderTargets = 1;
+        desc.Output.RenderTargetFormats[0] = TextureFormat.TexFormatRgba8Unorm;
 
         var state = _fixture.PipelineStateCache.GetGraphicsPipelineState(desc);
 
@@ -179,7 +188,8 @@ public sealed class PipelineStateCacheTests
             VertexShader = CreateRawShader(ShaderType.VS),
             PixelShader = CreateRawShader(ShaderType.PS)
         };
-        desc.Output.SetRenderTargetFormats(TextureFormat.RGBA8);
+        desc.Output.NumRenderTargets = 1;
+        desc.Output.RenderTargetFormats[0] = TextureFormat.TexFormatRgba8Unorm;
 
         var firstState = _fixture.PipelineStateCache.GetGraphicsPipelineState(desc);
         Assert.NotNull(firstState);
@@ -213,9 +223,11 @@ public sealed class PipelineStateCacheTests
                 VertexShader = new TestRawShader(_fixture.Graphics.GetShader(ShaderType.VS, "X_CopyTexture")!.GetBytecode()),
                 PixelShader = _fixture.Graphics.GetShader(ShaderType.PS, "X_CopyTexture")
             };
-            desc.InputLayout.SetElements(new InputLayoutElementDesc(
-                0u, 12u, 0u, 0u, VertexElementType.Vector3, VertexElementSemantic.Position, 0));
-            desc.Output.SetRenderTargetFormats(TextureFormat.RGBA8);
+            desc.InputLayout.Size = 1;
+            desc.InputLayout.Elements[0] = new InputLayoutElementDesc(
+                0, 12, 0, 0, VertexElementType.Vector3, VertexElementSemantic.Position, 0);
+            desc.Output.NumRenderTargets = 1;
+            desc.Output.RenderTargetFormats[0] = TextureFormat.TexFormatRgba8Unorm;
             desc.Samplers.Add(new StringHash("Albedo"), SamplerStateDesc.Trilinear());
 
             var state = _fixture.PipelineStateCache.GetGraphicsPipelineState(desc);

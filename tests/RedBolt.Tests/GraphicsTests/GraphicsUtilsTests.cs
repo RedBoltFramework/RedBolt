@@ -15,12 +15,12 @@ public sealed class GraphicsUtilsTests
         });
 
         var desc = new InputLayoutDesc();
-        GraphicsUtils.InitializeInputLayout(desc, new VertexBuffer?[] { vertexBuffer, null });
+        GraphicsUtils.InitializeInputLayout(ref desc, new VertexBuffer?[] { vertexBuffer, null });
 
-        Assert.Equal(2u, desc.Size);
-        Assert.Equal(new InputLayoutElementDesc(0, vertexBuffer.GetVertexSize(), 0, 0,
+        Assert.Equal(2, desc.Size);
+        Assert.Equal(new InputLayoutElementDesc(0, checked((int)vertexBuffer.GetVertexSize()), 0, 0,
             VertexElementType.Vector3, VertexElementSemantic.Position, 0), desc.Elements[0]);
-        Assert.Equal(new InputLayoutElementDesc(0, vertexBuffer.GetVertexSize(), 12, 0,
+        Assert.Equal(new InputLayoutElementDesc(0, checked((int)vertexBuffer.GetVertexSize()), 12, 0,
             VertexElementType.Vector2, VertexElementSemantic.TexCoord, 0), desc.Elements[1]);
     }
 
@@ -38,11 +38,11 @@ public sealed class GraphicsUtilsTests
         Assert.True(geometry.SetDrawRange(PrimitiveType.LineList, 0, 0, 0, 3));
 
         var desc = new GraphicsPipelineStateDesc();
-        GraphicsUtils.InitializeInputLayoutAndPrimitiveType(desc, geometry);
+        GraphicsUtils.InitializeInputLayoutAndPrimitiveType(ref desc, geometry);
 
         Assert.Equal(PrimitiveType.LineList, desc.PrimitiveType);
-        Assert.Equal(1u, desc.InputLayout.Size);
-        Assert.Equal(new InputLayoutElementDesc(0, vertexBuffer.GetVertexSize(), 0, 0,
+        Assert.Equal(1, desc.InputLayout.Size);
+        Assert.Equal(new InputLayoutElementDesc(0, checked((int)vertexBuffer.GetVertexSize()), 0, 0,
             VertexElementType.Vector3, VertexElementSemantic.Position, 0), desc.InputLayout.Elements[0]);
     }
 
@@ -66,11 +66,11 @@ public sealed class GraphicsUtilsTests
         Assert.True(geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 0, 0, 3));
 
         var desc = new GraphicsPipelineStateDesc();
-        GraphicsUtils.InitializeInputLayoutAndPrimitiveType(desc, geometry, instancingBuffer);
+        GraphicsUtils.InitializeInputLayoutAndPrimitiveType(ref desc, geometry, instancingBuffer);
 
-        Assert.Equal(2u, desc.InputLayout.Size);
-        Assert.Equal(1u, desc.InputLayout.Elements[1].BufferIndex);
-        Assert.Equal(1u, desc.InputLayout.Elements[1].InstanceStepRate);
+        Assert.Equal(2, desc.InputLayout.Size);
+        Assert.Equal(1, desc.InputLayout.Elements[1].BufferIndex);
+        Assert.Equal(1, desc.InputLayout.Elements[1].InstanceStepRate);
     }
 
     [Fact]
@@ -78,6 +78,6 @@ public sealed class GraphicsUtilsTests
     {
         var inputLayout = new InputLayoutDesc();
 
-        GraphicsUtils.InitializeInputLayout(inputLayout, ReadOnlySpan<VertexBuffer?>.Empty);
+        GraphicsUtils.InitializeInputLayout(ref inputLayout, ReadOnlySpan<VertexBuffer?>.Empty);
     }
 }

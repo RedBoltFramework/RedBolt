@@ -218,7 +218,7 @@ public class CubemapRenderer : Object
     public static void DefineTexture(TextureCube texture, CubemapRenderingSettings settings,
         TextureFlag flags = TextureFlag.None)
     {
-        texture.SetSize((int)settings.TextureSize, TextureFormat.RGBA8, flags | TextureFlag.BindRenderTarget);
+        texture.SetSize((int)settings.TextureSize, TextureFormat.TexFormatRgba8Unorm, flags | TextureFlag.BindRenderTarget);
         texture.SetFilterMode(TextureFilterMode.Trilinear);
     }
 

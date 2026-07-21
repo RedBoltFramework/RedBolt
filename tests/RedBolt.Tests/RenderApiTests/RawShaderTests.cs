@@ -89,9 +89,9 @@ public sealed class RawShaderTests
             DebugName = "ComputeRawShader",
             ComputeShader = new RawShader(bytecode)
         };
-        first.Samplers.Add(new NamedSamplerStateDesc(new StringHash("sCompute"), SamplerStateDesc.Bilinear()));
+        first.Samplers.Add(new StringHash("sCompute"), SamplerStateDesc.Bilinear());
 
-        var second = new ComputePipelineStateDesc(first);
+        var second = first;
 
         Assert.True(first.IsInitialized());
         Assert.Equal(first, second);
@@ -117,7 +117,7 @@ public sealed class RawShaderTests
             Assert.Equal(ShaderType.VS, bytecode.Type);
             Assert.Equal("application/glsl", bytecode.Mime);
             if (bytecode.VertexAttributes.Count == 0
-                && _fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4) <= 1)
+                && _fixture.Graphics.GetSupportedMultiSample(TextureFormat.TexFormatRgba8Unorm, 4) <= 1)
                 return;
             Assert.Contains(bytecode.VertexAttributes, attribute => attribute.Semantic == VertexElementSemantic.Position);
             Assert.Empty(pixelShader.GetBytecode().VertexAttributes);
@@ -145,7 +145,7 @@ public sealed class RawShaderTests
                 BlendMode.Replace,
                 "v2/X_CopyFramebuffer",
                 string.Empty,
-                [new NamedSamplerStateDesc(new StringHash("Albedo"), SamplerStateDesc.Bilinear())]);
+                [new NamedSamplerStateDesc("Albedo", SamplerStateDesc.Bilinear())]);
             var pipelineState = renderBufferManager.GetQuadPipelineState(pipelineStateId);
             Assert.NotNull(pipelineState);
             Assert.True(pipelineState!.IsValid);

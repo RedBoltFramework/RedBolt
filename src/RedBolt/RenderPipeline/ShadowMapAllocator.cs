@@ -71,7 +71,7 @@ public sealed class ShadowMapAllocator : Object
 
     public ShadowMapRegion AllocateShadowMap(Vector2i size)
     {
-        if (_settings.ShadowAtlasPageSize == 0 || _shadowMapFormat == TextureFormat.Unknown)
+        if (_settings.ShadowAtlasPageSize == 0 || _shadowMapFormat == TextureFormat.TexFormatUnknown)
             return default;
 
         size = new Vector2i(Math.Min(size.X, _shadowAtlasSize.X), Math.Min(size.Y, _shadowAtlasSize.Y));
@@ -117,14 +117,15 @@ public sealed class ShadowMapAllocator : Object
         if (_settings.EnableVarianceShadowMaps)
         {
             // C++: TextureFormat::TEX_FORMAT_RG32_FLOAT (managed port lacks RG32F; RG16F is existing mapping).
-            _shadowMapFormat = TextureFormat.RG16F;
+            _shadowMapFormat = TextureFormat.TexFormatRg16Float;
             _shadowMapOutputDesc.DepthStencilFormat = _renderDevice.GetDefaultDepthFormat();
-            _shadowMapOutputDesc.SetRenderTargetFormat(_shadowMapFormat);
-            _shadowMapOutputDesc.MultiSample = (uint)_settings.VarianceShadowMapMultiSample;
+            _shadowMapOutputDesc.NumRenderTargets = 1;
+            _shadowMapOutputDesc.RenderTargetFormats[0] = _shadowMapFormat;
+            _shadowMapOutputDesc.MultiSample = _settings.VarianceShadowMapMultiSample;
         }
         else
         {
-            _shadowMapFormat = _settings.Use16BitShadowMaps ? TextureFormat.Depth16 : _renderDevice.GetDefaultDepthFormat();
+            _shadowMapFormat = _settings.Use16BitShadowMaps ? TextureFormat.TexFormatD16Unorm : _renderDevice.GetDefaultDepthFormat();
             _shadowMapOutputDesc.DepthStencilFormat = _shadowMapFormat;
             _shadowMapOutputDesc.MultiSample = 1;
         }

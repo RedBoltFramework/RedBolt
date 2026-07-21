@@ -126,7 +126,7 @@ layout(std140) uniform Material
     private global::RedBolt.Bindings.Diligent.TextureFormat _currentDepthTargetFormat;
     private global::RedBolt.Bindings.Diligent.TextureFormat _swapChainColorFormat;
     private global::RedBolt.Bindings.Diligent.TextureFormat _swapChainDepthFormat;
-    private readonly PipelineStateOutputDesc _currentOutputDesc = new();
+    private PipelineStateOutputDesc _currentOutputDesc = new();
     private IntRect _currentViewport;
     private Vector2i _currentRenderTargetSize;
     private bool _isSwapChainRenderTarget;
@@ -254,8 +254,6 @@ layout(std140) uniform Material
     /// </summary>
     public bool SetScreenMode(WindowSettings windowSettings)
     {
-        ArgumentNullException.ThrowIfNull(windowSettings);
-
         var renderDevice = GetSubsystem<RenderDevice>();
         if (renderDevice is null)
             return false;
@@ -304,11 +302,8 @@ layout(std140) uniform Material
     /// </summary>
     public bool SetWindowModes(WindowSettings primarySettings, WindowSettings secondarySettings)
     {
-        ArgumentNullException.ThrowIfNull(primarySettings);
-        ArgumentNullException.ThrowIfNull(secondarySettings);
-
-        _primaryWindowSettings = CloneWindowSettings(primarySettings);
-        _secondaryWindowSettings = CloneWindowSettings(secondarySettings);
+        _primaryWindowSettings = primarySettings;
+        _secondaryWindowSettings = secondarySettings;
         return SetScreenMode(_primaryWindowSettings);
     }
 
@@ -317,10 +312,8 @@ layout(std140) uniform Material
     /// </summary>
     public bool SetDefaultWindowModes(WindowSettings commonSettings)
     {
-        ArgumentNullException.ThrowIfNull(commonSettings);
-
-        var primaryWindowSettings = CloneWindowSettings(commonSettings);
-        var secondaryWindowSettings = CloneWindowSettings(commonSettings);
+        var primaryWindowSettings = commonSettings;
+        var secondaryWindowSettings = commonSettings;
         secondaryWindowSettings.Size = Vector2i.Zero;
         secondaryWindowSettings.Mode = primaryWindowSettings.Mode == WindowMode.Windowed
             ? WindowMode.Borderless
@@ -561,23 +554,6 @@ layout(std140) uniform Material
         SendEvent(ref windowPosEvent);
     }
 
-    private static WindowSettings CloneWindowSettings(WindowSettings settings)
-    {
-        return new WindowSettings
-        {
-            Mode = settings.Mode,
-            Size = settings.Size,
-            Title = settings.Title,
-            Resizable = settings.Resizable,
-            Monitor = settings.Monitor,
-            VSync = settings.VSync,
-            RefreshRate = settings.RefreshRate,
-            MultiSample = settings.MultiSample,
-            SRgb = settings.SRgb,
-            Orientations = [.. settings.Orientations]
-        };
-    }
-
     public int GetMultiSample() => GetWindowSettings().MultiSample;
 
     public bool GetFullscreen() => GetWindowSettings().Mode == WindowMode.Fullscreen;
@@ -723,9 +699,9 @@ layout(std140) uniform Material
 
     public bool IsRenderTargetFormatSupported(TextureFormat format)
     {
-        return format is TextureFormat.Depth32 or TextureFormat.Depth24Stencil8
-            or TextureFormat.R8 or TextureFormat.RG16F or TextureFormat.RGB8 or TextureFormat.RGBA8
-            or TextureFormat.RGBA16F or TextureFormat.RGBA32F;
+        return format is TextureFormat.TexFormatD32Float or TextureFormat.TexFormatD24UnormS8Uint
+            or TextureFormat.TexFormatR8Unorm or TextureFormat.TexFormatRg16Float or TextureFormat.TexFormatRgba8Unorm or TextureFormat.TexFormatRgba8Unorm
+            or TextureFormat.TexFormatRgba16Float or TextureFormat.TexFormatRgba32Float;
     }
 
     public ShaderVariation? GetShader(ShaderType type, string name, string defines = "")
@@ -871,17 +847,17 @@ layout(std140) uniform Material
     /// <summary>
     /// Return dummy color texture format for shadow maps.
     /// </summary>
-    public TextureFormat GetDummyColorFormat() => TextureFormat.Unknown;
+    public TextureFormat GetDummyColorFormat() => TextureFormat.TexFormatUnknown;
 
     /// <summary>
     /// Return shadow map depth texture format.
     /// </summary>
-    public TextureFormat GetShadowMapFormat() => TextureFormat.Unknown;
+    public TextureFormat GetShadowMapFormat() => TextureFormat.TexFormatUnknown;
 
     /// <summary>
     /// Return 24-bit shadow map depth texture format.
     /// </summary>
-    public TextureFormat GetHiresShadowMapFormat() => TextureFormat.Unknown;
+    public TextureFormat GetHiresShadowMapFormat() => TextureFormat.TexFormatUnknown;
 
     /// <summary>
     /// Return whether hardware instancing is supported.
@@ -907,7 +883,7 @@ layout(std140) uniform Material
         var multiSample = GetSwapChainMultiSample();
         var linearColorSpace = TextureFormatUtility.IsFloatColorFormat(colorFormat) || colorIsSrgb;
         var hdr = TextureFormatUtility.IsFloatColorFormat(colorFormat);
-        var hasStencil = depthFormat == TextureFormat.Depth24Stencil8;
+        var hasStencil = depthFormat == TextureFormat.TexFormatD24UnormS8Uint;
 
         if (_swapChainOutputTarget is not null
             && _swapChainOutputTarget.FullViewportRect == fullRect
@@ -945,67 +921,68 @@ layout(std140) uniform Material
     /// </summary>
     internal TextureFormat GetSwapChainColorTextureFormat(out bool isSrgb)
     {
-        var format = UnmapPipelineTextureFormat(GetSwapChainColorFormat());
-        isSrgb = format is TextureFormat.RGBA8Srgb or TextureFormat.BGRA8Srgb;
+        var format = GetSwapChainColorFormat();
+        isSrgb = format is TextureFormat.TexFormatRgba8UnormSrgb or TextureFormat.TexFormatBgra8UnormSrgb;
         return format;
     }
 
     internal TextureFormat GetSwapChainDepthTextureFormat()
-        => UnmapTextureFormat(GetSwapChainDepthFormat(), out _);
+        => GetSwapChainDepthFormat();
 
     internal int GetSwapChainMultiSample()
         => Math.Max(_configuredMultiSample, 1);
 
     private static void CopyBackendDeviceSettings(EngineVkCreateInfo createInfo, RenderDeviceSettingsVulkan settings)
     {
-        if (settings.MainDescriptorPoolSize is not null)
+        if (settings.MainDescriptorPoolSize is { } mainDescriptorPoolSize)
         {
-            createInfo.MainDescriptorPoolSizeMaxDescriptorSets = settings.MainDescriptorPoolSize.MaxDescriptorSets;
-            createInfo.MainDescriptorPoolSizeNumSeparateSamplerDescriptors = settings.MainDescriptorPoolSize.NumSeparateSamplerDescriptors;
-            createInfo.MainDescriptorPoolSizeNumCombinedSamplerDescriptors = settings.MainDescriptorPoolSize.NumCombinedSamplerDescriptors;
-            createInfo.MainDescriptorPoolSizeNumSampledImageDescriptors = settings.MainDescriptorPoolSize.NumSampledImageDescriptors;
-            createInfo.MainDescriptorPoolSizeNumStorageImageDescriptors = settings.MainDescriptorPoolSize.NumStorageImageDescriptors;
-            createInfo.MainDescriptorPoolSizeNumUniformBufferDescriptors = settings.MainDescriptorPoolSize.NumUniformBufferDescriptors;
-            createInfo.MainDescriptorPoolSizeNumStorageBufferDescriptors = settings.MainDescriptorPoolSize.NumStorageBufferDescriptors;
-            createInfo.MainDescriptorPoolSizeNumUniformTexelBufferDescriptors = settings.MainDescriptorPoolSize.NumUniformTexelBufferDescriptors;
-            createInfo.MainDescriptorPoolSizeNumStorageTexelBufferDescriptors = settings.MainDescriptorPoolSize.NumStorageTexelBufferDescriptors;
-            createInfo.MainDescriptorPoolSizeNumInputAttachmentDescriptors = settings.MainDescriptorPoolSize.NumInputAttachmentDescriptors;
-            createInfo.MainDescriptorPoolSizeNumAccelStructDescriptors = settings.MainDescriptorPoolSize.NumAccelStructDescriptors;
+            createInfo.MainDescriptorPoolSizeMaxDescriptorSets = checked((uint)mainDescriptorPoolSize.MaxDescriptorSets);
+            createInfo.MainDescriptorPoolSizeNumSeparateSamplerDescriptors = checked((uint)mainDescriptorPoolSize.NumSeparateSamplerDescriptors);
+            createInfo.MainDescriptorPoolSizeNumCombinedSamplerDescriptors = checked((uint)mainDescriptorPoolSize.NumCombinedSamplerDescriptors);
+            createInfo.MainDescriptorPoolSizeNumSampledImageDescriptors = checked((uint)mainDescriptorPoolSize.NumSampledImageDescriptors);
+            createInfo.MainDescriptorPoolSizeNumStorageImageDescriptors = checked((uint)mainDescriptorPoolSize.NumStorageImageDescriptors);
+            createInfo.MainDescriptorPoolSizeNumUniformBufferDescriptors = checked((uint)mainDescriptorPoolSize.NumUniformBufferDescriptors);
+            createInfo.MainDescriptorPoolSizeNumStorageBufferDescriptors = checked((uint)mainDescriptorPoolSize.NumStorageBufferDescriptors);
+            createInfo.MainDescriptorPoolSizeNumUniformTexelBufferDescriptors = checked((uint)mainDescriptorPoolSize.NumUniformTexelBufferDescriptors);
+            createInfo.MainDescriptorPoolSizeNumStorageTexelBufferDescriptors = checked((uint)mainDescriptorPoolSize.NumStorageTexelBufferDescriptors);
+            createInfo.MainDescriptorPoolSizeNumInputAttachmentDescriptors = checked((uint)mainDescriptorPoolSize.NumInputAttachmentDescriptors);
+            createInfo.MainDescriptorPoolSizeNumAccelStructDescriptors = checked((uint)mainDescriptorPoolSize.NumAccelStructDescriptors);
         }
-        if (settings.DynamicDescriptorPoolSize is not null)
+        if (settings.DynamicDescriptorPoolSize is { } dynamicDescriptorPoolSize)
         {
-            createInfo.DynamicDescriptorPoolSizeMaxDescriptorSets = settings.DynamicDescriptorPoolSize.MaxDescriptorSets;
-            createInfo.DynamicDescriptorPoolSizeNumSeparateSamplerDescriptors = settings.DynamicDescriptorPoolSize.NumSeparateSamplerDescriptors;
-            createInfo.DynamicDescriptorPoolSizeNumCombinedSamplerDescriptors = settings.DynamicDescriptorPoolSize.NumCombinedSamplerDescriptors;
-            createInfo.DynamicDescriptorPoolSizeNumSampledImageDescriptors = settings.DynamicDescriptorPoolSize.NumSampledImageDescriptors;
-            createInfo.DynamicDescriptorPoolSizeNumStorageImageDescriptors = settings.DynamicDescriptorPoolSize.NumStorageImageDescriptors;
-            createInfo.DynamicDescriptorPoolSizeNumUniformBufferDescriptors = settings.DynamicDescriptorPoolSize.NumUniformBufferDescriptors;
-            createInfo.DynamicDescriptorPoolSizeNumStorageBufferDescriptors = settings.DynamicDescriptorPoolSize.NumStorageBufferDescriptors;
-            createInfo.DynamicDescriptorPoolSizeNumUniformTexelBufferDescriptors = settings.DynamicDescriptorPoolSize.NumUniformTexelBufferDescriptors;
-            createInfo.DynamicDescriptorPoolSizeNumStorageTexelBufferDescriptors = settings.DynamicDescriptorPoolSize.NumStorageTexelBufferDescriptors;
-            createInfo.DynamicDescriptorPoolSizeNumInputAttachmentDescriptors = settings.DynamicDescriptorPoolSize.NumInputAttachmentDescriptors;
-            createInfo.DynamicDescriptorPoolSizeNumAccelStructDescriptors = settings.DynamicDescriptorPoolSize.NumAccelStructDescriptors;
+            createInfo.DynamicDescriptorPoolSizeMaxDescriptorSets = checked((uint)dynamicDescriptorPoolSize.MaxDescriptorSets);
+            createInfo.DynamicDescriptorPoolSizeNumSeparateSamplerDescriptors = checked((uint)dynamicDescriptorPoolSize.NumSeparateSamplerDescriptors);
+            createInfo.DynamicDescriptorPoolSizeNumCombinedSamplerDescriptors = checked((uint)dynamicDescriptorPoolSize.NumCombinedSamplerDescriptors);
+            createInfo.DynamicDescriptorPoolSizeNumSampledImageDescriptors = checked((uint)dynamicDescriptorPoolSize.NumSampledImageDescriptors);
+            createInfo.DynamicDescriptorPoolSizeNumStorageImageDescriptors = checked((uint)dynamicDescriptorPoolSize.NumStorageImageDescriptors);
+            createInfo.DynamicDescriptorPoolSizeNumUniformBufferDescriptors = checked((uint)dynamicDescriptorPoolSize.NumUniformBufferDescriptors);
+            createInfo.DynamicDescriptorPoolSizeNumStorageBufferDescriptors = checked((uint)dynamicDescriptorPoolSize.NumStorageBufferDescriptors);
+            createInfo.DynamicDescriptorPoolSizeNumUniformTexelBufferDescriptors = checked((uint)dynamicDescriptorPoolSize.NumUniformTexelBufferDescriptors);
+            createInfo.DynamicDescriptorPoolSizeNumStorageTexelBufferDescriptors = checked((uint)dynamicDescriptorPoolSize.NumStorageTexelBufferDescriptors);
+            createInfo.DynamicDescriptorPoolSizeNumInputAttachmentDescriptors = checked((uint)dynamicDescriptorPoolSize.NumInputAttachmentDescriptors);
+            createInfo.DynamicDescriptorPoolSizeNumAccelStructDescriptors = checked((uint)dynamicDescriptorPoolSize.NumAccelStructDescriptors);
         }
         if (settings.DeviceLocalMemoryPageSize.HasValue)
-            createInfo.DeviceLocalMemoryPageSize = settings.DeviceLocalMemoryPageSize.Value;
+            createInfo.DeviceLocalMemoryPageSize = checked((uint)settings.DeviceLocalMemoryPageSize.Value);
         if (settings.HostVisibleMemoryPageSize.HasValue)
-            createInfo.HostVisibleMemoryPageSize = settings.HostVisibleMemoryPageSize.Value;
+            createInfo.HostVisibleMemoryPageSize = checked((uint)settings.HostVisibleMemoryPageSize.Value);
         if (settings.DeviceLocalMemoryReserveSize.HasValue)
-            createInfo.DeviceLocalMemoryReserveSize = settings.DeviceLocalMemoryReserveSize.Value;
+            createInfo.DeviceLocalMemoryReserveSize = checked((uint)settings.DeviceLocalMemoryReserveSize.Value);
         if (settings.HostVisibleMemoryReserveSize.HasValue)
-            createInfo.HostVisibleMemoryReserveSize = settings.HostVisibleMemoryReserveSize.Value;
+            createInfo.HostVisibleMemoryReserveSize = checked((uint)settings.HostVisibleMemoryReserveSize.Value);
         if (settings.UploadHeapPageSize.HasValue)
-            createInfo.UploadHeapPageSize = settings.UploadHeapPageSize.Value;
+            createInfo.UploadHeapPageSize = checked((uint)settings.UploadHeapPageSize.Value);
         if (settings.DynamicHeapSize.HasValue)
-            createInfo.DynamicHeapSize = settings.DynamicHeapSize.Value;
+            createInfo.DynamicHeapSize = checked((uint)settings.DynamicHeapSize.Value);
         if (settings.DynamicHeapPageSize.HasValue)
-            createInfo.DynamicHeapPageSize = settings.DynamicHeapPageSize.Value;
+            createInfo.DynamicHeapPageSize = checked((uint)settings.DynamicHeapPageSize.Value);
 
         var queryPoolSizes = createInfo.QueryPoolSizes;
-        for (var i = 1; i < settings.QueryPoolSizes.Length; ++i)
+        for (var i = 1; i < (int)QueryType.QueryTypeNumTypes; ++i)
         {
-            if (settings.QueryPoolSizes[i].HasValue)
-                queryPoolSizes[i] = settings.QueryPoolSizes[i]!.Value;
+            var size = settings.QueryPoolSizes[i];
+            if (size.HasValue)
+                queryPoolSizes[i] = checked((uint)size.Value);
         }
     }
 
@@ -1147,7 +1124,7 @@ layout(std140) uniform Material
                 createInfo.FeaturesWaveOp = DeviceFeatureState.DeviceFeatureStateOptional;
                 createInfo.FeaturesWireframeFill = DeviceFeatureState.DeviceFeatureStateOptional;
                 if (deviceSettings.AdapterId.HasValue)
-                    createInfo.AdapterId = deviceSettings.AdapterId.Value;
+                    createInfo.AdapterId = checked((uint)deviceSettings.AdapterId.Value);
                 var factoryVulkan = DiligentNativeBindings.GetEngineFactoryVk();
                 if (factoryVulkan.IsNull)
                     throw new InvalidOperationException("Generated GetEngineFactoryVk binding returned a null factory.");
@@ -1531,8 +1508,8 @@ layout(std140) uniform Material
         _currentViewport = default;
         _currentRenderTargetSize = default;
         _isSwapChainRenderTarget = false;
-        _currentOutputDesc.ClearRenderTargetFormats();
-        _currentOutputDesc.DepthStencilFormat = TextureFormat.Unknown;
+        _currentOutputDesc.NumRenderTargets = 0;
+        _currentOutputDesc.DepthStencilFormat = TextureFormat.TexFormatUnknown;
         _currentOutputDesc.MultiSample = 1;
     }
 
@@ -3100,7 +3077,7 @@ layout(std140) uniform Material
     private static Texture2D CreateFallbackTexture(string name, ReadOnlySpan<byte> rgbaPixels)
     {
         var texture = new Texture2D(name);
-        texture.SetSize(1, 1, TextureFormat.RGBA8);
+        texture.SetSize(1, 1, TextureFormat.TexFormatRgba8Unorm);
         texture.SetData(0, 0, 0, 1, 1, rgbaPixels);
         return texture;
     }
@@ -3165,7 +3142,7 @@ layout(std140) uniform Material
         textureDesc.Height = (uint)texture.Height;
         textureDesc.ArraySize = 1;
         textureDesc.SampleCount = (uint)texture.MultiSample;
-        textureDesc.Format = MapTextureFormat(texture);
+        textureDesc.Format = texture.Format;
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
 
@@ -3181,9 +3158,9 @@ layout(std140) uniform Material
             throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
         var (resolvedTexture, shaderView) = CreateResolvedTextureAndShaderView(texture, textureDesc);
-        shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format, texture.SRGB);
-        var targetView = IsDepthTextureFormat(texture.Format) ? null : GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewRenderTarget, texture.Format, texture.SRGB);
-        var depthView = IsDepthTextureFormat(texture.Format) ? GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewDepthStencil, texture.Format, texture.SRGB) : null;
+        shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format);
+        var targetView = IsDepthTextureFormat(texture.Format) ? null : GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewRenderTarget, texture.Format);
+        var depthView = IsDepthTextureFormat(texture.Format) ? GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewDepthStencil, texture.Format) : null;
         var readOnlyDepthView = IsDepthTextureFormat(texture.Format) && depthView is not null
             ? GetReadOnlyDepthTextureView(gpuTexture, depthView)
             : null;
@@ -3222,7 +3199,7 @@ layout(std140) uniform Material
         textureDesc.Height = (uint)texture.Height;
         textureDesc.ArraySize = 6;
         textureDesc.SampleCount = (uint)texture.MultiSample;
-        textureDesc.Format = MapTextureFormat(texture);
+        textureDesc.Format = texture.Format;
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
 
@@ -3238,7 +3215,7 @@ layout(std140) uniform Material
             throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
         var (resolvedTexture, shaderView) = CreateResolvedTextureAndShaderView(texture, textureDesc);
-        shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format, texture.SRGB);
+        shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format);
         uploaded = new UploadedTexture(texture, gpuTexture, shaderView, null, null, null, resolvedTexture,
             supportsUnorderedAccess: bindUnorderedAccess);
         _uploadedTextures[texture] = uploaded;
@@ -3274,7 +3251,7 @@ layout(std140) uniform Material
         textureDesc.Height = (uint)texture.Height;
         textureDesc.ArraySize = checked((uint)texture.Layers);
         textureDesc.SampleCount = (uint)texture.MultiSample;
-        textureDesc.Format = MapTextureFormat(texture);
+        textureDesc.Format = texture.Format;
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
 
@@ -3290,7 +3267,7 @@ layout(std140) uniform Material
             throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
         var (resolvedTexture, shaderView) = CreateResolvedTextureAndShaderView(texture, textureDesc);
-        shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format, texture.SRGB);
+        shaderView ??= GetDefaultTextureView(gpuTexture, TextureViewType.TextureViewShaderResource, texture.Format);
         uploaded = new UploadedTexture(texture, gpuTexture, shaderView, null, null, null, resolvedTexture,
             supportsUnorderedAccess: bindUnorderedAccess);
         _uploadedTextures[texture] = uploaded;
@@ -3341,16 +3318,16 @@ layout(std140) uniform Material
         if (resolvedTexture.IsNull)
             throw new InvalidOperationException($"Failed to create resolved GPU texture for {texture.Name}.");
 
-        var shaderView = GetDefaultTextureView(resolvedTexture, TextureViewType.TextureViewShaderResource, texture.Format, texture.SRGB);
+        var shaderView = GetDefaultTextureView(resolvedTexture, TextureViewType.TextureViewShaderResource, texture.Format);
         return (resolvedTexture, shaderView);
     }
 
-    private ITextureView GetDefaultTextureView(ITexture texture, TextureViewType viewType, TextureFormat format, bool sRgb = false)
+    private ITextureView GetDefaultTextureView(ITexture texture, TextureViewType viewType, TextureFormat format)
     {
         using var textureViewDescOwner = CreateTextureViewDesc();
         var textureViewDesc = textureViewDescOwner.Desc;
         textureViewDesc.ViewType = viewType;
-        textureViewDesc.Format = MapTextureFormat(format, sRgb);
+        textureViewDesc.Format = format;
         if (viewType == TextureViewType.TextureViewShaderResource)
         {
             using var textureDesc = texture.GetDesc();
@@ -3406,7 +3383,7 @@ layout(std140) uniform Material
 
         using var resolveAttribsOwner = CreateResolveTextureSubresourceAttribs();
         var resolveAttribs = resolveAttribsOwner.Attribs;
-        resolveAttribs.Format = MapTextureFormat(texture);
+        resolveAttribs.Format = texture.Format;
         resolveAttribs.SrcTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition;
         resolveAttribs.DstTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition;
         for (var slice = 0u; slice < GetArraySizeOrDepth(texture); ++slice)
@@ -3523,7 +3500,7 @@ layout(std140) uniform Material
         var textureViewDesc = textureViewDescOwner.Desc;
         textureViewDesc.ViewType = viewType;
         textureViewDesc.TextureDim = ResourceDimension.ResourceDimTex2d;
-        textureViewDesc.Format = MapTextureFormat(texture.Format, texture.SRGB);
+        textureViewDesc.Format = texture.Format;
         textureViewDesc.MostDetailedMip = 0;
         textureViewDesc.NumMipLevels = 1;
         textureViewDesc.FirstArraySlice = slice;
@@ -3565,7 +3542,7 @@ layout(std140) uniform Material
         if (view.GetRawTexture() is { } rawTexture)
         {
             var parameters = rawTexture.GetParams();
-            return MapTextureFormat(parameters.Format, parameters.SRGB);
+            return parameters.Format;
         }
         if (view.RenderTexture is not { } texture)
             return 0;
@@ -3608,43 +3585,6 @@ layout(std140) uniform Material
         return desc.DepthBufferFormat;
     }
 
-    internal static global::RedBolt.Bindings.Diligent.TextureFormat MapTextureFormat(TextureFormat format, bool sRgb = false)
-    {
-        var nativeFormat = format switch
-        {
-            TextureFormat.Depth16 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm,
-            TextureFormat.Depth32 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float,
-            TextureFormat.Depth24Stencil8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint,
-            TextureFormat.Depth32Stencil8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8x24Uint,
-            TextureFormat.R8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatR8Unorm,
-            TextureFormat.RG8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg8Unorm,
-            TextureFormat.RG16F => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg16Float,
-            TextureFormat.RGB8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
-            TextureFormat.RGBA8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
-            TextureFormat.RGBA8Srgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb,
-            TextureFormat.BGRA8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm,
-            TextureFormat.BGRA8Srgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb,
-            TextureFormat.BGRX8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgrx8Unorm,
-            TextureFormat.RGBA16F => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba16Float,
-            TextureFormat.RGBA32F => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba32Float,
-            TextureFormat.BC1 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc1Unorm,
-            TextureFormat.BC1Srgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc1UnormSrgb,
-            TextureFormat.BC2 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc2Unorm,
-            TextureFormat.BC2Srgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc2UnormSrgb,
-            TextureFormat.BC3 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3Unorm,
-            TextureFormat.BC3Srgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3UnormSrgb,
-            TextureFormat.ETC2Rgb8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8Unorm,
-            TextureFormat.ETC2Rgb8Srgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8UnormSrgb,
-            TextureFormat.ETC2Rgba8 => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgba8Unorm,
-            TextureFormat.ETC2Rgba8Srgb => global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgba8UnormSrgb,
-            _ => default
-        };
-        return sRgb ? RenderAPIUtils.SetTextureFormatSRGB(nativeFormat) : nativeFormat;
-    }
-
-    private static global::RedBolt.Bindings.Diligent.TextureFormat MapTextureFormat(Texture texture)
-        => MapTextureFormat(texture.Format, texture.SRGB);
-
     private Vector2i ResolveRenderTargetSize(ReadOnlySpan<RenderTargetView> colorTargets, RenderTargetView? depthStencilTarget, IntRect viewportRect)
     {
         if ((colorTargets.Length != 0 && colorTargets[0].IsSwapChain) || depthStencilTarget?.IsSwapChain == true)
@@ -3662,21 +3602,22 @@ layout(std140) uniform Material
 
     private void UpdateCurrentOutputDesc(ReadOnlySpan<RenderTargetView> colorTargets, RenderTargetView? depthStencilTarget)
     {
-        _currentOutputDesc.ClearRenderTargetFormats();
+        _currentOutputDesc.NumRenderTargets = 0;
         Span<TextureFormat> formats = stackalloc TextureFormat[colorTargets.Length];
         for (var i = 0; i < colorTargets.Length; ++i)
-            formats[i] = UnmapPipelineTextureFormat(ResolveColorTargetFormat(colorTargets[i]));
-        _currentOutputDesc.SetRenderTargetFormats(formats);
+            formats[i] = ResolveColorTargetFormat(colorTargets[i]);
+        _currentOutputDesc.NumRenderTargets = formats.Length;
+        formats.CopyTo(_currentOutputDesc.RenderTargetFormats);
 
         global::RedBolt.Bindings.Diligent.TextureFormat depthFormat = 0;
         if (depthStencilTarget is { } depthView)
         {
             depthFormat = ResolveDepthTargetFormat(depthView);
-            _currentOutputDesc.DepthStencilFormat = UnmapTextureFormat(depthFormat, out _);
+            _currentOutputDesc.DepthStencilFormat = depthFormat;
         }
         else
-            _currentOutputDesc.DepthStencilFormat = TextureFormat.Unknown;
-        _currentOutputDesc.MultiSample = (uint)Math.Max(
+            _currentOutputDesc.DepthStencilFormat = TextureFormat.TexFormatUnknown;
+        _currentOutputDesc.MultiSample = Math.Max(
             (colorTargets.Length != 0 ? colorTargets[0].GetMultiSample() : (int?)null)
             ?? depthStencilTarget?.GetMultiSample()
             ?? Math.Max(_configuredMultiSample, 1), 1);
@@ -3694,65 +3635,12 @@ layout(std140) uniform Material
         immediateContext.SetViewports(1, viewport, 0, 0);
     }
 
-    internal static TextureFormat UnmapTextureFormat(global::RedBolt.Bindings.Diligent.TextureFormat format, out bool isSrgb)
-    {
-        isSrgb = false;
-        return format switch
-        {
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm => TextureFormat.Depth16,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float => TextureFormat.Depth32,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint => TextureFormat.Depth24Stencil8,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8x24Uint => TextureFormat.Depth32Stencil8,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatR8Unorm => TextureFormat.R8,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg8Unorm => TextureFormat.RG8,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg16Float => TextureFormat.RG16F,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm => TextureFormat.BGRA8,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb => MarkSrgb(TextureFormat.BGRA8, out isSrgb),
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgrx8Unorm => TextureFormat.BGRX8,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm => TextureFormat.RGBA8,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb => MarkSrgb(TextureFormat.RGBA8, out isSrgb),
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba16Float => TextureFormat.RGBA16F,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba32Float => TextureFormat.RGBA32F,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc1Unorm => TextureFormat.BC1,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc1UnormSrgb => MarkSrgb(TextureFormat.BC1, out isSrgb),
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc2Unorm => TextureFormat.BC2,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc2UnormSrgb => MarkSrgb(TextureFormat.BC2, out isSrgb),
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3Unorm => TextureFormat.BC3,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3UnormSrgb => MarkSrgb(TextureFormat.BC3, out isSrgb),
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8Unorm => TextureFormat.ETC2Rgb8,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8UnormSrgb => MarkSrgb(TextureFormat.ETC2Rgb8, out isSrgb),
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgba8Unorm => TextureFormat.ETC2Rgba8,
-            global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgba8UnormSrgb => MarkSrgb(TextureFormat.ETC2Rgba8, out isSrgb),
-            _ => TextureFormat.Unknown
-        };
-    }
-
-    internal static TextureFormat UnmapPipelineTextureFormat(global::RedBolt.Bindings.Diligent.TextureFormat format) => format switch
-    {
-        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm => TextureFormat.BGRA8,
-        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb => TextureFormat.BGRA8Srgb,
-        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgrx8Unorm => TextureFormat.BGRX8,
-        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb => TextureFormat.RGBA8Srgb,
-        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc1UnormSrgb => TextureFormat.BC1Srgb,
-        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc2UnormSrgb => TextureFormat.BC2Srgb,
-        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatBc3UnormSrgb => TextureFormat.BC3Srgb,
-        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgb8UnormSrgb => TextureFormat.ETC2Rgb8Srgb,
-        global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatEtc2Rgba8UnormSrgb => TextureFormat.ETC2Rgba8Srgb,
-        _ => UnmapTextureFormat(format, out _)
-    };
-
-    private static TextureFormat MarkSrgb(TextureFormat format, out bool isSrgb)
-    {
-        isSrgb = true;
-        return format;
-    }
-
     private static bool IsDepthTextureFormat(TextureFormat format)
         => RenderAPIUtils.IsDepthTextureFormat(format);
 
     private static bool UploadedTextureMatches(Texture texture, UploadedTexture uploaded, bool requireUnorderedAccess = false)
     {
-        var expectedFormat = MapTextureFormat(texture.Format);
+        var expectedFormat = texture.Format;
         if (expectedFormat == 0)
             return false;
         var expectedFlags = texture.GetRawTexture()?.GetParams().Flags ?? TextureFlag.None;
@@ -5433,7 +5321,7 @@ layout(std140) uniform Material
             Height = (uint)sourceTexture.Height;
             ArraySizeOrDepth = GetArraySizeOrDepth(sourceTexture);
             SampleCount = (uint)sourceTexture.MultiSample;
-            Format = MapTextureFormat(sourceTexture.Format);
+            Format = sourceTexture.Format;
             MipLevels = GetUploadedMipLevels(sourceTexture);
             SupportsUnorderedAccess = supportsUnorderedAccess;
             _ownsResources = ownsResources;

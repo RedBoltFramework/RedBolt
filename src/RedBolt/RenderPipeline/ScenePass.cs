@@ -216,7 +216,7 @@ public class BackToFrontScenePass : ScenePass
             {
                 // Assume refraction if blending is disabled
                 var graphicsDesc = sortedBatch.PipelineBatch?.PipelineState?.GetDesc().AsGraphics();
-                if (graphicsDesc is not null && graphicsDesc.BlendMode == BlendMode.Replace)
+                if (graphicsDesc is { } graphics && graphics.BlendMode == BlendMode.Replace)
                 {
                     _hasRefractionBatches = true;
                     break;

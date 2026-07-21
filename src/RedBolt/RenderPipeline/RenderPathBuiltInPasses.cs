@@ -138,7 +138,7 @@ public sealed class FullScreenShaderPass : RenderPass
         {
             _debugComment = $"Apply shader \"{_shaderName}\"({_shaderDefines})";
             IReadOnlyList<NamedSamplerStateDesc> samplers = _needReadWriteColorOutput
-                ? [new NamedSamplerStateDesc(new StringHash("Albedo"), SamplerStateDesc.Bilinear())]
+                ? [new NamedSamplerStateDesc("Albedo", SamplerStateDesc.Bilinear())]
                 : Array.Empty<NamedSamplerStateDesc>();
             _pipelineStateId = renderBufferManager.CreateQuadPipelineState(
                 _blendMode, _shaderName, _shaderDefines, samplers);
@@ -245,7 +245,7 @@ public sealed class ToneMappingPass : RenderPass
     private const string ModeMetadataName = "Tone Mapping: Mode@";
     private static readonly StringVector ModeMetadata = ["None", "Reinhard", "ReinhardWhite", "Uncharted2"];
     private static readonly NamedSamplerStateDesc[] Samplers =
-        [new NamedSamplerStateDesc(new StringHash("Albedo"), SamplerStateDesc.Bilinear())];
+        [new NamedSamplerStateDesc("Albedo", SamplerStateDesc.Bilinear())];
     private static readonly ShaderResourceDesc[] EmptyResources = [];
     private static readonly ShaderParameterDesc[] EmptyParameters = [];
     private StaticPipelineStateId? _pipelineState;
@@ -533,13 +533,13 @@ public sealed class AutoExposurePass : RenderPass
 
         _cachedBuffers ??= new CachedBuffers
         {
-            Color128 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RGBA16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(128, 128)),
-            Lum64 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(64, 64)),
-            Lum16 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(16, 16)),
-            Lum4 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(4, 4)),
-            Lum1 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.FixedTextureSize), new Vector2f(1, 1)),
-            AdaptedLuminance = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.FixedTextureSize | RenderBufferFlag.Persistent), new Vector2f(1, 1)),
-            PreviousAdaptedLuminance = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RG16F, 1, RenderBufferFlag.FixedTextureSize), new Vector2f(1, 1))
+            Color128 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRgba16Float, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(128, 128)),
+            Lum64 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(64, 64)),
+            Lum16 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(16, 16)),
+            Lum4 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(4, 4)),
+            Lum1 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.FixedTextureSize), new Vector2f(1, 1)),
+            AdaptedLuminance = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.FixedTextureSize | RenderBufferFlag.Persistent), new Vector2f(1, 1)),
+            PreviousAdaptedLuminance = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.FixedTextureSize), new Vector2f(1, 1))
         };
         return _cachedBuffers;
     }
@@ -793,7 +793,7 @@ public sealed class BloomPass : RenderPass
 
         for (var i = 0; i < _currentParameters.NumIterations; ++i)
         {
-            var format = _isHdr ? TextureFormat.RGBA16F : TextureFormat.RGBA8;
+            var format = _isHdr ? TextureFormat.TexFormatRgba16Float : TextureFormat.TexFormatRgba8Unorm;
             var bufferParams = new RenderBufferParams(format, 1, RenderBufferFlag.BilinearFiltering);
             var sizeMultiplier = Vector2f.One / (1 << i);
             _textures.Add(new TextureCache
@@ -1142,7 +1142,7 @@ public sealed class AmbientOcclusionPass : RenderPass
 
             var resourceCache = GetSubsystem<ResourceCache>();
         var sizeMultiplier = Vector2f.One / (1 << _currentParameters.Downscale);
-        var bufferParams = new RenderBufferParams(TextureFormat.RGBA8, 1, RenderBufferFlag.BilinearFiltering);
+        var bufferParams = new RenderBufferParams(TextureFormat.TexFormatRgba8Unorm, 1, RenderBufferFlag.BilinearFiltering);
         _textures = new TextureCache
         {
             Noise = resourceCache?.GetResourceOrNull<Texture2D>("Textures/SSAONoise.png"),

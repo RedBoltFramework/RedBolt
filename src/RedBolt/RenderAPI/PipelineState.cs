@@ -250,8 +250,13 @@ public class PipelineState : DeviceObject
                         Log.GetLogger().LogWarning("Unknown vertex element semantic: {Name}", attributeName);
                 }
             }
-            if (desc.InputLayout.Size != 0u)
-                layout = new TemporaryLayoutArray(desc.InputLayout.Elements, vertexAttributes);
+            if (desc.InputLayout.Size != 0)
+            {
+                Span<InputLayoutElementDesc> elements = stackalloc InputLayoutElementDesc[desc.InputLayout.Size];
+                for (var i = 0; i < desc.InputLayout.Size; ++i)
+                    elements[i] = desc.InputLayout.Elements[i];
+                layout = new TemporaryLayoutArray(elements, vertexAttributes);
+            }
 
             var shaders = new RawShader?[] { desc.VertexShader, desc.PixelShader, desc.DomainShader, desc.HullShader, desc.GeometryShader };
             var reflection = isOpenGl && !hasSeparableShaderPrograms
@@ -269,7 +274,7 @@ public class PipelineState : DeviceObject
                 ResourceLayoutImmutableSamplers = samplers.First!,
                 ResourceLayoutNumImmutableSamplers = (uint)samplers.Count
             };
-            var depthBits = MapTextureFormat(desc.Output.DepthStencilFormat) ==
+            var depthBits = desc.Output.DepthStencilFormat ==
                 RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm ? 16 : 24;
             var scaledDepthBias = isOpenGl ? 0 : (int)(desc.ConstantDepthBias * (1 << depthBits));
             using var createInfo = new GraphicsPipelineStateCreateInfo
@@ -283,7 +288,7 @@ public class PipelineState : DeviceObject
                 GraphicsPipelineNumRenderTargets = (byte)desc.Output.NumRenderTargets,
                 GraphicsPipelineNumViewports = 1,
                 GraphicsPipelinePrimitiveTopology = ToNative(desc.PrimitiveType),
-                GraphicsPipelineDSVFormat = MapTextureFormat(desc.Output.DepthStencilFormat),
+                GraphicsPipelineDSVFormat = desc.Output.DepthStencilFormat,
                 GraphicsPipelineSmplDescCount = (byte)desc.Output.MultiSample,
                 GraphicsPipelineReadOnlyDSV = desc.ReadOnlyDepth,
                 GraphicsPipelineBlendDescAlphaToCoverageEnable = desc.AlphaToCoverageEnabled,
@@ -307,8 +312,8 @@ public class PipelineState : DeviceObject
                 createInfo.GraphicsPipelineInputLayoutLayoutElements = layout.First;
                 createInfo.GraphicsPipelineInputLayoutNumElements = (uint)layout.Count;
             }
-            for (var i = 0; i < (int)desc.Output.NumRenderTargets; ++i)
-                createInfo.GraphicsPipelineRTVFormats[i] = MapTextureFormat(desc.Output.RenderTargetFormats[i]);
+            for (var i = 0; i < desc.Output.NumRenderTargets; ++i)
+                createInfo.GraphicsPipelineRTVFormats[i] = desc.Output.RenderTargetFormats[i];
 
             ConfigureBlendState(createInfo, desc.BlendMode, desc.ColorWriteEnabled);
             ConfigureStencilState(createInfo, desc);
@@ -419,25 +424,6 @@ public class PipelineState : DeviceObject
         CullMode.Clockwise => RedBolt.Bindings.Diligent.CullMode.CullModeFront, _ => RedBolt.Bindings.Diligent.CullMode.CullModeUndefined
     };
 
-    private static RedBolt.Bindings.Diligent.TextureFormat MapTextureFormat(TextureFormat value) => value switch
-    {
-        TextureFormat.Depth16 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm,
-        TextureFormat.Depth32 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32Float,
-        TextureFormat.Depth32Stencil8 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8x24Uint,
-        TextureFormat.Depth24Stencil8 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint,
-        TextureFormat.R8 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatR8Unorm,
-        TextureFormat.RG16F => RedBolt.Bindings.Diligent.TextureFormat.TexFormatRg16Float,
-        TextureFormat.RGB8 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
-        TextureFormat.RGBA8 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
-        TextureFormat.RGBA8Srgb => RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb,
-        TextureFormat.BGRA8 => RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8Unorm,
-        TextureFormat.BGRA8Srgb => RedBolt.Bindings.Diligent.TextureFormat.TexFormatBgra8UnormSrgb,
-        TextureFormat.RGBA16F => RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba16Float,
-        TextureFormat.RGBA32F => RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba32Float,
-        TextureFormat.Unknown => RedBolt.Bindings.Diligent.TextureFormat.TexFormatUnknown,
-        _ => throw new ArgumentOutOfRangeException(nameof(value), value, null)
-    };
-
     private static (uint Components, RedBolt.Bindings.Diligent.ValueType Type, bool Normalized) GetElementType(VertexElementType type) => type switch
     {
         VertexElementType.Int => (1, RedBolt.Bindings.Diligent.ValueType.VtInt32, false), VertexElementType.Float => (1, RedBolt.Bindings.Diligent.ValueType.VtFloat32, false),
@@ -493,11 +479,11 @@ public class PipelineState : DeviceObject
                 var native = LayoutElement.CreateManagedWrapper(_memory + destinationIndex++ * elementSize, false);
                 var source = elements[i];
                 var type = GetElementType(source.ElementType);
-                native.HLSLSemantic = _semantic.Pointer; native.InputIndex = checked((uint)inputIndices[i]); native.BufferSlot = source.BufferIndex;
+                native.HLSLSemantic = _semantic.Pointer; native.InputIndex = checked((uint)inputIndices[i]); native.BufferSlot = checked((uint)source.BufferIndex);
                 native.NumComponents = type.Components; native.ValueType = type.Type; native.IsNormalized = type.Normalized;
-                native.RelativeOffset = source.ElementOffset; native.Stride = source.BufferStride;
+                native.RelativeOffset = checked((uint)source.ElementOffset); native.Stride = checked((uint)source.BufferStride);
                 native.Frequency = source.InstanceStepRate != 0 ? InputElementFrequency.InputElementFrequencyPerInstance : InputElementFrequency.InputElementFrequencyPerVertex;
-                native.InstanceDataStepRate = source.InstanceStepRate;
+                native.InstanceDataStepRate = checked((uint)source.InstanceStepRate);
             }
             First = LayoutElement.CreateManagedWrapper(_memory, false);
         }

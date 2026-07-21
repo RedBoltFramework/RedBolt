@@ -249,21 +249,21 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
         ArgumentNullException.ThrowIfNull(desc);
 
         var graphicsDesc = desc.AsGraphics();
-        if (graphicsDesc is not null)
+        if (graphicsDesc is { } graphics)
         {
             return new ShaderProgramReflection(
             [
-                graphicsDesc.VertexShader,
-                graphicsDesc.PixelShader,
-                graphicsDesc.GeometryShader,
-                graphicsDesc.HullShader,
-                graphicsDesc.DomainShader
+                graphics.VertexShader,
+                graphics.PixelShader,
+                graphics.GeometryShader,
+                graphics.HullShader,
+                graphics.DomainShader
             ]);
         }
 
         var computeDesc = desc.AsCompute();
-        return computeDesc is not null
-            ? new ShaderProgramReflection([computeDesc.ComputeShader])
+        return computeDesc is { } compute
+            ? new ShaderProgramReflection([compute.ComputeShader])
             : new ShaderProgramReflection();
     }
 

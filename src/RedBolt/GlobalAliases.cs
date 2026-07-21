@@ -9,3 +9,4 @@ global using FloatRange = RedBolt.NumericRange<float>;
 global using UintRange = RedBolt.NumericRange<uint>;
 global using IntVector2 = RedBolt.BaseIntegerVector2<int>;
 global using IntVector3 = RedBolt.BaseIntegerVector3<int>;
+global using TextureFormat = RedBolt.Bindings.Diligent.TextureFormat;

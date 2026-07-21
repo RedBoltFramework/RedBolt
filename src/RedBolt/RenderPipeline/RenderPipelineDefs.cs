@@ -129,10 +129,10 @@ internal static class RenderPipelineColorSpaceUtility
     {
         return colorSpace switch
         {
-            RenderPipelineColorSpace.GammaLDR => TextureFormat.RGBA8,
-            RenderPipelineColorSpace.LinearLDR => TextureFormat.RGBA8Srgb,
-            RenderPipelineColorSpace.LinearHDR => TextureFormat.RGBA16F,
-            _ => TextureFormat.RGBA8
+            RenderPipelineColorSpace.GammaLDR => TextureFormat.TexFormatRgba8Unorm,
+            RenderPipelineColorSpace.LinearLDR => TextureFormat.TexFormatRgba8UnormSrgb,
+            RenderPipelineColorSpace.LinearHDR => TextureFormat.TexFormatRgba16Float,
+            _ => TextureFormat.TexFormatRgba8Unorm
         };
     }
 }
@@ -379,7 +379,7 @@ public interface BatchStateCacheCallback
     /// Create placeholder pipeline state when actual pipeline state creation fails.
     /// </summary>
     PipelineState? CreateBatchPipelineStatePlaceholder(
-        uint vertexStride,
+        int vertexStride,
         PipelineStateOutputDesc outputDesc);
 }
 
@@ -600,7 +600,7 @@ public sealed class ShadowMapAllocatorSettings : IEquatable<ShadowMapAllocatorSe
 
     public bool Use16BitShadowMaps { get; set; }
 
-    public uint ShadowAtlasPageSize { get; set; } = 2048;
+    public int ShadowAtlasPageSize { get; set; } = 2048;
 
     public float DepthBiasScale { get; set; } = 1.0f;
 
@@ -619,7 +619,8 @@ public sealed class ShadowMapAllocatorSettings : IEquatable<ShadowMapAllocatorSe
     public void Validate()
     {
         VarianceShadowMapMultiSample = (int)Math.Clamp(MathDefs.ClosestPowerOfTwo((uint)Math.Max(VarianceShadowMapMultiSample, 1)), 1u, 16u);
-        ShadowAtlasPageSize = Math.Clamp(MathDefs.ClosestPowerOfTwo(ShadowAtlasPageSize), 128u, 16u * 1024u);
+        ShadowAtlasPageSize = checked((int)Math.Clamp(
+            MathDefs.ClosestPowerOfTwo(checked((uint)ShadowAtlasPageSize)), 128u, 16u * 1024u));
         DepthBiasScale = Math.Max(0.0f, DepthBiasScale);
     }
 
@@ -710,11 +711,11 @@ public sealed class SceneProcessorSettings : IEquatable<SceneProcessorSettings>
 
     public DirectLightingMode LightingMode { get; set; }
 
-    public uint DirectionalShadowSize { get; set; } = 1024;
+    public int DirectionalShadowSize { get; set; } = 1024;
 
-    public uint SpotShadowSize { get; set; } = 1024;
+    public int SpotShadowSize { get; set; } = 1024;
 
-    public uint PointShadowSize { get; set; } = 256;
+    public int PointShadowSize { get; set; } = 256;
 
     public bool IsDeferredLighting() => LightingMode is DirectLightingMode.DeferredBlinnPhong or DirectLightingMode.DeferredPBR;
 
@@ -744,9 +745,9 @@ public sealed class SceneProcessorSettings : IEquatable<SceneProcessorSettings>
             PcfKernelSize = 3;
 
         OcclusionBufferSize = Math.Clamp(OcclusionBufferSize, 1u, 16u * 1024u);
-        DirectionalShadowSize = MathDefs.ClosestPowerOfTwo(DirectionalShadowSize);
-        SpotShadowSize = MathDefs.ClosestPowerOfTwo(SpotShadowSize);
-        PointShadowSize = MathDefs.ClosestPowerOfTwo(PointShadowSize);
+        DirectionalShadowSize = checked((int)MathDefs.ClosestPowerOfTwo(checked((uint)DirectionalShadowSize)));
+        SpotShadowSize = checked((int)MathDefs.ClosestPowerOfTwo(checked((uint)SpotShadowSize)));
+        PointShadowSize = checked((int)MathDefs.ClosestPowerOfTwo(checked((uint)PointShadowSize)));
     }
 
     public bool Equals(SceneProcessorSettings? other)
@@ -891,10 +892,10 @@ public sealed class RenderPipelineSettings : ShaderProgramCompositorSettings, IE
         if (SceneProcessor.IsDeferredLighting() && !caps.ReadOnlyDepth)
             SceneProcessor.LightingMode = DirectLightingMode.Forward;
 
-        if (!graphics.IsRenderTargetFormatSupported(TextureFormat.RG16F))
+        if (!graphics.IsRenderTargetFormatSupported(TextureFormat.TexFormatRg16Float))
             ShadowMapAllocator.EnableVarianceShadowMaps = false;
 
-        ShadowMapAllocator.VarianceShadowMapMultiSample = graphics.GetSupportedMultiSample(TextureFormat.RG16F, ShadowMapAllocator.VarianceShadowMapMultiSample);
+        ShadowMapAllocator.VarianceShadowMapMultiSample = graphics.GetSupportedMultiSample(TextureFormat.TexFormatRg16Float, ShadowMapAllocator.VarianceShadowMapMultiSample);
         ShadowMapAllocator.ShadowAtlasPageSize = Math.Min(ShadowMapAllocator.ShadowAtlasPageSize, caps.MaxRenderTargetSize);
     }
 
@@ -951,6 +952,12 @@ public sealed class RenderPipelineSettings : ShaderProgramCompositorSettings, IE
 }
 
 /// <summary>
+/// Helper for pipeline state creation.
+/// Keep entire string because it should be used only on startup.
+/// </summary>
+public readonly record struct NamedSamplerStateDesc(string Name, SamplerStateDesc Desc);
+
+/// <summary>
 /// Reference to input shader resource. Only textures are supported now.
 /// </summary>
 public readonly record struct ShaderResourceDesc(StringHash Name, Texture? Texture);
@@ -964,7 +971,7 @@ public readonly record struct ShaderParameterDesc(StringHash Name, Variant Value
 public sealed class RenderOutputTargetInfo
 {
     public RenderOutputTargetInfo(RenderTargetView colorTarget, IntRect fullViewportRect, TextureFormat colorFormat,
-        RenderTargetView? depthStencilTarget = null, TextureFormat depthStencilFormat = TextureFormat.Unknown,
+        RenderTargetView? depthStencilTarget = null, TextureFormat depthStencilFormat = TextureFormat.TexFormatUnknown,
         int multiSample = 1, Texture? colorTexture = null, Texture? depthStencilTexture = null,
         bool bilinearFiltered = false, bool linearColorSpace = false, bool hdr = false,
         bool hasReadableDepth = false, bool hasStencil = false)
@@ -1010,7 +1017,7 @@ public sealed class RenderOutputTargetInfo
 
     public bool HasStencil { get; }
 
-    public bool HasDepthStencil => DepthStencilTarget is not null || DepthStencilFormat != TextureFormat.Unknown;
+    public bool HasDepthStencil => DepthStencilTarget is not null || DepthStencilFormat != TextureFormat.TexFormatUnknown;
 
     public static RenderOutputTargetInfo FromTexture(Texture colorTexture, IntRect fullViewportRect,
         Texture? depthStencilTexture = null, int multiSample = 0)
@@ -1023,7 +1030,7 @@ public sealed class RenderOutputTargetInfo
             fullViewportRect,
             colorTexture.Format,
             depthStencilTexture is not null ? RenderTargetView.Texture(depthStencilTexture) : null,
-            depthStencilTexture?.Format ?? TextureFormat.Unknown,
+            depthStencilTexture?.Format ?? TextureFormat.TexFormatUnknown,
             outputMultiSample,
             colorTexture,
             depthStencilTexture,
@@ -1031,7 +1038,7 @@ public sealed class RenderOutputTargetInfo
             linearColorSpace: colorTexture.GetLinear() || colorTexture.GetSRGB() || TextureFormatUtility.IsFloatColorFormat(colorTexture.Format),
             hdr: TextureFormatUtility.IsFloatColorFormat(colorTexture.Format),
             hasReadableDepth: depthStencilTexture is not null,
-            hasStencil: depthStencilTexture?.Format == TextureFormat.Depth24Stencil8);
+            hasStencil: depthStencilTexture?.Format == TextureFormat.TexFormatD24UnormS8Uint);
     }
 }
 

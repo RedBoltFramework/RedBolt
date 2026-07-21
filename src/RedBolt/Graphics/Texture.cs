@@ -4,41 +4,11 @@ using RedBolt.Bindings.Diligent;
 
 namespace RedBolt;
 
-public enum TextureFormat
-{
-    Unknown,
-    Depth16,
-    Depth32,
-    Depth24Stencil8,
-    Depth32Stencil8,
-    R8,
-    RG8,
-    RG16F,
-    RGB8,
-    RGBA8,
-    RGBA8Srgb,
-    BGRA8,
-    BGRA8Srgb,
-    BGRX8,
-    RGBA16F,
-    RGBA32F,
-    BC1,
-    BC1Srgb,
-    BC2,
-    BC2Srgb,
-    BC3,
-    BC3Srgb,
-    ETC2Rgb8,
-    ETC2Rgb8Srgb,
-    ETC2Rgba8,
-    ETC2Rgba8Srgb
-}
-
 internal static class TextureFormatUtility
 {
     public static bool IsFloatColorFormat(TextureFormat format)
     {
-        return format is TextureFormat.RG16F or TextureFormat.RGBA16F or TextureFormat.RGBA32F;
+        return format is TextureFormat.TexFormatRg16Float or TextureFormat.TexFormatRgba16Float or TextureFormat.TexFormatRgba32Float;
     }
 }
 
@@ -68,13 +38,7 @@ public class Texture : ResourceWithMetadata
     }
 
     public TextureFormat Format
-    {
-        get
-        {
-            var parameters = _rawTexture.GetParams();
-            return Graphics.UnmapPipelineTextureFormat(Graphics.MapTextureFormat(parameters.Format, parameters.SRGB));
-        }
-    }
+        => _rawTexture.GetParams().Format;
 
     public int Levels => _rawTexture.GetParams().NumLevels;
 
@@ -106,7 +70,7 @@ public class Texture : ResourceWithMetadata
 
     public bool IsCompressed()
     {
-        var formatInfo = RenderAPIUtils.GetTextureFormatInfo(Graphics.MapTextureFormat(Format, SRGB));
+        var formatInfo = RenderAPIUtils.GetTextureFormatInfo(Format);
         return formatInfo.ComponentType == global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeCompressed;
     }
 
@@ -193,7 +157,7 @@ public class Texture : ResourceWithMetadata
 
     public bool GetSRGB()
     {
-        return RenderAPIUtils.IsTextureFormatSRGB(Graphics.MapTextureFormat(Format));
+        return RenderAPIUtils.IsTextureFormatSRGB(Format);
     }
 
     public void SetBackupTexture(Texture? texture)
@@ -253,7 +217,7 @@ public class Texture : ResourceWithMetadata
 
     public int GetDataSize(int width, int height)
     {
-        var formatInfo = RenderAPIUtils.GetTextureFormatInfo(Graphics.MapTextureFormat(Format, SRGB));
+        var formatInfo = RenderAPIUtils.GetTextureFormatInfo(Format);
         return checked(GetRowDataSize(width) *
             ((height + checked((int)formatInfo.BlockHeight) - 1) / checked((int)formatInfo.BlockHeight)));
     }
@@ -265,7 +229,7 @@ public class Texture : ResourceWithMetadata
 
     public int GetRowDataSize(int width)
     {
-        var formatInfo = RenderAPIUtils.GetTextureFormatInfo(Graphics.MapTextureFormat(Format, SRGB));
+        var formatInfo = RenderAPIUtils.GetTextureFormatInfo(Format);
         return checked((int)formatInfo.GetElementSize() *
             ((width + checked((int)formatInfo.BlockWidth) - 1) / checked((int)formatInfo.BlockWidth)));
     }
@@ -455,11 +419,12 @@ public class Texture : ResourceWithMetadata
         _mostDetailedLevel = mostDetailedLevel;
         var parameters = baseParams with
         {
-            Size = RenderAPIUtils.GetMipLevelSize(image.GetSize(), checked((uint)mostDetailedLevel)),
+            Size = RenderAPIUtils.GetMipLevelSize(image.GetSize(), mostDetailedLevel),
             NumLevels = numLevels,
-            Format = ToHardwareFormat(image.GetGPUFormat(), renderDevice),
-            SRGB = _requestedSRGB
+            Format = ToHardwareFormat(image.GetGPUFormat(), renderDevice)
         };
+        if (_requestedSRGB)
+            parameters = parameters with { Format = RenderAPIUtils.SetTextureFormatSRGB(parameters.Format) };
         return _rawTexture.CreateTexture(parameters);
     }
 
@@ -468,7 +433,7 @@ public class Texture : ResourceWithMetadata
         if (image is null)
             return false;
 
-        var internalFormat = GetLinearFormat(Format);
+        var internalFormat = RenderAPIUtils.SetTextureFormatSRGB(Format, false);
         var imageFormat = image.GetGPUFormat();
 
         if (!image.IsCompressed() && internalFormat == imageFormat)
@@ -483,7 +448,7 @@ public class Texture : ResourceWithMetadata
                 currentLevel = currentLevel.GetNextLevel();
             }
         }
-        else if (internalFormat == TextureFormat.RGBA8 && image.CompressedFormat != CompressedFormat.Rgba)
+        else if (internalFormat == TextureFormat.TexFormatRgba8Unorm && image.CompressedFormat != CompressedFormat.Rgba)
         {
             var isRgb8 = !image.IsCompressed() && image.Components == 3;
             if (isRgb8)
@@ -506,7 +471,7 @@ public class Texture : ResourceWithMetadata
         {
             System.Diagnostics.Debug.Assert(image.IsCompressed());
 
-            // TODO: port this reachable compressed upload branch once managed TextureFormat contains compressed formats.
+            // Upload compressed image data as is
             for (var level = 0; level < Levels; ++level)
             {
                 var imageLevel = image.GetCompressedLevel(checked((uint)(_mostDetailedLevel + level)));
@@ -523,18 +488,8 @@ public class Texture : ResourceWithMetadata
         if (image is null)
             return false;
 
-        var imageFormat = Format switch
-        {
-            TextureFormat.RGBA8Srgb => TextureFormat.RGBA8,
-            TextureFormat.BGRA8Srgb => TextureFormat.BGRA8,
-            TextureFormat.BC1Srgb => TextureFormat.BC1,
-            TextureFormat.BC2Srgb => TextureFormat.BC2,
-            TextureFormat.BC3Srgb => TextureFormat.BC3,
-            TextureFormat.ETC2Rgb8Srgb => TextureFormat.ETC2Rgb8,
-            TextureFormat.ETC2Rgba8Srgb => TextureFormat.ETC2Rgba8,
-            _ => Format
-        };
-        if (imageFormat is not TextureFormat.RGBA8 and not TextureFormat.BGRA8 and not TextureFormat.BGRX8)
+        var imageFormat = RenderAPIUtils.SetTextureFormatSRGB(Format, false);
+        if (imageFormat is not TextureFormat.TexFormatRgba8Unorm and not TextureFormat.TexFormatBgra8Unorm and not TextureFormat.TexFormatBgrx8Unorm)
         {
             Log.GetLogger().LogWarning("Unsupported texture format, can not convert to Image");
             return false;
@@ -548,13 +503,13 @@ public class Texture : ResourceWithMetadata
         if (!_rawTexture.Read(arraySlice, level, imageData))
             return false;
 
-        if (imageFormat is TextureFormat.BGRA8 or TextureFormat.BGRX8)
+        if (imageFormat is TextureFormat.TexFormatBgra8Unorm or TextureFormat.TexFormatBgrx8Unorm)
         {
             var numTexels = checked(size.X * size.Y * size.Z);
             for (var i = 0; i < numTexels; ++i)
                 (imageData[i * 4], imageData[i * 4 + 2]) = (imageData[i * 4 + 2], imageData[i * 4]);
         }
-        if (imageFormat == TextureFormat.BGRX8)
+        if (imageFormat == TextureFormat.TexFormatBgrx8Unorm)
         {
             var numTexels = checked(size.X * size.Y * size.Z);
             for (var i = 0; i < numTexels; ++i)
@@ -568,7 +523,7 @@ public class Texture : ResourceWithMetadata
     {
         var maxNumLevels = image.IsCompressed()
             ? checked((int)image.NumCompressedLevels)
-            : checked((int)RenderAPIUtils.GetMipLevelCount(image.GetSize()));
+            : RenderAPIUtils.GetMipLevelCount(image.GetSize());
         var effectiveMostDetailedMip = Math.Min(mostDetailedMip, maxNumLevels - 1);
         var effectiveNumLevels = numLevels == 0
             ? maxNumLevels - effectiveMostDetailedMip
@@ -578,11 +533,11 @@ public class Texture : ResourceWithMetadata
 
     private static TextureFormat ToHardwareFormat(TextureFormat format, RenderDevice? renderDevice)
     {
-        if (format == TextureFormat.Unknown)
-            return TextureFormat.RGBA8;
+        if (format == TextureFormat.TexFormatUnknown)
+            return TextureFormat.TexFormatRgba8Unorm;
 
         if (renderDevice?.GetRenderDevice() is not null && !renderDevice.IsTextureFormatSupported(format))
-            return TextureFormat.RGBA8;
+            return TextureFormat.TexFormatRgba8Unorm;
 
         return format;
     }
@@ -592,21 +547,6 @@ public class Texture : ResourceWithMetadata
         if (!image.IsCompressed())
             return false;
         return renderDevice?.GetRenderDevice() is null || renderDevice.IsTextureFormatSupported(image.GetGPUFormat());
-    }
-
-    private static TextureFormat GetLinearFormat(TextureFormat format)
-    {
-        return format switch
-        {
-            TextureFormat.RGBA8Srgb => TextureFormat.RGBA8,
-            TextureFormat.BGRA8Srgb => TextureFormat.BGRA8,
-            TextureFormat.BC1Srgb => TextureFormat.BC1,
-            TextureFormat.BC2Srgb => TextureFormat.BC2,
-            TextureFormat.BC3Srgb => TextureFormat.BC3,
-            TextureFormat.ETC2Rgb8Srgb => TextureFormat.ETC2Rgb8,
-            TextureFormat.ETC2Rgba8Srgb => TextureFormat.ETC2Rgba8,
-            _ => format
-        };
     }
 
     private static void Release(IObject? value)

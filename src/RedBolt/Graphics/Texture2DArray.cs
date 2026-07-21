@@ -138,7 +138,9 @@ public class Texture2DArray : Texture
         _layers = layers != 0 ? layers : _layers;
         var parameters = new RawTextureParams(
             TextureType.Texture2DArray, format, flags, new Vector3i(width, height, 1),
-            ArraySize: _layers, NumLevels: _requestedLevels, SRGB: _requestedSRGB);
+            ArraySize: _layers, NumLevels: _requestedLevels);
+        if (_requestedSRGB)
+            parameters = parameters with { Format = RenderAPIUtils.SetTextureFormatSRGB(parameters.Format) };
         return Create(parameters);
     }
 
@@ -174,7 +176,7 @@ public class Texture2DArray : Texture
         if (layer == 0)
         {
             var parameters = new RawTextureParams(
-                TextureType.Texture2DArray, TextureFormat.Unknown, TextureFlag.None, Vector3i.Zero,
+                TextureType.Texture2DArray, TextureFormat.TexFormatUnknown, TextureFlag.None, Vector3i.Zero,
                 ArraySize: _layers, NumLevels: _requestedLevels);
             if (!CreateForImage(parameters, image))
                 return false;

@@ -23,7 +23,7 @@ public sealed class GraphicsRenderTargetViewTests
         WithInitializedGraphics(() =>
         {
             var texture = new TextureCube("Textures/RenderTargetCube");
-            Assert.True(texture.SetSize(16, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+            Assert.True(texture.SetSize(16, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
 
             var firstView = ResolveRenderTargetView(RenderTargetView.TextureSlice(texture, 3u));
             var secondView = ResolveRenderTargetView(RenderTargetView.TextureSlice(texture, 3u));
@@ -43,7 +43,7 @@ public sealed class GraphicsRenderTargetViewTests
         WithInitializedGraphics(() =>
         {
             var texture = new Texture2D("Textures/PublicRenderTargetView");
-            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+            Assert.True(texture.SetSize(16, 16, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
 
             var renderTargetView = RenderTargetView.Texture(texture);
             var nativeView = renderTargetView.GetView();
@@ -58,11 +58,11 @@ public sealed class GraphicsRenderTargetViewTests
         WithInitializedGraphics(() =>
         {
             var texture = new Texture2D("Textures/RecreatedRenderTargetView");
-            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+            Assert.True(texture.SetSize(16, 16, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
             var renderTargetView = RenderTargetView.Texture(texture);
             var firstRawTexture = Assert.IsAssignableFrom<RawTexture>(texture.GetRawTexture());
 
-            Assert.True(texture.SetSize(32, 24, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+            Assert.True(texture.SetSize(32, 24, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
             var secondRawTexture = Assert.IsAssignableFrom<RawTexture>(texture.GetRawTexture());
 
             Assert.Same(firstRawTexture, secondRawTexture);
@@ -75,12 +75,12 @@ public sealed class GraphicsRenderTargetViewTests
     {
         WithInitializedGraphics(() =>
         {
-            var sampleCount = _fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4);
+            var sampleCount = _fixture.Graphics.GetSupportedMultiSample(TextureFormat.TexFormatRgba8Unorm, 4);
             if (sampleCount <= 1)
                 return;
 
             var texture = new Texture2D("Textures/DirtyRenderTargetView");
-            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, TextureFlag.BindRenderTarget, sampleCount));
+            Assert.True(texture.SetSize(16, 16, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget, sampleCount));
 
             var rawTexture = Assert.IsAssignableFrom<RawTexture>(texture.GetRawTexture());
             Assert.False(rawTexture.GetResolveDirty());
@@ -116,7 +116,7 @@ public sealed class GraphicsRenderTargetViewTests
         WithInitializedGraphics(() =>
         {
             var texture = new Texture2DArray("Textures/RenderTargetArray");
-            Assert.True(texture.SetSize(4, 16, 16, TextureFormat.Depth24Stencil8, TextureFlag.BindDepthStencil));
+            Assert.True(texture.SetSize(4, 16, 16, TextureFormat.TexFormatD24UnormS8Uint, TextureFlag.BindDepthStencil));
 
             var firstView = ResolveRenderTargetView(RenderTargetView.ReadOnlyDepthSlice(texture, 2u));
             var secondView = ResolveRenderTargetView(RenderTargetView.ReadOnlyDepthSlice(texture, 2u));
@@ -136,7 +136,7 @@ public sealed class GraphicsRenderTargetViewTests
         WithInitializedGraphics(() =>
         {
             var texture = new Texture2D("Textures/DynamicRenderBuffer");
-            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8));
+            Assert.True(texture.SetSize(16, 16, TextureFormat.TexFormatRgba8Unorm));
 
             var firstUpload = GetUploadedTexture(texture);
             var firstNativeTexture = GetNativeTexture(firstUpload);
@@ -144,7 +144,7 @@ public sealed class GraphicsRenderTargetViewTests
             var firstWidth = firstDesc.Width;
             var firstHeight = firstDesc.Height;
 
-            Assert.True(texture.SetSize(32, 24, TextureFormat.RGBA8));
+            Assert.True(texture.SetSize(32, 24, TextureFormat.TexFormatRgba8Unorm));
 
             var secondUpload = GetUploadedTexture(texture);
             var secondNativeTexture = GetNativeTexture(secondUpload);
@@ -163,7 +163,7 @@ public sealed class GraphicsRenderTargetViewTests
         WithInitializedGraphics(() =>
         {
             var texture = new Texture2D("Textures/CpuBackedMipChain");
-            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8));
+            Assert.True(texture.SetSize(16, 16, TextureFormat.TexFormatRgba8Unorm));
             Assert.True(texture.SetData(0, 0, 0, 16, 16, new byte[16 * 16 * 4]));
 
             var rawTexture = Assert.IsAssignableFrom<RawTexture>(texture.GetRawTexture());
@@ -181,11 +181,11 @@ public sealed class GraphicsRenderTargetViewTests
     {
         WithInitializedGraphics(() =>
         {
-            var sampleCount = _fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4);
+            var sampleCount = _fixture.Graphics.GetSupportedMultiSample(TextureFormat.TexFormatRgba8Unorm, 4);
             if (sampleCount <= 1)
                 return;
             var texture = new Texture2D("Textures/MultisampledRenderBuffer");
-            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8, TextureFlag.BindRenderTarget, sampleCount));
+            Assert.True(texture.SetSize(16, 16, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget, sampleCount));
 
             var nativeTexture = GetNativeTexture(GetUploadedTexture(texture));
             var desc = nativeTexture.GetDesc();
@@ -203,11 +203,11 @@ public sealed class GraphicsRenderTargetViewTests
     {
         WithInitializedGraphics(() =>
         {
-            var sampleCount = _fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4);
+            var sampleCount = _fixture.Graphics.GetSupportedMultiSample(TextureFormat.TexFormatRgba8Unorm, 4);
             if (sampleCount <= 1)
                 return;
             var texture = new Texture2D("Textures/ResolvedRenderBuffer");
-            Assert.True(texture.SetSize(8, 8, TextureFormat.RGBA8, TextureFlag.BindRenderTarget, sampleCount));
+            Assert.True(texture.SetSize(8, 8, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget, sampleCount));
 
             SetRenderTargets(new IntRect(0, 0, 8, 8), RenderTargetView.Texture(texture), depthStencilTarget: null);
             ClearCurrentRenderTargets(new Color(1.0f, 0.0f, 0.0f, 1.0f), clearColorTarget: true, clearDepth: false, clearStencil: false);
@@ -232,7 +232,7 @@ public sealed class GraphicsRenderTargetViewTests
         WithInitializedGraphics(() =>
         {
             var texture = new Texture2D("Textures/SingleSampleResolvedRenderBuffer");
-            Assert.True(texture.SetSize(8, 8, TextureFormat.RGBA8, TextureFlag.BindRenderTarget, 1));
+            Assert.True(texture.SetSize(8, 8, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget, 1));
             var renderTargetView = ResolveRenderTargetView(RenderTargetView.Texture(texture));
             Assert.False(renderTargetView.IsNull);
 
@@ -256,11 +256,11 @@ public sealed class GraphicsRenderTargetViewTests
     {
         WithInitializedGraphics(() =>
         {
-            var sampleCount = _fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4);
+            var sampleCount = _fixture.Graphics.GetSupportedMultiSample(TextureFormat.TexFormatRgba8Unorm, 4);
             if (sampleCount <= 1)
                 return;
             var texture = new Texture2D("Textures/ManualResolveRenderBuffer");
-            Assert.True(texture.SetSize(16, 16, TextureFormat.RGBA8,
+            Assert.True(texture.SetSize(16, 16, TextureFormat.TexFormatRgba8Unorm,
                 TextureFlag.BindRenderTarget | TextureFlag.NoMultiSampledAutoResolve, sampleCount));
 
             var nativeTexture = GetNativeTexture(GetUploadedTexture(texture));
@@ -278,8 +278,8 @@ public sealed class GraphicsRenderTargetViewTests
         {
             var source = new Texture2D("Textures/CopySource");
             var destination = new Texture2D("Textures/CopyDestination");
-            Assert.True(source.SetSize(8, 8, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
-            Assert.True(destination.SetSize(8, 8, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+            Assert.True(source.SetSize(8, 8, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
+            Assert.True(destination.SetSize(8, 8, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
 
             SetRenderTargets(new IntRect(0, 0, 8, 8), RenderTargetView.Texture(source), depthStencilTarget: null);
             ClearCurrentRenderTargets(new Color(1.0f, 0.0f, 0.0f, 1.0f), clearColorTarget: true, clearDepth: false, clearStencil: false);
@@ -306,8 +306,8 @@ public sealed class GraphicsRenderTargetViewTests
         {
             var source = new Texture2D("Textures/CpuCopySource");
             var destination = new Texture2D("Textures/CpuCopyDestination");
-            Assert.True(source.SetSize(1, 1, TextureFormat.RGBA8));
-            Assert.True(destination.SetSize(8, 8, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+            Assert.True(source.SetSize(1, 1, TextureFormat.TexFormatRgba8Unorm));
+            Assert.True(destination.SetSize(8, 8, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
             Assert.True(source.SetData(0, 0, 0, 1, 1, [255, 0, 0, 255]));
 
             SetRenderTargets(new IntRect(0, 0, 8, 8), RenderTargetView.Texture(destination), depthStencilTarget: null);
@@ -333,7 +333,7 @@ public sealed class GraphicsRenderTargetViewTests
 
     private bool IsLimitedSoftwareRenderer()
     {
-        return _fixture.Graphics.GetSupportedMultiSample(TextureFormat.RGBA8, 4) <= 1;
+        return _fixture.Graphics.GetSupportedMultiSample(TextureFormat.TexFormatRgba8Unorm, 4) <= 1;
     }
 
     private ITextureView ResolveRenderTargetView(RenderTargetView view)

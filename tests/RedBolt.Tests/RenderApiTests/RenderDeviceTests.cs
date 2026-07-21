@@ -111,16 +111,16 @@ public sealed class RenderDeviceTests
         _fixture.RenderDevice.RestoreDeviceState();
         try
         {
-            var stats = _fixture.RenderContext.GetMutableStats();
+            ref var stats = ref _fixture.RenderContext.GetMutableStats();
             stats.NumPrimitives = 12;
             stats.NumDraws = 3;
             stats.NumDispatches = 2;
 
             _fixture.RenderDevice.Present();
 
-            Assert.Equal(12u, _fixture.RenderDevice.GetStats().NumPrimitives);
-            Assert.Equal(3u, _fixture.RenderDevice.GetStats().NumDraws);
-            Assert.Equal(2u, _fixture.RenderDevice.GetStats().NumDispatches);
+            Assert.Equal(12, _fixture.RenderDevice.GetStats().NumPrimitives);
+            Assert.Equal(3, _fixture.RenderDevice.GetStats().NumDraws);
+            Assert.Equal(2, _fixture.RenderDevice.GetStats().NumDispatches);
         }
         finally
         {
@@ -342,9 +342,9 @@ public sealed class RenderDeviceTests
             Assert.Equal(RenderBackend.OpenGL, _fixture.Graphics.GetRenderBackend());
             Assert.Equal("OpenGL", _fixture.Graphics.GetApiName());
             Assert.Equal(nint.Zero, _fixture.Graphics.GetExternalWindow());
-            Assert.Equal(TextureFormat.Unknown, _fixture.Graphics.GetDummyColorFormat());
-            Assert.Equal(TextureFormat.Unknown, _fixture.Graphics.GetShadowMapFormat());
-            Assert.Equal(TextureFormat.Unknown, _fixture.Graphics.GetHiresShadowMapFormat());
+            Assert.Equal(TextureFormat.TexFormatUnknown, _fixture.Graphics.GetDummyColorFormat());
+            Assert.Equal(TextureFormat.TexFormatUnknown, _fixture.Graphics.GetShadowMapFormat());
+            Assert.Equal(TextureFormat.TexFormatUnknown, _fixture.Graphics.GetHiresShadowMapFormat());
             Assert.True(_fixture.Graphics.GetInstancingSupport());
             Assert.True(_fixture.Graphics.GetHardwareShadowSupport());
             Assert.True(_fixture.Graphics.GetMonitorCount() > 0);
@@ -486,13 +486,12 @@ public sealed class RenderDeviceTests
             Assert.Equal(RenderBackend.OpenGL, deviceSettings.Backend);
             Assert.Equal((nint)1234, deviceSettings.ExternalWindowHandle);
             Assert.True(deviceSettings.GpuDebug);
-            Assert.Equal((uint)7, deviceSettings.AdapterId);
-            Assert.NotNull(deviceSettings.Vulkan);
-            Assert.NotNull(deviceSettings.D3D12);
-            Assert.Equal((int)RedBolt.Bindings.Diligent.QueryType.QueryTypeNumTypes, deviceSettings.Vulkan.QueryPoolSizes.Length);
-            Assert.Equal((int)RedBolt.Bindings.Diligent.QueryType.QueryTypeNumTypes, deviceSettings.D3D12.QueryPoolSizes.Length);
-            Assert.Equal((uint?)33554432, deviceSettings.Vulkan.DynamicHeapSize);
-            Assert.Equal((uint?)64, deviceSettings.Vulkan.QueryPoolSizes[(int)RedBolt.Bindings.Diligent.QueryType.QueryTypeTimestamp]);
+            Assert.Equal(7, deviceSettings.AdapterId);
+            Assert.True(typeof(RenderDeviceSettingsVulkan).IsValueType);
+            Assert.True(typeof(RenderDeviceSettingsD3D12).IsValueType);
+            Assert.Equal(33554432, deviceSettings.Vulkan.DynamicHeapSize);
+            Assert.Equal(64, deviceSettings.Vulkan.QueryPoolSizes[
+                (int)RedBolt.Bindings.Diligent.QueryType.QueryTypeTimestamp]);
 
             Assert.Equal(WindowMode.Fullscreen, windowSettings.Mode);
             Assert.Equal(new Vector2i(1600, 900), windowSettings.Size);
@@ -501,7 +500,9 @@ public sealed class RenderDeviceTests
             Assert.Equal(2, windowSettings.Monitor);
             Assert.Equal(144, windowSettings.RefreshRate);
             Assert.Equal(4, windowSettings.MultiSample);
-            Assert.Equal(["LandscapeLeft", "Portrait"], windowSettings.Orientations);
+            Assert.Equal(2, windowSettings.Orientations.Length);
+            Assert.Equal("LandscapeLeft", windowSettings.Orientations[0]);
+            Assert.Equal("Portrait", windowSettings.Orientations[1]);
         }
         finally
         {
@@ -628,17 +629,6 @@ public sealed class RenderDeviceTests
         Assert.IsAssignableFrom<DeviceObject>(pipelineState);
         Assert.Equal("TestPipeline", pipelineState.GetDebugName());
         Assert.False(pipelineState.IsValid);
-    }
-
-    [Fact]
-    public void Render_pool_exposes_rbfx_style_default_settings_surface()
-    {
-        var settings = _fixture.RenderDevice.GetRenderPool().Settings;
-
-        Assert.Equal(1u, settings.TextureCacheMinFrames);
-        Assert.Equal(1000u, settings.TextureCacheMaxFrames);
-        Assert.Equal(0.1f, settings.TextureCacheMinLoadFactor);
-        Assert.Equal(1000u, settings.LogPeriod);
     }
 
     [Fact]

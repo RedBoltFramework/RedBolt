@@ -13,7 +13,7 @@ public sealed class StaticPipelineStateCacheTests
         };
 
         var first = cache.CreateState(description);
-        var second = cache.CreateState(new GraphicsPipelineStateDesc(description));
+        var second = cache.CreateState(description);
 
         Assert.NotEqual(StaticPipelineStateId.Invalid, first);
         Assert.Equal(first, second);
@@ -28,7 +28,7 @@ public sealed class StaticPipelineStateCacheTests
             DebugName = "Static state",
             BlendMode = BlendMode.Alpha
         };
-        var original = new GraphicsPipelineStateDesc(description);
+        var original = description;
 
         var first = cache.CreateState(description);
         description.BlendMode = BlendMode.Add;

@@ -87,7 +87,7 @@ public sealed class GeometryGpuTests
         var tex = new Texture2D("Textures/Smoke2D");
         tex.SetNumLevels(0);
         tex.SetSRGB(true);
-        Assert.True(tex.SetSize(4, 4, TextureFormat.RGBA8));
+        Assert.True(tex.SetSize(4, 4, TextureFormat.TexFormatRgba8Unorm));
         Assert.Equal(3, tex.GetLevels());
 
         tex.SetFilterMode(TextureFilterMode.Bilinear);
@@ -107,7 +107,7 @@ public sealed class GeometryGpuTests
         Assert.Equal(3, tex.GetMipsToSkip(MaterialQuality.Low));
         Assert.Equal(1, tex.GetMipsToSkip(MaterialQuality.Medium));
 
-        Assert.False(tex.SetSize(0, 4, TextureFormat.RGBA8));
+        Assert.False(tex.SetSize(0, 4, TextureFormat.TexFormatRgba8Unorm));
         Assert.Equal(0, tex.Width);
         Assert.Equal(4, tex.Height);
     }
@@ -116,7 +116,7 @@ public sealed class GeometryGpuTests
     public void Texture2D_cpu_data_works()
     {
         var tex = new Texture2D("Textures/Smoke2D");
-        tex.SetSize(4, 4, TextureFormat.RGBA8);
+        tex.SetSize(4, 4, TextureFormat.TexFormatRgba8Unorm);
         var data = Enumerable.Range(0, 64).Select(v => (byte)v).ToArray();
         Assert.True(tex.SetData(0, 0, 0, 4, 4, data));
         Assert.Equal(4, tex.GetComponents());
@@ -128,12 +128,12 @@ public sealed class GeometryGpuTests
     {
         var tex = new TextureCube("Textures/SmokeCube");
         tex.SetNumLevels(1);
-        Assert.True(tex.SetSize(2, TextureFormat.RGBA8));
+        Assert.True(tex.SetSize(2, TextureFormat.TexFormatRgba8Unorm));
         Assert.True(tex.SetData(CubeMapFace.PositiveX, 0, 0, 0, 2, 2,
             Enumerable.Repeat((byte)7, 16).ToArray()));
         Assert.False(tex.GetData(CubeMapFace.PositiveX, 0, new byte[16]));
 
-        Assert.False(tex.SetSize(0, TextureFormat.RGBA8));
+        Assert.False(tex.SetSize(0, TextureFormat.TexFormatRgba8Unorm));
         Assert.Equal(0, tex.Width);
     }
 
@@ -142,12 +142,12 @@ public sealed class GeometryGpuTests
     {
         var tex = new Texture3D("Textures/Smoke3D");
         tex.SetNumLevels(1);
-        Assert.True(tex.SetSize(2, 2, 2, TextureFormat.R8));
+        Assert.True(tex.SetSize(2, 2, 2, TextureFormat.TexFormatR8Unorm));
         Assert.True(tex.SetData(0, 0, 0, 0, 2, 2, 2,
             Enumerable.Range(0, 8).Select(v => (byte)v).ToArray()));
         Assert.False(tex.GetData(0, new byte[8]));
 
-        Assert.False(tex.SetSize(0, 2, 2, TextureFormat.R8));
+        Assert.False(tex.SetSize(0, 2, 2, TextureFormat.TexFormatR8Unorm));
         Assert.Equal(0, tex.Width);
         Assert.Equal(2, tex.Depth);
     }
@@ -157,13 +157,13 @@ public sealed class GeometryGpuTests
     {
         var tex = new Texture2DArray("Textures/SmokeArray");
         tex.SetNumLevels(1);
-        Assert.True(tex.SetSize(2, 2, 2, TextureFormat.R8));
+        Assert.True(tex.SetSize(2, 2, 2, TextureFormat.TexFormatR8Unorm));
         Assert.True(tex.SetData(1, 0, 0, 0, 2, 2, new byte[] { 1, 2, 3, 4 }));
         Assert.False(tex.GetData(1, 0, new byte[4]));
         Assert.Equal(2, tex.GetRawTexture()!.GetParams().ArraySize);
         Assert.Equal(2, tex.Layers);
 
-        Assert.False(tex.SetSize(0, 0, 2, TextureFormat.R8));
+        Assert.False(tex.SetSize(0, 0, 2, TextureFormat.TexFormatR8Unorm));
         Assert.Equal(0, tex.Width);
         Assert.Equal(2, tex.Layers);
     }

@@ -132,17 +132,15 @@ public sealed class TextureRenderBuffer : RenderBuffer
         ViewportRect = viewportRect;
     }
 
-    public void RefreshForViewport(IntRect outputViewportRect, Action<Texture, TextureFormat>? configureTexture = null)
+    public void RefreshForViewport(IntRect outputViewportRect)
     {
         var nextSize = CalculateTextureSize(outputViewportRect.Size);
-        var nextFormat = _bufferParams.TextureFormat == TextureFormat.Unknown ? TextureFormat.RGBA8 : _bufferParams.TextureFormat;
+        var nextFormat = _bufferParams.TextureFormat == TextureFormat.TexFormatUnknown ? TextureFormat.TexFormatRgba8Unorm : _bufferParams.TextureFormat;
         var textureFlags = RenderAPIUtils.IsDepthTextureFormat(nextFormat)
             ? TextureFlag.BindDepthStencil
             : TextureFlag.BindRenderTarget;
         if ((_bufferParams.Flags & RenderBufferFlag.NoMultiSampledAutoResolve) != 0)
             textureFlags |= TextureFlag.NoMultiSampledAutoResolve;
-        if (!RenderAPIUtils.IsDepthTextureFormat(nextFormat))
-            configureTexture?.Invoke(Texture, nextFormat);
         if (Texture.Width != nextSize.X || Texture.Height != nextSize.Y || Texture.Format != nextFormat || Texture.MultiSample != _bufferParams.MultiSampleLevel)
         {
             switch (Texture)

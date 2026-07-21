@@ -15,7 +15,7 @@ public sealed class RenderSurfaceTests
     public void Render_surface_tracks_texture_views_viewports_links_and_update_state()
     {
         var texture = new Texture2D("Textures/RenderSurface");
-        Assert.True(texture.SetSize(64, 32, TextureFormat.RGBA8,
+        Assert.True(texture.SetSize(64, 32, TextureFormat.TexFormatRgba8Unorm,
             TextureFlag.BindRenderTarget | TextureFlag.NoMultiSampledAutoResolve, 4));
 
         var surface = new RenderSurface(texture, 2);
@@ -75,7 +75,7 @@ public sealed class RenderSurfaceTests
     public void Headless_texture_does_not_create_owned_render_surfaces()
     {
         var texture = new Texture2D("Textures/OwnedRenderSurface");
-        Assert.True(texture.SetSize(64, 32, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
+        Assert.True(texture.SetSize(64, 32, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
         Assert.Null(texture.GetRenderSurface());
 
         texture.Dispose();

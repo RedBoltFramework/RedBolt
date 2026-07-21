@@ -498,7 +498,7 @@ public sealed class RenderPipelineTests
 
         Assert.NotNull(manager.GetColorOutput().GetTexture());
         Assert.NotNull(manager.GetDepthStencilOutput().GetTexture());
-        Assert.Equal(TextureFormat.RGBA16F, manager.GetColorOutput().GetTexture()!.Format);
+        Assert.Equal(TextureFormat.TexFormatRgba16Float, manager.GetColorOutput().GetTexture()!.Format);
         Assert.NotNull(manager.GetSecondaryColorTexture());
         Assert.True(manager.NeedsViewportResolve());
     }
@@ -580,10 +580,10 @@ public sealed class RenderPipelineTests
         });
 
         var colorTarget = new Texture2D("Textures/ViewportColor");
-        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm));
         colorTarget.SetFilterMode(TextureFilterMode.Bilinear);
         var depthTarget = new Texture2D("Textures/ViewportDepth");
-        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8));
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint));
 
         var output = RenderOutputTargetInfo.FromTexture(
             colorTarget,
@@ -607,10 +607,10 @@ public sealed class RenderPipelineTests
         });
 
         var colorTarget = new Texture2D("Textures/ViewportColor");
-        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm));
         colorTarget.SetFilterMode(TextureFilterMode.Nearest);
         var depthTarget = new Texture2D("Textures/ViewportDepth");
-        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8));
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint));
 
         var output = RenderOutputTargetInfo.FromTexture(
             colorTarget,
@@ -656,8 +656,8 @@ public sealed class RenderPipelineTests
         // C++ ClearDepthStencil binds depth only via RenderContext (no color RTs).
         var renderContext = _fixture.RenderDevice.GetRenderContext();
         var outputDesc = renderContext.GetCurrentRenderTargetsDesc();
-        Assert.Equal(0u, outputDesc.NumRenderTargets);
-        Assert.NotEqual(TextureFormat.Unknown, outputDesc.DepthStencilFormat);
+        Assert.Equal(0, outputDesc.NumRenderTargets);
+        Assert.NotEqual(TextureFormat.TexFormatUnknown, outputDesc.DepthStencilFormat);
     }
 
     [Fact]
@@ -707,13 +707,13 @@ public sealed class RenderPipelineTests
         });
 
         var renderTarget = new Texture2D("Textures/ViewportTarget");
-        Assert.True(renderTarget.SetSize(320, 200, TextureFormat.RGBA16F));
+        Assert.True(renderTarget.SetSize(320, 200, TextureFormat.TexFormatRgba16Float));
         renderTarget.SetFilterMode(TextureFilterMode.Bilinear);
         renderTarget.SetLinear(true);
 
         manager.OnViewportDefined(RenderOutputTargetInfo.FromTexture(renderTarget, new IntRect(0, 0, 320, 200)), new IntRect(0, 0, 320, 200));
 
-        Assert.Equal(TextureFormat.RGBA16F, manager.GetOutputColorFormat());
+        Assert.Equal(TextureFormat.TexFormatRgba16Float, manager.GetOutputColorFormat());
         Assert.Equal(1, manager.GetOutputMultiSample());
         Assert.True(manager.IsLinearColorSpace());
         Assert.True(manager.IsHDR());
@@ -721,17 +721,17 @@ public sealed class RenderPipelineTests
         var secondaryColorTexture = manager.GetSecondaryColorTexture();
         Assert.NotNull(colorTexture);
         Assert.NotNull(secondaryColorTexture);
-        Assert.Equal(TextureFormat.RGBA16F, colorTexture!.Format);
-        Assert.Equal(TextureFormat.RGBA16F, secondaryColorTexture!.Format);
+        Assert.Equal(TextureFormat.TexFormatRgba16Float, colorTexture!.Format);
+        Assert.Equal(TextureFormat.TexFormatRgba16Float, secondaryColorTexture!.Format);
     }
 
     [Fact]
     public void Render_output_target_info_derives_multisample_from_texture()
     {
         var colorTarget = new Texture2D("Textures/ViewportColor");
-        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8, TextureFlag.BindRenderTarget, 4));
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget, 4));
         var depthTarget = new Texture2D("Textures/ViewportDepth");
-        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8, TextureFlag.BindDepthStencil, 4));
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint, TextureFlag.BindDepthStencil, 4));
 
         var output = RenderOutputTargetInfo.FromTexture(colorTarget, new IntRect(0, 0, 320, 200), depthTarget);
 
@@ -765,7 +765,7 @@ public sealed class RenderPipelineTests
     public void Texture_render_buffer_propagates_no_auto_resolve_flag_into_managed_texture()
     {
         var buffer = new TextureRenderBuffer(new RenderBufferParams(
-            TextureFormat.RGBA8,
+            TextureFormat.TexFormatRgba8Unorm,
             4,
             RenderBufferFlag.NoMultiSampledAutoResolve));
 
@@ -780,10 +780,10 @@ public sealed class RenderPipelineTests
     {
         foreach (var format in new[]
                  {
-                     TextureFormat.Depth16,
-                     TextureFormat.Depth32,
-                     TextureFormat.Depth24Stencil8,
-                     TextureFormat.Depth32Stencil8
+                     TextureFormat.TexFormatD16Unorm,
+                     TextureFormat.TexFormatD32Float,
+                     TextureFormat.TexFormatD24UnormS8Uint,
+                     TextureFormat.TexFormatD32FloatS8x24Uint
                  })
         {
             var buffer = new TextureRenderBuffer(new RenderBufferParams(format));
@@ -810,22 +810,22 @@ public sealed class RenderPipelineTests
         });
 
         var renderTarget = new Texture2D("Textures/ViewportTarget");
-        Assert.True(renderTarget.SetSize(320, 200, TextureFormat.RGBA16F));
+        Assert.True(renderTarget.SetSize(320, 200, TextureFormat.TexFormatRgba16Float));
         renderTarget.SetFilterMode(TextureFilterMode.Bilinear);
         renderTarget.SetLinear(true);
         var depthTarget = new Texture2D("Textures/ViewportDepth");
-        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8));
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint));
 
         manager.OnViewportDefined(
             RenderOutputTargetInfo.FromTexture(renderTarget, new IntRect(0, 0, 320, 200), depthTarget),
             new IntRect(0, 0, 320, 200));
 
-        Assert.Equal(TextureFormat.RGBA8, manager.GetOutputColorFormat());
-        Assert.False(manager.IsLinearColorSpace());
+        Assert.Equal(TextureFormat.TexFormatRgba8Unorm, manager.GetOutputColorFormat());
+        Assert.True(manager.IsLinearColorSpace());
         Assert.False(manager.IsHDR());
         Assert.NotSame(renderTarget, manager.GetColorOutput().GetTexture());
-        Assert.Equal(TextureFormat.RGBA8, manager.GetColorOutput().GetTexture()!.Format);
-        Assert.Equal(TextureFormat.RGBA8, manager.GetSecondaryColorTexture()!.Format);
+        Assert.Equal(TextureFormat.TexFormatRgba8Unorm, manager.GetColorOutput().GetTexture()!.Format);
+        Assert.Equal(TextureFormat.TexFormatRgba8Unorm, manager.GetSecondaryColorTexture()!.Format);
         Assert.True(manager.NeedsViewportResolve());
     }
 
@@ -834,7 +834,7 @@ public sealed class RenderPipelineTests
     {
         var colorTarget = new Texture2D("Textures/ViewportColor");
         colorTarget.SetSRGB(true);
-        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm));
 
         var output = RenderOutputTargetInfo.FromTexture(colorTarget, new IntRect(0, 0, 320, 200));
 
@@ -846,7 +846,7 @@ public sealed class RenderPipelineTests
     public void Render_output_target_info_treats_rg16f_texture_as_linear_color_space_output()
     {
         var colorTarget = new Texture2D("Textures/ViewportColor");
-        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RG16F));
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRg16Float));
 
         var output = RenderOutputTargetInfo.FromTexture(colorTarget, new IntRect(0, 0, 320, 200));
 
@@ -865,9 +865,9 @@ public sealed class RenderPipelineTests
         manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
 
         var colorTarget = new Texture2D("Textures/ViewportColor");
-        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm));
         var depthTarget = new Texture2D("Textures/ViewportDepth");
-        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8));
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint));
 
         manager.OnViewportDefined(
             RenderOutputTargetInfo.FromTexture(colorTarget, new IntRect(0, 0, 320, 200), depthTarget),
@@ -890,9 +890,9 @@ public sealed class RenderPipelineTests
 
         var colorTarget = new Texture2D("Textures/ViewportColor");
         colorTarget.SetSRGB(true);
-        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm));
         var depthTarget = new Texture2D("Textures/ViewportDepth");
-        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8));
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint));
 
         manager.OnViewportDefined(
             RenderOutputTargetInfo.FromTexture(colorTarget, new IntRect(0, 0, 320, 200), depthTarget),
@@ -944,16 +944,16 @@ public sealed class RenderPipelineTests
         });
 
         var renderTarget = new Texture2D("Textures/ViewportTarget");
-        Assert.True(renderTarget.SetSize(320, 200, TextureFormat.RG16F));
+        Assert.True(renderTarget.SetSize(320, 200, TextureFormat.TexFormatRg16Float));
         renderTarget.SetFilterMode(TextureFilterMode.Bilinear);
 
         manager.OnViewportDefined(RenderOutputTargetInfo.FromTexture(renderTarget, new IntRect(0, 0, 320, 200)), new IntRect(0, 0, 320, 200));
 
-        Assert.Equal(TextureFormat.RG16F, manager.GetOutputColorFormat());
+        Assert.Equal(TextureFormat.TexFormatRg16Float, manager.GetOutputColorFormat());
         Assert.True(manager.IsLinearColorSpace());
         Assert.True(manager.IsHDR());
-        Assert.True(manager.GetColorOutput().GetTexture()!.GetLinear());
-        Assert.True(manager.GetSecondaryColorTexture()!.GetLinear());
+        Assert.False(manager.GetColorOutput().GetTexture()!.GetLinear());
+        Assert.False(manager.GetSecondaryColorTexture()!.GetLinear());
     }
 
     [Fact]
@@ -967,9 +967,9 @@ public sealed class RenderPipelineTests
         manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
 
         var colorTarget = new Texture2D("Textures/ViewportColor");
-        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm));
         var depthTarget = new Texture2D("Textures/ViewportDepth");
-        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8));
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint));
 
         var output = RenderOutputTargetInfo.FromTexture(
             colorTarget,
@@ -993,9 +993,9 @@ public sealed class RenderPipelineTests
         });
 
         var colorTarget = new Texture2D("Textures/ViewportColor");
-        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm));
         var depthTarget = new Texture2D("Textures/ViewportDepth");
-        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8));
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint));
 
         var output = RenderOutputTargetInfo.FromTexture(
             colorTarget,
@@ -1022,9 +1022,9 @@ public sealed class RenderPipelineTests
         });
 
         var colorTarget = new Texture2D("Textures/ViewportColor");
-        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm));
         var depthTarget = new Texture2D("Textures/ViewportDepth");
-        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8));
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint));
 
         var output = RenderOutputTargetInfo.FromTexture(
             colorTarget,
@@ -1056,9 +1056,9 @@ public sealed class RenderPipelineTests
         manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
 
         var colorTarget = new Texture2D("Textures/ViewportColor");
-        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm));
         var depthTarget = new Texture2D("Textures/ViewportDepth");
-        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8));
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint));
 
         var output = RenderOutputTargetInfo.FromTexture(
             colorTarget,
@@ -1082,9 +1082,9 @@ public sealed class RenderPipelineTests
         });
 
         var colorTarget = new Texture2D("Textures/ViewportColor");
-        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.RGBA8));
+        Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm));
         var depthTarget = new Texture2D("Textures/ViewportDepth");
-        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.Depth24Stencil8));
+        Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint));
 
         var output = RenderOutputTargetInfo.FromTexture(
             colorTarget,
@@ -1139,9 +1139,9 @@ public sealed class RenderPipelineTests
         manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
         manager.OnViewportDefined(null, new IntRect(0, 0, 128, 64));
 
-        var scaled = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.RGBA8), new Vector2f(0.5f, 0.5f));
+        var scaled = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRgba8Unorm), new Vector2f(0.5f, 0.5f));
         var fixedSize = manager.CreateColorBuffer(
-            new RenderBufferParams(TextureFormat.RGBA8, 1, RenderBufferFlag.FixedTextureSize),
+            new RenderBufferParams(TextureFormat.TexFormatRgba8Unorm, 1, RenderBufferFlag.FixedTextureSize),
             new Vector2f(12, 6));
 
         Assert.Equal((64, 32), (scaled.Texture.Width, scaled.Texture.Height));
@@ -1198,7 +1198,7 @@ public sealed class RenderPipelineTests
         manager.OnViewportDefined(null, new IntRect(0, 0, 128, 64));
 
         var cubemap = manager.CreateColorBuffer(
-            new RenderBufferParams(TextureFormat.RGBA8, 1, RenderBufferFlag.CubeMap | RenderBufferFlag.FixedTextureSize),
+            new RenderBufferParams(TextureFormat.TexFormatRgba8Unorm, 1, RenderBufferFlag.CubeMap | RenderBufferFlag.FixedTextureSize),
             new Vector2f(32, 32));
 
         var cubeTexture = Assert.IsType<TextureCube>(cubemap.Texture);

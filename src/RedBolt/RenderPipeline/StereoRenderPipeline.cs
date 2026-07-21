@@ -393,7 +393,7 @@ public class StereoRenderPipelineView : RenderPipelineView
                 _sceneProcessor.GetPipelineStateBuilder(),
                 DrawableProcessorPassFlag.StereoInstancing, "postalpha");
 
-            var outlineParams = new RenderBufferParams(TextureFormat.RGBA8, 1, RenderBufferFlag.BilinearFiltering);
+            var outlineParams = new RenderBufferParams(TextureFormat.TexFormatRgba8Unorm, 1, RenderBufferFlag.BilinearFiltering);
             _outlineBuffer = _renderBufferManager.CreateColorBuffer(outlineParams);
             _outlineBuffer.SetEnabled(false);
 
@@ -417,7 +417,7 @@ public class StereoRenderPipelineView : RenderPipelineView
                 new IntRect(0, 0, renderTarget.GetWidth(), renderTarget.GetHeight()),
                 colorTexture.Format,
                 depthSurface?.GetView(),
-                depthTexture?.Format ?? TextureFormat.Unknown,
+                depthTexture?.Format ?? TextureFormat.TexFormatUnknown,
                 renderTarget.GetMultiSample(),
                 colorTexture,
                 depthTexture,
@@ -427,7 +427,7 @@ public class StereoRenderPipelineView : RenderPipelineView
                     || TextureFormatUtility.IsFloatColorFormat(colorTexture.Format),
                 TextureFormatUtility.IsFloatColorFormat(colorTexture.Format),
                 depthTexture is not null,
-                depthTexture?.Format == TextureFormat.Depth24Stencil8)
+                depthTexture?.Format == TextureFormat.TexFormatD24UnormS8Uint)
             : null;
 
         if (!_sceneProcessor.Define(_frameInfo))
@@ -462,9 +462,10 @@ public class StereoRenderPipelineView : RenderPipelineView
         var standardOutputDesc = new PipelineStateOutputDesc
         {
             DepthStencilFormat = outputDepthFormat,
-            MultiSample = (uint)outputMultiSample
+            MultiSample = outputMultiSample
         };
-        standardOutputDesc.SetRenderTargetFormat(outputColorFormat);
+        standardOutputDesc.NumRenderTargets = 1;
+        standardOutputDesc.RenderTargetFormats[0] = outputColorFormat;
 
         _opaquePass!.SetForwardOutputDesc(standardOutputDesc);
         _depthPrePass?.SetForwardOutputDesc(standardOutputDesc);

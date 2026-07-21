@@ -106,7 +106,9 @@ public class TextureCube : Texture
     {
         var parameters = new RawTextureParams(
             TextureType.TextureCube, format, flags, new Vector3i(size, size, 1),
-            NumLevels: _requestedLevels, MultiSample: multiSample, SRGB: _requestedSRGB);
+            NumLevels: _requestedLevels, MultiSample: multiSample);
+        if (_requestedSRGB)
+            parameters = parameters with { Format = RenderAPIUtils.SetTextureFormatSRGB(parameters.Format) };
         return Create(parameters);
     }
 
@@ -139,7 +141,7 @@ public class TextureCube : Texture
         if (face == CubeMapFace.PositiveX)
         {
             var parameters = new RawTextureParams(
-                TextureType.TextureCube, TextureFormat.Unknown, TextureFlag.None, Vector3i.Zero,
+                TextureType.TextureCube, TextureFormat.TexFormatUnknown, TextureFlag.None, Vector3i.Zero,
                 NumLevels: _requestedLevels);
             if (!CreateForImage(parameters, image))
                 return false;

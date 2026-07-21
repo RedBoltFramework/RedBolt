@@ -33,10 +33,10 @@ public sealed class RenderContextTests
             Assert.Equal(new Vector2i(64, 64), renderContext.GetCurrentRenderTargetSize());
 
             var outputDesc = renderContext.GetCurrentRenderTargetsDesc();
-            Assert.Equal<uint>(1u, outputDesc.NumRenderTargets);
-            Assert.NotEqual(TextureFormat.Unknown, outputDesc.RenderTargetFormats[0]);
-            Assert.NotEqual(TextureFormat.Unknown, outputDesc.DepthStencilFormat);
-            Assert.True(outputDesc.MultiSample >= 1u);
+            Assert.Equal(1, outputDesc.NumRenderTargets);
+            Assert.NotEqual(TextureFormat.TexFormatUnknown, outputDesc.RenderTargetFormats[0]);
+            Assert.NotEqual(TextureFormat.TexFormatUnknown, outputDesc.DepthStencilFormat);
+            Assert.True(outputDesc.MultiSample >= 1);
         });
     }
 
@@ -48,8 +48,8 @@ public sealed class RenderContextTests
             var renderContext = _fixture.RenderContext;
             var colorTexture = new Texture2D("Textures/RenderContextColor");
             var depthTexture = new Texture2D("Textures/RenderContextDepth");
-            Assert.True(colorTexture.SetSize(32, 16, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
-            Assert.True(depthTexture.SetSize(32, 16, TextureFormat.Depth24Stencil8, TextureFlag.BindDepthStencil));
+            Assert.True(colorTexture.SetSize(32, 16, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
+            Assert.True(depthTexture.SetSize(32, 16, TextureFormat.TexFormatD24UnormS8Uint, TextureFlag.BindDepthStencil));
 
             renderContext.SetRenderTargets(RenderTargetView.Texture(depthTexture), [RenderTargetView.Texture(colorTexture)]);
 
@@ -63,16 +63,16 @@ public sealed class RenderContextTests
             Assert.False(renderContext.IsBoundAsRenderTarget(depthTexture.GetRawTexture()));
 
             var outputDesc = renderContext.GetCurrentRenderTargetsDesc();
-            Assert.Equal<uint>(1u, outputDesc.NumRenderTargets);
-            Assert.Equal(TextureFormat.RGBA8, outputDesc.RenderTargetFormats[0]);
-            Assert.Equal(TextureFormat.Depth24Stencil8, outputDesc.DepthStencilFormat);
-            Assert.Equal<uint>(1u, outputDesc.MultiSample);
+            Assert.Equal(1, outputDesc.NumRenderTargets);
+            Assert.Equal(TextureFormat.TexFormatRgba8Unorm, outputDesc.RenderTargetFormats[0]);
+            Assert.Equal(TextureFormat.TexFormatD24UnormS8Uint, outputDesc.DepthStencilFormat);
+            Assert.Equal(1, outputDesc.MultiSample);
 
             renderContext.ResetRenderTargets();
 
             Assert.False(renderContext.IsBoundAsRenderTarget(colorTexture.GetRawTexture()));
             Assert.Equal(default, renderContext.GetCurrentRenderTargetSize());
-            Assert.Equal<uint>(0u, renderContext.GetCurrentRenderTargetsDesc().NumRenderTargets);
+            Assert.Equal(0, renderContext.GetCurrentRenderTargetsDesc().NumRenderTargets);
         });
     }
 
@@ -85,17 +85,17 @@ public sealed class RenderContextTests
             var firstColor = new Texture2D("Textures/RenderContextFirstColor");
             var secondColor = new Texture2D("Textures/RenderContextSecondColor");
             var depth = new Texture2D("Textures/RenderContextMrtDepth");
-            Assert.True(firstColor.SetSize(32, 16, TextureFormat.RGBA8, TextureFlag.BindRenderTarget));
-            Assert.True(secondColor.SetSize(32, 16, TextureFormat.RG16F, TextureFlag.BindRenderTarget));
-            Assert.True(depth.SetSize(32, 16, TextureFormat.Depth24Stencil8, TextureFlag.BindDepthStencil));
+            Assert.True(firstColor.SetSize(32, 16, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
+            Assert.True(secondColor.SetSize(32, 16, TextureFormat.TexFormatRg16Float, TextureFlag.BindRenderTarget));
+            Assert.True(depth.SetSize(32, 16, TextureFormat.TexFormatD24UnormS8Uint, TextureFlag.BindDepthStencil));
 
             renderContext.SetRenderTargets(RenderTargetView.Texture(depth),
                 [RenderTargetView.Texture(firstColor), RenderTargetView.Texture(secondColor)]);
 
             var outputDesc = renderContext.GetCurrentRenderTargetsDesc();
-            Assert.Equal<uint>(2u, outputDesc.NumRenderTargets);
-            Assert.Equal(TextureFormat.RGBA8, outputDesc.RenderTargetFormats[0]);
-            Assert.Equal(TextureFormat.RG16F, outputDesc.RenderTargetFormats[1]);
+            Assert.Equal(2, outputDesc.NumRenderTargets);
+            Assert.Equal(TextureFormat.TexFormatRgba8Unorm, outputDesc.RenderTargetFormats[0]);
+            Assert.Equal(TextureFormat.TexFormatRg16Float, outputDesc.RenderTargetFormats[1]);
             Assert.True(renderContext.IsBoundAsRenderTarget(firstColor.GetRawTexture()));
             Assert.True(renderContext.IsBoundAsRenderTarget(secondColor.GetRawTexture()));
             renderContext.ClearRenderTarget(1, Color.Black);

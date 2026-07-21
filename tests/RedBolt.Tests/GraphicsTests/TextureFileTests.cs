@@ -24,7 +24,7 @@ public sealed class TextureFileTests
 
             Assert.Equal(0, texture.Width);
             Assert.Equal(0, texture.Height);
-            Assert.Equal(TextureFormat.Unknown, texture.Format);
+            Assert.Equal(TextureFormat.TexFormatUnknown, texture.Format);
             Assert.False(texture.GetData(0, Array.Empty<byte>()));
         }
         finally
@@ -62,7 +62,7 @@ public sealed class TextureFileTests
 
             Assert.Equal(0, texture.Width);
             Assert.Equal(0, texture.Height);
-            Assert.Equal(TextureFormat.Unknown, texture.Format);
+            Assert.Equal(TextureFormat.TexFormatUnknown, texture.Format);
             Assert.False(texture.GetData(CubeMapFace.PositiveX, 0, Span<byte>.Empty));
         }
         finally
@@ -95,7 +95,7 @@ public sealed class TextureFileTests
             Assert.Equal(0, texture.Layers);
             Assert.Equal(0, texture.Width);
             Assert.Equal(0, texture.Height);
-            Assert.Equal(TextureFormat.Unknown, texture.Format);
+            Assert.Equal(TextureFormat.TexFormatUnknown, texture.Format);
             Assert.False(texture.GetData(0, 0, Span<byte>.Empty));
         }
         finally
@@ -125,7 +125,7 @@ public sealed class TextureFileTests
             Assert.Equal(0, texture.Width);
             Assert.Equal(0, texture.Height);
             Assert.Equal(0, texture.Depth);
-            Assert.Equal(TextureFormat.Unknown, texture.Format);
+            Assert.Equal(TextureFormat.TexFormatUnknown, texture.Format);
             Assert.False(texture.GetData(0, Span<byte>.Empty));
         }
         finally

@@ -10,7 +10,6 @@ public sealed class RenderBufferManager
 {
     private static readonly IReadOnlyDictionary<string, object?> EmptyShaderParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
     private readonly List<WeakReference<TextureRenderBuffer>> _managedTextureBuffers = [];
-    private readonly Action<Texture, TextureFormat> _applyColorTextureMetadata;
     private readonly Graphics? _graphics;
     private readonly Renderer? _renderer;
     private readonly RenderDevice? _renderDevice;
@@ -42,8 +41,8 @@ public sealed class RenderBufferManager
     private TextureRenderBuffer? _depthBuffer;
     private RenderBufferManagerSettings _settings = new();
     private RenderBufferManagerFrameSettings _frameSettings = new();
-    private RenderBufferParams _colorOutputParams = new(TextureFormat.RGBA8);
-    private RenderBufferParams _depthStencilOutputParams = new(TextureFormat.Unknown);
+    private RenderBufferParams _colorOutputParams = new(TextureFormat.TexFormatRgba8Unorm);
+    private RenderBufferParams _depthStencilOutputParams = new(TextureFormat.TexFormatUnknown);
     private IntRect _viewportRect;
     private RenderBuffer _depthStencilBuffer;
     private RenderBuffer _writeableColorBuffer;
@@ -64,7 +63,6 @@ public sealed class RenderBufferManager
         _renderContext = _renderDevice?.GetRenderContext();
         _drawQueue = _renderDevice?.GetDefaultQueue();
         _debugger = renderPipeline?.GetDebugger();
-        _applyColorTextureMetadata = ApplyColorTextureMetadata;
         _depthStencilBuffer = _viewportDepthBuffer;
         _writeableColorBuffer = _viewportColorBuffer;
     }
@@ -156,7 +154,7 @@ public sealed class RenderBufferManager
         if (quadGeometry is null)
             return StaticPipelineStateId.Invalid;
 
-        GraphicsUtils.InitializeInputLayoutAndPrimitiveType(description, quadGeometry);
+        GraphicsUtils.InitializeInputLayoutAndPrimitiveType(ref description, quadGeometry);
         description.ColorWriteEnabled = true;
 
         return _pipelineStates.CreateState(description);
@@ -176,7 +174,7 @@ public sealed class RenderBufferManager
         };
 
         foreach (var sampler in samplers)
-            description.Samplers.Add(sampler.Name, sampler.Desc);
+            description.Samplers.Add(new StringHash(sampler.Name), sampler.Desc);
 
         return CreateQuadPipelineState(description);
     }
@@ -325,7 +323,7 @@ public sealed class RenderBufferManager
     {
         var buffer = new TextureRenderBuffer(bufferParams, size);
         RegisterTextureBuffer(buffer);
-        buffer.RefreshForViewport(_viewportRect, _applyColorTextureMetadata);
+        buffer.RefreshForViewport(_viewportRect);
         return buffer;
     }
 
@@ -488,7 +486,7 @@ public sealed class RenderBufferManager
     private void InitializePipelineStates()
     {
         NamedSamplerStateDesc[] samplers =
-            [new NamedSamplerStateDesc(new StringHash("Albedo"), SamplerStateDesc.Bilinear())];
+            [new NamedSamplerStateDesc("Albedo", SamplerStateDesc.Bilinear())];
 
         _copyTexturePipelineState = CreateQuadPipelineState(
             BlendMode.Replace, "v2/X_CopyFramebuffer", string.Empty, samplers);
@@ -781,8 +779,11 @@ public sealed class RenderBufferManager
             fallbackMultiSample,
             fallbackFlags);
         var nextDepthStencilOutputParams = new RenderBufferParams(outputDepthStencilTarget.GetFormat(), fallbackMultiSample, RenderBufferFlag.Persistent);
-        var nextLinearColorSpace = IsManagedOutputLinearColorSpace(_settings.ColorSpace, nextColorOutputParams.TextureFormat, _viewportTargetLinearColorSpace);
-        var nextHdr = TextureFormatUtility.IsFloatColorFormat(nextColorOutputParams.TextureFormat);
+        var outputTextureLinear = renderTarget?.ColorTexture?.GetLinear() ?? false;
+        var nextLinearColorSpace = IsManagedOutputLinearColorSpace(nextColorOutputParams.TextureFormat, outputTextureLinear);
+        var componentType = RenderAPIUtils.GetTextureFormatInfo(nextColorOutputParams.TextureFormat).ComponentType;
+        var nextHdr = componentType is not global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeUnorm
+            and not global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeUnormSrgb;
 
         if (renderTarget is not null)
         {
@@ -790,7 +791,7 @@ public sealed class RenderBufferManager
             var flags = renderTarget.BilinearFiltered || _settings.FilteredColor
                 ? RenderBufferFlag.BilinearFiltering
                 : RenderBufferFlag.None;
-            var outputColorFormat = renderTarget.ColorFormat == TextureFormat.Unknown
+            var outputColorFormat = renderTarget.ColorFormat == TextureFormat.TexFormatUnknown
                 ? nextColorOutputParams.TextureFormat
                 : renderTarget.ColorFormat;
             var effectiveColorFormat = GetColorTextureFormat(_settings.ColorSpace, outputColorFormat);
@@ -800,11 +801,13 @@ public sealed class RenderBufferManager
                 Math.Max(multiSample, 1),
                 flags);
             nextDepthStencilOutputParams = new RenderBufferParams(
-                renderTarget.DepthStencilFormat == TextureFormat.Unknown ? TextureFormat.Depth24Stencil8 : renderTarget.DepthStencilFormat,
+                renderTarget.DepthStencilFormat == TextureFormat.TexFormatUnknown ? TextureFormat.TexFormatD24UnormS8Uint : renderTarget.DepthStencilFormat,
                 Math.Max(multiSample, 1),
                 RenderBufferFlag.Persistent);
-            nextLinearColorSpace = IsManagedOutputLinearColorSpace(_settings.ColorSpace, effectiveColorFormat, renderTarget.LinearColorSpace);
-            nextHdr = TextureFormatUtility.IsFloatColorFormat(effectiveColorFormat);
+            nextLinearColorSpace = IsManagedOutputLinearColorSpace(effectiveColorFormat, outputTextureLinear);
+            componentType = RenderAPIUtils.GetTextureFormatInfo(effectiveColorFormat).ComponentType;
+            nextHdr = componentType is not global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeUnorm
+                and not global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeUnormSrgb;
         }
 
         if (_colorOutputParams != nextColorOutputParams || _depthStencilOutputParams != nextDepthStencilOutputParams)
@@ -826,7 +829,7 @@ public sealed class RenderBufferManager
                 ?? throw new InvalidOperationException("Primary color buffer creation returned unexpected render buffer type.");
         }
 
-        _primaryColorBuffer.RefreshForViewport(_viewportRect, _applyColorTextureMetadata);
+        _primaryColorBuffer.RefreshForViewport(_viewportRect);
         return _primaryColorBuffer;
     }
 
@@ -850,7 +853,7 @@ public sealed class RenderBufferManager
                 ?? throw new InvalidOperationException("Color buffer creation returned unexpected render buffer type.");
         }
 
-        _secondaryColorBuffer.RefreshForViewport(_viewportRect, _applyColorTextureMetadata);
+        _secondaryColorBuffer.RefreshForViewport(_viewportRect);
         return _secondaryColorBuffer;
     }
 
@@ -858,32 +861,17 @@ public sealed class RenderBufferManager
     {
         return colorSpace switch
         {
-            RenderPipelineColorSpace.LinearHDR => TextureFormat.RGBA16F,
-            RenderPipelineColorSpace.LinearLDR => TextureFormat.RGBA8Srgb,
-            RenderPipelineColorSpace.GammaLDR => TextureFormat.RGBA8,
+            RenderPipelineColorSpace.LinearHDR => TextureFormat.TexFormatRgba16Float,
+            RenderPipelineColorSpace.LinearLDR => TextureFormat.TexFormatRgba8UnormSrgb,
+            RenderPipelineColorSpace.GammaLDR => TextureFormat.TexFormatRgba8Unorm,
             RenderPipelineColorSpace.Optimized => outputTextureFormat,
-            _ => TextureFormat.RGBA8
+            _ => TextureFormat.TexFormatRgba8Unorm
         };
     }
 
-    private static bool IsManagedOutputLinearColorSpace(RenderPipelineColorSpace colorSpace, TextureFormat textureFormat,
-        bool outputLinearColorSpace)
+    private static bool IsManagedOutputLinearColorSpace(TextureFormat textureFormat, bool outputLinearColorSpace)
     {
-        return colorSpace switch
-        {
-            RenderPipelineColorSpace.LinearHDR => true,
-            RenderPipelineColorSpace.LinearLDR => true,
-            RenderPipelineColorSpace.Optimized => outputLinearColorSpace || TextureFormatUtility.IsFloatColorFormat(textureFormat),
-            _ => false
-        };
-    }
-
-    private void ApplyColorTextureMetadata(Texture texture, TextureFormat textureFormat)
-    {
-        ArgumentNullException.ThrowIfNull(texture);
-
-        var useLinearMetadata = _hdr || TextureFormatUtility.IsFloatColorFormat(textureFormat);
-        texture.SetLinear(useLinearMetadata);
+        return RenderAPIUtils.SetTextureFormatSRGB(textureFormat) == textureFormat || outputLinearColorSpace;
     }
 
     private void ResetCachedRenderBuffers()
@@ -907,10 +895,6 @@ public sealed class RenderBufferManager
                 continue;
 
             buffer.RefreshForViewport(_viewportRect);
-            if (RenderAPIUtils.IsDepthTextureFormat(buffer.BufferParams.TextureFormat))
-                continue;
-
-            ApplyColorTextureMetadata(buffer.Texture, buffer.Texture.Format);
         }
     }
 
