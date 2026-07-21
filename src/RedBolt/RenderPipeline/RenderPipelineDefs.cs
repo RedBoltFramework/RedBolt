@@ -1078,7 +1078,7 @@ public interface IRenderPipelineInterface
 /// <summary>
 /// Base interface of render pipeline viewport instance.
 /// </summary>
-public abstract class RenderPipelineView : IRenderPipelineInterface
+public abstract class RenderPipelineView : Object, IRenderPipelineInterface
 {
     private readonly RenderPipeline _renderPipeline;
     private readonly RenderPipelineDebugger _debugger = new();
@@ -1093,9 +1093,25 @@ public abstract class RenderPipelineView : IRenderPipelineInterface
 
     protected void UpdateFrameParameters()
     {
+        for (var i = _frameParameters.Count - 1; i >= 0; --i)
+        {
+            var value = _frameParameters[i].Value;
+            value.Dispose();
+        }
         _frameParameters.Clear();
         foreach (var (name, value) in _renderPipeline.GetFrameShaderParameters())
-            _frameParameters.Add(new ShaderParameterDesc(new StringHash(name), Variant.FromObject(value)));
+            _frameParameters.Add(new ShaderParameterDesc(new StringHash(name), value.Clone()));
+    }
+
+    public override void Dispose()
+    {
+        for (var i = _frameParameters.Count - 1; i >= 0; --i)
+        {
+            var value = _frameParameters[i].Value;
+            value.Dispose();
+        }
+        _frameParameters.Clear();
+        base.Dispose();
     }
 
     public Context? GetContext() => Context.Instance;

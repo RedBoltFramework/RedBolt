@@ -280,6 +280,27 @@ public sealed class CameraTests
         Assert.Same(secondScene.Root.GetComponent<RenderPipeline>(), secondView.GetRenderPipeline());
     }
 
+    [Fact]
+    public void Viewport_destroys_owned_render_pipeline_view_at_reset_boundaries()
+    {
+        var scene = new Scene();
+        var renderPipeline = new RenderPipeline();
+        var firstView = new TrackingRenderPipelineView(renderPipeline);
+        var viewport = new Viewport(scene, null);
+        SetPrivateField(viewport, "_renderPipelineView", firstView);
+
+        viewport.SetScene(null);
+
+        Assert.True(firstView.IsDisposed);
+        Assert.Null(GetPrivateFieldInfo("_renderPipelineView").GetValue(viewport));
+
+        var secondView = new TrackingRenderPipelineView(renderPipeline);
+        SetPrivateField(viewport, "_renderPipelineView", secondView);
+        viewport.Dispose();
+
+        Assert.True(secondView.IsDisposed);
+    }
+
     private static T GetPrivateField<T>(object instance, string fieldName)
     {
         var field = instance.GetType().GetField(fieldName,
@@ -294,5 +315,53 @@ public sealed class CameraTests
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
         Assert.NotNull(field);
         return field;
+    }
+
+    private static void SetPrivateField(object instance, string fieldName, object? value)
+    {
+        var field = instance.GetType().GetField(fieldName,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        field.SetValue(instance, value);
+    }
+
+    private sealed class TrackingRenderPipelineView : RenderPipelineView
+    {
+        public TrackingRenderPipelineView(RenderPipeline renderPipeline)
+            : base(renderPipeline)
+        {
+        }
+
+        public bool IsDisposed { get; private set; }
+
+        public override bool IsLinearColorSpace => false;
+
+        public override bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics) => false;
+
+        public override void Update(Graphics graphics)
+        {
+        }
+
+        public override void Render(Graphics graphics, MaterialQuality materialQuality)
+        {
+        }
+
+        public override CommonFrameInfo GetFrameInfo() => default;
+
+        public override RenderPipelineStats GetStats() => new();
+
+        public override void DrawDebugGeometries(bool depthTest)
+        {
+        }
+
+        public override void DrawDebugLights(bool depthTest)
+        {
+        }
+
+        public override void Dispose()
+        {
+            IsDisposed = true;
+            base.Dispose();
+        }
     }
 }

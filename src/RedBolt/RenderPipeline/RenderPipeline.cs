@@ -10,7 +10,7 @@ public class RenderPipeline : Component
     public const string DefaultRenderPathName = "RenderPaths/Default.renderpath";
 
     private readonly Dictionary<string, object?> _renderPathParameters = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, object?> _frameShaderParameters = new(StringComparer.Ordinal);
+    private readonly StringVariantMap _frameShaderParameters = new();
     private IReadOnlyList<RenderPassToggle> _renderPasses = [];
     private RenderPath? _renderPath;
     private RenderPipelineSettings _settings = new();
@@ -27,6 +27,14 @@ public class RenderPipeline : Component
         _settings.InstancingBuffer.EnableInstancing = true;
         _settings.Validate();
         _settings.AdjustToSupported(GetSubsystem<Graphics>());
+    }
+
+    public override void Dispose()
+    {
+        if (_renderPath is not null)
+            _renderPath.ReloadFinished -= OnRenderPathReloadFinished;
+        _frameShaderParameters.Dispose();
+        base.Dispose();
     }
 
     public RenderPipelineSettings Settings => _settings;
@@ -69,7 +77,7 @@ public class RenderPipeline : Component
 
     public IReadOnlyDictionary<string, object?> GetRenderPathParameters() => _renderPathParameters;
 
-    public IReadOnlyDictionary<string, object?> GetFrameShaderParameters() => _frameShaderParameters;
+    public IReadOnlyDictionary<string, Variant> GetFrameShaderParameters() => _frameShaderParameters;
 
     public uint Revision => _revision;
 
@@ -212,15 +220,19 @@ public class RenderPipeline : Component
         RaiseParametersChanged();
     }
 
-    public void SetFrameShaderParameters(IEnumerable<KeyValuePair<string, object?>> parameters)
+    public void SetFrameShaderParameters(IReadOnlyDictionary<string, Variant> parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
+
+        if (ReferenceEquals(parameters, _frameShaderParameters))
+            return;
+
         _frameShaderParameters.Clear();
         foreach (var (name, value) in parameters)
             _frameShaderParameters[name] = value;
     }
 
-    public void UpdateFrameShaderParameters(IReadOnlyDictionary<StringHash, object?> parameters)
+    public void UpdateFrameShaderParameters(IReadOnlyDictionary<StringHash, Variant> parameters)
     {
         ArgumentNullException.ThrowIfNull(parameters);
 
@@ -240,7 +252,7 @@ public class RenderPipeline : Component
     /// <summary>
     /// Update existing render path parameter.
     /// </summary>
-    public void UpdateFrameShaderParameter(StringHash nameHash, object? value)
+    public void UpdateFrameShaderParameter(StringHash nameHash, Variant value)
     {
         foreach (var name in _frameShaderParameters.Keys)
         {
@@ -255,7 +267,7 @@ public class RenderPipeline : Component
     /// <summary>
     /// Add or update render path parameter.
     /// </summary>
-    public void SetFrameShaderParameter(string name, object? value)
+    public void SetFrameShaderParameter(string name, Variant value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         _frameShaderParameters[name] = value;

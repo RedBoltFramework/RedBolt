@@ -151,14 +151,15 @@ public sealed class RenderPipelineTests
         var renderPipeline = scene.CreateComponent<RenderPipeline>();
         var initialRevision = renderPipeline.Revision;
 
-        renderPipeline.SetFrameShaderParameter("Time", 1.0f);
-        renderPipeline.SetFrameShaderParameters(
-        [
-            new KeyValuePair<string, object?>("FrameIndex", 4)
-        ]);
+        renderPipeline.SetFrameShaderParameter("Time", new Variant(1.0f));
+        using var parameters = new StringVariantMap
+        {
+            ["FrameIndex"] = new Variant(4)
+        };
+        renderPipeline.SetFrameShaderParameters(parameters);
 
         Assert.Equal(initialRevision, renderPipeline.Revision);
-        Assert.Equal(4, Assert.IsType<int>(renderPipeline.GetFrameShaderParameters()["FrameIndex"]));
+        Assert.Equal(4, renderPipeline.GetFrameShaderParameters()["FrameIndex"].GetInt());
     }
 
     [Fact]
@@ -166,15 +167,16 @@ public sealed class RenderPipelineTests
     {
         var scene = new Scene();
         var renderPipeline = scene.CreateComponent<RenderPipeline>();
-        renderPipeline.SetFrameShaderParameter("Time", 1.0f);
+        renderPipeline.SetFrameShaderParameter("Time", new Variant(1.0f));
 
-        renderPipeline.UpdateFrameShaderParameters(new Dictionary<StringHash, object?>
+        using var parameters = new VariantMap
         {
-            [new StringHash("Time")] = 2.0f,
-            [new StringHash("Missing")] = 3.0f
-        });
+            [new StringHash("Time")] = new Variant(2.0f),
+            [new StringHash("Missing")] = new Variant(3.0f)
+        };
+        renderPipeline.UpdateFrameShaderParameters(parameters);
 
-        Assert.Equal(2.0f, Assert.IsType<float>(renderPipeline.GetFrameShaderParameters()["Time"]));
+        Assert.Equal(2.0f, renderPipeline.GetFrameShaderParameters()["Time"].GetFloat());
         Assert.DoesNotContain("Missing", renderPipeline.GetFrameShaderParameters().Keys);
     }
 
@@ -183,13 +185,55 @@ public sealed class RenderPipelineTests
     {
         var scene = new Scene();
         var renderPipeline = scene.CreateComponent<RenderPipeline>();
-        renderPipeline.SetFrameShaderParameter("Time", 1.0f);
+        renderPipeline.SetFrameShaderParameter("Time", new Variant(1.0f));
 
-        renderPipeline.UpdateFrameShaderParameter(new StringHash("Time"), 2.0f);
-        renderPipeline.UpdateFrameShaderParameter(new StringHash("Missing"), 3.0f);
+        renderPipeline.UpdateFrameShaderParameter(new StringHash("Time"), new Variant(2.0f));
+        renderPipeline.UpdateFrameShaderParameter(new StringHash("Missing"), new Variant(3.0f));
 
-        Assert.Equal(2.0f, Assert.IsType<float>(renderPipeline.GetFrameShaderParameters()["Time"]));
+        Assert.Equal(2.0f, renderPipeline.GetFrameShaderParameters()["Time"].GetFloat());
         Assert.DoesNotContain("Missing", renderPipeline.GetFrameShaderParameters().Keys);
+    }
+
+    [Fact]
+    public void Frame_shader_parameters_and_view_descriptors_own_independent_variants()
+    {
+        var renderPipeline = new RenderPipeline();
+        using var source = Variant.MakeCustomValue(new FrameParameterValue(1));
+        using var parameters = new StringVariantMap
+        {
+            ["Value"] = source
+        };
+        renderPipeline.SetFrameShaderParameters(parameters);
+
+        var parameterValue = parameters["Value"].GetCustom<FrameParameterValue>();
+        var mapValue = renderPipeline.GetFrameShaderParameters()["Value"].GetCustom<FrameParameterValue>();
+        Assert.NotSame(source.GetCustom<FrameParameterValue>(), mapValue);
+        Assert.NotSame(parameterValue, mapValue);
+
+        var view = new FrameParameterRenderPipelineView(renderPipeline);
+        view.RefreshFrameParameters();
+        var firstViewValue = view.GetFrameParameterValue();
+        Assert.NotSame(mapValue, firstViewValue);
+
+        using var replacement = Variant.MakeCustomValue(new FrameParameterValue(2));
+        renderPipeline.SetFrameShaderParameter("Value", replacement);
+        Assert.True(mapValue.IsDisposed);
+        Assert.False(parameterValue.IsDisposed);
+        Assert.False(firstViewValue.IsDisposed);
+
+        view.RefreshFrameParameters();
+        Assert.True(firstViewValue.IsDisposed);
+        var secondViewValue = view.GetFrameParameterValue();
+        Assert.Equal(2, secondViewValue.Value);
+
+        view.Dispose();
+        Assert.True(secondViewValue.IsDisposed);
+
+        var replacementMapValue = renderPipeline.GetFrameShaderParameters()["Value"].GetCustom<FrameParameterValue>();
+        renderPipeline.Dispose();
+        Assert.True(replacementMapValue.IsDisposed);
+        Assert.False(source.GetCustom<FrameParameterValue>().IsDisposed);
+        Assert.False(replacement.GetCustom<FrameParameterValue>().IsDisposed);
     }
 
     [Fact]
@@ -1233,6 +1277,54 @@ public sealed class RenderPipelineTests
         }
 
         public override RenderPass Clone() => new ParameterRenderPass(_parameterName, _value);
+    }
+
+    private sealed class FrameParameterRenderPipelineView : RenderPipelineView
+    {
+        public FrameParameterRenderPipelineView(RenderPipeline renderPipeline)
+            : base(renderPipeline)
+        {
+        }
+
+        public void RefreshFrameParameters() => UpdateFrameParameters();
+
+        public FrameParameterValue GetFrameParameterValue()
+            => _frameParameters[0].Value.GetCustom<FrameParameterValue>();
+
+        public override bool IsLinearColorSpace => false;
+
+        public override bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics) => false;
+
+        public override void Update(Graphics graphics)
+        {
+        }
+
+        public override void Render(Graphics graphics, MaterialQuality materialQuality)
+        {
+        }
+
+        public override CommonFrameInfo GetFrameInfo() => default;
+
+        public override RenderPipelineStats GetStats() => new();
+
+        public override void DrawDebugGeometries(bool depthTest)
+        {
+        }
+
+        public override void DrawDebugLights(bool depthTest)
+        {
+        }
+    }
+
+    private sealed class FrameParameterValue(int value) : ICloneable, IDisposable
+    {
+        public int Value { get; } = value;
+
+        public bool IsDisposed { get; private set; }
+
+        public object Clone() => new FrameParameterValue(Value);
+
+        public void Dispose() => IsDisposed = true;
     }
 
     private static object GetPrivateField(object instance, string name)

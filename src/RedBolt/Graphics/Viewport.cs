@@ -66,6 +66,7 @@ public class Viewport : Object
     /// <summary>Destruct.</summary>
     public override void Dispose()
     {
+        _renderPipelineView?.Dispose();
         _renderPipelineView = null;
         _renderPipeline.SetTarget(null!);
         _cullCamera.SetTarget(null!);
@@ -86,7 +87,10 @@ public class Viewport : Object
     {
         var hasScene = _scene.TryGetTarget(out var currentScene) && currentScene is not null;
         if (hasScene != (scene is not null))
+        {
+            _renderPipelineView?.Dispose();
             _renderPipelineView = null;
+        }
 
         _scene.SetTarget(scene!);
     }
@@ -289,7 +293,9 @@ public class Viewport : Object
         if (renderPipeline is not null && (_renderPipelineView is null ||
             !ReferenceEquals(_renderPipelineView.GetRenderPipeline(), renderPipeline)))
         {
-            _renderPipelineView = renderPipeline.Instantiate();
+            var renderPipelineView = renderPipeline.Instantiate();
+            _renderPipelineView?.Dispose();
+            _renderPipelineView = renderPipelineView;
         }
     }
 
