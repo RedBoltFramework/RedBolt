@@ -25,8 +25,6 @@ public class AnimatedModel : StaticModel
                 RemoveRootBone();
         }
 
-        if (_model is not null)
-            _model.ReloadFinished -= HandleModelReloadFinished;
         _attrBuffer.Dispose();
         _geometrySkinMatrixPtrs.Clear();
         _geometrySkinMatrices.Clear();
@@ -277,7 +275,7 @@ public class AnimatedModel : StaticModel
         }
 
         if (_model is not null)
-            _model.ReloadFinished -= HandleModelReloadFinished;
+            UnsubscribeFromEvent<ResourceEvents.ReloadFinished>(_model);
 
         _model = model;
 
@@ -296,7 +294,7 @@ public class AnimatedModel : StaticModel
             return;
         }
 
-        model.ReloadFinished += HandleModelReloadFinished;
+        SubscribeToEvent<ResourceEvents.ReloadFinished>(model, HandleModelReloadFinished);
 
         SetNumGeometries(model.GetNumGeometries());
         var geometries = model.GetGeometries();
@@ -917,11 +915,9 @@ public class AnimatedModel : StaticModel
     }
 
     /// <summary>Handle model reload finished.</summary>
-    private void HandleModelReloadFinished(Resource resource)
+    private void HandleModelReloadFinished(ref ResourceEvents.ReloadFinished eventData)
     {
         var currentModel = _model;
-        if (currentModel is not null)
-            currentModel.ReloadFinished -= HandleModelReloadFinished;
         _model = null;
         SetModel(currentModel);
     }

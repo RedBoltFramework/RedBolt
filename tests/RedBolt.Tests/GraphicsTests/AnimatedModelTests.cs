@@ -224,6 +224,28 @@ public sealed class AnimatedModelTests
     }
 
     [Fact]
+    public void Model_reload_event_reapplies_only_the_current_model()
+    {
+        var firstModel = CreateSkeletonModel("First", BoneCollisionShape.Box);
+        var secondModel = CreateSkeletonModel("Second", BoneCollisionShape.Sphere);
+        secondModel.SetBoundingBox(new BoundingBox(
+            new Vector3f(-2.0f, -2.0f, -2.0f), new Vector3f(2.0f, 2.0f, 2.0f)));
+        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        animatedModel.SetModel(firstModel, true);
+        animatedModel.SetModel(secondModel, true);
+
+        firstModel.SetBoundingBox(new BoundingBox(
+            new Vector3f(-3.0f, -3.0f, -3.0f), new Vector3f(3.0f, 3.0f, 3.0f)));
+        firstModel.SendEvent<ResourceEvents.ReloadFinished>();
+        Assert.Equal(secondModel.GetBoundingBox(), animatedModel.GetBoundingBox());
+
+        secondModel.SetBoundingBox(new BoundingBox(
+            new Vector3f(-4.0f, -4.0f, -4.0f), new Vector3f(4.0f, 4.0f, 4.0f)));
+        secondModel.SendEvent<ResourceEvents.ReloadFinished>();
+        Assert.Equal(secondModel.GetBoundingBox(), animatedModel.GetBoundingBox());
+    }
+
+    [Fact]
     public void Update_bone_bounding_box_uses_local_bone_transform()
     {
         var model = CreateSkeletonModel("Bounds", BoneCollisionShape.Box);
