@@ -5,7 +5,7 @@ namespace RedBolt;
 
 /// <summary>Two-dimensional bounding rectangle.</summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct Rect : ICloneable, IEquatable<Rect>, IApproximateEquatable<Rect>
+public struct Rect : ICloneable, IEquatable<Rect>
 {
     /// <summary>Construct an undefined rect.</summary>
     public Rect()

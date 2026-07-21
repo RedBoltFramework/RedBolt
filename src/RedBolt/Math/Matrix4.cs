@@ -6,7 +6,7 @@ namespace RedBolt;
 
 /// <summary>4x4 matrix for arbitrary linear transforms including projection.</summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct Matrix4 : IEquatable<Matrix4>, IApproximateEquatable<Matrix4>
+public struct Matrix4 : IEquatable<Matrix4>
 {
     /// <summary>Construct an identity matrix.</summary>
     public Matrix4()

@@ -6,7 +6,7 @@ namespace RedBolt;
 
 /// <summary>3x4 matrix for scene node transform calculations.</summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct Matrix3x4 : IEquatable<Matrix3x4>, IApproximateEquatable<Matrix3x4>
+public struct Matrix3x4 : IEquatable<Matrix3x4>
 {
     /// <summary>Construct an identity matrix.</summary>
     public Matrix3x4()

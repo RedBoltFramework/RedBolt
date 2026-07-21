@@ -5,7 +5,7 @@ namespace RedBolt;
 
 /// <summary>Rotation represented as a four-dimensional normalized vector.</summary>
 [StructLayout(LayoutKind.Sequential)]
-public struct Quaternion : ICloneable, IEquatable<Quaternion>, IApproximateEquatable<Quaternion>
+public struct Quaternion : ICloneable, IEquatable<Quaternion>
 {
     /// <summary>Construct an identity quaternion.</summary>
     public Quaternion()
