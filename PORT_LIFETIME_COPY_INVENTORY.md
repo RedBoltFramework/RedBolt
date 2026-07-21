@@ -22,8 +22,8 @@ Excluded:
 - Tests and vendored third-party code.
 - Global aliases/usings files that contain no ported class implementation.
 
-Pending managed files inventoried: **68**
-Pending files with likely C++ counterpart paths: **60**
+Pending managed files inventoried: **67**
+Pending files with likely C++ counterpart paths: **59**
 Pending files requiring counterpart discovery: **8**
 
 ## Required review for every row
@@ -168,7 +168,6 @@ Check a column only after completing the corresponding full C++ review and recor
 | `src/RedBolt/Scene/TrackedComponent.cs` | `Source/Urho3D/Scene/TrackedComponent.h`<br>`Source/Urho3D/Scene/TrackedComponent.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Scene/UnknownComponent.cs` | `Source/Urho3D/Scene/UnknownComponent.h`<br>`Source/Urho3D/Scene/UnknownComponent.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Scene/ValueAnimation.cs` | `Source/Urho3D/Scene/ValueAnimation.h`<br>`Source/Urho3D/Scene/ValueAnimation.cpp` | ☐ | ☐ | ☐ |
-| `src/RedBolt/Scene/WorldOrigin.cs` | `Source/Urho3D/Scene/WorldOrigin.h`<br>`Source/Urho3D/Scene/WorldOrigin.cpp` | ☐ | ☐ | ☐ |
 
 ## Outcome notation for future passes
 

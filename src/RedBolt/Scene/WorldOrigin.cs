@@ -5,7 +5,7 @@ namespace RedBolt;
 /// <summary>
 /// Component that maintains world origin around the node.
 /// </summary>
-public sealed class WorldOrigin : LogicComponent
+public class WorldOrigin : LogicComponent
 {
     public const uint MaxDistance = 8192;
     public const uint DefaultStep = 128;
@@ -52,17 +52,15 @@ public sealed class WorldOrigin : LogicComponent
             true);
     }
 
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        base.Dispose();
+    }
+
     public static void RegisterObject(Context context)
     {
-        ArgumentNullException.ThrowIfNull(context);
         context.AddFactoryReflection<WorldOrigin>(ObjectCategory.Category_Scene);
-
-        // URHO3D_ACCESSOR_ATTRIBUTE("Is Enabled", IsEnabled, SetEnabled, bool, true, AM_DEFAULT);
-        // URHO3D_ATTRIBUTE("Max Distance", unsigned, maxDistance_, MaxDistance, AM_DEFAULT);
-        // URHO3D_ATTRIBUTE("Step", unsigned, step_, DefaultStep, AM_DEFAULT);
-        // URHO3D_ATTRIBUTE("Update X", bool, updateX_, true, AM_DEFAULT);
-        // URHO3D_ATTRIBUTE("Update Y", bool, updateY_, false, AM_DEFAULT);
-        // URHO3D_ATTRIBUTE("Update Z", bool, updateZ_, true, AM_DEFAULT);
     }
 
     /// <summary>
@@ -70,7 +68,7 @@ public sealed class WorldOrigin : LogicComponent
     /// </summary>
     public override void Update(float timeStep)
     {
-        var position = Node.GetWorldPosition();
+        var position = Node!.GetWorldPosition();
         var distanceToOrigin = Math.Max(
             Math.Max(_updateX ? Math.Abs(position.X) : 0.0f, _updateY ? Math.Abs(position.Y) : 0.0f),
             _updateZ ? Math.Abs(position.Z) : 0.0f);
@@ -96,25 +94,25 @@ public sealed class WorldOrigin : LogicComponent
                         return;
 
                     var oldPosition = weakSelf.TryGetTarget(out var targetSelf)
-                        ? targetSelf.Node.GetWorldPosition()
+                        ? targetSelf.Node!.GetWorldPosition()
                         : Vector3f.Zero;
                     targetScene.UpdateWorldOrigin(newWorldOrigin);
 
-                    if (weakSelf.TryGetTarget(out targetSelf)
-                        && targetSelf.Node.GetWorldPosition() == oldPosition)
+                    if (weakSelf.TryGetTarget(out targetSelf))
                     {
-                        targetSelf.SetEnabled(false);
-                        Log.GetLogger().LogError(
-                            "WorldOrigin '{WorldOrigin}' was not moved from {Position} during rebase, disabling.",
-                            targetSelf.GetFullNameDebug(), targetSelf.Node.GetWorldPosition());
+                        var newPosition = targetSelf.Node!.GetWorldPosition();
+                        if (newPosition.ApproximatelyEquivalent(oldPosition))
+                        {
+                            targetSelf.SetEnabled(false);
+                            Log.GetLogger().LogError(
+                                "WorldOrigin '{WorldOrigin}' was not moved from {Position} during rebase, disabling",
+                                targetSelf.GetFullNameDebug(), newPosition);
+                        }
                     }
                 }
 
                 var workQueue = GetSubsystem<WorkQueue>();
-                if (workQueue is not null)
-                    workQueue.PostDelayedTaskForMainThread(ApplyRebase);
-                else
-                    ApplyRebase();
+                workQueue.PostDelayedTaskForMainThread(ApplyRebase);
             }
         }
     }
