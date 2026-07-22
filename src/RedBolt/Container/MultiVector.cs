@@ -6,7 +6,7 @@ namespace RedBolt;
 public class MultiVector<T> : IEnumerable<T>, ICloneable, IDisposable
 {
     /// <summary>Index in multi-vector (pair of outer and inner indices).</summary>
-    public readonly record struct Index(uint Outer, uint Inner);
+    public readonly record struct Index(int Outer, int Inner);
 
     private readonly List<List<T>> _values = [];
 
@@ -14,9 +14,9 @@ public class MultiVector<T> : IEnumerable<T>, ICloneable, IDisposable
     private static readonly bool IsDisposableValue = IsCloneable && typeof(IDisposable).IsAssignableFrom(typeof(T));
 
     /// <summary>Clear inner vectors. Reset outer vector to fixed size.</summary>
-    public void Clear(uint outerSize)
+    public void Clear(int outerSize)
     {
-        Resize((int)outerSize);
+        Resize(outerSize);
         foreach (var values in _values)
         {
             DisposeValues(values);
@@ -26,37 +26,37 @@ public class MultiVector<T> : IEnumerable<T>, ICloneable, IDisposable
 
     /// <summary>Emplace element at the back of specified outer vector.</summary>
     /// <remarks>C++ forwards variadic constructor arguments; the managed equivalent accepts a factory.</remarks>
-    public ref T EmplaceBack(uint outerIndex, Func<T> factory)
+    public ref T EmplaceBack(int outerIndex, Func<T> factory)
     {
         var value = factory();
-        var values = _values[(int)outerIndex];
+        var values = _values[outerIndex];
         values.Add(value);
         return ref CollectionsMarshal.AsSpan(values)[^1];
     }
 
     /// <summary>Push element into back of specified outer vector. Return index of added element.</summary>
-    public Index PushBack(uint outerIndex, T value)
+    public Index PushBack(int outerIndex, T value)
     {
-        var inner = (uint)_values[(int)outerIndex].Count;
-        _values[(int)outerIndex].Add(CopyValue(value));
+        var inner = _values[outerIndex].Count;
+        _values[outerIndex].Add(CopyValue(value));
         return new Index(outerIndex, inner);
     }
 
     /// <summary>Pop element from back of specified outer vector.</summary>
-    public void PopBack(uint outerIndex)
+    public void PopBack(int outerIndex)
     {
-        var values = _values[(int)outerIndex];
+        var values = _values[outerIndex];
         var index = values.Count - 1;
         DisposeValue(values[index]);
         values.RemoveAt(index);
     }
 
     /// <summary>Return size.</summary>
-    public uint Size()
+    public int Size()
     {
-        var size = 0u;
+        var size = 0;
         foreach (var values in _values)
-            size += (uint)values.Count;
+            size += values.Count;
         return size;
     }
 
@@ -90,7 +90,7 @@ public class MultiVector<T> : IEnumerable<T>, ICloneable, IDisposable
 
     /// <summary>Return element.</summary>
     public ref T this[Index index] =>
-        ref CollectionsMarshal.AsSpan(_values[(int)index.Outer])[(int)index.Inner];
+        ref CollectionsMarshal.AsSpan(_values[index.Outer])[index.Inner];
 
     /// <summary>Return outer collection.</summary>
     public List<List<T>> GetUnderlyingCollection() => _values;

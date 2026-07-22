@@ -106,9 +106,9 @@ public sealed class OcclusionBuffer : Object
         _width = width;
         _height = height;
         var workQueue = GetSubsystem<WorkQueue>();
-        var numThreadBuffers = threaded ? workQueue!.GetNumProcessingThreads() : 1u;
+        var numThreadBuffers = threaded ? workQueue!.GetNumProcessingThreads() : 1;
         _buffers.Clear();
-        for (var i = 0u; i < numThreadBuffers; ++i)
+        for (var i = 0; i < numThreadBuffers; ++i)
         {
             _buffers.Add(new OcclusionBufferData
             {
@@ -306,14 +306,14 @@ public sealed class OcclusionBuffer : Object
         return false;
     }
 
-    public void DrawBatch(in OcclusionBatch batch, uint threadIndex)
+    public void DrawBatch(in OcclusionBatch batch, int threadIndex)
     {
-        if (threadIndex > 0 && !_buffers[(int)threadIndex].Used)
+        if (threadIndex > 0 && !_buffers[threadIndex].Used)
         {
             ClearBuffer(threadIndex);
-            var buffer = _buffers[(int)threadIndex];
+            var buffer = _buffers[threadIndex];
             buffer.Used = true;
-            _buffers[(int)threadIndex] = buffer;
+            _buffers[threadIndex] = buffer;
         }
         var transform=_viewProj*batch.Model;
         Span<Vector4f> vertices=stackalloc Vector4f[192];
@@ -341,7 +341,7 @@ public sealed class OcclusionBuffer : Object
     private void CalculateViewport(){_scaleX=.5f*_width;_scaleY=-.5f*_height;_offsetX=.5f*_width+.5f;_offsetY=.5f*_height+.5f;
         _projOffsetScaleX=_projection.M00*_scaleX;_projOffsetScaleY=_projection.M11*_scaleY;}
 
-    private void DrawTriangle(Span<Vector4f> v,uint threadIndex)
+    private void DrawTriangle(Span<Vector4f> v,int threadIndex)
     {
         uint clip=0,and=0;
         for(var i=0;i<3;++i){uint m=0;if(v[i].X>v[i].W)m|=1;if(v[i].X< -v[i].W)m|=2;if(v[i].Y>v[i].W)m|=4;
@@ -369,7 +369,7 @@ public sealed class OcclusionBuffer : Object
             else if(d2<0){var q=(int)count*3;triangles[(int)count++]=true;v[q+2]=ClipEdge(v[n+2],v[n+1],d2,d1);v[q]=v[n+2]=ClipEdge(v[n+2],v[n],d2,d0);v[q+1]=v[n+1];}}
     }
 
-    private void DrawTriangle2D(Span<Vector3f> v,bool clockwise,uint threadIndex)
+    private void DrawTriangle2D(Span<Vector3f> v,bool clockwise,int threadIndex)
     {
         int top,middle,bottom;bool middleIsRight;
         if(v[0].Y<v[1].Y){if(v[2].Y<v[0].Y){top=2;middle=0;bottom=1;middleIsRight=true;}
@@ -383,15 +383,15 @@ public sealed class OcclusionBuffer : Object
         if(middleY!=bottomY){var shortEdge=new Edge(g,v[middle],v[bottom],middleY);RasterHalf(ref longEdge,ref shortEdge,middleY,bottomY,middleIsRight,g,threadIndex);}
     }
 
-    private void RasterHalf(ref Edge longEdge,ref Edge shortEdge,int startY,int endY,bool middleIsRight,Gradients g,uint threadIndex)
+    private void RasterHalf(ref Edge longEdge,ref Edge shortEdge,int startY,int endY,bool middleIsRight,Gradients g,int threadIndex)
     {
-        var data=_buffers[(int)threadIndex];for(var y=startY;y<endY;++y){var left=middleIsRight?longEdge:shortEdge;var right=middleIsRight?shortEdge:longEdge;
+        var data=_buffers[threadIndex];for(var y=startY;y<endY;++y){var left=middleIsRight?longEdge:shortEdge;var right=middleIsRight?shortEdge:longEdge;
             var z=left.InvZ;for(var x=left.X>>16;x<(right.X>>16);++x){var p=data.DataOffset+y*_width+x;if(z<data.DataWithSafety![p])data.DataWithSafety[p]=z;z+=g.DInvZdXInt;}
             longEdge.Step();shortEdge.Step();}
     }
 
     private void MergeBuffers(){for(var i=1;i<_buffers.Count;++i)if(_buffers[i].Used)for(var p=0;p<_width*_height;++p){var s=_buffers[i].DataWithSafety![_buffers[i].DataOffset+p];var d=_buffers[0].DataOffset+p;if(s<_buffers[0].DataWithSafety![d])_buffers[0].DataWithSafety![d]=s;}}
-    private void ClearBuffer(uint threadIndex){if(threadIndex>=_buffers.Count)return;Array.Fill(_buffers[(int)threadIndex].DataWithSafety!,(int)OcclusionZScale,_buffers[(int)threadIndex].DataOffset,_width*_height);}
+    private void ClearBuffer(int threadIndex){if(threadIndex>=_buffers.Count)return;Array.Fill(_buffers[threadIndex].DataWithSafety!,(int)OcclusionZScale,_buffers[threadIndex].DataOffset,_width*_height);}
 
     private readonly struct Gradients
     {

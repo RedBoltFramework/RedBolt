@@ -47,7 +47,7 @@ public class OutlineScenePass : ScenePass
 
     /// <summary>Implement ScenePass / DrawableProcessorPass batch callback.</summary>
     public override AddBatchResult AddCustomBatch(
-        uint threadIndex, Drawable drawable, int sourceBatchIndex, Technique technique)
+        int threadIndex, Drawable drawable, int sourceBatchIndex, Technique technique)
     {
         if (_outlineGroups.Count == 0)
             return default;

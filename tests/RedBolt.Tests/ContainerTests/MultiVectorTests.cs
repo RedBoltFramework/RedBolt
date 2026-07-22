@@ -29,7 +29,7 @@ public class MultiVectorTests
         values.EmplaceBack(2, () => 4);
 
         Assert.Equal(new MultiVector<int>.Index(0, 0), first);
-        Assert.Equal(3u, values.Size());
+        Assert.Equal(3, values.Size());
         Assert.Equal(1, values[first]);
         Assert.Equal([1, 3, 4], values.ToArray());
 

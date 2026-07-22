@@ -233,7 +233,7 @@ public sealed class DrawableProcessorTests
         Assert.Equal(
             new Vector3f(view.M20, view.M21, view.M22),
             GetPrivateField<Vector3f>(processor, "_cullCameraZAxis"));
-        Assert.Equal(checked((int)WorkQueue.GetThreadIndexCount()),
+        Assert.Equal(WorkQueue.GetThreadIndexCount(),
             GetPrivateField<FloatRange[]>(processor, "_sceneZRangeTemp").Length);
         Assert.Same(light, Assert.Single(processor.Lights));
     }
@@ -254,7 +254,7 @@ public sealed class DrawableProcessorTests
 
         Assert.True(result.Added);
         Assert.False(result.ForwardLitAdded);
-        Assert.Equal(1u, processorPass.BatchCount);
+        Assert.Equal(1, processorPass.BatchCount);
         Assert.NotNull(processorPass.FirstBatch.DeferredPass);
         Assert.Null(processorPass.FirstBatch.UnlitBasePass);
     }
@@ -276,7 +276,7 @@ public sealed class DrawableProcessorTests
 
         Assert.True(result.Added);
         Assert.True(result.ForwardLitAdded);
-        Assert.Equal(1u, processorPass.BatchCount);
+        Assert.Equal(1, processorPass.BatchCount);
         Assert.NotNull(processorPass.FirstBatch.UnlitBasePass);
         Assert.NotNull(processorPass.FirstBatch.LitBasePass);
         Assert.NotNull(processorPass.FirstBatch.LightPass);
@@ -296,7 +296,7 @@ public sealed class DrawableProcessorTests
         pipeline.IsLinearColorSpace = true;
         pipeline.RaiseUpdateBegin();
 
-        Assert.Equal(0u, processorPass.BatchCount);
+        Assert.Equal(0, processorPass.BatchCount);
         Assert.True(processorPass.IsLinearColorSpace);
     }
 
@@ -355,7 +355,7 @@ public sealed class DrawableProcessorTests
         {
         }
 
-        public uint BatchCount => GeometryBatches.Size();
+        public int BatchCount => GeometryBatches.Size();
         public GeometryBatch FirstBatch => GeometryBatches.First();
         public bool IsLinearColorSpace => LinearColorSpace;
     }

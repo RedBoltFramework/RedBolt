@@ -117,9 +117,9 @@ public class DrawableProcessorPass : Object
     /// <summary>
     /// Custom callback for adding batches.
     /// </summary>
-    public virtual AddBatchResult AddCustomBatch(uint threadIndex, Drawable drawable, int sourceBatchIndex, Technique technique) => default;
+    public virtual AddBatchResult AddCustomBatch(int threadIndex, Drawable drawable, int sourceBatchIndex, Technique technique) => default;
 
-    public AddBatchResult AddBatch(uint threadIndex, Drawable drawable, int sourceBatchIndex, Technique technique)
+    public AddBatchResult AddBatch(int threadIndex, Drawable drawable, int sourceBatchIndex, Technique technique)
     {
         if (_useBatchCallback)
             return AddCustomBatch(threadIndex, drawable, sourceBatchIndex, technique);
@@ -293,7 +293,7 @@ public class DrawableProcessor : Object
         _gi = _frameInfo.Scene!.Root.GetComponent<GlobalIllumination>();
 
         // Clean temporary containers
-        Array.Resize(ref _sceneZRangeTemp, checked((int)WorkQueue.GetThreadIndexCount()));
+        Array.Resize(ref _sceneZRangeTemp, WorkQueue.GetThreadIndexCount());
         Array.Clear(_sceneZRangeTemp);
         _sceneZRange = default;
 
@@ -896,7 +896,7 @@ public class DrawableProcessor : Object
         }
     }
 
-    public void QueueDrawableGeometryUpdate(uint threadIndex, Drawable drawable)
+    public void QueueDrawableGeometryUpdate(int threadIndex, Drawable drawable)
     {
         var updateGeometryType = drawable.GetUpdateGeometryType();
         if (updateGeometryType == UpdateGeometryType.MainThread)

@@ -13,10 +13,10 @@ public sealed class WorkQueueTests
 
         var index = values.Insert(42);
 
-        Assert.Equal(0u, index.Outer);
-        Assert.Equal(0u, index.Inner);
+        Assert.Equal(0, index.Outer);
+        Assert.Equal(0, index.Inner);
         Assert.Equal(42, values[index]);
-        Assert.Equal(1u, values.Size());
+        Assert.Equal(1, values.Size());
     }
 
     private readonly HeadlessEngineFixture _fixture;
@@ -147,7 +147,7 @@ public sealed class WorkQueueTests
     public void GetNumIncomplete_returns_zero_when_no_tasks()
     {
         var workQueue = GetWorkQueue();
-        Assert.Equal(0u, workQueue.GetNumIncomplete());
+        Assert.Equal(0, workQueue.GetNumIncomplete());
     }
 
     [Fact]
@@ -168,14 +168,14 @@ public sealed class WorkQueueTests
         Assert.False(workQueue.IsCompleted());
 
         workQueue.CompleteAll();
-        Assert.Equal(0u, workQueue.GetNumIncomplete());
+        Assert.Equal(0, workQueue.GetNumIncomplete());
         Assert.True(workQueue.IsCompleted());
     }
 
     [Fact]
     public void GetThreadIndex_returns_zero_for_main_thread()
     {
-        Assert.Equal(0u, WorkQueue.GetThreadIndex());
+        Assert.Equal(0, WorkQueue.GetThreadIndex());
     }
 
     [Fact]
@@ -197,7 +197,7 @@ public sealed class WorkQueueTests
         workQueue.Initialize(0);
 
         Assert.False(workQueue.IsMultithreaded());
-        Assert.Equal(1u, workQueue.GetNumProcessingThreads());
+        Assert.Equal(1, workQueue.GetNumProcessingThreads());
     }
 
     [Fact]
@@ -294,7 +294,7 @@ public sealed class WorkQueueTests
 #pragma warning disable CS0612
         workQueue.AddWorkItem(ti =>
         {
-            Assert.Equal(0u, ti);
+            Assert.Equal(0, ti);
             executed = true;
         });
 #pragma warning restore CS0612
@@ -329,7 +329,7 @@ public sealed class WorkQueueTests
     {
         var workQueue = GetWorkQueue();
 
-        Assert.Equal(0u, workQueue.GetNumProcessingThreads());
+        Assert.Equal(0, workQueue.GetNumProcessingThreads());
         Assert.False(workQueue.IsMultithreaded());
     }
 
@@ -337,11 +337,11 @@ public sealed class WorkQueueTests
     public void ForEachParallel_calls_callback_directly_when_size_does_not_exceed_bucket()
     {
         var workQueue = GetWorkQueue();
-        var ranges = new List<(uint Begin, uint End)>();
+        var ranges = new List<(int Begin, int End)>();
 
-        WorkQueue.ForEachParallel(workQueue, 4u, 3u, (begin, end) => ranges.Add((begin, end)));
+        WorkQueue.ForEachParallel(workQueue, 4, 3, (begin, end) => ranges.Add((begin, end)));
 
-        Assert.Equal([(0u, 3u)], ranges);
+        Assert.Equal([(0, 3)], ranges);
     }
 
     [Fact]
@@ -351,7 +351,7 @@ public sealed class WorkQueueTests
         workQueue.Initialize(0);
 
         var processed = new bool[10];
-        WorkQueue.ForEachParallel(workQueue, 3u, 10u, (begin, end) =>
+        WorkQueue.ForEachParallel(workQueue, 3, 10, (begin, end) =>
         {
             for (var index = begin; index < end; ++index)
                 processed[index] = true;
@@ -366,14 +366,14 @@ public sealed class WorkQueueTests
         var workQueue = GetWorkQueue();
         workQueue.Initialize(0);
         var values = new[] { 10, 20, 30, 40 };
-        var results = new List<(uint Index, int Value)>();
+        var results = new List<(int Index, int Value)>();
 
-        WorkQueue.ForEachParallel(workQueue, 2u, values, (index, value) => results.Add((index, value)));
+        WorkQueue.ForEachParallel(workQueue, 2, values, (index, value) => results.Add((index, value)));
 
         Assert.Equal(values.Length, results.Count);
-        Assert.Contains((0u, 10), results);
-        Assert.Contains((1u, 20), results);
-        Assert.Contains((2u, 30), results);
-        Assert.Contains((3u, 40), results);
+        Assert.Contains((0, 10), results);
+        Assert.Contains((1, 20), results);
+        Assert.Contains((2, 30), results);
+        Assert.Contains((3, 40), results);
     }
 }
