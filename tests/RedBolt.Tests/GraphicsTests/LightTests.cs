@@ -16,6 +16,21 @@ public sealed class LightTests
     }
 
     [Fact]
+    public void Component_color_attribute_resolves_and_uses_light_accessors()
+    {
+        var node = new Scene().CreateChild("Light");
+        var light = node.CreateComponent<Light>();
+
+        var attribute = node.FindComponentAttribute("@Light/Color");
+        Assert.Same(light, attribute.Serializable);
+        Assert.Equal("Color", light.GetAttributes()[attribute.AttributeIndex].Name);
+
+        var color = new Color(0.25f, 0.5f, 0.75f, 0.5f);
+        Assert.True(light.SetAttribute("Color", color));
+        Assert.Equal(new Color(0.25f, 0.5f, 0.75f, 1.0f), light.GetColor());
+    }
+
+    [Fact]
     public void Effective_mask_and_range_clamp()
     {
         var light = new Scene().CreateChild("Light").CreateComponent<Light>();

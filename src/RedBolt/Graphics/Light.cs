@@ -158,6 +158,152 @@ public sealed class Light : Drawable
     {
         RegisterAttribute("Is Enabled", typeof(bool), self => ((Light)self).Enabled,
             (self, value) => ((Light)self).SetEnabled(value is bool enabled && enabled), true);
+        RegisterAttribute("Light Type", typeof(LightType), self => ((Light)self).GetLightType(),
+            (self, value) => ((Light)self).SetLightType((LightType)value!), DefaultLightType);
+        RegisterAttribute("Light Importance", typeof(LightImportance), self => ((Light)self).GetLightImportance(),
+            (self, value) => ((Light)self).SetLightImportance((LightImportance)value!), DefaultLightImportance);
+        RegisterAttribute("Light Mode", typeof(LightMode), self => ((Light)self).GetLightMode(),
+            (self, value) => ((Light)self).SetLightMode((LightMode)value!), LightMode.Realtime);
+        RegisterAttribute("Color", typeof(Color), self => ((Light)self).GetColor(),
+            (self, value) => ((Light)self).SetColor((Color)value!), Color.White);
+        RegisterAttribute("Specular Intensity", typeof(float), self => ((Light)self).GetSpecularIntensity(),
+            (self, value) => ((Light)self).SetSpecularIntensity((float)value!), DefaultSpecularIntensity);
+        RegisterAttribute("Brightness Multiplier", typeof(float), self => ((Light)self).GetBrightness(),
+            (self, value) => ((Light)self).SetBrightness((float)value!), DefaultBrightness);
+        RegisterAttribute("Indirect Brightness", typeof(float), self => ((Light)self).GetIndirectBrightness(),
+            (self, value) => ((Light)self).SetIndirectBrightness((float)value!), 1.0f);
+        RegisterAttribute("Temperature", typeof(float), self => ((Light)self).GetTemperature(),
+            (self, value) => ((Light)self).SetTemperature((float)value!), DefaultTemperature);
+        RegisterAttribute("Use Physical Values", typeof(bool), self => ((Light)self).GetUsePhysicalValues(),
+            (self, value) => ((Light)self).SetUsePhysicalValues(value is bool enabled && enabled), false);
+        RegisterAttribute("Radius", typeof(float), self => ((Light)self).GetRadius(),
+            (self, value) => ((Light)self).SetRadius((float)value!), 0.0f);
+        RegisterAttribute("Length", typeof(float), self => ((Light)self).GetLength(),
+            (self, value) => ((Light)self).SetLength((float)value!), 0.0f);
+        RegisterAttribute("Range", typeof(float), self => ((Light)self).GetRange(),
+            (self, value) => ((Light)self).SetRange((float)value!), DefaultRange);
+        RegisterAttribute("Spot FOV", typeof(float), self => ((Light)self).GetFov(),
+            (self, value) => ((Light)self).SetFov((float)value!), DefaultLightFov);
+        RegisterAttribute("Spot Aspect Ratio", typeof(float), self => ((Light)self).GetAspectRatio(),
+            (self, value) => ((Light)self).SetAspectRatio((float)value!), 1.0f);
+        RegisterAttribute("Attenuation Texture", typeof(ResourceRef), self => ((Light)self).GetRampTextureAttr(),
+            (self, value) => ((Light)self).SetRampTextureAttr((ResourceRef)value!),
+            new ResourceRef(new StringHash(nameof(Texture2D))));
+        RegisterAttribute("Light Shape Texture", typeof(ResourceRef), self => ((Light)self).GetShapeTextureAttr(),
+            (self, value) => ((Light)self).SetShapeTextureAttr((ResourceRef)value!),
+            new ResourceRef(new StringHash(nameof(Texture))));
+        RegisterAttribute("Can Be Occluded", typeof(bool), self => ((Light)self).IsOccludee(),
+            (self, value) => ((Light)self).SetOccludee(value is bool enabled && enabled), true);
+        RegisterAttribute("Cast Shadows", typeof(bool), self => ((Light)self).GetCastShadows(),
+            (self, value) => ((Light)self).SetCastShadows(value is bool enabled && enabled), false);
+        RegisterAttribute("Draw Distance", typeof(float), self => ((Light)self).GetDrawDistance(),
+            (self, value) => ((Light)self).SetDrawDistance((float)value!), 0.0f);
+        RegisterAttribute("Fade Distance", typeof(float), self => ((Light)self).GetFadeDistance(),
+            (self, value) => ((Light)self).SetFadeDistance((float)value!), 0.0f);
+        RegisterAttribute("Shadow Distance", typeof(float), self => ((Light)self).GetShadowDistance(),
+            (self, value) => ((Light)self).SetShadowDistance((float)value!), 0.0f);
+        RegisterAttribute("Shadow Fade Distance", typeof(float), self => ((Light)self).GetShadowFadeDistance(),
+            (self, value) => ((Light)self).SetShadowFadeDistance((float)value!), 0.0f);
+        RegisterAttribute("Shadow Intensity", typeof(float), self => ((Light)self).GetShadowIntensity(),
+            (self, value) => ((Light)self).SetShadowIntensity((float)value!), 0.0f);
+        RegisterAttribute("Shadow Resolution", typeof(float), self => ((Light)self).GetShadowResolution(),
+            (self, value) => ((Light)self).SetShadowResolution((float)value!), 1.0f);
+        RegisterAttribute("Focus To Scene", typeof(bool), self => ((Light)self).GetShadowFocus().Focus,
+            (self, value) =>
+            {
+                var light = (Light)self;
+                var parameters = light.GetShadowFocus();
+                parameters.Focus = value is bool enabled && enabled;
+                light.SetShadowFocus(parameters);
+            }, true);
+        RegisterAttribute("Non-uniform View", typeof(bool), self => ((Light)self).GetShadowFocus().NonUniform,
+            (self, value) =>
+            {
+                var light = (Light)self;
+                var parameters = light.GetShadowFocus();
+                parameters.NonUniform = value is bool enabled && enabled;
+                light.SetShadowFocus(parameters);
+            }, true);
+        RegisterAttribute("Auto-Reduce Size", typeof(bool), self => ((Light)self).GetShadowFocus().AutoSize,
+            (self, value) =>
+            {
+                var light = (Light)self;
+                var parameters = light.GetShadowFocus();
+                parameters.AutoSize = value is bool enabled && enabled;
+                light.SetShadowFocus(parameters);
+            }, true);
+        RegisterAttribute("CSM Splits", typeof(Vector4f), self => ((Light)self).GetShadowCascade().Splits,
+            (self, value) =>
+            {
+                var light = (Light)self;
+                var parameters = light.GetShadowCascade();
+                parameters.Splits = (Vector4f)value!;
+                light.SetShadowCascade(parameters);
+            }, new Vector4f(DefaultShadowSplit, 0.0f, 0.0f, 0.0f));
+        RegisterAttribute("CSM Fade Start", typeof(float), self => ((Light)self).GetShadowCascade().FadeStart,
+            (self, value) =>
+            {
+                var light = (Light)self;
+                var parameters = light.GetShadowCascade();
+                parameters.FadeStart = (float)value!;
+                light.SetShadowCascade(parameters);
+            }, DefaultShadowFadeStart);
+        RegisterAttribute("CSM Bias Auto Adjust", typeof(float), self => ((Light)self).GetShadowCascade().BiasAutoAdjust,
+            (self, value) =>
+            {
+                var light = (Light)self;
+                var parameters = light.GetShadowCascade();
+                parameters.BiasAutoAdjust = (float)value!;
+                light.SetShadowCascade(parameters);
+            }, DefaultBiasAutoAdjust);
+        RegisterAttribute("View Size Quantize", typeof(float), self => ((Light)self).GetShadowFocus().Quantize,
+            (self, value) =>
+            {
+                var light = (Light)self;
+                var parameters = light.GetShadowFocus();
+                parameters.Quantize = (float)value!;
+                light.SetShadowFocus(parameters);
+            }, DefaultShadowQuantize);
+        RegisterAttribute("View Size Minimum", typeof(float), self => ((Light)self).GetShadowFocus().MinView,
+            (self, value) =>
+            {
+                var light = (Light)self;
+                var parameters = light.GetShadowFocus();
+                parameters.MinView = (float)value!;
+                light.SetShadowFocus(parameters);
+            }, DefaultShadowMinView);
+        RegisterAttribute("Depth Constant Bias", typeof(float), self => ((Light)self).GetShadowBias().ConstantBias,
+            (self, value) =>
+            {
+                var light = (Light)self;
+                var parameters = light.GetShadowBias();
+                parameters.ConstantBias = (float)value!;
+                light.SetShadowBias(parameters);
+            }, DefaultConstantBias);
+        RegisterAttribute("Depth Slope Bias", typeof(float), self => ((Light)self).GetShadowBias().SlopeScaledBias,
+            (self, value) =>
+            {
+                var light = (Light)self;
+                var parameters = light.GetShadowBias();
+                parameters.SlopeScaledBias = (float)value!;
+                light.SetShadowBias(parameters);
+            }, DefaultSlopeScaledBias);
+        RegisterAttribute("Normal Offset", typeof(float), self => ((Light)self).GetShadowBias().NormalOffset,
+            (self, value) =>
+            {
+                var light = (Light)self;
+                var parameters = light.GetShadowBias();
+                parameters.NormalOffset = (float)value!;
+                light.SetShadowBias(parameters);
+            }, DefaultNormalOffset);
+        RegisterAttribute("Near/Farclip Ratio", typeof(float), self => ((Light)self).GetShadowNearFarRatio(),
+            (self, value) => ((Light)self).SetShadowNearFarRatio((float)value!), DefaultShadowNearFarRatio);
+        RegisterAttribute("Max Extrusion", typeof(float), self => ((Light)self).GetShadowMaxExtrusion(),
+            (self, value) => ((Light)self).SetShadowMaxExtrusion((float)value!), DefaultShadowMaxExtrusion);
+        RegisterAttribute("View Mask", typeof(uint), self => ((Light)self).GetViewMask(),
+            (self, value) => ((Light)self).SetViewMask((uint)value!), DefaultViewMask);
+        RegisterAttribute("Light Mask", typeof(uint), self => ((Light)self).GetLightMask(),
+            (self, value) => ((Light)self).SetLightMask((uint)value!), DefaultLightMask);
     }
 
     /// <summary>Register object factory.</summary>
