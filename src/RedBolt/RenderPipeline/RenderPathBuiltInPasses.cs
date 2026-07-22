@@ -370,9 +370,39 @@ public sealed class AutoExposurePass : RenderPass
     private const string MinExposureName = "Exposure: Min";
     private const string MaxExposureName = "Exposure: Max";
     private const string AdaptRateName = "Exposure: Adapt Rate";
-    private Parameters _currentParameters = new();
-    private CachedBuffers? _cachedBuffers;
     private bool _isAdaptedLuminanceInitialized;
+    private Parameters _parameters = new();
+    private CachedTextures? _textures;
+    private CachedStates? _pipelineStates;
+    private static readonly NamedSamplerStateDesc[] LuminanceSamplers =
+        [("Albedo", SamplerStateDesc.Bilinear())];
+    private static readonly NamedSamplerStateDesc[] AdaptedLuminanceSamplers =
+    [
+        ("Albedo", SamplerStateDesc.Bilinear()),
+        ("Normal", SamplerStateDesc.Bilinear())
+    ];
+    private static readonly NamedSamplerStateDesc[] ApplyExposureSamplers =
+    [
+        ("Albedo", SamplerStateDesc.Bilinear()),
+        ("Normal", SamplerStateDesc.Bilinear())
+    ];
+    private readonly ShaderResourceDesc[] _luminanceResources = [new() { Name = ShaderResources.Albedo }];
+    private readonly ShaderParameterDesc[] _luminanceParameters =
+        [new() { Name = new StringHash("InputInvSize") }];
+    private readonly ShaderResourceDesc[] _adaptedLuminanceResources =
+    [
+        new() { Name = ShaderResources.Albedo },
+        new() { Name = ShaderResources.Normal }
+    ];
+    private readonly ShaderParameterDesc[] _adaptedLuminanceParameters =
+        [new() { Name = new StringHash("AdaptRate") }];
+    private readonly ShaderResourceDesc[] _applyExposureResources =
+        [new() { Name = ShaderResources.Normal }];
+    private readonly ShaderParameterDesc[] _applyExposureParameters =
+    [
+        new() { Name = new StringHash("MinMaxExposure") },
+        new() { Name = new StringHash("AutoExposureMiddleGrey") }
+    ];
 
     public AutoExposurePass()
     {
@@ -387,7 +417,6 @@ public sealed class AutoExposurePass : RenderPass
 
     public override void CollectParameters(StringVariantMap parameters)
     {
-        ArgumentNullException.ThrowIfNull(parameters);
         var defaults = new Parameters();
         DeclareParameter(AutoExposureName, defaults.AutoExposure, parameters);
         DeclareParameter(MinExposureName, defaults.MinExposure, parameters);
@@ -404,9 +433,6 @@ public sealed class AutoExposurePass : RenderPass
 
     public override void UpdateParameters(RenderPipelineSettings settings, StringVariantMap parameters)
     {
-        ArgumentNullException.ThrowIfNull(settings);
-        ArgumentNullException.ThrowIfNull(parameters);
-
         if (settings.RenderBufferManager.ColorSpace != RenderPipelineColorSpace.LinearHDR)
         {
             _isEnabledInternally = false;
@@ -427,62 +453,48 @@ public sealed class AutoExposurePass : RenderPass
         if (adaptRate.Type == VariantType.Float)
             updated.AdaptRate = adaptRate.GetFloat();
 
-        if (_currentParameters.AutoExposure != updated.AutoExposure)
-            _cachedBuffers = null;
+        if (_parameters.AutoExposure != updated.AutoExposure)
+        {
+            InvalidateTextureCache();
+            InvalidatePipelineStateCache();
+        }
 
         _isEnabledInternally = true;
-        _currentParameters = updated;
+        _parameters = updated;
     }
 
     public override void Update(SharedRenderPassState sharedState)
     {
-        base.Update(sharedState);
-
-        if (_currentParameters.AutoExposure)
-            EnsureCachedBuffers(sharedState);
+        RestoreTextureCache(sharedState);
     }
 
     public override void Render(SharedRenderPassState sharedState)
     {
-        base.Render(sharedState);
-
         if (sharedState.RenderBufferManager is not { } renderBufferManager)
             return;
 
-        var graphics = GetSubsystem<Graphics>()!;
-
+        RestorePipelineStateCache(sharedState);
         renderBufferManager.SwapColorBuffers(synchronizeContents: false);
 
-        if (_currentParameters.AutoExposure)
+        if (_parameters.AutoExposure)
         {
-            var buffers = EnsureCachedBuffers(sharedState);
-            if (buffers is null)
-                return;
-
-            EvaluateDownsampledColorBuffer(renderBufferManager, graphics, buffers);
-            EvaluateLuminance(renderBufferManager, graphics, buffers);
-            EvaluateAdaptedLuminance(renderBufferManager, graphics, buffers);
+            EvaluateDownsampledColorBuffer(renderBufferManager);
+            EvaluateLuminance(renderBufferManager);
+            EvaluateAdaptedLuminance(renderBufferManager);
         }
 
-        var applyExposureParameters = new ApplyExposureParameters
-        {
-            MinMaxExposure = new Vector2f(_currentParameters.MinExposure, _currentParameters.MaxExposure),
-            AutoExposureMiddleGrey = 0.6f
-        };
-
+        _applyExposureResources[0].Texture = _parameters.AutoExposure
+            ? _textures!.Value.AdaptedLuminance!.GetTexture()
+            : null;
+        SetShaderParameter(_applyExposureParameters, 0,
+            new Variant(new Vector2f(_parameters.MinExposure, _parameters.MaxExposure)));
+        SetShaderParameter(_applyExposureParameters, 1, new Variant(0.6f));
         renderBufferManager.SetOutputRenderTargets();
-        graphics.DrawFullscreenQuad(
+        renderBufferManager.DrawFeedbackViewportQuad(
             "Apply exposure",
-            "P_AutoExposure",
-            _currentParameters.AutoExposure ? "EXPOSURE AUTOEXPOSURE" : "EXPOSURE",
-            BlendMode.Replace,
-            bilinearColorSampler: true,
-            renderBufferManager.SecondaryColorTexture,
-            secondaryTexture: _currentParameters.AutoExposure ? _cachedBuffers?.AdaptedLuminance.GetTexture() : null,
-            depthTexture: null,
-            applyExposureParameters,
-            renderBufferManager.InvOutputSize,
-            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
+            _pipelineStates!.Value.AutoExposure,
+            _applyExposureResources,
+            _applyExposureParameters);
     }
 
     private struct Parameters
@@ -497,125 +509,164 @@ public sealed class AutoExposurePass : RenderPass
         }
     }
 
-    private sealed class CachedBuffers
+    private struct CachedTextures
     {
-        public required RenderBuffer Color128 { get; init; }
-        public required RenderBuffer Lum64 { get; init; }
-        public required RenderBuffer Lum16 { get; init; }
-        public required RenderBuffer Lum4 { get; init; }
-        public required RenderBuffer Lum1 { get; init; }
-        public required RenderBuffer AdaptedLuminance { get; init; }
-        public required RenderBuffer PreviousAdaptedLuminance { get; init; }
+        public RenderBuffer? Color128 { get; set; }
+        public RenderBuffer? Lum64 { get; set; }
+        public RenderBuffer? Lum16 { get; set; }
+        public RenderBuffer? Lum4 { get; set; }
+        public RenderBuffer? Lum1 { get; set; }
+        public RenderBuffer? AdaptedLuminance { get; set; }
+        public RenderBuffer? PreviousAdaptedLuminance { get; set; }
     }
 
-    private struct InputInvSizeParameters
+    private struct CachedStates
     {
-        [ShaderParameterName("InputInvSize")]
-        public Vector2f InputInvSize;
+        public StaticPipelineStateId Lum64;
+        public StaticPipelineStateId Lum16;
+        public StaticPipelineStateId Lum4;
+        public StaticPipelineStateId Lum1;
+        public StaticPipelineStateId AdaptedLuminance;
+        public StaticPipelineStateId AutoExposure;
     }
 
-    private struct AdaptRateParameters
+    private void InvalidateTextureCache()
     {
-        [ShaderParameterName("AdaptRate")]
-        public float AdaptRate;
+        _textures = null;
     }
 
-    private struct ApplyExposureParameters
+    private void InvalidatePipelineStateCache()
     {
-        [ShaderParameterName("MinMaxExposure")]
-        public Vector2f MinMaxExposure;
-
-        [ShaderParameterName("AutoExposureMiddleGrey")]
-        public float AutoExposureMiddleGrey;
+        _pipelineStates = null;
     }
 
-    private CachedBuffers? EnsureCachedBuffers(SharedRenderPassState sharedState)
+    private void RestoreTextureCache(SharedRenderPassState sharedState)
     {
-        if (sharedState.RenderBufferManager is not { } manager)
-            return null;
-
-        _cachedBuffers ??= new CachedBuffers
-        {
-            Color128 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRgba16Float, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(128, 128)),
-            Lum64 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(64, 64)),
-            Lum16 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(16, 16)),
-            Lum4 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(4, 4)),
-            Lum1 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.FixedTextureSize), new Vector2f(1, 1)),
-            AdaptedLuminance = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.FixedTextureSize | RenderBufferFlag.Persistent), new Vector2f(1, 1)),
-            PreviousAdaptedLuminance = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.FixedTextureSize), new Vector2f(1, 1))
-        };
-        return _cachedBuffers;
-    }
-
-    private void EvaluateDownsampledColorBuffer(RenderBufferManager renderBufferManager, Graphics graphics, CachedBuffers buffers)
-    {
-        var viewportTexture = renderBufferManager.SecondaryColorTexture;
-        if (viewportTexture is null)
+        if (_textures is not null || sharedState.RenderBufferManager is not { } manager)
             return;
 
-        renderBufferManager.SetRenderTargets(null, buffers.Color128);
-        renderBufferManager.DrawTexture("Downsample color buffer", viewportTexture);
-    }
-
-    private void EvaluateLuminance(RenderBufferManager renderBufferManager, Graphics graphics, CachedBuffers buffers)
-    {
-        DrawLuminanceStep(renderBufferManager, graphics, buffers.Color128, buffers.Lum64, "LUMINANCE64", new Vector2f(1.0f / 128.0f, 1.0f / 128.0f));
-        DrawLuminanceStep(renderBufferManager, graphics, buffers.Lum64, buffers.Lum16, "LUMINANCE16", new Vector2f(1.0f / 64.0f, 1.0f / 64.0f));
-        DrawLuminanceStep(renderBufferManager, graphics, buffers.Lum16, buffers.Lum4, "LUMINANCE4", new Vector2f(1.0f / 16.0f, 1.0f / 16.0f));
-        DrawLuminanceStep(renderBufferManager, graphics, buffers.Lum4, buffers.Lum1, "LUMINANCE1", new Vector2f(1.0f / 4.0f, 1.0f / 4.0f));
-    }
-
-    private void EvaluateAdaptedLuminance(RenderBufferManager renderBufferManager, Graphics graphics, CachedBuffers buffers)
-    {
-        renderBufferManager.SetRenderTargets(null, buffers.PreviousAdaptedLuminance);
-        var previousSource = _isAdaptedLuminanceInitialized
-            ? buffers.AdaptedLuminance.GetTexture()
-            : buffers.Lum1.GetTexture();
-        renderBufferManager.DrawTexture("Store previous luminance", previousSource!);
-
-        var adaptRateParameters = new AdaptRateParameters
+        var textures = new CachedTextures();
+        if (!_parameters.AutoExposure)
         {
-            AdaptRate = _currentParameters.AdaptRate
-        };
+            _textures = textures;
+            return;
+        }
 
-        renderBufferManager.SetRenderTargets(null, buffers.AdaptedLuminance);
-        graphics.DrawFullscreenQuad(
-            "Adapt luminosity",
-            "P_AutoExposure",
-            "ADAPTLUMINANCE",
-            BlendMode.Replace,
-            bilinearColorSampler: true,
-            buffers.PreviousAdaptedLuminance.GetTexture(),
-            secondaryTexture: buffers.Lum1.GetTexture(),
-            depthTexture: null,
-            adaptRateParameters,
-            new Vector2f(1.0f, 1.0f),
-            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
+        textures.Color128 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRgba16Float, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(128, 128));
+        textures.Lum64 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(64, 64));
+        textures.Lum16 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(16, 16));
+        textures.Lum4 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.BilinearFiltering | RenderBufferFlag.FixedTextureSize), new Vector2f(4, 4));
+        textures.Lum1 = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.FixedTextureSize), new Vector2f(1, 1));
+        textures.AdaptedLuminance = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.FixedTextureSize | RenderBufferFlag.Persistent), new Vector2f(1, 1));
+        textures.PreviousAdaptedLuminance = manager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRg16Float, 1, RenderBufferFlag.FixedTextureSize), new Vector2f(1, 1));
+        _textures = textures;
+    }
+
+    private void RestorePipelineStateCache(SharedRenderPassState sharedState)
+    {
+        if (_pipelineStates.HasValue || sharedState.RenderBufferManager is not { } manager)
+            return;
+
+        _pipelineStates = new CachedStates
+        {
+            Lum64 = manager.CreateQuadPipelineState(BlendMode.Replace, "v2/P_AutoExposure", "LUMINANCE64", LuminanceSamplers),
+            Lum16 = manager.CreateQuadPipelineState(BlendMode.Replace, "v2/P_AutoExposure", "LUMINANCE16", LuminanceSamplers),
+            Lum4 = manager.CreateQuadPipelineState(BlendMode.Replace, "v2/P_AutoExposure", "LUMINANCE4", LuminanceSamplers),
+            Lum1 = manager.CreateQuadPipelineState(BlendMode.Replace, "v2/P_AutoExposure", "LUMINANCE1", LuminanceSamplers),
+            AdaptedLuminance = manager.CreateQuadPipelineState(BlendMode.Replace, "v2/P_AutoExposure", "ADAPTLUMINANCE", AdaptedLuminanceSamplers),
+            AutoExposure = manager.CreateQuadPipelineState(BlendMode.Replace, "v2/P_AutoExposure",
+                _parameters.AutoExposure ? "EXPOSURE AUTOEXPOSURE " : "EXPOSURE ", ApplyExposureSamplers)
+        };
+    }
+
+    private void EvaluateDownsampledColorBuffer(RenderBufferManager renderBufferManager)
+    {
+        var textures = _textures!.Value;
+        var viewportTexture = renderBufferManager.SecondaryColorTexture;
+        renderBufferManager.SetRenderTargets(null, textures.Color128!);
+        renderBufferManager.DrawTexture("Downsample color buffer", viewportTexture!);
+    }
+
+    private void EvaluateLuminance(RenderBufferManager renderBufferManager)
+    {
+        var textures = _textures!.Value;
+        DrawLuminanceStep(renderBufferManager, textures.Color128!, textures.Lum64!, _pipelineStates!.Value.Lum64, 128.0f);
+        DrawLuminanceStep(renderBufferManager, textures.Lum64!, textures.Lum16!, _pipelineStates.Value.Lum16, 64.0f);
+        DrawLuminanceStep(renderBufferManager, textures.Lum16!, textures.Lum4!, _pipelineStates.Value.Lum4, 16.0f);
+        DrawLuminanceStep(renderBufferManager, textures.Lum4!, textures.Lum1!, _pipelineStates.Value.Lum1, 4.0f);
+    }
+
+    private void EvaluateAdaptedLuminance(RenderBufferManager renderBufferManager)
+    {
+        var textures = _textures!.Value;
+        renderBufferManager.SetRenderTargets(null, textures.PreviousAdaptedLuminance!);
+        var sourceBuffer = _isAdaptedLuminanceInitialized ? textures.AdaptedLuminance! : textures.Lum1!;
+        renderBufferManager.DrawTexture("Store previous luminance", sourceBuffer.GetTexture()!);
+
+        _adaptedLuminanceResources[0].Texture = textures.PreviousAdaptedLuminance!.GetTexture();
+        _adaptedLuminanceResources[1].Texture = textures.Lum1!.GetTexture();
+        SetShaderParameter(_adaptedLuminanceParameters, 0, new Variant(_parameters.AdaptRate));
+        var drawParams = new DrawQuadParams
+        {
+            Resources = _adaptedLuminanceResources,
+            Parameters = _adaptedLuminanceParameters,
+            PipelineStateId = _pipelineStates!.Value.AdaptedLuminance,
+            ClipToUVOffsetAndScale = renderBufferManager.DefaultClipToUVSpaceOffsetAndScale
+        };
+        renderBufferManager.SetRenderTargets(null, textures.AdaptedLuminance!);
+        renderBufferManager.DrawQuad("Adapt luminosity", drawParams);
 
         _isAdaptedLuminanceInitialized = true;
     }
 
-    private void DrawLuminanceStep(RenderBufferManager renderBufferManager, Graphics graphics, RenderBuffer source,
-        RenderBuffer target, string shaderDefines, Vector2f inputInvSize)
+    private void DrawLuminanceStep(RenderBufferManager renderBufferManager, RenderBuffer source,
+        RenderBuffer target, StaticPipelineStateId pipelineState, float inputSize)
     {
-        var inputInvSizeParameters = new InputInvSizeParameters
+        _luminanceResources[0].Texture = source.GetTexture();
+        SetShaderParameter(_luminanceParameters, 0, new Variant(Vector2f.One / inputSize));
+        var drawParams = new DrawQuadParams
         {
-            InputInvSize = inputInvSize
+            Resources = _luminanceResources,
+            Parameters = _luminanceParameters,
+            PipelineStateId = pipelineState,
+            ClipToUVOffsetAndScale = renderBufferManager.DefaultClipToUVSpaceOffsetAndScale
         };
-
         renderBufferManager.SetRenderTargets(null, target);
-        graphics.DrawFullscreenQuad(
-            "Downsample luminosity buffer",
-            "P_AutoExposure",
-            shaderDefines,
-            BlendMode.Replace,
-            bilinearColorSampler: true,
-            source.GetTexture(),
-            secondaryTexture: null,
-            depthTexture: null,
-            inputInvSizeParameters,
-            renderBufferManager.InvOutputSize,
-            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
+        renderBufferManager.DrawQuad("Downsample luminosity buffer", drawParams);
+    }
+
+    private static void SetShaderParameter(ShaderParameterDesc[] parameters, int index, Variant value)
+    {
+        var parameter = parameters[index];
+        var oldValue = parameter.Value;
+        oldValue.Dispose();
+        parameter.Value = value;
+        parameters[index] = parameter;
+    }
+
+    public override void Dispose()
+    {
+        _pipelineStates = null;
+        _textures = null;
+        for (var i = 0; i < _luminanceParameters.Length; ++i)
+        {
+            var parameter = _luminanceParameters[i];
+            parameter.Dispose();
+            _luminanceParameters[i] = parameter;
+        }
+        for (var i = 0; i < _adaptedLuminanceParameters.Length; ++i)
+        {
+            var parameter = _adaptedLuminanceParameters[i];
+            parameter.Dispose();
+            _adaptedLuminanceParameters[i] = parameter;
+        }
+        for (var i = 0; i < _applyExposureParameters.Length; ++i)
+        {
+            var parameter = _applyExposureParameters[i];
+            parameter.Dispose();
+            _applyExposureParameters[i] = parameter;
+        }
+        base.Dispose();
     }
 }
 

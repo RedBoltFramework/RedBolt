@@ -61,6 +61,10 @@ public sealed class RenderPipelineInterfaceTests(GraphicsEngineFixture fixture)
 
             Assert.Null(typeof(AutoExposurePass).GetField("_deviceResetSubscription",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic));
+            Assert.True(typeof(AutoExposurePass).GetNestedType("CachedTextures",
+                System.Reflection.BindingFlags.NonPublic)!.IsValueType);
+            Assert.True(typeof(AutoExposurePass).GetNestedType("CachedStates",
+                System.Reflection.BindingFlags.NonPublic)!.IsValueType);
 
             var initializedField = typeof(AutoExposurePass).GetField("_isAdaptedLuminanceInitialized",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
