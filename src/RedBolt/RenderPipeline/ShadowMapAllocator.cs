@@ -1,18 +1,27 @@
+using System.Runtime.InteropServices;
+
 namespace RedBolt;
 
-/// <summary>
-/// Allocates shadow map regions in texture atlases.
-/// </summary>
-public sealed class ShadowMapAllocator : Object
+/// <summary>Utility to allocate shadow maps in texture atlas.</summary>
+public class ShadowMapAllocator : Object
 {
-    private sealed class AtlasPage
+    private struct AtlasPage
     {
-        public int Index;
-        public Texture2D? Texture;
-        public readonly AreaAllocator AreaAllocator = new();
-        public bool ClearBeforeRendering;
+        public int Index { get; set; }
+        public Texture2D? Texture { get; set; }
+        public AreaAllocator AreaAllocator { get; set; }
+        public bool ClearBeforeRendering { get; set; }
 
-        public ShadowMapRegion AllocateRegion(Vector2i size)
+        public AtlasPage()
+        {
+            Index = 0;
+            Texture = null;
+            AreaAllocator = new AreaAllocator();
+            ClearBeforeRendering = false;
+        }
+
+        /// <summary>Allocate shadow map.</summary>
+        public ShadowMapRegion AllocateRegion(in Vector2i size)
         {
             var x = 0;
             var y = 0;
@@ -32,78 +41,89 @@ public sealed class ShadowMapAllocator : Object
     private readonly RenderDevice _renderDevice;
     private readonly RenderContext _renderContext;
     private ShadowMapAllocatorSettings _settings = new();
-    private SamplerStateDesc _shadowMapSampler = new();
-    private PipelineStateOutputDesc _shadowMapOutputDesc = new();
+    private SamplerStateDesc _samplerStateDesc = new();
+    private PipelineStateOutputDesc _shadowOutputDesc = new();
     private TextureFormat _shadowMapFormat;
-    private Vector2i _shadowAtlasSize;
+    private Vector2i _shadowAtlasPageSize;
     private readonly List<AtlasPage> _pages = [];
     private Texture2D? _vsmDepthTexture;
+    private readonly RenderTargetView[] _renderTargets = new RenderTargetView[1];
 
     public ShadowMapAllocator()
     {
-        // C++: renderContext_ = renderDevice_->GetRenderContext()
-        _renderDevice = GetSubsystem<RenderDevice>()
-            ?? throw new InvalidOperationException("RenderDevice subsystem is required.");
+        _renderDevice = GetSubsystem<RenderDevice>()!;
         _renderContext = _renderDevice.GetRenderContext();
         CacheSettings();
     }
 
-    public ShadowMapAllocatorSettings Settings => _settings;
+    public ref readonly ShadowMapAllocatorSettings Settings => ref _settings;
 
-    public SamplerStateDesc SamplerStateDesc => _shadowMapSampler;
+    public ref readonly SamplerStateDesc SamplerStateDesc => ref _samplerStateDesc;
 
-    public PipelineStateOutputDesc ShadowOutputDesc => _shadowMapOutputDesc;
+    public ref readonly PipelineStateOutputDesc ShadowOutputDesc => ref _shadowOutputDesc;
 
-    public void SetSettings(ShadowMapAllocatorSettings settings)
+    public void SetSettings(in ShadowMapAllocatorSettings settings)
     {
-        if (_settings.Equals(settings))
-            return;
+        if (_settings != settings)
+        {
+            _settings = settings;
+            CacheSettings();
 
-        _settings = CopySettings(settings);
-        CacheSettings();
-        _pages.Clear();
+            _pages.Clear();
+        }
     }
 
+    /// <summary>Reset allocated shadow maps.</summary>
     public void ResetAllShadowMaps()
     {
-        foreach (var page in _pages)
+        var pages = CollectionsMarshal.AsSpan(_pages);
+        for (var i = 0; i < pages.Length; ++i)
         {
-            // C++: Reset(w, h, w, h)
-            page.AreaAllocator.Reset(_shadowAtlasSize.X, _shadowAtlasSize.Y, _shadowAtlasSize.X, _shadowAtlasSize.Y);
+            ref var page = ref pages[i];
+            page.AreaAllocator.Reset(_shadowAtlasPageSize.X, _shadowAtlasPageSize.Y,
+                _shadowAtlasPageSize.X, _shadowAtlasPageSize.Y);
             page.ClearBeforeRendering = false;
         }
     }
 
-    public ShadowMapRegion AllocateShadowMap(Vector2i size)
+    /// <summary>Allocate shadow map of given size. It is better to allocate from bigger to smaller sizes.</summary>
+    public ShadowMapRegion AllocateShadowMap(in Vector2i size)
     {
         if (_settings.ShadowAtlasPageSize == 0 || _shadowMapFormat == TextureFormat.TexFormatUnknown)
             return default;
 
-        size = new Vector2i(Math.Min(size.X, _shadowAtlasSize.X), Math.Min(size.Y, _shadowAtlasSize.Y));
-        foreach (var page in _pages)
+        var clampedSize = new Vector2i(Math.Min(size.X, _shadowAtlasPageSize.X), Math.Min(size.Y, _shadowAtlasPageSize.Y));
+        var pages = CollectionsMarshal.AsSpan(_pages);
+        for (var i = 0; i < pages.Length; ++i)
         {
-            var region = page.AllocateRegion(size);
+            var region = pages[i].AllocateRegion(in clampedSize);
             if (region)
                 return region;
         }
 
         AllocatePage();
-        return _pages[^1].AllocateRegion(size);
+        ref var page = ref CollectionsMarshal.AsSpan(_pages)[^1];
+        return page.AllocateRegion(in clampedSize);
     }
 
-    public bool BeginShadowMapRendering(ShadowMapRegion region)
+    /// <summary>Begin shadow map rendering. Clears shadow map if necessary.</summary>
+    public bool BeginShadowMapRendering(in ShadowMapRegion region)
     {
         if (!(bool)region || region.PageIndex >= _pages.Count)
             return false;
 
         var shadowMapTexture = region.Texture!;
-        var page = _pages[region.PageIndex];
+        ref var page = ref CollectionsMarshal.AsSpan(_pages)[region.PageIndex];
         if (shadowMapTexture.IsDepthStencil())
             _renderContext.SetRenderTargets(RenderTargetView.Texture(shadowMapTexture), []);
         else
-            _renderContext.SetRenderTargets(RenderTargetView.Texture(_vsmDepthTexture!), [RenderTargetView.Texture(shadowMapTexture)]);
+        {
+            _renderTargets[0] = RenderTargetView.Texture(shadowMapTexture);
+            _renderContext.SetRenderTargets(RenderTargetView.Texture(_vsmDepthTexture!), _renderTargets);
+            _renderTargets[0] = default;
+        }
 
-        // Clear whole texture if needed (C++ clears flag first, then clears).
+        // Clear whole texture if needed
         if (page.ClearBeforeRendering)
         {
             page.ClearBeforeRendering = false;
@@ -119,25 +139,25 @@ public sealed class ShadowMapAllocator : Object
 
     private void CacheSettings()
     {
-        _shadowMapOutputDesc = new PipelineStateOutputDesc();
+        _shadowOutputDesc = new PipelineStateOutputDesc();
         if (_settings.EnableVarianceShadowMaps)
         {
-            // C++: TextureFormat::TEX_FORMAT_RG32_FLOAT (managed port lacks RG32F; RG16F is existing mapping).
-            _shadowMapFormat = TextureFormat.TexFormatRg16Float;
-            _shadowMapOutputDesc.DepthStencilFormat = _renderDevice.GetDefaultDepthFormat();
-            _shadowMapOutputDesc.NumRenderTargets = 1;
-            _shadowMapOutputDesc.RenderTargetFormats[0] = _shadowMapFormat;
-            _shadowMapOutputDesc.MultiSample = _settings.VarianceShadowMapMultiSample;
+            _shadowMapFormat = TextureFormat.TexFormatRg32Float;
+            _shadowOutputDesc.DepthStencilFormat = _renderDevice.GetDefaultDepthFormat();
+            _shadowOutputDesc.NumRenderTargets = 1;
+            _shadowOutputDesc.RenderTargetFormats[0] = _shadowMapFormat;
+            _shadowOutputDesc.MultiSample = _settings.VarianceShadowMapMultiSample;
         }
         else
         {
             _shadowMapFormat = _settings.Use16BitShadowMaps ? TextureFormat.TexFormatD16Unorm : _renderDevice.GetDefaultDepthFormat();
-            _shadowMapOutputDesc.DepthStencilFormat = _shadowMapFormat;
-            _shadowMapOutputDesc.MultiSample = 1;
+            _shadowOutputDesc.DepthStencilFormat = _shadowMapFormat;
+            _shadowOutputDesc.NumRenderTargets = 0;
+            _shadowOutputDesc.MultiSample = 1;
         }
 
-        _shadowAtlasSize = new Vector2i((int)_settings.ShadowAtlasPageSize, (int)_settings.ShadowAtlasPageSize);
-        _shadowMapSampler = new SamplerStateDesc
+        _shadowAtlasPageSize = new Vector2i(_settings.ShadowAtlasPageSize, _settings.ShadowAtlasPageSize);
+        _samplerStateDesc = new SamplerStateDesc
         {
             ShadowCompare = !_settings.EnableVarianceShadowMaps,
             FilterMode = TextureFilterMode.Bilinear
@@ -153,31 +173,23 @@ public sealed class ShadowMapAllocator : Object
         texture.SetNumLevels(1);
         texture.SetFilterMode(TextureFilterMode.Bilinear);
         texture.SetShadowCompare(!_settings.EnableVarianceShadowMaps);
-        texture.SetSize(_shadowAtlasSize.X, _shadowAtlasSize.Y, _shadowMapFormat, flags, multiSample);
+        texture.SetSize(_shadowAtlasPageSize.X, _shadowAtlasPageSize.Y, _shadowMapFormat, flags, multiSample);
 
-        var page = new AtlasPage { Index = _pages.Count, Texture = texture };
-        // C++: Reset(w, h, w, h)
-        page.AreaAllocator.Reset(_shadowAtlasSize.X, _shadowAtlasSize.Y, _shadowAtlasSize.X, _shadowAtlasSize.Y);
-        _pages.Add(page);
+        _pages.Add(new AtlasPage());
+        ref var page = ref CollectionsMarshal.AsSpan(_pages)[^1];
+        page.Index = _pages.Count - 1;
+        page.Texture = texture;
+        page.AreaAllocator.Reset(_shadowAtlasPageSize.X, _shadowAtlasPageSize.Y,
+            _shadowAtlasPageSize.X, _shadowAtlasPageSize.Y);
 
         if (!_settings.EnableVarianceShadowMaps)
             _vsmDepthTexture = null;
-        else if (_vsmDepthTexture is null || _vsmDepthTexture.Width != _shadowAtlasSize.X || _vsmDepthTexture.Height != _shadowAtlasSize.Y)
+        else if (_vsmDepthTexture is null || _vsmDepthTexture.Width != _shadowAtlasPageSize.X
+            || _vsmDepthTexture.Height != _shadowAtlasPageSize.Y)
         {
-            _vsmDepthTexture = new Texture2D("Variance Shadow Map Depth");
-            _vsmDepthTexture.SetNumLevels(1);
-            _vsmDepthTexture.SetSize(_shadowAtlasSize.X, _shadowAtlasSize.Y,
-                _shadowMapOutputDesc.DepthStencilFormat, TextureFlag.BindDepthStencil, multiSample);
+            _vsmDepthTexture = new Texture2D(string.Empty);
+            _vsmDepthTexture.SetSize(_shadowAtlasPageSize.X, _shadowAtlasPageSize.Y,
+                _shadowOutputDesc.DepthStencilFormat, TextureFlag.BindDepthStencil, multiSample);
         }
     }
-
-    private static ShadowMapAllocatorSettings CopySettings(ShadowMapAllocatorSettings settings) => new()
-    {
-        EnableVarianceShadowMaps = settings.EnableVarianceShadowMaps,
-        VarianceShadowMapMultiSample = settings.VarianceShadowMapMultiSample,
-        Use16BitShadowMaps = settings.Use16BitShadowMaps,
-        ShadowAtlasPageSize = settings.ShadowAtlasPageSize,
-        DepthBiasScale = settings.DepthBiasScale,
-        DepthBiasOffset = settings.DepthBiasOffset
-    };
 }

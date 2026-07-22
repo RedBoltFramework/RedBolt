@@ -2,8 +2,35 @@ using RedBolt;
 
 namespace RedBolt.Tests;
 
+[Collection(nameof(HeadlessEngineCollection))]
 public sealed class ShadowMapAllocatorTests
 {
+    public ShadowMapAllocatorTests(HeadlessEngineFixture fixture)
+    {
+    }
+
+    [Fact]
+    public void Shadow_map_allocator_matches_native_class_and_page_shapes()
+    {
+        var pageType = typeof(ShadowMapAllocator).GetNestedType(
+            "AtlasPage", System.Reflection.BindingFlags.NonPublic)!;
+
+        Assert.False(typeof(ShadowMapAllocator).IsSealed);
+        Assert.True(pageType.IsValueType);
+    }
+
+    [Fact]
+    public void Variance_shadow_maps_use_native_rg32_float_format()
+    {
+        var allocator = new ShadowMapAllocator();
+        var settings = allocator.Settings;
+        settings.EnableVarianceShadowMaps = true;
+
+        allocator.SetSettings(in settings);
+
+        Assert.Equal(TextureFormat.TexFormatRg32Float, allocator.ShadowOutputDesc.RenderTargetFormats[0]);
+    }
+
     [Fact]
     public void Shadow_map_region_returns_requested_split()
     {
