@@ -24,12 +24,12 @@ public sealed class ResourceCache : Object
     [ThreadStatic]
     private static bool _routeResourceNameReentrancyGuard;
     private readonly List<ResourceRouter> _resourceRouters = [];
-    private readonly Dictionary<Resource, HashSet<string>> _resourceDependencies = new();
+    private readonly Dictionary<StringHash, HashSet<StringHash>> _dependentResources = new();
     private readonly HashSet<string> _ignoredReloads = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _pendingResourceReloads = new(StringComparer.OrdinalIgnoreCase);
     private int _finishBackgroundResourcesMs = 5;
     private bool _returnFailedResources;
-    private bool _searchPackagesFirst;
+    private bool _searchPackagesFirst = true;
     private bool _resourceReloadSuspended;
 
     public ResourceCache()
@@ -182,9 +182,7 @@ public sealed class ResourceCache : Object
     public ulong GetMemoryUse(Type type)
     {
         ArgumentNullException.ThrowIfNull(type);
-        return _cache
-            .Where(item => item.Key.Type == type)
-            .Aggregate(0ul, static (sum, item) => sum + checked((ulong)item.Value.MemoryUse));
+        return _resourceGroups.TryGetValue(type, out var group) ? group.MemoryUse : 0;
     }
 
     public ulong GetMemoryUse(StringHash type)
@@ -196,7 +194,10 @@ public sealed class ResourceCache : Object
 
     public ulong GetTotalMemoryUse()
     {
-        return _cache.Values.Aggregate(0ul, static (sum, resource) => sum + checked((ulong)resource.MemoryUse));
+        ulong total = 0;
+        foreach (var group in _resourceGroups.Values)
+            total += group.MemoryUse;
+        return total;
     }
 
     public void SetReturnFailedResources(bool enable)
@@ -632,33 +633,46 @@ public sealed class ResourceCache : Object
 
     public void StoreResourceDependency(Resource resource, string dependency)
     {
-        ArgumentNullException.ThrowIfNull(resource);
-        ArgumentException.ThrowIfNullOrWhiteSpace(dependency);
-        if (!_resourceDependencies.TryGetValue(resource, out var dependencies))
-            _resourceDependencies[resource] = dependencies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        dependencies.Add(SanitateResourceName(dependency));
+        var nameHash = new StringHash(resource.Name);
+        var dependencyHash = new StringHash(dependency);
+        if (!_dependentResources.TryGetValue(dependencyHash, out var dependents))
+            _dependentResources[dependencyHash] = dependents = [];
+        dependents.Add(nameHash);
     }
 
     public void ResetDependencies(Resource resource)
     {
-        ArgumentNullException.ThrowIfNull(resource);
-        _resourceDependencies.Remove(resource);
+        var nameHash = new StringHash(resource.Name);
+        List<StringHash> emptyDependencies = [];
+        foreach (var pair in _dependentResources)
+        {
+            pair.Value.Remove(nameHash);
+            if (pair.Value.Count == 0)
+                emptyDependencies.Add(pair.Key);
+        }
+
+        foreach (var dependency in emptyDependencies)
+            _dependentResources.Remove(dependency);
     }
 
     public void ReloadResourceWithDependencies(string fileName)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        var dependency = SanitateResourceName(fileName);
+        var fileNameHash = new StringHash(fileName);
 
-        foreach (var resource in _cache.Values.ToArray())
-        {
-            var isResource = (!string.IsNullOrEmpty(resource.AbsoluteFileName)
-                    && string.Equals(SanitateResourceName(resource.AbsoluteFileName), dependency, StringComparison.OrdinalIgnoreCase))
-                || string.Equals(resource.Name, dependency, StringComparison.OrdinalIgnoreCase);
-            var isDependency = _resourceDependencies.TryGetValue(resource, out var dependencies) && dependencies.Contains(dependency);
-            if (isResource || isDependency)
-                ReloadResource(resource);
-        }
+        List<Resource> resources = [];
+        FindMatchingResources(fileNameHash, resources);
+        foreach (var resource in resources)
+            ReloadResource(resource);
+
+        if (!_dependentResources.TryGetValue(fileNameHash, out var dependents))
+            return;
+
+        resources.Clear();
+        foreach (var dependentResourceNameHash in dependents)
+            FindMatchingResources(dependentResourceNameHash, resources);
+
+        foreach (var resource in resources)
+            ReloadResource(resource);
     }
 
     public void SetResourceReloadSuspended(bool suspended)

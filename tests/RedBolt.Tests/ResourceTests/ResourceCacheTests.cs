@@ -14,6 +14,13 @@ public sealed class ResourceCacheTests
 
     private ResourceCache Resources => _fixture.Resources;
 
+    [Fact]
+    public void Search_packages_first_by_default()
+    {
+        using var cache = new ResourceCache();
+        Assert.True(cache.GetSearchPackagesFirst());
+    }
+
     private static string CreateTempDir()
     {
         var dir = Path.Combine(Path.GetTempPath(), "RedBolt.Tests", Guid.NewGuid().ToString("N"));
