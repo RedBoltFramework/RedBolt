@@ -196,11 +196,11 @@ public class RenderPath : SimpleResource
         if (!serializePasses)
             return;
 
-        var count = archive.IsInput ? 0u : checked((uint)_passes.Count);
+        var count = archive.IsInput ? 0 : _passes.Count;
         using var passesBlock = archive.OpenArrayBlock("passes", count);
         if (archive.IsInput)
         {
-            var numPasses = checked((int)passesBlock.SizeHint);
+            var numPasses = passesBlock.SizeHint;
             for (var i = 0; i < numPasses; ++i)
             {
                 using var passBlock = archive.OpenUnorderedBlock("pass");

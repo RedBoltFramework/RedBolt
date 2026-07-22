@@ -200,7 +200,7 @@ public class PrefabWriterToArchive : PrefabWriter
 
         if (numComponents > 0 || !_archive.IsUnorderedAccessSupportedInCurrentBlock)
         {
-            var block = _archive.OpenArrayBlock("components", checked((uint)numComponents));
+            var block = _archive.OpenArrayBlock("components", numComponents);
             if (numComponents > 0)
                 _stack.Add((new ArchiveBlock(block), numComponents));
             else
@@ -229,7 +229,7 @@ public class PrefabWriterToArchive : PrefabWriter
 
         if (numChildren > 0 || !_archive.IsUnorderedAccessSupportedInCurrentBlock)
         {
-            var block = _archive.OpenArrayBlock("nodes", checked((uint)numChildren));
+            var block = _archive.OpenArrayBlock("nodes", numChildren);
             if (numChildren > 0)
                 _stack.Add((new ArchiveBlock(block), numChildren));
             else

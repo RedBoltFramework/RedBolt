@@ -652,12 +652,12 @@ public static partial class ArchiveSerialization
 
     public static void SerializeValue(Archive archive, string name, VariantVector value)
     {
-        var size = checked((uint)value.Count);
+        var size = value.Count;
         using var block = archive.OpenArrayBlock(name, size);
         if (archive.IsInput)
         {
             value.Dispose();
-            for (var index = 0u; index < block.SizeHint; ++index)
+            for (var index = 0; index < block.SizeHint; ++index)
             {
                 var item = default(Variant);
                 using var itemBlock = archive.OpenUnorderedBlock("element");
@@ -678,12 +678,12 @@ public static partial class ArchiveSerialization
 
     public static void SerializeValue(Archive archive, string name, VariantMap value)
     {
-        var size = checked((uint)value.Count);
+        var size = value.Count;
         using var block = archive.OpenArrayBlock(name, size);
         if (archive.IsInput)
         {
             value.Dispose();
-            for (var index = 0u; index < block.SizeHint; ++index)
+            for (var index = 0; index < block.SizeHint; ++index)
             {
                 using var itemBlock = archive.OpenUnorderedBlock("element");
                 var key = StringHash.Empty;
@@ -710,12 +710,12 @@ public static partial class ArchiveSerialization
 
     public static void SerializeValue(Archive archive, string name, StringVariantMap value)
     {
-        var size = checked((uint)value.Count);
+        var size = value.Count;
         using var block = archive.OpenArrayBlock(name, size);
         if (archive.IsInput)
         {
             value.Dispose();
-            for (var index = 0u; index < block.SizeHint; ++index)
+            for (var index = 0; index < block.SizeHint; ++index)
             {
                 using var itemBlock = archive.OpenUnorderedBlock("element");
                 var key = string.Empty;
@@ -742,12 +742,12 @@ public static partial class ArchiveSerialization
 
     public static void SerializeStringVector(Archive archive, string name, List<string> values)
     {
-        var size = checked((uint)values.Count);
+        var size = values.Count;
         using var block = archive.OpenArrayBlock(name, size);
         if (archive.IsInput)
         {
             values.Clear();
-            for (var index = 0u; index < block.SizeHint; ++index)
+            for (var index = 0; index < block.SizeHint; ++index)
             {
                 var value = string.Empty;
                 archive.Serialize("element", ref value);

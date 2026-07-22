@@ -151,7 +151,7 @@ public class VariantCurve : KeyFrameSet<VariantCurvePoint>, IEquatable<VariantCu
         ArchiveSerialization.SerializeEnum(archive, "interpolation", ref Interpolation, InterpolationNames);
         ArchiveSerialization.SerializeValue(archive, "splineTension", ref SplineTension);
 
-        var size = checked((uint)KeyFrames.Count);
+        var size = KeyFrames.Count;
         using var block = archive.OpenArrayBlock("keyframes", size);
         if (archive.IsInput)
         {
@@ -170,13 +170,13 @@ public class VariantCurve : KeyFrameSet<VariantCurvePoint>, IEquatable<VariantCu
             OutTangents.Clear();
         }
 
-        for (var index = 0u; index < block.SizeHint; ++index)
+        for (var index = 0; index < block.SizeHint; ++index)
         {
-            var keyFrame = archive.IsInput ? default : KeyFrames[checked((int)index)];
+            var keyFrame = archive.IsInput ? default : KeyFrames[index];
             var time = keyFrame.Time;
             var value = archive.IsInput ? new Variant(type) : keyFrame.Value;
-            var inTangent = archive.IsInput ? new Variant(type) : index < InTangents.Count ? InTangents[checked((int)index)] : new Variant(type);
-            var outTangent = archive.IsInput ? new Variant(type) : index < OutTangents.Count ? OutTangents[checked((int)index)] : new Variant(type);
+            var inTangent = archive.IsInput ? new Variant(type) : index < InTangents.Count ? InTangents[index] : new Variant(type);
+            var outTangent = archive.IsInput ? new Variant(type) : index < OutTangents.Count ? OutTangents[index] : new Variant(type);
 
             using var keyFrameBlock = archive.OpenUnorderedBlock("keyframe");
             ArchiveSerialization.SerializeValue(archive, "time", ref time);

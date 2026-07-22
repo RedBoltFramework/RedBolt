@@ -212,7 +212,7 @@ public class XMLOutputArchive : XMLArchiveBase<XMLOutputArchiveBlock>
             CloseArchive();
     }
 
-    public override void BeginBlock(string name, ref uint sizeHint, bool safe, ArchiveBlockType type)
+    public override void BeginBlock(string name, ref int sizeHint, bool safe, ArchiveBlockType type)
     {
         FlushDelayedException();
         CheckIfNotEof(name);
@@ -222,12 +222,12 @@ public class XMLOutputArchive : XMLArchiveBase<XMLOutputArchiveBlock>
         {
             if (SerializeRootName)
                 RootElement.SetName(name);
-            Stack.Add(new XMLOutputArchiveBlock(name, type, RootElement, checked((int)sizeHint)));
+            Stack.Add(new XMLOutputArchiveBlock(name, type, RootElement, sizeHint));
             return;
         }
 
         var blockElement = GetCurrentBlock().CreateElement(this, name);
-        var block = new XMLOutputArchiveBlock(name, type, blockElement, checked((int)sizeHint));
+        var block = new XMLOutputArchiveBlock(name, type, blockElement, sizeHint);
         Stack.Add(block);
     }
 
@@ -496,7 +496,7 @@ public class XMLInputArchive : XMLArchiveBase<XMLInputArchiveBlock>
             CloseArchive();
     }
 
-    public override void BeginBlock(string name, ref uint sizeHint, bool safe, ArchiveBlockType type)
+    public override void BeginBlock(string name, ref int sizeHint, bool safe, ArchiveBlockType type)
     {
         FlushDelayedException();
         CheckIfNotEof(name);
@@ -509,14 +509,14 @@ public class XMLInputArchive : XMLArchiveBase<XMLInputArchiveBlock>
                 throw ElementNotFoundException(name);
 
             var block = new XMLInputArchiveBlock(name, type, RootElement);
-            sizeHint = checked((uint)block.CalculateSizeHint());
+            sizeHint = block.CalculateSizeHint();
             Stack.Add(block);
             return;
         }
 
         var blockElement = GetCurrentBlock().ReadElement(this, name);
         var childBlock = new XMLInputArchiveBlock(name, type, blockElement);
-        sizeHint = checked((uint)childBlock.CalculateSizeHint());
+        sizeHint = childBlock.CalculateSizeHint();
         Stack.Add(childBlock);
     }
 

@@ -15,7 +15,7 @@ public class ArchiveBlock : IDisposable
     {
     }
 
-    public ArchiveBlock(Archive archive, uint sizeHint = 0)
+    public ArchiveBlock(Archive archive, int sizeHint = 0)
     {
         _archive = archive;
         _sizeHint = sizeHint;
@@ -55,10 +55,10 @@ public class ArchiveBlock : IDisposable
 
     public bool IsValid => _archive is not null;
 
-    public uint SizeHint => _sizeHint;
+    public int SizeHint => _sizeHint;
 
     private Archive? _archive;
-    private uint _sizeHint;
+    private int _sizeHint;
 }
 
 public abstract class Archive : IDisposable
@@ -77,7 +77,7 @@ public abstract class Archive : IDisposable
     public abstract bool IsEof { get; }
     public abstract string CurrentBlockPath { get; }
 
-    public abstract void BeginBlock(string name, ref uint sizeHint, bool safe, ArchiveBlockType type);
+    public abstract void BeginBlock(string name, ref int sizeHint, bool safe, ArchiveBlockType type);
     public abstract void EndBlock();
     public abstract void Flush();
 
@@ -115,7 +115,7 @@ public abstract class Archive : IDisposable
         return true;
     }
 
-    public ArchiveBlock OpenBlock(string name, uint sizeHint, bool safe, ArchiveBlockType type)
+    public ArchiveBlock OpenBlock(string name, int sizeHint, bool safe, ArchiveBlockType type)
     {
         BeginBlock(name, ref sizeHint, safe, type);
         return new ArchiveBlock(this, sizeHint);
@@ -123,7 +123,7 @@ public abstract class Archive : IDisposable
 
     public ArchiveBlock OpenSequentialBlock(string name) => OpenBlock(name, 0, false, ArchiveBlockType.Sequential);
     public ArchiveBlock OpenUnorderedBlock(string name) => OpenBlock(name, 0, false, ArchiveBlockType.Unordered);
-    public ArchiveBlock OpenArrayBlock(string name, uint sizeHint = 0) => OpenBlock(name, sizeHint, false, ArchiveBlockType.Array);
+    public ArchiveBlock OpenArrayBlock(string name, int sizeHint = 0) => OpenBlock(name, sizeHint, false, ArchiveBlockType.Array);
     public ArchiveBlock OpenSafeSequentialBlock(string name) => OpenBlock(name, 0, true, ArchiveBlockType.Sequential);
     public ArchiveBlock OpenSafeUnorderedBlock(string name) => OpenBlock(name, 0, true, ArchiveBlockType.Unordered);
 }
@@ -149,7 +149,7 @@ public abstract class ArchiveBase : Archive
     public ArchiveException IoFailureException(string elementName) => new($"Unspecified I/O failure before '{CurrentBlockPath}/{elementName}'");
     public ArchiveException DuplicateElementException(string elementName) => new($"'{CurrentBlockPath}/{elementName}' is serialized several times");
     public ArchiveException ElementNotFoundException(string elementName) => new($"'{CurrentBlockPath}/{elementName}' is not found");
-    public ArchiveException ElementNotFoundException(string elementName, uint elementIndex) => new($"'{CurrentBlockPath}/{elementName}#{elementIndex}' is not found");
+    public ArchiveException ElementNotFoundException(string elementName, int elementIndex) => new($"'{CurrentBlockPath}/{elementName}#{elementIndex}' is not found");
     public ArchiveException UnexpectedElementValueException(string elementName) => new($"'{CurrentBlockPath}/{elementName}' has unexpected type");
     public ArchiveException UnexpectedEofException(string elementName) => new($"Unexpected end of file before '{CurrentBlockPath}/{elementName}'");
 
@@ -248,5 +248,5 @@ public class ArchiveBlockBase
 
     protected readonly string _name;
     protected readonly ArchiveBlockType _type;
-    protected uint _inlineBlockDepth;
+    protected int _inlineBlockDepth;
 }

@@ -281,7 +281,7 @@ public abstract class Serializable : Object
 
     public void SerializeInBlock(Archive archive, bool serializeTemporary)
     {
-        var count = 0u;
+        var count = 0;
         if (!archive.IsInput)
         {
             foreach (var attribute in _attributes)
@@ -294,7 +294,7 @@ public abstract class Serializable : Object
         using var block = archive.OpenArrayBlock("attributes", count);
         if (archive.IsInput)
         {
-            for (var i = 0u; i < block.SizeHint; ++i)
+            for (var i = 0; i < block.SizeHint; ++i)
             {
                 using var item = archive.OpenUnorderedBlock("attribute");
                 var name = string.Empty;

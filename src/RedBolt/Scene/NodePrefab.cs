@@ -469,7 +469,7 @@ public class SerializablePrefab : ICloneable, IEquatable<SerializablePrefab>, ID
         else if (archive.IsInput)
             _temporary = false;
 
-        var count = archive.IsInput ? 0u : checked((uint)_attributes.Count);
+        var count = archive.IsInput ? 0 : _attributes.Count;
         if (archive.IsInput && archive.IsUnorderedAccessSupportedInCurrentBlock && !archive.HasElementOrBlock("attributes"))
         {
             DisposeAttributes();
@@ -481,7 +481,7 @@ public class SerializablePrefab : ICloneable, IEquatable<SerializablePrefab>, ID
         if (archive.IsInput)
         {
             DisposeAttributes();
-            var size = checked((int)block.SizeHint);
+            var size = block.SizeHint;
             for (var index = 0; index < size; ++index)
             {
                 using var item = archive.OpenUnorderedBlock("attribute");
@@ -692,14 +692,14 @@ public class NodePrefab : ICloneable, IEquatable<NodePrefab>, IDisposable
         if (!archive.IsInput && values.Count == 0 && archive.IsUnorderedAccessSupportedInCurrentBlock)
             return;
 
-        var count = archive.IsInput ? 0u : (uint)values.Count;
+        var count = archive.IsInput ? 0 : values.Count;
         using var block = archive.OpenArrayBlock(name, count);
         if (archive.IsInput)
         {
             for (var index = values.Count - 1; index >= 0; --index)
                 values[index].Dispose();
             values.Clear();
-            var size = checked((int)block.SizeHint);
+            var size = block.SizeHint;
             for (var index = 0; index < size; ++index)
             {
                 using var item = archive.OpenUnorderedBlock(itemName);

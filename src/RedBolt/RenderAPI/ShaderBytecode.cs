@@ -56,12 +56,12 @@ public struct ShaderBytecode : ICloneable
             bytecode.Dispose();
         }
 
-        var count = archive.IsInput ? 0u : checked((uint)VertexAttributes.Count);
+        var count = archive.IsInput ? 0 : VertexAttributes.Count;
         using var attributesBlock = archive.OpenArrayBlock("vertexAttributes", count);
         if (archive.IsInput)
             VertexAttributes.Clear();
 
-        for (var i = 0; i < checked((int)attributesBlock.SizeHint); ++i)
+        for (var i = 0; i < attributesBlock.SizeHint; ++i)
         {
             var attribute = archive.IsInput ? default : VertexAttributes[i];
             using var itemBlock = archive.OpenUnorderedBlock("vertexAttribute");

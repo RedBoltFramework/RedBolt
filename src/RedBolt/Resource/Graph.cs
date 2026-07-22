@@ -67,11 +67,11 @@ public partial class Graph : Object
     public override void SerializeInBlock(Archive archive)
     {
         var size = archive.IsInput ? 0 : _nodes.Count;
-        using var block = archive.OpenArrayBlock("nodes", checked((uint)size));
+        using var block = archive.OpenArrayBlock("nodes", size);
         if (archive.IsInput)
         {
             _nodes.Clear();
-            size = checked((int)block.SizeHint);
+            size = block.SizeHint;
             for (var index = 0; index < size; ++index)
             {
                 using var nodeBlock = archive.OpenUnorderedBlock("node");

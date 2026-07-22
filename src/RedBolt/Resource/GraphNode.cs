@@ -360,13 +360,13 @@ public partial class GraphNode : Object
             return;
 
         var size = archive.IsInput ? 0 : values.Count;
-        using var block = archive.OpenArrayBlock(name, checked((uint)size));
+        using var block = archive.OpenArrayBlock(name, size);
         if (archive.IsInput)
         {
             for (var index = values.Count - 1; index >= 0; --index)
                 values[index].Dispose();
             values.Clear();
-            size = checked((int)block.SizeHint);
+            size = block.SizeHint;
             for (var index = 0; index < size; ++index)
                 values.Add(new T());
 

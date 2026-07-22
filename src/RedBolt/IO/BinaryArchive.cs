@@ -84,7 +84,7 @@ public class BinaryOutputArchive : ArchiveBase
         return false;
     }
 
-    public sealed override void BeginBlock(string name, ref uint sizeHint, bool safe, ArchiveBlockType type)
+    public sealed override void BeginBlock(string name, ref int sizeHint, bool safe, ArchiveBlockType type)
     {
         FlushDelayedException();
         CheckIfNotEof(name);
@@ -104,7 +104,7 @@ public class BinaryOutputArchive : ArchiveBase
 
         if (type == ArchiveBlockType.Array)
         {
-            if (!_currentBlockSerializer!.WriteVLE(sizeHint))
+            if (!_currentBlockSerializer!.WriteVLE(checked((uint)sizeHint)))
             {
                 EndBlock();
                 throw IoFailureException("<block guard>");
@@ -281,7 +281,7 @@ public class BinaryInputArchive : ArchiveBase
         return _stack[^1].HasElementOrBlock(name);
     }
 
-    public sealed override void BeginBlock(string name, ref uint sizeHint, bool safe, ArchiveBlockType type)
+    public sealed override void BeginBlock(string name, ref int sizeHint, bool safe, ArchiveBlockType type)
     {
         FlushDelayedException();
         CheckIfNotEof(name);
@@ -302,7 +302,7 @@ public class BinaryInputArchive : ArchiveBase
 
         if (type == ArchiveBlockType.Array)
         {
-            sizeHint = _deserializer.ReadVLE();
+            sizeHint = checked((int)_deserializer.ReadVLE());
             if (_deserializer.IsEof() && sizeHint != 0)
             {
                 EndBlock();

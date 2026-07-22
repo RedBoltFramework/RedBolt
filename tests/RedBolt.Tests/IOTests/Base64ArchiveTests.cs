@@ -88,7 +88,7 @@ public sealed class Base64ArchiveTests
     {
         var serializer = new FailingSerializer();
         using var archive = new BinaryOutputArchive(new Context(), serializer);
-        var sizeHint = 0u;
+        var sizeHint = 0;
         var value = 42;
 
         archive.BeginBlock("Root", ref sizeHint, true, ArchiveBlockType.Sequential);

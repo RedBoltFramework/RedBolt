@@ -84,13 +84,13 @@ public sealed class ConfigFile : Object
 
         public void SerializeInBlock(Archive archive)
         {
-            var count = archive.IsInput ? 0u : (uint)(Flavor.Components?.Count ?? 0);
+            var count = archive.IsInput ? 0 : Flavor.Components?.Count ?? 0;
             using var arrayBlock = archive.OpenArrayBlock("Flavor", count);
             if (archive.IsInput)
             {
                 Flavor.Components ??= new ApplicationFlavorMap();
                 Flavor.Components.Clear();
-                for (var i = 0u; i < arrayBlock.SizeHint; ++i)
+                for (var i = 0; i < arrayBlock.SizeHint; ++i)
                 {
                     using var itemBlock = archive.OpenUnorderedBlock("item");
                     var key = string.Empty;
@@ -116,12 +116,12 @@ public sealed class ConfigFile : Object
             }
 
             var varMap = Variables ??= new StringVariantMap();
-            var varCount = archive.IsInput ? 0u : (uint)varMap.Count;
+            var varCount = archive.IsInput ? 0 : varMap.Count;
             using var varArrayBlock = archive.OpenArrayBlock("Variables", varCount);
             if (archive.IsInput)
             {
                 varMap.Dispose();
-                for (var i = 0u; i < varArrayBlock.SizeHint; ++i)
+                for (var i = 0; i < varArrayBlock.SizeHint; ++i)
                 {
                     using var itemBlock = archive.OpenUnorderedBlock("item");
                     var key = string.Empty;
@@ -244,7 +244,7 @@ public sealed class ConfigFile : Object
     public override void SerializeInBlock(Archive archive)
     {
         ArgumentNullException.ThrowIfNull(archive);
-        var count = archive.IsInput ? 0u : (uint)_variablesPerFlavor.Count;
+        var count = archive.IsInput ? 0 : _variablesPerFlavor.Count;
         using var arrayBlock = archive.OpenArrayBlock("Default", count);
         if (archive.IsInput)
         {
@@ -254,7 +254,7 @@ public sealed class ConfigFile : Object
                 oldFlavor.Dispose();
             }
             _variablesPerFlavor.Clear();
-            for (var i = 0u; i < arrayBlock.SizeHint; ++i)
+            for (var i = 0; i < arrayBlock.SizeHint; ++i)
             {
                 using var itemBlock = archive.OpenUnorderedBlock("item");
                 var flavor = new ConfigFlavor();

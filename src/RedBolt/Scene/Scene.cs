@@ -1548,10 +1548,10 @@ public sealed class Scene : Serializable
                 components[component.GetTypeName()] = component;
         }
 
-        using var block = archive.OpenArrayBlock("auxiliary", archive.IsInput ? 0u : (uint)components.Count);
+        using var block = archive.OpenArrayBlock("auxiliary", archive.IsInput ? 0 : components.Count);
         if (archive.IsInput)
         {
-            for (var i = 0u; i < block.SizeHint; ++i)
+            for (var i = 0; i < block.SizeHint; ++i)
             {
                 using var elementBlock = archive.OpenUnorderedBlock("component");
                 var typeName = string.Empty;

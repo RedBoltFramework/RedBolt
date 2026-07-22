@@ -97,7 +97,7 @@ public sealed class ObjectTests
         public override bool IsEof => false;
         public override string CurrentBlockPath => string.Empty;
         public override bool HasElementOrBlock(string name) => false;
-        public override void BeginBlock(string name, ref uint sizeHint, bool safe, ArchiveBlockType type) { }
+        public override void BeginBlock(string name, ref int sizeHint, bool safe, ArchiveBlockType type) { }
         public override void EndBlock() { }
         public override void Flush() { }
         public override void Serialize(string name, ref bool value) { }

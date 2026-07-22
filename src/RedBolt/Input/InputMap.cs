@@ -104,12 +104,12 @@ public class InputMap : SimpleResource
         ArchiveSerialization.SerializeOptionalValue(archive, "deadzone", ref _deadZone, DefaultDeadZone,
             ArchiveSerialization.SerializeValue);
 
-        var count = archive.IsInput ? 0u : (uint)_actions.Count;
+        var count = archive.IsInput ? 0 : _actions.Count;
         using var actionsBlock = archive.OpenArrayBlock("actions", count);
         if (archive.IsInput)
         {
             _actions.Clear();
-            for (var i = 0u; i < actionsBlock.SizeHint; ++i)
+            for (var i = 0; i < actionsBlock.SizeHint; ++i)
             {
                 using var actionBlock = archive.OpenUnorderedBlock("action");
                 var name = string.Empty;
@@ -456,12 +456,12 @@ public class InputMap : SimpleResource
         private static void SerializeStructList<T>(Archive archive, string blockName, string itemName,
             List<T> values, SerializeItem<T> serialize) where T : new()
         {
-            var count = archive.IsInput ? 0u : (uint)values.Count;
+            var count = archive.IsInput ? 0 : values.Count;
             using var arrayBlock = archive.OpenArrayBlock(blockName, count);
             if (archive.IsInput)
             {
                 values.Clear();
-                for (var i = 0u; i < arrayBlock.SizeHint; ++i)
+                for (var i = 0; i < arrayBlock.SizeHint; ++i)
                 {
                     using var itemBlock = archive.OpenUnorderedBlock(itemName);
                     var value = new T(); serialize(archive, ref value); values.Add(value);

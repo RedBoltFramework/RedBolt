@@ -170,7 +170,7 @@ public class PrefabReaderFromArchive : PrefabReader
         if (!_archive.IsUnorderedAccessSupportedInCurrentBlock || _archive.HasElementOrBlock("components"))
         {
             var block = _archive.OpenArrayBlock("components");
-            numComponents = checked((int)block.SizeHint);
+            numComponents = block.SizeHint;
             if (numComponents > 0)
                 _stack.Add((new ArchiveBlock(block), numComponents));
             else
@@ -200,7 +200,7 @@ public class PrefabReaderFromArchive : PrefabReader
         if (!_archive.IsUnorderedAccessSupportedInCurrentBlock || _archive.HasElementOrBlock("nodes"))
         {
             var block = _archive.OpenArrayBlock("nodes");
-            numChildren = checked((int)block.SizeHint);
+            numChildren = block.SizeHint;
             if (numChildren > 0)
                 _stack.Add((new ArchiveBlock(block), numChildren));
             else

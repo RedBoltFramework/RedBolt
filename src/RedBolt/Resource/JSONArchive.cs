@@ -179,7 +179,7 @@ public class JSONOutputArchive : JSONArchiveBase<JSONOutputArchiveBlock>
             CloseArchive();
     }
 
-    public override void BeginBlock(string name, ref uint sizeHint, bool safe, ArchiveBlockType type)
+    public override void BeginBlock(string name, ref int sizeHint, bool safe, ArchiveBlockType type)
     {
         FlushDelayedException();
         CheckIfNotEof(name);
@@ -187,12 +187,12 @@ public class JSONOutputArchive : JSONArchiveBase<JSONOutputArchiveBlock>
 
         if (Stack.Count == 0)
         {
-            Stack.Add(new JSONOutputArchiveBlock(name, type, RootValue, checked((int)sizeHint)));
+            Stack.Add(new JSONOutputArchiveBlock(name, type, RootValue, sizeHint));
             return;
         }
 
         var blockValue = GetCurrentBlock().CreateElement(this, name);
-        Stack.Add(new JSONOutputArchiveBlock(name, type, blockValue, checked((int)sizeHint)));
+        Stack.Add(new JSONOutputArchiveBlock(name, type, blockValue, sizeHint));
     }
 
     public override void Serialize(string name, ref bool value)
@@ -325,7 +325,7 @@ public class JSONInputArchiveBlock : ArchiveBlockBase, ICloneable
         if (IsArchiveBlockJsonArray(_type))
         {
             if (_nextElementIndex >= _value.Size())
-                throw archive.ElementNotFoundException(elementName, checked((uint)_nextElementIndex));
+                throw archive.ElementNotFoundException(elementName, _nextElementIndex);
 
             elementValue = _value.Get(_nextElementIndex);
             ++_nextElementIndex;
@@ -451,7 +451,7 @@ public class JSONInputArchive : JSONArchiveBase<JSONInputArchiveBlock>
             CloseArchive();
     }
 
-    public override void BeginBlock(string name, ref uint sizeHint, bool safe, ArchiveBlockType type)
+    public override void BeginBlock(string name, ref int sizeHint, bool safe, ArchiveBlockType type)
     {
         FlushDelayedException();
         CheckIfNotEof(name);
@@ -463,14 +463,14 @@ public class JSONInputArchive : JSONArchiveBase<JSONInputArchiveBlock>
                 throw UnexpectedElementValueException(name);
 
             var frame = new JSONInputArchiveBlock(name, type, RootValue);
-            sizeHint = checked((uint)frame.GetSizeHint());
+            sizeHint = frame.GetSizeHint();
             Stack.Add(frame);
             return;
         }
 
         var blockValue = GetCurrentBlock().ReadElement(this, name, type);
         var blockFrame = new JSONInputArchiveBlock(name, type, blockValue);
-        sizeHint = checked((uint)blockFrame.GetSizeHint());
+        sizeHint = blockFrame.GetSizeHint();
         Stack.Add(blockFrame);
     }
 

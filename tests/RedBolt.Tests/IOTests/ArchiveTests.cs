@@ -35,14 +35,14 @@ public sealed class ArchiveTests
 
         var block = archive.OpenArrayBlock("Root", 3);
         Assert.True(block.IsValid);
-        Assert.Equal(3u, block.SizeHint);
+        Assert.Equal(3, block.SizeHint);
         block.Dispose();
         block.Dispose();
 
         Assert.Equal(1, archive.BeginCount);
         Assert.Equal(1, archive.EndCount);
         Assert.Equal(ArchiveBlockType.Array, archive.LastBlockType);
-        Assert.Equal(3u, archive.LastSizeHint);
+        Assert.Equal(3, archive.LastSizeHint);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public sealed class ArchiveTests
 
         Assert.False(source.IsValid);
         Assert.True(moved.IsValid);
-        Assert.Equal(3u, moved.SizeHint);
+        Assert.Equal(3, moved.SizeHint);
         source.Dispose();
         Assert.Equal(0, archive.EndCount);
     }
@@ -77,8 +77,8 @@ public sealed class ArchiveTests
 
         first.Swap(second);
 
-        Assert.Equal(2u, first.SizeHint);
-        Assert.Equal(1u, second.SizeHint);
+        Assert.Equal(2, first.SizeHint);
+        Assert.Equal(1, second.SizeHint);
     }
 
     [Fact]
@@ -90,8 +90,8 @@ public sealed class ArchiveTests
 
         Assert.Same(first, first.MoveAssign(second));
 
-        Assert.Equal(2u, first.SizeHint);
-        Assert.Equal(1u, second.SizeHint);
+        Assert.Equal(2, first.SizeHint);
+        Assert.Equal(1, second.SizeHint);
     }
 
     [Fact]
@@ -729,7 +729,7 @@ public sealed class ArchiveTests
         public int BeginCount { get; private set; }
         public int EndCount { get; private set; }
         public ArchiveBlockType LastBlockType { get; private set; }
-        public uint LastSizeHint { get; private set; }
+        public int LastSizeHint { get; private set; }
         public bool IsDisposed { get; private set; }
         public List<(string Name, string Value)> StringValues { get; } = [];
         public List<(string Name, byte[] Value)> ByteValues { get; } = [];
@@ -752,7 +752,7 @@ public sealed class ArchiveTests
             base.Dispose();
         }
 
-        public override void BeginBlock(string name, ref uint sizeHint, bool safe, ArchiveBlockType type)
+        public override void BeginBlock(string name, ref int sizeHint, bool safe, ArchiveBlockType type)
         {
             ++BeginCount;
             LastBlockType = type;

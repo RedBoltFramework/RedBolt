@@ -94,19 +94,19 @@ public static partial class ArchiveSerialization
             return;
         }
 
-        var size = checked((uint)values.Count);
+        var size = values.Count;
         using var arrayBlock = archive.OpenArrayBlock(name, size);
         if (archive.IsInput)
         {
             values.Clear();
-            values.AddRange(new Vector3f[checked((int)arrayBlock.SizeHint)]);
+            values.AddRange(new Vector3f[arrayBlock.SizeHint]);
         }
 
-        for (var index = 0u; index < (archive.IsInput ? arrayBlock.SizeHint : size); ++index)
+        for (var index = 0; index < (archive.IsInput ? arrayBlock.SizeHint : size); ++index)
         {
-            var value = values[checked((int)index)];
+            var value = values[index];
             SerializeValue(archive, "element", ref value);
-            values[checked((int)index)] = value;
+            values[index] = value;
         }
     }
 
@@ -133,20 +133,20 @@ public static partial class ArchiveSerialization
             return;
         }
 
-        var size = checked((uint)values.Count);
+        var size = values.Count;
         using var block = archive.OpenArrayBlock(name, size);
         if (archive.IsInput)
         {
             values.Clear();
-            for (var index = 0u; index < block.SizeHint; ++index)
+            for (var index = 0; index < block.SizeHint; ++index)
                 values.Add(new Tetrahedron());
         }
 
-        for (var index = 0u; index < (archive.IsInput ? block.SizeHint : size); ++index)
+        for (var index = 0; index < (archive.IsInput ? block.SizeHint : size); ++index)
         {
-            var value = values[checked((int)index)];
+            var value = values[index];
             SerializeValue(archive, "element", ref value);
-            values[checked((int)index)] = value;
+            values[index] = value;
         }
     }
 }
