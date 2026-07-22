@@ -29,10 +29,10 @@ public class BatchCompositorPass : DrawableProcessorPass
         DrawableProcessor drawableProcessor,
         BatchStateCacheCallback? callback,
         DrawableProcessorPassFlag flags,
-        uint deferredPassIndex,
-        uint unlitBasePassIndex,
-        uint litBasePassIndex,
-        uint lightPassIndex)
+        int deferredPassIndex,
+        int unlitBasePassIndex,
+        int litBasePassIndex,
+        int lightPassIndex)
         : base(renderPipeline, flags, deferredPassIndex, unlitBasePassIndex, litBasePassIndex, lightPassIndex)
     {
         _drawableProcessor = drawableProcessor ?? throw new ArgumentNullException(nameof(drawableProcessor));
@@ -534,7 +534,7 @@ public class BatchCompositor : Object
                 var tech = material.FindTechnique(drawable, _shadowMaterialQuality);
                 if (tech is null)
                     continue;
-                var pass = tech.GetPass(checked((uint)_shadowPassIndex));
+                var pass = tech.GetPass(_shadowPassIndex);
                 if (pass is null)
                     continue;
 

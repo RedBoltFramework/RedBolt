@@ -17,6 +17,12 @@ public sealed class DrawableProcessorTests
     }
 
     [Fact]
+    public void GeometryBatchUsesIntSourceBatchIndex()
+    {
+        Assert.Equal(typeof(int), typeof(GeometryBatch).GetField(nameof(GeometryBatch.SourceBatchIndex))!.FieldType);
+    }
+
+    [Fact]
     public void CollectStatisticsMutatesStatsByReference()
     {
         var pipeline = new TestRenderPipelineInterface();
@@ -55,7 +61,7 @@ public sealed class DrawableProcessorTests
         var batch = GeometryBatch.Deferred(drawable, 3, pass, userData);
 
         Assert.Same(drawable, batch.Drawable);
-        Assert.Equal(3u, batch.SourceBatchIndex);
+        Assert.Equal(3, batch.SourceBatchIndex);
         Assert.Same(userData, batch.UserData);
         Assert.Same(pass, batch.DeferredPass);
         Assert.Null(batch.UnlitBasePass);
@@ -74,7 +80,7 @@ public sealed class DrawableProcessorTests
         var batch = GeometryBatch.Forward(drawable, 5, unlitBasePass, litBasePass, lightPass);
 
         Assert.Same(drawable, batch.Drawable);
-        Assert.Equal(5u, batch.SourceBatchIndex);
+        Assert.Equal(5, batch.SourceBatchIndex);
         Assert.Null(batch.DeferredPass);
         Assert.Same(unlitBasePass, batch.UnlitBasePass);
         Assert.Same(litBasePass, batch.LitBasePass);
@@ -174,9 +180,9 @@ public sealed class DrawableProcessorTests
     {
         var pipeline = new TestRenderPipelineInterface();
         using var firstPass = new TestDrawableProcessorPass(
-            pipeline, uint.MaxValue, uint.MaxValue, uint.MaxValue, uint.MaxValue);
+            pipeline, int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue);
         using var secondPass = new TestDrawableProcessorPass(
-            pipeline, uint.MaxValue, uint.MaxValue, uint.MaxValue, uint.MaxValue);
+            pipeline, int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue);
         using var processor = new DrawableProcessor(pipeline);
         using var scene = new Scene();
         var frameInfo = new FrameInfo
@@ -281,7 +287,7 @@ public sealed class DrawableProcessorTests
     {
         var pipeline = new TestRenderPipelineInterface();
         using var processorPass = new TestDrawableProcessorPass(pipeline,
-            uint.MaxValue, Technique.GetPassIndex("base"), uint.MaxValue, uint.MaxValue);
+            int.MaxValue, Technique.GetPassIndex("base"), int.MaxValue, int.MaxValue);
         pipeline.RaiseUpdateBegin();
         var technique = new Technique("test");
         technique.CreatePass("base");
@@ -343,7 +349,7 @@ public sealed class DrawableProcessorTests
     private sealed class TestDrawableProcessorPass : DrawableProcessorPass
     {
         public TestDrawableProcessorPass(IRenderPipelineInterface renderPipeline,
-            uint deferredPassIndex, uint unlitBasePassIndex, uint litBasePassIndex, uint lightPassIndex)
+            int deferredPassIndex, int unlitBasePassIndex, int litBasePassIndex, int lightPassIndex)
             : base(renderPipeline, DrawableProcessorPassFlag.None,
                 deferredPassIndex, unlitBasePassIndex, litBasePassIndex, lightPassIndex)
         {

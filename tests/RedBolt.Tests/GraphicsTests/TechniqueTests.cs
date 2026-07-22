@@ -14,6 +14,10 @@ public sealed class TechniqueTests
         Assert.False(typeof(Technique).IsSealed);
         Assert.False(typeof(Technique).IsValueType);
         Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(Technique)));
+        Assert.Equal(typeof(int), typeof(Pass).GetProperty(nameof(Pass.Index))!.PropertyType);
+        Assert.Equal(typeof(int), typeof(Technique).GetMethod(nameof(Technique.GetPassIndex))!.ReturnType);
+        Assert.Equal(typeof(int), typeof(Technique).GetMethod(nameof(Technique.GetNumPasses))!.ReturnType);
+        Assert.Equal(int.MaxValue, Technique.GetPassIndex(string.Empty));
 
         using var technique = new Technique("Techniques/Smoke");
         var pass = technique.CreatePass("base");
@@ -72,7 +76,7 @@ public sealed class TechniqueTests
     public void Unknown_pass_lookup_does_not_allocate_an_index()
     {
         var passIndices = typeof(Technique).GetField("PassIndices", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
-        var dictionary = (Dictionary<string, uint>)passIndices.GetValue(null)!;
+        var dictionary = (Dictionary<string, int>)passIndices.GetValue(null)!;
         var count = dictionary.Count;
         var unknownName = $"unknown-{Guid.NewGuid():N}";
 

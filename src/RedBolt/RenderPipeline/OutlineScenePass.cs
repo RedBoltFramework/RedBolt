@@ -47,7 +47,7 @@ public class OutlineScenePass : ScenePass
 
     /// <summary>Implement ScenePass / DrawableProcessorPass batch callback.</summary>
     public override AddBatchResult AddCustomBatch(
-        uint threadIndex, Drawable drawable, uint sourceBatchIndex, Technique technique)
+        uint threadIndex, Drawable drawable, int sourceBatchIndex, Technique technique)
     {
         if (_outlineGroups.Count == 0)
             return default;
@@ -147,7 +147,7 @@ public class OutlineScenePass : ScenePass
             _batchGroup.Flags |= BatchRenderFlag.LinearColorSpace;
     }
 
-    private static Pass? GetFirstPass(Technique technique, List<uint> passIndices)
+    private static Pass? GetFirstPass(Technique technique, List<int> passIndices)
     {
         foreach (var index in passIndices)
         {
@@ -159,7 +159,7 @@ public class OutlineScenePass : ScenePass
         return null;
     }
 
-    private readonly List<uint> _outlinedPasses = [];
+    private readonly List<int> _outlinedPasses = [];
     private readonly List<OutlineGroup> _outlineGroups = [];
 
     /// <summary>Internal temporary containers.</summary>

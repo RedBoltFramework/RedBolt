@@ -201,7 +201,7 @@ public class Pass : PipelineStateTracker
     public string Name => _name;
 
     /// <summary>Return pass index. This is used for optimal render-time pass queries that avoid map lookups.</summary>
-    public uint Index => _index;
+    public int Index => _index;
 
     /// <summary>Return blend mode.</summary>
     public BlendMode BlendMode => _blendMode;
@@ -343,7 +343,7 @@ public class Pass : PipelineStateTracker
         hash ^= unchecked(value + 0x9e3779b9u + (hash << 6) + (hash >> 2));
     }
 
-    private uint _index;
+    private int _index;
     private BlendMode _blendMode;
     private CullMode _cullMode;
     private CompareMode _depthTestMode;
@@ -396,21 +396,21 @@ public class Technique : Resource
     }
 
     /// <summary>Index for base pass. Initialized once GetPassIndex() has been called for the first time.</summary>
-    public static uint BasePassIndex;
+    public static int BasePassIndex;
     /// <summary>Index for alpha pass. Initialized once GetPassIndex() has been called for the first time.</summary>
-    public static uint AlphaPassIndex;
+    public static int AlphaPassIndex;
     /// <summary>Index for prepass material pass. Initialized once GetPassIndex() has been called for the first time.</summary>
-    public static uint MaterialPassIndex;
+    public static int MaterialPassIndex;
     /// <summary>Index for deferred G-buffer pass. Initialized once GetPassIndex() has been called for the first time.</summary>
-    public static uint DeferredPassIndex;
+    public static int DeferredPassIndex;
     /// <summary>Index for per-pixel light pass. Initialized once GetPassIndex() has been called for the first time.</summary>
-    public static uint LightPassIndex;
+    public static int LightPassIndex;
     /// <summary>Index for lit base pass. Initialized once GetPassIndex() has been called for the first time.</summary>
-    public static uint LitBasePassIndex;
+    public static int LitBasePassIndex;
     /// <summary>Index for lit alpha pass. Initialized once GetPassIndex() has been called for the first time.</summary>
-    public static uint LitAlphaPassIndex;
+    public static int LitAlphaPassIndex;
     /// <summary>Index for shadow pass. Initialized once GetPassIndex() has been called for the first time.</summary>
-    public static uint ShadowPassIndex;
+    public static int ShadowPassIndex;
 
     /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
     public override bool BeginLoad(Stream source)
@@ -514,7 +514,7 @@ public class Technique : Resource
                 _passes.Add(null);
         }
 
-        _passes[(int)pass.Index] = pass;
+        _passes[pass.Index] = pass;
         MemoryUse = checked((int)GetNumPasses() * 128);
         return pass;
     }
@@ -569,13 +569,13 @@ public class Technique : Resource
     }
 
     /// <summary>Return whether has a pass.</summary>
-    public bool HasPass(uint passIndex) => passIndex < _passes.Count && _passes[(int)passIndex] is not null;
+    public bool HasPass(int passIndex) => passIndex >= 0 && passIndex < _passes.Count && _passes[passIndex] is not null;
 
     /// <summary>Return whether has a pass by name. This overload should not be called in time-critical rendering loops; use a pre-acquired pass index instead.</summary>
     public bool HasPass(string name) => GetPass(name) is not null;
 
     /// <summary>Return a pass, or null if not found.</summary>
-    public Pass? GetPass(uint passIndex) => passIndex < _passes.Count ? _passes[(int)passIndex] : null;
+    public Pass? GetPass(int passIndex) => passIndex >= 0 && passIndex < _passes.Count ? _passes[passIndex] : null;
 
     /// <summary>Return a pass by name, or null if not found. This overload should not be called in time-critical rendering loops; use a pre-acquired pass index instead.</summary>
     public Pass? GetPass(string name)
@@ -584,9 +584,9 @@ public class Technique : Resource
     }
 
     /// <summary>Return number of passes.</summary>
-    public uint GetNumPasses()
+    public int GetNumPasses()
     {
-        var count = 0u;
+        var count = 0;
         foreach (var pass in _passes)
         {
             if (pass is not null)
@@ -646,12 +646,12 @@ public class Technique : Resource
     }
 
     /// <summary>Return a pass type index by name. Allocate new if not used yet.</summary>
-    public static uint GetPassIndex(string passName)
+    public static int GetPassIndex(string passName)
     {
-        // C++ Technique::GetPassIndex returns M_MAX_UNSIGNED for empty pass names
+        // C++ Technique::GetPassIndex returns M_MAX_UNSIGNED for empty pass names, mapped to int.MaxValue
         // (used by ScenePass constructors for unused deferred/light slots).
         if (string.IsNullOrEmpty(passName))
-            return uint.MaxValue;
+            return int.MaxValue;
 
         if (PassIndices.Count == 0)
         {
@@ -669,7 +669,7 @@ public class Technique : Resource
         if (PassIndices.TryGetValue(lower, out var index))
             return index;
 
-        index = (uint)PassIndices.Count;
+        index = PassIndices.Count;
         PassIndices[lower] = index;
         return index;
     }
@@ -728,5 +728,5 @@ public class Technique : Resource
 
     private readonly List<Pass?> _passes = [];
     private readonly Dictionary<(StringHash VertexDefines, StringHash PixelDefines), Technique> _cloneTechniques = new();
-    private static readonly Dictionary<string, uint> PassIndices = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, int> PassIndices = new(StringComparer.Ordinal);
 }

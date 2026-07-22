@@ -25,7 +25,7 @@ public struct SortedOccluder : IComparable<SortedOccluder>
 /// </summary>
 public struct GeometryBatch
 {
-    public static GeometryBatch Deferred(Drawable drawable, uint sourceBatchIndex, Pass deferredPass, object? userData = null)
+    public static GeometryBatch Deferred(Drawable drawable, int sourceBatchIndex, Pass deferredPass, object? userData = null)
     {
         GeometryBatch batch = default;
         batch.Drawable = drawable;
@@ -35,7 +35,7 @@ public struct GeometryBatch
         return batch;
     }
 
-    public static GeometryBatch Forward(Drawable drawable, uint sourceBatchIndex,
+    public static GeometryBatch Forward(Drawable drawable, int sourceBatchIndex,
         Pass unlitBasePass, Pass? litBasePass, Pass? lightPass, object? userData = null)
     {
         GeometryBatch batch = default;
@@ -49,7 +49,7 @@ public struct GeometryBatch
     }
 
     public Drawable? Drawable;
-    public uint SourceBatchIndex;
+    public int SourceBatchIndex;
     public object? UserData;
 
     /// <summary>
@@ -89,7 +89,7 @@ public class DrawableProcessorPass : Object
     public readonly record struct AddBatchResult(bool Added, bool ForwardLitAdded);
 
     public DrawableProcessorPass(IRenderPipelineInterface renderPipeline, DrawableProcessorPassFlag flags,
-        uint deferredPassIndex, uint unlitBasePassIndex, uint litBasePassIndex, uint lightPassIndex)
+        int deferredPassIndex, int unlitBasePassIndex, int litBasePassIndex, int lightPassIndex)
     {
         RenderPipeline = renderPipeline;
         _flags = flags;
@@ -117,9 +117,9 @@ public class DrawableProcessorPass : Object
     /// <summary>
     /// Custom callback for adding batches.
     /// </summary>
-    public virtual AddBatchResult AddCustomBatch(uint threadIndex, Drawable drawable, uint sourceBatchIndex, Technique technique) => default;
+    public virtual AddBatchResult AddCustomBatch(uint threadIndex, Drawable drawable, int sourceBatchIndex, Technique technique) => default;
 
-    public AddBatchResult AddBatch(uint threadIndex, Drawable drawable, uint sourceBatchIndex, Technique technique)
+    public AddBatchResult AddBatch(uint threadIndex, Drawable drawable, int sourceBatchIndex, Technique technique)
     {
         if (_useBatchCallback)
             return AddCustomBatch(threadIndex, drawable, sourceBatchIndex, technique);
@@ -147,7 +147,7 @@ public class DrawableProcessorPass : Object
 
     public bool IsFlagSet(DrawableProcessorPassFlag flag) => (_flags & flag) != 0;
 
-    public bool HasLightPass => _lightPassIndex != uint.MaxValue;
+    public bool HasLightPass => _lightPassIndex != int.MaxValue;
 
     /// <summary>
     /// RenderPipeline callbacks
@@ -161,10 +161,10 @@ public class DrawableProcessorPass : Object
     private readonly DrawableProcessorPassFlag _flags;
     private readonly bool _useBatchCallback;
 
-    private readonly uint _deferredPassIndex;
-    private readonly uint _unlitBasePassIndex;
-    private readonly uint _litBasePassIndex;
-    private readonly uint _lightPassIndex;
+    private readonly int _deferredPassIndex;
+    private readonly int _unlitBasePassIndex;
+    private readonly int _litBasePassIndex;
+    private readonly int _lightPassIndex;
 
     private bool _enabled = true;
 
@@ -600,9 +600,9 @@ public class DrawableProcessor : Object
             var needAmbient = false;
 
             var sourceBatches = drawable.GetBatches();
-            for (var sourceBatchIndex = 0u; sourceBatchIndex < (uint)sourceBatches.Count; ++sourceBatchIndex)
+            for (var sourceBatchIndex = 0; sourceBatchIndex < sourceBatches.Count; ++sourceBatchIndex)
             {
-                var sourceBatch = sourceBatches[(int)sourceBatchIndex];
+                var sourceBatch = sourceBatches[sourceBatchIndex];
                 if (sourceBatch.Geometry is null || sourceBatch.Geometry.IsEmpty || sourceBatch.NumWorldTransforms == 0)
                     continue;
 

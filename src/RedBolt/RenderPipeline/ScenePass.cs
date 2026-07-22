@@ -20,8 +20,8 @@ public abstract class ScenePass : BatchCompositorPass
     /// <summary>Construct pass without forward lighting.</summary>
     protected ScenePass(IRenderPipelineInterface renderPipeline, DrawableProcessor drawableProcessor,
         BatchStateCacheCallback? callback, DrawableProcessorPassFlag flags, string pass)
-        : base(renderPipeline, drawableProcessor, callback, flags, uint.MaxValue,
-            Technique.GetPassIndex(pass), uint.MaxValue, uint.MaxValue)
+        : base(renderPipeline, drawableProcessor, callback, flags, int.MaxValue,
+            Technique.GetPassIndex(pass), int.MaxValue, int.MaxValue)
     {
     }
 
