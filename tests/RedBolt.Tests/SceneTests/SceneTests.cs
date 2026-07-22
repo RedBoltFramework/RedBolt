@@ -263,12 +263,11 @@ public sealed class SceneTests
         var source = new Scene();
         source.CreateChild("Loaded").CreateComponent<Camera>().SetFov(71);
 
-        var xmlArchive = new XMLOutputArchive();
+        using var xmlFile = new XMLFile { Name = string.Empty };
+        using var xmlArchive = new XMLOutputArchive(
+            Context.Instance, xmlFile.GetOrCreateRoot(SceneResource.GetXmlRootName()), xmlFile);
         using (xmlArchive.OpenUnorderedBlock(SceneResource.GetXmlRootName()))
             source.SerializeInBlock(xmlArchive);
-        var xmlFile = new XMLFile { Name = string.Empty };
-        using var xmlStream = new MemoryBuffer(System.Text.Encoding.UTF8.GetBytes(xmlArchive.ToXmlString()));
-        Assert.True(xmlFile.Load(xmlStream));
 
         var loadedFromXml = new Scene();
         Assert.True(loadedFromXml.LoadXML(xmlFile.Root));

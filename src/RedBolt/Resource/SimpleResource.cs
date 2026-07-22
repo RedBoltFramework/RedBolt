@@ -1,4 +1,3 @@
-using System.Text;
 using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
@@ -124,12 +123,12 @@ public abstract class SimpleResource : Resource
 
                 case InternalResourceFormat.Xml:
                 {
-                    using var archive = new XMLOutputArchive(Context.Instance);
+                    using var xmlFile = new XMLFile();
+                    using var archive = new XMLOutputArchive(
+                        Context.Instance, xmlFile.GetOrCreateRoot(GetRootBlockName()), xmlFile);
                     using (archive.OpenUnorderedBlock(GetRootBlockName()))
                         SerializeInBlock(archive);
-                    var bytes = Encoding.UTF8.GetBytes(archive.ToXmlString());
-                    destination.Write(bytes);
-                    return true;
+                    return xmlFile.Save(destination);
                 }
 
                 case InternalResourceFormat.Binary:

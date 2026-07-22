@@ -16,6 +16,12 @@ public sealed class XMLArchiveTests
             Assert.False(typeof(XMLOutputArchiveBlock).IsSealed);
             Assert.False(typeof(XMLInputArchiveBlock).IsSealed);
             Assert.True(typeof(XMLAttributeReference).IsValueType);
+            Assert.Equal(2, typeof(XMLOutputArchive).GetConstructors().Length);
+            Assert.Equal(2, typeof(XMLInputArchive).GetConstructors().Length);
+            Assert.NotNull(typeof(XMLAttributeReference).GetProperty(nameof(XMLAttributeReference.Element)));
+            Assert.NotNull(typeof(XMLAttributeReference).GetProperty(nameof(XMLAttributeReference.AttributeName)));
+            Assert.Null(typeof(XMLAttributeReference).GetMethod("GetElement"));
+            Assert.Null(typeof(XMLAttributeReference).GetMethod("GetAttributeName"));
             Assert.DoesNotContain(typeof(ICloneable), typeof(XMLOutputArchive).GetInterfaces());
             Assert.DoesNotContain(typeof(ICloneable), typeof(XMLInputArchive).GetInterfaces());
 
@@ -32,7 +38,7 @@ public sealed class XMLArchiveTests
 
                 Assert.True(output.IsEof);
                 Assert.Equal(xmlFile.Name, output.Name);
-                Assert.Contains("value=\"2\"", output.ToXmlString());
+                Assert.Contains("value=\"2\"", xmlFile.Document.ToString());
                 Assert.Throws<ArchiveException>(() => output.OpenUnorderedBlock("Again"));
             }
 
@@ -52,6 +58,45 @@ public sealed class XMLArchiveTests
     }
 
     [Fact]
+    public void XMLInputArchiveUsesNativeNarrowingConversions()
+    {
+        var previousContext = Context.Instance;
+        var context = new Context();
+        Context.SetInstance(context);
+        try
+        {
+            using var xmlFile = new XMLFile();
+            var root = xmlFile.GetOrCreateRoot("Root");
+            root.SetInt("signedByte", 255);
+            root.SetUInt("unsignedByte", 256);
+            root.SetInt("signedShort", 65535);
+            root.SetUInt("unsignedShort", 65536);
+
+            using var input = new XMLInputArchive(xmlFile);
+            sbyte signedByte = 0;
+            byte unsignedByte = 0;
+            short signedShort = 0;
+            ushort unsignedShort = 0;
+            using (input.OpenUnorderedBlock("Root"))
+            {
+                input.Serialize("signedByte", ref signedByte);
+                input.Serialize("unsignedByte", ref unsignedByte);
+                input.Serialize("signedShort", ref signedShort);
+                input.Serialize("unsignedShort", ref unsignedShort);
+            }
+
+            Assert.Equal(-1, signedByte);
+            Assert.Equal(0, unsignedByte);
+            Assert.Equal(-1, signedShort);
+            Assert.Equal(0, unsignedShort);
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+    }
+
+    [Fact]
     public void XMLArchiveRoundTripsVariantContainersCStringAndBytes()
     {
         var context = new Context();
@@ -62,7 +107,9 @@ public sealed class XMLArchiveTests
             using var originalText = new CString("XML CString");
             var text = originalText;
             var bytes = new byte[] { 0x12, 0x34, 0xab };
-            var output = new XMLOutputArchive();
+            using var xmlFile = new XMLFile();
+            using var output = new XMLOutputArchive(
+                context, xmlFile.GetOrCreateRoot("Root"), xmlFile);
             using (output.OpenUnorderedBlock("Root"))
             {
                 ArchiveSerialization.SerializeVariantInBlock(output, ref variant);
@@ -70,14 +117,14 @@ public sealed class XMLArchiveTests
                 output.SerializeBytes("bytes", bytes);
             }
 
-            var xml = output.ToXmlString();
+            var xml = xmlFile.Document.ToString();
             Assert.Contains("XML CString", xml);
             Assert.Contains("1234AB", xml);
 
             var loaded = default(Variant);
             var loadedText = new CString();
             var loadedBytes = new byte[bytes.Length];
-            var input = new XMLInputArchive(xml);
+            using var input = new XMLInputArchive(xmlFile);
             using (input.OpenUnorderedBlock("Root"))
             {
                 ArchiveSerialization.SerializeVariantInBlock(input, ref loaded);

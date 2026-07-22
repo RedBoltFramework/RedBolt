@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using System.Xml.Linq;
-
 namespace RedBolt;
 
 /// <summary>Base archive for XML serialization.</summary>
@@ -21,8 +19,8 @@ public abstract class XMLArchiveBase<TBlock> : ArchiveBase
 
     public override void Dispose()
     {
-        _rootElement = null;
         _xmlFile = null;
+        _rootElement = null;
         Stack.Clear();
         base.Dispose();
     }
@@ -43,15 +41,12 @@ public readonly struct XMLAttributeReference
 {
     public XMLAttributeReference(XMLElement element, string attribute)
     {
-        _element = element;
-        _attribute = attribute;
+        Element = element;
+        AttributeName = attribute;
     }
 
-    public XMLElement GetElement() => _element;
-    public string GetAttributeName() => _attribute;
-
-    private readonly XMLElement _element;
-    private readonly string _attribute;
+    public XMLElement Element { get; }
+    public string AttributeName { get; }
 }
 
 /// <summary>XML output archive block.</summary>
@@ -130,24 +125,6 @@ public class XMLOutputArchive : XMLArchiveBase<XMLOutputArchiveBlock>
     public XMLOutputArchive(XMLFile xmlFile)
         : this(Context.Instance, xmlFile.GetOrCreateRoot(RootBlockName), xmlFile, true)
     {
-    }
-
-    public XMLOutputArchive(bool serializeRootName = true)
-        : this(Context.Instance, serializeRootName)
-    {
-    }
-
-    public XMLOutputArchive(Context context, bool serializeRootName = true)
-        : this(context, new XMLElement(null, new XElement(RootBlockName)), null, serializeRootName)
-    {
-    }
-
-    public XElement? Root => RootElement.Element;
-
-    public string ToXmlString()
-    {
-        Flush();
-        return Root?.ToString(SaveOptions.DisableFormatting) ?? string.Empty;
     }
 
     public override void Dispose()
@@ -234,86 +211,86 @@ public class XMLOutputArchive : XMLArchiveBase<XMLOutputArchiveBlock>
     public override void Serialize(string name, ref bool value)
     {
         var reference = CreateElementOrAttribute(name);
-        reference.GetElement().SetBool(reference.GetAttributeName(), value);
+        reference.Element.SetBool(reference.AttributeName, value);
     }
 
     public override void Serialize(string name, ref sbyte value)
     {
         var reference = CreateElementOrAttribute(name);
-        reference.GetElement().SetInt(reference.GetAttributeName(), value);
+        reference.Element.SetInt(reference.AttributeName, value);
     }
 
     public override void Serialize(string name, ref byte value)
     {
         var reference = CreateElementOrAttribute(name);
-        reference.GetElement().SetUInt(reference.GetAttributeName(), value);
+        reference.Element.SetUInt(reference.AttributeName, value);
     }
 
     public override void Serialize(string name, ref short value)
     {
         var reference = CreateElementOrAttribute(name);
-        reference.GetElement().SetInt(reference.GetAttributeName(), value);
+        reference.Element.SetInt(reference.AttributeName, value);
     }
 
     public override void Serialize(string name, ref ushort value)
     {
         var reference = CreateElementOrAttribute(name);
-        reference.GetElement().SetUInt(reference.GetAttributeName(), value);
+        reference.Element.SetUInt(reference.AttributeName, value);
     }
 
     public override void Serialize(string name, ref int value)
     {
         var reference = CreateElementOrAttribute(name);
-        reference.GetElement().SetInt(reference.GetAttributeName(), value);
+        reference.Element.SetInt(reference.AttributeName, value);
     }
 
     public override void Serialize(string name, ref uint value)
     {
         var reference = CreateElementOrAttribute(name);
-        reference.GetElement().SetUInt(reference.GetAttributeName(), value);
+        reference.Element.SetUInt(reference.AttributeName, value);
     }
 
     public override void Serialize(string name, ref long value)
     {
         var reference = CreateElementOrAttribute(name);
-        reference.GetElement().SetInt64(reference.GetAttributeName(), value);
+        reference.Element.SetInt64(reference.AttributeName, value);
     }
 
     public override void Serialize(string name, ref ulong value)
     {
         var reference = CreateElementOrAttribute(name);
-        reference.GetElement().SetUInt64(reference.GetAttributeName(), value);
+        reference.Element.SetUInt64(reference.AttributeName, value);
     }
 
     public override void Serialize(string name, ref float value)
     {
         var reference = CreateElementOrAttribute(name);
-        reference.GetElement().SetFloat(reference.GetAttributeName(), value);
+        reference.Element.SetFloat(reference.AttributeName, value);
     }
 
     public override void Serialize(string name, ref double value)
     {
         var reference = CreateElementOrAttribute(name);
-        reference.GetElement().SetDouble(reference.GetAttributeName(), value);
+        reference.Element.SetDouble(reference.AttributeName, value);
     }
 
     public override void Serialize(string name, ref string value)
     {
         var reference = CreateElementOrAttribute(name);
-        reference.GetElement().SetString(reference.GetAttributeName(), value);
+        reference.Element.SetString(reference.AttributeName, value);
     }
 
     public override void SerializeBytes(string name, Span<byte> bytes)
     {
         var reference = CreateElementOrAttribute(name);
         _tempString = Convert.ToHexString(bytes);
-        reference.GetElement().SetString(reference.GetAttributeName(), _tempString);
+        reference.Element.SetString(reference.AttributeName, _tempString);
     }
 
     public override void SerializeVle(string name, ref uint value)
     {
         var reference = CreateElementOrAttribute(name);
-        reference.GetElement().SetUInt(reference.GetAttributeName(), value);
+        reference.Element.SetUInt(reference.AttributeName, value);
     }
 
     private XMLAttributeReference CreateElementOrAttribute(string name)
@@ -418,28 +395,6 @@ public class XMLInputArchive : XMLArchiveBase<XMLInputArchiveBlock>
     {
     }
 
-    public XMLInputArchive(string xml, bool serializeRootName = false)
-        : this(Context.Instance, xml, serializeRootName)
-    {
-    }
-
-    public XMLInputArchive(Context context, string xml, bool serializeRootName = false)
-        : this(context, new XMLElement(null,
-            XDocument.Parse(xml).Root ?? throw new InvalidOperationException("XML archive root is missing.")), null,
-            serializeRootName)
-    {
-    }
-
-    public XMLInputArchive(XElement root, bool serializeRootName = false)
-        : this(Context.Instance, root, serializeRootName)
-    {
-    }
-
-    public XMLInputArchive(Context context, XElement root, bool serializeRootName = false)
-        : this(context, new XMLElement(null, root), null, serializeRootName)
-    {
-    }
-
     /// <summary>Archive implementation.</summary>
     public override bool IsInput => true;
     public override bool IsHumanReadable => true;
@@ -523,86 +478,86 @@ public class XMLInputArchive : XMLArchiveBase<XMLInputArchiveBlock>
     public override void Serialize(string name, ref bool value)
     {
         var reference = ReadElementOrAttribute(name);
-        value = reference.GetElement().GetBool(reference.GetAttributeName());
+        value = reference.Element.GetBool(reference.AttributeName);
     }
 
     public override void Serialize(string name, ref sbyte value)
     {
         var reference = ReadElementOrAttribute(name);
-        value = checked((sbyte)reference.GetElement().GetInt(reference.GetAttributeName()));
+        value = unchecked((sbyte)reference.Element.GetInt(reference.AttributeName));
     }
 
     public override void Serialize(string name, ref byte value)
     {
         var reference = ReadElementOrAttribute(name);
-        value = checked((byte)reference.GetElement().GetUInt(reference.GetAttributeName()));
+        value = unchecked((byte)reference.Element.GetUInt(reference.AttributeName));
     }
 
     public override void Serialize(string name, ref short value)
     {
         var reference = ReadElementOrAttribute(name);
-        value = checked((short)reference.GetElement().GetInt(reference.GetAttributeName()));
+        value = unchecked((short)reference.Element.GetInt(reference.AttributeName));
     }
 
     public override void Serialize(string name, ref ushort value)
     {
         var reference = ReadElementOrAttribute(name);
-        value = checked((ushort)reference.GetElement().GetUInt(reference.GetAttributeName()));
+        value = unchecked((ushort)reference.Element.GetUInt(reference.AttributeName));
     }
 
     public override void Serialize(string name, ref int value)
     {
         var reference = ReadElementOrAttribute(name);
-        value = reference.GetElement().GetInt(reference.GetAttributeName());
+        value = reference.Element.GetInt(reference.AttributeName);
     }
 
     public override void Serialize(string name, ref uint value)
     {
         var reference = ReadElementOrAttribute(name);
-        value = reference.GetElement().GetUInt(reference.GetAttributeName());
+        value = reference.Element.GetUInt(reference.AttributeName);
     }
 
     public override void Serialize(string name, ref long value)
     {
         var reference = ReadElementOrAttribute(name);
-        value = reference.GetElement().GetInt64(reference.GetAttributeName());
+        value = reference.Element.GetInt64(reference.AttributeName);
     }
 
     public override void Serialize(string name, ref ulong value)
     {
         var reference = ReadElementOrAttribute(name);
-        value = reference.GetElement().GetUInt64(reference.GetAttributeName());
+        value = reference.Element.GetUInt64(reference.AttributeName);
     }
 
     public override void Serialize(string name, ref float value)
     {
         var reference = ReadElementOrAttribute(name);
-        value = reference.GetElement().GetFloat(reference.GetAttributeName());
+        value = reference.Element.GetFloat(reference.AttributeName);
     }
 
     public override void Serialize(string name, ref double value)
     {
         var reference = ReadElementOrAttribute(name);
-        value = reference.GetElement().GetDouble(reference.GetAttributeName());
+        value = reference.Element.GetDouble(reference.AttributeName);
     }
 
     public override void Serialize(string name, ref string value)
     {
         var reference = ReadElementOrAttribute(name);
-        value = reference.GetElement().GetAttribute(reference.GetAttributeName());
+        value = reference.Element.GetAttribute(reference.AttributeName);
     }
 
     public override void SerializeBytes(string name, Span<byte> bytes)
     {
         var reference = ReadElementOrAttribute(name);
-        var value = reference.GetElement().GetAttribute(reference.GetAttributeName());
+        var value = reference.Element.GetAttribute(reference.AttributeName);
         ReadBytesFromHexString(name, value, bytes);
     }
 
     public override void SerializeVle(string name, ref uint value)
     {
         var reference = ReadElementOrAttribute(name);
-        value = reference.GetElement().GetUInt(reference.GetAttributeName());
+        value = reference.Element.GetUInt(reference.AttributeName);
     }
 
     private XMLAttributeReference ReadElementOrAttribute(string name)
