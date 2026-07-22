@@ -42,7 +42,7 @@ public class OutlineScenePass : ScenePass
             }
         }
 
-        SetEnabled(hasDrawables);
+        IsEnabled = hasDrawables;
     }
 
     /// <summary>Implement ScenePass / DrawableProcessorPass batch callback.</summary>
@@ -91,7 +91,7 @@ public class OutlineScenePass : ScenePass
         desc.ScissorTestEnabled = true;
 
         _shaderProgramDesc.Clear();
-        compositor.ProcessUserBatch(_shaderProgramDesc, GetFlags(),
+        compositor.ProcessUserBatch(_shaderProgramDesc, Flags,
             key.Drawable!, key.Geometry!, key.GeometryType, key.Material, key.Pass!,
             null, false, BatchCompositorSubpass.Ignored);
 

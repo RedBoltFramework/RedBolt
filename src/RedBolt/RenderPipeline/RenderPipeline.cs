@@ -544,7 +544,7 @@ public class RenderPipeline : Component
             _sceneProcessor.Update();
 
             if (_outlineBuffer is not null && _outlineScenePass is not null)
-                _outlineBuffer.SetEnabled(_outlineScenePass.IsEnabled() && _outlineScenePass.HasBatches);
+                _outlineBuffer.SetEnabled(_outlineScenePass.IsEnabled && _outlineScenePass.HasBatches);
 
             _sharedState.RenderPipelineInterface = this;
             _sharedState.RenderCamera = _viewport.GetCamera();

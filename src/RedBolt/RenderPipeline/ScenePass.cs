@@ -103,7 +103,7 @@ public class UnorderedScenePass : ScenePass
             _lightBatchGroup.Flags |= BatchRenderFlag.EnableInstancingForStaticGeometry;
         }
 
-        if (HasLightPass())
+        if (HasLightPass)
         {
             _baseBatchGroup.Flags |= BatchRenderFlag.EnablePixelLights;
             _lightBatchGroup.Flags |= BatchRenderFlag.EnablePixelLights;
@@ -230,7 +230,7 @@ public class BackToFrontScenePass : ScenePass
         };
         if (IsFlagSet(DrawableProcessorPassFlag.HasAmbientLighting))
             _batchGroup.Flags |= BatchRenderFlag.EnableAmbientAndVertexLighting;
-        if (HasLightPass())
+        if (HasLightPass)
             _batchGroup.Flags |= BatchRenderFlag.EnablePixelLights;
         if (!IsFlagSet(DrawableProcessorPassFlag.DisableInstancing))
             _batchGroup.Flags |= BatchRenderFlag.EnableInstancingForStaticGeometry;

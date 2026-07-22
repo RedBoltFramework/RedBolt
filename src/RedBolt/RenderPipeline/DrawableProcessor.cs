@@ -88,21 +88,6 @@ public class DrawableProcessorPass : Object
 {
     public readonly record struct AddBatchResult(bool Added, bool ForwardLitAdded);
 
-    private readonly DrawableProcessorPassFlag _flags;
-    private readonly bool _useBatchCallback;
-
-    private readonly uint _deferredPassIndex;
-    private readonly uint _unlitBasePassIndex;
-    private readonly uint _litBasePassIndex;
-    private readonly uint _lightPassIndex;
-
-    private bool _enabled = true;
-
-    protected readonly IRenderPipelineInterface RenderPipeline;
-    protected readonly WorkQueueVector<GeometryBatch> GeometryBatches = new();
-
-    protected bool LinearColorSpace;
-
     public DrawableProcessorPass(IRenderPipelineInterface renderPipeline, DrawableProcessorPassFlag flags,
         uint deferredPassIndex, uint unlitBasePassIndex, uint litBasePassIndex, uint lightPassIndex)
     {
@@ -123,9 +108,11 @@ public class DrawableProcessorPass : Object
         base.Dispose();
     }
 
-    public void SetEnabled(bool enabled) => _enabled = enabled;
-
-    public bool IsEnabled() => _enabled;
+    public bool IsEnabled
+    {
+        get => _enabled;
+        set => _enabled = value;
+    }
 
     /// <summary>
     /// Custom callback for adding batches.
@@ -156,11 +143,11 @@ public class DrawableProcessorPass : Object
         return new AddBatchResult(true, lightPass is not null);
     }
 
-    public DrawableProcessorPassFlag GetFlags() => _flags;
+    public DrawableProcessorPassFlag Flags => _flags;
 
     public bool IsFlagSet(DrawableProcessorPassFlag flag) => (_flags & flag) != 0;
 
-    public bool HasLightPass() => _lightPassIndex != uint.MaxValue;
+    public bool HasLightPass => _lightPassIndex != uint.MaxValue;
 
     /// <summary>
     /// RenderPipeline callbacks
@@ -170,12 +157,28 @@ public class DrawableProcessorPass : Object
         GeometryBatches.Clear();
         LinearColorSpace = RenderPipeline.IsLinearColorSpace;
     }
+
+    private readonly DrawableProcessorPassFlag _flags;
+    private readonly bool _useBatchCallback;
+
+    private readonly uint _deferredPassIndex;
+    private readonly uint _unlitBasePassIndex;
+    private readonly uint _litBasePassIndex;
+    private readonly uint _lightPassIndex;
+
+    private bool _enabled = true;
+
+    protected readonly IRenderPipelineInterface RenderPipeline;
+    protected readonly WorkQueueVector<GeometryBatch> GeometryBatches = new();
+
+    protected bool LinearColorSpace;
 }
 
 /// <summary>Utility used to update and process visible or shadow caster Drawables.</summary>
 public class DrawableProcessor : Object
 {
     private readonly IRenderPipelineInterface _renderPipeline;
+    private readonly List<DrawableProcessorPass> _allPasses = [];
     private readonly List<DrawableProcessorPass> _passes = [];
     private readonly List<Light?> _lights = [];
     private readonly List<LightProcessor?> _lightProcessors = [];
@@ -220,14 +223,13 @@ public class DrawableProcessor : Object
 
     public void SetPasses(IReadOnlyList<DrawableProcessorPass> passes)
     {
-        _passes.Clear();
-        _passes.AddRange(passes);
+        _allPasses.Clear();
+        _allPasses.AddRange(passes);
     }
 
     public void SetSettings(DrawableProcessorSettings settings)
     {
         _settings = settings;
-        _materialQuality = settings.MaterialQuality;
         _lightProcessorCache.SetSettings(settings.LightProcessorCache);
     }
 
@@ -307,6 +309,13 @@ public class DrawableProcessor : Object
 
     public void OnUpdateBegin(FrameInfo frameInfo)
     {
+        _passes.Clear();
+        foreach (var pass in _allPasses)
+        {
+            if (pass.IsEnabled)
+                _passes.Add(pass);
+        }
+
         _frameInfo = frameInfo;
         _sortedOccluders.Clear();
         _geometries.Clear();

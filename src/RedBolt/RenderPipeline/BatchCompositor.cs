@@ -484,7 +484,7 @@ public class BatchCompositor : Object
         _passes.Clear();
         foreach (var pass in _allPasses)
         {
-            if (pass.IsEnabled())
+            if (pass.IsEnabled)
                 _passes.Add(pass);
         }
     }

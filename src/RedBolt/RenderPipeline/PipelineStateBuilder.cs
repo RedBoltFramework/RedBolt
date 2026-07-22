@@ -104,7 +104,7 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
             if (key.Drawable is null || key.Geometry is null || key.Material is null || key.Pass is null)
                 return null;
 
-            var flags = batchCompositorPass.GetFlags();
+            var flags = batchCompositorPass.Flags;
             var subpass = (BatchCompositorSubpass)ctx.SubpassIndex;
             var lightMaskToStencil = subpass == BatchCompositorSubpass.Deferred
                 && (flags & DrawableProcessorPassFlag.DeferredLightMaskToStencil) != 0;

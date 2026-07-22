@@ -83,6 +83,40 @@ public sealed class DrawableProcessorTests
     }
 
     [Fact]
+    public void ProcessorPassShapeUsesNativeProperties()
+    {
+        Assert.Null(typeof(DrawableProcessorPass).GetMethod("GetFlags"));
+        Assert.Null(typeof(DrawableProcessorPass).GetMethod("HasLightPass"));
+        Assert.NotNull(typeof(DrawableProcessorPass).GetProperty(nameof(DrawableProcessorPass.Flags)));
+        Assert.NotNull(typeof(DrawableProcessorPass).GetProperty(nameof(DrawableProcessorPass.HasLightPass)));
+        Assert.NotNull(typeof(DrawableProcessorPass).GetProperty(nameof(DrawableProcessorPass.IsEnabled)));
+    }
+
+    [Fact]
+    public void UpdateBeginRebuildsEnabledPassAliasesFromOwnedPasses()
+    {
+        var pipeline = new TestRenderPipelineInterface();
+        using var firstPass = new TestDrawableProcessorPass(
+            pipeline, uint.MaxValue, uint.MaxValue, uint.MaxValue, uint.MaxValue);
+        using var secondPass = new TestDrawableProcessorPass(
+            pipeline, uint.MaxValue, uint.MaxValue, uint.MaxValue, uint.MaxValue);
+        using var processor = new DrawableProcessor(pipeline);
+        firstPass.IsEnabled = false;
+        processor.SetPasses([firstPass, secondPass]);
+
+        processor.OnUpdateBegin(new FrameInfo());
+
+        Assert.Equal([firstPass, secondPass], GetPasses(processor, "_allPasses"));
+        Assert.Equal([secondPass], GetPasses(processor, "_passes"));
+
+        firstPass.IsEnabled = true;
+        secondPass.IsEnabled = false;
+        processor.OnUpdateBegin(new FrameInfo());
+
+        Assert.Equal([firstPass], GetPasses(processor, "_passes"));
+    }
+
+    [Fact]
     public void ProcessorPassAddsDeferredBatchBeforeForwardPasses()
     {
         var pipeline = new TestRenderPipelineInterface();
@@ -202,6 +236,15 @@ public sealed class DrawableProcessorTests
         public uint BatchCount => GeometryBatches.Size();
         public GeometryBatch FirstBatch => GeometryBatches.First();
         public bool IsLinearColorSpace => LinearColorSpace;
+    }
+
+    private static List<DrawableProcessorPass> GetPasses(DrawableProcessor processor, string fieldName)
+    {
+        var field = typeof(DrawableProcessor).GetField(
+            fieldName,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        return Assert.IsType<List<DrawableProcessorPass>>(field.GetValue(processor));
     }
 
     private sealed class TestRenderPipelineInterface : IRenderPipelineInterface

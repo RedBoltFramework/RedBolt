@@ -497,7 +497,7 @@ public class StereoRenderPipelineView : RenderPipelineView
         _sceneProcessor.Update();
 
         if (_outlineBuffer is not null && _outlineScenePass is not null)
-            _outlineBuffer.SetEnabled(_outlineScenePass.IsEnabled() && _outlineScenePass.HasBatches);
+            _outlineBuffer.SetEnabled(_outlineScenePass.IsEnabled && _outlineScenePass.HasBatches);
 
         if (_renderPath is not null)
             _renderPath.Update(_state);

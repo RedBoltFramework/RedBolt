@@ -293,7 +293,7 @@ public class SceneProcessor : Object, LightProcessorCallback
 
         foreach (var pass in Passes)
         {
-            if (pass.IsEnabled())
+            if (pass.IsEnabled)
                 pass.PrepareInstancingBuffer(BatchRenderer);
         }
 
