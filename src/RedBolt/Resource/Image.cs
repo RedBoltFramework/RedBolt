@@ -383,93 +383,199 @@ public class Image : Resource
 
     public bool FlipHorizontal()
     {
-        if (Width <= 1)
-            return true;
+        if (_data.Length == 0)
+            return false;
 
-        var rowStride = Width * (int)Components;
-        var pixelStride = (int)Components;
-        for (var z = 0; z < Depth; ++z)
+        if (Depth > 1)
+            return false;
+
+        var formatInfo = RenderAPIUtils.GetTextureFormatInfo(GetCompressedFormat());
+        var isWidthPowerOf2 = MathDefs.IsPowerOfTwo(checked((uint)Width));
+        var isSimpleFlip = !IsCompressed() || (formatInfo.BlockWidth == 1 && formatInfo.BlockHeight == 1);
+        var isBlockFlip = !isSimpleFlip && Decompress.IsFlipBlockImplemented(CompressedFormat) && isWidthPowerOf2;
+        if (!isSimpleFlip && !isBlockFlip)
+            return false;
+
+        if (!IsCompressed())
         {
             for (var y = 0; y < Height; ++y)
             {
-                var rowStart = ((z * Height) + y) * rowStride;
                 for (var x = 0; x < Width / 2; ++x)
                 {
-                    var left = rowStart + x * pixelStride;
-                    var right = rowStart + (Width - 1 - x) * pixelStride;
+                    var left = (y * Width + x) * Components;
+                    var right = (y * Width + Width - x - 1) * Components;
                     SwapPixels(left, right);
                 }
             }
         }
+        else
+        {
+            var blockSize = formatInfo.GetElementSize();
+            var temporaryBlock1 = new byte[blockSize];
+            var temporaryBlock2 = new byte[blockSize];
 
-        _nextLevel = null;
+            for (var i = 0; i < NumCompressedLevels; ++i)
+            {
+                var level = GetCompressedLevel(i);
+                if (level.Data.IsEmpty)
+                    return false;
+
+                // Bug: Small blocks cannot be flipped in current implementation.
+                if (level.Width < formatInfo.BlockWidth)
+                    continue;
+
+                var numRows = (level.Height + formatInfo.BlockHeight - 1) / formatInfo.BlockHeight;
+                var numBlocksInRow = (level.Width + formatInfo.BlockWidth - 1) / formatInfo.BlockWidth;
+                var rowSize = numBlocksInRow * blockSize;
+                for (var y = 0; y < numRows; ++y)
+                {
+                    for (var x = 0; x < numBlocksInRow / 2; ++x)
+                    {
+                        var firstOffset = y * rowSize + (numBlocksInRow - x - 1) * blockSize;
+                        var secondOffset = y * rowSize + x * blockSize;
+                        var first = level.Data.Span.Slice(firstOffset, blockSize);
+                        var second = level.Data.Span.Slice(secondOffset, blockSize);
+                        if (isSimpleFlip)
+                        {
+                            first.CopyTo(temporaryBlock1);
+                            second.CopyTo(first);
+                            temporaryBlock1.CopyTo(second);
+                        }
+                        else
+                        {
+                            Decompress.FlipBlockHorizontal(temporaryBlock1, first, CompressedFormat);
+                            Decompress.FlipBlockHorizontal(temporaryBlock2, second, CompressedFormat);
+                            temporaryBlock1.CopyTo(second);
+                            temporaryBlock2.CopyTo(first);
+                        }
+                    }
+                }
+            }
+        }
+
         return true;
     }
 
     public bool FlipVertical()
     {
-        if (Height <= 1)
-            return true;
+        if (_data.Length == 0)
+            return false;
 
-        var rowStride = Width * (int)Components;
-        for (var z = 0; z < Depth; ++z)
+        if (Depth > 1)
+            return false;
+
+        var formatInfo = RenderAPIUtils.GetTextureFormatInfo(GetCompressedFormat());
+        var isHeightPowerOf2 = MathDefs.IsPowerOfTwo(checked((uint)Height));
+        var isSimpleFlip = !IsCompressed() || (formatInfo.BlockWidth == 1 && formatInfo.BlockHeight == 1);
+        var isBlockFlip = !isSimpleFlip && Decompress.IsFlipBlockImplemented(CompressedFormat) && isHeightPowerOf2;
+        if (!isSimpleFlip && !isBlockFlip)
+            return false;
+
+        if (!IsCompressed())
         {
+            var rowSize = Width * Components;
             for (var y = 0; y < Height / 2; ++y)
             {
-                var top = ((z * Height) + y) * rowStride;
-                var bottom = ((z * Height) + (Height - 1 - y)) * rowStride;
-                SwapRows(top, bottom, rowStride);
+                var top = y * rowSize;
+                var bottom = (Height - y - 1) * rowSize;
+                SwapRows(top, bottom, rowSize);
+            }
+        }
+        else
+        {
+            var blockSize = formatInfo.GetElementSize();
+            var temporaryBlock = new byte[blockSize];
+
+            for (var i = 0; i < NumCompressedLevels; ++i)
+            {
+                var level = GetCompressedLevel(i);
+                if (level.Data.IsEmpty)
+                    return false;
+
+                // Bug: Small blocks cannot be flipped in current implementation.
+                if (level.Height < formatInfo.BlockHeight)
+                    continue;
+
+                var numRows = (level.Height + formatInfo.BlockHeight - 1) / formatInfo.BlockHeight;
+                var numBlocksInRow = (level.Width + formatInfo.BlockWidth - 1) / formatInfo.BlockWidth;
+                var rowSize = numBlocksInRow * blockSize;
+                var rowBuffer = new byte[rowSize];
+                for (var y = 0; y < numRows / 2; ++y)
+                {
+                    var first = level.Data.Span.Slice(y * rowSize, rowSize);
+                    var second = level.Data.Span.Slice((numRows - y - 1) * rowSize, rowSize);
+                    first.CopyTo(rowBuffer);
+                    second.CopyTo(first);
+                    rowBuffer.CopyTo(second);
+
+                    if (isSimpleFlip)
+                        continue;
+
+                    for (var x = 0; x < numBlocksInRow; ++x)
+                    {
+                        var firstBlock = first.Slice(x * blockSize, blockSize);
+                        Decompress.FlipBlockVertical(temporaryBlock, firstBlock, CompressedFormat);
+                        temporaryBlock.CopyTo(firstBlock);
+
+                        var secondBlock = second.Slice(x * blockSize, blockSize);
+                        Decompress.FlipBlockVertical(temporaryBlock, secondBlock, CompressedFormat);
+                        temporaryBlock.CopyTo(secondBlock);
+                    }
+                }
             }
         }
 
-        _nextLevel = null;
         return true;
     }
 
     public bool Resize(int width, int height)
     {
-        if (Depth != 1 || width <= 0 || height <= 0 || Components == 0)
+        if (IsCompressed() || Depth > 1 || _data.Length == 0 || width <= 0 || height <= 0)
             return false;
 
-        var resized = new Image(Name);
-        if (!resized.SetSize(width, height, Components))
-            return false;
-
+        var newData = new byte[checked(width * height * Components)];
         for (var y = 0; y < height; ++y)
         {
             for (var x = 0; x < width; ++x)
             {
-                var u = width == 1 ? 0.0f : x / (float)(width - 1);
-                var v = height == 1 ? 0.0f : y / (float)(height - 1);
-                resized.SetPixel(x, y, GetPixelBilinear(u, v));
+                var xF = Width > 1 ? (float)x / (width - 1) : 0.0f;
+                var yF = Height > 1 ? (float)y / (height - 1) : 0.0f;
+                var uintColor = GetPixelBilinear(xF, yF).ToUInt();
+                var destination = (y * width + x) * Components;
+                for (var component = 0; component < Components; ++component)
+                    newData[destination + component] = (byte)(uintColor >> (component * 8));
             }
         }
 
-        Width = resized.Width;
-        Height = resized.Height;
-        _data = resized._data;
-        MemoryUse = resized.MemoryUse;
-        _nextLevel = null;
+        Width = width;
+        Height = height;
+        _data = newData;
+        MemoryUse = checked(width * height * Depth * Components);
         return true;
     }
 
-    public void Clear(Color color)
-    {
-        for (var z = 0; z < Depth; ++z)
-        {
-            for (var y = 0; y < Height; ++y)
-            {
-                for (var x = 0; x < Width; ++x)
-                    SetPixel(x, y, z, color);
-            }
-        }
-    }
+    public void Clear(Color color) => ClearInt(color.ToUInt());
 
     public void ClearInt(uint uintColor)
     {
-        var color = new Color();
-        color.FromUInt(uintColor);
-        Clear(color);
+        if (_data.Length == 0 || IsCompressed())
+            return;
+
+        if (Components == 4)
+        {
+            for (var i = 0; i < _data.Length; i += 4)
+            {
+                _data[i] = (byte)uintColor;
+                _data[i + 1] = (byte)(uintColor >> 8);
+                _data[i + 2] = (byte)(uintColor >> 16);
+                _data[i + 3] = (byte)(uintColor >> 24);
+            }
+        }
+        else
+        {
+            for (var i = 0; i < _data.Length; ++i)
+                _data[i] = (byte)(uintColor >> ((i % Components) * 8));
+        }
     }
 
     public Color GetPixel(int x, int y) => GetPixel(x, y, 0);

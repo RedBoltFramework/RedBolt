@@ -117,6 +117,40 @@ public sealed class ImageTests
     }
 
     [Fact]
+    public void Pixel_changes_and_resize_preserve_precalculated_mip_ownership()
+    {
+        var image = new Image("Images/CachedMip");
+        Assert.True(image.SetSize(4, 4, 1));
+        image.PrecalculateLevels();
+        var cached = image.GetNextLevel();
+
+        image.SetPixelInt(0, 0, 255);
+        Assert.Same(cached, image.GetNextLevel());
+
+        Assert.True(image.Resize(8, 8));
+        Assert.Same(cached, image.GetNextLevel());
+
+        image.SetData(new byte[8 * 8]);
+        Assert.NotSame(cached, image.GetNextLevel());
+    }
+
+    [Fact]
+    public void Compressed_block_flips_are_reversible()
+    {
+        var image = new Image("Textures/StoneDiffuse.dds");
+        Assert.True(image.LoadFile(Path.Combine(RbfxTestData.Data, "Textures", "StoneDiffuse.dds")));
+        var original = image.GetData().ToArray();
+
+        Assert.True(image.FlipHorizontal());
+        Assert.True(image.FlipHorizontal());
+        Assert.Equal(original, image.GetData());
+
+        Assert.True(image.FlipVertical());
+        Assert.True(image.FlipVertical());
+        Assert.Equal(original, image.GetData());
+    }
+
+    [Fact]
     public void Trilinear_and_rgba_conversion_work()
     {
         var image = new Image("Images/Volume");
