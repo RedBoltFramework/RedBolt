@@ -178,6 +178,7 @@ public class DrawableProcessorPass : Object
 public class DrawableProcessor : Object
 {
     private readonly IRenderPipelineInterface _renderPipeline;
+    private readonly WorkQueue _workQueue;
     private readonly List<DrawableProcessorPass> _allPasses = [];
     private readonly List<DrawableProcessorPass> _passes = [];
     private readonly List<Light?> _lights = [];
@@ -194,7 +195,7 @@ public class DrawableProcessor : Object
     private readonly WorkQueueVector<Drawable> _threadedGeometryUpdates = new();
     private readonly WorkQueueVector<Drawable> _nonThreadedGeometryUpdates = new();
     private readonly WorkQueueVector<Light> _lightsTemp = new();
-    private readonly WorkQueueVector<FloatRange> _sceneZRangeTemp = new();
+    private FloatRange[] _sceneZRangeTemp = [];
     private readonly LightProcessorCache _lightProcessorCache = new();
     private readonly List<LightDataForAccumulator> _lightDataForAccumulator = [];
     private Material? _defaultMaterial;
@@ -210,14 +211,16 @@ public class DrawableProcessor : Object
 
     public DrawableProcessor(IRenderPipelineInterface renderPipeline)
     {
-        _renderPipeline = renderPipeline ?? throw new ArgumentNullException(nameof(renderPipeline));
+        _renderPipeline = renderPipeline;
+        _workQueue = GetSubsystem<WorkQueue>()!;
+        _defaultMaterial = GetSubsystem<Renderer>()!.GetDefaultMaterial();
         _renderPipeline.CollectStatistics += OnCollectStatistics;
-        _defaultMaterial = GetSubsystem<Renderer>()?.GetDefaultMaterial();
     }
 
     public override void Dispose()
     {
         _renderPipeline.CollectStatistics -= OnCollectStatistics;
+        _lightProcessorCache.Dispose();
         base.Dispose();
     }
 
@@ -316,79 +319,66 @@ public class DrawableProcessor : Object
                 _passes.Add(pass);
         }
 
+        // Initialize frame constants
         _frameInfo = frameInfo;
-        _sortedOccluders.Clear();
-        _geometries.Clear();
-        _lights.Clear();
-        _lightProcessors.Clear();
-        _lightProcessorsByShadowMapSize.Clear();
-        _lightProcessorsByShadowMapTexture.Clear();
-        var numDrawables = (int)(frameInfo.Octree?.GetAllDrawables().Count ?? 0);
+        var numDrawables = _frameInfo.Octree!.GetAllDrawables().Count;
+        _cullCameraViewMatrix = _frameInfo.Camera!.GetView();
+        _cullCameraZAxis = new Vector3f(
+            _cullCameraViewMatrix.M20,
+            _cullCameraViewMatrix.M21,
+            _cullCameraViewMatrix.M22);
+        _cullCameraZAxisAbs = new Vector3f(
+            MathF.Abs(_cullCameraZAxis.X),
+            MathF.Abs(_cullCameraZAxis.Y),
+            MathF.Abs(_cullCameraZAxis.Z));
+
+        _materialQuality = _settings.MaterialQuality;
+        if ((_frameInfo.Camera.GetViewOverrideFlags() & ViewOverride.LowMaterialQuality) != 0)
+            _materialQuality = MaterialQuality.Low;
+
+        _gi = _frameInfo.Scene!.Root.GetComponent<GlobalIllumination>();
+
+        // Clean temporary containers
+        Array.Resize(ref _sceneZRangeTemp, checked((int)WorkQueue.GetThreadIndexCount()));
+        Array.Clear(_sceneZRangeTemp);
+        _sceneZRange = default;
+
         Array.Resize(ref _isDrawableUpdated, numDrawables);
         Array.Clear(_isDrawableUpdated);
         Array.Resize(ref _geometryRenderFlags, numDrawables);
         Array.Clear(_geometryRenderFlags);
         Array.Resize(ref _geometryZRanges, numDrawables);
         Array.Resize(ref _geometryLighting, numDrawables);
-        _queuedDrawableUpdates.Clear();
+
+        _sortedOccluders.Clear();
+        _geometries.Clear();
         _threadedGeometryUpdates.Clear();
         _nonThreadedGeometryUpdates.Clear();
         _lightsTemp.Clear();
-        _sceneZRangeTemp.Clear();
-        _lightDataForAccumulator.Clear();
-        _numShadowedLights = 0;
-        _sceneZRange = default;
-        _gi = frameInfo.Scene?.Root.GetComponent<GlobalIllumination>();
+        _queuedDrawableUpdates.Clear();
 
-        if (frameInfo.Camera is { } camera)
-        {
-            _cullCameraViewMatrix = camera.GetView();
-            _cullCameraZAxis = camera.Node!.GetWorldDirection();
-            _cullCameraZAxisAbs = new Vector3f(
-                MathF.Abs(_cullCameraZAxis.X),
-                MathF.Abs(_cullCameraZAxis.Y),
-                MathF.Abs(_cullCameraZAxis.Z));
-        }
+        // Update caches
+        _lightProcessorCache.Update(_frameInfo.TimeStep);
     }
 
     public void ProcessVisibleDrawables(IReadOnlyList<Drawable> drawables, OcclusionBuffer[]? occlusionBuffers)
     {
-        var workQueue = GetSubsystem<WorkQueue>();
-        if (workQueue is not null)
+        WorkQueue.ForEachParallel(_workQueue, drawables, (_, drawable) =>
         {
-            WorkQueue.ForEachParallel(workQueue, drawables, (_, drawable) =>
+            // do occlusion test for occludees if possible
+            if (occlusionBuffers is { Length: > 0 } && drawable.IsOccludee())
             {
-                // do occlusion test for occludees if possible
-                if (occlusionBuffers is { Length: > 0 } && drawable.IsOccludee())
-                {
-                    // check for visible
-                    var anyPass = false;
-                    foreach (var o in occlusionBuffers)
-                        anyPass |= o.IsVisible(drawable.GetWorldBoundingBox());
+                // check for visible
+                var anyPass = false;
+                foreach (var o in occlusionBuffers)
+                    anyPass |= o.IsVisible(drawable.GetWorldBoundingBox());
 
-                    if (!anyPass)
-                        return;
-                }
-
-                ProcessVisibleDrawable(drawable);
-            });
-        }
-        else
-        {
-            foreach (var drawable in drawables)
-            {
-                if (occlusionBuffers is { Length: > 0 } && drawable.IsOccludee())
-                {
-                    var anyPass = false;
-                    foreach (var o in occlusionBuffers)
-                        anyPass |= o.IsVisible(drawable.GetWorldBoundingBox());
-                    if (!anyPass)
-                        continue;
-                }
-
-                ProcessVisibleDrawable(drawable);
+                if (!anyPass)
+                    return;
             }
-        }
+
+            ProcessVisibleDrawable(drawable);
+        });
 
         // Sort lights by component ID for stability
         _lights.Clear();
@@ -428,19 +418,10 @@ public class DrawableProcessor : Object
         foreach (var lightProcessor in _lightProcessors)
             lightProcessor?.BeginUpdate(this, callback);
 
-        var workQueue = GetSubsystem<WorkQueue>();
-        if (workQueue is not null)
+        WorkQueue.ForEachParallel(_workQueue, _lightProcessors, (_, lightProcessor) =>
         {
-            WorkQueue.ForEachParallel(workQueue, _lightProcessors, (_, lightProcessor) =>
-            {
-                lightProcessor?.Update(this, callback);
-            });
-        }
-        else
-        {
-            foreach (var lightProcessor in _lightProcessors)
-                lightProcessor?.Update(this, callback);
-        }
+            lightProcessor?.Update(this, callback);
+        });
 
         SortLightProcessorsByShadowMapSize();
 
@@ -479,29 +460,15 @@ public class DrawableProcessor : Object
     public void UpdateGeometries()
     {
         // Update in worker threads
-        var workQueue = GetSubsystem<WorkQueue>();
-        if (workQueue is not null)
+        var list = new List<Drawable>();
+        _threadedGeometryUpdates.CopyTo(list);
+        WorkQueue.ForEachParallel(_workQueue, list, (_, drawable) =>
         {
-            var list = new List<Drawable>();
-            _threadedGeometryUpdates.CopyTo(list);
-            WorkQueue.ForEachParallel(workQueue, list, (_, drawable) =>
-            {
-                if (drawable.GetUpdateGeometryType() == UpdateGeometryType.MainThread)
-                    _nonThreadedGeometryUpdates.Insert(drawable);
-                else
-                    drawable.UpdateGeometry(_frameInfo);
-            });
-        }
-        else
-        {
-            foreach (var drawable in _threadedGeometryUpdates)
-            {
-                if (drawable.GetUpdateGeometryType() == UpdateGeometryType.MainThread)
-                    _nonThreadedGeometryUpdates.Insert(drawable);
-                else
-                    drawable.UpdateGeometry(_frameInfo);
-            }
-        }
+            if (drawable.GetUpdateGeometryType() == UpdateGeometryType.MainThread)
+                _nonThreadedGeometryUpdates.Insert(drawable);
+            else
+                drawable.UpdateGeometry(_frameInfo);
+        });
 
         // Update in main thread
         foreach (var drawable in _nonThreadedGeometryUpdates)
@@ -638,6 +605,7 @@ public class DrawableProcessor : Object
     private void ProcessVisibleDrawable(Drawable drawable)
     {
         var drawableIndex = drawable.GetDrawableIndex();
+        var threadIndex = WorkQueue.GetThreadIndex();
 
         drawable.UpdateBatches(_frameInfo);
 
@@ -666,7 +634,7 @@ public class DrawableProcessor : Object
             else
             {
                 SetGeometryZRange(drawableIndex, zRange);
-                _sceneZRangeTemp.Insert(zRange);
+                _sceneZRangeTemp[checked((int)threadIndex)] |= zRange;
             }
 
             // Always reset lights in case of material change
@@ -698,7 +666,7 @@ public class DrawableProcessor : Object
                 // Update scene passes
                 foreach (var pass in _passes)
                 {
-                    var result = pass.AddBatch(WorkQueue.GetThreadIndex(), drawable, sourceBatchIndex, technique);
+                    var result = pass.AddBatch(threadIndex, drawable, sourceBatchIndex, technique);
                     if (result.ForwardLitAdded)
                         isForwardLit = true;
                     if (result.Added && pass.IsFlagSet(DrawableProcessorPassFlag.HasAmbientLighting))
@@ -761,7 +729,7 @@ public class DrawableProcessor : Object
             }
 
             // Store geometry
-            _geometries.PushBack(WorkQueue.GetThreadIndex(), drawable);
+            _geometries.PushBack(threadIndex, drawable);
 
             // Update flags
             var flag = GeometryRenderFlag.VisibleInCullCamera;
@@ -772,7 +740,7 @@ public class DrawableProcessor : Object
             SetGeometryRenderFlags(drawableIndex, flag);
 
             // Queue geometry update
-            QueueDrawableGeometryUpdate(WorkQueue.GetThreadIndex(), drawable);
+            QueueDrawableGeometryUpdate(threadIndex, drawable);
         }
         else if ((drawable.GetDrawableFlags() & DrawableFlags.Light) != 0)
         {
@@ -879,18 +847,9 @@ public class DrawableProcessor : Object
 
     public void ProcessShadowCasters()
     {
-        var workQueue = GetSubsystem<WorkQueue>();
-        if (workQueue is not null)
-        {
-            var list = new List<Drawable>();
-            _queuedDrawableUpdates.CopyTo(list);
-            WorkQueue.ForEachParallel(workQueue, list, (_, drawable) => ProcessQueuedDrawable(drawable));
-        }
-        else
-        {
-            foreach (var drawable in _queuedDrawableUpdates)
-                ProcessQueuedDrawable(drawable);
-        }
+        var list = new List<Drawable>();
+        _queuedDrawableUpdates.CopyTo(list);
+        WorkQueue.ForEachParallel(_workQueue, list, (_, drawable) => ProcessQueuedDrawable(drawable));
 
         _queuedDrawableUpdates.Clear();
     }

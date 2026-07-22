@@ -101,19 +101,57 @@ public sealed class DrawableProcessorTests
         using var secondPass = new TestDrawableProcessorPass(
             pipeline, uint.MaxValue, uint.MaxValue, uint.MaxValue, uint.MaxValue);
         using var processor = new DrawableProcessor(pipeline);
+        using var scene = new Scene();
+        var frameInfo = new FrameInfo
+        {
+            Scene = scene,
+            Octree = scene.CreateComponent<Octree>(),
+            Camera = scene.CreateChild("Camera").CreateComponent<Camera>()
+        };
         firstPass.IsEnabled = false;
         processor.SetPasses([firstPass, secondPass]);
 
-        processor.OnUpdateBegin(new FrameInfo());
+        processor.OnUpdateBegin(frameInfo);
 
         Assert.Equal([firstPass, secondPass], GetPasses(processor, "_allPasses"));
         Assert.Equal([secondPass], GetPasses(processor, "_passes"));
 
         firstPass.IsEnabled = true;
         secondPass.IsEnabled = false;
-        processor.OnUpdateBegin(new FrameInfo());
+        processor.OnUpdateBegin(frameInfo);
 
         Assert.Equal([firstPass], GetPasses(processor, "_passes"));
+    }
+
+    [Fact]
+    public void UpdateBeginInitializesNativeFrameState()
+    {
+        var pipeline = new TestRenderPipelineInterface();
+        using var processor = new DrawableProcessor(pipeline);
+        using var scene = new Scene();
+        var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
+        camera.SetViewOverrideFlags(ViewOverride.LowMaterialQuality);
+        var frameInfo = new FrameInfo
+        {
+            TimeStep = 0.25f,
+            Scene = scene,
+            Octree = scene.CreateComponent<Octree>(),
+            Camera = camera
+        };
+        using var light = new Light();
+        processor.SetLights([light]);
+        processor.SetSettings(new DrawableProcessorSettings { MaterialQuality = MaterialQuality.High });
+
+        processor.OnUpdateBegin(frameInfo);
+
+        var view = camera.GetView();
+        Assert.Equal(MaterialQuality.Low, GetPrivateField<MaterialQuality>(processor, "_materialQuality"));
+        Assert.Equal(
+            new Vector3f(view.M20, view.M21, view.M22),
+            GetPrivateField<Vector3f>(processor, "_cullCameraZAxis"));
+        Assert.Equal(checked((int)WorkQueue.GetThreadIndexCount()),
+            GetPrivateField<FloatRange[]>(processor, "_sceneZRangeTemp").Length);
+        Assert.Same(light, Assert.Single(processor.GetLights()));
     }
 
     [Fact]
@@ -239,12 +277,15 @@ public sealed class DrawableProcessorTests
     }
 
     private static List<DrawableProcessorPass> GetPasses(DrawableProcessor processor, string fieldName)
+        => GetPrivateField<List<DrawableProcessorPass>>(processor, fieldName);
+
+    private static T GetPrivateField<T>(DrawableProcessor processor, string fieldName)
     {
         var field = typeof(DrawableProcessor).GetField(
             fieldName,
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
         Assert.NotNull(field);
-        return Assert.IsType<List<DrawableProcessorPass>>(field.GetValue(processor));
+        return Assert.IsType<T>(field.GetValue(processor));
     }
 
     private sealed class TestRenderPipelineInterface : IRenderPipelineInterface
