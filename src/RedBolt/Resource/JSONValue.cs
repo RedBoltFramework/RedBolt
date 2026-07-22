@@ -25,11 +25,13 @@ public enum JSONNumberType
 
 public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
 {
+    private static readonly string[] ValueTypeNames = ["Null", "Bool", "Number", "String", "Array", "Object"];
+    private static readonly string[] NumberTypeNames = ["NaN", "Int", "Unsigned", "Real"];
+
     public static readonly JSONValue Empty = new();
     public static readonly IReadOnlyList<JSONValue> EmptyArray = Array.Empty<JSONValue>();
     public static readonly IReadOnlyDictionary<string, JSONValue> EmptyObject = new Dictionary<string, JSONValue>(StringComparer.Ordinal);
 
-    private Action? _onChanged;
     private JSONValueType _valueType;
     private JSONNumberType _numberType;
     private bool _boolValue;
@@ -115,7 +117,6 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
 
             _arrayValue[index].Dispose();
             _arrayValue[index] = CreateChild(value);
-            NotifyChanged();
         }
     }
 
@@ -123,12 +124,10 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
     {
         get
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(key);
             return IsObject && _objectValue.TryGetValue(key, out var value) ? value : Empty;
         }
         set
         {
-            ArgumentException.ThrowIfNullOrWhiteSpace(key);
             Set(key, value);
         }
     }
@@ -149,29 +148,39 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
 
     public JSONNumberType GetNumberType() => IsNumber ? _numberType : JSONNumberType.NaN;
 
-    public string GetValueTypeName() => _valueType.ToString();
+    public string GetValueTypeName() => GetValueTypeName(_valueType);
 
-    public string GetNumberTypeName() => GetNumberType().ToString();
+    public string GetNumberTypeName() => GetNumberTypeName(GetNumberType());
 
-    public static string GetValueTypeName(JSONValueType type) => type.ToString();
+    public static string GetValueTypeName(JSONValueType type) => ValueTypeNames[(int)type];
 
-    public static string GetNumberTypeName(JSONNumberType type) => type.ToString();
+    public static string GetNumberTypeName(JSONNumberType type) => NumberTypeNames[(int)type];
 
     public static JSONValueType GetValueTypeFromName(string? typeName)
     {
-        return Enum.TryParse<JSONValueType>(typeName, ignoreCase: true, out var type) ? type : JSONValueType.Null;
+        for (var i = 0; i < ValueTypeNames.Length; ++i)
+        {
+            if (string.Equals(typeName, ValueTypeNames[i], StringComparison.OrdinalIgnoreCase))
+                return (JSONValueType)i;
+        }
+        return JSONValueType.Null;
     }
 
     public static JSONNumberType GetNumberTypeFromName(string? typeName)
     {
-        return Enum.TryParse<JSONNumberType>(typeName, ignoreCase: true, out var type) ? type : JSONNumberType.NaN;
+        for (var i = 0; i < NumberTypeNames.Length; ++i)
+        {
+            if (string.Equals(typeName, NumberTypeNames[i], StringComparison.OrdinalIgnoreCase))
+                return (JSONNumberType)i;
+        }
+        return JSONNumberType.NaN;
     }
 
     public bool GetBool(bool defaultValue = false) => IsBool ? _boolValue : defaultValue;
 
     public int GetInt(int defaultValue = 0) => IsNumber ? (int)_numberValue : defaultValue;
 
-    public uint GetUInt(uint defaultValue = 0) => IsNumber ? (uint)Math.Max(_numberValue, 0.0) : defaultValue;
+    public uint GetUInt(uint defaultValue = 0) => IsNumber ? (uint)_numberValue : defaultValue;
 
     public float GetFloat(float defaultValue = 0.0f) => IsNumber ? (float)_numberValue : defaultValue;
 
@@ -187,7 +196,6 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
 
     public JSONValue Get(string key)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(key);
         return this[key];
     }
 
@@ -210,7 +218,6 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
     {
         EnsureArray();
         _arrayValue.Add(CreateChild(value));
-        NotifyChanged();
     }
 
     public void Pop()
@@ -220,7 +227,6 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
 
         _arrayValue[^1].Dispose();
         _arrayValue.RemoveAt(_arrayValue.Count - 1);
-        NotifyChanged();
     }
 
     public void Insert(int position, JSONValue value)
@@ -228,7 +234,6 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
         if (!IsArray)
             return;
         _arrayValue.Insert(position, CreateChild(value));
-        NotifyChanged();
     }
 
     public void Erase(int position, int length = 1)
@@ -239,7 +244,6 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
         for (var i = position; i < position + length; ++i)
             _arrayValue[i].Dispose();
         _arrayValue.RemoveRange(position, length);
-        NotifyChanged();
     }
 
     public void Resize(int newSize)
@@ -252,33 +256,27 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
         }
         while (_arrayValue.Count < newSize)
             _arrayValue.Add(CreateChild(new JSONValue()));
-        NotifyChanged();
     }
 
     public void Set(string key, JSONValue value)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(key);
         EnsureObject();
         if (_objectValue.TryGetValue(key, out var oldValue))
             oldValue.Dispose();
         _objectValue[key] = CreateChild(value);
-        NotifyChanged();
     }
 
     public bool Erase(string key)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(key);
         if (!IsObject || !_objectValue.Remove(key, out var value))
             return false;
 
         value.Dispose();
-        NotifyChanged();
         return true;
     }
 
     public bool Contains(string key)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(key);
         return IsObject && _objectValue.ContainsKey(key);
     }
 
@@ -298,8 +296,6 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
         }
         else
             return;
-
-        NotifyChanged();
     }
 
     public void ReplaceRecursively(JSONValue overrideValue)
@@ -323,49 +319,42 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
     public void SetType(JSONValueType valueType, JSONNumberType numberType = JSONNumberType.NaN)
     {
         ResetType(valueType, numberType);
-        NotifyChanged();
     }
 
     public void Set(bool value)
     {
         ResetType(JSONValueType.Bool);
         _boolValue = value;
-        NotifyChanged();
     }
 
     public void Set(int value)
     {
         ResetType(JSONValueType.Number, JSONNumberType.Int);
         _numberValue = value;
-        NotifyChanged();
     }
 
     public void Set(uint value)
     {
         ResetType(JSONValueType.Number, JSONNumberType.UInt);
         _numberValue = value;
-        NotifyChanged();
     }
 
     public void Set(float value)
     {
         ResetType(JSONValueType.Number, JSONNumberType.FloatDouble);
         _numberValue = value;
-        NotifyChanged();
     }
 
     public void Set(double value)
     {
         ResetType(JSONValueType.Number, JSONNumberType.FloatDouble);
         _numberValue = value;
-        NotifyChanged();
     }
 
     public void Set(string? value)
     {
         ResetType(JSONValueType.String);
         _stringValue = value ?? string.Empty;
-        NotifyChanged();
     }
 
     public void Set(IEnumerable<JSONValue> value)
@@ -375,7 +364,6 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
         Clear();
         foreach (var item in value)
             _arrayValue.Add(CreateChild(item));
-        NotifyChanged();
     }
 
     public void Set(IReadOnlyDictionary<string, JSONValue> value)
@@ -385,7 +373,6 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
         Clear();
         foreach (var item in value)
             _objectValue[item.Key] = CreateChild(item.Value);
-        NotifyChanged();
     }
 
     public void Set(JSONValue value)
@@ -394,16 +381,17 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
         if (ReferenceEquals(this, value))
             return;
         CopyFrom(value);
-        NotifyChanged();
     }
 
-    public void SetVariant(Variant value)
+    public void SetVariant(Variant value, Context? context = null)
     {
         if (GetValueType() != JSONValueType.Null)
             Log.GetLogger().LogWarning("JsonValue is not null");
-        SetType(JSONValueType.Object);
-        Set("type", new JSONValue(value.GetTypeName()));
-        Set("value", FromVariantValue(value));
+        using var type = new JSONValue(value.GetTypeName());
+        Set("type", type);
+        using var variantValue = new JSONValue();
+        variantValue.SetVariantValue(value, context);
+        Set("value", variantValue);
     }
 
     public Variant GetVariant()
@@ -412,7 +400,7 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
         return Get("value").GetVariantValue(type);
     }
 
-    public void SetVariantValue(Variant value)
+    public void SetVariantValue(Variant value, Context? context = null)
     {
         if (!IsNull)
             Log.GetLogger().LogWarning("JsonValue is not null");
@@ -420,21 +408,37 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
         {
             if (value.GetCustomVariantValue().TryGetValue<Serializable>(out var serializable))
             {
-                var serialized = new JSONValue();
+                using var serialized = new JSONValue();
                 if (serializable.SaveJSON(serialized))
                 {
-                    Set("type", new JSONValue(serializable.GetTypeName()));
+                    using var typeName = new JSONValue(serializable.GetTypeName());
+                    Set("type", typeName);
                     Set("value", serialized);
                 }
                 else
                     SetType(JSONValueType.Null);
             }
             else
+            {
                 SetType(JSONValueType.Null);
+                Log.GetLogger().LogError("Serialization of objects other than Serializable is not supported.");
+            }
             return;
         }
 
-        Set(FromVariantValue(value));
+        if (value.Type == VariantType.ResourceRef && context is null)
+        {
+            Log.GetLogger().LogError("Context must not be null for ResourceRef");
+            return;
+        }
+        if (value.Type == VariantType.ResourceRefList && context is null)
+        {
+            Log.GetLogger().LogError("Context must not be null for ResourceRefList");
+            return;
+        }
+
+        using var variantValue = FromVariantValue(value, context);
+        Set(variantValue);
     }
 
     public Variant GetVariantValue(VariantType type, Context? context = null)
@@ -495,91 +499,145 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
             _ => default
         };
 
-        if (type is not (VariantType.Bool or VariantType.Int or VariantType.Int64 or VariantType.Float or VariantType.Double or VariantType.String or VariantType.VariantVector or VariantType.VariantMap or VariantType.StringVariantMap or VariantType.StringVector or VariantType.Custom))
+        if (type is not (VariantType.Bool or VariantType.Int or VariantType.Float or VariantType.Double or VariantType.String or VariantType.VariantVector or VariantType.VariantMap or VariantType.StringVariantMap or VariantType.ResourceRef or VariantType.ResourceRefList or VariantType.StringVector or VariantType.Custom))
             result.FromString(type, GetString());
 
         return result;
     }
 
-    public void SetVariantVector(VariantVector values) => Set(values.Select(FromVariantObject));
-
-    public VariantVector GetVariantVector() => new(GetArray().Select(static item => item.GetVariant()));
-
-    public void SetVariantMap(VariantMap values)
+    public void SetVariantVector(VariantVector values, Context? context = null)
     {
-        var result = new Dictionary<string, JSONValue>(StringComparer.Ordinal);
+        SetType(JSONValueType.Array);
+        foreach (var value in values)
+        {
+            using var item = FromVariantObject(value, context);
+            Push(item);
+        }
+    }
+
+    public VariantVector GetVariantVector()
+    {
+        var result = new VariantVector();
+        if (!IsArray)
+        {
+            Log.GetLogger().LogError("JSONValue is not a array");
+            return result;
+        }
+        foreach (var item in _arrayValue)
+            result.Add(item.GetVariant());
+        return result;
+    }
+
+    public void SetVariantMap(VariantMap values, Context? context = null)
+    {
+        SetType(JSONValueType.Object);
         foreach (var pair in values)
         {
-            result[pair.Key.ToString()] = FromVariantObject(pair.Value);
+            using var item = FromVariantObject(pair.Value, context);
+            Set(pair.Key.ToString(), item);
         }
-        Set(result);
     }
 
     public VariantMap GetVariantMap()
     {
         var result = new VariantMap();
+        if (!IsObject)
+        {
+            Log.GetLogger().LogError("JSONValue is not a object");
+            return result;
+        }
         foreach (var item in GetObject())
         {
-            if (uint.TryParse(item.Key, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var hash))
-                result[new StringHash(hash)] = item.Value.GetVariant();
+            uint.TryParse(item.Key, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var hash);
+            result[new StringHash(hash)] = item.Value.GetVariant();
         }
         return result;
     }
 
-    public void SetStringVariantMap(StringVariantMap values)
+    public void SetStringVariantMap(StringVariantMap values, Context? context = null)
     {
-        Set(values.Select(pair =>
+        SetType(JSONValueType.Object);
+        foreach (var pair in values)
         {
-            var item = FromVariantObject(pair.Value);
-            item.Set("name", new JSONValue(pair.Key));
-            return item;
-        }));
+            using var item = FromVariantObject(pair.Value, context);
+            Set(pair.Key, item);
+        }
     }
 
     public StringVariantMap GetStringVariantMap()
     {
         var result = new StringVariantMap();
-        foreach (var item in GetArray())
-            result[item.Get("name").GetString()] = item.GetVariant();
+        if (!IsObject)
+        {
+            Log.GetLogger().LogError("JSONValue is not a object");
+            return result;
+        }
+        foreach (var item in GetObject())
+            result[item.Key] = item.Value.GetVariant();
         return result;
     }
 
-    private static JSONValue FromVariantObject(Variant value)
+    private static JSONValue FromVariantObject(Variant value, Context? context)
     {
         var result = new JSONValue();
-        result.SetVariant(value);
+        result.SetVariant(value, context);
         return result;
     }
 
-    private static JSONValue FromVariantValue(Variant value)
+    private static JSONValue FromVariantValue(Variant value, Context? context)
     {
         return value.Type switch
         {
             VariantType.Bool => new JSONValue(value.GetBool()),
             VariantType.Int => new JSONValue(value.GetInt()),
-            VariantType.Int64 => new JSONValue((double)value.GetInt64()),
             VariantType.Float => new JSONValue(value.GetFloat()),
             VariantType.Double => new JSONValue(value.GetDouble()),
             VariantType.String => new JSONValue(value.GetString()),
-            VariantType.VariantVector => new JSONValue(value.GetVariantVector().Select(FromVariantObject)),
-            VariantType.VariantMap => FromVariantMap(value.GetVariantMap()),
-            VariantType.StringVariantMap => FromStringVariantMap(value.GetStringVariantMap()),
-            VariantType.StringVector => new JSONValue(value.GetStringVector().Select(static item => new JSONValue(item))),
+            VariantType.VariantVector => FromVariantVector(value.GetVariantVector(), context),
+            VariantType.VariantMap => FromVariantMap(value.GetVariantMap(), context),
+            VariantType.StringVariantMap => FromStringVariantMap(value.GetStringVariantMap(), context),
+            VariantType.StringVector => FromStringVector(value.GetStringVector()),
+            VariantType.ResourceRef => new JSONValue(value.GetResourceRef().ToString(context!)),
+            VariantType.ResourceRefList => FromResourceRefList(value.GetResourceRefList(), context!),
             _ => new JSONValue(value.ToString())
         };
     }
 
-    private static JSONValue FromVariantMap(VariantMap values)
+    private static JSONValue FromVariantVector(VariantVector values, Context? context)
     {
         var result = new JSONValue();
-        result.SetVariantMap(values);
+        result.SetVariantVector(values, context);
         return result;
     }
 
-    private static JSONValue FromStringVariantMap(StringVariantMap values)
+    private static JSONValue FromStringVector(StringVector values)
+    {
+        var result = new JSONValue(JSONValueType.Array);
+        result.Resize(values.Count);
+        for (var i = 0; i < values.Count; ++i)
+            result[i].Set(values[i]);
+        return result;
+    }
+
+    private static JSONValue FromResourceRefList(ResourceRefList value, Context context)
+    {
+        var result = context.GetTypeName(value.Type);
+        foreach (var name in value.Names)
+            result += $";{name}";
+        return new JSONValue(result);
+    }
+
+    private static JSONValue FromVariantMap(VariantMap values, Context? context)
     {
         var result = new JSONValue();
-        result.SetStringVariantMap(values);
+        result.SetVariantMap(values, context);
+        return result;
+    }
+
+    private static JSONValue FromStringVariantMap(StringVariantMap values, Context? context)
+    {
+        var result = new JSONValue();
+        result.SetStringVariantMap(values, context);
         return result;
     }
 
@@ -590,7 +648,7 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
 
         return _valueType switch
         {
-            JSONValueType.Null => true,
+            JSONValueType.Null => false,
             JSONValueType.Bool => _boolValue == other._boolValue,
             JSONValueType.Number => _numberValue.Equals(other._numberValue),
             JSONValueType.String => string.Equals(_stringValue, other._stringValue, StringComparison.Ordinal),
@@ -625,10 +683,9 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
 
     public override string ToString() => ToJsonNode()?.ToJsonString() ?? "null";
 
-    internal static JSONValue FromJsonNode(JsonNode? node, Action? onChanged = null)
+    internal static JSONValue FromJsonNode(JsonNode? node)
     {
         var value = new JSONValue();
-        value.SetChangeCallbackRecursive(onChanged);
         switch (node)
         {
             case null:
@@ -638,13 +695,13 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
             case JsonArray jsonArray:
                 value.ResetType(JSONValueType.Array);
                 foreach (var item in jsonArray)
-                    value._arrayValue.Add(FromJsonNode(item, onChanged));
+                    value._arrayValue.Add(FromJsonNode(item));
                 break;
 
             case JsonObject jsonObject:
                 value.ResetType(JSONValueType.Object);
                 foreach (var item in jsonObject)
-                    value._objectValue[item.Key] = FromJsonNode(item.Value, onChanged);
+                    value._objectValue[item.Key] = FromJsonNode(item.Value);
                 break;
 
             case JsonValue jsonValue when jsonValue.TryGetValue<bool>(out var boolResult):
@@ -699,15 +756,6 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
         };
     }
 
-    internal void SetChangeCallbackRecursive(Action? callback)
-    {
-        _onChanged = callback;
-        foreach (var item in _arrayValue)
-            item.SetChangeCallbackRecursive(callback);
-        foreach (var item in _objectValue.Values)
-            item.SetChangeCallbackRecursive(callback);
-    }
-
     private void CopyFrom(JSONValue value)
     {
         ResetType(value._valueType, value._numberType);
@@ -737,9 +785,7 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
     private JSONValue CreateChild(JSONValue value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        var child = new JSONValue(value);
-        child.SetChangeCallbackRecursive(_onChanged);
-        return child;
+        return new JSONValue(value);
     }
 
     private void EnsureArray()
@@ -754,14 +800,9 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
             ResetType(JSONValueType.Object);
     }
 
-    private void NotifyChanged() => _onChanged?.Invoke();
-
     private void ResetType(JSONValueType valueType, JSONNumberType numberType = JSONNumberType.NaN)
     {
-        var normalizedNumberType = valueType == JSONValueType.Number
-            ? numberType == JSONNumberType.NaN ? JSONNumberType.FloatDouble : numberType
-            : JSONNumberType.NaN;
-        if (_valueType == valueType && _numberType == normalizedNumberType)
+        if (_valueType == valueType && _numberType == numberType)
             return;
 
         if (_valueType == JSONValueType.Array)
@@ -776,7 +817,7 @@ public class JSONValue : IEquatable<JSONValue>, ICloneable, IDisposable
         }
 
         _valueType = valueType;
-        _numberType = normalizedNumberType;
+        _numberType = numberType;
         _boolValue = false;
         _numberValue = 0.0;
         _stringValue = string.Empty;

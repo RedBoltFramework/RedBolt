@@ -233,10 +233,34 @@ public sealed class JsonXmlResourceTests
         var json = new JSONValue();
         json.SetVariant(new Variant(map));
 
+        Assert.True(json.Get("value").IsObject);
+        Assert.True(json.Get("value").Contains("enabled"));
         var loaded = json.GetVariant().GetStringVariantMap();
         Assert.Equal(new Variant(true), loaded["enabled"]);
         Assert.Equal(new Variant(7), loaded["values"].GetVariantVector()[0]);
         Assert.Equal(new Variant("rbfx"), loaded["values"].GetVariantVector()[1]);
+    }
+
+    [Fact]
+    public void JSONValue_matches_native_type_names_and_null_equality()
+    {
+        using var left = new JSONValue();
+        using var right = new JSONValue();
+
+        Assert.False(left.Equals(right));
+        Assert.Equal("Unsigned", JSONValue.GetNumberTypeName(JSONNumberType.UInt));
+        Assert.Equal("Real", JSONValue.GetNumberTypeName(JSONNumberType.FloatDouble));
+        Assert.Equal(JSONNumberType.UInt, JSONValue.GetNumberTypeFromName("Unsigned"));
+        Assert.Equal(JSONNumberType.FloatDouble, JSONValue.GetNumberTypeFromName("Real"));
+
+        using var emptyKeyValue = new JSONValue(1);
+        left.Set(string.Empty, emptyKeyValue);
+        Assert.Equal(1, left.Get(string.Empty).GetInt());
+
+        using var context = new Context();
+        using var resourceRefList = new JSONValue();
+        resourceRefList.SetVariantValue(new Variant(new ResourceRefList()), context);
+        Assert.Equal(string.Empty, resourceRefList.GetString());
     }
 
     [Fact]
