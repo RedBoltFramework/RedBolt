@@ -143,7 +143,7 @@ public class PrefabResource : SimpleResource
         if (!tempScene.LoadXML(source))
             return false;
 
-        tempScene.Root.GeneratePrefab(_prefab);
+        tempScene.GeneratePrefab(_prefab);
 
         const string helpMessage =
             "To convert prefab into new format:\n"

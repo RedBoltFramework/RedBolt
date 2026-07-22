@@ -236,8 +236,8 @@ sealed class BillboardsApplication : Application
     private void AnimateScene(float timeStep)
     {
         // Get the light and billboard scene nodes
-        _scene!.Root.GetChildrenWithComponent<Light>(_lightNodes);
-        _scene.Root.GetChildrenWithComponent<BillboardSet>(_billboardNodes);
+        _scene!.GetChildrenWithComponent<Light>(_lightNodes);
+        _scene.GetChildrenWithComponent<BillboardSet>(_billboardNodes);
         const float lightRotationSpeed = 20.0f;
         const float billboardRotationSpeed = 50.0f;
 

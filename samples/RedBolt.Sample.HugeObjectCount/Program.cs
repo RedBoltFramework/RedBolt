@@ -110,7 +110,7 @@ sealed class HugeObjectCountApplication : Application
         }
 
         // Create or reattach the camera.
-        if (_cameraNode is not null) _scene.Root.AddChild(_cameraNode);
+        if (_cameraNode is not null) _scene.AddChild(_cameraNode);
         else
         {
             _cameraNode = _scene.CreateChild("Camera"); _cameraNode.CreateComponent<FreeFlyController>();

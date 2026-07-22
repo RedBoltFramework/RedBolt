@@ -44,7 +44,7 @@ public sealed class UnknownComponentTests
         componentPrefab.SetId((SerializableId)42);
         prefab.Components.Add(componentPrefab);
         using var reader = new PrefabReaderFromMemory(prefab);
-        Assert.True(source.Scene.Root.Load(reader));
+        Assert.True(source.Scene.Load(reader));
 
         using var stream = new VectorBuffer();
         Assert.True(source.Save(stream, InternalResourceFormat.Json));

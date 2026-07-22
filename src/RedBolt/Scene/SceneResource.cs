@@ -52,7 +52,7 @@ public class SceneResource : Resource
         {
             // Save as prefab is rare, we can afford to be suboptimal here.
             using var prefab = new PrefabResource();
-            Scene.Root.GeneratePrefab(prefab.GetMutableScenePrefab());
+            Scene.GeneratePrefab(prefab.GetMutableScenePrefab());
             prefab.NormalizeIds();
             return prefab.Save(destination, format);
         }

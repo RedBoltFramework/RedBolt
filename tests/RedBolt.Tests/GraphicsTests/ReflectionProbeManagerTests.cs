@@ -35,7 +35,7 @@ public sealed class ReflectionProbeManagerTests
     public void Internal_reflection_probe_data_clone_is_an_independent_cpp_value_copy()
     {
         var scene = new Scene();
-        scene.Root.GetOrCreateComponent<ReflectionProbeManager>();
+        scene.GetOrCreateComponent<ReflectionProbeManager>();
         var node = scene.CreateChild("Probe");
         var probe = node.CreateComponent<ReflectionProbe>();
         probe.SetBoxProjectionUsed(true);
@@ -55,8 +55,8 @@ public sealed class ReflectionProbeManagerTests
     public void UpdateCubemapRenderer_dynamic_creates_renderer()
     {
         var scene = new Scene();
-        scene.Root.GetOrCreateComponent<Octree>();
-        var manager = scene.Root.GetOrCreateComponent<ReflectionProbeManager>();
+        scene.GetOrCreateComponent<Octree>();
+        var manager = scene.GetOrCreateComponent<ReflectionProbeManager>();
         var probe = scene.CreateChild("Probe").CreateComponent<ReflectionProbe>();
 
         probe.SetProbeType(ReflectionProbeType.Dynamic);
@@ -70,8 +70,8 @@ public sealed class ReflectionProbeManagerTests
     public void UpdateCubemapRenderer_mixed_defines_writeable_texture()
     {
         var scene = new Scene();
-        scene.Root.GetOrCreateComponent<Octree>();
-        scene.Root.GetOrCreateComponent<ReflectionProbeManager>();
+        scene.GetOrCreateComponent<Octree>();
+        scene.GetOrCreateComponent<ReflectionProbeManager>();
         var probe = scene.CreateChild("Probe").CreateComponent<ReflectionProbe>();
         probe.SetTextureSize(64);
 
@@ -88,8 +88,8 @@ public sealed class ReflectionProbeManagerTests
     public void UpdateCubemapRenderer_baked_clears_dynamic_state()
     {
         var scene = new Scene();
-        scene.Root.GetOrCreateComponent<Octree>();
-        scene.Root.GetOrCreateComponent<ReflectionProbeManager>();
+        scene.GetOrCreateComponent<Octree>();
+        scene.GetOrCreateComponent<ReflectionProbeManager>();
         var probe = scene.CreateChild("Probe").CreateComponent<ReflectionProbe>();
         probe.SetProbeType(ReflectionProbeType.Dynamic);
         Assert.NotNull(probe.GetCubemapRenderer());
@@ -104,8 +104,8 @@ public sealed class ReflectionProbeManagerTests
     public void SpatialCache_builds_power_of_two_bvh_and_queries_static_probes()
     {
         var scene = new Scene();
-        scene.Root.GetOrCreateComponent<Octree>();
-        var manager = scene.Root.GetOrCreateComponent<ReflectionProbeManager>();
+        scene.GetOrCreateComponent<Octree>();
+        var manager = scene.GetOrCreateComponent<ReflectionProbeManager>();
 
         for (var i = 0; i < 3; ++i)
         {
@@ -135,8 +135,8 @@ public sealed class ReflectionProbeManagerTests
     {
         ClearQueuedViewports();
         var scene = new Scene();
-        scene.Root.GetOrCreateComponent<Octree>();
-        var manager = scene.Root.GetOrCreateComponent<ReflectionProbeManager>();
+        scene.GetOrCreateComponent<Octree>();
+        var manager = scene.GetOrCreateComponent<ReflectionProbeManager>();
         manager.RenderBudget = 2;
 
         var probe = scene.CreateChild("Dyn").CreateComponent<ReflectionProbe>();
@@ -163,8 +163,8 @@ public sealed class ReflectionProbeManagerTests
     public void DrawDebugGeometry_does_not_throw_when_enabled()
     {
         var scene = new Scene();
-        var debug = scene.Root.GetOrCreateComponent<DebugRenderer>();
-        scene.Root.GetOrCreateComponent<ReflectionProbeManager>();
+        var debug = scene.GetOrCreateComponent<DebugRenderer>();
+        scene.GetOrCreateComponent<ReflectionProbeManager>();
         var probe = scene.CreateChild("Probe").CreateComponent<ReflectionProbe>();
         probe.SetBoxProjectionUsed(true);
 

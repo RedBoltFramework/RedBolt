@@ -319,7 +319,7 @@ public class DrawableProcessor : Object
         if ((_frameInfo.Camera.GetViewOverrideFlags() & ViewOverride.LowMaterialQuality) != 0)
             _materialQuality = MaterialQuality.Low;
 
-        _gi = _frameInfo.Scene!.Root.GetComponent<GlobalIllumination>();
+        _gi = _frameInfo.Scene!.GetComponent<GlobalIllumination>();
 
         // Clean temporary containers
         Array.Resize(ref _sceneZRangeTemp, WorkQueue.GetThreadIndexCount());

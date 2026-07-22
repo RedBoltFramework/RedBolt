@@ -51,7 +51,7 @@ public sealed class SceneResourceTests
         var camera = node.CreateComponent<Camera>(24);
 
         node.RemoveComponent(camera);
-        scene.Root.RemoveChild(node);
+        scene.RemoveChild(node);
 
         var nodeAgain = scene.CreateChild("Again", 42);
         var cameraAgain = nodeAgain.CreateComponent<Camera>(24);
@@ -117,7 +117,7 @@ public sealed class SceneResourceTests
         using var resource = new SceneResource();
 
         Assert.True(resource.Load(source));
-        Assert.Equal(1, resource.Scene.Root.GetNumChildren());
+        Assert.Equal(1, resource.Scene.GetNumChildren());
     }
 
     [Fact]
@@ -218,8 +218,8 @@ public sealed class SceneResourceTests
     private static void AssertSceneLoaded(Scene scene, string expectedFileName = "")
     {
         Assert.True(scene.IsUpdateEnabled());
-        Assert.True(MathDefs.Equals(scene.GetTimeScale(), 1.0f));
-        Assert.True(MathDefs.Equals(scene.GetElapsedTime(), 0.0f));
+        Assert.True(MathDefs.Equals(scene.GetTimeScale(), 1.5f));
+        Assert.True(MathDefs.Equals(scene.GetElapsedTime(), 2.0f));
         Assert.Equal(5, scene.GetAsyncLoadingMs());
         Assert.Equal(expectedFileName, scene.GetFileName());
 

@@ -670,7 +670,7 @@ public class RenderPipeline : Component
             _renderPath?.Render(_sharedState);
 
             var drawDebugGeometry = _renderPipeline.Settings.DrawDebugGeometry && _viewport.GetCamera()!.GetDrawDebugGeometry();
-            var debug = _viewport.GetScene()!.Root.GetComponent<DebugRenderer>();
+            var debug = _viewport.GetScene()!.GetComponent<DebugRenderer>();
             if (drawDebugGeometry && debug is not null && debug.IsEnabledEffective && debug.HasContent())
             {
                 _renderBufferManager.SetOutputRenderTargets();
@@ -719,7 +719,7 @@ public class RenderPipeline : Component
         public override void DrawDebugGeometries(bool depthTest)
         {
             var scene = _sceneProcessor?.GetFrameInfo().Scene;
-            var debug = scene?.Root.GetComponent<DebugRenderer>();
+            var debug = scene?.GetComponent<DebugRenderer>();
             if (scene is null || debug is null)
                 return;
 
@@ -733,7 +733,7 @@ public class RenderPipeline : Component
         public override void DrawDebugLights(bool depthTest)
         {
             var scene = _sceneProcessor?.GetFrameInfo().Scene;
-            var debug = scene?.Root.GetComponent<DebugRenderer>();
+            var debug = scene?.GetComponent<DebugRenderer>();
             if (scene is null || debug is null)
                 return;
 

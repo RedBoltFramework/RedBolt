@@ -21,7 +21,40 @@ public enum LoadMode
     SceneAndResources
 }
 
-public sealed class Scene : Serializable
+/// <summary>Asynchronous loading progress of a scene.</summary>
+public struct AsyncProgress
+{
+    /// <summary>File for binary mode.</summary>
+    public AbstractFile? File;
+    /// <summary>XML file for XML mode.</summary>
+    public XMLFile? XmlFile;
+    /// <summary>JSON file for JSON mode.</summary>
+    public JSONFile? JsonFile;
+    /// <summary>Current XML element for XML mode.</summary>
+    public XMLElement? XmlElement;
+    /// <summary>Current JSON child index for JSON mode.</summary>
+    public int JsonIndex;
+    /// <summary>Loading mode.</summary>
+    public LoadMode Mode;
+    /// <summary>Resources being loaded.</summary>
+    public HashSet<StringHash> Resources;
+    /// <summary>Number of loaded resources.</summary>
+    public int LoadedResources;
+    /// <summary>Total number of resources.</summary>
+    public int TotalResources;
+    /// <summary>Number of loaded root-level nodes.</summary>
+    public int LoadedNodes;
+    /// <summary>Total number of root-level nodes.</summary>
+    public int TotalNodes;
+
+    public AsyncProgress()
+    {
+        Mode = LoadMode.SceneAndResources;
+        Resources = [];
+    }
+}
+
+public class Scene : Node
 {
     /// <summary>Register Scene library objects.</summary>
     public static void RegisterSceneLibrary(Context context)
@@ -42,21 +75,6 @@ public sealed class Scene : Serializable
         WorldOrigin.RegisterObject(context);
     }
 
-    private sealed class AsyncProgress
-    {
-        public AbstractFile? File;
-        public XMLFile? XmlFile;
-        public JSONFile? JsonFile;
-        public XMLElement? XmlElement;
-        public uint JsonIndex;
-        public LoadMode Mode = LoadMode.SceneAndResources;
-        public readonly HashSet<StringHash> Resources = [];
-        public uint LoadedResources;
-        public uint TotalResources;
-        public uint LoadedNodes;
-        public uint TotalNodes;
-    }
-
     private readonly Dictionary<uint, Component> _components = [];
     private readonly Dictionary<uint, Node> _nodes = [];
     private readonly Dictionary<string, List<Node>> _taggedNodes = new(StringComparer.Ordinal);
@@ -68,7 +86,7 @@ public sealed class Scene : Serializable
     private readonly List<Texture2D?> _lightmapTextures = [];
     private readonly StringVector _updateEvents = [];
     private readonly List<(StringHash EventType, bool IsForced)> _cookedUpdateEvents = [];
-    private readonly AsyncProgress _asyncProgress = new();
+    private AsyncProgress _asyncProgress = new();
     private readonly SceneResolver _resolver = new();
     private ContextEventSubscription? _updateSubscription;
     private ContextEventSubscription? _resourceBackgroundLoadedSubscription;
@@ -96,10 +114,13 @@ public sealed class Scene : Serializable
 
     public Scene()
     {
-        Root = new Node();
-        NodeAdded(Root);
         SetUpdateEvents(DefaultUpdateEvents);
-        Root.SetWorldOriginUpdateMode(WorldOriginUpdateMode.Recurse);
+        SetWorldOriginUpdateMode(WorldOriginUpdateMode.Recurse);
+
+        // Assign an ID to self so that nodes can refer to this node as a parent
+        SetID(GetFreeNodeID());
+        NodeAdded(this);
+
         _updateSubscription = SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
         _resourceBackgroundLoadedSubscription =
             SubscribeToEvent<ResourceEvents.ResourceBackgroundLoaded>(HandleResourceBackgroundLoaded);
@@ -107,8 +128,8 @@ public sealed class Scene : Serializable
         RegisterAttribute(
             "Name",
             typeof(string),
-            self => ((Scene)self).Root.Name,
-            (self, value) => ((Scene)self).Root.SetName(value as string ?? string.Empty),
+            self => ((Scene)self).Name,
+            (self, value) => ((Scene)self).SetName(value as string ?? string.Empty),
             string.Empty);
         RegisterAttribute(
             "Time Scale",
@@ -142,7 +163,7 @@ public sealed class Scene : Serializable
             self =>
             {
                 var result = new StringVariantMap();
-                foreach (var (key, value) in ((Scene)self).Root.Variables)
+                foreach (var (key, value) in ((Scene)self).Variables)
                     result[key.Reverse()] = Variant.FromObject(value);
                 return result;
             },
@@ -151,7 +172,7 @@ public sealed class Scene : Serializable
                 if (value is not StringVariantMap variables)
                     return;
 
-                ((Scene)self).Root.SetVariables(variables.Select(static pair =>
+                ((Scene)self).SetVariables(variables.Select(static pair =>
                     new KeyValuePair<StringHash, object?>(new StringHash(pair.Key), pair.Value.GetObject())));
             },
             new StringVariantMap());
@@ -168,6 +189,14 @@ public sealed class Scene : Serializable
             (self, value) => ((Scene)self).SetWorldOrigin(value is IntVector3 worldOrigin ? worldOrigin : IntVector3.Zero),
             IntVector3.Zero);
         RegisterAttribute(
+            "Elapsed Time Wrap",
+            typeof(Vector3d),
+            self => ((Scene)self)._elapsedTimeWrap,
+            (self, value) => ((Scene)self)._elapsedTimeWrap = value is Vector3d elapsedTimeWrap
+                ? elapsedTimeWrap
+                : new Vector3d(1_000_000_000_000.0, 1024.0, 1.0),
+            new Vector3d(1_000_000_000_000.0, 1024.0, 1.0));
+        RegisterAttribute(
             "Lightmaps",
             typeof(ResourceRefList),
             self => new ResourceRefList(ObjectReflection<Texture2D>.TypeId, ((Scene)self)._lightmapNames),
@@ -183,7 +212,7 @@ public sealed class Scene : Serializable
             new ResourceRefList(ObjectReflection<Texture2D>.TypeId));
     }
 
-    public static void RegisterObject(Context context)
+    public new static void RegisterObject(Context context)
     {
         ArgumentNullException.ThrowIfNull(context);
         context.AddFactoryReflection<Scene>();
@@ -194,16 +223,13 @@ public sealed class Scene : Serializable
     {
         _updateSubscription?.Dispose();
         _resourceBackgroundLoadedSubscription?.Dispose();
-        Root.RemoveAllComponents();
-        Root.RemoveAllChildren();
+        RemoveAllComponents();
+        RemoveAllChildren();
         foreach (var node in _nodes.Values)
             node.ResetScene();
         _resolver.Dispose();
-        Root.Dispose();
         base.Dispose();
     }
-
-    public Node Root { get; }
 
     internal IReadOnlyList<StaticModel> StaticModels => _staticModels;
 
@@ -280,17 +306,17 @@ public sealed class Scene : Serializable
         SerializeInBlock(archive, false, saveFlags, PrefabLoadFlag.None);
     }
 
-    public void SerializeInBlock(
+    public new void SerializeInBlock(
         Archive archive,
         bool serializeTemporary,
         PrefabSaveFlag saveFlags,
         PrefabLoadFlag loadFlags)
     {
-        Root.SerializeInBlock(archive, serializeTemporary, saveFlags, loadFlags | PrefabLoadFlag.SkipApplyAttributes);
+        base.SerializeInBlock(archive, serializeTemporary, saveFlags, loadFlags | PrefabLoadFlag.SkipApplyAttributes);
         SerializeAuxiliaryData(archive);
 
         if (archive.IsInput)
-            Root.ApplyAttributes();
+            ApplyAttributes();
 
         if (!string.IsNullOrEmpty(archive.Name))
             _fileName = archive.Name;
@@ -310,7 +336,7 @@ public sealed class Scene : Serializable
             return true;
         }
 
-        if (Root.LoadXML(source))
+        if (base.LoadXML(source))
         {
             FinishLoading(null);
             return true;
@@ -322,7 +348,13 @@ public sealed class Scene : Serializable
     public override bool LoadJSON(JSONValue source)
     {
         StopAsyncLoading();
-        return Root.LoadJSON(source);
+        if (base.LoadJSON(source))
+        {
+            FinishLoading(null);
+            return true;
+        }
+
+        return false;
     }
 
     public bool LoadXML(Deserializer source)
@@ -346,7 +378,7 @@ public sealed class Scene : Serializable
             return false;
 
         Clear();
-        if (Root.LoadJSON(json.Root))
+        if (base.LoadJSON(json.Root))
         {
             FinishLoading(source);
             return true;
@@ -363,7 +395,7 @@ public sealed class Scene : Serializable
             return false;
 
         Clear();
-        if (Root.Load(source))
+        if (base.Load(source))
         {
             FinishLoading(source);
             return true;
@@ -378,7 +410,7 @@ public sealed class Scene : Serializable
         if (!destination.WriteFileID("USCN"))
             return false;
 
-        if (Root.Save(destination))
+        if (base.Save(destination))
         {
             FinishSaving(destination);
             return true;
@@ -387,11 +419,11 @@ public sealed class Scene : Serializable
         return false;
     }
 
-    public bool SaveXML(Serializer destination, string indentation = "\t")
+    public new bool SaveXML(Serializer destination, string indentation = "\t")
     {
         ArgumentNullException.ThrowIfNull(destination);
         var xml = new XMLFile();
-        if (!Root.SaveXML(xml.CreateRoot("scene")))
+        if (!base.SaveXML(xml.CreateRoot("scene")))
             return false;
         if (!xml.Save(destination, indentation))
             return false;
@@ -400,12 +432,12 @@ public sealed class Scene : Serializable
         return true;
     }
 
-    public bool SaveJSON(Serializer destination, string indentation = "\t")
+    public new bool SaveJSON(Serializer destination, string indentation = "\t")
     {
         ArgumentNullException.ThrowIfNull(destination);
         using var json = new JSONFile();
         using var root = new JSONValue();
-        if (!Root.SaveJSON(root))
+        if (!base.SaveJSON(root))
             return false;
         json.Root.Set(root);
         if (!json.Save(destination, indentation))
@@ -462,14 +494,14 @@ public sealed class Scene : Serializable
             }
 
             var nodeId = file.ReadUInt();
-            _resolver.AddNode(nodeId, Root);
-            if (!Root.Load(file, _resolver, loadChildren: false))
+            _resolver.AddNode(nodeId, this);
+            if (!base.Load(file, _resolver, loadChildren: false))
             {
                 StopAsyncLoading();
                 return false;
             }
 
-            _asyncProgress.TotalNodes = file.ReadVLE();
+            _asyncProgress.TotalNodes = checked((int)file.ReadVLE());
         }
         else
             PreloadResources(file, isSceneFile);
@@ -514,8 +546,8 @@ public sealed class Scene : Serializable
                 PreloadResourcesXML(rootElement);
 
             var nodeId = rootElement.GetUInt("id");
-            _resolver.AddNode(nodeId, Root);
-            if (!Root.LoadXML(rootElement, _resolver, loadChildren: false))
+            _resolver.AddNode(nodeId, this);
+            if (!base.LoadXML(rootElement, _resolver, loadChildren: false))
                 return false;
 
             _asyncProgress.XmlElement = rootElement.GetChild("node");
@@ -570,11 +602,11 @@ public sealed class Scene : Serializable
                 PreloadResourcesJSON(rootValue);
 
             var nodeId = rootValue.Get("id").GetUInt();
-            _resolver.AddNode(nodeId, Root);
-            if (!Root.LoadJSON(rootValue, _resolver, loadChildren: false))
+            _resolver.AddNode(nodeId, this);
+            if (!base.LoadJSON(rootValue, _resolver, loadChildren: false))
                 return false;
 
-            _asyncProgress.TotalNodes = (uint)rootValue.Get("children").GetArray().Count;
+            _asyncProgress.TotalNodes = rootValue.Get("children").GetArray().Count;
         }
         else
             PreloadResourcesJSON(rootValue);
@@ -588,7 +620,7 @@ public sealed class Scene : Serializable
 
         using var resolver = new SceneResolver();
         var nodeId = source.ReadUInt();
-        var node = Root.CreateChild(0);
+        var node = CreateChild(0);
         resolver.AddNode(nodeId, node);
         if (node.Load(source, resolver, true, true))
         {
@@ -608,7 +640,7 @@ public sealed class Scene : Serializable
 
         using var resolver = new SceneResolver();
         var nodeId = source.GetUInt("id");
-        var node = Root.CreateChild(0);
+        var node = CreateChild(0);
         resolver.AddNode(nodeId, node);
         if (node.LoadXML(source, resolver, true, true))
         {
@@ -628,7 +660,7 @@ public sealed class Scene : Serializable
 
         using var resolver = new SceneResolver();
         var nodeId = source.Get("id").GetUInt();
-        var node = Root.CreateChild(0);
+        var node = CreateChild(0);
         resolver.AddNode(nodeId, node);
         if (node.LoadJSON(source, resolver, true, true))
         {
@@ -687,7 +719,7 @@ public sealed class Scene : Serializable
 
     public StringVector GetUpdateEvents() => new(_updateEvents);
 
-    public uint GetNumLightmaps() => (uint)_lightmapNames.Count;
+    public int GetNumLightmaps() => _lightmapNames.Count;
 
     public void ResetLightmaps()
     {
@@ -710,30 +742,19 @@ public sealed class Scene : Serializable
             _lightmapTextures.Add(cache.GetResourceOrNull<Texture2D>(lightmapTextureName));
     }
 
-    public Texture2D? GetLightmapTexture(uint index)
+    public Texture2D? GetLightmapTexture(int index)
     {
-        return index < (uint)_lightmapTextures.Count ? _lightmapTextures[(int)index] : null;
-    }
-
-    public Node CreateChild(string name = "", uint id = 0, bool temporary = false)
-    {
-        return Root.CreateChild(name, id, temporary);
-    }
-
-    public T CreateComponent<T>(uint id = 0)
-        where T : Component, new()
-    {
-        return Root.CreateComponent<T>(id);
+        return index >= 0 && index < _lightmapTextures.Count ? _lightmapTextures[index] : null;
     }
 
     public void Clear()
     {
         StopAsyncLoading();
 
-        Root.RemoveChildren(recursive: true);
-        Root.RemoveComponents();
+        RemoveChildren(recursive: true);
+        RemoveComponents();
 
-        Root.SetName(string.Empty);
+        SetName(string.Empty);
         SetUpdateEvents(DefaultUpdateEvents);
         _fileName = string.Empty;
         Checksum = 0;
@@ -838,7 +859,7 @@ public sealed class Scene : Serializable
 
         _worldOrigin = worldOrigin;
         var relativeOffset = new Vector3f(offset.X, offset.Y, offset.Z);
-        UpdateNodeWorldOrigin(Root, relativeOffset);
+        UpdateNodeWorldOrigin(this, relativeOffset);
 
         var postUpdateEvent = new SceneEvents.WorldOriginPostUpdateEvent
         {
@@ -892,7 +913,7 @@ public sealed class Scene : Serializable
 
     public bool IsEmpty(bool ignoreComponents = false)
     {
-        return Root.GetNumChildren() == 0 && (ignoreComponents || Root.GetNumComponents() == 0);
+        return GetNumChildren() == 0 && (ignoreComponents || GetNumComponents() == 0);
     }
 
     public Node? GetNode(uint id)
@@ -1228,16 +1249,16 @@ public sealed class Scene : Serializable
             if (_asyncProgress.XmlFile is not null && _asyncProgress.XmlElement is { NotNull: true } xmlElement)
             {
                 var nodeId = xmlElement.GetUInt("id");
-                var newNode = Root.CreateChild(nodeId);
+                var newNode = CreateChild(nodeId);
                 _resolver.AddNode(nodeId, newNode);
                 newNode.LoadXML(xmlElement, _resolver);
                 _asyncProgress.XmlElement = xmlElement.GetNext("node");
             }
             else if (_asyncProgress.JsonFile is not null)
             {
-                var childValue = _asyncProgress.JsonFile.Root.Get("children").Get((int)_asyncProgress.JsonIndex);
+                var childValue = _asyncProgress.JsonFile.Root.Get("children").Get(_asyncProgress.JsonIndex);
                 var nodeId = childValue.Get("id").GetUInt();
-                var newNode = Root.CreateChild(nodeId);
+                var newNode = CreateChild(nodeId);
                 _resolver.AddNode(nodeId, newNode);
                 newNode.LoadJSON(childValue, _resolver);
                 ++_asyncProgress.JsonIndex;
@@ -1245,7 +1266,7 @@ public sealed class Scene : Serializable
             else if (_asyncProgress.File is not null)
             {
                 var nodeId = _asyncProgress.File.ReadUInt();
-                var newNode = Root.CreateChild(nodeId);
+                var newNode = CreateChild(nodeId);
                 _resolver.AddNode(nodeId, newNode);
                 newNode.Load(_asyncProgress.File, _resolver);
             }
@@ -1262,10 +1283,10 @@ public sealed class Scene : Serializable
         {
             Scene = this,
             Progress = GetAsyncProgress(),
-            LoadedNodes = checked((int)_asyncProgress.LoadedNodes),
-            TotalNodes = checked((int)_asyncProgress.TotalNodes),
-            LoadedResources = checked((int)_asyncProgress.LoadedResources),
-            TotalResources = checked((int)_asyncProgress.TotalResources)
+            LoadedNodes = _asyncProgress.LoadedNodes,
+            TotalNodes = _asyncProgress.TotalNodes,
+            LoadedResources = _asyncProgress.LoadedResources,
+            TotalResources = _asyncProgress.TotalResources
         };
         SendEvent(ref progressEvent);
     }
@@ -1275,7 +1296,7 @@ public sealed class Scene : Serializable
         if (_asyncProgress.Mode > LoadMode.ResourcesOnly)
         {
             _resolver.Resolve();
-            Root.ApplyAttributes();
+            ApplyAttributes();
             FinishLoading(_asyncProgress.File);
         }
 
@@ -1291,7 +1312,7 @@ public sealed class Scene : Serializable
 
         file.ReadUInt();
 
-        var attributes = Root.GetAttributes();
+        var attributes = GetAttributes();
         for (var index = 0; index < attributes.Count; ++index)
         {
             var attribute = attributes[index];

@@ -6,11 +6,15 @@ namespace RedBolt.Tests;
 public sealed class SceneTests
 {
     [Fact]
-    public void Root_initializes_serializable_state()
+    public void Scene_is_root_node_and_async_progress_is_value_type()
     {
         var scene = new Scene();
-        Assert.NotEqual(0u, scene.Root.Id);
-        Assert.True(scene.Root.GetNumAttributes() > 0);
+        Assert.IsAssignableFrom<Node>(scene);
+        Assert.Same(scene, scene.GetScene());
+        Assert.Null(typeof(Scene).GetProperty("Root"));
+        Assert.True(typeof(AsyncProgress).IsValueType);
+        Assert.NotEqual(0u, scene.Id);
+        Assert.True(scene.GetNumAttributes() > 0);
     }
 
     [Fact]
@@ -65,7 +69,7 @@ public sealed class SceneTests
 
         node.RemoveComponent(camera);
         node.RemoveTag("tracked");
-        scene.Root.RemoveChild(node);
+        scene.RemoveChild(node);
 
         Assert.Null(scene.GetNode(99));
         Assert.Null(scene.GetComponent(124));
@@ -169,7 +173,7 @@ public sealed class SceneTests
             var scene = new Scene();
             scene.AddLightmap(resourceName);
 
-            Assert.Equal(1u, scene.GetNumLightmaps());
+            Assert.Equal(1, scene.GetNumLightmaps());
             Assert.Same(texture, scene.GetLightmapTexture(0));
             Assert.Null(scene.GetLightmapTexture(1));
 
@@ -177,7 +181,7 @@ public sealed class SceneTests
             Assert.Same(texture, scene.GetLightmapTexture(0));
 
             scene.ResetLightmaps();
-            Assert.Equal(0u, scene.GetNumLightmaps());
+            Assert.Equal(0, scene.GetNumLightmaps());
             Assert.Null(scene.GetLightmapTexture(0));
         }
         finally
@@ -191,14 +195,14 @@ public sealed class SceneTests
     {
         var scene = new Scene();
         scene.CreateChild("Temporary").CreateComponent<Camera>();
-        var rootId = scene.Root.Id;
+        var rootId = scene.Id;
 
         scene.Dispose();
 
         Assert.Single(scene.GetAllNodes());
-        Assert.Same(scene.Root, scene.GetNode(rootId));
-        Assert.Null(scene.Root.Scene);
-        Assert.Equal(0u, scene.Root.Id);
+        Assert.Same(scene, scene.GetNode(rootId));
+        Assert.Null(scene.Scene);
+        Assert.Equal(0u, scene.Id);
         Assert.Empty(scene.GetAllComponents());
     }
 
@@ -250,7 +254,7 @@ public sealed class SceneTests
         using (input.OpenUnorderedBlock("scene"))
             loadedScene.SerializeInBlock(input);
 
-        var loadedChild = loadedScene.Root.GetChild("Archived");
+        var loadedChild = loadedScene.GetChild("Archived");
         Assert.NotNull(loadedChild);
         Assert.True(loadedChild!.Position.ApproximatelyEquivalent(new Vector3f(1, 2, 3)));
         Assert.Equal(42, loadedChild.GetVar("score"));
@@ -271,14 +275,14 @@ public sealed class SceneTests
 
         var loadedFromXml = new Scene();
         Assert.True(loadedFromXml.LoadXML(xmlFile.GetRoot()));
-        Assert.NotNull(loadedFromXml.Root.GetChild("Loaded"));
+        Assert.NotNull(loadedFromXml.GetChild("Loaded"));
 
         var json = new JSONValue();
-        Assert.True(source.Root.SaveJSON(json));
+        Assert.True(source.SaveJSON(json));
 
         var loadedFromJson = new Scene();
         Assert.True(loadedFromJson.LoadJSON(json));
-        Assert.NotNull(loadedFromJson.Root.GetChild("Loaded"));
+        Assert.NotNull(loadedFromJson.GetChild("Loaded"));
     }
 
     [Fact]
@@ -293,16 +297,16 @@ public sealed class SceneTests
 
         var loadedFromXml = new Scene();
         Assert.True(loadedFromXml.LoadXML(xml));
-        Assert.True(loadedFromXml.Root.GetChild("Loaded") is not null, $"count={loadedFromXml.Root.GetNumChildren()}");
+        Assert.True(loadedFromXml.GetChild("Loaded") is not null, $"count={loadedFromXml.GetNumChildren()}");
 
         var jsonValue = new JSONValue();
-        Assert.True(sourceResource.Scene.Root.SaveJSON(jsonValue));
+        Assert.True(sourceResource.Scene.SaveJSON(jsonValue));
         using var json = new MemoryBuffer(System.Text.Encoding.UTF8.GetBytes(jsonValue.ToString()));
         json.Seek(0);
 
         var loadedFromJson = new Scene();
         Assert.True(loadedFromJson.LoadJSON(json));
-        Assert.True(loadedFromJson.Root.GetChild("Loaded") is not null, $"count={loadedFromJson.Root.GetNumChildren()}");
+        Assert.True(loadedFromJson.GetChild("Loaded") is not null, $"count={loadedFromJson.GetNumChildren()}");
     }
 
     [Fact]
@@ -312,7 +316,7 @@ public sealed class SceneTests
         source.CreateChild("Loaded").CreateComponent<Camera>().SetFov(83);
 
         using var stream = new VectorBuffer();
-        Assert.True(source.Root.SaveXML(stream));
+        Assert.True(source.SaveXML(stream));
         stream.Seek(0);
 
         var xml = new XMLFile { Name = string.Empty };
@@ -320,7 +324,7 @@ public sealed class SceneTests
 
         var loaded = new Scene();
         Assert.True(loaded.LoadXML(xml.GetRoot()));
-        Assert.Equal(83.0f, loaded.Root.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
+        Assert.Equal(83.0f, loaded.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
     }
 
     [Fact]
@@ -338,7 +342,7 @@ public sealed class SceneTests
         var loaded = new Scene();
         Assert.True(loaded.Load(stream), "load");
 
-        var loadedChild = loaded.Root.GetChild("Loaded");
+        var loadedChild = loaded.GetChild("Loaded");
         Assert.NotNull(loadedChild);
         Assert.True(loadedChild!.Position.ApproximatelyEquivalent(new Vector3f(1, 2, 3)));
         Assert.Equal(87.0f, loadedChild.GetComponent<Camera>()?.GetFov());
@@ -355,28 +359,28 @@ public sealed class SceneTests
         xml.Seek(0);
         var loadedFromXml = new Scene();
         Assert.True(loadedFromXml.LoadXML(xml));
-        Assert.Equal(89.0f, loadedFromXml.Root.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
+        Assert.Equal(89.0f, loadedFromXml.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
 
         using var json = new VectorBuffer();
         Assert.True(source.SaveJSON(json));
         json.Seek(0);
         var loadedFromJson = new Scene();
         Assert.True(loadedFromJson.LoadJSON(json));
-        Assert.Equal(89.0f, loadedFromJson.Root.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
+        Assert.Equal(89.0f, loadedFromJson.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
 
         var xmlBuffer = new VectorBuffer();
         Assert.True(source.SaveXML(xmlBuffer));
         xmlBuffer.Seek(0);
         var loadedFromXmlBuffer = new Scene();
         Assert.True(loadedFromXmlBuffer.LoadXML(xmlBuffer));
-        Assert.Equal(89.0f, loadedFromXmlBuffer.Root.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
+        Assert.Equal(89.0f, loadedFromXmlBuffer.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
 
         var jsonBuffer = new VectorBuffer();
         Assert.True(source.SaveJSON(jsonBuffer));
         jsonBuffer.Seek(0);
         var loadedFromJsonBuffer = new Scene();
         Assert.True(loadedFromJsonBuffer.LoadJSON(jsonBuffer));
-        Assert.Equal(89.0f, loadedFromJsonBuffer.Root.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
+        Assert.Equal(89.0f, loadedFromJsonBuffer.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
     }
 
     [Fact]
@@ -390,15 +394,15 @@ public sealed class SceneTests
         var rotation = new Quaternion(10, 20, 30);
 
         var json = new JSONValue();
-        Assert.True(source.Root.SaveJSON(json));
+        Assert.True(source.SaveJSON(json));
         var instantiatedFromJson = new Scene().InstantiateJSON(json, position, rotation);
         Assert.NotNull(instantiatedFromJson);
-        Assert.NotEqual(source.Root.Id, instantiatedFromJson!.Id);
+        Assert.NotEqual(source.Id, instantiatedFromJson!.Id);
         Assert.True(instantiatedFromJson.Position.ApproximatelyEquivalent(position));
         Assert.Equal(91.0f, instantiatedFromJson.GetChild("Source")?.GetComponent<Camera>()?.GetFov());
 
         var xmlFile = new XMLFile { Name = string.Empty };
-        Assert.True(source.Root.SaveXML(xmlFile.CreateRoot("node")));
+        Assert.True(source.SaveXML(xmlFile.CreateRoot("node")));
         var instantiatedFromXml = new Scene().InstantiateXML(xmlFile.GetRoot(), position, rotation);
         Assert.NotNull(instantiatedFromXml);
         Assert.True(instantiatedFromXml!.Position.ApproximatelyEquivalent(position));
@@ -410,7 +414,7 @@ public sealed class SceneTests
         Assert.NotNull(instantiatedFromXmlBuffer);
 
         var binary = new VectorBuffer();
-        Assert.True(source.Root.Save(binary));
+        Assert.True(sourceChild.Save(binary));
         binary.Seek(0);
         var instantiatedFromBinary = new Scene().Instantiate(binary, position, rotation);
         Assert.NotNull(instantiatedFromBinary);
@@ -434,7 +438,7 @@ public sealed class SceneTests
         scene.Clear();
 
         Assert.True(scene.IsEmpty());
-        Assert.Equal(string.Empty, scene.Root.Name);
+        Assert.Equal(string.Empty, scene.Name);
         Assert.Equal(string.Empty, scene.FileName);
         Assert.Equal(0u, scene.Checksum);
         Assert.Equal(Scene.DefaultUpdateEvents, scene.GetUpdateEvents());
@@ -551,7 +555,7 @@ public sealed class SceneTests
 
         Assert.True(context.IsReflected<Scene>());
         using var created = Assert.IsType<Scene>(context.CreateObject(ObjectReflection<Scene>.TypeId));
-        Assert.Equal(9u, created.NumAttributes);
+        Assert.Equal(10u, created.NumAttributes);
         Assert.Equal(string.Empty, created.GetAttribute("Name"));
         Assert.Equal(1.0f, created.GetAttribute("Time Scale"));
         Assert.Equal(0.0f, created.GetAttribute("Elapsed Time"));
@@ -560,6 +564,7 @@ public sealed class SceneTests
         Assert.IsType<StringVariantMap>(created.GetAttribute("Variables"));
         Assert.Equal(Scene.DefaultUpdateEvents, created.GetAttribute("Update Events"));
         Assert.Equal(IntVector3.Zero, created.GetAttribute("World Origin"));
+        Assert.Equal(new Vector3d(1_000_000_000_000.0, 1024.0, 1.0), created.GetAttribute("Elapsed Time Wrap"));
         Assert.Equal(ObjectReflection<Texture2D>.TypeId, ((ResourceRefList)created.GetAttribute("Lightmaps")!).Type);
     }
 }

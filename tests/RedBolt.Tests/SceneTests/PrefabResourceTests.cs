@@ -114,7 +114,7 @@ public sealed class PrefabResourceTests
         rootPrefab.Node.Import(sourceNode, PrefabSaveFlag.SaveTemporary);
         rootPrefab.Children.Add(new NodePrefab());
 
-        var instance = resource.InstantiateReference(scene.Root);
+        var instance = resource.InstantiateReference(scene);
 
         Assert.NotNull(instance);
         Assert.Equal("Tree", instance!.Name);

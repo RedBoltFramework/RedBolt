@@ -45,7 +45,7 @@ public sealed class TrackedComponentTests
         registry.RemoveTrackedComponent(component);
         Assert.Equal(ComponentReference.None, component.Reference);
 
-        scene.Root.AddComponent(component);
+        scene.AddComponent(component);
         registry.AddTrackedComponent(component);
         var secondReference = component.Reference;
 

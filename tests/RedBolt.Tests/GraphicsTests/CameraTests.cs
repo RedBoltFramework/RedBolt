@@ -277,7 +277,7 @@ public sealed class CameraTests
 
         Assert.NotNull(secondView);
         Assert.NotSame(firstView, secondView);
-        Assert.Same(secondScene.Root.GetComponent<RenderPipeline>(), secondView.GetRenderPipeline());
+        Assert.Same(secondScene.GetComponent<RenderPipeline>(), secondView.GetRenderPipeline());
     }
 
     [Fact]

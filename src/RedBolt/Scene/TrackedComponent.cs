@@ -423,7 +423,7 @@ public class TrackedComponent<RegistryComponentType> : TrackedComponentBase
     public override void ReconnectToRegistry()
     {
         var scene = Scene;
-        _registry = scene?.Root.GetDerivedComponent<RegistryComponentType>();
+        _registry = scene?.GetDerivedComponent<RegistryComponentType>();
     }
 
     public override void OnSetEnabled()
@@ -444,7 +444,7 @@ public class TrackedComponent<RegistryComponentType> : TrackedComponentBase
 
     protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
     {
-        var newRegistry = scene?.Root.GetDerivedComponent<RegistryComponentType>();
+        var newRegistry = scene?.GetDerivedComponent<RegistryComponentType>();
         if (ReferenceEquals(newRegistry, _registry))
             return;
 

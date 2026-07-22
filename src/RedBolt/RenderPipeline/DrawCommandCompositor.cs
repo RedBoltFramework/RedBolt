@@ -330,7 +330,7 @@ internal ref struct DrawCommandCompositor
 
         _current.LightmapScaleOffset = sourceBatch.LightmapScaleOffset;
         Texture2D? lightmapTexture = sourceBatch.LightmapScaleOffset is not null
-            ? _scene.GetLightmapTexture(sourceBatch.LightmapIndex)
+            ? _scene.GetLightmapTexture(checked((int)sourceBatch.LightmapIndex))
             : null;
         _dirty.LightmapTextures = !ReferenceEquals(_current.LightmapTexture, lightmapTexture);
         _current.LightmapTexture = lightmapTexture;

@@ -19,12 +19,12 @@ public sealed class NodeTests
             var camera = child.CreateComponent<Camera>(); camera.SetFov(73);
 
             var json = new TestJSONOutputArchive();
-            using (json.OpenUnorderedBlock("root")) scene.Root.SerializeInBlock(json);
+            using (json.OpenUnorderedBlock("root")) scene.SerializeInBlock(json);
             var loadedScene = new Scene();
             var input = new TestJSONInputArchive(json.ToJsonString());
-            using (input.OpenUnorderedBlock("root")) loadedScene.Root.SerializeInBlock(input);
+            using (input.OpenUnorderedBlock("root")) loadedScene.SerializeInBlock(input);
 
-            var loadedChild = loadedScene.Root.GetChild("Child");
+            var loadedChild = loadedScene.GetChild("Child");
             Assert.NotNull(loadedChild);
             Assert.True(loadedChild!.Position.ApproximatelyEquivalent(new Vector3f(1, 2, 3)));
             Assert.Equal(42, loadedChild.GetVar("score"));
@@ -44,15 +44,15 @@ public sealed class NodeTests
 
         var prefab = new NodePrefab();
         using var writer = new PrefabWriterToMemory(prefab, PrefabSaveFlag.SaveTemporary);
-        Assert.True(sourceScene.Root.Save(writer));
+        Assert.True(sourceScene.Save(writer));
         Assert.True(writer.IsEOF());
         Assert.Equal("Child", Assert.Single(prefab.Children).GetNodeName());
 
         var destinationScene = new Scene();
         using var reader = new PrefabReaderFromMemory(prefab);
-        Assert.True(destinationScene.Root.Load(reader));
+        Assert.True(destinationScene.Load(reader));
 
-        var child = destinationScene.Root.GetChild("Child");
+        var child = destinationScene.GetChild("Child");
         Assert.NotNull(child);
         Assert.Equal(42, child!.GetVar("score"));
         Assert.True(MathDefs.Equals(child.GetComponent<Camera>()!.GetFov(), 73));
@@ -154,15 +154,15 @@ public sealed class NodeTests
         var child = firstScene.CreateChild("Child");
         var oldId = child.Id;
 
-        secondScene.Root.AddChild(child);
+        secondScene.AddChild(child);
 
         Assert.Same(secondScene, child.Scene);
-        Assert.Same(secondScene.Root, child.Parent);
+        Assert.Same(secondScene, child.Parent);
         Assert.Null(firstScene.GetNode(oldId));
 
         child.SetParent(null);
 
-        Assert.Same(secondScene.Root, child.Parent);
+        Assert.Same(secondScene, child.Parent);
     }
 
     [Fact]
@@ -406,7 +406,7 @@ public sealed class NodeTests
     public void Scene_root_transform_does_not_affect_root_children()
     {
         var scene = new Scene();
-        scene.Root.SetTransform(new Vector3f(10.0f, 20.0f, 30.0f), new Quaternion(45.0f, Vector3f.Up), new Vector3f(2.0f, 3.0f, 4.0f));
+        scene.SetTransform(new Vector3f(10.0f, 20.0f, 30.0f), new Quaternion(45.0f, Vector3f.Up), new Vector3f(2.0f, 3.0f, 4.0f));
 
         var child = scene.CreateChild("Child");
         child.SetTransform(new Vector3f(1.0f, 2.0f, 3.0f), new Quaternion(30.0f, Vector3f.Right), new Vector3f(4.0f, 5.0f, 6.0f));
@@ -553,8 +553,8 @@ public sealed class NodeTests
         var scene = new Scene();
         var parent = scene.CreateChild("Parent");
         parent.CreateChild("Nested");
-        scene.Root.RemoveChildren(recursive: false);
-        Assert.Equal(0, scene.Root.GetNumChildren());
+        scene.RemoveChildren(recursive: false);
+        Assert.Equal(0, scene.GetNumChildren());
         Assert.Null(parent.Parent);
     }
 

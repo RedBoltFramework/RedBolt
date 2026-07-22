@@ -694,7 +694,7 @@ public sealed class Octree : Component
         _zones.Commit();
 
         if (currentScene is not null)
-            currentScene.Root.GetComponent<ReflectionProbeManager>()?.Update();
+            currentScene.GetComponent<ReflectionProbeManager>()?.Update();
     }
 
     public void RemoveDrawable(Drawable drawable, Octant octant)

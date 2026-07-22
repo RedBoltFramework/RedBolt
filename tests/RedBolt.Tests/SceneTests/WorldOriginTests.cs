@@ -68,7 +68,7 @@ public sealed class WorldOriginTests
 
         scene.UpdateWorldOrigin(new Vector3i(1, 2, 3));
 
-        Assert.Equal(Vector3f.Zero, scene.Root.GetPosition());
+        Assert.Equal(Vector3f.Zero, scene.GetPosition());
         Assert.Equal(new Vector3f(9.0f, 18.0f, 27.0f), child.GetWorldPosition());
     }
 

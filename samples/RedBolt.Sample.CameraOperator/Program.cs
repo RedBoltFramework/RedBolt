@@ -54,11 +54,11 @@ sealed class CameraOperatorSampleApplication : Application
     {
         var cache = Resources;
         _scene = new Scene(); _scene.LoadFile("Scenes/CameraOperatorScene.scene");
-        _cameraNode = _scene.Root.FindChild("MainCamera");
+        _cameraNode = _scene.FindChild("MainCamera");
         _cameraOperator = _cameraNode!.FindComponent<CameraOperator>();
         _cameraNode.CreateComponent<FreeFlyController>();
-        _cubeA = _scene.Root.FindChild("CubeA", true);
-        _cubeB = _scene.Root.FindChild("CubeB", true);
+        _cubeA = _scene.FindChild("CubeA", true);
+        _cubeB = _scene.FindChild("CubeB", true);
     }
 
     /// <summary>Construct an instruction text to the UI.</summary>

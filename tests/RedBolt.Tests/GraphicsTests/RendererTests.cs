@@ -112,7 +112,7 @@ public sealed class RendererTests
 
         Renderer.Update(0.0f);
 
-        Assert.Null(scene.Root.GetComponent<RenderPipeline>());
+        Assert.Null(scene.GetComponent<RenderPipeline>());
         Assert.Null(viewport.GetRenderPipelineView());
         Renderer.SetNumViewports(0);
     }

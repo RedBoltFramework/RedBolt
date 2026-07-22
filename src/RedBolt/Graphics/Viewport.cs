@@ -283,9 +283,9 @@ public class Viewport : Object
 
         if (renderPipeline is null && scene is not null)
         {
-            renderPipeline = scene.Root.GetDerivedComponent<RenderPipeline>();
+            renderPipeline = scene.GetDerivedComponent<RenderPipeline>();
             if (renderPipeline is null)
-                renderPipeline = scene.Root.CreateComponent<RenderPipeline>();
+                renderPipeline = scene.CreateComponent<RenderPipeline>();
             _renderPipeline.SetTarget(renderPipeline);
         }
 

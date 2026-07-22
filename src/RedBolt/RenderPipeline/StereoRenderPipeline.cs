@@ -675,7 +675,7 @@ public class StereoRenderPipelineView : RenderPipelineView
                 _renderPath.Render(_state);
 
             // draw debug geometry into each half
-            var debug = _sceneProcessor.GetFrameInfo().Scene?.Root.GetComponent<DebugRenderer>();
+            var debug = _sceneProcessor.GetFrameInfo().Scene?.GetComponent<DebugRenderer>();
             if (_settings.DrawDebugGeometry && debug is not null && debug.IsEnabledEffective && debug.HasContent())
             {
                 var renderDevice = GetRenderPipeline().GetSubsystem<RenderDevice>();

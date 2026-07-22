@@ -491,7 +491,7 @@ public sealed class Renderer : Object
         if (scene is null)
             return;
 
-        var octree = scene.Root.GetComponent<Octree>()!;
+        var octree = scene.GetComponent<Octree>()!;
         if (_updatedOctrees.Add(octree))
         {
             _frameInfo.Camera = viewport.GetCamera();
@@ -501,7 +501,7 @@ public sealed class Renderer : Object
             octree.Update(_frameInfo);
             octree.SetLocked(true);
 
-            var debug = scene.Root.GetComponent<DebugRenderer>();
+            var debug = scene.GetComponent<DebugRenderer>();
             if (debug is not null && viewport.GetDrawDebug())
                 debug.SetView(viewport.GetCamera()!);
         }

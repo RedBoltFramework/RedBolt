@@ -181,7 +181,7 @@ public class CubemapRenderer : Object
         for (var face = 0; face < (int)CubeMapFace.MaxCubeMapFaces; ++face)
         {
             // TODO: port C++ freestanding Node(context); managed nodes currently require a scene owner.
-            var cameraNode = scene!.Root.CreateTemporaryChild($"CubemapCamera_{face}");
+            var cameraNode = scene!.CreateTemporaryChild($"CubemapCamera_{face}");
             cameraNode.SetWorldRotation(FaceRotations[face]);
             var camera = cameraNode.CreateComponent<Camera>();
             camera.SetFov(90.0f);

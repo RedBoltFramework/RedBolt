@@ -29,6 +29,9 @@ public class Node : Serializable
     /// <summary>Construct.</summary>
     public Node()
     {
+        if (this is Scene)
+            return;
+
         RegisterAttribute(
             "Is Enabled",
             typeof(bool),
@@ -1437,7 +1440,7 @@ public class Node : Serializable
         return false;
     }
 
-    public bool IsTransformHierarchyRoot() => Parent is null || ReferenceEquals(Parent, Scene.Root);
+    public bool IsTransformHierarchyRoot() => Parent is null || ReferenceEquals(Parent, Scene);
 
     public Vector3f GetPosition() => Position;
 
@@ -1706,7 +1709,7 @@ public class Node : Serializable
     public Node? Clone(Node? parent = null)
     {
         var destination = parent ?? Parent;
-        if (ReferenceEquals(this, _scene?.Root) || destination is null)
+        if (ReferenceEquals(this, _scene) || destination is null)
         {
             Log.GetLogger().Error("Can not clone node without a parent");
             return null;
@@ -1854,7 +1857,7 @@ public class Node : Serializable
 
             parent.AddChild(this);
 
-            if (!ReferenceEquals(parent, _scene?.Root))
+            if (!ReferenceEquals(parent, _scene))
             {
                 var newTransform = parent.GetWorldTransform().Inverse * oldWorldTransform;
                 SetTransform(newTransform.Translation, newTransform.Rotation, newTransform.Scale);
@@ -2381,7 +2384,7 @@ public class Node : Serializable
 
     private void SetEnabled(bool enable, bool recursive, bool storeSelf)
     {
-        if (ReferenceEquals(this, _scene?.Root))
+        if (ReferenceEquals(this, _scene))
         {
             Log.GetLogger().Error("Can not change enabled state of the Scene");
             return;

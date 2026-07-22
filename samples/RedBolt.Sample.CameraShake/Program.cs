@@ -71,7 +71,7 @@ sealed class CameraShakeApplication : Application
         _scene = new Scene();
         _scene.LoadFile("Scenes/SimpleScene.scene");
 
-        _cameraNode = _scene.Root.FindChild("MainCamera");
+        _cameraNode = _scene.FindChild("MainCamera");
         _shakeComponent = _cameraNode!.FindComponent<ShakeComponent>();
         _cameraNode.CreateComponent<FreeFlyController>();
     }

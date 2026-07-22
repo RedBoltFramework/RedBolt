@@ -47,7 +47,7 @@ public sealed class SceneProcessorTests
             Viewport = viewport
         }));
 
-        scene.Root.CreateComponent<Octree>();
+        scene.CreateComponent<Octree>();
         Assert.True(processor.Define(new CommonFrameInfo
         {
             Viewport = viewport

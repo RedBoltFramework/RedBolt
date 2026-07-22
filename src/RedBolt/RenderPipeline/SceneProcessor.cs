@@ -202,9 +202,9 @@ public class SceneProcessor : Object, LightProcessorCallback
             ?? FrameInfo.Viewport.GetCamera();
         FrameInfo.ViewReferenceNode = FrameInfo.Camera?.Node;
 
-        FrameInfo.Octree = FrameInfo.Scene?.Root.GetComponent<Octree>();
+        FrameInfo.Octree = FrameInfo.Scene?.GetComponent<Octree>();
         FrameInfo.ReflectionProbeManager = FrameInfo.Octree is not null
-            ? FrameInfo.Scene!.Root.GetOrCreateComponent<ReflectionProbeManager>()
+            ? FrameInfo.Scene!.GetOrCreateComponent<ReflectionProbeManager>()
             : null;
 
         FrameInfo.AdditionalCameras = frameInfo.Cameras;

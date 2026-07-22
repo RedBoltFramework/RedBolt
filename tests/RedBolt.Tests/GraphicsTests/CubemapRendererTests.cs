@@ -90,14 +90,14 @@ public sealed class CubemapRendererTests
     public void Dispose_releases_managed_scene_owned_camera_nodes()
     {
         var scene = new Scene();
-        var initialChildren = scene.Root.GetNumChildren();
+        var initialChildren = scene.GetNumChildren();
         var renderer = new CubemapRenderer(scene);
 
-        Assert.Equal(initialChildren + (uint)CubeMapFace.MaxCubeMapFaces, scene.Root.GetNumChildren());
+        Assert.Equal(initialChildren + (uint)CubeMapFace.MaxCubeMapFaces, scene.GetNumChildren());
 
         renderer.Dispose();
 
-        Assert.Equal(initialChildren, scene.Root.GetNumChildren());
+        Assert.Equal(initialChildren, scene.GetNumChildren());
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public sealed class CubemapRendererTests
     {
         ClearQueuedViewports();
         var scene = new Scene();
-        scene.Root.GetOrCreateComponent<Octree>();
+        scene.GetOrCreateComponent<Octree>();
         using var renderer = new CubemapRenderer(scene);
 
         var result = renderer.Update(new CubemapUpdateParameters
@@ -174,7 +174,7 @@ public sealed class CubemapRendererTests
     {
         ClearQueuedViewports();
         var scene = new Scene();
-        scene.Root.GetOrCreateComponent<Octree>();
+        scene.GetOrCreateComponent<Octree>();
         using var cubemapRenderer = new CubemapRenderer(scene);
         var parameters = new CubemapUpdateParameters
         {
@@ -205,7 +205,7 @@ public sealed class CubemapRendererTests
     {
         ClearQueuedViewports();
         var scene = new Scene();
-        scene.Root.GetOrCreateComponent<Octree>();
+        scene.GetOrCreateComponent<Octree>();
         using var cubemapRenderer = new CubemapRenderer(scene);
         var overrideTexture = new TextureCube { Name = "Override" };
         CubemapRenderer.DefineTexture(overrideTexture, new CubemapRenderingSettings { TextureSize = 16 });

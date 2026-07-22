@@ -357,8 +357,8 @@ public class LightBaker : Component
     private bool UpdateSettings()
     {
         var scene = Scene!;
-        var octree = scene.Root.GetComponent<Octree>()!;
-        var gi = scene.Root.GetComponent<GlobalIllumination>();
+        var octree = scene.GetComponent<Octree>()!;
+        var gi = scene.GetComponent<GlobalIllumination>();
         var zone = octree.GetBackgroundZone();
 
         if (gi is null)
@@ -429,7 +429,7 @@ public class LightBaker : Component
             // TODO: port URHO3D_GLOW taskData_->baker_.CommitScene()
 
             // Compile light probes
-            var gi = Scene!.Root.GetComponent<GlobalIllumination>()!;
+            var gi = Scene!.GetComponent<GlobalIllumination>()!;
             gi.CompileLightProbes();
 
             // Log overall time
