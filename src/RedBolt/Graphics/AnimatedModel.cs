@@ -154,7 +154,7 @@ public class AnimatedModel : StaticModel
                 var octree = GetOctant()!.GetOctree()!;
                 for (var boneIndex = 0; boneIndex < _skeleton.GetNumBones(); ++boneIndex)
                 {
-                    var node = _skeleton.GetBone((uint)boneIndex)!.Node;
+                    var node = _skeleton.GetBone(boneIndex)!.Node;
                     var transform = _skeletonData[boneIndex].LocalToParent;
                     if (node is not null)
                         octree.QueueNodeTransformUpdate(node, transform);
@@ -1081,7 +1081,7 @@ public class AnimatedModel : StaticModel
     {
         for (var boneIndex = 0; boneIndex < _skeleton.GetNumBones(); ++boneIndex)
         {
-            var bone = _skeleton.GetBone((uint)boneIndex)!;
+            var bone = _skeleton.GetBone(boneIndex)!;
             var transform = _skeletonData[boneIndex].LocalToParent;
             if (bone.Node is { } node)
                 node.SetTransformSilent(transform.Position, transform.Rotation, transform.Scale);

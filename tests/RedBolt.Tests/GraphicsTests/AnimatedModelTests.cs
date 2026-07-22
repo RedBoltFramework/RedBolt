@@ -52,6 +52,19 @@ public sealed class AnimatedModelTests
     }
 
     [Fact]
+    public void Animated_model_update_uses_integer_bone_indices()
+    {
+        var scene = new Scene();
+        scene.CreateComponent<Octree>();
+        var animatedModel = scene.CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        animatedModel.SetModel(CreateSkeletonModel("AnimatedModel", BoneCollisionShape.None), true);
+
+        animatedModel.Update(new FrameInfo { FrameNumber = 1 });
+
+        Assert.NotNull(animatedModel.GetSkeleton().GetBone(0)!.Node);
+    }
+
+    [Fact]
     public void Nonzero_morph_weight_clones_model_vertex_buffers_on_demand()
     {
         var vertexBuffer = new VertexBuffer();
