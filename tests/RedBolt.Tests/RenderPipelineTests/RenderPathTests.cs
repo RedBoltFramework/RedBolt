@@ -370,6 +370,39 @@ public sealed class RenderPathTests
     }
 
     [Fact]
+    public void Bloom_pass_uses_native_pod_cache_shapes()
+    {
+        var parametersType = typeof(BloomPass).GetNestedType(
+            "Parameters", System.Reflection.BindingFlags.NonPublic)!;
+        var pipelineStateCacheType = typeof(BloomPass).GetNestedType(
+            "PipelineStateCache", System.Reflection.BindingFlags.NonPublic)!;
+        var textureCacheType = typeof(BloomPass).GetNestedType(
+            "TextureCache", System.Reflection.BindingFlags.NonPublic)!;
+        var parametersField = typeof(BloomPass).GetField(
+            "_parameters", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        var pipelineStatesField = typeof(BloomPass).GetField(
+            "_pipelineStates", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        var texturesField = typeof(BloomPass).GetField(
+            "_textures", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+
+        Assert.False(typeof(BloomPass).IsSealed);
+        Assert.True(parametersType.IsValueType);
+        Assert.True(pipelineStateCacheType.IsValueType);
+        Assert.True(textureCacheType.IsValueType);
+        Assert.Equal(parametersType, parametersField.FieldType);
+        Assert.Equal(typeof(Nullable<>).MakeGenericType(pipelineStateCacheType), pipelineStatesField.FieldType);
+        Assert.Equal(textureCacheType, Assert.Single(texturesField.FieldType.GenericTypeArguments));
+
+        var left = Activator.CreateInstance(parametersType)!;
+        var right = Activator.CreateInstance(parametersType)!;
+        var equalityOperator = parametersType.GetMethod(
+            "op_Equality", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!;
+        Assert.True((bool)equalityOperator.Invoke(null, [left, right])!);
+        parametersType.GetProperty("NumIterations")!.SetValue(right, 6);
+        Assert.False((bool)equalityOperator.Invoke(null, [left, right])!);
+    }
+
+    [Fact]
     public void Full_screen_shader_pass_uses_native_pod_cache_shape()
     {
         var attributesType = typeof(FullScreenShaderPass).GetNestedType(

@@ -697,21 +697,28 @@ public sealed class AutoExposurePass : RenderPass
 /// <summary>
 /// Post-processing pass that applies bloom to the scene.
 /// </summary>
-public sealed class BloomPass : RenderPass
+public class BloomPass : RenderPass
 {
-    private const int MaxIterations = 16;
     private const string DefaultComment = "Create bloom around bright parts of the image";
     private const string NumIterationsName = "Bloom: Num Iterations";
     private const string MinBrightnessName = "Bloom: Min Brightness";
     private const string MaxBrightnessName = "Bloom: Max Brightness";
     private const string IntensityName = "Bloom: Base Intensity";
     private const string IterationFactorName = "Bloom: Iteration Intensity Factor";
-    private static readonly Vector3f LinearLuminanceWeights = new(0.2126f, 0.7152f, 0.0722f);
-    private static readonly Vector3f GammaLuminanceWeights = new(0.299f, 0.587f, 0.114f);
-    private readonly List<TextureCache> _textures = [];
-    private readonly List<float> _intensityMultipliers = [];
-    private Parameters _currentParameters = new();
-    private bool _isHdr;
+    private static readonly NamedSamplerStateDesc[] Samplers =
+        [("Albedo", SamplerStateDesc.Bilinear())];
+    private readonly ShaderResourceDesc[] _shaderResources = [new() { Name = ShaderResources.Albedo }];
+    private readonly ShaderParameterDesc[] _shaderParameters =
+    [
+        new() { Name = new StringHash("LuminanceWeights") },
+        new() { Name = new StringHash("Threshold") },
+        new() { Name = new StringHash("InputInvSize") }
+    ];
+    private readonly ShaderParameterDesc[] _applyParameters =
+    [
+        new() { Name = new StringHash("LuminanceWeights") },
+        new() { Name = new StringHash("Intensity") }
+    ];
 
     public BloomPass()
     {
@@ -726,7 +733,6 @@ public sealed class BloomPass : RenderPass
 
     public override void CollectParameters(StringVariantMap parameters)
     {
-        ArgumentNullException.ThrowIfNull(parameters);
         var defaults = new Parameters();
         DeclareParameter(NumIterationsName, defaults.NumIterations, parameters);
         DeclareParameter(MinBrightnessName, defaults.MinBrightness, parameters);
@@ -741,41 +747,35 @@ public sealed class BloomPass : RenderPass
 
     public override void UpdateParameters(RenderPipelineSettings settings, StringVariantMap parameters)
     {
-        ArgumentNullException.ThrowIfNull(settings);
-        ArgumentNullException.ThrowIfNull(parameters);
-
-        var updated = new Parameters();
+        var newParameters = new Parameters();
         ref readonly var numIterations = ref LoadParameter(NumIterationsName, parameters);
         if (numIterations.Type == VariantType.Int)
-            updated.NumIterations = Math.Clamp(numIterations.GetInt(), 1, MaxIterations);
+            newParameters.NumIterations = Math.Clamp(numIterations.GetInt(), 1, MaxIterations);
         ref readonly var minBrightness = ref LoadParameter(MinBrightnessName, parameters);
         if (minBrightness.Type == VariantType.Float)
-            updated.MinBrightness = minBrightness.GetFloat();
+            newParameters.MinBrightness = minBrightness.GetFloat();
         ref readonly var maxBrightness = ref LoadParameter(MaxBrightnessName, parameters);
         if (maxBrightness.Type == VariantType.Float)
-            updated.MaxBrightness = maxBrightness.GetFloat();
+            newParameters.MaxBrightness = maxBrightness.GetFloat();
         ref readonly var intensity = ref LoadParameter(IntensityName, parameters);
         if (intensity.Type == VariantType.Float)
-            updated.Intensity = intensity.GetFloat();
+            newParameters.Intensity = intensity.GetFloat();
         ref readonly var iterationFactor = ref LoadParameter(IterationFactorName, parameters);
         if (iterationFactor.Type == VariantType.Float)
-            updated.IterationFactor = iterationFactor.GetFloat();
+            newParameters.IterationFactor = iterationFactor.GetFloat();
 
-        if (_currentParameters.NumIterations != updated.NumIterations)
+        if (_parameters.NumIterations != newParameters.NumIterations)
             InvalidateTextureCache();
 
-        _currentParameters = updated;
-        _isEnabledInternally = true;
+        _parameters = newParameters;
     }
 
     public override void Update(SharedRenderPassState sharedState)
     {
-        base.Update(sharedState);
-
-        var nextHdr = sharedState.RenderBufferManager?.IsHDR ?? false;
-        if (_isHdr != nextHdr)
+        var isHdr = sharedState.RenderBufferManager!.IsHDR;
+        if (_isHdr != isHdr)
         {
-            _isHdr = nextHdr;
+            _isHdr = isHdr;
             InvalidateTextureCache();
         }
 
@@ -784,222 +784,238 @@ public sealed class BloomPass : RenderPass
 
     public override void Render(SharedRenderPassState sharedState)
     {
-        base.Render(sharedState);
+        RestorePipelineStateCache(sharedState);
+        var renderBufferManager = sharedState.RenderBufferManager!;
 
-        if (sharedState.RenderBufferManager is not { } renderBufferManager)
-            return;
-
-        var graphics = GetSubsystem<Graphics>()!;
-
-        RestoreTextureCache(sharedState);
-        if (_textures.Count == 0)
-            return;
-
-        var luminanceWeights = renderBufferManager.IsLinearColorSpace ? LinearLuminanceWeights : GammaLuminanceWeights;
+        _luminanceWeights = renderBufferManager.IsLinearColorSpace
+            ? Color.LuminosityLinear.ToVector3()
+            : Color.LuminosityGamma.ToVector3();
 
         renderBufferManager.SwapColorBuffers(synchronizeContents: false);
 
-        var numIterations = GatherBrightRegions(renderBufferManager, graphics, _textures[0].Final, luminanceWeights);
+        var numIterations = GatherBrightRegions(renderBufferManager, _textures[0].Final!);
         for (var i = 0; i < numIterations; ++i)
         {
             if (i > 0)
-                CopyTexture(renderBufferManager, graphics, _textures[i - 1].Final, _textures[i].Final);
-
-            BlurTexture(renderBufferManager, graphics, _textures[i].Final, _textures[i].Temporary, luminanceWeights);
+                CopyTexture(renderBufferManager, _textures[i - 1].Final!, _textures[i].Final!);
+            BlurTexture(renderBufferManager, _textures[i].Final!, _textures[i].Temporary!);
         }
 
         _intensityMultipliers.Clear();
-        var totalIntensity = 0.0f;
         for (var i = 0; i < numIterations; ++i)
-        {
-            var intensity = MathF.Pow(_currentParameters.IterationFactor, i);
-            _intensityMultipliers.Add(intensity);
-            totalIntensity += intensity;
-        }
-
-        if (totalIntensity <= MathDefs.Epsilon)
-            totalIntensity = 1.0f;
+            _intensityMultipliers.Add(MathF.Pow(_parameters.IterationFactor, i));
+        var totalIntensity = 0.0f;
+        for (var i = 0; i < _intensityMultipliers.Count; ++i)
+            totalIntensity += _intensityMultipliers[i];
+        for (var i = 0; i < numIterations; ++i)
+            _intensityMultipliers[i] *= _parameters.Intensity / totalIntensity;
 
         renderBufferManager.SwapColorBuffers(synchronizeContents: false);
         renderBufferManager.SetOutputRenderTargets();
-        for (var i = 0; i < _intensityMultipliers.Count; ++i)
-        {
-            var normalizedIntensity = _intensityMultipliers[i] * _currentParameters.Intensity / totalIntensity;
-            ApplyBloom(renderBufferManager, graphics, _textures[i].Final, normalizedIntensity);
-        }
+        for (var i = 0; i < numIterations; ++i)
+            ApplyBloom(renderBufferManager, _textures[i].Final!, _intensityMultipliers[i]);
     }
 
-    private struct Parameters
+    protected const int MaxIterations = 16;
+
+    protected struct Parameters : IEquatable<Parameters>
     {
-        public int NumIterations = 5;
-        public float MinBrightness = 0.8f;
-        public float MaxBrightness = 1.0f;
-        public float Intensity = 1.0f;
-        public float IterationFactor = 1.0f;
+        public int NumIterations { get; set; } = 5;
+        public float MinBrightness { get; set; } = 0.8f;
+        public float MaxBrightness { get; set; } = 1.0f;
+        public float Intensity { get; set; } = 1.0f;
+        public float IterationFactor { get; set; } = 1.0f;
 
         public Parameters()
         {
         }
+
+        /// <summary>
+        /// Utility operators.
+        /// </summary>
+        public readonly (int, float, float, float, float) Tie()
+        {
+            return (NumIterations, MinBrightness, MaxBrightness, Intensity, IterationFactor);
+        }
+
+        public readonly bool Equals(Parameters other) => Tie() == other.Tie();
+
+        public override readonly bool Equals(object? obj) => obj is Parameters other && Equals(other);
+
+        public override readonly int GetHashCode() => Tie().GetHashCode();
+
+        public static bool operator ==(Parameters left, Parameters right) => left.Tie() == right.Tie();
+
+        public static bool operator !=(Parameters left, Parameters right) => left.Tie() != right.Tie();
     }
 
-    private sealed class TextureCache
-    {
-        public required RenderBuffer Final { get; init; }
-        public required RenderBuffer Temporary { get; init; }
-    }
-
-    private struct BloomParameters
-    {
-        [ShaderParameterName("LuminanceWeights")]
-        public Vector3f LuminanceWeights;
-
-        [ShaderParameterName("Intensity")]
-        public float Intensity;
-
-        [ShaderParameterName("InputInvSize")]
-        public Vector2f InputInvSize;
-
-        [ShaderParameterName("Threshold")]
-        public Vector2f Threshold;
-    }
-
-    private void InvalidateTextureCache()
+    protected void InvalidateTextureCache()
     {
         _textures.Clear();
     }
 
-    private void RestoreTextureCache(SharedRenderPassState sharedState)
+    protected void InvalidatePipelineStateCache()
     {
-        if (_textures.Count > 0 || sharedState.RenderBufferManager is not { } renderBufferManager)
+        _pipelineStates = null;
+    }
+
+    protected void RestoreTextureCache(SharedRenderPassState sharedState)
+    {
+        if (_textures.Count != 0)
             return;
 
-        for (var i = 0; i < _currentParameters.NumIterations; ++i)
+        var renderBufferManager = sharedState.RenderBufferManager!;
+        for (var i = 0; i < _parameters.NumIterations; ++i)
         {
             var format = _isHdr ? TextureFormat.TexFormatRgba16Float : TextureFormat.TexFormatRgba8Unorm;
-            var bufferParams = new RenderBufferParams(format, 1, RenderBufferFlag.BilinearFiltering);
+            var parameters = new RenderBufferParams(format, 1, RenderBufferFlag.BilinearFiltering);
+            // Start scale is 1
+            // It's okay to do it unchecked because render buffers are never smaller than 1x1
             var sizeMultiplier = Vector2f.One / (1 << i);
             _textures.Add(new TextureCache
             {
-                Final = renderBufferManager.CreateColorBuffer(bufferParams, sizeMultiplier),
-                Temporary = renderBufferManager.CreateColorBuffer(bufferParams, sizeMultiplier)
+                Final = renderBufferManager.CreateColorBuffer(parameters, sizeMultiplier),
+                Temporary = renderBufferManager.CreateColorBuffer(parameters, sizeMultiplier)
             });
         }
     }
 
-    private int GatherBrightRegions(RenderBufferManager renderBufferManager, Graphics graphics, RenderBuffer destination, Vector3f luminanceWeights)
+    protected void RestorePipelineStateCache(SharedRenderPassState sharedState)
     {
-        var viewportTexture = renderBufferManager.SecondaryColorTexture;
-        if (viewportTexture is null)
-            return 0;
+        if (_pipelineStates.HasValue)
+            return;
 
-        var viewportTextureSize = viewportTexture.GetParams().Size;
-        var minDimension = Math.Min(viewportTextureSize.X, viewportTextureSize.Y);
-        if (minDimension <= 0)
-            return 0;
+        var renderBufferManager = sharedState.RenderBufferManager!;
+        _pipelineStates = new PipelineStateCache
+        {
+            Bright = renderBufferManager.CreateQuadPipelineState(BlendMode.Replace, "v2/P_Bloom", "BRIGHT", Samplers),
+            BlurH = renderBufferManager.CreateQuadPipelineState(BlendMode.Replace, "v2/P_Bloom", "BLURH", Samplers),
+            BlurV = renderBufferManager.CreateQuadPipelineState(BlendMode.Replace, "v2/P_Bloom", "BLURV", Samplers),
+            Bloom = renderBufferManager.CreateQuadPipelineState(BlendMode.Add, "v2/P_Bloom", "COMBINE", Samplers)
+        };
+    }
 
-        var bloomParameters = CreateBloomParameters(
-            luminanceWeights,
-            intensity: 0.0f,
-            new Vector2f(1.0f / viewportTextureSize.X, 1.0f / viewportTextureSize.Y));
+    protected int GatherBrightRegions(RenderBufferManager renderBufferManager, RenderBuffer destination)
+    {
+        var viewportTexture = renderBufferManager.SecondaryColorTexture!;
+        var inputSize = viewportTexture.GetParams().Size;
+        var inputInvSize = Vector2f.One / new Vector2f(inputSize.X, inputSize.Y);
+
+        _shaderResources[0].Texture = viewportTexture;
+        GetShaderParameters(inputInvSize);
+        var drawParameters = new DrawQuadParams
+        {
+            Resources = _shaderResources,
+            Parameters = _shaderParameters,
+            ClipToUVOffsetAndScale = renderBufferManager.DefaultClipToUVSpaceOffsetAndScale,
+            PipelineStateId = _pipelineStates!.Value.Bright
+        };
 
         renderBufferManager.SetRenderTargets(null, destination);
-        graphics.DrawFullscreenQuad(
-            "Gather bright regions",
-            "P_Bloom",
-            "BRIGHT",
-            BlendMode.Replace,
-            bilinearColorSampler: true,
-            viewportTexture,
-            secondaryTexture: null,
-            depthTexture: null,
-            bloomParameters,
-            renderBufferManager.InvOutputSize,
-            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
+        renderBufferManager.DrawQuad("Gather bright regions", drawParameters);
 
-        var numIterations = 0;
-        while (minDimension > 1 && numIterations < _currentParameters.NumIterations)
-        {
-            minDimension >>= 1;
-            ++numIterations;
-        }
-
-        return Math.Clamp(numIterations, 1, _currentParameters.NumIterations);
+        return Math.Clamp(
+            (int)MathDefs.LogBaseTwo((uint)Math.Min(inputSize.X, inputSize.Y)),
+            1,
+            _parameters.NumIterations);
     }
 
-    private void BlurTexture(RenderBufferManager renderBufferManager, Graphics graphics, RenderBuffer final,
-        RenderBuffer temporary, Vector3f luminanceWeights)
+    protected void BlurTexture(RenderBufferManager renderBufferManager, RenderBuffer final, RenderBuffer temporary)
     {
-        var texture = final.GetTexture()!;
-        var textureSize = texture.GetParams().Size;
-        var invInputSize = new Vector2f(
-            textureSize.X > 0 ? 1.0f / textureSize.X : 0.0f,
-            textureSize.Y > 0 ? 1.0f / textureSize.Y : 0.0f);
+        var inputInvSize = Vector2f.One / final.GetTexture()!.GetParams().Size.ToVector2();
+        GetShaderParameters(inputInvSize);
+        var drawParameters = new DrawQuadParams
+        {
+            Resources = _shaderResources,
+            Parameters = _shaderParameters,
+            ClipToUVOffsetAndScale = renderBufferManager.DefaultClipToUVSpaceOffsetAndScale
+        };
 
-        var bloomParameters = CreateBloomParameters(luminanceWeights, intensity: 0.0f, invInputSize);
-
+        _shaderResources[0].Texture = final.GetTexture();
+        drawParameters.PipelineStateId = _pipelineStates!.Value.BlurH;
         renderBufferManager.SetRenderTargets(null, temporary);
-        graphics.DrawFullscreenQuad(
-            "Blur vertically",
-            "P_Bloom",
-            "BLURH",
-            BlendMode.Replace,
-            bilinearColorSampler: true,
-            texture,
-            secondaryTexture: null,
-            depthTexture: null,
-            bloomParameters,
-            invInputSize,
-            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
+        renderBufferManager.DrawQuad("Blur vertically", drawParameters);
 
+        _shaderResources[0].Texture = temporary.GetTexture();
+        drawParameters.PipelineStateId = _pipelineStates.Value.BlurV;
         renderBufferManager.SetRenderTargets(null, final);
-        graphics.DrawFullscreenQuad(
-            "Blur horizontally",
-            "P_Bloom",
-            "BLURV",
-            BlendMode.Replace,
-            bilinearColorSampler: true,
-            temporary.GetTexture(),
-            secondaryTexture: null,
-            depthTexture: null,
-            bloomParameters,
-            invInputSize,
-            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
+        renderBufferManager.DrawQuad("Blur horizontally", drawParameters);
     }
 
-    private void CopyTexture(RenderBufferManager renderBufferManager, Graphics graphics, RenderBuffer source, RenderBuffer destination)
+    protected void CopyTexture(RenderBufferManager renderBufferManager, RenderBuffer source, RenderBuffer destination)
     {
         renderBufferManager.SetRenderTargets(null, destination);
         renderBufferManager.DrawTexture("Downscale bloom", source.GetTexture()!);
     }
 
-    private void ApplyBloom(RenderBufferManager renderBufferManager, Graphics graphics, RenderBuffer bloom, float intensity)
+    protected void ApplyBloom(RenderBufferManager renderBufferManager, RenderBuffer bloom, float intensity)
     {
-        var bloomParameters = CreateBloomParameters(Vector3f.Zero, intensity, renderBufferManager.InvOutputSize);
-        graphics.DrawFullscreenQuad(
-            "Apply bloom",
-            "P_Bloom",
-            "COMBINE",
-            BlendMode.Add,
-            bilinearColorSampler: true,
-            bloom.GetTexture(),
-            secondaryTexture: null,
-            depthTexture: null,
-            bloomParameters,
-            renderBufferManager.InvOutputSize,
-            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
+        _shaderResources[0].Texture = bloom.GetTexture();
+        SetShaderParameter(_applyParameters, 0, new Variant(_luminanceWeights));
+        SetShaderParameter(_applyParameters, 1, new Variant(intensity));
+        renderBufferManager.DrawViewportQuad(
+            "Apply bloom", _pipelineStates!.Value.Bloom, _shaderResources, _applyParameters);
     }
 
-    private BloomParameters CreateBloomParameters(Vector3f luminanceWeights, float intensity, Vector2f inputInvSize)
+    protected void GetShaderParameters(Vector2f inputInvSize)
     {
-        var thresholdGap = Math.Max(0.01f, _currentParameters.MaxBrightness - _currentParameters.MinBrightness);
-        return new BloomParameters
-        {
-            LuminanceWeights = luminanceWeights,
-            Intensity = intensity,
-            InputInvSize = inputInvSize,
-            Threshold = new Vector2f(_currentParameters.MinBrightness, 1.0f / thresholdGap)
-        };
+        var thresholdGap = Math.Max(0.01f, _parameters.MaxBrightness - _parameters.MinBrightness);
+        SetShaderParameter(_shaderParameters, 0, new Variant(_luminanceWeights));
+        SetShaderParameter(_shaderParameters, 1,
+            new Variant(new Vector2f(_parameters.MinBrightness, 1.0f / thresholdGap)));
+        SetShaderParameter(_shaderParameters, 2, new Variant(inputInvSize));
     }
+
+    protected struct PipelineStateCache
+    {
+        public StaticPipelineStateId Bright { get; set; }
+        public StaticPipelineStateId BlurV { get; set; }
+        public StaticPipelineStateId BlurH { get; set; }
+        public StaticPipelineStateId Bloom { get; set; }
+    }
+
+    protected struct TextureCache
+    {
+        public RenderBuffer? Final { get; set; }
+        public RenderBuffer? Temporary { get; set; }
+    }
+
+    private static void SetShaderParameter(ShaderParameterDesc[] parameters, int index, Variant value)
+    {
+        var parameter = parameters[index];
+        var oldValue = parameter.Value;
+        oldValue.Dispose();
+        parameter.Value = value;
+        parameters[index] = parameter;
+    }
+
+    public override void Dispose()
+    {
+        _pipelineStates = null;
+        _textures.Clear();
+        _shaderResources[0].Texture = null;
+        for (var i = 0; i < _shaderParameters.Length; ++i)
+        {
+            var parameter = _shaderParameters[i];
+            parameter.Dispose();
+            _shaderParameters[i] = parameter;
+        }
+        for (var i = 0; i < _applyParameters.Length; ++i)
+        {
+            var parameter = _applyParameters[i];
+            parameter.Dispose();
+            _applyParameters[i] = parameter;
+        }
+        _intensityMultipliers.Clear();
+        base.Dispose();
+    }
+
+    private PipelineStateCache? _pipelineStates;
+    private readonly List<TextureCache> _textures = [];
+    private bool _isHdr;
+    private Parameters _parameters = new();
+    private Vector3f _luminanceWeights;
+    private readonly List<float> _intensityMultipliers = [];
 }
 
 /// <summary>
