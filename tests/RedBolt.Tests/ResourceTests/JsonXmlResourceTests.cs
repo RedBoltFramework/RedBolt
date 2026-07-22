@@ -59,6 +59,26 @@ public sealed class JsonXmlResourceTests
     }
 
     [Fact]
+    public void JSONFile_matches_native_root_ownership_and_archive_exception_boundary()
+    {
+        Assert.True(typeof(JSONFile).IsClass);
+        Assert.False(typeof(JSONFile).IsSealed);
+        Assert.DoesNotContain(typeof(ICloneable), typeof(JSONFile).GetInterfaces());
+
+        var json = new JSONFile();
+        var root = json.Root;
+        Assert.True(json.FromString("{\"value\":1}"));
+        Assert.Same(root, json.Root);
+        Assert.Equal(1, root.Get("value").GetInt());
+
+        Assert.False(json.SaveObjectCallback(_ => throw new ArchiveException("archive failure")));
+        Assert.Throws<ArgumentException>(() => json.SaveObjectCallback(_ => throw new ArgumentException("user failure")));
+
+        json.Dispose();
+        Assert.True(root.IsNull);
+    }
+
+    [Fact]
     public void JSONFile_archive_callbacks_roundtrip_values()
     {
         var json = new JSONFile();
@@ -120,9 +140,32 @@ public sealed class JsonXmlResourceTests
     {
         Assert.True(JSONFile.ParseJSON("{}", out var json));
         json.Set("tags", new JSONValue([new JSONValue("engine"), new JSONValue("rbfx")]));
-        Assert.Equal(2u, json.Get("tags").Size());
+        Assert.Equal(2, json.Get("tags").Size());
         Assert.True(json.Contains("tags"));
         Assert.Contains("engine", json.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void JSONValue_matches_native_copy_lifetime_and_number_equality()
+    {
+        Assert.True(typeof(JSONValue).IsClass);
+        Assert.False(typeof(JSONValue).IsSealed);
+        Assert.Contains(typeof(ICloneable), typeof(JSONValue).GetInterfaces());
+        Assert.Contains(typeof(IDisposable), typeof(JSONValue).GetInterfaces());
+
+        using var source = new JSONValue(new Dictionary<string, JSONValue>
+        {
+            ["nested"] = new JSONValue([new JSONValue("source")])
+        });
+        using var copy = Assert.IsType<JSONValue>(source.Clone());
+        source.Get("nested")[0].Set("changed");
+        Assert.Equal("source", copy.Get("nested")[0].GetString());
+
+        using var signed = new JSONValue(1);
+        using var unsigned = new JSONValue(1u);
+        Assert.Equal(signed, unsigned);
+        Assert.Equal(signed.GetHashCode(), unsigned.GetHashCode());
+        Assert.Same(JSONValue.Empty, source.Get("missing"));
     }
 
     [Fact]

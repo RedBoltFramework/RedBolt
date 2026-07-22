@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
-public sealed class JSONFile : Resource
+public class JSONFile : Resource
 {
     private static readonly JsonSerializerOptions IndentedOptions = new() { WriteIndented = true };
     private static readonly JsonDocumentOptions ResourceParseOptions = new()
@@ -18,7 +18,13 @@ public sealed class JSONFile : Resource
     {
     }
 
-    public JSONValue Root { get; set; } = new();
+    public JSONValue Root { get; } = new();
+
+    public override void Dispose()
+    {
+        Root.Dispose();
+        base.Dispose();
+    }
 
     public static void RegisterObject(Context context)
     {
@@ -29,9 +35,9 @@ public sealed class JSONFile : Resource
     {
         ArgumentNullException.ThrowIfNull(source);
         var dataSize = source.Size;
-        if (dataSize == 0 && !string.IsNullOrEmpty(Name))
+        if (dataSize == 0 && !string.IsNullOrEmpty(source.Name))
         {
-            Log.GetLogger().LogError("Zero sized JSON data in {Name}", Name);
+            Log.GetLogger().LogError("Zero sized JSON data in {Name}", source.Name);
             return false;
         }
 
@@ -39,25 +45,30 @@ public sealed class JSONFile : Resource
         if (source.Read(data) != dataSize)
             return false;
         var text = Encoding.UTF8.GetString(data);
-        if (!ParseResourceJSON(text, out var value))
+        var parsed = ParseResourceJSON(text, out var value);
+        using (value)
         {
-            Log.GetLogger().LogError("Could not parse JSON data from {Name}", Name);
-            return false;
+            if (!parsed)
+            {
+                Log.GetLogger().LogError("Could not parse JSON data from {Name}", source.Name);
+                return false;
+            }
+
+            Root.Set(value);
         }
 
-        Root = value;
         SetMemoryUse(checked((int)dataSize));
         return true;
     }
 
     public bool FromString(string source)
     {
-        if (source.Length == 0 || !ParseResourceJSON(source, out var value))
+        if (source.Length == 0)
             return false;
 
-        Root = value;
-        SetMemoryUse(Encoding.UTF8.GetByteCount(source));
-        return true;
+        var bytes = Encoding.UTF8.GetBytes(source);
+        using var buffer = new MemoryBuffer(bytes);
+        return Load(buffer);
     }
 
     public JSONValue GetRoot() => Root;
@@ -66,8 +77,7 @@ public sealed class JSONFile : Resource
     {
         ArgumentNullException.ThrowIfNull(destination);
         var bytes = Encoding.UTF8.GetBytes(ToString());
-        destination.Write(bytes);
-        return true;
+        return destination.Write(bytes) == bytes.Length;
     }
 
     public bool Save(Serializer destination, string indentation)
@@ -86,12 +96,14 @@ public sealed class JSONFile : Resource
             var archive = new JSONOutputArchive(Context.Instance);
             serializeValue(archive);
             archive.Flush();
-            Root = JSONValue.FromJsonNode(archive.Root);
+            using var value = JSONValue.FromJsonNode(archive.Root);
+            Root.Set(value);
             return true;
         }
-        catch
+        catch (ArchiveException exception)
         {
             Root.Clear();
+            Log.GetLogger().LogError(exception, "Failed to save object to JSON");
             return false;
         }
     }

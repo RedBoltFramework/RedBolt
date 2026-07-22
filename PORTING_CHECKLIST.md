@@ -211,7 +211,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `ResourceRouter` in `ResourceCache.h` / `ResourceCache.cpp` — abstract noncopyable class kind, construction, inherited teardown, mutable identifier aliasing, cache-held pointer identity, routing order, reentrancy guard, and allowed `int` indices reconciled
 - [x] `PListValue` in `PListFile.h` / `PListFile.cpp` — extensible non-POD value owner, CLR-safe active union storage, complete construction/copy/assignment/destruction, recursive container ownership, property getters, equality, and `PListFile` copy-insertion lifetimes reconciled
 - [x] `PListFile` in `PListFile.h` / `PListFile.cpp` — local XML/value RAII, root destruction, copy insertion, native deserializer loading, memory accounting, and diagnostics reconciled
-- [~] `JSONFile.h` / `JSONFile.cpp` — native object-load `ArchiveException` boundary and diagnostics reconciled; complete document ownership, save, construction, and destruction audit remains pending
+- [~] `JSONValue.h` / `JSONValue.cpp` and `JSONFile.h` / `JSONFile.cpp` — extensibility, deep clone construction, recursive child destruction, stable empty/root identity, approved `int` indices/sizes, number equality, source loading, serializer counts, and archive exception boundaries reconciled; variant conversion, JSON archive integration, managed JSON-node compatibility state, and final member/API ordering remain pending
 - [x] C#-only `JSONResource<TValue>` / `JSONResourceBase` — removed with their invented serializer test; native archive-backed resources use `SimpleResource` and no rbfx counterpart or production consumer exists
 
 ## [~] A6. Scene — depends on Resource, Core

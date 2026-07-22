@@ -400,10 +400,11 @@ public sealed class Scene : Serializable
     public bool SaveJSON(Serializer destination, string indentation = "\t")
     {
         ArgumentNullException.ThrowIfNull(destination);
-        var root = new JSONValue();
+        using var json = new JSONFile();
+        using var root = new JSONValue();
         if (!Root.SaveJSON(root))
             return false;
-        var json = new JSONFile { Root = root };
+        json.Root.Set(root);
         if (!json.Save(destination, indentation))
             return false;
 

@@ -521,10 +521,9 @@ public class Node : Serializable
     public bool SaveJSON(Serializer destination, string indentation = "\t")
     {
         ArgumentNullException.ThrowIfNull(destination);
-        var root = new JSONValue();
-        if (!SaveJSON(root))
+        using var json = new JSONFile();
+        if (!SaveJSON(json.Root))
             return false;
-        var json = new JSONFile { Root = root };
         return json.Save(destination, indentation);
     }
 
