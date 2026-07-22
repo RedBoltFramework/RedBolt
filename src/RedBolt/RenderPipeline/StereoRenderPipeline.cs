@@ -586,8 +586,16 @@ public class StereoRenderPipelineView : RenderPipelineView
 
         var depthAndColorTextures = new ShaderResourceDesc[]
         {
-            new(ShaderResources.DepthBuffer, _renderBufferManager.GetDepthStencilTexture()),
-            new(ShaderResources.Emission, _renderBufferManager.GetSecondaryColorTexture()),
+            new()
+            {
+                Name = ShaderResources.DepthBuffer,
+                Texture = _renderBufferManager.GetDepthStencilTexture()
+            },
+            new()
+            {
+                Name = ShaderResources.Emission,
+                Texture = _renderBufferManager.GetSecondaryColorTexture()
+            },
         };
 
         _sceneProcessor.RenderSceneBatches(

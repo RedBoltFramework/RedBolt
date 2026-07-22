@@ -469,7 +469,11 @@ public sealed class RenderBufferManager
             "URHO3D_LINEAR_TO_GAMMA" => _copyLinearToGammaTexturePipelineState,
             _ => _copyTexturePipelineState
         };
-        _copyShaderResources[0] = new ShaderResourceDesc(ShaderResources.Albedo, sourceTexture);
+        _copyShaderResources[0] = new ShaderResourceDesc
+        {
+            Name = ShaderResources.Albedo,
+            Texture = sourceTexture
+        };
         var drawParams = new DrawQuadParams
         {
             PipelineStateId = pipelineStateId,

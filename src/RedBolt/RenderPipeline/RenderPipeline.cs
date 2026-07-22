@@ -645,8 +645,16 @@ public class RenderPipeline : Component
 
             var depthAndColorTextures = new ShaderResourceDesc[]
             {
-                new(ShaderResources.DepthBuffer, canReadDepth ? _renderBufferManager.GetDepthStencilTexture() : null),
-                new(ShaderResources.Emission, _renderBufferManager.GetSecondaryColorTexture()),
+                new()
+                {
+                    Name = ShaderResources.DepthBuffer,
+                    Texture = canReadDepth ? _renderBufferManager.GetDepthStencilTexture() : null
+                },
+                new()
+                {
+                    Name = ShaderResources.Emission,
+                    Texture = _renderBufferManager.GetSecondaryColorTexture()
+                },
             };
 
             if (canReadDepth)

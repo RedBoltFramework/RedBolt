@@ -1182,7 +1182,12 @@ public readonly record struct NamedSamplerStateDesc(string Name, SamplerStateDes
 /// <summary>
 /// Reference to input shader resource. Only textures are supported now.
 /// </summary>
-public readonly record struct ShaderResourceDesc(StringHash Name, Texture? Texture);
+public struct ShaderResourceDesc
+{
+    public StringHash Name { get; set; }
+
+    public Texture? Texture { get; set; }
+}
 
 /// <summary>
 /// Generic description of shader parameter.
