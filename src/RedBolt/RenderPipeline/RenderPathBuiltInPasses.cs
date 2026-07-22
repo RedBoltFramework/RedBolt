@@ -255,8 +255,15 @@ public sealed class ToneMappingPass : RenderPass
         [("Albedo", SamplerStateDesc.Bilinear())];
     private static readonly ShaderResourceDesc[] EmptyResources = [];
     private static readonly ShaderParameterDesc[] EmptyParameters = [];
-    private StaticPipelineStateId? _pipelineState;
-    private Mode _mode;
+
+    public enum Mode
+    {
+        None,
+        Reinhard,
+        ReinhardWhite,
+        Uncharted2,
+        Count
+    }
 
     public ToneMappingPass()
     {
@@ -271,7 +278,6 @@ public sealed class ToneMappingPass : RenderPass
 
     public override void CollectParameters(StringVariantMap parameters)
     {
-        ArgumentNullException.ThrowIfNull(parameters);
         DeclareParameter(ModeName, (int)Mode.None, parameters);
         using var modeMetadata = new Variant(ModeMetadata);
         DeclareParameter(ModeMetadataName, modeMetadata, parameters);
@@ -283,9 +289,6 @@ public sealed class ToneMappingPass : RenderPass
 
     public override void UpdateParameters(RenderPipelineSettings settings, StringVariantMap parameters)
     {
-        ArgumentNullException.ThrowIfNull(settings);
-        ArgumentNullException.ThrowIfNull(parameters);
-
         if (settings.RenderBufferManager.ColorSpace != RenderPipelineColorSpace.LinearHDR)
         {
             _isEnabledInternally = false;
@@ -308,56 +311,52 @@ public sealed class ToneMappingPass : RenderPass
 
     public override void Render(SharedRenderPassState sharedState)
     {
-        if (sharedState.RenderBufferManager is not { } renderBufferManager)
-            return;
-
         RestoreCache(sharedState);
+        var renderBufferManager = sharedState.RenderBufferManager!;
         renderBufferManager.SwapColorBuffers(synchronizeContents: false);
         renderBufferManager.SetOutputRenderTargets();
         renderBufferManager.DrawFeedbackViewportQuad(
             "Apply tone mapping",
-            _pipelineState!.Value,
+            _pipelineStates!.Value.Default,
             EmptyResources,
             EmptyParameters);
     }
 
-    private enum Mode
+    private void InvalidateCache()
     {
-        None,
-        Reinhard,
-        ReinhardWhite,
-        Uncharted2,
-        Count
+        _pipelineStates = null;
     }
 
-    private static string GetModeDefines(Mode mode)
+    private void RestoreCache(SharedRenderPassState sharedState)
     {
-        return mode switch
+        if (_pipelineStates.HasValue)
+            return;
+
+        var renderBufferManager = sharedState.RenderBufferManager!;
+        var defines = _mode switch
         {
             Mode.Reinhard => "REINHARD ",
             Mode.ReinhardWhite => "REINHARDWHITE ",
             Mode.Uncharted2 => "UNCHARTED2 ",
             _ => string.Empty
         };
+        _pipelineStates = new PipelineStateCache
+        {
+            Default = renderBufferManager.CreateQuadPipelineState(
+                BlendMode.Replace,
+                "v2/P_ToneMapping",
+                defines,
+                Samplers)
+        };
     }
 
-    private void InvalidateCache()
+    private struct PipelineStateCache
     {
-        _pipelineState = null;
+        public StaticPipelineStateId Default { get; set; }
     }
 
-    private void RestoreCache(SharedRenderPassState sharedState)
-    {
-        if (_pipelineState.HasValue || sharedState.RenderBufferManager is not { } renderBufferManager)
-            return;
-
-        _pipelineState = renderBufferManager.CreateQuadPipelineState(
-            BlendMode.Replace,
-            "v2/P_ToneMapping",
-            GetModeDefines(_mode),
-            Samplers);
-    }
-
+    private PipelineStateCache? _pipelineStates;
+    private Mode _mode;
 }
 
 /// <summary>
@@ -470,10 +469,8 @@ public sealed class AutoExposurePass : RenderPass
 
     public override void Render(SharedRenderPassState sharedState)
     {
-        if (sharedState.RenderBufferManager is not { } renderBufferManager)
-            return;
-
         RestorePipelineStateCache(sharedState);
+        var renderBufferManager = sharedState.RenderBufferManager!;
         renderBufferManager.SwapColorBuffers(synchronizeContents: false);
 
         if (_parameters.AutoExposure)
@@ -542,9 +539,10 @@ public sealed class AutoExposurePass : RenderPass
 
     private void RestoreTextureCache(SharedRenderPassState sharedState)
     {
-        if (_textures is not null || sharedState.RenderBufferManager is not { } manager)
+        if (_textures is not null)
             return;
 
+        var manager = sharedState.RenderBufferManager!;
         var textures = new CachedTextures();
         if (!_parameters.AutoExposure)
         {
@@ -564,9 +562,10 @@ public sealed class AutoExposurePass : RenderPass
 
     private void RestorePipelineStateCache(SharedRenderPassState sharedState)
     {
-        if (_pipelineStates.HasValue || sharedState.RenderBufferManager is not { } manager)
+        if (_pipelineStates.HasValue)
             return;
 
+        var manager = sharedState.RenderBufferManager!;
         _pipelineStates = new CachedStates
         {
             Lum64 = manager.CreateQuadPipelineState(BlendMode.Replace, "v2/P_AutoExposure", "LUMINANCE64", LuminanceSamplers),

@@ -186,31 +186,33 @@ public sealed class RenderPathTests
     [Fact]
     public void Tone_mapping_invalidates_pipeline_state_only_for_native_parameter_type_changes()
     {
-        var pass = new ToneMappingPass();
-        var pipelineState = typeof(ToneMappingPass).GetField(
-            "_pipelineState", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        using var pass = new ToneMappingPass();
+        var pipelineStates = typeof(ToneMappingPass).GetField(
+            "_pipelineStates", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        var pipelineStateCache = typeof(ToneMappingPass).GetNestedType(
+            "PipelineStateCache", System.Reflection.BindingFlags.NonPublic)!;
         var settings = new RenderPipelineSettings();
         var renderBufferManager = settings.RenderBufferManager;
         renderBufferManager.ColorSpace = RenderPipelineColorSpace.LinearHDR;
         settings.RenderBufferManager = renderBufferManager;
 
-        pipelineState.SetValue(pass, (StaticPipelineStateId)1);
+        pipelineStates.SetValue(pass, Activator.CreateInstance(pipelineStateCache));
         using var mode = new Variant(1);
         using var parameters = new StringVariantMap { ["Tone Mapping: Mode"] = mode };
         pass.UpdateParameters(settings, parameters);
-        Assert.Null(pipelineState.GetValue(pass));
+        Assert.Null(pipelineStates.GetValue(pass));
 
-        pipelineState.SetValue(pass, (StaticPipelineStateId)1);
+        pipelineStates.SetValue(pass, Activator.CreateInstance(pipelineStateCache));
         using var wrongTypeMode = new Variant(2.0f);
         using var wrongTypeParameters = new StringVariantMap { ["Tone Mapping: Mode"] = wrongTypeMode };
         pass.UpdateParameters(settings, wrongTypeParameters);
-        Assert.NotNull(pipelineState.GetValue(pass));
+        Assert.NotNull(pipelineStates.GetValue(pass));
 
         renderBufferManager = settings.RenderBufferManager;
         renderBufferManager.ColorSpace = RenderPipelineColorSpace.GammaLDR;
         settings.RenderBufferManager = renderBufferManager;
         pass.UpdateParameters(settings, parameters);
-        Assert.Null(pipelineState.GetValue(pass));
+        Assert.Null(pipelineStates.GetValue(pass));
     }
 
     [Fact]

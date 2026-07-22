@@ -81,6 +81,14 @@ public sealed class RenderPipelineInterfaceTests(GraphicsEngineFixture fixture)
         }
     }
 
+    [Fact]
+    public void Tone_mapping_cache_matches_native_value_shape()
+    {
+        Assert.True(typeof(ToneMappingPass.Mode).IsPublic || typeof(ToneMappingPass.Mode).IsNestedPublic);
+        Assert.True(typeof(ToneMappingPass).GetNestedType("PipelineStateCache",
+            System.Reflection.BindingFlags.NonPublic)!.IsValueType);
+    }
+
     private sealed class TrackingRenderPipelineView(RenderPipeline renderPipeline) : RenderPipelineView(renderPipeline)
     {
         private RenderPipelineStats _stats;
