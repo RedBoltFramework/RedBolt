@@ -250,26 +250,19 @@ public class DrawableProcessor : Object
 
     public IReadOnlyList<Light?> Lights => _lights;
 
-    public Light? GetLight(uint lightIndex) =>
-        lightIndex < (uint)_lights.Count ? _lights[(int)lightIndex] : null;
+    public Light? GetLight(int lightIndex) => _lights[lightIndex];
 
     public IReadOnlyList<LightProcessor?> LightProcessors => _lightProcessors;
 
     public IReadOnlyList<LightProcessor?> LightProcessorsByShadowMap => _lightProcessorsByShadowMapTexture;
 
-    public LightProcessor? GetLightProcessor(uint lightIndex) =>
-        lightIndex < (uint)_lightProcessors.Count ? _lightProcessors[(int)lightIndex] : null;
+    public LightProcessor? GetLightProcessor(int lightIndex) => _lightProcessors[lightIndex];
 
-    public ref readonly LightAccumulator GetGeometryLighting(uint drawableIndex) =>
-        ref _geometryLighting[checked((int)drawableIndex)];
+    public ref readonly LightAccumulator GetGeometryLighting(int drawableIndex) => ref _geometryLighting[drawableIndex];
 
-    public GeometryRenderFlag GetGeometryRenderFlags(uint drawableIndex) => drawableIndex < (uint)_geometryRenderFlags.Length
-        ? _geometryRenderFlags[(int)drawableIndex]
-        : default;
+    public GeometryRenderFlag GetGeometryRenderFlags(int drawableIndex) => _geometryRenderFlags[drawableIndex];
 
-    public FloatRange GetGeometryZRange(uint drawableIndex) => drawableIndex < (uint)_geometryZRanges.Length
-        ? _geometryZRanges[(int)drawableIndex]
-        : default;
+    public FloatRange GetGeometryZRange(int drawableIndex) => _geometryZRanges[drawableIndex];
 
     public void OnUpdateBegin(FrameInfo frameInfo)
     {
@@ -463,7 +456,7 @@ public class DrawableProcessor : Object
 
         foreach (var geometry in litGeometries)
         {
-            var drawableIndex = geometry.GetDrawableIndex();
+            var drawableIndex = checked((int)geometry.GetDrawableIndex());
 
             // Directional light doesn't filter out e.g. deferred lit geometries for shadow focusing
             if (lightType == LightType.Directional)
@@ -487,7 +480,7 @@ public class DrawableProcessor : Object
         {
             if (drawable is null)
                 continue;
-            var drawableIndex = drawable.GetDrawableIndex();
+            var drawableIndex = checked((int)drawable.GetDrawableIndex());
             var flags = GetGeometryRenderFlags(drawableIndex);
             if ((flags & GeometryRenderFlag.ForwardLit) != 0)
             {
@@ -787,7 +780,7 @@ public class DrawableProcessor : Object
 
             // Queue shadow caster if it's visible
             var lightSpaceBoundingBox = drawable.GetWorldBoundingBox().Transformed(worldToLightSpace);
-            var isDrawableVisible = (GetGeometryRenderFlags(drawable.GetDrawableIndex())
+            var isDrawableVisible = (GetGeometryRenderFlags(checked((int)drawable.GetDrawableIndex()))
                 & GeometryRenderFlag.VisibleInCullCamera) != 0;
             if (isDrawableVisible
                 || IsShadowCasterVisible(lightSpaceBoundingBox, shadowCamera, lightSpaceFrustum, lightSpaceFrustumBoundingBox))

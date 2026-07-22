@@ -135,7 +135,7 @@ public class BatchRenderer : Object
 
             var sourceBatch = pipelineBatch.GetSourceBatch();
             if (objectParameterBuilder.IsAmbientEnabled())
-                objectParameterBuilder.SetBatchAmbient(_drawableProcessor!.GetGeometryLighting(checked((uint)pipelineBatch.DrawableIndex)));
+                objectParameterBuilder.SetBatchAmbient(_drawableProcessor!.GetGeometryLighting(pipelineBatch.DrawableIndex));
 
             var numWorldTransforms = checked((int)sourceBatch.NumWorldTransforms);
             for (var i = 0; i < numWorldTransforms; ++i)
@@ -165,7 +165,7 @@ public class BatchRenderer : Object
 
             var sourceBatch = pipelineBatch.GetSourceBatch();
             if (objectParameterBuilder.IsAmbientEnabled())
-                objectParameterBuilder.SetBatchAmbient(_drawableProcessor!.GetGeometryLighting(checked((uint)pipelineBatch.DrawableIndex)));
+                objectParameterBuilder.SetBatchAmbient(_drawableProcessor!.GetGeometryLighting(pipelineBatch.DrawableIndex));
 
             var numWorldTransforms = checked((int)sourceBatch.NumWorldTransforms);
             for (var i = 0; i < numWorldTransforms; ++i)

@@ -310,7 +310,7 @@ public class ShadowSplitProcessor : IDisposable
         var litGeometriesBox = new BoundingBox();
         foreach (var drawable in litGeometries)
         {
-            var geometryZRange = drawableProcessor.GetGeometryZRange(drawable.GetDrawableIndex());
+            var geometryZRange = drawableProcessor.GetGeometryZRange(checked((int)drawable.GetDrawableIndex()));
             if (geometryZRange.Intersect(_cascadeZRange))
                 litGeometriesBox.Merge(drawable.GetWorldBoundingBox());
         }

@@ -55,7 +55,7 @@ public class PointLightGeometryQuery : SphereOctreeQuery
 
     private LightGeometryQueryResult IsLitOrShadowCaster(Drawable drawable, bool inside)
     {
-        var drawableIndex = drawable.GetDrawableIndex();
+        var drawableIndex = checked((int)drawable.GetDrawableIndex());
         var geometryFlags = _drawableProcessor.GetGeometryRenderFlags(drawableIndex);
 
         var isInside = (drawable.GetDrawableFlags() & DrawableFlags) != 0
@@ -128,7 +128,7 @@ public class SpotLightGeometryQuery : FrustumOctreeQuery
 
     private LightGeometryQueryResult IsLitOrShadowCaster(Drawable drawable, bool inside)
     {
-        var drawableIndex = drawable.GetDrawableIndex();
+        var drawableIndex = checked((int)drawable.GetDrawableIndex());
         var geometryFlags = _drawableProcessor.GetGeometryRenderFlags(drawableIndex);
 
         var isInside = (drawable.GetDrawableFlags() & DrawableFlags) != 0

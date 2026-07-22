@@ -221,7 +221,7 @@ public class LightProcessor : IDisposable
                 var lightMask = Light.GetLightMask();
                 foreach (var drawable in drawableProcessor.Geometries)
                 {
-                    var drawableIndex = drawable.GetDrawableIndex();
+                    var drawableIndex = checked((int)drawable.GetDrawableIndex());
                     var flags = drawableProcessor.GetGeometryRenderFlags(drawableIndex);
                     var isLit = (flags & GeometryRenderFlag.Lit) != 0;
                     var isForwardLit = (flags & GeometryRenderFlag.ForwardLit) != 0;

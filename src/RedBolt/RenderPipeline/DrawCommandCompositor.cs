@@ -700,7 +700,7 @@ internal ref struct DrawCommandCompositor
 
         ref readonly var lightAccumulator = ref Unsafe.NullRef<LightAccumulator>();
         if (_enabled.AmbientLighting || _enabled.VertexLighting)
-            lightAccumulator = ref _drawableProcessor.GetGeometryLighting(checked((uint)pipelineBatch.DrawableIndex));
+            lightAccumulator = ref _drawableProcessor.GetGeometryLighting(pipelineBatch.DrawableIndex);
 
         // Update dirty flags and cached state.
         CheckDirtyCommonState(pipelineBatch);

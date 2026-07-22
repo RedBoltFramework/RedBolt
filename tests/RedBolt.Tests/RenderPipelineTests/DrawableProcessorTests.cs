@@ -162,6 +162,11 @@ public sealed class DrawableProcessorTests
         Assert.NotNull(type.GetProperty(nameof(DrawableProcessor.Lights)));
         Assert.NotNull(type.GetProperty(nameof(DrawableProcessor.LightProcessors)));
         Assert.NotNull(type.GetProperty(nameof(DrawableProcessor.LightProcessorsByShadowMap)));
+        Assert.Equal(typeof(int), type.GetMethod(nameof(DrawableProcessor.GetLight))!.GetParameters()[0].ParameterType);
+        Assert.Equal(typeof(int), type.GetMethod(nameof(DrawableProcessor.GetLightProcessor))!.GetParameters()[0].ParameterType);
+        Assert.Equal(typeof(int), type.GetMethod(nameof(DrawableProcessor.GetGeometryLighting))!.GetParameters()[0].ParameterType);
+        Assert.Equal(typeof(int), type.GetMethod(nameof(DrawableProcessor.GetGeometryRenderFlags))!.GetParameters()[0].ParameterType);
+        Assert.Equal(typeof(int), type.GetMethod(nameof(DrawableProcessor.GetGeometryZRange))!.GetParameters()[0].ParameterType);
     }
 
     [Fact]
