@@ -230,7 +230,7 @@ public class ShadowSplitProcessor : IDisposable
     /// <summary>Return values are valid after shadow map is finalized.</summary>
     public Matrix4 GetWorldToShadowSpaceMatrix(float subPixelOffset)
     {
-        if (_shadowMap.IsEmpty)
+        if (!(bool)_shadowMap)
             return Matrix4.Identity;
 
         var viewport = _shadowMap.Rect;

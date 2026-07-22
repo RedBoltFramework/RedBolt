@@ -291,7 +291,7 @@ public class LightProcessor : IDisposable
         if (_numActiveSplits > 0)
         {
             _shadowMap = callback.AllocateTransientShadowMap(_shadowMapSize);
-            if (_shadowMap.IsEmpty)
+            if (!(bool)_shadowMap)
                 _numActiveSplits = 0;
             else
             {
@@ -444,7 +444,7 @@ public class LightProcessor : IDisposable
         }
 
         // Skip the rest if no shadow
-        if (_shadowMap.IsEmpty)
+        if (!(bool)_shadowMap)
             return;
 
         // Add subpixel offset if PCF kernel is even

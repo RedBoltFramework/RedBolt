@@ -356,25 +356,34 @@ public struct DrawQuadParams
 /// <summary>
 /// Region of shadow map that contains one or more shadow split.
 /// </summary>
-public readonly record struct ShadowMapRegion(uint PageIndex, Texture2D? Texture, IntRect Rect)
+public struct ShadowMapRegion
 {
+    public int PageIndex { get; set; }
+
+    public Texture2D? Texture { get; set; }
+
+    public IntRect Rect { get; set; }
+
     /// <summary>
-    /// Return shadow map region for one split.
+    /// Return whether the shadow map region is not empty.
     /// </summary>
-    public ShadowMapRegion GetSplit(int split, Vector2i numSplits)
+    public static implicit operator bool(ShadowMapRegion region) => region.Texture is not null;
+
+    /// <summary>
+    /// Return sub-region for split.
+    /// Splits are indexed as elements in rectangle grid, from left to right, top to bottom, row-major.
+    /// </summary>
+    public readonly ShadowMapRegion GetSplit(int split, Vector2i numSplits)
     {
         var splitSize = new Vector2i(Rect.Width / numSplits.X, Rect.Height / numSplits.Y);
         System.Diagnostics.Debug.Assert(splitSize.X * numSplits.X == Rect.Width);
         System.Diagnostics.Debug.Assert(splitSize.Y * numSplits.Y == Rect.Height);
         var splitIndex = new Vector2i(split % numSplits.X, split / numSplits.X);
         var splitBegin = Rect.Min + splitIndex * splitSize;
-        return this with { Rect = new IntRect(splitBegin, splitBegin + splitSize) };
+        var splitShadowMap = this;
+        splitShadowMap.Rect = new IntRect(splitBegin, splitBegin + splitSize);
+        return splitShadowMap;
     }
-
-    /// <summary>
-    /// Return whether the shadow map region is not empty.
-    /// </summary>
-    public bool IsEmpty => Texture is null;
 }
 
 /// <summary>

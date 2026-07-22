@@ -7,7 +7,7 @@ public sealed class ShadowMapAllocator : Object
 {
     private sealed class AtlasPage
     {
-        public uint Index;
+        public int Index;
         public Texture2D? Texture;
         public readonly AreaAllocator AreaAllocator = new();
         public bool ClearBeforeRendering;
@@ -20,7 +20,12 @@ public sealed class ShadowMapAllocator : Object
                 return default;
 
             ClearBeforeRendering = true;
-            return new ShadowMapRegion(Index, Texture, new IntRect(x, y, x + size.X, y + size.Y));
+            return new ShadowMapRegion
+            {
+                PageIndex = Index,
+                Texture = Texture,
+                Rect = new IntRect(x, y, x + size.X, y + size.Y)
+            };
         }
     }
 
@@ -78,7 +83,7 @@ public sealed class ShadowMapAllocator : Object
         foreach (var page in _pages)
         {
             var region = page.AllocateRegion(size);
-            if (!region.IsEmpty)
+            if (region)
                 return region;
         }
 
@@ -88,14 +93,15 @@ public sealed class ShadowMapAllocator : Object
 
     public bool BeginShadowMapRendering(ShadowMapRegion region)
     {
-        if (region.IsEmpty || region.PageIndex >= _pages.Count)
+        if (!(bool)region || region.PageIndex >= _pages.Count)
             return false;
 
-        var page = _pages[(int)region.PageIndex];
-        if (page.Texture!.IsDepthStencil())
-            _renderContext.SetRenderTargets(RenderTargetView.Texture(page.Texture), []);
+        var shadowMapTexture = region.Texture!;
+        var page = _pages[region.PageIndex];
+        if (shadowMapTexture.IsDepthStencil())
+            _renderContext.SetRenderTargets(RenderTargetView.Texture(shadowMapTexture), []);
         else
-            _renderContext.SetRenderTargets(RenderTargetView.Texture(_vsmDepthTexture!), [RenderTargetView.Texture(page.Texture)]);
+            _renderContext.SetRenderTargets(RenderTargetView.Texture(_vsmDepthTexture!), [RenderTargetView.Texture(shadowMapTexture)]);
 
         // Clear whole texture if needed (C++ clears flag first, then clears).
         if (page.ClearBeforeRendering)
@@ -149,7 +155,7 @@ public sealed class ShadowMapAllocator : Object
         texture.SetShadowCompare(!_settings.EnableVarianceShadowMaps);
         texture.SetSize(_shadowAtlasSize.X, _shadowAtlasSize.Y, _shadowMapFormat, flags, multiSample);
 
-        var page = new AtlasPage { Index = (uint)_pages.Count, Texture = texture };
+        var page = new AtlasPage { Index = _pages.Count, Texture = texture };
         // C++: Reset(w, h, w, h)
         page.AreaAllocator.Reset(_shadowAtlasSize.X, _shadowAtlasSize.Y, _shadowAtlasSize.X, _shadowAtlasSize.Y);
         _pages.Add(page);
