@@ -341,6 +341,28 @@ public sealed class ImageTests
     }
 
     [Fact]
+    public void Repo_backed_pvrtc_dds_decompresses_all_mip_levels()
+    {
+        var image = new Image();
+
+        Assert.True(image.LoadFile(new FileIdentifier(Path.Combine(
+            RbfxTestData.Data, "Textures", "Formats", "PTC2.dds"))));
+        Assert.Equal(EmulatedTextureFormat.PvrtcRgba2Bpp, image.CompressedFormat);
+        Assert.Equal(7, image.NumCompressedLevels);
+
+        for (var level = 0; level < image.NumCompressedLevels; ++level)
+        {
+            var compressedLevel = image.GetCompressedLevel(level);
+            Assert.True(compressedLevel.DataSize >= 32);
+
+            var decompressedLevel = image.GetDecompressedImageLevel(level);
+            Assert.NotNull(decompressedLevel);
+            Assert.Equal(compressedLevel.Width * compressedLevel.Height * 4,
+                decompressedLevel!.GetData().Length);
+        }
+    }
+
+    [Fact]
     public void Dds_dxgi_rgba16_unorm_preserves_native_texture_format_and_data()
     {
         var dds = new byte[148 + 8];

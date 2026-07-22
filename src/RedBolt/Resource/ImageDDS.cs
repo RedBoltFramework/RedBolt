@@ -415,6 +415,14 @@ public static class ImageDds
         var formatInfo = RenderAPIUtils.GetTextureFormatInfo(format);
         var widthInBlocks = (width + formatInfo.BlockWidth - 1) / formatInfo.BlockWidth;
         var heightInBlocks = (height + formatInfo.BlockHeight - 1) / formatInfo.BlockHeight;
+        if (format == EmulatedTextureFormat.PvrtcRgb2Bpp
+            || format == EmulatedTextureFormat.PvrtcRgba2Bpp
+            || format == EmulatedTextureFormat.PvrtcRgb4Bpp
+            || format == EmulatedTextureFormat.PvrtcRgba4Bpp)
+        {
+            widthInBlocks = Math.Max(2, widthInBlocks);
+            heightInBlocks = Math.Max(2, heightInBlocks);
+        }
         return checked(formatInfo.GetElementSize() * widthInBlocks * heightInBlocks * depth);
     }
 
