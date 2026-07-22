@@ -3,9 +3,9 @@ namespace RedBolt;
 /// <summary>Result of light query for drawable.</summary>
 public struct LightGeometryQueryResult
 {
-    public bool IsLit;
-    public bool IsForwardLit;
-    public bool IsShadowCaster;
+    public bool IsLit { get; set; }
+    public bool IsForwardLit { get; set; }
+    public bool IsShadowCaster { get; set; }
 }
 
 /// <summary>Frustum query for point light forward lit geometries and shadow casters.</summary>
@@ -27,7 +27,7 @@ public class PointLightGeometryQuery : SphereOctreeQuery
         DrawableProcessor drawableProcessor, Light light, uint primaryViewMask, uint shadowViewMask)
         : base(result, GetLightSphere(light), DrawableFlags.Geometry, primaryViewMask | shadowViewMask)
     {
-        _drawableProcessor = drawableProcessor ?? throw new ArgumentNullException(nameof(drawableProcessor));
+        _drawableProcessor = drawableProcessor;
         _lightMask = light.GetLightMaskEffective();
         _shadowViewMask = shadowViewMask;
         _shadowCasters = shadowCasters;
@@ -100,7 +100,7 @@ public class SpotLightGeometryQuery : FrustumOctreeQuery
         DrawableProcessor drawableProcessor, Light light, uint primaryViewMask, uint shadowViewMask)
         : base(result, light.GetFrustum(), DrawableFlags.Geometry, primaryViewMask | shadowViewMask)
     {
-        _drawableProcessor = drawableProcessor ?? throw new ArgumentNullException(nameof(drawableProcessor));
+        _drawableProcessor = drawableProcessor;
         _lightMask = light.GetLightMaskEffective();
         _shadowViewMask = shadowViewMask;
         _shadowCasters = shadowCasters;
