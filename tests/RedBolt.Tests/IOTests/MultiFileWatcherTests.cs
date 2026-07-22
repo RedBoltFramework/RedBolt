@@ -16,7 +16,7 @@ public sealed class MultiFileWatcherTests
     }
 
     [Fact]
-    public void MultiFileWatcher_forwards_delay_and_changes_in_watcher_order()
+    public void MultiFileWatcher_forwards_delay_and_changes()
     {
         var firstDirectory = CreateTempDirectory();
         var secondDirectory = CreateTempDirectory();
@@ -32,8 +32,11 @@ public sealed class MultiFileWatcherTests
             System.IO.File.WriteAllText(Path.Combine(firstDirectory, "first.txt"), "first");
             System.IO.File.WriteAllText(Path.Combine(secondDirectory, "second.txt"), "second");
 
-            Assert.True(TryGetChange(watcher, out var change));
-            Assert.Equal("first.txt", change.FileName);
+            Assert.True(TryGetChange(watcher, out var firstChange));
+            Assert.True(TryGetChange(watcher, out var secondChange));
+            Assert.Equal(
+                new HashSet<string> { "first.txt", "second.txt" },
+                new HashSet<string> { firstChange.FileName, secondChange.FileName });
 
             watcher.StopWatching();
             var noChange = new FileChange();

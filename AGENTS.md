@@ -278,6 +278,7 @@ Native dependencies (SDL, Diligent, Dear ImGui) are accessed through generated b
 These are the ONLY places C# is allowed to differ from C++:
 
 - RefCounted / SharedPtr / WeakPtr are dropped ON PURPOSE. They must NOT exist.
+- ResourceCache cannot observe external CLR references after the removal of intrusive reference counting. Its release methods therefore treat cached resources as releasable when `force` is false; managed references remain valid after cache eviction. `force` is retained for API parity and skips the native cross-type retry passes when true.
 - SubscribeToEvent / SendEvent are upgraded to the new struct-based event format.
 - CommandLineParser is used instead of CLI11.
 - WorkQueue is rebuilt using a thread-pool.

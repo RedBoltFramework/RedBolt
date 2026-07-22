@@ -498,11 +498,10 @@ public sealed class ResourceCache : Object
         return GetCanonicalIdentifier(FileIdentifier.FromUri(name)).ToUri();
     }
 
-    public void ReleaseResource<T>(string name)
+    public void ReleaseResource<T>(string name, bool force = false)
         where T : Resource
     {
-        RemoveCachedResource((typeof(T), name));
-        UpdateResourceGroup(typeof(T));
+        ReleaseResource(new StringHash(typeof(T).GetClassName()), name, force);
     }
 
     public void ReleaseResource(StringHash type, string name, bool force = false)
@@ -511,35 +510,41 @@ public sealed class ResourceCache : Object
         if (resourceType is null)
             return;
 
-        RemoveCachedResource((resourceType, SanitateResourceName(name)));
+        var nameHash = new StringHash(name);
+        var existingResource = FindSpecificResource(resourceType, nameHash);
+        if (existingResource is null)
+            return;
+
+        RemoveCachedResource((resourceType, existingResource.Name));
         UpdateResourceGroup(resourceType);
     }
 
     public void ReleaseResource(string resourceName, bool force = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(resourceName);
-        var keys = _cache.Keys
-            .Where(key => string.Equals(key.Name, resourceName, StringComparison.Ordinal))
-            .ToArray();
-        var affectedTypes = new HashSet<Type>();
-        foreach (var key in keys)
+        var nameHash = new StringHash(resourceName);
+        bool released;
+        do
         {
-            RemoveCachedResource(key);
-            affectedTypes.Add(key.Type);
-        }
-        foreach (var type in affectedTypes)
-            UpdateResourceGroup(type);
+            released = false;
+
+            foreach (var (type, group) in _resourceGroups)
+            {
+                if (group.Resources.TryGetValue(nameHash, out var resource))
+                {
+                    RemoveCachedResource((type, resource.Name));
+                    released = true;
+                }
+                if (released)
+                    UpdateResourceGroup(type);
+            }
+        } while (released && !force);
     }
 
     public void ReleaseResources<T>(bool force = false)
         where T : Resource
     {
-        var keys = _cache.Keys
-            .Where(static key => key.Type == typeof(T))
-            .ToArray();
-        foreach (var key in keys)
-            RemoveCachedResource(key);
-        UpdateResourceGroup(typeof(T));
+        ReleaseResources(new StringHash(typeof(T).GetClassName()), force);
     }
 
     public void ReleaseResources(StringHash type, bool force = false)
@@ -548,12 +553,18 @@ public sealed class ResourceCache : Object
         if (resourceType is null)
             return;
 
-        var keys = _cache.Keys
-            .Where(key => key.Type == resourceType)
-            .ToArray();
-        foreach (var key in keys)
-            RemoveCachedResource(key);
-        UpdateResourceGroup(resourceType);
+        var released = false;
+        if (_resourceGroups.TryGetValue(resourceType, out var group))
+        {
+            foreach (var resource in group.Resources.Values)
+            {
+                RemoveCachedResource((resourceType, resource.Name));
+                released = true;
+            }
+        }
+
+        if (released)
+            UpdateResourceGroup(resourceType);
     }
 
     public void ReleaseResources(StringHash type, string partialName, bool force = false)
@@ -563,12 +574,21 @@ public sealed class ResourceCache : Object
             return;
 
         ArgumentNullException.ThrowIfNull(partialName);
-        var keys = _cache.Keys
-            .Where(key => key.Type == resourceType && key.Name.Contains(partialName, StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-        foreach (var key in keys)
-            RemoveCachedResource(key);
-        UpdateResourceGroup(resourceType);
+        var released = false;
+        if (_resourceGroups.TryGetValue(resourceType, out var group))
+        {
+            foreach (var resource in group.Resources.Values)
+            {
+                if (!resource.Name.Contains(partialName, StringComparison.Ordinal))
+                    continue;
+
+                RemoveCachedResource((resourceType, resource.Name));
+                released = true;
+            }
+        }
+
+        if (released)
+            UpdateResourceGroup(resourceType);
     }
 
     public bool ReloadResource<T>(string name)
@@ -667,56 +687,70 @@ public sealed class ResourceCache : Object
     public void ReleaseResources<T>(string partialName, bool force = false)
         where T : Resource
     {
-        ArgumentNullException.ThrowIfNull(partialName);
-        var keys = _cache.Keys
-            .Where(key => key.Type == typeof(T) && key.Name.Contains(partialName, StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-        foreach (var key in keys)
-            RemoveCachedResource(key);
-        UpdateResourceGroup(typeof(T));
+        ReleaseResources(new StringHash(typeof(T).GetClassName()), partialName, force);
     }
 
     public void ReleaseResources(string partialName, bool force = false)
     {
         ArgumentNullException.ThrowIfNull(partialName);
-        var keys = _cache.Keys
-            .Where(key => key.Name.Contains(partialName, StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-        var affectedTypes = new HashSet<Type>();
-        foreach (var key in keys)
+        bool released;
+        do
         {
-            RemoveCachedResource(key);
-            affectedTypes.Add(key.Type);
-        }
-        foreach (var type in affectedTypes)
-            UpdateResourceGroup(type);
+            released = false;
+
+            foreach (var (type, group) in _resourceGroups)
+            {
+                foreach (var resource in group.Resources.Values)
+                {
+                    if (!resource.Name.Contains(partialName, StringComparison.Ordinal))
+                        continue;
+
+                    RemoveCachedResource((type, resource.Name));
+                    released = true;
+                }
+                if (released)
+                    UpdateResourceGroup(type);
+            }
+        } while (released && !force);
     }
 
     public void ReleaseAllResources(bool force = false)
     {
-        _cache.Clear();
-        foreach (var group in _resourceGroups.Values)
+        bool released;
+        do
         {
-            group.Resources.Clear();
-            group.MemoryUse = 0;
-        }
+            released = false;
+
+            foreach (var (type, group) in _resourceGroups)
+            {
+                foreach (var resource in group.Resources.Values)
+                {
+                    RemoveCachedResource((type, resource.Name));
+                    released = true;
+                }
+                if (released)
+                    UpdateResourceGroup(type);
+            }
+        } while (released && !force);
     }
 
     public void ReleasePackageResources(PackageFile package, bool force = false)
     {
         ArgumentNullException.ThrowIfNull(package);
-        var packageNameHashes = package.GetEntries().Keys
-            .Select(StringHash.Calculate)
-            .ToHashSet();
-        var keys = _cache
-            .Where(entry => packageNameHashes.Contains(entry.Value.NameHash))
-            .Select(entry => entry.Key)
-            .ToArray();
         var affectedTypes = new HashSet<Type>();
-        foreach (var key in keys)
+        foreach (var entry in package.GetEntries())
         {
-            RemoveCachedResource(key);
-            affectedTypes.Add(key.Type);
+            var nameHash = new StringHash(entry.Key);
+
+            foreach (var (type, group) in _resourceGroups)
+            {
+                if (group.Resources.TryGetValue(nameHash, out var resource))
+                {
+                    RemoveCachedResource((type, resource.Name));
+                    affectedTypes.Add(type);
+                    break;
+                }
+            }
         }
         foreach (var type in affectedTypes)
             UpdateResourceGroup(type);

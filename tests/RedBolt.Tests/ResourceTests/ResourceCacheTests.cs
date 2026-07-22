@@ -200,6 +200,29 @@ public sealed class ResourceCacheTests
     }
 
     [Fact]
+    public void Release_overloads_apply_managed_force_mapping_and_native_case_sensitive_partial_names()
+    {
+        using var cache = new ResourceCache();
+        var upperName = $"Data/Case-{Guid.NewGuid():N}.bin";
+        var lowerName = upperName.Replace("Case-", "case-", StringComparison.Ordinal);
+        var upper = new BinaryFile { Name = upperName };
+        var lower = new BinaryFile { Name = lowerName };
+
+        Assert.True(cache.AddManualResource(upper));
+        Assert.True(cache.AddManualResource(lower));
+
+        cache.ReleaseResources<BinaryFile>("Case-");
+
+        Assert.Null(cache.GetExistingResource<BinaryFile>(upperName));
+        Assert.Equal(upperName, upper.Name);
+        Assert.Same(lower, cache.GetExistingResource<BinaryFile>(lowerName));
+
+        cache.ReleaseResource<BinaryFile>(lowerName, force: true);
+
+        Assert.Null(cache.GetExistingResource<BinaryFile>(lowerName));
+    }
+
+    [Fact]
     public void BackgroundLoad_finishes_successfully()
     {
         var tempDir = CreateTempDir();
