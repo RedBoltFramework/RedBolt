@@ -91,6 +91,7 @@ public sealed class RenderPipelineInterfaceTests(GraphicsEngineFixture fixture)
 
     private sealed class TrackingRenderPipelineView(RenderPipeline renderPipeline) : RenderPipelineView(renderPipeline)
     {
+        private FrameInfo _frameInfo;
         private RenderPipelineStats _stats;
 
         public override bool IsLinearColorSpace => false;
@@ -107,7 +108,7 @@ public sealed class RenderPipelineInterfaceTests(GraphicsEngineFixture fixture)
         {
         }
 
-        public override FrameInfo GetFrameInfo() => default;
+        public override ref readonly FrameInfo GetFrameInfo() => ref _frameInfo;
 
         public override ref readonly RenderPipelineStats GetStats() => ref _stats;
 

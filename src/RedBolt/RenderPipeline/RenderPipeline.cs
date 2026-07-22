@@ -1,27 +1,34 @@
 namespace RedBolt;
 
-using Microsoft.Extensions.Logging;
-
 /// <summary>
 /// Scene component that spawns render pipeline instances.
 /// </summary>
 public class RenderPipeline : Component
 {
-    public const string DefaultRenderPathName = "RenderPaths/Default.renderpath";
+    private static readonly ResourceRef DefaultRenderPath =
+        new(new StringHash(nameof(RenderPath)), "RenderPaths/Default.renderpath");
 
+    /// <summary>Invoked when settings change.</summary>
+    public event Action<RenderPipeline, RenderPipelineSettings>? SettingsChanged;
+
+    /// <summary>Invoked when render path changes.</summary>
+    public event Action<RenderPipeline, RenderPath?>? RenderPathChanged;
+
+    /// <summary>Invoked when render path parameters change.</summary>
+    public event Action<RenderPipeline>? ParametersChanged;
+
+    private RenderPath? _renderPath;
+    private IReadOnlyList<(string Name, bool Enabled)> _renderPasses = [];
     private readonly StringVariantMap _renderPathParameters = new();
     private readonly StringVariantMap _frameShaderParameters = new();
-    private IReadOnlyList<(string Name, bool Enabled)> _renderPasses = [];
-    private RenderPath? _renderPath;
     private RenderPipelineSettings _settings = new();
-    private uint _revision = 1;
 
     [ThreadStatic]
     private static VariantVector? _renderPassesAttributeResult;
 
     public RenderPipeline()
     {
-        SetRenderPathAttr(new ResourceRef(new StringHash(nameof(RenderPath)), DefaultRenderPathName));
+        SetRenderPathAttr(DefaultRenderPath);
 
         // Enable instancing by default for default render pipeline
         var instancingBuffer = _settings.InstancingBuffer;
@@ -35,6 +42,11 @@ public class RenderPipeline : Component
     {
         _frameShaderParameters.Dispose();
         _renderPathParameters.Dispose();
+        _renderPasses = [];
+        _renderPath = null;
+        ParametersChanged = null;
+        RenderPathChanged = null;
+        SettingsChanged = null;
         base.Dispose();
     }
 
@@ -43,9 +55,15 @@ public class RenderPipeline : Component
         context.AddFactoryReflection<RenderPipeline>();
     }
 
-    public RenderPipelineSettings Settings => _settings;
+    public ref readonly RenderPipelineSettings Settings => ref _settings;
 
-    public RenderPath? GetRenderPath() => _renderPath;
+    public void SetSettings(in RenderPipelineSettings settings)
+    {
+        _settings = settings;
+        _settings.Validate();
+        _settings.AdjustToSupported(Context.Instance);
+        MarkSettingsDirty();
+    }
 
     public ResourceRef GetRenderPathAttr() => Resource.GetResourceRef(_renderPath, new StringHash(nameof(RenderPath)));
 
@@ -56,7 +74,30 @@ public class RenderPipeline : Component
             SetRenderPath(cache.GetResourceOrNull<RenderPath>(value.Name));
     }
 
+    public RenderPath? GetRenderPath() => _renderPath;
+
+    public void SetRenderPath(RenderPath? renderPath)
+    {
+        if (_renderPath is not null)
+            UnsubscribeFromEvent<ResourceEvents.ReloadFinished>(_renderPath);
+
+        _renderPath = renderPath;
+        OnRenderPathReloaded();
+
+        if (_renderPath is not null)
+            SubscribeToEvent<ResourceEvents.ReloadFinished>(_renderPath, OnRenderPathReloadFinished);
+    }
+
     public IReadOnlyList<(string Name, bool Enabled)> GetRenderPasses() => _renderPasses;
+
+    public void SetRenderPasses(IReadOnlyList<(string Name, bool Enabled)> renderPasses)
+    {
+        var sourcePasses = new (string Name, bool Enabled)[renderPasses.Count];
+        for (var i = 0; i < renderPasses.Count; ++i)
+            sourcePasses[i] = renderPasses[i];
+        _renderPasses = _renderPath?.RepairEnabledRenderPasses(sourcePasses) ?? sourcePasses;
+        ParametersChanged?.Invoke(this);
+    }
 
     public VariantVector GetRenderPassesAttr()
     {
@@ -72,8 +113,6 @@ public class RenderPipeline : Component
 
     public void SetRenderPassesAttr(VariantVector value)
     {
-        ArgumentNullException.ThrowIfNull(value);
-
         var numPasses = value.Count / 2;
         var renderPasses = new (string Name, bool Enabled)[numPasses];
         for (var i = 0; i < numPasses; ++i)
@@ -83,115 +122,34 @@ public class RenderPipeline : Component
 
     public StringVariantMap GetRenderPathParameters() => _renderPathParameters;
 
+    public void SetRenderPathParameters(StringVariantMap parameters)
+    {
+        if (!ReferenceEquals(parameters, _renderPathParameters))
+        {
+            _renderPathParameters.Clear();
+            foreach (var (name, value) in parameters)
+                _renderPathParameters[name] = value;
+        }
+        ParametersChanged?.Invoke(this);
+    }
+
     public StringVariantMap GetFrameShaderParameters() => _frameShaderParameters;
 
-    public uint Revision => _revision;
-
-    /// <summary>
-    /// Invoked when settings change.
-    /// </summary>
-    public event Action<RenderPipeline, RenderPipelineSettings>? SettingsChanged;
-
-    /// <summary>
-    /// Invoked when render path parameters change.
-    /// </summary>
-    public event Action<RenderPipeline>? ParametersChanged;
-
-    /// <summary>
-    /// Invoked when render path changes.
-    /// </summary>
-    public event Action<RenderPipeline, RenderPath?>? RenderPathChanged;
-
-    public void SetSettings(RenderPipelineSettings settings)
+    public void SetFrameShaderParameters(StringVariantMap parameters)
     {
-        _settings = settings;
-        _settings.Validate();
-        _settings.AdjustToSupported(Context.Instance);
-        MarkSettingsDirty();
-    }
-
-    public void SetRenderPath(RenderPath? renderPath)
-    {
-        if (this._renderPath is not null)
-            UnsubscribeFromEvent<ResourceEvents.ReloadFinished>(this._renderPath);
-
-        this._renderPath = renderPath;
-        OnRenderPathReloaded();
-        if (this._renderPath is not null)
-            SubscribeToEvent<ResourceEvents.ReloadFinished>(this._renderPath, OnRenderPathReloadFinished);
-    }
-
-    public bool SetRenderPath(string resourceName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(resourceName);
-
-        var cache = GetSubsystem<ResourceCache>()!;
-        var loaded = cache.GetResource<RenderPath>(resourceName);
-        SetRenderPath(loaded);
-        return true;
-    }
-
-    public void SetRenderPasses(IEnumerable<(string Name, bool Enabled)> renderPasses)
-    {
-        ArgumentNullException.ThrowIfNull(renderPasses);
-        var sourcePasses = renderPasses.ToArray();
-        this._renderPasses = _renderPath?.RepairEnabledRenderPasses(sourcePasses) ?? sourcePasses;
-        RaiseParametersChanged();
-    }
-
-    /// <summary>
-    /// Update render pass enabled state.
-    /// </summary>
-    public void SetRenderPassEnabled(string passName, bool enabled)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(passName);
-
-        var index = -1;
-        for (var i = 0; i < _renderPasses.Count; ++i)
-        {
-            if (string.Equals(_renderPasses[i].Name, passName, StringComparison.Ordinal))
-            {
-                index = i;
-                break;
-            }
-        }
-
-        if (index < 0)
-        {
-            var updated = new (string Name, bool Enabled)[_renderPasses.Count + 1];
-            for (var i = 0; i < _renderPasses.Count; ++i)
-                updated[i] = _renderPasses[i];
-            updated[^1] = (passName, enabled);
-            this._renderPasses = _renderPath?.RepairEnabledRenderPasses(updated) ?? updated;
-            RaiseParametersChanged();
-            return;
-        }
-
-        if (_renderPasses[index].Enabled == enabled)
+        if (ReferenceEquals(parameters, _frameShaderParameters))
             return;
 
-        var toggledPasses = _renderPasses.ToArray();
-        toggledPasses[index] = (toggledPasses[index].Name, enabled);
-        _renderPasses = toggledPasses;
-        RaiseParametersChanged();
-    }
-
-    public void SetRenderPathParameters(IReadOnlyDictionary<string, Variant> parameters)
-    {
-        ArgumentNullException.ThrowIfNull(parameters);
-        if (ReferenceEquals(parameters, _renderPathParameters))
-            return;
-
-        _renderPathParameters.Clear();
+        _frameShaderParameters.Clear();
         foreach (var (name, value) in parameters)
-            _renderPathParameters[name] = value;
-        RaiseParametersChanged();
+            _frameShaderParameters[name] = value;
     }
 
+    /// <summary>
+    /// Update existing render path parameters.
+    /// </summary>
     public void UpdateRenderPathParameters(VariantMap parameters)
     {
-        ArgumentNullException.ThrowIfNull(parameters);
-
         var modified = false;
         foreach (var (nameHash, newValue) in parameters)
         {
@@ -210,7 +168,7 @@ public class RenderPipeline : Component
         }
 
         if (modified)
-            RaiseParametersChanged();
+            ParametersChanged?.Invoke(this);
     }
 
     /// <summary>
@@ -226,28 +184,56 @@ public class RenderPipeline : Component
             if (currentValue != value)
             {
                 _renderPathParameters[name] = value;
-                RaiseParametersChanged();
+                ParametersChanged?.Invoke(this);
             }
             return;
         }
     }
 
-    public void SetFrameShaderParameters(IReadOnlyDictionary<string, Variant> parameters)
+    /// <summary>
+    /// Update render pass enabled state.
+    /// </summary>
+    public void SetRenderPassEnabled(string passName, bool enabled)
     {
-        ArgumentNullException.ThrowIfNull(parameters);
+        var index = -1;
+        for (var i = 0; i < _renderPasses.Count; ++i)
+        {
+            if (_renderPasses[i].Name == passName)
+            {
+                index = i;
+                break;
+            }
+        }
 
-        if (ReferenceEquals(parameters, _frameShaderParameters))
-            return;
+        var isUpdated = false;
+        if (index < 0)
+        {
+            isUpdated = true;
+            var updated = new (string Name, bool Enabled)[_renderPasses.Count + 1];
+            for (var i = 0; i < _renderPasses.Count; ++i)
+                updated[i] = _renderPasses[i];
+            updated[^1] = (passName, enabled);
+            _renderPasses = _renderPath?.RepairEnabledRenderPasses(updated) ?? updated;
+        }
+        else if (_renderPasses[index].Enabled != enabled)
+        {
+            isUpdated = true;
+            var updated = new (string Name, bool Enabled)[_renderPasses.Count];
+            for (var i = 0; i < _renderPasses.Count; ++i)
+                updated[i] = _renderPasses[i];
+            updated[index] = (updated[index].Name, enabled);
+            _renderPasses = updated;
+        }
 
-        _frameShaderParameters.Clear();
-        foreach (var (name, value) in parameters)
-            _frameShaderParameters[name] = value;
+        if (isUpdated)
+            ParametersChanged?.Invoke(this);
     }
 
+    /// <summary>
+    /// Update existing global parameters.
+    /// </summary>
     public void UpdateFrameShaderParameters(VariantMap parameters)
     {
-        ArgumentNullException.ThrowIfNull(parameters);
-
         foreach (var (nameHash, newValue) in parameters)
         {
             foreach (var name in _frameShaderParameters.Keys)
@@ -281,7 +267,6 @@ public class RenderPipeline : Component
     /// </summary>
     public void SetFrameShaderParameter(string name, Variant value)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         _frameShaderParameters[name] = value;
     }
 
@@ -290,30 +275,6 @@ public class RenderPipeline : Component
     /// </summary>
     public virtual RenderPipelineView Instantiate() => new DefaultRenderPipelineView(this);
 
-    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
-    {
-        base.OnSceneSet(previousScene, scene);
-
-        if (scene is not null)
-            EnsureDefaultRenderPath();
-    }
-
-    private void CollectRenderPathParameters()
-    {
-        if (_renderPath is null)
-            return;
-
-        using var collected = new StringVariantMap();
-        _renderPath.CollectParameters(collected);
-        foreach (var (name, value) in collected)
-        {
-            if (!_renderPathParameters.ContainsKey(name))
-                _renderPathParameters[name] = value;
-        }
-    }
-
-    // OnSettingsChanged(this, settings_);
-    // No PropagateImpliedSettings() call, no revision increment.
     private void MarkSettingsDirty()
     {
         _settings.Validate();
@@ -321,573 +282,18 @@ public class RenderPipeline : Component
         SettingsChanged?.Invoke(this, _settings);
     }
 
-    private void RaiseParametersChanged()
-    {
-        Touch();
-        ParametersChanged?.Invoke(this);
-    }
-
     private void OnRenderPathReloaded()
     {
         if (_renderPath is not null)
         {
-            CollectRenderPathParameters();
+            _renderPath.CollectParameters(_renderPathParameters);
             _renderPasses = _renderPath.RepairEnabledRenderPasses(_renderPasses);
         }
-        Touch();
         RenderPathChanged?.Invoke(this, _renderPath);
     }
 
     private void OnRenderPathReloadFinished(ref ResourceEvents.ReloadFinished eventData)
     {
         OnRenderPathReloaded();
-    }
-
-    private void Touch()
-    {
-        unchecked
-        {
-            ++_revision;
-        }
-    }
-
-    private void EnsureDefaultRenderPath()
-    {
-        if (_renderPath is not null)
-            return;
-
-        var cache = GetSubsystem<ResourceCache>();
-        if (cache?.GetResourceOrNull<RenderPath>(DefaultRenderPathName) is { } defaultRenderPath)
-            SetRenderPath(defaultRenderPath);
-    }
-
-    /// <summary>
-    /// Default implementation of render pipeline instance.
-    /// </summary>
-    private sealed class DefaultRenderPipelineView : RenderPipelineView
-    {
-        private readonly RenderPipeline _renderPipeline;
-        private RenderBufferManager? _renderBufferManager;
-        private ShadowMapAllocator? _shadowMapAllocator;
-        private InstancingBuffer? _instancingBuffer;
-        private SceneProcessor? _sceneProcessor;
-        private UnorderedScenePass? _opaquePass;
-        private UnorderedScenePass? _postOpaquePass;
-        private UnorderedScenePass? _depthPrePass;
-        private BackToFrontScenePass? _alphaPass;
-        private BackToFrontScenePass? _postAlphaPass;
-        private OutlineScenePass? _outlineScenePass;
-        private RenderPipelineStats _stats;
-        private readonly RenderPipelineDebugger _debugger = new();
-        private readonly SharedRenderPassState _sharedState = new();
-        private readonly List<OutlineGroup> _outlineGroups = [];
-        private RenderBuffer? _outlineBuffer;
-        private CommonFrameInfo _frameInfo = new();
-        private RenderPath? _renderPath;
-        private Viewport? _viewport;
-        private RenderSurface? _renderTarget;
-        private uint _syncedRevision;
-        private bool _settingsDirty = true;
-        private bool _parametersDirty = true;
-        private uint _settingsHash;
-        private RenderOutputFlag _renderOutputFlags;
-
-        public DefaultRenderPipelineView(RenderPipeline renderPipeline)
-            : base(renderPipeline)
-        {
-            this._renderPipeline = renderPipeline ?? throw new ArgumentNullException(nameof(renderPipeline));
-        }
-
-        public override RenderPipelineDebugger GetDebugger() => _debugger;
-
-        public override bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics)
-        {
-            ArgumentNullException.ThrowIfNull(viewport);
-            ArgumentNullException.ThrowIfNull(graphics);
-
-            if (_renderPipeline.Node is null || !ReferenceEquals(_renderPipeline.Scene, viewport.GetScene()))
-                return false;
-
-            this._viewport = viewport;
-            _renderTarget = renderTarget;
-            SyncFromPipeline();
-
-            if (_sceneProcessor is null)
-            {
-                _sharedState.RenderPipelineInterface = this;
-                _renderBufferManager = new RenderBufferManager(this);
-                _sharedState.RenderBufferManager = _renderBufferManager;
-                _shadowMapAllocator = new ShadowMapAllocator();
-                _instancingBuffer = new InstancingBuffer();
-                _sceneProcessor = new SceneProcessor(this, "shadow", _shadowMapAllocator, _instancingBuffer);
-
-                var drawableProcessor = _sceneProcessor.GetDrawableProcessor();
-                var pipelineStateBuilder = _sceneProcessor.GetPipelineStateBuilder();
-
-                _opaquePass = new UnorderedScenePass(this, drawableProcessor, pipelineStateBuilder,
-                    DrawableProcessorPassFlag.HasAmbientLighting,
-                    string.Empty, "base", "litbase", "light");
-                _postOpaquePass = new UnorderedScenePass(this, drawableProcessor, pipelineStateBuilder,
-                    DrawableProcessorPassFlag.None, "postopaque");
-                _alphaPass = new BackToFrontScenePass(this, drawableProcessor, pipelineStateBuilder,
-                    DrawableProcessorPassFlag.HasAmbientLighting | DrawableProcessorPassFlag.NeedReadableDepth
-                    | DrawableProcessorPassFlag.RefractionPass | DrawableProcessorPassFlag.ReadOnlyDepth,
-                    string.Empty, "alpha", "alpha", "litalpha");
-                _postAlphaPass = new BackToFrontScenePass(this, drawableProcessor, pipelineStateBuilder,
-                    DrawableProcessorPassFlag.ReadOnlyDepth, "postalpha");
-                _outlineScenePass = new OutlineScenePass(this, drawableProcessor, pipelineStateBuilder,
-                    ["deferred", "deferred_decal", "base", "alpha"]);
-
-                _sceneProcessor.SetPasses(
-                [
-                    _depthPrePass, _opaquePass, null, _postOpaquePass, _alphaPass, _postAlphaPass, _outlineScenePass
-                ]);
-
-                var outlineParams = new RenderBufferParams(TextureFormat.TexFormatRgba8Unorm, 1, RenderBufferFlag.BilinearFiltering);
-                _outlineBuffer = _renderBufferManager.CreateColorBuffer(outlineParams);
-                _outlineBuffer.SetEnabled(false);
-                _sharedState.RenderBuffers[OutlineRenderPass.ColorBufferId] = _outlineBuffer;
-            }
-
-            var viewportRect = viewport.GetEffectiveRect(renderTarget);
-            var engineTime = _renderPipeline.GetSubsystem<Time>();
-            _frameInfo.FrameNumber = engineTime?.FrameNumber ?? 0U;
-            _frameInfo.TimeStep = engineTime?.TimeStep ?? 0.0f;
-            _frameInfo.Viewport = viewport;
-            _frameInfo.ViewportRect = viewportRect;
-            _frameInfo.ViewportSize = viewportRect.Size;
-            _frameInfo.Cameras.First = viewport.GetCamera();
-            _frameInfo.Cameras.Second = viewport.IsStereo() ? viewport.GetEye(1) : null;
-
-            _frameInfo.RenderTarget = renderTarget;
-
-            if (!_sceneProcessor!.Define(_frameInfo))
-                return false;
-
-            _sceneProcessor.SetRenderCamera(viewport.GetCamera()!);
-            _sharedState.RenderCamera = viewport.GetCamera() is { } camera ? new WeakReference<Camera>(camera) : null;
-
-            if (_settingsDirty)
-            {
-                _settingsDirty = false;
-                _parametersDirty = true;
-                ApplySettings();
-            }
-
-            if (_parametersDirty && _renderPath is not null)
-            {
-                _parametersDirty = false;
-                _renderPath.UpdateParameters(
-                    _renderPipeline.Settings, _renderPipeline.GetRenderPasses(), _renderPipeline._renderPathParameters);
-            }
-
-            _renderBufferManager!.SetSettings(_renderPipeline.Settings.RenderBufferManager);
-            _renderBufferManager.OnViewportDefined(_frameInfo.RenderTarget, _frameInfo.ViewportRect);
-            _linearColorSpace = _renderBufferManager.IsLinearColorSpace;
-
-            var standardOutputDesc = new PipelineStateOutputDesc
-            {
-                DepthStencilFormat = _renderBufferManager.OutputDepthStencilFormat,
-                MultiSample = _renderBufferManager.OutputMultiSample
-            };
-            standardOutputDesc.NumRenderTargets = 1;
-            standardOutputDesc.RenderTargetFormats[0] = _renderBufferManager.OutputColorFormat;
-
-            _opaquePass!.SetForwardOutputDesc(standardOutputDesc);
-            _depthPrePass?.SetForwardOutputDesc(standardOutputDesc);
-            _postOpaquePass!.SetForwardOutputDesc(standardOutputDesc);
-            _alphaPass!.SetForwardOutputDesc(standardOutputDesc);
-            _postAlphaPass!.SetForwardOutputDesc(standardOutputDesc);
-
-            var batchCompositor = _sceneProcessor.GetBatchCompositor();
-            batchCompositor.SetLightVolumesOutputDesc(standardOutputDesc);
-            if (_shadowMapAllocator is not null)
-                batchCompositor.SetShadowOutputDesc(_shadowMapAllocator.ShadowOutputDesc);
-
-            return true;
-        }
-
-        public override void Update(Graphics graphics)
-        {
-            ArgumentNullException.ThrowIfNull(graphics);
-            if (_viewport is null || _sceneProcessor is null)
-                return;
-
-            SyncFromPipeline();
-
-            var engineTime = _renderPipeline.GetSubsystem<Time>();
-            _frameInfo.FrameNumber = checked((uint)(engineTime?.FrameNumber ?? 0U));
-            _frameInfo.TimeStep = engineTime?.TimeStep ?? 0.0f;
-
-            var input = _renderPipeline.GetSubsystem<Input>();
-            var qualifiers = input?.GetQualifiers() ?? Qualifier.None;
-            var takeSnapshot = (qualifiers & (Qualifier.Ctrl | Qualifier.Shift)) == (Qualifier.Ctrl | Qualifier.Shift)
-                && input!.GetKeyPress(Key.F12);
-            if (takeSnapshot)
-                _debugger.BeginSnapshot();
-
-            _shadowMapAllocator?.ResetAllShadowMaps();
-            RaiseUpdateBegin(_frameInfo);
-            SendBeginViewUpdateEvent();
-
-            var pipelineStateHash = _renderPipeline.Settings.CalculatePipelineStateHash();
-            if (_settingsHash != pipelineStateHash)
-            {
-                _settingsHash = pipelineStateHash;
-                _settingsDirty = true;
-                RaisePipelineStatesInvalidated();
-            }
-
-            var drawDebugGeometry = _renderPipeline.Settings.DrawDebugGeometry && _viewport.GetCamera()!.GetDrawDebugGeometry();
-            _outlineScenePass?.SetOutlineGroups(_sceneProcessor.GetFrameInfo().Scene!, drawDebugGeometry);
-
-            _sceneProcessor.Update();
-
-            if (_outlineBuffer is not null && _outlineScenePass is not null)
-                _outlineBuffer.SetEnabled(_outlineScenePass.IsEnabled && _outlineScenePass.HasBatches);
-
-            _sharedState.RenderPipelineInterface = this;
-            _sharedState.RenderCamera = _viewport.GetCamera() is { } camera ? new WeakReference<Camera>(camera) : null;
-
-            if (_renderPath is not null)
-            {
-                _renderPath.UpdateParameters(_renderPipeline.Settings, _renderPipeline.GetRenderPasses(), _renderPipeline._renderPathParameters);
-                _renderPath.Update(_sharedState);
-            }
-
-            UpdateFrameParameters();
-
-            SendEndViewUpdateEvent();
-            RaiseUpdateEnd(_frameInfo);
-        }
-
-        public override void Render(Graphics graphics, MaterialQuality materialQuality)
-        {
-            ArgumentNullException.ThrowIfNull(graphics);
-            if (_viewport is null || _sceneProcessor is null || _renderBufferManager is null)
-                return;
-
-            var caps = graphics.GetSubsystem<RenderDevice>()?.GetCaps() ?? default;
-            var canReadDepth = _renderPipeline.Settings.RenderBufferManager.ReadableDepth && caps.ReadOnlyDepth;
-
-            var hasRefraction = _alphaPass?.HasRefractionBatches() == true;
-            var frameSettings = new RenderBufferManagerFrameSettings
-            {
-                SupportColorReadWrite = (_renderOutputFlags & RenderOutputFlag.NeedColorOutputReadAndWrite) != 0
-            };
-            if (hasRefraction)
-                frameSettings.SupportColorReadWrite = true;
-            _renderBufferManager.SetFrameSettings(frameSettings);
-
-            RaiseRenderBegin(_frameInfo);
-            SendBeginViewRenderEvent();
-            SendViewBuffersReadyEvent();
-
-            _sceneProcessor.PrepareDrawablesBeforeRendering();
-            _sceneProcessor.PrepareInstancingBuffer();
-            _sceneProcessor.RenderShadowMaps();
-
-            var camera = _sceneProcessor.GetFrameInfo().Camera ?? _viewport.GetCamera()!;
-            var fogColorInGammaSpace = camera.GetEffectiveFogColor();
-            var effectiveFogColor = _linearColorSpace ? fogColorInGammaSpace.GammaToLinear() : fogColorInGammaSpace;
-
-            // Forward path (C++ DefaultRenderPipelineView::Render non-deferred branch)
-            _renderBufferManager.ClearOutput(effectiveFogColor);
-            _renderBufferManager.SetOutputRenderTargets();
-
-            if (_depthPrePass is not null)
-            {
-                _sceneProcessor.RenderSceneBatches(
-                    "DepthPrePass", camera, _depthPrePass.GetBaseBatches());
-            }
-
-            var cameraParameters = new ShaderParameterDesc[]
-            {
-                new()
-                {
-                    Name = ShaderConsts.Camera_GBufferOffsets,
-                    Value = new Variant(_renderBufferManager.DefaultClipToUVSpaceOffsetAndScale)
-                },
-                new()
-                {
-                    Name = ShaderConsts.Camera_GBufferInvSize,
-                    Value = new Variant(_renderBufferManager.InvOutputSize)
-                },
-            };
-            var frameParameters = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_frameParameters);
-
-            _sceneProcessor.RenderSceneBatches(
-                "OpaqueBase", camera, _opaquePass!.GetBaseBatches(), default, cameraParameters, frameParameters);
-            _sceneProcessor.RenderSceneBatches(
-                "OpaqueLight", camera, _opaquePass.GetLightBatches(), default, cameraParameters, frameParameters);
-            _sceneProcessor.RenderSceneBatches(
-                "PostOpaque", camera, _postOpaquePass!.GetBaseBatches(), default, cameraParameters, frameParameters);
-
-            if (hasRefraction)
-                _renderBufferManager.SwapColorBuffers(true);
-
-            var depthAndColorTextures = new ShaderResourceDesc[]
-            {
-                new()
-                {
-                    Name = ShaderResources.DepthBuffer,
-                    Texture = canReadDepth ? _renderBufferManager.DepthStencilTexture : null
-                },
-                new()
-                {
-                    Name = ShaderResources.Emission,
-                    Texture = _renderBufferManager.SecondaryColorTexture
-                },
-            };
-
-            if (canReadDepth)
-                _renderBufferManager.SetOutputRenderTargets(true);
-
-            _sceneProcessor.RenderSceneBatches(
-                "Alpha", camera, _alphaPass!.GetBatches(), depthAndColorTextures, cameraParameters, frameParameters);
-            _sceneProcessor.RenderSceneBatches(
-                "PostAlpha", camera, _postAlphaPass!.GetBatches(), default, cameraParameters, frameParameters);
-
-            if (_outlineBuffer is not null && _outlineBuffer.IsEnabled)
-            {
-                const int outlinePadding = 2;
-                var batches = _outlineScenePass!.Batches;
-                batches.ScissorRect = _outlineBuffer.GetViewportRect();
-                if (batches.ScissorRect.Width > outlinePadding * 2 && batches.ScissorRect.Height > outlinePadding * 2)
-                {
-                    batches.ScissorRect.Left += outlinePadding;
-                    batches.ScissorRect.Top += outlinePadding;
-                    batches.ScissorRect.Right -= outlinePadding;
-                    batches.ScissorRect.Bottom -= outlinePadding;
-                }
-
-                _renderBufferManager.SetRenderTargets(null, _outlineBuffer);
-                _renderBufferManager.ClearColor(_outlineBuffer, Color.TransparentBlack);
-                _sceneProcessor.RenderSceneBatches(
-                    "Outline", camera, batches, default, cameraParameters, frameParameters);
-            }
-
-            _renderPath?.Render(_sharedState);
-
-            var drawDebugGeometry = _renderPipeline.Settings.DrawDebugGeometry && _viewport.GetCamera()!.GetDrawDebugGeometry();
-            var debug = _viewport.GetScene()!.GetComponent<DebugRenderer>();
-            if (drawDebugGeometry && debug is not null && debug.IsEnabledEffective && debug.HasContent())
-            {
-                _renderBufferManager.SetOutputRenderTargets();
-                debug.SetView(_viewport.GetCamera()!);
-                debug.Render();
-            }
-
-            RaiseRenderEnd(_frameInfo);
-            SendEndViewRenderEvent();
-            _stats = default;
-            RaiseCollectStatistics(ref _stats);
-
-            if (_debugger.IsSnapshotInProgress())
-            {
-                _debugger.EndSnapshot();
-                Log.GetLogger().LogInformation("RenderPipeline snapshot:\n\n{Snapshot}\n", _debugger.GetSnapshot().ToString());
-            }
-        }
-
-        private void ApplySettings()
-        {
-            var settings = _renderPipeline.Settings;
-            settings.Validate();
-            settings.AdjustToSupported(Context.Instance);
-            settings.PropagateImpliedSettings();
-            _sceneProcessor?.SetSettings(settings);
-            _instancingBuffer?.SetSettings(settings.InstancingBuffer);
-            _shadowMapAllocator?.SetSettings(settings.ShadowMapAllocator);
-            _renderBufferManager?.SetSettings(settings.RenderBufferManager);
-
-            if (_renderPipeline.Settings.SceneProcessor.DepthPrePass && _depthPrePass is null && _sceneProcessor is not null)
-            {
-                _depthPrePass = new UnorderedScenePass(this, _sceneProcessor.GetDrawableProcessor(),
-                    _sceneProcessor.GetPipelineStateBuilder(), DrawableProcessorPassFlag.None, "depth");
-                _sceneProcessor.SetPasses(
-                [
-                    _depthPrePass, _opaquePass, null, _postOpaquePass, _alphaPass, _postAlphaPass, _outlineScenePass
-                ]);
-            }
-        }
-
-        public override FrameInfo GetFrameInfo() => _sceneProcessor?.GetFrameInfo() ?? default;
-
-        public override ref readonly RenderPipelineStats GetStats() => ref _stats;
-
-        public override void DrawDebugGeometries(bool depthTest)
-        {
-            var scene = _sceneProcessor?.GetFrameInfo().Scene;
-            var debug = scene?.GetComponent<DebugRenderer>();
-            if (scene is null || debug is null)
-                return;
-
-            foreach (var drawable in scene.GetAllComponents().Values.OfType<Drawable>())
-            {
-                if ((drawable.GetDrawableFlags() & DrawableFlags.Light) == 0)
-                    drawable.DrawDebugGeometry(debug, depthTest);
-            }
-        }
-
-        public override void DrawDebugLights(bool depthTest)
-        {
-            var scene = _sceneProcessor?.GetFrameInfo().Scene;
-            var debug = scene?.GetComponent<DebugRenderer>();
-            if (scene is null || debug is null)
-                return;
-
-            foreach (var drawable in scene.GetAllComponents().Values.OfType<Light>())
-                drawable.DrawDebugGeometry(debug, depthTest);
-        }
-
-        private void SyncFromPipeline()
-        {
-            if (_syncedRevision == _renderPipeline.Revision)
-                return;
-
-            _syncedRevision = _renderPipeline.Revision;
-            _renderPath = _renderPipeline.GetRenderPath()?.Clone();
-            _renderPath?.InitializeView(this);
-        }
-
-        private void SendBeginViewUpdateEvent()
-        {
-            var eventData = new GraphicsEvents.BeginViewUpdateEvent
-            {
-                RenderPipelineView = this,
-                Texture = _renderTarget?.GetParentTexture(),
-                Surface = _renderTarget,
-                Scene = _sceneProcessor!.GetFrameInfo().Scene,
-                Camera = _sceneProcessor.GetFrameInfo().Camera
-            };
-            var sender = (Object?)eventData.Texture ?? _renderPipeline.GetSubsystem<Renderer>()!;
-            sender.SendEvent(ref eventData);
-        }
-
-        private void SendEndViewUpdateEvent()
-        {
-            var eventData = new GraphicsEvents.EndViewUpdateEvent
-            {
-                RenderPipelineView = this,
-                Texture = _renderTarget?.GetParentTexture(),
-                Surface = _renderTarget,
-                Scene = _sceneProcessor!.GetFrameInfo().Scene,
-                Camera = _sceneProcessor.GetFrameInfo().Camera
-            };
-            var sender = (Object?)eventData.Texture ?? _renderPipeline.GetSubsystem<Renderer>()!;
-            sender.SendEvent(ref eventData);
-        }
-
-        private void SendBeginViewRenderEvent()
-        {
-            var eventData = new GraphicsEvents.BeginViewRenderEvent
-            {
-                RenderPipelineView = this,
-                Texture = _renderTarget?.GetParentTexture(),
-                Surface = _renderTarget,
-                Scene = _sceneProcessor!.GetFrameInfo().Scene,
-                Camera = _sceneProcessor.GetFrameInfo().Camera
-            };
-            var sender = (Object?)eventData.Texture ?? _renderPipeline.GetSubsystem<Renderer>()!;
-            sender.SendEvent(ref eventData);
-        }
-
-        private void SendViewBuffersReadyEvent()
-        {
-            var eventData = new GraphicsEvents.ViewBuffersReadyEvent
-            {
-                RenderPipelineView = this,
-                Texture = _renderTarget?.GetParentTexture(),
-                Surface = _renderTarget,
-                Scene = _sceneProcessor!.GetFrameInfo().Scene,
-                Camera = _sceneProcessor.GetFrameInfo().Camera
-            };
-            var sender = (Object?)eventData.Texture ?? _renderPipeline.GetSubsystem<Renderer>()!;
-            sender.SendEvent(ref eventData);
-        }
-
-        private void SendEndViewRenderEvent()
-        {
-            var eventData = new GraphicsEvents.EndViewRenderEvent
-            {
-                RenderPipelineView = this,
-                Texture = _renderTarget?.GetParentTexture(),
-                Surface = _renderTarget,
-                Scene = _sceneProcessor!.GetFrameInfo().Scene,
-                Camera = _sceneProcessor.GetFrameInfo().Camera
-            };
-            var sender = (Object?)eventData.Texture ?? _renderPipeline.GetSubsystem<Renderer>()!;
-            sender.SendEvent(ref eventData);
-        }
-
-        private void RenderOutlines(Graphics graphics, MaterialQuality materialQuality)
-        {
-            if (_viewport is null || _renderPath is null || !HasEnabledOutlinePass())
-                return;
-
-            CollectOutlineGroups(_viewport.GetScene()!);
-            if (_outlineGroups.Count == 0)
-                return;
-
-            var outlineRenderBuffer = EnsureOutlineBuffer();
-            _sharedState.RenderBuffers[OutlineRenderPass.ColorBufferId] = outlineRenderBuffer;
-
-            _renderBufferManager.SetRenderTargets(null, outlineRenderBuffer);
-            graphics.ClearCurrentRenderTargets(Color.TransparentBlack, clearColorTarget: true, clearDepth: false, clearStencil: false);
-            graphics.RenderOutlineGroups(_viewport, materialQuality, _outlineGroups, _frameInfo.ViewportRect);
-            _renderBufferManager.SetOutputRenderTargets();
-        }
-
-        private bool HasEnabledOutlinePass()
-        {
-            if (_renderPath is null)
-                return false;
-
-            var passes = _renderPath.Passes;
-            for (var passIndex = 0; passIndex < passes.Count; ++passIndex)
-            {
-                var pass = passes[passIndex];
-                if (pass is OutlineRenderPass && pass.IsEnabledEffectively())
-                    return true;
-            }
-
-            return false;
-        }
-
-        private void CollectOutlineGroups(Scene scene)
-        {
-            scene.GetComponents(_outlineGroups);
-
-            var drawDebugGeometry = _viewport!.GetCamera()!.GetDrawDebugGeometry();
-            for (var i = _outlineGroups.Count - 1; i >= 0; --i)
-            {
-                var outlineGroup = _outlineGroups[i];
-                if (outlineGroup.Node is null || !outlineGroup.IsEnabledEffective)
-                {
-                    _outlineGroups.RemoveAt(i);
-                    continue;
-                }
-
-                if (outlineGroup.IsDebug() && !drawDebugGeometry)
-                {
-                    _outlineGroups.RemoveAt(i);
-                    continue;
-                }
-
-                if (!outlineGroup.HasDrawables())
-                    _outlineGroups.RemoveAt(i);
-            }
-
-            _outlineGroups.Sort(static (lhs, rhs) => lhs.GetRenderOrder().CompareTo(rhs.GetRenderOrder()));
-        }
-
-        private RenderBuffer EnsureOutlineBuffer()
-        {
-            _outlineBuffer ??= _renderBufferManager.CreateColorBuffer(
-                new RenderBufferParams(TextureFormat.TexFormatRgba8Unorm, 1, RenderBufferFlag.BilinearFiltering));
-            return _outlineBuffer;
-        }
-
     }
 }

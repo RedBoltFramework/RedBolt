@@ -324,7 +324,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `LightBakingSettings.h` — all eleven settings aggregates, defaults, constructors, independent nested value copies, immutable string mappings, and trivial destruction verified
 - [x] `LightProbeGroup.h` / `LightProbeGroup.cpp` — probe POD values, deep collection copies, reflected attributes, collection/arrangement/bounds, binary/base64 serialization, baked-data load/save, resource aliases, and default derived teardown reconciled
 
-## [~] A10. RenderPipeline — depends on Graphics, RenderAPI, Scene (current effort)
+## [x] A10. RenderPipeline — depends on Graphics, RenderAPI, Scene
 
 - [x] `InstancingBuffer.h` / `InstancingBuffer.cpp` and `InstancingBufferSettings` — extensible noncopyable buffer ownership, immediate replacement and reverse deterministic teardown, borrowed current-data/settings/buffer views, POD settings defaults/copies/hash/equality, exact composition flow, property-form getters, and approved managed `int` indices/sizes reconciled
 - [x] `PipelineBatch` and `PipelineBatchDesc` in `BatchCompositor.h` — mutable POD value shape, constructors, derived-to-base value slicing, delayed and in-place vector copies, borrowed object aliases, source-batch lookup, property-form members, and approved managed `int` indices reconciled
@@ -345,7 +345,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `ShadowSplitProcessor.h` / `ShadowSplitProcessor.cpp` — noncopyable class shape, camera/caster/batch flow, borrowed views, owned camera-tree teardown, shared batch backing storage, property-form getters, and approved managed `int` indices/sizes reconciled
 - [x] `RenderPass.h` / `RenderPass.cpp` — value-type traits, reflected attribute construction, independent runtime enablement, inherited reflection cloning, protected pass state, parameter helpers, render-buffer connection, and explicit empty destructor reconciled
 - [x] `RenderPath.h` / `RenderPath.cpp` — sole parameterless managed construction with post-construction cache naming, destructor/owned-pass teardown, deep clone and independent enabled-pass returns, native optional polymorphic JSON/binary serialization, archive-context construction, and factory registration reconciled
-- [~] `RenderPipeline.h` / `RenderPipeline.cpp` — frame/render-path parameter ownership and sender-specific struct render-path reload observation reconciled; the remaining class-wide construction/copy/destruction audit is still open
+- [x] `RenderPipeline.h` / `RenderPipeline.cpp` — complete component shape and member order, default render-path construction, settings/pass/parameter state changes, sender-specific struct reload observation, independent container and Variant copies, owned map teardown, and native signal-driven view synchronization reconciled
+- [x] `DefaultRenderPipeline.h` / `DefaultRenderPipeline.cpp` — public view shape, render-path cloning, forward/deferred setup and rendering, owned pass/buffer/processor teardown, reverse member lifetime, stack-temporary descriptor cleanup, nullable shared render-buffer entries, and readonly frame-info reference returns reconciled
 
 ## [x] A11. Input — depends on Core, Graphics (window)
 

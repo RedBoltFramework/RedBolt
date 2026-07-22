@@ -133,7 +133,7 @@ public sealed class RenderPipelineTests : IDisposable
     }
 
     [Fact]
-    public void Render_pipeline_only_marks_parameters_dirty_on_actual_render_path_changes()
+    public void Render_pipeline_only_raises_parameter_event_on_actual_render_path_changes()
     {
         var scene = new Scene();
         var renderPipeline = scene.CreateComponent<RenderPipeline>();
@@ -142,16 +142,17 @@ public sealed class RenderPipelineTests : IDisposable
         renderPath.AddPass(new ParameterRenderPass("Exposure", 1.25f));
         renderPipeline.SetRenderPath(renderPath);
 
-        var initialRevision = renderPipeline.Revision;
+        var parameterEvents = 0;
+        renderPipeline.ParametersChanged += _ => ++parameterEvents;
 
         renderPipeline.UpdateRenderPathParameter("Missing", 2.0f);
         renderPipeline.UpdateRenderPathParameter("Exposure", 1.25f);
 
-        Assert.Equal(initialRevision, renderPipeline.Revision);
+        Assert.Equal(0, parameterEvents);
 
         renderPipeline.UpdateRenderPathParameter("Exposure", 2.0f);
 
-        Assert.Equal(initialRevision + 1, renderPipeline.Revision);
+        Assert.Equal(1, parameterEvents);
         Assert.Equal(2.0f, renderPipeline.GetRenderPathParameters()["Exposure"].GetFloat());
     }
 
@@ -181,11 +182,12 @@ public sealed class RenderPipelineTests : IDisposable
     }
 
     [Fact]
-    public void Render_pipeline_frame_shader_parameters_do_not_bump_revision()
+    public void Render_pipeline_frame_shader_parameters_do_not_raise_parameter_event()
     {
         var scene = new Scene();
         var renderPipeline = scene.CreateComponent<RenderPipeline>();
-        var initialRevision = renderPipeline.Revision;
+        var parameterEvents = 0;
+        renderPipeline.ParametersChanged += _ => ++parameterEvents;
 
         renderPipeline.SetFrameShaderParameter("Time", new Variant(1.0f));
         using var parameters = new StringVariantMap
@@ -194,7 +196,7 @@ public sealed class RenderPipelineTests : IDisposable
         };
         renderPipeline.SetFrameShaderParameters(parameters);
 
-        Assert.Equal(initialRevision, renderPipeline.Revision);
+        Assert.Equal(0, parameterEvents);
         Assert.Equal(4, renderPipeline.GetFrameShaderParameters()["FrameIndex"].GetInt());
     }
 
@@ -433,7 +435,7 @@ public sealed class RenderPipelineTests : IDisposable
     }
 
     [Fact]
-    public void Render_pipeline_does_not_publish_normal_buffer_for_forward_lighting()
+    public void Render_pipeline_publishes_null_normal_buffer_for_forward_lighting()
     {
         var parameters = new EngineParameters
         {
@@ -465,7 +467,8 @@ public sealed class RenderPipelineTests : IDisposable
             view.Update(_fixture.Graphics);
             view.Render(_fixture.Graphics, MaterialQuality.High);
 
-            Assert.False(capturePass.WasBufferPresent);
+            Assert.True(capturePass.WasBufferPresent);
+            Assert.True(capturePass.WasBufferNull);
         }
         finally
         {
@@ -504,9 +507,9 @@ public sealed class RenderPipelineTests : IDisposable
 
             view.Update(_fixture.Graphics);
 
-            var sharedState = Assert.IsType<SharedRenderPassState>(GetPrivateField(view, "_sharedState"));
+            var sharedState = Assert.IsType<SharedRenderPassState>(GetPrivateField(view, "_state"));
             Assert.True(sharedState.RenderBuffers.TryGetValue(OutlineRenderPass.ColorBufferId, out var outlineBuffer));
-            Assert.False(outlineBuffer.IsEnabled);
+            Assert.False(Assert.IsAssignableFrom<RenderBuffer>(outlineBuffer).IsEnabled);
         }
         finally
         {
@@ -1133,6 +1136,7 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Render_pipeline_uses_default_renderpath_on_attach()
     {
+        const string defaultRenderPathName = "RenderPaths/Default.renderpath";
         var previousContext = Context.Instance;
         var tempRoot = Path.Combine(Path.GetTempPath(), "RedBolt.RenderPipelineTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(tempRoot, "RenderPaths"));
@@ -1163,19 +1167,19 @@ public sealed class RenderPipelineTests : IDisposable
                 }
                 """);
 
-            _fixture.Resources.ReleaseResource<RenderPath>(RenderPipeline.DefaultRenderPathName);
+            _fixture.Resources.ReleaseResource<RenderPath>(defaultRenderPathName);
 
             var scene = new Scene();
             var renderPipeline = scene.CreateComponent<RenderPipeline>();
 
             Assert.NotNull(renderPipeline.GetRenderPath());
-            Assert.Equal(RenderPipeline.DefaultRenderPathName, renderPipeline.GetRenderPath()!.Name);
+            Assert.Equal(defaultRenderPathName, renderPipeline.GetRenderPath()!.Name);
             Assert.Equal(1.25f, renderPipeline.GetRenderPathParameters()["Exposure"].GetFloat());
         }
         finally
         {
             Context.SetInstance(previousContext);
-            _fixture.Resources.ReleaseResource<RenderPath>(RenderPipeline.DefaultRenderPathName);
+            _fixture.Resources.ReleaseResource<RenderPath>(defaultRenderPathName);
             _fixture.Resources.RemoveResourceDir(tempRoot);
             if (Directory.Exists(tempRoot))
                 Directory.Delete(tempRoot, recursive: true);
@@ -1270,6 +1274,7 @@ public sealed class RenderPipelineTests : IDisposable
 
     private sealed class FrameParameterRenderPipelineView : RenderPipelineView
     {
+        private FrameInfo _frameInfo;
         private RenderPipelineStats _stats;
 
         public FrameParameterRenderPipelineView(RenderPipeline renderPipeline)
@@ -1294,7 +1299,7 @@ public sealed class RenderPipelineTests : IDisposable
         {
         }
 
-        public override FrameInfo GetFrameInfo() => default;
+        public override ref readonly FrameInfo GetFrameInfo() => ref _frameInfo;
 
         public override ref readonly RenderPipelineStats GetStats() => ref _stats;
 
@@ -1446,6 +1451,8 @@ public sealed class RenderPipelineTests : IDisposable
 
         public bool WasBufferPresent => _state.WasBufferPresent;
 
+        public bool WasBufferNull => _state.WasBufferNull;
+
         public TextureFormat CapturedFormat => _state.CapturedFormat;
 
         public Vector2i CapturedSize => _state.CapturedSize;
@@ -1453,6 +1460,7 @@ public sealed class RenderPipelineTests : IDisposable
         public override void Render(SharedRenderPassState sharedState)
         {
             _state.WasBufferPresent = sharedState.RenderBuffers.TryGetValue(_bufferId, out var renderBuffer);
+            _state.WasBufferNull = _state.WasBufferPresent && renderBuffer is null;
             if (!_state.WasBufferPresent || renderBuffer is null || renderBuffer.GetTexture() is not { } texture)
                 return;
 
@@ -1465,6 +1473,7 @@ public sealed class RenderPipelineTests : IDisposable
         private sealed class State
         {
             public bool WasBufferPresent;
+            public bool WasBufferNull;
             public TextureFormat CapturedFormat;
             public Vector2i CapturedSize;
         }

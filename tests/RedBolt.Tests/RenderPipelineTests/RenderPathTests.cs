@@ -328,6 +328,7 @@ public sealed class RenderPathTests
     [Fact]
     public void Render_path_loads_real_rbfx_default_renderpath_types()
     {
+        const string defaultRenderPathName = "RenderPaths/Default.renderpath";
         var resources = new ResourceCache();
         resources.RegisterDefaultResources();
         var upstreamCoreData = GetCoreData();
@@ -335,7 +336,7 @@ public sealed class RenderPathTests
 
         try
         {
-            var renderPath = resources.GetResource<RenderPath>(RenderPipeline.DefaultRenderPathName);
+            var renderPath = resources.GetResource<RenderPath>(defaultRenderPathName);
 
             Assert.NotEmpty(renderPath.Passes);
             Assert.Collection(

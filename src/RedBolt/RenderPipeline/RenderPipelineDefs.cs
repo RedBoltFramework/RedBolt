@@ -1410,7 +1410,7 @@ public abstract class RenderPipelineView : Object, IRenderPipelineInterface
     /// <summary>
     /// Return frame info with all members filled.
     /// </summary>
-    public abstract FrameInfo GetFrameInfo();
+    public abstract ref readonly FrameInfo GetFrameInfo();
 
     /// <summary>
     /// Return render pipeline statistics for profiling.

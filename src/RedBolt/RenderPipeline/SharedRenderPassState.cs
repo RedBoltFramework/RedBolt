@@ -17,7 +17,7 @@ public sealed class SharedRenderPassState : IDisposable
 
     public RenderBufferManager? RenderBufferManager { get; set; }
 
-    public IDictionary<StringHash, RenderBuffer> RenderBuffers { get; } = new Dictionary<StringHash, RenderBuffer>(MaxRenderBuffers);
+    public IDictionary<StringHash, RenderBuffer?> RenderBuffers { get; } = new Dictionary<StringHash, RenderBuffer?>(MaxRenderBuffers);
 
     public void Dispose()
     {

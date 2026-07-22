@@ -392,7 +392,7 @@ public class SceneProcessor : Object, LightProcessorCallback
 
     public SceneProcessorSettings GetSettings() => Settings;
 
-    public FrameInfo GetFrameInfo() => FrameInfo;
+    public ref readonly FrameInfo GetFrameInfo() => ref FrameInfo;
 
     /// <summary>
     /// Takes pass object from BatchStateCreateContext.

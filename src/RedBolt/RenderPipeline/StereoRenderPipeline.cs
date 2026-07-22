@@ -305,6 +305,8 @@ internal class StereoSceneProcessor : SceneProcessor
 
 public class StereoRenderPipelineView : RenderPipelineView
 {
+    private static readonly FrameInfo DefaultFrameInfo;
+
     protected RenderPath? _originalRenderPath;
     protected RenderPath? _renderPath;
     protected bool _parametersDirty;
@@ -789,7 +791,12 @@ public class StereoRenderPipelineView : RenderPipelineView
         sender.SendEvent(ref eventData);
     }
 
-    public override FrameInfo GetFrameInfo() => _sceneProcessor?.GetFrameInfo() ?? default;
+    public override ref readonly FrameInfo GetFrameInfo()
+    {
+        if (_sceneProcessor is not null)
+            return ref _sceneProcessor.GetFrameInfo();
+        return ref DefaultFrameInfo;
+    }
 
     public override ref readonly RenderPipelineStats GetStats() => ref _stats;
 

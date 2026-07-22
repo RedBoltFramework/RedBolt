@@ -327,6 +327,7 @@ public sealed class CameraTests
 
     private sealed class TrackingRenderPipelineView : RenderPipelineView
     {
+        private FrameInfo _frameInfo;
         private RenderPipelineStats _stats;
 
         public TrackingRenderPipelineView(RenderPipeline renderPipeline)
@@ -348,7 +349,7 @@ public sealed class CameraTests
         {
         }
 
-        public override FrameInfo GetFrameInfo() => default;
+        public override ref readonly FrameInfo GetFrameInfo() => ref _frameInfo;
 
         public override ref readonly RenderPipelineStats GetStats() => ref _stats;
 
