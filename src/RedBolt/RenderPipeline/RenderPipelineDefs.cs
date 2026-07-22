@@ -1174,12 +1174,6 @@ public struct RenderPipelineSettings : IEquatable<RenderPipelineSettings>
 }
 
 /// <summary>
-/// Helper for pipeline state creation.
-/// Keep entire string because it should be used only on startup.
-/// </summary>
-public readonly record struct NamedSamplerStateDesc(string Name, SamplerStateDesc Desc);
-
-/// <summary>
 /// Reference to input shader resource. Only textures are supported now.
 /// </summary>
 public struct ShaderResourceDesc

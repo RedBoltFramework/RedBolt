@@ -10,3 +10,8 @@ global using UintRange = RedBolt.NumericRange<uint>;
 global using IntVector2 = RedBolt.BaseIntegerVector2<int>;
 global using IntVector3 = RedBolt.BaseIntegerVector3<int>;
 global using TextureFormat = RedBolt.Bindings.Diligent.TextureFormat;
+/// <summary>
+/// Helper for pipeline state creation.
+/// Keep entire string because it should be used only on startup.
+/// </summary>
+global using NamedSamplerStateDesc = (string Name, RedBolt.SamplerStateDesc Desc);

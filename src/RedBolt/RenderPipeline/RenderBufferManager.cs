@@ -488,7 +488,7 @@ public sealed class RenderBufferManager
     private void InitializePipelineStates()
     {
         NamedSamplerStateDesc[] samplers =
-            [new NamedSamplerStateDesc("Albedo", SamplerStateDesc.Bilinear())];
+            [("Albedo", SamplerStateDesc.Bilinear())];
 
         _copyTexturePipelineState = CreateQuadPipelineState(
             BlendMode.Replace, "v2/X_CopyFramebuffer", string.Empty, samplers);

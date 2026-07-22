@@ -145,7 +145,7 @@ public sealed class FullScreenShaderPass : RenderPass
         {
             _debugComment = $"Apply shader \"{_shaderName}\"({_shaderDefines})";
             IReadOnlyList<NamedSamplerStateDesc> samplers = _needReadWriteColorOutput
-                ? [new NamedSamplerStateDesc("Albedo", SamplerStateDesc.Bilinear())]
+                ? [("Albedo", SamplerStateDesc.Bilinear())]
                 : Array.Empty<NamedSamplerStateDesc>();
             _pipelineStateId = renderBufferManager.CreateQuadPipelineState(
                 _blendMode, _shaderName, _shaderDefines, samplers);
@@ -252,7 +252,7 @@ public sealed class ToneMappingPass : RenderPass
     private const string ModeMetadataName = "Tone Mapping: Mode@";
     private static readonly StringVector ModeMetadata = ["None", "Reinhard", "ReinhardWhite", "Uncharted2"];
     private static readonly NamedSamplerStateDesc[] Samplers =
-        [new NamedSamplerStateDesc("Albedo", SamplerStateDesc.Bilinear())];
+        [("Albedo", SamplerStateDesc.Bilinear())];
     private static readonly ShaderResourceDesc[] EmptyResources = [];
     private static readonly ShaderParameterDesc[] EmptyParameters = [];
     private StaticPipelineStateId? _pipelineState;
