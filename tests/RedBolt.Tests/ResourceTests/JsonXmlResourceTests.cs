@@ -34,7 +34,7 @@ public sealed class JsonXmlResourceTests
             Resources.AddResourceDir(tempDir);
 
             var jsonFile = Resources.GetResource<JSONFile>("Data/config.json");
-            Assert.Equal(7, jsonFile.GetRoot().Get("value").GetInt());
+            Assert.Equal(7, jsonFile.Root.Get("value").GetInt());
             Assert.Equal(jsonPath, jsonFile.AbsoluteFileName);
             Assert.Contains("redbolt", jsonFile.ToString(""), StringComparison.Ordinal);
         }
@@ -55,7 +55,8 @@ public sealed class JsonXmlResourceTests
         Assert.False(json.FromString("invalid"));
         Assert.Equal(original, json.ToString(string.Empty));
         Assert.Contains("\n----\"value\"", json.ToString("--"), StringComparison.Ordinal);
-        Assert.False(JSONFile.ParseJSON("{\"value\":1,}", out _));
+        using var value = new JSONValue();
+        Assert.False(JSONFile.ParseJSON("{\"value\":1,}", value));
     }
 
     [Fact]
@@ -76,6 +77,35 @@ public sealed class JsonXmlResourceTests
 
         json.Dispose();
         Assert.True(root.IsNull);
+    }
+
+    [Fact]
+    public void JSONFile_registers_and_serializes_named_objects()
+    {
+        using var context = new Context();
+        JSONFile.RegisterObject(context);
+        using var json = Assert.IsType<JSONFile>(context.CreateObject(ObjectReflection<JSONFile>.TypeId));
+
+        var source = new JSONArchiveTestValue { Value = 42 };
+        Assert.True(json.SaveObject("test", source));
+        Assert.Equal(42, json.Root.Get("value").GetInt());
+
+        var loaded = new JSONArchiveTestValue();
+        Assert.True(json.LoadObject("test", loaded));
+        Assert.Equal(42, loaded.Value);
+    }
+
+    [Fact]
+    public void JSONFile_preserves_parse_target_and_formats_null_and_empty_indentation()
+    {
+        using var value = new JSONValue(42);
+        Assert.False(JSONFile.ParseJSON("invalid", value, false));
+        Assert.Equal(42, value.GetInt());
+
+        using var json = new JSONFile();
+        Assert.Equal("null", json.ToString());
+        Assert.True(json.FromString("{\"outer\":{\"value\":1}}"));
+        Assert.Contains("\n\"outer\"", json.ToString(string.Empty), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -123,8 +153,21 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void ParseJSON_from_string()
     {
-        Assert.True(JSONFile.ParseJSON("{\"ok\":true}", out var json));
+        using var json = new JSONValue();
+        Assert.True(JSONFile.ParseJSON("{\"ok\":true}", json));
         Assert.True(json.Get("ok").GetBool());
+    }
+
+    private sealed class JSONArchiveTestValue : IArchiveSerializable
+    {
+        public int Value { get; set; }
+
+        public void SerializeInBlock(Archive archive)
+        {
+            var value = Value;
+            ArchiveSerialization.SerializeValue(archive, "value", ref value);
+            Value = value;
+        }
     }
 
     [Fact]
@@ -138,7 +181,8 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void JSONValue_array_and_object_helpers_work()
     {
-        Assert.True(JSONFile.ParseJSON("{}", out var json));
+        using var json = new JSONValue();
+        Assert.True(JSONFile.ParseJSON("{}", json));
         json.Set("tags", new JSONValue([new JSONValue("engine"), new JSONValue("rbfx")]));
         Assert.Equal(2, json.Get("tags").Size());
         Assert.True(json.Contains("tags"));
@@ -171,7 +215,8 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void JSONValue_erase_removes_key()
     {
-        Assert.True(JSONFile.ParseJSON("{}", out var json));
+        using var json = new JSONValue();
+        Assert.True(JSONFile.ParseJSON("{}", json));
         json.Set("enabled", new JSONValue(true));
         json.Erase("enabled");
         Assert.False(json.Contains("enabled"));
@@ -197,8 +242,10 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void JSONValue_replace_recursively_merges_objects()
     {
-        Assert.True(JSONFile.ParseJSON("{\"outer\":{\"keep\":1,\"replace\":2}}", out var value));
-        Assert.True(JSONFile.ParseJSON("{\"outer\":{\"replace\":3,\"add\":4}}", out var replacement));
+        using var value = new JSONValue();
+        using var replacement = new JSONValue();
+        Assert.True(JSONFile.ParseJSON("{\"outer\":{\"keep\":1,\"replace\":2}}", value));
+        Assert.True(JSONFile.ParseJSON("{\"outer\":{\"replace\":3,\"add\":4}}", replacement));
 
         value.ReplaceRecursively(replacement);
 
@@ -654,7 +701,8 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void Localization_single_language_loading_works()
     {
-        Assert.True(JSONFile.ParseJSON("{\"Bye\":\"Moi\"}", out var json));
+        using var json = new JSONValue();
+        Assert.True(JSONFile.ParseJSON("{\"Bye\":\"Moi\"}", json));
         var loc = new Localization();
         loc.LoadSingleLanguageJSON(json, "fi");
         loc.SetLanguage("fi");
@@ -664,7 +712,8 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void Localization_rejects_out_of_range_lookup_and_sends_change_event()
     {
-        Assert.True(JSONFile.ParseJSON("{\"Hello\":{\"en\":\"Hello\",\"fi\":\"Hei\"}}", out var json));
+        using var json = new JSONValue();
+        Assert.True(JSONFile.ParseJSON("{\"Hello\":{\"en\":\"Hello\",\"fi\":\"Hei\"}}", json));
         var loc = new Localization();
         loc.LoadMultipleLanguageJSON(json);
         var eventCount = 0;

@@ -5,35 +5,30 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
+/// <summary>JSON document resource.</summary>
 public class JSONFile : Resource
 {
-    private static readonly JsonSerializerOptions IndentedOptions = new() { WriteIndented = true };
-    private static readonly JsonDocumentOptions ResourceParseOptions = new()
-    {
-        CommentHandling = JsonCommentHandling.Skip,
-        AllowTrailingCommas = true
-    };
-
+    /// <summary>Construct.</summary>
     public JSONFile()
     {
     }
 
-    public JSONValue Root { get; } = new();
-
+    /// <summary>Destruct.</summary>
     public override void Dispose()
     {
         Root.Dispose();
         base.Dispose();
     }
 
+    /// <summary>Register object factory.</summary>
     public static void RegisterObject(Context context)
     {
-        ArgumentNullException.ThrowIfNull(context);
+        context.AddFactoryReflection<JSONFile>();
     }
 
+    /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
     public override bool BeginLoad(Deserializer source)
     {
-        ArgumentNullException.ThrowIfNull(source);
         var dataSize = source.Size;
         if (dataSize == 0 && !string.IsNullOrEmpty(source.Name))
         {
@@ -44,23 +39,105 @@ public class JSONFile : Resource
         var data = new byte[checked((int)dataSize)];
         if (source.Read(data) != dataSize)
             return false;
-        var text = Encoding.UTF8.GetString(data);
-        var parsed = ParseResourceJSON(text, out var value);
-        using (value)
-        {
-            if (!parsed)
-            {
-                Log.GetLogger().LogError("Could not parse JSON data from {Name}", source.Name);
-                return false;
-            }
 
-            Root.Set(value);
+        var text = Encoding.UTF8.GetString(data);
+        var terminatorPosition = text.IndexOf('\0');
+        if (terminatorPosition >= 0)
+            text = text[..terminatorPosition];
+
+        JSONValue value;
+        try
+        {
+            var options = new JsonDocumentOptions
+            {
+                CommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true
+            };
+            value = JSONValue.FromJsonNode(JsonNode.Parse(text, documentOptions: options));
         }
+        catch (JsonException)
+        {
+            Log.GetLogger().LogError("Could not parse JSON data from {Name}", source.Name);
+            return false;
+        }
+
+        using (value)
+            Root.Set(value);
 
         SetMemoryUse(checked((int)dataSize));
         return true;
     }
 
+    /// <summary>Save resource with default indentation (one tab). Return true if successful.</summary>
+    public override bool Save(Serializer destination)
+    {
+        return Save(destination, "\t");
+    }
+
+    /// <summary>Save resource with user-defined indentation, only the first character (if any) of the string is used and the length of the string defines the character count. Return true if successful.</summary>
+    public bool Save(Serializer destination, string indentation)
+    {
+        var bytes = Encoding.UTF8.GetBytes(ToString(indentation));
+        return destination.Write(bytes) == bytes.Length;
+    }
+
+    /// <summary>Save objects using Archive serialization.</summary>
+    public bool SaveObjectCallback(Action<Archive> serializeValue)
+    {
+        try
+        {
+            Root.Clear();
+            using var archive = new JSONOutputArchive(this);
+            serializeValue(archive);
+            return true;
+        }
+        catch (ArchiveException exception)
+        {
+            Root.Clear();
+            Log.GetLogger().LogError("Failed to save object to JSON: {Error}", exception.Message);
+            return false;
+        }
+    }
+
+    /// <summary>Load objects using Archive serialization.</summary>
+    public bool LoadObjectCallback(Action<Archive> serializeValue)
+    {
+        try
+        {
+            using var archive = new JSONInputArchive(this);
+            serializeValue(archive);
+            return true;
+        }
+        catch (ArchiveException exception)
+        {
+            Log.GetLogger().LogError("Failed to load object from JSON: {Error}", exception.Message);
+            return false;
+        }
+    }
+
+    public bool SaveObject(string name, IArchiveSerializable value)
+    {
+        return SaveObjectCallback(archive =>
+        {
+            using var block = archive.OpenUnorderedBlock(name);
+            value.SerializeInBlock(archive);
+        });
+    }
+
+    public bool LoadObject(string name, IArchiveSerializable value)
+    {
+        return LoadObjectCallback(archive =>
+        {
+            using var block = archive.OpenUnorderedBlock(name);
+            value.SerializeInBlock(archive);
+        });
+    }
+
+    public bool SaveObject(Object value) => SaveObject(value.GetTypeName(), value);
+
+    public bool LoadObject(Object value) => LoadObject(value.GetTypeName(), value);
+
+    /// <summary>Deserialize from a string. Return true if successful.</summary>
     public bool FromString(string source)
     {
         if (source.Length == 0)
@@ -71,82 +148,18 @@ public class JSONFile : Resource
         return Load(buffer);
     }
 
-    public JSONValue GetRoot() => Root;
-
-    public override bool Save(Serializer destination)
-    {
-        ArgumentNullException.ThrowIfNull(destination);
-        var bytes = Encoding.UTF8.GetBytes(ToString());
-        return destination.Write(bytes) == bytes.Length;
-    }
-
-    public bool Save(Serializer destination, string indentation)
-    {
-        ArgumentNullException.ThrowIfNull(destination);
-        var bytes = Encoding.UTF8.GetBytes(ToString(indentation));
-        return destination.Write(bytes) == bytes.Length;
-    }
-
-    public bool SaveObjectCallback(Action<Archive> serializeValue)
-    {
-        ArgumentNullException.ThrowIfNull(serializeValue);
-        try
-        {
-            Root.Clear();
-            using var archive = new JSONOutputArchive(this);
-            serializeValue(archive);
-            archive.Flush();
-            return true;
-        }
-        catch (ArchiveException exception)
-        {
-            Root.Clear();
-            Log.GetLogger().LogError(exception, "Failed to save object to JSON");
-            return false;
-        }
-    }
-
-    public bool LoadObjectCallback(Action<Archive> serializeValue)
-    {
-        ArgumentNullException.ThrowIfNull(serializeValue);
-        try
-        {
-            using var archive = new JSONInputArchive(this);
-            serializeValue(archive);
-            archive.Flush();
-            return true;
-        }
-        catch (ArchiveException exception)
-        {
-            Log.GetLogger().LogError(exception, "Failed to load object from JSON");
-            return false;
-        }
-    }
-
-    public bool SaveObject(Object value)
-    {
-        ArgumentNullException.ThrowIfNull(value);
-        return SaveObjectCallback(value.SerializeInBlock);
-    }
-
-    public bool LoadObject(Object value)
-    {
-        ArgumentNullException.ThrowIfNull(value);
-        return LoadObjectCallback(value.SerializeInBlock);
-    }
-
+    /// <summary>Save to a string.</summary>
     public override string ToString() => ToString("\t");
 
+    /// <summary>Save to a string.</summary>
     public string ToString(string indentation)
     {
         var rootNode = Root.ToJsonNode();
         if (rootNode is null)
-            return string.Empty;
+            return "null";
 
-        if (string.IsNullOrEmpty(indentation))
-            return rootNode.ToJsonString();
-
-        var formatted = rootNode.ToJsonString(IndentedOptions);
+        var options = new JsonSerializerOptions { WriteIndented = true };
+        var formatted = rootNode.ToJsonString(options);
         var lines = formatted.Split('\n');
         for (var i = 1; i < lines.Length; ++i)
         {
@@ -154,37 +167,28 @@ public class JSONFile : Resource
             while (spaces < lines[i].Length && lines[i][spaces] == ' ')
                 ++spaces;
             var depth = spaces / 2;
-            lines[i] = new string(indentation[0], depth * indentation.Length) + lines[i][spaces..];
+            lines[i] = new string(indentation.Length != 0 ? indentation[0] : ' ', depth * indentation.Length)
+                + lines[i][spaces..];
         }
         return string.Join('\n', lines);
     }
 
-    public static bool ParseJSON(string json, out JSONValue value, bool reportError = true)
-    {
-        try
-        {
-            value = JSONValue.FromJsonNode(JsonNode.Parse(json));
-            return true;
-        }
-        catch (JsonException)
-        {
-            value = new JSONValue();
-            if (reportError)
-                Log.GetLogger().LogError("Could not parse JSON data from string");
-            return false;
-        }
-    }
+    /// <summary>Return root value.</summary>
+    public JSONValue Root { get; } = new();
 
-    private static bool ParseResourceJSON(string json, out JSONValue value)
+    /// <summary>Return true if parsing json string into JSONValue succeeds.</summary>
+    public static bool ParseJSON(string json, JSONValue value, bool reportError = true)
     {
         try
         {
-            value = JSONValue.FromJsonNode(JsonNode.Parse(json, documentOptions: ResourceParseOptions));
+            using var parsedValue = JSONValue.FromJsonNode(JsonNode.Parse(json));
+            value.Set(parsedValue);
             return true;
         }
-        catch (JsonException)
+        catch (JsonException exception)
         {
-            value = new JSONValue();
+            if (reportError)
+                Log.GetLogger().LogError("Could not parse JSON data from string with error: {Error}", exception.Message);
             return false;
         }
     }

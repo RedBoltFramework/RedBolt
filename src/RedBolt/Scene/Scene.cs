@@ -343,7 +343,7 @@ public sealed class Scene : Serializable
             return false;
 
         Clear();
-        if (Root.LoadJSON(json.GetRoot()))
+        if (Root.LoadJSON(json.Root))
         {
             FinishLoading(source);
             return true;
@@ -560,7 +560,7 @@ public sealed class Scene : Serializable
         _asyncProgress.TotalResources = 0;
         _asyncProgress.Resources.Clear();
 
-        var rootValue = json.GetRoot();
+        var rootValue = json.Root;
         if (mode > LoadMode.ResourcesOnly)
         {
             if (mode != LoadMode.Scene)
@@ -650,7 +650,7 @@ public sealed class Scene : Serializable
     {
         ArgumentNullException.ThrowIfNull(source);
         var json = new JSONFile();
-        return json.Load(source) ? InstantiateJSON(json.GetRoot(), position, rotation) : null;
+        return json.Load(source) ? InstantiateJSON(json.Root, position, rotation) : null;
     }
 
     public void StopAsyncLoading()
@@ -1232,7 +1232,7 @@ public sealed class Scene : Serializable
             }
             else if (_asyncProgress.JsonFile is not null)
             {
-                var childValue = _asyncProgress.JsonFile.GetRoot().Get("children").Get((int)_asyncProgress.JsonIndex);
+                var childValue = _asyncProgress.JsonFile.Root.Get("children").Get((int)_asyncProgress.JsonIndex);
                 var nodeId = childValue.Get("id").GetUInt();
                 var newNode = Root.CreateChild(nodeId);
                 _resolver.AddNode(nodeId, newNode);

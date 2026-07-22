@@ -79,7 +79,8 @@ public sealed class GraphTests
         graph.Create("Existing");
 
         var output = new TestJSONOutputArchive();
-        graph.SerializeInBlock(output);
+        using (output.OpenUnorderedBlock("Graph"))
+            graph.SerializeInBlock(output);
         output.Flush();
         Assert.True(graph.LoadJSON(output.ToJsonString()), output.ToJsonString());
         Assert.Equal(1, graph.GetNumNodes());

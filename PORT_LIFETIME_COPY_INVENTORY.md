@@ -22,9 +22,9 @@ Excluded:
 - Tests and vendored third-party code.
 - Global aliases/usings files that contain no ported class implementation.
 
-Pending managed files inventoried: **56**
-Pending files with likely C++ counterpart paths: **48**
-Pending files requiring counterpart discovery: **8**
+Pending managed files inventoried: **19**
+Pending files with likely C++ counterpart paths: **19**
+Pending files requiring counterpart discovery: **0**
 
 ## Required review for every row
 
@@ -104,9 +104,6 @@ Check a column only after completing the corresponding full C++ review and recor
 | 2026-07-22 partial outcome | Corrected compressed-image storage to use native `TextureFormat` values directly throughout `Image`, `CompressedLevel`, DDS loading, block transforms, texture upload, and decompression instead of the invented managed `CompressedFormat` enum. `CompressedLevel::Decompress` now follows the native RGBA8, BC1/2/3, ETC2, and emulated PVRTC dispatch, and compressed mip byte sizing uses the native texture-format block metadata. Focused Image/Decompress coverage passes 22/22, the complete Linux/Web solution builds with zero errors, all 1,754 tests pass, and MultipleViewports renders the expected populated main scene and inset viewport. Full `Image` closure remains open for loading helpers and remaining member/body order. | — | — | — |
 | `src/RedBolt/Resource/ImageSDL.cs` | SDL-backed portions of `Image` in `Source/Urho3D/Resource/Image.h` / `Image.cpp` | ☐ | ☐ | ☐ |
 | 2026-07-21 resolution outcome | RESOLVED the managed helper to the native `Image` load, color-LUT, save, and SDL-surface methods and REVIEWED their complete bodies. Native STB loading preserves the source component count and its LUT/save checks, while the managed SDL_image path forces RGBA, changes several guards/conversions, and passes component count rather than bit depth when creating a surface. Generated STB write bindings exist, but the required load/free bindings are not currently generated. The row remains open for generator-first native parity work. | — | — | — |
-| `src/RedBolt/Resource/JSONFile.cs` | `Source/Urho3D/Resource/JSONFile.h`<br>`Source/Urho3D/Resource/JSONFile.cpp` | ☐ | ☐ | ☐ |
-| 2026-07-21 partial outcome | FIXED the native JSON object-load exception boundary exposed by upstream render-path loading. `LoadObjectCallback` now catches only `ArchiveException`, logs the failed JSON object load, and returns false; unrelated exceptions are no longer silently consumed. The complete `JSONFile` construction, document ownership, save path, and destruction audit remains pending, so all row checkboxes remain open. | — | — | — |
-| 2026-07-22 partial outcome | Re-read the complete native declaration and every `JSONFile` body. Managed `JSONFile` is now extensible, owns one stable read-only `Root` reference, mutates that value during loading instead of replacing it, destroys it before base teardown, routes `FromString` through the inherited resource load path, logs source names, checks serializer write counts, and catches only `ArchiveException` while saving objects. Native-equivalent Node and Scene save call sites now either serialize directly into the owned root or perform the explicit `JSONValue` copy assignment and deterministically destroy temporaries. File-backed input and output archive construction now matches native ownership. The row remains open for final member-order and API reconciliation. | — | — | — |
 | `src/RedBolt/Resource/JSONValue.cs` | `Source/Urho3D/Resource/JSONValue.h`<br>`Source/Urho3D/Resource/JSONValue.cpp` | ☐ | ☐ | ☐ |
 | 2026-07-22 partial outcome | Re-read the complete native declaration and all `JSONValue` method bodies. Managed `JSONValue` is now an extensible `ICloneable`/`IDisposable` reference type: copy construction recursively owns independent children, type changes, replacement, pop, erase, resize, clear, and final disposal deterministically destroy removed child values, missing lookups return the stable native-equivalent `Empty` value, sizes and indices use the approved managed `int` mapping, and equality follows native JSON number semantics by ignoring the stored number subtype. Focused tests prove independent nested copies, stable empty lookup, number equality, and class/lifetime shape. The row remains open for variant conversion paths, removal of managed callback/JSON-node compatibility state, and exact field/storage reconciliation. | — | — | — |
 | `src/RedBolt/Resource/Localization.cs` | `Source/Urho3D/Resource/Localization.h`<br>`Source/Urho3D/Resource/Localization.cpp` | ☐ | ☐ | ☐ |

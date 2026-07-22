@@ -116,7 +116,7 @@ public abstract class Serializable : Object
     public virtual bool LoadJSON(string resourceName)
     {
         var resource = GetSubsystem<ResourceCache>().GetResourceOrNull<JSONFile>(resourceName);
-        return resource is not null && LoadJSON(resource.GetRoot());
+        return resource is not null && LoadJSON(resource.Root);
     }
 
     /// <summary>Load from a resource of automatically detected type.</summary>

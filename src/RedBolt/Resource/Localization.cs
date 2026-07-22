@@ -136,9 +136,9 @@ public sealed class Localization : Object
         if (jsonFile is not null)
         {
             if (string.IsNullOrEmpty(language))
-                LoadMultipleLanguageJSON(jsonFile.GetRoot());
+                LoadMultipleLanguageJSON(jsonFile.Root);
             else
-                LoadSingleLanguageJSON(jsonFile.GetRoot(), language);
+                LoadSingleLanguageJSON(jsonFile.Root, language);
         }
     }
 
