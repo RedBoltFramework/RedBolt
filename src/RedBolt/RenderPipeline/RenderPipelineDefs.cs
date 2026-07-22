@@ -323,7 +323,7 @@ public delegate void RenderPipelineStatsHandler(ref RenderPipelineStats stats);
 /// <summary>
 /// ID of static pipeline state.
 /// </summary>
-public enum StaticPipelineStateId : uint
+public enum StaticPipelineStateId
 {
     Invalid,
 }

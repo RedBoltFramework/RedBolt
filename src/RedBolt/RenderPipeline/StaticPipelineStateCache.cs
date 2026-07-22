@@ -44,8 +44,8 @@ public sealed class StaticPipelineStateCache : Object
     /// </summary>
     public PipelineState? GetState(StaticPipelineStateId id, PipelineStateOutputDesc outputDescription)
     {
-        var index = (uint)id - 1;
-        if (id == StaticPipelineStateId.Invalid || index >= (uint)_descriptions.Count)
+        var index = (int)id - 1;
+        if (id == StaticPipelineStateId.Invalid || index >= _descriptions.Count)
         {
             System.Diagnostics.Debug.Assert(false, "StaticPipelineStateCache.GetState is called with invalid id");
             return null;
@@ -53,8 +53,8 @@ public sealed class StaticPipelineStateCache : Object
 
         var outputHash = outputDescription.ToHash();
         if (_caches.TryGetValue(outputHash, out var existingCache)
-            && index < (uint)existingCache.PipelineStates.Count
-            && existingCache.PipelineStates[(int)index] is { } existingState)
+            && index < existingCache.PipelineStates.Count
+            && existingCache.PipelineStates[index] is { } existingState)
             return existingState;
 
         if (!_caches.TryGetValue(outputHash, out var cache))
@@ -64,7 +64,7 @@ public sealed class StaticPipelineStateCache : Object
         }
         cache.OutputDesc = outputDescription;
 
-        var pipelineDescription = _descriptions[(int)index];
+        var pipelineDescription = _descriptions[index];
         pipelineDescription.Output = outputDescription;
 
         var pipelineStateCache = GetSubsystem<PipelineStateCache>();
@@ -72,7 +72,7 @@ public sealed class StaticPipelineStateCache : Object
 
         while (cache.PipelineStates.Count <= index)
             cache.PipelineStates.Add(null);
-        cache.PipelineStates[(int)index] = pipelineState;
+        cache.PipelineStates[index] = pipelineState;
 
         return pipelineState;
     }

@@ -3,6 +3,13 @@ namespace RedBolt.Tests;
 public sealed class StaticPipelineStateCacheTests
 {
     [Fact]
+    public void Static_pipeline_state_id_uses_managed_index_type()
+    {
+        Assert.Equal(typeof(int), Enum.GetUnderlyingType(typeof(StaticPipelineStateId)));
+        Assert.Equal(0, (int)StaticPipelineStateId.Invalid);
+    }
+
+    [Fact]
     public void Create_state_deduplicates_cpp_descriptor_values()
     {
         var cache = new StaticPipelineStateCache();
