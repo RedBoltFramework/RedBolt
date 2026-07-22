@@ -92,7 +92,8 @@ public sealed class LightProbeGroupTests
         Assert.Equal(2.5f, gi.GetEmissionBrightness());
         Assert.True(gi.SetAttribute("Offset", Vector3f.One));
         Assert.Equal(Vector3f.One, gi.GetOffset());
-        Assert.IsType<ResourceRef>(gi.GetAttribute("Data File"));
+        using var dataFile = gi.GetAttribute("Data File");
+        Assert.IsType<ResourceRef>(dataFile.GetObject());
         uint hint = 0;
         // Empty mesh samples safely through tetrahedral mesh path with empty containers.
         Assert.Equal(Vector3f.Zero, gi.SampleAverageAmbient(Vector3f.Zero, ref hint));

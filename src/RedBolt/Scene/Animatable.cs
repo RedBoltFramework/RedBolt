@@ -29,7 +29,7 @@ public class AttributeAnimationInfo : ValueAnimationInfo
     {
         if (Target is Animatable animatable)
         {
-            animatable.OnSetAttribute(AttributeInfo, newValue.GetObject());
+        animatable.OnSetAttribute(AttributeInfo, newValue);
             animatable.ApplyAttributes();
         }
     }

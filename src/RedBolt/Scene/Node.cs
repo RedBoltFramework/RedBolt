@@ -997,8 +997,16 @@ public class Node : Serializable
             var cloneAttribute = cloneAttributes[index];
             if ((attribute.Mode & AttributeMode.File) != 0)
             {
-                var value = component.OnGetAttribute(attribute);
-                clone.OnSetAttribute(cloneAttribute, value);
+                var value = default(Variant);
+                try
+                {
+                    component.OnGetAttribute(attribute, ref value);
+                    clone.OnSetAttribute(cloneAttribute, value);
+                }
+                finally
+                {
+                    value.Dispose();
+                }
             }
         }
         clone.ApplyAttributes();
@@ -2485,8 +2493,16 @@ public class Node : Serializable
             var attribute = attributes[index];
             if ((attribute.Mode & AttributeMode.File) != 0)
             {
-                var value = OnGetAttribute(attribute);
-                clone.OnSetAttribute(attribute, value);
+                var value = default(Variant);
+                try
+                {
+                    OnGetAttribute(attribute, ref value);
+                    clone.OnSetAttribute(attribute, value);
+                }
+                finally
+                {
+                    value.Dispose();
+                }
             }
         }
 

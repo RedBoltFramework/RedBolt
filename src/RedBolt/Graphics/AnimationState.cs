@@ -106,7 +106,7 @@ public struct AnimatedAttributeReference : IEquatable<AnimatedAttributeReference
         switch (AttributeType)
         {
             case AnimatedAttributeType.Default:
-                serializable.SetAttribute(AttributeIndex, value.GetObject());
+                serializable.SetAttribute(AttributeIndex, value);
                 break;
 
             case AnimatedAttributeType.NodeVariables:

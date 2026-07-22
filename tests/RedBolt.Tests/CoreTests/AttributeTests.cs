@@ -7,12 +7,14 @@ public class AttributeTests
     {
         var serializable = new AccessorSerializable();
 
-        Assert.Equal(123, serializable.GetAttribute("Value"));
+        using var initialValue = serializable.GetAttribute("Value");
+        Assert.Equal(123, initialValue.GetObject());
 
         Assert.True(serializable.SetAttribute("Value", 456));
 
         Assert.Equal(456, serializable.StoredValue);
-        Assert.Equal(456, serializable.GetAttribute("Value"));
+        using var changedValue = serializable.GetAttribute("Value");
+        Assert.Equal(456, changedValue.GetObject());
     }
 
     [Fact]

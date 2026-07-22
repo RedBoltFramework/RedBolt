@@ -87,7 +87,8 @@ public sealed class PrefabTests
     {
         var animatable = new TestAnimatable();
 
-        var value = Assert.IsType<ResourceRef>(animatable.GetAttribute("Object Animation"));
+        using var attribute = animatable.GetAttribute("Object Animation");
+        var value = Assert.IsType<ResourceRef>(attribute.GetObject());
 
         Assert.Equal(ObjectReflection<ObjectAnimation>.TypeId, value.Type);
         Assert.Empty(value.Name);

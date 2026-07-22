@@ -20,6 +20,7 @@ public sealed class RenderPassTests
     [Fact]
     public void Clone_copies_attributes_without_copying_runtime_user_state()
     {
+        Context.Instance.AddFactoryReflection<TrackingRenderPass>();
         var pass = new TrackingRenderPass();
         pass.SetEnabled(true);
         pass.SetEnabledByDefault(false);
@@ -36,6 +37,7 @@ public sealed class RenderPassTests
     [Fact]
     public void Clone_resets_empty_variant_default_without_dereferencing_it()
     {
+        Context.Instance.AddFactoryReflection<NullableAttributeRenderPass>();
         var pass = new NullableAttributeRenderPass();
 
         var clone = Assert.IsType<NullableAttributeRenderPass>(pass.Clone());

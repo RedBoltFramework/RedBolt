@@ -25,11 +25,16 @@ public sealed class WorldOriginTests
         Assert.Equal(1u, worldOrigin.GetUpdateZ());
         Assert.Equal(UpdateEvent.UseUpdate, worldOrigin.GetUpdateEventMask());
 
-        Assert.Equal(WorldOrigin.MaxDistance, worldOrigin.GetAttribute("Max Distance"));
-        Assert.Equal(WorldOrigin.DefaultStep, worldOrigin.GetAttribute("Step"));
-        Assert.Equal(true, worldOrigin.GetAttribute("Update X"));
-        Assert.Equal(false, worldOrigin.GetAttribute("Update Y"));
-        Assert.Equal(true, worldOrigin.GetAttribute("Update Z"));
+        using var maxDistance = worldOrigin.GetAttribute("Max Distance");
+        using var step = worldOrigin.GetAttribute("Step");
+        using var updateX = worldOrigin.GetAttribute("Update X");
+        using var updateY = worldOrigin.GetAttribute("Update Y");
+        using var updateZ = worldOrigin.GetAttribute("Update Z");
+        Assert.Equal(WorldOrigin.MaxDistance, maxDistance.GetUInt());
+        Assert.Equal(WorldOrigin.DefaultStep, step.GetUInt());
+        Assert.Equal(true, updateX.GetObject());
+        Assert.Equal(false, updateY.GetObject());
+        Assert.Equal(true, updateZ.GetObject());
     }
 
     [Fact]

@@ -555,16 +555,26 @@ public sealed class SceneTests
 
         Assert.True(context.IsReflected<Scene>());
         using var created = Assert.IsType<Scene>(context.CreateObject(ObjectReflection<Scene>.TypeId));
-        Assert.Equal(10u, created.NumAttributes);
-        Assert.Equal(string.Empty, created.GetAttribute("Name"));
-        Assert.Equal(1.0f, created.GetAttribute("Time Scale"));
-        Assert.Equal(0.0f, created.GetAttribute("Elapsed Time"));
-        Assert.Equal(2u, created.GetAttribute("Next Node ID"));
-        Assert.Equal(1u, created.GetAttribute("Next Component ID"));
-        Assert.IsType<StringVariantMap>(created.GetAttribute("Variables"));
-        Assert.Equal(Scene.DefaultUpdateEvents, created.GetAttribute("Update Events"));
-        Assert.Equal(IntVector3.Zero, created.GetAttribute("World Origin"));
-        Assert.Equal(new Vector3d(1_000_000_000_000.0, 1024.0, 1.0), created.GetAttribute("Elapsed Time Wrap"));
-        Assert.Equal(ObjectReflection<Texture2D>.TypeId, ((ResourceRefList)created.GetAttribute("Lightmaps")!).Type);
+        Assert.Equal(10, created.NumAttributes);
+        using var name = created.GetAttribute("Name");
+        using var timeScale = created.GetAttribute("Time Scale");
+        using var elapsedTime = created.GetAttribute("Elapsed Time");
+        using var nextNodeId = created.GetAttribute("Next Node ID");
+        using var nextComponentId = created.GetAttribute("Next Component ID");
+        using var variables = created.GetAttribute("Variables");
+        using var updateEvents = created.GetAttribute("Update Events");
+        using var worldOrigin = created.GetAttribute("World Origin");
+        using var elapsedTimeWrap = created.GetAttribute("Elapsed Time Wrap");
+        using var lightmaps = created.GetAttribute("Lightmaps");
+        Assert.Equal(string.Empty, name.GetObject());
+        Assert.Equal(1.0f, timeScale.GetObject());
+        Assert.Equal(0.0f, elapsedTime.GetObject());
+        Assert.Equal(2u, nextNodeId.GetUInt());
+        Assert.Equal(1u, nextComponentId.GetUInt());
+        Assert.IsType<StringVariantMap>(variables.GetObject());
+        Assert.Equal(Scene.DefaultUpdateEvents, updateEvents.GetObject());
+        Assert.Equal(IntVector3.Zero, worldOrigin.GetObject());
+        Assert.Equal(new Vector3d(1_000_000_000_000.0, 1024.0, 1.0), elapsedTimeWrap.GetObject());
+        Assert.Equal(ObjectReflection<Texture2D>.TypeId, Assert.IsType<ResourceRefList>(lightmaps.GetObject()).Type);
     }
 }

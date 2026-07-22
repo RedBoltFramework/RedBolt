@@ -62,10 +62,11 @@ public sealed class ShakeComponentTests
         using var created = Assert.IsType<ShakeComponent>(context.CreateObject(ObjectReflection<ShakeComponent>.TypeId));
         Assert.Contains(ObjectReflection<ShakeComponent>.TypeId,
             context.GetObjectCategories()[ObjectCategory.Category_Scene]);
-        Assert.Equal(6u, created.NumAttributes);
+        Assert.Equal(6, created.NumAttributes);
         created.TraumaPower = 3.0f;
         created.TraumaFalloff = 2.0f;
-        Assert.Equal(2.0f, created.GetAttribute("Trauma Falloff"));
+        using var traumaFalloff = created.GetAttribute("Trauma Falloff");
+        Assert.Equal(2.0f, traumaFalloff.GetObject());
         Assert.Equal(3.0f, created.TraumaFalloff);
     }
 }

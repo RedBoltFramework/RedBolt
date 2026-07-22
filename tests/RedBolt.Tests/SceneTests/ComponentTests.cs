@@ -21,7 +21,7 @@ public sealed class ComponentTests
         Assert.False(component.IsEnabledEffective);
         Assert.Equal(int.MaxValue, component.GetIndexInParent());
         Assert.False(component.HasAuxiliaryData());
-        Assert.Equal(0u, component.GetNumAttributes());
+        Assert.Equal(0, component.GetNumAttributes());
     }
 
     [Fact]

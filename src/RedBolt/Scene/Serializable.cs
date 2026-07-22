@@ -1,23 +1,31 @@
 namespace RedBolt;
 
-public abstract class Serializable : Object
+public class Serializable : Object
 {
-    private readonly List<AttributeInfo> _attributes = [];
-    private readonly Dictionary<StringHash, object?> _attributeValues = new();
-    private readonly Dictionary<StringHash, object?> _instanceDefaultValues = new();
+    private Dictionary<StringHash, Variant>? _instanceDefaultValues;
     private bool _setInstanceDefault;
+    private bool _temporary;
+    private readonly List<AttributeInfo> _attributes = [];
+    private readonly Dictionary<StringHash, Variant> _attributeValues = new();
 
     public IReadOnlyList<AttributeInfo> Attributes => _attributes;
 
-    public bool IsTemporary => Temporary;
+    public bool IsTemporary => _temporary;
 
-    public uint NumAttributes => (uint)_attributes.Count;
+    public int NumAttributes => _attributes.Count;
 
     public override void Dispose()
     {
+        RemoveInstanceDefault();
         for (var i = _attributes.Count - 1; i >= 0; --i)
             _attributes[i].Dispose();
         _attributes.Clear();
+        foreach (var value in _attributeValues.Values)
+        {
+            var ownedValue = value;
+            ownedValue.Dispose();
+        }
+        _attributeValues.Clear();
         base.Dispose();
     }
 
@@ -26,8 +34,6 @@ public abstract class Serializable : Object
     {
         return Context.Instance.GetReflection(new StringHash(GetType().GetClassName()));
     }
-
-    public bool Temporary { get; private set; }
 
     public virtual void ApplyAttributes()
     {
@@ -40,45 +46,89 @@ public abstract class Serializable : Object
         if (resetToDefault)
             ResetToDefault();
 
-        foreach (var attribute in source.Attributes)
-            SetAttribute(attribute.Name, source.GetAttribute(attribute.Name));
+        var sourceReflection = source.GetReflection();
+        if (sourceReflection is not null
+            && ReferenceEquals(sourceReflection, GetReflection())
+            && source.Attributes.Count == _attributes.Count)
+        {
+            for (var i = 0; i < source.Attributes.Count; ++i)
+            {
+                var sourceAttribute = source.Attributes[i];
+                var attribute = _attributes[i];
+                var value = default(Variant);
+                try
+                {
+                    source.OnGetAttribute(sourceAttribute, ref value);
+                    OnSetAttribute(attribute, value);
+                }
+                finally
+                {
+                    value.Dispose();
+                }
+            }
+        }
+        else
+        {
+            foreach (var attribute in _attributes)
+            {
+                AttributeInfo? sourceAttribute = null;
+                foreach (var candidate in source.Attributes)
+                {
+                    if (candidate.NameHash == attribute.NameHash)
+                    {
+                        sourceAttribute = candidate;
+                        break;
+                    }
+                }
+
+                if (sourceAttribute is null)
+                    continue;
+
+                var value = default(Variant);
+                try
+                {
+                    source.OnGetAttribute(sourceAttribute, ref value);
+                    OnSetAttribute(attribute, value);
+                }
+                finally
+                {
+                    value.Dispose();
+                }
+            }
+        }
     }
 
-    public object? GetAttribute(int index)
+    public Variant GetAttribute(int index)
     {
-        return index >= 0 && index < _attributes.Count ? OnGetAttribute(_attributes[index]) : null;
+        var value = default(Variant);
+        if (index >= 0 && index < _attributes.Count)
+            OnGetAttribute(_attributes[index], ref value);
+        return value;
     }
 
-    public object? GetAttribute(uint index)
-    {
-        return index <= int.MaxValue ? GetAttribute((int)index) : null;
-    }
-
-    public object? GetAttribute(string name)
+    public Variant GetAttribute(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var attribute = FindAttribute(name);
-        return attribute is not null ? OnGetAttribute(attribute) : null;
+        var value = default(Variant);
+        if (attribute is not null)
+            OnGetAttribute(attribute, ref value);
+        return value;
     }
 
-    public object? GetAttributeDefault(int index)
+    public Variant GetAttributeDefault(int index)
     {
         if (index < 0 || index >= _attributes.Count)
-            return null;
+            return default;
 
         return GetAttributeDefault(_attributes[index]);
     }
 
-    public object? GetAttributeDefault(uint index)
-    {
-        return index <= int.MaxValue ? GetAttributeDefault((int)index) : null;
-    }
-
-    public object? GetAttributeDefault(string name)
+    public Variant GetAttributeDefault(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var attribute = FindAttribute(name);
-        return attribute is not null ? GetAttributeDefault(attribute) : null;
+        return attribute is not null ? GetAttributeDefault(attribute) : default;
     }
 
     public IReadOnlyList<AttributeInfo> GetAttributes()
@@ -86,13 +136,16 @@ public abstract class Serializable : Object
         return Attributes;
     }
 
-    public object? GetInstanceDefault(string name)
+    public Variant GetInstanceDefault(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return _instanceDefaultValues.GetValueOrDefault(new StringHash(name));
+        return _instanceDefaultValues is not null
+            && _instanceDefaultValues.TryGetValue(new StringHash(name), out var value)
+                ? value.Clone()
+                : default;
     }
 
-    public uint GetNumAttributes()
+    public int GetNumAttributes()
     {
         return NumAttributes;
     }
@@ -141,37 +194,56 @@ public abstract class Serializable : Object
             if (!attribute.ShouldLoad) continue;
             if (source.IsEof()) return false;
             using var value = source.ReadVariant(attribute.DefaultValue.Type);
-            OnSetAttribute(attribute, ConvertVariant(attribute, value));
+            OnSetAttribute(attribute, value);
         }
         return true;
     }
 
-    public virtual object? OnGetAttribute(AttributeInfo attribute)
+    public virtual void OnGetAttribute(AttributeInfo attribute, ref Variant destination)
     {
         ArgumentNullException.ThrowIfNull(attribute);
 
+        destination.Dispose();
         if (attribute.Accessor is not null)
-            return attribute.Accessor.GetObject(this);
+        {
+            attribute.Accessor.Get(this, ref destination);
+            return;
+        }
 
-        return _attributeValues.TryGetValue(attribute.NameHash, out var value) ? value : GetAttributeDefault(attribute);
+        destination = _attributeValues.TryGetValue(attribute.NameHash, out var value)
+            ? value.Clone()
+            : GetAttributeDefault(attribute);
     }
 
-    public virtual void OnSetAttribute(AttributeInfo attribute, object? value)
+    public virtual void OnSetAttribute(AttributeInfo attribute, Variant value)
     {
         ArgumentNullException.ThrowIfNull(attribute);
 
         if (_setInstanceDefault)
-            _instanceDefaultValues[attribute.NameHash] = value;
+            SetInstanceDefault(attribute.Name, value);
 
         if (attribute.Accessor is not null)
-            attribute.Accessor.SetObject(this, value);
+            attribute.Accessor.SetObject(this, ConvertVariant(attribute, value));
         else
-            _attributeValues[attribute.NameHash] = value;
+        {
+            var copy = value.Clone();
+            if (_attributeValues.TryGetValue(attribute.NameHash, out var previousValue))
+                previousValue.Dispose();
+            _attributeValues[attribute.NameHash] = copy;
+        }
     }
 
     public void RemoveInstanceDefault()
     {
-        _instanceDefaultValues.Clear();
+        if (_instanceDefaultValues is null)
+            return;
+
+        foreach (var value in _instanceDefaultValues.Values)
+        {
+            var ownedValue = value;
+            ownedValue.Dispose();
+        }
+        _instanceDefaultValues = null;
     }
 
     public void ResetToDefault()
@@ -181,7 +253,8 @@ public abstract class Serializable : Object
             if ((attribute.Mode & (AttributeMode.NoEdit | AttributeMode.NodeId | AttributeMode.ComponentId | AttributeMode.NodeIdVector)) != 0)
                 continue;
 
-            OnSetAttribute(attribute, GetAttributeDefault(attribute));
+            using var value = GetAttributeDefault(attribute);
+            OnSetAttribute(attribute, value);
         }
     }
 
@@ -191,7 +264,9 @@ public abstract class Serializable : Object
         foreach (var attribute in _attributes)
         {
             if (!attribute.ShouldSave) continue;
-            using var value = Variant.FromObject(OnGetAttribute(attribute));
+            var value = default(Variant);
+            OnGetAttribute(attribute, ref value);
+            using (value)
             if (!destination.WriteVariantData(value)) return false;
         }
         return true;
@@ -200,17 +275,49 @@ public abstract class Serializable : Object
     public virtual bool LoadXML(XMLElement source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        if (source.IsNull) return false;
+        if (source.IsNull)
+        {
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default,
+                $"Could not load {GetTypeName()}, null source element", null, static (state, _) => state);
+            return false;
+        }
+
+        var startIndex = 0;
         for (var element = source.GetChild("attribute"); element.NotNull; element = element.GetNext("attribute"))
         {
-            var attribute = FindAttribute(element.GetAttribute("name"));
-            if (attribute is null || !attribute.ShouldLoad) continue;
-            using var value = attribute.EnumNames.Count != 0 && attribute.DefaultValue.Type == VariantType.Int
-                ? ParseEnum(attribute, element.GetAttribute("value"))
-                : element.GetVariantValue(attribute.DefaultValue.Type);
-            if (!value.IsEmpty) OnSetAttribute(attribute, ConvertVariant(attribute, value));
+            var name = element.GetAttribute("name");
+            var i = startIndex;
+            var attempts = _attributes.Count;
+
+            while (attempts != 0)
+            {
+                var attribute = _attributes[i];
+                if (attribute.ShouldLoad && string.Equals(attribute.Name, name, StringComparison.Ordinal))
+                {
+                    // If enums specified, do enum lookup and int assignment. Otherwise assign the variant directly
+                    using var value = attribute.EnumNames.Count != 0 && attribute.DefaultValue.Type == VariantType.Int
+                        ? ParseEnum(attribute, element.GetAttribute("value"))
+                        : element.GetVariantValue(attribute.DefaultValue.Type);
+                    if (value.IsEmpty && attribute.EnumNames.Count != 0
+                        && attribute.DefaultValue.Type == VariantType.Int)
+                        Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Warning, default,
+                            $"Unknown enum value {element.GetAttribute("value")} in attribute {attribute.Name}", null,
+                            static (state, _) => state);
+                    if (!value.IsEmpty)
+                        OnSetAttribute(attribute, value);
+
+                    startIndex = (i + 1) % _attributes.Count;
+                    break;
+                }
+
+                i = (i + 1) % _attributes.Count;
+                --attempts;
+            }
+
+            if (attempts == 0)
+                Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Warning, default,
+                    $"Unknown attribute {name} in XML data", null, static (state, _) => state);
         }
-        ApplyAttributes();
         return true;
     }
 
@@ -222,13 +329,17 @@ public abstract class Serializable : Object
         {
             var attribute = _attributes[i];
             if (!attribute.ShouldSave) continue;
-            using var value = Variant.FromObject(OnGetAttribute(attribute));
-            if (value == attribute.DefaultValue && !SaveDefaultAttributes(attribute)) continue;
-            var element = destination.CreateChild("attribute");
-            element.SetString("name", attribute.Name);
-            if (attribute.EnumNames.Count != 0 && value.Type == VariantType.Int && value.GetInt() >= 0 && value.GetInt() < attribute.EnumNames.Count)
-                element.SetString("value", attribute.EnumNames[value.GetInt()]);
-            else element.SetVariantValue(value);
+            var value = default(Variant);
+            OnGetAttribute(attribute, ref value);
+            using (value)
+            {
+                if (value == attribute.DefaultValue && !SaveDefaultAttributes(attribute)) continue;
+                var element = destination.CreateChild("attribute");
+                element.SetString("name", attribute.Name);
+                if (attribute.EnumNames.Count != 0 && value.Type == VariantType.Int)
+                    element.SetString("value", attribute.EnumNames[value.GetInt()]);
+                else element.SetVariantValue(value);
+            }
         }
         return true;
     }
@@ -236,9 +347,25 @@ public abstract class Serializable : Object
     public virtual bool LoadJSON(JSONValue source)
     {
         ArgumentNullException.ThrowIfNull(source);
+        if (source.IsNull)
+        {
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default,
+                $"Could not load {GetTypeName()}, null JSON source element", null, static (state, _) => state);
+            return false;
+        }
+
+        // Get attributes value
         var attributes = source.Get("attributes");
         if (attributes.IsNull) return true;
-        if (!attributes.IsObject) return false;
+        // Warn if the attributes value isn't an object
+        if (!attributes.IsObject)
+        {
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Warning, default,
+                $"'attributes' object is present in {GetTypeName()} but is not a JSON object; skipping load", null,
+                static (state, _) => state);
+            return true;
+        }
+
         foreach (var attribute in _attributes)
         {
             if (!attribute.ShouldLoad) continue;
@@ -247,9 +374,23 @@ public abstract class Serializable : Object
             using var value = attribute.EnumNames.Count != 0 && attribute.DefaultValue.Type == VariantType.Int
                 ? ParseEnum(attribute, json.GetString())
                 : json.GetVariantValue(attribute.DefaultValue.Type);
-            if (!value.IsEmpty) OnSetAttribute(attribute, ConvertVariant(attribute, value));
+            if (value.IsEmpty && attribute.EnumNames.Count != 0 && attribute.DefaultValue.Type == VariantType.Int)
+                Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Warning, default,
+                    $"Unknown enum value {json.GetString()} in attribute {attribute.Name}", null,
+                    static (state, _) => state);
+            if (!value.IsEmpty) OnSetAttribute(attribute, value);
         }
-        ApplyAttributes();
+
+        // Report missing attributes.
+        foreach (var pair in attributes.GetObject())
+        {
+            var found = false;
+            for (var i = 0; i < _attributes.Count && !found; ++i)
+                found = string.Equals(_attributes[i].Name, pair.Key, StringComparison.Ordinal);
+            if (!found)
+                Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Warning, default,
+                    $"Unknown attribute {pair.Key} in JSON data", null, static (state, _) => state);
+        }
         return true;
     }
 
@@ -261,13 +402,19 @@ public abstract class Serializable : Object
         {
             var attribute = _attributes[i];
             if (!attribute.ShouldSave) continue;
-            using var value = Variant.FromObject(OnGetAttribute(attribute));
-            if (value == attribute.DefaultValue && !SaveDefaultAttributes(attribute)) continue;
-            if (attribute.EnumNames.Count != 0 && value.Type == VariantType.Int && value.GetInt() >= 0 && value.GetInt() < attribute.EnumNames.Count)
-                attributes.Set(attribute.Name, new JSONValue(attribute.EnumNames[value.GetInt()]));
-            else
+            var value = default(Variant);
+            OnGetAttribute(attribute, ref value);
+            using (value)
             {
-                var json = new JSONValue(); json.SetVariantValue(value); attributes.Set(attribute.Name, json);
+                if (value == attribute.DefaultValue && !SaveDefaultAttributes(attribute)) continue;
+                if (attribute.EnumNames.Count != 0 && value.Type == VariantType.Int)
+                    attributes.Set(attribute.Name, new JSONValue(attribute.EnumNames[value.GetInt()]));
+                else
+                {
+                    var json = new JSONValue();
+                    json.SetVariantValue(value);
+                    attributes.Set(attribute.Name, json);
+                }
             }
         }
         destination.Set("attributes", attributes);
@@ -313,7 +460,7 @@ public abstract class Serializable : Object
                 {
                     ArchiveSerialization.SerializeVariantAsType(archive, "value", ref value, type);
                     if (attribute is not null && (attribute.ShouldLoad || serializeTemporary && (attribute.Mode & AttributeMode.Temporary) != 0))
-                        OnSetAttribute(attribute, ConvertVariant(attribute, value));
+                        OnSetAttribute(attribute, value);
                 }
                 finally
                 {
@@ -324,16 +471,20 @@ public abstract class Serializable : Object
         }
         else
         {
-            foreach (var attribute in _attributes.Where(attribute =>
-                attribute.ShouldSave || serializeTemporary && (attribute.Mode & AttributeMode.Temporary) != 0))
+            foreach (var attribute in _attributes)
             {
+                if (!attribute.ShouldSave
+                    && (!serializeTemporary || (attribute.Mode & AttributeMode.Temporary) == 0))
+                    continue;
+
                 using var item = archive.OpenUnorderedBlock("attribute");
                 var name = attribute.Name;
                 ArchiveSerialization.SerializeOptionalValue(
                     archive, "name", ref name, string.Empty,
                     static (Archive valueArchive, string valueName, ref string value) =>
                         ArchiveSerialization.SerializeValue(valueArchive, valueName, ref value));
-                var value = Variant.FromObject(OnGetAttribute(attribute));
+                var value = default(Variant);
+                OnGetAttribute(attribute, ref value);
                 try
                 {
                     var type = value.Type;
@@ -351,12 +502,15 @@ public abstract class Serializable : Object
         }
     }
 
-    public Serializable Clone(bool resetToDefault = true)
+    public Serializable? Clone(bool resetToDefault = true)
     {
-        if (Activator.CreateInstance(GetType()) is not Serializable clone)
-            throw new InvalidOperationException($"Cannot clone {GetType().Name}: parameterless constructor is required.");
-        clone.CopyAttributes(this, resetToDefault);
-        return clone;
+        var cloneObject = Context.Instance.CreateObject(new StringHash(GetType().GetClassName()));
+        if (cloneObject is Serializable clone)
+        {
+            clone.CopyAttributes(this, resetToDefault);
+            return clone;
+        }
+        return null;
     }
 
     public virtual bool SaveDefaultAttributes(AttributeInfo attribute)
@@ -364,32 +518,27 @@ public abstract class Serializable : Object
         return false;
     }
 
-    public bool SetAttribute(int index, object? value)
+    public bool SetAttribute(int index, Variant value)
     {
         if (index < 0 || index >= _attributes.Count)
             return false;
 
         var attribute = _attributes[index];
-        if (value is not null && !attribute.ValueType.IsInstanceOfType(value))
+        if (value.Type != attribute.DefaultValue.Type)
             return false;
 
         OnSetAttribute(attribute, value);
         return true;
     }
 
-    public bool SetAttribute(uint index, object? value)
-    {
-        return index <= int.MaxValue && SetAttribute((int)index, value);
-    }
-
-    public bool SetAttribute(string name, object? value)
+    public bool SetAttribute(string name, Variant value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var attribute = FindAttribute(name);
         if (attribute is null)
             return false;
 
-        if (value is not null && !attribute.ValueType.IsInstanceOfType(value))
+        if (value.Type != attribute.DefaultValue.Type)
             return false;
 
         OnSetAttribute(attribute, value);
@@ -401,18 +550,23 @@ public abstract class Serializable : Object
         _setInstanceDefault = enable;
     }
 
-    public void SetInstanceDefault(string name, object? defaultValue)
+    public void SetInstanceDefault(string name, Variant defaultValue)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        _instanceDefaultValues[new StringHash(name)] = defaultValue;
+        _instanceDefaultValues ??= new Dictionary<StringHash, Variant>();
+        var nameHash = new StringHash(name);
+        var value = defaultValue.Clone();
+        if (_instanceDefaultValues.TryGetValue(nameHash, out var previousValue))
+            previousValue.Dispose();
+        _instanceDefaultValues[nameHash] = value;
     }
 
     public void SetTemporary(bool enable)
     {
-        if (Temporary == enable)
+        if (_temporary == enable)
             return;
 
-        Temporary = enable;
+        _temporary = enable;
 
         var eventData = new SceneEvents.TemporaryChangedEvent
         {
@@ -475,7 +629,7 @@ public abstract class Serializable : Object
     private static Variant ParseEnum(AttributeInfo attribute, string name)
     {
         for (var i = 0; i < attribute.EnumNames.Count; ++i)
-            if (string.Equals(attribute.EnumNames[i], name, StringComparison.Ordinal)) return new Variant(i);
+            if (string.Equals(attribute.EnumNames[i], name, StringComparison.OrdinalIgnoreCase)) return new Variant(i);
         return default;
     }
 
@@ -487,24 +641,12 @@ public abstract class Serializable : Object
         return value.GetObject();
     }
 
-    private object? GetAttributeDefault(AttributeInfo attribute)
+    private Variant GetAttributeDefault(AttributeInfo attribute)
     {
-        if (_instanceDefaultValues.TryGetValue(attribute.NameHash, out var value))
-            return value;
+        if (_instanceDefaultValues is not null
+            && _instanceDefaultValues.TryGetValue(attribute.NameHash, out var value))
+            return value.Clone();
 
-        var defaultValue = attribute.DefaultValue.GetObject();
-        if (defaultValue is null)
-            return null;
-        if (attribute.ValueType.IsEnum)
-            return Enum.ToObject(attribute.ValueType, attribute.DefaultValue.GetInt());
-        if (attribute.ValueType == typeof(uint))
-            return attribute.DefaultValue.GetUInt();
-        if (attribute.ValueType == typeof(ulong))
-            return attribute.DefaultValue.GetUInt64();
-        if (attribute.ValueType.IsAssignableFrom(defaultValue.GetType()))
-            return defaultValue;
-        if (attribute.ValueType == typeof(IReadOnlyList<string>) && defaultValue is StringVector strings)
-            return strings;
-        return defaultValue;
+        return attribute.DefaultValue.Clone();
     }
 }

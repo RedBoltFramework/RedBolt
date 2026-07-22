@@ -15,6 +15,7 @@ public sealed class SerializableTests
         var binaryResult = new TestSerializable();
         Assert.True(binaryResult.Load(binary));
         AssertValues(binaryResult);
+        Assert.Equal(0, binaryResult.ApplyCount);
 
         var xml = new XMLFile { Name = string.Empty };
         var root = xml.CreateRoot("object");
@@ -22,12 +23,14 @@ public sealed class SerializableTests
         var xmlResult = new TestSerializable();
         Assert.True(xmlResult.LoadXML(root));
         AssertValues(xmlResult);
+        Assert.Equal(0, xmlResult.ApplyCount);
 
-        var json = new JSONValue(JSONValueType.Object);
+        using var json = new JSONValue(JSONValueType.Object);
         Assert.True(source.SaveJSON(json));
         var jsonResult = new TestSerializable();
         Assert.True(jsonResult.LoadJSON(json));
         AssertValues(jsonResult);
+        Assert.Equal(0, jsonResult.ApplyCount);
 
         var previous = Context.Instance;
         Context.SetInstance(new Context());
@@ -39,6 +42,7 @@ public sealed class SerializableTests
             var archiveResult = new TestSerializable();
             using (input.OpenUnorderedBlock("object")) archiveResult.SerializeInBlock(input);
             AssertValues(archiveResult);
+            Assert.Equal(1, archiveResult.ApplyCount);
         }
         finally
         {
@@ -49,10 +53,71 @@ public sealed class SerializableTests
     [Fact]
     public void Serializable_clone_copies_attributes()
     {
-        var source = new TestSerializable { Number = 7, Label = "clone" };
-        var clone = Assert.IsType<TestSerializable>(source.Clone());
-        Assert.Equal(7, clone.Number);
-        Assert.Equal("clone", clone.Label);
+        var previous = Context.Instance;
+        using var context = new Context();
+        Context.SetInstance(context);
+        try
+        {
+            context.AddFactoryReflection<TestSerializable>();
+            using var source = new TestSerializable { Number = 7, Label = "clone" };
+            using var clone = Assert.IsType<TestSerializable>(source.Clone());
+            Assert.Equal(7, clone.Number);
+            Assert.Equal("clone", clone.Label);
+        }
+        finally
+        {
+            Context.SetInstance(previous);
+        }
+    }
+
+    [Fact]
+    public void Serializable_clone_returns_null_without_factory()
+    {
+        var previous = Context.Instance;
+        using var context = new Context();
+        Context.SetInstance(context);
+        try
+        {
+            using var source = new TestSerializable();
+            Assert.Null(source.Clone());
+        }
+        finally
+        {
+            Context.SetInstance(previous);
+        }
+    }
+
+    [Fact]
+    public void Serializable_owns_instance_default_values()
+    {
+        using var serializable = new DefaultSerializable();
+        var source = new byte[] { 1, 2, 3 };
+        serializable.SetInstanceDefault("Value", source);
+
+        source[0] = 9;
+        using var firstValue = serializable.GetInstanceDefault("Value");
+        var first = Assert.IsType<byte[]>(firstValue.GetObject());
+        Assert.Equal(new byte[] { 1, 2, 3 }, first);
+
+        first[1] = 9;
+        using var secondValue = serializable.GetInstanceDefault("Value");
+        Assert.Equal(new byte[] { 1, 2, 3 }, Assert.IsType<byte[]>(secondValue.GetObject()));
+
+        serializable.RemoveInstanceDefault();
+        using var removedValue = serializable.GetInstanceDefault("Value");
+        Assert.Null(removedValue.GetObject());
+    }
+
+    [Fact]
+    public void Serializable_skips_non_object_json_attributes()
+    {
+        using var serializable = new TestSerializable();
+        using var json = new JSONValue(JSONValueType.Object);
+        using var attributes = new JSONValue(42);
+        json.Set("attributes", attributes);
+
+        Assert.True(serializable.LoadJSON(json));
+        Assert.Equal(0, serializable.ApplyCount);
     }
 
     [Fact]
@@ -67,7 +132,7 @@ public sealed class SerializableTests
             var serializable = new TestSerializable();
 
             Assert.Same(reflection, serializable.GetReflection());
-            Assert.Equal(2u, serializable.GetNumAttributes());
+            Assert.Equal(2, serializable.GetNumAttributes());
         }
         finally
         {
@@ -91,5 +156,22 @@ public sealed class SerializableTests
 
         public int Number { get; set; }
         public string Label { get; set; } = string.Empty;
+        public int ApplyCount { get; private set; }
+
+        public override void ApplyAttributes()
+        {
+            ++ApplyCount;
+        }
+    }
+
+    private sealed class DefaultSerializable : Serializable
+    {
+        public DefaultSerializable()
+        {
+            RegisterAttribute("Value", typeof(byte[]), _ => Value, (_, value) => Value = (byte[]?)value ?? [],
+                Array.Empty<byte>());
+        }
+
+        public byte[] Value { get; set; } = [];
     }
 }

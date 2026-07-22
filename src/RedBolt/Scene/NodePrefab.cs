@@ -306,12 +306,13 @@ public class SerializablePrefab : ICloneable, IEquatable<SerializablePrefab>, ID
             if ((attribute.Mode & AttributeMode.Prefab) == 0 && (flags & PrefabSaveFlag.Prefab) != 0)
                 continue;
 
-            var value = Variant.FromObject(serializable.OnGetAttribute(attribute));
+            var value = default(Variant);
+            serializable.OnGetAttribute(attribute, ref value);
 
             // Skip defaults if allowed
             if ((flags & PrefabSaveFlag.SaveDefaultValues) == 0)
             {
-                var defaultValue = Variant.FromObject(serializable.GetAttributeDefault(attributeIndex));
+                var defaultValue = serializable.GetAttributeDefault(attributeIndex);
                 var isDefault = value == defaultValue;
                 defaultValue.Dispose();
                 if (isDefault)
@@ -382,7 +383,6 @@ public class SerializablePrefab : ICloneable, IEquatable<SerializablePrefab>, ID
             if (!attribute.ShouldLoad && (attribute.Mode & AttributeMode.Temporary) == 0)
                 continue;
 
-            object? value;
             if (attributePrefab.Value.Type == VariantType.String && attribute.EnumNames.Count != 0)
             {
                 var enumName = attributePrefab.Value.GetString();
@@ -394,22 +394,11 @@ public class SerializablePrefab : ICloneable, IEquatable<SerializablePrefab>, ID
                         attribute.Name, reflection.ClassName, enumName);
                     continue;
                 }
-                value = attribute.ValueType.IsEnum
-                    ? Enum.ToObject(attribute.ValueType, enumValue)
-                    : enumValue;
+                using var value = new Variant(enumValue);
+                serializable.OnSetAttribute(attribute, value);
             }
             else
-            {
-                value = attributePrefab.Value.GetObject();
-                if (value is not null && attribute.ValueType.IsEnum)
-                    value = Enum.ToObject(attribute.ValueType, value);
-                else if (attribute.ValueType == typeof(uint))
-                    value = attributePrefab.Value.GetUInt();
-            }
-
-            if (value is not null && attribute.ValueType.IsEnum && !value.GetType().IsEnum)
-                value = Enum.ToObject(attribute.ValueType, value);
-            serializable.OnSetAttribute(attribute, value);
+                serializable.OnSetAttribute(attribute, attributePrefab.Value);
         }
     }
 

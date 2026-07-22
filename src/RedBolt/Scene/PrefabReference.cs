@@ -363,7 +363,7 @@ public class PrefabReference : Component
                     _ => PrefabInstanceFlag.None,
                 };
                 if (flag != PrefabInstanceFlag.None && (instanceFlags & flag) != 0)
-                    node.SetAttribute(attribute.Name, attribute.Value.GetObject());
+                    node.SetAttribute(attribute.Name, attribute.Value);
             }
         }
     }

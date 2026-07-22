@@ -81,7 +81,7 @@ public class SceneResolver : IDisposable
                 if ((info.Mode & AttributeMode.NodeId) != 0)
                 {
                     hasIdAttributes = true;
-                    using var attrValue = Variant.FromObject(component.GetAttribute(j));
+                    using var attrValue = component.GetAttribute(j);
                     var oldNodeId = attrValue.GetUInt();
                     if (oldNodeId != 0)
                     {
@@ -98,7 +98,7 @@ public class SceneResolver : IDisposable
                 else if ((info.Mode & AttributeMode.ComponentId) != 0)
                 {
                     hasIdAttributes = true;
-                    using var attrValue = Variant.FromObject(component.GetAttribute(j));
+                    using var attrValue = component.GetAttribute(j);
                     var oldComponentId = attrValue.GetUInt();
                     if (oldComponentId != 0)
                     {
@@ -115,7 +115,7 @@ public class SceneResolver : IDisposable
                 else if ((info.Mode & AttributeMode.NodeIdVector) != 0)
                 {
                     hasIdAttributes = true;
-                    using var attrValue = Variant.FromObject(component.GetAttribute(j));
+                    using var attrValue = component.GetAttribute(j);
                     var ids = attrValue.GetVariantVector();
                     if (ids.Count != 0)
                     {
