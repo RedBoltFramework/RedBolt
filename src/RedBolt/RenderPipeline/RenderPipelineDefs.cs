@@ -1310,7 +1310,7 @@ public interface IRenderPipelineInterface
 {
     Context? GetContext();
 
-    RenderPipelineDebugger GetDebugger();
+    RenderPipelineDebugger? GetDebugger();
 
     bool IsLinearColorSpace { get; }
 

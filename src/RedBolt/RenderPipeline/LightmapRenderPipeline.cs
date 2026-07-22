@@ -5,29 +5,44 @@ namespace RedBolt;
 /// </summary>
 public class LightmapRenderPipelineView : Object, IRenderPipelineInterface
 {
-    private RenderBuffer? _depthBuffer;
-    private RenderBuffer? _positionBuffer;
-    private RenderBuffer? _smoothPositionBuffer;
-    private RenderBuffer? _faceNormalBuffer;
-    private RenderBuffer? _smoothNormalBuffer;
-    private RenderBuffer? _albedoBuffer;
-    private RenderBuffer? _emissionBuffer;
-
     public LightmapRenderPipelineView()
     {
+    }
+
+    public override void Dispose()
+    {
+        _emissionBuffer?.Dispose();
+        _albedoBuffer?.Dispose();
+        _smoothNormalBuffer?.Dispose();
+        _faceNormalBuffer?.Dispose();
+        _smoothPositionBuffer?.Dispose();
+        _positionBuffer?.Dispose();
+        _depthBuffer?.Dispose();
+        _emissionBuffer = null;
+        _albedoBuffer = null;
+        _smoothNormalBuffer = null;
+        _faceNormalBuffer = null;
+        _smoothPositionBuffer = null;
+        _positionBuffer = null;
+        _depthBuffer = null;
+        CollectStatistics = null;
+        PipelineStatesInvalidated = null;
+        RenderEnd = null;
+        RenderBegin = null;
+        UpdateEnd = null;
+        UpdateBegin = null;
+        base.Dispose();
     }
 
     /// <summary>Render geometry buffer. May be called only once.</summary>
     public void RenderGeometryBuffer(Viewport viewport, int textureSize)
     {
-        ArgumentNullException.ThrowIfNull(viewport);
+        using var renderBufferManager = new RenderBufferManager(this);
+        using var shadowMapAllocator = new ShadowMapAllocator();
+        using var instancingBuffer = new InstancingBuffer();
+        using var sceneProcessor = new SceneProcessor(this, string.Empty, shadowMapAllocator, instancingBuffer);
 
-        var renderBufferManager = new RenderBufferManager(this);
-        var shadowMapAllocator = new ShadowMapAllocator();
-        var instancingBuffer = new InstancingBuffer();
-        var sceneProcessor = new SceneProcessor(this, string.Empty, shadowMapAllocator, instancingBuffer);
-
-        var pass = new UnorderedScenePass(this, sceneProcessor.GetDrawableProcessor(),
+        using var pass = new UnorderedScenePass(this, sceneProcessor.GetDrawableProcessor(),
             sceneProcessor.GetPipelineStateBuilder(), DrawableProcessorPassFlag.None,
             "deferred", string.Empty, string.Empty, string.Empty);
 
@@ -71,10 +86,6 @@ public class LightmapRenderPipelineView : Object, IRenderPipelineInterface
 
         RenderBegin?.Invoke(frameInfo);
 
-        var graphics = GetSubsystem<Graphics>();
-        if (graphics is null)
-            return;
-
         var invalidPosition = new Color(-100000000.0f, -100000000.0f, -100000000.0f, 0.0f);
         renderBufferManager.ClearDepthStencil(_depthBuffer, ClearTarget.Depth, 1.0f, 0);
         renderBufferManager.ClearColor(_positionBuffer, invalidPosition);
@@ -84,16 +95,11 @@ public class LightmapRenderPipelineView : Object, IRenderPipelineInterface
         renderBufferManager.ClearColor(_albedoBuffer, Color.TransparentBlack);
         renderBufferManager.ClearColor(_emissionBuffer, Color.TransparentBlack);
 
-        var renderDevice = GetSubsystem<RenderDevice>();
-        if (renderDevice is null)
-            return;
-
+        var renderDevice = GetSubsystem<RenderDevice>()!;
         var renderContext = renderDevice.GetRenderContext();
         var drawQueue = renderDevice.GetDefaultQueue();
         var batchRenderer = sceneProcessor.GetBatchRenderer();
-        var camera = viewport.GetCamera();
-        if (renderContext is null || drawQueue is null || camera is null)
-            return;
+        var camera = viewport.GetCamera()!;
 
         using var renderScope = new RenderScope(renderContext, "LightmapRenderPipelineView::RenderGeometryBuffer");
 
@@ -121,22 +127,22 @@ public class LightmapRenderPipelineView : Object, IRenderPipelineInterface
     }
 
     /// <summary>Return geometry buffer textures.</summary>
-    public RawTexture? GetPositionBuffer() => _positionBuffer?.GetTexture();
+    public RawTexture? PositionBuffer => _positionBuffer!.GetTexture();
 
-    public RawTexture? GetSmoothPositionBuffer() => _smoothPositionBuffer?.GetTexture();
+    public RawTexture? SmoothPositionBuffer => _smoothPositionBuffer!.GetTexture();
 
-    public RawTexture? GetFaceNormalBuffer() => _faceNormalBuffer?.GetTexture();
+    public RawTexture? FaceNormalBuffer => _faceNormalBuffer!.GetTexture();
 
-    public RawTexture? GetSmoothNormalBuffer() => _smoothNormalBuffer?.GetTexture();
+    public RawTexture? SmoothNormalBuffer => _smoothNormalBuffer!.GetTexture();
 
-    public RawTexture? GetAlbedoBuffer() => _albedoBuffer?.GetTexture();
+    public RawTexture? AlbedoBuffer => _albedoBuffer!.GetTexture();
 
-    public RawTexture? GetEmissionBuffer() => _emissionBuffer?.GetTexture();
+    public RawTexture? EmissionBuffer => _emissionBuffer!.GetTexture();
 
     /// <summary>Implement RenderPipelineInterface.</summary>
     public Context? GetContext() => Context.Instance;
 
-    public RenderPipelineDebugger GetDebugger() => null!;
+    public RenderPipelineDebugger? GetDebugger() => null;
 
     public bool IsLinearColorSpace => true;
 
@@ -151,4 +157,12 @@ public class LightmapRenderPipelineView : Object, IRenderPipelineInterface
     public event Action? PipelineStatesInvalidated;
 
     public event RenderPipelineStatsHandler? CollectStatistics;
+
+    private RenderBuffer? _depthBuffer;
+    private RenderBuffer? _positionBuffer;
+    private RenderBuffer? _smoothPositionBuffer;
+    private RenderBuffer? _faceNormalBuffer;
+    private RenderBuffer? _smoothNormalBuffer;
+    private RenderBuffer? _albedoBuffer;
+    private RenderBuffer? _emissionBuffer;
 }

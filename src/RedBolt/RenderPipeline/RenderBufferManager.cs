@@ -388,7 +388,7 @@ public class RenderBufferManager : Object
 
         _renderContext.Execute(_drawQueue);
 
-        if (RenderPipelineDebugger.IsSnapshotInProgress(_debugger))
+        if (_debugger is not null && RenderPipelineDebugger.IsSnapshotInProgress(_debugger))
             _debugger.ReportQuad(debugComment, _renderContext.GetCurrentViewport().Size);
     }
 
@@ -704,7 +704,7 @@ public class RenderBufferManager : Object
     private readonly Renderer _renderer;
     private readonly RenderDevice _renderDevice;
     private readonly RenderContext _renderContext;
-    private readonly RenderPipelineDebugger _debugger;
+    private readonly RenderPipelineDebugger? _debugger;
     private readonly DrawCommandQueue _drawQueue;
     private RenderBufferManagerSettings _settings = new();
     private readonly StaticPipelineStateCache _pipelineStates = new();
