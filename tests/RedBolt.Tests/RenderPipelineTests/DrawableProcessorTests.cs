@@ -32,6 +32,7 @@ public sealed class DrawableProcessorTests
         {
             Scene = scene,
             Octree = scene.CreateComponent<Octree>(),
+            ReflectionProbeManager = scene.CreateComponent<ReflectionProbeManager>(),
             Camera = scene.CreateChild("Camera").CreateComponent<Camera>()
         };
         var firstLight = scene.CreateChild("FirstLight").CreateComponent<Light>();
@@ -108,6 +109,7 @@ public sealed class DrawableProcessorTests
         {
             Scene = scene,
             Octree = scene.CreateComponent<Octree>(),
+            ReflectionProbeManager = scene.CreateComponent<ReflectionProbeManager>(),
             Camera = scene.CreateChild("Camera").CreateComponent<Camera>()
         };
         var expensive = scene.CreateChild("Expensive").CreateComponent<TestOccluderDrawable>();
@@ -173,6 +175,37 @@ public sealed class DrawableProcessorTests
         Assert.Equal(typeof(int), type.GetMethod(nameof(DrawableProcessor.GetGeometryLighting))!.GetParameters()[0].ParameterType);
         Assert.Equal(typeof(int), type.GetMethod(nameof(DrawableProcessor.GetGeometryRenderFlags))!.GetParameters()[0].ParameterType);
         Assert.Equal(typeof(int), type.GetMethod(nameof(DrawableProcessor.GetGeometryZRange))!.GetParameters()[0].ParameterType);
+        Assert.Equal(typeof(int), type.GetMethod(nameof(DrawableProcessor.ProcessForwardLightingForLight))!.GetParameters()[0].ParameterType);
+        Assert.True(type.GetMethod(nameof(DrawableProcessor.ProcessForwardLightingForLight))!.IsPublic);
+        Assert.True(type.GetMethod(nameof(DrawableProcessor.FinalizeForwardLighting))!.IsPublic);
+        Assert.True(GetNonPublicMethod(type, "ProcessVisibleDrawable").IsFamily);
+        Assert.True(GetNonPublicMethod(type, "ProcessQueuedDrawable").IsFamily);
+        Assert.True(GetNonPublicMethod(type, "UpdateDrawableZone").IsFamily);
+        Assert.True(GetNonPublicMethod(type, "UpdateDrawableReflection").IsFamily);
+        Assert.True(GetNonPublicMethod(type, "QueueDrawableUpdate").IsFamily);
+        Assert.True(GetNonPublicMethod(type, "QueueDrawableGeometryUpdate").IsFamily);
+        Assert.True(GetNonPublicMethod(type, "CheckMaterialForAuxiliaryRenderSurfaces").IsFamily);
+        Assert.True(GetNonPublicMethod(type, "CalculateBoundingBoxZRange").IsFamily);
+        Assert.True(GetNonPublicMethod(type, "SortLightProcessorsByShadowMapSize").IsFamily);
+        Assert.True(GetNonPublicMethod(type, "SortLightProcessorsByShadowMapTexture").IsFamily);
+    }
+
+    [Fact]
+    public void ForEachParallelProcessesMultiVectorInFlattenedOrder()
+    {
+        var pipeline = new TestRenderPipelineInterface();
+        using var processor = new DrawableProcessor(pipeline);
+        var workQueue = GetPrivateField<WorkQueue>(processor, "_workQueue");
+        using var values = new MultiVector<int>();
+        values.Resize(3);
+        values.PushBack(0, 10);
+        values.PushBack(0, 11);
+        values.PushBack(2, 20);
+        var result = new int[3];
+
+        WorkQueue.ForEachParallel(workQueue, values, (index, value) => result[index] = value);
+
+        Assert.Equal([10, 11, 20], result);
     }
 
     [Fact]
@@ -219,6 +252,7 @@ public sealed class DrawableProcessorTests
             TimeStep = 0.25f,
             Scene = scene,
             Octree = scene.CreateComponent<Octree>(),
+            ReflectionProbeManager = scene.CreateComponent<ReflectionProbeManager>(),
             Camera = camera
         };
         var light = scene.CreateChild("Light").CreateComponent<Light>();
@@ -387,6 +421,14 @@ public sealed class DrawableProcessorTests
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
         Assert.NotNull(field);
         return Assert.IsType<T>(field.GetValue(processor));
+    }
+
+    private static System.Reflection.MethodInfo GetNonPublicMethod(Type type, string methodName)
+    {
+        var method = type.GetMethod(methodName,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(method);
+        return method;
     }
 
     private sealed class TestRenderPipelineInterface : IRenderPipelineInterface

@@ -399,6 +399,35 @@ public sealed class WorkQueue : Object
         ForEachParallel(workQueue, 1, collection, callback);
     }
 
+    public static void ForEachParallel<T>(WorkQueue workQueue, int bucket, MultiVector<T> collection, Action<int, T> callback)
+    {
+        ArgumentNullException.ThrowIfNull(collection);
+        ArgumentNullException.ThrowIfNull(callback);
+
+        var outerCollection = collection.GetUnderlyingCollection();
+        ForEachParallel(workQueue, bucket, collection.Size(), (beginIndex, endIndex) =>
+        {
+            for (var index = beginIndex; index < endIndex; ++index)
+            {
+                var innerIndex = index;
+                foreach (var innerCollection in outerCollection)
+                {
+                    if (innerIndex < innerCollection.Count)
+                    {
+                        callback(index, innerCollection[innerIndex]);
+                        break;
+                    }
+                    innerIndex -= innerCollection.Count;
+                }
+            }
+        });
+    }
+
+    public static void ForEachParallel<T>(WorkQueue workQueue, MultiVector<T> collection, Action<int, T> callback)
+    {
+        ForEachParallel(workQueue, 1, collection, callback);
+    }
+
     [Obsolete("Use PostTaskForMainThread instead.")]
     public void CallFromMainThread(Action<int> workFunction)
     {
