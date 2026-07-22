@@ -1067,7 +1067,14 @@ public class AnimationController : AnimationStateSource
                 Time = trigger.Time,
                 Data = trigger.Data.Clone()
             };
-            Node.SendEvent(ref eventData);
+            try
+            {
+                Node.SendEvent(ref eventData);
+            }
+            finally
+            {
+                eventData.Data.Dispose();
+            }
         }
     }
 

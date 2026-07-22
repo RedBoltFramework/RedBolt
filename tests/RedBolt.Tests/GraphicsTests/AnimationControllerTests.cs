@@ -134,4 +134,40 @@ public sealed class AnimationControllerTests
         controller.Update(0.0f);
         Assert.Same(node.GetComponent<AnimatedModel>(), controller.GetAnimationStates()[0].GetModel());
     }
+
+    [Fact]
+    public void Animation_trigger_event_owns_payload_until_dispatch_completes()
+    {
+        var node = new Scene().CreateChild("Animated");
+        var controller = node.CreateComponent<AnimationController>();
+        using var animation = new Animation { Name = "Walk" };
+        animation.SetLength(2.0f);
+        using var source = Variant.MakeCustomValue(new TriggerValue());
+        animation.AddTrigger(0.5f, false, source);
+
+        TriggerValue? dispatchedValue = null;
+        using var subscription = controller.SubscribeToEvent<DrawableEvents.AnimationTriggerEvent>(
+            (ref DrawableEvents.AnimationTriggerEvent eventData) =>
+                dispatchedValue = eventData.Data.GetCustom<TriggerValue>());
+
+        controller.AddAnimation(new AnimationParameters(animation));
+        controller.Update(1.0f);
+        typeof(AnimationController).GetMethod(
+            "SendTriggerEvents",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(controller, null);
+
+        Assert.NotNull(dispatchedValue);
+        Assert.NotSame(source.GetCustom<TriggerValue>(), dispatchedValue);
+        Assert.True(dispatchedValue.IsDisposed);
+        Assert.False(source.GetCustom<TriggerValue>().IsDisposed);
+    }
+
+    private sealed class TriggerValue : ICloneable, IDisposable
+    {
+        public bool IsDisposed { get; private set; }
+
+        public object Clone() => new TriggerValue();
+
+        public void Dispose() => IsDisposed = true;
+    }
 }
