@@ -22,8 +22,8 @@ Excluded:
 - Tests and vendored third-party code.
 - Global aliases/usings files that contain no ported class implementation.
 
-Pending managed files inventoried: **18**
-Pending files with likely C++ counterpart paths: **18**
+Pending managed files inventoried: **17**
+Pending files with likely C++ counterpart paths: **17**
 Pending files requiring counterpart discovery: **0**
 
 ## Required review for every row
@@ -104,7 +104,6 @@ Check a column only after completing the corresponding full C++ review and recor
 | 2026-07-22 partial outcome | Corrected compressed-image storage to use native `TextureFormat` values directly throughout `Image`, `CompressedLevel`, DDS loading, block transforms, texture upload, and decompression instead of the invented managed `CompressedFormat` enum. `CompressedLevel::Decompress` now follows the native RGBA8, BC1/2/3, ETC2, and emulated PVRTC dispatch, and compressed mip byte sizing uses the native texture-format block metadata. Focused Image/Decompress coverage passes 22/22, the complete Linux/Web solution builds with zero errors, all 1,754 tests pass, and MultipleViewports renders the expected populated main scene and inset viewport. Full `Image` closure remains open for loading helpers and remaining member/body order. | — | — | — |
 | `src/RedBolt/Resource/ImageSDL.cs` | SDL-backed portions of `Image` in `Source/Urho3D/Resource/Image.h` / `Image.cpp` | ☐ | ☐ | ☐ |
 | 2026-07-21 resolution outcome | RESOLVED the managed helper to the native `Image` load, color-LUT, save, and SDL-surface methods and REVIEWED their complete bodies. Native STB loading preserves the source component count and its LUT/save checks, while the managed SDL_image path forces RGBA, changes several guards/conversions, and passes component count rather than bit depth when creating a surface. Generated STB write bindings exist, but the required load/free bindings are not currently generated. The row remains open for generator-first native parity work. | — | — | — |
-| `src/RedBolt/Resource/Localization.cs` | `Source/Urho3D/Resource/Localization.h`<br>`Source/Urho3D/Resource/Localization.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Resource/ResourceCache.cs` | `Source/Urho3D/Resource/ResourceCache.h`<br>`Source/Urho3D/Resource/ResourceCache.cpp` | ☐ | ☐ | ☐ |
 | 2026-07-18 partial outcome | While auditing `LightProbeGroup`, restored the C++ temporary-resource path for sanitized empty names: both overloads now return null instead of throwing or manufacturing a failed resource, and `SanitateResourceName` delegates to the canonical `FileIdentifier`/VFS path. The complete `ResourceCache` lifetime/copy audit remains pending. | — | — | — |
 | 2026-07-21 partial outcome | VERIFIED the complete native background-loading call path. `BackgroundLoadResource` alone sanitizes names and rejects empty or already-cached resources before delegating; queue construction now uses the registered `Context` factory instead of a C# constructor fallback, and completed resources use the native manual-resource insertion path. Removed the C#-only background capability, worker-load, and replacement-cache helpers. Background queue sizes now use the approved managed `int` mapping. The complete `ResourceCache` lifetime/copy audit remains pending. | — | — | — |

@@ -702,7 +702,7 @@ public sealed class JsonXmlResourceTests
             System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "loc.json"),
                 "{\"Hello\":{\"en\":\"Hello\",\"fi\":\"Hei\"}}");
             Resources.AddResourceDir(tempDir);
-            var loc = new Localization();
+            using var loc = new Localization();
             loc.LoadJSONFile("Data/loc.json");
             Assert.Equal(2, loc.GetNumLanguages());
             Assert.Equal("en", loc.GetLanguage());
@@ -724,7 +724,7 @@ public sealed class JsonXmlResourceTests
             System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "loc.json"),
                 "{\"Hello\":{\"en\":\"Hello\",\"fi\":\"Hei\"}}");
             Resources.AddResourceDir(tempDir);
-            var loc = new Localization();
+            using var loc = new Localization();
             loc.LoadJSONFile("Data/loc.json");
             loc.SetLanguage("fi");
             Assert.Equal(1, loc.GetLanguageIndex("fi"));
@@ -742,10 +742,23 @@ public sealed class JsonXmlResourceTests
     {
         using var json = new JSONValue();
         Assert.True(JSONFile.ParseJSON("{\"Bye\":\"Moi\"}", json));
-        var loc = new Localization();
+        using var loc = new Localization();
         loc.LoadSingleLanguageJSON(json, "fi");
         loc.SetLanguage("fi");
         Assert.Equal("Moi", loc.Get("Bye"));
+    }
+
+    [Fact]
+    public void Localization_string_pattern_matches_the_complete_identifier()
+    {
+        using var json = new JSONValue();
+        Assert.True(JSONFile.ParseJSON("{\"Hello\":{\"en\":\"Localized\"},\"HelloSuffix\":{\"en\":\"Wrong\"}}", json));
+        using var loc = new Localization();
+        loc.LoadMultipleLanguageJSON(json);
+        loc.SetStringPattern("Hello");
+
+        Assert.Equal("Localized", loc.Get("Hello"));
+        Assert.Equal("HelloSuffix", loc.Get("HelloSuffix"));
     }
 
     [Fact]
@@ -753,7 +766,7 @@ public sealed class JsonXmlResourceTests
     {
         using var json = new JSONValue();
         Assert.True(JSONFile.ParseJSON("{\"Hello\":{\"en\":\"Hello\",\"fi\":\"Hei\"}}", json));
-        var loc = new Localization();
+        using var loc = new Localization();
         loc.LoadMultipleLanguageJSON(json);
         var eventCount = 0;
         using var subscription = loc.SubscribeToEvent<ChangeLanguage>(loc,

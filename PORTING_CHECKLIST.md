@@ -213,6 +213,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `PListFile` in `PListFile.h` / `PListFile.cpp` — local XML/value RAII, root destruction, copy insertion, native deserializer loading, memory accounting, and diagnostics reconciled
 - [x] `JSONValue.h` / `JSONValue.cpp` — extensibility, CLR-safe active union storage, packed type tag, construction/copy/assignment/destruction, recursive child ownership, mutable indexers versus safe lookups, approved `int` indices/sizes, equality/type names, variant conversion, and final member/API ordering reconciled
 - [x] `JSONFile.h` / `JSONFile.cpp` — construction, registration, stable root ownership, destruction, resource parsing, save formatting, archive callbacks, named object blocks, string conversion, and parse-target lifetime reconciled
+- [x] `Localization.h` / `Localization.cpp` — extensibility, construction/destruction, member order, hashed storage, language selection, full-match string filtering, lookup insertion, reset order, JSON loading, diagnostics, and struct change event reconciled
 - [x] C#-only `JSONResource<TValue>` / `JSONResourceBase` — removed with their invented serializer test; native archive-backed resources use `SimpleResource` and no rbfx counterpart or production consumer exists
 
 ## [~] A6. Scene — depends on Resource, Core
