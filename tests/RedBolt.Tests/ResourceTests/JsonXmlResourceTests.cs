@@ -429,6 +429,9 @@ public sealed class JsonXmlResourceTests
         Assert.False(typeof(XPathResultSet).IsSealed);
         Assert.Contains(typeof(ICloneable), typeof(XPathResultSet).GetInterfaces());
         Assert.Contains(typeof(IDisposable), typeof(XPathResultSet).GetInterfaces());
+        Assert.Equal(typeof(WeakReference<XMLFile>), typeof(XPathResultSet)
+            .GetField("_file", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .FieldType);
 
         var xml = new XMLFile { Name = "test.xml" };
         Assert.True(xml.FromString("<root><item id=\"1\"/><item id=\"2\"/></root>"));
@@ -442,6 +445,11 @@ public sealed class JsonXmlResourceTests
         Assert.Equal("1", first.GetAttribute("id"));
         Assert.Equal("2", first.NextResult().GetAttribute("id"));
         Assert.True(first.NextResult().IsNull);
+        using var assignedResults = new XPathResultSet();
+        Assert.Same(assignedResults, assignedResults.CopyFrom(results));
+        results.Dispose();
+        Assert.Equal(2, assignedResults.Size());
+        Assert.Equal("1", assignedResults.FirstResult().GetAttribute("id"));
     }
 
     [Fact]

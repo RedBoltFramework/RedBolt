@@ -4,6 +4,7 @@ using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using System.Xml.Xsl;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
@@ -11,7 +12,7 @@ namespace RedBolt;
 public class XPathResultSet : IReadOnlyList<XMLElement>, ICloneable, IDisposable
 {
     private IReadOnlyList<XElement>? _results;
-    private XMLFile? _file;
+    private WeakReference<XMLFile>? _file;
 
     /// <summary>Construct empty.</summary>
     public XPathResultSet() : this(null, null) { }
@@ -25,11 +26,22 @@ public class XPathResultSet : IReadOnlyList<XMLElement>, ICloneable, IDisposable
     private XPathResultSet(IReadOnlyList<XElement>? results, XMLFile? file)
     {
         _results = results;
-        _file = file;
+        _file = file is not null ? new WeakReference<XMLFile>(file) : null;
     }
 
     /// <summary>Copy-construct.</summary>
-    public object Clone() => new XPathResultSet(_results?.ToArray(), _file);
+    public object Clone() => new XPathResultSet(_results?.ToArray(), GetFile());
+
+    /// <summary>Assignment operator.</summary>
+    public XPathResultSet CopyFrom(XPathResultSet rhs)
+    {
+        ArgumentNullException.ThrowIfNull(rhs);
+        var results = rhs._results?.ToArray();
+        var file = rhs.GetFile();
+        _results = results;
+        _file = file is not null ? new WeakReference<XMLFile>(file) : null;
+        return this;
+    }
 
     /// <summary>Destruct.</summary>
     public void Dispose()
@@ -39,9 +51,23 @@ public class XPathResultSet : IReadOnlyList<XMLElement>, ICloneable, IDisposable
     }
 
     /// <summary>Return the n-th result in the set.</summary>
-    public XMLElement this[int index] => _results is not null && index >= 0 && index < _results.Count
-        ? new XMLElement(_file, this, _results[index], index)
-        : new XMLElement();
+    public XMLElement this[int index]
+    {
+        get
+        {
+            if (_results is null)
+            {
+                Log.GetLogger().LogError(
+                    "Could not return result at index: {Index}. Most probably this is caused by the XPathResultSet not being stored in a lhs variable.",
+                    index);
+                return new XMLElement();
+            }
+
+            return index >= 0 && index < _results.Count
+                ? new XMLElement(GetFile(), this, _results[index], index)
+                : new XMLElement();
+        }
+    }
 
     public int Count => _results?.Count ?? 0;
 
@@ -56,6 +82,8 @@ public class XPathResultSet : IReadOnlyList<XMLElement>, ICloneable, IDisposable
 
     /// <summary>Return XPath node set.</summary>
     public IReadOnlyList<XElement>? GetXPathNodeSet() => _results;
+
+    private XMLFile? GetFile() => _file is not null && _file.TryGetTarget(out var file) ? file : null;
 
     public IEnumerator<XMLElement> GetEnumerator()
     {
