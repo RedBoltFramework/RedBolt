@@ -83,6 +83,38 @@ public sealed class DrawableProcessorTests
     }
 
     [Fact]
+    public void ProcessOccludersUsesNativeScreenSizeAndTrianglePenalty()
+    {
+        var pipeline = new TestRenderPipelineInterface();
+        using var processor = new DrawableProcessor(pipeline);
+        using var scene = new Scene();
+        var frameInfo = new FrameInfo
+        {
+            Scene = scene,
+            Octree = scene.CreateComponent<Octree>(),
+            Camera = scene.CreateChild("Camera").CreateComponent<Camera>()
+        };
+        var expensive = scene.CreateChild("Expensive").CreateComponent<TestOccluderDrawable>();
+        expensive.WorldBounds = new BoundingBox(new Vector3f(-1.0f, -1.0f, 9.0f), new Vector3f(1.0f, 1.0f, 11.0f));
+        expensive.NumOccluderTriangles = 20;
+        var cheap = scene.CreateChild("Cheap").CreateComponent<TestOccluderDrawable>();
+        cheap.WorldBounds = expensive.WorldBounds;
+        cheap.NumOccluderTriangles = 10;
+
+        processor.OnUpdateBegin(frameInfo);
+        processor.ProcessOccluders([expensive, cheap], 0.0f);
+
+        Assert.Equal(1, expensive.UpdateBatchesCount);
+        Assert.Equal(1, cheap.UpdateBatchesCount);
+        Assert.Equal([cheap, expensive], processor.GetOccluders().Select(occluder => occluder.Drawable));
+
+        processor.OnUpdateBegin(frameInfo);
+        processor.ProcessOccluders([cheap], float.MaxValue);
+
+        Assert.Empty(processor.GetOccluders());
+    }
+
+    [Fact]
     public void ProcessorPassShapeUsesNativeProperties()
     {
         Assert.Null(typeof(DrawableProcessorPass).GetMethod("GetFlags"));
@@ -274,6 +306,23 @@ public sealed class DrawableProcessorTests
         public uint BatchCount => GeometryBatches.Size();
         public GeometryBatch FirstBatch => GeometryBatches.First();
         public bool IsLinearColorSpace => LinearColorSpace;
+    }
+
+    private sealed class TestOccluderDrawable : Drawable
+    {
+        public BoundingBox WorldBounds { get; set; } = new();
+        public uint NumOccluderTriangles { get; set; }
+        public int UpdateBatchesCount { get; private set; }
+
+        public override void UpdateBatches(FrameInfo frame)
+        {
+            ++UpdateBatchesCount;
+            base.UpdateBatches(frame);
+        }
+
+        public override uint GetNumOccluderTriangles() => NumOccluderTriangles;
+
+        protected override void OnWorldBoundingBoxUpdate() => _worldBoundingBox = WorldBounds;
     }
 
     private static List<DrawableProcessorPass> GetPasses(DrawableProcessor processor, string fieldName)

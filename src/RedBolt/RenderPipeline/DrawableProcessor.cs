@@ -1003,18 +1003,47 @@ public class DrawableProcessor : Object
 
     public void ProcessOccluders(IReadOnlyList<Drawable> occluders, float sizeThreshold)
     {
-        _sortedOccluders.Clear();
+        var cullCamera = _frameInfo.Camera!;
+        var halfViewSize = cullCamera.GetHalfViewSize();
+        var invOrthoSize = 1.0f / cullCamera.GetOrthoSize();
+
         foreach (var drawable in occluders)
         {
-            if (!drawable.Occluder)
-                continue;
-            _sortedOccluders.Add(new SortedOccluder
+            drawable.UpdateBatches(_frameInfo);
+
+            // Skip if too far
+            var maxDistance = drawable.GetDrawDistance();
+            if (maxDistance > 0.0f && drawable.GetDistance() > maxDistance)
+                return;
+
+            // Check that occluder is big enough on the screen
+            var boundingBox = drawable.GetWorldBoundingBox();
+            var drawableSize = boundingBox.Size.Length;
+            var relativeSize = 0.0f;
+            if (cullCamera.IsOrthographic())
+                relativeSize = drawableSize * invOrthoSize;
+            else
             {
-                SortValue = drawable.GetDistance(),
-                Drawable = drawable
-            });
+                // Occluders which are near the camera are more useful then occluders at the end of the camera's draw distance
+                var relativeDistance = drawable.GetDistance() / cullCamera.GetFarClip();
+                relativeSize = drawableSize * halfViewSize
+                    / MathF.Max(MathDefs.Epsilon, drawable.GetDistance() * relativeDistance);
+
+                // Give higher priority to occluders which the camera is inside their AABB
+                var cameraPos = cullCamera.Node!.GetWorldPosition();
+                if (boundingBox.IsInside(cameraPos) == Intersection.Inside)
+                    relativeSize *= drawableSize;
+            }
+
+            // Keep occluders larger than threshold with lowest triangle count to size ratio.
+            if (relativeSize >= sizeThreshold)
+            {
+                var density = drawable.GetNumOccluderTriangles() / drawableSize;
+                var penalty = density / MathF.Max(MathDefs.Epsilon, relativeSize);
+                _sortedOccluders.Add(new SortedOccluder { SortValue = penalty, Drawable = drawable });
+            }
         }
+
         _sortedOccluders.Sort();
-        _ = sizeThreshold;
     }
 }
