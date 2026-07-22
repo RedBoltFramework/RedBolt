@@ -260,8 +260,6 @@ public class DrawableProcessor : Object
     public LightProcessor? GetLightProcessor(uint lightIndex) =>
         lightIndex < (uint)_lightProcessors.Count ? _lightProcessors[(int)lightIndex] : null;
 
-    public int GetNumShadowedLights() => _numShadowedLights;
-
     public ref readonly LightAccumulator GetGeometryLighting(uint drawableIndex) =>
         ref _geometryLighting[checked((int)drawableIndex)];
 
@@ -269,46 +267,9 @@ public class DrawableProcessor : Object
         ? _geometryRenderFlags[(int)drawableIndex]
         : default;
 
-    public void SetGeometryRenderFlags(uint drawableIndex, GeometryRenderFlag flags)
-    {
-        if (drawableIndex >= (uint)_geometryRenderFlags.Length)
-            Array.Resize(ref _geometryRenderFlags, checked((int)drawableIndex + 1));
-        _geometryRenderFlags[(int)drawableIndex] = flags;
-    }
-
     public FloatRange GetGeometryZRange(uint drawableIndex) => drawableIndex < (uint)_geometryZRanges.Length
         ? _geometryZRanges[(int)drawableIndex]
         : default;
-
-    public void SetGeometryZRange(uint drawableIndex, FloatRange range)
-    {
-        if (drawableIndex >= (uint)_geometryZRanges.Length)
-            Array.Resize(ref _geometryZRanges, checked((int)drawableIndex + 1));
-        _geometryZRanges[(int)drawableIndex] = range;
-    }
-
-    public void SetSceneZRange(FloatRange range) => _sceneZRange = range;
-
-    /// <summary>Replace the per-frame light list used by pipeline batches and debugger reporting.</summary>
-    public void SetLights(IReadOnlyList<Light?> lights)
-    {
-        _lights.Clear();
-        _lights.AddRange(lights);
-        _lightProcessors.Clear();
-        foreach (var light in lights)
-            _lightProcessors.Add(light is null ? null : new LightProcessor(light));
-    }
-
-    /// <summary>Replace the per-frame geometry list used by scene processing.</summary>
-    public void SetGeometries(IReadOnlyList<Drawable?> geometries)
-    {
-        _geometries.Clear();
-        foreach (var geometry in geometries)
-        {
-            if (geometry is not null)
-                _geometries.PushBack(0, geometry);
-        }
-    }
 
     public void OnUpdateBegin(FrameInfo frameInfo)
     {
@@ -630,10 +591,10 @@ public class DrawableProcessor : Object
 
             // Do not add "infinite" objects like skybox to prevent shadow map focusing behaving erroneously
             if (!zRange.IsValid())
-                SetGeometryZRange(drawableIndex, new FloatRange(MathDefs.LargeValue, MathDefs.LargeValue));
+                _geometryZRanges[checked((int)drawableIndex)] = new FloatRange(MathDefs.LargeValue, MathDefs.LargeValue);
             else
             {
-                SetGeometryZRange(drawableIndex, zRange);
+                _geometryZRanges[checked((int)drawableIndex)] = zRange;
                 _sceneZRangeTemp[checked((int)threadIndex)] |= zRange;
             }
 
@@ -737,7 +698,7 @@ public class DrawableProcessor : Object
                 flag |= GeometryRenderFlag.Lit;
             if (isForwardLit)
                 flag |= GeometryRenderFlag.ForwardLit;
-            SetGeometryRenderFlags(drawableIndex, flag);
+            _geometryRenderFlags[checked((int)drawableIndex)] = flag;
 
             // Queue geometry update
             QueueDrawableGeometryUpdate(threadIndex, drawable);

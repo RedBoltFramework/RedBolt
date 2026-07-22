@@ -138,17 +138,6 @@ public sealed class ShadowSplitProcessorTests
         Assert.Empty(batches.Batches!);
     }
 
-    [Fact]
-    public void DrawableProcessor_StoresGeometryZRange()
-    {
-        var pipeline = new TestRenderPipelineInterface();
-        var drawableProcessor = new DrawableProcessor(pipeline);
-        var range = new FloatRange(1.5f, 4.0f);
-        drawableProcessor.SetGeometryZRange(7, range);
-        Assert.Equal(range, drawableProcessor.GetGeometryZRange(7));
-        Assert.Equal(default, drawableProcessor.GetGeometryZRange(99));
-    }
-
     private sealed class TestRenderPipelineInterface : IRenderPipelineInterface
     {
         public Context? GetContext() => Context.Instance;

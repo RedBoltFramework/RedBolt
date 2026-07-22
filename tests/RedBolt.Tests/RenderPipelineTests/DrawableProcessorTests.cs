@@ -21,14 +21,24 @@ public sealed class DrawableProcessorTests
     {
         var pipeline = new TestRenderPipelineInterface();
         using var processor = new DrawableProcessor(pipeline);
-        processor.SetLights([new Light(), new Light()]);
-        processor.SetGeometries([new CustomGeometry()]);
+        using var scene = new Scene();
+        var frameInfo = new FrameInfo
+        {
+            Scene = scene,
+            Octree = scene.CreateComponent<Octree>(),
+            Camera = scene.CreateChild("Camera").CreateComponent<Camera>()
+        };
+        var firstLight = scene.CreateChild("FirstLight").CreateComponent<Light>();
+        var secondLight = scene.CreateChild("SecondLight").CreateComponent<Light>();
+        var geometry = scene.CreateChild("Geometry").CreateComponent<CustomGeometry>();
         var stats = new RenderPipelineStats
         {
             NumLights = 3,
             NumGeometries = 4
         };
 
+        processor.OnUpdateBegin(frameInfo);
+        processor.ProcessVisibleDrawables([firstLight, secondLight, geometry], null);
         pipeline.RaiseCollectStatistics(ref stats);
 
         Assert.Equal(5, stats.NumLights);
@@ -137,6 +147,12 @@ public sealed class DrawableProcessorTests
         Assert.Null(type.GetMethod("GetLights"));
         Assert.Null(type.GetMethod("GetLightProcessors"));
         Assert.Null(type.GetMethod("GetLightProcessorsByShadowMap"));
+        Assert.Null(type.GetMethod("GetNumShadowedLights"));
+        Assert.Null(type.GetMethod("SetGeometryRenderFlags"));
+        Assert.Null(type.GetMethod("SetGeometryZRange"));
+        Assert.Null(type.GetMethod("SetSceneZRange"));
+        Assert.Null(type.GetMethod("SetLights"));
+        Assert.Null(type.GetMethod("SetGeometries"));
         Assert.NotNull(type.GetProperty(nameof(DrawableProcessor.FrameInfo)));
         Assert.NotNull(type.GetProperty(nameof(DrawableProcessor.Settings)));
         Assert.NotNull(type.GetProperty(nameof(DrawableProcessor.HasOccluders)));
@@ -194,10 +210,11 @@ public sealed class DrawableProcessorTests
             Octree = scene.CreateComponent<Octree>(),
             Camera = camera
         };
-        using var light = new Light();
-        processor.SetLights([light]);
+        var light = scene.CreateChild("Light").CreateComponent<Light>();
         processor.SetSettings(new DrawableProcessorSettings { MaterialQuality = MaterialQuality.High });
 
+        processor.OnUpdateBegin(frameInfo);
+        processor.ProcessVisibleDrawables([light], null);
         processor.OnUpdateBegin(frameInfo);
 
         var view = camera.GetView();

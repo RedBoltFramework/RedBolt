@@ -106,6 +106,8 @@ public sealed class RenderPipelineDebuggerTests
     public void Snapshot_batch_constructor_resolves_pixel_light_from_drawable_processor()
     {
         var scene = new Scene();
+        var octree = scene.CreateComponent<Octree>();
+        var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var light = scene.CreateChild("Light").CreateComponent<Light>();
         var drawable = scene.CreateChild("Model").CreateComponent<StaticModel>();
 
@@ -132,7 +134,8 @@ public sealed class RenderPipelineDebuggerTests
         var pipeline = new RenderPipeline();
         var view = pipeline.Instantiate();
         var processor = new DrawableProcessor(view);
-        processor.SetLights([light]);
+        processor.OnUpdateBegin(new FrameInfo { Scene = scene, Octree = octree, Camera = camera });
+        processor.ProcessVisibleDrawables([light], null);
 
         var batch = new DebugFrameSnapshotBatch(processor, pipelineBatch, newInstancingGroup: true);
         Assert.Same(drawable, batch.Drawable);
@@ -154,6 +157,7 @@ public sealed class RenderPipelineDebuggerTests
     public void Debugger_reports_batches_into_active_snapshot()
     {
         var scene = new Scene();
+        var octree = scene.CreateComponent<Octree>();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var light = scene.CreateChild("Light").CreateComponent<Light>();
         var drawable = scene.CreateChild("Model").CreateComponent<StaticModel>();
@@ -161,7 +165,8 @@ public sealed class RenderPipelineDebuggerTests
         var pipeline = new RenderPipeline();
         var view = pipeline.Instantiate();
         var processor = new DrawableProcessor(view);
-        processor.SetLights([light]);
+        processor.OnUpdateBegin(new FrameInfo { Scene = scene, Octree = octree, Camera = camera });
+        processor.ProcessVisibleDrawables([light], null);
 
         var geometry = new Geometry();
         var material = new Material(string.Empty);
