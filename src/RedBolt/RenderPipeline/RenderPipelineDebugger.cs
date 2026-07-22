@@ -4,7 +4,7 @@ using System.Text;
 
 namespace RedBolt;
 
-public sealed class DebugFrameSnapshotBatch
+public struct DebugFrameSnapshotBatch : ICloneable
 {
     public Drawable? Drawable;
     public Geometry? Geometry;
@@ -13,8 +13,8 @@ public sealed class DebugFrameSnapshotBatch
     public PipelineState? PipelineState;
     public int SourceBatchIndex;
     public float Distance;
-    public uint NumVertices;
-    public uint NumPrimitives;
+    public int NumVertices;
+    public int NumPrimitives;
     public bool NewInstancingGroup;
 
     public DebugFrameSnapshotBatch()
@@ -29,13 +29,15 @@ public sealed class DebugFrameSnapshotBatch
         PipelineState = pipelineBatch.PipelineState;
         SourceBatchIndex = pipelineBatch.SourceBatchIndex;
         Distance = pipelineBatch.Distance;
-        NumVertices = Geometry?.GetVertexCount() ?? 0;
-        NumPrimitives = Geometry?.GetPrimitiveCount() ?? 0;
+        NumVertices = (int)Geometry!.GetVertexCount();
+        NumPrimitives = (int)Geometry.GetPrimitiveCount();
         NewInstancingGroup = newInstancingGroup;
 
         var lights = drawableProcessor.GetLights();
         Light = pipelineBatch.PixelLightIndex < lights.Count ? lights[pipelineBatch.PixelLightIndex] : null;
     }
+
+    public readonly object Clone() => this;
 
     public override string ToString()
     {
@@ -56,10 +58,16 @@ public sealed class DebugFrameSnapshotBatch
     }
 }
 
-public sealed class DebugFrameSnapshotQuad
+public struct DebugFrameSnapshotQuad : ICloneable
 {
     public string DebugComment = string.Empty;
     public Vector2i Size;
+
+    public DebugFrameSnapshotQuad()
+    {
+    }
+
+    public readonly object Clone() => this;
 
     public override string ToString()
     {
@@ -68,20 +76,36 @@ public sealed class DebugFrameSnapshotQuad
     }
 }
 
-public sealed class DebugFrameSnapshotPass
+public struct DebugFrameSnapshotPass : ICloneable
 {
-    public string Name = string.Empty;
-    public readonly List<DebugFrameSnapshotBatch> Batches = [];
-    public readonly List<DebugFrameSnapshotQuad> Quads = [];
+    public string Name;
+    public readonly List<DebugFrameSnapshotBatch> Batches;
+    public readonly List<DebugFrameSnapshotQuad> Quads;
+
+    public DebugFrameSnapshotPass()
+    {
+        Name = string.Empty;
+        Batches = [];
+        Quads = [];
+    }
+
+    private DebugFrameSnapshotPass(in DebugFrameSnapshotPass source)
+    {
+        Name = source.Name;
+        Batches = new List<DebugFrameSnapshotBatch>(source.Batches);
+        Quads = new List<DebugFrameSnapshotQuad>(source.Quads);
+    }
+
+    public readonly object Clone() => new DebugFrameSnapshotPass(this);
 
     public override string ToString()
     {
-        var numBatches = 0u;
-        var numVertices = 0u;
-        var numPrimitives = 0u;
+        var numBatches = 0;
+        var numVertices = 0;
+        var numPrimitives = 0;
         var result = new StringBuilder();
 
-        numBatches += (uint)Batches.Count;
+        numBatches += Batches.Count;
         foreach (var batch in Batches)
         {
             result.AppendLine(batch.ToString());
@@ -89,7 +113,7 @@ public sealed class DebugFrameSnapshotPass
             numPrimitives += batch.NumPrimitives;
         }
 
-        numBatches += (uint)Quads.Count;
+        numBatches += Quads.Count;
         foreach (var quad in Quads)
         {
             result.AppendLine(quad.ToString());
@@ -100,12 +124,32 @@ public sealed class DebugFrameSnapshotPass
     }
 }
 
-public sealed class DebugFrameSnapshot
+public struct DebugFrameSnapshot : ICloneable
 {
-    public readonly List<DebugFrameSnapshotPass> Passes = [];
-    public readonly HashSet<PipelineState> ScenePipelineStates = [];
-    public readonly HashSet<Material> SceneMaterials = [];
-    public readonly HashSet<RawShader> SceneShaders = [];
+    public readonly List<DebugFrameSnapshotPass> Passes;
+    public readonly HashSet<PipelineState> ScenePipelineStates;
+    public readonly HashSet<Material> SceneMaterials;
+    public readonly HashSet<RawShader> SceneShaders;
+
+    public DebugFrameSnapshot()
+    {
+        Passes = [];
+        ScenePipelineStates = [];
+        SceneMaterials = [];
+        SceneShaders = [];
+    }
+
+    private DebugFrameSnapshot(in DebugFrameSnapshot source)
+    {
+        Passes = new List<DebugFrameSnapshotPass>(source.Passes.Count);
+        foreach (var pass in source.Passes)
+            Passes.Add((DebugFrameSnapshotPass)pass.Clone());
+        ScenePipelineStates = new HashSet<PipelineState>(source.ScenePipelineStates);
+        SceneMaterials = new HashSet<Material>(source.SceneMaterials);
+        SceneShaders = new HashSet<RawShader>(source.SceneShaders);
+    }
+
+    public readonly object Clone() => new DebugFrameSnapshot(this);
 
     public override string ToString()
     {
@@ -164,24 +208,24 @@ public sealed class DebugFrameSnapshot
 /// <summary>Debug utility that takes snapshot of current frame.</summary>
 public sealed class RenderPipelineDebugger
 {
-    private bool _snapshotBuildingInProgress;
-    private DebugFrameSnapshot _snapshot = new();
-    private bool _passInProgress;
+    public RenderPipelineDebugger()
+    {
+    }
 
-    /// <summary>Begin snapshot.</summary>
+    /// <summary>Flow control.</summary>
     public void BeginSnapshot()
     {
         _snapshotBuildingInProgress = true;
         _snapshot = new DebugFrameSnapshot();
     }
 
-    /// <summary>End snapshot.</summary>
+    /// <summary>Flow control.</summary>
     public void EndSnapshot()
     {
         _snapshotBuildingInProgress = false;
     }
 
-    /// <summary>Begin pass.</summary>
+    /// <summary>Debug info reporting. Should be called from main thread.</summary>
     public void BeginPass(string name)
     {
         if (_passInProgress)
@@ -190,27 +234,20 @@ public sealed class RenderPipelineDebugger
         _passInProgress = true;
     }
 
-    /// <summary>Report scene batch.</summary>
-    public void ReportSceneBatch(DebugFrameSnapshotBatch sceneBatch)
+    /// <summary>Debug info reporting. Should be called from main thread.</summary>
+    public void ReportSceneBatch(in DebugFrameSnapshotBatch sceneBatch)
     {
         if (!_passInProgress)
             BeginPass("Unnamed");
         _snapshot.Passes[^1].Batches.Add(sceneBatch);
-        if (sceneBatch.PipelineState is not null)
-            _snapshot.ScenePipelineStates.Add(sceneBatch.PipelineState);
-        if (sceneBatch.Material is not null)
-            _snapshot.SceneMaterials.Add(sceneBatch.Material);
+        _snapshot.ScenePipelineStates.Add(sceneBatch.PipelineState!);
+        _snapshot.SceneMaterials.Add(sceneBatch.Material!);
 
-        if (sceneBatch.PipelineState is null)
-            return;
-
-        var pipelineStateDesc = sceneBatch.PipelineState.GetDesc();
+        var pipelineStateDesc = sceneBatch.PipelineState!.GetDesc();
         if (pipelineStateDesc.AsGraphics() is { } graphicsDesc)
         {
-            if (graphicsDesc.VertexShader is not null)
-                _snapshot.SceneShaders.Add(graphicsDesc.VertexShader);
-            if (graphicsDesc.PixelShader is not null)
-                _snapshot.SceneShaders.Add(graphicsDesc.PixelShader);
+            _snapshot.SceneShaders.Add(graphicsDesc.VertexShader!);
+            _snapshot.SceneShaders.Add(graphicsDesc.PixelShader!);
             if (graphicsDesc.GeometryShader is not null)
                 _snapshot.SceneShaders.Add(graphicsDesc.GeometryShader);
             if (graphicsDesc.HullShader is not null)
@@ -218,11 +255,11 @@ public sealed class RenderPipelineDebugger
             if (graphicsDesc.DomainShader is not null)
                 _snapshot.SceneShaders.Add(graphicsDesc.DomainShader);
         }
-        if (pipelineStateDesc.AsCompute() is { } computeDesc && computeDesc.ComputeShader is not null)
-            _snapshot.SceneShaders.Add(computeDesc.ComputeShader);
+        if (pipelineStateDesc.AsCompute() is { } computeDesc)
+            _snapshot.SceneShaders.Add(computeDesc.ComputeShader!);
     }
 
-    /// <summary>Report quad.</summary>
+    /// <summary>Debug info reporting. Should be called from main thread.</summary>
     public void ReportQuad(string debugComment, Vector2i size = default)
     {
         if (!_passInProgress)
@@ -230,7 +267,7 @@ public sealed class RenderPipelineDebugger
         _snapshot.Passes[^1].Quads.Add(new DebugFrameSnapshotQuad { DebugComment = debugComment, Size = size });
     }
 
-    /// <summary>End pass.</summary>
+    /// <summary>Debug info reporting. Should be called from main thread.</summary>
     public void EndPass()
     {
         _passInProgress = false;
@@ -241,7 +278,7 @@ public sealed class RenderPipelineDebugger
     public static bool IsSnapshotInProgress(RenderPipelineDebugger? debugger) =>
         debugger is not null && debugger.IsSnapshotInProgress();
 
-    public DebugFrameSnapshot GetSnapshot() => _snapshot;
+    public ref readonly DebugFrameSnapshot GetSnapshot() => ref _snapshot;
 
     internal static string FormatObject(object? value) => value is null
         ? "0x0"
@@ -255,4 +292,8 @@ public sealed class RenderPipelineDebugger
             return computeDesc.ComputeShader!.GetDebugName();
         return string.Empty;
     }
+
+    private bool _snapshotBuildingInProgress;
+    private DebugFrameSnapshot _snapshot = new();
+    private bool _passInProgress;
 }

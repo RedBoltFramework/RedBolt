@@ -13,6 +13,32 @@ public sealed class RenderPipelineDebuggerTests
     }
 
     [Fact]
+    public void Snapshot_structs_clone_owned_containers()
+    {
+        Assert.True(typeof(DebugFrameSnapshotBatch).IsValueType);
+        Assert.True(typeof(DebugFrameSnapshotQuad).IsValueType);
+        Assert.True(typeof(DebugFrameSnapshotPass).IsValueType);
+        Assert.True(typeof(DebugFrameSnapshot).IsValueType);
+
+        var geometry = new Geometry();
+        var pass = new DebugFrameSnapshotPass { Name = "Forward" };
+        pass.Batches.Add(new DebugFrameSnapshotBatch { Geometry = geometry });
+        pass.Quads.Add(new DebugFrameSnapshotQuad { DebugComment = "First" });
+
+        var snapshot = new DebugFrameSnapshot();
+        snapshot.Passes.Add(pass);
+        var copy = (DebugFrameSnapshot)snapshot.Clone();
+
+        snapshot.Passes[0].Quads.Add(new DebugFrameSnapshotQuad { DebugComment = "Second" });
+
+        Assert.NotSame(snapshot.Passes, copy.Passes);
+        Assert.NotSame(snapshot.Passes[0].Batches, copy.Passes[0].Batches);
+        Assert.NotSame(snapshot.Passes[0].Quads, copy.Passes[0].Quads);
+        Assert.Single(copy.Passes[0].Quads);
+        Assert.Same(geometry, copy.Passes[0].Batches[0].Geometry);
+    }
+
+    [Fact]
     public void Snapshot_state_machine_preserves_pass_and_item_order()
     {
         var debugger = new RenderPipelineDebugger();
@@ -85,11 +111,19 @@ public sealed class RenderPipelineDebuggerTests
 
         var geometry = new Geometry();
         var material = new Material(string.Empty);
+        var pipelineStateDesc = new GraphicsPipelineStateDesc
+        {
+            VertexShader = new RawShader(new ShaderBytecode(ShaderType.VS)),
+            PixelShader = new RawShader(new ShaderBytecode(ShaderType.PS))
+        };
+        using var pipelineState = new PipelineState(
+            _fixture.PipelineStateCache, new PipelineStateDesc(pipelineStateDesc));
         var pipelineBatch = new PipelineBatch
         {
             Drawable = drawable,
             Geometry = geometry,
             Material = material,
+            PipelineState = pipelineState,
             SourceBatchIndex = 0,
             PixelLightIndex = 0,
             Distance = 12.5f
@@ -108,8 +142,8 @@ public sealed class RenderPipelineDebuggerTests
         Assert.Equal(0, batch.SourceBatchIndex);
         Assert.Equal(12.5f, batch.Distance);
         Assert.True(batch.NewInstancingGroup);
-        Assert.Equal(0u, batch.NumVertices);
-        Assert.Equal(0u, batch.NumPrimitives);
+        Assert.Equal(0, batch.NumVertices);
+        Assert.Equal(0, batch.NumPrimitives);
 
         var text = batch.ToString();
         Assert.StartsWith("*", text);
@@ -131,11 +165,19 @@ public sealed class RenderPipelineDebuggerTests
 
         var geometry = new Geometry();
         var material = new Material(string.Empty);
+        var pipelineStateDesc = new GraphicsPipelineStateDesc
+        {
+            VertexShader = new RawShader(new ShaderBytecode(ShaderType.VS)),
+            PixelShader = new RawShader(new ShaderBytecode(ShaderType.PS))
+        };
+        using var pipelineState = new PipelineState(
+            _fixture.PipelineStateCache, new PipelineStateDesc(pipelineStateDesc));
         var pipelineBatch = new PipelineBatch
         {
             Drawable = drawable,
             Geometry = geometry,
             Material = material,
+            PipelineState = pipelineState,
             SourceBatchIndex = 0,
             PixelLightIndex = 0,
             Distance = 3.0f
