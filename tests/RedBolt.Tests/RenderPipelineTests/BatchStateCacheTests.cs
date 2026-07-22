@@ -2,7 +2,7 @@ using RedBolt;
 
 namespace RedBolt.Tests;
 
-[Collection(nameof(HeadlessEngineCollection))]
+[Collection(nameof(GraphicsEngineCollection))]
 public sealed class BatchStateCacheTests
 {
     private sealed class BatchCallback : BatchStateCacheCallback
@@ -26,9 +26,9 @@ public sealed class BatchStateCacheTests
         }
     }
 
-    private readonly HeadlessEngineFixture _fixture;
+    private readonly GraphicsEngineFixture _fixture;
 
-    public BatchStateCacheTests(HeadlessEngineFixture fixture)
+    public BatchStateCacheTests(GraphicsEngineFixture fixture)
     {
         _fixture = fixture;
     }

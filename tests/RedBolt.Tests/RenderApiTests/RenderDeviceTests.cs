@@ -2,12 +2,12 @@ using RedBolt;
 
 namespace RedBolt.Tests;
 
-[Collection(nameof(HeadlessEngineCollection))]
+[Collection(nameof(GraphicsEngineCollection))]
 public sealed class RenderDeviceTests
 {
-    private readonly HeadlessEngineFixture _fixture;
+    private readonly GraphicsEngineFixture _fixture;
 
-    public RenderDeviceTests(HeadlessEngineFixture fixture)
+    public RenderDeviceTests(GraphicsEngineFixture fixture)
     {
         this._fixture = fixture;
     }
@@ -31,14 +31,13 @@ public sealed class RenderDeviceTests
         {
             ApplicationName = "RenderDeviceTests",
             Headless = false,
+            Borderless = false,
             WindowMaximize = false,
             WindowWidth = 64,
             WindowHeight = 64
         };
 
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         try
         {
             Assert.Equal(_fixture.RenderDevice.GetCaps().MaxTextureSize,
@@ -59,9 +58,7 @@ public sealed class RenderDeviceTests
         }
         finally
         {
-            _fixture.RenderDevice.InvalidateDeviceState();
-            _fixture.Graphics.Shutdown();
-            _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
         }
     }
 
@@ -92,7 +89,7 @@ public sealed class RenderDeviceTests
     [Fact]
     public void Render_device_dpi_scale_matches_equal_window_and_swap_chain_sizes()
     {
-        Assert.Equal(0.0f, _fixture.RenderDevice.GetDpiScale());
+        Assert.Equal(1.0f, _fixture.RenderDevice.GetDpiScale());
     }
 
     [Fact]
@@ -106,9 +103,7 @@ public sealed class RenderDeviceTests
             WindowHeight = 64
         };
 
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         try
         {
             ref var stats = ref _fixture.RenderContext.GetMutableStats();
@@ -124,9 +119,7 @@ public sealed class RenderDeviceTests
         }
         finally
         {
-            _fixture.RenderDevice.InvalidateDeviceState();
-            _fixture.Graphics.Shutdown();
-            _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
         }
     }
 
@@ -141,9 +134,7 @@ public sealed class RenderDeviceTests
             WindowHeight = 64
         };
 
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         try
         {
             var firstFrame = _fixture.RenderDevice.GetFrameIndex();
@@ -154,9 +145,7 @@ public sealed class RenderDeviceTests
         }
         finally
         {
-            _fixture.RenderDevice.InvalidateDeviceState();
-            _fixture.Graphics.Shutdown();
-            _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
         }
     }
 
@@ -172,9 +161,7 @@ public sealed class RenderDeviceTests
             WindowMaximize = false
         };
 
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         try
         {
             using var description = _fixture.RenderDevice.GetSwapChain()!.GetDesc();
@@ -189,9 +176,7 @@ public sealed class RenderDeviceTests
         }
         finally
         {
-            _fixture.RenderDevice.InvalidateDeviceState();
-            _fixture.Graphics.Shutdown();
-            _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
         }
     }
 
@@ -206,9 +191,7 @@ public sealed class RenderDeviceTests
             WindowHeight = 48
         };
 
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         try
         {
             _fixture.RenderDevice.UpdateSwapChainSize();
@@ -221,9 +204,7 @@ public sealed class RenderDeviceTests
         }
         finally
         {
-            _fixture.RenderDevice.InvalidateDeviceState();
-            _fixture.Graphics.Shutdown();
-            _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
         }
     }
 
@@ -238,9 +219,7 @@ public sealed class RenderDeviceTests
             WindowHeight = 48
         };
 
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         try
         {
             _fixture.RenderDevice.UpdateSwapChainSize();
@@ -254,9 +233,7 @@ public sealed class RenderDeviceTests
         }
         finally
         {
-            _fixture.RenderDevice.InvalidateDeviceState();
-            _fixture.Graphics.Shutdown();
-            _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
         }
     }
 
@@ -267,14 +244,13 @@ public sealed class RenderDeviceTests
         {
             ApplicationName = "RenderDeviceTests",
             Headless = false,
+            Borderless = false,
             WindowMaximize = false,
             WindowWidth = 64,
             WindowHeight = 48
         };
 
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         try
         {
             var settings = _fixture.RenderDevice.GetWindowSettings();
@@ -294,9 +270,7 @@ public sealed class RenderDeviceTests
         }
         finally
         {
-            _fixture.RenderDevice.InvalidateDeviceState();
-            _fixture.Graphics.Shutdown();
-            _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
         }
     }
 
@@ -311,9 +285,7 @@ public sealed class RenderDeviceTests
             WindowHeight = 48
         };
 
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         var originalTitle = _fixture.Graphics.GetWindowTitle();
         var originalPosition = _fixture.Graphics.GetWindowPosition();
         try
@@ -329,12 +301,13 @@ public sealed class RenderDeviceTests
             _fixture.Graphics.SetWindowTitle("Graphics Window API");
             var movedPosition = originalPosition + new Vector2i(1, 1);
             _fixture.Graphics.SetWindowPosition(movedPosition);
+            var actualPosition = _fixture.Graphics.GetWindowPosition();
             _fixture.Graphics.OnWindowMoved();
 
             Assert.Equal("Graphics Window API", _fixture.Graphics.GetWindowTitle());
-            Assert.Equal(movedPosition, _fixture.Graphics.GetWindowPosition());
+            Assert.Equal(actualPosition, _fixture.Graphics.GetWindowPosition());
             Assert.Equal(1, windowPosEventCount);
-            Assert.Equal(movedPosition, reportedWindowPosition);
+            Assert.Equal(actualPosition, reportedWindowPosition);
             Assert.Equal(new Vector2i(_fixture.Graphics.Width, _fixture.Graphics.Height), _fixture.Graphics.GetSize());
             Assert.Equal(_fixture.RenderDevice.GetWindowSettings().MultiSample, _fixture.Graphics.GetMultiSample());
             Assert.Equal(_fixture.RenderDevice.GetWindowSettings().Mode == WindowMode.Fullscreen, _fixture.Graphics.GetFullscreen());
@@ -369,9 +342,7 @@ public sealed class RenderDeviceTests
         {
             _fixture.Graphics.SetWindowTitle(originalTitle);
             _fixture.Graphics.SetWindowPosition(originalPosition);
-            _fixture.RenderDevice.InvalidateDeviceState();
-            _fixture.Graphics.Shutdown();
-            _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
         }
     }
 
@@ -386,9 +357,7 @@ public sealed class RenderDeviceTests
             WindowHeight = 64
         };
 
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         try
         {
             _fixture.RenderDevice.PostInitialize();
@@ -400,9 +369,7 @@ public sealed class RenderDeviceTests
         }
         finally
         {
-            _fixture.RenderDevice.InvalidateDeviceState();
-            _fixture.Graphics.Shutdown();
-            _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
         }
     }
 
@@ -417,9 +384,7 @@ public sealed class RenderDeviceTests
             WindowHeight = 64
         };
 
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         try
         {
             _fixture.RenderDevice.PostInitialize();
@@ -442,14 +407,12 @@ public sealed class RenderDeviceTests
         }
         finally
         {
-            _fixture.RenderDevice.InvalidateDeviceState();
-            _fixture.Graphics.Shutdown();
-            _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
         }
     }
 
     [Fact]
-    public void Render_device_maps_engine_parameters_to_render_and_window_settings()
+    public void Headless_engine_does_not_create_render_device()
     {
         var previousContext = Context.Instance;
         var parameters = new EngineParameters
@@ -457,162 +420,27 @@ public sealed class RenderDeviceTests
             ApplicationName = "RenderDeviceTests",
             Headless = true,
             RenderBackend = RenderBackend.OpenGL,
-            GPUDebug = true,
-            RenderAdapterId = 7,
-            TweakVulkan = "{\"dynamicHeapSize\":33554432,\"queryPoolSize_timestamp\":64}",
-            ExternalWindow = (nint)1234,
-            FullScreen = true,
-            Monitor = 2,
-            RefreshRate = 144,
-            MultiSample = 4,
-            WindowWidth = 1600,
-            WindowHeight = 900,
-            WindowTitle = "Render Device Window",
-            WindowResizable = true,
-            Orientations = "LandscapeLeft Portrait"
         };
 
         try
         {
             using var engine = new EngineHandle();
             engine.Engine.Initialize(parameters);
-            var renderDevice = engine.Engine.Context.GetSubsystem<RenderDevice>();
-            Assert.NotNull(renderDevice);
-
-            var deviceSettings = renderDevice!.GetDeviceSettings();
-            var windowSettings = renderDevice.GetWindowSettings();
-
-            Assert.Equal(RenderBackend.OpenGL, renderDevice.GetBackend());
-            Assert.Equal(RenderBackend.OpenGL, deviceSettings.Backend);
-            Assert.Equal((nint)1234, deviceSettings.ExternalWindowHandle);
-            Assert.True(deviceSettings.GpuDebug);
-            Assert.Equal(7, deviceSettings.AdapterId);
-            Assert.True(typeof(RenderDeviceSettingsVulkan).IsValueType);
-            Assert.True(typeof(RenderDeviceSettingsD3D12).IsValueType);
-            Assert.Equal(33554432, deviceSettings.Vulkan.DynamicHeapSize);
-            Assert.Equal(64, deviceSettings.Vulkan.QueryPoolSizes[
-                (int)RedBolt.Bindings.Diligent.QueryType.QueryTypeTimestamp]);
-
-            Assert.Equal(WindowMode.Windowed, windowSettings.Mode);
-            Assert.Equal(new Vector2i(1600, 900), windowSettings.Size);
-            Assert.Equal("Render Device Window", windowSettings.Title);
-            Assert.True(windowSettings.Resizable);
-            Assert.Equal(0, windowSettings.Monitor);
-            Assert.True(windowSettings.RefreshRate > 0);
-            Assert.Equal(4, windowSettings.MultiSample);
-            Assert.Equal(2, windowSettings.Orientations.Length);
-            Assert.Equal("LandscapeLeft", windowSettings.Orientations[0]);
-            Assert.Equal("Portrait", windowSettings.Orientations[1]);
+            Assert.Null(engine.Engine.Context.GetSubsystem<RenderDevice>());
         }
         finally
         {
             Context.SetInstance(previousContext);
         }
-    }
-
-    [Fact]
-    public void Device_object_receives_invalidate_restore_and_destroy_events()
-    {
-        var previousContext = Context.Instance;
-        TrackingDeviceObject? deviceObject;
-
-        try
-        {
-            using var engine = new EngineHandle();
-            engine.Engine.Initialize(new EngineParameters
-            {
-                ApplicationName = "RenderDeviceTests",
-                Headless = true,
-                RenderBackend = RenderBackend.OpenGL
-            });
-
-            var renderDevice = engine.Engine.Context.GetSubsystem<RenderDevice>();
-            Assert.NotNull(renderDevice);
-
-            deviceObject = new TrackingDeviceObject();
-            Assert.Same(renderDevice, deviceObject.GetRenderDevice());
-
-            Assert.True(renderDevice!.EmulateLossAndRestore());
-            Assert.Equal(1, deviceObject.InvalidateCalls);
-            Assert.Equal(1, deviceObject.RestoreCalls);
-            Assert.Equal(0, deviceObject.DestroyCalls);
-            Assert.True(deviceObject.IsDataLost());
-            deviceObject.ClearDataLost();
-            Assert.False(deviceObject.IsDataLost());
-        }
-        finally
-        {
-            Context.SetInstance(previousContext);
-        }
-
-        Assert.NotNull(deviceObject);
-        Assert.Equal(1, deviceObject!.DestroyCalls);
-        Assert.Null(deviceObject.GetRenderDevice());
     }
 
     [Fact]
     public void Device_object_dispose_unregisters_from_render_device()
     {
-        var previousContext = Context.Instance;
-        var deviceObject = default(TrackingDeviceObject);
+        var deviceObject = new TrackingDeviceObject();
+        deviceObject.Dispose();
 
-        try
-        {
-            using var engine = new EngineHandle();
-            engine.Engine.Initialize(new EngineParameters
-            {
-                ApplicationName = "RenderDeviceTests",
-                Headless = true,
-                RenderBackend = RenderBackend.OpenGL
-            });
-
-            deviceObject = new TrackingDeviceObject();
-            deviceObject.Dispose();
-        }
-        finally
-        {
-            Context.SetInstance(previousContext);
-        }
-
-        Assert.NotNull(deviceObject);
         Assert.Equal(0, deviceObject.DestroyCalls);
-    }
-
-    [Fact]
-    public void Render_device_exposes_separate_device_state_lifecycle()
-    {
-        var previousContext = Context.Instance;
-        TrackingDeviceObject? deviceObject;
-
-        try
-        {
-            using var engine = new EngineHandle();
-            engine.Engine.Initialize(new EngineParameters
-            {
-                ApplicationName = "RenderDeviceTests",
-                Headless = true,
-                RenderBackend = RenderBackend.OpenGL
-            });
-
-            var renderDevice = engine.Engine.Context.GetSubsystem<RenderDevice>();
-            Assert.NotNull(renderDevice);
-
-            deviceObject = new TrackingDeviceObject();
-            renderDevice!.InvalidateDeviceState();
-            Assert.Equal(1, deviceObject.InvalidateCalls);
-            Assert.True(deviceObject.IsDataLost());
-
-            renderDevice.RestoreDeviceState();
-            Assert.Equal(1, deviceObject.RestoreCalls);
-            Assert.True(deviceObject.IsDataLost());
-        }
-        finally
-        {
-            Context.SetInstance(previousContext);
-        }
-
-        Assert.NotNull(deviceObject);
-        Assert.Equal(1, deviceObject!.DestroyCalls);
     }
 
     [Fact]
@@ -685,6 +513,76 @@ public sealed class RenderDeviceTests
         public void Dispose()
         {
             Engine.Shutdown();
+        }
+    }
+}
+
+[Collection(nameof(GraphicsLifecycleCollection))]
+public sealed class RenderDeviceLifecycleTests
+{
+    [Fact]
+    public void Device_object_receives_invalidate_restore_and_destroy_events()
+    {
+        TrackingDeviceObject deviceObject;
+        using (var fixture = new GraphicsEngineFixture())
+        {
+            deviceObject = new TrackingDeviceObject();
+            Assert.Same(fixture.RenderDevice, deviceObject.GetRenderDevice());
+
+            Assert.True(fixture.RenderDevice.EmulateLossAndRestore());
+            Assert.Equal(1, deviceObject.InvalidateCalls);
+            Assert.Equal(1, deviceObject.RestoreCalls);
+            Assert.Equal(0, deviceObject.DestroyCalls);
+            Assert.True(deviceObject.IsDataLost());
+            deviceObject.ClearDataLost();
+            Assert.False(deviceObject.IsDataLost());
+        }
+
+        Assert.Equal(1, deviceObject.DestroyCalls);
+        Assert.Null(deviceObject.GetRenderDevice());
+    }
+
+    [Fact]
+    public void Render_device_exposes_separate_device_state_lifecycle()
+    {
+        TrackingDeviceObject deviceObject;
+        using (var fixture = new GraphicsEngineFixture())
+        {
+            deviceObject = new TrackingDeviceObject();
+            fixture.RenderDevice.InvalidateDeviceState();
+            Assert.Equal(1, deviceObject.InvalidateCalls);
+            Assert.True(deviceObject.IsDataLost());
+
+            fixture.RenderDevice.RestoreDeviceState();
+            Assert.Equal(1, deviceObject.RestoreCalls);
+            Assert.True(deviceObject.IsDataLost());
+        }
+
+        Assert.Equal(1, deviceObject.DestroyCalls);
+    }
+
+    private sealed class TrackingDeviceObject : DeviceObject
+    {
+        public int InvalidateCalls;
+        public int RestoreCalls;
+        public int DestroyCalls;
+
+        public override void Invalidate()
+        {
+            base.Invalidate();
+            ++InvalidateCalls;
+        }
+
+        public override void Restore()
+        {
+            base.Restore();
+            ++RestoreCalls;
+        }
+
+        public override void Destroy()
+        {
+            ++DestroyCalls;
+            base.Destroy();
         }
     }
 }

@@ -1,7 +1,7 @@
 namespace RedBolt.Tests;
 
-[Collection(nameof(HeadlessEngineCollection))]
-public sealed class RenderPipelineInterfaceTests(HeadlessEngineFixture fixture)
+[Collection(nameof(GraphicsEngineCollection))]
+public sealed class RenderPipelineInterfaceTests(GraphicsEngineFixture fixture)
 {
     [Fact]
     public void Render_pipeline_view_exposes_global_context()
@@ -44,9 +44,7 @@ public sealed class RenderPipelineInterfaceTests(HeadlessEngineFixture fixture)
             WindowWidth = 64,
             WindowHeight = 64
         };
-        fixture.Input.Initialize(parameters);
-        fixture.Graphics.Initialize(parameters, fixture.Input);
-        fixture.RenderDevice.RestoreDeviceState();
+        fixture.InitializeGraphics(parameters);
         try
         {
             var scene = new Scene();
@@ -72,9 +70,7 @@ public sealed class RenderPipelineInterfaceTests(HeadlessEngineFixture fixture)
         }
         finally
         {
-            fixture.RenderDevice.InvalidateDeviceState();
-            fixture.Graphics.Shutdown();
-            fixture.Input.Shutdown();
+            fixture.ResetGraphics();
         }
     }
 

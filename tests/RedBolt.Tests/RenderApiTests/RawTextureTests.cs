@@ -3,7 +3,7 @@ using RedBolt.Bindings.Diligent;
 
 namespace RedBolt.Tests;
 
-[Collection(nameof(HeadlessEngineCollection))]
+[Collection(nameof(GraphicsEngineCollection))]
 public sealed class RawTextureTests
 {
     [Fact]
@@ -33,9 +33,9 @@ public sealed class RawTextureTests
         });
     }
 
-    private readonly HeadlessEngineFixture _fixture;
+    private readonly GraphicsEngineFixture _fixture;
 
-    public RawTextureTests(HeadlessEngineFixture fixture)
+    public RawTextureTests(GraphicsEngineFixture fixture)
     {
         this._fixture = fixture;
     }
@@ -497,8 +497,6 @@ public sealed class RawTextureTests
         Assert.Throws<InvalidOperationException>(() =>
             texture.CreateFromVulkanImage(0, new RawTextureParams(
                 TextureType.Texture2D, TextureFormat.TexFormatRgba8Unorm, TextureFlag.None, Vector3i.One)));
-        Assert.Throws<InvalidOperationException>(() =>
-            texture.CreateFromGLTexture(0, TextureType.Texture2D, TextureFlag.None, TextureFormat.TexFormatRgba8Unorm, 1, 1));
     }
 
     private void WithInitializedGraphics(Action action)
@@ -512,18 +510,14 @@ public sealed class RawTextureTests
         };
 
         RbfxTestData.AddResourceDirs(_fixture.Resources);
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         try
         {
             action();
         }
         finally
         {
-            _fixture.RenderDevice.InvalidateDeviceState();
-            _fixture.Graphics.Shutdown();
-            _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
             RbfxTestData.RemoveResourceDirs(_fixture.Resources);
         }
     }

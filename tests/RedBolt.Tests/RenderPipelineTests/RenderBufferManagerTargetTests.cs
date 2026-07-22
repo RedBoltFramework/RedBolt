@@ -1,12 +1,12 @@
 namespace RedBolt.Tests;
 
-[Collection(nameof(HeadlessEngineCollection))]
+[Collection(nameof(GraphicsEngineCollection))]
 public sealed class RenderBufferManagerTargetTests : IDisposable
 {
-    private readonly HeadlessEngineFixture _fixture;
+    private readonly GraphicsEngineFixture _fixture;
     private bool _graphicsInitialized;
 
-    public RenderBufferManagerTargetTests(HeadlessEngineFixture fixture)
+    public RenderBufferManagerTargetTests(GraphicsEngineFixture fixture)
     {
         this._fixture = fixture;
     }
@@ -72,9 +72,7 @@ public sealed class RenderBufferManagerTargetTests : IDisposable
             WindowHeight = 64
         };
         RbfxTestData.AddResourceDirs(_fixture.Resources);
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         _graphicsInitialized = true;
     }
 
@@ -83,9 +81,7 @@ public sealed class RenderBufferManagerTargetTests : IDisposable
         if (!_graphicsInitialized)
             return;
 
-        _fixture.RenderDevice.InvalidateDeviceState();
-        _fixture.Graphics.Shutdown();
-        _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
         RbfxTestData.RemoveResourceDirs(_fixture.Resources);
     }
 }

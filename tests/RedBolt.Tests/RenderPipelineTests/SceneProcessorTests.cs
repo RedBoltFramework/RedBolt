@@ -1,11 +1,11 @@
 namespace RedBolt.Tests;
 
-[Collection(nameof(HeadlessEngineCollection))]
+[Collection(nameof(GraphicsEngineCollection))]
 public sealed class SceneProcessorTests
 {
-    private readonly HeadlessEngineFixture _fixture;
+    private readonly GraphicsEngineFixture _fixture;
 
-    public SceneProcessorTests(HeadlessEngineFixture fixture)
+    public SceneProcessorTests(GraphicsEngineFixture fixture)
     {
         _fixture = fixture;
     }

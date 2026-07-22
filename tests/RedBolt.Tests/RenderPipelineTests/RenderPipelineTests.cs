@@ -6,7 +6,7 @@ using RedBolt;
 
 namespace RedBolt.Tests;
 
-[Collection(nameof(HeadlessEngineCollection))]
+[Collection(nameof(GraphicsEngineCollection))]
 public sealed class RenderPipelineTests : IDisposable
 {
     [Fact]
@@ -24,10 +24,10 @@ public sealed class RenderPipelineTests : IDisposable
         Assert.NotEqual(parameters, copy);
     }
 
-    private readonly HeadlessEngineFixture _fixture;
+    private readonly GraphicsEngineFixture _fixture;
     private bool _graphicsInitialized;
 
-    public RenderPipelineTests(HeadlessEngineFixture fixture)
+    public RenderPipelineTests(GraphicsEngineFixture fixture)
     {
         this._fixture = fixture;
     }
@@ -329,13 +329,12 @@ public sealed class RenderPipelineTests : IDisposable
         {
             ApplicationName = "RedBolt.Tests.RenderPipelineTests",
             Headless = false,
+            Borderless = false,
             WindowWidth = 64,
             WindowHeight = 64
         };
         RbfxTestData.AddResourceDirs(_fixture.Resources);
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         try
         {
             var scene = new Scene();
@@ -428,9 +427,7 @@ public sealed class RenderPipelineTests : IDisposable
         }
         finally
         {
-            _fixture.RenderDevice.InvalidateDeviceState();
-            _fixture.Graphics.Shutdown();
-            _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
             RbfxTestData.RemoveResourceDirs(_fixture.Resources);
         }
     }
@@ -446,9 +443,7 @@ public sealed class RenderPipelineTests : IDisposable
             WindowHeight = 64
         };
         RbfxTestData.AddResourceDirs(_fixture.Resources);
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         try
         {
             var scene = new Scene();
@@ -474,9 +469,7 @@ public sealed class RenderPipelineTests : IDisposable
         }
         finally
         {
-            _fixture.RenderDevice.InvalidateDeviceState();
-            _fixture.Graphics.Shutdown();
-            _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
             RbfxTestData.RemoveResourceDirs(_fixture.Resources);
         }
     }
@@ -1380,9 +1373,7 @@ public sealed class RenderPipelineTests : IDisposable
             WindowHeight = 64
         };
         RbfxTestData.AddResourceDirs(_fixture.Resources);
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         _graphicsInitialized = true;
     }
 
@@ -1391,9 +1382,7 @@ public sealed class RenderPipelineTests : IDisposable
         if (!_graphicsInitialized)
             return;
 
-        _fixture.RenderDevice.InvalidateDeviceState();
-        _fixture.Graphics.Shutdown();
-        _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
         RbfxTestData.RemoveResourceDirs(_fixture.Resources);
     }
 

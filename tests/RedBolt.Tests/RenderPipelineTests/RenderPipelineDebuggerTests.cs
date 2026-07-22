@@ -2,12 +2,12 @@ using RedBolt;
 
 namespace RedBolt.Tests;
 
-[Collection(nameof(HeadlessEngineCollection))]
+[Collection(nameof(GraphicsEngineCollection))]
 public sealed class RenderPipelineDebuggerTests
 {
-    private readonly HeadlessEngineFixture _fixture;
+    private readonly GraphicsEngineFixture _fixture;
 
-    public RenderPipelineDebuggerTests(HeadlessEngineFixture fixture)
+    public RenderPipelineDebuggerTests(GraphicsEngineFixture fixture)
     {
         _fixture = fixture;
     }

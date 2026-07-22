@@ -190,7 +190,7 @@ public sealed class EngineTests
                 ApplicationName = "RedBolt.Tests.PsoCache",
                 ApplicationPreferencesDir = preferencesDirectory + Path.DirectorySeparatorChar,
                 ConfigName = string.Empty,
-                Headless = true,
+                Headless = false,
                 PsoCache = "conf://psocache.bin"
             });
 

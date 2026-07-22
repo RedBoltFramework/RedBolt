@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using System.Collections.Immutable;
 
 namespace RedBolt;
 
@@ -120,15 +121,75 @@ public class Engine : Object
         resources.RegisterDefaultResources();
         ApplyInitializationParameters();
 
-        _context.RegisterSubsystem(new RenderDevice());
-        _context.RegisterSubsystem(new PipelineStateCache());
-
         if (!IsHeadless)
         {
+            var vulkanSettings = new RenderDeviceSettingsVulkan();
+            try
+            {
+                using var jsonFile = new JSONFile();
+                if (!jsonFile.FromString(Parameters.TweakVulkan))
+                    throw new ArchiveException("Failed to parse JSON string");
+                using var archive = new JSONInputArchive(jsonFile);
+                RenderAPIUtils.SerializeValue(archive, "object", ref vulkanSettings);
+                archive.Flush();
+            }
+            catch (ArchiveException)
+            {
+                vulkanSettings = new RenderDeviceSettingsVulkan();
+            }
+
+            var d3D12Settings = new RenderDeviceSettingsD3D12();
+            try
+            {
+                using var jsonFile = new JSONFile();
+                if (!jsonFile.FromString(Parameters.TweakD3D12))
+                    throw new ArchiveException("Failed to parse JSON string");
+                using var archive = new JSONInputArchive(jsonFile);
+                RenderAPIUtils.SerializeValue(archive, "object", ref d3D12Settings);
+                archive.Flush();
+            }
+            catch (ArchiveException)
+            {
+                d3D12Settings = new RenderDeviceSettingsD3D12();
+            }
+
+            var deviceSettings = new RenderDeviceSettings
+            {
+                Backend = RenderAPIUtils.SelectRenderBackend(Parameters.RenderBackend),
+                ExternalWindowHandle = Parameters.ExternalWindow,
+                GpuDebug = Parameters.GPUDebug,
+                AdapterId = Parameters.RenderAdapterId.HasValue
+                    ? checked((int)Parameters.RenderAdapterId.Value)
+                    : null,
+                Vulkan = vulkanSettings,
+                D3D12 = d3D12Settings
+            };
+            var windowSettings = new WindowSettings
+            {
+                Mode = ProcessUtils.GetPlatform() == PlatformId.Web
+                    ? WindowMode.Windowed
+                    : Parameters.FullScreen
+                        ? WindowMode.Fullscreen
+                        : Parameters.Borderless
+                            ? WindowMode.Borderless
+                            : WindowMode.Windowed,
+                Size = new Vector2i(Parameters.WindowWidth, Parameters.WindowHeight),
+                Title = Parameters.WindowTitle,
+                Resizable = Parameters.WindowResizable,
+                Monitor = Parameters.Monitor,
+                VSync = Parameters.VSync,
+                RefreshRate = Parameters.RefreshRate,
+                MultiSample = Parameters.MultiSample,
+                SRgb = true,
+                Orientations = Parameters.Orientations.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .ToImmutableArray()
+            };
+
             input.Initialize(Parameters);
             try
             {
-                graphics.Initialize(Parameters, input);
+                graphics.Initialize(Parameters, deviceSettings, windowSettings, input);
+                graphics.InitializePipelineStateCache(FileIdentifier.FromUri(Parameters.PsoCache));
             }
             catch (Exception exception)
             {

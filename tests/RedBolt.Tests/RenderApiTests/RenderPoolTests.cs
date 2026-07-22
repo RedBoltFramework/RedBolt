@@ -3,12 +3,12 @@ using RedBolt;
 
 namespace RedBolt.Tests;
 
-[Collection(nameof(HeadlessEngineCollection))]
+[Collection(nameof(GraphicsEngineCollection))]
 public sealed class RenderPoolTests
 {
-    private readonly HeadlessEngineFixture _fixture;
+    private readonly GraphicsEngineFixture _fixture;
 
-    public RenderPoolTests(HeadlessEngineFixture fixture)
+    public RenderPoolTests(GraphicsEngineFixture fixture)
     {
         this._fixture = fixture;
     }

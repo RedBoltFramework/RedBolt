@@ -118,18 +118,6 @@ public sealed class RendererTests
     }
 
     [Fact]
-    public void Render_dispatches_end_all_views_event()
-    {
-        var eventCount = 0;
-        using var subscription = Renderer.SubscribeToEvent<GraphicsEvents.EndAllViewsRenderEvent>(
-            (ref GraphicsEvents.EndAllViewsRenderEvent _) => ++eventCount);
-
-        Renderer.Render();
-
-        Assert.Equal(1, eventCount);
-    }
-
-    [Fact]
     public void Headless_render_target_texture_does_not_queue_surface_on_render_surface_update_event()
     {
         var texture = new Texture2D { Name = "Textures/EventTarget" };
@@ -333,5 +321,28 @@ public sealed class RendererTests
     public void Get_viewport_for_null_scene_returns_null()
     {
         Assert.Null(Renderer.GetViewportForScene(null));
+    }
+}
+
+[Collection(nameof(GraphicsEngineCollection))]
+public sealed class GraphicsRendererTests
+{
+    private readonly GraphicsEngineFixture _fixture;
+
+    public GraphicsRendererTests(GraphicsEngineFixture fixture)
+    {
+        _fixture = fixture;
+    }
+
+    [Fact]
+    public void Render_dispatches_end_all_views_event()
+    {
+        var eventCount = 0;
+        using var subscription = _fixture.Renderer.SubscribeToEvent<GraphicsEvents.EndAllViewsRenderEvent>(
+            (ref GraphicsEvents.EndAllViewsRenderEvent _) => ++eventCount);
+
+        _fixture.Renderer.Render();
+
+        Assert.Equal(1, eventCount);
     }
 }

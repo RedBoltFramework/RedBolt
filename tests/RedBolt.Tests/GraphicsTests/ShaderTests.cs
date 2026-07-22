@@ -2,12 +2,12 @@ using RedBolt;
 
 namespace RedBolt.Tests;
 
-[Collection(nameof(HeadlessEngineCollection))]
+[Collection(nameof(GraphicsEngineCollection))]
 public sealed class ShaderTests
 {
-    private readonly HeadlessEngineFixture _fixture;
+    private readonly GraphicsEngineFixture _fixture;
 
-    public ShaderTests(HeadlessEngineFixture fixture)
+    public ShaderTests(GraphicsEngineFixture fixture)
     {
         _fixture = fixture;
     }
@@ -30,9 +30,7 @@ public sealed class ShaderTests
             WindowHeight = 64
         };
         RbfxTestData.AddResourceDirs(_fixture.Resources);
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         try
         {
             var shader = new Shader { Name = "Shaders/GLSL/v2/UnitTest.glsl" };
@@ -46,9 +44,7 @@ public sealed class ShaderTests
         }
         finally
         {
-            _fixture.RenderDevice.InvalidateDeviceState();
-            _fixture.Graphics.Shutdown();
-            _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
             RbfxTestData.RemoveResourceDirs(_fixture.Resources);
         }
     }

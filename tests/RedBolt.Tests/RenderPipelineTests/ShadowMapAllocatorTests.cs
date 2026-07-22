@@ -2,10 +2,10 @@ using RedBolt;
 
 namespace RedBolt.Tests;
 
-[Collection(nameof(HeadlessEngineCollection))]
+[Collection(nameof(GraphicsEngineCollection))]
 public sealed class ShadowMapAllocatorTests
 {
-    public ShadowMapAllocatorTests(HeadlessEngineFixture fixture)
+    public ShadowMapAllocatorTests(GraphicsEngineFixture fixture)
     {
     }
 

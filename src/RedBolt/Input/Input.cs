@@ -266,7 +266,7 @@ public class Input : Object
 
         try
         {
-            var backend = GetSubsystem<RenderDevice>()!.GetBackend();
+            var backend = RenderAPIUtils.SelectRenderBackend(parameters.RenderBackend);
             if (backend == RenderBackend.OpenGL)
             {
                 CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlDoublebuffer, 1), "SDL_GL_SetAttribute doublebuffer");

@@ -4,12 +4,12 @@ using RedBolt;
 
 namespace RedBolt.Tests;
 
-[Collection(nameof(HeadlessEngineCollection))]
+[Collection(nameof(GraphicsEngineCollection))]
 public sealed class CubemapRendererTests
 {
-    private readonly HeadlessEngineFixture _fixture;
+    private readonly GraphicsEngineFixture _fixture;
 
-    public CubemapRendererTests(HeadlessEngineFixture fixture)
+    public CubemapRendererTests(GraphicsEngineFixture fixture)
     {
         _fixture = fixture;
     }
@@ -239,18 +239,14 @@ public sealed class CubemapRendererTests
         };
 
         RbfxTestData.AddResourceDirs(_fixture.Resources);
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         try
         {
             action();
         }
         finally
         {
-            _fixture.RenderDevice.InvalidateDeviceState();
-            _fixture.Graphics.Shutdown();
-            _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
             RbfxTestData.RemoveResourceDirs(_fixture.Resources);
         }
     }

@@ -428,9 +428,8 @@ layout(std140) uniform Material
     /// </summary>
     public void InitializePipelineStateCache(FileIdentifier fileName)
     {
-        var pipelineStateCache = GetSubsystem<PipelineStateCache>();
-        if (pipelineStateCache is null)
-            return;
+        Context.RegisterSubsystem(new PipelineStateCache());
+        var pipelineStateCache = GetSubsystem<PipelineStateCache>()!;
 
         var cachedData = Array.Empty<byte>();
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
@@ -1029,7 +1028,8 @@ layout(std140) uniform Material
         }
     }
 
-    public void Initialize(EngineParameters parameters, Input input)
+    public void Initialize(EngineParameters parameters, RenderDeviceSettings deviceSettings,
+        WindowSettings windowSettings, Input input)
     {
         ArgumentNullException.ThrowIfNull(parameters);
         ArgumentNullException.ThrowIfNull(input);
@@ -1041,10 +1041,8 @@ layout(std140) uniform Material
         // before factory/device creation (filters noisy shader compiler INFO logs).
         DiligentNativeBindings.InstallDebugMessageCallback();
 
-        GetSubsystem<RenderDevice>()!.InitializeWindowSettings(parameters);
-
         _window = input.Window;
-        var backend = GetSubsystem<RenderDevice>()!.GetBackend();
+        var backend = deviceSettings.Backend;
         if (backend == RenderBackend.OpenGL)
         {
             _glContext = SdlNativeBindings.SdlGlCreateContext(_window);
@@ -1114,7 +1112,6 @@ layout(std140) uniform Material
                 Height = actualHeight;
 
                 using var createInfo = new EngineVkCreateInfo();
-                var deviceSettings = GetSubsystem<RenderDevice>()!.GetDeviceSettings();
                 CopyBackendDeviceSettings(createInfo, deviceSettings.Vulkan);
 
                 // TODO: port C++ instanceExtensionsCStr, deviceExtensionsCStr and ppIgnoreDebugMessages when
@@ -1179,7 +1176,7 @@ layout(std140) uniform Material
 
                 using var swapChainDesc = new SwapChainDesc
                 {
-                    ColorBufferFormat = GetSubsystem<RenderDevice>()!.GetWindowSettings().SRgb
+                    ColorBufferFormat = windowSettings.SRgb
                         ? global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb
                         : global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
                     DepthBufferFormat = global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatUnknown
@@ -1197,10 +1194,17 @@ layout(std140) uniform Material
                 _swapChainVulkan = ISwapChainVk.QueryManagedWrapper(nativeSwapChain)
                     ?? throw new InvalidOperationException("Vulkan swap chain interface is unavailable.");
 
-                var renderDevice = GetSubsystem<RenderDevice>()!;
                 var depthFormat = RenderDevice.SelectDefaultDepthFormat(_device, true);
-                _configuredMultiSample = renderDevice.GetSupportedMultiSample(
-                    (TextureFormat)swapChainDesc.ColorBufferFormat, parameters.MultiSample);
+                _configuredMultiSample = (int)MathDefs.NextPowerOfTwo(
+                    (uint)Math.Clamp(parameters.MultiSample, 1, 16));
+                using (var formatInfo = _device.GetTextureFormatInfoExt(
+                           (TextureFormat)swapChainDesc.ColorBufferFormat))
+                {
+                    while (_configuredMultiSample > 1
+                           && ((int)formatInfo.SampleCounts & _configuredMultiSample) == 0)
+                        _configuredMultiSample >>= 1;
+                }
+                _configuredMultiSample = Math.Max(1, _configuredMultiSample);
                 _swapChain = DiligentNativeBindings.CreateProxySwapChainMS(
                     _device, _immediateContext, nativeSwapChain, (uint)depthFormat, (uint)_configuredMultiSample);
                 ReleaseIfNotNull(nativeSwapChain);
@@ -1219,19 +1223,21 @@ layout(std140) uniform Material
             _swapChainDepthFormat = GetTextureViewFormat(_depthStencilView);
             _renderTargets[0] = _renderTargetView;
 
-            GetSubsystem<RenderDevice>()!.UpdateEffectiveWindowSettings(
-                new Vector2i(Width, Height),
-                _configuredMultiSample,
-                RenderAPIUtils.IsTextureFormatSRGB((TextureFormat)_swapChainColorFormat));
+            windowSettings.Size = new Vector2i(Width, Height);
+            windowSettings.MultiSample = _configuredMultiSample;
+            windowSettings.SRgb = RenderAPIUtils.IsTextureFormatSRGB((TextureFormat)_swapChainColorFormat);
+
+            var renderDevice = new RenderDevice(deviceSettings, windowSettings);
+            _ownerContext.RegisterSubsystem(renderDevice);
 
             _clearColorHandle = GCHandle.Alloc(_clearColor, GCHandleType.Pinned);
             IsInitialized = true;
-            GetSubsystem<RenderDevice>()!.PostInitialize();
+            renderDevice.PostInitialize();
             OnScreenModeChanged();
         }
         catch
         {
-            Shutdown();
+            Close();
             throw;
         }
     }

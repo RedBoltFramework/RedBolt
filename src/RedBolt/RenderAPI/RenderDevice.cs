@@ -37,50 +37,13 @@ public sealed class RenderDevice : Object
     private bool _defaultDepthFormatsInitialized;
     private const uint StatsPeriodMs = 333;
 
-    public RenderDevice()
+    internal RenderDevice(RenderDeviceSettings deviceSettings, WindowSettings windowSettings)
     {
-        var engine = GetSubsystem<Engine>();
-        var parameters = engine?.Parameters ?? new EngineParameters();
-
-        var vulkanSettings = new RenderDeviceSettingsVulkan();
-        try
-        {
-            using var jsonFile = new JSONFile();
-            if (!jsonFile.FromString(parameters.TweakVulkan))
-                throw new ArchiveException("Failed to parse JSON string");
-            using var archive = new JSONInputArchive(jsonFile);
-            RenderAPIUtils.SerializeValue(archive, "object", ref vulkanSettings);
-            archive.Flush();
-        }
-        catch (ArchiveException)
-        {
-            vulkanSettings = new RenderDeviceSettingsVulkan();
-        }
-
-        var d3D12Settings = new RenderDeviceSettingsD3D12();
-        try
-        {
-            using var jsonFile = new JSONFile();
-            if (!jsonFile.FromString(parameters.TweakD3D12))
-                throw new ArchiveException("Failed to parse JSON string");
-            using var archive = new JSONInputArchive(jsonFile);
-            RenderAPIUtils.SerializeValue(archive, "object", ref d3D12Settings);
-            archive.Flush();
-        }
-        catch (ArchiveException)
-        {
-            d3D12Settings = new RenderDeviceSettingsD3D12();
-        }
-
-        _deviceSettings = new RenderDeviceSettings
-        {
-            Backend = RenderAPIUtils.SelectRenderBackend(parameters.RenderBackend),
-            ExternalWindowHandle = parameters.ExternalWindow,
-            GpuDebug = parameters.GPUDebug,
-            AdapterId = parameters.RenderAdapterId.HasValue ? checked((int)parameters.RenderAdapterId.Value) : null,
-            Vulkan = vulkanSettings,
-            D3D12 = d3D12Settings
-        };
+        _deviceSettings = deviceSettings;
+        if (_deviceSettings.ExternalWindowHandle != IntPtr.Zero)
+            windowSettings.Mode = WindowMode.Windowed;
+        ValidateWindowSettings(ref windowSettings);
+        _windowSettings = windowSettings;
         _renderPool = new RenderPool(this);
         _renderContext = new RenderContext(this);
         _defaultQueue = new DrawCommandQueue(this);
@@ -145,6 +108,16 @@ public sealed class RenderDevice : Object
     {
         var oldWindowSize = GetWindowSize();
         var oldSwapChainSize = GetSwapChainSize();
+
+        var window = GetSDLWindow();
+        if (window is not null && !window.IsNull)
+        {
+            SdlNativeBindings.SdlGetWindowSize(window, out var width, out var height);
+            var windowSettings = GetWindowSettings();
+            windowSettings.Size = new Vector2i(width, height);
+            _windowSettings = windowSettings;
+        }
+
         var graphics = GetSubsystem<Graphics>();
         graphics?.UpdateSwapChainSize();
 
@@ -172,7 +145,23 @@ public sealed class RenderDevice : Object
         var sizeChanged = oldSettings.Size != newSettings.Size;
         var modeChanged = oldSettings.Mode != newSettings.Mode;
         var refreshRateChanged = oldSettings.RefreshRate != newSettings.RefreshRate;
-        _windowSettings = newSettings;
+        if (sizeChanged || modeChanged || refreshRateChanged)
+        {
+            oldSettings.Size = newSettings.Size;
+            oldSettings.Mode = newSettings.Mode;
+            oldSettings.RefreshRate = newSettings.RefreshRate;
+        }
+
+        if (oldSettings.Monitor != newSettings.Monitor)
+            oldSettings.Monitor = newSettings.Monitor;
+        if (oldSettings.Title != newSettings.Title)
+            oldSettings.Title = newSettings.Title;
+        if (oldSettings.Resizable != newSettings.Resizable)
+            oldSettings.Resizable = newSettings.Resizable;
+        if (oldSettings.VSync != newSettings.VSync)
+            oldSettings.VSync = newSettings.VSync;
+
+        _windowSettings = oldSettings;
 
         if (sizeChanged || modeChanged || refreshRateChanged)
             UpdateSwapChainSize();

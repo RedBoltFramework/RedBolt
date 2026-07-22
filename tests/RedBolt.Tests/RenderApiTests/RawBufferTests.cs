@@ -2,12 +2,12 @@ using RedBolt;
 
 namespace RedBolt.Tests;
 
-[Collection(nameof(HeadlessEngineCollection))]
+[Collection(nameof(GraphicsEngineCollection))]
 public sealed class RawBufferTests
 {
-    private readonly HeadlessEngineFixture _fixture;
+    private readonly GraphicsEngineFixture _fixture;
 
-    public RawBufferTests(HeadlessEngineFixture fixture)
+    public RawBufferTests(GraphicsEngineFixture fixture)
     {
         this._fixture = fixture;
     }
@@ -31,21 +31,6 @@ public sealed class RawBufferTests
         Assert.Null(buffer.GetHandle());
         Assert.Empty(buffer.GetShadowData());
         Assert.Null(buffer.GetRenderDevice());
-    }
-
-    [Fact]
-    public void Raw_buffer_can_exist_as_shadowed_data_without_initialized_graphics()
-    {
-        var buffer = new RawBuffer(new RawBufferParams(BufferType.Uniform, 32, 0, BufferFlag.Shadowed));
-        var data = Enumerable.Range(0, 32).Select(static value => (byte)value).ToArray();
-
-        buffer.Update(data);
-
-        Assert.Null(buffer.GetHandle());
-        Assert.True(buffer.IsShadowed());
-        Assert.Equal(32, buffer.GetSize());
-        Assert.Equal(BufferType.Uniform, buffer.GetBufferType());
-        Assert.Equal(data, buffer.GetShadowData());
     }
 
     [Fact]
@@ -150,18 +135,37 @@ public sealed class RawBufferTests
             WindowHeight = 64
         };
 
-        _fixture.Input.Initialize(parameters);
-        _fixture.Graphics.Initialize(parameters, _fixture.Input);
-        _fixture.RenderDevice.RestoreDeviceState();
+        _fixture.InitializeGraphics(parameters);
         try
         {
             action();
         }
         finally
         {
-            _fixture.RenderDevice.InvalidateDeviceState();
-            _fixture.Graphics.Shutdown();
-            _fixture.Input.Shutdown();
+            _fixture.ResetGraphics();
         }
+    }
+}
+
+[Collection(nameof(HeadlessEngineCollection))]
+public sealed class HeadlessRawBufferTests
+{
+    public HeadlessRawBufferTests(HeadlessEngineFixture fixture)
+    {
+    }
+
+    [Fact]
+    public void Raw_buffer_can_exist_as_shadowed_data_without_initialized_graphics()
+    {
+        var buffer = new RawBuffer(new RawBufferParams(BufferType.Uniform, 32, 0, BufferFlag.Shadowed));
+        var data = Enumerable.Range(0, 32).Select(static value => (byte)value).ToArray();
+
+        buffer.Update(data);
+
+        Assert.Null(buffer.GetHandle());
+        Assert.True(buffer.IsShadowed());
+        Assert.Equal(32, buffer.GetSize());
+        Assert.Equal(BufferType.Uniform, buffer.GetBufferType());
+        Assert.Equal(data, buffer.GetShadowData());
     }
 }

@@ -2,12 +2,12 @@ using RedBolt;
 
 namespace RedBolt.Tests;
 
-[Collection(nameof(HeadlessEngineCollection))]
+[Collection(nameof(GraphicsEngineCollection))]
 public sealed class PipelineBatchSortKeyTests
 {
-    private readonly HeadlessEngineFixture _fixture;
+    private readonly GraphicsEngineFixture _fixture;
 
-    public PipelineBatchSortKeyTests(HeadlessEngineFixture fixture)
+    public PipelineBatchSortKeyTests(GraphicsEngineFixture fixture)
     {
         _fixture = fixture;
     }
