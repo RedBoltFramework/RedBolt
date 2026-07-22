@@ -296,7 +296,7 @@ public sealed class SceneTests
         xml.Seek(0);
 
         var loadedFromXml = new Scene();
-        Assert.True(loadedFromXml.LoadXML(xml));
+        Assert.True(loadedFromXml.Load(xml));
         Assert.True(loadedFromXml.GetChild("Loaded") is not null, $"count={loadedFromXml.GetNumChildren()}");
 
         var jsonValue = new JSONValue();
@@ -305,7 +305,7 @@ public sealed class SceneTests
         json.Seek(0);
 
         var loadedFromJson = new Scene();
-        Assert.True(loadedFromJson.LoadJSON(json));
+        Assert.True(loadedFromJson.Load(json));
         Assert.True(loadedFromJson.GetChild("Loaded") is not null, $"count={loadedFromJson.GetNumChildren()}");
     }
 

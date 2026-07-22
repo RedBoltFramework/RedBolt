@@ -2,6 +2,84 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
+/// <summary>Internal file format of Resource.</summary>
+public enum InternalResourceFormat
+{
+    /// <summary>Resource uses custom serialization logic. Format is unknown.</summary>
+    Unknown,
+    /// <summary>Resource is serialized as JSON or JSON Archive.</summary>
+    Json,
+    /// <summary>Resource is serialized as XML or XML Archive.</summary>
+    Xml,
+    /// <summary>Resource is serialized as binary Archive.</summary>
+    Binary
+}
+
+internal static class ResourceFormat
+{
+    /// <summary>Size of the magic number for binary resources.</summary>
+    public const int BinaryMagicSize = 4;
+
+    /// <summary>
+    /// Peek into resource file and determine its internal format.
+    /// It's optimized for the case when the file is either Binary, JSON or XML.
+    /// Deserializer is left in the same state as it was before the call.
+    /// </summary>
+    public static InternalResourceFormat PeekResourceFormat(
+        Deserializer source, ReadOnlySpan<byte> binaryMagic)
+    {
+        var basePosition = source.Position;
+        try
+        {
+            Span<byte> magic = stackalloc byte[BinaryMagicSize];
+            var count = checked((int)source.Read(magic));
+            var data = magic[..count];
+
+            if (count == magic.Length && data.SequenceEqual(binaryMagic))
+                return InternalResourceFormat.Binary;
+
+            var marker = data.IndexOf((byte)'<');
+            if (count == magic.Length && marker >= 0 && IsBlank(data[..marker]))
+                return InternalResourceFormat.Xml;
+
+            marker = data.IndexOf((byte)'{');
+            if (count >= 2 && marker >= 0 && IsBlank(data[..marker]))
+                return InternalResourceFormat.Json;
+
+            if (!IsBlank(data))
+                return InternalResourceFormat.Unknown;
+
+            Log.GetLogger().LogWarning(
+                "File starts with whitespace, peeking more data to determine format. It may cause performance penalty.");
+            while (!source.IsEof())
+            {
+                var value = source.ReadUByte();
+                if (value == '<')
+                    return InternalResourceFormat.Xml;
+                if (value == '{')
+                    return InternalResourceFormat.Json;
+                if (!char.IsWhiteSpace((char)value))
+                    return InternalResourceFormat.Unknown;
+            }
+            return InternalResourceFormat.Unknown;
+        }
+        finally
+        {
+            source.Seek(basePosition);
+        }
+
+        static bool IsBlank(ReadOnlySpan<byte> data)
+        {
+            foreach (var value in data)
+            {
+                if (!char.IsWhiteSpace((char)value))
+                    return false;
+            }
+            return true;
+        }
+    }
+}
+
 /// <summary>Base class for resources.</summary>
 public class Resource : Object
 {

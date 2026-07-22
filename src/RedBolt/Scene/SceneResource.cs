@@ -118,7 +118,7 @@ public class SceneResource : Resource
         _loadXmlFile?.Dispose();
         _loadXmlFile = null;
 
-        var format = PeekResourceFormat(source, SimpleResource.DefaultBinaryMagic);
+        var format = ResourceFormat.PeekResourceFormat(source, SimpleResource.DefaultBinaryMagic);
         switch (format)
         {
             case InternalResourceFormat.Json:
@@ -248,60 +248,6 @@ public class SceneResource : Resource
 
     /// <summary>Get name of XML root element.</summary>
     public static string GetXmlRootName() => "resource";
-
-    private static InternalResourceFormat PeekResourceFormat(
-        Deserializer source, ReadOnlySpan<byte> binaryMagic)
-    {
-        var basePosition = source.Position;
-        try
-        {
-            Span<byte> magic = stackalloc byte[SimpleResource.DefaultBinaryMagic.Length];
-            var count = checked((int)source.Read(magic));
-            var data = magic[..count];
-
-            if (count == SimpleResource.DefaultBinaryMagic.Length && data.SequenceEqual(binaryMagic))
-                return InternalResourceFormat.Binary;
-
-            var marker = data.IndexOf((byte)'<');
-            if (count == SimpleResource.DefaultBinaryMagic.Length && marker >= 0 && IsBlank(data[..marker]))
-                return InternalResourceFormat.Xml;
-
-            marker = data.IndexOf((byte)'{');
-            if (count >= 2 && marker >= 0 && IsBlank(data[..marker]))
-                return InternalResourceFormat.Json;
-
-            if (!IsBlank(data))
-                return InternalResourceFormat.Unknown;
-
-            Log.GetLogger().LogWarning(
-                "File starts with whitespace, peeking more data to determine format. It may cause performance penalty.");
-            while (!source.IsEof())
-            {
-                var value = source.ReadUByte();
-                if (value == '<')
-                    return InternalResourceFormat.Xml;
-                if (value == '{')
-                    return InternalResourceFormat.Json;
-                if (!char.IsWhiteSpace((char)value))
-                    return InternalResourceFormat.Unknown;
-            }
-            return InternalResourceFormat.Unknown;
-        }
-        finally
-        {
-            source.Seek(basePosition);
-        }
-
-        static bool IsBlank(ReadOnlySpan<byte> data)
-        {
-            foreach (var value in data)
-            {
-                if (!char.IsWhiteSpace((char)value))
-                    return false;
-            }
-            return true;
-        }
-    }
 
     private InternalResourceFormat? _loadFormat;
     private InternalResourceFormat? _saveFormat;

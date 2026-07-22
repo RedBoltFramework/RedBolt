@@ -2,14 +2,6 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
-public enum InternalResourceFormat
-{
-    Unknown,
-    Json,
-    Xml,
-    Binary
-}
-
 /// <summary>Base class for simple resource that uses Archive serialization.</summary>
 public abstract class SimpleResource : Resource
 {
@@ -33,7 +25,7 @@ public abstract class SimpleResource : Resource
 
         try
         {
-            var format = PeekResourceFormat(source, GetBinaryMagic());
+            var format = ResourceFormat.PeekResourceFormat(source, GetBinaryMagic());
             switch (format)
             {
                 case InternalResourceFormat.Json:
@@ -174,59 +166,6 @@ public abstract class SimpleResource : Resource
     protected virtual InternalResourceFormat GetDefaultInternalFormat() => InternalResourceFormat.Json;
 
     protected virtual bool LoadLegacyXML(XMLElement source) => false;
-
-    private static InternalResourceFormat PeekResourceFormat(Deserializer source, ReadOnlySpan<byte> binaryMagic)
-    {
-        var basePosition = source.Position;
-        try
-        {
-            Span<byte> magic = stackalloc byte[DefaultBinaryMagic.Length];
-            var count = checked((int)source.Read(magic));
-            var data = magic[..count];
-
-            if (count == DefaultBinaryMagic.Length && data.SequenceEqual(binaryMagic))
-                return InternalResourceFormat.Binary;
-
-            var marker = data.IndexOf((byte)'<');
-            if (count == DefaultBinaryMagic.Length && marker >= 0 && IsBlank(data[..marker]))
-                return InternalResourceFormat.Xml;
-
-            marker = data.IndexOf((byte)'{');
-            if (count >= 2 && marker >= 0 && IsBlank(data[..marker]))
-                return InternalResourceFormat.Json;
-
-            if (!IsBlank(data))
-                return InternalResourceFormat.Unknown;
-
-            Log.GetLogger().LogWarning(
-                "File starts with whitespace, peeking more data to determine format. It may cause performance penalty.");
-            while (!source.IsEof())
-            {
-                var value = source.ReadUByte();
-                if (value == '<')
-                    return InternalResourceFormat.Xml;
-                if (value == '{')
-                    return InternalResourceFormat.Json;
-                if (!char.IsWhiteSpace((char)value))
-                    return InternalResourceFormat.Unknown;
-            }
-            return InternalResourceFormat.Unknown;
-        }
-        finally
-        {
-            source.Seek(basePosition);
-        }
-
-        static bool IsBlank(ReadOnlySpan<byte> data)
-        {
-            foreach (var value in data)
-            {
-                if (!char.IsWhiteSpace((char)value))
-                    return false;
-            }
-            return true;
-        }
-    }
 
     private InternalResourceFormat? _loadFormat;
     private InternalResourceFormat? _saveFormat;

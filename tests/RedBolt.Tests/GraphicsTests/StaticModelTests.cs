@@ -35,6 +35,17 @@ public sealed class StaticModelTests
     }
 
     [Fact]
+    public void Scene_resource_applies_model_and_material_attributes()
+    {
+        var scene = new Scene();
+        Assert.True(scene.LoadFile("Scenes/SimpleScene.scene"));
+
+        var staticModel = scene.GetChild("Sample Cube")?.GetComponent<StaticModel>();
+        Assert.NotNull(staticModel?.GetModel());
+        Assert.NotNull(staticModel?.GetMaterial());
+    }
+
+    [Fact]
     public void Model_and_material_work()
     {
         var model = Resources.Get<Model>("Models/ProceduralBox");

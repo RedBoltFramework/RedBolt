@@ -391,10 +391,26 @@ public class Scene : Node
     {
         ArgumentNullException.ThrowIfNull(source);
         StopAsyncLoading();
-        if (source.ReadFileID() != "USCN")
-            return false;
+
+        ReadOnlySpan<byte> sceneBinaryMagic = "USCN"u8;
+        var format = ResourceFormat.PeekResourceFormat(source, sceneBinaryMagic);
+        switch (format)
+        {
+            case InternalResourceFormat.Json:
+                return LoadJSON(source);
+            case InternalResourceFormat.Xml:
+                return LoadXML(source);
+            case InternalResourceFormat.Binary:
+                break;
+            default:
+                Log.GetLogger().LogError("{Name} is not a valid scene file", source.GetName());
+                return false;
+        }
+
+        Log.GetLogger().LogInformation("Loading scene from {Name}", source.GetName());
 
         Clear();
+        source.Seek(source.Position + checked((uint)sceneBinaryMagic.Length));
         if (base.Load(source))
         {
             FinishLoading(source);

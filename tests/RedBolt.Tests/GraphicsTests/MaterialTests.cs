@@ -17,6 +17,13 @@ public sealed class MaterialTests
     private ResourceCache Resources => _fixture.Resources;
 
     [Fact]
+    public void Xml_texture_resource_type_matches_definition()
+    {
+        var material = Resources.Get<Material>("Materials/DefaultSkybox.xml");
+        Assert.IsType<TextureCube>(material.GetTexture("Albedo"));
+    }
+
+    [Fact]
     public void Render_state_helpers_roundtrip()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");

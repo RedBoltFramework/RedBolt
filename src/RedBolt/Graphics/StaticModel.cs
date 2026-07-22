@@ -12,12 +12,60 @@ public struct StaticModelGeometryData
 /// <summary>Static model component.</summary>
 public class StaticModel : Drawable
 {
+    private static readonly string[] GlobalIlluminationTypeNames = ["None", "Use LightMap", "Blend Light Probes"];
+    private static readonly string[] ReflectionModeNames = ["Zone", "Nearest Probe", "Blend Probes", "Blend Probes and Zone"];
+
     /// <summary>Construct.</summary>
     public StaticModel()
         : base(DrawableFlags.Geometry)
     {
         RegisterAttribute("Is Enabled", typeof(bool), self => ((StaticModel)self).Enabled,
             (self, value) => ((StaticModel)self).SetEnabled(value is bool enabled && enabled), true);
+        RegisterAttribute("Model", typeof(ResourceRef), self => ((StaticModel)self).GetModelAttr(),
+            (self, value) => ((StaticModel)self).SetModelAttr((ResourceRef)value!),
+            new ResourceRef(new StringHash(nameof(Model))));
+        RegisterAttribute("Material", typeof(ResourceRefList), self => ((StaticModel)self).GetMaterialsAttr(),
+            (self, value) => ((StaticModel)self).SetMaterialsAttr((ResourceRefList)value!),
+            new ResourceRefList(nameof(Material)));
+        RegisterAttribute("Is Occluder", typeof(bool), self => ((StaticModel)self).IsOccluder(),
+            (self, value) => ((StaticModel)self).SetOccluder(value is bool enabled && enabled), false);
+        RegisterAttribute("Can Be Occluded", typeof(bool), self => ((StaticModel)self).IsOccludee(),
+            (self, value) => ((StaticModel)self).SetOccludee(value is bool enabled && enabled), true);
+        RegisterAttribute("Cast Shadows", typeof(bool), self => ((StaticModel)self).GetCastShadows(),
+            (self, value) => ((StaticModel)self).SetCastShadows(value is bool enabled && enabled), false);
+        RegisterAttribute("Draw Distance", typeof(float), self => ((StaticModel)self).GetDrawDistance(),
+            (self, value) => ((StaticModel)self).SetDrawDistance((float)value!), 0.0f);
+        RegisterAttribute("Shadow Distance", typeof(float), self => ((StaticModel)self).GetShadowDistance(),
+            (self, value) => ((StaticModel)self).SetShadowDistance((float)value!), 0.0f);
+        RegisterAttribute("LOD Bias", typeof(float), self => ((StaticModel)self).GetLodBias(),
+            (self, value) => ((StaticModel)self).SetLodBias((float)value!), 1.0f);
+        RegisterAttribute("View Mask", typeof(uint), self => ((StaticModel)self).GetViewMask(),
+            (self, value) => ((StaticModel)self).SetViewMask((uint)value!), DefaultViewMask);
+        RegisterAttribute("Light Mask", typeof(uint), self => ((StaticModel)self).GetLightMask(),
+            (self, value) => ((StaticModel)self).SetLightMask((uint)value!), DefaultLightMask);
+        RegisterAttribute("Shadow Mask", typeof(uint), self => ((StaticModel)self).GetShadowMask(),
+            (self, value) => ((StaticModel)self).SetShadowMask((uint)value!), DefaultShadowMask);
+        RegisterAttribute("Zone Mask", typeof(uint), self => ((StaticModel)self).GetZoneMask(),
+            (self, value) => ((StaticModel)self).SetZoneMask((uint)value!), DefaultZoneMask);
+        RegisterAttribute("Global Illumination", typeof(GlobalIlluminationType),
+            self => ((StaticModel)self).GetGlobalIlluminationType(),
+            (self, value) => ((StaticModel)self).SetGlobalIlluminationType((GlobalIlluminationType)value!),
+            GlobalIlluminationType.None, enumNames: GlobalIlluminationTypeNames);
+        RegisterAttribute("Reflection Mode", typeof(ReflectionMode), self => ((StaticModel)self).GetReflectionMode(),
+            (self, value) => ((StaticModel)self).SetReflectionMode((ReflectionMode)value!),
+            ReflectionMode.BlendProbesAndZone, enumNames: ReflectionModeNames);
+        RegisterAttribute("Occlusion LOD Level", typeof(uint), self => ((StaticModel)self)._occlusionLodLevel,
+            (self, value) => ((StaticModel)self)._occlusionLodLevel = (uint)value!, uint.MaxValue);
+        RegisterAttribute("Bake Lightmap", typeof(bool), self => ((StaticModel)self)._bakeLightmap,
+            (self, value) => ((StaticModel)self).SetBakeLightmap(value is bool enabled && enabled), false);
+        RegisterAttribute("Scale in Lightmap", typeof(float), self => ((StaticModel)self)._scaleInLightmap,
+            (self, value) => ((StaticModel)self)._scaleInLightmap = (float)value!, 1.0f);
+        RegisterAttribute("Lightmap Index", typeof(uint), self => ((StaticModel)self)._lightmapIndex,
+            (self, value) => ((StaticModel)self).SetLightmapIndex((uint)value!), 0u,
+            AttributeMode.Default | AttributeMode.NoEdit);
+        RegisterAttribute("Lightmap Scale & Offset", typeof(Vector4f), self => ((StaticModel)self)._lightmapScaleOffset,
+            (self, value) => ((StaticModel)self).SetLightmapScaleOffset((Vector4f)value!),
+            new Vector4f(1.0f, 1.0f, 0.0f, 0.0f), AttributeMode.Default | AttributeMode.NoEdit);
         _materialsAttr = new ResourceRefList(nameof(Material));
     }
 

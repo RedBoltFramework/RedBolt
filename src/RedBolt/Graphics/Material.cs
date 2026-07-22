@@ -738,7 +738,7 @@ public sealed class Material : Resource
         {
         ResetToDefaults();
 
-        var cache = GetSubsystem<ResourceCache>();
+        var cache = GetSubsystem<ResourceCache>()!;
         var shaderElement = source.GetChild("shader");
         if (shaderElement.NotNull)
         {
@@ -750,7 +750,7 @@ public sealed class Material : Resource
         for (var techniqueElement = source.GetChild("technique"); techniqueElement.NotNull; techniqueElement = techniqueElement.GetNext("technique"))
         {
             var techniqueName = techniqueElement.GetAttribute("name");
-            if (string.IsNullOrWhiteSpace(techniqueName) || cache is null)
+            if (string.IsNullOrWhiteSpace(techniqueName))
                 continue;
 
             var technique = cache.GetResourceOrNull<Technique>(techniqueName);
@@ -772,18 +772,25 @@ public sealed class Material : Resource
         for (var textureElement = source.GetChild("texture"); textureElement.NotNull; textureElement = textureElement.GetNext("texture"))
         {
             var slotName = textureElement.GetAttribute("slot");
-            if (string.IsNullOrWhiteSpace(slotName))
-                slotName = textureElement.GetAttribute("unit");
-            if (string.IsNullOrWhiteSpace(slotName))
-                continue;
+            if (string.IsNullOrEmpty(slotName) && textureElement.HasAttribute("unit"))
+                slotName = NormalizeTextureSlotName(textureElement.GetAttribute("unit"));
 
             var resourceName = textureElement.GetAttribute("name");
-            if (string.IsNullOrWhiteSpace(resourceName) || cache is null)
-                continue;
+            if (Path.GetExtension(resourceName).Equals(".xml", StringComparison.OrdinalIgnoreCase))
+            {
+                var type = ParseTextureTypeXml(cache, resourceName);
+                if (type == StringHash.Empty && textureElement.HasAttribute("type"))
+                    type = textureElement.GetAttribute("type");
 
-            var texture = cache.GetResourceOrNull<Texture2D>(resourceName);
-            if (texture is not null)
-                SetTextureInternal(NormalizeTextureSlotName(slotName), texture);
+                if (type == ObjectReflection<Texture3D>.TypeId)
+                    SetTextureInternal(slotName, cache.GetResourceOrNull<Texture3D>(resourceName));
+                else if (type == ObjectReflection<Texture2DArray>.TypeId)
+                    SetTextureInternal(slotName, cache.GetResourceOrNull<Texture2DArray>(resourceName));
+                else
+                    SetTextureInternal(slotName, cache.GetResourceOrNull<TextureCube>(resourceName));
+            }
+            else
+                SetTextureInternal(slotName, cache.GetResourceOrNull<Texture2D>(resourceName));
         }
         RefreshTextureEventSubscriptions();
 
@@ -943,9 +950,37 @@ public sealed class Material : Resource
             "2" or "specular" or "spec" => "Properties",
             "3" or "emissive" => "Emission",
             "4" or "environment" or "env" => "Reflection0",
+            "5" or "volume" => "Volume",
+            "6" or "custom1" => "Custom1",
+            "7" or "custom2" => "Custom2",
+            "8" or "lightramp" => "LightRamp",
+            "9" or "lightshape" => "LightShape",
+            "10" or "shadowmap" => "ShadowMap",
+            "11" or "faceselect" => "FaceSelect",
+            "12" or "indirection" => "Indirection",
+            "13" or "depth" => "DepthBuffer",
+            "14" or "light" => "LightBuffer",
             "15" or "zone" => "Reflection1",
             _ => name.Trim()
         };
+    }
+
+    private static StringHash ParseTextureTypeName(string name)
+    {
+        return name.Trim().ToLowerInvariant() switch
+        {
+            "texture" => ObjectReflection<Texture2D>.TypeId,
+            "cubemap" => ObjectReflection<TextureCube>.TypeId,
+            "texture3d" => ObjectReflection<Texture3D>.TypeId,
+            "texturearray" => ObjectReflection<Texture2DArray>.TypeId,
+            _ => StringHash.Empty
+        };
+    }
+
+    private static StringHash ParseTextureTypeXml(ResourceCache cache, string fileName)
+    {
+        using var textureXml = cache.GetTempResource<XMLFile>(fileName, false);
+        return textureXml is not null ? ParseTextureTypeName(textureXml.GetRoot().Name) : StringHash.Empty;
     }
 
     private void ResetToDefaults()
