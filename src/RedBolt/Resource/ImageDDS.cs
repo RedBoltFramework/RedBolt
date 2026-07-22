@@ -10,7 +10,7 @@ public struct CompressedLevel
     public Memory<byte> Data { get; set; }
 
     /// <summary>Compression format.</summary>
-    public CompressedFormat Format { get; set; }
+    public TextureFormat Format { get; set; }
 
     /// <summary>Width.</summary>
     public int Width { get; set; }
@@ -27,222 +27,37 @@ public struct CompressedLevel
     public bool Decompress(Span<byte> destination)
     {
         var expectedSize = checked(Width * Height * Depth * 4);
-        if (destination.Length < expectedSize)
+        if (Data.IsEmpty || destination.Length < expectedSize)
             return false;
 
-        return Format switch
+        switch (Format)
         {
-            CompressedFormat.Rgba => DecompressRgba(destination[..expectedSize]),
-            CompressedFormat.Dxt1 => DecompressBlocks(destination[..expectedSize], bytesPerBlock: 8),
-            CompressedFormat.Dxt3 => DecompressBlocks(destination[..expectedSize], bytesPerBlock: 16),
-            CompressedFormat.Dxt5 => DecompressBlocks(destination[..expectedSize], bytesPerBlock: 16),
-            _ => false
-        };
-    }
-
-    private bool DecompressRgba(Span<byte> destination)
-    {
-        if (Data.Length != destination.Length)
-            return false;
-
-        Data.Span.CopyTo(destination);
-        return true;
-    }
-
-    private bool DecompressBlocks(Span<byte> destination, int bytesPerBlock)
-    {
-        var expectedDataSize = ImageDds.GetCompressedLevelSize(Format, Width, Height, Depth);
-        if (DataSize != expectedDataSize)
-            return false;
-
-        var source = Data.Span;
-        Span<byte> blockPixels = stackalloc byte[4 * 4 * 4];
-        var offset = 0;
-        var blocksX = Math.Max((Width + 3) / 4, 1);
-        var blocksY = Math.Max((Height + 3) / 4, 1);
-        var sliceStride = checked(Width * Height * 4);
-
-        for (var z = 0; z < Depth; ++z)
-        {
-            var sliceOffset = z * sliceStride;
-            for (var blockY = 0; blockY < blocksY; ++blockY)
-            {
-                for (var blockX = 0; blockX < blocksX; ++blockX)
-                {
-                    var block = source.Slice(offset, bytesPerBlock);
-                    switch (Format)
-                    {
-                        case CompressedFormat.Dxt1:
-                            DecodeBc1Block(block, blockPixels);
-                            break;
-                        case CompressedFormat.Dxt3:
-                            DecodeBc2Block(block, blockPixels);
-                            break;
-                        case CompressedFormat.Dxt5:
-                            DecodeBc3Block(block, blockPixels);
-                            break;
-                        default:
-                            return false;
-                    }
-                    offset += bytesPerBlock;
-
-                    for (var localY = 0; localY < 4; ++localY)
-                    {
-                        var y = blockY * 4 + localY;
-                        if (y >= Height)
-                            break;
-
-                        for (var localX = 0; localX < 4; ++localX)
-                        {
-                            var x = blockX * 4 + localX;
-                            if (x >= Width)
-                                break;
-
-                            var sourceOffset = (localY * 4 + localX) * 4;
-                            var destinationOffset = sliceOffset + (y * Width + x) * 4;
-                            blockPixels.Slice(sourceOffset, 4).CopyTo(destination.Slice(destinationOffset, 4));
-                        }
-                    }
-                }
-            }
+            case TextureFormat.TexFormatRgba8Unorm:
+                Data.Span[..expectedSize].CopyTo(destination);
+                return true;
+            case TextureFormat.TexFormatBc1Unorm:
+            case TextureFormat.TexFormatBc2Unorm:
+            case TextureFormat.TexFormatBc3Unorm:
+                RedBolt.Decompress.DecompressImageDXT(destination, Data.Span, Width, Height, Depth, Format);
+                return true;
+            case TextureFormat.TexFormatEtc2Rgb8Unorm:
+                RedBolt.Decompress.DecompressImageETC(destination, Data.Span, Width, Height, false);
+                return true;
+            case TextureFormat.TexFormatEtc2Rgba8Unorm:
+                RedBolt.Decompress.DecompressImageETC(destination, Data.Span, Width, Height, true);
+                return true;
         }
 
-        return true;
-    }
-
-    private static void DecodeBc1Block(ReadOnlySpan<byte> block, Span<byte> output)
-    {
-        Span<uint> colors = stackalloc uint[4];
-        BuildBc1Palette(block[..4], colors, opaqueOnly: false);
-        WriteColorIndices(block[4..8], colors, output);
-    }
-
-    private static void DecodeBc2Block(ReadOnlySpan<byte> block, Span<byte> output)
-    {
-        Span<uint> colors = stackalloc uint[4];
-        BuildBc1Palette(block[8..12], colors, opaqueOnly: true);
-        WriteColorIndices(block[12..16], colors, output);
-
-        for (var i = 0; i < 16; ++i)
+        if (Format == EmulatedTextureFormat.PvrtcRgb2Bpp
+            || Format == EmulatedTextureFormat.PvrtcRgba2Bpp
+            || Format == EmulatedTextureFormat.PvrtcRgb4Bpp
+            || Format == EmulatedTextureFormat.PvrtcRgba4Bpp)
         {
-            var alphaByte = block[i / 2];
-            var alpha4 = (alphaByte >> ((i & 1) * 4)) & 0x0f;
-            output[i * 4 + 3] = (byte)((alpha4 << 4) | alpha4);
+            RedBolt.Decompress.DecompressImagePVRTC(destination, Data.Span, Width, Height, Format);
+            return true;
         }
-    }
 
-    private static void DecodeBc3Block(ReadOnlySpan<byte> block, Span<byte> output)
-    {
-        Span<byte> alphaPalette = stackalloc byte[8];
-        BuildBc3AlphaPalette(block[0], block[1], alphaPalette);
-
-        ulong alphaIndices = 0;
-        for (var i = 0; i < 6; ++i)
-            alphaIndices |= (ulong)block[2 + i] << (8 * i);
-
-        Span<uint> colors = stackalloc uint[4];
-        BuildBc1Palette(block[8..12], colors, opaqueOnly: true);
-        WriteColorIndices(block[12..16], colors, output);
-
-        for (var i = 0; i < 16; ++i)
-        {
-            var paletteIndex = (int)((alphaIndices >> (3 * i)) & 0x7);
-            output[i * 4 + 3] = alphaPalette[paletteIndex];
-        }
-    }
-
-    private static void BuildBc1Palette(ReadOnlySpan<byte> colorBlock, Span<uint> palette, bool opaqueOnly)
-    {
-        var c0 = BitConverter.ToUInt16(colorBlock[..2]);
-        var c1 = BitConverter.ToUInt16(colorBlock[2..4]);
-
-        palette[0] = ExpandRgb565(c0, 255);
-        palette[1] = ExpandRgb565(c1, 255);
-
-        var c0Channels = ToChannels(palette[0]);
-        var c1Channels = ToChannels(palette[1]);
-
-        if (opaqueOnly || c0 > c1)
-        {
-            palette[2] = ToPackedColor(
-                (2 * c0Channels.R + c1Channels.R) / 3,
-                (2 * c0Channels.G + c1Channels.G) / 3,
-                (2 * c0Channels.B + c1Channels.B) / 3,
-                255);
-            palette[3] = ToPackedColor(
-                (c0Channels.R + 2 * c1Channels.R) / 3,
-                (c0Channels.G + 2 * c1Channels.G) / 3,
-                (c0Channels.B + 2 * c1Channels.B) / 3,
-                255);
-        }
-        else
-        {
-            palette[2] = ToPackedColor(
-                (c0Channels.R + c1Channels.R) / 2,
-                (c0Channels.G + c1Channels.G) / 2,
-                (c0Channels.B + c1Channels.B) / 2,
-                255);
-            palette[3] = ToPackedColor(0, 0, 0, 0);
-        }
-    }
-
-    private static void BuildBc3AlphaPalette(byte a0, byte a1, Span<byte> palette)
-    {
-        palette[0] = a0;
-        palette[1] = a1;
-
-        if (a0 > a1)
-        {
-            palette[2] = (byte)((6 * a0 + a1) / 7);
-            palette[3] = (byte)((5 * a0 + 2 * a1) / 7);
-            palette[4] = (byte)((4 * a0 + 3 * a1) / 7);
-            palette[5] = (byte)((3 * a0 + 4 * a1) / 7);
-            palette[6] = (byte)((2 * a0 + 5 * a1) / 7);
-            palette[7] = (byte)((a0 + 6 * a1) / 7);
-        }
-        else
-        {
-            palette[2] = (byte)((4 * a0 + a1) / 5);
-            palette[3] = (byte)((3 * a0 + 2 * a1) / 5);
-            palette[4] = (byte)((2 * a0 + 3 * a1) / 5);
-            palette[5] = (byte)((a0 + 4 * a1) / 5);
-            palette[6] = 0;
-            palette[7] = 255;
-        }
-    }
-
-    private static void WriteColorIndices(ReadOnlySpan<byte> indexData, ReadOnlySpan<uint> palette, Span<byte> output)
-    {
-        var indices = BitConverter.ToUInt32(indexData);
-        for (var i = 0; i < 16; ++i)
-        {
-            var color = palette[(int)((indices >> (2 * i)) & 0x3)];
-            output[i * 4 + 0] = (byte)(color & 0xff);
-            output[i * 4 + 1] = (byte)((color >> 8) & 0xff);
-            output[i * 4 + 2] = (byte)((color >> 16) & 0xff);
-            output[i * 4 + 3] = (byte)((color >> 24) & 0xff);
-        }
-    }
-
-    private static uint ExpandRgb565(ushort value, byte alpha)
-    {
-        var r = (byte)(((value >> 11) & 0x1f) * 255 / 31);
-        var g = (byte)(((value >> 5) & 0x3f) * 255 / 63);
-        var b = (byte)((value & 0x1f) * 255 / 31);
-        return ToPackedColor(r, g, b, alpha);
-    }
-
-    private static (int R, int G, int B) ToChannels(uint color)
-    {
-        return ((int)(color & 0xff), (int)((color >> 8) & 0xff), (int)((color >> 16) & 0xff));
-    }
-
-    private static uint ToPackedColor(int r, int g, int b, int a)
-    {
-        return (uint)(r & 0xff)
-            | ((uint)(g & 0xff) << 8)
-            | ((uint)(b & 0xff) << 16)
-            | ((uint)(a & 0xff) << 24);
+        return false;
     }
 }
 
@@ -294,52 +109,57 @@ internal static class ImageDds
         return (uint)ch0 | ((uint)ch1 << 8) | ((uint)ch2 << 16) | ((uint)ch3 << 24);
     }
 
-    private static CompressedFormat PickTextureFormat(DdsPixelFormat pixelFormat, uint dxgiFormat)
+    private static TextureFormat PickTextureFormat(DdsPixelFormat pixelFormat, uint dxgiFormat)
     {
         return dxgiFormat switch
         {
             DxgiFormatR32G32B32A32Float or DxgiFormatR16G16B16A16Float or DxgiFormatR16G16B16A16Unorm
                 or DxgiFormatR10G10B10A2Unorm or DxgiFormatR9G9B9E5SharedExp
-                or DxgiFormatR8G8B8A8Unorm or DxgiFormatR8G8B8A8UnormSrgb => CompressedFormat.Rgba,
-            DxgiFormatBc1Unorm or DxgiFormatBc1UnormSrgb => CompressedFormat.Dxt1,
-            DxgiFormatBc2Unorm or DxgiFormatBc2UnormSrgb => CompressedFormat.Dxt3,
-            DxgiFormatBc3Unorm or DxgiFormatBc3UnormSrgb => CompressedFormat.Dxt5,
-            DxgiFormatB5G6R5Unorm or DxgiFormatB5G5R5A1Unorm => CompressedFormat.Rgba,
+                or DxgiFormatR8G8B8A8Unorm or DxgiFormatR8G8B8A8UnormSrgb => TextureFormat.TexFormatRgba8Unorm,
+            DxgiFormatBc1Unorm or DxgiFormatBc1UnormSrgb => TextureFormat.TexFormatBc1Unorm,
+            DxgiFormatBc2Unorm or DxgiFormatBc2UnormSrgb => TextureFormat.TexFormatBc2Unorm,
+            DxgiFormatBc3Unorm or DxgiFormatBc3UnormSrgb => TextureFormat.TexFormatBc3Unorm,
+            DxgiFormatB5G6R5Unorm => TextureFormat.TexFormatB5g6r5Unorm,
+            DxgiFormatB5G5R5A1Unorm => TextureFormat.TexFormatB5g5r5a1Unorm,
             _ => pixelFormat.FourCc switch
             {
-                FourCcDxt1 => CompressedFormat.Dxt1,
-                FourCcDxt3 => CompressedFormat.Dxt3,
-                FourCcDxt5 => CompressedFormat.Dxt5,
-                FourCcEtc1 => CompressedFormat.Etc1,
-                FourCcEtc2 => CompressedFormat.Etc2Rgb,
-                FourCcEtc2A => CompressedFormat.Etc2Rgba,
-                FourCcPtc2 => CompressedFormat.PvrtcRgba2Bpp,
-                FourCcPtc4 => CompressedFormat.PvrtcRgba4Bpp,
-                D3DFormatA16B16G16R16 or D3DFormatA16B16G16R16F or D3DFormatA32B32G32R32F => CompressedFormat.Rgba,
-                _ when AreTextureComponentsMatching(pixelFormat, DdsSimpleFormat.Rgba)
-                    || AreTextureComponentsMatching(pixelFormat, DdsSimpleFormat.B5G6R5)
-                    || AreTextureComponentsMatching(pixelFormat, DdsSimpleFormat.B5G5R5A1) => CompressedFormat.Rgba,
-                _ when pixelFormat.RgbBitCount == 32 => CompressedFormat.Rgba,
-                _ => CompressedFormat.None
+                FourCcDxt1 => TextureFormat.TexFormatBc1Unorm,
+                FourCcDxt3 => TextureFormat.TexFormatBc2Unorm,
+                FourCcDxt5 => TextureFormat.TexFormatBc3Unorm,
+                FourCcEtc1 or FourCcEtc2 => TextureFormat.TexFormatEtc2Rgb8Unorm,
+                FourCcEtc2A => TextureFormat.TexFormatEtc2Rgba8Unorm,
+                FourCcPtc2 => EmulatedTextureFormat.PvrtcRgba2Bpp,
+                FourCcPtc4 => EmulatedTextureFormat.PvrtcRgba4Bpp,
+                D3DFormatA16B16G16R16 => TextureFormat.TexFormatRgba16Unorm,
+                D3DFormatA16B16G16R16F => TextureFormat.TexFormatRgba16Float,
+                D3DFormatA32B32G32R32F => TextureFormat.TexFormatRgba32Float,
+                _ when AreTextureComponentsMatching(pixelFormat, TextureFormat.TexFormatRgba8Unorm)
+                    => TextureFormat.TexFormatRgba8Unorm,
+                _ when AreTextureComponentsMatching(pixelFormat, TextureFormat.TexFormatB5g6r5Unorm)
+                    => TextureFormat.TexFormatB5g6r5Unorm,
+                _ when AreTextureComponentsMatching(pixelFormat, TextureFormat.TexFormatB5g5r5a1Unorm)
+                    => TextureFormat.TexFormatB5g5r5a1Unorm,
+                _ when pixelFormat.RgbBitCount == 32 => TextureFormat.TexFormatRgba8Unorm,
+                _ => TextureFormat.TexFormatUnknown
             }
         };
     }
 
-    private static bool AreTextureComponentsMatching(DdsPixelFormat pixelFormat, DdsSimpleFormat textureFormat)
+    private static bool AreTextureComponentsMatching(DdsPixelFormat pixelFormat, TextureFormat textureFormat)
     {
         return textureFormat switch
         {
-            DdsSimpleFormat.Rgba => pixelFormat.RgbBitCount == 32
+            TextureFormat.TexFormatRgba8Unorm => pixelFormat.RgbBitCount == 32
                 && pixelFormat.RMask == 0x000000ff
                 && pixelFormat.GMask == 0x0000ff00
                 && pixelFormat.BMask == 0x00ff0000
                 && pixelFormat.AMask == 0xff000000,
-            DdsSimpleFormat.B5G6R5 => pixelFormat.RgbBitCount == 16
+            TextureFormat.TexFormatB5g6r5Unorm => pixelFormat.RgbBitCount == 16
                 && pixelFormat.RMask == 0x0000f800
                 && pixelFormat.GMask == 0x000007e0
                 && pixelFormat.BMask == 0x0000001f
                 && pixelFormat.AMask == 0,
-            DdsSimpleFormat.B5G5R5A1 => pixelFormat.RgbBitCount == 16
+            TextureFormat.TexFormatB5g5r5a1Unorm => pixelFormat.RgbBitCount == 16
                 && pixelFormat.RMask == 0x00007c00
                 && pixelFormat.GMask == 0x000003e0
                 && pixelFormat.BMask == 0x0000001f
@@ -416,7 +236,7 @@ internal static class ImageDds
         for (var imageIndex = 0u; imageIndex < imageChainCount; ++imageIndex)
         {
             var target = imageIndex == 0 ? image : new Image($"{image.Name}#{imageIndex}");
-            var storedData = formatInfo.Format == CompressedFormat.Rgba
+            var storedData = formatInfo.Format == TextureFormat.TexFormatRgba8Unorm
                 ? ReadRgbaLevels(fileData, ref offset, width, height, depth, mipMapCount, formatInfo)
                 : ReadCompressedLevels(fileData, ref offset, width, height, depth, mipMapCount, formatInfo.Format);
 
@@ -443,18 +263,15 @@ internal static class ImageDds
         return true;
     }
 
-    internal static int GetCompressedLevelSize(CompressedFormat format, int width, int height, int depth)
+    internal static int GetCompressedLevelSize(TextureFormat format, int width, int height, int depth)
     {
-        return format switch
-        {
-            CompressedFormat.Rgba => checked(width * height * depth * 4),
-            CompressedFormat.Dxt1 => GetBlockCompressedSize(width, height, depth, 8),
-            CompressedFormat.Dxt3 or CompressedFormat.Dxt5 => GetBlockCompressedSize(width, height, depth, 16),
-            _ => 0
-        };
+        var formatInfo = RenderAPIUtils.GetTextureFormatInfo(format);
+        var widthInBlocks = (width + formatInfo.BlockWidth - 1) / formatInfo.BlockWidth;
+        var heightInBlocks = (height + formatInfo.BlockHeight - 1) / formatInfo.BlockHeight;
+        return checked(formatInfo.GetElementSize() * widthInBlocks * heightInBlocks * depth);
     }
 
-    private static byte[]? ReadCompressedLevels(byte[] fileData, ref int offset, int width, int height, int depth, uint mipMapCount, CompressedFormat format)
+    private static byte[]? ReadCompressedLevels(byte[] fileData, ref int offset, int width, int height, int depth, uint mipMapCount, TextureFormat format)
     {
         var totalSize = 0;
         for (var level = 0u; level < mipMapCount; ++level)
@@ -470,7 +287,7 @@ internal static class ImageDds
         for (var level = 0u; level < mipMapCount; ++level)
         {
             totalSize = checked(totalSize + GetCompressedLevelSize(
-                CompressedFormat.Rgba,
+                TextureFormat.TexFormatRgba8Unorm,
                 GetLevelDimension(width, level),
                 GetLevelDimension(height, level),
                 GetLevelDimension(depth, level)));
@@ -488,7 +305,7 @@ internal static class ImageDds
             if (sourceLevel.Length != sourceLevelSize)
                 return null;
 
-            var convertedLevelSize = GetCompressedLevelSize(CompressedFormat.Rgba, levelWidth, levelHeight, levelDepth);
+            var convertedLevelSize = GetCompressedLevelSize(TextureFormat.TexFormatRgba8Unorm, levelWidth, levelHeight, levelDepth);
             ConvertToRgba(sourceLevel, converted.AsSpan(destinationOffset, convertedLevelSize), formatInfo);
             destinationOffset += convertedLevelSize;
         }
@@ -558,37 +375,41 @@ internal static class ImageDds
         {
             return header10.Value.DxgiFormat switch
             {
-                DxgiFormatR32G32B32A32Float => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 16, 0, 0, 0, 0, false, DdsPixelEncoding.Float32),
-                DxgiFormatR16G16B16A16Float => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 8, 0, 0, 0, 0, false, DdsPixelEncoding.Float16),
-                DxgiFormatR16G16B16A16Unorm => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 8, 0, 0, 0, 0, false, DdsPixelEncoding.Unorm16),
-                DxgiFormatR10G10B10A2Unorm => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 4, 0x000003ff, 0x000ffc00, 0x3ff00000, 0xc0000000, false),
-                DxgiFormatR9G9B9E5SharedExp => new DdsFormatInfo(true, CompressedFormat.Rgba, 3, 4, 0, 0, 0, 0, false, DdsPixelEncoding.SharedExponent),
-                DxgiFormatR8G8B8A8Unorm => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 4, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000, false),
-                DxgiFormatR8G8B8A8UnormSrgb => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 4, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000, true),
-                DxgiFormatBc1Unorm => new DdsFormatInfo(true, CompressedFormat.Dxt1, 3, 0, 0, 0, 0, 0, false),
-                DxgiFormatBc1UnormSrgb => new DdsFormatInfo(true, CompressedFormat.Dxt1, 3, 0, 0, 0, 0, 0, true),
-                DxgiFormatBc2Unorm => new DdsFormatInfo(true, CompressedFormat.Dxt3, 4, 0, 0, 0, 0, 0, false),
-                DxgiFormatBc2UnormSrgb => new DdsFormatInfo(true, CompressedFormat.Dxt3, 4, 0, 0, 0, 0, 0, true),
-                DxgiFormatBc3Unorm => new DdsFormatInfo(true, CompressedFormat.Dxt5, 4, 0, 0, 0, 0, 0, false),
-                DxgiFormatBc3UnormSrgb => new DdsFormatInfo(true, CompressedFormat.Dxt5, 4, 0, 0, 0, 0, 0, true),
-                DxgiFormatB5G6R5Unorm => new DdsFormatInfo(true, CompressedFormat.Rgba, 3, 2, 0x0000f800, 0x000007e0, 0x0000001f, 0x00000000, false),
-                DxgiFormatB5G5R5A1Unorm => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 2, 0x00007c00, 0x000003e0, 0x0000001f, 0x00008000, false),
+                DxgiFormatR32G32B32A32Float => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 16, 0, 0, 0, 0, false, DdsPixelEncoding.Float32),
+                DxgiFormatR16G16B16A16Float => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 8, 0, 0, 0, 0, false, DdsPixelEncoding.Float16),
+                DxgiFormatR16G16B16A16Unorm => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 8, 0, 0, 0, 0, false, DdsPixelEncoding.Unorm16),
+                DxgiFormatR10G10B10A2Unorm => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 4, 0x000003ff, 0x000ffc00, 0x3ff00000, 0xc0000000, false),
+                DxgiFormatR9G9B9E5SharedExp => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 3, 4, 0, 0, 0, 0, false, DdsPixelEncoding.SharedExponent),
+                DxgiFormatR8G8B8A8Unorm => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 4, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000, false),
+                DxgiFormatR8G8B8A8UnormSrgb => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 4, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000, true),
+                DxgiFormatBc1Unorm => new DdsFormatInfo(true, TextureFormat.TexFormatBc1Unorm, 3, 0, 0, 0, 0, 0, false),
+                DxgiFormatBc1UnormSrgb => new DdsFormatInfo(true, TextureFormat.TexFormatBc1Unorm, 3, 0, 0, 0, 0, 0, true),
+                DxgiFormatBc2Unorm => new DdsFormatInfo(true, TextureFormat.TexFormatBc2Unorm, 4, 0, 0, 0, 0, 0, false),
+                DxgiFormatBc2UnormSrgb => new DdsFormatInfo(true, TextureFormat.TexFormatBc2Unorm, 4, 0, 0, 0, 0, 0, true),
+                DxgiFormatBc3Unorm => new DdsFormatInfo(true, TextureFormat.TexFormatBc3Unorm, 4, 0, 0, 0, 0, 0, false),
+                DxgiFormatBc3UnormSrgb => new DdsFormatInfo(true, TextureFormat.TexFormatBc3Unorm, 4, 0, 0, 0, 0, 0, true),
+                DxgiFormatB5G6R5Unorm => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 3, 2, 0x0000f800, 0x000007e0, 0x0000001f, 0x00000000, false),
+                DxgiFormatB5G5R5A1Unorm => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 2, 0x00007c00, 0x000003e0, 0x0000001f, 0x00008000, false),
                 _ => default
             };
         }
 
         return pixelFormat.FourCc switch
         {
-            FourCcDxt1 => new DdsFormatInfo(true, CompressedFormat.Dxt1, 3, 0, 0, 0, 0, 0, false),
-            FourCcDxt3 => new DdsFormatInfo(true, CompressedFormat.Dxt3, 4, 0, 0, 0, 0, 0, false),
-            FourCcDxt5 => new DdsFormatInfo(true, CompressedFormat.Dxt5, 4, 0, 0, 0, 0, 0, false),
-            D3DFormatA16B16G16R16 => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 8, 0, 0, 0, 0, false, DdsPixelEncoding.Unorm16),
-            D3DFormatA16B16G16R16F => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 8, 0, 0, 0, 0, false, DdsPixelEncoding.Float16),
-            D3DFormatA32B32G32R32F => new DdsFormatInfo(true, CompressedFormat.Rgba, 4, 16, 0, 0, 0, 0, false, DdsPixelEncoding.Float32),
+            FourCcDxt1 => new DdsFormatInfo(true, TextureFormat.TexFormatBc1Unorm, 3, 0, 0, 0, 0, 0, false),
+            FourCcDxt3 => new DdsFormatInfo(true, TextureFormat.TexFormatBc2Unorm, 4, 0, 0, 0, 0, 0, false),
+            FourCcDxt5 => new DdsFormatInfo(true, TextureFormat.TexFormatBc3Unorm, 4, 0, 0, 0, 0, 0, false),
+            FourCcEtc1 or FourCcEtc2 => new DdsFormatInfo(true, TextureFormat.TexFormatEtc2Rgb8Unorm, 3, 0, 0, 0, 0, 0, false),
+            FourCcEtc2A => new DdsFormatInfo(true, TextureFormat.TexFormatEtc2Rgba8Unorm, 4, 0, 0, 0, 0, 0, false),
+            FourCcPtc2 => new DdsFormatInfo(true, EmulatedTextureFormat.PvrtcRgba2Bpp, 4, 0, 0, 0, 0, 0, false),
+            FourCcPtc4 => new DdsFormatInfo(true, EmulatedTextureFormat.PvrtcRgba4Bpp, 4, 0, 0, 0, 0, 0, false),
+            D3DFormatA16B16G16R16 => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 8, 0, 0, 0, 0, false, DdsPixelEncoding.Unorm16),
+            D3DFormatA16B16G16R16F => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 8, 0, 0, 0, 0, false, DdsPixelEncoding.Float16),
+            D3DFormatA32B32G32R32F => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 16, 0, 0, 0, 0, false, DdsPixelEncoding.Float32),
             _ when pixelFormat.RgbBitCount is 16u or 24u or 32u
                 => new DdsFormatInfo(
                     true,
-                    CompressedFormat.Rgba,
+                    TextureFormat.TexFormatRgba8Unorm,
                     pixelFormat.AMask != 0 ? 4u : 3u,
                     Math.Max(pixelFormat.RgbBitCount / 8u, 1u),
                     pixelFormat.RMask,
@@ -662,13 +483,6 @@ internal static class ImageDds
         return bytes;
     }
 
-    private static int GetBlockCompressedSize(int width, int height, int depth, int bytesPerBlock)
-    {
-        var blockWidth = Math.Max((width + 3) / 4, 1);
-        var blockHeight = Math.Max((height + 3) / 4, 1);
-        return checked(blockWidth * blockHeight * Math.Max(depth, 1) * bytesPerBlock);
-    }
-
     private static int GetLevelDimension(int size, uint level)
     {
         var value = size;
@@ -695,7 +509,7 @@ internal static class ImageDds
 
     private readonly record struct DdsFormatInfo(
         bool IsSupported,
-        CompressedFormat Format,
+        TextureFormat Format,
         uint Components,
         uint SourceBytesPerPixel,
         uint RMask,
@@ -714,10 +528,4 @@ internal static class ImageDds
         SharedExponent
     }
 
-    private enum DdsSimpleFormat
-    {
-        Rgba,
-        B5G6R5,
-        B5G5R5A1
-    }
 }

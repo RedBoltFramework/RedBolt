@@ -998,7 +998,7 @@ layout(std140) uniform Material
         // before factory/device creation (filters noisy shader compiler INFO logs).
         DiligentNativeBindings.InstallDebugMessageCallback();
 
-        GetSubsystem<RenderDevice>()?.ResetWindowSettings();
+        GetSubsystem<RenderDevice>()!.InitializeWindowSettings(parameters);
 
         _window = input.Window;
         var backend = GetSubsystem<RenderDevice>()!.GetBackend();
@@ -1175,6 +1175,11 @@ layout(std140) uniform Material
             _swapChainColorFormat = GetTextureViewFormat(_renderTargetView);
             _swapChainDepthFormat = GetTextureViewFormat(_depthStencilView);
             _renderTargets[0] = _renderTargetView;
+
+            GetSubsystem<RenderDevice>()!.UpdateEffectiveWindowSettings(
+                new Vector2i(Width, Height),
+                _configuredMultiSample,
+                RenderAPIUtils.IsTextureFormatSRGB((TextureFormat)_swapChainColorFormat));
 
             _clearColorHandle = GCHandle.Alloc(_clearColor, GCHandleType.Pinned);
             IsInitialized = true;

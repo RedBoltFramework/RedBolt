@@ -3,22 +3,6 @@ using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
-public enum CompressedFormat
-{
-    None = 0,
-    Rgba,
-    Dxt1,
-    Dxt3,
-    Dxt5,
-    Etc1,
-    Etc2Rgb,
-    Etc2Rgba,
-    PvrtcRgb2Bpp,
-    PvrtcRgba2Bpp,
-    PvrtcRgb4Bpp,
-    PvrtcRgba4Bpp
-}
-
 public class Image : Resource
 {
     public Image(string name)
@@ -42,7 +26,7 @@ public class Image : Resource
 
     public bool SRGB { get; internal set; }
 
-    public CompressedFormat CompressedFormat { get; private set; }
+    public TextureFormat CompressedFormat { get; private set; }
 
     private byte[] _data = System.Array.Empty<byte>();
 
@@ -336,7 +320,7 @@ public class Image : Resource
         Components = components;
         _data = new byte[checked(width * height * depth * components)];
         MemoryUse = _data.Length;
-        CompressedFormat = CompressedFormat.None;
+        CompressedFormat = TextureFormat.TexFormatUnknown;
         NumCompressedLevels = 0;
         _nextLevel = null;
         return true;
@@ -729,24 +713,9 @@ public class Image : Resource
 
     public byte[] GetData() => _data;
 
-    public bool IsCompressed() => CompressedFormat != CompressedFormat.None;
+    public bool IsCompressed() => CompressedFormat != TextureFormat.TexFormatUnknown;
 
-    public TextureFormat GetCompressedFormat() => CompressedFormat switch
-    {
-        CompressedFormat.None => TextureFormat.TexFormatUnknown,
-        CompressedFormat.Rgba => TextureFormat.TexFormatRgba8Unorm,
-        CompressedFormat.Dxt1 => TextureFormat.TexFormatBc1Unorm,
-        CompressedFormat.Dxt3 => TextureFormat.TexFormatBc2Unorm,
-        CompressedFormat.Dxt5 => TextureFormat.TexFormatBc3Unorm,
-        CompressedFormat.Etc1 => TextureFormat.TexFormatEtc2Rgb8Unorm,
-        CompressedFormat.Etc2Rgb => TextureFormat.TexFormatEtc2Rgb8Unorm,
-        CompressedFormat.Etc2Rgba => TextureFormat.TexFormatEtc2Rgba8Unorm,
-        CompressedFormat.PvrtcRgb2Bpp => EmulatedTextureFormat.PvrtcRgb2Bpp,
-        CompressedFormat.PvrtcRgba2Bpp => EmulatedTextureFormat.PvrtcRgba2Bpp,
-        CompressedFormat.PvrtcRgb4Bpp => EmulatedTextureFormat.PvrtcRgb4Bpp,
-        CompressedFormat.PvrtcRgba4Bpp => EmulatedTextureFormat.PvrtcRgba4Bpp,
-        _ => TextureFormat.TexFormatUnknown
-    };
+    public TextureFormat GetCompressedFormat() => CompressedFormat;
 
     public bool IsCubemap() => Cubemap;
 
@@ -914,13 +883,18 @@ public class Image : Resource
 
         var (blockWidth, blockHeight, blockSize) = CompressedFormat switch
         {
-            CompressedFormat.Rgba => (1, 1, 4),
-            CompressedFormat.Dxt1 or CompressedFormat.Etc1 or CompressedFormat.Etc2Rgb
-                or CompressedFormat.PvrtcRgb4Bpp or CompressedFormat.PvrtcRgba4Bpp => (4, 4, 8),
-            CompressedFormat.Dxt3 or CompressedFormat.Dxt5 or CompressedFormat.Etc2Rgba => (4, 4, 16),
-            CompressedFormat.PvrtcRgb2Bpp or CompressedFormat.PvrtcRgba2Bpp => (8, 4, 8),
+            TextureFormat.TexFormatRgba8Unorm => (1, 1, 4),
+            TextureFormat.TexFormatBc1Unorm or TextureFormat.TexFormatEtc2Rgb8Unorm => (4, 4, 8),
+            TextureFormat.TexFormatBc2Unorm or TextureFormat.TexFormatBc3Unorm
+                or TextureFormat.TexFormatEtc2Rgba8Unorm => (4, 4, 16),
             _ => (0, 0, 0)
         };
+        if (CompressedFormat == EmulatedTextureFormat.PvrtcRgb2Bpp
+            || CompressedFormat == EmulatedTextureFormat.PvrtcRgba2Bpp)
+            (blockWidth, blockHeight, blockSize) = (8, 4, 8);
+        else if (CompressedFormat == EmulatedTextureFormat.PvrtcRgb4Bpp
+            || CompressedFormat == EmulatedTextureFormat.PvrtcRgba4Bpp)
+            (blockWidth, blockHeight, blockSize) = (4, 4, 8);
         if (blockSize == 0)
             return null;
 
@@ -1142,7 +1116,7 @@ public class Image : Resource
         int height,
         int depth,
         int components,
-        CompressedFormat format,
+        TextureFormat format,
         int levels,
         byte[] pixelData,
         bool cubemap,

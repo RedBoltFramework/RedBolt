@@ -14,7 +14,7 @@ public sealed class DecompressTests
         blocks[3] = 0x07;
         var rgba = new byte[4 * 4 * 4];
 
-        Decompress.DecompressImageDXT(rgba, blocks, 4, 4, 1, CompressedFormat.Dxt1);
+        Decompress.DecompressImageDXT(rgba, blocks, 4, 4, 1, TextureFormat.TexFormatBc1Unorm);
 
         Assert.Equal(255, rgba[0]);
         Assert.Equal(0, rgba[1]);
@@ -29,7 +29,7 @@ public sealed class DecompressTests
         blocks[1] = 0x20;
         var rgba = new byte[4 * 4 * 4];
 
-        Decompress.DecompressImageDXT(rgba, blocks, 4, 4, 1, CompressedFormat.Dxt1);
+        Decompress.DecompressImageDXT(rgba, blocks, 4, 4, 1, TextureFormat.TexFormatBc1Unorm);
 
         Assert.Equal(33, rgba[0]);
         Assert.Equal(0, rgba[1]);
@@ -40,16 +40,16 @@ public sealed class DecompressTests
     [Fact]
     public void Dxt_block_flips_preserve_supported_formats()
     {
-        Assert.True(Decompress.IsFlipBlockImplemented(CompressedFormat.Rgba));
-        Assert.True(Decompress.IsFlipBlockImplemented(CompressedFormat.Dxt1));
-        Assert.True(Decompress.IsFlipBlockImplemented(CompressedFormat.Dxt3));
-        Assert.True(Decompress.IsFlipBlockImplemented(CompressedFormat.Dxt5));
-        Assert.False(Decompress.IsFlipBlockImplemented(CompressedFormat.Etc1));
+        Assert.True(Decompress.IsFlipBlockImplemented(TextureFormat.TexFormatRgba8Unorm));
+        Assert.True(Decompress.IsFlipBlockImplemented(TextureFormat.TexFormatBc1Unorm));
+        Assert.True(Decompress.IsFlipBlockImplemented(TextureFormat.TexFormatBc2Unorm));
+        Assert.True(Decompress.IsFlipBlockImplemented(TextureFormat.TexFormatBc3Unorm));
+        Assert.False(Decompress.IsFlipBlockImplemented(TextureFormat.TexFormatEtc2Rgb8Unorm));
 
         var source = new byte[8];
         source[4] = 0b_00_01_10_11;
         var destination = new byte[8];
-        Decompress.FlipBlockHorizontal(destination, source, CompressedFormat.Dxt1);
+        Decompress.FlipBlockHorizontal(destination, source, TextureFormat.TexFormatBc1Unorm);
 
         Assert.Equal(0b_11_10_01_00, destination[4]);
     }
@@ -68,7 +68,7 @@ public sealed class DecompressTests
         }
         var rgba = new byte[8 * 8 * 4];
 
-        Decompress.DecompressImagePVRTC(rgba, blocks, 8, 8, CompressedFormat.PvrtcRgba4Bpp);
+        Decompress.DecompressImagePVRTC(rgba, blocks, 8, 8, EmulatedTextureFormat.PvrtcRgba4Bpp);
 
         Assert.Equal(255, rgba[0]);
         Assert.Equal(0, rgba[1]);

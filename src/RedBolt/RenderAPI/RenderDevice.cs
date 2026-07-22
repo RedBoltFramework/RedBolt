@@ -512,17 +512,18 @@ public sealed class RenderDevice : Object
         if (_windowSettings is not null && graphics is { IsInitialized: true })
             return _windowSettings.Value;
 
-        _windowSettings = null;
-
         var engine = GetSubsystem<Engine>();
         var parameters = engine?.Parameters ?? new EngineParameters();
+        InitializeWindowSettings(parameters);
+        return _windowSettings!.Value;
+    }
 
-        return new WindowSettings
+    internal void InitializeWindowSettings(EngineParameters parameters)
+    {
+        var settings = new WindowSettings
         {
             Mode = GetWindowMode(parameters),
-            Size = new Vector2i(
-                graphics is { IsInitialized: true } ? graphics.Width : parameters.WindowWidth,
-                graphics is { IsInitialized: true } ? graphics.Height : parameters.WindowHeight),
+            Size = new Vector2i(parameters.WindowWidth, parameters.WindowHeight),
             Title = parameters.WindowTitle,
             Resizable = parameters.WindowResizable,
             Monitor = parameters.Monitor,
@@ -532,6 +533,19 @@ public sealed class RenderDevice : Object
             SRgb = true,
             Orientations = ParseOrientations(parameters.Orientations)
         };
+        if (parameters.ExternalWindow != IntPtr.Zero)
+            settings.Mode = WindowMode.Windowed;
+        ValidateWindowSettings(ref settings);
+        _windowSettings = settings;
+    }
+
+    internal void UpdateEffectiveWindowSettings(Vector2i size, int multiSample, bool sRgb)
+    {
+        var settings = _windowSettings!.Value;
+        settings.Size = size;
+        settings.MultiSample = multiSample;
+        settings.SRgb = sRgb;
+        _windowSettings = settings;
     }
 
     public RenderDeviceCaps GetCaps()
@@ -753,11 +767,6 @@ public sealed class RenderDevice : Object
 
         lock (_deviceObjectsLock)
             _deviceObjects.Remove(deviceObject);
-    }
-
-    internal void ResetWindowSettings()
-    {
-        _windowSettings = null;
     }
 
     private void SendDeviceObjectEvent(DeviceObjectEvent deviceObjectEvent)

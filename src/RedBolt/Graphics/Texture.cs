@@ -448,7 +448,8 @@ public class Texture : ResourceWithMetadata
                 currentLevel = currentLevel.GetNextLevel()!;
             }
         }
-        else if (internalFormat == TextureFormat.TexFormatRgba8Unorm && image.CompressedFormat != CompressedFormat.Rgba)
+        else if (internalFormat == TextureFormat.TexFormatRgba8Unorm
+            && image.CompressedFormat != TextureFormat.TexFormatRgba8Unorm)
         {
             var isRgb8 = !image.IsCompressed() && image.Components == 3;
             if (isRgb8)

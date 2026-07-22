@@ -493,12 +493,12 @@ public sealed class RenderDeviceTests
             Assert.Equal(64, deviceSettings.Vulkan.QueryPoolSizes[
                 (int)RedBolt.Bindings.Diligent.QueryType.QueryTypeTimestamp]);
 
-            Assert.Equal(WindowMode.Fullscreen, windowSettings.Mode);
+            Assert.Equal(WindowMode.Windowed, windowSettings.Mode);
             Assert.Equal(new Vector2i(1600, 900), windowSettings.Size);
             Assert.Equal("Render Device Window", windowSettings.Title);
             Assert.True(windowSettings.Resizable);
-            Assert.Equal(2, windowSettings.Monitor);
-            Assert.Equal(144, windowSettings.RefreshRate);
+            Assert.Equal(0, windowSettings.Monitor);
+            Assert.True(windowSettings.RefreshRate > 0);
             Assert.Equal(4, windowSettings.MultiSample);
             Assert.Equal(2, windowSettings.Orientations.Length);
             Assert.Equal("LandscapeLeft", windowSettings.Orientations[0]);

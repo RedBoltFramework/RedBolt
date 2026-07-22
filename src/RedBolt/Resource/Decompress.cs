@@ -39,9 +39,9 @@ public static class Decompress
         int width,
         int height,
         int depth,
-        CompressedFormat format)
+        TextureFormat format)
     {
-        var bytesPerBlock = format == CompressedFormat.Dxt1 ? 8 : 16;
+        var bytesPerBlock = format == TextureFormat.TexFormatBc1Unorm ? 8 : 16;
         var sourceOffset = 0;
         Span<byte> targetRgba = stackalloc byte[4 * 16];
 
@@ -134,9 +134,10 @@ public static class Decompress
         ReadOnlySpan<byte> blocks,
         int width,
         int height,
-        CompressedFormat format)
+        TextureFormat format)
     {
-        var do2bitMode = format is CompressedFormat.PvrtcRgb2Bpp or CompressedFormat.PvrtcRgba2Bpp;
+        var do2bitMode = format == EmulatedTextureFormat.PvrtcRgb2Bpp
+            || format == EmulatedTextureFormat.PvrtcRgba2Bpp;
         var xBlockSize = do2bitMode ? 8 : 4;
         var blockXDim = Math.Max(2, width / xBlockSize);
         var blockYDim = Math.Max(2, height / 4);
@@ -236,25 +237,25 @@ public static class Decompress
     }
 
     /// <summary>Returns whether flipping is implemented for texture format.</summary>
-    public static bool IsFlipBlockImplemented(CompressedFormat format)
+    public static bool IsFlipBlockImplemented(TextureFormat format)
     {
-        return format is CompressedFormat.Rgba
-            or CompressedFormat.Dxt1
-            or CompressedFormat.Dxt3
-            or CompressedFormat.Dxt5;
+        return format is TextureFormat.TexFormatRgba8Unorm
+            or TextureFormat.TexFormatBc1Unorm
+            or TextureFormat.TexFormatBc2Unorm
+            or TextureFormat.TexFormatBc3Unorm;
     }
 
     /// <summary>Flip a compressed block vertically.</summary>
-    public static void FlipBlockVertical(Span<byte> destination, ReadOnlySpan<byte> source, CompressedFormat format)
+    public static void FlipBlockVertical(Span<byte> destination, ReadOnlySpan<byte> source, TextureFormat format)
     {
         switch (format)
         {
-            case CompressedFormat.Rgba:
+            case TextureFormat.TexFormatRgba8Unorm:
                 for (var i = 0; i < 4; ++i)
                     destination[i] = source[i];
                 break;
 
-            case CompressedFormat.Dxt1:
+            case TextureFormat.TexFormatBc1Unorm:
                 for (var i = 0; i < 4; ++i)
                 {
                     destination[i] = source[i];
@@ -262,7 +263,7 @@ public static class Decompress
                 }
                 break;
 
-            case CompressedFormat.Dxt3:
+            case TextureFormat.TexFormatBc2Unorm:
                 for (var i = 0; i < 8; i += 2)
                 {
                     destination[i] = source[6 - i];
@@ -275,7 +276,7 @@ public static class Decompress
                 }
                 break;
 
-            case CompressedFormat.Dxt5:
+            case TextureFormat.TexFormatBc3Unorm:
                 destination[0] = source[0];
                 destination[1] = source[1];
                 var a1 = (uint)(source[2] | (source[3] << 8) | (source[4] << 16));
@@ -298,16 +299,16 @@ public static class Decompress
     }
 
     /// <summary>Flip a compressed block horizontally.</summary>
-    public static void FlipBlockHorizontal(Span<byte> destination, ReadOnlySpan<byte> source, CompressedFormat format)
+    public static void FlipBlockHorizontal(Span<byte> destination, ReadOnlySpan<byte> source, TextureFormat format)
     {
         switch (format)
         {
-            case CompressedFormat.Rgba:
+            case TextureFormat.TexFormatRgba8Unorm:
                 for (var i = 0; i < 4; ++i)
                     destination[i] = source[i];
                 break;
 
-            case CompressedFormat.Dxt1:
+            case TextureFormat.TexFormatBc1Unorm:
                 for (var i = 0; i < 4; ++i)
                 {
                     destination[i] = source[i];
@@ -315,7 +316,7 @@ public static class Decompress
                 }
                 break;
 
-            case CompressedFormat.Dxt3:
+            case TextureFormat.TexFormatBc2Unorm:
                 for (var i = 0; i < 8; i += 2)
                 {
                     destination[i] = (byte)(((source[i + 1] & 0xf0) >> 4) | ((source[i + 1] & 0xf) << 4));
@@ -328,7 +329,7 @@ public static class Decompress
                 }
                 break;
 
-            case CompressedFormat.Dxt5:
+            case TextureFormat.TexFormatBc3Unorm:
                 destination[0] = source[0];
                 destination[1] = source[1];
                 var a1 = (uint)(source[2] | (source[3] << 8) | (source[4] << 16));
@@ -1120,16 +1121,16 @@ public static class Decompress
         return twiddled;
     }
 
-    private static void DecodeDxtBlock(Span<byte> output, ReadOnlySpan<byte> block, CompressedFormat format)
+    private static void DecodeDxtBlock(Span<byte> output, ReadOnlySpan<byte> block, TextureFormat format)
     {
         Span<uint> colors = stackalloc uint[4];
         switch (format)
         {
-            case CompressedFormat.Dxt1:
+            case TextureFormat.TexFormatBc1Unorm:
                 BuildBc1Palette(block[..4], colors, opaqueOnly: false);
                 WriteColorIndices(block[4..8], colors, output);
                 break;
-            case CompressedFormat.Dxt3:
+            case TextureFormat.TexFormatBc2Unorm:
                 BuildBc1Palette(block[8..12], colors, opaqueOnly: true);
                 WriteColorIndices(block[12..16], colors, output);
                 for (var i = 0; i < 16; ++i)
@@ -1139,7 +1140,7 @@ public static class Decompress
                     output[i * 4 + 3] = (byte)((alpha4 << 4) | alpha4);
                 }
                 break;
-            case CompressedFormat.Dxt5:
+            case TextureFormat.TexFormatBc3Unorm:
                 Span<byte> alphaPalette = stackalloc byte[8];
                 BuildBc3AlphaPalette(block[0], block[1], alphaPalette);
                 ulong alphaIndices = 0;

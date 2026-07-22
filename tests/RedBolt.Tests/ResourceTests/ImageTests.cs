@@ -101,7 +101,7 @@ public sealed class ImageTests
         var level = new CompressedLevel
         {
             Data = data,
-            Format = CompressedFormat.Rgba,
+            Format = TextureFormat.TexFormatRgba8Unorm,
             Width = 1,
             Height = 1,
             Depth = 1,
@@ -114,6 +114,22 @@ public sealed class ImageTests
 
         Assert.Equal(1, level.Width);
         Assert.Equal(42, level.Data.Span[0]);
+    }
+
+    [Fact]
+    public void Compressed_level_decompresses_etc2_through_texture_format()
+    {
+        var level = new CompressedLevel
+        {
+            Data = new byte[8],
+            Format = TextureFormat.TexFormatEtc2Rgb8Unorm,
+            Width = 4,
+            Height = 4,
+            Depth = 1,
+            DataSize = 8
+        };
+
+        Assert.True(level.Decompress(new byte[4 * 4 * 4]));
     }
 
     [Fact]
@@ -270,7 +286,7 @@ public sealed class ImageTests
 
         Assert.True(image.LoadFile(Path.Combine(RbfxTestData.Data, "Textures", "StoneDiffuse.dds")));
         Assert.True(image.IsCompressed());
-        Assert.Equal(CompressedFormat.Dxt1, image.CompressedFormat);
+        Assert.Equal(TextureFormat.TexFormatBc1Unorm, image.CompressedFormat);
         Assert.Equal(TextureFormat.TexFormatBc1Unorm, image.GetCompressedFormat());
         Assert.Equal(TextureFormat.TexFormatBc1Unorm, image.GetGPUFormat());
         Assert.Equal(1024, image.Width);
@@ -313,7 +329,7 @@ public sealed class ImageTests
 
         var image = new Image("Rgba16");
         Assert.True(image.BeginLoad(new MemoryStream(dds)));
-        Assert.Equal(CompressedFormat.Rgba, image.CompressedFormat);
+        Assert.Equal(TextureFormat.TexFormatRgba8Unorm, image.CompressedFormat);
 
         var rgba = image.GetDecompressedImage();
         Assert.NotNull(rgba);
