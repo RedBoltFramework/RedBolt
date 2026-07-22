@@ -24,6 +24,12 @@ public class ApplicationState : Object
     /// <summary>Destruct.</summary>
     public override void Dispose()
     {
+        _mouseModeChangedSubscription?.Dispose();
+        _mouseModeChangedSubscription = null;
+        _mouseButtonDownSubscription?.Dispose();
+        _mouseButtonDownSubscription = null;
+        _updateSubscription?.Dispose();
+        _updateSubscription = null;
         _viewports.Clear();
         base.Dispose();
     }

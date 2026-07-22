@@ -24,6 +24,22 @@ public sealed class StateManagerTests
     }
 
     [Fact]
+    public void Application_state_dispose_releases_update_subscription()
+    {
+        using var engine = new Engine();
+        var state = new TrackingApplicationState();
+        using var bundle = new StringVariantMap();
+        state.Activate(bundle);
+        var update = new CoreEvents.UpdateEvent { TimeStep = 0.25f };
+
+        Context.Instance.SendEvent(ref update);
+        state.Dispose();
+        Context.Instance.SendEvent(ref update);
+
+        Assert.Equal(1, state.UpdateCount);
+    }
+
+    [Fact]
     public void State_manager_copies_queued_bundle_values()
     {
         using var engine = new Engine();
@@ -102,6 +118,16 @@ public sealed class StateManagerTests
         {
             if (bundle.TryGetValue("Value", out var value))
                 Value = value.GetInt();
+        }
+    }
+
+    private sealed class TrackingApplicationState : ApplicationState
+    {
+        public int UpdateCount { get; private set; }
+
+        public override void Update(float timeStep)
+        {
+            ++UpdateCount;
         }
     }
 }
