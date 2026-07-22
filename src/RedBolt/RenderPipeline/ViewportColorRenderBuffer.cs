@@ -2,40 +2,27 @@ using System.Diagnostics;
 
 namespace RedBolt;
 
-/// <summary>
-/// Write-only viewport color render buffer.
-/// </summary>
+/// <summary>Write-only viewport color render buffer.</summary>
 public sealed class ViewportColorRenderBuffer : RenderBuffer
 {
-    private RenderTargetView? _renderTarget;
-    private Texture? _texture;
-    private RenderDevice? _renderDevice;
     private IntRect _viewportRect;
+    private RenderSurface? _renderTarget;
 
-    public void SetOutput(RenderTargetView? renderTarget, Texture? texture, RenderDevice? renderDevice, IntRect viewportRect)
+    public ViewportColorRenderBuffer(IRenderPipelineInterface renderPipeline)
+        : base(renderPipeline)
     {
-        _renderTarget = renderTarget;
-        _texture = texture;
-        _renderDevice = renderDevice;
-        _viewportRect = viewportRect;
-        _bufferIsReady = true;
     }
 
-    public override void OnRenderEnd(CommonFrameInfo frameInfo)
+    public override RawTexture? GetTexture()
     {
-        _bufferIsReady = false;
-    }
-
-    public override Texture? GetTexture()
-    {
-        CheckIfBufferIsReady();
-        return _renderTarget is not null ? _texture : null;
+        Debug.Assert(CheckIfBufferIsReady());
+        return _renderTarget?.GetParentTexture()?.GetRawTexture();
     }
 
     public override RenderTargetView GetView(int slice = 0)
     {
-        CheckIfBufferIsReady();
-        return _renderTarget ?? RenderTargetView.SwapChainColor(_renderDevice!);
+        Debug.Assert(CheckIfBufferIsReady());
+        return _renderTarget?.GetView() ?? RenderTargetView.SwapChainColor(RenderDevice);
     }
 
     public override RenderTargetView GetReadOnlyDepthView(int slice = 0)
@@ -45,4 +32,13 @@ public sealed class ViewportColorRenderBuffer : RenderBuffer
     }
 
     public override IntRect GetViewportRect() => CheckIfBufferIsReady() ? _viewportRect : IntRect.Zero;
+
+    protected override void OnRenderBegin(CommonFrameInfo frameInfo)
+    {
+        _renderTarget = frameInfo.RenderTarget;
+        _viewportRect = frameInfo.ViewportRect;
+        BufferIsReady = true;
+    }
+
+    protected override void OnRenderEnd(CommonFrameInfo frameInfo) => BufferIsReady = false;
 }

@@ -5,7 +5,8 @@ public sealed class ViewportRenderBufferTests
     [Fact]
     public void Viewport_color_render_buffer_tracks_frame_lifetime()
     {
-        var buffer = new ViewportColorRenderBuffer();
+        var pipeline = new StubRenderPipeline();
+        using var buffer = new ViewportColorRenderBuffer(pipeline);
         var frameInfo = new CommonFrameInfo
         {
             ViewportRect = new IntRect(1, 2, 3, 4)
@@ -13,18 +14,19 @@ public sealed class ViewportRenderBufferTests
 
         Assert.Equal(IntRect.Zero, buffer.GetViewportRect());
 
-        buffer.SetOutput(null, null, null, frameInfo.ViewportRect);
+        pipeline.RaiseRenderBegin(frameInfo);
         Assert.Equal(frameInfo.ViewportRect, buffer.GetViewportRect());
         Assert.Null(buffer.GetTexture());
 
-        buffer.OnRenderEnd(frameInfo);
+        pipeline.RaiseRenderEnd(frameInfo);
         Assert.Equal(IntRect.Zero, buffer.GetViewportRect());
     }
 
     [Fact]
     public void Viewport_depth_stencil_render_buffer_tracks_frame_lifetime()
     {
-        var buffer = new ViewportDepthStencilRenderBuffer();
+        var pipeline = new StubRenderPipeline();
+        using var buffer = new ViewportDepthStencilRenderBuffer(pipeline);
         var frameInfo = new CommonFrameInfo
         {
             ViewportRect = new IntRect(1, 2, 3, 4)
@@ -32,11 +34,31 @@ public sealed class ViewportRenderBufferTests
 
         Assert.Equal(IntRect.Zero, buffer.GetViewportRect());
 
-        buffer.SetOutput(null, null, null, frameInfo.ViewportRect);
+        pipeline.RaiseRenderBegin(frameInfo);
         Assert.Equal(frameInfo.ViewportRect, buffer.GetViewportRect());
         Assert.Null(buffer.GetTexture());
 
-        buffer.OnRenderEnd(frameInfo);
+        pipeline.RaiseRenderEnd(frameInfo);
         Assert.Equal(IntRect.Zero, buffer.GetViewportRect());
+    }
+
+    private sealed class StubRenderPipeline : IRenderPipelineInterface
+    {
+        public Context? GetContext() => Context.Instance;
+
+        public RenderPipelineDebugger GetDebugger() => null!;
+
+        public bool IsLinearColorSpace => false;
+
+        public event Action<CommonFrameInfo>? UpdateBegin;
+        public event Action<CommonFrameInfo>? UpdateEnd;
+        public event Action<CommonFrameInfo>? RenderBegin;
+        public event Action<CommonFrameInfo>? RenderEnd;
+        public event Action? PipelineStatesInvalidated;
+        public event RenderPipelineStatsHandler? CollectStatistics;
+
+        public void RaiseRenderBegin(CommonFrameInfo frameInfo) => RenderBegin?.Invoke(frameInfo);
+
+        public void RaiseRenderEnd(CommonFrameInfo frameInfo) => RenderEnd?.Invoke(frameInfo);
     }
 }

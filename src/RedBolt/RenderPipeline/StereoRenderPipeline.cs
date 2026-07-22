@@ -409,27 +409,7 @@ public class StereoRenderPipelineView : RenderPipelineView
         _frameInfo.Cameras.First = viewport.GetEye(0);
         _frameInfo.Cameras.Second = viewport.GetEye(1);
 
-        var colorTexture = renderTarget?.GetParentTexture();
-        var depthSurface = renderTarget?.GetLinkedDepthStencil();
-        var depthTexture = depthSurface?.GetParentTexture();
-        _frameInfo.RenderTarget = colorTexture is not null
-            ? new RenderOutputTargetInfo(
-                renderTarget!.GetView(),
-                new IntRect(0, 0, renderTarget.GetWidth(), renderTarget.GetHeight()),
-                colorTexture.Format,
-                depthSurface?.GetView(),
-                depthTexture?.Format ?? TextureFormat.TexFormatUnknown,
-                renderTarget.GetMultiSample(),
-                colorTexture,
-                depthTexture,
-                colorTexture.GetFilterMode() is TextureFilterMode.Bilinear or TextureFilterMode.Trilinear
-                    or TextureFilterMode.Anisotropic,
-                colorTexture.GetLinear() || colorTexture.GetSRGB()
-                    || TextureFormatUtility.IsFloatColorFormat(colorTexture.Format),
-                TextureFormatUtility.IsFloatColorFormat(colorTexture.Format),
-                depthTexture is not null,
-                depthTexture?.Format == TextureFormat.TexFormatD24UnormS8Uint)
-            : null;
+        _frameInfo.RenderTarget = renderTarget;
 
         if (!_sceneProcessor.Define(_frameInfo))
             return false;

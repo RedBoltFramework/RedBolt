@@ -460,27 +460,7 @@ public class RenderPipeline : Component
             _frameInfo.Cameras.First = viewport.GetCamera();
             _frameInfo.Cameras.Second = viewport.IsStereo() ? viewport.GetEye(1) : null;
 
-            var colorTexture = renderTarget?.GetParentTexture();
-            var depthSurface = renderTarget?.GetLinkedDepthStencil();
-            var depthTexture = depthSurface?.GetParentTexture();
-            _frameInfo.RenderTarget = colorTexture is not null
-                ? new RenderOutputTargetInfo(
-                    renderTarget!.GetView(),
-                    new IntRect(0, 0, renderTarget.GetWidth(), renderTarget.GetHeight()),
-                    colorTexture.Format,
-                    depthSurface?.GetView(),
-                    depthTexture?.Format ?? TextureFormat.TexFormatUnknown,
-                    renderTarget.GetMultiSample(),
-                    colorTexture,
-                    depthTexture,
-                    colorTexture.GetFilterMode() is TextureFilterMode.Bilinear or TextureFilterMode.Trilinear
-                        or TextureFilterMode.Anisotropic,
-                    colorTexture.GetLinear() || colorTexture.GetSRGB()
-                        || TextureFormatUtility.IsFloatColorFormat(colorTexture.Format),
-                    TextureFormatUtility.IsFloatColorFormat(colorTexture.Format),
-                    depthTexture is not null,
-                    depthTexture?.Format == TextureFormat.TexFormatD24UnormS8Uint)
-                : null;
+            _frameInfo.RenderTarget = renderTarget;
 
             if (!_sceneProcessor!.Define(_frameInfo))
                 return false;
@@ -605,7 +585,6 @@ public class RenderPipeline : Component
 
             RaiseRenderBegin(_frameInfo);
             SendBeginViewRenderEvent();
-            _renderBufferManager.OnRenderBegin(_frameInfo, graphics);
             SendViewBuffersReadyEvent();
 
             _sceneProcessor.PrepareDrawablesBeforeRendering();
@@ -675,11 +654,21 @@ public class RenderPipeline : Component
 
             if (_outlineBuffer is not null && _outlineBuffer.IsEnabled)
             {
+                const int outlinePadding = 2;
+                var batches = _outlineScenePass!.GetBatches();
+                batches.ScissorRect = _outlineBuffer.GetViewportRect();
+                if (batches.ScissorRect.Width > outlinePadding * 2 && batches.ScissorRect.Height > outlinePadding * 2)
+                {
+                    batches.ScissorRect.Left += outlinePadding;
+                    batches.ScissorRect.Top += outlinePadding;
+                    batches.ScissorRect.Right -= outlinePadding;
+                    batches.ScissorRect.Bottom -= outlinePadding;
+                }
+
                 _renderBufferManager.SetRenderTargets(graphics, _outlineBuffer);
-                graphics.ClearCurrentRenderTargets(Color.TransparentBlack, clearColorTarget: true, clearDepth: false, clearStencil: false);
+                _renderBufferManager.ClearColor(graphics, _outlineBuffer, Color.TransparentBlack);
                 _sceneProcessor.RenderSceneBatches(
-                    "Outline", camera, _outlineScenePass!.GetBatches(), default, cameraParameters, frameParameters);
-                _renderBufferManager.SetOutputRenderTargets(graphics);
+                    "Outline", camera, batches, default, cameraParameters, frameParameters);
             }
 
             _renderPath?.Render(_sharedState);
@@ -693,8 +682,6 @@ public class RenderPipeline : Component
                 debug.Render();
             }
 
-            _renderBufferManager.OnRenderEnd(_frameInfo);
-            graphics.UnbindRenderTargets();
             RaiseRenderEnd(_frameInfo);
             SendEndViewRenderEvent();
             _stats = default;
@@ -901,17 +888,8 @@ public class RenderPipeline : Component
 
         private TextureRenderBuffer EnsureOutlineBuffer()
         {
-            if (_outlineBuffer?.GetTexture() is Texture texture
-                && texture.Width == _frameInfo.ViewportRect.Width
-                && texture.Height == _frameInfo.ViewportRect.Height)
-            {
-                _outlineBuffer.SetViewportRect(_frameInfo.ViewportRect);
-                return _outlineBuffer;
-            }
-
-            _outlineBuffer = _renderBufferManager.CreateColorBuffer(new RenderBufferParams(TextureFormat.TexFormatRgba8Unorm)) as TextureRenderBuffer
-                ?? throw new InvalidOperationException("Outline render buffer must be backed by a TextureRenderBuffer.");
-            _outlineBuffer.SetViewportRect(_frameInfo.ViewportRect);
+            _outlineBuffer ??= _renderBufferManager.CreateColorBuffer(
+                new RenderBufferParams(TextureFormat.TexFormatRgba8Unorm, 1, RenderBufferFlag.BilinearFiltering));
             return _outlineBuffer;
         }
 

@@ -122,17 +122,17 @@ public class LightmapRenderPipelineView : Object, IRenderPipelineInterface
     }
 
     /// <summary>Return geometry buffer textures.</summary>
-    public RawTexture? GetPositionBuffer() => _positionBuffer?.GetTexture()?.GetRawTexture();
+    public RawTexture? GetPositionBuffer() => _positionBuffer?.GetTexture();
 
-    public RawTexture? GetSmoothPositionBuffer() => _smoothPositionBuffer?.GetTexture()?.GetRawTexture();
+    public RawTexture? GetSmoothPositionBuffer() => _smoothPositionBuffer?.GetTexture();
 
-    public RawTexture? GetFaceNormalBuffer() => _faceNormalBuffer?.GetTexture()?.GetRawTexture();
+    public RawTexture? GetFaceNormalBuffer() => _faceNormalBuffer?.GetTexture();
 
-    public RawTexture? GetSmoothNormalBuffer() => _smoothNormalBuffer?.GetTexture()?.GetRawTexture();
+    public RawTexture? GetSmoothNormalBuffer() => _smoothNormalBuffer?.GetTexture();
 
-    public RawTexture? GetAlbedoBuffer() => _albedoBuffer?.GetTexture()?.GetRawTexture();
+    public RawTexture? GetAlbedoBuffer() => _albedoBuffer?.GetTexture();
 
-    public RawTexture? GetEmissionBuffer() => _emissionBuffer?.GetTexture()?.GetRawTexture();
+    public RawTexture? GetEmissionBuffer() => _emissionBuffer?.GetTexture();
 
     /// <summary>Implement RenderPipelineInterface.</summary>
     public Context? GetContext() => Context.Instance;

@@ -17,6 +17,13 @@ public sealed class StaticPipelineStateCache : Object
     private readonly Dictionary<uint, PerOutputCache> _caches = [];
 
     /// <summary>
+    /// Construct.
+    /// </summary>
+    public StaticPipelineStateCache()
+    {
+    }
+
+    /// <summary>
     /// Invalidate all pipeline states.
     /// </summary>
     public void Invalidate()
@@ -75,5 +82,13 @@ public sealed class StaticPipelineStateCache : Object
         cache.PipelineStates[index] = pipelineState;
 
         return pipelineState;
+    }
+
+    public override void Dispose()
+    {
+        _caches.Clear();
+        _descriptions.Clear();
+        _descriptionToIndex.Clear();
+        base.Dispose();
     }
 }

@@ -430,7 +430,7 @@ internal ref struct DrawCommandCompositor
         foreach (var desc in _ctx.GlobalResources)
         {
             if (desc.Texture is not null)
-                GraphicsUtils.AddShaderResource(drawQueue, desc.Name, desc.Texture);
+                drawQueue.AddShaderResource(desc.Name, desc.Texture);
         }
 
         var materialHasEnvironmentMap = false;

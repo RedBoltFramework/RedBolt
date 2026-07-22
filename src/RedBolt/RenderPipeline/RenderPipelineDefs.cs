@@ -1180,7 +1180,7 @@ public struct ShaderResourceDesc
 {
     public StringHash Name { get; set; }
 
-    public Texture? Texture { get; set; }
+    public RawTexture? Texture { get; set; }
 }
 
 /// <summary>
@@ -1298,7 +1298,7 @@ public struct CommonFrameInfo
 
     public Viewport? Viewport;
 
-    public RenderOutputTargetInfo? RenderTarget;
+    public RenderSurface? RenderTarget;
 
     public (Camera? First, Camera? Second) Cameras;
 }

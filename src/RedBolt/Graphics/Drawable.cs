@@ -53,7 +53,7 @@ public struct FrameInfo
     public Viewport? Viewport;
 
     /// <summary>Destination render surface.</summary>
-    public RenderOutputTargetInfo? RenderTarget;
+    public RenderSurface? RenderTarget;
 
     /// <summary>Scene and pre-fetched Scene components.</summary>
     public Scene? Scene;

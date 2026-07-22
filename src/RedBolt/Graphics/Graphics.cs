@@ -1536,7 +1536,7 @@ layout(std140) uniform Material
             string.Empty,
             BlendMode.Replace,
             bilinearFiltering,
-            sourceTexture,
+            sourceTexture.GetRawTexture(),
             secondaryTexture: null,
             depthTexture: null,
             EmptyFullscreenParameters,
@@ -1569,7 +1569,7 @@ layout(std140) uniform Material
     }
 
     internal void DrawFullscreenQuad(string debugComment, string shaderName, string shaderDefines, BlendMode blendMode,
-        bool bilinearColorSampler, Texture? albedoTexture, Texture? secondaryTexture, Texture? depthTexture,
+        bool bilinearColorSampler, RawTexture? albedoTexture, RawTexture? secondaryTexture, RawTexture? depthTexture,
         IReadOnlyDictionary<string, object?> parameters, Vector2f invInputSize, Vector4f clipToUvOffsetAndScale,
         bool flipVertical = false)
     {
@@ -1595,7 +1595,7 @@ layout(std140) uniform Material
     }
 
     internal void DrawFullscreenQuad<TParameters>(string debugComment, string shaderName, string shaderDefines, BlendMode blendMode,
-        bool bilinearColorSampler, Texture? albedoTexture, Texture? secondaryTexture, Texture? depthTexture,
+        bool bilinearColorSampler, RawTexture? albedoTexture, RawTexture? secondaryTexture, RawTexture? depthTexture,
         in TParameters parameters, Vector2f invInputSize, Vector4f clipToUvOffsetAndScale, bool flipVertical = false)
         where TParameters : struct
     {
@@ -2529,7 +2529,7 @@ layout(std140) uniform Material
         UpdateBuffer(buffer, data);
     }
 
-    private void DrawFullscreenQuad(FullscreenPipelineResources pipeline, Texture? albedoTexture, Texture? secondaryTexture, Texture? depthTexture,
+    private void DrawFullscreenQuad(FullscreenPipelineResources pipeline, RawTexture? albedoTexture, RawTexture? secondaryTexture, RawTexture? depthTexture,
         IReadOnlyDictionary<string, object?> parameters, Vector2f invInputSize, Vector4f clipToUvOffsetAndScale, bool flipVertical)
     {
         ArgumentNullException.ThrowIfNull(parameters);
@@ -2549,8 +2549,8 @@ layout(std140) uniform Material
         DrawFullscreenQuadCore(pipeline, uploadedGeometry, albedoTexture, secondaryTexture, depthTexture);
     }
 
-    private void DrawFullscreenQuad<TParameters>(FullscreenPipelineResources pipeline, Texture? albedoTexture, Texture? secondaryTexture,
-        Texture? depthTexture, in TParameters parameters, Vector2f invInputSize, Vector4f clipToUvOffsetAndScale, bool flipVertical)
+    private void DrawFullscreenQuad<TParameters>(FullscreenPipelineResources pipeline, RawTexture? albedoTexture, RawTexture? secondaryTexture,
+        RawTexture? depthTexture, in TParameters parameters, Vector2f invInputSize, Vector4f clipToUvOffsetAndScale, bool flipVertical)
         where TParameters : struct
     {
         if (_immediateContext is null)
@@ -2569,7 +2569,7 @@ layout(std140) uniform Material
     }
 
     private void DrawFullscreenQuadCore(FullscreenPipelineResources pipeline, UploadedGeometry uploadedGeometry,
-        Texture? albedoTexture, Texture? secondaryTexture, Texture? depthTexture)
+        RawTexture? albedoTexture, RawTexture? secondaryTexture, RawTexture? depthTexture)
     {
         if (_immediateContext is null)
             return;
@@ -2586,12 +2586,12 @@ layout(std140) uniform Material
             BindDynamicBuffer(pipeline, global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, "Custom", pipeline.CustomBuffer, pipeline.CustomLayout.Size);
         }
 
-        if (albedoTexture is Texture2D texture2D)
-            BindTextureToAvailableStages(pipeline, "sAlbedo", GetShaderResourceView(texture2D));
-        if (secondaryTexture is Texture2D secondaryTexture2D)
-            BindTextureToAvailableStages(pipeline, "sNormal", GetShaderResourceView(secondaryTexture2D));
-        if (depthTexture is Texture2D depthTexture2D)
-            BindTextureToAvailableStages(pipeline, "sDepthBuffer", GetShaderResourceView(depthTexture2D));
+        if (albedoTexture?.GetHandles().ShaderResourceView is { } albedoView)
+            BindTextureToAvailableStages(pipeline, "sAlbedo", albedoView);
+        if (secondaryTexture?.GetHandles().ShaderResourceView is { } secondaryView)
+            BindTextureToAvailableStages(pipeline, "sNormal", secondaryView);
+        if (depthTexture?.GetHandles().ShaderResourceView is { } depthView)
+            BindTextureToAvailableStages(pipeline, "sDepthBuffer", depthView);
 
         _immediateContext.SetPipelineState(pipeline.PipelineState);
         _immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);

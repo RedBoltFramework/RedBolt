@@ -47,8 +47,9 @@ public sealed class RenderPassTests
     public void Connect_to_render_buffer_keeps_existing_buffer_when_shared_state_changes()
     {
         var pass = new TrackingRenderPass();
-        var firstBuffer = new StubRenderBuffer();
-        var secondBuffer = new StubRenderBuffer();
+        var pipeline = new StubRenderPipeline();
+        using var firstBuffer = new StubRenderBuffer(pipeline);
+        using var secondBuffer = new StubRenderBuffer(pipeline);
         var sharedState = new SharedRenderPassState();
 
         sharedState.RenderBuffers["Test"] = firstBuffer;
@@ -83,13 +84,42 @@ public sealed class RenderPassTests
 
     private sealed class StubRenderBuffer : RenderBuffer
     {
-        public override Texture? GetTexture() => null;
+        public StubRenderBuffer(IRenderPipelineInterface renderPipeline)
+            : base(renderPipeline)
+        {
+        }
+
+        public override RawTexture? GetTexture() => null;
 
         public override RenderTargetView GetView(int slice = 0) => default;
 
         public override RenderTargetView GetReadOnlyDepthView(int slice = 0) => default;
 
         public override IntRect GetViewportRect() => new(0, 0, 1, 1);
+
+        protected override void OnRenderBegin(CommonFrameInfo frameInfo)
+        {
+        }
+
+        protected override void OnRenderEnd(CommonFrameInfo frameInfo)
+        {
+        }
+    }
+
+    private sealed class StubRenderPipeline : IRenderPipelineInterface
+    {
+        public Context? GetContext() => Context.Instance;
+
+        public RenderPipelineDebugger GetDebugger() => null!;
+
+        public bool IsLinearColorSpace => false;
+
+        public event Action<CommonFrameInfo>? UpdateBegin;
+        public event Action<CommonFrameInfo>? UpdateEnd;
+        public event Action<CommonFrameInfo>? RenderBegin;
+        public event Action<CommonFrameInfo>? RenderEnd;
+        public event Action? PipelineStatesInvalidated;
+        public event RenderPipelineStatsHandler? CollectStatistics;
     }
 
     private sealed class NullableAttributeRenderPass : RenderPass

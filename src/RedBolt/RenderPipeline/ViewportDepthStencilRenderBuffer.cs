@@ -1,46 +1,57 @@
+using System.Diagnostics;
+
 namespace RedBolt;
 
-/// <summary>
-/// Write-only viewport depth-stencil texture.
-/// </summary>
+/// <summary>Write-only viewport depth-stencil texture.</summary>
 public sealed class ViewportDepthStencilRenderBuffer : RenderBuffer
 {
-    private RenderTargetView? _depthStencil;
-    private Texture? _texture;
-    private RenderDevice? _renderDevice;
     private IntRect _viewportRect;
+    private RenderSurface? _depthStencil;
 
-    public void SetOutput(RenderTargetView? depthStencil, Texture? texture, RenderDevice? renderDevice, IntRect viewportRect)
+    public ViewportDepthStencilRenderBuffer(IRenderPipelineInterface renderPipeline)
+        : base(renderPipeline)
     {
-        _depthStencil = depthStencil;
-        _texture = texture;
-        _renderDevice = renderDevice;
-        _viewportRect = viewportRect;
-        _bufferIsReady = true;
     }
 
-    public override void OnRenderEnd(CommonFrameInfo frameInfo)
+    public override RawTexture? GetTexture()
     {
-        _bufferIsReady = false;
-    }
-
-    public override Texture? GetTexture()
-    {
-        CheckIfBufferIsReady();
-        return _depthStencil is not null ? _texture : null;
+        Debug.Assert(CheckIfBufferIsReady());
+        return _depthStencil?.GetParentTexture()?.GetRawTexture();
     }
 
     public override RenderTargetView GetView(int slice = 0)
     {
-        CheckIfBufferIsReady();
-        return _depthStencil ?? RenderTargetView.SwapChainDepthStencil(_renderDevice!);
+        Debug.Assert(CheckIfBufferIsReady());
+        return _depthStencil?.GetView() ?? RenderTargetView.SwapChainDepthStencil(RenderDevice);
     }
 
     public override RenderTargetView GetReadOnlyDepthView(int slice = 0)
     {
-        CheckIfBufferIsReady();
-        return _depthStencil ?? RenderTargetView.SwapChainDepthStencil(_renderDevice!);
+        Debug.Assert(CheckIfBufferIsReady());
+        return _depthStencil?.GetReadOnlyDepthView() ?? RenderTargetView.SwapChainDepthStencil(RenderDevice);
     }
 
     public override IntRect GetViewportRect() => CheckIfBufferIsReady() ? _viewportRect : IntRect.Zero;
+
+    protected override void OnRenderBegin(CommonFrameInfo frameInfo)
+    {
+        _viewportRect = frameInfo.ViewportRect;
+        if (frameInfo.RenderTarget is null)
+        {
+            _depthStencil = null;
+            BufferIsReady = true;
+        }
+        else if (frameInfo.RenderTarget.GetLinkedDepthStencil() is { } depthStencil)
+        {
+            _depthStencil = depthStencil;
+            BufferIsReady = true;
+        }
+        else
+        {
+            _depthStencil = null;
+            BufferIsReady = false;
+        }
+    }
+
+    protected override void OnRenderEnd(CommonFrameInfo frameInfo) => BufferIsReady = false;
 }

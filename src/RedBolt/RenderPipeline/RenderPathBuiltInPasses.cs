@@ -482,7 +482,7 @@ public sealed class AutoExposurePass : RenderPass
             BlendMode.Replace,
             bilinearColorSampler: true,
             renderBufferManager.GetSecondaryColorTexture(),
-            secondaryTexture: _currentParameters.AutoExposure ? _cachedBuffers?.AdaptedLuminance.Texture : null,
+            secondaryTexture: _currentParameters.AutoExposure ? _cachedBuffers?.AdaptedLuminance.GetTexture() : null,
             depthTexture: null,
             applyExposureParameters,
             renderBufferManager.GetInvOutputSize(),
@@ -558,7 +558,7 @@ public sealed class AutoExposurePass : RenderPass
             return;
 
         renderBufferManager.SetRenderTargets(graphics, buffers.Color128);
-        graphics.DrawCopyTexture(viewportTexture, bilinearFiltering: true);
+        renderBufferManager.DrawTexture(graphics, "Downsample color buffer", viewportTexture);
     }
 
     private void EvaluateLuminance(RenderBufferManager renderBufferManager, Graphics graphics, CachedBuffers buffers)
@@ -572,8 +572,10 @@ public sealed class AutoExposurePass : RenderPass
     private void EvaluateAdaptedLuminance(RenderBufferManager renderBufferManager, Graphics graphics, CachedBuffers buffers)
     {
         renderBufferManager.SetRenderTargets(graphics, buffers.PreviousAdaptedLuminance);
-        var previousSource = _isAdaptedLuminanceInitialized ? buffers.AdaptedLuminance.Texture : buffers.Lum1.Texture;
-        graphics.DrawCopyTexture(previousSource, bilinearFiltering: false);
+        var previousSource = _isAdaptedLuminanceInitialized
+            ? buffers.AdaptedLuminance.GetTexture()
+            : buffers.Lum1.GetTexture();
+        renderBufferManager.DrawTexture(graphics, "Store previous luminance", previousSource!);
 
         var adaptRateParameters = new AdaptRateParameters
         {
@@ -587,8 +589,8 @@ public sealed class AutoExposurePass : RenderPass
             "ADAPTLUMINANCE",
             BlendMode.Replace,
             bilinearColorSampler: true,
-            buffers.PreviousAdaptedLuminance.Texture,
-            secondaryTexture: buffers.Lum1.Texture,
+            buffers.PreviousAdaptedLuminance.GetTexture(),
+            secondaryTexture: buffers.Lum1.GetTexture(),
             depthTexture: null,
             adaptRateParameters,
             new Vector2f(1.0f, 1.0f),
@@ -612,7 +614,7 @@ public sealed class AutoExposurePass : RenderPass
             shaderDefines,
             BlendMode.Replace,
             bilinearColorSampler: true,
-            source.Texture,
+            source.GetTexture(),
             secondaryTexture: null,
             depthTexture: null,
             inputInvSizeParameters,
@@ -817,14 +819,15 @@ public sealed class BloomPass : RenderPass
         if (viewportTexture is null)
             return 0;
 
-        var minDimension = Math.Min(viewportTexture.Width, viewportTexture.Height);
+        var viewportTextureSize = viewportTexture.GetParams().Size;
+        var minDimension = Math.Min(viewportTextureSize.X, viewportTextureSize.Y);
         if (minDimension <= 0)
             return 0;
 
         var bloomParameters = CreateBloomParameters(
             luminanceWeights,
             intensity: 0.0f,
-            new Vector2f(1.0f / viewportTexture.Width, 1.0f / viewportTexture.Height));
+            new Vector2f(1.0f / viewportTextureSize.X, 1.0f / viewportTextureSize.Y));
 
         renderBufferManager.SetRenderTargets(graphics, destination);
         graphics.DrawFullscreenQuad(
@@ -853,10 +856,11 @@ public sealed class BloomPass : RenderPass
     private void BlurTexture(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer final,
         TextureRenderBuffer temporary, Vector3f luminanceWeights)
     {
-        var texture = final.Texture;
+        var texture = final.GetTexture()!;
+        var textureSize = texture.GetParams().Size;
         var invInputSize = new Vector2f(
-            texture.Width > 0 ? 1.0f / texture.Width : 0.0f,
-            texture.Height > 0 ? 1.0f / texture.Height : 0.0f);
+            textureSize.X > 0 ? 1.0f / textureSize.X : 0.0f,
+            textureSize.Y > 0 ? 1.0f / textureSize.Y : 0.0f);
 
         var bloomParameters = CreateBloomParameters(luminanceWeights, intensity: 0.0f, invInputSize);
 
@@ -881,7 +885,7 @@ public sealed class BloomPass : RenderPass
             "BLURV",
             BlendMode.Replace,
             bilinearColorSampler: true,
-            temporary.Texture,
+            temporary.GetTexture(),
             secondaryTexture: null,
             depthTexture: null,
             bloomParameters,
@@ -892,7 +896,7 @@ public sealed class BloomPass : RenderPass
     private void CopyTexture(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer source, TextureRenderBuffer destination)
     {
         renderBufferManager.SetRenderTargets(graphics, destination);
-        renderBufferManager.DrawTexture(graphics, "Downscale bloom", source.Texture);
+        renderBufferManager.DrawTexture(graphics, "Downscale bloom", source.GetTexture()!);
     }
 
     private void ApplyBloom(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer bloom, float intensity)
@@ -904,7 +908,7 @@ public sealed class BloomPass : RenderPass
             "COMBINE",
             BlendMode.Add,
             bilinearColorSampler: true,
-            bloom.Texture,
+            bloom.GetTexture(),
             secondaryTexture: null,
             depthTexture: null,
             bloomParameters,
@@ -1158,7 +1162,7 @@ public sealed class AmbientOcclusionPass : RenderPass
         };
     }
 
-    private void EvaluateAO(RenderBufferManager renderBufferManager, Graphics graphics, Camera camera, Texture depthTexture,
+    private void EvaluateAO(RenderBufferManager renderBufferManager, Graphics graphics, Camera camera, RawTexture depthTexture,
         Matrix4 viewToTextureSpace, Matrix4 textureToViewSpace)
     {
         if (_textures?.CurrentTarget is null)
@@ -1196,7 +1200,7 @@ public sealed class AmbientOcclusionPass : RenderPass
             _normalBuffer is not null ? "EVALUATE_OCCLUSION DEFERRED" : "EVALUATE_OCCLUSION",
             BlendMode.Replace,
             bilinearColorSampler: true,
-            _textures.Noise,
+            _textures.Noise?.GetRawTexture(),
             secondaryTexture: _normalBuffer?.GetTexture(),
             depthTexture: depthTexture,
             ambientOcclusionParameters,
@@ -1206,12 +1210,13 @@ public sealed class AmbientOcclusionPass : RenderPass
         (_textures.CurrentTarget, _textures.PreviousTarget) = (_textures.PreviousTarget, _textures.CurrentTarget);
     }
 
-    private void BlurTexture(RenderBufferManager renderBufferManager, Graphics graphics, Texture depthTexture, Matrix4 textureToViewSpace)
+    private void BlurTexture(RenderBufferManager renderBufferManager, Graphics graphics, RawTexture depthTexture, Matrix4 textureToViewSpace)
     {
         if (_textures?.CurrentTarget is null || _textures.PreviousTarget is null)
             return;
 
-        var textureSize = new Vector2i(_textures.CurrentTarget.Texture.Width, _textures.CurrentTarget.Texture.Height);
+        var currentTextureSize = _textures.CurrentTarget.GetTexture()!.GetParams().Size;
+        var textureSize = new Vector2i(currentTextureSize.X, currentTextureSize.Y);
         var blurStep = new Vector2f(
             textureSize.X > 0 ? 1.0f / textureSize.X : 0.0f,
             textureSize.Y > 0 ? 1.0f / textureSize.Y : 0.0f);
@@ -1221,7 +1226,7 @@ public sealed class AmbientOcclusionPass : RenderPass
         BlurAxis(renderBufferManager, graphics, depthTexture, textureToViewSpace, new Vector2f(0.0f, blurStep.Y), shaderDefines, "SSAO Blur Vertically");
     }
 
-    private void BlurAxis(RenderBufferManager renderBufferManager, Graphics graphics, Texture depthTexture,
+    private void BlurAxis(RenderBufferManager renderBufferManager, Graphics graphics, RawTexture depthTexture,
         Matrix4 textureToViewSpace, Vector2f blurStep, string shaderDefines, string debugComment)
     {
         if (_textures?.CurrentTarget is null || _textures.PreviousTarget is null)
@@ -1242,7 +1247,7 @@ public sealed class AmbientOcclusionPass : RenderPass
             shaderDefines,
             BlendMode.Replace,
             bilinearColorSampler: true,
-            _textures.PreviousTarget.Texture,
+            _textures.PreviousTarget.GetTexture(),
             secondaryTexture: _normalBuffer?.GetTexture(),
             depthTexture: depthTexture,
             blurParameters,
@@ -1264,7 +1269,7 @@ public sealed class AmbientOcclusionPass : RenderPass
             "COMBINE",
             BlendMode.Alpha,
             bilinearColorSampler: true,
-            _textures.PreviousTarget.Texture,
+            _textures.PreviousTarget.GetTexture(),
             secondaryTexture: null,
             depthTexture: null,
             EmptyParameters,
@@ -1310,7 +1315,7 @@ public sealed class OutlineRenderPass : RenderPass
 
         ConnectToRenderBuffer(ref _colorBuffer, ColorBufferId, sharedState, required: false);
 
-        if (_colorBuffer?.GetTexture() is not Texture texture
+        if (_colorBuffer?.GetTexture() is not { } texture
             || sharedState.RenderBufferManager is not { } renderBufferManager
             || sharedState.Graphics is not { } graphics)
         {
@@ -1319,9 +1324,7 @@ public sealed class OutlineRenderPass : RenderPass
 
         var outlineParameters = new OutlineParameters
         {
-            InputInvSize = new Vector2f(
-            texture.Width > 0 ? 1.0f / texture.Width : 0.0f,
-            texture.Height > 0 ? 1.0f / texture.Height : 0.0f)
+            InputInvSize = Vector2f.One / new Vector2f(texture.GetParams().Size.X, texture.GetParams().Size.Y)
         };
 
         renderBufferManager.SetOutputRenderTargets(graphics);

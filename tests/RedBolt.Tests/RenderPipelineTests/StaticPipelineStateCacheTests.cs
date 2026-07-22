@@ -12,7 +12,7 @@ public sealed class StaticPipelineStateCacheTests
     [Fact]
     public void Create_state_deduplicates_cpp_descriptor_values()
     {
-        var cache = new StaticPipelineStateCache();
+        using var cache = new StaticPipelineStateCache();
         var description = new GraphicsPipelineStateDesc
         {
             DebugName = "Static state",
@@ -29,7 +29,7 @@ public sealed class StaticPipelineStateCacheTests
     [Fact]
     public void Create_state_stores_cpp_value_copy()
     {
-        var cache = new StaticPipelineStateCache();
+        using var cache = new StaticPipelineStateCache();
         var description = new GraphicsPipelineStateDesc
         {
             DebugName = "Static state",

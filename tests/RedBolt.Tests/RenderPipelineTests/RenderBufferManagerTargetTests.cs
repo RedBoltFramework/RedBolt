@@ -1,9 +1,10 @@
 namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
-public sealed class RenderBufferManagerTargetTests
+public sealed class RenderBufferManagerTargetTests : IDisposable
 {
     private readonly HeadlessEngineFixture _fixture;
+    private bool _graphicsInitialized;
 
     public RenderBufferManagerTargetTests(HeadlessEngineFixture fixture)
     {
@@ -13,8 +14,10 @@ public sealed class RenderBufferManagerTargetTests
     [Fact]
     public void Set_render_targets_rect_uses_depth_first_multi_color_api()
     {
-        var manager = new RenderBufferManager();
-        manager.OnViewportDefined(null, new IntRect(0, 0, 320, 200));
+        EnsureGraphics();
+        var pipeline = new TestRenderPipelineInterface();
+        using var manager = new RenderBufferManager(pipeline);
+        var frameInfo = pipeline.BeginFrame(manager, null, new IntRect(0, 0, 320, 200));
 
         var depthBuffer = manager.GetDepthStencilOutput();
         var colorBuffer = manager.GetColorOutput();
@@ -28,18 +31,52 @@ public sealed class RenderBufferManagerTargetTests
             face: CubeMapFace.PositiveX);
 
         manager.SetOutputRenderTargetsRect(_fixture.Graphics, new IntRect(0, 0, 160, 100));
+        pipeline.EndFrame(frameInfo);
     }
 
     [Fact]
     public void Backbuffer_subviewport_uses_substitute_output_buffers()
     {
-        var manager = new RenderBufferManager();
+        EnsureGraphics();
+        var pipeline = new TestRenderPipelineInterface();
+        using var manager = new RenderBufferManager(pipeline);
         manager.SetSettings(new RenderBufferManagerSettings { ReadableDepth = true });
         var viewportRect = new IntRect(0, 0, 1, 1);
 
-        manager.OnViewportDefined(null, viewportRect);
+        var frameInfo = pipeline.BeginFrame(manager, null, viewportRect);
 
         Assert.IsType<TextureRenderBuffer>(manager.GetColorOutput());
         Assert.IsType<TextureRenderBuffer>(manager.GetDepthStencilOutput());
+        pipeline.EndFrame(frameInfo);
+    }
+
+    private void EnsureGraphics()
+    {
+        if (_graphicsInitialized)
+            return;
+
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RedBolt.Tests.RenderBufferManagerTargetTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 64
+        };
+        RbfxTestData.AddResourceDirs(_fixture.Resources);
+        _fixture.Input.Initialize(parameters);
+        _fixture.Graphics.Initialize(parameters, _fixture.Input);
+        _fixture.RenderDevice.RestoreDeviceState();
+        _graphicsInitialized = true;
+    }
+
+    public void Dispose()
+    {
+        if (!_graphicsInitialized)
+            return;
+
+        _fixture.RenderDevice.InvalidateDeviceState();
+        _fixture.Graphics.Shutdown();
+        _fixture.Input.Shutdown();
+        RbfxTestData.RemoveResourceDirs(_fixture.Resources);
     }
 }

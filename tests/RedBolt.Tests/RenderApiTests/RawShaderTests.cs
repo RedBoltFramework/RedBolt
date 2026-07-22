@@ -140,7 +140,7 @@ public sealed class RawShaderTests
             Assert.False(vertexShader.GetHandle()!.IsNull);
             Assert.False(pixelShader.GetHandle()!.IsNull);
 
-            var renderBufferManager = new RenderBufferManager();
+            using var renderBufferManager = TestRenderPipelineInterface.CreateRenderBufferManager();
             var pipelineStateId = renderBufferManager.CreateQuadPipelineState(
                 BlendMode.Replace,
                 "v2/X_CopyFramebuffer",

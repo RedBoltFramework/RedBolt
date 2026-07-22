@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
@@ -5,43 +7,26 @@ namespace RedBolt;
 /// <summary>
 /// Base class for writable texture or texture region. Readability is not guaranteed.
 /// </summary>
-public abstract class RenderBuffer
+public abstract class RenderBuffer : Object
 {
-    protected bool _bufferIsReady;
+    protected readonly RenderDevice RenderDevice;
+    protected bool BufferIsReady;
+    protected bool IsEnabledValue = true;
 
-    public bool IsEnabled { get; private set; } = true;
-
-    /// <summary>
-    /// Set whether the render buffer is enabled. Disabled buffers should not be accessed during the frame.
-    /// </summary>
-    public void SetEnabled(bool enabled)
+    protected RenderBuffer(IRenderPipelineInterface renderPipeline)
     {
-        IsEnabled = enabled;
+        RenderDevice = GetSubsystem<RenderDevice>()!;
+        renderPipeline.RenderBegin += OnRenderBegin;
+        renderPipeline.RenderEnd += OnRenderEnd;
+        RenderPipeline = renderPipeline;
     }
 
-    protected bool CheckIfBufferIsReady()
-    {
-        if (!_bufferIsReady)
-        {
-            Log.GetLogger().LogError("RenderBuffer is not available");
-            return false;
-        }
-
-        return true;
-    }
-
-    public virtual void OnRenderBegin(CommonFrameInfo frameInfo)
-    {
-    }
-
-    public virtual void OnRenderEnd(CommonFrameInfo frameInfo)
-    {
-    }
+    private IRenderPipelineInterface RenderPipeline { get; }
 
     /// <summary>
     /// Return readable texture. May return null if not supported.
     /// </summary>
-    public abstract Texture? GetTexture();
+    public abstract RawTexture? GetTexture();
 
     /// <summary>
     /// Return render surface. Face could be specified for cubemap texture.
@@ -55,6 +40,35 @@ public abstract class RenderBuffer
     /// Always equal to whole texture for TextureRenderBuffer, not so for viewport buffers.
     /// </summary>
     public abstract IntRect GetViewportRect();
+
+    /// <summary>
+    /// Set whether the render buffer is enabled. Disabled buffers should not be accessed during the frame.
+    /// </summary>
+    public void SetEnabled(bool enabled) => IsEnabledValue = enabled;
+
+    public bool IsEnabled => IsEnabledValue;
+
+    protected bool CheckIfBufferIsReady()
+    {
+        if (!BufferIsReady)
+        {
+            Log.GetLogger().LogError("RenderBuffer is not available");
+            return false;
+        }
+        return true;
+    }
+
+    protected abstract void OnRenderBegin(CommonFrameInfo frameInfo);
+    protected abstract void OnRenderEnd(CommonFrameInfo frameInfo);
+
+    internal void BeginCurrentFrame(CommonFrameInfo frameInfo) => OnRenderBegin(frameInfo);
+
+    public override void Dispose()
+    {
+        RenderPipeline.RenderEnd -= OnRenderEnd;
+        RenderPipeline.RenderBegin -= OnRenderBegin;
+        base.Dispose();
+    }
 }
 
 /// <summary>
@@ -62,125 +76,108 @@ public abstract class RenderBuffer
 /// </summary>
 public sealed class TextureRenderBuffer : RenderBuffer
 {
-    private readonly RenderBufferParams _bufferParams;
-    private readonly Vector2f _sizeMultiplier = Vector2f.One;
-    private readonly Vector2i _fixedSize;
+    private readonly RenderBufferParams _params;
+    private Vector2f _sizeMultiplier = Vector2f.One;
+    private Vector2i _fixedSize;
+    private Vector2i _currentSize;
+    private RawTexture? _currentTexture;
+    private GCHandle _persistenceHandle;
 
-    public TextureRenderBuffer(Texture texture, IntRect viewportRect)
+    public TextureRenderBuffer(IRenderPipelineInterface renderPipeline, RenderBufferParams parameters)
+        : this(renderPipeline, parameters, Vector2f.One)
     {
-        Texture = texture ?? throw new ArgumentNullException(nameof(texture));
-        ViewportRect = viewportRect;
-        _bufferParams = new RenderBufferParams(texture.Format, texture.MultiSample);
     }
 
-    public TextureRenderBuffer(RenderBufferParams bufferParams, Vector2f size = default)
+    public TextureRenderBuffer(IRenderPipelineInterface renderPipeline, RenderBufferParams parameters, Vector2f size)
+        : base(renderPipeline)
     {
-        this._bufferParams = bufferParams;
-        Texture = (bufferParams.Flags & RenderBufferFlag.CubeMap) != 0
-            ? new TextureCube($"RenderBuffer.{Guid.NewGuid():N}")
-            : new Texture2D($"RenderBuffer.{Guid.NewGuid():N}");
-
-        var effectiveSize = size == default ? Vector2f.One : size;
-        if ((bufferParams.Flags & RenderBufferFlag.FixedTextureSize) != 0)
-            _fixedSize = new Vector2i(Math.Max(1, (int)Math.Round(effectiveSize.X)), Math.Max(1, (int)Math.Round(effectiveSize.Y)));
+        _params = parameters;
+        if ((_params.Flags & RenderBufferFlag.FixedTextureSize) != 0)
+            _fixedSize = new Vector2i((int)MathF.Round(size.X), (int)MathF.Round(size.Y));
         else
-            _sizeMultiplier = effectiveSize;
+            _sizeMultiplier = size;
+
+        if ((_params.Flags & RenderBufferFlag.Persistent) != 0)
+            _persistenceHandle = GCHandle.Alloc(this, GCHandleType.Weak);
     }
 
-    public Texture Texture { get; }
+    protected override void OnRenderBegin(CommonFrameInfo frameInfo)
+    {
+        if (!IsEnabledValue)
+            return;
 
-    public IntRect ViewportRect { get; private set; }
+        var renderPool = RenderDevice.GetRenderPool();
+        _currentSize = CalculateRenderTargetSize(frameInfo.ViewportRect, _sizeMultiplier, _fixedSize);
 
-    public RenderBufferParams BufferParams => _bufferParams;
+        var noAutoResolve = (_params.Flags & RenderBufferFlag.NoMultiSampledAutoResolve) != 0;
+        var isCubemap = (_params.Flags & RenderBufferFlag.CubeMap) != 0;
+        var isFiltered = (_params.Flags & RenderBufferFlag.BilinearFiltering) != 0;
+        var isPersistent = (_params.Flags & RenderBufferFlag.Persistent) != 0;
+        var isDepthStencil = RenderAPIUtils.IsDepthTextureFormat(_params.TextureFormat);
 
-    public override Texture? GetTexture() => Texture;
+        var flags = isDepthStencil ? TextureFlag.BindDepthStencil : TextureFlag.BindRenderTarget;
+        if (noAutoResolve)
+            flags |= TextureFlag.NoMultiSampledAutoResolve;
+
+        var parameters = new RawTextureParams(
+            isCubemap ? TextureType.TextureCube : TextureType.Texture2D,
+            _params.TextureFormat,
+            flags,
+            new Vector3i(_currentSize.X, _currentSize.Y, 1),
+            NumLevels: 1,
+            MultiSample: _params.MultiSampleLevel);
+
+        var persistenceKey = isPersistent ? GCHandle.ToIntPtr(_persistenceHandle) : nint.Zero;
+        _currentTexture = renderPool.GetTexture(parameters, persistenceKey);
+        _currentTexture.SetSamplerStateDesc(isFiltered ? SamplerStateDesc.Bilinear() : SamplerStateDesc.Nearest());
+        BufferIsReady = true;
+    }
+
+    protected override void OnRenderEnd(CommonFrameInfo frameInfo)
+    {
+        _currentTexture = null;
+        BufferIsReady = false;
+    }
+
+    public override RawTexture? GetTexture()
+    {
+        Debug.Assert(CheckIfBufferIsReady());
+        return _currentTexture;
+    }
 
     public override RenderTargetView GetView(int slice = 0)
     {
-        if (Texture is Texture2D && slice == 0)
-            return RenderTargetView.Texture(Texture);
-
-        return RenderTargetView.TextureSlice(Texture, slice);
+        Debug.Assert(CheckIfBufferIsReady());
+        return RenderTargetView.TextureSlice(_currentTexture!, slice);
     }
 
     public override RenderTargetView GetReadOnlyDepthView(int slice = 0)
     {
-        if (Texture is Texture2D && slice == 0)
-            return RenderTargetView.ReadOnlyDepth(Texture);
-
-        return RenderTargetView.ReadOnlyDepthSlice(Texture, slice);
+        Debug.Assert(CheckIfBufferIsReady());
+        return RenderTargetView.ReadOnlyDepthSlice(_currentTexture!, slice);
     }
 
-    public override IntRect GetViewportRect() => ViewportRect;
-
-    public override void OnRenderBegin(CommonFrameInfo frameInfo)
+    public override IntRect GetViewportRect()
     {
-        if (!IsEnabled)
-            return;
-
-        RefreshForViewport(frameInfo.ViewportRect);
-        _bufferIsReady = true;
+        Debug.Assert(CheckIfBufferIsReady());
+        return new IntRect(0, 0, _currentSize.X, _currentSize.Y);
     }
 
-    public override void OnRenderEnd(CommonFrameInfo frameInfo)
+    public override void Dispose()
     {
-        _bufferIsReady = false;
+        _currentTexture = null;
+        if (_persistenceHandle.IsAllocated)
+            _persistenceHandle.Free();
+        base.Dispose();
     }
 
-    public void SetViewportRect(IntRect viewportRect)
+    private static Vector2i CalculateRenderTargetSize(IntRect viewportRect, Vector2f sizeMultiplier, Vector2i explicitSize)
     {
-        ViewportRect = viewportRect;
+        if (explicitSize != Vector2i.Zero)
+            return explicitSize;
+        var viewportSize = viewportRect.Size;
+        return new Vector2i(
+            Math.Max(1, (int)MathF.Round(viewportSize.X * sizeMultiplier.X)),
+            Math.Max(1, (int)MathF.Round(viewportSize.Y * sizeMultiplier.Y)));
     }
-
-    public void RefreshForViewport(IntRect outputViewportRect)
-    {
-        var nextSize = CalculateTextureSize(outputViewportRect.Size);
-        var nextFormat = _bufferParams.TextureFormat == TextureFormat.TexFormatUnknown ? TextureFormat.TexFormatRgba8Unorm : _bufferParams.TextureFormat;
-        var textureFlags = RenderAPIUtils.IsDepthTextureFormat(nextFormat)
-            ? TextureFlag.BindDepthStencil
-            : TextureFlag.BindRenderTarget;
-        if ((_bufferParams.Flags & RenderBufferFlag.NoMultiSampledAutoResolve) != 0)
-            textureFlags |= TextureFlag.NoMultiSampledAutoResolve;
-        if (Texture.Width != nextSize.X || Texture.Height != nextSize.Y || Texture.Format != nextFormat || Texture.MultiSample != _bufferParams.MultiSampleLevel)
-        {
-            switch (Texture)
-            {
-                case Texture2D texture2D when texture2D.SetSize(
-                    nextSize.X, nextSize.Y, nextFormat, textureFlags, _bufferParams.MultiSampleLevel):
-                    break;
-
-                case TextureCube textureCube when textureCube.SetSize(
-                    Math.Max(nextSize.X, nextSize.Y), nextFormat, textureFlags, _bufferParams.MultiSampleLevel):
-                    nextSize = new Vector2i(textureCube.Width, textureCube.Height);
-                    break;
-
-                default:
-                    throw new InvalidOperationException("Failed to resize texture render buffer.");
-            }
-        }
-
-        if (!RenderAPIUtils.IsDepthTextureFormat(nextFormat))
-        {
-            Texture.SetFilterMode((_bufferParams.Flags & RenderBufferFlag.BilinearFiltering) != 0
-                ? TextureFilterMode.Bilinear
-                : TextureFilterMode.Nearest);
-        }
-
-        ViewportRect = new IntRect(0, 0, nextSize.X, nextSize.Y);
-    }
-
-    private Vector2i CalculateTextureSize(Vector2i outputSize)
-    {
-        if ((_bufferParams.Flags & RenderBufferFlag.FixedTextureSize) != 0)
-            return new Vector2i(Math.Max(_fixedSize.X, 1), Math.Max(_fixedSize.Y, 1));
-
-        var width = _sizeMultiplier.X <= 1.0f
-            ? Math.Max(1, (int)Math.Round(outputSize.X * _sizeMultiplier.X))
-            : Math.Max(1, (int)Math.Round(_sizeMultiplier.X));
-        var height = _sizeMultiplier.Y <= 1.0f
-            ? Math.Max(1, (int)Math.Round(outputSize.Y * _sizeMultiplier.Y))
-            : Math.Max(1, (int)Math.Round(_sizeMultiplier.Y));
-        return new Vector2i(width, height);
-    }
-
 }
