@@ -174,6 +174,7 @@ layout(std140) uniform Material
     private Vector2i _currentRenderTargetSize;
     private bool _isSwapChainRenderTarget;
     private IntPtr _glContext;
+    private bool _ownsRenderDeviceResources = true;
     private bool _shaderReflectionDiagnosticsDumped;
     private SdlWindow? _window;
     private string _windowTitle = string.Empty;
@@ -778,6 +779,15 @@ layout(std140) uniform Material
     public ISwapChain? GetNativeSwapChain() => _swapChain;
 
 #if REDBOLT_VULKAN_SUPPORTED
+    internal ISwapChainVk? GetNativeVulkanSwapChain() => _swapChainVulkan;
+#endif
+
+    internal void TransferRenderDeviceOwnership()
+    {
+        _ownsRenderDeviceResources = false;
+    }
+
+#if REDBOLT_VULKAN_SUPPORTED
     internal SwapChainDesc ReleaseVulkanSwapChain()
     {
         System.Diagnostics.Debug.Assert(_swapChain is not null);
@@ -790,6 +800,8 @@ layout(std140) uniform Material
         _swapChainOutputTarget = null;
         _swapChainColorFormat = 0;
         _swapChainDepthFormat = 0;
+        ReleaseIfNotNull(_swapChainVulkan);
+        _swapChainVulkan = null;
         ReleaseIfNotNull(_swapChain);
         _swapChain = null;
         return oldNativeSwapChainDesc;
@@ -815,6 +827,9 @@ layout(std140) uniform Material
             out var nativeSwapChain);
         if (nativeSwapChain.IsNull)
             return false;
+
+        _swapChainVulkan = ISwapChainVk.QueryManagedWrapper(nativeSwapChain)
+            ?? throw new InvalidOperationException("Vulkan swap chain interface is unavailable.");
 
         _swapChain = DiligentNativeBindings.CreateProxySwapChainMS(
             _device!, _immediateContext!, nativeSwapChain, (uint)depthFormat, (uint)multiSample);
@@ -1036,6 +1051,8 @@ layout(std140) uniform Material
 
         if (IsInitialized)
             throw new InvalidOperationException("Graphics system is already initialized.");
+
+        _ownsRenderDeviceResources = true;
 
         // C++ RenderDevice ctor: Diligent::SetDebugMessageCallback(&DebugMessageCallback)
         // before factory/device creation (filters noisy shader compiler INFO logs).
@@ -1888,29 +1905,35 @@ layout(std140) uniform Material
         _diligentViewport = null;
 
 #if REDBOLT_VULKAN_SUPPORTED
-        ReleaseIfNotNull(_swapChainVulkan);
+        if (_ownsRenderDeviceResources)
+            ReleaseIfNotNull(_swapChainVulkan);
         _swapChainVulkan = null;
 #endif
-        ReleaseIfNotNull(_swapChain);
+        if (_ownsRenderDeviceResources)
+            ReleaseIfNotNull(_swapChain);
         _swapChain = null;
         _factory = null;
-        ReleaseIfNotNull(_immediateContext);
+        if (_ownsRenderDeviceResources)
+            ReleaseIfNotNull(_immediateContext);
         _immediateContext = null;
-        ReleaseIfNotNull(_device);
+        if (_ownsRenderDeviceResources)
+            ReleaseIfNotNull(_device);
         _device = null;
 
         if (_clearColorHandle.IsAllocated)
             _clearColorHandle.Free();
 
-        if (_glContext != IntPtr.Zero)
+        if (_ownsRenderDeviceResources && _glContext != IntPtr.Zero)
         {
             if (_window is not null && !_window.IsNull)
                 _ = SdlNativeBindings.SdlGlMakeCurrent(_window, IntPtr.Zero);
             SdlNativeBindings.SdlGlDeleteContext(_glContext);
             _glContext = IntPtr.Zero;
         }
+        _glContext = IntPtr.Zero;
 
         _window = null;
+        _ownsRenderDeviceResources = true;
         IsInitialized = false;
     }
 

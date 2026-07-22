@@ -177,6 +177,7 @@ public class Input : Object
     private IntRect? _explicitWindowRect;
     private SdlEvent? _nativeEvent;
     private SdlWindow? _window;
+    private bool _ownsWindow;
     private MouseButton _mouseButtonClick;
     private MouseButton _mouseButtonDown;
     private MouseButton _mouseButtonPress;
@@ -341,6 +342,7 @@ public class Input : Object
             if (window is null || window.IsNull)
                 throw new InvalidOperationException($"Could not create window: {Encoding.UTF8.GetString(SdlNativeBindings.SdlGetError()).TrimEnd('\0')}");
             _window = window;
+            _ownsWindow = true;
 
             if (parameters.WindowMaximize)
                 SdlNativeBindings.SdlMaximizeWindow(_window);
@@ -1343,15 +1345,22 @@ public class Input : Object
     }
 #endif
 
+    internal SdlWindow TransferWindowOwnership()
+    {
+        _ownsWindow = false;
+        return Window;
+    }
+
     public void Shutdown()
     {
         var wasInitialized = IsInitialized;
         _nativeEvent?.Dispose();
         _nativeEvent = null;
 
-        if (_window is not null && !_window.IsNull)
+        if (_ownsWindow && _window is not null && !_window.IsNull)
             SdlNativeBindings.SdlDestroyWindow(_window);
         _window = null;
+        _ownsWindow = false;
 
         IsInitialized = false;
         ExitRequested = false;

@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
-using System.Collections.Immutable;
 using System.Runtime.InteropServices;
 
 namespace RedBolt;
@@ -12,30 +11,38 @@ namespace RedBolt;
 public sealed class RenderDevice : Object
 {
     private readonly RenderDeviceSettings _deviceSettings;
+    private WindowSettings _windowSettings;
     private bool _defaultTextureParametersDirty;
     private TextureFilterMode _defaultTextureFilterMode = TextureFilterMode.Trilinear;
     private int _defaultTextureAnisotropy = 4;
+    private RenderDeviceCaps _caps;
+    private TextureFormat _defaultDepthStencilFormat = TextureFormat.TexFormatD24UnormS8Uint;
+    private TextureFormat _defaultDepthFormat = TextureFormat.TexFormatD24UnormS8Uint;
+    private SdlWindow? _window;
+    private IntPtr _glContext;
+    private IEngineFactory? _factory;
+    private IRenderDevice? _renderDevice;
+    private IDeviceContext? _deviceContext;
+    private ISwapChain? _swapChain;
+    private readonly RenderContext _renderContext;
+    private FrameIndex _frameIndex = FrameIndex.First;
     private readonly object _deviceObjectsLock = new();
     private readonly HashSet<DeviceObject> _deviceObjects = [];
-    private readonly RenderPool _renderPool;
-    private readonly RenderContext _renderContext;
-    private readonly DrawCommandQueue _defaultQueue;
     private readonly RawTexture?[] _defaultTextures = new RawTexture?[(int)TextureType.Count];
-    private readonly List<WeakReference<PipelineState>> _pipelineStatesToReload = [];
-    private FrameIndex _frameIndex = FrameIndex.First;
-    private WindowSettings? _windowSettings;
+    private readonly RenderPool _renderPool;
+    private readonly DrawCommandQueue _defaultQueue;
 #if REDBOLT_VULKAN_SUPPORTED
     private SwapChainDesc? _oldNativeSwapChainDesc;
 #endif
+    private readonly List<WeakReference<PipelineState>> _pipelineStatesToReload = [];
+    private const uint StatsPeriodMs = 333;
     private readonly Timer _statsTimer = new();
     private RenderDeviceStats _stats = new();
     private RenderDeviceStats _maxStats = new();
     private RenderDeviceStats _previousMaxStats = new();
-    // C++: defaultDepthStencilFormat_ / defaultDepthFormat_ selected at device init.
-    private TextureFormat _defaultDepthStencilFormat = TextureFormat.TexFormatD24UnormS8Uint;
-    private TextureFormat _defaultDepthFormat = TextureFormat.TexFormatD24UnormS8Uint;
-    private bool _defaultDepthFormatsInitialized;
-    private const uint StatsPeriodMs = 333;
+#if REDBOLT_VULKAN_SUPPORTED
+    private ISwapChainVk? _swapChainVulkan;
+#endif
 
     internal RenderDevice(RenderDeviceSettings deviceSettings, WindowSettings windowSettings)
     {
@@ -45,44 +52,93 @@ public sealed class RenderDevice : Object
         ValidateWindowSettings(ref windowSettings);
         _windowSettings = windowSettings;
         _renderPool = new RenderPool(this);
-        _renderContext = new RenderContext(this);
         _defaultQueue = new DrawCommandQueue(this);
+
+        var graphics = GetSubsystem<Graphics>()!;
+        var input = GetSubsystem<Input>()!;
+        _window = input.Window;
+        _glContext = graphics.GetGLContext();
+        _factory = graphics.GetNativeFactory();
+        _renderDevice = graphics.GetNativeRenderDevice();
+        _deviceContext = graphics.GetImmediateContext();
+        _swapChain = graphics.GetNativeSwapChain();
+#if REDBOLT_VULKAN_SUPPORTED
+        _swapChainVulkan = graphics.GetNativeVulkanSwapChain();
+#endif
+        InitializeDefaultDepthFormats();
+        _renderContext = new RenderContext(this);
+        InitializeCaps();
+        _window = input.TransferWindowOwnership();
+        graphics.TransferRenderDeviceOwnership();
+    }
+
+    public void PostInitialize()
+    {
+        InitializeDefaultObjects();
     }
 
     public override void Dispose()
     {
         SendDeviceObjectEvent(DeviceObjectEvent.Destroy);
-        GetSubsystem<Graphics>()?.GetImmediateContext()?.WaitForIdle();
-        ReleaseDefaultObjects();
-        _renderContext.Dispose();
-        _renderPool.Dispose();
-        base.Dispose();
-    }
+        _deviceContext?.WaitForIdle();
 
-    public void PostInitialize()
-    {
-        InitializeDefaultDepthFormats();
-        InitializeDefaultObjects();
+#if REDBOLT_VULKAN_SUPPORTED
+        _oldNativeSwapChainDesc?.Dispose();
+        _oldNativeSwapChainDesc = null;
+#endif
+        _pipelineStatesToReload.Clear();
+        _renderPool.Dispose();
+        for (var i = 0; i < _defaultTextures.Length; ++i)
+        {
+            _defaultTextures[i]?.Dispose();
+            _defaultTextures[i] = null;
+        }
+        lock (_deviceObjectsLock)
+            _deviceObjects.Clear();
+        _renderContext.Dispose();
+
+        var graphics = GetSubsystem<Graphics>();
+        if (graphics is not null)
+        {
+            _glContext = graphics.GetGLContext();
+            graphics.Shutdown();
+        }
+
+#if REDBOLT_VULKAN_SUPPORTED
+        ReleaseIfNotNull(_swapChainVulkan);
+        _swapChainVulkan = null;
+#endif
+        ReleaseIfNotNull(_swapChain);
+        _swapChain = null;
+        _factory = null;
+        ReleaseIfNotNull(_deviceContext);
+        _deviceContext = null;
+        ReleaseIfNotNull(_renderDevice);
+        _renderDevice = null;
+
+        if (_glContext != IntPtr.Zero)
+        {
+            if (_window is not null && !_window.IsNull)
+                _ = SdlNativeBindings.SdlGlMakeCurrent(_window, IntPtr.Zero);
+            SdlNativeBindings.SdlGlDeleteContext(_glContext);
+            _glContext = IntPtr.Zero;
+        }
+
+        if (_window is not null && !_window.IsNull)
+            SdlNativeBindings.SdlDestroyWindow(_window);
+        _window = null;
+        base.Dispose();
     }
 
     public ISwapChain? CreateSecondarySwapChain(SdlWindow sdlWindow, bool hasDepthBuffer)
     {
-        var graphics = GetSubsystem<Graphics>();
-        if (graphics is null)
-            return null;
-
-        var renderDevice = graphics.GetNativeRenderDevice();
-        var deviceContext = graphics.GetImmediateContext();
-        var swapChain = graphics.GetNativeSwapChain();
-        if (renderDevice is null || deviceContext is null || swapChain is null)
-            return null;
-
-        var swapChainDesc = new SwapChainDesc
+        using var currentSwapChainDesc = _swapChain!.GetDesc();
+        using var swapChainDesc = new SwapChainDesc
         {
             IsPrimary = false,
-            ColorBufferFormat = swapChain.GetDesc().ColorBufferFormat,
+            ColorBufferFormat = currentSwapChainDesc.ColorBufferFormat,
             DepthBufferFormat = hasDepthBuffer
-                ? swapChain.GetDesc().DepthBufferFormat
+                ? currentSwapChainDesc.DepthBufferFormat
                 : global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatUnknown
         };
 
@@ -91,9 +147,9 @@ public sealed class RenderDevice : Object
         case RenderBackend.OpenGL:
         {
             var currentContext = SdlNativeBindings.SdlGlGetCurrentContext();
-            System.Diagnostics.Debug.Assert(currentContext != IntPtr.Zero && currentContext != graphics.GetGLContext());
+            System.Diagnostics.Debug.Assert(currentContext != IntPtr.Zero && currentContext != _glContext);
             return DiligentNativeBindings.CreateSecondaryProxySwapChainGL(
-                renderDevice, deviceContext, swapChainDesc, sdlWindow.Handle);
+                _renderDevice!, _deviceContext!, swapChainDesc, sdlWindow.Handle);
         }
         default:
             System.Diagnostics.Debug.Assert(false, "Unsupported render backend");
@@ -400,6 +456,13 @@ public sealed class RenderDevice : Object
         if (swapChain is not null && !swapChain.IsNull)
             swapChain.Present(GetWindowSettings().VSync ? 1u : 0u);
 
+        if (_deviceSettings.ExternalWindowHandle != IntPtr.Zero && _window is not null && !_window.IsNull)
+        {
+            SdlNativeBindings.SdlGetWindowSize(_window, out var width, out var height);
+            if (GetWindowSettings().Size != new Vector2i(width, height))
+                UpdateSwapChainSize();
+        }
+
         _renderPool.OnFrameEnd();
 
         foreach (var weakPipelineState in _pipelineStatesToReload)
@@ -413,24 +476,20 @@ public sealed class RenderDevice : Object
         {
             _defaultTextureParametersDirty = false;
 
-            DeviceObject[] snapshot;
             lock (_deviceObjectsLock)
-                snapshot = [.. _deviceObjects];
-
-            foreach (var deviceObject in snapshot)
             {
-                if (deviceObject is PipelineState pipelineState)
+                foreach (var deviceObject in _deviceObjects)
                 {
-                    pipelineState.Invalidate();
-                    pipelineState.Restore();
+                    if (deviceObject is PipelineState pipelineState)
+                    {
+                        pipelineState.Invalidate();
+                        pipelineState.Restore();
+                    }
                 }
             }
         }
 
-        var contextStats = _renderContext.GetStats();
-        _stats.NumPrimitives = contextStats.NumPrimitives;
-        _stats.NumDraws = contextStats.NumDraws;
-        _stats.NumDispatches = contextStats.NumDispatches;
+        _stats = _renderContext.GetStats();
         _renderContext.ResetStats();
 
         if (_statsTimer.GetMSec() >= StatsPeriodMs)
@@ -447,6 +506,7 @@ public sealed class RenderDevice : Object
         }
 
         _frameIndex = (FrameIndex)((long)_frameIndex + 1);
+        System.Diagnostics.Debug.Assert(_frameIndex > FrameIndex.None, "How did you exhaust 2^63 frames?");
     }
 
     /// <summary>
@@ -501,75 +561,29 @@ public sealed class RenderDevice : Object
 
     public RenderDeviceSettings GetDeviceSettings() => _deviceSettings;
 
-    public WindowSettings GetWindowSettings()
+    public WindowSettings GetWindowSettings() => _windowSettings;
+
+    private void InitializeCaps()
     {
-        var graphics = GetSubsystem<Graphics>();
-        if (_windowSettings is not null && graphics is { IsInitialized: true })
-            return _windowSettings.Value;
-
-        var engine = GetSubsystem<Engine>();
-        var parameters = engine?.Parameters ?? new EngineParameters();
-        InitializeWindowSettings(parameters);
-        return _windowSettings!.Value;
-    }
-
-    internal void InitializeWindowSettings(EngineParameters parameters)
-    {
-        var settings = new WindowSettings
-        {
-            Mode = GetWindowMode(parameters),
-            Size = new Vector2i(parameters.WindowWidth, parameters.WindowHeight),
-            Title = parameters.WindowTitle,
-            Resizable = parameters.WindowResizable,
-            Monitor = parameters.Monitor,
-            VSync = parameters.VSync,
-            RefreshRate = parameters.RefreshRate,
-            MultiSample = parameters.MultiSample,
-            SRgb = true,
-            Orientations = ParseOrientations(parameters.Orientations)
-        };
-        if (parameters.ExternalWindow != IntPtr.Zero)
-            settings.Mode = WindowMode.Windowed;
-        ValidateWindowSettings(ref settings);
-        _windowSettings = settings;
-    }
-
-    internal void UpdateEffectiveWindowSettings(Vector2i size, int multiSample, bool sRgb)
-    {
-        var settings = _windowSettings!.Value;
-        settings.Size = size;
-        settings.MultiSample = multiSample;
-        settings.SRgb = sRgb;
-        _windowSettings = settings;
-    }
-
-    public RenderDeviceCaps GetCaps()
-    {
-        var graphics = GetSubsystem<Graphics>();
-        if (graphics is not { IsInitialized: true })
-            return graphics?.GetRenderDeviceCaps() ?? new RenderDeviceCaps();
-
-        var renderDevice = GetRenderDevice();
-        if (renderDevice is null || renderDevice.IsNull)
-            return new RenderDeviceCaps();
-
-        using var adapterInfo = renderDevice.GetAdapterInfo();
-        var caps = new RenderDeviceCaps
+        using var adapterInfo = _renderDevice!.GetAdapterInfo();
+        _caps = new RenderDeviceCaps
         {
             ComputeShaders = adapterInfo.FeaturesComputeShaders == DeviceFeatureState.DeviceFeatureStateEnabled,
             DrawBaseVertex = (adapterInfo.DrawCommandCapFlags & DrawCommandCapFlags.DrawCommandCapFlagBaseVertex) != 0,
             DrawBaseInstance = !RenderAPIUtils.IsOpenGLESBackend(GetBackend()) && !OperatingSystem.IsMacOS(),
             ReadOnlyDepth = !OperatingSystem.IsBrowser(),
-            SrgbOutput = IsRenderTargetFormatSupported(TextureFormat.TexFormatRgba8Unorm),
+            SrgbOutput = IsRenderTargetFormatSupported(TextureFormat.TexFormatRgba8UnormSrgb)
+                || IsRenderTargetFormatSupported(TextureFormat.TexFormatBgra8UnormSrgb),
             HdrOutput = IsRenderTargetFormatSupported(TextureFormat.TexFormatRgba16Float),
             ConstantBufferOffsetAlignment = checked((int)adapterInfo.BufferConstantBufferOffsetAlignment),
             MaxTextureSize = checked((int)adapterInfo.TextureMaxTexture2DDimension),
             MaxRenderTargetSize = checked((int)adapterInfo.TextureMaxTexture2DDimension)
         };
 
-        caps.ClipDistance = !RenderAPIUtils.IsOpenGLESBackend(GetBackend());
-        return caps;
+        _caps.ClipDistance = !RenderAPIUtils.IsOpenGLESBackend(GetBackend());
     }
+
+    public RenderDeviceCaps GetCaps() => _caps;
 
     public RenderDeviceStats GetStats()
     {
@@ -590,18 +604,11 @@ public sealed class RenderDevice : Object
 
     public TextureFormat GetDefaultDepthStencilFormat()
     {
-        // C++: returns defaultDepthStencilFormat_ selected at device init.
-        if (!_defaultDepthFormatsInitialized)
-            InitializeDefaultDepthFormats();
         return _defaultDepthStencilFormat;
     }
 
     public TextureFormat GetDefaultDepthFormat()
     {
-        // C++: returns defaultDepthFormat_ = SelectDefaultDepthFormat(device, /*needStencil=*/false).
-        // Shadow maps use this (depth-only preference), not the swap-chain depth-stencil format.
-        if (!_defaultDepthFormatsInitialized)
-            InitializeDefaultDepthFormats();
         return _defaultDepthFormat;
     }
 
@@ -609,17 +616,17 @@ public sealed class RenderDevice : Object
 
     public RenderPool GetRenderPool() => _renderPool;
 
-    public SdlWindow? GetSDLWindow() => GetSubsystem<Graphics>()?.GetNativeWindow();
+    public SdlWindow? GetSDLWindow() => _window;
 
     public nint GetMetalView() => nint.Zero;
 
-    public IEngineFactory? GetFactory() => GetSubsystem<Graphics>()?.GetNativeFactory();
+    public IEngineFactory? GetFactory() => _factory;
 
-    public IRenderDevice? GetRenderDevice() => GetSubsystem<Graphics>()?.GetNativeRenderDevice();
+    public IRenderDevice? GetRenderDevice() => _renderDevice;
 
-    public IDeviceContext? GetImmediateContext() => GetSubsystem<Graphics>()?.GetImmediateContext();
+    public IDeviceContext? GetImmediateContext() => _deviceContext;
 
-    public ISwapChain? GetSwapChain() => GetSubsystem<Graphics>()?.GetNativeSwapChain();
+    public ISwapChain? GetSwapChain() => _swapChain;
 
     public Vector2i GetSwapChainSize()
     {
@@ -651,7 +658,7 @@ public sealed class RenderDevice : Object
 
     public DrawCommandQueue GetDefaultQueue() => _defaultQueue;
 
-    public static IReadOnlyList<FullscreenMode> GetFullscreenModes(int monitor)
+    public static List<FullscreenMode> GetFullscreenModes(int monitor)
     {
         if (OperatingSystem.IsBrowser())
             return [];
@@ -727,13 +734,6 @@ public sealed class RenderDevice : Object
         return graphics.ResolveRenderTargetView(view);
     }
 
-    internal ITexture? GetTextureHandle(Texture texture)
-    {
-        ArgumentNullException.ThrowIfNull(texture);
-        var graphics = GetSubsystem<Graphics>();
-        return graphics?.GetTextureHandle(texture);
-    }
-
     internal void MarkRenderTargetDirty(RenderTargetView view)
     {
         var graphics = GetSubsystem<Graphics>() ?? throw new InvalidOperationException("Graphics subsystem is not available.");
@@ -746,7 +746,7 @@ public sealed class RenderDevice : Object
         return graphics.GetSwapChainOutputTarget();
     }
 
-    internal void AddDeviceObject(DeviceObject deviceObject)
+    public void AddDeviceObject(DeviceObject deviceObject)
     {
         ArgumentNullException.ThrowIfNull(deviceObject);
 
@@ -756,7 +756,7 @@ public sealed class RenderDevice : Object
         }
     }
 
-    internal void RemoveDeviceObject(DeviceObject deviceObject)
+    public void RemoveDeviceObject(DeviceObject deviceObject)
     {
         ArgumentNullException.ThrowIfNull(deviceObject);
 
@@ -766,12 +766,11 @@ public sealed class RenderDevice : Object
 
     private void SendDeviceObjectEvent(DeviceObjectEvent deviceObjectEvent)
     {
-        DeviceObject[] snapshot;
         lock (_deviceObjectsLock)
-            snapshot = [.. _deviceObjects];
-
-        foreach (var deviceObject in snapshot)
-            deviceObject.ProcessDeviceObjectEvent(deviceObjectEvent);
+        {
+            foreach (var deviceObject in _deviceObjects)
+                deviceObject.ProcessDeviceObjectEvent(deviceObjectEvent);
+        }
     }
 
     private void InitializeDefaultObjects()
@@ -823,6 +822,7 @@ public sealed class RenderDevice : Object
         renderDeviceGLES.Invalidate();
 
         GetSubsystem<Graphics>()!.ReleaseGLContext();
+        _glContext = IntPtr.Zero;
 #else
         Log.GetLogger().LogWarning("RenderDevice::InvalidateGLESContext is supported only for Android platform");
 #endif
@@ -831,12 +831,14 @@ public sealed class RenderDevice : Object
     private bool RestoreGLESContext()
     {
 #if REDBOLT_PLATFORM_ANDROID && REDBOLT_GLES_SUPPORTED
-        if (!GetSubsystem<Graphics>()!.RestoreGLContext())
+        var graphics = GetSubsystem<Graphics>()!;
+        if (!graphics.RestoreGLContext())
         {
             var error = System.Text.Encoding.UTF8.GetString(SdlNativeBindings.SdlGetError()).TrimEnd('\0');
             Log.GetLogger().LogError("Could not restore OpenGL context: {Error}", error);
             return false;
         }
+        _glContext = graphics.GetGLContext();
 
         using var renderDeviceGLES = IRenderDeviceGLES.QueryManagedWrapper(GetRenderDevice()!)
             ?? throw new InvalidOperationException("OpenGL ES render device interface is unavailable.");
@@ -858,6 +860,8 @@ public sealed class RenderDevice : Object
 
         _oldNativeSwapChainDesc?.Dispose();
         _oldNativeSwapChainDesc = GetSubsystem<Graphics>()!.ReleaseVulkanSwapChain();
+        _swapChain = null;
+        _swapChainVulkan = null;
 #else
         Log.GetLogger().LogWarning("RenderDevice::InvalidateVulkanContext is supported only for Vulkan backend");
 #endif
@@ -885,6 +889,9 @@ public sealed class RenderDevice : Object
             Log.GetLogger().LogError("Failed to restore Vulkan context");
             return false;
         }
+
+        _swapChain = graphics.GetNativeSwapChain();
+        _swapChainVulkan = graphics.GetNativeVulkanSwapChain();
 
         _oldNativeSwapChainDesc.Dispose();
         _oldNativeSwapChainDesc = null;
@@ -953,20 +960,27 @@ public sealed class RenderDevice : Object
         }
 
         _defaultDepthFormat = SelectDefaultDepthFormat(device, needStencil: false);
-        _defaultDepthFormatsInitialized = true;
     }
 
-    private static ImmutableArray<string> ParseOrientations(string orientations)
+    private static void ReleaseIfNotNull(IObject? value)
     {
-        if (string.IsNullOrWhiteSpace(orientations))
-            return [];
-
-        return orientations.Split([' ', '\t', '\r', '\n'],
-            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToImmutableArray();
+        if (value is not null && !value.IsNull)
+            _ = value.Release();
     }
 
     private static void ValidateWindowSettings(ref WindowSettings settings)
     {
+        var platform = ProcessUtils.GetPlatform();
+
+        if (platform is PlatformId.iOS or PlatformId.TvOS)
+            settings.Mode = WindowMode.Fullscreen;
+
+        if (platform == PlatformId.Web && settings.Mode == WindowMode.Fullscreen)
+            settings.Mode = WindowMode.Borderless;
+
+        if (platform == PlatformId.UniversalWindowsPlatform && settings.Mode == WindowMode.Borderless)
+            settings.Mode = WindowMode.Fullscreen;
+
         var numMonitors = SdlNativeBindings.SdlGetNumVideoDisplays();
         if (settings.Monitor < 0 || settings.Monitor >= numMonitors)
             settings.Monitor = 0;
@@ -974,7 +988,9 @@ public sealed class RenderDevice : Object
         settings.MultiSample = (int)Math.Clamp(
             MathDefs.ClosestPowerOfTwo((uint)Math.Max(settings.MultiSample, 1)), 1u, 16u);
 
-        if (settings.Mode != WindowMode.Windowed)
+        if (platform == PlatformId.iOS)
+            settings.Resizable = true;
+        else if (settings.Mode != WindowMode.Windowed)
             settings.Resizable = false;
 
         const int defaultWindowWidth = 1024;
@@ -1010,15 +1026,6 @@ public sealed class RenderDevice : Object
                 settings.RefreshRate = closestMode.RefreshRate;
             }
         }
-    }
-
-    private static WindowMode GetWindowMode(EngineParameters parameters)
-    {
-        if (parameters.FullScreen)
-            return WindowMode.Fullscreen;
-        if (parameters.Borderless)
-            return WindowMode.Borderless;
-        return WindowMode.Windowed;
     }
 
     private static int CompareFullscreenMode(FullscreenMode mode, Vector2i size, int refreshRate)
