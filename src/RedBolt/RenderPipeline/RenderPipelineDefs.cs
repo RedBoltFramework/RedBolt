@@ -246,10 +246,6 @@ public struct RenderBufferManagerFrameSettings
     /// Whether it's should be supported to read from and write to output color buffer simultaneously.
     /// </summary>
     public bool SupportColorReadWrite { get; set; }
-
-    public bool FilteredColor { get; set; }
-
-    public bool ReadableDepth { get; set; }
 }
 
 /// <summary>
