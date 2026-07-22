@@ -544,7 +544,7 @@ public class RenderPipeline : Component
             _sceneProcessor.Update();
 
             if (_outlineBuffer is not null && _outlineScenePass is not null)
-                _outlineBuffer.SetEnabled(_outlineScenePass.IsEnabled() && _outlineScenePass.HasBatches());
+                _outlineBuffer.SetEnabled(_outlineScenePass.IsEnabled() && _outlineScenePass.HasBatches);
 
             _sharedState.RenderPipelineInterface = this;
             _sharedState.RenderCamera = _viewport.GetCamera();
@@ -653,7 +653,7 @@ public class RenderPipeline : Component
             if (_outlineBuffer is not null && _outlineBuffer.IsEnabled)
             {
                 const int outlinePadding = 2;
-                var batches = _outlineScenePass!.GetBatches();
+                var batches = _outlineScenePass!.Batches;
                 batches.ScissorRect = _outlineBuffer.GetViewportRect();
                 if (batches.ScissorRect.Width > outlinePadding * 2 && batches.ScissorRect.Height > outlinePadding * 2)
                 {

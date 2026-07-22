@@ -3,15 +3,7 @@ namespace RedBolt;
 /// <summary>Scene pass that collects outlined drawables into a deferred outline mask.</summary>
 public class OutlineScenePass : ScenePass
 {
-    private static readonly TextureFormat OutlineTextureFormat = TextureFormat.TexFormatRgba8Unorm;
-
-    private readonly List<uint> _outlinedPasses = [];
-    private readonly List<OutlineGroup> _outlineGroups = [];
-
-    /// <summary>Internal temporary containers.</summary>
-    private readonly ShaderProgramDesc _shaderProgramDesc = new();
-    private readonly List<PipelineBatchByState> _sortedBatches = [];
-    private PipelineBatchGroup<PipelineBatchByState> _batchGroup;
+    private const TextureFormat OutlineTextureFormat = TextureFormat.TexFormatRgba8Unorm;
 
     public OutlineScenePass(IRenderPipelineInterface renderPipeline, DrawableProcessor drawableProcessor,
         BatchStateCacheCallback? callback, IReadOnlyList<string> outlinedPasses,
@@ -35,7 +27,6 @@ public class OutlineScenePass : ScenePass
     /// <summary>Initialize outline groups from scene. Should be called every frame.</summary>
     public void SetOutlineGroups(Scene scene, bool drawDebugOutlines)
     {
-        ArgumentNullException.ThrowIfNull(scene);
         scene.GetComponents(_outlineGroups);
 
         if (!drawDebugOutlines)
@@ -83,10 +74,7 @@ public class OutlineScenePass : ScenePass
     public override bool CreatePipelineState(ref GraphicsPipelineStateDesc desc, PipelineStateBuilder? builder,
         BatchStateCreateKey key, BatchStateCreateContext ctx)
     {
-        if (builder is null)
-            return false;
-
-        var compositor = builder.GetShaderProgramCompositor();
+        var compositor = builder!.GetShaderProgramCompositor();
 
         desc.DebugName = $"Outline Pass for material '{key.Material!.GetName()}'";
 
@@ -130,9 +118,9 @@ public class OutlineScenePass : ScenePass
         batchRenderer.PrepareInstancingBuffer(ref _batchGroup);
     }
 
-    public PipelineBatchGroup<PipelineBatchByState> GetBatches() => _batchGroup;
+    public PipelineBatchGroup<PipelineBatchByState> Batches => _batchGroup;
 
-    public new bool HasBatches() => _sortedBatches.Count > 0;
+    public new bool HasBatches => _sortedBatches.Count > 0;
 
     protected override void OnBatchesReady()
     {
@@ -170,4 +158,12 @@ public class OutlineScenePass : ScenePass
 
         return null;
     }
+
+    private readonly List<uint> _outlinedPasses = [];
+    private readonly List<OutlineGroup> _outlineGroups = [];
+
+    /// <summary>Internal temporary containers.</summary>
+    private readonly ShaderProgramDesc _shaderProgramDesc = new();
+    private readonly List<PipelineBatchByState> _sortedBatches = [];
+    private PipelineBatchGroup<PipelineBatchByState> _batchGroup;
 }

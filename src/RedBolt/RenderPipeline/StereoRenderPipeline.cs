@@ -497,7 +497,7 @@ public class StereoRenderPipelineView : RenderPipelineView
         _sceneProcessor.Update();
 
         if (_outlineBuffer is not null && _outlineScenePass is not null)
-            _outlineBuffer.SetEnabled(_outlineScenePass.IsEnabled() && _outlineScenePass.HasBatches());
+            _outlineBuffer.SetEnabled(_outlineScenePass.IsEnabled() && _outlineScenePass.HasBatches);
 
         if (_renderPath is not null)
             _renderPath.Update(_state);
@@ -594,9 +594,9 @@ public class StereoRenderPipelineView : RenderPipelineView
         if (_outlineBuffer?.IsEnabled == true && _outlineScenePass is not null)
         {
             // TODO: Do we want it dynamic?
-            const uint outlinePadding = 2;
+            const int outlinePadding = 2;
 
-            var batches = _outlineScenePass.GetBatches();
+            var batches = _outlineScenePass.Batches;
             batches.ScissorRect = _outlineBuffer.GetViewportRect();
             if (batches.ScissorRect.Width > outlinePadding * 2 && batches.ScissorRect.Height > outlinePadding * 2)
             {
