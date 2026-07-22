@@ -16,6 +16,17 @@ public sealed class SceneResourceTests
     private ResourceCache Resources => _fixture.Resources;
 
     [Fact]
+    public void Scene_resource_matches_native_extensible_noncopyable_owned_shape()
+    {
+        Assert.False(typeof(SceneResource).IsSealed);
+        Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(SceneResource)));
+        Assert.Single(typeof(SceneResource).GetConstructors());
+        Assert.NotNull(typeof(SceneResource).GetConstructor(Type.EmptyTypes));
+        Assert.Equal(typeof(SceneResource),
+            typeof(SceneResource).GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);
+    }
+
+    [Fact]
     public void Engine_registers_scene_and_graphics_resource_factories()
     {
         Assert.True(_fixture.Context.GetReflection<Node>().HasObjectFactory());
@@ -53,13 +64,13 @@ public sealed class SceneResourceTests
     {
         var resource = CreateSampleSceneResource();
         using var buffer = new VectorBuffer();
-        Assert.True(resource.Save(buffer, SceneResourceFormat.Json));
+        Assert.True(resource.Save(buffer, InternalResourceFormat.Json));
         buffer.Seek(0);
 
         var loaded = new SceneResource { Name = "Scenes/Loaded.scene" };
         Assert.True(loaded.Load(buffer));
 
-        AssertSceneLoaded(loaded.GetScene());
+        AssertSceneLoaded(loaded.Scene, "VectorBuffer");
     }
 
     [Fact]
@@ -67,13 +78,13 @@ public sealed class SceneResourceTests
     {
         var resource = CreateSampleSceneResource();
         using var buffer = new VectorBuffer();
-        Assert.True(resource.Save(buffer, SceneResourceFormat.Xml));
+        Assert.True(resource.Save(buffer, InternalResourceFormat.Xml));
         buffer.Seek(0);
 
         var loaded = new SceneResource { Name = "Scenes/Loaded.scene" };
         Assert.True(loaded.Load(buffer));
 
-        AssertSceneLoaded(loaded.GetScene());
+        AssertSceneLoaded(loaded.Scene, "VectorBuffer");
     }
 
     [Fact]
@@ -81,13 +92,45 @@ public sealed class SceneResourceTests
     {
         var resource = CreateSampleSceneResource();
         using var buffer = new VectorBuffer();
-        Assert.True(resource.Save(buffer, SceneResourceFormat.Binary));
+        Assert.True(resource.Save(buffer, InternalResourceFormat.Binary));
         buffer.Seek(0);
 
         var loaded = new SceneResource { Name = "Scenes/Loaded.scene" };
         Assert.True(loaded.Load(buffer));
 
-        AssertSceneLoaded(loaded.GetScene());
+        AssertSceneLoaded(loaded.Scene);
+    }
+
+    [Fact]
+    public void BeginLoad_parses_text_resource_before_EndLoad()
+    {
+        using var source = new MemoryBuffer("{ invalid json");
+        using var resource = new SceneResource();
+
+        Assert.False(resource.BeginLoad(source));
+    }
+
+    [Fact]
+    public void Legacy_xml_scene_loads_through_scene_fallback()
+    {
+        using var source = new MemoryBuffer("<scene><node></node></scene>");
+        using var resource = new SceneResource();
+
+        Assert.True(resource.Load(source));
+        Assert.Equal(1, resource.Scene.Root.GetNumChildren());
+    }
+
+    [Fact]
+    public void Save_as_prefab_uses_prefab_resource_layout()
+    {
+        using var resource = CreateSampleSceneResource();
+        using var buffer = new VectorBuffer();
+        Assert.True(resource.Save(buffer, InternalResourceFormat.Json, asPrefab: true));
+        buffer.Seek(0);
+
+        using var prefab = new PrefabResource();
+        Assert.True(prefab.Load(buffer));
+        Assert.Equal("CameraNode", prefab.GetNodePrefab().GetNodeName());
     }
 
     [Fact]
@@ -95,7 +138,7 @@ public sealed class SceneResourceTests
     {
         var resource = CreateSampleSceneResource();
         using var buffer = new VectorBuffer();
-        Assert.True(resource.Save(buffer, SceneResourceFormat.Json));
+        Assert.True(resource.Save(buffer, InternalResourceFormat.Json));
         buffer.Seek(0);
 
         var beginCalled = false;
@@ -134,11 +177,11 @@ public sealed class SceneResourceTests
         {
             var path = Path.Combine(tempDir, "Data", "sample.scene.json");
             var resource = CreateSampleSceneResource();
-            Assert.True(resource.SaveFile(new FileIdentifier(path), SceneResourceFormat.Json));
+            Assert.True(resource.SaveFile(new FileIdentifier(path), InternalResourceFormat.Json));
             Resources.AddResourceDir(tempDir);
 
             var loaded = Resources.GetResource<SceneResource>("Data/sample.scene.json");
-            AssertSceneLoaded(loaded.GetScene());
+            AssertSceneLoaded(loaded.Scene, "Data/sample.scene.json");
         }
         finally
         {
@@ -150,7 +193,7 @@ public sealed class SceneResourceTests
     private static SceneResource CreateSampleSceneResource()
     {
         var resource = new SceneResource { Name = "Scenes/Sample.scene" };
-        var scene = resource.GetScene();
+        var scene = resource.Scene;
         scene.SetUpdateEnabled(true);
         scene.SetTimeScale(1.5f);
         scene.SetElapsedTime(2.0f);
@@ -172,13 +215,13 @@ public sealed class SceneResourceTests
         return resource;
     }
 
-    private static void AssertSceneLoaded(Scene scene)
+    private static void AssertSceneLoaded(Scene scene, string expectedFileName = "")
     {
         Assert.True(scene.IsUpdateEnabled());
         Assert.True(MathDefs.Equals(scene.GetTimeScale(), 1.0f));
         Assert.True(MathDefs.Equals(scene.GetElapsedTime(), 0.0f));
         Assert.Equal(5, scene.GetAsyncLoadingMs());
-        Assert.Equal(string.Empty, scene.GetFileName());
+        Assert.Equal(expectedFileName, scene.GetFileName());
 
         var node = scene.GetNode(42);
         Assert.NotNull(node);

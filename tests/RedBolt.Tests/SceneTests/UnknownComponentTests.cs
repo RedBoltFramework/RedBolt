@@ -44,15 +44,15 @@ public sealed class UnknownComponentTests
         componentPrefab.SetId((SerializableId)42);
         prefab.Components.Add(componentPrefab);
         using var reader = new PrefabReaderFromMemory(prefab);
-        Assert.True(source.GetScene().Root.Load(reader));
+        Assert.True(source.Scene.Root.Load(reader));
 
         using var stream = new VectorBuffer();
-        Assert.True(source.Save(stream, SceneResourceFormat.Json));
+        Assert.True(source.Save(stream, InternalResourceFormat.Json));
         stream.Seek(0);
         using var resource = new SceneResource { Name = "Scenes/Loaded.scene" };
         Assert.True(resource.Load(stream));
 
-        var unknown = Assert.IsType<UnknownComponent>(resource.GetScene().GetComponent(42));
+        var unknown = Assert.IsType<UnknownComponent>(resource.Scene.GetComponent(42));
         Assert.DoesNotContain(unknown.Attributes, attribute => attribute.Name == "Original Type Name");
         Assert.False(unknown.IsTemporary);
     }

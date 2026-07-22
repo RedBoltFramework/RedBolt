@@ -304,16 +304,19 @@ public sealed class Scene : Serializable
 
         if (source.Name == SceneResource.GetXmlRootName())
         {
-            var archive = new XMLInputArchive(Context, source.Element!);
+            using var archive = new XMLInputArchive(Context, source, source.GetFile());
             using (archive.OpenUnorderedBlock(SceneResource.GetXmlRootName()))
                 SerializeInBlock(archive, false, PrefabSaveFlag.None, PrefabLoadFlag.None);
             return true;
         }
 
         if (Root.LoadXML(source))
+        {
+            FinishLoading(null);
             return true;
+        }
 
-        throw new InvalidOperationException("Cannot load Scene from legacy XML format");
+        throw new ArchiveException("Cannot load Scene from legacy XML format");
     }
 
     public override bool LoadJSON(JSONValue source)

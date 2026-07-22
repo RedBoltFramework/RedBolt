@@ -289,7 +289,7 @@ public sealed class SceneTests
         sourceResource.Scene.CreateChild("Loaded").CreateComponent<Camera>().SetFov(79);
 
         using var xml = new VectorBuffer();
-        Assert.True(sourceResource.Save(xml, SceneResourceFormat.Xml));
+        Assert.True(sourceResource.Save(xml, InternalResourceFormat.Xml));
         xml.Seek(0);
 
         var loadedFromXml = new Scene();

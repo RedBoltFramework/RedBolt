@@ -1,22 +1,37 @@
-using System.Text;
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
-public enum SceneResourceFormat { Json, Xml, Binary }
-
-public sealed class SceneResource : Resource
+/// <summary>Scene resource.</summary>
+/// <remarks>
+/// Can be used to load and save <see cref="Scene"/>, since <see cref="Scene"/> is not a resource.
+/// Be careful when using a cached <see cref="SceneResource"/>, since the underlying scene may be active.
+/// </remarks>
+public class SceneResource : Resource
 {
-    private byte[]? _pendingData;
-    private InternalResourceFormat? _loadFormat;
-    private InternalResourceFormat? _saveFormat;
-
     public delegate void ReloadBeginHandler(SceneResource resource, ref bool cancelReload);
     public delegate void ReloadEndHandler(SceneResource resource, bool success);
 
     public event ReloadBeginHandler? OnReloadBegin;
     public event ReloadEndHandler? OnReloadEnd;
 
-    public SceneResource() => Scene = new Scene();
+    public SceneResource()
+    {
+        Scene = new Scene();
+    }
+
+    public override void Dispose()
+    {
+        _loadXmlFile?.Dispose();
+        _loadXmlFile = null;
+        _loadJsonFile?.Dispose();
+        _loadJsonFile = null;
+        _loadBinaryFile?.Dispose();
+        _loadBinaryFile = null;
+        Scene.Dispose();
+        base.Dispose();
+    }
 
     /// <summary>Register object factory.</summary>
     public static void RegisterObject(Context context)
@@ -24,67 +39,24 @@ public sealed class SceneResource : Resource
         context.AddFactoryReflection<SceneResource>();
     }
 
-    public Scene Scene { get; }
-    public bool IsPrefab { get; private set; }
+    public void SetPrefab(bool value) => _isPrefab = value;
 
-    public void SetPrefab(bool value) => IsPrefab = value;
-    public Scene GetScene() => Scene;
-    public void SetSaveFormatHint(InternalResourceFormat format) => _saveFormat = format == InternalResourceFormat.Unknown ? null : format;
-
-    public override bool BeginLoad(Deserializer source)
+    public void SetSaveFormatHint(InternalResourceFormat format)
     {
-        ArgumentNullException.ThrowIfNull(source);
-        _pendingData = new byte[checked((int)source.Size)];
-        if (source.Read(_pendingData) != source.Size)
-            return false;
-        _loadFormat = PeekFormat(_pendingData);
-        return _loadFormat != InternalResourceFormat.Unknown;
+        _saveFormat = format != InternalResourceFormat.Unknown ? format : null;
     }
-
-    public override bool EndLoad()
-    {
-        if (_pendingData is null || _loadFormat is null) return false;
-        try
-        {
-            var cancelReload = false;
-            OnReloadBegin?.Invoke(this, ref cancelReload);
-            if (cancelReload)
-            {
-                OnReloadEnd?.Invoke(this, success: false);
-                return true;
-            }
-
-            using var binaryBuffer = _loadFormat == InternalResourceFormat.Binary
-                ? new MemoryBuffer(_pendingData.AsMemory(4))
-                : null;
-            using var jsonFile = _loadFormat == InternalResourceFormat.Json ? new JSONFile() : null;
-            if (jsonFile is not null && !jsonFile.FromString(Encoding.UTF8.GetString(_pendingData)))
-                throw new ArchiveException("Failed to parse JSON string");
-            using Archive archive = _loadFormat switch
-            {
-                InternalResourceFormat.Json => new JSONInputArchive(jsonFile!),
-                InternalResourceFormat.Xml => new XMLInputArchive(Context.Instance, Encoding.UTF8.GetString(_pendingData)),
-                InternalResourceFormat.Binary => new BinaryInputArchive(Context.Instance, binaryBuffer!),
-                _ => throw new InvalidOperationException("Unknown scene format.")
-            };
-            using (archive.OpenUnorderedBlock(GetXmlRootName()))
-                SerializeScene(archive, Scene, asPrefab: false);
-            archive.Flush();
-            OnReloadEnd?.Invoke(this, success: true);
-            return true;
-        }
-        catch { return false; }
-        finally { _pendingData = null; }
-    }
-
-    public override bool Save(Serializer destination) => Save(destination, _saveFormat ?? _loadFormat ?? InternalResourceFormat.Xml, IsPrefab);
-
-    public bool Save(Serializer destination, SceneResourceFormat format, bool asPrefab = false)
-        => Save(destination, format switch { SceneResourceFormat.Json => InternalResourceFormat.Json, SceneResourceFormat.Xml => InternalResourceFormat.Xml, _ => InternalResourceFormat.Binary }, asPrefab);
 
     public bool Save(Serializer destination, InternalResourceFormat format, bool asPrefab = false)
     {
-        ArgumentNullException.ThrowIfNull(destination);
+        if (asPrefab)
+        {
+            // Save as prefab is rare, we can afford to be suboptimal here.
+            using var prefab = new PrefabResource();
+            Scene.Root.GeneratePrefab(prefab.GetMutableScenePrefab());
+            prefab.NormalizeIds();
+            return prefab.Save(destination, format);
+        }
+
         try
         {
             switch (format)
@@ -94,90 +66,248 @@ public sealed class SceneResource : Resource
                     using var jsonFile = new JSONFile();
                     using var archive = new JSONOutputArchive(Context.Instance, jsonFile.Root, jsonFile);
                     using (archive.OpenUnorderedBlock(GetXmlRootName()))
-                        SerializeScene(archive, Scene, asPrefab);
+                        Scene.SerializeInBlock(archive, false, PrefabSaveFlag.EnumsAsStrings, PrefabLoadFlag.None);
                     return jsonFile.Save(destination);
                 }
                 case InternalResourceFormat.Xml:
                 {
-                    using var archive = new XMLOutputArchive(Context.Instance);
+                    using var xmlFile = new XMLFile();
+                    using var xmlRoot = xmlFile.GetOrCreateRoot(GetXmlRootName());
+                    using var archive = new XMLOutputArchive(Context.Instance, xmlRoot, xmlFile);
                     using (archive.OpenUnorderedBlock(GetXmlRootName()))
-                        SerializeScene(archive, Scene, asPrefab);
-                    var bytes = Encoding.UTF8.GetBytes(archive.ToXmlString()); destination.Write(bytes); break;
+                        Scene.SerializeInBlock(archive, false, PrefabSaveFlag.EnumsAsStrings, PrefabLoadFlag.None);
+                    return xmlFile.Save(destination);
                 }
                 case InternalResourceFormat.Binary:
                 {
                     destination.Write(SimpleResource.DefaultBinaryMagic);
-                    using var buffer = new VectorBuffer();
-                    using var archive = new BinaryOutputArchive(Context.Instance, buffer);
-                    using (archive.OpenUnorderedBlock(GetXmlRootName()))
-                        SerializeScene(archive, Scene, asPrefab);
-                    archive.Flush(); destination.Write(buffer.Buffer[..checked((int)buffer.Size)]); break;
-                }
-                default: return false;
-            }
-            _saveFormat = format;
-            return true;
-        }
-        catch { return false; }
-    }
 
-    public bool SaveFile(FileIdentifier fileName, SceneResourceFormat format, bool asPrefab = false)
-    {
-        return SaveFile(fileName, format switch
+                    using var archive = new BinaryOutputArchive(Context.Instance, destination);
+                    using (archive.OpenUnorderedBlock(GetXmlRootName()))
+                        Scene.SerializeInBlock(archive, false, PrefabSaveFlag.CompactAttributeNames, PrefabLoadFlag.None);
+                    return true;
+                }
+                default:
+                {
+                    Debug.Assert(false);
+                    return false;
+                }
+            }
+        }
+        catch (ArchiveException exception)
         {
-            SceneResourceFormat.Json => InternalResourceFormat.Json,
-            SceneResourceFormat.Xml => InternalResourceFormat.Xml,
-            _ => InternalResourceFormat.Binary
-        }, asPrefab);
+            Log.GetLogger().LogError(exception, "Cannot save SimpleResource");
+            return false;
+        }
     }
 
     public bool SaveFile(FileIdentifier fileName, InternalResourceFormat format, bool asPrefab = false)
     {
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
-        var file = virtualFileSystem.OpenFile(fileName, FileMode.Write);
-        if (file is null)
+        using var file = virtualFileSystem.OpenFile(fileName, FileMode.Write);
+        return file is not null && Save(file, format, asPrefab);
+    }
+
+    /// <summary>Implement <see cref="Resource"/>.</summary>
+    public override bool BeginLoad(Deserializer source)
+    {
+        _loadBinaryFile?.Dispose();
+        _loadBinaryFile = null;
+        _loadJsonFile?.Dispose();
+        _loadJsonFile = null;
+        _loadXmlFile?.Dispose();
+        _loadXmlFile = null;
+
+        var format = PeekResourceFormat(source, SimpleResource.DefaultBinaryMagic);
+        switch (format)
+        {
+            case InternalResourceFormat.Json:
+            {
+                _loadJsonFile = new JSONFile();
+                _loadJsonFile.SetName(source.Name);
+                if (!_loadJsonFile.Load(source))
+                    return false;
+
+                _loadFormat = format;
+                return true;
+            }
+            case InternalResourceFormat.Xml:
+            {
+                _loadXmlFile = new XMLFile();
+                _loadXmlFile.SetName(source.Name);
+                if (!_loadXmlFile.Load(source))
+                    return false;
+
+                _loadFormat = format;
+                return true;
+            }
+            case InternalResourceFormat.Binary:
+            {
+                _loadBinaryFile = new BinaryFile();
+                _loadBinaryFile.SetName(source.Name);
+                _loadBinaryFile.Load(source);
+
+                _loadFormat = format;
+                return true;
+            }
+            default:
+            {
+                Log.GetLogger().LogError("Unknown resource format");
+                _loadFormat = InternalResourceFormat.Unknown;
+                return false;
+            }
+        }
+    }
+
+    public override bool EndLoad()
+    {
+        if (_loadFormat is null || _loadFormat == InternalResourceFormat.Unknown)
             return false;
 
         try
         {
-            return Save(file, format, asPrefab);
+            var cancelReload = false;
+            OnReloadBegin?.Invoke(this, ref cancelReload);
+
+            if (!cancelReload)
+            {
+                switch (_loadFormat.Value)
+                {
+                    case InternalResourceFormat.Json:
+                    {
+                        using var archive = new JSONInputArchive(Context.Instance, _loadJsonFile!.Root, _loadJsonFile);
+                        using var block = archive.OpenUnorderedBlock(GetXmlRootName());
+                        Scene.SerializeInBlock(archive, false, PrefabSaveFlag.None, PrefabLoadFlag.None);
+                        break;
+                    }
+                    case InternalResourceFormat.Xml:
+                    {
+                        using var xmlRoot = _loadXmlFile!.GetRoot();
+                        if (xmlRoot.Name == GetXmlRootName())
+                        {
+                            using var archive = new XMLInputArchive(Context.Instance, xmlRoot, _loadXmlFile);
+                            using var block = archive.OpenUnorderedBlock(GetXmlRootName());
+                            Scene.SerializeInBlock(archive, false, PrefabSaveFlag.None, PrefabLoadFlag.None);
+                        }
+                        else
+                        {
+                            if (!Scene.LoadXML(xmlRoot))
+                                throw new ArchiveException("Cannot load Scene from legacy XML format");
+                        }
+                        break;
+                    }
+                    case InternalResourceFormat.Binary:
+                    {
+                        using var readBuffer = new MemoryBuffer(_loadBinaryFile!.GetMutableBuffer());
+                        readBuffer.SeekRelative(SimpleResource.DefaultBinaryMagic.Length);
+
+                        using var archive = new BinaryInputArchive(Context.Instance, readBuffer);
+                        using var block = archive.OpenUnorderedBlock(GetXmlRootName());
+                        Scene.SerializeInBlock(archive, false, PrefabSaveFlag.None, PrefabLoadFlag.None);
+                        break;
+                    }
+                    default:
+                    {
+                        throw new ArchiveException("Cannot load Scene from the file of unknown format");
+                    }
+                }
+            }
+
+            _loadJsonFile?.Dispose();
+            _loadJsonFile = null;
+            _loadBinaryFile?.Dispose();
+            _loadBinaryFile = null;
+            _loadXmlFile?.Dispose();
+            _loadXmlFile = null;
+
+            OnReloadEnd?.Invoke(this, !cancelReload);
+
+            return true;
+        }
+        catch (ArchiveException exception)
+        {
+            Log.GetLogger().LogError(exception, "Cannot load SimpleResource");
+            return false;
+        }
+    }
+
+    public override bool Save(Serializer destination)
+    {
+        var format = _saveFormat ?? _loadFormat ?? InternalResourceFormat.Xml;
+        return Save(destination, format, _isPrefab);
+    }
+
+    public override bool SaveFile(FileIdentifier fileName)
+    {
+        var format = _saveFormat ?? _loadFormat ?? InternalResourceFormat.Xml;
+        return SaveFile(fileName, format, _isPrefab);
+    }
+
+    /// <summary>Return scene. It may be modified.</summary>
+    public Scene Scene { get; }
+
+    /// <summary>Get name of XML root element.</summary>
+    public static string GetXmlRootName() => "resource";
+
+    private static InternalResourceFormat PeekResourceFormat(
+        Deserializer source, ReadOnlySpan<byte> binaryMagic)
+    {
+        var basePosition = source.Position;
+        try
+        {
+            Span<byte> magic = stackalloc byte[SimpleResource.DefaultBinaryMagic.Length];
+            var count = checked((int)source.Read(magic));
+            var data = magic[..count];
+
+            if (count == SimpleResource.DefaultBinaryMagic.Length && data.SequenceEqual(binaryMagic))
+                return InternalResourceFormat.Binary;
+
+            var marker = data.IndexOf((byte)'<');
+            if (count == SimpleResource.DefaultBinaryMagic.Length && marker >= 0 && IsBlank(data[..marker]))
+                return InternalResourceFormat.Xml;
+
+            marker = data.IndexOf((byte)'{');
+            if (count >= 2 && marker >= 0 && IsBlank(data[..marker]))
+                return InternalResourceFormat.Json;
+
+            if (!IsBlank(data))
+                return InternalResourceFormat.Unknown;
+
+            Log.GetLogger().LogWarning(
+                "File starts with whitespace, peeking more data to determine format. It may cause performance penalty.");
+            while (!source.IsEof())
+            {
+                var value = source.ReadUByte();
+                if (value == '<')
+                    return InternalResourceFormat.Xml;
+                if (value == '{')
+                    return InternalResourceFormat.Json;
+                if (!char.IsWhiteSpace((char)value))
+                    return InternalResourceFormat.Unknown;
+            }
+            return InternalResourceFormat.Unknown;
         }
         finally
         {
-            file.Close();
+            source.Seek(basePosition);
         }
-    }
 
-    public static string GetXmlRootName() => "resource";
-
-    private static void SerializeScene(Archive archive, Scene scene, bool asPrefab = false)
-    {
-        if (asPrefab)
+        static bool IsBlank(ReadOnlySpan<byte> data)
         {
-            using var prefab = archive.IsInput ? new NodePrefab() : scene.Root.GeneratePrefab();
-            prefab.SerializeInBlock(archive, PrefabArchiveFlag.SerializeTemporary);
-            if (archive.IsInput)
+            foreach (var value in data)
             {
-                using var reader = new PrefabReaderFromMemory(prefab);
-                scene.Root.Load(reader);
+                if (!char.IsWhiteSpace((char)value))
+                    return false;
             }
-            return;
+            return true;
         }
-
-        var saveFlags = archive.IsHumanReadable
-            ? PrefabSaveFlag.EnumsAsStrings
-            : PrefabSaveFlag.CompactAttributeNames;
-        scene.SerializeInBlock(archive, false, saveFlags, PrefabLoadFlag.None);
     }
 
-    private static InternalResourceFormat PeekFormat(ReadOnlySpan<byte> data)
-    {
-        if (data.StartsWith(SimpleResource.DefaultBinaryMagic)) return InternalResourceFormat.Binary;
-        foreach (var value in data)
-        {
-            if (char.IsWhiteSpace((char)value)) continue;
-            return value switch { (byte)'{' => InternalResourceFormat.Json, (byte)'<' => InternalResourceFormat.Xml, _ => InternalResourceFormat.Unknown };
-        }
-        return InternalResourceFormat.Unknown;
-    }
+    private InternalResourceFormat? _loadFormat;
+    private InternalResourceFormat? _saveFormat;
+    private bool _isPrefab;
+
+    private BinaryFile? _loadBinaryFile;
+    private JSONFile? _loadJsonFile;
+    private XMLFile? _loadXmlFile;
 }
