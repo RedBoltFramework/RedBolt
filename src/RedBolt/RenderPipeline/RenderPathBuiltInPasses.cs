@@ -5,69 +5,62 @@ namespace RedBolt;
 /// </summary>
 public sealed class FullScreenShaderPass : RenderPass
 {
-    private readonly StringVariantMap _parameters = new();
-    private readonly List<StringHash> _shaderParameterSources = [];
-    private readonly List<Variant> _shaderParameterDefaults = [];
-    private readonly List<ShaderParameterDesc> _shaderParameters = [];
-    private readonly List<ShaderResourceDesc> _shaderResources = [];
-    private StaticPipelineStateId _pipelineStateId;
-    private string _debugComment = string.Empty;
-    private string _shaderName = string.Empty;
-    private string _shaderDefines = string.Empty;
-    private BlendMode _blendMode = BlendMode.Replace;
-    private bool _needReadWriteColorOutput;
-    private bool _bilinearColorSampler;
-    private bool _disableOnDefaultParameters;
-    private string _parametersPrefix = string.Empty;
-
     public FullScreenShaderPass()
     {
+        _attributes = new Attributes
+        {
+            ShaderName = string.Empty,
+            ShaderDefines = string.Empty,
+            BlendMode = BlendMode.Replace,
+            ParametersPrefix = string.Empty,
+            Parameters = new StringVariantMap()
+        };
         RegisterAttribute(
             "Shader Name",
             typeof(string),
-            self => ((FullScreenShaderPass)self)._shaderName,
+            self => ((FullScreenShaderPass)self)._attributes.ShaderName,
             (self, value) => ((FullScreenShaderPass)self).SetShaderName(value as string ?? string.Empty),
             string.Empty);
         RegisterAttribute(
             "Shader Defines",
             typeof(string),
-            self => ((FullScreenShaderPass)self)._shaderDefines,
+            self => ((FullScreenShaderPass)self)._attributes.ShaderDefines,
             (self, value) => ((FullScreenShaderPass)self).SetShaderDefines(value as string ?? string.Empty),
             string.Empty);
         RegisterAttribute(
             "Blend Mode",
             typeof(BlendMode),
-            self => ((FullScreenShaderPass)self)._blendMode,
+            self => ((FullScreenShaderPass)self)._attributes.BlendMode,
             (self, value) => ((FullScreenShaderPass)self).SetBlendMode(ParseBlendMode(value)),
             BlendMode.Replace);
         RegisterAttribute(
             "Read+Write Color Output",
             typeof(bool),
-            self => ((FullScreenShaderPass)self)._needReadWriteColorOutput,
-            (self, value) => ((FullScreenShaderPass)self).SetNeedReadWriteColorOutput(value is bool enabled && enabled),
+            self => ((FullScreenShaderPass)self)._attributes.NeedReadWriteColorBuffer,
+            (self, value) => ((FullScreenShaderPass)self).SetNeedReadWriteColorBuffer(value is bool enabled && enabled),
             false);
         RegisterAttribute(
             "Bilinear Color Sampler",
             typeof(bool),
-            self => ((FullScreenShaderPass)self)._bilinearColorSampler,
-            (self, value) => ((FullScreenShaderPass)self)._bilinearColorSampler = value is bool enabled && enabled,
+            self => ((FullScreenShaderPass)self)._attributes.NeedBilinearColorSampler,
+            (self, value) => ((FullScreenShaderPass)self)._attributes.NeedBilinearColorSampler = value is bool enabled && enabled,
             false);
         RegisterAttribute(
             "Disable On Default Parameters",
             typeof(bool),
-            self => ((FullScreenShaderPass)self)._disableOnDefaultParameters,
-            (self, value) => ((FullScreenShaderPass)self)._disableOnDefaultParameters = value is bool enabled && enabled,
+            self => ((FullScreenShaderPass)self)._attributes.DisableOnDefaultParameters,
+            (self, value) => ((FullScreenShaderPass)self)._attributes.DisableOnDefaultParameters = value is bool enabled && enabled,
             false);
         RegisterAttribute(
             "Parameters Prefix",
             typeof(string),
-            self => ((FullScreenShaderPass)self)._parametersPrefix,
-            (self, value) => ((FullScreenShaderPass)self).SetParametersPrefix(value as string ?? string.Empty),
+            self => ((FullScreenShaderPass)self)._attributes.ParametersPrefix,
+            (self, value) => ((FullScreenShaderPass)self)._attributes.ParametersPrefix = value as string ?? string.Empty,
             string.Empty);
         RegisterAttribute(
             "Parameters",
             typeof(StringVariantMap),
-            self => ((FullScreenShaderPass)self)._parameters,
+            self => ((FullScreenShaderPass)self)._attributes.Parameters,
             (self, value) => ((FullScreenShaderPass)self).SetParameters(value),
             null);
     }
@@ -77,19 +70,19 @@ public sealed class FullScreenShaderPass : RenderPass
         context.AddFactoryReflection<FullScreenShaderPass>(ObjectCategory.Category_RenderPass);
     }
 
-    public override void CollectParameters(StringVariantMap target)
+    public override void CollectParameters(StringVariantMap parameters)
     {
-        foreach (var (name, defaultValue) in _parameters)
-            DeclareParameter(_parametersPrefix + name, defaultValue, target);
+        foreach (var (name, defaultValue) in _attributes.Parameters)
+            DeclareParameter(_attributes.ParametersPrefix + name, defaultValue, parameters);
     }
 
     public override void InitializeView(RenderPipelineView view)
     {
         ClearShaderParameterStorage();
 
-        foreach (var (name, defaultValue) in _parameters)
+        foreach (var (name, defaultValue) in _attributes.Parameters)
         {
-            _shaderParameterSources.Add(new StringHash(_parametersPrefix + name));
+            _shaderParametersSources.Add(new StringHash(_attributes.ParametersPrefix + name));
             _shaderParameterDefaults.Add(defaultValue.Clone());
             _shaderParameters.Add(new ShaderParameterDesc
             {
@@ -97,17 +90,16 @@ public sealed class FullScreenShaderPass : RenderPass
                 Value = defaultValue.Clone()
             });
         }
-        _pipelineStateId = StaticPipelineStateId.Invalid;
     }
 
     public override void UpdateParameters(RenderPipelineSettings settings, StringVariantMap parameters)
     {
-        var shouldBeDisabled = _disableOnDefaultParameters;
+        var shouldBeDisabled = _attributes.DisableOnDefaultParameters;
         for (var i = 0; i < _shaderParameters.Count; ++i)
         {
             foreach (var (name, value) in parameters)
             {
-                if (StringHash.Calculate(name) != _shaderParameterSources[i].Value)
+                if (StringHash.Calculate(name) != _shaderParametersSources[i].Value)
                     continue;
 
                 var oldParameter = _shaderParameters[i];
@@ -123,93 +115,101 @@ public sealed class FullScreenShaderPass : RenderPass
             }
         }
 
-        _traits = new RenderPassTraits(_needReadWriteColorOutput, _bilinearColorSampler);
+        _traits = new RenderPassTraits(
+            _attributes.NeedReadWriteColorBuffer,
+            _attributes.NeedBilinearColorSampler);
         _isEnabledInternally = !shouldBeDisabled;
+    }
+
+    public override void Render(SharedRenderPassState sharedState)
+    {
+        RestoreCache(sharedState);
+        var renderBufferManager = sharedState.RenderBufferManager!;
+        var cache = _cache!.Value;
+
+        if (_attributes.NeedReadWriteColorBuffer)
+            renderBufferManager.SwapColorBuffers(synchronizeContents: false);
+
+        renderBufferManager.SetOutputRenderTargets();
+        if (_attributes.NeedReadWriteColorBuffer)
+        {
+            renderBufferManager.DrawFeedbackViewportQuad(
+                cache.DebugComment, cache.PipelineStateId, _shaderResources, _shaderParameters);
+        }
+        else
+        {
+            renderBufferManager.DrawViewportQuad(
+                cache.DebugComment, cache.PipelineStateId, _shaderResources, _shaderParameters);
+        }
     }
 
     public override void Dispose()
     {
         ClearShaderParameterStorage();
-        _parameters.Dispose();
+        _attributes.Parameters.Dispose();
         base.Dispose();
     }
 
-    public override void Render(SharedRenderPassState sharedState)
+    private void InvalidateCache()
     {
-        base.Render(sharedState);
+        _cache = null;
+    }
 
-        if (sharedState.RenderBufferManager is not { } renderBufferManager || string.IsNullOrEmpty(_shaderName))
+    private void RestoreCache(SharedRenderPassState sharedState)
+    {
+        if (_cache.HasValue)
             return;
 
-        if (_pipelineStateId == StaticPipelineStateId.Invalid)
+        var cache = new Cache
         {
-            _debugComment = $"Apply shader \"{_shaderName}\"({_shaderDefines})";
-            IReadOnlyList<NamedSamplerStateDesc> samplers = _needReadWriteColorOutput
-                ? [("Albedo", SamplerStateDesc.Bilinear())]
-                : Array.Empty<NamedSamplerStateDesc>();
-            _pipelineStateId = renderBufferManager.CreateQuadPipelineState(
-                _blendMode, _shaderName, _shaderDefines, samplers);
-        }
+            DebugComment = $"Apply shader \"{_attributes.ShaderName}\"({_attributes.ShaderDefines})"
+        };
+        _cache = cache;
 
-        if (_needReadWriteColorOutput)
-            renderBufferManager.SwapColorBuffers(synchronizeContents: false);
+        IReadOnlyList<NamedSamplerStateDesc> samplersAdjusted = _attributes.NeedReadWriteColorBuffer
+            ? [("Albedo", SamplerStateDesc.Bilinear())]
+            : Array.Empty<NamedSamplerStateDesc>();
 
-        renderBufferManager.SetOutputRenderTargets();
-        if (_needReadWriteColorOutput)
-        {
-            renderBufferManager.DrawFeedbackViewportQuad(
-                _debugComment, _pipelineStateId, _shaderResources, _shaderParameters);
-        }
-        else
-        {
-            renderBufferManager.DrawViewportQuad(
-                _debugComment, _pipelineStateId, _shaderResources, _shaderParameters);
-        }
+        cache.PipelineStateId = sharedState.RenderBufferManager!.CreateQuadPipelineState(
+            _attributes.BlendMode,
+            _attributes.ShaderName,
+            _attributes.ShaderDefines,
+            samplersAdjusted);
+        _cache = cache;
     }
 
     private void SetParameters(object? value)
     {
-        _parameters.Clear();
+        _attributes.Parameters.Clear();
         if (value is not IReadOnlyDictionary<string, Variant> values)
             return;
 
         foreach (var (name, parameterValue) in values)
-            _parameters[name] = parameterValue;
+            _attributes.Parameters[name] = parameterValue;
     }
 
     private void SetShaderName(string value)
     {
-        _shaderName = value;
+        _attributes.ShaderName = value;
         InvalidateCache();
     }
 
     private void SetShaderDefines(string value)
     {
-        _shaderDefines = value;
+        _attributes.ShaderDefines = value;
         InvalidateCache();
     }
 
     private void SetBlendMode(BlendMode value)
     {
-        _blendMode = value;
+        _attributes.BlendMode = value;
         InvalidateCache();
     }
 
-    private void SetNeedReadWriteColorOutput(bool value)
+    private void SetNeedReadWriteColorBuffer(bool value)
     {
-        _needReadWriteColorOutput = value;
+        _attributes.NeedReadWriteColorBuffer = value;
         InvalidateCache();
-    }
-
-    private void InvalidateCache()
-    {
-        _pipelineStateId = StaticPipelineStateId.Invalid;
-        _debugComment = string.Empty;
-    }
-
-    private void SetParametersPrefix(string prefix)
-    {
-        _parametersPrefix = prefix;
     }
 
     private void ClearShaderParameterStorage()
@@ -226,7 +226,7 @@ public sealed class FullScreenShaderPass : RenderPass
             defaults[i].Dispose();
         _shaderParameterDefaults.Clear();
 
-        _shaderParameterSources.Clear();
+        _shaderParametersSources.Clear();
         _shaderResources.Clear();
     }
 
@@ -240,6 +240,31 @@ public sealed class FullScreenShaderPass : RenderPass
             _ => BlendMode.Replace
         };
     }
+
+    private new struct Attributes
+    {
+        public string ShaderName { get; set; }
+        public string ShaderDefines { get; set; }
+        public BlendMode BlendMode { get; set; }
+        public bool NeedReadWriteColorBuffer { get; set; }
+        public bool NeedBilinearColorSampler { get; set; }
+        public bool DisableOnDefaultParameters { get; set; }
+        public string ParametersPrefix { get; set; }
+        public StringVariantMap Parameters { get; set; }
+    }
+
+    private struct Cache
+    {
+        public StaticPipelineStateId PipelineStateId { get; set; }
+        public string DebugComment { get; set; }
+    }
+
+    private Attributes _attributes;
+    private Cache? _cache;
+    private readonly List<StringHash> _shaderParametersSources = [];
+    private readonly List<Variant> _shaderParameterDefaults = [];
+    private readonly List<ShaderParameterDesc> _shaderParameters = [];
+    private readonly List<ShaderResourceDesc> _shaderResources = [];
 }
 
 /// <summary>

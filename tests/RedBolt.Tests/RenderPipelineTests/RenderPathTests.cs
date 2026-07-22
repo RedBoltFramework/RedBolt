@@ -370,6 +370,24 @@ public sealed class RenderPathTests
     }
 
     [Fact]
+    public void Full_screen_shader_pass_uses_native_pod_cache_shape()
+    {
+        var attributesType = typeof(FullScreenShaderPass).GetNestedType(
+            "Attributes", System.Reflection.BindingFlags.NonPublic)!;
+        var cacheType = typeof(FullScreenShaderPass).GetNestedType(
+            "Cache", System.Reflection.BindingFlags.NonPublic)!;
+        var attributesField = typeof(FullScreenShaderPass).GetField(
+            "_attributes", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        var cacheField = typeof(FullScreenShaderPass).GetField(
+            "_cache", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+
+        Assert.True(attributesType.IsValueType);
+        Assert.True(cacheType.IsValueType);
+        Assert.Equal(attributesType, attributesField.FieldType);
+        Assert.Equal(typeof(Nullable<>).MakeGenericType(cacheType), cacheField.FieldType);
+    }
+
+    [Fact]
     public void Full_screen_shader_pass_owns_independent_parameter_variants()
     {
         using var defaultSource = new CString(new string('d', 32));
