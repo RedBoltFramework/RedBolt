@@ -26,7 +26,7 @@ public sealed class AnimationParametersTests
         Assert.Equal(animation.AnimationNameHash, parameters.GetAnimationName());
         Assert.True(parameters.IsLooped);
         Assert.Equal("Root", parameters.StartBoneName);
-        Assert.Equal(2u, parameters.LayerIndex);
+        Assert.Equal(2, parameters.LayerIndex);
         Assert.Equal(AnimationBlendMode.Additive, parameters.BlendMode);
         Assert.Equal(0.5f, parameters.WeightValue);
         Assert.Equal(0.5f, parameters.TargetWeight);

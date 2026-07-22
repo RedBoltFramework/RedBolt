@@ -57,8 +57,8 @@ public sealed class AnimationControllerTests
 
         controller.AddAnimation(parameters);
 
-        Assert.Equal(1u, controller.GetNumAnimations());
-        Assert.Equal(1u, controller.GetAnimationLayer(0));
+        Assert.Equal(1, controller.GetNumAnimations());
+        Assert.Equal(1, controller.GetAnimationLayer(0));
         Assert.Same(animation, controller.GetAnimationParameters(0).GetAnimation());
         Assert.NotSame(parameters, controller.GetAnimationParameters(0));
         Assert.Empty(controller.GetAnimationStates());
@@ -72,7 +72,7 @@ public sealed class AnimationControllerTests
         Assert.Equal(2.0f, controller.GetAnimationParameters(0).SpeedValue);
 
         var existingIndex = controller.PlayExisting(new AnimationParameters(animation).Layer(1).Speed(3.0f));
-        Assert.Equal(0u, existingIndex);
+        Assert.Equal(0, existingIndex);
         Assert.Equal(3.0f, controller.GetAnimationParameters(0).SpeedValue);
 
         controller.Fade(animation, 0.0f, 0.0f);
@@ -81,7 +81,7 @@ public sealed class AnimationControllerTests
         controller.StopAll();
         controller.Update(0.0f);
 
-        Assert.Equal(0u, controller.GetNumAnimations());
+        Assert.Equal(0, controller.GetNumAnimations());
         Assert.Empty(controller.GetAnimationStates());
         Assert.False(controller.IsPlaying(animation));
     }
@@ -102,10 +102,10 @@ public sealed class AnimationControllerTests
         var originalState = controller.GetAnimationStates()[0];
 
         var replacement = new AnimationParameters(keepAnimation).Layer(1).Weight(1.0f);
-        controller.ReplaceAnimations(new[] { replacement }, 0.5f, 0.25f, new uint[] { 1 });
+        controller.ReplaceAnimations(new[] { replacement }, 0.5f, 0.25f, new[] { 1 });
 
         var keepIndex = controller.FindLastAnimation(keepAnimation, 1);
-        Assert.NotEqual(uint.MaxValue, keepIndex);
+        Assert.NotEqual(-1, keepIndex);
         Assert.Equal(0.5f, controller.GetAnimationParameters(keepIndex).GetTime());
         Assert.Equal(0.25f, controller.GetAnimationParameters(keepIndex).WeightValue);
         Assert.Equal(1.0f, controller.GetAnimationParameters(keepIndex).TargetWeight);
@@ -116,7 +116,7 @@ public sealed class AnimationControllerTests
         controller.ReplaceAnimations(ReadOnlySpan<AnimationParameters>.Empty, 0.0f, 0.0f);
         controller.Update(0.0f);
 
-        Assert.Equal(0u, controller.GetNumAnimations());
+        Assert.Equal(0, controller.GetNumAnimations());
         Assert.Empty(controller.GetAnimationStates());
     }
 

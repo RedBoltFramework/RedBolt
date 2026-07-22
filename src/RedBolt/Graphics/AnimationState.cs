@@ -57,7 +57,7 @@ public struct ModelAnimationStateTrack
         set => _node = value is null ? null : new WeakReference<Node>(value);
     }
     public uint KeyFrame;
-    public uint BoneIndex;
+    public int BoneIndex;
     public Bone? Bone;
 }
 

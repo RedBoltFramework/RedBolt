@@ -736,7 +736,7 @@ public struct GeometryView : IEquatable<GeometryView>, ICloneable
 public struct BoneView : IEquatable<BoneView>
 {
     public string Name;
-    public uint ParentIndex;
+    public int ParentIndex;
     public Vector3f Position;
     public Quaternion Rotation;
     public Vector3f Scale;
@@ -748,7 +748,7 @@ public struct BoneView : IEquatable<BoneView>
     public BoneView()
     {
         Name = string.Empty;
-        ParentIndex = uint.MaxValue;
+        ParentIndex = -1;
         Position = Vector3f.Zero;
         Rotation = Quaternion.IDENTITY;
         Scale = Vector3f.One;
@@ -1064,7 +1064,7 @@ public sealed class ModelView : Object
             _bones.Add(new BoneView
             {
                 Name = modelBone.Name,
-                ParentIndex = isRootBone ? uint.MaxValue : modelBone.ParentIndex,
+                ParentIndex = isRootBone ? -1 : modelBone.ParentIndex,
                 Position = modelBone.InitialPosition,
                 Rotation = modelBone.InitialRotation,
                 Scale = modelBone.InitialScale,
@@ -1187,16 +1187,16 @@ public sealed class ModelView : Object
 
         // Write bones
         var skeleton = new Skeleton();
-        skeleton.SetNumBones((uint)_bones.Count);
+        skeleton.SetNumBones(_bones.Count);
         var skeletonBones = skeleton.GetModifiableBones();
         for (var boneIndex = 0; boneIndex < _bones.Count; ++boneIndex)
         {
             var sourceBone = _bones[boneIndex];
-            var isRootBone = sourceBone.ParentIndex == uint.MaxValue;
+            var isRootBone = sourceBone.ParentIndex == -1;
             var bone = skeletonBones[boneIndex];
             bone.Name = sourceBone.Name;
             bone.NameHash = new StringHash(sourceBone.Name);
-            bone.ParentIndex = isRootBone ? (uint)boneIndex : sourceBone.ParentIndex;
+            bone.ParentIndex = isRootBone ? boneIndex : sourceBone.ParentIndex;
             bone.InitialPosition = sourceBone.Position;
             bone.InitialRotation = sourceBone.Rotation;
             bone.InitialScale = sourceBone.Scale;
@@ -1205,7 +1205,7 @@ public sealed class ModelView : Object
             bone.Radius = sourceBone.BoundingSphereRadius;
             bone.BoundingBox = sourceBone.LocalBoundingBox;
             if (isRootBone)
-                skeleton.SetRootBoneIndex((uint)boneIndex);
+                skeleton.SetRootBoneIndex(boneIndex);
         }
         skeleton.UpdateBoneOrder();
         model.SetSkeleton(skeleton);

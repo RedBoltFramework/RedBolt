@@ -181,7 +181,7 @@ public sealed class ModelViewTests
 
         var view = new ModelView();
         view.SetGeometries([geometry]);
-        view.SetBones([new BoneView { Name = "Root", ParentIndex = uint.MaxValue }]);
+        view.SetBones([new BoneView { Name = "Root", ParentIndex = -1 }]);
         view.CalculateMissingNormals();
         Assert.True(view.GetGeometries()[0].Lods[0].Vertices[0].HasNormal());
 
@@ -243,7 +243,7 @@ public sealed class ModelViewTests
         view.SetBones([new BoneView
         {
             Name = "Root",
-            ParentIndex = uint.MaxValue,
+            ParentIndex = -1,
             Position = new Vector3f(1, 2, 3),
             Rotation = Quaternion.IDENTITY,
             Scale = Vector3f.One,
@@ -265,7 +265,7 @@ public sealed class ModelViewTests
         Assert.Equal("Raise", imported.GetMorphs()[0].Name);
         Assert.Equal(0.25f, imported.GetMorphs()[0].InitialWeight);
         Assert.Equal("Root", imported.GetBones()[0].Name);
-        Assert.Equal(uint.MaxValue, imported.GetBones()[0].ParentIndex);
+        Assert.Equal(-1, imported.GetBones()[0].ParentIndex);
         Assert.Equal(2.0f, imported.GetBones()[0].BoundingSphereRadius);
     }
 

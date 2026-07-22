@@ -42,7 +42,7 @@ public sealed class Bone : ICloneable
     public StringHash NameHash;
 
     /// <summary>Parent bone index.</summary>
-    public uint ParentIndex;
+    public int ParentIndex;
 
     /// <summary>Reset position.</summary>
     public Vector3f InitialPosition;
@@ -104,7 +104,7 @@ public sealed class Skeleton : ICloneable, IDisposable
     {
         _bones.Clear();
         _bonesOrder.Clear();
-        _rootBoneIndex = uint.MaxValue;
+        _rootBoneIndex = -1;
     }
 
     public Skeleton Clone()
@@ -129,17 +129,17 @@ public sealed class Skeleton : ICloneable, IDisposable
         if (source.IsEof())
             return false;
 
-        uint bones = source.ReadUInt();
-        _bones.Capacity = Math.Max(_bones.Capacity, checked((int)bones));
+        int bones = checked((int)source.ReadUInt());
+        _bones.Capacity = Math.Max(_bones.Capacity, bones);
 
-        for (uint i = 0; i < bones; ++i)
+        for (int i = 0; i < bones; ++i)
         {
             var newBone = new Bone
             {
                 Name = source.ReadString()
             };
             newBone.NameHash = new StringHash(newBone.Name);
-            newBone.ParentIndex = source.ReadUInt();
+            newBone.ParentIndex = checked((int)source.ReadUInt());
             newBone.InitialPosition = source.ReadVector3();
             newBone.InitialRotation = source.ReadQuaternion();
             newBone.InitialScale = source.ReadVector3();
@@ -172,7 +172,7 @@ public sealed class Skeleton : ICloneable, IDisposable
         {
             Bone bone = _bones[i];
             dest.WriteString(bone.Name);
-            dest.WriteUInt(bone.ParentIndex);
+            dest.WriteUInt(checked((uint)bone.ParentIndex));
             dest.WriteVector3(bone.InitialPosition);
             dest.WriteQuaternion(bone.InitialRotation);
             dest.WriteVector3(bone.InitialScale);
@@ -209,61 +209,60 @@ public sealed class Skeleton : ICloneable, IDisposable
     }
 
     /// <summary>Set root bone's index.</summary>
-    public void SetRootBoneIndex(uint index)
+    public void SetRootBoneIndex(int index)
     {
-        if (index < _bones.Count)
+        if (index >= 0 && index < _bones.Count)
             _rootBoneIndex = index;
         else
             Log.GetLogger().LogError("Root bone index out of bounds");
     }
 
     /// <summary>Set number of bones.</summary>
-    public void SetNumBones(uint numBones)
+    public void SetNumBones(int numBones)
     {
-        var count = checked((int)numBones);
-        while (_bones.Count < count)
+        while (_bones.Count < numBones)
             _bones.Add(new Bone());
-        if (_bones.Count > count)
-            _bones.RemoveRange(count, _bones.Count - count);
+        if (_bones.Count > numBones)
+            _bones.RemoveRange(numBones, _bones.Count - numBones);
     }
 
     /// <summary>Clear bones.</summary>
     public void ClearBones()
     {
         _bones.Clear();
-        _rootBoneIndex = uint.MaxValue;
+        _rootBoneIndex = -1;
     }
 
     /// <summary>Recalculate order of bones in hierarchy, from parents to children.</summary>
     public void UpdateBoneOrder()
     {
-        uint numBones = (uint)_bones.Count;
-        _bonesOrder.Capacity = Math.Max(_bonesOrder.Capacity, checked((int)numBones));
+        int numBones = _bones.Count;
+        _bonesOrder.Capacity = Math.Max(_bonesOrder.Capacity, numBones);
         _bonesOrder.Clear();
 
         // Collect roots first
-        for (uint boneIndex = 0; boneIndex < numBones; ++boneIndex)
+        for (int boneIndex = 0; boneIndex < numBones; ++boneIndex)
         {
-            if (_bones[checked((int)boneIndex)].ParentIndex == boneIndex)
+            if (_bones[boneIndex].ParentIndex == boneIndex)
                 _bonesOrder.Add(boneIndex);
         }
 
         // Collect layer by layer
-        uint rangeBegin = 0;
-        uint rangeEnd = (uint)_bonesOrder.Count;
+        int rangeBegin = 0;
+        int rangeEnd = _bonesOrder.Count;
 
         while (_bonesOrder.Count < numBones && rangeBegin != rangeEnd)
         {
-            for (uint boneIndex = 0; boneIndex < numBones; ++boneIndex)
+            for (int boneIndex = 0; boneIndex < numBones; ++boneIndex)
             {
-                uint parentBoneIndex = _bones[checked((int)boneIndex)].ParentIndex;
+                int parentBoneIndex = _bones[boneIndex].ParentIndex;
                 if (parentBoneIndex == boneIndex)
                     continue;
 
                 var isDirectChild = false;
                 for (var parentIndex = rangeBegin; parentIndex < rangeEnd; ++parentIndex)
                 {
-                    if (_bonesOrder[checked((int)parentIndex)] == parentBoneIndex)
+                    if (_bonesOrder[parentIndex] == parentBoneIndex)
                     {
                         isDirectChild = true;
                         break;
@@ -275,7 +274,7 @@ public sealed class Skeleton : ICloneable, IDisposable
             }
 
             rangeBegin = rangeEnd;
-            rangeEnd = (uint)_bonesOrder.Count;
+            rangeEnd = _bonesOrder.Count;
         }
     }
 
@@ -293,45 +292,45 @@ public sealed class Skeleton : ICloneable, IDisposable
     public IReadOnlyList<Bone> GetBones() => _bones;
 
     /// <summary>Return order of bones from parents to children.</summary>
-    public IReadOnlyList<uint> GetBonesOrder() => _bonesOrder;
+    public IReadOnlyList<int> GetBonesOrder() => _bonesOrder;
 
     /// <summary>Return modifiable bones.</summary>
     public IList<Bone> GetModifiableBones() => _bones;
 
     /// <summary>Return number of bones.</summary>
-    public uint GetNumBones() => (uint)_bones.Count;
+    public int GetNumBones() => _bones.Count;
 
     /// <summary>Return root bone.</summary>
     public Bone? GetRootBone() => GetBone(_rootBoneIndex);
 
-    /// <summary>Return index of the bone by name. Return uint.MaxValue if not found.</summary>
-    public uint GetBoneIndex(string boneName) => GetBoneIndex(new StringHash(boneName));
+    /// <summary>Return index of the bone by name. Return -1 if not found.</summary>
+    public int GetBoneIndex(string boneName) => GetBoneIndex(new StringHash(boneName));
 
-    /// <summary>Return index of the bone by name hash. Return uint.MaxValue if not found.</summary>
-    public uint GetBoneIndex(StringHash boneNameHash)
+    /// <summary>Return index of the bone by name hash. Return -1 if not found.</summary>
+    public int GetBoneIndex(StringHash boneNameHash)
     {
-        for (uint i = 0; i < _bones.Count; ++i)
+        for (int i = 0; i < _bones.Count; ++i)
         {
-            if (_bones[checked((int)i)].NameHash == boneNameHash)
+            if (_bones[i].NameHash == boneNameHash)
                 return i;
         }
 
-        return uint.MaxValue;
+        return -1;
     }
 
-    /// <summary>Return index of the bone by the bone pointer. Return uint.MaxValue if not found.</summary>
-    public uint GetBoneIndex(Bone? bone)
+    /// <summary>Return index of the bone by the bone pointer. Return -1 if not found.</summary>
+    public int GetBoneIndex(Bone? bone)
     {
         if (bone is null)
-            return uint.MaxValue;
+            return -1;
 
-        for (uint i = 0; i < _bones.Count; ++i)
+        for (int i = 0; i < _bones.Count; ++i)
         {
-            if (ReferenceEquals(_bones[checked((int)i)], bone))
+            if (ReferenceEquals(_bones[i], bone))
                 return i;
         }
 
-        return uint.MaxValue;
+        return -1;
     }
 
     /// <summary>Return parent of the given bone. Return null for root bones.</summary>
@@ -341,9 +340,9 @@ public sealed class Skeleton : ICloneable, IDisposable
     }
 
     /// <summary>Return bone by index.</summary>
-    public Bone? GetBone(uint index)
+    public Bone? GetBone(int index)
     {
-        return index < _bones.Count ? _bones[checked((int)index)] : null;
+        return index >= 0 && index < _bones.Count ? _bones[index] : null;
     }
 
     /// <summary>Return bone by name.</summary>
@@ -352,8 +351,8 @@ public sealed class Skeleton : ICloneable, IDisposable
     /// <summary>Return bone by name hash.</summary>
     public Bone? GetBone(StringHash boneNameHash)
     {
-        uint index = GetBoneIndex(boneNameHash);
-        return index < _bones.Count ? _bones[checked((int)index)] : null;
+        int index = GetBoneIndex(boneNameHash);
+        return index >= 0 && index < _bones.Count ? _bones[index] : null;
     }
 
     /// <summary>Reset all animating bones to initial positions without marking the nodes dirty. Requires the node dirtying to be performed later.</summary>
@@ -369,7 +368,7 @@ public sealed class Skeleton : ICloneable, IDisposable
     /// <summary>Bones.</summary>
     private readonly List<Bone> _bones = [];
     /// <summary>Indices of bones ordered from root to children.</summary>
-    private readonly List<uint> _bonesOrder = [];
+    private readonly List<int> _bonesOrder = [];
     /// <summary>Root bone index.</summary>
-    private uint _rootBoneIndex = uint.MaxValue;
+    private int _rootBoneIndex = -1;
 }

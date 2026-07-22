@@ -43,12 +43,12 @@ public sealed class AnimatedModelTests
         var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
         animatedModel.SetModel(model, true);
 
-        Assert.Equal(1u, animatedModel.GetSkeleton().GetNumBones());
-        Assert.Equal("Root", animatedModel.GetSkeleton().GetBone(0u)!.Name);
+        Assert.Equal(1, animatedModel.GetSkeleton().GetNumBones());
+        Assert.Equal("Root", animatedModel.GetSkeleton().GetBone(0)!.Name);
         Assert.Equal(0.5f, animatedModel.GetMorphWeight("Smile"));
         Assert.Equal(1, animatedModel.GetNumMorphs());
         Assert.True(animatedModel.IsMaster());
-        Assert.NotNull(animatedModel.GetSkeleton().GetBone(0u)!.Node);
+        Assert.NotNull(animatedModel.GetSkeleton().GetBone(0)!.Node);
     }
 
     [Fact]
@@ -198,11 +198,11 @@ public sealed class AnimatedModelTests
         var animatedModel = node.CreateComponent<AnimatedModel>();
 
         animatedModel.SetModel(model, false);
-        Assert.Null(animatedModel.GetSkeleton().GetBone(0u)!.Node);
+        Assert.Null(animatedModel.GetSkeleton().GetBone(0)!.Node);
 
         animatedModel.ApplyAttributes();
 
-        Assert.Same(rootNode, animatedModel.GetSkeleton().GetBone(0u)!.Node);
+        Assert.Same(rootNode, animatedModel.GetSkeleton().GetBone(0)!.Node);
         Assert.Contains(animatedModel, rootNode.GetListeners());
     }
 
@@ -212,12 +212,12 @@ public sealed class AnimatedModelTests
         var node = new Scene().CreateChild("AnimatedModel");
         var animatedModel = node.CreateComponent<AnimatedModel>();
         animatedModel.SetModel(CreateSkeletonModel("First", BoneCollisionShape.Box), true);
-        var originalNode = animatedModel.GetSkeleton().GetBone(0u)!.Node;
+        var originalNode = animatedModel.GetSkeleton().GetBone(0)!.Node;
         animatedModel.GetSkeleton().GetModifiableBones()[0].Animated = false;
 
         animatedModel.SetModel(CreateSkeletonModel("Second", BoneCollisionShape.Sphere), true);
 
-        var bone = animatedModel.GetSkeleton().GetBone(0u)!;
+        var bone = animatedModel.GetSkeleton().GetBone(0)!;
         Assert.Same(originalNode, bone.Node);
         Assert.False(bone.Animated);
         Assert.Equal(BoneCollisionShape.Sphere, bone.CollisionMask);
@@ -274,7 +274,7 @@ public sealed class AnimatedModelTests
 
         Assert.True(master.IsMaster());
         Assert.False(attachment.IsMaster());
-        Assert.Same(master.GetSkeleton().GetBone(0u)!.Node, attachment.GetSkeleton().GetBone(0u)!.Node);
+        Assert.Same(master.GetSkeleton().GetBone(0)!.Node, attachment.GetSkeleton().GetBone(0)!.Node);
         Assert.Equal(master.GetWorldBoundingBox(), attachment.GetWorldBoundingBox());
     }
 

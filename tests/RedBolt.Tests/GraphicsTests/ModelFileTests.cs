@@ -54,15 +54,15 @@ public sealed class ModelFileTests
 
         model.SetSkeleton(skeleton);
 
-        var modelBone = model.GetSkeleton().GetBone(0u);
+        var modelBone = model.GetSkeleton().GetBone(0);
         Assert.NotNull(modelBone);
         Assert.NotSame(sourceBone, modelBone);
         Assert.Equal("Root", modelBone!.Name);
         Assert.Same(sourceBone.Node, modelBone.Node);
-        Assert.Equal(1u, model.GetSkeleton().GetNumBones());
+        Assert.Equal(1, model.GetSkeleton().GetNumBones());
 
         var clone = model.Clone("SkeletonClone");
-        var cloneBone = clone.GetSkeleton().GetBone(0u);
+        var cloneBone = clone.GetSkeleton().GetBone(0);
         Assert.NotSame(modelBone, cloneBone);
         Assert.Same(modelBone.Node, cloneBone!.Node);
     }

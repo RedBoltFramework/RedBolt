@@ -23,12 +23,12 @@ public sealed class SkeletonTests
         skeleton.SetRootBoneIndex(0);
         skeleton.UpdateBoneOrder();
 
-        Assert.Equal(3u, skeleton.GetNumBones());
+        Assert.Equal(3, skeleton.GetNumBones());
         Assert.Same(bones[0], skeleton.GetRootBone());
         Assert.Same(bones[1], skeleton.GetBoneParent(bones[2]));
-        Assert.Equal(new uint[] { 0, 1, 2 }, skeleton.GetBonesOrder());
-        Assert.Equal(1u, skeleton.GetBoneIndex("Child"));
-        Assert.Same(bones[2], skeleton.GetBone(2u));
+        Assert.Equal(new[] { 0, 1, 2 }, skeleton.GetBonesOrder());
+        Assert.Equal(1, skeleton.GetBoneIndex("Child"));
+        Assert.Same(bones[2], skeleton.GetBone(2));
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public sealed class SkeletonTests
         var destination = new Skeleton();
         destination.Define(source);
 
-        var destinationBone = destination.GetBone(0u);
+        var destinationBone = destination.GetBone(0);
         Assert.NotNull(destinationBone);
         Assert.NotSame(sourceBone, destinationBone);
         Assert.Equal("Root", destinationBone!.Name);
@@ -72,8 +72,8 @@ public sealed class SkeletonTests
 
         var skeletonCopy = source.Clone();
         skeletonCopy.GetModifiableBones()[0].Name = "SkeletonCopy";
-        Assert.Equal("Root", source.GetBone(0u)!.Name);
-        Assert.Equal("SkeletonCopy", skeletonCopy.GetBone(0u)!.Name);
-        Assert.Same(sourceBone.Node, skeletonCopy.GetBone(0u)!.Node);
+        Assert.Equal("Root", source.GetBone(0)!.Name);
+        Assert.Equal("SkeletonCopy", skeletonCopy.GetBone(0)!.Name);
+        Assert.Same(sourceBone.Node, skeletonCopy.GetBone(0)!.Node);
     }
 }

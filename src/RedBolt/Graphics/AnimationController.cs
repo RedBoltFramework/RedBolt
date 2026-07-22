@@ -22,6 +22,7 @@
 
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
@@ -30,7 +31,7 @@ namespace RedBolt;
 /// </summary>
 public class AnimationController : AnimationStateSource
 {
-    private const uint InvalidAnimationIndex = uint.MaxValue;
+    private const int InvalidAnimationIndex = -1;
     private static readonly StringVector AnimationParametersNames = new()
     {
         "Animation Count",
@@ -214,7 +215,7 @@ public class AnimationController : AnimationStateSource
     /// </summary>
     public void ReplaceAnimations(
         ReadOnlySpan<AnimationParameters> newAnimations, float elapsedTime, float fadeTime,
-        ReadOnlySpan<uint> layers = default)
+        ReadOnlySpan<int> layers = default)
     {
         // Upload new parameters and correct them according to elapsed time, some states may be removed
         var numNewAnimations = newAnimations.Length;
@@ -299,7 +300,7 @@ public class AnimationController : AnimationStateSource
     /// </summary>
     public void AddAnimation(AnimationParameters parameters)
     {
-        var instanceIndex = 0u;
+        var instanceIndex = 0;
         for (var i = 0; i < _animations.Count; ++i)
         {
             if (ReferenceEquals(_animations[i].Params.GetAnimation(), parameters.GetAnimation()))
@@ -324,15 +325,15 @@ public class AnimationController : AnimationStateSource
         _revisionDirty = true;
     }
 
-    public void UpdateAnimation(uint index, AnimationParameters parameters)
+    public void UpdateAnimation(int index, AnimationParameters parameters)
     {
-        if (index >= _animations.Count)
+        if (index < 0 || index >= _animations.Count)
         {
             Debug.Assert(false, "Out-of-bounds animation index in AnimationController::UpdateAnimation");
             return;
         }
 
-        var instance = _animations[(int)index];
+        var instance = _animations[index];
         if (!ReferenceEquals(instance.Params.GetAnimation(), parameters.GetAnimation())
             || instance.Params.InstanceIndex != parameters.InstanceIndex)
         {
@@ -351,15 +352,15 @@ public class AnimationController : AnimationStateSource
         }
     }
 
-    public void RemoveAnimation(uint index)
+    public void RemoveAnimation(int index)
     {
-        if (index >= _animations.Count)
+        if (index < 0 || index >= _animations.Count)
         {
             Debug.Assert(false, "Out-of-bounds animation index in AnimationController::UpdateAnimation");
             return;
         }
 
-        _animations.RemoveAt((int)index);
+        _animations.RemoveAt(index);
         _animationStatesDirty = true;
         _revisionDirty = true;
     }
@@ -379,18 +380,18 @@ public class AnimationController : AnimationStateSource
         return result;
     }
 
-    public uint GetNumAnimations() => checked((uint)_animations.Count);
+    public int GetNumAnimations() => _animations.Count;
 
-    public uint GetAnimationLayer(uint index)
+    public int GetAnimationLayer(int index)
     {
-        return index < _animations.Count ? _animations[(int)index].Params.LayerIndex : 0u;
+        return index >= 0 && index < _animations.Count ? _animations[index].Params.LayerIndex : 0;
     }
 
-    public AnimationParameters GetAnimationParameters(uint index)
+    public AnimationParameters GetAnimationParameters(int index)
     {
-        return index < _animations.Count
-            ? _animations[(int)index].Params.Clone()
-            : AnimationParameters.Empty.Clone();
+        return index >= 0 && index < _animations.Count
+            ? _animations[index].Params
+            : AnimationParameters.Empty;
     }
 
     public uint GetRevision() => _revision;
@@ -403,7 +404,7 @@ public class AnimationController : AnimationStateSource
     /// <summary>
     /// Manage played animations on high level.
     /// </summary>
-    public uint FindLastAnimation(Animation? animation, uint layer = InvalidAnimationIndex)
+    public int FindLastAnimation(Animation? animation, int layer = InvalidAnimationIndex)
     {
         for (var i = _animations.Count - 1; i >= 0; --i)
         {
@@ -412,27 +413,27 @@ public class AnimationController : AnimationStateSource
                 continue;
             if (layer != InvalidAnimationIndex && parameters.LayerIndex != layer)
                 continue;
-            return (uint)i;
+            return i;
         }
 
         return InvalidAnimationIndex;
     }
 
-    public AnimationParameters? GetLastAnimationParameters(Animation? animation, uint layer = InvalidAnimationIndex)
+    public AnimationParameters? GetLastAnimationParameters(Animation? animation, int layer = InvalidAnimationIndex)
     {
         var index = FindLastAnimation(animation, layer);
-        return index != InvalidAnimationIndex ? _animations[(int)index].Params : null;
+        return index != InvalidAnimationIndex ? _animations[index].Params : null;
     }
 
-    public AnimationParameters? GetMutableLastAnimationParameters(Animation? animation, uint layer = InvalidAnimationIndex)
+    public AnimationParameters? GetMutableLastAnimationParameters(Animation? animation, int layer = InvalidAnimationIndex)
     {
         var index = FindLastAnimation(animation, layer);
-        return index != InvalidAnimationIndex ? _animations[(int)index].Params : null;
+        return index != InvalidAnimationIndex ? _animations[index].Params : null;
     }
 
     public bool IsPlaying(Animation? animation) => FindLastAnimation(animation) != InvalidAnimationIndex;
 
-    public uint PlayNew(AnimationParameters parameters, float fadeInTime = 0.0f)
+    public int PlayNew(AnimationParameters parameters, float fadeInTime = 0.0f)
     {
         var adjustedParameters = parameters.Clone();
         if (fadeInTime > 0.0f)
@@ -442,26 +443,26 @@ public class AnimationController : AnimationStateSource
         }
 
         AddAnimation(adjustedParameters);
-        return checked((uint)(_animations.Count - 1));
+        return _animations.Count - 1;
     }
 
-    public uint PlayNewExclusive(AnimationParameters parameters, float fadeInTime = 0.0f)
+    public int PlayNewExclusive(AnimationParameters parameters, float fadeInTime = 0.0f)
     {
         var index = PlayNew(parameters, fadeInTime);
         StopLayerExcept(parameters.LayerIndex, index, fadeInTime);
         return index;
     }
 
-    public uint PlayExisting(AnimationParameters parameters, float fadeInTime = 0.0f)
+    public int PlayExisting(AnimationParameters parameters, float fadeInTime = 0.0f)
     {
         var index = FindLastAnimation(parameters.GetAnimation(), parameters.LayerIndex);
         if (index == InvalidAnimationIndex)
         {
             PlayNew(parameters, fadeInTime);
-            return checked((uint)(_animations.Count - 1));
+            return _animations.Count - 1;
         }
 
-        var existingParameters = GetAnimationParameters(index);
+        var existingParameters = GetAnimationParameters(index).Clone();
         existingParameters.SpeedValue = parameters.SpeedValue;
         existingParameters.RemoveOnZeroWeight = parameters.RemoveOnZeroWeight;
         if (existingParameters.TargetWeight != parameters.TargetWeight)
@@ -473,7 +474,7 @@ public class AnimationController : AnimationStateSource
         return index;
     }
 
-    public uint PlayExistingExclusive(AnimationParameters parameters, float fadeInTime = 0.0f)
+    public int PlayExistingExclusive(AnimationParameters parameters, float fadeInTime = 0.0f)
     {
         var index = PlayExisting(parameters, fadeInTime);
         StopLayerExcept(parameters.LayerIndex, index, fadeInTime);
@@ -486,7 +487,7 @@ public class AnimationController : AnimationStateSource
         if (index == InvalidAnimationIndex)
             return;
 
-        var parameters = GetAnimationParameters(index);
+        var parameters = GetAnimationParameters(index).Clone();
         parameters.TargetWeight = targetWeight;
         parameters.TargetWeightDelay = fadeTime;
         UpdateAnimation(index, parameters);
@@ -498,32 +499,32 @@ public class AnimationController : AnimationStateSource
         if (index == InvalidAnimationIndex)
             return;
 
-        var parameters = GetAnimationParameters(index);
+        var parameters = GetAnimationParameters(index).Clone();
         if (parameters.RemoveDelayed(fadeTime))
             UpdateAnimation(index, parameters);
     }
 
-    public void StopLayer(uint layer, float fadeTime = 0.0f)
+    public void StopLayer(int layer, float fadeTime = 0.0f)
     {
-        for (var index = 0u; index < _animations.Count; ++index)
+        for (var index = 0; index < _animations.Count; ++index)
         {
-            if (_animations[(int)index].Params.LayerIndex != layer)
+            if (_animations[index].Params.LayerIndex != layer)
                 continue;
 
-            var parameters = GetAnimationParameters(index);
+            var parameters = GetAnimationParameters(index).Clone();
             if (parameters.RemoveDelayed(fadeTime))
                 UpdateAnimation(index, parameters);
         }
     }
 
-    public void StopLayerExcept(uint layer, uint exceptionIndex, float fadeTime = 0.0f)
+    public void StopLayerExcept(int layer, int exceptionIndex, float fadeTime = 0.0f)
     {
-        for (var index = 0u; index < _animations.Count; ++index)
+        for (var index = 0; index < _animations.Count; ++index)
         {
-            if (_animations[(int)index].Params.LayerIndex != layer || index == exceptionIndex)
+            if (_animations[index].Params.LayerIndex != layer || index == exceptionIndex)
                 continue;
 
-            var parameters = GetAnimationParameters(index);
+            var parameters = GetAnimationParameters(index).Clone();
             if (parameters.RemoveDelayed(fadeTime))
                 UpdateAnimation(index, parameters);
         }
@@ -531,9 +532,9 @@ public class AnimationController : AnimationStateSource
 
     public void StopAll(float fadeTime = 0.0f)
     {
-        for (var index = 0u; index < _animations.Count; ++index)
+        for (var index = 0; index < _animations.Count; ++index)
         {
-            var parameters = GetAnimationParameters(index);
+            var parameters = GetAnimationParameters(index).Clone();
             if (parameters.RemoveDelayed(fadeTime))
                 UpdateAnimation(index, parameters);
         }
@@ -545,7 +546,7 @@ public class AnimationController : AnimationStateSource
         if (index == InvalidAnimationIndex)
             return false;
 
-        var parameters = GetAnimationParameters(index);
+        var parameters = GetAnimationParameters(index).Clone();
         parameters.SetTime(time);
         UpdateAnimation(index, parameters);
         return true;
@@ -557,7 +558,7 @@ public class AnimationController : AnimationStateSource
         if (index == InvalidAnimationIndex)
             return false;
 
-        var parameters = GetAnimationParameters(index);
+        var parameters = GetAnimationParameters(index).Clone();
         if (fadeTime == 0.0f)
             parameters.WeightValue = weight;
         parameters.TargetWeight = weight;
@@ -572,7 +573,7 @@ public class AnimationController : AnimationStateSource
         if (index == InvalidAnimationIndex)
             return false;
 
-        var parameters = GetAnimationParameters(index);
+        var parameters = GetAnimationParameters(index).Clone();
         parameters.SpeedValue = speed;
         UpdateAnimation(index, parameters);
         return true;
@@ -581,7 +582,7 @@ public class AnimationController : AnimationStateSource
     /// <summary>
     /// Deprecated.
     /// </summary>
-    public bool Play(string name, byte layer, bool looped, float fadeTime = 0.0f)
+    public bool Play(string name, int layer, bool looped, float fadeTime = 0.0f)
     {
         var animation = GetAnimationByName(name);
         if (animation is null)
@@ -594,7 +595,7 @@ public class AnimationController : AnimationStateSource
         return true;
     }
 
-    public bool PlayExclusive(string name, byte layer, bool looped, float fadeTime = 0.0f)
+    public bool PlayExclusive(string name, int layer, bool looped, float fadeTime = 0.0f)
     {
         var animation = GetAnimationByName(name);
         if (animation is null)
@@ -688,14 +689,14 @@ public class AnimationController : AnimationStateSource
             return;
 
         var requestedCount = Math.Max(0, value[0].GetInt());
-        var availableCount = (value.Count - 1) / checked((int)AnimationParameters.NumVariants);
+        var availableCount = (value.Count - 1) / AnimationParameters.NumVariants;
         var loadedCount = Math.Min(requestedCount, availableCount);
 
         var valueSpan = CollectionsMarshal.AsSpan(value);
         for (var i = 0; i < loadedCount; ++i)
         {
-            var offset = 1 + i * checked((int)AnimationParameters.NumVariants);
-            var variants = valueSpan.Slice(offset, checked((int)AnimationParameters.NumVariants));
+            var offset = 1 + i * AnimationParameters.NumVariants;
+            var variants = valueSpan.Slice(offset, AnimationParameters.NumVariants);
             AddAnimation(AnimationParameters.FromVariantSpan(variants));
         }
 
@@ -709,13 +710,13 @@ public class AnimationController : AnimationStateSource
     public VariantVector GetAnimationsAttr()
     {
         var numAnimations = _animations.Count;
-        var numVariants = checked((int)AnimationParameters.NumVariants);
+        var numVariants = AnimationParameters.NumVariants;
         var resultSize = checked(1 + numAnimations * numVariants);
 
         var result = new VariantVector();
         for (var i = 0; i < resultSize; ++i)
             result.Add(default);
-        result[0] = new Variant(checked((uint)numAnimations));
+        result[0] = new Variant(numAnimations);
 
         var valueSpan = CollectionsMarshal.AsSpan(result);
         for (var i = 0; i < numAnimations; ++i)
@@ -784,8 +785,8 @@ public class AnimationController : AnimationStateSource
 
         foreach (var track in animation.Tracks.Values)
         {
-            var trackBoneIndex = model is not null ? model.GetSkeleton().GetBoneIndex(track.NameHash) : uint.MaxValue;
-            var trackBone = trackBoneIndex != uint.MaxValue ? model!.GetSkeleton().GetBone(trackBoneIndex) : null;
+            var trackBoneIndex = model is not null ? model.GetSkeleton().GetBoneIndex(track.NameHash) : -1;
+            var trackBone = trackBoneIndex != -1 ? model!.GetSkeleton().GetBone(trackBoneIndex) : null;
             if (trackBone?.Node is { } boneNode &&
                 (ReferenceEquals(startNode, Node) || boneNode.IsChildOf(startNode)))
             {
@@ -840,7 +841,10 @@ public class AnimationController : AnimationStateSource
     private AnimatedAttributeReference ParseAnimatablePath(string path, Node? startNode)
     {
         if (string.IsNullOrEmpty(path))
+        {
+            Log.GetLogger().LogWarning("Variant animation track name must not be empty");
             return default;
+        }
 
         var animatedNode = startNode;
         var attributePath = path;
@@ -850,12 +854,18 @@ public class AnimationController : AnimationStateSource
         {
             var separator = path.IndexOf("/@", StringComparison.Ordinal);
             if (separator < 0)
+            {
+                Log.GetLogger().LogWarning("Path must end with attribute reference like /@StaticModel/Model");
                 return default;
+            }
 
             var nodePath = path[..separator];
             animatedNode = startNode!.FindChild(nodePath);
             if (animatedNode is null)
+            {
+                Log.GetLogger().LogWarning("Path to node '{Path}' cannot be resolved", nodePath);
                 return default;
+            }
 
             attributePath = path[(separator + 1)..];
         }
@@ -891,7 +901,10 @@ public class AnimationController : AnimationStateSource
 
         var attribute = animatedNode!.FindComponentAttribute(attributePath);
         if (attribute.Serializable is null)
+        {
+            Log.GetLogger().LogWarning("Path to attribute '{Path}' cannot be resolved", attributePath);
             return default;
+        }
 
         result.Serializable = attribute.Serializable;
         result.AttributeIndex = attribute.AttributeIndex;

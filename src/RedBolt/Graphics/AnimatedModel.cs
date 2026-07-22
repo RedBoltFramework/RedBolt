@@ -1009,7 +1009,7 @@ public class AnimatedModel : StaticModel
 
         for (var i = 0; i < _skeleton.GetNumBones(); ++i)
         {
-            var bone = _skeleton.GetBone(checked((uint)i))!;
+            var bone = _skeleton.GetBone(i)!;
             var output = _skeletonData[(int)i];
             output.Dirty = AnimationChannel.None;
             output.LocalToParent = !reset && bone.Node is not null

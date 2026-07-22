@@ -117,7 +117,7 @@ public sealed class AnimationParameters : IEquatable<AnimationParameters?>, IClo
         return this;
     }
 
-    public AnimationParameters Layer(uint layer)
+    public AnimationParameters Layer(int layer)
     {
         LayerIndex = layer;
         return this;
@@ -208,14 +208,14 @@ public sealed class AnimationParameters : IEquatable<AnimationParameters?>, IClo
             : _time.UpdateClamped(scaledTimeStep, true);
     }
 
-    public uint InstanceIndex;
+    public int InstanceIndex;
 
     /// <summary>
     /// Static animation parameters that change rarely.
     /// </summary>
     public bool IsLooped;
     public bool RemoveOnCompletion = true;
-    public uint LayerIndex;
+    public int LayerIndex;
     public AnimationBlendMode BlendMode;
     public string StartBoneName = string.Empty;
     public float AutoFadeOutTime;
@@ -238,7 +238,7 @@ public sealed class AnimationParameters : IEquatable<AnimationParameters?>, IClo
     /// <summary>
     /// Number of serialized animation parameter variants.
     /// </summary>
-    public const uint NumVariants = 15;
+    public const int NumVariants = 15;
 
     // C# omits the Context* parameter.
     public static AnimationParameters FromVariantSpan(ReadOnlySpan<Variant> variants)
@@ -252,7 +252,7 @@ public sealed class AnimationParameters : IEquatable<AnimationParameters?>, IClo
 
         result.IsLooped = variants[index++].GetBool();
         result.RemoveOnCompletion = variants[index++].GetBool();
-        result.LayerIndex = variants[index++].GetUInt();
+        result.LayerIndex = variants[index++].GetInt();
         result.BlendMode = (AnimationBlendMode)variants[index++].GetUInt();
         result.StartBoneName = variants[index++].GetString();
         result.AutoFadeOutTime = variants[index++].GetFloat();
@@ -317,13 +317,13 @@ public sealed class AnimationParameters : IEquatable<AnimationParameters?>, IClo
         var flags = (AnimationParameterMask)source.ReadVLE();
 
         if ((flags & AnimationParameterMask.InstanceIndex) != 0)
-            result.InstanceIndex = source.ReadVLE();
+            result.InstanceIndex = checked((int)source.ReadVLE());
 
         result.IsLooped = (flags & AnimationParameterMask.Looped) != 0;
         result.RemoveOnCompletion = (flags & AnimationParameterMask.RemoveOnCompletion) != 0;
 
         if ((flags & AnimationParameterMask.Layer) != 0)
-            result.LayerIndex = source.ReadVLE();
+            result.LayerIndex = checked((int)source.ReadVLE());
 
         result.BlendMode = (flags & AnimationParameterMask.Additive) != 0
             ? AnimationBlendMode.Additive
@@ -395,9 +395,9 @@ public sealed class AnimationParameters : IEquatable<AnimationParameters?>, IClo
 
         destination.WriteVLE((uint)flags);
         if ((flags & AnimationParameterMask.InstanceIndex) != 0)
-            destination.WriteVLE(InstanceIndex);
+            destination.WriteVLE(checked((uint)InstanceIndex));
         if ((flags & AnimationParameterMask.Layer) != 0)
-            destination.WriteVLE(LayerIndex);
+            destination.WriteVLE(checked((uint)LayerIndex));
         if ((flags & AnimationParameterMask.StartBone) != 0)
             destination.WriteString(StartBoneName);
         if ((flags & AnimationParameterMask.AutoFadeOutTime) != 0)
