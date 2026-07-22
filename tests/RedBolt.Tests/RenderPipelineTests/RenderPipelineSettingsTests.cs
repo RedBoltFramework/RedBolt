@@ -67,4 +67,22 @@ public sealed class RenderPipelineSettingsTests
         Assert.False(settings.RenderBufferManager.InheritMultiSampleLevel);
         Assert.Equal(10, settings.InstancingBuffer.NumInstancingTexCoords);
     }
+
+    [Fact]
+    public void Propagate_implied_settings_preserves_format_for_unknown_ambient_mode()
+    {
+        var settings = new RenderPipelineSettings();
+        var sceneProcessor = settings.SceneProcessor;
+        sceneProcessor.AmbientMode = (DrawableAmbientMode)(-1);
+        settings.SceneProcessor = sceneProcessor;
+        var instancingBuffer = settings.InstancingBuffer;
+        instancingBuffer.EnableInstancing = true;
+        instancingBuffer.NumInstancingTexCoords = 7;
+        settings.InstancingBuffer = instancingBuffer;
+
+        settings.PropagateImpliedSettings();
+
+        Assert.Equal(4, settings.InstancingBuffer.FirstInstancingTexCoord);
+        Assert.Equal(7, settings.InstancingBuffer.NumInstancingTexCoords);
+    }
 }

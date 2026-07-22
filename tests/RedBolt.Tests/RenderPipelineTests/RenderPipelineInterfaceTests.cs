@@ -19,6 +19,22 @@ public sealed class RenderPipelineInterfaceTests(HeadlessEngineFixture fixture)
     }
 
     [Fact]
+    public void Render_pipeline_view_dispose_releases_signal_subscribers()
+    {
+        var scene = new Scene();
+        var pipeline = scene.CreateComponent<RenderPipeline>();
+        var view = new TrackingRenderPipelineView(pipeline);
+        var updateBeginCount = 0;
+        view.UpdateBegin += _ => ++updateBeginCount;
+
+        view.RaiseUpdateBeginForTest();
+        view.Dispose();
+        view.RaiseUpdateBeginForTest();
+
+        Assert.Equal(1, updateBeginCount);
+    }
+
+    [Fact]
     public void Auto_exposure_resets_adapted_luminance_after_device_reset()
     {
         var parameters = new EngineParameters
@@ -59,6 +75,37 @@ public sealed class RenderPipelineInterfaceTests(HeadlessEngineFixture fixture)
             fixture.RenderDevice.InvalidateDeviceState();
             fixture.Graphics.Shutdown();
             fixture.Input.Shutdown();
+        }
+    }
+
+    private sealed class TrackingRenderPipelineView(RenderPipeline renderPipeline) : RenderPipelineView(renderPipeline)
+    {
+        private RenderPipelineStats _stats;
+
+        public override bool IsLinearColorSpace => false;
+
+        public void RaiseUpdateBeginForTest() => RaiseUpdateBegin(default);
+
+        public override bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics) => true;
+
+        public override void Update(Graphics graphics)
+        {
+        }
+
+        public override void Render(Graphics graphics, MaterialQuality materialQuality)
+        {
+        }
+
+        public override FrameInfo GetFrameInfo() => default;
+
+        public override ref readonly RenderPipelineStats GetStats() => ref _stats;
+
+        public override void DrawDebugGeometries(bool depthTest)
+        {
+        }
+
+        public override void DrawDebugLights(bool depthTest)
+        {
         }
     }
 }

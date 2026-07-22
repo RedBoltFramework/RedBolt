@@ -1128,13 +1128,18 @@ public struct RenderPipelineSettings : IEquatable<RenderPipelineSettings>
         {
             var instancingBuffer = InstancingBuffer;
             instancingBuffer.FirstInstancingTexCoord = 4;
-            instancingBuffer.NumInstancingTexCoords = SceneProcessor.AmbientMode switch
+            switch (SceneProcessor.AmbientMode)
             {
-                DrawableAmbientMode.Constant => 3,
-                DrawableAmbientMode.Flat => 4,
-                DrawableAmbientMode.Directional => 10,
-                _ => 3
-            };
+                case DrawableAmbientMode.Constant:
+                    instancingBuffer.NumInstancingTexCoords = 3;
+                    break;
+                case DrawableAmbientMode.Flat:
+                    instancingBuffer.NumInstancingTexCoords = 4;
+                    break;
+                case DrawableAmbientMode.Directional:
+                    instancingBuffer.NumInstancingTexCoords = 10;
+                    break;
+            }
             InstancingBuffer = instancingBuffer;
         }
     }
@@ -1333,12 +1338,17 @@ public interface IRenderPipelineInterface
 public abstract class RenderPipelineView : Object, IRenderPipelineInterface
 {
     private readonly RenderPipeline _renderPipeline;
-    private readonly RenderPipelineDebugger _debugger = new();
+    protected readonly Graphics _graphics;
+    protected readonly Renderer _renderer;
+
+    protected bool _linearColorSpace;
     protected readonly List<ShaderParameterDesc> _frameParameters = [];
 
     protected RenderPipelineView(RenderPipeline renderPipeline)
     {
         _renderPipeline = renderPipeline ?? throw new ArgumentNullException(nameof(renderPipeline));
+        _graphics = GetSubsystem<Graphics>()!;
+        _renderer = GetSubsystem<Renderer>()!;
     }
 
     public RenderPipeline GetRenderPipeline() => _renderPipeline;
@@ -1367,14 +1377,20 @@ public abstract class RenderPipelineView : Object, IRenderPipelineInterface
             parameter.Dispose();
         }
         _frameParameters.Clear();
+        CollectStatistics = null;
+        PipelineStatesInvalidated = null;
+        RenderEnd = null;
+        RenderBegin = null;
+        UpdateEnd = null;
+        UpdateBegin = null;
         base.Dispose();
     }
 
     public Context? GetContext() => Context.Instance;
 
-    public RenderPipelineDebugger GetDebugger() => _debugger;
+    public virtual RenderPipelineDebugger? GetDebugger() => null;
 
-    public abstract bool IsLinearColorSpace { get; }
+    public virtual bool IsLinearColorSpace => _linearColorSpace;
 
     /// <summary>
     /// Called in the beginning of the update to check if pipeline should be executed.

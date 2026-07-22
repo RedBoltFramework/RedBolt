@@ -288,6 +288,7 @@ public class StereoRenderPipelineView : RenderPipelineView
     private RenderOutputFlag _renderOutputFlags;
 
     private RenderPipelineStats _stats;
+    private readonly RenderPipelineDebugger _debugger = new();
     private readonly SharedRenderPassState _state = new();
 
     private RenderBufferManager? _renderBufferManager;
@@ -306,7 +307,6 @@ public class StereoRenderPipelineView : RenderPipelineView
 
     private uint _settingsHash;
     private bool _settingsDirty = true;
-    private bool _linearColorSpace;
 
     public StereoRenderPipelineView(RenderPipeline pipeline)
         : base(pipeline)
@@ -346,7 +346,7 @@ public class StereoRenderPipelineView : RenderPipelineView
 
     public void MarkParametersDirty() => _parametersDirty = true;
 
-    public override bool IsLinearColorSpace => _linearColorSpace;
+    public override RenderPipelineDebugger? GetDebugger() => null;
 
     /// <summary>Implement RenderPipelineView.</summary>
     public override bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics)
@@ -477,7 +477,7 @@ public class StereoRenderPipelineView : RenderPipelineView
         var takeSnapshot = (qualifiers & (Qualifier.Ctrl | Qualifier.Shift)) == (Qualifier.Ctrl | Qualifier.Shift)
             && input!.GetKeyPress(Key.F12);
         if (takeSnapshot)
-            GetDebugger().BeginSnapshot();
+            _debugger.BeginSnapshot();
 
         // Begin update. Should happen before pipeline state hash check.
         _shadowMapAllocator?.ResetAllShadowMaps();
@@ -646,11 +646,11 @@ public class StereoRenderPipelineView : RenderPipelineView
         _stats = default;
         RaiseCollectStatistics(ref _stats);
 
-        if (GetDebugger().IsSnapshotInProgress())
+        if (_debugger.IsSnapshotInProgress())
         {
-            GetDebugger().EndSnapshot();
+            _debugger.EndSnapshot();
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
-                Log.GetLogger(), "RenderPipeline snapshot:\n\n{Snapshot}\n", GetDebugger().GetSnapshot().ToString());
+                Log.GetLogger(), "RenderPipeline snapshot:\n\n{Snapshot}\n", _debugger.GetSnapshot().ToString());
         }
     }
 

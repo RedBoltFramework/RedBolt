@@ -377,8 +377,9 @@ public class RenderPipeline : Component
         private BackToFrontScenePass? _alphaPass;
         private BackToFrontScenePass? _postAlphaPass;
         private OutlineScenePass? _outlineScenePass;
-        private readonly SharedRenderPassState _sharedState = new();
         private RenderPipelineStats _stats;
+        private readonly RenderPipelineDebugger _debugger = new();
+        private readonly SharedRenderPassState _sharedState = new();
         private readonly List<OutlineGroup> _outlineGroups = [];
         private RenderBuffer? _outlineBuffer;
         private CommonFrameInfo _frameInfo = new();
@@ -389,7 +390,6 @@ public class RenderPipeline : Component
         private bool _settingsDirty = true;
         private bool _parametersDirty = true;
         private uint _settingsHash;
-        private bool _linearColorSpace;
         private RenderOutputFlag _renderOutputFlags;
 
         public DefaultRenderPipelineView(RenderPipeline renderPipeline)
@@ -398,7 +398,7 @@ public class RenderPipeline : Component
             this._renderPipeline = renderPipeline ?? throw new ArgumentNullException(nameof(renderPipeline));
         }
 
-        public override bool IsLinearColorSpace => _linearColorSpace;
+        public override RenderPipelineDebugger GetDebugger() => _debugger;
 
         public override bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics)
         {
@@ -524,7 +524,7 @@ public class RenderPipeline : Component
             var takeSnapshot = (qualifiers & (Qualifier.Ctrl | Qualifier.Shift)) == (Qualifier.Ctrl | Qualifier.Shift)
                 && input!.GetKeyPress(Key.F12);
             if (takeSnapshot)
-                GetDebugger().BeginSnapshot();
+                _debugger.BeginSnapshot();
 
             _shadowMapAllocator?.ResetAllShadowMaps();
             RaiseUpdateBegin(_frameInfo);
@@ -685,10 +685,10 @@ public class RenderPipeline : Component
             _stats = default;
             RaiseCollectStatistics(ref _stats);
 
-            if (GetDebugger().IsSnapshotInProgress())
+            if (_debugger.IsSnapshotInProgress())
             {
-                GetDebugger().EndSnapshot();
-                Log.GetLogger().LogInformation("RenderPipeline snapshot:\n\n{Snapshot}\n", GetDebugger().GetSnapshot().ToString());
+                _debugger.EndSnapshot();
+                Log.GetLogger().LogInformation("RenderPipeline snapshot:\n\n{Snapshot}\n", _debugger.GetSnapshot().ToString());
             }
         }
 

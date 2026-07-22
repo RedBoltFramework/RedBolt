@@ -103,6 +103,15 @@ public sealed class RenderPipelineDebuggerTests
     }
 
     [Fact]
+    public void Stereo_render_pipeline_view_does_not_expose_its_debugger()
+    {
+        var pipeline = new StereoRenderPipeline();
+        var view = new StereoRenderPipelineView(pipeline);
+
+        Assert.Null(view.GetDebugger());
+    }
+
+    [Fact]
     public void Snapshot_batch_constructor_resolves_pixel_light_from_drawable_processor()
     {
         var scene = new Scene();
