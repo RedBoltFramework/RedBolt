@@ -193,42 +193,35 @@ public class BackToFrontScenePass : ScenePass
         const float subtractiveDistanceFactor = 1 - 2 * MathDefs.Epsilon;
 
         // Validate distances before sorting, NaN may corrupt sort
-        for (var i = 0; i < _sortedBatches.Count; ++i)
+        var sortedBatchesSpan = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_sortedBatches);
+        for (var i = 0; i < sortedBatchesSpan.Length; ++i)
         {
-            var sortedBatch = _sortedBatches[i];
+            ref var sortedBatch = ref sortedBatchesSpan[i];
             if (float.IsFinite(sortedBatch.Distance))
                 continue;
 
-            var batch = sortedBatch.PipelineBatch!.Value;
+            ref readonly var batch = ref sortedBatch.PipelineBatch;
             Log.GetLogger().LogError("Drawable batch [{Drawable}].{Index} has NaN distance",
                 batch.Drawable!.GetFullNameDebug(), batch.SourceBatchIndex);
             sortedBatch.Distance = MathDefs.LargeValue;
-            _sortedBatches[i] = sortedBatch;
         }
 
         for (var i = additiveLightBatchesBegin; i < additiveLightBatchesEnd; ++i)
-        {
-            var sortedBatch = _sortedBatches[i];
-            sortedBatch.Distance *= additiveDistanceFactor;
-            _sortedBatches[i] = sortedBatch;
-        }
+            sortedBatchesSpan[i].Distance *= additiveDistanceFactor;
 
         for (var i = subtractiveLightBatchesBegin; i < subtractiveLightBatchesEnd; ++i)
-        {
-            var sortedBatch = _sortedBatches[i];
-            sortedBatch.Distance *= subtractiveDistanceFactor;
-            _sortedBatches[i] = sortedBatch;
-        }
+            sortedBatchesSpan[i].Distance *= subtractiveDistanceFactor;
 
         _sortedBatches.Sort();
 
         if (IsFlagSet(DrawableProcessorPassFlag.RefractionPass))
         {
             _hasRefractionBatches = false;
-            foreach (var sortedBatch in _sortedBatches)
+            foreach (ref readonly var sortedBatch in
+                System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_sortedBatches))
             {
                 // Assume refraction if blending is disabled
-                if (sortedBatch.PipelineBatch!.Value.PipelineState!.GetDesc().AsGraphics()!.BlendMode == BlendMode.Replace)
+                if (sortedBatch.PipelineBatch.PipelineState!.GetDesc().AsGraphics()!.Value.BlendMode == BlendMode.Replace)
                 {
                     _hasRefractionBatches = true;
                     break;

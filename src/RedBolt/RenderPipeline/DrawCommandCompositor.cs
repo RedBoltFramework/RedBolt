@@ -84,7 +84,7 @@ internal struct ObjectParameterBuilder
     public bool IsAmbientEnabled() => _ambientEnabled;
 
     /// <summary>Whether the batch should be processed using instancing.</summary>
-    public bool IsBatchInstanced(PipelineBatch pipelineBatch)
+    public bool IsBatchInstanced(in PipelineBatch pipelineBatch)
         => _instancingEnabled && pipelineBatch.Geometry!.IsInstanced(pipelineBatch.GeometryType);
 
     /// <summary>Set batch ambient lighting.</summary>
@@ -200,13 +200,13 @@ internal ref struct DrawCommandCompositor
     }
 
     /// <summary>Process batches.</summary>
-    public void ProcessSceneBatch(PipelineBatch pipelineBatch)
+    public void ProcessSceneBatch(in PipelineBatch pipelineBatch)
     {
         var sourceBatch = pipelineBatch.GetSourceBatch();
         ProcessBatch(pipelineBatch, sourceBatch, sourceBatch.WorldTransform);
     }
 
-    public void ProcessLightVolumeBatch(PipelineBatch pipelineBatch)
+    public void ProcessLightVolumeBatch(in PipelineBatch pipelineBatch)
     {
         var light = _lights[pipelineBatch.PixelLightIndex]!.Light;
         _lightVolumeHelpers.Transform = light.GetVolumeTransform(_ctx.Camera);
@@ -231,7 +231,7 @@ internal ref struct DrawCommandCompositor
     }
 
     // Extract and process batch state without any changes in DrawQueue.
-    private void CheckDirtyCommonState(PipelineBatch pipelineBatch)
+    private void CheckDirtyCommonState(in PipelineBatch pipelineBatch)
     {
         _dirty.PipelineState = !ReferenceEquals(_current.PipelineState, pipelineBatch.PipelineState);
         _current.PipelineState = pipelineBatch.PipelineState;
@@ -265,7 +265,7 @@ internal ref struct DrawCommandCompositor
         _current.ReflectionProbesBlendFactor = lightAccumulator.ReflectionProbesBlendFactor;
     }
 
-    private void CheckDirtyPixelLight(PipelineBatch pipelineBatch)
+    private void CheckDirtyPixelLight(in PipelineBatch pipelineBatch)
     {
         _dirty.PixelLightConstants = _current.PixelLightIndex != pipelineBatch.PixelLightIndex;
         if (!_dirty.PixelLightConstants)
@@ -692,7 +692,7 @@ internal ref struct DrawCommandCompositor
         _instancingGroup.Count = 0;
     }
 
-    private void ProcessBatch(PipelineBatch pipelineBatch, SourceBatch sourceBatch,
+    private void ProcessBatch(in PipelineBatch pipelineBatch, SourceBatch sourceBatch,
         ReadOnlySpan<Matrix3x4> worldTransform)
     {
         if (pipelineBatch.Geometry!.GetEffectiveIndexCount() == 0)

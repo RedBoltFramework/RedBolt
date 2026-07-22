@@ -434,44 +434,60 @@ public class BatchCompositor : Object
     public IReadOnlyList<PipelineBatchByState> GetLightVolumeBatches() => _sortedLightVolumeBatches;
 
     /// <summary>Prepare vector of sorted batches w/o actual sorting.</summary>
-    public static void FillSortKeys<T>(List<T> sortedBatches, params IEnumerable<PipelineBatch>[] pipelineBatches)
-        where T : struct
+    public static void FillSortKeys(List<PipelineBatchByState> sortedBatches, List<PipelineBatch> pipelineBatches)
     {
-        var totalSize = 0;
-        foreach (var batches in pipelineBatches)
-        {
-            if (batches is ICollection<PipelineBatch> collection)
-                totalSize += collection.Count;
-            else if (batches is MultiVector<PipelineBatch> multi)
-                totalSize += (int)multi.Size();
-            else
-                totalSize += batches.Count();
-        }
-
         sortedBatches.Clear();
-        if (sortedBatches.Capacity < totalSize)
-            sortedBatches.Capacity = totalSize;
-
-        foreach (var batches in pipelineBatches)
-        {
-            foreach (var pipelineBatch in batches)
-            {
-                if (typeof(T) == typeof(PipelineBatchByState))
-                    sortedBatches.Add((T)(object)new PipelineBatchByState(pipelineBatch));
-                else if (typeof(T) == typeof(PipelineBatchBackToFront))
-                    sortedBatches.Add((T)(object)new PipelineBatchBackToFront(pipelineBatch));
-            }
-        }
+        sortedBatches.EnsureCapacity(pipelineBatches.Count);
+        AppendSortKeys(sortedBatches, pipelineBatches);
     }
 
-    /// <summary>Overload accepting WorkQueueVector sources (matches C++ variadic FillSortKeys).</summary>
-    public static void FillSortKeys<T>(List<T> sortedBatches, params MultiVector<PipelineBatch>[] pipelineBatches)
-        where T : struct
+    public static void FillSortKeys(List<PipelineBatchByState> sortedBatches,
+        MultiVector<PipelineBatch> pipelineBatches)
     {
-        var arrays = new IEnumerable<PipelineBatch>[pipelineBatches.Length];
-        for (var i = 0; i < pipelineBatches.Length; ++i)
-            arrays[i] = pipelineBatches[i];
-        FillSortKeys(sortedBatches, arrays);
+        sortedBatches.Clear();
+        sortedBatches.EnsureCapacity(pipelineBatches.Size());
+        AppendSortKeys(sortedBatches, pipelineBatches);
+    }
+
+    public static void FillSortKeys(List<PipelineBatchByState> sortedBatches,
+        MultiVector<PipelineBatch> first, MultiVector<PipelineBatch> second)
+    {
+        sortedBatches.Clear();
+        sortedBatches.EnsureCapacity(first.Size() + second.Size());
+        AppendSortKeys(sortedBatches, first);
+        AppendSortKeys(sortedBatches, second);
+    }
+
+    public static void FillSortKeys(List<PipelineBatchBackToFront> sortedBatches,
+        MultiVector<PipelineBatch> first, MultiVector<PipelineBatch> second, MultiVector<PipelineBatch> third)
+    {
+        sortedBatches.Clear();
+        sortedBatches.EnsureCapacity(first.Size() + second.Size() + third.Size());
+        AppendSortKeys(sortedBatches, first);
+        AppendSortKeys(sortedBatches, second);
+        AppendSortKeys(sortedBatches, third);
+    }
+
+    private static void AppendSortKeys(List<PipelineBatchByState> sortedBatches, MultiVector<PipelineBatch> pipelineBatches)
+    {
+        foreach (var batches in pipelineBatches.GetUnderlyingCollection())
+            AppendSortKeys(sortedBatches, batches);
+    }
+
+    private static void AppendSortKeys(List<PipelineBatchByState> sortedBatches, List<PipelineBatch> pipelineBatches)
+    {
+        for (var i = 0; i < pipelineBatches.Count; ++i)
+            sortedBatches.Add(new PipelineBatchByState(pipelineBatches, i));
+    }
+
+    private static void AppendSortKeys(List<PipelineBatchBackToFront> sortedBatches,
+        MultiVector<PipelineBatch> pipelineBatches)
+    {
+        foreach (var batches in pipelineBatches.GetUnderlyingCollection())
+        {
+            for (var i = 0; i < batches.Count; ++i)
+                sortedBatches.Add(new PipelineBatchBackToFront(batches, i));
+        }
     }
 
     protected virtual void OnUpdateBegin(CommonFrameInfo frameInfo)

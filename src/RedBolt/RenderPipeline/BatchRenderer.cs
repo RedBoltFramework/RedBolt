@@ -65,8 +65,9 @@ public class BatchRenderer : Object
         {
             if (batchGroup.Batches is not null)
             {
-                foreach (var sortedBatch in batchGroup.Batches)
-                    compositor.ProcessSceneBatch(sortedBatch.PipelineBatch!.Value);
+                foreach (ref readonly var sortedBatch in
+                    System.Runtime.InteropServices.CollectionsMarshal.AsSpan(batchGroup.Batches))
+                    compositor.ProcessSceneBatch(in sortedBatch.PipelineBatch);
             }
             compositor.FlushDrawCommands(batchGroup.StartInstance + batchGroup.NumInstances);
         }
@@ -86,8 +87,9 @@ public class BatchRenderer : Object
         {
             if (batchGroup.Batches is not null)
             {
-                foreach (var sortedBatch in batchGroup.Batches)
-                    compositor.ProcessSceneBatch(sortedBatch.PipelineBatch!.Value);
+                foreach (ref readonly var sortedBatch in
+                    System.Runtime.InteropServices.CollectionsMarshal.AsSpan(batchGroup.Batches))
+                    compositor.ProcessSceneBatch(in sortedBatch.PipelineBatch);
             }
             compositor.FlushDrawCommands(batchGroup.StartInstance + batchGroup.NumInstances);
         }
@@ -104,8 +106,8 @@ public class BatchRenderer : Object
             _drawableProcessor!, _instancingBuffer!, BatchRenderFlag.EnablePixelLights, 0, debuggerEnabled);
         try
         {
-            foreach (var sortedBatch in batches)
-                compositor.ProcessLightVolumeBatch(sortedBatch.PipelineBatch!.Value);
+            foreach (ref readonly var sortedBatch in batches)
+                compositor.ProcessLightVolumeBatch(in sortedBatch.PipelineBatch);
             compositor.FlushDrawCommands(0);
         }
         finally
@@ -127,9 +129,10 @@ public class BatchRenderer : Object
         batches.StartInstance = _instancingBuffer!.NextInstanceIndex;
         if (batches.Batches is null)
             return;
-        foreach (var sortedBatch in batches.Batches)
+        foreach (ref readonly var sortedBatch in
+            System.Runtime.InteropServices.CollectionsMarshal.AsSpan(batches.Batches))
         {
-            var pipelineBatch = sortedBatch.PipelineBatch!.Value;
+            ref readonly var pipelineBatch = ref sortedBatch.PipelineBatch;
             if (!objectParameterBuilder.IsBatchInstanced(pipelineBatch))
                 continue;
 
@@ -157,9 +160,10 @@ public class BatchRenderer : Object
         batches.StartInstance = _instancingBuffer!.NextInstanceIndex;
         if (batches.Batches is null)
             return;
-        foreach (var sortedBatch in batches.Batches)
+        foreach (ref readonly var sortedBatch in
+            System.Runtime.InteropServices.CollectionsMarshal.AsSpan(batches.Batches))
         {
-            var pipelineBatch = sortedBatch.PipelineBatch!.Value;
+            ref readonly var pipelineBatch = ref sortedBatch.PipelineBatch;
             if (!objectParameterBuilder.IsBatchInstanced(pipelineBatch))
                 continue;
 

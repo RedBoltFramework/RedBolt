@@ -35,7 +35,8 @@ public sealed class PipelineBatchSortKeyTests
             VertexLightsHash = 17
         };
 
-        var key = new PipelineBatchByState(batch);
+        var batches = new List<PipelineBatch> { batch };
+        var key = new PipelineBatchByState(batches, 0);
 
         var expectedPrimary = 7ul << (int)PipelineBatchByState.RenderOrderOffset;
         expectedPrimary |= ((ulong)pipelineState.GetObjectID() & PipelineBatchByState.PipelineStateMask)
@@ -55,14 +56,12 @@ public sealed class PipelineBatchSortKeyTests
     }
 
     [Fact]
-    public void State_sort_key_and_pipeline_batch_are_mutable_values()
+    public void State_sort_key_is_a_mutable_value()
     {
-        var batch = new PipelineBatch();
         var key = new PipelineBatchByState
         {
             PrimaryKey = 1,
-            SecondaryKey = 2,
-            PipelineBatch = batch
+            SecondaryKey = 2
         };
 
         var copy = key;
@@ -70,7 +69,6 @@ public sealed class PipelineBatchSortKeyTests
 
         Assert.Equal(1ul, key.PrimaryKey);
         Assert.Equal(3ul, copy.PrimaryKey);
-        Assert.Equal(batch, copy.PipelineBatch);
         Assert.Equal(ulong.MaxValue,
             (PipelineBatchByState.PixelLightMask << (int)PipelineBatchByState.PixelLightOffset)
             | (PipelineBatchByState.LightmapMask << (int)PipelineBatchByState.LightmapOffset)
@@ -90,11 +88,17 @@ public sealed class PipelineBatchSortKeyTests
         using var secondMaterial = new Material("Second");
         firstMaterial.SetRenderOrder(1);
         secondMaterial.SetRenderOrder(2);
+        var batches = new List<PipelineBatch>
+        {
+            new() { Material = firstMaterial, Distance = 2 },
+            new() { Material = secondMaterial, Distance = 100 },
+            new() { Material = firstMaterial, Distance = 8 }
+        };
         var keys = new[]
         {
-            new PipelineBatchBackToFront(new PipelineBatch { Material = firstMaterial, Distance = 2 }),
-            new PipelineBatchBackToFront(new PipelineBatch { Material = secondMaterial, Distance = 100 }),
-            new PipelineBatchBackToFront(new PipelineBatch { Material = firstMaterial, Distance = 8 })
+            new PipelineBatchBackToFront(batches, 0),
+            new PipelineBatchBackToFront(batches, 1),
+            new PipelineBatchBackToFront(batches, 2)
         };
 
         Array.Sort(keys);
@@ -117,8 +121,19 @@ public sealed class PipelineBatchSortKeyTests
     [Fact]
     public void Batch_group_copy_preserves_batch_storage_and_copies_scalar_state()
     {
-        var batch = new PipelineBatch();
-        var storage = new List<PipelineBatchByState> { new() { PipelineBatch = batch } };
+        using var material = new Material("Group Material");
+        using var geometry = new Geometry();
+        using var pipelineState = new PipelineState(_fixture.PipelineStateCache,
+            new PipelineStateDesc(new GraphicsPipelineStateDesc
+            {
+                VertexShader = new RawShader(new ShaderBytecode(ShaderType.VS)),
+                PixelShader = new RawShader(new ShaderBytecode(ShaderType.PS))
+            }));
+        var batches = new List<PipelineBatch>
+        {
+            new() { Material = material, Geometry = geometry, PipelineState = pipelineState }
+        };
+        var storage = new List<PipelineBatchByState> { new(batches, 0) };
         var group = new PipelineBatchGroup<PipelineBatchByState>
         {
             Batches = storage,
@@ -138,10 +153,38 @@ public sealed class PipelineBatchSortKeyTests
         Assert.Same(storage, copy.Batches);
         Assert.Equal(7ul, group.Batches![0].PrimaryKey);
         Assert.Equal(7ul, copy.Batches![0].PrimaryKey);
-        Assert.Equal(batch, copy.Batches[0].PipelineBatch);
+        Assert.Equal(batches[0], copy.Batches[0].PipelineBatch);
         Assert.Equal(typeof(int), typeof(PipelineBatchGroup<PipelineBatchByState>)
             .GetField(nameof(PipelineBatchGroup<PipelineBatchByState>.StartInstance))!.FieldType);
         Assert.Equal(typeof(int), typeof(PipelineBatchGroup<PipelineBatchByState>)
             .GetField(nameof(PipelineBatchGroup<PipelineBatchByState>.NumInstances))!.FieldType);
+    }
+
+    [Fact]
+    public void Sort_keys_retain_aliases_to_pipeline_batch_storage()
+    {
+        using var material = new Material("Alias Material");
+        using var geometry = new Geometry();
+        using var pipelineState = new PipelineState(_fixture.PipelineStateCache,
+            new PipelineStateDesc(new GraphicsPipelineStateDesc
+            {
+                VertexShader = new RawShader(new ShaderBytecode(ShaderType.VS)),
+                PixelShader = new RawShader(new ShaderBytecode(ShaderType.PS))
+            }));
+        var batches = new MultiVector<PipelineBatch>();
+        batches.Resize(1);
+        var index = batches.PushBack(0, new PipelineBatch
+        {
+            Material = material,
+            Geometry = geometry,
+            PipelineState = pipelineState,
+            Distance = 1
+        });
+        var keys = new List<PipelineBatchByState>();
+
+        BatchCompositor.FillSortKeys(keys, batches);
+        batches[index].Distance = 2;
+
+        Assert.Equal(2, keys[0].PipelineBatch.Distance);
     }
 }

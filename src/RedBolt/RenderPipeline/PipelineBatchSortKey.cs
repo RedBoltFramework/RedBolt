@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace RedBolt;
 
 /// <summary>
@@ -37,13 +39,18 @@ public struct PipelineBatchByState : IComparable<PipelineBatchByState>
 
     public ulong PrimaryKey;
     public ulong SecondaryKey;
-    public PipelineBatch? PipelineBatch;
+    private readonly List<PipelineBatch>? _pipelineBatches;
+    private readonly int _pipelineBatchIndex;
+    public ref readonly PipelineBatch PipelineBatch =>
+        ref CollectionsMarshal.AsSpan(_pipelineBatches!)[_pipelineBatchIndex];
 
-    public PipelineBatchByState(PipelineBatch pipelineBatch)
+    public PipelineBatchByState(List<PipelineBatch> pipelineBatches, int pipelineBatchIndex)
     {
-        PipelineBatch = pipelineBatch;
+        _pipelineBatches = pipelineBatches;
+        _pipelineBatchIndex = pipelineBatchIndex;
         PrimaryKey = 0;
         SecondaryKey = 0;
+        ref readonly var pipelineBatch = ref PipelineBatch;
 
         PrimaryKey |= ((ulong)pipelineBatch.Material!.GetRenderOrder() & RenderOrderMask) << (int)RenderOrderOffset;
         PrimaryKey |= ((ulong)pipelineBatch.PipelineState!.GetObjectID() & PipelineStateMask) << (int)PipelineStateOffset;
@@ -72,13 +79,18 @@ public struct PipelineBatchBackToFront : IComparable<PipelineBatchBackToFront>
 {
     public byte RenderOrder;
     public float Distance;
-    public PipelineBatch? PipelineBatch;
+    private readonly List<PipelineBatch>? _pipelineBatches;
+    private readonly int _pipelineBatchIndex;
+    public ref readonly PipelineBatch PipelineBatch =>
+        ref CollectionsMarshal.AsSpan(_pipelineBatches!)[_pipelineBatchIndex];
 
-    public PipelineBatchBackToFront(PipelineBatch pipelineBatch)
+    public PipelineBatchBackToFront(List<PipelineBatch> pipelineBatches, int pipelineBatchIndex)
     {
+        _pipelineBatches = pipelineBatches;
+        _pipelineBatchIndex = pipelineBatchIndex;
+        ref readonly var pipelineBatch = ref PipelineBatch;
         RenderOrder = pipelineBatch.Material!.GetRenderOrder();
         Distance = pipelineBatch.Distance;
-        PipelineBatch = pipelineBatch;
     }
 
     public int CompareTo(PipelineBatchBackToFront other)
