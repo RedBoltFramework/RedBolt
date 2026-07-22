@@ -42,11 +42,11 @@ public sealed class RawShaderTests
             Bytecode = [9, 8, 7, 6]
         };
         original.VertexAttributes.Add(new VertexShaderAttribute(VertexElementSemantic.TexCoord, 2, 1));
-        var output = new JSONOutputArchive();
+        var output = new TestJSONOutputArchive();
         using (output.OpenUnorderedBlock("shader")) original.SerializeInBlock(output);
 
         var restored = new ShaderBytecode();
-        var input = new JSONInputArchive(output.ToJsonString());
+        var input = new TestJSONInputArchive(output.ToJsonString());
         using (input.OpenUnorderedBlock("shader")) restored.SerializeInBlock(input);
 
         AssertShaderBytecodeEqual(original, restored);

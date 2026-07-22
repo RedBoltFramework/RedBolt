@@ -107,12 +107,12 @@ public sealed class ArchiveTests
     [Fact]
     public void Human_readable_archive_rejects_invalid_hex_without_mutating_destination()
     {
-        var output = new JSONOutputArchive();
+        var output = new TestJSONOutputArchive();
         var source = new byte[] { 1, 2, 3 };
         using (output.OpenUnorderedBlock("Root"))
             output.SerializeBytes("data", source);
 
-        var input = new JSONInputArchive(output.ToJsonString().Replace("010203", "invalid"));
+        var input = new TestJSONInputArchive(output.ToJsonString().Replace("010203", "invalid"));
         var destination = new byte[] { 4, 5, 6 };
         using (input.OpenUnorderedBlock("Root"))
             Assert.Throws<ArchiveException>(() => input.SerializeBytes("data", destination));
@@ -135,7 +135,7 @@ public sealed class ArchiveTests
     [Fact]
     public void Human_readable_archive_round_trips_resource_references_as_strings()
     {
-        var output = new JSONOutputArchive();
+        var output = new TestJSONOutputArchive();
         var resourceRef = new ResourceRef(StringHash.Empty, "Texture.xml");
         var resourceRefList = new ResourceRefList(StringHash.Empty, ["One.xml", "Two.xml"]);
         using (output.OpenUnorderedBlock("Root"))
@@ -144,7 +144,7 @@ public sealed class ArchiveTests
             ArchiveSerialization.SerializeValue(output, "resources", ref resourceRefList);
         }
 
-        var input = new JSONInputArchive(output.ToJsonString());
+        var input = new TestJSONInputArchive(output.ToJsonString());
         var loadedResourceRef = ResourceRef.Empty;
         var loadedResourceRefList = ResourceRefList.Empty;
         using (input.OpenUnorderedBlock("Root"))
@@ -286,12 +286,12 @@ public sealed class ArchiveTests
     [Fact]
     public void Human_readable_archive_preserves_unknown_enum_as_number()
     {
-        var output = new JSONOutputArchive();
+        var output = new TestJSONOutputArchive();
         var value = (VariantType)123;
         using (output.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeEnum(output, "type", ref value, Variant.GetTypeNameList());
 
-        var input = new JSONInputArchive(output.ToJsonString());
+        var input = new TestJSONInputArchive(output.ToJsonString());
         var loadedValue = VariantType.None;
         using (input.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeEnum(input, "type", ref loadedValue, Variant.GetTypeNameList());
@@ -302,12 +302,12 @@ public sealed class ArchiveTests
     [Fact]
     public void Human_readable_archive_preserves_unsigned_long_enum_as_number()
     {
-        var output = new JSONOutputArchive();
+        var output = new TestJSONOutputArchive();
         var value = (UnsignedLongEnum)(ulong.MaxValue - 1);
         using (output.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeEnum(output, "type", ref value, ["Zero"]);
 
-        var input = new JSONInputArchive(output.ToJsonString());
+        var input = new TestJSONInputArchive(output.ToJsonString());
         var loadedValue = UnsignedLongEnum.Zero;
         using (input.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeEnum(input, "type", ref loadedValue, ["Zero"]);
@@ -324,12 +324,12 @@ public sealed class ArchiveTests
     [Fact]
     public void Human_readable_variant_input_default_constructs_compound_value()
     {
-        var output = new JSONOutputArchive();
+        var output = new TestJSONOutputArchive();
         var source = new Variant(Matrix3.Identity);
         using (output.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeVariantAsType(output, "value", ref source, VariantType.Matrix3);
 
-        var input = new JSONInputArchive(output.ToJsonString().Replace("1 0 0 0 1 0 0 0 1", "9"));
+        var input = new TestJSONInputArchive(output.ToJsonString().Replace("1 0 0 0 1 0 0 0 1", "9"));
         var destination = new Variant(42);
         using (input.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeVariantAsType(input, "value", ref destination, VariantType.Matrix3);
@@ -352,7 +352,7 @@ public sealed class ArchiveTests
         var intVector3 = new Vector3i(13, 14, 15);
         var intRect = new IntRect(16, 17, 18, 19);
 
-        var output = new JSONOutputArchive();
+        var output = new TestJSONOutputArchive();
         using (output.OpenUnorderedBlock("Root"))
         {
             ArchiveSerialization.SerializeValue(output, "vector2", ref vector2);
@@ -379,7 +379,7 @@ public sealed class ArchiveTests
         var loadedIntVector2 = default(Vector2i);
         var loadedIntVector3 = default(Vector3i);
         var loadedIntRect = default(IntRect);
-        var input = new JSONInputArchive(output.ToJsonString());
+        var input = new TestJSONInputArchive(output.ToJsonString());
         using (input.OpenUnorderedBlock("Root"))
         {
             ArchiveSerialization.SerializeValue(input, "vector2", ref loadedVector2);
@@ -595,12 +595,12 @@ public sealed class ArchiveTests
     [Fact]
     public void Human_readable_primitive_array_input_preserves_unspecified_components()
     {
-        var output = new JSONOutputArchive();
+        var output = new TestJSONOutputArchive();
         var source = new Vector3f(1.0f, 2.0f, 3.0f);
         using (output.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeValue(output, "value", ref source);
 
-        var input = new JSONInputArchive(output.ToJsonString().Replace("1 2 3", "9"));
+        var input = new TestJSONInputArchive(output.ToJsonString().Replace("1 2 3", "9"));
         var destination = new Vector3f(4.0f, 5.0f, 6.0f);
         using (input.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeValue(input, "value", ref destination);
@@ -675,7 +675,7 @@ public sealed class ArchiveTests
     [Fact]
     public void Unordered_archive_omits_and_restores_default_optional_values()
     {
-        var output = new JSONOutputArchive();
+        var output = new TestJSONOutputArchive();
         var value = 0u;
         uint? strictlyOptional = null;
         using (output.OpenUnorderedBlock("Root"))
@@ -691,7 +691,7 @@ public sealed class ArchiveTests
 
         value = 9;
         strictlyOptional = 10;
-        var input = new JSONInputArchive(json);
+        var input = new TestJSONInputArchive(json);
         using (input.OpenUnorderedBlock("Root"))
         {
             ArchiveSerialization.SerializeOptionalValue(input, "value", ref value, 0u, SerializeUInt);

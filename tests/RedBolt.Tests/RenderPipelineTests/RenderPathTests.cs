@@ -88,14 +88,14 @@ public sealed class RenderPathTests
     public void Render_path_omits_empty_optional_passes_and_clears_on_missing_input()
     {
         using var renderPath = new RenderPath();
-        using var output = new JSONOutputArchive();
+        using var output = new TestJSONOutputArchive();
         using (output.OpenUnorderedBlock("resource"))
             renderPath.SerializeInBlock(output);
 
         Assert.DoesNotContain("\"passes\"", output.ToJsonString());
 
         renderPath.AddPass(new TrackingRenderPass("Alpha"));
-        using var input = new JSONInputArchive("{}");
+        using var input = new TestJSONInputArchive("{}");
         using (input.OpenUnorderedBlock("resource"))
             renderPath.SerializeInBlock(input);
 
@@ -111,7 +111,7 @@ public sealed class RenderPathTests
         {
             string json;
             using (var source = new RenderPath())
-            using (var output = new JSONOutputArchive())
+            using (var output = new TestJSONOutputArchive())
             {
                 source.AddPass(new TrackingRenderPass("Custom"));
                 using (output.OpenUnorderedBlock("resource"))
@@ -120,7 +120,7 @@ public sealed class RenderPathTests
             }
 
             using var restored = new RenderPath();
-            using var input = new JSONInputArchive(json);
+            using var input = new TestJSONInputArchive(json);
             using (input.OpenUnorderedBlock("resource"))
                 restored.SerializeInBlock(input);
 
@@ -296,7 +296,7 @@ public sealed class RenderPathTests
 
             {
                 var source = System.IO.File.ReadAllText(Path.Combine(tempRoot, "RenderPaths", "Simple.renderpath"));
-                using var archive = new JSONInputArchive(source);
+                using var archive = new TestJSONInputArchive(source);
                 using var rootBlock = archive.OpenUnorderedBlock("resource");
                 using var directRenderPath = new RenderPath();
                 directRenderPath.SerializeInBlock(archive);

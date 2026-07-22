@@ -41,7 +41,7 @@ public sealed class AxisAdapterTests
     public void Default_archive_configuration_is_optional()
     {
         var adapter = new AxisAdapter();
-        var output = new JSONOutputArchive();
+        var output = new TestJSONOutputArchive();
         using (output.OpenUnorderedBlock("axis"))
             adapter.SerializeInBlock(output);
 
@@ -102,12 +102,12 @@ public sealed class AxisAdapterTests
         source.SetPositiveSensitivity(0.75f);
         source.SetNegativeSensitivity(-0.5f);
 
-        var output = new JSONOutputArchive();
+        var output = new TestJSONOutputArchive();
         using (output.OpenUnorderedBlock("axis"))
             source.SerializeInBlock(output);
 
         var loaded = new AxisAdapter();
-        var input = new JSONInputArchive(output.ToJsonString());
+        var input = new TestJSONInputArchive(output.ToJsonString());
         using (input.OpenUnorderedBlock("axis"))
             loaded.SerializeInBlock(input);
 

@@ -52,7 +52,7 @@ public sealed class PrefabReaderTests
     [Fact]
     public void Archive_reader_reads_direct_prefab_blocks()
     {
-        var output = new JSONOutputArchive();
+        var output = new TestJSONOutputArchive();
         using (output.OpenUnorderedBlock("root"))
         {
             var type = "Root";
@@ -84,7 +84,7 @@ public sealed class PrefabReaderTests
             }
         }
 
-        var input = new JSONInputArchive(output.ToJsonString());
+        var input = new TestJSONInputArchive(output.ToJsonString());
         using (input.OpenUnorderedBlock("root"))
         using (var reader = new PrefabReaderFromArchive(input, blockName: null))
         {

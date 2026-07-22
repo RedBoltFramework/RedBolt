@@ -115,12 +115,11 @@ public abstract class SimpleResource : Resource
             {
                 case InternalResourceFormat.Json:
                 {
-                    using var archive = new JSONOutputArchive(Context.Instance);
+                    using var jsonFile = new JSONFile();
+                    using var archive = new JSONOutputArchive(Context.Instance, jsonFile.Root, jsonFile);
                     using (archive.OpenUnorderedBlock(GetRootBlockName()))
                         SerializeInBlock(archive);
-                    var bytes = Encoding.UTF8.GetBytes(archive.ToJsonString());
-                    destination.Write(bytes);
-                    return true;
+                    return jsonFile.Save(destination);
                 }
 
                 case InternalResourceFormat.Xml:

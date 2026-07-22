@@ -18,10 +18,10 @@ public sealed class NodeTests
             child.SetVar("score", 42);
             var camera = child.CreateComponent<Camera>(); camera.SetFov(73);
 
-            var json = new JSONOutputArchive();
+            var json = new TestJSONOutputArchive();
             using (json.OpenUnorderedBlock("root")) scene.Root.SerializeInBlock(json);
             var loadedScene = new Scene();
-            var input = new JSONInputArchive(json.ToJsonString());
+            var input = new TestJSONInputArchive(json.ToJsonString());
             using (input.OpenUnorderedBlock("root")) loadedScene.Root.SerializeInBlock(input);
 
             var loadedChild = loadedScene.Root.GetChild("Child");

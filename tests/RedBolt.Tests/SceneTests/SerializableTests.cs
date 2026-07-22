@@ -33,9 +33,9 @@ public sealed class SerializableTests
         Context.SetInstance(new Context());
         try
         {
-            var archive = new JSONOutputArchive();
+            var archive = new TestJSONOutputArchive();
             using (archive.OpenUnorderedBlock("object")) source.SerializeInBlock(archive);
-            var input = new JSONInputArchive(archive.ToJsonString());
+            var input = new TestJSONInputArchive(archive.ToJsonString());
             var archiveResult = new TestSerializable();
             using (input.OpenUnorderedBlock("object")) archiveResult.SerializeInBlock(input);
             AssertValues(archiveResult);

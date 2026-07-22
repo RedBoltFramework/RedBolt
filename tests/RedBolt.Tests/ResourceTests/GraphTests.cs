@@ -78,7 +78,7 @@ public sealed class GraphTests
         using var graph = new Graph();
         graph.Create("Existing");
 
-        var output = new JSONOutputArchive();
+        var output = new TestJSONOutputArchive();
         graph.SerializeInBlock(output);
         output.Flush();
         Assert.True(graph.LoadJSON(output.ToJsonString()), output.ToJsonString());

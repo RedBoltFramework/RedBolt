@@ -21,7 +21,7 @@ public sealed class PrefabWriterTests
     public void Archive_writer_keeps_buffer_alive_until_destruction()
     {
         var source = new TestSerializable { Number = 42, Label = "root" };
-        var output = new JSONOutputArchive();
+        var output = new TestJSONOutputArchive();
         var writer = new PrefabWriterToArchive(output, blockName: "root");
 
         writer.WriteNode(1, source);
@@ -74,7 +74,7 @@ public sealed class PrefabWriterTests
     {
         var source = new TestSerializable { Number = 42, Label = "root" };
         var component = new TestSerializable { Number = 7, Label = "component" };
-        var output = new JSONOutputArchive();
+        var output = new TestJSONOutputArchive();
         using (var writer = new PrefabWriterToArchive(output, blockName: "root"))
         {
             writer.WriteNode(1, source);
@@ -84,7 +84,7 @@ public sealed class PrefabWriterTests
             Assert.True(writer.IsEOF());
         }
 
-        var input = new JSONInputArchive(output.ToJsonString());
+        var input = new TestJSONInputArchive(output.ToJsonString());
         using var reader = new PrefabReaderFromArchive(input, blockName: "root");
         Assert.Equal((SerializableId)1, reader.ReadNode()!.Id);
         Assert.Equal(1, reader.ReadNumComponents());

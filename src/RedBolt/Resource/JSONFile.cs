@@ -93,11 +93,9 @@ public class JSONFile : Resource
         try
         {
             Root.Clear();
-            var archive = new JSONOutputArchive(Context.Instance);
+            using var archive = new JSONOutputArchive(this);
             serializeValue(archive);
             archive.Flush();
-            using var value = JSONValue.FromJsonNode(archive.Root);
-            Root.Set(value);
             return true;
         }
         catch (ArchiveException exception)
@@ -113,7 +111,7 @@ public class JSONFile : Resource
         ArgumentNullException.ThrowIfNull(serializeValue);
         try
         {
-            var archive = new JSONInputArchive(Context.Instance, Root.ToJsonNode()?.ToJsonString() ?? "null");
+            using var archive = new JSONInputArchive(this);
             serializeValue(archive);
             archive.Flush();
             return true;

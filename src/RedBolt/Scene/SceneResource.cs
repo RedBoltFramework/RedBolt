@@ -57,9 +57,12 @@ public sealed class SceneResource : Resource
             using var binaryBuffer = _loadFormat == InternalResourceFormat.Binary
                 ? new MemoryBuffer(_pendingData.AsMemory(4))
                 : null;
+            using var jsonFile = _loadFormat == InternalResourceFormat.Json ? new JSONFile() : null;
+            if (jsonFile is not null && !jsonFile.FromString(Encoding.UTF8.GetString(_pendingData)))
+                throw new ArchiveException("Failed to parse JSON string");
             using Archive archive = _loadFormat switch
             {
-                InternalResourceFormat.Json => new JSONInputArchive(Context.Instance, Encoding.UTF8.GetString(_pendingData)),
+                InternalResourceFormat.Json => new JSONInputArchive(jsonFile!),
                 InternalResourceFormat.Xml => new XMLInputArchive(Context.Instance, Encoding.UTF8.GetString(_pendingData)),
                 InternalResourceFormat.Binary => new BinaryInputArchive(Context.Instance, binaryBuffer!),
                 _ => throw new InvalidOperationException("Unknown scene format.")
@@ -88,10 +91,11 @@ public sealed class SceneResource : Resource
             {
                 case InternalResourceFormat.Json:
                 {
-                    using var archive = new JSONOutputArchive(Context.Instance);
+                    using var jsonFile = new JSONFile();
+                    using var archive = new JSONOutputArchive(Context.Instance, jsonFile.Root, jsonFile);
                     using (archive.OpenUnorderedBlock(GetXmlRootName()))
                         SerializeScene(archive, Scene, asPrefab);
-                    var bytes = Encoding.UTF8.GetBytes(archive.ToJsonString()); destination.Write(bytes); break;
+                    return jsonFile.Save(destination);
                 }
                 case InternalResourceFormat.Xml:
                 {

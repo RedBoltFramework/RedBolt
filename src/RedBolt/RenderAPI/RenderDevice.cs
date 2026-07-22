@@ -45,11 +45,14 @@ public sealed class RenderDevice : Object
         var vulkanSettings = new RenderDeviceSettingsVulkan();
         try
         {
-            var archive = new JSONInputArchive(Context.Instance, parameters.TweakVulkan);
+            using var jsonFile = new JSONFile();
+            if (!jsonFile.FromString(parameters.TweakVulkan))
+                throw new ArchiveException("Failed to parse JSON string");
+            using var archive = new JSONInputArchive(jsonFile);
             RenderAPIUtils.SerializeValue(archive, "object", ref vulkanSettings);
             archive.Flush();
         }
-        catch (Exception exception) when (exception is System.Text.Json.JsonException or InvalidOperationException)
+        catch (ArchiveException)
         {
             vulkanSettings = new RenderDeviceSettingsVulkan();
         }
@@ -57,11 +60,14 @@ public sealed class RenderDevice : Object
         var d3D12Settings = new RenderDeviceSettingsD3D12();
         try
         {
-            var archive = new JSONInputArchive(Context.Instance, parameters.TweakD3D12);
+            using var jsonFile = new JSONFile();
+            if (!jsonFile.FromString(parameters.TweakD3D12))
+                throw new ArchiveException("Failed to parse JSON string");
+            using var archive = new JSONInputArchive(jsonFile);
             RenderAPIUtils.SerializeValue(archive, "object", ref d3D12Settings);
             archive.Flush();
         }
-        catch (Exception exception) when (exception is System.Text.Json.JsonException or InvalidOperationException)
+        catch (ArchiveException)
         {
             d3D12Settings = new RenderDeviceSettingsD3D12();
         }

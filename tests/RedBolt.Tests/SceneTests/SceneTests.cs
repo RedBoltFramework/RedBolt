@@ -241,12 +241,12 @@ public sealed class SceneTests
         child.SetVar("score", 42);
         child.CreateComponent<Camera>().SetFov(73);
 
-        var json = new JSONOutputArchive();
+        var json = new TestJSONOutputArchive();
         using (json.OpenUnorderedBlock("scene"))
             scene.SerializeInBlock(json);
 
         var loadedScene = new Scene();
-        var input = new JSONInputArchive(json.ToJsonString());
+        var input = new TestJSONInputArchive(json.ToJsonString());
         using (input.OpenUnorderedBlock("scene"))
             loadedScene.SerializeInBlock(input);
 
