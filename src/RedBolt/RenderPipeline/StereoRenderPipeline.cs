@@ -1,10 +1,9 @@
 namespace RedBolt;
 
-/// <summary>Frustum query for stereo frustums.</summary>
-public class StereoFrustumOctreeQuery : OctreeQuery
+internal class StereoFrustumOctreeQuery : OctreeQuery
 {
     /// <summary>Stereo frustums.</summary>
-    protected readonly Frustum[] Frustums = new Frustum[2];
+    public Frustum[] Frustums { get; } = new Frustum[2];
 
     public StereoFrustumOctreeQuery(
         List<Drawable> result, Frustum[] frustums, DrawableFlags drawableFlags, uint viewMask)
@@ -39,10 +38,17 @@ public class StereoFrustumOctreeQuery : OctreeQuery
             }
         }
     }
+
+    public void SetFrustums(Frustum first, Frustum second)
+    {
+        Array.Copy(first.Planes, Frustums[0].Planes, Frustum.NumFrustumPlanes);
+        Array.Copy(first.Vertices, Frustums[0].Vertices, Frustum.NumFrustumVertices);
+        Array.Copy(second.Planes, Frustums[1].Planes, Frustum.NumFrustumPlanes);
+        Array.Copy(second.Vertices, Frustums[1].Vertices, Frustum.NumFrustumVertices);
+    }
 }
 
-/// <summary>Stereo frustum query that only returns occluders.</summary>
-public class StereoOccluderOctreeQuery : StereoFrustumOctreeQuery
+internal class StereoOccluderOctreeQuery : StereoFrustumOctreeQuery
 {
     /// <summary>Construct with frustum and query parameters.</summary>
     public StereoOccluderOctreeQuery(
@@ -68,13 +74,13 @@ public class StereoOccluderOctreeQuery : StereoFrustumOctreeQuery
             }
         }
     }
+
 }
 
-/// <summary>Stereo frustum query that also tests against occlusion buffers.</summary>
-public class StereoOccludedFrustumOctreeQuery : StereoFrustumOctreeQuery
+internal class StereoOccludedFrustumOctreeQuery : StereoFrustumOctreeQuery
 {
     /// <summary>Occlusion buffers.</summary>
-    protected readonly OcclusionBuffer?[] Buffers = new OcclusionBuffer?[2];
+    public OcclusionBuffer?[] Buffers { get; } = new OcclusionBuffer?[2];
 
     /// <summary>Construct with frustum, occlusion buffer and query parameters.</summary>
     public StereoOccludedFrustumOctreeQuery(List<Drawable> result, Frustum[] frustums,
@@ -82,9 +88,6 @@ public class StereoOccludedFrustumOctreeQuery : StereoFrustumOctreeQuery
         uint viewMask = Drawable.DefaultViewMask)
         : base(result, frustums, drawableFlags, viewMask)
     {
-        ArgumentNullException.ThrowIfNull(buffers);
-        if (buffers.Length < 2)
-            throw new ArgumentException("Stereo occlusion query requires two buffers.", nameof(buffers));
         Buffers[0] = buffers[0];
         Buffers[1] = buffers[1];
     }
@@ -124,24 +127,46 @@ public class StereoOccludedFrustumOctreeQuery : StereoFrustumOctreeQuery
             }
         }
     }
+
+    public void SetBuffers(OcclusionBuffer? first, OcclusionBuffer? second)
+    {
+        Buffers[0] = first;
+        Buffers[1] = second;
+    }
 }
 
-/// <summary>Scene processor specialized for stereo viewports.</summary>
-public class StereoSceneProcessor : SceneProcessor
+internal class StereoSceneProcessor : SceneProcessor
 {
-    private OcclusionBuffer? _secondaryOcclusion;
-    private readonly OcclusionBuffer?[] _eyeOcclusion = new OcclusionBuffer?[2];
-    private OcclusionBuffer?[] _currentOcclusionBuffers = [null, null];
+    protected OcclusionBuffer? _secondaryOcclusion;
+    protected readonly OcclusionBuffer?[] _eyeOcclusion = new OcclusionBuffer?[2];
+    protected readonly OcclusionBuffer?[] _currentOcclusionBuffers = new OcclusionBuffer?[2];
+    private readonly Camera?[] _cameras = new Camera?[2];
+    private readonly OcclusionBuffer[] _currentOcclusionBufferSpan = new OcclusionBuffer[1];
+    private readonly StereoOccluderOctreeQuery _occluderQuery;
+    private readonly StereoOccludedFrustumOctreeQuery _occludedQuery;
+    private readonly StereoFrustumOctreeQuery _drawableQuery;
 
     public StereoSceneProcessor(
         IRenderPipelineInterface renderPipeInterface, ShadowMapAllocator? shadowAlloc, InstancingBuffer? instBuffer)
         : base(renderPipeInterface, "shadow", shadowAlloc, instBuffer)
     {
+        var frustums = new[] { new Frustum(), new Frustum() };
+        _occluderQuery = new StereoOccluderOctreeQuery(Occluders, frustums);
+        _occludedQuery = new StereoOccludedFrustumOctreeQuery(Drawables, frustums, _currentOcclusionBuffers,
+            DrawableFlags.Geometry | DrawableFlags.Light);
+        _drawableQuery = new StereoFrustumOctreeQuery(Drawables, frustums,
+            DrawableFlags.Geometry | DrawableFlags.Light, Drawable.DefaultViewMask);
     }
 
     public override void Dispose()
     {
+        _occludedQuery.SetBuffers(null, null);
+        Array.Clear(_currentOcclusionBuffers);
+        Array.Clear(_eyeOcclusion);
+        Array.Clear(_cameras);
+        Array.Clear(_currentOcclusionBufferSpan);
         _secondaryOcclusion?.Dispose();
+        _secondaryOcclusion = null;
         base.Dispose();
     }
 
@@ -149,23 +174,23 @@ public class StereoSceneProcessor : SceneProcessor
     {
         // Collect occluders
         CurrentOcclusionBuffer = null;
-        _currentOcclusionBuffers = [null, null];
+        Array.Clear(_currentOcclusionBuffers);
 
         System.Diagnostics.Debug.Assert(FrameInfo.AdditionalCameras.First is not null);
 
         // get our frustums
-        Frustum[] frustums =
-        [
-            FrameInfo.Camera!.GetFrustum(),
-            FrameInfo.AdditionalCameras.Second!.GetFrustum()
-        ];
-        Camera[] cameras = [FrameInfo.Camera, FrameInfo.AdditionalCameras.Second!];
+        var firstFrustum = FrameInfo.Camera!.GetFrustum();
+        var secondFrustum = FrameInfo.AdditionalCameras.Second!.GetFrustum();
+        _occluderQuery.SetFrustums(firstFrustum, secondFrustum);
+        _occludedQuery.SetFrustums(firstFrustum, secondFrustum);
+        _drawableQuery.SetFrustums(firstFrustum, secondFrustum);
+        _cameras[0] = FrameInfo.Camera;
+        _cameras[1] = FrameInfo.AdditionalCameras.Second;
 
         if (Settings.MaxOccluderTriangles > 0)
         {
-            Occluders.Clear();
-            var occluderQuery = new StereoOccluderOctreeQuery(Occluders, frustums, FrameInfo.Camera.GetPrimaryViewMask());
-            FrameInfo.Octree!.GetDrawables(occluderQuery);
+            _occluderQuery.ViewMask = FrameInfo.Camera.GetPrimaryViewMask();
+            FrameInfo.Octree!.GetDrawables(_occluderQuery);
             DrawableProcessor.ProcessOccluders(Occluders, Settings.OccluderSizeThreshold);
 
             if (DrawableProcessor.HasOccluders)
@@ -183,7 +208,13 @@ public class StereoSceneProcessor : SceneProcessor
                     var buff = _eyeOcclusion[i];
                     if (buff is null)
                         continue;
-                    var bufferSize = CalculateOcclusionBufferSize(Settings.OcclusionBufferSize, cameras[i]);
+                    static Vector2i CalculateOcclusionBufferSize(int size, Camera cullCamera)
+                    {
+                        var height = (int)MathF.Round((float)size / cullCamera.GetAspectRatio());
+                        return new Vector2i(size, height);
+                    }
+
+                    var bufferSize = CalculateOcclusionBufferSize(Settings.OcclusionBufferSize, _cameras[i]!);
                     buff.SetSize(bufferSize.X, bufferSize.Y, Settings.ThreadedOcclusion);
                     // C++ sets view from frameInfo_.camera_ for both eyes
                     buff.SetView(FrameInfo.Camera);
@@ -191,30 +222,36 @@ public class StereoSceneProcessor : SceneProcessor
 
                 DrawOccluders();
                 if ((_eyeOcclusion[0]?.GetNumTriangles() ?? 0) > 0 || (_eyeOcclusion[1]?.GetNumTriangles() ?? 0) > 0)
-                    _currentOcclusionBuffers = [_eyeOcclusion[0], _eyeOcclusion[1]];
+                {
+                    _currentOcclusionBuffers[0] = _eyeOcclusion[0];
+                    _currentOcclusionBuffers[1] = _eyeOcclusion[1];
+                }
             }
         }
+        Array.Clear(_cameras);
 
         // Collect visible drawables
-        Drawables.Clear();
         if (_currentOcclusionBuffers[0] is not null)
         {
-            var query = new StereoOccludedFrustumOctreeQuery(Drawables, frustums, _currentOcclusionBuffers,
-                DrawableFlags.Geometry | DrawableFlags.Light, FrameInfo.Camera.GetPrimaryViewMask());
-            FrameInfo.Octree!.GetDrawables(query);
+            _occludedQuery.ViewMask = FrameInfo.Camera.GetPrimaryViewMask();
+            _occludedQuery.SetBuffers(_currentOcclusionBuffers[0], _currentOcclusionBuffers[1]);
+            FrameInfo.Octree!.GetDrawables(_occludedQuery);
         }
         else
         {
-            var drawableQuery = new StereoFrustumOctreeQuery(
-                Drawables, frustums, DrawableFlags.Geometry | DrawableFlags.Light, FrameInfo.Camera.GetPrimaryViewMask());
-            FrameInfo.Octree!.GetDrawables(drawableQuery);
+            _drawableQuery.ViewMask = FrameInfo.Camera.GetPrimaryViewMask();
+            FrameInfo.Octree!.GetDrawables(_drawableQuery);
         }
 
         // Process drawables — C++ only forwards currentOcclusionBuffer_ (always null here)
-        OcclusionBuffer[]? occlusionSpan = CurrentOcclusionBuffer is not null
-            ? [CurrentOcclusionBuffer]
-            : null;
-        DrawableProcessor.ProcessVisibleDrawables(Drawables, occlusionSpan);
+        OcclusionBuffer[]? currentOcclusionBuffer = null;
+        if (CurrentOcclusionBuffer is not null)
+        {
+            _currentOcclusionBufferSpan[0] = CurrentOcclusionBuffer;
+            currentOcclusionBuffer = _currentOcclusionBufferSpan;
+        }
+        DrawableProcessor.ProcessVisibleDrawables(Drawables, currentOcclusionBuffer);
+        _currentOcclusionBufferSpan[0] = null!;
         DrawableProcessor.ProcessLights(this);
         DrawableProcessor.ProcessForwardLighting();
 
@@ -239,9 +276,7 @@ public class StereoSceneProcessor : SceneProcessor
             {
                 for (var i = 0; i < activeOccluders.Count; ++i)
                 {
-                    var occluder = activeOccluders[i].Drawable;
-                    if (occluder is null)
-                        continue;
+                    var occluder = activeOccluders[i].Drawable!;
                     if (i > 0 && !occlusionBuffer.IsVisible(occluder.GetWorldBoundingBox()))
                         continue;
 
@@ -255,7 +290,7 @@ public class StereoSceneProcessor : SceneProcessor
             {
                 for (var i = 0; i < activeOccluders.Count; ++i)
                 {
-                    if (activeOccluders[i].Drawable is { } drawable && !drawable.DrawOcclusion(occlusionBuffer))
+                    if (!activeOccluders[i].Drawable!.DrawOcclusion(occlusionBuffer))
                         break;
                 }
 
@@ -266,47 +301,45 @@ public class StereoSceneProcessor : SceneProcessor
         }
     }
 
-    private static Vector2i CalculateOcclusionBufferSize(uint size, Camera cullCamera)
-    {
-        var width = (int)size;
-        var height = (int)MathF.Round(size / cullCamera.GetAspectRatio());
-        return new Vector2i(width, height);
-    }
 }
 
-/// <summary>Stereo render pipeline view.</summary>
 public class StereoRenderPipelineView : RenderPipelineView
 {
-    private RenderPath? _originalRenderPath;
-    private RenderPath? _renderPath;
-    private bool _parametersDirty;
+    protected RenderPath? _originalRenderPath;
+    protected RenderPath? _renderPath;
+    protected bool _parametersDirty;
 
-    private RenderPipelineSettings _settings = new();
+    protected RenderPipelineSettings _settings = new();
 
-    private CommonFrameInfo _frameInfo = new();
-    private RenderSurface? _renderTarget;
-    private RenderOutputFlag _renderOutputFlags;
+    protected CommonFrameInfo _frameInfo = new();
+    protected RenderOutputFlag _renderOutputFlags;
 
-    private RenderPipelineStats _stats;
-    private readonly RenderPipelineDebugger _debugger = new();
-    private readonly SharedRenderPassState _state = new();
+    protected RenderPipelineStats _stats;
+    protected readonly RenderPipelineDebugger _debugger = new();
+    protected readonly SharedRenderPassState _state = new();
 
-    private RenderBufferManager? _renderBufferManager;
-    private ShadowMapAllocator? _shadowMapAllocator;
-    private InstancingBuffer? _instancingBuffer;
-    private StereoSceneProcessor? _sceneProcessor;
+    protected RenderBufferManager? _renderBufferManager;
+    protected ShadowMapAllocator? _shadowMapAllocator;
+    protected InstancingBuffer? _instancingBuffer;
+    protected SceneProcessor? _sceneProcessor;
 
-    private UnorderedScenePass? _depthPrePass;
-    private UnorderedScenePass? _opaquePass;
-    private UnorderedScenePass? _postOpaquePass;
-    private BackToFrontScenePass? _alphaPass;
-    private BackToFrontScenePass? _postAlphaPass;
+    protected UnorderedScenePass? _depthPrePass;
+    protected UnorderedScenePass? _opaquePass;
+    protected UnorderedScenePass? _postOpaquePass;
+    protected BackToFrontScenePass? _alphaPass;
+    protected BackToFrontScenePass? _postAlphaPass;
 
-    private RenderBuffer? _outlineBuffer;
-    private OutlineScenePass? _outlineScenePass;
+    protected RenderBuffer? _outlineBuffer;
+    protected OutlineScenePass? _outlineScenePass;
 
-    private uint _settingsHash;
-    private bool _settingsDirty = true;
+    private readonly Camera?[] _cameras = new Camera?[2];
+    private readonly ShaderParameterDesc[] _cameraParameters = new ShaderParameterDesc[2];
+    private readonly ShaderResourceDesc[] _depthAndColorTextures = new ShaderResourceDesc[2];
+    private static IntRect[]? _viewportRects;
+
+    protected uint _settingsHash;
+    protected uint _oldPipelineStateHash;
+    protected bool _settingsDirty;
 
     public StereoRenderPipelineView(RenderPipeline pipeline)
         : base(pipeline)
@@ -318,11 +351,15 @@ public class StereoRenderPipelineView : RenderPipelineView
         SetSettings(settings);
         SetRenderPath(pipeline.GetRenderPath());
         MarkParametersDirty();
+
+        pipeline.SettingsChanged += OnSettingsChanged;
+        pipeline.RenderPathChanged += OnRenderPathChanged;
+        pipeline.ParametersChanged += OnParametersChanged;
     }
 
-    public RenderPipelineSettings GetSettings() => _settings;
+    public ref readonly RenderPipelineSettings Settings => ref _settings;
 
-    public void SetSettings(RenderPipelineSettings settings)
+    public void SetSettings(in RenderPipelineSettings settings)
     {
         _settings = settings;
         var renderBufferManager = _settings.RenderBufferManager;
@@ -340,24 +377,60 @@ public class StereoRenderPipelineView : RenderPipelineView
     public void SetRenderPath(RenderPath? renderPath)
     {
         _originalRenderPath = renderPath;
+        _renderPath?.Dispose();
         _renderPath = null;
-        _settingsDirty = true;
     }
 
     public void MarkParametersDirty() => _parametersDirty = true;
 
     public override RenderPipelineDebugger? GetDebugger() => null;
 
+    public override void Dispose()
+    {
+        var pipeline = GetRenderPipeline();
+        pipeline.ParametersChanged -= OnParametersChanged;
+        pipeline.RenderPathChanged -= OnRenderPathChanged;
+        pipeline.SettingsChanged -= OnSettingsChanged;
+
+        _renderPath?.Dispose();
+        _renderPath = null;
+        _originalRenderPath = null;
+        _outlineScenePass?.Dispose();
+        _outlineScenePass = null;
+        _outlineBuffer = null;
+        _postAlphaPass?.Dispose();
+        _postAlphaPass = null;
+        _alphaPass?.Dispose();
+        _alphaPass = null;
+        _postOpaquePass?.Dispose();
+        _postOpaquePass = null;
+        _opaquePass?.Dispose();
+        _opaquePass = null;
+        _depthPrePass?.Dispose();
+        _depthPrePass = null;
+        _sceneProcessor?.Dispose();
+        _sceneProcessor = null;
+        _instancingBuffer?.Dispose();
+        _instancingBuffer = null;
+        _shadowMapAllocator?.Dispose();
+        _shadowMapAllocator = null;
+        _renderBufferManager?.Dispose();
+        _renderBufferManager = null;
+        _state.Dispose();
+        for (var i = _cameraParameters.Length - 1; i >= 0; --i)
+        {
+            _cameraParameters[i].Dispose();
+            _cameraParameters[i] = default;
+        }
+        Array.Clear(_depthAndColorTextures);
+        base.Dispose();
+    }
+
     /// <summary>Implement RenderPipelineView.</summary>
     public override bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics)
     {
-        ArgumentNullException.ThrowIfNull(viewport);
-        ArgumentNullException.ThrowIfNull(graphics);
-
         if (viewport.GetScene() is null || !viewport.IsStereo())
             return false;
-
-        _renderTarget = renderTarget;
 
         // Ensure that render path is ready
         if (_renderPath is null && _originalRenderPath is not null)
@@ -377,23 +450,19 @@ public class StereoRenderPipelineView : RenderPipelineView
             _instancingBuffer = new InstancingBuffer();
             _sceneProcessor = new StereoSceneProcessor(this, _shadowMapAllocator, _instancingBuffer);
 
-            _opaquePass = new UnorderedScenePass(this, _sceneProcessor.GetDrawableProcessor(),
-                _sceneProcessor.GetPipelineStateBuilder(),
+            _opaquePass = _sceneProcessor.CreatePass<UnorderedScenePass>(
                 DrawableProcessorPassFlag.StereoInstancing | DrawableProcessorPassFlag.HasAmbientLighting,
                 string.Empty, "base", "litbase", "light");
 
-            _postOpaquePass = new UnorderedScenePass(this, _sceneProcessor.GetDrawableProcessor(),
-                _sceneProcessor.GetPipelineStateBuilder(),
+            _postOpaquePass = _sceneProcessor.CreatePass<UnorderedScenePass>(
                 DrawableProcessorPassFlag.StereoInstancing, "postopaque");
 
-            _alphaPass = new BackToFrontScenePass(this, _sceneProcessor.GetDrawableProcessor(),
-                _sceneProcessor.GetPipelineStateBuilder(),
+            _alphaPass = _sceneProcessor.CreatePass<BackToFrontScenePass>(
                 DrawableProcessorPassFlag.NeedReadableDepth | DrawableProcessorPassFlag.RefractionPass
                 | DrawableProcessorPassFlag.StereoInstancing,
                 string.Empty, "alpha", "alpha", "litalpha");
 
-            _postAlphaPass = new BackToFrontScenePass(this, _sceneProcessor.GetDrawableProcessor(),
-                _sceneProcessor.GetPipelineStateBuilder(),
+            _postAlphaPass = _sceneProcessor.CreatePass<BackToFrontScenePass>(
                 DrawableProcessorPassFlag.StereoInstancing, "postalpha");
 
             var outlineParams = new RenderBufferParams(TextureFormat.TexFormatRgba8Unorm, 1, RenderBufferFlag.BilinearFiltering);
@@ -404,18 +473,19 @@ public class StereoRenderPipelineView : RenderPipelineView
         }
 
         _frameInfo.Viewport = viewport;
+        _frameInfo.RenderTarget = renderTarget;
         _frameInfo.ViewportRect = viewport.GetEffectiveRect(renderTarget);
         _frameInfo.ViewportSize = _frameInfo.ViewportRect.Size;
         _frameInfo.Cameras.First = viewport.GetEye(0);
         _frameInfo.Cameras.Second = viewport.GetEye(1);
 
-        _frameInfo.RenderTarget = renderTarget;
-
         if (!_sceneProcessor.Define(_frameInfo))
             return false;
 
-        Camera?[] cameras = [viewport.GetEye(0), viewport.GetEye(1)];
-        _sceneProcessor.SetRenderCameras(cameras);
+        _cameras[0] = viewport.GetEye(0);
+        _cameras[1] = viewport.GetEye(1);
+        _sceneProcessor.SetRenderCameras(_cameras);
+        Array.Clear(_cameras);
 
         if (_settingsDirty)
         {
@@ -455,32 +525,27 @@ public class StereoRenderPipelineView : RenderPipelineView
         _postAlphaPass!.SetForwardOutputDesc(standardOutputDesc);
 
         var batchCompositor = _sceneProcessor.GetBatchCompositor();
-        if (_shadowMapAllocator is not null)
-            batchCompositor.SetShadowOutputDesc(_shadowMapAllocator.ShadowOutputDesc);
+        batchCompositor.SetShadowOutputDesc(_shadowMapAllocator!.ShadowOutputDesc);
 
         return true;
     }
 
     public override void Update(Graphics graphics)
     {
-        ArgumentNullException.ThrowIfNull(graphics);
-        if (_sceneProcessor is null)
-            return;
-
-        var engineTime = GetRenderPipeline().GetSubsystem<Time>();
-        _frameInfo.FrameNumber = checked((uint)(engineTime?.FrameNumber ?? 0U));
-        _frameInfo.TimeStep = engineTime?.TimeStep ?? 0.0f;
+        var engineTime = GetRenderPipeline().GetSubsystem<Time>()!;
+        _frameInfo.FrameNumber = engineTime.FrameNumber;
+        _frameInfo.TimeStep = engineTime.TimeStep;
 
         // Begin debug snapshot
-        var input = GetRenderPipeline().GetSubsystem<Input>();
-        var qualifiers = input?.GetQualifiers() ?? Qualifier.None;
+        var input = GetRenderPipeline().GetSubsystem<Input>()!;
+        var qualifiers = input.GetQualifiers();
         var takeSnapshot = (qualifiers & (Qualifier.Ctrl | Qualifier.Shift)) == (Qualifier.Ctrl | Qualifier.Shift)
-            && input!.GetKeyPress(Key.F12);
+            && input.GetKeyPress(Key.F12);
         if (takeSnapshot)
             _debugger.BeginSnapshot();
 
         // Begin update. Should happen before pipeline state hash check.
-        _shadowMapAllocator?.ResetAllShadowMaps();
+        _shadowMapAllocator!.ResetAllShadowMaps();
         RaiseUpdateBegin(_frameInfo);
         SendBeginViewUpdateEvent();
 
@@ -488,16 +553,15 @@ public class StereoRenderPipelineView : RenderPipelineView
         var pipelineStateHash = _settings.CalculatePipelineStateHash();
         if (_settingsHash != pipelineStateHash)
         {
-            _settingsHash = pipelineStateHash;
+            _oldPipelineStateHash = pipelineStateHash;
             RaisePipelineStatesInvalidated();
         }
 
-        _outlineScenePass?.SetOutlineGroups(_sceneProcessor.GetFrameInfo().Scene!, false);
+        _outlineScenePass!.SetOutlineGroups(_sceneProcessor!.GetFrameInfo().Scene!, false);
 
         _sceneProcessor.Update();
 
-        if (_outlineBuffer is not null && _outlineScenePass is not null)
-            _outlineBuffer.SetEnabled(_outlineScenePass.IsEnabled && _outlineScenePass.HasBatches);
+        _outlineBuffer!.SetEnabled(_outlineScenePass.IsEnabled && _outlineScenePass.HasBatches);
 
         if (_renderPath is not null)
             _renderPath.Update(_state);
@@ -510,11 +574,7 @@ public class StereoRenderPipelineView : RenderPipelineView
 
     public override void Render(Graphics graphics, MaterialQuality materialQuality)
     {
-        ArgumentNullException.ThrowIfNull(graphics);
-        if (_sceneProcessor is null || _renderBufferManager is null)
-            return;
-
-        var hasRefraction = _alphaPass?.HasRefractionBatches() == true;
+        var hasRefraction = _alphaPass!.HasRefractionBatches();
         var frameSettings = new RenderBufferManagerFrameSettings
         {
             SupportColorReadWrite = (_renderOutputFlags & RenderOutputFlag.NeedColorOutputReadAndWrite) != 0
@@ -522,145 +582,150 @@ public class StereoRenderPipelineView : RenderPipelineView
         if (hasRefraction)
             frameSettings.SupportColorReadWrite = true;
 
-        _renderBufferManager.SetFrameSettings(frameSettings);
+        _renderBufferManager!.SetFrameSettings(frameSettings);
 
         RaiseRenderBegin(_frameInfo);
         SendBeginViewRenderEvent();
         SendViewBuffersReadyEvent();
 
-        _sceneProcessor.PrepareDrawablesBeforeRendering();
+        _sceneProcessor!.PrepareDrawablesBeforeRendering();
         _sceneProcessor.PrepareInstancingBuffer();
         _sceneProcessor.RenderShadowMaps();
 
-        var camera = _sceneProcessor.GetFrameInfo().Camera;
-        if (camera is null)
-            return;
+        var camera = _sceneProcessor.GetFrameInfo().Camera!;
 
         var fogColorInGammaSpace = camera.GetEffectiveFogColor();
         var effectiveFogColor = _linearColorSpace ? fogColorInGammaSpace.GammaToLinear() : fogColorInGammaSpace;
 
         _renderBufferManager.ClearOutput(effectiveFogColor);
 
-        var cameraParameters = new ShaderParameterDesc[]
+        _cameraParameters[0] = new ShaderParameterDesc
         {
-            new()
-            {
-                Name = ShaderConsts.Camera_GBufferOffsets,
-                Value = new Variant(_renderBufferManager.DefaultClipToUVSpaceOffsetAndScale)
-            },
-            new()
-            {
-                Name = ShaderConsts.Camera_GBufferInvSize,
-                Value = new Variant(_renderBufferManager.InvOutputSize)
-            },
+            Name = ShaderConsts.Camera_GBufferOffsets,
+            Value = new Variant(_renderBufferManager.DefaultClipToUVSpaceOffsetAndScale)
+        };
+        _cameraParameters[1] = new ShaderParameterDesc
+        {
+            Name = ShaderConsts.Camera_GBufferInvSize,
+            Value = new Variant(_renderBufferManager.InvOutputSize)
         };
         var frameParameters = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_frameParameters);
 
-        if (_depthPrePass is not null)
+        try
         {
+
+            if (_depthPrePass is not null)
+            {
+                _sceneProcessor.RenderSceneBatches(
+                    "DepthPrePass", camera, _depthPrePass.GetBaseBatches(), default, _cameraParameters, frameParameters, 2);
+            }
+
             _sceneProcessor.RenderSceneBatches(
-                "DepthPrePass", camera, _depthPrePass.GetBaseBatches(), default, cameraParameters, frameParameters, 2);
-        }
+                "OpaqueBase", camera, _opaquePass!.GetBaseBatches(), default, _cameraParameters, frameParameters, 2);
+            _sceneProcessor.RenderSceneBatches(
+                "OpaqueLight", camera, _opaquePass.GetLightBatches(), default, _cameraParameters, frameParameters, 2);
+            _sceneProcessor.RenderSceneBatches(
+                "PostOpaque", camera, _postOpaquePass!.GetBaseBatches(), default, _cameraParameters, frameParameters, 2);
 
-        _sceneProcessor.RenderSceneBatches(
-            "OpaqueBase", camera, _opaquePass!.GetBaseBatches(), default, cameraParameters, frameParameters, 2);
-        _sceneProcessor.RenderSceneBatches(
-            "OpaqueLight", camera, _opaquePass.GetLightBatches(), default, cameraParameters, frameParameters, 2);
-        _sceneProcessor.RenderSceneBatches(
-            "PostOpaque", camera, _postOpaquePass!.GetBaseBatches(), default, cameraParameters, frameParameters, 2);
+            if (hasRefraction)
+                _renderBufferManager.SwapColorBuffers(true);
 
-        if (hasRefraction)
-            _renderBufferManager.SwapColorBuffers(true);
-
-        var depthAndColorTextures = new ShaderResourceDesc[]
-        {
-            new()
+            _depthAndColorTextures[0] = new ShaderResourceDesc
             {
                 Name = ShaderResources.DepthBuffer,
                 Texture = _renderBufferManager.DepthStencilTexture
-            },
-            new()
+            };
+            _depthAndColorTextures[1] = new ShaderResourceDesc
             {
                 Name = ShaderResources.Emission,
                 Texture = _renderBufferManager.SecondaryColorTexture
-            },
-        };
+            };
 
-        _sceneProcessor.RenderSceneBatches(
-            "Alpha", camera, _alphaPass!.GetBatches(), depthAndColorTextures, cameraParameters, frameParameters, 2);
-        _sceneProcessor.RenderSceneBatches(
-            "PostAlpha", camera, _postAlphaPass!.GetBatches(), default, cameraParameters, frameParameters, 2);
+            _sceneProcessor.RenderSceneBatches(
+                "Alpha", camera, _alphaPass!.GetBatches(), _depthAndColorTextures, _cameraParameters, frameParameters, 2);
+            _sceneProcessor.RenderSceneBatches(
+                "PostAlpha", camera, _postAlphaPass!.GetBatches(), default, _cameraParameters, frameParameters, 2);
 
-        if (_outlineBuffer?.IsEnabled == true && _outlineScenePass is not null)
-        {
-            // TODO: Do we want it dynamic?
-            const int outlinePadding = 2;
-
-            var batches = _outlineScenePass.Batches;
-            batches.ScissorRect = _outlineBuffer.GetViewportRect();
-            if (batches.ScissorRect.Width > outlinePadding * 2 && batches.ScissorRect.Height > outlinePadding * 2)
+            if (_outlineBuffer!.IsEnabled)
             {
-                var rect = batches.ScissorRect;
-                batches.ScissorRect = new IntRect(
-                    rect.Left + (int)outlinePadding,
-                    rect.Top + (int)outlinePadding,
-                    rect.Right - (int)outlinePadding,
-                    rect.Bottom - (int)outlinePadding);
+                // TODO: Do we want it dynamic?
+                const int outlinePadding = 2;
+
+                var batches = _outlineScenePass!.Batches;
+                batches.ScissorRect = _outlineBuffer.GetViewportRect();
+                if (batches.ScissorRect.Width > outlinePadding * 2 && batches.ScissorRect.Height > outlinePadding * 2)
+                {
+                    var rect = batches.ScissorRect;
+                    batches.ScissorRect = new IntRect(
+                        rect.Left + (int)outlinePadding,
+                        rect.Top + (int)outlinePadding,
+                        rect.Right - (int)outlinePadding,
+                        rect.Bottom - (int)outlinePadding);
+                }
+
+                _renderBufferManager.SetRenderTargets(null, _outlineBuffer);
+                _renderBufferManager.ClearColor(_outlineBuffer, Color.TransparentBlack);
+                _sceneProcessor.RenderSceneBatches("Outline", camera, batches, default, _cameraParameters);
             }
 
-            _renderBufferManager.SetRenderTargets(null, _outlineBuffer);
-            _renderBufferManager.ClearColor(_outlineBuffer, Color.TransparentBlack);
-            _sceneProcessor.RenderSceneBatches("Outline", camera, batches, default, cameraParameters);
-        }
+            // Not going to work, something will need to be done
+            var outSize = _renderBufferManager.OutputSize; // used for debug view
 
-        // Not going to work, something will need to be done
-        var outSize = _renderBufferManager.OutputSize; // used for debug view
+            if (_renderPath is not null)
+                _renderPath.Render(_state);
 
-        if (_renderPath is not null)
-            _renderPath.Render(_state);
-
-        // draw debug geometry into each half
-        var debug = _sceneProcessor.GetFrameInfo().Scene?.Root.GetComponent<DebugRenderer>();
-        if (_settings.DrawDebugGeometry && debug is not null && debug.IsEnabledEffective && debug.HasContent())
-        {
-            var renderDevice = GetRenderPipeline().GetSubsystem<RenderDevice>();
-            var renderContext = renderDevice?.GetRenderContext();
-            _renderBufferManager.SetOutputRenderTargets();
-            IntRect[] viewportRects =
-            [
-                new(0, 0, outSize.X / 2, outSize.Y),
-                new(outSize.X / 2, 0, outSize.X, outSize.Y)
-            ];
-            for (var i = 0; i < 2; ++i)
+            // draw debug geometry into each half
+            var debug = _sceneProcessor.GetFrameInfo().Scene?.Root.GetComponent<DebugRenderer>();
+            if (_settings.DrawDebugGeometry && debug is not null && debug.IsEnabledEffective && debug.HasContent())
             {
-                renderContext?.SetViewport(viewportRects[i]);
-                debug.SetView(_frameInfo.Viewport?.GetEye(i));
-                debug.Render();
+                var renderDevice = GetRenderPipeline().GetSubsystem<RenderDevice>();
+                var renderContext = renderDevice!.GetRenderContext();
+                _renderBufferManager.SetOutputRenderTargets();
+                _viewportRects ??=
+                [
+                    new IntRect(0, 0, outSize.X / 2, outSize.Y),
+                new IntRect(outSize.X / 2, 0, outSize.X, outSize.Y)
+                ];
+                for (var i = 0; i < 2; ++i)
+                {
+                    renderContext.SetViewport(_viewportRects[i]);
+                    debug.SetView(_frameInfo.Viewport?.GetEye(i));
+                    debug.Render();
+                }
+            }
+
+            RaiseRenderEnd(_frameInfo);
+            SendEndViewRenderEvent();
+
+            // Update statistics
+            _stats = default;
+            RaiseCollectStatistics(ref _stats);
+
+            if (_debugger.IsSnapshotInProgress())
+            {
+                _debugger.EndSnapshot();
+                Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                    Log.GetLogger(), "RenderPipeline snapshot:\n\n{Snapshot}\n", _debugger.GetSnapshot().ToString());
             }
         }
-
-        RaiseRenderEnd(_frameInfo);
-        SendEndViewRenderEvent();
-
-        // Update statistics
-        _stats = default;
-        RaiseCollectStatistics(ref _stats);
-
-        if (_debugger.IsSnapshotInProgress())
+        finally
         {
-            _debugger.EndSnapshot();
-            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
-                Log.GetLogger(), "RenderPipeline snapshot:\n\n{Snapshot}\n", _debugger.GetSnapshot().ToString());
+            Array.Clear(_depthAndColorTextures);
+            for (var i = _cameraParameters.Length - 1; i >= 0; --i)
+            {
+                _cameraParameters[i].Dispose();
+                _cameraParameters[i] = default;
+            }
         }
     }
 
-    private void SendBeginViewUpdateEvent()
+    protected void SendBeginViewUpdateEvent()
     {
         var eventData = new GraphicsEvents.BeginViewUpdateEvent
         {
             RenderPipelineView = this,
-            Texture = _renderTarget?.GetParentTexture(),
-            Surface = _renderTarget,
+            Texture = _frameInfo.RenderTarget?.GetParentTexture(),
+            Surface = _frameInfo.RenderTarget,
             Scene = _sceneProcessor!.GetFrameInfo().Scene,
             Camera = _sceneProcessor.GetFrameInfo().Camera
         };
@@ -668,13 +733,13 @@ public class StereoRenderPipelineView : RenderPipelineView
         sender.SendEvent(ref eventData);
     }
 
-    private void SendEndViewUpdateEvent()
+    protected void SendEndViewUpdateEvent()
     {
         var eventData = new GraphicsEvents.EndViewUpdateEvent
         {
             RenderPipelineView = this,
-            Texture = _renderTarget?.GetParentTexture(),
-            Surface = _renderTarget,
+            Texture = _frameInfo.RenderTarget?.GetParentTexture(),
+            Surface = _frameInfo.RenderTarget,
             Scene = _sceneProcessor!.GetFrameInfo().Scene,
             Camera = _sceneProcessor.GetFrameInfo().Camera
         };
@@ -682,13 +747,13 @@ public class StereoRenderPipelineView : RenderPipelineView
         sender.SendEvent(ref eventData);
     }
 
-    private void SendBeginViewRenderEvent()
+    protected void SendBeginViewRenderEvent()
     {
         var eventData = new GraphicsEvents.BeginViewRenderEvent
         {
             RenderPipelineView = this,
-            Texture = _renderTarget?.GetParentTexture(),
-            Surface = _renderTarget,
+            Texture = _frameInfo.RenderTarget?.GetParentTexture(),
+            Surface = _frameInfo.RenderTarget,
             Scene = _sceneProcessor!.GetFrameInfo().Scene,
             Camera = _sceneProcessor.GetFrameInfo().Camera
         };
@@ -696,13 +761,13 @@ public class StereoRenderPipelineView : RenderPipelineView
         sender.SendEvent(ref eventData);
     }
 
-    private void SendViewBuffersReadyEvent()
+    protected void SendViewBuffersReadyEvent()
     {
         var eventData = new GraphicsEvents.ViewBuffersReadyEvent
         {
             RenderPipelineView = this,
-            Texture = _renderTarget?.GetParentTexture(),
-            Surface = _renderTarget,
+            Texture = _frameInfo.RenderTarget?.GetParentTexture(),
+            Surface = _frameInfo.RenderTarget,
             Scene = _sceneProcessor!.GetFrameInfo().Scene,
             Camera = _sceneProcessor.GetFrameInfo().Camera
         };
@@ -710,13 +775,13 @@ public class StereoRenderPipelineView : RenderPipelineView
         sender.SendEvent(ref eventData);
     }
 
-    private void SendEndViewRenderEvent()
+    protected void SendEndViewRenderEvent()
     {
         var eventData = new GraphicsEvents.EndViewRenderEvent
         {
             RenderPipelineView = this,
-            Texture = _renderTarget?.GetParentTexture(),
-            Surface = _renderTarget,
+            Texture = _frameInfo.RenderTarget?.GetParentTexture(),
+            Surface = _frameInfo.RenderTarget,
             Scene = _sceneProcessor!.GetFrameInfo().Scene,
             Camera = _sceneProcessor.GetFrameInfo().Camera
         };
@@ -730,59 +795,42 @@ public class StereoRenderPipelineView : RenderPipelineView
 
     public override void DrawDebugGeometries(bool depthTest)
     {
-        var scene = _sceneProcessor?.GetFrameInfo().Scene;
-        var debug = scene?.Root.GetComponent<DebugRenderer>();
-        if (scene is null || debug is null)
-            return;
-
-        foreach (var drawable in scene.GetAllComponents().Values.OfType<Drawable>())
-        {
-            if ((drawable.GetDrawableFlags() & DrawableFlags.Light) == 0)
-                drawable.DrawDebugGeometry(debug, depthTest);
-        }
     }
 
     public override void DrawDebugLights(bool depthTest)
     {
-        var scene = _sceneProcessor?.GetFrameInfo().Scene;
-        var debug = scene?.Root.GetComponent<DebugRenderer>();
-        if (scene is null || debug is null)
-            return;
-
-        foreach (var drawable in scene.GetAllComponents().Values.OfType<Light>())
-            drawable.DrawDebugGeometry(debug, depthTest);
     }
 
     protected void ApplySettings()
     {
-        if (_sceneProcessor is null)
-            return;
+        var oldDepthPrePass = _depthPrePass;
+        var oldOutlineScenePass = _outlineScenePass;
 
-        _sceneProcessor.SetSettings(_settings);
-        _instancingBuffer?.SetSettings(_settings.InstancingBuffer);
-        _shadowMapAllocator?.SetSettings(_settings.ShadowMapAllocator);
+        _sceneProcessor!.SetSettings(_settings);
+        _instancingBuffer!.SetSettings(_settings.InstancingBuffer);
+        _shadowMapAllocator!.SetSettings(_settings.ShadowMapAllocator);
 
         if (_settings.SceneProcessor.DepthPrePass && _depthPrePass is null)
         {
-            _depthPrePass = new UnorderedScenePass(this, _sceneProcessor.GetDrawableProcessor(),
-                _sceneProcessor.GetPipelineStateBuilder(),
+            _depthPrePass = _sceneProcessor.CreatePass<UnorderedScenePass>(
                 DrawableProcessorPassFlag.DepthOnlyPass | DrawableProcessorPassFlag.StereoInstancing,
                 "depth");
         }
-        else if (!_settings.SceneProcessor.DepthPrePass)
+        else
             _depthPrePass = null;
 
-        _outlineScenePass = new OutlineScenePass(this, _sceneProcessor.GetDrawableProcessor(),
-            _sceneProcessor.GetPipelineStateBuilder(),
-            ["base", "alpha"], DrawableProcessorPassFlag.StereoInstancing);
-
-        if (_outlineBuffer is not null)
-            _state.RenderBuffers[OutlineRenderPass.ColorBufferId] = _outlineBuffer;
+        _outlineScenePass = _sceneProcessor.CreatePass<OutlineScenePass>(
+            new string[] { "base", "alpha" }, DrawableProcessorPassFlag.StereoInstancing);
 
         _sceneProcessor.SetPasses(
         [
             _depthPrePass, _opaquePass, _postOpaquePass, _alphaPass, _postAlphaPass, _outlineScenePass
         ]);
+
+        if (!ReferenceEquals(oldOutlineScenePass, _outlineScenePass))
+            oldOutlineScenePass?.Dispose();
+        if (!ReferenceEquals(oldDepthPrePass, _depthPrePass))
+            oldDepthPrePass?.Dispose();
     }
 
     protected void UpdateRenderOutputFlags()
@@ -798,15 +846,30 @@ public class StereoRenderPipelineView : RenderPipelineView
         }
 
         _settings.AdjustForRenderPath(_renderOutputFlags);
-        _renderBufferManager?.SetSettings(_settings.RenderBufferManager);
+        _renderBufferManager!.SetSettings(_settings.RenderBufferManager);
     }
+
+    private void OnSettingsChanged(RenderPipeline pipeline, RenderPipelineSettings settings) => SetSettings(in settings);
+
+    private void OnRenderPathChanged(RenderPipeline pipeline, RenderPath? renderPath) => SetRenderPath(renderPath);
+
+    private void OnParametersChanged(RenderPipeline pipeline) => MarkParametersDirty();
 }
 
-/// <summary>Stereo render pipeline component.</summary>
 public class StereoRenderPipeline : RenderPipeline
 {
     public StereoRenderPipeline()
     {
+    }
+
+    public override void Dispose()
+    {
+        base.Dispose();
+    }
+
+    public static new void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<StereoRenderPipeline>();
     }
 
     public override RenderPipelineView Instantiate() => new StereoRenderPipelineView(this);

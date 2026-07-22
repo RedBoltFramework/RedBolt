@@ -112,6 +112,25 @@ public sealed class RenderPipelineDebuggerTests
     }
 
     [Fact]
+    public void Stereo_render_pipeline_view_tracks_settings_until_disposed()
+    {
+        var pipeline = new StereoRenderPipeline();
+        var view = new StereoRenderPipelineView(pipeline);
+        var settings = pipeline.Settings;
+        settings.DrawDebugGeometry = false;
+
+        pipeline.SetSettings(settings);
+
+        Assert.False(view.Settings.DrawDebugGeometry);
+
+        view.Dispose();
+        settings.DrawDebugGeometry = true;
+        pipeline.SetSettings(settings);
+
+        Assert.False(view.Settings.DrawDebugGeometry);
+    }
+
+    [Fact]
     public void Snapshot_batch_constructor_resolves_pixel_light_from_drawable_processor()
     {
         var scene = new Scene();
