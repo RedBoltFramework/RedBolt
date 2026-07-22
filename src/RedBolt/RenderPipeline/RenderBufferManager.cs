@@ -691,8 +691,16 @@ public sealed class RenderBufferManager
         // C++ ClearOutputRect subregion: DrawViewportQuad with clearPipelineState_[flags]
         var clearParams = new ShaderParameterDesc[]
         {
-            new(new StringHash("Color"), new Variant(color)),
-            new(new StringHash("Depth"), new Variant(GetFullscreenQuadClearDepth(depth))),
+            new()
+            {
+                Name = new StringHash("Color"),
+                Value = new Variant(color)
+            },
+            new()
+            {
+                Name = new StringHash("Depth"),
+                Value = new Variant(GetFullscreenQuadClearDepth(depth))
+            },
         };
         DrawViewportQuad(
             "Clear output subregion",

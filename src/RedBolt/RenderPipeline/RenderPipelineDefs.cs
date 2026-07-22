@@ -1193,7 +1193,27 @@ public struct ShaderResourceDesc
 /// Generic description of shader parameter.
 /// Beware of Variant allocations for types larger than Vector4f!
 /// </summary>
-public readonly record struct ShaderParameterDesc(StringHash Name, Variant Value);
+public struct ShaderParameterDesc : ICloneable, IDisposable
+{
+    public StringHash Name { get; set; }
+
+    public Variant Value { get; set; }
+
+    public readonly ShaderParameterDesc Clone() => new()
+    {
+        Name = Name,
+        Value = Value.Clone()
+    };
+
+    readonly object ICloneable.Clone() => Clone();
+
+    public void Dispose()
+    {
+        var value = Value;
+        value.Dispose();
+        this = default;
+    }
+}
 
 public sealed class RenderOutputTargetInfo
 {
@@ -1333,20 +1353,24 @@ public abstract class RenderPipelineView : Object, IRenderPipelineInterface
     {
         for (var i = _frameParameters.Count - 1; i >= 0; --i)
         {
-            var value = _frameParameters[i].Value;
-            value.Dispose();
+            var parameter = _frameParameters[i];
+            parameter.Dispose();
         }
         _frameParameters.Clear();
         foreach (var (name, value) in _renderPipeline.GetFrameShaderParameters())
-            _frameParameters.Add(new ShaderParameterDesc(new StringHash(name), value.Clone()));
+            _frameParameters.Add(new ShaderParameterDesc
+            {
+                Name = new StringHash(name),
+                Value = value.Clone()
+            });
     }
 
     public override void Dispose()
     {
         for (var i = _frameParameters.Count - 1; i >= 0; --i)
         {
-            var value = _frameParameters[i].Value;
-            value.Dispose();
+            var parameter = _frameParameters[i];
+            parameter.Dispose();
         }
         _frameParameters.Clear();
         base.Dispose();

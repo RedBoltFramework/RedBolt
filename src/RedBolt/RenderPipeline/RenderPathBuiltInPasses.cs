@@ -91,7 +91,11 @@ public sealed class FullScreenShaderPass : RenderPass
         {
             _shaderParameterSources.Add(new StringHash(_parametersPrefix + name));
             _shaderParameterDefaults.Add(defaultValue.Clone());
-            _shaderParameters.Add(new ShaderParameterDesc(new StringHash(name), defaultValue.Clone()));
+            _shaderParameters.Add(new ShaderParameterDesc
+            {
+                Name = new StringHash(name),
+                Value = defaultValue.Clone()
+            });
         }
         _pipelineStateId = StaticPipelineStateId.Invalid;
     }
@@ -106,10 +110,13 @@ public sealed class FullScreenShaderPass : RenderPass
                 if (StringHash.Calculate(name) != _shaderParameterSources[i].Value)
                     continue;
 
-                var parameter = _shaderParameters[i];
-                var oldValue = parameter.Value;
-                _shaderParameters[i] = new ShaderParameterDesc(parameter.Name, value.Clone());
-                oldValue.Dispose();
+                var oldParameter = _shaderParameters[i];
+                _shaderParameters[i] = new ShaderParameterDesc
+                {
+                    Name = oldParameter.Name,
+                    Value = value.Clone()
+                };
+                oldParameter.Dispose();
                 if (shouldBeDisabled && value != _shaderParameterDefaults[i])
                     shouldBeDisabled = false;
                 break;
@@ -209,8 +216,8 @@ public sealed class FullScreenShaderPass : RenderPass
     {
         for (var i = _shaderParameters.Count - 1; i >= 0; --i)
         {
-            var value = _shaderParameters[i].Value;
-            value.Dispose();
+            var parameter = _shaderParameters[i];
+            parameter.Dispose();
         }
         _shaderParameters.Clear();
 

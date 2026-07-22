@@ -22,4 +22,23 @@ public sealed class RenderPipelineDefsTests
         Assert.Equal(new StringHash("sNormalMap"), copy.Name);
         Assert.Same(texture, copy.Texture);
     }
+
+    [Fact]
+    public void Shader_parameter_description_clones_owned_variant_value()
+    {
+        var description = new ShaderParameterDesc
+        {
+            Name = new StringHash("Buffer"),
+            Value = new Variant(new byte[] { 1, 2, 3 })
+        };
+        var copy = description.Clone();
+
+        copy.Value.GetBuffer()[0] = 9;
+
+        Assert.Equal(1, description.Value.GetBuffer()[0]);
+        Assert.Equal(9, copy.Value.GetBuffer()[0]);
+
+        copy.Dispose();
+        description.Dispose();
+    }
 }

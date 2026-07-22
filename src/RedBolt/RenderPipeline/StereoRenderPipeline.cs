@@ -563,8 +563,16 @@ public class StereoRenderPipelineView : RenderPipelineView
 
         var cameraParameters = new ShaderParameterDesc[]
         {
-            new(ShaderConsts.Camera_GBufferOffsets, new Variant(_renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale())),
-            new(ShaderConsts.Camera_GBufferInvSize, new Variant(_renderBufferManager.GetInvOutputSize())),
+            new()
+            {
+                Name = ShaderConsts.Camera_GBufferOffsets,
+                Value = new Variant(_renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale())
+            },
+            new()
+            {
+                Name = ShaderConsts.Camera_GBufferInvSize,
+                Value = new Variant(_renderBufferManager.GetInvOutputSize())
+            },
         };
         var frameParameters = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_frameParameters);
 
