@@ -17,7 +17,7 @@ public class Skybox : StaticModel
     }
 
     /// <summary>Register object factory. StaticModel must be registered first.</summary>
-    public static void RegisterObject(Context context)
+    public new static void RegisterObject(Context context)
     {
         context.AddFactoryReflection<Skybox>(ObjectCategory.Category_Geometry);
     }

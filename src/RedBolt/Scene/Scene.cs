@@ -23,6 +23,25 @@ public enum LoadMode
 
 public sealed class Scene : Serializable
 {
+    /// <summary>Register Scene library objects.</summary>
+    public static void RegisterSceneLibrary(Context context)
+    {
+        context.AddAbstractReflection<Component>(ObjectCategory.Category_Scene);
+        context.AddAbstractReflection<LogicComponent>(ObjectCategory.Category_Scene);
+
+        ValueAnimation.RegisterObject(context);
+        ObjectAnimation.RegisterObject(context);
+        Node.RegisterObject(context);
+        RegisterObject(context);
+        SceneResource.RegisterObject(context);
+        UnknownComponent.RegisterObject(context);
+        SplinePath.RegisterObject(context);
+        PrefabReference.RegisterObject(context);
+        PrefabResource.RegisterObject(context);
+        ShakeComponent.RegisterObject(context);
+        WorldOrigin.RegisterObject(context);
+    }
+
     private sealed class AsyncProgress
     {
         public AbstractFile? File;

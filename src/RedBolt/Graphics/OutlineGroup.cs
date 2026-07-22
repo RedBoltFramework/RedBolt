@@ -34,6 +34,12 @@ public class OutlineGroup : Component
             new VariantVector());
     }
 
+    /// <summary>Register object factory.</summary>
+    public static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<OutlineGroup>(ObjectCategory.Category_Scene);
+    }
+
     public override void Dispose()
     {
         foreach (var material in _materials.Values)

@@ -490,6 +490,12 @@ public class Zone : Drawable
         ClearDrawablesZone();
     }
 
+    /// <summary>Register object factory.</summary>
+    public new static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<Zone>(ObjectCategory.Category_Scene);
+    }
+
     public override void Dispose()
     {
         _reflectionProbeData.GetStorage().Value = default;

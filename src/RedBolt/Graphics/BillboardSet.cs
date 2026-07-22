@@ -127,7 +127,7 @@ public class BillboardSet : Drawable
     }
 
     /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
+    public new static void RegisterObject(Context context)
     {
         context.AddFactoryReflection<BillboardSet>(ObjectCategory.Category_Geometry);
     }

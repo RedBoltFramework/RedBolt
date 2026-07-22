@@ -77,7 +77,6 @@ public sealed class ResourceCache : Object
         if (_cache.ContainsKey(key))
             return false;
 
-        resource.OwnerCache = this;
         _cache.Add(key, resource);
         AddResourceToGroup(resource.GetType(), resource);
         UpdateResourceGroup(resource.GetType());
@@ -376,7 +375,6 @@ public sealed class ResourceCache : Object
         var resource = TryLoadResource<T>(name)
             ?? LoadFailure<T>(name, sendEventOnFailure);
 
-        resource.OwnerCache = this;
         _cache.Add(key, resource);
         AddResourceToGroup(typeof(T), resource);
         UpdateResourceGroup(typeof(T));
@@ -400,7 +398,6 @@ public sealed class ResourceCache : Object
         if (resource is null)
             return null;
 
-        resource.OwnerCache = this;
         _cache[key] = resource;
         AddResourceToGroup(typeof(T), resource);
         UpdateResourceGroup(typeof(T));
@@ -1015,7 +1012,6 @@ public sealed class ResourceCache : Object
             return null;
         }
 
-        resource.OwnerCache = this;
         resource.SetName(sanitizedName);
         _cache[key] = resource;
         AddResourceToGroup(type, resource);
@@ -1057,7 +1053,6 @@ public sealed class ResourceCache : Object
         if (resource is null)
             return null;
 
-        resource.OwnerCache = this;
         resource.SetName(name);
         return resource.LoadFile(name) || _returnFailedResources ? resource : null;
     }
@@ -1073,7 +1068,6 @@ public sealed class ResourceCache : Object
             return null;
 
         var resource = factory();
-        resource.OwnerCache = this;
         resource.SetName(name);
         return resource.LoadFile(name) || _returnFailedResources ? resource : null;
     }
@@ -1090,7 +1084,6 @@ public sealed class ResourceCache : Object
             return null;
 
         var resource = factory();
-        resource.OwnerCache = this;
         resource.SetName(logicalName);
         return resource.LoadFile(lookupName) || _returnFailedResources ? resource : null;
     }

@@ -35,7 +35,7 @@ public sealed class Shader : Resource
     /// <summary>Destruct.</summary>
     public override void Dispose()
     {
-        OwnerCache?.ResetDependencies(this);
+        GetSubsystem<ResourceCache>()?.ResetDependencies(this);
 
         var disposedVariations = new HashSet<ShaderVariation>();
         foreach (var variation in _variations.Values)
@@ -277,7 +277,8 @@ public sealed class Shader : Resource
         if (!visited.Add(visitedKey))
             return;
 
-        var sourceTimeStamp = OwnerCache?.GetLastModifiedTime(resourceName) ?? DateTime.MinValue;
+        var cache = GetSubsystem<ResourceCache>();
+        var sourceTimeStamp = cache?.GetLastModifiedTime(resourceName) ?? DateTime.MinValue;
         _timeStamp = sourceTimeStamp > _timeStamp ? sourceTimeStamp : _timeStamp;
 
         var fileIndex = FileToIndexMapping.GetValueOrDefault(resourceName);
@@ -305,9 +306,9 @@ public sealed class Shader : Resource
             {
                 var includeName = line[9..].Replace("\"", string.Empty, StringComparison.Ordinal).Trim();
                 var includedResourceName = CombineResourcePath(resourceName, includeName);
-                if (OwnerCache?.Exists(includedResourceName) == true)
+                if (cache?.Exists(includedResourceName) == true)
                 {
-                    OwnerCache?.StoreResourceDependency(this, includedResourceName);
+                    cache.StoreResourceDependency(this, includedResourceName);
                     ProcessSource(includedResourceName, builder, visited);
                 }
                 else
@@ -347,7 +348,7 @@ public sealed class Shader : Resource
 
     private string? ReadSourceFile(string resourceName)
     {
-        var file = OwnerCache?.GetFile(resourceName);
+        var file = GetSubsystem<ResourceCache>()?.GetFile(resourceName);
         if (file is null)
             return null;
 

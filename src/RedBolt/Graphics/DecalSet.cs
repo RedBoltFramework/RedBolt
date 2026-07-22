@@ -154,7 +154,7 @@ public class DecalSet : Drawable
         base.Dispose();
     }
 
-    public static void RegisterObject(Context context) =>
+    public new static void RegisterObject(Context context) =>
         context.AddFactoryReflection<DecalSet>(ObjectCategory.Category_Geometry);
 
     public override void ApplyAttributes()

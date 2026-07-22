@@ -32,7 +32,6 @@ public sealed class StaticModelGroupTests
         using var group = new StaticModelGroup();
         Assert.Equal(0u, Assert.Single(group.GetNodeIDsAttr()).GetUInt());
 
-        StaticModelGroup.RegisterObject(Context.Instance);
         using var reflected = Assert.IsType<StaticModelGroup>(
             Context.Instance.CreateObject(ObjectReflection<StaticModelGroup>.TypeId));
     }

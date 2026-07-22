@@ -54,10 +54,7 @@ public class Texture3D : Texture
         var texturePath = separatorIndex >= 0 ? normalizedName[..(separatorIndex + 1)] : string.Empty;
 
         _loadParameters?.Dispose();
-        _loadParameters = new XMLFile()
-        {
-            OwnerCache = OwnerCache
-        };
+        _loadParameters = new XMLFile();
         if (!_loadParameters.Load(source))
         {
             _loadParameters.Dispose();
@@ -94,10 +91,7 @@ public class Texture3D : Texture
 
             using var file = cache.GetFile(name);
             _loadImage?.Dispose();
-            _loadImage = new Image()
-            {
-                OwnerCache = OwnerCache
-            };
+            _loadImage = new Image();
             if (!_loadImage.LoadColorLUT(file!))
             {
                 _loadParameters.Dispose();

@@ -23,10 +23,8 @@ public sealed class LightBakerTests
     }
 
     [Fact]
-    public void RegisterObject_AddsFactory()
+    public void Engine_registers_factory()
     {
-        var context = Context.Instance!;
-        LightBaker.RegisterObject(context);
-        Assert.NotNull(context.GetReflection<LightBaker>());
+        Assert.True(Context.Instance.GetReflection<LightBaker>().HasObjectFactory());
     }
 }

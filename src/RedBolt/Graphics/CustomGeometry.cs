@@ -40,6 +40,12 @@ public sealed class CustomGeometry : Drawable
         SetNumGeometries(1u);
     }
 
+    /// <summary>Register object factory.</summary>
+    public new static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<CustomGeometry>(ObjectCategory.Category_Geometry);
+    }
+
     public override void Dispose()
     {
         _materialsAttr.Names.Clear();

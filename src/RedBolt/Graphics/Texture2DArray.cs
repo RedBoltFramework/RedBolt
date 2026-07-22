@@ -53,10 +53,7 @@ public class Texture2DArray : Texture
         var texturePath = separatorIndex >= 0 ? normalizedName[..(separatorIndex + 1)] : string.Empty;
 
         _loadParameters?.Dispose();
-        _loadParameters = new XMLFile()
-        {
-            OwnerCache = OwnerCache
-        };
+        _loadParameters = new XMLFile();
         if (!_loadParameters.Load(source))
         {
             _loadParameters.Dispose();
@@ -157,10 +154,7 @@ public class Texture2DArray : Texture
     /// </summary>
     public bool SetData(int layer, Stream source)
     {
-        using var image = new Image()
-        {
-            OwnerCache = OwnerCache
-        };
+        using var image = new Image();
         if (!image.Load(source))
             return false;
 

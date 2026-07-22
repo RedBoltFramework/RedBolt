@@ -168,6 +168,12 @@ public sealed class Model : ResourceWithMetadata, ICloneable
     {
     }
 
+    /// <summary>Register object factory.</summary>
+    public static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<Model>();
+    }
+
     /// <summary>Destruct.</summary>
     public override void Dispose()
     {

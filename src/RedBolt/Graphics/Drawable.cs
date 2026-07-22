@@ -226,6 +226,12 @@ public abstract class Drawable : Component
         _pipelineStateTracker = new DrawablePipelineStateTracker(this);
     }
 
+    /// <summary>Register object attributes.</summary>
+    public static void RegisterObject(Context context)
+    {
+        context.AddAbstractReflection<Drawable>(ObjectCategory.Category_Geometry);
+    }
+
     public override void Dispose()
     {
         RemoveFromOctree();

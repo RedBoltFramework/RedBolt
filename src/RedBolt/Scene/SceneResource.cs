@@ -18,6 +18,12 @@ public sealed class SceneResource : Resource
 
     public SceneResource() => Scene = new Scene();
 
+    /// <summary>Register object factory.</summary>
+    public static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<SceneResource>();
+    }
+
     public Scene Scene { get; }
     public bool IsPrefab { get; private set; }
 

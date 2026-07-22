@@ -32,7 +32,7 @@ public class StaticModel : Drawable
     }
 
     /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
+    public new static void RegisterObject(Context context)
     {
         context.AddFactoryReflection<StaticModel>(ObjectCategory.Category_Geometry);
     }

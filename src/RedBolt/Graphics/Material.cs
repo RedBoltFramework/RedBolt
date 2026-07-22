@@ -170,6 +170,12 @@ public sealed class Material : Resource
         ResetToDefaults();
     }
 
+    /// <summary>Register object factory.</summary>
+    public static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<Material>();
+    }
+
     public override void Dispose()
     {
         SetScene(null);
@@ -732,7 +738,7 @@ public sealed class Material : Resource
         {
         ResetToDefaults();
 
-        var cache = OwnerCache;
+        var cache = GetSubsystem<ResourceCache>();
         var shaderElement = source.GetChild("shader");
         if (shaderElement.NotNull)
         {

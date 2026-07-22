@@ -28,10 +28,8 @@ public sealed class StaticModelTests
     }
 
     [Fact]
-    public void RegisterObject_registers_factory()
+    public void Engine_registers_factory()
     {
-        StaticModel.RegisterObject(Context.Instance);
-
         using var reflected = Assert.IsType<StaticModel>(
             Context.Instance.CreateObject(ObjectReflection<StaticModel>.TypeId));
     }

@@ -15,6 +15,16 @@ public sealed class SceneResourceTests
 
     private ResourceCache Resources => _fixture.Resources;
 
+    [Fact]
+    public void Engine_registers_scene_and_graphics_resource_factories()
+    {
+        Assert.True(_fixture.Context.GetReflection<Node>().HasObjectFactory());
+        Assert.True(_fixture.Context.GetReflection<SceneResource>().HasObjectFactory());
+        Assert.True(_fixture.Context.GetReflection<Camera>().HasObjectFactory());
+        Assert.True(_fixture.Context.GetReflection<Material>().HasObjectFactory());
+        Assert.True(_fixture.Context.GetReflection<Model>().HasObjectFactory());
+    }
+
     private static string CreateTempDir()
     {
         var dir = Path.Combine(Path.GetTempPath(), "RedBolt.Tests", Guid.NewGuid().ToString("N"));

@@ -69,7 +69,7 @@ public class TerrainPatch : Drawable
     }
 
     /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context) => context.AddFactoryReflection<TerrainPatch>();
+    public new static void RegisterObject(Context context) => context.AddFactoryReflection<TerrainPatch>();
 
     /// <summary>Process octree raycast. May be called from a worker thread.</summary>
     public override void ProcessRayQuery(RayOctreeQuery query, List<RayQueryResult> results)

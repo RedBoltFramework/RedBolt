@@ -119,7 +119,7 @@ public class RibbonTrail : Drawable
         base.Dispose();
     }
 
-    public static void RegisterObject(Context context)
+    public new static void RegisterObject(Context context)
     {
         context.AddFactoryReflection<RibbonTrail>(ObjectCategory.Category_Geometry);
     }

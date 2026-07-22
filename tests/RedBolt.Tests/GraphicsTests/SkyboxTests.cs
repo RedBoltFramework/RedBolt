@@ -37,7 +37,6 @@ public sealed class SkyboxTests
     public void Registration_and_camera_transform_lifetime_match_cpp()
     {
         var context = Context.Instance;
-        Skybox.RegisterObject(context);
         using var reflected = Assert.IsType<Skybox>(context.CreateObject(ObjectReflection<Skybox>.TypeId));
         Assert.Equal(ObjectCategory.Category_Geometry, context.GetReflection<Skybox>().Category);
 

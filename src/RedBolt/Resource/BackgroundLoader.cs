@@ -68,7 +68,6 @@ public sealed class BackgroundLoader : IDisposable
             }
 
             item.Resource = resource;
-            resource.OwnerCache = _owner;
             resource.SetName(name);
             resource.SetAsyncLoadState(AsyncLoadState.Queued);
 

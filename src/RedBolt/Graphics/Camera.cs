@@ -80,6 +80,12 @@ public sealed class Camera : Component
         RegisterAttribute("Draw Debug Geometry", typeof(bool), self => ((Camera)self).GetDrawDebugGeometry(), (self, value) => ((Camera)self).SetDrawDebugGeometry(value is bool enabled && enabled), true);
     }
 
+    /// <summary>Register object factory.</summary>
+    public static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<Camera>(ObjectCategory.Category_Scene);
+    }
+
     public float AspectRatio
     {
         get => GetAspectRatio();

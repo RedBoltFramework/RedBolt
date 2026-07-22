@@ -55,12 +55,6 @@ public class Resource : Object
         if (temporaryFileSystem is not null)
         {
             temporaryFileSystem.MountRoot();
-            if (OwnerCache is not null)
-            {
-                foreach (var resourceDir in OwnerCache.ResourceDirs)
-                    temporaryFileSystem.MountDir(resourceDir);
-            }
-
             virtualFileSystem = temporaryFileSystem;
         }
 
@@ -109,12 +103,6 @@ public class Resource : Object
         if (temporaryFileSystem is not null)
         {
             temporaryFileSystem.MountRoot();
-            if (OwnerCache is not null)
-            {
-                foreach (var resourceDir in OwnerCache.ResourceDirs)
-                    temporaryFileSystem.MountDir(resourceDir);
-            }
-
             virtualFileSystem = temporaryFileSystem;
         }
 
@@ -247,8 +235,6 @@ public class Resource : Object
         get => _asyncLoadState;
         internal set => SetAsyncLoadState(value);
     }
-
-    internal ResourceCache? OwnerCache { get; set; }
 
     /// <summary>Name.</summary>
     private string _name = string.Empty;

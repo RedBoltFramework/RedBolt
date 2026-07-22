@@ -14,6 +14,49 @@ namespace RedBolt;
     /// </summary>
 public sealed class Graphics : Object
     {
+    /// <summary>Register Graphics library objects.</summary>
+    public static void RegisterGraphicsLibrary(Context context)
+    {
+        Animation.RegisterObject(context);
+        Material.RegisterObject(context);
+        Model.RegisterObject(context);
+        Shader.RegisterObject(context);
+        Technique.RegisterObject(context);
+        Texture2D.RegisterObject(context);
+        Texture2DArray.RegisterObject(context);
+        Texture3D.RegisterObject(context);
+        TextureCube.RegisterObject(context);
+        Camera.RegisterObject(context);
+        CameraOperator.RegisterObject(context);
+        Drawable.RegisterObject(context);
+        Light.RegisterObject(context);
+        LightBaker.RegisterObject(context);
+        LightProbeGroup.RegisterObject(context);
+        GlobalIllumination.RegisterObject(context);
+        StaticModel.RegisterObject(context);
+        StaticModelGroup.RegisterObject(context);
+        Skybox.RegisterObject(context);
+        AnimatedModel.RegisterObject(context);
+        AnimationController.RegisterObject(context);
+        BillboardSet.RegisterObject(context);
+        ParticleEffect.RegisterObject(context);
+        ParticleEmitter.RegisterObject(context);
+        RibbonTrail.RegisterObject(context);
+        CustomGeometry.RegisterObject(context);
+        DecalSet.RegisterObject(context);
+        Terrain.RegisterObject(context);
+        TerrainPatch.RegisterObject(context);
+        DebugRenderer.RegisterObject(context);
+        Octree.RegisterObject(context);
+        OutlineGroup.RegisterObject(context);
+        Zone.RegisterObject(context);
+        Geometry.RegisterObject(context);
+        Viewport.RegisterObject(context);
+        OcclusionBuffer.RegisterObject(context);
+        ReflectionProbe.RegisterObject(context);
+        ReflectionProbeManager.RegisterObject(context);
+    }
+
     private const uint SdlInitVideo = 0x00000020u;
     private const int SdlWindowposUndefined = 0x1FFF0000;
     private readonly Context _ownerContext;
@@ -1887,7 +1930,7 @@ layout(std140) uniform Material
             if (geometry is null || vertexBuffer is null || indexBuffer is null || material is null)
                 continue;
 
-            var resourceCache = material.OwnerCache ?? GetSubsystem<ResourceCache>();
+            var resourceCache = GetSubsystem<ResourceCache>();
             if (resourceCache is null)
                 continue;
 
@@ -1971,7 +2014,7 @@ layout(std140) uniform Material
             if (geometry is null || vertexBuffer is null || material is null)
                 continue;
 
-            var resourceCache = material.OwnerCache ?? GetSubsystem<ResourceCache>();
+            var resourceCache = GetSubsystem<ResourceCache>();
             if (resourceCache is null)
                 continue;
 
@@ -2026,7 +2069,7 @@ layout(std140) uniform Material
             if ((vertexBuffer.GetElementMask() & VertexMask.Normal) == 0)
                 continue;
 
-            var resourceCache = material.OwnerCache ?? GetSubsystem<ResourceCache>();
+            var resourceCache = GetSubsystem<ResourceCache>();
             if (resourceCache is null)
                 continue;
 

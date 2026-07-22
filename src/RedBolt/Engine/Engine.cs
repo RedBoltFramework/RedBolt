@@ -576,6 +576,9 @@ public class Engine : Object
         WorkQueue.SetMainThread();
         _context.InitializeEngineSubsystems(this);
 
+        Graphics.RegisterGraphicsLibrary(_context);
+        Scene.RegisterSceneLibrary(_context);
+
         // Register render pipeline.
         // Extract this code into function if you are adding more.
         RenderPipeline.RegisterObject(_context);

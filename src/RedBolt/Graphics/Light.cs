@@ -160,6 +160,12 @@ public sealed class Light : Drawable
             (self, value) => ((Light)self).SetEnabled(value is bool enabled && enabled), true);
     }
 
+    /// <summary>Register object factory.</summary>
+    public new static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<Light>(ObjectCategory.Category_Scene);
+    }
+
     /// <summary>Destruct.</summary>
     public override void Dispose()
     {
