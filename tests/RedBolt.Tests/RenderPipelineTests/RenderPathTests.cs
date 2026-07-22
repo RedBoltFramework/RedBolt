@@ -403,6 +403,42 @@ public sealed class RenderPathTests
     }
 
     [Fact]
+    public void Ambient_occlusion_pass_uses_native_pod_cache_shapes()
+    {
+        var parametersType = typeof(AmbientOcclusionPass).GetNestedType(
+            "Parameters", System.Reflection.BindingFlags.NonPublic)!;
+        var pipelineStateCacheType = typeof(AmbientOcclusionPass).GetNestedType(
+            "PipelineStateCache", System.Reflection.BindingFlags.NonPublic)!;
+        var textureCacheType = typeof(AmbientOcclusionPass).GetNestedType(
+            "TextureCache", System.Reflection.BindingFlags.NonPublic)!;
+        var parametersField = typeof(AmbientOcclusionPass).GetField(
+            "_parameters", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        var normalBufferField = typeof(AmbientOcclusionPass).GetField(
+            "_normalBuffer", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        var pipelineStatesField = typeof(AmbientOcclusionPass).GetField(
+            "_pipelineStates", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        var texturesField = typeof(AmbientOcclusionPass).GetField(
+            "_textures", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+
+        Assert.False(typeof(AmbientOcclusionPass).IsSealed);
+        Assert.True(parametersType.IsValueType);
+        Assert.True(pipelineStateCacheType.IsValueType);
+        Assert.True(textureCacheType.IsValueType);
+        Assert.Equal(parametersType, parametersField.FieldType);
+        Assert.Equal(typeof(WeakReference<RenderBuffer>), normalBufferField.FieldType);
+        Assert.Equal(typeof(Nullable<>).MakeGenericType(pipelineStateCacheType), pipelineStatesField.FieldType);
+        Assert.Equal(typeof(Nullable<>).MakeGenericType(textureCacheType), texturesField.FieldType);
+
+        var left = Activator.CreateInstance(parametersType)!;
+        var right = Activator.CreateInstance(parametersType)!;
+        var equalityOperator = parametersType.GetMethod(
+            "op_Equality", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)!;
+        Assert.True((bool)equalityOperator.Invoke(null, [left, right])!);
+        parametersType.GetProperty("Downscale")!.SetValue(right, 1);
+        Assert.False((bool)equalityOperator.Invoke(null, [left, right])!);
+    }
+
+    [Fact]
     public void Full_screen_shader_pass_uses_native_pod_cache_shape()
     {
         var attributesType = typeof(FullScreenShaderPass).GetNestedType(

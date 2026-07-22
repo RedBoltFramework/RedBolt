@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace RedBolt;
 
 /// <summary>
@@ -1021,7 +1023,7 @@ public class BloomPass : RenderPass
 /// <summary>
 /// Post-processing pass that renders screen-space ambient occlusion.
 /// </summary>
-public sealed class AmbientOcclusionPass : RenderPass
+public class AmbientOcclusionPass : RenderPass
 {
     private const string DefaultComment = "Screen-space ambient occlusion";
     private const string DownscaleName = "SSAO: Downscale";
@@ -1040,10 +1042,53 @@ public sealed class AmbientOcclusionPass : RenderPass
         0.0f, -1.0f, 0.0f, 0.0f,
         0.0f, 0.0f, 1.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f);
-    private static readonly IReadOnlyDictionary<string, object?> EmptyParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
-    private RenderBuffer? _normalBuffer;
-    private TextureCache? _textures;
-    private Parameters _currentParameters = new();
+    private static readonly NamedSamplerStateDesc[] SsaoSamplers =
+    [
+        ("Albedo", SamplerStateDesc.Bilinear()),
+        ("Normal", SamplerStateDesc.Bilinear()),
+        ("DepthBuffer", SamplerStateDesc.Nearest())
+    ];
+    private static readonly NamedSamplerStateDesc[] BlurSamplers =
+    [
+        ("Albedo", SamplerStateDesc.Bilinear()),
+        ("Normal", SamplerStateDesc.Bilinear()),
+        ("DepthBuffer", SamplerStateDesc.Nearest())
+    ];
+    private static readonly NamedSamplerStateDesc[] ApplySamplers =
+        [("Albedo", SamplerStateDesc.Bilinear())];
+    private static readonly ShaderParameterDesc[] EmptyShaderParameters = [];
+    private readonly ShaderParameterDesc[] _evaluateParameters =
+    [
+        new() { Name = new StringHash("InputInvSize") },
+        new() { Name = new StringHash("BlurStep") },
+        new() { Name = new StringHash("Strength") },
+        new() { Name = new StringHash("Exponent") },
+        new() { Name = new StringHash("RadiusInfo") },
+        new() { Name = new StringHash("FadeDistance") },
+        new() { Name = new StringHash("ViewToTexture") },
+        new() { Name = new StringHash("TextureToView") },
+        new() { Name = new StringHash("WorldToView") }
+    ];
+    private readonly ShaderResourceDesc[] _evaluateResources =
+    [
+        new() { Name = ShaderResources.DepthBuffer },
+        new() { Name = ShaderResources.Albedo },
+        new() { Name = ShaderResources.Normal }
+    ];
+    private readonly ShaderParameterDesc[] _blurParameters =
+    [
+        new() { Name = new StringHash("BlurStep") },
+        new() { Name = new StringHash("BlurZThreshold") },
+        new() { Name = new StringHash("BlurNormalInvThreshold") },
+        new() { Name = new StringHash("TextureToView") }
+    ];
+    private readonly ShaderResourceDesc[] _blurResources =
+    [
+        new() { Name = ShaderResources.Albedo },
+        new() { Name = ShaderResources.DepthBuffer },
+        new() { Name = ShaderResources.Normal }
+    ];
+    private readonly ShaderResourceDesc[] _blitResources = [new() { Name = ShaderResources.Albedo }];
 
     public AmbientOcclusionPass()
     {
@@ -1057,7 +1102,6 @@ public sealed class AmbientOcclusionPass : RenderPass
 
     public override void CollectParameters(StringVariantMap parameters)
     {
-        ArgumentNullException.ThrowIfNull(parameters);
         var defaults = new Parameters();
         DeclareParameter(DownscaleName, defaults.Downscale, parameters);
         DeclareParameter(StrengthName, defaults.Strength, parameters);
@@ -1084,289 +1128,348 @@ public sealed class AmbientOcclusionPass : RenderPass
             return;
         }
 
-        var updated = new Parameters();
+        var newParameters = new Parameters();
         ref readonly var downscale = ref LoadParameter(DownscaleName, parameters);
         if (downscale.Type == VariantType.Int)
-            updated.Downscale = downscale.GetInt();
+            newParameters.Downscale = downscale.GetInt();
         ref readonly var strength = ref LoadParameter(StrengthName, parameters);
         if (strength.Type == VariantType.Float)
-            updated.Strength = strength.GetFloat();
+            newParameters.Strength = strength.GetFloat();
         ref readonly var exponent = ref LoadParameter(ExponentName, parameters);
         if (exponent.Type == VariantType.Float)
-            updated.Exponent = exponent.GetFloat();
+            newParameters.Exponent = exponent.GetFloat();
         ref readonly var radiusNear = ref LoadParameter(RadiusNearName, parameters);
         if (radiusNear.Type == VariantType.Float)
-            updated.RadiusNear = radiusNear.GetFloat();
+            newParameters.RadiusNear = radiusNear.GetFloat();
         ref readonly var distanceNear = ref LoadParameter(DistanceNearName, parameters);
         if (distanceNear.Type == VariantType.Float)
-            updated.DistanceNear = distanceNear.GetFloat();
+            newParameters.DistanceNear = distanceNear.GetFloat();
         ref readonly var radiusFar = ref LoadParameter(RadiusFarName, parameters);
         if (radiusFar.Type == VariantType.Float)
-            updated.RadiusFar = radiusFar.GetFloat();
+            newParameters.RadiusFar = radiusFar.GetFloat();
         ref readonly var distanceFar = ref LoadParameter(DistanceFarName, parameters);
         if (distanceFar.Type == VariantType.Float)
-            updated.DistanceFar = distanceFar.GetFloat();
+            newParameters.DistanceFar = distanceFar.GetFloat();
         ref readonly var fadeDistanceBegin = ref LoadParameter(FadeDistanceBeginName, parameters);
         if (fadeDistanceBegin.Type == VariantType.Float)
-            updated.FadeDistanceBegin = fadeDistanceBegin.GetFloat();
+            newParameters.FadeDistanceBegin = fadeDistanceBegin.GetFloat();
         ref readonly var fadeDistanceEnd = ref LoadParameter(FadeDistanceEndName, parameters);
         if (fadeDistanceEnd.Type == VariantType.Float)
-            updated.FadeDistanceEnd = fadeDistanceEnd.GetFloat();
+            newParameters.FadeDistanceEnd = fadeDistanceEnd.GetFloat();
         ref readonly var blurDepthThreshold = ref LoadParameter(BlurDepthThresholdName, parameters);
         if (blurDepthThreshold.Type == VariantType.Float)
-            updated.BlurDepthThreshold = blurDepthThreshold.GetFloat();
+            newParameters.BlurDepthThreshold = blurDepthThreshold.GetFloat();
         ref readonly var blurNormalThreshold = ref LoadParameter(BlurNormalThresholdName, parameters);
         if (blurNormalThreshold.Type == VariantType.Float)
-            updated.BlurNormalThreshold = blurNormalThreshold.GetFloat();
+            newParameters.BlurNormalThreshold = blurNormalThreshold.GetFloat();
 
-        if (_currentParameters.Downscale != updated.Downscale)
+        if (_parameters.Downscale != newParameters.Downscale)
             InvalidateTextureCache();
 
-        _currentParameters = updated;
         _isEnabledInternally = true;
+        _parameters = newParameters;
     }
 
     public override void Update(SharedRenderPassState sharedState)
     {
-        base.Update(sharedState);
         RestoreTextureCache(sharedState);
     }
 
     public override void Render(SharedRenderPassState sharedState)
     {
-        base.Render(sharedState);
-
         ConnectToRenderBuffer(ref _normalBuffer, SharedRenderPassState.NormalBufferId, sharedState, required: false);
 
-        if (sharedState.RenderBufferManager is not { } renderBufferManager
-            || sharedState.RenderCamera is not { } cameraReference
-            || !cameraReference.TryGetTarget(out var camera)
-            || _currentParameters.Strength <= 0.0f)
+        RestorePipelineStateCache(sharedState);
+        if (_parameters.Strength <= 0.0f)
+            return;
+
+        var renderBufferManager = sharedState.RenderBufferManager!;
+        var depthTexture = renderBufferManager.DepthStencilTexture;
+        if (depthTexture!.GetParams().MultiSample != 1)
         {
+            Log.GetLogger().LogError("AmbientOcclusionPass: MSAA is not supported");
             return;
         }
 
-        var graphics = GetSubsystem<Graphics>()!;
-
-        RestoreTextureCache(sharedState);
-        if (_textures?.CurrentTarget is null || _textures.PreviousTarget is null)
+        if (sharedState.RenderCamera is null || !sharedState.RenderCamera.TryGetTarget(out var camera))
+        {
+            Log.GetLogger().LogError("AmbientOcclusionPass: Render camera is not available");
             return;
+        }
 
-        var depthTexture = renderBufferManager.DepthStencilTexture;
-        if (depthTexture is null)
-            return;
-
+        // Convert texture coordinates into clip space
         var clipToTextureSpace = Matrix4.Identity;
         clipToTextureSpace.SetScale(new Vector3f(0.5f, 0.5f, 1.0f));
         clipToTextureSpace.SetTranslation(new Vector3f(0.5f, 0.5f, 0.0f));
 
-        var viewToTextureSpace = clipToTextureSpace * camera.GetGPUProjection();
+        var viewToTextureSpace = clipToTextureSpace * camera.GetGPUProjection(true);
         var textureToViewSpace = viewToTextureSpace.Inverse;
 
-        EvaluateAO(renderBufferManager, graphics, camera, depthTexture, viewToTextureSpace, textureToViewSpace);
-        BlurTexture(renderBufferManager, graphics, depthTexture, textureToViewSpace);
-        Blit(renderBufferManager, graphics);
+        // TODO: Support preview
+        EvaluateAO(renderBufferManager, camera, viewToTextureSpace, textureToViewSpace);
+        BlurTexture(renderBufferManager, textureToViewSpace);
+        Blit(renderBufferManager, _pipelineStates!.Value.Combine);
     }
 
-    private struct Parameters
+    protected struct Parameters : IEquatable<Parameters>
     {
-        public int Downscale;
-        public float Strength = 0.7f;
-        public float Exponent = 1.5f;
-        public float RadiusNear = 0.05f;
-        public float DistanceNear = 1.0f;
-        public float RadiusFar = 1.0f;
-        public float DistanceFar = 100.0f;
-        public float FadeDistanceBegin = 100.0f;
-        public float FadeDistanceEnd = 200.0f;
-        public float BlurDepthThreshold = 0.1f;
-        public float BlurNormalThreshold = 0.2f;
+        public int Downscale { get; set; }
+        public float Strength { get; set; } = 0.7f;
+        public float Exponent { get; set; } = 1.5f;
+        public float RadiusNear { get; set; } = 0.05f;
+        public float DistanceNear { get; set; } = 1.0f;
+        public float RadiusFar { get; set; } = 1.0f;
+        public float DistanceFar { get; set; } = 100.0f;
+        public float FadeDistanceBegin { get; set; } = 100.0f;
+        public float FadeDistanceEnd { get; set; } = 200.0f;
+        public float BlurDepthThreshold { get; set; } = 0.1f;
+        public float BlurNormalThreshold { get; set; } = 0.2f;
 
         public Parameters()
         {
         }
+
+        /// <summary>
+        /// Utility operators.
+        /// </summary>
+        public readonly (int, float, float, float, float, float, float, float, float, float, float) Tie()
+        {
+            return (Downscale, Strength, Exponent, RadiusNear, DistanceNear, RadiusFar, DistanceFar,
+                FadeDistanceBegin, FadeDistanceEnd, BlurDepthThreshold, BlurNormalThreshold);
+        }
+
+        public readonly bool Equals(Parameters other) => Tie() == other.Tie();
+
+        public override readonly bool Equals(object? obj) => obj is Parameters other && Equals(other);
+
+        public override readonly int GetHashCode() => Tie().GetHashCode();
+
+        public static bool operator ==(Parameters left, Parameters right) => left.Tie() == right.Tie();
+
+        public static bool operator !=(Parameters left, Parameters right) => left.Tie() != right.Tie();
     }
 
-    private sealed class TextureCache
-    {
-        public Texture2D? Noise { get; init; }
-
-        public required RenderBuffer CurrentTarget { get; set; }
-
-        public required RenderBuffer PreviousTarget { get; set; }
-    }
-
-    private struct AmbientOcclusionParameters
-    {
-        [ShaderParameterName("InputInvSize")]
-        public Vector2f InputInvSize;
-
-        [ShaderParameterName("BlurStep")]
-        public Vector2f BlurStep;
-
-        [ShaderParameterName("Strength")]
-        public float Strength;
-
-        [ShaderParameterName("Exponent")]
-        public float Exponent;
-
-        [ShaderParameterName("RadiusInfo")]
-        public Vector4f RadiusInfo;
-
-        [ShaderParameterName("FadeDistance")]
-        public Vector2f FadeDistance;
-
-        [ShaderParameterName("ViewToTexture")]
-        public Matrix4 ViewToTexture;
-
-        [ShaderParameterName("TextureToView")]
-        public Matrix4 TextureToView;
-
-        [ShaderParameterName("WorldToView")]
-        public Matrix4 WorldToView;
-
-        [ShaderParameterName("BlurZThreshold")]
-        public float BlurZThreshold;
-
-        [ShaderParameterName("BlurNormalInvThreshold")]
-        public float BlurNormalInvThreshold;
-    }
-
-    private void InvalidateTextureCache()
+    protected void InvalidateTextureCache()
     {
         _textures = null;
     }
 
-    private void RestoreTextureCache(SharedRenderPassState sharedState)
+    protected void InvalidatePipelineStateCache()
     {
-        if (_textures is not null || sharedState.RenderBufferManager is not { } renderBufferManager)
+        _pipelineStates = null;
+    }
+
+    protected void RestoreTextureCache(SharedRenderPassState sharedState)
+    {
+        if (_textures.HasValue)
             return;
 
-            var resourceCache = GetSubsystem<ResourceCache>();
-        var sizeMultiplier = Vector2f.One / (1 << _currentParameters.Downscale);
-        var bufferParams = new RenderBufferParams(TextureFormat.TexFormatRgba8Unorm, 1, RenderBufferFlag.BilinearFiltering);
+        var resourceCache = GetSubsystem<ResourceCache>()!;
+        var renderBufferManager = sharedState.RenderBufferManager!;
+        var sizeMultiplier = Vector2f.One / (1 << _parameters.Downscale);
+        var parameters = new RenderBufferParams(
+            TextureFormat.TexFormatRgba8Unorm, 1, RenderBufferFlag.BilinearFiltering);
         _textures = new TextureCache
         {
-            Noise = resourceCache?.GetResourceOrNull<Texture2D>("Textures/SSAONoise.png"),
-            CurrentTarget = renderBufferManager.CreateColorBuffer(bufferParams, sizeMultiplier),
-            PreviousTarget = renderBufferManager.CreateColorBuffer(bufferParams, sizeMultiplier)
+            Noise = resourceCache.GetResource<Texture2D>("Textures/SSAONoise.png"),
+            CurrentTarget = renderBufferManager.CreateColorBuffer(parameters, sizeMultiplier),
+            PreviousTarget = renderBufferManager.CreateColorBuffer(parameters, sizeMultiplier)
         };
     }
 
-    private void EvaluateAO(RenderBufferManager renderBufferManager, Graphics graphics, Camera camera, RawTexture depthTexture,
+    protected void RestorePipelineStateCache(SharedRenderPassState sharedState)
+    {
+        if (_pipelineStates.HasValue)
+            return;
+
+        var renderBufferManager = sharedState.RenderBufferManager!;
+        _pipelineStates = new PipelineStateCache
+        {
+            SsaoForward = renderBufferManager.CreateQuadPipelineState(
+                BlendMode.Replace, "v2/P_SSAO", "EVALUATE_OCCLUSION", SsaoSamplers),
+            SsaoDeferred = renderBufferManager.CreateQuadPipelineState(
+                BlendMode.Replace, "v2/P_SSAO", "EVALUATE_OCCLUSION DEFERRED", SsaoSamplers),
+            BlurForward = renderBufferManager.CreateQuadPipelineState(
+                BlendMode.Replace, "v2/P_SSAO", "BLUR", BlurSamplers),
+            BlurDeferred = renderBufferManager.CreateQuadPipelineState(
+                BlendMode.Replace, "v2/P_SSAO", "BLUR DEFERRED", BlurSamplers),
+            Combine = renderBufferManager.CreateQuadPipelineState(
+                BlendMode.Alpha, "v2/P_SSAO", "COMBINE", ApplySamplers),
+            Preview = renderBufferManager.CreateQuadPipelineState(
+                BlendMode.Replace, "v2/P_SSAO", "PREVIEW", ApplySamplers)
+        };
+    }
+
+    protected void EvaluateAO(RenderBufferManager renderBufferManager, Camera camera,
         Matrix4 viewToTextureSpace, Matrix4 textureToViewSpace)
     {
-        if (_textures?.CurrentTarget is null)
-            return;
-
+        var renderDevice = GetSubsystem<RenderDevice>()!;
+        var isOpenGl = renderDevice.GetBackend() == RenderBackend.OpenGL;
         var inputInvSize = renderBufferManager.InvOutputSize;
-        var worldToViewSpace = camera.GetView().Matrix4;
-        var worldToViewSpaceCorrected = camera.GetFlipVertical() ? FlipMatrix * worldToViewSpace : worldToViewSpace;
 
-        var radiusSlope = (_currentParameters.RadiusFar - _currentParameters.RadiusNear)
-            / Math.Max(1.0f, _currentParameters.DistanceFar - _currentParameters.DistanceNear);
+        var invertY = isOpenGl == camera.GetFlipVertical();
+        var worldToViewSpace = camera.GetView().Matrix4;
+        var worldToViewSpaceCorrected = invertY ? FlipMatrix * worldToViewSpace : worldToViewSpace;
+
+        var radiusSlope = (_parameters.RadiusFar - _parameters.RadiusNear)
+            / Math.Max(1.0f, _parameters.DistanceFar - _parameters.DistanceNear);
         var radiusInfo = new Vector4f(
             radiusSlope,
-            _currentParameters.RadiusNear - radiusSlope * _currentParameters.DistanceNear,
-            _currentParameters.RadiusNear,
-            _currentParameters.RadiusFar);
+            _parameters.RadiusNear - radiusSlope * _parameters.DistanceNear,
+            _parameters.RadiusNear,
+            _parameters.RadiusFar);
 
-        var ambientOcclusionParameters = new AmbientOcclusionParameters
+        SetShaderParameter(_evaluateParameters, 0, new Variant(inputInvSize));
+        SetShaderParameter(_evaluateParameters, 1, new Variant(inputInvSize));
+        SetShaderParameter(_evaluateParameters, 2, new Variant(_parameters.Strength));
+        SetShaderParameter(_evaluateParameters, 3, new Variant(_parameters.Exponent));
+        SetShaderParameter(_evaluateParameters, 4, new Variant(radiusInfo));
+        SetShaderParameter(_evaluateParameters, 5,
+            new Variant(new Vector2f(_parameters.FadeDistanceBegin, _parameters.FadeDistanceEnd)));
+        SetShaderParameter(_evaluateParameters, 6, new Variant(viewToTextureSpace));
+        SetShaderParameter(_evaluateParameters, 7, new Variant(textureToViewSpace));
+        SetShaderParameter(_evaluateParameters, 8, new Variant(worldToViewSpaceCorrected));
+
+        var normalBuffer = GetNormalBuffer();
+        var textures = _textures!.Value;
+        _evaluateResources[0].Texture = renderBufferManager.DepthStencilTexture;
+        _evaluateResources[1].Texture = textures.Noise?.GetRawTexture();
+        _evaluateResources[2].Texture = normalBuffer?.GetTexture();
+        var drawParameters = new DrawQuadParams
         {
-            InputInvSize = inputInvSize,
-            BlurStep = inputInvSize,
-            Strength = _currentParameters.Strength,
-            Exponent = _currentParameters.Exponent,
-            RadiusInfo = radiusInfo,
-            FadeDistance = new Vector2f(_currentParameters.FadeDistanceBegin, _currentParameters.FadeDistanceEnd),
-            ViewToTexture = viewToTextureSpace,
-            TextureToView = textureToViewSpace,
-            WorldToView = worldToViewSpaceCorrected
+            Resources = _evaluateResources,
+            Parameters = _evaluateParameters,
+            ClipToUVOffsetAndScale = renderBufferManager.DefaultClipToUVSpaceOffsetAndScale,
+            PipelineStateId = normalBuffer is not null
+                ? _pipelineStates!.Value.SsaoDeferred
+                : _pipelineStates!.Value.SsaoForward
         };
 
-        renderBufferManager.SetRenderTargets(null, _textures.CurrentTarget);
-        graphics.DrawFullscreenQuad(
-            "Apply SSAO",
-            "P_SSAO",
-            _normalBuffer is not null ? "EVALUATE_OCCLUSION DEFERRED" : "EVALUATE_OCCLUSION",
-            BlendMode.Replace,
-            bilinearColorSampler: true,
-            _textures.Noise?.GetRawTexture(),
-            secondaryTexture: _normalBuffer?.GetTexture(),
-            depthTexture: depthTexture,
-            ambientOcclusionParameters,
-            inputInvSize,
-            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
+        renderBufferManager.SetRenderTargets(null, textures.CurrentTarget!);
+        renderBufferManager.DrawQuad("Apply SSAO", drawParameters);
+        // renderBufferManager.SetOutputRenderTargets();
 
-        (_textures.CurrentTarget, _textures.PreviousTarget) = (_textures.PreviousTarget, _textures.CurrentTarget);
+        (textures.CurrentTarget, textures.PreviousTarget) = (textures.PreviousTarget, textures.CurrentTarget);
+        _textures = textures;
     }
 
-    private void BlurTexture(RenderBufferManager renderBufferManager, Graphics graphics, RawTexture depthTexture, Matrix4 textureToViewSpace)
+    protected void BlurTexture(RenderBufferManager renderBufferManager, Matrix4 textureToViewSpace)
     {
-        if (_textures?.CurrentTarget is null || _textures.PreviousTarget is null)
-            return;
+        var textures = _textures!.Value;
+        var textureSize3 = textures.CurrentTarget!.GetTexture()!.GetParams().Size;
+        var textureSize = new Vector2i(textureSize3.X, textureSize3.Y);
+        var blurStep = Vector2f.One / textureSize.ToVector2();
 
-        var currentTextureSize = _textures.CurrentTarget.GetTexture()!.GetParams().Size;
-        var textureSize = new Vector2i(currentTextureSize.X, currentTextureSize.Y);
-        var blurStep = new Vector2f(
-            textureSize.X > 0 ? 1.0f / textureSize.X : 0.0f,
-            textureSize.Y > 0 ? 1.0f / textureSize.Y : 0.0f);
+        SetShaderParameter(_blurParameters, 0, new Variant(blurStep));
+        SetShaderParameter(_blurParameters, 1, new Variant(_parameters.BlurDepthThreshold));
+        SetShaderParameter(_blurParameters, 2, new Variant(1.0f - _parameters.BlurNormalThreshold));
+        SetShaderParameter(_blurParameters, 3, new Variant(textureToViewSpace));
 
-        var shaderDefines = _normalBuffer is not null ? "BLUR DEFERRED" : "BLUR";
-        BlurAxis(renderBufferManager, graphics, depthTexture, textureToViewSpace, new Vector2f(blurStep.X, 0.0f), shaderDefines, "SSAO Blur Horizontally");
-        BlurAxis(renderBufferManager, graphics, depthTexture, textureToViewSpace, new Vector2f(0.0f, blurStep.Y), shaderDefines, "SSAO Blur Vertically");
-    }
-
-    private void BlurAxis(RenderBufferManager renderBufferManager, Graphics graphics, RawTexture depthTexture,
-        Matrix4 textureToViewSpace, Vector2f blurStep, string shaderDefines, string debugComment)
-    {
-        if (_textures?.CurrentTarget is null || _textures.PreviousTarget is null)
-            return;
-
-        var blurParameters = new AmbientOcclusionParameters
+        var normalBuffer = GetNormalBuffer();
+        var drawParameters = new DrawQuadParams
         {
-            BlurStep = blurStep,
-            BlurZThreshold = _currentParameters.BlurDepthThreshold,
-            BlurNormalInvThreshold = 1.0f - _currentParameters.BlurNormalThreshold,
-            TextureToView = textureToViewSpace
+            Parameters = _blurParameters,
+            ClipToUVOffsetAndScale = renderBufferManager.DefaultClipToUVSpaceOffsetAndScale,
+            PipelineStateId = normalBuffer is not null
+                ? _pipelineStates!.Value.BlurDeferred
+                : _pipelineStates!.Value.BlurForward
         };
 
-        renderBufferManager.SetRenderTargets(null, _textures.CurrentTarget);
-        graphics.DrawFullscreenQuad(
-            debugComment,
-            "P_SSAO",
-            shaderDefines,
-            BlendMode.Replace,
-            bilinearColorSampler: true,
-            _textures.PreviousTarget.GetTexture(),
-            secondaryTexture: _normalBuffer?.GetTexture(),
-            depthTexture: depthTexture,
-            blurParameters,
-            blurStep,
-            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
+        renderBufferManager.SetRenderTargets(null, textures.CurrentTarget!);
+        _blurResources[0].Texture = textures.PreviousTarget!.GetTexture();
+        _blurResources[1].Texture = renderBufferManager.DepthStencilTexture;
+        _blurResources[2].Texture = normalBuffer?.GetTexture();
+        drawParameters.Resources = _blurResources;
+        SetShaderParameter(_blurParameters, 0, new Variant(new Vector2f(blurStep.X, 0.0f)));
+        renderBufferManager.DrawQuad("SSAO Blur Horizontally", drawParameters);
+        (textures.CurrentTarget, textures.PreviousTarget) = (textures.PreviousTarget, textures.CurrentTarget);
 
-        (_textures.CurrentTarget, _textures.PreviousTarget) = (_textures.PreviousTarget, _textures.CurrentTarget);
+        renderBufferManager.SetRenderTargets(null, textures.CurrentTarget!);
+        _blurResources[0].Texture = textures.PreviousTarget!.GetTexture();
+        _blurResources[1].Texture = renderBufferManager.DepthStencilTexture;
+        _blurResources[2].Texture = normalBuffer?.GetTexture();
+        drawParameters.Resources = _blurResources;
+        SetShaderParameter(_blurParameters, 0, new Variant(new Vector2f(0.0f, blurStep.Y)));
+        renderBufferManager.DrawQuad("SSAO Blur Vertically", drawParameters);
+        (textures.CurrentTarget, textures.PreviousTarget) = (textures.PreviousTarget, textures.CurrentTarget);
+        _textures = textures;
     }
 
-    private void Blit(RenderBufferManager renderBufferManager, Graphics graphics)
+    protected void Blit(RenderBufferManager renderBufferManager, StaticPipelineStateId pipelineStateId)
     {
-        if (_textures?.PreviousTarget is null)
-            return;
-
         renderBufferManager.SetOutputRenderTargets();
-        graphics.DrawFullscreenQuad(
-            "SSAO Combine",
-            "P_SSAO",
-            "COMBINE",
-            BlendMode.Alpha,
-            bilinearColorSampler: true,
-            _textures.PreviousTarget.GetTexture(),
-            secondaryTexture: null,
-            depthTexture: null,
-            EmptyParameters,
-            renderBufferManager.InvOutputSize,
-            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
+
+        _blitResources[0].Texture = _textures!.Value.PreviousTarget!.GetTexture();
+        renderBufferManager.DrawViewportQuad(
+            "SSAO Combine", pipelineStateId, _blitResources, EmptyShaderParameters);
     }
+
+    private RenderBuffer? GetNormalBuffer()
+    {
+        return _normalBuffer is not null && _normalBuffer.TryGetTarget(out var normalBuffer)
+            ? normalBuffer
+            : null;
+    }
+
+    private static void SetShaderParameter(ShaderParameterDesc[] parameters, int index, Variant value)
+    {
+        var parameter = parameters[index];
+        var oldValue = parameter.Value;
+        oldValue.Dispose();
+        parameter.Value = value;
+        parameters[index] = parameter;
+    }
+
+    protected struct TextureCache
+    {
+        public Texture2D? Noise { get; set; }
+        public RenderBuffer? CurrentTarget { get; set; }
+        public RenderBuffer? PreviousTarget { get; set; }
+    }
+
+    protected struct PipelineStateCache
+    {
+        public StaticPipelineStateId SsaoForward { get; set; }
+        public StaticPipelineStateId SsaoDeferred { get; set; }
+        public StaticPipelineStateId BlurForward { get; set; }
+        public StaticPipelineStateId BlurDeferred { get; set; }
+        public StaticPipelineStateId Combine { get; set; }
+        public StaticPipelineStateId Preview { get; set; }
+    }
+
+    public override void Dispose()
+    {
+        _normalBuffer = null;
+        _textures = null;
+        _pipelineStates = null;
+        ClearShaderResources(_evaluateResources);
+        ClearShaderResources(_blurResources);
+        ClearShaderResources(_blitResources);
+        DisposeShaderParameters(_evaluateParameters);
+        DisposeShaderParameters(_blurParameters);
+        base.Dispose();
+    }
+
+    private static void ClearShaderResources(ShaderResourceDesc[] resources)
+    {
+        for (var i = 0; i < resources.Length; ++i)
+            resources[i].Texture = null;
+    }
+
+    private static void DisposeShaderParameters(ShaderParameterDesc[] parameters)
+    {
+        for (var i = 0; i < parameters.Length; ++i)
+        {
+            var parameter = parameters[i];
+            parameter.Dispose();
+            parameters[i] = parameter;
+        }
+    }
+
+    private Parameters _parameters = new();
+    private WeakReference<RenderBuffer>? _normalBuffer;
+    private TextureCache? _textures;
+    private PipelineStateCache? _pipelineStates;
 }
 
 /// <summary>
