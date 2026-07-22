@@ -9,11 +9,19 @@ public class Image : Resource
     {
     }
 
+    public override void Dispose()
+    {
+        _nextSibling = null;
+        _nextLevel = null;
+        _data = System.Array.Empty<byte>();
+        base.Dispose();
+    }
+
     public int Width { get; private set; }
 
     public int Height { get; private set; }
 
-    public int Depth { get; private set; } = 1;
+    public int Depth { get; private set; }
 
     public int Components { get; private set; }
 
@@ -92,58 +100,60 @@ public class Image : Resource
                 return false;
             }
 
-            var compressedFormat = TextureFormat.TexFormatUnknown;
-            var components = 0;
             switch (internalFormat)
             {
                 case 0x83f1:
-                    compressedFormat = TextureFormat.TexFormatBc1Unorm;
-                    components = 4;
+                    CompressedFormat = TextureFormat.TexFormatBc1Unorm;
+                    Components = 4;
                     break;
 
                 case 0x83f2:
-                    compressedFormat = TextureFormat.TexFormatBc2Unorm;
-                    components = 4;
+                    CompressedFormat = TextureFormat.TexFormatBc2Unorm;
+                    Components = 4;
                     break;
 
                 case 0x83f3:
-                    compressedFormat = TextureFormat.TexFormatBc3Unorm;
-                    components = 4;
+                    CompressedFormat = TextureFormat.TexFormatBc3Unorm;
+                    Components = 4;
                     break;
 
                 case 0x8d64:
                 case 0x9274:
-                    compressedFormat = TextureFormat.TexFormatEtc2Rgb8Unorm;
-                    components = 3;
+                    CompressedFormat = TextureFormat.TexFormatEtc2Rgb8Unorm;
+                    Components = 3;
                     break;
 
                 case 0x9278:
-                    compressedFormat = TextureFormat.TexFormatEtc2Rgba8Unorm;
-                    components = 4;
+                    CompressedFormat = TextureFormat.TexFormatEtc2Rgba8Unorm;
+                    Components = 4;
                     break;
 
                 case 0x8c00:
-                    compressedFormat = EmulatedTextureFormat.PvrtcRgb4Bpp;
-                    components = 3;
+                    CompressedFormat = EmulatedTextureFormat.PvrtcRgb4Bpp;
+                    Components = 3;
                     break;
 
                 case 0x8c01:
-                    compressedFormat = EmulatedTextureFormat.PvrtcRgb2Bpp;
-                    components = 3;
+                    CompressedFormat = EmulatedTextureFormat.PvrtcRgb2Bpp;
+                    Components = 3;
                     break;
 
                 case 0x8c02:
-                    compressedFormat = EmulatedTextureFormat.PvrtcRgba4Bpp;
-                    components = 4;
+                    CompressedFormat = EmulatedTextureFormat.PvrtcRgba4Bpp;
+                    Components = 4;
                     break;
 
                 case 0x8c03:
-                    compressedFormat = EmulatedTextureFormat.PvrtcRgba2Bpp;
-                    components = 4;
+                    CompressedFormat = EmulatedTextureFormat.PvrtcRgba2Bpp;
+                    Components = 4;
+                    break;
+
+                default:
+                    CompressedFormat = TextureFormat.TexFormatUnknown;
                     break;
             }
 
-            if (compressedFormat == TextureFormat.TexFormatUnknown)
+            if (CompressedFormat == TextureFormat.TexFormatUnknown)
             {
                 Log.GetLogger().LogError("Unsupported texture format in KTX file");
                 return false;
@@ -151,7 +161,10 @@ public class Image : Resource
 
             source.Seek(source.Position + keyValueBytes);
             var dataSize = source.Size - source.Position - mipmaps * sizeof(uint);
-            var data = new byte[checked((int)dataSize)];
+            _data = new byte[checked((int)dataSize)];
+            Width = checked((int)width);
+            Height = checked((int)height);
+            NumCompressedLevels = checked((int)mipmaps);
             var dataOffset = 0;
             for (var i = 0; i < mipmaps; ++i)
             {
@@ -162,14 +175,13 @@ public class Image : Resource
                     return false;
                 }
 
-                _ = source.Read(data.AsSpan(dataOffset, checked((int)levelSize)));
+                _ = source.Read(_data.AsSpan(dataOffset, checked((int)levelSize)));
                 dataOffset += checked((int)levelSize);
                 if ((source.Position & 3) != 0)
                     source.Seek((source.Position + 3) & 0xfffffffc);
             }
 
-            SetCompressedData(checked((int)width), checked((int)height), 1, components, compressedFormat,
-                checked((int)mipmaps), data, false, false, false);
+            MemoryUse = checked((int)dataSize);
         }
         else if (fileID == "PVR\u0003")
         {
@@ -198,63 +210,65 @@ public class Image : Resource
                 return false;
             }
 
-            var compressedFormat = TextureFormat.TexFormatUnknown;
-            var components = 0;
             switch (pixelFormatLo)
             {
                 case 0:
-                    compressedFormat = EmulatedTextureFormat.PvrtcRgb2Bpp;
-                    components = 3;
+                    CompressedFormat = EmulatedTextureFormat.PvrtcRgb2Bpp;
+                    Components = 3;
                     break;
 
                 case 1:
-                    compressedFormat = EmulatedTextureFormat.PvrtcRgba2Bpp;
-                    components = 4;
+                    CompressedFormat = EmulatedTextureFormat.PvrtcRgba2Bpp;
+                    Components = 4;
                     break;
 
                 case 2:
-                    compressedFormat = EmulatedTextureFormat.PvrtcRgb4Bpp;
-                    components = 3;
+                    CompressedFormat = EmulatedTextureFormat.PvrtcRgb4Bpp;
+                    Components = 3;
                     break;
 
                 case 3:
-                    compressedFormat = EmulatedTextureFormat.PvrtcRgba4Bpp;
-                    components = 4;
+                    CompressedFormat = EmulatedTextureFormat.PvrtcRgba4Bpp;
+                    Components = 4;
                     break;
 
                 case 6:
-                    compressedFormat = TextureFormat.TexFormatEtc2Rgb8Unorm;
-                    components = 3;
+                    CompressedFormat = TextureFormat.TexFormatEtc2Rgb8Unorm;
+                    Components = 3;
                     break;
 
                 case 7:
-                    compressedFormat = TextureFormat.TexFormatBc1Unorm;
-                    components = 4;
+                    CompressedFormat = TextureFormat.TexFormatBc1Unorm;
+                    Components = 4;
                     break;
 
                 case 9:
-                    compressedFormat = TextureFormat.TexFormatBc2Unorm;
-                    components = 4;
+                    CompressedFormat = TextureFormat.TexFormatBc2Unorm;
+                    Components = 4;
                     break;
 
                 case 11:
-                    compressedFormat = TextureFormat.TexFormatBc3Unorm;
-                    components = 4;
+                    CompressedFormat = TextureFormat.TexFormatBc3Unorm;
+                    Components = 4;
                     break;
 
                 // .pvr files also support ETC2 texture format.
                 case 22:
-                    compressedFormat = TextureFormat.TexFormatEtc2Rgb8Unorm;
-                    components = 3;
+                    CompressedFormat = TextureFormat.TexFormatEtc2Rgb8Unorm;
+                    Components = 3;
                     break;
 
                 case 23:
-                    compressedFormat = TextureFormat.TexFormatEtc2Rgba8Unorm;
-                    components = 4;
+                    CompressedFormat = TextureFormat.TexFormatEtc2Rgba8Unorm;
+                    Components = 4;
+                    break;
+
+                default:
+                    CompressedFormat = TextureFormat.TexFormatUnknown;
                     break;
             }
 
-            if (compressedFormat == TextureFormat.TexFormatUnknown)
+            if (CompressedFormat == TextureFormat.TexFormatUnknown)
             {
                 Log.GetLogger().LogError("Unsupported texture format in PVR file");
                 return false;
@@ -262,10 +276,12 @@ public class Image : Resource
 
             source.Seek(source.Position + metaDataSize);
             var dataSize = source.Size - source.Position;
-            var data = new byte[checked((int)dataSize)];
-            _ = source.Read(data);
-            SetCompressedData(checked((int)width), checked((int)height), 1, components, compressedFormat,
-                checked((int)mipmapCount), data, false, false, false);
+            _data = new byte[checked((int)dataSize)];
+            Width = checked((int)width);
+            Height = checked((int)height);
+            NumCompressedLevels = checked((int)mipmapCount);
+            _ = source.Read(_data);
+            MemoryUse = checked((int)dataSize);
         }
         else if (fileID == "RIFF")
         {
@@ -300,53 +316,33 @@ public class Image : Resource
             source.Seek(0);
             _ = source.Read(data);
 
-            var features = new byte[40];
-            var pinnedData = GCHandle.Alloc(data, GCHandleType.Pinned);
-            var pinnedFeatures = GCHandle.Alloc(features, GCHandleType.Pinned);
-            try
+            using var features = new RedBolt.Bindings.WebP.WebPBitstreamFeatures();
+            const int webpDecoderAbiVersion = 0x0210;
+            if (RedBolt.Bindings.WebP.WebPNativeBindings.WebPGetFeaturesInternal(
+                    in data[0], (nuint)data.Length, features, webpDecoderAbiVersion)
+                != RedBolt.Bindings.WebP.VP8StatusCode.Vp8StatusOk)
             {
-                const int webpDecoderAbiVersion = 0x0210;
-                if (RedBolt.Bindings.WebP.WebPNativeBindings.WebPGetFeaturesInternal(
-                        pinnedData.AddrOfPinnedObject(), (nuint)data.Length, pinnedFeatures.AddrOfPinnedObject(),
-                        webpDecoderAbiVersion) != 0)
-                {
-                    Log.GetLogger().LogError("Error reading WebP image: {Name}", source.Name);
-                    return false;
-                }
-
-                var width = BitConverter.ToInt32(features, 0);
-                var height = BitConverter.ToInt32(features, 4);
-                var components = BitConverter.ToInt32(features, 8) != 0 ? 4 : 3;
-                var imageData = new byte[checked(width * height * components)];
-                var pinnedImageData = GCHandle.Alloc(imageData, GCHandleType.Pinned);
-                try
-                {
-                    var decoded = components == 4
-                        ? RedBolt.Bindings.WebP.WebPNativeBindings.WebPDecodeRGBAInto(
-                            pinnedData.AddrOfPinnedObject(), (nuint)data.Length, pinnedImageData.AddrOfPinnedObject(),
-                            (nuint)imageData.Length, 4 * width)
-                        : RedBolt.Bindings.WebP.WebPNativeBindings.WebPDecodeRGBInto(
-                            pinnedData.AddrOfPinnedObject(), (nuint)data.Length, pinnedImageData.AddrOfPinnedObject(),
-                            (nuint)imageData.Length, 3 * width);
-                    if (decoded == IntPtr.Zero)
-                    {
-                        Log.GetLogger().LogError("Error decoding WebP image:{Name}", source.Name);
-                        return false;
-                    }
-                }
-                finally
-                {
-                    pinnedImageData.Free();
-                }
-
-                SetSize(width, height, components);
-                SetData(imageData);
+                Log.GetLogger().LogError("Error reading WebP image: {Name}", source.Name);
+                return false;
             }
-            finally
+
+            var width = features.Width;
+            var height = features.Height;
+            var components = features.HasAlpha != 0 ? 4 : 3;
+            var imageData = new byte[checked(width * height * components)];
+            var decoded = components == 4
+                ? RedBolt.Bindings.WebP.WebPNativeBindings.WebPDecodeRGBAInto(
+                    in data[0], (nuint)data.Length, out imageData[0], (nuint)imageData.Length, 4 * width)
+                : RedBolt.Bindings.WebP.WebPNativeBindings.WebPDecodeRGBInto(
+                    in data[0], (nuint)data.Length, out imageData[0], (nuint)imageData.Length, 3 * width);
+            if (decoded == IntPtr.Zero)
             {
-                pinnedFeatures.Free();
-                pinnedData.Free();
+                Log.GetLogger().LogError("Error decoding WebP image:{Name}", source.Name);
+                return false;
             }
+
+            SetSize(width, height, components);
+            SetData(imageData);
         }
         else
         {
@@ -400,267 +396,6 @@ public class Image : Resource
         }
     }
 
-    public bool SavePNG(string fileName) => SaveEncodedFile(fileName);
-
-    public unsafe bool SaveJPG(string fileName, int quality)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-
-        if (IsCompressed())
-        {
-            Log.GetLogger().LogError("Can not save compressed image to JPG");
-            return false;
-        }
-
-        if (_data.Length == 0)
-            return false;
-
-        var nativeFileName = System.Text.Encoding.UTF8.GetBytes(fileName + '\0');
-        fixed (byte* data = _data)
-        {
-            return RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiWriteJpg(
-                nativeFileName, Width, Height, Components, (nint)data, quality) != 0;
-        }
-    }
-
-    public bool SaveWEBP(string fileName, float compression = 0.0f)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-
-        if (IsCompressed())
-        {
-            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, "Can not save compressed image to WebP", null, static (state, _) => state);
-            return false;
-        }
-
-        const int maxDimension = 16383;
-        if (Height > maxDimension || Width > maxDimension)
-        {
-            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, $"Maximum dimension supported by WebP is {maxDimension}", null, static (state, _) => state);
-            return false;
-        }
-
-        if (Components is not (3 or 4))
-        {
-            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, $"Can not save image with {Components} components to WebP, which requires 3 or 4", null, static (state, _) => state);
-            return false;
-        }
-
-        if (_data.Length == 0)
-        {
-            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, "No image data to save", null, static (state, _) => state);
-            return false;
-        }
-
-        _ = compression;
-        var pinnedData = GCHandle.Alloc(_data, GCHandleType.Pinned);
-        try
-        {
-            var input = pinnedData.AddrOfPinnedObject();
-            var stride = checked(Width * (int)Components);
-            var output = IntPtr.Zero;
-            var outputSize = Components == 4
-                ? RedBolt.Bindings.WebP.WebPNativeBindings.WebPEncodeLosslessRGBA(input, Width, Height, stride, out output)
-                : RedBolt.Bindings.WebP.WebPNativeBindings.WebPEncodeLosslessRGB(input, Width, Height, stride, out output);
-            if (outputSize == 0 || output == IntPtr.Zero)
-                return false;
-
-            try
-            {
-                var encoded = new byte[checked((int)outputSize)];
-                Marshal.Copy(output, encoded, 0, encoded.Length);
-                return WriteFile(fileName, encoded);
-            }
-            finally
-            {
-                RedBolt.Bindings.WebP.WebPNativeBindings.WebPFree(output);
-            }
-        }
-        finally
-        {
-            pinnedData.Free();
-        }
-    }
-
-    /// <summary>Return an SDL surface from the image, or null if failed. Only RGB images are supported. Specify rect to only return partial image. You must free the surface yourself.</summary>
-    public RedBolt.Bindings.Sdl.SdlSurface? GetSDLSurface(IntRect rect = default)
-    {
-        if (_data.Length == 0)
-            return null;
-
-        if (Depth > 1)
-        {
-            Log.GetLogger().LogError("Can not get SDL surface from 3D image");
-            return null;
-        }
-
-        if (IsCompressed())
-        {
-            Log.GetLogger().LogError("Can not get SDL surface from compressed image {Name}", Name);
-            return null;
-        }
-
-        if (Components < 3)
-        {
-            Log.GetLogger().LogError("Can not get SDL surface from image {Name} with less than 3 components", Name);
-            return null;
-        }
-
-        var imageRect = rect;
-        if (imageRect.Left < 0 || imageRect.Top < 0 || imageRect.Right > Width || imageRect.Bottom > Height
-            || imageRect.Left >= imageRect.Right || imageRect.Top >= imageRect.Bottom)
-        {
-            imageRect = new IntRect(0, 0, Width, Height);
-        }
-
-        var width = imageRect.Width;
-        var height = imageRect.Height;
-        var surface = RedBolt.Bindings.Sdl.SdlNativeBindings.SdlCreateRGBSurface(
-            0, width, height, Components * 8, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-        if (surface.IsNull)
-        {
-            Log.GetLogger().LogError("Failed to create SDL surface from image {Name}", Name);
-            return null;
-        }
-
-        RedBolt.Bindings.Sdl.SdlNativeBindings.SdlLockSurface(surface);
-        var sourceOffset = Components * (Width * imageRect.Top + imageRect.Left);
-        for (var i = 0; i < height; ++i)
-        {
-            Marshal.Copy(_data, sourceOffset, IntPtr.Add(surface.Pixels, i * surface.Pitch), Components * width);
-            sourceOffset += Components * Width;
-        }
-        RedBolt.Bindings.Sdl.SdlNativeBindings.SdlUnlockSurface(surface);
-        return surface;
-    }
-
-    public bool SaveDDS(string fileName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-
-        if (IsCompressed())
-        {
-            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, "Can not save compressed image to DDS", null, static (state, _) => state);
-            return false;
-        }
-
-        if (Components != 4)
-        {
-            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, $"Can not save image with {Components} components to DDS", null, static (state, _) => state);
-            return false;
-        }
-
-        var levels = new List<Image>();
-        GetLevels(levels);
-
-        using var stream = new MemoryStream();
-        using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
-        {
-            writer.Write(System.Text.Encoding.ASCII.GetBytes("DDS "));
-            writer.Write(124u);
-            writer.Write(0x00000001u | 0x00000002u | 0x00000004u | 0x00020000u | 0x00001000u);
-            writer.Write((uint)Height);
-            writer.Write((uint)Width);
-            writer.Write(0u);
-            writer.Write(0u);
-            writer.Write((uint)levels.Count);
-            writer.Write(new byte[44]);
-            writer.Write(32u);
-            writer.Write(0x00000040u | 0x00000001u);
-            writer.Write(32u);
-            writer.Write(0x000000ffu);
-            writer.Write(0x0000ff00u);
-            writer.Write(0x00ff0000u);
-            writer.Write(0xff000000u);
-            writer.Write(new byte[16]);
-            writer.Flush();
-        }
-
-        foreach (var level in levels)
-            stream.Write(level.GetData(), 0, checked(level.Width * level.Height * 4));
-
-        return WriteFile(fileName, stream.ToArray());
-    }
-
-    public unsafe bool SaveBMP(string fileName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-
-        if (IsCompressed())
-        {
-            Log.GetLogger().LogError("Can not save compressed image to BMP");
-            return false;
-        }
-
-        if (_data.Length == 0)
-            return false;
-
-        var nativeFileName = System.Text.Encoding.UTF8.GetBytes(fileName + '\0');
-        fixed (byte* data = _data)
-        {
-            return RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiWriteBmp(
-                nativeFileName, Width, Height, (int)Components, (nint)data) != 0;
-        }
-    }
-
-    public unsafe bool SaveTGA(string fileName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-
-        if (IsCompressed())
-        {
-            Log.GetLogger().LogError("Can not save compressed image to TGA");
-            return false;
-        }
-
-        if (_data.Length == 0)
-            return false;
-
-        var nativeFileName = System.Text.Encoding.UTF8.GetBytes(fileName + '\0');
-        fixed (byte* data = _data)
-        {
-            return RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiWriteTga(
-                nativeFileName, Width, Height, Components, (nint)data) != 0;
-        }
-    }
-
-    private bool SaveEncodedFile(string fileName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        using var buffer = new VectorBuffer();
-        if (!Save(buffer))
-            return false;
-        return WriteFile(fileName, buffer.Buffer);
-    }
-
-    private bool WriteFile(string fileName, ReadOnlySpan<byte> data)
-    {
-        var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
-        using var temporaryFileSystem = virtualFileSystem is null ? new VirtualFileSystem() : null;
-        if (temporaryFileSystem is not null)
-        {
-            temporaryFileSystem.MountRoot();
-            virtualFileSystem = temporaryFileSystem;
-        }
-
-        var identifier = new FileIdentifier(fileName);
-        using var rootMount = temporaryFileSystem is null && identifier.Scheme == "file"
-            ? new MountPointGuard(virtualFileSystem.MountRoot())
-            : null;
-        var file = virtualFileSystem.OpenFile(identifier, FileMode.Write);
-        if (file is null)
-            return false;
-
-        try
-        {
-            return file.Write(data) == data.Length;
-        }
-        finally
-        {
-            file.Close();
-        }
-    }
-
     public override bool SaveFile(FileIdentifier fileName)
     {
         // TODO(vfs): This function can save only to the host filesystem.
@@ -697,17 +432,21 @@ public class Image : Resource
             return false;
 
         if (components is < 0 or > 4)
+        {
+            Log.GetLogger().LogError("More than 4 color components are not supported");
             return false;
+        }
 
+        _data = new byte[checked(width * height * depth * components)];
         Width = width;
         Height = height;
         Depth = depth;
         Components = components;
-        _data = new byte[checked(width * height * depth * components)];
-        MemoryUse = _data.Length;
         CompressedFormat = TextureFormat.TexFormatUnknown;
         NumCompressedLevels = 0;
         _nextLevel = null;
+
+        MemoryUse = _data.Length;
         return true;
     }
 
@@ -748,6 +487,54 @@ public class Image : Resource
             _data[offset + 2] = (byte)(uintColor >> 16);
         if (Components > 3)
             _data[offset + 3] = (byte)(uintColor >> 24);
+    }
+
+    public bool LoadColorLUT(Deserializer source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        var fileId = source.ReadFileID();
+        if (fileId is "DDS " or "\u00abKTX" or "PVR\u0003")
+        {
+            Log.GetLogger().LogError("Invalid image format, can not load image");
+            return false;
+        }
+
+        source.Seek(0);
+        var pixelData = GetImageData(source, out var width, out var height, out var components);
+        if (pixelData == IntPtr.Zero)
+        {
+            Log.GetLogger().LogError("Could not load image {Name}: {Reason}", source.Name, GetStbiFailureReason());
+            return false;
+        }
+        if (components != 3)
+        {
+            Log.GetLogger().LogError("Invalid image format, can not load image");
+            return false;
+        }
+
+        const int colorLutSize = 16;
+        SetSize(colorLutSize, colorLutSize, colorLutSize, components);
+        var pixelDataIn = new byte[checked(width * height * components)];
+        Marshal.Copy(pixelData, pixelDataIn, 0, pixelDataIn.Length);
+        var pixelDataOut = GetData();
+        for (var z = 0; z < Depth; ++z)
+        {
+            for (var y = 0; y < Height; ++y)
+            {
+                var inputOffset = z * Width * 3 + y * width * 3;
+                var outputOffset = z * Width * Height * 3 + y * Width * 3;
+                for (var x = 0; x < Width * 3; x += 3)
+                {
+                    pixelDataOut[outputOffset + x] = pixelDataIn[inputOffset + x];
+                    pixelDataOut[outputOffset + x + 1] = pixelDataIn[inputOffset + x + 1];
+                    pixelDataOut[outputOffset + x + 2] = pixelDataIn[inputOffset + x + 2];
+                }
+            }
+        }
+
+        FreeImageData(pixelData);
+        return true;
     }
 
     public bool FlipHorizontal()
@@ -947,6 +734,219 @@ public class Image : Resource
         }
     }
 
+    public unsafe bool SaveBMP(string fileName)
+    {
+        if (IsCompressed())
+        {
+            Log.GetLogger().LogError("Can not save compressed image to BMP");
+            return false;
+        }
+
+        if (_data.Length == 0)
+            return false;
+
+        var nativeFileName = System.Text.Encoding.UTF8.GetBytes(fileName + '\0');
+        fixed (byte* data = _data)
+        {
+            return RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiWriteBmp(
+                nativeFileName, Width, Height, (int)Components, (nint)data) != 0;
+        }
+    }
+
+    public bool SavePNG(string fileName)
+    {
+        var directoryName = Path.GetDirectoryName(fileName);
+        if (!string.IsNullOrEmpty(directoryName) && !Directory.Exists(directoryName))
+            Directory.CreateDirectory(directoryName);
+
+        using var outFile = new File(fileName, FileMode.Write);
+        return outFile.IsOpen && Save(outFile);
+    }
+
+    public unsafe bool SaveTGA(string fileName)
+    {
+        if (IsCompressed())
+        {
+            Log.GetLogger().LogError("Can not save compressed image to TGA");
+            return false;
+        }
+
+        if (_data.Length == 0)
+            return false;
+
+        var nativeFileName = System.Text.Encoding.UTF8.GetBytes(fileName + '\0');
+        fixed (byte* data = _data)
+        {
+            return RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiWriteTga(
+                nativeFileName, Width, Height, Components, (nint)data) != 0;
+        }
+    }
+
+    public unsafe bool SaveJPG(string fileName, int quality)
+    {
+        if (IsCompressed())
+        {
+            Log.GetLogger().LogError("Can not save compressed image to JPG");
+            return false;
+        }
+
+        if (_data.Length == 0)
+            return false;
+
+        var nativeFileName = System.Text.Encoding.UTF8.GetBytes(fileName + '\0');
+        fixed (byte* data = _data)
+        {
+            return RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiWriteJpg(
+                nativeFileName, Width, Height, Components, (nint)data, quality) != 0;
+        }
+    }
+
+    public bool SaveDDS(string fileName)
+    {
+        using var outFile = new File(fileName, FileMode.Write);
+        if (!outFile.IsOpen)
+        {
+            Log.GetLogger().LogError("Access denied to {FileName}", fileName);
+            return false;
+        }
+
+        if (IsCompressed())
+        {
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, "Can not save compressed image to DDS", null, static (state, _) => state);
+            return false;
+        }
+
+        if (Components != 4)
+        {
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, $"Can not save image with {Components} components to DDS", null, static (state, _) => state);
+            return false;
+        }
+
+        var levels = new List<Image>();
+        GetLevels(levels);
+
+        using var stream = new MemoryStream();
+        using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            writer.Write(System.Text.Encoding.ASCII.GetBytes("DDS "));
+            writer.Write(124u);
+            writer.Write(0x00000001u | 0x00000002u | 0x00000004u | 0x00020000u | 0x00001000u);
+            writer.Write((uint)Height);
+            writer.Write((uint)Width);
+            writer.Write(0u);
+            writer.Write(0u);
+            writer.Write((uint)levels.Count);
+            writer.Write(new byte[44]);
+            writer.Write(32u);
+            writer.Write(0x00000040u | 0x00000001u);
+            writer.Write(32u);
+            writer.Write(0x000000ffu);
+            writer.Write(0x0000ff00u);
+            writer.Write(0x00ff0000u);
+            writer.Write(0xff000000u);
+            writer.Write(new byte[16]);
+            writer.Flush();
+        }
+
+        foreach (var level in levels)
+            stream.Write(level.GetData(), 0, checked(level.Width * level.Height * 4));
+
+        _ = outFile.Write(stream.ToArray());
+        return true;
+    }
+
+    public bool SaveWEBP(string fileName, float compression = 0.0f)
+    {
+        using var outFile = new File(fileName, FileMode.Write);
+
+        if (IsCompressed())
+        {
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, "Can not save compressed image to WebP", null, static (state, _) => state);
+            return false;
+        }
+
+        const int maxDimension = 16383;
+        if (Height > maxDimension || Width > maxDimension)
+        {
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, $"Maximum dimension supported by WebP is {maxDimension}", null, static (state, _) => state);
+            return false;
+        }
+
+        if (Components != 4 && Components != 3)
+        {
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, $"Can not save image with {Components} components to WebP, which requires 3 or 4; Try ConvertToRGBA first?", null, static (state, _) => state);
+            return false;
+        }
+
+        if (_data.Length == 0)
+        {
+            Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, "No image data to save", null, static (state, _) => state);
+            return false;
+        }
+
+        using var picture = new RedBolt.Bindings.WebP.WebPPicture();
+        using var config = new RedBolt.Bindings.WebP.WebPConfig();
+        using var writer = new RedBolt.Bindings.WebP.WebPMemoryWriter();
+        const int webpEncoderAbiVersion = 0x0210;
+        if (RedBolt.Bindings.WebP.WebPNativeBindings.WebPConfigInitInternal(
+                config, RedBolt.Bindings.WebP.WebPPreset.WebpPresetDefault, compression, webpEncoderAbiVersion) == 0
+            || RedBolt.Bindings.WebP.WebPNativeBindings.WebPPictureInitInternal(picture, webpEncoderAbiVersion) == 0)
+        {
+            Log.GetLogger().LogError("WebP initialization failed; check installation");
+            return false;
+        }
+
+        config.Lossless = 1;
+        config.Exact = 1;
+
+        picture.UseArgb = 1;
+        picture.Width = Width;
+        picture.Height = Height;
+        picture.Writer = RedBolt.Bindings.WebP.WebPNativeBindings.WebPMemoryWriteFunctionPointer;
+        picture.CustomPtr = writer.Handle;
+        RedBolt.Bindings.WebP.WebPNativeBindings.WebPMemoryWriterInit(writer);
+
+        var pictureInitialized = true;
+        try
+        {
+            var importResult = Components == 4
+                ? RedBolt.Bindings.WebP.WebPNativeBindings.WebPPictureImportRGBA(
+                    picture, in _data[0], checked(Components * Width))
+                : RedBolt.Bindings.WebP.WebPNativeBindings.WebPPictureImportRGB(
+                    picture, in _data[0], checked(Components * Width));
+            if (importResult == 0)
+            {
+                Log.GetLogger().LogError("WebP import of image data failed (truncated RGBA/RGB data or memory error?)");
+                return false;
+            }
+
+            if (RedBolt.Bindings.WebP.WebPNativeBindings.WebPEncode(config, picture) == 0)
+            {
+                Log.GetLogger().LogError("WebP encoding failed (memory error?). WebPEncodingError = {Error}", picture.ErrorCode);
+                return false;
+            }
+
+            RedBolt.Bindings.WebP.WebPNativeBindings.WebPPictureFree(picture);
+            pictureInitialized = false;
+            var encoded = new byte[checked((int)writer.Size)];
+            Marshal.Copy(writer.Mem, encoded, 0, encoded.Length);
+            _ = outFile.Write(encoded);
+            return true;
+        }
+        finally
+        {
+            if (pictureInitialized)
+                RedBolt.Bindings.WebP.WebPNativeBindings.WebPPictureFree(picture);
+            RedBolt.Bindings.WebP.WebPNativeBindings.WebPMemoryWriterClear(writer);
+        }
+    }
+
+    public bool IsCubemap() => Cubemap;
+
+    public bool IsArray() => Array;
+
+    public bool IsSRGB() => SRGB;
+
     public Color GetPixel(int x, int y) => GetPixel(x, y, 0);
 
     public Color GetPixel(int x, int y, int z)
@@ -1092,21 +1092,15 @@ public class Image : Resource
 
     public int GetDepth() => Depth;
 
-    public int GetComponents() => Components;
-
     public Vector3i GetSize() => new(Width, Height, Depth);
+
+    public int GetComponents() => Components;
 
     public byte[] GetData() => _data;
 
     public bool IsCompressed() => CompressedFormat != TextureFormat.TexFormatUnknown;
 
     public TextureFormat GetCompressedFormat() => CompressedFormat;
-
-    public bool IsCubemap() => Cubemap;
-
-    public bool IsArray() => Array;
-
-    public bool IsSRGB() => SRGB;
 
     public Image? GetNextLevel()
     {
@@ -1200,8 +1194,6 @@ public class Image : Resource
 
     public Image? GetNextSibling() => _nextSibling;
 
-    internal void SetNextSibling(Image? sibling) => _nextSibling = sibling;
-
     public Image? ConvertToRGBA()
     {
         if (IsCompressed())
@@ -1245,6 +1237,72 @@ public class Image : Resource
         }
 
         return rgba;
+    }
+
+    public CompressedLevel GetCompressedLevel(int index)
+    {
+        if (!IsCompressed() || index < 0 || index >= NumCompressedLevels)
+            return default;
+
+        var offset = 0;
+        for (var level = 0; level < index; ++level)
+        {
+            offset = checked(offset + ImageDds.GetCompressedLevelSize(
+                CompressedFormat,
+                GetLevelDimension(Width, level),
+                GetLevelDimension(Height, level),
+                GetLevelDimension(Depth, level)));
+        }
+
+        var levelWidth = GetLevelDimension(Width, index);
+        var levelHeight = GetLevelDimension(Height, index);
+        var levelDepth = GetLevelDimension(Depth, index);
+        var levelSize = ImageDds.GetCompressedLevelSize(CompressedFormat, levelWidth, levelHeight, levelDepth);
+        if (offset + levelSize > _data.Length)
+            return default;
+
+        return new CompressedLevel
+        {
+            Data = new Memory<byte>(_data, offset, levelSize),
+            Format = CompressedFormat,
+            Width = levelWidth,
+            Height = levelHeight,
+            Depth = levelDepth,
+            DataSize = levelSize
+        };
+    }
+
+    public Image? GetDecompressedImage() => GetDecompressedImageLevel(0);
+
+    public Image? GetDecompressedImageLevel(int index)
+    {
+        if (!IsCompressed())
+        {
+            if (index == 0)
+                return ConvertToRGBA();
+
+            Image? mip = this;
+            for (var level = 0; level < index; ++level)
+                mip = mip?.GetNextLevel();
+            return mip?.ConvertToRGBA();
+        }
+
+        if (NumCompressedLevels == 0)
+            return null;
+
+        var clampedIndex = Math.Min(index, NumCompressedLevels);
+        var compressedLevel = GetCompressedLevel(clampedIndex);
+        if (compressedLevel.DataSize == 0)
+            return null;
+
+        var decompressed = new Image();
+        if (!decompressed.SetSize(compressedLevel.Width, compressedLevel.Height, 4))
+            return null;
+
+        if (!compressedLevel.Decompress(decompressed._data))
+            return null;
+
+        return decompressed;
     }
 
     public Image? GetSubimage(IntRect rect)
@@ -1349,6 +1407,79 @@ public class Image : Resource
         return compressedSubimage;
     }
 
+    /// <summary>Return an SDL surface from the image, or null if failed. Only RGB images are supported. Specify rect to only return partial image. You must free the surface yourself.</summary>
+    public RedBolt.Bindings.Sdl.SdlSurface? GetSDLSurface(IntRect rect = default)
+    {
+        if (_data.Length == 0)
+            return null;
+
+        if (Depth > 1)
+        {
+            Log.GetLogger().LogError("Can not get SDL surface from 3D image");
+            return null;
+        }
+
+        if (IsCompressed())
+        {
+            Log.GetLogger().LogError("Can not get SDL surface from compressed image {Name}", Name);
+            return null;
+        }
+
+        if (Components < 3)
+        {
+            Log.GetLogger().LogError("Can not get SDL surface from image {Name} with less than 3 components", Name);
+            return null;
+        }
+
+        var imageRect = rect;
+        if (imageRect.Left < 0 || imageRect.Top < 0 || imageRect.Right > Width || imageRect.Bottom > Height
+            || imageRect.Left >= imageRect.Right || imageRect.Top >= imageRect.Bottom)
+        {
+            imageRect = new IntRect(0, 0, Width, Height);
+        }
+
+        var width = imageRect.Width;
+        var height = imageRect.Height;
+        var surface = RedBolt.Bindings.Sdl.SdlNativeBindings.SdlCreateRGBSurface(
+            0, width, height, Components * 8, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+        if (surface.IsNull)
+        {
+            Log.GetLogger().LogError("Failed to create SDL surface from image {Name}", Name);
+            return null;
+        }
+
+        RedBolt.Bindings.Sdl.SdlNativeBindings.SdlLockSurface(surface);
+        var sourceOffset = Components * (Width * imageRect.Top + imageRect.Left);
+        for (var i = 0; i < height; ++i)
+        {
+            Marshal.Copy(_data, sourceOffset, IntPtr.Add(surface.Pixels, i * surface.Pitch), Components * width);
+            sourceOffset += Components * Width;
+        }
+        RedBolt.Bindings.Sdl.SdlNativeBindings.SdlUnlockSurface(surface);
+        return surface;
+    }
+
+    public void PrecalculateLevels()
+    {
+        if (_data.Length == 0 || IsCompressed())
+            return;
+
+        _nextLevel = null;
+
+        if (Width > 1 || Height > 1)
+        {
+            var current = GetNextLevel();
+            _nextLevel = current;
+            while (current is not null && (current.Width > 1 || current.Height > 1))
+            {
+                current._nextLevel = current.GetNextLevel();
+                current = current._nextLevel;
+            }
+        }
+    }
+
+    public bool HasAlphaChannel() => Components > 3;
+
     public bool SetSubimage(Image image, IntRect rect)
     {
         ArgumentNullException.ThrowIfNull(image);
@@ -1393,25 +1524,6 @@ public class Image : Resource
         return true;
     }
 
-    public void PrecalculateLevels()
-    {
-        if (_data.Length == 0 || IsCompressed())
-            return;
-
-        _nextLevel = null;
-
-        if (Width > 1 || Height > 1)
-        {
-            var current = GetNextLevel();
-            _nextLevel = current;
-            while (current is not null && (current.Width > 1 || current.Height > 1))
-            {
-                current._nextLevel = current.GetNextLevel();
-                current = current._nextLevel;
-            }
-        }
-    }
-
     public void CleanupLevels() => _nextLevel = null;
 
     public void GetLevels(ICollection<Image> levels)
@@ -1422,121 +1534,31 @@ public class Image : Resource
             levels.Add(level);
     }
 
-    public bool HasAlphaChannel() => Components > 3;
-
-    public CompressedLevel GetCompressedLevel(int index)
+    private static IntPtr GetImageData(Deserializer source, out int width, out int height, out int components)
     {
-        if (!IsCompressed() || index < 0 || index >= NumCompressedLevels)
-            return default;
-
-        var offset = 0;
-        for (var level = 0; level < index; ++level)
+        var data = new byte[checked((int)source.Size)];
+        source.Read(data);
+        if (data.Length == 0)
         {
-            offset = checked(offset + ImageDds.GetCompressedLevelSize(
-                CompressedFormat,
-                GetLevelDimension(Width, level),
-                GetLevelDimension(Height, level),
-                GetLevelDimension(Depth, level)));
+            width = 0;
+            height = 0;
+            components = 0;
+            return IntPtr.Zero;
         }
 
-        var levelWidth = GetLevelDimension(Width, index);
-        var levelHeight = GetLevelDimension(Height, index);
-        var levelDepth = GetLevelDimension(Depth, index);
-        var levelSize = ImageDds.GetCompressedLevelSize(CompressedFormat, levelWidth, levelHeight, levelDepth);
-        if (offset + levelSize > _data.Length)
-            return default;
-
-        return new CompressedLevel
-        {
-            Data = new Memory<byte>(_data, offset, levelSize),
-            Format = CompressedFormat,
-            Width = levelWidth,
-            Height = levelHeight,
-            Depth = levelDepth,
-            DataSize = levelSize
-        };
+        return RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiLoadFromMemory(
+            in data[0], data.Length, out width, out height, out components, 0);
     }
 
-    public Image? GetDecompressedImageLevel(int index)
+    private static void FreeImageData(IntPtr pixelData)
     {
-        if (!IsCompressed())
-        {
-            if (index == 0)
-                return ConvertToRGBA();
-
-            Image? mip = this;
-            for (var level = 0; level < index; ++level)
-                mip = mip?.GetNextLevel();
-            return mip?.ConvertToRGBA();
-        }
-
-        if (NumCompressedLevels == 0)
-            return null;
-
-        var clampedIndex = Math.Min(index, NumCompressedLevels);
-        var compressedLevel = GetCompressedLevel(clampedIndex);
-        if (compressedLevel.DataSize == 0)
-            return null;
-
-        var decompressed = new Image();
-        if (!decompressed.SetSize(compressedLevel.Width, compressedLevel.Height, 4))
-            return null;
-
-        if (!compressedLevel.Decompress(decompressed._data))
-            return null;
-
-        return decompressed;
-    }
-
-    public Image? GetDecompressedImage() => GetDecompressedImageLevel(0);
-
-    public bool LoadColorLUT(Deserializer source)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-
-        var fileId = source.ReadFileID();
-        if (fileId is "DDS " or "\u00abKTX" or "PVR\u0003")
-        {
-            Log.GetLogger().LogError("Invalid image format, can not load image");
-            return false;
-        }
-
-        source.Seek(0);
-        var pixelData = GetImageData(source, out var width, out var height, out var components);
         if (pixelData == IntPtr.Zero)
-        {
-            Log.GetLogger().LogError("Could not load image {Name}: {Reason}", source.Name, GetStbiFailureReason());
-            return false;
-        }
-        if (components != 3)
-        {
-            Log.GetLogger().LogError("Invalid image format, can not load image");
-            return false;
-        }
+            return;
 
-        const int colorLutSize = 16;
-        SetSize(colorLutSize, colorLutSize, colorLutSize, components);
-        var pixelDataIn = new byte[checked(width * height * components)];
-        Marshal.Copy(pixelData, pixelDataIn, 0, pixelDataIn.Length);
-        var pixelDataOut = GetData();
-        for (var z = 0; z < Depth; ++z)
-        {
-            for (var y = 0; y < Height; ++y)
-            {
-                var inputOffset = z * Width * 3 + y * width * 3;
-                var outputOffset = z * Width * Height * 3 + y * Width * 3;
-                for (var x = 0; x < Width * 3; x += 3)
-                {
-                    pixelDataOut[outputOffset + x] = pixelDataIn[inputOffset + x];
-                    pixelDataOut[outputOffset + x + 1] = pixelDataIn[inputOffset + x + 1];
-                    pixelDataOut[outputOffset + x + 2] = pixelDataIn[inputOffset + x + 2];
-                }
-            }
-        }
-
-        FreeImageData(pixelData);
-        return true;
+        RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiImageFree(pixelData);
     }
+
+    internal void SetNextSibling(Image? sibling) => _nextSibling = sibling;
 
     internal void SetCompressedData(
         int width,
@@ -1564,14 +1586,6 @@ public class Image : Resource
         _nextLevel = null;
     }
 
-    private int GetOffset(int x, int y, int z)
-    {
-        if (x < 0 || x >= Width || y < 0 || y >= Height || z < 0 || z >= Depth)
-            throw new ArgumentOutOfRangeException();
-
-        return ((((z * Height) + y) * Width) + x) * (int)Components;
-    }
-
     private void SwapPixels(int leftOffset, int rightOffset)
     {
         for (var i = 0; i < Components; ++i)
@@ -1584,49 +1598,12 @@ public class Image : Resource
             (_data[topOffset + i], _data[bottomOffset + i]) = (_data[bottomOffset + i], _data[topOffset + i]);
     }
 
-    private void WriteColor(int offset, Color color)
-    {
-        color.Clip(clipAlpha: true);
-        var packed = color.ToUInt();
-        _data[offset] = (byte)(packed & 0xff);
-        if (Components > 1)
-            _data[offset + 1] = (byte)((packed >> 8) & 0xff);
-        if (Components > 2)
-            _data[offset + 2] = (byte)((packed >> 16) & 0xff);
-        if (Components > 3)
-            _data[offset + 3] = (byte)((packed >> 24) & 0xff);
-    }
-
     private static int GetLevelDimension(int size, int level)
     {
         var value = size;
         for (var i = 0; i < level && value > 1; ++i)
             value = Math.Max(value / 2, 1);
         return value;
-    }
-
-    private static IntPtr GetImageData(Deserializer source, out int width, out int height, out int components)
-    {
-        var data = new byte[checked((int)source.Size)];
-        source.Read(data);
-        if (data.Length == 0)
-        {
-            width = 0;
-            height = 0;
-            components = 0;
-            return IntPtr.Zero;
-        }
-
-        return RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiLoadFromMemory(
-            in data[0], data.Length, out width, out height, out components, 0);
-    }
-
-    private static void FreeImageData(IntPtr pixelData)
-    {
-        if (pixelData == IntPtr.Zero)
-            return;
-
-        RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiImageFree(pixelData);
     }
 
     private static string GetStbiFailureReason()

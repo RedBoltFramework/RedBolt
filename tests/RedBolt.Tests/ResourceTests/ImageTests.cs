@@ -398,6 +398,7 @@ public sealed class ImageTests
         Assert.Equal(4, image.Components);
         Assert.Equal(4, image.Width);
         Assert.Equal(4, image.Height);
+        Assert.Equal(0, image.Depth);
         Assert.Equal(1, image.NumCompressedLevels);
         Assert.Equal(pixels, image.GetData());
     }
@@ -426,6 +427,7 @@ public sealed class ImageTests
         Assert.Equal(4, image.Components);
         Assert.Equal(4, image.Width);
         Assert.Equal(4, image.Height);
+        Assert.Equal(0, image.Depth);
         Assert.Equal(1, image.NumCompressedLevels);
         Assert.Equal(pixels, image.GetData());
     }
@@ -442,7 +444,7 @@ public sealed class ImageTests
             Assert.True(sourceImage.SetSize(2, 2, components));
             var pixels = Enumerable.Range(0, 2 * 2 * components).Select(static value => (byte)(value * 17)).ToArray();
             sourceImage.SetData(pixels);
-            Assert.True(sourceImage.SaveWEBP(fileName));
+            Assert.True(sourceImage.SaveWEBP(fileName, components == 3 ? 0.0f : 100.0f));
 
             using var image = new Image();
             Assert.True(image.BeginLoad(new MemoryBuffer(System.IO.File.ReadAllBytes(fileName))));

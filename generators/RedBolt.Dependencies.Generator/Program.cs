@@ -100,9 +100,30 @@ internal static class Program
         "WebPGetFeaturesInternal",
         "WebPDecodeRGBInto",
         "WebPDecodeRGBAInto",
-        "WebPEncodeLosslessRGBA",
-        "WebPEncodeLosslessRGB",
-        "WebPFree"
+        "WebPConfigInitInternal",
+        "WebPPictureInitInternal",
+        "WebPPictureImportRGB",
+        "WebPPictureImportRGBA",
+        "WebPPictureFree",
+        "WebPMemoryWriterInit",
+        "WebPMemoryWrite",
+        "WebPMemoryWriterClear",
+        "WebPEncode"
+    };
+
+    private static readonly Dictionary<string, HashSet<string>> RetainedWebPRecordFields = new(StringComparer.Ordinal)
+    {
+        ["WebPBitstreamFeatures"] = new(StringComparer.Ordinal) { "width", "height", "has_alpha" },
+        ["WebPConfig"] = new(StringComparer.Ordinal) { "lossless", "exact" },
+        ["WebPPicture"] = new(StringComparer.Ordinal) { "use_argb", "width", "height", "writer", "custom_ptr", "error_code" },
+        ["WebPMemoryWriter"] = new(StringComparer.Ordinal) { "mem", "size" }
+    };
+
+    private static readonly HashSet<string> RetainedWebPEnums = new(StringComparer.Ordinal)
+    {
+        "VP8StatusCode",
+        "WebPEncodingError",
+        "WebPPreset"
     };
 
     private static readonly HashSet<string> UnsupportedGlslangFunctions = new(StringComparer.Ordinal)
@@ -177,6 +198,11 @@ internal static class Program
             FixDiligentVulkanImageHandle(compilation, descriptor);
             FixSdlVoidPointerFunctions(compilation, descriptor);
             FixStbVorbisBufferFunctions(compilation, descriptor);
+            if (descriptor.Surface == "webp")
+            {
+                compilation.Functions.First(static function => function.NativeName == "WebPMemoryWrite")
+                    .SetMetadata(MetadataKeys.ExposeNativeFunctionPointer, true);
+            }
             var prunedCount = IgnoreStdlibWrappers(compilation);
             prunedCount += PruneDependencySurface(compilation, descriptor);
             prunedCount += PruneImGuiSurfaceIfApplicable(compilation, descriptor);
@@ -593,8 +619,31 @@ internal static class Program
             var webpPrunedCount = 0;
             for (var index = compilation.Members.Count - 1; index >= 0; --index)
             {
-                if (compilation.Members[index] is FunctionBinding function &&
+                var member = compilation.Members[index];
+                if (member is FunctionBinding function &&
                     (RetainedWebPFunctions.Contains(function.NativeName) || RetainedWebPFunctions.Contains(function.ManagedName)))
+                {
+                    continue;
+                }
+
+                if (member is RecordBinding record && RetainedWebPRecordFields.TryGetValue(record.NativeName, out var retainedFields))
+                {
+                    for (var memberIndex = record.Members.Count - 1; memberIndex >= 0; --memberIndex)
+                    {
+                        if (record.Members[memberIndex] is FieldBinding field && retainedFields.Contains(field.NativeName))
+                            continue;
+
+                        if (record.Members[memberIndex] is FunctionBinding { IsConstructor: true })
+                            continue;
+
+                        record.Members.RemoveAt(memberIndex);
+                        webpPrunedCount++;
+                    }
+                    continue;
+                }
+
+                if (member is EnumBinding enumBinding &&
+                    (RetainedWebPEnums.Contains(enumBinding.NativeName) || RetainedWebPEnums.Contains(enumBinding.ManagedName)))
                 {
                     continue;
                 }

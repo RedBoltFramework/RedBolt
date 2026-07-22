@@ -121,25 +121,8 @@ file(CONFIGURE OUTPUT "${REDBOLT_LZ4_PARSE_HEADER}" CONTENT [=[
 ]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_WEBP_PARSE_HEADER}" CONTENT [=[
 #pragma once
-#include <stddef.h>
-#include <stdint.h>
-#ifdef __cplusplus
-extern "C" {
-#endif
-int WebPGetFeaturesInternal(
-    const void* data, size_t data_size, void* features, int version);
-void* WebPDecodeRGBInto(
-    const void* data, size_t data_size, void* output_buffer,
-    size_t output_buffer_size, int output_stride);
-void* WebPDecodeRGBAInto(
-    const void* data, size_t data_size, void* output_buffer,
-    size_t output_buffer_size, int output_stride);
-size_t WebPEncodeLosslessRGB(const void* rgb, int width, int height, int stride, void** output);
-size_t WebPEncodeLosslessRGBA(const void* rgba, int width, int height, int stride, void** output);
-void WebPFree(void* ptr);
-#ifdef __cplusplus
-}
-#endif
+#include <webp/decode.h>
+#include <webp/encode.h>
 ]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_SPIRV_OPTIMIZER_PARSE_HEADER}" CONTENT [=[
 #pragma once
