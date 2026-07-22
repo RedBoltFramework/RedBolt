@@ -204,12 +204,27 @@ public sealed class JsonXmlResourceTests
         using var copy = Assert.IsType<JSONValue>(source.Clone());
         source.Get("nested")[0].Set("changed");
         Assert.Equal("source", copy.Get("nested")[0].GetString());
+        source.Set("nested", source.Get("nested"));
+        Assert.Equal("changed", source.Get("nested")[0].GetString());
+        source.Set(source.GetObject());
+        Assert.Equal("changed", source.Get("nested")[0].GetString());
+
+        using var array = new JSONValue([new JSONValue("value")]);
+        array[0] = array[0];
+        array.Set(array.GetArray());
+        Assert.Equal("value", array[0].GetString());
 
         using var signed = new JSONValue(1);
         using var unsigned = new JSONValue(1u);
         Assert.Equal(signed, unsigned);
         Assert.Equal(signed.GetHashCode(), unsigned.GetHashCode());
         Assert.Same(JSONValue.Empty, source.Get("missing"));
+
+        using var indexedObject = new JSONValue();
+        Assert.Same(JSONValue.Empty, indexedObject.Get("value"));
+        Assert.True(indexedObject.IsNull);
+        indexedObject["value"].Set(42);
+        Assert.Equal(42, indexedObject.Get("value").GetInt());
     }
 
     [Fact]

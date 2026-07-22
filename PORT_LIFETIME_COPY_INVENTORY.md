@@ -22,8 +22,8 @@ Excluded:
 - Tests and vendored third-party code.
 - Global aliases/usings files that contain no ported class implementation.
 
-Pending managed files inventoried: **19**
-Pending files with likely C++ counterpart paths: **19**
+Pending managed files inventoried: **18**
+Pending files with likely C++ counterpart paths: **18**
 Pending files requiring counterpart discovery: **0**
 
 ## Required review for every row
@@ -104,9 +104,6 @@ Check a column only after completing the corresponding full C++ review and recor
 | 2026-07-22 partial outcome | Corrected compressed-image storage to use native `TextureFormat` values directly throughout `Image`, `CompressedLevel`, DDS loading, block transforms, texture upload, and decompression instead of the invented managed `CompressedFormat` enum. `CompressedLevel::Decompress` now follows the native RGBA8, BC1/2/3, ETC2, and emulated PVRTC dispatch, and compressed mip byte sizing uses the native texture-format block metadata. Focused Image/Decompress coverage passes 22/22, the complete Linux/Web solution builds with zero errors, all 1,754 tests pass, and MultipleViewports renders the expected populated main scene and inset viewport. Full `Image` closure remains open for loading helpers and remaining member/body order. | — | — | — |
 | `src/RedBolt/Resource/ImageSDL.cs` | SDL-backed portions of `Image` in `Source/Urho3D/Resource/Image.h` / `Image.cpp` | ☐ | ☐ | ☐ |
 | 2026-07-21 resolution outcome | RESOLVED the managed helper to the native `Image` load, color-LUT, save, and SDL-surface methods and REVIEWED their complete bodies. Native STB loading preserves the source component count and its LUT/save checks, while the managed SDL_image path forces RGBA, changes several guards/conversions, and passes component count rather than bit depth when creating a surface. Generated STB write bindings exist, but the required load/free bindings are not currently generated. The row remains open for generator-first native parity work. | — | — | — |
-| `src/RedBolt/Resource/JSONValue.cs` | `Source/Urho3D/Resource/JSONValue.h`<br>`Source/Urho3D/Resource/JSONValue.cpp` | ☐ | ☐ | ☐ |
-| 2026-07-22 partial outcome | Re-read the complete native declaration and all `JSONValue` method bodies. Managed `JSONValue` is now an extensible `ICloneable`/`IDisposable` reference type: copy construction recursively owns independent children, type changes, replacement, pop, erase, resize, clear, and final disposal deterministically destroy removed child values, missing lookups return the stable native-equivalent `Empty` value, sizes and indices use the approved managed `int` mapping, and equality follows native JSON number semantics by ignoring the stored number subtype. Focused tests prove independent nested copies, stable empty lookup, number equality, and class/lifetime shape. The row remains open for variant conversion paths, removal of managed callback/JSON-node compatibility state, and exact field/storage reconciliation. | — | — | — |
-| 2026-07-22 partial outcome | Removed the unused managed change-callback tree, restored native null equality and `Unsigned`/`Real` number type names, allowed native empty object keys, and matched native variant vector/map/string-map/resource-reference conversion including object-backed map encoding and optional `Context` propagation. Focused JSON/XML resource coverage passes 39/39. The row remains open for exact field/storage and final member/API ordering. | — | — | — |
 | `src/RedBolt/Resource/Localization.cs` | `Source/Urho3D/Resource/Localization.h`<br>`Source/Urho3D/Resource/Localization.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Resource/ResourceCache.cs` | `Source/Urho3D/Resource/ResourceCache.h`<br>`Source/Urho3D/Resource/ResourceCache.cpp` | ☐ | ☐ | ☐ |
 | 2026-07-18 partial outcome | While auditing `LightProbeGroup`, restored the C++ temporary-resource path for sanitized empty names: both overloads now return null instead of throwing or manufacturing a failed resource, and `SanitateResourceName` delegates to the canonical `FileIdentifier`/VFS path. The complete `ResourceCache` lifetime/copy audit remains pending. | — | — | — |
