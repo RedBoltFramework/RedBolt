@@ -162,15 +162,46 @@ public sealed class AnimationTests
     }
 
     [Fact]
-    public void Animation_begin_load_selects_xml_by_resource_name()
+    public void Animation_begin_load_selects_xml_by_source_name()
     {
-        var animation = new Animation { Name = "walk.xml" };
+        var animation = new Animation { Name = "walk.ani" };
         using var source = new MemoryBuffer(System.Text.Encoding.UTF8.GetBytes(
             "<animation name=\"walk\" length=\"2\" />"));
+        source.SetName("source.xml");
 
         Assert.True(animation.BeginLoad(source));
         Assert.Equal("walk", animation.AnimationName);
         Assert.Equal(2.0f, animation.Length);
+    }
+
+    [Fact]
+    public void Animation_save_uses_destination_name_for_trigger_sidecar()
+    {
+        var previousContext = Context.Instance;
+        Context.SetInstance(new Context());
+        var directory = Path.Combine(Path.GetTempPath(), $"RedBoltAnimation-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+
+        try
+        {
+            using var virtualFileSystem = new VirtualFileSystem();
+            virtualFileSystem.MountDir(directory);
+            Context.Instance.RegisterSubsystem(virtualFileSystem);
+
+            using var animation = new Animation { Name = "resource.ani" };
+            animation.AddTrigger(0.5f, false, 1);
+            using var destination = new VectorBuffer();
+            destination.SetName("saved.ani");
+
+            Assert.True(animation.Save(destination));
+            Assert.True(System.IO.File.Exists(Path.Combine(directory, "saved.xml")));
+            Assert.False(System.IO.File.Exists(Path.Combine(directory, "resource.xml")));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+            Context.SetInstance(previousContext);
+        }
     }
 
     [Fact]

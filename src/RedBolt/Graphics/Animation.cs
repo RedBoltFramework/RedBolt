@@ -154,7 +154,7 @@ public class Animation : ResourceWithMetadata
 
         var dataSize = source.Size;
 
-        if (Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
+        if (source.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
         {
             using var xmlFile = new XMLFile();
             if (!xmlFile.Load(source))
@@ -166,7 +166,7 @@ public class Animation : ResourceWithMetadata
         var fileId = input.ReadFileID();
         if (fileId != "UANI" && fileId != "UAN2")
         {
-            Log.GetLogger().LogError("{AnimationName} is not a valid animation file", Name);
+            Log.GetLogger().LogError("{AnimationName} is not a valid animation file", source.Name);
             return false;
         }
 
@@ -277,53 +277,52 @@ public class Animation : ResourceWithMetadata
     {
         ArgumentNullException.ThrowIfNull(destination);
 
-        using var output = new VectorBuffer();
-        output.WriteFileID("UAN2");
-        output.WriteUInt(CurrentVersion);
-        output.WriteString(_animationName);
-        output.WriteFloat(_length);
+        destination.WriteFileID("UAN2");
+        destination.WriteUInt(CurrentVersion);
+        destination.WriteString(_animationName);
+        destination.WriteFloat(_length);
 
-        output.WriteUInt(checked((uint)_tracks.Count));
+        destination.WriteUInt(checked((uint)_tracks.Count));
         foreach (var item in _tracks)
         {
             var track = item.Value;
-            output.WriteString(track.Name);
-            output.WriteUByte((byte)track.ChannelMask);
-            output.WriteFloat(track.PositionWeight);
-            output.WriteFloat(track.RotationWeight);
-            output.WriteFloat(track.ScaleWeight);
-            output.WriteUInt(checked((uint)track.KeyFrames.Count));
+            destination.WriteString(track.Name);
+            destination.WriteUByte((byte)track.ChannelMask);
+            destination.WriteFloat(track.PositionWeight);
+            destination.WriteFloat(track.RotationWeight);
+            destination.WriteFloat(track.ScaleWeight);
+            destination.WriteUInt(checked((uint)track.KeyFrames.Count));
 
             foreach (var keyFrame in track.KeyFrames)
             {
-                output.WriteFloat(keyFrame.Time);
+                destination.WriteFloat(keyFrame.Time);
                 if ((track.ChannelMask & AnimationChannel.Position) != 0)
-                    output.WriteVector3(keyFrame.Position);
+                    destination.WriteVector3(keyFrame.Position);
                 if ((track.ChannelMask & AnimationChannel.Rotation) != 0)
-                    output.WriteQuaternion(keyFrame.Rotation);
+                    destination.WriteQuaternion(keyFrame.Rotation);
                 if ((track.ChannelMask & AnimationChannel.Scale) != 0)
-                    output.WriteVector3(keyFrame.Scale);
+                    destination.WriteVector3(keyFrame.Scale);
             }
         }
 
-        output.WriteUInt(checked((uint)_variantTracks.Count));
+        destination.WriteUInt(checked((uint)_variantTracks.Count));
         foreach (var item in _variantTracks)
         {
             var track = item.Value;
             var trackType = track.GetType();
             using var defaultValue = new Variant(trackType);
 
-            output.WriteString(track.Name);
-            output.WriteUByte((byte)trackType);
-            output.WriteUByte((byte)track.Interpolation);
-            output.WriteFloat(track.SplineTension);
-            output.WriteFloat(track.Weight);
-            output.WriteUInt(checked((uint)track.KeyFrames.Count));
+            destination.WriteString(track.Name);
+            destination.WriteUByte((byte)trackType);
+            destination.WriteUByte((byte)track.Interpolation);
+            destination.WriteFloat(track.SplineTension);
+            destination.WriteFloat(track.Weight);
+            destination.WriteUInt(checked((uint)track.KeyFrames.Count));
 
             foreach (var keyFrame in track.KeyFrames)
             {
-                output.WriteFloat(keyFrame.Time);
-                output.WriteVariantData(keyFrame.Value.Type == trackType ? keyFrame.Value : defaultValue);
+                destination.WriteFloat(keyFrame.Time);
+                destination.WriteVariantData(keyFrame.Value.Type == trackType ? keyFrame.Value : defaultValue);
             }
 
             if (track.Interpolation == KeyFrameInterpolation.TangentSpline)
@@ -332,23 +331,20 @@ public class Animation : ResourceWithMetadata
                 {
                     var inTangent = track.InTangents[i];
                     var outTangent = track.OutTangents[i];
-                    output.WriteVariantData(inTangent.Type == trackType ? inTangent : defaultValue);
-                    output.WriteVariantData(outTangent.Type == trackType ? outTangent : defaultValue);
+                    destination.WriteVariantData(inTangent.Type == trackType ? inTangent : defaultValue);
+                    destination.WriteVariantData(outTangent.Type == trackType ? outTangent : defaultValue);
                 }
             }
         }
 
-        destination.Write(output.Buffer);
-
         // If triggers have been defined, write an XML file for them.
         if (_triggers.Count != 0 || HasMetadata())
         {
-        var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
-            if (virtualFileSystem is not null && !string.IsNullOrEmpty(Name))
+            var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
+            var xmlName = Path.ChangeExtension(destination.GetName(), ".xml");
+            using var destinationXmlFile = virtualFileSystem.OpenFile(new FileIdentifier(xmlName), FileMode.Write);
+            if (destinationXmlFile is not null)
             {
-                var xmlName = Name;
-                var extensionPosition = xmlName.LastIndexOf('.');
-                xmlName = extensionPosition >= 0 ? xmlName[..extensionPosition] + ".xml" : xmlName + ".xml";
                 using var xml = new XMLFile();
                 var root = xml.CreateRoot("animation");
                 foreach (var trigger in _triggers)
@@ -358,7 +354,7 @@ public class Animation : ResourceWithMetadata
                     triggerElement.SetVariant(trigger.Data);
                 }
                 SaveMetadataToXML(root);
-                virtualFileSystem.WriteAllText(new FileIdentifier(xmlName), xml.ToString());
+                xml.Save(destinationXmlFile);
             }
             else
             {
