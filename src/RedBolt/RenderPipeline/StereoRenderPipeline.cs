@@ -168,7 +168,7 @@ public class StereoSceneProcessor : SceneProcessor
             FrameInfo.Octree!.GetDrawables(occluderQuery);
             DrawableProcessor.ProcessOccluders(Occluders, Settings.OccluderSizeThreshold);
 
-            if (DrawableProcessor.HasOccluders())
+            if (DrawableProcessor.HasOccluders)
             {
                 if (OcclusionBuffer is null)
                 {
@@ -225,7 +225,7 @@ public class StereoSceneProcessor : SceneProcessor
 
     protected override void DrawOccluders()
     {
-        var activeOccluders = DrawableProcessor.GetOccluders();
+        var activeOccluders = DrawableProcessor.Occluders;
 
         foreach (var occlusionBuffer in _eyeOcclusion)
         {

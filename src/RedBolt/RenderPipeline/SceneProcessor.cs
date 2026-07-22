@@ -231,7 +231,7 @@ public class SceneProcessor : Object, LightProcessorCallback
             FrameInfo.Octree!.GetDrawables(occluderQuery);
             DrawableProcessor.ProcessOccluders(Occluders, Settings.OccluderSizeThreshold);
 
-            if (DrawableProcessor.HasOccluders())
+            if (DrawableProcessor.HasOccluders)
             {
                 OcclusionBuffer ??= new OcclusionBuffer();
                 var bufferSize = CalculateOcclusionBufferSize(checked((int)Settings.OcclusionBufferSize), FrameInfo.Camera);
@@ -284,7 +284,7 @@ public class SceneProcessor : Object, LightProcessorCallback
 
         InstancingBuffer.Begin();
 
-        var visibleLights = DrawableProcessor.GetLightProcessors();
+        var visibleLights = DrawableProcessor.LightProcessors;
         foreach (var sceneLight in visibleLights)
         {
             foreach (var split in sceneLight!.MutableSplits)
@@ -309,7 +309,7 @@ public class SceneProcessor : Object, LightProcessorCallback
 
         using var renderScope = new RenderScope(RenderContext, "SceneProcessor::RenderShadowMaps");
 
-        var lightsByShadowMap = DrawableProcessor.GetLightProcessorsByShadowMap();
+        var lightsByShadowMap = DrawableProcessor.LightProcessorsByShadowMap;
         foreach (var sceneLight in lightsByShadowMap)
         {
             var lightProcessor = sceneLight!;
@@ -421,7 +421,7 @@ public class SceneProcessor : Object, LightProcessorCallback
 
     protected virtual void DrawOccluders()
     {
-        var activeOccluders = DrawableProcessor.GetOccluders();
+        var activeOccluders = DrawableProcessor.Occluders;
 
         OcclusionBuffer!.SetMaxTriangles(checked((uint)Settings.MaxOccluderTriangles));
         OcclusionBuffer.Clear();

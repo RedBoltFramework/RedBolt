@@ -236,26 +236,26 @@ public class DrawableProcessor : Object
         _lightProcessorCache.SetSettings(settings.LightProcessorCache);
     }
 
-    public FrameInfo GetFrameInfo() => _frameInfo;
+    public FrameInfo FrameInfo => _frameInfo;
 
-    public DrawableProcessorSettings GetSettings() => _settings;
+    public DrawableProcessorSettings Settings => _settings;
 
-    public bool HasOccluders() => _sortedOccluders.Count != 0;
+    public bool HasOccluders => _sortedOccluders.Count != 0;
 
-    public IReadOnlyList<SortedOccluder> GetOccluders() => _sortedOccluders;
+    public IReadOnlyList<SortedOccluder> Occluders => _sortedOccluders;
 
-    public IEnumerable<Drawable> GetGeometries() => _geometries;
+    public IEnumerable<Drawable> Geometries => _geometries;
 
-    public FloatRange GetSceneZRange() => _sceneZRange;
+    public FloatRange SceneZRange => _sceneZRange;
 
-    public IReadOnlyList<Light?> GetLights() => _lights;
+    public IReadOnlyList<Light?> Lights => _lights;
 
     public Light? GetLight(uint lightIndex) =>
         lightIndex < (uint)_lights.Count ? _lights[(int)lightIndex] : null;
 
-    public IReadOnlyList<LightProcessor?> GetLightProcessors() => _lightProcessors;
+    public IReadOnlyList<LightProcessor?> LightProcessors => _lightProcessors;
 
-    public IReadOnlyList<LightProcessor?> GetLightProcessorsByShadowMap() => _lightProcessorsByShadowMapTexture;
+    public IReadOnlyList<LightProcessor?> LightProcessorsByShadowMap => _lightProcessorsByShadowMapTexture;
 
     public LightProcessor? GetLightProcessor(uint lightIndex) =>
         lightIndex < (uint)_lightProcessors.Count ? _lightProcessors[(int)lightIndex] : null;

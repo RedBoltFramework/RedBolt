@@ -33,7 +33,7 @@ public struct DebugFrameSnapshotBatch : ICloneable
         NumPrimitives = (int)Geometry.GetPrimitiveCount();
         NewInstancingGroup = newInstancingGroup;
 
-        var lights = drawableProcessor.GetLights();
+        var lights = drawableProcessor.Lights;
         Light = pipelineBatch.PixelLightIndex < lights.Count ? lights[pipelineBatch.PixelLightIndex] : null;
     }
 

@@ -106,12 +106,12 @@ public sealed class DrawableProcessorTests
 
         Assert.Equal(1, expensive.UpdateBatchesCount);
         Assert.Equal(1, cheap.UpdateBatchesCount);
-        Assert.Equal([cheap, expensive], processor.GetOccluders().Select(occluder => occluder.Drawable));
+        Assert.Equal([cheap, expensive], processor.Occluders.Select(occluder => occluder.Drawable));
 
         processor.OnUpdateBegin(frameInfo);
         processor.ProcessOccluders([cheap], float.MaxValue);
 
-        Assert.Empty(processor.GetOccluders());
+        Assert.Empty(processor.Occluders);
     }
 
     [Fact]
@@ -122,6 +122,30 @@ public sealed class DrawableProcessorTests
         Assert.NotNull(typeof(DrawableProcessorPass).GetProperty(nameof(DrawableProcessorPass.Flags)));
         Assert.NotNull(typeof(DrawableProcessorPass).GetProperty(nameof(DrawableProcessorPass.HasLightPass)));
         Assert.NotNull(typeof(DrawableProcessorPass).GetProperty(nameof(DrawableProcessorPass.IsEnabled)));
+    }
+
+    [Fact]
+    public void ProcessorShapeUsesNativeProperties()
+    {
+        var type = typeof(DrawableProcessor);
+        Assert.Null(type.GetMethod("GetFrameInfo"));
+        Assert.Null(type.GetMethod("GetSettings"));
+        Assert.Null(type.GetMethod("HasOccluders"));
+        Assert.Null(type.GetMethod("GetOccluders"));
+        Assert.Null(type.GetMethod("GetGeometries"));
+        Assert.Null(type.GetMethod("GetSceneZRange"));
+        Assert.Null(type.GetMethod("GetLights"));
+        Assert.Null(type.GetMethod("GetLightProcessors"));
+        Assert.Null(type.GetMethod("GetLightProcessorsByShadowMap"));
+        Assert.NotNull(type.GetProperty(nameof(DrawableProcessor.FrameInfo)));
+        Assert.NotNull(type.GetProperty(nameof(DrawableProcessor.Settings)));
+        Assert.NotNull(type.GetProperty(nameof(DrawableProcessor.HasOccluders)));
+        Assert.NotNull(type.GetProperty(nameof(DrawableProcessor.Occluders)));
+        Assert.NotNull(type.GetProperty(nameof(DrawableProcessor.Geometries)));
+        Assert.NotNull(type.GetProperty(nameof(DrawableProcessor.SceneZRange)));
+        Assert.NotNull(type.GetProperty(nameof(DrawableProcessor.Lights)));
+        Assert.NotNull(type.GetProperty(nameof(DrawableProcessor.LightProcessors)));
+        Assert.NotNull(type.GetProperty(nameof(DrawableProcessor.LightProcessorsByShadowMap)));
     }
 
     [Fact]
@@ -183,7 +207,7 @@ public sealed class DrawableProcessorTests
             GetPrivateField<Vector3f>(processor, "_cullCameraZAxis"));
         Assert.Equal(checked((int)WorkQueue.GetThreadIndexCount()),
             GetPrivateField<FloatRange[]>(processor, "_sceneZRangeTemp").Length);
-        Assert.Same(light, Assert.Single(processor.GetLights()));
+        Assert.Same(light, Assert.Single(processor.Lights));
     }
 
     [Fact]

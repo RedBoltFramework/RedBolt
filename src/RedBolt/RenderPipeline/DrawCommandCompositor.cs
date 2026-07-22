@@ -180,14 +180,14 @@ internal ref struct DrawCommandCompositor
         _ctx = ctx;
         _settings = settings;
         _backend = ctx.Camera.GetSubsystem<RenderDevice>()!.GetBackend();
-        _numVertexLights = checked((int)drawableProcessor.GetSettings().MaxVertexLights);
+        _numVertexLights = checked((int)drawableProcessor.Settings.MaxVertexLights);
         _debugger = debugger;
         _debuggerEnabled = debuggerEnabled;
         _drawableProcessor = drawableProcessor;
         _instancingBuffer = instancingBuffer;
-        _frameInfo = drawableProcessor.GetFrameInfo();
+        _frameInfo = drawableProcessor.FrameInfo;
         _scene = _frameInfo.Scene!;
-        _lights = drawableProcessor.GetLightProcessors();
+        _lights = drawableProcessor.LightProcessors;
         _cameraNode = ctx.Camera.Node!;
         _depthRange = ctx.Camera.GetFarClip();
         _clipPlane = BatchRendererHelpers.GetClipPlane(ctx.Camera);

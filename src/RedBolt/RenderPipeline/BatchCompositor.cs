@@ -353,7 +353,7 @@ public class BatchCompositor : Object
     public void ComposeShadowBatches()
     {
         // Collect shadow caster batches in worker threads
-        var lightProcessors = _drawableProcessor.GetLightProcessors();
+        var lightProcessors = _drawableProcessor.LightProcessors;
         for (var lightIndex = 0; lightIndex < lightProcessors.Count; ++lightIndex)
         {
             var lightProcessor = lightProcessors[lightIndex];
@@ -395,7 +395,7 @@ public class BatchCompositor : Object
 
         var ctx = new BatchStateCreateContext(this, LitVolumeSubpass, 0);
 
-        var lightProcessors = _drawableProcessor.GetLightProcessors();
+        var lightProcessors = _drawableProcessor.LightProcessors;
         for (var lightIndex = 0; lightIndex < lightProcessors.Count; ++lightIndex)
         {
             var lightProcessor = lightProcessors[lightIndex];
@@ -579,7 +579,7 @@ public class BatchCompositor : Object
         }
 
         // Finalize shadow batches
-        var lightProcessors = _drawableProcessor.GetLightProcessors();
+        var lightProcessors = _drawableProcessor.LightProcessors;
         for (var lightIndex = 0; lightIndex < lightProcessors.Count; ++lightIndex)
         {
             var lightProcessor = lightProcessors[lightIndex];

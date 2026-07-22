@@ -181,7 +181,7 @@ public class LightProcessor : IDisposable
     /// <summary>Update light in worker thread.</summary>
     public void Update(DrawableProcessor drawableProcessor, LightProcessorCallback callback)
     {
-        var frameInfo = drawableProcessor.GetFrameInfo();
+        var frameInfo = drawableProcessor.FrameInfo;
         var octree = frameInfo.Octree!;
         var cullCamera = frameInfo.Camera!;
 
@@ -219,7 +219,7 @@ public class LightProcessor : IDisposable
                 _hasLitGeometries = false;
                 _hasForwardLitGeometries = false;
                 var lightMask = Light.GetLightMask();
-                foreach (var drawable in drawableProcessor.GetGeometries())
+                foreach (var drawable in drawableProcessor.Geometries)
                 {
                     var drawableIndex = drawable.GetDrawableIndex();
                     var flags = drawableProcessor.GetGeometryRenderFlags(drawableIndex);
@@ -301,8 +301,8 @@ public class LightProcessor : IDisposable
             }
         }
 
-        var cullCamera = drawableProcessor.GetFrameInfo().Camera!;
-        CookShaderParameters(cullCamera, drawableProcessor.GetSettings());
+        var cullCamera = drawableProcessor.FrameInfo.Camera!;
+        CookShaderParameters(cullCamera, drawableProcessor.Settings);
         UpdateHashes();
     }
 
@@ -360,7 +360,7 @@ public class LightProcessor : IDisposable
         {
             case LightType.Directional:
             {
-                var frameInfo = drawableProcessor.GetFrameInfo();
+                var frameInfo = drawableProcessor.FrameInfo;
                 var cullCamera = frameInfo.Camera!;
                 var activeSplits = GetActiveSplits(Light, cullCamera.GetNearClip(), cullCamera.GetFarClip());
 

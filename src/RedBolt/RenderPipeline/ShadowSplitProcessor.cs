@@ -62,13 +62,13 @@ public class ShadowSplitProcessor : IDisposable
     public void InitializeDirectional(DrawableProcessor drawableProcessor,
         FloatRange splitRange, IReadOnlyList<Drawable> litGeometries)
     {
-        var cullCamera = drawableProcessor.GetFrameInfo().Camera!;
+        var cullCamera = drawableProcessor.FrameInfo.Camera!;
         var focusParameters = Light.GetShadowFocus();
 
         // Initialize split Z ranges
         _cascadeZRange = splitRange;
         _focusedCascadeZRange = focusParameters.Focus
-            ? drawableProcessor.GetSceneZRange() & _cascadeZRange
+            ? drawableProcessor.SceneZRange & _cascadeZRange
             : _cascadeZRange;
 
         // Initialize shadow camera
@@ -122,11 +122,11 @@ public class ShadowSplitProcessor : IDisposable
         _sortedShadowBatches.Clear();
 
         // Skip split if outside of the scene
-        if (!drawableProcessor.GetSceneZRange().Intersect(_cascadeZRange))
+        if (!drawableProcessor.SceneZRange.Intersect(_cascadeZRange))
             return;
 
         // Query shadow casters
-        var frameInfo = drawableProcessor.GetFrameInfo();
+        var frameInfo = drawableProcessor.FrameInfo;
         var cullCamera = frameInfo.Camera!;
         var octree = frameInfo.Octree!;
 
@@ -158,7 +158,7 @@ public class ShadowSplitProcessor : IDisposable
         _sortedShadowBatches.Clear();
 
         // Check that the face is visible: if not, can skip the split
-        var cullCamera = drawableProcessor.GetFrameInfo().Camera!;
+        var cullCamera = drawableProcessor.FrameInfo.Camera!;
         var cullCameraFrustum = cullCamera.GetFrustum();
         var shadowCameraFrustum = _shadowCamera.GetFrustum();
 
@@ -321,7 +321,7 @@ public class ShadowSplitProcessor : IDisposable
     private BoundingBox GetSplitShadowBoundingBoxInLightSpace(
         DrawableProcessor drawableProcessor, IReadOnlyList<Drawable> litGeometries)
     {
-        var cullCamera = drawableProcessor.GetFrameInfo().Camera!;
+        var cullCamera = drawableProcessor.FrameInfo.Camera!;
         var focusParameters = Light.GetShadowFocus();
         var splitFrustum = cullCamera.GetSplitFrustum(_focusedCascadeZRange.First, _focusedCascadeZRange.Second);
 
