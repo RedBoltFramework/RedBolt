@@ -23,14 +23,13 @@ public sealed class RenderBufferManagerTargetTests : IDisposable
         var colorBuffer = manager.GetColorOutput();
 
         manager.SetRenderTargetsRect(
-            _fixture.Graphics,
             IntRect.Zero,
             depthBuffer,
             new[] { colorBuffer },
             readOnlyDepth: false,
             face: CubeMapFace.PositiveX);
 
-        manager.SetOutputRenderTargetsRect(_fixture.Graphics, new IntRect(0, 0, 160, 100));
+        manager.SetOutputRenderTargetsRect(new IntRect(0, 0, 160, 100));
         pipeline.EndFrame(frameInfo);
     }
 

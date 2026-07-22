@@ -76,14 +76,13 @@ public class LightmapRenderPipelineView : Object, IRenderPipelineInterface
             return;
 
         var invalidPosition = new Color(-100000000.0f, -100000000.0f, -100000000.0f, 0.0f);
-        // C# Clear* APIs require Graphics; pass graphics for managed mapping of C++ overloads.
-        renderBufferManager.ClearDepthStencil(graphics, _depthBuffer, ClearTarget.Depth, 1.0f, 0);
-        renderBufferManager.ClearColor(graphics, _positionBuffer, invalidPosition);
-        renderBufferManager.ClearColor(graphics, _smoothPositionBuffer, invalidPosition);
-        renderBufferManager.ClearColor(graphics, _faceNormalBuffer, Color.TransparentBlack);
-        renderBufferManager.ClearColor(graphics, _smoothNormalBuffer, Color.TransparentBlack);
-        renderBufferManager.ClearColor(graphics, _albedoBuffer, Color.TransparentBlack);
-        renderBufferManager.ClearColor(graphics, _emissionBuffer, Color.TransparentBlack);
+        renderBufferManager.ClearDepthStencil(_depthBuffer, ClearTarget.Depth, 1.0f, 0);
+        renderBufferManager.ClearColor(_positionBuffer, invalidPosition);
+        renderBufferManager.ClearColor(_smoothPositionBuffer, invalidPosition);
+        renderBufferManager.ClearColor(_faceNormalBuffer, Color.TransparentBlack);
+        renderBufferManager.ClearColor(_smoothNormalBuffer, Color.TransparentBlack);
+        renderBufferManager.ClearColor(_albedoBuffer, Color.TransparentBlack);
+        renderBufferManager.ClearColor(_emissionBuffer, Color.TransparentBlack);
 
         var renderDevice = GetSubsystem<RenderDevice>();
         if (renderDevice is null)
@@ -107,7 +106,7 @@ public class LightmapRenderPipelineView : Object, IRenderPipelineInterface
             _albedoBuffer,
             _emissionBuffer
         ];
-        renderBufferManager.SetRenderTargets(graphics, _depthBuffer, gBuffer);
+        renderBufferManager.SetRenderTargets(_depthBuffer, gBuffer);
 
         drawQueue.Reset();
 

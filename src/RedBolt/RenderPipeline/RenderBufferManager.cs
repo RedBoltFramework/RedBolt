@@ -8,50 +8,44 @@ namespace RedBolt;
 /// </summary>
 public sealed class RenderBufferManager : Object
 {
-    private static readonly IReadOnlyDictionary<string, object?> EmptyShaderParameters = new Dictionary<string, object?>(0, StringComparer.Ordinal);
     private readonly IRenderPipelineInterface _renderPipeline;
     private readonly Graphics _graphics;
     private readonly Renderer _renderer;
     private readonly RenderDevice _renderDevice;
     private readonly RenderContext _renderContext;
+    private readonly RenderPipelineDebugger _debugger;
     private readonly DrawCommandQueue _drawQueue;
+    private RenderBufferManagerSettings _settings = new();
     private readonly StaticPipelineStateCache _pipelineStates = new();
+    private readonly ViewportColorRenderBuffer _viewportColorBuffer;
+    private readonly ViewportDepthStencilRenderBuffer _viewportDepthBuffer;
     private StaticPipelineStateId _copyTexturePipelineState;
     private StaticPipelineStateId _copyGammaToLinearTexturePipelineState;
     private StaticPipelineStateId _copyLinearToGammaTexturePipelineState;
-    // C++: MaxClearVariants = (CLEAR_COLOR | CLEAR_DEPTH | CLEAR_STENCIL) + 1
     private const int MaxClearVariants = (int)(ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil) + 1;
     private readonly StaticPipelineStateId[] _clearPipelineState = new StaticPipelineStateId[MaxClearVariants];
-
-    private readonly struct ClearFramebufferParameters
-    {
-        [ShaderParameterName("Color")]
-        public Vector4f Color { get; init; }
-
-        [ShaderParameterName("Depth")]
-        public float Depth { get; init; }
-    }
-
-    private readonly ViewportColorRenderBuffer _viewportColorBuffer;
-    private readonly ViewportDepthStencilRenderBuffer _viewportDepthBuffer;
-    private readonly RenderTargetView[] _renderTargetViews = new RenderTargetView[RenderApiLimits.MaxRenderTargets];
-    private readonly ShaderResourceDesc[] _copyShaderResources = new ShaderResourceDesc[1];
-    private TextureRenderBuffer? _primaryColorBuffer;
-    private TextureRenderBuffer? _secondaryColorBuffer;
-    private TextureRenderBuffer? _depthBuffer;
-    private RenderBufferManagerSettings _settings = new();
-    private RenderBufferManagerFrameSettings _frameSettings = new();
+    private readonly RenderBuffer?[] _substituteRenderBuffers = new RenderBuffer?[2];
+    private RenderBuffer? _substituteDepthBuffer;
     private RenderBufferParams _colorOutputParams = new(TextureFormat.TexFormatRgba8Unorm);
     private RenderBufferParams _depthStencilOutputParams = new(TextureFormat.TexFormatUnknown);
-    private IntRect _viewportRect;
-    private RenderBuffer _depthStencilBuffer;
-    private RenderBuffer _writeableColorBuffer;
-    private RenderBuffer? _readableColorBuffer;
-    private bool _flipColorBuffersNextTime;
     private bool _linearColorSpace;
     private bool _hdr;
+    private RenderBufferManagerFrameSettings _frameSettings = new();
     private float _timeStep;
-    private readonly RenderPipelineDebugger _debugger;
+    private IntRect _viewportRect;
+    private RenderBuffer? _depthStencilBuffer;
+    private RenderBuffer? _writeableColorBuffer;
+    private RenderBuffer? _readableColorBuffer;
+    private bool _flipColorBuffersNextTime;
+
+    private readonly ShaderParameterDesc[] _clearShaderParameters =
+    [
+        new() { Name = new StringHash("Color") },
+        new() { Name = new StringHash("Depth") }
+    ];
+
+    private readonly RenderTargetView[] _renderTargetViews = new RenderTargetView[RenderApiLimits.MaxRenderTargets];
+    private readonly ShaderResourceDesc[] _copyShaderResources = new ShaderResourceDesc[1];
 
     public RenderBufferManager(IRenderPipelineInterface renderPipeline)
     {
@@ -63,14 +57,13 @@ public sealed class RenderBufferManager : Object
         _debugger = renderPipeline.GetDebugger();
         _drawQueue = _renderDevice.GetDefaultQueue();
 
+        // Order is important. RenderBufferManager should receive callbacks before any of render buffers
         _renderPipeline.PipelineStatesInvalidated += OnPipelineStatesInvalidated;
         _renderPipeline.RenderBegin += OnRenderBegin;
         _renderPipeline.RenderEnd += OnRenderEnd;
 
         _viewportColorBuffer = new ViewportColorRenderBuffer(_renderPipeline);
         _viewportDepthBuffer = new ViewportDepthStencilRenderBuffer(_renderPipeline);
-        _depthStencilBuffer = _viewportDepthBuffer;
-        _writeableColorBuffer = _viewportColorBuffer;
         InitializePipelineStates();
     }
 
@@ -164,25 +157,25 @@ public sealed class RenderBufferManager : Object
             || (_settings.StencilBuffer && !outputHasStencil);
         var needSubstitutePrimaryBuffer = !isOutputMatching || needSubstituteDepthBuffer;
 
-        if (needSubstitutePrimaryBuffer && _primaryColorBuffer is null)
+        if (needSubstitutePrimaryBuffer && _substituteRenderBuffers[0] is null)
         {
-            _primaryColorBuffer = new TextureRenderBuffer(_renderPipeline, _colorOutputParams);
-            _primaryColorBuffer.BeginCurrentFrame(frameInfo);
+            _substituteRenderBuffers[0] = new TextureRenderBuffer(_renderPipeline, _colorOutputParams);
+            _substituteRenderBuffers[0]!.BeginCurrentFrame(frameInfo);
         }
-        if (needSecondaryBuffer && _secondaryColorBuffer is null)
+        if (needSecondaryBuffer && _substituteRenderBuffers[1] is null)
         {
-            _secondaryColorBuffer = new TextureRenderBuffer(_renderPipeline, _colorOutputParams);
-            _secondaryColorBuffer.BeginCurrentFrame(frameInfo);
+            _substituteRenderBuffers[1] = new TextureRenderBuffer(_renderPipeline, _colorOutputParams);
+            _substituteRenderBuffers[1]!.BeginCurrentFrame(frameInfo);
         }
-        if (needSubstituteDepthBuffer && _depthBuffer is null)
+        if (needSubstituteDepthBuffer && _substituteDepthBuffer is null)
         {
-            _depthBuffer = new TextureRenderBuffer(_renderPipeline, _depthStencilOutputParams);
-            _depthBuffer.BeginCurrentFrame(frameInfo);
+            _substituteDepthBuffer = new TextureRenderBuffer(_renderPipeline, _depthStencilOutputParams);
+            _substituteDepthBuffer.BeginCurrentFrame(frameInfo);
         }
 
-        _depthStencilBuffer = needSubstituteDepthBuffer ? _depthBuffer! : _viewportDepthBuffer;
-        _writeableColorBuffer = needSubstitutePrimaryBuffer ? _primaryColorBuffer! : _viewportColorBuffer;
-        _readableColorBuffer = needSecondaryBuffer ? _secondaryColorBuffer : null;
+        _depthStencilBuffer = needSubstituteDepthBuffer ? _substituteDepthBuffer : _viewportDepthBuffer;
+        _writeableColorBuffer = needSubstitutePrimaryBuffer ? _substituteRenderBuffers[0] : _viewportColorBuffer;
+        _readableColorBuffer = needSecondaryBuffer ? _substituteRenderBuffers[1] : null;
 
         if (_flipColorBuffersNextTime && _readableColorBuffer is not null)
         {
@@ -197,9 +190,7 @@ public sealed class RenderBufferManager : Object
     /// </summary>
     public StaticPipelineStateId CreateQuadPipelineState(GraphicsPipelineStateDesc description)
     {
-        var quadGeometry = _renderer?.GetQuadGeometry();
-        if (quadGeometry is null)
-            return StaticPipelineStateId.Invalid;
+        var quadGeometry = _renderer.GetQuadGeometry()!;
 
         GraphicsUtils.InitializeInputLayoutAndPrimitiveType(ref description, quadGeometry);
         description.ColorWriteEnabled = true;
@@ -216,8 +207,8 @@ public sealed class RenderBufferManager : Object
         {
             DebugName = $"Quad with {shaderName}({defines})",
             BlendMode = blendMode,
-            VertexShader = _graphics?.GetShader(ShaderType.VS, shaderName, defines),
-            PixelShader = _graphics?.GetShader(ShaderType.PS, shaderName, defines)
+            VertexShader = _graphics.GetShader(ShaderType.VS, shaderName, defines),
+            PixelShader = _graphics.GetShader(ShaderType.PS, shaderName, defines)
         };
 
         foreach (var sampler in samplers)
@@ -231,9 +222,7 @@ public sealed class RenderBufferManager : Object
     /// </summary>
     public PipelineState? GetQuadPipelineState(StaticPipelineStateId id)
     {
-        return _renderContext is null
-            ? null
-            : _pipelineStates.GetState(id, _renderContext.GetCurrentRenderTargetsDesc());
+        return _pipelineStates.GetState(id, _renderContext.GetCurrentRenderTargetsDesc());
     }
 
     /// <summary>
@@ -242,20 +231,19 @@ public sealed class RenderBufferManager : Object
     public void DrawQuad(string debugComment, DrawQuadParams parameters, bool flipVertical = false)
     {
         var pipelineState = parameters.PipelineState ?? GetQuadPipelineState(parameters.PipelineStateId);
-        if (pipelineState is null || !pipelineState.IsValid || _renderContext is null || _drawQueue is null)
+        if (pipelineState is null || !pipelineState.IsValid)
             return;
 
         using var renderScope = new RenderScope(_renderContext, debugComment);
 
-        var quadGeometry = _renderer?.GetQuadGeometry();
-        if (quadGeometry is null)
-            return;
+        var quadGeometry = _renderer.GetQuadGeometry()!;
         var modelMatrix = Matrix3x4.Identity;
         var projection = Matrix4.Identity;
         if (flipVertical)
             projection.M11 = -1.0f;
 
-        var isOpenGL = _renderDevice?.GetBackend() == RenderBackend.OpenGL;
+        // OpenGL z range is [-1, 1] instead of [0, 1], draw quad at z = 0.5 for consistency
+        var isOpenGL = _renderDevice.GetBackend() == RenderBackend.OpenGL;
         modelMatrix.M23 = isOpenGL ? 0.0f : 0.5f;
 
         _drawQueue.Reset();
@@ -308,7 +296,7 @@ public sealed class RenderBufferManager : Object
         _renderContext.Execute(_drawQueue);
 
         if (RenderPipelineDebugger.IsSnapshotInProgress(_debugger))
-            _debugger!.ReportQuad(debugComment, _renderContext.GetCurrentViewport().Size);
+            _debugger.ReportQuad(debugComment, _renderContext.GetCurrentViewport().Size);
     }
 
     public void DrawViewportQuad(string debugComment, StaticPipelineStateId pipelineStateId,
@@ -346,27 +334,28 @@ public sealed class RenderBufferManager : Object
 
     private void OnRenderEnd(CommonFrameInfo frameInfo)
     {
-        ResolveToViewport(_graphics);
+        if (ReferenceEquals(_writeableColorBuffer, _viewportColorBuffer))
+            return;
+
+        var colorTexture = _writeableColorBuffer!.GetTexture()!;
+        var textureSize = colorTexture.GetParams().Size;
+        CopyTextureRegion(
+            "Copy final color to output RenderSurface",
+            colorTexture,
+            new IntRect(0, 0, textureSize.X, textureSize.Y),
+            _viewportColorBuffer.GetView(),
+            _viewportColorBuffer.GetViewportRect(),
+            ColorSpaceTransition.Automatic,
+            false);
+
+        _flipColorBuffersNextTime ^= ReferenceEquals(_viewportColorBuffer, _readableColorBuffer);
     }
 
-    public SharedRenderPassState PopulateSharedState(SharedRenderPassState state)
-    {
-        ArgumentNullException.ThrowIfNull(state);
+    public TextureRenderBuffer CreateColorBuffer(RenderBufferParams bufferParams)
+        => new(_renderPipeline, bufferParams, Vector2f.One);
 
-        state.RenderBufferManager = this;
-        state.RenderBuffers["Viewport.Color"] = _writeableColorBuffer;
-        state.RenderBuffers["Viewport.Depth"] = _depthStencilBuffer;
-        if (_readableColorBuffer is not null)
-            state.RenderBuffers["Viewport.Color.Readable"] = _readableColorBuffer;
-        return state;
-    }
-
-    public TextureRenderBuffer CreateColorBuffer(RenderBufferParams bufferParams, Vector2f size = default)
-    {
-        return size == default
-            ? new TextureRenderBuffer(_renderPipeline, bufferParams)
-            : new TextureRenderBuffer(_renderPipeline, bufferParams, size);
-    }
+    public TextureRenderBuffer CreateColorBuffer(RenderBufferParams bufferParams, Vector2f size)
+        => new(_renderPipeline, bufferParams, size);
 
     /// <summary>
     /// Swap color buffers used to render to and to read from.
@@ -375,10 +364,13 @@ public sealed class RenderBufferManager : Object
     public void SwapColorBuffers(bool synchronizeContents)
     {
         if (!_frameSettings.SupportColorReadWrite)
-            throw new InvalidOperationException("Cannot swap color buffers when color read/write is not enabled for the frame.");
+        {
+            Log.GetLogger().LogError("Cannot call SwapColorBuffers if 'supportColorReadWrite' flag is not set");
+            Debug.Assert(false);
+            return;
+        }
 
         Debug.Assert(_readableColorBuffer is not null && _writeableColorBuffer is not null);
-        // ea::swap(writeableColorBuffer_, readableColorBuffer_);
         var previousWriteable = _writeableColorBuffer;
         _writeableColorBuffer = _readableColorBuffer;
         _readableColorBuffer = previousWriteable;
@@ -386,103 +378,37 @@ public sealed class RenderBufferManager : Object
         if (!synchronizeContents)
             return;
 
-        var readableTexture = _readableColorBuffer.GetTexture();
-        if (readableTexture is null)
-            return;
-
-        SetRenderTargets(_graphics, _writeableColorBuffer, _depthStencilBuffer);
-        DrawTexture(_graphics, "Synchronize readable and writeable color buffers", readableTexture);
+        SetRenderTargets(_depthStencilBuffer, _writeableColorBuffer!);
+        DrawTexture("Synchronize readable and writeable color buffers", _readableColorBuffer.GetTexture()!);
     }
 
     /// <summary>
     /// Bind the currently writable color buffer and matching depth-stencil buffer as render outputs.
     /// </summary>
-    public void SetOutputRenderTargets(Graphics graphics, bool readOnlyDepth = false)
+    public void SetOutputRenderTargets(bool readOnlyDepth = false)
     {
-        // C++: SetRenderTargetsRect(ZERO, GetDepthStencilOutput(), { GetColorOutput() }, readOnlyDepth)
-        ArgumentNullException.ThrowIfNull(graphics);
-        SetRenderTargets(graphics, GetDepthStencilOutput(), [GetColorOutput()], readOnlyDepth);
+        SetRenderTargets(_depthStencilBuffer, _writeableColorBuffer!, readOnlyDepth);
     }
 
-    public void SetOutputRenderTargetsRect(Graphics graphics, IntRect viewportRect, bool readOnlyDepth = false)
+    public void SetOutputRenderTargetsRect(IntRect viewportRect, bool readOnlyDepth = false)
     {
-        ArgumentNullException.ThrowIfNull(graphics);
-        // C++: SetRenderTargetsRect(viewportRect, GetDepthStencilOutput(), { GetColorOutput() }, readOnlyDepth)
-        SetRenderTargetsRect(graphics, viewportRect, GetDepthStencilOutput(), [GetColorOutput()], readOnlyDepth);
+        SetRenderTargetsRect(viewportRect, _depthStencilBuffer, _writeableColorBuffer!, readOnlyDepth);
     }
 
-    /// <summary>
-    /// Render a fullscreen quad into the currently bound output.
-    /// </summary>
-    public void DrawViewportQuad(Graphics graphics, string shaderName, string shaderDefines, BlendMode blendMode,
-        bool bilinearColorSampler, IReadOnlyDictionary<string, object?> parameters, string? debugComment = null,
-        bool flipVertical = false)
-    {
-        ArgumentNullException.ThrowIfNull(graphics);
-        ArgumentException.ThrowIfNullOrWhiteSpace(shaderName);
-        ArgumentNullException.ThrowIfNull(parameters);
-
-        graphics.DrawFullscreenQuad(
-            debugComment ?? shaderName,
-            shaderName,
-            shaderDefines,
-            blendMode,
-            bilinearColorSampler,
-            albedoTexture: null,
-            secondaryTexture: null,
-            depthTexture: null,
-            parameters,
-            GetInvOutputSize(),
-            GetDefaultClipToUVSpaceOffsetAndScale(),
-            flipVertical);
-        if (RenderPipelineDebugger.IsSnapshotInProgress(_debugger))
-            _debugger!.ReportQuad(debugComment ?? shaderName, graphics.GetCurrentRenderTargetSize());
-    }
-
-    /// <summary>
-    /// Render a fullscreen feedback quad that samples the secondary color texture.
-    /// </summary>
-    public void DrawFeedbackViewportQuad(Graphics graphics, string shaderName, string shaderDefines, BlendMode blendMode,
-        bool bilinearColorSampler, IReadOnlyDictionary<string, object?> parameters, string? debugComment = null,
-        bool flipVertical = false)
-    {
-        ArgumentNullException.ThrowIfNull(graphics);
-        ArgumentException.ThrowIfNullOrWhiteSpace(shaderName);
-        ArgumentNullException.ThrowIfNull(parameters);
-
-        graphics.DrawFullscreenQuad(
-            debugComment ?? shaderName,
-            shaderName,
-            shaderDefines,
-            blendMode,
-            bilinearColorSampler,
-            GetSecondaryColorTexture(),
-            secondaryTexture: null,
-            depthTexture: null,
-            parameters,
-            GetInvOutputSize(),
-            GetDefaultClipToUVSpaceOffsetAndScale(),
-            flipVertical);
-        if (RenderPipelineDebugger.IsSnapshotInProgress(_debugger))
-            _debugger!.ReportQuad(debugComment ?? shaderName, graphics.GetCurrentRenderTargetSize());
-    }
-
-    public void CopyTextureRegion(Graphics graphics, string debugComment, RawTexture sourceTexture, IntRect sourceRect,
+    private void CopyTextureRegion(string debugComment, RawTexture sourceTexture, IntRect sourceRect,
         RenderTargetView destinationSurface, IntRect destinationRect, ColorSpaceTransition mode = ColorSpaceTransition.None,
         bool flipVertical = false)
     {
-        ArgumentNullException.ThrowIfNull(graphics);
-        ArgumentNullException.ThrowIfNull(sourceTexture);
-
-        _renderContext.SetRenderTargets(default, [destinationSurface]);
+        _renderTargetViews[0] = destinationSurface;
+        _renderContext.SetRenderTargets(default, _renderTargetViews.AsSpan(0, 1));
         _renderContext.SetViewport(destinationRect);
-        DrawTextureRegion(graphics, debugComment, sourceTexture, sourceRect, mode, flipVertical);
+        DrawTextureRegion(debugComment, sourceTexture, sourceRect, mode, flipVertical);
     }
 
     /// <summary>
     /// Draw region of input texture into currently bound render buffer. sRGB is taken into account.
     /// </summary>
-    public void DrawTextureRegion(Graphics graphics, string debugComment, RawTexture sourceTexture, IntRect sourceRect,
+    public void DrawTextureRegion(string debugComment, RawTexture sourceTexture, IntRect sourceRect,
         ColorSpaceTransition mode = ColorSpaceTransition.None, bool flipVertical = false)
     {
         var textureParams = sourceTexture.GetParams();
@@ -495,9 +421,7 @@ public sealed class RenderBufferManager : Object
         var effectiveSourceRect = sourceRect != IntRect.Zero
             ? sourceRect
             : new IntRect(0, 0, size.X, size.Y);
-        var invInputSize = new Vector2f(
-            size.X > 0 ? 1.0f / size.X : 0.0f,
-            size.Y > 0 ? 1.0f / size.Y : 0.0f);
+        var invInputSize = Vector2f.One / new Vector2f(size.X, size.Y);
         var destinationFormat = _renderContext.GetCurrentRenderTargetsDesc().RenderTargetFormats[0];
         var isSrgbSource = RenderAPIUtils.IsTextureFormatSRGB(textureParams.Format);
         var isSrgbDestination = RenderAPIUtils.IsTextureFormatSRGB(destinationFormat);
@@ -531,95 +455,72 @@ public sealed class RenderBufferManager : Object
         _copyLinearToGammaTexturePipelineState = CreateQuadPipelineState(
             BlendMode.Replace, "v2/X_CopyFramebuffer", "URHO3D_LINEAR_TO_GAMMA", samplers);
 
-        // C++ InitializePipelineStates: clearPipelineState_[i] for each ClearTargetFlags variant
         for (var i = 0; i < MaxClearVariants; ++i)
             _clearPipelineState[i] = CreateQuadPipelineState(GetClearPipelineStateDesc((ClearTarget)i));
     }
 
-    /// <summary>
-    /// C++ GetClearPipelineStateDesc — v2/X_ClearFramebuffer with color/depth/stencil write flags.
-    /// </summary>
     private GraphicsPipelineStateDesc GetClearPipelineStateDesc(ClearTarget flags)
     {
         const string shaderName = "v2/X_ClearFramebuffer";
         return new GraphicsPipelineStateDesc
         {
             DebugName = shaderName,
-            VertexShader = _graphics?.GetShader(ShaderType.VS, shaderName, string.Empty),
-            PixelShader = _graphics?.GetShader(ShaderType.PS, shaderName, string.Empty),
+            VertexShader = _graphics.GetShader(ShaderType.VS, shaderName, string.Empty),
+            PixelShader = _graphics.GetShader(ShaderType.PS, shaderName, string.Empty),
             ColorWriteEnabled = (flags & ClearTarget.Color) != 0,
             BlendMode = BlendMode.Replace,
             DepthWriteEnabled = (flags & ClearTarget.Depth) != 0,
-            DepthCompareFunction = CompareMode.Always,
             StencilWriteMask = (flags & ClearTarget.Stencil) != 0 ? 0xffu : 0u,
             StencilOperationOnPassed = StencilOp.Ref,
-            StencilTestEnabled = (flags & ClearTarget.Stencil) != 0,
-            StencilCompareFunction = CompareMode.Always,
         };
     }
 
     /// <summary>
     /// Draw input texture into currently bound render buffer. sRGB is taken into account.
     /// </summary>
-    public void DrawTexture(Graphics graphics, string debugComment, RawTexture sourceTexture,
+    public void DrawTexture(string debugComment, RawTexture sourceTexture,
         ColorSpaceTransition mode = ColorSpaceTransition.None, bool flipVertical = false)
     {
-        DrawTextureRegion(graphics, debugComment, sourceTexture, IntRect.Zero, mode, flipVertical);
-    }
-
-    /// <summary>
-    /// Return whether the final output must be copied back to the viewport target.
-    /// </summary>
-    public bool NeedsViewportResolve() => !ReferenceEquals(_writeableColorBuffer, _viewportColorBuffer);
-
-    /// <summary>
-    /// Copy the current color output back to the viewport render target.
-    /// </summary>
-    public void ResolveToViewport(Graphics graphics)
-    {
-        ArgumentNullException.ThrowIfNull(graphics);
-
-        if (!NeedsViewportResolve())
-            return;
-
-        var colorTexture = _writeableColorBuffer.GetTexture();
-        if (colorTexture is null)
-            return;
-
-        var viewportColorTarget = _viewportColorBuffer.GetView();
-        CopyTextureRegion(
-            graphics,
-            "Copy final color to output RenderSurface",
-            colorTexture,
-            new IntRect(0, 0, colorTexture.GetParams().Size.X, colorTexture.GetParams().Size.Y),
-            viewportColorTarget,
-            _viewportColorBuffer.GetViewportRect(),
-            ColorSpaceTransition.Automatic);
-
-        if (ReferenceEquals(_viewportColorBuffer, _readableColorBuffer))
-            _flipColorBuffersNextTime = !_flipColorBuffersNextTime;
+        DrawTextureRegion(debugComment, sourceTexture, IntRect.Zero, mode, flipVertical);
     }
 
     /// <summary>
     /// Bind an explicit render target buffer for custom intermediate passes.
     /// </summary>
-    public void SetRenderTargets(Graphics graphics, RenderBuffer? colorBuffer, RenderBuffer? depthStencilBuffer = null, bool readOnlyDepth = false)
+    public void SetRenderTargets(RenderBuffer? depthStencilBuffer, RenderBuffer colorBuffer,
+        bool readOnlyDepth = false, CubeMapFace face = CubeMapFace.PositiveX)
     {
-        ArgumentNullException.ThrowIfNull(graphics);
-        ArgumentNullException.ThrowIfNull(colorBuffer);
-        // C++: SetRenderTargets(depth, { color }) via renderContext_
-        SetRenderTargets(graphics, depthStencilBuffer, [colorBuffer], readOnlyDepth);
+        SetRenderTargetsRect(IntRect.Zero, depthStencilBuffer, colorBuffer, readOnlyDepth, face);
     }
 
-    public void SetRenderTargetsRect(Graphics graphics, IntRect viewportRect, RenderBuffer? depthStencilBuffer,
-        IReadOnlyList<RenderBuffer> colorBuffers, bool readOnlyDepth = false, CubeMapFace face = CubeMapFace.PositiveX)
+    public void SetRenderTargetsRect(IntRect viewportRect, RenderBuffer? depthStencilBuffer, RenderBuffer colorBuffer,
+        bool readOnlyDepth = false, CubeMapFace face = CubeMapFace.PositiveX)
     {
-        ArgumentNullException.ThrowIfNull(graphics);
-        ArgumentNullException.ThrowIfNull(colorBuffers);
-        // C++ RenderBufferManager::SetRenderTargetsRect — bind via renderContext_, then SetViewport.
-        if (_renderContext is null)
-            return;
+        IntRect? defaultViewportRect = null;
+        RenderTargetView? depthStencilRef = default;
+        if (depthStencilBuffer is not null)
+        {
+            defaultViewportRect ??= depthStencilBuffer.GetViewportRect();
+            depthStencilRef = readOnlyDepth
+                ? depthStencilBuffer.GetReadOnlyDepthView((int)face)
+                : depthStencilBuffer.GetView((int)face);
+        }
 
+        defaultViewportRect ??= colorBuffer.GetViewportRect();
+        if (defaultViewportRect.Value == IntRect.Zero)
+        {
+            Log.GetLogger().LogError("Cannot set null render targets");
+            return;
+        }
+
+        _renderTargetViews[0] = colorBuffer.GetView((int)face);
+        _renderContext.SetRenderTargets(depthStencilRef, _renderTargetViews.AsSpan(0, 1));
+        _renderContext.SetViewport(viewportRect == IntRect.Zero ? defaultViewportRect.Value : viewportRect);
+    }
+
+    public void SetRenderTargetsRect(IntRect viewportRect, RenderBuffer? depthStencilBuffer,
+        ReadOnlySpan<RenderBuffer> colorBuffers, bool readOnlyDepth = false, CubeMapFace face = CubeMapFace.PositiveX)
+    {
         IntRect? defaultViewportRect = null;
         RenderTargetView? depthStencilRef = default;
         if (depthStencilBuffer is not null)
@@ -630,7 +531,7 @@ public sealed class RenderBufferManager : Object
             defaultViewportRect = depthStencilBuffer.GetViewportRect();
         }
 
-        for (var i = 0; i < colorBuffers.Count; ++i)
+        for (var i = 0; i < colorBuffers.Length; ++i)
         {
             var colorBuffer = colorBuffers[i];
             _renderTargetViews[i] = colorBuffer.GetView((int)face);
@@ -644,50 +545,38 @@ public sealed class RenderBufferManager : Object
             return;
         }
 
-        _renderContext.SetRenderTargets(depthStencilRef, _renderTargetViews.AsSpan(0, colorBuffers.Count));
+        _renderContext.SetRenderTargets(depthStencilRef, _renderTargetViews.AsSpan(0, colorBuffers.Length));
         if (viewportRect == IntRect.Zero)
             _renderContext.SetViewport(defaultViewportRect.Value);
         else
             _renderContext.SetViewport(viewportRect);
     }
 
-    public void SetRenderTargets(Graphics graphics, RenderBuffer? depthStencilBuffer,
-        IReadOnlyList<RenderBuffer> colorBuffers, bool readOnlyDepth = false, CubeMapFace face = CubeMapFace.PositiveX)
+    public void SetRenderTargets(RenderBuffer? depthStencilBuffer,
+        ReadOnlySpan<RenderBuffer> colorBuffers, bool readOnlyDepth = false, CubeMapFace face = CubeMapFace.PositiveX)
     {
-        SetRenderTargetsRect(graphics, IntRect.Zero, depthStencilBuffer, colorBuffers, readOnlyDepth, face);
+        SetRenderTargetsRect(IntRect.Zero, depthStencilBuffer, colorBuffers, readOnlyDepth, face);
     }
 
     /// <summary>
     /// Clear depth and/or stencil render target(s).
     /// Changes currently bound depth-stencil and render targets.
     /// </summary>
-    public void ClearDepthStencil(Graphics graphics, RenderBuffer depthStencilBuffer, ClearTarget flags, float depth,
-        byte stencil = 0, CubeMapFace face = CubeMapFace.PositiveX)
+    public void ClearDepthStencil(RenderBuffer depthStencilBuffer, ClearTarget flags, float depth,
+        uint stencil, CubeMapFace face = CubeMapFace.PositiveX)
     {
-        ArgumentNullException.ThrowIfNull(graphics);
-        ArgumentNullException.ThrowIfNull(depthStencilBuffer);
-        if (_renderContext is null)
-            return;
-
-        // C++: SetRenderTargets(depth, {}); SetFullViewport(); ClearDepthStencil(...)
         _renderContext.SetRenderTargets(depthStencilBuffer.GetView((int)face), ReadOnlySpan<RenderTargetView>.Empty);
         _renderContext.SetFullViewport();
-        _renderContext.ClearDepthStencil(flags, depth, stencil);
+        _renderContext.ClearDepthStencil(ClearTarget.Depth | ClearTarget.Stencil, depth, stencil);
     }
 
     /// <summary>
     /// Clear color render target.
     /// Changes currently bound render targets.
     /// </summary>
-    public void ClearColor(Graphics graphics, RenderBuffer colorBuffer, Color color)
+    public void ClearColor(RenderBuffer colorBuffer, Color color, CubeMapFace face = CubeMapFace.PositiveX)
     {
-        ArgumentNullException.ThrowIfNull(graphics);
-        ArgumentNullException.ThrowIfNull(colorBuffer);
-        if (_renderContext is null)
-            return;
-
-        // C++: SetRenderTargets(nullopt, {color}); SetFullViewport(); ClearRenderTarget(0, color)
-        _renderTargetViews[0] = colorBuffer.GetView();
+        _renderTargetViews[0] = colorBuffer.GetView((int)face);
         _renderContext.SetRenderTargets(default, _renderTargetViews.AsSpan(0, 1));
         _renderContext.SetFullViewport();
         _renderContext.ClearRenderTarget(0, color);
@@ -698,18 +587,11 @@ public sealed class RenderBufferManager : Object
     /// If rectangle is specified, only part of render target is cleared.
     /// Changes currently bound depth-stencil and render targets.
     /// </summary>
-    public void ClearOutputRect(Graphics graphics, IntRect viewportRect, ClearTarget flags, Color color, float depth, byte stencil = 0)
+    public void ClearOutputRect(IntRect viewportRect, ClearTarget flags, Color color, float depth, uint stencil)
     {
-        ArgumentNullException.ThrowIfNull(graphics);
-        if (_renderContext is null)
-            return;
-
-        // C++ ClearOutputRect
+        // Do it just in case because we cannot handle any noise below
         flags &= ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil;
-        if (flags == ClearTarget.None)
-            return;
-
-        SetRenderTargetsRect(graphics, viewportRect, GetDepthStencilOutput(), [GetColorOutput()]);
+        SetRenderTargetsRect(viewportRect, _depthStencilBuffer, _writeableColorBuffer!);
         var fullViewportRect = new IntRect(Vector2i.Zero, _renderContext.GetCurrentRenderTargetSize());
         if (_renderContext.GetCurrentViewport() == fullViewportRect)
         {
@@ -717,55 +599,45 @@ public sealed class RenderBufferManager : Object
                 _renderContext.ClearRenderTarget(0, color);
             if ((flags & ClearTarget.Depth) != 0 || (flags & ClearTarget.Stencil) != 0)
                 _renderContext.ClearDepthStencil(flags, depth, stencil);
-            return;
         }
-
-        // C++ ClearOutputRect subregion: DrawViewportQuad with clearPipelineState_[flags]
-        var clearParams = new ShaderParameterDesc[]
+        else
         {
-            new()
-            {
-                Name = new StringHash("Color"),
-                Value = new Variant(color)
-            },
-            new()
-            {
-                Name = new StringHash("Depth"),
-                Value = new Variant(GetFullscreenQuadClearDepth(depth))
-            },
-        };
-        DrawViewportQuad(
-            "Clear output subregion",
-            _clearPipelineState[(int)flags],
-            Array.Empty<ShaderResourceDesc>(),
-            clearParams);
+            var isOpenGL = _renderContext.GetRenderDevice().GetBackend() == RenderBackend.OpenGL;
+            _clearShaderParameters[0].Value = new Variant(color);
+            _clearShaderParameters[1].Value = new Variant(isOpenGL ? depth * 2.0f - 1.0f : depth);
+            DrawViewportQuad(
+                "Clear output subregion",
+                _clearPipelineState[(int)flags],
+                Array.Empty<ShaderResourceDesc>(),
+                _clearShaderParameters);
+        }
     }
 
-    public void ClearOutput(Graphics graphics, ClearTarget flags, Color color, float depth, byte stencil = 0)
+    public void ClearOutput(ClearTarget flags, Color color, float depth, uint stencil)
     {
-        ClearOutputRect(graphics, IntRect.Zero, flags, color, depth, stencil);
+        ClearOutputRect(IntRect.Zero, flags, color, depth, stencil);
     }
 
-    public void ClearOutput(Graphics graphics, Color color, float depth = 1.0f, byte stencil = 0)
+    public void ClearOutput(Color color, float depth = 1.0f, uint stencil = 0)
     {
-        ClearOutput(graphics, ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil, color, depth, stencil);
+        ClearOutput(ClearTarget.Color | ClearTarget.Depth | ClearTarget.Stencil, color, depth, stencil);
     }
 
     /// <summary>
     /// Return depth-stencil buffer. Stays the same during the frame.
     /// </summary>
-    public RenderBuffer GetDepthStencilOutput() => _depthStencilBuffer;
+    public RenderBuffer? GetDepthStencilOutput() => _depthStencilBuffer;
 
     /// <summary>
     /// Return color render buffer. Changes on SwapColorBuffers.
     /// </summary>
-    public RenderBuffer GetColorOutput() => _writeableColorBuffer;
+    public RenderBuffer? GetColorOutput() => _writeableColorBuffer;
 
     /// <summary>
     /// Return readable depth texture.
     /// It's not allowed to write depth and read it from shader input simultaneously for same depth-stencil buffer.
     /// </summary>
-    public RawTexture? GetDepthStencilTexture() => _depthStencilBuffer.GetTexture();
+    public RawTexture? GetDepthStencilTexture() => _depthStencilBuffer?.GetTexture();
 
     /// <summary>
     /// Return secondary color render buffer texture that can be used while writing to color render buffer.
@@ -782,15 +654,17 @@ public sealed class RenderBufferManager : Object
     public Vector2f GetInvOutputSize()
     {
         var size = GetOutputSize();
-        return new Vector2f(
-            size.X > 0 ? 1.0f / size.X : 0.0f,
-            size.Y > 0 ? 1.0f / size.Y : 0.0f);
+        return Vector2f.One / new Vector2f(size.X, size.Y);
     }
 
     /// <summary>
     /// Return identity offset and scale used to convert clip space to UV space.
     /// </summary>
-    public Vector4f GetDefaultClipToUVSpaceOffsetAndScale() => new(0.5f, 0.5f, 0.5f, 0.5f);
+    public Vector4f GetDefaultClipToUVSpaceOffsetAndScale()
+    {
+        var size = GetOutputSize();
+        return GetClipToUvOffsetAndScale(size.X, size.Y, new IntRect(Vector2i.Zero, size));
+    }
 
     public TextureFormat GetOutputColorFormat() => _colorOutputParams.TextureFormat;
 
@@ -818,44 +692,37 @@ public sealed class RenderBufferManager : Object
 
     private void ResetCachedRenderBuffers()
     {
-        _depthBuffer?.Dispose();
-        _secondaryColorBuffer?.Dispose();
-        _primaryColorBuffer?.Dispose();
-        _depthBuffer = null;
-        _secondaryColorBuffer = null;
-        _primaryColorBuffer = null;
+        _substituteRenderBuffers[0]?.Dispose();
+        _substituteRenderBuffers[1]?.Dispose();
+        _substituteDepthBuffer?.Dispose();
+        _substituteRenderBuffers[0] = null;
+        _substituteRenderBuffers[1] = null;
+        _substituteDepthBuffer = null;
     }
 
     public override void Dispose()
     {
-        ResetCachedRenderBuffers();
+        _substituteDepthBuffer?.Dispose();
+        _substituteRenderBuffers[1]?.Dispose();
+        _substituteRenderBuffers[0]?.Dispose();
+        _substituteDepthBuffer = null;
+        _substituteRenderBuffers[1] = null;
+        _substituteRenderBuffers[0] = null;
         _viewportDepthBuffer.Dispose();
         _viewportColorBuffer.Dispose();
+        _pipelineStates.Dispose();
         _renderPipeline.RenderEnd -= OnRenderEnd;
         _renderPipeline.RenderBegin -= OnRenderBegin;
         _renderPipeline.PipelineStatesInvalidated -= OnPipelineStatesInvalidated;
-        _pipelineStates.Dispose();
         base.Dispose();
     }
 
-    // C++ ClearOutputRect: Depth = isOpenGL ? (depth * 2.0 - 1.0) : depth
-    private float GetFullscreenQuadClearDepth(float depth)
-        => MapFullscreenQuadClearDepth(depth, _renderDevice?.GetBackend() == RenderBackend.OpenGL);
-
-    /// <summary>C++ ClearOutputRect depth remap for fullscreen-quad subrect clears.</summary>
-    private static float MapFullscreenQuadClearDepth(float depth, bool isOpenGl)
-        => isOpenGl ? depth * 2.0f - 1.0f : depth;
-
-    private static bool ShouldUseFullscreenQuadClear(IntRect viewportRect, IntRect outputViewportRect) => viewportRect != outputViewportRect;
-
     private static Vector4f GetClipToUvOffsetAndScale(int width, int height, IntRect sourceRect)
     {
-        var safeWidth = Math.Max(width, 1);
-        var safeHeight = Math.Max(height, 1);
-        var left = sourceRect.Left / (float)safeWidth;
-        var right = sourceRect.Right / (float)safeWidth;
-        var top = sourceRect.Top / (float)safeHeight;
-        var bottom = sourceRect.Bottom / (float)safeHeight;
+        var left = sourceRect.Left / (float)width;
+        var right = sourceRect.Right / (float)width;
+        var top = sourceRect.Top / (float)height;
+        var bottom = sourceRect.Bottom / (float)height;
         return new Vector4f(
             (left + right) * 0.5f,
             (top + bottom) * 0.5f,

@@ -539,7 +539,7 @@ public class StereoRenderPipelineView : RenderPipelineView
         var fogColorInGammaSpace = camera.GetEffectiveFogColor();
         var effectiveFogColor = _linearColorSpace ? fogColorInGammaSpace.GammaToLinear() : fogColorInGammaSpace;
 
-        _renderBufferManager.ClearOutput(graphics, effectiveFogColor);
+        _renderBufferManager.ClearOutput(effectiveFogColor);
 
         var cameraParameters = new ShaderParameterDesc[]
         {
@@ -608,9 +608,8 @@ public class StereoRenderPipelineView : RenderPipelineView
                     rect.Bottom - (int)outlinePadding);
             }
 
-            RenderBuffer[] renderTargets = [_outlineBuffer];
-            _renderBufferManager.SetRenderTargets(graphics, null, renderTargets);
-            _renderBufferManager.ClearColor(graphics, _outlineBuffer, Color.TransparentBlack);
+            _renderBufferManager.SetRenderTargets(null, _outlineBuffer);
+            _renderBufferManager.ClearColor(_outlineBuffer, Color.TransparentBlack);
             _sceneProcessor.RenderSceneBatches("Outline", camera, batches, default, cameraParameters);
         }
 
@@ -626,7 +625,7 @@ public class StereoRenderPipelineView : RenderPipelineView
         {
             var renderDevice = GetRenderPipeline().GetSubsystem<RenderDevice>();
             var renderContext = renderDevice?.GetRenderContext();
-            _renderBufferManager.SetOutputRenderTargets(graphics);
+            _renderBufferManager.SetOutputRenderTargets();
             IntRect[] viewportRects =
             [
                 new(0, 0, outSize.X / 2, outSize.Y),

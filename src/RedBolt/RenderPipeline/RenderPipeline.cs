@@ -551,7 +551,6 @@ public class RenderPipeline : Component
             _sharedState.RenderCamera = _viewport.GetCamera();
             _sharedState.Graphics = graphics;
             _sharedState.RenderBuffers.Clear();
-            _renderBufferManager?.PopulateSharedState(_sharedState);
 
             if (_renderPath is not null)
             {
@@ -596,8 +595,8 @@ public class RenderPipeline : Component
             var effectiveFogColor = _linearColorSpace ? fogColorInGammaSpace.GammaToLinear() : fogColorInGammaSpace;
 
             // Forward path (C++ DefaultRenderPipelineView::Render non-deferred branch)
-            _renderBufferManager.ClearOutput(graphics, effectiveFogColor);
-            _renderBufferManager.SetOutputRenderTargets(graphics);
+            _renderBufferManager.ClearOutput(effectiveFogColor);
+            _renderBufferManager.SetOutputRenderTargets();
 
             if (_depthPrePass is not null)
             {
@@ -645,7 +644,7 @@ public class RenderPipeline : Component
             };
 
             if (canReadDepth)
-                _renderBufferManager.SetOutputRenderTargets(graphics, true);
+                _renderBufferManager.SetOutputRenderTargets(true);
 
             _sceneProcessor.RenderSceneBatches(
                 "Alpha", camera, _alphaPass!.GetBatches(), depthAndColorTextures, cameraParameters, frameParameters);
@@ -665,8 +664,8 @@ public class RenderPipeline : Component
                     batches.ScissorRect.Bottom -= outlinePadding;
                 }
 
-                _renderBufferManager.SetRenderTargets(graphics, _outlineBuffer);
-                _renderBufferManager.ClearColor(graphics, _outlineBuffer, Color.TransparentBlack);
+                _renderBufferManager.SetRenderTargets(null, _outlineBuffer);
+                _renderBufferManager.ClearColor(_outlineBuffer, Color.TransparentBlack);
                 _sceneProcessor.RenderSceneBatches(
                     "Outline", camera, batches, default, cameraParameters, frameParameters);
             }
@@ -677,7 +676,7 @@ public class RenderPipeline : Component
             var debug = _viewport.GetScene()!.Root.GetComponent<DebugRenderer>();
             if (drawDebugGeometry && debug is not null && debug.IsEnabledEffective && debug.HasContent())
             {
-                _renderBufferManager.SetOutputRenderTargets(graphics);
+                _renderBufferManager.SetOutputRenderTargets();
                 debug.SetView(_viewport.GetCamera()!);
                 debug.Render();
             }
@@ -837,10 +836,10 @@ public class RenderPipeline : Component
             var outlineRenderBuffer = EnsureOutlineBuffer();
             _sharedState.RenderBuffers[OutlineRenderPass.ColorBufferId] = outlineRenderBuffer;
 
-            _renderBufferManager.SetRenderTargets(graphics, outlineRenderBuffer);
+            _renderBufferManager.SetRenderTargets(null, outlineRenderBuffer);
             graphics.ClearCurrentRenderTargets(Color.TransparentBlack, clearColorTarget: true, clearDepth: false, clearStencil: false);
             graphics.RenderOutlineGroups(_viewport, materialQuality, _outlineGroups, _frameInfo.ViewportRect);
-            _renderBufferManager.SetOutputRenderTargets(graphics);
+            _renderBufferManager.SetOutputRenderTargets();
         }
 
         private bool HasEnabledOutlinePass()

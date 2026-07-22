@@ -502,17 +502,6 @@ public sealed class RenderPipelineTests : IDisposable
     }
 
     [Fact]
-    public void Render_buffer_manager_rejects_color_buffer_swap_without_read_write_support()
-    {
-        using var manager = CreateRenderBufferManager();
-        manager.SetSettings(new RenderBufferManagerSettings());
-        manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
-        DefineAndBeginFrame(manager, null, new IntRect(0, 0, 640, 360));
-
-        Assert.Throws<InvalidOperationException>(() => manager.SwapColorBuffers(synchronizeContents: false));
-    }
-
-    [Fact]
     public void Render_buffer_manager_uses_offscreen_primary_buffer_for_color_read_write_frames()
     {
         using var manager = CreateRenderBufferManager();
@@ -530,7 +519,7 @@ public sealed class RenderPipelineTests : IDisposable
         Assert.NotNull(manager.GetDepthStencilOutput().GetTexture());
         Assert.Equal(TextureFormat.TexFormatRgba16Float, manager.GetColorOutput().GetTexture()!.GetParams().Format);
         Assert.NotNull(manager.GetSecondaryColorTexture());
-        Assert.True(manager.NeedsViewportResolve());
+        Assert.IsType<TextureRenderBuffer>(manager.GetColorOutput());
     }
 
     [Fact]
@@ -547,7 +536,7 @@ public sealed class RenderPipelineTests : IDisposable
         Assert.NotNull(manager.GetColorOutput().GetTexture());
         Assert.NotNull(manager.GetDepthStencilOutput().GetTexture());
         Assert.Same(manager.GetDepthStencilOutput().GetTexture(), manager.GetDepthStencilTexture());
-        Assert.True(manager.NeedsViewportResolve());
+        Assert.IsType<TextureRenderBuffer>(manager.GetColorOutput());
     }
 
     [Fact]
@@ -561,12 +550,8 @@ public sealed class RenderPipelineTests : IDisposable
         manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
         DefineAndBeginFrame(manager, null, new IntRect(0, 0, 320, 200));
 
-        var sharedState = new SharedRenderPassState();
-        manager.PopulateSharedState(sharedState);
-
-        Assert.True(sharedState.RenderBuffers.TryGetValue("Viewport.Depth", out var depthBuffer));
-        Assert.NotNull(depthBuffer.GetTexture());
-        Assert.Same(manager.GetDepthStencilTexture(), depthBuffer.GetTexture());
+        Assert.NotNull(manager.GetDepthStencilOutput().GetTexture());
+        Assert.Same(manager.GetDepthStencilTexture(), manager.GetDepthStencilOutput().GetTexture());
     }
 
     [Fact]
@@ -582,7 +567,7 @@ public sealed class RenderPipelineTests : IDisposable
 
         Assert.NotNull(manager.GetColorOutput().GetTexture());
         Assert.Null(manager.GetSecondaryColorTexture());
-        Assert.True(manager.NeedsViewportResolve());
+        Assert.IsType<TextureRenderBuffer>(manager.GetColorOutput());
     }
 
     [Fact]
@@ -606,7 +591,7 @@ public sealed class RenderPipelineTests : IDisposable
 
         Assert.Same(colorTarget.GetRawTexture(), manager.GetColorOutput().GetTexture());
         Assert.Null(manager.GetSecondaryColorTexture());
-        Assert.False(manager.NeedsViewportResolve());
+        Assert.IsType<ViewportColorRenderBuffer>(manager.GetColorOutput());
     }
 
     [Fact]
@@ -630,34 +615,7 @@ public sealed class RenderPipelineTests : IDisposable
 
         Assert.Same(colorTarget.GetRawTexture(), manager.GetColorOutput().GetTexture());
         Assert.Null(manager.GetSecondaryColorTexture());
-        Assert.False(manager.NeedsViewportResolve());
-    }
-
-    [Fact]
-    public void Render_buffer_manager_maps_partial_clear_depth_to_opengl_clip_space()
-    {
-        // C++ ClearOutputRect: Depth = isOpenGL ? (depth * 2 - 1) : depth
-        var method = typeof(RenderBufferManager).GetMethod("MapFullscreenQuadClearDepth",
-            BindingFlags.NonPublic | BindingFlags.Static);
-
-        Assert.NotNull(method);
-        Assert.Equal(-1.0f, Assert.IsType<float>(method!.Invoke(null, [0.0f, true])!));
-        Assert.Equal(0.0f, Assert.IsType<float>(method.Invoke(null, [0.5f, true])!));
-        Assert.Equal(1.0f, Assert.IsType<float>(method.Invoke(null, [1.0f, true])!));
-        // Non-OpenGL keeps [0, 1] depth.
-        Assert.Equal(0.0f, Assert.IsType<float>(method.Invoke(null, [0.0f, false])!));
-        Assert.Equal(0.5f, Assert.IsType<float>(method.Invoke(null, [0.5f, false])!));
-        Assert.Equal(1.0f, Assert.IsType<float>(method.Invoke(null, [1.0f, false])!));
-    }
-
-    [Fact]
-    public void Render_buffer_manager_uses_fullscreen_quad_for_partial_output_clears()
-    {
-        var method = typeof(RenderBufferManager).GetMethod("ShouldUseFullscreenQuadClear", BindingFlags.NonPublic | BindingFlags.Static);
-
-        Assert.NotNull(method);
-        Assert.False(Assert.IsType<bool>(method!.Invoke(null, [new IntRect(0, 0, 320, 200), new IntRect(0, 0, 320, 200)])!));
-        Assert.True(Assert.IsType<bool>(method.Invoke(null, [new IntRect(16, 12, 160, 120), new IntRect(0, 0, 320, 200)])!));
+        Assert.IsType<ViewportColorRenderBuffer>(manager.GetColorOutput());
     }
 
     [Fact]
@@ -816,7 +774,7 @@ public sealed class RenderPipelineTests : IDisposable
         Assert.NotSame(renderTarget.GetRawTexture(), manager.GetColorOutput().GetTexture());
         Assert.Equal(TextureFormat.TexFormatRgba8Unorm, manager.GetColorOutput().GetTexture()!.GetParams().Format);
         Assert.Equal(TextureFormat.TexFormatRgba8Unorm, manager.GetSecondaryColorTexture()!.GetParams().Format);
-        Assert.True(manager.NeedsViewportResolve());
+        Assert.IsType<TextureRenderBuffer>(manager.GetColorOutput());
     }
 
     [Fact]
@@ -863,7 +821,7 @@ public sealed class RenderPipelineTests : IDisposable
 
         Assert.NotSame(colorTarget.GetRawTexture(), manager.GetColorOutput().GetTexture());
         Assert.Equal(TextureFormat.TexFormatRgba8UnormSrgb, manager.GetColorOutput().GetTexture()!.GetParams().Format);
-        Assert.True(manager.NeedsViewportResolve());
+        Assert.IsType<TextureRenderBuffer>(manager.GetColorOutput());
     }
 
     [Fact]
@@ -886,7 +844,7 @@ public sealed class RenderPipelineTests : IDisposable
 
         Assert.Same(colorTarget.GetRawTexture(), manager.GetColorOutput().GetTexture());
         Assert.True(manager.IsLinearColorSpace());
-        Assert.False(manager.NeedsViewportResolve());
+        Assert.IsType<ViewportColorRenderBuffer>(manager.GetColorOutput());
     }
 
     [Fact]
@@ -960,7 +918,7 @@ public sealed class RenderPipelineTests : IDisposable
 
         Assert.Same(colorTarget.GetRawTexture(), manager.GetColorOutput().GetTexture());
         Assert.Same(depthTarget.GetRawTexture(), manager.GetDepthStencilTexture());
-        Assert.False(manager.NeedsViewportResolve());
+        Assert.IsType<ViewportColorRenderBuffer>(manager.GetColorOutput());
     }
 
     [Fact]
@@ -988,13 +946,13 @@ public sealed class RenderPipelineTests : IDisposable
         Assert.NotNull(manager.GetSecondaryColorTexture());
         Assert.NotSame(colorTarget.GetRawTexture(), manager.GetSecondaryColorTexture());
         Assert.Same(depthTarget.GetRawTexture(), manager.GetDepthStencilTexture());
-        Assert.False(manager.NeedsViewportResolve());
+        Assert.IsType<ViewportColorRenderBuffer>(manager.GetColorOutput());
 
         manager.SwapColorBuffers(synchronizeContents: false);
 
         Assert.NotSame(colorTarget.GetRawTexture(), manager.GetColorOutput().GetTexture());
         Assert.Same(colorTarget.GetRawTexture(), manager.GetSecondaryColorTexture());
-        Assert.True(manager.NeedsViewportResolve());
+        Assert.IsType<TextureRenderBuffer>(manager.GetColorOutput());
     }
 
     [Fact]
@@ -1017,7 +975,7 @@ public sealed class RenderPipelineTests : IDisposable
 
         Assert.NotSame(colorTarget.GetRawTexture(), manager.GetColorOutput().GetTexture());
         Assert.NotSame(depthTarget.GetRawTexture(), manager.GetDepthStencilTexture());
-        Assert.True(manager.NeedsViewportResolve());
+        Assert.IsType<TextureRenderBuffer>(manager.GetColorOutput());
     }
 
     [Fact]

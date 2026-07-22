@@ -154,7 +154,7 @@ public sealed class FullScreenShaderPass : RenderPass
         if (_needReadWriteColorOutput)
             renderBufferManager.SwapColorBuffers(synchronizeContents: false);
 
-        renderBufferManager.SetOutputRenderTargets(graphics);
+        renderBufferManager.SetOutputRenderTargets();
         if (_needReadWriteColorOutput)
         {
             renderBufferManager.DrawFeedbackViewportQuad(
@@ -313,7 +313,7 @@ public sealed class ToneMappingPass : RenderPass
 
         RestoreCache(sharedState);
         renderBufferManager.SwapColorBuffers(synchronizeContents: false);
-        renderBufferManager.SetOutputRenderTargets(graphics);
+        renderBufferManager.SetOutputRenderTargets();
         renderBufferManager.DrawFeedbackViewportQuad(
             "Apply tone mapping",
             _pipelineState!.Value,
@@ -474,7 +474,7 @@ public sealed class AutoExposurePass : RenderPass
             AutoExposureMiddleGrey = 0.6f
         };
 
-        renderBufferManager.SetOutputRenderTargets(graphics);
+        renderBufferManager.SetOutputRenderTargets();
         graphics.DrawFullscreenQuad(
             "Apply exposure",
             "P_AutoExposure",
@@ -557,8 +557,8 @@ public sealed class AutoExposurePass : RenderPass
         if (viewportTexture is null)
             return;
 
-        renderBufferManager.SetRenderTargets(graphics, buffers.Color128);
-        renderBufferManager.DrawTexture(graphics, "Downsample color buffer", viewportTexture);
+        renderBufferManager.SetRenderTargets(null, buffers.Color128);
+        renderBufferManager.DrawTexture("Downsample color buffer", viewportTexture);
     }
 
     private void EvaluateLuminance(RenderBufferManager renderBufferManager, Graphics graphics, CachedBuffers buffers)
@@ -571,18 +571,18 @@ public sealed class AutoExposurePass : RenderPass
 
     private void EvaluateAdaptedLuminance(RenderBufferManager renderBufferManager, Graphics graphics, CachedBuffers buffers)
     {
-        renderBufferManager.SetRenderTargets(graphics, buffers.PreviousAdaptedLuminance);
+        renderBufferManager.SetRenderTargets(null, buffers.PreviousAdaptedLuminance);
         var previousSource = _isAdaptedLuminanceInitialized
             ? buffers.AdaptedLuminance.GetTexture()
             : buffers.Lum1.GetTexture();
-        renderBufferManager.DrawTexture(graphics, "Store previous luminance", previousSource!);
+        renderBufferManager.DrawTexture("Store previous luminance", previousSource!);
 
         var adaptRateParameters = new AdaptRateParameters
         {
             AdaptRate = _currentParameters.AdaptRate
         };
 
-        renderBufferManager.SetRenderTargets(graphics, buffers.AdaptedLuminance);
+        renderBufferManager.SetRenderTargets(null, buffers.AdaptedLuminance);
         graphics.DrawFullscreenQuad(
             "Adapt luminosity",
             "P_AutoExposure",
@@ -607,7 +607,7 @@ public sealed class AutoExposurePass : RenderPass
             InputInvSize = inputInvSize
         };
 
-        renderBufferManager.SetRenderTargets(graphics, target);
+        renderBufferManager.SetRenderTargets(null, target);
         graphics.DrawFullscreenQuad(
             "Downsample luminosity buffer",
             "P_AutoExposure",
@@ -748,7 +748,7 @@ public sealed class BloomPass : RenderPass
             totalIntensity = 1.0f;
 
         renderBufferManager.SwapColorBuffers(synchronizeContents: false);
-        renderBufferManager.SetOutputRenderTargets(graphics);
+        renderBufferManager.SetOutputRenderTargets();
         for (var i = 0; i < _intensityMultipliers.Count; ++i)
         {
             var normalizedIntensity = _intensityMultipliers[i] * _currentParameters.Intensity / totalIntensity;
@@ -829,7 +829,7 @@ public sealed class BloomPass : RenderPass
             intensity: 0.0f,
             new Vector2f(1.0f / viewportTextureSize.X, 1.0f / viewportTextureSize.Y));
 
-        renderBufferManager.SetRenderTargets(graphics, destination);
+        renderBufferManager.SetRenderTargets(null, destination);
         graphics.DrawFullscreenQuad(
             "Gather bright regions",
             "P_Bloom",
@@ -864,7 +864,7 @@ public sealed class BloomPass : RenderPass
 
         var bloomParameters = CreateBloomParameters(luminanceWeights, intensity: 0.0f, invInputSize);
 
-        renderBufferManager.SetRenderTargets(graphics, temporary);
+        renderBufferManager.SetRenderTargets(null, temporary);
         graphics.DrawFullscreenQuad(
             "Blur vertically",
             "P_Bloom",
@@ -878,7 +878,7 @@ public sealed class BloomPass : RenderPass
             invInputSize,
             renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
 
-        renderBufferManager.SetRenderTargets(graphics, final);
+        renderBufferManager.SetRenderTargets(null, final);
         graphics.DrawFullscreenQuad(
             "Blur horizontally",
             "P_Bloom",
@@ -895,8 +895,8 @@ public sealed class BloomPass : RenderPass
 
     private void CopyTexture(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer source, TextureRenderBuffer destination)
     {
-        renderBufferManager.SetRenderTargets(graphics, destination);
-        renderBufferManager.DrawTexture(graphics, "Downscale bloom", source.GetTexture()!);
+        renderBufferManager.SetRenderTargets(null, destination);
+        renderBufferManager.DrawTexture("Downscale bloom", source.GetTexture()!);
     }
 
     private void ApplyBloom(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer bloom, float intensity)
@@ -1193,7 +1193,7 @@ public sealed class AmbientOcclusionPass : RenderPass
             WorldToView = worldToViewSpaceCorrected
         };
 
-        renderBufferManager.SetRenderTargets(graphics, _textures.CurrentTarget);
+        renderBufferManager.SetRenderTargets(null, _textures.CurrentTarget);
         graphics.DrawFullscreenQuad(
             "Apply SSAO",
             "P_SSAO",
@@ -1240,7 +1240,7 @@ public sealed class AmbientOcclusionPass : RenderPass
             TextureToView = textureToViewSpace
         };
 
-        renderBufferManager.SetRenderTargets(graphics, _textures.CurrentTarget);
+        renderBufferManager.SetRenderTargets(null, _textures.CurrentTarget);
         graphics.DrawFullscreenQuad(
             debugComment,
             "P_SSAO",
@@ -1262,7 +1262,7 @@ public sealed class AmbientOcclusionPass : RenderPass
         if (_textures?.PreviousTarget is null)
             return;
 
-        renderBufferManager.SetOutputRenderTargets(graphics);
+        renderBufferManager.SetOutputRenderTargets();
         graphics.DrawFullscreenQuad(
             "SSAO Combine",
             "P_SSAO",
@@ -1327,7 +1327,7 @@ public sealed class OutlineRenderPass : RenderPass
             InputInvSize = Vector2f.One / new Vector2f(texture.GetParams().Size.X, texture.GetParams().Size.Y)
         };
 
-        renderBufferManager.SetOutputRenderTargets(graphics);
+        renderBufferManager.SetOutputRenderTargets();
         graphics.DrawFullscreenQuad(
             "Apply outline",
             "P_Outline",
