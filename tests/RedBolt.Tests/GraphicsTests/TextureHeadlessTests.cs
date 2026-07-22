@@ -10,10 +10,10 @@ public sealed class TextureHeadlessTests
     {
         Texture[] textures =
         [
-            new Texture2D("Textures/Headless2D"),
-            new Texture3D("Textures/Headless3D"),
-            new TextureCube("Textures/HeadlessCube"),
-            new Texture2DArray("Textures/HeadlessArray")
+            new Texture2D { Name = "Textures/Headless2D" },
+            new Texture3D { Name = "Textures/Headless3D" },
+            new TextureCube { Name = "Textures/HeadlessCube" },
+            new Texture2DArray { Name = "Textures/HeadlessArray" }
         ];
 
         foreach (var texture in textures)

@@ -25,7 +25,7 @@ public sealed class AnimatedModelTests
     [Fact]
     public void Animated_model_copies_skeleton_and_morphs_from_model()
     {
-        var model = new Model("AnimatedModel");
+        var model = new Model { Name = "AnimatedModel" };
         var skeleton = new Skeleton();
         skeleton.SetNumBones(1);
         skeleton.GetModifiableBones()[0].Name = "Root";
@@ -58,7 +58,7 @@ public sealed class AnimatedModelTests
         vertexBuffer.SetShadowed(true);
         Assert.True(vertexBuffer.SetSize(1, VertexMask.Position));
         vertexBuffer.Update(new byte[vertexBuffer.GetVertexSize()]);
-        var model = new Model("Morph");
+        var model = new Model { Name = "Morph" };
         Assert.True(model.SetVertexBuffers([vertexBuffer], [0u], [1u]));
         var morph = new ModelMorph { Name = "Smile", NameHash = new StringHash("Smile") };
         morph.Buffers[0] = new VertexBufferMorph
@@ -82,7 +82,7 @@ public sealed class AnimatedModelTests
     [Fact]
     public void Animated_model_attribute_helpers_match_native_values()
     {
-        var model = new Model("AnimatedModel");
+        var model = new Model { Name = "AnimatedModel" };
         var skeleton = new Skeleton();
         skeleton.SetNumBones(1);
         skeleton.GetModifiableBones()[0].Name = "Root";
@@ -378,7 +378,7 @@ public sealed class AnimatedModelTests
 
     private static Model CreateSkeletonModel(string name, BoneCollisionShape collisionShape)
     {
-        var model = new Model(name);
+        var model = new Model { Name = name };
         var skeleton = new Skeleton();
         skeleton.SetNumBones(1);
         var bone = skeleton.GetModifiableBones()[0];

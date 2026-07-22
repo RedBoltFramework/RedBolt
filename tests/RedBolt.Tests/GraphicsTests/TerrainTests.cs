@@ -28,7 +28,7 @@ public sealed class TerrainTests
         var terrain = node.CreateComponent<Terrain>();
 
         // power-of-two + 1, one 32-quad patch
-        var image = new Image("HeightMap");
+        var image = new Image();
         Assert.True(image.SetSize(33, 33, 1));
         var data = image.GetData();
         for (var i = 0; i < data.Length; ++i)
@@ -55,9 +55,9 @@ public sealed class TerrainTests
     public void Heightmap_reload_event_rebuilds_only_from_the_current_image()
     {
         var terrain = new Scene().CreateChild("Terrain").CreateComponent<Terrain>();
-        var firstImage = new Image("FirstHeightMap");
+        var firstImage = new Image();
         Assert.True(firstImage.SetSize(33, 33, 1));
-        var secondImage = new Image("SecondHeightMap");
+        var secondImage = new Image();
         Assert.True(secondImage.SetSize(65, 65, 1));
         Assert.True(terrain.SetHeightMap(firstImage));
         Assert.True(terrain.SetHeightMap(secondImage));
@@ -76,7 +76,7 @@ public sealed class TerrainTests
     {
         var scene = new Scene();
         var terrain = scene.CreateChild("Terrain").CreateComponent<Terrain>();
-        var image = new Image("HeightMap");
+        var image = new Image();
         Assert.True(image.SetSize(33, 33, 1));
         Assert.True(terrain.SetHeightMap(image));
 
@@ -101,7 +101,7 @@ public sealed class TerrainTests
         var scene = new Scene();
         var terrain = scene.CreateChild("Terrain").CreateComponent<Terrain>();
         var neighbor = scene.CreateChild("Neighbor").CreateComponent<Terrain>();
-        var image = new Image("HeightMap");
+        var image = new Image();
         Assert.True(image.SetSize(33, 33, 1));
         terrain.SetNorthNeighbor(neighbor);
         Assert.True(terrain.SetHeightMap(image));

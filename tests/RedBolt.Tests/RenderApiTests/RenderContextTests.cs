@@ -46,8 +46,8 @@ public sealed class RenderContextTests
         WithInitializedGraphics(() =>
         {
             var renderContext = _fixture.RenderContext;
-            var colorTexture = new Texture2D("Textures/RenderContextColor");
-            var depthTexture = new Texture2D("Textures/RenderContextDepth");
+            var colorTexture = new Texture2D { Name = "Textures/RenderContextColor" };
+            var depthTexture = new Texture2D { Name = "Textures/RenderContextDepth" };
             Assert.True(colorTexture.SetSize(32, 16, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
             Assert.True(depthTexture.SetSize(32, 16, TextureFormat.TexFormatD24UnormS8Uint, TextureFlag.BindDepthStencil));
 
@@ -87,9 +87,9 @@ public sealed class RenderContextTests
         WithInitializedGraphics(() =>
         {
             var renderContext = _fixture.RenderContext;
-            var firstColor = new Texture2D("Textures/RenderContextFirstColor");
-            var secondColor = new Texture2D("Textures/RenderContextSecondColor");
-            var depth = new Texture2D("Textures/RenderContextMrtDepth");
+            var firstColor = new Texture2D { Name = "Textures/RenderContextFirstColor" };
+            var secondColor = new Texture2D { Name = "Textures/RenderContextSecondColor" };
+            var depth = new Texture2D { Name = "Textures/RenderContextMrtDepth" };
             Assert.True(firstColor.SetSize(32, 16, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
             Assert.True(secondColor.SetSize(32, 16, TextureFormat.TexFormatRg16Float, TextureFlag.BindRenderTarget));
             Assert.True(depth.SetSize(32, 16, TextureFormat.TexFormatD24UnormS8Uint, TextureFlag.BindDepthStencil));

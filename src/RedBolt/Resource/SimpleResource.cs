@@ -21,11 +21,6 @@ public abstract class SimpleResource : Resource
     {
     }
 
-    protected SimpleResource(string name)
-        : base(name)
-    {
-    }
-
     public abstract override void SerializeInBlock(Archive archive);
 
     public void SetSaveFormatHint(InternalResourceFormat format)
@@ -45,7 +40,7 @@ public abstract class SimpleResource : Resource
             {
                 case InternalResourceFormat.Json:
                 {
-                    using var jsonFile = new JSONFile(Name);
+                    using var jsonFile = new JSONFile();
                     if (!jsonFile.BeginLoad(new MemoryStream(data, writable: false)))
                         return false;
                     var success = jsonFile.LoadObjectCallback(archive =>
@@ -61,7 +56,7 @@ public abstract class SimpleResource : Resource
                 case InternalResourceFormat.Xml:
                 {
                     var xmlText = Encoding.UTF8.GetString(data);
-                    using var xmlFile = new XMLFile(Name);
+                    using var xmlFile = new XMLFile();
                     if (!xmlFile.FromString(xmlText))
                         return false;
 
@@ -83,7 +78,7 @@ public abstract class SimpleResource : Resource
 
                 case InternalResourceFormat.Binary:
                 {
-                    using var binaryFile = new BinaryFile(Name);
+                    using var binaryFile = new BinaryFile();
                     using var payload = new MemoryStream(data, GetBinaryMagic().Length,
                         data.Length - GetBinaryMagic().Length, writable: false);
                     if (!binaryFile.BeginLoad(payload))

@@ -82,7 +82,7 @@ public sealed class MaterialTests
     public void Shader_parameter_animation_helpers_work()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");
-        var animation = new ValueAnimation("Animations/MaterialParameter");
+        var animation = new ValueAnimation { Name = "Animations/MaterialParameter" };
         animation.ValueType = VariantType.Float;
         animation.SetKeyFrame(0.0f, 0.0f);
         animation.SetKeyFrame(1.0f, 1.0f);
@@ -117,9 +117,9 @@ public sealed class MaterialTests
     public void Texture_slot_helpers_work()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");
-        var albedo = new Texture2D("Textures/Albedo");
+        var albedo = new Texture2D { Name = "Textures/Albedo" };
         albedo.SetSize(2, 2, TextureFormat.TexFormatRgba8Unorm);
-        var reflection = new TextureCube("Textures/Reflection");
+        var reflection = new TextureCube { Name = "Textures/Reflection" };
         reflection.SetSize(2, TextureFormat.TexFormatRgba8Unorm);
 
         material.SetTexture("Albedo", albedo);
@@ -143,9 +143,9 @@ public sealed class MaterialTests
     [Fact]
     public void Texture_reload_event_invalidates_only_the_current_texture()
     {
-        var material = new Material("Materials/Reload");
-        var firstTexture = new Texture2D("Textures/First");
-        var secondTexture = new Texture2D("Textures/Second");
+        var material = new Material { Name = "Materials/Reload" };
+        var firstTexture = new Texture2D { Name = "Textures/First" };
+        var secondTexture = new Texture2D { Name = "Textures/Second" };
         material.SetTexture("Albedo", firstTexture);
         material.SetTexture("Albedo", secondTexture);
         material.GetPipelineStateHash();
@@ -165,9 +165,9 @@ public sealed class MaterialTests
     public void Technique_entry_management_works()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");
-        var t0 = new Technique("Techniques/Smoke");
+        var t0 = new Technique { Name = "Techniques/Smoke" };
         t0.CreatePass("alpha");
-        var t1 = new Technique("Techniques/Xml");
+        var t1 = new Technique { Name = "Techniques/Xml" };
         t1.CreatePass("base");
 
         material.SetNumTechniques(2);
@@ -193,7 +193,7 @@ public sealed class MaterialTests
     public void Shader_define_application_works()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");
-        var technique = new Technique("Techniques/Smoke");
+        var technique = new Technique { Name = "Techniques/Smoke" };
         technique.CreatePass("base");
         material.SetTechnique(0, technique);
         material.SetVertexShaderDefines("MATERIAL_VS");

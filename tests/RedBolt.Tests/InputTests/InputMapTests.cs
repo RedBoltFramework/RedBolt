@@ -17,7 +17,7 @@ public sealed class InputMapTests
     [Fact]
     public void Dead_zone_clamps_to_zero()
     {
-        var map = new InputMap("Input/Smoke");
+        var map = new InputMap { Name = "Input/Smoke" };
         map.SetDeadZone(-1.0f);
         Assert.True(MathDefs.Equals(map.GetDeadZone(), 0.0f));
     }
@@ -25,7 +25,7 @@ public sealed class InputMapTests
     [Fact]
     public void Keyboard_action_evaluation_works()
     {
-        var map = new InputMap("Input/Smoke");
+        var map = new InputMap { Name = "Input/Smoke" };
         map.MapKeyboardKey("Jump", Scancode.A);
         Input.SetKey(Key.A, Scancode.A, true);
         Assert.True(MathDefs.Equals(map.Evaluate("Jump"), 1.0f));
@@ -35,7 +35,7 @@ public sealed class InputMapTests
     [Fact]
     public void Keyboard_remapping_preserves_native_value_copy_behavior()
     {
-        var map = new InputMap("Input/Smoke");
+        var map = new InputMap { Name = "Input/Smoke" };
         map.MapKeyboardKey("Jump", Scancode.A);
         map.MapKeyboardKey("Move", Scancode.A);
         Input.SetKey(Key.A, Scancode.A, true);
@@ -49,7 +49,7 @@ public sealed class InputMapTests
     public void Mouse_and_controller_mapping_preserves_native_mouse_value_behavior()
     {
         Input.SetMouseButton(MouseButton.Left, true);
-        var map = new InputMap("Input/Smoke");
+        var map = new InputMap { Name = "Input/Smoke" };
         map.MapMouseButton("Fire", MouseButton.Left);
 
         Assert.True(MathDefs.Equals(map.Evaluate("Fire"), 0.0f));
@@ -63,7 +63,7 @@ public sealed class InputMapTests
     [Fact]
     public void Axis_hat_screen_mapping_works()
     {
-        var map = new InputMap("Input/Smoke");
+        var map = new InputMap { Name = "Input/Smoke" };
         map.MapControllerAxis("Throttle", ControllerAxis.TriggerRight, 0.0f, 1.0f);
         map.MapHat("Menu", HatPosition.Up);
         map.MapScreenButton("TouchFire", "FireButton");
@@ -79,7 +79,7 @@ public sealed class InputMapTests
     {
         // Controller/hat/screen input evaluation requires initialized Input,
         // which is not available in headless mode.
-        var map = new InputMap("Input/Smoke");
+        var map = new InputMap { Name = "Input/Smoke" };
         map.MapControllerButton("Dash", ControllerButton.B);
         map.MapControllerAxis("Throttle", ControllerAxis.TriggerRight, 0.0f, 1.0f);
         map.MapHat("PadUp", HatPosition.Up);
@@ -112,7 +112,7 @@ public sealed class InputMapTests
     {
         using var source = new CString(new string('a', 32));
         using var replacement = new CString(new string('b', 32));
-        using var map = new InputMap("Input/Smoke");
+        using var map = new InputMap { Name = "Input/Smoke" };
         map.AddMetadata("Sensitivity", source);
         ref readonly var value = ref map.GetMetadata("Sensitivity");
 
@@ -167,7 +167,7 @@ public sealed class InputMapTests
     [InlineData(InternalResourceFormat.Binary)]
     public void Resource_archive_roundtrips_all_mapping_types(InternalResourceFormat format)
     {
-        var source = new InputMap("Input/Source");
+        var source = new InputMap { Name = "Input/Source" };
         source.SetDeadZone(0.25f);
         source.AddMetadata("Sensitivity", 1.5f);
         source.MapKeyboardKey("Action", Scancode.A);
@@ -183,7 +183,7 @@ public sealed class InputMapTests
         Assert.True(source.Save(stream, format));
         stream.Position = 0;
 
-        var loaded = new InputMap("Input/Loaded");
+        var loaded = new InputMap { Name = "Input/Loaded" };
         Assert.True(loaded.Load(stream));
         Assert.True(MathDefs.Equals(loaded.GetDeadZone(), 0.25f));
         Assert.Equal(new Variant(1.5f), loaded.GetMetadata("Sensitivity"));

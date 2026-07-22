@@ -43,7 +43,7 @@ public sealed class ModelFileTests
     [Fact]
     public void Model_preserves_a_defined_skeleton()
     {
-        var model = new Model("SkeletonModel");
+        var model = new Model { Name = "SkeletonModel" };
         var skeleton = new Skeleton();
         skeleton.SetNumBones(1);
         var sourceBone = skeleton.GetModifiableBones()[0];
@@ -70,7 +70,7 @@ public sealed class ModelFileTests
     [Fact]
     public void Model_preserves_geometry_bone_mappings()
     {
-        var model = new Model("BoneMappingsModel");
+        var model = new Model { Name = "BoneMappingsModel" };
         IReadOnlyList<IReadOnlyList<uint>> mappings =
         [
             new uint[] { 3u, 7u },
@@ -88,7 +88,7 @@ public sealed class ModelFileTests
     [Fact]
     public void Model_preserves_morph_metadata_and_packed_data()
     {
-        var model = new Model("MorphModel");
+        var model = new Model { Name = "MorphModel" };
         var morphBuffer = new VertexBufferMorph
         {
             ElementMask = VertexMask.Position | VertexMask.Normal,
@@ -119,7 +119,7 @@ public sealed class ModelFileTests
     [Fact]
     public void Model_accepts_shadowed_vertex_and_index_buffers()
     {
-        var model = new Model("BufferModel");
+        var model = new Model { Name = "BufferModel" };
         var vertexBuffer = new VertexBuffer();
         vertexBuffer.SetShadowed(true);
         vertexBuffer.SetSize(3u, VertexMask.Position);
@@ -151,7 +151,7 @@ public sealed class ModelFileTests
         geometry.SetIndexBuffer(indexBuffer);
         geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 3);
 
-        var source = new Model("Source");
+        var source = new Model { Name = "Source" };
         source.SetVertexBuffers([vertexBuffer]);
         source.SetIndexBuffers([indexBuffer]);
         source.SetNumGeometries(1);
@@ -161,7 +161,7 @@ public sealed class ModelFileTests
         Assert.True(source.Save(stream));
         stream.Position = 0;
 
-        var loaded = new Model("Loaded");
+        var loaded = new Model { Name = "Loaded" };
         Assert.True(loaded.Load(stream));
         Assert.Equal(1u, loaded.GetNumGeometries());
         Assert.NotNull(loaded.GetGeometry(0));
@@ -170,7 +170,7 @@ public sealed class ModelFileTests
         Assert.Equal(3u, loaded.GetIndexBuffers()[0].GetIndexCount());
 
         stream.Position = 0;
-        var staged = new Model("Staged");
+        var staged = new Model { Name = "Staged" };
         staged.SetAsyncLoadState(AsyncLoadState.Loading);
         Assert.True(staged.BeginLoad(stream));
         Assert.Equal(0u, staged.GetVertexBuffers()[0].GetVertexCount());

@@ -18,7 +18,6 @@ public sealed class Sound : ResourceWithMetadata
     private float _compressedLength;
 
     public Sound()
-        : base(string.Empty)
     {
     }
 

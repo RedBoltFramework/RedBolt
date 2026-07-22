@@ -151,13 +151,13 @@ public class RenderToTexture : Application
                 screen.SetModel(cache.Get<Model>("Models/Plane.mdl"));
 
                 // Create a renderable texture (1024x768, RGB format), enable bilinear filtering on it
-                _renderTexture = new Texture2D("");
+                _renderTexture = new Texture2D();
                 _renderTexture.SetSize(1024, 768, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget, 4);
                 _renderTexture.SetFilterMode(TextureFilterMode.Bilinear);
 
                 // Create a new material from scratch, use the diffuse unlit technique, assign the render texture
                 // as its diffuse texture, then assign the material to the screen plane object
-                _renderMaterial = new Material("");
+                _renderMaterial = new Material();
                 _renderMaterial.SetTechnique(0, cache.Get<Technique>("Techniques/DiffUnlit.xml"));
                 _renderMaterial.SetTexture("Albedo", _renderTexture);
                 // Since the screen material is on top of the box model and may Z-fight, use negative depth bias

@@ -19,7 +19,7 @@ public sealed class XMLArchiveTests
             Assert.DoesNotContain(typeof(ICloneable), typeof(XMLOutputArchive).GetInterfaces());
             Assert.DoesNotContain(typeof(ICloneable), typeof(XMLInputArchive).GetInterfaces());
 
-            using var xmlFile = new XMLFile("Data/archive.xml");
+            using var xmlFile = new XMLFile { Name = "Data/archive.xml" };
             using (var output = new XMLOutputArchive(xmlFile))
             {
                 var first = 1;

@@ -20,15 +20,15 @@ public sealed class TextureTests
         Assert.Equal(TextureAddressMode.Mirror, copy[TextureCoordinate.U]);
         Assert.Equal(4.0f, copy.MaxLod);
 
-        using var texture = new Texture(string.Empty);
+        using var texture = new Texture { Name = string.Empty };
         Assert.Equal(MathDefs.LargeValue, texture.GetMaxLod());
     }
 
     [Fact]
     public void Texture_dispose_releases_shared_backup_reference_without_disposing_alias()
     {
-        using var backup = new Texture("Textures/Backup");
-        var texture = new Texture("Textures/Primary");
+        using var backup = new Texture { Name = "Textures/Backup" };
+        var texture = new Texture { Name = "Textures/Primary" };
         texture.SetBackupTexture(backup);
 
         texture.Dispose();
@@ -80,7 +80,7 @@ public sealed class TextureTests
     [Fact]
     public void Texture_sampler_dimensions_and_flags_match_cpp_api()
     {
-        var texture = new Texture2D("Textures/Smoke2D");
+        var texture = new Texture2D { Name = "Textures/Smoke2D" };
         texture.SetNumLevels(1);
         Assert.True(texture.SetSize(8, 4, TextureFormat.TexFormatRgba8Unorm));
 
@@ -99,7 +99,7 @@ public sealed class TextureTests
         Assert.False(texture.IsUnorderedAccess());
         Assert.Null(texture.GetRenderSurface());
 
-        var renderTexture = new Texture2D("Textures/RenderTarget");
+        var renderTexture = new Texture2D { Name = "Textures/RenderTarget" };
         Assert.True(renderTexture.SetSize(8, 4, TextureFormat.TexFormatRgba8Unorm,
             TextureFlag.BindRenderTarget | TextureFlag.BindUnorderedAccess));
         Assert.True(renderTexture.IsRenderTarget());
@@ -111,12 +111,12 @@ public sealed class TextureTests
             TextureFlag.BindRenderTarget | TextureFlag.BindUnorderedAccess));
         Assert.Null(renderTexture.GetRenderSurface());
 
-        var renderCube = new TextureCube("Textures/RenderCube");
+        var renderCube = new TextureCube { Name = "Textures/RenderCube" };
         Assert.True(renderCube.SetSize(8, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
         Assert.True(renderCube.IsRenderTarget());
         Assert.False(renderCube.GetAutoResolve());
 
-        var renderTextureArray = new Texture2DArray("Textures/RenderTargetArray");
+        var renderTextureArray = new Texture2DArray { Name = "Textures/RenderTargetArray" };
         Assert.True(renderTextureArray.SetSize(2, 8, 4, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
         Assert.Null(renderTextureArray.GetRenderSurface(0));
         Assert.Null(renderTextureArray.GetRenderSurface(1));
@@ -126,7 +126,7 @@ public sealed class TextureTests
     [Fact]
     public void Texture_depth_components_match_cpp_format_sizes()
     {
-        var texture = new Texture2D("Textures/Depth");
+        var texture = new Texture2D { Name = "Textures/Depth" };
 
         Assert.True(texture.SetSize(8, 4, TextureFormat.TexFormatD16Unorm));
         Assert.Equal(2, texture.GetComponents());
@@ -152,7 +152,7 @@ public sealed class TextureTests
     {
         Assert.True(typeof(TextureFormat).IsValueType);
 
-        using var texture = new Texture2D("Textures/Formats");
+        using var texture = new Texture2D { Name = "Textures/Formats" };
 
         Assert.True(texture.SetSize(8, 4, TextureFormat.TexFormatRg8Unorm));
         Assert.Equal(TextureFormat.TexFormatRg8Unorm, texture.Format);
@@ -173,7 +173,7 @@ public sealed class TextureTests
     [Fact]
     public void Texture_sampler_mutators_update_raw_texture_sampler_state()
     {
-        var texture = new Texture2D("Textures/SamplerState");
+        var texture = new Texture2D { Name = "Textures/SamplerState" };
         Assert.True(texture.SetSize(8, 4, TextureFormat.TexFormatRgba8Unorm));
 
         texture.SetFilterMode(TextureFilterMode.Bilinear);
@@ -196,7 +196,7 @@ public sealed class TextureTests
     [Fact]
     public void Texture_sampler_state_exists_before_gpu_creation_and_has_value_semantics()
     {
-        var texture = new Texture("Textures/SamplerState");
+        var texture = new Texture { Name = "Textures/SamplerState" };
         var source = SamplerStateDesc.Bilinear(TextureAddressMode.Clamp);
 
         texture.SetSamplerStateDesc(source);
@@ -213,7 +213,7 @@ public sealed class TextureTests
     [Fact]
     public void Texture_xml_parameters_match_cpp_parser()
     {
-        var file = new XMLFile("Textures/SmokeParameters.xml");
+        var file = new XMLFile { Name = "Textures/SmokeParameters.xml" };
         var root = file.CreateRoot("texture");
         root.CreateChild("address").SetAttribute("coord", "V");
         root.GetChild("address").SetAttribute("mode", "CLAMP");
@@ -230,7 +230,7 @@ public sealed class TextureTests
         root.CreateChild("srgb").SetBool("enable", true);
         root.CreateChild("linear").SetBool("enable", true);
 
-        var texture = new Texture2D("Textures/Smoke2D");
+        var texture = new Texture2D { Name = "Textures/Smoke2D" };
         texture.SetParameters(file);
 
         Assert.Equal(TextureAddressMode.Clamp, texture.GetAddressMode(TextureCoordinate.V));
@@ -252,7 +252,7 @@ public sealed class TextureTests
     [Fact]
     public void Texture_invalid_quality_is_ignored()
     {
-        var texture = new Texture2D("Textures/Smoke2D");
+        var texture = new Texture2D { Name = "Textures/Smoke2D" };
 
         texture.SetMipsToSkip((MaterialQuality)99u, 4);
 
@@ -265,12 +265,12 @@ public sealed class TextureTests
     [Fact]
     public void Texture2D_image_upload_configures_texture()
     {
-        var image = new Image("Textures/SmokeImage");
+        var image = new Image();
         var imageData = Enumerable.Range(0, 16).Select(value => (byte)(value * 3)).ToArray();
         Assert.True(image.SetSize(2, 2, 4));
         image.SetData(imageData);
 
-        var texture = new Texture2D("Textures/Smoke2D");
+        var texture = new Texture2D { Name = "Textures/Smoke2D" };
         texture.SetNumLevels(1);
         Assert.True(texture.SetData(image));
 
@@ -282,12 +282,12 @@ public sealed class TextureTests
     [Fact]
     public void Texture3D_image_upload_and_readback_work()
     {
-        var image = new Image("Textures/SmokeVolumeImage");
+        var image = new Image();
         var imageData = Enumerable.Range(0, 4 * 4 * 4 * 4).Select(value => (byte)value).ToArray();
         Assert.True(image.SetSize(4, 4, 4, 4));
         image.SetData(imageData);
 
-        var texture = new Texture3D("Textures/Smoke3D");
+        var texture = new Texture3D { Name = "Textures/Smoke3D" };
         texture.SetNumLevels(1);
         texture.SetMipsToSkip(MaterialQuality.High, 1);
         Assert.True(texture.SetData(image));
@@ -302,17 +302,17 @@ public sealed class TextureTests
     [Fact]
     public void Texture_array_uploads_forward_to_raw_texture()
     {
-        var volume = new Texture3D("Textures/Volume");
+        var volume = new Texture3D { Name = "Textures/Volume" };
         Assert.True(volume.SetSize(2, 2, 2, TextureFormat.TexFormatRgba8Unorm));
         Assert.True(volume.SetData(0, 0, 0, 0, 2, 2, 2, new byte[2 * 2 * 2 * 4]));
         Assert.Equal(TextureType.Texture3D, volume.GetRawTexture()!.GetParams().Type);
 
-        var cube = new TextureCube("Textures/Cube");
+        var cube = new TextureCube { Name = "Textures/Cube" };
         Assert.True(cube.SetSize(2, TextureFormat.TexFormatRgba8Unorm));
         Assert.True(cube.SetData(CubeMapFace.PositiveX, 0, 0, 0, 2, 2, new byte[2 * 2 * 4]));
         Assert.Equal(TextureType.TextureCube, cube.GetRawTexture()!.GetParams().Type);
 
-        var array = new Texture2DArray("Textures/Array");
+        var array = new Texture2DArray { Name = "Textures/Array" };
         Assert.True(array.SetSize(2, 2, 2, TextureFormat.TexFormatRgba8Unorm));
         Assert.True(array.SetData(1, 0, 0, 0, 2, 2, new byte[2 * 2 * 4]));
         Assert.Equal(TextureType.Texture2DArray, array.GetRawTexture()!.GetParams().Type);
@@ -321,7 +321,7 @@ public sealed class TextureTests
     [Fact]
     public void Texture3D_set_size_ignores_usage_flags_like_cpp()
     {
-        var texture = new Texture3D("Textures/RenderVolume");
+        var texture = new Texture3D { Name = "Textures/RenderVolume" };
 
         Assert.True(texture.SetSize(4, 4, 4, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
         Assert.False(texture.IsRenderTarget());
@@ -331,12 +331,12 @@ public sealed class TextureTests
     [Fact]
     public void TextureCube_image_upload_and_readback_work()
     {
-        var image = new Image("Textures/SmokeCubeImage");
+        var image = new Image();
         var imageData = Enumerable.Range(0, 2 * 2 * 4).Select(value => (byte)value).ToArray();
         Assert.True(image.SetSize(2, 2, 4));
         image.SetData(imageData);
 
-        var texture = new TextureCube("Textures/SmokeCube");
+        var texture = new TextureCube { Name = "Textures/SmokeCube" };
         texture.SetNumLevels(1);
         for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; face = (CubeMapFace)((int)face + 1))
             Assert.True(texture.SetData(face, image));
@@ -352,12 +352,12 @@ public sealed class TextureTests
     [Fact]
     public void Texture2DArray_image_upload_and_readback_work()
     {
-        var image = new Image("Textures/SmokeArrayImage");
+        var image = new Image();
         var imageData = Enumerable.Range(0, 2 * 2 * 4).Select(value => (byte)value).ToArray();
         Assert.True(image.SetSize(2, 2, 4));
         image.SetData(imageData);
 
-        var texture = new Texture2DArray("Textures/SmokeArray");
+        var texture = new Texture2DArray { Name = "Textures/SmokeArray" };
         texture.SetLayers(2);
         texture.SetNumLevels(1);
         Assert.True(texture.SetData(0, image));

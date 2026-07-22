@@ -109,7 +109,7 @@ public sealed class ResourceCacheTests
     public void LoadFromCache_returns_resource_from_context_cache()
     {
         var resourceName = $"Data/load-from-cache-{Guid.NewGuid():N}.bin";
-        var resource = new BinaryFile(resourceName);
+        var resource = new BinaryFile { Name = resourceName };
         var type = new StringHash(typeof(BinaryFile).GetClassName());
 
         try
@@ -175,7 +175,7 @@ public sealed class ResourceCacheTests
     {
         using var cache = new ResourceCache();
         var resourceName = $"Data/hash-{Guid.NewGuid():N}.bin";
-        var resource = new BinaryFile(resourceName);
+        var resource = new BinaryFile { Name = resourceName };
         resource.SetMemoryUse(3);
         var type = new StringHash(typeof(BinaryFile).GetClassName());
         cache.SetMemoryBudget(type, 8);
@@ -368,7 +368,7 @@ public sealed class ResourceCacheTests
             System.IO.File.WriteAllText(fileName, "first");
             Resources.AddResourceDir(tempDir);
             var resource = Resources.GetResource<ReloadableResource>("Data/reload-direct.dat");
-            using var observer = new ReloadableResource("observer");
+            using var observer = new ReloadableResource { Name = "observer" };
             var events = new List<string>();
             observer.SubscribeToEvent<ResourceEvents.ReloadStarted>(resource,
                 (ref ResourceEvents.ReloadStarted _) => events.Add("started"));
@@ -462,7 +462,7 @@ public sealed class ResourceCacheTests
     [Fact]
     public void ManualResource_add_and_release_work()
     {
-        var manual = new BinaryFile("Data/manual.bin");
+        var manual = new BinaryFile { Name = "Data/manual.bin" };
         manual.SetText("manual");
         Assert.True(Resources.AddManualResource(manual));
         Resources.ReleaseResource("Data/manual.bin");
@@ -477,13 +477,13 @@ public sealed class ResourceCacheTests
         var newestName = $"Data/new-{Guid.NewGuid():N}.bin";
         try
         {
-            var oldest = new ReloadableResource(oldestName);
+            var oldest = new ReloadableResource { Name = oldestName };
             oldest.SetMemoryUse(3);
             Assert.True(Resources.AddManualResource(oldest));
             oldest.ResetUseTimer();
             System.Threading.Thread.Sleep(20);
 
-            var newest = new ReloadableResource(newestName);
+            var newest = new ReloadableResource { Name = newestName };
             newest.SetMemoryUse(3);
             Assert.True(Resources.AddManualResource(newest));
 
@@ -500,7 +500,7 @@ public sealed class ResourceCacheTests
     [Fact]
     public void Resource_groups_expose_cached_resources_and_budget()
     {
-        var resource = new ReloadableResource($"Data/group-{Guid.NewGuid():N}.bin");
+        var resource = new ReloadableResource { Name = $"Data/group-{Guid.NewGuid():N}.bin" };
         resource.SetMemoryUse(3);
         Resources.SetMemoryBudget<ReloadableResource>(8);
         try
@@ -523,7 +523,7 @@ public sealed class ResourceCacheTests
     [Fact]
     public void Removing_resource_reflection_releases_cached_resources()
     {
-        var resource = new ReloadableResource($"Data/reflection-{Guid.NewGuid():N}.bin");
+        var resource = new ReloadableResource { Name = $"Data/reflection-{Guid.NewGuid():N}.bin" };
         Assert.True(Resources.AddManualResource(resource));
         Assert.Same(resource, Resources.GetExistingResource<ReloadableResource>(resource.Name));
 
@@ -554,7 +554,7 @@ public sealed class ResourceCacheTests
             System.IO.File.WriteAllBytes(packagePath, packageBytes.GetBuffer());
             using var packageFile = new PackageFile(packagePath);
 
-            var resource = new BinaryFile(resourceName);
+            var resource = new BinaryFile { Name = resourceName };
             resource.SetText("manual");
             Assert.True(Resources.AddManualResource(resource));
             Assert.NotNull(Resources.GetExistingResource<BinaryFile>(resourceName));
@@ -580,11 +580,11 @@ public sealed class ResourceCacheTests
         {
             var savePath = Path.Combine(tempDir, "Data", "saved.bin");
             Directory.CreateDirectory(Path.GetDirectoryName(savePath)!);
-            var saved = new BinaryFile("Data/saved.bin");
+            var saved = new BinaryFile { Name = "Data/saved.bin" };
             saved.SetText("saved through resource helper");
             Assert.True(saved.SaveFile(savePath));
 
-            var reloaded = new BinaryFile("Data/reloaded.bin");
+            var reloaded = new BinaryFile { Name = "Data/reloaded.bin" };
             Assert.True(reloaded.LoadFile(savePath));
             Assert.Equal("saved through resource helper", reloaded.GetText());
         }
@@ -597,7 +597,7 @@ public sealed class ResourceCacheTests
     [Fact]
     public void Resource_property_helpers_work()
     {
-        var r = new BinaryFile("Data/test.bin");
+        var r = new BinaryFile { Name = "Data/test.bin" };
         r.SetName("Data/renamed.bin");
         r.SetMemoryUse(123);
         r.SetAsyncLoadState(AsyncLoadState.Queued);
@@ -705,8 +705,8 @@ public sealed class FailedResource : Resource
     }
 
     public FailedResource(string name)
-        : base(name)
     {
+        SetName(name);
     }
 
     public override bool BeginLoad(Stream source) => false;
@@ -746,7 +746,7 @@ public sealed class BlockingBackgroundResource : Resource
     }
 }
 
-public sealed class ReloadableResource(string name) : Resource(name)
+public sealed class ReloadableResource : Resource
 {
     public int ReloadCount { get; private set; }
 

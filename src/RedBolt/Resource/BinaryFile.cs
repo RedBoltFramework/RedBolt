@@ -8,13 +8,6 @@ public class BinaryFile : Resource
 {
     /// <summary>Construct empty.</summary>
     public BinaryFile()
-        : this(string.Empty)
-    {
-    }
-
-    /// <summary>Construct empty with resource name.</summary>
-    public BinaryFile(string name)
-        : base(name)
     {
     }
 

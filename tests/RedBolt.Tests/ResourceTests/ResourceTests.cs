@@ -95,7 +95,7 @@ public sealed class ResourceTests
 
         Assert.Equal(["Count", "Label"], resource.GetMetadataKeys());
 
-        var xml = new XMLFile(string.Empty);
+        var xml = new XMLFile { Name = string.Empty };
         var root = xml.CreateRoot("resource");
         resource.SaveMetadata(root);
 
@@ -144,7 +144,6 @@ public sealed class ResourceTests
     private sealed class FailingResource : Resource
     {
         public FailingResource()
-            : base(string.Empty)
         {
         }
 
@@ -161,7 +160,6 @@ public sealed class ResourceTests
     private sealed class MetadataResource : ResourceWithMetadata
     {
         public MetadataResource()
-            : base(string.Empty)
         {
         }
 

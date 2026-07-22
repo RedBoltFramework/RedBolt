@@ -46,7 +46,7 @@ public sealed class SceneResourceTests
         Assert.True(resource.Save(buffer, SceneResourceFormat.Json));
         buffer.Position = 0;
 
-        var loaded = new SceneResource("Scenes/Loaded.scene");
+        var loaded = new SceneResource { Name = "Scenes/Loaded.scene" };
         Assert.True(loaded.Load(buffer));
 
         AssertSceneLoaded(loaded.GetScene());
@@ -60,7 +60,7 @@ public sealed class SceneResourceTests
         Assert.True(resource.Save(buffer, SceneResourceFormat.Xml));
         buffer.Position = 0;
 
-        var loaded = new SceneResource("Scenes/Loaded.scene");
+        var loaded = new SceneResource { Name = "Scenes/Loaded.scene" };
         Assert.True(loaded.Load(buffer));
 
         AssertSceneLoaded(loaded.GetScene());
@@ -74,7 +74,7 @@ public sealed class SceneResourceTests
         Assert.True(resource.Save(buffer, SceneResourceFormat.Binary));
         buffer.Position = 0;
 
-        var loaded = new SceneResource("Scenes/Loaded.scene");
+        var loaded = new SceneResource { Name = "Scenes/Loaded.scene" };
         Assert.True(loaded.Load(buffer));
 
         AssertSceneLoaded(loaded.GetScene());
@@ -139,7 +139,7 @@ public sealed class SceneResourceTests
 
     private static SceneResource CreateSampleSceneResource()
     {
-        var resource = new SceneResource("Scenes/Sample.scene");
+        var resource = new SceneResource { Name = "Scenes/Sample.scene" };
         var scene = resource.GetScene();
         scene.SetUpdateEnabled(true);
         scene.SetTimeScale(1.5f);

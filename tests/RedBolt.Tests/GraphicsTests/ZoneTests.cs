@@ -66,8 +66,8 @@ public sealed class ZoneTests
     public void Zone_texture_reload_event_invalidates_only_the_current_texture()
     {
         var zone = new Zone();
-        var firstTexture = new Texture2D("FirstZoneTexture");
-        var secondTexture = new Texture2D("SecondZoneTexture");
+        var firstTexture = new Texture2D { Name = "FirstZoneTexture" };
+        var secondTexture = new Texture2D { Name = "SecondZoneTexture" };
         zone.SetZoneTexture(firstTexture);
         zone.SetZoneTexture(secondTexture);
         zone.UpdateCachedData();

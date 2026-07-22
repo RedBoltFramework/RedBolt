@@ -10,12 +10,6 @@ public class Resource : Object
     {
     }
 
-    public Resource(string name)
-        : this()
-    {
-        SetName(name);
-    }
-
     /// <summary>Load resource by reference.</summary>
     public static Resource? LoadFromCache(Context context, StringHash type, string name)
     {
@@ -231,7 +225,7 @@ public class Resource : Object
     public string Name
     {
         get => _name;
-        private set => SetName(value);
+        set => SetName(value);
     }
 
     public StringHash NameHash => _nameHash;

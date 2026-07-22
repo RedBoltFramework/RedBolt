@@ -31,7 +31,7 @@ public sealed class SoftwareModelAnimatorTests
     public void Morph_animation_clones_resets_applies_and_commits_vertex_data()
     {
         var originalBuffer = CreateVertexBuffer(VertexMask.Position, new Vector3f(1.0f, 2.0f, 3.0f));
-        var model = new Model("Morph");
+        var model = new Model { Name = "Morph" };
         Assert.True(model.SetVertexBuffers([originalBuffer], [0], [1]));
         var morphData = new byte[sizeof(uint) + 3 * sizeof(float)];
         Write(morphData, 0, 0u);
@@ -76,7 +76,7 @@ public sealed class SoftwareModelAnimatorTests
         var indicesOffset = checked((int)originalBuffer.GetElementOffset(VertexElementSemantic.BlendIndices));
         data[indicesOffset] = 0;
         originalBuffer.Update(data);
-        var model = new Model("Skinning");
+        var model = new Model { Name = "Skinning" };
         Assert.True(model.SetVertexBuffers([originalBuffer]));
         using var animator = new SoftwareModelAnimator();
 
@@ -111,7 +111,7 @@ public sealed class SoftwareModelAnimatorTests
         data[indicesOffset + 2] = 2;
         data[indicesOffset + 3] = 3;
         originalBuffer.Update(data);
-        var model = new Model("ReducedSkinning");
+        var model = new Model { Name = "ReducedSkinning" };
         Assert.True(model.SetVertexBuffers([originalBuffer]));
         using var animator = new SoftwareModelAnimator();
 
@@ -142,7 +142,7 @@ public sealed class SoftwareModelAnimatorTests
         originalGeometry.SetIndexBuffer(indexBuffer);
         Assert.True(originalGeometry.SetDrawRange(PrimitiveType.PointList, 0, 1));
         originalGeometry.SetLodDistance(12.0f);
-        var model = new Model("Geometry");
+        var model = new Model { Name = "Geometry" };
         Assert.True(model.SetVertexBuffers([originalBuffer], [0], [1]));
         model.SetNumGeometries(1);
         Assert.True(model.SetGeometry(0, 0, originalGeometry));

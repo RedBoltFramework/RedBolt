@@ -580,10 +580,10 @@ public sealed class RenderPipelineTests : IDisposable
             ReadableColor = true
         });
 
-        var colorTarget = new Texture2D("Textures/ViewportColor");
+        var colorTarget = new Texture2D { Name = "Textures/ViewportColor" };
         Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
         colorTarget.SetFilterMode(TextureFilterMode.Bilinear);
-        var depthTarget = new Texture2D("Textures/ViewportDepth");
+        var depthTarget = new Texture2D { Name = "Textures/ViewportDepth" };
         Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint, TextureFlag.BindDepthStencil));
 
         var output = GetRenderSurface(colorTarget, depthTarget);
@@ -604,10 +604,10 @@ public sealed class RenderPipelineTests : IDisposable
             ReadableColor = true
         });
 
-        var colorTarget = new Texture2D("Textures/ViewportColor");
+        var colorTarget = new Texture2D { Name = "Textures/ViewportColor" };
         Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
         colorTarget.SetFilterMode(TextureFilterMode.Nearest);
-        var depthTarget = new Texture2D("Textures/ViewportDepth");
+        var depthTarget = new Texture2D { Name = "Textures/ViewportDepth" };
         Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint, TextureFlag.BindDepthStencil));
 
         var output = GetRenderSurface(colorTarget, depthTarget);
@@ -654,7 +654,7 @@ public sealed class RenderPipelineTests : IDisposable
             SupportColorReadWrite = true
         });
 
-        var renderTarget = new Texture2D("Textures/ViewportTarget");
+        var renderTarget = new Texture2D { Name = "Textures/ViewportTarget" };
         Assert.True(renderTarget.SetSize(320, 200, TextureFormat.TexFormatRgba16Float, TextureFlag.BindRenderTarget));
         renderTarget.SetFilterMode(TextureFilterMode.Bilinear);
         renderTarget.SetLinear(true);
@@ -676,9 +676,9 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Render_surface_derives_multisample_from_texture()
     {
-        var colorTarget = new Texture2D("Textures/ViewportColor");
+        var colorTarget = new Texture2D { Name = "Textures/ViewportColor" };
         Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget, 4));
-        var depthTarget = new Texture2D("Textures/ViewportDepth");
+        var depthTarget = new Texture2D { Name = "Textures/ViewportDepth" };
         Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint, TextureFlag.BindDepthStencil, 4));
 
         var output = GetRenderSurface(colorTarget, depthTarget);
@@ -759,11 +759,11 @@ public sealed class RenderPipelineTests : IDisposable
             SupportColorReadWrite = true
         });
 
-        var renderTarget = new Texture2D("Textures/ViewportTarget");
+        var renderTarget = new Texture2D { Name = "Textures/ViewportTarget" };
         Assert.True(renderTarget.SetSize(320, 200, TextureFormat.TexFormatRgba16Float, TextureFlag.BindRenderTarget));
         renderTarget.SetFilterMode(TextureFilterMode.Bilinear);
         renderTarget.SetLinear(true);
-        var depthTarget = new Texture2D("Textures/ViewportDepth");
+        var depthTarget = new Texture2D { Name = "Textures/ViewportDepth" };
         Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint, TextureFlag.BindDepthStencil));
 
         DefineAndBeginFrame(manager, GetRenderSurface(renderTarget, depthTarget), new IntRect(0, 0, 320, 200));
@@ -780,7 +780,7 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Render_surface_preserves_srgb_parent_texture_metadata()
     {
-        var colorTarget = new Texture2D("Textures/ViewportColor");
+        var colorTarget = new Texture2D { Name = "Textures/ViewportColor" };
         colorTarget.SetSRGB(true);
         Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
 
@@ -793,7 +793,7 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Render_surface_preserves_float_parent_texture_format()
     {
-        var colorTarget = new Texture2D("Textures/ViewportColor");
+        var colorTarget = new Texture2D { Name = "Textures/ViewportColor" };
         Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRg16Float, TextureFlag.BindRenderTarget));
 
         var output = GetRenderSurface(colorTarget);
@@ -812,9 +812,9 @@ public sealed class RenderPipelineTests : IDisposable
         });
         manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
 
-        var colorTarget = new Texture2D("Textures/ViewportColor");
+        var colorTarget = new Texture2D { Name = "Textures/ViewportColor" };
         Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
-        var depthTarget = new Texture2D("Textures/ViewportDepth");
+        var depthTarget = new Texture2D { Name = "Textures/ViewportDepth" };
         Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint, TextureFlag.BindDepthStencil));
 
         DefineAndBeginFrame(manager, GetRenderSurface(colorTarget, depthTarget), new IntRect(0, 0, 320, 200));
@@ -834,10 +834,10 @@ public sealed class RenderPipelineTests : IDisposable
         });
         manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
 
-        var colorTarget = new Texture2D("Textures/ViewportColor");
+        var colorTarget = new Texture2D { Name = "Textures/ViewportColor" };
         colorTarget.SetSRGB(true);
         Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
-        var depthTarget = new Texture2D("Textures/ViewportDepth");
+        var depthTarget = new Texture2D { Name = "Textures/ViewportDepth" };
         Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint, TextureFlag.BindDepthStencil));
 
         DefineAndBeginFrame(manager, GetRenderSurface(colorTarget, depthTarget), new IntRect(0, 0, 320, 200));
@@ -885,7 +885,7 @@ public sealed class RenderPipelineTests : IDisposable
             SupportColorReadWrite = true
         });
 
-        var renderTarget = new Texture2D("Textures/ViewportTarget");
+        var renderTarget = new Texture2D { Name = "Textures/ViewportTarget" };
         Assert.True(renderTarget.SetSize(320, 200, TextureFormat.TexFormatRg16Float, TextureFlag.BindRenderTarget));
         renderTarget.SetFilterMode(TextureFilterMode.Bilinear);
 
@@ -908,9 +908,9 @@ public sealed class RenderPipelineTests : IDisposable
         });
         manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
 
-        var colorTarget = new Texture2D("Textures/ViewportColor");
+        var colorTarget = new Texture2D { Name = "Textures/ViewportColor" };
         Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
-        var depthTarget = new Texture2D("Textures/ViewportDepth");
+        var depthTarget = new Texture2D { Name = "Textures/ViewportDepth" };
         Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint, TextureFlag.BindDepthStencil));
 
         var output = GetRenderSurface(colorTarget, depthTarget);
@@ -934,9 +934,9 @@ public sealed class RenderPipelineTests : IDisposable
             SupportColorReadWrite = true
         });
 
-        var colorTarget = new Texture2D("Textures/ViewportColor");
+        var colorTarget = new Texture2D { Name = "Textures/ViewportColor" };
         Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
-        var depthTarget = new Texture2D("Textures/ViewportDepth");
+        var depthTarget = new Texture2D { Name = "Textures/ViewportDepth" };
         Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint, TextureFlag.BindDepthStencil));
 
         var output = GetRenderSurface(colorTarget, depthTarget);
@@ -965,9 +965,9 @@ public sealed class RenderPipelineTests : IDisposable
         });
         manager.SetFrameSettings(new RenderBufferManagerFrameSettings());
 
-        var colorTarget = new Texture2D("Textures/ViewportColor");
+        var colorTarget = new Texture2D { Name = "Textures/ViewportColor" };
         Assert.True(colorTarget.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
-        var depthTarget = new Texture2D("Textures/ViewportDepth");
+        var depthTarget = new Texture2D { Name = "Textures/ViewportDepth" };
         Assert.True(depthTarget.SetSize(320, 200, TextureFormat.TexFormatD24UnormS8Uint, TextureFlag.BindDepthStencil));
 
         var output = GetRenderSurface(colorTarget, depthTarget);

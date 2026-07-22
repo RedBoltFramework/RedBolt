@@ -1,96 +1,188 @@
 namespace RedBolt;
 
-public sealed class ImageCube : Resource
+/// <summary>Cube texture resource.</summary>
+public class ImageCube : Resource
 {
-    private readonly Image?[] _faceImages = new Image[6];
+    /// <summary>Face images.</summary>
+    private readonly List<Image?> _faceImages = [];
+    /// <summary>Parameter file.</summary>
     private XMLFile? _parametersXml;
-    private SphericalHarmonicsDot9? _cachedSphericalHarmonics;
+    /// <summary>Cube width.</summary>
     private int _width;
+    /// <summary>Precalculated spherical harmonics.</summary>
+    private SphericalHarmonicsDot9? _cachedSphericalHarmonics;
 
-    public ImageCube(string name)
-        : base(name)
+    /// <summary>Construct.</summary>
+    public ImageCube()
     {
     }
 
+    /// <summary>Destruct.</summary>
+    public override void Dispose()
+    {
+        _cachedSphericalHarmonics = null;
+        _width = 0;
+        _parametersXml = null;
+        _faceImages.Clear();
+        base.Dispose();
+    }
+
+    /// <summary>Register object factory.</summary>
+    public static void RegisterObject(Context context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        context.AddFactoryReflection<ImageCube>();
+    }
+
+    private static Image? GetTileImage(Image source, int tileX, int tileY, int tileWidth, int tileHeight)
+    {
+        return source.GetSubimage(new IntRect(
+            tileX * tileWidth, tileY * tileHeight, (tileX + 1) * tileWidth, (tileY + 1) * tileHeight));
+    }
+
+    /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
     public override bool BeginLoad(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
 
         var cache = GetSubsystem<ResourceCache>()!;
+
         cache.ResetDependencies(this);
 
         var normalizedName = Name.Replace('\\', '/');
         var separatorIndex = normalizedName.LastIndexOf('/');
         var texturePath = separatorIndex >= 0 ? normalizedName[..(separatorIndex + 1)] : string.Empty;
 
-        _parametersXml = new XMLFile(Name + "#params");
+        _parametersXml = new XMLFile();
         if (!_parametersXml.Load(source))
         {
             _parametersXml = null;
             return false;
         }
 
-        Array.Clear(_faceImages);
+        _faceImages.Clear();
 
-        var root = _parametersXml.Root;
-        var imageElement = root.GetChild("image");
+        var textureElement = _parametersXml.Root;
+        var imageElement = textureElement.GetChild("image");
+        // Single image and multiple faces with layout
         if (imageElement.NotNull)
         {
-            var imageName = imageElement.GetAttribute("name");
+            var name = imageElement.GetAttribute("name");
             // If path is empty, add the XML file path
-            if (!imageName.Contains('/') && !imageName.Contains('\\'))
-                imageName = texturePath + imageName;
+            if (!name.Contains('/') && !name.Contains('\\'))
+                name = texturePath + name;
 
-            var image = cache.GetTempResource<Image>(imageName);
+            var image = cache.GetTempResource<Image>(name);
             if (image is null)
                 return false;
 
+            int faceWidth;
+            int faceHeight;
+            for (var i = 0; i < (int)CubeMapFace.MaxCubeMapFaces; ++i)
+                _faceImages.Add(null);
+
             if (image.IsCubemap())
             {
-                var current = image;
-                for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; face = (CubeMapFace)((int)face + 1))
-                {
-                    if (current is null)
-                        return false;
-
-                    SetImage(face, current);
-                    current = current.GetNextSibling();
-                }
+                _faceImages[(int)CubeMapFace.PositiveX] = image;
+                _faceImages[(int)CubeMapFace.NegativeX] = _faceImages[(int)CubeMapFace.PositiveX]!.GetNextSibling();
+                _faceImages[(int)CubeMapFace.PositiveY] = _faceImages[(int)CubeMapFace.NegativeX]!.GetNextSibling();
+                _faceImages[(int)CubeMapFace.NegativeY] = _faceImages[(int)CubeMapFace.PositiveY]!.GetNextSibling();
+                _faceImages[(int)CubeMapFace.PositiveZ] = _faceImages[(int)CubeMapFace.NegativeY]!.GetNextSibling();
+                _faceImages[(int)CubeMapFace.NegativeZ] = _faceImages[(int)CubeMapFace.PositiveZ]!.GetNextSibling();
             }
             else
             {
-                if (!LoadSingleImageLayout(image, imageElement.GetAttribute("layout")))
-                    return false;
+                var layout = imageElement.GetAttribute("layout").ToLowerInvariant() switch
+                {
+                    "horizontalnvidia" => CubeMapLayout.HorizontalNvidia,
+                    "horizontalcross" => CubeMapLayout.HorizontalCross,
+                    "verticalcross" => CubeMapLayout.VerticalCross,
+                    "blender" => CubeMapLayout.Blender,
+                    _ => CubeMapLayout.Horizontal
+                };
+
+                switch (layout)
+                {
+                    case CubeMapLayout.Horizontal:
+                        faceWidth = image.Width / (int)CubeMapFace.MaxCubeMapFaces;
+                        faceHeight = image.Height;
+                        _faceImages[(int)CubeMapFace.PositiveZ] = GetTileImage(image, 0, 0, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.PositiveX] = GetTileImage(image, 1, 0, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.NegativeZ] = GetTileImage(image, 2, 0, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.NegativeX] = GetTileImage(image, 3, 0, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.PositiveY] = GetTileImage(image, 4, 0, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.NegativeY] = GetTileImage(image, 5, 0, faceWidth, faceHeight);
+                        break;
+
+                    case CubeMapLayout.HorizontalNvidia:
+                        faceWidth = image.Width / (int)CubeMapFace.MaxCubeMapFaces;
+                        faceHeight = image.Height;
+                        for (var i = 0; i < (int)CubeMapFace.MaxCubeMapFaces; ++i)
+                            _faceImages[i] = GetTileImage(image, i, 0, faceWidth, faceHeight);
+                        break;
+
+                    case CubeMapLayout.HorizontalCross:
+                        faceWidth = image.Width / 4;
+                        faceHeight = image.Height / 3;
+                        _faceImages[(int)CubeMapFace.PositiveY] = GetTileImage(image, 1, 0, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.NegativeX] = GetTileImage(image, 0, 1, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.PositiveZ] = GetTileImage(image, 1, 1, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.PositiveX] = GetTileImage(image, 2, 1, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.NegativeZ] = GetTileImage(image, 3, 1, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.NegativeY] = GetTileImage(image, 1, 2, faceWidth, faceHeight);
+                        break;
+
+                    case CubeMapLayout.VerticalCross:
+                        faceWidth = image.Width / 3;
+                        faceHeight = image.Height / 4;
+                        _faceImages[(int)CubeMapFace.PositiveY] = GetTileImage(image, 1, 0, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.NegativeX] = GetTileImage(image, 0, 1, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.PositiveZ] = GetTileImage(image, 1, 1, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.PositiveX] = GetTileImage(image, 2, 1, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.NegativeY] = GetTileImage(image, 1, 2, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.NegativeZ] = GetTileImage(image, 1, 3, faceWidth, faceHeight);
+                        if (_faceImages[(int)CubeMapFace.NegativeZ] is not null)
+                        {
+                            _faceImages[(int)CubeMapFace.NegativeZ]!.FlipVertical();
+                            _faceImages[(int)CubeMapFace.NegativeZ]!.FlipHorizontal();
+                        }
+                        break;
+
+                    case CubeMapLayout.Blender:
+                        faceWidth = image.Width / 3;
+                        faceHeight = image.Height / 2;
+                        _faceImages[(int)CubeMapFace.NegativeX] = GetTileImage(image, 0, 0, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.NegativeZ] = GetTileImage(image, 1, 0, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.PositiveX] = GetTileImage(image, 2, 0, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.NegativeY] = GetTileImage(image, 0, 1, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.PositiveY] = GetTileImage(image, 1, 1, faceWidth, faceHeight);
+                        _faceImages[(int)CubeMapFace.PositiveZ] = GetTileImage(image, 2, 1, faceWidth, faceHeight);
+                        break;
+                }
             }
         }
+        // Face per image
         else
         {
-            var faceElement = root.GetChild("face");
-            var faceIndex = 0;
-            while (faceElement.NotNull && faceIndex < _faceImages.Length)
+            var faceElement = textureElement.GetChild("face");
+            while (faceElement.NotNull)
             {
-                var imageName = faceElement.GetAttribute("name");
+                var name = faceElement.GetAttribute("name");
+
                 // If path is empty, add the XML file path
-                if (!imageName.Contains('/') && !imageName.Contains('\\'))
-                    imageName = texturePath + imageName;
+                if (!name.Contains('/') && !name.Contains('\\'))
+                    name = texturePath + name;
 
-                var image = cache.GetTempResource<Image>(imageName);
-                if (image is null)
-                    return false;
+                _faceImages.Add(cache.GetTempResource<Image>(name));
+                cache.StoreResourceDependency(this, name);
 
-                cache.StoreResourceDependency(this, imageName);
-
-                SetImage((CubeMapFace)faceIndex, image);
-                ++faceIndex;
                 faceElement = faceElement.GetNext("face");
             }
-
-            if (faceIndex != _faceImages.Length)
-                return false;
         }
 
+        // Load spherical harmonics, if present.
         _cachedSphericalHarmonics = null;
-        var shElement = root.GetChild("sh");
+        var shElement = textureElement.GetChild("sh");
         if (shElement.NotNull)
         {
             _cachedSphericalHarmonics = new SphericalHarmonicsDot9
@@ -105,331 +197,200 @@ public sealed class ImageCube : Resource
             };
         }
 
+        // Precalculate mip levels if async loading
         if (AsyncLoadState == AsyncLoadState.Loading)
         {
-            foreach (var image in _faceImages)
-                image?.PrecalculateLevels();
+            foreach (var faceImage in _faceImages)
+                faceImage?.PrecalculateLevels();
         }
 
-        var expectedSize = 0;
+        // Calculate width and memory use
         var memoryUse = 0;
-        foreach (var image in _faceImages)
+        _width = 0;
+        foreach (var faceImage in _faceImages)
         {
-            if (image is null)
-                return false;
+            if (faceImage is not null)
+            {
+                memoryUse += faceImage.MemoryUse;
 
-            memoryUse += image.MemoryUse;
-            if (expectedSize == 0)
-                expectedSize = image.Width;
+                if (_width == 0)
+                    _width = faceImage.Width;
 
-            if (image.Width != expectedSize || image.Height != expectedSize)
-                return false;
+                if (faceImage.Width != _width || faceImage.Height != _width)
+                    return false;
+            }
         }
 
         MemoryUse = memoryUse;
-        _width = expectedSize;
-        LinkSiblings();
         return true;
     }
 
+    /// <summary>Return face images.</summary>
     public IReadOnlyList<Image?> GetImages() => _faceImages;
 
+    /// <summary>Return parameters XML.</summary>
     public XMLFile? GetParametersXML() => _parametersXml;
 
+    /// <summary>Return image data from a face's zero mip level.</summary>
     public Image? GetImage(CubeMapFace face) => _faceImages[(int)face];
 
-    public void SetImage(CubeMapFace face, Image image)
+    /// <summary>Return mip level used for SH calculation.</summary>
+    public int GetSphericalHarmonicsMipLevel()
     {
-        ArgumentNullException.ThrowIfNull(image);
-        _faceImages[(int)face] = image;
-        if (_width == 0)
-            _width = image.Width;
-        LinkSiblings();
+        var maxLevel = (int)MathDefs.LogBaseTwo((uint)_width);
+        var bestLevelCountedFromSmallest = Math.Min(maxLevel, (int)MathDefs.LogBaseTwo(8)); // 8x8 should be enough for SH
+        return maxLevel - bestLevelCountedFromSmallest;
     }
 
-    public uint GetSphericalHarmonicsMipLevel()
+    /// <summary>Return decompressed cube image mip level.</summary>
+    public ImageCube GetDecompressedImageLevel(int index)
     {
-        var width = GetImage(CubeMapFace.PositiveX)?.Width ?? 1;
-        var maxLevel = (uint)Math.Max(0, (int)MathF.Log2(width));
-        return maxLevel - Math.Min(maxLevel, 3u);
-    }
+        var copy = new ImageCube();
 
-    public ImageCube GetDecompressedImageLevel(uint index)
-    {
-        var cube = new ImageCube(Name + "#level");
-        cube._parametersXml = _parametersXml;
-        cube._width = Math.Max(1, _width >> checked((int)index));
-        for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; face = (CubeMapFace)((int)face + 1))
+        copy._parametersXml = _parametersXml;
+        copy._faceImages.AddRange(_faceImages);
+        copy._width = Math.Max(1, _width >> index);
+
+        for (var i = 0; i < copy._faceImages.Count; ++i)
         {
-            var image = GetImage(face);
-            if (image is null)
-                continue;
-
-            var mip = image.GetDecompressedImageLevel(checked((int)index));
-            if (mip is null)
-                continue;
-
-            cube._faceImages[(int)face] = mip;
+            if (copy._faceImages[i] is not null)
+                copy._faceImages[i] = copy._faceImages[i]!.GetDecompressedImageLevel(index);
         }
 
-        cube.LinkSiblings();
-
-        return cube;
+        return copy;
     }
 
-    public ImageCube GetDecompressedImage() => GetDecompressedImageLevel(0u);
+    /// <summary>Return decompressed cube image.</summary>
+    public ImageCube GetDecompressedImage() => GetDecompressedImageLevel(0);
 
+    /// <summary>Return nearest pixel color at given direction.</summary>
+    public Color SampleNearest(Vector3f direction)
+    {
+        var projection = ProjectDirectionOnFaceTexel(direction);
+        var texel = projection.Texel;
+        return _faceImages[(int)projection.Face]!.GetPixel(texel.X, texel.Y);
+    }
+
+    /// <summary>Return offset from the center of the unit cube for given texel.</summary>
+    public Vector3f ProjectTexelOnCubeLevel(CubeMapFace face, int x, int y, int level)
+    {
+        var u = (x + 0.5f) / (_width >> level);
+        var v = (y + 0.5f) / (_width >> level);
+        return ProjectUVOnCube(face, new Vector2f(u, v));
+    }
+
+    /// <summary>Return offset from the center of the unit cube for given texel (assuming zero mip level).</summary>
+    public Vector3f ProjectTexelOnCube(CubeMapFace face, int x, int y)
+    {
+        return ProjectTexelOnCubeLevel(face, x, y, 0);
+    }
+
+    /// <summary>Project direction on texel of cubemap face.</summary>
+    public (CubeMapFace Face, Vector2i Texel) ProjectDirectionOnFaceTexel(Vector3f direction)
+    {
+        var faceUv = ProjectDirectionOnFace(direction);
+        var uv = faceUv.Uv;
+        var x = Math.Clamp((int)MathF.Floor(uv.X * _width), 0, _width);
+        var y = Math.Clamp((int)MathF.Floor(uv.Y * _width), 0, _width);
+        return (faceUv.Face, new Vector2i(x, y));
+    }
+
+    /// <summary>Calculate spherical harmonics for the cube map.</summary>
     public SphericalHarmonicsColor9 CalculateSphericalHarmonics()
     {
-        var result = new SphericalHarmonicsColor9(); var weightSum = 0f;
-        for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; face = (CubeMapFace)((int)face + 1))
+        var result = new SphericalHarmonicsColor9();
+        var weightSum = 0.0f;
+
+        for (var i = 0; i < 6; ++i)
         {
-            var source = GetImage(face); if (source is null) continue;
-            var level = Math.Min(source.IsCompressed() ? source.NumCompressedLevels - 1 : int.MaxValue, checked((int)GetSphericalHarmonicsMipLevel()));
-            var image = source.GetDecompressedImageLevel(level); if (image is null) continue;
-            for (var y = 0; y < image.Height; ++y) for (var x = 0; x < image.Width; ++x)
+            var face = (CubeMapFace)i;
+
+            var faceImage = GetImage(face);
+            if (faceImage is null)
+                continue;
+
+            var maxLevel = faceImage.IsCompressed() ? faceImage.NumCompressedLevels - 1 : int.MaxValue;
+            var bestLevel = Math.Min(maxLevel, GetSphericalHarmonicsMipLevel());
+            var bestLevelWidth = _width >> bestLevel;
+            var decompressedImage = faceImage.GetDecompressedImageLevel(bestLevel);
+            if (decompressedImage is null)
+                continue;
+
+            for (var y = 0; y < bestLevelWidth; ++y)
             {
-                var offset = ProjectTexelOnCubeLevel(face, x, y, checked((uint)level)); var distance = offset.Length;
-                if (distance <= 0) continue;
-                var weight = 1f / (distance * distance * distance);
-                result += new SphericalHarmonicsColor9(offset / distance, image.GetPixel(x, y).GammaToLinear()) * weight;
-                weightSum += weight;
+                for (var x = 0; x < bestLevelWidth; ++x)
+                {
+                    var sample = decompressedImage.GetPixel(x, y).GammaToLinear();
+                    var offset = ProjectTexelOnCubeLevel(face, x, y, bestLevel);
+                    var distance = offset.Length;
+                    var weight = 1.0f / (distance * distance * distance);
+                    var direction = offset / distance;
+
+                    result += new SphericalHarmonicsColor9(direction, sample) * weight;
+                    weightSum += weight;
+                }
             }
         }
-        if (weightSum > 0) result *= 4f * MathF.PI / weightSum;
+
+        if (weightSum > 0.0f)
+            result *= 4.0f * MathF.PI / weightSum;
         return result;
     }
 
+    /// <summary>Return cached spherical harmonics or recalculate from image if cache is not available.</summary>
     public SphericalHarmonicsDot9 GetOrCreateSphericalHarmonics()
-        => _cachedSphericalHarmonics ??= new SphericalHarmonicsDot9(CalculateSphericalHarmonics());
-
-    public Color SampleNearest(Vector3f direction)
     {
-        var (face, texel) = ProjectDirectionOnFaceTexel(direction);
-        return GetImage(face)!.GetPixel(texel.X, texel.Y);
+        if (_cachedSphericalHarmonics is not null)
+            return _cachedSphericalHarmonics.Value;
+        return new SphericalHarmonicsDot9(CalculateSphericalHarmonics());
     }
 
-    public Vector3f ProjectTexelOnCube(CubeMapFace face, int x, int y)
-    {
-        return ProjectTexelOnCubeLevel(face, x, y, 0u);
-    }
-
-    public Vector3f ProjectTexelOnCubeLevel(CubeMapFace face, int x, int y, uint level)
-    {
-        if (GetImage(face) is null || _width <= 0)
-            return Vector3f.Zero;
-
-        var width = Math.Max(_width >> checked((int)level), 1);
-        var uv = new Vector2f((x + 0.5f) / width, (y + 0.5f) / width);
-        return ProjectUVOnCube(face, uv);
-    }
-
-    public (CubeMapFace Face, Vector2i Texel) ProjectDirectionOnFaceTexel(Vector3f direction)
-    {
-        var (face, uv) = ProjectDirectionOnFace(direction);
-        if (GetImage(face) is null || _width <= 0)
-            return (face, Vector2i.Zero);
-
-        var x = Math.Clamp((int)MathF.Floor(uv.X * _width), 0, _width);
-        var y = Math.Clamp((int)MathF.Floor(uv.Y * _width), 0, _width);
-        return (face, new Vector2i(x, y));
-    }
-
+    /// <summary>Project UV onto cube.</summary>
     public static Vector3f ProjectUVOnCube(CubeMapFace face, Vector2f uv)
     {
+        // Convert from [0, 1] to [-1, 1]
         var u = uv.X * 2.0f - 1.0f;
-        var v = 1.0f - uv.Y * 2.0f;
+        var v = uv.Y * 2.0f - 1.0f;
+
         return face switch
         {
-            CubeMapFace.PositiveX => new Vector3f(1.0f, v, -u),
-            CubeMapFace.NegativeX => new Vector3f(-1.0f, v, u),
-            CubeMapFace.PositiveY => new Vector3f(u, 1.0f, -v),
-            CubeMapFace.NegativeY => new Vector3f(u, -1.0f, v),
-            CubeMapFace.PositiveZ => new Vector3f(u, v, 1.0f),
-            CubeMapFace.NegativeZ => new Vector3f(-u, v, -1.0f),
+            CubeMapFace.PositiveX => new Vector3f(1, -v, -u),
+            CubeMapFace.NegativeX => new Vector3f(-1, -v, u),
+            CubeMapFace.PositiveY => new Vector3f(u, 1, v),
+            CubeMapFace.NegativeY => new Vector3f(u, -1, -v),
+            CubeMapFace.PositiveZ => new Vector3f(u, -v, 1),
+            CubeMapFace.NegativeZ => new Vector3f(-u, -v, -1),
             _ => Vector3f.Zero
         };
     }
 
+    /// <summary>Project direction onto cubemap.</summary>
     public static (CubeMapFace Face, Vector2f Uv) ProjectDirectionOnFace(Vector3f direction)
     {
-        var normalized = direction.NormalizedOrDefault();
-        var absX = Math.Abs(normalized.X);
-        var absY = Math.Abs(normalized.Y);
-        var absZ = Math.Abs(normalized.Z);
+        var x = direction.X;
+        var y = direction.Y;
+        var z = direction.Z;
 
-        if (absX >= absY && absX >= absZ)
-        {
-            if (normalized.X >= 0.0f)
-                return (CubeMapFace.PositiveX, new Vector2f((1.0f - normalized.Z / absX) * 0.5f, (1.0f - normalized.Y / absX) * 0.5f));
-            return (CubeMapFace.NegativeX, new Vector2f((normalized.Z / absX + 1.0f) * 0.5f, (1.0f - normalized.Y / absX) * 0.5f));
-        }
+        static bool TestAxis(float axis, float a, float b)
+            => 2 * axis + MathDefs.LargeEpsilon > Math.Abs(a) + Math.Abs(b);
 
-        if (absY >= absX && absY >= absZ)
-        {
-            if (normalized.Y >= 0.0f)
-                return (CubeMapFace.PositiveY, new Vector2f((normalized.X / absY + 1.0f) * 0.5f, (normalized.Z / absY + 1.0f) * 0.5f));
-            return (CubeMapFace.NegativeY, new Vector2f((normalized.X / absY + 1.0f) * 0.5f, (1.0f - normalized.Z / absY) * 0.5f));
-        }
+        (CubeMapFace Face, Vector2f Uv) result;
+        if (TestAxis(x, y, z))
+            result = (CubeMapFace.PositiveX, new Vector2f(-z / x, -y / x)); // x =  1, y = -v, z = -u
+        else if (TestAxis(-x, y, z))
+            result = (CubeMapFace.NegativeX, new Vector2f(z / -x, -y / -x)); // x = -1, y = -v, z =  u
+        else if (TestAxis(y, x, z))
+            result = (CubeMapFace.PositiveY, new Vector2f(x / y, z / y)); // x =  u, y =  1, z =  v
+        else if (TestAxis(-y, x, z))
+            result = (CubeMapFace.NegativeY, new Vector2f(x / -y, -z / -y)); // x =  u, y = -1, z = -v
+        else if (TestAxis(z, x, y))
+            result = (CubeMapFace.PositiveZ, new Vector2f(x / y, -y / z)); // x =  u, y = -v, z =  1
+        else
+            result = (CubeMapFace.NegativeZ, new Vector2f(-x / -y, -y / -z)); // x = -u, y = -v, z = -1
 
-        if (normalized.Z >= 0.0f)
-            return (CubeMapFace.PositiveZ, new Vector2f((normalized.X / absZ + 1.0f) * 0.5f, (1.0f - normalized.Y / absZ) * 0.5f));
-        return (CubeMapFace.NegativeZ, new Vector2f((1.0f - normalized.X / absZ) * 0.5f, (1.0f - normalized.Y / absZ) * 0.5f));
-    }
-
-    private void LinkSiblings()
-    {
-        Image? previous = null;
-        foreach (var image in _faceImages)
-        {
-            if (image is null)
-                continue;
-
-            if (previous is not null)
-                previous.SetNextSibling(image);
-            previous = image;
-        }
-
-        if (previous is not null)
-            previous.SetNextSibling(null);
-    }
-
-    private bool LoadSingleImageLayout(Image image, string layout)
-    {
-        var normalizedLayout = string.IsNullOrWhiteSpace(layout)
-            ? "horizontal"
-            : layout.Trim().ToLowerInvariant();
-
-        return normalizedLayout switch
-        {
-            "horizontal" => SetHorizontalLayout(image),
-            "horizontalnvidia" => SetHorizontalNvidiaLayout(image),
-            "horizontalcross" => SetHorizontalCrossLayout(image),
-            "verticalcross" => SetVerticalCrossLayout(image),
-            "blender" => SetBlenderLayout(image),
-            _ => false
-        };
-    }
-
-    private bool SetHorizontalLayout(Image image)
-    {
-        var faceWidth = image.Width / 6;
-        var faceHeight = image.Height;
-        if (!ValidateTileLayout(faceWidth, faceHeight, image.Width, image.Height, 6, 1))
-            return false;
-
-        return SetFaceTiles(image,
-            (CubeMapFace.PositiveZ, 0, 0),
-            (CubeMapFace.PositiveX, 1, 0),
-            (CubeMapFace.NegativeZ, 2, 0),
-            (CubeMapFace.NegativeX, 3, 0),
-            (CubeMapFace.PositiveY, 4, 0),
-            (CubeMapFace.NegativeY, 5, 0));
-    }
-
-    private bool SetHorizontalNvidiaLayout(Image image)
-    {
-        var faceWidth = image.Width / 6;
-        var faceHeight = image.Height;
-        if (!ValidateTileLayout(faceWidth, faceHeight, image.Width, image.Height, 6, 1))
-            return false;
-
-        return SetFaceTiles(image,
-            (CubeMapFace.PositiveX, 0, 0),
-            (CubeMapFace.NegativeX, 1, 0),
-            (CubeMapFace.PositiveY, 2, 0),
-            (CubeMapFace.NegativeY, 3, 0),
-            (CubeMapFace.PositiveZ, 4, 0),
-            (CubeMapFace.NegativeZ, 5, 0));
-    }
-
-    private bool SetHorizontalCrossLayout(Image image)
-    {
-        var faceWidth = image.Width / 4;
-        var faceHeight = image.Height / 3;
-        if (!ValidateTileLayout(faceWidth, faceHeight, image.Width, image.Height, 4, 3))
-            return false;
-
-        return SetFaceTiles(image,
-            (CubeMapFace.PositiveY, 1, 0),
-            (CubeMapFace.NegativeX, 0, 1),
-            (CubeMapFace.PositiveZ, 1, 1),
-            (CubeMapFace.PositiveX, 2, 1),
-            (CubeMapFace.NegativeZ, 3, 1),
-            (CubeMapFace.NegativeY, 1, 2));
-    }
-
-    private bool SetVerticalCrossLayout(Image image)
-    {
-        var faceWidth = image.Width / 3;
-        var faceHeight = image.Height / 4;
-        if (!ValidateTileLayout(faceWidth, faceHeight, image.Width, image.Height, 3, 4))
-            return false;
-
-        if (!SetFaceTiles(image,
-                (CubeMapFace.PositiveY, 1, 0),
-                (CubeMapFace.NegativeX, 0, 1),
-                (CubeMapFace.PositiveZ, 1, 1),
-                (CubeMapFace.PositiveX, 2, 1),
-                (CubeMapFace.NegativeY, 1, 2),
-                (CubeMapFace.NegativeZ, 1, 3)))
-            return false;
-
-        var negativeZ = GetImage(CubeMapFace.NegativeZ);
-        if (negativeZ is null)
-            return false;
-
-        negativeZ.FlipVertical();
-        negativeZ.FlipHorizontal();
-        return true;
-    }
-
-    private bool SetBlenderLayout(Image image)
-    {
-        var faceWidth = image.Width / 3;
-        var faceHeight = image.Height / 2;
-        if (!ValidateTileLayout(faceWidth, faceHeight, image.Width, image.Height, 3, 2))
-            return false;
-
-        return SetFaceTiles(image,
-            (CubeMapFace.NegativeX, 0, 0),
-            (CubeMapFace.NegativeZ, 1, 0),
-            (CubeMapFace.PositiveX, 2, 0),
-            (CubeMapFace.NegativeY, 0, 1),
-            (CubeMapFace.PositiveY, 1, 1),
-            (CubeMapFace.PositiveZ, 2, 1));
-    }
-
-    private bool SetFaceTiles(Image image, params (CubeMapFace Face, int TileX, int TileY)[] tiles)
-    {
-        var maxTileX = 1;
-        var maxTileY = 1;
-        foreach (var tile in tiles)
-        {
-            maxTileX = Math.Max(maxTileX, tile.TileX + 1);
-            maxTileY = Math.Max(maxTileY, tile.TileY + 1);
-        }
-
-        var tileWidth = image.Width / maxTileX;
-        var tileHeight = image.Height / maxTileY;
-        foreach (var (face, tileX, tileY) in tiles)
-        {
-            var subImage = image.GetSubimage(new IntRect(tileX * tileWidth, tileY * tileHeight, (tileX + 1) * tileWidth, (tileY + 1) * tileHeight));
-            if (subImage is null)
-                return false;
-
-            SetImage(face, subImage);
-        }
-
-        return true;
-    }
-
-    private static bool ValidateTileLayout(int faceWidth, int faceHeight, int imageWidth, int imageHeight, int layoutWidth, int layoutHeight)
-    {
-        return faceWidth > 0
-            && faceHeight > 0
-            && faceWidth == faceHeight
-            && imageWidth == faceWidth * layoutWidth
-            && imageHeight == faceHeight * layoutHeight;
+        // Convert from [-1, 1] to [0, 1]
+        result.Uv.X = result.Uv.X * 0.5f + 0.5f;
+        result.Uv.Y = result.Uv.Y * 0.5f + 0.5f;
+        return result;
     }
 }

@@ -25,7 +25,7 @@ public sealed class ModelCloneTests
         geometry.SetIndexBuffer(indexBuffer);
         geometry.SetDrawRange(PrimitiveType.TriangleList, 0u, 3u, 0u, 3u);
 
-        var model = new Model("Original");
+        var model = new Model { Name = "Original" };
         model.SetVertexBuffers([vertexBuffer]);
         model.SetIndexBuffers([indexBuffer]);
         model.SetNumGeometries(1u);

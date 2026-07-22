@@ -19,7 +19,7 @@ public sealed class TechniqueTests
         Assert.Equal(typeof(int), typeof(Technique).GetMethod(nameof(Technique.GetNumPasses))!.ReturnType);
         Assert.Equal(int.MaxValue, Technique.GetPassIndex(string.Empty));
 
-        using var technique = new Technique("Techniques/Smoke");
+        using var technique = new Technique { Name = "Techniques/Smoke" };
         var pass = technique.CreatePass("base");
         pass.SetVertexShader("LitSolid");
         pass.SetPixelShader("LitSolid");
@@ -50,7 +50,7 @@ public sealed class TechniqueTests
     [Fact]
     public void Clone_with_defines_works()
     {
-        using var technique = new Technique("Techniques/Smoke");
+        using var technique = new Technique { Name = "Techniques/Smoke" };
         var sourcePass = technique.CreatePass("base");
         sourcePass.SetVertexShaderDefines("ORIGINAL");
         sourcePass.MarkShadersLoaded(42);
@@ -80,7 +80,7 @@ public sealed class TechniqueTests
         var count = dictionary.Count;
         var unknownName = $"unknown-{Guid.NewGuid():N}";
 
-        using var technique = new Technique("Techniques/Lookup");
+        using var technique = new Technique { Name = "Techniques/Lookup" };
         Assert.Null(technique.GetPass(unknownName));
         Assert.False(technique.HasPass(unknownName));
         technique.RemovePass(unknownName);
@@ -98,7 +98,7 @@ public sealed class TechniqueTests
             "<pass name=\"alpha\" blend=\"addalpha\" cull=\"cw\" depthtest=\"greaterequal\" " +
             "colorwrite=\"false\" depthwrite=\"false\" alphatocoverage=\"true\" psdefines=\"ALPHAMASK\" />" +
             "</technique>"));
-        using var technique = new Technique("Techniques/Xml");
+        using var technique = new Technique { Name = "Techniques/Xml" };
         Assert.True(technique.Load(xml));
 
         Assert.Empty(technique.GetPass("shadow")!.VertexTextureDefines);
@@ -119,7 +119,7 @@ public sealed class TechniqueTests
     [Fact]
     public void Dispose_releases_owned_pass_state()
     {
-        var technique = new Technique("Techniques/Dispose");
+        var technique = new Technique { Name = "Techniques/Dispose" };
         var pass = technique.CreatePass("base");
         var shaders = pass.GetVertexShaders();
         shaders.Add(null);

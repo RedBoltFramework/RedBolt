@@ -107,7 +107,6 @@ public class ParticleEffect : Resource
 
     /// <summary>Construct.</summary>
     public ParticleEffect()
-        : base(string.Empty)
     {
     }
 
@@ -132,7 +131,7 @@ public class ParticleEffect : Resource
     {
         _loadMaterialName = string.Empty;
 
-        using var file = new XMLFile(string.Empty);
+        using var file = new XMLFile();
         if (!file.Load(source))
         {
             Log.GetLogger().LogError("Load particle effect file failed");
@@ -162,7 +161,7 @@ public class ParticleEffect : Resource
     /// <summary>Save resource. Return true if successful.</summary>
     public override bool Save(Stream dest)
     {
-        using var xml = new XMLFile(string.Empty);
+        using var xml = new XMLFile();
         var materialElem = xml.CreateRoot("particleeffect");
         Save(materialElem);
         return xml.Save(dest);

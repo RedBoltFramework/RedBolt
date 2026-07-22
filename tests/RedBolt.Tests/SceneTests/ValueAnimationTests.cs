@@ -18,7 +18,7 @@ public sealed class ValueAnimationTests
     [Fact]
     public void Linear_float_interpolation_works()
     {
-        var animation = new ValueAnimation("Animations/Test");
+        var animation = new ValueAnimation { Name = "Animations/Test" };
         Assert.True(animation.SetKeyFrame(0.0f, 0.0f));
         Assert.True(animation.SetKeyFrame(1.0f, 10.0f));
 
@@ -31,7 +31,7 @@ public sealed class ValueAnimationTests
     [Fact]
     public void Duplicate_time_and_type_mismatch_are_rejected()
     {
-        var animation = new ValueAnimation("Animations/Test");
+        var animation = new ValueAnimation { Name = "Animations/Test" };
         Assert.True(animation.SetKeyFrame(0.0f, 0.0f));
         Assert.False(animation.SetKeyFrame(0.0f, 1.0f));
         Assert.False(animation.SetKeyFrame(1.0f, new Vector3f(1.0f, 2.0f, 3.0f)));
@@ -40,7 +40,7 @@ public sealed class ValueAnimationTests
     [Fact]
     public void Key_and_event_frames_own_independent_variant_values()
     {
-        using var animation = new ValueAnimation("Animations/Test");
+        using var animation = new ValueAnimation { Name = "Animations/Test" };
         using var sourceValue = new Variant(new byte[] { 1, 2, 3 });
         Assert.True(animation.SetKeyFrame(0.0f, sourceValue));
 
@@ -71,7 +71,7 @@ public sealed class ValueAnimationTests
     [Fact]
     public void Spline_vector_interpolation_works()
     {
-        var animation = new ValueAnimation("Animations/Test");
+        var animation = new ValueAnimation { Name = "Animations/Test" };
         animation.InterpolationMethod = InterpMethod.Spline;
         Assert.True(animation.SetKeyFrame(0.0f, new Vector3f(0.0f, 0.0f, 0.0f)));
         Assert.True(animation.SetKeyFrame(1.0f, new Vector3f(10.0f, 0.0f, 0.0f)));
@@ -85,7 +85,7 @@ public sealed class ValueAnimationTests
     [Fact]
     public void Xml_and_json_roundtrip_work()
     {
-        var animation = new ValueAnimation("Animations/Test");
+        var animation = new ValueAnimation { Name = "Animations/Test" };
         animation.InterpolationMethod = InterpMethod.Spline;
         animation.SplineTension = 0.25f;
         animation.SetKeyFrame(0.0f, 0.0f);
@@ -97,7 +97,7 @@ public sealed class ValueAnimationTests
         Assert.True(animation.Save(stream));
         stream.Position = 0;
 
-        var loadedXml = new ValueAnimation("Animations/LoadedXml");
+        var loadedXml = new ValueAnimation { Name = "Animations/LoadedXml" };
         Assert.True(loadedXml.Load(stream));
         Assert.Equal(InterpMethod.Spline, loadedXml.InterpolationMethod);
         Assert.True(MathDefs.Equals(loadedXml.SplineTension, 0.25f));
@@ -108,7 +108,7 @@ public sealed class ValueAnimationTests
 
         var json = new JSONValue(JSONValueType.Object);
         Assert.True(animation.SaveJSON(json));
-        var loadedJson = new ValueAnimation("Animations/LoadedJson");
+        var loadedJson = new ValueAnimation { Name = "Animations/LoadedJson" };
         Assert.True(loadedJson.LoadJSON(json));
         Assert.Equal(3, loadedJson.KeyFrames.Count);
         var jsonEventFrames = new List<VAnimEventFrame>();
@@ -120,7 +120,7 @@ public sealed class ValueAnimationTests
     [Fact]
     public void ValueAnimationInfo_wrap_modes_and_events_work()
     {
-        var animation = new ValueAnimation("Animations/Test");
+        var animation = new ValueAnimation { Name = "Animations/Test" };
         animation.SetKeyFrame(0.0f, 0.0f);
         animation.SetKeyFrame(1.0f, 10.0f);
         animation.SetEventFrame(0.5f, new StringHash(77u));
@@ -145,7 +145,7 @@ public sealed class ValueAnimationTests
     [Fact]
     public void Event_frame_begin_boundary_and_negative_speed_follow_rbfx_rules()
     {
-        var animation = new ValueAnimation("Animations/Test");
+        var animation = new ValueAnimation { Name = "Animations/Test" };
         animation.SetKeyFrame(0.0f, 0.0f);
         animation.SetKeyFrame(1.0f, 10.0f);
         animation.SetEventFrame(0.25f, new StringHash(11u));

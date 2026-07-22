@@ -7,7 +7,7 @@ public sealed class AnimationStateTests
     [Fact]
     public void Animation_state_blends_node_tracks()
     {
-        var animation = new Animation("NodeAnimation");
+        var animation = new Animation { Name = "NodeAnimation" };
         animation.SetLength(1.0f);
         var track = animation.CreateTrack("Node");
         track.ChannelMask = AnimationChannel.Position;
@@ -79,7 +79,7 @@ public sealed class AnimationStateTests
     [Fact]
     public void Animation_state_applies_additive_node_track_delta()
     {
-        var animation = new Animation("AdditiveAnimation");
+        var animation = new Animation { Name = "AdditiveAnimation" };
         animation.SetLength(1.0f);
         var track = animation.CreateTrack("Node");
         track.ChannelMask = AnimationChannel.Position;
@@ -110,7 +110,7 @@ public sealed class AnimationStateTests
     [Fact]
     public void Animation_state_blends_attribute_tracks()
     {
-        var animation = new Animation("AttributeAnimation");
+        var animation = new Animation { Name = "AttributeAnimation" };
         animation.SetLength(1.0f);
         var track = animation.CreateVariantTrack("Value");
         track.AddKeyFrame(new VariantCurvePoint { Time = 0.0f, Value = new Variant(2.0f) });
@@ -188,7 +188,7 @@ public sealed class AnimationStateTests
     [Fact]
     public void Animated_attribute_reference_sets_animated_model_morph_weight()
     {
-        var model = new Model("MorphAnimation");
+        var model = new Model { Name = "MorphAnimation" };
         var skeleton = new Skeleton();
         skeleton.SetNumBones(1);
         skeleton.GetModifiableBones()[0].Name = "Root";

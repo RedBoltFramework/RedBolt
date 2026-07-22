@@ -109,7 +109,7 @@ public sealed class ControllerTests
         var movement = node.CreateComponent<MoveAndOrbitComponent>();
         var controller = node.CreateComponent<MoveAndOrbitController>();
 
-        var map = new InputMap("Input/MoveController");
+        var map = new InputMap { Name = "Input/MoveController" };
         map.MapKeyboardKey(MoveAndOrbitController.ActionForward, Scancode.W);
         map.MapKeyboardKey(MoveAndOrbitController.ActionRight, Scancode.D);
         map.MapKeyboardKey(MoveAndOrbitController.ActionTurnRight, Scancode.E);
@@ -249,7 +249,7 @@ public sealed class ControllerTests
     [Fact]
     public void MoveAndOrbitController_resource_attribute_uses_cache()
     {
-        var cachedMap = new InputMap("Input/CachedMoveMap");
+        var cachedMap = new InputMap { Name = "Input/CachedMoveMap" };
         cachedMap.MapKeyboardKey(MoveAndOrbitController.ActionForward, Scancode.W);
         _fixture.Resources.ReleaseResource<InputMap>(cachedMap.Name);
         Assert.True(_fixture.Resources.AddManualResource(cachedMap));

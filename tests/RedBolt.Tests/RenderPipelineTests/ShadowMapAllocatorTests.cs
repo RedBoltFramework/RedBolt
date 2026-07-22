@@ -34,7 +34,7 @@ public sealed class ShadowMapAllocatorTests
     [Fact]
     public void Shadow_map_region_returns_requested_split()
     {
-        var texture = new Texture2D("Shadow Map");
+        var texture = new Texture2D { Name = "Shadow Map" };
         var region = new ShadowMapRegion
         {
             PageIndex = 3,
@@ -56,7 +56,7 @@ public sealed class ShadowMapAllocatorTests
         Assert.False(region);
 
         region.PageIndex = 2;
-        region.Texture = new Texture2D("Shadow Map");
+        region.Texture = new Texture2D { Name = "Shadow Map" };
         region.Rect = new IntRect(1, 2, 3, 4);
 
         Assert.True(region);

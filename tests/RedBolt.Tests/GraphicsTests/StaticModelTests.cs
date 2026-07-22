@@ -51,8 +51,8 @@ public sealed class StaticModelTests
     [Fact]
     public void Model_reload_event_reapplies_only_the_current_model()
     {
-        var firstModel = new Model("First");
-        var secondModel = new Model("Second");
+        var firstModel = new Model { Name = "First" };
+        var secondModel = new Model { Name = "Second" };
         secondModel.SetBoundingBox(new BoundingBox(
             new Vector3f(-2.0f, -2.0f, -2.0f), new Vector3f(2.0f, 2.0f, 2.0f)));
         var staticModel = new Scene().CreateChild("StaticModel").CreateComponent<StaticModel>();
@@ -228,7 +228,7 @@ public sealed class StaticModelTests
         indexBuffer.SetUnpackedData([0u, 1u, 2u]);
         geometry.SetIndexBuffer(indexBuffer);
         Assert.True(geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 3, false));
-        var model = new Model("Occlusion");
+        var model = new Model { Name = "Occlusion" };
         model.SetNumGeometries(1);
         Assert.True(model.SetGeometry(0, 0, geometry));
         return model;
@@ -246,7 +246,7 @@ public sealed class StaticModelTests
     [Fact]
     public void New_model_geometry_has_initial_lod_level()
     {
-        var model = new Model(string.Empty);
+        var model = new Model { Name = string.Empty };
         var geometry = new Geometry();
 
         model.SetNumGeometries(1);

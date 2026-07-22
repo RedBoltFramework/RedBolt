@@ -1220,7 +1220,7 @@ public sealed class ModelView : Object
             flags &= ~ModelViewExportFlag.Inplace;
         }
 
-        var model = new Model(string.Empty);
+        var model = new Model();
         ExportModel(model, flags);
         if (!string.IsNullOrEmpty(name))
             model.SetName(name);

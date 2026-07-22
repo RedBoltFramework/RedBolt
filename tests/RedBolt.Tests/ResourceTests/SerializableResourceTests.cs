@@ -47,7 +47,7 @@ public sealed class SerializableResourceTests
 
         try
         {
-        using var resource = new SerializableResource("Data/camera.serializable.json");
+        using var resource = new SerializableResource { Name = "Data/camera.serializable.json" };
         var camera = new Camera();
         camera.SetFov(72.0f);
         camera.SetNearClip(0.5f);
@@ -59,7 +59,7 @@ public sealed class SerializableResourceTests
         Assert.True(resource.Save(buffer, format));
         buffer.Position = 0;
 
-        using var loaded = new SerializableResource("Data/loaded.serializable.json");
+        using var loaded = new SerializableResource { Name = "Data/loaded.serializable.json" };
         Assert.True(loaded.Load(buffer));
 
         var loadedCamera = Assert.IsType<Camera>(loaded.GetValue());

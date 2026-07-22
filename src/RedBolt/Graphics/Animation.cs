@@ -74,8 +74,7 @@ public class Animation : ResourceWithMetadata
     /// <summary>
     /// Construct.
     /// </summary>
-    public Animation(string name = "")
-        : base(name)
+    public Animation()
     {
     }
 
@@ -107,7 +106,7 @@ public class Animation : ResourceWithMetadata
     public static void RegisterObject(Context context)
     {
         var reflection = context.AddReflection<Animation>();
-        reflection.SetObjectFactory(static () => new Animation(string.Empty));
+        reflection.SetObjectFactory(static () => new Animation());
     }
 
     /// <summary>
@@ -159,7 +158,7 @@ public class Animation : ResourceWithMetadata
 
         if (Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
         {
-            using var xmlFile = new XMLFile(GetName());
+            using var xmlFile = new XMLFile();
             if (!xmlFile.BeginLoad(new MemoryStream(data)))
                 return false;
             return LoadXML(xmlFile.GetRoot());
@@ -352,7 +351,7 @@ public class Animation : ResourceWithMetadata
                 var xmlName = Name;
                 var extensionPosition = xmlName.LastIndexOf('.');
                 xmlName = extensionPosition >= 0 ? xmlName[..extensionPosition] + ".xml" : xmlName + ".xml";
-                using var xml = new XMLFile(xmlName);
+                using var xml = new XMLFile();
                 var root = xml.CreateRoot("animation");
                 foreach (var trigger in _triggers)
                 {

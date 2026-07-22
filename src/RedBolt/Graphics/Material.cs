@@ -163,8 +163,7 @@ public sealed class Material : Resource
     private Scene? _scene;
     private ContextEventSubscription? _sceneAttributeAnimationSubscription;
 
-    public Material(string name)
-        : base(name)
+    public Material()
     {
         _pipelineStateTracker = new MaterialPipelineStateTracker(this);
         _idFamily = new IDFamily<Material>();
@@ -235,7 +234,7 @@ public sealed class Material : Resource
 
     public Material Clone(string cloneName = "")
     {
-        var clone = new Material(string.Empty);
+        var clone = new Material();
         clone.CopyFrom(this);
         clone.SetName(cloneName);
         return clone;
@@ -684,7 +683,7 @@ public sealed class Material : Resource
             return true;
 
         _loadXmlFile?.Dispose();
-        _loadXmlFile = new XMLFile(Name);
+        _loadXmlFile = new XMLFile();
         if (_loadXmlFile.Load(source))
             return true;
 
@@ -717,7 +716,7 @@ public sealed class Material : Resource
     {
         ArgumentNullException.ThrowIfNull(destination);
 
-        using var xml = new XMLFile(Name);
+        using var xml = new XMLFile();
         var root = xml.CreateRoot("material");
         return SaveXML(root) && xml.Save(destination);
     }

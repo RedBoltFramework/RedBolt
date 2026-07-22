@@ -15,7 +15,7 @@ public sealed class DrawableEventsTests
         DrawableEvents.AnimationTriggerEvent animationTrigger = new()
         {
             Node = node,
-            Animation = new Animation("Walk"),
+            Animation = new Animation { Name = "Walk" },
             Name = "Walk",
             Time = 0.5f,
             Data = data

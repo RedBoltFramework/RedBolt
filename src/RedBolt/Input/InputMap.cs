@@ -69,8 +69,7 @@ public class InputMap : SimpleResource
     private readonly int _ignoreJoystickId;
 
     /// <summary>Construct.</summary>
-    public InputMap(string name)
-        : base(name)
+    public InputMap()
     {
         _ignoreJoystickId = this.GetSubsystem<Input>()!.FindAccelerometerJoystickId();
     }
@@ -87,7 +86,7 @@ public class InputMap : SimpleResource
     public static void RegisterObject(Context context)
     {
         var reflection = context.AddReflection<InputMap>();
-        reflection.SetObjectFactory(static () => new InputMap(string.Empty));
+        reflection.SetObjectFactory(static () => new InputMap());
     }
 
     /// <summary>Force override of SerializeInBlock.</summary>
@@ -371,7 +370,8 @@ public class InputMap : SimpleResource
         var configFileId = new FileIdentifier("config", name);
         if (virtualFileSystem.Exists(configFileId))
         {
-            result = new InputMap(name);
+            result = new InputMap();
+            result.SetName(name);
             if (result.LoadFile(configFileId.ToUri()))
                 return result;
             result.Dispose();

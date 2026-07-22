@@ -84,7 +84,7 @@ public sealed class GeometryGpuTests
     [Fact]
     public void Texture2D_size_and_sampler_work()
     {
-        var tex = new Texture2D("Textures/Smoke2D");
+        var tex = new Texture2D { Name = "Textures/Smoke2D" };
         tex.SetNumLevels(0);
         tex.SetSRGB(true);
         Assert.True(tex.SetSize(4, 4, TextureFormat.TexFormatRgba8Unorm));
@@ -115,7 +115,7 @@ public sealed class GeometryGpuTests
     [Fact]
     public void Texture2D_cpu_data_works()
     {
-        var tex = new Texture2D("Textures/Smoke2D");
+        var tex = new Texture2D { Name = "Textures/Smoke2D" };
         tex.SetSize(4, 4, TextureFormat.TexFormatRgba8Unorm);
         var data = Enumerable.Range(0, 64).Select(v => (byte)v).ToArray();
         Assert.True(tex.SetData(0, 0, 0, 4, 4, data));
@@ -126,7 +126,7 @@ public sealed class GeometryGpuTests
     [Fact]
     public void TextureCube_face_data_works()
     {
-        var tex = new TextureCube("Textures/SmokeCube");
+        var tex = new TextureCube { Name = "Textures/SmokeCube" };
         tex.SetNumLevels(1);
         Assert.True(tex.SetSize(2, TextureFormat.TexFormatRgba8Unorm));
         Assert.True(tex.SetData(CubeMapFace.PositiveX, 0, 0, 0, 2, 2,
@@ -140,7 +140,7 @@ public sealed class GeometryGpuTests
     [Fact]
     public void Texture3D_volume_data_works()
     {
-        var tex = new Texture3D("Textures/Smoke3D");
+        var tex = new Texture3D { Name = "Textures/Smoke3D" };
         tex.SetNumLevels(1);
         Assert.True(tex.SetSize(2, 2, 2, TextureFormat.TexFormatR8Unorm));
         Assert.True(tex.SetData(0, 0, 0, 0, 2, 2, 2,
@@ -155,7 +155,7 @@ public sealed class GeometryGpuTests
     [Fact]
     public void Texture2DArray_layered_data_works()
     {
-        var tex = new Texture2DArray("Textures/SmokeArray");
+        var tex = new Texture2DArray { Name = "Textures/SmokeArray" };
         tex.SetNumLevels(1);
         Assert.True(tex.SetSize(2, 2, 2, TextureFormat.TexFormatR8Unorm));
         Assert.True(tex.SetData(1, 0, 0, 0, 2, 2, new byte[] { 1, 2, 3, 4 }));

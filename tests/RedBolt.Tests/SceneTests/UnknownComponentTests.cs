@@ -19,7 +19,7 @@ public sealed class UnknownComponentTests
         Assert.Equal(1u, binary.Position);
 
         component.SetTemporary(false);
-        using var xmlFile = new XMLFile("test.xml");
+        using var xmlFile = new XMLFile { Name = "test.xml" };
         Assert.True(component.LoadXML(xmlFile.CreateRoot("unknown")));
         Assert.True(component.IsTemporary);
 
@@ -37,7 +37,7 @@ public sealed class UnknownComponentTests
             Scene.RegisterObject(Context.Instance);
         if (!Context.Instance.IsReflected<UnknownComponent>())
             UnknownComponent.RegisterObject(Context.Instance);
-        using var source = new SceneResource("Scenes/Test.scene");
+        using var source = new SceneResource { Name = "Scenes/Test.scene" };
         using var prefab = new NodePrefab();
         var componentPrefab = new SerializablePrefab();
         componentPrefab.SetType("Missing.Component");
@@ -49,7 +49,7 @@ public sealed class UnknownComponentTests
         using var stream = new MemoryStream();
         Assert.True(source.Save(stream, SceneResourceFormat.Json));
         stream.Position = 0;
-        using var resource = new SceneResource("Scenes/Loaded.scene");
+        using var resource = new SceneResource { Name = "Scenes/Loaded.scene" };
         Assert.True(resource.Load(stream));
 
         var unknown = Assert.IsType<UnknownComponent>(resource.GetScene().GetComponent(42));

@@ -381,7 +381,7 @@ public static class ImageDds
         Image? previous = null;
         for (var imageIndex = 0u; imageIndex < imageChainCount; ++imageIndex)
         {
-            var target = imageIndex == 0 ? image : new Image($"{image.Name}#{imageIndex}");
+            var target = imageIndex == 0 ? image : new Image();
             var storedData = formatInfo.Format == TextureFormat.TexFormatRgba8Unorm
                     && !AreTextureComponentsMatching(pixelFormat, formatInfo.Format)
                 ? ReadRgbaLevels(fileData, ref offset, width, height, depth, mipMapCount, formatInfo)

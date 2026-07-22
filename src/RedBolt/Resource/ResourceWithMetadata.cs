@@ -7,8 +7,7 @@ namespace RedBolt;
 public class ResourceWithMetadata : Resource
 {
     /// <summary>Construct.</summary>
-    public ResourceWithMetadata(string name)
-        : base(name)
+    public ResourceWithMetadata()
     {
     }
 

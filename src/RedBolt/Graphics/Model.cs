@@ -164,8 +164,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
     private readonly List<IndexBufferDesc> _loadIndexBuffers = [];
     private readonly List<List<GeometryDesc>> _loadGeometries = [];
 
-    public Model(string name)
-        : base(name)
+    public Model()
     {
     }
 
@@ -386,7 +385,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
                 var xmlData = new byte[checked((int)xmlSource.Size)];
                 var readBytes = xmlSource.Read(xmlData);
                 xmlSource.Close();
-                using var xmlFile = new XMLFile(xmlName);
+                using var xmlFile = new XMLFile();
                 if (readBytes == xmlData.Length && xmlFile.BeginLoad(new MemoryStream(xmlData)))
                     LoadMetadataFromXML(xmlFile.GetRoot());
             }
@@ -543,7 +542,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
             if (virtualFileSystem is not null && !string.IsNullOrEmpty(Name))
             {
                 var xmlName = Path.ChangeExtension(Name, ".xml");
-                using var xml = new XMLFile(xmlName);
+                using var xml = new XMLFile();
                 var root = xml.CreateRoot("model");
                 SaveMetadataToXML(root);
                 virtualFileSystem.WriteAllText(new FileIdentifier(xmlName), xml.ToString());
@@ -661,10 +660,11 @@ public sealed class Model : ResourceWithMetadata, ICloneable
 
     public Model Clone(string cloneName = "")
     {
-        var clone = new Model(cloneName)
+        var clone = new Model()
         {
             _boundingBox = _boundingBox
         };
+        clone.SetName(cloneName);
         clone._skeleton.Dispose();
         clone._skeleton = _skeleton.Clone();
         foreach (var mapping in _geometryBoneMappings)

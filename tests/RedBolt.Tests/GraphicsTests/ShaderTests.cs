@@ -35,7 +35,7 @@ public sealed class ShaderTests
         _fixture.RenderDevice.RestoreDeviceState();
         try
         {
-            var shader = new Shader("Shaders/GLSL/v2/UnitTest.glsl");
+            var shader = new Shader { Name = "Shaders/GLSL/v2/UnitTest.glsl" };
             var variation = shader.GetVariation(ShaderType.VS, "BAR FOO");
             var alias = shader.GetVariation(ShaderType.VS, "foo bar");
 

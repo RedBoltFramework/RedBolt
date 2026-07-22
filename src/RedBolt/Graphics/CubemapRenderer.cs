@@ -135,8 +135,8 @@ public class CubemapRenderer : Object
     private readonly Node[] _renderCameraNodes = new Node[(int)CubeMapFace.MaxCubeMapFaces];
     private readonly Viewport[] _viewports = new Viewport[(int)CubeMapFace.MaxCubeMapFaces];
     private readonly RenderPipeline _renderPipeline;
-    private readonly TextureCube _viewportTexture = new("CubemapRenderer.Viewport");
-    private readonly TextureCube _filteredTexture = new("CubemapRenderer.Filtered");
+    private readonly TextureCube _viewportTexture = new();
+    private readonly TextureCube _filteredTexture = new();
 
     private CubemapUpdateParameters _currentParams = new();
     private CubemapUpdateStage _updateStage;

@@ -17,8 +17,7 @@ internal static class TextureFormatUtility
 /// </remarks>
 public class Texture : ResourceWithMetadata
 {
-    public Texture(string name)
-        : base(name)
+    public Texture()
     {
         _rawTexture = new TextureRawTexture(this);
         _mipsToSkip[0] = 2;

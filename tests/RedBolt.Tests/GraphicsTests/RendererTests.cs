@@ -50,7 +50,7 @@ public sealed class RendererTests
         var scene = new Scene();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
-        var texture = new Texture2D("Textures/QueueTarget");
+        var texture = new Texture2D { Name = "Textures/QueueTarget" };
         Assert.True(texture.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
         var renderSurface = new RenderSurface(texture, 0);
 
@@ -69,7 +69,7 @@ public sealed class RendererTests
     [Fact]
     public void Backbuffer_render_surface_replacement_clears_previous_viewports()
     {
-        var firstTexture = new Texture2D("Textures/FirstBackbuffer");
+        var firstTexture = new Texture2D { Name = "Textures/FirstBackbuffer" };
         var firstSurface = new RenderSurface(firstTexture, 0);
         firstSurface.SetNumViewports(1);
 
@@ -85,7 +85,7 @@ public sealed class RendererTests
         var scene = new Scene();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
-        var texture = new Texture2D("Textures/BackbufferViewports");
+        var texture = new Texture2D { Name = "Textures/BackbufferViewports" };
         Assert.True(texture.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
         var renderSurface = new RenderSurface(texture, 0);
 
@@ -132,7 +132,7 @@ public sealed class RendererTests
     [Fact]
     public void Headless_render_target_texture_does_not_queue_surface_on_render_surface_update_event()
     {
-        var texture = new Texture2D("Textures/EventTarget");
+        var texture = new Texture2D { Name = "Textures/EventTarget" };
         Assert.True(texture.SetSize(320, 200, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
         Assert.Null(texture.GetRenderSurface());
 
@@ -203,7 +203,7 @@ public sealed class RendererTests
     [Fact]
     public void Default_technique_can_be_overridden()
     {
-        var technique = new Technique("Techniques/RendererDefault");
+        var technique = new Technique { Name = "Techniques/RendererDefault" };
 
         Renderer.SetDefaultTechnique(technique);
 

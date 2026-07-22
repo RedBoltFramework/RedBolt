@@ -536,7 +536,7 @@ public sealed class Renderer : Object
 
         _defaultLightRamp = cache.GetResourceOrNull<Texture2D>("Textures/Ramp.png");
         _defaultLightSpot = cache.GetResourceOrNull<Texture2D>("Textures/Spot.png");
-        _defaultMaterial = new Material(string.Empty);
+        _defaultMaterial = new Material();
 
         CreateGeometries();
 
@@ -642,7 +642,7 @@ public sealed class Renderer : Object
                 22, 5, 15, 8, 4, 19, 12, 7, 21, 16
             ]);
 
-        _blackCubeMap = new TextureCube("BlackCubeMap");
+        _blackCubeMap = new TextureCube();
         _blackCubeMap.SetNumLevels(1);
         _blackCubeMap.SetSize(1, TextureFormat.TexFormatRgba8Unorm);
         _blackCubeMap.SetFilterMode(TextureFilterMode.Nearest);

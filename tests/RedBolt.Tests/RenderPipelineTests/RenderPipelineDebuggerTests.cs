@@ -140,7 +140,7 @@ public sealed class RenderPipelineDebuggerTests
         var drawable = scene.CreateChild("Model").CreateComponent<StaticModel>();
 
         var geometry = new Geometry();
-        var material = new Material(string.Empty);
+        var material = new Material { Name = string.Empty };
         var pipelineStateDesc = new GraphicsPipelineStateDesc
         {
             VertexShader = new RawShader(new ShaderBytecode(ShaderType.VS)),
@@ -197,7 +197,7 @@ public sealed class RenderPipelineDebuggerTests
         processor.ProcessVisibleDrawables([light], null);
 
         var geometry = new Geometry();
-        var material = new Material(string.Empty);
+        var material = new Material { Name = string.Empty };
         var pipelineStateDesc = new GraphicsPipelineStateDesc
         {
             VertexShader = new RawShader(new ShaderBytecode(ShaderType.VS)),

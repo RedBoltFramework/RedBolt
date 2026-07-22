@@ -10,8 +10,7 @@ public class Texture3D : Texture
     /// <summary>
     /// Construct.
     /// </summary>
-    public Texture3D(string name)
-        : base(name)
+    public Texture3D()
     {
     }
 
@@ -33,7 +32,7 @@ public class Texture3D : Texture
     public static void RegisterObject(Context context)
     {
         var reflection = context.AddReflection<Texture3D>();
-        reflection.SetObjectFactory(static () => new Texture3D(string.Empty));
+        reflection.SetObjectFactory(static () => new Texture3D());
     }
 
     /// <summary>
@@ -55,7 +54,7 @@ public class Texture3D : Texture
         var texturePath = separatorIndex >= 0 ? normalizedName[..(separatorIndex + 1)] : string.Empty;
 
         _loadParameters?.Dispose();
-        _loadParameters = new XMLFile($"{Name}#params")
+        _loadParameters = new XMLFile()
         {
             OwnerCache = OwnerCache
         };
@@ -95,7 +94,7 @@ public class Texture3D : Texture
 
             using var file = cache.GetFile(name);
             _loadImage?.Dispose();
-            _loadImage = new Image($"{Name}#colorlut")
+            _loadImage = new Image()
             {
                 OwnerCache = OwnerCache
             };

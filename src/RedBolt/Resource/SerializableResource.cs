@@ -10,11 +10,6 @@ public class SerializableResource : SimpleResource
     {
     }
 
-    public SerializableResource(string name)
-        : base(name)
-    {
-    }
-
     /// <summary>Destruct.</summary>
     public override void Dispose()
     {

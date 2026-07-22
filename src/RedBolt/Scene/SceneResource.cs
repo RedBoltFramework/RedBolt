@@ -16,7 +16,7 @@ public sealed class SceneResource : Resource
     public event ReloadBeginHandler? OnReloadBegin;
     public event ReloadEndHandler? OnReloadEnd;
 
-    public SceneResource(string name) : base(name) => Scene = new Scene();
+    public SceneResource() => Scene = new Scene();
 
     public Scene Scene { get; }
     public bool IsPrefab { get; private set; }

@@ -27,8 +27,7 @@ public sealed class Shader : Resource
     /// <summary>Signals that shader source code was reloaded.</summary>
     public event Action? OnReloaded;
 
-    public Shader(string name)
-        : base(name)
+    public Shader()
     {
         RefreshMemoryUse();
     }
@@ -56,7 +55,7 @@ public sealed class Shader : Resource
     public static void RegisterObject(Context context)
     {
         var reflection = context.AddReflection<Shader>();
-        reflection.SetObjectFactory(static () => new Shader(string.Empty));
+        reflection.SetObjectFactory(static () => new Shader());
     }
 
     /// <summary>Return either vertex or pixel shader source code.</summary>

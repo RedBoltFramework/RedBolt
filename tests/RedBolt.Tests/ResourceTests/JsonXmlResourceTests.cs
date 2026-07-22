@@ -110,7 +110,7 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void XMLFile_FromString_creates_root()
     {
-        var xml = new XMLFile("test.xml");
+        var xml = new XMLFile { Name = "test.xml" };
         Assert.True(xml.FromString("<newRoot />"));
         Assert.Equal("newRoot", xml.GetOrCreateRoot("newRoot").Name);
     }
@@ -167,7 +167,7 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void XMLElement_hierarchy_helpers_work()
     {
-        var xml = new XMLFile("test.xml");
+        var xml = new XMLFile { Name = "test.xml" };
         xml.FromString("<newRoot />");
         var root = xml.GetOrCreateRoot("newRoot");
         var childA = root.CreateChild("child");
@@ -181,7 +181,7 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void XMLElement_typed_attributes_work()
     {
-        var xml = new XMLFile("test.xml");
+        var xml = new XMLFile { Name = "test.xml" };
         xml.FromString("<newRoot />");
         var child = xml.GetOrCreateRoot("newRoot").CreateChild("child");
         child.SetVector3("position", new Vector3f(1.0f, 2.0f, 3.0f));
@@ -195,7 +195,7 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void XMLElement_64_bit_and_generic_vector_attributes_work()
     {
-        var xml = new XMLFile("test.xml");
+        var xml = new XMLFile { Name = "test.xml" };
         xml.FromString("<newRoot />");
         var child = xml.GetOrCreateRoot("newRoot").CreateChild("child");
 
@@ -211,7 +211,7 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void XMLElement_bounding_box_attribute_works()
     {
-        var xml = new XMLFile("test.xml");
+        var xml = new XMLFile { Name = "test.xml" };
         xml.FromString("<newRoot />");
         var child = xml.GetOrCreateRoot("newRoot").CreateChild("child");
         child.SetBoundingBox("bounds", new BoundingBox(new Vector3f(-1.0f, -2.0f, -3.0f), new Vector3f(4.0f, 5.0f, 6.0f)));
@@ -221,7 +221,7 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void XMLElement_remove_child_works()
     {
-        var xml = new XMLFile("test.xml");
+        var xml = new XMLFile { Name = "test.xml" };
         xml.FromString("<newRoot />");
         var root = xml.GetOrCreateRoot("newRoot");
         root.CreateChild("sibling");
@@ -237,7 +237,7 @@ public sealed class JsonXmlResourceTests
         Assert.Contains(typeof(ICloneable), typeof(XMLElement).GetInterfaces());
         Assert.Contains(typeof(IDisposable), typeof(XMLElement).GetInterfaces());
 
-        var xml = new XMLFile("test.xml");
+        var xml = new XMLFile { Name = "test.xml" };
         Assert.True(xml.FromString("<root><first/><second/></root>"));
         var source = xml.Root.GetChild("first");
         var copy = Assert.IsType<XMLElement>(source.Clone());
@@ -254,7 +254,7 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void XMLElement_native_child_text_and_buffer_semantics_work()
     {
-        var xml = new XMLFile("test.xml");
+        var xml = new XMLFile { Name = "test.xml" };
         Assert.True(xml.FromString("<root><holder><child/></holder><empty/></root>"));
         var holder = xml.Root.GetChild("holder");
         Assert.True(holder.SetValue("first"));
@@ -278,7 +278,7 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void XMLElement_native_bounding_box_and_named_variant_map_work()
     {
-        var xml = new XMLFile("test.xml");
+        var xml = new XMLFile { Name = "test.xml" };
         Assert.True(xml.FromString("<root/>"));
         var bounds = new BoundingBox(new Vector3f(-1.0f, -2.0f, -3.0f), new Vector3f(4.0f, 5.0f, 6.0f));
         Assert.True(xml.Root.SetBoundingBox(bounds));
@@ -301,7 +301,7 @@ public sealed class JsonXmlResourceTests
         Assert.Contains(typeof(ICloneable), typeof(XPathResultSet).GetInterfaces());
         Assert.Contains(typeof(IDisposable), typeof(XPathResultSet).GetInterfaces());
 
-        var xml = new XMLFile("test.xml");
+        var xml = new XMLFile { Name = "test.xml" };
         Assert.True(xml.FromString("<root><item id=\"1\"/><item id=\"2\"/></root>"));
         var results = xml.Root.Select("item");
         Assert.Equal(2, results.Size());
@@ -318,7 +318,7 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void XMLElement_xpath_and_complex_variants_work()
     {
-        var xml = new XMLFile("test.xml");
+        var xml = new XMLFile { Name = "test.xml" };
         Assert.True(xml.FromString("<root><item id=\"1\"/><item id=\"2\"/></root>"));
         var query = new XPathQuery("item[@id=$id]", "id:String");
         Assert.True(query.SetVariable("id", "2"));
@@ -344,7 +344,7 @@ public sealed class JsonXmlResourceTests
         Assert.Contains(typeof(IDisposable), typeof(XPathQuery).GetInterfaces());
         Assert.DoesNotContain(typeof(ICloneable), typeof(XPathQuery).GetInterfaces());
 
-        var xml = new XMLFile("test.xml");
+        var xml = new XMLFile { Name = "test.xml" };
         Assert.True(xml.FromString("<root><item/><item/></root>"));
         var query = new XPathQuery();
         Assert.Equal(string.Empty, query.Query);
@@ -378,7 +378,7 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void XPathQuery_uses_native_typed_variable_set_semantics()
     {
-        var xml = new XMLFile("test.xml");
+        var xml = new XMLFile { Name = "test.xml" };
         Assert.True(xml.FromString("<root><item enabled=\"true\" weight=\"2.5\" name=\"O'Reilly\"/></root>"));
         using var query = new XPathQuery(
             "item[@enabled=$enabled and @weight=$weight and @name=$name]",
@@ -404,7 +404,7 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void XPathQuery_result_set_variables_are_independent_snapshots()
     {
-        var xml = new XMLFile("test.xml");
+        var xml = new XMLFile { Name = "test.xml" };
         Assert.True(xml.FromString("<root><item id=\"1\"/><item id=\"2\"/></root>"));
         var source = xml.Root.Select("item");
         using var query = new XPathQuery("$items[@id='2']", "items:ResultSet");
@@ -421,7 +421,7 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void XPathQuery_bind_failure_preserves_previous_compiled_query()
     {
-        var xml = new XMLFile("test.xml");
+        var xml = new XMLFile { Name = "test.xml" };
         Assert.True(xml.FromString("<root><item id=\"1\"/><item id=\"2\"/></root>"));
         using var query = new XPathQuery("item[@id='1']");
 
@@ -435,9 +435,9 @@ public sealed class JsonXmlResourceTests
     [Fact]
     public void XMLFile_patch_add_replace_remove_and_archive_callbacks_work()
     {
-        var xml = new XMLFile("test.xml");
+        var xml = new XMLFile { Name = "test.xml" };
         Assert.True(xml.FromString("<root><item value=\"old\"/><remove/></root>"));
-        var patch = new XMLFile("patch.xml");
+        var patch = new XMLFile { Name = "patch.xml" };
         Assert.True(patch.FromString("""
             <patch>
               <add sel="/root"><added /></add>

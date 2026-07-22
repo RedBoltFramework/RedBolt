@@ -210,7 +210,7 @@ public sealed class StaticModelGroupTests
             [new VertexElement(VertexElementType.Vector3, VertexElementSemantic.Position)]);
         geometry.SetRawIndexData(new byte[6], sizeof(ushort));
         Assert.True(geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 3, false));
-        var model = new Model("Occlusion");
+        var model = new Model { Name = "Occlusion" };
         model.SetNumGeometries(1);
         Assert.True(model.SetGeometry(0, 0, geometry));
         return model;

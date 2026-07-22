@@ -8,8 +8,7 @@ public class Texture2DArray : Texture
     /// <summary>
     /// Construct.
     /// </summary>
-    public Texture2DArray(string name)
-        : base(name)
+    public Texture2DArray()
     {
     }
 
@@ -32,7 +31,7 @@ public class Texture2DArray : Texture
     public static void RegisterObject(Context context)
     {
         var reflection = context.AddReflection<Texture2DArray>();
-        reflection.SetObjectFactory(static () => new Texture2DArray(string.Empty));
+        reflection.SetObjectFactory(static () => new Texture2DArray());
     }
 
     /// <summary>
@@ -54,7 +53,7 @@ public class Texture2DArray : Texture
         var texturePath = separatorIndex >= 0 ? normalizedName[..(separatorIndex + 1)] : string.Empty;
 
         _loadParameters?.Dispose();
-        _loadParameters = new XMLFile($"{Name}#params")
+        _loadParameters = new XMLFile()
         {
             OwnerCache = OwnerCache
         };
@@ -158,7 +157,7 @@ public class Texture2DArray : Texture
     /// </summary>
     public bool SetData(int layer, Stream source)
     {
-        using var image = new Image($"{Name}#layer{layer}")
+        using var image = new Image()
         {
             OwnerCache = OwnerCache
         };

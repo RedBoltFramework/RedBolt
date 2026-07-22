@@ -3082,7 +3082,7 @@ layout(std140) uniform Material
 
     private static Texture2D CreateFallbackTexture(string name, ReadOnlySpan<byte> rgbaPixels)
     {
-        var texture = new Texture2D(name);
+        var texture = new Texture2D();
         texture.SetSize(1, 1, TextureFormat.TexFormatRgba8Unorm);
         texture.SetData(0, 0, 0, 1, 1, rgbaPixels);
         return texture;

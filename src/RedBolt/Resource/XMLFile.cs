@@ -15,12 +15,6 @@ public class XMLFile : Resource
         Document = new XDocument();
     }
 
-    public XMLFile(string name)
-        : base(name)
-    {
-        Document = new XDocument();
-    }
-
     /// <summary>Destruct.</summary>
     public override void Dispose()
     {

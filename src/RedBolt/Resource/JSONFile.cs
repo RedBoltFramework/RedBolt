@@ -14,8 +14,7 @@ public sealed class JSONFile : Resource
         AllowTrailingCommas = true
     };
 
-    public JSONFile(string name = "")
-        : base(name)
+    public JSONFile()
     {
     }
 

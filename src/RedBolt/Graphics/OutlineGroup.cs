@@ -123,7 +123,7 @@ public class OutlineGroup : Component
         if (_materials.TryGetValue(key, out var cachedMaterial))
             return cachedMaterial;
 
-        var material = new Material(string.Empty);
+        var material = new Material();
         var shaderParameterEnumerator = referenceMaterial.EnumerateShaderParameters();
         while (shaderParameterEnumerator.MoveNext())
         {

@@ -46,7 +46,7 @@ public sealed class AnimationControllerTests
     [Fact]
     public void Animation_controller_manages_instances_and_high_level_operations()
     {
-        var animation = new Animation("Walk");
+        var animation = new Animation { Name = "Walk" };
         animation.SetLength(2.0f);
         var controller = new Scene().CreateChild("Animated").CreateComponent<AnimationController>();
 
@@ -89,9 +89,9 @@ public sealed class AnimationControllerTests
     [Fact]
     public void Animation_controller_replaces_and_merges_instances()
     {
-        var keepAnimation = new Animation("Keep");
+        var keepAnimation = new Animation { Name = "Keep" };
         keepAnimation.SetLength(4.0f);
-        var filteredAnimation = new Animation("Filtered");
+        var filteredAnimation = new Animation { Name = "Filtered" };
         filteredAnimation.SetLength(4.0f);
         var controller = new Scene().CreateChild("Animated").CreateComponent<AnimationController>();
 
@@ -126,7 +126,7 @@ public sealed class AnimationControllerTests
         var node = new Scene().CreateChild("AnimatedModel");
         node.CreateComponent<AnimatedModel>();
         var controller = node.CreateComponent<AnimationController>();
-        var animation = new Animation("Walk");
+        var animation = new Animation { Name = "Walk" };
 
         controller.AddAnimation(new AnimationParameters(animation));
 

@@ -20,8 +20,7 @@ public class TextureCube : Texture
     /// <summary>
     /// Construct.
     /// </summary>
-    public TextureCube(string name)
-        : base(name)
+    public TextureCube()
     {
         SetSamplerStateDesc(SamplerStateDesc.Bilinear(TextureAddressMode.Clamp));
     }
@@ -42,7 +41,7 @@ public class TextureCube : Texture
     public static void RegisterObject(Context context)
     {
         var reflection = context.AddReflection<TextureCube>();
-        reflection.SetObjectFactory(static () => new TextureCube(string.Empty));
+        reflection.SetObjectFactory(static () => new TextureCube());
     }
 
     /// <summary>
@@ -126,7 +125,7 @@ public class TextureCube : Texture
     /// </summary>
     public bool SetData(CubeMapFace face, Stream source)
     {
-        using var image = new Image($"{Name}#{face}");
+        using var image = new Image();
         if (!image.Load(source))
             return false;
 
@@ -163,7 +162,7 @@ public class TextureCube : Texture
     /// </summary>
     public Image? GetImage(CubeMapFace face)
     {
-        var image = new Image($"{Name}#{face}");
+        var image = new Image();
         if (ReadToImage((int)face, 0, image))
             return image;
 

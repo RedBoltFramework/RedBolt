@@ -216,7 +216,9 @@ with resource prefix paths `.;..`.
 - Port EVERY code comment if such exists.
 - Port EVERY doxygen documentation comment as C# xml documentation comment.
 - Port C++ code as is, no changes to the core logic.
-- PORT C++ destructors as `Dispose()`.
+- Port C++ destructors as `IDisposable.Dispose()`.
+- Port C++ copy-constructors as `ICloneable.Clone()`.
+- Port C++ `WeakPtr<>` ownership as `WeakReference<>`.
 - Preserve C++ code layout.
 - Commit only code that builds and works. In case this is a larger rework - it must be completed before committing.
 - Add or update focused unit tests when you change behavior.

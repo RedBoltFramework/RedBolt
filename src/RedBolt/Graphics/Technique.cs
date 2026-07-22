@@ -371,8 +371,7 @@ public class Pass : PipelineStateTracker
 public class Technique : Resource
 {
     /// <summary>Construct.</summary>
-    public Technique(string name)
-        : base(name)
+    public Technique()
     {
     }
 
@@ -392,7 +391,7 @@ public class Technique : Resource
     public static void RegisterObject(Context context)
     {
         var reflection = context.AddReflection<Technique>();
-        reflection.SetObjectFactory(static () => new Technique(string.Empty));
+        reflection.SetObjectFactory(static () => new Technique());
     }
 
     /// <summary>Index for base pass. Initialized once GetPassIndex() has been called for the first time.</summary>
@@ -424,7 +423,7 @@ public class Technique : Resource
         _cloneTechniques.Clear();
         MemoryUse = 0;
 
-        using var xml = new XMLFile(Name);
+        using var xml = new XMLFile();
         if (!xml.Load(source))
             return false;
 
@@ -542,7 +541,8 @@ public class Technique : Resource
     /// <summary>Clone the technique. Passes will be deep copied to allow independent modification.</summary>
     public Technique Clone(string cloneName = "")
     {
-        var clone = new Technique(cloneName);
+        var clone = new Technique();
+        clone.SetName(cloneName);
         foreach (var pass in _passes)
         {
             if (pass is null)

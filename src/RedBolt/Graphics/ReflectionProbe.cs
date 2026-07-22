@@ -511,7 +511,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
         try
         {
             Directory.CreateDirectory(filePath);
-            var xmlFile = new XMLFile("ReflectionProbeCubemap");
+            var xmlFile = new XMLFile();
             var rootElement = xmlFile.GetOrCreateRoot("cubemap");
             for (var face = 0; face < (int)CubeMapFace.MaxCubeMapFaces; ++face)
             {
@@ -973,7 +973,7 @@ public class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
             case ReflectionProbeType.Mixed:
                 if (_mixedProbeTexture is null)
                 {
-                    _mixedProbeTexture = new TextureCube("ReflectionProbe.Mixed");
+                    _mixedProbeTexture = new TextureCube();
                     CubemapRenderer.DefineTexture(_mixedProbeTexture, _cubemapRenderingSettings);
                     if (_dynamicProbeRenderer is not null)
                     {

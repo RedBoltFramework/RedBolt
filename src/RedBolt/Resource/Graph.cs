@@ -45,7 +45,7 @@ public partial class Graph : Object
     public bool LoadXML(string xml)
     {
         using var buffer = new MemoryStream(Encoding.UTF8.GetBytes(xml));
-        using var file = new XMLFile(string.Empty);
+        using var file = new XMLFile();
         if (!file.Load(buffer))
             return false;
 
@@ -56,7 +56,7 @@ public partial class Graph : Object
     public bool LoadJSON(string json)
     {
         using var buffer = new MemoryStream(Encoding.UTF8.GetBytes(json));
-        var file = new JSONFile(string.Empty);
+        var file = new JSONFile();
         if (!file.BeginLoad(buffer))
             return false;
 

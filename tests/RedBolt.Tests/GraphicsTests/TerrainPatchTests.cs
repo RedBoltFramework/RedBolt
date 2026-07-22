@@ -48,7 +48,7 @@ public sealed class TerrainPatchTests
         var west = scene.CreateChild("W").CreateComponent<TerrainPatch>();
         var east = scene.CreateChild("E").CreateComponent<TerrainPatch>();
         var terrain = scene.CreateChild("Terrain").CreateComponent<Terrain>();
-        var material = new Material(string.Empty);
+        var material = new Material { Name = string.Empty };
 
         patch.SetOwner(terrain);
         patch.SetNeighbors(north, south, west, east);

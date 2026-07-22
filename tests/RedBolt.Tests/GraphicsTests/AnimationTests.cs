@@ -39,7 +39,7 @@ public sealed class AnimationTests
     [Fact]
     public void Animation_tracks_and_triggers_follow_resource_state_rules()
     {
-        var animation = new Animation("animation");
+        var animation = new Animation { Name = "animation" };
         animation.SetAnimationName("walk");
         animation.SetLength(-1.0f);
         Assert.Equal(0.0f, animation.Length);
@@ -67,7 +67,7 @@ public sealed class AnimationTests
     [Fact]
     public void Animation_copies_reference_backed_track_and_trigger_values()
     {
-        using var animation = new Animation("animation");
+        using var animation = new Animation { Name = "animation" };
         using var triggerData = new Variant(new byte[] { 1, 2, 3 });
         animation.AddTrigger(0.5f, false, triggerData);
 
@@ -99,7 +99,7 @@ public sealed class AnimationTests
     [Fact]
     public void Animation_clone_values_survive_source_destruction()
     {
-        var source = new Animation("animation");
+        var source = new Animation { Name = "animation" };
         using var triggerData = new Variant(new byte[] { 1, 2, 3 });
         source.AddTrigger(0.5f, false, triggerData);
 
@@ -121,7 +121,7 @@ public sealed class AnimationTests
     [Fact]
     public void Animation_loads_xml_tracks_variants_triggers_and_metadata()
     {
-        var xml = new XMLFile("walk.xml");
+        var xml = new XMLFile { Name = "walk.xml" };
         Assert.True(xml.FromString("""
             <animation name="walk" length="2">
               <transform name="root" position="true" rotation="true" positionweight="0.25">
@@ -164,7 +164,7 @@ public sealed class AnimationTests
     [Fact]
     public void Animation_begin_load_selects_xml_by_resource_name()
     {
-        var animation = new Animation("walk.xml");
+        var animation = new Animation { Name = "walk.xml" };
         using var source = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(
             "<animation name=\"walk\" length=\"2\" />"));
 

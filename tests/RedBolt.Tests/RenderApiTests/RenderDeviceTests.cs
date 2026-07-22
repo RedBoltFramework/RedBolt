@@ -244,7 +244,7 @@ public sealed class RenderDeviceTests
         try
         {
             _fixture.RenderDevice.UpdateSwapChainSize();
-            var image = new Image("RenderDeviceTests.Screenshot");
+            var image = new Image();
 
             Assert.True(_fixture.Graphics.TakeScreenShot(image));
             Assert.Equal(_fixture.Graphics.Width, image.Width);

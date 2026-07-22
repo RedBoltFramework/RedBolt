@@ -5,8 +5,7 @@ namespace RedBolt;
 
 public class Image : Resource
 {
-    public Image(string name)
-        : base(name)
+    public Image()
     {
     }
 
@@ -741,7 +740,7 @@ public class Image : Resource
         var nextWidth = Math.Max(Width / 2, 1);
         var nextHeight = Math.Max(Height / 2, 1);
         var nextDepth = Math.Max(Depth / 2, 1);
-        var mipImage = new Image(string.Empty);
+        var mipImage = new Image();
         if (Depth > 1)
             mipImage.SetSize(nextWidth, nextHeight, nextDepth, Components);
         else
@@ -825,7 +824,7 @@ public class Image : Resource
         if (Components is < 1 or > 4 || _data.Length == 0)
             return null;
 
-        var rgba = new Image(string.Empty);
+        var rgba = new Image();
         rgba.SetSize(Width, Height, Depth, 4);
         var source = 0;
         var destination = 0;
@@ -869,7 +868,7 @@ public class Image : Resource
 
         if (!IsCompressed())
         {
-            var subimage = new Image(string.Empty);
+            var subimage = new Image();
             subimage.SetSize(rect.Width, rect.Height, Components);
             var rowSize = rect.Width * Components;
             var source = (rect.Top * Width + rect.Left) * Components;
@@ -950,7 +949,7 @@ public class Image : Resource
         if (subimageLevels == 0)
             return null;
 
-        var compressedSubimage = new Image(string.Empty)
+        var compressedSubimage = new Image()
         {
             Width = paddedRect.Width,
             Height = paddedRect.Height,
@@ -1093,7 +1092,7 @@ public class Image : Resource
         if (compressedLevel.DataSize == 0)
             return null;
 
-        var decompressed = new Image(string.Empty);
+        var decompressed = new Image();
         if (!decompressed.SetSize(compressedLevel.Width, compressedLevel.Height, 4))
             return null;
 

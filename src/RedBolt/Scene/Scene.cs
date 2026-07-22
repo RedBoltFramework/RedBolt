@@ -301,7 +301,7 @@ public sealed class Scene : Serializable
     {
         StopAsyncLoading();
 
-        var xml = new XMLFile(string.Empty);
+        var xml = new XMLFile();
         if (!xml.Load(source))
             return false;
 
@@ -319,7 +319,7 @@ public sealed class Scene : Serializable
     {
         StopAsyncLoading();
 
-        var json = new JSONFile(string.Empty);
+        var json = new JSONFile();
         if (!json.Load(source))
             return false;
 
@@ -331,7 +331,7 @@ public sealed class Scene : Serializable
     {
         ArgumentNullException.ThrowIfNull(source);
         StopAsyncLoading();
-        var xml = new XMLFile(string.Empty);
+        var xml = new XMLFile();
         if (!xml.Load(new MemoryStream(ReadRemaining(source))))
             return false;
 
@@ -343,7 +343,7 @@ public sealed class Scene : Serializable
     {
         ArgumentNullException.ThrowIfNull(source);
         StopAsyncLoading();
-        var json = new JSONFile(string.Empty);
+        var json = new JSONFile();
         if (!json.Load(new MemoryStream(ReadRemaining(source))))
             return false;
 
@@ -422,7 +422,7 @@ public sealed class Scene : Serializable
     public bool SaveXML(Stream destination, string indentation = "\t")
     {
         ArgumentNullException.ThrowIfNull(destination);
-        var xml = new XMLFile(string.Empty);
+        var xml = new XMLFile();
         if (!Root.SaveXML(xml.CreateRoot("scene")))
             return false;
 
@@ -451,7 +451,7 @@ public sealed class Scene : Serializable
         if (!Root.SaveJSON(root))
             return false;
 
-        var json = new JSONFile(string.Empty);
+        var json = new JSONFile();
         if (!json.FromString(root.ToString()))
             return false;
 
@@ -545,7 +545,7 @@ public sealed class Scene : Serializable
 
         StopAsyncLoading();
 
-        var xml = new XMLFile(string.Empty);
+        var xml = new XMLFile();
         if (!xml.Load(new MemoryStream(ReadRemaining(file))))
             return false;
 
@@ -600,7 +600,7 @@ public sealed class Scene : Serializable
 
         StopAsyncLoading();
 
-        var json = new JSONFile(string.Empty);
+        var json = new JSONFile();
         if (!json.Load(new MemoryStream(ReadRemaining(file))))
             return false;
 
@@ -703,14 +703,14 @@ public sealed class Scene : Serializable
     public Node? InstantiateXML(Deserializer source, Vector3f position, Quaternion rotation)
     {
         ArgumentNullException.ThrowIfNull(source);
-        var xml = new XMLFile(string.Empty);
+        var xml = new XMLFile();
         return xml.Load(new MemoryStream(ReadRemaining(source))) ? InstantiateXML(xml.GetRoot(), position, rotation) : null;
     }
 
     public Node? InstantiateJSON(Deserializer source, Vector3f position, Quaternion rotation)
     {
         ArgumentNullException.ThrowIfNull(source);
-        var json = new JSONFile(string.Empty);
+        var json = new JSONFile();
         return json.Load(new MemoryStream(ReadRemaining(source))) ? InstantiateJSON(json.GetRoot(), position, rotation) : null;
     }
 

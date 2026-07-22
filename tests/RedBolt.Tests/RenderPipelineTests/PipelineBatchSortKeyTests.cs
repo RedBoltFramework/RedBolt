@@ -15,7 +15,7 @@ public sealed class PipelineBatchSortKeyTests
     [Fact]
     public void State_sort_key_matches_cpp_bit_layout()
     {
-        using var material = new Material("Sort Material");
+        using var material = new Material { Name = "Sort Material" };
         using var geometry = new Geometry();
         var pipelineStateDesc = new GraphicsPipelineStateDesc
         {
@@ -84,8 +84,8 @@ public sealed class PipelineBatchSortKeyTests
     [Fact]
     public void Back_to_front_key_sorts_render_order_then_descending_distance()
     {
-        using var firstMaterial = new Material("First");
-        using var secondMaterial = new Material("Second");
+        using var firstMaterial = new Material { Name = "First" };
+        using var secondMaterial = new Material { Name = "Second" };
         firstMaterial.SetRenderOrder(1);
         secondMaterial.SetRenderOrder(2);
         var batches = new List<PipelineBatch>
@@ -121,7 +121,7 @@ public sealed class PipelineBatchSortKeyTests
     [Fact]
     public void Batch_group_copy_preserves_batch_storage_and_copies_scalar_state()
     {
-        using var material = new Material("Group Material");
+        using var material = new Material { Name = "Group Material" };
         using var geometry = new Geometry();
         using var pipelineState = new PipelineState(_fixture.PipelineStateCache,
             new PipelineStateDesc(new GraphicsPipelineStateDesc
@@ -163,7 +163,7 @@ public sealed class PipelineBatchSortKeyTests
     [Fact]
     public void Sort_keys_retain_aliases_to_pipeline_batch_storage()
     {
-        using var material = new Material("Alias Material");
+        using var material = new Material { Name = "Alias Material" };
         using var geometry = new Geometry();
         using var pipelineState = new PipelineState(_fixture.PipelineStateCache,
             new PipelineStateDesc(new GraphicsPipelineStateDesc

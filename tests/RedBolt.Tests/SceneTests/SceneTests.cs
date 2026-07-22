@@ -161,7 +161,7 @@ public sealed class SceneTests
     {
         var resourceName = $"Lightmaps/Test-{Guid.NewGuid():N}.png";
         var cache = Context.Instance.GetSubsystem<ResourceCache>()!;
-        var texture = new Texture2D(resourceName);
+        var texture = new Texture2D { Name = resourceName };
         Assert.True(cache.AddManualResource(texture));
 
         try
@@ -266,7 +266,7 @@ public sealed class SceneTests
         var xmlArchive = new XMLOutputArchive();
         using (xmlArchive.OpenUnorderedBlock(SceneResource.GetXmlRootName()))
             source.SerializeInBlock(xmlArchive);
-        var xmlFile = new XMLFile(string.Empty);
+        var xmlFile = new XMLFile { Name = string.Empty };
         using var xmlStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(xmlArchive.ToXmlString()));
         Assert.True(xmlFile.Load(xmlStream));
 
@@ -285,7 +285,7 @@ public sealed class SceneTests
     [Fact]
     public void Scene_stream_load_entrypoints_read_xml_resource_and_json_node_formats()
     {
-        var sourceResource = new SceneResource(string.Empty);
+        var sourceResource = new SceneResource { Name = string.Empty };
         sourceResource.Scene.CreateChild("Loaded").CreateComponent<Camera>().SetFov(79);
 
         using var xml = new MemoryStream();
@@ -316,7 +316,7 @@ public sealed class SceneTests
         Assert.True(source.Root.SaveXML(stream));
         stream.Position = 0;
 
-        var xml = new XMLFile(string.Empty);
+        var xml = new XMLFile { Name = string.Empty };
         Assert.True(xml.Load(stream));
 
         var loaded = new Scene();
@@ -398,7 +398,7 @@ public sealed class SceneTests
         Assert.True(instantiatedFromJson.Position.ApproximatelyEquivalent(position));
         Assert.Equal(91.0f, instantiatedFromJson.GetChild("Source")?.GetComponent<Camera>()?.GetFov());
 
-        var xmlFile = new XMLFile(string.Empty);
+        var xmlFile = new XMLFile { Name = string.Empty };
         Assert.True(source.Root.SaveXML(xmlFile.CreateRoot("node")));
         var instantiatedFromXml = new Scene().InstantiateXML(xmlFile.Root, position, rotation);
         Assert.NotNull(instantiatedFromXml);

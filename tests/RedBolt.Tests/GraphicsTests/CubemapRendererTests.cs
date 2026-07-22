@@ -44,7 +44,7 @@ public sealed class CubemapRendererTests
     {
         var scene = new Scene();
         var renderer = new CubemapRenderer(scene);
-        var texture = new TextureCube("CubemapRendererTests.Override");
+        var texture = new TextureCube { Name = "CubemapRendererTests.Override" };
         var parameters = new CubemapUpdateParameters { OverrideFinalTexture = texture };
 
         var sceneReference = GetPrivateField<WeakReference<Scene>>(renderer, "_scene");
@@ -66,7 +66,7 @@ public sealed class CubemapRendererTests
     [Fact]
     public void Parameter_copy_keeps_an_independent_weak_alias()
     {
-        var texture = new TextureCube("CubemapRendererTests.Copy");
+        var texture = new TextureCube { Name = "CubemapRendererTests.Copy" };
         var source = new CubemapUpdateParameters { OverrideFinalTexture = texture };
         var copy = Assert.IsType<CubemapUpdateParameters>(source.Clone());
         var sourceReference = GetPrivateField<WeakReference<TextureCube>?>(source, "_overrideFinalTexture");
@@ -111,8 +111,8 @@ public sealed class CubemapRendererTests
 
             var scene = new Scene();
             using var renderer = new CubemapRenderer(scene);
-            using var sourceTexture = new TextureCube("CubemapFilterSource");
-            using var destinationTexture = new TextureCube("CubemapFilterDestination");
+            using var sourceTexture = new TextureCube { Name = "CubemapFilterSource" };
+            using var destinationTexture = new TextureCube { Name = "CubemapFilterDestination" };
             var settings = new CubemapRenderingSettings { TextureSize = 16 };
             CubemapRenderer.DefineTexture(sourceTexture, settings);
             CubemapRenderer.DefineTexture(destinationTexture, settings, TextureFlag.BindUnorderedAccess);
@@ -136,7 +136,7 @@ public sealed class CubemapRendererTests
     [Fact]
     public void DefineTexture_sets_size_format_and_render_target_flag()
     {
-        var texture = new TextureCube("TestCubemap");
+        var texture = new TextureCube { Name = "TestCubemap" };
         var settings = new CubemapRenderingSettings { TextureSize = 64 };
 
         CubemapRenderer.DefineTexture(texture, settings, TextureFlag.None);
@@ -207,7 +207,7 @@ public sealed class CubemapRendererTests
         var scene = new Scene();
         scene.Root.GetOrCreateComponent<Octree>();
         using var cubemapRenderer = new CubemapRenderer(scene);
-        var overrideTexture = new TextureCube("Override");
+        var overrideTexture = new TextureCube { Name = "Override" };
         CubemapRenderer.DefineTexture(overrideTexture, new CubemapRenderingSettings { TextureSize = 16 });
 
         var result = cubemapRenderer.Update(new CubemapUpdateParameters

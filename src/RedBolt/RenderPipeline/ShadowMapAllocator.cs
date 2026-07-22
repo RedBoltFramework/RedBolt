@@ -169,7 +169,7 @@ public class ShadowMapAllocator : Object
         var isDepthTexture = !_settings.EnableVarianceShadowMaps;
         var flags = isDepthTexture ? TextureFlag.BindDepthStencil : TextureFlag.BindRenderTarget;
         var multiSample = isDepthTexture ? 1 : _settings.VarianceShadowMapMultiSample;
-        var texture = new Texture2D($"Dynamic ShadowMap #{_pages.Count}");
+        var texture = new Texture2D();
         texture.SetNumLevels(1);
         texture.SetFilterMode(TextureFilterMode.Bilinear);
         texture.SetShadowCompare(!_settings.EnableVarianceShadowMaps);
@@ -187,7 +187,7 @@ public class ShadowMapAllocator : Object
         else if (_vsmDepthTexture is null || _vsmDepthTexture.Width != _shadowAtlasPageSize.X
             || _vsmDepthTexture.Height != _shadowAtlasPageSize.Y)
         {
-            _vsmDepthTexture = new Texture2D(string.Empty);
+            _vsmDepthTexture = new Texture2D();
             _vsmDepthTexture.SetSize(_shadowAtlasPageSize.X, _shadowAtlasPageSize.Y,
                 _shadowOutputDesc.DepthStencilFormat, TextureFlag.BindDepthStencil, multiSample);
         }

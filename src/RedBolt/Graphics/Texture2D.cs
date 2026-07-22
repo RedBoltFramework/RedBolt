@@ -8,8 +8,7 @@ public class Texture2D : Texture
     /// <summary>
     /// Construct.
     /// </summary>
-    public Texture2D(string name)
-        : base(name)
+    public Texture2D()
     {
     }
 
@@ -30,7 +29,7 @@ public class Texture2D : Texture
     public static void RegisterObject(Context context)
     {
         var reflection = context.AddReflection<Texture2D>();
-        reflection.SetObjectFactory(static () => new Texture2D(string.Empty));
+        reflection.SetObjectFactory(static () => new Texture2D());
     }
 
     /// <summary>
@@ -45,7 +44,7 @@ public class Texture2D : Texture
 
         // Load the image data for EndLoad()
         _loadImage?.Dispose();
-        _loadImage = new Image($"{Name}#source");
+        _loadImage = new Image();
         if (!_loadImage.BeginLoad(source))
         {
             _loadImage.Dispose();
@@ -146,7 +145,7 @@ public class Texture2D : Texture
     /// </summary>
     public Image? GetImage()
     {
-        var image = new Image($"{Name}#image");
+        var image = new Image();
         if (GetImage(image))
             return image;
 

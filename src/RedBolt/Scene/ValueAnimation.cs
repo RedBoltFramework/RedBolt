@@ -91,11 +91,6 @@ public class ValueAnimation : Resource
     {
     }
 
-    public ValueAnimation(string name)
-        : base(name)
-    {
-    }
-
     /// <summary>Destruct.</summary>
     public override void Dispose()
     {
@@ -115,7 +110,7 @@ public class ValueAnimation : Resource
     /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
     public override bool BeginLoad(Stream source)
     {
-        using var xmlFile = new XMLFile(Name);
+        using var xmlFile = new XMLFile();
         if (!xmlFile.Load(source))
             return false;
 
@@ -125,7 +120,7 @@ public class ValueAnimation : Resource
     /// <summary>Save resource. Return true if successful.</summary>
     public override bool Save(Stream destination)
     {
-        using var xmlFile = new XMLFile(Name);
+        using var xmlFile = new XMLFile();
 
         var rootElement = xmlFile.CreateRoot("valueanimation");
         if (!SaveXML(rootElement))

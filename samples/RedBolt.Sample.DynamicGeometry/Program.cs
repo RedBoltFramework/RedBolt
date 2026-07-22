@@ -212,7 +212,7 @@ public class DynamicGeometry : Application
                 }
             }
 
-            var fromScratchModel = new Model(string.Empty);
+            var fromScratchModel = new Model();
             var vb = new VertexBuffer();
             var ib = new IndexBuffer();
             var geom = new Geometry();

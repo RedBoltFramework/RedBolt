@@ -37,8 +37,8 @@ public sealed class BatchStateCacheTests
     public void Batch_cache_reuses_and_invalidates_state_like_cpp()
     {
         using var geometry = new Geometry();
-        using var material = new Material("Cache Material");
-        using var technique = new Technique("Cache Technique");
+        using var material = new Material { Name = "Cache Material" };
+        using var technique = new Technique { Name = "Cache Technique" };
         var pass = technique.CreatePass("base");
         using var state = new PipelineState(_fixture.PipelineStateCache, CreateUnavailablePipelineStateDesc());
         var callback = new BatchCallback { State = state };

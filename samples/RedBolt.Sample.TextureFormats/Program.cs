@@ -48,7 +48,7 @@ sealed class TextureFormatsApplication : Application
             var hardwareTexture = cache.Get<Texture2D>(TextureNames[i]);
             var hardwareSupported = image.GetGPUFormat() == hardwareTexture.Format;
             var decompressedImage = image.GetDecompressedImage() ?? image;
-            var softwareTexture = new Texture2D(TextureNames[i] + "#decompressed");
+            var softwareTexture = new Texture2D();
             softwareTexture.SetData(decompressedImage);
             CreateBox(0.0f, 2.0f + 2.0f * i, softwareTexture);
             CreateBox(2.0f, 2.0f + 2.0f * i, hardwareTexture);
@@ -59,7 +59,7 @@ sealed class TextureFormatsApplication : Application
 
         void CreateBox(float x, float z, Texture2D texture)
         {
-            var material = new Material(string.Empty);
+            var material = new Material();
             material.SetTechnique(0, cache.Get<Technique>("Techniques/LitOpaque.xml"));
             material.SetTexture(ShaderResources.Albedo, texture);
             var node = _scene.CreateChild("Box"); node.SetPosition(new Vector3f(x, 1.0f, z));

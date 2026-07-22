@@ -530,7 +530,7 @@ public class Node : Serializable
     {
         ArgumentNullException.ThrowIfNull(destination);
 
-        var xml = new XMLFile(string.Empty);
+        var xml = new XMLFile();
         var root = xml.CreateRoot("node");
         if (!SaveXML(root))
             return false;
@@ -560,7 +560,7 @@ public class Node : Serializable
         if (!SaveJSON(root))
             return false;
 
-        var json = new JSONFile(string.Empty);
+        var json = new JSONFile();
         if (!json.FromString(root.ToString()))
             return false;
 

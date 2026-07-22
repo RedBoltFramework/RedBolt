@@ -483,7 +483,7 @@ public class Engine : Object
         var screenshotPath = _exitRequired && !_screenshotCapturedForExit ? Parameters.ScreenshotOnExit : null;
         if (!string.IsNullOrWhiteSpace(screenshotPath) && _screenshotFrameDelay-- <= 0)
         {
-            using var screenshot = new Image("Screenshot");
+            using var screenshot = new Image();
             if (graphics.TakeScreenShot(screenshot) && screenshot.SaveFile(GetScreenshotPath(screenshotPath)))
             {
                 ++_screenshotIndex;

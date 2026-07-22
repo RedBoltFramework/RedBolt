@@ -95,7 +95,7 @@ sealed class MaterialAnimationApplication : Application
         // scene.
         var mushroomMaterial = cache.Get<Material>("Materials/Mushroom.xml");
         // Apply shader parameter animation to material
-        var specColorAnimation = new ValueAnimation(string.Empty);
+        var specColorAnimation = new ValueAnimation();
         specColorAnimation.SetKeyFrame(0.0f, new Color(0.1f, 0.1f, 0.1f, 16.0f));
         specColorAnimation.SetKeyFrame(1.0f, new Color(1.0f, 0.0f, 0.0f, 2.0f));
         specColorAnimation.SetKeyFrame(2.0f, new Color(1.0f, 1.0f, 0.0f, 2.0f));

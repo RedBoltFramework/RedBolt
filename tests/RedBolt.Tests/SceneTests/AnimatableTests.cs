@@ -52,7 +52,7 @@ public sealed class AnimatableTests
     public void Attribute_animation_time_works()
     {
         var animatable = new TestAnimatable();
-        var animation = new ValueAnimation("Animations/Value");
+        var animation = new ValueAnimation { Name = "Animations/Value" };
         animation.SetKeyFrame(0.0f, 0.0f);
         animation.SetKeyFrame(1.0f, 10.0f);
 
@@ -68,7 +68,7 @@ public sealed class AnimatableTests
     public void Once_attribute_animation_is_removed_when_finished()
     {
         var animatable = new TestAnimatable();
-        var animation = new ValueAnimation("Animations/Value");
+        var animation = new ValueAnimation { Name = "Animations/Value" };
         animation.SetKeyFrame(0.0f, 0.0f);
         animation.SetKeyFrame(1.0f, 10.0f);
 
@@ -83,7 +83,7 @@ public sealed class AnimatableTests
     public void Attribute_animation_copy_resets_time_and_keeps_target_and_configuration()
     {
         var animatable = new TestAnimatable();
-        var animation = new ValueAnimation("Animations/Value");
+        var animation = new ValueAnimation { Name = "Animations/Value" };
         animation.SetKeyFrame(0.0f, 0.0f);
         animation.SetKeyFrame(1.0f, 10.0f);
         var info = new AttributeAnimationInfo(animatable, animatable.GetAttributes()[1], animation, WrapMode.Clamp, 2.0f);

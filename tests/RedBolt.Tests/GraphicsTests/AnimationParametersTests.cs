@@ -7,7 +7,7 @@ public sealed class AnimationParametersTests
     [Fact]
     public void Animation_parameters_preserve_lifecycle_and_wrapped_time()
     {
-        var animation = new Animation("Walk");
+        var animation = new Animation { Name = "Walk" };
         animation.SetLength(2.0f);
 
         var parameters = new AnimationParameters(animation)
@@ -50,7 +50,7 @@ public sealed class AnimationParametersTests
     [Fact]
     public void Animation_parameters_copy_independent_value_state()
     {
-        var animation = new Animation("Walk");
+        var animation = new Animation { Name = "Walk" };
         animation.SetLength(2.0f);
         var parameters = new AnimationParameters(animation, 0.25f, 1.75f)
             .Looped()

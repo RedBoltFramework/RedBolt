@@ -83,7 +83,7 @@ public sealed class DecalSetTests
     [Fact]
     public void AddDecal_without_cpu_geometry_returns_empty_success()
     {
-        var model = new Model("ModelWithoutCpuGeometry");
+        var model = new Model { Name = "ModelWithoutCpuGeometry" };
         model.SetNumGeometries(1);
         var modelGeometry = new Geometry();
         modelGeometry.SetDrawRange(PrimitiveType.TriangleList, 0, 36, 0, 36);

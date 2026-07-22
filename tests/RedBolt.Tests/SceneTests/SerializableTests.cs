@@ -16,7 +16,7 @@ public sealed class SerializableTests
         Assert.True(binaryResult.Load(binary));
         AssertValues(binaryResult);
 
-        var xml = new XMLFile(string.Empty);
+        var xml = new XMLFile { Name = string.Empty };
         var root = xml.CreateRoot("object");
         Assert.True(source.SaveXML(root));
         var xmlResult = new TestSerializable();

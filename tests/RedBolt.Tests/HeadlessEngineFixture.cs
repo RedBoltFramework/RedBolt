@@ -23,7 +23,7 @@ public sealed class HeadlessEngineFixture : IDisposable
         };
         Engine.Initialize(parameters);
 
-        var model = new Model("Models/ProceduralBox");
+        var model = new Model { Name = "Models/ProceduralBox" };
         model.SetNumGeometries(1);
         var geometry = new Geometry();
         geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 36, 0, 36);

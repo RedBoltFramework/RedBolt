@@ -15,7 +15,7 @@ public sealed class ImageTests
     [Fact]
     public void Pixel_roundtrip_and_clear_work()
     {
-        var image = new Image("Images/Test");
+        var image = new Image();
         Assert.True(image.SetSize(2, 2, 4));
         image.Clear(Color.TransparentBlack);
         image.SetPixel(0, 0, new Color(1.0f, 0.5f, 0.25f, 1.0f));
@@ -28,7 +28,7 @@ public sealed class ImageTests
     [Fact]
     public void Gpu_format_matches_native_component_mapping()
     {
-        using var image = new Image("Images/GpuFormat");
+        using var image = new Image();
 
         Assert.True(image.SetSize(2, 2, 1));
         Assert.Equal(TextureFormat.TexFormatR8Unorm, image.GetGPUFormat());
@@ -46,7 +46,7 @@ public sealed class ImageTests
     [Fact]
     public void Bilinear_resize_and_mip_helpers_work()
     {
-        var image = new Image("Images/Test");
+        var image = new Image();
         Assert.True(image.SetSize(2, 2, 4));
         image.SetPixel(0, 0, new Color(1, 0, 0));
         image.SetPixel(1, 0, new Color(0, 1, 0));
@@ -72,7 +72,7 @@ public sealed class ImageTests
     [Fact]
     public void Mip_levels_are_owned_only_after_precalculation()
     {
-        var image = new Image("Images/Mips");
+        var image = new Image();
         Assert.True(image.SetSize(4, 4, 1));
         image.SetData(Enumerable.Range(0, 16).Select(static value => (byte)value).ToArray());
 
@@ -164,7 +164,7 @@ public sealed class ImageTests
     [Fact]
     public void Pixel_changes_and_resize_preserve_precalculated_mip_ownership()
     {
-        var image = new Image("Images/CachedMip");
+        var image = new Image();
         Assert.True(image.SetSize(4, 4, 1));
         image.PrecalculateLevels();
         var cached = image.GetNextLevel();
@@ -182,7 +182,7 @@ public sealed class ImageTests
     [Fact]
     public void Compressed_block_flips_are_reversible()
     {
-        var image = new Image("Textures/StoneDiffuse.dds");
+        var image = new Image();
         Assert.True(image.LoadFile(Path.Combine(RbfxTestData.Data, "Textures", "StoneDiffuse.dds")));
         var original = image.GetData().ToArray();
 
@@ -198,7 +198,7 @@ public sealed class ImageTests
     [Fact]
     public void Trilinear_and_rgba_conversion_work()
     {
-        var image = new Image("Images/Volume");
+        var image = new Image();
         Assert.True(image.SetSize(2, 2, 2, 1));
         image.SetPixelInt(0, 0, 0, 0x00000000u);
         image.SetPixelInt(1, 0, 0, 0x000000ffu);
@@ -220,10 +220,10 @@ public sealed class ImageTests
     [Fact]
     public void Png_save_subimage_and_level_management_work()
     {
-        var source = new Image("Source");
+        var source = new Image();
         Assert.True(source.SetSize(2, 2, 4));
         source.Clear(new Color(1, 0, 0, 1));
-        var destination = new Image("Destination");
+        var destination = new Image();
         Assert.True(destination.SetSize(4, 4, 4));
         destination.Clear(Color.TransparentBlack);
         Assert.True(destination.SetSubimage(source, new IntRect(1, 1, 3, 3)));
@@ -246,43 +246,38 @@ public sealed class ImageTests
     [Fact]
     public void ImageCube_projection_and_sampling_work()
     {
-        var cube = new ImageCube("Images/Cube");
-        foreach (var pair in new[]
-                 {
-                     (CubeMapFace.PositiveX, new Color(1, 0, 0)),
-                     (CubeMapFace.NegativeX, new Color(0, 1, 0)),
-                     (CubeMapFace.PositiveY, new Color(0, 0, 1)),
-                     (CubeMapFace.NegativeY, new Color(1, 1, 0)),
-                     (CubeMapFace.PositiveZ, new Color(1, 0, 1)),
-                     (CubeMapFace.NegativeZ, new Color(0, 1, 1))
-                 })
+        var cube = LoadImageCube(
+            [(255, 0, 0), (0, 255, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255), (0, 255, 255)],
+            out var tempRoot);
+        try
         {
-            var image = new Image(pair.Item1.ToString());
-            Assert.True(image.SetSize(2, 2, 4));
-            image.Clear(pair.Item2);
-            cube.SetImage(pair.Item1, image);
+            Assert.True(cube.SampleNearest(Vector3f.Right).Equals(new Color(1, 0, 0), 0.001f));
+            Assert.True(cube.SampleNearest(Vector3f.Forward).Equals(new Color(1, 0, 1), 0.001f));
+
+            var projected = ImageCube.ProjectUVOnCube(CubeMapFace.PositiveZ, new Vector2f(0.5f, 0.5f)).NormalizedOrDefault();
+            Assert.True(projected.ApproximatelyEquivalent(Vector3f.Forward, 0.001f));
+
+            var (face, uv) = ImageCube.ProjectDirectionOnFace(Vector3f.Up);
+            Assert.Equal(CubeMapFace.PositiveY, face);
+            Assert.True(uv.ApproximatelyEquivalent(new Vector2f(0.5f, 0.5f), 0.001f));
+
+            var texel = cube.ProjectDirectionOnFaceTexel(Vector3f.Forward);
+            Assert.Equal(CubeMapFace.PositiveZ, texel.Face);
+            Assert.Equal(new Vector2i(0, 1), texel.Texel);
+            Assert.True(cube.ProjectTexelOnCube(CubeMapFace.PositiveZ, 1, 1).Z > 0.0f);
         }
-
-        Assert.True(cube.SampleNearest(Vector3f.Right).Equals(new Color(1, 0, 0), 0.001f));
-        Assert.True(cube.SampleNearest(Vector3f.Forward).Equals(new Color(1, 0, 1), 0.001f));
-
-        var projected = ImageCube.ProjectUVOnCube(CubeMapFace.PositiveZ, new Vector2f(0.5f, 0.5f)).NormalizedOrDefault();
-        Assert.True(projected.ApproximatelyEquivalent(Vector3f.Forward, 0.001f));
-
-        var (face, uv) = ImageCube.ProjectDirectionOnFace(Vector3f.Up);
-        Assert.Equal(CubeMapFace.PositiveY, face);
-        Assert.True(uv.ApproximatelyEquivalent(new Vector2f(0.5f, 0.5f), 0.001f));
-
-        var texel = cube.ProjectDirectionOnFaceTexel(Vector3f.Forward);
-        Assert.Equal(CubeMapFace.PositiveZ, texel.Face);
-        Assert.Equal(new Vector2i(1, 1), texel.Texel);
-        Assert.True(cube.ProjectTexelOnCube(CubeMapFace.PositiveZ, 1, 1).Z > 0.0f);
+        finally
+        {
+            cube.Dispose();
+            _fixture.Resources.RemoveResourceDir(tempRoot);
+            Directory.Delete(tempRoot, recursive: true);
+        }
     }
 
     [Fact]
     public void Image_encoders_and_cube_spherical_harmonics_work()
     {
-        var image = new Image("Solid");
+        var image = new Image();
         Assert.True(image.SetSize(2, 2, 4));
         image.Clear(new Color(0.5f, 0.25f, 0.125f, 1));
         var directory = Path.Combine(Path.GetTempPath(), "RedBolt.ImageEncoders", Guid.NewGuid().ToString("N"));
@@ -297,10 +292,20 @@ public sealed class ImageTests
             Assert.True(image.SaveDDS(ddsFileName));
             Assert.Equal("DDS ", System.Text.Encoding.ASCII.GetString(System.IO.File.ReadAllBytes(ddsFileName), 0, 4));
 
-            var cube = new ImageCube("Cube");
-            for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; face = (CubeMapFace)((int)face + 1)) cube.SetImage(face, image);
-            var evaluated = cube.GetOrCreateSphericalHarmonics().Evaluate(Vector3f.Forward);
-            Assert.True(evaluated.X > 0 && evaluated.Y > 0 && evaluated.Z > 0);
+            var cube = LoadImageCube(
+                [(128, 64, 32), (128, 64, 32), (128, 64, 32), (128, 64, 32), (128, 64, 32), (128, 64, 32)],
+                out var cubeRoot);
+            try
+            {
+                var evaluated = cube.GetOrCreateSphericalHarmonics().Evaluate(Vector3f.Forward);
+                Assert.True(evaluated.X > 0 && evaluated.Y > 0 && evaluated.Z > 0);
+            }
+            finally
+            {
+                cube.Dispose();
+                _fixture.Resources.RemoveResourceDir(cubeRoot);
+                Directory.Delete(cubeRoot, recursive: true);
+            }
         }
         finally
         {
@@ -311,7 +316,7 @@ public sealed class ImageTests
     [Fact]
     public void Repo_backed_rbfx_dds_image_loads_and_decompresses_through_image_resource()
     {
-        var image = new Image("Textures/StoneDiffuse.dds");
+        var image = new Image();
 
         Assert.True(image.LoadFile(Path.Combine(RbfxTestData.Data, "Textures", "StoneDiffuse.dds")));
         Assert.True(image.IsCompressed());
@@ -356,7 +361,7 @@ public sealed class ImageTests
         dds[154] = 0xff;
         dds[155] = 0xff;
 
-        var image = new Image("Rgba16");
+        var image = new Image();
         Assert.True(image.BeginLoad(new MemoryStream(dds)));
         Assert.Equal(TextureFormat.TexFormatRgba16Unorm, image.CompressedFormat);
         Assert.Equal(4, image.Components);
@@ -462,5 +467,37 @@ public sealed class ImageTests
             writer.Write(pixels[i + 0]);
             writer.Write(pixels[i + 3]);
         }
+    }
+
+    private ImageCube LoadImageCube(
+        IReadOnlyList<(byte R, byte G, byte B)> colors, out string tempRoot)
+    {
+        tempRoot = Path.Combine(Path.GetTempPath(), "RedBolt.ImageCube", Guid.NewGuid().ToString("N"));
+        var relativeDirectory = Guid.NewGuid().ToString("N");
+        var cubeDirectory = Path.Combine(tempRoot, relativeDirectory);
+        Directory.CreateDirectory(cubeDirectory);
+        _fixture.Resources.AddResourceDir(tempRoot);
+
+        System.IO.File.WriteAllText(Path.Combine(cubeDirectory, "Cube.xml"), """
+            <cubemap>
+                <face name="Face0.bmp" />
+                <face name="Face1.bmp" />
+                <face name="Face2.bmp" />
+                <face name="Face3.bmp" />
+                <face name="Face4.bmp" />
+                <face name="Face5.bmp" />
+            </cubemap>
+            """);
+        for (var i = 0; i < colors.Count; ++i)
+        {
+            var color = colors[i];
+            WriteSolidBmp(Path.Combine(cubeDirectory, $"Face{i}.bmp"), 2, 2, color.R, color.G, color.B);
+        }
+
+        var cube = new ImageCube();
+        cube.SetName($"{relativeDirectory}/Cube.xml");
+        using var source = System.IO.File.OpenRead(Path.Combine(cubeDirectory, "Cube.xml"));
+        Assert.True(cube.BeginLoad(source));
+        return cube;
     }
 }

@@ -86,7 +86,7 @@ public abstract class Animatable : Serializable
         var objectAnimationElement = source.GetChild("objectanimation");
         if (objectAnimationElement.NotNull)
         {
-            var objectAnimation = new ObjectAnimation(string.Empty);
+            var objectAnimation = new ObjectAnimation();
             if (!objectAnimation.LoadXML(objectAnimationElement))
             {
                 objectAnimation.Dispose();
@@ -99,7 +99,7 @@ public abstract class Animatable : Serializable
              element = element.GetNext("attributeanimation"))
         {
             var name = element.GetAttribute("name");
-            var attributeAnimation = new ValueAnimation(string.Empty);
+            var attributeAnimation = new ValueAnimation();
             if (!attributeAnimation.LoadXML(element))
             {
                 attributeAnimation.Dispose();
@@ -166,7 +166,7 @@ public abstract class Animatable : Serializable
         var objectAnimationValue = source.Get("objectanimation");
         if (!objectAnimationValue.IsNull)
         {
-            var objectAnimation = new ObjectAnimation(string.Empty);
+            var objectAnimation = new ObjectAnimation();
             if (!objectAnimation.LoadJSON(objectAnimationValue))
             {
                 objectAnimation.Dispose();
@@ -187,7 +187,7 @@ public abstract class Animatable : Serializable
 
         foreach (var pair in attributeAnimationsValue.GetObject())
         {
-            var attributeAnimation = new ValueAnimation(string.Empty);
+            var attributeAnimation = new ValueAnimation();
             if (!attributeAnimation.LoadJSON(pair.Value))
             {
                 attributeAnimation.Dispose();

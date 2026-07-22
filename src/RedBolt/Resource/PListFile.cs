@@ -6,8 +6,7 @@ public class PListFile : Resource
 {
     private readonly Dictionary<string, PListValue> _root = new(StringComparer.Ordinal);
 
-    public PListFile(string name = "")
-        : base(name)
+    public PListFile()
     {
     }
 

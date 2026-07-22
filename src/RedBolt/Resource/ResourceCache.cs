@@ -49,29 +49,19 @@ public sealed class ResourceCache : Object
 
     public void RegisterDefaultResources()
     {
-        RegisterLoader<Shader>(name => LoadFileBackedResource(Shader.GetResourceName(name), static resourceName => new Shader(resourceName)));
+        RegisterLoader<Shader>(name => LoadFileBackedResource(Shader.GetResourceName(name), static () => new Shader()));
 
-        RegisterLoader<Model>(name => LoadFileBackedResource(name, static resourceName => new Model(resourceName)));
+        RegisterLoader<Model>(name => LoadFileBackedResource(name, static () => new Model()));
 
         RegisterLoader<Material>(name => LoadFileBackedResource(name, AppendExtensionIfMissing(name, ".xml"),
-            static resourceName => new Material(resourceName)));
+            static () => new Material()));
         RegisterLoader<RenderPath>(name => LoadFileBackedResource(
             name,
             GetRenderPathLookupNames(name),
-            static resourceName =>
-            {
-                var renderPath = new RenderPath();
-                renderPath.SetName(resourceName);
-                return renderPath;
-            }));
+            static () => new RenderPath()));
         RegisterLoader<Sound>(name => LoadFileBackedResource(
             name,
-            static resourceName =>
-            {
-                var sound = new Sound();
-                sound.SetName(resourceName);
-                return sound;
-            }));
+            static () => new Sound()));
     }
 
     public void RegisterLoader<T>(Func<string, T?> loader)
@@ -466,8 +456,11 @@ public sealed class ResourceCache : Object
 
     public bool Exists(string name)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return !string.IsNullOrEmpty(GetResourceFileName(name));
+        var resolvedName = GetResolvedIdentifier(FileIdentifier.FromUri(name));
+        if (resolvedName.IsEmpty())
+            return false;
+
+        return GetVirtualFileSystem().Exists(resolvedName);
     }
 
     public Stream? GetFile(string name, bool sendEventOnFailure = true)
@@ -1054,7 +1047,7 @@ public sealed class ResourceCache : Object
         Resource? resource;
         try
         {
-            resource = Activator.CreateInstance(type, name) as Resource;
+            resource = Activator.CreateInstance(type) as Resource;
         }
         catch (MissingMethodException)
         {
@@ -1065,10 +1058,11 @@ public sealed class ResourceCache : Object
             return null;
 
         resource.OwnerCache = this;
+        resource.SetName(name);
         return resource.LoadFile(name) || _returnFailedResources ? resource : null;
     }
 
-    private T? LoadFileBackedResource<T>(string name, Func<string, T> factory)
+    private T? LoadFileBackedResource<T>(string name, Func<T> factory)
         where T : Resource
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -1078,12 +1072,13 @@ public sealed class ResourceCache : Object
         if (string.IsNullOrEmpty(fileName))
             return null;
 
-        var resource = factory(name);
+        var resource = factory();
         resource.OwnerCache = this;
+        resource.SetName(name);
         return resource.LoadFile(name) || _returnFailedResources ? resource : null;
     }
 
-    private T? LoadFileBackedResource<T>(string logicalName, string lookupName, Func<string, T> factory)
+    private T? LoadFileBackedResource<T>(string logicalName, string lookupName, Func<T> factory)
         where T : Resource
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(logicalName);
@@ -1094,12 +1089,13 @@ public sealed class ResourceCache : Object
         if (string.IsNullOrEmpty(fileName))
             return null;
 
-        var resource = factory(logicalName);
+        var resource = factory();
         resource.OwnerCache = this;
+        resource.SetName(logicalName);
         return resource.LoadFile(lookupName) || _returnFailedResources ? resource : null;
     }
 
-    private T? LoadFileBackedResource<T>(string logicalName, IReadOnlyList<string> lookupNames, Func<string, T> factory)
+    private T? LoadFileBackedResource<T>(string logicalName, IReadOnlyList<string> lookupNames, Func<T> factory)
         where T : Resource
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(logicalName);

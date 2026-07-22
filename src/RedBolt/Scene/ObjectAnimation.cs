@@ -10,11 +10,6 @@ public class ObjectAnimation : Resource
     {
     }
 
-    public ObjectAnimation(string name)
-        : base(name)
-    {
-    }
-
     /// <summary>Destruct.</summary>
     public override void Dispose()
     {
@@ -32,7 +27,7 @@ public class ObjectAnimation : Resource
     public override bool BeginLoad(Stream source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        using var xml = new XMLFile(Name);
+        using var xml = new XMLFile();
         return xml.Load(source) && LoadXML(xml.GetRoot());
     }
 
@@ -40,7 +35,7 @@ public class ObjectAnimation : Resource
     public override bool Save(Stream destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
-        using var xml = new XMLFile(Name);
+        using var xml = new XMLFile();
         var root = xml.CreateRoot("objectanimation");
         return SaveXML(root) && xml.Save(destination);
     }
@@ -52,7 +47,7 @@ public class ObjectAnimation : Resource
         for (var animationElement = source.GetChild("attributeanimation"); animationElement.NotNull; animationElement = animationElement.GetNext("attributeanimation"))
         {
             var name = animationElement.GetString("name");
-            var animation = new ValueAnimation(Name + ":" + name);
+            var animation = new ValueAnimation();
             if (!animation.LoadXML(animationElement))
             {
                 animation.Dispose();
@@ -95,7 +90,7 @@ public class ObjectAnimation : Resource
 
         foreach (var pair in attributeAnimations.GetObject())
         {
-            var animation = new ValueAnimation(Name + ":" + pair.Key);
+            var animation = new ValueAnimation();
             if (!animation.LoadJSON(pair.Value))
             {
                 animation.Dispose();

@@ -7,7 +7,7 @@ public sealed class RenderPipelineDefsTests
     [Fact]
     public void Shader_resource_description_matches_native_value_shape()
     {
-        using var texture = new Texture2D("Texture");
+        using var texture = new Texture2D { Name = "Texture" };
         Assert.True(texture.SetSize(1, 1, TextureFormat.TexFormatRgba8Unorm));
         var rawTexture = Assert.IsAssignableFrom<RawTexture>(texture.GetRawTexture());
         var description = new ShaderResourceDesc

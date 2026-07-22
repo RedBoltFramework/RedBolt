@@ -232,8 +232,8 @@ public sealed class DrawableProcessorTests
         using var secondLight = new Light();
         using var firstProcessor = new LightProcessor(firstLight);
         using var secondProcessor = new LightProcessor(secondLight);
-        using var firstTexture = new Texture2D("First");
-        using var secondTexture = new Texture2D("Second");
+        using var firstTexture = new Texture2D { Name = "First" };
+        using var secondTexture = new Texture2D { Name = "Second" };
         SetPrivateField(firstProcessor, "_shadowMap", new ShadowMapRegion { Texture = firstTexture });
         SetPrivateField(secondProcessor, "_shadowMap", new ShadowMapRegion { Texture = secondTexture });
         var lightProcessors = GetPrivateField<List<LightProcessor?>>(processor, "_lightProcessors");
@@ -319,7 +319,7 @@ public sealed class DrawableProcessorTests
             Technique.GetPassIndex("deferred"), Technique.GetPassIndex("base"),
             Technique.GetPassIndex("litbase"), Technique.GetPassIndex("light"));
         pipeline.RaiseUpdateBegin();
-        var technique = new Technique("test");
+        var technique = new Technique { Name = "test" };
         technique.CreatePass("deferred");
         technique.CreatePass("base");
 
@@ -340,7 +340,7 @@ public sealed class DrawableProcessorTests
             Technique.GetPassIndex("deferred"), Technique.GetPassIndex("base"),
             Technique.GetPassIndex("litbase"), Technique.GetPassIndex("light"));
         pipeline.RaiseUpdateBegin();
-        var technique = new Technique("test");
+        var technique = new Technique { Name = "test" };
         technique.CreatePass("base");
         technique.CreatePass("litbase");
         technique.CreatePass("light");
@@ -362,7 +362,7 @@ public sealed class DrawableProcessorTests
         using var processorPass = new TestDrawableProcessorPass(pipeline,
             int.MaxValue, Technique.GetPassIndex("base"), int.MaxValue, int.MaxValue);
         pipeline.RaiseUpdateBegin();
-        var technique = new Technique("test");
+        var technique = new Technique { Name = "test" };
         technique.CreatePass("base");
         processorPass.AddBatch(0, new CustomGeometry(), 0, technique);
 
@@ -380,7 +380,7 @@ public sealed class DrawableProcessorTests
         var processorPass = new TestDrawableProcessorPass(pipeline,
             int.MaxValue, Technique.GetPassIndex("base"), int.MaxValue, int.MaxValue);
         pipeline.RaiseUpdateBegin();
-        var technique = new Technique("test");
+        var technique = new Technique { Name = "test" };
         technique.CreatePass("base");
         processorPass.AddBatch(0, new CustomGeometry(), 0, technique);
 
@@ -399,7 +399,7 @@ public sealed class DrawableProcessorTests
         drawable.DefineVertex(Vector3f.Right);
         drawable.DefineVertex(Vector3f.Up);
         drawable.Commit();
-        var material = new Material("test");
+        var material = new Material { Name = "test" };
         drawable.SetMaterial(material);
         var pass = new Pass("base");
 

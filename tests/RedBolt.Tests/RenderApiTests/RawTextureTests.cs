@@ -11,12 +11,12 @@ public sealed class RawTextureTests
     {
         WithInitializedGraphics(() =>
         {
-            var image = new Image("Textures/RawTextureImage");
+            var image = new Image();
             var imageData = Enumerable.Range(0, 16).Select(value => (byte)(value * 3)).ToArray();
             Assert.True(image.SetSize(2, 2, 4));
             image.SetData(imageData);
 
-            var texture = new Texture2D("Textures/RawTexture2D");
+            var texture = new Texture2D { Name = "Textures/RawTexture2D" };
             texture.SetNumLevels(1);
             Assert.True(texture.SetData(image));
 
