@@ -83,8 +83,22 @@ public sealed class RenderPipelineTests
         });
 
         Assert.Equal(
-            [new RenderPassToggle("First", false), new RenderPassToggle("Second", true)],
+            [("First", false), ("Second", true)],
             renderPipeline.GetRenderPasses());
+    }
+
+    [Fact]
+    public void Render_pipeline_copies_enabled_render_passes()
+    {
+        var scene = new Scene();
+        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        renderPipeline.SetRenderPath((RenderPath?)null);
+        (string Name, bool Enabled)[] renderPasses = [("First", true)];
+
+        renderPipeline.SetRenderPasses(renderPasses);
+        renderPasses[0] = ("Changed", false);
+
+        Assert.Equal(("First", true), Assert.Single(renderPipeline.GetRenderPasses()));
     }
 
     [Fact]
@@ -304,7 +318,7 @@ public sealed class RenderPipelineTests
         renderPipeline.SetRenderPassEnabled("Tracking", false);
 
         Assert.Equal(1, parameterEvents);
-        Assert.Equal(new RenderPassToggle("Tracking", false), Assert.Single(renderPipeline.GetRenderPasses()));
+        Assert.Equal(("Tracking", false), Assert.Single(renderPipeline.GetRenderPasses()));
     }
 
     [Fact]

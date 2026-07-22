@@ -30,14 +30,14 @@ public sealed class RenderPathTests
 
         var repaired = renderPath.RepairEnabledRenderPasses(
         [
-            new RenderPassToggle("Beta", false),
-            new RenderPassToggle("Alpha", true)
+            ("Beta", false),
+            ("Alpha", true)
         ]);
 
         Assert.Collection(
             repaired,
-            pass => Assert.Equal(new RenderPassToggle("Alpha", true), pass),
-            pass => Assert.Equal(new RenderPassToggle("Beta", false), pass));
+            pass => Assert.Equal(("Alpha", true), pass),
+            pass => Assert.Equal(("Beta", false), pass));
     }
 
     [Fact]
@@ -48,10 +48,10 @@ public sealed class RenderPathTests
         renderPath.AddPass(new TrackingRenderPass("Alpha"));
         renderPath.AddPass(new TrackingRenderPass("Beta"));
 
-        RenderPassToggle[] matchingPasses =
+        (string Name, bool Enabled)[] matchingPasses =
         [
-            new("Alpha", true),
-            new("Beta", false)
+            ("Alpha", true),
+            ("Beta", false)
         ];
 
         var repaired = renderPath.RepairEnabledRenderPasses(matchingPasses);
@@ -71,7 +71,7 @@ public sealed class RenderPathTests
         using var parameters = new StringVariantMap();
         renderPath.UpdateParameters(
             new RenderPipelineSettings(),
-            [new RenderPassToggle("Alpha", true)],
+            [("Alpha", true)],
             parameters);
 
         using var clone = renderPath.Clone();
@@ -228,8 +228,8 @@ public sealed class RenderPathTests
         renderPath.UpdateParameters(
         settings,
         [
-            new RenderPassToggle("First", true),
-            new RenderPassToggle("Second", true)
+            ("First", true),
+            ("Second", true)
         ],
         parameters);
 

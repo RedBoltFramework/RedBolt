@@ -2,8 +2,6 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
-public readonly record struct RenderPassToggle(string Name, bool Enabled);
-
 /// <summary>
 /// Sub-passes of user pass.
 /// </summary>

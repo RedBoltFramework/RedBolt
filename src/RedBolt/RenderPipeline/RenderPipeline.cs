@@ -11,7 +11,7 @@ public class RenderPipeline : Component
 
     private readonly StringVariantMap _renderPathParameters = new();
     private readonly StringVariantMap _frameShaderParameters = new();
-    private IReadOnlyList<RenderPassToggle> _renderPasses = [];
+    private IReadOnlyList<(string Name, bool Enabled)> _renderPasses = [];
     private RenderPath? _renderPath;
     private RenderPipelineSettings _settings = new();
     private uint _revision = 1;
@@ -56,7 +56,7 @@ public class RenderPipeline : Component
             SetRenderPath(cache.GetResourceOrNull<RenderPath>(value.Name));
     }
 
-    public IReadOnlyList<RenderPassToggle> GetRenderPasses() => _renderPasses;
+    public IReadOnlyList<(string Name, bool Enabled)> GetRenderPasses() => _renderPasses;
 
     public VariantVector GetRenderPassesAttr()
     {
@@ -75,9 +75,9 @@ public class RenderPipeline : Component
         ArgumentNullException.ThrowIfNull(value);
 
         var numPasses = value.Count / 2;
-        var renderPasses = new RenderPassToggle[numPasses];
+        var renderPasses = new (string Name, bool Enabled)[numPasses];
         for (var i = 0; i < numPasses; ++i)
-            renderPasses[i] = new RenderPassToggle(value[i * 2].GetString(), value[i * 2 + 1].GetBool());
+            renderPasses[i] = (value[i * 2].GetString(), value[i * 2 + 1].GetBool());
         SetRenderPasses(renderPasses);
     }
 
@@ -131,10 +131,10 @@ public class RenderPipeline : Component
         return true;
     }
 
-    public void SetRenderPasses(IEnumerable<RenderPassToggle> renderPasses)
+    public void SetRenderPasses(IEnumerable<(string Name, bool Enabled)> renderPasses)
     {
         ArgumentNullException.ThrowIfNull(renderPasses);
-        var sourcePasses = renderPasses as IReadOnlyList<RenderPassToggle> ?? renderPasses.ToArray();
+        var sourcePasses = renderPasses.ToArray();
         this._renderPasses = _renderPath?.RepairEnabledRenderPasses(sourcePasses) ?? sourcePasses;
         RaiseParametersChanged();
     }
@@ -158,10 +158,10 @@ public class RenderPipeline : Component
 
         if (index < 0)
         {
-            var updated = new RenderPassToggle[_renderPasses.Count + 1];
+            var updated = new (string Name, bool Enabled)[_renderPasses.Count + 1];
             for (var i = 0; i < _renderPasses.Count; ++i)
                 updated[i] = _renderPasses[i];
-            updated[^1] = new RenderPassToggle(passName, enabled);
+            updated[^1] = (passName, enabled);
             this._renderPasses = _renderPath?.RepairEnabledRenderPasses(updated) ?? updated;
             RaiseParametersChanged();
             return;
@@ -171,7 +171,7 @@ public class RenderPipeline : Component
             return;
 
         var toggledPasses = _renderPasses.ToArray();
-        toggledPasses[index] = toggledPasses[index] with { Enabled = enabled };
+        toggledPasses[index] = (toggledPasses[index].Name, enabled);
         _renderPasses = toggledPasses;
         RaiseParametersChanged();
     }
@@ -334,11 +334,6 @@ public class RenderPipeline : Component
             CollectRenderPathParameters();
             _renderPasses = _renderPath.RepairEnabledRenderPasses(_renderPasses);
         }
-        else
-        {
-            _renderPasses = [];
-        }
-
         Touch();
         RenderPathChanged?.Invoke(this, _renderPath);
     }

@@ -45,7 +45,8 @@ public class RenderPath : SimpleResource
     /// <summary>
     /// Update settings for all passes.
     /// </summary>
-    public void UpdateParameters(RenderPipelineSettings settings, IReadOnlyList<RenderPassToggle> enabledPasses, StringVariantMap parameters)
+    public void UpdateParameters(RenderPipelineSettings settings,
+        IReadOnlyList<(string Name, bool Enabled)> enabledPasses, StringVariantMap parameters)
     {
         var numPasses = _passes.Count;
         if (enabledPasses.Count != numPasses)
@@ -109,7 +110,8 @@ public class RenderPath : SimpleResource
     /// <summary>
     /// Repair the array of enabled render passes.
     /// </summary>
-    public IReadOnlyList<RenderPassToggle> RepairEnabledRenderPasses(IReadOnlyList<RenderPassToggle> sourcePasses)
+    public IReadOnlyList<(string Name, bool Enabled)> RepairEnabledRenderPasses(
+        IReadOnlyList<(string Name, bool Enabled)> sourcePasses)
     {
         if (sourcePasses.Count == _passes.Count)
         {
@@ -127,11 +129,11 @@ public class RenderPath : SimpleResource
                 return sourcePasses.ToArray();
         }
 
-        var result = new RenderPassToggle[_passes.Count];
+        var result = new (string Name, bool Enabled)[_passes.Count];
         for (var i = 0; i < _passes.Count; ++i)
         {
             var pass = _passes[i];
-            RenderPassToggle match = default;
+            (string Name, bool Enabled) match = default;
             for (var j = 0; j < sourcePasses.Count; ++j)
             {
                 if (string.Equals(sourcePasses[j].Name, pass.GetPassName(), StringComparison.Ordinal))
@@ -142,7 +144,7 @@ public class RenderPath : SimpleResource
             }
 
             var isEnabled = match.Name is not null ? match.Enabled : pass.IsEnabledByDefault();
-            result[i] = new RenderPassToggle(pass.GetPassName(), isEnabled);
+            result[i] = (pass.GetPassName(), isEnabled);
         }
         return result;
     }
