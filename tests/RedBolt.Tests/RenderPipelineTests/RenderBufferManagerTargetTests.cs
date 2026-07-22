@@ -12,6 +12,13 @@ public sealed class RenderBufferManagerTargetTests : IDisposable
     }
 
     [Fact]
+    public void Class_shape_matches_native()
+    {
+        Assert.True(typeof(RenderBufferManager).IsClass);
+        Assert.False(typeof(RenderBufferManager).IsSealed);
+    }
+
+    [Fact]
     public void Set_render_targets_rect_uses_depth_first_multi_color_api()
     {
         EnsureGraphics();
@@ -19,8 +26,8 @@ public sealed class RenderBufferManagerTargetTests : IDisposable
         using var manager = new RenderBufferManager(pipeline);
         var frameInfo = pipeline.BeginFrame(manager, null, new IntRect(0, 0, 320, 200));
 
-        var depthBuffer = manager.GetDepthStencilOutput();
-        var colorBuffer = manager.GetColorOutput();
+        var depthBuffer = manager.DepthStencilOutput;
+        var colorBuffer = manager.ColorOutput;
 
         manager.SetRenderTargetsRect(
             IntRect.Zero,
@@ -44,8 +51,8 @@ public sealed class RenderBufferManagerTargetTests : IDisposable
 
         var frameInfo = pipeline.BeginFrame(manager, null, viewportRect);
 
-        Assert.IsType<TextureRenderBuffer>(manager.GetColorOutput());
-        Assert.IsType<TextureRenderBuffer>(manager.GetDepthStencilOutput());
+        Assert.IsType<TextureRenderBuffer>(manager.ColorOutput);
+        Assert.IsType<TextureRenderBuffer>(manager.DepthStencilOutput);
         pipeline.EndFrame(frameInfo);
     }
 

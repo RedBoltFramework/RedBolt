@@ -484,15 +484,15 @@ public class RenderPipeline : Component
 
             _renderBufferManager!.SetSettings(_renderPipeline.Settings.RenderBufferManager);
             _renderBufferManager.OnViewportDefined(_frameInfo.RenderTarget, _frameInfo.ViewportRect);
-            _linearColorSpace = _renderBufferManager.IsLinearColorSpace();
+            _linearColorSpace = _renderBufferManager.IsLinearColorSpace;
 
             var standardOutputDesc = new PipelineStateOutputDesc
             {
-                DepthStencilFormat = _renderBufferManager.GetOutputDepthStencilFormat(),
-                MultiSample = _renderBufferManager.GetOutputMultiSample()
+                DepthStencilFormat = _renderBufferManager.OutputDepthStencilFormat,
+                MultiSample = _renderBufferManager.OutputMultiSample
             };
             standardOutputDesc.NumRenderTargets = 1;
-            standardOutputDesc.RenderTargetFormats[0] = _renderBufferManager.GetOutputColorFormat();
+            standardOutputDesc.RenderTargetFormats[0] = _renderBufferManager.OutputColorFormat;
 
             _opaquePass!.SetForwardOutputDesc(standardOutputDesc);
             _depthPrePass?.SetForwardOutputDesc(standardOutputDesc);
@@ -609,12 +609,12 @@ public class RenderPipeline : Component
                 new()
                 {
                     Name = ShaderConsts.Camera_GBufferOffsets,
-                    Value = new Variant(_renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale())
+                    Value = new Variant(_renderBufferManager.DefaultClipToUVSpaceOffsetAndScale)
                 },
                 new()
                 {
                     Name = ShaderConsts.Camera_GBufferInvSize,
-                    Value = new Variant(_renderBufferManager.GetInvOutputSize())
+                    Value = new Variant(_renderBufferManager.InvOutputSize)
                 },
             };
             var frameParameters = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_frameParameters);
@@ -634,12 +634,12 @@ public class RenderPipeline : Component
                 new()
                 {
                     Name = ShaderResources.DepthBuffer,
-                    Texture = canReadDepth ? _renderBufferManager.GetDepthStencilTexture() : null
+                    Texture = canReadDepth ? _renderBufferManager.DepthStencilTexture : null
                 },
                 new()
                 {
                     Name = ShaderResources.Emission,
-                    Texture = _renderBufferManager.GetSecondaryColorTexture()
+                    Texture = _renderBufferManager.SecondaryColorTexture
                 },
             };
 

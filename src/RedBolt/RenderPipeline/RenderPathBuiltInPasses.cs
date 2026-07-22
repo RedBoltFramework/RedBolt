@@ -481,12 +481,12 @@ public sealed class AutoExposurePass : RenderPass
             _currentParameters.AutoExposure ? "EXPOSURE AUTOEXPOSURE" : "EXPOSURE",
             BlendMode.Replace,
             bilinearColorSampler: true,
-            renderBufferManager.GetSecondaryColorTexture(),
+            renderBufferManager.SecondaryColorTexture,
             secondaryTexture: _currentParameters.AutoExposure ? _cachedBuffers?.AdaptedLuminance.GetTexture() : null,
             depthTexture: null,
             applyExposureParameters,
-            renderBufferManager.GetInvOutputSize(),
-            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+            renderBufferManager.InvOutputSize,
+            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
     }
 
     private struct Parameters
@@ -553,7 +553,7 @@ public sealed class AutoExposurePass : RenderPass
 
     private void EvaluateDownsampledColorBuffer(RenderBufferManager renderBufferManager, Graphics graphics, CachedBuffers buffers)
     {
-        var viewportTexture = renderBufferManager.GetSecondaryColorTexture();
+        var viewportTexture = renderBufferManager.SecondaryColorTexture;
         if (viewportTexture is null)
             return;
 
@@ -594,7 +594,7 @@ public sealed class AutoExposurePass : RenderPass
             depthTexture: null,
             adaptRateParameters,
             new Vector2f(1.0f, 1.0f),
-            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
 
         _isAdaptedLuminanceInitialized = true;
     }
@@ -618,8 +618,8 @@ public sealed class AutoExposurePass : RenderPass
             secondaryTexture: null,
             depthTexture: null,
             inputInvSizeParameters,
-            renderBufferManager.GetInvOutputSize(),
-            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+            renderBufferManager.InvOutputSize,
+            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
     }
 }
 
@@ -701,7 +701,7 @@ public sealed class BloomPass : RenderPass
     {
         base.Update(sharedState);
 
-        var nextHdr = sharedState.RenderBufferManager?.IsHDR() ?? false;
+        var nextHdr = sharedState.RenderBufferManager?.IsHDR ?? false;
         if (_isHdr != nextHdr)
         {
             _isHdr = nextHdr;
@@ -722,7 +722,7 @@ public sealed class BloomPass : RenderPass
         if (_textures.Count == 0)
             return;
 
-        var luminanceWeights = renderBufferManager.IsLinearColorSpace() ? LinearLuminanceWeights : GammaLuminanceWeights;
+        var luminanceWeights = renderBufferManager.IsLinearColorSpace ? LinearLuminanceWeights : GammaLuminanceWeights;
 
         renderBufferManager.SwapColorBuffers(synchronizeContents: false);
 
@@ -815,7 +815,7 @@ public sealed class BloomPass : RenderPass
 
     private int GatherBrightRegions(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer destination, Vector3f luminanceWeights)
     {
-        var viewportTexture = renderBufferManager.GetSecondaryColorTexture();
+        var viewportTexture = renderBufferManager.SecondaryColorTexture;
         if (viewportTexture is null)
             return 0;
 
@@ -840,8 +840,8 @@ public sealed class BloomPass : RenderPass
             secondaryTexture: null,
             depthTexture: null,
             bloomParameters,
-            renderBufferManager.GetInvOutputSize(),
-            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+            renderBufferManager.InvOutputSize,
+            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
 
         var numIterations = 0;
         while (minDimension > 1 && numIterations < _currentParameters.NumIterations)
@@ -876,7 +876,7 @@ public sealed class BloomPass : RenderPass
             depthTexture: null,
             bloomParameters,
             invInputSize,
-            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
 
         renderBufferManager.SetRenderTargets(null, final);
         graphics.DrawFullscreenQuad(
@@ -890,7 +890,7 @@ public sealed class BloomPass : RenderPass
             depthTexture: null,
             bloomParameters,
             invInputSize,
-            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
     }
 
     private void CopyTexture(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer source, TextureRenderBuffer destination)
@@ -901,7 +901,7 @@ public sealed class BloomPass : RenderPass
 
     private void ApplyBloom(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer bloom, float intensity)
     {
-        var bloomParameters = CreateBloomParameters(Vector3f.Zero, intensity, renderBufferManager.GetInvOutputSize());
+        var bloomParameters = CreateBloomParameters(Vector3f.Zero, intensity, renderBufferManager.InvOutputSize);
         graphics.DrawFullscreenQuad(
             "Apply bloom",
             "P_Bloom",
@@ -912,8 +912,8 @@ public sealed class BloomPass : RenderPass
             secondaryTexture: null,
             depthTexture: null,
             bloomParameters,
-            renderBufferManager.GetInvOutputSize(),
-            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+            renderBufferManager.InvOutputSize,
+            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
     }
 
     private BloomParameters CreateBloomParameters(Vector3f luminanceWeights, float intensity, Vector2f inputInvSize)
@@ -1061,7 +1061,7 @@ public sealed class AmbientOcclusionPass : RenderPass
         if (_textures?.CurrentTarget is null || _textures.PreviousTarget is null)
             return;
 
-        var depthTexture = renderBufferManager.GetDepthStencilTexture();
+        var depthTexture = renderBufferManager.DepthStencilTexture;
         if (depthTexture is null)
             return;
 
@@ -1168,7 +1168,7 @@ public sealed class AmbientOcclusionPass : RenderPass
         if (_textures?.CurrentTarget is null)
             return;
 
-        var inputInvSize = renderBufferManager.GetInvOutputSize();
+        var inputInvSize = renderBufferManager.InvOutputSize;
         var worldToViewSpace = camera.GetView().Matrix4;
         var worldToViewSpaceCorrected = camera.GetFlipVertical() ? FlipMatrix * worldToViewSpace : worldToViewSpace;
 
@@ -1205,7 +1205,7 @@ public sealed class AmbientOcclusionPass : RenderPass
             depthTexture: depthTexture,
             ambientOcclusionParameters,
             inputInvSize,
-            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
 
         (_textures.CurrentTarget, _textures.PreviousTarget) = (_textures.PreviousTarget, _textures.CurrentTarget);
     }
@@ -1252,7 +1252,7 @@ public sealed class AmbientOcclusionPass : RenderPass
             depthTexture: depthTexture,
             blurParameters,
             blurStep,
-            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
 
         (_textures.CurrentTarget, _textures.PreviousTarget) = (_textures.PreviousTarget, _textures.CurrentTarget);
     }
@@ -1273,8 +1273,8 @@ public sealed class AmbientOcclusionPass : RenderPass
             secondaryTexture: null,
             depthTexture: null,
             EmptyParameters,
-            renderBufferManager.GetInvOutputSize(),
-            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+            renderBufferManager.InvOutputSize,
+            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
     }
 }
 
@@ -1331,15 +1331,15 @@ public sealed class OutlineRenderPass : RenderPass
         graphics.DrawFullscreenQuad(
             "Apply outline",
             "P_Outline",
-            renderBufferManager.IsLinearColorSpace() ? "URHO3D_GAMMA_CORRECTION" : string.Empty,
+            renderBufferManager.IsLinearColorSpace ? "URHO3D_GAMMA_CORRECTION" : string.Empty,
             BlendMode.Alpha,
             bilinearColorSampler: true,
             texture,
             secondaryTexture: null,
             depthTexture: null,
             outlineParameters,
-            renderBufferManager.GetInvOutputSize(),
-            renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale());
+            renderBufferManager.InvOutputSize,
+            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
     }
 
     private struct OutlineParameters

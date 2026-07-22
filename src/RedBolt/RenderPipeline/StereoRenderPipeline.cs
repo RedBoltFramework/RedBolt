@@ -434,11 +434,11 @@ public class StereoRenderPipelineView : RenderPipelineView
         }
 
         _renderBufferManager!.OnViewportDefined(_frameInfo.RenderTarget, _frameInfo.ViewportRect);
-        _linearColorSpace = _renderBufferManager.IsLinearColorSpace();
+        _linearColorSpace = _renderBufferManager.IsLinearColorSpace;
 
-        var outputMultiSample = _renderBufferManager.GetOutputMultiSample();
-        var outputColorFormat = _renderBufferManager.GetOutputColorFormat();
-        var outputDepthFormat = _renderBufferManager.GetOutputDepthStencilFormat();
+        var outputMultiSample = _renderBufferManager.OutputMultiSample;
+        var outputColorFormat = _renderBufferManager.OutputColorFormat;
+        var outputDepthFormat = _renderBufferManager.OutputDepthStencilFormat;
 
         var standardOutputDesc = new PipelineStateOutputDesc
         {
@@ -546,12 +546,12 @@ public class StereoRenderPipelineView : RenderPipelineView
             new()
             {
                 Name = ShaderConsts.Camera_GBufferOffsets,
-                Value = new Variant(_renderBufferManager.GetDefaultClipToUVSpaceOffsetAndScale())
+                Value = new Variant(_renderBufferManager.DefaultClipToUVSpaceOffsetAndScale)
             },
             new()
             {
                 Name = ShaderConsts.Camera_GBufferInvSize,
-                Value = new Variant(_renderBufferManager.GetInvOutputSize())
+                Value = new Variant(_renderBufferManager.InvOutputSize)
             },
         };
         var frameParameters = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_frameParameters);
@@ -577,12 +577,12 @@ public class StereoRenderPipelineView : RenderPipelineView
             new()
             {
                 Name = ShaderResources.DepthBuffer,
-                Texture = _renderBufferManager.GetDepthStencilTexture()
+                Texture = _renderBufferManager.DepthStencilTexture
             },
             new()
             {
                 Name = ShaderResources.Emission,
-                Texture = _renderBufferManager.GetSecondaryColorTexture()
+                Texture = _renderBufferManager.SecondaryColorTexture
             },
         };
 
@@ -614,7 +614,7 @@ public class StereoRenderPipelineView : RenderPipelineView
         }
 
         // Not going to work, something will need to be done
-        var outSize = _renderBufferManager.GetOutputSize(); // used for debug view
+        var outSize = _renderBufferManager.OutputSize; // used for debug view
 
         if (_renderPath is not null)
             _renderPath.Render(_state);
