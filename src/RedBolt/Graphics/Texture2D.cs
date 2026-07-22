@@ -35,7 +35,7 @@ public class Texture2D : Texture
     /// <summary>
     /// Load resource from stream. May be called from a worker thread. Return true if successful.
     /// </summary>
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         var graphics = GetSubsystem<Graphics>();
         // In headless mode, do not actually load the texture, just return success

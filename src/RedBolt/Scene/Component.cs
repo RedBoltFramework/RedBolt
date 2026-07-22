@@ -41,21 +41,6 @@ public class Component : Serializable
     }
 
     /// <summary>Save as binary data. Return true if successful.</summary>
-    public override bool Save(Stream destination)
-    {
-        ArgumentNullException.ThrowIfNull(destination);
-        var header = new VectorBuffer();
-        if (!header.WriteStringHash(new StringHash(GetTypeName())) || !header.WriteUInt(_id))
-            return false;
-        var attributes = new VectorBuffer();
-        if (!base.Save(attributes))
-            return false;
-        destination.Write(header.Buffer[..checked((int)header.Size)]);
-        destination.Write(attributes.Buffer[..checked((int)attributes.Size)]);
-        return true;
-    }
-
-    /// <summary>Save as binary data. Return true if successful.</summary>
     public override bool Save(Serializer destination)
     {
         ArgumentNullException.ThrowIfNull(destination);

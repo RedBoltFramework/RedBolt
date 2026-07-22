@@ -46,9 +46,9 @@ public sealed class UnknownComponentTests
         using var reader = new PrefabReaderFromMemory(prefab);
         Assert.True(source.GetScene().Root.Load(reader));
 
-        using var stream = new MemoryStream();
+        using var stream = new VectorBuffer();
         Assert.True(source.Save(stream, SceneResourceFormat.Json));
-        stream.Position = 0;
+        stream.Seek(0);
         using var resource = new SceneResource { Name = "Scenes/Loaded.scene" };
         Assert.True(resource.Load(stream));
 

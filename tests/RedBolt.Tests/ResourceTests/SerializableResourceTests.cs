@@ -18,9 +18,9 @@ public sealed class SerializableResourceTests
             var camera = new Camera();
             resource.SetValue(camera);
 
-            using var buffer = new MemoryStream();
+            using var buffer = new VectorBuffer();
             Assert.True(empty.Save(buffer, InternalResourceFormat.Json));
-            buffer.Position = 0;
+            buffer.Seek(0);
             Assert.True(resource.Load(buffer));
 
             Assert.True(typeof(SerializableResource).IsClass);
@@ -55,9 +55,9 @@ public sealed class SerializableResourceTests
         camera.SetOrthographic(true);
         resource.SetValue(camera);
 
-        using var buffer = new MemoryStream();
+        using var buffer = new VectorBuffer();
         Assert.True(resource.Save(buffer, format));
-        buffer.Position = 0;
+        buffer.Seek(0);
 
         using var loaded = new SerializableResource { Name = "Data/loaded.serializable.json" };
         Assert.True(loaded.Load(buffer));

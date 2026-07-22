@@ -460,7 +460,7 @@ public sealed class ResourceCache : Object
         return GetVirtualFileSystem().Exists(resolvedName);
     }
 
-    public Stream? GetFile(string name, bool sendEventOnFailure = true)
+    public AbstractFile? GetFile(string name, bool sendEventOnFailure = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var virtualFileSystem = GetVirtualFileSystem();
@@ -473,25 +473,7 @@ public sealed class ResourceCache : Object
             return null;
         }
 
-        try
-        {
-            var stream = new MemoryStream();
-            var buffer = new byte[81920];
-            while (true)
-            {
-                var read = file.Read(buffer);
-                if (read == 0)
-                    break;
-                stream.Write(buffer, 0, checked((int)read));
-            }
-
-            stream.Position = 0;
-            return stream;
-        }
-        finally
-        {
-            file.Close();
-        }
+        return file;
     }
 
     public DateTime GetLastModifiedTime(string name)
@@ -1036,8 +1018,8 @@ public sealed class ResourceCache : Object
                 return loaded;
         }
 
-        var fileName = GetResourceFileName(name);
-        if (string.IsNullOrEmpty(fileName))
+        using var file = GetFile(name);
+        if (file is null)
             return null;
 
         Resource? resource;
@@ -1054,7 +1036,8 @@ public sealed class ResourceCache : Object
             return null;
 
         resource.SetName(name);
-        return resource.LoadFile(name) || _returnFailedResources ? resource : null;
+        resource.SetAbsoluteFileName(file.AbsoluteName);
+        return resource.Load(file) || _returnFailedResources ? resource : null;
     }
 
     private T? LoadFileBackedResource<T>(string name, Func<T> factory)
@@ -1063,13 +1046,14 @@ public sealed class ResourceCache : Object
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         ArgumentNullException.ThrowIfNull(factory);
 
-        var fileName = GetResourceFileName(name);
-        if (string.IsNullOrEmpty(fileName))
+        using var file = GetFile(name);
+        if (file is null)
             return null;
 
         var resource = factory();
         resource.SetName(name);
-        return resource.LoadFile(name) || _returnFailedResources ? resource : null;
+        resource.SetAbsoluteFileName(file.AbsoluteName);
+        return resource.Load(file) || _returnFailedResources ? resource : null;
     }
 
     private T? LoadFileBackedResource<T>(string logicalName, string lookupName, Func<T> factory)
@@ -1079,13 +1063,14 @@ public sealed class ResourceCache : Object
         ArgumentException.ThrowIfNullOrWhiteSpace(lookupName);
         ArgumentNullException.ThrowIfNull(factory);
 
-        var fileName = GetResourceFileName(lookupName);
-        if (string.IsNullOrEmpty(fileName))
+        using var file = GetFile(lookupName);
+        if (file is null)
             return null;
 
         var resource = factory();
         resource.SetName(logicalName);
-        return resource.LoadFile(lookupName) || _returnFailedResources ? resource : null;
+        resource.SetAbsoluteFileName(file.AbsoluteName);
+        return resource.Load(file) || _returnFailedResources ? resource : null;
     }
 
     private T? LoadFileBackedResource<T>(string logicalName, IReadOnlyList<string> lookupNames, Func<T> factory)

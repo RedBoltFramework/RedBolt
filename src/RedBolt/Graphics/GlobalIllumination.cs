@@ -120,7 +120,7 @@ public class GlobalIllumination : Component
             return;
         }
 
-        if (!file.SaveFile(file.AbsoluteFileName))
+        if (!file.SaveFile(new FileIdentifier(file.AbsoluteFileName)))
         {
             Log.GetLogger().LogError("Cannot save Global Illumination data: cannot save file");
             return;

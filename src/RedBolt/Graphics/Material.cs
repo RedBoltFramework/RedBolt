@@ -681,7 +681,7 @@ public sealed class Material : Resource
         return false;
     }
 
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
 
@@ -718,7 +718,7 @@ public sealed class Material : Resource
         }
     }
 
-    public override bool Save(Stream destination)
+    public override bool Save(Serializer destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
 

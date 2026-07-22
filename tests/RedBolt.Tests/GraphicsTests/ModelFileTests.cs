@@ -157,9 +157,9 @@ public sealed class ModelFileTests
         source.SetNumGeometries(1);
         source.SetGeometry(0, 0, geometry);
 
-        using var stream = new MemoryStream();
+        using var stream = new VectorBuffer();
         Assert.True(source.Save(stream));
-        stream.Position = 0;
+        stream.Seek(0);
 
         var loaded = new Model { Name = "Loaded" };
         Assert.True(loaded.Load(stream));
@@ -169,7 +169,7 @@ public sealed class ModelFileTests
         Assert.Equal(3u, loaded.GetVertexBuffers()[0].GetVertexCount());
         Assert.Equal(3u, loaded.GetIndexBuffers()[0].GetIndexCount());
 
-        stream.Position = 0;
+        stream.Seek(0);
         var staged = new Model { Name = "Staged" };
         staged.SetAsyncLoadState(AsyncLoadState.Loading);
         Assert.True(staged.BeginLoad(stream));

@@ -316,34 +316,10 @@ public sealed class Scene : Serializable
         throw new InvalidOperationException("Cannot load Scene from legacy XML format");
     }
 
-    public bool LoadXML(Stream source)
-    {
-        StopAsyncLoading();
-
-        var xml = new XMLFile();
-        if (!xml.Load(source))
-            return false;
-
-        Clear();
-        return LoadXML(xml.GetRoot());
-    }
-
     public override bool LoadJSON(JSONValue source)
     {
         StopAsyncLoading();
         return Root.LoadJSON(source);
-    }
-
-    public bool LoadJSON(Stream source)
-    {
-        StopAsyncLoading();
-
-        var json = new JSONFile();
-        if (!json.Load(source))
-            return false;
-
-        Clear();
-        return LoadJSON(json.GetRoot());
     }
 
     public bool LoadXML(Deserializer source)
@@ -351,7 +327,7 @@ public sealed class Scene : Serializable
         ArgumentNullException.ThrowIfNull(source);
         StopAsyncLoading();
         var xml = new XMLFile();
-        if (!xml.Load(new MemoryStream(ReadRemaining(source))))
+        if (!xml.Load(source))
             return false;
 
         Clear();
@@ -363,7 +339,7 @@ public sealed class Scene : Serializable
         ArgumentNullException.ThrowIfNull(source);
         StopAsyncLoading();
         var json = new JSONFile();
-        if (!json.Load(new MemoryStream(ReadRemaining(source))))
+        if (!json.Load(source))
             return false;
 
         Clear();
@@ -374,27 +350,6 @@ public sealed class Scene : Serializable
         }
 
         return false;
-    }
-
-    public override bool Load(Stream source)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        using var copy = new MemoryStream();
-        source.CopyTo(copy);
-        var data = copy.ToArray();
-        var firstIndex = 0;
-        while (firstIndex < data.Length
-            && (data[firstIndex] == (byte)' ' || data[firstIndex] == (byte)'\t'
-                || data[firstIndex] == (byte)'\r' || data[firstIndex] == (byte)'\n'))
-            ++firstIndex;
-
-        if (firstIndex < data.Length && data[firstIndex] == (byte)'<')
-            return LoadXML(new MemoryStream(data));
-        if (firstIndex < data.Length && (data[firstIndex] == (byte)'{' || data[firstIndex] == (byte)'['))
-            return LoadJSON(new MemoryStream(data));
-
-        using var buffer = new MemoryBuffer(data);
-        return Load(buffer);
     }
 
     public override bool Load(Deserializer source)
@@ -414,15 +369,6 @@ public sealed class Scene : Serializable
         return false;
     }
 
-    public override bool Save(Stream destination)
-    {
-        ArgumentNullException.ThrowIfNull(destination);
-        var buffer = new VectorBuffer();
-        if (!Save(buffer)) return false;
-        destination.Write(buffer.Buffer[..checked((int)buffer.Size)]);
-        return true;
-    }
-
     public override bool Save(Serializer destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
@@ -438,54 +384,27 @@ public sealed class Scene : Serializable
         return false;
     }
 
-    public bool SaveXML(Stream destination, string indentation = "\t")
+    public bool SaveXML(Serializer destination, string indentation = "\t")
     {
         ArgumentNullException.ThrowIfNull(destination);
         var xml = new XMLFile();
         if (!Root.SaveXML(xml.CreateRoot("scene")))
             return false;
-
-        return xml.Save(destination, indentation);
-    }
-
-    public bool SaveXML(Serializer destination, string indentation = "\t")
-    {
-        ArgumentNullException.ThrowIfNull(destination);
-        using var stream = new MemoryStream();
-        if (!SaveXML(stream, indentation))
-            return false;
-
-        var data = stream.ToArray();
-        if (destination.Write(data) != data.Length)
+        if (!xml.Save(destination, indentation))
             return false;
 
         FinishSaving(destination);
         return true;
     }
 
-    public bool SaveJSON(Stream destination, string indentation = "\t")
+    public bool SaveJSON(Serializer destination, string indentation = "\t")
     {
         ArgumentNullException.ThrowIfNull(destination);
         var root = new JSONValue();
         if (!Root.SaveJSON(root))
             return false;
-
-        var json = new JSONFile();
-        if (!json.FromString(root.ToString()))
-            return false;
-
-        return json.Save(destination, indentation);
-    }
-
-    public bool SaveJSON(Serializer destination, string indentation = "\t")
-    {
-        ArgumentNullException.ThrowIfNull(destination);
-        using var stream = new MemoryStream();
-        if (!SaveJSON(stream, indentation))
-            return false;
-
-        var data = stream.ToArray();
-        if (destination.Write(data) != data.Length)
+        var json = new JSONFile { Root = root };
+        if (!json.Save(destination, indentation))
             return false;
 
         FinishSaving(destination);
@@ -565,7 +484,7 @@ public sealed class Scene : Serializable
         StopAsyncLoading();
 
         var xml = new XMLFile();
-        if (!xml.Load(new MemoryStream(ReadRemaining(file))))
+        if (!xml.Load(file))
             return false;
 
         if (mode > LoadMode.ResourcesOnly)
@@ -620,7 +539,7 @@ public sealed class Scene : Serializable
         StopAsyncLoading();
 
         var json = new JSONFile();
-        if (!json.Load(new MemoryStream(ReadRemaining(file))))
+        if (!json.Load(file))
             return false;
 
         if (mode > LoadMode.ResourcesOnly)
@@ -723,14 +642,14 @@ public sealed class Scene : Serializable
     {
         ArgumentNullException.ThrowIfNull(source);
         var xml = new XMLFile();
-        return xml.Load(new MemoryStream(ReadRemaining(source))) ? InstantiateXML(xml.GetRoot(), position, rotation) : null;
+        return xml.Load(source) ? InstantiateXML(xml.GetRoot(), position, rotation) : null;
     }
 
     public Node? InstantiateJSON(Deserializer source, Vector3f position, Quaternion rotation)
     {
         ArgumentNullException.ThrowIfNull(source);
         var json = new JSONFile();
-        return json.Load(new MemoryStream(ReadRemaining(source))) ? InstantiateJSON(json.GetRoot(), position, rotation) : null;
+        return json.Load(source) ? InstantiateJSON(json.GetRoot(), position, rotation) : null;
     }
 
     public void StopAsyncLoading()

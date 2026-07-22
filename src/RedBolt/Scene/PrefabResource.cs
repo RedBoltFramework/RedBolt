@@ -91,7 +91,7 @@ public class PrefabResource : SimpleResource
         return GetNodePrefab().FindChild(path);
     }
 
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         if (!base.BeginLoad(source))
             return false;

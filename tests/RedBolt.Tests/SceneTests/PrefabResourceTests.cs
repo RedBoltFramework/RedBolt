@@ -71,10 +71,10 @@ public sealed class PrefabResourceTests
         rootPrefab.Node.Attributes.Add(CreateAttribute("Name", new Variant("Root")));
         rootPrefab.Node.Attributes.Add(CreateAttribute("Next Node ID", new Variant(12u)));
 
-        using var stream = new MemoryStream();
+        using var stream = new VectorBuffer();
         Assert.True(resource.Save(stream));
 
-        stream.Position = 0;
+        stream.Seek(0);
         using var loaded = new PrefabResource();
         Assert.True(loaded.Load(stream));
         Assert.Equal("Root", loaded.GetNodePrefab().GetNodeName());
@@ -143,11 +143,11 @@ public sealed class PrefabResourceTests
                 "Dependency", new Variant(new ResourceRef("BinaryFile", "Data/dependency.bin"))));
             sourceResource.GetMutableNodePrefab().Components.Add(component);
 
-            using var stream = new MemoryStream();
+            using var stream = new VectorBuffer();
             Assert.True(sourceResource.Save(stream));
             Assert.Equal(new ResourceRef("BinaryFile", "Data/dependency.bin"),
                 Assert.Single(Assert.Single(sourceResource.GetNodePrefab().Components).Attributes).Value.GetResourceRef());
-            stream.Position = 0;
+            stream.Seek(0);
 
             using var loadedResource = new PrefabResource();
             loadedResource.SetName("Tree.prefab");
@@ -181,7 +181,7 @@ public sealed class PrefabResourceTests
               </node>
             </scene>
             """;
-        using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(xml));
+        using var stream = new MemoryBuffer(System.Text.Encoding.UTF8.GetBytes(xml));
         using var resource = new PrefabResource();
         resource.SetName("Legacy.scene");
 

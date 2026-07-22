@@ -127,7 +127,7 @@ public class ParticleEffect : Resource
     }
 
     /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         _loadMaterialName = string.Empty;
 
@@ -141,7 +141,7 @@ public class ParticleEffect : Resource
         var rootElem = file.GetRoot();
         var success = Load(rootElem);
         if (success)
-            SetMemoryUse(checked((int)source.Length));
+            SetMemoryUse(checked((int)source.Size));
         return success;
     }
 
@@ -159,7 +159,7 @@ public class ParticleEffect : Resource
     }
 
     /// <summary>Save resource. Return true if successful.</summary>
-    public override bool Save(Stream dest)
+    public override bool Save(Serializer dest)
     {
         using var xml = new XMLFile();
         var materialElem = xml.CreateRoot("particleeffect");

@@ -165,7 +165,7 @@ public sealed class AnimationTests
     public void Animation_begin_load_selects_xml_by_resource_name()
     {
         var animation = new Animation { Name = "walk.xml" };
-        using var source = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(
+        using var source = new MemoryBuffer(System.Text.Encoding.UTF8.GetBytes(
             "<animation name=\"walk\" length=\"2\" />"));
 
         Assert.True(animation.BeginLoad(source));
@@ -197,9 +197,9 @@ public sealed class AnimationTests
             variantTrack.AddKeyFrame(new VariantCurvePoint { Time = 1.0f, Value = 2.0f });
             variantTrack.Commit();
 
-            using var stream = new MemoryStream();
+            using var stream = new VectorBuffer();
             Assert.True(animation.Save(stream));
-            stream.Position = 0;
+            stream.Seek(0);
 
             var loaded = new Animation();
             Assert.True(loaded.BeginLoad(stream));

@@ -114,7 +114,7 @@ public sealed class AudioTests
         };
         var sound = new Sound();
 
-        Assert.True(sound.LoadWav(new MemoryStream(wav)));
+        Assert.True(sound.LoadWav(new MemoryBuffer(wav)));
         var data = sound.GetData()!;
         Assert.Equal(unchecked((sbyte)0xFF), data[0]);
         Assert.Equal(unchecked((sbyte)0xF8), data[1]);
@@ -127,7 +127,7 @@ public sealed class AudioTests
         Assert.True(System.IO.File.Exists(path));
 
         var sound = new Sound();
-        using (var source = System.IO.File.OpenRead(path))
+        using (var source = new MemoryBuffer(System.IO.File.ReadAllBytes(path)))
             Assert.True(sound.LoadOggVorbis(source));
 
         Assert.True(sound.GetIntFrequency() > 0);

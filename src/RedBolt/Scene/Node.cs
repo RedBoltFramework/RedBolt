@@ -240,15 +240,6 @@ public class Node : Serializable
         return childNode;
     }
 
-    public override bool Load(Stream source)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        using var copy = new MemoryStream();
-        source.CopyTo(copy);
-        using var buffer = new MemoryBuffer(copy.ToArray());
-        return Load(buffer);
-    }
-
     public override bool Load(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -265,15 +256,6 @@ public class Node : Serializable
         }
 
         return success;
-    }
-
-    public override bool Save(Stream destination)
-    {
-        ArgumentNullException.ThrowIfNull(destination);
-        var buffer = new VectorBuffer();
-        if (!Save(buffer)) return false;
-        destination.Write(buffer.Buffer[..checked((int)buffer.Size)]);
-        return true;
     }
 
     public override bool Save(Serializer destination)
@@ -526,59 +508,24 @@ public class Node : Serializable
         return true;
     }
 
-    public bool SaveXML(Stream destination, string indentation = "\t")
+    public bool SaveXML(Serializer destination, string indentation = "\t")
     {
         ArgumentNullException.ThrowIfNull(destination);
-
         var xml = new XMLFile();
         var root = xml.CreateRoot("node");
         if (!SaveXML(root))
             return false;
-
         return xml.Save(destination, indentation);
-    }
-
-    public bool SaveXML(Serializer destination, string indentation = "\t")
-    {
-        ArgumentNullException.ThrowIfNull(destination);
-        using var stream = new MemoryStream();
-        if (!SaveXML(stream, indentation))
-            return false;
-
-        var data = stream.ToArray();
-        if (destination.Write(data) != data.Length)
-            return false;
-
-        return true;
-    }
-
-    public bool SaveJSON(Stream destination, string indentation = "\t")
-    {
-        ArgumentNullException.ThrowIfNull(destination);
-
-        var root = new JSONValue();
-        if (!SaveJSON(root))
-            return false;
-
-        var json = new JSONFile();
-        if (!json.FromString(root.ToString()))
-            return false;
-
-        return json.Save(destination, indentation);
     }
 
     public bool SaveJSON(Serializer destination, string indentation = "\t")
     {
         ArgumentNullException.ThrowIfNull(destination);
-        using var stream = new MemoryStream();
-        if (!SaveJSON(stream, indentation))
+        var root = new JSONValue();
+        if (!SaveJSON(root))
             return false;
-
-        var data = stream.ToArray();
-        if (destination.Write(data) != data.Length)
-            return false;
-
-        return true;
+        var json = new JSONFile { Root = root };
+        return json.Save(destination, indentation);
     }
 
     public void LoadInternal(

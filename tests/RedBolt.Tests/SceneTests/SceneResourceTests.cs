@@ -52,9 +52,9 @@ public sealed class SceneResourceTests
     public void Json_roundtrip_works()
     {
         var resource = CreateSampleSceneResource();
-        using var buffer = new MemoryStream();
+        using var buffer = new VectorBuffer();
         Assert.True(resource.Save(buffer, SceneResourceFormat.Json));
-        buffer.Position = 0;
+        buffer.Seek(0);
 
         var loaded = new SceneResource { Name = "Scenes/Loaded.scene" };
         Assert.True(loaded.Load(buffer));
@@ -66,9 +66,9 @@ public sealed class SceneResourceTests
     public void Xml_roundtrip_works()
     {
         var resource = CreateSampleSceneResource();
-        using var buffer = new MemoryStream();
+        using var buffer = new VectorBuffer();
         Assert.True(resource.Save(buffer, SceneResourceFormat.Xml));
-        buffer.Position = 0;
+        buffer.Seek(0);
 
         var loaded = new SceneResource { Name = "Scenes/Loaded.scene" };
         Assert.True(loaded.Load(buffer));
@@ -80,9 +80,9 @@ public sealed class SceneResourceTests
     public void Binary_roundtrip_works()
     {
         var resource = CreateSampleSceneResource();
-        using var buffer = new MemoryStream();
+        using var buffer = new VectorBuffer();
         Assert.True(resource.Save(buffer, SceneResourceFormat.Binary));
-        buffer.Position = 0;
+        buffer.Seek(0);
 
         var loaded = new SceneResource { Name = "Scenes/Loaded.scene" };
         Assert.True(loaded.Load(buffer));
@@ -94,9 +94,9 @@ public sealed class SceneResourceTests
     public void Reload_signals_can_cancel_scene_reload()
     {
         var resource = CreateSampleSceneResource();
-        using var buffer = new MemoryStream();
+        using var buffer = new VectorBuffer();
         Assert.True(resource.Save(buffer, SceneResourceFormat.Json));
-        buffer.Position = 0;
+        buffer.Seek(0);
 
         var beginCalled = false;
         var endSuccess = true;
@@ -134,7 +134,7 @@ public sealed class SceneResourceTests
         {
             var path = Path.Combine(tempDir, "Data", "sample.scene.json");
             var resource = CreateSampleSceneResource();
-            Assert.True(resource.SaveFile(path, SceneResourceFormat.Json));
+            Assert.True(resource.SaveFile(new FileIdentifier(path), SceneResourceFormat.Json));
             Resources.AddResourceDir(tempDir);
 
             var loaded = Resources.GetResource<SceneResource>("Data/sample.scene.json");

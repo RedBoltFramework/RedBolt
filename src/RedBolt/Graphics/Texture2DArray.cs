@@ -37,7 +37,7 @@ public class Texture2DArray : Texture
     /// <summary>
     /// Load resource from stream. May be called from a worker thread. Return true if successful.
     /// </summary>
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         var graphics = GetSubsystem<Graphics>();
         var cache = GetSubsystem<ResourceCache>()!;
@@ -152,7 +152,7 @@ public class Texture2DArray : Texture
     /// <summary>
     /// Set data of one layer from a stream. Return true if successful.
     /// </summary>
-    public bool SetData(int layer, Stream source)
+    public bool SetData(int layer, Deserializer source)
     {
         using var image = new Image();
         if (!image.Load(source))

@@ -33,18 +33,20 @@ public class XMLFile : Resource
 
     public XMLElement Root => new(this, Document.Root);
 
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        var dataSize = source.CanSeek ? checked((int)(source.Length - source.Position)) : -1;
+        var dataSize = checked((int)source.Size);
         if (dataSize == 0 && !string.IsNullOrEmpty(Name))
         {
             Log.GetLogger().LogError("Zero sized XML data in {Name}", Name);
             return false;
         }
 
-        using var reader = new StreamReader(source, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
-        var text = reader.ReadToEnd();
+        var data = new byte[dataSize];
+        if (source.Read(data) != dataSize)
+            return false;
+        var text = Encoding.UTF8.GetString(data);
         try
         {
             Document = XDocument.Parse(text);
@@ -87,11 +89,11 @@ public class XMLFile : Resource
             cache.StoreResourceDependency(this, inherit);
 
             // Approximate patched data size
-            dataSize = (dataSize >= 0 ? dataSize : Encoding.UTF8.GetByteCount(text)) + inheritedXmlFile.GetMemoryUse();
+            dataSize += inheritedXmlFile.GetMemoryUse();
         }
 
         // Note: this probably does not reflect internal data structure size accurately
-        SetMemoryUse(dataSize >= 0 ? dataSize : Encoding.UTF8.GetByteCount(text));
+        SetMemoryUse(dataSize);
         return true;
     }
 
@@ -108,7 +110,7 @@ public class XMLFile : Resource
         if (source.Length == 0)
             return false;
 
-        using var buffer = new MemoryStream(Encoding.UTF8.GetBytes(source));
+        using var buffer = new MemoryBuffer(Encoding.UTF8.GetBytes(source));
         return Load(buffer);
     }
 
@@ -132,7 +134,7 @@ public class XMLFile : Resource
         return CreateRoot(name);
     }
 
-    public override bool Save(Stream destination)
+    public override bool Save(Serializer destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
         var bytes = Encoding.UTF8.GetBytes(ToString());
@@ -140,12 +142,11 @@ public class XMLFile : Resource
         return true;
     }
 
-    public bool Save(Stream destination, string indentation)
+    public bool Save(Serializer destination, string indentation)
     {
         ArgumentNullException.ThrowIfNull(destination);
         var bytes = Encoding.UTF8.GetBytes(ToString(indentation));
-        destination.Write(bytes);
-        return true;
+        return destination.Write(bytes) == bytes.Length;
     }
 
     public bool SaveObjectCallback(Action<Archive> serializeValue)

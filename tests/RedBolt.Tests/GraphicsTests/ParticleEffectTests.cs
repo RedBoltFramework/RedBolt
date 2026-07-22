@@ -128,7 +128,7 @@ public sealed class ParticleEffectTests
             """;
 
         var effect = new ParticleEffect();
-        using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(xml)))
+        using (var stream = new MemoryBuffer(Encoding.UTF8.GetBytes(xml)))
             Assert.True(effect.Load(stream));
 
         Assert.Equal(25u, effect.GetNumParticles());
@@ -163,12 +163,12 @@ public sealed class ParticleEffectTests
         Assert.Equal(Color.Red, effect.GetColorFrame(0)!.Value.Color);
         Assert.Equal(0.5f, effect.GetTextureFrame(1)!.Value.Time);
 
-        using var saveStream = new MemoryStream();
+        using var saveStream = new VectorBuffer();
         Assert.True(effect.Save(saveStream));
-        Assert.True(saveStream.Length > 0);
+        Assert.True(saveStream.Size > 0);
 
         var restored = new ParticleEffect();
-        saveStream.Position = 0;
+        saveStream.Seek(0);
         Assert.True(restored.Load(saveStream));
         Assert.Equal(25u, restored.GetNumParticles());
         Assert.Equal(EmitterType.Box, restored.GetEmitterType());

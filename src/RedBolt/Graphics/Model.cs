@@ -181,13 +181,11 @@ public sealed class Model : ResourceWithMetadata, ICloneable
         base.Dispose();
     }
 
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        using var memory = new MemoryStream();
-        source.CopyTo(memory);
-        return LoadUrhoModel(new MemoryBuffer(memory.ToArray()));
+        return LoadUrhoModel(source);
     }
 
     private bool LoadUrhoModel(Deserializer source)
@@ -392,7 +390,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
                 var readBytes = xmlSource.Read(xmlData);
                 xmlSource.Close();
                 using var xmlFile = new XMLFile();
-                if (readBytes == xmlData.Length && xmlFile.BeginLoad(new MemoryStream(xmlData)))
+                if (readBytes == xmlData.Length && xmlFile.BeginLoad(new MemoryBuffer(xmlData)))
                     LoadMetadataFromXML(xmlFile.GetRoot());
             }
         }
@@ -467,7 +465,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
         return result;
     }
 
-    public override bool Save(Stream destination)
+    public override bool Save(Serializer destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
 

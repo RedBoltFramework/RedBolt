@@ -372,7 +372,7 @@ public class InputMap : SimpleResource
         {
             result = new InputMap();
             result.SetName(name);
-            if (result.LoadFile(configFileId.ToUri()))
+            if (result.LoadFile(configFileId))
                 return result;
             result.Dispose();
         }

@@ -31,10 +31,12 @@ public sealed class SceneResource : Resource
     public Scene GetScene() => Scene;
     public void SetSaveFormatHint(InternalResourceFormat format) => _saveFormat = format == InternalResourceFormat.Unknown ? null : format;
 
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        using var memory = new MemoryStream(); source.CopyTo(memory); _pendingData = memory.ToArray();
+        _pendingData = new byte[checked((int)source.Size)];
+        if (source.Read(_pendingData) != source.Size)
+            return false;
         _loadFormat = PeekFormat(_pendingData);
         return _loadFormat != InternalResourceFormat.Unknown;
     }
@@ -72,12 +74,12 @@ public sealed class SceneResource : Resource
         finally { _pendingData = null; }
     }
 
-    public override bool Save(Stream destination) => Save(destination, _saveFormat ?? _loadFormat ?? InternalResourceFormat.Xml, IsPrefab);
+    public override bool Save(Serializer destination) => Save(destination, _saveFormat ?? _loadFormat ?? InternalResourceFormat.Xml, IsPrefab);
 
-    public bool Save(Stream destination, SceneResourceFormat format, bool asPrefab = false)
+    public bool Save(Serializer destination, SceneResourceFormat format, bool asPrefab = false)
         => Save(destination, format switch { SceneResourceFormat.Json => InternalResourceFormat.Json, SceneResourceFormat.Xml => InternalResourceFormat.Xml, _ => InternalResourceFormat.Binary }, asPrefab);
 
-    public bool Save(Stream destination, InternalResourceFormat format, bool asPrefab = false)
+    public bool Save(Serializer destination, InternalResourceFormat format, bool asPrefab = false)
     {
         ArgumentNullException.ThrowIfNull(destination);
         try
@@ -115,7 +117,7 @@ public sealed class SceneResource : Resource
         catch { return false; }
     }
 
-    public bool SaveFile(string fileName, SceneResourceFormat format, bool asPrefab = false)
+    public bool SaveFile(FileIdentifier fileName, SceneResourceFormat format, bool asPrefab = false)
     {
         return SaveFile(fileName, format switch
         {
@@ -125,21 +127,16 @@ public sealed class SceneResource : Resource
         }, asPrefab);
     }
 
-    public bool SaveFile(string fileName, InternalResourceFormat format, bool asPrefab = false)
+    public bool SaveFile(FileIdentifier fileName, InternalResourceFormat format, bool asPrefab = false)
     {
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
-        var file = virtualFileSystem.OpenFile(new FileIdentifier(fileName), FileMode.Write);
+        var file = virtualFileSystem.OpenFile(fileName, FileMode.Write);
         if (file is null)
             return false;
 
         try
         {
-            using var buffer = new MemoryStream();
-            if (!Save(buffer, format, asPrefab))
-                return false;
-
-            var data = buffer.ToArray();
-            return file.Write(data) == data.Length;
+            return Save(file, format, asPrefab);
         }
         finally
         {

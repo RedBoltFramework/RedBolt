@@ -26,19 +26,17 @@ public class BinaryFile : Resource
     }
 
     /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        source.Seek(0, SeekOrigin.Begin);
-        using var memory = new MemoryStream();
-        source.CopyTo(memory);
-        _buffer.SetData(memory.ToArray());
+        source.Seek(0);
+        _buffer.SetData(source, source.Size);
         SetMemoryUse(_buffer.Buffer.Length);
         return true;
     }
 
     /// <summary>Save resource to a stream.</summary>
-    public override bool Save(Stream destination)
+    public override bool Save(Serializer destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
         try

@@ -9,11 +9,11 @@ public sealed class ImageSaveTests
         Assert.True(image.SetSize(2, 1, 4));
         image.SetData([255, 0, 0, 255, 0, 255, 0, 255]);
 
-        using var stream = new MemoryStream();
+        using var stream = new VectorBuffer();
         Assert.True(image.Save(stream));
-        Assert.Equal([137, 80, 78, 71, 13, 10, 26, 10], stream.ToArray()[..8]);
+        Assert.Equal([137, 80, 78, 71, 13, 10, 26, 10], stream.Buffer[..8].ToArray());
 
-        stream.Position = 0;
+        stream.Seek(0);
         var loaded = new Image();
         Assert.True(loaded.BeginLoad(stream));
         Assert.Equal(2, loaded.Width);

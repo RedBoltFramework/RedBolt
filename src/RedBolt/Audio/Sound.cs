@@ -21,7 +21,7 @@ public sealed class Sound : ResourceWithMetadata
     {
     }
 
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
         var name = Name;
@@ -39,54 +39,53 @@ public sealed class Sound : ResourceWithMetadata
         return success;
     }
 
-    public bool LoadRaw(Stream source)
+    public bool LoadRaw(Deserializer source)
     {
-        var dataSize = (uint)source.Length;
+        var dataSize = source.Size;
         SetSize(dataSize);
         var buffer = new byte[dataSize];
-        source.ReadExactly(buffer, 0, (int)dataSize);
+        if (source.Read(buffer) != dataSize)
+            return false;
         _data = CopyToSByteArray(buffer);
         return true;
     }
 
-    public bool LoadWav(Stream source)
+    public bool LoadWav(Deserializer source)
     {
-        var reader = new BinaryReader(source);
-        var riffText = new string(reader.ReadChars(4));
+        var riffText = source.ReadFileID();
         if (riffText != "RIFF") return false;
-        reader.ReadUInt32(); // totalLength
-        var waveText = new string(reader.ReadChars(4));
+        source.ReadUInt(); // totalLength
+        var waveText = source.ReadFileID();
         if (waveText != "WAVE") return false;
 
         for (;;)
         {
-            var chunkId = new string(reader.ReadChars(4));
-            var chunkSize = reader.ReadUInt32();
+            var chunkId = source.ReadFileID();
+            var chunkSize = source.ReadUInt();
             if (chunkId == "fmt ")
             {
-                var format = reader.ReadUInt16();
-                var channels = reader.ReadUInt16();
-                var frequency = reader.ReadUInt32();
-                reader.ReadUInt32(); // avgBytes
-                reader.ReadUInt16(); // blockAlign
-                var bits = reader.ReadUInt16();
+                var format = source.ReadUShort();
+                var channels = source.ReadUShort();
+                var frequency = source.ReadUInt();
+                source.ReadUInt(); // avgBytes
+                source.ReadUShort(); // blockAlign
+                var bits = source.ReadUShort();
                 if (format != 1) return false;
 
                 // skip extra fmt data
-                var pos = source.Position;
-                var remaining = (int)(chunkSize - 16);
-                if (remaining > 0) source.Seek(pos + remaining, SeekOrigin.Begin);
+                source.Seek(source.Position + chunkSize - 16);
 
                 // find data chunk
-                while (source.Position < source.Length)
+                while (source.Position < source.Size)
                 {
-                    var dataId = new string(reader.ReadChars(4));
-                    var dataLen = reader.ReadUInt32();
+                    var dataId = source.ReadFileID();
+                    var dataLen = source.ReadUInt();
                     if (dataId == "data")
                     {
                         SetSize(dataLen);
                         SetFormat(frequency, bits == 16, channels == 2);
-                        var rawData = reader.ReadBytes((int)dataLen);
+                        var rawData = new byte[dataLen];
+                        source.Read(rawData);
                         _data = CopyToSByteArray(rawData);
                         if (bits != 16)
                         {
@@ -96,22 +95,22 @@ public sealed class Sound : ResourceWithMetadata
                         return true;
                     }
                     // skip unknown chunk
-                    source.Seek(source.Position + dataLen, SeekOrigin.Begin);
+                    source.Seek(source.Position + dataLen);
                 }
                 return false;
             }
             // skip unknown chunk
-            source.Seek(source.Position + chunkSize, SeekOrigin.Begin);
-            if (chunkSize == 0 || source.Position >= source.Length)
+            source.Seek(source.Position + chunkSize);
+            if (chunkSize == 0 || source.Position >= source.Size)
                 return false;
         }
     }
 
-    public bool LoadOggVorbis(Stream source)
+    public bool LoadOggVorbis(Deserializer source)
     {
-        var dataSize = (uint)source.Length;
+        var dataSize = source.Size;
         var data = new byte[dataSize];
-        source.ReadExactly(data, 0, (int)dataSize);
+        source.Read(data);
 
         var compressedData = CopyToSByteArray(data);
         var handle = GCHandle.Alloc(compressedData, GCHandleType.Pinned);

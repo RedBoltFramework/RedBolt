@@ -90,7 +90,7 @@ public sealed class TechniqueTests
     [Fact]
     public void Xml_loading_continues_after_unnamed_pass_and_sets_texture_defaults()
     {
-        using var xml = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(
+        using var xml = new MemoryBuffer(System.Text.Encoding.UTF8.GetBytes(
             "<technique vs=\"VS\" ps=\"PS\" vsdefines=\"GLOBALVS\" psdefines=\"GLOBALPS\">" +
             "<pass />" +
             "<pass name=\"shadow\" />" +

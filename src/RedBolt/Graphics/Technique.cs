@@ -412,7 +412,7 @@ public class Technique : Resource
     public static int ShadowPassIndex;
 
     /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
         for (var i = _passes.Count - 1; i >= 0; --i)

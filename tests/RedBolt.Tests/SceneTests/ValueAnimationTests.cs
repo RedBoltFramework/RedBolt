@@ -93,9 +93,9 @@ public sealed class ValueAnimationTests
         animation.SetKeyFrame(2.0f, 20.0f);
         animation.SetEventFrame(0.5f, new StringHash(123u), new VariantMap { [new StringHash("flag")] = true });
 
-        using var stream = new MemoryStream();
+        using var stream = new VectorBuffer();
         Assert.True(animation.Save(stream));
-        stream.Position = 0;
+        stream.Seek(0);
 
         var loadedXml = new ValueAnimation { Name = "Animations/LoadedXml" };
         Assert.True(loadedXml.Load(stream));

@@ -25,12 +25,12 @@ public class PListFile : Resource
 
     public IReadOnlyDictionary<string, PListValue> Root => _root;
 
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        if (Name.Length == 0 && source is FileStream fileStream)
-            SetName(fileStream.Name);
+        if (Name.Length == 0)
+            SetName(source.Name);
 
         using var xmlFile = new XMLFile();
         if (!xmlFile.Load(source))
@@ -53,7 +53,7 @@ public class PListFile : Resource
         if (!LoadDict(_root, dictElement))
             return false;
 
-        MemoryUse = source.CanSeek ? checked((int)source.Length) : 0;
+        MemoryUse = checked((int)source.Size);
         return true;
     }
 

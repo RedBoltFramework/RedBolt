@@ -179,9 +179,9 @@ public sealed class InputMapTests
         source.MapHat("Action", HatPosition.LeftUp);
         source.MapScreenButton("Action", "ActionButton");
 
-        using var stream = new MemoryStream();
+        using var stream = new VectorBuffer();
         Assert.True(source.Save(stream, format));
-        stream.Position = 0;
+        stream.Seek(0);
 
         var loaded = new InputMap { Name = "Input/Loaded" };
         Assert.True(loaded.Load(stream));

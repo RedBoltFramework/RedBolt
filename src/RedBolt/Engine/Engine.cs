@@ -484,7 +484,8 @@ public class Engine : Object
         if (!string.IsNullOrWhiteSpace(screenshotPath) && _screenshotFrameDelay-- <= 0)
         {
             using var screenshot = new Image();
-            if (graphics.TakeScreenShot(screenshot) && screenshot.SaveFile(GetScreenshotPath(screenshotPath)))
+            if (graphics.TakeScreenShot(screenshot)
+                && screenshot.SaveFile(new FileIdentifier(GetScreenshotPath(screenshotPath))))
             {
                 ++_screenshotIndex;
                 _screenshotCapturedForExit = _screenshotIndex >= Parameters.ScreenshotCount;

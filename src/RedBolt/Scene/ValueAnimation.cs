@@ -108,7 +108,7 @@ public class ValueAnimation : Resource
     }
 
     /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         using var xmlFile = new XMLFile();
         if (!xmlFile.Load(source))
@@ -118,7 +118,7 @@ public class ValueAnimation : Resource
     }
 
     /// <summary>Save resource. Return true if successful.</summary>
-    public override bool Save(Stream destination)
+    public override bool Save(Serializer destination)
     {
         using var xmlFile = new XMLFile();
 

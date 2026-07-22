@@ -65,7 +65,7 @@ public sealed class Shader : Resource
     public DateTime TimeStamp => _timeStamp;
 
     /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
 
@@ -271,7 +271,7 @@ public sealed class Shader : Resource
     }
 
     private void ProcessSource(
-        string resourceName, StringBuilder builder, HashSet<string> visited, Stream? sourceStream = null)
+        string resourceName, StringBuilder builder, HashSet<string> visited, Deserializer? sourceStream = null)
     {
         var visitedKey = resourceName.Replace('\\', '/');
         if (!visited.Add(visitedKey))
@@ -340,10 +340,11 @@ public sealed class Shader : Resource
         builder.AppendLine();
     }
 
-    private static string ReadSourceStream(Stream source)
+    private static string ReadSourceStream(Deserializer source)
     {
-        using var reader = new StreamReader(source, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
-        return reader.ReadToEnd();
+        var data = new byte[checked((int)(source.Size - source.Position))];
+        source.Read(data);
+        return Encoding.UTF8.GetString(data);
     }
 
     private string? ReadSourceFile(string resourceName)
@@ -354,8 +355,7 @@ public sealed class Shader : Resource
 
         try
         {
-            using var reader = new StreamReader(file, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
-            return reader.ReadToEnd();
+            return ReadSourceStream(file);
         }
         finally
         {

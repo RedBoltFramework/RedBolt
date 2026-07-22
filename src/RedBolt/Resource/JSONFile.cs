@@ -18,25 +18,27 @@ public sealed class JSONFile : Resource
     {
     }
 
-    public JSONValue Root { get; private set; } = new();
+    public JSONValue Root { get; set; } = new();
 
     public static void RegisterObject(Context context)
     {
         ArgumentNullException.ThrowIfNull(context);
     }
 
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        var dataSize = source.CanSeek ? source.Length - source.Position : -1;
+        var dataSize = source.Size;
         if (dataSize == 0 && !string.IsNullOrEmpty(Name))
         {
             Log.GetLogger().LogError("Zero sized JSON data in {Name}", Name);
             return false;
         }
 
-        using var reader = new StreamReader(source, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
-        var text = reader.ReadToEnd();
+        var data = new byte[checked((int)dataSize)];
+        if (source.Read(data) != dataSize)
+            return false;
+        var text = Encoding.UTF8.GetString(data);
         if (!ParseResourceJSON(text, out var value))
         {
             Log.GetLogger().LogError("Could not parse JSON data from {Name}", Name);
@@ -44,7 +46,7 @@ public sealed class JSONFile : Resource
         }
 
         Root = value;
-        SetMemoryUse(dataSize >= 0 ? checked((int)dataSize) : Encoding.UTF8.GetByteCount(text));
+        SetMemoryUse(checked((int)dataSize));
         return true;
     }
 
@@ -60,7 +62,7 @@ public sealed class JSONFile : Resource
 
     public JSONValue GetRoot() => Root;
 
-    public override bool Save(Stream destination)
+    public override bool Save(Serializer destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
         var bytes = Encoding.UTF8.GetBytes(ToString());
@@ -68,12 +70,11 @@ public sealed class JSONFile : Resource
         return true;
     }
 
-    public bool Save(Stream destination, string indentation)
+    public bool Save(Serializer destination, string indentation)
     {
         ArgumentNullException.ThrowIfNull(destination);
         var bytes = Encoding.UTF8.GetBytes(ToString(indentation));
-        destination.Write(bytes);
-        return true;
+        return destination.Write(bytes) == bytes.Length;
     }
 
     public bool SaveObjectCallback(Action<Archive> serializeValue)

@@ -21,7 +21,7 @@ public class Resource : Object
     }
 
     /// <summary>Load resource synchronously. Call both BeginLoad() and EndLoad() and return true if both succeeded.</summary>
-    public bool Load(Stream source)
+    public bool Load(Deserializer source)
     {
         AsyncLoadState = Environment.CurrentManagedThreadId == WorkQueue.GetMainThreadId()
             ? AsyncLoadState.Done
@@ -34,97 +34,38 @@ public class Resource : Object
     }
 
     /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
-    public virtual bool BeginLoad(Stream source) => false;
+    public virtual bool BeginLoad(Deserializer source) => false;
 
     /// <summary>Finish resource loading. Always called from the main thread. Return true if successful.</summary>
     public virtual bool EndLoad() => true;
 
     /// <summary>Save resource. Return true if successful.</summary>
-    public virtual bool Save(Stream destination)
+    public virtual bool Save(Serializer destination)
     {
         Log.GetLogger().LogError("Save not supported for " + GetTypeName());
         return false;
     }
 
     /// <summary>Load resource from file.</summary>
-    public bool LoadFile(string fileName)
+    public bool LoadFile(FileIdentifier fileName)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
-        using var temporaryFileSystem = virtualFileSystem is null ? new VirtualFileSystem() : null;
-        if (temporaryFileSystem is not null)
-        {
-            temporaryFileSystem.MountRoot();
-            virtualFileSystem = temporaryFileSystem;
-        }
-
-        var activeFileSystem = virtualFileSystem!;
-
-        var identifier = new FileIdentifier(fileName);
-        using var rootMount = temporaryFileSystem is null && identifier.Scheme == "file"
-            ? new MountPointGuard(activeFileSystem.MountRoot())
-            : null;
-        var file = activeFileSystem.OpenFile(identifier, FileMode.Read);
+        using var file = virtualFileSystem!.OpenFile(fileName, FileMode.Read);
         if (file is null)
             return false;
 
-        try
-        {
-            var data = new byte[checked((int)file.Size)];
-            var offset = 0;
-            while (offset < data.Length)
-            {
-                var read = file.Read(data.AsSpan(offset));
-                if (read == 0)
-                    return false;
-                offset += checked((int)read);
-            }
-
-            AbsoluteFileName = file.AbsoluteName;
-            using var stream = new MemoryStream(data, writable: false);
-            return Load(stream);
-        }
-        finally
-        {
-            file.Close();
-        }
+        return Load(file);
     }
 
     /// <summary>Save resource to file.</summary>
-    public virtual bool SaveFile(string fileName)
+    public virtual bool SaveFile(FileIdentifier fileName)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        using var stream = new MemoryStream();
-        if (!Save(stream))
-            return false;
-
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
-        using var temporaryFileSystem = virtualFileSystem is null ? new VirtualFileSystem() : null;
-        if (temporaryFileSystem is not null)
-        {
-            temporaryFileSystem.MountRoot();
-            virtualFileSystem = temporaryFileSystem;
-        }
-
-        var activeFileSystem = virtualFileSystem!;
-
-        var identifier = new FileIdentifier(fileName);
-        using var rootMount = temporaryFileSystem is null && identifier.Scheme == "file"
-            ? new MountPointGuard(activeFileSystem.MountRoot())
-            : null;
-        var file = activeFileSystem.OpenFile(identifier, FileMode.Write);
+        using var file = virtualFileSystem!.OpenFile(fileName, FileMode.Write);
         if (file is null)
             return false;
 
-        try
-        {
-            var data = stream.ToArray();
-            return file.Write(data) == data.Length;
-        }
-        finally
-        {
-            file.Close();
-        }
+        return Save(file);
     }
 
     /// <summary>Set name.</summary>

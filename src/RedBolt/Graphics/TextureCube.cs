@@ -47,7 +47,7 @@ public class TextureCube : Texture
     /// <summary>
     /// Load resource from stream. May be called from a worker thread. Return true if successful.
     /// </summary>
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         var cache = GetSubsystem<ResourceCache>()!;
         var graphics = GetSubsystem<Graphics>();
@@ -123,7 +123,7 @@ public class TextureCube : Texture
     /// <summary>
     /// Set data of one face from a stream. Return true if successful.
     /// </summary>
-    public bool SetData(CubeMapFace face, Stream source)
+    public bool SetData(CubeMapFace face, Deserializer source)
     {
         using var image = new Image();
         if (!image.Load(source))

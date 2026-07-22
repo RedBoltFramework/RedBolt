@@ -19,7 +19,7 @@ public sealed class TextureHeadlessTests
         foreach (var texture in textures)
         {
             using (texture)
-            using (var source = new MemoryStream())
+            using (var source = new VectorBuffer())
             {
                 Assert.True(texture.BeginLoad(source));
                 Assert.True(texture.EndLoad());

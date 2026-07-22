@@ -133,15 +133,6 @@ public abstract class Serializable : Object
                 : Load(identifier.ToUri());
     }
 
-    public virtual bool Load(Stream source)
-    {
-        ArgumentNullException.ThrowIfNull(source);
-        using var copy = new MemoryStream();
-        source.CopyTo(copy);
-        using var buffer = new MemoryBuffer(copy.ToArray());
-        return Load(buffer);
-    }
-
     public virtual bool Load(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -192,15 +183,6 @@ public abstract class Serializable : Object
 
             OnSetAttribute(attribute, GetAttributeDefault(attribute));
         }
-    }
-
-    public virtual bool Save(Stream destination)
-    {
-        ArgumentNullException.ThrowIfNull(destination);
-        var buffer = new VectorBuffer();
-        if (!Save(buffer)) return false;
-        destination.Write(buffer.Buffer[..checked((int)buffer.Size)]);
-        return true;
     }
 
     public virtual bool Save(Serializer destination)

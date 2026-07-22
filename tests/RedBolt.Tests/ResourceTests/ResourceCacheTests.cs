@@ -582,10 +582,10 @@ public sealed class ResourceCacheTests
             Directory.CreateDirectory(Path.GetDirectoryName(savePath)!);
             var saved = new BinaryFile { Name = "Data/saved.bin" };
             saved.SetText("saved through resource helper");
-            Assert.True(saved.SaveFile(savePath));
+            Assert.True(saved.SaveFile(new FileIdentifier(savePath)));
 
             var reloaded = new BinaryFile { Name = "Data/reloaded.bin" };
-            Assert.True(reloaded.LoadFile(savePath));
+            Assert.True(reloaded.LoadFile(new FileIdentifier(savePath)));
             Assert.Equal("saved through resource helper", reloaded.GetText());
         }
         finally
@@ -619,7 +619,7 @@ public sealed class ResourceCacheTests
             Resources.AddResourceDir(tempDir);
             using var file = Resources.GetFile("Data/hello.txt");
             Assert.NotNull(file);
-            Assert.True(file.Length > 0);
+            Assert.True(file.Size > 0);
         }
         finally
         {
@@ -709,7 +709,7 @@ public sealed class FailedResource : Resource
         SetName(name);
     }
 
-    public override bool BeginLoad(Stream source) => false;
+    public override bool BeginLoad(Deserializer source) => false;
 }
 
 public sealed class UnregisteredBackgroundResource : Resource
@@ -738,7 +738,7 @@ public sealed class BlockingBackgroundResource : Resource
         Release.Reset();
     }
 
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         Started.Set();
         Release.Wait();
@@ -750,7 +750,7 @@ public sealed class ReloadableResource : Resource
 {
     public int ReloadCount { get; private set; }
 
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         ReloadCount++;
         return true;

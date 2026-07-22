@@ -31,9 +31,9 @@ public sealed class ObjectAnimationTests
         var objectAnimation = new ObjectAnimation { Name = "Animations/Object" };
         objectAnimation.AddAttributeAnimation("Position", animation, WrapMode.Once, 3.0f);
 
-        using var xmlStream = new MemoryStream();
+        using var xmlStream = new VectorBuffer();
         Assert.True(objectAnimation.Save(xmlStream));
-        xmlStream.Position = 0;
+        xmlStream.Seek(0);
         var loadedXml = new ObjectAnimation { Name = "Animations/LoadedXml" };
         Assert.True(loadedXml.Load(xmlStream));
         Assert.Equal(WrapMode.Once, loadedXml.GetAttributeAnimationWrapMode("Position"));

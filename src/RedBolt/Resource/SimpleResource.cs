@@ -28,20 +28,19 @@ public abstract class SimpleResource : Resource
         _saveFormat = format == InternalResourceFormat.Unknown ? null : format;
     }
 
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
 
         try
         {
-            var data = ReadAllBytes(source);
-            var format = PeekResourceFormat(data, GetBinaryMagic());
+            var format = PeekResourceFormat(source, GetBinaryMagic());
             switch (format)
             {
                 case InternalResourceFormat.Json:
                 {
                     using var jsonFile = new JSONFile();
-                    if (!jsonFile.BeginLoad(new MemoryStream(data, writable: false)))
+                    if (!jsonFile.Load(source))
                         return false;
                     var success = jsonFile.LoadObjectCallback(archive =>
                     {
@@ -55,9 +54,8 @@ public abstract class SimpleResource : Resource
 
                 case InternalResourceFormat.Xml:
                 {
-                    var xmlText = Encoding.UTF8.GetString(data);
                     using var xmlFile = new XMLFile();
-                    if (!xmlFile.FromString(xmlText))
+                    if (!xmlFile.Load(source))
                         return false;
 
                     if (xmlFile.Root.Name == GetRootBlockName())
@@ -78,19 +76,14 @@ public abstract class SimpleResource : Resource
 
                 case InternalResourceFormat.Binary:
                 {
-                    using var binaryFile = new BinaryFile();
-                    using var payload = new MemoryStream(data, GetBinaryMagic().Length,
-                        data.Length - GetBinaryMagic().Length, writable: false);
-                    if (!binaryFile.BeginLoad(payload))
-                        return false;
-                    var success = binaryFile.LoadObjectCallback(archive =>
+                    source.SeekRelative(GetBinaryMagic().Length);
+                    using var archive = new BinaryInputArchive(Context.Instance, source);
+                    using (var block = archive.OpenUnorderedBlock(GetRootBlockName()))
                     {
-                        using var block = archive.OpenUnorderedBlock(GetRootBlockName());
                         SerializeInBlock(archive);
-                    });
-                    if (success)
-                        _loadFormat = format;
-                    return success;
+                    }
+                    _loadFormat = format;
+                    return true;
                 }
 
                 default:
@@ -107,12 +100,12 @@ public abstract class SimpleResource : Resource
 
     public override bool EndLoad() => true;
 
-    public override bool Save(Stream destination)
+    public override bool Save(Serializer destination)
     {
         return Save(destination, _loadFormat ?? GetDefaultInternalFormat());
     }
 
-    public bool Save(Stream destination, InternalResourceFormat format)
+    public bool Save(Serializer destination, InternalResourceFormat format)
     {
         ArgumentNullException.ThrowIfNull(destination);
 
@@ -163,19 +156,14 @@ public abstract class SimpleResource : Resource
         }
     }
 
-    public bool SaveFile(string fileName, InternalResourceFormat format)
+    public bool SaveFile(FileIdentifier fileName, InternalResourceFormat format)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
-        using var file = virtualFileSystem.OpenFile(new FileIdentifier(fileName), FileMode.Write);
-        if (file is not File outputFile || outputFile.Handle is null)
-            return false;
-
-        return Save(outputFile.Handle, format);
+        using var file = virtualFileSystem.OpenFile(fileName, FileMode.Write);
+        return file is not null && Save(file, format);
     }
 
-    public override bool SaveFile(string fileName)
+    public override bool SaveFile(FileIdentifier fileName)
     {
         return SaveFile(fileName, _loadFormat ?? GetDefaultInternalFormat());
     }
@@ -188,78 +176,57 @@ public abstract class SimpleResource : Resource
 
     protected virtual bool LoadLegacyXML(XMLElement source) => false;
 
-    private static byte[] ReadAllBytes(Stream source)
+    private static InternalResourceFormat PeekResourceFormat(Deserializer source, ReadOnlySpan<byte> binaryMagic)
     {
-        if (source is MemoryStream memoryStream && memoryStream.TryGetBuffer(out var segment))
-            return segment.AsSpan((int)memoryStream.Position, checked((int)(memoryStream.Length - memoryStream.Position))).ToArray();
-
-        using var copy = new MemoryStream();
-        source.CopyTo(copy);
-        return copy.ToArray();
-    }
-
-    private static InternalResourceFormat PeekResourceFormat(ReadOnlySpan<byte> data, ReadOnlySpan<byte> binaryMagic)
-    {
-        if (data.StartsWith(binaryMagic))
-            return InternalResourceFormat.Binary;
-
-        static bool IsBlank(byte value) => char.IsWhiteSpace((char)value);
-        static bool IsAllBlank(ReadOnlySpan<byte> values)
+        var basePosition = source.Position;
+        try
         {
-            foreach (var value in values)
+            Span<byte> magic = stackalloc byte[DefaultBinaryMagic.Length];
+            var count = checked((int)source.Read(magic));
+            var data = magic[..count];
+
+            if (count == DefaultBinaryMagic.Length && data.SequenceEqual(binaryMagic))
+                return InternalResourceFormat.Binary;
+
+            var marker = data.IndexOf((byte)'<');
+            if (count == DefaultBinaryMagic.Length && marker >= 0 && IsBlank(data[..marker]))
+                return InternalResourceFormat.Xml;
+
+            marker = data.IndexOf((byte)'{');
+            if (count >= 2 && marker >= 0 && IsBlank(data[..marker]))
+                return InternalResourceFormat.Json;
+
+            if (!IsBlank(data))
+                return InternalResourceFormat.Unknown;
+
+            Log.GetLogger().LogWarning(
+                "File starts with whitespace, peeking more data to determine format. It may cause performance penalty.");
+            while (!source.IsEof())
             {
-                if (!IsBlank(value))
+                var value = source.ReadUByte();
+                if (value == '<')
+                    return InternalResourceFormat.Xml;
+                if (value == '{')
+                    return InternalResourceFormat.Json;
+                if (!char.IsWhiteSpace((char)value))
+                    return InternalResourceFormat.Unknown;
+            }
+            return InternalResourceFormat.Unknown;
+        }
+        finally
+        {
+            source.Seek(basePosition);
+        }
+
+        static bool IsBlank(ReadOnlySpan<byte> data)
+        {
+            foreach (var value in data)
+            {
+                if (!char.IsWhiteSpace((char)value))
                     return false;
             }
             return true;
         }
-
-        var peekCount = Math.Min(4, data.Length);
-        if (peekCount == 4)
-        {
-            for (var i = 0; i < peekCount; ++i)
-            {
-                if (data[i] == (byte)'<' && IsAllBlank(data[..i]))
-                    return InternalResourceFormat.Xml;
-            }
-        }
-
-        if (peekCount >= 2)
-        {
-            for (var i = 0; i < peekCount; ++i)
-            {
-                if (data[i] == (byte)'{' && IsAllBlank(data[..i]))
-                    return InternalResourceFormat.Json;
-            }
-        }
-
-        var allBlank = true;
-        for (var i = 0; i < peekCount; ++i)
-        {
-            if (!IsBlank(data[i]))
-            {
-                allBlank = false;
-                break;
-            }
-        }
-
-        if (!allBlank)
-            return InternalResourceFormat.Unknown;
-
-        Log.GetLogger().LogWarning(
-            "File starts with whitespace, peeking more data to determine format. It may cause performance penalty.");
-
-        for (var i = peekCount; i < data.Length; ++i)
-        {
-            if (data[i] == (byte)'<')
-                return InternalResourceFormat.Xml;
-            if (data[i] == (byte)'{')
-                return InternalResourceFormat.Json;
-            if (!IsBlank(data[i]))
-                return InternalResourceFormat.Unknown;
-        }
-
-        return InternalResourceFormat.Unknown;
     }
 
     private InternalResourceFormat? _loadFormat;

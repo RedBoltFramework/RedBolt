@@ -24,7 +24,7 @@ public sealed class ResourceTests
     public void Simple_resource_preserves_cpp_class_kind_and_save_format_selection()
     {
         using var resource = new EmptySimpleResource();
-        using var destination = new MemoryStream();
+        using var destination = new VectorBuffer();
 
         Assert.True(typeof(SimpleResource).IsClass);
         Assert.True(typeof(SimpleResource).IsAbstract);
@@ -34,7 +34,7 @@ public sealed class ResourceTests
 
         resource.SetSaveFormatHint(InternalResourceFormat.Binary);
         Assert.True(resource.Save(destination));
-        Assert.Equal((byte)'{', destination.ToArray()[0]);
+        Assert.Equal((byte)'{', destination.Buffer[0]);
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public sealed class ResourceTests
     {
         var resource = new FailingResource();
 
-        Assert.False(resource.Load(new MemoryStream()));
+        Assert.False(resource.Load(new MemoryBuffer(Array.Empty<byte>())));
         Assert.Equal(AsyncLoadState.Done, resource.AsyncLoadState);
     }
 
@@ -147,7 +147,7 @@ public sealed class ResourceTests
         {
         }
 
-        public override bool BeginLoad(Stream source) => false;
+        public override bool BeginLoad(Deserializer source) => false;
     }
 
     private sealed class EmptySimpleResource : SimpleResource

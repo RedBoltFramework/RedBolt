@@ -9,9 +9,9 @@ public sealed class SerializableTests
     {
         var source = new TestSerializable { Number = 42, Label = "rbfx" };
 
-        using var binary = new MemoryStream();
+        using var binary = new VectorBuffer();
         Assert.True(source.Save(binary));
-        binary.Position = 0;
+        binary.Seek(0);
         var binaryResult = new TestSerializable();
         Assert.True(binaryResult.Load(binary));
         AssertValues(binaryResult);

@@ -183,7 +183,7 @@ public sealed class ImageTests
     public void Compressed_block_flips_are_reversible()
     {
         var image = new Image();
-        Assert.True(image.LoadFile(Path.Combine(RbfxTestData.Data, "Textures", "StoneDiffuse.dds")));
+        Assert.True(image.LoadFile(new FileIdentifier(Path.Combine(RbfxTestData.Data, "Textures", "StoneDiffuse.dds"))));
         var original = image.GetData().ToArray();
 
         Assert.True(image.FlipHorizontal());
@@ -238,9 +238,9 @@ public sealed class ImageTests
         destination.GetLevels(levels);
         Assert.Single(levels);
 
-        using var encoded = new MemoryStream();
+        using var encoded = new VectorBuffer();
         Assert.True(destination.Save(encoded));
-        Assert.True(encoded.ToArray().AsSpan().StartsWith(new byte[] { 0x89, (byte)'P', (byte)'N', (byte)'G' }));
+        Assert.True(encoded.Buffer.StartsWith(new byte[] { 0x89, (byte)'P', (byte)'N', (byte)'G' }));
     }
 
     [Fact]
@@ -318,7 +318,7 @@ public sealed class ImageTests
     {
         var image = new Image();
 
-        Assert.True(image.LoadFile(Path.Combine(RbfxTestData.Data, "Textures", "StoneDiffuse.dds")));
+        Assert.True(image.LoadFile(new FileIdentifier(Path.Combine(RbfxTestData.Data, "Textures", "StoneDiffuse.dds"))));
         Assert.True(image.IsCompressed());
         Assert.Equal(TextureFormat.TexFormatBc1Unorm, image.CompressedFormat);
         Assert.Equal(TextureFormat.TexFormatBc1Unorm, image.GetCompressedFormat());
@@ -362,7 +362,7 @@ public sealed class ImageTests
         dds[155] = 0xff;
 
         var image = new Image();
-        Assert.True(image.BeginLoad(new MemoryStream(dds)));
+        Assert.True(image.BeginLoad(new MemoryBuffer(dds)));
         Assert.Equal(TextureFormat.TexFormatRgba16Unorm, image.CompressedFormat);
         Assert.Equal(4, image.Components);
 
@@ -496,7 +496,7 @@ public sealed class ImageTests
 
         var cube = new ImageCube();
         cube.SetName($"{relativeDirectory}/Cube.xml");
-        using var source = System.IO.File.OpenRead(Path.Combine(cubeDirectory, "Cube.xml"));
+        using var source = new MemoryBuffer(System.IO.File.ReadAllBytes(Path.Combine(cubeDirectory, "Cube.xml")));
         Assert.True(cube.BeginLoad(source));
         return cube;
     }

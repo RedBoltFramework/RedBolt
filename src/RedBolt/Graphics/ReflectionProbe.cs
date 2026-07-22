@@ -523,7 +523,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
                 faceElement.SetAttribute("name", faceFileName);
             }
 
-            xmlFile.SaveFile(textureFileName);
+            xmlFile.SaveFile(new FileIdentifier(textureFileName));
         }
         catch (Exception ex)
         {

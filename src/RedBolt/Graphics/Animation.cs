@@ -147,24 +147,22 @@ public class Animation : ResourceWithMetadata
     /// <summary>
     /// Load resource from stream. May be called from a worker thread. Return true if successful.
     /// </summary>
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
         ResetToDefault();
 
-        using var dataStream = new MemoryStream();
-        source.CopyTo(dataStream);
-        var data = dataStream.ToArray();
+        var dataSize = source.Size;
 
         if (Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
         {
             using var xmlFile = new XMLFile();
-            if (!xmlFile.BeginLoad(new MemoryStream(data)))
+            if (!xmlFile.Load(source))
                 return false;
             return LoadXML(xmlFile.GetRoot());
         }
 
-        var input = new MemoryBuffer(data);
+        var input = source;
         var fileId = input.ReadFileID();
         if (fileId != "UANI" && fileId != "UAN2")
         {
@@ -268,14 +266,14 @@ public class Animation : ResourceWithMetadata
             LoadMetadataFromXML(root);
         }
 
-        SetMemoryUse(data.Length);
+        SetMemoryUse(checked((int)dataSize));
         return true;
     }
 
     /// <summary>
     /// Save resource. Return true if successful.
     /// </summary>
-    public override bool Save(Stream destination)
+    public override bool Save(Serializer destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
 

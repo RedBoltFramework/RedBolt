@@ -267,7 +267,7 @@ public sealed class SceneTests
         using (xmlArchive.OpenUnorderedBlock(SceneResource.GetXmlRootName()))
             source.SerializeInBlock(xmlArchive);
         var xmlFile = new XMLFile { Name = string.Empty };
-        using var xmlStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(xmlArchive.ToXmlString()));
+        using var xmlStream = new MemoryBuffer(System.Text.Encoding.UTF8.GetBytes(xmlArchive.ToXmlString()));
         Assert.True(xmlFile.Load(xmlStream));
 
         var loadedFromXml = new Scene();
@@ -288,9 +288,9 @@ public sealed class SceneTests
         var sourceResource = new SceneResource { Name = string.Empty };
         sourceResource.Scene.CreateChild("Loaded").CreateComponent<Camera>().SetFov(79);
 
-        using var xml = new MemoryStream();
+        using var xml = new VectorBuffer();
         Assert.True(sourceResource.Save(xml, SceneResourceFormat.Xml));
-        xml.Position = 0;
+        xml.Seek(0);
 
         var loadedFromXml = new Scene();
         Assert.True(loadedFromXml.LoadXML(xml));
@@ -298,8 +298,8 @@ public sealed class SceneTests
 
         var jsonValue = new JSONValue();
         Assert.True(sourceResource.Scene.Root.SaveJSON(jsonValue));
-        using var json = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(jsonValue.ToString()));
-        json.Position = 0;
+        using var json = new MemoryBuffer(System.Text.Encoding.UTF8.GetBytes(jsonValue.ToString()));
+        json.Seek(0);
 
         var loadedFromJson = new Scene();
         Assert.True(loadedFromJson.LoadJSON(json));
@@ -312,9 +312,9 @@ public sealed class SceneTests
         var source = new Scene();
         source.CreateChild("Loaded").CreateComponent<Camera>().SetFov(83);
 
-        using var stream = new MemoryStream();
+        using var stream = new VectorBuffer();
         Assert.True(source.Root.SaveXML(stream));
-        stream.Position = 0;
+        stream.Seek(0);
 
         var xml = new XMLFile { Name = string.Empty };
         Assert.True(xml.Load(stream));
@@ -332,9 +332,9 @@ public sealed class SceneTests
         child.SetPosition(new Vector3f(1, 2, 3));
         child.CreateComponent<Camera>().SetFov(87);
 
-        using var stream = new MemoryStream();
+        using var stream = new VectorBuffer();
         Assert.True(source.Save(stream), "save");
-        stream.Position = 0;
+        stream.Seek(0);
 
         var loaded = new Scene();
         Assert.True(loaded.Load(stream), "load");
@@ -351,16 +351,16 @@ public sealed class SceneTests
         var source = new Scene();
         source.CreateChild("Loaded").CreateComponent<Camera>().SetFov(89);
 
-        using var xml = new MemoryStream();
+        using var xml = new VectorBuffer();
         Assert.True(source.SaveXML(xml));
-        xml.Position = 0;
+        xml.Seek(0);
         var loadedFromXml = new Scene();
         Assert.True(loadedFromXml.LoadXML(xml));
         Assert.Equal(89.0f, loadedFromXml.Root.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
 
-        using var json = new MemoryStream();
+        using var json = new VectorBuffer();
         Assert.True(source.SaveJSON(json));
-        json.Position = 0;
+        json.Seek(0);
         var loadedFromJson = new Scene();
         Assert.True(loadedFromJson.LoadJSON(json));
         Assert.Equal(89.0f, loadedFromJson.Root.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
@@ -447,11 +447,11 @@ public sealed class SceneTests
     [Fact]
     public void Scene_binary_async_load_initializes_and_stops_progress()
     {
-        using var saved = new MemoryStream();
+        using var saved = new VectorBuffer();
         var sourceScene = new Scene();
         Assert.True(sourceScene.Save(saved));
 
-        var file = new VectorBuffer(saved.ToArray());
+        var file = new VectorBuffer(saved.Buffer.ToArray());
         var scene = new Scene();
 
         Assert.True(scene.LoadAsync(file, LoadMode.SceneAndResources));
@@ -472,11 +472,11 @@ public sealed class SceneTests
     [Fact]
     public void Scene_xml_async_load_initializes_and_finishes_progress()
     {
-        using var saved = new MemoryStream();
+        using var saved = new VectorBuffer();
         var sourceScene = new Scene();
         Assert.True(sourceScene.SaveXML(saved));
 
-        var file = new VectorBuffer(saved.ToArray());
+        var file = new VectorBuffer(saved.Buffer.ToArray());
         var scene = new Scene();
 
         Assert.True(scene.LoadAsyncXML(file, LoadMode.SceneAndResources));
@@ -492,11 +492,11 @@ public sealed class SceneTests
     [Fact]
     public void Scene_json_async_load_initializes_and_finishes_progress()
     {
-        using var saved = new MemoryStream();
+        using var saved = new VectorBuffer();
         var sourceScene = new Scene();
         Assert.True(sourceScene.SaveJSON(saved));
 
-        var file = new VectorBuffer(saved.ToArray());
+        var file = new VectorBuffer(saved.Buffer.ToArray());
         var scene = new Scene();
 
         Assert.True(scene.LoadAsyncJSON(file, LoadMode.SceneAndResources));

@@ -33,36 +33,24 @@ public class Image : Resource
 
     private Image? _nextSibling;
 
-    public override bool BeginLoad(Stream source)
+    public override bool BeginLoad(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        Stream seekableSource = source;
-        MemoryStream? bufferedSource = null;
-        if (!source.CanSeek)
-        {
-            bufferedSource = new MemoryStream();
-            source.CopyTo(bufferedSource);
-            bufferedSource.Position = 0;
-            seekableSource = bufferedSource;
-        }
+        source.Seek(0);
+        var data = new byte[checked((int)source.Size)];
+        if (source.Read(data) != source.Size)
+            return false;
 
-        try
-        {
-            seekableSource.Seek(0, SeekOrigin.Begin);
-            if (ImageDds.TryLoad(this, seekableSource))
-                return true;
+        using var stream = new MemoryStream(data, writable: false);
+        if (ImageDds.TryLoad(this, stream))
+            return true;
 
-            seekableSource.Seek(0, SeekOrigin.Begin);
-            return ImageSdl.TryLoad(this, seekableSource);
-        }
-        finally
-        {
-            bufferedSource?.Dispose();
-        }
+        stream.Position = 0;
+        return ImageSdl.TryLoad(this, stream);
     }
 
-    public override unsafe bool Save(Stream destination)
+    public override unsafe bool Save(Serializer destination)
     {
         ArgumentNullException.ThrowIfNull(destination);
 
@@ -84,8 +72,7 @@ public class Image : Resource
                 (nint)data, 0, Width, Height, (int)Components, out var length);
             try
             {
-                destination.Write(new ReadOnlySpan<byte>((void*)png, length));
-                return true;
+                return destination.Write(new ReadOnlySpan<byte>((void*)png, length)) == length;
             }
             finally
             {
@@ -252,10 +239,10 @@ public class Image : Resource
     private bool SaveEncodedFile(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        using var stream = new MemoryStream();
-        if (!Save(stream))
+        using var buffer = new VectorBuffer();
+        if (!Save(buffer))
             return false;
-        return WriteFile(fileName, stream.ToArray());
+        return WriteFile(fileName, buffer.Buffer);
     }
 
     private bool WriteFile(string fileName, ReadOnlySpan<byte> data)
@@ -286,17 +273,28 @@ public class Image : Resource
         }
     }
 
-    public override bool SaveFile(string fileName)
+    public override bool SaveFile(FileIdentifier fileName)
     {
-        return Path.GetExtension(fileName).ToLowerInvariant() switch
+        // TODO(vfs): This function can save only to the host filesystem.
+        var absoluteFileName = fileName.FileName;
+        if (fileName.Scheme != "file")
         {
-            ".bmp" => SaveBMP(fileName),
-            ".tga" => SaveTGA(fileName),
-            ".jpg" or ".jpeg" => SaveJPG(fileName, 90),
-            ".png" => SavePNG(fileName),
-            ".webp" => SaveWEBP(fileName),
-            ".dds" => SaveDDS(fileName),
-            _ => base.SaveFile(fileName)
+            Log.GetLogger().LogError("Can not save image {FileName}", fileName.ToUri());
+            return false;
+        }
+
+        var directoryName = Path.GetDirectoryName(absoluteFileName);
+        if (!string.IsNullOrEmpty(directoryName))
+            Directory.CreateDirectory(directoryName);
+
+        return Path.GetExtension(absoluteFileName).ToLowerInvariant() switch
+        {
+            ".dds" => SaveDDS(absoluteFileName),
+            ".bmp" => SaveBMP(absoluteFileName),
+            ".jpg" or ".jpeg" => SaveJPG(absoluteFileName, 100),
+            ".tga" => SaveTGA(absoluteFileName),
+            ".webp" => SaveWEBP(absoluteFileName, 100.0f),
+            _ => SavePNG(absoluteFileName)
         };
     }
 
@@ -1104,10 +1102,15 @@ public class Image : Resource
 
     public Image? GetDecompressedImage() => GetDecompressedImageLevel(0);
 
-    public bool LoadColorLUT(Stream source)
+    public bool LoadColorLUT(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        return ImageSdl.TryLoadColorLut(this, source);
+        source.Seek(0);
+        var data = new byte[checked((int)source.Size)];
+        if (source.Read(data) != source.Size)
+            return false;
+        using var stream = new MemoryStream(data, writable: false);
+        return ImageSdl.TryLoadColorLut(this, stream);
     }
 
     internal void SetCompressedData(

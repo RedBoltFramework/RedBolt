@@ -214,7 +214,7 @@ public class PrefabReference : Component
         var nodeDestination = newResource.GetMutableNodePrefab();
         nodeDestination.CopyFrom(newNodePrefab);
         newResource.NormalizeIds();
-        newResource.SaveFile(_prefab.GetAbsoluteFileName());
+        newResource.SaveFile(new FileIdentifier(_prefab.GetAbsoluteFileName()));
     }
 
     public override void OnSetEnabled()
