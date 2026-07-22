@@ -238,7 +238,7 @@ public class Texture : ResourceWithMetadata
         if (file is null)
             return;
 
-        SetParameters(file.Root);
+        SetParameters(file.GetRoot());
     }
 
     public void SetParameters(XMLElement element)

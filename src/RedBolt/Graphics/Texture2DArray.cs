@@ -65,7 +65,7 @@ public class Texture2DArray : Texture
             _loadImages[i]?.Dispose();
         _loadImages.Clear();
 
-        for (var layerElement = _loadParameters.Root.GetChild("layer"); layerElement.NotNull;
+        for (var layerElement = _loadParameters.GetRoot().GetChild("layer"); layerElement.NotNull;
              layerElement = layerElement.GetNext("layer"))
         {
             var name = layerElement.GetAttribute("name");

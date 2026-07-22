@@ -62,7 +62,7 @@ public class Texture3D : Texture
             return false;
         }
 
-        var textureElement = _loadParameters.Root;
+        var textureElement = _loadParameters.GetRoot();
         var volumeElement = textureElement.GetChild("volume");
         var colorLutElement = textureElement.GetChild("colorlut");
 

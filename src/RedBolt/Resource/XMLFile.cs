@@ -25,21 +25,16 @@ public class XMLFile : Resource
     /// <summary>Register object factory.</summary>
     public static void RegisterObject(Context context)
     {
-        ArgumentNullException.ThrowIfNull(context);
         context.AddFactoryReflection<XMLFile>();
     }
 
-    public XDocument Document { get; private set; }
-
-    public XMLElement Root => new(this, Document.Root);
-
+    /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
     public override bool BeginLoad(Deserializer source)
     {
-        ArgumentNullException.ThrowIfNull(source);
         var dataSize = checked((int)source.Size);
-        if (dataSize == 0 && !string.IsNullOrEmpty(Name))
+        if (dataSize == 0 && !string.IsNullOrEmpty(source.GetName()))
         {
-            Log.GetLogger().LogError("Zero sized XML data in {Name}", Name);
+            Log.GetLogger().LogError("Zero sized XML data in {Name}", source.GetName());
             return false;
         }
 
@@ -51,14 +46,18 @@ public class XMLFile : Resource
         {
             Document = XDocument.Parse(text);
             Document.Declaration = null;
-            foreach (var node in Document.DescendantNodes()
-                         .Where(static node => node is XComment or XProcessingInstruction or XDocumentType)
-                         .ToArray())
+            var nodesToRemove = new List<XNode>();
+            foreach (var node in Document.DescendantNodes())
+            {
+                if (node is XComment or XProcessingInstruction or XDocumentType)
+                    nodesToRemove.Add(node);
+            }
+            foreach (var node in nodesToRemove)
                 node.Remove();
         }
         catch (System.Xml.XmlException)
         {
-            Log.GetLogger().LogError("Could not parse XML data from {Name}", Name);
+            Log.GetLogger().LogError("Could not parse XML data from {Name}", source.GetName());
             Document = new XDocument();
             return false;
         }
@@ -97,14 +96,76 @@ public class XMLFile : Resource
         return true;
     }
 
-    public XMLElement CreateRoot(string name)
+    /// <summary>Save resource with default indentation (one tab). Return true if successful.</summary>
+    public override bool Save(Serializer destination)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        var root = new XElement(name);
-        Document = new XDocument(root);
-        return new XMLElement(this, root);
+        return Save(destination, "\t");
     }
 
+    /// <summary>Save resource with user-defined indentation. Return true if successful.</summary>
+    public bool Save(Serializer destination, string indentation)
+    {
+        var bytes = Encoding.UTF8.GetBytes(ToString(indentation));
+        return destination.Write(bytes) == bytes.Length;
+    }
+
+    /// <summary>Save objects using Archive serialization.</summary>
+    public bool SaveObjectCallback(Action<Archive> serializeValue)
+    {
+        try
+        {
+            Document.RemoveNodes();
+            using var archive = new XMLOutputArchive(this);
+            serializeValue(archive);
+            return true;
+        }
+        catch (ArchiveException exception)
+        {
+            Document.RemoveNodes();
+            Log.GetLogger().LogError("Failed to save object to XML: {Error}", exception.Message);
+            return false;
+        }
+    }
+
+    /// <summary>Load objects using Archive serialization.</summary>
+    public bool LoadObjectCallback(Action<Archive> serializeValue)
+    {
+        try
+        {
+            using var archive = new XMLInputArchive(this);
+            serializeValue(archive);
+            return true;
+        }
+        catch (ArchiveException exception)
+        {
+            Log.GetLogger().LogError("Failed to load object from XML: {Error}", exception.Message);
+            return false;
+        }
+    }
+
+    public bool SaveObject(string name, IArchiveSerializable value)
+    {
+        return SaveObjectCallback(archive =>
+        {
+            using var block = archive.OpenUnorderedBlock(name);
+            value.SerializeInBlock(archive);
+        });
+    }
+
+    public bool LoadObject(string name, IArchiveSerializable value)
+    {
+        return LoadObjectCallback(archive =>
+        {
+            using var block = archive.OpenUnorderedBlock(name);
+            value.SerializeInBlock(archive);
+        });
+    }
+
+    public bool SaveObject(Object value) => SaveObject(value.GetTypeName(), value);
+
+    public bool LoadObject(Object value) => LoadObject(value.GetTypeName(), value);
+
+    /// <summary>Deserialize from a string. Return true if successful.</summary>
     public bool FromString(string source)
     {
         if (source.Length == 0)
@@ -114,15 +175,15 @@ public class XMLFile : Resource
         return Load(buffer);
     }
 
-    public XDocument GetDocument() => Document;
-
-    public XMLElement GetRoot(string name = "")
+    /// <summary>Clear the document and create a root element.</summary>
+    public XMLElement CreateRoot(string name)
     {
-        return string.IsNullOrEmpty(name) || string.Equals(Document.Root?.Name.LocalName, name, StringComparison.Ordinal)
-            ? new XMLElement(this, Document.Root)
-            : new XMLElement(this, null);
+        var root = new XElement(name);
+        Document = new XDocument(root);
+        return new XMLElement(this, root);
     }
 
+    /// <summary>Get the root element if it has matching name, otherwise create it and clear the document.</summary>
     public XMLElement GetOrCreateRoot(string name)
     {
         var root = GetRoot(name);
@@ -134,208 +195,18 @@ public class XMLFile : Resource
         return CreateRoot(name);
     }
 
-    public override bool Save(Serializer destination)
+    /// <summary>Return the root element, with optionally specified name. Return null element if not found.</summary>
+    public XMLElement GetRoot(string name = "")
     {
-        ArgumentNullException.ThrowIfNull(destination);
-        var bytes = Encoding.UTF8.GetBytes(ToString());
-        destination.Write(bytes);
-        return true;
+        return string.IsNullOrEmpty(name) || string.Equals(Document.Root?.Name.LocalName, name, StringComparison.Ordinal)
+            ? new XMLElement(this, Document.Root)
+            : new XMLElement(this, null);
     }
 
-    public bool Save(Serializer destination, string indentation)
-    {
-        ArgumentNullException.ThrowIfNull(destination);
-        var bytes = Encoding.UTF8.GetBytes(ToString(indentation));
-        return destination.Write(bytes) == bytes.Length;
-    }
+    /// <summary>Return the XML document.</summary>
+    public XDocument Document { get; private set; }
 
-    public bool SaveObjectCallback(Action<Archive> serializeValue)
-    {
-        ArgumentNullException.ThrowIfNull(serializeValue);
-        try
-        {
-            Document.RemoveNodes();
-            using var archive = new XMLOutputArchive(this);
-            serializeValue(archive);
-            return true;
-        }
-        catch (ArchiveException exception)
-        {
-            Document.RemoveNodes();
-            Log.GetLogger().LogError(exception, "Failed to save object to XML");
-            return false;
-        }
-    }
-
-    public bool LoadObjectCallback(Action<Archive> serializeValue)
-    {
-        ArgumentNullException.ThrowIfNull(serializeValue);
-        try
-        {
-            using var archive = new XMLInputArchive(this);
-            serializeValue(archive);
-            return true;
-        }
-        catch (ArchiveException exception)
-        {
-            Log.GetLogger().LogError(exception, "Failed to load object from XML");
-            return false;
-        }
-    }
-
-    public bool SaveObject(Object value) => SaveObjectCallback(value.SerializeInBlock);
-
-    public bool LoadObject(Object value) => LoadObjectCallback(value.SerializeInBlock);
-
-    public void Patch(XMLFile patchFile)
-    {
-        ArgumentNullException.ThrowIfNull(patchFile);
-        Patch(patchFile.Root);
-    }
-
-    public void Patch(XMLElement patchElement)
-    {
-        ArgumentNullException.ThrowIfNull(patchElement);
-        if (Document.Root is null || patchElement.Element is null) return;
-        foreach (var patch in patchElement.Element.Elements())
-        {
-            var selection = patch.Attribute("sel")?.Value;
-            if (string.IsNullOrEmpty(selection))
-            {
-                Log.GetLogger().LogError("XML Patch failed due to node not having a sel attribute.");
-                continue;
-            }
-            var selected = Document.XPathEvaluate(selection);
-            var original = selected is IEnumerable<object> objects ? objects.FirstOrDefault() : null;
-            if (original is null)
-            {
-                Log.GetLogger().LogError("XML Patch failed with bad select: {Selection}.", selection);
-                continue;
-            }
-            switch (patch.Name.LocalName)
-            {
-                case "add": PatchAdd(patch, original); break;
-                case "replace": PatchReplace(patch, original); break;
-                case "remove": PatchRemove(original); break;
-                default:
-                    Log.GetLogger().LogError("XMLFiles used for patching should only use 'add', 'replace' or 'remove' elements.");
-                    break;
-            }
-        }
-    }
-
-    private void PatchAdd(XElement patch, object? original)
-    {
-        if (original is XAttribute attribute)
-        {
-            Log.GetLogger().LogError("XML Patch failed calling Add due to not selecting a node, {Attribute} attribute was selected.", attribute.Name.LocalName);
-            return;
-        }
-        if (original is not XElement element)
-            return;
-        var type = patch.Attribute("type")?.Value;
-        if (string.IsNullOrEmpty(type))
-        {
-            AddNode(patch, element);
-            return;
-        }
-
-        if (type.StartsWith('@'))
-            AddAttribute(patch, element);
-    }
-
-    private void AddNode(XElement patch, XElement original)
-    {
-        var nodes = patch.Nodes().ToArray();
-        switch (patch.Attribute("pos")?.Value)
-        {
-            case "prepend":
-                if (nodes.Length > 0 && CombineText(nodes[^1], original.FirstNode, true))
-                    nodes = nodes[..^1];
-                original.AddFirst(nodes.Select(CloneNode));
-                break;
-            case "before":
-                if (nodes.Length > 0 && CombineText(nodes[0], original.PreviousNode, false))
-                    nodes = nodes[1..];
-                if (nodes.Length > 0 && CombineText(nodes[^1], original, true))
-                    nodes = nodes[..^1];
-                original.AddBeforeSelf(nodes.Select(CloneNode));
-                break;
-            case "after":
-                if (nodes.Length > 0 && CombineText(nodes[0], original, false))
-                    nodes = nodes[1..];
-                if (nodes.Length > 0 && CombineText(nodes[^1], original.NextNode, true))
-                    nodes = nodes[..^1];
-                original.AddAfterSelf(nodes.Select(CloneNode));
-                break;
-            default:
-                if (nodes.Length > 0 && CombineText(nodes[0], original.LastNode, false))
-                    nodes = nodes[1..];
-                original.Add(nodes.Select(CloneNode));
-                break;
-        }
-    }
-
-    private void AddAttribute(XElement patch, XElement original)
-    {
-        var attribute = patch.Attribute("type");
-        if (patch.FirstNode is null)
-        {
-            Log.GetLogger().LogError("XML Patch failed calling Add due to attempting to add non text to an attribute for {Attribute}.", attribute?.Value);
-            return;
-        }
-
-        var name = attribute!.Value[1..];
-        original.Add(new XAttribute(name, patch.Value));
-    }
-
-    private bool CombineText(XNode? patch, XNode? original, bool prepend)
-    {
-        if (patch is XCData patchCdata && original is XCData originalCdata)
-        {
-            originalCdata.Value = prepend ? patchCdata.Value + originalCdata.Value : originalCdata.Value + patchCdata.Value;
-            return true;
-        }
-
-        if (patch is XText patchText && patch is not XCData && original is XText originalText && original is not XCData)
-        {
-            originalText.Value = prepend ? patchText.Value + originalText.Value : originalText.Value + patchText.Value;
-            return true;
-        }
-
-        return false;
-    }
-
-    private void PatchReplace(XElement patch, object? original)
-    {
-        if (original is XNode node)
-        {
-            var replacement = patch.FirstNode;
-            if (replacement is not null)
-                node.ReplaceWith(CloneNode(replacement));
-            else
-                node.Remove();
-        }
-        else if (original is XAttribute attribute)
-            attribute.Value = patch.Value;
-    }
-
-    private void PatchRemove(object? original)
-    {
-        if (original is XNode node) node.Remove();
-        else if (original is XAttribute attribute) attribute.Remove();
-    }
-
-    private static XNode CloneNode(XNode node) => node switch
-    {
-        XElement element => new XElement(element),
-        XCData cdata => new XCData(cdata.Value),
-        XText text => new XText(text.Value),
-        XComment comment => new XComment(comment.Value),
-        XProcessingInstruction instruction => new XProcessingInstruction(instruction.Target, instruction.Data),
-        _ => new XText(node.ToString())
-    };
-
+    /// <summary>Serialize the XML content to a string.</summary>
     public override string ToString() => ToString("\t");
 
     public string ToString(string indentation)
@@ -358,5 +229,183 @@ public class XMLFile : Resource
             result.Append('\n');
         return result.ToString();
     }
+
+    /// <summary>Patch the XMLFile with another XMLFile. Based on RFC 5261.</summary>
+    public void Patch(XMLFile patchFile)
+    {
+        Patch(patchFile.GetRoot());
+    }
+
+    /// <summary>Patch the XMLFile with another XMLElement. Based on RFC 5261.</summary>
+    public void Patch(XMLElement patchElement)
+    {
+        if (Document.Root is null || patchElement.Element is null) return;
+        foreach (var patch in patchElement.Element.Elements())
+        {
+            var selection = patch.Attribute("sel")?.Value;
+            if (string.IsNullOrEmpty(selection))
+            {
+                Log.GetLogger().LogError("XML Patch failed due to node not having a sel attribute.");
+                continue;
+            }
+            var selected = Document.XPathEvaluate(selection);
+            object? original = null;
+            if (selected is IEnumerable<object> objects)
+            {
+                foreach (var selectedObject in objects)
+                {
+                    original = selectedObject;
+                    break;
+                }
+            }
+            if (original is null)
+            {
+                Log.GetLogger().LogError("XML Patch failed with bad select: {Selection}.", selection);
+                continue;
+            }
+            switch (patch.Name.LocalName)
+            {
+                case "add": PatchAdd(patch, original); break;
+                case "replace": PatchReplace(patch, original); break;
+                case "remove": PatchRemove(original); break;
+                default:
+                    Log.GetLogger().LogError("XMLFiles used for patching should only use 'add', 'replace' or 'remove' elements.");
+                    break;
+            }
+        }
+    }
+
+    /// <summary>Add an node in the Patch.</summary>
+    private void PatchAdd(XElement patch, object? original)
+    {
+        if (original is XAttribute attribute)
+        {
+            Log.GetLogger().LogError("XML Patch failed calling Add due to not selecting a node, {Attribute} attribute was selected.", attribute.Name.LocalName);
+            return;
+        }
+        if (original is not XNode node)
+            return;
+        var type = patch.Attribute("type")?.Value;
+        if (string.IsNullOrEmpty(type))
+        {
+            AddNode(patch, node);
+            return;
+        }
+
+        if (type[0] == '@' && node is XElement element)
+            AddAttribute(patch, element);
+    }
+
+    /// <summary>Replace a node or attribute in the Patch.</summary>
+    private void PatchReplace(XElement patch, object? original)
+    {
+        if (original is XNode node)
+        {
+            var replacement = patch.FirstNode;
+            if (replacement is not null)
+                node.ReplaceWith(CloneNode(replacement));
+            else
+                node.Remove();
+        }
+        else if (original is XAttribute attribute)
+            attribute.Value = patch.Value;
+    }
+
+    /// <summary>Remove a node or attribute in the Patch.</summary>
+    private void PatchRemove(object? original)
+    {
+        if (original is XNode node) node.Remove();
+        else if (original is XAttribute attribute) attribute.Remove();
+    }
+
+    /// <summary>Add a node in the Patch.</summary>
+    private void AddNode(XElement patch, XNode original)
+    {
+        var nodes = new List<XNode>(patch.Nodes());
+        var position = patch.Attribute("pos")?.Value;
+        if (string.IsNullOrEmpty(position) || position == "append")
+        {
+            if (original is not XContainer container)
+                return;
+            if (nodes.Count > 0 && CombineText(nodes[0], container.LastNode, false))
+                nodes.RemoveAt(0);
+            foreach (var node in nodes)
+                container.Add(CloneNode(node));
+        }
+        else if (position == "prepend")
+        {
+            if (original is not XContainer container)
+                return;
+            if (nodes.Count > 0 && CombineText(nodes[^1], container.FirstNode, true))
+                nodes.RemoveAt(nodes.Count - 1);
+            for (var i = nodes.Count - 1; i >= 0; --i)
+                container.AddFirst(CloneNode(nodes[i]));
+        }
+        else if (position == "before")
+        {
+            if (nodes.Count > 0 && CombineText(nodes[0], original.PreviousNode, false))
+                nodes.RemoveAt(0);
+            if (nodes.Count > 0 && CombineText(nodes[^1], original, true))
+                nodes.RemoveAt(nodes.Count - 1);
+            foreach (var node in nodes)
+                original.AddBeforeSelf(CloneNode(node));
+        }
+        else if (position == "after")
+        {
+            if (nodes.Count > 0 && CombineText(nodes[0], original, false))
+                nodes.RemoveAt(0);
+            if (nodes.Count > 0 && CombineText(nodes[^1], original.NextNode, true))
+                nodes.RemoveAt(nodes.Count - 1);
+            var insertPosition = original;
+            foreach (var node in nodes)
+            {
+                var clone = CloneNode(node);
+                insertPosition.AddAfterSelf(clone);
+                insertPosition = clone;
+            }
+        }
+    }
+
+    /// <summary>Add an attribute in the Patch.</summary>
+    private void AddAttribute(XElement patch, XElement original)
+    {
+        var attribute = patch.Attribute("type");
+        if (patch.FirstNode is null)
+        {
+            Log.GetLogger().LogError("XML Patch failed calling Add due to attempting to add non text to an attribute for {Attribute}.", attribute?.Value);
+            return;
+        }
+
+        var name = attribute!.Value[1..];
+        original.Add(new XAttribute(name, patch.Value));
+    }
+
+    /// <summary>Combine two text nodes.</summary>
+    private bool CombineText(XNode? patch, XNode? original, bool prepend)
+    {
+        if (patch is XCData patchCdata && original is XCData originalCdata)
+        {
+            originalCdata.Value = prepend ? patchCdata.Value + originalCdata.Value : originalCdata.Value + patchCdata.Value;
+            return true;
+        }
+
+        if (patch is XText patchText && patch is not XCData && original is XText originalText && original is not XCData)
+        {
+            originalText.Value = prepend ? patchText.Value + originalText.Value : originalText.Value + patchText.Value;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static XNode CloneNode(XNode node) => node switch
+    {
+        XElement element => new XElement(element),
+        XCData cdata => new XCData(cdata.Value),
+        XText text => new XText(text.Value),
+        XComment comment => new XComment(comment.Value),
+        XProcessingInstruction instruction => new XProcessingInstruction(instruction.Target, instruction.Data),
+        _ => new XText(node.ToString())
+    };
 
 }

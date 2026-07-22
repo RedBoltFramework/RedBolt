@@ -270,7 +270,7 @@ public sealed class SceneTests
             source.SerializeInBlock(xmlArchive);
 
         var loadedFromXml = new Scene();
-        Assert.True(loadedFromXml.LoadXML(xmlFile.Root));
+        Assert.True(loadedFromXml.LoadXML(xmlFile.GetRoot()));
         Assert.NotNull(loadedFromXml.Root.GetChild("Loaded"));
 
         var json = new JSONValue();
@@ -319,7 +319,7 @@ public sealed class SceneTests
         Assert.True(xml.Load(stream));
 
         var loaded = new Scene();
-        Assert.True(loaded.LoadXML(xml.Root));
+        Assert.True(loaded.LoadXML(xml.GetRoot()));
         Assert.Equal(83.0f, loaded.Root.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
     }
 
@@ -399,7 +399,7 @@ public sealed class SceneTests
 
         var xmlFile = new XMLFile { Name = string.Empty };
         Assert.True(source.Root.SaveXML(xmlFile.CreateRoot("node")));
-        var instantiatedFromXml = new Scene().InstantiateXML(xmlFile.Root, position, rotation);
+        var instantiatedFromXml = new Scene().InstantiateXML(xmlFile.GetRoot(), position, rotation);
         Assert.NotNull(instantiatedFromXml);
         Assert.True(instantiatedFromXml!.Position.ApproximatelyEquivalent(position));
 

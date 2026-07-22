@@ -62,7 +62,7 @@ public class ImageCube : Resource
 
         _faceImages.Clear();
 
-        var textureElement = _parametersXml.Root;
+        var textureElement = _parametersXml.GetRoot();
         var imageElement = textureElement.GetChild("image");
         // Single image and multiple faces with layout
         if (imageElement.NotNull)

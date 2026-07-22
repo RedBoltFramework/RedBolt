@@ -368,7 +368,7 @@ public sealed class JsonXmlResourceTests
 
         var xml = new XMLFile { Name = "test.xml" };
         Assert.True(xml.FromString("<root><first/><second/></root>"));
-        var source = xml.Root.GetChild("first");
+        var source = xml.GetRoot().GetChild("first");
         var copy = Assert.IsType<XMLElement>(source.Clone());
         Assert.Equal("first", copy.Name);
         copy.Dispose();
@@ -385,13 +385,13 @@ public sealed class JsonXmlResourceTests
     {
         var xml = new XMLFile { Name = "test.xml" };
         Assert.True(xml.FromString("<root><holder><child/></holder><empty/></root>"));
-        var holder = xml.Root.GetChild("holder");
+        var holder = xml.GetRoot().GetChild("holder");
         Assert.True(holder.SetValue("first"));
         Assert.True(holder.HasChild("child"));
         Assert.True(holder.SetValue("second"));
         Assert.True(holder.HasChild("child"));
         Assert.Contains("second", holder.ToString(), StringComparison.Ordinal);
-        Assert.True(xml.Root.GetChild("empty").RemoveChildren());
+        Assert.True(xml.GetRoot().GetChild("empty").RemoveChildren());
 
         var bytes = new byte[] { 1, 20, 255 };
         Assert.True(holder.SetBuffer("buffer", bytes));
@@ -410,16 +410,16 @@ public sealed class JsonXmlResourceTests
         var xml = new XMLFile { Name = "test.xml" };
         Assert.True(xml.FromString("<root/>"));
         var bounds = new BoundingBox(new Vector3f(-1.0f, -2.0f, -3.0f), new Vector3f(4.0f, 5.0f, 6.0f));
-        Assert.True(xml.Root.SetBoundingBox(bounds));
-        Assert.Equal("-1 -2 -3", xml.Root.GetAttribute("min"));
-        Assert.True(xml.Root.GetBoundingBox().Min.ApproximatelyEquivalent(bounds.Min));
-        Assert.True(xml.Root.GetBoundingBox().Max.ApproximatelyEquivalent(bounds.Max));
+        Assert.True(xml.GetRoot().SetBoundingBox(bounds));
+        Assert.Equal("-1 -2 -3", xml.GetRoot().GetAttribute("min"));
+        Assert.True(xml.GetRoot().GetBoundingBox().Min.ApproximatelyEquivalent(bounds.Min));
+        Assert.True(xml.GetRoot().GetBoundingBox().Max.ApproximatelyEquivalent(bounds.Max));
 
-        var child = xml.Root.CreateChild("variant");
+        var child = xml.GetRoot().CreateChild("variant");
         child.SetString("name", "named-key");
         child.SetString("type", "Int");
         child.SetInt("value", 42);
-        var map = xml.Root.GetVariantMap();
+        var map = xml.GetRoot().GetVariantMap();
         Assert.Equal(42, map[new StringHash("named-key")].GetInt());
     }
 
@@ -435,7 +435,7 @@ public sealed class JsonXmlResourceTests
 
         var xml = new XMLFile { Name = "test.xml" };
         Assert.True(xml.FromString("<root><item id=\"1\"/><item id=\"2\"/></root>"));
-        var results = xml.Root.Select("item");
+        var results = xml.GetRoot().Select("item");
         Assert.Equal(2, results.Size());
         using var resultsCopy = Assert.IsType<XPathResultSet>(results.Clone());
         Assert.Equal(2, resultsCopy.Size());
@@ -459,11 +459,11 @@ public sealed class JsonXmlResourceTests
         Assert.True(xml.FromString("<root><item id=\"1\"/><item id=\"2\"/></root>"));
         var query = new XPathQuery("item[@id=$id]", "id:String");
         Assert.True(query.SetVariable("id", "2"));
-        var results = xml.Root.SelectPrepared(query);
+        var results = xml.GetRoot().SelectPrepared(query);
         Assert.Equal(1, results.Size());
         Assert.Equal("2", results.FirstResult().GetAttribute("id"));
 
-        var holder = xml.Root.CreateChild("variant");
+        var holder = xml.GetRoot().CreateChild("variant");
         var value = new Variant(new StringVariantMap
         {
             ["name"] = new Variant("rbfx"),
@@ -487,24 +487,24 @@ public sealed class JsonXmlResourceTests
         Assert.Equal(string.Empty, query.Query);
         Assert.Null(query.GetXPathQuery());
         Assert.Null(query.GetXPathVariableSet());
-        Assert.False(query.EvaluateToBool(xml.Root));
-        Assert.Equal(0.0f, query.EvaluateToFloat(xml.Root));
-        Assert.Equal(string.Empty, query.EvaluateToString(xml.Root));
-        Assert.True(query.Evaluate(xml.Root).Empty());
+        Assert.False(query.EvaluateToBool(xml.GetRoot()));
+        Assert.Equal(0.0f, query.EvaluateToFloat(xml.GetRoot()));
+        Assert.Equal(string.Empty, query.EvaluateToString(xml.GetRoot()));
+        Assert.True(query.Evaluate(xml.GetRoot()).Empty());
 
         Assert.True(query.SetQuery("count(item)", bind: false));
         Assert.Null(query.GetXPathQuery());
-        Assert.Equal(0.0f, query.EvaluateToFloat(xml.Root));
+        Assert.Equal(0.0f, query.EvaluateToFloat(xml.GetRoot()));
         query.Bind();
-        Assert.True(query.EvaluateToBool(xml.Root));
-        Assert.Equal(2.0f, query.EvaluateToFloat(xml.Root));
-        Assert.Equal("2", query.EvaluateToString(xml.Root));
-        Assert.Throws<XPathException>(() => query.Evaluate(xml.Root));
+        Assert.True(query.EvaluateToBool(xml.GetRoot()));
+        Assert.Equal(2.0f, query.EvaluateToFloat(xml.GetRoot()));
+        Assert.Equal("2", query.EvaluateToString(xml.GetRoot()));
+        Assert.Throws<XPathException>(() => query.Evaluate(xml.GetRoot()));
 
         Assert.True(query.SetQuery("100000000000000000000"));
-        Assert.Equal("100000000000000000000", query.EvaluateToString(xml.Root));
+        Assert.Equal("100000000000000000000", query.EvaluateToString(xml.GetRoot()));
         Assert.True(query.SetQuery("0.0000001"));
-        Assert.Equal("0.0000001", query.EvaluateToString(xml.Root));
+        Assert.Equal("0.0000001", query.EvaluateToString(xml.GetRoot()));
 
         query.Dispose();
         Assert.Equal(string.Empty, query.Query);
@@ -526,10 +526,10 @@ public sealed class JsonXmlResourceTests
         Assert.True(query.SetVariable("weight", 2.5f));
         Assert.True(query.SetVariable("name", "O'Reilly"));
         Assert.True(query.SetVariable("unused", true));
-        Assert.Equal(1, query.Evaluate(xml.Root).Size());
+        Assert.Equal(1, query.Evaluate(xml.GetRoot()).Size());
 
         Assert.True(query.SetQuery("item[@name=$name]"));
-        Assert.Equal(1, query.Evaluate(xml.Root).Size());
+        Assert.Equal(1, query.Evaluate(xml.GetRoot()).Size());
 
         Assert.False(query.SetQuery("$value", "value:Bool,value:String", bind: false));
         Assert.Equal(string.Empty, query.Query);
@@ -543,14 +543,14 @@ public sealed class JsonXmlResourceTests
     {
         var xml = new XMLFile { Name = "test.xml" };
         Assert.True(xml.FromString("<root><item id=\"1\"/><item id=\"2\"/></root>"));
-        var source = xml.Root.Select("item");
+        var source = xml.GetRoot().Select("item");
         using var query = new XPathQuery("$items[@id='2']", "items:ResultSet");
 
         Assert.False(query.SetVariable("items", new XPathResultSet()));
         Assert.True(query.SetVariable("items", source));
         source.Dispose();
 
-        var result = query.Evaluate(xml.Root);
+        var result = query.Evaluate(xml.GetRoot());
         Assert.Equal(1, result.Size());
         Assert.Equal("2", result.FirstResult().GetAttribute("id"));
     }
@@ -563,9 +563,9 @@ public sealed class JsonXmlResourceTests
         using var query = new XPathQuery("item[@id='1']");
 
         Assert.True(query.SetQuery("item[", bind: false));
-        Assert.Equal("1", query.Evaluate(xml.Root).FirstResult().GetAttribute("id"));
+        Assert.Equal("1", query.Evaluate(xml.GetRoot()).FirstResult().GetAttribute("id"));
         Assert.Throws<XPathException>(() => query.Bind());
-        Assert.Equal("1", query.Evaluate(xml.Root).FirstResult().GetAttribute("id"));
+        Assert.Equal("1", query.Evaluate(xml.GetRoot()).FirstResult().GetAttribute("id"));
         Assert.Throws<XPathException>(() => new XPathQuery("item[@id=$id]"));
     }
 
@@ -583,9 +583,9 @@ public sealed class JsonXmlResourceTests
             </patch>
             """));
         xml.Patch(patch);
-        Assert.Equal("new", xml.Root.GetChild("item").GetAttribute("value"));
-        Assert.True(xml.Root.HasChild("added"));
-        Assert.False(xml.Root.HasChild("remove"));
+        Assert.Equal("new", xml.GetRoot().GetChild("item").GetAttribute("value"));
+        Assert.True(xml.GetRoot().HasChild("added"));
+        Assert.False(xml.GetRoot().HasChild("remove"));
 
         var output = 42;
         Assert.True(xml.SaveObjectCallback(archive =>
@@ -608,6 +608,8 @@ public sealed class JsonXmlResourceTests
         Assert.True(typeof(XMLFile).IsClass);
         Assert.False(typeof(XMLFile).IsSealed);
         Assert.DoesNotContain(typeof(ICloneable), typeof(XMLFile).GetInterfaces());
+        Assert.Null(typeof(XMLFile).GetProperty("Root"));
+        Assert.Null(typeof(XMLFile).GetMethod("GetDocument"));
 
         var xml = new XMLFile();
         Assert.Equal("<?xml version=\"1.0\"?>\n", xml.ToString());
@@ -619,7 +621,24 @@ public sealed class JsonXmlResourceTests
         xml.GetRoot().CreateChild("child");
         Assert.Equal(memoryUse, xml.GetMemoryUse());
         xml.Dispose();
-        Assert.Null(xml.GetDocument());
+        Assert.Null(xml.Document);
+    }
+
+    [Fact]
+    public void XMLFile_registers_and_serializes_named_objects()
+    {
+        using var context = new Context();
+        XMLFile.RegisterObject(context);
+        using var xml = Assert.IsType<XMLFile>(context.CreateObject(ObjectReflection<XMLFile>.TypeId));
+
+        var source = new JSONArchiveTestValue { Value = 42 };
+        Assert.True(xml.SaveObject("test", source));
+        Assert.Equal("test", xml.GetRoot().Name);
+        Assert.Equal(42, xml.GetRoot().GetInt("value"));
+
+        var loaded = new JSONArchiveTestValue();
+        Assert.True(xml.LoadObject("test", loaded));
+        Assert.Equal(42, loaded.Value);
     }
 
     [Fact]
@@ -665,7 +684,7 @@ public sealed class JsonXmlResourceTests
         Assert.IsType<XCData>(nodes[0]);
         Assert.IsType<XText>(nodes[1]);
         Assert.Equal("first", Assert.IsType<XElement>(nodes[2]).Name.LocalName);
-        Assert.False(xml.Root.HasChild("second"));
+        Assert.False(xml.GetRoot().HasChild("second"));
     }
 
     [Fact]
@@ -687,10 +706,10 @@ public sealed class JsonXmlResourceTests
 
             Assert.NotNull(patched);
             Assert.NotNull(original);
-            Assert.True(patched.Root.HasChild("base"));
-            Assert.True(patched.Root.HasChild("added"));
-            Assert.True(original.Root.HasChild("base"));
-            Assert.False(original.Root.HasChild("added"));
+            Assert.True(patched.GetRoot().HasChild("base"));
+            Assert.True(patched.GetRoot().HasChild("added"));
+            Assert.True(original.GetRoot().HasChild("base"));
+            Assert.False(original.GetRoot().HasChild("added"));
         }
         finally
         {

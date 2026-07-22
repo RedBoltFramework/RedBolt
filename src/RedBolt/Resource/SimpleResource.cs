@@ -57,7 +57,8 @@ public abstract class SimpleResource : Resource
                     if (!xmlFile.Load(source))
                         return false;
 
-                    if (xmlFile.Root.Name == GetRootBlockName())
+                    var xmlRoot = xmlFile.GetRoot();
+                    if (xmlRoot.Name == GetRootBlockName())
                     {
                         if (!xmlFile.LoadObjectCallback(archive =>
                             {
@@ -66,7 +67,7 @@ public abstract class SimpleResource : Resource
                             }))
                             return false;
                     }
-                    else if (!LoadLegacyXML(xmlFile.Root))
+                    else if (!LoadLegacyXML(xmlRoot))
                         return false;
 
                     _loadFormat = format;

@@ -138,7 +138,7 @@ public sealed class AnimationTests
             """));
 
         var animation = new Animation();
-        Assert.True(animation.LoadXML(xml.Root));
+        Assert.True(animation.LoadXML(xml.GetRoot()));
         Assert.Equal("walk", animation.AnimationName);
         Assert.Equal(2.0f, animation.Length);
 
