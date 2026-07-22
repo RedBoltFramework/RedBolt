@@ -37,28 +37,335 @@ public class Image : Resource
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        source.Seek(0);
-        var data = new byte[checked((int)source.Size)];
-        if (source.Read(data) != source.Size)
-            return false;
+        // Check for DDS, KTX or PVR compressed format
+        var fileID = source.ReadFileID();
 
-        using var stream = new MemoryStream(data, writable: false);
-        if (ImageDds.TryLoad(this, stream))
-            return true;
-
-        source.Seek(0);
-        var pixelData = GetImageData(source, out var width, out var height, out var components);
-        if (pixelData == IntPtr.Zero)
+        if (fileID == "DDS ")
         {
-            Log.GetLogger().LogError("Could not load image {Name}: {Reason}", source.Name, GetStbiFailureReason());
-            return false;
+            source.Seek(0);
+            var data = new byte[checked((int)source.Size)];
+            if (source.Read(data) != source.Size)
+                return false;
+
+            using var stream = new MemoryStream(data, writable: false);
+            return ImageDds.TryLoad(this, stream);
+        }
+        else if (fileID == "\u00abKTX")
+        {
+            source.Seek(12);
+
+            var endianness = source.ReadUInt();
+            var type = source.ReadUInt();
+            /* uint typeSize = */ source.ReadUInt();
+            var format = source.ReadUInt();
+            var internalFormat = source.ReadUInt();
+            /* uint baseInternalFormat = */ source.ReadUInt();
+            var width = source.ReadUInt();
+            var height = source.ReadUInt();
+            var depth = source.ReadUInt();
+            /* uint arrayElements = */ source.ReadUInt();
+            var faces = source.ReadUInt();
+            var mipmaps = source.ReadUInt();
+            var keyValueBytes = source.ReadUInt();
+
+            if (endianness != 0x04030201)
+            {
+                Log.GetLogger().LogError("Big-endian KTX files not supported");
+                return false;
+            }
+
+            if (type != 0 || format != 0)
+            {
+                Log.GetLogger().LogError("Uncompressed KTX files not supported");
+                return false;
+            }
+
+            if (faces > 1 || depth > 1)
+            {
+                Log.GetLogger().LogError("3D or cube KTX files not supported");
+                return false;
+            }
+
+            if (mipmaps == 0)
+            {
+                Log.GetLogger().LogError("KTX files without explicitly specified mipmap count not supported");
+                return false;
+            }
+
+            var compressedFormat = TextureFormat.TexFormatUnknown;
+            var components = 0;
+            switch (internalFormat)
+            {
+                case 0x83f1:
+                    compressedFormat = TextureFormat.TexFormatBc1Unorm;
+                    components = 4;
+                    break;
+
+                case 0x83f2:
+                    compressedFormat = TextureFormat.TexFormatBc2Unorm;
+                    components = 4;
+                    break;
+
+                case 0x83f3:
+                    compressedFormat = TextureFormat.TexFormatBc3Unorm;
+                    components = 4;
+                    break;
+
+                case 0x8d64:
+                case 0x9274:
+                    compressedFormat = TextureFormat.TexFormatEtc2Rgb8Unorm;
+                    components = 3;
+                    break;
+
+                case 0x9278:
+                    compressedFormat = TextureFormat.TexFormatEtc2Rgba8Unorm;
+                    components = 4;
+                    break;
+
+                case 0x8c00:
+                    compressedFormat = EmulatedTextureFormat.PvrtcRgb4Bpp;
+                    components = 3;
+                    break;
+
+                case 0x8c01:
+                    compressedFormat = EmulatedTextureFormat.PvrtcRgb2Bpp;
+                    components = 3;
+                    break;
+
+                case 0x8c02:
+                    compressedFormat = EmulatedTextureFormat.PvrtcRgba4Bpp;
+                    components = 4;
+                    break;
+
+                case 0x8c03:
+                    compressedFormat = EmulatedTextureFormat.PvrtcRgba2Bpp;
+                    components = 4;
+                    break;
+            }
+
+            if (compressedFormat == TextureFormat.TexFormatUnknown)
+            {
+                Log.GetLogger().LogError("Unsupported texture format in KTX file");
+                return false;
+            }
+
+            source.Seek(source.Position + keyValueBytes);
+            var dataSize = source.Size - source.Position - mipmaps * sizeof(uint);
+            var data = new byte[checked((int)dataSize)];
+            var dataOffset = 0;
+            for (var i = 0; i < mipmaps; ++i)
+            {
+                var levelSize = source.ReadUInt();
+                if (levelSize + dataOffset > dataSize)
+                {
+                    Log.GetLogger().LogError("KTX mipmap level data size exceeds file size");
+                    return false;
+                }
+
+                _ = source.Read(data.AsSpan(dataOffset, checked((int)levelSize)));
+                dataOffset += checked((int)levelSize);
+                if ((source.Position & 3) != 0)
+                    source.Seek((source.Position + 3) & 0xfffffffc);
+            }
+
+            SetCompressedData(checked((int)width), checked((int)height), 1, components, compressedFormat,
+                checked((int)mipmaps), data, false, false, false);
+        }
+        else if (fileID == "PVR\u0003")
+        {
+            /* uint flags = */ source.ReadUInt();
+            var pixelFormatLo = source.ReadUInt();
+            /* uint pixelFormatHi = */ source.ReadUInt();
+            /* uint colourSpace = */ source.ReadUInt();
+            /* uint channelType = */ source.ReadUInt();
+            var height = source.ReadUInt();
+            var width = source.ReadUInt();
+            var depth = source.ReadUInt();
+            /* uint numSurfaces = */ source.ReadUInt();
+            var numFaces = source.ReadUInt();
+            var mipmapCount = source.ReadUInt();
+            var metaDataSize = source.ReadUInt();
+
+            if (depth > 1 || numFaces > 1)
+            {
+                Log.GetLogger().LogError("3D or cube PVR files not supported");
+                return false;
+            }
+
+            if (mipmapCount == 0)
+            {
+                Log.GetLogger().LogError("PVR files without explicitly specified mipmap count not supported");
+                return false;
+            }
+
+            var compressedFormat = TextureFormat.TexFormatUnknown;
+            var components = 0;
+            switch (pixelFormatLo)
+            {
+                case 0:
+                    compressedFormat = EmulatedTextureFormat.PvrtcRgb2Bpp;
+                    components = 3;
+                    break;
+
+                case 1:
+                    compressedFormat = EmulatedTextureFormat.PvrtcRgba2Bpp;
+                    components = 4;
+                    break;
+
+                case 2:
+                    compressedFormat = EmulatedTextureFormat.PvrtcRgb4Bpp;
+                    components = 3;
+                    break;
+
+                case 3:
+                    compressedFormat = EmulatedTextureFormat.PvrtcRgba4Bpp;
+                    components = 4;
+                    break;
+
+                case 6:
+                    compressedFormat = TextureFormat.TexFormatEtc2Rgb8Unorm;
+                    components = 3;
+                    break;
+
+                case 7:
+                    compressedFormat = TextureFormat.TexFormatBc1Unorm;
+                    components = 4;
+                    break;
+
+                case 9:
+                    compressedFormat = TextureFormat.TexFormatBc2Unorm;
+                    components = 4;
+                    break;
+
+                case 11:
+                    compressedFormat = TextureFormat.TexFormatBc3Unorm;
+                    components = 4;
+                    break;
+
+                // .pvr files also support ETC2 texture format.
+                case 22:
+                    compressedFormat = TextureFormat.TexFormatEtc2Rgb8Unorm;
+                    components = 3;
+                    break;
+
+                case 23:
+                    compressedFormat = TextureFormat.TexFormatEtc2Rgba8Unorm;
+                    components = 4;
+                    break;
+            }
+
+            if (compressedFormat == TextureFormat.TexFormatUnknown)
+            {
+                Log.GetLogger().LogError("Unsupported texture format in PVR file");
+                return false;
+            }
+
+            source.Seek(source.Position + metaDataSize);
+            var dataSize = source.Size - source.Position;
+            var data = new byte[checked((int)dataSize)];
+            _ = source.Read(data);
+            SetCompressedData(checked((int)width), checked((int)height), 1, components, compressedFormat,
+                checked((int)mipmapCount), data, false, false, false);
+        }
+        else if (fileID == "RIFF")
+        {
+            // WebP: https://developers.google.com/speed/webp/docs/api
+
+            // RIFF layout is:
+            //   Offset  tag
+            //   0...3   "RIFF" 4-byte tag
+            //   4...7   size of image data (including metadata) starting at offset 8
+            //   8...11  "WEBP"   our form-type signature
+            const int tagSize = 4;
+
+            source.Seek(8);
+            Span<byte> fourCC = stackalloc byte[tagSize];
+            var bytesRead = source.Read(fourCC);
+            if (bytesRead != tagSize)
+            {
+                // Truncated.
+                Log.GetLogger().LogError("Truncated RIFF data");
+                return false;
+            }
+            ReadOnlySpan<byte> webp = [(byte)'W', (byte)'E', (byte)'B', (byte)'P'];
+            if (!fourCC.SequenceEqual(webp))
+            {
+                // VP8_STATUS_BITSTREAM_ERROR
+                Log.GetLogger().LogError("Invalid header");
+                return false;
+            }
+
+            // Read the file to buffer.
+            var data = new byte[checked((int)source.Size)];
+            source.Seek(0);
+            _ = source.Read(data);
+
+            var features = new byte[40];
+            var pinnedData = GCHandle.Alloc(data, GCHandleType.Pinned);
+            var pinnedFeatures = GCHandle.Alloc(features, GCHandleType.Pinned);
+            try
+            {
+                const int webpDecoderAbiVersion = 0x0210;
+                if (RedBolt.Bindings.WebP.WebPNativeBindings.WebPGetFeaturesInternal(
+                        pinnedData.AddrOfPinnedObject(), (nuint)data.Length, pinnedFeatures.AddrOfPinnedObject(),
+                        webpDecoderAbiVersion) != 0)
+                {
+                    Log.GetLogger().LogError("Error reading WebP image: {Name}", source.Name);
+                    return false;
+                }
+
+                var width = BitConverter.ToInt32(features, 0);
+                var height = BitConverter.ToInt32(features, 4);
+                var components = BitConverter.ToInt32(features, 8) != 0 ? 4 : 3;
+                var imageData = new byte[checked(width * height * components)];
+                var pinnedImageData = GCHandle.Alloc(imageData, GCHandleType.Pinned);
+                try
+                {
+                    var decoded = components == 4
+                        ? RedBolt.Bindings.WebP.WebPNativeBindings.WebPDecodeRGBAInto(
+                            pinnedData.AddrOfPinnedObject(), (nuint)data.Length, pinnedImageData.AddrOfPinnedObject(),
+                            (nuint)imageData.Length, 4 * width)
+                        : RedBolt.Bindings.WebP.WebPNativeBindings.WebPDecodeRGBInto(
+                            pinnedData.AddrOfPinnedObject(), (nuint)data.Length, pinnedImageData.AddrOfPinnedObject(),
+                            (nuint)imageData.Length, 3 * width);
+                    if (decoded == IntPtr.Zero)
+                    {
+                        Log.GetLogger().LogError("Error decoding WebP image:{Name}", source.Name);
+                        return false;
+                    }
+                }
+                finally
+                {
+                    pinnedImageData.Free();
+                }
+
+                SetSize(width, height, components);
+                SetData(imageData);
+            }
+            finally
+            {
+                pinnedFeatures.Free();
+                pinnedData.Free();
+            }
+        }
+        else
+        {
+            // Not DDS, KTX or PVR, use STBImage to load other image formats as uncompressed
+            source.Seek(0);
+            var pixelData = GetImageData(source, out var width, out var height, out var components);
+            if (pixelData == IntPtr.Zero)
+            {
+                Log.GetLogger().LogError("Could not load image {Name}: {Reason}", source.Name, GetStbiFailureReason());
+                return false;
+            }
+
+            SetSize(width, height, components);
+            var imageData = new byte[checked(width * height * components)];
+            Marshal.Copy(pixelData, imageData, 0, imageData.Length);
+            SetData(imageData);
+            FreeImageData(pixelData);
         }
 
-        SetSize(width, height, components);
-        var imageData = new byte[checked(width * height * components)];
-        Marshal.Copy(pixelData, imageData, 0, imageData.Length);
-        SetData(imageData);
-        FreeImageData(pixelData);
         return true;
     }
 

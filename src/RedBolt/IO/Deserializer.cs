@@ -163,7 +163,7 @@ public abstract class Deserializer : Serializer
     {
         Span<byte> buffer = stackalloc byte[4];
         _ = Read(buffer);
-        return Encoding.ASCII.GetString(buffer);
+        return Encoding.Latin1.GetString(buffer);
     }
 
     public float ReadFloat()

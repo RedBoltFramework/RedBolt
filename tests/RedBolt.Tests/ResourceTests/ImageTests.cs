@@ -372,6 +372,91 @@ public sealed class ImageTests
         Assert.Null(image.GetDecompressedImage());
     }
 
+    [Fact]
+    public void Ktx_bc1_loads_compressed_mipmap_data()
+    {
+        var ktx = new byte[76];
+        new byte[] { 0xab, (byte)'K', (byte)'T', (byte)'X', (byte)' ', (byte)'1', (byte)'1', 0xbb, 0x0d, 0x0a, 0x1a, 0x0a }
+            .CopyTo(ktx, 0);
+        WriteUInt32(ktx, 12, 0x04030201u);
+        WriteUInt32(ktx, 20, 1u);
+        WriteUInt32(ktx, 28, 0x83f1u);
+        WriteUInt32(ktx, 36, 4u);
+        WriteUInt32(ktx, 40, 4u);
+        WriteUInt32(ktx, 52, 1u);
+        WriteUInt32(ktx, 56, 1u);
+        WriteUInt32(ktx, 64, 8u);
+        var pixels = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
+        pixels.CopyTo(ktx, 68);
+
+        using var source = new MemoryBuffer(ktx);
+        Assert.Equal("\u00abKTX", source.ReadFileID());
+        source.Seek(0);
+        using var image = new Image();
+        Assert.True(image.BeginLoad(source));
+        Assert.Equal(TextureFormat.TexFormatBc1Unorm, image.CompressedFormat);
+        Assert.Equal(4, image.Components);
+        Assert.Equal(4, image.Width);
+        Assert.Equal(4, image.Height);
+        Assert.Equal(1, image.NumCompressedLevels);
+        Assert.Equal(pixels, image.GetData());
+    }
+
+    [Fact]
+    public void Pvr_bc1_loads_compressed_mipmap_data()
+    {
+        var pvr = new byte[60];
+        pvr[0] = (byte)'P';
+        pvr[1] = (byte)'V';
+        pvr[2] = (byte)'R';
+        pvr[3] = 3;
+        WriteUInt32(pvr, 8, 7u);
+        WriteUInt32(pvr, 24, 4u);
+        WriteUInt32(pvr, 28, 4u);
+        WriteUInt32(pvr, 32, 1u);
+        WriteUInt32(pvr, 36, 1u);
+        WriteUInt32(pvr, 40, 1u);
+        WriteUInt32(pvr, 44, 1u);
+        var pixels = new byte[] { 8, 7, 6, 5, 4, 3, 2, 1 };
+        pixels.CopyTo(pvr, 52);
+
+        using var image = new Image();
+        Assert.True(image.BeginLoad(new MemoryBuffer(pvr)));
+        Assert.Equal(TextureFormat.TexFormatBc1Unorm, image.CompressedFormat);
+        Assert.Equal(4, image.Components);
+        Assert.Equal(4, image.Width);
+        Assert.Equal(4, image.Height);
+        Assert.Equal(1, image.NumCompressedLevels);
+        Assert.Equal(pixels, image.GetData());
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(4)]
+    public void Webp_lossless_roundtrip_loads_native_rgb_and_rgba_paths(int components)
+    {
+        var fileName = Path.Combine(Path.GetTempPath(), $"RedBolt.Image.{Guid.NewGuid():N}.webp");
+        try
+        {
+            using var sourceImage = new Image();
+            Assert.True(sourceImage.SetSize(2, 2, components));
+            var pixels = Enumerable.Range(0, 2 * 2 * components).Select(static value => (byte)(value * 17)).ToArray();
+            sourceImage.SetData(pixels);
+            Assert.True(sourceImage.SaveWEBP(fileName));
+
+            using var image = new Image();
+            Assert.True(image.BeginLoad(new MemoryBuffer(System.IO.File.ReadAllBytes(fileName))));
+            Assert.Equal(2, image.Width);
+            Assert.Equal(2, image.Height);
+            Assert.Equal(components, image.Components);
+            Assert.Equal(pixels, image.GetData());
+        }
+        finally
+        {
+            System.IO.File.Delete(fileName);
+        }
+    }
+
     private static void WriteUInt32(byte[] data, int offset, uint value)
         => System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(data.AsSpan(offset, 4), value);
 

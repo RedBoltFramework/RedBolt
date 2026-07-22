@@ -97,6 +97,9 @@ internal static class Program
 
     private static readonly HashSet<string> RetainedWebPFunctions = new(StringComparer.Ordinal)
     {
+        "WebPGetFeaturesInternal",
+        "WebPDecodeRGBInto",
+        "WebPDecodeRGBAInto",
         "WebPEncodeLosslessRGBA",
         "WebPEncodeLosslessRGB",
         "WebPFree"
