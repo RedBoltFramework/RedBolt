@@ -1,6 +1,6 @@
 # C++ Lifetime and Copy-Semantics Verification Inventory
 
-Generated from refreshed jcodemunch indexes: 2026-07-17
+Generated from refreshed jcodemunch indexes: 2026-07-22
 
 ## Status
 
@@ -22,8 +22,8 @@ Excluded:
 - Tests and vendored third-party code.
 - Global aliases/usings files that contain no ported class implementation.
 
-Pending managed files inventoried: **66**
-Pending files with likely C++ counterpart paths: **58**
+Pending managed files inventoried: **65**
+Pending files with likely C++ counterpart paths: **57**
 Pending files requiring counterpart discovery: **8**
 
 ## Required review for every row
@@ -83,8 +83,6 @@ Check a column only after completing the corresponding full C++ review and recor
 | `src/RedBolt/RenderAPI/RenderDevice.cs` | `Source/Urho3D/RenderAPI/RenderDevice.h`<br>`Source/Urho3D/RenderAPI/RenderDevice.cpp` | ☐ | ☐ | ☐ |
 | 2026-07-21 partial outcome | Corrected engine teardown ordering against native `Graphics::Close` and `RenderDevice::~RenderDevice`: managed shutdown now releases `RenderDevice` while the Graphics-owned immediate context is still live, so the destructor's `WaitForIdle` executes at the native lifetime boundary. Removed the managed-only `OnEngineShutdown` path that sent `DeviceObjectEvent.Destroy` before normal disposal and caused a second destroy dispatch later. The focused lifecycle suite confirms one destroy dispatch and pointer detachment; full tests and MultipleViewports teardown pass. Constructor/field ownership, complete method bodies, and reverse member-destruction closure remain open. | — | — | — |
 | 2026-07-19 partial outcome | The complete native fullscreen-mode enumeration, sorting/deduplication, closest-mode selection, swap-chain-size/DPI getters, window-settings validation/update, and WindowSettingsDemo call paths were reviewed. `FullscreenMode` values remain independent POD structs, mode containers own independent values, and `GetClosestFullscreenModeIndex` now uses the approved managed `int` index mapping throughout its implementation, callers, and focused native-parity test. The complete `RenderDevice` declaration-wide constructor, destructor, fields, device-object ownership, and copy audit remains pending. | — | — | — |
-| `src/RedBolt/RenderPipeline/DrawableProcessor.cs` | `Source/Urho3D/RenderPipeline/DrawableProcessor.h`<br>`Source/Urho3D/RenderPipeline/DrawableProcessor.cpp` | ☐ | ☐ | ☐ |
-| 2026-07-22 partial outcome | Reviewed the complete native declaration and implementation and the complete managed file. Corrected the `DrawableProcessorPass` and `DrawableProcessor` public property shape and declaration ordering; restored the distinct owning `allPasses_` collection and per-frame enabled raw-alias `passes_` rebuild; cached the required work queue and removed managed-only missing-subsystem fallbacks; restored native frame assignment, camera axes, material-quality override, GI lookup, per-thread Z-range storage, drawable-array reset, container clearing, and light-cache update ordering; deterministically destroys the uniquely owned light-processor cache; restored native occluder batch updates, distance cutoff, projected-size thresholding, camera-inside priority, triangle-density penalty, and sorting; removed managed-only state-injection setters and shadow-count accessor, with tests now reaching state through native processing paths; and migrated light, geometry, pass, source-batch, thread, and multivector indices and sizes to the approved `int` mapping while removing managed-only invalid-index fallbacks. Focused coverage verifies property and index shape, enabled-pass alias rebuilding, native frame-state initialization, occluder filtering/order, statistics, and debugger light lookup. The broader processor remains open: complete destructor/container ownership and remaining method parity and parallel multivector paths are not yet closed. | — | — | — |
 | `src/RedBolt/RenderPipeline/PipelineStateBuilder.cs` | `Source/Urho3D/RenderPipeline/PipelineStateBuilder.h`<br>`Source/Urho3D/RenderPipeline/PipelineStateBuilder.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/RenderPipeline/RenderPathBuiltInPasses.cs` | `Source/Urho3D/RenderPipeline/Passes/FullScreenShaderPass.h`<br>`Source/Urho3D/RenderPipeline/Passes/FullScreenShaderPass.cpp`<br>`Source/Urho3D/RenderPipeline/Passes/ToneMappingPass.h`<br>`Source/Urho3D/RenderPipeline/Passes/ToneMappingPass.cpp`<br>`Source/Urho3D/RenderPipeline/Passes/AutoExposurePass.h`<br>`Source/Urho3D/RenderPipeline/Passes/AutoExposurePass.cpp`<br>`Source/Urho3D/RenderPipeline/Passes/BloomPass.h`<br>`Source/Urho3D/RenderPipeline/Passes/BloomPass.cpp`<br>`Source/Urho3D/RenderPipeline/Passes/AmbientOcclusionPass.h`<br>`Source/Urho3D/RenderPipeline/Passes/AmbientOcclusionPass.cpp`<br>`Source/Urho3D/RenderPipeline/Passes/OutlineRenderPass.h`<br>`Source/Urho3D/RenderPipeline/Passes/OutlineRenderPass.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/RenderPipeline/RenderPipeline.cs` | `Source/Urho3D/RenderPipeline/RenderPipeline.h`<br>`Source/Urho3D/RenderPipeline/RenderPipeline.cpp` | ☐ | ☐ | ☐ |

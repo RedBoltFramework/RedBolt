@@ -209,6 +209,45 @@ public sealed class DrawableProcessorTests
     }
 
     [Fact]
+    public void ProcessorDisposeReleasesOwnedAndAliasedPassContainers()
+    {
+        var pipeline = new TestRenderPipelineInterface();
+        using var processorPass = new TestDrawableProcessorPass(
+            pipeline, int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue);
+        var processor = new DrawableProcessor(pipeline);
+        processor.SetPasses([processorPass]);
+
+        processor.Dispose();
+
+        Assert.Empty(GetPasses(processor, "_allPasses"));
+        Assert.Empty(GetPasses(processor, "_passes"));
+    }
+
+    [Fact]
+    public void ShadowMapTextureSortSupportsDistinctTextureIdentities()
+    {
+        var pipeline = new TestRenderPipelineInterface();
+        using var processor = new TestDrawableProcessor(pipeline);
+        using var firstLight = new Light();
+        using var secondLight = new Light();
+        using var firstProcessor = new LightProcessor(firstLight);
+        using var secondProcessor = new LightProcessor(secondLight);
+        using var firstTexture = new Texture2D("First");
+        using var secondTexture = new Texture2D("Second");
+        SetPrivateField(firstProcessor, "_shadowMap", new ShadowMapRegion { Texture = firstTexture });
+        SetPrivateField(secondProcessor, "_shadowMap", new ShadowMapRegion { Texture = secondTexture });
+        var lightProcessors = GetPrivateField<List<LightProcessor?>>(processor, "_lightProcessors");
+        lightProcessors.Add(firstProcessor);
+        lightProcessors.Add(secondProcessor);
+
+        processor.SortByShadowMapTexture();
+
+        Assert.Equal(2, processor.LightProcessorsByShadowMap.Count);
+        Assert.Contains(firstProcessor, processor.LightProcessorsByShadowMap);
+        Assert.Contains(secondProcessor, processor.LightProcessorsByShadowMap);
+    }
+
+    [Fact]
     public void UpdateBeginRebuildsEnabledPassAliasesFromOwnedPasses()
     {
         var pipeline = new TestRenderPipelineInterface();
@@ -335,6 +374,22 @@ public sealed class DrawableProcessorTests
     }
 
     [Fact]
+    public void ProcessorPassDisposeDestroysOwnedGeometryBatches()
+    {
+        var pipeline = new TestRenderPipelineInterface();
+        var processorPass = new TestDrawableProcessorPass(pipeline,
+            int.MaxValue, Technique.GetPassIndex("base"), int.MaxValue, int.MaxValue);
+        pipeline.RaiseUpdateBegin();
+        var technique = new Technique("test");
+        technique.CreatePass("base");
+        processorPass.AddBatch(0, new CustomGeometry(), 0, technique);
+
+        processorPass.Dispose();
+
+        Assert.Equal(0, processorPass.BatchCount);
+    }
+
+    [Fact]
     public void PipelineBatchDescCapturesDrawableStateAndCreatesBatchKey()
     {
         var drawable = new CustomGeometry();
@@ -394,6 +449,16 @@ public sealed class DrawableProcessorTests
         public bool IsLinearColorSpace => LinearColorSpace;
     }
 
+    private sealed class TestDrawableProcessor : DrawableProcessor
+    {
+        public TestDrawableProcessor(IRenderPipelineInterface renderPipeline)
+            : base(renderPipeline)
+        {
+        }
+
+        public void SortByShadowMapTexture() => SortLightProcessorsByShadowMapTexture();
+    }
+
     private sealed class TestOccluderDrawable : Drawable
     {
         public BoundingBox WorldBounds { get; set; } = new();
@@ -429,6 +494,16 @@ public sealed class DrawableProcessorTests
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
         Assert.NotNull(method);
         return method;
+    }
+
+    private static void SetPrivateField<T>(object instance, string fieldName, T value)
+    {
+        var field = instance.GetType().GetField(fieldName,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+            ?? instance.GetType().BaseType?.GetField(fieldName,
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        field.SetValue(instance, value);
     }
 
     private sealed class TestRenderPipelineInterface : IRenderPipelineInterface

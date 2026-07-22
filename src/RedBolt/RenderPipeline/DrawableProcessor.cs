@@ -105,6 +105,7 @@ public class DrawableProcessorPass : Object
     public override void Dispose()
     {
         RenderPipeline.UpdateBegin -= OnUpdateBegin;
+        GeometryBatches.Dispose();
         base.Dispose();
     }
 
@@ -531,7 +532,16 @@ public class DrawableProcessor : Object
         _lightProcessorsByShadowMapTexture.AddRange(_lightProcessors);
         _lightProcessorsByShadowMapTexture.Sort(static (lhs, rhs) =>
         {
-            return Comparer<Texture2D?>.Default.Compare(lhs!.ShadowMap.Texture, rhs!.ShadowMap.Texture);
+            var lhsTexture = lhs!.ShadowMap.Texture;
+            var rhsTexture = rhs!.ShadowMap.Texture;
+            if (ReferenceEquals(lhsTexture, rhsTexture))
+                return 0;
+            if (lhsTexture is null)
+                return -1;
+            if (rhsTexture is null)
+                return 1;
+            return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(lhsTexture)
+                .CompareTo(System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(rhsTexture));
         });
     }
 
@@ -764,11 +774,9 @@ public class DrawableProcessor : Object
     {
         shadowCasters.Clear();
 
-        var cullCamera = _frameInfo.Camera;
-        if (cullCamera is null)
-            return;
+        var cullCamera = _frameInfo.Camera!;
 
-        var shadowCameraFrustum = shadowCamera.GetFrustum();
+        var shadowCameraFrustum = new Frustum(shadowCamera.GetFrustum());
         var worldToLightSpace = shadowCamera.GetView();
         var lightType = light.GetLightType();
 
