@@ -56,8 +56,11 @@ public sealed class RenderPipelineInterfaceTests(GraphicsEngineFixture fixture)
             var view = viewport.GetRenderPipelineView();
             Assert.NotNull(view);
 
-            var pass = new AutoExposurePass();
+            using var pass = new AutoExposurePass();
             pass.InitializeView(view!);
+
+            Assert.Null(typeof(AutoExposurePass).GetField("_deviceResetSubscription",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic));
 
             var initializedField = typeof(AutoExposurePass).GetField("_isAdaptedLuminanceInitialized",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);

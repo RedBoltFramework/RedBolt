@@ -373,7 +373,6 @@ public sealed class AutoExposurePass : RenderPass
     private Parameters _currentParameters = new();
     private CachedBuffers? _cachedBuffers;
     private bool _isAdaptedLuminanceInitialized;
-    private ContextEventSubscription? _deviceResetSubscription;
 
     public AutoExposurePass()
     {
@@ -398,14 +397,9 @@ public sealed class AutoExposurePass : RenderPass
 
     public override void InitializeView(RenderPipelineView view)
     {
-        _isAdaptedLuminanceInitialized = false;
-        _deviceResetSubscription?.Dispose();
-        var renderDevice = view.GetContext()?.GetSubsystem<RenderDevice>();
-        if (renderDevice is not null)
-        {
-            _deviceResetSubscription = SubscribeToEvent<GraphicsEvents.DeviceResetEvent>(renderDevice,
-                (ref GraphicsEvents.DeviceResetEvent _) => _isAdaptedLuminanceInitialized = false);
-        }
+        var renderDevice = GetSubsystem<RenderDevice>()!;
+        SubscribeToEvent<GraphicsEvents.DeviceResetEvent>(renderDevice,
+            (ref GraphicsEvents.DeviceResetEvent _) => _isAdaptedLuminanceInitialized = false);
     }
 
     public override void UpdateParameters(RenderPipelineSettings settings, StringVariantMap parameters)
