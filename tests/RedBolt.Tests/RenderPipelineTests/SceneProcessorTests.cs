@@ -121,12 +121,14 @@ public sealed class SceneProcessorTests
         SetPrivateField(builder, "_pipelineStateDesc", new GraphicsPipelineStateDesc { DebugName = "retained" });
         var shaderProgramDesc = GetPrivateField<ShaderProgramDesc>(builder, "_shaderProgramDesc");
         shaderProgramDesc.AddCommonShaderDefines("RETAINED");
+        SetPrivateField(builder, "_shaderProgramDesc", shaderProgramDesc);
 
         processor.Dispose();
 
         Assert.Equal(string.Empty,
             GetPrivateField<GraphicsPipelineStateDesc>(builder, "_pipelineStateDesc").DebugName);
-        Assert.Equal(string.Empty, shaderProgramDesc.CommonShaderDefines);
+        Assert.Equal(string.Empty,
+            GetPrivateField<ShaderProgramDesc>(builder, "_shaderProgramDesc").CommonShaderDefines);
     }
 
     [Fact]

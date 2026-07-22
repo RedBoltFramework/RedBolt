@@ -18,7 +18,7 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
 
     /// <summary>Re-used objects.</summary>
     private GraphicsPipelineStateDesc _pipelineStateDesc;
-    private readonly ShaderProgramDesc _shaderProgramDesc;
+    private ShaderProgramDesc _shaderProgramDesc;
 
     public PipelineStateBuilder(SceneProcessor? sceneProcessor, CameraProcessor? cameraProcessor,
         ShadowMapAllocator? shadowMapAllocator, InstancingBuffer? instancingBuffer)
@@ -73,24 +73,24 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
 
         if (isShadowPass)
         {
-            _compositor.ProcessShadowBatch(_shaderProgramDesc,
+            _compositor.ProcessShadowBatch(ref _shaderProgramDesc,
                 key.Geometry!, key.GeometryType, key.Material!, key.Pass!, light!);
             SetupShadowPassState(ctx.ShadowSplitIndex, key.PixelLight!, key.Material!, key.Pass!);
 
             SetupSamplersForUserOrShadowPass(key.Material!, false, false, false);
-            SetupInputLayoutAndPrimitiveType(ref _pipelineStateDesc, _shaderProgramDesc, key.Geometry!, false);
-            SetupShaders(ref _pipelineStateDesc, _shaderProgramDesc);
+            SetupInputLayoutAndPrimitiveType(ref _pipelineStateDesc, in _shaderProgramDesc, key.Geometry!, false);
+            SetupShaders(ref _pipelineStateDesc, ref _shaderProgramDesc);
         }
         else if (isLightVolumePass)
         {
-            _compositor.ProcessLightVolumeBatch(_shaderProgramDesc,
+            _compositor.ProcessLightVolumeBatch(ref _shaderProgramDesc,
                 key.Geometry!, key.GeometryType, key.Pass!, light!, hasShadow);
             SetupLightVolumePassState(key.PixelLight!);
 
             SetupLightSamplers(key.PixelLight!);
             SetupGeometryBufferSamplers();
-            SetupInputLayoutAndPrimitiveType(ref _pipelineStateDesc, _shaderProgramDesc, key.Geometry!, false);
-            SetupShaders(ref _pipelineStateDesc, _shaderProgramDesc);
+            SetupInputLayoutAndPrimitiveType(ref _pipelineStateDesc, in _shaderProgramDesc, key.Geometry!, false);
+            SetupShaders(ref _pipelineStateDesc, ref _shaderProgramDesc);
 
             _pipelineStateDesc.ReadOnlyDepth = true;
         }
@@ -108,7 +108,7 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
             var hasAmbient = (flags & DrawableProcessorPassFlag.HasAmbientLighting) != 0;
             var hasLightmap = key.Drawable!.GetGlobalIlluminationType() == GlobalIlluminationType.UseLightMap;
 
-            _compositor.ProcessUserBatch(_shaderProgramDesc, flags, key.Drawable, key.Geometry!, key.GeometryType,
+            _compositor.ProcessUserBatch(ref _shaderProgramDesc, flags, key.Drawable, key.Geometry!, key.GeometryType,
                 key.Material!, key.Pass!, light, hasShadow, subpass);
             SetupUserPassState(key.Drawable, key.Material, key.Pass, lightMaskToStencil);
 
@@ -128,8 +128,8 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
 
             SetupLightSamplers(key.PixelLight);
             SetupSamplersForUserOrShadowPass(key.Material, hasLightmap, hasAmbient, isRefractionPass);
-            SetupInputLayoutAndPrimitiveType(ref _pipelineStateDesc, _shaderProgramDesc, key.Geometry!, isStereoPass);
-            SetupShaders(ref _pipelineStateDesc, _shaderProgramDesc);
+            SetupInputLayoutAndPrimitiveType(ref _pipelineStateDesc, in _shaderProgramDesc, key.Geometry!, isStereoPass);
+            SetupShaders(ref _pipelineStateDesc, ref _shaderProgramDesc);
         }
 
         return _pipelineStateCache.GetGraphicsPipelineState(_pipelineStateDesc);
@@ -166,7 +166,7 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
 
     /// <summary>Helpers for passes that override pipeline state creation.</summary>
     public void SetupInputLayoutAndPrimitiveType(ref GraphicsPipelineStateDesc pipelineStateDesc,
-        ShaderProgramDesc shaderProgramDesc, Geometry geometry, bool isStereoPass)
+        in ShaderProgramDesc shaderProgramDesc, Geometry geometry, bool isStereoPass)
     {
         if (shaderProgramDesc.IsInstancingUsed)
         {
@@ -193,7 +193,7 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
         }
     }
 
-    public void SetupShaders(ref GraphicsPipelineStateDesc pipelineStateDesc, ShaderProgramDesc shaderProgramDesc)
+    public void SetupShaders(ref GraphicsPipelineStateDesc pipelineStateDesc, ref ShaderProgramDesc shaderProgramDesc)
     {
         for (var i = 0; i < shaderProgramDesc.ShaderDefines.Length; ++i)
             shaderProgramDesc.ShaderDefines[i] += shaderProgramDesc.CommonShaderDefines;

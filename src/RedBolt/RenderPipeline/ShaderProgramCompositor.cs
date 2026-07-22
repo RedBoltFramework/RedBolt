@@ -16,19 +16,36 @@ namespace RedBolt;
 ///
 /// TODO: Consider replacing define string with tokenized define lists
 /// </summary>
-public sealed class ShaderProgramDesc
+public struct ShaderProgramDesc : ICloneable
 {
-    public string[] ShaderName { get; } = new string[(int)ShaderType.MaxShaderTypes];
-    public string[] ShaderDefines { get; } = new string[(int)ShaderType.MaxShaderTypes];
-    public string CommonShaderDefines { get; private set; } = string.Empty;
+    public string[] ShaderName { get; set; }
+    public string[] ShaderDefines { get; set; }
+    public string CommonShaderDefines { get; set; }
 
     /// <summary>Hints about what the shader program is</summary>
     public bool IsInstancingUsed { get; set; }
 
     public ShaderProgramDesc()
     {
+        ShaderName = new string[(int)ShaderType.MaxShaderTypes];
+        ShaderDefines = new string[(int)ShaderType.MaxShaderTypes];
+        CommonShaderDefines = string.Empty;
+        IsInstancingUsed = false;
         Clear();
     }
+
+    private ShaderProgramDesc(string[] shaderName, string[] shaderDefines,
+        string commonShaderDefines, bool isInstancingUsed)
+    {
+        ShaderName = shaderName;
+        ShaderDefines = shaderDefines;
+        CommonShaderDefines = commonShaderDefines;
+        IsInstancingUsed = isInstancingUsed;
+    }
+
+    public readonly object Clone() => new ShaderProgramDesc(
+        (string[])ShaderName.Clone(), (string[])ShaderDefines.Clone(),
+        CommonShaderDefines, IsInstancingUsed);
 
     public void Clear()
     {
@@ -54,7 +71,7 @@ public sealed class ShaderProgramDesc
 }
 
 /// <summary>Generates shader program descritpions for scene and light volume batches.</summary>
-public sealed class ShaderProgramCompositor : Object
+public class ShaderProgramCompositor : Object
 {
     private static readonly string[] GeometryDefines =
     [
@@ -79,7 +96,11 @@ public sealed class ShaderProgramCompositor : Object
     private bool _isCameraReversed;
     private bool _linearColorSpace;
 
-    public void SetSettings(ShaderProgramCompositorSettings settings)
+    public ShaderProgramCompositor()
+    {
+    }
+
+    public void SetSettings(in ShaderProgramCompositorSettings settings)
     {
         _settings = settings;
     }
@@ -93,28 +114,28 @@ public sealed class ShaderProgramCompositor : Object
     }
 
     /// <summary>Process batches</summary>
-    public void ProcessUserBatch(ShaderProgramDesc result, DrawableProcessorPassFlag flags,
+    public void ProcessUserBatch(ref ShaderProgramDesc result, DrawableProcessorPassFlag flags,
         Drawable drawable, Geometry geometry, GeometryType geometryType, Material material, Pass pass,
         Light? light, bool hasShadow, BatchCompositorSubpass subpass)
     {
-        SetupShaders(result, pass);
-        ApplyCommonDefines(result, flags, pass);
-        ApplyGeometryVertexDefines(result, flags, geometry, geometryType);
+        SetupShaders(ref result, pass);
+        ApplyCommonDefines(ref result, flags, pass);
+        ApplyGeometryVertexDefines(ref result, flags, geometry, geometryType);
 
-        ApplyLayoutVertexAndCommonDefinesForUserPass(result, geometry.GetVertexBuffer(0)!);
-        ApplyMaterialPixelDefinesForUserPass(result, material, pass);
+        ApplyLayoutVertexAndCommonDefinesForUserPass(ref result, geometry.GetVertexBuffer(0)!);
+        ApplyMaterialPixelDefinesForUserPass(ref result, material, pass);
 
-        ApplyNormalTangentSpaceDefines(result, geometryType, geometry.GetVertexBuffer(0)!);
+        ApplyNormalTangentSpaceDefines(ref result, geometryType, geometry.GetVertexBuffer(0)!);
 
         if (_isCameraClipped)
             result.AddShaderDefines(ShaderType.VS, "URHO3D_CLIP_PLANE");
 
         var isDeferred = subpass == BatchCompositorSubpass.Deferred;
-        var isDepthOnly = Test(flags, DrawableProcessorPassFlag.DepthOnlyPass);
+        var isDepthOnly = (flags & DrawableProcessorPassFlag.DepthOnlyPass) != 0;
         if (subpass == BatchCompositorSubpass.Light)
             result.AddCommonShaderDefines("URHO3D_ADDITIVE_LIGHT_PASS");
-        else if (Test(flags, DrawableProcessorPassFlag.HasAmbientLighting))
-            ApplyAmbientLightingVertexAndCommonDefinesForUserPass(result, drawable, isDeferred);
+        else if ((flags & DrawableProcessorPassFlag.HasAmbientLighting) != 0)
+            ApplyAmbientLightingVertexAndCommonDefinesForUserPass(ref result, drawable, isDeferred);
 
         if (isDeferred)
             result.AddCommonShaderDefines("URHO3D_NUM_RENDER_TARGETS=4");
@@ -122,37 +143,37 @@ public sealed class ShaderProgramCompositor : Object
             result.AddCommonShaderDefines("URHO3D_NUM_RENDER_TARGETS=0");
 
         if (light is not null)
-            ApplyPixelLightPixelAndCommonDefines(result, light, hasShadow, material.GetSpecular());
+            ApplyPixelLightPixelAndCommonDefines(ref result, light, hasShadow, material.GetSpecular());
     }
 
-    public void ProcessShadowBatch(ShaderProgramDesc result, Geometry geometry, GeometryType geometryType,
+    public void ProcessShadowBatch(ref ShaderProgramDesc result, Geometry geometry, GeometryType geometryType,
         Material material, Pass pass, Light light)
     {
         const DrawableProcessorPassFlag flags = DrawableProcessorPassFlag.DepthOnlyPass;
-        SetupShaders(result, pass);
-        ApplyCommonDefines(result, flags, pass);
-        ApplyGeometryVertexDefines(result, flags, geometry, geometryType);
-        ApplyDefinesForShadowPass(result, light, geometry.GetVertexBuffer(0)!, material, pass);
+        SetupShaders(ref result, pass);
+        ApplyCommonDefines(ref result, flags, pass);
+        ApplyGeometryVertexDefines(ref result, flags, geometry, geometryType);
+        ApplyDefinesForShadowPass(ref result, light, geometry.GetVertexBuffer(0)!, material, pass);
     }
 
-    public void ProcessLightVolumeBatch(ShaderProgramDesc result, Geometry geometry, GeometryType geometryType,
+    public void ProcessLightVolumeBatch(ref ShaderProgramDesc result, Geometry geometry, GeometryType geometryType,
         Pass pass, Light light, bool hasShadow)
     {
         const DrawableProcessorPassFlag flags = DrawableProcessorPassFlag.DisableInstancing;
-        SetupShaders(result, pass);
-        ApplyCommonDefines(result, flags, pass);
-        ApplyGeometryVertexDefines(result, flags, geometry, geometryType);
-        ApplyPixelLightPixelAndCommonDefines(result, light, hasShadow, true);
-        ApplyDefinesForLightVolumePass(result);
+        SetupShaders(ref result, pass);
+        ApplyCommonDefines(ref result, flags, pass);
+        ApplyGeometryVertexDefines(ref result, flags, geometry, geometryType);
+        ApplyPixelLightPixelAndCommonDefines(ref result, light, hasShadow, true);
+        ApplyDefinesForLightVolumePass(ref result);
     }
 
-    private static void SetupShaders(ShaderProgramDesc result, Pass pass)
+    private void SetupShaders(ref ShaderProgramDesc result, Pass pass)
     {
         result.ShaderName[(int)ShaderType.VS] = "v2/" + pass.VertexShader;
         result.ShaderName[(int)ShaderType.PS] = "v2/" + pass.PixelShader;
     }
 
-    private void ApplyCommonDefines(ShaderProgramDesc result, DrawableProcessorPassFlag flags, Pass pass)
+    private void ApplyCommonDefines(ref ShaderProgramDesc result, DrawableProcessorPassFlag flags, Pass pass)
     {
         var caps = GetSubsystem<RenderDevice>()!.GetCaps();
         var canReadDepth = _settings.RenderBufferManager.ReadableDepth && caps.ReadOnlyDepth;
@@ -160,7 +181,7 @@ public sealed class ShaderProgramCompositor : Object
         if (_isCameraReversed)
             result.AddCommonShaderDefines("URHO3D_CAMERA_REVERSED");
 
-        if (!Test(flags, DrawableProcessorPassFlag.DepthOnlyPass))
+        if ((flags & DrawableProcessorPassFlag.DepthOnlyPass) == 0)
         {
             if (_settings.SceneProcessor.CubemapBoxProjection)
                 result.AddCommonShaderDefines("URHO3D_BOX_PROJECTION");
@@ -183,20 +204,20 @@ public sealed class ShaderProgramCompositor : Object
                 result.AddCommonShaderDefines("URHO3D_VERTEX_REFLECTION");
         }
 
-        if (Test(flags, DrawableProcessorPassFlag.NeedReadableDepth) && canReadDepth)
+        if ((flags & DrawableProcessorPassFlag.NeedReadableDepth) != 0 && canReadDepth)
         {
             result.AddCommonShaderDefines("URHO3D_HAS_READABLE_DEPTH");
             if (_isCameraOrthographic)
                 result.AddCommonShaderDefines("URHO3D_ORTHOGRAPHIC_DEPTH");
         }
-        if (Test(flags, DrawableProcessorPassFlag.StereoInstancing))
+        if ((flags & DrawableProcessorPassFlag.StereoInstancing) != 0)
             result.AddCommonShaderDefines("URHO3D_XR");
 
         result.AddShaderDefines(ShaderType.VS, pass.GetEffectiveVertexShaderDefines());
         result.AddShaderDefines(ShaderType.PS, pass.GetEffectivePixelShaderDefines());
     }
 
-    private void ApplyGeometryVertexDefines(ShaderProgramDesc result, DrawableProcessorPassFlag flags,
+    private void ApplyGeometryVertexDefines(ref ShaderProgramDesc result, DrawableProcessorPassFlag flags,
         Geometry geometry, GeometryType geometryType)
     {
         result.IsInstancingUsed = IsInstancingUsed(flags, geometry, geometryType);
@@ -212,7 +233,7 @@ public sealed class ShaderProgramCompositor : Object
             result.AddShaderDefines(ShaderType.VS, $"URHO3D_MAXBONES={Graphics.GetMaxBones()} ");
     }
 
-    private void ApplyPixelLightPixelAndCommonDefines(ShaderProgramDesc result, Light light, bool hasShadow,
+    private void ApplyPixelLightPixelAndCommonDefines(ref ShaderProgramDesc result, Light light, bool hasShadow,
         bool materialHasSpecular)
     {
         if (light.GetShapeTexture() is not null)
@@ -224,7 +245,8 @@ public sealed class ShaderProgramCompositor : Object
 
         if (hasShadow)
         {
-            var maxCascades = light.GetLightType() == LightType.Directional ? Light.MaxCascadeSplits : 1u;
+            var maxCascades = light.GetLightType() == LightType.Directional
+                ? checked((int)Light.MaxCascadeSplits) : 1;
             result.AddCommonShaderDefines("URHO3D_HAS_SHADOW");
             if (maxCascades > 1)
                 result.AddCommonShaderDefines($"URHO3D_MAX_SHADOW_CASCADES={maxCascades}");
@@ -235,7 +257,7 @@ public sealed class ShaderProgramCompositor : Object
         }
     }
 
-    private static void ApplyNormalTangentSpaceDefines(ShaderProgramDesc result, GeometryType geometryType,
+    private void ApplyNormalTangentSpaceDefines(ref ShaderProgramDesc result, GeometryType geometryType,
         VertexBuffer vertexBuffer)
     {
         var (hasNormal, hasTangent) = IsNormalAndTangentAvailable(geometryType, vertexBuffer);
@@ -245,7 +267,7 @@ public sealed class ShaderProgramCompositor : Object
             result.AddCommonShaderDefines("URHO3D_VERTEX_TANGENT_AVAILABLE");
     }
 
-    private static void ApplyLayoutVertexAndCommonDefinesForUserPass(ShaderProgramDesc result,
+    private void ApplyLayoutVertexAndCommonDefinesForUserPass(ref ShaderProgramDesc result,
         VertexBuffer vertexBuffer)
     {
         if (vertexBuffer.HasElement(VertexElementSemantic.Normal))
@@ -260,15 +282,15 @@ public sealed class ShaderProgramCompositor : Object
             result.AddCommonShaderDefines("URHO3D_VERTEX_HAS_COLOR");
     }
 
-    private static void ApplyMaterialPixelDefinesForUserPass(ShaderProgramDesc result, Material material, Pass pass)
+    private void ApplyMaterialPixelDefinesForUserPass(ref ShaderProgramDesc result, Material material, Pass pass)
     {
         foreach (var name in pass.VertexTextureDefines)
-            AddTextureDefine(result, ShaderType.VS, material, name);
+            AddTextureDefine(ref result, ShaderType.VS, material, name);
         foreach (var name in pass.PixelTextureDefines)
-            AddTextureDefine(result, ShaderType.PS, material, name);
+            AddTextureDefine(ref result, ShaderType.PS, material, name);
     }
 
-    private void ApplyAmbientLightingVertexAndCommonDefinesForUserPass(ShaderProgramDesc result,
+    private void ApplyAmbientLightingVertexAndCommonDefinesForUserPass(ref ShaderProgramDesc result,
         Drawable drawable, bool isGeometryBufferPass)
     {
         result.AddCommonShaderDefines("URHO3D_AMBIENT_PASS");
@@ -285,13 +307,13 @@ public sealed class ShaderProgramCompositor : Object
         result.AddShaderDefines(ShaderType.VS, AmbientModeDefines[(int)_settings.SceneProcessor.AmbientMode]);
     }
 
-    private void ApplyDefinesForShadowPass(ShaderProgramDesc result, Light light, VertexBuffer vertexBuffer,
+    private void ApplyDefinesForShadowPass(ref ShaderProgramDesc result, Light light, VertexBuffer vertexBuffer,
         Material material, Pass pass)
     {
         foreach (var name in pass.VertexTextureDefines)
-            AddTextureDefine(result, ShaderType.VS, material, name);
+            AddTextureDefine(ref result, ShaderType.VS, material, name);
         foreach (var name in pass.PixelTextureDefines)
-            AddTextureDefine(result, ShaderType.PS, material, name);
+            AddTextureDefine(ref result, ShaderType.PS, material, name);
 
         // This is not strictly true for unusual geometry types that generate normals from other attributes,
         // but it's good enough for average shadow caster with usual geometry.
@@ -309,7 +331,7 @@ public sealed class ShaderProgramCompositor : Object
             result.AddCommonShaderDefines("URHO3D_NUM_RENDER_TARGETS=0");
     }
 
-    private void ApplyDefinesForLightVolumePass(ShaderProgramDesc result)
+    private void ApplyDefinesForLightVolumePass(ref ShaderProgramDesc result)
     {
         result.AddCommonShaderDefines("URHO3D_LIGHT_VOLUME_PASS");
         if (_isCameraOrthographic)
@@ -320,12 +342,12 @@ public sealed class ShaderProgramCompositor : Object
 
     private bool IsInstancingUsed(DrawableProcessorPassFlag flags, Geometry geometry, GeometryType geometryType)
     {
-        return !Test(flags, DrawableProcessorPassFlag.DisableInstancing)
+        return (flags & DrawableProcessorPassFlag.DisableInstancing) == 0
             && _settings.InstancingBuffer.EnableInstancing
             && geometry.IsInstanced(geometryType);
     }
 
-    private static (bool, bool) IsNormalAndTangentAvailable(GeometryType geometryType, VertexBuffer vertexBuffer)
+    private (bool, bool) IsNormalAndTangentAvailable(GeometryType geometryType, VertexBuffer vertexBuffer)
     {
         return geometryType switch
         {
@@ -343,7 +365,7 @@ public sealed class ShaderProgramCompositor : Object
         return (linearInput ? 1 : 0) + (srgbTexture ? 1 : 0);
     }
 
-    private static void AddTextureDefine(ShaderProgramDesc result, ShaderType shaderType, Material material,
+    private static void AddTextureDefine(ref ShaderProgramDesc result, ShaderType shaderType, Material material,
         string name)
     {
         var texture = material.GetTexture(name);
@@ -359,8 +381,4 @@ public sealed class ShaderProgramCompositor : Object
         result.AddShaderDefines(shaderType, $"URHO3D_TEXTURE_{name.ToUpperInvariant()}={Math.Min(1, hint) + 1}");
     }
 
-    private static bool Test(DrawableProcessorPassFlag flags, DrawableProcessorPassFlag value)
-    {
-        return (flags & value) != 0;
-    }
 }

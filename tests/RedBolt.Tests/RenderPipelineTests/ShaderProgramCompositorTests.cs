@@ -3,6 +3,22 @@ namespace RedBolt.Tests;
 public sealed class ShaderProgramCompositorTests
 {
     [Fact]
+    public void Shader_program_desc_is_a_deep_copyable_value()
+    {
+        var source = new ShaderProgramDesc();
+        source.ShaderName[(int)ShaderType.VS] = "v2/Source";
+        source.AddShaderDefines(ShaderType.VS, "SOURCE");
+        var copy = (ShaderProgramDesc)source.Clone();
+
+        source.ShaderName[(int)ShaderType.VS] = "v2/Changed";
+        source.AddShaderDefines(ShaderType.VS, "CHANGED");
+
+        Assert.True(typeof(ShaderProgramDesc).IsValueType);
+        Assert.Equal("v2/Source", copy.ShaderName[(int)ShaderType.VS]);
+        Assert.Equal("SOURCE ", copy.ShaderDefines[(int)ShaderType.VS]);
+    }
+
+    [Fact]
     public void Shader_program_desc_clear_matches_cpp_defaults()
     {
         var desc = new ShaderProgramDesc();

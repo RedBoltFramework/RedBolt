@@ -91,7 +91,7 @@ public class OutlineScenePass : ScenePass
         desc.ScissorTestEnabled = true;
 
         _shaderProgramDesc.Clear();
-        compositor.ProcessUserBatch(_shaderProgramDesc, Flags,
+        compositor.ProcessUserBatch(ref _shaderProgramDesc, Flags,
             key.Drawable!, key.Geometry!, key.GeometryType, key.Material, key.Pass!,
             null, false, BatchCompositorSubpass.Ignored);
 
@@ -107,8 +107,8 @@ public class OutlineScenePass : ScenePass
         }
 
         var isStereo = IsFlagSet(DrawableProcessorPassFlag.StereoInstancing);
-        builder.SetupInputLayoutAndPrimitiveType(ref desc, _shaderProgramDesc, key.Geometry!, isStereo);
-        builder.SetupShaders(ref desc, _shaderProgramDesc);
+        builder.SetupInputLayoutAndPrimitiveType(ref desc, in _shaderProgramDesc, key.Geometry!, isStereo);
+        builder.SetupShaders(ref desc, ref _shaderProgramDesc);
 
         return true;
     }
@@ -163,7 +163,7 @@ public class OutlineScenePass : ScenePass
     private readonly List<OutlineGroup> _outlineGroups = [];
 
     /// <summary>Internal temporary containers.</summary>
-    private readonly ShaderProgramDesc _shaderProgramDesc = new();
+    private ShaderProgramDesc _shaderProgramDesc = new();
     private readonly List<PipelineBatchByState> _sortedBatches = [];
     private PipelineBatchGroup<PipelineBatchByState> _batchGroup;
 }
