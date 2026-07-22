@@ -16,6 +16,9 @@ public sealed class RenderBufferManagerTargetTests : IDisposable
     {
         Assert.True(typeof(RenderBufferManager).IsClass);
         Assert.False(typeof(RenderBufferManager).IsSealed);
+        Assert.All(
+            typeof(RenderBufferManager).GetMethods().Where(method => method.Name == nameof(RenderBufferManager.CreateColorBuffer)),
+            method => Assert.Equal(typeof(RenderBuffer), method.ReturnType));
     }
 
     [Fact]

@@ -380,7 +380,7 @@ public class RenderPipeline : Component
         private readonly SharedRenderPassState _sharedState = new();
         private RenderPipelineStats _stats;
         private readonly List<OutlineGroup> _outlineGroups = [];
-        private TextureRenderBuffer? _outlineBuffer;
+        private RenderBuffer? _outlineBuffer;
         private CommonFrameInfo _frameInfo = new();
         private RenderPath? _renderPath;
         private Viewport? _viewport;
@@ -444,10 +444,9 @@ public class RenderPipeline : Component
                 ]);
 
                 var outlineParams = new RenderBufferParams(TextureFormat.TexFormatRgba8Unorm, 1, RenderBufferFlag.BilinearFiltering);
-                _outlineBuffer = _renderBufferManager.CreateColorBuffer(outlineParams) as TextureRenderBuffer;
-                _outlineBuffer?.SetEnabled(false);
-                if (_outlineBuffer is not null)
-                    _sharedState.RenderBuffers[OutlineRenderPass.ColorBufferId] = _outlineBuffer;
+                _outlineBuffer = _renderBufferManager.CreateColorBuffer(outlineParams);
+                _outlineBuffer.SetEnabled(false);
+                _sharedState.RenderBuffers[OutlineRenderPass.ColorBufferId] = _outlineBuffer;
             }
 
             var viewportRect = viewport.GetEffectiveRect(renderTarget);
@@ -885,7 +884,7 @@ public class RenderPipeline : Component
             _outlineGroups.Sort(static (lhs, rhs) => lhs.GetRenderOrder().CompareTo(rhs.GetRenderOrder()));
         }
 
-        private TextureRenderBuffer EnsureOutlineBuffer()
+        private RenderBuffer EnsureOutlineBuffer()
         {
             _outlineBuffer ??= _renderBufferManager.CreateColorBuffer(
                 new RenderBufferParams(TextureFormat.TexFormatRgba8Unorm, 1, RenderBufferFlag.BilinearFiltering));

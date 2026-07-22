@@ -503,13 +503,13 @@ public sealed class AutoExposurePass : RenderPass
 
     private sealed class CachedBuffers
     {
-        public required TextureRenderBuffer Color128 { get; init; }
-        public required TextureRenderBuffer Lum64 { get; init; }
-        public required TextureRenderBuffer Lum16 { get; init; }
-        public required TextureRenderBuffer Lum4 { get; init; }
-        public required TextureRenderBuffer Lum1 { get; init; }
-        public required TextureRenderBuffer AdaptedLuminance { get; init; }
-        public required TextureRenderBuffer PreviousAdaptedLuminance { get; init; }
+        public required RenderBuffer Color128 { get; init; }
+        public required RenderBuffer Lum64 { get; init; }
+        public required RenderBuffer Lum16 { get; init; }
+        public required RenderBuffer Lum4 { get; init; }
+        public required RenderBuffer Lum1 { get; init; }
+        public required RenderBuffer AdaptedLuminance { get; init; }
+        public required RenderBuffer PreviousAdaptedLuminance { get; init; }
     }
 
     private struct InputInvSizeParameters
@@ -599,8 +599,8 @@ public sealed class AutoExposurePass : RenderPass
         _isAdaptedLuminanceInitialized = true;
     }
 
-    private void DrawLuminanceStep(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer source,
-        TextureRenderBuffer target, string shaderDefines, Vector2f inputInvSize)
+    private void DrawLuminanceStep(RenderBufferManager renderBufferManager, Graphics graphics, RenderBuffer source,
+        RenderBuffer target, string shaderDefines, Vector2f inputInvSize)
     {
         var inputInvSizeParameters = new InputInvSizeParameters
         {
@@ -771,8 +771,8 @@ public sealed class BloomPass : RenderPass
 
     private sealed class TextureCache
     {
-        public required TextureRenderBuffer Final { get; init; }
-        public required TextureRenderBuffer Temporary { get; init; }
+        public required RenderBuffer Final { get; init; }
+        public required RenderBuffer Temporary { get; init; }
     }
 
     private struct BloomParameters
@@ -813,7 +813,7 @@ public sealed class BloomPass : RenderPass
         }
     }
 
-    private int GatherBrightRegions(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer destination, Vector3f luminanceWeights)
+    private int GatherBrightRegions(RenderBufferManager renderBufferManager, Graphics graphics, RenderBuffer destination, Vector3f luminanceWeights)
     {
         var viewportTexture = renderBufferManager.SecondaryColorTexture;
         if (viewportTexture is null)
@@ -853,8 +853,8 @@ public sealed class BloomPass : RenderPass
         return Math.Clamp(numIterations, 1, _currentParameters.NumIterations);
     }
 
-    private void BlurTexture(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer final,
-        TextureRenderBuffer temporary, Vector3f luminanceWeights)
+    private void BlurTexture(RenderBufferManager renderBufferManager, Graphics graphics, RenderBuffer final,
+        RenderBuffer temporary, Vector3f luminanceWeights)
     {
         var texture = final.GetTexture()!;
         var textureSize = texture.GetParams().Size;
@@ -893,13 +893,13 @@ public sealed class BloomPass : RenderPass
             renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
     }
 
-    private void CopyTexture(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer source, TextureRenderBuffer destination)
+    private void CopyTexture(RenderBufferManager renderBufferManager, Graphics graphics, RenderBuffer source, RenderBuffer destination)
     {
         renderBufferManager.SetRenderTargets(null, destination);
         renderBufferManager.DrawTexture("Downscale bloom", source.GetTexture()!);
     }
 
-    private void ApplyBloom(RenderBufferManager renderBufferManager, Graphics graphics, TextureRenderBuffer bloom, float intensity)
+    private void ApplyBloom(RenderBufferManager renderBufferManager, Graphics graphics, RenderBuffer bloom, float intensity)
     {
         var bloomParameters = CreateBloomParameters(Vector3f.Zero, intensity, renderBufferManager.InvOutputSize);
         graphics.DrawFullscreenQuad(
@@ -1100,9 +1100,9 @@ public sealed class AmbientOcclusionPass : RenderPass
     {
         public Texture2D? Noise { get; init; }
 
-        public required TextureRenderBuffer CurrentTarget { get; set; }
+        public required RenderBuffer CurrentTarget { get; set; }
 
-        public required TextureRenderBuffer PreviousTarget { get; set; }
+        public required RenderBuffer PreviousTarget { get; set; }
     }
 
     private struct AmbientOcclusionParameters

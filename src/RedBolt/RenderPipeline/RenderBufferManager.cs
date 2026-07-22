@@ -95,11 +95,11 @@ public class RenderBufferManager : Object
             and not global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeUnormSrgb;
     }
 
-    public TextureRenderBuffer CreateColorBuffer(RenderBufferParams bufferParams)
-        => new(_renderPipeline, bufferParams, Vector2f.One);
+    public RenderBuffer CreateColorBuffer(RenderBufferParams bufferParams)
+        => new TextureRenderBuffer(_renderPipeline, bufferParams, Vector2f.One);
 
-    public TextureRenderBuffer CreateColorBuffer(RenderBufferParams bufferParams, Vector2f size)
-        => new(_renderPipeline, bufferParams, size);
+    public RenderBuffer CreateColorBuffer(RenderBufferParams bufferParams, Vector2f size)
+        => new TextureRenderBuffer(_renderPipeline, bufferParams, size);
 
     /// <summary>
     /// Swap color buffers used to render to and to read from.
