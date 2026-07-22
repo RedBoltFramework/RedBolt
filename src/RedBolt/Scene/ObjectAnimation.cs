@@ -46,7 +46,7 @@ public class ObjectAnimation : Resource
         ClearAttributeAnimationInfos();
         for (var animationElement = source.GetChild("attributeanimation"); animationElement.NotNull; animationElement = animationElement.GetNext("attributeanimation"))
         {
-            var name = animationElement.GetString("name");
+            var name = animationElement.GetAttribute("name");
             var animation = new ValueAnimation();
             if (!animation.LoadXML(animationElement))
             {
@@ -57,7 +57,7 @@ public class ObjectAnimation : Resource
             AddAttributeAnimation(
                 name,
                 animation,
-                ParseWrapMode(animationElement.GetString("wrapmode")),
+                ParseWrapMode(animationElement.GetAttribute("wrapmode")),
                 animationElement.GetFloat("speed"));
         }
 

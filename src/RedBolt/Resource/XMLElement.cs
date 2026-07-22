@@ -11,9 +11,10 @@ public class XMLElement : ICloneable, IDisposable
 {
     private static readonly Regex NumberPattern = new(@"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?", RegexOptions.Compiled);
 
-    private XMLFile? _file;
-    private XElement? _element;
+    private WeakReference<XMLFile>? _file;
+    private XNode? _node;
     private XPathResultSet? _xpathResultSet;
+    private XPathNavigator? _xpathNode;
     private int _xpathResultIndex;
 
     /// <summary>Construct null element.</summary>
@@ -21,17 +22,23 @@ public class XMLElement : ICloneable, IDisposable
     {
     }
 
-    internal XMLElement(XMLFile? file, XElement? element)
+    internal XMLElement(XMLFile? file, XNode? node)
     {
-        _file = file;
-        _element = element;
+        _file = file is not null ? new WeakReference<XMLFile>(file) : null;
+        _node = node;
     }
 
-    internal XMLElement(XMLFile? file, XPathResultSet resultSet, XElement element, int xpathResultIndex)
+    internal XMLElement(XMLFile file, XPathNavigator xpathNode)
     {
-        _file = file;
-        _element = element;
+        _file = new WeakReference<XMLFile>(file);
+        _xpathNode = xpathNode.Clone();
+    }
+
+    internal XMLElement(XMLFile? file, XPathResultSet resultSet, XPathNavigator xpathNode, int xpathResultIndex)
+    {
+        _file = file is not null ? new WeakReference<XMLFile>(file) : null;
         _xpathResultSet = resultSet;
+        _xpathNode = xpathNode;
         _xpathResultIndex = xpathResultIndex;
     }
 
@@ -41,8 +48,9 @@ public class XMLElement : ICloneable, IDisposable
         return new XMLElement
         {
             _file = _file,
-            _element = _element,
+            _node = _node,
             _xpathResultSet = _xpathResultSet,
+            _xpathNode = _xpathResultSet is not null ? _xpathNode : _xpathNode?.Clone(),
             _xpathResultIndex = _xpathResultIndex
         };
     }
@@ -50,105 +58,82 @@ public class XMLElement : ICloneable, IDisposable
     /// <summary>Destruct.</summary>
     public void Dispose()
     {
-        _file = null;
-        _element = null;
+        _xpathNode = null;
         _xpathResultSet = null;
+        _node = null;
+        _file = null;
         _xpathResultIndex = 0;
     }
 
     public XMLElement CopyFrom(XMLElement rhs)
     {
-        ArgumentNullException.ThrowIfNull(rhs);
         _file = rhs._file;
-        _element = rhs._element;
+        _node = rhs._node;
         _xpathResultSet = rhs._xpathResultSet;
+        _xpathNode = rhs._xpathResultSet is not null ? rhs._xpathNode : rhs._xpathNode?.Clone();
         _xpathResultIndex = rhs._xpathResultIndex;
         return this;
     }
 
-    public bool IsNull => _element is null;
-
-    public bool NotNull => _element is not null;
-
-    public string Name => _element?.Name.LocalName ?? string.Empty;
-
-    public string Value => _element?.Value ?? string.Empty;
-
-    public XElement? Element => _element;
-
-    public void SetName(string name)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (_element is null)
-            return;
-
-        _element.Name = name;
-    }
-
     public XMLElement CreateChild(string name)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (_element is null)
-            return new XMLElement(_file, null);
+        if (File is not { } file || ElementNode is not { } element)
+            return new XMLElement();
 
         var child = new XElement(name);
-        _element.Add(child);
-        return new XMLElement(_file, child);
+        element.Add(child);
+        return new XMLElement(file, child);
     }
 
     public XMLElement GetOrCreateChild(string name)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         return GetChild(name) is { NotNull: true } child ? child : CreateChild(name);
     }
 
     public bool AppendChild(XMLElement other, bool asCopy = false)
     {
-        ArgumentNullException.ThrowIfNull(other);
-        if (_element is null || other._element is null)
+        if (File is null || ElementNode is not { } element || other.GetNode() is not { } otherNode)
             return false;
 
-        var child = asCopy ? new XElement(other._element) : other._element;
-        _element.Add(child);
+        var child = asCopy ? CloneNode(otherNode) : otherNode;
+        element.Add(child);
         return true;
     }
 
     public bool Remove()
     {
-        if (_element?.Parent is null)
+        if (File is null || GetNode()?.Parent is null)
             return false;
 
-        _element.Remove();
+        GetNode()!.Remove();
         return true;
     }
 
     public bool RemoveChild(XMLElement child)
     {
-        ArgumentNullException.ThrowIfNull(child);
-        if (_element is null || child._element?.Parent != _element)
+        if (File is null || ElementNode is not { } element || child.GetNode()?.Parent != element)
             return false;
 
-        child._element.Remove();
+        child.GetNode()!.Remove();
         return true;
     }
 
     public bool RemoveChild(string name)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
         var child = GetChild(name);
         return child.NotNull && RemoveChild(child);
     }
 
     public bool RemoveChildren(string name = "")
     {
-        if (_element is null)
+        if (File is null || ElementNode is not { } element)
             return false;
 
         for (;;)
         {
             var child = string.IsNullOrEmpty(name)
-                ? _element.Elements().LastOrDefault()
-                : _element.Element(name);
+                ? element.Nodes().LastOrDefault()
+                : element.Element(name);
             if (child is null)
                 break;
             child.Remove();
@@ -157,10 +142,11 @@ public class XMLElement : ICloneable, IDisposable
         return true;
     }
 
-    public bool RemoveAttribute(string name)
+    public bool RemoveAttribute(string name = "")
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        var attribute = _element?.Attribute(name);
+        if (File is null)
+            return false;
+        var attribute = XPathAttribute ?? ElementNode?.Attribute(name);
         if (attribute is null)
             return false;
 
@@ -168,14 +154,27 @@ public class XMLElement : ICloneable, IDisposable
         return true;
     }
 
-    public XMLElement SelectSingle(string query) => Select(query).FirstResult();
+    public XMLElement SelectSingle(string query)
+    {
+        if (File is not { } file || GetNavigator() is not { } navigator)
+            return new XMLElement();
+        var result = navigator.SelectSingleNode(query);
+        return result is not null ? new XMLElement(file, result) : new XMLElement();
+    }
 
-    public XMLElement SelectSinglePrepared(XPathQuery query) => query.Evaluate(this).FirstResult();
+    public XMLElement SelectSinglePrepared(XPathQuery query) => query.EvaluateSingle(this);
 
     public XPathResultSet Select(string query)
     {
-        if (_element is null || string.IsNullOrWhiteSpace(query)) return new XPathResultSet();
-        return new XPathResultSet(_element.XPathSelectElements(query), _file);
+        if (File is not { } file || GetNavigator() is not { } navigator)
+            return new XPathResultSet();
+        var expression = XPathExpression.Compile(query);
+        var iterator = navigator.Select(expression);
+        var results = new List<XPathNavigator>();
+        while (iterator.MoveNext())
+            if (iterator.Current is not null)
+                results.Add(iterator.Current.Clone());
+        return new XPathResultSet(results, file);
     }
 
     public XPathResultSet SelectPrepared(XPathQuery query)
@@ -185,10 +184,10 @@ public class XMLElement : ICloneable, IDisposable
 
     public bool SetValue(string value)
     {
-        if (_element is null)
+        if (File is null || ElementNode is not { } element)
             return false;
 
-        foreach (var node in _element.Nodes())
+        foreach (var node in element.Nodes())
         {
             if (node is XText text && node is not XCData)
             {
@@ -197,17 +196,29 @@ public class XMLElement : ICloneable, IDisposable
             }
         }
 
-        _element.Add(new XText(value));
+        element.Add(new XText(value));
         return true;
     }
 
     public bool SetAttribute(string name, string value)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (_element is null)
+        if (File is null)
             return false;
 
-        _element.SetAttributeValue(name, value ?? string.Empty);
+        if (XPathAttribute is { } attribute)
+            attribute.Value = value ?? string.Empty;
+        else if (ElementNode is { } element)
+            element.SetAttributeValue(name, value ?? string.Empty);
+        else
+            return false;
+        return true;
+    }
+
+    public bool SetAttribute(string value)
+    {
+        if (File is null || XPathAttribute is not { } attribute)
+            return false;
+        attribute.Value = value;
         return true;
     }
 
@@ -259,8 +270,6 @@ public class XMLElement : ICloneable, IDisposable
 
     public bool SetMatrix4(string name, Matrix4 value) => SetAttribute(name, value.ToString());
 
-    public bool SetBoundingBox(string name, BoundingBox value) => SetAttribute(name, FormatFloats(value.Min.X, value.Min.Y, value.Min.Z, value.Max.X, value.Max.Y, value.Max.Z));
-
     public bool SetBoundingBox(BoundingBox value)
     {
         if (!SetVector3("min", value.Min))
@@ -268,13 +277,9 @@ public class XMLElement : ICloneable, IDisposable
         return SetVector3("max", value.Max);
     }
 
-    public bool SetResourceRef(string name, ResourceRef value) => SetAttribute(name, value.ToString());
+    public bool SetResourceRef(ResourceRef value) => File is { } file && SetAttribute("value", value.ToString(file.Context));
 
-    public bool SetResourceRefList(string name, ResourceRefList value) => SetAttribute(name, value.ToString());
-
-    public bool SetResourceRef(ResourceRef value) => SetAttribute("value", value.ToString(Context.Instance));
-
-    public bool SetResourceRefList(ResourceRefList value) => SetAttribute("value", value.ToString(Context.Instance));
+    public bool SetResourceRefList(ResourceRefList value) => File is { } file && SetAttribute("value", value.ToString(file.Context));
 
     public bool SetBuffer(string name, ReadOnlySpan<byte> value)
     {
@@ -303,6 +308,7 @@ public class XMLElement : ICloneable, IDisposable
             VariantType.StringVariantMap => SetStringVariantMap(value.GetStringVariantMap()),
             VariantType.ResourceRef => SetResourceRef(value.GetResourceRef()),
             VariantType.ResourceRefList => SetResourceRefList(value.GetResourceRefList()),
+            VariantType.Custom => SetCustomVariantValue(value),
             _ => SetAttribute("value", value.ToString())
         };
     }
@@ -351,59 +357,91 @@ public class XMLElement : ICloneable, IDisposable
         return true;
     }
 
+    public bool IsNull => _node is null && _xpathNode is null;
+
+    public bool NotNull => _node is not null || _xpathNode is not null;
+
+    public string Name
+    {
+        get => XPathAttribute?.Name.LocalName ?? ElementNode?.Name.LocalName ?? string.Empty;
+        set
+        {
+            if (File is not null && ElementNode is { } element)
+                element.Name = value;
+        }
+    }
+
     public bool HasChild(string name)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return _element?.Element(name) is not null;
+        return File is not null && ElementNode?.Element(name) is not null;
     }
 
     public XMLElement GetChild(string name = "")
     {
-        if (_element is null)
-            return new XMLElement(_file, null);
+        if (File is not { } file || ElementNode is not { } element)
+            return new XMLElement();
 
-        var child = string.IsNullOrEmpty(name)
-            ? _element.Elements().FirstOrDefault()
-            : _element.Element(name);
-        return new XMLElement(_file, child);
+        XNode? child = string.IsNullOrEmpty(name)
+            ? element.Nodes().FirstOrDefault()
+            : element.Element(name);
+        return new XMLElement(file, child);
     }
 
     public XMLElement GetNext(string name = "")
     {
-        if (_element is null)
-            return new XMLElement(_file, null);
+        if (File is not { } file || GetNode() is not { } node)
+            return new XMLElement();
 
-        var sibling = string.IsNullOrEmpty(name)
-            ? _element.ElementsAfterSelf().FirstOrDefault()
-            : _element.ElementsAfterSelf(name).FirstOrDefault();
-        return new XMLElement(_file, sibling);
+        XNode? sibling = string.IsNullOrEmpty(name)
+            ? node.NextNode
+            : node.ElementsAfterSelf(name).FirstOrDefault();
+        return new XMLElement(file, sibling);
     }
 
-    public XMLElement GetParent() => new(_file, _element?.Parent);
+    public XMLElement GetParent() => File is { } file ? new XMLElement(file, GetNode()?.Parent) : new XMLElement();
 
-    public int GetNumAttributes() => _element?.Attributes().Count() ?? 0;
+    public int GetNumAttributes() => File is not null ? ElementNode?.Attributes().Count() ?? 0 : 0;
 
     public bool HasAttribute(string name)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return _element?.Attribute(name) is not null;
+        return File is not null && (XPathAttribute is { } attribute
+            ? attribute.Name.LocalName == name
+            : ElementNode?.Attribute(name) is not null);
     }
 
-    public string GetValue() => Value;
-
-    public string GetAttribute(string name)
+    public string Value
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return _element?.Attribute(name)?.Value ?? string.Empty;
+        get
+        {
+            if (File is null || ElementNode is not { } element)
+                return string.Empty;
+            return element.Nodes().FirstOrDefault() switch
+            {
+                XText text => text.Value,
+                XElement child => GetChildValue(child),
+                _ => string.Empty
+            };
+        }
+    }
+
+    public string GetAttribute(string name = "")
+    {
+        if (File is null)
+            return string.Empty;
+        return XPathAttribute?.Value ?? ElementNode?.Attribute(name)?.Value ?? string.Empty;
     }
 
     public string GetAttributeLower(string name) => GetAttribute(name).ToLowerInvariant();
 
     public string GetAttributeUpper(string name) => GetAttribute(name).ToUpperInvariant();
 
+    public CString GetAttributeCString(string name) => new(GetAttribute(name));
+
     public IReadOnlyList<string> GetAttributeNames()
     {
-        return _element?.Attributes().Select(static attribute => attribute.Name.LocalName).ToArray() ?? Array.Empty<string>();
+        return File is not null
+            ? ElementNode?.Attributes().Select(static attribute => attribute.Name.LocalName).ToArray() ?? Array.Empty<string>()
+            : Array.Empty<string>();
     }
 
     public bool GetBool(string name)
@@ -446,7 +484,7 @@ public class XMLElement : ICloneable, IDisposable
         return GetVariantValue(Variant.GetTypeFromName(GetAttribute("type")));
     }
 
-    public Variant GetVariantValue(VariantType type)
+    public Variant GetVariantValue(VariantType type, Context? context = null)
     {
         var result = type switch
         {
@@ -456,11 +494,12 @@ public class XMLElement : ICloneable, IDisposable
             VariantType.StringVariantMap => new Variant(GetStringVariantMap()),
             VariantType.ResourceRef => new Variant(GetResourceRef()),
             VariantType.ResourceRefList => new Variant(GetResourceRefList()),
+            VariantType.Custom => GetCustomVariantValue(context),
             _ => default
         };
 
         if (type is not (VariantType.VariantVector or VariantType.StringVector or VariantType.VariantMap or VariantType.StringVariantMap
-            or VariantType.ResourceRef or VariantType.ResourceRefList))
+            or VariantType.ResourceRef or VariantType.ResourceRefList or VariantType.Custom))
             result.FromString(type, GetAttribute("value"));
 
         return result;
@@ -509,8 +548,6 @@ public class XMLElement : ICloneable, IDisposable
 
     public BoundingBox GetBoundingBox() => new(GetVector3("min"), GetVector3("max"));
 
-    public BoundingBox GetBoundingBox(string name) => ParseBoundingBox(GetAttribute(name));
-
     public Color GetColor(string name) => ParseColor(GetAttribute(name));
 
     public float GetFloat(string name) => float.TryParse(GetAttribute(name), NumberStyles.Float, CultureInfo.InvariantCulture, out var value) ? value : 0.0f;
@@ -534,12 +571,6 @@ public class XMLElement : ICloneable, IDisposable
     public Rect GetRect(string name) => ParseRect(GetAttribute(name));
 
     public Quaternion GetQuaternion(string name) => ParseQuaternion(GetAttribute(name));
-
-    public string GetString(string name) => GetAttribute(name);
-
-    public ResourceRef GetResourceRef(string name) => ResourceRef.Parse(GetAttribute(name));
-
-    public ResourceRefList GetResourceRefList(string name) => ResourceRefList.Parse(GetAttribute(name));
 
     public ResourceRef GetResourceRef() => ResourceRef.Parse(GetAttribute("value"));
 
@@ -577,28 +608,91 @@ public class XMLElement : ICloneable, IDisposable
         };
     }
 
-    // C++ returns an attribute pointer and exposes a static EMPTY element; C# uses string values and nullable elements instead.
-
     public Matrix3 GetMatrix3(string name) => ParseMatrix3(GetAttribute(name));
 
     public Matrix3x4 GetMatrix3x4(string name) => ParseMatrix3x4(GetAttribute(name));
 
     public Matrix4 GetMatrix4(string name) => ParseMatrix4(GetAttribute(name));
 
-    public XMLFile? GetFile() => _file;
+    public XMLFile? File => _file is not null && _file.TryGetTarget(out var file) ? file : null;
+
+    public XNode? Node => GetNode();
+
+    public XPathResultSet? XPathResultSet => _xpathResultSet;
+
+    public XPathNavigator? XPathNode => _xpathNode;
 
     public XMLElement NextResult()
     {
-        if (_xpathResultSet is null || _element is null)
+        if (_xpathResultSet is null || _xpathNode is null)
             return new XMLElement();
         return _xpathResultSet[++_xpathResultIndex];
     }
 
-    public override string ToString() => _element?.ToString() ?? string.Empty;
+    private XElement? ElementNode => GetNode() as XElement;
 
-    private static string FormatFloats(params float[] values)
+    private XAttribute? XPathAttribute => _xpathNode?.UnderlyingObject as XAttribute;
+
+    private XNode? GetNode()
     {
-        return string.Join(' ', values.Select(static value => value.ToString(CultureInfo.InvariantCulture)));
+        return _xpathNode?.UnderlyingObject switch
+        {
+            XAttribute attribute => attribute.Parent,
+            XNode node => node,
+            _ => _node
+        };
+    }
+
+    internal XPathNavigator? GetNavigator()
+    {
+        return _xpathNode?.Clone() ?? _node?.CreateNavigator();
+    }
+
+    private static XNode CloneNode(XNode node)
+    {
+        return node switch
+        {
+            XElement element => new XElement(element),
+            XCData cdata => new XCData(cdata.Value),
+            XText text => new XText(text.Value),
+            XComment comment => new XComment(comment.Value),
+            XProcessingInstruction instruction => new XProcessingInstruction(instruction.Target, instruction.Data),
+            _ => new XText(node.ToString())
+        };
+    }
+
+    private static string GetChildValue(XElement element)
+    {
+        return element.Nodes().FirstOrDefault() switch
+        {
+            XText text => text.Value,
+            XElement child => GetChildValue(child),
+            _ => string.Empty
+        };
+    }
+
+    private bool SetCustomVariantValue(Variant value)
+    {
+        if (!value.TryGetCustom<Serializable>(out var serializable) || serializable is null)
+            return false;
+        SetAttribute("type", serializable.GetTypeName());
+        if (serializable.SaveXML(this))
+            return true;
+        RemoveAttribute("type");
+        RemoveChildren();
+        return false;
+    }
+
+    private Variant GetCustomVariantValue(Context? context)
+    {
+        if (context is null)
+            return default;
+        var typeName = GetAttribute("type");
+        if (string.IsNullOrEmpty(typeName))
+            return default;
+        if (context.CreateObject(new StringHash(typeName)) is not Serializable serializable)
+            return default;
+        return serializable.LoadXML(this) ? Variant.MakeCustomValue(serializable) : default;
     }
 
     private static float[] ParseFloats(string value)
@@ -619,14 +713,6 @@ public class XMLElement : ICloneable, IDisposable
         return NumberPattern.Matches(value)
             .Select(static match => int.TryParse(match.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) ? parsed : 0)
             .ToArray();
-    }
-
-    private static BoundingBox ParseBoundingBox(string value)
-    {
-        var parsed = ParseFloats(value);
-        return parsed.Length >= 6
-            ? new BoundingBox(new Vector3f(parsed[0], parsed[1], parsed[2]), new Vector3f(parsed[3], parsed[4], parsed[5]))
-            : new BoundingBox();
     }
 
     private static Color ParseColor(string value)

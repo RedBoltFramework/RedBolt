@@ -304,7 +304,7 @@ public sealed class Scene : Serializable
 
         if (source.Name == SceneResource.GetXmlRootName())
         {
-            using var archive = new XMLInputArchive(Context, source, source.GetFile());
+            using var archive = new XMLInputArchive(Context, source, source.File);
             using (archive.OpenUnorderedBlock(SceneResource.GetXmlRootName()))
                 SerializeInBlock(archive, false, PrefabSaveFlag.None, PrefabLoadFlag.None);
             return true;

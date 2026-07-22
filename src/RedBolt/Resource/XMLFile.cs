@@ -200,7 +200,7 @@ public class XMLFile : Resource
     {
         return string.IsNullOrEmpty(name) || string.Equals(Document.Root?.Name.LocalName, name, StringComparison.Ordinal)
             ? new XMLElement(this, Document.Root)
-            : new XMLElement(this, null);
+            : new XMLElement(this, (XNode?)null);
     }
 
     /// <summary>Return the XML document.</summary>
@@ -239,8 +239,8 @@ public class XMLFile : Resource
     /// <summary>Patch the XMLFile with another XMLElement. Based on RFC 5261.</summary>
     public void Patch(XMLElement patchElement)
     {
-        if (Document.Root is null || patchElement.Element is null) return;
-        foreach (var patch in patchElement.Element.Elements())
+        if (Document.Root is null || patchElement.Node is not XElement patchRoot) return;
+        foreach (var patch in patchRoot.Elements())
         {
             var selection = patch.Attribute("sel")?.Value;
             if (string.IsNullOrEmpty(selection))

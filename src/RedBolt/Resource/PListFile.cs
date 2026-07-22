@@ -73,7 +73,7 @@ public class PListFile : Resource
             if (!LoadValue(value, valueElement))
                 return false;
 
-            var key = keyElement.GetValue();
+            var key = keyElement.Value;
             if (destination.TryGetValue(key, out var previousValue))
                 previousValue.Dispose();
             destination[key] = new PListValue(value);
@@ -106,15 +106,15 @@ public class PListFile : Resource
         switch (valueType)
         {
             case "string":
-                value.SetString(valueElement.GetValue());
+                value.SetString(valueElement.Value);
                 return true;
 
             case "real":
-                value.SetFloat(float.TryParse(valueElement.GetValue(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var floatValue) ? floatValue : 0.0f);
+                value.SetFloat(float.TryParse(valueElement.Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var floatValue) ? floatValue : 0.0f);
                 return true;
 
             case "integer":
-                value.SetInt(int.TryParse(valueElement.GetValue(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var intValue) ? intValue : 0);
+                value.SetInt(int.TryParse(valueElement.Value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var intValue) ? intValue : 0);
                 return true;
 
             case "true":

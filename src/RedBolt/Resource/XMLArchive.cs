@@ -198,7 +198,7 @@ public class XMLOutputArchive : XMLArchiveBase<XMLOutputArchiveBlock>
         if (Stack.Count == 0)
         {
             if (SerializeRootName)
-                RootElement.SetName(name);
+                RootElement.Name = name;
             Stack.Add(new XMLOutputArchiveBlock(name, type, RootElement, sizeHint));
             return;
         }

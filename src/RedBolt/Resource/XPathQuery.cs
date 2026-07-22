@@ -11,33 +11,34 @@ namespace RedBolt;
 /// <summary>XPath query result set.</summary>
 public class XPathResultSet : IReadOnlyList<XMLElement>, ICloneable, IDisposable
 {
-    private IReadOnlyList<XElement>? _results;
+    private IReadOnlyList<XPathNavigator>? _results;
     private WeakReference<XMLFile>? _file;
 
     /// <summary>Construct empty.</summary>
     public XPathResultSet() : this(null, null) { }
 
     /// <summary>Construct from XML file and XPath node set.</summary>
-    internal XPathResultSet(IEnumerable<XElement> results, XMLFile? file = null)
-        : this(results.ToArray(), file)
+    internal XPathResultSet(IEnumerable<XPathNavigator> results, XMLFile? file = null)
+        : this(results.Select(static result => result.Clone()).ToArray(), file)
     {
     }
 
-    private XPathResultSet(IReadOnlyList<XElement>? results, XMLFile? file)
+    private XPathResultSet(IReadOnlyList<XPathNavigator>? results, XMLFile? file)
     {
         _results = results;
         _file = file is not null ? new WeakReference<XMLFile>(file) : null;
     }
 
     /// <summary>Copy-construct.</summary>
-    public object Clone() => new XPathResultSet(_results?.ToArray(), GetFile());
+    public object Clone() => new XPathResultSet(
+        _results?.Select(static result => result.Clone()).ToArray(), File);
 
     /// <summary>Assignment operator.</summary>
     public XPathResultSet CopyFrom(XPathResultSet rhs)
     {
         ArgumentNullException.ThrowIfNull(rhs);
-        var results = rhs._results?.ToArray();
-        var file = rhs.GetFile();
+        var results = rhs._results?.Select(static result => result.Clone()).ToArray();
+        var file = rhs.File;
         _results = results;
         _file = file is not null ? new WeakReference<XMLFile>(file) : null;
         return this;
@@ -64,7 +65,7 @@ public class XPathResultSet : IReadOnlyList<XMLElement>, ICloneable, IDisposable
             }
 
             return index >= 0 && index < _results.Count
-                ? new XMLElement(GetFile(), this, _results[index], index)
+                ? new XMLElement(File, this, _results[index], index)
                 : new XMLElement();
         }
     }
@@ -81,9 +82,9 @@ public class XPathResultSet : IReadOnlyList<XMLElement>, ICloneable, IDisposable
     public bool Empty() => Count == 0;
 
     /// <summary>Return XPath node set.</summary>
-    public IReadOnlyList<XElement>? GetXPathNodeSet() => _results;
+    public IReadOnlyList<XPathNavigator>? XPathNodeSet => _results;
 
-    private XMLFile? GetFile() => _file is not null && _file.TryGetTarget(out var file) ? file : null;
+    private XMLFile? File => _file is not null && _file.TryGetTarget(out var file) ? file : null;
 
     public IEnumerator<XMLElement> GetEnumerator()
     {
@@ -150,7 +151,7 @@ public class XPathQuery : IDisposable
     public bool SetVariable(string name, XPathResultSet value)
     {
         _variables ??= new XPathVariableContext();
-        var nodeSet = value.GetXPathNodeSet();
+        var nodeSet = value.XPathNodeSet;
         if (nodeSet is null)
             return false;
         return _variables.Set(name, XPathResultType.NodeSet, nodeSet.ToArray());
@@ -240,30 +241,37 @@ public class XPathQuery : IDisposable
     /// <remarks>The XPathResultSet return value must be stored in a lhs variable to ensure the underlying result set is still valid while performing XPathResultSet.FirstResult(), indexing, and XMLElement.NextResult().</remarks>
     public XPathResultSet Evaluate(XMLElement element)
     {
-        if (_query is null || element.GetFile() is null || element.Element is null)
+        if (_query is null || element.File is null || element.GetNavigator() is not { } navigator)
             return new XPathResultSet();
         if (_query.ReturnType != XPathResultType.NodeSet)
             throw new XPathException("Expression does not evaluate to node set");
 
-        var navigator = element.Element.CreateNavigator();
         var iterator = (XPathNodeIterator)navigator.Evaluate(_query);
-        var results = new List<XElement>();
+        var results = new List<XPathNavigator>();
         while (iterator.MoveNext())
         {
-            if (iterator.Current?.UnderlyingObject is XElement result)
-                results.Add(result);
+            if (iterator.Current is not null)
+                results.Add(iterator.Current.Clone());
         }
-        return new XPathResultSet(results, element.GetFile());
+        return new XPathResultSet(results, element.File);
+    }
+
+    internal XMLElement EvaluateSingle(XMLElement element)
+    {
+        if (_query is null || element.File is not { } file || element.GetNavigator() is not { } navigator)
+            return new XMLElement();
+        var result = navigator.SelectSingleNode(_query);
+        return result is not null ? new XMLElement(file, result) : new XMLElement();
     }
 
     /// <summary>Return query string.</summary>
     public string Query => _queryString;
 
     /// <summary>Return compiled XPath query.</summary>
-    public XPathExpression? GetXPathQuery() => _query;
+    public XPathExpression? CompiledQuery => _query;
 
     /// <summary>Return XPath variable set.</summary>
-    public XsltContext? GetXPathVariableSet() => _variables;
+    public XsltContext? XPathVariableSet => _variables;
 
     /// <summary>XPath query string.</summary>
     private string _queryString = string.Empty;
@@ -274,9 +282,9 @@ public class XPathQuery : IDisposable
 
     private object? EvaluateValue(XMLElement element)
     {
-        if (_query is null || element.GetFile() is null || element.Element is null)
+        if (_query is null || element.File is null || element.GetNavigator() is not { } navigator)
             return null;
-        return element.Element.CreateNavigator().Evaluate(_query);
+        return navigator.Evaluate(_query);
     }
 
     private static double ToXPathNumber(object? value)
@@ -399,7 +407,7 @@ public class XPathQuery : IDisposable
                 XPathResultType.Boolean => false,
                 XPathResultType.Number => 0.0,
                 XPathResultType.String => string.Empty,
-                XPathResultType.NodeSet => Array.Empty<XElement>(),
+                XPathResultType.NodeSet => Array.Empty<XPathNavigator>(),
                 _ => string.Empty
             };
         }
@@ -413,16 +421,16 @@ public class XPathQuery : IDisposable
         public object Value { get; set; }
 
         public object Evaluate(XsltContext xsltContext) => VariableType == XPathResultType.NodeSet
-            ? new XElementXPathNodeIterator((IReadOnlyList<XElement>)Value)
+            ? new XElementXPathNodeIterator((IReadOnlyList<XPathNavigator>)Value)
             : Value;
     }
 
     private sealed class XElementXPathNodeIterator : XPathNodeIterator
     {
-        private readonly IReadOnlyList<XElement> _elements;
+        private readonly IReadOnlyList<XPathNavigator> _elements;
         private int _position;
 
-        public XElementXPathNodeIterator(IReadOnlyList<XElement> elements)
+        public XElementXPathNodeIterator(IReadOnlyList<XPathNavigator> elements)
         {
             _elements = elements;
         }
@@ -436,7 +444,7 @@ public class XPathQuery : IDisposable
         public override XPathNodeIterator Clone() => new XElementXPathNodeIterator(this);
 
         public override XPathNavigator? Current => _position > 0 && _position <= _elements.Count
-            ? _elements[_position - 1].CreateNavigator()
+            ? _elements[_position - 1].Clone()
             : null;
 
         public override int CurrentPosition => _position;
