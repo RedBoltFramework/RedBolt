@@ -75,6 +75,37 @@ public sealed class SceneProcessorTests
     }
 
     [Fact]
+    public void PipelineStateBuilderUsesNativePointerAndPropertyShape()
+    {
+        var type = typeof(PipelineStateBuilder);
+        var constructor = Assert.Single(type.GetConstructors());
+        var nullability = new System.Reflection.NullabilityInfoContext();
+
+        Assert.Null(type.GetMethod("GetShaderProgramCompositor"));
+        Assert.Equal(typeof(ShaderProgramCompositor),
+            type.GetProperty(nameof(PipelineStateBuilder.ShaderProgramCompositor))!.PropertyType);
+        foreach (var parameter in constructor.GetParameters())
+            Assert.Equal(System.Reflection.NullabilityState.Nullable, nullability.Create(parameter).ReadState);
+    }
+
+    [Fact]
+    public void PipelineStateBuilderDisposeDestroysReusableState()
+    {
+        var pipeline = new TestRenderPipelineInterface();
+        var processor = new SceneProcessor(pipeline, "unused", null, null);
+        var builder = processor.GetPipelineStateBuilder();
+        SetPrivateField(builder, "_pipelineStateDesc", new GraphicsPipelineStateDesc { DebugName = "retained" });
+        var shaderProgramDesc = GetPrivateField<ShaderProgramDesc>(builder, "_shaderProgramDesc");
+        shaderProgramDesc.AddCommonShaderDefines("RETAINED");
+
+        processor.Dispose();
+
+        Assert.Equal(string.Empty,
+            GetPrivateField<GraphicsPipelineStateDesc>(builder, "_pipelineStateDesc").DebugName);
+        Assert.Equal(string.Empty, shaderProgramDesc.CommonShaderDefines);
+    }
+
+    [Fact]
     public void BatchCompositor_dispose_releases_pipeline_subscriptions()
     {
         var pipeline = new TestRenderPipelineInterface();
@@ -111,6 +142,22 @@ public sealed class SceneProcessorTests
         Assert.Equal(0, pipeline.RenderEndSubscriberCount);
         Assert.Equal(0, pipeline.PipelineStatesInvalidatedSubscriberCount);
         Assert.Equal(0, pipeline.CollectStatisticsSubscriberCount);
+    }
+
+    private static T GetPrivateField<T>(object instance, string fieldName)
+    {
+        var field = instance.GetType().GetField(fieldName,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        return Assert.IsType<T>(field.GetValue(instance));
+    }
+
+    private static void SetPrivateField<T>(object instance, string fieldName, T value)
+    {
+        var field = instance.GetType().GetField(fieldName,
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        field.SetValue(instance, value);
     }
 
     private sealed class TestRenderPipelineInterface : IRenderPipelineInterface

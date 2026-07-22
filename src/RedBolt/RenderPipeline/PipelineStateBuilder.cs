@@ -11,14 +11,14 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
     private readonly ShadowMapAllocator? _shadowMapAllocator;
     private readonly InstancingBuffer? _instancingBuffer;
 
-    private readonly Graphics? _graphics;
-    private readonly RenderDevice? _renderDevice;
-    private readonly PipelineStateCache? _pipelineStateCache;
+    private readonly Graphics _graphics;
+    private readonly RenderDevice _renderDevice;
+    private readonly PipelineStateCache _pipelineStateCache;
     private readonly ShaderProgramCompositor _compositor;
 
     /// <summary>Re-used objects.</summary>
-    private GraphicsPipelineStateDesc _pipelineStateDesc = new();
-    private readonly ShaderProgramDesc _shaderProgramDesc = new();
+    private GraphicsPipelineStateDesc _pipelineStateDesc;
+    private readonly ShaderProgramDesc _shaderProgramDesc;
 
     public PipelineStateBuilder(SceneProcessor? sceneProcessor, CameraProcessor? cameraProcessor,
         ShadowMapAllocator? shadowMapAllocator, InstancingBuffer? instancingBuffer)
@@ -27,33 +27,39 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
         _cameraProcessor = cameraProcessor;
         _shadowMapAllocator = shadowMapAllocator;
         _instancingBuffer = instancingBuffer;
-        _graphics = GetSubsystem<Graphics>();
-        _renderDevice = GetSubsystem<RenderDevice>();
-        _pipelineStateCache = GetSubsystem<PipelineStateCache>();
+        _graphics = GetSubsystem<Graphics>()!;
+        _renderDevice = GetSubsystem<RenderDevice>()!;
+        _pipelineStateCache = GetSubsystem<PipelineStateCache>()!;
         _compositor = new ShaderProgramCompositor();
+        _pipelineStateDesc = new GraphicsPipelineStateDesc();
+        _shaderProgramDesc = new ShaderProgramDesc();
+    }
+
+    public override void Dispose()
+    {
+        _shaderProgramDesc.Clear();
+        _pipelineStateDesc = new GraphicsPipelineStateDesc();
+        _compositor.Dispose();
+        base.Dispose();
     }
 
     public void SetSettings(ShaderProgramCompositorSettings settings) => _compositor.SetSettings(settings);
 
     public void UpdateFrameSettings(bool linearColorSpace)
     {
-        if (_cameraProcessor is not null)
-            _compositor.SetFrameSettings(_cameraProcessor, linearColorSpace);
+        _compositor.SetFrameSettings(_cameraProcessor!, linearColorSpace);
     }
 
     /// <summary>Implement BatchStateCacheCallback.</summary>
     public PipelineState? CreateBatchPipelineState(
         BatchStateCreateKey key, BatchStateCreateContext ctx, PipelineStateOutputDesc outputDesc)
     {
-        if (_sceneProcessor is null || _pipelineStateCache is null || _renderDevice is null)
-            return null;
-
         var caps = _renderDevice.GetCaps();
 
         var light = key.PixelLight?.Light;
         var hasShadow = key.PixelLight is not null && key.PixelLight.HasShadow;
 
-        var batchCompositorPass = _sceneProcessor.GetUserPass(ctx.Pass);
+        var batchCompositorPass = _sceneProcessor!.GetUserPass(ctx.Pass);
         var isShadowPass = batchCompositorPass is null && ctx.SubpassIndex == BatchCompositor.ShadowSubpass;
         var isLightVolumePass = batchCompositorPass is null && ctx.SubpassIndex == BatchCompositor.LitVolumeSubpass;
         var isRefractionPass =
@@ -67,29 +73,23 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
 
         if (isShadowPass)
         {
-            if (key.PixelLight is null || key.Geometry is null || key.Material is null || key.Pass is null)
-                return null;
-
             _compositor.ProcessShadowBatch(_shaderProgramDesc,
-                key.Geometry, key.GeometryType, key.Material, key.Pass, light!);
-            SetupShadowPassState(ctx.ShadowSplitIndex, key.PixelLight, key.Material, key.Pass);
+                key.Geometry!, key.GeometryType, key.Material!, key.Pass!, light!);
+            SetupShadowPassState(ctx.ShadowSplitIndex, key.PixelLight!, key.Material!, key.Pass!);
 
-            SetupSamplersForUserOrShadowPass(key.Material, false, false, false);
-            SetupInputLayoutAndPrimitiveType(ref _pipelineStateDesc, _shaderProgramDesc, key.Geometry, false);
+            SetupSamplersForUserOrShadowPass(key.Material!, false, false, false);
+            SetupInputLayoutAndPrimitiveType(ref _pipelineStateDesc, _shaderProgramDesc, key.Geometry!, false);
             SetupShaders(ref _pipelineStateDesc, _shaderProgramDesc);
         }
         else if (isLightVolumePass)
         {
-            if (key.PixelLight is null || key.Geometry is null || key.Pass is null)
-                return null;
-
             _compositor.ProcessLightVolumeBatch(_shaderProgramDesc,
-                key.Geometry, key.GeometryType, key.Pass, light!, hasShadow);
-            SetupLightVolumePassState(key.PixelLight);
+                key.Geometry!, key.GeometryType, key.Pass!, light!, hasShadow);
+            SetupLightVolumePassState(key.PixelLight!);
 
-            SetupLightSamplers(key.PixelLight);
+            SetupLightSamplers(key.PixelLight!);
             SetupGeometryBufferSamplers();
-            SetupInputLayoutAndPrimitiveType(ref _pipelineStateDesc, _shaderProgramDesc, key.Geometry, false);
+            SetupInputLayoutAndPrimitiveType(ref _pipelineStateDesc, _shaderProgramDesc, key.Geometry!, false);
             SetupShaders(ref _pipelineStateDesc, _shaderProgramDesc);
 
             _pipelineStateDesc.ReadOnlyDepth = true;
@@ -101,18 +101,15 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
         }
         else if (batchCompositorPass is not null)
         {
-            if (key.Drawable is null || key.Geometry is null || key.Material is null || key.Pass is null)
-                return null;
-
             var flags = batchCompositorPass.Flags;
             var subpass = (BatchCompositorSubpass)ctx.SubpassIndex;
             var lightMaskToStencil = subpass == BatchCompositorSubpass.Deferred
                 && (flags & DrawableProcessorPassFlag.DeferredLightMaskToStencil) != 0;
             var hasAmbient = (flags & DrawableProcessorPassFlag.HasAmbientLighting) != 0;
-            var hasLightmap = key.Drawable.GetGlobalIlluminationType() == GlobalIlluminationType.UseLightMap;
+            var hasLightmap = key.Drawable!.GetGlobalIlluminationType() == GlobalIlluminationType.UseLightMap;
 
-            _compositor.ProcessUserBatch(_shaderProgramDesc, flags, key.Drawable, key.Geometry, key.GeometryType,
-                key.Material, key.Pass, light, hasShadow, subpass);
+            _compositor.ProcessUserBatch(_shaderProgramDesc, flags, key.Drawable, key.Geometry!, key.GeometryType,
+                key.Material!, key.Pass!, light, hasShadow, subpass);
             SetupUserPassState(key.Drawable, key.Material, key.Pass, lightMaskToStencil);
 
             // Support negative lights
@@ -131,7 +128,7 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
 
             SetupLightSamplers(key.PixelLight);
             SetupSamplersForUserOrShadowPass(key.Material, hasLightmap, hasAmbient, isRefractionPass);
-            SetupInputLayoutAndPrimitiveType(ref _pipelineStateDesc, _shaderProgramDesc, key.Geometry, isStereoPass);
+            SetupInputLayoutAndPrimitiveType(ref _pipelineStateDesc, _shaderProgramDesc, key.Geometry!, isStereoPass);
             SetupShaders(ref _pipelineStateDesc, _shaderProgramDesc);
         }
 
@@ -141,9 +138,6 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
     public PipelineState? CreateBatchPipelineStatePlaceholder(
         int vertexStride, PipelineStateOutputDesc outputDesc)
     {
-        if (_graphics is null || _pipelineStateCache is null)
-            return null;
-
         var desc = new GraphicsPipelineStateDesc
         {
             DebugName = $"Pipeline State Placeholder for vertex stride {vertexStride}",
@@ -177,7 +171,7 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
         if (shaderProgramDesc.IsInstancingUsed)
         {
             GraphicsUtils.InitializeInputLayoutAndPrimitiveType(ref pipelineStateDesc, geometry,
-                _instancingBuffer?.VertexBuffer);
+                _instancingBuffer!.VertexBuffer);
 
             if (isStereoPass)
             {
@@ -201,9 +195,6 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
 
     public void SetupShaders(ref GraphicsPipelineStateDesc pipelineStateDesc, ShaderProgramDesc shaderProgramDesc)
     {
-        if (_graphics is null)
-            return;
-
         for (var i = 0; i < shaderProgramDesc.ShaderDefines.Length; ++i)
             shaderProgramDesc.ShaderDefines[i] += shaderProgramDesc.CommonShaderDefines;
 
@@ -215,52 +206,19 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
             shaderProgramDesc.ShaderDefines[(int)ShaderType.PS]);
     }
 
-    public ShaderProgramCompositor GetShaderProgramCompositor() => _compositor;
+    public ShaderProgramCompositor ShaderProgramCompositor => _compositor;
 
     /// <summary>State builder helpers.</summary>
     private void ClearState()
     {
-        _pipelineStateDesc.DebugName = string.Empty;
-        _pipelineStateDesc.ColorWriteEnabled = false;
-        _pipelineStateDesc.BlendMode = default;
-        _pipelineStateDesc.AlphaToCoverageEnabled = false;
-        _pipelineStateDesc.FillMode = default;
-        _pipelineStateDesc.CullMode = default;
-        _pipelineStateDesc.ConstantDepthBias = 0;
-        _pipelineStateDesc.SlopeScaledDepthBias = 0;
-        _pipelineStateDesc.ScissorTestEnabled = false;
-        _pipelineStateDesc.LineAntiAlias = false;
-        _pipelineStateDesc.DepthWriteEnabled = false;
-        _pipelineStateDesc.StencilTestEnabled = false;
-        _pipelineStateDesc.DepthCompareFunction = default;
-        _pipelineStateDesc.StencilCompareFunction = default;
-        _pipelineStateDesc.StencilOperationOnPassed = default;
-        _pipelineStateDesc.StencilOperationOnStencilFailed = default;
-        _pipelineStateDesc.StencilOperationOnDepthFailed = default;
-        _pipelineStateDesc.StencilCompareMask = 0;
-        _pipelineStateDesc.StencilWriteMask = 0;
-        _pipelineStateDesc.InputLayout = default;
-        _pipelineStateDesc.PrimitiveType = default;
-        _pipelineStateDesc.Output.NumRenderTargets = 0;
-        _pipelineStateDesc.Output.DepthStencilFormat = TextureFormat.TexFormatUnknown;
-        _pipelineStateDesc.Output.MultiSample = 1;
-        _pipelineStateDesc.Samplers.Clear();
-        _pipelineStateDesc.ReadOnlyDepth = false;
-        _pipelineStateDesc.VertexShader = null;
-        _pipelineStateDesc.PixelShader = null;
-        _pipelineStateDesc.DomainShader = null;
-        _pipelineStateDesc.HullShader = null;
-        _pipelineStateDesc.GeometryShader = null;
+        _pipelineStateDesc = new GraphicsPipelineStateDesc();
         _shaderProgramDesc.Clear();
     }
 
     private void SetupShadowPassState(int splitIndex, LightProcessor lightProcessor,
         Material material, Pass pass)
     {
-        if (_shadowMapAllocator is null)
-            return;
-
-        var settings = _shadowMapAllocator.Settings;
+        var settings = _shadowMapAllocator!.Settings;
         ref readonly var lightParams = ref lightProcessor.Params;
         var biasMultiplier = lightParams.ShadowDepthBiasMultiplier[splitIndex] * settings.DepthBiasScale;
         var biasParameters = lightProcessor.Light.GetShadowBias();
@@ -321,7 +279,6 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
     private void SetupUserPassState(Drawable drawable,
         Material material, Pass pass, bool lightMaskToStencil)
     {
-        _ = drawable;
         _pipelineStateDesc.DebugName = $"User Pass '{pass.Name}' for material '{material.Name}'";
 
         _pipelineStateDesc.DepthWriteEnabled = pass.DepthWrite;
@@ -334,10 +291,10 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
         _pipelineStateDesc.ConstantDepthBias = depthBias.ConstantBias;
         _pipelineStateDesc.SlopeScaledDepthBias = depthBias.SlopeScaledBias;
 
-        var cameraFill = _cameraProcessor?.CameraFillMode ?? FillMode.Solid;
+        var cameraFill = _cameraProcessor!.CameraFillMode;
         _pipelineStateDesc.FillMode = (FillMode)Math.Max((int)cameraFill, (int)material.GetFillMode());
         _pipelineStateDesc.CullMode = GetEffectiveCullMode(pass.CullMode,
-            material.GetCullMode(), _cameraProcessor?.IsCameraReversed ?? false);
+            material.GetCullMode(), _cameraProcessor.IsCameraReversed);
 
         if (lightMaskToStencil)
         {
@@ -357,8 +314,8 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
             if (light.GetShapeTexture() is { } shapeTexture)
                 _pipelineStateDesc.Samplers.Add(ShaderResources.LightShape, shapeTexture.GetSamplerStateDesc());
         }
-        if (lightProcessor is not null && lightProcessor.HasShadow && _shadowMapAllocator is not null)
-            _pipelineStateDesc.Samplers.Add(ShaderResources.ShadowMap, _shadowMapAllocator.SamplerStateDesc);
+        if (lightProcessor is not null && lightProcessor.HasShadow)
+            _pipelineStateDesc.Samplers.Add(ShaderResources.ShadowMap, _shadowMapAllocator!.SamplerStateDesc);
     }
 
     private void SetupSamplersForUserOrShadowPass(

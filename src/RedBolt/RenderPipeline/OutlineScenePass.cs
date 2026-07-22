@@ -74,7 +74,7 @@ public class OutlineScenePass : ScenePass
     public override bool CreatePipelineState(ref GraphicsPipelineStateDesc desc, PipelineStateBuilder? builder,
         BatchStateCreateKey key, BatchStateCreateContext ctx)
     {
-        var compositor = builder!.GetShaderProgramCompositor();
+        var compositor = builder!.ShaderProgramCompositor;
 
         desc.DebugName = $"Outline Pass for material '{key.Material!.GetName()}'";
 
