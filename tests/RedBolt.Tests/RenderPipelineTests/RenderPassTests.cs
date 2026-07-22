@@ -67,14 +67,14 @@ public sealed class RenderPassTests
 
     private sealed class TrackingRenderPass : RenderPass
     {
-        private RenderBuffer? _buffer;
+        private WeakReference<RenderBuffer>? _buffer;
 
         public TrackingRenderPass()
         {
             _passName = "Tracking";
         }
 
-        public RenderBuffer? Buffer => _buffer;
+        public RenderBuffer? Buffer => _buffer is not null && _buffer.TryGetTarget(out var buffer) ? buffer : null;
 
         public void Connect(SharedRenderPassState sharedState, bool required)
         {

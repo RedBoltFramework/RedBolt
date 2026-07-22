@@ -136,23 +136,6 @@ public abstract class RenderPass : Serializable
         return ref Variant.Empty;
     }
 
-    protected void ConnectToRenderBuffer(ref RenderBuffer? renderBuffer, StringHash name, SharedRenderPassState sharedState, bool required = true)
-    {
-        if (renderBuffer is null)
-        {
-            if (!sharedState.RenderBuffers.TryGetValue(name, out var value) || value is null)
-            {
-                if (required)
-                {
-                    Log.GetLogger().LogError("Render buffer '{RenderBuffer}' required by render pass '{RenderPass}' was not found.", name, GetPassName());
-                }
-                return;
-            }
-
-            renderBuffer = value;
-        }
-    }
-
     protected void ConnectToRenderBuffer(ref WeakReference<RenderBuffer>? renderBuffer, StringHash name,
         SharedRenderPassState sharedState, bool required = true)
     {

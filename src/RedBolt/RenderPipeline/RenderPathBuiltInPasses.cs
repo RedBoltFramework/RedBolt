@@ -1475,11 +1475,16 @@ public class AmbientOcclusionPass : RenderPass
 /// <summary>
 /// Post-processing pass that renders outline from the color buffer.
 /// </summary>
-public sealed class OutlineRenderPass : RenderPass
+public class OutlineRenderPass : RenderPass
 {
     private const string DefaultComment = "Draw outline of the contents of the color buffer";
     public static readonly StringHash ColorBufferId = "outline";
-    private RenderBuffer? _colorBuffer;
+    private static readonly NamedSamplerStateDesc[] Samplers =
+        [(ShaderResources.Albedo, SamplerStateDesc.Bilinear())];
+    private readonly ShaderParameterDesc[] _parameters =
+        [new() { Name = new StringHash("InputInvSize") }];
+    private readonly ShaderResourceDesc[] _resources =
+        [new() { Name = ShaderResources.Albedo }];
 
     public OutlineRenderPass()
     {
@@ -1505,43 +1510,71 @@ public sealed class OutlineRenderPass : RenderPass
 
     public override void Render(SharedRenderPassState sharedState)
     {
-        base.Render(sharedState);
+        ConnectToRenderBuffer(ref _colorBuffer, ColorBufferId, sharedState);
 
-        ConnectToRenderBuffer(ref _colorBuffer, ColorBufferId, sharedState, required: false);
-
-        if (_colorBuffer?.GetTexture() is not { } texture
-            || sharedState.RenderBufferManager is not { } renderBufferManager)
-        {
+        if (_colorBuffer is null || !_colorBuffer.TryGetTarget(out var colorBuffer) || !colorBuffer.IsEnabled)
             return;
-        }
 
-        var graphics = GetSubsystem<Graphics>()!;
+        RestoreCache(sharedState);
 
-        var outlineParameters = new OutlineParameters
-        {
-            InputInvSize = Vector2f.One / new Vector2f(texture.GetParams().Size.X, texture.GetParams().Size.Y)
-        };
+        var renderBufferManager = sharedState.RenderBufferManager!;
+        var inLinearSpace = renderBufferManager.IsLinearColorSpace;
+        var pipelineState = inLinearSpace ? _pipelineStates!.Value.Linear : _pipelineStates!.Value.Gamma;
+
+        var texture = colorBuffer.GetTexture()!;
+        var textureSize = texture.GetParams().Size;
+        var inputInvSize = Vector2f.One / new Vector2f(textureSize.X, textureSize.Y);
+
+        var parameter = _parameters[0];
+        parameter.Value.Dispose();
+        parameter.Value = new Variant(inputInvSize);
+        _parameters[0] = parameter;
+        _resources[0].Texture = texture;
 
         renderBufferManager.SetOutputRenderTargets();
-        graphics.DrawFullscreenQuad(
-            "Apply outline",
-            "P_Outline",
-            renderBufferManager.IsLinearColorSpace ? "URHO3D_GAMMA_CORRECTION" : string.Empty,
-            BlendMode.Alpha,
-            bilinearColorSampler: true,
-            texture,
-            secondaryTexture: null,
-            depthTexture: null,
-            outlineParameters,
-            renderBufferManager.InvOutputSize,
-            renderBufferManager.DefaultClipToUVSpaceOffsetAndScale);
+        renderBufferManager.DrawViewportQuad("Apply outline", pipelineState, _resources, _parameters);
     }
 
-    private struct OutlineParameters
+    private void InvalidateCache()
     {
-        [ShaderParameterName("InputInvSize")]
-        public Vector2f InputInvSize;
+        _pipelineStates = null;
     }
+
+    private void RestoreCache(SharedRenderPassState sharedState)
+    {
+        if (_pipelineStates.HasValue)
+            return;
+
+        _pipelineStates = new PipelineStateCache();
+
+        var pipelineStates = _pipelineStates.Value;
+        pipelineStates.Linear = sharedState.RenderBufferManager!.CreateQuadPipelineState(
+            BlendMode.Alpha, "v2/P_Outline", "URHO3D_GAMMA_CORRECTION", Samplers);
+        _pipelineStates = pipelineStates;
+        pipelineStates.Gamma = sharedState.RenderBufferManager.CreateQuadPipelineState(
+            BlendMode.Alpha, "v2/P_Outline", string.Empty, Samplers);
+        _pipelineStates = pipelineStates;
+    }
+
+    private struct PipelineStateCache
+    {
+        public StaticPipelineStateId Gamma { get; set; }
+        public StaticPipelineStateId Linear { get; set; }
+    }
+
+    public override void Dispose()
+    {
+        _colorBuffer = null;
+        _pipelineStates = null;
+        _resources[0].Texture = null;
+        var parameter = _parameters[0];
+        parameter.Dispose();
+        _parameters[0] = parameter;
+        base.Dispose();
+    }
+
+    private PipelineStateCache? _pipelineStates;
+    private WeakReference<RenderBuffer>? _colorBuffer;
 }
 
 [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]

@@ -475,6 +475,47 @@ public sealed class RenderPipelineTests : IDisposable
     }
 
     [Fact]
+    public void Render_pipeline_keeps_outline_buffer_published_during_update()
+    {
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RedBolt.Tests.RenderPipelineTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 64
+        };
+        RbfxTestData.AddResourceDirs(_fixture.Resources);
+        _fixture.InitializeGraphics(parameters);
+        try
+        {
+            var scene = new Scene();
+            scene.CreateComponent<Octree>();
+            var renderPipeline = scene.CreateComponent<RenderPipeline>();
+            var renderPath = new RenderPath();
+            renderPath.SetName("RenderPaths/Test.xml");
+            renderPath.AddPass(new OutlineRenderPass());
+            renderPipeline.SetRenderPath(renderPath);
+
+            var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
+            var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
+            var view = renderPipeline.Instantiate();
+
+            Assert.True(view.Define(null, viewport, _fixture.Graphics));
+
+            view.Update(_fixture.Graphics);
+
+            var sharedState = Assert.IsType<SharedRenderPassState>(GetPrivateField(view, "_sharedState"));
+            Assert.True(sharedState.RenderBuffers.TryGetValue(OutlineRenderPass.ColorBufferId, out var outlineBuffer));
+            Assert.False(outlineBuffer.IsEnabled);
+        }
+        finally
+        {
+            _fixture.ResetGraphics();
+            RbfxTestData.RemoveResourceDirs(_fixture.Resources);
+        }
+    }
+
+    [Fact]
     public void Render_buffer_manager_supports_secondary_color_buffer_when_requested()
     {
         using var manager = CreateRenderBufferManager();

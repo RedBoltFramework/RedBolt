@@ -548,7 +548,6 @@ public class RenderPipeline : Component
 
             _sharedState.RenderPipelineInterface = this;
             _sharedState.RenderCamera = _viewport.GetCamera() is { } camera ? new WeakReference<Camera>(camera) : null;
-            _sharedState.RenderBuffers.Clear();
 
             if (_renderPath is not null)
             {

@@ -439,6 +439,24 @@ public sealed class RenderPathTests
     }
 
     [Fact]
+    public void Outline_render_pass_uses_native_cache_and_weak_buffer_shapes()
+    {
+        var pipelineStateCacheType = typeof(OutlineRenderPass).GetNestedType(
+            "PipelineStateCache", System.Reflection.BindingFlags.NonPublic)!;
+        var pipelineStatesField = typeof(OutlineRenderPass).GetField(
+            "_pipelineStates", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        var colorBufferField = typeof(OutlineRenderPass).GetField(
+            "_colorBuffer", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+
+        Assert.False(typeof(OutlineRenderPass).IsSealed);
+        Assert.True(pipelineStateCacheType.IsValueType);
+        Assert.Equal(typeof(Nullable<>).MakeGenericType(pipelineStateCacheType), pipelineStatesField.FieldType);
+        Assert.Equal(typeof(WeakReference<RenderBuffer>), colorBufferField.FieldType);
+        Assert.Null(typeof(OutlineRenderPass).GetNestedType(
+            "OutlineParameters", System.Reflection.BindingFlags.NonPublic));
+    }
+
+    [Fact]
     public void Full_screen_shader_pass_uses_native_pod_cache_shape()
     {
         var attributesType = typeof(FullScreenShaderPass).GetNestedType(
