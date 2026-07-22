@@ -12,6 +12,7 @@ sealed class SkeletalAnimationApplication : Application
     private Node? _cameraNode;
     private bool _drawDebug;
     private ContextEventSubscription? _dearImGuiSubscription;
+    private ContextEventSubscription? _postRenderSubscription;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -29,6 +30,7 @@ sealed class SkeletalAnimationApplication : Application
         _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
         CreateScene();
         Renderer.SetViewport(0, new Viewport(_scene!, _cameraNode!.GetComponent<Camera>()!));
+        _postRenderSubscription = Context.SubscribeToEvent<CoreEvents.PostRenderUpdateEvent>((ref CoreEvents.PostRenderUpdateEvent _) => HandlePostRenderUpdate());
         Input.SetMouseMode(MouseMode.Free);
         Input.SetMouseVisible(true);
     }
@@ -61,11 +63,11 @@ sealed class SkeletalAnimationApplication : Application
         light.SetShadowBias(new BiasParameters(0.00025f, 0.5f));
         light.SetShadowCascade(new CascadeParameters(10.0f, 50.0f, 200.0f, 0.0f, 0.8f));
 
-        const uint numModels = 30;
+        const int numModels = 30;
         const float modelMoveSpeed = 2.0f;
         const float modelRotateSpeed = 100.0f;
         var bounds = new BoundingBox(new Vector3f(-20.0f, 0.0f, -20.0f), new Vector3f(20.0f, 0.0f, 20.0f));
-        for (var i = 0u; i < numModels; ++i)
+        for (var i = 0; i < numModels; ++i)
         {
             var modelNode = _scene.CreateChild("Jill");
             modelNode.SetPosition(new Vector3f(MathDefs.Random(40.0f) - 20.0f, 0.0f, MathDefs.Random(40.0f) - 20.0f));
@@ -90,10 +92,24 @@ sealed class SkeletalAnimationApplication : Application
     {
         if (Input.ExitRequested || Input.GetKeyPress(Key.Escape)) Exit();
         if (Input.GetKeyPress(Key.Space)) _drawDebug = !_drawDebug;
-        // TODO: port Renderer::DrawDebugGeometry(false) when the managed renderer exposes it.
     }
 
-    protected override void Stop() { _dearImGuiSubscription?.Dispose(); _dearImGuiSubscription = null; }
+    private void HandlePostRenderUpdate()
+    {
+        // If draw debug mode is enabled, draw viewport debug geometry, which will show eg. drawable bounding boxes and skeleton
+        // bones. Note that debug geometry has to be separately requested each frame. Disable depth test so that we can see the
+        // bones properly
+        if (_drawDebug)
+            Renderer.DrawDebugGeometry(false);
+    }
+
+    protected override void Stop()
+    {
+        _postRenderSubscription?.Dispose();
+        _postRenderSubscription = null;
+        _dearImGuiSubscription?.Dispose();
+        _dearImGuiSubscription = null;
+    }
 
     private void DrawInstructions()
     {
