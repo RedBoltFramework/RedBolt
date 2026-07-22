@@ -776,7 +776,9 @@ public sealed class RenderBufferManager
             GetColorTextureFormat(_settings.ColorSpace, fallbackOutputColorFormat),
             fallbackMultiSample,
             fallbackFlags);
-        var nextDepthStencilOutputParams = new RenderBufferParams(outputDepthStencilTarget.GetFormat(), fallbackMultiSample, RenderBufferFlag.Persistent);
+        var nextDepthStencilOutputParams = nextColorOutputParams;
+        nextDepthStencilOutputParams.Flags |= RenderBufferFlag.Persistent;
+        nextDepthStencilOutputParams.TextureFormat = outputDepthStencilTarget.GetFormat();
         var outputTextureLinear = renderTarget?.ColorTexture?.GetLinear() ?? false;
         var nextLinearColorSpace = IsManagedOutputLinearColorSpace(nextColorOutputParams.TextureFormat, outputTextureLinear);
         var componentType = RenderAPIUtils.GetTextureFormatInfo(nextColorOutputParams.TextureFormat).ComponentType;
@@ -796,12 +798,13 @@ public sealed class RenderBufferManager
 
             nextColorOutputParams = new RenderBufferParams(
                 effectiveColorFormat,
-                Math.Max(multiSample, 1),
+                multiSample,
                 flags);
-            nextDepthStencilOutputParams = new RenderBufferParams(
-                renderTarget.DepthStencilFormat == TextureFormat.TexFormatUnknown ? TextureFormat.TexFormatD24UnormS8Uint : renderTarget.DepthStencilFormat,
-                Math.Max(multiSample, 1),
-                RenderBufferFlag.Persistent);
+            nextDepthStencilOutputParams = nextColorOutputParams;
+            nextDepthStencilOutputParams.Flags |= RenderBufferFlag.Persistent;
+            nextDepthStencilOutputParams.TextureFormat = renderTarget.DepthStencilFormat == TextureFormat.TexFormatUnknown
+                ? TextureFormat.TexFormatD24UnormS8Uint
+                : renderTarget.DepthStencilFormat;
             nextLinearColorSpace = IsManagedOutputLinearColorSpace(effectiveColorFormat, outputTextureLinear);
             componentType = RenderAPIUtils.GetTextureFormatInfo(effectiveColorFormat).ComponentType;
             nextHdr = componentType is not global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeUnorm

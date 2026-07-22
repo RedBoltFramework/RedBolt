@@ -83,7 +83,42 @@ public enum RenderBufferFlag
 /// <summary>
 /// Render buffer parameters. Actual render buffer size is controlled externally.
 /// </summary>
-public readonly record struct RenderBufferParams(TextureFormat TextureFormat, int MultiSampleLevel = 1, RenderBufferFlag Flags = RenderBufferFlag.None);
+public struct RenderBufferParams : IEquatable<RenderBufferParams>
+{
+    public TextureFormat TextureFormat { get; set; }
+
+    public int MultiSampleLevel { get; set; } = 1;
+
+    public RenderBufferFlag Flags { get; set; }
+
+    public RenderBufferParams()
+    {
+        MultiSampleLevel = 1;
+    }
+
+    public RenderBufferParams(TextureFormat textureFormat, int multiSampleLevel = 1,
+        RenderBufferFlag flags = RenderBufferFlag.None)
+    {
+        TextureFormat = textureFormat;
+        MultiSampleLevel = multiSampleLevel;
+        Flags = flags;
+    }
+
+    public readonly bool Equals(RenderBufferParams other)
+    {
+        return TextureFormat == other.TextureFormat
+            && MultiSampleLevel == other.MultiSampleLevel
+            && Flags == other.Flags;
+    }
+
+    public static bool operator ==(RenderBufferParams left, RenderBufferParams right) => left.Equals(right);
+
+    public static bool operator !=(RenderBufferParams left, RenderBufferParams right) => !left.Equals(right);
+
+    public override readonly bool Equals(object? obj) => obj is RenderBufferParams other && Equals(other);
+
+    public override readonly int GetHashCode() => HashCode.Combine(TextureFormat, MultiSampleLevel, Flags);
+}
 
 /// <summary>
 /// Color space of primary color outputs of render pipeline.

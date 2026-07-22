@@ -9,6 +9,21 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class RenderPipelineTests
 {
+    [Fact]
+    public void Render_buffer_params_have_native_mutable_value_semantics()
+    {
+        var parameters = new RenderBufferParams();
+        var copy = parameters;
+
+        copy.Flags |= RenderBufferFlag.Persistent;
+
+        Assert.True(typeof(RenderBufferParams).IsValueType);
+        Assert.Equal(1, parameters.MultiSampleLevel);
+        Assert.Equal(RenderBufferFlag.None, parameters.Flags);
+        Assert.Equal(RenderBufferFlag.Persistent, copy.Flags);
+        Assert.NotEqual(parameters, copy);
+    }
+
     private readonly HeadlessEngineFixture _fixture;
 
     public RenderPipelineTests(HeadlessEngineFixture fixture)
