@@ -22,8 +22,8 @@ Excluded:
 - Tests and vendored third-party code.
 - Global aliases/usings files that contain no ported class implementation.
 
-Pending managed files inventoried: **62**
-Pending files with likely C++ counterpart paths: **54**
+Pending managed files inventoried: **61**
+Pending files with likely C++ counterpart paths: **53**
 Pending files requiring counterpart discovery: **8**
 
 ## Required review for every row
@@ -99,7 +99,6 @@ Check a column only after completing the corresponding full C++ review and recor
 | `src/RedBolt/RenderPipeline/ScenePass.cs` | `Source/Urho3D/RenderPipeline/ScenePass.h`<br>`Source/Urho3D/RenderPipeline/ScenePass.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/RenderPipeline/ShaderProgramCompositor.cs` | `Source/Urho3D/RenderPipeline/ShaderProgramCompositor.h`<br>`Source/Urho3D/RenderPipeline/ShaderProgramCompositor.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/RenderPipeline/ShadowMapAllocator.cs` | `Source/Urho3D/RenderPipeline/ShadowMapAllocator.h`<br>`Source/Urho3D/RenderPipeline/ShadowMapAllocator.cpp` | ☐ | ☐ | ☐ |
-| `src/RedBolt/RenderPipeline/SharedRenderPassState.cs` | `Source/Urho3D/RenderPipeline/SharedRenderPassState.h`<br>`Source/Urho3D/RenderPipeline/SharedRenderPassState.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/RenderPipeline/StereoRenderPipeline.cs` | `Source/Urho3D/RenderPipeline/StereoRenderPipeline.h`<br>`Source/Urho3D/RenderPipeline/StereoRenderPipeline.cpp` | ☐ | ☐ | ☐ |
 | `src/RedBolt/Resource/Image.cs` | `Source/Urho3D/Resource/Image.h`<br>`Source/Urho3D/Resource/Image.cpp` | ☐ | ☐ | ☐ |
 | 2026-07-20 dependency outcome | During the completed Texture audit, re-read the complete native Image declaration and the complete `GetGPUFormat` body. The concrete dependency deviation was corrected: two-component uncompressed images now return RG8, supported compressed images return their exact BC/ETC2 formats, and emulated PVRTC formats remain Unknown. The public DDS path verifies DXT1 maps to BC1. This is only a dependency correction; Image class shape, ownership, copy, and full-body reconciliation remain open. | — | — | — |

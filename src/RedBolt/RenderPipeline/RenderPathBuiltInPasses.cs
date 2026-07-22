@@ -138,7 +138,7 @@ public sealed class FullScreenShaderPass : RenderPass
     {
         base.Render(sharedState);
 
-        if (sharedState.RenderBufferManager is not { } renderBufferManager || sharedState.Graphics is not { } graphics || string.IsNullOrEmpty(_shaderName))
+        if (sharedState.RenderBufferManager is not { } renderBufferManager || string.IsNullOrEmpty(_shaderName))
             return;
 
         if (_pipelineStateId == StaticPipelineStateId.Invalid)
@@ -308,7 +308,7 @@ public sealed class ToneMappingPass : RenderPass
 
     public override void Render(SharedRenderPassState sharedState)
     {
-        if (sharedState.RenderBufferManager is not { } renderBufferManager || sharedState.Graphics is not { } graphics)
+        if (sharedState.RenderBufferManager is not { } renderBufferManager)
             return;
 
         RestoreCache(sharedState);
@@ -452,8 +452,10 @@ public sealed class AutoExposurePass : RenderPass
     {
         base.Render(sharedState);
 
-        if (sharedState.RenderBufferManager is not { } renderBufferManager || sharedState.Graphics is not { } graphics)
+        if (sharedState.RenderBufferManager is not { } renderBufferManager)
             return;
+
+        var graphics = GetSubsystem<Graphics>()!;
 
         renderBufferManager.SwapColorBuffers(synchronizeContents: false);
 
@@ -715,8 +717,10 @@ public sealed class BloomPass : RenderPass
     {
         base.Render(sharedState);
 
-        if (sharedState.RenderBufferManager is not { } renderBufferManager || sharedState.Graphics is not { } graphics)
+        if (sharedState.RenderBufferManager is not { } renderBufferManager)
             return;
+
+        var graphics = GetSubsystem<Graphics>()!;
 
         RestoreTextureCache(sharedState);
         if (_textures.Count == 0)
@@ -1050,12 +1054,14 @@ public sealed class AmbientOcclusionPass : RenderPass
         ConnectToRenderBuffer(ref _normalBuffer, SharedRenderPassState.NormalBufferId, sharedState, required: false);
 
         if (sharedState.RenderBufferManager is not { } renderBufferManager
-            || sharedState.Graphics is not { } graphics
-            || sharedState.RenderCamera is not { } camera
+            || sharedState.RenderCamera is not { } cameraReference
+            || !cameraReference.TryGetTarget(out var camera)
             || _currentParameters.Strength <= 0.0f)
         {
             return;
         }
+
+        var graphics = GetSubsystem<Graphics>()!;
 
         RestoreTextureCache(sharedState);
         if (_textures?.CurrentTarget is null || _textures.PreviousTarget is null)
@@ -1316,11 +1322,12 @@ public sealed class OutlineRenderPass : RenderPass
         ConnectToRenderBuffer(ref _colorBuffer, ColorBufferId, sharedState, required: false);
 
         if (_colorBuffer?.GetTexture() is not { } texture
-            || sharedState.RenderBufferManager is not { } renderBufferManager
-            || sharedState.Graphics is not { } graphics)
+            || sharedState.RenderBufferManager is not { } renderBufferManager)
         {
             return;
         }
+
+        var graphics = GetSubsystem<Graphics>()!;
 
         var outlineParameters = new OutlineParameters
         {

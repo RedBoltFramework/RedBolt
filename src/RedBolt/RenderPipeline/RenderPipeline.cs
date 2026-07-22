@@ -465,7 +465,7 @@ public class RenderPipeline : Component
                 return false;
 
             _sceneProcessor.SetRenderCamera(viewport.GetCamera()!);
-            _sharedState.RenderCamera = viewport.GetCamera();
+            _sharedState.RenderCamera = viewport.GetCamera() is { } camera ? new WeakReference<Camera>(camera) : null;
 
             if (_settingsDirty)
             {
@@ -547,8 +547,7 @@ public class RenderPipeline : Component
                 _outlineBuffer.SetEnabled(_outlineScenePass.IsEnabled && _outlineScenePass.HasBatches);
 
             _sharedState.RenderPipelineInterface = this;
-            _sharedState.RenderCamera = _viewport.GetCamera();
-            _sharedState.Graphics = graphics;
+            _sharedState.RenderCamera = _viewport.GetCamera() is { } camera ? new WeakReference<Camera>(camera) : null;
             _sharedState.RenderBuffers.Clear();
 
             if (_renderPath is not null)
