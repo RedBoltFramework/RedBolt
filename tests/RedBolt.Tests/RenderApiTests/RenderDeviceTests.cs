@@ -249,7 +249,7 @@ public sealed class RenderDeviceTests
             Assert.True(_fixture.Graphics.TakeScreenShot(image));
             Assert.Equal(_fixture.Graphics.Width, image.Width);
             Assert.Equal(_fixture.Graphics.Height, image.Height);
-            Assert.Equal(4u, image.Components);
+            Assert.Equal(4, image.Components);
             Assert.Equal(image.Width * image.Height * 4, image.GetData().Length);
         }
         finally

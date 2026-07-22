@@ -16,7 +16,7 @@ internal static partial class ImageSdl
         if (!TryDecodeRgba(source, out var decoded))
             return false;
 
-        if (!image.SetSize(decoded.Width, decoded.Height, 4u))
+        if (!image.SetSize(decoded.Width, decoded.Height, 4))
             return false;
 
         image.SetData(decoded.Data);
@@ -34,7 +34,7 @@ internal static partial class ImageSdl
         if (decoded.Width < ColorLutSize * ColorLutSize || decoded.Height < ColorLutSize)
             return false;
 
-        if (!image.SetSize(ColorLutSize, ColorLutSize, ColorLutSize, 3u))
+        if (!image.SetSize(ColorLutSize, ColorLutSize, ColorLutSize, 3))
             return false;
 
         var destination = image.GetData();

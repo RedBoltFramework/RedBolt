@@ -70,6 +70,53 @@ public sealed class ImageTests
     }
 
     [Fact]
+    public void Mip_levels_are_owned_only_after_precalculation()
+    {
+        var image = new Image("Images/Mips");
+        Assert.True(image.SetSize(4, 4, 1));
+        image.SetData(Enumerable.Range(0, 16).Select(static value => (byte)value).ToArray());
+
+        var first = image.GetNextLevel();
+        var second = image.GetNextLevel();
+        Assert.NotNull(first);
+        Assert.NotNull(second);
+        Assert.NotSame(first, second);
+
+        var levels = new List<Image> { first! };
+        image.GetLevels(levels);
+        Assert.Single(levels);
+        Assert.Same(image, levels[0]);
+
+        image.PrecalculateLevels();
+        var cached = image.GetNextLevel();
+        Assert.Same(cached, image.GetNextLevel());
+        image.GetLevels(levels);
+        Assert.Equal(3, levels.Count);
+    }
+
+    [Fact]
+    public void Compressed_level_is_mutable_value_data_with_borrowed_pixels()
+    {
+        var data = new byte[4];
+        var level = new CompressedLevel
+        {
+            Data = data,
+            Format = CompressedFormat.Rgba,
+            Width = 1,
+            Height = 1,
+            Depth = 1,
+            DataSize = data.Length
+        };
+        var copy = level;
+
+        copy.Width = 2;
+        copy.Data.Span[0] = 42;
+
+        Assert.Equal(1, level.Width);
+        Assert.Equal(42, level.Data.Span[0]);
+    }
+
+    [Fact]
     public void Trilinear_and_rgba_conversion_work()
     {
         var image = new Image("Images/Volume");
@@ -87,7 +134,7 @@ public sealed class ImageTests
         Assert.True(sampled.Equals(new Color(0.5f, 0.5f, 0.5f, 1.0f), 0.02f));
 
         var rgba = image.ConvertToRGBA();
-        Assert.Equal(4u, rgba.GetComponents());
+        Assert.Equal(4, rgba!.GetComponents());
         Assert.True(rgba.HasAlphaChannel());
     }
 
@@ -194,15 +241,15 @@ public sealed class ImageTests
         Assert.Equal(TextureFormat.TexFormatBc1Unorm, image.GetGPUFormat());
         Assert.Equal(1024, image.Width);
         Assert.Equal(1024, image.Height);
-        Assert.Equal(11u, image.NumCompressedLevels);
+        Assert.Equal(11, image.NumCompressedLevels);
 
         var rgba = image.GetDecompressedImage();
         Assert.NotNull(rgba);
-        Assert.Equal(4u, rgba!.Components);
+        Assert.Equal(4, rgba!.Components);
         Assert.Equal(1024 * 1024 * 4, rgba.GetData().Length);
         Assert.Contains(rgba.GetData(), static value => value != 0);
 
-        var mip = image.GetDecompressedImageLevel(1u);
+        var mip = image.GetDecompressedImageLevel(1);
         Assert.NotNull(mip);
         Assert.Equal(512, mip!.Width);
         Assert.Equal(512, mip.Height);

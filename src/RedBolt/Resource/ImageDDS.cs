@@ -3,14 +3,26 @@ using System.Buffers.Binary;
 
 namespace RedBolt;
 
-public readonly record struct CompressedLevel(
-    ReadOnlyMemory<byte> Data,
-    CompressedFormat Format,
-    int Width,
-    int Height,
-    int Depth)
+/// <summary>Compressed image mip level.</summary>
+public struct CompressedLevel
 {
-    public int DataSize => Data.Length;
+    /// <summary>Compressed image data.</summary>
+    public Memory<byte> Data { get; set; }
+
+    /// <summary>Compression format.</summary>
+    public CompressedFormat Format { get; set; }
+
+    /// <summary>Width.</summary>
+    public int Width { get; set; }
+
+    /// <summary>Height.</summary>
+    public int Height { get; set; }
+
+    /// <summary>Depth.</summary>
+    public int Depth { get; set; }
+
+    /// <summary>Total data size in bytes.</summary>
+    public int DataSize { get; set; }
 
     public bool Decompress(Span<byte> destination)
     {
@@ -40,7 +52,7 @@ public readonly record struct CompressedLevel(
     private bool DecompressBlocks(Span<byte> destination, int bytesPerBlock)
     {
         var expectedDataSize = ImageDds.GetCompressedLevelSize(Format, Width, Height, Depth);
-        if (Data.Length != expectedDataSize)
+        if (DataSize != expectedDataSize)
             return false;
 
         var source = Data.Span;
@@ -415,9 +427,9 @@ internal static class ImageDds
                 width,
                 height,
                 depth,
-                formatInfo.Components,
+                checked((int)formatInfo.Components),
                 formatInfo.Format,
-                mipMapCount,
+                checked((int)mipMapCount),
                 storedData,
                 cubemap,
                 array,

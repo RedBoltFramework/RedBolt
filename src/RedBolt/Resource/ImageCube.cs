@@ -165,7 +165,7 @@ public sealed class ImageCube : Resource
             if (image is null)
                 continue;
 
-            var mip = image.GetDecompressedImageLevel(index);
+            var mip = image.GetDecompressedImageLevel(checked((int)index));
             if (mip is null)
                 continue;
 
@@ -185,11 +185,11 @@ public sealed class ImageCube : Resource
         for (var face = CubeMapFace.PositiveX; face < CubeMapFace.MaxCubeMapFaces; face = (CubeMapFace)((int)face + 1))
         {
             var source = GetImage(face); if (source is null) continue;
-            var level = Math.Min(source.IsCompressed() ? source.NumCompressedLevels - 1 : uint.MaxValue, GetSphericalHarmonicsMipLevel());
+            var level = Math.Min(source.IsCompressed() ? source.NumCompressedLevels - 1 : int.MaxValue, checked((int)GetSphericalHarmonicsMipLevel()));
             var image = source.GetDecompressedImageLevel(level); if (image is null) continue;
             for (var y = 0; y < image.Height; ++y) for (var x = 0; x < image.Width; ++x)
             {
-                var offset = ProjectTexelOnCubeLevel(face, x, y, level); var distance = offset.Length;
+                var offset = ProjectTexelOnCubeLevel(face, x, y, checked((uint)level)); var distance = offset.Length;
                 if (distance <= 0) continue;
                 var weight = 1f / (distance * distance * distance);
                 result += new SphericalHarmonicsColor9(offset / distance, image.GetPixel(x, y).GammaToLinear()) * weight;

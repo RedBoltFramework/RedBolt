@@ -13,7 +13,7 @@ public sealed class RawTextureTests
         {
             var image = new Image("Textures/RawTextureImage");
             var imageData = Enumerable.Range(0, 16).Select(value => (byte)(value * 3)).ToArray();
-            Assert.True(image.SetSize(2, 2, 4u));
+            Assert.True(image.SetSize(2, 2, 4));
             image.SetData(imageData);
 
             var texture = new Texture2D("Textures/RawTexture2D");

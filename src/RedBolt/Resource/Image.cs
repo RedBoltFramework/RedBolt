@@ -19,14 +19,8 @@ public enum CompressedFormat
     PvrtcRgba4Bpp
 }
 
-public sealed class Image : Resource
+public class Image : Resource
 {
-    private byte[] _data = System.Array.Empty<byte>();
-    private CompressedFormat _compressedFormat;
-    private Image? _nextLevel;
-    private Image? _nextSibling;
-    private uint _numCompressedLevels;
-
     public Image(string name)
         : base(name)
     {
@@ -38,9 +32,9 @@ public sealed class Image : Resource
 
     public int Depth { get; private set; } = 1;
 
-    public uint Components { get; private set; }
+    public int Components { get; private set; }
 
-    public uint NumCompressedLevels => _numCompressedLevels;
+    public int NumCompressedLevels { get; private set; }
 
     public bool Cubemap { get; internal set; }
 
@@ -48,7 +42,13 @@ public sealed class Image : Resource
 
     public bool SRGB { get; internal set; }
 
-    public CompressedFormat CompressedFormat => _compressedFormat;
+    public CompressedFormat CompressedFormat { get; private set; }
+
+    private byte[] _data = System.Array.Empty<byte>();
+
+    private Image? _nextLevel;
+
+    private Image? _nextSibling;
 
     public override bool BeginLoad(Stream source)
     {
@@ -250,6 +250,8 @@ public sealed class Image : Resource
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         var rgba = Components == 4 ? this : ConvertToRGBA();
+        if (rgba is null)
+            return false;
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true);
         writer.Write((byte)0); writer.Write((byte)0); writer.Write((byte)2);
@@ -315,35 +317,43 @@ public sealed class Image : Resource
         };
     }
 
-    public bool SetSize(int width, int height, uint components) => SetSize(width, height, 1, components);
+    public bool SetSize(int width, int height, int components) => SetSize(width, height, 1, components);
 
-    public bool SetSize(int width, int height, int depth, uint components)
+    public bool SetSize(int width, int height, int depth, int components)
     {
-        if (width <= 0 || height <= 0 || depth <= 0 || components is 0 or > 4)
+        if (width == Width && height == Height && depth == Depth && components == Components)
+            return true;
+
+        if (width <= 0 || height <= 0 || depth <= 0)
+            return false;
+
+        if (components is < 0 or > 4)
             return false;
 
         Width = width;
         Height = height;
         Depth = depth;
         Components = components;
-        _data = new byte[checked(width * height * depth * (int)components)];
+        _data = new byte[checked(width * height * depth * components)];
         MemoryUse = _data.Length;
-        _compressedFormat = CompressedFormat.None;
-        _numCompressedLevels = 0;
+        CompressedFormat = CompressedFormat.None;
+        NumCompressedLevels = 0;
         _nextLevel = null;
-        _nextSibling = null;
         return true;
     }
 
-    public void SetData(byte[] pixelData)
+    public void SetData(byte[]? pixelData)
     {
-        ArgumentNullException.ThrowIfNull(pixelData);
-        if (IsCompressed())
-            throw new InvalidOperationException("Cannot overwrite pixel data for a compressed image.");
-        if (pixelData.Length != _data.Length)
-            throw new ArgumentException("Pixel data size does not match image size.", nameof(pixelData));
+        if (_data.Length == 0)
+            return;
 
-        pixelData.CopyTo(_data, 0);
+        if (IsCompressed())
+            return;
+
+        if (pixelData is not null)
+            pixelData.AsSpan(0, _data.Length).CopyTo(_data);
+        else
+            _data.AsSpan().Clear();
         _nextLevel = null;
     }
 
@@ -351,18 +361,24 @@ public sealed class Image : Resource
 
     public void SetPixel(int x, int y, int z, Color color)
     {
-        var offset = GetOffset(x, y, z);
-        WriteColor(offset, color);
-        _nextLevel = null;
+        SetPixelInt(x, y, z, color.ToUInt());
     }
 
     public void SetPixelInt(int x, int y, uint uintColor) => SetPixelInt(x, y, 0, uintColor);
 
     public void SetPixelInt(int x, int y, int z, uint uintColor)
     {
-        var color = new Color();
-        color.FromUInt(uintColor);
-        SetPixel(x, y, z, color);
+        if (_data.Length == 0 || x < 0 || x >= Width || y < 0 || y >= Height || z < 0 || z >= Depth || IsCompressed())
+            return;
+
+        var offset = (z * Width * Height + y * Width + x) * Components;
+        _data[offset] = (byte)uintColor;
+        if (Components > 1)
+            _data[offset + 1] = (byte)(uintColor >> 8);
+        if (Components > 2)
+            _data[offset + 2] = (byte)(uintColor >> 16);
+        if (Components > 3)
+            _data[offset + 3] = (byte)(uintColor >> 24);
     }
 
     public bool FlipHorizontal()
@@ -601,15 +617,15 @@ public sealed class Image : Resource
 
     public int GetDepth() => Depth;
 
-    public uint GetComponents() => Components;
+    public int GetComponents() => Components;
 
     public Vector3i GetSize() => new(Width, Height, Depth);
 
     public byte[] GetData() => _data;
 
-    public bool IsCompressed() => _compressedFormat != CompressedFormat.None;
+    public bool IsCompressed() => CompressedFormat != CompressedFormat.None;
 
-    public TextureFormat GetCompressedFormat() => _compressedFormat switch
+    public TextureFormat GetCompressedFormat() => CompressedFormat switch
     {
         CompressedFormat.None => TextureFormat.TexFormatUnknown,
         CompressedFormat.Rgba => TextureFormat.TexFormatRgba8Unorm,
@@ -632,10 +648,17 @@ public sealed class Image : Resource
 
     public bool IsSRGB() => SRGB;
 
-    public Image GetNextLevel()
+    public Image? GetNextLevel()
     {
         if (IsCompressed())
-            return GetDecompressedImageLevel(1) ?? GetDecompressedImage() ?? this;
+            return null;
+
+        if (Components is < 1 or > 4)
+            return null;
+
+        // No next level for 1x1 (or 1x1x1) images.
+        if (Width <= 1 && Height <= 1 && Depth <= 1)
+            return null;
 
         if (_nextLevel is not null)
             return _nextLevel;
@@ -643,53 +666,121 @@ public sealed class Image : Resource
         var nextWidth = Math.Max(Width / 2, 1);
         var nextHeight = Math.Max(Height / 2, 1);
         var nextDepth = Math.Max(Depth / 2, 1);
-        _nextLevel = new Image(Name + "#mip");
-        _nextLevel.SetSize(nextWidth, nextHeight, nextDepth, Components);
-        _nextLevel.Cubemap = Cubemap;
-        _nextLevel.Array = Array;
-        _nextLevel.SRGB = SRGB;
-        _nextLevel.SetNextSibling(_nextSibling?.GetNextLevel());
+        var mipImage = new Image(string.Empty);
+        if (Depth > 1)
+            mipImage.SetSize(nextWidth, nextHeight, nextDepth, Components);
+        else
+            mipImage.SetSize(nextWidth, nextHeight, Components);
 
-        for (var z = 0; z < nextDepth; ++z)
+        // 1D case.
+        if (Depth == 1 && (Height == 1 || Width == 1))
+        {
+            var outputLength = Math.Max(nextWidth, nextHeight);
+            for (var x = 0; x < outputLength; ++x)
+            {
+                for (var component = 0; component < Components; ++component)
+                {
+                    var sourceOffset = x * 2 * Components + component;
+                    mipImage._data[x * Components + component] =
+                        (byte)((_data[sourceOffset] + _data[sourceOffset + Components]) >> 1);
+                }
+            }
+        }
+        // 2D case.
+        else if (Depth == 1)
         {
             for (var y = 0; y < nextHeight; ++y)
             {
                 for (var x = 0; x < nextWidth; ++x)
                 {
-                    var u = nextWidth == 1 ? 0.5f : x / (float)(nextWidth - 1);
-                    var v = nextHeight == 1 ? 0.5f : y / (float)(nextHeight - 1);
-                    var w = nextDepth == 1 ? 0.5f : z / (float)(nextDepth - 1);
-                    _nextLevel.SetPixel(x, y, z, Depth == 1 ? GetPixelBilinear(u, v) : GetPixelTrilinear(u, v, w));
+                    var upperLeft = ((y * 2) * Width + x * 2) * Components;
+                    var lowerLeft = upperLeft + Width * Components;
+                    var output = (y * nextWidth + x) * Components;
+                    for (var component = 0; component < Components; ++component)
+                    {
+                        mipImage._data[output + component] = (byte)((
+                            _data[upperLeft + component] + _data[upperLeft + Components + component]
+                            + _data[lowerLeft + component] + _data[lowerLeft + Components + component]) >> 2);
+                    }
+                }
+            }
+        }
+        // 3D case.
+        else
+        {
+            var sourceSliceStride = Width * Height * Components;
+            for (var z = 0; z < nextDepth; ++z)
+            {
+                for (var y = 0; y < nextHeight; ++y)
+                {
+                    for (var x = 0; x < nextWidth; ++x)
+                    {
+                        var outerUpperLeft = ((z * 2 * Height + y * 2) * Width + x * 2) * Components;
+                        var innerUpperLeft = outerUpperLeft + sourceSliceStride;
+                        var output = ((z * nextHeight + y) * nextWidth + x) * Components;
+                        for (var component = 0; component < Components; ++component)
+                        {
+                            mipImage._data[output + component] = (byte)((
+                                _data[outerUpperLeft + component]
+                                + _data[outerUpperLeft + Components + component]
+                                + _data[outerUpperLeft + Width * Components + component]
+                                + _data[outerUpperLeft + Width * Components + Components + component]
+                                + _data[innerUpperLeft + component]
+                                + _data[innerUpperLeft + Components + component]
+                                + _data[innerUpperLeft + Width * Components + component]
+                                + _data[innerUpperLeft + Width * Components + Components + component]) >> 3);
+                        }
+                    }
                 }
             }
         }
 
-        return _nextLevel;
+        return mipImage;
     }
 
     public Image? GetNextSibling() => _nextSibling;
 
-    internal void SetNextSibling(Image? sibling)
-    {
-        _nextSibling = sibling;
-    }
+    internal void SetNextSibling(Image? sibling) => _nextSibling = sibling;
 
-    public Image ConvertToRGBA()
+    public Image? ConvertToRGBA()
     {
         if (IsCompressed())
-            return GetDecompressedImage() ?? this;
+            return null;
 
-        if (Components == 4)
-            return Clone();
+        if (Components is < 1 or > 4 || _data.Length == 0)
+            return null;
 
-        var rgba = new Image(Name + "#rgba");
+        var rgba = new Image(string.Empty);
         rgba.SetSize(Width, Height, Depth, 4);
-        for (var z = 0; z < Depth; ++z)
+        var source = 0;
+        var destination = 0;
+        for (var i = 0; i < Width * Height * Depth; ++i)
         {
-            for (var y = 0; y < Height; ++y)
+            switch (Components)
             {
-                for (var x = 0; x < Width; ++x)
-                    rgba.SetPixel(x, y, z, GetPixel(x, y, z));
+                case 1:
+                    rgba._data[destination++] = _data[source];
+                    rgba._data[destination++] = _data[source];
+                    rgba._data[destination++] = _data[source++];
+                    rgba._data[destination++] = 255;
+                    break;
+                case 2:
+                    rgba._data[destination++] = _data[source];
+                    rgba._data[destination++] = _data[source];
+                    rgba._data[destination++] = _data[source++];
+                    rgba._data[destination++] = _data[source++];
+                    break;
+                case 3:
+                    rgba._data[destination++] = _data[source++];
+                    rgba._data[destination++] = _data[source++];
+                    rgba._data[destination++] = _data[source++];
+                    rgba._data[destination++] = 255;
+                    break;
+                case 4:
+                    _data.AsSpan(source, 4).CopyTo(rgba._data.AsSpan(destination, 4));
+                    source += 4;
+                    destination += 4;
+                    break;
             }
         }
 
@@ -698,34 +789,140 @@ public sealed class Image : Resource
 
     public Image? GetSubimage(IntRect rect)
     {
-        if (Depth != 1 || rect.Width <= 0 || rect.Height <= 0 || rect.Left < 0 || rect.Top < 0 || rect.Right > Width || rect.Bottom > Height)
+        if (_data.Length == 0 || Depth > 1 || rect.Width <= 0 || rect.Height <= 0 || rect.Left < 0 || rect.Top < 0 || rect.Right > Width || rect.Bottom > Height)
             return null;
 
-        var subimage = new Image(Name + "#sub");
-        subimage.SetSize(rect.Width, rect.Height, Components);
-        for (var y = 0; y < rect.Height; ++y)
+        if (!IsCompressed())
         {
-            for (var x = 0; x < rect.Width; ++x)
-                subimage.SetPixel(x, y, GetPixel(rect.Left + x, rect.Top + y));
+            var subimage = new Image(string.Empty);
+            subimage.SetSize(rect.Width, rect.Height, Components);
+            var rowSize = rect.Width * Components;
+            var source = (rect.Top * Width + rect.Left) * Components;
+            for (var y = 0; y < rect.Height; ++y)
+            {
+                _data.AsSpan(source, rowSize).CopyTo(subimage._data.AsSpan(y * rowSize, rowSize));
+                source += Width * Components;
+            }
+            return subimage;
         }
 
-        return subimage;
+        var (blockWidth, blockHeight, blockSize) = CompressedFormat switch
+        {
+            CompressedFormat.Rgba => (1, 1, 4),
+            CompressedFormat.Dxt1 or CompressedFormat.Etc1 or CompressedFormat.Etc2Rgb
+                or CompressedFormat.PvrtcRgb4Bpp or CompressedFormat.PvrtcRgba4Bpp => (4, 4, 8),
+            CompressedFormat.Dxt3 or CompressedFormat.Dxt5 or CompressedFormat.Etc2Rgba => (4, 4, 16),
+            CompressedFormat.PvrtcRgb2Bpp or CompressedFormat.PvrtcRgba2Bpp => (8, 4, 8),
+            _ => (0, 0, 0)
+        };
+        if (blockSize == 0)
+            return null;
+
+        // Pad the region to be a multiple of block size.
+        var paddedRect = new IntRect(
+            rect.Left / blockWidth * blockWidth,
+            rect.Top / blockHeight * blockHeight,
+            rect.Right / blockWidth * blockWidth,
+            rect.Bottom / blockHeight * blockHeight);
+        var currentRect = paddedRect;
+        var subimageData = new List<byte>();
+        var subimageLevels = 0;
+
+        // Save as many mips as possible until the next mip would cross a block boundary.
+        for (var i = 0; i < NumCompressedLevels; ++i)
+        {
+            var level = GetCompressedLevel(i);
+            if (level.Data.IsEmpty)
+                break;
+
+            // Mips are stored continuously.
+            var sourceBlocksInRow = (level.Width + blockWidth - 1) / blockWidth;
+            var sourceRowSize = sourceBlocksInRow * blockSize;
+            var destinationRowSize = currentRect.Width / blockWidth * blockSize;
+            var destinationSize = currentRect.Height / blockHeight * destinationRowSize;
+            if (destinationSize == 0)
+                break;
+
+            var destinationStartOffset = subimageData.Count;
+            subimageData.AddRange(new byte[destinationSize]);
+            var beginX = currentRect.Left / blockWidth;
+            var beginY = currentRect.Top / blockHeight;
+            var endY = currentRect.Bottom / blockHeight;
+            var destinationOffset = destinationStartOffset;
+            for (var y = beginY; y < endY; ++y)
+            {
+                level.Data.Span.Slice(sourceRowSize * y + beginX * blockSize, destinationRowSize)
+                    .CopyTo(CollectionsMarshal.AsSpan(subimageData).Slice(destinationOffset, destinationRowSize));
+                destinationOffset += destinationRowSize;
+            }
+
+            ++subimageLevels;
+            if ((currentRect.Left & blockWidth) != 0 || (currentRect.Right & blockWidth) != 0
+                || (currentRect.Top & blockHeight) != 0 || (currentRect.Bottom & blockHeight) != 0)
+                break;
+
+            currentRect.Left /= 2;
+            currentRect.Right /= 2;
+            currentRect.Top /= 2;
+            currentRect.Bottom /= 2;
+        }
+
+        if (subimageLevels == 0)
+            return null;
+
+        var compressedSubimage = new Image(string.Empty)
+        {
+            Width = paddedRect.Width,
+            Height = paddedRect.Height,
+            Depth = 1,
+            CompressedFormat = CompressedFormat,
+            NumCompressedLevels = subimageLevels,
+            Components = Components,
+            _data = subimageData.ToArray()
+        };
+        compressedSubimage.MemoryUse = compressedSubimage._data.Length;
+        return compressedSubimage;
     }
 
     public bool SetSubimage(Image image, IntRect rect)
     {
         ArgumentNullException.ThrowIfNull(image);
-        if (IsCompressed() || image.IsCompressed() || rect.Width <= 0 || rect.Height <= 0
+        if (_data.Length == 0 || Depth > 1 || IsCompressed())
+            return false;
+
+        if (Components != image.Components)
+            return false;
+
+        if (rect.Width <= 0 || rect.Height <= 0
             || rect.Left < 0 || rect.Top < 0 || rect.Right > Width || rect.Bottom > Height)
             return false;
 
-        for (var y = rect.Top; y < rect.Bottom; ++y)
+        if (rect.Width == image.Width && rect.Height == image.Height)
         {
-            var v = rect.Height == 1 ? 0.0f : (float)(y - rect.Top) / (rect.Height - 1);
-            for (var x = rect.Left; x < rect.Right; ++x)
+            var source = 0;
+            var destination = (rect.Top * Width + rect.Left) * Components;
+            var rowSize = rect.Width * Components;
+            for (var y = 0; y < rect.Height; ++y)
             {
-                var u = rect.Width == 1 ? 0.0f : (float)(x - rect.Left) / (rect.Width - 1);
-                SetPixel(x, y, image.GetPixelBilinear(u, v));
+                image._data.AsSpan(source, rowSize).CopyTo(_data.AsSpan(destination, rowSize));
+                source += rect.Width * image.Components;
+                destination += Width * Components;
+            }
+        }
+        else
+        {
+            var destination = (rect.Top * Width + rect.Left) * Components;
+            for (var y = 0; y < rect.Height; ++y)
+            {
+                for (var x = 0; x < rect.Width; ++x)
+                {
+                    var xF = image.Width > 1 ? (float)x / (rect.Width - 1) : 0.0f;
+                    var yF = image.Height > 1 ? (float)y / (rect.Height - 1) : 0.0f;
+                    var uintColor = image.GetPixelBilinear(xF, yF).ToUInt();
+                    for (var component = 0; component < Components; ++component)
+                        _data[destination++] = (byte)(uintColor >> (component * 8));
+                }
+                destination += (Width - rect.Width) * Components;
             }
         }
         return true;
@@ -733,10 +930,20 @@ public sealed class Image : Resource
 
     public void PrecalculateLevels()
     {
-        if (IsCompressed())
+        if (_data.Length == 0 || IsCompressed())
             return;
-        for (var level = this; level.Width > 1 || level.Height > 1 || level.Depth > 1; level = level.GetNextLevel())
+
+        _nextLevel = null;
+
+        if (Width > 1 || Height > 1)
         {
+            var current = GetNextLevel();
+            _nextLevel = current;
+            while (current is not null && (current.Width > 1 || current.Height > 1))
+            {
+                current._nextLevel = current.GetNextLevel();
+                current = current._nextLevel;
+            }
         }
     }
 
@@ -745,22 +952,23 @@ public sealed class Image : Resource
     public void GetLevels(ICollection<Image> levels)
     {
         ArgumentNullException.ThrowIfNull(levels);
+        levels.Clear();
         for (Image? level = this; level is not null; level = level._nextLevel)
             levels.Add(level);
     }
 
-    public bool HasAlphaChannel() => Components is 2 or 4;
+    public bool HasAlphaChannel() => Components > 3;
 
-    public CompressedLevel GetCompressedLevel(uint index)
+    public CompressedLevel GetCompressedLevel(int index)
     {
-        if (!IsCompressed() || index >= NumCompressedLevels)
+        if (!IsCompressed() || index < 0 || index >= NumCompressedLevels)
             return default;
 
         var offset = 0;
-        for (var level = 0u; level < index; ++level)
+        for (var level = 0; level < index; ++level)
         {
             offset = checked(offset + ImageDds.GetCompressedLevelSize(
-                _compressedFormat,
+                CompressedFormat,
                 GetLevelDimension(Width, level),
                 GetLevelDimension(Height, level),
                 GetLevelDimension(Depth, level)));
@@ -769,48 +977,53 @@ public sealed class Image : Resource
         var levelWidth = GetLevelDimension(Width, index);
         var levelHeight = GetLevelDimension(Height, index);
         var levelDepth = GetLevelDimension(Depth, index);
-        var levelSize = ImageDds.GetCompressedLevelSize(_compressedFormat, levelWidth, levelHeight, levelDepth);
+        var levelSize = ImageDds.GetCompressedLevelSize(CompressedFormat, levelWidth, levelHeight, levelDepth);
         if (offset + levelSize > _data.Length)
             return default;
 
-        return new CompressedLevel(new ReadOnlyMemory<byte>(_data, offset, levelSize), _compressedFormat, levelWidth, levelHeight, levelDepth);
+        return new CompressedLevel
+        {
+            Data = new Memory<byte>(_data, offset, levelSize),
+            Format = CompressedFormat,
+            Width = levelWidth,
+            Height = levelHeight,
+            Depth = levelDepth,
+            DataSize = levelSize
+        };
     }
 
-    public Image? GetDecompressedImageLevel(uint index)
+    public Image? GetDecompressedImageLevel(int index)
     {
         if (!IsCompressed())
         {
             if (index == 0)
                 return ConvertToRGBA();
 
-            var mip = this;
-            for (var level = 0u; level < index; ++level)
-                mip = mip.GetNextLevel();
-            return mip.ConvertToRGBA();
+            Image? mip = this;
+            for (var level = 0; level < index; ++level)
+                mip = mip?.GetNextLevel();
+            return mip?.ConvertToRGBA();
         }
 
         if (NumCompressedLevels == 0)
             return null;
 
-        var clampedIndex = Math.Min(index, NumCompressedLevels - 1);
+        var clampedIndex = Math.Min(index, NumCompressedLevels);
         var compressedLevel = GetCompressedLevel(clampedIndex);
         if (compressedLevel.DataSize == 0)
             return null;
 
-        var decompressed = new Image($"{Name}#rgba{clampedIndex}");
-        if (!decompressed.SetSize(compressedLevel.Width, compressedLevel.Height, compressedLevel.Depth, 4))
+        var decompressed = new Image(string.Empty);
+        if (!decompressed.SetSize(compressedLevel.Width, compressedLevel.Height, 4))
             return null;
 
         if (!compressedLevel.Decompress(decompressed._data))
             return null;
 
-        decompressed.Cubemap = Cubemap;
-        decompressed.Array = Array;
-        decompressed.SRGB = SRGB;
         return decompressed;
     }
 
-    public Image? GetDecompressedImage() => GetDecompressedImageLevel(0u);
+    public Image? GetDecompressedImage() => GetDecompressedImageLevel(0);
 
     public bool LoadColorLUT(Stream source)
     {
@@ -818,24 +1031,13 @@ public sealed class Image : Resource
         return ImageSdl.TryLoadColorLut(this, source);
     }
 
-    private Image Clone()
-    {
-        var clone = new Image(Name + "#clone");
-        clone.SetSize(Width, Height, Depth, Components);
-        clone.SetData((byte[])_data.Clone());
-        clone.Cubemap = Cubemap;
-        clone.Array = Array;
-        clone.SRGB = SRGB;
-        return clone;
-    }
-
     internal void SetCompressedData(
         int width,
         int height,
         int depth,
-        uint components,
+        int components,
         CompressedFormat format,
-        uint levels,
+        int levels,
         byte[] pixelData,
         bool cubemap,
         bool array,
@@ -845,8 +1047,8 @@ public sealed class Image : Resource
         Height = height;
         Depth = depth;
         Components = components;
-        _compressedFormat = format;
-        _numCompressedLevels = Math.Max(levels, 1u);
+        CompressedFormat = format;
+        NumCompressedLevels = Math.Max(levels, 1);
         _data = pixelData;
         Cubemap = cubemap;
         Array = array;
@@ -888,10 +1090,10 @@ public sealed class Image : Resource
             _data[offset + 3] = (byte)((packed >> 24) & 0xff);
     }
 
-    private static int GetLevelDimension(int size, uint level)
+    private static int GetLevelDimension(int size, int level)
     {
         var value = size;
-        for (var i = 0u; i < level && value > 1; ++i)
+        for (var i = 0; i < level && value > 1; ++i)
             value = Math.Max(value / 2, 1);
         return value;
     }

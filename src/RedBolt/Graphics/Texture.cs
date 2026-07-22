@@ -440,12 +440,12 @@ public class Texture : ResourceWithMetadata
         {
             var currentLevel = image;
             for (var level = 0; level < _mostDetailedLevel; ++level)
-                currentLevel = currentLevel.GetNextLevel();
+                currentLevel = currentLevel.GetNextLevel()!;
 
             for (var level = 0; level < Levels; ++level)
             {
                 _rawTexture.Update(level, Vector3i.Zero, currentLevel.GetSize(), arraySlice, currentLevel.GetData());
-                currentLevel = currentLevel.GetNextLevel();
+                currentLevel = currentLevel.GetNextLevel()!;
             }
         }
         else if (internalFormat == TextureFormat.TexFormatRgba8Unorm && image.CompressedFormat != CompressedFormat.Rgba)
@@ -458,8 +458,7 @@ public class Texture : ResourceWithMetadata
 
             for (var level = 0; level < Levels; ++level)
             {
-                using var decompressedLevel = image.GetDecompressedImageLevel(
-                    checked((uint)(_mostDetailedLevel + level)));
+                using var decompressedLevel = image.GetDecompressedImageLevel(_mostDetailedLevel + level);
                 if (decompressedLevel is null)
                     return false;
 
@@ -474,7 +473,7 @@ public class Texture : ResourceWithMetadata
             // Upload compressed image data as is
             for (var level = 0; level < Levels; ++level)
             {
-                var imageLevel = image.GetCompressedLevel(checked((uint)(_mostDetailedLevel + level)));
+                var imageLevel = image.GetCompressedLevel(_mostDetailedLevel + level);
                 var levelSize = new Vector3i(imageLevel.Width, imageLevel.Height, imageLevel.Depth);
                 _rawTexture.Update(level, Vector3i.Zero, levelSize, arraySlice, imageLevel.Data.Span);
             }
@@ -496,7 +495,7 @@ public class Texture : ResourceWithMetadata
         }
 
         var size = new Vector3i(GetLevelWidth(level), GetLevelHeight(level), GetLevelDepth(level));
-        if (!image.SetSize(size.X, size.Y, size.Z, 4u))
+        if (!image.SetSize(size.X, size.Y, size.Z, 4))
             return false;
 
         var imageData = image.GetData();

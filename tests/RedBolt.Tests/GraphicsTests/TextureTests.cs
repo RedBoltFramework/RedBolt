@@ -267,7 +267,7 @@ public sealed class TextureTests
     {
         var image = new Image("Textures/SmokeImage");
         var imageData = Enumerable.Range(0, 16).Select(value => (byte)(value * 3)).ToArray();
-        Assert.True(image.SetSize(2, 2, 4u));
+        Assert.True(image.SetSize(2, 2, 4));
         image.SetData(imageData);
 
         var texture = new Texture2D("Textures/Smoke2D");
@@ -284,7 +284,7 @@ public sealed class TextureTests
     {
         var image = new Image("Textures/SmokeVolumeImage");
         var imageData = Enumerable.Range(0, 4 * 4 * 4 * 4).Select(value => (byte)value).ToArray();
-        Assert.True(image.SetSize(4, 4, 4, 4u));
+        Assert.True(image.SetSize(4, 4, 4, 4));
         image.SetData(imageData);
 
         var texture = new Texture3D("Textures/Smoke3D");
@@ -333,7 +333,7 @@ public sealed class TextureTests
     {
         var image = new Image("Textures/SmokeCubeImage");
         var imageData = Enumerable.Range(0, 2 * 2 * 4).Select(value => (byte)value).ToArray();
-        Assert.True(image.SetSize(2, 2, 4u));
+        Assert.True(image.SetSize(2, 2, 4));
         image.SetData(imageData);
 
         var texture = new TextureCube("Textures/SmokeCube");
@@ -354,7 +354,7 @@ public sealed class TextureTests
     {
         var image = new Image("Textures/SmokeArrayImage");
         var imageData = Enumerable.Range(0, 2 * 2 * 4).Select(value => (byte)value).ToArray();
-        Assert.True(image.SetSize(2, 2, 4u));
+        Assert.True(image.SetSize(2, 2, 4));
         image.SetData(imageData);
 
         var texture = new Texture2DArray("Textures/SmokeArray");
