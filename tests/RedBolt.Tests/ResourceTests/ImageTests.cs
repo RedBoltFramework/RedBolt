@@ -133,6 +133,35 @@ public sealed class ImageTests
     }
 
     [Fact]
+    public void Dds_header_types_preserve_native_pod_layout_and_format_mapping()
+    {
+        Assert.Equal(8, System.Runtime.InteropServices.Marshal.SizeOf<DDColorKey>());
+        Assert.Equal(32, System.Runtime.InteropServices.Marshal.SizeOf<DDPixelFormat>());
+        Assert.Equal(16, System.Runtime.InteropServices.Marshal.SizeOf<DDSCaps2>());
+        Assert.Equal(20, System.Runtime.InteropServices.Marshal.SizeOf<DDSHeader10>());
+        Assert.Equal(124, System.Runtime.InteropServices.Marshal.SizeOf<DDSurfaceDesc2>());
+
+        var pixelFormat = new DDPixelFormat
+        {
+            RgbBitCount = 32,
+            RBitMask = 0x000000ff,
+            GBitMask = 0x0000ff00,
+            BBitMask = 0x00ff0000,
+            RgbAlphaBitMask = 0xff000000
+        };
+        Assert.Equal(pixelFormat.RgbBitCount, pixelFormat.YuvBitCount);
+        Assert.True(ImageDds.AreTextureComponentsMatching(pixelFormat, TextureFormat.TexFormatRgba8Unorm));
+
+        var copy = pixelFormat;
+        copy.RBitMask = 0;
+        Assert.NotEqual(copy.RBitMask, pixelFormat.RBitMask);
+
+        Assert.Equal(0x31545844u, ImageDds.MakeFourCC('D', 'X', 'T', '1'));
+        Assert.Equal(TextureFormat.TexFormatRgba16Unorm, ImageDds.PickTextureFormat(default, 11));
+        Assert.Equal(TextureFormat.TexFormatBc1UnormSrgb, ImageDds.PickTextureFormat(default, 72));
+    }
+
+    [Fact]
     public void Pixel_changes_and_resize_preserve_precalculated_mip_ownership()
     {
         var image = new Image("Images/CachedMip");
@@ -307,7 +336,7 @@ public sealed class ImageTests
     }
 
     [Fact]
-    public void Dds_dxgi_rgba16_unorm_is_converted_to_rgba_image_data()
+    public void Dds_dxgi_rgba16_unorm_preserves_native_texture_format_and_data()
     {
         var dds = new byte[148 + 8];
         WriteUInt32(dds, 0, 0x20534444u);
@@ -329,11 +358,13 @@ public sealed class ImageTests
 
         var image = new Image("Rgba16");
         Assert.True(image.BeginLoad(new MemoryStream(dds)));
-        Assert.Equal(TextureFormat.TexFormatRgba8Unorm, image.CompressedFormat);
+        Assert.Equal(TextureFormat.TexFormatRgba16Unorm, image.CompressedFormat);
+        Assert.Equal(4, image.Components);
 
-        var rgba = image.GetDecompressedImage();
-        Assert.NotNull(rgba);
-        Assert.Equal(new byte[] { 255, 128, 0, 255 }, rgba!.GetData());
+        var level = image.GetCompressedLevel(0);
+        Assert.Equal(8, level.DataSize);
+        Assert.Equal(dds[148..156], level.Data.ToArray());
+        Assert.Null(image.GetDecompressedImage());
     }
 
     private static void WriteUInt32(byte[] data, int offset, uint value)

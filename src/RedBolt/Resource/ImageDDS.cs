@@ -1,7 +1,113 @@
-using System.Numerics;
 using System.Buffers.Binary;
+using System.Runtime.InteropServices;
 
 namespace RedBolt;
+
+/// <summary>DirectDraw color key definition.</summary>
+[StructLayout(LayoutKind.Sequential)]
+public struct DDColorKey
+{
+    public uint ColorSpaceLowValue;
+    public uint ColorSpaceHighValue;
+}
+
+/// <summary>DirectDraw pixel format definition.</summary>
+[StructLayout(LayoutKind.Explicit, Size = 32)]
+public struct DDPixelFormat
+{
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MultiSampleCapabilities
+    {
+        public ushort FlipMSTypes;
+        public ushort BltMSTypes;
+    }
+
+    [FieldOffset(0)] public uint Size;
+    [FieldOffset(4)] public uint Flags;
+    [FieldOffset(8)] public uint FourCc;
+
+    [FieldOffset(12)] public uint RgbBitCount;
+    [FieldOffset(12)] public uint YuvBitCount;
+    [FieldOffset(12)] public uint ZBufferBitDepth;
+    [FieldOffset(12)] public uint AlphaBitDepth;
+    [FieldOffset(12)] public uint LuminanceBitCount;
+    [FieldOffset(12)] public uint BumpBitCount;
+    [FieldOffset(12)] public uint PrivateFormatBitCount;
+
+    [FieldOffset(16)] public uint RBitMask;
+    [FieldOffset(16)] public uint YBitMask;
+    [FieldOffset(16)] public uint StencilBitDepth;
+    [FieldOffset(16)] public uint LuminanceBitMask;
+    [FieldOffset(16)] public uint BumpDuBitMask;
+    [FieldOffset(16)] public uint Operations;
+
+    [FieldOffset(20)] public uint GBitMask;
+    [FieldOffset(20)] public uint UBitMask;
+    [FieldOffset(20)] public uint ZBitMask;
+    [FieldOffset(20)] public uint BumpDvBitMask;
+    [FieldOffset(20)] public MultiSampleCapabilities MultiSampleCaps;
+
+    [FieldOffset(24)] public uint BBitMask;
+    [FieldOffset(24)] public uint VBitMask;
+    [FieldOffset(24)] public uint StencilBitMask;
+    [FieldOffset(24)] public uint BumpLuminanceBitMask;
+
+    [FieldOffset(28)] public uint RgbAlphaBitMask;
+    [FieldOffset(28)] public uint YuvAlphaBitMask;
+    [FieldOffset(28)] public uint LuminanceAlphaBitMask;
+    [FieldOffset(28)] public uint RgbZBitMask;
+    [FieldOffset(28)] public uint YuvZBitMask;
+}
+
+/// <summary>DirectDraw surface capabilities.</summary>
+[StructLayout(LayoutKind.Explicit, Size = 16)]
+public struct DDSCaps2
+{
+    [FieldOffset(0)] public uint Caps;
+    [FieldOffset(4)] public uint Caps2;
+    [FieldOffset(8)] public uint Caps3;
+    [FieldOffset(12)] public uint Caps4;
+    [FieldOffset(12)] public uint VolumeDepth;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public struct DDSHeader10
+{
+    public uint DxgiFormat;
+    public uint ResourceDimension;
+    public uint MiscFlag;
+    public uint ArraySize;
+    public uint Reserved;
+}
+
+/// <summary>DirectDraw surface description.</summary>
+[StructLayout(LayoutKind.Explicit, Size = 124)]
+public struct DDSurfaceDesc2
+{
+    [FieldOffset(0)] public uint Size;
+    [FieldOffset(4)] public uint Flags;
+    [FieldOffset(8)] public uint Height;
+    [FieldOffset(12)] public uint Width;
+    [FieldOffset(16)] public uint Pitch;
+    [FieldOffset(16)] public uint LinearSize;
+    [FieldOffset(20)] public uint BackBufferCount;
+    [FieldOffset(20)] public uint Depth;
+    [FieldOffset(24)] public uint MipMapCount;
+    [FieldOffset(24)] public uint RefreshRate;
+    [FieldOffset(24)] public uint SrcVBHandle;
+    [FieldOffset(28)] public uint AlphaBitDepth;
+    [FieldOffset(32)] public uint Reserved;
+    [FieldOffset(36)] public uint Surface;
+    [FieldOffset(40)] public DDColorKey DestOverlayColorKey;
+    [FieldOffset(40)] public uint EmptyFaceColor;
+    [FieldOffset(48)] public DDColorKey DestBltColorKey;
+    [FieldOffset(56)] public DDColorKey SrcOverlayColorKey;
+    [FieldOffset(64)] public DDColorKey SrcBltColorKey;
+    [FieldOffset(72)] public DDPixelFormat PixelFormat;
+    [FieldOffset(72)] public uint Fvf;
+    [FieldOffset(104)] public DDSCaps2 Caps;
+    [FieldOffset(120)] public uint TextureStage;
+}
 
 /// <summary>Compressed image mip level.</summary>
 public struct CompressedLevel
@@ -61,19 +167,17 @@ public struct CompressedLevel
     }
 }
 
-internal static class ImageDds
+public static class ImageDds
 {
     private const uint FileId = 0x20534444u;
     private const uint HeaderSize = 124u;
     private const uint PixelFormatSize = 32u;
 
-    // C++ struct DDColorKey { unsigned dwColorSpaceLowValue_; unsigned dwColorSpaceHighValue_; };
-    // C++ struct DDSCaps2 { unsigned dwCaps_; unsigned dwCaps2_; unsigned dwCaps3_; /* union with dwCaps4_/dwVolumeDepth_ */ };
-    // C++ struct DDSurfaceDesc2 { /* full DirectDraw surface description with 18 fields */ };
-
     private const uint FourCcDx10 = 0x30315844u;
     private const uint FourCcDxt1 = 0x31545844u;
+    private const uint FourCcDxt2 = 0x32545844u;
     private const uint FourCcDxt3 = 0x33545844u;
+    private const uint FourCcDxt4 = 0x34545844u;
     private const uint FourCcDxt5 = 0x35545844u;
 
     private const uint DxgiFormatR32G32B32A32Float = 2u;
@@ -101,24 +205,69 @@ internal static class ImageDds
     private const uint D3DFormatA16B16G16R16F = 113u;
     private const uint D3DFormatA32B32G32R32F = 116u;
 
+    private const uint DdsCapsComplex = 0x00000008u;
+    private const uint DdsCapsTexture = 0x00001000u;
+    private const uint DdsCapsMipmap = 0x00400000u;
+    private const uint DdsCaps2Volume = 0x00200000u;
+    private const uint DdsCaps2Cubemap = 0x00000200u;
+    private const uint DdsCaps2CubemapPositiveX = 0x00000400u;
+    private const uint DdsCaps2CubemapNegativeX = 0x00000800u;
+    private const uint DdsCaps2CubemapPositiveY = 0x00001000u;
+    private const uint DdsCaps2CubemapNegativeY = 0x00002000u;
+    private const uint DdsCaps2CubemapPositiveZ = 0x00004000u;
+    private const uint DdsCaps2CubemapNegativeZ = 0x00008000u;
     private const uint DdsCaps2CubemapAllFaces = 0x0000FC00u;
+
+    private const uint DdsDimensionTexture1D = 2u;
+    private const uint DdsDimensionTexture2D = 3u;
+    private const uint DdsDimensionTexture3D = 4u;
     private const uint DdsResourceMiscTextureCube = 0x4u;
 
-    private static uint MakeFourCC(char ch0, char ch1, char ch2, char ch3)
+    /// <summary>Make four-CC constant from string.</summary>
+    public static uint MakeFourCC(char ch0, char ch1, char ch2, char ch3)
     {
         return (uint)ch0 | ((uint)ch1 << 8) | ((uint)ch2 << 16) | ((uint)ch3 << 24);
     }
 
-    private static TextureFormat PickTextureFormat(DdsPixelFormat pixelFormat, uint dxgiFormat)
+    private static DDPixelFormat MakePixelFormat(uint numBits, uint maskR, uint maskG, uint maskB, uint maskA)
+    {
+        return new DDPixelFormat
+        {
+            RgbBitCount = numBits,
+            RBitMask = maskR,
+            GBitMask = maskG,
+            BBitMask = maskB,
+            RgbAlphaBitMask = maskA
+        };
+    }
+
+    private static bool IsSamePixelFormat(DDPixelFormat lhs, DDPixelFormat rhs)
+    {
+        return lhs.RgbBitCount == rhs.RgbBitCount
+            && lhs.RBitMask == rhs.RBitMask
+            && lhs.GBitMask == rhs.GBitMask
+            && lhs.BBitMask == rhs.BBitMask
+            && lhs.RgbAlphaBitMask == rhs.RgbAlphaBitMask;
+    }
+
+    /// <summary>Deduce texture format from DDS file format.</summary>
+    public static TextureFormat PickTextureFormat(DDPixelFormat pixelFormat, uint dxgiFormat)
     {
         return dxgiFormat switch
         {
-            DxgiFormatR32G32B32A32Float or DxgiFormatR16G16B16A16Float or DxgiFormatR16G16B16A16Unorm
-                or DxgiFormatR10G10B10A2Unorm or DxgiFormatR9G9B9E5SharedExp
-                or DxgiFormatR8G8B8A8Unorm or DxgiFormatR8G8B8A8UnormSrgb => TextureFormat.TexFormatRgba8Unorm,
-            DxgiFormatBc1Unorm or DxgiFormatBc1UnormSrgb => TextureFormat.TexFormatBc1Unorm,
-            DxgiFormatBc2Unorm or DxgiFormatBc2UnormSrgb => TextureFormat.TexFormatBc2Unorm,
-            DxgiFormatBc3Unorm or DxgiFormatBc3UnormSrgb => TextureFormat.TexFormatBc3Unorm,
+            DxgiFormatR32G32B32A32Float => TextureFormat.TexFormatRgba32Float,
+            DxgiFormatR16G16B16A16Float => TextureFormat.TexFormatRgba16Float,
+            DxgiFormatR16G16B16A16Unorm => TextureFormat.TexFormatRgba16Unorm,
+            DxgiFormatR10G10B10A2Unorm => TextureFormat.TexFormatRgb10a2Unorm,
+            DxgiFormatR8G8B8A8Unorm => TextureFormat.TexFormatRgba8Unorm,
+            DxgiFormatR8G8B8A8UnormSrgb => TextureFormat.TexFormatRgba8UnormSrgb,
+            DxgiFormatR9G9B9E5SharedExp => TextureFormat.TexFormatRgb9e5Sharedexp,
+            DxgiFormatBc1Unorm => TextureFormat.TexFormatBc1Unorm,
+            DxgiFormatBc1UnormSrgb => TextureFormat.TexFormatBc1UnormSrgb,
+            DxgiFormatBc2Unorm => TextureFormat.TexFormatBc2Unorm,
+            DxgiFormatBc2UnormSrgb => TextureFormat.TexFormatBc2UnormSrgb,
+            DxgiFormatBc3Unorm => TextureFormat.TexFormatBc3Unorm,
+            DxgiFormatBc3UnormSrgb => TextureFormat.TexFormatBc3UnormSrgb,
             DxgiFormatB5G6R5Unorm => TextureFormat.TexFormatB5g6r5Unorm,
             DxgiFormatB5G5R5A1Unorm => TextureFormat.TexFormatB5g5r5a1Unorm,
             _ => pixelFormat.FourCc switch
@@ -145,27 +294,20 @@ internal static class ImageDds
         };
     }
 
-    private static bool AreTextureComponentsMatching(DdsPixelFormat pixelFormat, TextureFormat textureFormat)
+    /// <summary>Return whether the RGBA components in pixel format match texture format.</summary>
+    public static bool AreTextureComponentsMatching(DDPixelFormat pixelFormat, TextureFormat textureFormat)
     {
-        return textureFormat switch
+        var expectedFormat = textureFormat switch
         {
-            TextureFormat.TexFormatRgba8Unorm => pixelFormat.RgbBitCount == 32
-                && pixelFormat.RMask == 0x000000ff
-                && pixelFormat.GMask == 0x0000ff00
-                && pixelFormat.BMask == 0x00ff0000
-                && pixelFormat.AMask == 0xff000000,
-            TextureFormat.TexFormatB5g6r5Unorm => pixelFormat.RgbBitCount == 16
-                && pixelFormat.RMask == 0x0000f800
-                && pixelFormat.GMask == 0x000007e0
-                && pixelFormat.BMask == 0x0000001f
-                && pixelFormat.AMask == 0,
-            TextureFormat.TexFormatB5g5r5a1Unorm => pixelFormat.RgbBitCount == 16
-                && pixelFormat.RMask == 0x00007c00
-                && pixelFormat.GMask == 0x000003e0
-                && pixelFormat.BMask == 0x0000001f
-                && pixelFormat.AMask == 0x00008000,
-            _ => false
+            TextureFormat.TexFormatRgba8Unorm => MakePixelFormat(32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000),
+            TextureFormat.TexFormatB5g6r5Unorm => MakePixelFormat(16, 0x0000f800, 0x000007e0, 0x0000001f, 0x00000000),
+            TextureFormat.TexFormatB5g5r5a1Unorm => MakePixelFormat(16, 0x00007c00, 0x000003e0, 0x0000001f, 0x00008000),
+            _ => default
         };
+        return textureFormat is TextureFormat.TexFormatRgba8Unorm
+                or TextureFormat.TexFormatB5g6r5Unorm
+                or TextureFormat.TexFormatB5g5r5a1Unorm
+            && IsSamePixelFormat(expectedFormat, pixelFormat);
     }
 
     internal static bool TryLoad(Image image, Stream source)
@@ -190,14 +332,16 @@ internal static class ImageDds
         if (ReadUInt32(fileData, ref offset) != PixelFormatSize)
             return false;
 
-        var pixelFormat = new DdsPixelFormat(
-            ReadUInt32(fileData, ref offset),
-            ReadUInt32(fileData, ref offset),
-            ReadUInt32(fileData, ref offset),
-            ReadUInt32(fileData, ref offset),
-            ReadUInt32(fileData, ref offset),
-            ReadUInt32(fileData, ref offset),
-            ReadUInt32(fileData, ref offset));
+        var pixelFormat = new DDPixelFormat
+        {
+            Flags = ReadUInt32(fileData, ref offset),
+            FourCc = ReadUInt32(fileData, ref offset),
+            RgbBitCount = ReadUInt32(fileData, ref offset),
+            RBitMask = ReadUInt32(fileData, ref offset),
+            GBitMask = ReadUInt32(fileData, ref offset),
+            BBitMask = ReadUInt32(fileData, ref offset),
+            RgbAlphaBitMask = ReadUInt32(fileData, ref offset)
+        };
 
         _ = ReadUInt32(fileData, ref offset);
         var caps2 = ReadUInt32(fileData, ref offset);
@@ -208,15 +352,17 @@ internal static class ImageDds
         if (width <= 0 || height <= 0)
             return false;
 
-        DdsHeader10? header10 = null;
+        DDSHeader10? header10 = null;
         if (pixelFormat.FourCc == FourCcDx10)
         {
-            header10 = new DdsHeader10(
-                ReadUInt32(fileData, ref offset),
-                ReadUInt32(fileData, ref offset),
-                ReadUInt32(fileData, ref offset),
-                ReadUInt32(fileData, ref offset),
-                ReadUInt32(fileData, ref offset));
+            header10 = new DDSHeader10
+            {
+                DxgiFormat = ReadUInt32(fileData, ref offset),
+                ResourceDimension = ReadUInt32(fileData, ref offset),
+                MiscFlag = ReadUInt32(fileData, ref offset),
+                ArraySize = ReadUInt32(fileData, ref offset),
+                Reserved = ReadUInt32(fileData, ref offset)
+            };
         }
 
         var formatInfo = ResolveFormat(pixelFormat, header10);
@@ -237,6 +383,7 @@ internal static class ImageDds
         {
             var target = imageIndex == 0 ? image : new Image($"{image.Name}#{imageIndex}");
             var storedData = formatInfo.Format == TextureFormat.TexFormatRgba8Unorm
+                    && !AreTextureComponentsMatching(pixelFormat, formatInfo.Format)
                 ? ReadRgbaLevels(fileData, ref offset, width, height, depth, mipMapCount, formatInfo)
                 : ReadCompressedLevels(fileData, ref offset, width, height, depth, mipMapCount, formatInfo.Format);
 
@@ -316,126 +463,63 @@ internal static class ImageDds
     private static void ConvertToRgba(ReadOnlySpan<byte> source, Span<byte> destination, DdsFormatInfo formatInfo)
     {
         var sourcePixelSize = (int)formatInfo.SourceBytesPerPixel;
+        GetChannelShift(formatInfo.RMask, out var rShiftL, out var rShiftR);
+        GetChannelShift(formatInfo.GMask, out var gShiftL, out var gShiftR);
+        GetChannelShift(formatInfo.BMask, out var bShiftL, out var bShiftR);
+        GetChannelShift(formatInfo.AMask, out var aShiftL, out var aShiftR);
+
         for (var sourceOffset = 0; sourceOffset < source.Length; sourceOffset += sourcePixelSize)
         {
             var destinationOffset = (sourceOffset / sourcePixelSize) * 4;
-            if (formatInfo.Encoding is DdsPixelEncoding.Float16 or DdsPixelEncoding.Unorm16)
-            {
-                var scale = formatInfo.Encoding == DdsPixelEncoding.Float16 ? 1.0f : 1.0f / ushort.MaxValue;
-                for (var channel = 0; channel < 4; ++channel)
-                {
-                    var raw = BinaryPrimitives.ReadUInt16LittleEndian(source.Slice(sourceOffset + channel * 2, 2));
-                    var value = formatInfo.Encoding == DdsPixelEncoding.Float16
-                        ? (float)BitConverter.UInt16BitsToHalf(raw)
-                        : raw * scale;
-                    destination[destinationOffset + channel] = ToByte(value);
-                }
-                continue;
-            }
-
-            if (formatInfo.Encoding == DdsPixelEncoding.Float32)
-            {
-                for (var channel = 0; channel < 4; ++channel)
-                {
-                    var raw = BinaryPrimitives.ReadUInt32LittleEndian(source.Slice(sourceOffset + channel * 4, 4));
-                    destination[destinationOffset + channel] = ToByte(BitConverter.Int32BitsToSingle((int)raw));
-                }
-                continue;
-            }
-
-            if (formatInfo.Encoding == DdsPixelEncoding.SharedExponent)
-            {
-                var packed = BinaryPrimitives.ReadUInt32LittleEndian(source.Slice(sourceOffset, 4));
-                var exponent = (packed >> 27) & 0x1fu;
-                var scale = MathF.Pow(2.0f, exponent - 24);
-                destination[destinationOffset + 0] = ToByte((packed & 0x1ffu) * scale);
-                destination[destinationOffset + 1] = ToByte(((packed >> 9) & 0x1ffu) * scale);
-                destination[destinationOffset + 2] = ToByte(((packed >> 18) & 0x1ffu) * scale);
-                destination[destinationOffset + 3] = 255;
-                continue;
-            }
-
             uint pixel = sourcePixelSize switch
             {
-                2 => BitConverter.ToUInt16(source.Slice(sourceOffset, 2)),
+                4 => BinaryPrimitives.ReadUInt32LittleEndian(source.Slice(sourceOffset, 4)),
                 3 => (uint)(source[sourceOffset] | (source[sourceOffset + 1] << 8) | (source[sourceOffset + 2] << 16)),
-                _ => BitConverter.ToUInt32(source.Slice(sourceOffset, 4))
+                _ => BinaryPrimitives.ReadUInt16LittleEndian(source.Slice(sourceOffset, 2))
             };
 
-            destination[destinationOffset + 0] = ExtractChannel(pixel, formatInfo.RMask);
-            destination[destinationOffset + 1] = ExtractChannel(pixel, formatInfo.GMask);
-            destination[destinationOffset + 2] = ExtractChannel(pixel, formatInfo.BMask);
-            destination[destinationOffset + 3] = formatInfo.AMask != 0 ? ExtractChannel(pixel, formatInfo.AMask) : (byte)255;
+            destination[destinationOffset + 0] = (byte)(((pixel & formatInfo.RMask) << rShiftL) >> rShiftR);
+            destination[destinationOffset + 1] = (byte)(((pixel & formatInfo.GMask) << gShiftL) >> gShiftR);
+            destination[destinationOffset + 2] = (byte)(((pixel & formatInfo.BMask) << bShiftL) >> bShiftR);
+            destination[destinationOffset + 3] = (byte)(((pixel & formatInfo.AMask) << aShiftL) >> aShiftR);
         }
     }
 
-    private static DdsFormatInfo ResolveFormat(DdsPixelFormat pixelFormat, DdsHeader10? header10)
+    private static DdsFormatInfo ResolveFormat(DDPixelFormat pixelFormat, DDSHeader10? header10)
     {
-        if (header10 is not null)
+        var originalTextureFormat = PickTextureFormat(pixelFormat, header10?.DxgiFormat ?? 0);
+        if (originalTextureFormat == TextureFormat.TexFormatUnknown)
+            return default;
+
+        var format = RenderAPIUtils.SetTextureFormatSRGB(originalTextureFormat, false);
+        var formatAttribs = RenderAPIUtils.GetTextureFormatInfo(format);
+        return new DdsFormatInfo(
+            true,
+            format,
+            checked((uint)formatAttribs.NumComponents),
+            pixelFormat.RgbBitCount >> 3,
+            pixelFormat.RBitMask,
+            pixelFormat.GBitMask,
+            pixelFormat.BBitMask,
+            pixelFormat.RgbAlphaBitMask,
+            format != originalTextureFormat);
+    }
+
+    private static void GetChannelShift(uint mask, out int shiftLeft, out int shiftRight)
+    {
+        shiftLeft = 0;
+        shiftRight = 0;
+        if (mask >= 0x100)
         {
-            return header10.Value.DxgiFormat switch
-            {
-                DxgiFormatR32G32B32A32Float => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 16, 0, 0, 0, 0, false, DdsPixelEncoding.Float32),
-                DxgiFormatR16G16B16A16Float => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 8, 0, 0, 0, 0, false, DdsPixelEncoding.Float16),
-                DxgiFormatR16G16B16A16Unorm => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 8, 0, 0, 0, 0, false, DdsPixelEncoding.Unorm16),
-                DxgiFormatR10G10B10A2Unorm => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 4, 0x000003ff, 0x000ffc00, 0x3ff00000, 0xc0000000, false),
-                DxgiFormatR9G9B9E5SharedExp => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 3, 4, 0, 0, 0, 0, false, DdsPixelEncoding.SharedExponent),
-                DxgiFormatR8G8B8A8Unorm => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 4, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000, false),
-                DxgiFormatR8G8B8A8UnormSrgb => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 4, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000, true),
-                DxgiFormatBc1Unorm => new DdsFormatInfo(true, TextureFormat.TexFormatBc1Unorm, 3, 0, 0, 0, 0, 0, false),
-                DxgiFormatBc1UnormSrgb => new DdsFormatInfo(true, TextureFormat.TexFormatBc1Unorm, 3, 0, 0, 0, 0, 0, true),
-                DxgiFormatBc2Unorm => new DdsFormatInfo(true, TextureFormat.TexFormatBc2Unorm, 4, 0, 0, 0, 0, 0, false),
-                DxgiFormatBc2UnormSrgb => new DdsFormatInfo(true, TextureFormat.TexFormatBc2Unorm, 4, 0, 0, 0, 0, 0, true),
-                DxgiFormatBc3Unorm => new DdsFormatInfo(true, TextureFormat.TexFormatBc3Unorm, 4, 0, 0, 0, 0, 0, false),
-                DxgiFormatBc3UnormSrgb => new DdsFormatInfo(true, TextureFormat.TexFormatBc3Unorm, 4, 0, 0, 0, 0, 0, true),
-                DxgiFormatB5G6R5Unorm => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 3, 2, 0x0000f800, 0x000007e0, 0x0000001f, 0x00000000, false),
-                DxgiFormatB5G5R5A1Unorm => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 2, 0x00007c00, 0x000003e0, 0x0000001f, 0x00008000, false),
-                _ => default
-            };
+            while ((mask >> shiftRight) >= 0x100)
+                ++shiftRight;
         }
-
-        return pixelFormat.FourCc switch
+        else if (mask != 0 && mask < 0x80)
         {
-            FourCcDxt1 => new DdsFormatInfo(true, TextureFormat.TexFormatBc1Unorm, 3, 0, 0, 0, 0, 0, false),
-            FourCcDxt3 => new DdsFormatInfo(true, TextureFormat.TexFormatBc2Unorm, 4, 0, 0, 0, 0, 0, false),
-            FourCcDxt5 => new DdsFormatInfo(true, TextureFormat.TexFormatBc3Unorm, 4, 0, 0, 0, 0, 0, false),
-            FourCcEtc1 or FourCcEtc2 => new DdsFormatInfo(true, TextureFormat.TexFormatEtc2Rgb8Unorm, 3, 0, 0, 0, 0, 0, false),
-            FourCcEtc2A => new DdsFormatInfo(true, TextureFormat.TexFormatEtc2Rgba8Unorm, 4, 0, 0, 0, 0, 0, false),
-            FourCcPtc2 => new DdsFormatInfo(true, EmulatedTextureFormat.PvrtcRgba2Bpp, 4, 0, 0, 0, 0, 0, false),
-            FourCcPtc4 => new DdsFormatInfo(true, EmulatedTextureFormat.PvrtcRgba4Bpp, 4, 0, 0, 0, 0, 0, false),
-            D3DFormatA16B16G16R16 => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 8, 0, 0, 0, 0, false, DdsPixelEncoding.Unorm16),
-            D3DFormatA16B16G16R16F => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 8, 0, 0, 0, 0, false, DdsPixelEncoding.Float16),
-            D3DFormatA32B32G32R32F => new DdsFormatInfo(true, TextureFormat.TexFormatRgba8Unorm, 4, 16, 0, 0, 0, 0, false, DdsPixelEncoding.Float32),
-            _ when pixelFormat.RgbBitCount is 16u or 24u or 32u
-                => new DdsFormatInfo(
-                    true,
-                    TextureFormat.TexFormatRgba8Unorm,
-                    pixelFormat.AMask != 0 ? 4u : 3u,
-                    Math.Max(pixelFormat.RgbBitCount / 8u, 1u),
-                    pixelFormat.RMask,
-                    pixelFormat.GMask,
-                    pixelFormat.BMask,
-                    pixelFormat.AMask,
-                    false),
-            _ => default
-        };
+            while ((mask << shiftLeft) < 0x80)
+                ++shiftLeft;
+        }
     }
-
-    private static byte ExtractChannel(uint pixel, uint mask)
-    {
-        if (mask == 0)
-            return 0;
-
-        var shift = BitOperations.TrailingZeroCount(mask);
-        var bits = BitOperations.PopCount(mask);
-        var value = (pixel & mask) >> shift;
-        return bits >= 8
-            ? (byte)(value >> (bits - 8))
-            : (byte)((value * 255u) / ((1u << bits) - 1u));
-    }
-
-    private static byte ToByte(float value)
-        => (byte)Math.Clamp((int)(value * 255.0f + 0.5f), 0, 255);
 
     private static byte[] ReadRemaining(Stream source)
     {
@@ -491,22 +575,6 @@ internal static class ImageDds
         return value;
     }
 
-    private readonly record struct DdsPixelFormat(
-        uint Flags,
-        uint FourCc,
-        uint RgbBitCount,
-        uint RMask,
-        uint GMask,
-        uint BMask,
-        uint AMask);
-
-    private readonly record struct DdsHeader10(
-        uint DxgiFormat,
-        uint ResourceDimension,
-        uint MiscFlag,
-        uint ArraySize,
-        uint Reserved);
-
     private readonly record struct DdsFormatInfo(
         bool IsSupported,
         TextureFormat Format,
@@ -516,16 +584,6 @@ internal static class ImageDds
         uint GMask,
         uint BMask,
         uint AMask,
-        bool SRgb,
-        DdsPixelEncoding Encoding = DdsPixelEncoding.Packed);
-
-    private enum DdsPixelEncoding
-    {
-        Packed,
-        Unorm16,
-        Float16,
-        Float32,
-        SharedExponent
-    }
+        bool SRgb);
 
 }
