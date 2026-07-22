@@ -46,8 +46,20 @@ public class Image : Resource
         if (ImageDds.TryLoad(this, stream))
             return true;
 
-        stream.Position = 0;
-        return ImageSdl.TryLoad(this, stream);
+        source.Seek(0);
+        var pixelData = GetImageData(source, out var width, out var height, out var components);
+        if (pixelData == IntPtr.Zero)
+        {
+            Log.GetLogger().LogError("Could not load image {Name}: {Reason}", source.Name, GetStbiFailureReason());
+            return false;
+        }
+
+        SetSize(width, height, components);
+        var imageData = new byte[checked(width * height * components)];
+        Marshal.Copy(pixelData, imageData, 0, imageData.Length);
+        SetData(imageData);
+        FreeImageData(pixelData);
+        return true;
     }
 
     public override unsafe bool Save(Serializer destination)
@@ -83,7 +95,26 @@ public class Image : Resource
 
     public bool SavePNG(string fileName) => SaveEncodedFile(fileName);
 
-    public bool SaveJPG(string fileName, int quality) => ImageSdl.SaveJpg(this, fileName, quality);
+    public unsafe bool SaveJPG(string fileName, int quality)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+
+        if (IsCompressed())
+        {
+            Log.GetLogger().LogError("Can not save compressed image to JPG");
+            return false;
+        }
+
+        if (_data.Length == 0)
+            return false;
+
+        var nativeFileName = System.Text.Encoding.UTF8.GetBytes(fileName + '\0');
+        fixed (byte* data = _data)
+        {
+            return RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiWriteJpg(
+                nativeFileName, Width, Height, Components, (nint)data, quality) != 0;
+        }
+    }
 
     public bool SaveWEBP(string fileName, float compression = 0.0f)
     {
@@ -145,7 +176,56 @@ public class Image : Resource
     }
 
     /// <summary>Return an SDL surface from the image, or null if failed. Only RGB images are supported. Specify rect to only return partial image. You must free the surface yourself.</summary>
-    public RedBolt.Bindings.Sdl.SdlSurface? GetSDLSurface(IntRect rect = default) => ImageSdl.GetSdlSurface(this, rect);
+    public RedBolt.Bindings.Sdl.SdlSurface? GetSDLSurface(IntRect rect = default)
+    {
+        if (_data.Length == 0)
+            return null;
+
+        if (Depth > 1)
+        {
+            Log.GetLogger().LogError("Can not get SDL surface from 3D image");
+            return null;
+        }
+
+        if (IsCompressed())
+        {
+            Log.GetLogger().LogError("Can not get SDL surface from compressed image {Name}", Name);
+            return null;
+        }
+
+        if (Components < 3)
+        {
+            Log.GetLogger().LogError("Can not get SDL surface from image {Name} with less than 3 components", Name);
+            return null;
+        }
+
+        var imageRect = rect;
+        if (imageRect.Left < 0 || imageRect.Top < 0 || imageRect.Right > Width || imageRect.Bottom > Height
+            || imageRect.Left >= imageRect.Right || imageRect.Top >= imageRect.Bottom)
+        {
+            imageRect = new IntRect(0, 0, Width, Height);
+        }
+
+        var width = imageRect.Width;
+        var height = imageRect.Height;
+        var surface = RedBolt.Bindings.Sdl.SdlNativeBindings.SdlCreateRGBSurface(
+            0, width, height, Components * 8, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+        if (surface.IsNull)
+        {
+            Log.GetLogger().LogError("Failed to create SDL surface from image {Name}", Name);
+            return null;
+        }
+
+        RedBolt.Bindings.Sdl.SdlNativeBindings.SdlLockSurface(surface);
+        var sourceOffset = Components * (Width * imageRect.Top + imageRect.Left);
+        for (var i = 0; i < height; ++i)
+        {
+            Marshal.Copy(_data, sourceOffset, IntPtr.Add(surface.Pixels, i * surface.Pitch), Components * width);
+            sourceOffset += Components * Width;
+        }
+        RedBolt.Bindings.Sdl.SdlNativeBindings.SdlUnlockSurface(surface);
+        return surface;
+    }
 
     public bool SaveDDS(string fileName)
     {
@@ -216,24 +296,25 @@ public class Image : Resource
         }
     }
 
-    public bool SaveTGA(string fileName)
+    public unsafe bool SaveTGA(string fileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        var rgba = Components == 4 ? this : ConvertToRGBA();
-        if (rgba is null)
-            return false;
-        using var stream = new MemoryStream();
-        using var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true);
-        writer.Write((byte)0); writer.Write((byte)0); writer.Write((byte)2);
-        writer.Write(new byte[5]); writer.Write((short)0); writer.Write((short)0);
-        writer.Write((ushort)rgba.Width); writer.Write((ushort)rgba.Height); writer.Write((byte)32); writer.Write((byte)0x28);
-        var data = rgba.GetData();
-        for (var i = 0; i < data.Length; i += 4)
+
+        if (IsCompressed())
         {
-            writer.Write(data[i + 2]); writer.Write(data[i + 1]); writer.Write(data[i]); writer.Write(data[i + 3]);
+            Log.GetLogger().LogError("Can not save compressed image to TGA");
+            return false;
         }
-        writer.Flush();
-        return WriteFile(fileName, stream.ToArray());
+
+        if (_data.Length == 0)
+            return false;
+
+        var nativeFileName = System.Text.Encoding.UTF8.GetBytes(fileName + '\0');
+        fixed (byte* data = _data)
+        {
+            return RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiWriteTga(
+                nativeFileName, Width, Height, Components, (nint)data) != 0;
+        }
     }
 
     private bool SaveEncodedFile(string fileName)
@@ -1105,12 +1186,49 @@ public class Image : Resource
     public bool LoadColorLUT(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        source.Seek(0);
-        var data = new byte[checked((int)source.Size)];
-        if (source.Read(data) != source.Size)
+
+        var fileId = source.ReadFileID();
+        if (fileId is "DDS " or "\u00abKTX" or "PVR\u0003")
+        {
+            Log.GetLogger().LogError("Invalid image format, can not load image");
             return false;
-        using var stream = new MemoryStream(data, writable: false);
-        return ImageSdl.TryLoadColorLut(this, stream);
+        }
+
+        source.Seek(0);
+        var pixelData = GetImageData(source, out var width, out var height, out var components);
+        if (pixelData == IntPtr.Zero)
+        {
+            Log.GetLogger().LogError("Could not load image {Name}: {Reason}", source.Name, GetStbiFailureReason());
+            return false;
+        }
+        if (components != 3)
+        {
+            Log.GetLogger().LogError("Invalid image format, can not load image");
+            return false;
+        }
+
+        const int colorLutSize = 16;
+        SetSize(colorLutSize, colorLutSize, colorLutSize, components);
+        var pixelDataIn = new byte[checked(width * height * components)];
+        Marshal.Copy(pixelData, pixelDataIn, 0, pixelDataIn.Length);
+        var pixelDataOut = GetData();
+        for (var z = 0; z < Depth; ++z)
+        {
+            for (var y = 0; y < Height; ++y)
+            {
+                var inputOffset = z * Width * 3 + y * width * 3;
+                var outputOffset = z * Width * Height * 3 + y * Width * 3;
+                for (var x = 0; x < Width * 3; x += 3)
+                {
+                    pixelDataOut[outputOffset + x] = pixelDataIn[inputOffset + x];
+                    pixelDataOut[outputOffset + x + 1] = pixelDataIn[inputOffset + x + 1];
+                    pixelDataOut[outputOffset + x + 2] = pixelDataIn[inputOffset + x + 2];
+                }
+            }
+        }
+
+        FreeImageData(pixelData);
+        return true;
     }
 
     internal void SetCompressedData(
@@ -1178,5 +1296,36 @@ public class Image : Resource
         for (var i = 0; i < level && value > 1; ++i)
             value = Math.Max(value / 2, 1);
         return value;
+    }
+
+    private static IntPtr GetImageData(Deserializer source, out int width, out int height, out int components)
+    {
+        var data = new byte[checked((int)source.Size)];
+        source.Read(data);
+        if (data.Length == 0)
+        {
+            width = 0;
+            height = 0;
+            components = 0;
+            return IntPtr.Zero;
+        }
+
+        return RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiLoadFromMemory(
+            in data[0], data.Length, out width, out height, out components, 0);
+    }
+
+    private static void FreeImageData(IntPtr pixelData)
+    {
+        if (pixelData == IntPtr.Zero)
+            return;
+
+        RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiImageFree(pixelData);
+    }
+
+    private static string GetStbiFailureReason()
+    {
+        var reason = RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiFailureReason();
+        var length = reason.IndexOf((byte)0);
+        return System.Text.Encoding.UTF8.GetString(length >= 0 ? reason[..length] : reason);
     }
 }

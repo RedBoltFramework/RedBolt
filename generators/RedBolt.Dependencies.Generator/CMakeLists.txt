@@ -88,6 +88,7 @@ set(REDBOLT_SPIRV_CROSS_C_HEADER "${REDBOLT_SPIRV_CROSS_SOURCE_ROOT}/spirv_cross
 set(REDBOLT_SPIRV_TOOLS_C_HEADER "${REDBOLT_SPIRV_TOOLS_SOURCE_ROOT}/include/spirv-tools/libspirv.h" CACHE INTERNAL "SPIRV-Tools C header")
 
 redbolt_require_path("${REDBOLT_STB_VORBIS_HEADER}" "stb_vorbis header")
+redbolt_require_path("${REDBOLT_STB_IMAGE_HEADER}" "stb_image header")
 redbolt_require_path("${REDBOLT_STB_IMAGE_WRITE_HEADER}" "stb_image_write header")
 
 file(MAKE_DIRECTORY
@@ -107,6 +108,7 @@ file(CONFIGURE OUTPUT "${REDBOLT_STB_PARSE_HEADER}" CONTENT [=[
 #pragma once
 #define STB_VORBIS_HEADER_ONLY
 #include <stb_vorbis.c>
+#include <stb_image.h>
 #include <stb_image_write.h>
 STBIWDEF unsigned char* stbi_write_png_to_mem(
     const unsigned char* pixels, int stride_bytes, int x, int y, int n, int* out_len);
