@@ -14,6 +14,8 @@
     <Project Path="samples/RedBolt.Sample.HugeObjectCount/RedBolt.Sample.HugeObjectCount.csproj" />
     <Project Path="samples/RedBolt.Sample.CameraOperator/RedBolt.Sample.CameraOperator.csproj" />
     <Project Path="samples/RedBolt.Sample.SkeletalAnimation/RedBolt.Sample.SkeletalAnimation.csproj" />
+    <Project Path="samples/RedBolt.Sample.SoundEffects/RedBolt.Sample.SoundEffects.csproj" />
+    <Project Path="samples/RedBolt.Sample.SoundSynthesis/RedBolt.Sample.SoundSynthesis.csproj" />
     <Project Path="samples/RedBolt.Sample.Decals/RedBolt.Sample.Decals.csproj" />
     <Project Path="samples/RedBolt.Sample.PointerAdapter/RedBolt.Sample.PointerAdapter.csproj" />
     <Project Path="samples/RedBolt.Sample.TextureFormats/RedBolt.Sample.TextureFormats.csproj" />
