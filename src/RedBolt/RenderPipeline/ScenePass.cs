@@ -60,9 +60,20 @@ public class UnorderedScenePass : ScenePass
         batchRenderer.PrepareInstancingBuffer(ref _lightBatchGroup);
     }
 
-    public PipelineBatchGroup<PipelineBatchByState> GetDeferredBatches() => _deferredBatchGroup;
-    public PipelineBatchGroup<PipelineBatchByState> GetBaseBatches() => _baseBatchGroup;
-    public PipelineBatchGroup<PipelineBatchByState> GetLightBatches() => _lightBatchGroup;
+    public ref readonly PipelineBatchGroup<PipelineBatchByState> GetDeferredBatches() => ref _deferredBatchGroup;
+    public ref readonly PipelineBatchGroup<PipelineBatchByState> GetBaseBatches() => ref _baseBatchGroup;
+    public ref readonly PipelineBatchGroup<PipelineBatchByState> GetLightBatches() => ref _lightBatchGroup;
+
+    public override void Dispose()
+    {
+        _lightBatchGroup = default;
+        _baseBatchGroup = default;
+        _deferredBatchGroup = default;
+        _sortedLightBatches.Clear();
+        _sortedBaseBatches.Clear();
+        _sortedDeferredBatches.Clear();
+        base.Dispose();
+    }
 
     protected override void OnBatchesReady()
     {
@@ -75,13 +86,8 @@ public class UnorderedScenePass : ScenePass
 
         var numNegativeLightBatches = (int)NegativeLightBatches.Size();
         var lightSpan = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(_sortedLightBatches);
-        if (numNegativeLightBatches > 0 && lightSpan.Length >= numNegativeLightBatches)
-        {
-            lightSpan[..^numNegativeLightBatches].Sort();
-            lightSpan[^numNegativeLightBatches..].Sort();
-        }
-        else
-            lightSpan.Sort();
+        lightSpan[..^numNegativeLightBatches].Sort();
+        lightSpan[^numNegativeLightBatches..].Sort();
 
         _deferredBatchGroup = new PipelineBatchGroup<PipelineBatchByState>
         {
@@ -136,9 +142,6 @@ public class UnorderedScenePass : ScenePass
 /// <summary>Scene pass with batches sorted by render order and distance back to front.</summary>
 public class BackToFrontScenePass : ScenePass
 {
-    private static readonly float AdditiveDistanceFactor = 1 - MathDefs.Epsilon;
-    private static readonly float SubtractiveDistanceFactor = 1 - 2 * MathDefs.Epsilon;
-
     private readonly List<PipelineBatchBackToFront> _sortedBatches = [];
     private bool _hasRefractionBatches;
     private PipelineBatchGroup<PipelineBatchBackToFront> _batchGroup;
@@ -161,9 +164,16 @@ public class BackToFrontScenePass : ScenePass
         batchRenderer.PrepareInstancingBuffer(ref _batchGroup);
     }
 
-    public PipelineBatchGroup<PipelineBatchBackToFront> GetBatches() => _batchGroup;
+    public ref readonly PipelineBatchGroup<PipelineBatchBackToFront> GetBatches() => ref _batchGroup;
 
     public bool HasRefractionBatches() => _hasRefractionBatches;
+
+    public override void Dispose()
+    {
+        _batchGroup = default;
+        _sortedBatches.Clear();
+        base.Dispose();
+    }
 
     protected override void OnBatchesReady()
     {
@@ -179,6 +189,9 @@ public class BackToFrontScenePass : ScenePass
         var additiveLightBatchesBegin = subtractiveLightBatchesBegin - (int)LightBatches.Size();
         var additiveLightBatchesEnd = subtractiveLightBatchesBegin;
 
+        const float additiveDistanceFactor = 1 - MathDefs.Epsilon;
+        const float subtractiveDistanceFactor = 1 - 2 * MathDefs.Epsilon;
+
         // Validate distances before sorting, NaN may corrupt sort
         for (var i = 0; i < _sortedBatches.Count; ++i)
         {
@@ -188,7 +201,7 @@ public class BackToFrontScenePass : ScenePass
 
             var batch = sortedBatch.PipelineBatch!.Value;
             Log.GetLogger().LogError("Drawable batch [{Drawable}].{Index} has NaN distance",
-                batch.Drawable?.GetFullNameDebug(), batch.SourceBatchIndex);
+                batch.Drawable!.GetFullNameDebug(), batch.SourceBatchIndex);
             sortedBatch.Distance = MathDefs.LargeValue;
             _sortedBatches[i] = sortedBatch;
         }
@@ -196,14 +209,14 @@ public class BackToFrontScenePass : ScenePass
         for (var i = additiveLightBatchesBegin; i < additiveLightBatchesEnd; ++i)
         {
             var sortedBatch = _sortedBatches[i];
-            sortedBatch.Distance *= AdditiveDistanceFactor;
+            sortedBatch.Distance *= additiveDistanceFactor;
             _sortedBatches[i] = sortedBatch;
         }
 
         for (var i = subtractiveLightBatchesBegin; i < subtractiveLightBatchesEnd; ++i)
         {
             var sortedBatch = _sortedBatches[i];
-            sortedBatch.Distance *= SubtractiveDistanceFactor;
+            sortedBatch.Distance *= subtractiveDistanceFactor;
             _sortedBatches[i] = sortedBatch;
         }
 
@@ -215,8 +228,7 @@ public class BackToFrontScenePass : ScenePass
             foreach (var sortedBatch in _sortedBatches)
             {
                 // Assume refraction if blending is disabled
-                var graphicsDesc = sortedBatch.PipelineBatch?.PipelineState?.GetDesc().AsGraphics();
-                if (graphicsDesc is { } graphics && graphics.BlendMode == BlendMode.Replace)
+                if (sortedBatch.PipelineBatch!.Value.PipelineState!.GetDesc().AsGraphics()!.BlendMode == BlendMode.Replace)
                 {
                     _hasRefractionBatches = true;
                     break;

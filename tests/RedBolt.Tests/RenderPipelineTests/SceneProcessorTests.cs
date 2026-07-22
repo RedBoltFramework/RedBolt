@@ -75,6 +75,30 @@ public sealed class SceneProcessorTests
     }
 
     [Fact]
+    public void ScenePassDisposeReleasesDerivedBatchStorage()
+    {
+        var pipeline = new TestRenderPipelineInterface();
+        using var processor = new SceneProcessor(pipeline, "shadow", null, null);
+        var unorderedPass = processor.CreatePass<UnorderedScenePass>(DrawableProcessorPassFlag.None, "base");
+        var backToFrontPass = processor.CreatePass<BackToFrontScenePass>(DrawableProcessorPassFlag.None, "alpha");
+        unorderedPass.ComposeBatches();
+        backToFrontPass.ComposeBatches();
+        ref readonly var unorderedBatches = ref unorderedPass.GetBaseBatches();
+        ref readonly var backToFrontBatches = ref backToFrontPass.GetBatches();
+
+        Assert.NotNull(unorderedBatches.Batches);
+        Assert.NotNull(backToFrontBatches.Batches);
+
+        unorderedPass.Dispose();
+        backToFrontPass.Dispose();
+
+        Assert.Null(unorderedBatches.Batches);
+        Assert.Null(backToFrontBatches.Batches);
+        Assert.True(typeof(UnorderedScenePass).GetMethod(nameof(UnorderedScenePass.GetBaseBatches))!.ReturnType.IsByRef);
+        Assert.True(typeof(BackToFrontScenePass).GetMethod(nameof(BackToFrontScenePass.GetBatches))!.ReturnType.IsByRef);
+    }
+
+    [Fact]
     public void PipelineStateBuilderUsesNativePointerAndPropertyShape()
     {
         var type = typeof(PipelineStateBuilder);
