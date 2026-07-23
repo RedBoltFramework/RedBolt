@@ -110,6 +110,25 @@ public sealed class AudioTests
     }
 
     [Fact]
+    public void Microphone_callback_update_appends_sixteen_bit_samples()
+    {
+        using var microphone = new Microphone();
+        microphone.SetEnabled(true);
+
+        microphone.Update([0x34, 0x12, 0xCC, 0xFF], 4);
+
+        Assert.Equal([0x1234, -52], microphone.GetData());
+    }
+
+    [Fact]
+    public void Microphone_registers_object_factory()
+    {
+        Microphone.RegisterObject(_fixture.Context);
+
+        Assert.NotNull(_fixture.Context.GetReflection<Microphone>());
+    }
+
+    [Fact]
     public void Wav_loader_preserves_sixteen_bit_samples()
     {
         var wav = new byte[]

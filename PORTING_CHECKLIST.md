@@ -115,44 +115,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [-] `RefCounted.h` — **EXCLUDED** · reason: intrusive strong ref · replaced-by: C# references + GC
 - [-] `Ptr.h` — **EXCLUDED** · reason: intrusive strong ref · replaced-by: C# references + GC
 - [-] `FlagSet.h` — **EXCLUDED** · reason: ported as `[Flags]` enums
-- [x] `KeyFrameSet.h` — non-POD value-container copies, cloned element insertion, deterministic element/vector teardown, derived curve/track copy dispatch, and mutable stored references reconciled
 
 ## [x] A2. Math — depends on Container
 
 - [-] `ApproximateEqualityComparer.cs` — **REMOVED** · reason: unused C#-only generic comparer with no rbfx counterpart
-- [x] `IApproximateEquatable.cs` — approved managed interface for strongly typed epsilon-based equality; fieldless contract has no construction, destruction, or copy state
-- [x] `AreaAllocator.h` / `AreaAllocator.cpp` — extensible copyable class kind, independent free-rectangle container copies, POD rectangle values, constructors, allocation paths, and automatic field lifetime reconciled
-- [x] `BoundingBox.h` / `BoundingBox.cpp` — 32-byte all-float value layout, independent copies, native undefined construction at stored call sites, equality/merge surface, padding and intersection behavior, and automatic lifetime reconciled
-- [x] `Color.h` / `Color.cpp` — 16-byte standard-layout, trivially copyable non-POD value class, POD channel mask, opaque-white default construction, independent copies, conversions, color-space logic, and automatic lifetime reconciled
-- [x] `EaseMath.h` — stateless namespace function module, all 15 formulas and branches reconciled; no instance, value type, copy, or lifetime state exists
-- [x] `Frustum.h` / `Frustum.cpp` — extensible non-POD copyable class kind, independent fixed-array copies, degenerate construction, geometry operations, and automatic lifetime reconciled
-- [x] `InverseKinematics.h` / `InverseKinematics.cpp` — solver value aggregates and all chain classes reconciled, including native defaults, extensible non-POD class kinds, independent container/fixed-storage/value copies with borrowed node aliases, derived clone types, weight ownership, and automatic lifetime
-- [x] `Rect.h` / `Rect.cpp` — `IntRect` and `IntRectIterator` sequential value types, independent scalar copies, contiguous data view, iterator behavior, and automatic lifetime reconciled
-- [x] `Vector2.h` / `Vector3.h` / `Vector4.h` — `BaseIntegerVector2<T>` and `BaseIntegerVector3<T>` POD-style sequential structs, exact generic names, independent scalar copies, contiguous data views, conversions, integer lengths, hashes, and automatic lifetime reconciled
-- [x] `MathDefs.h` — `Intersection` enum kind, integer backing, ordered values, value-copy semantics, and automatic lifetime reconciled
-- [x] `MathDefs.h` / `MathDefs.cpp` — stateless module kind, constant types/order, scalar and vector helpers, variable-length integer bit offsets, native-width zigzag semantics, documentation, and compatibility-only surface cleanup reconciled
-- [x] `Matrix2.h` / `Matrix2.cpp` — sequential 16-byte reference-free value layout, identity construction, independent assignment copies, allocation-free inline data access, exact arithmetic/transposition/inverse behavior, approved managed `int` bulk count, and automatic lifetime reconciled
-- [x] `Matrix3.h` / `Matrix3.cpp` — sequential 36-byte reference-free value layout, identity and angle-axis construction, independent assignment copies, allocation-free inline data access, exact arithmetic/transposition/inverse behavior, approved managed `int` indices and bulk count, and automatic lifetime reconciled
-- [x] `Matrix3x4.h` / `Matrix3x4.cpp` — sequential 48-byte reference-free value layout, identity and TRS construction, independent assignment copies, allocation-free inline data access, exact decomposition/inverse/arithmetic behavior, approved managed `int` indices, and automatic lifetime reconciled
-- [x] `NumericRange.h` — sequential reference-free pair value type, implicit independent copies, scalar aliases, invalid defaults, predicates, union/intersection operators, equality, and automatic lifetime reconciled
-- [x] `PerlinNoise.h` / `PerlinNoise.cpp` — non-final reference class shape, unsigned constant, borrowed random-engine construction, fixed permutation storage, deep copy semantics, complete noise flow, comments, and automatic lifetime reconciled
-- [x] `Plane.h` / `Plane.cpp` — reference-free value type, explicit copy construction and independent assignment semantics, complete constructor/method/field order, transforms, intersections, comments, and automatic lifetime reconciled
-- [x] `Polyhedron.h` / `Polyhedron.cpp` — extensible non-POD class kind, independent nested-face copy construction and assignment, preserved scratch lifetimes, native face-resize identity, clipping and transform behavior, stack temporaries, and automatic container lifetime reconciled
-- [x] `Quaternion.h` / `Quaternion.cpp` — sequential four-float value kind, explicit independent copy construction, constructor and mutating definition surface, allocation-free contiguous data, exact thresholds/hash/platform interpolation, look-rotation state preservation, and automatic lifetime reconciled
-- [x] `RandomEngine.h` / `RandomEngine.cpp` — extensible non-POD class kind, independent engine-state copy construction, thread-local shared reference, constructor/load/save semantics, exact deterministic generation, assertions, helper visibility, documentation, and automatic lifetime reconciled
-- [x] `Ray.h` / `Ray.cpp` — sequential reference-free value kinds, mutable DistanceAndNormal defaults, explicit independent Ray copy construction, member/type order, exact intersection and indexed-geometry branches, non-normalizing transformed direction, comments, and automatic lifetime reconciled
-- [x] `Rect.h` / `Rect.cpp` — sequential four-float Rect value kind, explicit independent copy construction, undefined defaults, native member order, geometry operations, allocation-free contiguous data, hash, documentation, and automatic lifetime reconciled
-- [x] `Sphere.h` / `Sphere.cpp` — sequential reference-free Circle and Sphere value kinds, native defaults and member order, explicit independent Sphere copy construction, exact definition/merge/classification/intersection behavior, documentation, and automatic lifetime reconciled
-- [x] `SphericalHarmonics.h` / `SphericalHarmonics.cpp` — three sequential POD-style fixed-storage value kinds, independent inline-array and pass-by-value copies, native constructors/member order/operators/evaluation/repacking, serialization documentation, and automatic lifetime reconciled
-- [x] `TetrahedralMesh.h` / `TetrahedralMesh.cpp` implementation internals — extensible mesh class kind, POD 20-byte edge storage, non-POD value context, independent tetrahedron compaction, scratch initialization, warning gate, and automatic container lifetime reconciled
-- [x] `TetrahedralMesh.h` / `TetrahedralMesh.cpp` public class — implicit default construction and independent copy/clone semantics for all owned containers, native field order, statically typed sampling instantiations, and automatic container lifetime reconciled
-- [x] `TetrahedralMesh.h` / `TetrahedralMesh.cpp` helper types — sequential POD sphere/triangle/edge/tetrahedron layouts with inline fixed storage, non-POD surface deep copy/clone, native reference parameter shapes, adjacency behavior, and automatic container lifetime reconciled
-- [x] `Transform.h` / `Transform.cpp` — sequential reference-free Transform and DoubleTransform POD layouts, native defaults and identities, independent assignment/return copies, const-reference call paths, derived AnimationKeyFrame layout, and automatic lifetime reconciled
-- [x] `Vector2.h` real vectors — sequential reference-free float/double POD layouts, independent assignment copies, allocation-free inline data access, native defaults/constants/hash/conversions/helpers, and automatic lifetime reconciled
-- [x] `Vector3.h` real vectors — sequential reference-free float/double POD layouts, independent assignment copies, allocation-free inline data access, native defaults/constants/hash/conversions/signed-angle behavior/helpers, and automatic lifetime reconciled
-- [x] `Vector4.h` / `Vector4.cpp` — sequential 16-byte reference-free value layout, explicit independent copy construction, allocation-free inline data access, native constructors/constants/index/hash/conversions/free helpers, approved managed `int` indexing, and automatic lifetime reconciled
-- [x] Dear ImGui `ImVec2` / `ImVec4` SharpCpp marshalling — generated binding selection, matching inline float layouts, independent value conversion, borrowed const-reference duration, and automatic lifetime verified
-- [x] `WrappedScalar.h` — reference-free `WrappedScalar<T>` and `WrappedScalarRange<T>` value kinds, implicit independent copies, native constructors/member order/update and containment behavior, and automatic lifetime reconciled
 
 ## [x] A3. Core — depends on Container, Math
 
@@ -181,50 +147,12 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A4. IO — depends on Container, Core
 
-- [x] `AbstractFile.h` — extensible abstract non-POD class kind, public base construction, name ownership, explicit virtual destruction, and derived teardown dispatch reconciled
-- [x] `Archive.h` / `Archive.cpp` / `ArchiveBase.h` / `ArchiveBase.cpp` — enum/class kinds, move-only block ownership, deterministic block teardown, abstract/helper API shape, context nullability, delayed-exception lifetime, hex decoding, and virtual destruction reconciled
-- [x] `ArchiveSerialization.h` / `ArchiveSerialization.cpp` / serialization helper headers — native free-function/static utility shape, POD and enum storage, direct POD compound overloads, primitive/compound Variant formats, replacement lifetimes, container ownership, ResourceRef/List paths, human-name/binary-hash `StringHash` serialization, generic optional/pair value helpers, and exception consumption reconciled
-- [x] `TetrahedralMesh.h` / `TetrahedralMesh.cpp` archive serialization — POD tetrahedron layout/copy/default construction, primitive-array parsing, and object-versus-byte vector serialization reconciled
-- [x] `Base64Archive.h` / `Base64Archive.cpp` — extensible non-POD class kinds, binary inheritance, owned VectorBuffer construction/reverse teardown, and direct encode/decode behavior reconciled
-- [x] `BinaryArchive.h` / `BinaryArchive.cpp` — extensible non-POD archive/block kinds, input-block copy construction, borrowed streams, owned safe buffers, deterministic teardown, paths, guards, and delayed exceptions reconciled
-- [x] `Compression.h` / `Compression.cpp` — stateless free-function shape, explicit buffer sizes, unsigned LZ4 results, temporary ownership, borrowed streams, and independent VectorBuffer returns reconciled
-- [x] `MemoryBuffer.h` / `MemoryBuffer.cpp` — extensible copyable non-POD class kind, shallow clone semantics, borrowed backing storage, independent stream state and pin ownership, deterministic teardown, and by-value storage call sites reconciled
-- [x] `MountPoint.h` / `MountPoint.cpp` — extensible abstract non-POD mount and watchable base kinds, POD watcher state, virtual teardown, default optional/value returns, and exact state-transition callback ordering reconciled
-- [x] `MountedAliasRoot.h` / `MountedAliasRoot.cpp` — extensible noncopyable class kind, weak alias targets, copied alias metadata, expired-target handling, identifier temporaries, forwarding boundaries, and member-before-base teardown reconciled
-- [x] `MountedRoot.h` / `MountedRoot.cpp` — extensible noncopyable class kind, fieldless implicit teardown, borrowed filesystem access, independent path/identifier values, and failed/successful file ownership boundaries reconciled
-- [x] `NamedPipe.h` / `NamedPipe.cpp` — extensible noncopyable class kind, platform handle states, managed pipe/read-loop ownership, synchronous close/reopen ordering, cancellation teardown, and borrowed buffer boundaries reconciled
-- [x] `PackageFile.h` / `PackageFile.cpp` — POD PackageEntry layout, extensible noncopyable PackageFile kind, reader scopes, entry value copies, owned storage teardown, unsigned offset truncation, and native read/update ordering reconciled
-- [x] `VirtualFileSystem.h` / `VirtualFileSystem.cpp` — extensible non-POD subsystem and movable guard kinds, ordered mount ownership, alias reference lifetime, unmount/destruction teardown, failed package scope, and opened-file RAII reconciled
-- [x] `Serializer.h` / `Serializer.cpp` — extensible abstract non-POD class kind, virtual disposal, primitive and POD single-write boundaries, compound success ordering, Variant/custom payloads, container aliasing, and temporary value lifetimes reconciled
-- [x] `FileWatcher.h` / `FileWatcher.cpp` — POD event-kind enum, non-POD value change records, extensible noncopyable watcher, standard-library platform watcher mapping, queue timing/copy semantics, and deterministic teardown reconciled
-- [x] `MultiFileWatcher.h` / `MultiFileWatcher.cpp` — extensible noncopyable class kind, owned watcher collection, failed-local and clear teardown, delay forwarding, and output preservation reconciled
-- [x] `MountedDirectory.h` / `MountedDirectory.cpp` — extensible noncopyable mount kind, owned optional watcher teardown, file stream scopes, requested-scan-root-relative results, and update value semantics reconciled
-- [x] `MountedExternalMemory.h` / `MountedExternalMemory.cpp` — extensible noncopyable mount kind, by-value MemoryBuffer storage and replacement lifetimes, wrapped borrowed views, and deterministic map teardown reconciled
-- [x] `VectorBuffer.h` / `VectorBuffer.cpp` — extensible copyable non-POD class kind, deep clone semantics, borrowed byte/pointer views, owned storage teardown, and return-value lifetimes reconciled
-- [x] `Deserializer.h` / `Deserializer.cpp` — extensible abstract non-POD class kind, public construction, scalar field lifetime, virtual disposal, raw and bulk read semantics, independent value returns, pointer/custom Variant handling, and unsigned relative seeking reconciled
-- [x] `File.h` / `File.cpp` — extensible non-POD class kind, standalone POD `FileMode` enum, owned handle and buffer lifetimes, exact close/reset ordering, package metadata copy, deterministic transient-file teardown, and independent binary returns reconciled
-- [x] `FileIdentifier.h` / `FileIdentifier.cpp` — mutable non-POD value-struct kind, owned string copy semantics, exact default/URI/path sanitization, operators, independent value returns, and canonical/resource-routing copies reconciled
 - [-] `FileSystem.h` — **EXCLUDED** · reason: use standard library functionality
 - [-] `MacFileWatcher.h` — **EXCLUDED** · reason: macOS FSEvents backend · replaced-by: `FileSystemWatcher`
 - [-] `RWOpsWrapper.h` — **EXCLUDED** · reason: SDL_RWops C++ adapter · replaced-by: generated SDL interop
 
 ## [x] A5. Resource — depends on IO, Core
 
-- [x] `BinaryFile.h` / `BinaryFile.cpp` — extensible non-POD class kind, factory construction, owned VectorBuffer teardown, callback/archive RAII, byte-copy semantics, borrowed stream views, and reflection registration reconciled
-- [x] `Resource.h` / `Resource.cpp` — ResourceWithMetadata, Resource, and SimpleResource construction, field order, noncopyability, native factory construction-then-naming, subsystem lookup, native Deserializer/Serializer signatures, direct archive/VFS-file lifetimes, format selection, load completion, logging, and removal of the C#-only reload surface reconciled
-- [x] `SerializableResource.h` / `SerializableResource.cpp` — class kind, native parameterless construction, archive state ordering, value aliasing, missing-type behavior, binary/root identity, native serializer paths, and derived-to-base teardown reconciled
-- [x] `XMLArchive.h` / `XMLArchive.cpp` — XML base, property-only value-reference, block, and archive class kinds; constructors; node/file aliasing; block ownership and reverse teardown; root/EOF lifecycle; sequential traversal; native narrowing conversions; unordered attribute/child behavior; and the allowed archive size-hint `int` mapping reconciled
-- [x] `XMLElement.h` / `XMLElement.cpp` — extensible non-POD class kind, native field order, weak XML-file observation, direct-node and standalone/result-set XPath-node ownership, copy/assignment/destruction, result iteration, attribute/text XPath nodes, child/text behavior, native buffer/bounding-box formats, resource references, custom Serializable variants, variant containers, property-only accessors, compatibility-surface removal, and allowed `int` sizes reconciled
-- [x] `XPathQuery` and `XPathResultSet` in `XMLElement.h` / `XMLElement.cpp` — extensible query/result class kinds, weak XML-file observation, independent copy construction and assignment, deterministic result/query teardown, owned compiled query and typed variable set, binding/rebinding, query replacement, scalar and result-set evaluation, attribute/text/cross-document node-set values, diagnostics, and native number/string conversions reconciled
-- [x] `XMLFile.h` / `XMLFile.cpp` — extensible noncopyable resource kind, document ownership and reverse disposal, loading and inherited-resource deep-copy lifetime, native default parsing/output, archive callbacks and named object blocks, sequential patch operations, memory accounting, diagnostics, property-only document access, native member order, and allowed `int` sizes reconciled
-- [x] `ResourceCache.h` / `ResourceCache.cpp` — construction defaults, background-loader teardown, resource/group ownership, hash-only dependency tracking without resource retention, native dependency reload/reset flow, group-based memory accounting, temporary-resource empty-name/null behavior, canonical VFS sanitization, native struct-event reload flow, and allocation-free in-place release-family traversal with forwarded force/retry behavior reconciled; under the approved managed ownership deviation, `force=false` releases normally because CLR references remain valid after cache eviction, while `force=true` skips cross-type retry passes
-- [x] `ResourceRouter` in `ResourceCache.h` / `ResourceCache.cpp` — abstract noncopyable class kind, construction, inherited teardown, mutable identifier aliasing, cache-held pointer identity, routing order, reentrancy guard, and allowed `int` indices reconciled
-- [x] `PListValue` in `PListFile.h` / `PListFile.cpp` — extensible non-POD value owner, CLR-safe active union storage, complete construction/copy/assignment/destruction, recursive container ownership, property getters, equality, and `PListFile` copy-insertion lifetimes reconciled
-- [x] `PListFile` in `PListFile.h` / `PListFile.cpp` — local XML/value RAII, root destruction, copy insertion, native deserializer loading, memory accounting, and diagnostics reconciled
-- [x] `JSONValue.h` / `JSONValue.cpp` — extensibility, CLR-safe active union storage, packed type tag, construction/copy/assignment/destruction, recursive child ownership, mutable indexers versus safe lookups, approved `int` indices/sizes, equality/type names, variant conversion, and final member/API ordering reconciled
-- [x] `JSONFile.h` / `JSONFile.cpp` — construction, registration, stable root ownership, destruction, resource parsing, save formatting, archive callbacks, named object blocks, string conversion, and parse-target lifetime reconciled
-- [x] `Localization.h` / `Localization.cpp` — extensibility, construction/destruction, member order, hashed storage, language selection, full-match string filtering, lookup insertion, reset order, JSON loading, diagnostics, and struct change event reconciled
-- [x] C#-only `JSONResource<TValue>` / `JSONResourceBase` — removed with their invented serializer test; native archive-backed resources use `SimpleResource` and no rbfx counterpart or production consumer exists
 
 ## [~] A6. Scene — depends on Resource, Core
 
@@ -336,44 +264,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A10. RenderPipeline — depends on Graphics, RenderAPI, Scene
 
-- [x] `InstancingBuffer.h` / `InstancingBuffer.cpp` and `InstancingBufferSettings` — extensible noncopyable buffer ownership, immediate replacement and reverse deterministic teardown, borrowed current-data/settings/buffer views, POD settings defaults/copies/hash/equality, exact composition flow, property-form getters, and approved managed `int` indices/sizes reconciled
-- [x] `PipelineBatch` and `PipelineBatchDesc` in `BatchCompositor.h` — mutable POD value shape, constructors, derived-to-base value slicing, delayed and in-place vector copies, borrowed object aliases, source-batch lookup, property-form members, and approved managed `int` indices reconciled
-- [x] `BatchCompositor.h` / `BatchCompositor.cpp` — pass and compositor construction, batch/cache composition, owned pass/material lifetimes, reverse inline container/cache release, callback release, reverse teardown through `SceneProcessor`, internal material names, and approved managed `int` indices reconciled
-- [x] `CameraProcessor.h` / `CameraProcessor.cpp` — extensible class shape, camera-setting snapshots, weak camera/graphics aliases under smart-pointer removal, frame callbacks, pipeline-state hash, property-form getters, camera-vector release, and base teardown reconciled
-- [x] `BatchStateCache.h` / `BatchStateCache.cpp` — extensible noncopyable cache shape, namespace-level mutable value keys/entries/context, pointer-identity lookup and hashing, atomic invalidation, in-place map entry mutation, owned cache reference release, compositor teardown, nullable pointer mappings, and approved managed `int` indices/sizes reconciled; built-in UI cache types omitted under the UI deviation
-- [x] `BatchRenderer.h` / `BatchRenderer.cpp` and `BatchRendererSettings` — extensible noncopyable renderer shape, borrowed pointer aliases, POD settings and rendering-context value semantics, exact debugger-specialized batch flow, mandatory native instancing-buffer dereferences, span-backed parameter views, allocation-free compositor context storage, and approved managed `int` indices/sizes reconciled
-- [x] private `DrawCommandCompositor<DebuggerEnabled>` template and `ObjectParameterBuilder` in `BatchRenderer.cpp` — stack-only noncopyable storage, declaration and initialization order, required borrowed aliases, inline cached light/probe state, exact dirty-state and draw flow, direct Variant parameter forwarding, deterministic local teardown, and allocation-free borrowed transform/stereo spans reconciled
-- [x] `SceneProcessor.h` / `SceneProcessor.cpp` — complete class shape, constructor order, fixed native shadow-pass lookup, owned processor construction, callback alias timing, frame-type boundaries, method flow, callback ownership, and reverse deterministic teardown reconciled
-- [x] `PipelineBatchSortKey.h` — all three mutable value-struct kinds, key layouts, constructors, source-vector element aliases, independent scalar copies, exact ordering including unordered floats, automatic lifetime, and approved connected `int` indices/sizes reconciled
-- [x] `ScenePass.h` / `ScenePass.cpp` — abstract and derived class shapes, inherited constructors, exact sorting and refraction flow, source-batch aliases, readonly group views, derived vector/group teardown, and base teardown reconciled
-- [x] `ShaderProgramCompositor.h` / `ShaderProgramCompositor.cpp` — extensible compositor class shape, settings/frame snapshots, exact define composition, `ShaderProgramDesc` POD shape, deep value cloning, ref-based mutation, standard-container lifetime, and base teardown reconciled
-- [x] `ShadowMapAllocator.h` / `ShadowMapAllocator.cpp` — extensible allocator class shape, atlas-page value type, settings and output aliases, exact allocation/reset/render flow, native variance-map format, shared texture aliases, and allocation-free render-target binding reconciled
-- [x] `StereoRenderPipeline.h` / `StereoRenderPipeline.cpp` — query, scene-processor, view, and component shapes; stereo culling and occlusion flow; settings/render-path subscriptions; owned pass and clone teardown; frame-temporary lifetime; pipeline-state invalidation; empty debug hooks; and allocation-free cached query storage reconciled
-- [x] `LightAccumulator.h` — all three mutable value-struct kinds, opaque-white/default construction, independent inline light storage, borrowed reflection-probe aliases and pixel span, exact accumulation/cooking/reset flow, property-form getters, ref-based processor storage access, and approved managed `int` indices/sizes reconciled
-- [x] `LightProcessor.h` / `LightProcessor.cpp` — cooked-parameter POD shape and independent inline copies, weak borrowed light/cache ownership, update/hash/cooking flow, owned split replacement and reverse teardown, property-form getters, and approved managed `int` indices/sizes reconciled
-- [x] `ShaderConsts.h` — all 67 shader constants and 10 shader resources match native declaration order, immutable names, serialized-material naming constraints, static lifetime, and trivial alias/copy behavior
-- [x] `ShadowSplitProcessor.h` / `ShadowSplitProcessor.cpp` — noncopyable class shape, camera/caster/batch flow, borrowed views, owned camera-tree teardown, shared batch backing storage, property-form getters, and approved managed `int` indices/sizes reconciled
-- [x] `RenderPass.h` / `RenderPass.cpp` — value-type traits, reflected attribute construction, independent runtime enablement, inherited reflection cloning, protected pass state, parameter helpers, render-buffer connection, and explicit empty destructor reconciled
-- [x] `RenderPath.h` / `RenderPath.cpp` — sole parameterless managed construction with post-construction cache naming, destructor/owned-pass teardown, deep clone and independent enabled-pass returns, native optional polymorphic JSON/binary serialization, archive-context construction, and factory registration reconciled
-- [x] `RenderPipeline.h` / `RenderPipeline.cpp` — complete component shape and member order, default render-path construction, settings/pass/parameter state changes, sender-specific struct reload observation, independent container and Variant copies, owned map teardown, and native signal-driven view synchronization reconciled
-- [x] `DefaultRenderPipeline.h` / `DefaultRenderPipeline.cpp` — public view shape, render-path cloning, forward/deferred setup and rendering, owned pass/buffer/processor teardown, reverse member lifetime, stack-temporary descriptor cleanup, nullable shared render-buffer entries, and readonly frame-info reference returns reconciled
 
 ## [x] A11. Input — depends on Core, Graphics (window)
 
-- [x] `InputEvents.h` — all 29 native event namespaces reconciled with the allowed struct-event format as ordered mutable value-type payloads; scalar, enum, immutable string, borrowed SDL pointer, mutable consumed flag, and `Vector2i` value-copy semantics verified, with native documentation restored
-- [x] `InputConstants.h` — all eight native unsigned enum value types, declaration order, SDL-backed values, and trivial lifetime/copy semantics verified
-- [x] `Input.h` / `Input.cpp` — extensible noncopyable subsystem and nested value-struct kinds reconciled; joystick initialization now performs the native reset, borrowed joystick wrappers have native temporary scope, joystick container copies are independent, acquired SDL state is release-safe across later initialization failure, and deterministic disposal releases the managed SDL resources corresponding to native destructor and automatic field teardown
-- [x] `AxisAdapter.h` / `AxisAdapter.cpp` — extensible copyable non-POD class kind, independent scalar cloning at every native copy-construction site, optional archive defaults, and pedal/trigger local-copy flow reconciled
-- [x] `DirectionAggregator.h` / `DirectionAggregator.cpp` — extensible noncopyable class and nested value-struct kinds, subsystem construction, incremental subscriptions, input aggregation, joystick filtering, touch filtering, and unsorted axis-state lifetime semantics reconciled
-- [x] `DirectionalPadAdapter.h` / `DirectionalPadAdapter.cpp` — extensible noncopyable outer class, copyable non-POD aggregated-state cloning, exact source ordinals, subsystem construction, incremental subscriptions, and synthesized directional event lifetimes reconciled
-- [x] `FreeFlyController.h` / `FreeFlyController.cpp` — extensible noncopyable component and nested value-struct kinds, factory registration, owned multitouch-adapter teardown, core-update subscriptions, raw attributes, device filtering, and movement value semantics reconciled
-- [x] `InputMap.h` / `InputMap.cpp` — extensible noncopyable resource, helper POD structs, copyable non-POD action value, deep vector cloning at native value-copy sites, metadata ownership, reverse-order teardown, serialization, loading, and native mapping/evaluation quirks reconciled
-- [x] `MoveAndOrbitComponent.h` / `MoveAndOrbitComponent.cpp` — extensible noncopyable logic component, value-only field semantics, factory registration, node rotation initialization, virtual setters, pitch clamp, distance limits, and default derived teardown reconciled
-- [x] `MoveAndOrbitController.h` / `MoveAndOrbitController.cpp` — extensible noncopyable component, explicit empty destructor, retained input-map reference, borrowed component/UI aliases, input-end subscriptions, touch-state value flow, and movement/orbit evaluation reconciled; excluded built-in UI members remain exact TODOs
-- [x] `MultitouchAdapter.h` / `MultitouchAdapter.cpp` — default-int event enum, nested POD touch value, extensible noncopyable adapter, inherited event teardown, subscription transitions, input-touch filtering, unsorted erasure, and gesture payload value flow reconciled
-- [x] `PointerAdapter.h` / `PointerAdapter.cpp` — unsigned mask value enum, extensible noncopyable adapter, owned direction-adapter teardown, subsystem construction, incremental subscriptions, touch ownership, pointer value conversion, synthesized events, and native warp-only mouse positioning reconciled; excluded built-in UI members remain exact TODOs
-- [x] `Log.h` / `Log.cpp` — enum and struct value kinds, copyable logger-wrapper cloning, noncopyable subsystem ownership and teardown, native logger call shape, threaded queue pumping, duplicate filtering, file parameters, and actual main-thread/end-frame `LogMessage` event emission reconciled
-- [x] `IDearImGuiInputSink.cs` — removed after full `Input::OnRawInput` / `SystemUI::OnRawEvent` reconciliation showed that the facade duplicated SDL event processing instead of matching the native single raw-event path
 
 ## [~] A12. Engine — top-level orchestration, depends on all Part-A above
 
@@ -451,32 +344,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 - [ ] `ActionManager.h`
   - [ ] `ActionManager`
 
-## B2. Audio `OPTIONAL` — depends on Scene, Resource
-
-- [x] `AudioDefs.h`
-  - [x] audio enums / constants — SoundMaster/Effect/Ambient/Voice/Music constants and SpeakerMode enum ported
-- [x] `AudioEvents.h`
-  - [x] audio event definitions — SoundFinished, RecordingUpdated/Started/Ended events ported
-- [x] `Sound.h`
-  - [x] `Sound : ResourceWithMetadata` — WAV loading, raw data, loop/size/format, decoder stream, sample properties, and optional XML format/loop/metadata parameters ported
-- [x] `SoundStream.h`
-  - [x] `SoundStream` — abstract base with Seek/GetData/SetFormat/StopAtEnd ported, including the 44100 Hz default frequency
-- [x] `BufferedSoundStream.h`
-  - [x] `BufferedSoundStream : SoundStream` — thread-safe buffered data with AddData/Clear ported
-- [x] `OggVorbisSoundStream.h`
-  - [x] `OggVorbisSoundStream : SoundStream` — stb_vorbis-backed compressed stream, format metadata, seeking, looping, and PCM decoding ported
-- [x] `SoundSource.h`
-  - [x] `SoundSource : Component` — Play/Stop, frequency/gain/panning/attenuation, mixing, and serialization ported
-- [x] `SoundSource3D.h`
-  - [x] `SoundSource3D : SoundSource` — distance/angle attenuation parameters, listener-relative attenuation calculation, and sphere/cone debug geometry are ported
-- [x] `SoundListener.h`
-  - [x] `SoundListener : Component` — listener component ported
-- [ ] `Microphone.h`
-  - [ ] `Microphone : Object` — recording buffer, linked stream, enable state, wake threshold, sleeping state, recording events, and queued SDL capture/device lifecycle are ported; SDL callback binding remains unavailable
-- [ ] `Audio.h`
-  - [ ] `Audio : Object` — SDL audio device init, queued output, direct managed mix output, master gain types, sound source management, render-update driven mixing, native microphone enumeration, and queued microphone capture are ported; SDL callback binding remains unavailable
-  - [x] `14_SoundEffects` sample — extensible native class/method/field order, explicit construction and base startup, non-rendered scene-owned sound sources, sound effect and music playback, volume/panning/reach/LFE, microphone selection/recording/playback, shared stream ownership, reverse deterministic teardown, and Dear ImGui controls are reconciled and runtime-verified without the invented startup playback or rendered camera scene
-  - [x] `29_SoundSynthesis` sample — extensible native class/method/field order, explicit construction and base startup, standalone node-owned sound source, retained buffered stream and generated sample buffers, exact scalar synthesis with approved `int` sizes/indices, reverse deterministic teardown, and Dear ImGui instructions are reconciled and runtime-verified without the invented audio mode, global audio stop, or rendered scene/camera/viewport
+## [x] B2. Audio `OPTIONAL` — depends on Scene, Resource
 
 ## B3. UI `EXCLUDED` — retained-mode UI; depends on Graphics, Resource, Input
 
@@ -925,9 +793,8 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [ ] `PluginStack : Object`
   - [ ] `PluginManager : Object`
 
-## B16. Script `OPTIONAL` — managed scripting host; depends on Core
+## [x] B16. Script `OPTIONAL` — managed scripting host; depends on Core
 
-- [x] `Script.h`
 
 ## B17. XR `OPTIONAL` — OpenXR VR; depends on Graphics, RenderAPI, Scene
 

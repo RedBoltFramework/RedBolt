@@ -1,38 +1,50 @@
+using System.Runtime.InteropServices;
 using RedBolt.Bindings.Sdl;
 
 namespace RedBolt;
 
 /// <summary>Microphone audio input device.</summary>
-public sealed class Microphone : Object
+public class Microphone : Object
 {
     private BufferedSoundStream? _linkedStream;
-    private string _name = string.Empty;
+    internal string _name = string.Empty;
     private readonly List<short> _buffer = [];
+    internal uint _deviceId;
+    internal uint _which;
     private readonly object _lock = new();
     private uint _frequency;
     private uint _wakeThreshold = uint.MaxValue;
     private bool _enabled;
     private bool _isSleeping;
     private bool _isDirty;
-    private uint _deviceId;
-    private uint _which;
+    private GCHandle _callbackHandle;
 
     public Microphone()
     {
+        _callbackHandle = GCHandle.Alloc(this);
     }
 
     public override void Dispose()
     {
-        CloseNative();
+        if (_deviceId != 0)
+            SdlNativeBindings.SdlCloseAudioDevice(_deviceId);
+        _deviceId = 0;
+        if (_callbackHandle.IsAllocated)
+            _callbackHandle.Free();
         base.Dispose();
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>Register object factory.</summary>
+    public static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<Microphone>();
     }
 
     public List<short> GetData() => _buffer;
 
     public void CopyData(List<short> dest)
     {
-        ArgumentNullException.ThrowIfNull(dest);
         lock (_lock)
         {
             dest.Clear();
@@ -46,24 +58,18 @@ public sealed class Microphone : Object
             _buffer.Clear();
     }
 
-    public void Update(byte[] rawData, int rawDataLen)
+    public void Update(ReadOnlySpan<byte> rawData, int rawDataLen)
     {
         if (!_enabled)
             return;
 
+        var samples = MemoryMarshal.Cast<byte, short>(rawData[..rawDataLen]);
         var sampleCount = rawDataLen / sizeof(short);
         if (_wakeThreshold != uint.MaxValue)
         {
             var needsWake = false;
             for (var i = 0; i < sampleCount; ++i)
-            {
-                var sample = BitConverter.ToInt16(rawData, i * sizeof(short));
-                if (Math.Abs((int)sample) > _wakeThreshold)
-                {
-                    needsWake = true;
-                    break;
-                }
-            }
+                needsWake |= Math.Abs((int)samples[i]) > _wakeThreshold;
 
             if (!needsWake)
             {
@@ -77,8 +83,9 @@ public sealed class Microphone : Object
         lock (_lock)
         {
             for (var i = 0; i < sampleCount; ++i)
-                _buffer.Add(BitConverter.ToInt16(rawData, i * sizeof(short)));
-            _linkedStream?.AddData(rawData, (uint)rawDataLen);
+                _buffer.Add(samples[i]);
+            if (_linkedStream is not null)
+                _linkedStream.AddData(rawData[..rawDataLen].ToArray(), (uint)rawDataLen);
             _isDirty = true;
             _isSleeping = false;
         }
@@ -109,6 +116,22 @@ public sealed class Microphone : Object
             }
 
             SdlNativeBindings.SdlPauseAudioDevice(_deviceId, enabled ? 0 : 1);
+
+            if (!enabled)
+            {
+                if (enabled)
+                {
+                    var eventData = new AudioEvents.RecordingEndedEvent
+                    {
+                        Microphone = this,
+                        DataLength = _buffer.Count,
+                        ClearData = false
+                    };
+                    SendEvent(ref eventData);
+                    if (eventData.ClearData)
+                        _buffer.Clear();
+                }
+            }
         }
     }
 
@@ -123,7 +146,7 @@ public sealed class Microphone : Object
 
     public void Unlink() => _linkedStream = null;
 
-    internal void InitializeNative(string name, uint deviceId, int bufferSize, uint frequency, uint which)
+    internal void Init(string name, uint deviceId, int bufferSize, uint frequency, uint which)
     {
         lock (_lock)
         {
@@ -134,42 +157,6 @@ public sealed class Microphone : Object
             if (bufferSize > 0)
                 _buffer.Capacity = Math.Max(_buffer.Capacity, bufferSize);
             SetEnabled(true);
-        }
-    }
-
-    internal uint GetDeviceIndex() => _which;
-
-    internal void SetDeviceIndex(uint which) => _which = which;
-
-    internal void CloseNative()
-    {
-        if (_deviceId != 0)
-        {
-            SdlNativeBindings.SdlCloseAudioDevice(_deviceId);
-            _deviceId = 0;
-        }
-    }
-
-    internal void UpdateNative()
-    {
-        if (!_enabled || _deviceId == 0)
-            return;
-
-        var queuedSize = SdlNativeBindings.SdlGetQueuedAudioSize(_deviceId);
-        if (queuedSize == 0)
-            return;
-
-        var rawData = new byte[queuedSize];
-        var handle = System.Runtime.InteropServices.GCHandle.Alloc(rawData, System.Runtime.InteropServices.GCHandleType.Pinned);
-        try
-        {
-            var read = SdlNativeBindings.SdlDequeueAudio(_deviceId, handle.AddrOfPinnedObject(), queuedSize);
-            if (read != 0)
-                Update(rawData, checked((int)read));
-        }
-        finally
-        {
-            handle.Free();
         }
     }
 
@@ -194,4 +181,6 @@ public sealed class Microphone : Object
             _isDirty = false;
         }
     }
+
+    internal IntPtr CallbackUserData => GCHandle.ToIntPtr(_callbackHandle);
 }
