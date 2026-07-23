@@ -31,6 +31,8 @@
 - [x] Profile steady-state GC allocations for every sample and remove hot-path GC churn that is absent from rbfx
 - [ ] Remove the `EndFrame(image)` API deviation; subscribe to the EndFrame event and perform frame capture from the event handler as in rbfx
 - [ ] Audit and port every rbfx `RegisterObject` body, including exact factory categories, attribute order/defaults/modes, removals, and type-level base-attribute copying
+- [ ] Make unit tests headless by default so they never create short-lived desktop windows; permit a real window only for behavior that cannot be verified headlessly
+- [ ] Remove the `ContextEventSubscription` API deviation and restore rbfx-aligned event subscription ownership and lifetime behavior
 
 Dependency-ordered plan for porting rbfx `Source/Urho3D` to C#.
 
@@ -194,7 +196,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Serializer.h` / `Serializer.cpp` — extensible abstract non-POD class kind, virtual disposal, primitive and POD single-write boundaries, compound success ordering, Variant/custom payloads, container aliasing, and temporary value lifetimes reconciled
 - [x] `FileWatcher.h` / `FileWatcher.cpp` — POD event-kind enum, non-POD value change records, extensible noncopyable watcher, standard-library platform watcher mapping, queue timing/copy semantics, and deterministic teardown reconciled
 - [x] `MultiFileWatcher.h` / `MultiFileWatcher.cpp` — extensible noncopyable class kind, owned watcher collection, failed-local and clear teardown, delay forwarding, and output preservation reconciled
-- [x] `MountedDirectory.h` / `MountedDirectory.cpp` — extensible noncopyable mount kind, owned optional watcher teardown, file stream scopes, and update value semantics reconciled
+- [x] `MountedDirectory.h` / `MountedDirectory.cpp` — extensible noncopyable mount kind, owned optional watcher teardown, file stream scopes, requested-scan-root-relative results, and update value semantics reconciled
 - [x] `MountedExternalMemory.h` / `MountedExternalMemory.cpp` — extensible noncopyable mount kind, by-value MemoryBuffer storage and replacement lifetimes, wrapped borrowed views, and deterministic map teardown reconciled
 - [x] `VectorBuffer.h` / `VectorBuffer.cpp` — extensible copyable non-POD class kind, deep clone semantics, borrowed byte/pointer views, owned storage teardown, and return-value lifetimes reconciled
 - [x] `Deserializer.h` / `Deserializer.cpp` — extensible abstract non-POD class kind, public construction, scalar field lifetime, virtual disposal, raw and bulk read semantics, independent value returns, pointer/custom Variant handling, and unsigned relative seeking reconciled

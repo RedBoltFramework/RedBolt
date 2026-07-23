@@ -148,7 +148,7 @@ public class MountedDirectory : WatchableMountPoint
                 if ((flags & ScanFlags.ScanHidden) != ScanFlags.ScanHidden
                     && (System.IO.File.GetAttributes(file) & FileAttributes.Hidden) != 0)
                     continue;
-                result.Add(Path.GetRelativePath(_directory, file).Replace('\\', '/'));
+                result.Add(Path.GetRelativePath(root, file).Replace('\\', '/'));
             }
         }
 
@@ -159,7 +159,7 @@ public class MountedDirectory : WatchableMountPoint
                 if ((flags & ScanFlags.ScanHidden) != ScanFlags.ScanHidden
                     && (System.IO.File.GetAttributes(directory) & FileAttributes.Hidden) != 0)
                     continue;
-                result.Add(Path.GetRelativePath(_directory, directory).Replace('\\', '/'));
+                result.Add(Path.GetRelativePath(root, directory).Replace('\\', '/'));
             }
         }
     }

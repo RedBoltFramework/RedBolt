@@ -477,8 +477,8 @@ public sealed class ResourceCacheTests
 
             var files = new List<string>();
             Resources.Scan(files, "Data", "*.txt", ScanFlags.ScanFiles | ScanFlags.ScanRecursive);
-            Assert.Contains("Data/main.txt", files);
-            Assert.Contains("Data/Nested/other.txt", files);
+            Assert.Contains("main.txt", files);
+            Assert.Contains("Nested/other.txt", files);
             Assert.Contains("BinaryFile", Resources.PrintMemoryUsage(), StringComparison.Ordinal);
             Assert.Contains("Data/main.txt", Resources.PrintResources(nameof(BinaryFile)), StringComparison.Ordinal);
         }

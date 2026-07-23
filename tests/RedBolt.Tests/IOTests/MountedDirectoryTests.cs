@@ -64,6 +64,8 @@ public sealed class MountedDirectoryTests
             var result = new List<string>();
             mountPoint.Scan(result, string.Empty, "*.txt", ScanFlags.ScanFiles | ScanFlags.ScanRecursive);
             Assert.Contains("Textures/Box.txt", result);
+            mountPoint.Scan(result, "Textures", "*.txt", ScanFlags.ScanFiles | ScanFlags.ScanRecursive);
+            Assert.Equal(["Box.txt"], result);
 
             var input = mountPoint.OpenFile(identifier, FileMode.Read);
             try
