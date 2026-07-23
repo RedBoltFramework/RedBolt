@@ -5,6 +5,10 @@
 # Do exactly what is written. Do not invent steps. Do not skip steps.
 # ==========================================================================
 
+## 0. VOCABULARY
+
+Reasoning and response format is defined by `caveman` skill.
+
 ## 1. WHAT YOU ARE DOING
 
 You are porting the rbfx C++ game engine to C#, one class at a time.
