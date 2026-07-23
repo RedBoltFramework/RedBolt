@@ -7,4 +7,9 @@
     <ProjectReference Include="../../src/RedBolt/RedBolt.csproj" />
     <ProjectReference Include="../../src/RedBolt.DearImGui/RedBolt.DearImGui.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      PrivateAssets="all"
+                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
+  </ItemGroup>
 </Project>

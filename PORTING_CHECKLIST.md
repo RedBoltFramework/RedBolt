@@ -16,7 +16,7 @@
 - [x] `07_Billboards` — scene population, grouped shadow casters, animated billboard sets, rotating shadow-casting spotlights, camera, debug geometry, and Dear ImGui instructions are ported and runtime-verified
 - [x] `08_Decals` — scene population, occluders, cursor raycast, decal creation and buffer upload, camera, debug geometry, and Dear ImGui instructions are ported and runtime-verified
 - [x] `20_HugeObjectCount` — 62,500-object scene, grouped and ungrouped modes, animation toggle, camera, and Dear ImGui instructions are ported and render successfully; initial population is intentionally expensive
-- [~] `30_LightAnimation` — animated point light, scene population, camera, and animated Dear ImGui text replacement are ported and runtime-verified; the built-in UI sprite animation still needs a Dear ImGui texture equivalent
+- [x] `30_LightAnimation` — animated point light, scene population, camera, animated Dear ImGui text, and five-frame Dear ImGui texture animation are ported and runtime-verified
 - [x] `31_MaterialAnimation` — material shader-parameter animation, scene population, camera, and Dear ImGui instructions are ported and runtime-verified
 - [~] `112_AggregatedInput` — direction aggregation, directional-pad aggregation, synthesized key logging, and Dear ImGui visualization are ported and runtime-verified
 - [~] `113_InputLogger` — dual viewports, input-event subscriptions, event merging/logging, and Dear ImGui output are ported and runtime-verified as a standalone managed application rather than a plugin entry point
