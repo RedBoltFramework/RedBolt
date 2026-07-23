@@ -4,8 +4,8 @@ namespace RedBolt.Tests;
 
 internal static class RbfxTestData
 {
-    public static string Root => Path.GetFullPath(Path.Combine(
-        Path.GetDirectoryName(typeof(RbfxTestData).Assembly.Location)!, ".."));
+    public static string Root =>
+        Path.GetDirectoryName(typeof(RbfxTestData).Assembly.Location)!;
 
     public static string CoreData => Path.Combine(Root, "CoreData");
 

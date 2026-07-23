@@ -71,6 +71,7 @@ function(redbolt_add_native_binding_generation)
             --log "${generator_log}"
             --sharpcpp-root "${REDBOLT_SHARPCPP_ROOT}"
             --redbolt-root "${CMAKE_SOURCE_DIR}"
+            --native-library-name "${REDBOLT_NATIVE_LIBRARY_NAME}"
             --compiler "${CMAKE_CXX_COMPILER}"
             ${include_args}
             ${define_args}

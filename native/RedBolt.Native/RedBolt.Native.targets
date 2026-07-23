@@ -24,10 +24,10 @@
           SourceFiles="@(_RedBoltNativeRuntimeLibrary)"
           DestinationFolder="$(RedBoltOutputDir)"
           SkipUnchangedFiles="true" />
-    <Exec Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and !Exists('$(RedBoltBuildRoot)/bin/CoreData')"
-          Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/CoreData&quot; &quot;$(RedBoltBuildRoot)/bin/CoreData&quot;" />
-    <Exec Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and !Exists('$(RedBoltBuildRoot)/bin/Data')"
-          Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/Data&quot; &quot;$(RedBoltBuildRoot)/bin/Data&quot;" />
+    <Exec Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and !Exists('$(RedBoltOutputDir)/CoreData')"
+          Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/CoreData&quot; &quot;$(RedBoltOutputDir)/CoreData&quot;" />
+    <Exec Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and !Exists('$(RedBoltOutputDir)/Data')"
+          Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/Data&quot; &quot;$(RedBoltOutputDir)/Data&quot;" />
   </Target>
 
   <Target Name="RedBoltCleanNative" AfterTargets="Clean">

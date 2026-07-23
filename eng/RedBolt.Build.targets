@@ -119,4 +119,19 @@
                Visible="false" />
     </ItemGroup>
   </Target>
+
+  <Target Name="RedBoltStageDesktopRuntime"
+          AfterTargets="Build"
+          Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">
+    <ItemGroup>
+      <_RedBoltNativeRuntimeLibrary Include="$(RedBoltNativeOutputRoot)/$(Configuration)/*.so*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_RedBoltNativeRuntimeLibrary)"
+          DestinationFolder="$(OutputPath)"
+          SkipUnchangedFiles="true" />
+    <Exec Condition="!Exists('$(OutputPath)CoreData')"
+          Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/CoreData&quot; &quot;$(OutputPath)CoreData&quot;" />
+    <Exec Condition="!Exists('$(OutputPath)Data')"
+          Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/Data&quot; &quot;$(OutputPath)Data&quot;" />
+  </Target>
 </Project>

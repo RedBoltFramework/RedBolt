@@ -157,7 +157,7 @@ internal static class Program
         try
         {
             var options = GeneratorOptions.Parse(args);
-            var descriptor = BindingSurfaceDescriptor.Create(options.Surface);
+            var descriptor = BindingSurfaceDescriptor.Create(options.Surface, options.NativeLibraryName);
             Directory.CreateDirectory(options.OutputDirectory);
             Directory.CreateDirectory(Path.GetDirectoryName(options.LogPath)!);
             logWriter = new StreamWriter(options.LogPath, false);
@@ -1112,7 +1112,7 @@ internal static class Program
         string LanguageStandardArgument,
         bool UseMarshallerConfiguration)
     {
-        public static BindingSurfaceDescriptor Create(string surface)
+        public static BindingSurfaceDescriptor Create(string surface, string nativeLibraryName)
         {
             return surface.ToLowerInvariant() switch
             {
@@ -1121,17 +1121,17 @@ internal static class Program
                     "RedBolt.Bindings.Sdl",
                     "RedBolt.Bindings.Sdl",
                     "SdlNativeBindings",
-                "RedBolt.Native",
-                "redbolt_sdl",
-                "-xc",
-                "-std=c17",
-                true),
+                    nativeLibraryName,
+                    "redbolt_sdl",
+                    "-xc",
+                    "-std=c17",
+                    true),
                 "diligent" => new BindingSurfaceDescriptor(
                     "diligent",
                     "RedBolt.Bindings.Diligent",
                     "RedBolt.Bindings.Diligent",
                     "DiligentNativeBindings",
-                    "RedBolt.Native",
+                    nativeLibraryName,
                     "redbolt_diligent",
                     "-xc++",
                     "-std=c++20",
@@ -1141,7 +1141,7 @@ internal static class Program
                     "RedBolt.Bindings.DearImGui",
                     "RedBolt.Bindings.DearImGui",
                     "ImGui",
-                    "RedBolt.Native",
+                    nativeLibraryName,
                     "redbolt_dearimgui",
                     "-xc++",
                     "-std=c++17",
@@ -1151,7 +1151,7 @@ internal static class Program
                     "RedBolt.Bindings.Stb",
                     "RedBolt.Bindings.Stb",
                     "StbVorbisNativeBindings",
-                    "RedBolt.Native",
+                    nativeLibraryName,
                     "redbolt_stb",
                     "-xc",
                     "-std=c17",
@@ -1161,7 +1161,7 @@ internal static class Program
                     "RedBolt.Bindings.Lz4",
                     "RedBolt.Bindings.Lz4",
                     "Lz4NativeBindings",
-                    "RedBolt.Native",
+                    nativeLibraryName,
                     "redbolt_lz4",
                     "-xc++",
                     "-std=c++20",
@@ -1171,7 +1171,7 @@ internal static class Program
                     "RedBolt.Bindings.WebP",
                     "RedBolt.Bindings.WebP",
                     "WebPNativeBindings",
-                    "RedBolt.Native",
+                    nativeLibraryName,
                     "redbolt_webp",
                     "-xc++",
                     "-std=c++20",
@@ -1181,7 +1181,7 @@ internal static class Program
                     "RedBolt.Bindings.Glslang",
                     "RedBolt.Bindings.Glslang",
                     "GlslangNativeBindings",
-                    "RedBolt.Native",
+                    nativeLibraryName,
                     "redbolt_glslang",
                     "-xc",
                     "-std=c17",
@@ -1191,7 +1191,7 @@ internal static class Program
                     "RedBolt.Bindings.SpirVCross",
                     "RedBolt.Bindings.SpirVCross",
                     "SpirVCrossNativeBindings",
-                    "RedBolt.Native",
+                    nativeLibraryName,
                     "redbolt_spirvcross",
                     "-xc",
                     "-std=c17",
@@ -1201,7 +1201,7 @@ internal static class Program
                     "RedBolt.Bindings.SpirVTools",
                     "RedBolt.Bindings.SpirVTools",
                     "SpirVToolsNativeBindings",
-                    "RedBolt.Native",
+                    nativeLibraryName,
                     "redbolt_spirvtools",
                     "-xc",
                     "-std=c17",
@@ -1211,7 +1211,7 @@ internal static class Program
                     "RedBolt.Bindings.SpirVTools",
                     "RedBolt.Bindings.SpirVTools",
                     "SpirVOptimizerNativeBindings",
-                    "RedBolt.Native",
+                    nativeLibraryName,
                     "redbolt_spirvoptimizer",
                     "-xc++",
                     "-std=c++20",
@@ -1221,7 +1221,7 @@ internal static class Program
                     "RedBolt.Bindings.ShaderCompiler",
                     "RedBolt.Bindings.ShaderCompiler",
                     "ShaderCompilerNativeBindings",
-                    "RedBolt.Native",
+                    nativeLibraryName,
                     "redbolt_shadercompiler",
                     "-xc++",
                     "-std=c++20",
@@ -1242,6 +1242,7 @@ internal static class Program
         public required string LogPath { get; init; }
         public required string SharpCppRoot { get; init; }
         public required string RedBoltRoot { get; init; }
+        public required string NativeLibraryName { get; init; }
         public required string CompilerPath { get; init; }
         public required IReadOnlyList<string> IncludeDirectories { get; init; }
         public required IReadOnlyList<string> Defines { get; init; }
@@ -1264,6 +1265,7 @@ internal static class Program
                 LogPath = Path.GetFullPath(RequireOption(args, "--log")),
                 SharpCppRoot = Path.GetFullPath(RequireOption(args, "--sharpcpp-root")),
                 RedBoltRoot = Path.GetFullPath(RequireOption(args, "--redbolt-root")),
+                NativeLibraryName = RequireOption(args, "--native-library-name"),
                 CompilerPath = Path.GetFullPath(RequireOption(args, "--compiler")),
                 IncludeDirectories = includes,
                 Defines = defines,
