@@ -24,6 +24,7 @@ public sealed class RenderDevice : Object
     private IRenderDevice? _renderDevice;
     private IDeviceContext? _deviceContext;
     private ISwapChain? _swapChain;
+    private IGraphicsBackendLifetime? _graphicsBackendLifetime;
     private readonly RenderContext _renderContext;
     private FrameIndex _frameIndex = FrameIndex.First;
     private readonly object _deviceObjectsLock = new();
@@ -62,6 +63,7 @@ public sealed class RenderDevice : Object
         _renderDevice = graphics.GetNativeRenderDevice();
         _deviceContext = graphics.GetImmediateContext();
         _swapChain = graphics.GetNativeSwapChain();
+        _graphicsBackendLifetime = graphics.GetGraphicsBackendLifetime();
 #if REDBOLT_VULKAN_SUPPORTED
         _swapChainVulkan = graphics.GetNativeVulkanSwapChain();
 #endif
@@ -104,10 +106,7 @@ public sealed class RenderDevice : Object
             graphics.Shutdown();
         }
 
-#if REDBOLT_VULKAN_SUPPORTED
-        ReleaseIfNotNull(_swapChainVulkan);
-        _swapChainVulkan = null;
-#endif
+        _graphicsBackendLifetime?.ReleaseBeforeCommonResources();
         ReleaseIfNotNull(_swapChain);
         _swapChain = null;
         _factory = null;
@@ -116,13 +115,9 @@ public sealed class RenderDevice : Object
         ReleaseIfNotNull(_renderDevice);
         _renderDevice = null;
 
-        if (_glContext != IntPtr.Zero)
-        {
-            if (_window is not null && !_window.IsNull)
-                _ = SdlNativeBindings.SdlGlMakeCurrent(_window, IntPtr.Zero);
-            SdlNativeBindings.SdlGlDeleteContext(_glContext);
-            _glContext = IntPtr.Zero;
-        }
+        _graphicsBackendLifetime?.ReleaseAfterCommonResources(_window);
+        _graphicsBackendLifetime = null;
+        _glContext = IntPtr.Zero;
 
         if (_window is not null && !_window.IsNull)
             SdlNativeBindings.SdlDestroyWindow(_window);

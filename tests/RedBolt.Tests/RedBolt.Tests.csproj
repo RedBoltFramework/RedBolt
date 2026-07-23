@@ -6,11 +6,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="$(RedBoltRoot)/src/RedBolt/GlobalAliases.cs"
+             Link="GlobalAliases.cs"
+             Visible="false" />
     <ProjectReference Include="../../src/RedBolt.Bindings.Diligent/RedBolt.Bindings.Diligent.csproj" />
     <ProjectReference Include="../../src/RedBolt.Bindings.Glslang/RedBolt.Bindings.Glslang.csproj" />
     <ProjectReference Include="../../src/RedBolt.Bindings.SpirVCross/RedBolt.Bindings.SpirVCross.csproj" />
     <ProjectReference Include="../../src/RedBolt.Bindings.SpirVTools/RedBolt.Bindings.SpirVTools.csproj" />
     <ProjectReference Include="../../src/RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../../src/RedBolt.Platform.Linux/RedBolt.Platform.Linux.csproj" />
   </ItemGroup>
 
   <ItemGroup>

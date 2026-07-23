@@ -19,7 +19,7 @@
     <RedBoltConfigureNative Condition="'$(RedBoltConfigureNative)' == ''">false</RedBoltConfigureNative>
     <RedBoltGeneratedBindingsDir Condition="'$(RedBoltNativeBuildDir)' != ''">$(RedBoltNativeBuildDir)/generated/redbolt-native</RedBoltGeneratedBindingsDir>
 
-    <RedBoltOutputDir>$(RedBoltBuildRoot)/bin/$(RedBoltPlatform)/$(Configuration)</RedBoltOutputDir>
+    <RedBoltOutputDir>$(RedBoltBuildRoot)/bin/$(Configuration)</RedBoltOutputDir>
     <RedBoltNativeOutputRoot>$(RedBoltBuildRoot)/bin/$(RedBoltPlatform)</RedBoltNativeOutputRoot>
     <RedBoltIntermediateRoot>$(RedBoltBuildRoot)/obj/managed/$(RedBoltPlatform)</RedBoltIntermediateRoot>
     <SharpCppOutputDir>$(RedBoltBuildRoot)/bin/tools/$(RedBoltPlatform)/$(Configuration)</SharpCppOutputDir>
@@ -32,7 +32,6 @@
     <LangVersion>latest</LangVersion>
     <Deterministic>true</Deterministic>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-
     <OutputPath>$(RedBoltOutputDir)/</OutputPath>
     <BaseIntermediateOutputPath>$(RedBoltIntermediateRoot)/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
     <MSBuildProjectExtensionsPath>$(RedBoltBuildRoot)/obj/restore/$(MSBuildProjectName)/</MSBuildProjectExtensionsPath>
@@ -40,7 +39,5 @@
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <DefaultItemExcludes>$(DefaultItemExcludes);$(RedBoltBuildRoot)/**;$(MSBuildProjectDirectory)/bin/**;$(MSBuildProjectDirectory)/obj/**</DefaultItemExcludes>
 
-    <DefineConstants Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll'">$(DefineConstants);REDBOLT_GL_SUPPORTED;REDBOLT_VULKAN_SUPPORTED;REDBOLT_PLATFORM_LINUX</DefineConstants>
-    <DefineConstants Condition="'$(RedBoltPlatform)' == 'web-emscripten-wasm'">$(DefineConstants);REDBOLT_GLES_SUPPORTED;REDBOLT_PLATFORM_WEB</DefineConstants>
   </PropertyGroup>
 </Project>

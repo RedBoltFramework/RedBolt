@@ -46,13 +46,19 @@ public enum VariantType : byte
 [StructLayout(LayoutKind.Sequential)]
 public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
 {
-#if REDBOLT_PLATFORM_WEB
-    [StructLayout(LayoutKind.Explicit, Size = 4 * sizeof(int))]
-#else
-    [StructLayout(LayoutKind.Explicit, Size = 4 * sizeof(long))]
-#endif
+    [StructLayout(LayoutKind.Sequential)]
+    private struct VariantStorage
+    {
+        public nint Value0;
+        public nint Value1;
+        public nint Value2;
+        public nint Value3;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
     private struct VariantValue
     {
+        [FieldOffset(0)] private VariantStorage _storage;
         [FieldOffset(0)] public bool Bool;
         [FieldOffset(0)] public int Int;
         [FieldOffset(0)] public long Int64;

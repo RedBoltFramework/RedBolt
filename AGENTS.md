@@ -190,7 +190,7 @@ for normal build or verification; build through `dotnet`, `.slnx`, or `.csproj`.
 
 Run the sample and capture a screenshot:
   rm -f /tmp/screenshot.png
-  build/bin/linux-gcc-x64-dll/Debug/RedBolt.Sample.MultipleViewports --timeout 2 --screenshot-on-exit /tmp/screenshot.png
+  build/bin/Debug/RedBolt.Sample.MultipleViewports --timeout 2 --screenshot-on-exit /tmp/screenshot.png
 
 Run the tests (adjust the filter to your area):
   dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug
@@ -198,10 +198,10 @@ Run the tests (adjust the filter to your area):
 (Optional) Check the screenshot at /tmp/screenshot.png shows a correct, non-black scene.
 
 The build output binaries are in:
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/linux-gcc-x64-dll/Debug
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug
 
 C# build targets symlink runtime resource directories into:
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/linux-gcc-x64-dll
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin
 
 The engine sets the process working directory to the managed executable directory.
 Samples and tests that consume the staged resource directories use `CoreData;Data`
@@ -286,6 +286,7 @@ These are the ONLY places C# is allowed to differ from C++:
 - SubscribeToEvent / SendEvent are upgraded to the new struct-based event format.
 - CommandLineParser is used instead of CLI11.
 - WorkQueue is rebuilt using a thread-pool.
+- Managed platform/graphics composition uses one selected platform assembly and any supported graphics-backend assemblies. Shared managed binaries use one `build/bin/<configuration>` output; platform-specific behavior is delegated through runtime contracts.
 - Minor API tweaks are allowed ONLY to avoid GC churn.
 - C# indices and sizes use `int`, including when the corresponding C++ type is unsigned.
 - Prefer property syntax alone when it can faithfully represent a C++ member and its public accessors; do not add a private backing field only to wrap it in a public property. Private fields remain allowed when required by behavior or storage semantics.

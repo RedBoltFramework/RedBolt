@@ -186,9 +186,7 @@ layout(std140) uniform Material
     private IEngineFactory? _factory;
     private IRenderDevice? _device;
     private ISwapChain? _swapChain;
-#if REDBOLT_VULKAN_SUPPORTED
-    private ISwapChainVk? _swapChainVulkan;
-#endif
+    private IGraphicsBackendLifetime? _graphicsBackendLifetime;
     private global::RedBolt.Bindings.Diligent.Viewport? _diligentViewport;
     private RenderOutputTargetInfo? _swapChainOutputTarget;
     private ITextureView? _renderTargetView;
@@ -838,6 +836,10 @@ layout(std140) uniform Material
 
     public ISwapChain? GetNativeSwapChain() => _swapChain;
 
+    internal IGraphicsBackendLifetime? GetGraphicsBackendLifetime() => _graphicsBackendLifetime;
+
+    public T? GetGraphicsBackendApi<T>() where T : class => _graphicsBackendLifetime as T;
+
 #if REDBOLT_VULKAN_SUPPORTED
     internal ISwapChainVk? GetNativeVulkanSwapChain() => _swapChainVulkan;
 #endif
@@ -1122,177 +1124,20 @@ layout(std140) uniform Material
 
         _window = input.Window;
         var backend = deviceSettings.Backend;
-        if (backend == RenderBackend.OpenGL)
-        {
-            _glContext = SdlNativeBindings.SdlGlCreateContext(_window);
-            if (_glContext == IntPtr.Zero)
-                throw new InvalidOperationException("Generated SDL_GL_CreateContext binding returned a null context.");
-        }
-
         try
         {
-            if (backend == RenderBackend.OpenGL)
-            {
-                CheckSdlGl(SdlNativeBindings.SdlGlMakeCurrent(_window, _glContext), "SDL_GL_MakeCurrent");
-#if !REDBOLT_PLATFORM_WEB
-                _ = SdlNativeBindings.SdlGlSetSwapInterval(parameters.VSync ? 1 : 0);
-#endif
-                SdlNativeBindings.SdlGetWindowSize(_window, out var actualWidth, out var actualHeight);
-            Width = actualWidth;
-            Height = actualHeight;
-            _configuredMultiSample = (int)Math.Clamp(MathDefs.ClosestPowerOfTwo((uint)Math.Max(parameters.MultiSample, 1)), 1u, 16u);
-            if (SdlNativeBindings.SdlGlGetAttribute(SdlGLattr.SdlGlMultisamplesamples, out var effectiveMultiSample) == 0)
-                _configuredMultiSample = Math.Max(1, effectiveMultiSample);
-            var effectiveSrgb = 0;
-            _ = SdlNativeBindings.SdlGlGetAttribute(SdlGLattr.SdlGlFramebufferSrgbCapable, out effectiveSrgb);
-
-            using var engineCreateInfo = new EngineGLCreateInfo
-            {
-                FeaturesSeparablePrograms = DeviceFeatureState.DeviceFeatureStateOptional,
-                FeaturesShaderResourceQueries = DeviceFeatureState.DeviceFeatureStateOptional
-#if REDBOLT_PLATFORM_LINUX
-                ,
-                WindowPDisplay = input.GetNativeWindowInfo().Display,
-                WindowWindowId = input.GetNativeWindowInfo().WindowId
-#endif
-            };
-            using var swapChainDesc = new SwapChainDesc
-            {
-                ColorBufferFormat = effectiveSrgb != 0
-                    ? global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb
-                    : global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
-                DepthBufferFormat = global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatUnknown
-            };
-
-            var factory = DiligentNativeBindings.GetEngineFactoryOpenGL();
-            if (factory.IsNull)
-                throw new InvalidOperationException("Generated GetEngineFactoryOpenGL binding returned a null factory.");
-
-            _factory = factory;
-            factory.AttachToActiveGLContext(engineCreateInfo, out _device, out _immediateContext);
-            if (_device.IsNull || _immediateContext.IsNull)
-                throw new InvalidOperationException("Generated AttachToActiveGLContext binding returned a null device or context.");
-
-            var swapChainGL = DiligentNativeBindings.CreateProxySwapChainGL(
-                _device, _immediateContext, swapChainDesc, _window.Handle);
-            if (swapChainGL.IsNull)
-                throw new InvalidOperationException("Generated CreateProxySwapChainGL binding returned a null swap chain.");
-
-                using var deviceContextGL = IDeviceContextGL.QueryManagedWrapper(_immediateContext)
-                    ?? throw new InvalidOperationException("OpenGL device context interface is unavailable.");
-                deviceContextGL.SetSwapChain(swapChainGL);
-                _swapChain = swapChainGL;
-            }
-#if REDBOLT_VULKAN_SUPPORTED
-            else if (backend == RenderBackend.Vulkan)
-            {
-                SdlNativeBindings.SdlGetWindowSize(_window, out var actualWidth, out var actualHeight);
-                Width = actualWidth;
-                Height = actualHeight;
-
-                using var createInfo = new EngineVkCreateInfo();
-                CopyBackendDeviceSettings(createInfo, deviceSettings.Vulkan);
-
-                // TODO: port C++ instanceExtensionsCStr, deviceExtensionsCStr and ppIgnoreDebugMessages when
-                // SharpCpp supports const char* const* fields.
-                createInfo.FeaturesAsyncShaderCompilation = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesBinaryOcclusionQueries = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesBindlessResources = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesComputeShaders = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesDepthBiasClamp = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesDepthClamp = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesDualSourceBlend = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesDurationQueries = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesFormattedBuffers = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesGeometryShaders = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesIndependentBlend = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesInstanceDataStepRate = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesMeshShaders = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesMultiViewport = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesMultithreadedResourceCreation = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesNativeFence = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesNativeMultiDraw = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesOcclusionQueries = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesPipelineStatisticsQueries = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesPixelUAVWritesAndAtomics = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesRayTracing = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesResourceBuffer16BitAccess = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesResourceBuffer8BitAccess = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesSeparablePrograms = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesShaderFloat16 = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesShaderInputOutput16 = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesShaderInt8 = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesShaderResourceQueries = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesShaderResourceRuntimeArrays = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesShaderResourceStaticArrays = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesSparseResources = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesSubpassFramebufferFetch = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesTessellation = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesTextureComponentSwizzle = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesTextureCompressionBC = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesTextureCompressionETC2 = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesTextureSubresourceViews = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesTextureUAVExtendedFormats = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesTileShaders = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesTimestampQueries = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesTransferQueueTimestampQueries = DeviceFeatureState.DeviceFeatureStateDisabled;
-                createInfo.FeaturesUniformBuffer16BitAccess = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesUniformBuffer8BitAccess = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesVariableRateShading = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesVertexPipelineUAVWritesAndAtomics = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesWaveOp = DeviceFeatureState.DeviceFeatureStateOptional;
-                createInfo.FeaturesWireframeFill = DeviceFeatureState.DeviceFeatureStateOptional;
-                if (deviceSettings.AdapterId.HasValue)
-                    createInfo.AdapterId = checked((uint)deviceSettings.AdapterId.Value);
-                var factoryVulkan = DiligentNativeBindings.GetEngineFactoryVk();
-                if (factoryVulkan.IsNull)
-                    throw new InvalidOperationException("Generated GetEngineFactoryVk binding returned a null factory.");
-
-                _factory = factoryVulkan;
-                factoryVulkan.CreateDeviceAndContextsVk(createInfo, out _device, out _immediateContext);
-                if (_device.IsNull || _immediateContext.IsNull)
-                    throw new InvalidOperationException("Generated CreateDeviceAndContextsVk binding returned a null device or context.");
-
-                using var swapChainDesc = new SwapChainDesc
-                {
-                    ColorBufferFormat = windowSettings.SRgb
-                        ? global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8UnormSrgb
-                        : global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatRgba8Unorm,
-                    DepthBufferFormat = global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatUnknown
-                };
-                var nativeWindowInfo = input.GetNativeWindowInfo();
-                using var nativeWindow = new LinuxNativeWindow
-                {
-                    PDisplay = nativeWindowInfo.Display,
-                    WindowId = nativeWindowInfo.WindowId
-                };
-                factoryVulkan.CreateSwapChainVk(_device, _immediateContext, swapChainDesc, nativeWindow,
-                    out var nativeSwapChain);
-                if (nativeSwapChain.IsNull)
-                    throw new InvalidOperationException("Generated CreateSwapChainVk binding returned a null swap chain.");
-                _swapChainVulkan = ISwapChainVk.QueryManagedWrapper(nativeSwapChain)
-                    ?? throw new InvalidOperationException("Vulkan swap chain interface is unavailable.");
-
-                var depthFormat = RenderDevice.SelectDefaultDepthFormat(_device, true);
-                _configuredMultiSample = (int)MathDefs.NextPowerOfTwo(
-                    (uint)Math.Clamp(parameters.MultiSample, 1, 16));
-                using (var formatInfo = _device.GetTextureFormatInfoExt(
-                           (TextureFormat)swapChainDesc.ColorBufferFormat))
-                {
-                    while (_configuredMultiSample > 1
-                           && ((int)formatInfo.SampleCounts & _configuredMultiSample) == 0)
-                        _configuredMultiSample >>= 1;
-                }
-                _configuredMultiSample = Math.Max(1, _configuredMultiSample);
-                _swapChain = DiligentNativeBindings.CreateProxySwapChainMS(
-                    _device, _immediateContext, nativeSwapChain, (uint)depthFormat, (uint)_configuredMultiSample);
-                ReleaseIfNotNull(nativeSwapChain);
-                if (_swapChain.IsNull)
-                    throw new InvalidOperationException("Generated CreateProxySwapChainMS binding returned a null swap chain.");
-            }
-#endif
-            else
-                throw new InvalidOperationException("Unsupported render backend.");
+            var graphicsBackend = _ownerContext.RuntimeServices.GetGraphicsBackend(backend);
+            var backendResources = graphicsBackend.Initialize(
+                parameters, deviceSettings, windowSettings, _window, _ownerContext.RuntimeServices.Platform);
+            _factory = backendResources.Factory;
+            _device = backendResources.Device;
+            _immediateContext = backendResources.ImmediateContext;
+            _swapChain = backendResources.SwapChain;
+            _graphicsBackendLifetime = backendResources.Lifetime;
+            _glContext = backendResources.Lifetime.NativeContext;
+            Width = backendResources.Width;
+            Height = backendResources.Height;
+            _configuredMultiSample = backendResources.MultiSample;
 
             using (var swapChainDescription = _swapChain.GetDesc())
                 _swapChainPreTransform = swapChainDescription.PreTransform;
@@ -1810,9 +1655,7 @@ layout(std140) uniform Material
         if (!IsInitialized)
             return;
 
-#if !REDBOLT_PLATFORM_WEB
-        _ = SdlNativeBindings.SdlGlSetSwapInterval(enable ? 1 : 0);
-#endif
+        _graphicsBackendLifetime?.SetVSync(enable);
     }
 
     /// <summary>
@@ -1838,31 +1681,7 @@ layout(std140) uniform Material
         if (!IsInitialized || _window is null || _window.IsNull || _swapChain is null || _swapChain.IsNull)
             return;
 
-        switch (GetRenderBackend())
-        {
-            case RenderBackend.OpenGL:
-                SdlNativeBindings.SdlGlGetDrawableSize(_window, out var drawableWidth, out var drawableHeight);
-                _swapChain.Resize((uint)Math.Max(drawableWidth, 0), (uint)Math.Max(drawableHeight, 0));
-                break;
-
-#if REDBOLT_VULKAN_SUPPORTED
-            case RenderBackend.Vulkan:
-            {
-                using var renderDeviceVulkan = IRenderDeviceVk.QueryManagedWrapper(_device!)
-                    ?? throw new InvalidOperationException("Vulkan render device interface is unavailable.");
-                uint surfaceWidth = 0;
-                uint surfaceHeight = 0;
-                if (_swapChainVulkan is not null && DiligentNativeBindings.GetVulkanSurfaceExtent(
-                        renderDeviceVulkan, _swapChainVulkan, ref surfaceWidth, ref surfaceHeight))
-                    _swapChain.Resize(surfaceWidth, surfaceHeight);
-                else
-                    Log.GetLogger().LogError("Cannot resize Vulkan swap chain");
-                break;
-            }
-#endif
-            default:
-                throw new InvalidOperationException("Unsupported render backend.");
-        }
+        _graphicsBackendLifetime!.Resize(_device!, _swapChain);
         using var swapChainDesc = _swapChain.GetDesc();
         Width = (int)swapChainDesc.Width;
         Height = (int)swapChainDesc.Height;
@@ -1922,10 +1741,8 @@ layout(std140) uniform Material
         if (oldSettings.Resizable != newSettings.Resizable)
             SdlNativeBindings.SdlSetWindowResizable(_window, newSettings.Resizable ? SdlBool.SdlTrue : SdlBool.SdlFalse);
 
-#if !REDBOLT_PLATFORM_WEB
         if (oldSettings.VSync != newSettings.VSync)
-            _ = SdlNativeBindings.SdlGlSetSwapInterval(newSettings.VSync ? 1 : 0);
-#endif
+            _graphicsBackendLifetime?.SetVSync(newSettings.VSync);
     }
 
     public void Shutdown()
@@ -1969,11 +1786,8 @@ layout(std140) uniform Material
         _diligentViewport?.Dispose();
         _diligentViewport = null;
 
-#if REDBOLT_VULKAN_SUPPORTED
         if (_ownsRenderDeviceResources)
-            ReleaseIfNotNull(_swapChainVulkan);
-        _swapChainVulkan = null;
-#endif
+            _graphicsBackendLifetime?.ReleaseBeforeCommonResources();
         if (_ownsRenderDeviceResources)
             ReleaseIfNotNull(_swapChain);
         _swapChain = null;
@@ -1988,13 +1802,9 @@ layout(std140) uniform Material
         if (_clearColorHandle.IsAllocated)
             _clearColorHandle.Free();
 
-        if (_ownsRenderDeviceResources && _glContext != IntPtr.Zero)
-        {
-            if (_window is not null && !_window.IsNull)
-                _ = SdlNativeBindings.SdlGlMakeCurrent(_window, IntPtr.Zero);
-            SdlNativeBindings.SdlGlDeleteContext(_glContext);
-            _glContext = IntPtr.Zero;
-        }
+        if (_ownsRenderDeviceResources)
+            _graphicsBackendLifetime?.ReleaseAfterCommonResources(_window);
+        _graphicsBackendLifetime = null;
         _glContext = IntPtr.Zero;
 
         _window = null;

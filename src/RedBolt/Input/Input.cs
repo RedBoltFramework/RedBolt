@@ -282,22 +282,11 @@ public class Input : Object
         try
         {
             var backend = RenderAPIUtils.SelectRenderBackend(parameters.RenderBackend);
-            if (backend == RenderBackend.OpenGL)
-            {
-                CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlDoublebuffer, 1), "SDL_GL_SetAttribute doublebuffer");
-#if REDBOLT_PLATFORM_WEB
-                CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMajorVersion, 3), "SDL_GL_SetAttribute major version");
-                CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMinorVersion, 0), "SDL_GL_SetAttribute minor version");
-                CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextProfileMask, (int)SdlGLprofile.SdlGlContextProfileEs), "SDL_GL_SetAttribute profile mask");
-#else
-                CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMajorVersion, 4), "SDL_GL_SetAttribute major version");
-                CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMinorVersion, 1), "SDL_GL_SetAttribute minor version");
-                CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextProfileMask, (int)SdlGLprofile.SdlGlContextProfileCore), "SDL_GL_SetAttribute profile mask");
-#endif
-            }
+            var graphicsBackend = Context.Instance.RuntimeServices.GetGraphicsBackend(backend);
+            graphicsBackend.ConfigureWindow();
 
             using var title = new CString(parameters.WindowTitle);
-            var windowFlags = backend == RenderBackend.OpenGL
+            var windowFlags = graphicsBackend.UsesOpenGLWindow
                 ? SdlWindowFlags.SdlWindowOpengl | SdlWindowFlags.SdlWindowShown
                 : 0;
             if (parameters.FullScreen)
@@ -312,7 +301,7 @@ public class Input : Object
             var windowX = explicitRect?.Left ?? parameters.WindowPositionX ?? 64;
             var windowY = explicitRect?.Top ?? parameters.WindowPositionY ?? 64;
             SdlWindow? window = null;
-            if (backend == RenderBackend.OpenGL)
+            if (graphicsBackend.UsesOpenGLWindow)
             {
                 foreach (var colorBits in new[] { 8, 1 })
                 {
@@ -1341,23 +1330,6 @@ public class Input : Object
 
     public bool GetFocus() => HasFocus;
 
-#if REDBOLT_PLATFORM_LINUX
-    internal NativeWindowInfo GetNativeWindowInfo()
-    {
-        using var wmInfo = CreateInitializedWmInfo();
-        if (SdlNativeBindings.SdlGetWindowWMInfo(Window, wmInfo) != SdlBool.SdlTrue)
-            throw new InvalidOperationException("Generated SDL_GetWindowWMInfo binding failed for the window.");
-
-        if (wmInfo.Subsystem != SdlSyswmType.SdlSyswmX11)
-            throw new InvalidOperationException($"RedBolt requires SDL X11 WM info, got {wmInfo.Subsystem}.");
-
-        if (wmInfo.InfoX11Display == IntPtr.Zero || wmInfo.InfoX11Window == 0)
-            throw new InvalidOperationException("SDL X11 WM info did not contain display and window handles.");
-
-        return new NativeWindowInfo(wmInfo.InfoX11Display, checked((uint)wmInfo.InfoX11Window));
-    }
-#endif
-
     internal SdlWindow TransferWindowOwnership()
     {
         _ownsWindow = false;
@@ -1833,24 +1805,10 @@ public class Input : Object
         };
     }
 
-    private static SdlSysWMinfo CreateInitializedWmInfo()
-    {
-        using var version = new SdlVersion();
-        SdlNativeBindings.SdlGetVersion(version);
-
-        return new SdlSysWMinfo
-        {
-            VersionMajor = version.Major,
-            VersionMinor = version.Minor,
-            VersionPatch = version.Patch
-        };
-    }
-
     private static void CheckSdlGl(int result, string operation)
     {
         if (result != 0)
             throw new InvalidOperationException($"{operation} failed with {result}.");
     }
 
-    internal readonly record struct NativeWindowInfo(IntPtr Display, uint WindowId);
 }

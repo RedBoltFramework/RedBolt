@@ -33,22 +33,6 @@ public static class RenderAPIUtils
         global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeCompute
     ];
 
-    private static readonly RenderBackend[] SupportedBackends =
-    [
-#if REDBOLT_D3D11_SUPPORTED
-        RenderBackend.D3D11,
-#endif
-#if REDBOLT_D3D12_SUPPORTED
-        RenderBackend.D3D12,
-#endif
-#if REDBOLT_GL_SUPPORTED || REDBOLT_GLES_SUPPORTED
-        RenderBackend.OpenGL,
-#endif
-#if REDBOLT_VULKAN_SUPPORTED
-        RenderBackend.Vulkan,
-#endif
-    ];
-
     private static readonly ShaderTranslationPolicy[] SupportedShaderPolicies =
     [
         ShaderTranslationPolicy.Translate,
@@ -258,13 +242,14 @@ public static class RenderAPIUtils
         };
 
         var backend = requestedBackend ?? defaultBackend;
-        foreach (var supportedBackend in SupportedBackends)
+        var supportedBackends = Context.Instance.RuntimeServices.GraphicsBackends;
+        foreach (var supportedBackend in supportedBackends)
         {
-            if (supportedBackend == backend)
+            if (supportedBackend.Backend == backend)
                 return backend;
         }
 
-        return SupportedBackends[0];
+        return supportedBackends.First().Backend;
     }
 
     public static ShaderTranslationPolicy SelectShaderTranslationPolicy(
@@ -519,7 +504,6 @@ public static class RenderAPIUtils
     {
         switch (backend)
         {
-#if REDBOLT_D3D11_SUPPORTED || REDBOLT_D3D12_SUPPORTED
             case RenderBackend.D3D11:
             case RenderBackend.D3D12:
                 return internalFormat switch
@@ -532,8 +516,6 @@ public static class RenderAPIUtils
                     20u => TextureFormat.TexFormatD32FloatS8x24Uint,
                     _ => TextureFormat.TexFormatUnknown
                 };
-#endif
-#if REDBOLT_VULKAN_SUPPORTED
             case RenderBackend.Vulkan:
                 return internalFormat switch
                 {
@@ -545,8 +527,6 @@ public static class RenderAPIUtils
                     130u => TextureFormat.TexFormatD32FloatS8x24Uint,
                     _ => TextureFormat.TexFormatUnknown
                 };
-#endif
-#if REDBOLT_GL_SUPPORTED || REDBOLT_GLES_SUPPORTED
             case RenderBackend.OpenGL:
                 return internalFormat switch
                 {
@@ -558,7 +538,6 @@ public static class RenderAPIUtils
                     0x8CADu => TextureFormat.TexFormatD32FloatS8x24Uint,
                     _ => TextureFormat.TexFormatUnknown
                 };
-#endif
             default:
                 return TextureFormat.TexFormatUnknown;
         }

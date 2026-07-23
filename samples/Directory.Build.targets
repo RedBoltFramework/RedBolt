@@ -1,0 +1,11 @@
+<Project>
+  <ItemGroup Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll'">
+    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt.Platform.Linux/RedBolt.Platform.Linux.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(RedBoltRoot)/src/RedBolt/GlobalAliases.cs"
+             Link="GlobalAliases.cs"
+             Visible="false" />
+  </ItemGroup>
+</Project>

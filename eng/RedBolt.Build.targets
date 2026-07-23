@@ -1,4 +1,8 @@
 <Project>
+  <PropertyGroup Condition="'$(OutputType)' == 'Library'">
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+  </PropertyGroup>
+
   <PropertyGroup>
     <RedBoltGlobalAliasesFile>$(RedBoltRoot)/src/RedBolt/GlobalAliases.cs</RedBoltGlobalAliasesFile>
     <RedBoltIsBindingProject>$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Bindings.'))</RedBoltIsBindingProject>
@@ -110,6 +114,7 @@
           Condition="Exists('$(RedBoltGlobalAliasesFile)') and ('@(ProjectReference->WithMetadataValue(&quot;Filename&quot;, &quot;RedBolt&quot;))' != '' or '@(ReferencePath->WithMetadataValue(&quot;Filename&quot;, &quot;RedBolt&quot;))' != '')">
     <ItemGroup>
       <Compile Include="$(RedBoltGlobalAliasesFile)"
+               Exclude="@(Compile)"
                Link="GlobalAliases.cs"
                Visible="false" />
     </ItemGroup>

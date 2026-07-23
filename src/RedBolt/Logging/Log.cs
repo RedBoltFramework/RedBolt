@@ -403,7 +403,9 @@ public class Log : Object
     /// <summary>Open the log file.</summary>
     public void Open(string fileName, in LogFileParams parameters)
     {
-#if !REDBOLT_PLATFORM_WEB
+        if (!Context.Instance.RuntimeServices.Platform.SupportsFileLogging)
+            return;
+
         if (string.IsNullOrEmpty(fileName) || fileName == NullDevice)
             return;
 
@@ -435,15 +437,13 @@ public class Log : Object
                 return;
             }
         }
-#endif
     }
 
     /// <summary>Close the log file.</summary>
     public void Close()
     {
-#if !REDBOLT_PLATFORM_WEB
-        _impl.Close();
-#endif
+        if (Context.Instance.RuntimeServices.Platform.SupportsFileLogging)
+            _impl.Close();
     }
 
     /// <summary>Set logging level.</summary>

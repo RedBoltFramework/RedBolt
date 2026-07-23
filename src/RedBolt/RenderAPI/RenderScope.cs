@@ -145,7 +145,6 @@ public class RenderScope : IDisposable
 
     private static void ConsumeOpenGlError(RenderDevice renderDevice)
     {
-#if REDBOLT_GL_SUPPORTED || REDBOLT_GLES_SUPPORTED
         if (renderDevice.GetBackend() == RenderBackend.OpenGL)
         {
             if (_glGetError is null)
@@ -157,7 +156,6 @@ public class RenderScope : IDisposable
 
             _ = _glGetError();
         }
-#endif
     }
 
     private RenderContext? _renderContext;
@@ -167,10 +165,8 @@ public class RenderScope : IDisposable
     [ThreadStatic]
     private static RenderScope? _freeRenderScope;
 
-#if REDBOLT_GL_SUPPORTED || REDBOLT_GLES_SUPPORTED
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate uint OpenGlGetErrorFunction();
 
     private static OpenGlGetErrorFunction? _glGetError;
-#endif
 }

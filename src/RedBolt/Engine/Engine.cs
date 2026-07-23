@@ -33,7 +33,7 @@ public class Engine : Object
     private int _screenshotIndex;
     private int _screenshotFrameDelay;
     private Context _previousContext = Context.Instance;
-    private readonly Context _context = new();
+    private readonly Context _context = new(Context.Instance.RuntimeServices);
 
     public Engine()
     {

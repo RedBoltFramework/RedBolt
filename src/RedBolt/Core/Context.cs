@@ -39,7 +39,21 @@ public class Context : ObjectReflectionRegistry
     private readonly Dictionary<Type, StructEventSubscriptionBucket> _structEventSubscriptions = [];
     private readonly List<ActiveEventInvocation> _activeEventInvocations = [];
     private readonly VariantMap _globalVars = [];
+
+    public Context()
+        : this(RuntimeServices.Default)
+    {
+    }
+
+    public Context(RuntimeServices runtimeServices)
+    {
+        ArgumentNullException.ThrowIfNull(runtimeServices);
+        RuntimeServices = runtimeServices;
+    }
+
     public static Context Instance => _instance;
+
+    public RuntimeServices RuntimeServices { get; }
 
     public static void SetInstance(Context context)
     {

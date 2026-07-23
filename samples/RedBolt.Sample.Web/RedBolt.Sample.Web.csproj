@@ -16,11 +16,16 @@
 
   <ItemGroup>
     <WasmOptConfigurationFlags Include="--enable-threads" />
-    <StaticWebAssetFingerprintPattern Include="JS" Pattern="*.js" Expression="#[.{fingerprint}]!" />
     <NativeFileReference Include="$(RedBoltWebEngineArchive)" />
     <ProjectReference Include="../../src/RedBolt/RedBolt.csproj"
-                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm" />
+                      RedBoltProperties="Configuration=$(Configuration)" />
+    <ProjectReference Include="../../src/RedBolt.Platform.Web/RedBolt.Platform.Web.csproj"
+                      RedBoltProperties="Configuration=$(Configuration)" />
     <ProjectReference Include="../../src/RedBolt.DearImGui/RedBolt.DearImGui.csproj"
+                      RedBoltProperties="Configuration=$(Configuration)" />
+    <ProjectReference Include="../../native/RedBolt.Native/RedBolt.Native.Web.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
                       RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm" />
     <Compile Include="../RedBolt.Sample.MultipleViewports/Program.cs" Link="MultipleViewportsApplication.cs" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
@@ -31,14 +36,6 @@
   <PropertyGroup>
     <DefineConstants>$(DefineConstants);REDBOLT_WEB_SAMPLE</DefineConstants>
   </PropertyGroup>
-
-  <Target Name="RedBoltSelectWebAssembliesForNativeLink" BeforeTargets="_GenerateManagedToNative">
-    <ItemGroup>
-      <_WasmAssembliesInternal Remove="@(_WasmAssembliesInternal)"
-                               Condition="$([System.String]::Copy('%(_WasmAssembliesInternal.Filename)').StartsWith('RedBolt'))" />
-      <_WasmAssembliesInternal Include="$(RedBoltOutputDir)/RedBolt*.dll" />
-    </ItemGroup>
-  </Target>
 
   <ItemGroup>
     <Content Include="../../bin/CoreData/**/*" Link="wwwroot/resources/CoreData/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
