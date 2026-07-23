@@ -5,6 +5,12 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class LogicComponentTests
 {
+    public LogicComponentTests()
+    {
+        TestTypeRegistration.RegisterFactory<CountingLogic>();
+        TestTypeRegistration.RegisterFactory<CustomEventLogic>();
+    }
+
     [Fact]
     public void LogicComponent_matches_rbfx_concrete_class_shape()
     {

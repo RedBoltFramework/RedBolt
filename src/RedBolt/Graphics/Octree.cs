@@ -598,7 +598,11 @@ public sealed class Octree : Component
     {
         // This doesn't have to take into account scene being in threaded update, because it is called only
         // when removing a drawable from octree, which should only ever happen from the main thread.
-        _drawableUpdates.Remove(drawable);
+        var lastIndex = _drawableUpdates.Count - 1;
+        if (lastIndex >= 0 && ReferenceEquals(_drawableUpdates[lastIndex], drawable))
+            _drawableUpdates.RemoveAt(lastIndex);
+        else
+            _drawableUpdates.Remove(drawable);
         drawable._updateQueued = false;
     }
 

@@ -5,6 +5,11 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ComponentSearchFlagTests
 {
+    public ComponentSearchFlagTests()
+    {
+        TestTypeRegistration.RegisterFactory<SearchProbe>();
+    }
+
     [Fact]
     public void ComponentSearchFlag_matches_rbfx_value_type_and_values()
     {

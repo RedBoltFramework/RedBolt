@@ -10,6 +10,7 @@ public sealed class SkyboxTests
     public SkyboxTests(HeadlessEngineFixture fixture)
     {
         this._fixture = fixture;
+        TestTypeRegistration.RegisterFactory<TestSkybox>();
         FirstCubeTestData.AddResourceDirs(Resources);
     }
 

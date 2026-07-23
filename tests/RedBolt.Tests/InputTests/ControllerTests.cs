@@ -33,7 +33,6 @@ public sealed class ControllerTests
         Assert.NotNull(movementType);
         Assert.True(movementType.IsValueType);
 
-        FreeFlyController.RegisterObject(Context.Instance);
         using var reflected = Assert.IsType<FreeFlyController>(
             Context.Instance.CreateObject(ObjectReflection<FreeFlyController>.TypeId));
     }
@@ -154,7 +153,6 @@ public sealed class ControllerTests
         Assert.True(typeof(TouchState).IsValueType);
         Assert.True(typeof(Vector2i).IsValueType);
 
-        MoveAndOrbitController.RegisterObject(Context.Instance);
         using var reflected = Assert.IsType<MoveAndOrbitController>(
             Context.Instance.CreateObject(ObjectReflection<MoveAndOrbitController>.TypeId));
     }
@@ -169,7 +167,6 @@ public sealed class ControllerTests
         Assert.False(typeof(ICloneable).IsAssignableFrom(type));
         Assert.True(typeof(Vector3f).IsValueType);
 
-        MoveAndOrbitComponent.RegisterObject(Context.Instance);
         using var reflected = Assert.IsType<MoveAndOrbitComponent>(
             Context.Instance.CreateObject(ObjectReflection<MoveAndOrbitComponent>.TypeId));
     }

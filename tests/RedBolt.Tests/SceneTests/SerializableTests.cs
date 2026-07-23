@@ -124,15 +124,19 @@ public sealed class SerializableTests
     public void Serializable_exposes_registered_reflection()
     {
         var previous = Context.Instance;
-        var context = new Context();
+        using var context = new Context();
         Context.SetInstance(context);
         try
         {
             var reflection = context.Reflect<TestSerializable>();
-            var serializable = new TestSerializable();
+            using var serializable = new TestSerializable();
+            using var secondSerializable = new TestSerializable();
 
             Assert.Same(reflection, serializable.GetReflection());
             Assert.Equal(2, serializable.GetNumAttributes());
+            Assert.Equal(2u, reflection.NumAttributes);
+            Assert.Same(reflection.Attributes[0], serializable.Attributes[0]);
+            Assert.Same(serializable.Attributes[0], secondSerializable.Attributes[0]);
         }
         finally
         {
@@ -150,8 +154,10 @@ public sealed class SerializableTests
     {
         public TestSerializable()
         {
-            RegisterAttribute("Number", typeof(int), _ => Number, (_, value) => Number = (int)(value ?? 0), 0);
-            RegisterAttribute("Label", typeof(string), _ => Label, (_, value) => Label = (string?)value ?? string.Empty, string.Empty);
+            RegisterAttribute("Number", typeof(int), self => ((TestSerializable)self).Number,
+                (self, value) => ((TestSerializable)self).Number = (int)(value ?? 0), 0);
+            RegisterAttribute("Label", typeof(string), self => ((TestSerializable)self).Label,
+                (self, value) => ((TestSerializable)self).Label = (string?)value ?? string.Empty, string.Empty);
         }
 
         public int Number { get; set; }
@@ -168,8 +174,8 @@ public sealed class SerializableTests
     {
         public DefaultSerializable()
         {
-            RegisterAttribute("Value", typeof(byte[]), _ => Value, (_, value) => Value = (byte[]?)value ?? [],
-                Array.Empty<byte>());
+            RegisterAttribute("Value", typeof(byte[]), self => ((DefaultSerializable)self).Value,
+                (self, value) => ((DefaultSerializable)self).Value = (byte[]?)value ?? [], Array.Empty<byte>());
         }
 
         public byte[] Value { get; set; } = [];

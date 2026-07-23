@@ -157,6 +157,16 @@ public struct JoystickState : ICloneable
 
 public class Input : Object
 {
+    public static void RegisterInputLibrary(Context context)
+    {
+        InputMap.RegisterObject(context);
+        FreeFlyController.RegisterObject(context);
+        MoveAndOrbitComponent.RegisterObject(context);
+        MoveAndOrbitController.RegisterObject(context);
+        var reflection = context.AddFactoryReflection<PointerAdapter>();
+        reflection.SetObjectFactory(static () => new PointerAdapter());
+    }
+
     private const uint SdlInitVideo = 0x00000020u;
     private const uint SdlInitJoystick = 0x00000200u;
     private const uint SdlInitGameController = 0x00002000u;

@@ -1176,7 +1176,13 @@ public class Scene : Node
         GetMutableComponentIndex(component.GetTypeNameHash())?.Remove(component);
 
         if (component is StaticModel staticModel)
-            _staticModels.Remove(staticModel);
+        {
+            var lastIndex = _staticModels.Count - 1;
+            if (lastIndex >= 0 && ReferenceEquals(_staticModels[lastIndex], staticModel))
+                _staticModels.RemoveAt(lastIndex);
+            else
+                _staticModels.Remove(staticModel);
+        }
 
         component.SetID(0);
         component.OnSceneSet(this, null);

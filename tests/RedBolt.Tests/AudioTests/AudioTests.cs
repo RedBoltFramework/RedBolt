@@ -15,6 +15,8 @@ public sealed class AudioTests
     public AudioTests(HeadlessEngineFixture fixture)
     {
         _fixture = fixture;
+        TestTypeRegistration.RegisterFactory<SoundSource>();
+        TestTypeRegistration.RegisterFactory<SoundSource3D>();
     }
 
     [Fact]

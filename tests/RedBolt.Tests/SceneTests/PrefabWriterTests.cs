@@ -116,8 +116,10 @@ public sealed class PrefabWriterTests
     {
         public TestSerializable()
         {
-            RegisterAttribute("Number", typeof(int), _ => Number, (_, value) => Number = (int)(value ?? 0), 0);
-            RegisterAttribute("Label", typeof(string), _ => Label, (_, value) => Label = (string?)value ?? string.Empty, string.Empty);
+            RegisterAttribute("Number", typeof(int), self => ((TestSerializable)self).Number,
+                (self, value) => ((TestSerializable)self).Number = (int)(value ?? 0), 0);
+            RegisterAttribute("Label", typeof(string), self => ((TestSerializable)self).Label,
+                (self, value) => ((TestSerializable)self).Label = (string?)value ?? string.Empty, string.Empty);
         }
 
         public int Number { get; set; }

@@ -5,6 +5,14 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class TrackedComponentTests
 {
+    public TrackedComponentTests()
+    {
+        TestTypeRegistration.RegisterFactory<TestRegistry>();
+        TestTypeRegistration.RegisterFactory<TestTracked>();
+        TestTypeRegistration.RegisterFactory<ReferencedTestRegistry>();
+        TestTypeRegistration.RegisterFactory<ReferencedTestComponent>();
+    }
+
     [Fact]
     public void Registry_tracks_components_and_swap_erases()
     {

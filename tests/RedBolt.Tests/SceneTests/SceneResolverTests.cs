@@ -4,6 +4,11 @@ namespace RedBolt.Tests;
 
 public sealed class SceneResolverTests
 {
+    public SceneResolverTests()
+    {
+        TestTypeRegistration.RegisterFactory<ResolverProbe>();
+    }
+
     [Fact]
     public void Resolve_rewrites_node_component_and_node_vector_ids()
     {

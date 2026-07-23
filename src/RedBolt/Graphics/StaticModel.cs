@@ -82,7 +82,8 @@ public class StaticModel : Drawable
     /// <summary>Register object factory.</summary>
     public new static void RegisterObject(Context context)
     {
-        context.AddFactoryReflection<StaticModel>(ObjectCategory.Category_Geometry);
+        var reflection = context.AddFactoryReflection<StaticModel>(ObjectCategory.Category_Geometry);
+        reflection.SetObjectFactory(static () => new StaticModel());
     }
 
     public Material? Material

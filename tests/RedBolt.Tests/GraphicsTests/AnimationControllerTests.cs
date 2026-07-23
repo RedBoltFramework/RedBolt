@@ -4,6 +4,12 @@ namespace RedBolt.Tests;
 
 public sealed class AnimationControllerTests
 {
+    public AnimationControllerTests()
+    {
+        TestTypeRegistration.RegisterFactory<AnimationController>();
+        TestTypeRegistration.RegisterFactory<AnimatedModel>();
+    }
+
     [Fact]
     public void Animation_controller_registers_logic_factory()
     {

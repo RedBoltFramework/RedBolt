@@ -638,6 +638,7 @@ public class Engine : Object
         WorkQueue.SetMainThread();
         _context.InitializeEngineSubsystems(this);
 
+        Input.RegisterInputLibrary(_context);
         Graphics.RegisterGraphicsLibrary(_context);
         Scene.RegisterSceneLibrary(_context);
 

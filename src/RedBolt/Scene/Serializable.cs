@@ -5,8 +5,17 @@ public class Serializable : Object
     private Dictionary<StringHash, Variant>? _instanceDefaultValues;
     private bool _setInstanceDefault;
     private bool _temporary;
-    private readonly List<AttributeInfo> _attributes = [];
+    private readonly List<AttributeInfo> _ownedAttributes = [];
+    private IReadOnlyList<AttributeInfo> _attributes;
+    private ObjectReflection? _attributeReflection;
+    private bool _attributeReflectionResolved;
+    private int _attributeRegistrationIndex;
     private readonly Dictionary<StringHash, Variant> _attributeValues = new();
+
+    public Serializable()
+    {
+        _attributes = _ownedAttributes;
+    }
 
     public IReadOnlyList<AttributeInfo> Attributes => _attributes;
 
@@ -17,9 +26,9 @@ public class Serializable : Object
     public override void Dispose()
     {
         RemoveInstanceDefault();
-        for (var i = _attributes.Count - 1; i >= 0; --i)
-            _attributes[i].Dispose();
-        _attributes.Clear();
+        for (var i = _ownedAttributes.Count - 1; i >= 0; --i)
+            _ownedAttributes[i].Dispose();
+        _ownedAttributes.Clear();
         foreach (var value in _attributeValues.Values)
         {
             var ownedValue = value;
@@ -585,13 +594,48 @@ public class Serializable : Object
     {
         ArgumentNullException.ThrowIfNull(accessor);
 
+        if (!_attributeReflectionResolved)
+        {
+            _attributeReflection = GetReflection();
+            _attributeReflectionResolved = true;
+            if (_attributeReflection is not null)
+                _attributes = _attributeReflection.Attributes;
+        }
+
+        if (_attributeReflection is not null)
+        {
+            if (_attributeRegistrationIndex < _attributes.Count)
+            {
+                var registeredAttribute = _attributes[_attributeRegistrationIndex];
+                if (string.Equals(registeredAttribute.Name, name, StringComparison.Ordinal))
+                {
+                    ++_attributeRegistrationIndex;
+                    return new AttributeHandle(registeredAttribute);
+                }
+            }
+
+            var foundAttribute = FindAttribute(name);
+            if (foundAttribute is not null)
+            {
+                ++_attributeRegistrationIndex;
+                return new AttributeHandle(foundAttribute);
+            }
+
+            using var sharedDefaultVariant = Variant.FromObject(defaultValue);
+            using var sharedAttribute = new AttributeInfo(
+                name, valueType, sharedDefaultVariant, mode, enumNames, accessor);
+            var handle = _attributeReflection.AddAttribute(sharedAttribute);
+            ++_attributeRegistrationIndex;
+            return handle;
+        }
+
         var existing = FindAttribute(name);
         if (existing is not null)
             return new AttributeHandle(existing);
 
         using var defaultVariant = Variant.FromObject(defaultValue);
         var attribute = new AttributeInfo(name, valueType, defaultVariant, mode, enumNames, accessor);
-        _attributes.Add(attribute);
+        _ownedAttributes.Add(attribute);
         return new AttributeHandle(attribute);
     }
 
@@ -604,13 +648,48 @@ public class Serializable : Object
         AttributeMode mode = AttributeMode.Default,
         IReadOnlyList<string>? enumNames = null)
     {
+        if (!_attributeReflectionResolved)
+        {
+            _attributeReflection = GetReflection();
+            _attributeReflectionResolved = true;
+            if (_attributeReflection is not null)
+                _attributes = _attributeReflection.Attributes;
+        }
+
+        if (_attributeReflection is not null)
+        {
+            if (_attributeRegistrationIndex < _attributes.Count)
+            {
+                var registeredAttribute = _attributes[_attributeRegistrationIndex];
+                if (string.Equals(registeredAttribute.Name, name, StringComparison.Ordinal))
+                {
+                    ++_attributeRegistrationIndex;
+                    return new AttributeHandle(registeredAttribute);
+                }
+            }
+
+            var foundAttribute = FindAttribute(name);
+            if (foundAttribute is not null)
+            {
+                ++_attributeRegistrationIndex;
+                return new AttributeHandle(foundAttribute);
+            }
+
+            using var sharedDefaultVariant = Variant.FromObject(defaultValue);
+            using var sharedAttribute = new AttributeInfo(
+                name, valueType, sharedDefaultVariant, mode, enumNames, accessor: null, getter, setter);
+            var handle = _attributeReflection.AddAttribute(sharedAttribute);
+            ++_attributeRegistrationIndex;
+            return handle;
+        }
+
         var existing = FindAttribute(name);
         if (existing is not null)
             return new AttributeHandle(existing);
 
         using var defaultVariant = Variant.FromObject(defaultValue);
         var attribute = new AttributeInfo(name, valueType, defaultVariant, mode, enumNames, accessor: null, getter, setter);
-        _attributes.Add(attribute);
+        _ownedAttributes.Add(attribute);
         return new AttributeHandle(attribute);
     }
 

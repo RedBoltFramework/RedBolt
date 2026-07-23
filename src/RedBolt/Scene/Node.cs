@@ -927,7 +927,7 @@ public class Node : Serializable
     public T CreateComponent<T>(uint id = 0)
         where T : Component, new()
     {
-        var component = new T();
+        var component = (T)Context.Instance.CreateObject(ObjectReflection<T>.TypeId);
         AddComponent(component, id);
         return component;
     }
@@ -938,7 +938,7 @@ public class Node : Serializable
         if (type.IsAbstract || !typeof(Component).IsAssignableFrom(type))
             return null;
 
-        if (Activator.CreateInstance(type) is not Component component)
+        if (Context.Instance.CreateObject(new StringHash(type.GetClassName())) is not Component component)
             return null;
 
         AddComponent(component, id);
@@ -1764,6 +1764,13 @@ public class Node : Serializable
         if (index < 0)
             return;
 
+        RemoveChild(index);
+    }
+
+    private void RemoveChild(int index)
+    {
+        var node = _children[index];
+
         if (_scene is not null)
         {
             var eventData = new SceneEvents.NodeRemovedEvent
@@ -1850,7 +1857,7 @@ public class Node : Serializable
             var child = _children[index];
             if (recursive)
                 child.RemoveChildren(recursive: true);
-            RemoveChild(child);
+            RemoveChild(index);
         }
     }
 

@@ -2,6 +2,13 @@ namespace RedBolt.Tests;
 
 public sealed class DrawableTests
 {
+    public DrawableTests()
+    {
+        TestTypeRegistration.RegisterFactory<CustomGeometry>();
+        TestTypeRegistration.RegisterFactory<UpdateProbeDrawable>();
+        TestTypeRegistration.RegisterFactory<Octree>();
+    }
+
     private sealed class UpdateProbeDrawable : Drawable
     {
         public int NumUpdates { get; private set; }

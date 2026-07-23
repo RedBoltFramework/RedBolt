@@ -2,6 +2,13 @@ namespace RedBolt.Tests;
 
 public sealed class AnimatedModelTests
 {
+    public AnimatedModelTests()
+    {
+        TestTypeRegistration.RegisterFactory<AnimatedModel>();
+        TestTypeRegistration.RegisterFactory<Camera>();
+        TestTypeRegistration.RegisterFactory<Octree>();
+    }
+
     [Fact]
     public void Animated_model_preserves_cpp_class_kind()
     {

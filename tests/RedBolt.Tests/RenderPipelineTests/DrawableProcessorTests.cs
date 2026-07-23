@@ -3,6 +3,14 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class DrawableProcessorTests
 {
+    public DrawableProcessorTests()
+    {
+        TestTypeRegistration.RegisterFactory<Octree>();
+        TestTypeRegistration.RegisterFactory<ReflectionProbeManager>();
+        TestTypeRegistration.RegisterFactory<Camera>();
+        TestTypeRegistration.RegisterFactory<TestOccluderDrawable>();
+    }
+
     [Fact]
     public void RenderPipelineStatsHasValueSemantics()
     {

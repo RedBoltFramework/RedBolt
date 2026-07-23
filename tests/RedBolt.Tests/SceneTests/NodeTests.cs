@@ -5,6 +5,12 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class NodeTests
 {
+    public NodeTests()
+    {
+        TestTypeRegistration.RegisterFactory<AttachmentProbe>();
+        TestTypeRegistration.RegisterFactory<ListenerProbe>();
+    }
+
     [Fact]
     public void Node_prefab_archive_roundtrips_hierarchy_components_and_variables()
     {

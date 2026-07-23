@@ -47,7 +47,8 @@ public class StaticModelGroup : StaticModel
     /// <summary>Register object factory. StaticModel must be registered first.</summary>
     public new static void RegisterObject(Context context)
     {
-        context.AddFactoryReflection<StaticModelGroup>(ObjectCategory.Category_Geometry);
+        var reflection = context.AddFactoryReflection<StaticModelGroup>(ObjectCategory.Category_Geometry);
+        reflection.SetObjectFactory(static () => new StaticModelGroup());
     }
 
     /// <summary>Apply attribute changes that can not be applied immediately. Called after scene load or a network update.</summary>
