@@ -14,7 +14,9 @@ public class Serializable : Object
 
     public Serializable()
     {
-        _attributes = _ownedAttributes;
+        _attributeReflection = GetReflection();
+        _attributeReflectionResolved = true;
+        _attributes = _attributeReflection?.Attributes ?? _ownedAttributes;
     }
 
     public IReadOnlyList<AttributeInfo> Attributes => _attributes;
@@ -691,6 +693,22 @@ public class Serializable : Object
         var attribute = new AttributeInfo(name, valueType, defaultVariant, mode, enumNames, accessor: null, getter, setter);
         _ownedAttributes.Add(attribute);
         return new AttributeHandle(attribute);
+    }
+
+    protected static AttributeHandle RegisterAttribute(
+        ObjectReflection reflection,
+        string name,
+        Type valueType,
+        Func<Serializable, object?>? getter = null,
+        Action<Serializable, object?>? setter = null,
+        object? defaultValue = null,
+        AttributeMode mode = AttributeMode.Default,
+        IReadOnlyList<string>? enumNames = null)
+    {
+        using var defaultVariant = Variant.FromObject(defaultValue);
+        using var attribute = new AttributeInfo(
+            name, valueType, defaultVariant, mode, enumNames, accessor: null, getter, setter);
+        return reflection.AddAttribute(attribute);
     }
 
     private AttributeInfo? FindAttribute(string name)

@@ -5,14 +5,14 @@ public sealed class SoundListener : Component
 {
     public SoundListener()
     {
-        RegisterAttribute("Is Enabled", typeof(bool), self => ((SoundListener)self).Enabled,
-            (self, value) => ((SoundListener)self).SetEnabled(value is bool enabled && enabled), true);
     }
 
     /// <summary>Register object factory.</summary>
     public static void RegisterObject(Context context)
     {
-        context.AddFactoryReflection<SoundListener>(ObjectCategory.Category_Audio);
+        var reflection = context.AddFactoryReflection<SoundListener>(ObjectCategory.Category_Audio);
+        RegisterAttribute(reflection, "Is Enabled", typeof(bool), self => ((SoundListener)self).Enabled,
+            (self, value) => ((SoundListener)self).SetEnabled(value is bool enabled && enabled), true);
     }
 
 }
