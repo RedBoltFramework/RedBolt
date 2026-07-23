@@ -13,7 +13,7 @@
 - [x] `54_WindowSettingsDemo` — extensible native class/method order, explicit construction and base startup, screen-mode and scene-update event lifetimes, world-space box rotation, strong scene/camera ownership, renderer-retained viewport aliases, reverse deterministic teardown, POD fullscreen-mode values, `int` indices/sizes, native fullscreen/DPI/refresh-rate/MSAA Apply semantics, and Dear ImGui controls reconciled and runtime-verified
 - [ ] `03_Sprites` — skipped per user direction; it depends on the 2D submodule
 - [~] `06_SkeletalAnimation` — sample, `Mover3D`, animated models, controller playback, scene, lighting, camera, and Dear ImGui instructions are ported and runtime-verified; renderer debug-geometry submission remains unavailable
-- [~] `07_Billboards` — sample is ported and builds; runtime currently fails in the existing shadow-light processor sort and is deferred
+- [x] `07_Billboards` — scene population, grouped shadow casters, animated billboard sets, rotating shadow-casting spotlights, camera, debug geometry, and Dear ImGui instructions are ported and runtime-verified
 - [x] `08_Decals` — scene population, occluders, cursor raycast, decal creation and buffer upload, camera, debug geometry, and Dear ImGui instructions are ported and runtime-verified
 - [x] `20_HugeObjectCount` — 62,500-object scene, grouped and ungrouped modes, animation toggle, camera, and Dear ImGui instructions are ported and render successfully; initial population is intentionally expensive
 - [~] `30_LightAnimation` — animated point light, scene population, camera, and animated Dear ImGui text replacement are ported and runtime-verified; the built-in UI sprite animation still needs a Dear ImGui texture equivalent

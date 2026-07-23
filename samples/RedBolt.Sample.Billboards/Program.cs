@@ -115,14 +115,14 @@ sealed class BillboardsApplication : Application
         }
 
         // Create groups of mushrooms, which act as shadow casters
-        const uint numMushroomGroups = 25;
-        const uint numMushrooms = 25;
-        for (var i = 0u; i < numMushroomGroups; ++i)
+        const int numMushroomGroups = 25;
+        const int numMushrooms = 25;
+        for (var i = 0; i < numMushroomGroups; ++i)
         {
             // First create a scene node for the group. The individual mushrooms nodes will be created as children
             var groupNode = _scene.CreateChild("MushroomGroup");
             groupNode.SetPosition(new Vector3f(MathDefs.Random(190.0f) - 95.0f, 0.0f, MathDefs.Random(190.0f) - 95.0f));
-            for (var j = 0u; j < numMushrooms; ++j)
+            for (var j = 0; j < numMushrooms; ++j)
             {
                 var mushroomNode = groupNode.CreateChild("Mushroom");
                 mushroomNode.SetPosition(new Vector3f(MathDefs.Random(25.0f) - 12.5f, 0.0f, MathDefs.Random(25.0f) - 12.5f));
@@ -136,19 +136,19 @@ sealed class BillboardsApplication : Application
         }
 
         // Create billboard sets (floating smoke)
-        const uint numBillboardNodes = 25;
-        const uint numBillboards = 10;
-        for (var i = 0u; i < numBillboardNodes; ++i)
+        const int numBillboardNodes = 25;
+        const int numBillboards = 10;
+        for (var i = 0; i < numBillboardNodes; ++i)
         {
             var smokeNode = _scene.CreateChild("Smoke");
             smokeNode.SetPosition(new Vector3f(MathDefs.Random(200.0f) - 100.0f, MathDefs.Random(20.0f) + 10.0f, MathDefs.Random(200.0f) - 100.0f));
             var billboardObject = smokeNode.CreateComponent<BillboardSet>();
-            billboardObject.SetNumBillboards(numBillboards);
+            billboardObject.SetNumBillboards((uint)numBillboards);
             billboardObject.SetMaterial(cache.Get<Material>("Materials/LitSmoke.xml"));
             billboardObject.SetSorted(true);
-            for (var j = 0u; j < numBillboards; ++j)
+            for (var j = 0; j < numBillboards; ++j)
             {
-                ref var billboard = ref billboardObject.GetBillboard(j);
+                ref var billboard = ref billboardObject.GetBillboard((uint)j);
                 billboard.Position = new Vector3f(MathDefs.Random(12.0f) - 6.0f, MathDefs.Random(8.0f) - 4.0f, MathDefs.Random(12.0f) - 6.0f);
                 billboard.Size = new Vector2f(MathDefs.Random(2.0f) + 3.0f, MathDefs.Random(2.0f) + 3.0f);
                 billboard.Rotation = MathDefs.Random() * 360.0f;
@@ -160,14 +160,14 @@ sealed class BillboardsApplication : Application
         }
 
         // Create shadow casting spotlights
-        const uint numLights = 9;
-        for (var i = 0u; i < numLights; ++i)
+        const int numLights = 9;
+        for (var i = 0; i < numLights; ++i)
         {
             lightNode = _scene.CreateChild("SpotLight");
             light = lightNode.CreateComponent<Light>();
             const float angle = 0.0f;
             var position = new Vector3f((i % 3) * 60.0f - 60.0f, 45.0f, i / 3.0f * 60.0f - 60.0f);
-            var color = new Color(((i + 1) & 1u) * 0.5f + 0.5f, (((i + 1) >> 1) & 1u) * 0.5f + 0.5f, (((i + 1) >> 2) & 1u) * 0.5f + 0.5f);
+            var color = new Color(((i + 1) & 1) * 0.5f + 0.5f, (((i + 1) >> 1) & 1) * 0.5f + 0.5f, (((i + 1) >> 2) & 1) * 0.5f + 0.5f);
             lightNode.SetPosition(position);
             lightNode.SetDirection(new Vector3f(MathDefs.Sin(angle), -1.5f, MathDefs.Cos(angle)));
             light.SetLightType(LightType.Spot);
@@ -249,9 +249,10 @@ sealed class BillboardsApplication : Application
         for (var i = 0; i < _billboardNodes.Count; ++i)
         {
             var billboardObject = _billboardNodes[i].GetComponent<BillboardSet>()!;
-            for (var j = 0u; j < billboardObject.GetNumBillboards(); ++j)
+            var numBillboards = (int)billboardObject.GetNumBillboards();
+            for (var j = 0; j < numBillboards; ++j)
             {
-                ref var billboard = ref billboardObject.GetBillboard(j);
+                ref var billboard = ref billboardObject.GetBillboard((uint)j);
                 billboard.Rotation += billboardRotationSpeed * timeStep;
             }
             billboardObject.Commit();
