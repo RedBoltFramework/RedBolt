@@ -5,7 +5,15 @@ using RedBolt.Bindings.DearImGui;
 try { return new SkeletalAnimationApplication().Run(); }
 catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
 
-/// <summary>Skeletal animation example.</summary>
+/// <summary>
+/// Skeletal animation example.
+/// This sample demonstrates:
+/// - Populating a 3D scene with skeletally animated AnimatedModel components;
+/// - Moving the animated models and advancing their animation using a custom component
+/// - Enabling a cascaded shadow map on a directional light, which allows high-quality shadows
+/// over a large area (typically used in outdoor scenes for shadows cast by sunlight)
+/// - Displaying renderer debug geometry
+/// </summary>
 sealed class SkeletalAnimationApplication : Application
 {
     private Scene? _scene;
@@ -24,17 +32,29 @@ sealed class SkeletalAnimationApplication : Application
         parameters.WindowTitle = "RedBolt Skeletal Animation";
     }
 
+    /// <summary>Setup after engine initialization and before running the main loop.</summary>
     protected override void Start()
     {
-        Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+        // Execute base class startup
+
+        // Create the scene content
         CreateScene();
-        Renderer.SetViewport(0, new Viewport(_scene!, _cameraNode!.GetComponent<Camera>()!));
-        _postRenderSubscription = Context.SubscribeToEvent<CoreEvents.PostRenderUpdateEvent>((ref CoreEvents.PostRenderUpdateEvent _) => HandlePostRenderUpdate());
+
+        // Create the UI content
+        CreateInstructions();
+
+        // Setup the viewport for displaying the scene
+        SetupViewport();
+
+        // Hook up to the frame update and render post-update events
+        SubscribeToEvents();
+
+        // Set the mouse mode to use in the sample
         Input.SetMouseMode(MouseMode.Free);
         Input.SetMouseVisible(true);
     }
 
+    /// <summary>Construct the scene content.</summary>
     private void CreateScene()
     {
         var cache = Resources;
@@ -88,12 +108,37 @@ sealed class SkeletalAnimationApplication : Application
         _cameraNode.SetPosition(new Vector3f(0.0f, 5.0f, 0.0f));
     }
 
+    /// <summary>Construct an instruction text to the UI.</summary>
+    private void CreateInstructions()
+    {
+        Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
+        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+    }
+
+    /// <summary>Set up a viewport for displaying the scene.</summary>
+    private void SetupViewport()
+    {
+        Renderer.SetViewport(0, new Viewport(_scene!, _cameraNode!.GetComponent<Camera>()!));
+    }
+
+    /// <summary>Subscribe to application-wide logic update and post-render update events.</summary>
+    private void SubscribeToEvents()
+    {
+        _postRenderSubscription = Context.SubscribeToEvent<CoreEvents.PostRenderUpdateEvent>((ref CoreEvents.PostRenderUpdateEvent _) => HandlePostRenderUpdate());
+    }
+
+    /// <summary>Handle the logic update event.</summary>
     protected override void Update(float timeStep)
     {
+        // Do not move if the UI has a focused element (the console)
+        if (ImGui.GetIO().WantCaptureKeyboard)
+            return;
+
         if (Input.ExitRequested || Input.GetKeyPress(Key.Escape)) Exit();
         if (Input.GetKeyPress(Key.Space)) _drawDebug = !_drawDebug;
     }
 
+    /// <summary>Handle the post-render update event.</summary>
     private void HandlePostRenderUpdate()
     {
         // If draw debug mode is enabled, draw viewport debug geometry, which will show eg. drawable bounding boxes and skeleton
