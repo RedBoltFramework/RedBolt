@@ -93,11 +93,13 @@ public class BillboardSet : Drawable
     private Vector3f _previousOffset;
     /// <summary>Billboard indices for sorting (C++ stores pointers into billboards_).</summary>
     private readonly List<int> _sortedBillboards = [];
+    private readonly Comparison<int> _compareBillboards;
 
     /// <summary>Construct.</summary>
     public BillboardSet()
         : base(DrawableFlags.Geometry)
     {
+        _compareBillboards = CompareBillboards;
         RegisterAttribute("Is Enabled", typeof(bool), self => ((BillboardSet)self).Enabled,
             (self, value) => ((BillboardSet)self).SetEnabled(value is bool enabled && enabled), true);
 
@@ -839,8 +841,7 @@ public class BillboardSet : Drawable
 
         if (_sorted)
         {
-            _sortedBillboards.Sort((lhs, rhs) =>
-                _billboards[rhs].SortDistance.CompareTo(_billboards[lhs].SortDistance));
+            _sortedBillboards.Sort(_compareBillboards);
             var worldPos = Node.GetWorldPosition();
             // Store the "last sorted position" now
             _previousOffset = worldPos - frame.Camera!.Node!.GetWorldPosition();
@@ -862,6 +863,9 @@ public class BillboardSet : Drawable
         _vertexBuffer.Unmap();
         _vertexBuffer.GetRawBuffer()?.ClearDataLost();
     }
+
+    private int CompareBillboards(int lhs, int rhs) =>
+        _billboards[rhs].SortDistance.CompareTo(_billboards[lhs].SortDistance);
 
     /// <summary>Calculate billboard scale factors in fixed screen size mode.</summary>
     private void CalculateFixedScreenSize(FrameInfo frame)

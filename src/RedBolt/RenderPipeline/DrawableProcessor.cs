@@ -203,10 +203,16 @@ public class DrawableProcessor : Object
     private FloatRange[] _sceneZRangeTemp = [];
     private FloatRange _sceneZRange;
     private readonly List<SortedOccluder> _sortedOccluders = [];
+    private readonly Frustum _splitFrustum = new();
+    private readonly Frustum _lightSpaceFrustum = new();
 
     private readonly WorkQueueVector<Drawable> _geometries = new();
     private readonly WorkQueueVector<Drawable> _threadedGeometryUpdates = new();
     private readonly WorkQueueVector<Drawable> _nonThreadedGeometryUpdates = new();
+    private readonly Action<int, Drawable> _updateGeometryCallback;
+    private readonly Action<int, Drawable> _processVisibleDrawableCallback;
+    private readonly Action<int, Drawable> _processQueuedDrawableCallback;
+    private OcclusionBuffer[]? _occlusionBuffers;
 
     private readonly WorkQueueVector<Light> _lightsTemp = new();
     private readonly List<Light?> _lights = [];
@@ -215,6 +221,17 @@ public class DrawableProcessor : Object
     private readonly List<LightProcessor?> _lightProcessorsByShadowMapSize = [];
     private readonly List<LightProcessor?> _lightProcessorsByShadowMapTexture = [];
     private int _numShadowedLights;
+    private readonly Action<int, LightProcessor?> _updateLightProcessorCallback;
+    private LightProcessorCallback? _lightProcessorCallback;
+    private readonly Action<int, Drawable> _processForwardLightingCallback;
+    private readonly Action<int, Drawable> _finalizeForwardLightingCallback;
+    private Light? _forwardLight;
+    private LightType _forwardLightType;
+    private float _forwardLightIntensityPenalty;
+    private bool _forwardLightIsNegative;
+    private LightImportance _forwardLightImportance;
+    private int _forwardLightIndex;
+    private LightAccumulatorContext _forwardLightAccumulatorContext;
 
     private readonly WorkQueueVector<Drawable> _queuedDrawableUpdates = new();
 
@@ -223,6 +240,12 @@ public class DrawableProcessor : Object
         _renderPipeline = renderPipeline;
         _workQueue = GetSubsystem<WorkQueue>()!;
         _defaultMaterial = GetSubsystem<Renderer>()!.GetDefaultMaterial();
+        _updateGeometryCallback = UpdateGeometry;
+        _processVisibleDrawableCallback = ProcessVisibleDrawableTask;
+        _processQueuedDrawableCallback = ProcessQueuedDrawableTask;
+        _updateLightProcessorCallback = UpdateLightProcessor;
+        _processForwardLightingCallback = ProcessForwardLighting;
+        _finalizeForwardLightingCallback = FinalizeForwardLighting;
         _renderPipeline.CollectStatistics += OnCollectStatistics;
     }
 
@@ -274,6 +297,7 @@ public class DrawableProcessor : Object
     public IReadOnlyList<SortedOccluder> Occluders => _sortedOccluders;
 
     public IEnumerable<Drawable> Geometries => _geometries;
+    internal IReadOnlyList<List<Drawable>> GeometryBuckets => _geometries.GetUnderlyingCollection();
 
     public FloatRange SceneZRange => _sceneZRange;
 
@@ -346,27 +370,19 @@ public class DrawableProcessor : Object
 
     public void ProcessVisibleDrawables(IReadOnlyList<Drawable> drawables, OcclusionBuffer[]? occlusionBuffers)
     {
-        WorkQueue.ForEachParallel(_workQueue, drawables, (_, drawable) =>
-        {
-            // do occlusion test for occludees if possible
-            if (occlusionBuffers is { Length: > 0 } && drawable.IsOccludee())
-            {
-                // check for visible
-                var anyPass = false;
-                foreach (var o in occlusionBuffers)
-                    anyPass |= o.IsVisible(drawable.GetWorldBoundingBox());
-
-                if (!anyPass)
-                    return;
-            }
-
-            ProcessVisibleDrawable(drawable);
-        });
+        _occlusionBuffers = occlusionBuffers;
+        WorkQueue.ForEachParallel(_workQueue, drawables, _processVisibleDrawableCallback);
+        _occlusionBuffers = null;
 
         // Sort lights by component ID for stability
         _lights.Clear();
-        foreach (var light in _lightsTemp)
-            _lights.Add(light);
+        var lightBuckets = _lightsTemp.GetUnderlyingCollection();
+        for (var outerIndex = 0; outerIndex < lightBuckets.Count; ++outerIndex)
+        {
+            var lightBucket = lightBuckets[outerIndex];
+            for (var innerIndex = 0; innerIndex < lightBucket.Count; ++innerIndex)
+                _lights.Add(lightBucket[innerIndex]);
+        }
         _lights.Sort(static (lhs, rhs) =>
         {
             var lhsNegative = lhs!.IsNegative();
@@ -399,10 +415,9 @@ public class DrawableProcessor : Object
         foreach (var lightProcessor in _lightProcessors)
             lightProcessor!.BeginUpdate(this, callback);
 
-        WorkQueue.ForEachParallel(_workQueue, _lightProcessors, (_, lightProcessor) =>
-        {
-            lightProcessor!.Update(this, callback);
-        });
+        _lightProcessorCallback = callback;
+        WorkQueue.ForEachParallel(_workQueue, _lightProcessors, _updateLightProcessorCallback);
+        _lightProcessorCallback = null;
 
         SortLightProcessorsByShadowMapSize();
 
@@ -417,6 +432,11 @@ public class DrawableProcessor : Object
         SortLightProcessorsByShadowMapTexture();
 
         ProcessShadowCasters();
+    }
+
+    private void UpdateLightProcessor(int index, LightProcessor? lightProcessor)
+    {
+        lightProcessor!.Update(this, _lightProcessorCallback!);
     }
 
     public void ProcessForwardLighting()
@@ -439,17 +459,41 @@ public class DrawableProcessor : Object
     public void UpdateGeometries()
     {
         // Update in worker threads
-        WorkQueue.ForEachParallel(_workQueue, _threadedGeometryUpdates, (_, drawable) =>
-        {
-            if (drawable.GetUpdateGeometryType() == UpdateGeometryType.MainThread)
-                _nonThreadedGeometryUpdates.Insert(drawable);
-            else
-                drawable.UpdateGeometry(_frameInfo);
-        });
+        WorkQueue.ForEachParallel(_workQueue, _threadedGeometryUpdates, _updateGeometryCallback);
 
         // Update in main thread
-        foreach (var drawable in _nonThreadedGeometryUpdates)
+        var updateBuckets = _nonThreadedGeometryUpdates.GetUnderlyingCollection();
+        for (var outerIndex = 0; outerIndex < updateBuckets.Count; ++outerIndex)
+        {
+            var updateBucket = updateBuckets[outerIndex];
+            for (var innerIndex = 0; innerIndex < updateBucket.Count; ++innerIndex)
+                updateBucket[innerIndex].UpdateGeometry(_frameInfo);
+        }
+    }
+
+    private void UpdateGeometry(int index, Drawable drawable)
+    {
+        if (drawable.GetUpdateGeometryType() == UpdateGeometryType.MainThread)
+            _nonThreadedGeometryUpdates.Insert(drawable);
+        else
             drawable.UpdateGeometry(_frameInfo);
+    }
+
+    private void ProcessVisibleDrawableTask(int index, Drawable drawable)
+    {
+        // do occlusion test for occludees if possible
+        if (_occlusionBuffers is { Length: > 0 } && drawable.IsOccludee())
+        {
+            // check for visible
+            var anyPass = false;
+            for (var i = 0; i < _occlusionBuffers.Length; ++i)
+                anyPass |= _occlusionBuffers[i].IsVisible(drawable.GetWorldBoundingBox());
+
+            if (!anyPass)
+                return;
+        }
+
+        ProcessVisibleDrawable(drawable);
     }
 
     public void ProcessForwardLightingForLight(int lightIndex, IReadOnlyList<Drawable> litGeometries)
@@ -469,45 +513,56 @@ public class DrawableProcessor : Object
         var isNegative = light.IsNegative();
         var lightImportance = hasShadow ? LightImportance.Important : light.GetLightImportance();
 
-        var ctx = new LightAccumulatorContext
+        _forwardLightAccumulatorContext = new LightAccumulatorContext
         {
             MaxVertexLights = checked((int)_settings.MaxVertexLights),
             MaxPixelLights = checked((int)_settings.MaxPixelLights),
             Lights = _lightDataForAccumulator
         };
+        _forwardLight = light;
+        _forwardLightType = lightType;
+        _forwardLightIntensityPenalty = lightIntensityPenalty;
+        _forwardLightIsNegative = isNegative;
+        _forwardLightImportance = lightImportance;
+        _forwardLightIndex = lightIndex;
+        WorkQueue.ForEachParallel(_workQueue, litGeometries, _processForwardLightingCallback);
+        _forwardLight = null;
+    }
 
-        WorkQueue.ForEachParallel(_workQueue, litGeometries, (_, geometry) =>
+    private void ProcessForwardLighting(int index, Drawable geometry)
+    {
+        var drawableIndex = checked((int)geometry.GetDrawableIndex());
+
+        // Directional light doesn't filter out e.g. deferred lit geometries for shadow focusing
+        if (_forwardLightType == LightType.Directional)
         {
-            var drawableIndex = checked((int)geometry.GetDrawableIndex());
+            var isForwardLit = (GetGeometryRenderFlags(drawableIndex) & GeometryRenderFlag.ForwardLit) != 0;
+            if (!isForwardLit)
+                return;
+        }
 
-            // Directional light doesn't filter out e.g. deferred lit geometries for shadow focusing
-            if (lightType == LightType.Directional)
-            {
-                var isForwardLit = (GetGeometryRenderFlags(drawableIndex) & GeometryRenderFlag.ForwardLit) != 0;
-                if (!isForwardLit)
-                    return;
-            }
-
-            var distance = Math.Max(light.GetDistanceTo(geometry), MathDefs.LargeEpsilon);
-            var penalty = GetDrawableLightPenalty(distance * lightIntensityPenalty,
-                isNegative, lightImportance, lightType);
-            ref var lighting = ref _geometryLighting[checked((int)drawableIndex)];
-            lighting.AccumulateLight(ctx, geometry, lightImportance, lightIndex, penalty);
-        });
+        var distance = Math.Max(_forwardLight!.GetDistanceTo(geometry), MathDefs.LargeEpsilon);
+        var penalty = GetDrawableLightPenalty(distance * _forwardLightIntensityPenalty,
+            _forwardLightIsNegative, _forwardLightImportance, _forwardLightType);
+        ref var lighting = ref _geometryLighting[drawableIndex];
+        lighting.AccumulateLight(_forwardLightAccumulatorContext, geometry,
+            _forwardLightImportance, _forwardLightIndex, penalty);
     }
 
     public void FinalizeForwardLighting()
     {
-        WorkQueue.ForEachParallel(_workQueue, _geometries, (_, drawable) =>
+        WorkQueue.ForEachParallel(_workQueue, _geometries, _finalizeForwardLightingCallback);
+    }
+
+    private void FinalizeForwardLighting(int index, Drawable drawable)
+    {
+        var drawableIndex = checked((int)drawable.GetDrawableIndex());
+        var flags = GetGeometryRenderFlags(drawableIndex);
+        if ((flags & GeometryRenderFlag.ForwardLit) != 0)
         {
-            var drawableIndex = checked((int)drawable.GetDrawableIndex());
-            var flags = GetGeometryRenderFlags(drawableIndex);
-            if ((flags & GeometryRenderFlag.ForwardLit) != 0)
-            {
-                ref var lightAccumulator = ref _geometryLighting[checked((int)drawableIndex)];
-                lightAccumulator.Cook();
-            }
-        });
+            ref var lightAccumulator = ref _geometryLighting[drawableIndex];
+            lightAccumulator.Cook();
+        }
     }
 
     protected void SortLightProcessorsByShadowMapSize()
@@ -776,22 +831,24 @@ public class DrawableProcessor : Object
 
         var cullCamera = _frameInfo.Camera!;
 
-        var shadowCameraFrustum = new Frustum(shadowCamera.GetFrustum());
+        var shadowCameraFrustum = shadowCamera.GetFrustum();
         var worldToLightSpace = shadowCamera.GetView();
         var lightType = light.GetLightType();
 
         // Convert frustum (or sub-frustum) to shadow camera space
         var splitZRange = lightType != LightType.Directional ? _sceneZRange : _sceneZRange & frustumSubRange;
-        var frustum = cullCamera.GetSplitFrustum(splitZRange.First, splitZRange.Second);
-        var lightSpaceFrustum = frustum.Transformed(worldToLightSpace);
-        var lightSpaceFrustumBoundingBox = new BoundingBox(lightSpaceFrustum);
+        cullCamera.GetSplitFrustum(splitZRange.First, splitZRange.Second, _splitFrustum);
+        _lightSpaceFrustum.CopyFrom(_splitFrustum);
+        _lightSpaceFrustum.Transform(worldToLightSpace);
+        var lightSpaceFrustumBoundingBox = new BoundingBox(_lightSpaceFrustum);
 
         // Check for degenerate split frustum: in that case there is no need to get shadow casters
-        if (lightSpaceFrustum.Vertices[0] == lightSpaceFrustum.Vertices[4])
+        if (_lightSpaceFrustum.Vertices[0] == _lightSpaceFrustum.Vertices[4])
             return;
 
-        foreach (var drawable in candidates)
+        for (var i = 0; i < candidates.Count; ++i)
         {
+            var drawable = candidates[i];
             // For point light, check that this drawable is inside the split shadow camera frustum
             if (lightType == LightType.Point
                 && shadowCameraFrustum.IsInsideFast(drawable.GetWorldBoundingBox()) == Intersection.Outside)
@@ -802,7 +859,7 @@ public class DrawableProcessor : Object
             var isDrawableVisible = (GetGeometryRenderFlags(checked((int)drawable.GetDrawableIndex()))
                 & GeometryRenderFlag.VisibleInCullCamera) != 0;
             if (isDrawableVisible
-                || IsShadowCasterVisible(lightSpaceBoundingBox, shadowCamera, lightSpaceFrustum, lightSpaceFrustumBoundingBox))
+                || IsShadowCasterVisible(lightSpaceBoundingBox, shadowCamera, _lightSpaceFrustum, lightSpaceFrustumBoundingBox))
             {
                 QueueDrawableUpdate(drawable);
                 shadowCasters.Add(drawable);
@@ -820,9 +877,14 @@ public class DrawableProcessor : Object
 
     public void ProcessShadowCasters()
     {
-        WorkQueue.ForEachParallel(_workQueue, _queuedDrawableUpdates, (_, drawable) => ProcessQueuedDrawable(drawable));
+        WorkQueue.ForEachParallel(_workQueue, _queuedDrawableUpdates, _processQueuedDrawableCallback);
 
         _queuedDrawableUpdates.Clear();
+    }
+
+    private void ProcessQueuedDrawableTask(int index, Drawable drawable)
+    {
+        ProcessQueuedDrawable(drawable);
     }
 
     protected void ProcessQueuedDrawable(Drawable drawable)
@@ -964,8 +1026,9 @@ public class DrawableProcessor : Object
         var halfViewSize = cullCamera.GetHalfViewSize();
         var invOrthoSize = 1.0f / cullCamera.GetOrthoSize();
 
-        foreach (var drawable in occluders)
+        for (var i = 0; i < occluders.Count; ++i)
         {
+            var drawable = occluders[i];
             drawable.UpdateBatches(_frameInfo);
 
             // Skip if too far

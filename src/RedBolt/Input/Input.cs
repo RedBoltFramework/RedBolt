@@ -564,7 +564,6 @@ public class Input : Object
                 HandleWindowEvent(_nativeEvent);
             }
         }
-
         HandleWrappedMouse();
 
         if (_suppressNextMouseMove && MouseMove != Vector2i.Zero)

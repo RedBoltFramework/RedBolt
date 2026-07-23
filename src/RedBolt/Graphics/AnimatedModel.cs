@@ -1069,8 +1069,9 @@ public class AnimatedModel : StaticModel
         // AnimationStateSource is a weak pointer which may or may not be an issue
         if (_animationStateSource is not null && _animationStateSource.TryGetTarget(out var animationStateSource))
         {
-            foreach (var state in animationStateSource.GetAnimationStates())
-                state.CalculateModelTracks(_skeletonData);
+            var animationStates = animationStateSource.GetAnimationStates();
+            for (var i = 0; i < animationStates.Count; ++i)
+                animationStates[i].CalculateModelTracks(_skeletonData);
         }
 
         _animationDirty = false;

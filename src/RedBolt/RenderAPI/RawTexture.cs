@@ -54,6 +54,8 @@ public class RawTexture : DeviceObject
     public override void Dispose()
     {
         DestroyGPU();
+        _resolveAttributes?.Dispose();
+        _resolveAttributes = null;
         base.Dispose();
     }
 
@@ -350,7 +352,7 @@ public class RawTexture : DeviceObject
         if (_handles.ResolvedTexture is not null)
         {
             var context = _renderDevice!.GetImmediateContext()!;
-            using var attributes = new ResolveTextureSubresourceAttribs
+            var attributes = _resolveAttributes ??= new ResolveTextureSubresourceAttribs
             {
                 SrcTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
                 DstTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition
@@ -1225,6 +1227,7 @@ public class RawTexture : DeviceObject
     private SamplerStateDesc _samplerStateDesc = new();
 
     private RawTextureHandles _handles = new();
+    private ResolveTextureSubresourceAttribs? _resolveAttributes;
 
     private bool _levelsDirty;
     private bool _resolveDirty;

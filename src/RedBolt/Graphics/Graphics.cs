@@ -169,6 +169,8 @@ layout(std140) uniform Material
     private global::RedBolt.Bindings.Diligent.TextureFormat _currentDepthTargetFormat;
     private global::RedBolt.Bindings.Diligent.TextureFormat _swapChainColorFormat;
     private global::RedBolt.Bindings.Diligent.TextureFormat _swapChainDepthFormat;
+    private global::RedBolt.Bindings.Diligent.SurfaceTransform _swapChainPreTransform =
+        global::RedBolt.Bindings.Diligent.SurfaceTransform.SurfaceTransformOptimal;
     private PipelineStateOutputDesc _currentOutputDesc = new();
     private IntRect _currentViewport;
     private Vector2i _currentRenderTargetSize;
@@ -839,6 +841,8 @@ layout(std140) uniform Material
 
         _configuredMultiSample = multiSample;
         _swapChain.Resize(swapChainDesc.Width, swapChainDesc.Height, swapChainDesc.PreTransform);
+        using var resolvedSwapChainDesc = _swapChain.GetDesc();
+        _swapChainPreTransform = resolvedSwapChainDesc.PreTransform;
         _renderTargetView = _swapChain.GetCurrentBackBufferRTV();
         _depthStencilView = _swapChain.GetDepthBufferDSV();
         _swapChainColorFormat = GetTextureViewFormat(_renderTargetView);
@@ -1232,6 +1236,8 @@ layout(std140) uniform Material
             else
                 throw new InvalidOperationException("Unsupported render backend.");
 
+            using (var swapChainDescription = _swapChain.GetDesc())
+                _swapChainPreTransform = swapChainDescription.PreTransform;
             _renderTargetView = _swapChain.GetCurrentBackBufferRTV();
             _depthStencilView = _swapChain.GetDepthBufferDSV();
             if (_renderTargetView.IsNull || _depthStencilView.IsNull)
@@ -1802,6 +1808,7 @@ layout(std140) uniform Material
         using var swapChainDesc = _swapChain.GetDesc();
         Width = (int)swapChainDesc.Width;
         Height = (int)swapChainDesc.Height;
+        _swapChainPreTransform = swapChainDesc.PreTransform;
         _renderTargetView = _swapChain.GetCurrentBackBufferRTV();
         _depthStencilView = _swapChain.GetDepthBufferDSV();
         if (_renderTargetView.IsNull || _depthStencilView.IsNull)
@@ -3661,6 +3668,11 @@ layout(std140) uniform Material
 
         using var desc = _swapChain.GetDesc();
         return desc.DepthBufferFormat;
+    }
+
+    public global::RedBolt.Bindings.Diligent.SurfaceTransform GetSwapChainPreTransform()
+    {
+        return _swapChainPreTransform;
     }
 
     private Vector2i ResolveRenderTargetSize(ReadOnlySpan<RenderTargetView> colorTargets, RenderTargetView? depthStencilTarget, IntRect viewportRect)

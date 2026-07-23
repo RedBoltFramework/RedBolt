@@ -42,6 +42,108 @@ public sealed class WorkItem
 
 public sealed class WorkQueue : Object
 {
+    private sealed class ParallelForState
+    {
+        public ParallelForState()
+        {
+            Task = Run;
+        }
+
+        public readonly TaskFunctionDelegate Task;
+        public int Offset;
+        public int Bucket;
+        public int Size;
+        public Action<int, int>? Callback;
+
+        private void Run(int threadIndex, WorkQueue queue)
+        {
+            while (true)
+            {
+                var beginIndex = Interlocked.Add(ref Offset, Bucket);
+                if (beginIndex >= Size)
+                    break;
+
+                var endIndex = Math.Min(beginIndex + Bucket, Size);
+                Callback!(beginIndex, endIndex);
+            }
+        }
+    }
+
+    private static class ParallelForStateCache
+    {
+        [ThreadStatic]
+        public static List<ParallelForState>? States;
+
+        [ThreadStatic]
+        public static int Depth;
+    }
+
+    private sealed class ReadOnlyListParallelForState<T>
+    {
+        public ReadOnlyListParallelForState()
+        {
+            RangeCallback = Run;
+        }
+
+        public readonly Action<int, int> RangeCallback;
+        public IReadOnlyList<T>? Collection;
+        public Action<int, T>? Callback;
+
+        private void Run(int beginIndex, int endIndex)
+        {
+            for (var index = beginIndex; index < endIndex; ++index)
+                Callback!(index, Collection![index]);
+        }
+    }
+
+    private static class ReadOnlyListParallelForStateCache<T>
+    {
+        [ThreadStatic]
+        public static List<ReadOnlyListParallelForState<T>>? States;
+
+        [ThreadStatic]
+        public static int Depth;
+    }
+
+    private sealed class MultiVectorParallelForState<T>
+    {
+        public MultiVectorParallelForState()
+        {
+            RangeCallback = Run;
+        }
+
+        public readonly Action<int, int> RangeCallback;
+        public List<List<T>>? Collection;
+        public Action<int, T>? Callback;
+
+        private void Run(int beginIndex, int endIndex)
+        {
+            for (var index = beginIndex; index < endIndex; ++index)
+            {
+                var innerIndex = index;
+                for (var outerIndex = 0; outerIndex < Collection!.Count; ++outerIndex)
+                {
+                    var innerCollection = Collection[outerIndex];
+                    if (innerIndex < innerCollection.Count)
+                    {
+                        Callback!(index, innerCollection[innerIndex]);
+                        break;
+                    }
+                    innerIndex -= innerCollection.Count;
+                }
+            }
+        }
+    }
+
+    private static class MultiVectorParallelForStateCache<T>
+    {
+        [ThreadStatic]
+        public static List<MultiVectorParallelForState<T>>? States;
+
+        [ThreadStatic]
+        public static int Depth;
+    }
+
     private static int _threadIndexCount = 1;
     private static WorkQueue? _workQueue;
 
@@ -135,10 +237,7 @@ public sealed class WorkQueue : Object
     {
         if (!IsProcessingThread())
         {
-            var capturedTask = task;
-            var capturedPriority = priority;
-            TaskFunctionDelegate wrapped = (_, queue) => queue.PostTask(capturedTask, capturedPriority);
-            PostTaskForMainThread(wrapped, priority);
+            PostTaskFromExternalThread(task, priority);
             return;
         }
 
@@ -152,18 +251,7 @@ public sealed class WorkQueue : Object
             }
             else
             {
-                Interlocked.Increment(ref _pendingTaskCount);
-                ThreadPool.UnsafeQueueUserWorkItem(_ =>
-                {
-                    try
-                    {
-                        task(GetThreadIndex(), this);
-                    }
-                    finally
-                    {
-                        Interlocked.Decrement(ref _pendingTaskCount);
-                    }
-                }, null);
+                PostBackgroundTask(task);
             }
             return;
         }
@@ -172,6 +260,30 @@ public sealed class WorkQueue : Object
             task(0, this);
         else
             _fallbackTaskQueue.Add((priority, task));
+    }
+
+    private void PostTaskFromExternalThread(TaskFunctionDelegate task, TaskPriority priority)
+    {
+        var capturedTask = task;
+        var capturedPriority = priority;
+        TaskFunctionDelegate wrapped = (_, queue) => queue.PostTask(capturedTask, capturedPriority);
+        PostTaskForMainThread(wrapped, priority);
+    }
+
+    private void PostBackgroundTask(TaskFunctionDelegate task)
+    {
+        Interlocked.Increment(ref _pendingTaskCount);
+        ThreadPool.UnsafeQueueUserWorkItem(_ =>
+        {
+            try
+            {
+                task(GetThreadIndex(), this);
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _pendingTaskCount);
+            }
+        }, null);
     }
 
     public void PostTaskForThread(Action<int> task, TaskPriority priority, int threadIndex)
@@ -271,10 +383,10 @@ public sealed class WorkQueue : Object
             var pending = _pendingImmediateTasks[threadIndex];
             if (pending.Count > 0)
             {
-                var tasksToRun = pending.ToArray();
+                var taskCount = pending.Count;
+                for (var i = 0; i < taskCount; ++i)
+                    pending[i](threadIndex, this);
                 pending.Clear();
-                foreach (var task in tasksToRun)
-                    task(threadIndex, this);
             }
         }
     }
@@ -361,24 +473,27 @@ public sealed class WorkQueue : Object
             return;
         }
 
-        var offset = -bucket;
-        var maxThreads = Math.Max(1, workQueue.GetNumProcessingThreads());
-        for (var i = 0; i < maxThreads; ++i)
+        var states = ParallelForStateCache.States ??= [];
+        var stateIndex = ParallelForStateCache.Depth++;
+        if (stateIndex == states.Count)
+            states.Add(new ParallelForState());
+        var state = states[stateIndex];
+        state.Offset = -bucket;
+        state.Bucket = bucket;
+        state.Size = size;
+        state.Callback = callback;
+        try
         {
-            workQueue.PostTask((_, _) =>
-            {
-                while (true)
-                {
-                    var beginIndex = Interlocked.Add(ref offset, bucket);
-                    if (beginIndex >= size)
-                        break;
-
-                    var endIndex = Math.Min(beginIndex + bucket, size);
-                    callback(beginIndex, endIndex);
-                }
-            }, TaskPriority.Immediate);
+            var maxThreads = Math.Max(1, workQueue.GetNumProcessingThreads());
+            for (var i = 0; i < maxThreads; ++i)
+                workQueue.PostTask(state.Task, TaskPriority.Immediate);
+            workQueue.CompleteImmediateForThisThread();
         }
-        workQueue.CompleteImmediateForThisThread();
+        finally
+        {
+            state.Callback = null;
+            --ParallelForStateCache.Depth;
+        }
     }
 
     public static void ForEachParallel<T>(WorkQueue workQueue, int bucket, IReadOnlyList<T> collection, Action<int, T> callback)
@@ -386,12 +501,23 @@ public sealed class WorkQueue : Object
         ArgumentNullException.ThrowIfNull(collection);
         ArgumentNullException.ThrowIfNull(callback);
 
-        var collectionSize = collection.Count;
-        ForEachParallel(workQueue, bucket, collectionSize, (beginIndex, endIndex) =>
+        var states = ReadOnlyListParallelForStateCache<T>.States ??= [];
+        var stateIndex = ReadOnlyListParallelForStateCache<T>.Depth++;
+        if (stateIndex == states.Count)
+            states.Add(new ReadOnlyListParallelForState<T>());
+        var state = states[stateIndex];
+        state.Collection = collection;
+        state.Callback = callback;
+        try
         {
-            for (var index = beginIndex; index < endIndex; ++index)
-                callback(index, collection[index]);
-        });
+            ForEachParallel(workQueue, bucket, collection.Count, state.RangeCallback);
+        }
+        finally
+        {
+            state.Collection = null;
+            state.Callback = null;
+            --ReadOnlyListParallelForStateCache<T>.Depth;
+        }
     }
 
     public static void ForEachParallel<T>(WorkQueue workQueue, IReadOnlyList<T> collection, Action<int, T> callback)
@@ -404,23 +530,23 @@ public sealed class WorkQueue : Object
         ArgumentNullException.ThrowIfNull(collection);
         ArgumentNullException.ThrowIfNull(callback);
 
-        var outerCollection = collection.GetUnderlyingCollection();
-        ForEachParallel(workQueue, bucket, collection.Size(), (beginIndex, endIndex) =>
+        var states = MultiVectorParallelForStateCache<T>.States ??= [];
+        var stateIndex = MultiVectorParallelForStateCache<T>.Depth++;
+        if (stateIndex == states.Count)
+            states.Add(new MultiVectorParallelForState<T>());
+        var state = states[stateIndex];
+        state.Collection = collection.GetUnderlyingCollection();
+        state.Callback = callback;
+        try
         {
-            for (var index = beginIndex; index < endIndex; ++index)
-            {
-                var innerIndex = index;
-                foreach (var innerCollection in outerCollection)
-                {
-                    if (innerIndex < innerCollection.Count)
-                    {
-                        callback(index, innerCollection[innerIndex]);
-                        break;
-                    }
-                    innerIndex -= innerCollection.Count;
-                }
-            }
-        });
+            ForEachParallel(workQueue, bucket, collection.Size(), state.RangeCallback);
+        }
+        finally
+        {
+            state.Collection = null;
+            state.Callback = null;
+            --MultiVectorParallelForStateCache<T>.Depth;
+        }
     }
 
     public static void ForEachParallel<T>(WorkQueue workQueue, MultiVector<T> collection, Action<int, T> callback)

@@ -94,5 +94,5 @@ sealed class PointerAdapterApplication : Application
         _mouseMoveSubscription?.Dispose(); _mouseDownSubscription?.Dispose(); _mouseUpSubscription?.Dispose();
         _dearImGuiSubscription?.Dispose(); _pointerAdapter?.Dispose();
     }
-    private static void DrawInstructions() { if (ImGui.Begin("Pointer Adapter\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings)) { ImGui.TextUnformatted("Move the pointer with mouse, touch, keyboard, or joystick\0"u8); ImGui.TextUnformatted("Press with mouse, touch, Enter, or joystick button\0"u8); } ImGui.End(); }
+    private static void DrawInstructions() { var windowOpen = true; if (ImGui.Begin("Pointer Adapter\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings)) { ImGui.TextUnformatted("Move the pointer with mouse, touch, keyboard, or joystick\0"u8); ImGui.TextUnformatted("Press with mouse, touch, Enter, or joystick button\0"u8); } ImGui.End(); }
 }

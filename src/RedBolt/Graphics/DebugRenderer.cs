@@ -77,8 +77,11 @@ public class DebugRenderer : Component
         _view = camera.GetView();
         _projection = camera.GetProjection();
         _gpuProjection = camera.GetGPUProjection();
-        _frustum = (Frustum)camera.GetFrustum().Clone();
-        _camera = new WeakReference<Camera>(camera);
+        _frustum.CopyFrom(camera.GetFrustum());
+        if (_camera is null)
+            _camera = new WeakReference<Camera>(camera);
+        else
+            _camera.SetTarget(camera);
     }
 
     /// <summary>
@@ -614,7 +617,7 @@ public class DebugRenderer : Component
         if (renderDevice is null || renderContext is null)
             return;
 
-        using var scope = new RenderScope(renderContext, "DebugRenderer::Render");
+        using var scope = RenderScope.Acquire(renderContext, "DebugRenderer::Render");
 
         var numVertices = checked((uint)((_lines.Count + _noDepthLines.Count) * 2
             + (_triangles.Count + _noDepthTriangles.Count) * 3));

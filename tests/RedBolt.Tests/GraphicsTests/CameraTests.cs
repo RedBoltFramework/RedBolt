@@ -6,7 +6,7 @@ namespace RedBolt.Tests;
 public sealed class CameraTests
 {
     [Fact]
-    public void Borrowed_dependencies_are_stored_as_weak_references()
+    public void Borrowed_dependencies_match_cpp_pointer_semantics()
     {
         var camera = new Camera();
         var zone = new Zone();
@@ -14,13 +14,11 @@ public sealed class CameraTests
         camera.SetZone(zone);
 
         var graphicsReference = GetPrivateField<WeakReference<Graphics>?>(camera, "_graphics");
-        var zoneReference = GetPrivateField<WeakReference<Zone>?>(camera, "_zone");
+        var storedZone = GetPrivateField<Zone?>(camera, "_zone");
         Assert.NotNull(graphicsReference);
         Assert.True(graphicsReference.TryGetTarget(out var graphics));
         Assert.Same(Context.Instance.GetSubsystem<Graphics>(), graphics);
-        Assert.NotNull(zoneReference);
-        Assert.True(zoneReference.TryGetTarget(out var resolvedZone));
-        Assert.Same(zone, resolvedZone);
+        Assert.Same(zone, storedZone);
         Assert.Same(zone, camera.GetZone());
 
         camera.SetZone(null);

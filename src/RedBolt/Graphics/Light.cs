@@ -123,6 +123,19 @@ public struct FocusParameters
 /// <summary>Light component.</summary>
 public sealed class Light : Drawable
 {
+    private sealed class ColorAttributeAccessor : AttributeAccessor
+    {
+        public override void Get(Serializable ptr, ref Variant dest)
+        {
+            dest = new Variant(((Light)ptr).GetColor());
+        }
+
+        public override void Set(Serializable ptr, Variant src)
+        {
+            ((Light)ptr).SetColor(src.GetColor());
+        }
+    }
+
     public const float ShadowMinQuantize = 0.1f;
     public const float ShadowMinView = 1.0f;
     public const int MaxLightSplits = 6;
@@ -152,6 +165,7 @@ public sealed class Light : Drawable
     private Texture? _rampTexture;
     private Texture? _shapeTexture;
     private Matrix3x4 _volumeTransform = Matrix3x4.Identity;
+    private readonly Frustum _worldBoundingFrustum = new();
 
     public Light()
         : base(DrawableFlags.Light)
@@ -164,8 +178,7 @@ public sealed class Light : Drawable
             (self, value) => ((Light)self).SetLightImportance((LightImportance)value!), DefaultLightImportance);
         RegisterAttribute("Light Mode", typeof(LightMode), self => ((Light)self).GetLightMode(),
             (self, value) => ((Light)self).SetLightMode((LightMode)value!), LightMode.Realtime);
-        RegisterAttribute("Color", typeof(Color), self => ((Light)self).GetColor(),
-            (self, value) => ((Light)self).SetColor((Color)value!), Color.White);
+        RegisterAttribute("Color", typeof(Color), new ColorAttributeAccessor(), Color.White);
         RegisterAttribute("Specular Intensity", typeof(float), self => ((Light)self).GetSpecularIntensity(),
             (self, value) => ((Light)self).SetSpecularIntensity((float)value!), DefaultSpecularIntensity);
         RegisterAttribute("Brightness Multiplier", typeof(float), self => ((Light)self).GetBrightness(),
@@ -636,23 +649,33 @@ public sealed class Light : Drawable
     /// <summary>Return spotlight frustum.</summary>
     public Frustum GetFrustum()
     {
+        var frustum = new Frustum();
+        GetFrustum(frustum);
+        return frustum;
+    }
+
+    internal void GetFrustum(Frustum frustum)
+    {
         var transform = Node is not null
             ? new Matrix3x4(Node.WorldPosition, Node.WorldRotation, 1.0f)
             : Matrix3x4.Identity;
-        var frustum = new Frustum();
         frustum.Define(_fov, _aspectRatio, 1.0f, MathDefs.MinNearClip, _range, transform);
-        return frustum;
     }
 
     /// <summary>Return spotlight frustum in the specified view space.</summary>
     public Frustum GetViewSpaceFrustum(Matrix3x4 view)
     {
+        var frustum = new Frustum();
+        GetViewSpaceFrustum(view, frustum);
+        return frustum;
+    }
+
+    internal void GetViewSpaceFrustum(Matrix3x4 view, Frustum frustum)
+    {
         var transform = Node is not null
             ? new Matrix3x4(Node.WorldPosition, Node.WorldRotation, 1.0f)
             : Matrix3x4.Identity;
-        var frustum = new Frustum();
         frustum.Define(_fov, _aspectRatio, 1.0f, MathDefs.MinNearClip, _range, view * transform);
-        return frustum;
     }
 
     public Matrix3x4 GetVolumeTransform(Camera? camera)
@@ -890,7 +913,8 @@ public sealed class Light : Drawable
                 break;
 
             case LightType.Spot:
-                SetWorldBoundingBox(new BoundingBox(GetFrustum().Vertices));
+                GetFrustum(_worldBoundingFrustum);
+                SetWorldBoundingBox(new BoundingBox(_worldBoundingFrustum.Vertices));
                 break;
 
             case LightType.Point:

@@ -20,6 +20,7 @@ sealed class HugeObjectCountApplication : Application
     private Scene? _scene;
     private Node? _cameraNode;
     private ContextEventSubscription? _dearImGuiSubscription;
+    private CString _fpsText = "FPS: 0";
     /// <summary>Box scene nodes.</summary>
     private readonly List<Node> _boxNodes = [];
     /// <summary>Animation flag.</summary>
@@ -154,9 +155,13 @@ sealed class HugeObjectCountApplication : Application
 
     private void DrawInstructions()
     {
-        if (ImGui.Begin("Huge Object Count\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        var windowOpen = true;
+        if (ImGui.Begin("Huge Object Count\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
+            var time = GetSubsystem<Time>()!;
+            _fpsText.FormatInPlace($"FPS: {time.GetFramesPerSecond():F1}\0");
             ImGui.TextUnformatted("Use WASD keys and mouse/touch to move\nSpace to toggle animation\nG to toggle object group optimization\0"u8);
+            ImGui.TextUnformatted(_fpsText.Bytes);
             if (ImGui.Button(_animate ? "Animation: On\0"u8 : "Animation: Off\0"u8)) _animate = !_animate;
             if (ImGui.Button(_useGroups ? "Groups: On\0"u8 : "Groups: Off\0"u8)) { _useGroups = !_useGroups; CreateScene(); }
         }

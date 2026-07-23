@@ -37,6 +37,13 @@ public sealed class MaterialShaderParameter : ICloneable, IDisposable
         IsCustom = isCustom;
     }
 
+    internal MaterialShaderParameter(string name, in Variant value, bool isCustom = false)
+    {
+        Name = name;
+        _value = value.Clone();
+        IsCustom = isCustom;
+    }
+
     private MaterialShaderParameter(MaterialShaderParameter rhs)
     {
         Name = rhs.Name;
@@ -50,7 +57,14 @@ public sealed class MaterialShaderParameter : ICloneable, IDisposable
 
     public ref readonly Variant VariantValue => ref _value;
 
-    public bool IsCustom { get; }
+    public bool IsCustom { get; private set; }
+
+    internal void SetValue(in Variant value, bool isCustom)
+    {
+        _value.Dispose();
+        _value = value.Clone();
+        IsCustom = isCustom;
+    }
 
     public object Clone() => new MaterialShaderParameter(this);
 
@@ -86,7 +100,7 @@ public class ShaderParameterAnimationInfo : ValueAnimationInfo
     /// <summary>Apply new animation value to the target object. Called by Update().</summary>
     protected override void ApplyValue(in Variant newValue)
     {
-        ((Material)Target!).SetShaderParameter(Name, newValue.GetObject());
+        ((Material)Target!).SetShaderParameter(Name, newValue);
     }
 }
 
@@ -155,6 +169,7 @@ public sealed class Material : Resource
     private readonly Dictionary<StringHash, ShaderParameterAnimationInfo> _shaderParameterAnimationInfos = new();
     private readonly Dictionary<StringHash, MaterialTexture> _textures = new();
     private readonly List<TechniqueEntry> _techniques = [];
+    private readonly List<string> _finishedShaderParameterAnimationNames = [];
     private XMLFile? _loadXmlFile;
     private uint _shaderParameterHash;
     private bool _batchedParameterUpdate;
@@ -515,10 +530,17 @@ public sealed class Material : Resource
 
     public void SetShaderParameter(string name, object? value, bool isCustom = false)
     {
+        using var variant = Variant.FromObject(value);
+        SetShaderParameter(name, variant, isCustom);
+    }
+
+    public void SetShaderParameter(string name, in Variant value, bool isCustom = false)
+    {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (_shaderParameters.Remove(name, out var previous))
-            previous.Dispose();
-        _shaderParameters[name] = new MaterialShaderParameter(name, value, isCustom);
+        if (_shaderParameters.TryGetValue(name, out var parameter))
+            parameter.SetValue(value, isCustom);
+        else
+            _shaderParameters[name] = new MaterialShaderParameter(name, value, isCustom);
         var oldSpecular = _specular;
         UpdateSpecularState(name, value);
         if (oldSpecular != _specular)
@@ -911,10 +933,10 @@ public sealed class Material : Resource
         unchecked
         {
             var hash = 2166136261u;
-            foreach (var parameter in _shaderParameters.OrderBy(static item => item.Key, StringComparer.Ordinal))
+            foreach (var parameter in _shaderParameters)
             {
                 hash = (hash ^ StringHash.Calculate(parameter.Key)) * 16777619u;
-                hash = (hash ^ (uint)(parameter.Value.Value?.GetHashCode() ?? 0)) * 16777619u;
+                hash = (hash ^ (uint)parameter.Value.VariantValue.GetHashCode()) * 16777619u;
                 hash = (hash ^ (parameter.Value.IsCustom ? 1u : 0u)) * 16777619u;
             }
 
@@ -1054,28 +1076,37 @@ public sealed class Material : Resource
 
     private void UpdateShaderParameterAnimations(float timeStep)
     {
-        var finishedNames = new List<string>();
+        _finishedShaderParameterAnimationNames.Clear();
         foreach (var info in _shaderParameterAnimationInfos.Values)
         {
             if (info.Update(timeStep))
-                finishedNames.Add(info.Name);
+                _finishedShaderParameterAnimationNames.Add(info.Name);
         }
 
-        foreach (var name in finishedNames)
-            SetShaderParameterAnimation(name, null);
+        for (var i = 0; i < _finishedShaderParameterAnimationNames.Count; ++i)
+            SetShaderParameterAnimation(_finishedShaderParameterAnimationNames[i], null);
     }
 
-    private void UpdateSpecularState(string name, object? value)
+    private void UpdateSpecularState(string name, in Variant value)
     {
         if (name != "MatSpecColor")
             return;
 
-        _specular = value switch
+        switch (value.Type)
         {
-            Vector3f vector => vector.X > 0.0f || vector.Y > 0.0f || vector.Z > 0.0f,
-            Vector4f vector => vector.X > 0.0f || vector.Y > 0.0f || vector.Z > 0.0f,
-            _ => _specular
-        };
+            case VariantType.Vector3:
+            {
+                var vector = value.GetVector3();
+                _specular = vector.X > 0.0f || vector.Y > 0.0f || vector.Z > 0.0f;
+                break;
+            }
+            case VariantType.Vector4:
+            {
+                var vector = value.GetVector4();
+                _specular = vector.X > 0.0f || vector.Y > 0.0f || vector.Z > 0.0f;
+                break;
+            }
+        }
     }
 
     private void RefreshTextureEventSubscriptions()

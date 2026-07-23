@@ -3,6 +3,28 @@ namespace RedBolt;
 /// <summary>Scene node that may contain components and child nodes.</summary>
 public class Node : Serializable
 {
+    private sealed class Vector3AttributeAccessor : AttributeAccessor
+    {
+        private readonly Func<Node, Vector3f> _getter;
+        private readonly Action<Node, Vector3f> _setter;
+
+        public Vector3AttributeAccessor(Func<Node, Vector3f> getter, Action<Node, Vector3f> setter)
+        {
+            _getter = getter;
+            _setter = setter;
+        }
+
+        public override void Get(Serializable ptr, ref Variant dest)
+        {
+            dest = new Variant(_getter((Node)ptr));
+        }
+
+        public override void Set(Serializable ptr, Variant src)
+        {
+            _setter((Node)ptr, src.GetVector3());
+        }
+    }
+
     private Matrix3x4 _worldTransform = Matrix3x4.Identity;
     private bool _dirty;
     private bool _enabled = true;
@@ -53,8 +75,7 @@ public class Node : Serializable
         RegisterAttribute(
             "Position",
             typeof(Vector3f),
-            self => ((Node)self).Position,
-            (self, value) => ((Node)self).Position = value is Vector3f position ? position : Vector3f.Zero,
+            new Vector3AttributeAccessor(self => self.Position, (self, value) => self.Position = value),
             Vector3f.Zero);
         RegisterAttribute(
             "Rotation",
@@ -65,8 +86,7 @@ public class Node : Serializable
         RegisterAttribute(
             "Scale",
             typeof(Vector3f),
-            self => ((Node)self).Scale,
-            (self, value) => ((Node)self).Scale = value is Vector3f scale ? scale : Vector3f.One,
+            new Vector3AttributeAccessor(self => self.Scale, (self, value) => self.Scale = value),
             Vector3f.One);
         RegisterAttribute(
             "Variables",

@@ -86,7 +86,8 @@ sealed class TextureFormatsApplication : Application
     protected override void Stop() { _dearImGuiSubscription?.Dispose(); }
     private static void DrawInstructions()
     {
-        if (ImGui.Begin("Texture Formats\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        var windowOpen = true;
+        if (ImGui.Begin("Texture Formats\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             ImGui.TextUnformatted("Left: software decompression; right: hardware format\0"u8);
             ImGui.TextUnformatted("Use WASD keys and right mouse button to move\0"u8);

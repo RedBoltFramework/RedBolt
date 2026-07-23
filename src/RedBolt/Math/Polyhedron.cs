@@ -64,9 +64,9 @@ public class Polyhedron : ICloneable
         vertices[7] = box.Max;
 
         while (Faces.Count > 6)
-            Faces.RemoveAt(Faces.Count - 1);
+            ReturnFace(Faces.Count - 1);
         while (Faces.Count < 6)
-            Faces.Add(new List<Vector3f>(4));
+            Faces.Add(RentFace(4));
         SetFace(0, vertices[3], vertices[7], vertices[5], vertices[1]);
         SetFace(1, vertices[6], vertices[2], vertices[0], vertices[4]);
         SetFace(2, vertices[6], vertices[7], vertices[3], vertices[2]);
@@ -81,9 +81,9 @@ public class Polyhedron : ICloneable
         var vertices = frustum.Vertices;
 
         while (Faces.Count > 6)
-            Faces.RemoveAt(Faces.Count - 1);
+            ReturnFace(Faces.Count - 1);
         while (Faces.Count < 6)
-            Faces.Add(new List<Vector3f>(4));
+            Faces.Add(RentFace(4));
         SetFace(0, vertices[0], vertices[4], vertices[5], vertices[1]);
         SetFace(1, vertices[7], vertices[3], vertices[2], vertices[6]);
         SetFace(2, vertices[7], vertices[4], vertices[0], vertices[3]);
@@ -170,7 +170,7 @@ public class Polyhedron : ICloneable
         for (var i = Faces.Count - 1; i >= 0; --i)
         {
             if (Faces[i].Count == 0)
-                Faces.RemoveAt(i);
+                ReturnFace(i);
         }
 
         // Create a new face from the clipped vertices. First remove duplicates
@@ -210,7 +210,9 @@ public class Polyhedron : ICloneable
                 _clippedVertices.RemoveAt(bestIndex);
             }
 
-            Faces.Add(new List<Vector3f>(_outFace));
+            var face = RentFace(_outFace.Count);
+            face.AddRange(_outFace);
+            Faces.Add(face);
         }
     }
 
@@ -245,7 +247,8 @@ public class Polyhedron : ICloneable
     /// <summary>Clear all faces.</summary>
     public void Clear()
     {
-        Faces.Clear();
+        while (Faces.Count != 0)
+            ReturnFace(Faces.Count - 1);
     }
 
     /// <summary>Transform with a 3x3 matrix.</summary>
@@ -327,10 +330,31 @@ public class Polyhedron : ICloneable
         face.Add(v3);
     }
 
+    private List<Vector3f> RentFace(int capacity)
+    {
+        if (_facePool.Count == 0)
+            return new List<Vector3f>(capacity);
+        var index = _facePool.Count - 1;
+        var face = _facePool[index];
+        _facePool.RemoveAt(index);
+        if (face.Capacity < capacity)
+            face.Capacity = capacity;
+        return face;
+    }
+
+    private void ReturnFace(int index)
+    {
+        var face = Faces[index];
+        Faces.RemoveAt(index);
+        face.Clear();
+        _facePool.Add(face);
+    }
+
     /// <summary>Internal vector for clipped vertices.</summary>
     private readonly List<Vector3f> _clippedVertices = [];
 
     /// <summary>Internal vector for the new face being constructed.</summary>
     private readonly List<Vector3f> _outFace = [];
+    private readonly List<List<Vector3f>> _facePool = [];
 
 }

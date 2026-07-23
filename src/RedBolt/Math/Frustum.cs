@@ -41,6 +41,12 @@ public class Frustum : ICloneable
         Array.Copy(frustum.Vertices, Vertices, NumFrustumVertices);
     }
 
+    public void CopyFrom(Frustum frustum)
+    {
+        Array.Copy(frustum.Planes, Planes, NumFrustumPlanes);
+        Array.Copy(frustum.Vertices, Vertices, NumFrustumVertices);
+    }
+
     /// <summary>
     /// Define with projection parameters and a transform matrix.
     /// </summary>

@@ -101,7 +101,7 @@ public class LightmapRenderPipelineView : Object, IRenderPipelineInterface
         var batchRenderer = sceneProcessor.GetBatchRenderer();
         var camera = viewport.GetCamera()!;
 
-        using var renderScope = new RenderScope(renderContext, "LightmapRenderPipelineView::RenderGeometryBuffer");
+        using var renderScope = RenderScope.Acquire(renderContext, "LightmapRenderPipelineView::RenderGeometryBuffer");
 
         RenderBuffer[] gBuffer =
         [

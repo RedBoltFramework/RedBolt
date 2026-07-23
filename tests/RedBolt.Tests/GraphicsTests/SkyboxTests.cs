@@ -64,7 +64,7 @@ public sealed class SkyboxTests
 
         frame.FrameNumber = 2;
         skybox.UpdateBatches(frame);
-        Assert.NotSame(firstTransform, skybox.GetBatches()[0].WorldTransform);
+        Assert.Same(firstTransform, skybox.GetBatches()[0].WorldTransform);
         Assert.Equal(new Vector3f(12.0f, 23.0f, 34.0f), skybox.GetBatches()[0].WorldTransform[0].Translation);
 
         skybox.Dispose();

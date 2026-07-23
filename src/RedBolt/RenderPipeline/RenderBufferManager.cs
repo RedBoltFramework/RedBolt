@@ -327,7 +327,7 @@ public class RenderBufferManager : Object
         if (pipelineState is null || !pipelineState.IsValid)
             return;
 
-        using var renderScope = new RenderScope(_renderContext, debugComment);
+        using var renderScope = RenderScope.Acquire(_renderContext, debugComment);
 
         var quadGeometry = _renderer.GetQuadGeometry()!;
         var modelMatrix = Matrix3x4.Identity;
@@ -364,8 +364,11 @@ public class RenderBufferManager : Object
 
         if (_drawQueue.BeginShaderParameterGroup(ShaderParameterGroup.Custom))
         {
-            foreach (var shaderParameter in parameters.Parameters)
+            for (var i = 0; i < parameters.Parameters.Count; ++i)
+            {
+                var shaderParameter = parameters.Parameters[i];
                 _drawQueue.AddShaderParameter(shaderParameter.Name, shaderParameter.Value);
+            }
             _drawQueue.CommitShaderParameterGroup(ShaderParameterGroup.Custom);
         }
 
@@ -375,8 +378,9 @@ public class RenderBufferManager : Object
             if (secondaryColor is not null)
                 _drawQueue.AddShaderResource(ShaderResources.Albedo, secondaryColor);
         }
-        foreach (var shaderResource in parameters.Resources)
+        for (var i = 0; i < parameters.Resources.Count; ++i)
         {
+            var shaderResource = parameters.Resources[i];
             var canBind = !parameters.BindSecondaryColorToDiffuse || shaderResource.Name != ShaderResources.Albedo;
             if (canBind && shaderResource.Texture is not null)
                 _drawQueue.AddShaderResource(shaderResource.Name, shaderResource.Texture);

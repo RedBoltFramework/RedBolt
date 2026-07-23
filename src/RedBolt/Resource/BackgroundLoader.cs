@@ -20,6 +20,7 @@ public sealed class BackgroundLoader : IDisposable
     private readonly ResourceCache _owner;
     private readonly object _sync = new();
     private readonly Dictionary<(Type Type, string Name), BackgroundLoadItem> _queue = new();
+    private readonly System.Diagnostics.Stopwatch _finishTimer = new();
 
     public BackgroundLoader(ResourceCache owner)
     {
@@ -127,7 +128,7 @@ public sealed class BackgroundLoader : IDisposable
 
     public void FinishResources(int maxMs)
     {
-        var timer = System.Diagnostics.Stopwatch.StartNew();
+        _finishTimer.Restart();
         while (true)
         {
             (Type Type, string Name) key = default;
@@ -156,7 +157,7 @@ public sealed class BackgroundLoader : IDisposable
                     _queue.Remove(key);
             }
 
-            if (timer.ElapsedMilliseconds >= maxMs)
+            if (_finishTimer.ElapsedMilliseconds >= maxMs)
                 break;
         }
     }

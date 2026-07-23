@@ -23,6 +23,8 @@ catch (Exception ex)
 /// </summary>
 public class SoundSynthesis : Application
 {
+    private short[] _soundData = [];
+
     /// <summary>Construct.</summary>
     public SoundSynthesis()
     {
@@ -84,7 +86,8 @@ public class SoundSynthesis : Application
 
         // Allocate a new buffer and fill it with a simple two-oscillator algorithm. The sound is over-amplified
         // (distorted), clamped to the 16-bit range, and finally lowpass-filtered according to the coefficient
-        var newData = new short[numSamples];
+        if (_soundData.Length < numSamples)
+            Array.Resize(ref _soundData, numSamples);
         for (var i = 0; i < numSamples; ++i)
         {
             _osc1 = (_osc1 + 1.0f) % 360.0f;
@@ -92,11 +95,11 @@ public class SoundSynthesis : Application
 
             var newValue = MathDefs.Clamp((MathDefs.Sin(_osc1) + MathDefs.Sin(_osc2)) * 100000.0f, -32767.0f, 32767.0f);
             _accumulator = MathDefs.Lerp(_accumulator, newValue, _filter);
-            newData[i] = (short)(int)_accumulator;
+            _soundData[i] = (short)(int)_accumulator;
         }
 
         // Queue buffer to the stream for playback
-        _soundStream.AddData(newData, checked((uint)(numSamples * sizeof(short))));
+        _soundStream.AddData(_soundData, checked((uint)(numSamples * sizeof(short))));
     }
 
     /// <summary>Construct an instruction text to the UI.</summary>
@@ -139,7 +142,8 @@ public class SoundSynthesis : Application
 
     private void DrawInstructions()
     {
-        if (ImGui.Begin("Sound Synthesis\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        var windowOpen = true;
+        if (ImGui.Begin("Sound Synthesis\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
             ImGui.TextUnformatted(_instructionLine!.Bytes);
         ImGui.End();
     }

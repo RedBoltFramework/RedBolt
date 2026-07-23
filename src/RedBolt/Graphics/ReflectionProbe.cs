@@ -104,6 +104,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
     private float _queryPadding = DefaultQueryPadding;
     private uint _renderBudget = DefaultRenderBudget;
     private bool _filterCubemaps = true;
+    private bool? _filteringSupported;
     private readonly HashSet<ReflectionProbe> _probesToUpdate = [];
     private readonly List<QueuedReflectionProbe> _updateQueue = [];
     private readonly List<QueuedReflectionProbe> _frameUpdates = [];
@@ -374,7 +375,8 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
     private void ConsumeUpdateQueue()
     {
         var renderDevice = GetSubsystem<RenderDevice>();
-        var filterCubemapsEffective = _filterCubemaps && SupportFiltering(renderDevice);
+        _filteringSupported ??= SupportFiltering(renderDevice);
+        var filterCubemapsEffective = _filterCubemaps && _filteringSupported.Value;
 
         uint numStaticProbesRendered = 0;
         uint numRenderedFaces = 0;
@@ -480,6 +482,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
 
     private void RestoreCubemaps()
     {
+        _filteringSupported = null;
         foreach (var reflectionProbe in GetReflectionProbes())
         {
             if (reflectionProbe.IsRenderOnWake())

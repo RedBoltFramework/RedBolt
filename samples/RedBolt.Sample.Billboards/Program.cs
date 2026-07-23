@@ -292,7 +292,8 @@ sealed class BillboardsApplication : Application
 
     private void DrawInstructions()
     {
-        if (ImGui.Begin("Billboards\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        var windowOpen = true;
+        if (ImGui.Begin("Billboards\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             ImGui.TextUnformatted("Use WASD keys and mouse/touch to move\nSpace to toggle debug geometry\0"u8);
             if (ImGui.Button(_drawDebug ? "Debug geometry: On\0"u8 : "Debug geometry: Off\0"u8))

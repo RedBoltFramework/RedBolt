@@ -201,7 +201,8 @@ public class SoundEffects : Application
 
     private void DrawUI()
     {
-        if (ImGui.Begin("Sound Effects\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        var windowOpen = true;
+        if (ImGui.Begin("Sound Effects\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             // Create buttons for playing back sounds
             if (ImGui.Button("Fist\0"u8))

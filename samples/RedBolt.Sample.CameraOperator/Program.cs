@@ -103,7 +103,8 @@ sealed class CameraOperatorSampleApplication : Application
 
     private void DrawInstructions()
     {
-        if (ImGui.Begin("Camera Operator\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        var windowOpen = true;
+        if (ImGui.Begin("Camera Operator\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             ImGui.TextUnformatted("Right click to rotate camera\0"u8);
             if (ImGui.Checkbox("Track Cube A\0"u8, ref _trackCubeA))

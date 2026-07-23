@@ -170,9 +170,8 @@ public class HelloGUI : Application
         if (!_windowOpen)
             return;
 
-        var visible = ImGui.Begin(_windowTitle.Bytes, out var open, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings);
-        _windowOpen = open;
-        if (!open)
+        var visible = ImGui.Begin(_windowTitle.Bytes, ref _windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings);
+        if (!_windowOpen)
             HandleClosePressed();
 
         if (visible)

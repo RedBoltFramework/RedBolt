@@ -27,6 +27,7 @@ public class SoundSource : Component
     private float _timePosition;
     private Sound? _streamBuffer;
     private int _unusedStreamSize;
+    private sbyte[] _decodeBuffer = [];
     private bool _ignoreSceneTimeScale;
     private bool _sendFinishedEvent;
     private bool _lowFrequency;
@@ -236,10 +237,12 @@ public class SoundSource : Component
                 neededSize = Math.Clamp(neededSize - _unusedStreamSize, 0, streamBufferSize - _unusedStreamSize);
 
                 _position = 0;
-                var decodeBuffer = new sbyte[Math.Max(neededSize, 1)];
+                var decodeBufferSize = Math.Max(neededSize, 1);
+                if (_decodeBuffer.Length < decodeBufferSize)
+                    Array.Resize(ref _decodeBuffer, decodeBufferSize);
                 if (neededSize != 0)
-                    decoded = stream.GetData(decodeBuffer, (uint)neededSize);
-                _streamBuffer.CopyData(decodeBuffer, 0, _unusedStreamSize, (int)decoded);
+                    decoded = stream.GetData(_decodeBuffer, (uint)neededSize);
+                _streamBuffer.CopyData(_decodeBuffer, 0, _unusedStreamSize, (int)decoded);
                 if (decoded < neededSize)
                     _streamBuffer.ClearData(_unusedStreamSize + (int)decoded, neededSize - (int)decoded);
                 streamFilledSize = neededSize + _unusedStreamSize;

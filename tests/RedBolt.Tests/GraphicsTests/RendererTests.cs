@@ -45,6 +45,40 @@ public sealed class RendererTests
     }
 
     [Fact]
+    public void Main_viewport_camera_mouse_position_is_normalized_at_input_end()
+    {
+        var scene = new Scene();
+        var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
+        var viewport = new Viewport(scene, camera, new IntRect(100, 50, 500, 250));
+        var texture = new Texture2D { Name = "Textures/MousePositionTarget" };
+        Assert.True(texture.SetSize(640, 480, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
+        var renderSurface = new RenderSurface(texture, 0);
+        var mousePositionProperty = typeof(Input).GetProperty(nameof(Input.MousePosition));
+        Assert.NotNull(mousePositionProperty);
+        var oldMousePosition = _fixture.Input.MousePosition;
+        mousePositionProperty!.SetValue(_fixture.Input, new Vector2i(300, 150));
+        try
+        {
+            Renderer.SetNumViewports(1);
+            Renderer.SetViewport(0, viewport);
+            Renderer.SetBackbufferRenderSurface(renderSurface);
+
+            var method = typeof(Renderer).GetMethod("UpdateMousePositionsForMainViewports",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(method);
+            method!.Invoke(Renderer, null);
+
+            Assert.InRange(Math.Abs(camera.MousePosition.X - 200.0f / 399.0f), 0.0f, 0.00001f);
+            Assert.InRange(Math.Abs(camera.MousePosition.Y - 100.0f / 199.0f), 0.0f, 0.00001f);
+        }
+        finally
+        {
+            Renderer.SetBackbufferRenderSurface(null);
+            mousePositionProperty.SetValue(_fixture.Input, oldMousePosition);
+        }
+    }
+
+    [Fact]
     public void Render_surface_viewport_queue_deduplicates_pairs_and_accepts_backbuffer_entries()
     {
         var scene = new Scene();

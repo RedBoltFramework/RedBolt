@@ -186,8 +186,8 @@ public struct BoundingBox : IEquatable<BoundingBox>
     /// <summary>Merge an array of vertices.</summary>
     public void Merge(IReadOnlyList<Vector3f> vertices)
     {
-        foreach (var vertex in vertices)
-            Merge(vertex);
+        for (var i = 0; i < vertices.Count; ++i)
+            Merge(vertices[i]);
     }
 
     /// <summary>Merge a frustum.</summary>

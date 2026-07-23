@@ -22,6 +22,9 @@ public class ShadowSplitProcessor : IDisposable
     private readonly Scene _shadowScene;
     private readonly Node _shadowCameraNode;
     private readonly Camera _shadowCamera;
+    private readonly Frustum _splitFrustum = new();
+    private readonly Polyhedron _frustumVolume = new();
+    private DirectionalLightShadowCasterQuery? _directionalShadowCasterQuery;
 
     /// <summary>Frame-specific objects.</summary>
     private FloatRange _cascadeZRange;
@@ -130,10 +133,13 @@ public class ShadowSplitProcessor : IDisposable
         var cullCamera = frameInfo.Camera!;
         var octree = frameInfo.Octree!;
 
-        var query = new DirectionalLightShadowCasterQuery(
+        _directionalShadowCasterQuery ??= new DirectionalLightShadowCasterQuery(
             shadowCastersBuffer, _shadowCamera.GetFrustum(), DrawableFlags.Geometry, Light,
             cullCamera.GetShadowViewMask());
-        octree.GetDrawables(query);
+        _directionalShadowCasterQuery.Result = shadowCastersBuffer;
+        _directionalShadowCasterQuery.Frustum.CopyFrom(_shadowCamera.GetFrustum());
+        _directionalShadowCasterQuery.ViewMask = cullCamera.GetShadowViewMask();
+        octree.GetDrawables(_directionalShadowCasterQuery);
 
         // Preprocess shadow casters
         drawableProcessor.PreprocessShadowCasters(_shadowCasters, shadowCastersBuffer, _cascadeZRange, Light, _shadowCamera);
@@ -308,8 +314,9 @@ public class ShadowSplitProcessor : IDisposable
         DrawableProcessor drawableProcessor, IReadOnlyList<Drawable> litGeometries)
     {
         var litGeometriesBox = new BoundingBox();
-        foreach (var drawable in litGeometries)
+        for (var i = 0; i < litGeometries.Count; ++i)
         {
+            var drawable = litGeometries[i];
             var geometryZRange = drawableProcessor.GetGeometryZRange(checked((int)drawable.GetDrawableIndex()));
             if (geometryZRange.Intersect(_cascadeZRange))
                 litGeometriesBox.Merge(drawable.GetWorldBoundingBox());
@@ -323,10 +330,9 @@ public class ShadowSplitProcessor : IDisposable
     {
         var cullCamera = drawableProcessor.FrameInfo.Camera!;
         var focusParameters = Light.GetShadowFocus();
-        var splitFrustum = cullCamera.GetSplitFrustum(_focusedCascadeZRange.First, _focusedCascadeZRange.Second);
+        cullCamera.GetSplitFrustum(_focusedCascadeZRange.First, _focusedCascadeZRange.Second, _splitFrustum);
 
-        var frustumVolume = new Polyhedron();
-        frustumVolume.Define(splitFrustum);
+        _frustumVolume.Define(_splitFrustum);
 
         // Focus frustum volume onto lit geometries
         // If volume became empty, restore it to avoid zero size
@@ -340,22 +346,22 @@ public class ShadowSplitProcessor : IDisposable
                 litGeometriesBox.Min -= Vector3f.One;
                 litGeometriesBox.Max += Vector3f.One;
 
-                frustumVolume.Clip(litGeometriesBox);
-                if (frustumVolume.Empty())
-                    frustumVolume.Define(splitFrustum);
+                _frustumVolume.Clip(litGeometriesBox);
+                if (_frustumVolume.Empty())
+                    _frustumVolume.Define(_splitFrustum);
             }
         }
 
         // Transform frustum volume to light space
         var lightView = _shadowCamera.GetView();
-        frustumVolume.Transform(lightView);
+        _frustumVolume.Transform(lightView);
 
         // Fit the frustum volume inside a bounding box. If uniform size, use a sphere instead
         BoundingBox shadowBox;
         if (!focusParameters.NonUniform)
-            shadowBox = new BoundingBox(new Sphere(frustumVolume));
+            shadowBox = new BoundingBox(new Sphere(_frustumVolume));
         else
-            shadowBox = new BoundingBox(frustumVolume);
+            shadowBox = new BoundingBox(_frustumVolume);
         return shadowBox;
     }
 

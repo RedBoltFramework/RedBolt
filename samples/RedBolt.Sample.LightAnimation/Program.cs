@@ -152,7 +152,8 @@ sealed class LightAnimationApplication : Application
 
     private void DrawInstructions()
     {
-        if (ImGui.Begin("Light Animation\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        var windowOpen = true;
+        if (ImGui.Begin("Light Animation\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             ImGui.TextUnformatted("Use WASD keys and right mouse button to move\0"u8);
             if (_uiTime < 1.0f)

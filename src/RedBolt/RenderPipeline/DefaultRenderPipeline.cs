@@ -29,6 +29,7 @@ public class DefaultRenderPipelineView : RenderPipelineView
     private RenderPipelineStats _stats;
     private readonly RenderPipelineDebugger _debugger = new();
     private readonly SharedRenderPassState _state = new();
+    private WeakReference<Camera>? _renderCameraReference;
 
     private RenderBufferManager? _renderBufferManager;
     private ShadowMapAllocator? _shadowMapAllocator;
@@ -198,8 +199,16 @@ public class DefaultRenderPipelineView : RenderPipelineView
         if (!_sceneProcessor.Define(_frameInfo))
             return false;
 
-        _sceneProcessor.SetRenderCamera(viewport.GetCamera());
-        _state.RenderCamera = viewport.GetCamera() is { } camera ? new WeakReference<Camera>(camera) : null;
+        var renderCamera = viewport.GetCamera();
+        _sceneProcessor.SetRenderCamera(renderCamera);
+        if (renderCamera is not null)
+        {
+            _renderCameraReference ??= new WeakReference<Camera>(renderCamera);
+            _renderCameraReference.SetTarget(renderCamera);
+            _state.RenderCamera = _renderCameraReference;
+        }
+        else
+            _state.RenderCamera = null;
 
         if (_settingsDirty)
         {

@@ -296,7 +296,8 @@ sealed class InputLoggerApplication : Application
 
     private void Draw()
     {
-        if (ImGui.Begin("Input Logger\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        var windowOpen = true;
+        if (ImGui.Begin("Input Logger\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             foreach (var line in _displayLines)
                 ImGui.TextUnformatted(line);

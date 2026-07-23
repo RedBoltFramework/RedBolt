@@ -13,6 +13,7 @@ public class Skybox : StaticModel
     public override void Dispose()
     {
         _customWorldTransforms.Clear();
+        _worldTransformPool.Clear();
         base.Dispose();
     }
 
@@ -37,6 +38,7 @@ public class Skybox : StaticModel
         if (frame.FrameNumber != _lastFrame)
         {
             _customWorldTransforms.Clear();
+            _numWorldTransforms = 0;
             _lastFrame = frame.FrameNumber;
         }
 
@@ -44,7 +46,15 @@ public class Skybox : StaticModel
         customWorldTransform.SetTranslation(Node.GetWorldPosition() + camera.GetEffectiveWorldTransform().Translation);
         if (!_customWorldTransforms.TryGetValue(camera, out var worldTransform))
         {
-            worldTransform = [customWorldTransform];
+            if (_numWorldTransforms < _worldTransformPool.Count)
+                worldTransform = _worldTransformPool[_numWorldTransforms];
+            else
+            {
+                worldTransform = new Matrix3x4[1];
+                _worldTransformPool.Add(worldTransform);
+            }
+            ++_numWorldTransforms;
+            worldTransform[0] = customWorldTransform;
             _customWorldTransforms.Add(camera, worldTransform);
         }
 
@@ -77,6 +87,8 @@ public class Skybox : StaticModel
 
     /// <summary>Custom world transform per camera.</summary>
     protected readonly Dictionary<Camera, Matrix3x4[]> _customWorldTransforms = [];
+    private readonly List<Matrix3x4[]> _worldTransformPool = [];
+    private int _numWorldTransforms;
     /// <summary>Last frame counter for knowing when to erase the custom world transforms of previous frame.</summary>
     protected uint _lastFrame;
 }

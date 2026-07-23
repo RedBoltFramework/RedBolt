@@ -544,6 +544,9 @@ public sealed class Renderer : Object
 
         _initialized = true;
 
+        SubscribeToEvent<InputEvents.InputEndEvent>((ref InputEvents.InputEndEvent _) =>
+            UpdateMousePositionsForMainViewports());
+
         SubscribeToEvent<CoreEvents.RenderUpdateEvent>((ref CoreEvents.RenderUpdateEvent eventData) =>
             Update(eventData.TimeStep));
         SubscribeToEvent<CoreEvents.EndFrameEvent>((ref CoreEvents.EndFrameEvent _) =>
@@ -560,6 +563,26 @@ public sealed class Renderer : Object
             Initialize();
         else
             _resetViews = true;
+    }
+
+    private void UpdateMousePositionsForMainViewports()
+    {
+        var input = GetSubsystem<Input>()!;
+
+        foreach (var viewport in _viewports)
+        {
+            if (viewport?.GetCamera() is not { } camera)
+                continue;
+
+            var rect = viewport.GetEffectiveRect(_backbufferSurface, false);
+            var mousePosition = input.MousePosition;
+            var rectSizeMinusOne = rect.Size - Vector2i.One;
+            var mousePositionNormalized = new Vector2f(
+                (float)(mousePosition.X - rect.Left) / rectSizeMinusOne.X,
+                (float)(mousePosition.Y - rect.Top) / rectSizeMinusOne.Y);
+
+            camera.SetMousePosition(mousePositionNormalized);
+        }
     }
 
     private void ReloadTextures()

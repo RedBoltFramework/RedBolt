@@ -158,7 +158,8 @@ sealed class SkeletalAnimationApplication : Application
 
     private void DrawInstructions()
     {
-        if (ImGui.Begin("Skeletal Animation\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        var windowOpen = true;
+        if (ImGui.Begin("Skeletal Animation\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             ImGui.TextUnformatted("Use WASD keys and right mouse button to move\0"u8);
             ImGui.TextUnformatted("Space to toggle debug geometry\0"u8);

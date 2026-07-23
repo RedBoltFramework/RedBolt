@@ -108,7 +108,9 @@ public sealed class AttributeInfo : ICloneable, IDisposable
         _defaultValue = defaultValue.Clone();
         Mode = mode;
         EnumNames = enumNames?.ToArray() ?? [];
-        Accessor = accessor ?? (getter is not null || setter is not null ? new DelegateAttributeAccessor(getter, setter) : null);
+        Accessor = accessor ?? (getter is not null || setter is not null
+            ? new DelegateAttributeAccessor(valueType, getter, setter)
+            : null);
     }
 
     public AttributeAccessor? Accessor { get; }
@@ -214,11 +216,14 @@ public sealed class AttributeInfo : ICloneable, IDisposable
 
     private sealed class DelegateAttributeAccessor : AttributeAccessor
     {
+        private readonly Type _valueType;
         private readonly Func<Serializable, object?>? _getter;
         private readonly Action<Serializable, object?>? _setter;
 
-        public DelegateAttributeAccessor(Func<Serializable, object?>? getter, Action<Serializable, object?>? setter)
+        public DelegateAttributeAccessor(Type valueType, Func<Serializable, object?>? getter,
+            Action<Serializable, object?>? setter)
         {
+            _valueType = valueType;
             _getter = getter;
             _setter = setter;
         }
@@ -230,7 +235,16 @@ public sealed class AttributeInfo : ICloneable, IDisposable
 
         public override void Set(Serializable ptr, Variant src)
         {
-            _setter?.Invoke(ptr, src.GetObject());
+            if (_setter is null)
+                return;
+            if (_valueType.IsEnum)
+                _setter(ptr, Enum.ToObject(_valueType, src.GetInt()));
+            else if (_valueType == typeof(uint))
+                _setter(ptr, src.GetUInt());
+            else if (_valueType == typeof(ulong))
+                _setter(ptr, src.GetUInt64());
+            else
+                _setter(ptr, src.GetObject());
         }
 
         public override object? GetObject(Serializable ptr) => _getter?.Invoke(ptr);

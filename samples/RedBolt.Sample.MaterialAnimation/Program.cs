@@ -154,7 +154,8 @@ sealed class MaterialAnimationApplication : Application
 
     private static void DrawInstructions()
     {
-        if (ImGui.Begin("Material Animation\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        var windowOpen = true;
+        if (ImGui.Begin("Material Animation\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
             ImGui.TextUnformatted("Use WASD keys and mouse/touch to move\0"u8);
         ImGui.End();
     }

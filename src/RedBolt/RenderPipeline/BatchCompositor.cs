@@ -3,10 +3,11 @@ namespace RedBolt;
 /// <summary>Batch compositor for single scene pass.</summary>
 public class BatchCompositorPass : DrawableProcessorPass
 {
-    private readonly WorkQueue? _workQueue;
+    private readonly WorkQueue _workQueue;
     private readonly Material? _defaultMaterial;
     private readonly DrawableProcessor _drawableProcessor;
     private readonly BatchStateCacheCallback? _batchStateCacheCallback;
+    private readonly Action<int, GeometryBatch> _processGeometryBatchCallback;
 
     protected readonly WorkQueueVector<PipelineBatch> DeferredBatches = new();
     protected readonly WorkQueueVector<PipelineBatch> BaseBatches = new();
@@ -37,7 +38,8 @@ public class BatchCompositorPass : DrawableProcessorPass
     {
         _drawableProcessor = drawableProcessor ?? throw new ArgumentNullException(nameof(drawableProcessor));
         _batchStateCacheCallback = callback;
-        _workQueue = GetSubsystem<WorkQueue>();
+        _processGeometryBatchCallback = (_, geometryBatch) => ProcessGeometryBatch(geometryBatch);
+        _workQueue = GetSubsystem<WorkQueue>()!;
         _defaultMaterial = GetSubsystem<Renderer>()?.GetDefaultMaterial();
         renderPipeline.PipelineStatesInvalidated += OnPipelineStatesInvalidated;
     }
@@ -77,18 +79,7 @@ public class BatchCompositorPass : DrawableProcessorPass
     public void ComposeBatches()
     {
         // Try to process batches in worker threads
-        if (_workQueue is not null)
-        {
-            var geometryBatchList = new List<GeometryBatch>();
-            GeometryBatches.CopyTo(geometryBatchList);
-            WorkQueue.ForEachParallel(_workQueue, geometryBatchList,
-                (_, geometryBatch) => ProcessGeometryBatch(geometryBatch));
-        }
-        else
-        {
-            foreach (var geometryBatch in GeometryBatches)
-                ProcessGeometryBatch(geometryBatch);
-        }
+        WorkQueue.ForEachParallel(_workQueue, GeometryBatches, _processGeometryBatchCallback);
 
         // Create missing pipeline states from main thread
         if (_batchStateCacheCallback is not null)
@@ -215,24 +206,30 @@ public class BatchCompositorPass : DrawableProcessorPass
             return;
 
         var ctx = new BatchStateCreateContext(this, (int)subpass, 0);
-        foreach (var desc in delayedBatches)
+        var delayedBatchBuckets = delayedBatches.GetUnderlyingCollection();
+        for (var outerIndex = 0; outerIndex < delayedBatchBuckets.Count; ++outerIndex)
         {
-            var pipelineState = cache.GetOrCreatePipelineState(desc.GetKey(), ctx, _batchStateCacheCallback);
-            if (pipelineState is null)
-                continue;
+            for (var innerIndex = 0; innerIndex < delayedBatchBuckets[outerIndex].Count; ++innerIndex)
+            {
+                ref var desc = ref delayedBatches[new MultiVector<PipelineBatchDesc>.Index(outerIndex, innerIndex)];
+                var pipelineState = cache.GetOrCreatePipelineState(desc.GetKey(), ctx, _batchStateCacheCallback);
+                if (pipelineState is null)
+                    continue;
 
-            ref var pipelineBatch = ref batches.Emplace(() => new PipelineBatch(desc));
-            if (pipelineState.IsValid)
-                pipelineBatch.PipelineState = pipelineState;
-            else if (GetPlaceholderPipelineState(cache, pipelineState) is { } placeholder)
-            {
-                pipelineBatch.PipelineState = placeholder;
-                pipelineBatch.GeometryType = GeometryType.StaticNoInstancing;
-            }
-            else
-            {
-                // This should never happen
-                batches.PopBack(WorkQueue.GetThreadIndex());
+                var pipelineBatchIndex = batches.Insert(new PipelineBatch(desc));
+                ref var pipelineBatch = ref batches[pipelineBatchIndex];
+                if (pipelineState.IsValid)
+                    pipelineBatch.PipelineState = pipelineState;
+                else if (GetPlaceholderPipelineState(cache, pipelineState) is { } placeholder)
+                {
+                    pipelineBatch.PipelineState = placeholder;
+                    pipelineBatch.GeometryType = GeometryType.StaticNoInstancing;
+                }
+                else
+                {
+                    // This should never happen
+                    batches.PopBack(WorkQueue.GetThreadIndex());
+                }
             }
         }
     }
@@ -243,7 +240,8 @@ public class BatchCompositorPass : DrawableProcessorPass
         var pipelineState = cache.GetPipelineState(desc.GetKey().LookupKey);
         if (pipelineState is not null && pipelineState.IsValid)
         {
-            ref var pipelineBatch = ref batches.Emplace(() => new PipelineBatch(desc));
+            var pipelineBatchIndex = batches.Insert(new PipelineBatch(desc));
+            ref var pipelineBatch = ref batches[pipelineBatchIndex];
             pipelineBatch.PipelineState = pipelineState;
         }
         else
@@ -268,6 +266,33 @@ public class BatchCompositorPass : DrawableProcessorPass
 /// <summary>Batch composition manager.</summary>
 public class BatchCompositor : Object
 {
+    private sealed class ShadowBatchTask
+    {
+        private readonly BatchCompositor _owner;
+
+        public ShadowBatchTask(BatchCompositor owner)
+        {
+            _owner = owner;
+            Callback = Execute;
+            FinalizeCallback = ExecuteFinalize;
+        }
+
+        public readonly TaskFunctionDelegate Callback;
+        public readonly TaskFunctionDelegate FinalizeCallback;
+        public int LightIndex;
+        public ShadowSplitProcessor Split = null!;
+
+        private void Execute(int threadIndex, WorkQueue queue)
+        {
+            _owner.BeginShadowBatchesComposition(LightIndex, Split);
+        }
+
+        private void ExecuteFinalize(int threadIndex, WorkQueue queue)
+        {
+            Split.FinalizeShadowBatches();
+        }
+    }
+
     public const int ShadowSubpass = 0;
     public const int LitVolumeSubpass = 1;
 
@@ -290,6 +315,8 @@ public class BatchCompositor : Object
     private readonly BatchStateCache _lightVolumeCache = new();
 
     private readonly WorkQueueVector<(ShadowSplitProcessor Split, PipelineBatchDesc Desc)> _delayedShadowBatches = new();
+    private readonly List<ShadowBatchTask> _shadowBatchTasks = [];
+    private int _numShadowBatchTasks;
     private readonly List<PipelineBatch> _lightVolumeBatches = [];
     private readonly List<PipelineBatchByState> _sortedLightVolumeBatches = [];
 
@@ -324,6 +351,7 @@ public class BatchCompositor : Object
     {
         _sortedLightVolumeBatches.Clear();
         _lightVolumeBatches.Clear();
+        _shadowBatchTasks.Clear();
         _delayedShadowBatches.Clear();
         _lightVolumeCache.Dispose();
         _shadowCache.Dispose();
@@ -352,6 +380,7 @@ public class BatchCompositor : Object
 
     public void ComposeShadowBatches()
     {
+        _numShadowBatchTasks = 0;
         // Collect shadow caster batches in worker threads
         var lightProcessors = _drawableProcessor.LightProcessors;
         for (var lightIndex = 0; lightIndex < lightProcessors.Count; ++lightIndex)
@@ -362,17 +391,18 @@ public class BatchCompositor : Object
             var numSplits = lightProcessor.NumSplits;
             for (var splitIndex = 0; splitIndex < numSplits; ++splitIndex)
             {
-                var capturedLightIndex = lightIndex;
                 var split = lightProcessor.GetMutableSplit(splitIndex);
                 if (_workQueue is not null)
                 {
-                    _workQueue.PostTask(_ =>
-                    {
-                        BeginShadowBatchesComposition(capturedLightIndex, split);
-                    }, TaskPriority.Immediate);
+                    if (_numShadowBatchTasks == _shadowBatchTasks.Count)
+                        _shadowBatchTasks.Add(new ShadowBatchTask(this));
+                    var task = _shadowBatchTasks[_numShadowBatchTasks++];
+                    task.LightIndex = lightIndex;
+                    task.Split = split;
+                    _workQueue.PostTask(task.Callback, TaskPriority.Immediate);
                 }
                 else
-                    BeginShadowBatchesComposition(capturedLightIndex, split);
+                    BeginShadowBatchesComposition(lightIndex, split);
             }
         }
 
@@ -522,8 +552,9 @@ public class BatchCompositor : Object
         var shadowBatches = splitProcessor.MutableUnsortedShadowBatches;
         var lightMask = splitProcessor.Light.GetLightMask();
 
-        foreach (var drawable in shadowCasters)
+        for (var i = 0; i < shadowCasters.Count; ++i)
         {
+            var drawable = shadowCasters[i];
             // Check shadow mask now when zone is ready
             if ((drawable.GetShadowMaskInZone() & lightMask) == 0)
                 continue;
@@ -582,19 +613,26 @@ public class BatchCompositor : Object
 
         var ctx = new BatchStateCreateContext(this, ShadowSubpass, 0);
 
-        foreach (var (split, desc) in _delayedShadowBatches)
+        var delayedShadowBatches = _delayedShadowBatches.GetUnderlyingCollection();
+        for (var outerIndex = 0; outerIndex < delayedShadowBatches.Count; ++outerIndex)
         {
-            ctx = new BatchStateCreateContext(this, ShadowSubpass, split.SplitIndex);
-            var pipelineState = _shadowCache.GetOrCreatePipelineState(desc.GetKey(), ctx, _batchStateCacheCallback);
-            if (pipelineState is not null && pipelineState.IsValid)
+            var batches = delayedShadowBatches[outerIndex];
+            for (var innerIndex = 0; innerIndex < batches.Count; ++innerIndex)
             {
-                var pipelineBatch = new PipelineBatch(desc);
-                pipelineBatch.PipelineState = pipelineState;
-                split.MutableUnsortedShadowBatches.Add(pipelineBatch);
+                var (split, desc) = batches[innerIndex];
+                ctx = new BatchStateCreateContext(this, ShadowSubpass, split.SplitIndex);
+                var pipelineState = _shadowCache.GetOrCreatePipelineState(desc.GetKey(), ctx, _batchStateCacheCallback);
+                if (pipelineState is not null && pipelineState.IsValid)
+                {
+                    var pipelineBatch = new PipelineBatch(desc);
+                    pipelineBatch.PipelineState = pipelineState;
+                    split.MutableUnsortedShadowBatches.Add(pipelineBatch);
+                }
             }
         }
 
         // Finalize shadow batches
+        var shadowBatchTaskIndex = 0;
         var lightProcessors = _drawableProcessor.LightProcessors;
         for (var lightIndex = 0; lightIndex < lightProcessors.Count; ++lightIndex)
         {
@@ -607,7 +645,9 @@ public class BatchCompositor : Object
                 var split = lightProcessor.GetMutableSplit(splitIndex);
                 if (_workQueue is not null)
                 {
-                    _workQueue.PostTask(_ => { split.FinalizeShadowBatches(); }, TaskPriority.Immediate);
+                    var task = _shadowBatchTasks[shadowBatchTaskIndex++];
+                    task.Split = split;
+                    _workQueue.PostTask(task.FinalizeCallback, TaskPriority.Immediate);
                 }
                 else
                     split.FinalizeShadowBatches();

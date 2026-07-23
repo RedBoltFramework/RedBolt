@@ -68,6 +68,9 @@ file sealed class OccludedFrustumOctreeQuery : FrustumOctreeQuery
 /// <summary>Scene processor for RenderPipeline.</summary>
 public class SceneProcessor : Object, LightProcessorCallback
 {
+    [ThreadStatic]
+    private static Frustum? _viewSpaceLightFrustum;
+
     public const int ShadowMinPixels = 64;
 
     protected readonly Graphics GraphicsDevice;
@@ -99,6 +102,10 @@ public class SceneProcessor : Object, LightProcessorCallback
     protected readonly List<Drawable> Drawables = [];
 
     private OcclusionBuffer[]? _currentOcclusionBuffers;
+    private readonly FrustumOctreeQuery _occluderQuery;
+    private readonly FrustumOctreeQuery _drawableQuery;
+    private FrustumOctreeQuery? _occludedDrawableQuery;
+    private readonly Camera?[] _singleRenderCamera = new Camera?[1];
 
     public SceneProcessor(IRenderPipelineInterface renderPipeline, string shadowTechnique,
         ShadowMapAllocator? shadowMapAllocator, InstancingBuffer? instancingBuffer)
@@ -121,6 +128,9 @@ public class SceneProcessor : Object, LightProcessorCallback
             checked((int)Technique.GetPassIndex("shadow")));
         BatchRenderer = new BatchRenderer(renderPipeline, DrawableProcessor, instancingBuffer);
         BatchStateCacheCallback = PipelineStateBuilder;
+        _occluderQuery = new OccluderOctreeQuery(Occluders, new Frustum());
+        _drawableQuery = new FrustumOctreeQuery(Drawables, new Frustum(),
+            DrawableFlags.Geometry | DrawableFlags.Light);
 
         renderPipeline.UpdateBegin += OnUpdateBegin;
         renderPipeline.RenderBegin += OnRenderBegin;
@@ -216,8 +226,8 @@ public class SceneProcessor : Object, LightProcessorCallback
 
     public void SetRenderCamera(Camera? camera)
     {
-        Camera?[] cameras = [camera];
-        CameraProcessor.SetCameras(cameras);
+        _singleRenderCamera[0] = camera;
+        CameraProcessor.SetCameras(_singleRenderCamera);
     }
 
     public virtual void Update()
@@ -227,8 +237,9 @@ public class SceneProcessor : Object, LightProcessorCallback
         var frustum = FrameInfo.Camera!.GetFrustum();
         if (Settings.MaxOccluderTriangles > 0)
         {
-            var occluderQuery = new OccluderOctreeQuery(Occluders, frustum, FrameInfo.Camera.GetPrimaryViewMask());
-            FrameInfo.Octree!.GetDrawables(occluderQuery);
+            _occluderQuery.Frustum.CopyFrom(frustum);
+            _occluderQuery.ViewMask = FrameInfo.Camera.GetPrimaryViewMask();
+            FrameInfo.Octree!.GetDrawables(_occluderQuery);
             DrawableProcessor.ProcessOccluders(Occluders, Settings.OccluderSizeThreshold);
 
             if (DrawableProcessor.HasOccluders)
@@ -247,16 +258,18 @@ public class SceneProcessor : Object, LightProcessorCallback
         // Collect visible drawables
         if (CurrentOcclusionBuffer is not null)
         {
-            var query = new OccludedFrustumOctreeQuery(Drawables, frustum,
+            _occludedDrawableQuery ??= new OccludedFrustumOctreeQuery(Drawables, frustum,
                 CurrentOcclusionBuffer, DrawableFlags.Geometry | DrawableFlags.Light,
                 FrameInfo.Camera.GetPrimaryViewMask());
-            FrameInfo.Octree!.GetDrawables(query);
+            _occludedDrawableQuery.Frustum.CopyFrom(frustum);
+            _occludedDrawableQuery.ViewMask = FrameInfo.Camera.GetPrimaryViewMask();
+            FrameInfo.Octree!.GetDrawables(_occludedDrawableQuery);
         }
         else
         {
-            var drawableQuery = new FrustumOctreeQuery(Drawables, frustum,
-                DrawableFlags.Geometry | DrawableFlags.Light, FrameInfo.Camera.GetPrimaryViewMask());
-            FrameInfo.Octree!.GetDrawables(drawableQuery);
+            _drawableQuery.Frustum.CopyFrom(frustum);
+            _drawableQuery.ViewMask = FrameInfo.Camera.GetPrimaryViewMask();
+            FrameInfo.Octree!.GetDrawables(_drawableQuery);
         }
 
         // Process drawables
@@ -285,10 +298,11 @@ public class SceneProcessor : Object, LightProcessorCallback
         InstancingBuffer.Begin();
 
         var visibleLights = DrawableProcessor.LightProcessors;
-        foreach (var sceneLight in visibleLights)
+        for (var lightIndex = 0; lightIndex < visibleLights.Count; ++lightIndex)
         {
-            foreach (var split in sceneLight!.MutableSplits)
-                BatchRenderer.PrepareInstancingBuffer(ref split.MutableShadowBatches);
+            var splits = visibleLights[lightIndex]!.MutableSplits;
+            for (var splitIndex = 0; splitIndex < splits.Length; ++splitIndex)
+                BatchRenderer.PrepareInstancingBuffer(ref splits[splitIndex].MutableShadowBatches);
         }
 
         foreach (var pass in Passes)
@@ -307,18 +321,20 @@ public class SceneProcessor : Object, LightProcessorCallback
         if (!Settings.EnableShadows)
             return;
 
-        using var renderScope = new RenderScope(RenderContext, "SceneProcessor::RenderShadowMaps");
+        using var renderScope = RenderScope.Acquire(RenderContext, "SceneProcessor::RenderShadowMaps");
 
         var lightsByShadowMap = DrawableProcessor.LightProcessorsByShadowMap;
-        foreach (var sceneLight in lightsByShadowMap)
+        for (var lightIndex = 0; lightIndex < lightsByShadowMap.Count; ++lightIndex)
         {
-            var lightProcessor = sceneLight!;
-            using var renderScopeLight = new RenderScope(RenderContext, "Light 0x{0} '{1}'",
+            var lightProcessor = lightsByShadowMap[lightIndex]!;
+            using var renderScopeLight = RenderScope.Acquire(RenderContext, "Light 0x{0} '{1}'",
                 lightProcessor.Light.GetHashCode(), lightProcessor.Light.Node!.Name);
 
-            foreach (var split in lightProcessor.Splits)
+            var splits = lightProcessor.Splits;
+            for (var splitIndex = 0; splitIndex < splits.Length; ++splitIndex)
             {
-                using var renderScopeSplit = new RenderScope(RenderContext, "Split #{0}", split.SplitIndex);
+                var split = splits[splitIndex];
+                using var renderScopeSplit = RenderScope.Acquire(RenderContext, "Split #{0}", split.SplitIndex);
 
                 if (RenderPipelineDebugger.IsSnapshotInProgress(Debugger))
                 {
@@ -368,7 +384,7 @@ public class SceneProcessor : Object, LightProcessorCallback
         if (RenderPipelineDebugger.IsSnapshotInProgress(Debugger))
             Debugger!.BeginPass(debugName);
 
-        using var renderScope = new RenderScope(RenderContext, debugName);
+        using var renderScope = RenderScope.Acquire(RenderContext, debugName);
 
         DrawQueue.Reset();
 
@@ -474,7 +490,7 @@ public class SceneProcessor : Object, LightProcessorCallback
         if (RenderPipelineDebugger.IsSnapshotInProgress(Debugger))
             Debugger!.BeginPass(debugName);
 
-        using var renderScope = new RenderScope(RenderContext, debugName);
+        using var renderScope = RenderScope.Acquire(RenderContext, debugName);
 
         DrawQueue.Reset();
 
@@ -510,7 +526,7 @@ public class SceneProcessor : Object, LightProcessorCallback
         if (RenderPipelineDebugger.IsSnapshotInProgress(Debugger))
             Debugger!.BeginPass(debugName);
 
-        using var renderScope = new RenderScope(RenderContext, debugName);
+        using var renderScope = RenderScope.Acquire(RenderContext, debugName);
 
         DrawQueue.Reset();
 
@@ -607,8 +623,13 @@ public class SceneProcessor : Object, LightProcessorCallback
             }
             case LightType.Spot:
             {
-                var lightFrustum = light.GetViewSpaceFrustum(view);
-                return new BoundingBox(lightFrustum.Vertices.AsSpan(4, 4).ToArray());
+                var lightFrustum = _viewSpaceLightFrustum ??= new Frustum();
+                light.GetViewSpaceFrustum(view, lightFrustum);
+                var result = new BoundingBox();
+                result.Clear();
+                for (var i = 4; i < 8; ++i)
+                    result.Merge(lightFrustum.Vertices[i]);
+                return result;
             }
             default:
                 System.Diagnostics.Debug.Assert(false);

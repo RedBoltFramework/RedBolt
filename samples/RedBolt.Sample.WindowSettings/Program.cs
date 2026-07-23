@@ -188,7 +188,8 @@ public class WindowSettingsDemo : Application
 
     private void DrawUI()
     {
-        if (!ImGui.Begin("Window Settings\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        var windowOpen = true;
+        if (!ImGui.Begin("Window Settings\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             ImGui.End();
             return;

@@ -516,13 +516,11 @@ public class DrawCommandQueue
             if (cmd.ScissorRect != currentScissorRect)
             {
                 var scissorRect = _scissorRects[cmd.ScissorRect];
-                using var internalRect = new RedBolt.Bindings.Diligent.Rect
-                {
-                    Left = scissorRect.Left,
-                    Top = scissorRect.Top,
-                    Right = scissorRect.Right,
-                    Bottom = scissorRect.Bottom
-                };
+                var internalRect = renderContext.GetScissorRect();
+                internalRect.Left = scissorRect.Left;
+                internalRect.Top = scissorRect.Top;
+                internalRect.Right = scissorRect.Right;
+                internalRect.Bottom = scissorRect.Bottom;
 
                 deviceContext.SetScissorRects(1u, internalRect, 0u, 0u);
                 currentScissorRect = cmd.ScissorRect;
@@ -617,9 +615,10 @@ public class DrawCommandQueue
                     continue;
 
                 var uniformBuffer = _temp.UniformBuffers[cmd.ConstantBuffers[i].Index]!;
-                foreach (var variable in uniformBufferReflection.Variables)
+                var variables = uniformBufferReflection.Variables;
+                for (var variableIndex = 0; variableIndex < variables.Count; ++variableIndex)
                 {
-                    variable.SetBufferRange(uniformBuffer, checked((nuint)cmd.ConstantBuffers[i].Offset),
+                    variables[variableIndex].SetBufferRange(uniformBuffer, checked((nuint)cmd.ConstantBuffers[i].Offset),
                         checked((nuint)cmd.ConstantBuffers[i].Size));
                 }
             }
@@ -631,18 +630,16 @@ public class DrawCommandQueue
             {
                 if (currentIndexBuffer is not null)
                 {
-                    using var drawAttrs = new DrawIndexedAttribs
-                    {
-                        NumIndices = checked((uint)cmd.IndexCount),
-                        NumInstances = checked((uint)Math.Max(1, cmd.InstanceCount)),
-                        FirstIndexLocation = checked((uint)cmd.IndexStart),
-                        FirstInstanceLocation = caps.DrawBaseInstance ? checked((uint)cmd.InstanceStart) : 0u,
-                        BaseVertex = checked((uint)cmd.BaseVertexIndex),
-                        Flags = DrawFlags.DrawFlagVerifyAll,
-                        IndexType = currentIndexBuffer.GetStride() == 2u
-                            ? RedBolt.Bindings.Diligent.ValueType.VtUint16
-                            : RedBolt.Bindings.Diligent.ValueType.VtUint32
-                    };
+                    var drawAttrs = renderContext.GetDrawIndexedAttribs();
+                    drawAttrs.NumIndices = checked((uint)cmd.IndexCount);
+                    drawAttrs.NumInstances = checked((uint)Math.Max(1, cmd.InstanceCount));
+                    drawAttrs.FirstIndexLocation = checked((uint)cmd.IndexStart);
+                    drawAttrs.FirstInstanceLocation = caps.DrawBaseInstance ? checked((uint)cmd.InstanceStart) : 0u;
+                    drawAttrs.BaseVertex = checked((uint)cmd.BaseVertexIndex);
+                    drawAttrs.Flags = DrawFlags.DrawFlagVerifyAll;
+                    drawAttrs.IndexType = currentIndexBuffer.GetStride() == 2u
+                        ? RedBolt.Bindings.Diligent.ValueType.VtUint16
+                        : RedBolt.Bindings.Diligent.ValueType.VtUint32;
 
                     deviceContext.DrawIndexed(drawAttrs);
 
@@ -651,14 +648,12 @@ public class DrawCommandQueue
                 }
                 else
                 {
-                    using var drawAttrs = new DrawAttribs
-                    {
-                        NumVertices = checked((uint)cmd.IndexCount),
-                        NumInstances = checked((uint)Math.Max(1, cmd.InstanceCount)),
-                        StartVertexLocation = checked((uint)cmd.IndexStart),
-                        FirstInstanceLocation = caps.DrawBaseInstance ? checked((uint)cmd.InstanceStart) : 0u,
-                        Flags = DrawFlags.DrawFlagVerifyAll
-                    };
+                    var drawAttrs = renderContext.GetDrawAttribs();
+                    drawAttrs.NumVertices = checked((uint)cmd.IndexCount);
+                    drawAttrs.NumInstances = checked((uint)Math.Max(1, cmd.InstanceCount));
+                    drawAttrs.StartVertexLocation = checked((uint)cmd.IndexStart);
+                    drawAttrs.FirstInstanceLocation = caps.DrawBaseInstance ? checked((uint)cmd.InstanceStart) : 0u;
+                    drawAttrs.Flags = DrawFlags.DrawFlagVerifyAll;
 
                     deviceContext.Draw(drawAttrs);
 
@@ -668,12 +663,10 @@ public class DrawCommandQueue
             }
             else if (currentPipelineState.GetPipelineType() == PipelineStateType.Compute)
             {
-                using var dispatchAttrs = new DispatchComputeAttribs
-                {
-                    ThreadGroupCountX = (uint)cmd.NumGroups.X,
-                    ThreadGroupCountY = (uint)cmd.NumGroups.Y,
-                    ThreadGroupCountZ = (uint)cmd.NumGroups.Z
-                };
+                var dispatchAttrs = renderContext.GetDispatchComputeAttribs();
+                dispatchAttrs.ThreadGroupCountX = (uint)cmd.NumGroups.X;
+                dispatchAttrs.ThreadGroupCountY = (uint)cmd.NumGroups.Y;
+                dispatchAttrs.ThreadGroupCountZ = (uint)cmd.NumGroups.Z;
                 deviceContext.DispatchCompute(dispatchAttrs);
 
                 stats.NumDispatches += 1;

@@ -442,6 +442,8 @@ public sealed class Octree : Component
     private readonly Octant _rootOctant;
     private readonly List<Drawable?> _drawableUpdates;
     private readonly List<Drawable?> _threadedDrawableUpdates;
+    private readonly Action<int, Drawable?> _updateDrawableCallback;
+    private FrameInfo _updateFrame;
     private readonly WorkQueueVector<KeyValuePair<Node, Transform>> _pendingNodeTransforms;
     private readonly List<Drawable> _drawables;
     private readonly object _octreeMutex;
@@ -457,6 +459,7 @@ public sealed class Octree : Component
         _rootOctant = new Octant(rootBox, 0, null, this);
         _drawableUpdates = [];
         _threadedDrawableUpdates = [];
+        _updateDrawableCallback = UpdateDrawable;
         _pendingNodeTransforms = new WorkQueueVector<KeyValuePair<Node, Transform>>();
         _drawables = [];
         _octreeMutex = new object();
@@ -618,11 +621,8 @@ public sealed class Octree : Component
 
             _pendingNodeTransforms.Clear();
 
-            WorkQueue.ForEachParallel(queue, _drawableUpdates, (_, drawable) =>
-            {
-                if (drawable is not null)
-                    drawable.Update(frame);
-            });
+            _updateFrame = frame;
+            WorkQueue.ForEachParallel(queue, _drawableUpdates, _updateDrawableCallback);
 
             scene.EndThreadedUpdate();
         }
@@ -645,10 +645,16 @@ public sealed class Octree : Component
         // Commit delayed Node transforms
         if (_drawableUpdates.Count != 0)
         {
-            foreach (var pair in _pendingNodeTransforms)
+            var buckets = _pendingNodeTransforms.GetUnderlyingCollection();
+            for (var bucketIndex = 0; bucketIndex < buckets.Count; ++bucketIndex)
             {
-                var transform = pair.Value;
-                pair.Key.SetTransform(transform.Position, transform.Rotation, transform.Scale);
+                var bucket = buckets[bucketIndex];
+                for (var i = 0; i < bucket.Count; ++i)
+                {
+                    var pair = bucket[i];
+                    var transform = pair.Value;
+                    pair.Key.SetTransform(transform.Position, transform.Rotation, transform.Scale);
+                }
             }
         }
 
@@ -695,6 +701,12 @@ public sealed class Octree : Component
 
         if (currentScene is not null)
             currentScene.GetComponent<ReflectionProbeManager>()?.Update();
+    }
+
+    private void UpdateDrawable(int index, Drawable? drawable)
+    {
+        if (drawable is not null)
+            drawable.Update(_updateFrame);
     }
 
     public void RemoveDrawable(Drawable drawable, Octant octant)

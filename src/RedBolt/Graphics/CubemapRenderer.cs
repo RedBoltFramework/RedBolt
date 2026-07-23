@@ -420,7 +420,7 @@ public class CubemapRenderer : Object
         var renderContext = renderDevice.GetRenderContext();
         var drawQueue = renderDevice.GetDefaultQueue();
 
-        using var renderScope = new RenderScope(renderContext, "CubemapRenderer::FilterCubemap");
+        using var renderScope = RenderScope.Acquire(renderContext, "CubemapRenderer::FilterCubemap");
 
         var sourceRaw = sourceTexture.GetRawTexture()!;
         var destRaw = destTexture.GetRawTexture()!;

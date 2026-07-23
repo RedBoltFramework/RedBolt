@@ -230,7 +230,8 @@ public class RenderToTexture : Application
 
     private void DrawInstructions()
     {
-        if (ImGui.Begin("Render To Texture\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        var windowOpen = true;
+        if (ImGui.Begin("Render To Texture\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
             ImGui.TextUnformatted("Use WASD keys and mouse/touch to move\0"u8);
         ImGui.End();
     }

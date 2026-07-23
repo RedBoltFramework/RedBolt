@@ -49,8 +49,9 @@ public sealed class Camera : Component
     private Matrix4 _viewProj;
     private Matrix4 _inverseViewProj;
     private readonly Frustum _frustum = new();
+    private readonly Frustum _viewSpaceFrustum = new();
     private readonly WeakReference<Graphics>? _graphics;
-    private WeakReference<Zone>? _zone;
+    private Zone? _zone;
 
     public Camera()
     {
@@ -213,6 +214,13 @@ public sealed class Camera : Component
 
     public Frustum GetSplitFrustum(float nearClip, float farClip)
     {
+        var result = new Frustum();
+        GetSplitFrustum(nearClip, farClip, result);
+        return result;
+    }
+
+    internal void GetSplitFrustum(float nearClip, float farClip, Frustum result)
+    {
         if (_projectionDirty)
             UpdateProjection();
 
@@ -221,7 +229,6 @@ public sealed class Camera : Component
         if (farClip < nearClip)
             farClip = nearClip;
 
-        var result = new Frustum();
         if (_customProjectionEnabled)
         {
             result.DefineSplit(GetProjection(ignoreFlip: true), nearClip, farClip);
@@ -231,23 +238,26 @@ public sealed class Camera : Component
             result.Define(Fov, AspectRatio, Zoom, nearClip, farClip, GetEffectiveWorldTransform());
         else
             result.DefineOrtho(OrthoSize, AspectRatio, Zoom, nearClip, farClip, GetEffectiveWorldTransform());
-
-        return result;
     }
 
     public Frustum GetViewSpaceFrustum()
     {
+        var result = new Frustum();
+        GetViewSpaceFrustum(result);
+        return result;
+    }
+
+    internal void GetViewSpaceFrustum(Frustum result)
+    {
         if (_projectionDirty)
             UpdateProjection();
 
-        var result = new Frustum();
         if (_customProjectionEnabled)
             result.Define(GetProjection(ignoreFlip: true));
         else if (!Orthographic)
             result.Define(Fov, AspectRatio, Zoom, GetNearClip(), GetFarClip());
         else
             result.DefineOrtho(OrthoSize, AspectRatio, Zoom, GetNearClip(), GetFarClip());
-        return result;
     }
 
     public Frustum GetViewSpaceSplitFrustum(float nearClip, float farClip)
@@ -272,9 +282,9 @@ public sealed class Camera : Component
 
     public void GetFrustumSize(out Vector3f nearSize, out Vector3f farSize)
     {
-        var viewSpaceFrustum = GetViewSpaceFrustum();
-        nearSize = viewSpaceFrustum.Vertices[0];
-        farSize = viewSpaceFrustum.Vertices[4];
+        GetViewSpaceFrustum(_viewSpaceFrustum);
+        nearSize = _viewSpaceFrustum.Vertices[0];
+        farSize = _viewSpaceFrustum.Vertices[4];
 
         if (FlipVertical)
         {
@@ -487,7 +497,7 @@ public sealed class Camera : Component
 
     public Plane GetClipPlane() => _clipPlane;
 
-    public Zone? GetZone() => _zone is not null && _zone.TryGetTarget(out var zone) ? zone : null;
+    public Zone? GetZone() => _zone;
 
     public Color GetEffectiveAmbientColor() => GetZone()?.GetAmbientColor() ?? Color.TransparentBlack;
 
@@ -758,7 +768,7 @@ public sealed class Camera : Component
 
     public void SetZone(Zone? zone)
     {
-        _zone = zone is not null ? new WeakReference<Zone>(zone) : null;
+        _zone = zone;
     }
 
     public void SetProjection(Matrix4 projection)

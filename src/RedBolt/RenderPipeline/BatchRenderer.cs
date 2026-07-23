@@ -65,9 +65,9 @@ public class BatchRenderer : Object
         {
             if (batchGroup.Batches is not null)
             {
-                foreach (ref readonly var sortedBatch in
-                    System.Runtime.InteropServices.CollectionsMarshal.AsSpan(batchGroup.Batches))
-                    compositor.ProcessSceneBatch(in sortedBatch.PipelineBatch);
+                var batches = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(batchGroup.Batches);
+                for (var i = 0; i < batches.Length; ++i)
+                    compositor.ProcessSceneBatch(in batches[i].PipelineBatch);
             }
             compositor.FlushDrawCommands(batchGroup.StartInstance + batchGroup.NumInstances);
         }

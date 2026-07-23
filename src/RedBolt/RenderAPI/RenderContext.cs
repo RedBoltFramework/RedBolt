@@ -20,7 +20,9 @@ public class RenderContext : Object
     private readonly bool _debugScopeEnabled;
     private RenderDeviceStats _stats = new();
     private readonly RenderTargetView[] _swapChainColorTarget;
+    private readonly RenderTargetView[] _currentRenderTargets = new RenderTargetView[RenderApiLimits.MaxRenderTargets];
     private readonly ITextureView?[] _currentRenderTargetHandles = new ITextureView?[RenderApiLimits.MaxRenderTargets];
+    private RenderTargetView? _currentDepthStencil;
     private ITextureView? _currentDepthStencilHandle;
     private global::RedBolt.Bindings.Diligent.Viewport? _diligentViewport;
     private int _numCurrentRenderTargets;
@@ -31,6 +33,10 @@ public class RenderContext : Object
     private uint _clipPlaneMask;
     private OpenGlStateFunction? _glEnable;
     private OpenGlStateFunction? _glDisable;
+    private readonly DrawIndexedAttribs _drawIndexedAttribs = new();
+    private readonly DrawAttribs _drawAttribs = new();
+    private readonly DispatchComputeAttribs _dispatchComputeAttribs = new();
+    private readonly RedBolt.Bindings.Diligent.Rect _scissorRect = new();
 
     public RenderContext(RenderDevice renderDevice)
     {
@@ -46,7 +52,13 @@ public class RenderContext : Object
     {
         _diligentViewport?.Dispose();
         _diligentViewport = null;
+        _drawIndexedAttribs.Dispose();
+        _drawAttribs.Dispose();
+        _dispatchComputeAttribs.Dispose();
+        _scissorRect.Dispose();
+        Array.Clear(_currentRenderTargets);
         Array.Clear(_currentRenderTargetHandles);
+        _currentDepthStencil = null;
         _currentDepthStencilHandle = null;
         base.Dispose();
     }
@@ -109,13 +121,18 @@ public class RenderContext : Object
         if (handle is null || handle.IsNull)
             return;
 
+        _currentDepthStencil = depthStencil;
         _currentDepthStencilHandle = depthStencil is { } depthView
             ? depthView.GetView()
             : null;
+        Array.Clear(_currentRenderTargets, 0, _numCurrentRenderTargets);
         Array.Clear(_currentRenderTargetHandles, 0, _numCurrentRenderTargets);
         _numCurrentRenderTargets = renderTargets.Length;
         for (var i = 0; i < _numCurrentRenderTargets; ++i)
+        {
+            _currentRenderTargets[i] = renderTargets[i];
             _currentRenderTargetHandles[i] = renderTargets[i].GetView();
+        }
 
         UpdateCurrentRenderTargetInfo();
 
@@ -190,7 +207,7 @@ public class RenderContext : Object
         var internalFlags = ClearDepthStencilFlags.ClearDepthFlagNone;
         if ((flags & ClearTarget.Depth) != 0)
             internalFlags |= ClearDepthStencilFlags.ClearDepthFlag;
-        if ((flags & ClearTarget.Stencil) != 0 && IsBoundDepthStencilFormat(_currentDepthStencilHandle))
+        if ((flags & ClearTarget.Stencil) != 0 && IsBoundDepthStencilFormat(_currentOutputDesc.DepthStencilFormat))
             internalFlags |= ClearDepthStencilFlags.ClearStencilFlag;
 
         handle.ClearDepthStencil(
@@ -304,6 +321,14 @@ public class RenderContext : Object
 
     public RenderPool GetRenderPool() => _renderPool;
 
+    internal DrawIndexedAttribs GetDrawIndexedAttribs() => _drawIndexedAttribs;
+
+    internal DrawAttribs GetDrawAttribs() => _drawAttribs;
+
+    internal DispatchComputeAttribs GetDispatchComputeAttribs() => _dispatchComputeAttribs;
+
+    internal RedBolt.Bindings.Diligent.Rect GetScissorRect() => _scissorRect;
+
     public bool IsDebugScopeEnabled() => _debugScopeEnabled;
 
     public Vector2i GetCurrentRenderTargetSize()
@@ -324,13 +349,9 @@ public class RenderContext : Object
         _glDisable = null;
     }
 
-    private static bool IsBoundDepthStencilFormat(ITextureView depthStencilView)
+    private static bool IsBoundDepthStencilFormat(TextureFormat format)
     {
-        var texture = depthStencilView.GetTexture();
-        if (texture is null || texture.IsNull)
-            return false;
-        using var desc = texture.GetDesc();
-        return desc.Format is global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint
+        return format is global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD24UnormS8Uint
             or global::RedBolt.Bindings.Diligent.TextureFormat.TexFormatD32FloatS8x24Uint;
     }
 
@@ -347,22 +368,16 @@ public class RenderContext : Object
 
     private void UpdateCurrentRenderTargetInfo()
     {
-        if (_currentDepthStencilHandle is not null)
-        {
-            using var depthStencilDesc = _currentDepthStencilHandle.GetDesc();
-            _currentOutputDesc.DepthStencilFormat = (TextureFormat)depthStencilDesc.Format;
-        }
+        if (_currentDepthStencil is { } depthStencil)
+            _currentOutputDesc.DepthStencilFormat = depthStencil.GetFormat();
         else
             _currentOutputDesc.DepthStencilFormat = TextureFormat.TexFormatUnknown;
 
         _currentOutputDesc.NumRenderTargets = _numCurrentRenderTargets;
         for (var i = 0; i < _numCurrentRenderTargets; ++i)
-        {
-            using var renderTargetDesc = _currentRenderTargetHandles[i]!.GetDesc();
-            _currentOutputDesc.RenderTargetFormats[i] = (TextureFormat)renderTargetDesc.Format;
-        }
+            _currentOutputDesc.RenderTargetFormats[i] = _currentRenderTargets[i].GetFormat();
 
-        var view = _numCurrentRenderTargets != 0 ? _currentRenderTargetHandles[0] : _currentDepthStencilHandle;
+        var view = _numCurrentRenderTargets != 0 ? _currentRenderTargets[0] : _currentDepthStencil;
         if (view is null)
         {
             _currentDimensions = Vector2i.Zero;
@@ -370,9 +385,16 @@ public class RenderContext : Object
             return;
         }
 
-        var texture = view.GetTexture();
-        using var textureDesc = texture.GetDesc();
-        _currentDimensions = new Vector2i(checked((int)textureDesc.Width), checked((int)textureDesc.Height));
-        _currentOutputDesc.MultiSample = checked((int)textureDesc.SampleCount);
+        var renderTargetView = view.Value;
+        if (renderTargetView.GetRawTexture() is { } rawTexture)
+        {
+            var size = rawTexture.GetParams().Size;
+            _currentDimensions = new Vector2i(size.X, size.Y);
+        }
+        else if (renderTargetView.RenderTexture is { } texture)
+            _currentDimensions = new Vector2i(texture.Width, texture.Height);
+        else
+            _currentDimensions = _renderDevice.GetSwapChainSize();
+        _currentOutputDesc.MultiSample = renderTargetView.GetMultiSample();
     }
 }

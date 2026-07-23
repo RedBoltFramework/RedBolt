@@ -12,12 +12,12 @@ public struct LightGeometryQueryResult
 public class PointLightGeometryQuery : SphereOctreeQuery
 {
     /// <summary>Immutable.</summary>
-    private readonly DrawableProcessor _drawableProcessor;
-    private readonly uint _lightMask;
-    private readonly uint _shadowViewMask;
+    private DrawableProcessor _drawableProcessor;
+    private uint _lightMask;
+    private uint _shadowViewMask;
 
     private bool _hasLitGeometries;
-    private readonly List<Drawable>? _shadowCasters;
+    private List<Drawable>? _shadowCasters;
 
     /// <remarks>
     /// C++ takes <c>bool&amp; hasLitGeometries</c> and writes through the reference.
@@ -25,8 +25,19 @@ public class PointLightGeometryQuery : SphereOctreeQuery
     /// </remarks>
     public PointLightGeometryQuery(List<Drawable> result, List<Drawable>? shadowCasters,
         DrawableProcessor drawableProcessor, Light light, uint primaryViewMask, uint shadowViewMask)
-        : base(result, GetLightSphere(light), DrawableFlags.Geometry, primaryViewMask | shadowViewMask)
+        : base(result, default, DrawableFlags.Geometry, primaryViewMask | shadowViewMask)
     {
+        _drawableProcessor = drawableProcessor;
+        Reset(result, shadowCasters, drawableProcessor, light, primaryViewMask, shadowViewMask);
+    }
+
+    public void Reset(List<Drawable> result, List<Drawable>? shadowCasters,
+        DrawableProcessor drawableProcessor, Light light, uint primaryViewMask, uint shadowViewMask)
+    {
+        Result = result;
+        Sphere = GetLightSphere(light);
+        DrawableFlags = DrawableFlags.Geometry;
+        ViewMask = primaryViewMask | shadowViewMask;
         _drawableProcessor = drawableProcessor;
         _lightMask = light.GetLightMaskEffective();
         _shadowViewMask = shadowViewMask;
@@ -85,12 +96,12 @@ public class PointLightGeometryQuery : SphereOctreeQuery
 public class SpotLightGeometryQuery : FrustumOctreeQuery
 {
     /// <summary>Immutable.</summary>
-    private readonly DrawableProcessor _drawableProcessor;
-    private readonly uint _lightMask;
-    private readonly uint _shadowViewMask;
+    private DrawableProcessor _drawableProcessor;
+    private uint _lightMask;
+    private uint _shadowViewMask;
 
     private bool _hasLitGeometries;
-    private readonly List<Drawable>? _shadowCasters;
+    private List<Drawable>? _shadowCasters;
 
     /// <remarks>
     /// C++ takes <c>bool&amp; hasLitGeometries</c> and writes through the reference.
@@ -98,8 +109,19 @@ public class SpotLightGeometryQuery : FrustumOctreeQuery
     /// </remarks>
     public SpotLightGeometryQuery(List<Drawable> result, List<Drawable>? shadowCasters,
         DrawableProcessor drawableProcessor, Light light, uint primaryViewMask, uint shadowViewMask)
-        : base(result, light.GetFrustum(), DrawableFlags.Geometry, primaryViewMask | shadowViewMask)
+        : base(result, new Frustum(), DrawableFlags.Geometry, primaryViewMask | shadowViewMask)
     {
+        _drawableProcessor = drawableProcessor;
+        Reset(result, shadowCasters, drawableProcessor, light, primaryViewMask, shadowViewMask);
+    }
+
+    public void Reset(List<Drawable> result, List<Drawable>? shadowCasters,
+        DrawableProcessor drawableProcessor, Light light, uint primaryViewMask, uint shadowViewMask)
+    {
+        Result = result;
+        light.GetFrustum(Frustum);
+        DrawableFlags = DrawableFlags.Geometry;
+        ViewMask = primaryViewMask | shadowViewMask;
         _drawableProcessor = drawableProcessor;
         _lightMask = light.GetLightMaskEffective();
         _shadowViewMask = shadowViewMask;

@@ -74,13 +74,13 @@ public struct FrameInfo
 /// <summary>Cached info about current zone.</summary>
 public struct CachedDrawableZone
 {
-    private WeakReference<Zone>? _zone;
+    private Zone? _zone;
 
     /// <summary>Pointer to Zone.</summary>
     public Zone? Zone
     {
-        readonly get => _zone is not null && _zone.TryGetTarget(out var zone) ? zone : null;
-        set => _zone = value is not null ? new WeakReference<Zone>(value) : null;
+        readonly get => _zone;
+        set => _zone = value;
     }
 
     /// <summary>Node position at the moment of last caching.</summary>
@@ -794,9 +794,7 @@ public abstract class Drawable : Component
         var scene = Scene;
         if (scene is not null)
         {
-            var octrees = new System.Collections.Generic.List<Octree>(1);
-            scene.GetComponents(octrees);
-            var octree = octrees.Count > 0 ? octrees[0] : null;
+            var octree = scene.GetComponent<Octree>();
             if (octree is not null)
                 octree.AddDrawable(this);
             else

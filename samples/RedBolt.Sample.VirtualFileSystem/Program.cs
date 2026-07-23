@@ -82,7 +82,8 @@ sealed class VirtualFileSystemApplication : Application
 
         ImGui.SetNextWindowSize(new Vector2f(550.0f, 500.0f), ImGuiCond.ImGuiCondFirstUseEver);
         ImGui.SetNextWindowPos(new Vector2f(350.0f, 50.0f), ImGuiCond.ImGuiCondFirstUseEver);
-        if (ImGui.Begin("VFS Query Interface"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        var queryWindowOpen = true;
+        if (ImGui.Begin("VFS Query Interface"u8, ref queryWindowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             ImGui.TextUnformatted("URI: "u8);
             ImGui.SameLine();
@@ -173,7 +174,8 @@ sealed class VirtualFileSystemApplication : Application
         ImGui.End();
 
         ImGui.SetNextWindowPos(new Vector2f(20.0f, 250.0f), ImGuiCond.ImGuiCondFirstUseEver);
-        if (ImGui.Begin("Mount Points"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        var mountPointsWindowOpen = true;
+        if (ImGui.Begin("Mount Points"u8, ref mountPointsWindowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             ImGui.PushStyleColor(ImGuiCol.ImGuiColText, new Vector4f(0.0f, 1.0f, 0.0f, 1.0f));
             foreach (var line in _mountPointLines)

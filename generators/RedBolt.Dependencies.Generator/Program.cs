@@ -716,6 +716,8 @@ internal static class Program
 
         foreach (var function in compilation.Functions)
         {
+            if (function.CppQualifiedName == "ImGui::Begin")
+                function.Parameters.First(static parameter => parameter.NativeName == "p_open").Direction = BindingParameterDirection.Ref;
             if (function.NativeName == "Checkbox")
                 function.Parameters.First(static parameter => parameter.NativeName == "v").Direction = BindingParameterDirection.Ref;
         }

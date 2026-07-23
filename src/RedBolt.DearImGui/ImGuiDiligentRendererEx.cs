@@ -78,19 +78,17 @@ public class ImGuiDiligentRendererEx : IDisposable
 
     public void NewFrame()
     {
-        using var swapChainDesc = _renderDevice.GetSwapChain()!.GetDesc();
-        var width = checked((int)swapChainDesc.Width);
-        var height = checked((int)swapChainDesc.Height);
+        var graphics = _renderDevice.GetSubsystem<Graphics>()!;
         ImGui.ImGuiBackendRendererNewFrame(
             _nativeRenderer,
-            checked((uint)width),
-            checked((uint)height),
-            (uint)swapChainDesc.PreTransform);
+            checked((uint)graphics.Width),
+            checked((uint)graphics.Height),
+            (uint)graphics.GetSwapChainPreTransform());
     }
 
     public void RenderDrawData(ImDrawData drawData)
     {
-        using var renderScope = new RenderScope(_renderDevice.GetRenderContext(), "ImGUI: Render main viewport");
+        using var renderScope = RenderScope.Acquire(_renderDevice.GetRenderContext(), "ImGUI: Render main viewport");
 
         RenderDrawDataWith(drawData, _primaryPipelineState);
     }

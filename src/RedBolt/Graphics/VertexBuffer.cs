@@ -140,12 +140,13 @@ public class VertexBuffer : PipelineStateTracker
     }
 
     /// <summary>Return element with specified type and semantic from a vertex element list, or null if it does not exist.</summary>
-    public static VertexElement? GetElement(IEnumerable<VertexElement> elements, VertexElementType type,
+    public static VertexElement? GetElement(IReadOnlyList<VertexElement> elements, VertexElementType type,
         VertexElementSemantic semantic, byte index = 0)
     {
         ArgumentNullException.ThrowIfNull(elements);
-        foreach (var element in elements)
+        for (var i = 0; i < elements.Count; ++i)
         {
+            var element = elements[i];
             if (element.Type == type && element.Semantic == semantic && element.Index == index)
                 return element;
         }
@@ -154,11 +155,11 @@ public class VertexBuffer : PipelineStateTracker
     }
 
     /// <summary>Return whether an element list has a specified element type and semantic.</summary>
-    public static bool HasElement(IEnumerable<VertexElement> elements, VertexElementType type,
+    public static bool HasElement(IReadOnlyList<VertexElement> elements, VertexElementType type,
         VertexElementSemantic semantic, byte index = 0) => GetElement(elements, type, semantic, index) is not null;
 
     /// <summary>Return element offset for specified type and semantic from a vertex element list.</summary>
-    public static uint GetElementOffset(IEnumerable<VertexElement> elements, VertexElementType type,
+    public static uint GetElementOffset(IReadOnlyList<VertexElement> elements, VertexElementType type,
         VertexElementSemantic semantic, byte index = 0) => GetElement(elements, type, semantic, index)?.Offset ?? uint.MaxValue;
 
     /// <summary>Return a vertex element list from a legacy element bitmask.</summary>
@@ -175,6 +176,15 @@ public class VertexBuffer : PipelineStateTracker
     }
 
     /// <summary>Return vertex size from an element list.</summary>
+    public static uint GetVertexSize(IReadOnlyList<VertexElement> elements)
+    {
+        ArgumentNullException.ThrowIfNull(elements);
+        var size = 0u;
+        for (var i = 0; i < elements.Count; ++i)
+            size += TypeSizes[(int)elements[i].Type];
+        return size;
+    }
+
     public static uint GetVertexSize(IEnumerable<VertexElement> elements)
     {
         ArgumentNullException.ThrowIfNull(elements);

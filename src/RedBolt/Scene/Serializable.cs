@@ -223,7 +223,7 @@ public class Serializable : Object
             SetInstanceDefault(attribute.Name, value);
 
         if (attribute.Accessor is not null)
-            attribute.Accessor.SetObject(this, ConvertVariant(attribute, value));
+            attribute.Accessor.Set(this, value);
         else
         {
             var copy = value.Clone();
@@ -631,14 +631,6 @@ public class Serializable : Object
         for (var i = 0; i < attribute.EnumNames.Count; ++i)
             if (string.Equals(attribute.EnumNames[i], name, StringComparison.OrdinalIgnoreCase)) return new Variant(i);
         return default;
-    }
-
-    private static object? ConvertVariant(AttributeInfo attribute, Variant value)
-    {
-        if (attribute.ValueType.IsEnum) return Enum.ToObject(attribute.ValueType, value.GetInt());
-        if (attribute.ValueType == typeof(uint)) return value.GetUInt();
-        if (attribute.ValueType == typeof(ulong)) return value.GetUInt64();
-        return value.GetObject();
     }
 
     private Variant GetAttributeDefault(AttributeInfo attribute)

@@ -106,6 +106,9 @@ public class LightProcessor : IDisposable
     /// Directional lights: all lit geometries, for shadow focusing.
     /// </summary>
     private readonly List<Drawable> _litGeometries = [];
+    private PointLightGeometryQuery? _pointLightGeometryQuery;
+    private SpotLightGeometryQuery? _spotLightGeometryQuery;
+    private readonly Frustum _distanceFrustum = new();
 
     /// <summary>
     /// Point and spot lights: all possible shadow casters.
@@ -195,9 +198,19 @@ public class LightProcessor : IDisposable
         {
             case LightType.Spot:
             {
-                var query = new SpotLightGeometryQuery(_litGeometries,
-                    _isShadowRequested ? _shadowCasterCandidates : null,
-                    drawableProcessor, Light, cullCamera.GetPrimaryViewMask(), cullCamera.GetShadowViewMask());
+                var query = _spotLightGeometryQuery;
+                if (query is null)
+                {
+                    query = new SpotLightGeometryQuery(_litGeometries,
+                        _isShadowRequested ? _shadowCasterCandidates : null,
+                        drawableProcessor, Light, cullCamera.GetPrimaryViewMask(), cullCamera.GetShadowViewMask());
+                    _spotLightGeometryQuery = query;
+                }
+                else
+                {
+                    query.Reset(_litGeometries, _isShadowRequested ? _shadowCasterCandidates : null,
+                        drawableProcessor, Light, cullCamera.GetPrimaryViewMask(), cullCamera.GetShadowViewMask());
+                }
                 octree.GetDrawables(query);
                 _hasLitGeometries = query.HasLitGeometries;
                 _hasForwardLitGeometries = _litGeometries.Count > 0;
@@ -205,9 +218,19 @@ public class LightProcessor : IDisposable
             }
             case LightType.Point:
             {
-                var query = new PointLightGeometryQuery(_litGeometries,
-                    _isShadowRequested ? _shadowCasterCandidates : null,
-                    drawableProcessor, Light, cullCamera.GetPrimaryViewMask(), cullCamera.GetShadowViewMask());
+                var query = _pointLightGeometryQuery;
+                if (query is null)
+                {
+                    query = new PointLightGeometryQuery(_litGeometries,
+                        _isShadowRequested ? _shadowCasterCandidates : null,
+                        drawableProcessor, Light, cullCamera.GetPrimaryViewMask(), cullCamera.GetShadowViewMask());
+                    _pointLightGeometryQuery = query;
+                }
+                else
+                {
+                    query.Reset(_litGeometries, _isShadowRequested ? _shadowCasterCandidates : null,
+                        drawableProcessor, Light, cullCamera.GetPrimaryViewMask(), cullCamera.GetShadowViewMask());
+                }
                 octree.GetDrawables(query);
                 _hasLitGeometries = query.HasLitGeometries;
                 _hasForwardLitGeometries = _litGeometries.Count > 0;
@@ -219,18 +242,24 @@ public class LightProcessor : IDisposable
                 _hasLitGeometries = false;
                 _hasForwardLitGeometries = false;
                 var lightMask = Light.GetLightMask();
-                foreach (var drawable in drawableProcessor.Geometries)
+                var geometryBuckets = drawableProcessor.GeometryBuckets;
+                for (var outerIndex = 0; outerIndex < geometryBuckets.Count; ++outerIndex)
                 {
-                    var drawableIndex = checked((int)drawable.GetDrawableIndex());
-                    var flags = drawableProcessor.GetGeometryRenderFlags(drawableIndex);
-                    var isLit = (flags & GeometryRenderFlag.Lit) != 0;
-                    var isForwardLit = (flags & GeometryRenderFlag.ForwardLit) != 0;
+                    var geometryBucket = geometryBuckets[outerIndex];
+                    for (var innerIndex = 0; innerIndex < geometryBucket.Count; ++innerIndex)
+                    {
+                        var drawable = geometryBucket[innerIndex];
+                        var drawableIndex = checked((int)drawable.GetDrawableIndex());
+                        var flags = drawableProcessor.GetGeometryRenderFlags(drawableIndex);
+                        var isLit = (flags & GeometryRenderFlag.Lit) != 0;
+                        var isForwardLit = (flags & GeometryRenderFlag.ForwardLit) != 0;
 
-                    _hasLitGeometries = _hasLitGeometries || isLit;
-                    _hasForwardLitGeometries = _hasForwardLitGeometries || isForwardLit;
+                        _hasLitGeometries = _hasLitGeometries || isLit;
+                        _hasForwardLitGeometries = _hasForwardLitGeometries || isForwardLit;
 
-                    if (isLit && (drawable.GetLightMaskInZone() & lightMask) != 0)
-                        _litGeometries.Add(drawable);
+                        if (isLit && (drawable.GetLightMaskInZone() & lightMask) != 0)
+                            _litGeometries.Add(drawable);
+                    }
                 }
 
                 break;
@@ -531,14 +560,13 @@ public class LightProcessor : IDisposable
             _cookedParams.ShadowIntensity = new Vector4f((1.0f - intensity) / samples, intensity, 0.0f, 0.0f);
         }
 
-        Span<float> splitDistances = stackalloc float[4]
-            { MathDefs.LargeValue, MathDefs.LargeValue, MathDefs.LargeValue, MathDefs.LargeValue };
+        Span<float> splitDistances = stackalloc float[4];
+        splitDistances.Fill(MathDefs.LargeValue);
         if (lightType == LightType.Directional)
         {
             for (var i = 0; i < _numActiveSplits; ++i)
                 splitDistances[i] = _splits[i].CascadeZRange.Second / cullCamera.GetFarClip();
         }
-
         _cookedParams.ShadowSplitDistances = new Vector4f(splitDistances);
 
         for (var i = 0; i < Light.MaxLightSplits; ++i)
@@ -686,16 +714,21 @@ public class LightProcessor : IDisposable
         return result;
     }
 
-    private static float EstimateDistanceToCamera(Camera cullCamera, Light light)
+    private float EstimateDistanceToCamera(Camera cullCamera, Light light)
     {
         var cameraPos = cullCamera.Node!.GetWorldPosition();
-        return light.GetLightType() switch
+        switch (light.GetLightType())
         {
-            LightType.Directional => 0.0f,
-            LightType.Point => new Sphere(light.Node!.GetWorldPosition(), light.GetRange() * 1.25f).Distance(cameraPos),
-            LightType.Spot => light.GetFrustum().Distance(cameraPos),
-            _ => 0.0f
-        };
+            case LightType.Directional:
+                return 0.0f;
+            case LightType.Point:
+                return new Sphere(light.Node!.GetWorldPosition(), light.GetRange() * 1.25f).Distance(cameraPos);
+            case LightType.Spot:
+                light.GetFrustum(_distanceFrustum);
+                return _distanceFrustum.Distance(cameraPos);
+            default:
+                return 0.0f;
+        }
     }
 
     private static void CombineHash(ref uint result, uint hash) =>

@@ -630,12 +630,10 @@ public sealed class RenderDevice : Object
 
     public Vector2i GetSwapChainSize()
     {
-        var swapChain = GetSwapChain();
-        if (swapChain is null || swapChain.IsNull)
+        var graphics = GetSubsystem<Graphics>();
+        if (graphics is null || !graphics.IsInitialized)
             return Vector2i.Zero;
-
-        using var desc = swapChain.GetDesc();
-        return new Vector2i((int)desc.Width, (int)desc.Height);
+        return new Vector2i(graphics.Width, graphics.Height);
     }
 
     public Vector2i GetWindowSize() => GetWindowSettings().Size;

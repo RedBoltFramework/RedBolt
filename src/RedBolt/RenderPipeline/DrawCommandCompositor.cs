@@ -387,8 +387,11 @@ internal ref struct DrawCommandCompositor
         if (drawQueue.BeginShaderParameterGroup(ShaderParameterGroup.Material, _dirty.Material || _dirty.LightmapConstants))
         {
             // TODO: This block may be cached for some APIs
-            foreach (var (name, parameter) in _current.Material!.GetShaderParameters())
+            var materialParameters = _current.Material!.EnumerateShaderParameters();
+            while (materialParameters.MoveNext())
             {
+                var name = materialParameters.Current.Key;
+                var parameter = materialParameters.Current.Value;
                 if (parameter.IsCustom)
                     continue;
                 if (name == (string)ShaderConsts.Material_FadeOffsetScale)
@@ -411,8 +414,11 @@ internal ref struct DrawCommandCompositor
         if (drawQueue.BeginShaderParameterGroup(ShaderParameterGroup.Custom, _dirty.Material))
         {
             // TODO: This block may be cached for some APIs
-            foreach (var (name, parameter) in _current.Material!.GetShaderParameters())
+            var materialParameters = _current.Material!.EnumerateShaderParameters();
+            while (materialParameters.MoveNext())
             {
+                var name = materialParameters.Current.Key;
+                var parameter = materialParameters.Current.Value;
                 if (parameter.IsCustom)
                     drawQueue.AddShaderParameter(new StringHash(name), parameter.VariantValue);
             }
@@ -434,8 +440,11 @@ internal ref struct DrawCommandCompositor
         }
 
         var materialHasEnvironmentMap = false;
-        foreach (var (nameHash, texture) in _current.Material!.GetTextures())
+        var materialTextures = _current.Material!.EnumerateTextures();
+        while (materialTextures.MoveNext())
         {
+            var nameHash = materialTextures.Current.Key;
+            var texture = materialTextures.Current.Value;
             if (nameHash == (StringHash)ShaderResources.Reflection0)
                 materialHasEnvironmentMap = true;
             // Emissive texture is used for lightmaps and refraction background, skip if necessary

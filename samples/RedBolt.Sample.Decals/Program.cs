@@ -52,5 +52,5 @@ sealed class DecalsApplication : Application
         decal.AddDecal(hitDrawable, result.Position, _cameraNode.Rotation, 0.5f, 1.0f, 1.0f, Vector2f.Zero, Vector2f.One);
     }
     protected override void Stop() { _postRenderSubscription?.Dispose(); _postRenderSubscription = null; _dearImGuiSubscription?.Dispose(); }
-    private void DrawInstructions() { if (ImGui.Begin("Decals\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings)) { ImGui.TextUnformatted("Use WASD keys to move\0"u8); ImGui.TextUnformatted("LMB to paint decals, RMB to rotate view\0"u8); ImGui.TextUnformatted(_drawDebug ? "Debug geometry requested\0"u8 : "Space to toggle debug geometry\0"u8); } ImGui.End(); }
+    private void DrawInstructions() { var windowOpen = true; if (ImGui.Begin("Decals\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings)) { ImGui.TextUnformatted("Use WASD keys to move\0"u8); ImGui.TextUnformatted("LMB to paint decals, RMB to rotate view\0"u8); ImGui.TextUnformatted(_drawDebug ? "Debug geometry requested\0"u8 : "Space to toggle debug geometry\0"u8); } ImGui.End(); }
 }

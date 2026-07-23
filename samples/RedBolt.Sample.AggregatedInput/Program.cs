@@ -219,7 +219,8 @@ sealed class AggregatedInputApplication : Application
 
     private void Draw()
     {
-        if (ImGui.Begin("Aggregated Input\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        var windowOpen = true;
+        if (ImGui.Begin("Aggregated Input\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             ImGui.TextUnformatted("Move marker around with keyboard, joystick or touch\0"u8);
             ImGui.TextUnformatted(_directionText.AsSpan(0, _directionTextLength));

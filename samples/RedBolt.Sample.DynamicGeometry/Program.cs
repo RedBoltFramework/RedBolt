@@ -388,7 +388,8 @@ public class DynamicGeometry : Application
     private void DrawInstructions()
     {
         _instructionLine.FormatInPlace("Use WASD keys and mouse/touch to move");
-        if (ImGui.Begin("Dynamic Geometry\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        var windowOpen = true;
+        if (ImGui.Begin("Dynamic Geometry\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             ImGui.TextUnformatted(_instructionLine.Bytes);
             ImGui.TextUnformatted("Space to toggle animation\0"u8);
