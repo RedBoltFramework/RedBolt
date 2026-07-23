@@ -245,7 +245,7 @@ public class SoundEffects : Application
                 HandleSoundReach(reach);
 
             var lfe = _lfe;
-            if (ImGui.Checkbox("Output to LFE\0"u8, out lfe))
+            if (ImGui.Checkbox("Output to LFE\0"u8, ref lfe))
                 HandleLFE(lfe);
 
             for (var i = 0; i < _microphoneLabels.Count; ++i)

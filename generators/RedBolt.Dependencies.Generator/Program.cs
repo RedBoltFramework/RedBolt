@@ -152,13 +152,16 @@ internal static class Program
 
     private static int Main(string[] args)
     {
-        SharpCppLog.Configure();
+        StreamWriter? logWriter = null;
 
         try
         {
             var options = GeneratorOptions.Parse(args);
             var descriptor = BindingSurfaceDescriptor.Create(options.Surface);
             Directory.CreateDirectory(options.OutputDirectory);
+            Directory.CreateDirectory(Path.GetDirectoryName(options.LogPath)!);
+            logWriter = new StreamWriter(options.LogPath, false);
+            SharpCppLog.Configure(fileWriter: logWriter);
 
             var clangArguments = BuildClangArguments(options, descriptor);
             var marshallerClangArguments = BuildMarshallerClangArguments(clangArguments, descriptor);
@@ -192,6 +195,7 @@ internal static class Program
 
             MarkNativeInterfaceWrappers(compilation, descriptor);
             BindingCompilationBootstrapPipeline.Apply(compilation, marshallerHeaders, clangArguments, marshallerClangArguments);
+            FixImGuiFunctions(compilation, descriptor);
             FixCDependencyTypes(compilation, descriptor);
             FixDiligentBlendFactors(compilation, descriptor);
             FixDiligentTextureFormatFunction(compilation, descriptor);
@@ -224,14 +228,23 @@ internal static class Program
                     ClangArgsHash: $"redbolt-{descriptor.Surface}-clang"));
 
             File.WriteAllText(options.MetadataPath, BindingMetadataSerializer.Serialize(metadataDocument));
-            Console.WriteLine($"Generated {descriptor.Surface} bindings with {compilation.Functions.Count} functions after pruning {prunedCount} unsupported declarations: {options.OutputDirectory}");
+            var summary =
+                $"Generated {descriptor.Surface} bindings with {compilation.Functions.Count} functions after pruning {prunedCount} unsupported declarations: {options.OutputDirectory}";
+            Console.WriteLine(summary);
+            logWriter.WriteLine(summary);
             return 0;
         }
         catch (Exception ex)
         {
             Console.Error.WriteLine(ex);
+            logWriter?.WriteLine(ex);
             PrintUsage();
             return 1;
+        }
+        finally
+        {
+            SharpCppLog.Configure();
+            logWriter?.Dispose();
         }
     }
 
@@ -676,6 +689,38 @@ internal static class Program
         return PruneImGuiSurface(compilation);
     }
 
+    private static void FixImGuiFunctions(
+        BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
+    {
+        if (descriptor.Surface != "dearimgui")
+            return;
+
+        foreach (var function in compilation.Functions)
+        {
+            if (function.NativeName is not ("InputText" or "InputTextMultiline" or "InputTextWithHint"))
+                continue;
+
+            for (var index = function.Parameters.Count - 1; index >= 0; --index)
+            {
+                if (function.Parameters[index].NativeName is "callback" or "user_data")
+                    function.Parameters.RemoveAt(index);
+            }
+            var buffer = function.Parameters.First(static parameter => parameter.NativeName == "buf");
+            buffer.Type = BindingType.IntPtr;
+            buffer.Direction = BindingParameterDirection.In;
+            buffer.AbiKind = BindingParameterAbiKind.Value;
+            buffer.CppTypeName = "char*";
+            function.ClearIgnoreReason();
+            function.SetMetadata(MetadataKeys.NativeDefaultArgumentAdapter, true);
+        }
+
+        foreach (var function in compilation.Functions)
+        {
+            if (function.NativeName == "Checkbox")
+                function.Parameters.First(static parameter => parameter.NativeName == "v").Direction = BindingParameterDirection.Ref;
+        }
+    }
+
     private static void ApplyImGuiEnumAliasSurfaceIfApplicable(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
     {
         if (descriptor.Surface != "dearimgui")
@@ -1051,7 +1096,7 @@ internal static class Program
 
     private static void PrintUsage()
     {
-        Console.Error.WriteLine("Usage: RedBolt.Dependencies.Generator --surface <sdl|diligent|dearimgui|stb|lz4|webp|glslang|spirvcross|spirvtools> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
+        Console.Error.WriteLine("Usage: RedBolt.Dependencies.Generator --surface <sdl|diligent|dearimgui|stb|lz4|webp|glslang|spirvcross|spirvtools> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
     }
 
     private sealed record BindingSurfaceDescriptor(
@@ -1192,6 +1237,7 @@ internal static class Program
         public required string OutputDirectory { get; init; }
         public required string FileStem { get; init; }
         public required string MetadataPath { get; init; }
+        public required string LogPath { get; init; }
         public required string SharpCppRoot { get; init; }
         public required string RedBoltRoot { get; init; }
         public required string CompilerPath { get; init; }
@@ -1213,6 +1259,7 @@ internal static class Program
                 OutputDirectory = Path.GetFullPath(RequireOption(args, "--output-dir")),
                 FileStem = RequireOption(args, "--file-stem"),
                 MetadataPath = Path.GetFullPath(RequireOption(args, "--metadata")),
+                LogPath = Path.GetFullPath(RequireOption(args, "--log")),
                 SharpCppRoot = Path.GetFullPath(RequireOption(args, "--sharpcpp-root")),
                 RedBoltRoot = Path.GetFullPath(RequireOption(args, "--redbolt-root")),
                 CompilerPath = Path.GetFullPath(RequireOption(args, "--compiler")),

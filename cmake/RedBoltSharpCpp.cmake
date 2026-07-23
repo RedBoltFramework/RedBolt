@@ -11,6 +11,7 @@ function(redbolt_add_native_binding_generation)
     endforeach()
 
     set(generated_aliases "${ARG_OUTPUT_DIR}/${ARG_FILE_STEM}.Bindings.Aliases.g.cs")
+    set(generator_log "${ARG_OUTPUT_DIR}/${ARG_FILE_STEM}.log")
 
     set(include_args)
     foreach(include_dir IN LISTS REDBOLT_BINDING_INCLUDE_DIRS ARG_INCLUDE_DIRS CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES)
@@ -59,6 +60,7 @@ function(redbolt_add_native_binding_generation)
             "${ARG_OUTPUT_CPP}"
             "${generated_aliases}"
             "${ARG_OUTPUT_METADATA}"
+            "${generator_log}"
         COMMAND ${binding_generator_command}
             --surface "${ARG_SURFACE}"
             --header "${ARG_HEADER}"
@@ -66,6 +68,7 @@ function(redbolt_add_native_binding_generation)
             --output-dir "${ARG_OUTPUT_DIR}"
             --file-stem "${ARG_FILE_STEM}"
             --metadata "${ARG_OUTPUT_METADATA}"
+            --log "${generator_log}"
             --sharpcpp-root "${REDBOLT_SHARPCPP_ROOT}"
             --redbolt-root "${CMAKE_SOURCE_DIR}"
             --compiler "${CMAKE_CXX_COMPILER}"
@@ -87,5 +90,6 @@ function(redbolt_add_native_binding_generation)
             "${ARG_OUTPUT_CS}"
             "${ARG_OUTPUT_CPP}"
             "${generated_aliases}"
-            "${ARG_OUTPUT_METADATA}")
+            "${ARG_OUTPUT_METADATA}"
+            "${generator_log}")
 endfunction()

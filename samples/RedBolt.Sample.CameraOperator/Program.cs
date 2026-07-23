@@ -106,11 +106,11 @@ sealed class CameraOperatorSampleApplication : Application
         if (ImGui.Begin("Camera Operator\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             ImGui.TextUnformatted("Right click to rotate camera\0"u8);
-            if (ImGui.Checkbox("Track Cube A\0"u8, out _trackCubeA))
+            if (ImGui.Checkbox("Track Cube A\0"u8, ref _trackCubeA))
                 TrackCubeAToggled(_trackCubeA);
-            if (ImGui.Checkbox("Track Cube B\0"u8, out _trackCubeB))
+            if (ImGui.Checkbox("Track Cube B\0"u8, ref _trackCubeB))
                 TrackCubeBToggled(_trackCubeB);
-            if (ImGui.Checkbox("Orthographic\0"u8, out _orthographic))
+            if (ImGui.Checkbox("Orthographic\0"u8, ref _orthographic))
                 OrthographicToggled(_orthographic);
         }
         ImGui.End();

@@ -177,7 +177,7 @@ public class HelloGUI : Application
 
         if (visible)
         {
-            if (ImGui.Checkbox("CheckBox\0"u8, out _checkBox))
+            if (ImGui.Checkbox("CheckBox\0"u8, ref _checkBox))
                 HandleControlClicked("CheckBox");
 
             if (ImGui.Button("Button\0"u8))

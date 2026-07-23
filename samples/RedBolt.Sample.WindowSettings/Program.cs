@@ -197,10 +197,10 @@ public class WindowSettingsDemo : Application
         ImGui.TextUnformatted(_resolutionLabel.Bytes);
         ImGui.InputInt("Monitor\0"u8, out _monitor);
         ImGui.InputInt("Mode index\0"u8, out _mode);
-        ImGui.Checkbox("Fullscreen\0"u8, out _fullscreen);
-        ImGui.Checkbox("Borderless\0"u8, out _borderless);
-        ImGui.Checkbox("Resizable\0"u8, out _resizable);
-        ImGui.Checkbox("V-Sync\0"u8, out _vSync);
+        ImGui.Checkbox("Fullscreen\0"u8, ref _fullscreen);
+        ImGui.Checkbox("Borderless\0"u8, ref _borderless);
+        ImGui.Checkbox("Resizable\0"u8, ref _resizable);
+        ImGui.Checkbox("V-Sync\0"u8, ref _vSync);
         ImGui.InputInt("MSAA index\0"u8, out _multiSample);
         if (ImGui.Button("Apply\0"u8))
             ApplySettings();
