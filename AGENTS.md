@@ -316,6 +316,7 @@ These are the ONLY places C# is allowed to differ from C++:
 - WebAssembly frame pacing is controlled by the JavaScript `requestAnimationFrame` loop. Do not call `SDL_GL_SetSwapInterval` on WebAssembly because SDL's Emscripten implementation requires an Emscripten-owned main loop that the .NET host does not use.
 - `SystemUI` is renamed to `DearImGui`.
 - Calls to `GetSubsystem<T>()` in ported subsystem consumers assume that the requested subsystem is registered and return a non-null object. C# code may use a non-null field/reference and omit C++ null checks that only guard a missing subsystem.
+- The optional Actions subsystem and compile-gated Actions reflection/integration members are excluded from the current completion scope.
 
 Anything not on this list must match C++.
 

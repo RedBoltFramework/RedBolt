@@ -165,6 +165,10 @@ public class Input : Object
         MoveAndOrbitController.RegisterObject(context);
         var reflection = context.AddFactoryReflection<PointerAdapter>();
         reflection.SetObjectFactory(static () => new PointerAdapter());
+        reflection = context.AddFactoryReflection<DirectionAggregator>();
+        reflection.SetObjectFactory(static () => new DirectionAggregator());
+        reflection = context.AddFactoryReflection<DirectionalPadAdapter>();
+        reflection.SetObjectFactory(static () => new DirectionalPadAdapter());
     }
 
     private const uint SdlInitVideo = 0x00000020u;

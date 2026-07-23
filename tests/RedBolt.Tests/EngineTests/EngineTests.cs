@@ -103,6 +103,34 @@ public sealed class EngineTests
     }
 
     [Fact]
+    public void Graphics_configure_stores_settings()
+    {
+        var originalSettings = _fixture.Graphics.GetSettings();
+        var settings = new GraphicsSettings
+        {
+            ShaderCacheDir = FileIdentifier.FromUri("cache://ShaderCache"),
+            LogShaderSources = true,
+            ValidateShaders = true,
+            CacheShaders = true
+        };
+
+        try
+        {
+            _fixture.Graphics.Configure(settings);
+            settings.CacheShaders = false;
+            ref readonly var configuredSettings = ref _fixture.Graphics.GetSettings();
+            Assert.Equal("cache://ShaderCache", configuredSettings.ShaderCacheDir.ToString());
+            Assert.True(configuredSettings.LogShaderSources);
+            Assert.True(configuredSettings.ValidateShaders);
+            Assert.True(configuredSettings.CacheShaders);
+        }
+        finally
+        {
+            _fixture.Graphics.Configure(originalSettings);
+        }
+    }
+
+    [Fact]
     public void Fps_helpers_roundtrip()
     {
         _fixture.Engine.SetMinFps(0);

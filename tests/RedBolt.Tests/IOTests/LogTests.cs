@@ -67,7 +67,7 @@ public sealed class LogTests
         var calls = 0;
         RedBolt.Object? sender = null;
         IOEvents.LogMessage observed = default;
-        using var subscription = receiver.SubscribeToEvent<IOEvents.LogMessage>(log, (ref IOEvents.LogMessage eventData) =>
+        receiver.SubscribeToEvent<IOEvents.LogMessage>(log, (ref IOEvents.LogMessage eventData) =>
         {
             if (eventData.Message != message)
                 return;
@@ -96,7 +96,7 @@ public sealed class LogTests
         var calls = 0;
         RedBolt.Object? sender = null;
         IOEvents.LogMessage observed = default;
-        using var subscription = receiver.SubscribeToEvent<IOEvents.LogMessage>(log, (ref IOEvents.LogMessage eventData) =>
+        receiver.SubscribeToEvent<IOEvents.LogMessage>(log, (ref IOEvents.LogMessage eventData) =>
         {
             if (eventData.Message != message)
                 return;

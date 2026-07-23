@@ -164,6 +164,26 @@ public class Engine : Object
                 Vulkan = vulkanSettings,
                 D3D12 = d3D12Settings
             };
+            var requestedShaderPolicy = Parameters.ShaderPolicy switch
+            {
+                nameof(ShaderTranslationPolicy.Translate) => ShaderTranslationPolicy.Translate,
+                nameof(ShaderTranslationPolicy.Optimize) => ShaderTranslationPolicy.Optimize,
+                nameof(ShaderTranslationPolicy.Verbatim) => ShaderTranslationPolicy.Verbatim,
+                _ => (ShaderTranslationPolicy?)null
+            };
+            var graphicsSettings = new GraphicsSettings
+            {
+                RenderDevice = deviceSettings,
+                ShaderTranslationPolicy = RenderAPIUtils.SelectShaderTranslationPolicy(
+                    deviceSettings.Backend, requestedShaderPolicy),
+                ShaderCacheDir = FileIdentifier.FromUri(Parameters.ShaderCacheDir),
+                LogShaderSources = Parameters.ShaderLogSources,
+                ValidateShaders = Parameters.ValidateShaders,
+                DiscardShaderCache = Parameters.DiscardShaderCache,
+                CacheShaders = Parameters.SaveShaderCache
+            };
+            graphics.Configure(graphicsSettings);
+
             var windowSettings = new WindowSettings
             {
                 Mode = ProcessUtils.GetPlatform() == PlatformId.Web
@@ -188,7 +208,7 @@ public class Engine : Object
             input.Initialize(Parameters);
             try
             {
-                graphics.Initialize(Parameters, deviceSettings, windowSettings, input);
+                graphics.Initialize(Parameters, graphicsSettings.RenderDevice, windowSettings, input);
                 graphics.InitializePipelineStateCache(FileIdentifier.FromUri(Parameters.PsoCache));
             }
             catch (Exception exception)
@@ -540,21 +560,7 @@ public class Engine : Object
         GetSubsystem<Renderer>()!.Render();
 
         graphics.ResetRenderTargets();
-
-        var screenshotPath = _exitRequired && !_screenshotCapturedForExit ? Parameters.ScreenshotOnExit : null;
-        if (!string.IsNullOrWhiteSpace(screenshotPath) && _screenshotFrameDelay-- <= 0)
-        {
-            using var screenshot = new Image();
-            if (graphics.EndFrame(screenshot)
-                && screenshot.SaveFile(new FileIdentifier(GetScreenshotPath(screenshotPath))))
-            {
-                ++_screenshotIndex;
-                _screenshotCapturedForExit = _screenshotIndex >= Parameters.ScreenshotCount;
-                _screenshotFrameDelay = Parameters.ScreenshotFrameDelay;
-            }
-        }
-        else
-            graphics.EndFrame();
+        graphics.EndFrame();
     }
 
     /// <summary>Load and merge config files.</summary>
@@ -862,6 +868,19 @@ public class Engine : Object
 
     private void HandleEndFrame()
     {
+        var screenshotPath = _exitRequired && !_screenshotCapturedForExit ? Parameters.ScreenshotOnExit : null;
+        if (!IsHeadless && !string.IsNullOrWhiteSpace(screenshotPath) && _screenshotFrameDelay-- <= 0)
+        {
+            using var screenshot = new Image();
+            if (GetSubsystem<Graphics>()!.TakeScreenShot(screenshot)
+                && screenshot.SaveFile(new FileIdentifier(GetScreenshotPath(screenshotPath))))
+            {
+                ++_screenshotIndex;
+                _screenshotCapturedForExit = _screenshotIndex >= Parameters.ScreenshotCount;
+                _screenshotFrameDelay = Parameters.ScreenshotFrameDelay;
+            }
+        }
+
         if (_exitRequired && (IsHeadless || string.IsNullOrWhiteSpace(Parameters.ScreenshotOnExit) || _screenshotCapturedForExit))
             DoExit();
     }

@@ -78,13 +78,13 @@ public sealed class ObjectAnimationTests
         Context.SetInstance(context);
         try
         {
-            var receiver = new object();
+            using var receiver = new TestEventReceiver();
             var added = 0;
             var removed = 0;
-            using var addSubscription =
-                context.SubscribeToEvent<SceneEvents.AttributeAnimationAddedEvent>(receiver, objectAnimation, (ref SceneEvents.AttributeAnimationAddedEvent _) => ++added);
-            using var removeSubscription =
-                context.SubscribeToEvent<SceneEvents.AttributeAnimationRemovedEvent>(receiver, objectAnimation, (ref SceneEvents.AttributeAnimationRemovedEvent _) => ++removed);
+            receiver.SubscribeToEvent<SceneEvents.AttributeAnimationAddedEvent>(
+                objectAnimation, (ref SceneEvents.AttributeAnimationAddedEvent _) => ++added);
+            receiver.SubscribeToEvent<SceneEvents.AttributeAnimationRemovedEvent>(
+                objectAnimation, (ref SceneEvents.AttributeAnimationRemovedEvent _) => ++removed);
 
             objectAnimation.AddAttributeAnimation("FOV", animation);
             objectAnimation.RemoveAttributeAnimation("FOV");

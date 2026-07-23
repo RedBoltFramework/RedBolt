@@ -5,24 +5,21 @@ namespace RedBolt;
 /// </summary>
 public sealed class EventHandler
 {
-    private readonly WeakReference<object>? _receiver;
+    private readonly WeakReference<Object> _receiver;
 
-    internal EventHandler(ulong id, object? receiver, Object? sender, Type eventType, Delegate handler)
+    internal EventHandler(Object receiver, Object? sender, Type eventType, Delegate handler)
     {
-        Id = id;
-        _receiver = receiver is null ? null : new WeakReference<object>(receiver);
+        _receiver = new WeakReference<Object>(receiver);
         Sender = sender;
         EventType = eventType;
         Handler = handler;
     }
 
-    internal ulong Id { get; }
-
     internal Delegate Handler { get; }
 
     internal bool IsRemoved { get; set; }
 
-    internal bool HasReceiver => _receiver is not null;
+    internal bool HasReceiver => true;
 
     /// <summary>
     /// Return event receiver.
@@ -39,14 +36,8 @@ public sealed class EventHandler
     /// </summary>
     public Type EventType { get; }
 
-    internal bool TryGetReceiver(out object? receiver)
+    internal bool TryGetReceiver(out Object? receiver)
     {
-        if (_receiver is null)
-        {
-            receiver = null;
-            return true;
-        }
-
         return _receiver.TryGetTarget(out receiver);
     }
 }

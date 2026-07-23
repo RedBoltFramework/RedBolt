@@ -15,7 +15,6 @@ sealed class CameraOperatorSampleApplication : Application
 {
     private Scene? _scene;
     private Node? _cameraNode;
-    private ContextEventSubscription? _dearImGuiSubscription;
     private CameraOperator? _cameraOperator;
     private Node? _cubeA;
     private Node? _cubeB;
@@ -37,7 +36,7 @@ sealed class CameraOperatorSampleApplication : Application
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
         // Execute base class startup
         // Create the scene content
         CreateScene();
@@ -98,8 +97,6 @@ sealed class CameraOperatorSampleApplication : Application
     {
         _cameraNode!.FindComponent<Camera>()!.SetOrthographic(state);
     }
-
-    protected override void Stop() { _dearImGuiSubscription?.Dispose(); _dearImGuiSubscription = null; }
 
     private void DrawInstructions()
     {

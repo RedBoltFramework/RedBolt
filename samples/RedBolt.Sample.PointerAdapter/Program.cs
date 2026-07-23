@@ -13,10 +13,6 @@ sealed class PointerAdapterApplication : Application
     private PointerAdapter? _pointerAdapter;
     private Octree? _octree;
     private OutlineGroup? _outlineGroup;
-    private ContextEventSubscription? _mouseMoveSubscription;
-    private ContextEventSubscription? _mouseDownSubscription;
-    private ContextEventSubscription? _mouseUpSubscription;
-    private ContextEventSubscription? _dearImGuiSubscription;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -28,13 +24,13 @@ sealed class PointerAdapterApplication : Application
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
         CreateScene();
         Renderer.SetViewport(0, new Viewport(_scene!, _cameraNode!.GetComponent<Camera>()!));
         _pointerAdapter = new PointerAdapter();
-        _mouseMoveSubscription = Context.SubscribeToEvent<InputEvents.MouseMoveEvent>(_pointerAdapter, HandleMouseMove);
-        _mouseDownSubscription = Context.SubscribeToEvent<InputEvents.MouseButtonDownEvent>(_pointerAdapter, HandleMouseButtonDown);
-        _mouseUpSubscription = Context.SubscribeToEvent<InputEvents.MouseButtonUpEvent>(_pointerAdapter, HandleMouseButtonUp);
+        SubscribeToEvent<InputEvents.MouseMoveEvent>(_pointerAdapter, HandleMouseMove);
+        SubscribeToEvent<InputEvents.MouseButtonDownEvent>(_pointerAdapter, HandleMouseButtonDown);
+        SubscribeToEvent<InputEvents.MouseButtonUpEvent>(_pointerAdapter, HandleMouseButtonUp);
         _pointerAdapter.SetEnabled(true);
         Input.SetMouseMode(MouseMode.Free); Input.SetMouseVisible(true);
     }
@@ -91,8 +87,7 @@ sealed class PointerAdapterApplication : Application
     protected override void Stop()
     {
         _pointerAdapter?.SetEnabled(false);
-        _mouseMoveSubscription?.Dispose(); _mouseDownSubscription?.Dispose(); _mouseUpSubscription?.Dispose();
-        _dearImGuiSubscription?.Dispose(); _pointerAdapter?.Dispose();
+        _pointerAdapter?.Dispose();
     }
     private static void DrawInstructions() { var windowOpen = true; if (ImGui.Begin("Pointer Adapter\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings)) { ImGui.TextUnformatted("Move the pointer with mouse, touch, keyboard, or joystick\0"u8); ImGui.TextUnformatted("Press with mouse, touch, Enter, or joystick button\0"u8); } ImGui.End(); }
 }

@@ -339,7 +339,7 @@ public sealed class RenderPipelineTests : IDisposable
         _fixture.InitializeGraphics(parameters);
         try
         {
-            var scene = new Scene();
+            using var scene = new Scene();
             scene.CreateComponent<Octree>();
             var renderPipeline = scene.CreateComponent<RenderPipeline>();
             var renderPath = new RenderPath();
@@ -364,7 +364,7 @@ public sealed class RenderPipelineTests : IDisposable
             view.UpdateEnd += _ => lifecycle.Add("UpdateEndSignal");
             view.RenderBegin += _ => lifecycle.Add("RenderBeginSignal");
             view.RenderEnd += _ => lifecycle.Add("RenderEndSignal");
-            using var beginUpdateSubscription = scene.SubscribeToEvent<GraphicsEvents.BeginViewUpdateEvent>((ref GraphicsEvents.BeginViewUpdateEvent eventData) =>
+            scene.SubscribeToEvent<GraphicsEvents.BeginViewUpdateEvent>((ref GraphicsEvents.BeginViewUpdateEvent eventData) =>
             {
                 ++beginUpdateCalls;
                 lifecycle.Add("BeginViewUpdateEvent");
@@ -375,28 +375,28 @@ public sealed class RenderPipelineTests : IDisposable
                 Assert.Same(camera, eventData.Camera);
                 Assert.Same(_fixture.Renderer, scene.GetEventSender());
             });
-            using var endUpdateSubscription = scene.SubscribeToEvent<GraphicsEvents.EndViewUpdateEvent>((ref GraphicsEvents.EndViewUpdateEvent _) =>
+            scene.SubscribeToEvent<GraphicsEvents.EndViewUpdateEvent>((ref GraphicsEvents.EndViewUpdateEvent _) =>
             {
                 ++endUpdateCalls;
                 lifecycle.Add("EndViewUpdateEvent");
             });
-            using var beginRenderSubscription = scene.SubscribeToEvent<GraphicsEvents.BeginViewRenderEvent>((ref GraphicsEvents.BeginViewRenderEvent _) =>
+            scene.SubscribeToEvent<GraphicsEvents.BeginViewRenderEvent>((ref GraphicsEvents.BeginViewRenderEvent _) =>
             {
                 ++beginRenderCalls;
                 lifecycle.Add("BeginViewRenderEvent");
             });
-            using var buffersReadySubscription = scene.SubscribeToEvent<GraphicsEvents.ViewBuffersReadyEvent>((ref GraphicsEvents.ViewBuffersReadyEvent _) =>
+            scene.SubscribeToEvent<GraphicsEvents.ViewBuffersReadyEvent>((ref GraphicsEvents.ViewBuffersReadyEvent _) =>
             {
                 ++buffersReadyCalls;
                 lifecycle.Add("ViewBuffersReadyEvent");
             });
-            using var endRenderSubscription = scene.SubscribeToEvent<GraphicsEvents.EndViewRenderEvent>((ref GraphicsEvents.EndViewRenderEvent _) =>
+            scene.SubscribeToEvent<GraphicsEvents.EndViewRenderEvent>((ref GraphicsEvents.EndViewRenderEvent _) =>
             {
                 ++endRenderCalls;
                 lifecycle.Add("EndViewRenderEvent");
             });
-            using var beginRenderingSubscription = scene.SubscribeToEvent<GraphicsEvents.BeginRenderingEvent>((ref GraphicsEvents.BeginRenderingEvent _) => ++beginRenderingCalls);
-            using var endRenderingSubscription = scene.SubscribeToEvent<GraphicsEvents.EndRenderingEvent>((ref GraphicsEvents.EndRenderingEvent _) => ++endRenderingCalls);
+            scene.SubscribeToEvent<GraphicsEvents.BeginRenderingEvent>((ref GraphicsEvents.BeginRenderingEvent _) => ++beginRenderingCalls);
+            scene.SubscribeToEvent<GraphicsEvents.EndRenderingEvent>((ref GraphicsEvents.EndRenderingEvent _) => ++endRenderingCalls);
 
             Assert.True(view.Define(null, viewport, _fixture.Graphics));
 

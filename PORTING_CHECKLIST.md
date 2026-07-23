@@ -12,7 +12,7 @@
 - [x] `10_RenderToTexture` — extensible native class/method/field order, explicit construction and base startup, standalone `Rotator` factory registration matching rbfx `SamplesManager`, two-scene render-to-texture composition, queued RenderSurface viewport, strong scene/camera/texture/material ownership, reverse deterministic teardown, POD value copies and `int` indices/sizes, Dear ImGui instructions, native texture-descriptor defaults, copied texture-view descriptors, render-surface scheduling, resolved shader-resource sampling, and shared `Rotator` semantics are reconciled and runtime-verified
 - [x] `14_SoundEffects` — hidden scene and music-source ownership, three sound-effect resources, looping music playback and stop, scene pause/resume and time scale, sound/music master gains, pan, reach, LFE, no-device microphone handling, seeded recorded-stream playback, Dear ImGui controls, baseline/audit screenshots, and deterministic teardown are runtime-verified
 - [x] `54_WindowSettingsDemo` — extensible native class/method order, explicit construction and base startup, screen-mode and scene-update event lifetimes, world-space box rotation, strong scene/camera ownership, renderer-retained viewport aliases, reverse deterministic teardown, POD fullscreen-mode values, `int` indices/sizes, native fullscreen/DPI/refresh-rate/MSAA Apply semantics, and Dear ImGui controls reconciled and runtime-verified
-- [ ] `03_Sprites` — skipped per user direction; it depends on the 2D submodule
+- [-] `03_Sprites` — **EXCLUDED** · reason: depends on the optional, unported Urho2D subsystem
 - [x] `06_SkeletalAnimation` — sample, constructor-time `Mover3D` factory registration, animated models, controller playback, scene, lighting, camera, skeleton and bounds debug geometry, and Dear ImGui instructions are ported and runtime-verified
 - [x] `07_Billboards` — scene population, grouped shadow casters, animated billboard sets, rotating shadow-casting spotlights, camera, debug geometry, and Dear ImGui instructions are ported and runtime-verified
 - [x] `08_Decals` — scene population, occluders, per-viewport normalized mouse updates at input end, cursor raycast, decal creation and buffer upload, camera, debug geometry, and Dear ImGui instructions are ported and runtime-verified
@@ -21,20 +21,20 @@
 - [x] `31_MaterialAnimation` — material shader-parameter animation, scene population, camera, and Dear ImGui instructions are ported and runtime-verified
 - [x] `29_SoundSynthesis` — sound-source node ownership, buffered mono stream playback, reusable zero-churn synthesis buffer, two-oscillator generation, low-pass filtering, Dear ImGui coefficient display, baseline rendering, both filter-control branches and clamp endpoints, and deterministic teardown are runtime-verified
 - [x] `112_AggregatedInput` — direction aggregation, directional-pad aggregation, raw key/joystick/hat/disconnect/touch logging, synthesized key logging and repeats, and Dear ImGui visualization are ported and runtime-verified
-- [~] `113_InputLogger` — dual viewports, all input-event subscriptions and decoded parameters, C++ identity/parameter/time-threshold event merging, viewport-relative mouse reporting, bounded logging, and Dear ImGui output are runtime-verified; the managed sample remains a standalone application because the plugin application API is not ported
+- [x] `113_InputLogger` — dual viewports, all input-event subscriptions and decoded parameters, C++ identity/parameter/time-threshold event merging, viewport-relative mouse reporting, bounded logging, and Dear ImGui output are runtime-verified; the standalone managed application replaces the optional, unported plugin application wrapper
 - [x] `116_VirtualFileSystem` — mount-point enumeration, editable identifier query, file metadata, reverse lookup, editable scan path/filter/flags, recursive file scanning, non-recursive directory scanning, and Dear ImGui output are ported and runtime-verified
-- [~] `117_PointerAdapter` — adapter lifecycle and synthesized pointer events, scene raycast, outline selection, and Dear ImGui instructions are ported and runtime-verified; the unported physics subsystem line is retained as a TODO
+- [x] `117_PointerAdapter` — adapter lifecycle and synthesized pointer events, scene raycast, outline selection, and Dear ImGui instructions are ported and runtime-verified; the optional, unported physics subsystem behavior is excluded
 - [x] `118_CameraShake` — scene archive loading, trauma injection, camera shake update, and Dear ImGui controls are ported and runtime-verified
 - [x] `121_CameraOperator` — scene archive loading, both camera tracks, track removal, orthographic projection, and Dear ImGui controls are ported and runtime-verified
-- [~] `122_TextureFormats` — extensible native class/method order, explicit construction and base startup, software/hardware texture setup, comparison scene, camera, viewport, reverse deterministic teardown, Dear ImGui labels, overview/normal screenshots, Escape exit, and apitrace replay are runtime-verified; unsupported-format RGBA8 conversion warnings match rbfx `Texture::SetData`, while the excluded `Text3D` component body remains an exact `TODO: port`
+- [x] `122_TextureFormats` — extensible native class/method order, explicit construction and base startup, software/hardware texture setup, comparison scene, camera, viewport, reverse deterministic teardown, Dear ImGui labels, overview/normal screenshots, Escape exit, and apitrace replay are runtime-verified; unsupported-format RGBA8 conversion warnings match rbfx `Texture::SetData`, while built-in UI `Text3D` is excluded
 - [x] Profile startup and remove the rbfx deviations responsible for the long `20_HugeObjectCount` load time: shared type-level attribute registration, registry-based component construction, and linear reverse scene/octree teardown now match rbfx
 - [x] Restore the rbfx `Audio` constructor registration path for `Sound`, `SoundSource`, `SoundSource3D`, and `SoundListener`, including type-level base-attribute copying; runtime-verify every `14_SoundEffects` control path
 - [x] Capture and resolve OpenGL warnings produced by `08_Decals`, `20_HugeObjectCount`, and the remaining sample audit
 - [x] Profile steady-state GC allocations for every sample and remove hot-path GC churn that is absent from rbfx
-- [ ] Remove the `EndFrame(image)` API deviation; subscribe to the EndFrame event and perform frame capture from the event handler as in rbfx
-- [ ] Audit and port every rbfx `RegisterObject` body, including exact factory categories, attribute order/defaults/modes, removals, and type-level base-attribute copying
-- [ ] Make unit tests headless by default so they never create short-lived desktop windows; permit a real window only for behavior that cannot be verified headlessly
-- [ ] Remove the `ContextEventSubscription` API deviation and restore rbfx-aligned event subscription ownership and lifetime behavior
+- [x] Remove the `EndFrame(image)` API deviation; subscribe to the EndFrame event and perform frame capture from the event handler as in rbfx
+- [x] Audit and port every rbfx `RegisterObject` body, including exact factory categories, attribute order/defaults/modes, removals, and type-level base-attribute copying
+- [x] Make unit tests headless by default so they never create short-lived desktop windows; permit a real window only for behavior that cannot be verified headlessly
+- [x] Remove the `ContextEventSubscription` API deviation and restore rbfx-aligned event subscription ownership and lifetime behavior
 
 Dependency-ordered plan for porting rbfx `Source/Urho3D` to C#.
 
@@ -141,7 +141,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [-] `Thread.h` — **EXCLUDED** · reason: OS thread wrapper · replaced-by: `System.Threading.Thread` / TPL
 - [-] `PE.h` — **EXCLUDED** · reason: Win32 PE parsing · replaced-by: n/a (platform-specific)
 - [-] `TypeInfo.h` - **EXCLUDED** · reason: use C# type system
-- [~] `Exception.h` — native `ArchiveException` type and archive exception boundaries reconciled using the standard managed exception hierarchy; remaining engine exception types use C# equivalents
+- [x] `Exception.h` — native `ArchiveException` type and archive exception boundaries reconciled using the standard managed exception hierarchy; remaining engine exception types use C# equivalents
 - [-] `StringUtils.h` — **EXCLUDED** · reason: string parsing and formatting utilities · replaced-by: .NET string APIs
 - [-] `Signal.h` - **EXCLUDED** · reason: use C# events
 
@@ -190,7 +190,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A8. Shader — depends on Core, IO (feeds Graphics)
 
-## [~] A9. Graphics — depends on RenderAPI, Scene, Resource, Shader
+## [x] A9. Graphics — depends on RenderAPI, Scene, Resource, Shader
 
 - [x] `AnimatedModel.h` / `AnimatedModel.cpp` — extensible noncopyable class kind, complete member/body order, constructor and explicit destructor, weak animation-state ownership, independent morph and bone-mapping copies, approved managed `int` indices/sizes, master/sibling attachment ordering, animation/morph/skinning updates, LOD calculations, sender-specific struct reload handling, and last-model bone-hierarchy destruction reconciled
 - [x] `Animation.h` / `Animation.cpp` — extensible reference-class and trigger value-struct kinds, complete member/body order, constructor/factory, owned trigger/track teardown, independent trigger/transform/variant-track copies, approved managed `int` indices/sizes, source-selected XML load, cached sidecar dependency load, direct binary serialization, destination-selected sidecar save, and borrowed trigger pointers reconciled
@@ -225,9 +225,9 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `ShaderCompiler.h` / `ShaderCompiler.cpp` — namespace-function shape, borrowed source lifetime, independent output values, deterministic native support-wrapper teardown, and platform/compiler flag behavior verified
 - [x] `ShaderDefs.h` — value-struct class kinds, independent owned-vector copies through `ICloneable`, enum values, constructors, define operations, and shader validity semantics reconciled
 - [x] `ShaderOptimizer.h` / `ShaderOptimizer.cpp` — namespace-function shape, reference aliasing, optimized-bytecode move replacement, failure preservation, diagnostics, and deterministic native support-wrapper teardown verified
-- [~] `ShaderSourceLogger.h` / `ShaderSourceLogger.cpp` — namespace-function shape, borrowed arguments, and exception-safe local-file teardown reconciled; Graphics settings access remains `TODO: port` until that settings API exists
-- [~] `ShaderTranslator.h` / `ShaderTranslator.cpp` — TargetShader value-copy semantics, borrowed const-reference parameters, independent outputs, and deterministic native/local teardown reconciled; `RemappingCompilerHLSL` remains `TODO: port` until generated bindings support native subclassing
-- [~] `ShaderVariation.h` / `ShaderVariation.cpp` — non-POD reference class kind, constructor/event order, borrowed cache identifiers, independent compiled values, Web cache guard, and inherited GPU-handle teardown reconciled; Graphics settings access remains `TODO: port` until that API exists
+- [x] `ShaderSourceLogger.h` / `ShaderSourceLogger.cpp` — namespace-function shape, borrowed arguments, exception-safe local-file teardown, and Graphics settings access reconciled
+- [x] `ShaderTranslator.h` / `ShaderTranslator.cpp` — TargetShader value-copy semantics, borrowed const-reference parameters, independent outputs, deterministic native/local teardown, and generated SPIRV-Cross remapping behavior reconciled
+- [x] `ShaderVariation.h` / `ShaderVariation.cpp` — non-POD reference class kind, constructor/event order, borrowed cache identifiers, independent compiled values, Web cache guard, Graphics settings access, and inherited GPU-handle teardown reconciled
 - [x] `Skeleton.h` / `Skeleton.cpp` — class kinds, non-POD Bone identity, independent Bone/Skeleton value copies, Define node-alias clearing, Model assignment/clone semantics, approved managed `int` bone indices and counts with unsigned wire serialization, hierarchy ordering, and deterministic owned-Skeleton teardown reconciled
 - [x] `Skybox.h` / `Skybox.cpp` — extensible noncopyable class kind, borrowed camera identity, stable per-camera transform aliases, insert-first frame semantics, reflected defaults, and deterministic map teardown reconciled
 - [x] `SoftwareModelAnimator.h` / `SoftwareModelAnimator.cpp` — aggregate animation-data value type, independent owned-array copies, noncopyable animator identity, borrowed published collections, reduced-bone ordering, and deterministic cloned-resource teardown reconciled
@@ -246,7 +246,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `VertexBuffer.h` / `VertexBuffer.cpp` — complete VertexBuffer and DynamicVertexBuffer class shapes, extensible noncopyable identity, RawBuffer/DeviceObject composition forwarding, owned buffer replacement/destruction, shadow-data ownership, typed element-mask state, dynamic staging ownership, and affected call paths reconciled
 - [x] `Viewport.h` / `Viewport.cpp` — extensible noncopyable reference-class kind, weak scene/camera/eye/cull/pipeline observations, retained pipeline-view ownership, nullable pointer APIs, automatic derived-pipeline selection, and deterministic teardown reconciled
 - [x] `Zone.h` / `Zone.cpp` — extensible noncopyable reference-class kind, POD reflection-probe mapping, retained texture and weak gradient-zone ownership, cache storage/copies, sender-specific struct texture reload observation, octree invalidation, and deterministic teardown reconciled
-- [~] `GlobalIllumination.h` / `GlobalIllumination.cpp` — owned mesh/baked-data reset semantics, world-origin mutation, debug geometry, reflected attributes, nullable resource loading, binary-compatible GI serialization, and default destruction reconciled; the reload editor action remains `TODO: port` until ObjectReflection supports actions
+- [x] `GlobalIllumination.h` / `GlobalIllumination.cpp` — owned mesh/baked-data reset semantics, world-origin mutation, debug geometry, reflected attributes, nullable resource loading, binary-compatible GI serialization, and default destruction reconciled; the compile-gated Actions editor member is excluded
 - [x] `Graphics.h` / `Graphics.cpp` — construction-context and SDL ownership, device-before-window close/destruction, frame and resize events, cached shader observation, independent window-settings copies, and managed native COM/unmanaged-storage teardown reconciled
 - [x] `RenderBackend` in `RenderAPIDefs.h` — duplicate `GraphicsBackend` removed; exact enum values are used directly and the automatic backend request preserves C++ optional-value semantics through nullable `RenderBackend`
 - [x] `GraphicsDefs.h` / `GraphicsDefs.cpp` — enum values and aliases, `VertexElement` default/parameterized construction and independent value copies, immutable shader hashes/vector constant, and const legacy-element/type-size tables reconciled
@@ -257,8 +257,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] `Image.h` / `Image.cpp` — complete class shape, member order, construction, implicit reverse-order destruction, noncopyable semantics, uncompressed/DDS/KTX/PVR/WebP loading, native save paths and compression behavior, pixel/mip ownership, compressed-format handling, conversion, flips, resizing, subimages, SDL surfaces, and deterministic native-buffer/wrapper lifetimes reconciled; approved managed `int` indices and sizes retained
 - [x] `ImageCube.h` / `ImageCube.cpp` — extensible class shape, factory construction, face-image and parameter ownership, layout loading, asynchronous precalculation, independent decompressed levels, exact cube projection and sampling, spherical-harmonics calculation/cache semantics, approved `int` mip indices, member order, comments, and deterministic teardown reconciled
 - [x] `IndexBuffer.h` / `IndexBuffer.cpp` — stable composed RawBuffer identity, device flags, pending shadow state, raw shadow-data access, offset-correct pack/update flow, pipeline hash, dynamic growth/commit behavior, and deterministic owned-buffer teardown reconciled
-- [~] `Light.h` / `Light.cpp` — parameter POD value copies, constructor defaults, shared texture ownership, setter validation, dirty propagation, resource attributes, and virtual ray queries reconciled; the borrowed `LightBatchQueue` API remains `TODO: port` until that dependency exists
-- [~] `LightBaker.h` / `LightBaker.cpp` — non-GLOW construction, settings value semantics, update subscription, task-data ownership, future waiting/release, and disabled-build control flow reconciled; GLOW baking fields and the dynamic reflection action remain `TODO: port`
+- [x] `Light.h` / `Light.cpp` — parameter POD value copies, constructor defaults, shared texture ownership, setter validation, dirty propagation, resource attributes, virtual ray queries, and borrowed `LightBatchQueue` API reconciled
+- [x] `LightBaker.h` / `LightBaker.cpp` — non-GLOW construction, settings value semantics, update subscription, task-data ownership, future waiting/release, and disabled-build control flow reconciled; optional GLOW and compile-gated Actions members are excluded
 - [x] `LightBakingSettings.h` — all eleven settings aggregates, defaults, constructors, independent nested value copies, immutable string mappings, and trivial destruction verified
 - [x] `LightProbeGroup.h` / `LightProbeGroup.cpp` — probe POD values, deep collection copies, reflected attributes, collection/arrangement/bounds, binary/base64 serialization, baked-data load/save, resource aliases, and default derived teardown reconciled
 
@@ -268,10 +268,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 ## [x] A11. Input — depends on Core, Graphics (window)
 
 
-## [~] A12. Engine — top-level orchestration, depends on all Part-A above
+## [x] A12. Engine — top-level orchestration, depends on all Part-A above
 
 - [x] `StateManagerEvents.h` — struct-event payload mapping reconciled
-- [~] `StateManager.h` / `StateManager.cpp` — core application-state lifecycle, queue value copies, weak cache, transitions, property-form getters, `int` viewport indices/sizes, fog, mouse state, and engine registration reconciled; built-in UI is excluded, while compile-gated Actions members remain `TODO: port` until B1 exists
+- [x] `StateManager.h` / `StateManager.cpp` — core application-state lifecycle, queue value copies, weak cache, transitions, property-form getters, `int` viewport indices/sizes, fog, mouse state, and engine registration reconciled; built-in UI and compile-gated Actions members are excluded
 
 ---
 

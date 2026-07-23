@@ -175,8 +175,8 @@ public sealed class Material : Resource
     private bool _batchedParameterUpdate;
     private uint _auxViewFrameNumber;
     private bool _specular;
+    private bool _subscribed;
     private Scene? _scene;
-    private ContextEventSubscription? _sceneAttributeAnimationSubscription;
 
     public Material()
     {
@@ -452,8 +452,8 @@ public sealed class Material : Resource
     public void SetScene(Scene? scene)
     {
         UnsubscribeFromEvent<CoreEvents.UpdateEvent>();
-        _sceneAttributeAnimationSubscription?.Dispose();
-        _sceneAttributeAnimationSubscription = null;
+        UnsubscribeFromEvent<SceneEvents.AttributeAnimationUpdateEvent>();
+        _subscribed = false;
         _scene = scene;
         UpdateEventSubscription();
     }
@@ -1009,8 +1009,8 @@ public sealed class Material : Resource
     {
         ClearShaderParameterAnimationInfos();
         UnsubscribeFromEvent<CoreEvents.UpdateEvent>();
-        _sceneAttributeAnimationSubscription?.Dispose();
-        _sceneAttributeAnimationSubscription = null;
+        UnsubscribeFromEvent<SceneEvents.AttributeAnimationUpdateEvent>();
+        _subscribed = false;
         AlphaToCoverage = false;
         DepthBias = default;
         FillMode = FillMode.Solid;
@@ -1049,18 +1049,19 @@ public sealed class Material : Resource
 
     private void UpdateEventSubscription()
     {
-        if (_shaderParameterAnimationInfos.Count != 0)
+        if (_shaderParameterAnimationInfos.Count != 0 && !_subscribed)
         {
             if (_scene is not null)
-                _sceneAttributeAnimationSubscription ??= SubscribeToEvent<SceneEvents.AttributeAnimationUpdateEvent>(_scene, HandleAttributeAnimationUpdate);
-            else if (!HasSubscribedToEvent<CoreEvents.UpdateEvent>())
+                SubscribeToEvent<SceneEvents.AttributeAnimationUpdateEvent>(_scene, HandleAttributeAnimationUpdate);
+            else
                 SubscribeToEvent<CoreEvents.UpdateEvent>(HandleAttributeAnimationUpdate);
+            _subscribed = true;
         }
-        else
+        else if (_subscribed && _shaderParameterAnimationInfos.Count == 0)
         {
             UnsubscribeFromEvent<CoreEvents.UpdateEvent>();
-            _sceneAttributeAnimationSubscription?.Dispose();
-            _sceneAttributeAnimationSubscription = null;
+            UnsubscribeFromEvent<SceneEvents.AttributeAnimationUpdateEvent>();
+            _subscribed = false;
         }
     }
 

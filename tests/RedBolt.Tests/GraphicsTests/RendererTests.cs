@@ -372,7 +372,7 @@ public sealed class GraphicsRendererTests
     public void Render_dispatches_end_all_views_event()
     {
         var eventCount = 0;
-        using var subscription = _fixture.Renderer.SubscribeToEvent<GraphicsEvents.EndAllViewsRenderEvent>(
+        _fixture.Renderer.SubscribeToEvent<GraphicsEvents.EndAllViewsRenderEvent>(
             (ref GraphicsEvents.EndAllViewsRenderEvent _) => ++eventCount);
 
         _fixture.Renderer.Render();

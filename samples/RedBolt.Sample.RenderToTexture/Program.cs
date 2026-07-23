@@ -190,7 +190,7 @@ public class RenderToTexture : Application
     private void CreateInstructions()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
 
         // Construct new Text object, set string to display and font to use
         // Position the text relative to the screen center
@@ -213,8 +213,6 @@ public class RenderToTexture : Application
 
     protected override void Stop()
     {
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         _rttCameraNode = null;
         _rttScene?.Dispose();
         _rttScene = null;
@@ -253,8 +251,6 @@ public class RenderToTexture : Application
 
     public override void Dispose()
     {
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         _rttCameraNode = null;
         _rttScene?.Dispose();
         _rttScene = null;
@@ -278,5 +274,4 @@ public class RenderToTexture : Application
     private Node? _cameraNode;
     private Texture2D? _renderTexture;
     private Material? _renderMaterial;
-    private ContextEventSubscription? _dearImGuiSubscription;
 }

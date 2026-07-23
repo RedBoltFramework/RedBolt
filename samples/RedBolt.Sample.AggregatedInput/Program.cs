@@ -20,17 +20,6 @@ sealed class AggregatedInputApplication : Application
     private DirectionAggregator? _aggregatedInput;
     private DirectionalPadAdapter? _dpadInput;
 
-    private ContextEventSubscription? _dearImGuiSubscription;
-    private ContextEventSubscription? _dpadKeyUpSubscription;
-    private ContextEventSubscription? _dpadKeyDownSubscription;
-    private ContextEventSubscription? _rawKeyUpSubscription;
-    private ContextEventSubscription? _rawKeyDownSubscription;
-    private ContextEventSubscription? _joystickAxisMoveSubscription;
-    private ContextEventSubscription? _joystickHatMoveSubscription;
-    private ContextEventSubscription? _joystickDisconnectedSubscription;
-    private ContextEventSubscription? _touchBeginSubscription;
-    private ContextEventSubscription? _touchMoveSubscription;
-    private ContextEventSubscription? _touchEndSubscription;
 
     private readonly byte[] _directionText = new byte[64];
     private int _directionTextLength;
@@ -76,7 +65,7 @@ sealed class AggregatedInputApplication : Application
     private void CreateUI()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
             (ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => Draw());
     }
 
@@ -85,36 +74,22 @@ sealed class AggregatedInputApplication : Application
     {
         _aggregatedInput!.SetEnabled(true);
         _dpadInput!.SetEnabled(true);
-        _dpadKeyUpSubscription = Context.SubscribeToEvent<InputEvents.KeyUpEvent>(_dpadInput, HandleDPadKeyUp);
-        _dpadKeyDownSubscription = Context.SubscribeToEvent<InputEvents.KeyDownEvent>(_dpadInput, HandleDPadKeyDown);
-        _rawKeyUpSubscription = Context.SubscribeToEvent<InputEvents.KeyUpEvent>(Input, HandleKeyUp);
-        _rawKeyDownSubscription = Context.SubscribeToEvent<InputEvents.KeyDownEvent>(Input, HandleKeyDown);
-        _joystickAxisMoveSubscription =
-            Context.SubscribeToEvent<InputEvents.JoystickAxisMoveEvent>(Input, HandleJoystickAxisMove);
-        _joystickHatMoveSubscription =
-            Context.SubscribeToEvent<InputEvents.JoystickHatMoveEvent>(Input, HandleJoystickHatMove);
-        _joystickDisconnectedSubscription =
-            Context.SubscribeToEvent<InputEvents.JoystickDisconnectedEvent>(Input, HandleJoystickDisconnected);
-        _touchBeginSubscription = Context.SubscribeToEvent<InputEvents.TouchBeginEvent>(Input, HandleTouchBegin);
-        _touchMoveSubscription = Context.SubscribeToEvent<InputEvents.TouchMoveEvent>(Input, HandleTouchMove);
-        _touchEndSubscription = Context.SubscribeToEvent<InputEvents.TouchEndEvent>(Input, HandleTouchEnd);
+        SubscribeToEvent<InputEvents.KeyUpEvent>(_dpadInput, HandleDPadKeyUp);
+        SubscribeToEvent<InputEvents.KeyDownEvent>(_dpadInput, HandleDPadKeyDown);
+        SubscribeToEvent<InputEvents.KeyUpEvent>(Input, HandleKeyUp);
+        SubscribeToEvent<InputEvents.KeyDownEvent>(Input, HandleKeyDown);
+        SubscribeToEvent<InputEvents.JoystickAxisMoveEvent>(Input, HandleJoystickAxisMove);
+        SubscribeToEvent<InputEvents.JoystickHatMoveEvent>(Input, HandleJoystickHatMove);
+        SubscribeToEvent<InputEvents.JoystickDisconnectedEvent>(Input, HandleJoystickDisconnected);
+        SubscribeToEvent<InputEvents.TouchBeginEvent>(Input, HandleTouchBegin);
+        SubscribeToEvent<InputEvents.TouchMoveEvent>(Input, HandleTouchMove);
+        SubscribeToEvent<InputEvents.TouchEndEvent>(Input, HandleTouchEnd);
     }
 
     private void Deactivate()
     {
         _aggregatedInput!.SetEnabled(false);
         _dpadInput!.SetEnabled(false);
-        _touchEndSubscription?.Dispose();
-        _touchMoveSubscription?.Dispose();
-        _touchBeginSubscription?.Dispose();
-        _joystickDisconnectedSubscription?.Dispose();
-        _joystickHatMoveSubscription?.Dispose();
-        _joystickAxisMoveSubscription?.Dispose();
-        _rawKeyDownSubscription?.Dispose();
-        _rawKeyUpSubscription?.Dispose();
-        _dpadKeyDownSubscription?.Dispose();
-        _dpadKeyUpSubscription?.Dispose();
-        _dearImGuiSubscription?.Dispose();
     }
 
     private void AddFilteredEvent(string str)

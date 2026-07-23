@@ -31,8 +31,6 @@ public class Texture : ResourceWithMetadata
         _renderSurfaces = [];
         _backupTexture = null;
         _rawTexture.Dispose();
-        _renderSurfaceUpdateSubscription?.Dispose();
-        _renderSurfaceUpdateSubscription = null;
         base.Dispose();
     }
 
@@ -316,13 +314,12 @@ public class Texture : ResourceWithMetadata
 
         if (isRenderTarget)
         {
-            _renderSurfaceUpdateSubscription ??= SubscribeToEvent<GraphicsEvents.RenderSurfaceUpdateEvent>(
+            SubscribeToEvent<GraphicsEvents.RenderSurfaceUpdateEvent>(
                 (ref GraphicsEvents.RenderSurfaceUpdateEvent _) => HandleRenderSurfaceUpdate());
         }
         else
         {
-            _renderSurfaceUpdateSubscription?.Dispose();
-            _renderSurfaceUpdateSubscription = null;
+            UnsubscribeFromEvent<GraphicsEvents.RenderSurfaceUpdateEvent>();
         }
 
         if (isRenderTarget || isDepthStencil)
@@ -589,7 +586,5 @@ public class Texture : ResourceWithMetadata
     protected int _mostDetailedLevel;
 
     private readonly TextureRawTexture _rawTexture;
-    private ContextEventSubscription? _renderSurfaceUpdateSubscription;
-
     private const int MaxTextureQualityLevels = 3;
 }

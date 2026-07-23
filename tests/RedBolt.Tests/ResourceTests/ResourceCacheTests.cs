@@ -238,7 +238,7 @@ public sealed class ResourceCacheTests
             System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "bg.txt"), "background");
             Resources.AddResourceDir(tempDir);
             var queuedDuringCompletion = 0;
-            using var subscription = Resources.SubscribeToEvent<ResourceEvents.ResourceBackgroundLoaded>(
+            Resources.SubscribeToEvent<ResourceEvents.ResourceBackgroundLoaded>(
                 (ref ResourceEvents.ResourceBackgroundLoaded eventData) =>
                     queuedDuringCompletion = Resources.GetNumBackgroundLoadResources());
             Assert.True(Resources.BackgroundLoadResource<BinaryFile>("Data/bg.txt"));
@@ -272,9 +272,9 @@ public sealed class ResourceCacheTests
             string? failedName = null;
             string? completedName = null;
             var completedSuccessfully = true;
-            using var failedSubscription = Resources.SubscribeToEvent<ResourceEvents.LoadFailed>(
+            Resources.SubscribeToEvent<ResourceEvents.LoadFailed>(
                 (ref ResourceEvents.LoadFailed eventData) => failedName = eventData.ResourceName);
-            using var completedSubscription = Resources.SubscribeToEvent<ResourceEvents.ResourceBackgroundLoaded>(
+            Resources.SubscribeToEvent<ResourceEvents.ResourceBackgroundLoaded>(
                 (ref ResourceEvents.ResourceBackgroundLoaded eventData) =>
                 {
                     completedName = eventData.ResourceName;
@@ -301,7 +301,7 @@ public sealed class ResourceCacheTests
     {
         StringHash observedType = default;
         var queuedDuringEvent = 0;
-        using var subscription = Resources.SubscribeToEvent<ResourceEvents.UnknownResourceType>(
+        Resources.SubscribeToEvent<ResourceEvents.UnknownResourceType>(
             (ref ResourceEvents.UnknownResourceType eventData) =>
             {
                 observedType = eventData.ResourceType;
@@ -662,7 +662,7 @@ public sealed class ResourceCacheTests
     public void Missing_resource_file_sends_not_found_event()
     {
         string? observedName = null;
-        using var subscription = Resources.SubscribeToEvent<ResourceEvents.ResourceNotFound>(
+        Resources.SubscribeToEvent<ResourceEvents.ResourceNotFound>(
             (ref ResourceEvents.ResourceNotFound eventData) => observedName = eventData.ResourceName);
 
         Assert.Null(Resources.GetFile("Data/does-not-exist.txt"));
@@ -680,7 +680,7 @@ public sealed class ResourceCacheTests
             Resources.SetReturnFailedResources(false);
 
             string? observedName = null;
-            using var subscription = Resources.SubscribeToEvent<ResourceEvents.LoadFailed>(
+            Resources.SubscribeToEvent<ResourceEvents.LoadFailed>(
                 (ref ResourceEvents.LoadFailed eventData) => observedName = eventData.ResourceName);
 
             Assert.Throws<InvalidOperationException>(() => Resources.GetResource<FailedResource>("Data/failure.dat"));

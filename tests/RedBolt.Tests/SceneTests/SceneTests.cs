@@ -44,7 +44,7 @@ public sealed class SceneTests
     public void Structural_scene_events_and_registries_follow_mutations()
     {
         var scene = new Scene();
-        var receiver = new object();
+        using var receiver = new TestEventReceiver();
         var addedNodes = 0;
         var removedNodes = 0;
         var addedComponents = 0;
@@ -52,12 +52,12 @@ public sealed class SceneTests
         var addedTags = 0;
         var removedTags = 0;
 
-        using var nodeAdded = Context.Instance.SubscribeToEvent<SceneEvents.NodeAddedEvent>(receiver, scene, (ref SceneEvents.NodeAddedEvent _) => ++addedNodes);
-        using var nodeRemoved = Context.Instance.SubscribeToEvent<SceneEvents.NodeRemovedEvent>(receiver, scene, (ref SceneEvents.NodeRemovedEvent _) => ++removedNodes);
-        using var componentAdded = Context.Instance.SubscribeToEvent<SceneEvents.ComponentAddedEvent>(receiver, scene, (ref SceneEvents.ComponentAddedEvent _) => ++addedComponents);
-        using var componentRemoved = Context.Instance.SubscribeToEvent<SceneEvents.ComponentRemovedEvent>(receiver, scene, (ref SceneEvents.ComponentRemovedEvent _) => ++removedComponents);
-        using var tagAdded = Context.Instance.SubscribeToEvent<SceneEvents.NodeTagAddedEvent>(receiver, scene, (ref SceneEvents.NodeTagAddedEvent _) => ++addedTags);
-        using var tagRemoved = Context.Instance.SubscribeToEvent<SceneEvents.NodeTagRemovedEvent>(receiver, scene, (ref SceneEvents.NodeTagRemovedEvent _) => ++removedTags);
+        Context.Instance.SubscribeToEvent<SceneEvents.NodeAddedEvent>(receiver, scene, (ref SceneEvents.NodeAddedEvent _) => ++addedNodes);
+        Context.Instance.SubscribeToEvent<SceneEvents.NodeRemovedEvent>(receiver, scene, (ref SceneEvents.NodeRemovedEvent _) => ++removedNodes);
+        Context.Instance.SubscribeToEvent<SceneEvents.ComponentAddedEvent>(receiver, scene, (ref SceneEvents.ComponentAddedEvent _) => ++addedComponents);
+        Context.Instance.SubscribeToEvent<SceneEvents.ComponentRemovedEvent>(receiver, scene, (ref SceneEvents.ComponentRemovedEvent _) => ++removedComponents);
+        Context.Instance.SubscribeToEvent<SceneEvents.NodeTagAddedEvent>(receiver, scene, (ref SceneEvents.NodeTagAddedEvent _) => ++addedTags);
+        Context.Instance.SubscribeToEvent<SceneEvents.NodeTagRemovedEvent>(receiver, scene, (ref SceneEvents.NodeTagRemovedEvent _) => ++removedTags);
 
         var node = scene.CreateChild("Tracked", 99);
         node.AddTag("tracked");
@@ -86,17 +86,17 @@ public sealed class SceneTests
     public void Forced_update_events_run_while_scene_updates_are_disabled()
     {
         var scene = new Scene();
-        var receiver = new object();
+        using var receiver = new TestEventReceiver();
         var forcedUpdate = 0;
         var forcedPostUpdate = 0;
         var regularUpdate = 0;
 
-        using var forcedUpdateSubscription =
-            Context.Instance.SubscribeToEvent<SceneEvents.SceneForcedUpdateEvent>(receiver, scene, (ref SceneEvents.SceneForcedUpdateEvent _) => ++forcedUpdate);
-        using var forcedPostUpdateSubscription =
-            Context.Instance.SubscribeToEvent<SceneEvents.SceneForcedPostUpdateEvent>(receiver, scene, (ref SceneEvents.SceneForcedPostUpdateEvent _) => ++forcedPostUpdate);
-        using var updateSubscription =
-            Context.Instance.SubscribeToEvent<SceneEvents.SceneUpdateEvent>(receiver, scene, (ref SceneEvents.SceneUpdateEvent _) => ++regularUpdate);
+        receiver.SubscribeToEvent<SceneEvents.SceneForcedUpdateEvent>(
+            scene, (ref SceneEvents.SceneForcedUpdateEvent _) => ++forcedUpdate);
+        receiver.SubscribeToEvent<SceneEvents.SceneForcedPostUpdateEvent>(
+            scene, (ref SceneEvents.SceneForcedPostUpdateEvent _) => ++forcedPostUpdate);
+        receiver.SubscribeToEvent<SceneEvents.SceneUpdateEvent>(
+            scene, (ref SceneEvents.SceneUpdateEvent _) => ++regularUpdate);
 
         scene.SetUpdateEnabled(false);
         scene.Update(-0.25f);

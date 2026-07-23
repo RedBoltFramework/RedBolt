@@ -15,7 +15,6 @@ sealed class LightAnimationApplication : Application
     private Scene? _scene;
     private Node? _cameraNode;
     private DearImGui? _dearImGui;
-    private ContextEventSubscription? _dearImGuiSubscription;
     private readonly Texture2D?[] _spriteTextures = new Texture2D[5];
     private readonly ImTextureRef?[] _spriteTextureReferences = new ImTextureRef[5];
     private float _uiTime;
@@ -126,7 +125,7 @@ sealed class LightAnimationApplication : Application
     /// <summary>Construct an instruction text to the UI.</summary>
     private void CreateInstructions()
     {
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
             (ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
     }
 
@@ -145,7 +144,6 @@ sealed class LightAnimationApplication : Application
 
     protected override void Stop()
     {
-        _dearImGuiSubscription?.Dispose();
         for (var i = _spriteTextureReferences.Length - 1; i >= 0; --i)
             _spriteTextureReferences[i]?.Dispose();
     }

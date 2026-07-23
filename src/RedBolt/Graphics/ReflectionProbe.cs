@@ -116,12 +116,10 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
     };
     private AutoQueueCache _autoQueue = new() { RealtimeProbes = [] };
     private static readonly ThreadLocal<List<ReflectionProbeBVH>> TempIntersectedProbes = new(() => []);
-    private ContextEventSubscription? _deviceResetSubscription;
-
     public ReflectionProbeManager()
         : base(typeof(ReflectionProbe).GetClassName())
     {
-        _deviceResetSubscription = SubscribeToEvent<GraphicsEvents.DeviceResetEvent>(
+        SubscribeToEvent<GraphicsEvents.DeviceResetEvent>(
             (ref GraphicsEvents.DeviceResetEvent _) => RestoreCubemaps());
         // TODO: port URHO3D_ACTION_STATIC_LABEL("Bake!", QueueBakeAll, "Renders all baked reflection probes");
         RegisterAttribute("Query Padding", typeof(float), self => ((ReflectionProbeManager)self)._queryPadding,
@@ -143,8 +141,6 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
         _probesToUpdate.Clear();
         _cubemapRenderer?.Dispose();
         _cubemapRenderer = null;
-        _deviceResetSubscription?.Dispose();
-        _deviceResetSubscription = null;
         base.Dispose();
     }
 

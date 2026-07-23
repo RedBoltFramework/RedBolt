@@ -120,7 +120,7 @@ public class StaticScene : Application
     private void CreateInstructions()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
 
         // Construct new Text object, set string to display and font to use
         // Position the text relative to the screen center
@@ -151,8 +151,6 @@ public class StaticScene : Application
 
     protected override void Stop()
     {
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         Renderer.SetNumViewports(0);
         _cameraNode = null;
         _scene?.Dispose();
@@ -183,8 +181,6 @@ public class StaticScene : Application
 
     public override void Dispose()
     {
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         if (_scene is not null)
             Renderer.SetNumViewports(0);
         _cameraNode = null;
@@ -195,5 +191,4 @@ public class StaticScene : Application
 
     private Scene? _scene;
     private Node? _cameraNode;
-    private ContextEventSubscription? _dearImGuiSubscription;
 }

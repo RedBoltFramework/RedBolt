@@ -851,7 +851,7 @@ public sealed class JsonXmlResourceTests
         using var loc = new Localization();
         loc.LoadMultipleLanguageJSON(json);
         var eventCount = 0;
-        using var subscription = loc.SubscribeToEvent<ChangeLanguage>(loc,
+        loc.SubscribeToEvent<ChangeLanguage>(loc,
             (ref ChangeLanguage args) => ++eventCount);
 
         Assert.Equal("Hello", loc.Get("Hello"));

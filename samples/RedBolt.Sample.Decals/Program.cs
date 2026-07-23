@@ -8,13 +8,13 @@ catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
 /// <summary>Decals example.</summary>
 sealed class DecalsApplication : Application
 {
-    private Scene? _scene; private Node? _cameraNode; private Octree? _octree; private bool _drawDebug; private ContextEventSubscription? _dearImGuiSubscription; private ContextEventSubscription? _postRenderSubscription;
+    private Scene? _scene; private Node? _cameraNode; private Octree? _octree; private bool _drawDebug;
     protected override void Setup(EngineParameters parameters) { parameters.ApplicationName = "RedBolt.Sample.Decals"; parameters.Borderless = false; parameters.FullScreen = false; parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = ".;.."; parameters.WindowMaximize = false; parameters.WindowWidth = 1280; parameters.WindowHeight = 720; parameters.WindowTitle = "RedBolt Decals"; }
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
-        CreateScene(); Renderer.SetViewport(0, new Viewport(_scene!, _cameraNode!.GetComponent<Camera>()!)); _postRenderSubscription = Context.SubscribeToEvent<CoreEvents.PostRenderUpdateEvent>((ref CoreEvents.PostRenderUpdateEvent _) => HandlePostRenderUpdate()); Input.SetMouseMode(MouseMode.Free); Input.SetMouseVisible(true);
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+        CreateScene(); Renderer.SetViewport(0, new Viewport(_scene!, _cameraNode!.GetComponent<Camera>()!)); SubscribeToEvent<CoreEvents.PostRenderUpdateEvent>((ref CoreEvents.PostRenderUpdateEvent _) => HandlePostRenderUpdate()); Input.SetMouseMode(MouseMode.Free); Input.SetMouseVisible(true);
     }
     private void CreateScene()
     {
@@ -51,6 +51,5 @@ sealed class DecalsApplication : Application
         if (decal is null) { decal = targetNode.CreateComponent<DecalSet>(); decal.SetMaterial(Resources.Get<Material>("Materials/UrhoDecal.xml")); }
         decal.AddDecal(hitDrawable, result.Position, _cameraNode.Rotation, 0.5f, 1.0f, 1.0f, Vector2f.Zero, Vector2f.One);
     }
-    protected override void Stop() { _postRenderSubscription?.Dispose(); _postRenderSubscription = null; _dearImGuiSubscription?.Dispose(); }
     private void DrawInstructions() { var windowOpen = true; if (ImGui.Begin("Decals\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings)) { ImGui.TextUnformatted("Use WASD keys to move\0"u8); ImGui.TextUnformatted("LMB to paint decals, RMB to rotate view\0"u8); ImGui.TextUnformatted(_drawDebug ? "Debug geometry requested\0"u8 : "Space to toggle debug geometry\0"u8); } ImGui.End(); }
 }

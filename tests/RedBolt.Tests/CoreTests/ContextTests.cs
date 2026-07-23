@@ -62,13 +62,13 @@ public sealed class ContextTests
             var anySenderCalls = 0;
             var filteredSenderCalls = 0;
 
-            using var subscriptionA = receiver.SubscribeToEvent<NamedEvent>((ref NamedEvent eventData) =>
+            receiver.SubscribeToEvent<NamedEvent>((ref NamedEvent eventData) =>
             {
                 ++anySenderCalls;
                 Assert.True(eventData.Flag);
                 Assert.Same(senderA, eventData.Sender);
             });
-            using var subscriptionB = receiver.SubscribeToEvent<NamedEvent>(senderB, (ref NamedEvent eventData) =>
+            receiver.SubscribeToEvent<NamedEvent>(senderB, (ref NamedEvent eventData) =>
             {
                 Assert.Same(senderB, eventData.Sender);
                 ++filteredSenderCalls;
@@ -139,7 +139,7 @@ public sealed class ContextTests
     }
 
     [Fact]
-    public void Context_subscription_dispose_stops_future_event_delivery()
+    public void Context_unsubscribe_stops_future_event_delivery()
     {
         var previousContext = Context.Instance;
         var context = new Context();
@@ -151,13 +151,13 @@ public sealed class ContextTests
             var receiver = new TestObject();
             var calls = 0;
 
-            var subscription = receiver.SubscribeToEvent<DisposeMeEvent>((ref DisposeMeEvent _) =>
+            receiver.SubscribeToEvent<DisposeMeEvent>((ref DisposeMeEvent _) =>
             {
                 ++calls;
             });
 
             sender.SendEvent<DisposeMeEvent>();
-            subscription.Dispose();
+            receiver.UnsubscribeFromEvent<DisposeMeEvent>();
             sender.SendEvent<DisposeMeEvent>();
 
             Assert.Equal(1, calls);
@@ -220,8 +220,8 @@ public sealed class ContextTests
 
             receiver.SubscribeToEvent<PongEvent>((ref PongEvent _) => ++pongCalls);
 
-            using var pingSubscription = receiver.SubscribeToEvent<PingEvent>((ref PingEvent _) => ++pingCalls);
-            pingSubscription.Dispose();
+            receiver.SubscribeToEvent<PingEvent>((ref PingEvent _) => ++pingCalls);
+            receiver.UnsubscribeFromEvent<PingEvent>();
 
             sender.SendEvent<PingEvent>();
             sender.SendEvent<PongEvent>();
@@ -524,8 +524,8 @@ public sealed class ContextTests
             var receiver = new TestObject();
 
             receiver.SubscribeToEvent<KeepEvent>((ref KeepEvent _) => { });
-            var dropEventSubscription = receiver.SubscribeToEvent<DropEvent>(static (ref DropEvent _) => { });
-            dropEventSubscription.Dispose();
+            receiver.SubscribeToEvent<DropEvent>(static (ref DropEvent _) => { });
+            receiver.UnsubscribeFromEvent<DropEvent>();
 
             Assert.True(receiver.HasSubscribedToEvent<KeepEvent>());
             Assert.False(receiver.HasSubscribedToEvent<DropEvent>());

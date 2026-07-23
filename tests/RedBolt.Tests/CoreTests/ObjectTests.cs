@@ -53,7 +53,7 @@ public sealed class ObjectTests
             var receiver = new TestObject();
             var calls = 0;
 
-            using var subscription = receiver.SubscribeToEvent<DisposeEvent>(sender, (ref DisposeEvent _) => ++calls);
+            receiver.SubscribeToEvent<DisposeEvent>(sender, (ref DisposeEvent _) => ++calls);
 
             var args = new DisposeEvent();
             sender.SendEvent(ref args);

@@ -152,7 +152,7 @@ public sealed class AnimationControllerTests
         animation.AddTrigger(0.5f, false, source);
 
         TriggerValue? dispatchedValue = null;
-        using var subscription = controller.SubscribeToEvent<DrawableEvents.AnimationTriggerEvent>(
+        controller.SubscribeToEvent<DrawableEvents.AnimationTriggerEvent>(
             (ref DrawableEvents.AnimationTriggerEvent eventData) =>
                 dispatchedValue = eventData.Data.GetCustom<TriggerValue>());
 

@@ -92,8 +92,10 @@ public sealed class MountedDirectoryTests
         var context = new Context();
         Context.SetInstance(context);
         using var mountPoint = new MountedDirectory(directory, "assets");
+        using var receiver = new TestEventReceiver();
         ResourceEvents.FileChanged? observed = null;
-        context.SubscribeToEvent<ResourceEvents.FileChanged>((ref ResourceEvents.FileChanged eventData) => observed = eventData);
+        receiver.SubscribeToEvent<ResourceEvents.FileChanged>(
+            (ref ResourceEvents.FileChanged eventData) => observed = eventData);
 
         try
         {
@@ -122,8 +124,10 @@ public sealed class MountedDirectoryTests
         var context = new Context();
         Context.SetInstance(context);
         var mountPoint = new MountedExternalMemory("assets");
+        using var receiver = new TestEventReceiver();
         ResourceEvents.FileChanged? observed = null;
-        context.SubscribeToEvent<ResourceEvents.FileChanged>((ref ResourceEvents.FileChanged eventData) => observed = eventData);
+        receiver.SubscribeToEvent<ResourceEvents.FileChanged>(
+            (ref ResourceEvents.FileChanged eventData) => observed = eventData);
 
         try
         {

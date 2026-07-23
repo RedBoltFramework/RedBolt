@@ -149,8 +149,8 @@ public sealed class DirectionalPadAdapterTests
         adapter.SetEnabled(true);
         var downs = new List<InputEvents.KeyDownEvent>();
         var ups = new List<InputEvents.KeyUpEvent>();
-        using var downSubscription = Context.Instance.SubscribeToEvent<InputEvents.KeyDownEvent>(adapter, (ref InputEvents.KeyDownEvent value) => downs.Add(value));
-        using var upSubscription = Context.Instance.SubscribeToEvent<InputEvents.KeyUpEvent>(adapter, (ref InputEvents.KeyUpEvent value) => ups.Add(value));
+        Context.Instance.SubscribeToEvent<InputEvents.KeyDownEvent>(adapter, (ref InputEvents.KeyDownEvent value) => downs.Add(value));
+        Context.Instance.SubscribeToEvent<InputEvents.KeyUpEvent>(adapter, (ref InputEvents.KeyUpEvent value) => ups.Add(value));
 
         Input.SetKey(Key.W, Scancode.W, true);
         Assert.Contains(downs, value => value.Scancode == Scancode.Up && !value.Repeat);

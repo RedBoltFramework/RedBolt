@@ -88,8 +88,6 @@ public class Scene : Node
     private readonly List<(StringHash EventType, bool IsForced)> _cookedUpdateEvents = [];
     private AsyncProgress _asyncProgress = new();
     private readonly SceneResolver _resolver = new();
-    private ContextEventSubscription? _updateSubscription;
-    private ContextEventSubscription? _resourceBackgroundLoadedSubscription;
     private int _asyncLoadingMs = 5;
     private bool _asyncLoading;
     private Vector3d _elapsedTimes;
@@ -121,9 +119,8 @@ public class Scene : Node
         SetID(GetFreeNodeID());
         NodeAdded(this);
 
-        _updateSubscription = SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
-        _resourceBackgroundLoadedSubscription =
-            SubscribeToEvent<ResourceEvents.ResourceBackgroundLoaded>(HandleResourceBackgroundLoaded);
+        SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
+        SubscribeToEvent<ResourceEvents.ResourceBackgroundLoaded>(HandleResourceBackgroundLoaded);
 
         RegisterAttribute(
             "Name",
@@ -221,8 +218,6 @@ public class Scene : Node
 
     public override void Dispose()
     {
-        _updateSubscription?.Dispose();
-        _resourceBackgroundLoadedSubscription?.Dispose();
         RemoveAllComponents();
         RemoveAllChildren();
         foreach (var node in _nodes.Values)

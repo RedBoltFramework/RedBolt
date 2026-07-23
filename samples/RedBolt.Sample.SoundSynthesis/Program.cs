@@ -107,7 +107,7 @@ public class SoundSynthesis : Application
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
         _instructionLine = new CString();
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
 
         // Construct new Text object, set string to display and font to use
         // Position the text relative to the screen center
@@ -163,8 +163,6 @@ public class SoundSynthesis : Application
 
     protected override void Stop()
     {
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         _instructionLine?.Dispose();
         _instructionLine = null;
         _soundStream = null;
@@ -175,8 +173,6 @@ public class SoundSynthesis : Application
 
     public override void Dispose()
     {
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         _instructionLine?.Dispose();
         _instructionLine = null;
         _soundStream = null;
@@ -185,7 +181,6 @@ public class SoundSynthesis : Application
         base.Dispose();
     }
 
-    private ContextEventSubscription? _dearImGuiSubscription;
 
     /// <summary>Scene node for the sound component.</summary>
     private Node? _node;

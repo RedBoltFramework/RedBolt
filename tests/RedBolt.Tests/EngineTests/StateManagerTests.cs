@@ -80,13 +80,13 @@ public sealed class StateManagerTests
         using var state = new TestState();
         var stateType = state.GetTypeNameHash();
         var events = new List<(string Name, StringHash From, StringHash To)>();
-        using var started = stateManager.SubscribeToEvent<StateManagerEvents.StateTransitionStartedEvent>(
+        stateManager.SubscribeToEvent<StateManagerEvents.StateTransitionStartedEvent>(
             (ref StateManagerEvents.StateTransitionStartedEvent eventData) => events.Add(("Started", eventData.From, eventData.To)));
-        using var entering = stateManager.SubscribeToEvent<StateManagerEvents.EnteringApplicationStateEvent>(
+        stateManager.SubscribeToEvent<StateManagerEvents.EnteringApplicationStateEvent>(
             (ref StateManagerEvents.EnteringApplicationStateEvent eventData) => events.Add(("Entering", eventData.From, eventData.To)));
-        using var leaving = stateManager.SubscribeToEvent<StateManagerEvents.LeavingApplicationStateEvent>(
+        stateManager.SubscribeToEvent<StateManagerEvents.LeavingApplicationStateEvent>(
             (ref StateManagerEvents.LeavingApplicationStateEvent eventData) => events.Add(("Leaving", eventData.From, eventData.To)));
-        using var complete = stateManager.SubscribeToEvent<StateManagerEvents.StateTransitionCompleteEvent>(
+        stateManager.SubscribeToEvent<StateManagerEvents.StateTransitionCompleteEvent>(
             (ref StateManagerEvents.StateTransitionCompleteEvent eventData) => events.Add(("Complete", eventData.From, eventData.To)));
 
         stateManager.EnqueueState(state);

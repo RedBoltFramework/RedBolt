@@ -66,15 +66,15 @@ public abstract class Object : IArchiveSerializable, IDisposable
         return Context.GetEventHandler();
     }
 
-    public ContextEventSubscription SubscribeToEvent<T>(RefEventHandler<T> handler) where T : struct
+    public void SubscribeToEvent<T>(RefEventHandler<T> handler) where T : struct
     {
-        return Context.SubscribeToEvent(this, handler);
+        Context.SubscribeToEvent(this, handler);
     }
 
-    public ContextEventSubscription SubscribeToEvent<T>(Object sender, RefEventHandler<T> handler) where T : struct
+    public void SubscribeToEvent<T>(Object sender, RefEventHandler<T> handler) where T : struct
     {
         ArgumentNullException.ThrowIfNull(sender);
-        return Context.SubscribeToEvent(this, sender, handler);
+        Context.SubscribeToEvent(this, sender, handler);
     }
 
     public void UnsubscribeFromEvent<T>() where T : struct => Context.Unsubscribe<T>(this);

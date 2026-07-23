@@ -49,7 +49,7 @@ public class HelloGUI : Application
         Input.SetMouseVisible(true);
 
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawUI());
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawUI());
 
         // Load XML file containing default UI style sheet
         // Set the loaded style as default style
@@ -215,16 +215,12 @@ public class HelloGUI : Application
 
     protected override void Stop()
     {
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         _windowTitle.Dispose();
         base.Stop();
     }
 
     public override void Dispose()
     {
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         _windowTitle.Dispose();
         base.Dispose();
     }
@@ -239,5 +235,4 @@ public class HelloGUI : Application
     private int _fishPositionY;
     private bool _checkBox;
     private int _lineEdit;
-    private ContextEventSubscription? _dearImGuiSubscription;
 }

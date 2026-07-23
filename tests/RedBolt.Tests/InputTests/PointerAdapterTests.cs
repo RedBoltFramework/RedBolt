@@ -36,9 +36,9 @@ public sealed class PointerAdapterTests
         adapter.SetEnabled(true);
         InputEvents.MouseMoveEvent synthesizedMove = default;
         InputEvents.MouseButtonDownEvent synthesizedDown = default;
-        using var moveSubscription = Context.Instance.SubscribeToEvent<InputEvents.MouseMoveEvent>(adapter,
+        Context.Instance.SubscribeToEvent<InputEvents.MouseMoveEvent>(adapter,
             (ref InputEvents.MouseMoveEvent value) => synthesizedMove = value);
-        using var downSubscription = Context.Instance.SubscribeToEvent<InputEvents.MouseButtonDownEvent>(adapter,
+        Context.Instance.SubscribeToEvent<InputEvents.MouseButtonDownEvent>(adapter,
             (ref InputEvents.MouseButtonDownEvent value) => synthesizedDown = value);
 
         var move = new InputEvents.MouseMoveEvent { X = 12, Y = 34 };

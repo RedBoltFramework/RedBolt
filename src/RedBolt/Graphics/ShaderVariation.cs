@@ -40,7 +40,7 @@ public sealed class ShaderVariation : RawShader
         var preparedSource = PrepareGLSLShaderCode(originalShaderCode);
         var processed = ProcessShaderSource(
             out var translatedSource, out var translatedSpirv, out var translatedBytecode, preparedSource);
-        var loggedSourceShaderName = GetShaderCacheFileIdentifier(GetCachedVariationName("glsl"));
+        var loggedSourceShaderName = _graphics!.GetSettings().ShaderCacheDir + GetCachedVariationName("glsl");
         ShaderSourceLogger.LogShaderSource(loggedSourceShaderName, Defines, translatedSource);
 
         if (!processed)
@@ -79,9 +79,8 @@ public sealed class ShaderVariation : RawShader
         if (_graphics is null)
             return false;
 
-        // TODO: port const GraphicsSettings& settings = graphics_->GetSettings();
-        // TODO: port const FileIdentifier& cacheDir = settings.shaderCacheDir_;
-        var binaryShaderName = GetShaderCacheFileIdentifier(GetCachedVariationName("bytecode"));
+        ref readonly var settings = ref _graphics.GetSettings();
+        var binaryShaderName = settings.ShaderCacheDir + GetCachedVariationName("bytecode");
         if (!LoadByteCode(binaryShaderName))
         {
             if (!CompileFromSource())
@@ -90,9 +89,7 @@ public sealed class ShaderVariation : RawShader
                 return false;
             }
 
-            // TODO: port settings.cacheShaders_ when GraphicsSettings is available.
-            var engine = GetSubsystem<Engine>();
-            if (engine?.Parameters.SaveShaderCache == true && _owner.TimeStamp > DateTime.MinValue)
+            if (settings.CacheShaders && _owner.TimeStamp > DateTime.MinValue)
                 SaveByteCode(in binaryShaderName);
         }
 
@@ -167,12 +164,12 @@ public sealed class ShaderVariation : RawShader
 
     private bool NeedShaderTranslation()
     {
-        return GetShaderTranslationPolicy() != ShaderTranslationPolicy.Verbatim;
+        return _graphics!.GetSettings().ShaderTranslationPolicy != ShaderTranslationPolicy.Verbatim;
     }
 
     private bool NeedShaderOptimization()
     {
-        return GetShaderTranslationPolicy() == ShaderTranslationPolicy.Optimize;
+        return _graphics!.GetSettings().ShaderTranslationPolicy == ShaderTranslationPolicy.Optimize;
     }
 
     private string PrepareGLSLShaderCode(string originalShaderCode)
@@ -316,40 +313,9 @@ public sealed class ShaderVariation : RawShader
         }
     }
 
-    private ShaderTranslationPolicy GetShaderTranslationPolicy()
-    {
-        // TODO: port graphics_->GetSettings().shaderTranslationPolicy_ when GraphicsSettings is available.
-        var requestedPolicy = GetSubsystem<Engine>()?.Parameters.ShaderPolicy;
-        var parsedPolicy = requestedPolicy switch
-        {
-            nameof(ShaderTranslationPolicy.Translate) => ShaderTranslationPolicy.Translate,
-            nameof(ShaderTranslationPolicy.Optimize) => ShaderTranslationPolicy.Optimize,
-            nameof(ShaderTranslationPolicy.Verbatim) => ShaderTranslationPolicy.Verbatim,
-            _ => (ShaderTranslationPolicy?)null
-        };
-        return RenderAPIUtils.SelectShaderTranslationPolicy(GetRenderBackend(), parsedPolicy);
-    }
-
     private RenderBackend GetRenderBackend()
     {
         return GetSubsystem<RenderDevice>()?.GetBackend() ?? RenderBackend.OpenGL;
-    }
-
-    private string GetShaderCacheDirectory()
-    {
-        // TODO: port graphics_->GetSettings().shaderCacheDir_ when GraphicsSettings is available.
-        return GetSubsystem<Engine>()?.Parameters.ShaderCacheDir ?? string.Empty;
-    }
-
-    private FileIdentifier GetShaderCacheFileIdentifier(string variationName)
-    {
-        var cacheDirectory = GetShaderCacheDirectory();
-        if (string.IsNullOrEmpty(cacheDirectory))
-            return FileIdentifier.Empty;
-
-        var fileIdentifier = FileIdentifier.FromUri(cacheDirectory);
-        fileIdentifier.AppendPath(variationName);
-        return fileIdentifier;
     }
 
     private static uint GetUnixTimeStamp(DateTime timeStamp)

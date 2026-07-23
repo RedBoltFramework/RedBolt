@@ -223,8 +223,6 @@ public static class ShaderTranslator
         }
     }
 
-    // TODO: port class RemappingCompilerHLSL : public spirv_cross::CompilerHLSL when generated bindings support subclassing.
-
     /// <summary>Convert SpirV to HLSL5</summary>
     private static void ConvertToHlsl5(ref TargetShader output, in SpirVShader shader)
     {

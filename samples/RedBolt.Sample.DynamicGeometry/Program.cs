@@ -275,7 +275,7 @@ public class DynamicGeometry : Application
     /// </summary>
     private void CreateInstructions()
     {
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
     }
 
     /// <summary>
@@ -363,8 +363,6 @@ public class DynamicGeometry : Application
 
     protected override void Stop()
     {
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         _instructionLine.Dispose();
         Renderer.SetNumViewports(0);
         base.Stop();
@@ -372,8 +370,6 @@ public class DynamicGeometry : Application
 
     public override void Dispose()
     {
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         _instructionLine.Dispose();
         if (_viewport is not null)
             Renderer.SetNumViewports(0);
@@ -421,5 +417,4 @@ public class DynamicGeometry : Application
     /// </summary>
     private float _time;
     private readonly CString _instructionLine = new();
-    private ContextEventSubscription? _dearImGuiSubscription;
 }

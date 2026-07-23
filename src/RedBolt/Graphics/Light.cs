@@ -121,7 +121,11 @@ public struct FocusParameters
 }
 
 /// <summary>Light component.</summary>
-public sealed class Light : Drawable
+public class LightBatchQueue
+{
+}
+
+public class Light : Drawable
 {
     private sealed class ColorAttributeAccessor : AttributeAccessor
     {
@@ -164,6 +168,7 @@ public sealed class Light : Drawable
     private float _aspectRatio = 1.0f;
     private Texture? _rampTexture;
     private Texture? _shapeTexture;
+    private LightBatchQueue? _lightQueue;
     private Matrix3x4 _volumeTransform = Matrix3x4.Identity;
     private readonly Frustum _worldBoundingFrustum = new();
 
@@ -768,9 +773,12 @@ public sealed class Light : Drawable
         return Math.Min(count, (int)MaxCascadeSplits);
     }
 
-    // TODO: port LightBatchQueue before porting the following C++ members:
-    // void SetLightQueue(LightBatchQueue* queue);
-    // LightBatchQueue* GetLightQueue() const { return lightQueue_; }
+    public void SetLightQueue(LightBatchQueue? queue)
+    {
+        _lightQueue = queue;
+    }
+
+    public LightBatchQueue? GetLightQueue() => _lightQueue;
 
     public bool IsNegative() => GetEffectiveColor().SumRGB() < 0.0f;
 

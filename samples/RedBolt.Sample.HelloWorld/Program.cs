@@ -75,7 +75,7 @@ public class HelloWorld : Application
     /// </summary>
     private void SubscribeToEvents()
     {
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawText());
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawText());
     }
 
     /// <summary>
@@ -109,20 +109,15 @@ public class HelloWorld : Application
 
     protected override void Stop()
     {
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         _helloText.Dispose();
         base.Stop();
     }
 
     public override void Dispose()
     {
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         _helloText.Dispose();
         base.Dispose();
     }
 
     private readonly CString _helloText = new();
-    private ContextEventSubscription? _dearImGuiSubscription;
 }

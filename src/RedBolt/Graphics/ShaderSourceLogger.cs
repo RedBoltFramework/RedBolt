@@ -5,10 +5,8 @@ public static class ShaderSourceLogger
     public static void LogShaderSource(in FileIdentifier fileName, string defines, string source)
     {
         var context = Context.Instance;
-        // TODO: port: auto graphics = context->GetSubsystem<Graphics>();
-        // TODO: port: if (!graphics->GetSettings().logShaderSources_)
-        var engine = context.GetSubsystem<Engine>()!;
-        if (!engine.Parameters.ShaderLogSources)
+        var graphics = context.GetSubsystem<Graphics>()!;
+        if (!graphics.GetSettings().LogShaderSources)
             return;
         var virtualFileSystem = context.GetSubsystem<VirtualFileSystem>()!;
         var sourceFile = virtualFileSystem.OpenFile(fileName, FileMode.Write);

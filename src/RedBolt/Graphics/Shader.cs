@@ -76,7 +76,7 @@ public sealed class Shader : Resource
         ProcessSource(resourceName, builder, visited, source);
 
         _sourceCode = builder.ToString();
-        if (GetSubsystem<Engine>()?.Parameters.ValidateShaders == true)
+        if (GetSubsystem<Graphics>()!.GetSettings().ValidateShaders)
         {
             static bool IsAllowedCharacter(char character)
             {
@@ -322,7 +322,7 @@ public sealed class Shader : Resource
                 if (isLineContinuation)
                     line = line[..^1];
 
-                var validateShaders = GetSubsystem<Engine>()?.Parameters.ValidateShaders == true;
+                var validateShaders = GetSubsystem<Graphics>()!.GetSettings().ValidateShaders;
                 if (!validateShaders || !line.TrimStart().StartsWith("//", StringComparison.Ordinal))
                     builder.Append(line);
                 ++numNewLines;

@@ -12,10 +12,6 @@ public class ApplicationState : Object
     private MouseMode _mouseMode = MouseMode.Free;
     private Color _fogColor = new(0.0f, 0.0f, 0.0f);
     private Color _savedFogColor = new();
-    private ContextEventSubscription? _updateSubscription;
-    private ContextEventSubscription? _mouseButtonDownSubscription;
-    private ContextEventSubscription? _mouseModeChangedSubscription;
-
     /// <summary>Construct.</summary>
     public ApplicationState()
     {
@@ -24,12 +20,6 @@ public class ApplicationState : Object
     /// <summary>Destruct.</summary>
     public override void Dispose()
     {
-        _mouseModeChangedSubscription?.Dispose();
-        _mouseModeChangedSubscription = null;
-        _mouseButtonDownSubscription?.Dispose();
-        _mouseButtonDownSubscription = null;
-        _updateSubscription?.Dispose();
-        _updateSubscription = null;
         _viewports.Clear();
         base.Dispose();
     }
@@ -50,7 +40,7 @@ public class ApplicationState : Object
         _active = true;
 
         // Subscribe HandleUpdate() method for processing update events
-        _updateSubscription = SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
+        SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
 
         var input = GetSubsystem<Input>()!;
         InitMouseMode();
@@ -90,8 +80,7 @@ public class ApplicationState : Object
         _active = false;
 
         // Subscribe HandleUpdate() method for processing update events
-        _updateSubscription?.Dispose();
-        _updateSubscription = null;
+        UnsubscribeFromEvent<CoreEvents.UpdateEvent>();
 
         var renderer = GetSubsystem<Renderer>()!;
         _fogColor = renderer.GetDefaultZone().GetFogColor();
@@ -211,10 +200,8 @@ public class ApplicationState : Object
         else
         {
             input.SetMouseVisible(true);
-            _mouseButtonDownSubscription?.Dispose();
-            _mouseModeChangedSubscription?.Dispose();
-            _mouseButtonDownSubscription = SubscribeToEvent<InputEvents.MouseButtonDownEvent>(HandleMouseModeRequest);
-            _mouseModeChangedSubscription = SubscribeToEvent<InputEvents.MouseModeChangedEvent>(HandleMouseModeChange);
+            SubscribeToEvent<InputEvents.MouseButtonDownEvent>(HandleMouseModeRequest);
+            SubscribeToEvent<InputEvents.MouseModeChangedEvent>(HandleMouseModeChange);
         }
     }
 
@@ -299,8 +286,6 @@ public class StateManager : Object
     private float _fadeInDuration = MathDefs.Epsilon;
     private float _fadeOutDuration = MathDefs.Epsilon;
     private TransitionState _transitionState = TransitionState.Sustain;
-    private ContextEventSubscription? _updateSubscription;
-
     /// <summary>Construct.</summary>
     public StateManager()
     {
@@ -309,8 +294,6 @@ public class StateManager : Object
     public override void Dispose()
     {
         Reset();
-        _updateSubscription?.Dispose();
-        _updateSubscription = null;
         _stateCache.Clear();
         base.Dispose();
     }
@@ -527,18 +510,15 @@ public class StateManager : Object
         switch (_transitionState)
         {
             case TransitionState.Sustain:
-                _updateSubscription?.Dispose();
-                _updateSubscription = null;
+                UnsubscribeFromEvent<CoreEvents.UpdateEvent>();
                 break;
             case TransitionState.FadeIn:
             case TransitionState.FadeOut:
                 _fadeTime = 0.0f;
-                _updateSubscription?.Dispose();
-                _updateSubscription = SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
+                SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
                 break;
             case TransitionState.WaitToExit:
-                _updateSubscription?.Dispose();
-                _updateSubscription = SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
+                SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
                 break;
         }
         if (_transitionState == TransitionState.FadeOut)

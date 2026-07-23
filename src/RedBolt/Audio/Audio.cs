@@ -41,7 +41,6 @@ public class Audio : Object
     private readonly List<SoundSource> _soundSources = [];
     private SoundListener? _listener;
     private readonly List<WeakReference<Microphone>> _microphones = [];
-    private ContextEventSubscription? _renderUpdateSubscription;
     private GCHandle _callbackHandle;
 
     public Audio()
@@ -49,7 +48,7 @@ public class Audio : Object
         Context.RequireSdl(SdlInitAudio);
         _masterGain[SoundMasterHash] = 1.0f;
         RegisterAudioLibrary(Context);
-        _renderUpdateSubscription = SubscribeToEvent<CoreEvents.RenderUpdateEvent>(HandleRenderUpdate);
+        SubscribeToEvent<CoreEvents.RenderUpdateEvent>(HandleRenderUpdate);
         _callbackHandle = GCHandle.Alloc(this);
     }
 

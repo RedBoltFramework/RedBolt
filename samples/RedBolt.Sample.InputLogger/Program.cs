@@ -38,8 +38,6 @@ sealed class InputLoggerApplication : Application
     private readonly ViewportData?[] _viewports = new ViewportData?[2];
     private readonly List<byte[]> _displayLines = [];
     private readonly List<LoggedEvent> _eventLog = [];
-    private readonly List<ContextEventSubscription> _subscriptions = [];
-    private ContextEventSubscription? _dearImGuiSubscription;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -76,7 +74,7 @@ sealed class InputLoggerApplication : Application
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
             (ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => Draw());
 
         // Create viewports
@@ -92,84 +90,64 @@ sealed class InputLoggerApplication : Application
         Input.SetMouseMode(MouseMode.Free);
         //Input.SetMouseMode(MouseMode.Wrap);
 
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.MouseButtonDownEvent>(
+        SubscribeToEvent<InputEvents.MouseButtonDownEvent>(
             (ref InputEvents.MouseButtonDownEvent e) => OnInputEvent(DecodeEvent(
                 "MouseButtonDown", ("Button", ((int)e.Button).ToString(CultureInfo.InvariantCulture)),
-                ("Clicks", e.Clicks.ToString(CultureInfo.InvariantCulture))))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.MouseButtonUpEvent>(
+                ("Clicks", e.Clicks.ToString(CultureInfo.InvariantCulture)))));        SubscribeToEvent<InputEvents.MouseButtonUpEvent>(
             (ref InputEvents.MouseButtonUpEvent e) => OnInputEvent(DecodeEvent(
-                "MouseButtonUp", ("Button", ((int)e.Button).ToString(CultureInfo.InvariantCulture))))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.MouseMoveEvent>(
+                "MouseButtonUp", ("Button", ((int)e.Button).ToString(CultureInfo.InvariantCulture)))));        SubscribeToEvent<InputEvents.MouseMoveEvent>(
             (ref InputEvents.MouseMoveEvent e) => OnInputEvent(DecodeEvent(
                 "MouseMove", ("X", e.X.ToString(CultureInfo.InvariantCulture)),
-                ("Y", e.Y.ToString(CultureInfo.InvariantCulture))))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.MouseWheelEvent>(
+                ("Y", e.Y.ToString(CultureInfo.InvariantCulture)))));        SubscribeToEvent<InputEvents.MouseWheelEvent>(
             (ref InputEvents.MouseWheelEvent e) => OnInputEvent(DecodeEvent(
-                "MouseWheel", ("Wheel", e.Wheel.ToString(CultureInfo.InvariantCulture))))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.KeyDownEvent>(
+                "MouseWheel", ("Wheel", e.Wheel.ToString(CultureInfo.InvariantCulture)))));        SubscribeToEvent<InputEvents.KeyDownEvent>(
             (ref InputEvents.KeyDownEvent e) => OnInputEvent(DecodeEvent(
                 "KeyDown", ("Key", ((int)e.Key).ToString(CultureInfo.InvariantCulture)),
-                ("Repeat", e.Repeat ? "true" : "false")))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.KeyUpEvent>(
+                ("Repeat", e.Repeat ? "true" : "false"))));        SubscribeToEvent<InputEvents.KeyUpEvent>(
             (ref InputEvents.KeyUpEvent e) => OnInputEvent(DecodeEvent(
-                "KeyUp", ("Key", ((int)e.Key).ToString(CultureInfo.InvariantCulture))))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.TextInputEvent>(
-            (ref InputEvents.TextInputEvent e) => OnInputEvent(DecodeEvent("TextInput", ("Text", e.Text)))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.TextEditingEvent>(
+                "KeyUp", ("Key", ((int)e.Key).ToString(CultureInfo.InvariantCulture)))));        SubscribeToEvent<InputEvents.TextInputEvent>(
+            (ref InputEvents.TextInputEvent e) => OnInputEvent(DecodeEvent("TextInput", ("Text", e.Text))));        SubscribeToEvent<InputEvents.TextEditingEvent>(
             (ref InputEvents.TextEditingEvent e) =>
-                OnInputEvent(DecodeEvent("TextEditing", ("Text", e.Composition)))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.JoystickConnectedEvent>(
+                OnInputEvent(DecodeEvent("TextEditing", ("Text", e.Composition))));        SubscribeToEvent<InputEvents.JoystickConnectedEvent>(
             (ref InputEvents.JoystickConnectedEvent e) => OnInputEvent(DecodeEvent(
-                "JoystickConnected", ("JoystickID", e.JoystickID.ToString(CultureInfo.InvariantCulture))))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.JoystickDisconnectedEvent>(
+                "JoystickConnected", ("JoystickID", e.JoystickID.ToString(CultureInfo.InvariantCulture)))));        SubscribeToEvent<InputEvents.JoystickDisconnectedEvent>(
             (ref InputEvents.JoystickDisconnectedEvent e) => OnInputEvent(DecodeEvent(
-                "JoystickDisconnected", ("JoystickID", e.JoystickID.ToString(CultureInfo.InvariantCulture))))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.JoystickButtonDownEvent>(
+                "JoystickDisconnected", ("JoystickID", e.JoystickID.ToString(CultureInfo.InvariantCulture)))));        SubscribeToEvent<InputEvents.JoystickButtonDownEvent>(
             (ref InputEvents.JoystickButtonDownEvent e) => OnInputEvent(DecodeEvent(
                 "JoystickButtonDown", ("JoystickID", e.JoystickID.ToString(CultureInfo.InvariantCulture)),
-                ("Button", e.Button.ToString(CultureInfo.InvariantCulture))))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.JoystickButtonUpEvent>(
+                ("Button", e.Button.ToString(CultureInfo.InvariantCulture)))));        SubscribeToEvent<InputEvents.JoystickButtonUpEvent>(
             (ref InputEvents.JoystickButtonUpEvent e) => OnInputEvent(DecodeEvent(
                 "JoystickButtonUp", ("JoystickID", e.JoystickID.ToString(CultureInfo.InvariantCulture)),
-                ("Button", e.Button.ToString(CultureInfo.InvariantCulture))))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.JoystickAxisMoveEvent>(
+                ("Button", e.Button.ToString(CultureInfo.InvariantCulture)))));        SubscribeToEvent<InputEvents.JoystickAxisMoveEvent>(
             (ref InputEvents.JoystickAxisMoveEvent e) => OnInputEvent(DecodeEvent(
                 "JoystickAxisMove", ("JoystickID", e.JoystickID.ToString(CultureInfo.InvariantCulture)),
                 ("Axis", e.Axis.ToString(CultureInfo.InvariantCulture)),
-                ("Position", e.Position.ToString(CultureInfo.InvariantCulture))))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.JoystickHatMoveEvent>(
+                ("Position", e.Position.ToString(CultureInfo.InvariantCulture)))));        SubscribeToEvent<InputEvents.JoystickHatMoveEvent>(
             (ref InputEvents.JoystickHatMoveEvent e) => OnInputEvent(DecodeEvent(
                 "JoystickHatMove", ("JoystickID", e.JoystickID.ToString(CultureInfo.InvariantCulture)),
-                ("Hat", e.Hat.ToString(CultureInfo.InvariantCulture))))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.TouchBeginEvent>(
+                ("Hat", e.Hat.ToString(CultureInfo.InvariantCulture)))));        SubscribeToEvent<InputEvents.TouchBeginEvent>(
             (ref InputEvents.TouchBeginEvent e) => OnInputEvent(DecodeEvent(
                 "TouchBegin", ("TouchID", e.TouchID.ToString(CultureInfo.InvariantCulture)),
-                ("Pressure", e.Pressure.ToString(CultureInfo.InvariantCulture))))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.TouchEndEvent>(
+                ("Pressure", e.Pressure.ToString(CultureInfo.InvariantCulture)))));        SubscribeToEvent<InputEvents.TouchEndEvent>(
             (ref InputEvents.TouchEndEvent e) => OnInputEvent(DecodeEvent(
-                "TouchEnd", ("TouchID", e.TouchID.ToString(CultureInfo.InvariantCulture))))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.TouchMoveEvent>(
+                "TouchEnd", ("TouchID", e.TouchID.ToString(CultureInfo.InvariantCulture)))));        SubscribeToEvent<InputEvents.TouchMoveEvent>(
             (ref InputEvents.TouchMoveEvent e) => OnInputEvent(DecodeEvent(
                 "TouchMove", ("TouchID", e.TouchID.ToString(CultureInfo.InvariantCulture)),
-                ("Pressure", e.Pressure.ToString(CultureInfo.InvariantCulture))))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.GestureRecordedEvent>(
+                ("Pressure", e.Pressure.ToString(CultureInfo.InvariantCulture)))));        SubscribeToEvent<InputEvents.GestureRecordedEvent>(
             (ref InputEvents.GestureRecordedEvent e) => OnInputEvent(DecodeEvent(
-                "GestureRecorded", ("GestureID", e.GestureID.ToString(CultureInfo.InvariantCulture))))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.GestureInputEvent>(
+                "GestureRecorded", ("GestureID", e.GestureID.ToString(CultureInfo.InvariantCulture)))));        SubscribeToEvent<InputEvents.GestureInputEvent>(
             (ref InputEvents.GestureInputEvent e) => OnInputEvent(DecodeEvent(
                 "GestureInput", ("GestureID", e.GestureID.ToString(CultureInfo.InvariantCulture)),
                 ("CenterX", e.CenterX.ToString(CultureInfo.InvariantCulture)),
                 ("CenterY", e.CenterY.ToString(CultureInfo.InvariantCulture)),
                 ("NumFingers", e.NumFingers.ToString(CultureInfo.InvariantCulture)),
-                ("Error", e.Error.ToString(CultureInfo.InvariantCulture))))));
-        _subscriptions.Add(Context.SubscribeToEvent<InputEvents.MultiGestureEvent>(
+                ("Error", e.Error.ToString(CultureInfo.InvariantCulture)))));        SubscribeToEvent<InputEvents.MultiGestureEvent>(
             (ref InputEvents.MultiGestureEvent e) => OnInputEvent(DecodeEvent(
                 "MultiGesture", ("CenterX", e.CenterX.ToString(CultureInfo.InvariantCulture)),
                 ("CenterY", e.CenterY.ToString(CultureInfo.InvariantCulture)),
                 ("NumFingers", e.NumFingers.ToString(CultureInfo.InvariantCulture)),
                 ("DTheta", e.DTheta.ToString(CultureInfo.InvariantCulture)),
-                ("DDist", e.DDist.ToString(CultureInfo.InvariantCulture))))));
-    }
+                ("DDist", e.DDist.ToString(CultureInfo.InvariantCulture)))));    }
 
     private void OnInputEvent(LoggedEvent inputEvent)
     {
@@ -307,11 +285,6 @@ sealed class InputLoggerApplication : Application
 
     protected override void Stop()
     {
-        foreach (var subscription in _subscriptions)
-            subscription.Dispose();
-        _subscriptions.Clear();
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
 
         Renderer.SetNumViewports(0);
 

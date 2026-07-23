@@ -41,7 +41,7 @@ public sealed class MultitouchAdapterTests
         using var adapter = new MultitouchAdapter();
         adapter.SetEnabled(true);
         var events = new List<InputEvents.MultitouchEvent>();
-        using var subscription = Context.Instance.SubscribeToEvent<InputEvents.MultitouchEvent>(adapter,
+        Context.Instance.SubscribeToEvent<InputEvents.MultitouchEvent>(adapter,
             (ref InputEvents.MultitouchEvent value) => events.Add(value));
 
         try

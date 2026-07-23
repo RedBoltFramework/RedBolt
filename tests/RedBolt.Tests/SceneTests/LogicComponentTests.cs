@@ -130,12 +130,14 @@ public sealed class LogicComponentTests
     public void Logic_update_uses_scene_event_subscription_order()
     {
         using var scene = new Scene();
+        using var before = new TestEventReceiver();
+        using var after = new TestEventReceiver();
         var calls = new List<string>();
-        using var before = scene.SubscribeToEvent<SceneEvents.SceneUpdateEvent>(scene, HandleBefore);
+        before.SubscribeToEvent<SceneEvents.SceneUpdateEvent>(scene, HandleBefore);
         var logic = new OrderedLogic(calls);
         logic.SetUpdateEventMask(UpdateEvent.UseUpdate);
         scene.CreateChild("LogicNode").AddComponent(logic);
-        using var after = scene.SubscribeToEvent<SceneEvents.SceneUpdateEvent>(scene, HandleAfter);
+        after.SubscribeToEvent<SceneEvents.SceneUpdateEvent>(scene, HandleAfter);
 
         scene.Update(0.1f);
 

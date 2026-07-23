@@ -158,7 +158,7 @@ public class MultipleViewports : Application
     private void CreateInstructions()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
 
         // Construct new Text object, set string to display and font to use
         // The text has multiple rows. Center them in relation to each other
@@ -193,7 +193,7 @@ public class MultipleViewports : Application
     {
         // Subscribe HandlePostRenderUpdate() method for processing the post-render update event, during which we request
         // debug geometry
-        _postRenderSubscription = Context.SubscribeToEvent<CoreEvents.PostRenderUpdateEvent>((ref CoreEvents.PostRenderUpdateEvent _) => HandlePostRenderUpdate());
+        SubscribeToEvent<CoreEvents.PostRenderUpdateEvent>((ref CoreEvents.PostRenderUpdateEvent _) => HandlePostRenderUpdate());
     }
 
     /// <summary>
@@ -270,10 +270,6 @@ public class MultipleViewports : Application
 
     protected override void Stop()
     {
-        _postRenderSubscription?.Dispose();
-        _postRenderSubscription = null;
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         Renderer.SetNumViewports(0);
         _rearCameraNode = null;
         _cameraNode = null;
@@ -284,10 +280,6 @@ public class MultipleViewports : Application
 
     public override void Dispose()
     {
-        _postRenderSubscription?.Dispose();
-        _postRenderSubscription = null;
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         if (_scene is not null)
             Renderer.SetNumViewports(0);
         _rearCameraNode = null;
@@ -307,8 +299,6 @@ public class MultipleViewports : Application
     /// Flag for drawing debug geometry.
     /// </summary>
     private bool _drawDebug;
-    private ContextEventSubscription? _dearImGuiSubscription;
-    private ContextEventSubscription? _postRenderSubscription;
     private readonly bool _animateCamera;
     private float _cameraAnimationDelay;
 }

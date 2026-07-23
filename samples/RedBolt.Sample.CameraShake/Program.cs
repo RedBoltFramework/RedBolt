@@ -26,7 +26,6 @@ sealed class CameraShakeApplication : Application
 {
     private Scene? _scene;
     private Node? _cameraNode;
-    private ContextEventSubscription? _dearImGuiSubscription;
     private ShakeComponent? _shakeComponent;
 
     protected override void Setup(EngineParameters parameters)
@@ -46,7 +45,7 @@ sealed class CameraShakeApplication : Application
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
 
         // Execute base class startup
 
@@ -106,8 +105,6 @@ sealed class CameraShakeApplication : Application
 
     protected override void Stop()
     {
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
     }
 
     private static void DrawInstructions()

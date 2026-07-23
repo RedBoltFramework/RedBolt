@@ -238,7 +238,7 @@ public sealed class RenderDeviceTests
     }
 
     [Fact]
-    public void End_frame_screenshot_is_taken_after_end_rendering_event()
+    public void End_frame_emits_end_rendering_before_screenshot()
     {
         var parameters = new EngineParameters
         {
@@ -253,12 +253,14 @@ public sealed class RenderDeviceTests
         {
             _fixture.RenderDevice.UpdateSwapChainSize();
             using var image = new Image();
+            using var receiver = new TestEventReceiver();
             var imageWasEmptyDuringEndRendering = false;
-            using var subscription = _fixture.Context.SubscribeToEvent<GraphicsEvents.EndRenderingEvent>(
+            receiver.SubscribeToEvent<GraphicsEvents.EndRenderingEvent>(
                 (ref GraphicsEvents.EndRenderingEvent _) => imageWasEmptyDuringEndRendering = image.Width == 0);
 
-            Assert.True(_fixture.Graphics.EndFrame(image));
+            _fixture.Graphics.EndFrame();
             Assert.True(imageWasEmptyDuringEndRendering);
+            Assert.True(_fixture.Graphics.TakeScreenShot(image));
             Assert.Equal(_fixture.Graphics.Width, image.Width);
             Assert.Equal(_fixture.Graphics.Height, image.Height);
         }
@@ -323,7 +325,7 @@ public sealed class RenderDeviceTests
         {
             var windowPosEventCount = 0;
             var reportedWindowPosition = Vector2i.Zero;
-            using var windowPosSubscription = _fixture.Graphics.SubscribeToEvent<GraphicsEvents.WindowPosEvent>((ref GraphicsEvents.WindowPosEvent eventData) =>
+            _fixture.Graphics.SubscribeToEvent<GraphicsEvents.WindowPosEvent>((ref GraphicsEvents.WindowPosEvent eventData) =>
             {
                 ++windowPosEventCount;
                 reportedWindowPosition = new Vector2i(eventData.X, eventData.Y);

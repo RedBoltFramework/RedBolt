@@ -13,10 +13,6 @@ public class LogicComponent : Component
     private UpdateEvent _updateEventMask;
     private UpdateEvent _currentEventMask;
     private bool _delayedStartCalled;
-    private ContextEventSubscription? _updateSubscription;
-    private ContextEventSubscription? _postUpdateSubscription;
-    private ContextEventSubscription? _worldOriginUpdateSubscription;
-    private ContextEventSubscription? _worldOriginPostUpdateSubscription;
 
     /// <summary>Construct.</summary>
     public LogicComponent()
@@ -112,14 +108,10 @@ public class LogicComponent : Component
             UpdateEventSubscription();
         else
         {
-            _updateSubscription?.Dispose();
-            _updateSubscription = null;
-            _postUpdateSubscription?.Dispose();
-            _postUpdateSubscription = null;
-            _worldOriginUpdateSubscription?.Dispose();
-            _worldOriginUpdateSubscription = null;
-            _worldOriginPostUpdateSubscription?.Dispose();
-            _worldOriginPostUpdateSubscription = null;
+            Context.Unsubscribe(this, GetUpdateEvent());
+            Context.Unsubscribe(this, GetPostUpdateEvent());
+            UnsubscribeFromEvent<SceneEvents.WorldOriginUpdateEvent>();
+            UnsubscribeFromEvent<SceneEvents.WorldOriginPostUpdateEvent>();
             _currentEventMask = UpdateEvent.UseNoEvent;
         }
     }
@@ -136,13 +128,12 @@ public class LogicComponent : Component
         var needSubscription = enabled && (((_updateEventMask & UpdateEvent.UseUpdate) != 0) || !_delayedStartCalled);
         if (needSubscription && !hasSubscription)
         {
-            _updateSubscription = SubscribeToSceneUpdateEvent(scene, GetUpdateEvent(), HandleSceneUpdate);
+            SubscribeToSceneUpdateEvent(scene, GetUpdateEvent(), HandleSceneUpdate);
             _currentEventMask |= UpdateEvent.UseUpdate;
         }
         else if (!needSubscription && hasSubscription)
         {
-            _updateSubscription?.Dispose();
-            _updateSubscription = null;
+            Context.Unsubscribe(this, scene, GetUpdateEvent());
             _currentEventMask &= ~UpdateEvent.UseUpdate;
         }
 
@@ -150,13 +141,12 @@ public class LogicComponent : Component
         needSubscription = enabled && (_updateEventMask & UpdateEvent.UsePostUpdate) != 0;
         if (needSubscription && !hasSubscription)
         {
-            _postUpdateSubscription = SubscribeToSceneUpdateEvent(scene, GetPostUpdateEvent(), HandleScenePostUpdate);
+            SubscribeToSceneUpdateEvent(scene, GetPostUpdateEvent(), HandleScenePostUpdate);
             _currentEventMask |= UpdateEvent.UsePostUpdate;
         }
         else if (!needSubscription && hasSubscription)
         {
-            _postUpdateSubscription?.Dispose();
-            _postUpdateSubscription = null;
+            Context.Unsubscribe(this, scene, GetPostUpdateEvent());
             _currentEventMask &= ~UpdateEvent.UsePostUpdate;
         }
 
@@ -164,13 +154,12 @@ public class LogicComponent : Component
         needSubscription = enabled && (_updateEventMask & UpdateEvent.UseWorldOriginUpdate) != 0;
         if (needSubscription && !hasSubscription)
         {
-            _worldOriginUpdateSubscription = SubscribeToEvent<SceneEvents.WorldOriginUpdateEvent>(scene, HandleWorldOriginUpdate);
+            SubscribeToEvent<SceneEvents.WorldOriginUpdateEvent>(scene, HandleWorldOriginUpdate);
             _currentEventMask |= UpdateEvent.UseWorldOriginUpdate;
         }
         else if (!needSubscription && hasSubscription)
         {
-            _worldOriginUpdateSubscription?.Dispose();
-            _worldOriginUpdateSubscription = null;
+            UnsubscribeFromEvent<SceneEvents.WorldOriginUpdateEvent>(scene);
             _currentEventMask &= ~UpdateEvent.UseWorldOriginUpdate;
         }
 
@@ -178,28 +167,26 @@ public class LogicComponent : Component
         needSubscription = enabled && (_updateEventMask & UpdateEvent.UseWorldOriginPostUpdate) != 0;
         if (needSubscription && !hasSubscription)
         {
-            _worldOriginPostUpdateSubscription = SubscribeToEvent<SceneEvents.WorldOriginPostUpdateEvent>(scene, HandleWorldOriginPostUpdate);
+            SubscribeToEvent<SceneEvents.WorldOriginPostUpdateEvent>(scene, HandleWorldOriginPostUpdate);
             _currentEventMask |= UpdateEvent.UseWorldOriginPostUpdate;
         }
         else if (!needSubscription && hasSubscription)
         {
-            _worldOriginPostUpdateSubscription?.Dispose();
-            _worldOriginPostUpdateSubscription = null;
+            UnsubscribeFromEvent<SceneEvents.WorldOriginPostUpdateEvent>(scene);
             _currentEventMask &= ~UpdateEvent.UseWorldOriginPostUpdate;
         }
     }
 
-    private ContextEventSubscription SubscribeToSceneUpdateEvent(
+    private void SubscribeToSceneUpdateEvent(
         Scene scene, Type eventType, SceneUpdateHandler handler)
     {
-        return (ContextEventSubscription)SubscribeToSceneUpdateEventMethod.MakeGenericMethod(eventType)
-            .Invoke(this, [scene, handler])!;
+        SubscribeToSceneUpdateEventMethod.MakeGenericMethod(eventType).Invoke(this, [scene, handler]);
     }
 
-    private ContextEventSubscription SubscribeToSceneUpdateEventCore<T>(Scene scene, SceneUpdateHandler handler)
+    private void SubscribeToSceneUpdateEventCore<T>(Scene scene, SceneUpdateHandler handler)
         where T : struct, SceneEvents.ISceneUpdateEvent
     {
-        return SubscribeToEvent<T>(scene, (ref T eventData) => handler(eventData.TimeStep));
+        SubscribeToEvent<T>(scene, (ref T eventData) => handler(eventData.TimeStep));
     }
 
     private void HandleSceneUpdate(float timeStep)
@@ -213,8 +200,7 @@ public class LogicComponent : Component
             // If did not need actual update events, unsubscribe now
             if ((_updateEventMask & UpdateEvent.UseUpdate) == 0)
             {
-                _updateSubscription?.Dispose();
-                _updateSubscription = null;
+                Context.Unsubscribe(this, Scene!, GetUpdateEvent());
                 _currentEventMask &= ~UpdateEvent.UseUpdate;
                 return;
             }

@@ -30,7 +30,6 @@ sealed class VirtualFileSystemApplication : Application
 
     private readonly List<byte[]> _mountPointLines = [];
     private readonly List<byte[]> _scanResultLines = [];
-    private ContextEventSubscription? _dearImGuiSubscription;
     private IntPtr _uriBuffer;
     private IntPtr _scanSchemeBuffer;
     private IntPtr _scanPathBuffer;
@@ -59,7 +58,7 @@ sealed class VirtualFileSystemApplication : Application
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
             (ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => RenderUi());
         AllocateInputBuffers();
         CreateText();
@@ -193,7 +192,6 @@ sealed class VirtualFileSystemApplication : Application
 
     protected override void Stop()
     {
-        _dearImGuiSubscription?.Dispose();
         _readOnlyFile?.Close();
         FreeInputBuffer(ref _uriBuffer);
         FreeInputBuffer(ref _scanSchemeBuffer);

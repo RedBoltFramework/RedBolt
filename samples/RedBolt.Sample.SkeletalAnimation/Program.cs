@@ -19,8 +19,6 @@ sealed class SkeletalAnimationApplication : Application
     private Scene? _scene;
     private Node? _cameraNode;
     private bool _drawDebug;
-    private ContextEventSubscription? _dearImGuiSubscription;
-    private ContextEventSubscription? _postRenderSubscription;
 
     public SkeletalAnimationApplication()
     {
@@ -118,7 +116,7 @@ sealed class SkeletalAnimationApplication : Application
     private void CreateInstructions()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
     }
 
     /// <summary>Set up a viewport for displaying the scene.</summary>
@@ -130,7 +128,7 @@ sealed class SkeletalAnimationApplication : Application
     /// <summary>Subscribe to application-wide logic update and post-render update events.</summary>
     private void SubscribeToEvents()
     {
-        _postRenderSubscription = Context.SubscribeToEvent<CoreEvents.PostRenderUpdateEvent>((ref CoreEvents.PostRenderUpdateEvent _) => HandlePostRenderUpdate());
+        SubscribeToEvent<CoreEvents.PostRenderUpdateEvent>((ref CoreEvents.PostRenderUpdateEvent _) => HandlePostRenderUpdate());
     }
 
     /// <summary>Handle the logic update event.</summary>
@@ -156,10 +154,6 @@ sealed class SkeletalAnimationApplication : Application
 
     protected override void Stop()
     {
-        _postRenderSubscription?.Dispose();
-        _postRenderSubscription = null;
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
     }
 
     private void DrawInstructions()

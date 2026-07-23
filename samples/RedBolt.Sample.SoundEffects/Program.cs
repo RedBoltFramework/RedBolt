@@ -61,7 +61,7 @@ public class SoundEffects : Application
     private void CreateUI()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawUI());
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawUI());
 
         var audio = GetSubsystem<Audio>()!;
         _microphones = audio.EnumerateMicrophones();
@@ -284,8 +284,6 @@ public class SoundEffects : Application
 
     protected override void Stop()
     {
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         _activeMic?.Dispose();
         _activeMic = null;
         _micStream = null;
@@ -301,8 +299,6 @@ public class SoundEffects : Application
 
     public override void Dispose()
     {
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         _activeMic?.Dispose();
         _activeMic = null;
         _micStream = null;
@@ -317,7 +313,6 @@ public class SoundEffects : Application
     }
 
     private Scene? _scene;
-    private ContextEventSubscription? _dearImGuiSubscription;
     private IReadOnlyList<string> _microphones = [];
     private readonly List<CString> _microphoneLabels = [];
     private int _selectedMicrophone;

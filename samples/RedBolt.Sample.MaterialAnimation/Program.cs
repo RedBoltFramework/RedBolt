@@ -21,7 +21,6 @@ sealed class MaterialAnimationApplication : Application
 {
     private Scene? _scene;
     private Node? _cameraNode;
-    private ContextEventSubscription? _dearImGuiSubscription;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -40,7 +39,7 @@ sealed class MaterialAnimationApplication : Application
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
 
         // Execute base class startup
 
@@ -148,8 +147,6 @@ sealed class MaterialAnimationApplication : Application
 
     protected override void Stop()
     {
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
     }
 
     private static void DrawInstructions()

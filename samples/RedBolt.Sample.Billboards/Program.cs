@@ -27,8 +27,6 @@ sealed class BillboardsApplication : Application
 {
     private Scene? _scene;
     private Node? _cameraNode;
-    private ContextEventSubscription? _dearImGuiSubscription;
-    private ContextEventSubscription? _postRenderSubscription;
     private readonly List<Node> _lightNodes = [];
     private readonly List<Node> _billboardNodes = [];
 
@@ -52,7 +50,7 @@ sealed class BillboardsApplication : Application
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
 
         // Execute base class startup
 
@@ -217,7 +215,7 @@ sealed class BillboardsApplication : Application
     {
         // Subscribe HandlePostRenderUpdate() function for processing the post-render update event, during which we request
         // debug geometry
-        _postRenderSubscription = Context.SubscribeToEvent<CoreEvents.PostRenderUpdateEvent>((ref CoreEvents.PostRenderUpdateEvent _) => HandlePostRenderUpdate());
+        SubscribeToEvent<CoreEvents.PostRenderUpdateEvent>((ref CoreEvents.PostRenderUpdateEvent _) => HandlePostRenderUpdate());
     }
 
     /// <summary>Read input and moves the camera.</summary>
@@ -284,10 +282,6 @@ sealed class BillboardsApplication : Application
 
     protected override void Stop()
     {
-        _postRenderSubscription?.Dispose();
-        _postRenderSubscription = null;
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
     }
 
     private void DrawInstructions()

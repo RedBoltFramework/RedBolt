@@ -146,8 +146,6 @@ public class CubemapRenderer : Object
     private readonly WeakReference<TextureCube> _currentFilteredTexture = new(null!);
     private bool _viewportsConnectedToSelf;
     private CachedPipelineStates? _cachedPipelineStates;
-    private ContextEventSubscription? _endViewRenderSubscription;
-
     public CubemapRenderer(Scene scene)
     {
         _scene = new WeakReference<Scene>(scene);
@@ -161,8 +159,6 @@ public class CubemapRenderer : Object
         for (var face = (int)CubeMapFace.MaxCubeMapFaces - 1; face >= 0; --face)
             _renderCameraNodes[face].Remove();
         CubemapRendered = null;
-        _endViewRenderSubscription?.Dispose();
-        _endViewRenderSubscription = null;
         base.Dispose();
     }
 
@@ -201,8 +197,8 @@ public class CubemapRenderer : Object
             surface?.SetViewport(0, _viewports[face]);
         }
 
-        _endViewRenderSubscription?.Dispose();
-        _endViewRenderSubscription = SubscribeToEvent<GraphicsEvents.EndViewRenderEvent>(texture,
+        UnsubscribeFromEvent<GraphicsEvents.EndViewRenderEvent>();
+        SubscribeToEvent<GraphicsEvents.EndViewRenderEvent>(texture,
             (ref GraphicsEvents.EndViewRenderEvent _) => ProcessFaceRendered());
     }
 

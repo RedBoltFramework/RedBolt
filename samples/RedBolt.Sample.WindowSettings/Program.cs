@@ -46,7 +46,7 @@ public class WindowSettingsDemo : Application
         // Create window with settings.
         InitSettings();
         SynchronizeSettings();
-        _screenModeSubscription = Context.SubscribeToEvent<GraphicsEvents.ScreenModeEvent>(
+        SubscribeToEvent<GraphicsEvents.ScreenModeEvent>(
             (ref GraphicsEvents.ScreenModeEvent _) => SynchronizeSettings());
 
         // Set the mouse mode to use in the sample
@@ -88,7 +88,7 @@ public class WindowSettingsDemo : Application
         _cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -4.0f));
 
         // Rotate object
-        _sceneUpdateSubscription = Context.SubscribeToEvent<SceneEvents.SceneUpdateEvent>(this, _scene,
+        SubscribeToEvent<SceneEvents.SceneUpdateEvent>(_scene,
             (ref SceneEvents.SceneUpdateEvent eventData) =>
         {
             var timeStep = eventData.TimeStep;
@@ -102,7 +102,7 @@ public class WindowSettingsDemo : Application
     private void InitSettings()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
             (ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawUI());
 
         // Create the Window and add it to the UI's root node
@@ -229,12 +229,6 @@ public class WindowSettingsDemo : Application
 
     protected override void Stop()
     {
-        _sceneUpdateSubscription?.Dispose();
-        _sceneUpdateSubscription = null;
-        _screenModeSubscription?.Dispose();
-        _screenModeSubscription = null;
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         _resolutionLabel.Dispose();
         Renderer.SetNumViewports(0);
         _cameraNode = null;
@@ -245,12 +239,6 @@ public class WindowSettingsDemo : Application
 
     public override void Dispose()
     {
-        _sceneUpdateSubscription?.Dispose();
-        _sceneUpdateSubscription = null;
-        _screenModeSubscription?.Dispose();
-        _screenModeSubscription = null;
-        _dearImGuiSubscription?.Dispose();
-        _dearImGuiSubscription = null;
         _resolutionLabel.Dispose();
         if (_scene is not null)
             Renderer.SetNumViewports(0);
@@ -270,7 +258,4 @@ public class WindowSettingsDemo : Application
     private bool _resizable;
     private bool _vSync;
     private int _multiSample;
-    private ContextEventSubscription? _dearImGuiSubscription;
-    private ContextEventSubscription? _screenModeSubscription;
-    private ContextEventSubscription? _sceneUpdateSubscription;
 }

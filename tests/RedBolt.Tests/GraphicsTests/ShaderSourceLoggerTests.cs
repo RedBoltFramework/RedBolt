@@ -14,7 +14,10 @@ public sealed class ShaderSourceLoggerTests
         try
         {
             context.InitializeEngineSubsystems(engine);
-            engine.Parameters.ShaderLogSources = true;
+            var graphics = context.GetSubsystem<Graphics>()!;
+            var settings = graphics.GetSettings();
+            settings.LogShaderSources = true;
+            graphics.Configure(in settings);
             var virtualFileSystem = context.GetSubsystem<VirtualFileSystem>()!;
             var mountPoint = virtualFileSystem.MountRoot();
             try

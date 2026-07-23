@@ -295,4 +295,17 @@ public sealed class LightTests
 
         Assert.True(debugRenderer.HasContent());
     }
+
+    [Fact]
+    public void Light_batch_queue_roundtrips()
+    {
+        var light = new Light();
+        var lightQueue = new LightBatchQueue();
+
+        Assert.Null(light.GetLightQueue());
+        light.SetLightQueue(lightQueue);
+        Assert.Same(lightQueue, light.GetLightQueue());
+        light.SetLightQueue(null);
+        Assert.Null(light.GetLightQueue());
+    }
 }

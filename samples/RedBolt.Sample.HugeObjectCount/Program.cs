@@ -19,7 +19,6 @@ sealed class HugeObjectCountApplication : Application
 {
     private Scene? _scene;
     private Node? _cameraNode;
-    private ContextEventSubscription? _dearImGuiSubscription;
     private CString _fpsText = "FPS: 0";
     /// <summary>Box scene nodes.</summary>
     private readonly List<Node> _boxNodes = [];
@@ -41,7 +40,7 @@ sealed class HugeObjectCountApplication : Application
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        _dearImGuiSubscription = Context.SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
         // Execute base class startup
         // Create the scene content
         CreateScene();
@@ -150,8 +149,6 @@ sealed class HugeObjectCountApplication : Application
         // Animate scene if enabled
         if (_animate) AnimateObjects(timeStep);
     }
-
-    protected override void Stop() { _dearImGuiSubscription?.Dispose(); _dearImGuiSubscription = null; }
 
     private void DrawInstructions()
     {

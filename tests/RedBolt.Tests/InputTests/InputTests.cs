@@ -5,6 +5,17 @@ namespace RedBolt.Tests;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class InputTests
 {
+    [Fact]
+    public void Engine_registers_input_adapter_factories()
+    {
+        using var pointerAdapter = Assert.IsType<PointerAdapter>(
+            Context.Instance.CreateObject(ObjectReflection<PointerAdapter>.TypeId));
+        using var directionAggregator = Assert.IsType<DirectionAggregator>(
+            Context.Instance.CreateObject(ObjectReflection<DirectionAggregator>.TypeId));
+        using var directionalPadAdapter = Assert.IsType<DirectionalPadAdapter>(
+            Context.Instance.CreateObject(ObjectReflection<DirectionalPadAdapter>.TypeId));
+    }
+
     private readonly HeadlessEngineFixture _fixture;
 
     public InputTests(HeadlessEngineFixture fixture)
@@ -223,12 +234,17 @@ public sealed class InputTests
         InputEvents.MouseButtonUpEvent mouseUp = default;
         InputEvents.JoystickAxisMoveEvent axisMove = default;
         InputEvents.JoystickHatMoveEvent hatMove = default;
-        using var keyDownSubscription = Context.Instance.SubscribeToEvent<InputEvents.KeyDownEvent>((ref InputEvents.KeyDownEvent value) => keyDown = value);
-        using var keyUpSubscription = Context.Instance.SubscribeToEvent<InputEvents.KeyUpEvent>((ref InputEvents.KeyUpEvent value) => keyUp = value);
-        using var mouseDownSubscription = Context.Instance.SubscribeToEvent<InputEvents.MouseButtonDownEvent>((ref InputEvents.MouseButtonDownEvent value) => mouseDown = value);
-        using var mouseUpSubscription = Context.Instance.SubscribeToEvent<InputEvents.MouseButtonUpEvent>((ref InputEvents.MouseButtonUpEvent value) => mouseUp = value);
-        using var axisSubscription = Context.Instance.SubscribeToEvent<InputEvents.JoystickAxisMoveEvent>((ref InputEvents.JoystickAxisMoveEvent value) => axisMove = value);
-        using var hatSubscription = Context.Instance.SubscribeToEvent<InputEvents.JoystickHatMoveEvent>((ref InputEvents.JoystickHatMoveEvent value) => hatMove = value);
+        using var receiver = new TestEventReceiver();
+        receiver.SubscribeToEvent<InputEvents.KeyDownEvent>((ref InputEvents.KeyDownEvent value) => keyDown = value);
+        receiver.SubscribeToEvent<InputEvents.KeyUpEvent>((ref InputEvents.KeyUpEvent value) => keyUp = value);
+        receiver.SubscribeToEvent<InputEvents.MouseButtonDownEvent>(
+            (ref InputEvents.MouseButtonDownEvent value) => mouseDown = value);
+        receiver.SubscribeToEvent<InputEvents.MouseButtonUpEvent>(
+            (ref InputEvents.MouseButtonUpEvent value) => mouseUp = value);
+        receiver.SubscribeToEvent<InputEvents.JoystickAxisMoveEvent>(
+            (ref InputEvents.JoystickAxisMoveEvent value) => axisMove = value);
+        receiver.SubscribeToEvent<InputEvents.JoystickHatMoveEvent>(
+            (ref InputEvents.JoystickHatMoveEvent value) => hatMove = value);
 
         Input.SetKey(Key.B, Scancode.B, true);
         Input.SetKey(Key.B, Scancode.B, false);

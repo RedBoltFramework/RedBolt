@@ -7,23 +7,6 @@ namespace RedBolt;
 
 public delegate void RefEventHandler<T>(ref T args) where T : struct;
 
-public readonly struct ContextEventSubscription : IDisposable
-{
-    private readonly Context? _context;
-    private readonly ulong _subscriptionId;
-
-    internal ContextEventSubscription(Context context, ulong subscriptionId)
-    {
-        this._context = context;
-        this._subscriptionId = subscriptionId;
-    }
-
-    public void Dispose()
-    {
-        _context?.Unsubscribe(_subscriptionId);
-    }
-}
-
 public class Context : ObjectReflectionRegistry
 {
     private sealed class StructEventSubscriptionBucket
@@ -56,8 +39,6 @@ public class Context : ObjectReflectionRegistry
     private readonly Dictionary<Type, StructEventSubscriptionBucket> _structEventSubscriptions = [];
     private readonly List<ActiveEventInvocation> _activeEventInvocations = [];
     private readonly VariantMap _globalVars = [];
-    private ulong _nextSubscriptionId = 1;
-
     public static Context Instance => _instance;
 
     public static void SetInstance(Context context)
@@ -122,7 +103,6 @@ public class Context : ObjectReflectionRegistry
         _globalVars.Dispose();
         _activeEventInvocations.Clear();
         _structEventSubscriptions.Clear();
-        _nextSubscriptionId = 1;
     }
 
     public override void Dispose()
@@ -303,25 +283,20 @@ public class Context : ObjectReflectionRegistry
         return type.GetTypeId();
     }
 
-    public ContextEventSubscription SubscribeToEvent<T>(RefEventHandler<T> handler) where T : struct
-    {
-        return SubscribeToEventCore<T>(receiver: null, senderFilter: null, handler);
-    }
-
-    public ContextEventSubscription SubscribeToEvent<T>(object receiver, RefEventHandler<T> handler) where T : struct
+    public void SubscribeToEvent<T>(Object receiver, RefEventHandler<T> handler) where T : struct
     {
         ArgumentNullException.ThrowIfNull(receiver);
-        return SubscribeToEventCore(receiver, senderFilter: null, handler);
+        SubscribeToEventCore(receiver, senderFilter: null, handler);
     }
 
-    public ContextEventSubscription SubscribeToEvent<T>(object receiver, Object sender, RefEventHandler<T> handler) where T : struct
+    public void SubscribeToEvent<T>(Object receiver, Object sender, RefEventHandler<T> handler) where T : struct
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(sender);
-        return SubscribeToEventCore(receiver, sender, handler);
+        SubscribeToEventCore(receiver, sender, handler);
     }
 
-    public void Unsubscribe(object receiver)
+    public void Unsubscribe(Object receiver)
     {
         ArgumentNullException.ThrowIfNull(receiver);
 
@@ -331,7 +306,7 @@ public class Context : ObjectReflectionRegistry
         RemoveEmptyEventBuckets();
     }
 
-    public void Unsubscribe(object receiver, Object sender)
+    public void Unsubscribe(Object receiver, Object sender)
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(sender);
@@ -346,7 +321,7 @@ public class Context : ObjectReflectionRegistry
         RemoveEmptyEventBuckets();
     }
 
-    public void Unsubscribe<T>(object receiver) where T : struct
+    public void Unsubscribe<T>(Object receiver) where T : struct
     {
         ArgumentNullException.ThrowIfNull(receiver);
 
@@ -356,7 +331,7 @@ public class Context : ObjectReflectionRegistry
         RemoveEmptyEventBuckets();
     }
 
-    public void Unsubscribe<T>(object receiver, Object sender) where T : struct
+    public void Unsubscribe<T>(Object receiver, Object sender) where T : struct
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(sender);
@@ -371,7 +346,34 @@ public class Context : ObjectReflectionRegistry
         RemoveEmptyEventBuckets();
     }
 
-    public void UnsubscribeFromEvents(object receiver, Object sender)
+    public void Unsubscribe(Object receiver, Type eventType)
+    {
+        ArgumentNullException.ThrowIfNull(receiver);
+        ArgumentNullException.ThrowIfNull(eventType);
+
+        if (_structEventSubscriptions.TryGetValue(eventType, out var bucket))
+            RemoveMatchingSubscriptions(bucket, subscription => IsReceiverMatch(subscription, receiver));
+
+        RemoveEmptyEventBuckets();
+    }
+
+    public void Unsubscribe(Object receiver, Object sender, Type eventType)
+    {
+        ArgumentNullException.ThrowIfNull(receiver);
+        ArgumentNullException.ThrowIfNull(sender);
+        ArgumentNullException.ThrowIfNull(eventType);
+
+        if (_structEventSubscriptions.TryGetValue(eventType, out var bucket))
+        {
+            RemoveMatchingSubscriptions(
+                bucket,
+                subscription => IsReceiverMatch(subscription, receiver) && ReferenceEquals(subscription.Sender, sender));
+        }
+
+        RemoveEmptyEventBuckets();
+    }
+
+    public void UnsubscribeFromEvents(Object receiver, Object sender)
     {
         Unsubscribe(receiver, sender);
     }
@@ -389,7 +391,7 @@ public class Context : ObjectReflectionRegistry
         RemoveEmptyEventBuckets();
     }
 
-    public void UnsubscribeAllExcept(object receiver, IReadOnlyCollection<Object> senders)
+    public void UnsubscribeAllExcept(Object receiver, IReadOnlyCollection<Object> senders)
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(senders);
@@ -405,7 +407,7 @@ public class Context : ObjectReflectionRegistry
         RemoveEmptyEventBuckets();
     }
 
-    public void UnsubscribeAllExcept(object receiver, IReadOnlyCollection<Type> eventTypes)
+    public void UnsubscribeAllExcept(Object receiver, IReadOnlyCollection<Type> eventTypes)
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(eventTypes);
@@ -419,7 +421,7 @@ public class Context : ObjectReflectionRegistry
         RemoveEmptyEventBuckets();
     }
 
-    public bool HasSubscribedToEvent(object receiver)
+    public bool HasSubscribedToEvent(Object receiver)
     {
         ArgumentNullException.ThrowIfNull(receiver);
 
@@ -432,7 +434,7 @@ public class Context : ObjectReflectionRegistry
         return false;
     }
 
-    public bool HasSubscribedToEvent<T>(object receiver) where T : struct
+    public bool HasSubscribedToEvent<T>(Object receiver) where T : struct
     {
         ArgumentNullException.ThrowIfNull(receiver);
 
@@ -442,7 +444,7 @@ public class Context : ObjectReflectionRegistry
         return HasMatchingSubscription(bucket, subscription => IsReceiverMatch(subscription, receiver));
     }
 
-    public bool HasSubscribedToEvent<T>(object receiver, Object sender) where T : struct
+    public bool HasSubscribedToEvent<T>(Object receiver, Object sender) where T : struct
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(sender);
@@ -454,7 +456,7 @@ public class Context : ObjectReflectionRegistry
             subscription => IsReceiverMatch(subscription, receiver) && ReferenceEquals(subscription.Sender, sender));
     }
 
-    public bool HasEventHandlers(object receiver)
+    public bool HasEventHandlers(Object receiver)
     {
         return HasSubscribedToEvent(receiver);
     }
@@ -546,7 +548,7 @@ public class Context : ObjectReflectionRegistry
         }
     }
 
-    private static bool IsReceiverMatch(EventHandler subscription, object receiver)
+    private static bool IsReceiverMatch(EventHandler subscription, Object receiver)
     {
         if (!subscription.TryGetReceiver(out var targetReceiver))
             return false;
@@ -554,7 +556,7 @@ public class Context : ObjectReflectionRegistry
         return ReferenceEquals(targetReceiver, receiver);
     }
 
-    private static bool HasSpecificSubscription(StructEventSubscriptionBucket bucket, object? receiver, Object sender)
+    private static bool HasSpecificSubscription(StructEventSubscriptionBucket bucket, Object? receiver, Object sender)
     {
         foreach (var subscription in bucket.Subscriptions)
         {
@@ -568,7 +570,7 @@ public class Context : ObjectReflectionRegistry
         return false;
     }
 
-    private ContextEventSubscription SubscribeToEventCore<T>(object? receiver, Object? senderFilter, RefEventHandler<T> handler) where T : struct
+    private void SubscribeToEventCore<T>(Object receiver, Object? senderFilter, RefEventHandler<T> handler) where T : struct
     {
         ArgumentNullException.ThrowIfNull(handler);
 
@@ -576,21 +578,19 @@ public class Context : ObjectReflectionRegistry
         if (!_structEventSubscriptions.TryGetValue(eventType, out var bucket))
             _structEventSubscriptions[eventType] = bucket = new StructEventSubscriptionBucket();
 
-        var subscriptionId = _nextSubscriptionId++;
-        bucket.Subscriptions.Add(new EventHandler(subscriptionId, receiver, senderFilter, eventType, handler));
-
-        return new ContextEventSubscription(this, subscriptionId);
-    }
-
-    internal void Unsubscribe(ulong subscriptionId)
-    {
-        foreach (var bucket in _structEventSubscriptions.Values)
+        for (var i = 0; i < bucket.Subscriptions.Count; ++i)
         {
-            if (RemoveMatchingSubscriptions(bucket, subscription => subscription.Id == subscriptionId) != 0)
-                break;
+            var subscription = bucket.Subscriptions[i];
+            if (!subscription.IsRemoved
+                && IsReceiverMatch(subscription, receiver)
+                && ReferenceEquals(subscription.Sender, senderFilter))
+            {
+                bucket.Subscriptions[i] = new EventHandler(receiver, senderFilter, eventType, handler);
+                return;
+            }
         }
 
-        RemoveEmptyEventBuckets();
+        bucket.Subscriptions.Add(new EventHandler(receiver, senderFilter, eventType, handler));
     }
 
     private static int RemoveMatchingSubscriptions(

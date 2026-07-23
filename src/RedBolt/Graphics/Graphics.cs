@@ -9,10 +9,41 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
+/// <summary>Graphics settings that should be configured before initialization.</summary>
+public struct GraphicsSettings
+{
+    public GraphicsSettings()
+    {
+        RenderDevice = new();
+        ShaderCacheDir = new();
+    }
+
+    /// <summary>Render device settings.</summary>
+    public RenderDeviceSettings RenderDevice;
+
+    /// <summary>Current shader translation policy.</summary>
+    public ShaderTranslationPolicy ShaderTranslationPolicy;
+
+    /// <summary>Directory to store cached compiled shaders and logged shader sources.</summary>
+    public FileIdentifier ShaderCacheDir;
+
+    /// <summary>Whether to log all compiled shaders.</summary>
+    public bool LogShaderSources;
+
+    /// <summary>Whether the shader validation is enabled.</summary>
+    public bool ValidateShaders;
+
+    /// <summary>Whether to discard shader cache on the disk.</summary>
+    public bool DiscardShaderCache;
+
+    /// <summary>Whether to cache shaders compiled during this run on the disk.</summary>
+    public bool CacheShaders;
+}
+
     /// <summary>
     /// Graphics subsystem. Manages the application window, rendering state and GPU resources.
     /// </summary>
-public sealed class Graphics : Object
+public class Graphics : Object
     {
     /// <summary>Register Graphics library objects.</summary>
     public static void RegisterGraphicsLibrary(Context context)
@@ -186,6 +217,7 @@ layout(std140) uniform Material
     private WindowSettings _secondaryWindowSettings = new();
     private Shader? _lastShader;
     private string _lastShaderName = string.Empty;
+    private GraphicsSettings _settings = new();
 
     public Graphics()
     {
@@ -200,6 +232,32 @@ layout(std140) uniform Material
         _ownerContext.ReleaseSdl();
         base.Dispose();
     }
+
+    public void Configure(in GraphicsSettings settings)
+    {
+        _settings = settings;
+
+        if (_settings.DiscardShaderCache)
+        {
+            var vfs = GetSubsystem<VirtualFileSystem>()!;
+
+            var cachedShaders = new List<string>();
+            vfs.Scan(cachedShaders, _settings.ShaderCacheDir, "*.bytecode",
+                ScanFlags.ScanFiles | ScanFlags.ScanAppend);
+            vfs.Scan(cachedShaders, _settings.ShaderCacheDir, "*.glsl",
+                ScanFlags.ScanFiles | ScanFlags.ScanAppend);
+
+            foreach (var fileName in cachedShaders)
+            {
+                var absoluteFileName =
+                    vfs.GetAbsoluteNameFromIdentifier(_settings.ShaderCacheDir + fileName);
+                if (!string.IsNullOrEmpty(absoluteFileName))
+                    System.IO.File.Delete(absoluteFileName);
+            }
+        }
+    }
+
+    public ref readonly GraphicsSettings GetSettings() => ref _settings;
 
     public bool IsInitialized { get; private set; }
 
@@ -508,22 +566,6 @@ layout(std140) uniform Material
 
         SendEvent<GraphicsEvents.EndRenderingEvent>();
         GetSubsystem<RenderDevice>()!.Present();
-    }
-
-    /// <summary>
-    /// End frame rendering, take a screenshot, and swap buffers.
-    /// </summary>
-    public bool EndFrame(Image destImage)
-    {
-        ArgumentNullException.ThrowIfNull(destImage);
-        if (!IsInitialized)
-            return false;
-
-        SendEvent<GraphicsEvents.EndRenderingEvent>();
-
-        var screenshotTaken = TakeScreenShot(destImage);
-        GetSubsystem<RenderDevice>()!.Present();
-        return screenshotTaken;
     }
 
     /// <summary>
