@@ -21,7 +21,20 @@ if(NOT _redbolt_lock_result STREQUAL "0")
     message(FATAL_ERROR "Could not lock ${REDBOLT_NATIVE_BUILD_DIR}: ${_redbolt_lock_result}")
 endif()
 
-if(NOT IS_DIRECTORY "${REDBOLT_NATIVE_BUILD_DIR}")
+set(_redbolt_configure_native TRUE)
+set(_redbolt_native_cache "${REDBOLT_NATIVE_BUILD_DIR}/CMakeCache.txt")
+if(EXISTS "${_redbolt_native_cache}")
+    file(STRINGS "${_redbolt_native_cache}"
+        _redbolt_cached_generator
+        REGEX "^REDBOLT_DEPENDENCIES_GENERATOR_DLL:[^=]*="
+        LIMIT_COUNT 1)
+    string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_generator "${_redbolt_cached_generator}")
+    if(_redbolt_cached_generator STREQUAL REDBOLT_GENERATOR_DLL)
+        set(_redbolt_configure_native FALSE)
+    endif()
+endif()
+
+if(_redbolt_configure_native)
     execute_process(
         COMMAND "${CMAKE_COMMAND}"
             --preset "${REDBOLT_NATIVE_PRESET}"

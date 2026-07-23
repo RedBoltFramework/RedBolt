@@ -2,14 +2,17 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CompressionEnabled>false</CompressionEnabled>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
     <EmccExtraLDFlags>-sFULL_ES3 -sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE=$dynCall</EmccExtraLDFlags>
     <EmccLinkOptimizationFlag>-O0</EmccLinkOptimizationFlag>
-    <PublishTrimmed>false</PublishTrimmed>
+    <PublishTrimmed>true</PublishTrimmed>
+    <RunAOTCompilation>true</RunAOTCompilation>
     <WasmBuildNative>true</WasmBuildNative>
     <WasmEnableThreads>false</WasmEnableThreads>
     <WasmNativeStrip>false</WasmNativeStrip>
     <WasmRunWasmOpt>false</WasmRunWasmOpt>
+    <WasmStripILAfterAOT>true</WasmStripILAfterAOT>
     <RedBoltWebEngineArchive Condition="'$(RedBoltWebEngineArchive)' == ''">$(RedBoltNativeBuildDir)/lib/Release/wasm/RedBolt.Native.a</RedBoltWebEngineArchive>
     <RedBoltWebResourcesManifest Condition="'$(RedBoltWebResourcesManifest)' == ''">$(RedBoltNativeBuildDir)/generated/web/resources.manifest.json</RedBoltWebResourcesManifest>
   </PropertyGroup>
@@ -25,6 +28,7 @@
                       RedBoltProperties="Configuration=$(Configuration)" />
     <ProjectReference Include="../../native/RedBolt.Native/RedBolt.Native.Web.csproj"
                       ReferenceOutputAssembly="false"
+                      Private="false"
                       PrivateAssets="all"
                       RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm" />
     <Compile Include="../RedBolt.Sample.MultipleViewports/Program.cs" Link="MultipleViewportsApplication.cs" />
@@ -42,4 +46,11 @@
     <Content Include="../../bin/Data/**/*" Link="wwwroot/resources/Data/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="$(RedBoltWebResourcesManifest)" Link="wwwroot/resources.manifest.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
+
+  <Target Name="RedBoltExcludeBuildToolsFromPublish" AfterTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition="'%(RelativePath)' == 'RedBolt.Dependencies.Generator.deps.json' or '%(RelativePath)' == 'RedBolt.Dependencies.Generator.runtimeconfig.json'" />
+    </ItemGroup>
+  </Target>
 </Project>
