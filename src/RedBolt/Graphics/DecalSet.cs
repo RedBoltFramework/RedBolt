@@ -349,7 +349,7 @@ public class DecalSet : Drawable
         box.Clear();
         foreach (var decal in _decals)
             box.Merge(decal.BoundingBox);
-        SetLocalBoundingBox(box);
+        _boundingBox = box;
         _boundingBoxDirty = false;
     }
 
@@ -873,55 +873,53 @@ public class DecalSet : Drawable
         _geometry.SetVertexBuffer(0, _vertexBuffer);
         _geometry.SetDrawRange(PrimitiveType.TriangleList, 0, _numIndices, 0, _numVertices);
 
-        if (_numVertices != 0 && _numIndices != 0)
+        var mappedVertices = _numVertices != 0 ? _vertexBuffer.Map() : Span<byte>.Empty;
+        var mappedIndices = _numIndices != 0 ? _indexBuffer.Map() : Span<byte>.Empty;
+
+        if (!mappedVertices.IsEmpty && !mappedIndices.IsEmpty)
         {
-            var mapped = _vertexBuffer.Map();
-            if (!mapped.IsEmpty)
+            var floats = MemoryMarshal.Cast<byte, float>(mappedVertices);
+            var indices = MemoryMarshal.Cast<byte, ushort>(mappedIndices);
+            var fi = 0;
+            var indexWrite = 0;
+            ushort indexStart = 0;
+
+            foreach (var decal in _decals)
             {
-                var floats = MemoryMarshal.Cast<byte, float>(mapped);
-                var fi = 0;
-                var indices = new uint[_numIndices];
-                uint indexStart = 0;
-                uint indexWrite = 0;
-
-                foreach (var decal in _decals)
+                foreach (var vertex in decal.Vertices)
                 {
-                    foreach (var vertex in decal.Vertices)
+                    floats[fi++] = vertex.Position.X;
+                    floats[fi++] = vertex.Position.Y;
+                    floats[fi++] = vertex.Position.Z;
+                    floats[fi++] = vertex.Normal.X;
+                    floats[fi++] = vertex.Normal.Y;
+                    floats[fi++] = vertex.Normal.Z;
+                    floats[fi++] = vertex.TexCoord.X;
+                    floats[fi++] = vertex.TexCoord.Y;
+                    floats[fi++] = vertex.Tangent.X;
+                    floats[fi++] = vertex.Tangent.Y;
+                    floats[fi++] = vertex.Tangent.Z;
+                    floats[fi++] = vertex.Tangent.W;
+                    if (_skinned)
                     {
-                        floats[fi++] = vertex.Position.X;
-                        floats[fi++] = vertex.Position.Y;
-                        floats[fi++] = vertex.Position.Z;
-                        floats[fi++] = vertex.Normal.X;
-                        floats[fi++] = vertex.Normal.Y;
-                        floats[fi++] = vertex.Normal.Z;
-                        floats[fi++] = vertex.TexCoord.X;
-                        floats[fi++] = vertex.TexCoord.Y;
-                        floats[fi++] = vertex.Tangent.X;
-                        floats[fi++] = vertex.Tangent.Y;
-                        floats[fi++] = vertex.Tangent.Z;
-                        floats[fi++] = vertex.Tangent.W;
-                        if (_skinned)
-                        {
-                            floats[fi++] = vertex.BlendWeight0;
-                            floats[fi++] = vertex.BlendWeight1;
-                            floats[fi++] = vertex.BlendWeight2;
-                            floats[fi++] = vertex.BlendWeight3;
-                            var packed = vertex.BlendIndicesPacked;
-                            MemoryMarshal.Write(MemoryMarshal.AsBytes(floats.Slice(fi, 1)), in packed);
-                            fi++;
-                        }
+                        floats[fi++] = vertex.BlendWeight0;
+                        floats[fi++] = vertex.BlendWeight1;
+                        floats[fi++] = vertex.BlendWeight2;
+                        floats[fi++] = vertex.BlendWeight3;
+                        var packed = vertex.BlendIndicesPacked;
+                        MemoryMarshal.Write(MemoryMarshal.AsBytes(floats.Slice(fi, 1)), in packed);
+                        fi++;
                     }
-
-                    foreach (var index in decal.Indices)
-                        indices[indexWrite++] = index + indexStart;
-                    indexStart += (uint)decal.Vertices.Count;
                 }
 
-                _vertexBuffer.Unmap();
-                _indexBuffer.SetUnpackedData(indices.AsSpan(0, (int)_numIndices));
+                foreach (var index in decal.Indices)
+                    indices[indexWrite++] = unchecked((ushort)(index + indexStart));
+                indexStart = unchecked((ushort)(indexStart + decal.Vertices.Count));
             }
         }
 
+        _vertexBuffer.Unmap();
+        _indexBuffer.Unmap();
         _vertexBuffer.GetRawBuffer()?.ClearDataLost();
         _indexBuffer.GetRawBuffer()?.ClearDataLost();
         _bufferDirty = false;

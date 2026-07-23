@@ -45,11 +45,11 @@ sealed class DecalsApplication : Application
         _octree!.RaycastSingle(query);
         if (query.Result.Count == 0) return;
         var result = query.Result[0];
-        if (result.Drawable is null) return;
-        var targetNode = result.Drawable.Node;
+        var hitDrawable = result.Drawable!;
+        var targetNode = hitDrawable.Node!;
         var decal = targetNode.GetComponent<DecalSet>();
         if (decal is null) { decal = targetNode.CreateComponent<DecalSet>(); decal.SetMaterial(Resources.Get<Material>("Materials/UrhoDecal.xml")); }
-        decal.AddDecal(result.Drawable, result.Position, _cameraNode.Rotation, 0.5f, 1.0f, 1.0f, Vector2f.Zero, Vector2f.One);
+        decal.AddDecal(hitDrawable, result.Position, _cameraNode.Rotation, 0.5f, 1.0f, 1.0f, Vector2f.Zero, Vector2f.One);
     }
     protected override void Stop() { _postRenderSubscription?.Dispose(); _postRenderSubscription = null; _dearImGuiSubscription?.Dispose(); }
     private void DrawInstructions() { if (ImGui.Begin("Decals\0"u8, out _, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings)) { ImGui.TextUnformatted("Use WASD keys to move\0"u8); ImGui.TextUnformatted("LMB to paint decals, RMB to rotate view\0"u8); ImGui.TextUnformatted(_drawDebug ? "Debug geometry requested\0"u8 : "Space to toggle debug geometry\0"u8); } ImGui.End(); }

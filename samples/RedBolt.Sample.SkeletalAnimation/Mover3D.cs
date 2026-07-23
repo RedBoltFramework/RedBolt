@@ -25,12 +25,12 @@ public sealed class Mover3D : LogicComponent
     /// <summary>Handle scene update. Called by LogicComponent base class.</summary>
     public override void Update(float timeStep)
     {
-        Node.Translate(Vector3f.Forward * _moveSpeed * timeStep);
+        Node!.Translate(Vector3f.Forward * _moveSpeed * timeStep);
 
         // If in risk of going outside the plane, rotate the model right
-        var pos = Node.Position;
+        var pos = Node!.Position;
         if (pos.X < _bounds.Min.X || pos.X > _bounds.Max.X || pos.Z < _bounds.Min.Z || pos.Z > _bounds.Max.Z)
-            Node.Yaw(_rotationSpeed * timeStep);
+            Node!.Yaw(_rotationSpeed * timeStep);
     }
 
     /// <summary>Return forward movement speed.</summary>

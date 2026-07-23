@@ -64,6 +64,16 @@ public sealed class DecalSetTests
     }
 
     [Fact]
+    public void Newly_created_decal_set_updates_octree_without_requeueing()
+    {
+        var scene = new Scene();
+        var octree = scene.CreateComponent<Octree>();
+        scene.CreateChild("Decals").CreateComponent<DecalSet>();
+
+        octree.Update(new FrameInfo());
+    }
+
+    [Fact]
     public void Material_and_limits_roundtrip()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");

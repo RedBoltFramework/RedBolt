@@ -14,7 +14,7 @@
 - [ ] `03_Sprites` — skipped per user direction; it depends on the 2D submodule
 - [~] `06_SkeletalAnimation` — sample, `Mover3D`, animated models, controller playback, scene, lighting, camera, and Dear ImGui instructions are ported and runtime-verified; renderer debug-geometry submission remains unavailable
 - [~] `07_Billboards` — sample is ported and builds; runtime currently fails in the existing shadow-light processor sort and is deferred
-- [~] `08_Decals` — scene population, occluders, cursor raycast, decal creation, camera, and Dear ImGui instructions are ported and runtime-verified; renderer debug-geometry submission remains unavailable
+- [x] `08_Decals` — scene population, occluders, cursor raycast, decal creation and buffer upload, camera, debug geometry, and Dear ImGui instructions are ported and runtime-verified
 - [x] `20_HugeObjectCount` — 62,500-object scene, grouped and ungrouped modes, animation toggle, camera, and Dear ImGui instructions are ported and render successfully; initial population is intentionally expensive
 - [~] `30_LightAnimation` — animated point light, scene population, camera, and animated Dear ImGui text replacement are ported and runtime-verified; the built-in UI sprite animation still needs a Dear ImGui texture equivalent
 - [x] `31_MaterialAnimation` — material shader-parameter animation, scene population, camera, and Dear ImGui instructions are ported and runtime-verified
@@ -22,8 +22,8 @@
 - [~] `113_InputLogger` — dual viewports, input-event subscriptions, event merging/logging, and Dear ImGui output are ported and runtime-verified as a standalone managed application rather than a plugin entry point
 - [~] `116_VirtualFileSystem` — mount-point enumeration, identifier query, file metadata, reverse lookup, recursive scanning, and Dear ImGui output are ported and runtime-verified; editable Dear ImGui query controls remain
 - [~] `117_PointerAdapter` — adapter lifecycle and synthesized pointer events, scene raycast, outline selection, and Dear ImGui instructions are ported and runtime-verified; the unported physics subsystem line is retained as a TODO
-- [~] `118_CameraShake` — sample is ported and builds; runtime scene archive loading fails in the existing managed deserializer and is deferred
-- [~] `121_CameraOperator` — sample and Dear ImGui controls are ported and build; runtime scene archive loading fails in the existing managed deserializer and is deferred
+- [x] `118_CameraShake` — scene archive loading, trauma injection, camera shake update, and Dear ImGui controls are ported and runtime-verified
+- [x] `121_CameraOperator` — scene archive loading, both camera tracks, track removal, orthographic projection, and Dear ImGui controls are ported and runtime-verified
 - [~] `122_TextureFormats` — software/hardware texture setup, comparison scene, camera, and Dear ImGui labels are ported and build; the upstream sample DDS resources are not found by the current runtime resource mounts
 
 Dependency-ordered plan for porting rbfx `Source/Urho3D` to C#.
