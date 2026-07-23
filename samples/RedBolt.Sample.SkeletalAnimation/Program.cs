@@ -22,6 +22,12 @@ sealed class SkeletalAnimationApplication : Application
     private ContextEventSubscription? _dearImGuiSubscription;
     private ContextEventSubscription? _postRenderSubscription;
 
+    public SkeletalAnimationApplication()
+    {
+        if (Context.Instance.GetReflection<Mover3D>() is null)
+            Context.Instance.AddFactoryReflection<Mover3D>();
+    }
+
     protected override void Setup(EngineParameters parameters)
     {
         parameters.ApplicationName = "RedBolt.Sample.SkeletalAnimation";
