@@ -12,6 +12,25 @@ public sealed class SoundSource3D : SoundSource
     public SoundSource3D()
     {
         Attenuation = 0.0f;
+
+        GetReflection()?.RemoveAttribute(new StringHash("Attenuation"));
+        GetReflection()?.RemoveAttribute(new StringHash("Panning"));
+        RegisterAttribute("Near Distance", typeof(float), self => ((SoundSource3D)self)._nearDistance,
+            (self, value) => ((SoundSource3D)self)._nearDistance = (float)value!, 0.0f);
+        RegisterAttribute("Far Distance", typeof(float), self => ((SoundSource3D)self)._farDistance,
+            (self, value) => ((SoundSource3D)self)._farDistance = (float)value!, 100.0f);
+        RegisterAttribute("Inner Angle", typeof(float), self => ((SoundSource3D)self)._innerAngle,
+            (self, value) => ((SoundSource3D)self)._innerAngle = (float)value!, 360.0f);
+        RegisterAttribute("Outer Angle", typeof(float), self => ((SoundSource3D)self)._outerAngle,
+            (self, value) => ((SoundSource3D)self)._outerAngle = (float)value!, 360.0f);
+        RegisterAttribute("Rolloff Factor", typeof(float), self => ((SoundSource3D)self)._rolloffFactor,
+            (self, value) => ((SoundSource3D)self)._rolloffFactor = (float)value!, 2.0f);
+    }
+
+    /// <summary>Register object factory.</summary>
+    public new static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<SoundSource3D>(ObjectCategory.Category_Audio);
     }
 
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)

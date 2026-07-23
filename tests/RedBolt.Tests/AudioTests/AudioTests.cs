@@ -15,16 +15,23 @@ public sealed class AudioTests
     public AudioTests(HeadlessEngineFixture fixture)
     {
         _fixture = fixture;
-        TestTypeRegistration.RegisterFactory<SoundSource>();
-        TestTypeRegistration.RegisterFactory<SoundSource3D>();
     }
 
     [Fact]
     public void Audio_constructor_preserves_cpp_default_interpolation_state()
     {
-        using var audio = new Audio();
+        var audio = _fixture.Engine.GetSubsystem<Audio>()!;
 
         Assert.False(audio.GetInterpolation());
+    }
+
+    [Fact]
+    public void Audio_constructor_registers_cpp_audio_library_objects()
+    {
+        Assert.NotNull(_fixture.Context.GetReflection<Sound>());
+        Assert.NotNull(_fixture.Context.GetReflection<SoundSource>());
+        Assert.NotNull(_fixture.Context.GetReflection<SoundSource3D>());
+        Assert.NotNull(_fixture.Context.GetReflection<SoundListener>());
     }
 
     [Fact]
@@ -154,5 +161,23 @@ public sealed class AudioTests
         source.DrawDebugGeometry(debugRenderer, depthTest: false);
 
         Assert.True(debugRenderer.HasContent());
+    }
+
+    [Fact]
+    public void Audio_component_attributes_match_cpp_registration()
+    {
+        var scene = new Scene();
+        var source = scene.CreateComponent<SoundSource>();
+        var source3D = scene.CreateComponent<SoundSource3D>();
+
+        Assert.Equal(
+            ["Is Enabled", "Sound", "Type", "Frequency", "Gain", "Attenuation", "Panning", "Reach",
+                "Low Frequency Effect", "Ignore Scene Time Scale", "Is Playing", "Autoremove Mode", "Play Position"],
+            source.GetAttributes().Select(attribute => attribute.Name));
+        Assert.Equal(
+            ["Is Enabled", "Sound", "Type", "Frequency", "Gain", "Reach", "Low Frequency Effect",
+                "Ignore Scene Time Scale", "Is Playing", "Autoremove Mode", "Play Position", "Near Distance",
+                "Far Distance", "Inner Angle", "Outer Angle", "Rolloff Factor"],
+            source3D.GetAttributes().Select(attribute => attribute.Name));
     }
 }

@@ -21,6 +21,12 @@ public sealed class Sound : ResourceWithMetadata
     {
     }
 
+    /// <summary>Register object factory.</summary>
+    public static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<Sound>();
+    }
+
     public override bool BeginLoad(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);

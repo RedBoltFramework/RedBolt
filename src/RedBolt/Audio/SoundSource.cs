@@ -9,6 +9,8 @@ public static class SoundSourceConstants
 /// <summary>Sound source component with stereo position.</summary>
 public class SoundSource : Component
 {
+    private static readonly string[] AutoRemoveModeNames = ["Disabled", "Component", "Node"];
+
     protected Audio Audio = null!;
     protected string SoundType = AudioDefs.SoundEffect;
     internal StringHash SoundTypeHash = new(AudioDefs.SoundEffect);
@@ -40,6 +42,38 @@ public class SoundSource : Component
         UpdateMasterGain();
         RegisterAttribute("Is Enabled", typeof(bool), self => ((SoundSource)self).Enabled,
             (self, value) => ((SoundSource)self).SetEnabled(value is bool enabled && enabled), true);
+        RegisterAttribute("Sound", typeof(ResourceRef), self => ((SoundSource)self).GetSoundAttr(),
+            (self, value) => ((SoundSource)self).SetSoundAttr((ResourceRef)value!),
+            new ResourceRef(new StringHash(nameof(Sound))));
+        RegisterAttribute("Type", typeof(string), self => ((SoundSource)self).GetSoundType(),
+            (self, value) => ((SoundSource)self).SetSoundType((string)value!), AudioDefs.SoundEffect);
+        RegisterAttribute("Frequency", typeof(float), self => ((SoundSource)self).Frequency,
+            (self, value) => ((SoundSource)self).Frequency = (float)value!, 0.0f);
+        RegisterAttribute("Gain", typeof(float), self => ((SoundSource)self).Gain,
+            (self, value) => ((SoundSource)self).Gain = (float)value!, 1.0f);
+        RegisterAttribute("Attenuation", typeof(float), self => ((SoundSource)self).Attenuation,
+            (self, value) => ((SoundSource)self).Attenuation = (float)value!, 1.0f);
+        RegisterAttribute("Panning", typeof(float), self => ((SoundSource)self).Panning,
+            (self, value) => ((SoundSource)self).Panning = (float)value!, 0.0f);
+        RegisterAttribute("Reach", typeof(float), self => ((SoundSource)self).Reach,
+            (self, value) => ((SoundSource)self).Reach = (float)value!, 0.0f);
+        RegisterAttribute("Low Frequency Effect", typeof(bool), self => ((SoundSource)self)._lowFrequency,
+            (self, value) => ((SoundSource)self)._lowFrequency = (bool)value!, false);
+        RegisterAttribute("Ignore Scene Time Scale", typeof(bool), self => ((SoundSource)self)._ignoreSceneTimeScale,
+            (self, value) => ((SoundSource)self)._ignoreSceneTimeScale = (bool)value!, false);
+        RegisterAttribute("Is Playing", typeof(bool), self => ((SoundSource)self).IsPlaying(),
+            (self, value) => ((SoundSource)self).SetPlayingAttr((bool)value!), false);
+        RegisterAttribute("Autoremove Mode", typeof(AutoRemoveMode), self => ((SoundSource)self).AutoRemove,
+            (self, value) => ((SoundSource)self).AutoRemove = (AutoRemoveMode)value!, AutoRemoveMode.Disabled,
+            enumNames: AutoRemoveModeNames);
+        RegisterAttribute("Play Position", typeof(int), self => ((SoundSource)self).GetPositionAttr(),
+            (self, value) => ((SoundSource)self).SetPositionAttr((int)value!), 0);
+    }
+
+    /// <summary>Register object factory.</summary>
+    public static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<SoundSource>(ObjectCategory.Category_Audio);
     }
 
     public override void Dispose()

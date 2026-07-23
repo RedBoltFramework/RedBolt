@@ -9,4 +9,10 @@ public sealed class SoundListener : Component
             (self, value) => ((SoundListener)self).SetEnabled(value is bool enabled && enabled), true);
     }
 
+    /// <summary>Register object factory.</summary>
+    public static void RegisterObject(Context context)
+    {
+        context.AddFactoryReflection<SoundListener>(ObjectCategory.Category_Audio);
+    }
+
 }

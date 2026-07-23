@@ -44,7 +44,7 @@ public sealed class Audio : Object
     {
         Context.RequireSdl(SdlInitAudio);
         _masterGain[SoundMasterHash] = 1.0f;
-        RegisterAudioLibrary();
+        RegisterAudioLibrary(Context);
         _renderUpdateSubscription = SubscribeToEvent<CoreEvents.RenderUpdateEvent>(HandleRenderUpdate);
     }
 
@@ -56,7 +56,14 @@ public sealed class Audio : Object
         GC.SuppressFinalize(this);
     }
 
-    private static void RegisterAudioLibrary() { }
+    /// <summary>Register Audio library objects.</summary>
+    public static void RegisterAudioLibrary(Context context)
+    {
+        Sound.RegisterObject(context);
+        SoundSource.RegisterObject(context);
+        SoundSource3D.RegisterObject(context);
+        SoundListener.RegisterObject(context);
+    }
 
     /// <summary>Initialize sound output.</summary>
     public bool SetMode(int bufferLengthMSec, int mixRate, SpeakerMode speakerMode, bool interpolation = true)
