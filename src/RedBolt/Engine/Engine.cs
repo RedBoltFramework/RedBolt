@@ -545,7 +545,7 @@ public class Engine : Object
         if (!string.IsNullOrWhiteSpace(screenshotPath) && _screenshotFrameDelay-- <= 0)
         {
             using var screenshot = new Image();
-            if (graphics.TakeScreenShot(screenshot)
+            if (graphics.EndFrame(screenshot)
                 && screenshot.SaveFile(new FileIdentifier(GetScreenshotPath(screenshotPath))))
             {
                 ++_screenshotIndex;
@@ -553,8 +553,8 @@ public class Engine : Object
                 _screenshotFrameDelay = Parameters.ScreenshotFrameDelay;
             }
         }
-
-        graphics.EndFrame();
+        else
+            graphics.EndFrame();
     }
 
     /// <summary>Load and merge config files.</summary>

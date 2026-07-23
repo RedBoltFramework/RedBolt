@@ -238,6 +238,37 @@ public sealed class RenderDeviceTests
     }
 
     [Fact]
+    public void End_frame_screenshot_is_taken_after_end_rendering_event()
+    {
+        var parameters = new EngineParameters
+        {
+            ApplicationName = "RenderDeviceTests",
+            Headless = false,
+            WindowWidth = 64,
+            WindowHeight = 48
+        };
+
+        _fixture.InitializeGraphics(parameters);
+        try
+        {
+            _fixture.RenderDevice.UpdateSwapChainSize();
+            using var image = new Image();
+            var imageWasEmptyDuringEndRendering = false;
+            using var subscription = _fixture.Context.SubscribeToEvent<GraphicsEvents.EndRenderingEvent>(
+                (ref GraphicsEvents.EndRenderingEvent _) => imageWasEmptyDuringEndRendering = image.Width == 0);
+
+            Assert.True(_fixture.Graphics.EndFrame(image));
+            Assert.True(imageWasEmptyDuringEndRendering);
+            Assert.Equal(_fixture.Graphics.Width, image.Width);
+            Assert.Equal(_fixture.Graphics.Height, image.Height);
+        }
+        finally
+        {
+            _fixture.ResetGraphics();
+        }
+    }
+
+    [Fact]
     public void Render_device_updates_native_window_settings()
     {
         var parameters = new EngineParameters

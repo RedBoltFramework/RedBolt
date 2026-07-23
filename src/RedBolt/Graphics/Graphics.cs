@@ -511,6 +511,22 @@ layout(std140) uniform Material
     }
 
     /// <summary>
+    /// End frame rendering, take a screenshot, and swap buffers.
+    /// </summary>
+    public bool EndFrame(Image destImage)
+    {
+        ArgumentNullException.ThrowIfNull(destImage);
+        if (!IsInitialized)
+            return false;
+
+        SendEvent<GraphicsEvents.EndRenderingEvent>();
+
+        var screenshotTaken = TakeScreenShot(destImage);
+        GetSubsystem<RenderDevice>()!.Present();
+        return screenshotTaken;
+    }
+
+    /// <summary>
     /// Clear any or all of the render target, depth buffer, and stencil buffer.
     /// </summary>
     public void Clear(ClearTarget flags, Color color = default, float depth = 1.0f, uint stencil = 0)
