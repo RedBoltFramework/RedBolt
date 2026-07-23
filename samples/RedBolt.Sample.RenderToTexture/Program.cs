@@ -26,6 +26,8 @@ public class RenderToTexture : Application
     /// <summary>Construct.</summary>
     public RenderToTexture()
     {
+        if (Context.Instance.GetReflection<Rotator>() is null)
+            Context.Instance.AddFactoryReflection<Rotator>();
     }
 
     /// <summary>Setup after engine initialization and before running the main loop.</summary>
