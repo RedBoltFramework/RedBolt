@@ -4,7 +4,8 @@ target_link_libraries(redbolt-diligent-support
     PUBLIC
         redbolt-native-support
     PRIVATE
-        SDL2::SDL2)
+        SDL2::SDL2
+        ${REDBOLT_GLEW_TARGET})
 target_include_directories(redbolt-diligent-support PRIVATE
     "${CMAKE_SOURCE_DIR}/extern/Diligent/Graphics/GraphicsEngine/include")
 set_target_properties(redbolt-diligent-support PROPERTIES
@@ -24,11 +25,11 @@ target_include_directories(redbolt-imgui-backend PRIVATE
 target_link_libraries(redbolt-imgui-backend
     PUBLIC
         Diligent-GraphicsEngine
-        Diligent-GraphicsEngineOpenGL-static
+        ${REDBOLT_DILIGENT_OPENGL_TARGET}
         ImGui
         ImGuiSdl2)
 if(NOT EMSCRIPTEN)
-    target_link_libraries(redbolt-imgui-backend PUBLIC Diligent-GraphicsEngineVk-static)
+    target_link_libraries(redbolt-imgui-backend PUBLIC ${REDBOLT_DILIGENT_VULKAN_TARGET})
 endif()
 set_target_properties(redbolt-imgui-backend PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
@@ -90,23 +91,27 @@ target_link_libraries(RedBolt.Native
         SDL2::SDL2
         redbolt-sdl2-image
         Diligent-GraphicsEngine
-        Diligent-GraphicsEngineOpenGL-static
+        ${REDBOLT_DILIGENT_OPENGL_TARGET}
         ImGui
         ImGuiSdl2
         redbolt-native-support
         redbolt-diligent-support
+        ${REDBOLT_GLEW_TARGET}
         "${REDBOLT_LZ4_LIBRARY}"
         "${REDBOLT_WEBP_LIBRARY}"
         glslang
         glslang-default-resource-limits
         SPIRV
-        spirv-cross-c
-        SPIRV-Tools
+        ${REDBOLT_SPIRV_CROSS_TARGET}
+        ${REDBOLT_SPIRV_TOOLS_TARGET}
         SPIRV-Tools-opt
         -Wl,--whole-archive redbolt-imgui-backend -Wl,--no-whole-archive)
 
 if(NOT EMSCRIPTEN)
-    target_link_libraries(RedBolt.Native PRIVATE Diligent-GraphicsEngineVk-static)
+    find_library(REDBOLT_VULKAN_LIBRARY NAMES vulkan REQUIRED)
+    target_link_libraries(RedBolt.Native PRIVATE
+        ${REDBOLT_DILIGENT_VULKAN_TARGET}
+        ${REDBOLT_VULKAN_LIBRARY})
 endif()
 
 if(D3D11_SUPPORTED OR D3D12_SUPPORTED)

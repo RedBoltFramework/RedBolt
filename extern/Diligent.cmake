@@ -16,6 +16,8 @@ set(DILIGENT_NO_WEBGPU ON CACHE BOOL "" FORCE)
 set(DILIGENT_NO_GLSLANG OFF CACHE BOOL "" FORCE)
 set(SPIRV_CROSS_ENABLE_C_API ON CACHE BOOL "Enable SPIRV-Cross C API" FORCE)
 set(SPIRV_CROSS_ENABLE_HLSL ON CACHE BOOL "Enable SPIRV-Cross HLSL target support" FORCE)
+set(SPIRV_CROSS_SHARED ${BUILD_SHARED_LIBS} CACHE BOOL "Build SPIRV-Cross C shared library" FORCE)
+set(SPIRV_TOOLS_BUILD_STATIC ON CACHE BOOL "" FORCE)
 if(EMSCRIPTEN)
     set(DILIGENT_NO_VULKAN ON CACHE BOOL "" FORCE)
 else()
@@ -28,6 +30,17 @@ redbolt_add_external_subdirectory(
     "${REDBOLT_DILIGENT_SOURCE_ROOT}"
     "${CMAKE_BINARY_DIR}/deps/Diligent")
 set(BUILD_SHARED_LIBS "${_redbolt_saved_build_shared_libs}")
+
+if(NOT EMSCRIPTEN)
+    set_target_properties(glew-static PROPERTIES
+        C_VISIBILITY_PRESET default
+        CXX_VISIBILITY_PRESET default
+        VISIBILITY_INLINES_HIDDEN OFF)
+    set_target_properties(
+        Diligent-GraphicsEngineOpenGL-shared
+        Diligent-GraphicsEngineVk-shared
+        PROPERTIES PREFIX "${CMAKE_SHARED_LIBRARY_PREFIX}")
+endif()
 
 set(REDBOLT_DILIGENT_INCLUDE_DIRS
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Primitives/interface"
@@ -89,12 +102,28 @@ if(NOT EMSCRIPTEN)
     target_link_libraries(redbolt-diligent-headers INTERFACE Diligent-GraphicsEngineVkInterface)
 endif()
 
+if(EMSCRIPTEN)
+    set(REDBOLT_DILIGENT_OPENGL_TARGET Diligent-GraphicsEngineOpenGL-static)
+    set(REDBOLT_DILIGENT_VULKAN_TARGET "")
+    set(REDBOLT_GLEW_TARGET "")
+    set(REDBOLT_SPIRV_CROSS_TARGET spirv-cross-c)
+    set(REDBOLT_SPIRV_TOOLS_TARGET SPIRV-Tools)
+else()
+    set(REDBOLT_DILIGENT_OPENGL_TARGET Diligent-GraphicsEngineOpenGL-shared)
+    set(REDBOLT_DILIGENT_VULKAN_TARGET Diligent-GraphicsEngineVk-shared)
+    set(REDBOLT_GLEW_TARGET "")
+    set(REDBOLT_SPIRV_CROSS_TARGET spirv-cross-c-shared)
+    set(REDBOLT_SPIRV_TOOLS_TARGET SPIRV-Tools-shared)
+endif()
+set(REDBOLT_DILIGENT_OPENGL_TARGET "${REDBOLT_DILIGENT_OPENGL_TARGET}" CACHE INTERNAL "" FORCE)
+set(REDBOLT_DILIGENT_VULKAN_TARGET "${REDBOLT_DILIGENT_VULKAN_TARGET}" CACHE INTERNAL "" FORCE)
+set(REDBOLT_GLEW_TARGET "${REDBOLT_GLEW_TARGET}" CACHE INTERNAL "" FORCE)
+set(REDBOLT_SPIRV_CROSS_TARGET "${REDBOLT_SPIRV_CROSS_TARGET}" CACHE INTERNAL "" FORCE)
+set(REDBOLT_SPIRV_TOOLS_TARGET "${REDBOLT_SPIRV_TOOLS_TARGET}" CACHE INTERNAL "" FORCE)
 set(REDBOLT_DILIGENT_ENGINE_TARGETS
     Diligent-GraphicsEngine
-    Diligent-GraphicsEngineOpenGL-static)
-if(NOT EMSCRIPTEN)
-    list(APPEND REDBOLT_DILIGENT_ENGINE_TARGETS Diligent-GraphicsEngineVk-static)
-endif()
+    ${REDBOLT_DILIGENT_OPENGL_TARGET}
+    ${REDBOLT_DILIGENT_VULKAN_TARGET})
 add_custom_target(redbolt-diligent-build
     DEPENDS ${REDBOLT_DILIGENT_ENGINE_TARGETS}
     COMMENT "Building RedBolt Diligent dependency targets")

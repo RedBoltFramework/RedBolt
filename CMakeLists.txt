@@ -8,6 +8,14 @@ add_custom_target(redbolt-msbuild-build-guard ALL
 
 option(REDBOLT_WEB_BUILD "Build the framework-free WebAssembly target only" OFF)
 
+if(REDBOLT_WEB_BUILD OR EMSCRIPTEN)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries" FORCE)
+    set(REDBOLT_EXTERNAL_LIBRARY_TYPE STATIC)
+else()
+    set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries" FORCE)
+    set(REDBOLT_EXTERNAL_LIBRARY_TYPE SHARED)
+endif()
+
 if(MSVC)
     add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:/std:c++20>")
 else()
@@ -39,6 +47,8 @@ endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${REDBOLT_RUNTIME_OUTPUT_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${REDBOLT_RUNTIME_OUTPUT_DIR}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/$<CONFIG>")
+set(CMAKE_BUILD_RPATH "$ORIGIN")
+set(CMAKE_INSTALL_RPATH "$ORIGIN")
 foreach(_redbolt_configuration Debug Release RelWithDebInfo MinSizeRel)
     string(TOUPPER "${_redbolt_configuration}" _redbolt_configuration_upper)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${_redbolt_configuration_upper} "${REDBOLT_RUNTIME_OUTPUT_DIR}/${_redbolt_configuration}")
