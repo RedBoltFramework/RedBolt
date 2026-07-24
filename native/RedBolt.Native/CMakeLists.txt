@@ -26,8 +26,7 @@ target_link_libraries(redbolt-imgui-backend
     PUBLIC
         Diligent-GraphicsEngine
         ${REDBOLT_DILIGENT_OPENGL_TARGET}
-        ImGui
-        ImGuiSdl2)
+        ImGui)
 if(NOT EMSCRIPTEN)
     target_link_libraries(redbolt-imgui-backend PUBLIC ${REDBOLT_DILIGENT_VULKAN_TARGET})
 endif()
@@ -93,7 +92,6 @@ target_link_libraries(RedBolt.Native
         Diligent-GraphicsEngine
         ${REDBOLT_DILIGENT_OPENGL_TARGET}
         ImGui
-        ImGuiSdl2
         redbolt-native-support
         redbolt-diligent-support
         ${REDBOLT_GLEW_TARGET}

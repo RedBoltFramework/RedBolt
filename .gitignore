@@ -7,7 +7,6 @@
 .slim/deepwork/
 
 # CMake and build outputs.
-.CMakeLast.props
 cmake-build/
 out/
 build/

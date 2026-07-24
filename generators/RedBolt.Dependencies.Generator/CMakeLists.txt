@@ -2,7 +2,7 @@ redbolt_require_path("${REDBOLT_SHARPCPP_ROOT}" "REDBOLT_SHARPCPP_ROOT")
 
 if(NOT REDBOLT_DEPENDENCIES_GENERATOR_DLL)
     set(REDBOLT_DEPENDENCIES_GENERATOR_DLL
-        "${PROJECT_SOURCE_DIR}/build/bin/tools/${REDBOLT_PLATFORM}/$<CONFIG>/RedBolt.Dependencies.Generator.dll"
+        "${PROJECT_SOURCE_DIR}/build/bin/$<CONFIG>/tools/RedBolt.Dependencies.Generator.dll"
         CACHE FILEPATH "RedBolt dependency generator assembly")
 endif()
 

@@ -29,7 +29,19 @@ if(EXISTS "${_redbolt_native_cache}")
         REGEX "^REDBOLT_DEPENDENCIES_GENERATOR_DLL:[^=]*="
         LIMIT_COUNT 1)
     string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_generator "${_redbolt_cached_generator}")
-    if(_redbolt_cached_generator STREQUAL REDBOLT_GENERATOR_DLL)
+    file(STRINGS "${_redbolt_native_cache}"
+        _redbolt_cached_runtime_output
+        REGEX "^REDBOLT_RUNTIME_OUTPUT_DIR:[^=]*="
+        LIMIT_COUNT 1)
+    string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_runtime_output "${_redbolt_cached_runtime_output}")
+    file(STRINGS "${_redbolt_native_cache}"
+        _redbolt_cached_configuration
+        REGEX "^REDBOLT_CONFIGURATION:[^=]*="
+        LIMIT_COUNT 1)
+    string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_configuration "${_redbolt_cached_configuration}")
+    if(_redbolt_cached_generator STREQUAL REDBOLT_GENERATOR_DLL
+            AND _redbolt_cached_runtime_output STREQUAL REDBOLT_RUNTIME_OUTPUT_DIR
+            AND _redbolt_cached_configuration STREQUAL REDBOLT_CONFIGURATION)
         set(_redbolt_configure_native FALSE)
     endif()
 endif()
@@ -40,6 +52,7 @@ if(_redbolt_configure_native)
             --preset "${REDBOLT_NATIVE_PRESET}"
             "-DREDBOLT_SHARPCPP_ROOT=${REDBOLT_SHARPCPP_ROOT}"
             "-DREDBOLT_DEPENDENCIES_GENERATOR_DLL=${REDBOLT_GENERATOR_DLL}"
+            "-DREDBOLT_CONFIGURATION=${REDBOLT_CONFIGURATION}"
             "-DREDBOLT_RUNTIME_OUTPUT_DIR=${REDBOLT_RUNTIME_OUTPUT_DIR}"
         WORKING_DIRECTORY "${REDBOLT_SOURCE_DIR}"
         COMMAND_ERROR_IS_FATAL ANY)

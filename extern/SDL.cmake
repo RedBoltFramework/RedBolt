@@ -31,3 +31,7 @@ set(SDL_HAPTIC OFF CACHE BOOL "" FORCE)
 set(SDL_SENSOR OFF CACHE BOOL "" FORCE)
 
 redbolt_add_external_subdirectory("${REDBOLT_SDL_SOURCE_ROOT}" "${CMAKE_BINARY_DIR}/deps/SDL")
+if(NOT EMSCRIPTEN)
+    set_property(TARGET SDL2 PROPERTY VERSION)
+    set_property(TARGET SDL2 PROPERTY SOVERSION)
+endif()

@@ -33,6 +33,10 @@
     <ProjectReference Include="tests/RedBolt.Tests/RedBolt.Tests.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Update="@(ProjectReference)" Private="false" />
+  </ItemGroup>
+
   <Target Name="RedBoltPublishWeb" AfterTargets="Build">
     <MSBuild Projects="samples/RedBolt.Sample.Web/RedBolt.Sample.Web.csproj"
              Targets="Restore"

@@ -26,6 +26,13 @@ endif()
 
 set(_redbolt_saved_build_shared_libs "${BUILD_SHARED_LIBS}")
 set(BUILD_SHARED_LIBS OFF)
+if(EMSCRIPTEN)
+    set(CMAKE_CXX_LINK_LIBRARY_USING_WHOLE_ARCHIVE
+        "LINKER:--whole-archive"
+        "<LINK_ITEM>"
+        "LINKER:--no-whole-archive")
+    set(CMAKE_CXX_LINK_LIBRARY_USING_WHOLE_ARCHIVE_SUPPORTED TRUE)
+endif()
 redbolt_add_external_subdirectory(
     "${REDBOLT_DILIGENT_SOURCE_ROOT}"
     "${CMAKE_BINARY_DIR}/deps/Diligent")
@@ -40,6 +47,8 @@ if(NOT EMSCRIPTEN)
         Diligent-GraphicsEngineOpenGL-shared
         Diligent-GraphicsEngineVk-shared
         PROPERTIES PREFIX "${CMAKE_SHARED_LIBRARY_PREFIX}")
+    set_property(TARGET spirv-cross-c-shared PROPERTY VERSION)
+    set_property(TARGET spirv-cross-c-shared PROPERTY SOVERSION)
 endif()
 
 set(REDBOLT_DILIGENT_INCLUDE_DIRS

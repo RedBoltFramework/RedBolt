@@ -1,45 +1,9 @@
 <Project>
-  <UsingTask TaskName="RedBoltUseParentRuntimeAssemblies"
-             TaskFactory="RoslynCodeTaskFactory"
-             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
-    <ParameterGroup>
-      <DependencyFile ParameterType="System.String" Required="true" />
-      <MainProjectName ParameterType="System.String" Required="true" />
-    </ParameterGroup>
-    <Task>
-      <Using Namespace="System.IO" />
-      <Using Namespace="System.Text.RegularExpressions" />
-      <Code Type="Fragment" Language="cs"><![CDATA[
-        var contents = File.ReadAllText(DependencyFile);
-        var expression = new Regex(
-            "^(?<prefix>\\s*\\\"(?<name>[^\\\"]+)/[^\\\"]+\\\": \\{\\r?\\n(?<indent>\\s*))\\\"type\\\": \\\"(?:project|reference)\\\",",
-            RegexOptions.Multiline);
-        var transformed = expression.Replace(
-            contents,
-            match => match.Groups["name"].Value == MainProjectName
-                ? match.Value
-                : match.Groups["prefix"].Value
-                    + "\"type\": \"package\","
-                    + Environment.NewLine
-                    + match.Groups["indent"].Value
-                    + "\"path\": \".\",");
-
-        if (transformed != contents)
-        {
-            File.WriteAllText(DependencyFile, transformed);
-        }
-      ]]></Code>
-    </Task>
-  </UsingTask>
+  <Import Project="$(MSBuildThisFileDirectory)../Directory.Build.targets" />
 
   <ItemGroup Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll'">
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt.Platform.Linux/RedBolt.Platform.Linux.csproj" />
-    <AdditionalProbingPath Include="$(RedBoltOutputRoot)" />
   </ItemGroup>
-
-  <PropertyGroup Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll'">
-    <GenerateRuntimeConfigDevFile>true</GenerateRuntimeConfigDevFile>
-  </PropertyGroup>
 
   <Target Name="RedBoltKeepSharedAssembliesInParent"
           BeforeTargets="_CopyFilesMarkedCopyLocal"
@@ -48,13 +12,6 @@
       <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)"
                                Condition="$([System.String]::Copy('%(Filename)').StartsWith('RedBolt')) or '%(Filename)' == 'SharpCpp.Support'" />
     </ItemGroup>
-  </Target>
-
-  <Target Name="RedBoltConfigureParentRuntimeAssemblies"
-          AfterTargets="GenerateBuildDependencyFile"
-          Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and Exists('$(ProjectDepsFilePath)')">
-    <RedBoltUseParentRuntimeAssemblies DependencyFile="$(ProjectDepsFilePath)"
-                                       MainProjectName="$(AssemblyName)" />
   </Target>
 
   <ItemGroup>

@@ -1,4 +1,91 @@
 <Project>
+  <UsingTask TaskName="RedBoltUseParentRuntimeAssemblies"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <DependencyFile ParameterType="System.String" Required="true" />
+      <MainProjectName ParameterType="System.String" Required="true" />
+      <NativeRuntimeDirectory ParameterType="System.String" Required="true" />
+      <RelocateAllProjectLibraries ParameterType="System.Boolean" Required="true" />
+      <RuntimeIdentifier ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Linq" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var contents = File.ReadAllText(DependencyFile);
+        var expression = new Regex(
+            "^(?<prefix>\\s*\\\"(?<name>[^\\\"]+)/[^\\\"]+\\\": \\{\\r?\\n(?<indent>\\s*))\\\"type\\\": \\\"(?:project|reference)\\\",",
+            RegexOptions.Multiline);
+        var transformed = expression.Replace(
+            contents,
+            match => match.Groups["name"].Value == MainProjectName
+                || (!RelocateAllProjectLibraries && match.Groups["name"].Value != "RedBolt")
+                ? match.Value
+                : match.Groups["prefix"].Value
+                    + "\"type\": \"package\","
+                    + Environment.NewLine
+                    + match.Groups["indent"].Value
+                    + "\"path\": \".\",");
+
+        var runtimeTargetIndex = transformed.IndexOf("/" + RuntimeIdentifier + "\": {");
+        var redBoltIndex = transformed.IndexOf("\"RedBolt/", runtimeTargetIndex);
+        var objectStart = transformed.IndexOf('{', redBoltIndex);
+        var objectEnd = -1;
+        var depth = 0;
+        var inString = false;
+        var escaped = false;
+        for (var index = objectStart; index < transformed.Length; ++index)
+        {
+            var character = transformed[index];
+            if (inString)
+            {
+                if (escaped)
+                    escaped = false;
+                else if (character == '\\')
+                    escaped = true;
+                else if (character == '"')
+                    inString = false;
+            }
+            else if (character == '"')
+            {
+                inString = true;
+            }
+            else if (character == '{')
+            {
+                ++depth;
+            }
+            else if (character == '}' && --depth == 0)
+            {
+                objectEnd = index;
+                break;
+            }
+        }
+
+        if (transformed.IndexOf("\"native\": {", objectStart, objectEnd - objectStart) < 0)
+        {
+            var closingLineStart = transformed.LastIndexOf('\n', objectEnd) + 1;
+            transformed = transformed.Insert(closingLineStart - 1, ",");
+            ++closingLineStart;
+            var nativeEntries = string.Join(
+                "," + Environment.NewLine,
+                Directory.GetFiles(NativeRuntimeDirectory, "*.so")
+                    .OrderBy(path => Path.GetFileName(path))
+                    .Select(path => "        \"runtimes/" + RuntimeIdentifier + "/native/"
+                        + Path.GetFileName(path) + "\": {}"));
+            transformed = transformed.Insert(
+                closingLineStart,
+                "      \"native\": {" + Environment.NewLine
+                    + nativeEntries + Environment.NewLine
+                    + "      }" + Environment.NewLine);
+        }
+
+        File.WriteAllText(DependencyFile, transformed);
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
   <PropertyGroup Condition="'$(OutputType)' == 'Library'">
     <GenerateDependencyFile>false</GenerateDependencyFile>
   </PropertyGroup>
@@ -6,6 +93,14 @@
   <PropertyGroup>
     <RedBoltGlobalAliasesFile>$(RedBoltRoot)/src/RedBolt/GlobalAliases.cs</RedBoltGlobalAliasesFile>
     <RedBoltIsBindingProject>$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Bindings.'))</RedBoltIsBindingProject>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and ('$(RedBoltIsSampleProject)' == 'true' or '$(MSBuildProjectName)' == 'RedBolt.Tests')">
+    <AdditionalProbingPath Include="$(RedBoltOutputRoot)" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and ('$(RedBoltIsSampleProject)' == 'true' or '$(MSBuildProjectName)' == 'RedBolt.Tests')">
+    <GenerateRuntimeConfigDevFile>true</GenerateRuntimeConfigDevFile>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(RedBoltIsBindingProject)' == 'true'">
@@ -120,18 +215,14 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="RedBoltStageDesktopRuntime"
-          AfterTargets="Build"
-          Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and '$(IsTestProject)' == 'true'">
-    <ItemGroup>
-      <_RedBoltNativeRuntimeLibrary Include="$(RedBoltNativeOutputRoot)/$(Configuration)/*.so*" />
-    </ItemGroup>
-    <Copy SourceFiles="@(_RedBoltNativeRuntimeLibrary)"
-          DestinationFolder="$(OutputPath)"
-          SkipUnchangedFiles="true" />
-    <Exec Condition="!Exists('$(OutputPath)CoreData')"
-          Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/CoreData&quot; &quot;$(OutputPath)CoreData&quot;" />
-    <Exec Condition="!Exists('$(OutputPath)Data')"
-          Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/Data&quot; &quot;$(OutputPath)Data&quot;" />
+  <Target Name="RedBoltConfigureParentRuntimeAssemblies"
+          AfterTargets="GenerateBuildDependencyFile"
+          Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and ('$(RedBoltIsSampleProject)' == 'true' or '$(MSBuildProjectName)' == 'RedBolt.Tests') and Exists('$(ProjectDepsFilePath)')">
+    <RedBoltUseParentRuntimeAssemblies DependencyFile="$(ProjectDepsFilePath)"
+                                       MainProjectName="$(AssemblyName)"
+                                       NativeRuntimeDirectory="$(RedBoltNativeOutputRoot)"
+                                       RelocateAllProjectLibraries="$(RedBoltIsSampleProject)"
+                                       RuntimeIdentifier="$(RedBoltRuntimeIdentifier)" />
   </Target>
+
 </Project>

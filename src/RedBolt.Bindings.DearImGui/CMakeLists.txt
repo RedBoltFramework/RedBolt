@@ -12,4 +12,4 @@ redbolt_add_native_binding_generation(
     DEFINES "IMGUI_DEFINE_MATH_OPERATORS=1" "IMGUI_DISABLE_SSE=1"
     OWNED_HEADERS ${REDBOLT_IMGUI_OWNED_HEADERS})
 
-add_dependencies(redbolt-generate-dearimgui-bindings ImGui ImGuiSdl2 redbolt-generate-sdl-bindings)
+add_dependencies(redbolt-generate-dearimgui-bindings ImGui redbolt-generate-sdl-bindings)

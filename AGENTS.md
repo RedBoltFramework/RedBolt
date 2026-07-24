@@ -197,8 +197,11 @@ Run the tests (adjust the filter to your area):
 
 (Optional) Check the screenshot at /tmp/screenshot.png shows a correct, non-black scene.
 
-Shared desktop managed and native libraries are in:
+Shared desktop managed libraries are in:
   /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug
+
+Desktop native libraries are in:
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/runtimes/linux-x64/native
 
 Desktop sample executables and sample-specific files are in:
   /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/samples
@@ -210,7 +213,7 @@ Web output is in:
   /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/web
 
 C# build targets symlink runtime resource directories into the shared desktop
-output directory and the test output directory.
+output directory. Tests consume these directories from their parent output.
 
 The engine sets the process working directory to the managed executable directory.
 Samples and tests that consume the staged resource directories use `CoreData;Data`
@@ -295,8 +298,8 @@ These are the ONLY places C# is allowed to differ from C++:
 - SubscribeToEvent / SendEvent are upgraded to the new struct-based event format.
 - CommandLineParser is used instead of CLI11.
 - WorkQueue is rebuilt using a thread-pool.
-- Managed platform/graphics composition uses one selected platform assembly and any supported graphics-backend assemblies. Shared desktop managed and native libraries use `build/bin/<configuration>`, desktop sample executables and sample-specific files use `build/bin/<configuration>/samples`, tests use `build/bin/<configuration>/tests`, Web output uses `build/bin/<configuration>/web`, and platform-specific behavior is delegated through runtime contracts.
-- Native shared-library filenames use the target platform name as a prefix after the conventional `lib` prefix.
+- Managed platform/graphics composition uses one selected platform assembly and any supported graphics-backend assemblies. Shared desktop managed libraries use `build/bin/<configuration>`, native libraries use `build/bin/<configuration>/runtimes/<platform>-<architecture>/native`, desktop sample executables and sample-specific files use `build/bin/<configuration>/samples`, tests use `build/bin/<configuration>/tests`, Web output uses `build/bin/<configuration>/web`, and platform-specific behavior is delegated through runtime contracts.
+- Native shared-library filenames use conventional platform-neutral names.
 - Minor API tweaks are allowed ONLY to avoid GC churn.
 - C# indices and sizes use `int`, including when the corresponding C++ type is unsigned.
 - Prefer property syntax alone when it can faithfully represent a C++ member and its public accessors; do not add a private backing field only to wrap it in a public property. Private fields remain allowed when required by behavior or storage semantics.
