@@ -1,3 +1,37 @@
 <Solution>
-  <Project Path="RedBolt.Build.csproj" />
+  <Folder Name="/samples/">
+    <Project Path="samples/RedBolt.Sample.HelloGUI/RedBolt.Sample.HelloGUI.csproj" />
+    <Project Path="samples/RedBolt.Sample.MultipleViewports/RedBolt.Sample.MultipleViewports.csproj" />
+    <Project Path="samples/RedBolt.Sample.HelloWorld/RedBolt.Sample.HelloWorld.csproj" />
+    <Project Path="samples/RedBolt.Sample.AnimatingScene/RedBolt.Sample.AnimatingScene.csproj" />
+    <Project Path="samples/RedBolt.Sample.RenderToTexture/RedBolt.Sample.RenderToTexture.csproj" />
+    <Project Path="samples/RedBolt.Sample.WindowSettings/RedBolt.Sample.WindowSettings.csproj" />
+    <Project Path="samples/RedBolt.Sample.StaticScene/RedBolt.Sample.StaticScene.csproj" />
+    <Project Path="samples/RedBolt.Sample.DynamicGeometry/RedBolt.Sample.DynamicGeometry.csproj" />
+    <Project Path="samples/RedBolt.Sample.CameraShake/RedBolt.Sample.CameraShake.csproj" />
+    <Project Path="samples/RedBolt.Sample.Billboards/RedBolt.Sample.Billboards.csproj" />
+    <Project Path="samples/RedBolt.Sample.MaterialAnimation/RedBolt.Sample.MaterialAnimation.csproj" />
+    <Project Path="samples/RedBolt.Sample.HugeObjectCount/RedBolt.Sample.HugeObjectCount.csproj" />
+    <Project Path="samples/RedBolt.Sample.CameraOperator/RedBolt.Sample.CameraOperator.csproj" />
+    <Project Path="samples/RedBolt.Sample.SkeletalAnimation/RedBolt.Sample.SkeletalAnimation.csproj" />
+    <Project Path="samples/RedBolt.Sample.SoundEffects/RedBolt.Sample.SoundEffects.csproj" />
+    <Project Path="samples/RedBolt.Sample.SoundSynthesis/RedBolt.Sample.SoundSynthesis.csproj" />
+    <Project Path="samples/RedBolt.Sample.Decals/RedBolt.Sample.Decals.csproj" />
+    <Project Path="samples/RedBolt.Sample.PointerAdapter/RedBolt.Sample.PointerAdapter.csproj" />
+    <Project Path="samples/RedBolt.Sample.TextureFormats/RedBolt.Sample.TextureFormats.csproj" />
+    <Project Path="samples/RedBolt.Sample.LightAnimation/RedBolt.Sample.LightAnimation.csproj" />
+    <Project Path="samples/RedBolt.Sample.AggregatedInput/RedBolt.Sample.AggregatedInput.csproj" />
+    <Project Path="samples/RedBolt.Sample.InputLogger/RedBolt.Sample.InputLogger.csproj" />
+    <Project Path="samples/RedBolt.Sample.VirtualFileSystem/RedBolt.Sample.VirtualFileSystem.csproj" />
+    <Project Path="samples/RedBolt.Sample.Web/RedBolt.Sample.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RedBolt.Tests/RedBolt.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/SharpCpp/">
+    <Project Path="extern/SharpCpp/tests/SharpCpp.Tests.E2E/SharpCpp.Tests.E2E.csproj" />
+    <Project Path="extern/SharpCpp/tests/SharpCpp.Tests.Metadata/SharpCpp.Tests.Metadata.csproj" />
+    <Project Path="extern/SharpCpp/tests/SharpCpp.Tests.Model/SharpCpp.Tests.Model.csproj" />
+    <Project Path="extern/SharpCpp/tests/SharpCpp.Tests.Rendering/SharpCpp.Tests.Rendering.csproj" />
+  </Folder>
 </Solution>

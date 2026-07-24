@@ -71,7 +71,7 @@ public sealed class EngineTests
     [Fact]
     public void Engine_constructor_uses_executable_directory_and_staged_resources()
     {
-        var executableDirectory = Path.GetDirectoryName(typeof(Engine).Assembly.Location)!;
+        var executableDirectory = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar);
         var resourceDirectory = Path.GetFullPath(Path.Combine(executableDirectory, ".."));
 
         Assert.Equal(executableDirectory, Directory.GetCurrentDirectory());

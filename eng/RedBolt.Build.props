@@ -15,7 +15,7 @@
     <RedBoltNativePreset Condition="'$(RedBoltNativePreset)' == '' and '$(RedBoltPlatform)' == 'linux-gcc-x64-dll'">linux-gcc-x64-dll</RedBoltNativePreset>
     <RedBoltNativePreset Condition="'$(RedBoltNativePreset)' == '' and '$(RedBoltPlatform)' == 'web-emscripten-wasm'">web-emscripten-wasm</RedBoltNativePreset>
     <RedBoltNativeBuildDir Condition="'$(RedBoltNativePreset)' != ''">$(RedBoltBuildRoot)/native/$(RedBoltNativePreset)</RedBoltNativeBuildDir>
-    <RedBoltConfigureNative Condition="'$(RedBoltNativeBuildDir)' != ''">true</RedBoltConfigureNative>
+    <RedBoltConfigureNative Condition="'$(RedBoltNativeBuildDir)' != '' and !Exists('$(RedBoltNativeBuildDir)/CMakeCache.txt')">true</RedBoltConfigureNative>
     <RedBoltConfigureNative Condition="'$(RedBoltConfigureNative)' == ''">false</RedBoltConfigureNative>
     <RedBoltCMakeCommand>/usr/bin/cmake</RedBoltCMakeCommand>
     <RedBoltGeneratedBindingsDir Condition="'$(RedBoltNativeBuildDir)' != ''">$(RedBoltNativeBuildDir)/generated/redbolt-native</RedBoltGeneratedBindingsDir>
@@ -38,7 +38,7 @@
     <SharpCppOutputDir>$(RedBoltOutputRoot)/tools</SharpCppOutputDir>
     <SharpCppIntermediateRoot>$(RedBoltBuildRoot)/obj/managed/tools</SharpCppIntermediateRoot>
     <RedBoltSharpCppManagedProperties>Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=;SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)</RedBoltSharpCppManagedProperties>
-    <RedBoltSharpCppNativeProperties>Configuration=$(Configuration);SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppCMakeSourceDir=$(RedBoltRoot);SharpCppNativePreset=$(RedBoltNativePreset);SharpCppNativeBuildDir=$(RedBoltNativeBuildDir);SharpCppNativeTarget=sharpcpp-native;SharpCppConfigureNative=$(RedBoltConfigureNative);SharpCppBuildE2E=false;SharpCppBuildRbfx=false;SharpCppManagedOutputRoot=$(RedBoltOutputRoot)/tools;SharpCppNativeOutputRoot=$(RedBoltNativeOutputRoot);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot);SharpCppNativeConfigureArguments=-DREDBOLT_SHARPCPP_ROOT=$(RedBoltSharpCppRoot)</RedBoltSharpCppNativeProperties>
+    <RedBoltSharpCppNativeProperties>Configuration=$(Configuration);SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppCMakeSourceDir=$(RedBoltRoot);SharpCppNativePreset=$(RedBoltNativePreset);SharpCppNativeBuildDir=$(RedBoltNativeBuildDir);SharpCppNativeTarget=sharpcpp-native;SharpCppConfigureNative=$(RedBoltConfigureNative);SharpCppBuildE2E=false;SharpCppBuildRbfx=false;SharpCppManagedOutputRoot=$(RedBoltOutputRoot)/tools;SharpCppNativeOutputRoot=$(RedBoltNativeOutputRoot);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(RedBoltIntermediateRoot)/native-tools;SharpCppNativeConfigureArguments=-DREDBOLT_SHARPCPP_ROOT=$(RedBoltSharpCppRoot)</RedBoltSharpCppNativeProperties>
 
     <TargetFramework Condition="'$(TargetFramework)' == ''">net8.0</TargetFramework>
     <Nullable>enable</Nullable>

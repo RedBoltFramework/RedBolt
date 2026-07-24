@@ -5,8 +5,7 @@ namespace RedBolt;
 
 public class Engine : Object
 {
-    private static readonly string ExecutableDirectory =
-        Path.GetDirectoryName(typeof(Engine).Assembly.Location) ?? AppContext.BaseDirectory;
+    private static readonly string ExecutableDirectory = AppContext.BaseDirectory;
 
     private readonly record struct ResourceRootEntry(string FullName, string ShortName);
 

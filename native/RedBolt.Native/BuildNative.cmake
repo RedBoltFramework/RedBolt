@@ -39,9 +39,15 @@ if(EXISTS "${_redbolt_native_cache}")
         REGEX "^REDBOLT_CONFIGURATION:[^=]*="
         LIMIT_COUNT 1)
     string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_configuration "${_redbolt_cached_configuration}")
+    file(STRINGS "${_redbolt_native_cache}"
+        _redbolt_cached_cmake_command
+        REGEX "^CMAKE_COMMAND:[^=]*="
+        LIMIT_COUNT 1)
+    string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_cmake_command "${_redbolt_cached_cmake_command}")
     if(_redbolt_cached_generator STREQUAL REDBOLT_GENERATOR_DLL
             AND _redbolt_cached_runtime_output STREQUAL REDBOLT_RUNTIME_OUTPUT_DIR
-            AND _redbolt_cached_configuration STREQUAL REDBOLT_CONFIGURATION)
+            AND _redbolt_cached_configuration STREQUAL REDBOLT_CONFIGURATION
+            AND _redbolt_cached_cmake_command STREQUAL CMAKE_COMMAND)
         set(_redbolt_configure_native FALSE)
     endif()
 endif()

@@ -17,7 +17,7 @@
                       ReferenceOutputAssembly="false"
                       Private="false"
                       PrivateAssets="all"
-                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=" />
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=" />
   </ItemGroup>
 
   <Import Project="RedBolt.Native.targets" />

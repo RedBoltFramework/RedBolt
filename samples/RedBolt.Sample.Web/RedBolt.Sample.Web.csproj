@@ -60,4 +60,17 @@
                              Condition="'%(RelativePath)' == 'RedBolt.Dependencies.Generator.deps.json' or '%(RelativePath)' == 'RedBolt.Dependencies.Generator.runtimeconfig.json'" />
     </ItemGroup>
   </Target>
+
+  <Target Name="RedBoltPublishWebAfterBuild"
+          AfterTargets="Build"
+          Inputs="$(TargetPath);$(RedBoltWebEngineArchive);@(ReferenceCopyLocalPaths);@(Content)"
+          Outputs="$(RedBoltWebOutputDir)/wwwroot/index.html"
+          Condition="'$(RedBoltPublishWebAfterBuild)' != 'false' and '$(RedBoltPublishWebInProgress)' != 'true'">
+    <RemoveDir Directories="$(RedBoltWebOutputDir)" />
+    <MSBuild Projects="$(MSBuildProjectFullPath)"
+             Targets="Publish"
+             BuildInParallel="false"
+             Properties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm;RedBoltPublishWebInProgress=true;BuildProjectReferences=false" />
+    <Touch Files="$(RedBoltWebOutputDir)/wwwroot/index.html" />
+  </Target>
 </Project>
