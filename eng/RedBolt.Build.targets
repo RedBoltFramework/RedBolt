@@ -122,7 +122,7 @@
 
   <Target Name="RedBoltStageDesktopRuntime"
           AfterTargets="Build"
-          Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">
+          Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and '$(IsTestProject)' == 'true'">
     <ItemGroup>
       <_RedBoltNativeRuntimeLibrary Include="$(RedBoltNativeOutputRoot)/$(Configuration)/*.so*" />
     </ItemGroup>

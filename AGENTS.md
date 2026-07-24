@@ -197,7 +197,10 @@ Run the tests (adjust the filter to your area):
 
 (Optional) Check the screenshot at /tmp/screenshot.png shows a correct, non-black scene.
 
-The desktop sample build output binaries are in:
+Shared desktop managed and native libraries are in:
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug
+
+Desktop sample executables and sample-specific files are in:
   /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/samples
 
 Test output binaries are in:
@@ -206,8 +209,8 @@ Test output binaries are in:
 Web output is in:
   /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/web
 
-C# build targets symlink runtime resource directories into each runnable desktop
-output directory.
+C# build targets symlink runtime resource directories into the shared desktop
+output directory and the test output directory.
 
 The engine sets the process working directory to the managed executable directory.
 Samples and tests that consume the staged resource directories use `CoreData;Data`
@@ -292,7 +295,7 @@ These are the ONLY places C# is allowed to differ from C++:
 - SubscribeToEvent / SendEvent are upgraded to the new struct-based event format.
 - CommandLineParser is used instead of CLI11.
 - WorkQueue is rebuilt using a thread-pool.
-- Managed platform/graphics composition uses one selected platform assembly and any supported graphics-backend assemblies. Desktop samples and shared managed binaries use `build/bin/<configuration>/samples`, tests use `build/bin/<configuration>/tests`, Web output uses `build/bin/<configuration>/web`, and platform-specific behavior is delegated through runtime contracts.
+- Managed platform/graphics composition uses one selected platform assembly and any supported graphics-backend assemblies. Shared desktop managed and native libraries use `build/bin/<configuration>`, desktop sample executables and sample-specific files use `build/bin/<configuration>/samples`, tests use `build/bin/<configuration>/tests`, Web output uses `build/bin/<configuration>/web`, and platform-specific behavior is delegated through runtime contracts.
 - Native shared-library filenames use the target platform name as a prefix after the conventional `lib` prefix.
 - Minor API tweaks are allowed ONLY to avoid GC churn.
 - C# indices and sizes use `int`, including when the corresponding C++ type is unsigned.

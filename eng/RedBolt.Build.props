@@ -20,7 +20,8 @@
     <RedBoltGeneratedBindingsDir Condition="'$(RedBoltNativeBuildDir)' != ''">$(RedBoltNativeBuildDir)/generated/redbolt-native</RedBoltGeneratedBindingsDir>
 
     <RedBoltOutputRoot>$(RedBoltBuildRoot)/bin/$(Configuration)</RedBoltOutputRoot>
-    <RedBoltOutputDir Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll'">$(RedBoltOutputRoot)/samples</RedBoltOutputDir>
+    <RedBoltIsSampleProject>$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Sample.'))</RedBoltIsSampleProject>
+    <RedBoltOutputDir Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and '$(RedBoltIsSampleProject)' == 'true'">$(RedBoltOutputRoot)/samples</RedBoltOutputDir>
     <RedBoltOutputDir Condition="'$(RedBoltPlatform)' == 'web-emscripten-wasm'">$(RedBoltOutputRoot)/web</RedBoltOutputDir>
     <RedBoltOutputDir Condition="'$(MSBuildProjectName)' == 'RedBolt.Tests'">$(RedBoltOutputRoot)/tests</RedBoltOutputDir>
     <RedBoltOutputDir Condition="'$(RedBoltOutputDir)' == ''">$(RedBoltOutputRoot)</RedBoltOutputDir>
