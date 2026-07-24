@@ -5,6 +5,8 @@ using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Lz4;
 using RedBolt.Bindings.Sdl;
 
+WebPlatform.Initialize();
+
 var lz4Version = Lz4NativeBindings.Lz4VersionNumber();
 var sdlRevision = SdlNativeBindings.SdlGetRevisionNumber();
 var diligentFactory = DiligentNativeBindings.GetEngineFactoryOpenGL();
@@ -39,7 +41,18 @@ Application application = sampleName switch
     "window-settings" => new WindowSettingsDemo(),
     _ => throw new InvalidOperationException($"Unknown RedBolt sample: {sampleName}")
 };
-var exitCode = application.Run();
+int exitCode;
+try
+{
+    exitCode = application.Run();
+}
+catch (Exception exception)
+{
+    var failureMessage = $"RedBolt WebAssembly sample failed with {exception.GetType().FullName}: {exception.Message}";
+    Console.Error.WriteLine(exception);
+    BrowserDom.SetResult(failureMessage, false);
+    throw;
+}
 var success = exitCode == 0
     && lz4Version > 0
     && sdlRevision >= 0

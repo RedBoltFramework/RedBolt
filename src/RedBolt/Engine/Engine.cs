@@ -535,7 +535,9 @@ public class Engine : Object
             ApplyConfiguredResourcePaths();
         }
 
-        if (!string.IsNullOrEmpty(GetAppPreferencesDir()))
+        if (ProcessUtils.GetPlatform() == PlatformId.Web)
+            virtualFileSystem.MountDir("conf", "/IndexedDB/");
+        else if (!string.IsNullOrEmpty(GetAppPreferencesDir()))
             virtualFileSystem.MountDir("conf", GetAppPreferencesDir());
     }
 

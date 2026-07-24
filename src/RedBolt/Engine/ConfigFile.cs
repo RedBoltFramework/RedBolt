@@ -1,4 +1,3 @@
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -406,18 +405,23 @@ public sealed class ConfigFile : Object
     public bool SaveOverrides(string fileName, ApplicationFlavor flavor)
     {
         var fileSystem = GetSubsystem<VirtualFileSystem>();
-
-        var root = new JsonObject();
-        using var overrides = GetChangedVariables(flavor);
-        foreach (var (name, value) in overrides)
+        using var file = fileSystem!.OpenFile(FileIdentifier.FromUri(fileName), FileMode.Write);
+        if (file is null)
         {
-            var jsonValue = new JSONValue();
-            jsonValue.SetVariant(value);
-            root[name] = jsonValue.ToJsonNode();
+            Log.GetLogger().LogError("Failed to write JSON settings to file '{FileName}'.", fileName);
+            return false;
         }
 
-        var options = new JsonSerializerOptions { WriteIndented = true };
-        return fileSystem!.WriteAllText(FileIdentifier.FromUri(fileName), root.ToJsonString(options));
+        using var overrides = GetChangedVariables(flavor);
+        using var jsonFile = new JSONFile();
+        jsonFile.Root.SetStringVariantMap(overrides);
+        if (!jsonFile.Save(file))
+        {
+            Log.GetLogger().LogError("Failed to save JSON settings to file '{FileName}'.", fileName);
+            return false;
+        }
+
+        return true;
     }
 
     public StringVariantMap GetFlavorVariables(ApplicationFlavor flavor)

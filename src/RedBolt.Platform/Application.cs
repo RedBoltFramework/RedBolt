@@ -123,6 +123,8 @@ public abstract partial class Application : Object
         catch (Exception exception)
         {
             Log.GetLogger().LogCritical(exception, "Unhandled exception in application run loop.");
+            if (ProcessUtils.GetPlatform() == PlatformId.Web)
+                throw;
             ErrorExit(exception.Message);
         }
         finally
