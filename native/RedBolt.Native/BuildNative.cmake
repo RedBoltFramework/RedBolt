@@ -50,6 +50,7 @@ if(_redbolt_configure_native)
     execute_process(
         COMMAND "${CMAKE_COMMAND}"
             --preset "${REDBOLT_NATIVE_PRESET}"
+            -U "MAKECOMMAND"
             "-DREDBOLT_SHARPCPP_ROOT=${REDBOLT_SHARPCPP_ROOT}"
             "-DREDBOLT_DEPENDENCIES_GENERATOR_DLL=${REDBOLT_GENERATOR_DLL}"
             "-DREDBOLT_CONFIGURATION=${REDBOLT_CONFIGURATION}"

@@ -15,8 +15,9 @@
     <RedBoltNativePreset Condition="'$(RedBoltNativePreset)' == '' and '$(RedBoltPlatform)' == 'linux-gcc-x64-dll'">linux-gcc-x64-dll</RedBoltNativePreset>
     <RedBoltNativePreset Condition="'$(RedBoltNativePreset)' == '' and '$(RedBoltPlatform)' == 'web-emscripten-wasm'">web-emscripten-wasm</RedBoltNativePreset>
     <RedBoltNativeBuildDir Condition="'$(RedBoltNativePreset)' != ''">$(RedBoltBuildRoot)/native/$(RedBoltNativePreset)</RedBoltNativeBuildDir>
-    <RedBoltConfigureNative Condition="'$(RedBoltNativeBuildDir)' != '' and !Exists('$(RedBoltNativeBuildDir)')">true</RedBoltConfigureNative>
+    <RedBoltConfigureNative Condition="'$(RedBoltNativeBuildDir)' != ''">true</RedBoltConfigureNative>
     <RedBoltConfigureNative Condition="'$(RedBoltConfigureNative)' == ''">false</RedBoltConfigureNative>
+    <RedBoltCMakeCommand>/usr/bin/cmake</RedBoltCMakeCommand>
     <RedBoltGeneratedBindingsDir Condition="'$(RedBoltNativeBuildDir)' != ''">$(RedBoltNativeBuildDir)/generated/redbolt-native</RedBoltGeneratedBindingsDir>
 
     <RedBoltRuntimeIdentifier Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll'">linux-x64</RedBoltRuntimeIdentifier>
