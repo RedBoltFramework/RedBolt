@@ -71,6 +71,7 @@ public abstract partial class Application : Object
         ArgumentNullException.ThrowIfNull(args);
 
         var parameters = new EngineParameters();
+        Context.Instance.RuntimeServices.Platform.InitializeApplicationParameters(parameters);
         Setup(parameters);
 
         if (parameters.EngineCliParameters)

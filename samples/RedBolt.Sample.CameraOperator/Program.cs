@@ -30,8 +30,12 @@ sealed class CameraOperatorSampleApplication : Application
         parameters.ApplicationName = "RedBolt.Sample.CameraOperator";
         parameters.Borderless = false; parameters.FullScreen = false;
         parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = ".;..";
-        parameters.WindowMaximize = false; parameters.WindowHeight = 720;
-        parameters.WindowTitle = "RedBolt Camera Operator"; parameters.WindowWidth = 1280;
+        parameters.WindowMaximize = false;
+        if (ProcessUtils.GetPlatform() != PlatformId.Web)
+        {
+            parameters.WindowHeight = 720; parameters.WindowWidth = 1280;
+        }
+        parameters.WindowTitle = "RedBolt Camera Operator";
     }
 
     /// <summary>Setup after engine initialization and before running the main loop.</summary>

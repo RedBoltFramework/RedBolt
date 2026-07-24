@@ -20,7 +20,12 @@ sealed class PointerAdapterApplication : Application
     {
         parameters.ApplicationName = "RedBolt.Sample.PointerAdapter"; parameters.Borderless = false; parameters.FullScreen = false;
         parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = ".;..";
-        parameters.WindowMaximize = false; parameters.WindowWidth = 1280; parameters.WindowHeight = 720; parameters.WindowTitle = "RedBolt Pointer Adapter";
+        parameters.WindowMaximize = false;
+        if (ProcessUtils.GetPlatform() != PlatformId.Web)
+        {
+            parameters.WindowWidth = 1280; parameters.WindowHeight = 720;
+        }
+        parameters.WindowTitle = "RedBolt Pointer Adapter";
     }
 
     protected override void Start()

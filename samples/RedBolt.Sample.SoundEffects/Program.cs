@@ -273,9 +273,12 @@ public class SoundEffects : Application
         parameters.WindowMaximize = false;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = ".;..";
-        parameters.WindowHeight = 540;
+        if (ProcessUtils.GetPlatform() != PlatformId.Web)
+        {
+            parameters.WindowHeight = 540;
+            parameters.WindowWidth = 960;
+        }
         parameters.WindowTitle = "RedBolt Sound Effects";
-        parameters.WindowWidth = 960;
     }
 
     protected override void Update(float timeStep)

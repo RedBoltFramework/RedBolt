@@ -23,7 +23,9 @@ internal sealed class LinuxPlatformRuntime : IPlatformRuntime
 
     public bool UseHighDensityWindow => false;
 
-    public Vector2i ResolveWindowSize(Vector2i requestedSize) => requestedSize;
+        public void InitializeApplicationParameters(EngineParameters parameters)
+        {
+        }
 
     public NativeWindowInfo GetNativeWindowInfo(SdlWindow window)
     {

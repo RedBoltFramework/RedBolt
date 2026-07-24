@@ -24,12 +24,10 @@ internal sealed partial class WebPlatformRuntime : IPlatformRuntime
 
     public bool UseHighDensityWindow => true;
 
-    public Vector2i ResolveWindowSize(Vector2i requestedSize)
+    public void InitializeApplicationParameters(EngineParameters parameters)
     {
-        if (requestedSize != Vector2i.Zero)
-            return requestedSize;
-
-        return new Vector2i(GetCanvasWidth(), GetCanvasHeight());
+        parameters.WindowWidth = GetCanvasWidth();
+        parameters.WindowHeight = GetCanvasHeight();
     }
 
     public NativeWindowInfo GetNativeWindowInfo(SdlWindow window) =>

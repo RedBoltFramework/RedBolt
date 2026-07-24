@@ -176,9 +176,12 @@ public class StaticScene : Application
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowMaximize = false;
-        parameters.WindowHeight = 720;
+        if (ProcessUtils.GetPlatform() != PlatformId.Web)
+        {
+            parameters.WindowHeight = 720;
+            parameters.WindowWidth = 1280;
+        }
         parameters.WindowTitle = "RedBolt Static Scene";
-        parameters.WindowWidth = 1280;
     }
 
     public override void Dispose()

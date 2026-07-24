@@ -11,7 +11,16 @@ catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
 sealed class DecalsApplication : Application
 {
     private Scene? _scene; private Node? _cameraNode; private Octree? _octree; private bool _drawDebug;
-    protected override void Setup(EngineParameters parameters) { parameters.ApplicationName = "RedBolt.Sample.Decals"; parameters.Borderless = false; parameters.FullScreen = false; parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = ".;.."; parameters.WindowMaximize = false; parameters.WindowWidth = 1280; parameters.WindowHeight = 720; parameters.WindowTitle = "RedBolt Decals"; }
+    protected override void Setup(EngineParameters parameters)
+    {
+        parameters.ApplicationName = "RedBolt.Sample.Decals"; parameters.Borderless = false; parameters.FullScreen = false;
+        parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = ".;.."; parameters.WindowMaximize = false;
+        if (ProcessUtils.GetPlatform() != PlatformId.Web)
+        {
+            parameters.WindowWidth = 1280; parameters.WindowHeight = 720;
+        }
+        parameters.WindowTitle = "RedBolt Decals";
+    }
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));

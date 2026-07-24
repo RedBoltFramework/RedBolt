@@ -246,9 +246,12 @@ public class RenderToTexture : Application
         parameters.WindowMaximize = false;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = ".;..";
-        parameters.WindowHeight = 720;
+        if (ProcessUtils.GetPlatform() != PlatformId.Web)
+        {
+            parameters.WindowHeight = 720;
+            parameters.WindowWidth = 1280;
+        }
         parameters.WindowTitle = "RedBolt Render To Texture";
-        parameters.WindowWidth = 1280;
     }
 
     public override void Dispose()

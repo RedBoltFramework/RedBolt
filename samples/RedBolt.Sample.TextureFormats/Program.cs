@@ -195,8 +195,11 @@ public class TextureFormatsSample : Application
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowMaximize = false;
-        parameters.WindowWidth = 1280;
-        parameters.WindowHeight = 720;
+        if (ProcessUtils.GetPlatform() != PlatformId.Web)
+        {
+            parameters.WindowWidth = 1280;
+            parameters.WindowHeight = 720;
+        }
         parameters.WindowTitle = "RedBolt Texture Formats";
     }
 

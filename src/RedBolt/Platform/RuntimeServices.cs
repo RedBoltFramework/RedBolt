@@ -11,7 +11,7 @@ public interface IPlatformRuntime
 
     bool UseHighDensityWindow { get; }
 
-    Vector2i ResolveWindowSize(Vector2i requestedSize);
+    void InitializeApplicationParameters(EngineParameters parameters);
 
     /// <summary>Return native window information required by graphics backends.</summary>
     NativeWindowInfo GetNativeWindowInfo(SdlWindow window);
@@ -130,7 +130,9 @@ public sealed class RuntimeServices
 
         public bool UseHighDensityWindow => false;
 
-        public Vector2i ResolveWindowSize(Vector2i requestedSize) => requestedSize;
+        public void InitializeApplicationParameters(EngineParameters parameters)
+        {
+        }
 
         public NativeWindowInfo GetNativeWindowInfo(SdlWindow window) =>
             throw new PlatformNotSupportedException("Native window information requires a platform module.");
