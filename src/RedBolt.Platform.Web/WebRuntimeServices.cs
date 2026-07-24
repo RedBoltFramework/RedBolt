@@ -22,7 +22,7 @@ internal sealed partial class WebPlatformRuntime : IPlatformRuntime
 {
     public bool SupportsFileLogging => false;
 
-    public bool UseHighDensityWindow => true;
+    public bool UseHighDensityWindow => false;
 
     public void InitializeApplicationParameters(EngineParameters parameters)
     {
