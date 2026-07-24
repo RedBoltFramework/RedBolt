@@ -21,6 +21,10 @@ internal sealed class LinuxPlatformRuntime : IPlatformRuntime
 {
     public bool SupportsFileLogging => true;
 
+    public bool UseHighDensityWindow => false;
+
+    public Vector2i ResolveWindowSize(Vector2i requestedSize) => requestedSize;
+
     public NativeWindowInfo GetNativeWindowInfo(SdlWindow window)
     {
         using var version = new SdlVersion();

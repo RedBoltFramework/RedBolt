@@ -35,7 +35,7 @@ public sealed class OpenGLESGraphicsBackend : IGraphicsBackend
         try
         {
             CheckSdl(SdlNativeBindings.SdlGlMakeCurrent(window, glContext), "SDL_GL_MakeCurrent");
-            SdlNativeBindings.SdlGetWindowSize(window, out var width, out var height);
+            SdlNativeBindings.SdlGlGetDrawableSize(window, out var width, out var height);
 
             var multiSample = (int)Math.Clamp(
                 MathDefs.ClosestPowerOfTwo((uint)Math.Max(parameters.MultiSample, 1)), 1u, 16u);

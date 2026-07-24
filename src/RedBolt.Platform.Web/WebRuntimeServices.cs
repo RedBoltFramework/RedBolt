@@ -1,6 +1,8 @@
 using RedBolt.Bindings.Sdl;
 using System;
 
+using System.Runtime.InteropServices.JavaScript;
+
 namespace RedBolt;
 
 public static class WebPlatform
@@ -16,10 +18,26 @@ public static class WebPlatform
     }
 }
 
-internal sealed class WebPlatformRuntime : IPlatformRuntime
+internal sealed partial class WebPlatformRuntime : IPlatformRuntime
 {
     public bool SupportsFileLogging => false;
 
+    public bool UseHighDensityWindow => true;
+
+    public Vector2i ResolveWindowSize(Vector2i requestedSize)
+    {
+        if (requestedSize != Vector2i.Zero)
+            return requestedSize;
+
+        return new Vector2i(GetCanvasWidth(), GetCanvasHeight());
+    }
+
     public NativeWindowInfo GetNativeWindowInfo(SdlWindow window) =>
         throw new PlatformNotSupportedException("Web does not expose native window handles.");
+
+    [JSImport("canvas.getWidth", "main.js")]
+    private static partial int GetCanvasWidth();
+
+    [JSImport("canvas.getHeight", "main.js")]
+    private static partial int GetCanvasHeight();
 }

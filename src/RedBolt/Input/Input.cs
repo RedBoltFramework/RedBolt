@@ -267,6 +267,10 @@ public class Input : Object
         var explicitRect = _explicitWindowRect;
         var windowWidth = explicitRect?.Width > 0 ? explicitRect.Value.Width : parameters.WindowWidth;
         var windowHeight = explicitRect?.Height > 0 ? explicitRect.Value.Height : parameters.WindowHeight;
+        var windowSize = Context.Instance.RuntimeServices.Platform.ResolveWindowSize(
+            new Vector2i(windowWidth, windowHeight));
+        windowWidth = windowSize.X;
+        windowHeight = windowSize.Y;
         _backbufferSize = new Vector2i(windowWidth, windowHeight);
         _systemToBackbufferScale = Vector2f.One;
         TouchEmulation = parameters.TouchEmulation;
@@ -289,6 +293,8 @@ public class Input : Object
             var windowFlags = graphicsBackend.UsesOpenGLWindow
                 ? SdlWindowFlags.SdlWindowOpengl | SdlWindowFlags.SdlWindowShown
                 : 0;
+            if (Context.Instance.RuntimeServices.Platform.UseHighDensityWindow)
+                windowFlags |= SdlWindowFlags.SdlWindowAllowHighdpi;
             if (parameters.FullScreen)
                 windowFlags |= SdlWindowFlags.SdlWindowFullscreenDesktop;
             else if (parameters.Borderless)

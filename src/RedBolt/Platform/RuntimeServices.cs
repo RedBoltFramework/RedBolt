@@ -9,6 +9,10 @@ public interface IPlatformRuntime
     /// <summary>Whether files may be opened by the logging subsystem.</summary>
     bool SupportsFileLogging { get; }
 
+    bool UseHighDensityWindow { get; }
+
+    Vector2i ResolveWindowSize(Vector2i requestedSize);
+
     /// <summary>Return native window information required by graphics backends.</summary>
     NativeWindowInfo GetNativeWindowInfo(SdlWindow window);
 }
@@ -123,6 +127,10 @@ public sealed class RuntimeServices
     private sealed class EmptyPlatformRuntime : IPlatformRuntime
     {
         public bool SupportsFileLogging => true;
+
+        public bool UseHighDensityWindow => false;
+
+        public Vector2i ResolveWindowSize(Vector2i requestedSize) => requestedSize;
 
         public NativeWindowInfo GetNativeWindowInfo(SdlWindow window) =>
             throw new PlatformNotSupportedException("Native window information requires a platform module.");

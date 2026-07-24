@@ -56,6 +56,10 @@ setModuleImports('main.js', {
             result.dataset.status = success ? 'success' : 'failure';
         }
     },
+    canvas: {
+        getWidth: () => Math.max(1, Math.round(document.getElementById('canvas').getBoundingClientRect().width)),
+        getHeight: () => Math.max(1, Math.round(document.getElementById('canvas').getBoundingClientRect().height))
+    },
     mainLoop: {
         set: callback => {
             const runFrame = () => {
