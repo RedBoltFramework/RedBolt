@@ -6,7 +6,9 @@ using System.Text;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
+#if !REDBOLT_WEB_SAMPLE
 return new VirtualFileSystemApplication().Run(args);
+#endif
 
 /// <summary>Virtual file system example.</summary>
 sealed class VirtualFileSystemApplication : Application

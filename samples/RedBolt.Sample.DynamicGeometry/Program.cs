@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
+#if !REDBOLT_WEB_SAMPLE
 try
 {
     using var application = new DynamicGeometry();
@@ -18,6 +19,7 @@ catch (Exception ex)
     Console.Error.WriteLine(ex);
     return 1;
 }
+#endif
 
 /// <summary>
 /// Dynamic geometry example.

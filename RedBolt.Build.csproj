@@ -32,4 +32,11 @@
     <ProjectReference Include="samples/RedBolt.Sample.VirtualFileSystem/RedBolt.Sample.VirtualFileSystem.csproj" ReferenceOutputAssembly="false" />
     <ProjectReference Include="tests/RedBolt.Tests/RedBolt.Tests.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
+
+  <Target Name="RedBoltPublishWeb" AfterTargets="Build">
+    <MSBuild Projects="samples/RedBolt.Sample.Web/RedBolt.Sample.Web.csproj"
+             Targets="Publish"
+             BuildInParallel="false"
+             Properties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm" />
+  </Target>
 </Project>

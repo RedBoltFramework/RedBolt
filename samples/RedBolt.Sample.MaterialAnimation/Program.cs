@@ -2,6 +2,7 @@ using System;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
+#if !REDBOLT_WEB_SAMPLE
 try
 {
     return new MaterialAnimationApplication().Run();
@@ -11,6 +12,7 @@ catch (Exception ex)
     Console.Error.WriteLine(ex);
     return 1;
 }
+#endif
 
 /// <summary>
 /// Material animation example.

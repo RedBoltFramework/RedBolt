@@ -2,6 +2,7 @@ using System;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
+#if !REDBOLT_WEB_SAMPLE
 try
 {
     using var application = new WindowSettingsDemo();
@@ -15,6 +16,7 @@ catch (Exception ex)
     Console.Error.WriteLine(ex);
     return 1;
 }
+#endif
 
 /// <summary>
 /// Demo application for dynamic window settings change.

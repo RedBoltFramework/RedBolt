@@ -1,6 +1,7 @@
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
+#if !REDBOLT_WEB_SAMPLE
 try
 {
     using var application = new RenderToTexture();
@@ -14,6 +15,7 @@ catch (Exception ex)
     Console.Error.WriteLine(ex);
     return 1;
 }
+#endif
 
 /// <summary>
 /// Render to texture example.

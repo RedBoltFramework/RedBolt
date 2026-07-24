@@ -7,12 +7,13 @@
     <EmccExtraLDFlags>-sFULL_ES3 -sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE=$dynCall</EmccExtraLDFlags>
     <EmccLinkOptimizationFlag>-O0</EmccLinkOptimizationFlag>
     <PublishTrimmed>true</PublishTrimmed>
-    <RunAOTCompilation>true</RunAOTCompilation>
+    <RunAOTCompilation Condition="'$(Configuration)' == 'Release'">true</RunAOTCompilation>
+    <RunAOTCompilation Condition="'$(Configuration)' != 'Release'">false</RunAOTCompilation>
     <WasmBuildNative>true</WasmBuildNative>
     <WasmEnableThreads>false</WasmEnableThreads>
     <WasmNativeStrip>false</WasmNativeStrip>
     <WasmRunWasmOpt>false</WasmRunWasmOpt>
-    <WasmStripILAfterAOT>true</WasmStripILAfterAOT>
+    <WasmStripILAfterAOT Condition="'$(Configuration)' == 'Release'">true</WasmStripILAfterAOT>
     <RedBoltWebEngineArchive Condition="'$(RedBoltWebEngineArchive)' == ''">$(RedBoltNativeBuildDir)/lib/Release/wasm/RedBolt.Native.a</RedBoltWebEngineArchive>
     <RedBoltWebResourcesManifest Condition="'$(RedBoltWebResourcesManifest)' == ''">$(RedBoltNativeBuildDir)/generated/web/resources.manifest.json</RedBoltWebResourcesManifest>
   </PropertyGroup>
@@ -21,17 +22,21 @@
     <WasmOptConfigurationFlags Include="--enable-threads" />
     <NativeFileReference Include="$(RedBoltWebEngineArchive)" />
     <ProjectReference Include="../../src/RedBolt/RedBolt.csproj"
-                      RedBoltProperties="Configuration=$(Configuration)" />
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm" />
     <ProjectReference Include="../../src/RedBolt.Platform.Web/RedBolt.Platform.Web.csproj"
-                      RedBoltProperties="Configuration=$(Configuration)" />
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm" />
     <ProjectReference Include="../../src/RedBolt.DearImGui/RedBolt.DearImGui.csproj"
-                      RedBoltProperties="Configuration=$(Configuration)" />
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm" />
     <ProjectReference Include="../../native/RedBolt.Native/RedBolt.Native.Web.csproj"
                       ReferenceOutputAssembly="false"
                       Private="false"
                       PrivateAssets="all"
                       RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm" />
-    <Compile Include="../RedBolt.Sample.MultipleViewports/Program.cs" Link="MultipleViewportsApplication.cs" />
+    <Compile Include="../RedBolt.Sample.*/Program.cs"
+             Exclude="../RedBolt.Sample.Web/Program.cs"
+             Link="Samples/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="../RedBolt.Sample.AnimatingScene/Rotator.cs" Link="Samples/Rotator.cs" />
+    <Compile Include="../RedBolt.Sample.SkeletalAnimation/Mover3D.cs" Link="Samples/Mover3D.cs" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all"
                       RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />

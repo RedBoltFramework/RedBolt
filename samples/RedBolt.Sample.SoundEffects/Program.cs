@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
+#if !REDBOLT_WEB_SAMPLE
 try
 {
     using var application = new SoundEffects();
@@ -16,6 +17,7 @@ catch (Exception ex)
     Console.Error.WriteLine(ex);
     return 1;
 }
+#endif
 
 /// <summary>
 /// Sound effects example.

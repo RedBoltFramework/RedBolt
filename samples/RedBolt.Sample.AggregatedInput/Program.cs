@@ -6,8 +6,10 @@ using System.Text;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
+#if !REDBOLT_WEB_SAMPLE
 try { return new AggregatedInputApplication().Run(); }
 catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
+#endif
 
 /// <summary>
 /// Aggregated input example to compare raw input events to aggregated events.

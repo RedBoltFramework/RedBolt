@@ -5,6 +5,7 @@ using System.Text;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
+#if !REDBOLT_WEB_SAMPLE
 try
 {
     return new InputLoggerApplication().Run();
@@ -14,6 +15,7 @@ catch (Exception ex)
     Console.Error.WriteLine(ex);
     return 1;
 }
+#endif
 
 /// <summary>Input event logger example.</summary>
 // TODO: port MainPluginApplication and URHO3D_DEFINE_PLUGIN_MAIN when the managed plugin application API is available.

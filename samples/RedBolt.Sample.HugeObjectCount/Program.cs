@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
+#if !REDBOLT_WEB_SAMPLE
 try { return new HugeObjectCountApplication().Run(); }
 catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
+#endif
 
 /// <summary>
 /// Huge object count example.

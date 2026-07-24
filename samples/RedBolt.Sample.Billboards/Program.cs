@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
+#if !REDBOLT_WEB_SAMPLE
 try
 {
     var exitCode = new BillboardsApplication().Run();
@@ -15,6 +16,7 @@ catch (Exception ex)
     Console.Error.WriteLine(ex);
     return 1;
 }
+#endif
 
 /// <summary>
 /// Billboard example.
