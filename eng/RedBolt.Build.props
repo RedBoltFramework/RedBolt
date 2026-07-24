@@ -20,13 +20,14 @@
     <RedBoltGeneratedBindingsDir Condition="'$(RedBoltNativeBuildDir)' != ''">$(RedBoltNativeBuildDir)/generated/redbolt-native</RedBoltGeneratedBindingsDir>
 
     <RedBoltOutputRoot>$(RedBoltBuildRoot)/bin/$(Configuration)</RedBoltOutputRoot>
+    <RedBoltIntermediateRoot>$(RedBoltBuildRoot)/obj/managed/$(RedBoltPlatform)</RedBoltIntermediateRoot>
+    <RedBoltWebOutputDir>$(RedBoltOutputRoot)/web</RedBoltWebOutputDir>
     <RedBoltIsSampleProject>$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Sample.'))</RedBoltIsSampleProject>
     <RedBoltOutputDir Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and '$(RedBoltIsSampleProject)' == 'true'">$(RedBoltOutputRoot)/samples</RedBoltOutputDir>
-    <RedBoltOutputDir Condition="'$(RedBoltPlatform)' == 'web-emscripten-wasm'">$(RedBoltOutputRoot)/web</RedBoltOutputDir>
+    <RedBoltOutputDir Condition="'$(RedBoltPlatform)' == 'web-emscripten-wasm'">$(RedBoltIntermediateRoot)/staging/$(Configuration)/$(MSBuildProjectName)</RedBoltOutputDir>
     <RedBoltOutputDir Condition="'$(MSBuildProjectName)' == 'RedBolt.Tests'">$(RedBoltOutputRoot)/tests</RedBoltOutputDir>
     <RedBoltOutputDir Condition="'$(RedBoltOutputDir)' == ''">$(RedBoltOutputRoot)</RedBoltOutputDir>
     <RedBoltNativeOutputRoot>$(RedBoltBuildRoot)/bin/$(RedBoltPlatform)</RedBoltNativeOutputRoot>
-    <RedBoltIntermediateRoot>$(RedBoltBuildRoot)/obj/managed/$(RedBoltPlatform)</RedBoltIntermediateRoot>
     <SharpCppOutputDir>$(RedBoltBuildRoot)/bin/tools/$(RedBoltPlatform)/$(Configuration)</SharpCppOutputDir>
     <SharpCppIntermediateRoot>$(RedBoltBuildRoot)/obj/managed/tools/$(RedBoltPlatform)</SharpCppIntermediateRoot>
     <RedBoltSharpCppManagedProperties>Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=;SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)</RedBoltSharpCppManagedProperties>
