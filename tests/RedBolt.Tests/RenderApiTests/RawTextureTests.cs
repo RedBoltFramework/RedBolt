@@ -490,6 +490,7 @@ public sealed class RawTextureTests
     {
         var texture = new TestRawTexture();
 
+#if DEBUG
         Assert.Throws<InvalidOperationException>(() =>
             texture.CreateFromD3D11Texture2D(0, TextureFormat.TexFormatRgba8Unorm, 1));
         Assert.Throws<InvalidOperationException>(() =>
@@ -497,6 +498,12 @@ public sealed class RawTextureTests
         Assert.Throws<InvalidOperationException>(() =>
             texture.CreateFromVulkanImage(0, new RawTextureParams(
                 TextureType.Texture2D, TextureFormat.TexFormatRgba8Unorm, TextureFlag.None, Vector3i.One)));
+#else
+        Assert.False(texture.CreateFromD3D11Texture2D(0, TextureFormat.TexFormatRgba8Unorm, 1));
+        Assert.False(texture.CreateFromD3D12Resource(0, TextureFormat.TexFormatRgba8Unorm, 1));
+        Assert.False(texture.CreateFromVulkanImage(0, new RawTextureParams(
+            TextureType.Texture2D, TextureFormat.TexFormatRgba8Unorm, TextureFlag.None, Vector3i.One)));
+#endif
     }
 
     private void WithInitializedGraphics(Action action)
