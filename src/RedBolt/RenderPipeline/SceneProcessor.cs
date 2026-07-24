@@ -187,7 +187,10 @@ public class SceneProcessor : Object, LightProcessorCallback
     }
 
     /// <summary>Create a scene pass of type <typeparamref name="T"/>.</summary>
-    public T CreatePass<T>(params object[] args) where T : ScenePass
+    public T CreatePass<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)]
+        T>(params object[] args) where T : ScenePass
     {
         var constructorArgs = new object[args.Length + 3];
         constructorArgs[0] = RenderPipeline;
