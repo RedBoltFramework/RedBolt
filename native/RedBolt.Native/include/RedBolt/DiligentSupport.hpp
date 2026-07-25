@@ -51,6 +51,7 @@ const ShaderCodeVariableDesc* GetShaderCodeBufferVariableAt(const ShaderCodeBuff
 
 void* CreateTemporaryGLProgram(IShader* vertexShader, IShader* pixelShader, IShader* domainShader, IShader* hullShader,
     IShader* geometryShader, bool separablePrograms);
+void ReleaseTemporaryGLProgramHandle(void* program);
 void DeleteTemporaryGLProgram(void* program);
 Uint32 GetTemporaryGLProgramVertexAttributeCount(const void* program);
 const char* GetTemporaryGLProgramVertexAttributeName(const void* program, Uint32 index);

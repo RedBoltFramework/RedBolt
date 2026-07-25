@@ -130,8 +130,16 @@ public:
 
     ~TemporaryGLProgram()
     {
+        ReleaseHandle();
+    }
+
+    void ReleaseHandle()
+    {
         if (programObject_)
+        {
             glDeleteProgram(programObject_);
+            programObject_ = 0;
+        }
     }
 };
 
@@ -144,6 +152,11 @@ void* CreateTemporaryGLProgram(IShader* vertexShader, IShader* pixelShader, ISha
 void DeleteTemporaryGLProgram(void* program)
 {
     delete static_cast<TemporaryGLProgram*>(program);
+}
+
+void ReleaseTemporaryGLProgramHandle(void* program)
+{
+    static_cast<TemporaryGLProgram*>(program)->ReleaseHandle();
 }
 
 Uint32 GetTemporaryGLProgramVertexAttributeCount(const void* program)

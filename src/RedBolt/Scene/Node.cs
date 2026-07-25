@@ -1516,12 +1516,12 @@ public class Node : Serializable
 
     public Vector2f GetWorldScale2D() => new(WorldScale.X, WorldScale.Y);
 
-    public Matrix3x4 GetWorldTransform()
+    public ref readonly Matrix3x4 GetWorldTransform()
     {
         if (_dirty)
             UpdateWorldTransform();
 
-        return _worldTransform;
+        return ref _worldTransform;
     }
 
     public Vector3f GetWorldUp() => WorldUp;

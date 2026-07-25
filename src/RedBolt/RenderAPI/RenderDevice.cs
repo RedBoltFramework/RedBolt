@@ -768,25 +768,26 @@ public sealed class RenderDevice : Object
 
     private void InitializeDefaultObjects()
     {
-        var data = new byte[4];
-        InitializeDefaultTexture(TextureType.Texture2D, data);
-        InitializeDefaultTexture(TextureType.TextureCube, data);
-        InitializeDefaultTexture(TextureType.Texture3D, data);
-        InitializeDefaultTexture(TextureType.Texture2DArray, data);
-        _renderPool.Restore();
-    }
-
-    private void InitializeDefaultTexture(TextureType type, ReadOnlySpan<byte> data)
-    {
-        var texture = new RawTexture(new RawTextureParams(type, TextureFormat.TexFormatRgba8Unorm, TextureFlag.None, Vector3i.One));
-        if (!texture.GetHandles().IsValid())
+        void CreateDefaultTexture(TextureType type, ResourceDimensionSupport flag)
         {
-            texture.Dispose();
-            return;
+            const TextureFormat format = TextureFormat.TexFormatRgba8Unorm;
+            using var formatInfo = _renderDevice!.GetTextureFormatInfoExt(format);
+            if ((formatInfo.Dimensions & flag) == 0)
+                return;
+
+            var parameters = new RawTextureParams(type, format, TextureFlag.None, Vector3i.One);
+            var texture = new RawTexture(parameters);
+            _defaultTextures[(int)type] = texture;
+
+            ReadOnlySpan<byte> data = stackalloc byte[4];
+            texture.Update(0, Vector3i.Zero, Vector3i.One, 0, data);
         }
 
-        texture.Update(0, Vector3i.Zero, Vector3i.One, 0, data);
-        _defaultTextures[(int)type] = texture;
+        CreateDefaultTexture(TextureType.Texture2D, ResourceDimensionSupport.ResourceDimensionSupportTex2d);
+        CreateDefaultTexture(TextureType.TextureCube, ResourceDimensionSupport.ResourceDimensionSupportTexCube);
+        CreateDefaultTexture(TextureType.Texture3D, ResourceDimensionSupport.ResourceDimensionSupportTex3d);
+        CreateDefaultTexture(TextureType.Texture2DArray, ResourceDimensionSupport.ResourceDimensionSupportTex2dArray);
+        _renderPool.Restore();
     }
 
     private void ReleaseDefaultObjects()

@@ -165,6 +165,7 @@ public class PipelineState : DeviceObject
                 temporaryGlProgram = DiligentNativeBindings.CreateTemporaryGLProgram(
                     shader, null!, null!, null!, null!, false);
                 reflection = new ShaderProgramReflection(temporaryGlProgram);
+                DiligentNativeBindings.ReleaseTemporaryGLProgramHandle(temporaryGlProgram);
             }
 
             _reflection = reflection;
@@ -250,6 +251,13 @@ public class PipelineState : DeviceObject
                         Log.GetLogger().LogWarning("Unknown vertex element semantic: {Name}", attributeName);
                 }
             }
+            var shaders = new RawShader?[] { desc.VertexShader, desc.PixelShader, desc.DomainShader, desc.HullShader, desc.GeometryShader };
+            var reflection = isOpenGl && !hasSeparableShaderPrograms
+                ? new ShaderProgramReflection(temporaryGlProgram)
+                : new ShaderProgramReflection(shaders);
+            _reflection = reflection;
+            if (temporaryGlProgram != 0)
+                DiligentNativeBindings.ReleaseTemporaryGLProgramHandle(temporaryGlProgram);
             if (desc.InputLayout.Size != 0)
             {
                 Span<InputLayoutElementDesc> elements = stackalloc InputLayoutElementDesc[desc.InputLayout.Size];
@@ -257,12 +265,6 @@ public class PipelineState : DeviceObject
                     elements[i] = desc.InputLayout.Elements[i];
                 layout = new TemporaryLayoutArray(elements, vertexAttributes);
             }
-
-            var shaders = new RawShader?[] { desc.VertexShader, desc.PixelShader, desc.DomainShader, desc.HullShader, desc.GeometryShader };
-            var reflection = isOpenGl && !hasSeparableShaderPrograms
-                ? new ShaderProgramReflection(temporaryGlProgram)
-                : new ShaderProgramReflection(shaders);
-            _reflection = reflection;
             using var samplers = new TemporaryImmutableSamplers(desc.Samplers, reflection, _renderDevice!,
                 RedBolt.Bindings.Diligent.ShaderType.ShaderTypeAllGraphics);
             using var name = new CString(GetDebugName());
@@ -476,7 +478,8 @@ public class PipelineState : DeviceObject
             {
                 if (inputIndices[i] == -1)
                     continue;
-                var native = LayoutElement.CreateManagedWrapper(_memory + destinationIndex++ * elementSize, false);
+                using var native = LayoutElement.CreateManagedWrapper(
+                    _memory + destinationIndex++ * elementSize, false);
                 var source = elements[i];
                 var type = GetElementType(source.ElementType);
                 native.HLSLSemantic = _semantic.Pointer; native.InputIndex = checked((uint)inputIndices[i]); native.BufferSlot = checked((uint)source.BufferIndex);
@@ -489,7 +492,12 @@ public class PipelineState : DeviceObject
         }
         public LayoutElement First { get; }
         public int Count { get; }
-        public void Dispose() { _semantic.Dispose(); Marshal.FreeHGlobal(_memory); }
+        public void Dispose()
+        {
+            First.Dispose();
+            _semantic.Dispose();
+            Marshal.FreeHGlobal(_memory);
+        }
     }
 
     private sealed class TemporaryImmutableSamplers : IDisposable

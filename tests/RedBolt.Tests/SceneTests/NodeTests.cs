@@ -409,6 +409,18 @@ public sealed class NodeTests
     }
 
     [Fact]
+    public void World_transform_reference_observes_cached_transform_updates()
+    {
+        var node = new Node();
+        ref readonly var worldTransform = ref node.GetWorldTransform();
+
+        node.SetPosition(new Vector3f(1.0f, 2.0f, 3.0f));
+        _ = node.GetWorldTransform();
+
+        Assert.True(worldTransform.Translation.ApproximatelyEquivalent(new Vector3f(1.0f, 2.0f, 3.0f)));
+    }
+
+    [Fact]
     public void Scene_root_transform_does_not_affect_root_children()
     {
         var scene = new Scene();

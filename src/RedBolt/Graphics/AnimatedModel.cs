@@ -1105,9 +1105,10 @@ public class AnimatedModel : StaticModel
             for (var i = 0; i < bones.Count; ++i)
             {
                 var bone = bones[i];
-                _skinMatrices[i] = bone.Node is not null
-                    ? bone.Node.GetWorldTransform() * bone.OffsetMatrix
-                    : worldTransform;
+                if (bone.Node is not null)
+                    _skinMatrices[i] = bone.Node.GetWorldTransform() * bone.OffsetMatrix;
+                else
+                    _skinMatrices[i] = worldTransform;
             }
         }
         // Skinning with per-geometry matrices
@@ -1116,9 +1117,10 @@ public class AnimatedModel : StaticModel
             for (var i = 0; i < bones.Count; ++i)
             {
                 var bone = bones[i];
-                _skinMatrices[i] = bone.Node is not null
-                    ? bone.Node.GetWorldTransform() * bone.OffsetMatrix
-                    : worldTransform;
+                if (bone.Node is not null)
+                    _skinMatrices[i] = bone.Node.GetWorldTransform() * bone.OffsetMatrix;
+                else
+                    _skinMatrices[i] = worldTransform;
 
                 // Copy the skin matrix to per-geometry matrices as needed
                 for (var j = 0; j < _geometrySkinMatrixPtrs[i].Count; ++j)

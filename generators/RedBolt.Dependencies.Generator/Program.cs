@@ -78,6 +78,7 @@ internal static class Program
         "CreateSecondaryProxySwapChainGL",
         "CreateProxySwapChainMS",
         "GetVulkanSurfaceExtent",
+        "ReleaseTemporaryGLProgramHandle",
         "DeleteTemporaryGLProgram",
         "GetTemporaryGLProgramVertexAttributeCount",
         "GetTemporaryGLProgramVertexAttributeName",
