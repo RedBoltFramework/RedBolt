@@ -224,6 +224,23 @@ public class ObjectReflectionRegistry : IDisposable
 
     public ObjectReflection AddAbstractReflection<T>(string category = "") where T : Object => AddReflection<T>(category);
 
+    public ObjectReflection AddGeneratedReflection(Type type, string category, Func<Object>? factory)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        if (!typeof(Object).IsAssignableFrom(type))
+            throw new ArgumentException($"Type {type.FullName} must derive from {typeof(Object).FullName}.", nameof(type));
+
+        var typeId = new StringHash(type.GetClassName());
+        if (IsReflected(typeId))
+            throw new InvalidOperationException($"Object {type.GetClassName()} is reflected multiple times.");
+
+        var reflection = Reflect(type);
+        SetReflectionCategory(type, category);
+        if (factory is not null)
+            reflection.SetObjectFactory(factory);
+        return reflection;
+    }
+
     public ObjectReflection GetReflection(StringHash typeNameHash) => _reflections.GetValueOrDefault(typeNameHash)!;
 
     public ObjectReflection GetReflection<T>() => GetReflection(ObjectReflection<T>.TypeId);

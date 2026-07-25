@@ -660,6 +660,8 @@ public class Engine : Object
         FullScreenShaderPass.RegisterObject(_context);
         OutlineRenderPass.RegisterObject(_context);
         ToneMappingPass.RegisterObject(_context);
+
+        GeneratedReflectionRegistration.RefreshExternalAssemblies(_context);
     }
 
     private void ApplyInitializationParameters()

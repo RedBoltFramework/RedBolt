@@ -1,5 +1,6 @@
 using RedBolt.Bindings.Sdl;
 using Microsoft.Extensions.Logging;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -32,6 +33,12 @@ public class Context : ObjectReflectionRegistry
     }
 
     private static Context _instance = new();
+
+    static Context()
+    {
+        GeneratedReflectionRegistration.SetCurrentContext(_instance);
+    }
+
     private static int _sdlInitCounter;
 
     private readonly SubsystemCache _subsystems = new();
@@ -59,11 +66,27 @@ public class Context : ObjectReflectionRegistry
     {
         ArgumentNullException.ThrowIfNull(context);
         _instance = context;
+        GeneratedReflectionRegistration.SetCurrentContext(context);
     }
 
     public IReadOnlyList<AttributeInfo>? GetAttributes(StringHash type)
     {
         return GetReflection(type)?.Attributes;
+    }
+
+    public void RegisterAssembly(Assembly assembly)
+    {
+        GeneratedReflectionRegistration.RegisterAssembly(this, assembly);
+    }
+
+    public void RegisterAttributedType(Type type)
+    {
+        GeneratedReflectionRegistration.RegisterType(this, type);
+    }
+
+    public void RegisterAttributedType<T>() where T : Object
+    {
+        RegisterAttributedType(typeof(T));
     }
 
     public void Reset()

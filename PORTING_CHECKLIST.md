@@ -140,6 +140,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [-] `Thread.h` — **EXCLUDED** · reason: OS thread wrapper · replaced-by: `System.Threading.Thread` / TPL
 - [-] `PE.h` — **EXCLUDED** · reason: Win32 PE parsing · replaced-by: n/a (platform-specific)
 - [-] `TypeInfo.h` - **EXCLUDED** · reason: use C# type system
+- [x] Managed `[Reflected]` / `[Serialized]` source generation — **DEVIATION** · replaces
+  URHO3D_OBJECT metadata and supports reflection declarations in user assemblies
 - [-] `StringUtils.h` — **EXCLUDED** · reason: string parsing and formatting utilities · replaced-by: .NET string APIs
 - [-] `Signal.h` - **EXCLUDED** · reason: use C# events
 

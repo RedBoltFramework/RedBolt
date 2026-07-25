@@ -28,6 +28,9 @@
   <Folder Name="/tests/">
     <Project Path="tests/RedBolt.Tests/RedBolt.Tests.csproj" />
   </Folder>
+  <Folder Name="/generators/">
+    <Project Path="generators/RedBolt.Reflection.Generator/RedBolt.Reflection.Generator.csproj" />
+  </Folder>
   <Folder Name="/tests/SharpCpp/">
     <Project Path="extern/SharpCpp/tests/SharpCpp.Tests.E2E/SharpCpp.Tests.E2E.csproj" />
     <Project Path="extern/SharpCpp/tests/SharpCpp.Tests.Metadata/SharpCpp.Tests.Metadata.csproj" />

@@ -18,6 +18,10 @@
     <ProjectReference Include="../RedBolt.Bindings.Stb/RedBolt.Bindings.Stb.csproj" />
     <ProjectReference Include="../RedBolt.Bindings.Lz4/RedBolt.Bindings.Lz4.csproj" />
     <ProjectReference Include="../RedBolt.Bindings.WebP/RedBolt.Bindings.WebP.csproj" />
+    <ProjectReference Include="../../generators/RedBolt.Reflection.Generator/RedBolt.Reflection.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=" />
   </ItemGroup>
 
   <ItemGroup>
