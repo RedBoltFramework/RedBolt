@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.Diligent;
 
@@ -132,7 +134,13 @@ public class RawBuffer : DeviceObject
         }
 
         if ((_parameters.Flags & BufferFlag.Shadowed) != 0)
-            data[..size].CopyTo(_shadowData.AsSpan(offset, size));
+        {
+            var shadowData = _shadowData.AsSpan(offset, size);
+            ref var source = ref MemoryMarshal.GetReference(data);
+            ref var destination = ref MemoryMarshal.GetReference(shadowData);
+            if (!Unsafe.AreSame(ref source, ref destination))
+                Unsafe.CopyBlockUnaligned(ref destination, ref source, checked((uint)size));
+        }
 
         var renderDevice = _renderDevice?.GetRenderDevice();
         if (renderDevice is not null)

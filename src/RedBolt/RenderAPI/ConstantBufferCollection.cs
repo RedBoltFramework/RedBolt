@@ -118,7 +118,8 @@ public class ConstantBufferCollection
             return false;
 
         var source = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in value), 1));
-        source[..destination.Length].CopyTo(destination);
+        Unsafe.CopyBlockUnaligned(ref MemoryMarshal.GetReference(destination),
+            ref MemoryMarshal.GetReference(source), checked((uint)destination.Length));
         return true;
     }
 
@@ -129,7 +130,9 @@ public class ConstantBufferCollection
             return false;
 
         var data = new Matrix3x4(value);
-        MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref data, 1)).CopyTo(destination);
+        var source = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref data, 1));
+        Unsafe.CopyBlockUnaligned(ref MemoryMarshal.GetReference(destination),
+            ref MemoryMarshal.GetReference(source), checked((uint)source.Length));
         return true;
     }
 
@@ -141,7 +144,8 @@ public class ConstantBufferCollection
 
         var matrix = value.Matrix4;
         var source = MemoryMarshal.AsBytes(MemoryMarshal.CreateReadOnlySpan(ref matrix, 1));
-        source[..destination.Length].CopyTo(destination);
+        Unsafe.CopyBlockUnaligned(ref MemoryMarshal.GetReference(destination),
+            ref MemoryMarshal.GetReference(source), checked((uint)destination.Length));
         return true;
     }
 
@@ -151,7 +155,9 @@ public class ConstantBufferCollection
         if (destination.Length < 4 * sizeof(float) * values.Length)
             return false;
 
-        MemoryMarshal.AsBytes(values).CopyTo(destination);
+        var source = MemoryMarshal.AsBytes(values);
+        Unsafe.CopyBlockUnaligned(ref MemoryMarshal.GetReference(destination),
+            ref MemoryMarshal.GetReference(source), checked((uint)source.Length));
         return true;
     }
 
@@ -161,7 +167,9 @@ public class ConstantBufferCollection
         if (destination.Length < 12 * sizeof(float) * values.Length)
             return false;
 
-        MemoryMarshal.AsBytes(values).CopyTo(destination);
+        var source = MemoryMarshal.AsBytes(values);
+        Unsafe.CopyBlockUnaligned(ref MemoryMarshal.GetReference(destination),
+            ref MemoryMarshal.GetReference(source), checked((uint)source.Length));
         return true;
     }
 
@@ -171,7 +179,9 @@ public class ConstantBufferCollection
         if (destination.Length < 16 * sizeof(float) * values.Length)
             return false;
 
-        MemoryMarshal.AsBytes(values).CopyTo(destination);
+        var source = MemoryMarshal.AsBytes(values);
+        Unsafe.CopyBlockUnaligned(ref MemoryMarshal.GetReference(destination),
+            ref MemoryMarshal.GetReference(source), checked((uint)source.Length));
         return true;
     }
 
