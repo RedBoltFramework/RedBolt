@@ -248,62 +248,59 @@ public sealed class WorkQueueTests
     }
 
     [Fact]
+    [Obsolete]
     public void CallFromMainThread_executes_from_main_thread()
     {
         var workQueue = GetWorkQueue();
         var executed = false;
 
-#pragma warning disable CS0612
         workQueue.CallFromMainThread(_ => executed = true);
-#pragma warning restore CS0612
 
         Assert.True(executed);
     }
 
     [Fact]
+    [Obsolete]
     public void Complete_with_max_priority_does_not_throw()
     {
         var workQueue = GetWorkQueue();
 
-#pragma warning disable CS0612
         workQueue.Complete(uint.MaxValue);
         workQueue.Complete(0);
-#pragma warning restore CS0612
 
         Assert.True(workQueue.IsCompleted());
     }
 
     [Fact]
+    [Obsolete]
     public void GetFreeItem_returns_new_work_item()
     {
         var workQueue = GetWorkQueue();
 
-#pragma warning disable CS0612
         var item = workQueue.GetFreeItem();
-#pragma warning restore CS0612
 
         Assert.NotNull(item);
     }
 
     [Fact]
+    [Obsolete]
     public void AddWorkItem_executes_work_function()
     {
         var workQueue = GetWorkQueue();
         var executed = false;
 
-#pragma warning disable CS0612
         workQueue.AddWorkItem(ti =>
         {
             Assert.Equal(0, ti);
             executed = true;
         });
-#pragma warning restore CS0612
 
         workQueue.CompleteAll();
         Assert.True(executed);
     }
 
     [Fact]
+    [Obsolete]
     public void AddWorkItem_with_explicit_workitem_calls_work_function()
     {
         var workQueue = GetWorkQueue();
@@ -316,9 +313,7 @@ public sealed class WorkQueueTests
             called = true;
         };
 
-#pragma warning disable CS0612
         workQueue.AddWorkItem(item);
-#pragma warning restore CS0612
 
         workQueue.CompleteAll();
         Assert.True(called);

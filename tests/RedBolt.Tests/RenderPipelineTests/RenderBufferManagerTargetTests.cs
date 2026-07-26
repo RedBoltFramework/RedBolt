@@ -30,7 +30,7 @@ public sealed class RenderBufferManagerTargetTests : IDisposable
         var frameInfo = pipeline.BeginFrame(manager, null, new IntRect(0, 0, 320, 200));
 
         var depthBuffer = manager.DepthStencilOutput;
-        var colorBuffer = manager.ColorOutput;
+        var colorBuffer = manager.ColorOutput!;
 
         manager.SetRenderTargetsRect(
             IntRect.Zero,

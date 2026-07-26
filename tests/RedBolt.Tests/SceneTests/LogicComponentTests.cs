@@ -154,8 +154,8 @@ public sealed class LogicComponentTests
         using var otherScene = new Scene();
         var logic = scene.CreateChild("LogicNode").CreateComponent<CustomEventLogic>();
 
-        Assert.Equal(typeof(CustomUpdateEvent), logic.GetUpdateEvent());
-        Assert.Equal(typeof(CustomPostUpdateEvent), logic.GetPostUpdateEvent());
+        Assert.Equal(typeof(CustomUpdateEvent), logic.GetUpdateEvent().Type);
+        Assert.Equal(typeof(CustomPostUpdateEvent), logic.GetPostUpdateEvent().Type);
 
         var ignoredUpdate = new CustomUpdateEvent { TimeStep = 1.0f };
         otherScene.SendEvent(ref ignoredUpdate);
@@ -266,8 +266,8 @@ public sealed class LogicComponentTests
             SetUpdateEventMask(UpdateEvent.UseUpdate | UpdateEvent.UsePostUpdate);
         }
 
-        public override Type GetUpdateEvent() => typeof(CustomUpdateEvent);
-        public override Type GetPostUpdateEvent() => typeof(CustomPostUpdateEvent);
+        public override SceneUpdateEventType GetUpdateEvent() => SceneUpdateEventType.Get<CustomUpdateEvent>();
+        public override SceneUpdateEventType GetPostUpdateEvent() => SceneUpdateEventType.Get<CustomPostUpdateEvent>();
         public override void DelayedStart() => ++DelayedStartCount;
 
         public override void Update(float timeStep)

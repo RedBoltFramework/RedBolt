@@ -116,7 +116,7 @@ public class Component : Serializable
                 var eventData = new SceneEvents.ComponentEnabledChangedEvent
                 {
                     Scene = scene,
-                    Node = _node,
+                    Node = Node,
                     Component = this
                 };
                 scene.SendEvent(ref eventData);
@@ -134,7 +134,9 @@ public class Component : Serializable
     public uint Id => _id;
 
     /// <summary>Return scene node.</summary>
-    public Node? Node => _node;
+    public Node Node => _node!;
+
+    public Node? TryGetNode() => _node;
 
     /// <summary>Return the scene the node belongs to.</summary>
     public Scene? Scene => _node?.Scene;

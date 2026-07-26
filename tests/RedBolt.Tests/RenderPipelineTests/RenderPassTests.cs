@@ -116,12 +116,12 @@ public sealed class RenderPassTests
 
         public bool IsLinearColorSpace => false;
 
-        public event Action<CommonFrameInfo>? UpdateBegin;
-        public event Action<CommonFrameInfo>? UpdateEnd;
-        public event Action<CommonFrameInfo>? RenderBegin;
-        public event Action<CommonFrameInfo>? RenderEnd;
-        public event Action? PipelineStatesInvalidated;
-        public event RenderPipelineStatsHandler? CollectStatistics;
+        public event Action<CommonFrameInfo>? UpdateBegin { add { } remove { } }
+        public event Action<CommonFrameInfo>? UpdateEnd { add { } remove { } }
+        public event Action<CommonFrameInfo>? RenderBegin { add { } remove { } }
+        public event Action<CommonFrameInfo>? RenderEnd { add { } remove { } }
+        public event Action? PipelineStatesInvalidated { add { } remove { } }
+        public event RenderPipelineStatsHandler? CollectStatistics { add { } remove { } }
     }
 
     private sealed class NullableAttributeRenderPass : RenderPass

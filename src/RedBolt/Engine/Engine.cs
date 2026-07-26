@@ -116,7 +116,6 @@ public class Engine : Object
         var graphics = GetSubsystem<Graphics>()!;
         var renderer = GetSubsystem<Renderer>()!;
 
-        BinaryFile.RegisterObject(_context);
         resources.RegisterDefaultResources();
         ApplyInitializationParameters();
 

@@ -103,7 +103,11 @@ public class RenderPath : SimpleResource
     {
         var clone = new RenderPath();
         foreach (var pass in _passes)
-            clone.AddPass(pass.Clone());
+        {
+            var passClone = pass.Clone();
+            if (passClone is not null)
+                clone.AddPass(passClone);
+        }
         return clone;
     }
 

@@ -482,7 +482,7 @@ public class Terrain : Component
 
     public float GetHeight(Vector3f worldPosition)
     {
-        var node = Node;
+        var node = TryGetNode();
         if (node is null)
             return 0.0f;
 
@@ -515,7 +515,7 @@ public class Terrain : Component
 
     public Vector3f GetNormal(Vector3f worldPosition)
     {
-        var node = Node;
+        var node = TryGetNode();
         if (node is null)
             return Vector3f.Up;
 
@@ -547,7 +547,7 @@ public class Terrain : Component
 
     public Vector2i WorldToHeightMap(Vector3f worldPosition)
     {
-        var node = Node;
+        var node = TryGetNode();
         if (node is null)
             return Vector2i.Zero;
 
@@ -561,7 +561,7 @@ public class Terrain : Component
 
     public Vector3f HeightMapToWorld(Vector2i pixelPosition)
     {
-        var node = Node;
+        var node = TryGetNode();
         if (node is null)
             return Vector3f.Zero;
 
@@ -853,7 +853,7 @@ public class Terrain : Component
     {
         _recreateTerrain = false;
 
-        var node = Node;
+        var node = TryGetNode();
         if (node is null)
             return;
 

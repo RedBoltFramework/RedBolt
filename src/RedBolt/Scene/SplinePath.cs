@@ -171,7 +171,7 @@ public class SplinePath : Component
     /// <summary>Draw the Debug Geometry.</summary>
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
     {
-        if (debug is not null && Node is not null && IsEnabledEffective)
+        if (debug is not null && TryGetNode() is not null && IsEnabledEffective)
         {
             if (_spline.GetKnots().Count > 1)
             {

@@ -110,15 +110,18 @@ public class IKTrigonometricChain : ICloneable
 
     private void ResetChainToOriginal()
     {
-        var initialOffset = _segments[0].BeginNode!.Position - _segments[0].BeginNode.OriginalPosition;
+        var firstBeginNode = _segments[0].BeginNode!;
+        var secondBeginNode = _segments[1].BeginNode!;
+        var secondEndNode = _segments[1].EndNode!;
+        var initialOffset = firstBeginNode.Position - firstBeginNode.OriginalPosition;
 
-        _segments[0].BeginNode.ResetOriginalTransform();
-        _segments[1].BeginNode!.ResetOriginalTransform();
-        _segments[1].EndNode!.ResetOriginalTransform();
+        firstBeginNode.ResetOriginalTransform();
+        secondBeginNode.ResetOriginalTransform();
+        secondEndNode.ResetOriginalTransform();
 
-        _segments[0].BeginNode.Position += initialOffset;
-        _segments[1].BeginNode.Position += initialOffset;
-        _segments[1].EndNode.Position += initialOffset;
+        firstBeginNode.Position += initialOffset;
+        secondBeginNode.Position += initialOffset;
+        secondEndNode.Position += initialOffset;
     }
 
     private readonly IKNodeSegment[] _segments = new IKNodeSegment[2];

@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices.JavaScript;
+using System.Text;
 using RedBolt;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Lz4;
@@ -8,7 +9,7 @@ using RedBolt.Bindings.Sdl;
 WebPlatform.Initialize();
 
 var lz4Version = Lz4NativeBindings.Lz4VersionNumber();
-var sdlRevision = SdlNativeBindings.SdlGetRevisionNumber();
+var sdlRevision = Encoding.UTF8.GetString(SdlNativeBindings.SdlGetRevision());
 var diligentFactory = DiligentNativeBindings.GetEngineFactoryOpenGL();
 var resourcesReady = System.IO.File.Exists("CoreData/Models/Box.mdl")
     && System.IO.File.Exists("Data/Models/Mushroom.mdl")
@@ -55,7 +56,7 @@ catch (Exception exception)
 }
 var success = exitCode == 0
     && lz4Version > 0
-    && sdlRevision >= 0
+    && !string.IsNullOrEmpty(sdlRevision)
     && !diligentFactory.IsNull
     && resourcesReady;
 var message = exitCode == 0

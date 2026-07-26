@@ -47,14 +47,14 @@ public class ThreadSafeCache<T>
     /// <summary>
     /// Return object value. Intentionally unchecked, caller must ensure that cache is valid.
     /// </summary>
-    public ref readonly T Get()
+    public ref readonly T? Get()
     {
         return ref _object.Value;
     }
 
-    internal StrongBox<T> GetStorage() => _object;
+    internal StrongBox<T?> GetStorage() => _object;
 
     private int _dirty = 1;
     private readonly object _mutex = new();
-    private readonly StrongBox<T> _object = new();
+    private readonly StrongBox<T?> _object = new();
 }

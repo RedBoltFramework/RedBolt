@@ -1,13 +1,19 @@
 namespace RedBolt;
 
 /// <summary>Base class for serializable resource that uses Archive serialization.</summary>
-public class SerializableResource : SimpleResource
+[Reflected]
+public partial class SerializableResource : SimpleResource
 {
     private static readonly byte[] SerializableBinaryMagic = [0, (byte)'S', (byte)'R', (byte)'L'];
 
     /// <summary>Construct.</summary>
     public SerializableResource()
     {
+    }
+
+    public static void RegisterObject(Context context)
+    {
+        context.RegisterAttributedType<SerializableResource>();
     }
 
     /// <summary>Destruct.</summary>

@@ -764,7 +764,7 @@ public class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
 
     public void DrawDebugGeometry(DebugRenderer? debug, bool depthTest, bool compact)
     {
-        if (debug is not null && IsEnabledEffective && Node is not null)
+        if (debug is not null && IsEnabledEffective && TryGetNode() is not null)
         {
             debug.AddBoundingBox(_boundingBox, Node.GetWorldTransform(), Color.Blue, depthTest);
             if (!compact && _useBoxProjection)
@@ -1000,7 +1000,7 @@ public class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
 
     private void UpdateProbeBoxData()
     {
-        if (!_useBoxProjection || Node is null)
+        if (!_useBoxProjection || TryGetNode() is null)
         {
             _data.Value.CubemapCenter = Vector4f.Zero;
             return;

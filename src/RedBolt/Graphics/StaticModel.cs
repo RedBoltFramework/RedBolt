@@ -131,7 +131,7 @@ public class StaticModel : Drawable
         if (ReferenceEquals(_model, model))
             return;
 
-        if (Node is null)
+        if (TryGetNode() is null)
         {
             Microsoft.Extensions.Logging.LoggerExtensions.LogError(
                 Log.GetLogger(), "Can not set model while model component is not attached to a scene node.");
@@ -494,7 +494,7 @@ public class StaticModel : Drawable
 
     public bool IsInside(Vector3f point)
     {
-        if (Node is null)
+        if (TryGetNode() is null)
             return false;
 
         return IsInsideLocal(Node.WorldToLocal(point));

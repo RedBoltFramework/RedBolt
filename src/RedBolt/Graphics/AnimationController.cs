@@ -203,7 +203,7 @@ public class AnimationController : AnimationStateSource
 
         // Reset skeleton if necessary
         if (_resetSkeleton)
-            Node?.GetComponent<AnimatedModel>()?.ResetBones();
+            TryGetNode()?.GetComponent<AnimatedModel>()?.ResetBones();
 
         // Node and attribute animations need to be applied manually
         CommitNodeAndAttributeAnimations();
@@ -829,7 +829,7 @@ public class AnimationController : AnimationStateSource
 
     private void ConnectToAnimatedModel()
     {
-        var model = Node?.GetComponent<AnimatedModel>();
+        var model = TryGetNode()?.GetComponent<AnimatedModel>();
         if (model is not null)
         {
             model.ConnectToAnimationStateSource(this);

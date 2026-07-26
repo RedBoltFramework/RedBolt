@@ -31,7 +31,7 @@ public class Audio : Object
     private uint _deviceId;
     private uint _sampleSize;
     private uint _fragmentSize;
-    private uint _bufferLengthMSec;
+    private uint _bufferLengthMSec = 0;
     private int _mixRate;
     private bool _interpolation;
     private SpeakerMode _speakerMode = SpeakerMode.Auto;

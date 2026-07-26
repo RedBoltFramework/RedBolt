@@ -270,10 +270,11 @@ public class RibbonTrail : Drawable
             var startPoint = new TrailPoint(_previousPosition, forwardMotion);
             var nextPoint = new TrailPoint(worldPosition, forwardMotion);
 
-            if (Node.Parent is not null)
+            var parent = Node.Parent;
+            if (parent is not null)
             {
-                startPoint.ParentPos = Node.Parent.GetWorldPosition();
-                nextPoint.ParentPos = Node.Parent.GetWorldPosition();
+                startPoint.ParentPos = parent.GetWorldPosition();
+                nextPoint.ParentPos = parent.GetWorldPosition();
             }
 
             _points.Add(startPoint);
@@ -290,8 +291,9 @@ public class RibbonTrail : Drawable
             if (path > _vertexDistance)
             {
                 var newPoint = new TrailPoint(worldPosition, forwardMotion);
-                if (Node.Parent is not null)
-                    newPoint.ParentPos = Node.Parent.GetWorldPosition();
+                var parent = Node.Parent;
+                if (parent is not null)
+                    newPoint.ParentPos = parent.GetWorldPosition();
 
                 _points.Add(newPoint);
                 _previousPosition = worldPosition;

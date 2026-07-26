@@ -637,7 +637,7 @@ public class ParticleEmitter : BillboardSet
         }
 
         // Send finished event only once all particles are gone
-        if (Node is not null && !_emitting && _sendFinishedEvent && !CheckActiveParticles())
+        if (TryGetNode() is not null && !_emitting && _sendFinishedEvent && !CheckActiveParticles())
         {
             _sendFinishedEvent = false;
 

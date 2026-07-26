@@ -3,10 +3,16 @@ using System.Runtime.InteropServices;
 
 namespace RedBolt;
 
-public class Image : Resource
+[Reflected]
+public partial class Image : Resource
 {
     public Image()
     {
+    }
+
+    public static void RegisterObject(Context context)
+    {
+        context.RegisterAttributedType<Image>();
     }
 
     public override void Dispose()

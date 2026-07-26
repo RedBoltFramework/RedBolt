@@ -232,7 +232,7 @@ public class SoundSource : Component
                 StopLockless();
         }
 
-        if (_position.HasValue || !_sendFinishedEvent || Node is null)
+        if (_position.HasValue || !_sendFinishedEvent || TryGetNode() is null)
             return;
 
         _sendFinishedEvent = false;
@@ -431,7 +431,7 @@ public class SoundSource : Component
         if (_ignoreSceneTimeScale)
             return 1.0f;
         var scene = Scene;
-        if (Node is null || scene == null || !IsEnabledEffective)
+        if (TryGetNode() is null || scene == null || !IsEnabledEffective)
             return 0.0f;
         return scene.GetEffectiveTimeScale();
     }

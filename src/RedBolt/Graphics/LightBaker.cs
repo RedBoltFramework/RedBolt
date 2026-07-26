@@ -31,7 +31,7 @@ public class LightBaker : Component
     private sealed class TaskData
     {
         /// <summary>Caller.</summary>
-        public WeakReference<LightBaker>? WeakSelf;
+        public WeakReference<LightBaker>? WeakSelf = null;
         /// <summary>Stop token.</summary>
         public StopToken StopToken = new();
         /// <summary>Timer to measure total time.</summary>

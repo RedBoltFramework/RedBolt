@@ -2,7 +2,8 @@ using Microsoft.Extensions.Logging;
 
 namespace RedBolt;
 
-public class PListFile : Resource
+[Reflected]
+public partial class PListFile : Resource
 {
     private readonly Dictionary<string, PListValue> _root = new(StringComparer.Ordinal);
 
@@ -21,6 +22,7 @@ public class PListFile : Resource
     public static void RegisterObject(Context context)
     {
         ArgumentNullException.ThrowIfNull(context);
+        context.RegisterAttributedType<PListFile>();
     }
 
     public IReadOnlyDictionary<string, PListValue> Root => _root;

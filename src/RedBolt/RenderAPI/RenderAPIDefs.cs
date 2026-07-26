@@ -970,7 +970,7 @@ public struct GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineStateDesc>
 
     public bool IsInitialized() => VertexShader is not null && PixelShader is not null;
 
-    public uint ToHash()
+    public readonly uint ToHash()
     {
         var hash = new HashCode();
         hash.Add(ColorWriteEnabled);
@@ -1075,7 +1075,7 @@ public struct ComputePipelineStateDesc : IEquatable<ComputePipelineStateDesc>
 
     public bool IsInitialized() => ComputeShader is not null;
 
-    public uint ToHash()
+    public readonly uint ToHash()
     {
         var hash = new HashCode();
         hash.Add(Samplers);

@@ -65,10 +65,13 @@ set_source_files_properties(
     "${REDBOLT_SPIRV_CROSS_BINDINGS_CPP}"
     "${REDBOLT_SPIRV_TOOLS_BINDINGS_CPP}"
     PROPERTIES
-        GENERATED TRUE
-        COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:GNU>:-w>"
-                       "$<$<CXX_COMPILER_ID:Clang>:-w>"
-                       "$<$<CXX_COMPILER_ID:MSVC>:/W0>")
+        GENERATED TRUE)
+
+set_property(
+    SOURCE "${REDBOLT_LZ4_BINDINGS_CPP}"
+    APPEND
+    PROPERTY COMPILE_DEFINITIONS
+        LZ4_DISABLE_DEPRECATE_WARNINGS)
 
 add_dependencies(RedBolt.Native redbolt-msbuild-build-guard redbolt-generate-native-bindings)
 

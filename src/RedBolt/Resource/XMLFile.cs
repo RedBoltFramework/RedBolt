@@ -7,7 +7,8 @@ using Microsoft.Extensions.Logging;
 namespace RedBolt;
 
 /// <summary>XML document resource.</summary>
-public class XMLFile : Resource
+[Reflected]
+public partial class XMLFile : Resource
 {
     /// <summary>Construct.</summary>
     public XMLFile()
@@ -25,7 +26,7 @@ public class XMLFile : Resource
     /// <summary>Register object factory.</summary>
     public static void RegisterObject(Context context)
     {
-        context.AddFactoryReflection<XMLFile>();
+        context.RegisterAttributedType<XMLFile>();
     }
 
     /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>

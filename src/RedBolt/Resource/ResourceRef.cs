@@ -46,7 +46,7 @@ public struct ResourceRef : IEquatable<ResourceRef>, ICloneable
 
     readonly object ICloneable.Clone() => Clone();
 
-    public uint ToHash()
+    public readonly uint ToHash()
     {
         unchecked
         {

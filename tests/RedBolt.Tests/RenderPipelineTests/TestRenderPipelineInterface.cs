@@ -13,12 +13,12 @@ internal sealed class TestRenderPipelineInterface : IRenderPipelineInterface
 
     public bool IsLinearColorSpace { get; set; }
 
-    public event Action<CommonFrameInfo>? UpdateBegin;
-    public event Action<CommonFrameInfo>? UpdateEnd;
+    public event Action<CommonFrameInfo>? UpdateBegin { add { } remove { } }
+    public event Action<CommonFrameInfo>? UpdateEnd { add { } remove { } }
     public event Action<CommonFrameInfo>? RenderBegin;
     public event Action<CommonFrameInfo>? RenderEnd;
-    public event Action? PipelineStatesInvalidated;
-    public event RenderPipelineStatsHandler? CollectStatistics;
+    public event Action? PipelineStatesInvalidated { add { } remove { } }
+    public event RenderPipelineStatsHandler? CollectStatistics { add { } remove { } }
 
     public CommonFrameInfo BeginFrame(RenderBufferManager manager, RenderSurface? renderTarget, IntRect viewportRect)
     {

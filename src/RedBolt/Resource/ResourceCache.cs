@@ -872,19 +872,8 @@ public sealed class ResourceCache : Object
         return false;
     }
 
-    private static Type? ResolveResourceType(StringHash type)
-    {
-        foreach (var candidate in typeof(Resource).Assembly.GetTypes())
-        {
-            if (!candidate.IsAbstract && typeof(Resource).IsAssignableFrom(candidate)
-                && StringHash.Calculate(candidate.GetClassName()) == type)
-            {
-                return candidate;
-            }
-        }
-
-        return null;
-    }
+    private static Type? ResolveResourceType(StringHash type) =>
+        Context.Instance.GetReflection(type)?.ManagedType;
 
     private static string GetExtensionFromFilter(string filter)
     {
@@ -1070,16 +1059,7 @@ public sealed class ResourceCache : Object
         if (file is null)
             return null;
 
-        Resource? resource;
-        try
-        {
-            resource = Activator.CreateInstance(type) as Resource;
-        }
-        catch (MissingMethodException)
-        {
-            return null;
-        }
-
+        var resource = Context.Instance.CreateObject(new StringHash(type.GetClassName())) as Resource;
         if (resource is null)
             return null;
 

@@ -35,7 +35,7 @@ public sealed class SoundSource3D : SoundSource
 
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
     {
-        if (debug is null || Node is null || !IsEnabledEffective)
+        if (debug is null || TryGetNode() is null || !IsEnabledEffective)
             return;
 
         var worldPosition = Node.GetWorldPosition();
@@ -94,7 +94,7 @@ public sealed class SoundSource3D : SoundSource
         if (Audio == null)
             return;
 
-        if (Node is null)
+        if (TryGetNode() is null)
         {
             Attenuation = 0.0f;
             return;

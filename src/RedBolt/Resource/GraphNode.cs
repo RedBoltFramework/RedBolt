@@ -40,6 +40,7 @@ public class GraphNodeProperty : IArchiveSerializable, IDisposable
     private StringHash _nameHash;
 }
 
+[Reflected]
 public partial class GraphNode : Object
 {
     public GraphNode()
@@ -75,6 +76,7 @@ public partial class GraphNode : Object
     public static void RegisterObject(Context context)
     {
         ArgumentNullException.ThrowIfNull(context);
+        context.RegisterAttributedType<GraphNode>();
     }
 
     /// <summary>Return ID.</summary>

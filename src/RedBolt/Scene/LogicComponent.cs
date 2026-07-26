@@ -1,15 +1,8 @@
-using System.Reflection;
-
 namespace RedBolt;
 
 /// <summary>Helper base class for user-defined game logic components that hooks up to update events and forwards them to virtual functions similar to ScriptInstance class.</summary>
 public class LogicComponent : Component
 {
-    private delegate void SceneUpdateHandler(float timeStep);
-
-    private static readonly MethodInfo SubscribeToSceneUpdateEventMethod = typeof(LogicComponent).GetMethod(
-        nameof(SubscribeToSceneUpdateEventCore), BindingFlags.Instance | BindingFlags.NonPublic)!;
-
     private UpdateEvent _updateEventMask;
     private UpdateEvent _currentEventMask;
     private bool _delayedStartCalled;
@@ -73,10 +66,12 @@ public class LogicComponent : Component
     }
 
     /// <summary>Return update event type. Should stay the same for any given instance of the component. DelayedStart is invoked before the first update event of this type.</summary>
-    public virtual Type GetUpdateEvent() => typeof(SceneEvents.SceneUpdateEvent);
+    public virtual SceneUpdateEventType GetUpdateEvent() =>
+        SceneUpdateEventType.Get<SceneEvents.SceneUpdateEvent>();
 
     /// <summary>Return post update event type. Should stay the same for any given instance of the component.</summary>
-    public virtual Type GetPostUpdateEvent() => typeof(SceneEvents.ScenePostUpdateEvent);
+    public virtual SceneUpdateEventType GetPostUpdateEvent() =>
+        SceneUpdateEventType.Get<SceneEvents.ScenePostUpdateEvent>();
 
     /// <summary>Set what update events should be subscribed to. Use this for optimization: by default all are in use. Note that this is not an attribute and is not saved or network-serialized, therefore it should always be called eg. in the subclass constructor.</summary>
     public void SetUpdateEventMask(UpdateEvent mask)
@@ -96,7 +91,7 @@ public class LogicComponent : Component
 
     protected override void OnNodeSet(Node? previousNode, Node? currentNode)
     {
-        if (Node is not null)
+        if (TryGetNode() is not null)
             Start();
         else
             Stop();
@@ -108,8 +103,8 @@ public class LogicComponent : Component
             UpdateEventSubscription();
         else
         {
-            Context.Unsubscribe(this, GetUpdateEvent());
-            Context.Unsubscribe(this, GetPostUpdateEvent());
+            Context.Unsubscribe(this, GetUpdateEvent().Type);
+            Context.Unsubscribe(this, GetPostUpdateEvent().Type);
             UnsubscribeFromEvent<SceneEvents.WorldOriginUpdateEvent>();
             UnsubscribeFromEvent<SceneEvents.WorldOriginPostUpdateEvent>();
             _currentEventMask = UpdateEvent.UseNoEvent;
@@ -133,7 +128,7 @@ public class LogicComponent : Component
         }
         else if (!needSubscription && hasSubscription)
         {
-            Context.Unsubscribe(this, scene, GetUpdateEvent());
+            Context.Unsubscribe(this, scene, GetUpdateEvent().Type);
             _currentEventMask &= ~UpdateEvent.UseUpdate;
         }
 
@@ -146,7 +141,7 @@ public class LogicComponent : Component
         }
         else if (!needSubscription && hasSubscription)
         {
-            Context.Unsubscribe(this, scene, GetPostUpdateEvent());
+            Context.Unsubscribe(this, scene, GetPostUpdateEvent().Type);
             _currentEventMask &= ~UpdateEvent.UsePostUpdate;
         }
 
@@ -178,15 +173,9 @@ public class LogicComponent : Component
     }
 
     private void SubscribeToSceneUpdateEvent(
-        Scene scene, Type eventType, SceneUpdateHandler handler)
+        Scene scene, SceneUpdateEventType eventType, Action<float> handler)
     {
-        SubscribeToSceneUpdateEventMethod.MakeGenericMethod(eventType).Invoke(this, [scene, handler]);
-    }
-
-    private void SubscribeToSceneUpdateEventCore<T>(Scene scene, SceneUpdateHandler handler)
-        where T : struct, SceneEvents.ISceneUpdateEvent
-    {
-        SubscribeToEvent<T>(scene, (ref T eventData) => handler(eventData.TimeStep));
+        eventType.Subscribe(this, scene, handler);
     }
 
     private void HandleSceneUpdate(float timeStep)
@@ -200,7 +189,7 @@ public class LogicComponent : Component
             // If did not need actual update events, unsubscribe now
             if ((_updateEventMask & UpdateEvent.UseUpdate) == 0)
             {
-                Context.Unsubscribe(this, Scene!, GetUpdateEvent());
+                Context.Unsubscribe(this, Scene!, GetUpdateEvent().Type);
                 _currentEventMask &= ~UpdateEvent.UseUpdate;
                 return;
             }

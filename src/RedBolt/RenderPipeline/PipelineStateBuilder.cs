@@ -106,11 +106,17 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
             var lightMaskToStencil = subpass == BatchCompositorSubpass.Deferred
                 && (flags & DrawableProcessorPassFlag.DeferredLightMaskToStencil) != 0;
             var hasAmbient = (flags & DrawableProcessorPassFlag.HasAmbientLighting) != 0;
-            var hasLightmap = key.Drawable!.GetGlobalIlluminationType() == GlobalIlluminationType.UseLightMap;
+            System.Diagnostics.Debug.Assert(
+                key.Drawable is not null && key.Geometry is not null && key.Material is not null && key.Pass is not null);
+            var drawable = key.Drawable;
+            var geometry = key.Geometry;
+            var material = key.Material;
+            var pass = key.Pass;
+            var hasLightmap = drawable.GetGlobalIlluminationType() == GlobalIlluminationType.UseLightMap;
 
-            _compositor.ProcessUserBatch(ref _shaderProgramDesc, flags, key.Drawable, key.Geometry!, key.GeometryType,
-                key.Material!, key.Pass!, light, hasShadow, subpass);
-            SetupUserPassState(key.Drawable, key.Material, key.Pass, lightMaskToStencil);
+            _compositor.ProcessUserBatch(ref _shaderProgramDesc, flags, drawable, geometry, key.GeometryType,
+                material, pass, light, hasShadow, subpass);
+            SetupUserPassState(drawable, material, pass, lightMaskToStencil);
 
             // Support negative lights
             if (light is not null && light.IsNegative())
@@ -127,8 +133,8 @@ public class PipelineStateBuilder : Object, BatchStateCacheCallback
                 _pipelineStateDesc.ReadOnlyDepth = true;
 
             SetupLightSamplers(key.PixelLight);
-            SetupSamplersForUserOrShadowPass(key.Material, hasLightmap, hasAmbient, isRefractionPass);
-            SetupInputLayoutAndPrimitiveType(ref _pipelineStateDesc, in _shaderProgramDesc, key.Geometry!, isStereoPass);
+            SetupSamplersForUserOrShadowPass(material, hasLightmap, hasAmbient, isRefractionPass);
+            SetupInputLayoutAndPrimitiveType(ref _pipelineStateDesc, in _shaderProgramDesc, geometry, isStereoPass);
             SetupShaders(ref _pipelineStateDesc, ref _shaderProgramDesc);
         }
 

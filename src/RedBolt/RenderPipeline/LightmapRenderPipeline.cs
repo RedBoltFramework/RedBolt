@@ -25,9 +25,9 @@ public class LightmapRenderPipelineView : Object, IRenderPipelineInterface
         _smoothPositionBuffer = null;
         _positionBuffer = null;
         _depthBuffer = null;
-        CollectStatistics = null;
-        PipelineStatesInvalidated = null;
-        RenderEnd = null;
+        _collectStatistics = null;
+        _pipelineStatesInvalidated = null;
+        _renderEnd = null;
         RenderBegin = null;
         UpdateEnd = null;
         UpdateBegin = null;
@@ -152,12 +152,27 @@ public class LightmapRenderPipelineView : Object, IRenderPipelineInterface
 
     public event Action<CommonFrameInfo>? RenderBegin;
 
-    public event Action<CommonFrameInfo>? RenderEnd;
+    public event Action<CommonFrameInfo>? RenderEnd
+    {
+        add => _renderEnd += value;
+        remove => _renderEnd -= value;
+    }
 
-    public event Action? PipelineStatesInvalidated;
+    public event Action? PipelineStatesInvalidated
+    {
+        add => _pipelineStatesInvalidated += value;
+        remove => _pipelineStatesInvalidated -= value;
+    }
 
-    public event RenderPipelineStatsHandler? CollectStatistics;
+    public event RenderPipelineStatsHandler? CollectStatistics
+    {
+        add => _collectStatistics += value;
+        remove => _collectStatistics -= value;
+    }
 
+    private Action<CommonFrameInfo>? _renderEnd;
+    private Action? _pipelineStatesInvalidated;
+    private RenderPipelineStatsHandler? _collectStatistics;
     private RenderBuffer? _depthBuffer;
     private RenderBuffer? _positionBuffer;
     private RenderBuffer? _smoothPositionBuffer;

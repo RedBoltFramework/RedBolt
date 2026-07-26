@@ -68,6 +68,14 @@ internal static class Program
         "SDL_version"
     };
 
+    private static readonly HashSet<string> RetainedLz4Functions = new(StringComparer.Ordinal)
+    {
+        "LZ4_compressBound",
+        "LZ4_compress_HC",
+        "LZ4_decompress_fast",
+        "LZ4_versionNumber"
+    };
+
     private static readonly HashSet<string> RetainedDiligentFunctions = new(StringComparer.Ordinal)
     {
         "GetEngineFactoryOpenGL",
@@ -625,7 +633,42 @@ internal static class Program
             return glslangPrunedCount;
         }
 
-        if (descriptor.Surface is "sdl" or "dearimgui" or "stb" or "lz4" or "spirvcross" or "spirvtools" or "spirvoptimizer" or "shadercompiler")
+        if (descriptor.Surface == "lz4")
+        {
+            var lz4PrunedCount = 0;
+            for (var index = compilation.Members.Count - 1; index >= 0; --index)
+            {
+                if (compilation.Members[index] is FunctionBinding function &&
+                    RetainedLz4Functions.Contains(function.NativeName))
+                {
+                    continue;
+                }
+
+                compilation.Members.RemoveAt(index);
+                lz4PrunedCount++;
+            }
+
+            compilation.InvalidateCaches();
+            return lz4PrunedCount;
+        }
+
+        if (descriptor.Surface == "sdl")
+        {
+            var sdlPrunedCount = 0;
+            for (var index = compilation.Members.Count - 1; index >= 0; --index)
+            {
+                if (compilation.Members[index] is not FunctionBinding { NativeName: "SDL_GetRevisionNumber" })
+                    continue;
+
+                compilation.Members.RemoveAt(index);
+                sdlPrunedCount++;
+            }
+
+            compilation.InvalidateCaches();
+            return sdlPrunedCount;
+        }
+
+        if (descriptor.Surface is "dearimgui" or "stb" or "spirvcross" or "spirvtools" or "spirvoptimizer" or "shadercompiler")
             return 0;
 
         if (descriptor.Surface == "webp")

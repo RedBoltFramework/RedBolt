@@ -520,10 +520,10 @@ public sealed class DrawableProcessorTests
         public RenderPipelineDebugger GetDebugger() => null!;
         public bool IsLinearColorSpace { get; set; }
         public event Action<CommonFrameInfo>? UpdateBegin;
-        public event Action<CommonFrameInfo>? UpdateEnd;
-        public event Action<CommonFrameInfo>? RenderBegin;
-        public event Action<CommonFrameInfo>? RenderEnd;
-        public event Action? PipelineStatesInvalidated;
+        public event Action<CommonFrameInfo>? UpdateEnd { add { } remove { } }
+        public event Action<CommonFrameInfo>? RenderBegin { add { } remove { } }
+        public event Action<CommonFrameInfo>? RenderEnd { add { } remove { } }
+        public event Action? PipelineStatesInvalidated { add { } remove { } }
         public event RenderPipelineStatsHandler? CollectStatistics;
 
         public void RaiseUpdateBegin() => UpdateBegin?.Invoke(default);

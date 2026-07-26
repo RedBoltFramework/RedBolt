@@ -305,7 +305,7 @@ public class DecalSet : Drawable
         if (!_boundingBoxDirty)
         {
             _boundingBoxDirty = true;
-            if (Node is not null)
+            if (TryGetNode() is not null)
                 OnMarkedDirty(Node);
         }
         _bufferDirty = true;
@@ -358,10 +358,10 @@ public class DecalSet : Drawable
         float normalCutoff = 0.1f, uint subGeometry = uint.MaxValue)
     {
         // Do not add decals in headless mode
-        if (Node is null || GetSubsystem<Graphics>() is null)
+        if (TryGetNode() is null || GetSubsystem<Graphics>() is null)
             return false;
 
-        if (target is null || target.Node is null)
+        if (target is null || target.TryGetNode() is null)
         {
             Log.GetLogger().LogError("Null target drawable for decal");
             return false;
@@ -952,7 +952,7 @@ public class DecalSet : Drawable
         else
         {
             batch.GeometryType = GeometryType.Static;
-            _nodeWorldTransform[0] = Node is not null ? Node.GetWorldTransform() : Matrix3x4.Identity;
+            _nodeWorldTransform[0] = TryGetNode() is not null ? Node.GetWorldTransform() : Matrix3x4.Identity;
             batch.WorldTransform = _nodeWorldTransform;
             batch.NumWorldTransforms = 1;
         }
@@ -962,7 +962,7 @@ public class DecalSet : Drawable
     private void AssignBoneNodes()
     {
         _assignBonesPending = false;
-        if (Node is null)
+        if (TryGetNode() is null)
             return;
         foreach (var bone in _bones)
         {

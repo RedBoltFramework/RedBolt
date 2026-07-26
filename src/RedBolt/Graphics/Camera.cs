@@ -297,7 +297,7 @@ public sealed class Camera : Component
     {
         if (!Orthographic)
         {
-            var cameraPos = Node is not null ? Node.WorldPosition : Vector3f.Zero;
+            var cameraPos = TryGetNode() is not null ? Node.WorldPosition : Vector3f.Zero;
             return (worldPos - cameraPos).Length;
         }
 
@@ -309,7 +309,7 @@ public sealed class Camera : Component
     {
         if (!Orthographic)
         {
-            var cameraPos = Node is not null ? Node.WorldPosition : Vector3f.Zero;
+            var cameraPos = TryGetNode() is not null ? Node.WorldPosition : Vector3f.Zero;
             return (worldPos - cameraPos).LengthSquared;
         }
 
@@ -429,8 +429,8 @@ public sealed class Camera : Component
         {
             var result = new Ray
             {
-                Origin = Node is not null ? Node.WorldPosition : Vector3f.Zero,
-                Direction = Node is not null ? Node.WorldDirection : Vector3f.Forward
+                Origin = TryGetNode() is not null ? Node.WorldPosition : Vector3f.Zero,
+                Direction = TryGetNode() is not null ? Node.WorldDirection : Vector3f.Forward
             };
             return result;
         }
@@ -512,7 +512,7 @@ public sealed class Camera : Component
     public Quaternion GetFaceCameraRotation(
         Vector3f position, Quaternion rotation, FaceCameraMode mode, float minAngle = 0.0f)
     {
-        if (Node is null)
+        if (TryGetNode() is null)
             return rotation;
 
         switch (mode)
@@ -787,7 +787,7 @@ public sealed class Camera : Component
 
     public Matrix3x4 GetEffectiveWorldTransform()
     {
-        var worldTransform = Node is not null
+        var worldTransform = TryGetNode() is not null
             ? new Matrix3x4(Node.WorldPosition, Node.WorldRotation, 1.0f)
             : Matrix3x4.Identity;
         return UseReflection ? _reflectionMatrix * worldTransform : worldTransform;

@@ -195,6 +195,8 @@ public class BillboardSet : Drawable
     /// <summary>Calculate distance and prepare batches for rendering. May be called from worker thread(s), possibly re-entrantly.</summary>
     public override void UpdateBatches(FrameInfo frame)
     {
+        var camera = frame.Camera!;
+
         // If beginning a new frame, assume no sorting first
         if (frame.FrameNumber != _sortFrameNumber)
         {
@@ -203,29 +205,29 @@ public class BillboardSet : Drawable
         }
 
         var worldPos = Node.GetWorldPosition();
-        var offset = worldPos - frame.Camera!.Node!.GetWorldPosition();
+        var offset = worldPos - camera.Node.GetWorldPosition();
         // Sort if position relative to camera has changed
-        if (offset != _previousOffset || frame.Camera.IsOrthographic() != _hasOrthoCamera)
+        if (offset != _previousOffset || camera.IsOrthographic() != _hasOrthoCamera)
         {
             if (_sorted)
                 _sortThisFrame = true;
             if (_faceCameraMode == FaceCameraMode.Direction)
                 _bufferDirty = true;
 
-            _hasOrthoCamera = frame.Camera.IsOrthographic();
+            _hasOrthoCamera = camera.IsOrthographic();
         }
 
         // Calculate fixed screen size scale factor for billboards. Will not dirty the buffer unless actually changed
         if (_fixedScreenSize)
             CalculateFixedScreenSize(frame);
 
-        SetDistance(frame.Camera.GetDistance(GetWorldBoundingBox().Center));
+        SetDistance(camera.GetDistance(GetWorldBoundingBox().Center));
 
         // Calculate scaled distance for animation LOD
         var scale = GetWorldBoundingBox().Size.DotProduct(GraphicsDefs.DotScale);
         // If there are no billboards, the size becomes zero, and LOD'ed updates no longer happen. Disable LOD in that case
         if (scale > MathDefs.Epsilon)
-            SetLodDistance(frame.Camera.GetLodDistance(GetDistance(), scale, LodBias));
+            SetLodDistance(camera.GetLodDistance(GetDistance(), scale, LodBias));
         else
             SetLodDistance(0.0f);
 
@@ -237,7 +239,8 @@ public class BillboardSet : Drawable
         // Billboard rotation
         Quaternion billboardRotation;
         if (_faceCameraMode != FaceCameraMode.None && _faceCameraMode != FaceCameraMode.AxisAngle)
-            billboardRotation = frame.Camera.GetFaceCameraRotation(Node.GetWorldPosition(), Node.GetWorldRotation(), _faceCameraMode, _minAngle);
+            billboardRotation = camera.GetFaceCameraRotation(
+                Node.GetWorldPosition(), Node.GetWorldRotation(), _faceCameraMode, _minAngle);
         else
             billboardRotation = Node.GetWorldRotation();
         _transforms[1] = new Matrix3x4(Vector3f.Zero, billboardRotation, Vector3f.One);
@@ -556,7 +559,7 @@ public class BillboardSet : Drawable
     /// <summary>Mark billboard vertex buffer to need an update.</summary>
     protected void MarkPositionsDirty()
     {
-        if (Node is not null)
+        if (TryGetNode() is not null)
             OnMarkedDirty(Node);
         _bufferDirty = true;
     }
@@ -785,6 +788,8 @@ public class BillboardSet : Drawable
     /// <summary>Rewrite billboard vertex buffer.</summary>
     private void UpdateVertexBuffer(FrameInfo frame)
     {
+        var camera = frame.Camera!;
+
         // If using animation LOD, accumulate time and see if it is time to update
         if (_animationLodBias > 0.0f && GetLodDistance() > 0.0f)
         {
@@ -825,7 +830,7 @@ public class BillboardSet : Drawable
 
             if (_sorted)
             {
-                billboard.SortDistance = frame.Camera!.GetDistanceSquared(billboardTransform * billboard.Position);
+                billboard.SortDistance = camera.GetDistanceSquared(billboardTransform * billboard.Position);
                 _billboards[i] = billboard;
             }
 
@@ -844,7 +849,7 @@ public class BillboardSet : Drawable
             _sortedBillboards.Sort(_compareBillboards);
             var worldPos = Node.GetWorldPosition();
             // Store the "last sorted position" now
-            _previousOffset = worldPos - frame.Camera!.Node!.GetWorldPosition();
+            _previousOffset = worldPos - camera.Node.GetWorldPosition();
         }
 
         var mapped = _vertexBuffer.Map();

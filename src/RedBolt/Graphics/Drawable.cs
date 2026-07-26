@@ -647,7 +647,7 @@ public abstract class Drawable : Component
     {
         _zoneMask = mask;
         _cachedZone.CacheInvalidationDistanceSquared = -1.0f;
-        if (Node is not null)
+        if (TryGetNode() is not null)
             OnMarkedDirty(Node);
         else
         {

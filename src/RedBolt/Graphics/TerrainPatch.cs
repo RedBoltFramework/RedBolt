@@ -236,7 +236,7 @@ public class TerrainPatch : Drawable
     public void SetBoundingBox(BoundingBox box)
     {
         SetLocalBoundingBox(box);
-        if (Node is not null)
+        if (TryGetNode() is not null)
             OnMarkedDirty(Node);
     }
 

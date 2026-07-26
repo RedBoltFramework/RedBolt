@@ -1,9 +1,12 @@
-using System.Runtime.CompilerServices;
-
 namespace RedBolt;
 
 public abstract partial class Application
 {
+    static Application()
+    {
+        LinuxPlatform.Initialize();
+    }
+
     private partial void InitializeMainLoop()
     {
     }
@@ -24,14 +27,5 @@ public abstract partial class Application
         }
 
         return false;
-    }
-}
-
-internal static class LinuxPlatformModule
-{
-    [ModuleInitializer]
-    internal static void Initialize()
-    {
-        LinuxPlatform.Initialize();
     }
 }

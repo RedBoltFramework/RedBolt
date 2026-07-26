@@ -15,7 +15,7 @@ public sealed class ComponentTests
         using var component = new Component();
 
         Assert.Equal(0u, component.Id);
-        Assert.Null(component.Node);
+        Assert.Null(component.TryGetNode());
         Assert.Null(component.Scene);
         Assert.True(component.Enabled);
         Assert.False(component.IsEnabledEffective);
@@ -50,7 +50,7 @@ public sealed class ComponentTests
         node.RemoveComponent(component);
 
         Assert.Equal(["node:set", "scene:set", "dirty", "scene:clear", "node:clear"], component.Transitions);
-        Assert.Null(component.Node);
+        Assert.Null(component.TryGetNode());
         Assert.Null(component.Scene);
         Assert.Equal(0u, component.Id);
         Assert.Equal(int.MaxValue, component.GetIndexInParent());

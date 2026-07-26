@@ -341,7 +341,7 @@ public class CameraOperator : Component
     /// </summary>
     public void MoveCamera()
     {
-        if (Node is null)
+        if (TryGetNode() is null)
             return;
 
         var camera = Node.GetComponent<Camera>();
@@ -439,7 +439,7 @@ public class CameraOperator : Component
             return;
         }
 
-        if (Node is null)
+        if (TryGetNode() is null)
         {
             Log.GetLogger().LogError("No Node to move");
             return;

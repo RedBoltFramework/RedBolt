@@ -1,7 +1,8 @@
 namespace RedBolt;
 
 /// <summary>Cube texture resource.</summary>
-public class ImageCube : Resource
+[Reflected]
+public partial class ImageCube : Resource
 {
     /// <summary>Face images.</summary>
     private readonly List<Image?> _faceImages = [];
@@ -31,7 +32,7 @@ public class ImageCube : Resource
     public static void RegisterObject(Context context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        context.AddFactoryReflection<ImageCube>();
+        context.RegisterAttributedType<ImageCube>();
     }
 
     private static Image? GetTileImage(Image source, int tileX, int tileY, int tileWidth, int tileHeight)

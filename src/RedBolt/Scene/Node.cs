@@ -626,38 +626,14 @@ public class Node : Serializable
         }
     }
 
-    private static Type? ResolveComponentType(string typeName)
-    {
-        foreach (var type in typeof(Component).Assembly.GetTypes())
-        {
-            if (!type.IsAbstract && typeof(Component).IsAssignableFrom(type)
-                && (type.Name == typeName || type.FullName == typeName || type.GetClassName() == typeName))
-                return type;
-        }
-
-        return null;
-    }
-
-    private static Type? ResolveComponentType(StringHash typeHash)
-    {
-        foreach (var type in typeof(Component).Assembly.GetTypes())
-        {
-            if (!type.IsAbstract && typeof(Component).IsAssignableFrom(type)
-                && new StringHash(type.GetClassName()) == typeHash)
-                return type;
-        }
-
-        return null;
-    }
-
     /// <summary>Create component, allowing UnknownComponent if actual type is not supported.</summary>
     private Component SafeCreateComponent(string typeName, StringHash type, uint id)
     {
-        var componentType = !string.IsNullOrEmpty(typeName)
-            ? ResolveComponentType(typeName)
-            : ResolveComponentType(type);
-        if (componentType is not null && CreateComponent(componentType, id) is { } component)
-            return component;
+        if (!string.IsNullOrEmpty(Context.Instance.GetTypeName(type)))
+        {
+            if (CreateComponent(type, id) is { } component)
+                return component;
+        }
 
         Log.GetLogger().Warning("Component type {0} not known, creating UnknownComponent as placeholder", type);
         return CreateComponent<UnknownComponent>(id);
@@ -932,17 +908,25 @@ public class Node : Serializable
         return component;
     }
 
+    public Component? CreateComponent(StringHash type, uint id = 0)
+    {
+        if (Context.Instance.CreateObject(type) is not Component component)
+        {
+            Log.GetLogger().Error("Could not create unknown component type {0}", type);
+            return null;
+        }
+
+        AddComponent(component, id);
+        return component;
+    }
+
     public Component? CreateComponent(Type type, uint id = 0)
     {
         ArgumentNullException.ThrowIfNull(type);
         if (type.IsAbstract || !typeof(Component).IsAssignableFrom(type))
             return null;
 
-        if (Context.Instance.CreateObject(new StringHash(type.GetClassName())) is not Component component)
-            return null;
-
-        AddComponent(component, id);
-        return component;
+        return CreateComponent(new StringHash(type.GetClassName()), id);
     }
 
     public void AddComponent(Component component, uint id = 0)
@@ -951,7 +935,7 @@ public class Node : Serializable
 
         _components.Add(component);
 
-        if (component.Node is not null)
+        if (component.TryGetNode() is not null)
             Log.GetLogger().Warning("Component {0} already belongs to a node!", component.GetTypeName());
 
         if (_scene is not null)
@@ -1208,7 +1192,7 @@ public class Node : Serializable
 
     public Node? GetParent() => Parent;
 
-    public Scene GetScene() => Scene;
+    public Scene? GetScene() => Scene;
 
     public string GetName() => Name;
 

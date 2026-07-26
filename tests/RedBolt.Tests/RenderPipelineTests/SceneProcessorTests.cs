@@ -192,7 +192,7 @@ public sealed class SceneProcessorTests
         public RenderPipelineDebugger GetDebugger() => new();
         public bool IsLinearColorSpace => false;
         public event Action<CommonFrameInfo>? UpdateBegin;
-        public event Action<CommonFrameInfo>? UpdateEnd;
+        public event Action<CommonFrameInfo>? UpdateEnd { add { } remove { } }
         public event Action<CommonFrameInfo>? RenderBegin;
         public event Action<CommonFrameInfo>? RenderEnd;
         public event Action? PipelineStatesInvalidated;

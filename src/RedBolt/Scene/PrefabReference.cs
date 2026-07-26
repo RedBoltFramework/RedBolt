@@ -108,10 +108,10 @@ public class PrefabReference : Component
     /// <summary>Make all prefab nodes not temporary and remove component.</summary>
     public void Inline(PrefabInlineFlag flags)
     {
-        if (Node is null)
+        var node = TryGetNode();
+        if (node is null)
             return;
 
-        var node = Node;
         _instanceNode = null;
         Remove();
 
@@ -171,7 +171,7 @@ public class PrefabReference : Component
             return;
         }
 
-        if (Node is null || _prefab is null)
+        if (TryGetNode() is null || _prefab is null)
             return;
 
         var originalNodePrefab = GetNodePrefab();
@@ -227,7 +227,7 @@ public class PrefabReference : Component
 
     private NodePrefab GetNodePrefab()
     {
-        if (Node is not null && _prefab is not null)
+        if (TryGetNode() is not null && _prefab is not null)
             return _prefab.GetNodePrefabSlice(_path);
 
         return NodePrefab.Empty;
@@ -410,7 +410,7 @@ public class PrefabReference : Component
             RemoveInstance();
 
         // Cannot spawn instance without node
-        if (Node is null)
+        if (TryGetNode() is null)
             return;
 
         var nodePrefab = GetNodePrefab();

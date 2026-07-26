@@ -57,7 +57,7 @@ public sealed class ImageTests
         Assert.True(center.Equals(new Color(0.5f, 0.5f, 0.5f, 1.0f), 0.01f));
         Assert.Equal(new Color(1, 0, 0), image.GetPixelBilinear(0.25f, 0.25f));
 
-        var mip = image.GetNextLevel();
+        var mip = image.GetNextLevel()!;
         Assert.Equal(new Vector3i(1, 1, 1), mip.GetSize());
         Assert.True(mip.GetPixel(0, 0).Equals(center, 0.01f));
 

@@ -553,14 +553,13 @@ public sealed class ResourceCacheTests
     [Fact]
     public void Removing_resource_reflection_releases_cached_resources()
     {
-        var resource = new ReloadableResource { Name = $"Data/reflection-{Guid.NewGuid():N}.bin" };
+        var resource = new RemovableResource { Name = $"Data/reflection-{Guid.NewGuid():N}.bin" };
         Assert.True(Resources.AddManualResource(resource));
-        Assert.Same(resource, Resources.GetExistingResource<ReloadableResource>(resource.Name));
+        Assert.Same(resource, Resources.GetExistingResource<RemovableResource>(resource.Name));
 
-        _fixture.Context.AddReflection<ReloadableResource>();
-        _fixture.Context.RemoveReflection<ReloadableResource>();
+        _fixture.Context.RemoveReflection<RemovableResource>();
 
-        Assert.Null(Resources.GetExistingResource<ReloadableResource>(resource.Name));
+        Assert.Null(Resources.GetExistingResource<RemovableResource>(resource.Name));
     }
 
     [Fact]
@@ -776,7 +775,8 @@ public sealed class BlockingBackgroundResource : Resource
     }
 }
 
-public sealed class ReloadableResource : Resource
+[Reflected]
+public sealed partial class ReloadableResource : Resource
 {
     public int ReloadCount { get; private set; }
 
@@ -785,4 +785,9 @@ public sealed class ReloadableResource : Resource
         ReloadCount++;
         return true;
     }
+}
+
+[Reflected]
+public sealed partial class RemovableResource : Resource
+{
 }

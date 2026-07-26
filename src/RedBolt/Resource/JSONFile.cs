@@ -6,7 +6,8 @@ using Microsoft.Extensions.Logging;
 namespace RedBolt;
 
 /// <summary>JSON document resource.</summary>
-public class JSONFile : Resource
+[Reflected]
+public partial class JSONFile : Resource
 {
     /// <summary>Construct.</summary>
     public JSONFile()
@@ -23,7 +24,7 @@ public class JSONFile : Resource
     /// <summary>Register object factory.</summary>
     public static void RegisterObject(Context context)
     {
-        context.AddFactoryReflection<JSONFile>();
+        context.RegisterAttributedType<JSONFile>();
     }
 
     /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>

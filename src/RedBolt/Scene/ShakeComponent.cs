@@ -86,7 +86,7 @@ public class ShakeComponent : LogicComponent
     /// <summary>Update node position.</summary>
     public override void Update(float timeStep)
     {
-        if (Node is null)
+        if (TryGetNode() is null)
             return;
 
         var currentPosition = Node.Position;

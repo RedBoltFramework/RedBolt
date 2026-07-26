@@ -463,7 +463,7 @@ public sealed class CustomGeometry : Drawable
     {
         SetWorldBoundingBox(!BoundingBox.Defined
             ? CreateUndefinedBoundingBox()
-            : Node is not null ? BoundingBox.Transformed(Node.GetWorldTransform()) : BoundingBox);
+            : TryGetNode() is not null ? BoundingBox.Transformed(Node.GetWorldTransform()) : BoundingBox);
     }
 
     private void WriteVertex(VectorBuffer buffer, in CustomGeometryVertex vertex)

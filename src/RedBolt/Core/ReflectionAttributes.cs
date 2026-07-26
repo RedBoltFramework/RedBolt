@@ -197,9 +197,7 @@ public static class GeneratedReflectionRegistration
         lock (Sync)
         {
             _currentContext = context;
-            assemblies = AssemblyTypes.Keys
-                .Where(static assembly => assembly != typeof(Context).Assembly)
-                .ToArray();
+            assemblies = AssemblyTypes.Keys.ToArray();
         }
 
         foreach (var assembly in assemblies)

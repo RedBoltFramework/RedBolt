@@ -268,7 +268,7 @@ public class AnimatedModel : StaticModel
         if (ReferenceEquals(GetModel(), model))
             return;
 
-        if (Node is null)
+        if (TryGetNode() is null)
         {
             Log.GetLogger().LogError("Can not set model while model component is not attached to a scene node");
             return;
@@ -655,7 +655,7 @@ public class AnimatedModel : StaticModel
     {
         _assignBonesPending = false;
 
-        if (Node is null)
+        if (TryGetNode() is null)
             return;
 
         var allBonesFound = true;
@@ -765,7 +765,7 @@ public class AnimatedModel : StaticModel
     /// <summary>Set skeleton.</summary>
     internal void SetSkeleton(Skeleton skeleton, bool createBones)
     {
-        if (createBones && Node is null)
+        if (createBones && TryGetNode() is null)
         {
             Log.GetLogger().LogError("AnimatedModel not attached to a scene node, can not create bone nodes");
             return;

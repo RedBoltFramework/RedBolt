@@ -246,7 +246,7 @@ public class Zone : Drawable
     {
         if (_inverseWorldDirty)
         {
-            _inverseWorld = Node is not null ? Node.GetWorldTransform().Inverse : Matrix3x4.Identity;
+            _inverseWorld = TryGetNode() is not null ? Node.GetWorldTransform().Inverse : Matrix3x4.Identity;
             _inverseWorldDirty = false;
         }
 

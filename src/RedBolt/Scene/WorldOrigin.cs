@@ -80,7 +80,7 @@ public class WorldOrigin : LogicComponent
                 _updateZ ? (int)MathDefs.SnapRound(position.Z, _step) : 0);
             if (offset != Vector3i.Zero)
             {
-                var scene = Node.GetScene();
+                var scene = Node.Scene!;
                 var currentOrigin = scene.GetWorldOrigin();
                 var newWorldOrigin = new IntVector3(
                     currentOrigin.X + offset.X,

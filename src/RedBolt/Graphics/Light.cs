@@ -661,7 +661,7 @@ public class Light : Drawable
 
     internal void GetFrustum(Frustum frustum)
     {
-        var transform = Node is not null
+        var transform = TryGetNode() is not null
             ? new Matrix3x4(Node.WorldPosition, Node.WorldRotation, 1.0f)
             : Matrix3x4.Identity;
         frustum.Define(_fov, _aspectRatio, 1.0f, MathDefs.MinNearClip, _range, transform);
@@ -677,7 +677,7 @@ public class Light : Drawable
 
     internal void GetViewSpaceFrustum(Matrix3x4 view, Frustum frustum)
     {
-        var transform = Node is not null
+        var transform = TryGetNode() is not null
             ? new Matrix3x4(Node.WorldPosition, Node.WorldRotation, 1.0f)
             : Matrix3x4.Identity;
         frustum.Define(_fov, _aspectRatio, 1.0f, MathDefs.MinNearClip, _range, view * transform);
@@ -685,7 +685,7 @@ public class Light : Drawable
 
     public Matrix3x4 GetVolumeTransform(Camera? camera)
     {
-        if (Node is null)
+        if (TryGetNode() is null)
             return Matrix3x4.Identity;
 
         switch (_lightType)
@@ -752,7 +752,7 @@ public class Light : Drawable
     public float GetDistanceTo(Drawable drawable)
     {
         ArgumentNullException.ThrowIfNull(drawable);
-        return _lightType == LightType.Directional || Node is null ? 0.0f : drawable.GetWorldBoundingBox().DistanceToPoint(Node.WorldPosition);
+        return _lightType == LightType.Directional || TryGetNode() is null ? 0.0f : drawable.GetWorldBoundingBox().DistanceToPoint(Node.WorldPosition);
     }
 
     public int GetNumShadowSplits()

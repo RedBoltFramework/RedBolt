@@ -98,7 +98,7 @@ public abstract class RenderPass : Serializable
     {
     }
 
-    public virtual RenderPass Clone() => (RenderPass)base.Clone();
+    public virtual RenderPass? Clone() => base.Clone() as RenderPass;
 
     public void SetEnabled(bool enabled)
     {

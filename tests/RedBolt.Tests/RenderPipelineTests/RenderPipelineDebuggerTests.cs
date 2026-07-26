@@ -97,9 +97,9 @@ public sealed class RenderPipelineDebuggerTests
         Assert.Same(firstView.GetDebugger(), firstView.GetDebugger());
         Assert.NotSame(firstView.GetDebugger(), secondView.GetDebugger());
 
-        firstView.GetDebugger().BeginSnapshot();
-        Assert.True(firstView.GetDebugger().IsSnapshotInProgress());
-        Assert.False(secondView.GetDebugger().IsSnapshotInProgress());
+        firstView.GetDebugger()!.BeginSnapshot();
+        Assert.True(firstView.GetDebugger()!.IsSnapshotInProgress());
+        Assert.False(secondView.GetDebugger()!.IsSnapshotInProgress());
     }
 
     [Fact]
@@ -216,7 +216,7 @@ public sealed class RenderPipelineDebuggerTests
             Distance = 3.0f
         };
 
-        var debugger = view.GetDebugger();
+        var debugger = view.GetDebugger()!;
         debugger.BeginSnapshot();
         debugger.BeginPass("Forward");
 

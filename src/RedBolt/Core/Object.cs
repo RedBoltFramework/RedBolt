@@ -34,10 +34,10 @@ public abstract class Object : IArchiveSerializable, IDisposable
 
     public string GetCategory() => Context.GetReflection(GetTypeNameHash())?.Category ?? string.Empty;
 
-    public T? GetSubsystem<T>()
+    public T GetSubsystem<T>()
         where T : class
     {
-        return Context.GetSubsystem<T>();
+        return Context.GetSubsystem<T>()!;
     }
 
     /// <summary>

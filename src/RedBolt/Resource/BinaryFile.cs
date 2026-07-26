@@ -4,7 +4,8 @@ using Microsoft.Extensions.Logging;
 namespace RedBolt;
 
 /// <summary>Resource for generic binary file.</summary>
-public class BinaryFile : Resource
+[Reflected]
+public partial class BinaryFile : Resource
 {
     /// <summary>Construct empty.</summary>
     public BinaryFile()
@@ -22,7 +23,7 @@ public class BinaryFile : Resource
     public static void RegisterObject(Context context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        context.AddFactoryReflection<BinaryFile>();
+        context.RegisterAttributedType<BinaryFile>();
     }
 
     /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
