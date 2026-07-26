@@ -1,4 +1,6 @@
 using System;
+using System.Runtime.InteropServices;
+using System.Text;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 
@@ -21,6 +23,12 @@ sealed class SkeletalAnimationApplication : Application
     private Scene? _scene;
     private Node? _cameraNode;
     private bool _drawDebug;
+    private SkinningMode _skinningMode;
+    private uint _maxBones;
+    private uint _softwareSkinningBones;
+    private readonly byte[] _platformLabel = Encoding.UTF8.GetBytes(
+        $"Platform: {ProcessUtils.GetPlatform()} | Architecture: {RuntimeInformation.ProcessArchitecture} | " +
+        $"{IntPtr.Size * 8}-bit\0");
 
     public SkeletalAnimationApplication()
     {
@@ -46,6 +54,10 @@ sealed class SkeletalAnimationApplication : Application
     protected override void Start()
     {
         // Execute base class startup
+
+        _skinningMode = Renderer.GetSkinningMode();
+        _maxBones = Graphics.GetMaxBones();
+        _softwareSkinningBones = Renderer.GetNumSoftwareSkinningBones();
 
         // Create the scene content
         CreateScene();
@@ -167,10 +179,69 @@ sealed class SkeletalAnimationApplication : Application
         var windowOpen = true;
         if (ImGui.Begin("Skeletal Animation\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
+            ImGui.TextUnformatted(_platformLabel);
             ImGui.TextUnformatted("Use WASD keys and right mouse button to move\0"u8);
             ImGui.TextUnformatted("Space to toggle debug geometry\0"u8);
             ImGui.TextUnformatted(_drawDebug ? "Debug geometry requested\0"u8 : "Debug geometry disabled\0"u8);
+            ImGui.TextUnformatted(_skinningMode switch
+            {
+                SkinningMode.Auto => "Skinning: Auto\0"u8,
+                SkinningMode.Hardware => "Skinning: Hardware\0"u8,
+                _ => "Skinning: Software\0"u8
+            });
+            if (ImGui.Button("Use auto skinning\0"u8))
+                ApplySkinningDiagnostics(SkinningMode.Auto, _maxBones, _softwareSkinningBones);
+            if (ImGui.Button("Force hardware skinning\0"u8))
+                ApplySkinningDiagnostics(SkinningMode.Hardware, _maxBones, _softwareSkinningBones);
+            if (ImGui.Button("Force software skinning\0"u8))
+                ApplySkinningDiagnostics(SkinningMode.Software, _maxBones, _softwareSkinningBones);
+            ImGui.TextUnformatted(_maxBones switch
+            {
+                16 => "Max bones: 16\0"u8,
+                32 => "Max bones: 32\0"u8,
+                64 => "Max bones: 64\0"u8,
+                _ => "Max bones: 128\0"u8
+            });
+            if (ImGui.Button("Max bones: 16\0"u8))
+                ApplySkinningDiagnostics(_skinningMode, 16, _softwareSkinningBones);
+            if (ImGui.Button("Max bones: 32\0"u8))
+                ApplySkinningDiagnostics(_skinningMode, 32, _softwareSkinningBones);
+            if (ImGui.Button("Max bones: 64\0"u8))
+                ApplySkinningDiagnostics(_skinningMode, 64, _softwareSkinningBones);
+            if (ImGui.Button("Max bones: 128\0"u8))
+                ApplySkinningDiagnostics(_skinningMode, 128, _softwareSkinningBones);
+            ImGui.TextUnformatted(_softwareSkinningBones switch
+            {
+                1 => "Software skinning bones: 1\0"u8,
+                2 => "Software skinning bones: 2\0"u8,
+                _ => "Software skinning bones: 4\0"u8
+            });
+            if (ImGui.Button("Software bones: 1\0"u8))
+                ApplySkinningDiagnostics(_skinningMode, _maxBones, 1);
+            if (ImGui.Button("Software bones: 2\0"u8))
+                ApplySkinningDiagnostics(_skinningMode, _maxBones, 2);
+            if (ImGui.Button("Software bones: 4\0"u8))
+                ApplySkinningDiagnostics(_skinningMode, _maxBones, 4);
         }
         ImGui.End();
+    }
+
+    private void ApplySkinningDiagnostics(SkinningMode skinningMode, uint maxBones, uint softwareSkinningBones)
+    {
+        if (_skinningMode == skinningMode && _maxBones == maxBones
+            && _softwareSkinningBones == softwareSkinningBones)
+            return;
+
+        _skinningMode = skinningMode;
+        _maxBones = maxBones;
+        _softwareSkinningBones = softwareSkinningBones;
+        Renderer.SetSkinningMode(skinningMode);
+        Graphics.SetMaxBones(maxBones);
+        Renderer.SetNumSoftwareSkinningBones(softwareSkinningBones);
+
+        var previousScene = _scene;
+        CreateScene();
+        SetupViewport();
+        previousScene?.Dispose();
     }
 }

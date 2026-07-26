@@ -327,6 +327,7 @@ These are the ONLY places C# is allowed to differ from C++:
 - All ported samples are windowed; do not preserve fullscreen defaults from the C++ sample when configuring the managed sample.
 - The MultipleViewports sample may explicitly disable window maximization and configure default window dimensions so `--width` and `--height` control the actual window size.
 - C#-only diagnostic flags may trigger a RenderDoc capture after a specified delay.
+- The SkeletalAnimation sample may expose runtime skinning-mode and maximum-bone controls for web rendering diagnostics.
 - The MultipleViewports sample may temporarily animate its camera forward when `REDBOLT_MULTIPLE_VIEWPORTS_ANIMATE_CAMERA=1` for automated rendering diagnostics.
 - Engine construction sets the process working directory to the managed executable directory so CMake-staged resource-directory symlinks resolve consistently.
 - All ported samples use `MouseMode.Free` with a visible cursor while idle. Free-fly camera controls follow rbfx: while the right mouse button is held, temporarily hide and lock the cursor in relative mode, then restore free mode and cursor visibility on release.
