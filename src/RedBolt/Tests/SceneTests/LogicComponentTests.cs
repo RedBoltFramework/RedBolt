@@ -1,6 +1,10 @@
 using RedBolt;
 
+using RedBolt.Math;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class LogicComponentTests

@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Scene;
 
 /// <summary>Strongly typed attribute ID.</summary>
 public enum AttributeId : uint

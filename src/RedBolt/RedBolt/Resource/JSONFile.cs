@@ -3,7 +3,10 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Logging;
+namespace RedBolt.Resource;
 
 /// <summary>JSON document resource.</summary>
 [Reflected]

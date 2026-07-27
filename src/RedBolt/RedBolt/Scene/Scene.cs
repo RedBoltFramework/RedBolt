@@ -2,7 +2,18 @@ using System.Buffers;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.IO;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Resource;
+namespace RedBolt.Scene;
+using Math = global::System.Math;
+using Resource = global::RedBolt.Resource.Resource;
+
 
 /// <summary>Asynchronous scene loading mode.</summary>
 public static class SceneConstants

@@ -1,3 +1,4 @@
+using RedBolt.Graphics;
 namespace RedBolt.Tests;
 
 public sealed class LightBakingSettingsTests

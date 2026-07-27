@@ -4,7 +4,10 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using RedBolt;
 
+using RedBolt.IO;
 namespace RedBolt.Tests;
+using FileMode = global::RedBolt.IO.FileMode;
+
 
 public sealed class MountedAliasRootTests
 {

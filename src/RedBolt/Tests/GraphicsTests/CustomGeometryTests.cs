@@ -1,7 +1,14 @@
 using RedBolt;
 using System.Runtime.CompilerServices;
 
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.Resource;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
+using Resource = global::RedBolt.Resource.Resource;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class CustomGeometryTests

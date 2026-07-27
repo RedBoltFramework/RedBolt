@@ -1,6 +1,13 @@
 using RedBolt;
 
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Input;
+using RedBolt.Math;
+using RedBolt.Resource;
 namespace RedBolt.Tests;
+
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class InputMapTests
@@ -12,7 +19,7 @@ public sealed class InputMapTests
         this._fixture = fixture;
     }
 
-    private RedBolt.Input Input => _fixture.Input;
+    private InputSystem Input => _fixture.Input;
 
     [Fact]
     public void Dead_zone_clamps_to_zero()

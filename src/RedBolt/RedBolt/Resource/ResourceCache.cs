@@ -1,4 +1,14 @@
-namespace RedBolt;
+using RedBolt.Audio;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.IO;
+using RedBolt.Input;
+using RedBolt.RenderPipeline;
+namespace RedBolt.Resource;
+using FileMode = global::RedBolt.IO.FileMode;
+using Math = global::System.Math;
+
 
 public sealed class ResourceGroup
 {

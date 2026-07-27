@@ -1,7 +1,13 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Logging;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Scene = global::RedBolt.Scene.Scene;
+
+using Timer = global::RedBolt.Core.Timer;
 
 /// <summary>Light baking quality settings.</summary>
 public enum LightBakingQuality

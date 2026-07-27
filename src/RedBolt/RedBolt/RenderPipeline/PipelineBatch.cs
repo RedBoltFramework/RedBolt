@@ -1,4 +1,6 @@
-namespace RedBolt;
+using RedBolt.Graphics;
+using RedBolt.RenderAPI;
+namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Self-sufficient batch that can be sorted and rendered by RenderPipeline.

@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+namespace RedBolt.Math;
 
 /// <summary>3x4 matrix for scene node transform calculations.</summary>
 [StructLayout(LayoutKind.Sequential)]

@@ -2,7 +2,13 @@ using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
 using System;
 
+using RedBolt.Core;
+using RedBolt.Engine;
+using RedBolt.Math;
+using RedBolt.Platform;
+using RedBolt.RenderAPI;
 namespace RedBolt;
+
 
 public interface IOpenGLESGraphicsApi
 {
@@ -37,11 +43,11 @@ public sealed class OpenGLESGraphicsBackend : IGraphicsBackend
             CheckSdl(SdlNativeBindings.SdlGlMakeCurrent(window, glContext), "SDL_GL_MakeCurrent");
             SdlNativeBindings.SdlGlGetDrawableSize(window, out var width, out var height);
 
-            var multiSample = (int)Math.Clamp(
-                MathDefs.ClosestPowerOfTwo((uint)Math.Max(parameters.MultiSample, 1)), 1u, 16u);
+            var multiSample = (int)System.Math.Clamp(
+                MathDefs.ClosestPowerOfTwo((uint)System.Math.Max(parameters.MultiSample, 1)), 1u, 16u);
             if (SdlNativeBindings.SdlGlGetAttribute(SdlGLattr.SdlGlMultisamplesamples,
                     out var effectiveMultiSample) == 0)
-                multiSample = Math.Max(1, effectiveMultiSample);
+                multiSample = System.Math.Max(1, effectiveMultiSample);
             _ = SdlNativeBindings.SdlGlGetAttribute(SdlGLattr.SdlGlFramebufferSrgbCapable,
                 out var effectiveSrgb);
 
@@ -114,7 +120,7 @@ public sealed class OpenGLESGraphicsBackend : IGraphicsBackend
         public void Resize(IRenderDevice renderDevice, ISwapChain swapChain)
         {
             SdlNativeBindings.SdlGlGetDrawableSize(window, out var width, out var height);
-            swapChain.Resize((uint)Math.Max(width, 0), (uint)Math.Max(height, 0));
+            swapChain.Resize((uint)System.Math.Max(width, 0), (uint)System.Math.Max(height, 0));
         }
 
         public void ReleaseBeforeCommonResources()

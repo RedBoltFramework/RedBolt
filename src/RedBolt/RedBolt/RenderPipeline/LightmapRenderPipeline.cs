@@ -1,4 +1,8 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// RenderPipeline used to render geometry buffer for lightmap baking.

@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.IO;
 
 /// <summary>File open mode.</summary>
 public enum FileMode

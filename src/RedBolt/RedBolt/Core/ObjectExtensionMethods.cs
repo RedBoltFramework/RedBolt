@@ -1,4 +1,5 @@
-namespace RedBolt;
+using RedBolt.Container;
+namespace RedBolt.Core;
 
 public static class ObjectExtensionMethods
 {

@@ -1,6 +1,9 @@
 using RedBolt.Bindings.Sdl;
 using System;
 
+using RedBolt.Core;
+using RedBolt.Engine;
+using RedBolt.Platform;
 namespace RedBolt;
 
 public static class LinuxPlatform

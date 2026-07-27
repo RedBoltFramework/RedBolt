@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Audio;
 
 /// <summary>Base class for sound streams.</summary>
 public abstract class SoundStream

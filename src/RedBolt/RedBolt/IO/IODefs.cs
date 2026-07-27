@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.IO;
 
 /// <summary>
 /// Vector encoding for serialization/deserialization.

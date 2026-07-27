@@ -1,6 +1,13 @@
 using RedBolt;
 
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.Resource;
 namespace RedBolt.Tests;
+using TextureAddressMode = global::RedBolt.RenderAPI.TextureAddressMode;
+
 
 public sealed class TextureTests
 {

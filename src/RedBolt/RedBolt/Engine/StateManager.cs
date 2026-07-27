@@ -1,6 +1,16 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Scene;
+namespace RedBolt.Engine;
+using Math = global::System.Math;
+
+using Scene = global::RedBolt.Scene.Scene;
 
 /// <summary>Base class for an application state. Examples of a state would be a loading screen, a menu or a game screen.</summary>
 public class ApplicationState : RedObject
@@ -42,7 +52,7 @@ public class ApplicationState : RedObject
         // Subscribe HandleUpdate() method for processing update events
         SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
 
-        var input = GetSubsystem<Input>()!;
+        var input = GetSubsystem<InputSystem>()!;
         InitMouseMode();
         input.SetMouseVisible(_mouseVisible);
         input.SetMouseGrabbed(_mouseGrabbed);
@@ -103,7 +113,7 @@ public class ApplicationState : RedObject
     {
         _mouseVisible = enable;
         if (IsActive)
-            GetSubsystem<Input>()!.SetMouseVisible(enable);
+            GetSubsystem<InputSystem>()!.SetMouseVisible(enable);
     }
 
     /// <summary>Set whether the mouse is currently being grabbed by an operation.</summary>
@@ -111,7 +121,7 @@ public class ApplicationState : RedObject
     {
         _mouseGrabbed = grab;
         if (IsActive)
-            GetSubsystem<Input>()!.SetMouseGrabbed(_mouseGrabbed);
+            GetSubsystem<InputSystem>()!.SetMouseGrabbed(_mouseGrabbed);
     }
 
     /// <summary>Set the mouse mode.</summary>
@@ -191,7 +201,7 @@ public class ApplicationState : RedObject
     /// <summary>Initialize mouse mode on non-web platform.</summary>
     private void InitMouseMode()
     {
-        var input = GetSubsystem<Input>()!;
+        var input = GetSubsystem<InputSystem>()!;
 
         if (ProcessUtils.GetPlatform() != PlatformId.Web)
         {
@@ -208,7 +218,7 @@ public class ApplicationState : RedObject
     /// <summary>Handle request for mouse mode on web platform.</summary>
     private void HandleMouseModeRequest(ref InputEvents.MouseButtonDownEvent eventData)
     {
-        var input = GetSubsystem<Input>()!;
+        var input = GetSubsystem<InputSystem>()!;
         if (_mouseMode == MouseMode.Absolute)
             input.SetMouseVisible(false);
         else if (_mouseMode == MouseMode.Free)
@@ -219,7 +229,7 @@ public class ApplicationState : RedObject
     /// <summary>Handle request for mouse mode change on web platform.</summary>
     private void HandleMouseModeChange(ref InputEvents.MouseModeChangedEvent eventData)
     {
-        GetSubsystem<Input>()!.SetMouseVisible(!eventData.MouseLocked);
+        GetSubsystem<InputSystem>()!.SetMouseVisible(!eventData.MouseLocked);
     }
 
     /// <summary>Handle the logic update event.</summary>

@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace RedBolt;
+namespace RedBolt.Math;
 
 /// <summary>
 /// Range between two WrappedScalar values.

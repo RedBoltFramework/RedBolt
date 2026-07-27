@@ -5,6 +5,9 @@ using System.Collections.Generic;
 using System.Text;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Engine;
+using RedBolt.Input;
+using RedBolt.Core;
 
 #if !REDBOLT_WEB_SAMPLE
 try { return new AggregatedInputApplication().Run(); }
@@ -113,13 +116,13 @@ sealed class AggregatedInputApplication : Application
 
     private void HandleDPadKeyDown(ref InputEvents.KeyDownEvent value)
     {
-        AddFilteredEvent($"KeyDown: Key {Input.GetKeyName(value.Key)}, Scancode {Input.GetScancodeName(value.Scancode)}" +
+        AddFilteredEvent($"KeyDown: Key {InputSystem.GetKeyName(value.Key)}, Scancode {InputSystem.GetScancodeName(value.Scancode)}" +
             (value.Repeat ? ", R" : ""));
     }
 
     private void HandleDPadKeyUp(ref InputEvents.KeyUpEvent value)
     {
-        AddFilteredEvent($"KeyUp: Key {Input.GetKeyName(value.Key)}, Scancode {Input.GetScancodeName(value.Scancode)}");
+        AddFilteredEvent($"KeyUp: Key {InputSystem.GetKeyName(value.Key)}, Scancode {InputSystem.GetScancodeName(value.Scancode)}");
     }
 
     private void HandleKeyDown(ref InputEvents.KeyDownEvent value)
@@ -127,12 +130,12 @@ sealed class AggregatedInputApplication : Application
         if (value.Repeat)
             return;
 
-        AddRawEvent($"KeyDown: Key {Input.GetKeyName(value.Key)}, Scancode {Input.GetScancodeName(value.Scancode)}");
+        AddRawEvent($"KeyDown: Key {InputSystem.GetKeyName(value.Key)}, Scancode {InputSystem.GetScancodeName(value.Scancode)}");
     }
 
     private void HandleKeyUp(ref InputEvents.KeyUpEvent value)
     {
-        AddRawEvent($"KeyUp: Key {Input.GetKeyName(value.Key)}, Scancode {Input.GetScancodeName(value.Scancode)}");
+        AddRawEvent($"KeyUp: Key {InputSystem.GetKeyName(value.Key)}, Scancode {InputSystem.GetScancodeName(value.Scancode)}");
     }
 
     private void HandleJoystickAxisMove(ref InputEvents.JoystickAxisMoveEvent value)
@@ -224,7 +227,7 @@ sealed class AggregatedInputApplication : Application
             }
 
             ImGui.Separator();
-            ImGui.TextUnformatted("Input events:\0"u8);
+            ImGui.TextUnformatted("InputSystem events:\0"u8);
             for (var i = _rawEvents.Count - 1; i >= 0; --i)
                 ImGui.TextUnformatted(_rawEvents[i]);
 

@@ -1,6 +1,13 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Logging;
+using RedBolt.RenderAPI;
+using RedBolt.Scene;
+namespace RedBolt.RenderPipeline;
+using FillMode = global::RedBolt.Graphics.FillMode;
+
 
 /// <summary>Utility to process render camera (not cull camera!).</summary>
 public class CameraProcessor : RedObject
@@ -14,11 +21,11 @@ public class CameraProcessor : RedObject
     private readonly List<Camera?> _cameras = [];
 
     /// <summary>Graphics instance</summary>
-    private readonly Graphics? _graphics;
+    private readonly GraphicsSystem? _graphics;
 
     public CameraProcessor()
     {
-        _graphics = GetSubsystem<Graphics>();
+        _graphics = GetSubsystem<GraphicsSystem>();
     }
 
     public override void Dispose()

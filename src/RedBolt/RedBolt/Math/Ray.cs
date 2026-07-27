@@ -1,6 +1,8 @@
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+namespace RedBolt.Math;
+using Math = global::System.Math;
+
 
 [StructLayout(LayoutKind.Sequential)]
 public struct DistanceAndNormal

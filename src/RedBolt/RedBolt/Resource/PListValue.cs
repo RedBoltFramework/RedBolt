@@ -1,7 +1,9 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+using RedBolt.Input;
+using RedBolt.Math;
+namespace RedBolt.Resource;
 
 /// <summary>
 /// PList value types.

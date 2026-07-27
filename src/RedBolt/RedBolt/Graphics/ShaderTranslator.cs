@@ -3,7 +3,13 @@ using System.Text;
 using RedBolt.Bindings.Glslang;
 using RedBolt.Bindings.SpirVCross;
 
-namespace RedBolt;
+using RedBolt.RenderAPI;
+using RedBolt.Resource;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+using Resource = global::RedBolt.Resource.Resource;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+
 
 /// <summary>
 /// Shader translated to the target language.

@@ -1,4 +1,7 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Input;
+using RedBolt.Logging;
+namespace RedBolt.Resource;
 
 using Microsoft.Extensions.Logging;
 

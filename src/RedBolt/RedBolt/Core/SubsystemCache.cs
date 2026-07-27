@@ -1,6 +1,16 @@
-using Container = System.Collections.Generic.Dictionary<RedBolt.StringHash, object>;
+using SubsystemContainer = System.Collections.Generic.Dictionary<RedBolt.Container.StringHash, object>;
 
-namespace RedBolt;
+using RedBolt.Audio;
+using RedBolt.Container;
+using RedBolt.Engine;
+using RedBolt.Graphics;
+using RedBolt.IO;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.RenderAPI;
+using RedBolt.Resource;
+namespace RedBolt.Core;
+
 
 /// <summary>
 /// List of cached subsystems that don't require hash map lookup.
@@ -9,16 +19,16 @@ public sealed class SubsystemCache
 {
     private static readonly Type[] CachedSubsystemTypes =
     [
-        typeof(Engine),
+        typeof(EngineSystem),
         typeof(Time),
         typeof(WorkQueue),
         typeof(VirtualFileSystem),
         typeof(Log),
         typeof(ResourceCache),
         typeof(Localization),
-        typeof(Input),
-        typeof(Audio),
-        typeof(Graphics),
+        typeof(InputSystem),
+        typeof(AudioSystem),
+        typeof(GraphicsSystem),
         typeof(Renderer),
         typeof(RenderDevice),
         typeof(StateManager)
@@ -28,7 +38,7 @@ public sealed class SubsystemCache
 
     private readonly object[] _cachedSubsystems = new object[NumCachedSubsystems];
     private readonly StringHash[] _cachedSubsystemTypes = new StringHash[NumCachedSubsystems];
-    private readonly Container _subsystems = [];
+    private readonly SubsystemContainer _subsystems = [];
 
     /// <summary>
     /// Construct.
@@ -67,7 +77,7 @@ public sealed class SubsystemCache
     public void Clear()
     {
         var tempCachedSubsystems = _cachedSubsystems.Clone();
-        var tempSubsystems = new Container(_subsystems);
+        var tempSubsystems = new SubsystemContainer(_subsystems);
         _ = tempCachedSubsystems;
         _ = tempSubsystems;
 

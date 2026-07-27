@@ -2,7 +2,12 @@ using System.Runtime.CompilerServices;
 using RedBolt.Bindings.DearImGui;
 using RedBolt.Bindings.Diligent;
 
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
 namespace RedBolt;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+using TextureAddressMode = global::RedBolt.RenderAPI.TextureAddressMode;
 
 public class ImGuiDiligentRendererEx : IDisposable
 {
@@ -78,7 +83,7 @@ public class ImGuiDiligentRendererEx : IDisposable
 
     public void NewFrame()
     {
-        var graphics = _renderDevice.GetSubsystem<Graphics>()!;
+        var graphics = _renderDevice.GetSubsystem<GraphicsSystem>()!;
         ImGui.ImGuiBackendRendererNewFrame(
             _nativeRenderer,
             checked((uint)graphics.Width),
@@ -158,7 +163,7 @@ public class ImGuiDiligentRendererEx : IDisposable
         RenderDevice renderDevice, TextureFormat colorBufferFormat, TextureFormat depthBufferFormat, int multiSample)
     {
         var pipelineStateCache = renderDevice.GetSubsystem<PipelineStateCache>()!;
-        var graphics = renderDevice.GetSubsystem<Graphics>()!;
+        var graphics = renderDevice.GetSubsystem<GraphicsSystem>()!;
 
         var desc = new GraphicsPipelineStateDesc
         {

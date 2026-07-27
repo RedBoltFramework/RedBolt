@@ -1,6 +1,17 @@
 using RedBolt;
 
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Input;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.RenderPipeline;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
+using Math = global::System.Math;
+using RenderPipeline = global::RedBolt.RenderPipeline.RenderPipeline;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class RendererTests
@@ -53,7 +64,7 @@ public sealed class RendererTests
         var texture = new Texture2D { Name = "Textures/MousePositionTarget" };
         Assert.True(texture.SetSize(640, 480, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
         var renderSurface = new RenderSurface(texture, 0);
-        var mousePositionProperty = typeof(Input).GetProperty(nameof(Input.MousePosition));
+        var mousePositionProperty = typeof(InputSystem).GetProperty(nameof(InputSystem.MousePosition));
         Assert.NotNull(mousePositionProperty);
         var oldMousePosition = _fixture.Input.MousePosition;
         mousePositionProperty!.SetValue(_fixture.Input, new Vector2i(300, 150));

@@ -1,6 +1,15 @@
 using RedBolt;
 
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Engine;
+using RedBolt.Graphics;
+using RedBolt.Input;
+using RedBolt.RenderAPI;
+using RedBolt.Resource;
 namespace RedBolt.Tests;
+using EventHandler = global::RedBolt.Core.EventHandler;
+
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ContextTests
@@ -16,11 +25,11 @@ public sealed class ContextTests
     public void Engine_uses_context_registered_subsystems()
     {
         Assert.Same(_fixture.Engine.Context, Context.Instance);
-        Assert.Same(_fixture.Engine, _fixture.Engine.Context.GetSubsystem<Engine>());
+        Assert.Same(_fixture.Engine, _fixture.Engine.Context.GetSubsystem<EngineSystem>());
         Assert.Same(_fixture.Time, _fixture.Engine.Context.GetSubsystem<Time>());
         Assert.Same(_fixture.Resources, _fixture.Engine.Context.GetSubsystem<ResourceCache>());
-        Assert.Same(_fixture.Input, _fixture.Engine.Context.GetSubsystem<Input>());
-        Assert.Same(_fixture.Graphics, _fixture.Engine.Context.GetSubsystem<Graphics>());
+        Assert.Same(_fixture.Input, _fixture.Engine.Context.GetSubsystem<InputSystem>());
+        Assert.Same(_fixture.Graphics, _fixture.Engine.Context.GetSubsystem<GraphicsSystem>());
         Assert.Null(_fixture.Engine.Context.GetSubsystem<RenderDevice>());
         Assert.Same(_fixture.PipelineStateCache, _fixture.Engine.Context.GetSubsystem<PipelineStateCache>());
         Assert.Same(_fixture.Renderer, _fixture.Engine.Context.GetSubsystem<Renderer>());
@@ -547,7 +556,7 @@ public sealed class ContextTests
     public void Engine_shutdown_clears_global_context_instance()
     {
         var previousContext = Context.Instance;
-        var engine = new Engine();
+        var engine = new EngineSystem();
         try
         {
             engine.Initialize(new EngineParameters

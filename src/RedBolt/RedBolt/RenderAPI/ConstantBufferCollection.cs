@@ -2,7 +2,11 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Math;
+namespace RedBolt.RenderAPI;
+using Math = global::System.Math;
+
 
 /// <summary>Reference to the region in constant buffer within collection. Plain old data.</summary>
 public struct ConstantBufferCollectionRef

@@ -1,6 +1,11 @@
 using System.Buffers.Binary;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Math;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+
+using Timer = global::RedBolt.Core.Timer;
 
 /// <summary>Occlusion hierarchy depth value.</summary>
 public struct DepthValue

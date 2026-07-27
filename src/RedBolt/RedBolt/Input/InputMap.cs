@@ -3,7 +3,15 @@ using System.Runtime.InteropServices;
 
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Resource;
+namespace RedBolt.Input;
+using Math = global::System.Math;
+
 
 public class InputMap : SimpleResource
 {
@@ -71,7 +79,7 @@ public class InputMap : SimpleResource
     /// <summary>Construct.</summary>
     public InputMap()
     {
-        _ignoreJoystickId = this.GetSubsystem<Input>()!.FindAccelerometerJoystickId();
+        _ignoreJoystickId = this.GetSubsystem<InputSystem>()!.FindAccelerometerJoystickId();
     }
 
     public override void Dispose()
@@ -330,7 +338,7 @@ public class InputMap : SimpleResource
     {
         if (!_actions.TryGetValue(action, out var mapping))
             return 0.0f;
-        var input = this.GetSubsystem<Input>()!;
+        var input = this.GetSubsystem<InputSystem>()!;
         return mapping.Evaluate(input, _deadZone, _ignoreJoystickId);
     }
 
@@ -342,7 +350,7 @@ public class InputMap : SimpleResource
             if (new StringHash(action.Key) == actionHash)
                 return 0.0f;
         }
-        return GetMappingByHash(actionHash).Evaluate(this.GetSubsystem<Input>()!, _deadZone, _ignoreJoystickId);
+        return GetMappingByHash(actionHash).Evaluate(this.GetSubsystem<InputSystem>()!, _deadZone, _ignoreJoystickId);
     }
 
     /// <summary>Get scancode names.</summary>
@@ -478,7 +486,7 @@ public class InputMap : SimpleResource
         }
 
         /// <summary>Evaluate action state based on current input.</summary>
-        public readonly float Evaluate(Input input, float deadZone, int ignoreJoystickId)
+        public readonly float Evaluate(InputSystem input, float deadZone, int ignoreJoystickId)
         {
             foreach (var key in KeyboardKeys)
             {
@@ -556,7 +564,7 @@ public class InputMap : SimpleResource
             return MathDefs.Clamp(totalSum, 0.0f, 1.0f);
         }
 
-        private static bool IsModifierScancode(Scancode scancode, Input input)
+        private static bool IsModifierScancode(Scancode scancode, InputSystem input)
         {
             return scancode switch
             {
@@ -581,7 +589,7 @@ public struct KeyboardKeyMapping
     /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
     public void SerializeInBlock(Archive archive)
     {
-        ArchiveSerialization.SerializeOptionalValue(archive, "scancode", ref Scancode, RedBolt.Scancode.Unknown,
+        ArchiveSerialization.SerializeOptionalValue(archive, "scancode", ref Scancode, RedBolt.Input.Scancode.Unknown,
             static (Archive ar, string name, ref Scancode value) =>
                 ArchiveSerialization.SerializeEnum(ar, name, ref value, InputMap.GetScanCodeNames()));
     }
@@ -733,9 +741,9 @@ public struct ControllerHatMapping
     /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
     public void SerializeInBlock(Archive archive)
     {
-        var hatPosition = (RedBolt.HatPosition)HatPosition;
+        var hatPosition = (RedBolt.Input.HatPosition)HatPosition;
         ArchiveSerialization.SerializeOptionalValue(archive, "hat", ref hatPosition, default,
-            static (Archive ar, string name, ref RedBolt.HatPosition value) =>
+            static (Archive ar, string name, ref RedBolt.Input.HatPosition value) =>
                 ArchiveSerialization.SerializeEnum(ar, name, ref value, InputMap.GetControllerHatNames()));
         HatPosition = (uint)hatPosition;
     }
@@ -756,9 +764,9 @@ public struct MouseButtonMapping
     /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
     public void SerializeInBlock(Archive archive)
     {
-        var button = (RedBolt.MouseButton)MouseButton;
+        var button = (RedBolt.Input.MouseButton)MouseButton;
         ArchiveSerialization.SerializeOptionalValue(archive, "button", ref button, default,
-            static (Archive ar, string name, ref RedBolt.MouseButton value) =>
+            static (Archive ar, string name, ref RedBolt.Input.MouseButton value) =>
                 ArchiveSerialization.SerializeEnum(ar, name, ref value, InputMap.GetMouseButtonNames()));
         MouseButton = (uint)button;
     }

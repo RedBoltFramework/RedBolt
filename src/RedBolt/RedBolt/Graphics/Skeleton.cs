@@ -1,6 +1,14 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.IO;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 [Flags]
 public enum AnimationChannel : byte

@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Resource;
+namespace RedBolt.IO;
 
 /// <summary>Stores files of a directory tree sequentially for convenient access.</summary>
 public class MountedDirectory : WatchableMountPoint

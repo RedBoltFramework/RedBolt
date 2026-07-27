@@ -1,3 +1,5 @@
+using RedBolt.Graphics;
+using RedBolt.RenderPipeline;
 namespace RedBolt.Tests;
 
 public sealed class RenderPipelineSettingsTests
@@ -44,8 +46,8 @@ public sealed class RenderPipelineSettingsTests
     public void Batch_renderer_helpers_use_stack_only_value_storage()
     {
         var assembly = typeof(BatchRenderer).Assembly;
-        Assert.True(assembly.GetType("RedBolt.ObjectParameterBuilder", true)!.IsValueType);
-        Assert.True(assembly.GetType("RedBolt.DrawCommandCompositor", true)!.IsByRefLike);
+        Assert.True(assembly.GetType("RedBolt.RenderPipeline.ObjectParameterBuilder", true)!.IsValueType);
+        Assert.True(assembly.GetType("RedBolt.RenderPipeline.DrawCommandCompositor", true)!.IsByRefLike);
     }
 
     [Fact]

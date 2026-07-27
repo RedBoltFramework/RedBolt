@@ -1,4 +1,9 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Math;
+namespace RedBolt.Input;
+using Math = global::System.Math;
+
 
 /// <summary>Helper class to transform axis value.</summary>
 public class AxisAdapter : ICloneable

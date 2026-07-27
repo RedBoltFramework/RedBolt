@@ -1,7 +1,17 @@
 using RedBolt;
 using System.Reflection;
 
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.Resource;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
+using CullMode = global::RedBolt.Graphics.CullMode;
+using FillMode = global::RedBolt.Graphics.FillMode;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class MaterialTests

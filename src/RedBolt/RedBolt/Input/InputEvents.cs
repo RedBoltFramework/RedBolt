@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Input;
 
 public static class InputEvents
 {

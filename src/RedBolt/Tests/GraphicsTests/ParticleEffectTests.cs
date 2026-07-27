@@ -1,7 +1,17 @@
 using System.Text;
 using RedBolt;
 
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.IO;
+using RedBolt.Math;
+using RedBolt.Resource;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
+using Scene = global::RedBolt.Scene.Scene;
+using Timer = global::RedBolt.Core.Timer;
+
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ParticleEffectTests

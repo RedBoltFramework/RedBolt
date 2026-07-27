@@ -24,7 +24,16 @@ using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.Resource;
+namespace RedBolt.Graphics;
+using FileMode = global::RedBolt.IO.FileMode;
+using Math = global::System.Math;
+
 
 /// <summary>
 /// Animation trigger point.

@@ -1,4 +1,12 @@
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.RenderPipeline;
+namespace RedBolt.RenderAPI;
+using Math = global::System.Math;
+
 
 using System.Diagnostics;
 using RedBolt.Bindings.Diligent;

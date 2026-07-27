@@ -4,7 +4,12 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.IO;
+using RedBolt.Input;
+using RedBolt.Math;
+using RedBolt.Resource;
+namespace RedBolt.Core;
 
 public enum VariantType : byte
 {

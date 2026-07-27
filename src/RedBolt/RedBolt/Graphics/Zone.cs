@@ -1,7 +1,15 @@
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Resource = global::RedBolt.Resource.Resource;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 /// <summary>Component that describes global rendering properties.</summary>
 /// <remarks>

@@ -3,10 +3,15 @@
 // This work is licensed under the terms of the MIT license.
 // For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
-using VariantAnimationKeyFrame = RedBolt.VariantCurvePoint;
+using VariantAnimationKeyFrame = RedBolt.Core.VariantCurvePoint;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Math;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+
 
 /// <summary>Skeletal animation keyframe.</summary>
 /// <remarks>TODO: Replace inheritance with composition?</remarks>

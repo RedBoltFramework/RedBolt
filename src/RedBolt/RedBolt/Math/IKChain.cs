@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace RedBolt;
+namespace RedBolt.Math;
 
 /// <summary>Base class for generic IK chain.</summary>
 public class IKChain : ICloneable

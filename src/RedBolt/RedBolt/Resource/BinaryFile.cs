@@ -1,7 +1,10 @@
 using System.Text;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Logging;
+namespace RedBolt.Resource;
 
 /// <summary>Resource for generic binary file.</summary>
 [Reflected]

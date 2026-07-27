@@ -1,6 +1,14 @@
 using System.Runtime.CompilerServices;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Input;
+using RedBolt.Math;
+using RedBolt.RenderPipeline;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 /// <summary>Group of selected drawables.</summary>
 public class OutlineGroup : Component

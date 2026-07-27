@@ -1,4 +1,6 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.IO;
+namespace RedBolt.RenderAPI;
 
 public struct ShaderBytecode : ICloneable
 {

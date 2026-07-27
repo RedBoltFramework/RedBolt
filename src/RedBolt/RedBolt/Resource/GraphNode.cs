@@ -1,7 +1,12 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Input;
+namespace RedBolt.Resource;
+
 
 public class GraphNodeProperty : IArchiveSerializable, IDisposable
 {

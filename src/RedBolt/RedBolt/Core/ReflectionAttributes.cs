@@ -1,7 +1,8 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace RedBolt;
+using RedBolt.Container;
+namespace RedBolt.Core;
 
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class ReflectedAttribute : Attribute

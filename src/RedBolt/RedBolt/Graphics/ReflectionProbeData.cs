@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 
-namespace RedBolt;
+using RedBolt.Math;
+namespace RedBolt.Graphics;
 
 /// <summary>
 /// Reflection probe data. Reused by actual reflection probes and zones.

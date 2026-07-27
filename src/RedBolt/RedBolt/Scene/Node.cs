@@ -1,4 +1,13 @@
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Resource;
+namespace RedBolt.Scene;
+using Math = global::System.Math;
+
 
 /// <summary>Scene node that may contain components and child nodes.</summary>
 public class Node : Serializable

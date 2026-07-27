@@ -1,7 +1,15 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Math;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+using Resource = global::RedBolt.Resource.Resource;
+
 
 /// <summary>One billboard in the billboard set.</summary>
 public struct Billboard

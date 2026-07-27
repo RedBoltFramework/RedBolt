@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace RedBolt;
+namespace RedBolt.Core;
 
 public sealed class Timer
 {

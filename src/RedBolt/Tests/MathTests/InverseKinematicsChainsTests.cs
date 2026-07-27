@@ -1,5 +1,6 @@
 using RedBolt;
 
+using RedBolt.Math;
 namespace RedBolt.Tests;
 
 public sealed class InverseKinematicsChainsTests

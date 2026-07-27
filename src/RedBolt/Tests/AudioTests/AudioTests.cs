@@ -1,6 +1,14 @@
 using RedBolt;
 
+using RedBolt.Audio;
+using RedBolt.Core;
+using RedBolt.Engine;
+using RedBolt.Graphics;
+using RedBolt.IO;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class AudioTests
@@ -20,7 +28,7 @@ public sealed class AudioTests
     [Fact]
     public void Audio_constructor_preserves_cpp_default_interpolation_state()
     {
-        var audio = _fixture.Engine.GetSubsystem<Audio>()!;
+        var audio = _fixture.Engine.GetSubsystem<AudioSystem>()!;
 
         Assert.False(audio.GetInterpolation());
     }

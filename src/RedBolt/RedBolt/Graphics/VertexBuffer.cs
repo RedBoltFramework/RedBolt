@@ -1,7 +1,13 @@
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+
 
 /// <summary>Hardware vertex buffer.</summary>
 public class VertexBuffer : PipelineStateTracker

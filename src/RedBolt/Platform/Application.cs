@@ -2,7 +2,16 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 
+using RedBolt.Core;
+using RedBolt.Engine;
+using RedBolt.Graphics;
+using RedBolt.IO;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.Platform;
+using RedBolt.Resource;
 namespace RedBolt;
+using LogLevel = global::RedBolt.Logging.LogLevel;
 
 public abstract partial class Application : RedObject
 {
@@ -13,7 +22,7 @@ public abstract partial class Application : RedObject
 
     protected Application()
     {
-        Engine = new Engine();
+        Engine = new RedBolt.Engine.EngineSystem();
         _updateAction = Update;
         InitializeMainLoop();
         SubscribeToEvent<IOEvents.LogMessage>(HandleLogMessage);
@@ -31,15 +40,15 @@ public abstract partial class Application : RedObject
 
     public int MaxFrameCount { get; set; } = 10_000;
 
-    protected Engine Engine { get; }
+    protected RedBolt.Engine.EngineSystem Engine { get; }
 
     protected ResourceCache Resources => GetSubsystem<ResourceCache>()!;
 
-    protected Graphics Graphics => GetSubsystem<Graphics>()!;
+    protected RedBolt.Graphics.GraphicsSystem Graphics => GetSubsystem<RedBolt.Graphics.GraphicsSystem>()!;
 
     protected Renderer Renderer => GetSubsystem<Renderer>()!;
 
-    protected Input Input => GetSubsystem<Input>()!;
+    protected RedBolt.Input.InputSystem Input => GetSubsystem<RedBolt.Input.InputSystem>()!;
 
     protected virtual void Setup(EngineParameters parameters)
     {

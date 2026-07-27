@@ -1,7 +1,7 @@
 // C#-only interop marshallers needed for P/Invoke with native Diligent / SDL / rbfx shared libraries.
 using System.Runtime.InteropServices.Marshalling;
 
-namespace RedBolt;
+namespace RedBolt.Math;
 
 [CustomMarshaller(typeof(BaseRealVector2<float>), MarshalMode.ManagedToUnmanagedIn, typeof(Vector2fMarshaller))]
 [CustomMarshaller(typeof(BaseRealVector2<float>), MarshalMode.ManagedToUnmanagedOut, typeof(Vector2fMarshaller))]

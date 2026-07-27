@@ -7,7 +7,9 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+namespace RedBolt.Math;
+using Math = global::System.Math;
+
 
 /// <summary>Four-dimensional vector.</summary>
 [StructLayout(LayoutKind.Sequential)]

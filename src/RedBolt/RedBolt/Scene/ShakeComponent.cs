@@ -1,4 +1,8 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Math;
+namespace RedBolt.Scene;
+using Math = global::System.Math;
+
 
 /// <summary>
 /// Component that randomly displaces the node around (0,0,0) coordinate.

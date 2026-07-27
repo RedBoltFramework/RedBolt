@@ -1,6 +1,10 @@
 using RedBolt;
 
+using RedBolt.Core;
+using RedBolt.Engine;
+using RedBolt.IO;
 namespace RedBolt.Tests;
+
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ConfigFileTests
@@ -25,7 +29,7 @@ public sealed class ConfigFileTests
 
         try
         {
-            using var engine = new Engine();
+            using var engine = new EngineSystem();
             Assert.True(engine.Initialize(new EngineParameters
             {
                 ApplicationName = "RedBolt.Tests.Config",

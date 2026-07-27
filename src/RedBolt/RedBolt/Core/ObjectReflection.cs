@@ -2,7 +2,11 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Logging;
+namespace RedBolt.Core;
+using Math = global::System.Math;
+
 
 public static class ObjectReflection<T>
 {

@@ -1,6 +1,8 @@
 using RedBolt;
 using System.Runtime.CompilerServices;
 
+using RedBolt.Container;
+using RedBolt.Math;
 namespace RedBolt.Tests;
 
 public sealed class Array2DTests

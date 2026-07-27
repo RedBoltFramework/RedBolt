@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 
-namespace RedBolt;
+using RedBolt.Core;
+namespace RedBolt.IO;
 
 /// <summary>Access to engine file system mount point.</summary>
 public abstract class MountPoint : RedObject

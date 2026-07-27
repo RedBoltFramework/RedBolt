@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Resource;
 
 public enum AsyncLoadState
 {

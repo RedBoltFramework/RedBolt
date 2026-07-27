@@ -22,7 +22,12 @@
 
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Scene = global::RedBolt.Scene.Scene;
 
 /// <summary>
 /// Helper component that tracks points in world space and updates camera position.

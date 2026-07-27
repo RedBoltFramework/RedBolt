@@ -2,6 +2,12 @@ using System;
 using System.Collections.Generic;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Audio;
+using RedBolt.Container;
+using RedBolt.Engine;
+using RedBolt.Scene;
+using RedBolt.Core;
+using RedBolt.Input;
 
 #if !REDBOLT_WEB_SAMPLE
 try
@@ -65,7 +71,7 @@ public class SoundEffects : Application
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
         SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawUI());
 
-        var audio = GetSubsystem<Audio>()!;
+        var audio = GetSubsystem<AudioSystem>()!;
         _microphones = audio.EnumerateMicrophones();
         for (var i = 0; i < _microphones.Count; ++i)
             _microphoneLabels.Add(new CString(_microphones[i]));
@@ -132,7 +138,7 @@ public class SoundEffects : Application
     /// <summary>Handle sound effects volume slider change.</summary>
     private void HandleSoundVolume(float newVolume)
     {
-        GetSubsystem<Audio>()!.SetMasterGain(AudioDefs.SoundEffect, newVolume);
+        GetSubsystem<AudioSystem>()!.SetMasterGain(AudioDefs.SoundEffect, newVolume);
     }
 
     /// <summary>Handle sound effect L/R pan slider change.</summary>
@@ -156,7 +162,7 @@ public class SoundEffects : Application
     /// <summary>Handle music volume slider change.</summary>
     private void HandleMusicVolume(float newVolume)
     {
-        GetSubsystem<Audio>()!.SetMasterGain(AudioDefs.SoundMusic, newVolume);
+        GetSubsystem<AudioSystem>()!.SetMasterGain(AudioDefs.SoundMusic, newVolume);
     }
 
     /// <summary>Handle starting mic recording.</summary>
@@ -169,7 +175,7 @@ public class SoundEffects : Application
         {
             var micName = _microphones[_selectedMicrophone];
 
-            _activeMic = GetSubsystem<Audio>()!.CreateMicrophone(micName, false, 16000, 64);
+            _activeMic = GetSubsystem<AudioSystem>()!.CreateMicrophone(micName, false, 16000, 64);
             if (_activeMic is not null)
             {
                 _micStream = new BufferedSoundStream();
@@ -231,7 +237,7 @@ public class SoundEffects : Application
                 HandleSceneTimeScale(sceneTimeScale);
 
             // Create sliders for controlling sound and music master volume
-            var audio = GetSubsystem<Audio>()!;
+            var audio = GetSubsystem<AudioSystem>()!;
             var soundVolume = audio.GetMasterGain(AudioDefs.SoundEffect);
             if (ImGui.SliderFloat("Sound Volume\0"u8, out soundVolume, 0.0f, 1.0f))
                 HandleSoundVolume(soundVolume);

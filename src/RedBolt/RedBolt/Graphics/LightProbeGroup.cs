@@ -1,6 +1,17 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using FileMode = global::RedBolt.IO.FileMode;
+using Math = global::System.Math;
+
+using Scene = global::RedBolt.Scene.Scene;
 
 /// <summary>Light probe description.</summary>
 public struct LightProbe

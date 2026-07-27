@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Scene;
 
 /// <summary>Reaction to world origin updated.</summary>
 public enum WorldOriginUpdateMode

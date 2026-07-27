@@ -7,7 +7,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Logging;
+namespace RedBolt.IO;
+using Math = global::System.Math;
+
 
 /// <summary>Named pipe for interprocess communication.</summary>
 public class NamedPipe : AbstractFile

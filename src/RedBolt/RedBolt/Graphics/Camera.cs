@@ -1,4 +1,10 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+
 
 [Flags]
 public enum ViewOverride : uint
@@ -50,13 +56,13 @@ public sealed class Camera : Component
     private Matrix4 _inverseViewProj;
     private readonly Frustum _frustum = new();
     private readonly Frustum _viewSpaceFrustum = new();
-    private readonly WeakReference<Graphics>? _graphics;
+    private readonly WeakReference<GraphicsSystem>? _graphics;
     private Zone? _zone;
 
     public Camera()
     {
-        var graphics = GetSubsystem<Graphics>();
-        _graphics = graphics is not null ? new WeakReference<Graphics>(graphics) : null;
+        var graphics = GetSubsystem<GraphicsSystem>();
+        _graphics = graphics is not null ? new WeakReference<GraphicsSystem>(graphics) : null;
         RegisterAttribute("Is Enabled", typeof(bool), self => ((Camera)self).Enabled, (self, value) => ((Camera)self).SetEnabled(value is bool enabled && enabled), true);
         RegisterAttribute("Near Clip", typeof(float), self => ((Camera)self).GetNearClip(), (self, value) => ((Camera)self).SetNearClip((float)value!), DefaultNearClip);
         RegisterAttribute("Far Clip", typeof(float), self => ((Camera)self).GetFarClip(), (self, value) => ((Camera)self).SetFarClip((float)value!), DefaultFarClip);

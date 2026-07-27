@@ -5,7 +5,14 @@ using RedBolt;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
 
+using RedBolt.Core;
+using RedBolt.Engine;
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.RenderPipeline;
 namespace RedBolt.Tests;
+
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class GraphicsRenderTargetViewTests
@@ -351,14 +358,14 @@ public sealed class GraphicsRenderTargetViewTests
 
     private ITextureView ResolveRenderTargetView(RenderTargetView view)
     {
-        var method = typeof(Graphics).GetMethod("ResolveRenderTargetView", BindingFlags.Instance | BindingFlags.NonPublic)
+        var method = typeof(GraphicsSystem).GetMethod("ResolveRenderTargetView", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("Graphics.ResolveRenderTargetView was not found.");
         return Assert.IsAssignableFrom<ITextureView>(method.Invoke(_fixture.Graphics, [view]));
     }
 
     private object GetUploadedTexture(Texture2D texture)
     {
-        var method = typeof(Graphics).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
+        var method = typeof(GraphicsSystem).GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
             .Single(candidate => candidate.Name == "GetOrCreateUploadedTexture"
                 && candidate.GetParameters() is [{ ParameterType: var parameterType }]
                 && parameterType == typeof(Texture2D));
@@ -382,14 +389,14 @@ public sealed class GraphicsRenderTargetViewTests
 
     private RenderOutputTargetInfo GetSwapChainOutputTarget()
     {
-        var method = typeof(Graphics).GetMethod("GetSwapChainOutputTarget", BindingFlags.Instance | BindingFlags.NonPublic)
+        var method = typeof(GraphicsSystem).GetMethod("GetSwapChainOutputTarget", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("Graphics.GetSwapChainOutputTarget was not found.");
         return Assert.IsType<RenderOutputTargetInfo>(method.Invoke(_fixture.Graphics, []));
     }
 
     private ITexture GetShaderResourceTexture(Texture2D texture)
     {
-        var method = typeof(Graphics).GetMethod("GetShaderResourceView", BindingFlags.Instance | BindingFlags.NonPublic)
+        var method = typeof(GraphicsSystem).GetMethod("GetShaderResourceView", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("Graphics.GetShaderResourceView was not found.");
         var view = Assert.IsAssignableFrom<ITextureView>(method.Invoke(_fixture.Graphics, [texture]));
         return view.GetTexture();
@@ -397,7 +404,7 @@ public sealed class GraphicsRenderTargetViewTests
 
     private void SetRenderTargets(IntRect viewportRect, RenderTargetView? colorTarget, RenderTargetView? depthStencilTarget)
     {
-        var method = typeof(Graphics).GetMethod(
+        var method = typeof(GraphicsSystem).GetMethod(
                 "SetRenderTargets",
                 BindingFlags.Instance | BindingFlags.NonPublic,
                 binder: null,
@@ -409,28 +416,28 @@ public sealed class GraphicsRenderTargetViewTests
 
     private void ClearCurrentRenderTargets(Color color, bool clearColorTarget, bool clearDepth, bool clearStencil)
     {
-        var method = typeof(Graphics).GetMethod("ClearCurrentRenderTargets", BindingFlags.Instance | BindingFlags.NonPublic)
+        var method = typeof(GraphicsSystem).GetMethod("ClearCurrentRenderTargets", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("Graphics.ClearCurrentRenderTargets was not found.");
         method.Invoke(_fixture.Graphics, [color, clearColorTarget, clearDepth, clearStencil, 1.0f, (byte)0]);
     }
 
     private void UnbindRenderTargets()
     {
-        var method = typeof(Graphics).GetMethod("UnbindRenderTargets", BindingFlags.Instance | BindingFlags.NonPublic)
+        var method = typeof(GraphicsSystem).GetMethod("UnbindRenderTargets", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("Graphics.UnbindRenderTargets was not found.");
         method.Invoke(_fixture.Graphics, []);
     }
 
     private void DrawCopyTexture(Texture sourceTexture, bool bilinearFiltering, bool flipVertical)
     {
-        var method = typeof(Graphics).GetMethod("DrawCopyTexture", BindingFlags.Instance | BindingFlags.NonPublic)
+        var method = typeof(GraphicsSystem).GetMethod("DrawCopyTexture", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("Graphics.DrawCopyTexture was not found.");
         method.Invoke(_fixture.Graphics, [sourceTexture, bilinearFiltering, flipVertical]);
     }
 
     private DeviceContextStats GetImmediateContextStats()
     {
-        var field = typeof(Graphics).GetField("_immediateContext", BindingFlags.Instance | BindingFlags.NonPublic)
+        var field = typeof(GraphicsSystem).GetField("_immediateContext", BindingFlags.Instance | BindingFlags.NonPublic)
             ?? throw new InvalidOperationException("Graphics.immediateContext was not found.");
         var immediateContext = Assert.IsAssignableFrom<IDeviceContext>(field.GetValue(_fixture.Graphics));
         return immediateContext.GetStats();

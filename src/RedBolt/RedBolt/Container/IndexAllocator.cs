@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Container;
 
 /// <summary>
 /// Utility to assign unique non-zero IDs to objects. Thread-safe.

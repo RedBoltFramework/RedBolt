@@ -2,6 +2,9 @@ using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using RedBolt;
 
+using RedBolt.Core;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
 namespace RedBolt.Tests;
 
 public sealed class ConstantBufferCollectionTests

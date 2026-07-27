@@ -1,4 +1,13 @@
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Math;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Resource = global::RedBolt.Resource.Resource;
+using Timer = global::RedBolt.Core.Timer;
+
+using Scene = global::RedBolt.Scene.Scene;
 
 /// <summary>One particle in the particle system.</summary>
 public struct Particle

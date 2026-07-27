@@ -1,4 +1,9 @@
+using RedBolt.Core;
+using RedBolt.Engine;
+using RedBolt.Graphics;
+using RedBolt.IO;
 namespace RedBolt.Tests;
+
 
 public sealed class ShaderSourceLoggerTests
 {
@@ -7,14 +12,14 @@ public sealed class ShaderSourceLoggerTests
     {
         var previousContext = Context.Instance;
         var context = new Context();
-        var engine = new Engine();
+        var engine = new EngineSystem();
         Context.SetInstance(context);
 
         var fileName = Path.Combine(Path.GetTempPath(), $"RedBoltShaderSource-{Guid.NewGuid():N}.glsl");
         try
         {
             context.InitializeEngineSubsystems(engine);
-            var graphics = context.GetSubsystem<Graphics>()!;
+            var graphics = context.GetSubsystem<GraphicsSystem>()!;
             var settings = graphics.GetSettings();
             settings.LogShaderSources = true;
             graphics.Configure(in settings);

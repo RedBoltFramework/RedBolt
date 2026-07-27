@@ -1,4 +1,6 @@
 using RedBolt;
+using RedBolt.Math;
+using RedBolt.Scene;
 
 /// <summary>Custom logic component for moving the animated model and rotating at area edges.</summary>
 public sealed class Mover3D : LogicComponent

@@ -6,7 +6,11 @@ using System.Xml.XPath;
 using System.Xml.Xsl;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.IO;
+using RedBolt.Logging;
+namespace RedBolt.Resource;
+using Math = global::System.Math;
+
 
 /// <summary>XPath query result set.</summary>
 public class XPathResultSet : IReadOnlyList<XMLElement>, ICloneable, IDisposable

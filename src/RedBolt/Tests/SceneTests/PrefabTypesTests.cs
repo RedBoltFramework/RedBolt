@@ -1,3 +1,4 @@
+using RedBolt.Scene;
 namespace RedBolt.Tests;
 
 public sealed class PrefabTypesTests

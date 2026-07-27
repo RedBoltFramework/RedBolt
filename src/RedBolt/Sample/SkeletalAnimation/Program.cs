@@ -3,6 +3,12 @@ using System.Runtime.InteropServices;
 using System.Text;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Engine;
+using RedBolt.Graphics;
+using RedBolt.Scene;
+using RedBolt.Core;
+using RedBolt.Input;
+using RedBolt.Math;
 
 #if !REDBOLT_WEB_SAMPLE
 try { return new SkeletalAnimationApplication().Run(); }
@@ -56,7 +62,7 @@ sealed class SkeletalAnimationApplication : Application
         // Execute base class startup
 
         _skinningMode = Renderer.GetSkinningMode();
-        _maxBones = Graphics.GetMaxBones();
+        _maxBones = GraphicsSystem.GetMaxBones();
         _softwareSkinningBones = Renderer.GetNumSoftwareSkinningBones();
 
         // Create the scene content
@@ -236,7 +242,7 @@ sealed class SkeletalAnimationApplication : Application
         _maxBones = maxBones;
         _softwareSkinningBones = softwareSkinningBones;
         Renderer.SetSkinningMode(skinningMode);
-        Graphics.SetMaxBones(maxBones);
+        GraphicsSystem.SetMaxBones(maxBones);
         Renderer.SetNumSoftwareSkinningBones(softwareSkinningBones);
 
         var previousScene = _scene;

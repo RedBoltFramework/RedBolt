@@ -5,6 +5,10 @@ using System.Runtime.InteropServices;
 using System.Text;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Engine;
+using RedBolt.IO;
+using RedBolt.Core;
+using RedBolt.Input;
 
 #if !REDBOLT_WEB_SAMPLE
 return new VirtualFileSystemApplication().Run(args);
@@ -99,7 +103,7 @@ sealed class VirtualFileSystemApplication : Application
                 _exists = vfs.Exists(_fileIdentifier);
                 _absoluteFileName = vfs.GetAbsoluteNameFromIdentifier(_fileIdentifier);
                 _readOnlyFile?.Close();
-                _readOnlyFile = vfs.OpenFile(_fileIdentifier, RedBolt.FileMode.Read);
+                _readOnlyFile = vfs.OpenFile(_fileIdentifier, FileMode.Read);
                 _modificationTime = vfs.GetLastModifiedTime(_fileIdentifier, true);
                 _reversedUri = vfs.GetIdentifierFromAbsoluteName(_absoluteFileName).ToUri();
                 UpdateQueryLines();

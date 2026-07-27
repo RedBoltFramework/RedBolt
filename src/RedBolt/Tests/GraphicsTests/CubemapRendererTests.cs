@@ -2,7 +2,14 @@ using System.Collections;
 using System.Reflection;
 using RedBolt;
 
+using RedBolt.Core;
+using RedBolt.Engine;
+using RedBolt.Graphics;
+using RedBolt.RenderAPI;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class CubemapRendererTests

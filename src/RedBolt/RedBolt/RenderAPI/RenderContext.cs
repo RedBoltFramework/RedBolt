@@ -3,7 +3,14 @@ using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Logging;
+using RedBolt.Math;
+namespace RedBolt.RenderAPI;
+using Math = global::System.Math;
+
 
 /// <summary>
 /// Render context that consumes render commands.

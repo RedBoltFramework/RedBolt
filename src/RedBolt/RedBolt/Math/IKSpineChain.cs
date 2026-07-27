@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
 
-namespace RedBolt;
+using RedBolt.Logging;
+namespace RedBolt.Math;
 
 /// <summary>Uniformly bending IK chain.</summary>
 public class IKSpineChain : IKChain, ICloneable

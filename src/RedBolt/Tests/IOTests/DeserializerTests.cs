@@ -1,6 +1,10 @@
 using RedBolt;
 
+using RedBolt.Core;
+using RedBolt.IO;
 namespace RedBolt.Tests;
+using Math = global::System.Math;
+
 
 public sealed class DeserializerTests
 {

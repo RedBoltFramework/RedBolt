@@ -1,6 +1,9 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Logging;
+namespace RedBolt.Scene;
 
 /// <summary>
 /// Utility class that resolves node &amp; component IDs after a scene or partial scene load.

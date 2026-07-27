@@ -1,7 +1,16 @@
 using System.Reflection;
 using RedBolt;
 
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.RenderPipeline;
 namespace RedBolt.Tests;
+using Math = global::System.Math;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class DrawCommandQueueTests

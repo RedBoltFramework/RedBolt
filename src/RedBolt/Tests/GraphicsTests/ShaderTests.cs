@@ -1,6 +1,11 @@
 using RedBolt;
 
+using RedBolt.Engine;
+using RedBolt.Graphics;
+using RedBolt.RenderAPI;
 namespace RedBolt.Tests;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class ShaderTests

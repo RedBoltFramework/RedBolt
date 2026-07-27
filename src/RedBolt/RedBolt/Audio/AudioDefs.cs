@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Audio;
 
 public static class AudioDefs
 {

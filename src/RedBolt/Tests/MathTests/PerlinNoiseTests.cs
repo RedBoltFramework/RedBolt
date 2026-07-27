@@ -1,6 +1,9 @@
 using System.Reflection;
 
+using RedBolt.Math;
 namespace RedBolt.Tests.MathTests;
+using Math = global::System.Math;
+
 
 public class PerlinNoiseTests
 {

@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+namespace RedBolt.Math;
 
 [InlineArray(9)]
 [StructLayout(LayoutKind.Sequential)]

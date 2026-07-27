@@ -4,7 +4,11 @@ using System.Runtime.InteropServices;
 using RedBolt.Bindings.Sdl;
 using System.Text;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.IO;
+namespace RedBolt.Core;
+using Math = global::System.Math;
+
 
 public enum PlatformId
 {

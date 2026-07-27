@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Graphics;
 
 /// <summary>
 /// SPIR-V shader.

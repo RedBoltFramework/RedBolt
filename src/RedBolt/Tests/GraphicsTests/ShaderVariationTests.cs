@@ -1,4 +1,9 @@
+using RedBolt.Graphics;
+using RedBolt.IO;
+using RedBolt.RenderAPI;
 namespace RedBolt.Tests;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+
 
 public sealed class ShaderVariationTests
 {
@@ -11,7 +16,7 @@ public sealed class ShaderVariationTests
         Assert.False(typeof(ICloneable).IsAssignableFrom(type));
         Assert.Equal(typeof(RawShader), typeof(RawShader).GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);
 
-        Assert.Equal(typeof(Graphics), type.GetField("_graphics", System.Reflection.BindingFlags.NonPublic |
+        Assert.Equal(typeof(GraphicsSystem), type.GetField("_graphics", System.Reflection.BindingFlags.NonPublic |
             System.Reflection.BindingFlags.Instance)!.FieldType);
         Assert.Equal(typeof(Shader), type.GetField("_owner", System.Reflection.BindingFlags.NonPublic |
             System.Reflection.BindingFlags.Instance)!.FieldType);

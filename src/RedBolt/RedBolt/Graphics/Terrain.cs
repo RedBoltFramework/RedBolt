@@ -1,7 +1,17 @@
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+using Resource = global::RedBolt.Resource.Resource;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 /// <summary>
 /// Heightmap terrain component.

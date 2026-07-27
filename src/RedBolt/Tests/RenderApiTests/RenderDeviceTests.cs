@@ -1,6 +1,14 @@
 using RedBolt;
 
+using RedBolt.Core;
+using RedBolt.Engine;
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.Resource;
 namespace RedBolt.Tests;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class RenderDeviceTests
@@ -331,13 +339,13 @@ public sealed class RenderDeviceTests
                 reportedWindowPosition = new Vector2i(eventData.X, eventData.Y);
             });
 
-            _fixture.Graphics.SetWindowTitle("Graphics Window API");
+            _fixture.Graphics.SetWindowTitle("GraphicsSystem Window API");
             var movedPosition = originalPosition + new Vector2i(1, 1);
             _fixture.Graphics.SetWindowPosition(movedPosition);
             var actualPosition = _fixture.Graphics.GetWindowPosition();
             _fixture.Graphics.OnWindowMoved();
 
-            Assert.Equal("Graphics Window API", _fixture.Graphics.GetWindowTitle());
+            Assert.Equal("GraphicsSystem Window API", _fixture.Graphics.GetWindowTitle());
             Assert.Equal(actualPosition, _fixture.Graphics.GetWindowPosition());
             Assert.Equal(1, windowPosEventCount);
             Assert.Equal(actualPosition, reportedWindowPosition);
@@ -541,7 +549,7 @@ public sealed class RenderDeviceTests
 
     private sealed class EngineHandle : IDisposable
     {
-        public Engine Engine { get; } = new();
+        public EngineSystem Engine { get; } = new();
 
         public void Dispose()
         {

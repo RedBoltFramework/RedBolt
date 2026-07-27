@@ -1,6 +1,11 @@
 using System.Reflection;
 
+using RedBolt.Engine;
+using RedBolt.Graphics;
+using RedBolt.RenderAPI;
 namespace RedBolt.Tests;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class GraphicsCustomUniformTests
@@ -54,7 +59,7 @@ public sealed class GraphicsCustomUniformTests
             var inputInvSize = fields.Single(field => Equals(GetProperty(field, "UniformName"), "InputInvSize"));
             var inputOffset = (int)(GetProperty(inputInvSize, "Offset") ?? -1);
 
-            var writeMethod = typeof(Graphics).GetMethod("WriteCustomParameterValue", BindingFlags.NonPublic | BindingFlags.Static)
+            var writeMethod = typeof(GraphicsSystem).GetMethod("WriteCustomParameterValue", BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new InvalidOperationException("Graphics.WriteCustomParameterValue was not found.");
             var buffer = new byte[(int)(uint)(GetProperty(layout, "Size") ?? 0u)];
 
@@ -69,7 +74,7 @@ public sealed class GraphicsCustomUniformTests
     public void TryGetCustomParameterValue_reads_material_custom_parameters()
     {
         var field = GetFields(CreateFieldOnlyLayout("P_Outline", "URHO3D_GEOMETRY_STATIC")).Single();
-        var lookupMethod = typeof(Graphics).GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
+        var lookupMethod = typeof(GraphicsSystem).GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
             .Single(method =>
             {
                 if (method.Name != "TryGetCustomParameterValue")
@@ -96,7 +101,7 @@ public sealed class GraphicsCustomUniformTests
     public void TryGetCustomParameterValue_ignores_non_custom_material_parameters()
     {
         var field = GetFields(CreateFieldOnlyLayout("P_Outline", "URHO3D_GEOMETRY_STATIC")).Single();
-        var lookupMethod = typeof(Graphics).GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
+        var lookupMethod = typeof(GraphicsSystem).GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
             .Single(method =>
             {
                 if (method.Name != "TryGetCustomParameterValue")
@@ -158,7 +163,7 @@ public sealed class GraphicsCustomUniformTests
             Assert.NotNull(pixelShader);
 
         var reflection = new ShaderProgramReflection([vertexShader, pixelShader]);
-        var layoutMethod = typeof(Graphics).GetMethod("CreateCustomUniformLayout", BindingFlags.NonPublic | BindingFlags.Static)
+        var layoutMethod = typeof(GraphicsSystem).GetMethod("CreateCustomUniformLayout", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new InvalidOperationException("Graphics.CreateCustomUniformLayout was not found.");
         return layoutMethod.Invoke(null, [reflection])
             ?? throw new InvalidOperationException("Custom uniform layout was null.");
@@ -186,7 +191,7 @@ public sealed class GraphicsCustomUniformTests
 
     private static MethodInfo GetStructWriterMethod(Type parameterType)
     {
-        var writerType = typeof(Graphics).GetNestedType("StructCustomUniformWriter`1", BindingFlags.NonPublic)
+        var writerType = typeof(GraphicsSystem).GetNestedType("StructCustomUniformWriter`1", BindingFlags.NonPublic)
             ?.MakeGenericType(parameterType)
             ?? throw new InvalidOperationException("Graphics.StructCustomUniformWriter<T> was not found.");
         return writerType.GetMethod("Write", BindingFlags.Public | BindingFlags.Static)

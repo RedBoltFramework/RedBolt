@@ -1,6 +1,11 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Logging;
+using RedBolt.Math;
+namespace RedBolt.Scene;
+using Math = global::System.Math;
+
 
 /// <summary>
 /// Component that maintains world origin around the node.

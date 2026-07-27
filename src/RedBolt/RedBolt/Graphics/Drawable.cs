@@ -1,4 +1,11 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+
+using Scene = global::RedBolt.Scene.Scene;
 
 [Flags]
 public enum DrawableFlags : byte

@@ -1,4 +1,9 @@
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 public class AttributeTests
 {

@@ -1,4 +1,7 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Resource;
+namespace RedBolt.Scene;
 
 /// <summary>Placeholder for allowing unregistered components to be loaded &amp; saved along with scenes.</summary>
 public class UnknownComponent : Component

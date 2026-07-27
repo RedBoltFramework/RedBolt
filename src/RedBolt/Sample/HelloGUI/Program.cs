@@ -1,6 +1,10 @@
 using System;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Container;
+using RedBolt.Engine;
+using RedBolt.Core;
+using RedBolt.Input;
 
 #if !REDBOLT_WEB_SAMPLE
 try

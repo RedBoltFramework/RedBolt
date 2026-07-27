@@ -3,7 +3,17 @@ using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Platform;
+using RedBolt.RenderPipeline;
+namespace RedBolt.RenderAPI;
+using Math = global::System.Math;
+
+using Timer = global::RedBolt.Core.Timer;
 
 /// <summary>
 /// Wrapper for window and GAPI backend.
@@ -55,8 +65,8 @@ public sealed class RenderDevice : RedObject
         _renderPool = new RenderPool(this);
         _defaultQueue = new DrawCommandQueue(this);
 
-        var graphics = GetSubsystem<Graphics>()!;
-        var input = GetSubsystem<Input>()!;
+        var graphics = GetSubsystem<GraphicsSystem>()!;
+        var input = GetSubsystem<InputSystem>()!;
         _window = input.Window;
         _glContext = graphics.GetGLContext();
         _factory = graphics.GetNativeFactory();
@@ -99,7 +109,7 @@ public sealed class RenderDevice : RedObject
             _deviceObjects.Clear();
         _renderContext.Dispose();
 
-        var graphics = GetSubsystem<Graphics>();
+        var graphics = GetSubsystem<GraphicsSystem>();
         if (graphics is not null)
         {
             _glContext = graphics.GetGLContext();
@@ -169,7 +179,7 @@ public sealed class RenderDevice : RedObject
             _windowSettings = windowSettings;
         }
 
-        var graphics = GetSubsystem<Graphics>();
+        var graphics = GetSubsystem<GraphicsSystem>();
         graphics?.UpdateSwapChainSize();
 
         var newWindowSize = GetWindowSize();
@@ -190,7 +200,7 @@ public sealed class RenderDevice : RedObject
         var oldSettings = GetWindowSettings();
         var newSettings = settings;
         ValidateWindowSettings(ref newSettings);
-        var graphics = GetSubsystem<Graphics>();
+        var graphics = GetSubsystem<GraphicsSystem>();
         graphics?.UpdateWindowSettings(oldSettings, newSettings);
 
         var sizeChanged = oldSettings.Size != newSettings.Size;
@@ -625,7 +635,7 @@ public sealed class RenderDevice : RedObject
 
     public Vector2i GetSwapChainSize()
     {
-        var graphics = GetSubsystem<Graphics>();
+        var graphics = GetSubsystem<GraphicsSystem>();
         if (graphics is null || !graphics.IsInitialized)
             return Vector2i.Zero;
         return new Vector2i(graphics.Width, graphics.Height);
@@ -723,19 +733,19 @@ public sealed class RenderDevice : RedObject
 
     internal ITextureView ResolveRenderTargetView(RenderTargetView view)
     {
-        var graphics = GetSubsystem<Graphics>() ?? throw new InvalidOperationException("Graphics subsystem is not available.");
+        var graphics = GetSubsystem<GraphicsSystem>() ?? throw new InvalidOperationException("GraphicsSystem subsystem is not available.");
         return graphics.ResolveRenderTargetView(view);
     }
 
     internal void MarkRenderTargetDirty(RenderTargetView view)
     {
-        var graphics = GetSubsystem<Graphics>() ?? throw new InvalidOperationException("Graphics subsystem is not available.");
+        var graphics = GetSubsystem<GraphicsSystem>() ?? throw new InvalidOperationException("GraphicsSystem subsystem is not available.");
         graphics.MarkRenderTargetDirty(view);
     }
 
     internal RenderOutputTargetInfo GetSwapChainOutputTarget()
     {
-        var graphics = GetSubsystem<Graphics>() ?? throw new InvalidOperationException("Graphics subsystem is not available.");
+        var graphics = GetSubsystem<GraphicsSystem>() ?? throw new InvalidOperationException("GraphicsSystem subsystem is not available.");
         return graphics.GetSwapChainOutputTarget();
     }
 
@@ -815,7 +825,7 @@ public sealed class RenderDevice : RedObject
             ?? throw new InvalidOperationException("OpenGL ES render device interface is unavailable.");
         renderDeviceGLES.Invalidate();
 
-        GetSubsystem<Graphics>()!.ReleaseGLContext();
+        GetSubsystem<GraphicsSystem>()!.ReleaseGLContext();
         _glContext = IntPtr.Zero;
 #else
         Log.GetLogger().LogWarning("RenderDevice::InvalidateGLESContext is supported only for Android platform");
@@ -825,7 +835,7 @@ public sealed class RenderDevice : RedObject
     private bool RestoreGLESContext()
     {
 #if REDBOLT_PLATFORM_ANDROID && REDBOLT_GLES_SUPPORTED
-        var graphics = GetSubsystem<Graphics>()!;
+        var graphics = GetSubsystem<GraphicsSystem>()!;
         if (!graphics.RestoreGLContext())
         {
             var error = System.Text.Encoding.UTF8.GetString(SdlNativeBindings.SdlGetError()).TrimEnd('\0');
@@ -853,7 +863,7 @@ public sealed class RenderDevice : RedObject
         InvalidateDeviceState();
 
         _oldNativeSwapChainDesc?.Dispose();
-        _oldNativeSwapChainDesc = GetSubsystem<Graphics>()!.ReleaseVulkanSwapChain();
+        _oldNativeSwapChainDesc = GetSubsystem<GraphicsSystem>()!.ReleaseVulkanSwapChain();
         _swapChain = null;
         _swapChainVulkan = null;
 #else
@@ -874,7 +884,7 @@ public sealed class RenderDevice : RedObject
             PreTransform = _oldNativeSwapChainDesc.PreTransform
         };
 
-        var graphics = GetSubsystem<Graphics>()!;
+        var graphics = GetSubsystem<GraphicsSystem>()!;
         var depthFormat = SelectDefaultDepthFormat(GetRenderDevice()!, true);
         var colorFormat = swapChainDesc.ColorBufferFormat;
         var multiSample = GetSupportedMultiSample(colorFormat, GetWindowSettings().MultiSample);
@@ -942,7 +952,7 @@ public sealed class RenderDevice : RedObject
         var backend = GetDeviceSettings().Backend;
         if (backend == RenderBackend.OpenGL)
         {
-            var graphics = GetSubsystem<Graphics>();
+            var graphics = GetSubsystem<GraphicsSystem>();
             if (graphics is { IsInitialized: true })
                 _defaultDepthStencilFormat = graphics.GetSwapChainDepthTextureFormat();
             else

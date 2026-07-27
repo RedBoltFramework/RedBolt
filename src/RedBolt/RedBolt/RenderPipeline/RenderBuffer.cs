@@ -2,7 +2,14 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+namespace RedBolt.RenderPipeline;
+using Math = global::System.Math;
+
 
 /// <summary>
 /// Base class for writable texture or texture region. Readability is not guaranteed.

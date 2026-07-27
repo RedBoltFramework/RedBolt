@@ -1,4 +1,11 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Input;
+using RedBolt.Math;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+
+using Scene = global::RedBolt.Scene.Scene;
 
 /// <summary>Octree octant.</summary>
 public class Octant : IDisposable
@@ -470,7 +477,7 @@ public sealed class Octree : Component
 
         // If the engine is running headless, subscribe to RenderUpdate events for manually updating the octree
         // to allow raycasts and animation update
-        if (GetSubsystem<Graphics>() is null)
+        if (GetSubsystem<GraphicsSystem>() is null)
             SubscribeToEvent<CoreEvents.RenderUpdateEvent>(HandleRenderUpdate);
 
         RegisterAttribute(

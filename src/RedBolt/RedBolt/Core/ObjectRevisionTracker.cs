@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Core;
 
 /// <summary>
 /// Utility to keep track of object revisions.

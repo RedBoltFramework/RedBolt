@@ -1,6 +1,14 @@
 using RedBolt;
 
+using RedBolt.Graphics;
+using RedBolt.RenderAPI;
+using RedBolt.RenderPipeline;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
+using RenderPipeline = global::RedBolt.RenderPipeline.RenderPipeline;
+using Scene = global::RedBolt.Scene.Scene;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class RenderPipelineDebuggerTests

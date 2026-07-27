@@ -1,7 +1,11 @@
 using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+using RedBolt.IO;
+using RedBolt.RenderAPI;
+namespace RedBolt.Resource;
+using Math = global::System.Math;
+
 
 /// <summary>DirectDraw color key definition.</summary>
 [StructLayout(LayoutKind.Sequential)]
@@ -144,13 +148,13 @@ public struct CompressedLevel
             case TextureFormat.TexFormatBc1Unorm:
             case TextureFormat.TexFormatBc2Unorm:
             case TextureFormat.TexFormatBc3Unorm:
-                RedBolt.Decompress.DecompressImageDXT(destination, Data.Span, Width, Height, Depth, Format);
+                RedBolt.Resource.Decompress.DecompressImageDXT(destination, Data.Span, Width, Height, Depth, Format);
                 return true;
             case TextureFormat.TexFormatEtc2Rgb8Unorm:
-                RedBolt.Decompress.DecompressImageETC(destination, Data.Span, Width, Height, false);
+                RedBolt.Resource.Decompress.DecompressImageETC(destination, Data.Span, Width, Height, false);
                 return true;
             case TextureFormat.TexFormatEtc2Rgba8Unorm:
-                RedBolt.Decompress.DecompressImageETC(destination, Data.Span, Width, Height, true);
+                RedBolt.Resource.Decompress.DecompressImageETC(destination, Data.Span, Width, Height, true);
                 return true;
         }
 
@@ -159,7 +163,7 @@ public struct CompressedLevel
             || Format == EmulatedTextureFormat.PvrtcRgb4Bpp
             || Format == EmulatedTextureFormat.PvrtcRgba4Bpp)
         {
-            RedBolt.Decompress.DecompressImagePVRTC(destination, Data.Span, Width, Height, Format);
+            RedBolt.Resource.Decompress.DecompressImagePVRTC(destination, Data.Span, Width, Height, Format);
             return true;
         }
 

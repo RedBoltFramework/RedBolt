@@ -1,6 +1,14 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+namespace RedBolt.RenderPipeline;
+using Math = global::System.Math;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+
 
 /// <summary>
 /// Description of shader program used for rendering.
@@ -230,7 +238,7 @@ public class ShaderProgramCompositor : RedObject
             : $"URHO3D_GEOMETRY_CUSTOM={geometryTypeIndex} ");
 
         if (geometryType == GeometryType.Skinned)
-            result.AddShaderDefines(ShaderType.VS, $"URHO3D_MAXBONES={Graphics.GetMaxBones()} ");
+            result.AddShaderDefines(ShaderType.VS, $"URHO3D_MAXBONES={GraphicsSystem.GetMaxBones()} ");
     }
 
     private void ApplyPixelLightPixelAndCommonDefines(ref ShaderProgramDesc result, Light light, bool hasShadow,

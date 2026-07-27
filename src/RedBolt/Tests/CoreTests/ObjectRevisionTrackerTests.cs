@@ -1,5 +1,6 @@
 using System.Reflection;
 
+using RedBolt.Core;
 namespace RedBolt.Tests;
 
 public class ObjectRevisionTrackerTests

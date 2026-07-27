@@ -1,6 +1,17 @@
 using System.Globalization;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Input;
+using RedBolt.Math;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+
+using Resource = global::RedBolt.Resource.Resource;
+using Scene = global::RedBolt.Scene.Scene;
 
 public enum CullMode
 {
@@ -707,7 +718,7 @@ public sealed class Material : Resource
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        if (GetSubsystem<Graphics>() is null)
+        if (GetSubsystem<GraphicsSystem>() is null)
             return true;
 
         _loadXmlFile?.Dispose();
@@ -723,7 +734,7 @@ public sealed class Material : Resource
 
     public override bool EndLoad()
     {
-        if (GetSubsystem<Graphics>() is null)
+        if (GetSubsystem<GraphicsSystem>() is null)
             return true;
 
         if (_loadXmlFile is null)

@@ -1,4 +1,10 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.IO;
+using RedBolt.Math;
+namespace RedBolt.Resource;
+using Math = global::System.Math;
+
 
 /// <summary>Cube texture resource.</summary>
 [Reflected]

@@ -1,5 +1,6 @@
 using System.Threading;
 
+using RedBolt.Core;
 namespace RedBolt.Tests;
 
 public class ProfilerTests

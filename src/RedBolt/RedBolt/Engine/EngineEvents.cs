@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Engine;
 
 public static class EngineEvents
 {

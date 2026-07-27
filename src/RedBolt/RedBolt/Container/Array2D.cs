@@ -2,7 +2,10 @@ using System.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
-namespace RedBolt;
+using RedBolt.Math;
+namespace RedBolt.Container;
+using Math = global::System.Math;
+
 
 /// <summary>
 /// 2D indexing utilities for row-major 2D array.

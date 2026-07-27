@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Math;
 
 /// <summary>Intersection test result.</summary>
 public enum Intersection

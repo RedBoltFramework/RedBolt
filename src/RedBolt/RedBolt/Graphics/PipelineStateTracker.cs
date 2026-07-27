@@ -1,6 +1,9 @@
 using System.Threading;
 
-namespace RedBolt;
+using RedBolt.Core;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+
 
 /// <summary>Holds subscription from one PipelineStateTracker to another. Neither checks nor affects objects lifetime.</summary>
 public class PipelineStateSubscription : IDisposable, ICloneable

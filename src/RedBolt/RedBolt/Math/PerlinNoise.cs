@@ -1,4 +1,6 @@
-namespace RedBolt;
+namespace RedBolt.Math;
+using Math = global::System.Math;
+
 
 /// <summary>Perlin noise generator.</summary>
 public class PerlinNoise : ICloneable

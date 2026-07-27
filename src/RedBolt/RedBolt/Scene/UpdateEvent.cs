@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Scene;
 
 [Flags]
 public enum UpdateEvent : uint

@@ -5,7 +5,12 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.Sdl;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Logging;
+using RedBolt.Math;
+namespace RedBolt.IO;
+using Math = global::System.Math;
+
 
 /// <summary>File opened either through the filesystem or from within a package file.</summary>
 public class File : AbstractFile

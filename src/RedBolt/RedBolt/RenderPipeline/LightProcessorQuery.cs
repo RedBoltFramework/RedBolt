@@ -1,4 +1,7 @@
-namespace RedBolt;
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.Scene;
+namespace RedBolt.RenderPipeline;
 
 /// <summary>Result of light query for drawable.</summary>
 public struct LightGeometryQueryResult

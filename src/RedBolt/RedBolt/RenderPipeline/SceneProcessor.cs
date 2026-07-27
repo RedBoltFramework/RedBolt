@@ -1,4 +1,12 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.Scene;
+namespace RedBolt.RenderPipeline;
+using Math = global::System.Math;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 /// <summary>Frustum query that only returns occluders.</summary>
 file sealed class OccluderOctreeQuery : FrustumOctreeQuery
@@ -73,7 +81,7 @@ public class SceneProcessor : RedObject, LightProcessorCallback
 
     public const int ShadowMinPixels = 64;
 
-    protected readonly Graphics GraphicsDevice;
+    protected readonly GraphicsSystem GraphicsDevice;
     protected readonly RenderDevice RenderDevice;
     protected readonly RenderContext RenderContext;
     protected readonly IRenderPipelineInterface RenderPipeline;
@@ -113,7 +121,7 @@ public class SceneProcessor : RedObject, LightProcessorCallback
         ArgumentNullException.ThrowIfNull(renderPipeline);
         _ = shadowTechnique;
         RenderPipeline = renderPipeline;
-        GraphicsDevice = GetSubsystem<Graphics>()!;
+        GraphicsDevice = GetSubsystem<GraphicsSystem>()!;
         RenderDevice = GetSubsystem<RenderDevice>()!;
         RenderContext = RenderDevice.GetRenderContext();
         Debugger = renderPipeline.GetDebugger();

@@ -1,6 +1,13 @@
 using System;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Audio;
+using RedBolt.Container;
+using RedBolt.Engine;
+using RedBolt.Scene;
+using RedBolt.Core;
+using RedBolt.Input;
+using RedBolt.Math;
 
 #if !REDBOLT_WEB_SAMPLE
 try

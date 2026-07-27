@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Math;
 
 /// <summary>Trigonometric two-segment IK chain.</summary>
 public class IKTrigonometricChain : ICloneable

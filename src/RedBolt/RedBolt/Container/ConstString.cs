@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Container;
 
 // C#: ConstString wraps string since System.String is sealed. Implicit operators bridge the gap.
 /// <summary>

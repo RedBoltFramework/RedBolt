@@ -1,6 +1,12 @@
 using RedBolt;
 
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Resource;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class UnknownComponentTests

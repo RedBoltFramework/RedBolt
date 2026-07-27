@@ -1,3 +1,5 @@
+using RedBolt.Resource;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
 
 public sealed class GraphTests

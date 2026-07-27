@@ -4,7 +4,10 @@ using System.Linq;
 using RedBolt;
 using Xunit;
 
+using RedBolt.IO;
 namespace RedBolt.Tests;
+using FileMode = global::RedBolt.IO.FileMode;
+
 
 public sealed class MountedExternalMemoryTests
 {

@@ -3,7 +3,12 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using MicrosoftLogLevel = Microsoft.Extensions.Logging.LogLevel;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Platform;
+namespace RedBolt.Logging;
+using FileMode = global::RedBolt.IO.FileMode;
+
 
 public enum LogLevel
 {

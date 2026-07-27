@@ -1,4 +1,6 @@
 using RedBolt;
+using RedBolt.Scene;
+using RedBolt.Math;
 
 /// <summary>
 /// Custom logic component for rotating a scene node.

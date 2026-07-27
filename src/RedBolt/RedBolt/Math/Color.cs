@@ -1,7 +1,9 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+namespace RedBolt.Math;
+using Math = global::System.Math;
+
 
 /// <summary>RGBA color.</summary>
 [StructLayout(LayoutKind.Sequential)]

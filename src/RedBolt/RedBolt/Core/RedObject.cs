@@ -1,4 +1,6 @@
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.IO;
+namespace RedBolt.Core;
 
 public abstract class RedObject : IArchiveSerializable, IDisposable
 {

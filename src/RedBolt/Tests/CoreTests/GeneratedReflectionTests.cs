@@ -1,3 +1,5 @@
+using RedBolt.Core;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
 
 [Reflected("Tests")]

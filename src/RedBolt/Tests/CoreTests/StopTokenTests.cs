@@ -1,3 +1,4 @@
+using RedBolt.Core;
 namespace RedBolt.Tests;
 
 public class StopTokenTests

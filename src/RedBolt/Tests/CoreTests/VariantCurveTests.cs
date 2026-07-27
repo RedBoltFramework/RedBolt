@@ -1,5 +1,6 @@
 using RedBolt;
 
+using RedBolt.Core;
 namespace RedBolt.Tests;
 
 public sealed class VariantCurveTests

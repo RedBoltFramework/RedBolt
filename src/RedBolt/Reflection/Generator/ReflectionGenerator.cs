@@ -13,9 +13,9 @@ namespace RedBolt.Reflection.Generator;
 [Generator]
 public sealed class ReflectionGenerator : IIncrementalGenerator
 {
-    private const string ReflectedAttributeName = "RedBolt.ReflectedAttribute";
-    private const string SerializedAttributeName = "RedBolt.SerializedAttribute";
-    private const string RemoveSerializedAttributeName = "RedBolt.RemoveSerializedAttribute";
+    private const string ReflectedAttributeName = "RedBolt.Core.ReflectedAttribute";
+    private const string SerializedAttributeName = "RedBolt.Core.SerializedAttribute";
+    private const string RemoveSerializedAttributeName = "RedBolt.Core.RemoveSerializedAttribute";
 
     private static readonly DiagnosticDescriptor PartialTypeRequired = new(
         "RBREF001",
@@ -107,7 +107,7 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         builder.Append("    internal ");
         if (type.BaseType is not null && GetAttribute(type.BaseType, ReflectedAttributeName) is not null)
             builder.Append("new ");
-        builder.AppendLine("static void __RegisterGeneratedReflection(global::RedBolt.Context context)");
+        builder.AppendLine("static void __RegisterGeneratedReflection(global::RedBolt.Core.Context context)");
         builder.AppendLine("    {");
 
         var baseType = type.BaseType;
@@ -118,9 +118,9 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         }
 
         var typeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        builder.Append("        var __typeId = new global::RedBolt.StringHash(typeof(")
+        builder.Append("        var __typeId = new global::RedBolt.Container.StringHash(global::RedBolt.Core.ObjectExtensionMethods.GetClassName(typeof(")
             .Append(typeName)
-            .AppendLine(").GetClassName());");
+            .AppendLine(")));");
         builder.AppendLine("        var __refresh = context.IsReflected(__typeId);");
         builder.Append("        var reflection = __refresh ? context.GetReflection(__typeId) : context.AddGeneratedReflection(typeof(")
             .Append(typeName)
@@ -139,7 +139,7 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
 
         if (inheritAttributes && baseType is not null)
         {
-            builder.Append("        var __baseReflection = global::RedBolt.GeneratedReflectionRegistration.FindBaseReflection(context, typeof(")
+            builder.Append("        var __baseReflection = global::RedBolt.Core.GeneratedReflectionRegistration.FindBaseReflection(context, typeof(")
                 .Append(baseType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
                 .AppendLine("));");
             builder.AppendLine("        if (__baseReflection is not null)");
@@ -151,7 +151,7 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         {
             var name = GetConstructorString(removeAttribute, 0);
             if (name is not null)
-                builder.Append("        reflection.RemoveAttribute(new global::RedBolt.StringHash(")
+                builder.Append("        reflection.RemoveAttribute(new global::RedBolt.Container.StringHash(")
                     .Append(ToLiteral(name))
                     .AppendLine("));");
         }
@@ -201,13 +201,13 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         var configure = GetNamedString(attribute, "Configure");
 
         builder.Append("        using var __default").Append(index)
-            .Append(" = global::RedBolt.Variant.FromObject(")
+            .Append(" = global::RedBolt.Core.Variant.FromObject(")
             .Append(defaultExpression)
             .AppendLine(");");
         builder.Append("        using var __attribute").Append(index)
-            .Append(" = new global::RedBolt.AttributeInfo(")
+            .Append(" = new global::RedBolt.Core.AttributeInfo(")
             .Append(ToLiteral(name)).Append(", typeof(").Append(valueTypeName).Append("), __default")
-            .Append(index).Append(", (global::RedBolt.AttributeMode)").Append(mode).Append(", ")
+            .Append(index).Append(", (global::RedBolt.Core.AttributeMode)").Append(mode).Append(", ")
             .Append(enumNames).Append(", ");
 
         if (accessorType is not null)
@@ -228,7 +228,7 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
             .Append(" = reflection.AddAttribute(__attribute").Append(index).AppendLine(");");
         if (scopeHint != 0)
             builder.Append("        __handle").Append(index)
-                .Append(".SetScopeHint((global::RedBolt.AttributeScopeHint)").Append(scopeHint).AppendLine(");");
+                .Append(".SetScopeHint((global::RedBolt.Core.AttributeScopeHint)").Append(scopeHint).AppendLine(");");
         if (!string.IsNullOrEmpty(configure))
             builder.Append("        ").Append(configure).Append("(__handle").Append(index).AppendLine(");");
         return true;
@@ -351,7 +351,7 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         foreach (var type in types)
         {
             var typeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            builder.Append("        global::RedBolt.GeneratedReflectionRegistration.Add(typeof(")
+            builder.Append("        global::RedBolt.Core.GeneratedReflectionRegistration.Add(typeof(")
                 .Append(typeName).Append("), static context => ")
                 .Append(typeName).AppendLine(".__RegisterGeneratedReflection(context));");
         }
@@ -389,7 +389,7 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         if (type.TypeKind != TypeKind.Class || type.Arity != 0)
             return false;
         for (var current = type.BaseType; current is not null; current = current.BaseType)
-            if (current.ToDisplayString() == "RedBolt.RedObject")
+            if (current.ToDisplayString() == "RedBolt.Core.RedObject")
                 return true;
         return false;
     }

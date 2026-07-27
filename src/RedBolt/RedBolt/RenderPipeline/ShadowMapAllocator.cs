@@ -1,6 +1,12 @@
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+namespace RedBolt.RenderPipeline;
+using Math = global::System.Math;
+
 
 /// <summary>Utility to allocate shadow maps in texture atlas.</summary>
 public class ShadowMapAllocator : RedObject

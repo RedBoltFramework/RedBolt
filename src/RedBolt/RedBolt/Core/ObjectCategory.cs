@@ -1,4 +1,10 @@
-namespace RedBolt;
+using RedBolt.Audio;
+using RedBolt.Graphics;
+using RedBolt.RenderPipeline;
+using RedBolt.Scene;
+namespace RedBolt.Core;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 public static class ObjectCategory
 {

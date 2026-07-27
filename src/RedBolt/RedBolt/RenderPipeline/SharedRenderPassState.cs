@@ -1,4 +1,6 @@
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Graphics;
+namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// State of render pipeline that can be accessed by render path and render passes.

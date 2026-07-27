@@ -1,6 +1,16 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.Resource;
+namespace RedBolt.Graphics;
+using FileMode = global::RedBolt.IO.FileMode;
+using Math = global::System.Math;
+
 
 /// <summary>Vertex buffer morph data.</summary>
 public sealed class VertexBufferMorph : ICloneable

@@ -1,4 +1,9 @@
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.IO;
+using RedBolt.Resource;
+namespace RedBolt.Scene;
 
 /// <summary>Autoremove is used by some components for automatic removal from the scene hierarchy upon completion of an action, for example sound or particle effect.</summary>
 public enum AutoRemoveMode

@@ -1,7 +1,15 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+namespace RedBolt.RenderPipeline;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+
 
 /// <summary>
 /// Class that manages all render buffers within viewport and viewport itself.
@@ -11,7 +19,7 @@ public class RenderBufferManager : RedObject
     public RenderBufferManager(IRenderPipelineInterface renderPipeline)
     {
         _renderPipeline = renderPipeline;
-        _graphics = GetSubsystem<Graphics>()!;
+        _graphics = GetSubsystem<GraphicsSystem>()!;
         _renderer = GetSubsystem<Renderer>()!;
         _renderDevice = GetSubsystem<RenderDevice>()!;
         _renderContext = _renderDevice.GetRenderContext();
@@ -704,7 +712,7 @@ public class RenderBufferManager : RedObject
     }
 
     private readonly IRenderPipelineInterface _renderPipeline;
-    private readonly Graphics _graphics;
+    private readonly GraphicsSystem _graphics;
     private readonly Renderer _renderer;
     private readonly RenderDevice _renderDevice;
     private readonly RenderContext _renderContext;

@@ -3,7 +3,14 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Resource;
+namespace RedBolt.IO;
+using Math = global::System.Math;
+
 
 public delegate void ArchiveValueSerializer<T>(Archive archive, string name, ref T value);
 

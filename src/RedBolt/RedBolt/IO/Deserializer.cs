@@ -3,7 +3,13 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.IO;
 
 /// <summary>Abstract stream for reading.</summary>
 public abstract class Deserializer : Serializer

@@ -1,6 +1,6 @@
 using System.Threading;
 
-namespace RedBolt;
+namespace RedBolt.Core;
 
 public static class Profiler
 {

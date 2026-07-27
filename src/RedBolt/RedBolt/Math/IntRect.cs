@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+namespace RedBolt.Math;
 
 /// <summary>Two-dimensional bounding rectangle with integer values.</summary>
 [StructLayout(LayoutKind.Sequential)]

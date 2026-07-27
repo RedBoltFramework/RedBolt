@@ -1,7 +1,15 @@
 using RedBolt;
 using System.Reflection;
 
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Input;
+using RedBolt.Math;
+using RedBolt.Resource;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ControllerTests
@@ -13,7 +21,7 @@ public sealed class ControllerTests
         this._fixture = fixture;
     }
 
-    private RedBolt.Input Input => _fixture.Input;
+    private InputSystem Input => _fixture.Input;
 
     private static void SendUpdate(float timeStep)
     {
@@ -214,7 +222,7 @@ public sealed class ControllerTests
         var scene = new Scene();
         var node = scene.CreateChild("FreeFlyTouch");
         using var controller = node.CreateComponent<FreeFlyController>();
-        var touches = Assert.IsType<Dictionary<int, TouchState>>(typeof(RedBolt.Input)
+        var touches = Assert.IsType<Dictionary<int, TouchState>>(typeof(InputSystem)
             .GetField("_touches", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(Input));
         try
         {

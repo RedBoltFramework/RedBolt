@@ -4,7 +4,12 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using System.Xml.XPath;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Math;
+using RedBolt.Scene;
+namespace RedBolt.Resource;
 
 /// <summary>Element in an XML file.</summary>
 public class XMLElement : ICloneable, IDisposable

@@ -3,7 +3,10 @@ using System.IO;
 using System.Text;
 using RedBolt;
 
+using RedBolt.IO;
 namespace RedBolt.Tests;
+using FileMode = global::RedBolt.IO.FileMode;
+
 
 public sealed class MountedRootTests
 {

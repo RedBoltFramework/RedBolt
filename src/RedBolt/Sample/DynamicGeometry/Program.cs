@@ -4,6 +4,15 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Container;
+using RedBolt.Engine;
+using RedBolt.Graphics;
+using RedBolt.Scene;
+using RedBolt.Input;
+using RedBolt.Math;
+using RedBolt.Core;
+using RedBolt.Logging;
+using RedBolt.RenderAPI;
 
 #if !REDBOLT_WEB_SAMPLE
 try

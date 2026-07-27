@@ -1,7 +1,10 @@
 using System.Runtime.InteropServices;
 using RedBolt.Bindings.Stb;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Resource;
+namespace RedBolt.Audio;
 
 /// <summary>Sound resource.</summary>
 public sealed class Sound : ResourceWithMetadata

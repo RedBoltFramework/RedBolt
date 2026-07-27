@@ -1,6 +1,11 @@
 using RedBolt;
 
+using RedBolt.Container;
+using RedBolt.Graphics;
+using RedBolt.Resource;
 namespace RedBolt.Tests;
+using Resource = global::RedBolt.Resource.Resource;
+
 
 public sealed class ResourceEventsTests
 {

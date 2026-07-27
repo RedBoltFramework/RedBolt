@@ -1,3 +1,6 @@
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.Resource;
 namespace RedBolt.Tests;
 
 internal static class FirstCubeTestData

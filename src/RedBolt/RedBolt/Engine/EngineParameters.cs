@@ -1,4 +1,8 @@
-namespace RedBolt;
+using RedBolt.Audio;
+using RedBolt.Graphics;
+using RedBolt.Logging;
+using RedBolt.RenderAPI;
+namespace RedBolt.Engine;
 
 public sealed class EngineParameters
 {

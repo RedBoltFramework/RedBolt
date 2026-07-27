@@ -1,6 +1,8 @@
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+namespace RedBolt.Math;
+using Math = global::System.Math;
+
 
 /// <summary>Three-dimensional axis-aligned bounding box.</summary>
 [StructLayout(LayoutKind.Sequential)]

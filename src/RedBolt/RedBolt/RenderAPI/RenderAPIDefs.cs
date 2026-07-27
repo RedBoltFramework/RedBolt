@@ -2,7 +2,15 @@ using RedBolt.Bindings.Diligent;
 using System.Collections.Immutable;
 using System.Runtime.CompilerServices;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Graphics;
+using RedBolt.Input;
+using RedBolt.Math;
+namespace RedBolt.RenderAPI;
+using Math = global::System.Math;
+
+using CullMode = global::RedBolt.Graphics.CullMode;
+using FillMode = global::RedBolt.Graphics.FillMode;
 
 public static class RenderApiLimits
 {

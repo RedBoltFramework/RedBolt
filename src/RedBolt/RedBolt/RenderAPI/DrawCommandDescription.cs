@@ -1,4 +1,6 @@
-namespace RedBolt;
+using RedBolt.Graphics;
+using RedBolt.RenderPipeline;
+namespace RedBolt.RenderAPI;
 
 using System.Runtime.CompilerServices;
 

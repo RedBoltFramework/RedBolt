@@ -1,6 +1,11 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Logging;
+namespace RedBolt.Resource;
+using FileMode = global::RedBolt.IO.FileMode;
+
 
 /// <summary>Base class for simple resource that uses Archive serialization.</summary>
 public abstract class SimpleResource : Resource

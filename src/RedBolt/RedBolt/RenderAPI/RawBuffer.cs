@@ -4,7 +4,11 @@ using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.Diligent;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Graphics;
+using RedBolt.Logging;
+namespace RedBolt.RenderAPI;
+
 
 /// <summary>Common class for buffer on GPU and/or CPU.</summary>
 public class RawBuffer : DeviceObject
@@ -145,7 +149,7 @@ public class RawBuffer : DeviceObject
         var renderDevice = _renderDevice?.GetRenderDevice();
         if (renderDevice is not null)
         {
-            var immediateContext = GetSubsystem<Graphics>()!.GetImmediateContext()!;
+            var immediateContext = GetSubsystem<GraphicsSystem>()!.GetImmediateContext()!;
             fixed (byte* dataPointer = data)
             {
                 if (_internalUsage == Usage.UsageDynamic)
@@ -197,7 +201,7 @@ public class RawBuffer : DeviceObject
         // If hardware dynamic buffer, map it
         if (_internalUsage == Usage.UsageDynamic)
         {
-            var immediateContext = GetSubsystem<Graphics>()!.GetImmediateContext();
+            var immediateContext = GetSubsystem<GraphicsSystem>()!.GetImmediateContext();
             Debug.Assert(immediateContext is not null);
 
             var gpuBuffer = IntPtr.Zero;
@@ -230,7 +234,7 @@ public class RawBuffer : DeviceObject
                 Update(_shadowData);
                 break;
             case MapKind.Dynamic:
-                GetSubsystem<Graphics>()!.GetImmediateContext()!.UnmapBuffer(_handle!, MapType.MapWrite);
+                GetSubsystem<GraphicsSystem>()!.GetImmediateContext()!.UnmapBuffer(_handle!, MapType.MapWrite);
                 break;
             case MapKind.Scratch:
             {
@@ -390,7 +394,7 @@ public class RawBuffer : DeviceObject
         }
         _internalUsage = bufferDesc.Usage;
 
-        var graphics = GetSubsystem<Graphics>()!;
+        var graphics = GetSubsystem<GraphicsSystem>()!;
         var device = _renderDevice!.GetRenderDevice()!;
         var immediateContext = graphics.GetImmediateContext();
 

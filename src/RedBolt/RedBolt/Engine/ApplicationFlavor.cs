@@ -3,7 +3,10 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.Scene;
+namespace RedBolt.Engine;
 
 /// <summary>Application flavor component type.</summary>
 public sealed class ApplicationFlavorComponent : HashSet<string>

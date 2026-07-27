@@ -1,4 +1,8 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Math;
+namespace RedBolt.Input;
+
 
 [Flags]
 public enum DirectionAggregatorMask : uint
@@ -46,7 +50,7 @@ public class DirectionAggregator : RedObject
     /// <summary>Active subscriptions bitmask</summary>
     private DirectionAggregatorMask _subscriptionFlags = DirectionAggregatorMask.None;
     /// <summary>Cached input subsystem pointer</summary>
-    private readonly Input _input;
+    private readonly InputSystem _input;
     /// <summary>Collection of active vertical axis inputs</summary>
     private readonly List<AxisState> _verticalAxis = new(4);
     /// <summary>Collection of active horizontal axis inputs</summary>
@@ -67,10 +71,10 @@ public class DirectionAggregator : RedObject
     /// <summary>Construct.</summary>
     public DirectionAggregator()
     {
-        _input = GetSubsystem<Input>()!;
+        _input = GetSubsystem<InputSystem>()!;
 
         // By default the full axis range is about 1 inch
-        var graphics = GetSubsystem<Graphics>();
+        var graphics = GetSubsystem<GraphicsSystem>();
         if (graphics is not null && graphics.GetDisplayDPI().X > 0)
             _touchSensitivity = 2.0f / graphics.GetDisplayDPI().X;
         else

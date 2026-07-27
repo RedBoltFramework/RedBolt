@@ -1,7 +1,14 @@
 // C++ defines engine command-line parameters in Engine::DefineParameters(CLI::App&, StringVariantMap&) in Engine.cpp.
 using System.Globalization;
 
-namespace RedBolt;
+using RedBolt.Audio;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Logging;
+using RedBolt.RenderAPI;
+namespace RedBolt.Engine;
+using Math = global::System.Math;
+
 
 internal static class EngineCommandLine
 {

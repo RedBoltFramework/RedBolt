@@ -4,7 +4,16 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.Resource;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+
 
 using ModelVertexMorphVector = List<ModelVertexMorph>;
 

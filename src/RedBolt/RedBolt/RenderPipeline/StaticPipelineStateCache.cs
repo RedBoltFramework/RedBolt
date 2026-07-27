@@ -1,4 +1,6 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.RenderAPI;
+namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Cache for static set of pipeline states.

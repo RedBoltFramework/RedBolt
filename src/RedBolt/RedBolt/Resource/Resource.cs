@@ -1,6 +1,12 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Logging;
+namespace RedBolt.Resource;
+using FileMode = global::RedBolt.IO.FileMode;
+
 
 /// <summary>Internal file format of Resource.</summary>
 public enum InternalResourceFormat

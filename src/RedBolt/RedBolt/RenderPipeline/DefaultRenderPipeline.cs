@@ -1,4 +1,13 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.Scene;
+namespace RedBolt.RenderPipeline;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
@@ -147,7 +156,7 @@ public class DefaultRenderPipelineView : RenderPipelineView
     public override RenderPipelineDebugger GetDebugger() => _debugger;
 
     /// <summary>Implement RenderPipelineView.</summary>
-    public override bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics)
+    public override bool Define(RenderSurface? renderTarget, Viewport viewport, GraphicsSystem graphics)
     {
         if (viewport.GetScene() is null)
             return false;
@@ -267,14 +276,14 @@ public class DefaultRenderPipelineView : RenderPipelineView
         return true;
     }
 
-    public override void Update(Graphics graphics)
+    public override void Update(GraphicsSystem graphics)
     {
         var engineTime = GetRenderPipeline().GetSubsystem<Time>()!;
         _frameInfo.FrameNumber = engineTime.FrameNumber;
         _frameInfo.TimeStep = engineTime.TimeStep;
 
         // Begin debug snapshot
-        var input = GetRenderPipeline().GetSubsystem<Input>()!;
+        var input = GetRenderPipeline().GetSubsystem<InputSystem>()!;
         var qualifiers = input.GetQualifiers();
         var takeSnapshot = (qualifiers & (Qualifier.Ctrl | Qualifier.Shift)) == (Qualifier.Ctrl | Qualifier.Shift)
             && input.GetKeyPress(Key.F12);
@@ -310,7 +319,7 @@ public class DefaultRenderPipelineView : RenderPipelineView
         RaiseUpdateEnd(_frameInfo);
     }
 
-    public override void Render(Graphics graphics, MaterialQuality materialQuality)
+    public override void Render(GraphicsSystem graphics, MaterialQuality materialQuality)
     {
         var caps = GetRenderPipeline().GetSubsystem<RenderDevice>()!.GetCaps();
         var canReadDepth = _settings.RenderBufferManager.ReadableDepth && caps.ReadOnlyDepth;

@@ -1,3 +1,4 @@
+using RedBolt.Math;
 namespace RedBolt.Tests;
 
 public sealed class EaseMathTests

@@ -1,6 +1,8 @@
 using RedBolt;
 
+using RedBolt.IO;
 namespace RedBolt.Tests;
+using File = global::RedBolt.IO.File;
 
 public sealed class AbstractFileTests
 {
@@ -23,7 +25,7 @@ public sealed class AbstractFileTests
         Assert.False(dispose.IsFinal);
         Assert.Equal(typeof(AbstractFile), dispose.DeclaringType);
 
-        Assert.Equal(typeof(RedBolt.File), typeof(RedBolt.File).GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);
+        Assert.Equal(typeof(File), typeof(File).GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);
         Assert.Equal(typeof(MemoryBuffer), typeof(MemoryBuffer).GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);
         Assert.Equal(typeof(NamedPipe), typeof(NamedPipe).GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);
         Assert.Equal(typeof(VectorBuffer), typeof(VectorBuffer).GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);

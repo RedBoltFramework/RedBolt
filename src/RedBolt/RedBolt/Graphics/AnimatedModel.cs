@@ -2,7 +2,17 @@ using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+
 
 /// <summary>Animated model component.</summary>
 public class AnimatedModel : StaticModel
@@ -935,11 +945,11 @@ public class AnimatedModel : StaticModel
         if (renderer.GetSkinningMode() == SkinningMode.Auto && _model is not null)
         {
             // Fallback to software skinning if too many bones affect the model
-            if (_geometrySkinMatrices.Count == 0 && _model.GetSkeleton().GetNumBones() > Graphics.GetMaxBones())
+            if (_geometrySkinMatrices.Count == 0 && _model.GetSkeleton().GetNumBones() > GraphicsSystem.GetMaxBones())
             {
                 Log.GetLogger().LogWarning(
                     "Model {Name} have {NumBones} bones, but only {MaxBones} can be skinned on GPU. Falling back to software skinning.",
-                    _model.Name, _model.GetSkeleton().GetNumBones(), Graphics.GetMaxBones());
+                    _model.Name, _model.GetSkeleton().GetNumBones(), GraphicsSystem.GetMaxBones());
 
                 _softwareSkinning = true;
             }
@@ -1140,7 +1150,7 @@ public class AnimatedModel : StaticModel
 
     private void UpdateMorphs()
     {
-        var graphics = GetSubsystem<Graphics>();
+        var graphics = GetSubsystem<GraphicsSystem>();
         if (graphics is null)
             return;
 

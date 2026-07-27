@@ -1,4 +1,5 @@
-namespace RedBolt;
+using RedBolt.Scene;
+namespace RedBolt.Audio;
 
 public static class AudioEvents
 {

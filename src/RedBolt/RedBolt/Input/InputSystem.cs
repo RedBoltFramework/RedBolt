@@ -4,7 +4,20 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Linq;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Engine;
+using RedBolt.Graphics;
+using RedBolt.IO;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Platform;
+using RedBolt.RenderAPI;
+using RedBolt.Resource;
+namespace RedBolt.Input;
+using Math = global::System.Math;
+
+using Timer = global::RedBolt.Core.Timer;
 
 /// <summary>Input mouse modes.</summary>
 public enum MouseMode
@@ -155,7 +168,7 @@ public struct JoystickState : ICloneable
     public int[] Hats = [];
 }
 
-public class Input : RedObject
+public class InputSystem : RedObject
 {
     public static void RegisterInputLibrary(Context context)
     {
@@ -235,7 +248,7 @@ public class Input : RedObject
 
     public bool HasFocus { get; private set; }
 
-    public bool IsMinimized => _isMinimized || (!HasFocus && GetSubsystem<Graphics>()?.GetFullscreen() == true);
+    public bool IsMinimized => _isMinimized || (!HasFocus && GetSubsystem<GraphicsSystem>()?.GetFullscreen() == true);
 
     public bool ToggleFullscreen { get; private set; } = true;
 
@@ -250,7 +263,7 @@ public class Input : RedObject
 
     internal SdlWindow Window => _window is not null && !_window.IsNull
         ? _window
-        : throw new InvalidOperationException("Input window is not initialized.");
+        : throw new InvalidOperationException("InputSystem window is not initialized.");
 
     public nint GetWindowHandle()
     {
@@ -262,7 +275,7 @@ public class Input : RedObject
         ArgumentNullException.ThrowIfNull(parameters);
 
         if (IsInitialized)
-            throw new InvalidOperationException("Input system is already initialized.");
+            throw new InvalidOperationException("InputSystem system is already initialized.");
 
         var explicitRect = _explicitWindowRect;
         var windowWidth = explicitRect?.Width > 0 ? explicitRect.Value.Width : parameters.WindowWidth;
@@ -1043,7 +1056,7 @@ public class Input : RedObject
 
         if ((key == Key.Return || key == Key.Return2 || key == Key.KpEnter) && newState && !wasDown && ToggleFullscreen &&
             (_keyDown.Contains(Key.LeftAlt) || _keyDown.Contains(Key.RightAlt)))
-            GetSubsystem<Graphics>()?.ToggleFullscreen();
+            GetSubsystem<GraphicsSystem>()?.ToggleFullscreen();
     }
 
     public void SetMouseButton(MouseButton button, bool newState, int clicks = 0)

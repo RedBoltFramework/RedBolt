@@ -4,7 +4,14 @@
 
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Input;
+using RedBolt.Math;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+
 
 /// <summary>
 /// Animation blending mode.

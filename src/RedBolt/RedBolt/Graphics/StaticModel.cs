@@ -1,4 +1,14 @@
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+using Resource = global::RedBolt.Resource.Resource;
+
 
 /// <summary>Static model per-geometry extra data.</summary>
 public struct StaticModelGeometryData

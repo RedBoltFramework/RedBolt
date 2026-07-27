@@ -1,7 +1,12 @@
 using System.Buffers.Binary;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Logging;
+using RedBolt.RenderAPI;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+
 
 public enum IndexBufferType
 {

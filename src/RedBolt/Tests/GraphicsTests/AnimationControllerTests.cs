@@ -1,6 +1,11 @@
 using Xunit;
 
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 public sealed class AnimationControllerTests
 {

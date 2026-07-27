@@ -1,5 +1,9 @@
 using RedBolt;
 
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
 
 internal sealed class TestAnimatable : Animatable

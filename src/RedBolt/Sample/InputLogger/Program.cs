@@ -4,6 +4,12 @@ using System.Globalization;
 using System.Text;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Engine;
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.Scene;
+using RedBolt.Input;
+using RedBolt.Core;
 
 #if !REDBOLT_WEB_SAMPLE
 try
@@ -54,7 +60,7 @@ sealed class InputLoggerApplication : Application
             parameters.WindowWidth = 1280;
             parameters.WindowHeight = 720;
         }
-        parameters.WindowTitle = "RedBolt Input Logger";
+        parameters.WindowTitle = "RedBolt InputSystem Logger";
     }
 
     private ViewportData CreateViewport(Color color, IntRect rect)
@@ -280,7 +286,7 @@ sealed class InputLoggerApplication : Application
     private void Draw()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Input Logger\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        if (ImGui.Begin("InputSystem Logger\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             foreach (var line in _displayLines)
                 ImGui.TextUnformatted(line);

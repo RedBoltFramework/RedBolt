@@ -1,6 +1,13 @@
 using System.Buffers.Binary;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.RenderPipeline;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+
 
 /// <summary>
 /// Debug geometry rendering component. Should be added only to the root scene node.
@@ -698,7 +705,7 @@ public class DebugRenderer : Component
     private void InitializePipelineStates()
     {
         _pipelineStatesInitialized = true;
-        var graphics = GetSubsystem<Graphics>();
+        var graphics = GetSubsystem<GraphicsSystem>();
         if (graphics is null)
             return;
 

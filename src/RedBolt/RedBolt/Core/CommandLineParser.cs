@@ -1,6 +1,8 @@
 using System.Text;
 
-namespace RedBolt;
+namespace RedBolt.Core;
+using Math = global::System.Math;
+
 
 public sealed class CommandLineParser
 {

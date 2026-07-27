@@ -1,4 +1,10 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.Scene;
+namespace RedBolt.Input;
+using Math = global::System.Math;
+
 
 [Flags]
 public enum PointerAdapterMask : uint
@@ -19,10 +25,10 @@ public class PointerAdapter : RedObject
         // Propagate default subscription mask to direction adapter.
         SetSubscriptionMask(GetSubscriptionMask());
 
-        var input = GetSubsystem<Input>()!;
+        var input = GetSubsystem<InputSystem>()!;
         _pointerPosition = input.GetMousePosition().ToVector2();
 
-        var graphics = GetSubsystem<Graphics>();
+        var graphics = GetSubsystem<GraphicsSystem>();
         if (graphics is not null)
         {
             _maxCursorSpeed = Math.Max(graphics.Width, graphics.Height) / 2.0f;
@@ -114,7 +120,7 @@ public class PointerAdapter : RedObject
 
     private void UpdateSubscriptions(PointerAdapterMask flags)
     {
-        var input = GetSubsystem<Input>()!;
+        var input = GetSubsystem<InputSystem>()!;
 
         var toSubscribe = flags & ~_subscriptionFlags;
         var toUnsubscribe = _subscriptionFlags & ~flags;
@@ -214,7 +220,7 @@ public class PointerAdapter : RedObject
         if (_activeTouchId.HasValue)
             return;
 
-        var input = GetSubsystem<Input>()!;
+        var input = GetSubsystem<InputSystem>()!;
 
         // Start tracking touch
         var touchState = input.GetTouchById(args.TouchID);
@@ -271,7 +277,7 @@ public class PointerAdapter : RedObject
 
     private void UpdatePointer(Vector2f position, bool press, bool moveMouse)
     {
-        var input = GetSubsystem<Input>()!;
+        var input = GetSubsystem<InputSystem>()!;
 
         if (!_pointerPosition.ApproximatelyEquivalent(position))
         {

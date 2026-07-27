@@ -1,7 +1,12 @@
 using System.Buffers;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Logging;
+using RedBolt.RenderAPI;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+
 
 public static class GraphicsUtils
 {

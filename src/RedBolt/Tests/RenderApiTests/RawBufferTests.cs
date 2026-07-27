@@ -1,5 +1,7 @@
 using RedBolt;
 
+using RedBolt.Engine;
+using RedBolt.RenderAPI;
 namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]

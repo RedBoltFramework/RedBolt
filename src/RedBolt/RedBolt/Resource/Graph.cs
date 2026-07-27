@@ -1,6 +1,11 @@
 using System.Text;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Input;
+namespace RedBolt.Resource;
+using Math = global::System.Math;
+
 
 public partial class Graph : RedObject
 {

@@ -1,7 +1,13 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.IO;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.Core;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 [Flags]
 public enum AttributeMode

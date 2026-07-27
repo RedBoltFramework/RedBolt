@@ -9,7 +9,7 @@ namespace SharpCpp
 template <>
 struct [[sharpcpp::managed_type(
     public_type = "Vector2f",
-    managed_marshaller = "global::RedBolt.Vector2fMarshaller",
+    managed_marshaller = "global::RedBolt.Math.Vector2fMarshaller",
     suppress_emission = true
 )]]
 Marshaller<ImVec2>
@@ -41,7 +41,7 @@ struct ReturnMarshaller<ImVec2>
 template <>
 struct [[sharpcpp::managed_type(
     public_type = "Vector4f",
-    managed_marshaller = "global::RedBolt.Vector4fMarshaller",
+    managed_marshaller = "global::RedBolt.Math.Vector4fMarshaller",
     suppress_emission = true
 )]]
 Marshaller<ImVec4>
@@ -72,8 +72,8 @@ struct ReturnMarshaller<ImVec4>
 
 template <>
 struct [[sharpcpp::managed_type(
-    public_type = "global::RedBolt.Color",
-    marshaller_type = "global::RedBolt.Color",
+    public_type = "global::RedBolt.Math.Color",
+    marshaller_type = "global::RedBolt.Math.Color",
     suppress_emission = true
 )]]
 Marshaller<ImColor>

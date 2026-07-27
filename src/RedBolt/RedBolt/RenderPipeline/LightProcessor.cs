@@ -1,6 +1,12 @@
 using System.Runtime.CompilerServices;
 
-namespace RedBolt;
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.Scene;
+namespace RedBolt.RenderPipeline;
+using Math = global::System.Math;
+
 
 /// <summary>
 /// Cooked light parameters used by shader binding.
@@ -129,7 +135,7 @@ public class LightProcessor : IDisposable
     public LightProcessor(Light light)
     {
         _light = new WeakReference<Light>(light);
-        _renderBackend = light.GetSubsystem<Graphics>()!.GetRenderBackend();
+        _renderBackend = light.GetSubsystem<GraphicsSystem>()!.GetRenderBackend();
         _cookedParams.LightShapeMatrix = Matrix4.Identity;
         for (var i = 0; i < Light.MaxCascadeSplits; ++i)
             _cookedParams.LightMatrices[i] = Matrix4.Identity;

@@ -1,4 +1,6 @@
-namespace RedBolt;
+namespace RedBolt.Audio;
+using Math = global::System.Math;
+
 
 /// <summary>Sound stream that supports manual buffering of data from the main thread.</summary>
 public sealed class BufferedSoundStream : SoundStream

@@ -1,4 +1,5 @@
-namespace RedBolt;
+using RedBolt.Core;
+namespace RedBolt.Scene;
 
 public abstract class SceneUpdateEventType
 {

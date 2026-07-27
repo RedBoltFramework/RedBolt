@@ -1,6 +1,16 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.Input;
+using Math = global::System.Math;
+using Resource = global::RedBolt.Resource.Resource;
+
+using Scene = global::RedBolt.Scene.Scene;
 
 public class MoveAndOrbitController : Component
 {
@@ -32,7 +42,7 @@ public class MoveAndOrbitController : Component
         UpdateEventSubscription();
 
         RegisterAttribute(
-            "Input Map",
+            "InputSystem Map",
             typeof(ResourceRef),
             self => ((MoveAndOrbitController)self).GetInputMapAttr(),
             (self, value) => ((MoveAndOrbitController)self).SetInputMapAttr(value is ResourceRef resourceRef ? resourceRef : ResourceRef.Empty),
@@ -125,7 +135,7 @@ public class MoveAndOrbitController : Component
         if (_component is null)
             return;
 
-        var input = GetSubsystem<Input>()!;
+        var input = GetSubsystem<InputSystem>()!;
         var yaw = _component.GetYaw();
         var pitch = _component.GetPitch();
         var originalYaw = yaw;
@@ -157,7 +167,7 @@ public class MoveAndOrbitController : Component
         TouchState? rotationTouch = null;
         FindTouchStates(movementRect, rotationRect, ref movementTouch, ref rotationTouch);
 
-        var dpi = GetSubsystem<Graphics>()!.GetDisplayDPI().Z;
+        var dpi = GetSubsystem<GraphicsSystem>()!.GetDisplayDPI().Z;
         dpi = dpi != 0.0f ? dpi : 96.0f;
 
         if (movementTouch is not null)
@@ -247,7 +257,7 @@ public class MoveAndOrbitController : Component
 
         if (screenRect == IntRect.Zero)
         {
-            var graphics = GetSubsystem<Graphics>();
+            var graphics = GetSubsystem<GraphicsSystem>();
             if (graphics is not null)
             {
                 screenRect = new IntRect(Vector2i.Zero, new Vector2i(graphics.Width, graphics.Height));
@@ -276,7 +286,7 @@ public class MoveAndOrbitController : Component
     private void FindTouchStates(in IntRect movementRect, in IntRect rotationRect,
         ref TouchState? movementTouch, ref TouchState? rotationTouch)
     {
-        var input = GetSubsystem<Input>()!;
+        var input = GetSubsystem<InputSystem>()!;
         for (var touchIndex = 0u; touchIndex < input.GetNumTouches(); ++touchIndex)
         {
             var touchValue = input.GetTouch(touchIndex)!.Value;

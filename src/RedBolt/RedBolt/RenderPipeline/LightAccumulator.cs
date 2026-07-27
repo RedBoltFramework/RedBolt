@@ -1,7 +1,12 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace RedBolt;
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.Scene;
+namespace RedBolt.RenderPipeline;
+using Math = global::System.Math;
+
 
 /// <summary>
 /// Light parameters needed to calculate SH lighting.

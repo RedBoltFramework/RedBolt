@@ -1,6 +1,8 @@
 using System.Runtime.InteropServices.JavaScript;
 using System;
 
+using RedBolt.Engine;
+using RedBolt.Graphics;
 namespace RedBolt;
 
 public abstract partial class Application

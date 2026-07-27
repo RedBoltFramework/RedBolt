@@ -1,4 +1,11 @@
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.RenderPipeline;
+using Resource = global::RedBolt.Resource.Resource;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 /// <summary>
 /// Scene component that spawns render pipeline instances.

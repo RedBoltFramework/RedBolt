@@ -1,6 +1,13 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+
 
 /// <summary>Individually rendered part of a heightmap terrain.</summary>
 public class TerrainPatch : Drawable

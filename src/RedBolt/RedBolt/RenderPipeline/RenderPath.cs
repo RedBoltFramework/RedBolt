@@ -1,6 +1,10 @@
 using System.Diagnostics;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Resource;
+namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Base class for serializable resource that uses Archive serialization.

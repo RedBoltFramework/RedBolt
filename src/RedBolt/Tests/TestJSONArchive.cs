@@ -1,5 +1,7 @@
 using RedBolt;
 
+using RedBolt.Core;
+using RedBolt.Resource;
 namespace RedBolt.Tests;
 
 internal sealed class TestJSONOutputArchive : JSONOutputArchive

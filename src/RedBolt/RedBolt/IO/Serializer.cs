@@ -2,7 +2,15 @@ using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Input;
+using RedBolt.Math;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.IO;
+using Math = global::System.Math;
+
 
 /// <summary>Abstract stream for writing.</summary>
 public abstract class Serializer : IDisposable

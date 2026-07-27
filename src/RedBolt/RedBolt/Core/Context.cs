@@ -4,7 +4,18 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+using RedBolt.Audio;
+using RedBolt.Container;
+using RedBolt.Engine;
+using RedBolt.Graphics;
+using RedBolt.IO;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.Platform;
+using RedBolt.RenderAPI;
+using RedBolt.Resource;
+namespace RedBolt.Core;
+
 
 public delegate void RefEventHandler<T>(ref T args) where T : struct;
 
@@ -127,7 +138,7 @@ public class Context : ObjectReflectionRegistry
         var remainingSubsystems = new HashSet<object>(ReferenceEqualityComparer.Instance);
         foreach (var subsystem in _subsystems.GetContainer().Values)
         {
-            if (subsystem is not Engine)
+            if (subsystem is not EngineSystem)
                 remainingSubsystems.Add(subsystem);
         }
 
@@ -148,7 +159,7 @@ public class Context : ObjectReflectionRegistry
         base.Dispose();
     }
 
-    public void InitializeEngineSubsystems(Engine engine)
+    public void InitializeEngineSubsystems(EngineSystem engine)
     {
         ArgumentNullException.ThrowIfNull(engine);
 
@@ -158,10 +169,10 @@ public class Context : ObjectReflectionRegistry
         RegisterSubsystem(new VirtualFileSystem());
         RegisterSubsystem(new Log());
         RegisterSubsystem(new ResourceCache());
-        RegisterSubsystem(new Input());
-        RegisterSubsystem(new Graphics());
+        RegisterSubsystem(new InputSystem());
+        RegisterSubsystem(new GraphicsSystem());
         RegisterSubsystem(new Renderer());
-        RegisterSubsystem(new Audio());
+        RegisterSubsystem(new AudioSystem());
         RegisterSubsystem(new StateManager());
     }
 

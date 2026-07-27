@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace RedBolt;
+namespace RedBolt.IO;
 
 /// <summary>Lightweight mount point that provides read-only access to the externally managed memory.</summary>
 public class MountedRoot : MountPoint

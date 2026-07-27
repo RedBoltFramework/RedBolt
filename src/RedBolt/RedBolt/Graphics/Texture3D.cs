@@ -1,6 +1,11 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Logging;
+using RedBolt.RenderAPI;
+using RedBolt.Resource;
+namespace RedBolt.Graphics;
 
 /// <summary>
 /// 3D texture resource.
@@ -40,7 +45,7 @@ public class Texture3D : Texture
     /// </summary>
     public override bool BeginLoad(Deserializer source)
     {
-        var graphics = GetSubsystem<Graphics>();
+        var graphics = GetSubsystem<GraphicsSystem>();
         var cache = GetSubsystem<ResourceCache>()!;
 
         // In headless mode, do not actually load the texture, just return success
@@ -117,7 +122,7 @@ public class Texture3D : Texture
     public override bool EndLoad()
     {
         // In headless mode, do not actually load the texture, just return success
-        if (GetSubsystem<Graphics>()?.GetNativeRenderDevice() is null)
+        if (GetSubsystem<GraphicsSystem>()?.GetNativeRenderDevice() is null)
             return true;
 
         // If over the texture budget, see if materials can be freed to allow textures to be freed

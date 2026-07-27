@@ -307,6 +307,8 @@ Native dependencies (SDL, Diligent, Dear ImGui) are accessed through generated b
 The exhaustive list of allowed deviations is maintained in
 `doc/ALLOWED_DEVIATIONS.md`. Anything not on that list must match C++.
 
+Agreed project-specific naming deviation: C# engine types use folder-matching namespaces, and the `Audio`, `Engine`, `Graphics`, and `Input` subsystem classes are named `AudioSystem`, `EngineSystem`, `GraphicsSystem`, and `InputSystem`.
+
 ## 11. SUCCESS CRITERIA (all must be true)
 
 - [ ] The project builds with no errors.

@@ -1,4 +1,7 @@
-namespace RedBolt;
+using RedBolt.RenderAPI;
+namespace RedBolt.Resource;
+using Math = global::System.Math;
+
 
 using System.Buffers.Binary;
 

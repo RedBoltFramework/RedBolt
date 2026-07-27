@@ -1,4 +1,7 @@
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.IO;
+using RedBolt.Math;
+namespace RedBolt.Core;
 
 public enum KeyFrameInterpolation
 {

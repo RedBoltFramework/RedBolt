@@ -1,4 +1,11 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.Resource;
+namespace RedBolt.Scene;
+using Resource = global::RedBolt.Resource.Resource;
+
 
 /// <summary>Attribute animation instance.</summary>
 public class AttributeAnimationInfo : ValueAnimationInfo

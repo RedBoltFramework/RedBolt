@@ -1,3 +1,7 @@
+using RedBolt.Core;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.RenderPipeline;
 namespace RedBolt.Tests;
 
 public sealed class RenderPassTests

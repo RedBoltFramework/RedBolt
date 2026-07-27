@@ -1,4 +1,12 @@
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Math;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.Audio;
+using Math = global::System.Math;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 /// <summary>Compressed audio decode buffer length in milliseconds.</summary>
 public static class SoundSourceConstants
@@ -11,7 +19,7 @@ public class SoundSource : Component
 {
     private static readonly string[] AutoRemoveModeNames = ["Disabled", "Component", "Node"];
 
-    protected Audio Audio = null!;
+    protected AudioSystem Audio = null!;
     protected string SoundType = AudioDefs.SoundEffect;
     internal StringHash SoundTypeHash = new(AudioDefs.SoundEffect);
     internal float Frequency;
@@ -37,7 +45,7 @@ public class SoundSource : Component
 
     public SoundSource()
     {
-        Audio = GetSubsystem<Audio>()!;
+        Audio = GetSubsystem<AudioSystem>()!;
         Audio.AddSoundSource(this);
         UpdateMasterGain();
     }

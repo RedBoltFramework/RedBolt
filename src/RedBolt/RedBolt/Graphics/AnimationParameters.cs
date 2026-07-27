@@ -20,7 +20,14 @@
 // THE SOFTWARE.
 //
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Math;
+using RedBolt.Resource;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+
 
 /// <summary>
 /// State and parameters of playing Animation.

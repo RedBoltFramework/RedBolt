@@ -1,6 +1,18 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.RenderPipeline;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+
+using RenderPipeline = global::RedBolt.RenderPipeline.RenderPipeline;
+using Scene = global::RedBolt.Scene.Scene;
 
 public enum CubemapUpdateStage
 {
@@ -453,7 +465,7 @@ public class CubemapRenderer : RedObject
         if (_cachedPipelineStates is not null && _cachedPipelineStates.NumLevels == numLevels)
             return;
 
-        var graphics = GetSubsystem<Graphics>();
+        var graphics = GetSubsystem<GraphicsSystem>();
         var pipelineStateCache = GetSubsystem<PipelineStateCache>();
         if (graphics is null || pipelineStateCache is null)
             return;

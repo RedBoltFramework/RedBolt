@@ -1,5 +1,5 @@
 // This is a C#-only allocation-free SequenceEqual replacement needed to avoid GC churn.
-namespace RedBolt;
+namespace RedBolt.Container;
 
 /// <summary>
 /// Allocation-free element-wise comparisons for managed collections. Replaces

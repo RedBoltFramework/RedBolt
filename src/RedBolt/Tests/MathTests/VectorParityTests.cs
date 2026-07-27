@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 
+using RedBolt.Math;
 namespace RedBolt.Tests.MathTests;
 
 public class VectorParityTests

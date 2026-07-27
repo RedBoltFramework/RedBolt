@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace RedBolt;
+using RedBolt.Core;
+namespace RedBolt.Container;
 
 public struct StringHash : IComparable<StringHash>, IEquatable<StringHash>
 {

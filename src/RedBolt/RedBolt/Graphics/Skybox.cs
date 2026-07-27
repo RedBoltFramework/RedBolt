@@ -1,4 +1,9 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Math;
+using RedBolt.RenderPipeline;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
 
 /// <summary>Static model component with fixed position in relation to the camera.</summary>
 public class Skybox : StaticModel

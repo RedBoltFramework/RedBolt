@@ -39,6 +39,7 @@ These are the ONLY places C# is allowed to differ from C++:
 - WebAssembly frame pacing is controlled by the JavaScript `requestAnimationFrame` loop. Do not call `SDL_GL_SetSwapInterval` on WebAssembly because SDL's Emscripten implementation requires an Emscripten-owned main loop that the .NET host does not use.
 - On WebAssembly, application window width and height default to the browser canvas dimensions in physical pixels before `Setup()`. `Setup()` may override either value. The Web shell follows rbfx: it rounds CSS canvas dimensions multiplied by the device pixel ratio, creates the SDL window without `SDL_WINDOW_ALLOW_HIGHDPI`, and resynchronizes canvas resolution on resize, fullscreen, and visibility changes.
 - `SystemUI` is renamed to `DearImGui`.
+- C# engine types use namespaces matching their source folders. To avoid namespace/type collisions, the `Audio`, `Engine`, `Graphics`, and `Input` subsystem classes are named `AudioSystem`, `EngineSystem`, `GraphicsSystem`, and `InputSystem`, respectively.
 - Calls to `GetSubsystem<T>()` in ported subsystem consumers assume that the requested subsystem is registered and return a non-null object. C# code may use a non-null field/reference and omit C++ null checks that only guard a missing subsystem.
 - The optional Actions subsystem and compile-gated Actions reflection/integration members are excluded from the current completion scope.
 

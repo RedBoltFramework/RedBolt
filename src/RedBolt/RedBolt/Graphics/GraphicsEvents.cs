@@ -1,4 +1,7 @@
-namespace RedBolt;
+using RedBolt.RenderPipeline;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Scene = global::RedBolt.Scene.Scene;
 
 public static class GraphicsEvents
 {

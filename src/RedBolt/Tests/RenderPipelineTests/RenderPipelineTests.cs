@@ -4,7 +4,21 @@ using System.Reflection;
 using RedBolt.Bindings.Diligent;
 using RedBolt;
 
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Engine;
+using RedBolt.Graphics;
+using RedBolt.IO;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.RenderPipeline;
+using RedBolt.Resource;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
+using Viewport = global::RedBolt.Graphics.Viewport;
+using RenderPipeline = global::RedBolt.RenderPipeline.RenderPipeline;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class RenderPipelineTests : IDisposable
@@ -658,7 +672,7 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Graphics_clear_framebuffer_pipeline_settings_follow_requested_targets()
     {
-        var method = typeof(Graphics).GetMethod("GetClearFramebufferPipelineSettings", BindingFlags.NonPublic | BindingFlags.Static);
+        var method = typeof(GraphicsSystem).GetMethod("GetClearFramebufferPipelineSettings", BindingFlags.NonPublic | BindingFlags.Static);
 
         Assert.NotNull(method);
 
@@ -1289,13 +1303,13 @@ public sealed class RenderPipelineTests : IDisposable
 
         public override bool IsLinearColorSpace => false;
 
-        public override bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics) => false;
+        public override bool Define(RenderSurface? renderTarget, Viewport viewport, GraphicsSystem graphics) => false;
 
-        public override void Update(Graphics graphics)
+        public override void Update(GraphicsSystem graphics)
         {
         }
 
-        public override void Render(Graphics graphics, MaterialQuality materialQuality)
+        public override void Render(GraphicsSystem graphics, MaterialQuality materialQuality)
         {
         }
 

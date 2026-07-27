@@ -2,7 +2,15 @@ using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.Diligent;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.Resource;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+
+using TextureAddressMode = global::RedBolt.RenderAPI.TextureAddressMode;
 
 internal static class TextureFormatUtility
 {

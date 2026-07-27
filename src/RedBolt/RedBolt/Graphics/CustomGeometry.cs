@@ -2,7 +2,14 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
 
 public struct CustomGeometryVertex
 {

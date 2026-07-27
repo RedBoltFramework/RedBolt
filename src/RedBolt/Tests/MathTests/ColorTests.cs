@@ -2,6 +2,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using RedBolt;
 
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.RenderPipeline;
 namespace RedBolt.Tests;
 
 public sealed class ColorTests

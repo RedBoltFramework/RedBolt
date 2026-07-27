@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Math;
 
 public static class EaseMath
 {

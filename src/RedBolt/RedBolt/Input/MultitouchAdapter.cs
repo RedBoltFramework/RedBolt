@@ -1,4 +1,5 @@
-namespace RedBolt;
+using RedBolt.Core;
+namespace RedBolt.Input;
 
 public enum MultitouchEventType
 {
@@ -55,7 +56,7 @@ public class MultitouchAdapter : RedObject
             return;
 
         var touchId = eventData.TouchID;
-        var input = GetSubsystem<Input>()!;
+        var input = GetSubsystem<InputSystem>()!;
 
         for (var i = 0u; i < input.GetNumTouches(); ++i)
         {

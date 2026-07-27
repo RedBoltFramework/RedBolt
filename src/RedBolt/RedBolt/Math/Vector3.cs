@@ -8,7 +8,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+namespace RedBolt.Math;
 
 /// <summary>Three-dimensional vector with real-number values.</summary>
 [StructLayout(LayoutKind.Sequential)]

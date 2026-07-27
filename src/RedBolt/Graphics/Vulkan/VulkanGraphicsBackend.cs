@@ -3,7 +3,13 @@ using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
 using System;
 
+using RedBolt.Engine;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Platform;
+using RedBolt.RenderAPI;
 namespace RedBolt;
+
 
 public interface IVulkanGraphicsApi
 {
@@ -62,13 +68,13 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
             ?? throw new InvalidOperationException("Vulkan swap chain interface is unavailable.");
         var depthFormat = RenderDevice.SelectDefaultDepthFormat(device, true);
         var multiSample = (int)MathDefs.NextPowerOfTwo(
-            (uint)Math.Clamp(parameters.MultiSample, 1, 16));
+            (uint)System.Math.Clamp(parameters.MultiSample, 1, 16));
         using (var formatInfo = device.GetTextureFormatInfoExt(swapChainDesc.ColorBufferFormat))
         {
             while (multiSample > 1 && ((int)formatInfo.SampleCounts & multiSample) == 0)
                 multiSample >>= 1;
         }
-        multiSample = Math.Max(1, multiSample);
+        multiSample = System.Math.Max(1, multiSample);
 
         var swapChain = DiligentNativeBindings.CreateProxySwapChainMS(
             device, immediateContext, nativeSwapChain, (uint)depthFormat, (uint)multiSample);

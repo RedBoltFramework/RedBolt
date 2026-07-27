@@ -1,6 +1,10 @@
 using RedBolt;
 
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
 namespace RedBolt.Tests;
+
 
 public sealed class RenderSurfaceTests
 {
@@ -60,7 +64,7 @@ public sealed class RenderSurfaceTests
         surface.SetResolveDirty(true);
         Assert.True(surface.IsResolveDirty());
 
-        using var graphics = new Graphics();
+        using var graphics = new GraphicsSystem();
         Assert.Equal(new Vector2i(64, 32), RenderSurface.GetSize(graphics, surface));
         Assert.Equal(new IntRect(0, 0, 64, 32), RenderSurface.GetRect(graphics, surface));
 

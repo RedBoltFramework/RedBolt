@@ -3,7 +3,7 @@ using System.Text;
 using RedBolt.Bindings.SpirVTools;
 using RedBoltNative;
 
-namespace RedBolt;
+namespace RedBolt.Graphics;
 
 public static class ShaderOptimizer
 {

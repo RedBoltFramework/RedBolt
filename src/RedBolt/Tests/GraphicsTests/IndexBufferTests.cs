@@ -1,3 +1,5 @@
+using RedBolt.Graphics;
+using RedBolt.RenderAPI;
 namespace RedBolt.Tests.GraphicsTests;
 
 public sealed class IndexBufferTests

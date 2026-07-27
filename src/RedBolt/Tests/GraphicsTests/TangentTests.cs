@@ -1,6 +1,8 @@
 using System.Runtime.InteropServices;
 using Xunit;
 
+using RedBolt.Graphics;
+using RedBolt.Math;
 namespace RedBolt.Tests;
 
 public sealed class TangentTests

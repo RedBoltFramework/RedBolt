@@ -1,7 +1,9 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+namespace RedBolt.Math;
+using Math = global::System.Math;
+
 
 /// <summary>Rotation represented as a four-dimensional normalized vector.</summary>
 [StructLayout(LayoutKind.Sequential)]

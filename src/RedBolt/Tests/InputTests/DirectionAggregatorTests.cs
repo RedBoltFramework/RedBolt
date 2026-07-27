@@ -1,7 +1,9 @@
 using RedBolt;
 using System.Reflection;
 
+using RedBolt.Input;
 namespace RedBolt.Tests;
+
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class DirectionAggregatorTests
@@ -13,7 +15,7 @@ public sealed class DirectionAggregatorTests
         this._fixture = fixture;
     }
 
-    private RedBolt.Input Input => _fixture.Input;
+    private InputSystem Input => _fixture.Input;
 
     [Fact]
     public void Matches_native_noncopyable_class_and_pod_axis_state_kinds()

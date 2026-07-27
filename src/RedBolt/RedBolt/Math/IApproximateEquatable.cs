@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Math;
 
 public interface IApproximateEquatable<in T>
 {

@@ -1,4 +1,12 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Scene;
+namespace RedBolt.RenderPipeline;
+using Math = global::System.Math;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 /// <summary>
 /// Flags related to geometry rendering.

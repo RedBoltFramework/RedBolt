@@ -2,7 +2,17 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Graphics;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.Scene;
+namespace RedBolt.RenderPipeline;
+using Math = global::System.Math;
+
+using Scene = global::RedBolt.Scene.Scene;
 
 internal static class BatchRendererHelpers
 {
@@ -143,7 +153,7 @@ internal struct ObjectParameterBuilder
         {
             case GeometryType.Skinned:
             {
-                var count = (int)Math.Min(sourceBatch.NumWorldTransforms, Graphics.GetMaxBones());
+                var count = (int)Math.Min(sourceBatch.NumWorldTransforms, GraphicsSystem.GetMaxBones());
                 drawQueue.AddShaderParameter(ShaderConsts.Object_SkinMatrices, worldTransform[..count]);
                 break;
             }

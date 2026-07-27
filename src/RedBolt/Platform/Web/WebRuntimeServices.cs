@@ -3,6 +3,9 @@ using System;
 
 using System.Runtime.InteropServices.JavaScript;
 
+using RedBolt.Core;
+using RedBolt.Engine;
+using RedBolt.Platform;
 namespace RedBolt;
 
 public static class WebPlatform

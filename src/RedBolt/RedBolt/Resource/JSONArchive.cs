@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using System.Globalization;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.IO;
+namespace RedBolt.Resource;
 
 /// <summary>Base archive for JSON serialization.</summary>
 public abstract class JSONArchiveBase<TBlock> : ArchiveBase

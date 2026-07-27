@@ -4,7 +4,11 @@ using System.Xml.Linq;
 using System.Xml.XPath;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Logging;
+using RedBolt.Scene;
+namespace RedBolt.Resource;
 
 /// <summary>XML document resource.</summary>
 [Reflected]

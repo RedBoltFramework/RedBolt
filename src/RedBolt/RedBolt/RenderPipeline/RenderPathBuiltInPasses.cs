@@ -1,6 +1,15 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.Resource;
+namespace RedBolt.RenderPipeline;
+using Math = global::System.Math;
+
 
 /// <summary>
 /// Render pass that applies a shader to the entire output area.

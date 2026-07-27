@@ -1,4 +1,11 @@
+using RedBolt.Audio;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.RenderPipeline;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 public class ObjectCategoryTests
 {

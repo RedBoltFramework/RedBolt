@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Core;
 
 /// <summary>
 /// Internal helper class for invoking event handler functions.

@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+using RedBolt.Math;
+namespace RedBolt.Graphics;
 
 public static class Tangent
 {

@@ -1,7 +1,10 @@
 using RedBolt;
 using System.Reflection;
 
+using RedBolt.Core;
+using RedBolt.Input;
 namespace RedBolt.Tests;
+
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class MultitouchAdapterTests
@@ -13,7 +16,7 @@ public sealed class MultitouchAdapterTests
         _fixture = fixture;
     }
 
-    private RedBolt.Input Input => _fixture.Input;
+    private InputSystem Input => _fixture.Input;
 
     [Fact]
     public void Matches_native_noncopyable_class_and_pod_active_touch_kinds()
@@ -36,7 +39,7 @@ public sealed class MultitouchAdapterTests
     [Fact]
     public void Touch_begin_requires_matching_non_ui_input_touch()
     {
-        var touches = Assert.IsType<Dictionary<int, TouchState>>(typeof(RedBolt.Input)
+        var touches = Assert.IsType<Dictionary<int, TouchState>>(typeof(InputSystem)
             .GetField("_touches", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(Input));
         using var adapter = new MultitouchAdapter();
         adapter.SetEnabled(true);

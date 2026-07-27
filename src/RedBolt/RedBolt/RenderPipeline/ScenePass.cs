@@ -1,6 +1,13 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Graphics;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.Scene;
+namespace RedBolt.RenderPipeline;
+using Scene = global::RedBolt.Scene.Scene;
+
 
 /// <summary>Base type for scene pass.</summary>
 public abstract class ScenePass : BatchCompositorPass

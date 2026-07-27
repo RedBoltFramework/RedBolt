@@ -1,7 +1,10 @@
 using System.Runtime.InteropServices;
 using RedBolt.Bindings.Sdl;
 
-namespace RedBolt;
+using RedBolt.Core;
+namespace RedBolt.Audio;
+using Math = global::System.Math;
+
 
 /// <summary>Microphone audio input device.</summary>
 public class Microphone : RedObject

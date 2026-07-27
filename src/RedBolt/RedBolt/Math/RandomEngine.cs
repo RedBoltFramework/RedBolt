@@ -1,7 +1,10 @@
 using System.Diagnostics;
 using System.Globalization;
 
-namespace RedBolt;
+using RedBolt.Logging;
+namespace RedBolt.Math;
+using Math = global::System.Math;
+
 
 /// <summary>Random number generator. Stable across platforms and runs for any given seed.</summary>
 public class RandomEngine : ICloneable

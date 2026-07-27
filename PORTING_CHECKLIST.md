@@ -3,6 +3,7 @@
 ## Managed architecture
 
 - [~] Shared `RedBolt.dll`, one selected platform assembly, independently referenceable graphics-backend assemblies, and common managed output are complete; one-invocation Linux/Web native-binding generation remains pending
+- [x] Move managed engine types into folder-matching namespaces, update all consumers and generated reflection metadata, and rename the namespace-colliding subsystems to `AudioSystem`, `EngineSystem`, `GraphicsSystem`, and `InputSystem`.
 
 ## Samples
 

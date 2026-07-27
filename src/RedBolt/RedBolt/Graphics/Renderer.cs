@@ -1,6 +1,17 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.RenderPipeline;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+
+using Scene = global::RedBolt.Scene.Scene;
 
 /// <summary>Light vertex shader variations.</summary>
 public enum LightVsVariation
@@ -138,7 +149,7 @@ public sealed class Renderer : RedObject
     public const int ShadowMinPixels = 64;
     public const int InstancingBufferDefaultSize = 1024;
 
-    private Graphics? _graphics;
+    private GraphicsSystem? _graphics;
     private RenderSurface? _backbufferSurface;
     private bool _backbufferSurfaceViewportsDirty;
     private Technique? _defaultTechnique;
@@ -523,7 +534,7 @@ public sealed class Renderer : RedObject
 
     private void Initialize()
     {
-        var graphics = GetSubsystem<Graphics>();
+        var graphics = GetSubsystem<GraphicsSystem>();
         var renderDevice = GetSubsystem<RenderDevice>();
         var cache = GetSubsystem<ResourceCache>();
 
@@ -567,7 +578,7 @@ public sealed class Renderer : RedObject
 
     private void UpdateMousePositionsForMainViewports()
     {
-        var input = GetSubsystem<Input>()!;
+        var input = GetSubsystem<InputSystem>()!;
 
         foreach (var viewport in _viewports)
         {

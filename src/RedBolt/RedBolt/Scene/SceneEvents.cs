@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Scene;
 
 public static class SceneEvents
 {

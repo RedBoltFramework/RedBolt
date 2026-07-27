@@ -1,7 +1,12 @@
 using RedBolt;
 using System.Reflection;
 
+using RedBolt.Core;
+using RedBolt.Input;
+using RedBolt.Math;
+using RedBolt.Scene;
 namespace RedBolt.Tests;
+
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class DirectionalPadAdapterTests
@@ -13,7 +18,7 @@ public sealed class DirectionalPadAdapterTests
         this._fixture = fixture;
     }
 
-    private RedBolt.Input Input => _fixture.Input;
+    private InputSystem Input => _fixture.Input;
 
     [Fact]
     public void Matches_native_noncopyable_class_and_nonpod_aggregated_state_kinds()

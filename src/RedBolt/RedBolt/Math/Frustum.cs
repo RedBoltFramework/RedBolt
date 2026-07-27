@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Math;
 
 /// <summary>
 /// Frustum planes.

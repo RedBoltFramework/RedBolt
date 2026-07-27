@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+namespace RedBolt.Container;
 
 /// <summary>Vector of vectors.</summary>
 public class MultiVector<T> : IEnumerable<T>, ICloneable, IDisposable

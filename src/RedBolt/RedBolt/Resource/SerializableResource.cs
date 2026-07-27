@@ -1,4 +1,8 @@
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Scene;
+namespace RedBolt.Resource;
 
 /// <summary>Base class for serializable resource that uses Archive serialization.</summary>
 [Reflected]

@@ -1,5 +1,8 @@
 using RedBolt;
 
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Math;
 namespace RedBolt.Tests;
 
 public sealed class GeometryTypesTests

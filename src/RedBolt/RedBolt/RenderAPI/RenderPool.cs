@@ -1,6 +1,12 @@
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Input;
+using RedBolt.Logging;
+namespace RedBolt.RenderAPI;
+using Math = global::System.Math;
+
 
 /// <summary>
 /// Pool for different resources used by renderer.

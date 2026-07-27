@@ -1,6 +1,7 @@
 using System.Diagnostics;
 
-namespace RedBolt;
+using RedBolt.Core;
+namespace RedBolt.IO;
 
 public enum ArchiveBlockType
 {

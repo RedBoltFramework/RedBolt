@@ -1,6 +1,16 @@
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.Math;
+using RedBolt.Resource;
+namespace RedBolt.Scene;
+using Math = global::System.Math;
+
+using Resource = global::RedBolt.Resource.Resource;
 
 /// <summary>Interpolation method.</summary>
 public enum InterpMethod

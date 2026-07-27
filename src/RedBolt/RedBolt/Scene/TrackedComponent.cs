@@ -2,7 +2,10 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Logging;
+using RedBolt.Core;
+namespace RedBolt.Scene;
 
 /// <summary>
 /// Base class for simple tracked component.

@@ -1,9 +1,25 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 
-namespace RedBolt;
+using RedBolt.Audio;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.IO;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.Platform;
+using RedBolt.RenderAPI;
+using RedBolt.RenderPipeline;
+using RedBolt.Resource;
+using RedBolt.Scene;
+namespace RedBolt.Engine;
+using Math = global::System.Math;
+using RenderPipeline = global::RedBolt.RenderPipeline.RenderPipeline;
+using Resource = global::RedBolt.Resource.Resource;
+using Scene = global::RedBolt.Scene.Scene;
 
-public class Engine : RedObject
+
+public class EngineSystem : RedObject
 {
     private static readonly string ExecutableDirectory = AppContext.BaseDirectory;
 
@@ -34,7 +50,7 @@ public class Engine : RedObject
     private Context _previousContext = Context.Instance;
     private readonly Context _context = new(Context.Instance.RuntimeServices);
 
-    public Engine()
+    public EngineSystem()
     {
         Directory.SetCurrentDirectory(ExecutableDirectory);
         InitializeContext();
@@ -112,8 +128,8 @@ public class Engine : RedObject
 
         Parameters = applicationParameters.Clone();
         var resources = GetSubsystem<ResourceCache>()!;
-        var input = GetSubsystem<Input>()!;
-        var graphics = GetSubsystem<Graphics>()!;
+        var input = GetSubsystem<InputSystem>()!;
+        var graphics = GetSubsystem<GraphicsSystem>()!;
         var renderer = GetSubsystem<Renderer>()!;
 
         resources.RegisterDefaultResources();
@@ -211,12 +227,12 @@ public class Engine : RedObject
             }
             catch (Exception exception)
             {
-                Log.GetLogger().LogError(exception, "Graphics initialization failed.");
+                Log.GetLogger().LogError(exception, "GraphicsSystem initialization failed.");
                 input.Shutdown();
                 throw;
             }
 
-            var audio = GetSubsystem<Audio>()!;
+            var audio = GetSubsystem<AudioSystem>()!;
             if (Parameters.Sound)
             {
                 audio.SetMode(
@@ -252,13 +268,13 @@ public class Engine : RedObject
         ArgumentNullException.ThrowIfNull(update);
 
         if (!IsInitialized)
-            throw new InvalidOperationException("Engine must be initialized before running frames.");
+            throw new InvalidOperationException("EngineSystem must be initialized before running frames.");
         if (IsExiting)
             return;
 
         var time = GetSubsystem<Time>()!;
-        var input = GetSubsystem<Input>()!;
-        var graphics = GetSubsystem<Graphics>()!;
+        var input = GetSubsystem<InputSystem>()!;
+        var graphics = GetSubsystem<GraphicsSystem>()!;
         GetSubsystem<WorkQueue>()!.Update();
 
         if (!IsHeadless && !graphics.IsInitialized)
@@ -273,7 +289,7 @@ public class Engine : RedObject
 
         time.BeginFrame(timeStep);
 
-        var audio = GetSubsystem<Audio>()!;
+        var audio = GetSubsystem<AudioSystem>()!;
         var isPaused = PauseMinimized && input.IsMinimized;
         if (isPaused)
         {
@@ -325,8 +341,8 @@ public class Engine : RedObject
             "Web canvas resized to {Width}x{Height}{Fullscreen} with DPI scale={DpiScale}.",
             width, height, isFullScreen ? " FullScreen" : " ", dpiScale);
 
-        var input = GetSubsystem<Input>();
-        var graphics = GetSubsystem<Graphics>();
+        var input = GetSubsystem<InputSystem>();
+        var graphics = GetSubsystem<GraphicsSystem>();
         var mouseVisible = input?.MouseVisible ?? false;
         var mouseMode = input?.GetMouseMode() ?? MouseMode.Absolute;
 
@@ -445,13 +461,13 @@ public class Engine : RedObject
         if (IsInitialized)
         {
             GetSubsystem<Renderer>()!.SetNumViewports(0);
-            GetSubsystem<Graphics>()!.Close();
-            GetSubsystem<Input>()!.Shutdown();
+            GetSubsystem<GraphicsSystem>()!.Close();
+            GetSubsystem<InputSystem>()!.Shutdown();
         }
         _configFile.Dispose();
         _context.Reset();
-        if (ReferenceEquals(RedBolt.Context.Instance, _context))
-            RedBolt.Context.SetInstance(_previousContext);
+        if (ReferenceEquals(RedBolt.Core.Context.Instance, _context))
+            RedBolt.Core.Context.SetInstance(_previousContext);
         IsInitialized = false;
         IsExiting = false;
         IsHeadless = false;
@@ -545,7 +561,7 @@ public class Engine : RedObject
     public void Update()
     {
         if (!IsInitialized)
-            throw new InvalidOperationException("Engine must be initialized before sending update events.");
+            throw new InvalidOperationException("EngineSystem must be initialized before sending update events.");
         SendCoreEvents(_timeStep);
     }
 
@@ -553,7 +569,7 @@ public class Engine : RedObject
     {
         if (!IsInitialized || IsHeadless)
             return;
-        var graphics = GetSubsystem<Graphics>()!;
+        var graphics = GetSubsystem<GraphicsSystem>()!;
         if (!graphics.BeginFrame())
             return;
 
@@ -638,14 +654,14 @@ public class Engine : RedObject
 
     private void InitializeContext()
     {
-        _previousContext = RedBolt.Context.Instance;
+        _previousContext = RedBolt.Core.Context.Instance;
         _context.Reset();
-        RedBolt.Context.SetInstance(_context);
+        RedBolt.Core.Context.SetInstance(_context);
         WorkQueue.SetMainThread();
         _context.InitializeEngineSubsystems(this);
 
-        Input.RegisterInputLibrary(_context);
-        Graphics.RegisterGraphicsLibrary(_context);
+        InputSystem.RegisterInputLibrary(_context);
+        GraphicsSystem.RegisterGraphicsLibrary(_context);
         Scene.RegisterSceneLibrary(_context);
 
         // Register render pipeline.
@@ -718,7 +734,7 @@ public class Engine : RedObject
     private void ApplyLiveParameter(string name)
     {
         var renderer = GetSubsystem<Renderer>();
-        var input = GetSubsystem<Input>();
+        var input = GetSubsystem<InputSystem>();
 
         switch (name)
         {
@@ -874,7 +890,7 @@ public class Engine : RedObject
         if (!IsHeadless && !string.IsNullOrWhiteSpace(screenshotPath) && _screenshotFrameDelay-- <= 0)
         {
             using var screenshot = new Image();
-            if (GetSubsystem<Graphics>()!.TakeScreenShot(screenshot)
+            if (GetSubsystem<GraphicsSystem>()!.TakeScreenShot(screenshot)
                 && screenshot.SaveFile(new FileIdentifier(GetScreenshotPath(screenshotPath))))
             {
                 ++_screenshotIndex;
@@ -899,7 +915,7 @@ public class Engine : RedObject
 
     private void DoExit()
     {
-        var graphics = GetSubsystem<Graphics>();
+        var graphics = GetSubsystem<GraphicsSystem>();
         if (graphics is not null)
         {
             graphics.SavePipelineStateCache(FileIdentifier.FromUri(Parameters.PsoCache));
@@ -931,7 +947,7 @@ public class Engine : RedObject
             return;
 
         uint maxFps = (uint)Math.Max(MaxFps, 0);
-        var input = GetSubsystem<Input>();
+        var input = GetSubsystem<InputSystem>();
         if (input is not null && !input.HasFocus)
             maxFps = Math.Min((uint)Math.Max(MaxInactiveFps, 0), maxFps);
 

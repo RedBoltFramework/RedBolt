@@ -1,4 +1,12 @@
-namespace RedBolt;
+using RedBolt.Graphics;
+using RedBolt.RenderAPI;
+using RedBolt.Scene;
+namespace RedBolt.RenderPipeline;
+using CullMode = global::RedBolt.Graphics.CullMode;
+using FillMode = global::RedBolt.Graphics.FillMode;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+
+using Scene = global::RedBolt.Scene.Scene;
 
 /// <summary>Scene pass that collects outlined drawables into a deferred outline mask.</summary>
 public class OutlineScenePass : ScenePass

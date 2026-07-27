@@ -1,4 +1,9 @@
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Math;
+using RedBolt.Scene;
+namespace RedBolt.Input;
+
 
 public class FreeFlyController : Component
 {
@@ -24,7 +29,7 @@ public class FreeFlyController : Component
     /// <summary>Construct.</summary>
     public FreeFlyController()
     {
-        _ignoreJoystickId = GetSubsystem<Input>()!.FindAccelerometerJoystickId();
+        _ignoreJoystickId = GetSubsystem<InputSystem>()!.FindAccelerometerJoystickId();
         SubscribeToEvent<InputEvents.MultitouchEvent>(_multitouchAdapter, HandleMultitouch);
 
         RegisterAttribute("Speed", typeof(float), self => ((FreeFlyController)self).GetSpeed(), (self, value) => ((FreeFlyController)self).SetSpeed(value is float typed ? typed : 20.0f), 20.0f);
@@ -109,7 +114,7 @@ public class FreeFlyController : Component
     {
         // TODO: port: if (GetSubsystem<UI>()->GetFocusElement()) return;
 
-        var input = GetSubsystem<Input>()!;
+        var input = GetSubsystem<InputSystem>()!;
         if (_isActive || input.MouseMode == MouseMode.Free)
         {
             if (!_isActive && input.GetMouseButtonPress(MouseButton.Right))
@@ -137,7 +142,7 @@ public class FreeFlyController : Component
     /// <summary>Handle mouse input.</summary>
     private Movement HandleMouse()
     {
-        var input = GetSubsystem<Input>()!;
+        var input = GetSubsystem<InputSystem>()!;
         var mouseMove = input.GetMouseMove();
         var movement = new Movement();
         movement.Rotation.Y += _mouseSensitivity * mouseMove.X;
@@ -149,7 +154,7 @@ public class FreeFlyController : Component
     private Movement HandleKeyboard(float timeStep)
     {
         var movement = new Movement();
-        var input = GetSubsystem<Input>()!;
+        var input = GetSubsystem<InputSystem>()!;
 
         var speed = input.GetKeyDown(Key.Shift) ? _acceleratedSpeed : _speed;
         if (input.GetScancodeDown(Scancode.W))
@@ -347,7 +352,7 @@ public class FreeFlyController : Component
     /// <summary>Handle keyboard and mouse input.</summary>
     private void HandleKeyboardMouseAndJoysticks(float timeStep)
     {
-        var input = GetSubsystem<Input>()!;
+        var input = GetSubsystem<InputSystem>()!;
 
         // Use this frame's mouse motion to adjust camera node yaw and pitch. Clamp the pitch between -90 and 90 degrees
         UpdateCameraAngles();
@@ -413,7 +418,7 @@ public class FreeFlyController : Component
 
         if (eventType == MultitouchEventType.MultitouchMove)
         {
-            var graphics = GetSubsystem<Graphics>();
+            var graphics = GetSubsystem<GraphicsSystem>();
             var camera = Node.GetComponent<Camera>();
             var sensitivity = _touchSensitivity * 90.0f / 1080.0f;
             if (graphics is not null && camera is not null)

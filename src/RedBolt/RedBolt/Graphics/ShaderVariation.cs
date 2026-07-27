@@ -2,13 +2,21 @@ using System.Text;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Logging;
+using RedBolt.RenderAPI;
+namespace RedBolt.Graphics;
+using FileMode = global::RedBolt.IO.FileMode;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+
 
 /// <summary>Vertex or pixel shader on the GPU.</summary>
 public sealed class ShaderVariation : RawShader
 {
     /// <summary>Cached pointer to Graphics subsystem.</summary>
-    private readonly Graphics _graphics;
+    private readonly GraphicsSystem _graphics;
     /// <summary>Source shader.</summary>
     private readonly Shader _owner;
     /// <summary>Defines to use when compiling the shader.</summary>
@@ -20,7 +28,7 @@ public sealed class ShaderVariation : RawShader
     public ShaderVariation(Shader shader, ShaderType shaderType, string defines)
         : base(shaderType)
     {
-        _graphics = GetSubsystem<Graphics>()!;
+        _graphics = GetSubsystem<GraphicsSystem>()!;
         _owner = shader;
         _defines = defines;
         SetDebugName(GetShaderVariationName());
@@ -60,7 +68,7 @@ public sealed class ShaderVariation : RawShader
         if (GetHandle() is not { IsNull: false })
         {
             if (renderBackend == RenderBackend.OpenGL)
-                Log.GetLogger().LogInformation("Shader files:\n{Files}", global::RedBolt.Shader.GetShaderFileList());
+                Log.GetLogger().LogInformation("Shader files:\n{Files}", global::RedBolt.Graphics.Shader.GetShaderFileList());
             return false;
         }
 
@@ -233,7 +241,7 @@ public sealed class ShaderVariation : RawShader
             if (!spirvShader)
             {
                 Log.GetLogger().LogError("Failed to convert shader {Shader} from GLSL to SPIR-V:\n{Files}{Output}",
-                    GetShaderVariationName(), global::RedBolt.Shader.GetShaderFileList(), spirvShader.CompilerOutput);
+                    GetShaderVariationName(), global::RedBolt.Graphics.Shader.GetShaderFileList(), spirvShader.CompilerOutput);
                 return false;
             }
 
@@ -265,7 +273,7 @@ public sealed class ShaderVariation : RawShader
                 if (!targetShader)
                 {
                     Log.GetLogger().LogError("Failed to convert shader {Shader} from SPIR-V to HLSL:\n{Files}{Output}",
-                        GetShaderVariationName(), global::RedBolt.Shader.GetShaderFileList(), targetShader.CompilerOutput);
+                        GetShaderVariationName(), global::RedBolt.Graphics.Shader.GetShaderFileList(), targetShader.CompilerOutput);
                     return false;
                 }
 
@@ -277,7 +285,7 @@ public sealed class ShaderVariation : RawShader
                             targetShader.SourceCode, GetShaderType()))
                     {
                         Log.GetLogger().LogError("Failed to compile HLSL shader {Shader}:\n{Files}{Output}",
-                            GetShaderVariationName(), global::RedBolt.Shader.GetShaderFileList(), compilerOutput);
+                            GetShaderVariationName(), global::RedBolt.Graphics.Shader.GetShaderFileList(), compilerOutput);
                         return false;
                     }
 

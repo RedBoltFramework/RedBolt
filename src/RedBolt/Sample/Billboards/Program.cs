@@ -2,6 +2,12 @@ using System;
 using System.Collections.Generic;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Engine;
+using RedBolt.Scene;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Input;
+using RedBolt.Math;
 
 #if !REDBOLT_WEB_SAMPLE
 try

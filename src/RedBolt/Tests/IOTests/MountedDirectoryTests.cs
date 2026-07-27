@@ -4,7 +4,12 @@ using System.IO;
 using System.Threading;
 using RedBolt;
 
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Resource;
 namespace RedBolt.Tests;
+using FileMode = global::RedBolt.IO.FileMode;
+
 
 public sealed class MountedDirectoryTests
 {

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 
-namespace RedBolt;
+using RedBolt.IO;
+namespace RedBolt.Scene;
 
 /// <summary>
 /// Interface of a class that provides prefab data.

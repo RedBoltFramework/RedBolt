@@ -1,7 +1,13 @@
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Core;
+using RedBolt.Input;
+using RedBolt.Logging;
+namespace RedBolt.IO;
+using Math = global::System.Math;
+using Timer = global::RedBolt.Core.Timer;
+
 
 /// <summary>File change kind.</summary>
 public enum FileChangeKind

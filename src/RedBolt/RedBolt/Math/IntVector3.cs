@@ -3,7 +3,9 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace RedBolt;
+namespace RedBolt.Math;
+using Math = global::System.Math;
+
 
 /// <summary>Three-dimensional vector with integer values.</summary>
 [StructLayout(LayoutKind.Sequential)]

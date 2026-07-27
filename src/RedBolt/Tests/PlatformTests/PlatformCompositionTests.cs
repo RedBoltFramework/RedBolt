@@ -1,5 +1,8 @@
 using RedBolt;
 
+using RedBolt.Core;
+using RedBolt.Platform;
+using RedBolt.RenderAPI;
 namespace RedBolt.Tests;
 
 public sealed class PlatformCompositionTests

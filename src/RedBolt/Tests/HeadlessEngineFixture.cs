@@ -1,5 +1,12 @@
 using RedBolt;
 
+using RedBolt.Core;
+using RedBolt.Engine;
+using RedBolt.Graphics;
+using RedBolt.IO;
+using RedBolt.Input;
+using RedBolt.RenderAPI;
+using RedBolt.Resource;
 namespace RedBolt.Tests;
 
 /// <summary>
@@ -10,7 +17,7 @@ public class HeadlessEngineFixture : IDisposable
 {
     public HeadlessEngineFixture()
     {
-        Engine = new Engine();
+        Engine = new EngineSystem();
         var parameters = new EngineParameters
         {
             ApplicationName = "RedBolt.Tests",
@@ -31,7 +38,7 @@ public class HeadlessEngineFixture : IDisposable
         Resources.AddManualResource(model);
     }
 
-    public Engine Engine { get; }
+    public EngineSystem Engine { get; }
 
     public Context Context => Engine.Context;
 
@@ -39,11 +46,11 @@ public class HeadlessEngineFixture : IDisposable
 
     public ResourceCache Resources => Engine.GetSubsystem<ResourceCache>()!;
 
-    public Input Input => Engine.GetSubsystem<Input>()!;
+    public InputSystem Input => Engine.GetSubsystem<InputSystem>()!;
 
     public Renderer Renderer => Engine.GetSubsystem<Renderer>()!;
 
-    public Graphics Graphics => Engine.GetSubsystem<Graphics>()!;
+    public GraphicsSystem Graphics => Engine.GetSubsystem<GraphicsSystem>()!;
 
     public RenderDevice RenderDevice => Engine.GetSubsystem<RenderDevice>()!;
 

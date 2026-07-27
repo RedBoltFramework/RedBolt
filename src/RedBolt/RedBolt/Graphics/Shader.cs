@@ -2,7 +2,18 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.IO;
+using RedBolt.Input;
+using RedBolt.Logging;
+using RedBolt.RenderAPI;
+using RedBolt.Resource;
+namespace RedBolt.Graphics;
+using Math = global::System.Math;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+
+using Resource = global::RedBolt.Resource.Resource;
 
 public enum ShaderStage
 {
@@ -76,7 +87,7 @@ public sealed class Shader : Resource
         ProcessSource(resourceName, builder, visited, source);
 
         _sourceCode = builder.ToString();
-        if (GetSubsystem<Graphics>()!.GetSettings().ValidateShaders)
+        if (GetSubsystem<GraphicsSystem>()!.GetSettings().ValidateShaders)
         {
             static bool IsAllowedCharacter(char character)
             {
@@ -322,7 +333,7 @@ public sealed class Shader : Resource
                 if (isLineContinuation)
                     line = line[..^1];
 
-                var validateShaders = GetSubsystem<Graphics>()!.GetSettings().ValidateShaders;
+                var validateShaders = GetSubsystem<GraphicsSystem>()!.GetSettings().ValidateShaders;
                 if (!validateShaders || !line.TrimStart().StartsWith("//", StringComparison.Ordinal))
                     builder.Append(line);
                 ++numNewLines;

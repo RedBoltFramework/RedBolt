@@ -1,4 +1,13 @@
-namespace RedBolt;
+using RedBolt.Container;
+using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.RenderAPI;
+namespace RedBolt.RenderPipeline;
+using CullMode = global::RedBolt.Graphics.CullMode;
+using FillMode = global::RedBolt.Graphics.FillMode;
+using Math = global::System.Math;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+
 
 /// <summary>
 /// Utility to build pipeline states for RenderPipeline.
@@ -11,7 +20,7 @@ public class PipelineStateBuilder : RedObject, BatchStateCacheCallback
     private readonly ShadowMapAllocator? _shadowMapAllocator;
     private readonly InstancingBuffer? _instancingBuffer;
 
-    private readonly Graphics _graphics;
+    private readonly GraphicsSystem _graphics;
     private readonly RenderDevice _renderDevice;
     private readonly PipelineStateCache _pipelineStateCache;
     private readonly ShaderProgramCompositor _compositor;
@@ -27,7 +36,7 @@ public class PipelineStateBuilder : RedObject, BatchStateCacheCallback
         _cameraProcessor = cameraProcessor;
         _shadowMapAllocator = shadowMapAllocator;
         _instancingBuffer = instancingBuffer;
-        _graphics = GetSubsystem<Graphics>()!;
+        _graphics = GetSubsystem<GraphicsSystem>()!;
         _renderDevice = GetSubsystem<RenderDevice>()!;
         _pipelineStateCache = GetSubsystem<PipelineStateCache>()!;
         _compositor = new ShaderProgramCompositor();
