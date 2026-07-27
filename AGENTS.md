@@ -20,32 +20,40 @@ The port must be 1:1 (as close as possible) to the original C++ code.
 "1:1" means: same classes, same methods, same fields, same order, same logic.
 You may only change things that this document explicitly allows you to change.
 
-If you see any existing C# code that deviates from the C++ original and is NOT
-on the "ALLOWED DEVIATIONS" list in section 10, you MUST fix it to match C++.
+### SOURCE-OF-TRUTH AND DIVERGENCE RULE
 
-### NON-NEGOTIABLE SOURCE-OF-TRUTH RULE
+Before editing C# code, select exactly one of the following work modes. The
+selected mode determines the source of truth and the changes that are allowed.
 
-The rbfx C++ implementation is the ONLY source of truth for implementation
-decisions. C# code, tests, runtime symptoms, compiler errors, debugger output,
-and personal judgment may reveal that something is wrong, but they MUST NEVER
-be used to design the fix.
+#### Initial direct port
 
-For EVERY implementation, bug fix, crash fix, rendering fix, test fix, API fix,
-refactor, or cleanup, you MUST do all of the following BEFORE editing C# code:
+The rbfx C++ implementation is the source of truth. Establish the corresponding
+C++ declarations, complete method bodies, and relevant call paths; identify the
+C# deviation; then copy the C++ structure, ordering, control flow, state changes,
+and lifetime behavior using the required mappings and the allowed deviations in
+`doc/ALLOWED_DEVIATIONS.md`. If no corresponding C++ implementation can be found,
+stop and search the rbfx repository again before asking the user.
 
-1. Locate the corresponding rbfx C++ class, function, field, test, and call path.
-2. Read the complete relevant C++ declarations and method bodies.
-3. Identify exactly how the C# code deviates from the C++ code.
-4. Copy the C++ structure, ordering, control flow, state changes, and lifetime
-   behavior into C#, applying only the mappings and deviations allowed below.
+#### Unmodified feature investigation
 
-If you cannot find a corresponding C++ implementation, STOP. Do not invent a
-solution. Search the C++ repository again, inspect callers and related classes,
-and ask the user only if the C++ source still cannot determine the behavior.
+The rbfx C++ implementation and call path are the source of truth. Diagnose the
+concrete RedBolt deviation and port that behavior. An issue is not permission to
+improve, redesign, simplify, harden, or work around the feature. If the C# code
+already matches C++, continue tracing the C++ call path until the actual missing
+or divergent port is found.
 
-An issue is NEVER permission to improve, redesign, simplify, harden, or work
-around the C# implementation. The only valid fix is a faithful port of what the
-C++ implementation already does. A green test that deviates from C++ is wrong.
+#### Intentional RedBolt development
+
+The project requirements and existing RedBolt design are the source of truth.
+Define and preserve the desired RedBolt behavior. Consult C++ for context,
+compatibility, and regression analysis, but do not treat it as a replacement
+specification or overwrite RedBolt behavior merely to restore parity.
+
+Once RedBolt deliberately develops its own behavior in an area, that behavior
+becomes part of the RedBolt target. It must not later be treated as a porting
+bug or replaced with C++ code solely because the implementations differ.
+Existing C# deviations therefore require correction only when the area remains
+an initial direct port or is an unmodified feature being diagnosed.
 
 ## 2. TOOLS YOU MUST USE
 
@@ -63,23 +71,17 @@ Do these steps IN ORDER. Finish one step fully before starting the next.
 
 STEP 0 - Preparation
   - Re-read @AGENTS.md to refresh your memory.
-  - Update jcodemunch-mcp index of rbfx and RedBolt.
 
-STEP 1 - Find the C++ class
-  - Use jcodemunch-mcp to open the C++ class outline (all methods, fields, bases).
-  - Write down: base classes, interfaces, every method, every field.
-  - Open and read the COMPLETE C++ body of every method that may be added,
-    changed, removed, debugged, or tested in this slice.
-  - Trace the relevant C++ callers and callees whenever behavior depends on
-    frame ordering, ownership, teardown, events, platform gates, or side effects.
-  - DO NOT inspect the C# implementation and decide how it should work without
-    first completing this C++ review.
+STEP 1 - Classify and investigate the work
+  - Select the applicable work mode in the SOURCE-OF-TRUTH AND DIVERGENCE RULE.
+  - Follow that mode's investigation requirements before editing C#.
+  - Always use jcodemunch-mcp to explore the relevant source and call paths.
 
 STEP 2 - Match the class shape
   - Make sure the C# class has the SAME base classes / interfaces.
   - Make sure the C# class exists in a matching namespace/file location.
 
-STEP 3 - Match every member, one by one
+STEP 3 - Match every member, one by one (initial direct port)
   For EACH method and field in the C++ outline:
     a. Confirm the C# class has that same member.
        - If it is missing: ADD it.
@@ -96,20 +98,19 @@ STEP 3 - Match every member, one by one
 
 STEP 3A - Fixes discovered while building or testing
   If a build, test, sample, debugger, or trace reveals a problem:
-    a. STOP editing the C# implementation.
-    b. Find and re-read the corresponding C++ implementation and call path.
-    c. Compare C# against C++ and identify the concrete deviation.
-    d. Fix ONLY that deviation by porting the C++ code.
-    e. If C# already matches C++, continue tracing the C++ call path until the
-       actual missing or divergent port is found.
-    f. NEVER create a C#-only workaround, fallback, helper, state flag, special
-       case, or alternate execution path to make the symptom disappear.
+    a. STOP editing the C# implementation and apply the rules of the selected
+       work mode.
+    b. Do not use a symptom as permission to change the source of truth or to
+       create an alternate execution path.
 
 STEP 4 - Build and test (see section 6). Do not move on until it is GREEN.
 
 STEP 5 - Update status of ported items in `PORTING_CHECKLIST.md`. If completed,
 mark them as such. If incomplete, mark them as such and clarify what is missing.
 Make a note of any accepted deviations.
+
+STEP 6 - Commit the completed slice as a coherent checkpoint, then update the
+jcodemunch-mcp index only for files modified by this task.
 
 ## 4. NAMING RULES (follow exactly)
 
@@ -188,14 +189,15 @@ Build:
 CMake is auxiliary and is invoked by C# build targets. Do not call CMake directly
 for normal build or verification; build through `dotnet`, `.slnx`, or `.csproj`.
 
-Run the sample and capture a screenshot:
+Run the most relevant rendering sample for the changed area and capture a screenshot.
+Use MultipleViewports when no more relevant sample exists:
   rm -f /tmp/screenshot.png
   build/bin/Debug/samples/RedBolt.Sample.MultipleViewports --timeout 2 --screenshot-on-exit /tmp/screenshot.png
 
 Run the tests (adjust the filter to your area):
   dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug
 
-(Optional) Check the screenshot at /tmp/screenshot.png shows a correct, non-black scene.
+Review the captured screenshot as a success gate. The relevant scene must render correctly and must not be black or otherwise visibly broken.
 
 Shared desktop managed libraries are in:
   /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug
@@ -238,7 +240,7 @@ with resource prefix paths `.;..`.
 - Preserve C++ code layout.
 - Commit only code that builds and works. In case this is a larger rework - it must be completed before committing.
 - Add or update focused unit tests when you change behavior.
-- After ANY change: build, run tests, and run the MultipleViewports sample.
+- After ANY change: build, run tests, and run the most relevant rendering sample with screenshot capture and review as a success gate. Use MultipleViewports when no more relevant sample exists.
 - After finishing a slice: commit a coherent checkpoint.
 - If the current API cannot express a piece of C++ yet:
     - Add the C++ version as a C# COMMENT with a `// TODO: port` note,
@@ -251,24 +253,35 @@ with resource prefix paths `.;..`.
 
 ## 8. THINGS YOU MUST NEVER DO
 
-- NEVER diagnose a symptom and design a C# fix from first principles. Diagnose
-  by comparing against C++, then port the C++ behavior.
+### In initial-port and unmodified-feature modes
+
+- NEVER diagnose a symptom or design a fix from first principles. Diagnose by
+  comparing against C++, then port the C++ behavior.
 - NEVER use the existing C# implementation as the specification.
 - NEVER add a helper, workaround, fallback, state flag, special case, or new
   execution path unless the same thing exists in C++ or is an allowed deviation.
 - NEVER change implementation code before locating and reading its C++
   counterpart. Build errors and test failures do not waive this requirement.
-- NEVER update a test to bless behavior that differs from C++. Tests must verify
-  the faithfully ported C++ behavior, not preserve an invented C# API.
-- NEVER invent your own code to plug gaps -> ALWAYS just port C++ code.
-- NEVER invent your own defensive code only because you think it is better -> ALWAYS just port C++ code.
+- NEVER invent code to plug gaps or add defensive behavior; ALWAYS port the
+  corresponding C++ behavior.
+
+### In intentional RedBolt development mode
+
+- NEVER replace intentional RedBolt development with C++ code solely to restore
+  parity.
+
+### In all modes
+
+- NEVER update a test to bless behavior that differs from the intended target.
+  Tests for intentional RedBolt development verify RedBolt behavior; tests for
+  direct ports verify the faithfully ported C++ behavior.
 - NEVER introduce your own comments outside of allowed cases.
 - NEVER rework code or adjust execution flow.
 - NEVER write manual/hand-authored native bindings.
 - NEVER add hand-written C/C++ facade headers, C ABI forwarding functions,
   P/Invoke declarations, or C# wrapper classes for native dependency APIs.
-- NEVER take shortcuts that make C# diverge from C++ logic (except section 10).
-- NEVER port things C# already provides (see section 10).
+- NEVER take shortcuts that make an initial direct port or unmodified feature diverge from C++ logic (except the allowed deviations in `doc/ALLOWED_DEVIATIONS.md`).
+- NEVER port things C# already provides (see `doc/ALLOWED_DEVIATIONS.md`).
 - NEVER allocate on the render hot path if the C++ code does not (avoid GC churn:
   no per-frame `new`, no boxing, no LINQ, no `params` arrays, no `Enum.HasFlag`).
 - NEVER commit unless the build is green and tests pass.
@@ -289,56 +302,10 @@ Native dependencies (SDL, Diligent, Dear ImGui) are accessed through generated b
 - Generated C# and C++ binding artifacts go in the CMake BUILD TREE,
   never in the source tree.
 
-## 10. ALLOWED DEVIATIONS (only these)
+## 10. ALLOWED DEVIATIONS
 
-These are the ONLY places C# is allowed to differ from C++:
-
-- RefCounted / SharedPtr / WeakPtr are dropped ON PURPOSE. They must NOT exist.
-- ResourceCache cannot observe external CLR references after the removal of intrusive reference counting. Its release methods therefore treat cached resources as releasable when `force` is false; managed references remain valid after cache eviction. `force` is retained for API parity and skips the native cross-type retry passes when true.
-- SubscribeToEvent / SendEvent are upgraded to the new struct-based event format.
-- CommandLineParser is used instead of CLI11.
-- WorkQueue is rebuilt using a thread-pool.
-- Managed platform/graphics composition uses one selected platform assembly and any supported graphics-backend assemblies. Shared desktop managed libraries use `build/bin/<configuration>`, native libraries use `build/bin/<configuration>/runtimes/<platform>-<architecture>/native`, desktop sample executables and sample-specific files use `build/bin/<configuration>/samples`, tests use `build/bin/<configuration>/tests`, Web output uses `build/bin/<configuration>/web`, and platform-specific behavior is delegated through runtime contracts.
-- Native shared-library filenames use conventional platform-neutral names.
-- Minor API tweaks are allowed ONLY to avoid GC churn.
-- C# indices and sizes use `int`, including when the corresponding C++ type is unsigned.
-- Prefer property syntax alone when it can faithfully represent a C++ member and its public accessors; do not add a private backing field only to wrap it in a public property. Private fields remain allowed when required by behavior or storage semantics.
-- `IApproximateEquatable<T>` is a managed addition used to expose strongly typed epsilon-based equality across math value types and is to be kept.
-- Do NOT re-port things C# already has, for example:
-    - Threading primitives (locks, tasks, thread pools)
-    - Math functions and constants
-    - Standard containers / collections
-    - String utilities
-- Math type aliases are different, but used
-  - `Vector[234]` -> `Vector[234]f`
-  - `IntVector[234]` -> `Vector[234]i`
-- `CString` is our addition and is to be kept, as well as related customizations of other APIs
-- No URHO3D_OBJECT-related metadata code -> replaced by C# type system/reflection with `ObjectReflection` as a facade
-- Object reflection and serializable attribute registration may be declared with C# `[Reflected]` and
-  `[Serialized]` attributes and generated at compile time, including for RedBolt user assemblies.
-  Field and property initializers are the primary source of serialization defaults; generated registration
-  may use an explicitly named default source for method-based and custom accessors.
-- C++ `friend` has no C# equivalent. A member that C++ makes `protected`/`private` but reaches
-  from a `friend` class is mapped to `internal` (or `protected internal` when it is also
-  `virtual`/overridden). This is the required, faithful mapping — NOT an `internal`-visibility
-  violation of section 3. A member that is `public` in C++ must still be `public` in C#.
-- Built-in rbfx UI (`UI`, `Window`, `Text`, `Sprite`, and related controls/subsystems) is not ported.
-- In samples, replace every use of the built-in rbfx UI with Dear ImGui equivalents.
-- All ported samples are windowed; do not preserve fullscreen defaults from the C++ sample when configuring the managed sample.
-- The MultipleViewports sample may explicitly disable window maximization and configure default window dimensions so `--width` and `--height` control the actual window size.
-- C#-only diagnostic flags may trigger a RenderDoc capture after a specified delay.
-- The SkeletalAnimation sample may expose runtime skinning-mode and maximum-bone controls for web rendering diagnostics.
-- The MultipleViewports sample may temporarily animate its camera forward when `REDBOLT_MULTIPLE_VIEWPORTS_ANIMATE_CAMERA=1` for automated rendering diagnostics.
-- Engine construction sets the process working directory to the managed executable directory so CMake-staged resource-directory symlinks resolve consistently.
-- All ported samples use `MouseMode.Free` with a visible cursor while idle. Free-fly camera controls follow rbfx: while the right mouse button is held, temporarily hide and lock the cursor in relative mode, then restore free mode and cursor visibility on release.
-- All ported samples use `MM_FREE` memory mode unless a sample has a documented sample-specific reason to require another mode.
-- WebAssembly frame pacing is controlled by the JavaScript `requestAnimationFrame` loop. Do not call `SDL_GL_SetSwapInterval` on WebAssembly because SDL's Emscripten implementation requires an Emscripten-owned main loop that the .NET host does not use.
-- On WebAssembly, application window width and height default to the browser canvas dimensions in physical pixels before `Setup()`. `Setup()` may override either value. The Web shell follows rbfx: it rounds CSS canvas dimensions multiplied by the device pixel ratio, creates the SDL window without `SDL_WINDOW_ALLOW_HIGHDPI`, and resynchronizes canvas resolution on resize, fullscreen, and visibility changes.
-- `SystemUI` is renamed to `DearImGui`.
-- Calls to `GetSubsystem<T>()` in ported subsystem consumers assume that the requested subsystem is registered and return a non-null object. C# code may use a non-null field/reference and omit C++ null checks that only guard a missing subsystem.
-- The optional Actions subsystem and compile-gated Actions reflection/integration members are excluded from the current completion scope.
-
-Anything not on this list must match C++.
+The exhaustive list of allowed deviations is maintained in
+`doc/ALLOWED_DEVIATIONS.md`. Anything not on that list must match C++.
 
 ## 11. SUCCESS CRITERIA (all must be true)
 
@@ -346,8 +313,8 @@ Anything not on this list must match C++.
 - [ ] All tests pass.
 - [ ] The C# class outline matches the C++ class outline as closely as possible.
 - [ ] The C# method bodies match the C++ method bodies as closely as possible.
-- [ ] The RedBolt.Sample.MultipleViewports sample runs and shows a correct scene.
-- [ ] Optional: The MultipleViewports sample does not allocate GC memory continuously
+- [ ] The most relevant rendering sample for the changed area runs and its reviewed screenshot shows a correct scene; use MultipleViewports when no more relevant sample exists.
+- [ ] Optional: The relevant sample does not allocate GC memory continuously
       (verify with dotnet-trace: steady-state allocations should be flat).
 - [ ] All tasks from the goal section are completed.
 
