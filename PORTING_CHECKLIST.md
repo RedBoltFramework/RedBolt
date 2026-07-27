@@ -574,8 +574,8 @@ Accepted deviations:
   - [x] `struct LightmapUVGenerationSettings`
 - [ ] `RaytracerScene.h`
   - [ ] `RaytracerScene : RefCounted`
-- [ ] `BakedLight.h`
-  - [ ] baked light structs
+- [x] `BakedLight.h`
+  - [x] baked light structs
 - [ ] `BakedLightCache.h`
   - [ ] `BakedLightCache`
   - [ ] `BakedLightMemoryCache : BakedLightCache`
