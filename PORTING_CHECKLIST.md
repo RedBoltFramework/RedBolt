@@ -589,8 +589,8 @@ Accepted deviations:
   - [x] `DefaultBakedSceneCollector : BakedSceneCollector`
 - [x] `StaticModelForLightmap.h`
   - [x] `StaticModelForLightmap : Drawable`
-- [ ] `LightmapCharter.h`
-  - [ ] chart layout helpers
+- [x] `LightmapCharter.h`
+  - [x] chart layout helpers
 - [~] `LightmapGeometryBuffer.h`
   - [x] geometry buffer structs — scene generation and geometry-buffer baking functions remain pending their render-pipeline prerequisites
 - [ ] `LightmapStitcher.h`
