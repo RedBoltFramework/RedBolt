@@ -1,11 +1,12 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Core;
 using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
+using SceneType = global::RedBolt.Scene.Scene;
 
-using Scene = global::RedBolt.Scene.Scene;
+namespace RedBolt.Graphics;
 
 /// <summary>Octree octant.</summary>
 public class Octant : IDisposable
@@ -532,7 +533,7 @@ public sealed class Octree : Component
     {
         _worldBoundingBox = box;
         _rootOctant.SetRootSize(box);
-        _numLevels = Math.Max(numLevels, 1u);
+        _numLevels = SystemMath.Max(numLevels, 1u);
     }
 
     public void SetLocked(bool locked)
@@ -824,7 +825,7 @@ public sealed class Octree : Component
         DrawDebugGeometry(debug, depthTest);
     }
 
-    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
+    protected internal override void OnSceneSet(SceneType? previousScene, SceneType? scene)
     {
         base.OnSceneSet(previousScene, scene);
 

@@ -1,8 +1,9 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using RedBolt.Bindings.Lz4;
 
+using RedBolt.Bindings.Lz4;
 using RedBolt.Resource;
+
 namespace RedBolt.IO;
 
 public static class Compression

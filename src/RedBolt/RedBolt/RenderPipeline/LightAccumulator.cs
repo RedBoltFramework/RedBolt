@@ -1,12 +1,12 @@
 using System.Diagnostics.CodeAnalysis;
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-namespace RedBolt.RenderPipeline;
-using Math = global::System.Math;
 
+namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Light parameters needed to calculate SH lighting.
@@ -65,7 +65,7 @@ public struct LightDataForAccumulator
     public readonly float GetSpotAttenuation(Vector3f worldDir)
     {
         var spotAngle = Direction.DotProduct(worldDir);
-        return Math.Clamp((spotAngle - SpotCutoff) * InverseSpotCutoff, 0.0f, 1.0f);
+        return SystemMath.Clamp((spotAngle - SpotCutoff) * InverseSpotCutoff, 0.0f, 1.0f);
     }
 
     /// <summary>
@@ -173,8 +173,8 @@ public struct LightAccumulator
         _lights[index] = new LightData(penalty, lightIndex);
         ++_numLights;
 
-        _firstVertexLight = Math.Max(_numImportantLights,
-            Math.Min(_numImportantLights + _numAutoLights, ctx.MaxPixelLights));
+        _firstVertexLight = SystemMath.Max(_numImportantLights,
+            SystemMath.Min(_numImportantLights + _numAutoLights, ctx.MaxPixelLights));
 
         var maxLights = ctx.MaxVertexLights + _firstVertexLight;
         if (_numLights > maxLights)
@@ -224,7 +224,7 @@ public struct LightAccumulator
 
     [UnscopedRef]
     public readonly ReadOnlySpan<LightData> PixelLights =>
-        _lights[..Math.Min(_numLights, _firstVertexLight)];
+        _lights[..SystemMath.Min(_numLights, _firstVertexLight)];
 
     public readonly uint VertexLightsHash => _vertexLightsHash;
 

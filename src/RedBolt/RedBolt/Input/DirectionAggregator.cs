@@ -1,8 +1,8 @@
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
-namespace RedBolt.Input;
 
+namespace RedBolt.Input;
 
 [Flags]
 public enum DirectionAggregatorMask : uint

@@ -1,14 +1,14 @@
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
+using ResourceType = global::RedBolt.Resource.Resource;
 
-using Resource = global::RedBolt.Resource.Resource;
+namespace RedBolt.Graphics;
 
 /// <summary>Particle emitter shapes.</summary>
 public enum EmitterType
@@ -92,7 +92,7 @@ public struct TextureFrame : IEquatable<TextureFrame>
 }
 
 /// <summary>Particle effect definition.</summary>
-public class ParticleEffect : Resource
+public class ParticleEffect : ResourceType
 {
     public const uint DefaultNumParticles = 10;
 
@@ -497,12 +497,12 @@ public class ParticleEffect : Resource
     public void SetDampingForce(float force) => _dampingForce = force;
     public void SetActiveTime(float time) => _activeTime = time;
     public void SetInactiveTime(float time) => _inactiveTime = time;
-    public void SetMinEmissionRate(float rate) => _emissionRateMin = Math.Max(rate, MinEmissionRate);
-    public void SetMaxEmissionRate(float rate) => _emissionRateMax = Math.Max(rate, MinEmissionRate);
+    public void SetMinEmissionRate(float rate) => _emissionRateMin = SystemMath.Max(rate, MinEmissionRate);
+    public void SetMaxEmissionRate(float rate) => _emissionRateMax = SystemMath.Max(rate, MinEmissionRate);
     public void SetMinParticleSize(in Vector2f size) => _sizeMin = size;
     public void SetMaxParticleSize(in Vector2f size) => _sizeMax = size;
-    public void SetMinTimeToLive(float time) => _timeToLiveMin = Math.Max(time, 0.0f);
-    public void SetMaxTimeToLive(float time) => _timeToLiveMax = Math.Max(time, 0.0f);
+    public void SetMinTimeToLive(float time) => _timeToLiveMin = SystemMath.Max(time, 0.0f);
+    public void SetMaxTimeToLive(float time) => _timeToLiveMax = SystemMath.Max(time, 0.0f);
     public void SetMinVelocity(float velocity) => _velocityMin = velocity;
     public void SetMaxVelocity(float velocity) => _velocityMax = velocity;
     public void SetMinRotation(float rotation) => _rotationMin = rotation;

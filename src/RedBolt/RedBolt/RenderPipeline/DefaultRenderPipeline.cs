@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Logging;
+using System.Runtime.InteropServices;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Input;
@@ -5,12 +8,9 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
+
 namespace RedBolt.RenderPipeline;
-using Scene = global::RedBolt.Scene.Scene;
-
-
-using Microsoft.Extensions.Logging;
-using System.Runtime.InteropServices;
 
 /// <summary>Default implementation of render pipeline instance.</summary>
 public class DefaultRenderPipelineView : RenderPipelineView
@@ -71,7 +71,7 @@ public class DefaultRenderPipelineView : RenderPipelineView
     private readonly ShaderParameterDesc[] _cameraParameters = new ShaderParameterDesc[2];
     private readonly ShaderResourceDesc[] _depthAndColorTextures = new ShaderResourceDesc[2];
 
-    public DefaultRenderPipelineView(RenderPipeline renderPipeline)
+    public DefaultRenderPipelineView(RenderPipelineComponent renderPipeline)
         : base(renderPipeline)
     {
         SetSettings(renderPipeline.Settings);
@@ -762,9 +762,9 @@ public class DefaultRenderPipelineView : RenderPipelineView
         result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
     }
 
-    private void OnSettingsChanged(RenderPipeline pipeline, RenderPipelineSettings settings) => SetSettings(in settings);
+    private void OnSettingsChanged(RenderPipelineComponent pipeline, RenderPipelineSettings settings) => SetSettings(in settings);
 
-    private void OnRenderPathChanged(RenderPipeline pipeline, RenderPath? renderPath) => SetRenderPath(renderPath);
+    private void OnRenderPathChanged(RenderPipelineComponent pipeline, RenderPath? renderPath) => SetRenderPath(renderPath);
 
-    private void OnParametersChanged(RenderPipeline pipeline) => MarkParametersDirty();
+    private void OnParametersChanged(RenderPipelineComponent pipeline) => MarkParametersDirty();
 }

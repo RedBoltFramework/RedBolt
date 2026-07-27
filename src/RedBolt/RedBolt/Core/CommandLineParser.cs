@@ -1,8 +1,7 @@
+using SystemMath = global::System.Math;
 using System.Text;
 
 namespace RedBolt.Core;
-using Math = global::System.Math;
-
 
 public sealed class CommandLineParser
 {
@@ -89,11 +88,11 @@ public sealed class CommandLineParser
         {
             var renderedOption = _options[index].RenderSignature();
             renderedOptions[index] = renderedOption;
-            width = Math.Max(width, renderedOption.Length);
+            width = SystemMath.Max(width, renderedOption.Length);
         }
 
         renderedOptions[^1] = "-h, --help";
-        width = Math.Max(width, renderedOptions[^1].Length);
+        width = SystemMath.Max(width, renderedOptions[^1].Length);
 
         for (var index = 0; index < _options.Count; ++index)
             builder.Append("  ").Append(renderedOptions[index].PadRight(width)).Append("  ").AppendLine(_options[index].Description);

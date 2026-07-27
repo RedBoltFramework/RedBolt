@@ -1,8 +1,9 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Core;
 using RedBolt.Math;
-namespace RedBolt.Scene;
-using Math = global::System.Math;
 
+namespace RedBolt.Scene;
 
 /// <summary>
 /// Component that randomly displaces the node around (0,0,0) coordinate.
@@ -61,7 +62,7 @@ public class ShakeComponent : LogicComponent
         get => _trauma;
         set
         {
-            _trauma = Math.Max(value, 0.0f);
+            _trauma = SystemMath.Max(value, 0.0f);
 
             if (_trauma > 0.0f)
             {
@@ -116,7 +117,7 @@ public class ShakeComponent : LogicComponent
         }
 
         _time += timeStep * TimeScale;
-        _trauma = Math.Max(0.0f, _trauma - _traumaFalloff * timeStep);
+        _trauma = SystemMath.Max(0.0f, _trauma - _traumaFalloff * timeStep);
         if (_trauma == 0.0f)
         {
             Node.SetPosition(_originalPosition);

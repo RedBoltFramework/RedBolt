@@ -1,13 +1,12 @@
 using RedBolt;
-
 using RedBolt.Container;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class LightTests
@@ -15,7 +14,7 @@ public sealed class LightTests
     [Fact]
     public void Default_type_and_mode_work()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
         Assert.Equal(DrawableFlags.Light, light.GetDrawableFlags());
         Assert.Equal(LightType.Point, light.GetLightType());
         Assert.Equal(LightImportance.Auto, light.GetLightImportance());
@@ -25,7 +24,7 @@ public sealed class LightTests
     [Fact]
     public void Component_color_attribute_resolves_and_uses_light_accessors()
     {
-        var node = new Scene().CreateChild("Light");
+        var node = new SceneType().CreateChild("Light");
         var light = node.CreateComponent<Light>();
 
         var attribute = node.FindComponentAttribute("@Light/Color");
@@ -40,7 +39,7 @@ public sealed class LightTests
     [Fact]
     public void Effective_mask_and_range_clamp()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
         light.SetRange(-1.0f);
         light.SetFov(200.0f);
 
@@ -54,7 +53,7 @@ public sealed class LightTests
     [Fact]
     public void Baked_mode_has_zero_effective_mask()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
         light.SetLightMode(LightMode.Baked);
         Assert.Equal(0u, light.GetLightMaskEffective());
     }
@@ -62,7 +61,7 @@ public sealed class LightTests
     [Fact]
     public void Effective_color_and_specular_work()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
         light.SetColor(new Color(0.5f, 0.25f, 0.125f));
         light.SetBrightness(2.0f);
         light.SetSpecularIntensity(-1.0f);
@@ -74,7 +73,7 @@ public sealed class LightTests
     [Fact]
     public void Color_temperature_radius_and_length_match_source_validation()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
 
         light.SetColor(new Color(0.5f, 0.25f, 0.125f, 0.25f));
         light.SetTemperature(100.0f);
@@ -108,7 +107,7 @@ public sealed class LightTests
         Assert.Equal(Light.ShadowMinQuantize, focus.Quantize);
         Assert.Equal(Light.ShadowMinView, focus.MinView);
 
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
         light.SetShadowFocus(focus);
         focus.Quantize = 42.0f;
         Assert.Equal(Light.ShadowMinQuantize, light.GetShadowFocus().Quantize);
@@ -117,7 +116,7 @@ public sealed class LightTests
     [Fact]
     public void Shadow_bias_validation_works()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
         light.SetShadowBias(new BiasParameters(2.0f, 20.0f, -1.0f));
         Assert.Equal(new BiasParameters(1.0f, 16.0f, 0.0f), light.GetShadowBias());
     }
@@ -125,7 +124,7 @@ public sealed class LightTests
     [Fact]
     public void Shadow_cascade_validation_works()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
         light.SetShadowCascade(new CascadeParameters(-1.0f, 5.0f, 10.0f, 0.0f, -1.0f, 2.0f));
         Assert.Equal(3, light.GetNumShadowSplits());
     }
@@ -133,7 +132,7 @@ public sealed class LightTests
     [Fact]
     public void Shadow_cascade_splits_stop_at_first_non_increasing_boundary()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
         light.SetShadowCascade(new CascadeParameters(1.0f, 2.0f, 1.0f, 4.0f, 0.5f));
 
         Assert.Equal(2, light.GetNumShadowSplits());
@@ -142,7 +141,7 @@ public sealed class LightTests
     [Fact]
     public void Shadow_scalar_validation_works()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
         light.SetShadowIntensity(2.0f);
         light.SetShadowResolution(0.0f);
         light.SetShadowNearFarRatio(1.0f);
@@ -157,7 +156,7 @@ public sealed class LightTests
     [Fact]
     public void Realtime_mask_works()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
         light.SetLightMode(LightMode.Realtime);
         light.SetRange(100.0f);
         Assert.Equal(light.GetLightMask(), light.GetLightMaskEffective());
@@ -166,7 +165,7 @@ public sealed class LightTests
     [Fact]
     public void Directional_bounds_are_infinite()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
         light.SetLightType(LightType.Directional);
         // Directional light has zero distance and infinite bounding box.
         // The default bounding box for directional light contains the origin.
@@ -176,7 +175,7 @@ public sealed class LightTests
     [Fact]
     public void Point_bounds_follow_world_position_and_range()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
         light.SetRange(4.0f);
         light.Node.SetPosition(new Vector3f(5.0f, 6.0f, 7.0f));
 
@@ -188,7 +187,7 @@ public sealed class LightTests
     [Fact]
     public void Point_volume_transform_uses_world_position_and_range()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
         light.SetRange(4.0f);
         light.Node.SetPosition(new Vector3f(5.0f, 6.0f, 7.0f));
 
@@ -205,7 +204,7 @@ public sealed class LightTests
     [Fact]
     public void View_space_frustum_applies_view_transform()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
         light.SetLightType(LightType.Spot);
         light.SetRange(20.0f);
         light.Node.SetPosition(new Vector3f(5.0f, 0.0f, 0.0f));
@@ -220,7 +219,7 @@ public sealed class LightTests
     [Fact]
     public void Intensity_sort_value_matches_light_polarity()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
 
         light.SetIntensitySortValue(10.0f);
         Assert.True(light.GetSortValue() > 0.0f);
@@ -233,7 +232,7 @@ public sealed class LightTests
     [Fact]
     public void Intensity_sort_value_over_bounding_box_works()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
         light.SetRange(10.0f);
         light.SetIntensitySortValue(new BoundingBox(new Vector3f(-1.0f, -1.0f, 4.0f), new Vector3f(1.0f, 1.0f, 6.0f)));
 
@@ -243,7 +242,7 @@ public sealed class LightTests
     [Fact]
     public void Update_batches_matches_light_distance_rules()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var light = scene.CreateChild("Light").CreateComponent<Light>();
         light.Node.SetPosition(new Vector3f(5.0f, 0.0f, 0.0f));
         var camera = new Camera();
@@ -262,7 +261,7 @@ public sealed class LightTests
     [Fact]
     public void Texture_attributes_roundtrip_empty_resources()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
 
         light.SetRampTextureAttr(ResourceRef.Empty);
         light.SetShapeTextureAttr(ResourceRef.Empty);
@@ -276,7 +275,7 @@ public sealed class LightTests
     [Fact]
     public void Point_light_processes_triangle_ray_queries()
     {
-        var light = new Scene().CreateChild("Light").CreateComponent<Light>();
+        var light = new SceneType().CreateChild("Light").CreateComponent<Light>();
         light.SetRange(10.0f);
         var results = new List<RayQueryResult>();
         var query = new RayOctreeQuery(results, new Ray(new Vector3f(0, 0, -20), new Vector3f(0, 0, 1)),
@@ -292,7 +291,7 @@ public sealed class LightTests
     [Fact]
     public void Draw_debug_geometry_uses_light_type()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         scene.CreateComponent<Octree>();
         var light = scene.CreateChild("Light").CreateComponent<Light>();
         var debugRenderer = scene.CreateComponent<DebugRenderer>();

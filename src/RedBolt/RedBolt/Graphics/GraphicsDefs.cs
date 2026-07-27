@@ -1,6 +1,7 @@
 using RedBolt.Container;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
+
 namespace RedBolt.Graphics;
 
 /// <summary>Vertex/index buffer lock state.</summary>

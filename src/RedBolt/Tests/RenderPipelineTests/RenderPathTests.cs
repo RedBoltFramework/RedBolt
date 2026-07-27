@@ -1,5 +1,4 @@
 using RedBolt;
-
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
@@ -8,6 +7,7 @@ using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
 using RedBolt.Resource;
+
 namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]

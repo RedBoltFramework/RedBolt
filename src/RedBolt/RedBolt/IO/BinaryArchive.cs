@@ -1,7 +1,8 @@
-using RedBolt.Core;
-namespace RedBolt.IO;
-using Math = global::System.Math;
+using SystemMath = global::System.Math;
 
+using RedBolt.Core;
+
+namespace RedBolt.IO;
 
 /// <summary>Binary output archive block.</summary>
 public class BinaryOutputArchiveBlock : ArchiveBlockBase, IDisposable
@@ -209,7 +210,7 @@ public class BinaryInputArchiveBlock : ArchiveBlockBase, ICloneable
         {
             _blockSize = _deserializer.ReadVLE();
             _blockOffset = _deserializer.Position;
-            _nextElementPosition = Math.Min(_blockOffset + _blockSize, _deserializer.Size);
+            _nextElementPosition = SystemMath.Min(_blockOffset + _blockSize, _deserializer.Size);
         }
     }
 

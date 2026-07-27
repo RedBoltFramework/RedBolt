@@ -1,4 +1,5 @@
 using RedBolt.Math;
+
 namespace RedBolt.Graphics;
 
 /// <summary>

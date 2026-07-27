@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -8,9 +9,8 @@ using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.IO;
-using Math = global::System.Math;
 
+namespace RedBolt.IO;
 
 /// <summary>Abstract stream for writing.</summary>
 public abstract class Serializer : IDisposable
@@ -169,9 +169,9 @@ public abstract class Serializer : IDisposable
             {
                 var normalizedValue = value / param;
                 normalizedValue = new Vector3d(
-                    Math.Clamp(normalizedValue.X, -1.0, 1.0),
-                    Math.Clamp(normalizedValue.Y, -1.0, 1.0),
-                    Math.Clamp(normalizedValue.Z, -1.0, 1.0));
+                    SystemMath.Clamp(normalizedValue.X, -1.0, 1.0),
+                    SystemMath.Clamp(normalizedValue.Y, -1.0, 1.0),
+                    SystemMath.Clamp(normalizedValue.Z, -1.0, 1.0));
                 var intValue = new Vector3i(
                     (int)(normalizedValue.X * MathDefs.MaxInt + 0.5),
                     (int)(normalizedValue.Y * MathDefs.MaxInt + 0.5),
@@ -184,9 +184,9 @@ public abstract class Serializer : IDisposable
             {
                 var normalizedValue = value / param;
                 normalizedValue = new Vector3d(
-                    Math.Clamp(normalizedValue.X, -1.0, 1.0),
-                    Math.Clamp(normalizedValue.Y, -1.0, 1.0),
-                    Math.Clamp(normalizedValue.Z, -1.0, 1.0));
+                    SystemMath.Clamp(normalizedValue.X, -1.0, 1.0),
+                    SystemMath.Clamp(normalizedValue.Y, -1.0, 1.0),
+                    SystemMath.Clamp(normalizedValue.Z, -1.0, 1.0));
                 Span<short> intValue =
                 [
                     (short)(normalizedValue.X * MathDefs.MaxShort + 0.5),
@@ -297,7 +297,7 @@ public abstract class Serializer : IDisposable
     {
         var success = true;
         var bytes = Encoding.UTF8.GetBytes(value);
-        var length = Math.Min(bytes.Length, 4);
+        var length = SystemMath.Min(bytes.Length, 4);
 
         success &= Write(bytes.AsSpan(0, length)) == length;
         for (var i = bytes.Length; i < 4; ++i)

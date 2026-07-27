@@ -1,7 +1,7 @@
 using RedBolt;
-
 using RedBolt.Input;
 using RedBolt.Math;
+
 namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]

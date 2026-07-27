@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+
 using Xunit;
 
 using RedBolt.Core;
 using RedBolt.IO;
+
 namespace RedBolt.Tests;
 
 public sealed class VirtualFileSystemTests

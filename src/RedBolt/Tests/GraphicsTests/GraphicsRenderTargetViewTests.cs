@@ -4,15 +4,14 @@ using System.Runtime.InteropServices;
 using RedBolt;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
-
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
-namespace RedBolt.Tests;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class GraphicsRenderTargetViewTests

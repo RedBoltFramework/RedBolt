@@ -1,3 +1,4 @@
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -5,11 +6,10 @@ using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
-using Resource = global::RedBolt.Resource.Resource;
 
+namespace RedBolt.Graphics;
 
 /// <summary>One billboard in the billboard set.</summary>
 public struct Billboard
@@ -404,7 +404,7 @@ public class BillboardSet : Drawable
     /// <summary>Set animation LOD bias.</summary>
     public void SetAnimationLodBias(float bias)
     {
-        _animationLodBias = Math.Max(bias, 0.0f);
+        _animationLodBias = SystemMath.Max(bias, 0.0f);
     }
 
     /// <summary>Mark for bounding box and vertex buffer update. Call after modifying the billboards.</summary>
@@ -504,7 +504,7 @@ public class BillboardSet : Drawable
 
     /// <summary>Return material attribute.</summary>
     public ResourceRef GetMaterialAttr() =>
-        Resource.GetResourceRef(_batches[0].Material, new StringHash(nameof(Material)));
+        ResourceType.GetResourceRef(_batches[0].Material, new StringHash(nameof(Material)));
 
     /// <summary>Return billboards attribute.</summary>
     public VariantVector GetBillboardsAttr()

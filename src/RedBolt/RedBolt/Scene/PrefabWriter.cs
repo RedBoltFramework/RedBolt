@@ -2,6 +2,7 @@ using System.Diagnostics;
 
 using RedBolt.Container;
 using RedBolt.IO;
+
 namespace RedBolt.Scene;
 
 /// <summary>

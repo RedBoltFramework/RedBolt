@@ -1,12 +1,12 @@
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
-using RedBolt.Scene;
 using RedBolt.Input;
 using RedBolt.Math;
-using RedBolt.Core;
 using RedBolt.RenderAPI;
+using RedBolt.Scene;
 
 #if !REDBOLT_WEB_SAMPLE
 try

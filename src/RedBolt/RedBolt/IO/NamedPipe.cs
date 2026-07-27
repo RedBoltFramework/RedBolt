@@ -1,16 +1,16 @@
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
+using SystemMath = global::System.Math;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 
 using RedBolt.Logging;
-namespace RedBolt.IO;
-using Math = global::System.Math;
 
+namespace RedBolt.IO;
 
 /// <summary>Named pipe for interprocess communication.</summary>
 public class NamedPipe : AbstractFile
@@ -33,7 +33,7 @@ public class NamedPipe : AbstractFile
     {
         lock (_readMutex)
         {
-            var count = Math.Min(destination.Length, _readBuffer.Count);
+            var count = SystemMath.Min(destination.Length, _readBuffer.Count);
             for (var i = 0; i < count; ++i)
                 destination[i] = _readBuffer.Dequeue();
             return (uint)count;

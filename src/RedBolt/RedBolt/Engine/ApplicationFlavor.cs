@@ -1,11 +1,12 @@
+using Microsoft.Extensions.Logging;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Logging;
 
 using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Scene;
+
 namespace RedBolt.Engine;
 
 /// <summary>Application flavor component type.</summary>

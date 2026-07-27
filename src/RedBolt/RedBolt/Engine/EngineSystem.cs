@@ -1,23 +1,22 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
+using SystemMath = global::System.Math;
 
 using RedBolt.Audio;
 using RedBolt.Core;
 using RedBolt.Graphics;
-using RedBolt.IO;
 using RedBolt.Input;
+using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Platform;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
 using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Engine;
-using Math = global::System.Math;
-using RenderPipeline = global::RedBolt.RenderPipeline.RenderPipeline;
-using Resource = global::RedBolt.Resource.Resource;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Engine;
 
 public class EngineSystem : RedObject
 {
@@ -362,28 +361,28 @@ public class EngineSystem : RedObject
 
     public void SetMinFps(int fps)
     {
-        MinFps = Math.Max(fps, 0);
+        MinFps = SystemMath.Max(fps, 0);
     }
 
     public int GetMinFps() => MinFps;
 
     public void SetMaxFps(int fps)
     {
-        MaxFps = Math.Max(fps, 0);
+        MaxFps = SystemMath.Max(fps, 0);
     }
 
     public int GetMaxFps() => MaxFps;
 
     public void SetMaxInactiveFps(int fps)
     {
-        MaxInactiveFps = Math.Max(fps, 0);
+        MaxInactiveFps = SystemMath.Max(fps, 0);
     }
 
     public int GetMaxInactiveFps() => MaxInactiveFps;
 
     public void SetTimeStepSmoothing(int frames)
     {
-        TimeStepSmoothing = Math.Clamp(frames, 1, 20);
+        TimeStepSmoothing = SystemMath.Clamp(frames, 1, 20);
     }
 
     public int GetTimeStepSmoothing() => TimeStepSmoothing;
@@ -406,7 +405,7 @@ public class EngineSystem : RedObject
 
     public void SetNextTimeStep(float seconds)
     {
-        _timeStep = Math.Max(seconds, 0.0f);
+        _timeStep = SystemMath.Max(seconds, 0.0f);
     }
 
     public float GetNextTimeStep() => _timeStep;
@@ -662,11 +661,11 @@ public class EngineSystem : RedObject
 
         InputSystem.RegisterInputLibrary(_context);
         GraphicsSystem.RegisterGraphicsLibrary(_context);
-        Scene.RegisterSceneLibrary(_context);
+        SceneType.RegisterSceneLibrary(_context);
 
         // Register render pipeline.
         // Extract this code into function if you are adding more.
-        RenderPipeline.RegisterObject(_context);
+        RenderPipelineComponent.RegisterObject(_context);
         RenderPath.RegisterObject(_context);
         RenderPass.RegisterObject(_context);
         AmbientOcclusionPass.RegisterObject(_context);
@@ -946,10 +945,10 @@ public class EngineSystem : RedObject
         if (!IsInitialized)
             return;
 
-        uint maxFps = (uint)Math.Max(MaxFps, 0);
+        uint maxFps = (uint)SystemMath.Max(MaxFps, 0);
         var input = GetSubsystem<InputSystem>();
         if (input is not null && !input.HasFocus)
-            maxFps = Math.Min((uint)Math.Max(MaxInactiveFps, 0), maxFps);
+            maxFps = SystemMath.Min((uint)SystemMath.Max(MaxInactiveFps, 0), maxFps);
 
         long elapsed = 0;
 

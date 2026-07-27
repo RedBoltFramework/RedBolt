@@ -1,13 +1,12 @@
 using RedBolt;
-
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class SkyboxTests
@@ -28,7 +27,7 @@ public sealed class SkyboxTests
     {
         var model = Resources.Get<Model>("Models/ProceduralBox");
         var material = Resources.Get<Material>("Materials/FirstCube");
-        var skybox = new Scene().CreateChild("Skybox").CreateComponent<Skybox>();
+        var skybox = new SceneType().CreateChild("Skybox").CreateComponent<Skybox>();
         skybox.SetModel(model);
         skybox.SetMaterial(material);
 
@@ -48,7 +47,7 @@ public sealed class SkyboxTests
         using var reflected = Assert.IsType<Skybox>(context.CreateObject(ObjectReflection<Skybox>.TypeId));
         Assert.Equal(ObjectCategory.Category_Geometry, context.GetReflection<Skybox>().Category);
 
-        var scene = new Scene();
+        var scene = new SceneType();
         var skyboxNode = scene.CreateChild("Skybox");
         skyboxNode.SetPosition(new Vector3f(1.0f, 2.0f, 3.0f));
         var skybox = skyboxNode.CreateComponent<TestSkybox>();

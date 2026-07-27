@@ -4,9 +4,9 @@ using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class DrawableProcessorTests
@@ -43,7 +43,7 @@ public sealed class DrawableProcessorTests
     {
         var pipeline = new TestRenderPipelineInterface();
         using var processor = new DrawableProcessor(pipeline);
-        using var scene = new Scene();
+        using var scene = new SceneType();
         var frameInfo = new FrameInfo
         {
             Scene = scene,
@@ -120,7 +120,7 @@ public sealed class DrawableProcessorTests
     {
         var pipeline = new TestRenderPipelineInterface();
         using var processor = new DrawableProcessor(pipeline);
-        using var scene = new Scene();
+        using var scene = new SceneType();
         var frameInfo = new FrameInfo
         {
             Scene = scene,
@@ -272,7 +272,7 @@ public sealed class DrawableProcessorTests
         using var secondPass = new TestDrawableProcessorPass(
             pipeline, int.MaxValue, int.MaxValue, int.MaxValue, int.MaxValue);
         using var processor = new DrawableProcessor(pipeline);
-        using var scene = new Scene();
+        using var scene = new SceneType();
         var frameInfo = new FrameInfo
         {
             Scene = scene,
@@ -299,7 +299,7 @@ public sealed class DrawableProcessorTests
     {
         var pipeline = new TestRenderPipelineInterface();
         using var processor = new DrawableProcessor(pipeline);
-        using var scene = new Scene();
+        using var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         camera.SetViewOverrideFlags(ViewOverride.LowMaterialQuality);
         var frameInfo = new FrameInfo

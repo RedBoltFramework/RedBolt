@@ -1,7 +1,7 @@
+using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-using Microsoft.Extensions.Logging;
 
 using RedBolt.Container;
 using RedBolt.Core;
@@ -9,9 +9,8 @@ using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
-namespace RedBolt.Input;
-using Math = global::System.Math;
 
+namespace RedBolt.Input;
 
 public class InputMap : SimpleResource
 {
@@ -142,7 +141,7 @@ public class InputMap : SimpleResource
     /// <summary>Set dead zone half-width to mitigate axis drift.</summary>
     public void SetDeadZone(float deadZone)
     {
-        _deadZone = Math.Max(0.0f, deadZone);
+        _deadZone = SystemMath.Max(0.0f, deadZone);
     }
 
     /// <summary>Get dead zone half-width.</summary>
@@ -699,10 +698,10 @@ public struct ControllerAxisMapping
         if (mapping.Controller != Controller || mapping.Axis != Axis)
             return false;
 
-        var min = Math.Min(Neutral, Pressed);
-        var max = Math.Max(Neutral, Pressed);
-        var otherMin = Math.Min(mapping.Neutral, mapping.Pressed);
-        var otherMax = Math.Max(mapping.Neutral, mapping.Pressed);
+        var min = SystemMath.Min(Neutral, Pressed);
+        var max = SystemMath.Max(Neutral, Pressed);
+        var otherMin = SystemMath.Min(mapping.Neutral, mapping.Pressed);
+        var otherMax = SystemMath.Max(mapping.Neutral, mapping.Pressed);
         return !(max <= otherMin || otherMax <= min);
     }
 
@@ -713,13 +712,13 @@ public struct ControllerAxisMapping
             return 1.0f;
 
         var positive = Pressed >= Neutral;
-        var neutral = positive ? Math.Min(Neutral + deadZone, Pressed) : Math.Max(Neutral - deadZone, Pressed);
-        var min = Math.Min(neutral, Pressed);
-        var max = Math.Max(neutral, Pressed);
+        var neutral = positive ? SystemMath.Min(Neutral + deadZone, Pressed) : SystemMath.Max(Neutral - deadZone, Pressed);
+        var min = SystemMath.Min(neutral, Pressed);
+        var max = SystemMath.Max(neutral, Pressed);
         if (position < min || position > max)
             return 0.0f;
 
-        var range = Math.Max(max - min, MathDefs.Epsilon);
+        var range = SystemMath.Max(max - min, MathDefs.Epsilon);
         return positive ? (position - min) / range : (max - position) / range;
     }
 

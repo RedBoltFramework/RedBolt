@@ -3,9 +3,9 @@ using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class PrefabResourceTests
@@ -17,8 +17,8 @@ public sealed class PrefabResourceTests
         this._fixture = fixture;
         if (!Context.Instance.IsReflected<Node>())
             Node.RegisterObject(Context.Instance);
-        if (!Context.Instance.IsReflected<Scene>())
-            Scene.RegisterObject(Context.Instance);
+        if (!Context.Instance.IsReflected<SceneType>())
+            SceneType.RegisterObject(Context.Instance);
     }
 
     private static AttributePrefab CreateAttribute(string name, Variant value)
@@ -111,7 +111,7 @@ public sealed class PrefabResourceTests
     [Fact]
     public void Instantiate_reference_creates_prefab_reference_and_instance()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         using var resource = new PrefabResource();
         resource.SetName("Tree.prefab");
         var rootPrefab = resource.GetMutableNodePrefab();

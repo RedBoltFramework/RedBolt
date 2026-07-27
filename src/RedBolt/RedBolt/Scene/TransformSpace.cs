@@ -1,4 +1,5 @@
 using RedBolt.Math;
+
 namespace RedBolt.Scene;
 
 /// <summary>Transform space for translations and rotations.</summary>

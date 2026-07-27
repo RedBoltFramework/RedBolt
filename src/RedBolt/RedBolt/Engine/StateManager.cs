@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 
 using RedBolt.Container;
 using RedBolt.Core;
@@ -7,10 +8,9 @@ using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Scene;
-namespace RedBolt.Engine;
-using Math = global::System.Math;
+using SceneType = global::RedBolt.Scene.Scene;
 
-using Scene = global::RedBolt.Scene.Scene;
+namespace RedBolt.Engine;
 
 /// <summary>Base class for an application state. Examples of a state would be a loading screen, a menu or a game screen.</summary>
 public class ApplicationState : RedObject
@@ -176,7 +176,7 @@ public class ApplicationState : RedObject
     public Viewport? GetViewport(int index) => index >= 0 && index < _viewports.Count ? _viewports[index] : null;
 
     /// <summary>Return nth backbuffer viewport associated to a scene. Index 0 returns the first.</summary>
-    public Viewport? GetViewportForScene(Scene? scene, int index)
+    public Viewport? GetViewportForScene(SceneType? scene, int index)
     {
         for (var i = 0; i < _viewports.Count; ++i)
         {
@@ -475,14 +475,14 @@ public class StateManager : RedObject
     public float FadeInDuration
     {
         get => _fadeInDuration;
-        set => _fadeInDuration = Math.Clamp(value, MathDefs.Epsilon, float.MaxValue);
+        set => _fadeInDuration = SystemMath.Clamp(value, MathDefs.Epsilon, float.MaxValue);
     }
 
     /// <summary>Set or get fade out animation duration.</summary>
     public float FadeOutDuration
     {
         get => _fadeOutDuration;
-        set => _fadeOutDuration = Math.Clamp(value, MathDefs.Epsilon, float.MaxValue);
+        set => _fadeOutDuration = SystemMath.Clamp(value, MathDefs.Epsilon, float.MaxValue);
     }
 
     /// <summary>Initiate state transition if necessary.</summary>

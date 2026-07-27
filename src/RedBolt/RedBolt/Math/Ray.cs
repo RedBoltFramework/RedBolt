@@ -1,8 +1,7 @@
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
 namespace RedBolt.Math;
-using Math = global::System.Math;
-
 
 [StructLayout(LayoutKind.Sequential)]
 public struct DistanceAndNormal
@@ -100,7 +99,7 @@ public struct Ray : ICloneable, IEquatable<Ray>
         var d2121 = p21.DotProduct(p21);
 
         var d = d2121 * d4343 - d4321 * d4321;
-        if (Math.Abs(d) < MathDefs.Epsilon)
+        if (SystemMath.Abs(d) < MathDefs.Epsilon)
             return Origin;
         var n = d1343 * d4321 - d1321 * d4343;
         var a = n / d;
@@ -112,7 +111,7 @@ public struct Ray : ICloneable, IEquatable<Ray>
     public readonly float HitDistance(Plane plane)
     {
         var d = plane.Normal.DotProduct(Direction);
-        if (Math.Abs(d) >= MathDefs.Epsilon)
+        if (SystemMath.Abs(d) >= MathDefs.Epsilon)
         {
             var t = -(plane.Normal.DotProduct(Origin) + plane.D) / d;
             if (t >= 0.0f)
@@ -241,11 +240,11 @@ public struct Ray : ICloneable, IEquatable<Ray>
 
             if (plane.Distance(Origin) < 0.0f)
             {
-                maxOutside = Math.Max(maxOutside, distance);
+                maxOutside = SystemMath.Max(maxOutside, distance);
                 allInside = false;
             }
             else
-                minInside = Math.Min(minInside, distance);
+                minInside = SystemMath.Min(minInside, distance);
         }
 
         if (allInside)

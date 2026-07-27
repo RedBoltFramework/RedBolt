@@ -1,18 +1,18 @@
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
 using RedBolt.Container;
 using RedBolt.Core;
-using RedBolt.IO;
 using RedBolt.Input;
+using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
 
+namespace RedBolt.Graphics;
 
 /// <summary>Animated model component.</summary>
 public class AnimatedModel : StaticModel
@@ -223,7 +223,7 @@ public class AnimatedModel : StaticModel
             _animationLodFrameNumber = frame.FrameNumber;
         }
         else
-            _animationLodDistance = Math.Min(_animationLodDistance, newLodDistance);
+            _animationLodDistance = SystemMath.Min(_animationLodDistance, newLodDistance);
 
         if (newLodDistance != GetLodDistance())
         {
@@ -398,7 +398,7 @@ public class AnimatedModel : StaticModel
     /// <summary>Set animation LOD bias.</summary>
     public void SetAnimationLodBias(float bias)
     {
-        _animationLodBias = Math.Max(bias, 0.0f);
+        _animationLodBias = SystemMath.Max(bias, 0.0f);
     }
 
     /// <summary>Set whether to update animation and the bounding box when not visible.</summary>
@@ -725,7 +725,7 @@ public class AnimatedModel : StaticModel
                     if ((otherBone.CollisionMask & BoneCollisionShape.Sphere) != 0)
                     {
                         bones[j].CollisionMask |= BoneCollisionShape.Sphere;
-                        bones[j].Radius = Math.Max(bones[j].Radius, otherBone.Radius);
+                        bones[j].Radius = SystemMath.Max(bones[j].Radius, otherBone.Radius);
                     }
                     if ((otherBone.CollisionMask & BoneCollisionShape.Box) != 0)
                     {
@@ -961,7 +961,7 @@ public class AnimatedModel : StaticModel
     {
         // If node was invisible last frame, need to decide animation LOD distance here
         // If headless, retain the current animation distance (should be 0)
-        if (camera is not null && Math.Abs(unchecked((int)(frameNumber - _viewFrameNumber))) > 1)
+        if (camera is not null && SystemMath.Abs(unchecked((int)(frameNumber - _viewFrameNumber))) > 1)
         {
             // First check for no update at all when invisible, except on first update. In that case reset LOD timer to ensure update
             // next time the model is in view
@@ -976,7 +976,7 @@ public class AnimatedModel : StaticModel
             }
 
             // Force view frame number to be valid
-            _viewFrameNumber = Math.Max(1u, _viewFrameNumber);
+            _viewFrameNumber = SystemMath.Max(1u, _viewFrameNumber);
 
             var distance = camera.GetDistance(Node.GetWorldPosition());
             // If distance is greater than draw distance, no need to update at all

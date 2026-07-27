@@ -1,6 +1,6 @@
-namespace RedBolt.Audio;
-using Math = global::System.Math;
+using SystemMath = global::System.Math;
 
+namespace RedBolt.Audio;
 
 /// <summary>Sound stream that supports manual buffering of data from the main thread.</summary>
 public sealed class BufferedSoundStream : SoundStream
@@ -21,7 +21,7 @@ public sealed class BufferedSoundStream : SoundStream
                 var buffer = _buffers[0];
                 var bufferSize = _bufferSizes[0];
                 var remaining = bufferSize - _position;
-                var bytesToCopy = Math.Min(numBytes - totalBytes, remaining);
+                var bytesToCopy = SystemMath.Min(numBytes - totalBytes, remaining);
                 Buffer.BlockCopy(buffer, (int)_position, dest, (int)totalBytes, (int)bytesToCopy);
                 totalBytes += bytesToCopy;
                 _position += bytesToCopy;

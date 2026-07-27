@@ -1,15 +1,14 @@
 using RedBolt;
-
 using RedBolt.Container;
 using RedBolt.Core;
+using EventHandler = global::RedBolt.Core.EventHandler;
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
-namespace RedBolt.Tests;
-using EventHandler = global::RedBolt.Core.EventHandler;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ContextTests

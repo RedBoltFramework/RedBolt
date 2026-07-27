@@ -2,9 +2,9 @@ using System.Runtime.CompilerServices;
 
 using RedBolt.Core;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 public sealed class SceneResolverTests
 {
@@ -16,7 +16,7 @@ public sealed class SceneResolverTests
     [Fact]
     public void Resolve_rewrites_node_component_and_node_vector_ids()
     {
-        using var scene = new Scene();
+        using var scene = new SceneType();
         var sourceNode = scene.CreateChild("Source");
         var probe = sourceNode.CreateComponent<ResolverProbe>(9u);
         var targetNode = scene.CreateChild("Target", 77u);

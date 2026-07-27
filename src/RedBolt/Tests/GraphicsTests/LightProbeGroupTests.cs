@@ -1,13 +1,12 @@
 using RedBolt;
-
 using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class LightProbeGroupTests
@@ -15,7 +14,7 @@ public sealed class LightProbeGroupTests
     [Fact]
     public void Auto_placement_fills_volume_with_probes()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var node = scene.CreateChild("Probes");
         node.SetScale(2.0f);
         var group = node.CreateComponent<LightProbeGroup>();
@@ -29,7 +28,7 @@ public sealed class LightProbeGroupTests
     [Fact]
     public void CollectLightProbes_from_scene_gathers_enabled_groups()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var node = scene.CreateChild("Probes");
         var group = node.CreateComponent<LightProbeGroup>();
         group.SetLightProbes(
@@ -91,7 +90,7 @@ public sealed class LightProbeGroupTests
     [Fact]
     public void GlobalIllumination_reset_and_sample_empty()
     {
-        var gi = new Scene().CreateChild("GI").CreateComponent<GlobalIllumination>();
+        var gi = new SceneType().CreateChild("GI").CreateComponent<GlobalIllumination>();
         gi.ResetLightProbes();
         gi.SetEmissionBrightness(1.5f);
         Assert.Equal(1.5f, gi.GetEmissionBrightness());

@@ -1,16 +1,16 @@
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
-using RedBolt.Bindings.Diligent;
+using SystemMath = global::System.Math;
+using System.Runtime.CompilerServices;
 
+using RedBolt.Bindings.Diligent;
 using RedBolt.Container;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
-using RedBolt.Resource;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
-
 using TextureAddressMode = global::RedBolt.RenderAPI.TextureAddressMode;
+using RedBolt.Resource;
+
+namespace RedBolt.Graphics;
 
 internal static class TextureFormatUtility
 {
@@ -179,7 +179,7 @@ public class Texture : ResourceWithMetadata
         {
             _mipsToSkip[index] = toSkip;
             for (var i = 1; i < MaxTextureQualityLevels; ++i)
-                _mipsToSkip[i] = Math.Min(_mipsToSkip[i], _mipsToSkip[i - 1]);
+                _mipsToSkip[i] = SystemMath.Min(_mipsToSkip[i], _mipsToSkip[i - 1]);
         }
     }
 
@@ -189,11 +189,11 @@ public class Texture : ResourceWithMetadata
         return index >= (int)MaterialQuality.Low && index < MaxTextureQualityLevels ? _mipsToSkip[index] : 0;
     }
 
-    public int GetLevelWidth(int level) => level > Levels ? 0 : Math.Max(Width >> level, 1);
+    public int GetLevelWidth(int level) => level > Levels ? 0 : SystemMath.Max(Width >> level, 1);
 
-    public int GetLevelHeight(int level) => level > Levels ? 0 : Math.Max(Height >> level, 1);
+    public int GetLevelHeight(int level) => level > Levels ? 0 : SystemMath.Max(Height >> level, 1);
 
-    public int GetLevelDepth(int level) => level > Levels ? 0 : Math.Max(Depth >> level, 1);
+    public int GetLevelDepth(int level) => level > Levels ? 0 : SystemMath.Max(Depth >> level, 1);
 
     public int GetMultiSample() => MultiSample;
 
@@ -528,10 +528,10 @@ public class Texture : ResourceWithMetadata
         var maxNumLevels = image.IsCompressed()
             ? checked((int)image.NumCompressedLevels)
             : RenderAPIUtils.GetMipLevelCount(image.GetSize());
-        var effectiveMostDetailedMip = Math.Min(mostDetailedMip, maxNumLevels - 1);
+        var effectiveMostDetailedMip = SystemMath.Min(mostDetailedMip, maxNumLevels - 1);
         var effectiveNumLevels = numLevels == 0
             ? maxNumLevels - effectiveMostDetailedMip
-            : Math.Min(numLevels, maxNumLevels - effectiveMostDetailedMip);
+            : SystemMath.Min(numLevels, maxNumLevels - effectiveMostDetailedMip);
         return (effectiveMostDetailedMip, effectiveNumLevels);
     }
 

@@ -1,7 +1,7 @@
+using Microsoft.Extensions.Logging;
 using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.Extensions.Logging;
 
 using RedBolt.Container;
 using RedBolt.Core;
@@ -9,6 +9,7 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
+
 namespace RedBolt.IO;
 
 /// <summary>Abstract stream for reading.</summary>

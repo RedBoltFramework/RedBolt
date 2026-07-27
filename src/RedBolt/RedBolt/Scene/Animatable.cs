@@ -3,9 +3,9 @@ using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Resource;
-namespace RedBolt.Scene;
-using Resource = global::RedBolt.Resource.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 
+namespace RedBolt.Scene;
 
 /// <summary>Attribute animation instance.</summary>
 public class AttributeAnimationInfo : ValueAnimationInfo
@@ -463,7 +463,7 @@ public abstract class Animatable : Serializable
     /// <summary>Return object animation attribute.</summary>
     public ResourceRef GetObjectAnimationAttr()
     {
-        return Resource.GetResourceRef(_objectAnimation, ObjectReflection<ObjectAnimation>.TypeId);
+        return ResourceType.GetResourceRef(_objectAnimation, ObjectReflection<ObjectAnimation>.TypeId);
     }
 
     /// <summary>Handle attribute animation added.</summary>

@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 
 using RedBolt.Container;
+
 namespace RedBolt.Core;
 
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]

@@ -1,11 +1,12 @@
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+using System.Runtime.InteropServices;
 
 using RedBolt.Core;
 using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
+
 namespace RedBolt.Graphics;
 
 /// <summary>Container for vertex buffer animation data.</summary>

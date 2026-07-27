@@ -1,12 +1,11 @@
 using RedBolt;
-
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class UnknownComponentTests
@@ -39,8 +38,8 @@ public sealed class UnknownComponentTests
     {
         if (!Context.Instance.IsReflected<Node>())
             Node.RegisterObject(Context.Instance);
-        if (!Context.Instance.IsReflected<Scene>())
-            Scene.RegisterObject(Context.Instance);
+        if (!Context.Instance.IsReflected<SceneType>())
+            SceneType.RegisterObject(Context.Instance);
         if (!Context.Instance.IsReflected<UnknownComponent>())
             UnknownComponent.RegisterObject(Context.Instance);
         using var source = new SceneResource { Name = "Scenes/Test.scene" };

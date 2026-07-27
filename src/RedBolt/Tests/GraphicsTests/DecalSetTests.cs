@@ -1,12 +1,11 @@
 using RedBolt;
-
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class DecalSetTests
@@ -57,7 +56,7 @@ public sealed class DecalSetTests
     [Fact]
     public void Defaults_match_cpp_constructor()
     {
-        var decals = new Scene().CreateChild("Decals").CreateComponent<DecalSet>();
+        var decals = new SceneType().CreateChild("Decals").CreateComponent<DecalSet>();
         Assert.Equal(DrawableFlags.Geometry, decals.GetDrawableFlags());
         Assert.Equal(0u, decals.GetNumDecals());
         Assert.Equal(0u, decals.GetNumVertices());
@@ -72,7 +71,7 @@ public sealed class DecalSetTests
     [Fact]
     public void Newly_created_decal_set_updates_octree_without_requeueing()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var octree = scene.CreateComponent<Octree>();
         scene.CreateChild("Decals").CreateComponent<DecalSet>();
 
@@ -83,7 +82,7 @@ public sealed class DecalSetTests
     public void Material_and_limits_roundtrip()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");
-        var decals = new Scene().CreateChild("Decals").CreateComponent<DecalSet>();
+        var decals = new SceneType().CreateChild("Decals").CreateComponent<DecalSet>();
         decals.SetMaterial(material);
         decals.SetMaxVertices(256);
         decals.SetMaxIndices(512);
@@ -105,7 +104,7 @@ public sealed class DecalSetTests
         modelGeometry.SetDrawRange(PrimitiveType.TriangleList, 0, 36, 0, 36);
         model.SetGeometry(0, 0, modelGeometry);
         var material = Resources.Get<Material>("Materials/FirstCube");
-        var scene = new Scene();
+        var scene = new SceneType();
         var targetNode = scene.CreateChild("Target");
         var target = targetNode.CreateComponent<StaticModel>();
         target.SetModel(model);
@@ -130,7 +129,7 @@ public sealed class DecalSetTests
     [Fact]
     public void Decals_attribute_empty_roundtrip()
     {
-        var decals = new Scene().CreateChild("Decals").CreateComponent<DecalSet>();
+        var decals = new SceneType().CreateChild("Decals").CreateComponent<DecalSet>();
         var attr = decals.GetDecalsAttr();
         Assert.NotEmpty(attr);
         decals.SetDecalsAttr(attr);
@@ -140,7 +139,7 @@ public sealed class DecalSetTests
     [Fact]
     public void ProcessRayQuery_returns_no_hits()
     {
-        var decals = new Scene().CreateChild("Decals").CreateComponent<DecalSet>();
+        var decals = new SceneType().CreateChild("Decals").CreateComponent<DecalSet>();
         var results = new List<RayQueryResult>();
         var query = new RayOctreeQuery(results, new Ray(Vector3f.Zero, Vector3f.Forward));
         decals.ProcessRayQuery(query, results);

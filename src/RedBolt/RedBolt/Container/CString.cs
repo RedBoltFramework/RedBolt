@@ -5,8 +5,8 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 using RedBolt.Input;
-namespace RedBolt.Container;
 
+namespace RedBolt.Container;
 
 public sealed class CString : IEquatable<CString>, IEquatable<string?>, ICloneable, IDisposable
 {

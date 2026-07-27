@@ -1,13 +1,14 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
-using RedBolt.RenderAPI;
-namespace RedBolt.RenderPipeline;
 using CullMode = global::RedBolt.Graphics.CullMode;
 using FillMode = global::RedBolt.Graphics.FillMode;
-using Math = global::System.Math;
+using RedBolt.RenderAPI;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
 
+namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Utility to build pipeline states for RenderPipeline.
@@ -307,7 +308,7 @@ public class PipelineStateBuilder : RedObject, BatchStateCacheCallback
         _pipelineStateDesc.SlopeScaledDepthBias = depthBias.SlopeScaledBias;
 
         var cameraFill = _cameraProcessor!.CameraFillMode;
-        _pipelineStateDesc.FillMode = (FillMode)Math.Max((int)cameraFill, (int)material.GetFillMode());
+        _pipelineStateDesc.FillMode = (FillMode)SystemMath.Max((int)cameraFill, (int)material.GetFillMode());
         _pipelineStateDesc.CullMode = GetEffectiveCullMode(pass.CullMode,
             material.GetCullMode(), _cameraProcessor.IsCameraReversed);
 

@@ -1,11 +1,11 @@
 using System.Collections;
 using System.Diagnostics;
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 
 using RedBolt.Math;
-namespace RedBolt.Container;
-using Math = global::System.Math;
 
+namespace RedBolt.Container;
 
 /// <summary>
 /// 2D indexing utilities for row-major 2D array.
@@ -70,8 +70,8 @@ public class ArrayDimensions2D : ICloneable
     /// Return index clamped to array boundaries.
     /// </summary>
     public Vector2i ClampIndex(Vector2i index) => new(
-        Math.Min(Math.Max(index.X, 0), _width - 1),
-        Math.Min(Math.Max(index.Y, 0), _height - 1));
+        SystemMath.Min(SystemMath.Max(index.X, 0), _width - 1),
+        SystemMath.Min(SystemMath.Max(index.Y, 0), _height - 1));
 
     /// <summary>
     /// Return index wrapped to array boundaries.

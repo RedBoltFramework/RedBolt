@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
+using SystemMath = global::System.Math;
 
 using RedBolt.Core;
-namespace RedBolt.IO;
-using Math = global::System.Math;
 
+namespace RedBolt.IO;
 
 /// <summary>Watches a set of directories for files being modified.</summary>
 public class MultiFileWatcher : RedObject
@@ -41,7 +41,7 @@ public class MultiFileWatcher : RedObject
     /// <summary>Set the delay in seconds before file changes are notified.</summary>
     public void SetDelay(float interval)
     {
-        _delay = Math.Max(interval, 0.0f);
+        _delay = SystemMath.Max(interval, 0.0f);
         foreach (var watcher in _watchers)
             watcher.SetDelay(_delay);
     }

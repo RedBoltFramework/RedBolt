@@ -1,13 +1,14 @@
 using System.Runtime.CompilerServices;
+
 using RedBolt.Bindings.DearImGui;
 using RedBolt.Bindings.Diligent;
-
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
-namespace RedBolt;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
 using TextureAddressMode = global::RedBolt.RenderAPI.TextureAddressMode;
+
+namespace RedBolt;
 
 public class ImGuiDiligentRendererEx : IDisposable
 {

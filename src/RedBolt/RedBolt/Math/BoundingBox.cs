@@ -1,8 +1,7 @@
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
 namespace RedBolt.Math;
-using Math = global::System.Math;
-
 
 /// <summary>Three-dimensional axis-aligned bounding box.</summary>
 [StructLayout(LayoutKind.Sequential)]
@@ -368,9 +367,9 @@ public struct BoundingBox : IEquatable<BoundingBox>
         var newCenter = transform * Center;
         var oldEdge = Size * 0.5f;
         var newEdge = new Vector3f(
-            Math.Abs(transform.M00) * oldEdge.X + Math.Abs(transform.M01) * oldEdge.Y + Math.Abs(transform.M02) * oldEdge.Z,
-            Math.Abs(transform.M10) * oldEdge.X + Math.Abs(transform.M11) * oldEdge.Y + Math.Abs(transform.M12) * oldEdge.Z,
-            Math.Abs(transform.M20) * oldEdge.X + Math.Abs(transform.M21) * oldEdge.Y + Math.Abs(transform.M22) * oldEdge.Z);
+            SystemMath.Abs(transform.M00) * oldEdge.X + SystemMath.Abs(transform.M01) * oldEdge.Y + SystemMath.Abs(transform.M02) * oldEdge.Z,
+            SystemMath.Abs(transform.M10) * oldEdge.X + SystemMath.Abs(transform.M11) * oldEdge.Y + SystemMath.Abs(transform.M12) * oldEdge.Z,
+            SystemMath.Abs(transform.M20) * oldEdge.X + SystemMath.Abs(transform.M21) * oldEdge.Y + SystemMath.Abs(transform.M22) * oldEdge.Z);
         return new BoundingBox(newCenter - newEdge, newCenter + newEdge);
     }
 
@@ -409,7 +408,7 @@ public struct BoundingBox : IEquatable<BoundingBox>
         var absOffset = (Center - point).Abs;
         var delta = absOffset - HalfSize;
         var outerDistance = Vector3f.Max(Vector3f.Zero, delta).Length;
-        var innerDistance = Math.Max(delta.X, Math.Max(delta.Y, delta.Z));
+        var innerDistance = SystemMath.Max(delta.X, SystemMath.Max(delta.Y, delta.Z));
         return innerDistance < 0.0f ? innerDistance : outerDistance;
     }
 
@@ -432,7 +431,7 @@ public struct BoundingBox : IEquatable<BoundingBox>
         var outerDelta = absOffset - maxHalfSize - minHalfSize;
         var outerDistance = Vector3f.Max(Vector3f.Zero, outerDelta).Length;
         var innerDelta = maxHalfSize - absOffset - minHalfSize;
-        var innerDistance = -Math.Min(innerDelta.X, Math.Min(innerDelta.Y, innerDelta.Z));
+        var innerDistance = -SystemMath.Min(innerDelta.X, SystemMath.Min(innerDelta.Y, innerDelta.Z));
         return innerDistance < 0.0f ? innerDistance : outerDistance;
     }
 

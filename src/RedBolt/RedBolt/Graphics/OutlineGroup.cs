@@ -6,9 +6,9 @@ using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Graphics;
 
 /// <summary>Group of selected drawables.</summary>
 public class OutlineGroup : Component

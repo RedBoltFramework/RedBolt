@@ -1,4 +1,5 @@
 using RedBolt.RenderPipeline;
+
 namespace RedBolt.Tests;
 
 public sealed class OutlineScenePassTests

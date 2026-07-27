@@ -1,10 +1,9 @@
 using System.Diagnostics;
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace RedBolt.Math;
-using Math = global::System.Math;
-
 
 /// <summary>Sphere with double precision components.</summary>
 [StructLayout(LayoutKind.Sequential)]
@@ -21,7 +20,7 @@ public struct HighPrecisionSphere
     {
         var doublePosition = new Vector3d(position.X, position.Y, position.Z);
         var distSquared = (doublePosition - Center).LengthSquared;
-        return Math.Sqrt(distSquared) - Radius;
+        return SystemMath.Sqrt(distSquared) - Radius;
     }
 }
 

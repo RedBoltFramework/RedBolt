@@ -1,14 +1,12 @@
 using RedBolt;
-
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using RenderPipeline = global::RedBolt.RenderPipeline.RenderPipeline;
-using Scene = global::RedBolt.Scene.Scene;
-using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class RenderPipelineDebuggerTests
@@ -98,7 +96,7 @@ public sealed class RenderPipelineDebuggerTests
     [Fact]
     public void Each_render_pipeline_view_owns_its_debugger()
     {
-        var pipeline = new RenderPipeline();
+        var pipeline = new RenderPipelineComponent();
         var firstView = pipeline.Instantiate();
         var secondView = pipeline.Instantiate();
 
@@ -141,7 +139,7 @@ public sealed class RenderPipelineDebuggerTests
     [Fact]
     public void Snapshot_batch_constructor_resolves_pixel_light_from_drawable_processor()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var octree = scene.CreateComponent<Octree>();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var light = scene.CreateChild("Light").CreateComponent<Light>();
@@ -167,7 +165,7 @@ public sealed class RenderPipelineDebuggerTests
             Distance = 12.5f
         };
 
-        var pipeline = new RenderPipeline();
+        var pipeline = new RenderPipelineComponent();
         var view = pipeline.Instantiate();
         var processor = new DrawableProcessor(view);
         processor.OnUpdateBegin(new FrameInfo { Scene = scene, Octree = octree, Camera = camera });
@@ -192,13 +190,13 @@ public sealed class RenderPipelineDebuggerTests
     [Fact]
     public void Debugger_reports_batches_into_active_snapshot()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var octree = scene.CreateComponent<Octree>();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var light = scene.CreateChild("Light").CreateComponent<Light>();
         var drawable = scene.CreateChild("Model").CreateComponent<StaticModel>();
 
-        var pipeline = new RenderPipeline();
+        var pipeline = new RenderPipelineComponent();
         var view = pipeline.Instantiate();
         var processor = new DrawableProcessor(view);
         processor.OnUpdateBegin(new FrameInfo { Scene = scene, Octree = octree, Camera = camera });

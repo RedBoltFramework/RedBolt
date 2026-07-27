@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 
 using RedBolt.Core;
+
 namespace RedBolt.Tests;
 
 public class ThreadSafeCacheTests

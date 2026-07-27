@@ -1,12 +1,11 @@
 using RedBolt;
-
 using RedBolt.Graphics;
-using RedBolt.RenderAPI;
-using RedBolt.RenderPipeline;
-namespace RedBolt.Tests;
 using CullMode = global::RedBolt.Graphics.CullMode;
+using RedBolt.RenderAPI;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+using RedBolt.RenderPipeline;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class BatchStateCacheTests

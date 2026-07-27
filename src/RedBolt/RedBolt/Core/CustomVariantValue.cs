@@ -1,4 +1,5 @@
 using RedBolt.IO;
+
 namespace RedBolt.Core;
 
 public interface IArchiveSerializable

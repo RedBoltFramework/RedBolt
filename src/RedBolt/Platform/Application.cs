@@ -5,13 +5,14 @@ using System.Linq;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
-using RedBolt.IO;
 using RedBolt.Input;
+using RedBolt.IO;
 using RedBolt.Logging;
+using LogLevel = global::RedBolt.Logging.LogLevel;
 using RedBolt.Platform;
 using RedBolt.Resource;
+
 namespace RedBolt;
-using LogLevel = global::RedBolt.Logging.LogLevel;
 
 public abstract partial class Application : RedObject
 {

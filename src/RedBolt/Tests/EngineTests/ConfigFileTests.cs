@@ -1,10 +1,9 @@
 using RedBolt;
-
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.IO;
-namespace RedBolt.Tests;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ConfigFileTests

@@ -1,4 +1,5 @@
 using RedBolt.Container;
+
 namespace RedBolt.Resource;
 
 public static class ResourceEvents

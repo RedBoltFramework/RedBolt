@@ -1,6 +1,7 @@
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
+
 namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]

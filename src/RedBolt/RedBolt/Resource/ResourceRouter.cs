@@ -1,5 +1,6 @@
 using RedBolt.Core;
 using RedBolt.IO;
+
 namespace RedBolt.Resource;
 
 /// <summary>

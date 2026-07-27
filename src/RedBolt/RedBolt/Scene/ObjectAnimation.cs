@@ -1,13 +1,14 @@
 using RedBolt.Core;
 using RedBolt.Graphics;
-using RedBolt.IO;
 using RedBolt.Input;
+using RedBolt.IO;
 using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
+
 namespace RedBolt.Scene;
-using Resource = global::RedBolt.Resource.Resource;
 
 /// <summary>Object animation class, an object animation include one or more attribute animations and theirs wrap mode and speed for an Animatable object.</summary>
-public class ObjectAnimation : Resource
+public class ObjectAnimation : ResourceType
 {
     private readonly Dictionary<string, ValueAnimationInfo> _attributeAnimationInfos = new(StringComparer.Ordinal);
 

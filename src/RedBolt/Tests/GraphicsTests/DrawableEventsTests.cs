@@ -3,6 +3,7 @@ using Xunit;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Scene;
+
 namespace RedBolt.Tests;
 
 public sealed class DrawableEventsTests

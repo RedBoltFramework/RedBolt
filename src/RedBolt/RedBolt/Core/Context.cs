@@ -1,21 +1,21 @@
-using RedBolt.Bindings.Sdl;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using RedBolt.Audio;
+using RedBolt.Bindings.Sdl;
 using RedBolt.Container;
 using RedBolt.Engine;
 using RedBolt.Graphics;
-using RedBolt.IO;
 using RedBolt.Input;
+using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Platform;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
-namespace RedBolt.Core;
 
+namespace RedBolt.Core;
 
 public delegate void RefEventHandler<T>(ref T args) where T : struct;
 

@@ -3,10 +3,10 @@ using System.Runtime.InteropServices;
 
 using RedBolt.Container;
 using RedBolt.Core;
-using RedBolt.IO;
 using RedBolt.Input;
-namespace RedBolt.Resource;
+using RedBolt.IO;
 
+namespace RedBolt.Resource;
 
 public class GraphNodeProperty : IArchiveSerializable, IDisposable
 {

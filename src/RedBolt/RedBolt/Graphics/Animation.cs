@@ -21,19 +21,19 @@
 //
 
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using RedBolt.Container;
 using RedBolt.Core;
-using RedBolt.IO;
 using RedBolt.Input;
+using RedBolt.IO;
+using FileMode = global::RedBolt.IO.FileMode;
 using RedBolt.Logging;
 using RedBolt.Resource;
-namespace RedBolt.Graphics;
-using FileMode = global::RedBolt.IO.FileMode;
-using Math = global::System.Math;
 
+namespace RedBolt.Graphics;
 
 /// <summary>
 /// Animation trigger point.
@@ -388,7 +388,7 @@ public class Animation : ResourceWithMetadata
     /// </summary>
     public void SetLength(float length)
     {
-        _length = Math.Max(length, 0.0f);
+        _length = SystemMath.Max(length, 0.0f);
     }
 
     /// <summary>

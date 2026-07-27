@@ -20,9 +20,10 @@
 // THE SOFTWARE.
 //
 
-using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using SystemMath = global::System.Math;
+using System.Runtime.InteropServices;
 
 using RedBolt.Container;
 using RedBolt.Core;
@@ -31,10 +32,9 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
+using SceneType = global::RedBolt.Scene.Scene;
 
-using Scene = global::RedBolt.Scene.Scene;
+namespace RedBolt.Graphics;
 
 /// <summary>
 /// Component that drives an AnimatedModel's animations.
@@ -269,7 +269,7 @@ public class AnimationController : AnimationStateSource
                 // Keep original delay if weight didn't change, extend delay up to minimum value otherwise
                 var weightChanged = !MathDefs.Equals(newParams.TargetWeight, oldInstance.Params.TargetWeight, MathDefs.LargeEpsilon);
                 newParams.TargetWeightDelay = weightChanged
-                    ? Math.Max(newParams.TargetWeightDelay, fadeTime)
+                    ? SystemMath.Max(newParams.TargetWeightDelay, fadeTime)
                     : oldInstance.Params.TargetWeightDelay;
             }
         }
@@ -698,9 +698,9 @@ public class AnimationController : AnimationStateSource
         if (value.Count == 0 || value[0].Type != VariantType.Int)
             return;
 
-        var requestedCount = Math.Max(0, value[0].GetInt());
+        var requestedCount = SystemMath.Max(0, value[0].GetInt());
         var availableCount = (value.Count - 1) / AnimationParameters.NumVariants;
-        var loadedCount = Math.Min(requestedCount, availableCount);
+        var loadedCount = SystemMath.Min(requestedCount, availableCount);
 
         var valueSpan = CollectionsMarshal.AsSpan(value);
         for (var i = 0; i < loadedCount; ++i)
@@ -749,7 +749,7 @@ public class AnimationController : AnimationStateSource
     /// <summary>
     /// Handle scene being assigned.
     /// </summary>
-    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
+    protected internal override void OnSceneSet(SceneType? previousScene, SceneType? scene)
     {
         if (scene is not null && IsEnabledEffective)
             SubscribeToEvent<SceneEvents.ScenePostUpdateEvent>(scene, HandleScenePostUpdate);
@@ -971,7 +971,7 @@ public class AnimationController : AnimationStateSource
             for (var triggerIndex = 0; triggerIndex < animation.NumTriggers; ++triggerIndex)
             {
                 ref var trigger = ref animation.GetTrigger(triggerIndex);
-                if (delta.ContainsExcludingBegin(Math.Min(trigger.Time, length)))
+                if (delta.ContainsExcludingBegin(SystemMath.Min(trigger.Time, length)))
                     _pendingTriggers.Add((animation, triggerIndex));
             }
         }
@@ -985,10 +985,10 @@ public class AnimationController : AnimationStateSource
             return;
 
         parameters.TargetWeight = 0.0f;
-        parameters.TargetWeightDelay = Math.Max(0.0f, parameters.AutoFadeOutTime - overtime);
+        parameters.TargetWeightDelay = SystemMath.Max(0.0f, parameters.AutoFadeOutTime - overtime);
         parameters.RemoveOnZeroWeight = true;
 
-        var fraction = Math.Min(1.0f, overtime / parameters.AutoFadeOutTime);
+        var fraction = SystemMath.Min(1.0f, overtime / parameters.AutoFadeOutTime);
         parameters.WeightValue = MathDefs.Lerp(parameters.WeightValue, 0.0f, fraction);
     }
 
@@ -1000,9 +1000,9 @@ public class AnimationController : AnimationStateSource
             return;
         }
 
-        var fraction = Math.Min(1.0f, timeStep / parameters.TargetWeightDelay);
+        var fraction = SystemMath.Min(1.0f, timeStep / parameters.TargetWeightDelay);
         parameters.WeightValue = MathDefs.Lerp(parameters.WeightValue, parameters.TargetWeight, fraction);
-        parameters.TargetWeightDelay = Math.Max(0.0f, parameters.TargetWeightDelay - timeStep);
+        parameters.TargetWeightDelay = SystemMath.Max(0.0f, parameters.TargetWeightDelay - timeStep);
     }
 
     private void ApplyInstanceRemoval(AnimationParameters parameters, bool isCompleted)

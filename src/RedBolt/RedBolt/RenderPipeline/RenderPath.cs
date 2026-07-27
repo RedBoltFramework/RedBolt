@@ -4,6 +4,7 @@ using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Resource;
+
 namespace RedBolt.RenderPipeline;
 
 /// <summary>

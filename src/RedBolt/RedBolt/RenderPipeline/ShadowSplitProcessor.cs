@@ -1,11 +1,12 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-namespace RedBolt.RenderPipeline;
-using Math = global::System.Math;
+using SceneType = global::RedBolt.Scene.Scene;
 
-using Scene = global::RedBolt.Scene.Scene;
+namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Manages single shadow split parameters and shadow casters.
@@ -26,7 +27,7 @@ public class ShadowSplitProcessor : IDisposable
     /// C++ creates a freestanding <c>Node(context)</c>. Managed nodes require a scene owner,
     /// so a private temporary scene holds the shadow-camera node for the same lifetime.
     /// </remarks>
-    private readonly Scene _shadowScene;
+    private readonly SceneType _shadowScene;
     private readonly Node _shadowCameraNode;
     private readonly Camera _shadowCamera;
     private readonly Frustum _splitFrustum = new();
@@ -53,7 +54,7 @@ public class ShadowSplitProcessor : IDisposable
         _light = new WeakReference<Light>(owner.Light);
         _splitIndex = splitIndex;
         _renderBackend = Light.GetSubsystem<GraphicsSystem>()!.GetRenderBackend();
-        _shadowScene = new Scene();
+        _shadowScene = new SceneType();
         _shadowCameraNode = _shadowScene.CreateChild("ShadowCamera", temporary: true);
         _shadowCamera = _shadowCameraNode.CreateComponent<Camera>();
     }
@@ -201,13 +202,13 @@ public class ShadowSplitProcessor : IDisposable
             AdjustDirectionalLightCamera(shadowBox, shadowMapWidth);
         }
 
-        _shadowMapPadding = Math.Min(4, 1 + pcfKernelSize / 2);
+        _shadowMapPadding = SystemMath.Min(4, 1 + pcfKernelSize / 2);
         var effectiveShadowMapWidth = shadowMapWidth - 2.0f * _shadowMapPadding;
         _shadowCamera.SetZoom(effectiveShadowMapWidth / shadowMapWidth);
 
         // Estimate shadow map texel size. Exact size for directional light, upper bound for point and spot lights.
         var cameraSize = _shadowCamera.GetViewSizeAt(_shadowCamera.GetFarClip());
-        _shadowMapWorldSpaceTexelSize = Math.Max(cameraSize.X, cameraSize.Y) / shadowMapWidth;
+        _shadowMapWorldSpaceTexelSize = SystemMath.Max(cameraSize.X, cameraSize.Y) / shadowMapWidth;
     }
 
     public void FinalizeShadowBatches()
@@ -306,7 +307,7 @@ public class ShadowSplitProcessor : IDisposable
     private void InitializeBaseDirectionalCamera(Camera cullCamera)
     {
         var lightNode = Light.Node!;
-        var extrusionDistance = Math.Min(cullCamera.GetFarClip(), Light.GetShadowMaxExtrusion());
+        var extrusionDistance = SystemMath.Min(cullCamera.GetFarClip(), Light.GetShadowMaxExtrusion());
 
         var position = cullCamera.Node!.GetWorldPosition() - extrusionDistance * lightNode.GetWorldDirection();
         _shadowCameraNode.SetTransform(position, lightNode.GetWorldRotation());
@@ -416,9 +417,9 @@ public class ShadowSplitProcessor : IDisposable
 
         if (parameters.Focus)
         {
-            var maxViewSize = Math.Max(minViewSize.X, minViewSize.Y);
+            var maxViewSize = SystemMath.Max(minViewSize.X, minViewSize.Y);
             var adaptiveViewSize = MathF.Ceiling(MathF.Sqrt(maxViewSize / parameters.Quantize));
-            var snappedViewSize = Math.Max(adaptiveViewSize * adaptiveViewSize * parameters.Quantize, parameters.MinView);
+            var snappedViewSize = SystemMath.Max(adaptiveViewSize * adaptiveViewSize * parameters.Quantize, parameters.MinView);
             return new Vector2f(snappedViewSize, snappedViewSize);
         }
 

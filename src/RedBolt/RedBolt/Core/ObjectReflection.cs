@@ -1,12 +1,12 @@
+using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Microsoft.Extensions.Logging;
 
 using RedBolt.Container;
 using RedBolt.Logging;
-namespace RedBolt.Core;
-using Math = global::System.Math;
 
+namespace RedBolt.Core;
 
 public static class ObjectReflection<T>
 {
@@ -104,7 +104,7 @@ public sealed class ObjectReflection : IDisposable
 
     public uint GetAttributeIndex(StringHash nameHash, uint hintIndex)
     {
-        hintIndex = Math.Min(hintIndex, (uint)_attributeNames.Count);
+        hintIndex = SystemMath.Min(hintIndex, (uint)_attributeNames.Count);
         for (var index = hintIndex; index < _attributeNames.Count; ++index)
         {
             if (_attributeNames[(int)index] == nameHash)
@@ -151,7 +151,7 @@ public sealed class ObjectReflection : IDisposable
     {
         var result = ScopeHint;
         foreach (var attribute in _attributes)
-            result = (AttributeScopeHint)Math.Max((int)result, (int)attribute.ScopeHint);
+            result = (AttributeScopeHint)SystemMath.Max((int)result, (int)attribute.ScopeHint);
         return result;
     }
 

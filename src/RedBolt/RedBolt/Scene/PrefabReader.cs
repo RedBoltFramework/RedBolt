@@ -1,6 +1,7 @@
 using System.Diagnostics;
 
 using RedBolt.IO;
+
 namespace RedBolt.Scene;
 
 /// <summary>

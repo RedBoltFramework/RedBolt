@@ -1,8 +1,7 @@
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
 namespace RedBolt.Math;
-using Math = global::System.Math;
-
 
 /// <summary>Circle in three-dimensional space.</summary>
 [StructLayout(LayoutKind.Sequential)]
@@ -435,10 +434,10 @@ public struct Sphere : ICloneable, IEquatable<Sphere>
         // http://mathworld.wolfram.com/Sphere-SphereIntersection.html
         var outerRadius = Radius;
         var innerRadius = sphere.Radius;
-        var clampedDistance = Math.Min(outerRadius + innerRadius, distance);
+        var clampedDistance = SystemMath.Min(outerRadius + innerRadius, distance);
         var areaSquared = (-clampedDistance + innerRadius - outerRadius) * (-clampedDistance - innerRadius + outerRadius)
             * (-clampedDistance + innerRadius + outerRadius) * (clampedDistance + innerRadius + outerRadius);
-        var intersectionRadius = MathF.Sqrt(Math.Max(0.0f, areaSquared)) / (2.0f * clampedDistance);
+        var intersectionRadius = MathF.Sqrt(SystemMath.Max(0.0f, areaSquared)) / (2.0f * clampedDistance);
 
         var isOutside = distance > outerRadius + innerRadius;
         var isInside = areaSquared < 0.0f;
@@ -454,7 +453,7 @@ public struct Sphere : ICloneable, IEquatable<Sphere>
     public readonly Circle Intersect(Sphere sphere) => Intersect(sphere, out _);
 
     /// <summary>Return distance of a point to the surface, or 0 if inside.</summary>
-    public readonly float Distance(Vector3f point) => Math.Max((point - Center).Length - Radius, 0.0f);
+    public readonly float Distance(Vector3f point) => SystemMath.Max((point - Center).Length - Radius, 0.0f);
 
     /// <summary>Return point on the sphere relative to sphere position.</summary>
     public readonly Vector3f GetLocalPoint(float theta, float phi) => new(

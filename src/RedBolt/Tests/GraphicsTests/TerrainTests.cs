@@ -1,11 +1,10 @@
 using RedBolt;
-
 using RedBolt.Graphics;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class TerrainTests
@@ -28,7 +27,7 @@ public sealed class TerrainTests
     [Fact]
     public void SetHeightMap_creates_patch_geometry_and_height_samples()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var node = scene.CreateChild("Terrain");
         var terrain = node.CreateComponent<Terrain>();
 
@@ -59,7 +58,7 @@ public sealed class TerrainTests
     [Fact]
     public void Heightmap_reload_event_rebuilds_only_from_the_current_image()
     {
-        var terrain = new Scene().CreateChild("Terrain").CreateComponent<Terrain>();
+        var terrain = new SceneType().CreateChild("Terrain").CreateComponent<Terrain>();
         var firstImage = new Image();
         Assert.True(firstImage.SetSize(33, 33, 1));
         var secondImage = new Image();
@@ -79,7 +78,7 @@ public sealed class TerrainTests
     [Fact]
     public void UpdatePatchLod_selects_base_draw_range()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var terrain = scene.CreateChild("Terrain").CreateComponent<Terrain>();
         var image = new Image();
         Assert.True(image.SetSize(33, 33, 1));
@@ -93,7 +92,7 @@ public sealed class TerrainTests
     [Fact]
     public void SetPatchSize_rejects_non_power_of_two()
     {
-        var terrain = new Scene().CreateChild("T").CreateComponent<Terrain>();
+        var terrain = new SceneType().CreateChild("T").CreateComponent<Terrain>();
         terrain.SetPatchSize(30);
         Assert.Equal(32, terrain.GetPatchSize());
         terrain.SetPatchSize(16);
@@ -103,7 +102,7 @@ public sealed class TerrainTests
     [Fact]
     public void Dispose_releases_owned_state_without_disposing_borrowed_resources()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var terrain = scene.CreateChild("Terrain").CreateComponent<Terrain>();
         var neighbor = scene.CreateChild("Neighbor").CreateComponent<Terrain>();
         var image = new Image();

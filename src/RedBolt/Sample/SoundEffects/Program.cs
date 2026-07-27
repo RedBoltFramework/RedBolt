@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
+
 using RedBolt;
-using RedBolt.Bindings.DearImGui;
 using RedBolt.Audio;
+using RedBolt.Bindings.DearImGui;
 using RedBolt.Container;
-using RedBolt.Engine;
-using RedBolt.Scene;
 using RedBolt.Core;
+using RedBolt.Engine;
 using RedBolt.Input;
+using RedBolt.Scene;
 
 #if !REDBOLT_WEB_SAMPLE
 try

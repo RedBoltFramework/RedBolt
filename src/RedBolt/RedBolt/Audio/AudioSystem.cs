@@ -1,16 +1,16 @@
+using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.Extensions.Logging;
-using RedBolt.Bindings.Sdl;
 
+using RedBolt.Bindings.Sdl;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.Math;
-namespace RedBolt.Audio;
-using Math = global::System.Math;
 
+namespace RedBolt.Audio;
 
 /// <summary>Audio subsystem.</summary>
 public class AudioSystem : RedObject
@@ -82,8 +82,8 @@ public class AudioSystem : RedObject
     {
         Release();
 
-        bufferLengthMSec = Math.Max(bufferLengthMSec, MinBufferLength);
-        mixRate = Math.Clamp(mixRate, MinMixRate, MaxMixRate);
+        bufferLengthMSec = SystemMath.Max(bufferLengthMSec, MinBufferLength);
+        mixRate = SystemMath.Clamp(mixRate, MinMixRate, MaxMixRate);
 
         using var desired = new SdlAudioSpec
         {
@@ -97,7 +97,7 @@ public class AudioSystem : RedObject
 
         var bufferSamples = mixRate * bufferLengthMSec / 1000;
         var samples = (ushort)NextPowerOfTwo((uint)bufferSamples);
-        if (Math.Abs(samples / 2 - bufferSamples) < Math.Abs(samples - bufferSamples))
+        if (SystemMath.Abs(samples / 2 - bufferSamples) < SystemMath.Abs(samples - bufferSamples))
             samples /= 2;
         desired.Samples = samples;
 
@@ -155,7 +155,7 @@ public class AudioSystem : RedObject
         }
 
         _sampleSize = (uint)(sizeof(short) * AudioNumChannels[(int)_speakerMode]);
-        _fragmentSize = Math.Min(NextPowerOfTwo((uint)(mixRate >> 6)), obtained.Samples);
+        _fragmentSize = SystemMath.Min(NextPowerOfTwo((uint)(mixRate >> 6)), obtained.Samples);
         _mixRate = obtained.Freq;
         _interpolation = interpolation;
         _clipBuffer = new int[_fragmentSize * AudioNumChannels[(int)_speakerMode]];
@@ -315,7 +315,7 @@ public class AudioSystem : RedObject
         var destinationOffset = 0;
         while (samples != 0)
         {
-            var workSamples = Math.Min(samples, _fragmentSize);
+            var workSamples = SystemMath.Min(samples, _fragmentSize);
             var clipSamples = checked((int)workSamples);
             if (_speakerMode != SpeakerMode.Mono)
                 clipSamples = checked(channels * (int)_fragmentSize);
@@ -332,7 +332,7 @@ public class AudioSystem : RedObject
             }
 
             for (var i = 0; i < clipSamples; i++)
-                dest[destinationOffset + i] = (short)Math.Clamp(_clipBuffer[i], short.MinValue, short.MaxValue);
+                dest[destinationOffset + i] = (short)SystemMath.Clamp(_clipBuffer[i], short.MinValue, short.MaxValue);
 
             destinationOffset += checked((int)(_sampleSize * workSamples / sizeof(short)));
             samples -= workSamples;

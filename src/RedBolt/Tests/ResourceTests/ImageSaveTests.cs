@@ -1,5 +1,6 @@
 using RedBolt.IO;
 using RedBolt.Resource;
+
 namespace RedBolt.Tests;
 
 public sealed class ImageSaveTests

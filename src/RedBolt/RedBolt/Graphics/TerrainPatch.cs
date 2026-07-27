@@ -1,13 +1,13 @@
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 
 using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
 
+namespace RedBolt.Graphics;
 
 /// <summary>Individually rendered part of a heightmap terrain.</summary>
 public class TerrainPatch : Drawable
@@ -300,13 +300,13 @@ public class TerrainPatch : Drawable
     private uint GetCorrectedLodLevel(uint lodLevel)
     {
         if (_north is not null && _north.TryGetTarget(out var north))
-            lodLevel = Math.Min(lodLevel, north.GetLodLevel() + 1);
+            lodLevel = SystemMath.Min(lodLevel, north.GetLodLevel() + 1);
         if (_south is not null && _south.TryGetTarget(out var south))
-            lodLevel = Math.Min(lodLevel, south.GetLodLevel() + 1);
+            lodLevel = SystemMath.Min(lodLevel, south.GetLodLevel() + 1);
         if (_west is not null && _west.TryGetTarget(out var west))
-            lodLevel = Math.Min(lodLevel, west.GetLodLevel() + 1);
+            lodLevel = SystemMath.Min(lodLevel, west.GetLodLevel() + 1);
         if (_east is not null && _east.TryGetTarget(out var east))
-            lodLevel = Math.Min(lodLevel, east.GetLodLevel() + 1);
+            lodLevel = SystemMath.Min(lodLevel, east.GetLodLevel() + 1);
         return lodLevel;
     }
 

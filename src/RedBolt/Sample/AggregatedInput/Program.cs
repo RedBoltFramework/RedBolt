@@ -3,11 +3,12 @@ using System.Buffers;
 using System.Buffers.Text;
 using System.Collections.Generic;
 using System.Text;
+
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Input;
-using RedBolt.Core;
 
 #if !REDBOLT_WEB_SAMPLE
 try { return new AggregatedInputApplication().Run(); }

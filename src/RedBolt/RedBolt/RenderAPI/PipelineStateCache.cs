@@ -1,9 +1,10 @@
 using Microsoft.Extensions.Logging;
-using RedBolt.Bindings.Diligent;
 using System.Runtime.InteropServices;
 
+using RedBolt.Bindings.Diligent;
 using RedBolt.Container;
 using RedBolt.Logging;
+
 namespace RedBolt.RenderAPI;
 
 /// <summary>

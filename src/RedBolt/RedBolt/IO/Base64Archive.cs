@@ -1,4 +1,5 @@
 using RedBolt.Core;
+
 namespace RedBolt.IO;
 
 /// <summary>Base64 output archive.</summary>

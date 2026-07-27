@@ -1,12 +1,12 @@
-using System.Buffers;
 using Microsoft.Extensions.Logging;
+using System.Buffers;
+using SystemMath = global::System.Math;
 
 using RedBolt.Container;
 using RedBolt.Logging;
 using RedBolt.RenderAPI;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
 
+namespace RedBolt.Graphics;
 
 public static class GraphicsUtils
 {
@@ -43,7 +43,7 @@ public static class GraphicsUtils
                 continue;
 
             var elements = vertexBuffer.GetElements();
-            var numElements = Math.Min(elements.Count, RenderApiLimits.MaxNumVertexElements - size);
+            var numElements = SystemMath.Min(elements.Count, RenderApiLimits.MaxNumVertexElements - size);
             if (numElements > 0)
             {
                 for (var i = 0; i < numElements; ++i)

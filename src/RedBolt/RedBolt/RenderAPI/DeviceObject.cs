@@ -1,4 +1,5 @@
 using RedBolt.Core;
+
 namespace RedBolt.RenderAPI;
 
 /// <summary>

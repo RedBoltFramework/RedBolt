@@ -1,17 +1,16 @@
 using RedBolt;
-
 using RedBolt.Graphics;
 using RedBolt.Resource;
-namespace RedBolt.Tests;
-using Resource = global::RedBolt.Resource.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 
+namespace RedBolt.Tests;
 
 public sealed class TextureClassKindTests
 {
     [Fact]
     public void Texture_base_chain_matches_cpp_concrete_noncopyable_reference_classes()
     {
-        AssertConcreteNoncopyableReferenceClass<Resource>();
+        AssertConcreteNoncopyableReferenceClass<ResourceType>();
         AssertConcreteNoncopyableReferenceClass<ResourceWithMetadata>();
         AssertConcreteNoncopyableReferenceClass<Texture>();
         AssertConcreteNoncopyableReferenceClass<Texture2D>();
@@ -19,7 +18,7 @@ public sealed class TextureClassKindTests
         AssertConcreteNoncopyableReferenceClass<Texture3D>();
         AssertConcreteNoncopyableReferenceClass<TextureCube>();
 
-        using var resource = new Resource { Name = string.Empty };
+        using var resource = new ResourceType { Name = string.Empty };
         using var resourceWithMetadata = new ResourceWithMetadata { Name = string.Empty };
         using var texture = new Texture { Name = string.Empty };
         using var texture2D = new Texture2D { Name = string.Empty };

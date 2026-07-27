@@ -1,12 +1,13 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-namespace RedBolt.Audio;
-using Math = global::System.Math;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Audio;
 
 /// <summary>Sound source component with 3D position attenuation.</summary>
 public sealed class SoundSource3D : SoundSource
@@ -74,9 +75,9 @@ public sealed class SoundSource3D : SoundSource
 
     public void SetDistanceAttenuation(float nearDistance, float farDistance, float rolloffFactor)
     {
-        _nearDistance = Math.Max(nearDistance, 0.0f);
-        _farDistance = Math.Max(farDistance, 0.0f);
-        _rolloffFactor = Math.Max(rolloffFactor, 0.1f);
+        _nearDistance = SystemMath.Max(nearDistance, 0.0f);
+        _farDistance = SystemMath.Max(farDistance, 0.0f);
+        _rolloffFactor = SystemMath.Max(rolloffFactor, 0.1f);
     }
 
     public void SetAngleAttenuation(float innerAngle, float outerAngle)
@@ -85,11 +86,11 @@ public sealed class SoundSource3D : SoundSource
         _outerAngle = MathDefs.Clamp(outerAngle, 0.0f, 360.0f);
     }
 
-    public void SetNearDistance(float distance) { _nearDistance = Math.Max(distance, 0.0f); }
-    public void SetFarDistance(float distance) { _farDistance = Math.Max(distance, 0.0f); }
+    public void SetNearDistance(float distance) { _nearDistance = SystemMath.Max(distance, 0.0f); }
+    public void SetFarDistance(float distance) { _farDistance = SystemMath.Max(distance, 0.0f); }
     public void SetInnerAngle(float angle) { _innerAngle = MathDefs.Clamp(angle, 0.0f, 360.0f); }
     public void SetOuterAngle(float angle) { _outerAngle = MathDefs.Clamp(angle, 0.0f, 360.0f); }
-    public void SetRolloffFactor(float factor) { _rolloffFactor = Math.Max(factor, 0.1f); }
+    public void SetRolloffFactor(float factor) { _rolloffFactor = SystemMath.Max(factor, 0.1f); }
 
     public float GetNearDistance() => _nearDistance;
     public float GetFarDistance() => _farDistance;

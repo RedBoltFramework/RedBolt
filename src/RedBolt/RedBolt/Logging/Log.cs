@@ -1,14 +1,14 @@
-using System.Globalization;
-using System.Text;
 using Microsoft.Extensions.Logging;
 using MicrosoftLogLevel = Microsoft.Extensions.Logging.LogLevel;
+using System.Globalization;
+using System.Text;
 
 using RedBolt.Core;
 using RedBolt.IO;
-using RedBolt.Platform;
-namespace RedBolt.Logging;
 using FileMode = global::RedBolt.IO.FileMode;
+using RedBolt.Platform;
 
+namespace RedBolt.Logging;
 
 public enum LogLevel
 {

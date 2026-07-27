@@ -3,6 +3,7 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Resource;
 using RedBolt.Scene;
+
 namespace RedBolt.Tests;
 
 public sealed class PrefabTests

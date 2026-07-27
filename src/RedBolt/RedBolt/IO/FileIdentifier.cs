@@ -1,10 +1,10 @@
+using SystemMath = global::System.Math;
 using System.Text;
 
 using RedBolt.Resource;
-namespace RedBolt.IO;
-using Math = global::System.Math;
-using Resource = global::RedBolt.Resource.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 
+namespace RedBolt.IO;
 
 /// <summary>File identifier, similar to Uniform Resource Identifier (URI).</summary>
 /// <remarks>
@@ -90,7 +90,7 @@ public struct FileIdentifier : ICloneable, IEquatable<FileIdentifier>, IComparab
         }
 
         // Trim up to two leading slashes for other schemes
-        return new FileIdentifier(scheme, path[Math.Min(numSlashes, 2)..]);
+        return new FileIdentifier(scheme, path[SystemMath.Min(numSlashes, 2)..]);
     }
 
     /// <summary>Return URI-like path. Does not always return original path.</summary>

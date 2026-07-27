@@ -1,3 +1,5 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Input;
@@ -5,10 +7,9 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-namespace RedBolt.RenderPipeline;
-using Math = global::System.Math;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.RenderPipeline;
 
 internal class StereoFrustumOctreeQuery : OctreeQuery
 {
@@ -29,7 +30,7 @@ internal class StereoFrustumOctreeQuery : OctreeQuery
             return Intersection.Inside;
 
         var inter = Frustums[0].IsInside(box);
-        inter = (Intersection)Math.Max((int)inter, (int)Frustums[1].IsInside(box));
+        inter = (Intersection)SystemMath.Max((int)inter, (int)Frustums[1].IsInside(box));
         return inter;
     }
 
@@ -113,7 +114,7 @@ internal class StereoOccludedFrustumOctreeQuery : StereoFrustumOctreeQuery
         }
 
         var result = Frustums[0].IsInside(box);
-        result = (Intersection)Math.Max((int)result, (int)Frustums[1].IsInside(box));
+        result = (Intersection)SystemMath.Max((int)result, (int)Frustums[1].IsInside(box));
         if (result != Intersection.Outside
             && Buffers[0]?.IsVisible(box) != true
             && Buffers[1]?.IsVisible(box) != true)
@@ -353,7 +354,7 @@ public class StereoRenderPipelineView : RenderPipelineView
     protected uint _oldPipelineStateHash;
     protected bool _settingsDirty;
 
-    public StereoRenderPipelineView(RenderPipeline pipeline)
+    public StereoRenderPipelineView(RenderPipelineComponent pipeline)
         : base(pipeline)
     {
         var settings = pipeline.Settings;
@@ -866,14 +867,14 @@ public class StereoRenderPipelineView : RenderPipelineView
         _renderBufferManager!.SetSettings(_settings.RenderBufferManager);
     }
 
-    private void OnSettingsChanged(RenderPipeline pipeline, RenderPipelineSettings settings) => SetSettings(in settings);
+    private void OnSettingsChanged(RenderPipelineComponent pipeline, RenderPipelineSettings settings) => SetSettings(in settings);
 
-    private void OnRenderPathChanged(RenderPipeline pipeline, RenderPath? renderPath) => SetRenderPath(renderPath);
+    private void OnRenderPathChanged(RenderPipelineComponent pipeline, RenderPath? renderPath) => SetRenderPath(renderPath);
 
-    private void OnParametersChanged(RenderPipeline pipeline) => MarkParametersDirty();
+    private void OnParametersChanged(RenderPipelineComponent pipeline) => MarkParametersDirty();
 }
 
-public class StereoRenderPipeline : RenderPipeline
+public class StereoRenderPipeline : RenderPipelineComponent
 {
     public StereoRenderPipeline()
     {

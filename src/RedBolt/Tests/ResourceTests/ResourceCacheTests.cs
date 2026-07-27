@@ -1,12 +1,11 @@
 using RedBolt;
-
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Resource;
-namespace RedBolt.Tests;
-using Resource = global::RedBolt.Resource.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ResourceCacheTests
@@ -128,8 +127,8 @@ public sealed class ResourceCacheTests
         try
         {
             Assert.True(Resources.AddManualResource(resource));
-            Assert.Same(resource, Resource.LoadFromCache(_fixture.Context, type, resourceName));
-            Assert.Null(Resource.LoadFromCache(_fixture.Context, type, string.Empty));
+            Assert.Same(resource, ResourceType.LoadFromCache(_fixture.Context, type, resourceName));
+            Assert.Null(ResourceType.LoadFromCache(_fixture.Context, type, string.Empty));
         }
         finally
         {
@@ -391,9 +390,9 @@ public sealed class ResourceCacheTests
     [Fact]
     public void Reload_resource_matches_native_struct_event_flow()
     {
-        Assert.Null(typeof(Resource).GetEvent("ReloadFinished"));
-        Assert.Null(typeof(Resource).GetMethod("Reload", Type.EmptyTypes));
-        Assert.Null(typeof(Resource).GetMethod("NotifyReloadFinished", System.Reflection.BindingFlags.Instance
+        Assert.Null(typeof(ResourceType).GetEvent("ReloadFinished"));
+        Assert.Null(typeof(ResourceType).GetMethod("Reload", Type.EmptyTypes));
+        Assert.Null(typeof(ResourceType).GetMethod("NotifyReloadFinished", System.Reflection.BindingFlags.Instance
             | System.Reflection.BindingFlags.NonPublic));
         Assert.False(Resources.ReloadResource(null));
 
@@ -733,7 +732,7 @@ internal sealed class ReentrantRouter(ResourceCache cache) : ResourceRouter
     }
 }
 
-public sealed class FailedResource : Resource
+public sealed class FailedResource : ResourceType
 {
     public FailedResource()
     {
@@ -747,11 +746,11 @@ public sealed class FailedResource : Resource
     public override bool BeginLoad(Deserializer source) => false;
 }
 
-public sealed class UnregisteredBackgroundResource : Resource
+public sealed class UnregisteredBackgroundResource : ResourceType
 {
 }
 
-public sealed class BlockingBackgroundResource : Resource
+public sealed class BlockingBackgroundResource : ResourceType
 {
     private static int _numCreated;
 
@@ -782,7 +781,7 @@ public sealed class BlockingBackgroundResource : Resource
 }
 
 [Reflected]
-public sealed partial class ReloadableResource : Resource
+public sealed partial class ReloadableResource : ResourceType
 {
     public int ReloadCount { get; private set; }
 
@@ -794,6 +793,6 @@ public sealed partial class ReloadableResource : Resource
 }
 
 [Reflected]
-public sealed partial class RemovableResource : Resource
+public sealed partial class RemovableResource : ResourceType
 {
 }

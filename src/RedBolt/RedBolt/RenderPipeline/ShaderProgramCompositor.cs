@@ -1,14 +1,14 @@
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
-namespace RedBolt.RenderPipeline;
-using Math = global::System.Math;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
 
+namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Description of shader program used for rendering.
@@ -386,7 +386,7 @@ public class ShaderProgramCompositor : RedObject
             Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Warning, default, $"Texture {material.GetName()} cannot be both sRGB and Linear",
                 null, static (state, _) => state);
         }
-        result.AddShaderDefines(shaderType, $"URHO3D_TEXTURE_{name.ToUpperInvariant()}={Math.Min(1, hint) + 1}");
+        result.AddShaderDefines(shaderType, $"URHO3D_TEXTURE_{name.ToUpperInvariant()}={SystemMath.Min(1, hint) + 1}");
     }
 
 }

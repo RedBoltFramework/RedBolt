@@ -1,17 +1,17 @@
 using System.Globalization;
+using SystemMath = global::System.Math;
 
 using RedBolt.Container;
 using RedBolt.Core;
-using RedBolt.IO;
 using RedBolt.Input;
+using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
+using SceneType = global::RedBolt.Scene.Scene;
 
-using Resource = global::RedBolt.Resource.Resource;
-using Scene = global::RedBolt.Scene.Scene;
+namespace RedBolt.Graphics;
 
 public enum CullMode
 {
@@ -160,7 +160,7 @@ public struct TechniqueEntry : IEquatable<TechniqueEntry>, IComparable<Technique
 /// <summary>Describes how to render 3D geometries.</summary>
 /// <remarks>
 /// </remarks>
-public sealed class Material : Resource
+public sealed class Material : ResourceType
 {
     private sealed class MaterialPipelineStateTracker : PipelineStateTracker
     {
@@ -187,7 +187,7 @@ public sealed class Material : Resource
     private uint _auxViewFrameNumber;
     private bool _specular;
     private bool _subscribed;
-    private Scene? _scene;
+    private SceneType? _scene;
 
     public Material()
     {
@@ -324,7 +324,7 @@ public sealed class Material : Resource
 
     public bool GetSpecular() => _specular;
 
-    public Scene? GetScene() => _scene;
+    public SceneType? GetScene() => _scene;
 
     public string GetPixelShaderDefines() => PixelShaderDefines;
 
@@ -460,7 +460,7 @@ public sealed class Material : Resource
         Occlusion = enable;
     }
 
-    public void SetScene(Scene? scene)
+    public void SetScene(SceneType? scene)
     {
         UnsubscribeFromEvent<CoreEvents.UpdateEvent>();
         UnsubscribeFromEvent<SceneEvents.AttributeAnimationUpdateEvent>();
@@ -1168,7 +1168,7 @@ public sealed class Material : Resource
             CombineHash(ref hash, info.Texture.GetLinear() ? 1u : 0u);
             CombineHash(ref hash, info.Texture.GetSamplerStateDesc().ToHash());
         }
-        return Math.Max(1u, hash);
+        return SystemMath.Max(1u, hash);
     }
 
     private static CullMode ParseCullMode(string value, CullMode defaultValue)

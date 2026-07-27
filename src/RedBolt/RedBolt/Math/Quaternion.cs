@@ -1,9 +1,8 @@
 using System.Globalization;
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
 namespace RedBolt.Math;
-using Math = global::System.Math;
-
 
 /// <summary>Rotation represented as a four-dimensional normalized vector.</summary>
 [StructLayout(LayoutKind.Sequential)]
@@ -404,7 +403,7 @@ public struct Quaternion : ICloneable, IEquatable<Quaternion>, IApproximateEquat
     {
         get
         {
-            var axisScaleInv = MathF.Sqrt(Math.Max(0.0f, 1.0f - W * W));
+            var axisScaleInv = MathF.Sqrt(SystemMath.Max(0.0f, 1.0f - W * W));
             if (axisScaleInv < 1e-6f)
                 return Vector3f.Up;
             return new Vector3f(X, Y, Z) / axisScaleInv;
@@ -420,7 +419,7 @@ public struct Quaternion : ICloneable, IEquatable<Quaternion>, IApproximateEquat
     {
         get
         {
-            var axisScaleInv = MathF.Sqrt(Math.Max(0.0f, 1.0f - W * W));
+            var axisScaleInv = MathF.Sqrt(SystemMath.Max(0.0f, 1.0f - W * W));
             if (axisScaleInv < MathDefs.Epsilon)
                 return Vector3f.Zero;
 

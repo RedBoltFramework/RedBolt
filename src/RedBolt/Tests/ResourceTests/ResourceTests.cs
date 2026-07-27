@@ -1,24 +1,23 @@
 using RedBolt;
-
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Resource;
-namespace RedBolt.Tests;
-using Resource = global::RedBolt.Resource.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 
+namespace RedBolt.Tests;
 
 public sealed class ResourceTests
 {
     [Fact]
     public void Resource_preserves_cpp_class_kind_and_base_state()
     {
-        using var resource = new Resource();
+        using var resource = new ResourceType();
 
-        Assert.True(typeof(Resource).IsClass);
-        Assert.False(typeof(Resource).IsSealed);
-        Assert.DoesNotContain(typeof(ICloneable), typeof(Resource).GetInterfaces());
-        Assert.Equal(typeof(int), typeof(Resource).GetProperty(nameof(Resource.MemoryUse))!.PropertyType);
+        Assert.True(typeof(ResourceType).IsClass);
+        Assert.False(typeof(ResourceType).IsSealed);
+        Assert.DoesNotContain(typeof(ICloneable), typeof(ResourceType).GetInterfaces());
+        Assert.Equal(typeof(int), typeof(ResourceType).GetProperty(nameof(ResourceType.MemoryUse))!.PropertyType);
         Assert.Equal(string.Empty, resource.GetName());
         Assert.Equal(StringHash.Empty, resource.GetNameHash());
         Assert.Equal(0, resource.GetMemoryUse());
@@ -132,22 +131,22 @@ public sealed class ResourceTests
         resource.SetName("Textures/Test.png");
         var defaultType = new StringHash("DefaultResource");
 
-        Assert.Equal("Textures/Test.png", Resource.GetResourceName(resource));
-        Assert.Equal(resource.GetTypeNameHash(), Resource.GetResourceType(resource, defaultType));
+        Assert.Equal("Textures/Test.png", ResourceType.GetResourceName(resource));
+        Assert.Equal(resource.GetTypeNameHash(), ResourceType.GetResourceType(resource, defaultType));
         Assert.Equal(new ResourceRef(resource.GetTypeNameHash(), "Textures/Test.png"),
-            Resource.GetResourceRef(resource, defaultType));
-        Assert.Equal(string.Empty, Resource.GetResourceName(null));
-        Assert.Equal(defaultType, Resource.GetResourceType(null, defaultType));
+            ResourceType.GetResourceRef(resource, defaultType));
+        Assert.Equal(string.Empty, ResourceType.GetResourceName(null));
+        Assert.Equal(defaultType, ResourceType.GetResourceType(null, defaultType));
 
-        var names = Resource.GetResourceNames<FailingResource>([resource, null]);
+        var names = ResourceType.GetResourceNames<FailingResource>([resource, null]);
         Assert.Equal(["Textures/Test.png", string.Empty], names);
 
-        var references = Resource.GetResourceRefList<FailingResource>([resource, null]);
+        var references = ResourceType.GetResourceRefList<FailingResource>([resource, null]);
         Assert.Equal(typeof(FailingResource).GetTypeId(), references.Type);
         Assert.Equal(["Textures/Test.png", string.Empty], references.Names);
     }
 
-    private sealed class FailingResource : Resource
+    private sealed class FailingResource : ResourceType
     {
         public FailingResource()
         {

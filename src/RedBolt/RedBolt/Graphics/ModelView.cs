@@ -1,8 +1,9 @@
-using System.Collections;
+using Microsoft.Extensions.Logging;
 using System.Buffers.Binary;
+using System.Collections;
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Microsoft.Extensions.Logging;
 
 using RedBolt.Container;
 using RedBolt.Core;
@@ -11,9 +12,8 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
 
+namespace RedBolt.Graphics;
 
 using ModelVertexMorphVector = List<ModelVertexMorph>;
 
@@ -485,7 +485,7 @@ public struct GeometryLODView : IEquatable<GeometryLODView>, ICloneable
     {
         uint result = 0;
         foreach (var index in Morphs.Keys)
-            result = Math.Max(result, index + 1);
+            result = SystemMath.Max(result, index + 1);
         return result;
     }
 
@@ -720,7 +720,7 @@ public struct GeometryView : IEquatable<GeometryView>, ICloneable
     {
         uint result = 0;
         foreach (var lod in Lods)
-            result = Math.Max(result, lod.CalculateNumMorphs());
+            result = SystemMath.Max(result, lod.CalculateNumMorphs());
         return result;
     }
 
@@ -1278,7 +1278,7 @@ public sealed class ModelView : RedObject
         }
         uint numMorphs = 0;
         foreach (var geometry in _geometries)
-            numMorphs = Math.Max(numMorphs, geometry.CalculateNumMorphs());
+            numMorphs = SystemMath.Max(numMorphs, geometry.CalculateNumMorphs());
         while (_morphs.Count < numMorphs)
             _morphs.Add(new ModelMorphView());
     }
@@ -1807,8 +1807,8 @@ public sealed class ModelView : RedObject
         {
             foreach (var vertexMorph in morphData)
             {
-                minMorphVertex = Math.Min(minMorphVertex, vertexMorph.Index);
-                maxMorphVertex = Math.Max(maxMorphVertex, vertexMorph.Index);
+                minMorphVertex = SystemMath.Min(minMorphVertex, vertexMorph.Index);
+                maxMorphVertex = SystemMath.Max(maxMorphVertex, vertexMorph.Index);
             }
         }
         if (minMorphVertex <= maxMorphVertex)

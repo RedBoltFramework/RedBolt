@@ -5,6 +5,7 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Resource;
+
 namespace RedBolt.Tests;
 
 public sealed class AnimationParametersTests

@@ -4,6 +4,7 @@ using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Resource;
+
 namespace RedBolt.Tests;
 
 public sealed class VariantTests

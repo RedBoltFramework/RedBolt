@@ -1,14 +1,15 @@
 // C++ defines engine command-line parameters in Engine::DefineParameters(CLI::App&, StringVariantMap&) in Engine.cpp.
+
 using System.Globalization;
+using SystemMath = global::System.Math;
 
 using RedBolt.Audio;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.RenderAPI;
-namespace RedBolt.Engine;
-using Math = global::System.Math;
 
+namespace RedBolt.Engine;
 
 internal static class EngineCommandLine
 {
@@ -66,7 +67,7 @@ internal static class EngineCommandLine
         parser.AddOption(["--af"], "level", "Enable anisotropic filtering at the requested level", value =>
         {
             parameters.TextureFilterMode = TextureFilterMode.Anisotropic;
-            parameters.TextureAnisotropy = Math.Max(ParseInt(value), 1);
+            parameters.TextureAnisotropy = SystemMath.Max(ParseInt(value), 1);
         });
         parser.AddFlag(["--touch"], "Enable touch emulation", () => parameters.TouchEmulation = true);
         parser.AddOption(["--timeout"], "seconds", "Exit after the specified timeout", value => parameters.TimeOut = ParseInt(value));

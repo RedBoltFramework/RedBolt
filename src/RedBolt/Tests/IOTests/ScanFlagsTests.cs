@@ -1,4 +1,5 @@
 using RedBolt.IO;
+
 namespace RedBolt.Tests;
 
 public sealed class ScanFlagsTests

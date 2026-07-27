@@ -1,9 +1,8 @@
 using System.Globalization;
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
 namespace RedBolt.Math;
-using Math = global::System.Math;
-
 
 /// <summary>RGBA color.</summary>
 [StructLayout(LayoutKind.Sequential)]
@@ -134,10 +133,10 @@ public struct Color : IEquatable<Color>
     /// <summary>Return color packed to a 32-bit integer, with R component in the lowest 8 bits. Components are clamped to [0, 1] range.</summary>
     public uint ToUInt()
     {
-        var r = (uint)Math.Clamp((int)(R * 255.0f), 0, 255);
-        var g = (uint)Math.Clamp((int)(G * 255.0f), 0, 255);
-        var b = (uint)Math.Clamp((int)(B * 255.0f), 0, 255);
-        var a = (uint)Math.Clamp((int)(A * 255.0f), 0, 255);
+        var r = (uint)SystemMath.Clamp((int)(R * 255.0f), 0, 255);
+        var g = (uint)SystemMath.Clamp((int)(G * 255.0f), 0, 255);
+        var b = (uint)SystemMath.Clamp((int)(B * 255.0f), 0, 255);
+        var a = (uint)SystemMath.Clamp((int)(A * 255.0f), 0, 255);
         return (a << 24) | (b << 16) | (g << 8) | r;
     }
 
@@ -145,10 +144,10 @@ public struct Color : IEquatable<Color>
     public uint ToUIntMask(ChannelMask mask)
     {
         var max = (double)uint.MaxValue;
-        var r = (uint)Math.Clamp((double)R * mask.R, 0.0, max) & mask.R;
-        var g = (uint)Math.Clamp((double)G * mask.G, 0.0, max) & mask.G;
-        var b = (uint)Math.Clamp((double)B * mask.B, 0.0, max) & mask.B;
-        var a = (uint)Math.Clamp((double)A * mask.A, 0.0, max) & mask.A;
+        var r = (uint)SystemMath.Clamp((double)R * mask.R, 0.0, max) & mask.R;
+        var g = (uint)SystemMath.Clamp((double)G * mask.G, 0.0, max) & mask.G;
+        var b = (uint)SystemMath.Clamp((double)B * mask.B, 0.0, max) & mask.B;
+        var a = (uint)SystemMath.Clamp((double)A * mask.A, 0.0, max) & mask.A;
         return r | g | b | a;
     }
 

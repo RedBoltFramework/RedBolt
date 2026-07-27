@@ -2,6 +2,7 @@ using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderPipeline;
+
 namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]

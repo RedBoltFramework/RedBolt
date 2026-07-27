@@ -3,9 +3,9 @@ using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ShadowSplitProcessorTests
@@ -20,7 +20,7 @@ public sealed class ShadowSplitProcessorTests
     [Fact]
     public void LightProcessor_InitializesCookedMatricesToIdentity()
     {
-        using var scene = new Scene();
+        using var scene = new SceneType();
         var light = scene.CreateChild("Light").CreateComponent<Light>();
         using var processor = new LightProcessor(light);
 
@@ -79,7 +79,7 @@ public sealed class ShadowSplitProcessorTests
     [Fact]
     public void InitializeSpot_ConfiguresShadowCameraFromLight()
     {
-        using var scene = new Scene();
+        using var scene = new SceneType();
         var lightNode = scene.CreateChild("Light");
         lightNode.SetWorldPosition(new Vector3f(1, 2, 3));
         lightNode.SetWorldRotation(Quaternion.IDENTITY);
@@ -108,7 +108,7 @@ public sealed class ShadowSplitProcessorTests
     [Fact]
     public void InitializePoint_AlignsCameraToCubeFace()
     {
-        using var scene = new Scene();
+        using var scene = new SceneType();
         var lightNode = scene.CreateChild("Light");
         lightNode.SetWorldPosition(Vector3f.Zero);
         var light = lightNode.CreateComponent<Light>();
@@ -131,7 +131,7 @@ public sealed class ShadowSplitProcessorTests
     [Fact]
     public void FinalizeShadowBatches_SetsDisableColorOutputAndInstancingFlags()
     {
-        using var scene = new Scene();
+        using var scene = new SceneType();
         var lightNode = scene.CreateChild("Light");
         var light = lightNode.CreateComponent<Light>();
         using var processor = new LightProcessor(light);

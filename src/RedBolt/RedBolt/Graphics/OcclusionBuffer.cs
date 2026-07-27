@@ -1,11 +1,11 @@
 using System.Buffers.Binary;
+using SystemMath = global::System.Math;
 
 using RedBolt.Core;
-using RedBolt.Math;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
-
 using Timer = global::RedBolt.Core.Timer;
+using RedBolt.Math;
+
+namespace RedBolt.Graphics;
 
 /// <summary>Occlusion hierarchy depth value.</summary>
 public struct DepthValue
@@ -228,7 +228,7 @@ public sealed class OcclusionBuffer : RedObject
                 var c = sy + 1 < _height ? Pixel(sx, sy + 1) : a;
                 var d = sy + 1 < _height ? Pixel(sx + 1, sy + 1) : b;
                 _mipBuffers[0][y * width + x] = new DepthValue
-                    { Min = Math.Min(Math.Min(a, b), Math.Min(c, d)), Max = Math.Max(Math.Max(a, b), Math.Max(c, d)) };
+                    { Min = SystemMath.Min(SystemMath.Min(a, b), SystemMath.Min(c, d)), Max = SystemMath.Max(SystemMath.Max(a, b), SystemMath.Max(c, d)) };
             }
         }
         for (var level = 1; level < _mipBuffers.Count; ++level)
@@ -244,7 +244,7 @@ public sealed class OcclusionBuffer : RedObject
                 var c = y * 2 + 1 < prevHeight ? _mipBuffers[level - 1][i0 + prevWidth] : a;
                 var d = y * 2 + 1 < prevHeight ? _mipBuffers[level - 1][i0 + prevWidth + 1] : b;
                 _mipBuffers[level][y * width + x] = new DepthValue
-                    { Min = Math.Min(Math.Min(a.Min, b.Min), Math.Min(c.Min, d.Min)), Max = Math.Max(Math.Max(a.Max, b.Max), Math.Max(c.Max, d.Max)) };
+                    { Min = SystemMath.Min(SystemMath.Min(a.Min, b.Min), SystemMath.Min(c.Min, d.Min)), Max = SystemMath.Max(SystemMath.Max(a.Max, b.Max), SystemMath.Max(c.Max, d.Max)) };
             }
         }
         _depthHierarchyDirty = false;
@@ -277,11 +277,11 @@ public sealed class OcclusionBuffer : RedObject
         var p = ViewportTransform(first);
         var minX=p.X; var maxX=p.X; var minY=p.Y; var maxY=p.Y; var minZ=p.Z;
         for (var i=1;i<8;++i) { var v=ModelTransform(_viewProj,corners[i]); v.Z-=OcclusionRelativeBias;
-            if(v.Z<=0)return true; p=ViewportTransform(v); minX=Math.Min(minX,p.X); maxX=Math.Max(maxX,p.X);
-            minY=Math.Min(minY,p.Y); maxY=Math.Max(maxY,p.Y); minZ=Math.Min(minZ,p.Z); }
+            if(v.Z<=0)return true; p=ViewportTransform(v); minX=SystemMath.Min(minX,p.X); maxX=SystemMath.Max(maxX,p.X);
+            minY=SystemMath.Min(minY,p.Y); maxY=SystemMath.Max(maxY,p.Y); minZ=SystemMath.Min(minZ,p.Z); }
         var left=(int)(minX-1.5f); var top=(int)(minY-1.5f); var right=MathDefs.RoundToInt(maxX); var bottom=MathDefs.RoundToInt(maxY);
         if(right<0||bottom<0||left>=_width||top>=_height)return true;
-        left=Math.Max(left,0); top=Math.Max(top,0); right=Math.Min(right,_width-1); bottom=Math.Min(bottom,_height-1);
+        left=SystemMath.Max(left,0); top=SystemMath.Max(top,0); right=SystemMath.Min(right,_width-1); bottom=SystemMath.Min(bottom,_height-1);
         var z=MathDefs.RoundToInt(minZ)-OcclusionFixedBias;
         if (!_depthHierarchyDirty)
         {

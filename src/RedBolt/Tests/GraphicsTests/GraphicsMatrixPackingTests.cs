@@ -2,8 +2,8 @@ using System.Reflection;
 
 using RedBolt.Graphics;
 using RedBolt.Math;
-namespace RedBolt.Tests;
 
+namespace RedBolt.Tests;
 
 public sealed class GraphicsMatrixPackingTests
 {

@@ -1,3 +1,4 @@
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 
 using RedBolt.Container;
@@ -7,12 +8,11 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
-using Resource = global::RedBolt.Resource.Resource;
+using SceneType = global::RedBolt.Scene.Scene;
 
-using Scene = global::RedBolt.Scene.Scene;
+namespace RedBolt.Graphics;
 
 /// <summary>Cached internal structure for reflection probe search.</summary>
 public class InternalReflectionProbeData : ICloneable
@@ -61,7 +61,7 @@ public class InternalReflectionProbeData : ICloneable
         var localBoundingBox = worldBoundingBox.Transformed(_worldToLocal);
         var clippedBoundingBox = localBoundingBox.Clipped(_localBoundingBox);
         if (clippedBoundingBox.Defined)
-            return clippedBoundingBox.Volume / Math.Max(localBoundingBox.Volume, MathDefs.Epsilon);
+            return clippedBoundingBox.Volume / SystemMath.Max(localBoundingBox.Volume, MathDefs.Epsilon);
         return null;
     }
 
@@ -273,7 +273,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
         {
             var signedDistance = node.WorldBoundingBox.SignedDistanceToBoundingBox(worldBoundingBox);
             if (signedDistance > 0.0f)
-                cacheDistance = Math.Min(cacheDistance, signedDistance);
+                cacheDistance = SystemMath.Min(cacheDistance, signedDistance);
             else
             {
                 var probeData = node.Data!;
@@ -288,7 +288,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
                     });
                 }
 
-                cacheDistance = Math.Min(cacheDistance, -signedDistance);
+                cacheDistance = SystemMath.Min(cacheDistance, -signedDistance);
             }
         }
         cacheDistanceSquared = cacheDistance * cacheDistance;
@@ -309,7 +309,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
 
     public bool HasDynamicProbes() => _spatial.MovableProbes.Count > 0;
 
-    protected override void OnAddedToScene(Scene scene)
+    protected override void OnAddedToScene(SceneType scene)
     {
         _cubemapRenderer = new CubemapRenderer(scene);
     }
@@ -348,7 +348,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
                 _spatial.ImmovableProbes.Add(reflectionProbe);
         }
 
-        _spatial.Revision = Math.Max(1u, _spatial.Revision + 1);
+        _spatial.Revision = SystemMath.Max(1u, _spatial.Revision + 1);
         _spatial.Dirty = false;
 
         BuildBvh(_spatial.ImmovableProbesBvh, _spatial.ImmovableProbes);
@@ -583,7 +583,7 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
         probesDataPtrs.AddRange(probesData);
 
         var nodeCount = (int)MathDefs.NextPowerOfTwo((uint)numProbes) * 2 - 1;
-        result.Capacity = Math.Max(result.Capacity, nodeCount);
+        result.Capacity = SystemMath.Max(result.Capacity, nodeCount);
         for (var i = 0; i < nodeCount; ++i)
             result.Add(default);
 
@@ -866,7 +866,7 @@ public class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
     }
 
     public ResourceRef GetTextureAttr() =>
-        Resource.GetResourceRef(_texture, new StringHash(nameof(TextureCube)));
+        ResourceType.GetResourceRef(_texture, new StringHash(nameof(TextureCube)));
 
     public void SetBoxProjectionUsed(bool useBoxProjection)
     {

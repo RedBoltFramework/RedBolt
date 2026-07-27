@@ -1,9 +1,9 @@
 using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class WorldOriginTests
@@ -45,7 +45,7 @@ public sealed class WorldOriginTests
     [Fact]
     public void World_origin_update_accessors_and_distance_logic_work()
     {
-        using var scene = new Scene();
+        using var scene = new SceneType();
         var node = scene.CreateChild("Origin");
         var worldOrigin = node.CreateComponent<WorldOrigin>();
 
@@ -72,7 +72,7 @@ public sealed class WorldOriginTests
     [Fact]
     public void World_origin_move_updates_root_transform_like_cpp()
     {
-        using var scene = new Scene();
+        using var scene = new SceneType();
         var child = scene.CreateChild("Child");
         child.SetPosition(new Vector3f(10.0f, 20.0f, 30.0f));
 
@@ -85,7 +85,7 @@ public sealed class WorldOriginTests
     [Fact]
     public void World_origin_transform_conversions_match_cpp_contract()
     {
-        using var scene = new Scene();
+        using var scene = new SceneType();
         scene.SetWorldOrigin(new Vector3i(100, -20, 300));
         var transform = new Transform(
             new Vector3f(1.5f, 2.5f, 3.5f),
@@ -104,7 +104,7 @@ public sealed class WorldOriginTests
     [Fact]
     public void World_origin_events_carry_the_same_payload_in_both_phases()
     {
-        using var scene = new Scene();
+        using var scene = new SceneType();
         SceneEvents.WorldOriginUpdateEvent? update = null;
         SceneEvents.WorldOriginPostUpdateEvent? postUpdate = null;
         scene.SubscribeToEvent<SceneEvents.WorldOriginUpdateEvent>((ref SceneEvents.WorldOriginUpdateEvent eventData) => update = eventData);

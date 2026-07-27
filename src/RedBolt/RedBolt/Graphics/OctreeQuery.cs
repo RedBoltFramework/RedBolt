@@ -1,8 +1,8 @@
 using RedBolt.Math;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Graphics;
 
 /// <summary>Base class for octree queries.</summary>
 public abstract class OctreeQuery : IDisposable

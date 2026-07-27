@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 
 using RedBolt.Logging;
+
 namespace RedBolt.Math;
 
 public static partial class MathDefs

@@ -2,6 +2,7 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
+
 namespace RedBolt.Tests.GraphicsTests;
 
 public sealed class VertexBufferTests

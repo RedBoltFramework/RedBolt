@@ -1,16 +1,16 @@
-using System.Text.Json.Nodes;
+using Microsoft.Extensions.Logging;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Microsoft.Extensions.Logging;
+using System.Text.Json.Nodes;
 
 using RedBolt.Core;
 using RedBolt.IO;
+using FileMode = global::RedBolt.IO.FileMode;
 using RedBolt.Logging;
 using RedBolt.Resource;
-namespace RedBolt.Engine;
-using FileMode = global::RedBolt.IO.FileMode;
 
+namespace RedBolt.Engine;
 
 /// <summary>Configuration parameter description.</summary>
 public sealed class ConfigVariableDefinition : ICloneable, IDisposable

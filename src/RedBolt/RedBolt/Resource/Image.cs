@@ -1,17 +1,16 @@
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
 using RedBolt.Core;
 using RedBolt.IO;
+using File = global::RedBolt.IO.File;
+using FileMode = global::RedBolt.IO.FileMode;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
+
 namespace RedBolt.Resource;
-using File = global::RedBolt.IO.File;
-
-using FileMode = global::RedBolt.IO.FileMode;
-using Math = global::System.Math;
-
 
 [Reflected]
 public partial class Image : Resource
@@ -969,8 +968,8 @@ public partial class Image : Resource
     {
         if (_data.Length == 0 || z < 0 || z >= Depth || IsCompressed())
             return Color.Black;
-        x = Math.Clamp(x, 0, Width - 1);
-        y = Math.Clamp(y, 0, Height - 1);
+        x = SystemMath.Clamp(x, 0, Width - 1);
+        y = SystemMath.Clamp(y, 0, Height - 1);
 
         var offset = (z * Width * Height + y * Width + x) * (int)Components;
         var ret = new Color();
@@ -1005,8 +1004,8 @@ public partial class Image : Resource
     {
         if (_data.Length == 0 || z < 0 || z >= Depth || IsCompressed())
             return 0xff000000;
-        x = Math.Clamp(x, 0, Width - 1);
-        y = Math.Clamp(y, 0, Height - 1);
+        x = SystemMath.Clamp(x, 0, Width - 1);
+        y = SystemMath.Clamp(y, 0, Height - 1);
 
         var offset = (z * Width * Height + y * Width + x) * (int)Components;
         uint ret = Components < 4 ? 0xff000000 : 0;
@@ -1133,9 +1132,9 @@ public partial class Image : Resource
         if (_nextLevel is not null)
             return _nextLevel;
 
-        var nextWidth = Math.Max(Width / 2, 1);
-        var nextHeight = Math.Max(Height / 2, 1);
-        var nextDepth = Math.Max(Depth / 2, 1);
+        var nextWidth = SystemMath.Max(Width / 2, 1);
+        var nextHeight = SystemMath.Max(Height / 2, 1);
+        var nextDepth = SystemMath.Max(Depth / 2, 1);
         var mipImage = new Image();
         if (Depth > 1)
             mipImage.SetSize(nextWidth, nextHeight, nextDepth, Components);
@@ -1145,7 +1144,7 @@ public partial class Image : Resource
         // 1D case.
         if (Depth == 1 && (Height == 1 || Width == 1))
         {
-            var outputLength = Math.Max(nextWidth, nextHeight);
+            var outputLength = SystemMath.Max(nextWidth, nextHeight);
             for (var x = 0; x < outputLength; ++x)
             {
                 for (var component = 0; component < Components; ++component)
@@ -1306,7 +1305,7 @@ public partial class Image : Resource
         if (NumCompressedLevels == 0)
             return null;
 
-        var clampedIndex = Math.Min(index, NumCompressedLevels);
+        var clampedIndex = SystemMath.Min(index, NumCompressedLevels);
         var compressedLevel = GetCompressedLevel(clampedIndex);
         if (compressedLevel.DataSize == 0)
             return null;
@@ -1593,7 +1592,7 @@ public partial class Image : Resource
         Depth = depth;
         Components = components;
         CompressedFormat = format;
-        NumCompressedLevels = Math.Max(levels, 1);
+        NumCompressedLevels = SystemMath.Max(levels, 1);
         _data = pixelData;
         Cubemap = cubemap;
         Array = array;
@@ -1618,7 +1617,7 @@ public partial class Image : Resource
     {
         var value = size;
         for (var i = 0; i < level && value > 1; ++i)
-            value = Math.Max(value / 2, 1);
+            value = SystemMath.Max(value / 2, 1);
         return value;
     }
 

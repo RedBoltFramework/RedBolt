@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 
 using RedBolt.Core;
 using RedBolt.Input;
@@ -8,10 +9,9 @@ using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
+using SceneType = global::RedBolt.Scene.Scene;
 
-using Scene = global::RedBolt.Scene.Scene;
+namespace RedBolt.Graphics;
 
 /// <summary>Light vertex shader variations.</summary>
 public enum LightVsVariation
@@ -278,7 +278,7 @@ public sealed class Renderer : RedObject
         return count;
     }
 
-    public Viewport? GetViewportForScene(Scene? scene, uint index = 0)
+    public Viewport? GetViewportForScene(SceneType? scene, uint index = 0)
     {
         var matchIndex = 0u;
         foreach (var viewport in _viewports)
@@ -319,7 +319,7 @@ public sealed class Renderer : RedObject
 
     public void SetTextureAnisotropy(int level)
     {
-        _textureAnisotropy = Math.Max(1, level);
+        _textureAnisotropy = SystemMath.Max(1, level);
     }
 
     public int GetTextureAnisotropy() => _textureAnisotropy;
@@ -333,7 +333,7 @@ public sealed class Renderer : RedObject
 
     public void SetTextureQuality(MaterialQuality quality)
     {
-        quality = (MaterialQuality)Math.Clamp((uint)quality, (uint)MaterialQuality.Low, (uint)MaterialQuality.High);
+        quality = (MaterialQuality)SystemMath.Clamp((uint)quality, (uint)MaterialQuality.Low, (uint)MaterialQuality.High);
 
         if (quality != _textureQuality)
         {

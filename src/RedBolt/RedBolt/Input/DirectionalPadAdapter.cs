@@ -1,8 +1,9 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Core;
 using RedBolt.Scene;
-namespace RedBolt.Input;
-using Math = global::System.Math;
 
+namespace RedBolt.Input;
 
 [Flags]
 public enum DirectionalPadAdapterMask : uint
@@ -182,13 +183,13 @@ public class DirectionalPadAdapter : RedObject
     /// <summary>Set repeat delay in seconds.</summary>
     public void SetRepeatDelay(float delayInSeconds)
     {
-        _repeatDelay = Math.Max(delayInSeconds, MathF.BitIncrement(1.0f) - 1.0f);
+        _repeatDelay = SystemMath.Max(delayInSeconds, MathF.BitIncrement(1.0f) - 1.0f);
     }
 
     /// <summary>Set repeat interval in seconds.</summary>
     public void SetRepeatInterval(float intervalInSeconds)
     {
-        _repeatInterval = Math.Max(intervalInSeconds, MathF.BitIncrement(1.0f) - 1.0f);
+        _repeatInterval = SystemMath.Max(intervalInSeconds, MathF.BitIncrement(1.0f) - 1.0f);
     }
 
     /// <summary>Get enabled flag.</summary>

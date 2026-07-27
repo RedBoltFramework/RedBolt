@@ -4,10 +4,9 @@ using RedBolt.Graphics;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using RenderPipeline = global::RedBolt.RenderPipeline.RenderPipeline;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class RenderPipelineInterfaceTests(GraphicsEngineFixture fixture)
@@ -15,9 +14,9 @@ public sealed class RenderPipelineInterfaceTests(GraphicsEngineFixture fixture)
     [Fact]
     public void Render_pipeline_view_exposes_global_context()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
-        scene.CreateComponent<RenderPipeline>();
+        scene.CreateComponent<RenderPipelineComponent>();
         var viewport = new Viewport(scene, camera);
         viewport.AllocateView();
 
@@ -30,8 +29,8 @@ public sealed class RenderPipelineInterfaceTests(GraphicsEngineFixture fixture)
     [Fact]
     public void Render_pipeline_view_dispose_releases_signal_subscribers()
     {
-        var scene = new Scene();
-        var pipeline = scene.CreateComponent<RenderPipeline>();
+        var scene = new SceneType();
+        var pipeline = scene.CreateComponent<RenderPipelineComponent>();
         var view = new TrackingRenderPipelineView(pipeline);
         var updateBeginCount = 0;
         view.UpdateBegin += _ => ++updateBeginCount;
@@ -56,9 +55,9 @@ public sealed class RenderPipelineInterfaceTests(GraphicsEngineFixture fixture)
         fixture.InitializeGraphics(parameters);
         try
         {
-            var scene = new Scene();
+            var scene = new SceneType();
             var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
-            scene.CreateComponent<RenderPipeline>();
+            scene.CreateComponent<RenderPipelineComponent>();
             var viewport = new Viewport(scene, camera);
             viewport.AllocateView();
 
@@ -98,7 +97,7 @@ public sealed class RenderPipelineInterfaceTests(GraphicsEngineFixture fixture)
             System.Reflection.BindingFlags.NonPublic)!.IsValueType);
     }
 
-    private sealed class TrackingRenderPipelineView(RenderPipeline renderPipeline) : RenderPipelineView(renderPipeline)
+    private sealed class TrackingRenderPipelineView(RenderPipelineComponent renderPipeline) : RenderPipelineView(renderPipeline)
     {
         private FrameInfo _frameInfo;
         private RenderPipelineStats _stats;

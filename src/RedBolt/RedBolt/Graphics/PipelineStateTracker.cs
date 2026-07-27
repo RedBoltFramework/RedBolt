@@ -1,9 +1,9 @@
+using SystemMath = global::System.Math;
 using System.Threading;
 
 using RedBolt.Core;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
 
+namespace RedBolt.Graphics;
 
 /// <summary>Holds subscription from one PipelineStateTracker to another. Neither checks nor affects objects lifetime.</summary>
 public class PipelineStateSubscription : IDisposable, ICloneable
@@ -86,7 +86,7 @@ public abstract class PipelineStateTracker : RedObject
         if (hash != 0)
             return hash;
 
-        var newHash = Math.Max(1u, RecalculatePipelineStateHash());
+        var newHash = SystemMath.Max(1u, RecalculatePipelineStateHash());
         Volatile.Write(ref _pipelineStateHash, newHash);
         return newHash;
     }

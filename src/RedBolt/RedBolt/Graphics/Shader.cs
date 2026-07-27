@@ -1,19 +1,19 @@
+using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 using System.Text;
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Logging;
 
 using RedBolt.Container;
 using RedBolt.Core;
-using RedBolt.IO;
 using RedBolt.Input;
+using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.RenderAPI;
-using RedBolt.Resource;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 
-using Resource = global::RedBolt.Resource.Resource;
+namespace RedBolt.Graphics;
 
 public enum ShaderStage
 {
@@ -21,7 +21,7 @@ public enum ShaderStage
     Pixel
 }
 
-public sealed class Shader : Resource
+public sealed class Shader : ResourceType
 {
     private const string UniversalShaderRoot = "Shaders/GLSL/";
     private const string ShaderRoot = "Shaders/GLSL/v2/";
@@ -108,7 +108,7 @@ public sealed class Shader : Resource
             }
             if (invalidIndex >= 0)
             {
-                var snippetStart = _sourceCode.LastIndexOf('\n', Math.Max(0, invalidIndex - 1));
+                var snippetStart = _sourceCode.LastIndexOf('\n', SystemMath.Max(0, invalidIndex - 1));
                 var snippetEnd = _sourceCode.IndexOf('\n', invalidIndex);
                 if (snippetStart < 0)
                     snippetStart = 0;

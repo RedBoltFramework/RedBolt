@@ -5,6 +5,7 @@ using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
+
 namespace RedBolt.Graphics;
 
 /// <summary>

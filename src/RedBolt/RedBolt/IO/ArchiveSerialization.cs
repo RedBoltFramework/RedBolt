@@ -1,16 +1,16 @@
+using Microsoft.Extensions.Logging;
 using System.Globalization;
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.Extensions.Logging;
 
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
-namespace RedBolt.IO;
-using Math = global::System.Math;
 
+namespace RedBolt.IO;
 
 public delegate void ArchiveValueSerializer<T>(Archive archive, string name, ref T value);
 
@@ -135,7 +135,7 @@ public static partial class ArchiveSerialization
     private static int StringToNumberArray(string text, Span<float> values)
     {
         var elements = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var size = Math.Min(elements.Length, values.Length);
+        var size = SystemMath.Min(elements.Length, values.Length);
         for (var i = 0; i < size; ++i)
         {
             if (!float.TryParse(elements[i], NumberStyles.Float, CultureInfo.InvariantCulture, out values[i]))
@@ -147,7 +147,7 @@ public static partial class ArchiveSerialization
     private static int StringToNumberArray(string text, Span<double> values)
     {
         var elements = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var size = Math.Min(elements.Length, values.Length);
+        var size = SystemMath.Min(elements.Length, values.Length);
         for (var i = 0; i < size; ++i)
         {
             if (!double.TryParse(elements[i], NumberStyles.Float, CultureInfo.InvariantCulture, out values[i]))
@@ -159,7 +159,7 @@ public static partial class ArchiveSerialization
     private static int StringToNumberArray(string text, Span<int> values)
     {
         var elements = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var size = Math.Min(elements.Length, values.Length);
+        var size = SystemMath.Min(elements.Length, values.Length);
         for (var i = 0; i < size; ++i)
         {
             if (!int.TryParse(elements[i], NumberStyles.Integer, CultureInfo.InvariantCulture, out values[i]))

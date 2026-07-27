@@ -1,12 +1,12 @@
 using RedBolt;
-
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
-using RedBolt.IO;
 using RedBolt.Input;
+using RedBolt.IO;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
+
 namespace RedBolt.Tests;
 
 /// <summary>

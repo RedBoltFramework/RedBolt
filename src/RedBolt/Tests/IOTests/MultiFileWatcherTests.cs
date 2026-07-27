@@ -1,9 +1,11 @@
 using System;
 using System.IO;
 using System.Threading;
+
 using Xunit;
 
 using RedBolt.IO;
+
 namespace RedBolt.Tests;
 
 public sealed class MultiFileWatcherTests

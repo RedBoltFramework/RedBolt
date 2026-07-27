@@ -2,6 +2,7 @@
 // This work is licensed under the terms of the MIT license.
 // For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
 using RedBolt.Container;
@@ -9,9 +10,8 @@ using RedBolt.Core;
 using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
 
+namespace RedBolt.Graphics;
 
 /// <summary>
 /// Animation blending mode.
@@ -300,7 +300,7 @@ public sealed class AnimationState : IDisposable
         if (_animation is null)
             return;
 
-        weight = Math.Clamp(weight, 0.0f, 1.0f);
+        weight = SystemMath.Clamp(weight, 0.0f, 1.0f);
         if (weight != _weight)
         {
             _weight = weight;
@@ -316,7 +316,7 @@ public sealed class AnimationState : IDisposable
         if (_animation is null)
             return;
 
-        time = Math.Clamp(time, 0.0f, _animation.Length);
+        time = SystemMath.Clamp(time, 0.0f, _animation.Length);
         if (time != _time)
         {
             _time = time;

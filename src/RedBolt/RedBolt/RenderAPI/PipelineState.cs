@@ -1,17 +1,17 @@
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
-using RedBolt.Bindings.Diligent;
+using System.Runtime.InteropServices;
 
+using RedBolt.Bindings.Diligent;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
+using CullMode = global::RedBolt.Graphics.CullMode;
+using FillMode = global::RedBolt.Graphics.FillMode;
 using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.RenderPipeline;
-namespace RedBolt.RenderAPI;
 
-using CullMode = global::RedBolt.Graphics.CullMode;
-using FillMode = global::RedBolt.Graphics.FillMode;
+namespace RedBolt.RenderAPI;
 
 /// <summary>Cooked pipeline state.</summary>
 public class PipelineState : DeviceObject

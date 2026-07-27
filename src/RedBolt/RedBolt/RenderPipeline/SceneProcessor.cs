@@ -1,12 +1,13 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-namespace RedBolt.RenderPipeline;
-using Math = global::System.Math;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.RenderPipeline;
 
 /// <summary>Frustum query that only returns occluders.</summary>
 file sealed class OccluderOctreeQuery : FrustumOctreeQuery
@@ -608,7 +609,7 @@ public class SceneProcessor : RedObject, LightProcessorCallback
         var baseShadowSize = parameters.AutoSize ? lightSizeInPixels : maxShadowSize;
         var shadowSize = checked((int)MathDefs.NextPowerOfTwo((uint)(baseShadowSize * shadowResolutionScale)));
 
-        return Math.Clamp(shadowSize, ShadowMinPixels, maxShadowSize);
+        return SystemMath.Clamp(shadowSize, ShadowMinPixels, maxShadowSize);
     }
 
     public ShadowMapRegion AllocateTransientShadowMap(Vector2i size) => ShadowMapAllocator!.AllocateShadowMap(size);
@@ -653,21 +654,21 @@ public class SceneProcessor : RedObject, LightProcessorCallback
         var viewSize = new Vector2f(frameInfo.ViewSize.X, frameInfo.ViewSize.Y);
         var lightType = light.GetLightType();
         if (lightType == LightType.Directional)
-            return Math.Max(viewSize.X, viewSize.Y);
+            return SystemMath.Max(viewSize.X, viewSize.Y);
 
         var lightBox = GetViewSpaceLightBoundingBox(light, frameInfo.Camera!);
         var projection = frameInfo.Camera!.GetProjection();
         var projectionSize = 0.5f * lightBox.Projected(projection).Size * viewSize;
-        return Math.Max(projectionSize.X, projectionSize.Y);
+        return SystemMath.Max(projectionSize.X, projectionSize.Y);
     }
 
     private static int GetMaxShadowSplitSize(SceneProcessorSettings settings, int pageSize, Light light) =>
         light.GetLightType() switch
         {
-            LightType.Directional => Math.Min(settings.DirectionalShadowSize,
+            LightType.Directional => SystemMath.Min(settings.DirectionalShadowSize,
                 light.GetNumShadowSplits() == 1 ? pageSize : pageSize / 2),
-            LightType.Point => Math.Min(settings.PointShadowSize, pageSize / 4),
-            _ => Math.Min(settings.SpotShadowSize, pageSize)
+            LightType.Point => SystemMath.Min(settings.PointShadowSize, pageSize / 4),
+            _ => SystemMath.Min(settings.SpotShadowSize, pageSize)
         };
 
 }

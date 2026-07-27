@@ -1,7 +1,7 @@
 using System.Xml.Linq;
 using System.Xml.XPath;
-using RedBolt;
 
+using RedBolt;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
@@ -9,6 +9,7 @@ using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
+
 namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]

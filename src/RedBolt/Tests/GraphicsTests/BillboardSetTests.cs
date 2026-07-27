@@ -1,13 +1,13 @@
-using RedBolt;
 using System.Runtime.CompilerServices;
 
+using RedBolt;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class BillboardSetTests
@@ -25,7 +25,7 @@ public sealed class BillboardSetTests
     [Fact]
     public void Defaults_match_cpp_constructor()
     {
-        var set = new Scene().CreateChild("Billboards").CreateComponent<BillboardSet>();
+        var set = new SceneType().CreateChild("Billboards").CreateComponent<BillboardSet>();
 
         Assert.Equal(DrawableFlags.Geometry, set.GetDrawableFlags());
         Assert.Equal(0u, set.GetNumBillboards());
@@ -48,7 +48,7 @@ public sealed class BillboardSetTests
     [Fact]
     public void Num_billboards_defaults_and_commit_grow_shrink()
     {
-        var set = new Scene().CreateChild("Billboards").CreateComponent<BillboardSet>();
+        var set = new SceneType().CreateChild("Billboards").CreateComponent<BillboardSet>();
         set.SetNumBillboards(3);
 
         Assert.Equal(3u, set.GetNumBillboards());
@@ -75,7 +75,7 @@ public sealed class BillboardSetTests
     public void Material_and_flags_roundtrip()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");
-        var set = new Scene().CreateChild("Billboards").CreateComponent<BillboardSet>();
+        var set = new SceneType().CreateChild("Billboards").CreateComponent<BillboardSet>();
 
         set.SetMaterial(material);
         set.SetRelative(false);
@@ -103,7 +103,7 @@ public sealed class BillboardSetTests
     [Fact]
     public void Face_camera_mode_updates_geometry_type_for_special_modes()
     {
-        var set = new Scene().CreateChild("Billboards").CreateComponent<BillboardSet>();
+        var set = new SceneType().CreateChild("Billboards").CreateComponent<BillboardSet>();
 
         set.SetFaceCameraMode(FaceCameraMode.LookAtY);
         Assert.Equal(FaceCameraMode.LookAtY, set.GetFaceCameraMode());
@@ -125,7 +125,7 @@ public sealed class BillboardSetTests
     [Fact]
     public void Billboards_attribute_roundtrip_new_format()
     {
-        var set = new Scene().CreateChild("Billboards").CreateComponent<BillboardSet>();
+        var set = new SceneType().CreateChild("Billboards").CreateComponent<BillboardSet>();
         set.SetNumBillboards(2);
 
         ref var first = ref set.GetBillboard(0);
@@ -144,7 +144,7 @@ public sealed class BillboardSetTests
         Assert.Equal(2 * 7 + 1, attr.Count);
         Assert.Equal(2, attr[0].GetInt());
 
-        var restored = new Scene().CreateChild("Restored").CreateComponent<BillboardSet>();
+        var restored = new SceneType().CreateChild("Restored").CreateComponent<BillboardSet>();
         restored.SetBillboardsAttr(attr);
         Assert.Equal(2u, restored.GetNumBillboards());
 
@@ -165,7 +165,7 @@ public sealed class BillboardSetTests
     [Fact]
     public void World_bounding_box_merges_enabled_billboards_and_node_position()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var node = scene.CreateChild("Billboards");
         node.SetWorldPosition(new Vector3f(10, 0, 0));
         var set = node.CreateComponent<BillboardSet>();
@@ -195,7 +195,7 @@ public sealed class BillboardSetTests
     [Fact]
     public void ProcessRayQuery_triangle_level_hits_enabled_billboard_sphere()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var node = scene.CreateChild("Billboards");
         node.SetWorldPosition(Vector3f.Zero);
         var set = node.CreateComponent<BillboardSet>();
@@ -222,7 +222,7 @@ public sealed class BillboardSetTests
     [Fact]
     public void UpdateBatches_and_geometry_build_draw_range_for_enabled_billboards()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var cameraNode = scene.CreateChild("Camera");
         cameraNode.SetWorldPosition(new Vector3f(0, 0, -10));
         var camera = cameraNode.CreateComponent<Camera>();

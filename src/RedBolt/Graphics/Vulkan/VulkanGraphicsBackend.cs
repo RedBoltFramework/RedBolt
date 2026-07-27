@@ -1,15 +1,15 @@
 using Microsoft.Extensions.Logging;
-using RedBolt.Bindings.Diligent;
-using RedBolt.Bindings.Sdl;
 using System;
 
+using RedBolt.Bindings.Diligent;
+using RedBolt.Bindings.Sdl;
 using RedBolt.Engine;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Platform;
 using RedBolt.RenderAPI;
-namespace RedBolt;
 
+namespace RedBolt;
 
 public interface IVulkanGraphicsApi
 {

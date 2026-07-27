@@ -1,13 +1,13 @@
 using RedBolt.Container;
 using RedBolt.Core;
+using Timer = global::RedBolt.Core.Timer;
 using RedBolt.Math;
 using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Resource = global::RedBolt.Resource.Resource;
-using Timer = global::RedBolt.Core.Timer;
+using SceneType = global::RedBolt.Scene.Scene;
 
-using Scene = global::RedBolt.Scene.Scene;
+namespace RedBolt.Graphics;
 
 /// <summary>One particle in the particle system.</summary>
 public struct Particle
@@ -421,7 +421,7 @@ public class ParticleEmitter : BillboardSet
 
     /// <summary>Set particles effect attribute.</summary>
     public ResourceRef GetEffectAttr() =>
-        Resource.GetResourceRef(_effect, new StringHash(nameof(ParticleEffect)));
+        ResourceType.GetResourceRef(_effect, new StringHash(nameof(ParticleEffect)));
 
     /// <summary>Set particles attribute.</summary>
     public void SetParticlesAttr(VariantVector value)
@@ -498,7 +498,7 @@ public class ParticleEmitter : BillboardSet
     }
 
     /// <summary>Handle scene being assigned.</summary>
-    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
+    protected internal override void OnSceneSet(SceneType? previousScene, SceneType? scene)
     {
         base.OnSceneSet(previousScene, scene);
 

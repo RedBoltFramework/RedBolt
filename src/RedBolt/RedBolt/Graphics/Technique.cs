@@ -6,8 +6,9 @@ using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.RenderPipeline;
 using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
+
 namespace RedBolt.Graphics;
-using Resource = global::RedBolt.Resource.Resource;
 
 public enum BlendMode
 {
@@ -375,7 +376,7 @@ public class Pass : PipelineStateTracker
 }
 
 /// <summary>Material technique. Consists of several passes.</summary>
-public class Technique : Resource
+public class Technique : ResourceType
 {
     /// <summary>Construct.</summary>
     public Technique()

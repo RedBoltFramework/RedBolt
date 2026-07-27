@@ -2,14 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
-using RedBolt;
 
+using RedBolt;
 using RedBolt.Core;
 using RedBolt.IO;
-using RedBolt.Resource;
-namespace RedBolt.Tests;
 using FileMode = global::RedBolt.IO.FileMode;
+using RedBolt.Resource;
 
+namespace RedBolt.Tests;
 
 public sealed class MountedDirectoryTests
 {

@@ -1,11 +1,10 @@
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
-
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
-namespace RedBolt.Platform;
 
+namespace RedBolt.Platform;
 
 /// <summary>Platform services available to the shared engine core.</summary>
 public interface IPlatformRuntime

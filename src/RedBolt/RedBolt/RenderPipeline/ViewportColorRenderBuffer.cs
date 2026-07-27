@@ -3,6 +3,7 @@ using System.Diagnostics;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
+
 namespace RedBolt.RenderPipeline;
 
 /// <summary>Write-only viewport color render buffer.</summary>

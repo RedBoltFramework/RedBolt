@@ -5,6 +5,7 @@ using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
+
 namespace RedBolt.Graphics;
 
 public enum PrimitiveType

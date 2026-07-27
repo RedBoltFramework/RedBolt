@@ -1,14 +1,14 @@
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Microsoft.Extensions.Logging;
-using RedBolt.Bindings.Diligent;
 
+using RedBolt.Bindings.Diligent;
 using RedBolt.Container;
 using RedBolt.Graphics;
 using RedBolt.Logging;
-namespace RedBolt.RenderAPI;
 
+namespace RedBolt.RenderAPI;
 
 /// <summary>Common class for buffer on GPU and/or CPU.</summary>
 public class RawBuffer : DeviceObject

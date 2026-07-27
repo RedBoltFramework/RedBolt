@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 
 using RedBolt.Container;
 using RedBolt.Core;
@@ -7,9 +8,8 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
-namespace RedBolt.RenderPipeline;
-using Math = global::System.Math;
 
+namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Render pass that applies a shader to the entire output area.
@@ -336,7 +336,7 @@ public sealed class ToneMappingPass : RenderPass
         ref readonly var value = ref LoadParameter(ModeName, parameters);
         if (value.Type == VariantType.Int)
         {
-            var newMode = (Mode)Math.Clamp(value.GetInt(), 0, (int)Mode.Count);
+            var newMode = (Mode)SystemMath.Clamp(value.GetInt(), 0, (int)Mode.Count);
             if (_mode != newMode)
             {
                 _mode = newMode;
@@ -761,7 +761,7 @@ public class BloomPass : RenderPass
         var newParameters = new Parameters();
         ref readonly var numIterations = ref LoadParameter(NumIterationsName, parameters);
         if (numIterations.Type == VariantType.Int)
-            newParameters.NumIterations = Math.Clamp(numIterations.GetInt(), 1, MaxIterations);
+            newParameters.NumIterations = SystemMath.Clamp(numIterations.GetInt(), 1, MaxIterations);
         ref readonly var minBrightness = ref LoadParameter(MinBrightnessName, parameters);
         if (minBrightness.Type == VariantType.Float)
             newParameters.MinBrightness = minBrightness.GetFloat();
@@ -925,8 +925,8 @@ public class BloomPass : RenderPass
         renderBufferManager.SetRenderTargets(null, destination);
         renderBufferManager.DrawQuad("Gather bright regions", drawParameters);
 
-        return Math.Clamp(
-            (int)MathDefs.LogBaseTwo((uint)Math.Min(inputSize.X, inputSize.Y)),
+        return SystemMath.Clamp(
+            (int)MathDefs.LogBaseTwo((uint)SystemMath.Min(inputSize.X, inputSize.Y)),
             1,
             _parameters.NumIterations);
     }
@@ -970,7 +970,7 @@ public class BloomPass : RenderPass
 
     protected void GetShaderParameters(Vector2f inputInvSize)
     {
-        var thresholdGap = Math.Max(0.01f, _parameters.MaxBrightness - _parameters.MinBrightness);
+        var thresholdGap = SystemMath.Max(0.01f, _parameters.MaxBrightness - _parameters.MinBrightness);
         SetShaderParameter(_shaderParameters, 0, new Variant(_luminanceWeights));
         SetShaderParameter(_shaderParameters, 1,
             new Variant(new Vector2f(_parameters.MinBrightness, 1.0f / thresholdGap)));
@@ -1321,7 +1321,7 @@ public class AmbientOcclusionPass : RenderPass
         var worldToViewSpaceCorrected = invertY ? FlipMatrix * worldToViewSpace : worldToViewSpace;
 
         var radiusSlope = (_parameters.RadiusFar - _parameters.RadiusNear)
-            / Math.Max(1.0f, _parameters.DistanceFar - _parameters.DistanceNear);
+            / SystemMath.Max(1.0f, _parameters.DistanceFar - _parameters.DistanceNear);
         var radiusInfo = new Vector4f(
             radiusSlope,
             _parameters.RadiusNear - radiusSlope * _parameters.DistanceNear,

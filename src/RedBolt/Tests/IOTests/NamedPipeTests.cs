@@ -1,8 +1,10 @@
 using System;
 using System.Threading;
+
 using Xunit;
 
 using RedBolt.IO;
+
 namespace RedBolt.Tests;
 
 public sealed class NamedPipeTests

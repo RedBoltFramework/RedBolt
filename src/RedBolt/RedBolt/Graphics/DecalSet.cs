@@ -1,20 +1,20 @@
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
+using System.Runtime.InteropServices;
 
 using RedBolt.Container;
 using RedBolt.Core;
+using Timer = global::RedBolt.Core.Timer;
 using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
-using Resource = global::RedBolt.Resource.Resource;
-using Scene = global::RedBolt.Scene.Scene;
-using Timer = global::RedBolt.Core.Timer;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Graphics;
 
 /// <summary>Decal vertex.</summary>
 public struct DecalVertex
@@ -227,7 +227,7 @@ public class DecalSet : Drawable
 
     public void SetMaxVertices(uint num)
     {
-        num = (uint)Math.Clamp((int)num, (int)MinVertices, (int)MaxVerticesLimit);
+        num = (uint)SystemMath.Clamp((int)num, (int)MinVertices, (int)MaxVerticesLimit);
         if (num != _maxVertices)
         {
             if (!_optimizeBufferSize)
@@ -276,7 +276,7 @@ public class DecalSet : Drawable
     }
 
     public ResourceRef GetMaterialAttr() =>
-        Resource.GetResourceRef(_batches[0].Material, new StringHash(nameof(Material)));
+        ResourceType.GetResourceRef(_batches[0].Material, new StringHash(nameof(Material)));
 
     public void RemoveDecals(uint num)
     {

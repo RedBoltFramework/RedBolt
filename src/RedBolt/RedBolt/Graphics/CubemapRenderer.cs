@@ -1,18 +1,17 @@
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
-using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+using SceneType = global::RedBolt.Scene.Scene;
 
-using RenderPipeline = global::RedBolt.RenderPipeline.RenderPipeline;
-using Scene = global::RedBolt.Scene.Scene;
+namespace RedBolt.Graphics;
 
 public enum CubemapUpdateStage
 {
@@ -143,10 +142,10 @@ public class CubemapRenderer : RedObject
 
     public event Action<TextureCube>? CubemapRendered;
 
-    private readonly WeakReference<Scene> _scene;
+    private readonly WeakReference<SceneType> _scene;
     private readonly Node[] _renderCameraNodes = new Node[(int)CubeMapFace.MaxCubeMapFaces];
     private readonly Viewport[] _viewports = new Viewport[(int)CubeMapFace.MaxCubeMapFaces];
-    private readonly RenderPipeline _renderPipeline;
+    private readonly RenderPipelineComponent _renderPipeline;
     private readonly TextureCube _viewportTexture = new();
     private readonly TextureCube _filteredTexture = new();
 
@@ -158,10 +157,10 @@ public class CubemapRenderer : RedObject
     private readonly WeakReference<TextureCube> _currentFilteredTexture = new(null!);
     private bool _viewportsConnectedToSelf;
     private CachedPipelineStates? _cachedPipelineStates;
-    public CubemapRenderer(Scene scene)
+    public CubemapRenderer(SceneType scene)
     {
-        _scene = new WeakReference<Scene>(scene);
-        _renderPipeline = new RenderPipeline();
+        _scene = new WeakReference<SceneType>(scene);
+        _renderPipeline = new RenderPipelineComponent();
         InitializeRenderPipeline();
         InitializeCameras();
     }
@@ -477,7 +476,7 @@ public class CubemapRenderer : RedObject
         for (var i = 0; i < numLevels; ++i)
         {
             var levelWidth = (float)(1 << (numLevels - 1 - i));
-            var rayCount = rayCounts[Math.Min(i, rayCounts.Length - 1)];
+            var rayCount = rayCounts[SystemMath.Min(i, rayCounts.Length - 1)];
 
             var shaderParams = FormattableString.Invariant(
                 $"RAY_COUNT={rayCount}u FILTER_RES={(uint)levelWidth}u FILTER_INV_RES={1.0f / levelWidth:F7} ROUGHNESS={roughStep * i:F7}");

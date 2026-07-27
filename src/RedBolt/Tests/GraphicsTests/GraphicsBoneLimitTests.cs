@@ -1,6 +1,6 @@
 using RedBolt.Graphics;
-namespace RedBolt.Tests;
 
+namespace RedBolt.Tests;
 
 public sealed class GraphicsBoneLimitTests
 {

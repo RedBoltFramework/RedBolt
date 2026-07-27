@@ -1,14 +1,13 @@
 using RedBolt;
-
 using RedBolt.Container;
 using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ModelFileTests
@@ -58,7 +57,7 @@ public sealed class ModelFileTests
         sourceBone.Name = "Root";
         sourceBone.NameHash = new StringHash("Root");
         sourceBone.ParentIndex = 0;
-        sourceBone.Node = new Scene().CreateChild("Root");
+        sourceBone.Node = new SceneType().CreateChild("Root");
 
         model.SetSkeleton(skeleton);
 

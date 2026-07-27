@@ -1,15 +1,15 @@
+using System.Diagnostics;
+using SystemMath = global::System.Math;
+
+using RedBolt.Bindings.Diligent;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderPipeline;
+
 namespace RedBolt.RenderAPI;
-using Math = global::System.Math;
-
-
-using System.Diagnostics;
-using RedBolt.Bindings.Diligent;
 
 /// <summary>Queue of draw commands.</summary>
 public class DrawCommandQueue
@@ -640,7 +640,7 @@ public class DrawCommandQueue
                 {
                     var drawAttrs = renderContext.GetDrawIndexedAttribs();
                     drawAttrs.NumIndices = checked((uint)cmd.IndexCount);
-                    drawAttrs.NumInstances = checked((uint)Math.Max(1, cmd.InstanceCount));
+                    drawAttrs.NumInstances = checked((uint)SystemMath.Max(1, cmd.InstanceCount));
                     drawAttrs.FirstIndexLocation = checked((uint)cmd.IndexStart);
                     drawAttrs.FirstInstanceLocation = caps.DrawBaseInstance ? checked((uint)cmd.InstanceStart) : 0u;
                     drawAttrs.BaseVertex = checked((uint)cmd.BaseVertexIndex);
@@ -658,7 +658,7 @@ public class DrawCommandQueue
                 {
                     var drawAttrs = renderContext.GetDrawAttribs();
                     drawAttrs.NumVertices = checked((uint)cmd.IndexCount);
-                    drawAttrs.NumInstances = checked((uint)Math.Max(1, cmd.InstanceCount));
+                    drawAttrs.NumInstances = checked((uint)SystemMath.Max(1, cmd.InstanceCount));
                     drawAttrs.StartVertexLocation = checked((uint)cmd.IndexStart);
                     drawAttrs.FirstInstanceLocation = caps.DrawBaseInstance ? checked((uint)cmd.InstanceStart) : 0u;
                     drawAttrs.Flags = DrawFlags.DrawFlagVerifyAll;

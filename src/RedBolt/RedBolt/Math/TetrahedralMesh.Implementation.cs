@@ -1,12 +1,12 @@
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Microsoft.Extensions.Logging;
 
 using RedBolt.Logging;
-namespace RedBolt.Math;
-using Math = global::System.Math;
 
+namespace RedBolt.Math;
 
 public partial class TetrahedralMesh
 {
@@ -82,21 +82,21 @@ public partial class TetrahedralMesh
         var q3 = q * q * q;
         if (r2 <= q3 + eps)
         {
-            var t = r / Math.Sqrt(q3);
+            var t = r / SystemMath.Sqrt(q3);
             if (t < -1)
                 t = -1;
             if (t > 1)
                 t = 1;
-            t = Math.Acos(t);
+            t = SystemMath.Acos(t);
             a /= 3;
-            q = -2 * Math.Sqrt(q);
-            result[0] = q * Math.Cos(t / 3) - a;
-            result[1] = q * Math.Cos((t + Math.PI * 2) / 3) - a;
-            result[2] = q * Math.Cos((t - Math.PI * 2) / 3) - a;
+            q = -2 * SystemMath.Sqrt(q);
+            result[0] = q * SystemMath.Cos(t / 3) - a;
+            result[1] = q * SystemMath.Cos((t + SystemMath.PI * 2) / 3) - a;
+            result[2] = q * SystemMath.Cos((t - SystemMath.PI * 2) / 3) - a;
             return 3;
         }
 
-        var A = -Math.Cbrt(Math.Abs(r) + Math.Sqrt(r2 - q3));
+        var A = -SystemMath.Cbrt(SystemMath.Abs(r) + SystemMath.Sqrt(r2 - q3));
         if (r < 0)
             A = -A;
         var B = A == 0 ? 0 : q / A;
@@ -104,8 +104,8 @@ public partial class TetrahedralMesh
         a /= 3;
         result[0] = A + B - a;
         result[1] = -0.5 * (A + B) - a;
-        result[2] = 0.5 * Math.Sqrt(3.0) * (A - B);
-        if (Math.Abs(result[2]) < eps)
+        result[2] = 0.5 * SystemMath.Sqrt(3.0) * (A - B);
+        if (SystemMath.Abs(result[2]) < eps)
         {
             result[2] = result[1];
             return 2;
@@ -130,12 +130,12 @@ public partial class TetrahedralMesh
         if (MathF.Abs(a) < MathDefs.Epsilon)
             return -c / b;
 
-        var discriminant = Math.Max(0.0f, b * b - 4 * a * c);
+        var discriminant = SystemMath.Max(0.0f, b * b - 4 * a * c);
         var invA = 1.0f / (2 * a);
         var roots = new double[]
         {
-            (-b + Math.Sqrt(discriminant)) * invA,
-            (-b - Math.Sqrt(discriminant)) * invA
+            (-b + SystemMath.Sqrt(discriminant)) * invA,
+            (-b - SystemMath.Sqrt(discriminant)) * invA
         };
         return (float)GetSmallestPositiveRoot(roots, roots.Length);
     }
@@ -149,7 +149,7 @@ public partial class TetrahedralMesh
             if (roots[i] > -MathDefs.LargeEpsilon && roots[i] < root)
                 root = roots[i];
         }
-        return Math.Max(0.0, root);
+        return SystemMath.Max(0.0, root);
     }
 
     /// <summary>Calculate barycentric coordinates on triangle.</summary>

@@ -1,12 +1,12 @@
-using RedBolt;
 using System.Reflection;
 
+using RedBolt;
 using RedBolt.Core;
 using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class DirectionalPadAdapterTests

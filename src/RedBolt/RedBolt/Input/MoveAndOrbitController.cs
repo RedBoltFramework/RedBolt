@@ -1,16 +1,16 @@
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Input;
-using Math = global::System.Math;
-using Resource = global::RedBolt.Resource.Resource;
+using SceneType = global::RedBolt.Scene.Scene;
 
-using Scene = global::RedBolt.Scene.Scene;
+namespace RedBolt.Input;
 
 public class MoveAndOrbitController : Component
 {
@@ -101,7 +101,7 @@ public class MoveAndOrbitController : Component
     /// <summary>Return input map attribute.</summary>
     public ResourceRef GetInputMapAttr()
     {
-        return Resource.GetResourceRef(GetInputMap(), ObjectReflection<InputMap>.TypeId);
+        return ResourceType.GetResourceRef(GetInputMap(), ObjectReflection<InputMap>.TypeId);
     }
 
     // TODO: port: void SetMovementUIElement(UIElement* element);
@@ -119,7 +119,7 @@ public class MoveAndOrbitController : Component
     }
 
     /// <summary>Handle scene being assigned.</summary>
-    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
+    protected internal override void OnSceneSet(SceneType? previousScene, SceneType? scene)
     {
         UpdateEventSubscription();
     }
@@ -173,8 +173,8 @@ public class MoveAndOrbitController : Component
         if (movementTouch is not null)
         {
             var sensitivity = GetSensitivity(TouchMovementSensitivity, DefaultTouchMovementSensitivity);
-            var halfAreaSize = Math.Min(movementRect.Width, movementRect.Height) * 0.45f;
-            var fullMotion = Math.Min(dpi / sensitivity, halfAreaSize);
+            var halfAreaSize = SystemMath.Min(movementRect.Width, movementRect.Height) * 0.45f;
+            var fullMotion = SystemMath.Min(dpi / sensitivity, halfAreaSize);
             var delta = movementTouch.Value.Position - _movementTouchOrigin;
             right += MathDefs.Clamp(delta.X / fullMotion, -1.0f, 1.0f);
             forward -= MathDefs.Clamp(delta.Y / fullMotion, -1.0f, 1.0f);
@@ -183,8 +183,8 @@ public class MoveAndOrbitController : Component
         if (rotationTouch is not null)
         {
             var sensitivity = GetSensitivity(TouchRotationSensitivity, DefaultTouchRotationSensitivity);
-            var halfAreaSize = Math.Min(rotationRect.Width, rotationRect.Height) * 0.45f;
-            var halfPiDistance = Math.Min(dpi / sensitivity, halfAreaSize);
+            var halfAreaSize = SystemMath.Min(rotationRect.Width, rotationRect.Height) * 0.45f;
+            var halfPiDistance = SystemMath.Min(dpi / sensitivity, halfAreaSize);
             yaw += rotationTouch.Value.Delta.X / halfPiDistance * 90.0f;
             pitch += rotationTouch.Value.Delta.Y / halfPiDistance * 90.0f;
         }

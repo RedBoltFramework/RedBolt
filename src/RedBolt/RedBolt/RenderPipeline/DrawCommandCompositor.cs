@@ -1,6 +1,7 @@
+using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Microsoft.Extensions.Logging;
 
 using RedBolt.Container;
 using RedBolt.Graphics;
@@ -9,10 +10,9 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-namespace RedBolt.RenderPipeline;
-using Math = global::System.Math;
+using SceneType = global::RedBolt.Scene.Scene;
 
-using Scene = global::RedBolt.Scene.Scene;
+namespace RedBolt.RenderPipeline;
 
 internal static class BatchRendererHelpers
 {
@@ -55,11 +55,11 @@ internal static class BatchRendererHelpers
     public static Vector4f GetFogParameter(Camera camera)
     {
         var farClip = camera.GetFarClip();
-        var fogStart = Math.Min(camera.GetEffectiveFogStart(), farClip);
-        var fogEnd = Math.Min(camera.GetEffectiveFogEnd(), farClip);
+        var fogStart = SystemMath.Min(camera.GetEffectiveFogStart(), farClip);
+        var fogEnd = SystemMath.Min(camera.GetEffectiveFogEnd(), farClip);
         if (fogStart >= fogEnd * (1.0f - MathDefs.LargeEpsilon))
             fogStart = fogEnd * (1.0f - MathDefs.LargeEpsilon);
-        var fogRange = Math.Max(fogEnd - fogStart, MathDefs.Epsilon);
+        var fogRange = SystemMath.Max(fogEnd - fogStart, MathDefs.Epsilon);
         return new Vector4f(fogEnd / farClip, farClip / fogRange, 0.0f, 0.0f);
     }
 
@@ -153,7 +153,7 @@ internal struct ObjectParameterBuilder
         {
             case GeometryType.Skinned:
             {
-                var count = (int)Math.Min(sourceBatch.NumWorldTransforms, GraphicsSystem.GetMaxBones());
+                var count = (int)SystemMath.Min(sourceBatch.NumWorldTransforms, GraphicsSystem.GetMaxBones());
                 drawQueue.AddShaderParameter(ShaderConsts.Object_SkinMatrices, worldTransform[..count]);
                 break;
             }
@@ -785,7 +785,7 @@ internal ref struct DrawCommandCompositor
     private readonly DrawableProcessor _drawableProcessor;
     private readonly InstancingBuffer _instancingBuffer;
     private readonly FrameInfo _frameInfo;
-    private readonly Scene _scene;
+    private readonly SceneType _scene;
     private readonly IReadOnlyList<LightProcessor?> _lights;
     private readonly Node _cameraNode;
     private readonly float _depthRange;

@@ -1,13 +1,13 @@
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
+using System.Runtime.InteropServices;
 
 using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
 
+namespace RedBolt.Graphics;
 
 /// <summary>Hardware vertex buffer.</summary>
 public class VertexBuffer : PipelineStateTracker
@@ -554,7 +554,7 @@ public class VertexBuffer : PipelineStateTracker
         var hash = 0u;
         foreach (var element in _elements)
             CombineHash(ref hash, element.ToHash());
-        return Math.Max(1u, hash);
+        return SystemMath.Max(1u, hash);
     }
 
     /// <summary>Set the debug name.</summary>
@@ -690,7 +690,7 @@ public class DynamicVertexBuffer : RedObject
 
     private void GrowBuffer(uint newMaxNumVertices)
     {
-        _maxNumVertices = Math.Max(newMaxNumVertices, _maxNumVertices > 0 ? 2 * _maxNumVertices : 128);
+        _maxNumVertices = SystemMath.Max(newMaxNumVertices, _maxNumVertices > 0 ? 2 * _maxNumVertices : 128);
         Array.Resize(ref _shadowData, checked((int)(_maxNumVertices * _vertexSize)));
         _vertexBufferNeedResize = true;
     }

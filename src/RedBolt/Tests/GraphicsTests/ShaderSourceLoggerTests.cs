@@ -2,8 +2,8 @@ using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.IO;
-namespace RedBolt.Tests;
 
+namespace RedBolt.Tests;
 
 public sealed class ShaderSourceLoggerTests
 {

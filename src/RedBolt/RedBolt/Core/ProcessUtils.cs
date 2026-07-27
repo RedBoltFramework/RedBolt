@@ -1,14 +1,14 @@
 using System.Diagnostics;
 using System.Globalization;
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
-using RedBolt.Bindings.Sdl;
 using System.Text;
 
+using RedBolt.Bindings.Sdl;
 using RedBolt.Container;
 using RedBolt.IO;
-namespace RedBolt.Core;
-using Math = global::System.Math;
 
+namespace RedBolt.Core;
 
 public enum PlatformId
 {
@@ -225,10 +225,10 @@ public static class ProcessUtils
         if (cpuCount == 0)
             cpuCount = GetNumLogicalCPUs();
 
-        return Math.Max(1u, cpuCount);
+        return SystemMath.Max(1u, cpuCount);
     }
 
-    public static uint GetNumLogicalCPUs() => Math.Max(1u, (uint)Environment.ProcessorCount);
+    public static uint GetNumLogicalCPUs() => SystemMath.Max(1u, (uint)Environment.ProcessorCount);
 
     public static void SetMiniDumpDir(string pathName)
     {

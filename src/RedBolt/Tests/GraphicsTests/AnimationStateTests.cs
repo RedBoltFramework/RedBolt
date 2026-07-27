@@ -5,9 +5,9 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 public sealed class AnimationStateTests
 {
@@ -26,7 +26,7 @@ public sealed class AnimationStateTests
         track.AddKeyFrame(new AnimationKeyFrame(0.0f, Vector3f.Zero));
         track.AddKeyFrame(new AnimationKeyFrame(1.0f, new Vector3f(10.0f, 0.0f, 0.0f)));
 
-        var scene = new Scene();
+        var scene = new SceneType();
         var node = scene.CreateChild("Node");
 
         var firstState = new AnimationState();
@@ -98,7 +98,7 @@ public sealed class AnimationStateTests
         track.AddKeyFrame(new AnimationKeyFrame(0.0f, new Vector3f(2.0f, 0.0f, 0.0f)));
         track.AddKeyFrame(new AnimationKeyFrame(1.0f, new Vector3f(6.0f, 0.0f, 0.0f)));
 
-        var scene = new Scene();
+        var scene = new SceneType();
         var node = scene.CreateChild("Node");
         var state = new AnimationState();
         state.Initialize(animation, string.Empty, AnimationBlendMode.Additive);
@@ -208,7 +208,7 @@ public sealed class AnimationStateTests
         skeleton.GetModifiableBones()[0].ParentIndex = 0;
         model.SetSkeleton(skeleton);
         model.SetMorphs([new ModelMorph { Name = "Smile", NameHash = new StringHash("Smile") }]);
-        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        var animatedModel = new SceneType().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
         animatedModel.SetModel(model, false);
 
         var attribute = new AnimatedAttributeReference

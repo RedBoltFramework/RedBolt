@@ -7,8 +7,9 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
+
 namespace RedBolt.Graphics;
-using Scene = global::RedBolt.Scene.Scene;
 
 /// <summary>Global illumination manager.</summary>
 public class GlobalIllumination : Component
@@ -79,7 +80,7 @@ public class GlobalIllumination : Component
     }
 
     /// <summary>Handle scene set for event subscription.</summary>
-    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
+    protected internal override void OnSceneSet(SceneType? previousScene, SceneType? scene)
     {
         base.OnSceneSet(previousScene, scene);
 

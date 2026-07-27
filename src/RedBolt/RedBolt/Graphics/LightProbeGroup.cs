@@ -1,17 +1,17 @@
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.IO;
+using FileMode = global::RedBolt.IO.FileMode;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using FileMode = global::RedBolt.IO.FileMode;
-using Math = global::System.Math;
+using SceneType = global::RedBolt.Scene.Scene;
 
-using Scene = global::RedBolt.Scene.Scene;
+namespace RedBolt.Graphics;
 
 /// <summary>Light probe description.</summary>
 public struct LightProbe
@@ -213,7 +213,7 @@ public class LightProbeGroup : Component
     }
 
     /// <summary>Collect all light probes from all enabled groups in the scene.</summary>
-    public static void CollectLightProbes(Scene scene, LightProbeCollection collection,
+    public static void CollectLightProbes(SceneType scene, LightProbeCollection collection,
         LightProbeCollectionBakedData? bakedData, bool reload = false)
     {
         var lightProbeGroups = new List<LightProbeGroup>();
@@ -282,7 +282,7 @@ public class LightProbeGroup : Component
         var volumeSize = Node.GetScale().Abs;
         var gridSize = Vector3i.Max(Vector3i.One * 2,
             Vector3i.One + Vector3f.RoundToInt(volumeSize / _autoPlacementStep));
-        var maxGridSize = Math.Max(gridSize.X, Math.Max(gridSize.Y, gridSize.Z));
+        var maxGridSize = SystemMath.Max(gridSize.X, SystemMath.Max(gridSize.Y, gridSize.Z));
 
         if (maxGridSize >= (int)MaxAutoGridSize
             || gridSize.X * gridSize.Y * gridSize.Z >= (int)MaxAutoProbes)

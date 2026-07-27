@@ -1,10 +1,11 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Math;
-namespace RedBolt.Resource;
-using Math = global::System.Math;
 
+namespace RedBolt.Resource;
 
 /// <summary>Cube texture resource.</summary>
 [Reflected]
@@ -245,7 +246,7 @@ public partial class ImageCube : Resource
     public int GetSphericalHarmonicsMipLevel()
     {
         var maxLevel = (int)MathDefs.LogBaseTwo((uint)_width);
-        var bestLevelCountedFromSmallest = Math.Min(maxLevel, (int)MathDefs.LogBaseTwo(8)); // 8x8 should be enough for SH
+        var bestLevelCountedFromSmallest = SystemMath.Min(maxLevel, (int)MathDefs.LogBaseTwo(8)); // 8x8 should be enough for SH
         return maxLevel - bestLevelCountedFromSmallest;
     }
 
@@ -256,7 +257,7 @@ public partial class ImageCube : Resource
 
         copy._parametersXml = _parametersXml;
         copy._faceImages.AddRange(_faceImages);
-        copy._width = Math.Max(1, _width >> index);
+        copy._width = SystemMath.Max(1, _width >> index);
 
         for (var i = 0; i < copy._faceImages.Count; ++i)
         {
@@ -297,8 +298,8 @@ public partial class ImageCube : Resource
     {
         var faceUv = ProjectDirectionOnFace(direction);
         var uv = faceUv.Uv;
-        var x = Math.Clamp((int)MathF.Floor(uv.X * _width), 0, _width);
-        var y = Math.Clamp((int)MathF.Floor(uv.Y * _width), 0, _width);
+        var x = SystemMath.Clamp((int)MathF.Floor(uv.X * _width), 0, _width);
+        var y = SystemMath.Clamp((int)MathF.Floor(uv.Y * _width), 0, _width);
         return (faceUv.Face, new Vector2i(x, y));
     }
 
@@ -317,7 +318,7 @@ public partial class ImageCube : Resource
                 continue;
 
             var maxLevel = faceImage.IsCompressed() ? faceImage.NumCompressedLevels - 1 : int.MaxValue;
-            var bestLevel = Math.Min(maxLevel, GetSphericalHarmonicsMipLevel());
+            var bestLevel = SystemMath.Min(maxLevel, GetSphericalHarmonicsMipLevel());
             var bestLevelWidth = _width >> bestLevel;
             var decompressedImage = faceImage.GetDecompressedImageLevel(bestLevel);
             if (decompressedImage is null)
@@ -379,7 +380,7 @@ public partial class ImageCube : Resource
         var z = direction.Z;
 
         static bool TestAxis(float axis, float a, float b)
-            => 2 * axis + MathDefs.LargeEpsilon > Math.Abs(a) + Math.Abs(b);
+            => 2 * axis + MathDefs.LargeEpsilon > SystemMath.Abs(a) + SystemMath.Abs(b);
 
         (CubeMapFace Face, Vector2f Uv) result;
         if (TestAxis(x, y, z))

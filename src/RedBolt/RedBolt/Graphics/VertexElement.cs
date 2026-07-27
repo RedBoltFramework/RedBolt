@@ -1,5 +1,6 @@
 using RedBolt.Math;
 using RedBolt.RenderAPI;
+
 namespace RedBolt.Graphics;
 
 /// <summary>Legacy vertex element bitmasks.</summary>

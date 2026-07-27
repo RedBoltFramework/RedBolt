@@ -1,9 +1,10 @@
 using RedBolt.Container;
 using RedBolt.Core;
-using RedBolt.IO;
 using RedBolt.Input;
+using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Resource;
+
 namespace RedBolt.Scene;
 
 public class Serializable : RedObject

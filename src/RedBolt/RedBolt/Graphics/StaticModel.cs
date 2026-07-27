@@ -1,14 +1,15 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
-using Resource = global::RedBolt.Resource.Resource;
 
+namespace RedBolt.Graphics;
 
 /// <summary>Static model per-geometry extra data.</summary>
 public struct StaticModelGeometryData
@@ -455,12 +456,12 @@ public class StaticModel : Drawable
         SetModel(string.IsNullOrEmpty(value.Name) ? null : cache.GetResourceOrNull<Model>(value.Name));
     }
 
-    public ResourceRef GetModelAttr() => Resource.GetResourceRef(Model, ObjectReflection<Model>.TypeId);
+    public ResourceRef GetModelAttr() => ResourceType.GetResourceRef(Model, ObjectReflection<Model>.TypeId);
 
     public void SetMaterialsAttr(ResourceRefList value)
     {
         var cache = GetSubsystem<ResourceCache>()!;
-        var count = Math.Min(value.Names.Count, _batches.Count);
+        var count = SystemMath.Min(value.Names.Count, _batches.Count);
         for (var i = 0; i < count; ++i)
         {
             var name = value.Names[i];

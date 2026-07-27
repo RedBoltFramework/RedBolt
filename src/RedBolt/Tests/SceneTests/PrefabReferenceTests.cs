@@ -2,9 +2,9 @@ using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class PrefabReferenceTests
@@ -25,7 +25,7 @@ public sealed class PrefabReferenceTests
             .GetField("_numInstanceChildren", System.Reflection.BindingFlags.Instance
                 | System.Reflection.BindingFlags.NonPublic)!.FieldType);
 
-        using var scene = new Scene();
+        using var scene = new SceneType();
         var host = scene.CreateChild("Host");
         using var resource = new PrefabResource();
         var prefab = resource.GetMutableNodePrefab();
@@ -50,7 +50,7 @@ public sealed class PrefabReferenceTests
     [Fact]
     public void Prefab_reference_reload_event_observes_only_the_current_prefab()
     {
-        using var scene = new Scene();
+        using var scene = new SceneType();
         var host = scene.CreateChild("Host");
         using var firstResource = new PrefabResource();
         using var secondResource = new PrefabResource();
@@ -72,7 +72,7 @@ public sealed class PrefabReferenceTests
     [Fact]
     public void Prefab_reference_creates_and_removes_temporary_instance()
     {
-        using var scene = new Scene();
+        using var scene = new SceneType();
         var host = scene.CreateChild("Host");
         using var resource = new PrefabResource();
         resource.SetName("Tree.prefab");
@@ -99,7 +99,7 @@ public sealed class PrefabReferenceTests
     [Fact]
     public void Inline_conservative_persists_prefab_instance_and_removes_reference()
     {
-        using var scene = new Scene();
+        using var scene = new SceneType();
         var host = scene.CreateChild("Host");
         using var resource = new PrefabResource();
         resource.SetName("Tree.prefab");

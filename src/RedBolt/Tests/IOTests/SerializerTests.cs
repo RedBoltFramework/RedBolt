@@ -1,9 +1,9 @@
 using RedBolt;
-
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Scene;
+
 namespace RedBolt.Tests;
 
 public sealed class SerializerTests

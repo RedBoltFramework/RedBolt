@@ -20,12 +20,13 @@
 // THE SOFTWARE.
 //
 
+using SystemMath = global::System.Math;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
-namespace RedBolt.Scene;
-using Math = global::System.Math;
 
+namespace RedBolt.Scene;
 
 /// <summary>Spline for creating smooth movement based on Speed along a set of Control Points modified by the Interpolation Mode.</summary>
 public class SplinePath : Component
@@ -209,7 +210,7 @@ public class SplinePath : Component
             return;
 
         point.AddListener(this);
-        index = Math.Clamp(index, 0, _controlPoints.Count);
+        index = SystemMath.Clamp(index, 0, _controlPoints.Count);
         _controlPoints.Insert(index, new WeakReference<Node>(point));
         using var knot = new Variant(point.GetWorldPosition());
         _spline.AddKnot(knot, index);
@@ -452,7 +453,7 @@ public class SplinePath : Component
         {
             using var point = _spline.GetPoint(i / 1000.0f);
             var b = point.GetVector3();
-            _length += Math.Abs((a - b).Length);
+            _length += SystemMath.Abs((a - b).Length);
             a = b;
         }
     }

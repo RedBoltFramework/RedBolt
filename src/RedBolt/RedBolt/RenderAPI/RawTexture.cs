@@ -1,12 +1,12 @@
 using Microsoft.Extensions.Logging;
-using RedBolt.Bindings.Diligent;
+using SystemMath = global::System.Math;
 
+using RedBolt.Bindings.Diligent;
 using RedBolt.Container;
 using RedBolt.Graphics;
 using RedBolt.Logging;
-namespace RedBolt.RenderAPI;
-using Math = global::System.Math;
 
+namespace RedBolt.RenderAPI;
 
 public struct RawTextureHandles
 {
@@ -111,7 +111,7 @@ public class RawTexture : DeviceObject
             Size = new Vector3i(checked((int)desc.Width), checked((int)desc.Height), checked((int)desc.Depth)),
             ArraySize = checked((int)desc.ArraySize),
             NumLevels = checked((int)desc.MipLevels),
-            MultiSample = Math.Max(checked((int)desc.SampleCount), msaaLevel),
+            MultiSample = SystemMath.Max(checked((int)desc.SampleCount), msaaLevel),
             NumLevelsRtv = checked((int)desc.MipLevels)
         };
         _ = texture.AddRef();
@@ -1043,7 +1043,7 @@ public class RawTexture : DeviceObject
 
     private static bool ValidateMultiSample(ref RawTextureParams parameters)
     {
-        parameters = parameters with { MultiSample = Math.Clamp(parameters.MultiSample, 1, 16) };
+        parameters = parameters with { MultiSample = SystemMath.Clamp(parameters.MultiSample, 1, 16) };
         if (parameters.MultiSample == 1)
             parameters = parameters with { Flags = parameters.Flags | TextureFlag.NoMultiSampledAutoResolve };
 
@@ -1062,7 +1062,7 @@ public class RawTexture : DeviceObject
     private static bool ValidateLevels(ref RawTextureParams parameters)
     {
         var maxLevels = CalculateMipLevelCount(parameters.Size);
-        var numLevels = parameters.NumLevels != 0 ? Math.Min(parameters.NumLevels, maxLevels) : maxLevels;
+        var numLevels = parameters.NumLevels != 0 ? SystemMath.Min(parameters.NumLevels, maxLevels) : maxLevels;
 
         if (numLevels > 1 && (parameters.Flags & TextureFlag.BindDepthStencil) != 0)
         {
@@ -1183,7 +1183,7 @@ public class RawTexture : DeviceObject
 
     private static int CalculateMipLevelCount(Vector3i size)
     {
-        var largestDimension = Math.Max(size.X, Math.Max(size.Y, size.Z));
+        var largestDimension = SystemMath.Max(size.X, SystemMath.Max(size.Y, size.Z));
         var levels = 1;
         while (largestDimension > 1)
         {
@@ -1194,9 +1194,9 @@ public class RawTexture : DeviceObject
     }
 
     private static Vector3i GetMipLevelSize(Vector3i size, int level) => new(
-        Math.Max(size.X >> level, 1),
-        Math.Max(size.Y >> level, 1),
-        Math.Max(size.Z >> level, 1));
+        SystemMath.Max(size.X >> level, 1),
+        SystemMath.Max(size.Y >> level, 1),
+        SystemMath.Max(size.Z >> level, 1));
 
     private bool ValidateUavKey(ref RawTextureUAVKey key)
     {

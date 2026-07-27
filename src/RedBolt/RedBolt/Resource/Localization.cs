@@ -1,10 +1,11 @@
-using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
 
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Input;
 using RedBolt.Logging;
+
 namespace RedBolt.Resource;
 
 /// <summary>Language changed.</summary>

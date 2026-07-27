@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 using RedBolt.Container;
 using RedBolt.Input;
+
 namespace RedBolt.IO;
 
 /// <summary>File entry within the package file.</summary>

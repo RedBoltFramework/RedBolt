@@ -1,6 +1,7 @@
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
+
 namespace RedBolt.Tests;
 
 public sealed class StaticPipelineStateCacheTests

@@ -3,9 +3,9 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 public class ObjectCategoryTests
 {

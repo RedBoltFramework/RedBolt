@@ -1,16 +1,16 @@
+using SystemMath = global::System.Math;
 using System.Reflection;
-using RedBolt;
 
+using RedBolt;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
-using RedBolt.RenderPipeline;
-namespace RedBolt.Tests;
-using Math = global::System.Math;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+using RedBolt.RenderPipeline;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class DrawCommandQueueTests
@@ -142,7 +142,7 @@ public sealed class DrawCommandQueueTests
         Assert.False(queue.BeginShaderParameterGroup(ShaderParameterGroup.Material));
 
         var collection = GetNestedField<ConstantBufferCollection>(queue, "_constantBuffers", "Collection");
-        Assert.Equal(Math.Max(16, checked((int)_fixture.RenderDevice.GetCaps().ConstantBufferOffsetAlignment)), collection.GetBufferSize(0));
+        Assert.Equal(SystemMath.Max(16, checked((int)_fixture.RenderDevice.GetCaps().ConstantBufferOffsetAlignment)), collection.GetBufferSize(0));
         Assert.Equal(3.5f, BitConverter.ToSingle(collection.GetBufferData(0).Span.Slice(4, 4)));
         Assert.True(queue.BeginShaderParameterGroup(ShaderParameterGroup.Material, differentFromPrevious: true));
     }

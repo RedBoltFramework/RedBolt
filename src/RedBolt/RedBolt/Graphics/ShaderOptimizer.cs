@@ -1,7 +1,9 @@
 using System.Runtime.InteropServices;
 using System.Text;
-using RedBolt.Bindings.SpirVTools;
+
 using RedBoltNative;
+
+using RedBolt.Bindings.SpirVTools;
 
 namespace RedBolt.Graphics;
 

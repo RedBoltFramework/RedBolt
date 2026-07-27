@@ -1,4 +1,5 @@
 using RedBolt.Scene;
+
 namespace RedBolt.Core;
 
 public static class CoreEvents

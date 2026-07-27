@@ -123,6 +123,17 @@ jcodemunch-mcp index only for files modified by this task.
 - Method parameters: camelCase (e.g. renderPath)
 - Constants: PascalCase
 
+## 4A. C# FILE HEADERS (follow exactly)
+
+Order C# file headers as follows:
+
+1. `System.*` and `Microsoft.*` using directives.
+2. Package using directives, including NuGet and `extern/` dependencies such as SharpCpp.
+3. `RedBolt.*` using directives.
+4. Namespace declaration, when present.
+
+Alphabetize each group and separate adjacent groups with one empty line. Classify aliases by their target namespace. Separate the namespace declaration from the rest of the code with one empty line.
+
 ## 5. TYPE MAPPING RULES
 
 - Match the C++ type as closely as C# allows.
@@ -307,7 +318,7 @@ Native dependencies (SDL, Diligent, Dear ImGui) are accessed through generated b
 The exhaustive list of allowed deviations is maintained in
 `doc/ALLOWED_DEVIATIONS.md`. Anything not on that list must match C++.
 
-Agreed project-specific naming deviation: C# engine types use folder-matching namespaces, and the `Audio`, `Engine`, `Graphics`, and `Input` subsystem classes are named `AudioSystem`, `EngineSystem`, `GraphicsSystem`, and `InputSystem`.
+Agreed project-specific naming deviation: C# engine types use folder-matching namespaces; the `Audio`, `Engine`, `Graphics`, and `Input` subsystem classes are named `AudioSystem`, `EngineSystem`, `GraphicsSystem`, and `InputSystem`; and the render pipeline component class is named `RenderPipelineComponent`.
 
 ## 11. SUCCESS CRITERIA (all must be true)
 

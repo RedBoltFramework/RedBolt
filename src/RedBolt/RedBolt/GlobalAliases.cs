@@ -4,7 +4,9 @@ global using Vector2i = RedBolt.Math.BaseIntegerVector2<int>;
 global using Vector3f = RedBolt.Math.BaseRealVector3<float>;
 global using Vector3d = RedBolt.Math.BaseRealVector3<double>;
 global using Vector3i = RedBolt.Math.BaseIntegerVector3<int>;
+
 global using Vector4f = RedBolt.Math.Vector4f;
+
 global using FloatRange = RedBolt.Math.NumericRange<float>;
 global using UintRange = RedBolt.Math.NumericRange<uint>;
 global using IntVector2 = RedBolt.Math.BaseIntegerVector2<int>;

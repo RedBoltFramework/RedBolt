@@ -26,8 +26,9 @@ using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
+
 namespace RedBolt.Graphics;
-using Scene = global::RedBolt.Scene.Scene;
 
 /// <summary>
 /// Helper component that tracks points in world space and updates camera position.
@@ -407,7 +408,7 @@ public class CameraOperator : Component
     /// <summary>
     /// Handle scene being assigned.
     /// </summary>
-    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
+    protected internal override void OnSceneSet(SceneType? previousScene, SceneType? scene)
     {
         UnsubscribeFromEvent<SceneEvents.SceneDrawableUpdateFinishedEvent>();
         if (scene is not null)

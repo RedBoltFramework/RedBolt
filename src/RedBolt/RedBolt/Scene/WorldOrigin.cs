@@ -1,11 +1,11 @@
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 
 using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.Math;
-namespace RedBolt.Scene;
-using Math = global::System.Math;
 
+namespace RedBolt.Scene;
 
 /// <summary>
 /// Component that maintains world origin around the node.
@@ -74,9 +74,9 @@ public class WorldOrigin : LogicComponent
     public override void Update(float timeStep)
     {
         var position = Node!.GetWorldPosition();
-        var distanceToOrigin = Math.Max(
-            Math.Max(_updateX ? Math.Abs(position.X) : 0.0f, _updateY ? Math.Abs(position.Y) : 0.0f),
-            _updateZ ? Math.Abs(position.Z) : 0.0f);
+        var distanceToOrigin = SystemMath.Max(
+            SystemMath.Max(_updateX ? SystemMath.Abs(position.X) : 0.0f, _updateY ? SystemMath.Abs(position.Y) : 0.0f),
+            _updateZ ? SystemMath.Abs(position.Z) : 0.0f);
         if (distanceToOrigin > _maxDistance)
         {
             var offset = new Vector3i(

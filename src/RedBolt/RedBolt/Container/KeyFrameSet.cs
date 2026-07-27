@@ -1,9 +1,8 @@
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace RedBolt.Container;
-using Math = global::System.Math;
-
 
 /// <summary>Sorted array of keyframes.</summary>
 /// <remarks>T: GetKeyFrameTime(T) must return <see cref="float"/> time to be used for ordering.</remarks>
@@ -65,7 +64,7 @@ public class KeyFrameSet<T> : ICloneable, IDisposable
         var numFrames = checked((uint)KeyFrames.Count);
         nextFrameIndex = isLooped
             ? (frameIndex + 1) % numFrames
-            : Math.Min(frameIndex + 1, numFrames - 1);
+            : SystemMath.Min(frameIndex + 1, numFrames - 1);
 
         if (frameIndex != nextFrameIndex)
         {

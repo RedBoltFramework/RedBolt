@@ -3,15 +3,15 @@
 // This work is licensed under the terms of the MIT license.
 // For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
-using VariantAnimationKeyFrame = RedBolt.Core.VariantCurvePoint;
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
 using RedBolt.Container;
 using RedBolt.Core;
+using VariantAnimationKeyFrame = RedBolt.Core.VariantCurvePoint;
 using RedBolt.Math;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
 
+namespace RedBolt.Graphics;
 
 /// <summary>Skeletal animation keyframe.</summary>
 /// <remarks>TODO: Replace inheritance with composition?</remarks>
@@ -247,7 +247,7 @@ public sealed class AnimationTrack : KeyFrameSet<AnimationKeyFrame>
         {
             var destinationKey = destinationKeys[i];
             var secondIndex = LowerBound(sourceKeyFrames, destinationKey);
-            secondIndex = Math.Min(sourceKeyFrames.Length - 1, secondIndex);
+            secondIndex = SystemMath.Min(sourceKeyFrames.Length - 1, secondIndex);
             var firstIndex = secondIndex;
             if (secondIndex < sourceKeyFrames.Length && sourceKeyFrames[secondIndex].Time >= destinationKey)
                 firstIndex = secondIndex == 0 ? 0 : secondIndex - 1;
@@ -278,7 +278,7 @@ public sealed class AnimationTrack : KeyFrameSet<AnimationKeyFrame>
         {
             var destinationKey = destinationKeys[i];
             var secondIndex = LowerBound(sourceKeyFrames, destinationKey);
-            secondIndex = Math.Min(sourceKeyFrames.Length - 1, secondIndex);
+            secondIndex = SystemMath.Min(sourceKeyFrames.Length - 1, secondIndex);
             var firstIndex = secondIndex;
             if (secondIndex < sourceKeyFrames.Length && sourceKeyFrames[secondIndex].Time >= destinationKey)
                 firstIndex = secondIndex == 0 ? 0 : secondIndex - 1;

@@ -1,10 +1,9 @@
 using RedBolt;
-
 using RedBolt.Core;
-using RedBolt.Math;
-namespace RedBolt.Tests;
 using Timer = global::RedBolt.Core.Timer;
+using RedBolt.Math;
 
+namespace RedBolt.Tests;
 
 public sealed class TimerTests
 {

@@ -1,4 +1,5 @@
 using RedBolt.Core;
+
 namespace RedBolt.Tests;
 
 internal static class TestTypeRegistration

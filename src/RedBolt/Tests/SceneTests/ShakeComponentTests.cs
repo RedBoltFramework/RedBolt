@@ -1,11 +1,10 @@
 using RedBolt;
-
 using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ShakeComponentTests
@@ -13,7 +12,7 @@ public sealed class ShakeComponentTests
     [Fact]
     public void ShakeComponent_can_be_applied_outside_origin()
     {
-        using var scene = new Scene();
+        using var scene = new SceneType();
         var node = scene.CreateChild();
         node.SetPosition(new Vector3f(1.0f, 2.0f, 3.0f));
         node.SetRotation(new Quaternion(new Vector3f(10.0f, 20.0f, 30.0f)));

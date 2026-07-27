@@ -1,4 +1,5 @@
 // C#-only interop marshallers needed for P/Invoke with native Diligent / SDL / rbfx shared libraries.
+
 using System.Runtime.InteropServices.Marshalling;
 
 namespace RedBolt.Math;

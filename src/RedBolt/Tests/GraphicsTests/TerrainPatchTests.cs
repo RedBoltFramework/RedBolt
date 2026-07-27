@@ -1,11 +1,10 @@
 using RedBolt;
-
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class TerrainPatchTests
@@ -29,7 +28,7 @@ public sealed class TerrainPatchTests
     [Fact]
     public void Defaults_match_cpp_constructor()
     {
-        var patch = new Scene().CreateChild("Patch").CreateComponent<TerrainPatch>();
+        var patch = new SceneType().CreateChild("Patch").CreateComponent<TerrainPatch>();
         Assert.Equal(DrawableFlags.Geometry, patch.GetDrawableFlags());
         Assert.Equal(0u, patch.GetLodLevel());
         Assert.Equal(Vector2i.Zero, patch.GetCoordinates());
@@ -46,7 +45,7 @@ public sealed class TerrainPatchTests
     [Fact]
     public void Neighbors_coordinates_and_material_roundtrip()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var patch = scene.CreateChild("Patch").CreateComponent<TerrainPatch>();
         var north = scene.CreateChild("N").CreateComponent<TerrainPatch>();
         var south = scene.CreateChild("S").CreateComponent<TerrainPatch>();
@@ -75,7 +74,7 @@ public sealed class TerrainPatchTests
     [Fact]
     public void Lightmap_helpers_update_batch()
     {
-        var patch = new Scene().CreateChild("Patch").CreateComponent<TerrainPatch>();
+        var patch = new SceneType().CreateChild("Patch").CreateComponent<TerrainPatch>();
         patch.SetBakeLightmap(true);
         patch.SetLightmapIndex(2u);
         patch.SetLightmapScaleOffset(new Vector4f(1, 2, 3, 4));
@@ -94,7 +93,7 @@ public sealed class TerrainPatchTests
     [Fact]
     public void GetLodGeometry_returns_max_for_level_zero()
     {
-        var patch = new Scene().CreateChild("Patch").CreateComponent<TerrainPatch>();
+        var patch = new SceneType().CreateChild("Patch").CreateComponent<TerrainPatch>();
         Assert.Same(patch.GetMaxLodGeometry(), patch.GetLodGeometry(0, 0));
         Assert.Same(patch.GetGeometry(), patch.GetLodGeometry(0, 1));
     }
@@ -102,7 +101,7 @@ public sealed class TerrainPatchTests
     [Fact]
     public void Dispose_releases_derived_state_before_drawable_state()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var patch = scene.CreateChild("Patch").CreateComponent<TerrainPatch>();
         var owner = scene.CreateChild("Terrain").CreateComponent<Terrain>();
         var north = scene.CreateChild("North").CreateComponent<TerrainPatch>();

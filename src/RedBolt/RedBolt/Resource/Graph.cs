@@ -1,11 +1,11 @@
+using SystemMath = global::System.Math;
 using System.Text;
 
 using RedBolt.Core;
-using RedBolt.IO;
 using RedBolt.Input;
-namespace RedBolt.Resource;
-using Math = global::System.Math;
+using RedBolt.IO;
 
+namespace RedBolt.Resource;
 
 public partial class Graph : RedObject
 {
@@ -35,7 +35,7 @@ public partial class Graph : RedObject
     public void GetNodeIds(List<uint> ids)
     {
         ids.Clear();
-        ids.Capacity = Math.Max(ids.Capacity, _nodes.Count);
+        ids.Capacity = SystemMath.Max(ids.Capacity, _nodes.Count);
         foreach (var node in _nodes)
             ids.Add(node.Key);
     }

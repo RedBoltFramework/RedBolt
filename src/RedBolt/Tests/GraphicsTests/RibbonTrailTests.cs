@@ -1,12 +1,11 @@
 using RedBolt;
-
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class RibbonTrailTests
@@ -59,7 +58,7 @@ public sealed class RibbonTrailTests
     [Fact]
     public void Defaults_match_cpp_constructor()
     {
-        var trail = new Scene().CreateChild("Trail").CreateComponent<RibbonTrail>();
+        var trail = new SceneType().CreateChild("Trail").CreateComponent<RibbonTrail>();
         Assert.Equal(DrawableFlags.Geometry, trail.GetDrawableFlags());
         Assert.True(trail.IsEmitting());
         Assert.False(trail.GetUpdateInvisible());
@@ -82,7 +81,7 @@ public sealed class RibbonTrailTests
     public void Material_and_parameters_roundtrip()
     {
         var material = Resources.Get<Material>("Materials/FirstCube");
-        var trail = new Scene().CreateChild("Trail").CreateComponent<RibbonTrail>();
+        var trail = new SceneType().CreateChild("Trail").CreateComponent<RibbonTrail>();
         trail.SetMaterial(material);
         trail.SetWidth(0.5f);
         trail.SetVertexDistance(0.25f);
@@ -116,7 +115,7 @@ public sealed class RibbonTrailTests
     [Fact]
     public void Update_emits_points_when_node_moves()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var node = scene.CreateChild("Trail");
         node.SetWorldPosition(Vector3f.Zero);
         var trail = node.CreateComponent<RibbonTrail>();
@@ -142,7 +141,7 @@ public sealed class RibbonTrailTests
     [Fact]
     public void Tail_column_clamps_to_max()
     {
-        var trail = new Scene().CreateChild("Trail").CreateComponent<RibbonTrail>();
+        var trail = new SceneType().CreateChild("Trail").CreateComponent<RibbonTrail>();
         trail.SetTailColumn(100);
         Assert.Equal(16u, trail.GetTailColumn());
         trail.SetTailColumn(0);

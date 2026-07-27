@@ -1,17 +1,17 @@
-using RedBolt;
 using System.Reflection;
 
+using RedBolt;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
+using CullMode = global::RedBolt.Graphics.CullMode;
+using FillMode = global::RedBolt.Graphics.FillMode;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using CullMode = global::RedBolt.Graphics.CullMode;
-using FillMode = global::RedBolt.Graphics.FillMode;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class MaterialTests
@@ -74,7 +74,7 @@ public sealed class MaterialTests
         material.MarkForAuxView(17u);
         Assert.Equal(17u, material.GetAuxViewFrameNumber());
 
-        var scene = new Scene();
+        var scene = new SceneType();
         material.SetScene(scene);
         Assert.Same(scene, material.GetScene());
         material.SetScene(null);

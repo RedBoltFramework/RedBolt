@@ -9,6 +9,7 @@ using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Scene;
+
 namespace RedBolt.Resource;
 
 /// <summary>Element in an XML file.</summary>

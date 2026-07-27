@@ -1,10 +1,10 @@
-using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
+using SystemMath = global::System.Math;
 
 using RedBolt.Logging;
-namespace RedBolt.Math;
-using Math = global::System.Math;
 
+namespace RedBolt.Math;
 
 /// <summary>Tetrahedral mesh.</summary>
 public partial class TetrahedralMesh : ICloneable
@@ -107,7 +107,7 @@ public partial class TetrahedralMesh : ICloneable
         var radiusNum = u2u3 * d01 + u3u1 * d02 + u1u2 * d03;
         var radiusDen = 2.0 * u1.DotProduct(u2u3);
 
-        if (Math.Abs(radiusDen) < MathDefs.Epsilon * MathDefs.Epsilon)
+        if (SystemMath.Abs(radiusDen) < MathDefs.Epsilon * MathDefs.Epsilon)
         {
             Log.GetLogger().LogWarning("Degenerate tetrahedron in tetrahedral mesh due to error in tetrahedral mesh generation");
             return new HighPrecisionSphere { Center = default, Radius = MathDefs.LargeValue * MathDefs.LargeValue };
@@ -125,8 +125,8 @@ public partial class TetrahedralMesh : ICloneable
         };
         var radiusSquared = squaredDistances[0];
         for (var i = 1; i < squaredDistances.Length; ++i)
-            radiusSquared = Math.Min(radiusSquared, squaredDistances[i]);
-        return new HighPrecisionSphere { Center = center, Radius = Math.Sqrt(radiusSquared) };
+            radiusSquared = SystemMath.Min(radiusSquared, squaredDistances[i]);
+        return new HighPrecisionSphere { Center = center, Radius = SystemMath.Sqrt(radiusSquared) };
     }
 
     /// <summary>Calculate barycentric coordinates for inner tetrahedron.</summary>

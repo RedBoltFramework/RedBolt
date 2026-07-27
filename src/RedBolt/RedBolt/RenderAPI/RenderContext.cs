@@ -1,16 +1,16 @@
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
+using System.Runtime.InteropServices;
+
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
-
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Math;
-namespace RedBolt.RenderAPI;
-using Math = global::System.Math;
 
+namespace RedBolt.RenderAPI;
 
 /// <summary>
 /// Render context that consumes render commands.
@@ -173,8 +173,8 @@ public class RenderContext : RedObject
         var viewportMin = viewport.Min;
         var viewportMax = viewport.Max;
         _currentViewport = new IntRect(
-            new Vector2i(Math.Max(viewportMin.X, 0), Math.Max(viewportMin.Y, 0)),
-            new Vector2i(Math.Min(viewportMax.X, _currentDimensions.X), Math.Min(viewportMax.Y, _currentDimensions.Y)));
+            new Vector2i(SystemMath.Max(viewportMin.X, 0), SystemMath.Max(viewportMin.Y, 0)),
+            new Vector2i(SystemMath.Min(viewportMax.X, _currentDimensions.X), SystemMath.Min(viewportMax.Y, _currentDimensions.Y)));
 
         var handle = GetHandle();
         if (handle is null || handle.IsNull)

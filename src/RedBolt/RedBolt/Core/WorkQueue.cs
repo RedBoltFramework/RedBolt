@@ -1,14 +1,14 @@
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using SystemMath = global::System.Math;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 
 using RedBolt.Container;
 using RedBolt.Logging;
-namespace RedBolt.Core;
-using Math = global::System.Math;
 
+namespace RedBolt.Core;
 
 public enum TaskPriority
 {
@@ -67,7 +67,7 @@ public sealed class WorkQueue : RedObject
                 if (beginIndex >= Size)
                     break;
 
-                var endIndex = Math.Min(beginIndex + Bucket, Size);
+                var endIndex = SystemMath.Min(beginIndex + Bucket, Size);
                 Callback!(beginIndex, endIndex);
             }
         }
@@ -432,7 +432,7 @@ public sealed class WorkQueue : RedObject
 
     public void SetNonThreadedWorkMs(int ms)
     {
-        _maxNonThreadedWorkMs = Math.Max(ms, 1);
+        _maxNonThreadedWorkMs = SystemMath.Max(ms, 1);
     }
 
     public int GetNonThreadedWorkMs()
@@ -488,7 +488,7 @@ public sealed class WorkQueue : RedObject
         state.Callback = callback;
         try
         {
-            var maxThreads = Math.Max(1, workQueue.GetNumProcessingThreads());
+            var maxThreads = SystemMath.Max(1, workQueue.GetNumProcessingThreads());
             for (var i = 0; i < maxThreads; ++i)
                 workQueue.PostTask(state.Task, TaskPriority.Immediate);
             workQueue.CompleteImmediateForThisThread();
@@ -612,7 +612,7 @@ public sealed class WorkQueue : RedObject
 
         return Thread.CurrentThread.ManagedThreadId == GetMainThreadId()
             ? 0
-            : Math.Abs(Thread.CurrentThread.ManagedThreadId) % _numProcessingThreads;
+            : SystemMath.Abs(Thread.CurrentThread.ManagedThreadId) % _numProcessingThreads;
     }
 
     private void ProcessPostedTasks()
@@ -670,7 +670,7 @@ public sealed class WorkQueue : RedObject
     {
         return priority == uint.MaxValue
             ? TaskPriority.Immediate
-            : (TaskPriority)((uint)TaskPriority.Low - Math.Min(priority, 2u));
+            : (TaskPriority)((uint)TaskPriority.Low - SystemMath.Min(priority, 2u));
     }
 
     private static int _mainThreadId = -1;

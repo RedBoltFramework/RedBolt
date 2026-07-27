@@ -1,6 +1,7 @@
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Scene;
+
 namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]

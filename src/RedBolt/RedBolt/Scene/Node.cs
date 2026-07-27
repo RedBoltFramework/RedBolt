@@ -1,13 +1,14 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Container;
 using RedBolt.Core;
-using RedBolt.IO;
 using RedBolt.Input;
+using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
-namespace RedBolt.Scene;
-using Math = global::System.Math;
 
+namespace RedBolt.Scene;
 
 /// <summary>Scene node that may contain components and child nodes.</summary>
 public class Node : Serializable
@@ -691,9 +692,9 @@ public class Node : Serializable
     {
         var result = AttributeScopeHint.Serializable;
         foreach (var component in _components)
-            result = (AttributeScopeHint)Math.Max((int)result, (int)component.GetEffectiveScopeHint());
+            result = (AttributeScopeHint)SystemMath.Max((int)result, (int)component.GetEffectiveScopeHint());
         foreach (var child in _children)
-            result = (AttributeScopeHint)Math.Max((int)result, (int)child.GetEffectiveScopeHint());
+            result = (AttributeScopeHint)SystemMath.Max((int)result, (int)child.GetEffectiveScopeHint());
         return result;
     }
 
@@ -1716,7 +1717,7 @@ public class Node : Serializable
             return;
 
         _components.RemoveAt(oldIndex);
-        _components.Insert(Math.Min(index, _components.Count), component);
+        _components.Insert(SystemMath.Min(index, _components.Count), component);
     }
 
     public void RemoveComponents()
@@ -1812,7 +1813,7 @@ public class Node : Serializable
             }
         }
 
-        _children.Insert(Math.Min(index, _children.Count), node);
+        _children.Insert(SystemMath.Min(index, _children.Count), node);
         node._parent = this;
 
         if (_scene is not null && !ReferenceEquals(node.GetScene(), _scene))
@@ -1838,7 +1839,7 @@ public class Node : Serializable
             return;
 
         _children.Remove(child);
-        _children.Insert(Math.Min(index, _children.Count), child);
+        _children.Insert(SystemMath.Min(index, _children.Count), child);
     }
 
     public void RemoveAllChildren() => RemoveChildren(recursive: true);

@@ -1,15 +1,15 @@
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 using System.Text;
+
 using RedBolt.Bindings.Glslang;
 using RedBolt.Bindings.SpirVCross;
-
 using RedBolt.RenderAPI;
-using RedBolt.Resource;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
-using Resource = global::RedBolt.Resource.Resource;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 
+namespace RedBolt.Graphics;
 
 /// <summary>
 /// Shader translated to the target language.
@@ -190,7 +190,7 @@ public static class ShaderTranslator
 
             var size = checked((int)GlslangNativeBindings.GlslangProgramSpirvGetSize(program));
             var bytecode = GlslangNativeBindings.GlslangProgramSpirvGetPtr(program);
-            outputShader.Bytecode.Capacity = Math.Max(outputShader.Bytecode.Capacity, size);
+            outputShader.Bytecode.Capacity = SystemMath.Max(outputShader.Bytecode.Capacity, size);
             for (var i = 0; i < size; ++i)
                 outputShader.Bytecode.Add(unchecked((uint)Marshal.ReadInt32(bytecode, i * sizeof(uint))));
         }

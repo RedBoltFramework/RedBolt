@@ -1,10 +1,11 @@
+using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using Microsoft.Extensions.Logging;
 
 using RedBolt.Container;
-using RedBolt.Logging;
 using RedBolt.Core;
+using RedBolt.Logging;
+
 namespace RedBolt.Scene;
 
 /// <summary>

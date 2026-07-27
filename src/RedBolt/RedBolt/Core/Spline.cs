@@ -1,11 +1,11 @@
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 
 using RedBolt.Container;
 using RedBolt.Logging;
 using RedBolt.Math;
-namespace RedBolt.Core;
-using Math = global::System.Math;
 
+namespace RedBolt.Core;
 
 public enum InterpolationMode
 {
@@ -372,7 +372,7 @@ public class Spline : ICloneable, IDisposable, IEquatable<Spline>
         if (t >= 1.0f)
             return knots[^1].Clone();
 
-        var originIndex = Math.Clamp((int)(t * (knots.Count - 1)), 0, knots.Count - 2);
+        var originIndex = SystemMath.Clamp((int)(t * (knots.Count - 1)), 0, knots.Count - 2);
         t %= 1.0f / (knots.Count - 1);
         t *= knots.Count - 1;
         return LinearInterpolation(knots[originIndex], knots[originIndex + 1], t);

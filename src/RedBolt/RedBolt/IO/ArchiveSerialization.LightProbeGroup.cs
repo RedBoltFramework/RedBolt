@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 
 using RedBolt.Graphics;
 using RedBolt.Math;
+
 namespace RedBolt.IO;
 
 public static partial class ArchiveSerialization

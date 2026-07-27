@@ -3,6 +3,7 @@ using System.Globalization;
 
 using RedBolt.Core;
 using RedBolt.IO;
+
 namespace RedBolt.Resource;
 
 /// <summary>Base archive for JSON serialization.</summary>

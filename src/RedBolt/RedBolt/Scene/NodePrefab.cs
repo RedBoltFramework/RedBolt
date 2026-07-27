@@ -1,13 +1,13 @@
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using SystemMath = global::System.Math;
 
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Logging;
-namespace RedBolt.Scene;
-using Math = global::System.Math;
 
+namespace RedBolt.Scene;
 
 /// <summary>
 /// Attribute prefab.
@@ -298,7 +298,7 @@ public class SerializablePrefab : ICloneable, IEquatable<SerializablePrefab>, ID
         _temporary = serializable.IsTemporary;
 
         DisposeAttributes();
-        _attributes.Capacity = Math.Max(_attributes.Capacity, numObjectAttributes);
+        _attributes.Capacity = SystemMath.Max(_attributes.Capacity, numObjectAttributes);
         for (var attributeIndex = 0; attributeIndex < numObjectAttributes; ++attributeIndex)
         {
             var attribute = objectAttributes[attributeIndex];
@@ -526,9 +526,9 @@ public class NodePrefab : ICloneable, IEquatable<NodePrefab>, IDisposable
     {
         var result = AttributeScopeHint.Attribute;
         foreach (var component in Components)
-            result = (AttributeScopeHint)Math.Max((int)result, (int)component.GetEffectiveScopeHint());
+            result = (AttributeScopeHint)SystemMath.Max((int)result, (int)component.GetEffectiveScopeHint());
         foreach (var child in Children)
-            result = (AttributeScopeHint)Math.Max((int)result, (int)child.GetEffectiveScopeHint());
+            result = (AttributeScopeHint)SystemMath.Max((int)result, (int)child.GetEffectiveScopeHint());
         return result;
     }
 

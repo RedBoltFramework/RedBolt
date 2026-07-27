@@ -1,15 +1,15 @@
-using RedBolt;
 using System.Reflection;
 
+using RedBolt;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ControllerTests
@@ -59,7 +59,7 @@ public sealed class ControllerTests
     [Fact]
     public void FreeFlyController_keyboard_translation_works()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var node = scene.CreateChild("FreeFly");
         using var freeFly = node.CreateComponent<FreeFlyController>();
 
@@ -75,7 +75,7 @@ public sealed class ControllerTests
     [Fact]
     public void FreeFlyController_activation_hides_and_locks_mouse()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         using var freeFly = scene.CreateChild("FreeFly").CreateComponent<FreeFlyController>();
 
         Input.BeginFrame();
@@ -91,7 +91,7 @@ public sealed class ControllerTests
     [Fact]
     public void FreeFlyController_deactivation_restores_mouse()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         using var freeFly = scene.CreateChild("FreeFly").CreateComponent<FreeFlyController>();
 
         Input.BeginFrame();
@@ -111,7 +111,7 @@ public sealed class ControllerTests
     [Fact]
     public void MoveAndOrbitController_action_mapping_works()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var node = scene.CreateChild("Controller");
         var movement = node.CreateComponent<MoveAndOrbitComponent>();
         var controller = node.CreateComponent<MoveAndOrbitController>();
@@ -182,7 +182,7 @@ public sealed class ControllerTests
     [Fact]
     public void MoveAndOrbitComponent_initializes_rotation_and_distance_limits()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var node = scene.CreateChild("Orbit");
         node.SetRotation(new Quaternion(20.0f, 35.0f, 0.0f));
 
@@ -198,7 +198,7 @@ public sealed class ControllerTests
     [Fact]
     public void FreeFlyController_controller_axes_move_and_rotate()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var node = scene.CreateChild("FreeFlyControllerAxes");
         using var controller = node.CreateComponent<FreeFlyController>();
         Input.SetMouseMode(MouseMode.Absolute);
@@ -219,7 +219,7 @@ public sealed class ControllerTests
     [Fact]
     public void FreeFlyController_multitouch_rotates_and_pans()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var node = scene.CreateChild("FreeFlyTouch");
         using var controller = node.CreateComponent<FreeFlyController>();
         var touches = Assert.IsType<Dictionary<int, TouchState>>(typeof(InputSystem)
@@ -258,7 +258,7 @@ public sealed class ControllerTests
         cachedMap.MapKeyboardKey(MoveAndOrbitController.ActionForward, Scancode.W);
         _fixture.Resources.ReleaseResource<InputMap>(cachedMap.Name);
         Assert.True(_fixture.Resources.AddManualResource(cachedMap));
-        var scene = new Scene();
+        var scene = new SceneType();
         var controller = scene.CreateChild("Controller").CreateComponent<MoveAndOrbitController>();
         controller.SetInputMapAttr(new ResourceRef(new StringHash(nameof(InputMap)), cachedMap.Name));
 

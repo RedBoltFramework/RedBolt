@@ -1,19 +1,19 @@
 using Microsoft.Extensions.Logging;
-using RedBolt.Bindings.Diligent;
-using RedBolt.Bindings.Sdl;
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
+using RedBolt.Bindings.Diligent;
+using RedBolt.Bindings.Sdl;
 using RedBolt.Core;
+using Timer = global::RedBolt.Core.Timer;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Platform;
 using RedBolt.RenderPipeline;
-namespace RedBolt.RenderAPI;
-using Math = global::System.Math;
 
-using Timer = global::RedBolt.Core.Timer;
+namespace RedBolt.RenderAPI;
 
 /// <summary>
 /// Wrapper for window and GAPI backend.
@@ -242,7 +242,7 @@ public sealed class RenderDevice : RedObject
 
     public void SetDefaultTextureAnisotropy(int anisotropy)
     {
-        anisotropy = Math.Max(1, anisotropy);
+        anisotropy = SystemMath.Max(1, anisotropy);
 
         if (_defaultTextureAnisotropy == anisotropy)
             return;
@@ -505,9 +505,9 @@ public sealed class RenderDevice : RedObject
         }
         else
         {
-            _maxStats.NumPrimitives = Math.Max(_maxStats.NumPrimitives, _stats.NumPrimitives);
-            _maxStats.NumDraws = Math.Max(_maxStats.NumDraws, _stats.NumDraws);
-            _maxStats.NumDispatches = Math.Max(_maxStats.NumDispatches, _stats.NumDispatches);
+            _maxStats.NumPrimitives = SystemMath.Max(_maxStats.NumPrimitives, _stats.NumPrimitives);
+            _maxStats.NumDraws = SystemMath.Max(_maxStats.NumDraws, _stats.NumDraws);
+            _maxStats.NumDispatches = SystemMath.Max(_maxStats.NumDispatches, _stats.NumDispatches);
         }
 
         _frameIndex = (FrameIndex)((long)_frameIndex + 1);
@@ -555,11 +555,11 @@ public sealed class RenderDevice : RedObject
     /// </summary>
     public int GetSupportedMultiSample(TextureFormat format, int multiSample)
     {
-        multiSample = (int)MathDefs.NextPowerOfTwo((uint)Math.Clamp(multiSample, 1, 16));
+        multiSample = (int)MathDefs.NextPowerOfTwo((uint)SystemMath.Clamp(multiSample, 1, 16));
         using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(format);
         while (multiSample > 1 && ((int)formatInfo.SampleCounts & multiSample) == 0)
             multiSample >>= 1;
-        return Math.Max(1, multiSample);
+        return SystemMath.Max(1, multiSample);
     }
 
     public RenderBackend GetBackend() => GetDeviceSettings().Backend;
@@ -989,8 +989,8 @@ public sealed class RenderDevice : RedObject
         if (settings.Monitor < 0 || settings.Monitor >= numMonitors)
             settings.Monitor = 0;
 
-        settings.MultiSample = (int)Math.Clamp(
-            MathDefs.ClosestPowerOfTwo((uint)Math.Max(settings.MultiSample, 1)), 1u, 16u);
+        settings.MultiSample = (int)SystemMath.Clamp(
+            MathDefs.ClosestPowerOfTwo((uint)SystemMath.Max(settings.MultiSample, 1)), 1u, 16u);
 
         if (platform == PlatformId.iOS)
             settings.Resizable = true;

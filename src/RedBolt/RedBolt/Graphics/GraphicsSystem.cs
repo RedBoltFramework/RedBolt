@@ -1,32 +1,31 @@
+using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
+using SystemMath = global::System.Math;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
-
-using Microsoft.Extensions.Logging;
-
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Engine;
-using RedBolt.IO;
 using RedBolt.Input;
+using RedBolt.IO;
+using FileMode = global::RedBolt.IO.FileMode;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Platform;
 using RedBolt.RenderAPI;
-using RedBolt.RenderPipeline;
-using RedBolt.Resource;
-using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using FileMode = global::RedBolt.IO.FileMode;
-using Math = global::System.Math;
-using Resource = global::RedBolt.Resource.Resource;
-
-using Scene = global::RedBolt.Scene.Scene;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
 using TextureAddressMode = global::RedBolt.RenderAPI.TextureAddressMode;
+using RedBolt.RenderPipeline;
+using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
+using RedBolt.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
+
+namespace RedBolt.Graphics;
 
 /// <summary>Graphics settings that should be configured before initialization.</summary>
 public struct GraphicsSettings
@@ -728,9 +727,9 @@ layout(std140) uniform Material
         var bestError = uint.MaxValue;
         for (var i = 0; i < resolutions.Count; ++i)
         {
-            var error = (uint)(Math.Abs(resolutions[i].X - width) + Math.Abs(resolutions[i].Y - height));
+            var error = (uint)(SystemMath.Abs(resolutions[i].X - width) + SystemMath.Abs(resolutions[i].Y - height));
             if (refreshRate != 0)
-                error += (uint)Math.Abs(resolutions[i].Z - refreshRate);
+                error += (uint)SystemMath.Abs(resolutions[i].Z - refreshRate);
             if (error < bestError)
             {
                 best = (uint)i;
@@ -813,8 +812,8 @@ layout(std140) uniform Material
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(requestedLevel);
         _ = format;
 
-        var normalizedLevel = (int)Math.Clamp(MathDefs.ClosestPowerOfTwo((uint)requestedLevel), 1u, 16u);
-        return Math.Min(normalizedLevel, Math.Max(_configuredMultiSample, 1));
+        var normalizedLevel = (int)SystemMath.Clamp(MathDefs.ClosestPowerOfTwo((uint)requestedLevel), 1u, 16u);
+        return SystemMath.Min(normalizedLevel, SystemMath.Max(_configuredMultiSample, 1));
     }
 
     public bool IsRenderTargetFormatSupported(TextureFormat format)
@@ -1070,7 +1069,7 @@ layout(std140) uniform Material
         => GetSwapChainDepthFormat();
 
     internal int GetSwapChainMultiSample()
-        => Math.Max(_configuredMultiSample, 1);
+        => SystemMath.Max(_configuredMultiSample, 1);
 
     private static void CopyBackendDeviceSettings(EngineVkCreateInfo createInfo, RenderDeviceSettingsVulkan settings)
     {
@@ -1396,7 +1395,7 @@ layout(std140) uniform Material
         var scene = viewport.GetScene()!;
         if (camera.GetAutoAspectRatio())
         {
-            var aspectRatio = Math.Max((float)effectiveViewportRect.Width / Math.Max(effectiveViewportRect.Height, 1), MathDefs.Epsilon);
+            var aspectRatio = SystemMath.Max((float)effectiveViewportRect.Width / SystemMath.Max(effectiveViewportRect.Height, 1), MathDefs.Epsilon);
             camera.SetAspectRatioInternal(aspectRatio);
         }
 
@@ -1442,7 +1441,7 @@ layout(std140) uniform Material
         var scene = viewport.GetScene()!;
         if (camera.GetAutoAspectRatio())
         {
-            var aspectRatio = Math.Max((float)effectiveViewportRect.Width / Math.Max(effectiveViewportRect.Height, 1), MathDefs.Epsilon);
+            var aspectRatio = SystemMath.Max((float)effectiveViewportRect.Width / SystemMath.Max(effectiveViewportRect.Height, 1), MathDefs.Epsilon);
             camera.SetAspectRatioInternal(aspectRatio);
         }
 
@@ -2923,12 +2922,12 @@ layout(std140) uniform Material
                 ShaderCodeBasicType.ShaderCodeBasicTypeFloat or ShaderCodeBasicType.ShaderCodeBasicTypeFloat16 => CustomUniformKind.Float,
                 _ => throw new NotSupportedException($"Unsupported custom scalar uniform type {uniform.BasicType} for {uniformName}.")
             },
-            ShaderCodeVariableClass.ShaderCodeVariableClassVector => (Math.Max(uniform.NumRows, uniform.NumColumns), uniform.BasicType) switch
+            ShaderCodeVariableClass.ShaderCodeVariableClassVector => (SystemMath.Max(uniform.NumRows, uniform.NumColumns), uniform.BasicType) switch
             {
                 (2, ShaderCodeBasicType.ShaderCodeBasicTypeFloat or ShaderCodeBasicType.ShaderCodeBasicTypeFloat16) => CustomUniformKind.Vector2,
                 (3, ShaderCodeBasicType.ShaderCodeBasicTypeFloat or ShaderCodeBasicType.ShaderCodeBasicTypeFloat16) => CustomUniformKind.Vector3,
                 (4, ShaderCodeBasicType.ShaderCodeBasicTypeFloat or ShaderCodeBasicType.ShaderCodeBasicTypeFloat16) => CustomUniformKind.Vector4,
-                _ => throw new NotSupportedException($"Unsupported custom vector uniform type {uniform.BasicType}x{Math.Max(uniform.NumRows, uniform.NumColumns)} for {uniformName}.")
+                _ => throw new NotSupportedException($"Unsupported custom vector uniform type {uniform.BasicType}x{SystemMath.Max(uniform.NumRows, uniform.NumColumns)} for {uniformName}.")
             },
             ShaderCodeVariableClass.ShaderCodeVariableClassMatrixColumns
                 when (uniform.BasicType is ShaderCodeBasicType.ShaderCodeBasicTypeFloat or ShaderCodeBasicType.ShaderCodeBasicTypeFloat16)
@@ -3118,7 +3117,7 @@ layout(std140) uniform Material
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
 
-        textureDesc.MipLevels = texture.MultiSample > 1 ? 1u : checked((uint)Math.Max(texture.Levels, 1));
+        textureDesc.MipLevels = texture.MultiSample > 1 ? 1u : checked((uint)SystemMath.Max(texture.Levels, 1));
         textureDesc.BindFlags = IsDepthTextureFormat(texture.Format)
             ? BindFlags.BindShaderResource | BindFlags.BindDepthStencil
             : BindFlags.BindShaderResource | BindFlags.BindRenderTarget;
@@ -3175,7 +3174,7 @@ layout(std140) uniform Material
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
 
-        textureDesc.MipLevels = texture.MultiSample > 1 ? 1u : checked((uint)Math.Max(texture.Levels, 1));
+        textureDesc.MipLevels = texture.MultiSample > 1 ? 1u : checked((uint)SystemMath.Max(texture.Levels, 1));
         textureDesc.BindFlags = IsDepthTextureFormat(texture.Format)
             ? BindFlags.BindShaderResource | BindFlags.BindDepthStencil
             : BindFlags.BindShaderResource | BindFlags.BindRenderTarget;
@@ -3227,7 +3226,7 @@ layout(std140) uniform Material
         if (textureDesc.Format == 0)
             throw new NotSupportedException($"Texture format '{texture.Format}' is not supported by managed GPU uploads.");
 
-        textureDesc.MipLevels = checked((uint)Math.Max(texture.Levels, 1));
+        textureDesc.MipLevels = checked((uint)SystemMath.Max(texture.Levels, 1));
         textureDesc.BindFlags = IsDepthTextureFormat(texture.Format)
             ? BindFlags.BindShaderResource | BindFlags.BindDepthStencil
             : BindFlags.BindShaderResource | BindFlags.BindRenderTarget;
@@ -3594,10 +3593,10 @@ layout(std140) uniform Material
         }
         else
             _currentOutputDesc.DepthStencilFormat = TextureFormat.TexFormatUnknown;
-        _currentOutputDesc.MultiSample = Math.Max(
+        _currentOutputDesc.MultiSample = SystemMath.Max(
             (colorTargets.Length != 0 ? colorTargets[0].GetMultiSample() : (int?)null)
             ?? depthStencilTarget?.GetMultiSample()
-            ?? Math.Max(_configuredMultiSample, 1), 1);
+            ?? SystemMath.Max(_configuredMultiSample, 1), 1);
     }
 
     private void ApplyDiligentViewport(IDeviceContext immediateContext, IntRect viewportRect)
@@ -3686,7 +3685,7 @@ layout(std140) uniform Material
         return texture switch
         {
             { MultiSample: > 1 } => 1u,
-            _ => checked((uint)Math.Max(texture.Levels, 1))
+            _ => checked((uint)SystemMath.Max(texture.Levels, 1))
         };
     }
 
@@ -3743,7 +3742,7 @@ layout(std140) uniform Material
         WriteVector4(data, 256, new Vector4f(frustumSize.X, frustumSize.Y, camera.GetFarClip(), 0.0f));
         WriteVector4(data, 272, new Vector4f(0.0f, 0.0f, 1.0f, 1.0f));
         WriteVector4(data, 288, GetDepthReconstruct(camera));
-        WriteVector2(data, 304, new Vector2f(1.0f / Math.Max(Width, 1), 1.0f / Math.Max(Height, 1)));
+        WriteVector2(data, 304, new Vector2f(1.0f / SystemMath.Max(Width, 1), 1.0f / SystemMath.Max(Height, 1)));
         var ambientColorGamma = camera.GetEffectiveAmbientColor() * camera.GetEffectiveAmbientBrightness();
         var effectiveAmbientColor = linearColorSpace ? ambientColorGamma.GammaToLinear() : ambientColorGamma;
         WriteVector4(data, 320, effectiveAmbientColor.ToVector4());
@@ -3897,7 +3896,7 @@ layout(std140) uniform Material
             var hint = (texture.GetLinear() ? 1 : 0) + (texture.GetSRGB() ? 1 : 0);
             if (hint > 1)
                 Log.GetLogger().LogWarning("Texture {Material} cannot be both sRGB and Linear", material.GetName());
-            defines.Add($"URHO3D_TEXTURE_{textureName.ToUpperInvariant()}={Math.Min(1, hint) + 1}");
+            defines.Add($"URHO3D_TEXTURE_{textureName.ToUpperInvariant()}={SystemMath.Min(1, hint) + 1}");
         }
         return string.Join(' ', defines);
     }
@@ -4264,7 +4263,7 @@ layout(std140) uniform Material
 
     private static FillMode GetEffectiveFillMode(Camera camera, Material material)
     {
-        return (FillMode)Math.Max((int)camera.GetFillMode(), (int)material.GetFillMode());
+        return (FillMode)SystemMath.Max((int)camera.GetFillMode(), (int)material.GetFillMode());
     }
 
     private IntRect GetEffectiveViewportRect(Viewport viewport)
@@ -4274,10 +4273,10 @@ layout(std140) uniform Material
             return new IntRect(0, 0, Width, Height);
 
         return new IntRect(
-            Math.Clamp(rect.Left, 0, Width),
-            Math.Clamp(rect.Top, 0, Height),
-            Math.Clamp(rect.Right, 0, Width),
-            Math.Clamp(rect.Bottom, 0, Height));
+            SystemMath.Clamp(rect.Left, 0, Width),
+            SystemMath.Clamp(rect.Top, 0, Height),
+            SystemMath.Clamp(rect.Right, 0, Width),
+            SystemMath.Clamp(rect.Bottom, 0, Height));
     }
 
     private static Vector4f GetDepthMode(Camera camera)
@@ -4285,14 +4284,14 @@ layout(std140) uniform Material
         if (camera.IsOrthographic())
             return new Vector4f(1.0f, 0.0f, 0.5f, 0.5f);
 
-        return new Vector4f(0.0f, 0.0f, 0.0f, 1.0f / Math.Max(camera.GetFarClip(), MathDefs.Epsilon));
+        return new Vector4f(0.0f, 0.0f, 0.0f, 1.0f / SystemMath.Max(camera.GetFarClip(), MathDefs.Epsilon));
     }
 
     private static Vector4f GetDepthReconstruct(Camera camera)
     {
         var nearClip = camera.GetNearClip();
         var farClip = camera.GetFarClip();
-        var range = Math.Max(farClip - nearClip, MathDefs.Epsilon);
+        var range = SystemMath.Max(farClip - nearClip, MathDefs.Epsilon);
         return new Vector4f(
             farClip / range,
             -nearClip / range,
@@ -4303,11 +4302,11 @@ layout(std140) uniform Material
     private static Vector4f GetFogParameters(Camera camera, Zone? zone)
     {
         var farClip = camera.GetFarClip();
-        var fogStart = zone is not null ? Math.Min(zone.GetFogStart(), farClip) : farClip;
-        var fogEnd = zone is not null ? Math.Min(zone.GetFogEnd(), farClip) : farClip;
+        var fogStart = zone is not null ? SystemMath.Min(zone.GetFogStart(), farClip) : farClip;
+        var fogEnd = zone is not null ? SystemMath.Min(zone.GetFogEnd(), farClip) : farClip;
         if (fogStart >= fogEnd * (1.0f - 0.0001f))
             fogStart = fogEnd * (1.0f - 0.0001f);
-        var fogRange = Math.Max(fogEnd - fogStart, MathDefs.Epsilon);
+        var fogRange = SystemMath.Max(fogEnd - fogStart, MathDefs.Epsilon);
         return new Vector4f(fogEnd / farClip, farClip / fogRange, 0.0f, 0.0f);
     }
 
@@ -4318,7 +4317,7 @@ layout(std140) uniform Material
             : 1.0f;
     }
 
-    internal Zone? FindZone(Scene scene, Vector3f worldPosition)
+    internal Zone? FindZone(SceneType scene, Vector3f worldPosition)
     {
         scene.GetComponents(_zonesScratch);
 
@@ -4336,7 +4335,7 @@ layout(std140) uniform Material
         return bestZone;
     }
 
-    private Vector4f GetAmbientForDrawable(Scene scene, Drawable drawable)
+    private Vector4f GetAmbientForDrawable(SceneType scene, Drawable drawable)
     {
         var zone = FindZone(scene, drawable.Node.WorldPosition);
         return zone is not null ? new Vector4f(zone.GetAmbientLighting(), 1.0f) : DefaultAmbient;

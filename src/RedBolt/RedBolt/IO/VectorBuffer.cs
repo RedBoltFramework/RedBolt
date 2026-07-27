@@ -1,8 +1,7 @@
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
 namespace RedBolt.IO;
-using Math = global::System.Math;
-
 
 /// <summary>Dynamically sized buffer that can be read and written to as a stream.</summary>
 public class VectorBuffer : AbstractFile, ICloneable
@@ -56,7 +55,7 @@ public class VectorBuffer : AbstractFile, ICloneable
     /// <summary>Read bytes from the buffer. Return number of bytes actually read.</summary>
     public override uint Read(Span<byte> destination)
     {
-        var available = (int)Math.Min((uint)destination.Length, Size - Position);
+        var available = (int)SystemMath.Min((uint)destination.Length, Size - Position);
         _buffer.AsSpan(checked((int)Position), available).CopyTo(destination);
         Position += (uint)available;
         return (uint)available;
@@ -65,7 +64,7 @@ public class VectorBuffer : AbstractFile, ICloneable
     /// <summary>Set position from the beginning of the buffer. Return actual new position.</summary>
     public override uint Seek(uint position)
     {
-        Position = Math.Min(position, Size);
+        Position = SystemMath.Min(position, Size);
         return Position;
     }
 
@@ -140,7 +139,7 @@ public class VectorBuffer : AbstractFile, ICloneable
         var oldSize = Size;
         Array.Resize(ref _buffer, checked((int)size));
         Size = size;
-        Position = Math.Min(Position, Size);
+        Position = SystemMath.Min(Position, Size);
         if (size > oldSize)
             _buffer.AsSpan(checked((int)oldSize), checked((int)(size - oldSize))).Clear();
     }

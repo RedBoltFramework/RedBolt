@@ -1,12 +1,13 @@
 using System;
+
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
-using RedBolt.Scene;
 using RedBolt.Math;
-using RedBolt.Core;
+using RedBolt.Scene;
 
 #if !REDBOLT_WEB_SAMPLE
 try { return new PointerAdapterApplication().Run(); }

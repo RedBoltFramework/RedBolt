@@ -1,11 +1,10 @@
 using RedBolt;
-
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class OctreeQueryTests
@@ -13,7 +12,7 @@ public sealed class OctreeQueryTests
     [Fact]
     public void Point_query_filters_drawables_by_point_flags_and_view_mask()
     {
-        var drawable = new Scene().CreateChild("Drawable").CreateComponent<StaticModel>();
+        var drawable = new SceneType().CreateChild("Drawable").CreateComponent<StaticModel>();
         drawable.SetBoundingBox(new BoundingBox(-1.0f, 1.0f));
         var result = new List<Drawable>();
         var query = new PointOctreeQuery(result, Vector3f.Zero);
@@ -52,7 +51,7 @@ public sealed class OctreeQueryTests
     [Fact]
     public void Octree_query_overloads_clear_and_fill_query_storage()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var octree = scene.CreateComponent<Octree>();
         var drawable = scene.CreateChild("Drawable").CreateComponent<StaticModel>();
         drawable.SetBoundingBox(new BoundingBox(-1.0f, 1.0f));
@@ -74,7 +73,7 @@ public sealed class OctreeQueryTests
     public void Query_results_compare_like_cpp_structs()
     {
         var drawable = new StaticModel();
-        var node = new Scene().CreateChild("Node");
+        var node = new SceneType().CreateChild("Node");
         var first = new OctreeQueryResult { Drawable = drawable, Node = node };
         var second = new OctreeQueryResult { Drawable = drawable, Node = node };
 
@@ -92,7 +91,7 @@ public sealed class OctreeQueryTests
     public void Ray_query_result_copies_values_and_preserves_borrowed_pointers()
     {
         var drawable = new StaticModel();
-        var node = new Scene().CreateChild("Node");
+        var node = new SceneType().CreateChild("Node");
         var original = new RayQueryResult
         {
             Position = Vector3f.One,

@@ -1,5 +1,6 @@
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
+
 namespace RedBolt.RenderPipeline;
 
 /// <summary>

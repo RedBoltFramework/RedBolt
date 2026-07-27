@@ -1,11 +1,10 @@
 using System.Globalization;
+using SystemMath = global::System.Math;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace RedBolt.Math;
-using Math = global::System.Math;
-
 
 /// <summary>Two-dimensional vector with integer values.</summary>
 [StructLayout(LayoutKind.Sequential)]
@@ -112,7 +111,7 @@ public struct BaseIntegerVector2<T> : IEquatable<BaseIntegerVector2<T>>
     public Vector4f ToVector4(float z = 0.0f, float w = 0.0f) => new(float.CreateChecked(X), float.CreateChecked(Y), z, w);
 
     /// <summary>Return length.</summary>
-    public T Length => T.CreateTruncating(Math.Sqrt(double.CreateChecked(X * X + Y * Y)));
+    public T Length => T.CreateTruncating(SystemMath.Sqrt(double.CreateChecked(X * X + Y * Y)));
 
     public bool Equals(BaseIntegerVector2<T> other) => this == other;
 

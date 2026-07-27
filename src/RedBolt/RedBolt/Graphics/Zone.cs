@@ -1,15 +1,15 @@
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
 
 using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Resource = global::RedBolt.Resource.Resource;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Graphics;
 
 /// <summary>Component that describes global rendering properties.</summary>
 /// <remarks>
@@ -246,7 +246,7 @@ public class Zone : Drawable
         MarkCachedAmbientDirty();
     }
 
-    public ResourceRef GetZoneTextureAttr() => Resource.GetResourceRef(_zoneTexture, ObjectReflection<TextureCube>.TypeId);
+    public ResourceRef GetZoneTextureAttr() => ResourceType.GetResourceRef(_zoneTexture, ObjectReflection<TextureCube>.TypeId);
 
     public StrongBox<ReflectionProbeData> GetReflectionProbe() => _reflectionProbeData.GetStorage();
 

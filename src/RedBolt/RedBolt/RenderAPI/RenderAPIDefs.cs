@@ -1,16 +1,16 @@
-using RedBolt.Bindings.Diligent;
 using System.Collections.Immutable;
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 
+using RedBolt.Bindings.Diligent;
 using RedBolt.Container;
 using RedBolt.Graphics;
-using RedBolt.Input;
-using RedBolt.Math;
-namespace RedBolt.RenderAPI;
-using Math = global::System.Math;
-
 using CullMode = global::RedBolt.Graphics.CullMode;
 using FillMode = global::RedBolt.Graphics.FillMode;
+using RedBolt.Input;
+using RedBolt.Math;
+
+namespace RedBolt.RenderAPI;
 
 public static class RenderApiLimits
 {
@@ -1009,7 +1009,7 @@ public struct GraphicsPipelineStateDesc : IEquatable<GraphicsPipelineStateDesc>
         AddRawShaderHash(ref hash, DomainShader);
         AddRawShaderHash(ref hash, HullShader);
         AddRawShaderHash(ref hash, GeometryShader);
-        return Math.Max(unchecked((uint)hash.ToHashCode()), 1u);
+        return SystemMath.Max(unchecked((uint)hash.ToHashCode()), 1u);
     }
 
     public readonly bool Equals(GraphicsPipelineStateDesc other)
@@ -1088,7 +1088,7 @@ public struct ComputePipelineStateDesc : IEquatable<ComputePipelineStateDesc>
         var hash = new HashCode();
         hash.Add(Samplers);
         GraphicsPipelineStateDesc.AddRawShaderHash(ref hash, ComputeShader);
-        return Math.Max(unchecked((uint)hash.ToHashCode()), 1u);
+        return SystemMath.Max(unchecked((uint)hash.ToHashCode()), 1u);
     }
 
     public readonly bool Equals(ComputePipelineStateDesc other)

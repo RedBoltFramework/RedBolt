@@ -1,14 +1,14 @@
-using RedBolt.Bindings.Diligent;
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
+using RedBolt.Bindings.Diligent;
 using RedBolt.Container;
 using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.RenderPipeline;
-namespace RedBolt.RenderAPI;
-using Math = global::System.Math;
 
+namespace RedBolt.RenderAPI;
 
 /// <summary>
 /// Description of uniform buffer used by the shader program.
@@ -487,7 +487,7 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
                 ShaderCodeVariableClass.ShaderCodeVariableClassScalar
                     => GetVectorArrayUniformSize(variable.BasicType, 1, checked((int)variable.ArraySize)),
                 ShaderCodeVariableClass.ShaderCodeVariableClassVector
-                    => GetVectorArrayUniformSize(variable.BasicType, Math.Max(variable.NumColumns, variable.NumRows), checked((int)variable.ArraySize)),
+                    => GetVectorArrayUniformSize(variable.BasicType, SystemMath.Max(variable.NumColumns, variable.NumRows), checked((int)variable.ArraySize)),
                 ShaderCodeVariableClass.ShaderCodeVariableClassMatrixColumns
                     => GetVectorArrayUniformSize(variable.BasicType, variable.NumRows, checked((int)(variable.ArraySize * variable.NumColumns))),
                 ShaderCodeVariableClass.ShaderCodeVariableClassMatrixRows
@@ -499,7 +499,7 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
         return variable.Class switch
         {
             ShaderCodeVariableClass.ShaderCodeVariableClassScalar => GetScalarUniformSize(variable.BasicType),
-            ShaderCodeVariableClass.ShaderCodeVariableClassVector => GetVectorUniformSize(variable.BasicType, Math.Max(variable.NumColumns, variable.NumRows)),
+            ShaderCodeVariableClass.ShaderCodeVariableClassVector => GetVectorUniformSize(variable.BasicType, SystemMath.Max(variable.NumColumns, variable.NumRows)),
             ShaderCodeVariableClass.ShaderCodeVariableClassMatrixColumns => GetVectorArrayUniformSize(variable.BasicType, variable.NumRows, variable.NumColumns),
             ShaderCodeVariableClass.ShaderCodeVariableClassMatrixRows => GetVectorArrayUniformSize(variable.BasicType, variable.NumColumns, variable.NumRows),
             _ => 0

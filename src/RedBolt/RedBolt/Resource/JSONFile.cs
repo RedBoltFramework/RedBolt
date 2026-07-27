@@ -1,11 +1,12 @@
+using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Microsoft.Extensions.Logging;
 
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Logging;
+
 namespace RedBolt.Resource;
 
 /// <summary>JSON document resource.</summary>

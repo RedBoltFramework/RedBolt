@@ -1,6 +1,6 @@
-namespace RedBolt.Math;
-using Math = global::System.Math;
+using SystemMath = global::System.Math;
 
+namespace RedBolt.Math;
 
 /// <summary>Perlin noise generator.</summary>
 public class PerlinNoise : ICloneable
@@ -27,15 +27,15 @@ public class PerlinNoise : ICloneable
     /// <summary>Return noise value as double.</summary>
     public double GetDouble(double x, double y, double z, int repeat = (int)NumPer)
     {
-        repeat = Math.Clamp(repeat, 0, (int)NumPer);
+        repeat = SystemMath.Clamp(repeat, 0, (int)NumPer);
 
-        var hX = MathDefs.AbsMod((int)Math.Floor(x), repeat);
-        var hY = MathDefs.AbsMod((int)Math.Floor(y), repeat);
-        var hZ = MathDefs.AbsMod((int)Math.Floor(z), repeat);
+        var hX = MathDefs.AbsMod((int)SystemMath.Floor(x), repeat);
+        var hY = MathDefs.AbsMod((int)SystemMath.Floor(y), repeat);
+        var hZ = MathDefs.AbsMod((int)SystemMath.Floor(z), repeat);
 
-        x -= Math.Floor(x);
-        y -= Math.Floor(y);
-        z -= Math.Floor(z);
+        x -= SystemMath.Floor(x);
+        y -= SystemMath.Floor(y);
+        z -= SystemMath.Floor(z);
 
         var u = Fade(x);
         var v = Fade(y);
@@ -65,11 +65,11 @@ public class PerlinNoise : ICloneable
     /// <summary>Return noise value as double.</summary>
     public double GetDouble(double x, int repeat = (int)NumPer)
     {
-        repeat = Math.Clamp(repeat, 0, (int)NumPer);
+        repeat = SystemMath.Clamp(repeat, 0, (int)NumPer);
 
-        var hX = MathDefs.AbsMod((int)Math.Floor(x), repeat);
+        var hX = MathDefs.AbsMod((int)SystemMath.Floor(x), repeat);
 
-        x -= Math.Floor(x);
+        x -= SystemMath.Floor(x);
 
         var u = Fade(x);
 

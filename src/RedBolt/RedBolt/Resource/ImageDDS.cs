@@ -1,11 +1,11 @@
 using System.Buffers.Binary;
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
 using RedBolt.IO;
 using RedBolt.RenderAPI;
-namespace RedBolt.Resource;
-using Math = global::System.Math;
 
+namespace RedBolt.Resource;
 
 /// <summary>DirectDraw color key definition.</summary>
 [StructLayout(LayoutKind.Sequential)]
@@ -328,8 +328,8 @@ public static class ImageDds
         var height = ReadInt32(fileData, ref offset);
         var width = ReadInt32(fileData, ref offset);
         _ = ReadUInt32(fileData, ref offset);
-        var depth = Math.Max(ReadInt32(fileData, ref offset), 1);
-        var mipMapCount = Math.Max(ReadUInt32(fileData, ref offset), 1u);
+        var depth = SystemMath.Max(ReadInt32(fileData, ref offset), 1);
+        var mipMapCount = SystemMath.Max(ReadUInt32(fileData, ref offset), 1u);
         if (!Skip(fileData, ref offset, 44))
             return false;
 
@@ -424,8 +424,8 @@ public static class ImageDds
             || format == EmulatedTextureFormat.PvrtcRgb4Bpp
             || format == EmulatedTextureFormat.PvrtcRgba4Bpp)
         {
-            widthInBlocks = Math.Max(2, widthInBlocks);
-            heightInBlocks = Math.Max(2, heightInBlocks);
+            widthInBlocks = SystemMath.Max(2, widthInBlocks);
+            heightInBlocks = SystemMath.Max(2, heightInBlocks);
         }
         return checked(formatInfo.GetElementSize() * widthInBlocks * heightInBlocks * depth);
     }
@@ -583,7 +583,7 @@ public static class ImageDds
     {
         var value = size;
         for (var i = 0u; i < level && value > 1; ++i)
-            value = Math.Max(value / 2, 1);
+            value = SystemMath.Max(value / 2, 1);
         return value;
     }
 

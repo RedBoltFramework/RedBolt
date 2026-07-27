@@ -1,14 +1,14 @@
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 
 using RedBolt.Container;
 using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Graphics;
 
 [Flags]
 public enum AnimationChannel : byte
@@ -138,7 +138,7 @@ public sealed class Skeleton : ICloneable, IDisposable
             return false;
 
         int bones = checked((int)source.ReadUInt());
-        _bones.Capacity = Math.Max(_bones.Capacity, bones);
+        _bones.Capacity = SystemMath.Max(_bones.Capacity, bones);
 
         for (int i = 0; i < bones; ++i)
         {
@@ -202,7 +202,7 @@ public sealed class Skeleton : ICloneable, IDisposable
     {
         ClearBones();
 
-        _bones.Capacity = Math.Max(_bones.Capacity, source._bones.Count);
+        _bones.Capacity = SystemMath.Max(_bones.Capacity, source._bones.Count);
         foreach (var sourceBone in source._bones)
         {
             var bone = (Bone)sourceBone.Clone();
@@ -245,7 +245,7 @@ public sealed class Skeleton : ICloneable, IDisposable
     public void UpdateBoneOrder()
     {
         int numBones = _bones.Count;
-        _bonesOrder.Capacity = Math.Max(_bonesOrder.Capacity, numBones);
+        _bonesOrder.Capacity = SystemMath.Max(_bonesOrder.Capacity, numBones);
         _bonesOrder.Clear();
 
         // Collect roots first

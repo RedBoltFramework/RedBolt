@@ -3,13 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
-using RedBolt;
+
 using Xunit;
 
+using RedBolt;
 using RedBolt.IO;
-namespace RedBolt.Tests;
 using FileMode = global::RedBolt.IO.FileMode;
 
+namespace RedBolt.Tests;
 
 public sealed class PackageFileTests
 {

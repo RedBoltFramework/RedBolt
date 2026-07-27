@@ -1,12 +1,12 @@
 using RedBolt.Graphics;
-using RedBolt.RenderAPI;
-using RedBolt.Scene;
-namespace RedBolt.RenderPipeline;
 using CullMode = global::RedBolt.Graphics.CullMode;
 using FillMode = global::RedBolt.Graphics.FillMode;
+using RedBolt.RenderAPI;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
+using RedBolt.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
-using Scene = global::RedBolt.Scene.Scene;
+namespace RedBolt.RenderPipeline;
 
 /// <summary>Scene pass that collects outlined drawables into a deferred outline mask.</summary>
 public class OutlineScenePass : ScenePass
@@ -33,7 +33,7 @@ public class OutlineScenePass : ScenePass
     }
 
     /// <summary>Initialize outline groups from scene. Should be called every frame.</summary>
-    public void SetOutlineGroups(Scene scene, bool drawDebugOutlines)
+    public void SetOutlineGroups(SceneType scene, bool drawDebugOutlines)
     {
         scene.GetComponents(_outlineGroups);
 

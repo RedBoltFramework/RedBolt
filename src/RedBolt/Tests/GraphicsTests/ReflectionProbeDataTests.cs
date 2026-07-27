@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 
 using RedBolt.Graphics;
 using RedBolt.Math;
+
 namespace RedBolt.Tests;
 
 public sealed class ReflectionProbeDataTests

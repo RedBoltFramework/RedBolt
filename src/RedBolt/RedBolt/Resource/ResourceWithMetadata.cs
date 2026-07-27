@@ -5,6 +5,7 @@ using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Input;
+
 namespace RedBolt.Resource;
 
 /// <summary>Base class for resources that support arbitrary metadata stored. Metadata serialization shall be implemented in derived classes.</summary>

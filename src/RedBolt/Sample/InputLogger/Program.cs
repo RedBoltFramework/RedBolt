@@ -2,14 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
+using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Scene;
-using RedBolt.Input;
-using RedBolt.Core;
 
 #if !REDBOLT_WEB_SAMPLE
 try

@@ -1,11 +1,12 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
+using SceneType = global::RedBolt.Scene.Scene;
 
-using Scene = global::RedBolt.Scene.Scene;
+namespace RedBolt.Graphics;
 
 [Flags]
 public enum DrawableFlags : byte
@@ -63,7 +64,7 @@ public struct FrameInfo
     public RenderSurface? RenderTarget;
 
     /// <summary>Scene and pre-fetched Scene components.</summary>
-    public Scene? Scene;
+    public SceneType? Scene;
 
     /// <summary>Node to be used as a point-of-view reference, typically the camera's node.</summary>
     public Node? ViewReferenceNode;
@@ -631,7 +632,7 @@ public abstract class Drawable : Component
 
     public void SetLodBias(float bias)
     {
-        _lodBias = Math.Max(bias, MathDefs.Epsilon);
+        _lodBias = SystemMath.Max(bias, MathDefs.Epsilon);
     }
 
     public void SetViewMask(uint mask)
@@ -738,7 +739,7 @@ public abstract class Drawable : Component
         currentNode?.AddListener(this);
     }
 
-    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
+    protected internal override void OnSceneSet(SceneType? previousScene, SceneType? scene)
     {
         if (scene is not null)
             AddToOctree();

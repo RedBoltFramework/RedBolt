@@ -1,24 +1,22 @@
 using System.Collections;
 using System.Reflection;
 
-using RedBolt.Bindings.Diligent;
 using RedBolt;
-
+using RedBolt.Bindings.Diligent;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
+using Viewport = global::RedBolt.Graphics.Viewport;
 using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Viewport = global::RedBolt.Graphics.Viewport;
-using RenderPipeline = global::RedBolt.RenderPipeline.RenderPipeline;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class RenderPipelineTests : IDisposable
@@ -49,7 +47,7 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Render_pipeline_enables_instancing_by_default()
     {
-        var renderPipeline = new RenderPipeline();
+        var renderPipeline = new RenderPipelineComponent();
 
         Assert.True(renderPipeline.Settings.InstancingBuffer.EnableInstancing);
     }
@@ -57,8 +55,8 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Render_pipeline_collects_render_path_parameters()
     {
-        var scene = new Scene();
-        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        var scene = new SceneType();
+        var renderPipeline = scene.CreateComponent<RenderPipelineComponent>();
         var renderPath = new RenderPath();
         renderPath.SetName("RenderPaths/Test.xml");
         renderPath.AddPass(new ParameterRenderPass("Exposure", 1.25f));
@@ -71,8 +69,8 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Render_pipeline_serializes_render_path_and_pass_attributes()
     {
-        var scene = new Scene();
-        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        var scene = new SceneType();
+        var renderPipeline = scene.CreateComponent<RenderPipelineComponent>();
         var renderPath = new RenderPath();
         renderPath.SetName("RenderPaths/Test.xml");
         renderPath.AddPass(new TrackingRenderPass("First"));
@@ -105,8 +103,8 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Render_pipeline_copies_enabled_render_passes()
     {
-        var scene = new Scene();
-        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        var scene = new SceneType();
+        var renderPipeline = scene.CreateComponent<RenderPipelineComponent>();
         renderPipeline.SetRenderPath((RenderPath?)null);
         (string Name, bool Enabled)[] renderPasses = [("First", true)];
 
@@ -119,8 +117,8 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Render_pipeline_raises_events_for_settings_parameters_and_renderpath_changes()
     {
-        var scene = new Scene();
-        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        var scene = new SceneType();
+        var renderPipeline = scene.CreateComponent<RenderPipelineComponent>();
         var renderPath = new RenderPath();
         renderPath.SetName("RenderPaths/Test.xml");
         renderPath.AddPass(new ParameterRenderPass("Exposure", 1.25f));
@@ -149,8 +147,8 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Render_pipeline_only_raises_parameter_event_on_actual_render_path_changes()
     {
-        var scene = new Scene();
-        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        var scene = new SceneType();
+        var renderPipeline = scene.CreateComponent<RenderPipelineComponent>();
         var renderPath = new RenderPath();
         renderPath.SetName("RenderPaths/Test.xml");
         renderPath.AddPass(new ParameterRenderPass("Exposure", 1.25f));
@@ -173,8 +171,8 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Render_pipeline_updates_existing_parameters_by_hash()
     {
-        var scene = new Scene();
-        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        var scene = new SceneType();
+        var renderPipeline = scene.CreateComponent<RenderPipelineComponent>();
         var renderPath = new RenderPath();
         renderPath.SetName("RenderPaths/Test.xml");
         renderPath.AddPass(new ParameterRenderPass("Exposure", 1.25f));
@@ -198,8 +196,8 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Render_pipeline_frame_shader_parameters_do_not_raise_parameter_event()
     {
-        var scene = new Scene();
-        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        var scene = new SceneType();
+        var renderPipeline = scene.CreateComponent<RenderPipelineComponent>();
         var parameterEvents = 0;
         renderPipeline.ParametersChanged += _ => ++parameterEvents;
 
@@ -217,8 +215,8 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Render_pipeline_updates_existing_frame_parameters_by_hash()
     {
-        var scene = new Scene();
-        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        var scene = new SceneType();
+        var renderPipeline = scene.CreateComponent<RenderPipelineComponent>();
         renderPipeline.SetFrameShaderParameter("Time", new Variant(1.0f));
 
         using var parameters = new VariantMap
@@ -235,8 +233,8 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Render_pipeline_updates_single_existing_frame_parameter_by_hash()
     {
-        var scene = new Scene();
-        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        var scene = new SceneType();
+        var renderPipeline = scene.CreateComponent<RenderPipelineComponent>();
         renderPipeline.SetFrameShaderParameter("Time", new Variant(1.0f));
 
         renderPipeline.UpdateFrameShaderParameter(new StringHash("Time"), new Variant(2.0f));
@@ -249,7 +247,7 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Frame_shader_parameters_and_view_descriptors_own_independent_variants()
     {
-        var renderPipeline = new RenderPipeline();
+        var renderPipeline = new RenderPipelineComponent();
         using var source = Variant.MakeCustomValue(new FrameParameterValue(1));
         using var parameters = new StringVariantMap
         {
@@ -291,7 +289,7 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Render_path_parameters_own_independent_variants()
     {
-        var renderPipeline = new RenderPipeline();
+        var renderPipeline = new RenderPipelineComponent();
         using var source = Variant.MakeCustomValue(new FrameParameterValue(1));
         using var parameters = new StringVariantMap
         {
@@ -321,8 +319,8 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Render_pipeline_set_render_pass_enabled_only_notifies_on_change()
     {
-        var scene = new Scene();
-        var renderPipeline = scene.CreateComponent<RenderPipeline>();
+        var scene = new SceneType();
+        var renderPipeline = scene.CreateComponent<RenderPipelineComponent>();
         var renderPath = new RenderPath();
         renderPath.SetName("RenderPaths/Test.xml");
         renderPath.AddPass(new TrackingRenderPass("Tracking"));
@@ -353,9 +351,9 @@ public sealed class RenderPipelineTests : IDisposable
         _fixture.InitializeGraphics(parameters);
         try
         {
-            using var scene = new Scene();
+            using var scene = new SceneType();
             scene.CreateComponent<Octree>();
-            var renderPipeline = scene.CreateComponent<RenderPipeline>();
+            var renderPipeline = scene.CreateComponent<RenderPipelineComponent>();
             var renderPath = new RenderPath();
             renderPath.SetName("RenderPaths/Test.xml");
             var trackingPass = new TrackingRenderPass("Tracking");
@@ -462,9 +460,9 @@ public sealed class RenderPipelineTests : IDisposable
         _fixture.InitializeGraphics(parameters);
         try
         {
-            var scene = new Scene();
+            var scene = new SceneType();
             scene.CreateComponent<Octree>();
-            var renderPipeline = scene.CreateComponent<RenderPipeline>();
+            var renderPipeline = scene.CreateComponent<RenderPipelineComponent>();
             var renderPath = new RenderPath();
             renderPath.SetName("RenderPaths/Test.xml");
             var capturePass = new BufferCaptureRenderPass("Capture", SharedRenderPassState.NormalBufferId);
@@ -505,9 +503,9 @@ public sealed class RenderPipelineTests : IDisposable
         _fixture.InitializeGraphics(parameters);
         try
         {
-            var scene = new Scene();
+            var scene = new SceneType();
             scene.CreateComponent<Octree>();
-            var renderPipeline = scene.CreateComponent<RenderPipeline>();
+            var renderPipeline = scene.CreateComponent<RenderPipelineComponent>();
             var renderPath = new RenderPath();
             renderPath.SetName("RenderPaths/Test.xml");
             renderPath.AddPass(new OutlineRenderPass());
@@ -1183,8 +1181,8 @@ public sealed class RenderPipelineTests : IDisposable
 
             _fixture.Resources.ReleaseResource<RenderPath>(defaultRenderPathName);
 
-            var scene = new Scene();
-            var renderPipeline = scene.CreateComponent<RenderPipeline>();
+            var scene = new SceneType();
+            var renderPipeline = scene.CreateComponent<RenderPipelineComponent>();
 
             Assert.NotNull(renderPipeline.GetRenderPath());
             Assert.Equal(defaultRenderPathName, renderPipeline.GetRenderPath()!.Name);
@@ -1214,8 +1212,8 @@ public sealed class RenderPipelineTests : IDisposable
             WriteRenderPath(renderPathFile, 1.25f, includeBloom: false);
             _fixture.Resources.ReleaseResource<RenderPath>(renderPathName);
 
-            var scene = new Scene();
-            var renderPipeline = scene.CreateComponent<RenderPipeline>();
+            var scene = new SceneType();
+            var renderPipeline = scene.CreateComponent<RenderPipelineComponent>();
             renderPipeline.SetRenderPath(_fixture.Resources.GetResource<RenderPath>(renderPathName));
 
             var renderPathChangedEvents = 0;
@@ -1243,7 +1241,7 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Render_pipeline_reload_event_observes_only_the_current_render_path()
     {
-        var renderPipeline = new RenderPipeline();
+        var renderPipeline = new RenderPipelineComponent();
         var firstRenderPath = new RenderPath();
         firstRenderPath.SetName("RenderPaths/First.renderpath");
         var secondRenderPath = new RenderPath();
@@ -1291,7 +1289,7 @@ public sealed class RenderPipelineTests : IDisposable
         private FrameInfo _frameInfo;
         private RenderPipelineStats _stats;
 
-        public FrameParameterRenderPipelineView(RenderPipeline renderPipeline)
+        public FrameParameterRenderPipelineView(RenderPipelineComponent renderPipeline)
             : base(renderPipeline)
         {
         }

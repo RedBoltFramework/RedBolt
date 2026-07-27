@@ -1,12 +1,12 @@
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Logging;
-namespace RedBolt.RenderAPI;
-using Math = global::System.Math;
 
+namespace RedBolt.RenderAPI;
 
 /// <summary>
 /// Pool for different resources used by renderer.
@@ -287,7 +287,7 @@ public class RenderPool : RedObject
                 ++totalOldTextures;
         }
 
-        var maxOldTextures = (int)Math.Ceiling(totalTextures * (1.0f - _settings.TextureCacheMinLoadFactor));
+        var maxOldTextures = (int)SystemMath.Ceiling(totalTextures * (1.0f - _settings.TextureCacheMinLoadFactor));
         if (totalOldTextures < maxOldTextures)
             return;
 
@@ -343,7 +343,7 @@ public class RenderPool : RedObject
 
     private void ResizeScratchBuffer(int newCapacity)
     {
-        newCapacity = Math.Max(newCapacity, InitialScratchBufferSize);
+        newCapacity = SystemMath.Max(newCapacity, InitialScratchBufferSize);
         Marshal.FreeHGlobal(_scratchBuffer);
         _scratchBuffer = Marshal.AllocHGlobal((nint)newCapacity);
         _scratchBufferCapacity = newCapacity;

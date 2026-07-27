@@ -1,6 +1,7 @@
-using RedBolt.Bindings.Sdl;
 using System.Runtime.InteropServices;
 using System.Text;
+
+using RedBolt.Bindings.Sdl;
 
 namespace RedBolt.Tests;
 

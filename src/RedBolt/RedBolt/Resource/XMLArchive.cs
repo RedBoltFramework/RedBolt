@@ -1,6 +1,8 @@
 using System.Diagnostics;
+
 using RedBolt.Core;
 using RedBolt.IO;
+
 namespace RedBolt.Resource;
 
 /// <summary>Base archive for XML serialization.</summary>

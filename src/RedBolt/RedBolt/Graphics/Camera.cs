@@ -1,10 +1,11 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
 
+namespace RedBolt.Graphics;
 
 [Flags]
 public enum ViewOverride : uint
@@ -230,8 +231,8 @@ public sealed class Camera : Component
         if (_projectionDirty)
             UpdateProjection();
 
-        nearClip = Math.Max(nearClip, _projectionNearClip);
-        farClip = Math.Min(farClip, _projectionFarClip);
+        nearClip = SystemMath.Max(nearClip, _projectionNearClip);
+        farClip = SystemMath.Min(farClip, _projectionFarClip);
         if (farClip < nearClip)
             farClip = nearClip;
 
@@ -271,8 +272,8 @@ public sealed class Camera : Component
         if (_projectionDirty)
             UpdateProjection();
 
-        nearClip = Math.Max(nearClip, _projectionNearClip);
-        farClip = Math.Min(farClip, _projectionFarClip);
+        nearClip = SystemMath.Max(nearClip, _projectionNearClip);
+        farClip = SystemMath.Min(farClip, _projectionFarClip);
         if (farClip < nearClip)
             farClip = nearClip;
 
@@ -308,7 +309,7 @@ public sealed class Camera : Component
         }
 
         var viewPos = GetView().Matrix4 * new Vector4f(worldPos, 1.0f);
-        return Math.Abs(viewPos.Z);
+        return SystemMath.Abs(viewPos.Z);
     }
 
     public float GetDistanceSquared(Vector3f worldPos)
@@ -344,7 +345,7 @@ public sealed class Camera : Component
 
     public float GetLodDistance(float distance, float scale, float bias)
     {
-        var divisor = Math.Max(_lodBias * bias * scale * _zoom, MathDefs.Epsilon);
+        var divisor = SystemMath.Max(_lodBias * bias * scale * _zoom, MathDefs.Epsilon);
         return !Orthographic ? distance / divisor : _orthoSize / divisor;
     }
 
@@ -487,7 +488,7 @@ public sealed class Camera : Component
     {
         var ray = GetScreenRay(screenPos.X, screenPos.Y);
         var viewSpaceDirection = GetView().Matrix4 * new Vector4f(ray.Direction, 0.0f);
-        var rayDistance = Math.Max(screenPos.Z - GetNearClip(), 0.0f) / viewSpaceDirection.Z;
+        var rayDistance = SystemMath.Max(screenPos.Z - GetNearClip(), 0.0f) / viewSpaceDirection.Z;
         return ray.Origin + ray.Direction * rayDistance;
     }
 
@@ -621,7 +622,7 @@ public sealed class Camera : Component
 
     public void SetFarClip(float value)
     {
-        _farClip = Math.Max(value, MathDefs.MinNearClip);
+        _farClip = SystemMath.Max(value, MathDefs.MinNearClip);
         InvalidateProjection();
     }
 
@@ -644,7 +645,7 @@ public sealed class Camera : Component
 
     public void SetLodBias(float value)
     {
-        _lodBias = Math.Max(value, MathDefs.Epsilon);
+        _lodBias = SystemMath.Max(value, MathDefs.Epsilon);
     }
 
     public void SetMousePosition(Vector2f position)
@@ -654,7 +655,7 @@ public sealed class Camera : Component
 
     public void SetNearClip(float value)
     {
-        _nearClip = Math.Max(value, MathDefs.MinNearClip);
+        _nearClip = SystemMath.Max(value, MathDefs.MinNearClip);
         InvalidateProjection();
     }
 
@@ -763,7 +764,7 @@ public sealed class Camera : Component
 
     public void SetZoom(float value)
     {
-        _zoom = Math.Max(value, MathDefs.Epsilon);
+        _zoom = SystemMath.Max(value, MathDefs.Epsilon);
         InvalidateProjection();
     }
 

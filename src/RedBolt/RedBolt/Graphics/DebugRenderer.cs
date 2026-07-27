@@ -3,11 +3,11 @@ using System.Buffers.Binary;
 using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
+using ShaderType = global::RedBolt.RenderAPI.ShaderType;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using ShaderType = global::RedBolt.RenderAPI.ShaderType;
 
+namespace RedBolt.Graphics;
 
 /// <summary>
 /// Debug geometry rendering component. Should be added only to the root scene node.

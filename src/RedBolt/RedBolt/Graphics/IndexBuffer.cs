@@ -1,12 +1,12 @@
-using System.Buffers.Binary;
 using Microsoft.Extensions.Logging;
+using System.Buffers.Binary;
+using SystemMath = global::System.Math;
 
 using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.RenderAPI;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
 
+namespace RedBolt.Graphics;
 
 public enum IndexBufferType
 {
@@ -229,7 +229,7 @@ public sealed class IndexBuffer : PipelineStateTracker
     {
         var hash = 0u;
         CombineHash(ref hash, _indexSize);
-        return Math.Max(1u, hash);
+        return SystemMath.Max(1u, hash);
     }
 
     /// <summary>Set the debug name.</summary>
@@ -355,7 +355,7 @@ public sealed class DynamicIndexBuffer : RedObject
 
     private void GrowBuffer(uint newMaxNumIndices)
     {
-        _maxNumIndices = Math.Max(newMaxNumIndices, _maxNumIndices > 0 ? 2 * _maxNumIndices : 128);
+        _maxNumIndices = SystemMath.Max(newMaxNumIndices, _maxNumIndices > 0 ? 2 * _maxNumIndices : 128);
         Array.Resize(ref _shadowData, checked((int)(_maxNumIndices * _indexSize)));
         _indexBufferNeedResize = true;
     }

@@ -1,4 +1,5 @@
 using RedBolt.Container;
+
 namespace RedBolt.Engine;
 
 public static class StateManagerEvents

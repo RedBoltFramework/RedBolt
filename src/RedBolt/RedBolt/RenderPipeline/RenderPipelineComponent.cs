@@ -1,28 +1,28 @@
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-namespace RedBolt.RenderPipeline;
-using Resource = global::RedBolt.Resource.Resource;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Scene component that spawns render pipeline instances.
 /// </summary>
-public class RenderPipeline : Component
+public class RenderPipelineComponent : Component
 {
     private static readonly ResourceRef DefaultRenderPath =
         new(new StringHash(nameof(RenderPath)), "RenderPaths/Default.renderpath");
 
     /// <summary>Invoked when settings change.</summary>
-    public event Action<RenderPipeline, RenderPipelineSettings>? SettingsChanged;
+    public event Action<RenderPipelineComponent, RenderPipelineSettings>? SettingsChanged;
 
     /// <summary>Invoked when render path changes.</summary>
-    public event Action<RenderPipeline, RenderPath?>? RenderPathChanged;
+    public event Action<RenderPipelineComponent, RenderPath?>? RenderPathChanged;
 
     /// <summary>Invoked when render path parameters change.</summary>
-    public event Action<RenderPipeline>? ParametersChanged;
+    public event Action<RenderPipelineComponent>? ParametersChanged;
 
     private RenderPath? _renderPath;
     private IReadOnlyList<(string Name, bool Enabled)> _renderPasses = [];
@@ -33,7 +33,7 @@ public class RenderPipeline : Component
     [ThreadStatic]
     private static VariantVector? _renderPassesAttributeResult;
 
-    public RenderPipeline()
+    public RenderPipelineComponent()
     {
         SetRenderPathAttr(DefaultRenderPath);
 
@@ -59,7 +59,7 @@ public class RenderPipeline : Component
 
     public static void RegisterObject(Context context)
     {
-        context.AddFactoryReflection<RenderPipeline>();
+        context.AddFactoryReflection<RenderPipelineComponent>();
     }
 
     public ref readonly RenderPipelineSettings Settings => ref _settings;
@@ -72,7 +72,7 @@ public class RenderPipeline : Component
         MarkSettingsDirty();
     }
 
-    public ResourceRef GetRenderPathAttr() => Resource.GetResourceRef(_renderPath, new StringHash(nameof(RenderPath)));
+    public ResourceRef GetRenderPathAttr() => ResourceType.GetResourceRef(_renderPath, new StringHash(nameof(RenderPath)));
 
     public void SetRenderPathAttr(ResourceRef value)
     {

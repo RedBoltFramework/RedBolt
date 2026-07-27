@@ -1,12 +1,12 @@
 using System.Diagnostics;
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using RedBolt.Core;
 using RedBolt.Math;
-namespace RedBolt.RenderAPI;
-using Math = global::System.Math;
 
+namespace RedBolt.RenderAPI;
 
 /// <summary>Reference to the region in constant buffer within collection. Plain old data.</summary>
 public struct ConstantBufferCollectionRef
@@ -67,7 +67,7 @@ public class ConstantBufferCollection
     public int GetBufferSize(int index) => _buffers[index].Used;
 
     /// <summary>Return best size of GPU buffer. Round up to next power of two.</summary>
-    public int GetGPUBufferSize(int index) => Math.Max(512, checked((int)MathDefs.NextPowerOfTwo((uint)GetBufferSize(index))));
+    public int GetGPUBufferSize(int index) => SystemMath.Max(512, checked((int)MathDefs.NextPowerOfTwo((uint)GetBufferSize(index))));
 
     /// <summary>Return buffer data.</summary>
     public ReadOnlyMemory<byte> GetBufferData(int index) => _buffers[index].Data;

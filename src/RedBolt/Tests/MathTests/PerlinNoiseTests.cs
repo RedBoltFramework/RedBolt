@@ -1,9 +1,9 @@
+using SystemMath = global::System.Math;
 using System.Reflection;
 
 using RedBolt.Math;
-namespace RedBolt.Tests.MathTests;
-using Math = global::System.Math;
 
+namespace RedBolt.Tests.MathTests;
 
 public class PerlinNoiseTests
 {
@@ -67,8 +67,8 @@ public class PerlinNoiseTests
         for (uint i = 0; i < 1024; ++i)
         {
             var value = noise.GetDouble(i * 1.1);
-            min = Math.Min(min, value);
-            max = Math.Max(max, value);
+            min = SystemMath.Min(min, value);
+            max = SystemMath.Max(max, value);
         }
 
         Assert.True(min >= 0.0);
@@ -91,8 +91,8 @@ public class PerlinNoiseTests
                 for (uint z = 0; z < 100; ++z)
                 {
                     var value = noise.GetDouble(x * 1.1, y * 1.1, z * 1.1);
-                    min = Math.Min(min, value);
-                    max = Math.Max(max, value);
+                    min = SystemMath.Min(min, value);
+                    max = SystemMath.Max(max, value);
                 }
             }
         }

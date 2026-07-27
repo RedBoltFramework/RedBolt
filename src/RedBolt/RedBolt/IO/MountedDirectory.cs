@@ -4,6 +4,7 @@ using System.IO;
 
 using RedBolt.Core;
 using RedBolt.Resource;
+
 namespace RedBolt.IO;
 
 /// <summary>Stores files of a directory tree sequentially for convenient access.</summary>

@@ -1,8 +1,8 @@
 using RedBolt;
-
 using RedBolt.IO;
-namespace RedBolt.Tests;
 using File = global::RedBolt.IO.File;
+
+namespace RedBolt.Tests;
 
 public sealed class AbstractFileTests
 {

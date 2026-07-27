@@ -1,10 +1,10 @@
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
+
 using RedBolt.Bindings.Sdl;
-
 using RedBolt.Core;
-namespace RedBolt.Audio;
-using Math = global::System.Math;
 
+namespace RedBolt.Audio;
 
 /// <summary>Microphone audio input device.</summary>
 public class Microphone : RedObject
@@ -72,7 +72,7 @@ public class Microphone : RedObject
         {
             var needsWake = false;
             for (var i = 0; i < sampleCount; ++i)
-                needsWake |= Math.Abs((int)samples[i]) > _wakeThreshold;
+                needsWake |= SystemMath.Abs((int)samples[i]) > _wakeThreshold;
 
             if (!needsWake)
             {
@@ -158,7 +158,7 @@ public class Microphone : RedObject
             _which = which;
             _frequency = frequency;
             if (bufferSize > 0)
-                _buffer.Capacity = Math.Max(_buffer.Capacity, bufferSize);
+                _buffer.Capacity = SystemMath.Max(_buffer.Capacity, bufferSize);
             SetEnabled(true);
         }
     }

@@ -1,9 +1,10 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Math;
-namespace RedBolt.Input;
-using Math = global::System.Math;
 
+namespace RedBolt.Input;
 
 /// <summary>Helper class to transform axis value.</summary>
 public class AxisAdapter : ICloneable
@@ -25,7 +26,7 @@ public class AxisAdapter : ICloneable
     /// <summary>Set dead zone half-width to mitigate axis drift.</summary>
     public void SetDeadZone(float deadZone)
     {
-        _deadZone = Math.Max(deadZone, 0.0f);
+        _deadZone = SystemMath.Max(deadZone, 0.0f);
     }
 
     /// <summary>Get dead zone half-width.</summary>

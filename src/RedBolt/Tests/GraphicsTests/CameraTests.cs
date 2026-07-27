@@ -1,13 +1,12 @@
 using RedBolt.Core;
 using RedBolt.Graphics;
+using FillMode = global::RedBolt.Graphics.FillMode;
 using RedBolt.Math;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using FillMode = global::RedBolt.Graphics.FillMode;
-using RenderPipeline = global::RedBolt.RenderPipeline.RenderPipeline;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class CameraTests
@@ -35,7 +34,7 @@ public sealed class CameraTests
     [Fact]
     public void Enabled_attribute_updates_live_property()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         Assert.True(camera.SetAttribute("Is Enabled", false));
         Assert.False(camera.Enabled);
@@ -45,7 +44,7 @@ public sealed class CameraTests
     [Fact]
     public void Clip_and_fov_helpers_clamp_values()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         camera.SetNearClip(-1.0f);
         camera.SetFarClip(200.0f);
@@ -59,7 +58,7 @@ public sealed class CameraTests
     [Fact]
     public void Aspect_and_ortho_size_helpers_work()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         camera.SetAspectRatio(2.0f);
         camera.SetOrthoSize(new Vector2f(40.0f, 20.0f));
@@ -73,7 +72,7 @@ public sealed class CameraTests
     [Fact]
     public void Zoom_and_lod_bias_clamp_to_epsilon()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         camera.SetZoom(0.0f);
         camera.SetLodBias(0.0f);
@@ -84,7 +83,7 @@ public sealed class CameraTests
     [Fact]
     public void View_masks_roundtrip()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         camera.SetViewMask(0x0fu);
         camera.SetZoneMask(0xf0u);
@@ -98,7 +97,7 @@ public sealed class CameraTests
     [Fact]
     public void Projection_and_mouse_helpers_work()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         camera.SetProjectionOffset(new Vector2f(0.1f, 0.2f));
         camera.SetMousePosition(new Vector2f(0.5f, 0.25f));
@@ -112,7 +111,7 @@ public sealed class CameraTests
     [Fact]
     public void FillMode_and_distance_helpers_work()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         camera.SetFillMode(FillMode.Point);
         Assert.Equal(FillMode.Point, camera.GetFillMode());
@@ -123,7 +122,7 @@ public sealed class CameraTests
     [Fact]
     public void View_matrix_tracks_camera_transform()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var cameraNode = scene.CreateChild("Camera");
         cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -6.0f));
         var camera = cameraNode.CreateComponent<Camera>();
@@ -136,7 +135,7 @@ public sealed class CameraTests
     [Fact]
     public void View_matrix_ignores_camera_node_scale()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var cameraNode = scene.CreateChild("Camera");
         cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -6.0f));
         cameraNode.SetScale(4.0f);
@@ -150,7 +149,7 @@ public sealed class CameraTests
     [Fact]
     public void Perspective_projection_matches_upstream_formula()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         camera.SetAspectRatio(2.0f);
         camera.SetNearClip(0.1f);
@@ -173,7 +172,7 @@ public sealed class CameraTests
     [Fact]
     public void OpenGL_gpu_projection_matches_upstream_adjustment()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         camera.SetAspectRatio(2.0f);
         camera.SetNearClip(0.1f);
@@ -194,7 +193,7 @@ public sealed class CameraTests
     [Fact]
     public void Projection_flip_vertical_matches_gpu_projection_behavior()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         camera.SetFlipVertical(true);
 
@@ -213,11 +212,11 @@ public sealed class CameraTests
         Assert.True(typeof(RedObject).IsAssignableFrom(typeof(Viewport)));
         Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(Viewport)));
 
-        Assert.Equal(typeof(WeakReference<Scene>), GetPrivateFieldInfo("_scene").FieldType);
+        Assert.Equal(typeof(WeakReference<SceneType>), GetPrivateFieldInfo("_scene").FieldType);
         Assert.Equal(typeof(WeakReference<Camera>), GetPrivateFieldInfo("_camera").FieldType);
         Assert.Equal(typeof(WeakReference<Camera>), GetPrivateFieldInfo("_rightEye").FieldType);
         Assert.Equal(typeof(WeakReference<Camera>), GetPrivateFieldInfo("_cullCamera").FieldType);
-        Assert.Equal(typeof(WeakReference<RenderPipeline>), GetPrivateFieldInfo("_renderPipeline").FieldType);
+        Assert.Equal(typeof(WeakReference<RenderPipelineComponent>), GetPrivateFieldInfo("_renderPipeline").FieldType);
         Assert.Equal(typeof(RenderPipelineView), GetPrivateFieldInfo("_renderPipelineView").FieldType);
     }
 
@@ -245,7 +244,7 @@ public sealed class CameraTests
     [Fact]
     public void Viewport_managed_state_helpers_work()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
         var childCamera = scene.CreateChild("ChildCamera").CreateComponent<Camera>();
@@ -264,11 +263,11 @@ public sealed class CameraTests
     [Fact]
     public void Viewport_recreates_view_when_automatic_pipeline_changes()
     {
-        var firstScene = new Scene();
+        var firstScene = new SceneType();
         var firstCamera = firstScene.CreateChild("Camera").CreateComponent<Camera>();
-        firstScene.CreateComponent<RenderPipeline>();
-        var secondScene = new Scene();
-        secondScene.CreateComponent<RenderPipeline>();
+        firstScene.CreateComponent<RenderPipelineComponent>();
+        var secondScene = new SceneType();
+        secondScene.CreateComponent<RenderPipelineComponent>();
 
         var viewport = new Viewport(firstScene, firstCamera);
         viewport.AllocateView();
@@ -282,14 +281,14 @@ public sealed class CameraTests
 
         Assert.NotNull(secondView);
         Assert.NotSame(firstView, secondView);
-        Assert.Same(secondScene.GetComponent<RenderPipeline>(), secondView.GetRenderPipeline());
+        Assert.Same(secondScene.GetComponent<RenderPipelineComponent>(), secondView.GetRenderPipeline());
     }
 
     [Fact]
     public void Viewport_destroys_owned_render_pipeline_view_at_reset_boundaries()
     {
-        var scene = new Scene();
-        var renderPipeline = new RenderPipeline();
+        var scene = new SceneType();
+        var renderPipeline = new RenderPipelineComponent();
         var firstView = new TrackingRenderPipelineView(renderPipeline);
         var viewport = new Viewport(scene, null);
         SetPrivateField(viewport, "_renderPipelineView", firstView);
@@ -335,7 +334,7 @@ public sealed class CameraTests
         private FrameInfo _frameInfo;
         private RenderPipelineStats _stats;
 
-        public TrackingRenderPipelineView(RenderPipeline renderPipeline)
+        public TrackingRenderPipelineView(RenderPipelineComponent renderPipeline)
             : base(renderPipeline)
         {
         }

@@ -1,6 +1,6 @@
 using RedBolt;
-
 using RedBolt.Container;
+
 namespace RedBolt.Tests;
 
 public sealed class IndexAllocatorTests

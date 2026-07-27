@@ -1,9 +1,9 @@
-using RedBolt.RenderAPI;
-namespace RedBolt.Resource;
-using Math = global::System.Math;
-
-
 using System.Buffers.Binary;
+using SystemMath = global::System.Math;
+
+using RedBolt.RenderAPI;
+
+namespace RedBolt.Resource;
 
 public static class Decompress
 {
@@ -113,8 +113,8 @@ public static class Decompress
                 sourceOffset += 4;
                 DecompressBlockEtc2(blockPart1, blockPart2, buffer4x4, 4, 4, 0, 0, 4);
 
-                var widthInBuffer = Math.Min(width - x * 4, 4);
-                var heightInBuffer = Math.Min(height - y * 4, 4);
+                var widthInBuffer = SystemMath.Min(width - x * 4, 4);
+                var heightInBuffer = SystemMath.Min(height - y * 4, 4);
                 for (var dy = 0; dy < heightInBuffer; ++dy)
                 {
                     for (var dx = 0; dx < widthInBuffer; ++dx)
@@ -142,8 +142,8 @@ public static class Decompress
         var do2bitMode = format == EmulatedTextureFormat.PvrtcRgb2Bpp
             || format == EmulatedTextureFormat.PvrtcRgba2Bpp;
         var xBlockSize = do2bitMode ? 8 : 4;
-        var blockXDim = Math.Max(2, width / xBlockSize);
-        var blockYDim = Math.Max(2, height / 4);
+        var blockXDim = SystemMath.Max(2, width / xBlockSize);
+        var blockYDim = SystemMath.Max(2, height / 4);
 
         Span<int> modulationValues = stackalloc int[8 * 16];
         Span<int> modulationModes = stackalloc int[8 * 16];

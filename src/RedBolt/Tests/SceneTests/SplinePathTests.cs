@@ -1,11 +1,10 @@
 using RedBolt;
-
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 public sealed class SplinePathTests
 {
@@ -99,7 +98,7 @@ public sealed class SplinePathTests
     [Fact]
     public void Control_point_management_and_move_work()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var pathNode = scene.CreateChild("Path");
         var path = pathNode.CreateComponent<SplinePath>();
         path.InterpolationMode = InterpolationMode.LinearCurve;
@@ -129,7 +128,7 @@ public sealed class SplinePathTests
     [Fact]
     public void Attribute_id_resolution_works()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var pathNode = scene.CreateChild("Path");
         var path = pathNode.CreateComponent<SplinePath>();
         var a = scene.CreateChild("A", 30);
@@ -153,7 +152,7 @@ public sealed class SplinePathTests
     {
         Assert.False(typeof(SplinePath).IsSealed);
 
-        var scene = new Scene();
+        var scene = new SceneType();
         var path = scene.CreateChild("Path").CreateComponent<SplinePath>();
         path.InterpolationMode = InterpolationMode.LinearCurve;
         var a = scene.CreateChild("A", 40);
@@ -187,7 +186,7 @@ public sealed class SplinePathTests
     [Fact]
     public void Null_controlled_node_and_missing_controlled_id_preserve_existing_target()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var path = scene.CreateChild("Path").CreateComponent<SplinePath>();
         var controlled = scene.CreateChild("Controlled", 50);
         path.ControlledNode = controlled;

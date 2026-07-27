@@ -1,9 +1,9 @@
-using RedBolt;
 using System.Reflection;
 
+using RedBolt;
 using RedBolt.Input;
-namespace RedBolt.Tests;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class DirectionAggregatorTests

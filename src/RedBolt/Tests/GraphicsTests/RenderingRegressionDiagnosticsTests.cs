@@ -1,13 +1,12 @@
 using RedBolt;
-
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class RenderingRegressionDiagnosticsTests
@@ -36,7 +35,7 @@ public sealed class RenderingRegressionDiagnosticsTests
             Assert.NotNull(vertexBuffer);
             Assert.NotNull(indexBuffer);
 
-            var scene = new Scene();
+            var scene = new SceneType();
             var modelNode = scene.CreateChild("Mushroom");
 
             var cameraNode = scene.CreateChild("Camera");

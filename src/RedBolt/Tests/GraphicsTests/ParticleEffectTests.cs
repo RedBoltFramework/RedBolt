@@ -1,17 +1,17 @@
 using System.Text;
-using RedBolt;
 
+using RedBolt;
 using RedBolt.Container;
 using RedBolt.Core;
+using Timer = global::RedBolt.Core.Timer;
 using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
-using Timer = global::RedBolt.Core.Timer;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ParticleEffectTests
@@ -336,7 +336,7 @@ public sealed class ParticleEmitterTests
     [Fact]
     public void Emitted_particle_without_color_frames_uses_cpp_default_white()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var emitter = scene.CreateChild("Emitter").CreateComponent<ParticleEmitter>();
         var effect = new ParticleEffect();
         effect.SetNumParticles(1);
@@ -368,7 +368,7 @@ public sealed class ParticleEmitterTests
         var material = Resources.Get<Material>("Materials/FirstCube");
         effect.SetMaterial(material);
 
-        var emitter = new Scene().CreateChild("Emitter").CreateComponent<ParticleEmitter>();
+        var emitter = new SceneType().CreateChild("Emitter").CreateComponent<ParticleEmitter>();
         emitter.SetEffect(effect);
 
         Assert.Same(effect, emitter.GetEffect());
@@ -391,7 +391,7 @@ public sealed class ParticleEmitterTests
         firstEffect.SetNumParticles(2);
         var secondEffect = new ParticleEffect();
         secondEffect.SetNumParticles(3);
-        var emitter = new Scene().CreateChild("Emitter").CreateComponent<ParticleEmitter>();
+        var emitter = new SceneType().CreateChild("Emitter").CreateComponent<ParticleEmitter>();
         emitter.SetEffect(firstEffect);
         emitter.SetEffect(secondEffect);
 
@@ -407,7 +407,7 @@ public sealed class ParticleEmitterTests
     [Fact]
     public void Emit_and_update_enables_billboards_and_advances_particle_timers()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var node = scene.CreateChild("Emitter");
         var emitter = node.CreateComponent<ParticleEmitter>();
 
@@ -483,7 +483,7 @@ public sealed class ParticleEmitterTests
     [Fact]
     public void Particles_attribute_roundtrip()
     {
-        var emitter = new Scene().CreateChild("Emitter").CreateComponent<ParticleEmitter>();
+        var emitter = new SceneType().CreateChild("Emitter").CreateComponent<ParticleEmitter>();
         emitter.SetNumParticles(2);
         var attr = new VariantVector
         {
@@ -518,7 +518,7 @@ public sealed class ParticleEmitterTests
     [Fact]
     public void Serialize_particles_false_returns_count_only()
     {
-        var emitter = new Scene().CreateChild("Emitter").CreateComponent<ParticleEmitter>();
+        var emitter = new SceneType().CreateChild("Emitter").CreateComponent<ParticleEmitter>();
         emitter.SetNumParticles(5);
         emitter.SetSerializeParticles(false);
         var attr = emitter.GetParticlesAttr();

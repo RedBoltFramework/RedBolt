@@ -1,12 +1,12 @@
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-namespace RedBolt.RenderPipeline;
-using Math = global::System.Math;
 
+namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Cooked light parameters used by shader binding.
@@ -436,7 +436,7 @@ public class LightProcessor : IDisposable
         _cookedParams.Direction = lightNode.GetWorldRotation() * Vector3f.Back;
         _cookedParams.InverseRange = lightType == LightType.Directional
             ? 0.0f
-            : 1.0f / Math.Max(Light.GetRange(), MathDefs.Epsilon);
+            : 1.0f / SystemMath.Max(Light.GetRange(), MathDefs.Epsilon);
         _cookedParams.VolumetricRadius = Light.GetRadius();
         _cookedParams.VolumetricLength = Light.GetLength();
 
@@ -584,7 +584,7 @@ public class LightProcessor : IDisposable
             for (var i = 1; i < _numActiveSplits; ++i)
             {
                 var splitDepthRange = _splits[i].ShadowCamera.GetFarClip();
-                var splitScale = Math.Max(1.0f, splitDepthRange / firstSplitDepthRange);
+                var splitScale = SystemMath.Max(1.0f, splitDepthRange / firstSplitDepthRange);
                 var multiplier = 1.0f + (splitScale - 1.0f) * biasAutoAdjust;
                 _cookedParams.ShadowDepthBiasMultiplier[i] = MathDefs.SnapRound(multiplier, 0.1f);
             }
@@ -646,7 +646,7 @@ public class LightProcessor : IDisposable
         var fadeStart = light.GetFadeDistance();
         var fadeEnd = light.GetDrawDistance();
         if (light.GetLightType() != LightType.Directional && fadeEnd > 0.0f && fadeStart > 0.0f && fadeStart < fadeEnd)
-            return Math.Min(1.0f - (light.GetDistance() - fadeStart) / (fadeEnd - fadeStart), 1.0f);
+            return SystemMath.Min(1.0f - (light.GetDistance() - fadeStart) / (fadeEnd - fadeStart), 1.0f);
         return 1.0f;
     }
 
@@ -661,7 +661,7 @@ public class LightProcessor : IDisposable
         var spotProj = new Matrix4(
             w, 0, 0, 0,
             0, h, 0, 0,
-            0, 0, 1.0f / Math.Max(light.GetRange(), MathDefs.Epsilon), 0,
+            0, 0, 1.0f / SystemMath.Max(light.GetRange(), MathDefs.Epsilon), 0,
             0, 0, 1.0f, 0);
 
         Matrix4 texAdjust;
@@ -709,7 +709,7 @@ public class LightProcessor : IDisposable
             if (nearSplit > farClip)
                 break;
 
-            var farSplit = Math.Min(farClip, cascade.Splits[i]);
+            var farSplit = SystemMath.Min(farClip, cascade.Splits[i]);
             if (farSplit <= nearSplit)
                 break;
 

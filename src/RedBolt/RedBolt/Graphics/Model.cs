@@ -1,16 +1,16 @@
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.IO;
+using FileMode = global::RedBolt.IO.FileMode;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
-namespace RedBolt.Graphics;
-using FileMode = global::RedBolt.IO.FileMode;
-using Math = global::System.Math;
 
+namespace RedBolt.Graphics;
 
 /// <summary>Vertex buffer morph data.</summary>
 public sealed class VertexBufferMorph : ICloneable
@@ -883,7 +883,7 @@ public sealed class Model : ResourceWithMetadata, ICloneable
         if (lodLevels.Count == 0)
             return null;
 
-        return lodLevels[(int)Math.Min(lodLevel, (uint)lodLevels.Count - 1)];
+        return lodLevels[(int)SystemMath.Min(lodLevel, (uint)lodLevels.Count - 1)];
     }
 
     public uint GetNumGeometryLodLevels(uint index)

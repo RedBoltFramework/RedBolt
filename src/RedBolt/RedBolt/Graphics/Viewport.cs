@@ -3,15 +3,15 @@ using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
+
 namespace RedBolt.Graphics;
-using RenderPipeline = global::RedBolt.RenderPipeline.RenderPipeline;
-using Scene = global::RedBolt.Scene.Scene;
 
 /// <summary>Viewport definition either for a render surface or the backbuffer.</summary>
 public class Viewport : RedObject
 {
     /// <summary>Scene pointer.</summary>
-    private readonly WeakReference<Scene> _scene = new(null!);
+    private readonly WeakReference<SceneType> _scene = new(null!);
     /// <summary>Camera pointer.</summary>
     private readonly WeakReference<Camera> _camera = new(null!);
     /// <summary>Right eye camera pointer.</summary>
@@ -26,7 +26,7 @@ public class Viewport : RedObject
     /// <summary>Whether to search for render pipeline automatically.</summary>
     private bool _autoRenderPipeline = true;
     /// <summary>Render pipeline component from scene.</summary>
-    private readonly WeakReference<RenderPipeline> _renderPipeline = new(null!);
+    private readonly WeakReference<RenderPipelineComponent> _renderPipeline = new(null!);
     /// <summary>Instance of render pipeline connected to render pipeline.</summary>
     private RenderPipelineView? _renderPipelineView;
 
@@ -36,14 +36,14 @@ public class Viewport : RedObject
     }
 
     /// <summary>Construct with a full rectangle.</summary>
-    public Viewport(Scene? scene, Camera? camera)
+    public Viewport(SceneType? scene, Camera? camera)
     {
         _scene.SetTarget(scene!);
         _camera.SetTarget(camera!);
     }
 
     /// <summary>Construct with a specified rectangle.</summary>
-    public Viewport(Scene? scene, Camera? camera, IntRect rect)
+    public Viewport(SceneType? scene, Camera? camera, IntRect rect)
     {
         _scene.SetTarget(scene!);
         _camera.SetTarget(camera!);
@@ -51,7 +51,7 @@ public class Viewport : RedObject
     }
 
     /// <summary>Construct with a specified rectangle and render pipeline.</summary>
-    public Viewport(Scene? scene, Camera? camera, IntRect rect, RenderPipeline? renderPipeline)
+    public Viewport(SceneType? scene, Camera? camera, IntRect rect, RenderPipelineComponent? renderPipeline)
     {
         _scene.SetTarget(scene!);
         _camera.SetTarget(camera!);
@@ -61,7 +61,7 @@ public class Viewport : RedObject
     }
 
     /// <summary>Construct for stereo with a render pipeline.</summary>
-    public Viewport(Scene? scene, Camera? leftEye, Camera? rightEye, RenderPipeline? renderPipeline)
+    public Viewport(SceneType? scene, Camera? leftEye, Camera? rightEye, RenderPipelineComponent? renderPipeline)
     {
         _scene.SetTarget(scene!);
         _camera.SetTarget(leftEye!);
@@ -90,7 +90,7 @@ public class Viewport : RedObject
     }
 
     /// <summary>Set scene.</summary>
-    public void SetScene(Scene? scene)
+    public void SetScene(SceneType? scene)
     {
         var hasScene = _scene.TryGetTarget(out var currentScene) && currentScene is not null;
         if (hasScene != (scene is not null))
@@ -127,7 +127,7 @@ public class Viewport : RedObject
     }
 
     /// <summary>Return scene.</summary>
-    public Scene? GetScene() => _scene.TryGetTarget(out var scene) ? scene : null;
+    public SceneType? GetScene() => _scene.TryGetTarget(out var scene) ? scene : null;
 
     /// <summary>Return viewport camera.</summary>
     public Camera? GetCamera() => _camera.TryGetTarget(out var camera) ? camera : null;
@@ -290,9 +290,9 @@ public class Viewport : RedObject
 
         if (renderPipeline is null && scene is not null)
         {
-            renderPipeline = scene.GetDerivedComponent<RenderPipeline>();
+            renderPipeline = scene.GetDerivedComponent<RenderPipelineComponent>();
             if (renderPipeline is null)
-                renderPipeline = scene.CreateComponent<RenderPipeline>();
+                renderPipeline = scene.CreateComponent<RenderPipelineComponent>();
             _renderPipeline.SetTarget(renderPipeline);
         }
 

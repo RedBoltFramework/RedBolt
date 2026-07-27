@@ -1,4 +1,5 @@
 using RedBolt.Graphics;
+
 namespace RedBolt.Scene;
 
 /// <summary>Animation wrap mode.</summary>

@@ -1,16 +1,16 @@
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
-using Resource = global::RedBolt.Resource.Resource;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Graphics;
 
 public enum LightMode
 {
@@ -49,7 +49,7 @@ public struct BiasParameters
     {
         ConstantBias = MathDefs.Clamp(ConstantBias, -1.0f, 1.0f);
         SlopeScaledBias = MathDefs.Clamp(SlopeScaledBias, -16.0f, 16.0f);
-        NormalOffset = Math.Max(NormalOffset, 0.0f);
+        NormalOffset = SystemMath.Max(NormalOffset, 0.0f);
     }
 
     /// <summary>Constant bias.</summary>
@@ -76,13 +76,13 @@ public struct CascadeParameters
     /// <summary>Validate parameters.</summary>
     public void Validate()
     {
-        Splits = new Vector4f(Math.Max(Splits.X, 0.0f), Math.Max(Splits.Y, 0.0f),
-            Math.Max(Splits.Z, 0.0f), Math.Max(Splits.W, 0.0f));
+        Splits = new Vector4f(SystemMath.Max(Splits.X, 0.0f), SystemMath.Max(Splits.Y, 0.0f),
+            SystemMath.Max(Splits.Z, 0.0f), SystemMath.Max(Splits.W, 0.0f));
         FadeStart = MathDefs.Clamp(FadeStart, MathDefs.Epsilon, 1.0f);
     }
 
     /// <summary>Return maximum shadow distance.</summary>
-    public readonly float GetShadowRange() => Math.Max(Math.Max(Splits.X, Splits.Y), Math.Max(Splits.Z, Splits.W));
+    public readonly float GetShadowRange() => SystemMath.Max(SystemMath.Max(Splits.X, Splits.Y), SystemMath.Max(Splits.Z, Splits.W));
 
     /// <summary>Cascade split distances.</summary>
     public Vector4f Splits;
@@ -110,8 +110,8 @@ public struct FocusParameters
     /// <summary>Validate parameters.</summary>
     public void Validate()
     {
-        Quantize = Math.Max(Quantize, Light.ShadowMinQuantize);
-        MinView = Math.Max(MinView, Light.ShadowMinView);
+        Quantize = SystemMath.Max(Quantize, Light.ShadowMinQuantize);
+        MinView = SystemMath.Max(MinView, Light.ShadowMinView);
     }
 
     /// <summary>Focus flag.</summary>
@@ -524,7 +524,7 @@ public class Light : Drawable
 
     public void SetSpecularIntensity(float intensity)
     {
-        SpecularIntensity = Math.Max(intensity, 0.0f);
+        SpecularIntensity = SystemMath.Max(intensity, 0.0f);
     }
 
     public float GetSpecularIntensity() => SpecularIntensity;
@@ -555,11 +555,11 @@ public class Light : Drawable
         return new Color(Color * Brightness, 1.0f);
     }
 
-    public float GetEffectiveSpecularIntensity() => SpecularIntensity * Math.Abs(Brightness);
+    public float GetEffectiveSpecularIntensity() => SpecularIntensity * SystemMath.Abs(Brightness);
 
     public void SetRange(float range)
     {
-        this._range = Math.Max(range, 0.0f);
+        this._range = SystemMath.Max(range, 0.0f);
         OnMarkedDirty(Node!);
     }
 
@@ -575,7 +575,7 @@ public class Light : Drawable
 
     public void SetAspectRatio(float aspectRatio)
     {
-        this._aspectRatio = Math.Max(aspectRatio, MathDefs.Epsilon);
+        this._aspectRatio = SystemMath.Max(aspectRatio, MathDefs.Epsilon);
         OnMarkedDirty(Node!);
     }
 
@@ -583,14 +583,14 @@ public class Light : Drawable
 
     public void SetFadeDistance(float distance)
     {
-        FadeDistance = Math.Max(distance, 0.0f);
+        FadeDistance = SystemMath.Max(distance, 0.0f);
     }
 
     public float GetFadeDistance() => FadeDistance;
 
     public void SetShadowFadeDistance(float distance)
     {
-        ShadowFadeDistance = Math.Max(distance, 0.0f);
+        ShadowFadeDistance = SystemMath.Max(distance, 0.0f);
     }
 
     public float GetShadowFadeDistance() => ShadowFadeDistance;
@@ -642,7 +642,7 @@ public class Light : Drawable
 
     public void SetShadowMaxExtrusion(float extrusion)
     {
-        ShadowMaxExtrusion = Math.Max(extrusion, 0.0f);
+        ShadowMaxExtrusion = SystemMath.Max(extrusion, 0.0f);
     }
 
     public float GetShadowMaxExtrusion() => ShadowMaxExtrusion;
@@ -740,7 +740,7 @@ public class Light : Drawable
         _rampTexture = string.IsNullOrEmpty(value.Name) ? null : cache.GetResource(value.Type, value.Name) as Texture;
     }
 
-    public ResourceRef GetRampTextureAttr() => Resource.GetResourceRef(_rampTexture, new StringHash("Texture2D"));
+    public ResourceRef GetRampTextureAttr() => ResourceType.GetResourceRef(_rampTexture, new StringHash("Texture2D"));
 
     public void SetShapeTextureAttr(ResourceRef value)
     {
@@ -753,7 +753,7 @@ public class Light : Drawable
         if (_shapeTexture is not null)
         {
             var textureType = _lightType == LightType.Point ? "TextureCube" : "Texture2D";
-            return Resource.GetResourceRef(_shapeTexture, new StringHash(textureType));
+            return ResourceType.GetResourceRef(_shapeTexture, new StringHash(textureType));
         }
 
         return new ResourceRef(new StringHash("Texture"), string.Empty);
@@ -780,7 +780,7 @@ public class Light : Drawable
             }
         }
 
-        return Math.Min(count, (int)MaxCascadeSplits);
+        return SystemMath.Min(count, (int)MaxCascadeSplits);
     }
 
     public void SetLightQueue(LightBatchQueue? queue)
@@ -798,14 +798,14 @@ public class Light : Drawable
         if (!IsNegative())
         {
             if (_lightType != LightType.Directional)
-                SetSortValue(Math.Max(distance, MathDefs.MinNearClip) / GetIntensityDivisor());
+                SetSortValue(SystemMath.Max(distance, MathDefs.MinNearClip) / GetIntensityDivisor());
             else
                 SetSortValue(MathDefs.Epsilon / GetIntensityDivisor());
         }
         else
         {
             if (_lightType != LightType.Directional)
-                SetSortValue(-Math.Max(distance, MathDefs.MinNearClip) * GetIntensityDivisor());
+                SetSortValue(-SystemMath.Max(distance, MathDefs.MinNearClip) * GetIntensityDivisor());
             else
                 SetSortValue(-MathDefs.LargeValue * GetIntensityDivisor());
         }
@@ -840,11 +840,11 @@ public class Light : Drawable
                 var cornerDistance = (cornerProjection - lightPosition).Length;
                 var cornerAngle = (cornerPosition - cornerProjection).Length / cornerDistance;
 
-                var spotAngle = Math.Min(centerAngle, cornerAngle);
+                var spotAngle = SystemMath.Min(centerAngle, cornerAngle);
                 var maxAngle = MathF.Tan(_fov * MathDefs.DegToRad * 0.5f);
-                var spotFactor = Math.Min(spotAngle / maxAngle, 1.0f);
+                var spotFactor = SystemMath.Min(spotAngle / maxAngle, 1.0f);
                 // We do not know the actual range attenuation ramp, so take only spot attenuation into account
-                var attenuation = Math.Max(1.0f - spotFactor * spotFactor, MathDefs.Epsilon);
+                var attenuation = SystemMath.Max(1.0f - spotFactor * spotFactor, MathDefs.Epsilon);
                 SetSortValue(1.0f / GetIntensityDivisor(attenuation));
                 break;
             }
@@ -857,7 +857,7 @@ public class Light : Drawable
                 var lightRay = new Ray(lightPosition, lightDirection);
                 var distance = lightRay.HitDistance(box);
                 var normalizedDistance = distance / _range;
-                var attenuation = Math.Max(1.0f - normalizedDistance * normalizedDistance, MathDefs.Epsilon);
+                var attenuation = SystemMath.Max(1.0f - normalizedDistance * normalizedDistance, MathDefs.Epsilon);
                 SetSortValue(1.0f / GetIntensityDivisor(attenuation));
                 break;
             }
@@ -867,7 +867,7 @@ public class Light : Drawable
     /// <summary>Return a divisor value based on intensity for calculating the sort value.</summary>
     public float GetIntensityDivisor(float attenuation = 1.0f)
     {
-        return Math.Max(GetEffectiveColor().SumRGB(), 0.0f) * attenuation + MathDefs.Epsilon;
+        return SystemMath.Max(GetEffectiveColor().SumRGB(), 0.0f) * attenuation + MathDefs.Epsilon;
     }
 
     public (float Cutoff, float InverseCutoff) GetCutoffParams()

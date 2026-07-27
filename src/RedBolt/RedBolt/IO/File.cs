@@ -1,16 +1,16 @@
+using Microsoft.Extensions.Logging;
 using System.Buffers.Binary;
 using System.IO;
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.Extensions.Logging;
-using RedBolt.Bindings.Sdl;
 
+using RedBolt.Bindings.Sdl;
 using RedBolt.Container;
 using RedBolt.Logging;
 using RedBolt.Math;
-namespace RedBolt.IO;
-using Math = global::System.Math;
 
+namespace RedBolt.IO;
 
 /// <summary>File opened either through the filesystem or from within a package file.</summary>
 public class File : AbstractFile
@@ -82,12 +82,12 @@ public class File : AbstractFile
             {
                 if (_readBufferOffset >= _readBufferSize)
                 {
-                    _readBufferSize = Math.Min(Size - Position, ReadBufferSize);
+                    _readBufferSize = SystemMath.Min(Size - Position, ReadBufferSize);
                     _readBufferOffset = 0;
                     _ = ReadInternal(_readBuffer.AsSpan(0, checked((int)_readBufferSize)));
                 }
 
-                var copySize = Math.Min(_readBufferSize - _readBufferOffset, sizeLeft);
+                var copySize = SystemMath.Min(_readBufferSize - _readBufferOffset, sizeLeft);
                 _readBuffer.AsSpan(checked((int)_readBufferOffset), checked((int)copySize))
                     .CopyTo(destination.Slice(destinationOffset, checked((int)copySize)));
                 sizeLeft -= copySize;
@@ -127,7 +127,7 @@ public class File : AbstractFile
                     _readBufferOffset = 0;
                 }
 
-                var copySize = Math.Min(_readBufferSize - _readBufferOffset, sizeLeft);
+                var copySize = SystemMath.Min(_readBufferSize - _readBufferOffset, sizeLeft);
                 _readBuffer.AsSpan(checked((int)_readBufferOffset), checked((int)copySize))
                     .CopyTo(destination.Slice(destinationOffset, checked((int)copySize)));
                 sizeLeft -= copySize;
@@ -187,7 +187,7 @@ public class File : AbstractFile
                 // Skip bytes
                 Span<byte> skipBuffer = stackalloc byte[checked((int)SkipBufferSize)];
                 while (position > Position)
-                    Read(skipBuffer[..checked((int)Math.Min(position - Position, (uint)skipBuffer.Length))]);
+                    Read(skipBuffer[..checked((int)SystemMath.Min(position - Position, (uint)skipBuffer.Length))]);
             }
             else
                 Log.GetLogger().LogError("Seeking backward in a compressed file is not supported");

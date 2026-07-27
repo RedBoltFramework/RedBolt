@@ -4,12 +4,11 @@
 // For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
 using System.Globalization;
+using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace RedBolt.Math;
-using Math = global::System.Math;
-
 
 /// <summary>Four-dimensional vector.</summary>
 [StructLayout(LayoutKind.Sequential)]
@@ -162,13 +161,13 @@ public struct Vector4f : ICloneable, IEquatable<Vector4f>
 
     /// <summary>Calculate absolute dot product.</summary>
     public readonly float AbsDotProduct(in Vector4f rhs) =>
-        Math.Abs(X * rhs.X) + Math.Abs(Y * rhs.Y) + Math.Abs(Z * rhs.Z) + Math.Abs(W * rhs.W);
+        SystemMath.Abs(X * rhs.X) + SystemMath.Abs(Y * rhs.Y) + SystemMath.Abs(Z * rhs.Z) + SystemMath.Abs(W * rhs.W);
 
     /// <summary>Project vector onto axis.</summary>
     public readonly float ProjectOntoAxis(in Vector3f axis) => DotProduct(axis.Normalized.ToVector4());
 
     /// <summary>Return absolute vector.</summary>
-    public readonly Vector4f Abs => new(Math.Abs(X), Math.Abs(Y), Math.Abs(Z), Math.Abs(W));
+    public readonly Vector4f Abs => new(SystemMath.Abs(X), SystemMath.Abs(Y), SystemMath.Abs(Z), SystemMath.Abs(W));
 
     /// <summary>Linear interpolation with another vector.</summary>
     public readonly Vector4f Lerp(in Vector4f rhs, float t) => this * (1.0f - t) + rhs * t;

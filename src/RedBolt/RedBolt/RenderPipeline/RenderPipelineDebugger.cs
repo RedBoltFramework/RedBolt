@@ -4,6 +4,7 @@ using System.Text;
 
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
+
 namespace RedBolt.RenderPipeline;
 
 public struct DebugFrameSnapshotBatch : ICloneable

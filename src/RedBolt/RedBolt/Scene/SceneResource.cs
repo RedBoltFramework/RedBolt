@@ -1,21 +1,21 @@
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 
 using RedBolt.Core;
 using RedBolt.IO;
+using FileMode = global::RedBolt.IO.FileMode;
 using RedBolt.Logging;
 using RedBolt.Resource;
-namespace RedBolt.Scene;
-using FileMode = global::RedBolt.IO.FileMode;
+using ResourceType = global::RedBolt.Resource.Resource;
 
-using Resource = global::RedBolt.Resource.Resource;
+namespace RedBolt.Scene;
 
 /// <summary>Scene resource.</summary>
 /// <remarks>
 /// Can be used to load and save <see cref="Scene"/>, since <see cref="Scene"/> is not a resource.
 /// Be careful when using a cached <see cref="SceneResource"/>, since the underlying scene may be active.
 /// </remarks>
-public class SceneResource : Resource
+public class SceneResource : ResourceType
 {
     public delegate void ReloadBeginHandler(SceneResource resource, ref bool cancelReload);
     public delegate void ReloadEndHandler(SceneResource resource, bool success);

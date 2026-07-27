@@ -1,17 +1,17 @@
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
+using System.Runtime.InteropServices;
 
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
-using Resource = global::RedBolt.Resource.Resource;
+using SceneType = global::RedBolt.Scene.Scene;
 
-using Scene = global::RedBolt.Scene.Scene;
+namespace RedBolt.Graphics;
 
 public enum TrailType
 {
@@ -404,7 +404,7 @@ public class RibbonTrail : Drawable
         _batches[0] = batch;
     }
 
-    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
+    protected internal override void OnSceneSet(SceneType? previousScene, SceneType? scene)
     {
         base.OnSceneSet(previousScene, scene);
 
@@ -838,7 +838,7 @@ public class RibbonTrail : Drawable
     }
 
     public void SetWidth(float width) { _width = width; Commit(); }
-    public void SetAnimationLodBias(float bias) => _animationLodBias = Math.Max(bias, 0.0f);
+    public void SetAnimationLodBias(float bias) => _animationLodBias = SystemMath.Max(bias, 0.0f);
     public void SetUpdateInvisible(bool enable) => _updateInvisible = enable;
     public void Commit() => MarkPositionsDirty();
 
@@ -849,7 +849,7 @@ public class RibbonTrail : Drawable
     }
 
     public Material? GetMaterial() => _batches[0].Material;
-    public ResourceRef GetMaterialAttr() => Resource.GetResourceRef(_batches[0].Material, new StringHash(nameof(Material)));
+    public ResourceRef GetMaterialAttr() => ResourceType.GetResourceRef(_batches[0].Material, new StringHash(nameof(Material)));
     public float GetVertexDistance() => _vertexDistance;
     public float GetWidth() => _width;
     public Color GetStartColor() => _startColor;

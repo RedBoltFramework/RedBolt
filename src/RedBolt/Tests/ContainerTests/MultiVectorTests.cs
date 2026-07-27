@@ -1,4 +1,5 @@
 using RedBolt.Container;
+
 namespace RedBolt.Tests.ContainerTests;
 
 public class MultiVectorTests

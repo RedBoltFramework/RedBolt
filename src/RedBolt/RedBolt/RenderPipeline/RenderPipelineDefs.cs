@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 
 using RedBolt.Container;
 using RedBolt.Core;
@@ -6,9 +7,8 @@ using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
-namespace RedBolt.RenderPipeline;
-using Math = global::System.Math;
 
+namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Sub-passes of user pass.
@@ -236,7 +236,7 @@ public struct RenderBufferManagerSettings : IEquatable<RenderBufferManagerSettin
 
     public void Validate()
     {
-        MultiSampleLevel = (int)Math.Clamp(MathDefs.ClosestPowerOfTwo((uint)Math.Max(MultiSampleLevel, 1)), 1u, 16u);
+        MultiSampleLevel = (int)SystemMath.Clamp(MathDefs.ClosestPowerOfTwo((uint)SystemMath.Max(MultiSampleLevel, 1)), 1u, 16u);
     }
 
     public readonly bool Equals(RenderBufferManagerSettings other)
@@ -545,10 +545,10 @@ public struct DrawableProcessorSettings : IEquatable<DrawableProcessorSettings>
 
     public void Validate()
     {
-        MaxVertexLights = Math.Clamp(MaxVertexLights, 0, 4);
-        MaxPixelLights = Math.Clamp(MaxPixelLights, 0, 256);
-        PcfKernelSize = Math.Clamp(PcfKernelSize, 1, 5);
-        NormalOffsetScale = Math.Max(0.0f, NormalOffsetScale);
+        MaxVertexLights = SystemMath.Clamp(MaxVertexLights, 0, 4);
+        MaxPixelLights = SystemMath.Clamp(MaxPixelLights, 0, 256);
+        PcfKernelSize = SystemMath.Clamp(PcfKernelSize, 1, 5);
+        NormalOffsetScale = SystemMath.Max(0.0f, NormalOffsetScale);
         if (PcfKernelSize == 4)
             PcfKernelSize = 3;
     }
@@ -696,10 +696,10 @@ public struct ShadowMapAllocatorSettings : IEquatable<ShadowMapAllocatorSettings
 
     public void Validate()
     {
-        VarianceShadowMapMultiSample = (int)Math.Clamp(MathDefs.ClosestPowerOfTwo((uint)Math.Max(VarianceShadowMapMultiSample, 1)), 1u, 16u);
-        ShadowAtlasPageSize = checked((int)Math.Clamp(
+        VarianceShadowMapMultiSample = (int)SystemMath.Clamp(MathDefs.ClosestPowerOfTwo((uint)SystemMath.Max(VarianceShadowMapMultiSample, 1)), 1u, 16u);
+        ShadowAtlasPageSize = checked((int)SystemMath.Clamp(
             MathDefs.ClosestPowerOfTwo(checked((uint)ShadowAtlasPageSize)), 128u, 16u * 1024u));
-        DepthBiasScale = Math.Max(0.0f, DepthBiasScale);
+        DepthBiasScale = SystemMath.Max(0.0f, DepthBiasScale);
     }
 
     public readonly bool Equals(ShadowMapAllocatorSettings other)
@@ -745,7 +745,7 @@ public struct OcclusionBufferSettings : IEquatable<OcclusionBufferSettings>
 
     public void Validate()
     {
-        OcclusionBufferSize = Math.Clamp(OcclusionBufferSize, 1, 16 * 1024);
+        OcclusionBufferSize = SystemMath.Clamp(OcclusionBufferSize, 1, 16 * 1024);
     }
 
     public readonly bool Equals(OcclusionBufferSettings other)
@@ -875,14 +875,14 @@ public struct SceneProcessorSettings : IEquatable<SceneProcessorSettings>
 
     public void Validate()
     {
-        MaxVertexLights = Math.Clamp(MaxVertexLights, 0, 4);
-        MaxPixelLights = Math.Clamp(MaxPixelLights, 0, 256);
-        PcfKernelSize = Math.Clamp(PcfKernelSize, 1, 5);
-        NormalOffsetScale = Math.Max(0.0f, NormalOffsetScale);
+        MaxVertexLights = SystemMath.Clamp(MaxVertexLights, 0, 4);
+        MaxPixelLights = SystemMath.Clamp(MaxPixelLights, 0, 256);
+        PcfKernelSize = SystemMath.Clamp(PcfKernelSize, 1, 5);
+        NormalOffsetScale = SystemMath.Max(0.0f, NormalOffsetScale);
         if (PcfKernelSize == 4)
             PcfKernelSize = 3;
 
-        OcclusionBufferSize = Math.Clamp(OcclusionBufferSize, 1, 16 * 1024);
+        OcclusionBufferSize = SystemMath.Clamp(OcclusionBufferSize, 1, 16 * 1024);
         DirectionalShadowSize = checked((int)MathDefs.ClosestPowerOfTwo(checked((uint)DirectionalShadowSize)));
         SpotShadowSize = checked((int)MathDefs.ClosestPowerOfTwo(checked((uint)SpotShadowSize)));
         PointShadowSize = checked((int)MathDefs.ClosestPowerOfTwo(checked((uint)PointShadowSize)));
@@ -1114,7 +1114,7 @@ public struct RenderPipelineSettings : IEquatable<RenderPipelineSettings>
 
         shadowMapAllocator.VarianceShadowMapMultiSample = renderDevice.GetSupportedMultiSample(
             TextureFormat.TexFormatRg32Float, shadowMapAllocator.VarianceShadowMapMultiSample);
-        shadowMapAllocator.ShadowAtlasPageSize = Math.Min(shadowMapAllocator.ShadowAtlasPageSize, caps.MaxRenderTargetSize);
+        shadowMapAllocator.ShadowAtlasPageSize = SystemMath.Min(shadowMapAllocator.ShadowAtlasPageSize, caps.MaxRenderTargetSize);
         ShadowMapAllocator = shadowMapAllocator;
     }
 
@@ -1235,7 +1235,7 @@ public sealed class RenderOutputTargetInfo
         ColorFormat = colorFormat;
         DepthStencilTarget = depthStencilTarget;
         DepthStencilFormat = depthStencilFormat;
-        MultiSample = Math.Max(multiSample, 1);
+        MultiSample = SystemMath.Max(multiSample, 1);
         ColorTexture = colorTexture;
         DepthStencilTexture = depthStencilTexture;
         BilinearFiltered = bilinearFiltered;
@@ -1345,21 +1345,21 @@ public interface IRenderPipelineInterface
 /// </summary>
 public abstract class RenderPipelineView : RedObject, IRenderPipelineInterface
 {
-    private readonly RenderPipeline _renderPipeline;
+    private readonly RenderPipelineComponent _renderPipeline;
     protected readonly GraphicsSystem _graphics;
     protected readonly Renderer _renderer;
 
     protected bool _linearColorSpace;
     protected readonly List<ShaderParameterDesc> _frameParameters = [];
 
-    protected RenderPipelineView(RenderPipeline renderPipeline)
+    protected RenderPipelineView(RenderPipelineComponent renderPipeline)
     {
         _renderPipeline = renderPipeline ?? throw new ArgumentNullException(nameof(renderPipeline));
         _graphics = GetSubsystem<GraphicsSystem>()!;
         _renderer = GetSubsystem<Renderer>()!;
     }
 
-    public RenderPipeline GetRenderPipeline() => _renderPipeline;
+    public RenderPipelineComponent GetRenderPipeline() => _renderPipeline;
 
     protected void UpdateFrameParameters()
     {

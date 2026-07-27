@@ -1,10 +1,10 @@
 using System.Diagnostics;
 using System.Globalization;
+using SystemMath = global::System.Math;
 
 using RedBolt.Logging;
-namespace RedBolt.Math;
-using Math = global::System.Math;
 
+namespace RedBolt.Math;
 
 /// <summary>Random number generator. Stable across platforms and runs for any given seed.</summary>
 public class RandomEngine : ICloneable
@@ -132,8 +132,8 @@ public class RandomEngine : ICloneable
         var u1 = GetDouble(MathDefs.Epsilon, 1.0);
         var u2 = GetDouble();
 
-        var z0 = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(360.0f * u2 * MathDefs.DegToRad);
-        var z1 = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(360.0f * u2 * MathDefs.DegToRad);
+        var z0 = SystemMath.Sqrt(-2.0 * SystemMath.Log(u1)) * SystemMath.Cos(360.0f * u2 * MathDefs.DegToRad);
+        var z1 = SystemMath.Sqrt(-2.0 * SystemMath.Log(u1)) * SystemMath.Sin(360.0f * u2 * MathDefs.DegToRad);
         return ((float)z0, (float)z1);
     }
 

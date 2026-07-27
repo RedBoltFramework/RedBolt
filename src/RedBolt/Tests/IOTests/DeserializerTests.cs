@@ -1,10 +1,10 @@
-using RedBolt;
+using SystemMath = global::System.Math;
 
+using RedBolt;
 using RedBolt.Core;
 using RedBolt.IO;
-namespace RedBolt.Tests;
-using Math = global::System.Math;
 
+namespace RedBolt.Tests;
 
 public sealed class DeserializerTests
 {
@@ -101,7 +101,7 @@ public sealed class DeserializerTests
         public override uint Read(Span<byte> destination)
         {
             ++ReadCount;
-            var size = Math.Min(destination.Length, _data.Length - (int)_position);
+            var size = SystemMath.Min(destination.Length, _data.Length - (int)_position);
             _data.AsSpan((int)_position, size).CopyTo(destination);
             _position += (uint)size;
             return (uint)size;
@@ -110,7 +110,7 @@ public sealed class DeserializerTests
         public override uint Seek(uint position)
         {
             LastSeekPosition = position;
-            _position = Math.Min(position, _size);
+            _position = SystemMath.Min(position, _size);
             return _position;
         }
 

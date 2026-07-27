@@ -1,15 +1,15 @@
 using System.Collections;
 using System.Reflection;
-using RedBolt;
 
+using RedBolt;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class CubemapRendererTests
@@ -49,12 +49,12 @@ public sealed class CubemapRendererTests
     [Fact]
     public void Borrowed_dependencies_are_stored_as_weak_references()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var renderer = new CubemapRenderer(scene);
         var texture = new TextureCube { Name = "CubemapRendererTests.Override" };
         var parameters = new CubemapUpdateParameters { OverrideFinalTexture = texture };
 
-        var sceneReference = GetPrivateField<WeakReference<Scene>>(renderer, "_scene");
+        var sceneReference = GetPrivateField<WeakReference<SceneType>>(renderer, "_scene");
         var overrideReference = GetPrivateField<WeakReference<TextureCube>?>(parameters, "_overrideFinalTexture");
         var viewportReference = GetPrivateField<WeakReference<TextureCube>>(renderer, "_currentViewportTexture");
         var filteredReference = GetPrivateField<WeakReference<TextureCube>>(renderer, "_currentFilteredTexture");
@@ -96,7 +96,7 @@ public sealed class CubemapRendererTests
     [Fact]
     public void Dispose_releases_managed_scene_owned_camera_nodes()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var initialChildren = scene.GetNumChildren();
         var renderer = new CubemapRenderer(scene);
 
@@ -116,7 +116,7 @@ public sealed class CubemapRendererTests
             if (!renderDevice.GetCaps().ComputeShaders)
                 return;
 
-            var scene = new Scene();
+            var scene = new SceneType();
             using var renderer = new CubemapRenderer(scene);
             using var sourceTexture = new TextureCube { Name = "CubemapFilterSource" };
             using var destinationTexture = new TextureCube { Name = "CubemapFilterDestination" };
@@ -159,7 +159,7 @@ public sealed class CubemapRendererTests
     public void Update_full_queues_all_faces_and_reports_complete()
     {
         ClearQueuedViewports();
-        var scene = new Scene();
+        var scene = new SceneType();
         scene.GetOrCreateComponent<Octree>();
         using var renderer = new CubemapRenderer(scene);
 
@@ -180,7 +180,7 @@ public sealed class CubemapRendererTests
     public void Update_sliced_renders_one_face_per_call_until_complete()
     {
         ClearQueuedViewports();
-        var scene = new Scene();
+        var scene = new SceneType();
         scene.GetOrCreateComponent<Octree>();
         using var cubemapRenderer = new CubemapRenderer(scene);
         var parameters = new CubemapUpdateParameters
@@ -211,7 +211,7 @@ public sealed class CubemapRendererTests
     public void Update_with_mismatched_override_returns_complete_error_result()
     {
         ClearQueuedViewports();
-        var scene = new Scene();
+        var scene = new SceneType();
         scene.GetOrCreateComponent<Octree>();
         using var cubemapRenderer = new CubemapRenderer(scene);
         var overrideTexture = new TextureCube { Name = "Override" };

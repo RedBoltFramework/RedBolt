@@ -1,13 +1,13 @@
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
+using System.Runtime.InteropServices;
 
 using RedBolt.Core;
+using Timer = global::RedBolt.Core.Timer;
 using RedBolt.Input;
 using RedBolt.Logging;
-namespace RedBolt.IO;
-using Math = global::System.Math;
-using Timer = global::RedBolt.Core.Timer;
 
+namespace RedBolt.IO;
 
 /// <summary>File change kind.</summary>
 public enum FileChangeKind
@@ -141,7 +141,7 @@ public class FileWatcher : RedObject
     /// <summary>Set the delay in seconds before file changes are notified. This (hopefully) avoids notifying when a file save is still in progress. Default 1 second.</summary>
     public void SetDelay(float interval)
     {
-        _delay = Math.Max(interval, 0.0f);
+        _delay = SystemMath.Max(interval, 0.0f);
     }
 
     /// <summary>Add a file change into the changes queue.</summary>

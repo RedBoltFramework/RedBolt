@@ -1,4 +1,5 @@
 using RedBolt.Engine;
+
 namespace RedBolt;
 
 public abstract partial class Application

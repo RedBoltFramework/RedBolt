@@ -5,9 +5,9 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-namespace RedBolt.RenderPipeline;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.RenderPipeline;
 
 /// <summary>Base type for scene pass.</summary>
 public abstract class ScenePass : BatchCompositorPass

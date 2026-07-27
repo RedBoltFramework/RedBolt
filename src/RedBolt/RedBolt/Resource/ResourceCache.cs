@@ -1,14 +1,15 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Audio;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
-using RedBolt.IO;
 using RedBolt.Input;
-using RedBolt.RenderPipeline;
-namespace RedBolt.Resource;
+using RedBolt.IO;
 using FileMode = global::RedBolt.IO.FileMode;
-using Math = global::System.Math;
+using RedBolt.RenderPipeline;
 
+namespace RedBolt.Resource;
 
 public sealed class ResourceGroup
 {
@@ -226,7 +227,7 @@ public sealed class ResourceCache : RedObject
 
     public void SetFinishBackgroundResourcesMs(int ms)
     {
-        _finishBackgroundResourcesMs = Math.Max(ms, 1);
+        _finishBackgroundResourcesMs = SystemMath.Max(ms, 1);
     }
 
     public int GetFinishBackgroundResourcesMs() => _finishBackgroundResourcesMs;
@@ -822,7 +823,7 @@ public sealed class ResourceCache : RedObject
             var average = resourceCount == 0 ? 0UL : group.MemoryUse / resourceCount;
             var largest = group.Resources.Values.Select(static resource => (ulong)resource.MemoryUse).DefaultIfEmpty().Max();
             totalResourceCount += resourceCount;
-            totalLargest = Math.Max(totalLargest, largest);
+            totalLargest = SystemMath.Max(totalLargest, largest);
             totalUse += group.MemoryUse;
 
             output.AppendFormat(

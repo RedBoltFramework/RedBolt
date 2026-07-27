@@ -1,16 +1,16 @@
+using Microsoft.Extensions.Logging;
 using System.Globalization;
+using SystemMath = global::System.Math;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 using System.Xml.XPath;
 using System.Xml.Xsl;
-using Microsoft.Extensions.Logging;
 
 using RedBolt.IO;
 using RedBolt.Logging;
-namespace RedBolt.Resource;
-using Math = global::System.Math;
 
+namespace RedBolt.Resource;
 
 /// <summary>XPath query result set.</summary>
 public class XPathResultSet : IReadOnlyList<XMLElement>, ICloneable, IDisposable
@@ -331,7 +331,7 @@ public class XPathQuery : IDisposable
         if (value == 0.0)
             return "0";
 
-        var scientific = Math.Abs(value).ToString("e15", CultureInfo.InvariantCulture);
+        var scientific = SystemMath.Abs(value).ToString("e15", CultureInfo.InvariantCulture);
         var exponentOffset = scientific.IndexOf('e');
         var exponent = int.Parse(scientific.AsSpan(exponentOffset + 1), CultureInfo.InvariantCulture) + 1;
         var mantissa = scientific.AsSpan(0, exponentOffset);
@@ -342,14 +342,14 @@ public class XPathQuery : IDisposable
         while (digitCount > 1 && digits[digitCount - 1] == '0')
             --digitCount;
 
-        var result = new StringBuilder(digitCount + Math.Abs(exponent) + 4);
+        var result = new StringBuilder(digitCount + SystemMath.Abs(exponent) + 4);
         if (value < 0.0)
             result.Append('-');
         if (exponent <= 0)
             result.Append('0');
         else
         {
-            var integerDigits = Math.Min(exponent, digitCount);
+            var integerDigits = SystemMath.Min(exponent, digitCount);
             result.Append(digits[..integerDigits]);
             result.Append('0', exponent - integerDigits);
         }
@@ -359,7 +359,7 @@ public class XPathQuery : IDisposable
             result.Append('.');
             if (exponent < 0)
                 result.Append('0', -exponent);
-            result.Append(digits[Math.Max(exponent, 0)..digitCount]);
+            result.Append(digits[SystemMath.Max(exponent, 0)..digitCount]);
         }
         return result.ToString();
     }

@@ -3,12 +3,13 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
+
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
-using RedBolt.Engine;
-using RedBolt.IO;
 using RedBolt.Core;
+using RedBolt.Engine;
 using RedBolt.Input;
+using RedBolt.IO;
 
 #if !REDBOLT_WEB_SAMPLE
 return new VirtualFileSystemApplication().Run(args);

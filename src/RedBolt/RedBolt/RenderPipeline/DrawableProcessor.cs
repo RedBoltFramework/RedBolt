@@ -1,12 +1,13 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Scene;
-namespace RedBolt.RenderPipeline;
-using Math = global::System.Math;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Flags related to geometry rendering.
@@ -549,7 +550,7 @@ public class DrawableProcessor : RedObject
                 return;
         }
 
-        var distance = Math.Max(_forwardLight!.GetDistanceTo(geometry), MathDefs.LargeEpsilon);
+        var distance = SystemMath.Max(_forwardLight!.GetDistanceTo(geometry), MathDefs.LargeEpsilon);
         var penalty = GetDrawableLightPenalty(distance * _forwardLightIntensityPenalty,
             _forwardLightIsNegative, _forwardLightImportance, _forwardLightType);
         ref var lighting = ref _geometryLighting[drawableIndex];
@@ -963,7 +964,7 @@ public class DrawableProcessor : RedObject
         // Estimate Zone weight and replace 2nd probe if it's less important
         if (cachedReflection.Probes[1].IsValid && mode == ReflectionMode.BlendProbesAndZone)
         {
-            var zoneWeight = Math.Max(0.0f, 1.0f - cachedReflection.Probes[0].Volume - cachedReflection.Probes[1].Volume);
+            var zoneWeight = SystemMath.Max(0.0f, 1.0f - cachedReflection.Probes[0].Volume - cachedReflection.Probes[1].Volume);
             if (zoneWeight > cachedReflection.Probes[1].Volume)
                 cachedReflection.Probes[1].Reset();
         }
@@ -986,7 +987,7 @@ public class DrawableProcessor : RedObject
         extrudedBoundingBox.Max = new Vector3f(
             extrudedBoundingBox.Max.X,
             extrudedBoundingBox.Max.Y,
-            Math.Max(extrudedBoundingBox.Max.Z, frustumBoundingBox.Max.Z));
+            SystemMath.Max(extrudedBoundingBox.Max.Z, frustumBoundingBox.Max.Z));
         return frustum.IsInsideFast(extrudedBoundingBox) != Intersection.Outside;
     }
 

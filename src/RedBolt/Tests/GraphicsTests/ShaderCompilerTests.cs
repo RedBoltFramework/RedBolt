@@ -1,8 +1,8 @@
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
-namespace RedBolt.Tests.GraphicsTests;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
 
+namespace RedBolt.Tests.GraphicsTests;
 
 public sealed class ShaderCompilerTests
 {

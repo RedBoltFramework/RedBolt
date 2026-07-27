@@ -1,17 +1,17 @@
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
+using System.Runtime.InteropServices;
 
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
-using Resource = global::RedBolt.Resource.Resource;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Graphics;
 
 /// <summary>
 /// Heightmap terrain component.
@@ -183,7 +183,7 @@ public class Terrain : Component
     /// <summary>Set maximum number of LOD levels for terrain patches. This can be between 1-4.</summary>
     public void SetMaxLodLevels(uint levels)
     {
-        levels = (uint)Math.Clamp((int)levels, (int)MinLodLevels, (int)MaxLodLevelsConst);
+        levels = (uint)SystemMath.Clamp((int)levels, (int)MinLodLevels, (int)MaxLodLevelsConst);
         if (levels != _maxLodLevels)
         {
             _maxLodLevels = levels;
@@ -564,8 +564,8 @@ public class Terrain : Component
         var position = node.GetWorldTransform().Inverse * worldPosition;
         var xPos = MathDefs.RoundToInt((position.X - _patchWorldOrigin.X) / _spacing.X);
         var zPos = MathDefs.RoundToInt((position.Z - _patchWorldOrigin.Y) / _spacing.Z);
-        xPos = Math.Clamp(xPos, 0, _numVertices.X - 1);
-        zPos = Math.Clamp(zPos, 0, _numVertices.Y - 1);
+        xPos = SystemMath.Clamp(xPos, 0, _numVertices.X - 1);
+        zPos = SystemMath.Clamp(zPos, 0, _numVertices.Y - 1);
         return new Vector2i(xPos, _numVertices.Y - 1 - zPos);
     }
 
@@ -655,14 +655,14 @@ public class Terrain : Component
                     var minHeight = position.Y;
                     if (halfLodExpand > 0 && (x & lodExpand) == 0 && (z & lodExpand) == 0)
                     {
-                        var minX = Math.Max(xPos - (int)halfLodExpand, 0);
-                        var maxX = Math.Min(xPos + (int)halfLodExpand, _numVertices.X - 1);
-                        var minZ = Math.Max(zPos - (int)halfLodExpand, 0);
-                        var maxZ = Math.Min(zPos + (int)halfLodExpand, _numVertices.Y - 1);
+                        var minX = SystemMath.Max(xPos - (int)halfLodExpand, 0);
+                        var maxX = SystemMath.Min(xPos + (int)halfLodExpand, _numVertices.X - 1);
+                        var minZ = SystemMath.Max(zPos - (int)halfLodExpand, 0);
+                        var maxZ = SystemMath.Min(zPos + (int)halfLodExpand, _numVertices.Y - 1);
                         for (var nZ = minZ; nZ <= maxZ; ++nZ)
                         {
                             for (var nX = minX; nX <= maxX; ++nX)
-                                minHeight = Math.Min(minHeight, GetRawHeight(nX, nZ));
+                                minHeight = SystemMath.Min(minHeight, GetRawHeight(nX, nZ));
                         }
                     }
                     occFloats[occIndex++] = position.X;
@@ -787,7 +787,7 @@ public class Terrain : Component
 
     public void SetMaxLodLevelsAttr(uint value)
     {
-        value = (uint)Math.Clamp((int)value, (int)MinLodLevels, (int)MaxLodLevelsConst);
+        value = (uint)SystemMath.Clamp((int)value, (int)MinLodLevels, (int)MaxLodLevelsConst);
         if (value != _maxLodLevels)
         {
             _maxLodLevels = value;
@@ -806,8 +806,8 @@ public class Terrain : Component
         }
     }
 
-    public ResourceRef GetMaterialAttr() => Resource.GetResourceRef(_material, new StringHash(nameof(Material)));
-    public ResourceRef GetHeightMapAttr() => Resource.GetResourceRef(_heightMap, new StringHash(nameof(Image)));
+    public ResourceRef GetMaterialAttr() => ResourceType.GetResourceRef(_material, new StringHash(nameof(Material)));
+    public ResourceRef GetHeightMapAttr() => ResourceType.GetResourceRef(_heightMap, new StringHash(nameof(Image)));
 
     public BoundingBox CalculateWorldBoundingBox()
     {
@@ -946,7 +946,7 @@ public class Terrain : Component
         }
 
         // Keep track of which patches actually need an update
-        var dirtyPatches = new bool[Math.Max(0, _numPatches.X * _numPatches.Y)];
+        var dirtyPatches = new bool[SystemMath.Max(0, _numPatches.X * _numPatches.Y)];
         for (var i = 0; i < dirtyPatches.Length; ++i)
             dirtyPatches[i] = updateAll;
 
@@ -1022,10 +1022,10 @@ public class Terrain : Component
                     updateRegion.Right + lodExpand + 1,
                     updateRegion.Bottom + lodExpand + 1);
 
-                var sX = Math.Max(updateRegion.Left / _patchSize, 0);
-                var eX = Math.Min(updateRegion.Right / _patchSize, _numPatches.X - 1);
-                var sY = Math.Max(updateRegion.Top / _patchSize, 0);
-                var eY = Math.Min(updateRegion.Bottom / _patchSize, _numPatches.Y - 1);
+                var sX = SystemMath.Max(updateRegion.Left / _patchSize, 0);
+                var eX = SystemMath.Min(updateRegion.Right / _patchSize, _numPatches.X - 1);
+                var sY = SystemMath.Max(updateRegion.Top / _patchSize, 0);
+                var eY = SystemMath.Min(updateRegion.Bottom / _patchSize, _numPatches.Y - 1);
                 for (var y = sY; y <= eY; ++y)
                 {
                     for (var x = sX; x <= eX; ++x)
@@ -1317,8 +1317,8 @@ public class Terrain : Component
         if (_heightData is null)
             return 0.0f;
 
-        x = Math.Clamp(x, 0, _numVertices.X - 1);
-        z = Math.Clamp(z, 0, _numVertices.Y - 1);
+        x = SystemMath.Clamp(x, 0, _numVertices.X - 1);
+        z = SystemMath.Clamp(z, 0, _numVertices.Y - 1);
         return _heightData[z * _numVertices.X + x];
     }
 
@@ -1328,8 +1328,8 @@ public class Terrain : Component
         if (_sourceHeightData is null)
             return 0.0f;
 
-        x = Math.Clamp(x, 0, _numVertices.X - 1);
-        z = Math.Clamp(z, 0, _numVertices.Y - 1);
+        x = SystemMath.Clamp(x, 0, _numVertices.X - 1);
+        z = SystemMath.Clamp(z, 0, _numVertices.Y - 1);
         return _sourceHeightData[z * _numVertices.X + x];
     }
 
@@ -1408,14 +1408,14 @@ public class Terrain : Component
                     {
                         if (x % divisor != 0 || z % divisor != 0)
                         {
-                            var error = Math.Abs(GetLodHeight(x, z, i) - GetRawHeight(x, z));
-                            maxError = Math.Max(error, maxError);
+                            var error = SystemMath.Abs(GetLodHeight(x, z, i) - GetRawHeight(x, z));
+                            maxError = SystemMath.Max(error, maxError);
                         }
                     }
                 }
 
                 // Set error to be at least same as (half vertex spacing x LOD) to prevent horizontal stretches getting too inaccurate
-                maxError = Math.Max(maxError, 0.25f * (_spacing.X + _spacing.Z) * (1 << (int)i));
+                maxError = SystemMath.Max(maxError, 0.25f * (_spacing.X + _spacing.Z) * (1 << (int)i));
             }
 
             lodErrors.Add(maxError);

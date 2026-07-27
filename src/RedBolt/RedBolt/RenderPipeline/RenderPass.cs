@@ -7,6 +7,7 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Scene;
+
 namespace RedBolt.RenderPipeline;
 
 /// <summary>

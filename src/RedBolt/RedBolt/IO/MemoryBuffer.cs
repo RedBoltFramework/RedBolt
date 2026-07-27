@@ -1,9 +1,8 @@
-using System.Text;
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace RedBolt.IO;
-using Math = global::System.Math;
-
 
 /// <summary>Memory area that can be read and written to as a stream.</summary>
 public unsafe class MemoryBuffer : AbstractFile, ICloneable
@@ -114,7 +113,7 @@ public unsafe class MemoryBuffer : AbstractFile, ICloneable
     /// <summary>Read bytes from the memory area. Return number of bytes actually read.</summary>
     public override uint Read(Span<byte> destination)
     {
-        var available = (int)Math.Min((uint)destination.Length, Size - Position);
+        var available = (int)SystemMath.Min((uint)destination.Length, Size - Position);
         if (_usesUnmanagedBuffer)
         {
             new ReadOnlySpan<byte>(_bufferPtr + checked((int)Position), available).CopyTo(destination);
@@ -131,14 +130,14 @@ public unsafe class MemoryBuffer : AbstractFile, ICloneable
     /// <summary>Set position from the beginning of the memory area. Return actual new position.</summary>
     public override uint Seek(uint position)
     {
-        Position = Math.Min(position, Size);
+        Position = SystemMath.Min(position, Size);
         return Position;
     }
 
     /// <summary>Write bytes to the memory area. Return number of bytes actually written.</summary>
     public override uint Write(ReadOnlySpan<byte> data)
     {
-        var available = (int)Math.Min((uint)data.Length, Size - Position);
+        var available = (int)SystemMath.Min((uint)data.Length, Size - Position);
         if (_usesUnmanagedBuffer)
         {
             data[..available].CopyTo(new Span<byte>(_bufferPtr + checked((int)Position), available));

@@ -1,19 +1,19 @@
+using Microsoft.Extensions.Logging;
 using System.Buffers;
 using System.Diagnostics;
-using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
-using RedBolt.IO;
 using RedBolt.Input;
+using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
-namespace RedBolt.Scene;
-using Math = global::System.Math;
-using Resource = global::RedBolt.Resource.Resource;
+using ResourceType = global::RedBolt.Resource.Resource;
 
+namespace RedBolt.Scene;
 
 /// <summary>Asynchronous scene loading mode.</summary>
 public static class SceneConstants
@@ -804,7 +804,7 @@ public class Scene : Node
 
     public void SetTimeScale(float scale)
     {
-        TimeScale = Math.Max(scale, MathDefs.Epsilon);
+        TimeScale = SystemMath.Max(scale, MathDefs.Epsilon);
     }
 
     public float GetTimeScale() => TimeScale;
@@ -829,7 +829,7 @@ public class Scene : Node
 
     public void SetAsyncLoadingMs(int ms)
     {
-        _asyncLoadingMs = Math.Max(ms, 1);
+        _asyncLoadingMs = SystemMath.Max(ms, 1);
     }
 
     public int GetAsyncLoadingMs() => _asyncLoadingMs;

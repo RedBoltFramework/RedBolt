@@ -1,13 +1,12 @@
-using RedBolt.Bindings.Diligent;
 using RedBolt;
-
+using RedBolt.Bindings.Diligent;
 using RedBolt.Container;
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
-namespace RedBolt.Tests;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class ShaderProgramReflectionTests

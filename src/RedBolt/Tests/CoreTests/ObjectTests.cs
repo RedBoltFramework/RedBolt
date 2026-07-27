@@ -1,6 +1,7 @@
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.IO;
+
 namespace RedBolt.Tests;
 
 public sealed class ObjectTests

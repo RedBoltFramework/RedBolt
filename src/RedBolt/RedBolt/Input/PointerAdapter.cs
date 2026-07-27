@@ -1,10 +1,11 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-namespace RedBolt.Input;
-using Math = global::System.Math;
 
+namespace RedBolt.Input;
 
 [Flags]
 public enum PointerAdapterMask : uint
@@ -31,7 +32,7 @@ public class PointerAdapter : RedObject
         var graphics = GetSubsystem<GraphicsSystem>();
         if (graphics is not null)
         {
-            _maxCursorSpeed = Math.Max(graphics.Width, graphics.Height) / 2.0f;
+            _maxCursorSpeed = SystemMath.Max(graphics.Width, graphics.Height) / 2.0f;
         }
     }
 

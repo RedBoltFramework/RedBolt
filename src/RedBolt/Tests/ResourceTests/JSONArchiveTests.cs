@@ -2,6 +2,7 @@ using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Resource;
+
 namespace RedBolt.Tests;
 
 public sealed class JSONArchiveTests

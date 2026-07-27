@@ -4,9 +4,9 @@ using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 public sealed class AnimatedModelTests
 {
@@ -55,7 +55,7 @@ public sealed class AnimatedModelTests
         };
         model.SetMorphs([morph]);
 
-        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        var animatedModel = new SceneType().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
         animatedModel.SetModel(model, true);
 
         Assert.Equal(1, animatedModel.GetSkeleton().GetNumBones());
@@ -69,7 +69,7 @@ public sealed class AnimatedModelTests
     [Fact]
     public void Animated_model_update_uses_integer_bone_indices()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         scene.CreateComponent<Octree>();
         var animatedModel = scene.CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
         animatedModel.SetModel(CreateSkeletonModel("AnimatedModel", BoneCollisionShape.None), true);
@@ -97,7 +97,7 @@ public sealed class AnimatedModelTests
             MorphData = new byte[sizeof(uint) + 3 * sizeof(float)]
         };
         model.SetMorphs([morph]);
-        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        var animatedModel = new SceneType().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
         animatedModel.SetModel(model, true);
 
         Assert.Empty(animatedModel.GetMorphVertexBuffers());
@@ -119,7 +119,7 @@ public sealed class AnimatedModelTests
         model.SetSkeleton(skeleton);
         model.SetMorphs([new ModelMorph { Name = "Smile", NameHash = new StringHash("Smile") }]);
 
-        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        var animatedModel = new SceneType().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
         animatedModel.SetModel(model, false);
         animatedModel.SetMorphsAttr(new byte[] { 255 });
 
@@ -134,7 +134,7 @@ public sealed class AnimatedModelTests
     [Fact]
     public void Animated_model_morph_weights_match_native_lookup_defaults()
     {
-        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        var animatedModel = new SceneType().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
 
         animatedModel.SetMorphWeight(5, 1.0f);
         animatedModel.SetMorphWeight("Missing", 1.0f);
@@ -221,7 +221,7 @@ public sealed class AnimatedModelTests
     public void Apply_attributes_assigns_existing_bone_nodes()
     {
         var model = CreateSkeletonModel("DeferredBones", BoneCollisionShape.Box);
-        var node = new Scene().CreateChild("AnimatedModel");
+        var node = new SceneType().CreateChild("AnimatedModel");
         var rootNode = node.CreateChild("Root");
         var animatedModel = node.CreateComponent<AnimatedModel>();
 
@@ -237,7 +237,7 @@ public sealed class AnimatedModelTests
     [Fact]
     public void Compatible_skeleton_reload_preserves_bone_node_and_animated_state()
     {
-        var node = new Scene().CreateChild("AnimatedModel");
+        var node = new SceneType().CreateChild("AnimatedModel");
         var animatedModel = node.CreateComponent<AnimatedModel>();
         animatedModel.SetModel(CreateSkeletonModel("First", BoneCollisionShape.Box), true);
         var originalNode = animatedModel.GetSkeleton().GetBone(0)!.Node;
@@ -258,7 +258,7 @@ public sealed class AnimatedModelTests
         var secondModel = CreateSkeletonModel("Second", BoneCollisionShape.Sphere);
         secondModel.SetBoundingBox(new BoundingBox(
             new Vector3f(-2.0f, -2.0f, -2.0f), new Vector3f(2.0f, 2.0f, 2.0f)));
-        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        var animatedModel = new SceneType().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
         animatedModel.SetModel(firstModel, true);
         animatedModel.SetModel(secondModel, true);
 
@@ -278,7 +278,7 @@ public sealed class AnimatedModelTests
     {
         var model = CreateSkeletonModel("Bounds", BoneCollisionShape.Box);
         model.GetSkeleton().GetModifiableBones()[0].InitialPosition = new Vector3f(3.0f, 0.0f, 0.0f);
-        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        var animatedModel = new SceneType().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
         animatedModel.SetModel(model, true);
 
         animatedModel.UpdateBoneBoundingBox();
@@ -291,7 +291,7 @@ public sealed class AnimatedModelTests
     [Fact]
     public void Non_master_model_uses_master_bone_nodes_and_world_bounds()
     {
-        var node = new Scene().CreateChild("AnimatedModels");
+        var node = new SceneType().CreateChild("AnimatedModels");
         var master = node.CreateComponent<AnimatedModel>();
         master.SetModel(CreateSkeletonModel("Master", BoneCollisionShape.Box), true);
         master.UpdateBoneBoundingBox();
@@ -309,7 +309,7 @@ public sealed class AnimatedModelTests
     [Fact]
     public void Animated_model_destruction_removes_bones_only_after_last_model()
     {
-        var node = new Scene().CreateChild("AnimatedModels");
+        var node = new SceneType().CreateChild("AnimatedModels");
         var model = CreateSkeletonModel("Shared", BoneCollisionShape.Box);
         model.GetSkeleton().SetRootBoneIndex(0);
         var master = node.CreateComponent<AnimatedModel>();
@@ -332,7 +332,7 @@ public sealed class AnimatedModelTests
     [Fact]
     public void Animated_model_keeps_animation_state_source_weak()
     {
-        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        var animatedModel = new SceneType().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
         var source = new AnimationController();
 
         animatedModel.ConnectToAnimationStateSource(source);
@@ -351,7 +351,7 @@ public sealed class AnimatedModelTests
         model.SetNumGeometries(2);
         model.SetGeometryCenter(0, new Vector3f(-2.0f, 0.0f, 0.0f));
         model.SetGeometryCenter(1, new Vector3f(2.0f, 0.0f, 0.0f));
-        var scene = new Scene();
+        var scene = new SceneType();
         var modelNode = scene.CreateChild("AnimatedModel");
         modelNode.SetScale(new Vector3f(2.0f, 3.0f, 4.0f));
         var animatedModel = modelNode.CreateComponent<AnimatedModel>();
@@ -387,7 +387,7 @@ public sealed class AnimatedModelTests
     public void Update_geometry_type_matches_cpp_dirty_flag_precedence(bool morphsDirty,
         bool forceAnimationUpdate, bool skinningDirty, bool softwareSkinning, UpdateGeometryType expected)
     {
-        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        var animatedModel = new SceneType().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
         SetPrivateField(animatedModel, "_morphsDirty", morphsDirty);
         SetPrivateField(animatedModel, "_forceAnimationUpdate", forceAnimationUpdate);
         SetPrivateField(animatedModel, "_skinningDirty", skinningDirty);
@@ -399,7 +399,7 @@ public sealed class AnimatedModelTests
     private static AnimatedModel CreateAnimatedModel(BoneCollisionShape collisionShape)
     {
         var model = CreateSkeletonModel("AnimatedModelRayQuery", collisionShape);
-        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        var animatedModel = new SceneType().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
         animatedModel.SetModel(model, true);
         return animatedModel;
     }

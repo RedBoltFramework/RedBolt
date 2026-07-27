@@ -1,10 +1,10 @@
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.RenderAPI;
-using RedBolt.Resource;
-namespace RedBolt.Graphics;
 using TextureAddressMode = global::RedBolt.RenderAPI.TextureAddressMode;
+using RedBolt.Resource;
 
+namespace RedBolt.Graphics;
 
 /// <summary>Cube map faces.</summary>
 public enum CubeMapFace

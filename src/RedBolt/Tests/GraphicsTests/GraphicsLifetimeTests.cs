@@ -1,6 +1,6 @@
 using RedBolt;
-
 using RedBolt.RenderAPI;
+
 namespace RedBolt.Tests;
 
 public sealed class GraphicsLifetimeTests

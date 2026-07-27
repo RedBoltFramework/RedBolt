@@ -20,14 +20,15 @@
 // THE SOFTWARE.
 //
 
+using SystemMath = global::System.Math;
+
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Resource;
-namespace RedBolt.Graphics;
-using Math = global::System.Math;
 
+namespace RedBolt.Graphics;
 
 /// <summary>
 /// State and parameters of playing Animation.
@@ -100,7 +101,7 @@ public sealed class AnimationParameters : IEquatable<AnimationParameters?>, IClo
     public bool RemoveDelayed(float fadeTime)
     {
         var alreadyRemoved = MathDefs.Equals(TargetWeight, 0.0f, MathDefs.LargeEpsilon);
-        var effectiveDelay = alreadyRemoved ? Math.Min(TargetWeightDelay, fadeTime) : fadeTime;
+        var effectiveDelay = alreadyRemoved ? SystemMath.Min(TargetWeightDelay, fadeTime) : fadeTime;
         var changed = !RemoveOnZeroWeight || TargetWeightDelay != effectiveDelay || TargetWeight != 0.0f;
 
         RemoveOnZeroWeight = true;

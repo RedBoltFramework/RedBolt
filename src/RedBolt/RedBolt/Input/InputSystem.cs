@@ -1,11 +1,13 @@
-using RedBolt.Bindings.Sdl;
 using Microsoft.Extensions.Logging;
+using System.Linq;
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Linq;
 
+using RedBolt.Bindings.Sdl;
 using RedBolt.Container;
 using RedBolt.Core;
+using Timer = global::RedBolt.Core.Timer;
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.IO;
@@ -14,10 +16,8 @@ using RedBolt.Math;
 using RedBolt.Platform;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
-namespace RedBolt.Input;
-using Math = global::System.Math;
 
-using Timer = global::RedBolt.Core.Timer;
+namespace RedBolt.Input;
 
 /// <summary>Input mouse modes.</summary>
 public enum MouseMode
@@ -333,7 +333,7 @@ public class InputSystem : RedObject
                             foreach (var srgb in new[] { 1, 0 })
                             {
                                 CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlFramebufferSrgbCapable, srgb), "SDL_GL_SetAttribute sRGB framebuffer");
-                                for (var multiSample = Math.Max(parameters.MultiSample, 1); multiSample > 0; multiSample /= 2)
+                                for (var multiSample = SystemMath.Max(parameters.MultiSample, 1); multiSample > 0; multiSample /= 2)
                                 {
                                     CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplebuffers, multiSample > 1 ? 1 : 0), "SDL_GL_SetAttribute multisample buffers");
                                     CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplesamples, multiSample > 1 ? multiSample : 0), "SDL_GL_SetAttribute multisample samples");
@@ -952,7 +952,7 @@ public class InputSystem : RedObject
             var rwops = SdlNativeBindings.SdlRWFromMem(buffer, data.Length);
             try
             {
-                return rwops.IsNull ? 0u : (uint)Math.Max(0, SdlNativeBindings.SdlLoadDollarTemplates(-1, rwops));
+                return rwops.IsNull ? 0u : (uint)SystemMath.Max(0, SdlNativeBindings.SdlLoadDollarTemplates(-1, rwops));
             }
             finally
             {
@@ -1695,8 +1695,8 @@ public class InputSystem : RedObject
         var numHats = SdlNativeBindings.SdlJoystickNumHats(joystick);
         if (controller is { IsNull: false })
         {
-            numButtons = Math.Max(numButtons, 15);
-            numAxes = Math.Max(numAxes, 6);
+            numButtons = SystemMath.Max(numButtons, 15);
+            numAxes = SystemMath.Max(numAxes, 6);
         }
 
         state.Initialize((uint)numButtons, (uint)numAxes, (uint)numHats);

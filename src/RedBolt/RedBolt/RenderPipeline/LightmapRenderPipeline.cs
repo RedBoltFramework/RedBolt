@@ -2,6 +2,7 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
+
 namespace RedBolt.RenderPipeline;
 
 /// <summary>

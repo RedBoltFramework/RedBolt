@@ -1,16 +1,16 @@
 using Microsoft.Extensions.Logging;
+using SystemMath = global::System.Math;
 
 using RedBolt.Container;
 using RedBolt.Core;
-using RedBolt.IO;
 using RedBolt.Input;
+using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
-namespace RedBolt.Scene;
-using Math = global::System.Math;
+using ResourceType = global::RedBolt.Resource.Resource;
 
-using Resource = global::RedBolt.Resource.Resource;
+namespace RedBolt.Scene;
 
 /// <summary>Interpolation method.</summary>
 public enum InterpMethod
@@ -71,7 +71,7 @@ public struct VAnimEventFrame : ICloneable, IDisposable
 }
 
 /// <summary>Value animation class.</summary>
-public class ValueAnimation : Resource
+public class ValueAnimation : ResourceType
 {
     /// <summary>Owner.</summary>
     private object? _owner;
@@ -360,8 +360,8 @@ public class ValueAnimation : Resource
             }
         }
 
-        _beginTime = Math.Min(time, _beginTime);
-        _endTime = Math.Max(time, _endTime);
+        _beginTime = SystemMath.Min(time, _beginTime);
+        _endTime = SystemMath.Max(time, _endTime);
         _splineTangentsDirty = true;
 
         return true;
@@ -392,8 +392,8 @@ public class ValueAnimation : Resource
             }
         }
 
-        _beginTime = Math.Min(time, _beginTime);
-        _endTime = Math.Max(time, _endTime);
+        _beginTime = SystemMath.Min(time, _beginTime);
+        _endTime = SystemMath.Max(time, _endTime);
     }
 
     /// <summary>Return animation is valid.</summary>

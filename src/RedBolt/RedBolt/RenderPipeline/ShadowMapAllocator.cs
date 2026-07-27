@@ -1,12 +1,12 @@
+using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
-namespace RedBolt.RenderPipeline;
-using Math = global::System.Math;
 
+namespace RedBolt.RenderPipeline;
 
 /// <summary>Utility to allocate shadow maps in texture atlas.</summary>
 public class ShadowMapAllocator : RedObject
@@ -98,7 +98,7 @@ public class ShadowMapAllocator : RedObject
         if (_settings.ShadowAtlasPageSize == 0 || _shadowMapFormat == TextureFormat.TexFormatUnknown)
             return default;
 
-        var clampedSize = new Vector2i(Math.Min(size.X, _shadowAtlasPageSize.X), Math.Min(size.Y, _shadowAtlasPageSize.Y));
+        var clampedSize = new Vector2i(SystemMath.Min(size.X, _shadowAtlasPageSize.X), SystemMath.Min(size.Y, _shadowAtlasPageSize.Y));
         var pages = CollectionsMarshal.AsSpan(_pages);
         for (var i = 0; i < pages.Length; ++i)
         {

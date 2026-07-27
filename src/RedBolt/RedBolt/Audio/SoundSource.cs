@@ -1,12 +1,13 @@
+using SystemMath = global::System.Math;
+
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-namespace RedBolt.Audio;
-using Math = global::System.Math;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Audio;
 
 /// <summary>Compressed audio decode buffer length in milliseconds.</summary>
 public static class SoundSourceConstants
@@ -179,7 +180,7 @@ public class SoundSource : Component
     }
 
     public void SetFrequency(float frequency) => Frequency = MathDefs.Clamp(frequency, 0.0f, 535232.0f);
-    public void SetGain(float gain) { Gain = Math.Max(gain, 0.0f); }
+    public void SetGain(float gain) { Gain = SystemMath.Max(gain, 0.0f); }
     public void SetAttenuation(float attenuation) => Attenuation = MathDefs.Clamp(attenuation, 0.0f, 1.0f);
     public void SetPanning(float panning) { Panning = MathDefs.Clamp(panning, -1.0f, 1.0f); }
     public void SetReach(float reach) { Reach = MathDefs.Clamp(reach, -1.0f, 1.0f); }
@@ -278,10 +279,10 @@ public class SoundSource : Component
                 var sampleSize = (int)stream.GetSampleSize();
                 var neededSize = (int)(samples * effectiveFrequency / mixRate);
                 neededSize = checked((neededSize + 4) * sampleSize);
-                neededSize = Math.Clamp(neededSize - _unusedStreamSize, 0, streamBufferSize - _unusedStreamSize);
+                neededSize = SystemMath.Clamp(neededSize - _unusedStreamSize, 0, streamBufferSize - _unusedStreamSize);
 
                 _position = 0;
-                var decodeBufferSize = Math.Max(neededSize, 1);
+                var decodeBufferSize = SystemMath.Max(neededSize, 1);
                 if (_decodeBuffer.Length < decodeBufferSize)
                     Array.Resize(ref _decodeBuffer, decodeBufferSize);
                 if (neededSize != 0)
@@ -300,7 +301,7 @@ public class SoundSource : Component
 
             if (stream != null && _streamBuffer != null)
             {
-                _unusedStreamSize = Math.Max(streamFilledSize - (_position ?? 0), 0);
+                _unusedStreamSize = SystemMath.Max(streamFilledSize - (_position ?? 0), 0);
                 if (_unusedStreamSize != 0)
                 {
                     var data = _streamBuffer.GetData()!;
@@ -404,7 +405,7 @@ public class SoundSource : Component
         if (_sound == null || _soundStream != null)
             return;
 
-        _position = Math.Clamp(position, 0, (int)_sound.GetDataSize());
+        _position = SystemMath.Clamp(position, 0, (int)_sound.GetDataSize());
         if (_sound.IsSixteenBit() && (_position.Value & 1) != 0)
             _position++;
         if (_position.Value > (int)_sound.GetDataSize())

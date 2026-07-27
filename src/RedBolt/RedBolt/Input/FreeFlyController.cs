@@ -2,8 +2,8 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-namespace RedBolt.Input;
 
+namespace RedBolt.Input;
 
 public class FreeFlyController : Component
 {

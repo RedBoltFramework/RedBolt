@@ -1,8 +1,9 @@
 using System.Threading;
-using RedBolt.Bindings.Diligent;
 
+using RedBolt.Bindings.Diligent;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
+
 namespace RedBolt.Graphics;
 
 /// <summary>Color or depth-stencil surface that can be rendered into.</summary>

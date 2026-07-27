@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 
 using RedBolt.Scene;
+
 namespace RedBolt.Math;
 
 /// <summary>

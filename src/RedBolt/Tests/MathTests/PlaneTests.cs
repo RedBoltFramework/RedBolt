@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using RedBolt.Math;
+
 namespace RedBolt.Tests.MathTests;
 
 public class PlaneTests

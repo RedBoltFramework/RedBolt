@@ -1,10 +1,10 @@
 using RedBolt;
-
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
+
 namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]

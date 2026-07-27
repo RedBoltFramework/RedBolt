@@ -1,15 +1,15 @@
-using System.Diagnostics;
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using SystemMath = global::System.Math;
+using System.Runtime.InteropServices;
 
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
-namespace RedBolt.RenderPipeline;
-using Math = global::System.Math;
 
+namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Base class for writable texture or texture region. Readability is not guaranteed.
@@ -184,7 +184,7 @@ public sealed class TextureRenderBuffer : RenderBuffer
             return explicitSize;
         var viewportSize = viewportRect.Size;
         return new Vector2i(
-            Math.Max(1, (int)MathF.Round(viewportSize.X * sizeMultiplier.X)),
-            Math.Max(1, (int)MathF.Round(viewportSize.Y * sizeMultiplier.Y)));
+            SystemMath.Max(1, (int)MathF.Round(viewportSize.X * sizeMultiplier.X)),
+            SystemMath.Max(1, (int)MathF.Round(viewportSize.Y * sizeMultiplier.Y)));
     }
 }

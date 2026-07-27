@@ -1,5 +1,6 @@
-using RedBolt;
+using SystemMath = global::System.Math;
 
+using RedBolt;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Input;
@@ -7,11 +8,9 @@ using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-namespace RedBolt.Tests;
-using Math = global::System.Math;
-using RenderPipeline = global::RedBolt.RenderPipeline.RenderPipeline;
-using Scene = global::RedBolt.Scene.Scene;
+using SceneType = global::RedBolt.Scene.Scene;
 
+namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class RendererTests
@@ -42,7 +41,7 @@ public sealed class RendererTests
     [Fact]
     public void Viewport_registration_works()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
 
@@ -58,7 +57,7 @@ public sealed class RendererTests
     [Fact]
     public void Main_viewport_camera_mouse_position_is_normalized_at_input_end()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var viewport = new Viewport(scene, camera, new IntRect(100, 50, 500, 250));
         var texture = new Texture2D { Name = "Textures/MousePositionTarget" };
@@ -79,8 +78,8 @@ public sealed class RendererTests
             Assert.NotNull(method);
             method!.Invoke(Renderer, null);
 
-            Assert.InRange(Math.Abs(camera.MousePosition.X - 200.0f / 399.0f), 0.0f, 0.00001f);
-            Assert.InRange(Math.Abs(camera.MousePosition.Y - 100.0f / 199.0f), 0.0f, 0.00001f);
+            Assert.InRange(SystemMath.Abs(camera.MousePosition.X - 200.0f / 399.0f), 0.0f, 0.00001f);
+            Assert.InRange(SystemMath.Abs(camera.MousePosition.Y - 100.0f / 199.0f), 0.0f, 0.00001f);
         }
         finally
         {
@@ -92,7 +91,7 @@ public sealed class RendererTests
     [Fact]
     public void Render_surface_viewport_queue_deduplicates_pairs_and_accepts_backbuffer_entries()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
         var texture = new Texture2D { Name = "Textures/QueueTarget" };
@@ -127,7 +126,7 @@ public sealed class RendererTests
     [Fact]
     public void Update_skips_backbuffer_viewport_assignment_when_graphics_is_uninitialized()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
         var texture = new Texture2D { Name = "Textures/BackbufferViewports" };
@@ -149,7 +148,7 @@ public sealed class RendererTests
     [Fact]
     public void Update_skips_pipeline_allocation_when_graphics_is_uninitialized()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
 
@@ -157,7 +156,7 @@ public sealed class RendererTests
 
         Renderer.Update(0.0f);
 
-        Assert.Null(scene.GetComponent<RenderPipeline>());
+        Assert.Null(scene.GetComponent<RenderPipelineComponent>());
         Assert.Null(viewport.GetRenderPipelineView());
         Renderer.SetNumViewports(0);
     }
@@ -299,7 +298,7 @@ public sealed class RendererTests
     [Fact]
     public void Common_frame_info_copy_has_independent_camera_slots()
     {
-        var scene = new Scene();
+        var scene = new SceneType();
         var first = scene.CreateChild("First").CreateComponent<Camera>();
         var second = scene.CreateChild("Second").CreateComponent<Camera>();
         var replacement = scene.CreateChild("Replacement").CreateComponent<Camera>();
