@@ -582,8 +582,8 @@ Accepted deviations:
   - [ ] `BakedLightMemoryCache : BakedLightCache`
 - [x] `BakedSceneBackground.h`
   - [x] baked scene background structs
-- [ ] `BakedSceneChunk.h`
-  - [ ] baked scene chunk structs
+- [~] `BakedSceneChunk.h`
+  - [~] baked scene chunk structs — `LightProbeCollectionForBaking` complete; `BakedSceneChunk` and chunk creation remain pending their collector, geometry-buffer, and raytracer prerequisites
 - [ ] `BakedSceneCollector.h`
   - [ ] `BakedSceneCollector`
   - [ ] `DefaultBakedSceneCollector : BakedSceneCollector`

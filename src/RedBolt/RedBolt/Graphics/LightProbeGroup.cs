@@ -67,7 +67,7 @@ public sealed class LightProbeCollectionBakedData : ICloneable
 }
 
 /// <summary>Light probes from multiple light probe groups.</summary>
-public sealed class LightProbeCollection : ICloneable
+public class LightProbeCollection : ICloneable
 {
     /// <summary>World-space positions of light probes.</summary>
     public readonly List<Vector3f> WorldPositions = [];
@@ -78,7 +78,7 @@ public sealed class LightProbeCollection : ICloneable
     /// <summary>Group names.</summary>
     public readonly List<string> Names = [];
 
-    private LightProbeCollection(LightProbeCollection source)
+    protected LightProbeCollection(LightProbeCollection source)
     {
         WorldPositions.AddRange(source.WorldPositions);
         Offsets.AddRange(source.Offsets);
