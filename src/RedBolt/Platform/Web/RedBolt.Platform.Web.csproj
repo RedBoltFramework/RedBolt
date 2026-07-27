@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt.Platform.Web</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../Application.cs" Link="Application.cs" />
+    <ProjectReference Include="../../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../../Graphics/OpenGLES/RedBolt.Graphics.OpenGLES.csproj" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      PrivateAssets="all"
+                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
+  </ItemGroup>
+</Project>

@@ -57,10 +57,4 @@ endif()
 
 add_subdirectory(cmake)
 add_subdirectory(extern)
-add_subdirectory(generators)
 add_subdirectory(src)
-add_subdirectory(native)
-
-if(EMSCRIPTEN)
-    add_subdirectory(samples)
-endif()

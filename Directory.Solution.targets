@@ -3,8 +3,9 @@
     <RedBoltSolutionBuildRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)build'))</RedBoltSolutionBuildRoot>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     <BuildInParallel>true</BuildInParallel>
-    <RedBoltGeneratorProject>$(MSBuildThisFileDirectory)generators/RedBolt.Dependencies.Generator/RedBolt.Dependencies.Generator.csproj</RedBoltGeneratorProject>
-    <RedBoltWebNativeProject>$(MSBuildThisFileDirectory)native/RedBolt.Native/RedBolt.Native.Web.csproj</RedBoltWebNativeProject>
+    <RedBoltGeneratorProject>$(MSBuildThisFileDirectory)src/RedBolt/Dependencies/Generator/RedBolt.Dependencies.Generator.csproj</RedBoltGeneratorProject>
+    <RedBoltWebNativeProject>$(MSBuildThisFileDirectory)src/RedBolt/Native/RedBolt.Native.Web.csproj</RedBoltWebNativeProject>
+    <RedBoltWebProject>$(MSBuildThisFileDirectory)src/RedBolt/Sample/Web/RedBolt.Sample.Web.csproj</RedBoltWebProject>
   </PropertyGroup>
 
   <Target Name="RedBoltConfigureSolutionRestore"
@@ -29,6 +30,10 @@
              BuildInParallel="false"
              Properties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=;SharpCppBuildRoot=$(RedBoltSolutionBuildRoot);SharpCppOutputDir=$(RedBoltSolutionBuildRoot)/bin/$(Configuration)/tools;SharpCppIntermediateRoot=$(RedBoltSolutionBuildRoot)/obj/managed/tools" />
     <MSBuild Projects="$(RedBoltWebNativeProject)"
+             Targets="Restore"
+             BuildInParallel="false"
+             Properties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm;SharpCppBuildRoot=$(RedBoltSolutionBuildRoot);SharpCppOutputDir=$(RedBoltSolutionBuildRoot)/bin/$(Configuration)/tools;SharpCppIntermediateRoot=$(RedBoltSolutionBuildRoot)/obj/managed/tools" />
+    <MSBuild Projects="$(RedBoltWebProject)"
              Targets="Restore"
              BuildInParallel="false"
              Properties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm;SharpCppBuildRoot=$(RedBoltSolutionBuildRoot);SharpCppOutputDir=$(RedBoltSolutionBuildRoot)/bin/$(Configuration)/tools;SharpCppIntermediateRoot=$(RedBoltSolutionBuildRoot)/obj/managed/tools" />

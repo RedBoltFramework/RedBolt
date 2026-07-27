@@ -57,8 +57,8 @@ an initial direct port or is an unmodified feature being diagnosed.
 
 ## 2. TOOLS YOU MUST USE
 
-- jcodemunch-mcp: use this to read/search BOTH rbfx and RedBolt.
-  - ALWAYS use jcodemunch-mcp to explore code.
+- jcodemunch-mcp: use this to read/search BOTH rbfx and RedBolt C++ and C# code.
+  - ALWAYS use jcodemunch-mcp to explore C++ and C# code (but not other kinds of scripts/text).
   - DO NOT use plain grep, glob, find, cat, or Read for code exploration.
 - dotnet-trace: (optional) use this to check for GC allocations in the running sample.
 - debug-mcp: use this to debug crashes and wrong behavior at runtime.
@@ -195,7 +195,7 @@ Use MultipleViewports when no more relevant sample exists:
   build/bin/Debug/samples/RedBolt.Sample.MultipleViewports --timeout 2 --screenshot-on-exit /tmp/screenshot.png
 
 Run the tests (adjust the filter to your area):
-  dotnet test tests/RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug
+  dotnet test src/RedBolt/Tests/RedBolt.Tests.csproj --configuration Debug
 
 Review the captured screenshot as a success gate. The relevant scene must render correctly and must not be black or otherwise visibly broken.
 

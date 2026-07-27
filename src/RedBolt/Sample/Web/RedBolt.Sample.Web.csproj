@@ -1,0 +1,76 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CompressionEnabled>false</CompressionEnabled>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    <EmccExtraLDFlags>-sFULL_ES3 -sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE=$dynCall -lidbfs.js -sEXPORTED_RUNTIME_METHODS+=FS -sEXPORTED_RUNTIME_METHODS+=addRunDependency -sEXPORTED_RUNTIME_METHODS+=removeRunDependency</EmccExtraLDFlags>
+    <EmccLinkOptimizationFlag>-O0</EmccLinkOptimizationFlag>
+    <PublishTrimmed>true</PublishTrimmed>
+    <RunAOTCompilation Condition="'$(Configuration)' == 'Release'">true</RunAOTCompilation>
+    <RunAOTCompilation Condition="'$(Configuration)' != 'Release'">false</RunAOTCompilation>
+    <WasmBuildNative>true</WasmBuildNative>
+    <WasmEnableThreads>false</WasmEnableThreads>
+    <WasmNativeStrip>false</WasmNativeStrip>
+    <WasmRunWasmOpt>false</WasmRunWasmOpt>
+    <WasmStripILAfterAOT Condition="'$(Configuration)' == 'Release'">true</WasmStripILAfterAOT>
+    <PublishDir>$(RedBoltWebOutputDir)/</PublishDir>
+    <RedBoltWebEngineArchive Condition="'$(RedBoltWebEngineArchive)' == ''">$(RedBoltNativeBuildDir)/lib/Release/wasm/RedBolt.Native.a</RedBoltWebEngineArchive>
+    <RedBoltWebResourcesManifest Condition="'$(RedBoltWebResourcesManifest)' == ''">$(RedBoltNativeBuildDir)/generated/web/resources.manifest.json</RedBoltWebResourcesManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <WasmOptConfigurationFlags Include="--enable-threads" />
+    <NativeFileReference Include="$(RedBoltWebEngineArchive)" />
+    <ProjectReference Include="../../RedBolt/RedBolt.csproj"
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm" />
+    <ProjectReference Include="../../Platform/Web/RedBolt.Platform.Web.csproj"
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm" />
+    <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj"
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm" />
+    <ProjectReference Include="../../Native/RedBolt.Native.Web.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false"
+                      PrivateAssets="all"
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm" />
+    <Compile Include="../*/Program.cs"
+             Exclude="../Web/Program.cs"
+             Link="Samples/%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="../AnimatingScene/Rotator.cs" Link="Samples/Rotator.cs" />
+    <Compile Include="../SkeletalAnimation/Mover3D.cs" Link="Samples/Mover3D.cs" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      PrivateAssets="all"
+                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);REDBOLT_WEB_SAMPLE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="../../../../bin/CoreData/**/*" Link="wwwroot/resources/CoreData/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../../../bin/Data/**/*" Link="wwwroot/resources/Data/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(RedBoltWebResourcesManifest)" Link="wwwroot/resources.manifest.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="RedBoltExcludeBuildToolsFromPublish" AfterTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition="'%(RelativePath)' == 'RedBolt.Dependencies.Generator.deps.json' or '%(RelativePath)' == 'RedBolt.Dependencies.Generator.runtimeconfig.json'" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="RedBoltPublishWebAfterBuild"
+          AfterTargets="Build"
+          Inputs="$(TargetPath);$(RedBoltWebEngineArchive);@(ReferenceCopyLocalPaths);@(Content)"
+          Outputs="$(RedBoltWebOutputDir)/wwwroot/index.html"
+          Condition="'$(RedBoltPublishWebAfterBuild)' != 'false' and '$(RedBoltPublishWebInProgress)' != 'true'">
+    <RemoveDir Directories="$(RedBoltWebOutputDir)" />
+    <MSBuild Projects="$(MSBuildProjectFullPath)"
+             Targets="Publish"
+             BuildInParallel="false"
+             Properties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm;RedBoltPublishWebInProgress=true;BuildProjectReferences=false" />
+    <Touch Files="$(RedBoltWebOutputDir)/wwwroot/index.html" />
+  </Target>
+</Project>

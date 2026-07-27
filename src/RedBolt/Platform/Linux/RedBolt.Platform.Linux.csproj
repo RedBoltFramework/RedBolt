@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt.Platform.Linux</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../Application.cs" Link="Application.cs" />
+    <ProjectReference Include="../../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../../Graphics/OpenGL/RedBolt.Graphics.OpenGL.csproj" />
+    <ProjectReference Include="../../Graphics/Vulkan/RedBolt.Graphics.Vulkan.csproj" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      PrivateAssets="all"
+                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
+  </ItemGroup>
+</Project>

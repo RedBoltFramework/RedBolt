@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="$(RedBoltRoot)/src/RedBolt/RedBolt/GlobalAliases.cs"
+             Link="GlobalAliases.cs"
+             Visible="false" />
+    <ProjectReference Include="../Bindings/Diligent/RedBolt.Bindings.Diligent.csproj" />
+    <ProjectReference Include="../Bindings/Glslang/RedBolt.Bindings.Glslang.csproj" />
+    <ProjectReference Include="../Bindings/SpirVCross/RedBolt.Bindings.SpirVCross.csproj" />
+    <ProjectReference Include="../Bindings/SpirVTools/RedBolt.Bindings.SpirVTools.csproj" />
+    <ProjectReference Include="../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../Platform/Linux/RedBolt.Platform.Linux.csproj" />
+    <ProjectReference Include="../Reflection/Generator/RedBolt.Reflection.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      PrivateAssets="all"
+                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.5.0" />
+    <PackageReference Include="xunit" Version="2.4.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.collector" Version="6.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="xunit.runner.json" />
+    <Content Include="xunit.runner.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

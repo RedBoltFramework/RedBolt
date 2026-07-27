@@ -92,7 +92,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <RedBoltGlobalAliasesFile>$(RedBoltRoot)/src/RedBolt/GlobalAliases.cs</RedBoltGlobalAliasesFile>
+    <RedBoltGlobalAliasesFile>$(RedBoltRoot)/src/RedBolt/RedBolt/GlobalAliases.cs</RedBoltGlobalAliasesFile>
     <RedBoltIsBindingProject>$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Bindings.'))</RedBoltIsBindingProject>
   </PropertyGroup>
 
@@ -108,12 +108,12 @@
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all"
                       RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
-    <ProjectReference Include="$(RedBoltRoot)/native/RedBolt.Native/RedBolt.Native.csproj"
+    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.csproj"
                       Condition="'$(RedBoltPlatform)' != 'web-emscripten-wasm'"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all"
                       RedBoltProperties="Configuration=$(Configuration)" />
-    <ProjectReference Include="$(RedBoltRoot)/native/RedBolt.Native/RedBolt.Native.Web.csproj"
+    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Web.csproj"
                       Condition="'$(RedBoltPlatform)' == 'web-emscripten-wasm'"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all"
