@@ -584,9 +584,9 @@ Accepted deviations:
   - [x] baked scene background structs
 - [~] `BakedSceneChunk.h`
   - [~] baked scene chunk structs — `LightProbeCollectionForBaking` complete; `BakedSceneChunk` and chunk creation remain pending their collector, geometry-buffer, and raytracer prerequisites
-- [ ] `BakedSceneCollector.h`
-  - [ ] `BakedSceneCollector`
-  - [ ] `DefaultBakedSceneCollector : BakedSceneCollector`
+- [x] `BakedSceneCollector.h`
+  - [x] `BakedSceneCollector`
+  - [x] `DefaultBakedSceneCollector : BakedSceneCollector`
 - [ ] `StaticModelForLightmap.h`
   - [ ] `StaticModelForLightmap : Drawable`
 - [ ] `LightmapCharter.h`
