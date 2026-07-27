@@ -1,6 +1,10 @@
 <Solution>
+  <Folder Name="/src/RedBolt/IK/">
+    <Project Path="src/RedBolt/IK/RedBolt.IK.csproj" />
+  </Folder>
   <Folder Name="/src/RedBolt/Sample/">
     <Project Path="src/RedBolt/Sample/HelloGUI/RedBolt.Sample.HelloGUI.csproj" />
+    <Project Path="src/RedBolt/Sample/InverseKinematics/RedBolt.Sample.InverseKinematics.csproj" />
     <Project Path="src/RedBolt/Sample/MultipleViewports/RedBolt.Sample.MultipleViewports.csproj" />
     <Project Path="src/RedBolt/Sample/HelloWorld/RedBolt.Sample.HelloWorld.csproj" />
     <Project Path="src/RedBolt/Sample/AnimatingScene/RedBolt.Sample.AnimatingScene.csproj" />

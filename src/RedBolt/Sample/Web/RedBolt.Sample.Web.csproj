@@ -24,6 +24,8 @@
     <NativeFileReference Include="$(RedBoltWebEngineArchive)" />
     <ProjectReference Include="../../RedBolt/RedBolt.csproj"
                       RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm" />
+    <ProjectReference Include="../../IK/RedBolt.IK.csproj"
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm" />
     <ProjectReference Include="../../Platform/Web/RedBolt.Platform.Web.csproj"
                       RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm" />
     <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj"

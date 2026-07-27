@@ -484,34 +484,36 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 
 ## B10. IK `OPTIONAL` — inverse kinematics; depends on Scene, Math/InverseKinematics
 
-- [ ] `IK.h`
-  - [ ] registration entry point
-- [ ] `IKEvents.h`
-  - [ ] IK event definitions
-- [ ] `AllSolvers.h`
-  - [ ] solver aggregation header
-- [ ] `IKSolverComponent.h`
-  - [ ] `IKSolverComponent : Component`
-- [ ] `IKIdentitySolver.h`
-  - [ ] `IKIdentitySolver : IKSolverComponent`
-- [ ] `IKLimbSolver.h`
-  - [ ] `IKLimbSolver : IKSolverComponent`
-- [ ] `IKLegSolver.h`
-  - [ ] `IKLegSolver : IKSolverComponent`
-- [ ] `IKArmSolver.h`
-  - [ ] `IKArmSolver : IKSolverComponent`
-- [ ] `IKChainSolver.h`
-  - [ ] `IKChainSolver : IKSolverComponent`
-- [ ] `IKHeadSolver.h`
-  - [ ] `IKHeadSolver : IKSolverComponent`
-- [ ] `IKSpineSolver.h`
-  - [ ] `IKSpineSolver : IKSolverComponent`
-- [ ] `IKRotateTo.h`
-  - [ ] `IKRotateTo : IKSolverComponent`
-- [ ] `IKStickTargets.h`
-  - [ ] `IKStickTargets : IKSolverComponent`
-- [ ] `IKSolver.h`
-  - [ ] `IKSolver : LogicComponent`
+- [x] `IK.h`
+  - [x] registration entry point
+- [x] `IKEvents.h`
+  - [x] IK event definitions
+- [x] `AllSolvers.h`
+  - [x] solver aggregation header (represented by the managed `RedBolt.IK` namespace)
+- [x] `IKSolverComponent.h`
+  - [x] `IKSolverComponent : Component`
+- [x] `IKIdentitySolver.h`
+  - [x] `IKIdentitySolver : IKSolverComponent`
+- [x] `IKLimbSolver.h`
+  - [x] `IKLimbSolver : IKSolverComponent`
+- [x] `IKLegSolver.h`
+  - [x] `IKLegSolver : IKSolverComponent`
+- [x] `IKArmSolver.h`
+  - [x] `IKArmSolver : IKSolverComponent`
+- [x] `IKChainSolver.h`
+  - [x] `IKChainSolver : IKSolverComponent`
+- [x] `IKHeadSolver.h`
+  - [x] `IKHeadSolver : IKSolverComponent`
+- [x] `IKSpineSolver.h`
+  - [x] `IKSpineSolver : IKSolverComponent`
+- [x] `IKRotateTo.h`
+  - [x] `IKRotateTo : IKSolverComponent`
+- [x] `IKStickTargets.h`
+  - [x] `IKStickTargets : IKSolverComponent`
+- [x] `IKSolver.h`
+  - [x] `IKSolver : LogicComponent`
+
+Accepted deviation: Actions reflection hooks are excluded from the current completion scope.
 
 ## B11. Particles `OPTIONAL` — particle graph system; depends on Scene, Graphics
 
