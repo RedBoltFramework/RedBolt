@@ -587,8 +587,8 @@ Accepted deviations:
 - [x] `BakedSceneCollector.h`
   - [x] `BakedSceneCollector`
   - [x] `DefaultBakedSceneCollector : BakedSceneCollector`
-- [ ] `StaticModelForLightmap.h`
-  - [ ] `StaticModelForLightmap : Drawable`
+- [x] `StaticModelForLightmap.h`
+  - [x] `StaticModelForLightmap : Drawable`
 - [ ] `LightmapCharter.h`
   - [ ] chart layout helpers
 - [~] `LightmapGeometryBuffer.h`
