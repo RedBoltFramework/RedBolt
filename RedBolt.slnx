@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/src/RedBolt/Glow/">
+    <Project Path="src/RedBolt/Glow/RedBolt.Glow.csproj" />
+  </Folder>
   <Folder Name="/src/RedBolt/IK/">
     <Project Path="src/RedBolt/IK/RedBolt.IK.csproj" />
   </Folder>

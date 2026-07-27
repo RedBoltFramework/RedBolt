@@ -567,8 +567,8 @@ Accepted deviations:
 
 ## B12. Glow `OPTIONAL` — lightmap baking (Embree); depends on Graphics, Scene
 
-- [ ] `Helpers.h`
-  - [ ] glow helper free functions
+- [x] `Helpers.h`
+  - [x] glow helper free functions
 - [-] `EmbreeForward.h` — **EXCLUDED** · reason: Embree forward decls · replaced-by: generated Embree interop
 - [ ] `LightmapUVGenerator.h`
   - [ ] `struct LightmapUVGenerationSettings`
