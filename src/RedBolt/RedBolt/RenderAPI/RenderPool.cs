@@ -5,7 +5,7 @@ namespace RedBolt;
 /// <summary>
 /// Pool for different resources used by renderer.
 /// </summary>
-public class RenderPool : RedBolt.Object
+public class RenderPool : RedObject
 {
     private const int InitialScratchBufferSize = 64 * 1024;
 

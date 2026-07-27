@@ -43,7 +43,7 @@ public struct GraphicsSettings
     /// <summary>
     /// Graphics subsystem. Manages the application window, rendering state and GPU resources.
     /// </summary>
-public class Graphics : RedBolt.Object
+public class Graphics : RedObject
     {
     /// <summary>Register Graphics library objects.</summary>
     public static void RegisterGraphicsLibrary(Context context)

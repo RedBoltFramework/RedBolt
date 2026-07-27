@@ -95,7 +95,7 @@ public struct CubemapUpdateParameters : ICloneable
 }
 
 /// <summary>Utility class that handles cubemap rendering from scene.</summary>
-public class CubemapRenderer : RedBolt.Object
+public class CubemapRenderer : RedObject
 {
     // Needs to match group size in C_FilterCubemap.glsl
     private const int CubeFilterDispatchSize = 16;

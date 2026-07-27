@@ -197,7 +197,7 @@ public class Logger : ILogger, ICloneable
     }
 }
 
-internal class LogImpl : RedBolt.Object
+internal class LogImpl : RedObject
 {
     private struct MessageInfo
     {
@@ -360,7 +360,7 @@ internal class LogImpl : RedBolt.Object
 }
 
 /// <summary>Logging subsystem.</summary>
-public class Log : RedBolt.Object
+public class Log : RedObject
 {
     private static readonly string NullDevice = OperatingSystem.IsWindows() ? "NUL" : "/dev/null";
     private static bool _threadErrorDisplayed;

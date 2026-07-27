@@ -2,7 +2,7 @@ namespace RedBolt.Tests;
 
 public sealed class ObjectReflectionTests
 {
-    private class BaseObject : RedBolt.Object
+    private class BaseObject : RedObject
     {
     }
 
@@ -10,7 +10,7 @@ public sealed class ObjectReflectionTests
     {
     }
 
-    private sealed class FactoryObject : RedBolt.Object
+    private sealed class FactoryObject : RedObject
     {
     }
 
@@ -36,7 +36,7 @@ public sealed class ObjectReflectionTests
     {
         var value = new DerivedObject();
 
-        Assert.True(value.IsInstanceOf(typeof(RedBolt.Object)));
+        Assert.True(value.IsInstanceOf(typeof(RedObject)));
         Assert.True(value.IsInstanceOf(typeof(BaseObject)));
         Assert.True(value.IsInstanceOf<DerivedObject>());
         Assert.True(value.IsInstanceOf<BaseObject>());

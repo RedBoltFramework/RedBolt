@@ -72,7 +72,7 @@ public sealed class ObjectTests
         }
     }
 
-    private sealed class TestObject : RedBolt.Object
+    private sealed class TestObject : RedObject
     {
     }
 

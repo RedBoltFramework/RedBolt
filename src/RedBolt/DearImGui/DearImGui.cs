@@ -4,7 +4,7 @@ using RedBolt.Bindings.Sdl;
 
 namespace RedBolt;
 
-public class DearImGui : RedBolt.Object
+public class DearImGui : RedObject
 {
     public const float DefaultFontSize = 14.0f;
 

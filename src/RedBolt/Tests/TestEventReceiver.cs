@@ -1,5 +1,5 @@
 namespace RedBolt.Tests;
 
-internal sealed class TestEventReceiver : RedBolt.Object
+internal sealed class TestEventReceiver : RedObject
 {
 }

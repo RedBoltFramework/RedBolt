@@ -201,7 +201,7 @@ public sealed class CameraTests
     public void Viewport_type_and_pointer_ownership_match_cpp()
     {
         Assert.False(typeof(Viewport).IsSealed);
-        Assert.True(typeof(RedBolt.Object).IsAssignableFrom(typeof(Viewport)));
+        Assert.True(typeof(RedObject).IsAssignableFrom(typeof(Viewport)));
         Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(Viewport)));
 
         Assert.Equal(typeof(WeakReference<Scene>), GetPrivateFieldInfo("_scene").FieldType);

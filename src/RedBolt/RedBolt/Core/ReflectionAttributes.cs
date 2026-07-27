@@ -132,7 +132,7 @@ public static class GeneratedReflectionRegistration
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(baseType);
 
-        for (var type = baseType; type is not null && typeof(RedBolt.Object).IsAssignableFrom(type); type = type.BaseType)
+        for (var type = baseType; type is not null && typeof(RedObject).IsAssignableFrom(type); type = type.BaseType)
         {
             var reflection = context.GetReflection(new StringHash(type.GetClassName()));
             if (reflection is not null)

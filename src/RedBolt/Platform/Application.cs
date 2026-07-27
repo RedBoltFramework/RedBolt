@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace RedBolt;
 
-public abstract partial class Application : RedBolt.Object
+public abstract partial class Application : RedObject
 {
     public const int FailureExitCode = 1;
 

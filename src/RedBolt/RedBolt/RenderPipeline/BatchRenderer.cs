@@ -36,7 +36,7 @@ public ref struct BatchRenderingContext
 }
 
 /// <summary>Utility class to convert pipeline batches into sequence of draw commands.</summary>
-public class BatchRenderer : RedBolt.Object
+public class BatchRenderer : RedObject
 {
     private readonly Renderer? _renderer;
     private readonly RenderPipelineDebugger? _debugger;

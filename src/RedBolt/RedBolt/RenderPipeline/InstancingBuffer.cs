@@ -1,7 +1,7 @@
 namespace RedBolt;
 
 /// <summary>Instancing buffer compositor.</summary>
-public class InstancingBuffer : RedBolt.Object
+public class InstancingBuffer : RedObject
 {
     /// <summary>Stride of one element in bytes.</summary>
     public const int ElementStride = 4 * sizeof(float);

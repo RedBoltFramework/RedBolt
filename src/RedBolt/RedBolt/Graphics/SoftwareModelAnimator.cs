@@ -33,7 +33,7 @@ public struct VertexBufferAnimationData : ICloneable
 }
 
 /// <summary>Class for software model animation (morphing and skinning).</summary>
-public class SoftwareModelAnimator : RedBolt.Object
+public class SoftwareModelAnimator : RedObject
 {
     /// <summary>Max number of bones.</summary>
     public const uint MaxBones = 4;

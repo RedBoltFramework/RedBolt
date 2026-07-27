@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 namespace RedBolt;
 
 /// <summary>Subsystem for virtual file system.</summary>
-public class VirtualFileSystem : RedBolt.Object
+public class VirtualFileSystem : RedObject
 {
     /// <summary>Construct.</summary>
     public VirtualFileSystem()

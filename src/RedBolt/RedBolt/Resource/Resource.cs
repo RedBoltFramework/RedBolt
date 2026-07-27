@@ -81,7 +81,7 @@ internal static class ResourceFormat
 }
 
 /// <summary>Base class for resources.</summary>
-public class Resource : RedBolt.Object
+public class Resource : RedObject
 {
     /// <summary>Construct.</summary>
     public Resource()

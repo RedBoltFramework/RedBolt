@@ -3,7 +3,7 @@ namespace RedBolt;
 /// <summary>
 /// Base class for GPU resources.
 /// </summary>
-public class DeviceObject : RedBolt.Object
+public class DeviceObject : RedObject
 {
     public DeviceObject(DeviceObjectFlag flags = DeviceObjectFlag.None)
     {

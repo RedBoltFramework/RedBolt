@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 namespace RedBolt;
 
 /// <summary>Utility to allocate shadow maps in texture atlas.</summary>
-public class ShadowMapAllocator : RedBolt.Object
+public class ShadowMapAllocator : RedObject
 {
     private struct AtlasPage
     {

@@ -1,6 +1,6 @@
 namespace RedBolt;
 
-public class Serializable : RedBolt.Object
+public class Serializable : RedObject
 {
     private Dictionary<StringHash, Variant>? _instanceDefaultValues;
     private bool _setInstanceDefault;

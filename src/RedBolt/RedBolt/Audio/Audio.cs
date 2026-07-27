@@ -7,7 +7,7 @@ using RedBolt.Bindings.Sdl;
 namespace RedBolt;
 
 /// <summary>Audio subsystem.</summary>
-public class Audio : RedBolt.Object
+public class Audio : RedObject
 {
     private const int MinBufferLength = 20;
     private const int MinMixRate = 11025;

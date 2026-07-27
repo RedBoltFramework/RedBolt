@@ -12,7 +12,7 @@ public sealed class ResourceGroup
     public readonly Dictionary<StringHash, Resource> Resources = new();
 }
 
-public sealed class ResourceCache : RedBolt.Object
+public sealed class ResourceCache : RedObject
 {
     private readonly Dictionary<(Type Type, string Name), Resource> _cache = new();
     private readonly Dictionary<Type, ResourceGroup> _resourceGroups = new();

@@ -7,7 +7,7 @@ namespace RedBolt;
 public readonly record struct ChangeLanguage;
 
 /// <summary>Localization subsystem. Stores all the strings in all languages.</summary>
-public class Localization : RedBolt.Object
+public class Localization : RedObject
 {
     /// <summary>Construct.</summary>
     public Localization()

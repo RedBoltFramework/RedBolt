@@ -8,7 +8,7 @@ namespace RedBolt;
 /// <summary>
 /// Wrapper for window and GAPI backend.
 /// </summary>
-public sealed class RenderDevice : RedBolt.Object
+public sealed class RenderDevice : RedObject
 {
     private readonly RenderDeviceSettings _deviceSettings;
     private WindowSettings _windowSettings;

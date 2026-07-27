@@ -11,7 +11,7 @@ public enum DirectionAggregatorMask : uint
 }
 
 /// <summary>Class to aggregate all movement inputs into a single direction vector.</summary>
-public class DirectionAggregator : RedBolt.Object
+public class DirectionAggregator : RedObject
 {
     /// <summary>Type of input source.</summary>
     private enum InputType

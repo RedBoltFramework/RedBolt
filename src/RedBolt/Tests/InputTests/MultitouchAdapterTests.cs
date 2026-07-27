@@ -19,11 +19,11 @@ public sealed class MultitouchAdapterTests
     public void Matches_native_noncopyable_class_and_pod_active_touch_kinds()
     {
         var type = typeof(MultitouchAdapter);
-        Assert.Equal(typeof(RedBolt.Object), type.BaseType);
+        Assert.Equal(typeof(RedObject), type.BaseType);
         Assert.False(type.IsValueType);
         Assert.False(type.IsSealed);
         Assert.False(typeof(ICloneable).IsAssignableFrom(type));
-        Assert.Equal(typeof(RedBolt.Object), type.GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);
+        Assert.Equal(typeof(RedObject), type.GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);
         Assert.True(typeof(MultitouchEventType).IsValueType);
         Assert.Equal(typeof(int), Enum.GetUnderlyingType(typeof(MultitouchEventType)));
         Assert.True(typeof(Vector2i).IsValueType);

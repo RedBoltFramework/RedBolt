@@ -8,7 +8,7 @@ namespace RedBolt;
 /// <summary>
 /// Render context that consumes render commands.
 /// </summary>
-public class RenderContext : RedBolt.Object
+public class RenderContext : RedObject
 {
     private const uint GlClipDistance0 = 0x3000;
 

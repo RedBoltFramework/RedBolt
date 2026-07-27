@@ -134,9 +134,9 @@ public partial class JSONFile : Resource
         });
     }
 
-    public bool SaveObject(RedBolt.Object value) => SaveObject(value.GetTypeName(), value);
+    public bool SaveObject(RedObject value) => SaveObject(value.GetTypeName(), value);
 
-    public bool LoadObject(RedBolt.Object value) => LoadObject(value.GetTypeName(), value);
+    public bool LoadObject(RedObject value) => LoadObject(value.GetTypeName(), value);
 
     /// <summary>Deserialize from a string. Return true if successful.</summary>
     public bool FromString(string source)

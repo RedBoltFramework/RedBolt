@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 
 namespace RedBolt;
 
-public class Engine : RedBolt.Object
+public class Engine : RedObject
 {
     private static readonly string ExecutableDirectory = AppContext.BaseDirectory;
 

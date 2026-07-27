@@ -11,7 +11,7 @@ public enum PointerAdapterMask : uint
     All = Touch | Mouse | Keyboard | Joystick
 }
 
-public class PointerAdapter : RedBolt.Object
+public class PointerAdapter : RedObject
 {
     /// <summary>Construct.</summary>
     public PointerAdapter()

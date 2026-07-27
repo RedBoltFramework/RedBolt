@@ -1,7 +1,7 @@
 namespace RedBolt;
 
 /// <summary>Viewport definition either for a render surface or the backbuffer.</summary>
-public class Viewport : RedBolt.Object
+public class Viewport : RedObject
 {
     /// <summary>Scene pointer.</summary>
     private readonly WeakReference<Scene> _scene = new(null!);

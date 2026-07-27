@@ -18,7 +18,7 @@ public sealed class ObjectReflection : IDisposable
     private readonly List<AttributeInfo> _attributes = [];
     private readonly List<StringHash> _attributeNames = [];
     private readonly Dictionary<StringHash, Variant> _metadata = [];
-    private Func<RedBolt.Object>? _factory;
+    private Func<RedObject>? _factory;
 
     public ObjectReflection(Type type)
     {
@@ -153,9 +153,9 @@ public sealed class ObjectReflection : IDisposable
 
     public void SetCategory(string category) => Category = category ?? string.Empty;
 
-    public void SetObjectFactory(Func<RedBolt.Object> callback) => _factory = callback;
+    public void SetObjectFactory(Func<RedObject> callback) => _factory = callback;
 
-    public RedBolt.Object CreateObject() => _factory is null ? null! : _factory();
+    public RedObject CreateObject() => _factory is null ? null! : _factory();
 
     public bool HasObjectFactory() => _factory is not null;
 
@@ -205,7 +205,7 @@ public class ObjectReflectionRegistry : IDisposable
 
     public ObjectReflection Reflect<T>() => Reflect(typeof(T));
 
-    public ObjectReflection AddReflection<T>(string category = "") where T : RedBolt.Object
+    public ObjectReflection AddReflection<T>(string category = "") where T : RedObject
     {
         if (IsReflected<T>())
             throw new InvalidOperationException($"Object {typeof(T).GetClassName()} is reflected multiple times.");
@@ -215,20 +215,20 @@ public class ObjectReflectionRegistry : IDisposable
         return reflection;
     }
 
-    public ObjectReflection AddFactoryReflection<T>(string category = "") where T : RedBolt.Object, new()
+    public ObjectReflection AddFactoryReflection<T>(string category = "") where T : RedObject, new()
     {
         var reflection = AddReflection<T>(category);
         reflection.SetObjectFactory(static () => new T());
         return reflection;
     }
 
-    public ObjectReflection AddAbstractReflection<T>(string category = "") where T : RedBolt.Object => AddReflection<T>(category);
+    public ObjectReflection AddAbstractReflection<T>(string category = "") where T : RedObject => AddReflection<T>(category);
 
-    public ObjectReflection AddGeneratedReflection(Type type, string category, Func<RedBolt.Object>? factory)
+    public ObjectReflection AddGeneratedReflection(Type type, string category, Func<RedObject>? factory)
     {
         ArgumentNullException.ThrowIfNull(type);
-        if (!typeof(RedBolt.Object).IsAssignableFrom(type))
-            throw new ArgumentException($"Type {type.FullName} must derive from {typeof(RedBolt.Object).FullName}.", nameof(type));
+        if (!typeof(RedObject).IsAssignableFrom(type))
+            throw new ArgumentException($"Type {type.FullName} must derive from {typeof(RedObject).FullName}.", nameof(type));
 
         var typeId = new StringHash(type.GetClassName());
         if (IsReflected(typeId))
@@ -249,12 +249,12 @@ public class ObjectReflectionRegistry : IDisposable
 
     public bool IsReflected<T>() => IsReflected(ObjectReflection<T>.TypeId);
 
-    public void RemoveAttribute<T>(StringHash nameHash) where T : RedBolt.Object
+    public void RemoveAttribute<T>(StringHash nameHash) where T : RedObject
     {
         GetReflection<T>()?.RemoveAttribute(nameHash);
     }
 
-    public void UpdateAttributeDefaultValue<T>(StringHash nameHash, Variant value) where T : RedBolt.Object
+    public void UpdateAttributeDefaultValue<T>(StringHash nameHash, Variant value) where T : RedObject
     {
         GetReflection<T>()?.UpdateAttributeDefaultValue(nameHash, value);
     }
@@ -288,7 +288,7 @@ public class ObjectReflectionRegistry : IDisposable
             RemoveReflection(reflection.TypeId);
     }
 
-    public RedBolt.Object CreateObject(StringHash typeNameHash) => GetReflection(typeNameHash)?.CreateObject()!;
+    public RedObject CreateObject(StringHash typeNameHash) => GetReflection(typeNameHash)?.CreateObject()!;
 
     public IReadOnlyDictionary<StringHash, ObjectReflection> GetObjectReflections() => _reflections;
 

@@ -181,7 +181,7 @@ public sealed class ValueAnimationTests
         {
         }
 
-        public TestValueAnimationInfo(RedBolt.Object target, ValueAnimation animation, WrapMode wrapMode, float speed)
+        public TestValueAnimationInfo(RedObject target, ValueAnimation animation, WrapMode wrapMode, float speed)
             : base(target, animation, wrapMode, speed)
         {
         }
@@ -201,7 +201,7 @@ public sealed class ValueAnimationTests
         }
     }
 
-    private sealed class TestTarget : RedBolt.Object
+    private sealed class TestTarget : RedObject
     {
     }
 }

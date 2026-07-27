@@ -84,7 +84,7 @@ public struct GeometryBatch
 ///
 /// Other pass combinations are invalid.
 /// </summary>
-public class DrawableProcessorPass : RedBolt.Object
+public class DrawableProcessorPass : RedObject
 {
     public readonly record struct AddBatchResult(bool Added, bool ForwardLitAdded);
 
@@ -176,7 +176,7 @@ public class DrawableProcessorPass : RedBolt.Object
 }
 
 /// <summary>Utility used to update and process visible or shadow caster Drawables.</summary>
-public class DrawableProcessor : RedBolt.Object
+public class DrawableProcessor : RedObject
 {
     private readonly IRenderPipelineInterface _renderPipeline;
     private readonly WorkQueue _workQueue;

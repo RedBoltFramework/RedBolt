@@ -4,7 +4,7 @@ using RedBolt.Bindings.Sdl;
 namespace RedBolt;
 
 /// <summary>Microphone audio input device.</summary>
-public class Microphone : RedBolt.Object
+public class Microphone : RedObject
 {
     private BufferedSoundStream? _linkedStream;
     internal string _name = string.Empty;

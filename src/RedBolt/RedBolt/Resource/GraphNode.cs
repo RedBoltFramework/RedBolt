@@ -41,7 +41,7 @@ public class GraphNodeProperty : IArchiveSerializable, IDisposable
 }
 
 [Reflected]
-public partial class GraphNode : RedBolt.Object
+public partial class GraphNode : RedObject
 {
     public GraphNode()
     {

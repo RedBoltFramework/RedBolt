@@ -28,7 +28,7 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
     private static readonly DiagnosticDescriptor InvalidReflectedType = new(
         "RBREF002",
         "Invalid reflected type",
-        "Reflected type '{0}' must be a non-generic class derived from RedBolt.Object",
+        "Reflected type '{0}' must be a non-generic class derived from RedObject",
         "RedBolt.Reflection",
         DiagnosticSeverity.Error,
         true);
@@ -389,7 +389,7 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         if (type.TypeKind != TypeKind.Class || type.Arity != 0)
             return false;
         for (var current = type.BaseType; current is not null; current = current.BaseType)
-            if (current.ToDisplayString() == "RedBolt.Object")
+            if (current.ToDisplayString() == "RedBolt.RedObject")
                 return true;
         return false;
     }

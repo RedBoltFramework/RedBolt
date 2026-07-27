@@ -44,7 +44,7 @@ public struct FileChange : ICloneable
 }
 
 /// <summary>Watches a directory and its subdirectories for files being modified.</summary>
-public class FileWatcher : RedBolt.Object
+public class FileWatcher : RedObject
 {
     /// <summary>Construct.</summary>
     public FileWatcher()

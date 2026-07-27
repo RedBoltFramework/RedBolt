@@ -6,7 +6,7 @@ namespace RedBolt;
 public class ValueAnimationInfo : ICloneable, IDisposable
 {
     /// <summary>Target object.</summary>
-    protected WeakReference<RedBolt.Object>? _target;
+    protected WeakReference<RedObject>? _target;
     /// <summary>Attribute animation.</summary>
     protected ValueAnimation? _animation;
     /// <summary>Wrap mode.</summary>
@@ -30,9 +30,9 @@ public class ValueAnimationInfo : ICloneable, IDisposable
     }
 
     /// <summary>Construct with target object.</summary>
-    public ValueAnimationInfo(RedBolt.Object? target, ValueAnimation? animation, WrapMode wrapMode, float speed)
+    public ValueAnimationInfo(RedObject? target, ValueAnimation? animation, WrapMode wrapMode, float speed)
     {
-        _target = target is null ? null : new WeakReference<RedBolt.Object>(target);
+        _target = target is null ? null : new WeakReference<RedObject>(target);
         _animation = animation;
         _wrapMode = wrapMode;
         _speed = speed;
@@ -45,7 +45,7 @@ public class ValueAnimationInfo : ICloneable, IDisposable
     public ValueAnimationInfo(ValueAnimationInfo other)
     {
         var target = other.Target;
-        _target = target is null ? null : new WeakReference<RedBolt.Object>(target);
+        _target = target is null ? null : new WeakReference<RedObject>(target);
         _animation = other._animation;
         _wrapMode = other._wrapMode;
         _speed = other._speed;
@@ -101,7 +101,7 @@ public class ValueAnimationInfo : ICloneable, IDisposable
 
             if (eventFrames.Count != 0)
             {
-                var targetWeak = new WeakReference<RedBolt.Object>(target);
+                var targetWeak = new WeakReference<RedObject>(target);
 
                 for (var i = 0; i < eventFrames.Count; ++i)
                     EventTriggered?.Invoke(eventFrames[i]);
@@ -131,7 +131,7 @@ public class ValueAnimationInfo : ICloneable, IDisposable
     }
 
     /// <summary>Return target object.</summary>
-    public RedBolt.Object? Target => _target is not null && _target.TryGetTarget(out var target) ? target : null;
+    public RedObject? Target => _target is not null && _target.TryGetTarget(out var target) ? target : null;
 
     /// <summary>Return animation.</summary>
     public ValueAnimation? Animation => _animation;

@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace RedBolt;
 
-public sealed class Time : RedBolt.Object
+public sealed class Time : RedObject
 {
     public const string DefaultDateTimeFormat = "yyyy-MM-dd HH:mm:ss";
 

@@ -71,7 +71,7 @@ public struct ShaderProgramDesc : ICloneable
 }
 
 /// <summary>Generates shader program descritpions for scene and light volume batches.</summary>
-public class ShaderProgramCompositor : RedBolt.Object
+public class ShaderProgramCompositor : RedObject
 {
     private static readonly string[] GeometryDefines =
     [

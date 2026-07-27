@@ -249,7 +249,7 @@ public sealed class IndexBuffer : PipelineStateTracker
 }
 
 /// <summary>Index Buffer of dynamic size. Resize policy is similar to standard vector.</summary>
-public sealed class DynamicIndexBuffer : RedBolt.Object
+public sealed class DynamicIndexBuffer : RedObject
 {
     private readonly IndexBuffer _indexBuffer = new();
     private byte[] _shadowData = [];

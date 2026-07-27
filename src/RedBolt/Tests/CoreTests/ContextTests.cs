@@ -446,7 +446,7 @@ public sealed class ContextTests
         Assert.False(typeof(Context).IsSealed);
         Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(Context)));
         Assert.Equal(typeof(IReadOnlyDictionary<StringHash, Variant>), typeof(Context).GetMethod(nameof(Context.GetGlobalVars))!.ReturnType);
-        Assert.Equal(typeof(IReadOnlyDictionary<StringHash, Variant>), typeof(RedBolt.Object).GetMethod(nameof(RedBolt.Object.GetGlobalVars))!.ReturnType);
+        Assert.Equal(typeof(IReadOnlyDictionary<StringHash, Variant>), typeof(RedObject).GetMethod(nameof(RedObject.GetGlobalVars))!.ReturnType);
     }
 
     [Fact]
@@ -581,11 +581,11 @@ public sealed class ContextTests
         Assert.Null(context.GetSubsystem<DisposableSubsystem>());
     }
 
-    private sealed class TestObject : RedBolt.Object
+    private sealed class TestObject : RedObject
     {
     }
 
-    private sealed class DisposableSubsystem : RedBolt.Object
+    private sealed class DisposableSubsystem : RedObject
     {
         public bool IsDisposed { get; private set; }
 

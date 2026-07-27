@@ -578,7 +578,7 @@ public class VertexBuffer : PipelineStateTracker
 }
 
 /// <summary>Vertex Buffer of dynamic size. Resize policy is similar to standard vector.</summary>
-public class DynamicVertexBuffer : RedBolt.Object
+public class DynamicVertexBuffer : RedObject
 {
     private readonly VertexBuffer _vertexBuffer = new();
     private byte[] _shadowData = [];

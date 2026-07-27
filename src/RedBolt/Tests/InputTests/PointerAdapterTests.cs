@@ -19,7 +19,7 @@ public sealed class PointerAdapterTests
     public void Matches_native_extensible_noncopyable_class_shape()
     {
         var type = typeof(PointerAdapter);
-        Assert.Equal(typeof(RedBolt.Object), type.BaseType);
+        Assert.Equal(typeof(RedObject), type.BaseType);
         Assert.False(type.IsValueType);
         Assert.False(type.IsSealed);
         Assert.False(typeof(ICloneable).IsAssignableFrom(type));

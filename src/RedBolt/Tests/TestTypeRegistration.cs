@@ -3,7 +3,7 @@ namespace RedBolt.Tests;
 internal static class TestTypeRegistration
 {
     public static void RegisterFactory<T>()
-        where T : RedBolt.Object, new()
+        where T : RedObject, new()
     {
         var context = Context.Instance;
         var reflection = context.GetReflection<T>();

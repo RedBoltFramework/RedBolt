@@ -9,7 +9,7 @@ public sealed class LogTests
     private static readonly MethodInfo SetMainThreadMethod = typeof(WorkQueue).GetMethod(
         "SetMainThread", BindingFlags.NonPublic | BindingFlags.Static)!;
 
-    private sealed class EventReceiver : RedBolt.Object
+    private sealed class EventReceiver : RedObject
     {
     }
 
@@ -65,7 +65,7 @@ public sealed class LogTests
         using var receiver = new EventReceiver();
         var message = $"main-log-event-{Guid.NewGuid():N}";
         var calls = 0;
-        RedBolt.Object? sender = null;
+        RedObject? sender = null;
         IOEvents.LogMessage observed = default;
         receiver.SubscribeToEvent<IOEvents.LogMessage>(log, (ref IOEvents.LogMessage eventData) =>
         {
@@ -94,7 +94,7 @@ public sealed class LogTests
         using var receiver = new EventReceiver();
         var message = $"worker-log-event-{Guid.NewGuid():N}";
         var calls = 0;
-        RedBolt.Object? sender = null;
+        RedObject? sender = null;
         IOEvents.LogMessage observed = default;
         receiver.SubscribeToEvent<IOEvents.LogMessage>(log, (ref IOEvents.LogMessage eventData) =>
         {

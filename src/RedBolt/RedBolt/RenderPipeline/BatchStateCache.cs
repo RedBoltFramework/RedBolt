@@ -119,14 +119,14 @@ public struct CachedBatchState
 public struct BatchStateCreateContext
 {
     /// <summary>Object that owns BatchStateCache that invoked the callback.</summary>
-    public RedBolt.Object? Pass { get; set; }
+    public RedObject? Pass { get; set; }
 
     /// <summary>Index of subpass. Exact meaning depends on actual type of owner pass.</summary>
     public int SubpassIndex { get; set; }
 
     public int ShadowSplitIndex { get; set; }
 
-    public BatchStateCreateContext(RedBolt.Object? pass, int subpassIndex, int shadowSplitIndex)
+    public BatchStateCreateContext(RedObject? pass, int subpassIndex, int shadowSplitIndex)
     {
         Pass = pass;
         SubpassIndex = subpassIndex;

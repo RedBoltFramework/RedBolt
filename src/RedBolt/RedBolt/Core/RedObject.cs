@@ -1,6 +1,6 @@
 namespace RedBolt;
 
-public abstract class Object : IArchiveSerializable, IDisposable
+public abstract class RedObject : IArchiveSerializable, IDisposable
 {
     public Context Context => Context.Instance;
 
@@ -30,7 +30,7 @@ public abstract class Object : IArchiveSerializable, IDisposable
         return type.IsAssignableFrom(GetType());
     }
 
-    public bool IsInstanceOf<T>() where T : RedBolt.Object => this is T;
+    public bool IsInstanceOf<T>() where T : RedObject => this is T;
 
     public string GetCategory() => Context.GetReflection(GetTypeNameHash())?.Category ?? string.Empty;
 
@@ -56,7 +56,7 @@ public abstract class Object : IArchiveSerializable, IDisposable
         return Context.GetSubsystems();
     }
 
-    public RedBolt.Object? GetEventSender()
+    public RedObject? GetEventSender()
     {
         return Context.GetEventSender();
     }
@@ -71,7 +71,7 @@ public abstract class Object : IArchiveSerializable, IDisposable
         Context.SubscribeToEvent(this, handler);
     }
 
-    public void SubscribeToEvent<T>(RedBolt.Object sender, RefEventHandler<T> handler) where T : struct
+    public void SubscribeToEvent<T>(RedObject sender, RefEventHandler<T> handler) where T : struct
     {
         ArgumentNullException.ThrowIfNull(sender);
         Context.SubscribeToEvent(this, sender, handler);
@@ -79,13 +79,13 @@ public abstract class Object : IArchiveSerializable, IDisposable
 
     public void UnsubscribeFromEvent<T>() where T : struct => Context.Unsubscribe<T>(this);
 
-    public void UnsubscribeFromEvent<T>(RedBolt.Object sender) where T : struct
+    public void UnsubscribeFromEvent<T>(RedObject sender) where T : struct
     {
         ArgumentNullException.ThrowIfNull(sender);
         Context.Unsubscribe<T>(this, sender);
     }
 
-    public void UnsubscribeFromEvents(RedBolt.Object sender)
+    public void UnsubscribeFromEvents(RedObject sender)
     {
         ArgumentNullException.ThrowIfNull(sender);
         Context.UnsubscribeFromEvents(this, sender);
@@ -96,7 +96,7 @@ public abstract class Object : IArchiveSerializable, IDisposable
         Context.Unsubscribe(this);
     }
 
-    public void UnsubscribeFromAllEventsExcept(IReadOnlyCollection<RedBolt.Object> senders)
+    public void UnsubscribeFromAllEventsExcept(IReadOnlyCollection<RedObject> senders)
     {
         ArgumentNullException.ThrowIfNull(senders);
         Context.UnsubscribeAllExcept(this, senders);
@@ -148,7 +148,7 @@ public abstract class Object : IArchiveSerializable, IDisposable
         return Context.HasSubscribedToEvent<T>(this);
     }
 
-    public bool HasSubscribedToEvent<T>(RedBolt.Object sender) where T : struct
+    public bool HasSubscribedToEvent<T>(RedObject sender) where T : struct
     {
         ArgumentNullException.ThrowIfNull(sender);
         return Context.HasSubscribedToEvent<T>(this, sender);

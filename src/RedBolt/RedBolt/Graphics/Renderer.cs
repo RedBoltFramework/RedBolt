@@ -133,7 +133,7 @@ public struct FrameStatistics
 /// <summary>
 /// High-level rendering subsystem. Manages drawing of 3D views.
 /// </summary>
-public sealed class Renderer : RedBolt.Object
+public sealed class Renderer : RedObject
 {
     public const int ShadowMinPixels = 64;
     public const int InstancingBufferDefaultSize = 1024;

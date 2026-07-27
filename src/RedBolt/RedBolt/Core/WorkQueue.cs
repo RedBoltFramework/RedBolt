@@ -40,7 +40,7 @@ public sealed class WorkItem
     internal Action<int>? WorkLambda;
 }
 
-public sealed class WorkQueue : RedBolt.Object
+public sealed class WorkQueue : RedObject
 {
     private sealed class ParallelForState
     {

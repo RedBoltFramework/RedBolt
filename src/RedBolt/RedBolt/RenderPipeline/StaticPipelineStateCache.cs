@@ -4,7 +4,7 @@ namespace RedBolt;
 /// Cache for static set of pipeline states.
 /// It is possible to reuse same pipeline state for different outputs.
 /// </summary>
-public sealed class StaticPipelineStateCache : RedBolt.Object
+public sealed class StaticPipelineStateCache : RedObject
 {
     private sealed class PerOutputCache
     {

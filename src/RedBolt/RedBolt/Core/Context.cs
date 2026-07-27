@@ -21,13 +21,13 @@ public class Context : RedBolt.ObjectReflectionRegistry
 
     private readonly struct ActiveEventInvocation
     {
-        public ActiveEventInvocation(RedBolt.Object? sender, EventHandler handler)
+        public ActiveEventInvocation(RedObject? sender, EventHandler handler)
         {
             Sender = sender;
             Handler = handler;
         }
 
-        public RedBolt.Object? Sender { get; }
+        public RedObject? Sender { get; }
 
         public EventHandler Handler { get; }
     }
@@ -84,7 +84,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
         GeneratedReflectionRegistration.RegisterType(this, type);
     }
 
-    public void RegisterAttributedType<T>() where T : RedBolt.Object
+    public void RegisterAttributedType<T>() where T : RedObject
     {
         RegisterAttributedType(typeof(T));
     }
@@ -309,7 +309,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
         return GetReflection(objectType)?.GetAttribute(name) ?? null!;
     }
 
-    public AttributeInfo GetAttribute<T>(string name) where T : RedBolt.Object
+    public AttributeInfo GetAttribute<T>(string name) where T : RedObject
     {
         return GetAttribute(ObjectReflection<T>.TypeId, name);
     }
@@ -320,20 +320,20 @@ public class Context : RedBolt.ObjectReflectionRegistry
         return type.GetTypeId();
     }
 
-    public void SubscribeToEvent<T>(RedBolt.Object receiver, RefEventHandler<T> handler) where T : struct
+    public void SubscribeToEvent<T>(RedObject receiver, RefEventHandler<T> handler) where T : struct
     {
         ArgumentNullException.ThrowIfNull(receiver);
         SubscribeToEventCore(receiver, senderFilter: null, handler);
     }
 
-    public void SubscribeToEvent<T>(RedBolt.Object receiver, RedBolt.Object sender, RefEventHandler<T> handler) where T : struct
+    public void SubscribeToEvent<T>(RedObject receiver, RedObject sender, RefEventHandler<T> handler) where T : struct
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(sender);
         SubscribeToEventCore(receiver, sender, handler);
     }
 
-    public void Unsubscribe(RedBolt.Object receiver)
+    public void Unsubscribe(RedObject receiver)
     {
         ArgumentNullException.ThrowIfNull(receiver);
 
@@ -343,7 +343,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
         RemoveEmptyEventBuckets();
     }
 
-    public void Unsubscribe(RedBolt.Object receiver, RedBolt.Object sender)
+    public void Unsubscribe(RedObject receiver, RedObject sender)
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(sender);
@@ -358,7 +358,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
         RemoveEmptyEventBuckets();
     }
 
-    public void Unsubscribe<T>(RedBolt.Object receiver) where T : struct
+    public void Unsubscribe<T>(RedObject receiver) where T : struct
     {
         ArgumentNullException.ThrowIfNull(receiver);
 
@@ -368,7 +368,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
         RemoveEmptyEventBuckets();
     }
 
-    public void Unsubscribe<T>(RedBolt.Object receiver, RedBolt.Object sender) where T : struct
+    public void Unsubscribe<T>(RedObject receiver, RedObject sender) where T : struct
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(sender);
@@ -383,7 +383,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
         RemoveEmptyEventBuckets();
     }
 
-    public void Unsubscribe(RedBolt.Object receiver, Type eventType)
+    public void Unsubscribe(RedObject receiver, Type eventType)
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(eventType);
@@ -394,7 +394,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
         RemoveEmptyEventBuckets();
     }
 
-    public void Unsubscribe(RedBolt.Object receiver, RedBolt.Object sender, Type eventType)
+    public void Unsubscribe(RedObject receiver, RedObject sender, Type eventType)
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(sender);
@@ -410,7 +410,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
         RemoveEmptyEventBuckets();
     }
 
-    public void UnsubscribeFromEvents(RedBolt.Object receiver, RedBolt.Object sender)
+    public void UnsubscribeFromEvents(RedObject receiver, RedObject sender)
     {
         Unsubscribe(receiver, sender);
     }
@@ -418,7 +418,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
     /// <summary>
     /// Remove an event sender from all receivers.
     /// </summary>
-    public void RemoveEventSender(RedBolt.Object sender)
+    public void RemoveEventSender(RedObject sender)
     {
         ArgumentNullException.ThrowIfNull(sender);
 
@@ -428,7 +428,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
         RemoveEmptyEventBuckets();
     }
 
-    public void UnsubscribeAllExcept(RedBolt.Object receiver, IReadOnlyCollection<RedBolt.Object> senders)
+    public void UnsubscribeAllExcept(RedObject receiver, IReadOnlyCollection<RedObject> senders)
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(senders);
@@ -444,7 +444,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
         RemoveEmptyEventBuckets();
     }
 
-    public void UnsubscribeAllExcept(RedBolt.Object receiver, IReadOnlyCollection<Type> eventTypes)
+    public void UnsubscribeAllExcept(RedObject receiver, IReadOnlyCollection<Type> eventTypes)
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(eventTypes);
@@ -458,7 +458,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
         RemoveEmptyEventBuckets();
     }
 
-    public bool HasSubscribedToEvent(RedBolt.Object receiver)
+    public bool HasSubscribedToEvent(RedObject receiver)
     {
         ArgumentNullException.ThrowIfNull(receiver);
 
@@ -471,7 +471,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
         return false;
     }
 
-    public bool HasSubscribedToEvent<T>(RedBolt.Object receiver) where T : struct
+    public bool HasSubscribedToEvent<T>(RedObject receiver) where T : struct
     {
         ArgumentNullException.ThrowIfNull(receiver);
 
@@ -481,7 +481,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
         return HasMatchingSubscription(bucket, subscription => IsReceiverMatch(subscription, receiver));
     }
 
-    public bool HasSubscribedToEvent<T>(RedBolt.Object receiver, RedBolt.Object sender) where T : struct
+    public bool HasSubscribedToEvent<T>(RedObject receiver, RedObject sender) where T : struct
     {
         ArgumentNullException.ThrowIfNull(receiver);
         ArgumentNullException.ThrowIfNull(sender);
@@ -493,12 +493,12 @@ public class Context : RedBolt.ObjectReflectionRegistry
             subscription => IsReceiverMatch(subscription, receiver) && ReferenceEquals(subscription.Sender, sender));
     }
 
-    public bool HasEventHandlers(RedBolt.Object receiver)
+    public bool HasEventHandlers(RedObject receiver)
     {
         return HasSubscribedToEvent(receiver);
     }
 
-    public RedBolt.Object? GetEventSender()
+    public RedObject? GetEventSender()
     {
         return _activeEventInvocations.Count > 0 ? _activeEventInvocations[^1].Sender : null;
     }
@@ -534,9 +534,9 @@ public class Context : RedBolt.ObjectReflectionRegistry
         SendEvent(sender: null, ref args);
     }
 
-    public void SendEvent<T>(RedBolt.Object? sender, ref T args) where T : struct
+    public void SendEvent<T>(RedObject? sender, ref T args) where T : struct
     {
-        if (sender is RedBolt.Object { BlockEvents: true })
+        if (sender is RedObject { BlockEvents: true })
             return;
 
         if (!_structEventSubscriptions.TryGetValue(typeof(T), out var bucket) || bucket.Subscriptions.Count == 0)
@@ -565,7 +565,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
                 if (subscription.Sender is null && sender is not null && HasSpecificSubscription(bucket, receiver, sender))
                     continue;
 
-                if (receiver is RedBolt.Object { BlockEvents: true })
+                if (receiver is RedObject { BlockEvents: true })
                     continue;
 
                 _activeEventInvocations.Add(new ActiveEventInvocation(sender, subscription));
@@ -585,7 +585,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
         }
     }
 
-    private static bool IsReceiverMatch(EventHandler subscription, RedBolt.Object receiver)
+    private static bool IsReceiverMatch(EventHandler subscription, RedObject receiver)
     {
         if (!subscription.TryGetReceiver(out var targetReceiver))
             return false;
@@ -593,7 +593,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
         return ReferenceEquals(targetReceiver, receiver);
     }
 
-    private static bool HasSpecificSubscription(StructEventSubscriptionBucket bucket, RedBolt.Object? receiver, RedBolt.Object sender)
+    private static bool HasSpecificSubscription(StructEventSubscriptionBucket bucket, RedObject? receiver, RedObject sender)
     {
         foreach (var subscription in bucket.Subscriptions)
         {
@@ -607,7 +607,7 @@ public class Context : RedBolt.ObjectReflectionRegistry
         return false;
     }
 
-    private void SubscribeToEventCore<T>(RedBolt.Object receiver, RedBolt.Object? senderFilter, RefEventHandler<T> handler) where T : struct
+    private void SubscribeToEventCore<T>(RedObject receiver, RedObject? senderFilter, RefEventHandler<T> handler) where T : struct
     {
         ArgumentNullException.ThrowIfNull(handler);
 

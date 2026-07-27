@@ -816,7 +816,7 @@ public enum ModelViewExportFlag
 }
 
 /// <summary>Represents Model in editable form.</summary>
-public sealed class ModelView : RedBolt.Object
+public sealed class ModelView : RedObject
 {
     private sealed class VertexBufferBuilder
     {

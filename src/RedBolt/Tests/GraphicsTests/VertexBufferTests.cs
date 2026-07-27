@@ -8,7 +8,7 @@ public sealed class VertexBufferTests
         Assert.False(typeof(VertexBuffer).IsSealed);
         Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(VertexBuffer)));
         Assert.False(typeof(DynamicVertexBuffer).IsSealed);
-        Assert.True(typeof(RedBolt.Object).IsAssignableFrom(typeof(DynamicVertexBuffer)));
+        Assert.True(typeof(RedObject).IsAssignableFrom(typeof(DynamicVertexBuffer)));
         Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(DynamicVertexBuffer)));
     }
 

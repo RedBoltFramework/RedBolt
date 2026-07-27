@@ -8,7 +8,7 @@ public enum MultitouchEventType
     MultitouchCancel,
 }
 
-public class MultitouchAdapter : RedBolt.Object
+public class MultitouchAdapter : RedObject
 {
     private struct ActiveTouch
     {

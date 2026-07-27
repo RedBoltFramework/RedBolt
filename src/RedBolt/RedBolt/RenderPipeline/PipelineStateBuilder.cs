@@ -3,7 +3,7 @@ namespace RedBolt;
 /// <summary>
 /// Utility to build pipeline states for RenderPipeline.
 /// </summary>
-public class PipelineStateBuilder : RedBolt.Object, BatchStateCacheCallback
+public class PipelineStateBuilder : RedObject, BatchStateCacheCallback
 {
     /// <summary>Objects whose settings contribute to pipeline states.</summary>
     private readonly SceneProcessor? _sceneProcessor;

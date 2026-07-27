@@ -2,7 +2,7 @@ using System.Text;
 
 namespace RedBolt;
 
-public partial class Graph : RedBolt.Object
+public partial class Graph : RedObject
 {
     public const uint MaxId = uint.MaxValue;
     public const uint FirstId = 1;

@@ -52,7 +52,7 @@ public class SubsystemCacheTests
         Assert.Null(context.GetSubsystem(type));
     }
 
-    private sealed class TestReflectionObject : RedBolt.Object
+    private sealed class TestReflectionObject : RedObject
     {
     }
 

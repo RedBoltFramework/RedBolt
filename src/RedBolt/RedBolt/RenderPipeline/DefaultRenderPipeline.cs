@@ -544,7 +544,7 @@ public class DefaultRenderPipelineView : RenderPipelineView
     protected void SendBeginViewUpdateEvent()
     {
         var eventData = CreateBeginViewUpdateEvent();
-        var sender = (RedBolt.Object?)eventData.Texture ?? _renderer;
+        var sender = (RedObject?)eventData.Texture ?? _renderer;
         sender.SendEvent(ref eventData);
     }
 
@@ -558,7 +558,7 @@ public class DefaultRenderPipelineView : RenderPipelineView
             Scene = _sceneProcessor!.GetFrameInfo().Scene,
             Camera = _sceneProcessor.GetFrameInfo().Camera
         };
-        var sender = (RedBolt.Object?)eventData.Texture ?? _renderer;
+        var sender = (RedObject?)eventData.Texture ?? _renderer;
         sender.SendEvent(ref eventData);
     }
 
@@ -572,7 +572,7 @@ public class DefaultRenderPipelineView : RenderPipelineView
             Scene = _sceneProcessor!.GetFrameInfo().Scene,
             Camera = _sceneProcessor.GetFrameInfo().Camera
         };
-        var sender = (RedBolt.Object?)eventData.Texture ?? _renderer;
+        var sender = (RedObject?)eventData.Texture ?? _renderer;
         sender.SendEvent(ref eventData);
     }
 
@@ -586,7 +586,7 @@ public class DefaultRenderPipelineView : RenderPipelineView
             Scene = _sceneProcessor!.GetFrameInfo().Scene,
             Camera = _sceneProcessor.GetFrameInfo().Camera
         };
-        var sender = (RedBolt.Object?)eventData.Texture ?? _renderer;
+        var sender = (RedObject?)eventData.Texture ?? _renderer;
         sender.SendEvent(ref eventData);
     }
 
@@ -600,7 +600,7 @@ public class DefaultRenderPipelineView : RenderPipelineView
             Scene = _sceneProcessor!.GetFrameInfo().Scene,
             Camera = _sceneProcessor.GetFrameInfo().Camera
         };
-        var sender = (RedBolt.Object?)eventData.Texture ?? _renderer;
+        var sender = (RedObject?)eventData.Texture ?? _renderer;
         sender.SendEvent(ref eventData);
     }
 

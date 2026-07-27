@@ -7,7 +7,7 @@ namespace RedBolt;
 /// <summary>
 /// Base class for writable texture or texture region. Readability is not guaranteed.
 /// </summary>
-public abstract class RenderBuffer : RedBolt.Object
+public abstract class RenderBuffer : RedObject
 {
     protected readonly RenderDevice RenderDevice;
     protected bool BufferIsReady;

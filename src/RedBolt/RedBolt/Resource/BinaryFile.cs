@@ -88,14 +88,14 @@ public partial class BinaryFile : Resource
     }
 
     /// <summary>Save object using Archive serialization.</summary>
-    public bool SaveObject(RedBolt.Object value)
+    public bool SaveObject(RedObject value)
     {
         ArgumentNullException.ThrowIfNull(value);
         return SaveObjectCallback(value.SerializeInBlock);
     }
 
     /// <summary>Load object using Archive serialization.</summary>
-    public bool LoadObject(RedBolt.Object value)
+    public bool LoadObject(RedObject value)
     {
         ArgumentNullException.ThrowIfNull(value);
         return LoadObjectCallback(value.SerializeInBlock);

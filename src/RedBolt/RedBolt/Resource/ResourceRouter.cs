@@ -4,7 +4,7 @@ namespace RedBolt;
 /// Optional resource request processor.
 /// Can deny requests, re-route resource file names, or perform other processing per request.
 /// </summary>
-public abstract class ResourceRouter : RedBolt.Object
+public abstract class ResourceRouter : RedObject
 {
     /// <summary>
     /// Construct.

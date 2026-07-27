@@ -6,7 +6,7 @@ namespace RedBolt;
 /// <summary>
 /// Class that manages all render buffers within viewport and viewport itself.
 /// </summary>
-public class RenderBufferManager : RedBolt.Object
+public class RenderBufferManager : RedObject
 {
     public RenderBufferManager(IRenderPipelineInterface renderPipeline)
     {

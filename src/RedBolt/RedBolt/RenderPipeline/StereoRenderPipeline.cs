@@ -731,7 +731,7 @@ public class StereoRenderPipelineView : RenderPipelineView
             Scene = _sceneProcessor!.GetFrameInfo().Scene,
             Camera = _sceneProcessor.GetFrameInfo().Camera
         };
-        var sender = (RedBolt.Object?)eventData.Texture ?? GetRenderPipeline().GetSubsystem<Renderer>()!;
+        var sender = (RedObject?)eventData.Texture ?? GetRenderPipeline().GetSubsystem<Renderer>()!;
         sender.SendEvent(ref eventData);
     }
 
@@ -745,7 +745,7 @@ public class StereoRenderPipelineView : RenderPipelineView
             Scene = _sceneProcessor!.GetFrameInfo().Scene,
             Camera = _sceneProcessor.GetFrameInfo().Camera
         };
-        var sender = (RedBolt.Object?)eventData.Texture ?? GetRenderPipeline().GetSubsystem<Renderer>()!;
+        var sender = (RedObject?)eventData.Texture ?? GetRenderPipeline().GetSubsystem<Renderer>()!;
         sender.SendEvent(ref eventData);
     }
 
@@ -759,7 +759,7 @@ public class StereoRenderPipelineView : RenderPipelineView
             Scene = _sceneProcessor!.GetFrameInfo().Scene,
             Camera = _sceneProcessor.GetFrameInfo().Camera
         };
-        var sender = (RedBolt.Object?)eventData.Texture ?? GetRenderPipeline().GetSubsystem<Renderer>()!;
+        var sender = (RedObject?)eventData.Texture ?? GetRenderPipeline().GetSubsystem<Renderer>()!;
         sender.SendEvent(ref eventData);
     }
 
@@ -773,7 +773,7 @@ public class StereoRenderPipelineView : RenderPipelineView
             Scene = _sceneProcessor!.GetFrameInfo().Scene,
             Camera = _sceneProcessor.GetFrameInfo().Camera
         };
-        var sender = (RedBolt.Object?)eventData.Texture ?? GetRenderPipeline().GetSubsystem<Renderer>()!;
+        var sender = (RedObject?)eventData.Texture ?? GetRenderPipeline().GetSubsystem<Renderer>()!;
         sender.SendEvent(ref eventData);
     }
 
@@ -787,7 +787,7 @@ public class StereoRenderPipelineView : RenderPipelineView
             Scene = _sceneProcessor!.GetFrameInfo().Scene,
             Camera = _sceneProcessor.GetFrameInfo().Camera
         };
-        var sender = (RedBolt.Object?)eventData.Texture ?? GetRenderPipeline().GetSubsystem<Renderer>()!;
+        var sender = (RedObject?)eventData.Texture ?? GetRenderPipeline().GetSubsystem<Renderer>()!;
         sender.SendEvent(ref eventData);
     }
 

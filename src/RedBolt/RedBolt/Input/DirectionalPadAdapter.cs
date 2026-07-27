@@ -20,7 +20,7 @@ public enum DirectionalPadAdapterMask : uint
 /// released it sends a message about key been released. It can also be used as a substitute for Input as it implements
 /// GetScancodeDown and GetKeyDown methods but it only supports arrow key and scan codes.
 /// </remarks>
-public class DirectionalPadAdapter : RedBolt.Object
+public class DirectionalPadAdapter : RedObject
 {
     private enum InputType
     {

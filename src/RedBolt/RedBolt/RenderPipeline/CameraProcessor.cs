@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 namespace RedBolt;
 
 /// <summary>Utility to process render camera (not cull camera!).</summary>
-public class CameraProcessor : RedBolt.Object
+public class CameraProcessor : RedObject
 {
     private bool _isCameraOrthographic;
     private bool _isCameraFlippedByUser;

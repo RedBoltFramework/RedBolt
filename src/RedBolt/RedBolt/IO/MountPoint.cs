@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace RedBolt;
 
 /// <summary>Access to engine file system mount point.</summary>
-public abstract class MountPoint : RedBolt.Object
+public abstract class MountPoint : RedObject
 {
     /// <summary>Construct.</summary>
     public MountPoint()

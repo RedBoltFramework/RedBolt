@@ -17,7 +17,7 @@ public sealed class EngineTests
     {
         var type = typeof(Engine);
         Assert.False(type.IsSealed);
-        Assert.True(typeof(RedBolt.Object).IsAssignableFrom(type));
+        Assert.True(typeof(RedObject).IsAssignableFrom(type));
         Assert.False(typeof(ICloneable).IsAssignableFrom(type));
 
         var fields = type.GetFields(
@@ -416,7 +416,7 @@ public sealed class EngineTests
         }
     }
 
-    private sealed class TestObject : RedBolt.Object
+    private sealed class TestObject : RedObject
     {
     }
 }

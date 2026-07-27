@@ -66,7 +66,7 @@ file sealed class OccludedFrustumOctreeQuery : FrustumOctreeQuery
 }
 
 /// <summary>Scene processor for RenderPipeline.</summary>
-public class SceneProcessor : RedBolt.Object, LightProcessorCallback
+public class SceneProcessor : RedObject, LightProcessorCallback
 {
     [ThreadStatic]
     private static Frustum? _viewSpaceLightFrustum;
@@ -418,7 +418,7 @@ public class SceneProcessor : RedBolt.Object, LightProcessorCallback
     /// Returns user-configured pass (inherited from BatchCompositorPass) if possible.
     /// Returns null if internal pass from BatchCompositor itself (e.g. shadow or light volume pass).
     /// </summary>
-    public BatchCompositorPass? GetUserPass(RedBolt.Object? pass)
+    public BatchCompositorPass? GetUserPass(RedObject? pass)
     {
         System.Diagnostics.Debug.Assert(pass is not null);
         if (ReferenceEquals(pass, BatchCompositor))

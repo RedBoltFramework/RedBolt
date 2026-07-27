@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 namespace RedBolt;
 
 /// <summary>Base class for an application state. Examples of a state would be a loading screen, a menu or a game screen.</summary>
-public class ApplicationState : RedBolt.Object
+public class ApplicationState : RedObject
 {
     private bool _active;
     private readonly List<Viewport?> _viewports = [];
@@ -243,7 +243,7 @@ public class ApplicationState : RedBolt.Object
     // SharedPtr<ActionManager> actionManager_;
 }
 
-public class StateManager : RedBolt.Object
+public class StateManager : RedObject
 {
     /// <summary>Queue item.</summary>
     private struct QueueItem : ICloneable, IDisposable

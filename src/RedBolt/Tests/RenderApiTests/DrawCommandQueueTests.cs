@@ -16,7 +16,7 @@ public sealed class DrawCommandQueueTests
     [Fact]
     public void Draw_command_queue_has_native_reference_class_and_constructor_shape()
     {
-        Assert.False(typeof(RedBolt.Object).IsAssignableFrom(typeof(DrawCommandQueue)));
+        Assert.False(typeof(RedObject).IsAssignableFrom(typeof(DrawCommandQueue)));
         Assert.False(typeof(IDisposable).IsAssignableFrom(typeof(DrawCommandQueue)));
         Assert.False(typeof(DrawCommandQueue).GetMethod(nameof(DrawCommandQueue.ExecuteInContext))!.IsVirtual);
 

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace RedBolt;
 
 /// <summary>Watches a set of directories for files being modified.</summary>
-public class MultiFileWatcher : RedBolt.Object
+public class MultiFileWatcher : RedObject
 {
     /// <summary>Construct.</summary>
     public MultiFileWatcher()

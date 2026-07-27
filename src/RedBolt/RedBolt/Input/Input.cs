@@ -155,7 +155,7 @@ public struct JoystickState : ICloneable
     public int[] Hats = [];
 }
 
-public class Input : RedBolt.Object
+public class Input : RedObject
 {
     public static void RegisterInputLibrary(Context context)
     {

@@ -48,7 +48,7 @@ public sealed class ConfigVariableDefinition : ICloneable, IDisposable
 }
 
 /// <summary>A class responsible for serializing configuration parameters.</summary>
-public sealed class ConfigFile : RedBolt.Object
+public sealed class ConfigFile : RedObject
 {
     private static readonly Variant EmptyVariable;
 

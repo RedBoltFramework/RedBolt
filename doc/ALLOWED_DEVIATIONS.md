@@ -22,6 +22,7 @@ These are the ONLY places C# is allowed to differ from C++:
   - `Vector[234]` -> `Vector[234]f`
   - `IntVector[234]` -> `Vector[234]i`
 - `CString` is our addition and is to be kept, as well as related customizations of other APIs
+- C++ `Object` is named `RedObject` in C# to avoid collision with `System.Object`.
 - No URHO3D_OBJECT-related metadata code -> replaced by C# type system/reflection with `ObjectReflection` as a facade
 - Object reflection and serializable attribute registration may be declared with C# `[Reflected]` and `[Serialized]` attributes and generated at compile time, including for RedBolt user assemblies. Field and property initializers are the primary source of serialization defaults; generated registration may use an explicitly named default source for method-based and custom accessors.
 - C++ `friend` has no C# equivalent. A member that C++ makes `protected`/`private` but reaches from a `friend` class is mapped to `internal` (or `protected internal` when it is also `virtual`/overridden). This is the required, faithful mapping — NOT an `internal`-visibility violation of section 3. A member that is `public` in C++ must still be `public` in C#.

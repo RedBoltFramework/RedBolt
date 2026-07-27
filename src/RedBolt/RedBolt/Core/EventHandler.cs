@@ -5,11 +5,11 @@ namespace RedBolt;
 /// </summary>
 public sealed class EventHandler
 {
-    private readonly WeakReference<RedBolt.Object> _receiver;
+    private readonly WeakReference<RedObject> _receiver;
 
-    internal EventHandler(RedBolt.Object receiver, RedBolt.Object? sender, Type eventType, Delegate handler)
+    internal EventHandler(RedObject receiver, RedObject? sender, Type eventType, Delegate handler)
     {
-        _receiver = new WeakReference<RedBolt.Object>(receiver);
+        _receiver = new WeakReference<RedObject>(receiver);
         Sender = sender;
         EventType = eventType;
         Handler = handler;
@@ -29,14 +29,14 @@ public sealed class EventHandler
     /// <summary>
     /// Return event sender. Null if the handler is non-specific.
     /// </summary>
-    public RedBolt.Object? Sender { get; }
+    public RedObject? Sender { get; }
 
     /// <summary>
     /// Return event type.
     /// </summary>
     public Type EventType { get; }
 
-    internal bool TryGetReceiver(out RedBolt.Object? receiver)
+    internal bool TryGetReceiver(out RedObject? receiver)
     {
         return _receiver.TryGetTarget(out receiver);
     }

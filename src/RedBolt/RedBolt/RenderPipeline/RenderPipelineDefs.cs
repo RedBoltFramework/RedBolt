@@ -1335,7 +1335,7 @@ public interface IRenderPipelineInterface
 /// <summary>
 /// Base interface of render pipeline viewport instance.
 /// </summary>
-public abstract class RenderPipelineView : RedBolt.Object, IRenderPipelineInterface
+public abstract class RenderPipelineView : RedObject, IRenderPipelineInterface
 {
     private readonly RenderPipeline _renderPipeline;
     protected readonly Graphics _graphics;

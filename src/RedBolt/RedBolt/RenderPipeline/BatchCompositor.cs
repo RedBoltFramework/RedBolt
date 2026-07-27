@@ -264,7 +264,7 @@ public class BatchCompositorPass : DrawableProcessorPass
 }
 
 /// <summary>Batch composition manager.</summary>
-public class BatchCompositor : RedBolt.Object
+public class BatchCompositor : RedObject
 {
     private sealed class ShadowBatchTask
     {

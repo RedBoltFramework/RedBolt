@@ -3,7 +3,7 @@ namespace RedBolt;
 /// <summary>
 /// RenderPipeline used to render geometry buffer for lightmap baking.
 /// </summary>
-public class LightmapRenderPipelineView : RedBolt.Object, IRenderPipelineInterface
+public class LightmapRenderPipelineView : RedObject, IRenderPipelineInterface
 {
     public LightmapRenderPipelineView()
     {

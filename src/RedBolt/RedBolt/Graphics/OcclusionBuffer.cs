@@ -42,7 +42,7 @@ public struct OcclusionBatch
 }
 
 /// <summary>Software renderer for occlusion.</summary>
-public sealed class OcclusionBuffer : RedBolt.Object
+public sealed class OcclusionBuffer : RedObject
 {
     private const int OcclusionMinSize = 8;
     private const int OcclusionDefaultMaxTriangles = 5000;

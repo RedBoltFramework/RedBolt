@@ -67,7 +67,7 @@ public class PipelineStateSubscription : IDisposable, ICloneable
 }
 
 /// <summary>Helper class to track pipeline state changes caused by derived class.</summary>
-public abstract class PipelineStateTracker : RedBolt.Object
+public abstract class PipelineStateTracker : RedObject
 {
     /// <summary>Destruct.</summary>
     public override void Dispose()
