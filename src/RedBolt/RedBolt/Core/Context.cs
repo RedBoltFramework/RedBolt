@@ -8,7 +8,7 @@ namespace RedBolt;
 
 public delegate void RefEventHandler<T>(ref T args) where T : struct;
 
-public class Context : RedBolt.ObjectReflectionRegistry
+public class Context : ObjectReflectionRegistry
 {
     private sealed class StructEventSubscriptionBucket
     {
