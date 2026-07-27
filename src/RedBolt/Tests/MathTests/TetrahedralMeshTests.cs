@@ -26,6 +26,8 @@ public sealed class TetrahedralMeshTests
 
         var copy = new TetrahedralMesh(source);
         var clone = (TetrahedralMesh)source.Clone();
+        var sourceTetrahedron = source.Tetrahedrons[0];
+        var copyTetrahedron = copy.Tetrahedrons[0];
 
         Assert.IsAssignableFrom<ICloneable>(source);
         Assert.NotSame(source.Vertices, copy.Vertices);
@@ -35,7 +37,10 @@ public sealed class TetrahedralMeshTests
         Assert.NotSame(source.DebugHighlightEdges, copy.DebugHighlightEdges);
         Assert.Equal(source.NumInnerTetrahedrons, copy.NumInnerTetrahedrons);
         Assert.Equal(source.Vertices, copy.Vertices);
-        Assert.Equal(source.Tetrahedrons, copy.Tetrahedrons);
+        Assert.Equal(source.Tetrahedrons.Count, copy.Tetrahedrons.Count);
+        Assert.Equal(sourceTetrahedron.Indices[..].ToArray(), copyTetrahedron.Indices[..].ToArray());
+        Assert.Equal(sourceTetrahedron.Neighbors[..].ToArray(), copyTetrahedron.Neighbors[..].ToArray());
+        Assert.Equal(sourceTetrahedron.Matrix, copyTetrahedron.Matrix);
         Assert.Equal(source.HullNormals, copy.HullNormals);
         Assert.Equal(source.IgnoredVertices, copy.IgnoredVertices);
         Assert.Equal(source.DebugHighlightEdges, copy.DebugHighlightEdges);

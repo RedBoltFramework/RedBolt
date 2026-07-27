@@ -1,0 +1,62 @@
+<Project>
+  <Import Project="$(MSBuildThisFileDirectory)../../Directory.Build.targets" />
+
+  <ItemGroup>
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      PrivateAssets="all"
+                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
+    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.csproj"
+                      Condition="'$(RedBoltPlatform)' == 'linux-x64'"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Web.csproj"
+                      Condition="'$(RedBoltPlatform)' == 'browser-wasm'"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+  </ItemGroup>
+
+  <Target Name="RedBoltIncludeGeneratedBindings" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/sdl/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Sdl'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/diligent/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Diligent'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/dearimgui/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.DearImGui'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/stb/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Stb'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/lz4/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Lz4'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/webp/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.WebP'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/glslang/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Glslang'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/spirv-cross/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVCross'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/spirv-tools/**/*.g.cs;$(RedBoltGeneratedBindingsDir)/spirv-optimizer/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVTools'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/shader-compiler/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.ShaderCompiler'" />
+    </ItemGroup>
+  </Target>
+</Project>

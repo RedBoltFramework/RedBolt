@@ -2,9 +2,6 @@
   <PropertyGroup>
     <RedBoltSolutionBuildRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)build'))</RedBoltSolutionBuildRoot>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
-    <BuildInParallel>true</BuildInParallel>
-    <RedBoltGeneratorProject>$(MSBuildThisFileDirectory)src/RedBolt/Dependencies/Generator/RedBolt.Dependencies.Generator.csproj</RedBoltGeneratorProject>
-    <RedBoltWebNativeProject>$(MSBuildThisFileDirectory)src/RedBolt/Native/RedBolt.Native.Web.csproj</RedBoltWebNativeProject>
     <RedBoltWebProject>$(MSBuildThisFileDirectory)src/RedBolt/Sample/Web/RedBolt.Sample.Web.csproj</RedBoltWebProject>
   </PropertyGroup>
 
@@ -20,22 +17,10 @@
     </PropertyGroup>
   </Target>
 
-  <Target Name="RedBoltRestorePlatformTools" BeforeTargets="Build">
-    <MSBuild Projects="$(RedBoltGeneratorProject)"
-             Targets="Restore"
-             BuildInParallel="false"
-             Properties="Configuration=$(Configuration);RedBoltPlatform=linux-gcc-x64-dll;RedBoltNativePreset=;SharpCppBuildRoot=$(RedBoltSolutionBuildRoot);SharpCppOutputDir=$(RedBoltSolutionBuildRoot)/bin/$(Configuration)/tools;SharpCppIntermediateRoot=$(RedBoltSolutionBuildRoot)/obj/managed/tools" />
-    <MSBuild Projects="$(RedBoltGeneratorProject)"
-             Targets="Restore"
-             BuildInParallel="false"
-             Properties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=;SharpCppBuildRoot=$(RedBoltSolutionBuildRoot);SharpCppOutputDir=$(RedBoltSolutionBuildRoot)/bin/$(Configuration)/tools;SharpCppIntermediateRoot=$(RedBoltSolutionBuildRoot)/obj/managed/tools" />
-    <MSBuild Projects="$(RedBoltWebNativeProject)"
-             Targets="Restore"
-             BuildInParallel="false"
-             Properties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm;SharpCppBuildRoot=$(RedBoltSolutionBuildRoot);SharpCppOutputDir=$(RedBoltSolutionBuildRoot)/bin/$(Configuration)/tools;SharpCppIntermediateRoot=$(RedBoltSolutionBuildRoot)/obj/managed/tools" />
+  <Target Name="RedBoltBuildWeb" AfterTargets="Build">
     <MSBuild Projects="$(RedBoltWebProject)"
-             Targets="Restore"
+             Targets="Restore;Build"
              BuildInParallel="false"
-             Properties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm;SharpCppBuildRoot=$(RedBoltSolutionBuildRoot);SharpCppOutputDir=$(RedBoltSolutionBuildRoot)/bin/$(Configuration)/tools;SharpCppIntermediateRoot=$(RedBoltSolutionBuildRoot)/obj/managed/tools" />
+             Properties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm" />
   </Target>
 </Project>

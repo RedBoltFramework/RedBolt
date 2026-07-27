@@ -1,13 +1,28 @@
 <Project>
   <Import Project="$(MSBuildThisFileDirectory)../../Directory.Build.targets" />
 
-  <ItemGroup Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll'">
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
+    <AdditionalProbingPath Include="$(RedBoltOutputRoot)" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Platform/Linux/RedBolt.Platform.Linux.csproj" />
   </ItemGroup>
 
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
+    <GenerateRuntimeConfigDevFile>true</GenerateRuntimeConfigDevFile>
+  </PropertyGroup>
+
+  <Target Name="RedBoltConfigureParentRuntimeAssemblies"
+          AfterTargets="GenerateBuildDependencyFile"
+          Condition="'$(RuntimeIdentifier)' == 'linux-x64' and Exists('$(ProjectDepsFilePath)')">
+    <RedBoltUseParentRuntimeAssemblies DependencyFile="$(ProjectDepsFilePath)"
+                                       MainProjectName="$(AssemblyName)"
+                                       NativeRuntimeDirectory="$(RedBoltNativeOutputRoot)"
+                                       RelocateAllProjectLibraries="true"
+                                       RuntimeIdentifier="$(RuntimeIdentifier)" />
+  </Target>
+
   <Target Name="RedBoltKeepSharedAssembliesInParent"
           BeforeTargets="_CopyFilesMarkedCopyLocal"
-          Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll'">
+          Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
     <ItemGroup>
       <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)"
                                Condition="$([System.String]::Copy('%(Filename)').StartsWith('RedBolt')) or '%(Filename)' == 'SharpCpp.Support'" />

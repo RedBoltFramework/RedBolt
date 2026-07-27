@@ -32,7 +32,6 @@ endif()
 
 set(REDBOLT_EXTERN_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/extern" CACHE PATH "Path to RedBolt native dependency sources" FORCE)
 set(REDBOLT_SHARPCPP_ROOT "${REDBOLT_EXTERN_ROOT}/SharpCpp" CACHE PATH "Path to the SharpCpp source tree" FORCE)
-set(REDBOLT_PLATFORM "linux-gcc-x64-dll" CACHE STRING "RedBolt target platform")
 set(REDBOLT_RUNTIME_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/bin/$<CONFIG>/runtimes/linux-x64/native" CACHE PATH "RedBolt runtime output directory")
 set(REDBOLT_GENERATED_ROOT "${CMAKE_BINARY_DIR}/generated" CACHE INTERNAL "RedBolt generated file root")
 set(REDBOLT_NATIVE_GENERATED_DIR "${REDBOLT_GENERATED_ROOT}/redbolt-native" CACHE INTERNAL "RedBolt generated native binding root")

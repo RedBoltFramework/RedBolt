@@ -93,32 +93,9 @@
 
   <PropertyGroup>
     <RedBoltGlobalAliasesFile>$(RedBoltRoot)/src/RedBolt/RedBolt/GlobalAliases.cs</RedBoltGlobalAliasesFile>
-    <RedBoltIsBindingProject>$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Bindings.'))</RedBoltIsBindingProject>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and ('$(RedBoltIsSampleProject)' == 'true' or '$(MSBuildProjectName)' == 'RedBolt.Tests')">
-    <AdditionalProbingPath Include="$(RedBoltOutputRoot)" />
-  </ItemGroup>
 
-  <PropertyGroup Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and ('$(RedBoltIsSampleProject)' == 'true' or '$(MSBuildProjectName)' == 'RedBolt.Tests')">
-    <GenerateRuntimeConfigDevFile>true</GenerateRuntimeConfigDevFile>
-  </PropertyGroup>
-
-  <ItemGroup Condition="'$(RedBoltIsBindingProject)' == 'true'">
-    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
-                      PrivateAssets="all"
-                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
-    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.csproj"
-                      Condition="'$(RedBoltPlatform)' != 'web-emscripten-wasm'"
-                      ReferenceOutputAssembly="false"
-                      PrivateAssets="all"
-                      RedBoltProperties="Configuration=$(Configuration)" />
-    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Web.csproj"
-                      Condition="'$(RedBoltPlatform)' == 'web-emscripten-wasm'"
-                      ReferenceOutputAssembly="false"
-                      PrivateAssets="all"
-                      RedBoltProperties="Configuration=$(Configuration)" />
-  </ItemGroup>
 
   <Target Name="RedBoltPropagateProjectReferenceProperties"
           BeforeTargets="AssignProjectConfiguration;_SplitProjectReferencesByFileExistence">
@@ -138,11 +115,6 @@
         <SetConfiguration>%(_MSBuildProjectReferenceExistent.SetConfiguration);%(_MSBuildProjectReferenceExistent.RedBoltProperties)</SetConfiguration>
         <GlobalPropertiesToRemove>TargetFramework;RuntimeIdentifier;SelfContained;Platform</GlobalPropertiesToRemove>
       </_MSBuildProjectReferenceExistent>
-      <_MSBuildProjectReferenceExistent Update="@(_MSBuildProjectReferenceExistent)"
-                                        Condition="'%(_MSBuildProjectReferenceExistent.RedBoltProperties)' == ''">
-        <SetConfiguration>%(_MSBuildProjectReferenceExistent.SetConfiguration);Configuration=$(Configuration);RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltNativePreset)</SetConfiguration>
-        <GlobalPropertiesToRemove>TargetFramework;RuntimeIdentifier;SelfContained;Platform</GlobalPropertiesToRemove>
-      </_MSBuildProjectReferenceExistent>
     </ItemGroup>
   </Target>
 
@@ -158,52 +130,6 @@
     </PropertyGroup>
   </Target>
 
-  <Target Name="RedBoltIncludeGeneratedBindings"
-          BeforeTargets="CoreCompile"
-          Condition="'$(RedBoltIsBindingProject)' == 'true'">
-    <ItemGroup>
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/sdl/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Sdl'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/diligent/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Diligent'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/dearimgui/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.DearImGui'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/stb/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Stb'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/lz4/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Lz4'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/webp/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.WebP'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/glslang/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Glslang'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/spirv-cross/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVCross'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/spirv-tools/**/*.g.cs;$(RedBoltGeneratedBindingsDir)/spirv-optimizer/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVTools'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/shader-compiler/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.ShaderCompiler'" />
-    </ItemGroup>
-  </Target>
 
   <Target Name="RedBoltIncludeGlobalAliases"
           BeforeTargets="CoreCompile"
@@ -216,23 +142,5 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="RedBoltConfigureParentRuntimeAssemblies"
-          AfterTargets="GenerateBuildDependencyFile"
-          Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and ('$(RedBoltIsSampleProject)' == 'true' or '$(MSBuildProjectName)' == 'RedBolt.Tests') and Exists('$(ProjectDepsFilePath)')">
-    <RedBoltUseParentRuntimeAssemblies DependencyFile="$(ProjectDepsFilePath)"
-                                       MainProjectName="$(AssemblyName)"
-                                       NativeRuntimeDirectory="$(RedBoltNativeOutputRoot)"
-                                       RelocateAllProjectLibraries="$(RedBoltIsSampleProject)"
-                                       RuntimeIdentifier="$(RedBoltRuntimeIdentifier)" />
-  </Target>
-
-  <Target Name="RedBoltExcludeParentRuntimeAssemblies"
-          BeforeTargets="_CopyFilesMarkedCopyLocal"
-          Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and '$(MSBuildProjectName)' == 'RedBolt.Tests'">
-    <ItemGroup>
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)"
-                               Condition="$([System.String]::Copy('%(ReferenceCopyLocalPaths.Filename)').StartsWith('RedBolt'))" />
-    </ItemGroup>
-  </Target>
 
 </Project>

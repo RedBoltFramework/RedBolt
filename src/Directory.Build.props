@@ -1,56 +1,36 @@
 <Project>
   <PropertyGroup>
-    <RedBoltBuildPropsImported>true</RedBoltBuildPropsImported>
     <RedBoltRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</RedBoltRoot>
-    <RedBoltBuildRoot>$([System.IO.Path]::GetFullPath('$(RedBoltRoot)/build'))</RedBoltBuildRoot>
-    <RedBoltSharpCppRoot Condition="'$(RedBoltSharpCppRoot)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltRoot)/extern/SharpCpp'))</RedBoltSharpCppRoot>
+    <RedBoltBuildRoot>$(RedBoltRoot)/build</RedBoltBuildRoot>
+    <RedBoltSharpCppRoot>$(RedBoltRoot)/extern/SharpCpp</RedBoltSharpCppRoot>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
 
     <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and ('$(MSBuildProjectName)' == 'RedBolt.Dependencies.Generator' or '$(MSBuildProjectName)' == 'RedBolt.Reflection.Generator')">tools</RedBoltPlatform>
-    <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and '$(MSBuildProjectName)' == 'RedBolt.Native.Web'">web-emscripten-wasm</RedBoltPlatform>
-    <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and '$(MSBuildProjectName)' == 'RedBolt.Native'">linux-gcc-x64-dll</RedBoltPlatform>
-    <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and '$(MSBuildProjectName)' == 'RedBolt.Sample.Web'">web-emscripten-wasm</RedBoltPlatform>
-    <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and '$([MSBuild]::IsOSPlatform(`Linux`))' == 'true'">linux-gcc-x64-dll</RedBoltPlatform>
-
-    <RedBoltNativePreset Condition="'$(RedBoltNativePreset)' == '' and '$(RedBoltPlatform)' == 'linux-gcc-x64-dll'">linux-gcc-x64-dll</RedBoltNativePreset>
-    <RedBoltNativePreset Condition="'$(RedBoltNativePreset)' == '' and '$(RedBoltPlatform)' == 'web-emscripten-wasm'">web-emscripten-wasm</RedBoltNativePreset>
+    <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and ('$(MSBuildProjectName)' == 'RedBolt.Native.Web' or '$(MSBuildProjectName)' == 'RedBolt.Sample.Web')">browser-wasm</RedBoltPlatform>
+    <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and '$([MSBuild]::IsOSPlatform(`Linux`))' == 'true'">linux-x64</RedBoltPlatform>
+    <RedBoltNativePreset Condition="'$(RedBoltPlatform)' != 'tools'">$(RedBoltPlatform)</RedBoltNativePreset>
     <RedBoltNativeBuildDir Condition="'$(RedBoltNativePreset)' != ''">$(RedBoltBuildRoot)/native/$(RedBoltNativePreset)</RedBoltNativeBuildDir>
     <RedBoltConfigureNative Condition="'$(RedBoltNativeBuildDir)' != '' and !Exists('$(RedBoltNativeBuildDir)/CMakeCache.txt')">true</RedBoltConfigureNative>
     <RedBoltConfigureNative Condition="'$(RedBoltConfigureNative)' == ''">false</RedBoltConfigureNative>
-    <RedBoltCMakeCommand>/usr/bin/cmake</RedBoltCMakeCommand>
     <RedBoltGeneratedBindingsDir Condition="'$(RedBoltNativeBuildDir)' != ''">$(RedBoltNativeBuildDir)/generated/redbolt-native</RedBoltGeneratedBindingsDir>
 
-    <RedBoltRuntimeIdentifier Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll'">linux-x64</RedBoltRuntimeIdentifier>
-    <RedBoltRuntimeIdentifier Condition="'$(RedBoltPlatform)' == 'web-emscripten-wasm'">browser-wasm</RedBoltRuntimeIdentifier>
-    <RedBoltManagedFlavor Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll'">desktop</RedBoltManagedFlavor>
-    <RedBoltManagedFlavor Condition="'$(RedBoltPlatform)' == 'web-emscripten-wasm'">web</RedBoltManagedFlavor>
-    <RedBoltManagedFlavor Condition="'$(RedBoltManagedFlavor)' == ''">tools</RedBoltManagedFlavor>
     <RedBoltOutputRoot>$(RedBoltBuildRoot)/bin/$(Configuration)</RedBoltOutputRoot>
-    <RedBoltIntermediateRoot>$(RedBoltBuildRoot)/obj/managed/$(RedBoltManagedFlavor)</RedBoltIntermediateRoot>
-    <RedBoltWebOutputDir>$(RedBoltOutputRoot)/web</RedBoltWebOutputDir>
-    <RedBoltIsSampleProject>$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Sample.'))</RedBoltIsSampleProject>
-    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and ('$(RedBoltIsSampleProject)' == 'true' or '$(MSBuildProjectName)' == 'RedBolt.Tests')">$(RedBoltRuntimeIdentifier)</RuntimeIdentifier>
-    <RedBoltOutputDir Condition="'$(RedBoltPlatform)' == 'linux-gcc-x64-dll' and '$(RedBoltIsSampleProject)' == 'true'">$(RedBoltOutputRoot)/samples</RedBoltOutputDir>
-    <RedBoltOutputDir Condition="'$(RedBoltPlatform)' == 'web-emscripten-wasm'">$(RedBoltIntermediateRoot)/staging/$(Configuration)/$(MSBuildProjectName)</RedBoltOutputDir>
-    <RedBoltOutputDir Condition="'$(MSBuildProjectName)' == 'RedBolt.Tests'">$(RedBoltOutputRoot)/tests</RedBoltOutputDir>
+    <RedBoltIntermediateRoot>$(RedBoltBuildRoot)/obj/managed/$(RedBoltPlatform)</RedBoltIntermediateRoot>
+    <RedBoltOutputDir Condition="'$(RedBoltPlatform)' == 'browser-wasm'">$(RedBoltIntermediateRoot)/staging/$(Configuration)</RedBoltOutputDir>
     <RedBoltOutputDir Condition="'$(RedBoltOutputDir)' == ''">$(RedBoltOutputRoot)</RedBoltOutputDir>
-    <RedBoltNativeOutputRoot>$(RedBoltOutputRoot)/runtimes/$(RedBoltRuntimeIdentifier)/native</RedBoltNativeOutputRoot>
+    <RedBoltNativeOutputRoot>$(RedBoltOutputRoot)/runtimes/$(RedBoltPlatform)/native</RedBoltNativeOutputRoot>
     <SharpCppOutputDir>$(RedBoltOutputRoot)/tools</SharpCppOutputDir>
     <SharpCppIntermediateRoot>$(RedBoltBuildRoot)/obj/managed/tools</SharpCppIntermediateRoot>
     <RedBoltSharpCppManagedProperties>Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=;SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)</RedBoltSharpCppManagedProperties>
     <RedBoltSharpCppNativeProperties>Configuration=$(Configuration);SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppCMakeSourceDir=$(RedBoltRoot);SharpCppNativePreset=$(RedBoltNativePreset);SharpCppNativeBuildDir=$(RedBoltNativeBuildDir);SharpCppNativeTarget=sharpcpp-native;SharpCppConfigureNative=$(RedBoltConfigureNative);SharpCppBuildE2E=false;SharpCppBuildRbfx=false;SharpCppManagedOutputRoot=$(RedBoltOutputRoot)/tools;SharpCppNativeOutputRoot=$(RedBoltNativeOutputRoot);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(RedBoltIntermediateRoot)/native-tools;SharpCppNativeConfigureArguments=-DREDBOLT_SHARPCPP_ROOT=$(RedBoltSharpCppRoot)</RedBoltSharpCppNativeProperties>
 
-    <TargetFramework Condition="'$(TargetFramework)' == ''">net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <LangVersion>latest</LangVersion>
-    <Deterministic>true</Deterministic>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <OutputPath>$(RedBoltOutputDir)/</OutputPath>
     <BaseIntermediateOutputPath>$(RedBoltIntermediateRoot)/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
-    <MSBuildProjectExtensionsPath>$(RedBoltBuildRoot)/obj/restore/$(RedBoltManagedFlavor)/$(MSBuildProjectName)/</MSBuildProjectExtensionsPath>
+    <MSBuildProjectExtensionsPath>$(RedBoltBuildRoot)/obj/restore/$(RedBoltPlatform)/$(MSBuildProjectName)/</MSBuildProjectExtensionsPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-    <DefaultItemExcludes>$(DefaultItemExcludes);$(RedBoltBuildRoot)/**;$(MSBuildProjectDirectory)/bin/**;$(MSBuildProjectDirectory)/obj/**</DefaultItemExcludes>
-
   </PropertyGroup>
 </Project>

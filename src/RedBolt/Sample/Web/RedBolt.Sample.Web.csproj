@@ -1,8 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk.WebAssembly">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
     <OutputType>Exe</OutputType>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CompressionEnabled>false</CompressionEnabled>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
     <EmccExtraLDFlags>-sFULL_ES3 -sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE=$dynCall -lidbfs.js -sEXPORTED_RUNTIME_METHODS+=FS -sEXPORTED_RUNTIME_METHODS+=addRunDependency -sEXPORTED_RUNTIME_METHODS+=removeRunDependency</EmccExtraLDFlags>
@@ -24,16 +22,16 @@
     <WasmOptConfigurationFlags Include="--enable-threads" />
     <NativeFileReference Include="$(RedBoltWebEngineArchive)" />
     <ProjectReference Include="../../RedBolt/RedBolt.csproj"
-                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm" />
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm" />
     <ProjectReference Include="../../Platform/Web/RedBolt.Platform.Web.csproj"
-                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm" />
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm" />
     <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj"
-                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm" />
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm" />
     <ProjectReference Include="../../Native/RedBolt.Native.Web.csproj"
                       ReferenceOutputAssembly="false"
                       Private="false"
                       PrivateAssets="all"
-                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm" />
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm" />
     <Compile Include="../*/Program.cs"
              Exclude="../Web/Program.cs"
              Link="Samples/%(RecursiveDir)%(Filename)%(Extension)" />
@@ -70,7 +68,7 @@
     <MSBuild Projects="$(MSBuildProjectFullPath)"
              Targets="Publish"
              BuildInParallel="false"
-             Properties="Configuration=$(Configuration);RedBoltPlatform=web-emscripten-wasm;RedBoltNativePreset=web-emscripten-wasm;RedBoltPublishWebInProgress=true;BuildProjectReferences=false" />
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=browser-wasm;RedBoltPublishWebInProgress=true;BuildProjectReferences=false" />
     <Touch Files="$(RedBoltWebOutputDir)/wwwroot/index.html" />
   </Target>
 </Project>

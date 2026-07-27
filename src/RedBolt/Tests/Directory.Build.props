@@ -1,0 +1,10 @@
+<Project>
+  <Import Project="$(MSBuildThisFileDirectory)../../Directory.Build.props" />
+
+  <PropertyGroup>
+    <RedBoltIsSampleProject>false</RedBoltIsSampleProject>
+    <RuntimeIdentifier Condition="'$(RedBoltPlatform)' == 'linux-x64'">linux-x64</RuntimeIdentifier>
+    <RedBoltOutputDir>$(RedBoltOutputRoot)/tests</RedBoltOutputDir>
+    <OutputPath>$(RedBoltOutputDir)/</OutputPath>
+  </PropertyGroup>
+</Project>

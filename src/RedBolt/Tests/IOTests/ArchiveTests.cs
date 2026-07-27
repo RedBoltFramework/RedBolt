@@ -578,14 +578,15 @@ public sealed class ArchiveTests
         using (input.OpenUnorderedBlock("Root"))
             ArchiveSerialization.SerializeValue(input, "mesh", ref loadedMesh);
         input.Flush();
+        var loadedTetrahedron = loadedMesh.Tetrahedrons[0];
 
         Assert.Equal(mesh.Vertices, loadedMesh.Vertices);
         Assert.Equal(mesh.HullNormals, loadedMesh.HullNormals);
         Assert.Equal(mesh.NumInnerTetrahedrons, loadedMesh.NumInnerTetrahedrons);
         Assert.Equal(mesh.Tetrahedrons.Count, loadedMesh.Tetrahedrons.Count);
-        Assert.Equal(mesh.Tetrahedrons[0].Indices, loadedMesh.Tetrahedrons[0].Indices);
-        Assert.Equal(mesh.Tetrahedrons[0].Neighbors, loadedMesh.Tetrahedrons[0].Neighbors);
-        Assert.Equal(mesh.Tetrahedrons[0].Matrix, loadedMesh.Tetrahedrons[0].Matrix);
+        Assert.Equal(tetrahedron.Indices[..].ToArray(), loadedTetrahedron.Indices[..].ToArray());
+        Assert.Equal(tetrahedron.Neighbors[..].ToArray(), loadedTetrahedron.Neighbors[..].ToArray());
+        Assert.Equal(tetrahedron.Matrix, loadedTetrahedron.Matrix);
     }
 
     [Fact]

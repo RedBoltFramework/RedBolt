@@ -7,49 +7,46 @@
   },
   "configurePresets": [
     {
-      "name": "linux-gcc-x64-dll",
+      "name": "linux-x64",
       "displayName": "Linux GCC x64 DLL",
       "generator": "Ninja Multi-Config",
       "binaryDir": "${sourceDir}/build/native/${presetName}",
       "cacheVariables": {
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "REDBOLT_PLATFORM": "linux-gcc-x64-dll"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
     {
-      "name": "web-emscripten-wasm",
+      "name": "browser-wasm",
       "displayName": "Web Emscripten WASM",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/native/${presetName}",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
-        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/Toolchains/DotNetEmscripten.cmake",
-        "REDBOLT_PLATFORM": "web-emscripten-wasm",
-        "REDBOLT_WEB_BUILD": "ON"
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/Toolchains/DotNetEmscripten.cmake"
       }
     }
   ],
   "buildPresets": [
     {
-      "name": "linux-gcc-x64-dll-debug",
-      "configurePreset": "linux-gcc-x64-dll",
+      "name": "linux-x64-debug",
+      "configurePreset": "linux-x64",
       "configuration": "Debug",
       "targets": [
         "RedBolt.Native"
       ]
     },
     {
-      "name": "linux-gcc-x64-dll-release",
-      "configurePreset": "linux-gcc-x64-dll",
+      "name": "linux-x64-release",
+      "configurePreset": "linux-x64",
       "configuration": "Release",
       "targets": [
         "RedBolt.Native"
       ]
     },
     {
-      "name": "web-emscripten-wasm-release",
-      "configurePreset": "web-emscripten-wasm",
+      "name": "browser-wasm-release",
+      "configurePreset": "browser-wasm",
       "targets": [
         "redbolt-wasm-native"
       ]
