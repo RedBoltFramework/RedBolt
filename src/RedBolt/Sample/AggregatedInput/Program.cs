@@ -10,10 +10,14 @@ using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Input;
 
-#if !REDBOLT_WEB_SAMPLE
-try { return new AggregatedInputApplication().Run(); }
-catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
-#endif
+internal static class AggregatedInputProgram
+{
+    private static int Main()
+    {
+        try { return new AggregatedInputApplication().Run(); }
+        catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
+    }
+}
 
 /// <summary>
 /// Aggregated input example to compare raw input events to aggregated events.

@@ -28,6 +28,7 @@ These are the ONLY places C# is allowed to differ from C++:
 - C++ `friend` has no C# equivalent. A member that C++ makes `protected`/`private` but reaches from a `friend` class is mapped to `internal` (or `protected internal` when it is also `virtual`/overridden). This is the required, faithful mapping — NOT an `internal`-visibility violation of section 3. A member that is `public` in C++ must still be `public` in C#.
 - Built-in rbfx UI (`UI`, `Window`, `Text`, `Sprite`, and related controls/subsystems) is not ported.
 - In samples, replace every use of the built-in rbfx UI with Dear ImGui equivalents.
+- Desktop sample entry points are static `Main` methods compiled without platform preprocessor guards. The Web sample explicitly selects its own static entry point, so desktop entry points are ignored when all sample sources are compiled into the Web host.
 - All ported samples are windowed; do not preserve fullscreen defaults from the C++ sample when configuring the managed sample.
 - The MultipleViewports sample may explicitly disable window maximization and configure default window dimensions so `--width` and `--height` control the actual window size.
 - C#-only diagnostic flags may trigger a RenderDoc capture after a specified delay.

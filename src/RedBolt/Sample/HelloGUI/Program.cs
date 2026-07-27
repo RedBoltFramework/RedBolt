@@ -7,21 +7,25 @@ using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Input;
 
-#if !REDBOLT_WEB_SAMPLE
-try
+internal static class HelloGUIProgram
 {
-    using var application = new HelloGUI();
-    var exitCode = application.Run();
-    if (exitCode == 0)
-        Console.WriteLine("RedBolt HelloGUI sample finished.");
-    return exitCode;
+    private static int Main()
+    {
+        try
+        {
+            using var application = new HelloGUI();
+            var exitCode = application.Run();
+            if (exitCode == 0)
+                Console.WriteLine("RedBolt HelloGUI sample finished.");
+            return exitCode;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            return 1;
+        }
+    }
 }
-catch (Exception ex)
-{
-    Console.Error.WriteLine(ex);
-    return 1;
-}
-#endif
 
 /// <summary>
 /// A simple 'HelloWorld' GUI created purely from code.

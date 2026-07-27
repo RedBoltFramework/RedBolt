@@ -1,3 +1,5 @@
+using System;
+
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 using RedBolt.Core;
@@ -8,21 +10,25 @@ using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
 
-#if !REDBOLT_WEB_SAMPLE
-try
+internal static class RenderToTextureProgram
 {
-    using var application = new RenderToTexture();
-    var exitCode = application.Run();
-    if (exitCode == 0)
-        Console.WriteLine("RedBolt RenderToTexture sample finished.");
-    return exitCode;
+    private static int Main()
+    {
+        try
+        {
+            using var application = new RenderToTexture();
+            var exitCode = application.Run();
+            if (exitCode == 0)
+                Console.WriteLine("RedBolt RenderToTexture sample finished.");
+            return exitCode;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            return 1;
+        }
+    }
 }
-catch (Exception ex)
-{
-    Console.Error.WriteLine(ex);
-    return 1;
-}
-#endif
 
 /// <summary>
 /// Render to texture example.

@@ -9,10 +9,14 @@ using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Scene;
 
-#if !REDBOLT_WEB_SAMPLE
-try { return new PointerAdapterApplication().Run(); }
-catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
-#endif
+internal static class PointerAdapterProgram
+{
+    private static int Main()
+    {
+        try { return new PointerAdapterApplication().Run(); }
+        catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
+    }
+}
 
 /// <summary>Pointer adapter example.</summary>
 sealed class PointerAdapterApplication : Application

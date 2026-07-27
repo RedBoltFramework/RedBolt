@@ -11,21 +11,25 @@ using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
 
-#if !REDBOLT_WEB_SAMPLE
-try
+internal static class WindowSettingsProgram
 {
-    using var application = new WindowSettingsDemo();
-    var exitCode = application.Run();
-    if (exitCode == 0)
-        Console.WriteLine("RedBolt WindowSettings sample finished.");
-    return exitCode;
+    private static int Main()
+    {
+        try
+        {
+            using var application = new WindowSettingsDemo();
+            var exitCode = application.Run();
+            if (exitCode == 0)
+                Console.WriteLine("RedBolt WindowSettings sample finished.");
+            return exitCode;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            return 1;
+        }
+    }
 }
-catch (Exception ex)
-{
-    Console.Error.WriteLine(ex);
-    return 1;
-}
-#endif
 
 /// <summary>
 /// Demo application for dynamic window settings change.

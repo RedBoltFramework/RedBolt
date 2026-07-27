@@ -10,21 +10,25 @@ using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Scene;
 
-#if !REDBOLT_WEB_SAMPLE
-try
+internal static class SoundSynthesisProgram
 {
-    using var application = new SoundSynthesis();
-    var exitCode = application.Run();
-    if (exitCode == 0)
-        Console.WriteLine("RedBolt SoundSynthesis sample finished.");
-    return exitCode;
+    private static int Main()
+    {
+        try
+        {
+            using var application = new SoundSynthesis();
+            var exitCode = application.Run();
+            if (exitCode == 0)
+                Console.WriteLine("RedBolt SoundSynthesis sample finished.");
+            return exitCode;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            return 1;
+        }
+    }
 }
-catch (Exception ex)
-{
-    Console.Error.WriteLine(ex);
-    return 1;
-}
-#endif
 
 /// <summary>
 /// Sound synthesis example.

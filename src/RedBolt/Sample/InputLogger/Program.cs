@@ -12,17 +12,21 @@ using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Scene;
 
-#if !REDBOLT_WEB_SAMPLE
-try
+internal static class InputLoggerProgram
 {
-    return new InputLoggerApplication().Run();
+    private static int Main()
+    {
+        try
+        {
+            return new InputLoggerApplication().Run();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            return 1;
+        }
+    }
 }
-catch (Exception ex)
-{
-    Console.Error.WriteLine(ex);
-    return 1;
-}
-#endif
 
 /// <summary>Input event logger example.</summary>
 // TODO: port MainPluginApplication and URHO3D_DEFINE_PLUGIN_MAIN when the managed plugin application API is available.

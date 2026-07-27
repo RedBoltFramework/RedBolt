@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.WebAssembly">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <StartupObject>WebProgram</StartupObject>
     <CompressionEnabled>false</CompressionEnabled>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
     <EmccExtraLDFlags>-sFULL_ES3 -sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE=$dynCall -lidbfs.js -sEXPORTED_RUNTIME_METHODS+=FS -sEXPORTED_RUNTIME_METHODS+=addRunDependency -sEXPORTED_RUNTIME_METHODS+=removeRunDependency</EmccExtraLDFlags>
@@ -41,10 +42,6 @@
                       PrivateAssets="all"
                       RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
   </ItemGroup>
-
-  <PropertyGroup>
-    <DefineConstants>$(DefineConstants);REDBOLT_WEB_SAMPLE</DefineConstants>
-  </PropertyGroup>
 
   <ItemGroup>
     <Content Include="../../../../bin/CoreData/**/*" Link="wwwroot/resources/CoreData/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

@@ -8,20 +8,24 @@ using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Scene;
 
-#if !REDBOLT_WEB_SAMPLE
-try
+internal static class CameraShakeProgram
 {
-    var exitCode = new CameraShakeApplication().Run();
-    if (exitCode == 0)
-        Console.WriteLine("RedBolt CameraShake sample finished.");
-    return exitCode;
+    private static int Main()
+    {
+        try
+        {
+            var exitCode = new CameraShakeApplication().Run();
+            if (exitCode == 0)
+                Console.WriteLine("RedBolt CameraShake sample finished.");
+            return exitCode;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            return 1;
+        }
+    }
 }
-catch (Exception ex)
-{
-    Console.Error.WriteLine(ex);
-    return 1;
-}
-#endif
 
 /// <summary>
 /// Static 3D scene example.

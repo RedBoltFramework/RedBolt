@@ -11,17 +11,21 @@ using RedBolt.RenderPipeline;
 using RedBolt.Resource;
 using RedBolt.Scene;
 
-#if !REDBOLT_WEB_SAMPLE
-try
+internal static class TextureFormatsProgram
 {
-    return new TextureFormatsSample().Run();
+    private static int Main()
+    {
+        try
+        {
+            return new TextureFormatsSample().Run();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            return 1;
+        }
+    }
 }
-catch (Exception ex)
-{
-    Console.Error.WriteLine(ex);
-    return 1;
-}
-#endif
 
 /// <summary>
 /// Sample that demonstrates different texture formats.

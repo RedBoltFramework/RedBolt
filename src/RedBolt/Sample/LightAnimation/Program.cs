@@ -9,10 +9,14 @@ using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Scene;
 
-#if !REDBOLT_WEB_SAMPLE
-try { return new LightAnimationApplication().Run(); }
-catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
-#endif
+internal static class LightAnimationProgram
+{
+    private static int Main()
+    {
+        try { return new LightAnimationApplication().Run(); }
+        catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
+    }
+}
 
 /// <summary>
 /// Light animation example.

@@ -9,17 +9,21 @@ using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Scene;
 
-#if !REDBOLT_WEB_SAMPLE
-try
+internal static class MaterialAnimationProgram
 {
-    return new MaterialAnimationApplication().Run();
+    private static int Main()
+    {
+        try
+        {
+            return new MaterialAnimationApplication().Run();
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            return 1;
+        }
+    }
 }
-catch (Exception ex)
-{
-    Console.Error.WriteLine(ex);
-    return 1;
-}
-#endif
 
 /// <summary>
 /// Material animation example.

@@ -10,21 +10,25 @@ using RedBolt.Engine;
 using RedBolt.Input;
 using RedBolt.Scene;
 
-#if !REDBOLT_WEB_SAMPLE
-try
+internal static class SoundEffectsProgram
 {
-    using var application = new SoundEffects();
-    var exitCode = application.Run();
-    if (exitCode == 0)
-        Console.WriteLine("RedBolt SoundEffects sample finished.");
-    return exitCode;
+    private static int Main()
+    {
+        try
+        {
+            using var application = new SoundEffects();
+            var exitCode = application.Run();
+            if (exitCode == 0)
+                Console.WriteLine("RedBolt SoundEffects sample finished.");
+            return exitCode;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(ex);
+            return 1;
+        }
+    }
 }
-catch (Exception ex)
-{
-    Console.Error.WriteLine(ex);
-    return 1;
-}
-#endif
 
 /// <summary>
 /// Sound effects example.

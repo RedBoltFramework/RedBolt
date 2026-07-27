@@ -9,10 +9,14 @@ using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Scene;
 
-#if !REDBOLT_WEB_SAMPLE
-try { return new CameraOperatorSampleApplication().Run(); }
-catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
-#endif
+internal static class CameraOperatorProgram
+{
+    private static int Main()
+    {
+        try { return new CameraOperatorSampleApplication().Run(); }
+        catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
+    }
+}
 
 /// <summary>
 /// Camera operator sample.

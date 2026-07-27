@@ -11,9 +11,13 @@ using RedBolt.Engine;
 using RedBolt.Input;
 using RedBolt.IO;
 
-#if !REDBOLT_WEB_SAMPLE
-return new VirtualFileSystemApplication().Run(args);
-#endif
+internal static class VirtualFileSystemProgram
+{
+    private static int Main(string[] args)
+    {
+        return new VirtualFileSystemApplication().Run(args);
+    }
+}
 
 /// <summary>Virtual file system example.</summary>
 sealed class VirtualFileSystemApplication : Application

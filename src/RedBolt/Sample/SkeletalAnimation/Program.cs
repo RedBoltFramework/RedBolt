@@ -11,10 +11,14 @@ using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Scene;
 
-#if !REDBOLT_WEB_SAMPLE
-try { return new SkeletalAnimationApplication().Run(); }
-catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
-#endif
+internal static class SkeletalAnimationProgram
+{
+    private static int Main()
+    {
+        try { return new SkeletalAnimationApplication().Run(); }
+        catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
+    }
+}
 
 /// <summary>
 /// Skeletal animation example.

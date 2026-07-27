@@ -9,10 +9,14 @@ using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Scene;
 
-#if !REDBOLT_WEB_SAMPLE
-try { return new DecalsApplication().Run(); }
-catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
-#endif
+internal static class DecalsProgram
+{
+    private static int Main()
+    {
+        try { return new DecalsApplication().Run(); }
+        catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
+    }
+}
 
 /// <summary>Decals example.</summary>
 sealed class DecalsApplication : Application
