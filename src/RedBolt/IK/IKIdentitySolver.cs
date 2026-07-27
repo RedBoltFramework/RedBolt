@@ -11,7 +11,8 @@ using RedBolt.Scene;
 
 namespace RedBolt.IK;
 
-public class IKIdentitySolver : IKSolverComponent
+[Reflected(ObjectCategory.Category_IK, InheritAttributes = false)]
+public partial class IKIdentitySolver : IKSolverComponent
 {
 
     public IKIdentitySolver()
@@ -23,23 +24,6 @@ public class IKIdentitySolver : IKSolverComponent
         base.Dispose();
     }
 
-    public new static void RegisterObject(Context context)
-    {
-        var reflection = context.AddFactoryReflection<IKIdentitySolver>(ObjectCategory.Category_IK);
-
-        RegisterAttribute(reflection, "Bone Name", typeof(string), self => ((IKIdentitySolver)self)._boneName,
-            (self, value) => ((IKIdentitySolver)self).BoneName = value as string ?? string.Empty, string.Empty);
-        RegisterAttribute(reflection, "Target Name", typeof(string), self => ((IKIdentitySolver)self)._targetName,
-            (self, value) => ((IKIdentitySolver)self).TargetName = value as string ?? string.Empty, string.Empty);
-
-        // TODO: port
-        // URHO3D_ACTION_STATIC_LABEL(
-        //     "Update Properties", UpdateProperties, "Set properties below from current bone positions");
-        RegisterAttribute(reflection, "Rotation Offset", typeof(Quaternion),
-            self => ((IKIdentitySolver)self)._rotationOffset,
-            (self, value) => ((IKIdentitySolver)self)._rotationOffset =
-                value is Quaternion typed ? typed : Quaternion.ZERO, Quaternion.ZERO);
-    }
 
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
     {
@@ -55,6 +39,7 @@ public class IKIdentitySolver : IKSolverComponent
     }
 
     /// <summary>Attributes.</summary>
+    [Serialized("Bone Name", DefaultSource = nameof(_boneName))]
     public string BoneName
     {
         get => _boneName;
@@ -65,6 +50,7 @@ public class IKIdentitySolver : IKSolverComponent
         }
     }
 
+    [Serialized("Target Name", DefaultSource = nameof(_targetName))]
     public string TargetName
     {
         get => _targetName;
@@ -75,6 +61,10 @@ public class IKIdentitySolver : IKSolverComponent
         }
     }
 
+    // TODO: port
+    // URHO3D_ACTION_STATIC_LABEL(
+    //     "Update Properties", UpdateProperties, "Set properties below from current bone positions");
+    [Serialized("Rotation Offset", DefaultSource = nameof(GetDefaultRotationOffset))]
     public Quaternion RotationOffset
     {
         get => _rotationOffset;
@@ -111,6 +101,8 @@ public class IKIdentitySolver : IKSolverComponent
         _boneNode.MarkPositionDirty();
         _boneNode.MarkRotationDirty();
     }
+
+    private static Quaternion GetDefaultRotationOffset() => Quaternion.ZERO;
 
     private void EnsureInitialized()
     {

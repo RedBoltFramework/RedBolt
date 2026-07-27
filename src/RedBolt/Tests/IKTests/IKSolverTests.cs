@@ -1,3 +1,5 @@
+using System;
+
 using RedBolt.Core;
 using RedBolt.IK;
 using RedBolt.Math;
@@ -14,6 +16,7 @@ public sealed class IKSolverTests
     public IKSolverTests(HeadlessEngineFixture fixture)
     {
         _fixture = fixture;
+        RedBolt.IK.IK.RegisterIKLibrary(_fixture.Context);
     }
 
     [Fact]
@@ -51,10 +54,8 @@ public sealed class IKSolverTests
     }
 
     [Fact]
-    public void Registration_registers_the_complete_cpp_ik_library()
+    public void Generated_registration_registers_the_complete_cpp_ik_library()
     {
-        RedBolt.IK.IK.RegisterIKLibrary(_fixture.Context);
-
         var solverReflection = _fixture.Context.GetReflection<IKSolver>();
         var solverComponentReflection = _fixture.Context.GetReflection<IKSolverComponent>();
         var identityReflection = _fixture.Context.GetReflection<IKIdentitySolver>();
@@ -130,6 +131,131 @@ public sealed class IKSolverTests
         Assert.True((third.WorldPosition - target.WorldPosition).Length < 0.01f);
         Assert.Equal(1, preSolveCount);
         Assert.Equal(1, postSolveCount);
+    }
+
+    [Fact]
+    public void All_solver_steady_state_paths_do_not_allocate()
+    {
+        using var scene = new SceneType();
+        var rig = scene.CreateChild("Rig");
+        var host = rig.CreateComponent<IKSolver>();
+
+        var identityBone = rig.CreateChild("IdentityBone");
+        var identityTarget = rig.CreateChild("IdentityTarget");
+        identityTarget.SetPosition(new Vector3f(-1.0f, 1.0f, 0.0f));
+        var identity = rig.CreateComponent<IKIdentitySolver>();
+        identity.BoneName = "IdentityBone";
+        identity.TargetName = "IdentityTarget";
+
+        var rotateFirst = rig.CreateChild("RotateFirst");
+        var rotateSecond = rotateFirst.CreateChild("RotateSecond");
+        rotateSecond.SetPosition(Vector3f.Right);
+        var rotateTarget = rig.CreateChild("RotateTarget");
+        rotateTarget.SetPosition(Vector3f.Up);
+        var rotateTo = rig.CreateComponent<IKRotateTo>();
+        rotateTo.FirstBoneName = "RotateFirst";
+        rotateTo.SecondBoneName = "RotateSecond";
+        rotateTo.TargetName = "RotateTarget";
+
+        var limbFirst = rig.CreateChild("LimbFirst");
+        var limbSecond = limbFirst.CreateChild("LimbSecond");
+        limbSecond.SetPosition(Vector3f.Right);
+        var limbThird = limbSecond.CreateChild("LimbThird");
+        limbThird.SetPosition(Vector3f.Right);
+        var limbTarget = rig.CreateChild("LimbTarget");
+        limbTarget.SetPosition(new Vector3f(1.0f, 1.0f, 0.0f));
+        var limb = rig.CreateComponent<IKLimbSolver>();
+        limb.FirstBoneName = "LimbFirst";
+        limb.SecondBoneName = "LimbSecond";
+        limb.ThirdBoneName = "LimbThird";
+        limb.TargetName = "LimbTarget";
+
+        var armBone = rig.CreateChild("ArmBone");
+        var forearmBone = armBone.CreateChild("ForearmBone");
+        forearmBone.SetPosition(Vector3f.Right);
+        var handBone = forearmBone.CreateChild("HandBone");
+        handBone.SetPosition(Vector3f.Right);
+        var armTarget = rig.CreateChild("ArmTarget");
+        armTarget.SetPosition(new Vector3f(1.0f, 1.0f, 0.5f));
+        var arm = rig.CreateComponent<IKArmSolver>();
+        arm.ArmBoneName = "ArmBone";
+        arm.ForearmBoneName = "ForearmBone";
+        arm.HandBoneName = "HandBone";
+        arm.TargetName = "ArmTarget";
+
+        var thighBone = rig.CreateChild("ThighBone");
+        var calfBone = thighBone.CreateChild("CalfBone");
+        calfBone.SetPosition(new Vector3f(0.0f, -1.0f, 0.0f));
+        var heelBone = calfBone.CreateChild("HeelBone");
+        heelBone.SetPosition(new Vector3f(0.0f, -1.0f, 0.0f));
+        var toeBone = heelBone.CreateChild("ToeBone");
+        toeBone.SetPosition(Vector3f.Forward);
+        var legTarget = rig.CreateChild("LegTarget");
+        legTarget.SetPosition(new Vector3f(0.5f, -1.5f, 0.5f));
+        var leg = rig.CreateComponent<IKLegSolver>();
+        leg.ThighBoneName = "ThighBone";
+        leg.CalfBoneName = "CalfBone";
+        leg.HeelBoneName = "HeelBone";
+        leg.ToeBoneName = "ToeBone";
+        leg.TargetName = "LegTarget";
+
+        var chainFirst = rig.CreateChild("ChainFirst");
+        var chainSecond = chainFirst.CreateChild("ChainSecond");
+        chainSecond.SetPosition(Vector3f.Right);
+        var chainTarget = rig.CreateChild("ChainTarget");
+        chainTarget.SetPosition(new Vector3f(0.5f, 1.0f, 0.0f));
+        var chain = rig.CreateComponent<IKChainSolver>();
+        chain.SetBoneNames(new StringVector(["ChainFirst", "ChainSecond"]));
+        chain.TargetName = "ChainTarget";
+
+        var spineFirst = rig.CreateChild("SpineFirst");
+        var spineSecond = spineFirst.CreateChild("SpineSecond");
+        spineSecond.SetPosition(Vector3f.Up);
+        var spineTarget = rig.CreateChild("SpineTarget");
+        spineTarget.SetPosition(new Vector3f(0.5f, 1.5f, 0.0f));
+        var spine = rig.CreateComponent<IKSpineSolver>();
+        spine.SetBoneNames(new StringVector(["SpineFirst", "SpineSecond"]));
+        spine.TargetName = "SpineTarget";
+
+        var neckBone = rig.CreateChild("NeckBone");
+        var headBone = neckBone.CreateChild("HeadBone");
+        headBone.SetPosition(Vector3f.Up);
+        var headTarget = rig.CreateChild("HeadTarget");
+        headTarget.SetPosition(new Vector3f(0.0f, 2.0f, 1.0f));
+        var head = rig.CreateComponent<IKHeadSolver>();
+        head.NeckBoneName = "NeckBone";
+        head.HeadBoneName = "HeadBone";
+        head.TargetName = "HeadTarget";
+
+        var stickyTarget = rig.CreateChild("StickyTarget");
+        stickyTarget.SetPosition(Vector3f.Forward);
+        var stickTargets = rig.CreateComponent<IKStickTargets>();
+        stickTargets.SetTargetNames(new StringVector(["StickyTarget"]));
+
+        var preSolveCount = 0;
+        var postSolveCount = 0;
+        host.SubscribeToEvent<IKEvents.IKPreSolveEvent>(rig, (ref IKEvents.IKPreSolveEvent _) =>
+        {
+            ++preSolveCount;
+        });
+        host.SubscribeToEvent<IKEvents.IKPostSolveEvent>(rig, (ref IKEvents.IKPostSolveEvent _) =>
+        {
+            ++postSolveCount;
+        });
+
+        var warmupIterations = 64;
+        for (var i = 0; i < warmupIterations; ++i)
+            host.Solve(1.0f / 60.0f);
+
+        var measuredIterations = 1024;
+        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < measuredIterations; ++i)
+            host.Solve(1.0f / 60.0f);
+        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+
+        Assert.Equal(0L, allocatedBytes);
+        Assert.Equal(warmupIterations + measuredIterations, preSolveCount);
+        Assert.Equal(warmupIterations + measuredIterations, postSolveCount);
     }
 
     [Fact]

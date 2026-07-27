@@ -11,7 +11,8 @@ using RedBolt.Scene;
 
 namespace RedBolt.IK;
 
-public class IKLimbSolver : IKSolverComponent
+[Reflected(ObjectCategory.Category_IK, InheritAttributes = false)]
+public partial class IKLimbSolver : IKSolverComponent
 {
 
     public IKLimbSolver()
@@ -23,40 +24,6 @@ public class IKLimbSolver : IKSolverComponent
         base.Dispose();
     }
 
-    public new static void RegisterObject(Context context)
-    {
-        var reflection = context.AddFactoryReflection<IKLimbSolver>(ObjectCategory.Category_IK);
-
-        RegisterAttribute(reflection, "Bone 0 Name", typeof(string), self => ((IKLimbSolver)self)._firstBoneName,
-            (self, value) => ((IKLimbSolver)self).FirstBoneName = value as string ?? string.Empty, string.Empty);
-        RegisterAttribute(reflection, "Bone 1 Name", typeof(string), self => ((IKLimbSolver)self)._secondBoneName,
-            (self, value) => ((IKLimbSolver)self).SecondBoneName = value as string ?? string.Empty, string.Empty);
-        RegisterAttribute(reflection, "Bone 2 Name", typeof(string), self => ((IKLimbSolver)self)._thirdBoneName,
-            (self, value) => ((IKLimbSolver)self).ThirdBoneName = value as string ?? string.Empty, string.Empty);
-
-        RegisterAttribute(reflection, "Target Name", typeof(string), self => ((IKLimbSolver)self)._targetName,
-            (self, value) => ((IKLimbSolver)self).TargetName = value as string ?? string.Empty, string.Empty);
-        RegisterAttribute(reflection, "Bend Target Name", typeof(string),
-            self => ((IKLimbSolver)self)._bendTargetName,
-            (self, value) => ((IKLimbSolver)self).BendTargetName = value as string ?? string.Empty, string.Empty);
-
-        RegisterAttribute(reflection, "Position Weight", typeof(float),
-            self => ((IKLimbSolver)self)._positionWeight,
-            (self, value) => ((IKLimbSolver)self)._positionWeight = value is float typed ? typed : 1.0f, 1.0f);
-        RegisterAttribute(reflection, "Rotation Weight", typeof(float),
-            self => ((IKLimbSolver)self)._rotationWeight,
-            (self, value) => ((IKLimbSolver)self)._rotationWeight = value is float typed ? typed : 0.0f, 0.0f);
-        RegisterAttribute(reflection, "Bend Weight", typeof(float), self => ((IKLimbSolver)self)._bendWeight,
-            (self, value) => ((IKLimbSolver)self)._bendWeight = value is float typed ? typed : 1.0f, 1.0f);
-        RegisterAttribute(reflection, "Min Angle", typeof(float), self => ((IKLimbSolver)self)._minAngle,
-            (self, value) => ((IKLimbSolver)self)._minAngle = value is float typed ? typed : 0.0f, 0.0f);
-        RegisterAttribute(reflection, "Max Angle", typeof(float), self => ((IKLimbSolver)self)._maxAngle,
-            (self, value) => ((IKLimbSolver)self)._maxAngle = value is float typed ? typed : 180.0f, 180.0f);
-        RegisterAttribute(reflection, "Bend Direction", typeof(Vector3f),
-            self => ((IKLimbSolver)self)._bendDirection,
-            (self, value) => ((IKLimbSolver)self)._bendDirection =
-                value is Vector3f typed ? typed : Vector3f.Forward, Vector3f.Forward);
-    }
 
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
     {
@@ -82,66 +49,77 @@ public class IKLimbSolver : IKSolverComponent
     }
 
     /// <summary>Attributes.</summary>
+    [Serialized("Bone 0 Name", DefaultSource = nameof(_firstBoneName))]
     public string FirstBoneName
     {
         get => _firstBoneName;
         set { _firstBoneName = value; OnTreeDirty(); }
     }
 
+    [Serialized("Bone 1 Name", DefaultSource = nameof(_secondBoneName))]
     public string SecondBoneName
     {
         get => _secondBoneName;
         set { _secondBoneName = value; OnTreeDirty(); }
     }
 
+    [Serialized("Bone 2 Name", DefaultSource = nameof(_thirdBoneName))]
     public string ThirdBoneName
     {
         get => _thirdBoneName;
         set { _thirdBoneName = value; OnTreeDirty(); }
     }
 
+    [Serialized("Target Name", DefaultSource = nameof(_targetName))]
     public string TargetName
     {
         get => _targetName;
         set { _targetName = value; OnTreeDirty(); }
     }
 
+    [Serialized("Bend Target Name", DefaultSource = nameof(_bendTargetName))]
     public string BendTargetName
     {
         get => _bendTargetName;
         set { _bendTargetName = value; OnTreeDirty(); }
     }
 
+    [Serialized("Position Weight", DefaultSource = nameof(_positionWeight))]
     public float PositionWeight
     {
         get => _positionWeight;
         set => _positionWeight = value;
     }
 
+    [Serialized("Rotation Weight", DefaultSource = nameof(_rotationWeight))]
     public float RotationWeight
     {
         get => _rotationWeight;
         set => _rotationWeight = value;
     }
 
+    [Serialized("Bend Weight", DefaultSource = nameof(_bendWeight))]
     public float BendWeight
     {
         get => _bendWeight;
         set => _bendWeight = value;
     }
 
+    [Serialized("Min Angle", DefaultSource = nameof(_minAngle))]
     public float MinAngle
     {
         get => _minAngle;
         set => _minAngle = value;
     }
 
+    [Serialized("Max Angle", DefaultSource = nameof(_maxAngle))]
     public float MaxAngle
     {
         get => _maxAngle;
         set => _maxAngle = value;
     }
 
+    [Serialized("Bend Direction", DefaultSource = nameof(_bendDirection))]
     public Vector3f BendDirection
     {
         get => _bendDirection;

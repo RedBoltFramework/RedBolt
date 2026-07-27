@@ -12,7 +12,8 @@ using RedBolt.Scene;
 
 namespace RedBolt.IK;
 
-public class IKHeadSolver : IKSolverComponent
+[Reflected(ObjectCategory.Category_IK, InheritAttributes = false)]
+public partial class IKHeadSolver : IKSolverComponent
 {
 
     public IKHeadSolver()
@@ -24,71 +25,6 @@ public class IKHeadSolver : IKSolverComponent
         base.Dispose();
     }
 
-    public new static void RegisterObject(Context context)
-    {
-        var reflection = context.AddFactoryReflection<IKHeadSolver>(ObjectCategory.Category_IK);
-
-        RegisterAttribute(reflection, "Neck Bone Name", typeof(string), self => ((IKHeadSolver)self)._neckBoneName,
-            (self, value) => ((IKHeadSolver)self).NeckBoneName = value as string ?? string.Empty, string.Empty);
-        RegisterAttribute(reflection, "Head Bone Name", typeof(string), self => ((IKHeadSolver)self)._headBoneName,
-            (self, value) => ((IKHeadSolver)self).HeadBoneName = value as string ?? string.Empty, string.Empty);
-
-        RegisterAttribute(reflection, "Target Name", typeof(string), self => ((IKHeadSolver)self)._targetName,
-            (self, value) => ((IKHeadSolver)self).TargetName = value as string ?? string.Empty, string.Empty);
-        RegisterAttribute(reflection, "Look At Target Name", typeof(string),
-            self => ((IKHeadSolver)self)._lookAtTargetName,
-            (self, value) => ((IKHeadSolver)self).LookAtTargetName = value as string ?? string.Empty, string.Empty);
-
-        RegisterAttribute(reflection, "Position Weight", typeof(float), self => ((IKHeadSolver)self)._positionWeight,
-            (self, value) =>
-            {
-                var solver = (IKHeadSolver)self;
-                solver._positionWeight = value is float typed ? typed : 1.0f;
-                solver.OnTreeDirty();
-            }, 1.0f);
-        RegisterAttribute(reflection, "Direction Weight", typeof(float), self => ((IKHeadSolver)self)._directionWeight,
-            (self, value) =>
-            {
-                var solver = (IKHeadSolver)self;
-                solver._directionWeight = value is float typed ? typed : 1.0f;
-                solver.OnTreeDirty();
-            }, 1.0f);
-        RegisterAttribute(reflection, "Rotation Weight", typeof(float), self => ((IKHeadSolver)self)._rotationWeight,
-            (self, value) =>
-            {
-                var solver = (IKHeadSolver)self;
-                solver._rotationWeight = value is float typed ? typed : 0.0f;
-                solver.OnTreeDirty();
-            }, 0.0f);
-        RegisterAttribute(reflection, "Look At Weight", typeof(float), self => ((IKHeadSolver)self)._lookAtWeight,
-            (self, value) =>
-            {
-                var solver = (IKHeadSolver)self;
-                solver._lookAtWeight = value is float typed ? typed : 0.0f;
-                solver.OnTreeDirty();
-            }, 0.0f);
-        RegisterAttribute(reflection, "Eye Direction", typeof(Vector3f), self => ((IKHeadSolver)self)._eyeDirection,
-            (self, value) =>
-            {
-                var solver = (IKHeadSolver)self;
-                solver._eyeDirection = value is Vector3f typed ? typed : Vector3f.Forward;
-                solver.OnTreeDirty();
-            }, Vector3f.Forward);
-        RegisterAttribute(reflection, "Eye Offset", typeof(Vector3f), self => ((IKHeadSolver)self)._eyeOffset,
-            (self, value) =>
-            {
-                var solver = (IKHeadSolver)self;
-                solver._eyeOffset = value is Vector3f typed ? typed : Vector3f.Zero;
-                solver.OnTreeDirty();
-            }, Vector3f.Zero);
-        RegisterAttribute(reflection, "Neck Weight", typeof(float), self => ((IKHeadSolver)self)._neckWeight,
-            (self, value) =>
-            {
-                var solver = (IKHeadSolver)self;
-                solver._neckWeight = value is float typed ? typed : 0.5f;
-                solver.OnTreeDirty();
-            }, 0.5f);
-    }
 
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
     {
@@ -111,19 +47,93 @@ public class IKHeadSolver : IKSolverComponent
     }
 
     /// <summary>Attributes.</summary>
+    [Serialized("Neck Bone Name", DefaultSource = nameof(_neckBoneName))]
     public string NeckBoneName { get => _neckBoneName; set { _neckBoneName = value; OnTreeDirty(); } }
+    [Serialized("Head Bone Name", DefaultSource = nameof(_headBoneName))]
     public string HeadBoneName { get => _headBoneName; set { _headBoneName = value; OnTreeDirty(); } }
 
+    [Serialized("Target Name", DefaultSource = nameof(_targetName))]
     public string TargetName { get => _targetName; set { _targetName = value; OnTreeDirty(); } }
+    [Serialized("Look At Target Name", DefaultSource = nameof(_lookAtTargetName))]
     public string LookAtTargetName { get => _lookAtTargetName; set { _lookAtTargetName = value; OnTreeDirty(); } }
 
+    [Serialized(
+        "Position Weight",
+        DefaultSource = nameof(_positionWeight),
+        Setter = nameof(SetPositionWeightAttribute))]
     public float PositionWeight { get => _positionWeight; set => _positionWeight = value; }
+    [Serialized(
+        "Rotation Weight",
+        DefaultSource = nameof(_rotationWeight),
+        Setter = nameof(SetRotationWeightAttribute))]
     public float RotationWeight { get => _rotationWeight; set => _rotationWeight = value; }
+    [Serialized(
+        "Direction Weight",
+        DefaultSource = nameof(_directionWeight),
+        Setter = nameof(SetDirectionWeightAttribute))]
     public float DirectionWeight { get => _directionWeight; set => _directionWeight = value; }
+    [Serialized(
+        "Look At Weight",
+        DefaultSource = nameof(_lookAtWeight),
+        Setter = nameof(SetLookAtWeightAttribute))]
     public float LookAtWeight { get => _lookAtWeight; set => _lookAtWeight = value; }
+    [Serialized(
+        "Eye Direction",
+        DefaultSource = nameof(_eyeDirection),
+        Setter = nameof(SetEyeDirectionAttribute))]
     public Vector3f EyeDirection { get => _eyeDirection; set => _eyeDirection = value; }
+    [Serialized(
+        "Eye Offset",
+        DefaultSource = nameof(_eyeOffset),
+        Setter = nameof(SetEyeOffsetAttribute))]
     public Vector3f EyeOffset { get => _eyeOffset; set => _eyeOffset = value; }
+    [Serialized(
+        "Neck Weight",
+        DefaultSource = nameof(_neckWeight),
+        Setter = nameof(SetNeckWeightAttribute))]
     public float NeckWeight { get => _neckWeight; set => _neckWeight = value; }
+
+    private void SetPositionWeightAttribute(float value)
+    {
+        _positionWeight = value;
+        OnTreeDirty();
+    }
+
+    private void SetRotationWeightAttribute(float value)
+    {
+        _rotationWeight = value;
+        OnTreeDirty();
+    }
+
+    private void SetDirectionWeightAttribute(float value)
+    {
+        _directionWeight = value;
+        OnTreeDirty();
+    }
+
+    private void SetLookAtWeightAttribute(float value)
+    {
+        _lookAtWeight = value;
+        OnTreeDirty();
+    }
+
+    private void SetEyeDirectionAttribute(Vector3f value)
+    {
+        _eyeDirection = value;
+        OnTreeDirty();
+    }
+
+    private void SetEyeOffsetAttribute(Vector3f value)
+    {
+        _eyeOffset = value;
+        OnTreeDirty();
+    }
+
+    private void SetNeckWeightAttribute(float value)
+    {
+        _neckWeight = value;
+        OnTreeDirty();
+    }
 
     /// <summary>Implement IKSolverComponent.</summary>
     protected override bool InitializeNodes(IKNodeCache nodeCache)

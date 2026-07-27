@@ -12,7 +12,14 @@ using RedBolt.Scene;
 
 namespace RedBolt.IK;
 
-public class IKStickTargets : IKSolverComponent
+[Reflected(ObjectCategory.Category_IK, InheritAttributes = false)]
+[Serialized(
+    "Target Names",
+    typeof(StringVector),
+    DefaultSource = nameof(GetDefaultTargetNames),
+    Getter = nameof(GetTargetNames),
+    Setter = nameof(SetTargetNames))]
+public partial class IKStickTargets : IKSolverComponent
 {
     public const float DefaultPositionThreshold = 0.3f;
     public const float DefaultRotationThreshold = 45.0f;
@@ -29,51 +36,6 @@ public class IKStickTargets : IKSolverComponent
         base.Dispose();
     }
 
-    public new static void RegisterObject(Context context)
-    {
-        var reflection = context.AddFactoryReflection<IKStickTargets>(ObjectCategory.Category_IK);
-
-        RegisterAttribute(reflection, "Target Names", typeof(StringVector), self => ((IKStickTargets)self)._targetNames,
-            (self, value) => ((IKStickTargets)self).SetTargetNames(
-                value is StringVector typed ? typed : new StringVector()), new StringVector());
-
-        RegisterAttribute(reflection, "Is Active", typeof(bool), self => ((IKStickTargets)self)._isActive,
-            (self, value) => ((IKStickTargets)self)._isActive = value is bool typed && typed, true);
-        RegisterAttribute(reflection, "Is Position Sticky", typeof(bool),
-            self => ((IKStickTargets)self)._isPositionSticky,
-            (self, value) => ((IKStickTargets)self)._isPositionSticky = value is bool typed && typed, true);
-        RegisterAttribute(reflection, "Is Rotation Sticky", typeof(bool),
-            self => ((IKStickTargets)self)._isRotationSticky,
-            (self, value) => ((IKStickTargets)self)._isRotationSticky = value is bool typed && typed, true);
-
-        RegisterAttribute(reflection, "Position Threshold", typeof(float),
-            self => ((IKStickTargets)self)._positionThreshold,
-            (self, value) => ((IKStickTargets)self)._positionThreshold =
-                value is float typed ? typed : DefaultPositionThreshold, DefaultPositionThreshold);
-        RegisterAttribute(reflection, "Rotation Threshold", typeof(float),
-            self => ((IKStickTargets)self)._rotationThreshold,
-            (self, value) => ((IKStickTargets)self)._rotationThreshold =
-                value is float typed ? typed : DefaultRotationThreshold, DefaultRotationThreshold);
-        RegisterAttribute(reflection, "Time Threshold", typeof(float),
-            self => ((IKStickTargets)self)._timeThreshold,
-            (self, value) => ((IKStickTargets)self)._timeThreshold =
-                value is float typed ? typed : DefaultTimeThreshold, DefaultTimeThreshold);
-
-        RegisterAttribute(reflection, "Recover Time", typeof(float), self => ((IKStickTargets)self)._recoverTime,
-            (self, value) => ((IKStickTargets)self)._recoverTime =
-                value is float typed ? typed : DefaultRecoverTime, DefaultRecoverTime);
-        RegisterAttribute(reflection, "Min Target Distances", typeof(float),
-            self => ((IKStickTargets)self)._minTargetDistance,
-            (self, value) => ((IKStickTargets)self)._minTargetDistance = value is float typed ? typed : 0.0f, 0.0f);
-        RegisterAttribute(reflection, "Max Simultaneous Recoveries", typeof(int),
-            self => ((IKStickTargets)self)._maxSimultaneousRecoveries,
-            (self, value) => ((IKStickTargets)self)._maxSimultaneousRecoveries = value is int typed ? typed : 0, 0);
-
-        RegisterAttribute(reflection, "Base World Velocity", typeof(Vector3f),
-            self => ((IKStickTargets)self)._baseWorldVelocity,
-            (self, value) => ((IKStickTargets)self)._baseWorldVelocity =
-                value is Vector3f typed ? typed : Vector3f.Zero, Vector3f.Zero);
-    }
 
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
     {
@@ -91,15 +53,27 @@ public class IKStickTargets : IKSolverComponent
         return _targetNames;
     }
 
+    private static StringVector GetDefaultTargetNames() => new();
+
+    [Serialized("Is Active", DefaultSource = nameof(_isActive))]
     public bool IsActive { get => _isActive; set => _isActive = value; }
+    [Serialized("Is Position Sticky", DefaultSource = nameof(_isPositionSticky))]
     public bool IsPositionSticky { get => _isPositionSticky; set => _isPositionSticky = value; }
+    [Serialized("Is Rotation Sticky", DefaultSource = nameof(_isRotationSticky))]
     public bool IsRotationSticky { get => _isRotationSticky; set => _isRotationSticky = value; }
+    [Serialized("Position Threshold", DefaultSource = nameof(_positionThreshold))]
     public float PositionThreshold { get => _positionThreshold; set => _positionThreshold = value; }
+    [Serialized("Rotation Threshold", DefaultSource = nameof(_rotationThreshold))]
     public float RotationThreshold { get => _rotationThreshold; set => _rotationThreshold = value; }
+    [Serialized("Time Threshold", DefaultSource = nameof(_timeThreshold))]
     public float TimeThreshold { get => _timeThreshold; set => _timeThreshold = value; }
+    [Serialized("Recover Time", DefaultSource = nameof(_recoverTime))]
     public float RecoverTime { get => _recoverTime; set => _recoverTime = value; }
+    [Serialized("Min Target Distances", DefaultSource = nameof(_minTargetDistance))]
     public float MinTargetDistance { get => _minTargetDistance; set => _minTargetDistance = value; }
+    [Serialized("Max Simultaneous Recoveries", DefaultSource = nameof(_maxSimultaneousRecoveries))]
     public int MaxSimultaneousRecoveries { get => _maxSimultaneousRecoveries; set => _maxSimultaneousRecoveries = value; }
+    [Serialized("Base World Velocity", DefaultSource = nameof(_baseWorldVelocity))]
     public Vector3f BaseWorldVelocity { get => _baseWorldVelocity; set => _baseWorldVelocity = value; }
 
     /// <summary>Implement IKSolverComponent.</summary>
@@ -389,7 +363,7 @@ public class IKStickTargets : IKSolverComponent
         return minDistance;
     }
 
-    private StringVector _targetNames = new();
+    private StringVector _targetNames = new StringVector();
     private bool _isActive = true;
     private bool _isPositionSticky = true;
     private bool _isRotationSticky = true;

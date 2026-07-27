@@ -11,7 +11,8 @@ using RedBolt.Scene;
 
 namespace RedBolt.IK;
 
-public class IKRotateTo : IKSolverComponent
+[Reflected(ObjectCategory.Category_IK, InheritAttributes = false)]
+public partial class IKRotateTo : IKSolverComponent
 {
 
     public IKRotateTo()
@@ -23,21 +24,6 @@ public class IKRotateTo : IKSolverComponent
         base.Dispose();
     }
 
-    public new static void RegisterObject(Context context)
-    {
-        var reflection = context.AddFactoryReflection<IKRotateTo>(ObjectCategory.Category_IK);
-
-        RegisterAttribute(reflection, "Bone 0 Name", typeof(string), self => ((IKRotateTo)self)._firstBoneName,
-            (self, value) => ((IKRotateTo)self).FirstBoneName = value as string ?? string.Empty, string.Empty);
-        RegisterAttribute(reflection, "Bone 1 Name", typeof(string), self => ((IKRotateTo)self)._secondBoneName,
-            (self, value) => ((IKRotateTo)self).SecondBoneName = value as string ?? string.Empty, string.Empty);
-
-        RegisterAttribute(reflection, "Target Name", typeof(string), self => ((IKRotateTo)self)._targetName,
-            (self, value) => ((IKRotateTo)self).TargetName = value as string ?? string.Empty, string.Empty);
-
-        RegisterAttribute(reflection, "Weight", typeof(float), self => ((IKRotateTo)self)._weight,
-            (self, value) => ((IKRotateTo)self)._weight = value is float typed ? typed : 1.0f, 1.0f);
-    }
 
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
     {
@@ -52,6 +38,7 @@ public class IKRotateTo : IKSolverComponent
     }
 
     /// <summary>Attributes.</summary>
+    [Serialized("Bone 0 Name", DefaultSource = nameof(_firstBoneName))]
     public string FirstBoneName
     {
         get => _firstBoneName;
@@ -62,6 +49,7 @@ public class IKRotateTo : IKSolverComponent
         }
     }
 
+    [Serialized("Bone 1 Name", DefaultSource = nameof(_secondBoneName))]
     public string SecondBoneName
     {
         get => _secondBoneName;
@@ -72,6 +60,7 @@ public class IKRotateTo : IKSolverComponent
         }
     }
 
+    [Serialized("Target Name", DefaultSource = nameof(_targetName))]
     public string TargetName
     {
         get => _targetName;
@@ -82,6 +71,7 @@ public class IKRotateTo : IKSolverComponent
         }
     }
 
+    [Serialized("Weight", DefaultSource = nameof(_weight))]
     public float Weight
     {
         get => _weight;

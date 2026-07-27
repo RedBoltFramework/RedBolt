@@ -14,7 +14,8 @@ using RedBolt.Scene;
 namespace RedBolt.IK;
 
 /// <summary>Base component for all IK solvers.</summary>
-public abstract class IKSolverComponent : Component
+[Reflected(ObjectCategory.Category_IK, InheritAttributes = false)]
+public abstract partial class IKSolverComponent : Component
 {
 
     public IKSolverComponent()
@@ -26,10 +27,6 @@ public abstract class IKSolverComponent : Component
         base.Dispose();
     }
 
-    public static void RegisterObject(Context context)
-    {
-        context.AddAbstractReflection<IKSolverComponent>(ObjectCategory.Category_IK);
-    }
 
     public bool Initialize(IKNodeCache nodeCache)
     {

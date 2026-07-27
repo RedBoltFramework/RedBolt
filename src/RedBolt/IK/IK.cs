@@ -11,18 +11,6 @@ public static class IK
     /// <summary>Registers all IK systems to the specified context.</summary>
     public static void RegisterIKLibrary(Context context)
     {
-        IKSolver.RegisterObject(context);
-        IKSolverComponent.RegisterObject(context);
-
-        IKIdentitySolver.RegisterObject(context);
-        IKRotateTo.RegisterObject(context);
-        IKLegSolver.RegisterObject(context);
-        IKLimbSolver.RegisterObject(context);
-        IKSpineSolver.RegisterObject(context);
-        IKArmSolver.RegisterObject(context);
-        IKChainSolver.RegisterObject(context);
-        IKHeadSolver.RegisterObject(context);
-
-        IKStickTargets.RegisterObject(context);
+        context.RegisterAssembly(typeof(IK).Assembly);
     }
 }

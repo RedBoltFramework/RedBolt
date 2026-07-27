@@ -11,7 +11,8 @@ using RedBolt.Scene;
 
 namespace RedBolt.IK;
 
-public class IKLegSolver : IKSolverComponent
+[Reflected(ObjectCategory.Category_IK, InheritAttributes = false)]
+public partial class IKLegSolver : IKSolverComponent
 {
 
     public IKLegSolver()
@@ -23,54 +24,6 @@ public class IKLegSolver : IKSolverComponent
         base.Dispose();
     }
 
-    public new static void RegisterObject(Context context)
-    {
-        var reflection = context.AddFactoryReflection<IKLegSolver>(ObjectCategory.Category_IK);
-
-        RegisterAttribute(reflection, "Thigh Bone Name", typeof(string), self => ((IKLegSolver)self)._thighBoneName,
-            (self, value) => ((IKLegSolver)self).ThighBoneName = value as string ?? string.Empty, string.Empty);
-        RegisterAttribute(reflection, "Calf Bone Name", typeof(string), self => ((IKLegSolver)self)._calfBoneName,
-            (self, value) => ((IKLegSolver)self).CalfBoneName = value as string ?? string.Empty, string.Empty);
-        RegisterAttribute(reflection, "Heel Bone Name", typeof(string), self => ((IKLegSolver)self)._heelBoneName,
-            (self, value) => ((IKLegSolver)self).HeelBoneName = value as string ?? string.Empty, string.Empty);
-        RegisterAttribute(reflection, "Toe Bone Name", typeof(string), self => ((IKLegSolver)self)._toeBoneName,
-            (self, value) => ((IKLegSolver)self).ToeBoneName = value as string ?? string.Empty, string.Empty);
-
-        RegisterAttribute(reflection, "Target Name", typeof(string), self => ((IKLegSolver)self)._targetName,
-            (self, value) => ((IKLegSolver)self).TargetName = value as string ?? string.Empty, string.Empty);
-        RegisterAttribute(reflection, "Heel Target Name", typeof(string), self => ((IKLegSolver)self)._heelTargetName,
-            (self, value) => ((IKLegSolver)self).HeelTargetName = value as string ?? string.Empty, string.Empty);
-        RegisterAttribute(reflection, "Bend Target Name", typeof(string), self => ((IKLegSolver)self)._bendTargetName,
-            (self, value) => ((IKLegSolver)self).BendTargetName = value as string ?? string.Empty, string.Empty);
-        RegisterAttribute(reflection, "Ground Target Name", typeof(string),
-            self => ((IKLegSolver)self)._groundTargetName,
-            (self, value) => ((IKLegSolver)self).GroundTargetName = value as string ?? string.Empty, string.Empty);
-
-        RegisterAttribute(reflection, "Position Weight", typeof(float), self => ((IKLegSolver)self)._positionWeight,
-            (self, value) => ((IKLegSolver)self)._positionWeight = value is float typed ? typed : 1.0f, 1.0f);
-        RegisterAttribute(reflection, "Rotation Weight", typeof(float), self => ((IKLegSolver)self)._rotationWeight,
-            (self, value) => ((IKLegSolver)self)._rotationWeight = value is float typed ? typed : 0.0f, 0.0f);
-        RegisterAttribute(reflection, "Heel Weight", typeof(float), self => ((IKLegSolver)self)._heelWeight,
-            (self, value) => ((IKLegSolver)self)._heelWeight = value is float typed ? typed : 1.0f, 1.0f);
-        RegisterAttribute(reflection, "Bend Weight", typeof(float), self => ((IKLegSolver)self)._bendWeight,
-            (self, value) => ((IKLegSolver)self)._bendWeight = value is float typed ? typed : 1.0f, 1.0f);
-        RegisterAttribute(reflection, "Min Angle", typeof(float), self => ((IKLegSolver)self)._minKneeAngle,
-            (self, value) => ((IKLegSolver)self)._minKneeAngle = value is float typed ? typed : 0.0f, 0.0f);
-        RegisterAttribute(reflection, "Max Angle", typeof(float), self => ((IKLegSolver)self)._maxKneeAngle,
-            (self, value) => ((IKLegSolver)self)._maxKneeAngle = value is float typed ? typed : 180.0f, 180.0f);
-        RegisterAttribute(reflection, "Tiptoe Factor", typeof(float), self => ((IKLegSolver)self)._tiptoeFactor,
-            (self, value) => ((IKLegSolver)self)._tiptoeFactor = value is float typed ? typed : 0.0f, 0.0f);
-        RegisterAttribute(reflection, "Bend Direction", typeof(Vector3f), self => ((IKLegSolver)self)._bendDirection,
-            (self, value) => ((IKLegSolver)self)._bendDirection =
-                value is Vector3f typed ? typed : Vector3f.Forward, Vector3f.Forward);
-
-        // TODO: port
-        // URHO3D_ACTION_STATIC_LABEL(
-        //     "Update Properties", UpdateProperties, "Set properties below from current bone positions");
-        RegisterAttribute(reflection, "Heel Ground Offset", typeof(float),
-            self => ((IKLegSolver)self)._heelGroundOffset,
-            (self, value) => ((IKLegSolver)self)._heelGroundOffset = value is float typed ? typed : -1.0f, -1.0f);
-    }
 
     public void UpdateProperties()
     {
@@ -116,25 +69,45 @@ public class IKLegSolver : IKSolverComponent
     }
 
     /// <summary>Attributes.</summary>
+    [Serialized("Thigh Bone Name", DefaultSource = nameof(_thighBoneName))]
     public string ThighBoneName { get => _thighBoneName; set { _thighBoneName = value; OnTreeDirty(); } }
+    [Serialized("Calf Bone Name", DefaultSource = nameof(_calfBoneName))]
     public string CalfBoneName { get => _calfBoneName; set { _calfBoneName = value; OnTreeDirty(); } }
+    [Serialized("Heel Bone Name", DefaultSource = nameof(_heelBoneName))]
     public string HeelBoneName { get => _heelBoneName; set { _heelBoneName = value; OnTreeDirty(); } }
+    [Serialized("Toe Bone Name", DefaultSource = nameof(_toeBoneName))]
     public string ToeBoneName { get => _toeBoneName; set { _toeBoneName = value; OnTreeDirty(); } }
 
+    [Serialized("Target Name", DefaultSource = nameof(_targetName))]
     public string TargetName { get => _targetName; set { _targetName = value; OnTreeDirty(); } }
+    [Serialized("Heel Target Name", DefaultSource = nameof(_heelTargetName))]
     public string HeelTargetName { get => _heelTargetName; set { _heelTargetName = value; OnTreeDirty(); } }
+    [Serialized("Bend Target Name", DefaultSource = nameof(_bendTargetName))]
     public string BendTargetName { get => _bendTargetName; set { _bendTargetName = value; OnTreeDirty(); } }
+    [Serialized("Ground Target Name", DefaultSource = nameof(_groundTargetName))]
     public string GroundTargetName { get => _groundTargetName; set { _groundTargetName = value; OnTreeDirty(); } }
 
+    [Serialized("Position Weight", DefaultSource = nameof(_positionWeight))]
     public float PositionWeight { get => _positionWeight; set => _positionWeight = value; }
+    [Serialized("Rotation Weight", DefaultSource = nameof(_rotationWeight))]
     public float RotationWeight { get => _rotationWeight; set => _rotationWeight = value; }
+    [Serialized("Heel Weight", DefaultSource = nameof(_heelWeight))]
     public float HeelWeight { get => _heelWeight; set => _heelWeight = value; }
+    [Serialized("Bend Weight", DefaultSource = nameof(_bendWeight))]
     public float BendWeight { get => _bendWeight; set => _bendWeight = value; }
+    [Serialized("Min Angle", DefaultSource = nameof(_minKneeAngle))]
     public float MinAngle { get => _minKneeAngle; set => _minKneeAngle = value; }
+    [Serialized("Max Angle", DefaultSource = nameof(_maxKneeAngle))]
     public float MaxAngle { get => _maxKneeAngle; set => _maxKneeAngle = value; }
+    [Serialized("Tiptoe Factor", DefaultSource = nameof(_tiptoeFactor))]
     public float TiptoeFactor { get => _tiptoeFactor; set => _tiptoeFactor = value; }
+    [Serialized("Bend Direction", DefaultSource = nameof(_bendDirection))]
     public Vector3f BendDirection { get => _bendDirection; set => _bendDirection = value; }
 
+    // TODO: port
+    // URHO3D_ACTION_STATIC_LABEL(
+    //     "Update Properties", UpdateProperties, "Set properties below from current bone positions");
+    [Serialized("Heel Ground Offset", DefaultSource = nameof(_heelGroundOffset))]
     public float HeelGroundOffset { get => _heelGroundOffset; set => _heelGroundOffset = value; }
 
     /// <summary>Implement IKSolverComponent.</summary>

@@ -11,7 +11,14 @@ using RedBolt.Scene;
 
 namespace RedBolt.IK;
 
-public class IKChainSolver : IKSolverComponent
+[Reflected(ObjectCategory.Category_IK, InheritAttributes = false)]
+[Serialized(
+    "Bone Names",
+    typeof(StringVector),
+    DefaultSource = nameof(GetDefaultBoneNames),
+    Getter = nameof(GetBoneNames),
+    Setter = nameof(SetBoneNames))]
+public partial class IKChainSolver : IKSolverComponent
 {
 
     public IKChainSolver()
@@ -23,16 +30,6 @@ public class IKChainSolver : IKSolverComponent
         base.Dispose();
     }
 
-    public new static void RegisterObject(Context context)
-    {
-        var reflection = context.AddFactoryReflection<IKChainSolver>(ObjectCategory.Category_IK);
-
-        RegisterAttribute(reflection, "Bone Names", typeof(StringVector), self => ((IKChainSolver)self)._boneNames,
-            (self, value) => ((IKChainSolver)self).SetBoneNames(
-                value is StringVector typed ? typed : new StringVector()), new StringVector());
-        RegisterAttribute(reflection, "Target Name", typeof(string), self => ((IKChainSolver)self)._targetName,
-            (self, value) => ((IKChainSolver)self).TargetName = value as string ?? string.Empty, string.Empty);
-    }
 
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
     {
@@ -63,6 +60,9 @@ public class IKChainSolver : IKSolverComponent
         return _boneNames;
     }
 
+    private static StringVector GetDefaultBoneNames() => new();
+
+    [Serialized("Target Name", DefaultSource = nameof(_targetName))]
     public string TargetName
     {
         get => _targetName;
@@ -105,7 +105,7 @@ public class IKChainSolver : IKSolverComponent
         _chain.Solve(target!.WorldPosition, settings);
     }
 
-    private StringVector _boneNames = new();
+    private StringVector _boneNames = new StringVector();
     private string _targetName = string.Empty;
 
     private IKFabrikChain _chain = new();

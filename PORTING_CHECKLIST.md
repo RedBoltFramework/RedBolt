@@ -513,7 +513,9 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 - [x] `IKSolver.h`
   - [x] `IKSolver : LogicComponent`
 
-Accepted deviation: Actions reflection hooks are excluded from the current completion scope.
+Accepted deviations:
+- Actions reflection hooks are excluded from the current completion scope.
+- Object and serializable-attribute registration uses generated `[Reflected]` and `[Serialized]` metadata.
 
 ## B11. Particles `OPTIONAL` — particle graph system; depends on Scene, Graphics
 

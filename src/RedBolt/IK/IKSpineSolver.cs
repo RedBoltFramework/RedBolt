@@ -13,7 +13,14 @@ using RedBolt.Scene;
 
 namespace RedBolt.IK;
 
-public class IKSpineSolver : IKSolverComponent
+[Reflected(ObjectCategory.Category_IK, InheritAttributes = false)]
+[Serialized(
+    "Bone Names",
+    typeof(StringVector),
+    DefaultSource = nameof(GetDefaultBoneNames),
+    Getter = nameof(GetBoneNames),
+    Setter = nameof(SetBoneNames))]
+public partial class IKSpineSolver : IKSolverComponent
 {
 
     public IKSpineSolver()
@@ -26,40 +33,6 @@ public class IKSpineSolver : IKSolverComponent
         base.Dispose();
     }
 
-    public new static void RegisterObject(Context context)
-    {
-        var reflection = context.AddFactoryReflection<IKSpineSolver>(ObjectCategory.Category_IK);
-
-        RegisterAttribute(reflection, "Bone Names", typeof(StringVector), self => ((IKSpineSolver)self)._boneNames,
-            (self, value) => ((IKSpineSolver)self).SetBoneNames(
-                value is StringVector typed ? typed : new StringVector()), new StringVector());
-        RegisterAttribute(reflection, "Target Name", typeof(string), self => ((IKSpineSolver)self)._targetName,
-            (self, value) => ((IKSpineSolver)self).TargetName = value as string ?? string.Empty, string.Empty);
-        RegisterAttribute(reflection, "Twist Target Name", typeof(string),
-            self => ((IKSpineSolver)self)._twistTargetName,
-            (self, value) => ((IKSpineSolver)self).TwistTargetName = value as string ?? string.Empty, string.Empty);
-
-        RegisterAttribute(reflection, "Position Weight", typeof(float),
-            self => ((IKSpineSolver)self)._positionWeight,
-            (self, value) => ((IKSpineSolver)self)._positionWeight = value is float typed ? typed : 1.0f, 1.0f);
-        RegisterAttribute(reflection, "Rotation Weight", typeof(float),
-            self => ((IKSpineSolver)self)._rotationWeight,
-            (self, value) => ((IKSpineSolver)self)._rotationWeight = value is float typed ? typed : 0.0f, 0.0f);
-        RegisterAttribute(reflection, "Twist Weight", typeof(float), self => ((IKSpineSolver)self)._twistWeight,
-            (self, value) => ((IKSpineSolver)self)._twistWeight = value is float typed ? typed : 1.0f, 1.0f);
-        RegisterAttribute(reflection, "Max Angle", typeof(float), self => ((IKSpineSolver)self)._maxAngle,
-            (self, value) => ((IKSpineSolver)self)._maxAngle = value is float typed ? typed : 90.0f, 90.0f);
-        RegisterAttribute(reflection, "Bend Tweak", typeof(float), self => ((IKSpineSolver)self)._bendTweak,
-            (self, value) => ((IKSpineSolver)self)._bendTweak = value is float typed ? typed : 0.0f, 0.0f);
-
-        // TODO: port
-        // URHO3D_ACTION_STATIC_LABEL(
-        //     "Update Properties", UpdateProperties, "Set properties below from current bone positions");
-        RegisterAttribute(reflection, "Twist Rotation Offset", typeof(Quaternion),
-            self => ((IKSpineSolver)self)._twistRotationOffset,
-            (self, value) => ((IKSpineSolver)self)._twistRotationOffset =
-                value is Quaternion typed ? typed : Quaternion.ZERO, Quaternion.ZERO);
-    }
 
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
     {
@@ -97,13 +70,22 @@ public class IKSpineSolver : IKSolverComponent
         return _boneNames;
     }
 
+    private static StringVector GetDefaultBoneNames() => new();
+
+    [Serialized("Target Name", DefaultSource = nameof(_targetName))]
     public string TargetName { get => _targetName; set { _targetName = value; OnTreeDirty(); } }
+    [Serialized("Twist Target Name", DefaultSource = nameof(_twistTargetName))]
     public string TwistTargetName { get => _twistTargetName; set { _twistTargetName = value; OnTreeDirty(); } }
 
+    [Serialized("Position Weight", DefaultSource = nameof(_positionWeight))]
     public float PositionWeight { get => _positionWeight; set => _positionWeight = value; }
+    [Serialized("Rotation Weight", DefaultSource = nameof(_rotationWeight))]
     public float RotationWeight { get => _rotationWeight; set => _rotationWeight = value; }
+    [Serialized("Twist Weight", DefaultSource = nameof(_twistWeight))]
     public float TwistWeight { get => _twistWeight; set => _twistWeight = value; }
+    [Serialized("Max Angle", DefaultSource = nameof(_maxAngle))]
     public float MaxAngle { get => _maxAngle; set => _maxAngle = value; }
+    [Serialized("Bend Tweak", DefaultSource = nameof(_bendTweak))]
     public float BendTweak { get => _bendTweak; set => _bendTweak = value; }
 
     /// <summary>Implement IKSolverComponent.</summary>
@@ -271,7 +253,9 @@ public class IKSpineSolver : IKSolverComponent
         return sign * (angle > 180.0f ? angle - 360.0f : angle);
     }
 
-    private StringVector _boneNames = new();
+    private static Quaternion GetDefaultTwistRotationOffset() => Quaternion.ZERO;
+
+    private StringVector _boneNames = new StringVector();
     private string _twistTargetName = string.Empty;
     private string _targetName = string.Empty;
 
@@ -280,7 +264,11 @@ public class IKSpineSolver : IKSolverComponent
     private float _twistWeight = 1.0f;
     private float _maxAngle = 90.0f;
     private float _bendTweak;
+    // TODO: port
+    // URHO3D_ACTION_STATIC_LABEL(
+    //     "Update Properties", UpdateProperties, "Set properties below from current bone positions");
     /// <summary>This orientation of twist bone in object space is equivalent to having no twist.</summary>
+    [Serialized("Twist Rotation Offset", DefaultSource = nameof(GetDefaultTwistRotationOffset))]
     private Quaternion _twistRotationOffset = Quaternion.ZERO;
 
     private IKSpineChain _chain = new();

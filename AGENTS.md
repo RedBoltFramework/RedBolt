@@ -320,6 +320,8 @@ The exhaustive list of allowed deviations is maintained in
 
 Agreed project-specific naming deviation: C# engine types use folder-matching namespaces; the `Audio`, `Engine`, `Graphics`, and `Input` subsystem classes are named `AudioSystem`, `EngineSystem`, `GraphicsSystem`, and `InputSystem`; and the render pipeline component class is named `RenderPipelineComponent`.
 
+Agreed project-specific reflection deviation: reflected C# objects and serializable attributes use generated `[Reflected]` and `[Serialized]` declarations instead of hand-written `RegisterObject` methods; library registration entry points register the generated assembly metadata.
+
 ## 11. SUCCESS CRITERIA (all must be true)
 
 - [ ] The project builds with no errors.

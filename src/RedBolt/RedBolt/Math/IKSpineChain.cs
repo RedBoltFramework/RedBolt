@@ -94,7 +94,8 @@ public class IKSpineChain : IKChain, ICloneable
             _weights[0] = 1.0f;
     }
 
-    private void EnumerateProjectedPositions(float totalRotation, Action<Vector2f> callback)
+    private void EnumerateProjectedPositions<T>(float totalRotation, ref T callback)
+        where T : struct, IProjectedPositionCallback
     {
         var position = Vector2f.Zero;
         var angle = 0.0f;
@@ -102,7 +103,7 @@ public class IKSpineChain : IKChain, ICloneable
         {
             angle += totalRotation * _weights[i];
             position += new Vector2f(MathDefs.Cos(angle), MathDefs.Sin(angle)) * _segments[i].Length;
-            callback(position);
+            callback.Invoke(position);
         }
     }
 
@@ -122,9 +123,9 @@ public class IKSpineChain : IKChain, ICloneable
 
     private Vector2f EvaluateProjectedEnd(float totalRotation)
     {
-        var position = Vector2f.Zero;
-        EnumerateProjectedPositions(totalRotation, projectedPosition => position = projectedPosition);
-        return position;
+        var callback = new ProjectedEndCallback();
+        EnumerateProjectedPositions(totalRotation, ref callback);
+        return callback.Position;
     }
 
     private float EvaluateError(float totalRotation, Vector2f target)
@@ -135,36 +136,95 @@ public class IKSpineChain : IKChain, ICloneable
 
     private float FindBestAngle(Vector2f projectedTarget, float maxRotation, float angularTolerance)
     {
-        return SolveBisect(angle => EvaluateError(angle, projectedTarget), 0.0f, maxRotation, angularTolerance);
+        var function = new ErrorFunction(this, projectedTarget);
+        return SolveBisect(ref function, 0.0f, maxRotation, angularTolerance);
     }
 
     private void EvaluateSegmentPositions(float totalRotation, Vector3f baseDirection, Vector3f bendDirection)
     {
-        var basePosition = _segments[0].BeginNode!.Position;
-        var segmentIndex = 0;
-        EnumerateProjectedPositions(totalRotation, position =>
-        {
-            var segment = _segments[segmentIndex++];
-            segment.EndNode!.Position = basePosition + baseDirection * position.X + bendDirection * position.Y;
-            _segments[segmentIndex - 1] = segment;
-        });
+        var callback = new SegmentPositionCallback(this, _segments[0].BeginNode!.Position, baseDirection, bendDirection);
+        EnumerateProjectedPositions(totalRotation, ref callback);
     }
 
     private readonly List<float> _weights = new();
 
+    private interface IProjectedPositionCallback
+    {
+        void Invoke(Vector2f position);
+    }
+
+    private interface IErrorFunction
+    {
+        float Invoke(float value);
+    }
+
+    private struct ProjectedEndCallback : IProjectedPositionCallback
+    {
+        public Vector2f Position;
+
+        public void Invoke(Vector2f position)
+        {
+            Position = position;
+        }
+    }
+
+    private struct SegmentPositionCallback : IProjectedPositionCallback
+    {
+        public SegmentPositionCallback(
+            IKSpineChain chain, Vector3f basePosition, Vector3f baseDirection, Vector3f bendDirection)
+        {
+            _chain = chain;
+            _basePosition = basePosition;
+            _baseDirection = baseDirection;
+            _bendDirection = bendDirection;
+        }
+
+        public void Invoke(Vector2f position)
+        {
+            var segment = _chain._segments[_segmentIndex++];
+            segment.EndNode!.Position = _basePosition + _baseDirection * position.X + _bendDirection * position.Y;
+            _chain._segments[_segmentIndex - 1] = segment;
+        }
+
+        private readonly IKSpineChain _chain;
+        private readonly Vector3f _basePosition;
+        private readonly Vector3f _baseDirection;
+        private readonly Vector3f _bendDirection;
+        private int _segmentIndex;
+    }
+
+    private readonly struct ErrorFunction : IErrorFunction
+    {
+        public ErrorFunction(IKSpineChain chain, Vector2f target)
+        {
+            _chain = chain;
+            _target = target;
+        }
+
+        public float Invoke(float value)
+        {
+            return _chain.EvaluateError(value, _target);
+        }
+
+        private readonly IKSpineChain _chain;
+        private readonly Vector2f _target;
+    }
+
     /// <summary>Solve error function f(x) for minimum value using bisection method.</summary>
-    private static float SolveBisect(Func<float, float> function, float minValue, float maxValue, float tolerance, uint maxIterations = 100)
+    private static float SolveBisect<T>(
+        ref T function, float minValue, float maxValue, float tolerance, uint maxIterations = 100)
+        where T : struct, IErrorFunction
     {
         var approximateNumSteps = MathF.Ceiling(MathF.Log(tolerance / (maxValue - minValue + MathDefs.Epsilon)) / MathF.Log(0.5f));
         var numSteps = (uint)MathDefs.Clamp(approximateNumSteps, 1.0f, maxIterations);
         var beginValue = minValue;
-        var beginError = (double)function(beginValue);
+        var beginError = (double)function.Invoke(beginValue);
         var endValue = maxValue;
-        var endError = (double)function(endValue);
+        var endError = (double)function.Invoke(endValue);
         for (uint i = 0; i < numSteps; ++i)
         {
             var middleValue = (beginValue + endValue) / 2.0f;
-            var middleError = (double)function(middleValue);
+            var middleError = (double)function.Invoke(middleValue);
             if (middleError >= beginError && middleError >= endError)
                 break;
             if (beginError >= middleError && beginError >= endError)

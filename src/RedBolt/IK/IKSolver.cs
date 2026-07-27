@@ -30,7 +30,14 @@ using RedBolt.Scene;
 
 namespace RedBolt.IK;
 
-public class IKSolver : LogicComponent
+[Reflected(ObjectCategory.Category_IK, InheritAttributes = false)]
+[Serialized(
+    "Is Enabled",
+    typeof(bool),
+    DefaultSource = nameof(GetEnabledDefault),
+    Getter = nameof(GetEnabled),
+    Setter = nameof(SetEnabled))]
+public partial class IKSolver : LogicComponent
 {
 
     public IKSolver()
@@ -43,24 +50,9 @@ public class IKSolver : LogicComponent
         base.Dispose();
     }
 
-    public static void RegisterObject(Context context)
-    {
-        var reflection = context.AddFactoryReflection<IKSolver>(ObjectCategory.Category_IK);
-
-        // TODO: port
-        // URHO3D_ACTION_STATIC_LABEL("Set as origin", MarkSolversDirty,
-        //     "Set current pose as original one. AnimatedModel skeleton is used if present.");
-
-        RegisterAttribute(reflection, "Is Enabled", typeof(bool), self => ((IKSolver)self).Enabled,
-            (self, value) => ((IKSolver)self).SetEnabled(value is bool typed && typed), true);
-        RegisterAttribute(reflection, "Solve when Paused", typeof(bool), self => ((IKSolver)self)._solveWhenPaused,
-            (self, value) => ((IKSolver)self)._solveWhenPaused = value is bool typed && typed, false);
-        RegisterAttribute(reflection, "Solve from Original", typeof(bool), self => ((IKSolver)self)._solveFromOriginal,
-            (self, value) => ((IKSolver)self)._solveFromOriginal = value is bool typed && typed, true);
-        RegisterAttribute(reflection, "Continuous Rotation", typeof(bool),
-            self => ((IKSolver)self)._settings.ContinuousRotations,
-            (self, value) => ((IKSolver)self)._settings.ContinuousRotations = value is bool typed && typed, false);
-    }
+    // TODO: port
+    // URHO3D_ACTION_STATIC_LABEL("Set as origin", MarkSolversDirty,
+    //     "Set current pose as original one. AnimatedModel skeleton is used if present.");
 
     /// <summary>Notify host component that the list of solvers is dirty and needs to be rebuilt.</summary>
     public void MarkSolversDirty()
@@ -139,18 +131,21 @@ public class IKSolver : LogicComponent
     }
 
     /// <summary>Attributes.</summary>
+    [Serialized("Solve when Paused", DefaultSource = nameof(_solveWhenPaused))]
     public bool SolveWhenPaused
     {
         get => _solveWhenPaused;
         set => _solveWhenPaused = value;
     }
 
+    [Serialized("Solve from Original", DefaultSource = nameof(_solveFromOriginal))]
     public bool SolveFromOriginal
     {
         get => _solveFromOriginal;
         set => _solveFromOriginal = value;
     }
 
+    [Serialized("Continuous Rotation", DefaultSource = nameof(GetContinuousRotationDefault))]
     public bool ContinuousRotation
     {
         get => _settings.ContinuousRotations;
@@ -170,6 +165,12 @@ public class IKSolver : LogicComponent
         if (currentNode is not null)
             currentNode.GetComponent<IKSolver>()?.MarkSolversDirty();
     }
+
+    private static bool GetEnabledDefault() => true;
+
+    private static bool GetContinuousRotationDefault() => false;
+
+    private bool GetEnabled() => Enabled;
 
     private bool IsChainTreeExpired()
     {

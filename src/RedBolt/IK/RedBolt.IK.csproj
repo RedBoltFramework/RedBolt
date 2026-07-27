@@ -5,5 +5,9 @@
 
   <ItemGroup>
     <ProjectReference Include="../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=" />
   </ItemGroup>
 </Project>
