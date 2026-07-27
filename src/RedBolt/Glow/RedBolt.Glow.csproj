@@ -1,13 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>RedBolt.Glow</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../Bindings/XAtlas/RedBolt.Bindings.XAtlas.csproj" />
     <ProjectReference Include="../RedBolt/RedBolt.csproj" />
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
                       RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      PrivateAssets="all"
+                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
   </ItemGroup>
 </Project>

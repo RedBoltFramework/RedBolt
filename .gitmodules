@@ -26,3 +26,6 @@
 	path = extern/imgui
 	url = https://github.com/ocornut/imgui.git
 	branch = docking
+[submodule "extern/xatlas"]
+	path = extern/xatlas
+	url = https://github.com/jpcy/xatlas.git

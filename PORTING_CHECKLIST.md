@@ -570,8 +570,8 @@ Accepted deviations:
 - [x] `Helpers.h`
   - [x] glow helper free functions
 - [-] `EmbreeForward.h` — **EXCLUDED** · reason: Embree forward decls · replaced-by: generated Embree interop
-- [ ] `LightmapUVGenerator.h`
-  - [ ] `struct LightmapUVGenerationSettings`
+- [x] `LightmapUVGenerator.h`
+  - [x] `struct LightmapUVGenerationSettings`
 - [ ] `RaytracerScene.h`
   - [ ] `RaytracerScene : RefCounted`
 - [ ] `BakedLight.h`

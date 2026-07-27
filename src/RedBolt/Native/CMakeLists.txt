@@ -45,6 +45,7 @@ add_library(RedBolt.Native ${_redbolt_native_library_type}
     "${REDBOLT_STB_BINDINGS_CPP}"
     "${REDBOLT_LZ4_BINDINGS_CPP}"
     "${REDBOLT_WEBP_BINDINGS_CPP}"
+    "${REDBOLT_XATLAS_BINDINGS_CPP}"
     "${REDBOLT_GLSLANG_BINDINGS_CPP}"
     "${REDBOLT_SPIRV_CROSS_BINDINGS_CPP}"
     "${REDBOLT_SPIRV_TOOLS_BINDINGS_CPP}"
@@ -61,6 +62,7 @@ set_source_files_properties(
     "${REDBOLT_STB_BINDINGS_CPP}"
     "${REDBOLT_LZ4_BINDINGS_CPP}"
     "${REDBOLT_WEBP_BINDINGS_CPP}"
+    "${REDBOLT_XATLAS_BINDINGS_CPP}"
     "${REDBOLT_GLSLANG_BINDINGS_CPP}"
     "${REDBOLT_SPIRV_CROSS_BINDINGS_CPP}"
     "${REDBOLT_SPIRV_TOOLS_BINDINGS_CPP}"
@@ -84,7 +86,7 @@ set_target_properties(RedBolt.Native PROPERTIES
     BUILD_WITH_INSTALL_RPATH TRUE)
 
 target_compile_definitions(RedBolt.Native PRIVATE REDBOLT_NATIVE_BUILD)
-target_include_directories(RedBolt.Native PRIVATE "${REDBOLT_STB_INCLUDE_DIR}" "${REDBOLT_LZ4_INCLUDE_DIR}" "${REDBOLT_WEBP_INCLUDE_DIR}" "${REDBOLT_GLSLANG_SOURCE_ROOT}" "${REDBOLT_SPIRV_CROSS_SOURCE_ROOT}" "${REDBOLT_SPIRV_TOOLS_SOURCE_ROOT}/include")
+target_include_directories(RedBolt.Native PRIVATE "${REDBOLT_STB_INCLUDE_DIR}" "${REDBOLT_LZ4_INCLUDE_DIR}" "${REDBOLT_WEBP_INCLUDE_DIR}" "${REDBOLT_XATLAS_INCLUDE_DIR}" "${REDBOLT_XATLAS_GENERATED_DIR}" "${REDBOLT_GLSLANG_SOURCE_ROOT}" "${REDBOLT_SPIRV_CROSS_SOURCE_ROOT}" "${REDBOLT_SPIRV_TOOLS_SOURCE_ROOT}/include")
 target_compile_options(RedBolt.Native PRIVATE
     "$<$<CXX_COMPILER_ID:GNU>:-Wno-attributes>"
     "$<$<CXX_COMPILER_ID:Clang>:-Wno-attributes>")
@@ -100,6 +102,7 @@ target_link_libraries(RedBolt.Native
         ${REDBOLT_GLEW_TARGET}
         "${REDBOLT_LZ4_LIBRARY}"
         "${REDBOLT_WEBP_LIBRARY}"
+        "${REDBOLT_XATLAS_LIBRARY}"
         glslang
         glslang-default-resource-limits
         SPIRV

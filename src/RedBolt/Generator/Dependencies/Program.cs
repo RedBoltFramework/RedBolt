@@ -135,6 +135,41 @@ internal static class Program
         "WebPPreset"
     };
 
+    private static readonly HashSet<string> RetainedXAtlasFunctions = new(StringComparer.Ordinal)
+    {
+        "Create",
+        "Destroy",
+        "AddMesh",
+        "AddMeshJoin",
+        "Generate"
+    };
+
+    private static readonly HashSet<string> RetainedXAtlasEnums = new(StringComparer.Ordinal)
+    {
+        "AddMeshError",
+        "IndexFormat"
+    };
+
+    private static readonly Dictionary<string, HashSet<string>> RetainedXAtlasRecordFields = new(StringComparer.Ordinal)
+    {
+        ["Vertex"] = new(StringComparer.Ordinal) { "uv", "xref" },
+        ["Mesh"] = new(StringComparer.Ordinal) { "indexArray", "indexCount", "Vertices", "NumVertices" },
+        ["Atlas"] = new(StringComparer.Ordinal) { "width", "height", "NumMeshes", "Meshes" },
+        ["MeshDecl"] = new(StringComparer.Ordinal)
+        {
+            "vertexCount",
+            "vertexPositionData",
+            "vertexPositionStride",
+            "vertexNormalData",
+            "vertexNormalStride",
+            "indexCount",
+            "indexData",
+            "indexFormat"
+        },
+        ["ChartOptions"] = new(StringComparer.Ordinal),
+        ["PackOptions"] = new(StringComparer.Ordinal) { "padding", "texelsPerUnit" }
+    };
+
     private static readonly HashSet<string> UnsupportedGlslangFunctions = new(StringComparer.Ordinal)
     {
         "glslang_shader_set_resource_set_binding"
@@ -196,6 +231,10 @@ internal static class Program
                 {
                     ["Diligent"] = descriptor.ManagedNamespace
                 },
+                "xatlas" => new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["xatlas"] = descriptor.ManagedNamespace
+                },
                 _ => new Dictionary<string, string>(StringComparer.Ordinal)
             };
 
@@ -211,6 +250,7 @@ internal static class Program
             FixDiligentVulkanImageHandle(compilation, descriptor);
             FixSdlVoidPointerFunctions(compilation, descriptor);
             FixStbVorbisBufferFunctions(compilation, descriptor);
+            FixXAtlasTypes(compilation, descriptor);
             if (descriptor.Surface == "webp")
             {
                 compilation.Functions.First(static function => function.NativeName == "WebPMemoryWrite")
@@ -532,6 +572,102 @@ internal static class Program
         createTexture!.ClearIgnoreReason();
     }
 
+    private static void FixXAtlasTypes(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
+    {
+        if (descriptor.Surface != "xatlas")
+            return;
+
+        var indexFormat = PromoteXAtlasEnum(compilation, "IndexFormat");
+        var addMeshError = PromoteXAtlasEnum(compilation, "AddMeshError");
+        compilation.InvalidateCaches();
+
+        var meshDecl = compilation.Records.First(static record => record.NativeName == "MeshDecl");
+        var indexFormatField = meshDecl.Members.OfType<FieldBinding>().First(static field => field.NativeName == "indexFormat");
+        indexFormatField.Type = BindingType.CreateEnum(
+            indexFormat.CppQualifiedName, indexFormat.ManagedName, enumId: indexFormat.SymbolId);
+        indexFormatField.CppTypeName = indexFormat.CppQualifiedName;
+        indexFormatField.ClearIgnoreReason();
+
+        var mesh = compilation.Records.First(static record => record.NativeName == "Mesh");
+        var vertex = compilation.Records.First(static record => record.NativeName == "Vertex");
+        var atlas = compilation.Records.First(static record => record.NativeName == "Atlas");
+        var meshesField = atlas.Members.OfType<FieldBinding>().First(static field => field.NativeName == "meshes");
+        var meshPointerType = BindingType.CreateHandle(
+            "xatlas::Mesh*", meshesField.Type.ManagedTypeName, mesh.SymbolId, mesh.HandleMarshallerTypeName);
+        ReplaceXAtlasField(atlas, "meshes", "Meshes", meshPointerType);
+        ReplaceXAtlasField(atlas, "meshCount", "NumMeshes");
+
+        var vertexArrayField = mesh.Members.OfType<FieldBinding>().First(static field => field.NativeName == "vertexArray");
+        var vertexPointerType = BindingType.CreateHandle(
+            "xatlas::Vertex*", vertexArrayField.Type.ManagedTypeName, vertex.SymbolId, vertex.HandleMarshallerTypeName);
+        ReplaceXAtlasField(mesh, "vertexArray", "Vertices", vertexPointerType);
+        ReplaceXAtlasField(mesh, "vertexCount", "NumVertices");
+        var indexArrayField = mesh.Members.OfType<FieldBinding>().First(static field => field.NativeName == "indexArray");
+        indexArrayField.Type = BindingType.IntPtr;
+        indexArrayField.IsPointer = true;
+        indexArrayField.ClearIgnoreReason();
+
+        var addMesh = compilation.Functions.First(static function => function.NativeName == "AddMesh");
+        addMesh.ReturnType = BindingType.CreateEnum(
+            addMeshError.CppQualifiedName, addMeshError.ManagedName, enumId: addMeshError.SymbolId);
+        addMesh.CppReturnTypeName = addMeshError.CppQualifiedName;
+        addMesh.ClearIgnoreReason();
+
+        var generate = compilation.Functions.First(static function => function.NativeName == "Generate");
+        var parameterizeFunc = generate.Parameters.First(static parameter => parameter.NativeName == "paramFunc");
+        parameterizeFunc.Type = BindingType.IntPtr;
+        parameterizeFunc.CppTypeName = "xatlas::ParameterizeFunc";
+        parameterizeFunc.Direction = BindingParameterDirection.In;
+        parameterizeFunc.AbiKind = BindingParameterAbiKind.Value;
+        parameterizeFunc.ClearIgnoreReason();
+        generate.ClearIgnoreReason();
+    }
+
+    private static EnumBinding PromoteXAtlasEnum(BindingCompilation compilation, string recordName)
+    {
+        var @enum = new EnumBinding(
+            $"enum:xatlas::{recordName}::Enum", "Enum", recordName, cppQualifiedName: $"xatlas::{recordName}::Enum");
+        var values = recordName switch
+        {
+            "IndexFormat" => new[]
+            {
+                new EnumValueBinding("UInt16", "UInt16", "0"),
+                new EnumValueBinding("UInt32", "UInt32", "1")
+            },
+            "AddMeshError" => new[]
+            {
+                new EnumValueBinding("Success", "Success", "0"),
+                new EnumValueBinding("Error", "Error", "1"),
+                new EnumValueBinding("IndexOutOfRange", "IndexOutOfRange", "2"),
+                new EnumValueBinding("InvalidIndexCount", "InvalidIndexCount", "3")
+            },
+            _ => throw new ArgumentOutOfRangeException(nameof(recordName))
+        };
+        foreach (var value in values)
+            @enum.Values.Add(value);
+        compilation.Members.Add(@enum);
+        return @enum;
+    }
+
+    private static FieldBinding ReplaceXAtlasField(
+        RecordBinding record, string nativeName, string replacementNativeName, BindingType? type = null)
+    {
+        var index = record.Members
+            .Select(static (member, index) => (Member: member, Index: index))
+            .First(pair => pair.Member is FieldBinding field && field.NativeName == nativeName).Index;
+        var source = (FieldBinding)record.Members[index];
+        var replacement = new FieldBinding(
+            source.SymbolId, replacementNativeName, source.ManagedName, type ?? source.Type, source.CppTypeName,
+            source.OwningRecordCppTypeName, source.IsReadOnly, source.IsReference, source.IsPointer)
+        {
+            AccessModifier = source.AccessModifier,
+            ReturnsOwnedHandle = source.ReturnsOwnedHandle
+        };
+        replacement.SetMetadata(MetadataKeys.NativeFieldAccessExpression, nativeName);
+        record.Members[index] = replacement;
+        return replacement;
+    }
+
     private static int PruneDiligentAccessoryRecords(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
     {
         if (descriptor.Surface != "diligent")
@@ -667,6 +803,45 @@ internal static class Program
 
             compilation.InvalidateCaches();
             return sdlPrunedCount;
+        }
+
+        if (descriptor.Surface == "xatlas")
+        {
+            var xatlasPrunedCount = 0;
+            for (var index = compilation.Members.Count - 1; index >= 0; --index)
+            {
+                var member = compilation.Members[index];
+                if (member is FunctionBinding function && RetainedXAtlasFunctions.Contains(function.NativeName))
+                    continue;
+
+                if (member is EnumBinding @enum && RetainedXAtlasEnums.Contains(@enum.ManagedName))
+                    continue;
+
+                if (member is RecordBinding nativeArray && nativeArray.HasMetadata(MetadataKeys.NativeArrayRecord))
+                    continue;
+                if (member is RecordBinding record &&
+                    RetainedXAtlasRecordFields.TryGetValue(record.NativeName, out var retainedFields))
+                {
+                    for (var memberIndex = record.Members.Count - 1; memberIndex >= 0; --memberIndex)
+                    {
+                        if (record.Members[memberIndex] is FieldBinding field && retainedFields.Contains(field.NativeName))
+                            continue;
+
+                        if (record.Members[memberIndex] is FunctionBinding { IsConstructor: true } or EnumBinding)
+                            continue;
+
+                        record.Members.RemoveAt(memberIndex);
+                        xatlasPrunedCount++;
+                    }
+                    continue;
+                }
+
+                compilation.Members.RemoveAt(index);
+                xatlasPrunedCount++;
+            }
+
+            compilation.InvalidateCaches();
+            return xatlasPrunedCount;
         }
 
         if (descriptor.Surface is "dearimgui" or "stb" or "spirvcross" or "spirvtools" or "spirvoptimizer" or "shadercompiler")
@@ -1143,7 +1318,7 @@ internal static class Program
 
     private static void PrintUsage()
     {
-        Console.Error.WriteLine("Usage: RedBolt.Generator.Dependencies --surface <sdl|diligent|dearimgui|stb|lz4|webp|glslang|spirvcross|spirvtools> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
+        Console.Error.WriteLine("Usage: RedBolt.Generator.Dependencies --surface <sdl|diligent|dearimgui|stb|lz4|webp|xatlas|glslang|spirvcross|spirvtools> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
     }
 
     private sealed record BindingSurfaceDescriptor(
@@ -1221,6 +1396,16 @@ internal static class Program
                     "-xc++",
                     "-std=c++20",
                     false),
+                "xatlas" => new BindingSurfaceDescriptor(
+                    "xatlas",
+                    "RedBolt.Bindings.XAtlas",
+                    "RedBolt.Bindings.XAtlas",
+                    "XAtlasNativeBindings",
+                    nativeLibraryName,
+                    "redbolt_xatlas",
+                    "-xc++",
+                    "-std=c++20",
+                    true),
                 "glslang" => new BindingSurfaceDescriptor(
                     "glslang",
                     "RedBolt.Bindings.Glslang",
