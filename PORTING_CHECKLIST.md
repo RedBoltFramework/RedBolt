@@ -579,8 +579,8 @@ Accepted deviations:
 - [ ] `BakedLightCache.h`
   - [ ] `BakedLightCache`
   - [ ] `BakedLightMemoryCache : BakedLightCache`
-- [ ] `BakedSceneBackground.h`
-  - [ ] baked scene background structs
+- [x] `BakedSceneBackground.h`
+  - [x] baked scene background structs
 - [ ] `BakedSceneChunk.h`
   - [ ] baked scene chunk structs
 - [ ] `BakedSceneCollector.h`
