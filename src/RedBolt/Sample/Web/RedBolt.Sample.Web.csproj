@@ -55,7 +55,7 @@
   <Target Name="RedBoltExcludeBuildToolsFromPublish" AfterTargets="ComputeFilesToPublish">
     <ItemGroup>
       <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
-                             Condition="'%(RelativePath)' == 'RedBolt.Dependencies.Generator.deps.json' or '%(RelativePath)' == 'RedBolt.Dependencies.Generator.runtimeconfig.json'" />
+                             Condition="'%(RelativePath)' == 'RedBolt.Generator.Dependencies.deps.json' or '%(RelativePath)' == 'RedBolt.Generator.Dependencies.runtimeconfig.json'" />
     </ItemGroup>
   </Target>
 

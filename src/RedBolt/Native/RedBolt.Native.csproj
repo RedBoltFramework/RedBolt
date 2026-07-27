@@ -13,7 +13,7 @@
                       Private="false"
                       PrivateAssets="all"
                       RedBoltProperties="$(RedBoltSharpCppNativeProperties)" />
-    <ProjectReference Include="../Dependencies/Generator/RedBolt.Dependencies.Generator.csproj"
+    <ProjectReference Include="../Generator/Dependencies/RedBolt.Generator.Dependencies.csproj"
                       ReferenceOutputAssembly="false"
                       Private="false"
                       PrivateAssets="all"

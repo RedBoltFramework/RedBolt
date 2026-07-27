@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <UseAppHost>false</UseAppHost>
-    <AssemblyName>RedBolt.Dependencies.Generator</AssemblyName>
+    <AssemblyName>RedBolt.Generator.Dependencies</AssemblyName>
     <OutputType>Exe</OutputType>
     <OutputPath>$(SharpCppOutputDir)/</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>

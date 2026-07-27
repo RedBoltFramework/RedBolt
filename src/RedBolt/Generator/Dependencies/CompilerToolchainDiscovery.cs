@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 
-namespace RedBolt.Dependencies.Generator;
+namespace RedBolt.Generator.Dependencies;
 
 internal static class CompilerToolchainDiscovery
 {

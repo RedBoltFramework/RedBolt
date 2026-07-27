@@ -8,7 +8,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 
-namespace RedBolt.Reflection.Generator;
+namespace RedBolt.Generator.Reflection;
 
 [Generator]
 public sealed class ReflectionGenerator : IIncrementalGenerator

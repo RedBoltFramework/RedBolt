@@ -1,4 +1,4 @@
-add_subdirectory(RedBolt/Dependencies/Generator)
+add_subdirectory(RedBolt/Generator/Dependencies)
 
 add_subdirectory(RedBolt/Bindings/Sdl)
 add_subdirectory(RedBolt/Bindings/Diligent)

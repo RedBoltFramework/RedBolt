@@ -10,7 +10,7 @@ using SharpCpp.Parsing;
 using SharpCpp.Pipeline;
 using SharpCpp.Rendering;
 
-namespace RedBolt.Dependencies.Generator;
+namespace RedBolt.Generator.Dependencies;
 
 internal static class Program
 {
@@ -1143,7 +1143,7 @@ internal static class Program
 
     private static void PrintUsage()
     {
-        Console.Error.WriteLine("Usage: RedBolt.Dependencies.Generator --surface <sdl|diligent|dearimgui|stb|lz4|webp|glslang|spirvcross|spirvtools> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
+        Console.Error.WriteLine("Usage: RedBolt.Generator.Dependencies --surface <sdl|diligent|dearimgui|stb|lz4|webp|glslang|spirvcross|spirvtools> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
     }
 
     private sealed record BindingSurfaceDescriptor(

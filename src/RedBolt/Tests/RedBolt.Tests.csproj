@@ -16,7 +16,7 @@
     <ProjectReference Include="../Bindings/SpirVTools/RedBolt.Bindings.SpirVTools.csproj" />
     <ProjectReference Include="../RedBolt/RedBolt.csproj" />
     <ProjectReference Include="../Platform/Linux/RedBolt.Platform.Linux.csproj" />
-    <ProjectReference Include="../Reflection/Generator/RedBolt.Reflection.Generator.csproj"
+    <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
                       RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=" />
