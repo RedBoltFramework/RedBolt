@@ -834,32 +834,32 @@ public class Engine : RedObject
         {
             TimeStep = timeStep
         };
-        _context.SendEvent(ref inputReadyEventData);
+        SendEvent(ref inputReadyEventData);
 
         var updateEventData = new CoreEvents.UpdateEvent
         {
             TimeStep = timeStep
         };
-        _context.SendEvent(ref updateEventData);
+        SendEvent(ref updateEventData);
         update?.Invoke(timeStep);
 
         var postUpdateEventData = new CoreEvents.PostUpdateEvent
         {
             TimeStep = timeStep
         };
-        _context.SendEvent(ref postUpdateEventData);
+        SendEvent(ref postUpdateEventData);
 
         var renderUpdateEventData = new CoreEvents.RenderUpdateEvent
         {
             TimeStep = timeStep
         };
-        _context.SendEvent(ref renderUpdateEventData);
+        SendEvent(ref renderUpdateEventData);
 
         var postRenderUpdateEventData = new CoreEvents.PostRenderUpdateEvent
         {
             TimeStep = timeStep
         };
-        _context.SendEvent(ref postRenderUpdateEventData);
+        SendEvent(ref postRenderUpdateEventData);
     }
 
     private void HandleExitRequested()

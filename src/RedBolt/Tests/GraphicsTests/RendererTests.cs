@@ -369,14 +369,34 @@ public sealed class GraphicsRendererTests
     }
 
     [Fact]
+    public void Update_dispatches_render_surface_update_event_from_renderer()
+    {
+        using var receiver = new TestEventReceiver();
+        RedObject? eventSender = null;
+        receiver.SubscribeToEvent<GraphicsEvents.RenderSurfaceUpdateEvent>(
+            (ref GraphicsEvents.RenderSurfaceUpdateEvent _) => eventSender = receiver.GetEventSender());
+
+        _fixture.Renderer.Update(0.0f);
+
+        Assert.Same(_fixture.Renderer, eventSender);
+    }
+
+    [Fact]
     public void Render_dispatches_end_all_views_event()
     {
+        using var receiver = new TestEventReceiver();
         var eventCount = 0;
-        _fixture.Renderer.SubscribeToEvent<GraphicsEvents.EndAllViewsRenderEvent>(
-            (ref GraphicsEvents.EndAllViewsRenderEvent _) => ++eventCount);
+        RedObject? eventSender = null;
+        receiver.SubscribeToEvent<GraphicsEvents.EndAllViewsRenderEvent>(
+            (ref GraphicsEvents.EndAllViewsRenderEvent _) =>
+            {
+                ++eventCount;
+                eventSender = receiver.GetEventSender();
+            });
 
         _fixture.Renderer.Render();
 
         Assert.Equal(1, eventCount);
+        Assert.Same(_fixture.Renderer, eventSender);
     }
 }

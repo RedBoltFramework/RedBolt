@@ -263,11 +263,12 @@ public sealed class EngineTests
     public void Time_step_helpers_work()
     {
         _fixture.Engine.SetNextTimeStep(0.125f);
-        var receiver = new TestObject();
+        using var receiver = new TestObject();
         var observed = -1.0f;
         var beginFrameCalls = 0;
         var endFrameCalls = 0;
         var endFramePrivateCalls = 0;
+        var coreEventSenders = new List<RedObject?>();
         var before = _fixture.Engine.GetNextTimeStep();
 
         receiver.SubscribeToEvent<CoreEvents.BeginFrameEvent>((ref CoreEvents.BeginFrameEvent eventData) =>
@@ -278,6 +279,11 @@ public sealed class EngineTests
         });
         receiver.SubscribeToEvent<CoreEvents.EndFrameEvent>((ref CoreEvents.EndFrameEvent _) => ++endFrameCalls);
         receiver.SubscribeToEvent<CoreEvents.EndFramePrivateEvent>((ref CoreEvents.EndFramePrivateEvent _) => ++endFramePrivateCalls);
+        receiver.SubscribeToEvent<CoreEvents.InputReadyEvent>((ref CoreEvents.InputReadyEvent _) => coreEventSenders.Add(receiver.GetEventSender()));
+        receiver.SubscribeToEvent<CoreEvents.UpdateEvent>((ref CoreEvents.UpdateEvent _) => coreEventSenders.Add(receiver.GetEventSender()));
+        receiver.SubscribeToEvent<CoreEvents.PostUpdateEvent>((ref CoreEvents.PostUpdateEvent _) => coreEventSenders.Add(receiver.GetEventSender()));
+        receiver.SubscribeToEvent<CoreEvents.RenderUpdateEvent>((ref CoreEvents.RenderUpdateEvent _) => coreEventSenders.Add(receiver.GetEventSender()));
+        receiver.SubscribeToEvent<CoreEvents.PostRenderUpdateEvent>((ref CoreEvents.PostRenderUpdateEvent _) => coreEventSenders.Add(receiver.GetEventSender()));
 
         _fixture.Engine.RunFrame(timeStep => observed = timeStep);
 
@@ -296,6 +302,8 @@ public sealed class EngineTests
         Assert.Equal(1, beginFrameCalls);
         Assert.Equal(1, endFrameCalls);
         Assert.Equal(1, endFramePrivateCalls);
+        Assert.Equal(5, coreEventSenders.Count);
+        Assert.All(coreEventSenders, sender => Assert.Same(_fixture.Engine, sender));
     }
 
     [Fact]

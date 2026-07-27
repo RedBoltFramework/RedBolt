@@ -427,7 +427,7 @@ public sealed class Renderer : RedObject
         for (var i = 0; i < numMainViewports; ++i)
             UpdateQueuedViewport(i);
 
-        Context.SendEvent<GraphicsEvents.RenderSurfaceUpdateEvent>();
+        SendEvent<GraphicsEvents.RenderSurfaceUpdateEvent>();
 
         for (var i = numMainViewports; i < _queuedViewports.Count; ++i)
             UpdateQueuedViewport(i);
@@ -465,7 +465,7 @@ public sealed class Renderer : RedObject
         foreach (var octree in _updatedOctrees)
             octree.SetLocked(false);
 
-        Context.SendEvent<GraphicsEvents.EndAllViewsRenderEvent>();
+        SendEvent<GraphicsEvents.EndAllViewsRenderEvent>();
     }
 
     private void UpdateQueuedViewport(int index)
