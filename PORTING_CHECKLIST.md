@@ -591,8 +591,8 @@ Accepted deviations:
   - [ ] `StaticModelForLightmap : Drawable`
 - [ ] `LightmapCharter.h`
   - [ ] chart layout helpers
-- [ ] `LightmapGeometryBuffer.h`
-  - [ ] geometry buffer structs
+- [~] `LightmapGeometryBuffer.h`
+  - [x] geometry buffer structs — scene generation and geometry-buffer baking functions remain pending their render-pipeline prerequisites
 - [ ] `LightmapStitcher.h`
   - [ ] seam stitching helpers
 - [ ] `LightmapFilter.h`
