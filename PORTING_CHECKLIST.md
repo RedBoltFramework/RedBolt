@@ -220,7 +220,8 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 - [ ] `Ease.h`
   - [x] `ActionEase : FiniteTimeAction`
   - [x] `EaseElastic : ActionEase`
-  - [ ] `EaseBackIn/Out/InOut : ActionEase`
+  - [x] `EaseBackIn/Out : ActionEase`
+  - [ ] `EaseBackInOut : ActionEase`
   - [ ] `EaseBounceOut/In/InOut : ActionEase`
   - [ ] `EaseSineOut/In/InOut : ActionEase`
   - [ ] `EaseExponentialOut/In/InOut : ActionEase`

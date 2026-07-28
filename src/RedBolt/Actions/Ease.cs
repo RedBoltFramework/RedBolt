@@ -25,6 +25,7 @@ namespace RedBolt.Actions;
 
 using RedBolt.Core;
 using RedBolt.IO;
+using RedBolt.Math;
 
 file sealed class ActionEaseState : FiniteTimeActionState
 {
@@ -139,4 +140,61 @@ public partial class EaseElastic : ActionEase
     }
 
     private float _period = 0.3f;
+}
+
+/// -------------------------------------------------------------------
+/// <summary>BackIn easing action.</summary>
+[Reflected]
+public partial class EaseBackIn : ActionEase
+{
+    /// <summary>Construct.</summary>
+    public EaseBackIn()
+    {
+        SetInnerAction(null);
+    }
+
+    /// <summary>Create reversed action.</summary>
+    public override FiniteTimeAction Reverse()
+    {
+        var result = new EaseBackOut();
+        result.SetInnerAction(InnerAction!.Reverse());
+        return result;
+    }
+
+    /// <summary>Apply easing function to the time argument.</summary>
+    public override float Ease(float time) => EaseMath.BackIn(time);
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new ActionEaseState(this, target);
+    }
+}
+
+/// -------------------------------------------------------------------
+/// <summary>BackOut easing action.</summary>
+[Reflected]
+public partial class EaseBackOut : ActionEase
+{
+    /// <summary>Construct.</summary>
+    public EaseBackOut()
+    {
+    }
+
+    /// <summary>Create reversed action.</summary>
+    public override FiniteTimeAction Reverse()
+    {
+        var result = new EaseBackIn();
+        result.SetInnerAction(InnerAction!.Reverse());
+        return result;
+    }
+
+    /// <summary>Apply easing function to the time argument.</summary>
+    public override float Ease(float time) => EaseMath.BackOut(time);
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new ActionEaseState(this, target);
+    }
 }
