@@ -212,7 +212,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 - [ ] `Misc.h`
   - [x] `RemoveSelf : FiniteTimeAction` — Node behavior ported; built-in `UIElement` target is excluded
   - [ ] `DelayTime : FiniteTimeAction`
-  - [ ] `Show : AttributeAction`
+  - [x] `Show : AttributeAction`
   - [ ] `Hide : AttributeAction`
   - [ ] `Enable : AttributeAction`
   - [ ] `Disable : AttributeAction`

@@ -62,3 +62,21 @@ public partial class RemoveSelf : FiniteTimeAction
         return new RemoveSelfState(this, target);
     }
 }
+
+/// <summary>Show target. The Target should have "Is Visible" attribute.</summary>
+[Reflected]
+public partial class Show : AttributeAction
+{
+    /// <summary>Construct.</summary>
+    public Show()
+        : base(AttributeActionConstants.IsVisibleAttribute)
+    {
+    }
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        using var value = new Variant(true);
+        return new SetAttributeState(this, target, GetAttribute(target), value);
+    }
+}
