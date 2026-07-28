@@ -28,6 +28,7 @@ using System.Runtime.InteropServices;
 
 using RedBolt.Bindings.RmlUi;
 using RedBolt.Core;
+using Context = RedBolt.Core.Context;
 using RedBolt.IO;
 using RedBolt.Resource;
 

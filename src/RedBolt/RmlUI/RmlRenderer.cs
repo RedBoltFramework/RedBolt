@@ -29,6 +29,7 @@ using System.Runtime.InteropServices;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.RmlUi;
 using RedBolt.Core;
+using Context = RedBolt.Core.Context;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;

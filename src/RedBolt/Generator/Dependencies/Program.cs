@@ -849,6 +849,41 @@ internal static class Program
 
         var eventListener = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::EventListener");
+
+        var context = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::Context");
+        context.ClearIgnoreReason();
+        context.Bases.Clear();
+        context.ManagedBaseTypeName = null;
+        foreach (var method in context.Members.OfType<FunctionBinding>())
+            method.SetSilentExclusionReason("RmlUi context members are outside the event listener binding slice");
+
+        var element = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::Element");
+        element.ClearIgnoreReason();
+        element.Bases.Clear();
+        element.ManagedBaseTypeName = null;
+        foreach (var method in element.Members.OfType<FunctionBinding>())
+        {
+            if (method.NativeName == "GetContext")
+                method.ClearIgnoreReason();
+            else
+                method.SetSilentExclusionReason("RmlUi element member is outside the event listener binding slice");
+        }
+
+        var @event = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::Event");
+        @event.ClearIgnoreReason();
+        @event.Bases.Clear();
+        @event.ManagedBaseTypeName = null;
+        foreach (var method in @event.Members.OfType<FunctionBinding>())
+        {
+            if (method.NativeName is "GetCurrentElement" or "GetPhase" or "GetTargetElement" or "IsPropagating")
+                method.ClearIgnoreReason();
+            else
+                method.SetSilentExclusionReason("RmlUi event member is outside the event listener binding slice");
+        }
+
         eventListener.ClearIgnoreReason();
         eventListener.Bases.Clear();
         eventListener.ManagedBaseTypeName = null;
@@ -856,18 +891,11 @@ internal static class Program
         {
             if (method.IsConstructor || method.IsVirtual)
                 method.ClearIgnoreReason();
-
-            foreach (var parameter in method.Parameters)
-            {
-                if (parameter.CppTypeName.Contains("Rml::Event", StringComparison.Ordinal) ||
-                    parameter.CppTypeName.Contains("Rml::Element", StringComparison.Ordinal))
-                {
-                    parameter.Type = BindingType.IntPtr;
-                    parameter.Direction = BindingParameterDirection.In;
-                    parameter.AbiKind = BindingParameterAbiKind.Value;
-                }
-            }
         }
+
+        var eventPhase = compilation.Enums.First(static @enum =>
+            @enum.CppQualifiedName == "Rml::EventPhase");
+        eventPhase.ClearIgnoreReason();
 
         var fileHandleType = BindingType.CreateConfigured(
             "Rml::FileHandle", "nuint", BindingPrimitiveKind.NativeUInt);
@@ -1066,6 +1094,7 @@ internal static class Program
 
                 if (member is RecordBinding record &&
                     (record.CppQualifiedName is
+                         "Rml::Context" or "Rml::Element" or "Rml::Event" or
                          "Rml::EventListener" or "Rml::FileInterface" or "Rml::Log" or
                          "Rml::RenderInterfaceCompatibility" or "Rml::SystemInterface" ||
                      record.CppQualifiedName.StartsWith("Rml::Vector2", StringComparison.Ordinal) ||
@@ -1074,7 +1103,8 @@ internal static class Program
                     continue;
                 }
 
-                if (member is EnumBinding @enum && @enum.CppQualifiedName == "Rml::Log::Type")
+                if (member is EnumBinding @enum &&
+                    @enum.CppQualifiedName is "Rml::EventPhase" or "Rml::Log::Type")
                     continue;
 
                 compilation.Members.RemoveAt(index);

@@ -28,6 +28,7 @@ using RedBolt.Bindings.RmlUi;
 using RedBolt.Bindings.Sdl;
 using RedBolt.Container;
 using RedBolt.Core;
+using Context = RedBolt.Core.Context;
 using RedBolt.Input;
 using EngineLog = RedBolt.Logging.Log;
 using RedBolt.Resource;

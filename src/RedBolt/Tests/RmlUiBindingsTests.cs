@@ -132,7 +132,7 @@ public sealed class RmlUiBindingsTests
 
     private sealed class TestEventListener : EventListener
     {
-        public override void ProcessEvent(nint @event)
+        public override void ProcessEvent(Event @event)
         {
         }
     }
