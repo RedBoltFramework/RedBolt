@@ -17,7 +17,7 @@ using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
 
-public class EngineSystem : RedObject
+public class Engine : RedObject
 {
     private static readonly string ExecutableDirectory = AppContext.BaseDirectory;
 
@@ -48,7 +48,7 @@ public class EngineSystem : RedObject
     private Context _previousContext = Context.Instance;
     private readonly Context _context = new(Context.Instance.RuntimeServices);
 
-    public EngineSystem()
+    public Engine()
     {
         Directory.SetCurrentDirectory(ExecutableDirectory);
         InitializeContext();
@@ -266,7 +266,7 @@ public class EngineSystem : RedObject
         ArgumentNullException.ThrowIfNull(update);
 
         if (!IsInitialized)
-            throw new InvalidOperationException("EngineSystem must be initialized before running frames.");
+            throw new InvalidOperationException("Engine must be initialized before running frames.");
         if (IsExiting)
             return;
 
@@ -559,7 +559,7 @@ public class EngineSystem : RedObject
     public void Update()
     {
         if (!IsInitialized)
-            throw new InvalidOperationException("EngineSystem must be initialized before sending update events.");
+            throw new InvalidOperationException("Engine must be initialized before sending update events.");
         SendCoreEvents(_timeStep);
     }
 

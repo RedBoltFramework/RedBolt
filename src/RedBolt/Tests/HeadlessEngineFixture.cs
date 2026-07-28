@@ -17,7 +17,7 @@ public class HeadlessEngineFixture : IDisposable
 {
     public HeadlessEngineFixture()
     {
-        Engine = new EngineSystem();
+        Engine = new Engine();
         var parameters = new EngineParameters
         {
             ApplicationName = "RedBolt.Tests",
@@ -38,7 +38,7 @@ public class HeadlessEngineFixture : IDisposable
         Resources.AddManualResource(model);
     }
 
-    public EngineSystem Engine { get; }
+    public Engine Engine { get; }
 
     public Context Context => Engine.Context;
 

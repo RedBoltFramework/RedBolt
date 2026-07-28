@@ -33,6 +33,7 @@ using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Navigation;
+using RedBolt.Platform;
 using RedBolt.Resource;
 using RedBolt.Scene;
 

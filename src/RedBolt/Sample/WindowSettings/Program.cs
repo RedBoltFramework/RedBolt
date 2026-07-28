@@ -11,6 +11,7 @@ using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Math;
+using RedBolt.Platform;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
 

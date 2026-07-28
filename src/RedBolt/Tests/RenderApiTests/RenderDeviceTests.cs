@@ -548,7 +548,7 @@ public sealed class RenderDeviceTests
 
     private sealed class EngineHandle : IDisposable
     {
-        public EngineSystem Engine { get; } = new();
+        public Engine Engine { get; } = new();
 
         public void Dispose()
         {

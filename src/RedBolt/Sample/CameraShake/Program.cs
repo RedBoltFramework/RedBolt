@@ -9,6 +9,7 @@ using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
+using RedBolt.Platform;
 using RedBolt.Scene;
 
 internal static class CameraShakeProgram

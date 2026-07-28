@@ -138,7 +138,7 @@ public class Context : ObjectReflectionRegistry
         var remainingSubsystems = new HashSet<object>(ReferenceEqualityComparer.Instance);
         foreach (var subsystem in _subsystems.GetContainer().Values)
         {
-            if (subsystem is not EngineSystem)
+            if (subsystem is not Engine)
                 remainingSubsystems.Add(subsystem);
         }
 
@@ -159,7 +159,7 @@ public class Context : ObjectReflectionRegistry
         base.Dispose();
     }
 
-    public void InitializeEngineSubsystems(EngineSystem engine)
+    public void InitializeEngineSubsystems(Engine engine)
     {
         ArgumentNullException.ThrowIfNull(engine);
 

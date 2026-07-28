@@ -28,7 +28,7 @@ public sealed class ConfigFileTests
 
         try
         {
-            using var engine = new EngineSystem();
+            using var engine = new Engine();
             Assert.True(engine.Initialize(new EngineParameters
             {
                 ApplicationName = "RedBolt.Tests.Config",

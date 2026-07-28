@@ -10,8 +10,8 @@ public sealed class EngineParameterTests
     [Fact]
     public void Engine_parameter_command_line_priorities_match_cpp_defaults()
     {
-        using var engine = new EngineSystem();
-        var configFile = (ConfigFile)typeof(EngineSystem)
+        using var engine = new Engine();
+        var configFile = (ConfigFile)typeof(Engine)
             .GetField("_configFile", BindingFlags.Instance | BindingFlags.NonPublic)!
             .GetValue(engine)!;
 

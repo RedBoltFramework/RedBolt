@@ -11,6 +11,7 @@ using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Input;
 using RedBolt.Math;
+using RedBolt.Platform;
 using RedBolt.Scene;
 
 internal static class SoundSynthesisProgram

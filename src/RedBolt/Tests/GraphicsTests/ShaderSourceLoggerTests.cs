@@ -12,7 +12,7 @@ public sealed class ShaderSourceLoggerTests
     {
         var previousContext = Context.Instance;
         var context = new Context();
-        var engine = new EngineSystem();
+        var engine = new Engine();
         Context.SetInstance(context);
 
         var fileName = Path.Combine(Path.GetTempPath(), $"RedBoltShaderSource-{Guid.NewGuid():N}.glsl");

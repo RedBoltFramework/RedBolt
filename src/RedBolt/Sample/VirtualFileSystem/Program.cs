@@ -13,6 +13,7 @@ using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.IO;
 using RedBolt.Input;
+using RedBolt.Platform;
 
 internal static class VirtualFileSystemProgram
 {

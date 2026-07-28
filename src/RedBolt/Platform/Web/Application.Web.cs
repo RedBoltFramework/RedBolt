@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Platform;
 
 using System;
 using System.Runtime.InteropServices.JavaScript;

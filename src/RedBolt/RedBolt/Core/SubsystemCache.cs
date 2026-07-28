@@ -19,7 +19,7 @@ public sealed class SubsystemCache
 {
     private static readonly Type[] CachedSubsystemTypes =
     [
-        typeof(EngineSystem),
+        typeof(Engine),
         typeof(Time),
         typeof(WorkQueue),
         typeof(VirtualFileSystem),

@@ -4,10 +4,10 @@ using System;
 using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 
-using RedBolt;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Lz4;
 using RedBolt.Bindings.Sdl;
+using RedBolt.Platform;
 using RedBolt.Sample.AggregatedInput;
 using RedBolt.Sample.AnimatingScene;
 using RedBolt.Sample.BakedLighting;

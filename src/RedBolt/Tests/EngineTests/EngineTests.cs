@@ -25,7 +25,7 @@ public sealed class EngineTests
     [Fact]
     public void Engine_has_native_reference_class_and_field_lifetime_shape()
     {
-        var type = typeof(EngineSystem);
+        var type = typeof(Engine);
         Assert.False(type.IsSealed);
         Assert.True(typeof(RedObject).IsAssignableFrom(type));
         Assert.False(typeof(ICloneable).IsAssignableFrom(type));
@@ -68,10 +68,10 @@ public sealed class EngineTests
     public void Engine_disposal_restores_the_borrowed_global_context()
     {
         var previousContext = Context.Instance;
-        var engine = new EngineSystem();
+        var engine = new Engine();
 
         Assert.NotSame(previousContext, Context.Instance);
-        Assert.Same(engine, Context.Instance.GetSubsystem<EngineSystem>());
+        Assert.Same(engine, Context.Instance.GetSubsystem<Engine>());
 
         engine.Dispose();
 
@@ -172,7 +172,7 @@ public sealed class EngineTests
         var parameters = new EngineParameters();
         var parser = new CommandLineParser("RedBolt.Tests");
 
-        EngineSystem.DefineParameters(parser, parameters);
+        Engine.DefineParameters(parser, parameters);
         var result = parser.Parse(["--headless", "--width=640", "--height=480"]);
 
         Assert.True(result.IsSuccess);
@@ -184,7 +184,7 @@ public sealed class EngineTests
     [Fact]
     public void Exit_performs_exit_housekeeping()
     {
-        using var engine = new EngineScope(new EngineSystem(), new EngineParameters
+        using var engine = new EngineScope(new Engine(), new EngineParameters
         {
             ApplicationName = "RedBolt.Tests.Exit",
             ConfigName = string.Empty,
@@ -200,7 +200,7 @@ public sealed class EngineTests
     [Fact]
     public void Exit_closes_graphics_when_screenshot_on_exit_is_configured()
     {
-        using var engine = new EngineScope(new EngineSystem(), new EngineParameters
+        using var engine = new EngineScope(new Engine(), new EngineParameters
         {
             ApplicationName = "RedBolt.Tests.ScreenshotExit",
             ConfigName = string.Empty,
@@ -223,7 +223,7 @@ public sealed class EngineTests
         var preferencesDirectory = Path.Combine(Path.GetTempPath(), $"redbolt-engine-pso-{Guid.NewGuid():N}");
         try
         {
-            using var engine = new EngineScope(new EngineSystem(), new EngineParameters
+            using var engine = new EngineScope(new Engine(), new EngineParameters
             {
                 ApplicationName = "RedBolt.Tests.PsoCache",
                 ApplicationPreferencesDir = preferencesDirectory + Path.DirectorySeparatorChar,
@@ -251,7 +251,7 @@ public sealed class EngineTests
         var preferencesDirectory = Path.Combine(Path.GetTempPath(), $"redbolt-engine-log-{Guid.NewGuid():N}");
         try
         {
-            using var engine = new EngineScope(new EngineSystem(), new EngineParameters
+            using var engine = new EngineScope(new Engine(), new EngineParameters
             {
                 ApplicationName = "RedBolt.Tests.Log",
                 ApplicationPreferencesDir = preferencesDirectory + Path.DirectorySeparatorChar,
@@ -327,7 +327,7 @@ public sealed class EngineTests
 
         try
         {
-            using var engine = new EngineScope(new EngineSystem(), new EngineParameters
+            using var engine = new EngineScope(new Engine(), new EngineParameters
             {
                 ApplicationName = "RedBolt.Tests.ResourcePaths",
                 Headless = true,
@@ -371,7 +371,7 @@ public sealed class EngineTests
 
         try
         {
-            using var engine = new EngineScope(new EngineSystem(), new EngineParameters
+            using var engine = new EngineScope(new Engine(), new EngineParameters
             {
                 ApplicationName = "RedBolt.Tests.ResourceRoot",
                 Headless = true,
@@ -393,7 +393,7 @@ public sealed class EngineTests
     [Fact]
     public void Canvas_resize_preserves_input_pointer_state()
     {
-        using var engine = new EngineScope(new EngineSystem(), new EngineParameters
+        using var engine = new EngineScope(new Engine(), new EngineParameters
         {
             ApplicationName = "RedBolt.Tests.CanvasResize",
             Headless = true
@@ -420,13 +420,13 @@ public sealed class EngineTests
 
     private sealed class EngineScope : IDisposable
     {
-        public EngineScope(EngineSystem engine, EngineParameters parameters)
+        public EngineScope(Engine engine, EngineParameters parameters)
         {
             Value = engine;
             Value.Initialize(parameters);
         }
 
-        public EngineSystem Value { get; }
+        public Engine Value { get; }
 
         public void Dispose()
         {

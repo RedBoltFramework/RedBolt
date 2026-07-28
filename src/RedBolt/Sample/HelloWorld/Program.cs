@@ -9,6 +9,7 @@ using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Input;
+using RedBolt.Platform;
 
 internal static class HelloWorldProgram
 {

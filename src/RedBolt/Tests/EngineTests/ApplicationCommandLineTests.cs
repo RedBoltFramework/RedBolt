@@ -3,6 +3,7 @@ namespace RedBolt.Tests;
 using RedBolt;
 using RedBolt.Engine;
 using RedBolt.Logging;
+using RedBolt.Platform;
 
 public sealed class ApplicationCommandLineTests
 {

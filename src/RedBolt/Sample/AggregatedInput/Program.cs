@@ -12,6 +12,7 @@ using RedBolt.DearImGui;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Input;
+using RedBolt.Platform;
 
 internal static class AggregatedInputProgram
 {

@@ -12,6 +12,7 @@ using RedBolt.Graphics;
 using RedBolt.IK;
 using RedBolt.Input;
 using RedBolt.Math;
+using RedBolt.Platform;
 using RedBolt.Scene;
 
 internal static class InverseKinematicsProgram

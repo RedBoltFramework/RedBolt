@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.Platform;
 
 using RedBolt.Engine;
 

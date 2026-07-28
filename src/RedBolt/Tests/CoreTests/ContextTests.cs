@@ -24,7 +24,7 @@ public sealed class ContextTests
     public void Engine_uses_context_registered_subsystems()
     {
         Assert.Same(_fixture.Engine.Context, Context.Instance);
-        Assert.Same(_fixture.Engine, _fixture.Engine.Context.GetSubsystem<EngineSystem>());
+        Assert.Same(_fixture.Engine, _fixture.Engine.Context.GetSubsystem<Engine>());
         Assert.Same(_fixture.Time, _fixture.Engine.Context.GetSubsystem<Time>());
         Assert.Same(_fixture.Resources, _fixture.Engine.Context.GetSubsystem<ResourceCache>());
         Assert.Same(_fixture.Input, _fixture.Engine.Context.GetSubsystem<Input>());
@@ -555,7 +555,7 @@ public sealed class ContextTests
     public void Engine_shutdown_clears_global_context_instance()
     {
         var previousContext = Context.Instance;
-        var engine = new EngineSystem();
+        var engine = new Engine();
         try
         {
             engine.Initialize(new EngineParameters

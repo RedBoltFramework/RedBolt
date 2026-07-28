@@ -32,7 +32,7 @@ public sealed class StateManagerTests
     [Fact]
     public void Application_state_dispose_releases_update_subscription()
     {
-        using var engine = new EngineSystem();
+        using var engine = new Engine();
         var state = new TrackingApplicationState();
         using var bundle = new StringVariantMap();
         state.Activate(bundle);
@@ -48,7 +48,7 @@ public sealed class StateManagerTests
     [Fact]
     public void State_manager_copies_queued_bundle_values()
     {
-        using var engine = new EngineSystem();
+        using var engine = new Engine();
         var stateManager = engine.GetSubsystem<StateManager>()!;
         stateManager.Reset();
         stateManager.FadeInDuration = 0.0f;
@@ -80,7 +80,7 @@ public sealed class StateManagerTests
     [Fact]
     public void State_manager_transition_and_reset_events_match_cpp_order()
     {
-        using var engine = new EngineSystem();
+        using var engine = new Engine();
         var stateManager = engine.GetSubsystem<StateManager>()!;
         stateManager.Reset();
         using var state = new TestState();

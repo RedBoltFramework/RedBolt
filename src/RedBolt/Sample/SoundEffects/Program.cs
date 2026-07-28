@@ -11,6 +11,7 @@ using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Input;
+using RedBolt.Platform;
 using RedBolt.Scene;
 
 internal static class SoundEffectsProgram
