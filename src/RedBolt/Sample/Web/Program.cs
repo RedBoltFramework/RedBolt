@@ -24,6 +24,7 @@ internal static class WebProgram
         {
             "aggregated-input" => new AggregatedInputApplication(),
             "animating-scene" => new AnimatingScene(),
+            "baked-lighting" => new BakedLighting(),
             "billboards" => new BillboardsApplication(),
             "camera-operator" => new CameraOperatorSampleApplication(),
             "camera-shake" => new CameraShakeApplication(),

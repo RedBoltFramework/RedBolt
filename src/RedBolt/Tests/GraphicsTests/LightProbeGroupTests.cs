@@ -63,6 +63,10 @@ public sealed class LightProbeGroupTests
         restored.SetSerializedLightProbes(group.GetSerializedLightProbes());
 
         Assert.Equal(group.GetLightProbes(), restored.GetLightProbes());
+
+        var restoredFromNativeData = new LightProbeGroup();
+        restoredFromNativeData.SetSerializedLightProbes("AgwAAIA/AAAAQAAAQEA=");
+        Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), Assert.Single(restoredFromNativeData.GetLightProbes()).Position);
     }
 
     [Fact]

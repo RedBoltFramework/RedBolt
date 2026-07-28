@@ -1,6 +1,7 @@
 const samples = [
     ['aggregated-input', 'Aggregated Input'],
     ['animating-scene', 'Animating Scene'],
+    ['baked-lighting', 'Baked Lighting'],
     ['billboards', 'Billboards'],
     ['camera-operator', 'Camera Operator'],
     ['camera-shake', 'Camera Shake'],

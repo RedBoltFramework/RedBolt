@@ -37,6 +37,27 @@ public static partial class ArchiveSerialization
 
     public static void SerializeValue(Archive archive, string name, List<LightProbe> values)
     {
+        if (!archive.IsHumanReadable)
+        {
+            using var byteBlock = archive.OpenUnorderedBlock(name);
+            var elementSize = checked((uint)Marshal.SizeOf<LightProbe>());
+            var sizeInBytes = archive.IsInput ? 0u : checked((uint)values.Count * elementSize);
+            archive.SerializeVle("size", ref sizeInBytes);
+
+            if (archive.IsInput)
+            {
+                if (sizeInBytes % elementSize != 0)
+                    throw new InvalidDataException($"'{archive.CurrentBlockPath}/{name}' has unexpected size in bytes");
+
+                values.Clear();
+                values.AddRange(new LightProbe[checked((int)(sizeInBytes / elementSize))]);
+            }
+
+            var bytes = MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(values));
+            archive.SerializeBytes("data", bytes[..checked((int)sizeInBytes)]);
+            return;
+        }
+
         var size = values.Count;
         using var block = archive.OpenArrayBlock(name, size);
         if (archive.IsInput)

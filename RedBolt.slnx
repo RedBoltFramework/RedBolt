@@ -6,6 +6,7 @@
     <Project Path="src/RedBolt/IK/RedBolt.IK.csproj" />
   </Folder>
   <Folder Name="/src/RedBolt/Sample/">
+    <Project Path="src/RedBolt/Sample/BakedLighting/RedBolt.Sample.BakedLighting.csproj" />
     <Project Path="src/RedBolt/Sample/HelloGUI/RedBolt.Sample.HelloGUI.csproj" />
     <Project Path="src/RedBolt/Sample/InverseKinematics/RedBolt.Sample.InverseKinematics.csproj" />
     <Project Path="src/RedBolt/Sample/MultipleViewports/RedBolt.Sample.MultipleViewports.csproj" />
