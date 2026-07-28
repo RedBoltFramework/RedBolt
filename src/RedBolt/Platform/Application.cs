@@ -49,7 +49,7 @@ public abstract partial class Application : RedObject
 
     protected Renderer Renderer => GetSubsystem<Renderer>()!;
 
-    protected RedBolt.Input.InputSystem Input => GetSubsystem<RedBolt.Input.InputSystem>()!;
+    protected RedBolt.Input.Input Input => GetSubsystem<RedBolt.Input.Input>()!;
 
     protected virtual void Setup(EngineParameters parameters)
     {

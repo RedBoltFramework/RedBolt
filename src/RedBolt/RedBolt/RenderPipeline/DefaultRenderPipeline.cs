@@ -282,7 +282,7 @@ public class DefaultRenderPipelineView : RenderPipelineView
         _frameInfo.TimeStep = engineTime.TimeStep;
 
         // Begin debug snapshot
-        var input = GetRenderPipeline().GetSubsystem<InputSystem>()!;
+        var input = GetRenderPipeline().GetSubsystem<Input>()!;
         var qualifiers = input.GetQualifiers();
         var takeSnapshot = (qualifiers & (Qualifier.Ctrl | Qualifier.Shift)) == (Qualifier.Ctrl | Qualifier.Shift)
             && input.GetKeyPress(Key.F12);

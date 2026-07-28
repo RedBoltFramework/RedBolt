@@ -577,7 +577,7 @@ public sealed class Renderer : RedObject
 
     private void UpdateMousePositionsForMainViewports()
     {
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
 
         foreach (var viewport in _viewports)
         {

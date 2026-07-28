@@ -18,7 +18,7 @@ public sealed class InputMapTests
         this._fixture = fixture;
     }
 
-    private InputSystem Input => _fixture.Input;
+    private Input Input => _fixture.Input;
 
     [Fact]
     public void Dead_zone_clamps_to_zero()

@@ -62,7 +62,7 @@ public sealed class RendererTests
         var texture = new Texture2D { Name = "Textures/MousePositionTarget" };
         Assert.True(texture.SetSize(640, 480, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget));
         var renderSurface = new RenderSurface(texture, 0);
-        var mousePositionProperty = typeof(InputSystem).GetProperty(nameof(InputSystem.MousePosition));
+        var mousePositionProperty = typeof(Input).GetProperty(nameof(Input.MousePosition));
         Assert.NotNull(mousePositionProperty);
         var oldMousePosition = _fixture.Input.MousePosition;
         mousePositionProperty!.SetValue(_fixture.Input, new Vector2i(300, 150));

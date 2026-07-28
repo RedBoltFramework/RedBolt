@@ -51,7 +51,7 @@ public partial class DirectionAggregator : RedObject
     /// <summary>Active subscriptions bitmask</summary>
     private DirectionAggregatorMask _subscriptionFlags = DirectionAggregatorMask.None;
     /// <summary>Cached input subsystem pointer</summary>
-    private readonly InputSystem _input;
+    private readonly Input _input;
     /// <summary>Collection of active vertical axis inputs</summary>
     private readonly List<AxisState> _verticalAxis = new(4);
     /// <summary>Collection of active horizontal axis inputs</summary>
@@ -72,7 +72,7 @@ public partial class DirectionAggregator : RedObject
     /// <summary>Construct.</summary>
     public DirectionAggregator()
     {
-        _input = GetSubsystem<InputSystem>()!;
+        _input = GetSubsystem<Input>()!;
 
         // By default the full axis range is about 1 inch
         var graphics = GetSubsystem<Graphics>();

@@ -856,7 +856,7 @@ layout(std140) uniform Material
         using var factoryVulkan = IEngineFactoryVk.QueryManagedWrapper(_factory!)
             ?? throw new InvalidOperationException("Vulkan engine factory interface is unavailable.");
 #if REDBOLT_PLATFORM_LINUX
-        var nativeWindowInfo = GetSubsystem<InputSystem>()!.GetNativeWindowInfo();
+        var nativeWindowInfo = GetSubsystem<Input>()!.GetNativeWindowInfo();
         using var nativeWindow = new LinuxNativeWindow
         {
             PDisplay = nativeWindowInfo.Display,
@@ -1088,7 +1088,7 @@ layout(std140) uniform Material
     }
 
     public void Initialize(EngineParameters parameters, RenderDeviceSettings deviceSettings,
-        WindowSettings windowSettings, InputSystem input)
+        WindowSettings windowSettings, Input input)
     {
         ArgumentNullException.ThrowIfNull(parameters);
         ArgumentNullException.ThrowIfNull(input);

@@ -169,7 +169,7 @@ public class Context : ObjectReflectionRegistry
         RegisterSubsystem(new VirtualFileSystem());
         RegisterSubsystem(new Log());
         RegisterSubsystem(new ResourceCache());
-        RegisterSubsystem(new InputSystem());
+        RegisterSubsystem(new Input());
         RegisterSubsystem(new Graphics());
         RegisterSubsystem(new Renderer());
         RegisterSubsystem(new AudioSystem());

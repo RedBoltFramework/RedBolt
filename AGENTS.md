@@ -319,7 +319,7 @@ Native dependencies (SDL, Diligent, Dear ImGui) are accessed through generated b
 The exhaustive list of allowed deviations is maintained in
 `doc/ALLOWED_DEVIATIONS.md`. Anything not on that list must match C++.
 
-Agreed project-specific naming deviation: C# engine types use folder-matching namespaces; the `Audio`, `Engine`, and `Input` subsystem classes are named `AudioSystem`, `EngineSystem`, and `InputSystem`; and the render pipeline component class is named `RenderPipelineComponent`.
+Agreed project-specific naming deviation: C# engine types use folder-matching namespaces; the `Audio` and `Engine` subsystem classes are named `AudioSystem` and `EngineSystem`; and the render pipeline component class is named `RenderPipelineComponent`.
 
 Agreed project-specific namespace resolution deviation: namespace/type collisions
 are resolved with namespace-local using directives.

@@ -265,7 +265,7 @@ public class DearImGui : RedObject
             ImGui.UpdatePlatformWindows();
         }
 
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
         var renderDevice = GetSubsystem<RenderDevice>()!;
 
         // TODO: port per-screen font texture allocation and TexID assignment when SharpCpp exposes ImFontAtlas.

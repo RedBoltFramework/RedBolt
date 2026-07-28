@@ -126,7 +126,7 @@ public class EngineSystem : RedObject
 
         Parameters = applicationParameters.Clone();
         var resources = GetSubsystem<ResourceCache>()!;
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
         var graphics = GetSubsystem<Graphics>()!;
         var renderer = GetSubsystem<Renderer>()!;
 
@@ -271,7 +271,7 @@ public class EngineSystem : RedObject
             return;
 
         var time = GetSubsystem<Time>()!;
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
         var graphics = GetSubsystem<Graphics>()!;
         GetSubsystem<WorkQueue>()!.Update();
 
@@ -339,7 +339,7 @@ public class EngineSystem : RedObject
             "Web canvas resized to {Width}x{Height}{Fullscreen} with DPI scale={DpiScale}.",
             width, height, isFullScreen ? " FullScreen" : " ", dpiScale);
 
-        var input = GetSubsystem<InputSystem>();
+        var input = GetSubsystem<Input>();
         var graphics = GetSubsystem<Graphics>();
         var mouseVisible = input?.MouseVisible ?? false;
         var mouseMode = input?.GetMouseMode() ?? MouseMode.Absolute;
@@ -460,7 +460,7 @@ public class EngineSystem : RedObject
         {
             GetSubsystem<Renderer>()!.SetNumViewports(0);
             GetSubsystem<Graphics>()!.Close();
-            GetSubsystem<InputSystem>()!.Shutdown();
+            GetSubsystem<Input>()!.Shutdown();
         }
         _configFile.Dispose();
         _context.Reset();
@@ -658,7 +658,7 @@ public class EngineSystem : RedObject
         WorkQueue.SetMainThread();
         _context.InitializeEngineSubsystems(this);
 
-        InputSystem.RegisterInputLibrary(_context);
+        Input.RegisterInputLibrary(_context);
         Graphics.RegisterGraphicsLibrary(_context);
         Scene.RegisterSceneLibrary(_context);
 
@@ -720,7 +720,7 @@ public class EngineSystem : RedObject
     private void ApplyLiveParameter(string name)
     {
         var renderer = GetSubsystem<Renderer>();
-        var input = GetSubsystem<InputSystem>();
+        var input = GetSubsystem<Input>();
 
         switch (name)
         {
@@ -933,7 +933,7 @@ public class EngineSystem : RedObject
             return;
 
         uint maxFps = (uint)SystemMath.Max(MaxFps, 0);
-        var input = GetSubsystem<InputSystem>();
+        var input = GetSubsystem<Input>();
         if (input is not null && !input.HasFocus)
             maxFps = SystemMath.Min((uint)SystemMath.Max(MaxInactiveFps, 0), maxFps);
 

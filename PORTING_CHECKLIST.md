@@ -3,7 +3,7 @@
 ## Managed architecture
 
 - [~] Shared `RedBolt.dll`, one selected platform assembly, independently referenceable graphics-backend assemblies, and common managed output are complete; one-invocation Linux/Web native-binding generation remains pending
-- [~] Move managed engine types into folder-matching namespaces and namespace-first file headers, update all consumers and generated reflection metadata, and restore the namespace-colliding subsystem and render-pipeline class names. Namespace-first headers, `Scene` imports, and the `Graphics` class rename are complete; the remaining subsystem and render-pipeline class renames remain.
+- [~] Move managed engine types into folder-matching namespaces and namespace-first file headers, update all consumers and generated reflection metadata, and restore the namespace-colliding subsystem and render-pipeline class names. Namespace-first headers, `Scene` imports, and the `Graphics` and `Input` class renames are complete; the remaining subsystem and render-pipeline class renames remain.
 - [x] Replace all hand-written object-factory and serializable-attribute registration with generated `[Reflected]`, member-targeted `[Serialized]`, and `[RemoveSerialized]` declarations, including inferred field/property/getter/setter access, initializer defaults, factory categories and opt-outs, ordered inheritance, removals, modes, scope hints, enum names, custom accessors, metadata configuration, nested user types, and assembly registration.
 
 ## Samples

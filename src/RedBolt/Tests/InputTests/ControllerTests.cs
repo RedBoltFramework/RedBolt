@@ -20,7 +20,7 @@ public sealed class ControllerTests
         this._fixture = fixture;
     }
 
-    private InputSystem Input => _fixture.Input;
+    private Input Input => _fixture.Input;
 
     private static void SendUpdate(float timeStep)
     {
@@ -221,7 +221,7 @@ public sealed class ControllerTests
         var scene = new Scene();
         var node = scene.CreateChild("FreeFlyTouch");
         using var controller = node.CreateComponent<FreeFlyController>();
-        var touches = Assert.IsType<Dictionary<int, TouchState>>(typeof(InputSystem)
+        var touches = Assert.IsType<Dictionary<int, TouchState>>(typeof(Input)
             .GetField("_touches", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(Input));
         try
         {

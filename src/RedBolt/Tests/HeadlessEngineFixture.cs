@@ -46,7 +46,7 @@ public class HeadlessEngineFixture : IDisposable
 
     public ResourceCache Resources => Engine.GetSubsystem<ResourceCache>()!;
 
-    public InputSystem Input => Engine.GetSubsystem<InputSystem>()!;
+    public Input Input => Engine.GetSubsystem<Input>()!;
 
     public Renderer Renderer => Engine.GetSubsystem<Renderer>()!;
 

@@ -18,7 +18,7 @@ public sealed class PointerAdapterTests
         _fixture = fixture;
     }
 
-    private InputSystem Input => _fixture.Input;
+    private Input Input => _fixture.Input;
 
     [Fact]
     public void Matches_native_extensible_noncopyable_class_shape()
@@ -114,7 +114,7 @@ public sealed class PointerAdapterTests
     [Fact]
     public void Touch_owns_pointer_until_matching_release()
     {
-        var touches = Assert.IsType<Dictionary<int, TouchState>>(typeof(InputSystem)
+        var touches = Assert.IsType<Dictionary<int, TouchState>>(typeof(Input)
             .GetField("_touches", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(Input));
         using var adapter = new PointerAdapter();
         adapter.SetSubscriptionMask(PointerAdapterMask.Mouse | PointerAdapterMask.Touch);

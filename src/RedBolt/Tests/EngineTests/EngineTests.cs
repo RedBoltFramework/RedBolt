@@ -399,7 +399,7 @@ public sealed class EngineTests
             Headless = true
         });
 
-        var input = engine.Value.GetSubsystem<InputSystem>();
+        var input = engine.Value.GetSubsystem<Input>();
         Assert.NotNull(input);
         input!.SetMouseVisible(true);
         input.SetMouseMode(MouseMode.Wrap);

@@ -66,7 +66,7 @@ public sealed class RenderDevice : RedObject
         _defaultQueue = new DrawCommandQueue(this);
 
         var graphics = GetSubsystem<Graphics>()!;
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
         _window = input.Window;
         _glContext = graphics.GetGLContext();
         _factory = graphics.GetNativeFactory();

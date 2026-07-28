@@ -30,7 +30,7 @@ public partial class FreeFlyController : Component
     /// <summary>Construct.</summary>
     public FreeFlyController()
     {
-        _ignoreJoystickId = GetSubsystem<InputSystem>()!.FindAccelerometerJoystickId();
+        _ignoreJoystickId = GetSubsystem<Input>()!.FindAccelerometerJoystickId();
         SubscribeToEvent<InputEvents.MultitouchEvent>(_multitouchAdapter, HandleMultitouch);
 
     }
@@ -103,7 +103,7 @@ public partial class FreeFlyController : Component
     {
         // TODO: port: if (GetSubsystem<UI>()->GetFocusElement()) return;
 
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
         if (_isActive || input.MouseMode == MouseMode.Free)
         {
             if (!_isActive && input.GetMouseButtonPress(MouseButton.Right))
@@ -131,7 +131,7 @@ public partial class FreeFlyController : Component
     /// <summary>Handle mouse input.</summary>
     private Movement HandleMouse()
     {
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
         var mouseMove = input.GetMouseMove();
         var movement = new Movement();
         movement.Rotation.Y += _mouseSensitivity * mouseMove.X;
@@ -143,7 +143,7 @@ public partial class FreeFlyController : Component
     private Movement HandleKeyboard(float timeStep)
     {
         var movement = new Movement();
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
 
         var speed = input.GetKeyDown(Key.Shift) ? _acceleratedSpeed : _speed;
         if (input.GetScancodeDown(Scancode.W))
@@ -341,7 +341,7 @@ public partial class FreeFlyController : Component
     /// <summary>Handle keyboard and mouse input.</summary>
     private void HandleKeyboardMouseAndJoysticks(float timeStep)
     {
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
 
         // Use this frame's mouse motion to adjust camera node yaw and pitch. Clamp the pitch between -90 and 90 degrees
         UpdateCameraAngles();

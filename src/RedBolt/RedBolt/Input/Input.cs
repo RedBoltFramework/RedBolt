@@ -168,11 +168,11 @@ public struct JoystickState : ICloneable
     public int[] Hats = [];
 }
 
-public class InputSystem : RedObject
+public class Input : RedObject
 {
     public static void RegisterInputLibrary(Context context)
     {
-        context.RegisterAssembly(typeof(InputSystem).Assembly);
+        context.RegisterAssembly(typeof(Input).Assembly);
     }
 
     private const uint SdlInitVideo = 0x00000020u;
@@ -254,7 +254,7 @@ public class InputSystem : RedObject
 
     internal SdlWindow Window => _window is not null && !_window.IsNull
         ? _window
-        : throw new InvalidOperationException("InputSystem window is not initialized.");
+        : throw new InvalidOperationException("Input window is not initialized.");
 
     public nint GetWindowHandle()
     {
@@ -266,7 +266,7 @@ public class InputSystem : RedObject
         ArgumentNullException.ThrowIfNull(parameters);
 
         if (IsInitialized)
-            throw new InvalidOperationException("InputSystem system is already initialized.");
+            throw new InvalidOperationException("Input system is already initialized.");
 
         var explicitRect = _explicitWindowRect;
         var windowWidth = explicitRect?.Width > 0 ? explicitRect.Value.Width : parameters.WindowWidth;

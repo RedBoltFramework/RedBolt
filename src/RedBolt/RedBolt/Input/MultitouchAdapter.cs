@@ -57,7 +57,7 @@ public class MultitouchAdapter : RedObject
             return;
 
         var touchId = eventData.TouchID;
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
 
         for (var i = 0u; i < input.GetNumTouches(); ++i)
         {

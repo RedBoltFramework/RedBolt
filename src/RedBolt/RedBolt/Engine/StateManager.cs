@@ -46,7 +46,7 @@ public partial class ApplicationState : RedObject
         // Subscribe HandleUpdate() method for processing update events
         SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
 
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
         InitMouseMode();
         input.SetMouseVisible(_mouseVisible);
         input.SetMouseGrabbed(_mouseGrabbed);
@@ -107,7 +107,7 @@ public partial class ApplicationState : RedObject
     {
         _mouseVisible = enable;
         if (IsActive)
-            GetSubsystem<InputSystem>()!.SetMouseVisible(enable);
+            GetSubsystem<Input>()!.SetMouseVisible(enable);
     }
 
     /// <summary>Set whether the mouse is currently being grabbed by an operation.</summary>
@@ -115,7 +115,7 @@ public partial class ApplicationState : RedObject
     {
         _mouseGrabbed = grab;
         if (IsActive)
-            GetSubsystem<InputSystem>()!.SetMouseGrabbed(_mouseGrabbed);
+            GetSubsystem<Input>()!.SetMouseGrabbed(_mouseGrabbed);
     }
 
     /// <summary>Set the mouse mode.</summary>
@@ -195,7 +195,7 @@ public partial class ApplicationState : RedObject
     /// <summary>Initialize mouse mode on non-web platform.</summary>
     private void InitMouseMode()
     {
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
 
         if (ProcessUtils.GetPlatform() != PlatformId.Web)
         {
@@ -212,7 +212,7 @@ public partial class ApplicationState : RedObject
     /// <summary>Handle request for mouse mode on web platform.</summary>
     private void HandleMouseModeRequest(ref InputEvents.MouseButtonDownEvent eventData)
     {
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
         if (_mouseMode == MouseMode.Absolute)
             input.SetMouseVisible(false);
         else if (_mouseMode == MouseMode.Free)
@@ -223,7 +223,7 @@ public partial class ApplicationState : RedObject
     /// <summary>Handle request for mouse mode change on web platform.</summary>
     private void HandleMouseModeChange(ref InputEvents.MouseModeChangedEvent eventData)
     {
-        GetSubsystem<InputSystem>()!.SetMouseVisible(!eventData.MouseLocked);
+        GetSubsystem<Input>()!.SetMouseVisible(!eventData.MouseLocked);
     }
 
     /// <summary>Handle the logic update event.</summary>

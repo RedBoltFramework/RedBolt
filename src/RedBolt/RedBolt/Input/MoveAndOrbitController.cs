@@ -88,7 +88,7 @@ public partial class MoveAndOrbitController : Component
     }
 
     /// <summary>Return input map attribute.</summary>
-    [Serialized("InputSystem Map", DefaultSource = nameof(GetInputSystemMapAttributeDefault), Setter = nameof(SetInputMapAttr))]
+    [Serialized("Input Map", DefaultSource = nameof(GetInputMapAttributeDefault), Setter = nameof(SetInputMapAttr))]
     public ResourceRef GetInputMapAttr()
     {
         return ResourceType.GetResourceRef(GetInputMap(), ObjectReflection<InputMap>.TypeId);
@@ -125,7 +125,7 @@ public partial class MoveAndOrbitController : Component
         if (_component is null)
             return;
 
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
         var yaw = _component.GetYaw();
         var pitch = _component.GetPitch();
         var originalYaw = yaw;
@@ -276,7 +276,7 @@ public partial class MoveAndOrbitController : Component
     private void FindTouchStates(in IntRect movementRect, in IntRect rotationRect,
         ref TouchState? movementTouch, ref TouchState? rotationTouch)
     {
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
         for (var touchIndex = 0u; touchIndex < input.GetNumTouches(); ++touchIndex)
         {
             var touchValue = input.GetTouch(touchIndex)!.Value;
@@ -339,5 +339,5 @@ public partial class MoveAndOrbitController : Component
     /// <summary>Position where the touch gesture started.</summary>
     private Vector2i _movementTouchOrigin = Vector2i.Zero;
 
-    private static object? GetInputSystemMapAttributeDefault() => new ResourceRef(ObjectReflection<InputMap>.TypeId);
+    private static object? GetInputMapAttributeDefault() => new ResourceRef(ObjectReflection<InputMap>.TypeId);
 }

@@ -15,7 +15,7 @@ public sealed class DirectionAggregatorTests
         this._fixture = fixture;
     }
 
-    private InputSystem Input => _fixture.Input;
+    private Input Input => _fixture.Input;
 
     [Fact]
     public void Matches_native_noncopyable_class_and_pod_axis_state_kinds()

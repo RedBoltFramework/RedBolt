@@ -26,7 +26,7 @@ public sealed class InputTests
         this._fixture = fixture;
     }
 
-    private InputSystem Input => _fixture.Input;
+    private Input Input => _fixture.Input;
 
     [Fact]
     public void Native_class_shapes_are_preserved()
@@ -34,8 +34,8 @@ public sealed class InputTests
         Assert.True(typeof(TouchState).IsValueType);
         Assert.True(typeof(JoystickState).IsValueType);
         Assert.True(typeof(ICloneable).IsAssignableFrom(typeof(JoystickState)));
-        Assert.False(typeof(InputSystem).IsSealed);
-        Assert.Equal(typeof(InputSystem), typeof(InputSystem).GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);
+        Assert.False(typeof(Input).IsSealed);
+        Assert.Equal(typeof(Input), typeof(Input).GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);
     }
 
     [Fact]
@@ -112,14 +112,14 @@ public sealed class InputTests
     [Fact]
     public void Key_scancode_conversion_works()
     {
-        Assert.Equal(Key.A, InputSystem.GetKeyFromName("A"));
-        Assert.Equal("1", InputSystem.GetKeyName(Key.Num1));
+        Assert.Equal(Key.A, Input.GetKeyFromName("A"));
+        Assert.Equal("1", Input.GetKeyName(Key.Num1));
         Assert.Equal(
             (Scancode)RedBolt.Bindings.Sdl.SdlNativeBindings.SdlGetScancodeFromKey((int)Key.A),
-            InputSystem.GetScancodeFromKey(Key.A));
+            Input.GetScancodeFromKey(Key.A));
         Assert.Equal(
             (Key)RedBolt.Bindings.Sdl.SdlNativeBindings.SdlGetKeyFromScancode((RedBolt.Bindings.Sdl.SdlScancode)Scancode.LeftCtrl),
-            InputSystem.GetKeyFromScancode(Scancode.LeftCtrl));
+            Input.GetKeyFromScancode(Scancode.LeftCtrl));
     }
 
     [Fact]

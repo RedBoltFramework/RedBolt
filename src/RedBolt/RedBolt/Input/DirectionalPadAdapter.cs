@@ -119,7 +119,7 @@ public partial class DirectionalPadAdapter : RedObject
     private DirectionalPadAdapterMask _enabledSubscriptions = DirectionalPadAdapterMask.All;
     /// <summary>Active subscriptions bitmask</summary>
     private DirectionalPadAdapterMask _subscriptionFlags = DirectionalPadAdapterMask.None;
-    private readonly InputSystem _input;
+    private readonly Input _input;
     private readonly AggregatedState _up;
     private readonly AggregatedState _down;
     private readonly AggregatedState _left;
@@ -133,7 +133,7 @@ public partial class DirectionalPadAdapter : RedObject
     /// <summary>Construct.</summary>
     public DirectionalPadAdapter()
     {
-        _input = GetSubsystem<InputSystem>()!;
+        _input = GetSubsystem<Input>()!;
         _up = new AggregatedState(Scancode.Up);
         _down = new AggregatedState(Scancode.Down);
         _left = new AggregatedState(Scancode.Left);
@@ -200,7 +200,7 @@ public partial class DirectionalPadAdapter : RedObject
     public DirectionalPadAdapterMask GetSubscriptionMask() => _enabledSubscriptions;
 
     /// <summary>Check if a key is held down by Key code. Only Up, Down, Left and Right keys are supported.</summary>
-    public bool GetKeyDown(Key key) => GetScancodeDown(InputSystem.GetScancodeFromKey(key));
+    public bool GetKeyDown(Key key) => GetScancodeDown(Input.GetScancodeFromKey(key));
 
     /// <summary>Check if a key is held down by scancode. Only Up, Down, Left and Right scancodes are supported.</summary>
     public bool GetScancodeDown(Scancode scancode)

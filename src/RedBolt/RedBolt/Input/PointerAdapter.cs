@@ -27,7 +27,7 @@ public partial class PointerAdapter : RedObject
         // Propagate default subscription mask to direction adapter.
         SetSubscriptionMask(GetSubscriptionMask());
 
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
         _pointerPosition = input.GetMousePosition().ToVector2();
 
         var graphics = GetSubsystem<Graphics>();
@@ -122,7 +122,7 @@ public partial class PointerAdapter : RedObject
 
     private void UpdateSubscriptions(PointerAdapterMask flags)
     {
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
 
         var toSubscribe = flags & ~_subscriptionFlags;
         var toUnsubscribe = _subscriptionFlags & ~flags;
@@ -222,7 +222,7 @@ public partial class PointerAdapter : RedObject
         if (_activeTouchId.HasValue)
             return;
 
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
 
         // Start tracking touch
         var touchState = input.GetTouchById(args.TouchID);
@@ -279,7 +279,7 @@ public partial class PointerAdapter : RedObject
 
     private void UpdatePointer(Vector2f position, bool press, bool moveMouse)
     {
-        var input = GetSubsystem<InputSystem>()!;
+        var input = GetSubsystem<Input>()!;
 
         if (!_pointerPosition.ApproximatelyEquivalent(position))
         {

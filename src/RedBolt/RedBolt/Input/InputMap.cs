@@ -79,7 +79,7 @@ public partial class InputMap : SimpleResource
     /// <summary>Construct.</summary>
     public InputMap()
     {
-        _ignoreJoystickId = this.GetSubsystem<InputSystem>()!.FindAccelerometerJoystickId();
+        _ignoreJoystickId = this.GetSubsystem<Input>()!.FindAccelerometerJoystickId();
     }
 
     public override void Dispose()
@@ -332,7 +332,7 @@ public partial class InputMap : SimpleResource
     {
         if (!_actions.TryGetValue(action, out var mapping))
             return 0.0f;
-        var input = this.GetSubsystem<InputSystem>()!;
+        var input = this.GetSubsystem<Input>()!;
         return mapping.Evaluate(input, _deadZone, _ignoreJoystickId);
     }
 
@@ -344,7 +344,7 @@ public partial class InputMap : SimpleResource
             if (new StringHash(action.Key) == actionHash)
                 return 0.0f;
         }
-        return GetMappingByHash(actionHash).Evaluate(this.GetSubsystem<InputSystem>()!, _deadZone, _ignoreJoystickId);
+        return GetMappingByHash(actionHash).Evaluate(this.GetSubsystem<Input>()!, _deadZone, _ignoreJoystickId);
     }
 
     /// <summary>Get scancode names.</summary>
@@ -480,7 +480,7 @@ public partial class InputMap : SimpleResource
         }
 
         /// <summary>Evaluate action state based on current input.</summary>
-        public readonly float Evaluate(InputSystem input, float deadZone, int ignoreJoystickId)
+        public readonly float Evaluate(Input input, float deadZone, int ignoreJoystickId)
         {
             foreach (var key in KeyboardKeys)
             {
@@ -558,7 +558,7 @@ public partial class InputMap : SimpleResource
             return MathDefs.Clamp(totalSum, 0.0f, 1.0f);
         }
 
-        private static bool IsModifierScancode(Scancode scancode, InputSystem input)
+        private static bool IsModifierScancode(Scancode scancode, Input input)
         {
             return scancode switch
             {

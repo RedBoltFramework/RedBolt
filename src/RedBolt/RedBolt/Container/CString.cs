@@ -17,7 +17,7 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, ICloneab
     }
 
     private const int SmallBufferSize = 16;
-    private const string InvalidFormatMessage = "InputSystem string was not in a correct format.";
+    private const string InvalidFormatMessage = "Input string was not in a correct format.";
 
     private static readonly Encoding Utf8 = Encoding.UTF8;
 

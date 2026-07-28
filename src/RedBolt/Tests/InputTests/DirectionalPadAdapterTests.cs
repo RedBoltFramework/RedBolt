@@ -18,7 +18,7 @@ public sealed class DirectionalPadAdapterTests
         this._fixture = fixture;
     }
 
-    private InputSystem Input => _fixture.Input;
+    private Input Input => _fixture.Input;
 
     [Fact]
     public void Matches_native_noncopyable_class_and_nonpod_aggregated_state_kinds()
