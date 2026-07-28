@@ -230,7 +230,7 @@ public class EngineSystem : RedObject
                 throw;
             }
 
-            var audio = GetSubsystem<AudioSystem>()!;
+            var audio = GetSubsystem<Audio>()!;
             if (Parameters.Sound)
             {
                 audio.SetMode(
@@ -287,7 +287,7 @@ public class EngineSystem : RedObject
 
         time.BeginFrame(timeStep);
 
-        var audio = GetSubsystem<AudioSystem>()!;
+        var audio = GetSubsystem<Audio>()!;
         var isPaused = PauseMinimized && input.IsMinimized;
         if (isPaused)
         {

@@ -20,7 +20,7 @@ public partial class SoundSource : Component
 {
     private static readonly string[] AutoRemoveModeNames = ["Disabled", "Component", "Node"];
 
-    protected AudioSystem Audio = null!;
+    protected Audio Audio = null!;
     [Serialized("Type", Setter = nameof(SetSoundType))]
     protected string SoundType = AudioDefs.SoundEffect;
     internal StringHash SoundTypeHash = new(AudioDefs.SoundEffect);
@@ -55,7 +55,7 @@ public partial class SoundSource : Component
 
     public SoundSource()
     {
-        Audio = GetSubsystem<AudioSystem>()!;
+        Audio = GetSubsystem<Audio>()!;
         Audio.AddSoundSource(this);
         UpdateMasterGain();
     }

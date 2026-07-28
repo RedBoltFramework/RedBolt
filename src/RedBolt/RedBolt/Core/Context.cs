@@ -172,7 +172,7 @@ public class Context : ObjectReflectionRegistry
         RegisterSubsystem(new Input());
         RegisterSubsystem(new Graphics());
         RegisterSubsystem(new Renderer());
-        RegisterSubsystem(new AudioSystem());
+        RegisterSubsystem(new Audio());
         RegisterSubsystem(new StateManager());
     }
 

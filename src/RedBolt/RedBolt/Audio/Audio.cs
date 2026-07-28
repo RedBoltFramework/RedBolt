@@ -13,7 +13,7 @@ using RedBolt.Logging;
 using RedBolt.Math;
 
 /// <summary>Audio subsystem.</summary>
-public class AudioSystem : RedObject
+public class Audio : RedObject
 {
     private const int MinBufferLength = 20;
     private const int MinMixRate = 11025;
@@ -49,7 +49,7 @@ public class AudioSystem : RedObject
     private readonly List<WeakReference<Microphone>> _microphones = [];
     private GCHandle _callbackHandle;
 
-    public AudioSystem()
+    public Audio()
     {
         Context.RequireSdl(SdlInitAudio);
         _masterGain[SoundMasterHash] = 1.0f;
@@ -71,7 +71,7 @@ public class AudioSystem : RedObject
     /// <summary>Register Audio library objects.</summary>
     public static void RegisterAudioLibrary(Context context)
     {
-        context.RegisterAssembly(typeof(AudioSystem).Assembly);
+        context.RegisterAssembly(typeof(Audio).Assembly);
     }
 
     /// <summary>Initialize sound output.</summary>
@@ -469,7 +469,7 @@ public class AudioSystem : RedObject
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static unsafe void SdlAudioCallback(void* userData, byte* stream, int length)
     {
-        var audio = (AudioSystem)GCHandle.FromIntPtr((IntPtr)userData).Target!;
+        var audio = (Audio)GCHandle.FromIntPtr((IntPtr)userData).Target!;
         lock (audio._audioMutex)
         {
             audio.MixOutput(new Span<short>(stream, length / sizeof(short)),

@@ -26,7 +26,7 @@ public sealed class AudioTests
     [Fact]
     public void Audio_constructor_preserves_cpp_default_interpolation_state()
     {
-        var audio = _fixture.Engine.GetSubsystem<AudioSystem>()!;
+        var audio = _fixture.Engine.GetSubsystem<Audio>()!;
 
         Assert.False(audio.GetInterpolation());
     }

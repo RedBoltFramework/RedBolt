@@ -27,7 +27,7 @@ public sealed class SubsystemCache
         typeof(ResourceCache),
         typeof(Localization),
         typeof(Input),
-        typeof(AudioSystem),
+        typeof(Audio),
         typeof(Graphics),
         typeof(Renderer),
         typeof(RenderDevice),
