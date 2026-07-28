@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt.Navigation</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="$(RedBoltRoot)/extern/DotRecast/src/DotRecast.Detour.Crowd/DotRecast.Detour.Crowd.csproj" />
+    <ProjectReference Include="$(RedBoltRoot)/extern/DotRecast/src/DotRecast.Detour.TileCache/DotRecast.Detour.TileCache.csproj" />
+    <ProjectReference Include="$(RedBoltRoot)/extern/DotRecast/src/DotRecast.Detour/DotRecast.Detour.csproj" />
+    <ProjectReference Include="$(RedBoltRoot)/extern/DotRecast/src/DotRecast.Recast/DotRecast.Recast.csproj" />
+    <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="../RedBolt/GlobalUsings.cs" Link="GlobalUsings.cs" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      PrivateAssets="all"
+                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
+  </ItemGroup>
+</Project>

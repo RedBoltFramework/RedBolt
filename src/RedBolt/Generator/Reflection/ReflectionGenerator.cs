@@ -348,7 +348,7 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         builder.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
         builder.AppendLine("    internal static void Initialize()");
         builder.AppendLine("    {");
-        foreach (var type in types)
+        foreach (var type in types.OrderBy(GetInheritanceDepth))
         {
             var typeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             builder.Append("        global::RedBolt.Core.GeneratedReflectionRegistration.Add(typeof(")
@@ -358,6 +358,14 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         builder.AppendLine("    }");
         builder.AppendLine("}");
         return builder.ToString();
+    }
+
+    private static int GetInheritanceDepth(INamedTypeSymbol type)
+    {
+        var depth = 0;
+        for (var baseType = type.BaseType; baseType is not null; baseType = baseType.BaseType)
+            ++depth;
+        return depth;
     }
 
     private static void AppendHeader(StringBuilder builder, INamedTypeSymbol type)

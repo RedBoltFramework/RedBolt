@@ -17,6 +17,7 @@
 - [x] `34_DynamicGeometry` — extensible sample class shape, native method/field order, deep model clones, retained animating-buffer aliases, POD vertex/index copies, guarded buffer mapping, strong scene/camera/viewport ownership, reverse deterministic teardown, from-scratch pyramid geometry, animation, camera, zone lighting, automatic render pipeline, and Dear ImGui instructions reconciled to rbfx
 - [x] `10_RenderToTexture` — extensible native class/method/field order, explicit construction and base startup, standalone `Rotator` factory registration matching rbfx `SamplesManager`, two-scene render-to-texture composition, queued RenderSurface viewport, strong scene/camera/texture/material ownership, reverse deterministic teardown, POD value copies and `int` indices/sizes, Dear ImGui instructions, native texture-descriptor defaults, copied texture-view descriptors, render-surface scheduling, resolved shader-resource sampling, and shared `Rotator` semantics are reconciled and runtime-verified
 - [x] `14_SoundEffects` — hidden scene and music-source ownership, three sound-effect resources, looping music playback and stop, scene pause/resume and time scale, sound/music master gains, pan, reach, LFE, no-device microphone handling, seeded recorded-stream playback, Dear ImGui controls, baseline/audit screenshots, and deterministic teardown are runtime-verified
+- [x] `15_Navigation` — static navigation-mesh building and queries, partial rebuilds, path following, obstacle editing, tile streaming, debug rendering, camera, and Dear ImGui instructions are ported and runtime-verified
 - [x] `54_WindowSettingsDemo` — extensible native class/method order, explicit construction and base startup, screen-mode and scene-update event lifetimes, world-space box rotation, strong scene/camera ownership, renderer-retained viewport aliases, reverse deterministic teardown, POD fullscreen-mode values, `int` indices/sizes, native fullscreen/DPI/refresh-rate/MSAA Apply semantics, and Dear ImGui controls reconciled and runtime-verified
 - [-] `03_Sprites` — **EXCLUDED** · reason: depends on the optional, unported Urho2D subsystem
 - [x] `06_SkeletalAnimation` — sample, constructor-time `Mover3D` factory registration, animated models, controller playback, scene, lighting, camera, skeleton and bounds debug geometry, and Dear ImGui instructions are ported and runtime-verified
@@ -26,7 +27,8 @@
 - [x] `30_LightAnimation` — animated point light, scene population, camera, animated Dear ImGui text, and five-frame Dear ImGui texture animation are ported and runtime-verified
 - [x] `31_MaterialAnimation` — material shader-parameter animation, scene population, camera, and Dear ImGui instructions are ported and runtime-verified
 - [x] `29_SoundSynthesis` — sound-source node ownership, buffered mono stream playback, reusable zero-churn synthesis buffer, two-oscillator generation, low-pass filtering, Dear ImGui coefficient display, baseline rendering, both filter-control branches and clamp endpoints, and deterministic teardown are runtime-verified
-- [x] `106_BakedLighting` — native baked scene and lightmap/probe assets, native-compatible packed light-probe serialization, complete rbfx Terrain attribute registration and legacy-scene terrain reconstruction, independent free-fly camera, Dear ImGui instructions, desktop/Web wiring, and deterministic teardown are ported and runtime-verified; the optional unported Navigation/Crowd character behavior is preserved as `TODO: port` comments by agreement
+- [x] `39_CrowdNavigation` — dynamic navigation mesh, obstacles, off-mesh connections, crowd agents and callbacks, moving barrels, formation targets, tile streaming, debug rendering, camera, and Dear ImGui instructions are ported and runtime-verified
+- [x] `106_BakedLighting` — native baked scene and lightmap/probe assets, native-compatible packed light-probe serialization, complete rbfx Terrain attribute registration and legacy-scene terrain reconstruction, NavigationMesh rebuild, CrowdAgent character movement and animation, CrowdManager avoidance tuning, texture toggling, Dear ImGui instructions, desktop/Web wiring, and deterministic teardown are ported and runtime-verified
 - [x] `112_AggregatedInput` — direction aggregation, directional-pad aggregation, raw key/joystick/hat/disconnect/touch logging, synthesized key logging and repeats, and Dear ImGui visualization are ported and runtime-verified
 - [x] `113_InputLogger` — dual viewports, all input-event subscriptions and decoded parameters, C++ identity/parameter/time-threshold event merging, viewport-relative mouse reporting, bounded logging, and Dear ImGui output are runtime-verified; the standalone managed application replaces the optional, unported plugin application wrapper
 - [x] `116_VirtualFileSystem` — mount-point enumeration, editable identifier query, file metadata, reverse lookup, editable scan path/filter/flags, recursive file scanning, non-recursive directory scanning, and Dear ImGui output are ported and runtime-verified
@@ -367,34 +369,34 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 
 ## B7. Navigation `OPTIONAL` — Recast/Detour; depends on Scene, Graphics
 
-- [ ] `NavigationDefs.h`
-  - [ ] navigation enums / constants
-- [ ] `NavigationEvents.h`
-  - [ ] navigation event definitions
-- [ ] `NavigationUtils.h`
-  - [ ] navigation helpers / registration
-- [ ] `NavBuildData.h`
-  - [ ] `struct NavAreaStub`
-  - [ ] `struct NavBuildData : NonCopyable`
-  - [ ] `struct SimpleNavBuildData : NavBuildData`
-  - [ ] `struct DynamicNavBuildData : NavBuildData`
-- [ ] `NavigationMesh.h`
-  - [ ] `struct NavigationPathPoint`
-  - [ ] `NavigationMesh : Component`
-- [ ] `DynamicNavigationMesh.h`
-  - [ ] `DynamicNavigationMesh : NavigationMesh`
-- [ ] `NavArea.h`
-  - [ ] `NavArea : Component`
-- [ ] `Navigable.h`
-  - [ ] `Navigable : Component`
-- [ ] `Obstacle.h`
-  - [ ] `Obstacle : Component`
-- [ ] `OffMeshConnection.h`
-  - [ ] `OffMeshConnection : Component`
-- [ ] `CrowdAgent.h`
-  - [ ] `CrowdAgent : Component`
-- [ ] `CrowdManager.h`
-  - [ ] `CrowdManager : Component`
+- [x] `NavigationDefs.h`
+  - [x] navigation enums / constants
+- [x] `NavigationEvents.h`
+  - [x] navigation event definitions
+- [x] `NavigationUtils.h`
+  - [x] navigation helpers / registration
+- [x] `NavBuildData.h`
+  - [x] `struct NavAreaStub`
+  - [x] `struct NavBuildData : NonCopyable`
+  - [x] `struct SimpleNavBuildData : NavBuildData`
+  - [x] `struct DynamicNavBuildData : NavBuildData`
+- [x] `NavigationMesh.h`
+  - [x] `struct NavigationPathPoint`
+  - [x] `NavigationMesh : Component`
+- [x] `DynamicNavigationMesh.h`
+  - [x] `DynamicNavigationMesh : NavigationMesh`
+- [x] `NavArea.h`
+  - [x] `NavArea : Component`
+- [x] `Navigable.h`
+  - [x] `Navigable : Component`
+- [x] `Obstacle.h`
+  - [x] `Obstacle : Component`
+- [x] `OffMeshConnection.h`
+  - [x] `OffMeshConnection : Component`
+- [x] `CrowdAgent.h`
+  - [x] `CrowdAgent : Component`
+- [x] `CrowdManager.h`
+  - [x] `CrowdManager : Component`
 
 ## B8. Network `OPTIONAL` — depends on IO, Core
 

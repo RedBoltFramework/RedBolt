@@ -29,6 +29,7 @@ using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Math;
+using RedBolt.Navigation;
 using RedBolt.Resource;
 using RedBolt.Scene;
 
@@ -76,8 +77,8 @@ public class BakedLighting : Application
         SubscribeToEvents();
 
         // Set the mouse mode to use in the sample
-        Input.SetMouseMode(MouseMode.Free);
-        Input.SetMouseVisible(true);
+        Input.SetMouseMode(MouseMode.Relative);
+        Input.SetMouseVisible(false);
     }
 
     /// <summary>Create scene content.</summary>
@@ -94,35 +95,27 @@ public class BakedLighting : Application
 
         var camera = _scene.FindComponent<Camera>()!;
         _cameraNode = camera.Node!;
-        _cameraNode.SetParent(_scene);
-        _cameraNode.SetPosition(new Vector3f(0.0f, 1.5f, -8.0f));
-        _cameraNode.LookAt(new Vector3f(0.0f, 0.5f, -2.0f));
-        var freeFlyController = _cameraNode.CreateComponent<FreeFlyController>();
-        freeFlyController.SetSpeed(2.0f);
-        freeFlyController.SetAcceleratedSpeed(5.0f);
         _viewport = new Viewport(_scene, camera);
         Renderer.SetViewport(0, _viewport);
 
-        /* TODO: port when the Navigation/Crowd subsystem is available.
-        auto navMesh = scene_->FindComponent<NavigationMesh>();
-        navMesh->Rebuild();
+        var navMesh = _scene.FindComponent<NavigationMesh>()!;
+        navMesh.Rebuild();
 
-        agent_ = scene_->FindComponent<CrowdAgent>();
+        _agent = _scene.FindComponent<CrowdAgent>()!;
 
-        auto animController = agent_->GetNode()->FindComponent<AnimationController>();
-        animController->PlayNewExclusive(AnimationParameters{context_, "Models/Mutant/Mutant_Idle0.ani"}.Looped());
+        var animController = _agent.Node.FindComponent<AnimationController>()!;
+        animController.PlayNewExclusive(new AnimationParameters(cache.Get<Animation>("Models/Mutant/Mutant_Idle0.ani")).Looped());
 
-        auto crowdManager = scene_->GetComponent<CrowdManager>();
-        CrowdObstacleAvoidanceParams params = crowdManager->GetObstacleAvoidanceParams(0);
-        params.weightToi = 0.0001f;
-        crowdManager->SetObstacleAvoidanceParams(0, params);
+        var crowdManager = _scene.GetComponent<CrowdManager>()!;
+        var parameters = crowdManager.GetObstacleAvoidanceParams(0);
+        parameters.WeightToi = 0.0001f;
+        crowdManager.SetObstacleAvoidanceParams(0, parameters);
 
         // Initialize yaw and pitch angles
-        Node* cameraRotationPitch = cameraNode_->GetParent();
-        Node* cameraRotationYaw = cameraRotationPitch->GetParent();
-        yaw_ = cameraRotationYaw->GetWorldRotation().YawAngle();
-        pitch_ = cameraRotationPitch->GetWorldRotation().PitchAngle();
-        */
+        _cameraRotationPitch = _scene.GetChild("Camera Rotation Pitch", true)!;
+        _cameraRotationYaw = _scene.GetChild("Camera Rotation Yaw", true)!;
+        _yaw = _cameraRotationYaw.WorldRotation.YawAngle;
+        _pitch = _cameraRotationPitch.WorldRotation.PitchAngle;
     }
 
     /// <summary>Construct an instruction text to the UI.</summary>
@@ -142,7 +135,6 @@ public class BakedLighting : Application
     private void SubscribeToEvents()
     {
         // Unsubscribe the SceneUpdate event from base class as the camera node is being controlled in HandlePostUpdate() in this sample
-        // TODO: port when the shared managed Sample base subscribes to SceneUpdate.
     }
 
     /// <summary>Handle application update. Set controls to character.</summary>
@@ -154,68 +146,58 @@ public class BakedLighting : Application
             return;
         }
 
-        /* TODO: port when the Navigation/Crowd subsystem is available.
-        auto* input = GetSubsystem<Input>();
-        auto* cache = GetSubsystem<ResourceCache>();
+        var cache = Resources;
 
         // Update camera rotation
         const float rotationSensitivity = 0.1f;
-        const IntVector2 mouseMove = input->GetMouseMove();
-        yaw_ = Mod(yaw_ + mouseMove.x_ * rotationSensitivity, 360.0f);
-        pitch_ = Clamp(pitch_ + mouseMove.y_ * rotationSensitivity, -89.0f, 89.0f);
+        var mouseMove = Input.GetMouseMove();
+        _yaw = MathDefs.Mod(_yaw + mouseMove.X * rotationSensitivity, 360.0f);
+        _pitch = MathDefs.Clamp(_pitch + mouseMove.Y * rotationSensitivity, -89.0f, 89.0f);
 
-        Node* cameraRotationPitch = cameraNode_->GetParent();
-        Node* cameraRotationYaw = cameraRotationPitch->GetParent();
-        cameraRotationPitch->SetRotation(Quaternion(pitch_, 0.0f, 0.0f));
-        cameraRotationYaw->SetRotation(Quaternion(0.0f, yaw_, 0.0f));
+        _cameraRotationPitch!.SetRotation(new Quaternion(_pitch, 0.0f, 0.0f));
+        _cameraRotationYaw!.SetRotation(new Quaternion(0.0f, _yaw, 0.0f));
 
         // Apply movement
-        const Quaternion& rotation = cameraRotationYaw->GetWorldRotation();
-        Vector3 controlDirection = Vector3::ZERO;
-        if (input->GetKeyDown(KEY_W))
-            controlDirection += Vector3::FORWARD;
-        if (input->GetKeyDown(KEY_S))
-            controlDirection += Vector3::BACK;
-        if (input->GetKeyDown(KEY_A))
-            controlDirection += Vector3::LEFT;
-        if (input->GetKeyDown(KEY_D))
-            controlDirection += Vector3::RIGHT;
+        var rotation = _cameraRotationYaw!.WorldRotation;
+        var controlDirection = Vector3f.Zero;
+        if (Input.GetKeyDown(Key.W))
+            controlDirection += Vector3f.Forward;
+        if (Input.GetKeyDown(Key.S))
+            controlDirection += Vector3f.Back;
+        if (Input.GetKeyDown(Key.A))
+            controlDirection += Vector3f.Left;
+        if (Input.GetKeyDown(Key.D))
+            controlDirection += Vector3f.Right;
 
-        const Vector3 movementDirection = rotation * controlDirection;
-        const float speed = input->GetKeyDown(KEY_SHIFT) ? 5.0f : 2.0f;
-        agent_->SetTargetVelocity(speed * movementDirection);
+        var movementDirection = rotation * controlDirection;
+        var movementSpeed = Input.GetKeyDown(Key.Shift) ? 5.0f : 2.0f;
+        _agent!.TargetVelocity = movementSpeed * movementDirection;
 
         // Animate model
-        auto* runAnimation = cache->GetResource<Animation>("Models/Mutant/Mutant_Run.ani");
-        auto* idleAnimation = cache->GetResource<Animation>("Models/Mutant/Mutant_Idle0.ani");
+        var runAnimation = cache.Get<Animation>("Models/Mutant/Mutant_Run.ani");
+        var idleAnimation = cache.Get<Animation>("Models/Mutant/Mutant_Idle0.ani");
 
-        auto animController = agent_->GetNode()->FindComponent<AnimationController>();
-        auto rotationNode = animController->GetNode()->GetParent();
-        const Vector3 actualVelocityFlat = (agent_->GetActualVelocity() * Vector3(1, 0, 1));
-        if (actualVelocityFlat.Length() > M_LARGE_EPSILON)
+        var animController = _agent.Node.FindComponent<AnimationController>()!;
+        var rotationNode = animController.Node.Parent!;
+        var actualVelocityFlat = _agent.ActualVelocity * new Vector3f(1.0f, 0.0f, 1.0f);
+        if (actualVelocityFlat.Length > MathDefs.LargeEpsilon)
         {
-            const float speed = actualVelocityFlat.Length() * 0.3f;
-            rotationNode->SetWorldDirection(actualVelocityFlat);
-            animController->PlayExistingExclusive(AnimationParameters{runAnimation}.Looped().Speed(speed), 0.2f);
+            var animationSpeed = actualVelocityFlat.Length * 0.3f;
+            rotationNode.SetWorldDirection(actualVelocityFlat);
+            animController.PlayExistingExclusive(new AnimationParameters(runAnimation).Looped().Speed(animationSpeed), 0.2f);
         }
         else
-        {
-            animController->PlayExistingExclusive(AnimationParameters{idleAnimation}.Looped(), 0.2f);
-        }
+            animController.PlayExistingExclusive(new AnimationParameters(idleAnimation).Looped(), 0.2f);
 
         // Toggle textures
-        if (input->GetKeyPress(KEY_TAB))
+        if (Input.GetKeyPress(Key.Tab))
         {
-            auto cache = context_->GetSubsystem<ResourceCache>();
-            auto animModel = animController->GetNode()->GetComponent<AnimatedModel>();
-
-            texturesEnabled_ = !texturesEnabled_;
-            if (texturesEnabled_)
-                animModel->SetMaterial(cache->GetResource<Material>("Models/Mutant/Materials/mutant_M.xml"));
-            else
-                animModel->SetMaterial(cache->GetResource<Material>("Materials/DefaultWhite.xml"));
+            var animModel = animController.Node.GetComponent<AnimatedModel>()!;
+            _texturesEnabled = !_texturesEnabled;
+            animModel.SetMaterial(_texturesEnabled
+                ? cache.Get<Material>("Models/Mutant/Materials/mutant_M.xml")
+                : cache.Get<Material>("Materials/DefaultWhite.xml"));
         }
-        */
     }
 
     protected override void Stop()
@@ -271,5 +253,11 @@ public class BakedLighting : Application
 
     private Scene? _scene;
     private Node? _cameraNode;
+    private Node? _cameraRotationPitch;
+    private Node? _cameraRotationYaw;
     private Viewport? _viewport;
+    private CrowdAgent? _agent;
+    private float _yaw;
+    private float _pitch;
+    private bool _texturesEnabled = true;
 }

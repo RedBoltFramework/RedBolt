@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt.Sample.CrowdNavigation</AssemblyName>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../../Navigation/RedBolt.Navigation.csproj" />
+    <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
+  </ItemGroup>
+</Project>

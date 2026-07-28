@@ -322,8 +322,6 @@ Agreed project-specific naming deviation: C# engine types use folder-matching na
 
 Agreed project-specific reflection deviation: reflected C# objects and serializable attributes use generated `[Reflected]` and `[Serialized]` declarations instead of hand-written `RegisterObject` methods; library registration entry points register the generated assembly metadata.
 
-Agreed project-specific sample deviation: the BakedLighting sample omits the optional, unported Navigation/Crowd behavior, preserves the character behavior as `TODO: port` comments, and uses `FreeFlyController` on the scene camera.
-
 ## 11. SUCCESS CRITERIA (all must be true)
 
 - [ ] The project builds with no errors.

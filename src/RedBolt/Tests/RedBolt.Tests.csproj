@@ -17,6 +17,7 @@
     <ProjectReference Include="../RedBolt/RedBolt.csproj" />
     <ProjectReference Include="../Glow/RedBolt.Glow.csproj" />
     <ProjectReference Include="../IK/RedBolt.IK.csproj" />
+    <ProjectReference Include="../Navigation/RedBolt.Navigation.csproj" />
     <ProjectReference Include="../Platform/Linux/RedBolt.Platform.Linux.csproj" />
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"

@@ -5,8 +5,13 @@
   <Folder Name="/src/RedBolt/IK/">
     <Project Path="src/RedBolt/IK/RedBolt.IK.csproj" />
   </Folder>
+  <Folder Name="/src/RedBolt/Navigation/">
+    <Project Path="src/RedBolt/Navigation/RedBolt.Navigation.csproj" />
+  </Folder>
   <Folder Name="/src/RedBolt/Sample/">
     <Project Path="src/RedBolt/Sample/BakedLighting/RedBolt.Sample.BakedLighting.csproj" />
+    <Project Path="src/RedBolt/Sample/CrowdNavigation/RedBolt.Sample.CrowdNavigation.csproj" />
+    <Project Path="src/RedBolt/Sample/Navigation/RedBolt.Sample.Navigation.csproj" />
     <Project Path="src/RedBolt/Sample/HelloGUI/RedBolt.Sample.HelloGUI.csproj" />
     <Project Path="src/RedBolt/Sample/InverseKinematics/RedBolt.Sample.InverseKinematics.csproj" />
     <Project Path="src/RedBolt/Sample/MultipleViewports/RedBolt.Sample.MultipleViewports.csproj" />

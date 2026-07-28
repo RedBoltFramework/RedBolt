@@ -113,7 +113,6 @@
       <_MSBuildProjectReferenceExistent Update="@(_MSBuildProjectReferenceExistent)"
                                         Condition="'%(_MSBuildProjectReferenceExistent.RedBoltProperties)' != ''">
         <SetConfiguration>%(_MSBuildProjectReferenceExistent.SetConfiguration);%(_MSBuildProjectReferenceExistent.RedBoltProperties)</SetConfiguration>
-        <GlobalPropertiesToRemove>TargetFramework;RuntimeIdentifier;SelfContained;Platform</GlobalPropertiesToRemove>
       </_MSBuildProjectReferenceExistent>
     </ItemGroup>
   </Target>
