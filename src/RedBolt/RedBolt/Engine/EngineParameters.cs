@@ -131,6 +131,8 @@ public sealed class EngineParameters
 
     public int WindowHeight { get; set; }
 
+    public bool WindowHidden { get; set; }
+
     public string WindowIcon { get; set; } = string.Empty;
 
     public bool WindowMaximize { get; set; } = true;

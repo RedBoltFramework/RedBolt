@@ -107,6 +107,7 @@ public sealed class EngineTests
         Assert.True(parameters.WindowMaximize);
         Assert.Equal(0, parameters.WindowPositionX);
         Assert.Equal(0, parameters.WindowPositionY);
+        Assert.False(parameters.WindowHidden);
         Assert.Equal("Urho3D", parameters.WindowTitle);
         Assert.Equal(0, parameters.WindowWidth);
         Assert.Equal(0, parameters.WindowHeight);
@@ -206,7 +207,8 @@ public sealed class EngineTests
             ConfigName = string.Empty,
             RenderBackend = RenderBackend.OpenGL,
             ScreenshotOnExit = Path.Combine(Path.GetTempPath(), "redbolt-test-screenshot.png"),
-            Headless = false
+            Headless = false,
+            WindowHidden = true
         });
 
         var graphics = engine.Value.Context.GetSubsystem<Graphics>()!;
@@ -229,7 +231,8 @@ public sealed class EngineTests
                 ApplicationPreferencesDir = preferencesDirectory + Path.DirectorySeparatorChar,
                 ConfigName = string.Empty,
                 Headless = false,
-                PsoCache = "conf://psocache.bin"
+                PsoCache = "conf://psocache.bin",
+                WindowHidden = true
             });
 
             engine.Value.Exit();

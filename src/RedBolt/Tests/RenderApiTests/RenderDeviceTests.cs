@@ -1,6 +1,7 @@
 namespace RedBolt.Tests;
 
 using RedBolt;
+using RedBolt.Bindings.Sdl;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
@@ -29,6 +30,16 @@ public sealed class RenderDeviceTests
         Assert.Same(_fixture.Graphics.GetNativeRenderDevice(), _fixture.RenderDevice.GetRenderDevice());
         Assert.Same(_fixture.Graphics.GetImmediateContext(), _fixture.RenderDevice.GetImmediateContext());
         Assert.Same(_fixture.Graphics.GetNativeSwapChain(), _fixture.RenderDevice.GetSwapChain());
+    }
+
+    [Fact]
+    public void Graphics_test_window_is_hidden()
+    {
+        var window = SdlWindow.CreateManagedWrapper(_fixture.Input.GetWindowHandle(), ownsHandle: false);
+        var flags = (SdlWindowFlags)SdlNativeBindings.SdlGetWindowFlags(window);
+
+        Assert.True((flags & SdlWindowFlags.SdlWindowHidden) != 0);
+        Assert.False((flags & SdlWindowFlags.SdlWindowShown) != 0);
     }
 
     [Fact]

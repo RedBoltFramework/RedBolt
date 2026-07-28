@@ -80,6 +80,7 @@ public sealed class GraphicsEngineFixture : HeadlessEngineFixture
         Borderless = false,
         MultiSample = 1,
         WindowMaximize = false,
+        WindowHidden = true,
         WindowWidth = 64,
         WindowHeight = 64
     };
@@ -91,6 +92,7 @@ public sealed class GraphicsEngineFixture : HeadlessEngineFixture
 
     public void InitializeGraphics(EngineParameters parameters)
     {
+        parameters.WindowHidden = true;
         if (Graphics.IsInitialized)
         {
             Graphics.SetMode(parameters.WindowWidth, parameters.WindowHeight,

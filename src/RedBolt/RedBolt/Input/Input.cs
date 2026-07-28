@@ -291,8 +291,11 @@ public class Input : RedObject
 
             using var title = new CString(parameters.WindowTitle);
             var windowFlags = graphicsBackend.UsesOpenGLWindow
-                ? SdlWindowFlags.SdlWindowOpengl | SdlWindowFlags.SdlWindowShown
+                ? SdlWindowFlags.SdlWindowOpengl
                 : 0;
+            windowFlags |= parameters.WindowHidden
+                ? SdlWindowFlags.SdlWindowHidden
+                : SdlWindowFlags.SdlWindowShown;
             if (Context.Instance.RuntimeServices.Platform.UseHighDensityWindow)
                 windowFlags |= SdlWindowFlags.SdlWindowAllowHighdpi;
             if (parameters.FullScreen)

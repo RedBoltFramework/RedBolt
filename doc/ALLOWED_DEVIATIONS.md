@@ -10,6 +10,7 @@ These are the ONLY places C# is allowed to differ from C++:
 - Managed platform/graphics composition uses one selected platform assembly and any supported graphics-backend assemblies. Shared desktop managed libraries use `build/bin/<configuration>`, native libraries use `build/bin/<configuration>/runtimes/<platform>-<architecture>/native`, desktop sample executables and sample-specific files use `build/bin/<configuration>/samples`, tests use `build/bin/<configuration>/tests`, Web output uses `build/bin/<configuration>/web`, and platform-specific behavior is delegated through runtime contracts.
 - Native shared-library filenames use conventional platform-neutral names.
 - Minor API tweaks are allowed ONLY to avoid GC churn.
+- Managed tests may request hidden SDL windows through `EngineParameters.WindowHidden`; normal engine behavior remains visible by default.
 - C# indices and sizes use `int`, including when the corresponding C++ type is unsigned.
 - Prefer property syntax alone when it can faithfully represent a C++ member and its public accessors; do not add a private backing field only to wrap it in a public property. Private fields remain allowed when required by behavior or storage semantics.
 - `IApproximateEquatable<T>` is a managed addition used to expose strongly typed epsilon-based equality across math value types and is to be kept.
