@@ -478,3 +478,61 @@ public partial class EaseExponentialInOut : ActionEase
         return new ActionEaseState(this, target);
     }
 }
+
+/// -------------------------------------------------------------------
+/// <summary>ElasticIn easing action.</summary>
+[Reflected]
+public partial class EaseElasticIn : EaseElastic
+{
+    /// <summary>Construct.</summary>
+    public EaseElasticIn()
+    {
+    }
+
+    /// <summary>Create reversed action.</summary>
+    public override FiniteTimeAction Reverse()
+    {
+        var result = new EaseElasticOut();
+        result.SetInnerAction(InnerAction!.Reverse());
+        result.SetPeriod(Period);
+        return result;
+    }
+
+    /// <summary>Apply easing function to the time argument.</summary>
+    public override float Ease(float time) => EaseMath.ElasticIn(time, Period);
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new ActionEaseState(this, target);
+    }
+}
+
+/// -------------------------------------------------------------------
+/// <summary>ElasticOut easing action.</summary>
+[Reflected]
+public partial class EaseElasticOut : EaseElastic
+{
+    /// <summary>Construct.</summary>
+    public EaseElasticOut()
+    {
+    }
+
+    /// <summary>Create reversed action.</summary>
+    public override FiniteTimeAction Reverse()
+    {
+        var result = new EaseElasticIn();
+        result.SetInnerAction(InnerAction!.Reverse());
+        result.SetPeriod(Period);
+        return result;
+    }
+
+    /// <summary>Apply easing function to the time argument.</summary>
+    public override float Ease(float time) => EaseMath.ElasticOut(time, Period);
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new ActionEaseState(this, target);
+    }
+}

@@ -373,6 +373,47 @@ public sealed class EaseTests
         Assert.Equal([EaseMath.ExponentialInOut(0.0f), EaseMath.ExponentialInOut(0.25f)], innerAction.State.Updates);
     }
 
+    [Fact]
+    public void Elastic_in_and_out_reverse_each_other()
+    {
+        using var innerAction = new RecordingAction();
+        innerAction.SetDuration(1.0f);
+        using var action = new EaseElasticIn();
+        action.SetInnerAction(innerAction);
+        action.SetPeriod(0.75f);
+
+        Assert.Equal(EaseMath.ElasticIn(0.5f, 0.75f), action.Ease(0.5f));
+
+        using var reversed = Assert.IsType<EaseElasticOut>(action.Reverse());
+        Assert.Equal(0.75f, reversed.Period);
+        Assert.Equal(EaseMath.ElasticOut(0.5f, 0.75f), reversed.Ease(0.5f));
+        Assert.NotNull(reversed.InnerAction);
+        Assert.Same(innerAction, reversed.InnerAction.Reverse());
+
+        using var roundTrip = Assert.IsType<EaseElasticIn>(reversed.Reverse());
+        Assert.Equal(0.75f, roundTrip.Period);
+        Assert.NotNull(roundTrip.InnerAction);
+        Assert.Same(innerAction, roundTrip.InnerAction);
+    }
+
+    [Fact]
+    public void Elastic_in_updates_inner_action_with_eased_time()
+    {
+        using var manager = new ActionManager(false);
+        using var target = new BaseAction();
+        using var innerAction = new RecordingAction();
+        innerAction.SetDuration(1.0f);
+        using var action = new EaseElasticIn();
+        action.SetInnerAction(innerAction);
+
+        Assert.NotNull(manager.AddAction(action, target));
+        manager.Update(0.0f);
+        manager.Update(0.5f);
+
+        Assert.NotNull(innerAction.State);
+        Assert.Equal([0.0f, EaseMath.ElasticIn(0.5f, 0.3f)], innerAction.State.Updates);
+    }
+
     private sealed class RecordingAction : FiniteTimeAction
     {
         public RecordingState? State { get; private set; }
