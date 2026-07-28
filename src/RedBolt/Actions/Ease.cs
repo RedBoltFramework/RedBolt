@@ -366,3 +366,31 @@ public partial class EaseSineIn : ActionEase
         return new ActionEaseState(this, target);
     }
 }
+
+/// -------------------------------------------------------------------
+/// <summary>SineInOut easing action.</summary>
+[Reflected]
+public partial class EaseSineInOut : ActionEase
+{
+    /// <summary>Construct.</summary>
+    public EaseSineInOut()
+    {
+    }
+
+    /// <summary>Create reversed action.</summary>
+    public override FiniteTimeAction Reverse()
+    {
+        var result = new EaseSineInOut();
+        result.SetInnerAction(InnerAction!.Reverse());
+        return result;
+    }
+
+    /// <summary>Apply easing function to the time argument.</summary>
+    public override float Ease(float time) => EaseMath.SineInOut(time);
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new ActionEaseState(this, target);
+    }
+}
