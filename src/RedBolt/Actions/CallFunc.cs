@@ -83,3 +83,48 @@ public class ActionCallHandlerImpl<T> : ActionCallHandler
     /// <summary>Class-specific pointer to handler function.</summary>
     private readonly HandlerFunctionPtr _function;
 }
+
+/// <summary>Call function on each action tick.</summary>
+/// <remarks>This is not serializable action. If you want something you can save in a file please use SendEvent</remarks>
+[Reflected]
+public partial class CallFunc : ActionInstant
+{
+    private sealed class CallFuncState : FiniteTimeActionState
+    {
+        public CallFuncState(CallFunc action, RedObject? target)
+            : base(action, target)
+        {
+            _callHandler = action.CallHandler;
+        }
+
+        public override void Update(float time)
+        {
+            if (_callHandler is not null)
+                _callHandler.Invoke(Target);
+        }
+
+        private readonly ActionCallHandler? _callHandler;
+    }
+
+    /// <summary>Construct.</summary>
+    public CallFunc()
+    {
+    }
+
+    /// <summary>Get call handler</summary>
+    public ActionCallHandler? CallHandler => _actionCallHandler;
+
+    /// <summary>Set call handler</summary>
+    public void SetCallHandler(ActionCallHandler? handler)
+    {
+        _actionCallHandler = handler;
+    }
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new CallFuncState(this, target);
+    }
+
+    protected ActionCallHandler? _actionCallHandler;
+}

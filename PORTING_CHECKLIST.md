@@ -232,7 +232,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `EaseElasticInOut : EaseElastic`
 - [ ] `CallFunc.h`
   - [x] `ActionCallHandler : RefCounted` — `RefCounted` dropped per allowed deviations
-  - [ ] `CallFunc : ActionInstant`
+  - [x] `CallFunc : ActionInstant`
   - [ ] `SendEvent : ActionInstant`
 - [ ] `ShaderParameter.h` ⤴ needs `Graphics/Material`
   - [ ] `ShaderParameterAction : FiniteTimeAction`
