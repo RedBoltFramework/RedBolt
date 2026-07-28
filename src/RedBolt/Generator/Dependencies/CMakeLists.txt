@@ -24,6 +24,8 @@ file(GLOB_RECURSE REDBOLT_SHARPCPP_GENERATOR_INPUTS CONFIGURE_DEPENDS
 file(GLOB_RECURSE REDBOLT_DEPENDENCIES_GENERATOR_INPUTS CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cs"
     "${CMAKE_CURRENT_SOURCE_DIR}/*.csproj")
+list(APPEND REDBOLT_DEPENDENCIES_GENERATOR_INPUTS
+    "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/include/RedBolt/RmlUiValueMarshallers.hpp")
 
 set(REDBOLT_SHARPCPP_GENERATOR_INPUTS "${REDBOLT_SHARPCPP_GENERATOR_INPUTS}" CACHE INTERNAL "SharpCpp generator inputs")
 set(REDBOLT_DEPENDENCIES_GENERATOR_INPUTS "${REDBOLT_DEPENDENCIES_GENERATOR_INPUTS}" CACHE INTERNAL "RedBolt generator inputs")
@@ -145,6 +147,7 @@ file(CONFIGURE OUTPUT "${REDBOLT_RMLUI_PARSE_HEADER}" CONTENT [=[
 #include <RmlUi/Core/Event.h>
 #include <RmlUi/Core/EventListener.h>
 #include <RmlUi/Core/FileInterface.h>
+#include <RmlUi/Core/FontEngineInterface.h>
 #include <RmlUi/Core/RenderInterfaceCompatibility.h>
 #include <RmlUi/Core/SystemInterface.h>
 ]=] @ONLY)

@@ -81,21 +81,79 @@ public sealed class RmlUiBindingsTests
     }
 
     [Fact]
-    public void Core_context_surface_is_generated()
+    public void Font_engine_interface_round_trips_managed_director()
     {
-        Assert.NotNull(typeof(RmlUiNativeBindings).GetMethod(nameof(RmlUiNativeBindings.Initialise)));
-        Assert.NotNull(typeof(RmlUiNativeBindings).GetMethod(nameof(RmlUiNativeBindings.Shutdown)));
-        Assert.NotNull(typeof(RmlUiNativeBindings).GetMethod(
-            nameof(RmlUiNativeBindings.CreateContext),
-            [typeof(Std.String), typeof(RmlUiLegacyVector2i), typeof(nint), typeof(nint)]));
-        Assert.NotNull(typeof(RmlUiNativeBindings).GetMethod(
-            nameof(RmlUiNativeBindings.RemoveContext), [typeof(Std.String)]));
-        Assert.NotNull(typeof(Context).GetMethod(nameof(Context.GetDimensions)));
-        Assert.NotNull(typeof(Context).GetMethod(nameof(Context.SetDimensions)));
-        Assert.NotNull(typeof(Context).GetMethod(nameof(Context.GetDensityIndependentPixelRatio)));
-        Assert.NotNull(typeof(Context).GetMethod(nameof(Context.SetDensityIndependentPixelRatio)));
-        Assert.NotNull(typeof(Context).GetMethod(nameof(Context.Update)));
-        Assert.NotNull(typeof(Context).GetMethod(nameof(Context.Render)));
+        var original = RmlUiNativeBindings.GetFontEngineInterface();
+        using var fontEngineInterface = new TestFontEngineInterface();
+        try
+        {
+            RmlUiNativeBindings.SetFontEngineInterface(fontEngineInterface);
+
+            var retrieved = RmlUiNativeBindings.GetFontEngineInterface();
+            Assert.NotNull(retrieved);
+            Assert.Equal(fontEngineInterface.Handle, retrieved.Handle);
+        }
+        finally
+        {
+            RmlUiNativeBindings.SetFontEngineInterface(original);
+        }
+    }
+
+    [Fact]
+    public void Core_lifecycle_creates_and_updates_context()
+    {
+        var originalFontEngineInterface = RmlUiNativeBindings.GetFontEngineInterface();
+        var originalRenderInterface = RmlUiNativeBindings.GetRenderInterface();
+        using var fontEngineInterface = new TestFontEngineInterface();
+        using var renderInterface = new TestRenderInterface();
+        using var name = new Std.String();
+        name.Assign("RedBolt.Tests.RmlUiBindings");
+        Context? context = null;
+        var initialized = false;
+        try
+        {
+            RmlUiNativeBindings.SetFontEngineInterface(fontEngineInterface);
+            RmlUiNativeBindings.SetRenderInterface(renderInterface.GetAdaptedInterface());
+            Assert.True(RmlUiNativeBindings.Initialise());
+            initialized = true;
+            Assert.True(fontEngineInterface.IsInitialized);
+
+            context = RmlUiNativeBindings.CreateContext(
+                name, new RmlUiLegacyVector2i { X = 320, Y = 200 });
+
+            Assert.NotNull(context);
+            Assert.Equal(320, context.GetDimensions().X);
+            Assert.Equal(200, context.GetDimensions().Y);
+            using var contextName = context.GetName();
+            Assert.Equal("RedBolt.Tests.RmlUiBindings", contextName.ToString());
+
+            context.SetDimensions(new RmlUiLegacyVector2i { X = 640, Y = 480 });
+            context.SetDensityIndependentPixelRatio(1.5f);
+
+            Assert.Equal(640, context.GetDimensions().X);
+            Assert.Equal(480, context.GetDimensions().Y);
+            Assert.Equal(1.5f, context.GetDensityIndependentPixelRatio());
+            Assert.True(context.Update());
+            Assert.True(context.Render());
+
+            context.Dispose();
+            context = null;
+            Assert.True(RmlUiNativeBindings.RemoveContext(name));
+            RmlUiNativeBindings.Shutdown();
+            initialized = false;
+            Assert.True(fontEngineInterface.IsShutdown);
+        }
+        finally
+        {
+            context?.Dispose();
+            if (initialized)
+            {
+                RmlUiNativeBindings.RemoveContext(name);
+                RmlUiNativeBindings.Shutdown();
+            }
+            RmlUiNativeBindings.SetFontEngineInterface(originalFontEngineInterface);
+            RmlUiNativeBindings.SetRenderInterface(originalRenderInterface);
+        }
     }
 
     private sealed class TestSystemInterface : SystemInterface
@@ -146,6 +204,23 @@ public sealed class RmlUiBindingsTests
 
         public override void SetScissorRegion(int x, int y, int width, int height)
         {
+        }
+    }
+
+    private sealed class TestFontEngineInterface : FontEngineInterface
+    {
+        public bool IsInitialized { get; private set; }
+
+        public bool IsShutdown { get; private set; }
+
+        public override void Initialize()
+        {
+            IsInitialized = true;
+        }
+
+        public override void Shutdown()
+        {
+            IsShutdown = true;
         }
     }
 

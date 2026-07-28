@@ -130,6 +130,7 @@ internal static class Program
     {
         "Rml::EventListener",
         "Rml::FileInterface",
+        "Rml::FontEngineInterface",
         "Rml::RenderInterfaceCompatibility",
         "Rml::SystemInterface"
     };
@@ -466,7 +467,7 @@ internal static class Program
             Path.Combine(options.SharpCppRoot, "include", "SharpCpp", "Marshaller.hpp")
         };
 
-        if (descriptor.Surface == "dearimgui")
+        if (descriptor.Surface is "dearimgui" or "rmlui")
         {
             marshallerHeaders.Add(Path.Combine(
                 options.RedBoltRoot,
@@ -475,7 +476,9 @@ internal static class Program
                 "Native",
                 "include",
                 "RedBolt",
-                "ImGuiValueMarshallers.hpp"));
+                descriptor.Surface == "dearimgui"
+                    ? "ImGuiValueMarshallers.hpp"
+                    : "RmlUiValueMarshallers.hpp"));
         }
 
         return marshallerHeaders
@@ -847,6 +850,19 @@ internal static class Program
                 method.ClearIgnoreReason();
         }
 
+        var fontEngineInterface = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::FontEngineInterface");
+        fontEngineInterface.ClearIgnoreReason();
+        fontEngineInterface.Bases.Clear();
+        fontEngineInterface.ManagedBaseTypeName = null;
+        foreach (var method in fontEngineInterface.Members.OfType<FunctionBinding>())
+        {
+            if (method.IsConstructor || method.NativeName is "Initialize" or "Shutdown")
+                method.ClearIgnoreReason();
+            else
+                method.SetSilentExclusionReason("RmlUi font engine member is outside the lifecycle binding slice");
+        }
+
         var eventListener = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::EventListener");
 
@@ -1004,6 +1020,7 @@ internal static class Program
                      function.CppQualifiedName is
                          "Rml::CreateContext" or "Rml::Initialise" or "Rml::RemoveContext" or "Rml::Shutdown" or
                          "Rml::GetFileInterface" or "Rml::SetFileInterface" or
+                         "Rml::GetFontEngineInterface" or "Rml::SetFontEngineInterface" or
                          "Rml::GetRenderInterface" or "Rml::SetRenderInterface" or
                          "Rml::GetSystemInterface" or "Rml::SetSystemInterface"))
         {
@@ -1134,6 +1151,7 @@ internal static class Program
                     function.CppQualifiedName is
                         "Rml::CreateContext" or "Rml::Initialise" or "Rml::RemoveContext" or "Rml::Shutdown" or
                         "Rml::GetFileInterface" or "Rml::SetFileInterface" or
+                        "Rml::GetFontEngineInterface" or "Rml::SetFontEngineInterface" or
                         "Rml::GetRenderInterface" or "Rml::SetRenderInterface" or
                         "Rml::GetSystemInterface" or "Rml::SetSystemInterface")
                 {
@@ -1143,7 +1161,7 @@ internal static class Program
                 if (member is RecordBinding record &&
                     (record.CppQualifiedName is
                          "Rml::Context" or "Rml::Element" or "Rml::Event" or
-                         "Rml::EventListener" or "Rml::FileInterface" or "Rml::Log" or
+                         "Rml::EventListener" or "Rml::FileInterface" or "Rml::FontEngineInterface" or "Rml::Log" or
                          "Rml::RenderInterfaceCompatibility" or "Rml::SystemInterface" ||
                      record.CppQualifiedName.StartsWith("Rml::Vector2", StringComparison.Ordinal) ||
                      record.ManagedNamespace == "Std" && record.ManagedName == "String"))
