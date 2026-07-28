@@ -234,12 +234,12 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `ActionCallHandler : RefCounted` — `RefCounted` dropped per allowed deviations
   - [x] `CallFunc : ActionInstant`
   - [ ] `SendEvent : ActionInstant`
-- [ ] `ShaderParameter.h` ⤴ needs `Graphics/Material`
+- [x] `ShaderParameter.h` ⤴ needs `Graphics/Material`
   - [x] `ShaderParameterAction : FiniteTimeAction`
   - [x] `ShaderParameterTo : ShaderParameterAction`
   - [x] `ShaderParameterFromTo : ShaderParameterTo`
-- [ ] `Parallel.h`
-  - [ ] `Parallel : FiniteTimeAction`
+- [x] `Parallel.h`
+  - [x] `Parallel : FiniteTimeAction`
 - [ ] `Sequence.h`
   - [ ] `Sequence : FiniteTimeAction`
 - [ ] `Repeat.h`
