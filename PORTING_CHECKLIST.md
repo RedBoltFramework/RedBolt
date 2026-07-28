@@ -528,8 +528,8 @@ Accepted deviations:
 
 - [ ] `Helpers.h`
   - [ ] particle helper free functions
-- [ ] `Span.h`
-  - [ ] `Span` view type
+- [x] `Span.h`
+  - [x] `Span` view type
 - [ ] `SpanVariants.h`
   - [ ] span variant types
 - [ ] `UpdateContext.h`

@@ -20,6 +20,7 @@
     <ProjectReference Include="../Glow/RedBolt.Glow.csproj" />
     <ProjectReference Include="../IK/RedBolt.IK.csproj" />
     <ProjectReference Include="../Navigation/RedBolt.Navigation.csproj" />
+    <ProjectReference Include="../Particles/RedBolt.Particles.csproj" />
     <ProjectReference Include="../Platform/Linux/RedBolt.Platform.Linux.csproj" />
     <ProjectReference Include="../RmlUI/RedBolt.RmlUI.csproj" />
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
