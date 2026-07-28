@@ -282,3 +282,31 @@ public partial class EaseBounceIn : ActionEase
         return new ActionEaseState(this, target);
     }
 }
+
+/// -------------------------------------------------------------------
+/// <summary>BounceInOut easing action.</summary>
+[Reflected]
+public partial class EaseBounceInOut : ActionEase
+{
+    /// <summary>Construct.</summary>
+    public EaseBounceInOut()
+    {
+    }
+
+    /// <summary>Create reversed action.</summary>
+    public override FiniteTimeAction Reverse()
+    {
+        var result = new EaseBounceInOut();
+        result.SetInnerAction(InnerAction!.Reverse());
+        return result;
+    }
+
+    /// <summary>Apply easing function to the time argument.</summary>
+    public override float Ease(float time) => EaseMath.BounceInOut(time);
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new ActionEaseState(this, target);
+    }
+}

@@ -223,7 +223,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `EaseBackIn/Out : ActionEase`
   - [x] `EaseBackInOut : ActionEase`
   - [x] `EaseBounceOut/In : ActionEase`
-  - [ ] `EaseBounceInOut : ActionEase`
+  - [x] `EaseBounceInOut : ActionEase`
   - [ ] `EaseSineOut/In/InOut : ActionEase`
   - [ ] `EaseExponentialOut/In/InOut : ActionEase`
   - [ ] `EaseElasticIn/Out/InOut : EaseElastic`
