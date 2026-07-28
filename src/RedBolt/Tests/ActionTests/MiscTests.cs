@@ -116,6 +116,28 @@ public sealed partial class MiscTests
         Assert.False(target.IsEnabled);
     }
 
+    [Fact]
+    public void Delay_time_waits_for_duration_without_changing_target()
+    {
+        using var manager = new ActionManager(false);
+        using var target = new MiscTarget { IsEnabled = true, IsVisible = true };
+        using var action = new DelayTime();
+        action.SetDuration(1.0f);
+
+        var state = manager.AddAction(action, target);
+        Assert.NotNull(state);
+        manager.Update(0.0f);
+        Assert.False(state.IsDone);
+        manager.Update(0.5f);
+        Assert.False(state.IsDone);
+        Assert.True(target.IsEnabled);
+        Assert.True(target.IsVisible);
+        manager.Update(0.5f);
+        Assert.True(state.IsDone);
+        Assert.True(target.IsEnabled);
+        Assert.True(target.IsVisible);
+    }
+
     [Reflected]
     private sealed partial class MiscTarget : Serializable
     {

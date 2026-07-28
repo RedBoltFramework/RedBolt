@@ -175,3 +175,19 @@ public partial class Blink : AttributeAction
 
     protected uint _times = 1;
 }
+
+/// <summary>Action that does nothing but waits.</summary>
+[Reflected]
+public partial class DelayTime : FiniteTimeAction
+{
+    /// <summary>Construct.</summary>
+    public DelayTime()
+    {
+    }
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new FiniteTimeActionState(this, target);
+    }
+}

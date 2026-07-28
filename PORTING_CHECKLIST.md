@@ -209,9 +209,9 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `ScaleBy : AttributeAction`
   - [x] `RotateBy : AttributeAction`
   - [x] `RotateAround : AttributeAction`
-- [ ] `Misc.h`
+- [x] `Misc.h`
   - [x] `RemoveSelf : FiniteTimeAction` — Node behavior ported; built-in `UIElement` target is excluded
-  - [ ] `DelayTime : FiniteTimeAction`
+  - [x] `DelayTime : FiniteTimeAction`
   - [x] `Show : AttributeAction`
   - [x] `Hide : AttributeAction`
   - [x] `Enable : AttributeAction`
