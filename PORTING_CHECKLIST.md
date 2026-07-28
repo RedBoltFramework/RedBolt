@@ -526,6 +526,9 @@ Accepted deviations:
 
 ## B11. Particles `OPTIONAL` — particle graph system; depends on Scene, Graphics
 
+- [x] `Emitter.h`
+  - [x] `EmitFrom`
+  - [x] `GetEmitFromNames`
 - [ ] `Helpers.h`
   - [ ] particle helper free functions
 - [x] `Span.h`
