@@ -15,7 +15,8 @@ namespace RedBolt.Scene;
 /// Can be used to load and save <see cref="Scene"/>, since <see cref="Scene"/> is not a resource.
 /// Be careful when using a cached <see cref="SceneResource"/>, since the underlying scene may be active.
 /// </remarks>
-public class SceneResource : ResourceType
+[Reflected]
+public partial class SceneResource : ResourceType
 {
     public delegate void ReloadBeginHandler(SceneResource resource, ref bool cancelReload);
     public delegate void ReloadEndHandler(SceneResource resource, bool success);
@@ -40,11 +41,6 @@ public class SceneResource : ResourceType
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<SceneResource>();
-    }
 
     public void SetPrefab(bool value) => _isPrefab = value;
 

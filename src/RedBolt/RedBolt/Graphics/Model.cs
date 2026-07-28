@@ -154,7 +154,8 @@ public sealed class GeometryDesc : ICloneable
 }
 
 /// <summary>3D model resource.</summary>
-public sealed class Model : ResourceWithMetadata, ICloneable
+[Reflected]
+public sealed partial class Model : ResourceWithMetadata, ICloneable
 {
     private const uint LegacyVersion = 1;
     private const uint MorphWeightVersion = 2;
@@ -178,11 +179,6 @@ public sealed class Model : ResourceWithMetadata, ICloneable
     {
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<Model>();
-    }
 
     /// <summary>Destruct.</summary>
     public override void Dispose()

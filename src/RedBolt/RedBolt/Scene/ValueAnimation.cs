@@ -71,7 +71,8 @@ public struct VAnimEventFrame : ICloneable, IDisposable
 }
 
 /// <summary>Value animation class.</summary>
-public class ValueAnimation : ResourceType
+[Reflected]
+public partial class ValueAnimation : ResourceType
 {
     /// <summary>Owner.</summary>
     private object? _owner;
@@ -111,11 +112,6 @@ public class ValueAnimation : ResourceType
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<ValueAnimation>();
-    }
 
     /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
     public override bool BeginLoad(Deserializer source)

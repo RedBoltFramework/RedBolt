@@ -7,7 +7,8 @@ using RedBolt.Core;
 namespace RedBolt.Audio;
 
 /// <summary>Microphone audio input device.</summary>
-public class Microphone : RedObject
+[Reflected]
+public partial class Microphone : RedObject
 {
     private BufferedSoundStream? _linkedStream;
     internal string _name = string.Empty;
@@ -38,11 +39,6 @@ public class Microphone : RedObject
         GC.SuppressFinalize(this);
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<Microphone>();
-    }
 
     public List<short> GetData() => _buffer;
 

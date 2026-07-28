@@ -10,7 +10,8 @@ namespace RedBolt.RenderPipeline;
 /// <summary>
 /// Base class for serializable resource that uses Archive serialization.
 /// </summary>
-public class RenderPath : SimpleResource
+[Reflected]
+public partial class RenderPath : SimpleResource
 {
     public RenderPath()
     {
@@ -24,10 +25,6 @@ public class RenderPath : SimpleResource
         base.Dispose();
     }
 
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<RenderPath>();
-    }
 
     /// <summary>
     /// Fill missing parameters with defaults.

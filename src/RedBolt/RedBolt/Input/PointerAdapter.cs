@@ -18,7 +18,8 @@ public enum PointerAdapterMask : uint
     All = Touch | Mouse | Keyboard | Joystick
 }
 
-public class PointerAdapter : RedObject
+[Reflected]
+public partial class PointerAdapter : RedObject
 {
     /// <summary>Construct.</summary>
     public PointerAdapter()

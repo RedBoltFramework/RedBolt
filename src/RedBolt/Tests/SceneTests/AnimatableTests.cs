@@ -6,18 +6,14 @@ using RedBolt.Scene;
 
 namespace RedBolt.Tests;
 
-internal sealed class TestAnimatable : Animatable
+[Reflected]
+internal sealed partial class TestAnimatable : Animatable
 {
     public TestAnimatable()
     {
-        RegisterAttribute(
-            "Value",
-            typeof(float),
-            self => ((TestAnimatable)self).Value,
-            (self, value) => ((TestAnimatable)self).Value = value is float typedValue ? typedValue : 0.0f,
-            0.0f);
     }
 
+    [Serialized("Value")]
     public float Value { get; private set; }
 
     public int AddedCount { get; private set; }

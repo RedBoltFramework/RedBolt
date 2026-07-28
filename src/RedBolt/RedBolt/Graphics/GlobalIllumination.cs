@@ -12,7 +12,30 @@ using SceneType = global::RedBolt.Scene.Scene;
 namespace RedBolt.Graphics;
 
 /// <summary>Global illumination manager.</summary>
-public class GlobalIllumination : Component
+[Reflected(ObjectCategory.Category_Subsystem)]
+[Serialized(
+    "Emission Brightness",
+    typeof(float),
+    DefaultSource = nameof(GetEmissionBrightnessAttributeDefault),
+    Getter = nameof(_emissionBrightness),
+    Setter = nameof(_emissionBrightness)
+)]
+[Serialized(
+    "Offset",
+    typeof(Vector3f),
+    DefaultSource = nameof(GetOffsetAttributeDefault),
+    Getter = nameof(_offset),
+    Setter = nameof(_offset)
+)]
+[Serialized(
+    "Data File",
+    typeof(ResourceRef),
+    DefaultSource = nameof(GetDataFileAttributeDefault),
+    Getter = nameof(GetFileRef),
+    Mode = AttributeMode.Default | AttributeMode.NoEdit,
+    Setter = nameof(SetFileRef)
+)]
+public partial class GlobalIllumination : Component
 {
     [ThreadStatic]
     private static List<(uint First, uint Second)>? _edges;
@@ -32,13 +55,6 @@ public class GlobalIllumination : Component
     public GlobalIllumination()
     {
         // TODO: port URHO3D_ACTION_STATIC_LABEL("Reload!", ReloadData, "Reload data from the file");
-        RegisterAttribute("Emission Brightness", typeof(float), self => ((GlobalIllumination)self)._emissionBrightness,
-            (self, value) => ((GlobalIllumination)self)._emissionBrightness = (float)value!, 1.0f);
-        RegisterAttribute("Offset", typeof(Vector3f), self => ((GlobalIllumination)self)._offset,
-            (self, value) => ((GlobalIllumination)self)._offset = (Vector3f)value!, Vector3f.Zero);
-        RegisterAttribute("Data File", typeof(ResourceRef), self => ((GlobalIllumination)self).GetFileRef(),
-            (self, value) => ((GlobalIllumination)self).SetFileRef((ResourceRef)value!),
-            new ResourceRef(new StringHash(nameof(BinaryFile))), AttributeMode.Default | AttributeMode.NoEdit);
     }
 
     /// <summary>Destruct.</summary>
@@ -47,9 +63,6 @@ public class GlobalIllumination : Component
         base.Dispose();
     }
 
-    /// <summary>Register object factory. Drawable must be registered first.</summary>
-    public static void RegisterObject(Context context) =>
-        context.AddFactoryReflection<GlobalIllumination>(ObjectCategory.Category_Subsystem);
 
     /// <summary>Visualize the component as debug geometry.</summary>
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
@@ -207,4 +220,10 @@ public class GlobalIllumination : Component
                 _lightProbesMesh.Vertices[i] += _offset;
         }
     }
+
+    private static object? GetEmissionBrightnessAttributeDefault() => 1.0f;
+
+    private static object? GetOffsetAttributeDefault() => Vector3f.Zero;
+
+    private static object? GetDataFileAttributeDefault() => new ResourceRef(new StringHash(nameof(BinaryFile)));
 }

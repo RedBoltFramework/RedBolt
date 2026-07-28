@@ -7,7 +7,8 @@ using RedBolt.Scene;
 namespace RedBolt.Graphics;
 
 /// <summary>Static model component with fixed position in relation to the camera.</summary>
-public class Skybox : StaticModel
+[Reflected(ObjectCategory.Category_Geometry)]
+public partial class Skybox : StaticModel
 {
     /// <summary>Construct.</summary>
     public Skybox()
@@ -23,11 +24,6 @@ public class Skybox : StaticModel
         base.Dispose();
     }
 
-    /// <summary>Register object factory. StaticModel must be registered first.</summary>
-    public new static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<Skybox>(ObjectCategory.Category_Geometry);
-    }
 
     /// <summary>Process octree raycast. May be called from a worker thread.</summary>
     public override void ProcessRayQuery(RayOctreeQuery query, List<RayQueryResult> results)

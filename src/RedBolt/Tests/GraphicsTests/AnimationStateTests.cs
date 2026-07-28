@@ -11,11 +11,6 @@ namespace RedBolt.Tests;
 
 public sealed class AnimationStateTests
 {
-    public AnimationStateTests()
-    {
-        TestTypeRegistration.RegisterFactory<AnimatedModel>();
-    }
-
     [Fact]
     public void Animation_state_blends_node_tracks()
     {

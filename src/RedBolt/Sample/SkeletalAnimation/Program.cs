@@ -43,8 +43,6 @@ sealed class SkeletalAnimationApplication : Application
 
     public SkeletalAnimationApplication()
     {
-        if (Context.Instance.GetReflection<Mover3D>() is null)
-            Context.Instance.AddFactoryReflection<Mover3D>();
     }
 
     protected override void Setup(EngineParameters parameters)

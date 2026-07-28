@@ -91,7 +91,7 @@ public sealed class JsonXmlResourceTests
     public void JSONFile_registers_and_serializes_named_objects()
     {
         using var context = new Context();
-        JSONFile.RegisterObject(context);
+        context.RegisterAttributedType<JSONFile>();
         using var json = Assert.IsType<JSONFile>(context.CreateObject(ObjectReflection<JSONFile>.TypeId));
 
         var source = new JSONArchiveTestValue { Value = 42 };
@@ -691,7 +691,7 @@ public sealed class JsonXmlResourceTests
     public void XMLFile_registers_and_serializes_named_objects()
     {
         using var context = new Context();
-        XMLFile.RegisterObject(context);
+        context.RegisterAttributedType<XMLFile>();
         using var xml = Assert.IsType<XMLFile>(context.CreateObject(ObjectReflection<XMLFile>.TypeId));
 
         var source = new JSONArchiveTestValue { Value = 42 };

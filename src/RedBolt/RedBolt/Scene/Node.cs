@@ -11,7 +11,62 @@ using RedBolt.Resource;
 namespace RedBolt.Scene;
 
 /// <summary>Scene node that may contain components and child nodes.</summary>
-public class Node : Serializable
+[Reflected]
+[Serialized(
+    "Is Enabled",
+    typeof(bool),
+    DefaultSource = nameof(GetIsEnabledAttributeDefault),
+    Getter = nameof(IsEnabledSelf),
+    Setter = nameof(SetEnabled)
+)]
+[Serialized(
+    "Name",
+    typeof(string),
+    DefaultSource = nameof(GetNameAttributeDefault),
+    Getter = nameof(Name),
+    Setter = nameof(SetName)
+)]
+[Serialized(
+    "Tags",
+    typeof(IReadOnlyList<string>),
+    DefaultSource = nameof(GetTagsAttributeDefault),
+    Getter = nameof(Tags),
+    Setter = nameof(SetTags)
+)]
+[Serialized(
+    "Position",
+    typeof(Vector3f),
+    AccessorFactory = nameof(CreatePositionAttributeAccessor),
+    DefaultSource = nameof(GetPositionAttributeDefault)
+)]
+[Serialized(
+    "Rotation",
+    typeof(Quaternion),
+    DefaultSource = nameof(GetRotationAttributeDefault),
+    Getter = nameof(Rotation),
+    Setter = nameof(Rotation)
+)]
+[Serialized(
+    "Scale",
+    typeof(Vector3f),
+    AccessorFactory = nameof(CreateScaleAttributeAccessor),
+    DefaultSource = nameof(GetScaleAttributeDefault)
+)]
+[Serialized(
+    "Variables",
+    typeof(IReadOnlyDictionary<StringHash, object?>),
+    DefaultSource = nameof(GetVariablesAttributeDefault),
+    Getter = nameof(Variables),
+    Setter = nameof(SetSerializedVariables)
+)]
+[Serialized(
+    "World Origin Update Mode",
+    typeof(WorldOriginUpdateMode),
+    DefaultSource = nameof(GetWorldOriginUpdateModeAttributeDefault),
+    Getter = nameof(_worldOriginUpdateMode),
+    Setter = nameof(_worldOriginUpdateMode)
+)]
+public partial class Node : Serializable
 {
     private sealed class Vector3AttributeAccessor : AttributeAccessor
     {
@@ -64,62 +119,6 @@ public class Node : Serializable
         if (this is Scene)
             return;
 
-        RegisterAttribute(
-            "Is Enabled",
-            typeof(bool),
-            self => ((Node)self).IsEnabledSelf,
-            (self, value) => ((Node)self).SetEnabled(value is bool enabledValue && enabledValue),
-            true);
-        RegisterAttribute(
-            "Name",
-            typeof(string),
-            self => ((Node)self).Name,
-            (self, value) => ((Node)self).SetName(value as string ?? string.Empty),
-            string.Empty);
-        RegisterAttribute(
-            "Tags",
-            typeof(IReadOnlyList<string>),
-            self => ((Node)self).Tags,
-            (self, value) => ((Node)self).SetTags(value is IEnumerable<string> tagsValue ? tagsValue : []),
-            Array.Empty<string>());
-        RegisterAttribute(
-            "Position",
-            typeof(Vector3f),
-            new Vector3AttributeAccessor(self => self.Position, (self, value) => self.Position = value),
-            Vector3f.Zero);
-        RegisterAttribute(
-            "Rotation",
-            typeof(Quaternion),
-            self => ((Node)self).Rotation,
-            (self, value) => ((Node)self).Rotation = value is Quaternion rotation ? rotation : Quaternion.IDENTITY,
-            Quaternion.IDENTITY);
-        RegisterAttribute(
-            "Scale",
-            typeof(Vector3f),
-            new Vector3AttributeAccessor(self => self.Scale, (self, value) => self.Scale = value),
-            Vector3f.One);
-        RegisterAttribute(
-            "Variables",
-            typeof(IReadOnlyDictionary<StringHash, object?>),
-            self => ((Node)self).Variables,
-            (self, value) => ((Node)self).SetVariables(value is VariantMap variantMap
-                ? variantMap.Select(static pair => new KeyValuePair<StringHash, object?>(pair.Key, pair.Value.GetObject()))
-                : value is IEnumerable<KeyValuePair<StringHash, object?>> variablesValue ? variablesValue : []),
-            new Dictionary<StringHash, object?>());
-        RegisterAttribute(
-            "World Origin Update Mode",
-            typeof(WorldOriginUpdateMode),
-            self => ((Node)self)._worldOriginUpdateMode,
-            (self, value) => ((Node)self)._worldOriginUpdateMode = value is WorldOriginUpdateMode mode
-                ? mode
-                : WorldOriginUpdateMode.Move,
-            WorldOriginUpdateMode.Move);
-    }
-
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<Node>();
     }
 
     /// <summary>Destruct. Any child nodes are detached.</summary>
@@ -2698,4 +2697,32 @@ public class Node : Serializable
         _dirty = false;
     }
 
+
+    private static object? GetIsEnabledAttributeDefault() => true;
+
+    private static object? GetNameAttributeDefault() => string.Empty;
+
+    private static object? GetTagsAttributeDefault() => Array.Empty<string>();
+
+    private static AttributeAccessor CreatePositionAttributeAccessor() => new Vector3AttributeAccessor(self => self.Position, (self, value) => self.Position = value);
+
+    private static object? GetPositionAttributeDefault() => Vector3f.Zero;
+
+    private static object? GetRotationAttributeDefault() => Quaternion.IDENTITY;
+
+    private static AttributeAccessor CreateScaleAttributeAccessor() => new Vector3AttributeAccessor(self => self.Scale, (self, value) => self.Scale = value);
+
+    private static object? GetScaleAttributeDefault() => Vector3f.One;
+
+    private static object? GetVariablesAttributeDefault() => new Dictionary<StringHash, object?>();
+
+    private void SetSerializedVariables(object? value)
+    {
+        Serializable self = this;
+        ((Node)self).SetVariables(value is VariantMap variantMap
+            ? variantMap.Select(static pair => new KeyValuePair<StringHash, object?>(pair.Key, pair.Value.GetObject()))
+            : value is IEnumerable<KeyValuePair<StringHash, object?>> variablesValue ? variablesValue : []);
+    }
+
+    private static object? GetWorldOriginUpdateModeAttributeDefault() => WorldOriginUpdateMode.Move;
 }

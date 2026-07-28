@@ -12,7 +12,8 @@ using RedBolt.Resource;
 
 namespace RedBolt.Input;
 
-public class InputMap : SimpleResource
+[Reflected]
+public partial class InputMap : SimpleResource
 {
     private static readonly string[] ScancodeNames =
     [
@@ -89,12 +90,6 @@ public class InputMap : SimpleResource
         GC.SuppressFinalize(this);
     }
 
-    /// <summary>Register object factory and attributes.</summary>
-    public static void RegisterObject(Context context)
-    {
-        var reflection = context.AddReflection<InputMap>();
-        reflection.SetObjectFactory(static () => new InputMap());
-    }
 
     /// <summary>Force override of SerializeInBlock.</summary>
     public override void SerializeInBlock(Archive archive)

@@ -6,16 +6,10 @@ using SceneType = global::RedBolt.Scene.Scene;
 
 namespace RedBolt.Tests;
 
-public sealed class DrawableTests
+public sealed partial class DrawableTests
 {
-    public DrawableTests()
-    {
-        TestTypeRegistration.RegisterFactory<CustomGeometry>();
-        TestTypeRegistration.RegisterFactory<UpdateProbeDrawable>();
-        TestTypeRegistration.RegisterFactory<Octree>();
-    }
-
-    private sealed class UpdateProbeDrawable : Drawable
+    [Reflected]
+    private sealed partial class UpdateProbeDrawable : Drawable
     {
         public int NumUpdates { get; private set; }
         public int NumBoundingBoxUpdates { get; private set; }

@@ -44,8 +44,6 @@ public class AnimatingScene : Application
     /// </summary>
     public AnimatingScene()
     {
-        if (Context.Instance.GetReflection<Rotator>() is null)
-            Context.Instance.AddFactoryReflection<Rotator>();
     }
 
     /// <summary>

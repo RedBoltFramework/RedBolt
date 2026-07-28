@@ -16,6 +16,10 @@ public sealed class VariantTests
         return result;
     }
 
+    private sealed class VariantResourceType : RedObject
+    {
+    }
+
     private enum TestEnum
     {
         None,
@@ -247,16 +251,16 @@ public sealed class VariantTests
     [Fact]
     public void Resource_reference_string_conversion_requires_context()
     {
-        var value = new Variant(new ResourceRef("Material", "Materials/Test"));
+        var value = new Variant(new ResourceRef(typeof(VariantResourceType).GetClassName(), "Materials/Test"));
         Context.SetInstance(new Context());
         try
         {
             Assert.Equal(";Materials/Test", value.ToString());
 
             var context = new Context();
-            context.Reflect<Material>();
+            context.AddReflection<VariantResourceType>();
             Context.SetInstance(context);
-            Assert.Equal("Material;Materials/Test", value.ToString());
+            Assert.Equal("VariantResourceType;Materials/Test", value.ToString());
         }
         finally
         {

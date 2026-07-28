@@ -27,7 +27,6 @@ public sealed class SoftwareModelAnimatorTests
         Assert.NotSame(animationData.BlendWeights, clone.BlendWeights);
         Assert.NotSame(animationData.BlendIndices, clone.BlendIndices);
 
-        SoftwareModelAnimator.RegisterObject(Context.Instance);
         using var reflected = Assert.IsType<SoftwareModelAnimator>(
             Context.Instance.CreateObject(ObjectReflection<SoftwareModelAnimator>.TypeId));
     }

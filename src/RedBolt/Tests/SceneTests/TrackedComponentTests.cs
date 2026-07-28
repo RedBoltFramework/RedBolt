@@ -6,16 +6,8 @@ using SceneType = global::RedBolt.Scene.Scene;
 namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
-public sealed class TrackedComponentTests
+public sealed partial class TrackedComponentTests
 {
-    public TrackedComponentTests()
-    {
-        TestTypeRegistration.RegisterFactory<TestRegistry>();
-        TestTypeRegistration.RegisterFactory<TestTracked>();
-        TestTypeRegistration.RegisterFactory<ReferencedTestRegistry>();
-        TestTypeRegistration.RegisterFactory<ReferencedTestComponent>();
-    }
-
     [Fact]
     public void Registry_tracks_components_and_swap_erases()
     {
@@ -93,7 +85,8 @@ public sealed class TrackedComponentTests
         Assert.Equal(0, registry.ReferenceIndexUpperBound);
     }
 
-    private sealed class TestRegistry : TrackedComponentRegistryBase
+    [Reflected]
+    private sealed partial class TestRegistry : TrackedComponentRegistryBase
     {
         public TestRegistry()
             : base(ObjectReflection<TestTracked>.TypeId)
@@ -101,14 +94,16 @@ public sealed class TrackedComponentTests
         }
     }
 
-    private sealed class TestTracked : TrackedComponent<TestRegistry>
+    [Reflected]
+    private sealed partial class TestTracked : TrackedComponent<TestRegistry>
     {
         public TestTracked()
         {
         }
     }
 
-    private sealed class ReferencedTestRegistry : ReferencedComponentRegistryBase
+    [Reflected]
+    private sealed partial class ReferencedTestRegistry : ReferencedComponentRegistryBase
     {
         public ReferencedTestRegistry()
             : base(ObjectReflection<ReferencedTestComponent>.TypeId)
@@ -116,7 +111,8 @@ public sealed class TrackedComponentTests
         }
     }
 
-    private sealed class ReferencedTestComponent : ReferencedComponentBase
+    [Reflected]
+    private sealed partial class ReferencedTestComponent : ReferencedComponentBase
     {
         public ReferencedTestComponent()
         {

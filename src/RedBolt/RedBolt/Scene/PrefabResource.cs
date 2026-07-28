@@ -12,7 +12,8 @@ namespace RedBolt.Scene;
 /// <summary>
 /// Prefab resource. Contains representation of nodes and components with attributes, ready to be instantiated.
 /// </summary>
-public class PrefabResource : SimpleResource
+[Reflected]
+public partial class PrefabResource : SimpleResource
 {
     public PrefabResource()
     {
@@ -24,10 +25,6 @@ public class PrefabResource : SimpleResource
         base.Dispose();
     }
 
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<PrefabResource>();
-    }
 
     /// <summary>
     /// Instantiate prefab reference into a scene or node.

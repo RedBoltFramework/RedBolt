@@ -51,7 +51,15 @@ public struct TrailPoint
 }
 
 /// <summary>Drawable component that creates a tail.</summary>
-public class RibbonTrail : Drawable
+[Reflected(ObjectCategory.Category_Geometry)]
+[Serialized(
+    "Is Enabled",
+    typeof(bool),
+    DefaultSource = nameof(GetIsEnabledAttributeDefault),
+    Getter = nameof(Enabled),
+    Setter = nameof(SetEnabled)
+)]
+public partial class RibbonTrail : Drawable
 {
     private const uint MaxTailColumn = 16;
 
@@ -103,8 +111,6 @@ public class RibbonTrail : Drawable
     public RibbonTrail()
         : base(DrawableFlags.Geometry)
     {
-        RegisterAttribute("Is Enabled", typeof(bool), self => ((RibbonTrail)self).Enabled,
-            (self, value) => ((RibbonTrail)self).SetEnabled(value is bool enabled && enabled), true);
 
         _geometry.SetVertexBuffer(0, _vertexBuffer);
         _geometry.SetIndexBuffer(_indexBuffer);
@@ -129,10 +135,6 @@ public class RibbonTrail : Drawable
         base.Dispose();
     }
 
-    public new static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<RibbonTrail>(ObjectCategory.Category_Geometry);
-    }
 
     public override void ProcessRayQuery(RayOctreeQuery query, List<RayQueryResult> results)
     {
@@ -864,4 +866,6 @@ public class RibbonTrail : Drawable
     public uint GetTailColumn() => _tailColumn;
     public bool IsEmitting() => _emitting;
     public bool GetUpdateInvisible() => _updateInvisible;
+
+    private static object? GetIsEnabledAttributeDefault() => true;
 }

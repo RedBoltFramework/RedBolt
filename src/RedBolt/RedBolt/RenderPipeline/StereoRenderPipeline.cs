@@ -874,7 +874,8 @@ public class StereoRenderPipelineView : RenderPipelineView
     private void OnParametersChanged(RenderPipelineComponent pipeline) => MarkParametersDirty();
 }
 
-public class StereoRenderPipeline : RenderPipelineComponent
+[Reflected]
+public partial class StereoRenderPipeline : RenderPipelineComponent
 {
     public StereoRenderPipeline()
     {
@@ -885,10 +886,6 @@ public class StereoRenderPipeline : RenderPipelineComponent
         base.Dispose();
     }
 
-    public static new void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<StereoRenderPipeline>();
-    }
 
     public override RenderPipelineView Instantiate() => new StereoRenderPipelineView(this);
 }

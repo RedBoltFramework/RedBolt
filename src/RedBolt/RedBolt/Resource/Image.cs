@@ -19,10 +19,6 @@ public partial class Image : Resource
     {
     }
 
-    public static void RegisterObject(Context context)
-    {
-        context.RegisterAttributedType<Image>();
-    }
 
     public override void Dispose()
     {

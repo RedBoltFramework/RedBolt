@@ -135,7 +135,287 @@ public class LightBatchQueue
 {
 }
 
-public class Light : Drawable
+[Reflected(ObjectCategory.Category_Scene)]
+[Serialized(
+    "Is Enabled",
+    typeof(bool),
+    DefaultSource = nameof(GetIsEnabledAttributeDefault),
+    Getter = nameof(Enabled),
+    Setter = nameof(SetEnabled)
+)]
+[Serialized(
+    "Light Type",
+    typeof(LightType),
+    DefaultSource = nameof(GetLightTypeAttributeDefault),
+    Getter = nameof(GetLightType),
+    Setter = nameof(SetLightType)
+)]
+[Serialized(
+    "Light Importance",
+    typeof(LightImportance),
+    DefaultSource = nameof(GetLightImportanceAttributeDefault),
+    Getter = nameof(GetLightImportance),
+    Setter = nameof(SetLightImportance)
+)]
+[Serialized(
+    "Light Mode",
+    typeof(LightMode),
+    DefaultSource = nameof(GetLightModeAttributeDefault),
+    Getter = nameof(GetLightMode),
+    Setter = nameof(SetLightMode)
+)]
+[Serialized(
+    "Color",
+    typeof(Color),
+    AccessorType = typeof(ColorAttributeAccessor),
+    DefaultSource = nameof(GetColorAttributeDefault)
+)]
+[Serialized(
+    "Specular Intensity",
+    typeof(float),
+    DefaultSource = nameof(GetSpecularIntensityAttributeDefault),
+    Getter = nameof(GetSpecularIntensity),
+    Setter = nameof(SetSpecularIntensity)
+)]
+[Serialized(
+    "Brightness Multiplier",
+    typeof(float),
+    DefaultSource = nameof(GetBrightnessMultiplierAttributeDefault),
+    Getter = nameof(GetBrightness),
+    Setter = nameof(SetBrightness)
+)]
+[Serialized(
+    "Indirect Brightness",
+    typeof(float),
+    DefaultSource = nameof(GetIndirectBrightnessAttributeDefault),
+    Getter = nameof(GetIndirectBrightness),
+    Setter = nameof(SetIndirectBrightness)
+)]
+[Serialized(
+    "Temperature",
+    typeof(float),
+    DefaultSource = nameof(GetTemperatureAttributeDefault),
+    Getter = nameof(GetTemperature),
+    Setter = nameof(SetTemperature)
+)]
+[Serialized(
+    "Use Physical Values",
+    typeof(bool),
+    DefaultSource = nameof(GetUsePhysicalValuesAttributeDefault),
+    Getter = nameof(GetUsePhysicalValues),
+    Setter = nameof(SetUsePhysicalValues)
+)]
+[Serialized(
+    "Radius",
+    typeof(float),
+    DefaultSource = nameof(GetRadiusAttributeDefault),
+    Getter = nameof(GetRadius),
+    Setter = nameof(SetRadius)
+)]
+[Serialized(
+    "Length",
+    typeof(float),
+    DefaultSource = nameof(GetLengthAttributeDefault),
+    Getter = nameof(GetLength),
+    Setter = nameof(SetLength)
+)]
+[Serialized(
+    "Range",
+    typeof(float),
+    DefaultSource = nameof(GetRangeAttributeDefault),
+    Getter = nameof(GetRange),
+    Setter = nameof(SetRange)
+)]
+[Serialized(
+    "Spot FOV",
+    typeof(float),
+    DefaultSource = nameof(GetSpotFOVAttributeDefault),
+    Getter = nameof(GetFov),
+    Setter = nameof(SetFov)
+)]
+[Serialized(
+    "Spot Aspect Ratio",
+    typeof(float),
+    DefaultSource = nameof(GetSpotAspectRatioAttributeDefault),
+    Getter = nameof(GetAspectRatio),
+    Setter = nameof(SetAspectRatio)
+)]
+[Serialized(
+    "Attenuation Texture",
+    typeof(ResourceRef),
+    DefaultSource = nameof(GetAttenuationTextureAttributeDefault),
+    Getter = nameof(GetRampTextureAttr),
+    Setter = nameof(SetRampTextureAttr)
+)]
+[Serialized(
+    "Light Shape Texture",
+    typeof(ResourceRef),
+    DefaultSource = nameof(GetLightShapeTextureAttributeDefault),
+    Getter = nameof(GetShapeTextureAttr),
+    Setter = nameof(SetShapeTextureAttr)
+)]
+[Serialized(
+    "Can Be Occluded",
+    typeof(bool),
+    DefaultSource = nameof(GetCanBeOccludedAttributeDefault),
+    Getter = nameof(IsOccludee),
+    Setter = nameof(SetOccludee)
+)]
+[Serialized(
+    "Cast Shadows",
+    typeof(bool),
+    DefaultSource = nameof(GetCastShadowsAttributeDefault),
+    Getter = nameof(GetCastShadows),
+    Setter = nameof(SetCastShadows)
+)]
+[Serialized(
+    "Draw Distance",
+    typeof(float),
+    DefaultSource = nameof(GetDrawDistanceAttributeDefault),
+    Getter = nameof(GetDrawDistance),
+    Setter = nameof(SetDrawDistance)
+)]
+[Serialized(
+    "Fade Distance",
+    typeof(float),
+    DefaultSource = nameof(GetFadeDistanceAttributeDefault),
+    Getter = nameof(GetFadeDistance),
+    Setter = nameof(SetFadeDistance)
+)]
+[Serialized(
+    "Shadow Distance",
+    typeof(float),
+    DefaultSource = nameof(GetShadowDistanceAttributeDefault),
+    Getter = nameof(GetShadowDistance),
+    Setter = nameof(SetShadowDistance)
+)]
+[Serialized(
+    "Shadow Fade Distance",
+    typeof(float),
+    DefaultSource = nameof(GetShadowFadeDistanceAttributeDefault),
+    Getter = nameof(GetShadowFadeDistance),
+    Setter = nameof(SetShadowFadeDistance)
+)]
+[Serialized(
+    "Shadow Intensity",
+    typeof(float),
+    DefaultSource = nameof(GetShadowIntensityAttributeDefault),
+    Getter = nameof(GetShadowIntensity),
+    Setter = nameof(SetShadowIntensity)
+)]
+[Serialized(
+    "Shadow Resolution",
+    typeof(float),
+    DefaultSource = nameof(GetShadowResolutionAttributeDefault),
+    Getter = nameof(GetShadowResolution),
+    Setter = nameof(SetShadowResolution)
+)]
+[Serialized(
+    "Focus To Scene",
+    typeof(bool),
+    DefaultSource = nameof(GetFocusToSceneAttributeDefault),
+    Getter = nameof(GetSerializedFocusToScene),
+    Setter = nameof(SetSerializedFocusToScene)
+)]
+[Serialized(
+    "Non-uniform View",
+    typeof(bool),
+    DefaultSource = nameof(GetNonUniformViewAttributeDefault),
+    Getter = nameof(GetSerializedNonUniformView),
+    Setter = nameof(SetSerializedNonUniformView)
+)]
+[Serialized(
+    "Auto-Reduce Size",
+    typeof(bool),
+    DefaultSource = nameof(GetAutoReduceSizeAttributeDefault),
+    Getter = nameof(GetSerializedAutoReduceSize),
+    Setter = nameof(SetSerializedAutoReduceSize)
+)]
+[Serialized(
+    "CSM Splits",
+    typeof(Vector4f),
+    DefaultSource = nameof(GetCSMSplitsAttributeDefault),
+    Getter = nameof(GetSerializedCSMSplits),
+    Setter = nameof(SetSerializedCSMSplits)
+)]
+[Serialized(
+    "CSM Fade Start",
+    typeof(float),
+    DefaultSource = nameof(GetCSMFadeStartAttributeDefault),
+    Getter = nameof(GetSerializedCSMFadeStart),
+    Setter = nameof(SetSerializedCSMFadeStart)
+)]
+[Serialized(
+    "CSM Bias Auto Adjust",
+    typeof(float),
+    DefaultSource = nameof(GetCSMBiasAutoAdjustAttributeDefault),
+    Getter = nameof(GetSerializedCSMBiasAutoAdjust),
+    Setter = nameof(SetSerializedCSMBiasAutoAdjust)
+)]
+[Serialized(
+    "View Size Quantize",
+    typeof(float),
+    DefaultSource = nameof(GetViewSizeQuantizeAttributeDefault),
+    Getter = nameof(GetSerializedViewSizeQuantize),
+    Setter = nameof(SetSerializedViewSizeQuantize)
+)]
+[Serialized(
+    "View Size Minimum",
+    typeof(float),
+    DefaultSource = nameof(GetViewSizeMinimumAttributeDefault),
+    Getter = nameof(GetSerializedViewSizeMinimum),
+    Setter = nameof(SetSerializedViewSizeMinimum)
+)]
+[Serialized(
+    "Depth Constant Bias",
+    typeof(float),
+    DefaultSource = nameof(GetDepthConstantBiasAttributeDefault),
+    Getter = nameof(GetSerializedDepthConstantBias),
+    Setter = nameof(SetSerializedDepthConstantBias)
+)]
+[Serialized(
+    "Depth Slope Bias",
+    typeof(float),
+    DefaultSource = nameof(GetDepthSlopeBiasAttributeDefault),
+    Getter = nameof(GetSerializedDepthSlopeBias),
+    Setter = nameof(SetSerializedDepthSlopeBias)
+)]
+[Serialized(
+    "Normal Offset",
+    typeof(float),
+    DefaultSource = nameof(GetNormalOffsetAttributeDefault),
+    Getter = nameof(GetSerializedNormalOffset),
+    Setter = nameof(SetSerializedNormalOffset)
+)]
+[Serialized(
+    "Near/Farclip Ratio",
+    typeof(float),
+    DefaultSource = nameof(GetNearFarclipRatioAttributeDefault),
+    Getter = nameof(GetShadowNearFarRatio),
+    Setter = nameof(SetShadowNearFarRatio)
+)]
+[Serialized(
+    "Max Extrusion",
+    typeof(float),
+    DefaultSource = nameof(GetMaxExtrusionAttributeDefault),
+    Getter = nameof(GetShadowMaxExtrusion),
+    Setter = nameof(SetShadowMaxExtrusion)
+)]
+[Serialized(
+    "View Mask",
+    typeof(uint),
+    DefaultSource = nameof(GetViewMaskAttributeDefault),
+    Getter = nameof(GetViewMask),
+    Setter = nameof(SetViewMask)
+)]
+[Serialized(
+    "Light Mask",
+    typeof(uint),
+    DefaultSource = nameof(GetLightMaskAttributeDefault),
+    Getter = nameof(GetLightMask),
+    Setter = nameof(SetLightMask)
+)]
+public partial class Light : Drawable
 {
     private sealed class ColorAttributeAccessor : AttributeAccessor
     {
@@ -185,160 +465,8 @@ public class Light : Drawable
     public Light()
         : base(DrawableFlags.Light)
     {
-        RegisterAttribute("Is Enabled", typeof(bool), self => ((Light)self).Enabled,
-            (self, value) => ((Light)self).SetEnabled(value is bool enabled && enabled), true);
-        RegisterAttribute("Light Type", typeof(LightType), self => ((Light)self).GetLightType(),
-            (self, value) => ((Light)self).SetLightType((LightType)value!), DefaultLightType);
-        RegisterAttribute("Light Importance", typeof(LightImportance), self => ((Light)self).GetLightImportance(),
-            (self, value) => ((Light)self).SetLightImportance((LightImportance)value!), DefaultLightImportance);
-        RegisterAttribute("Light Mode", typeof(LightMode), self => ((Light)self).GetLightMode(),
-            (self, value) => ((Light)self).SetLightMode((LightMode)value!), LightMode.Realtime);
-        RegisterAttribute("Color", typeof(Color), new ColorAttributeAccessor(), Color.White);
-        RegisterAttribute("Specular Intensity", typeof(float), self => ((Light)self).GetSpecularIntensity(),
-            (self, value) => ((Light)self).SetSpecularIntensity((float)value!), DefaultSpecularIntensity);
-        RegisterAttribute("Brightness Multiplier", typeof(float), self => ((Light)self).GetBrightness(),
-            (self, value) => ((Light)self).SetBrightness((float)value!), DefaultBrightness);
-        RegisterAttribute("Indirect Brightness", typeof(float), self => ((Light)self).GetIndirectBrightness(),
-            (self, value) => ((Light)self).SetIndirectBrightness((float)value!), 1.0f);
-        RegisterAttribute("Temperature", typeof(float), self => ((Light)self).GetTemperature(),
-            (self, value) => ((Light)self).SetTemperature((float)value!), DefaultTemperature);
-        RegisterAttribute("Use Physical Values", typeof(bool), self => ((Light)self).GetUsePhysicalValues(),
-            (self, value) => ((Light)self).SetUsePhysicalValues(value is bool enabled && enabled), false);
-        RegisterAttribute("Radius", typeof(float), self => ((Light)self).GetRadius(),
-            (self, value) => ((Light)self).SetRadius((float)value!), 0.0f);
-        RegisterAttribute("Length", typeof(float), self => ((Light)self).GetLength(),
-            (self, value) => ((Light)self).SetLength((float)value!), 0.0f);
-        RegisterAttribute("Range", typeof(float), self => ((Light)self).GetRange(),
-            (self, value) => ((Light)self).SetRange((float)value!), DefaultRange);
-        RegisterAttribute("Spot FOV", typeof(float), self => ((Light)self).GetFov(),
-            (self, value) => ((Light)self).SetFov((float)value!), DefaultLightFov);
-        RegisterAttribute("Spot Aspect Ratio", typeof(float), self => ((Light)self).GetAspectRatio(),
-            (self, value) => ((Light)self).SetAspectRatio((float)value!), 1.0f);
-        RegisterAttribute("Attenuation Texture", typeof(ResourceRef), self => ((Light)self).GetRampTextureAttr(),
-            (self, value) => ((Light)self).SetRampTextureAttr((ResourceRef)value!),
-            new ResourceRef(new StringHash(nameof(Texture2D))));
-        RegisterAttribute("Light Shape Texture", typeof(ResourceRef), self => ((Light)self).GetShapeTextureAttr(),
-            (self, value) => ((Light)self).SetShapeTextureAttr((ResourceRef)value!),
-            new ResourceRef(new StringHash(nameof(Texture))));
-        RegisterAttribute("Can Be Occluded", typeof(bool), self => ((Light)self).IsOccludee(),
-            (self, value) => ((Light)self).SetOccludee(value is bool enabled && enabled), true);
-        RegisterAttribute("Cast Shadows", typeof(bool), self => ((Light)self).GetCastShadows(),
-            (self, value) => ((Light)self).SetCastShadows(value is bool enabled && enabled), false);
-        RegisterAttribute("Draw Distance", typeof(float), self => ((Light)self).GetDrawDistance(),
-            (self, value) => ((Light)self).SetDrawDistance((float)value!), 0.0f);
-        RegisterAttribute("Fade Distance", typeof(float), self => ((Light)self).GetFadeDistance(),
-            (self, value) => ((Light)self).SetFadeDistance((float)value!), 0.0f);
-        RegisterAttribute("Shadow Distance", typeof(float), self => ((Light)self).GetShadowDistance(),
-            (self, value) => ((Light)self).SetShadowDistance((float)value!), 0.0f);
-        RegisterAttribute("Shadow Fade Distance", typeof(float), self => ((Light)self).GetShadowFadeDistance(),
-            (self, value) => ((Light)self).SetShadowFadeDistance((float)value!), 0.0f);
-        RegisterAttribute("Shadow Intensity", typeof(float), self => ((Light)self).GetShadowIntensity(),
-            (self, value) => ((Light)self).SetShadowIntensity((float)value!), 0.0f);
-        RegisterAttribute("Shadow Resolution", typeof(float), self => ((Light)self).GetShadowResolution(),
-            (self, value) => ((Light)self).SetShadowResolution((float)value!), 1.0f);
-        RegisterAttribute("Focus To Scene", typeof(bool), self => ((Light)self).GetShadowFocus().Focus,
-            (self, value) =>
-            {
-                var light = (Light)self;
-                var parameters = light.GetShadowFocus();
-                parameters.Focus = value is bool enabled && enabled;
-                light.SetShadowFocus(parameters);
-            }, true);
-        RegisterAttribute("Non-uniform View", typeof(bool), self => ((Light)self).GetShadowFocus().NonUniform,
-            (self, value) =>
-            {
-                var light = (Light)self;
-                var parameters = light.GetShadowFocus();
-                parameters.NonUniform = value is bool enabled && enabled;
-                light.SetShadowFocus(parameters);
-            }, true);
-        RegisterAttribute("Auto-Reduce Size", typeof(bool), self => ((Light)self).GetShadowFocus().AutoSize,
-            (self, value) =>
-            {
-                var light = (Light)self;
-                var parameters = light.GetShadowFocus();
-                parameters.AutoSize = value is bool enabled && enabled;
-                light.SetShadowFocus(parameters);
-            }, true);
-        RegisterAttribute("CSM Splits", typeof(Vector4f), self => ((Light)self).GetShadowCascade().Splits,
-            (self, value) =>
-            {
-                var light = (Light)self;
-                var parameters = light.GetShadowCascade();
-                parameters.Splits = (Vector4f)value!;
-                light.SetShadowCascade(parameters);
-            }, new Vector4f(DefaultShadowSplit, 0.0f, 0.0f, 0.0f));
-        RegisterAttribute("CSM Fade Start", typeof(float), self => ((Light)self).GetShadowCascade().FadeStart,
-            (self, value) =>
-            {
-                var light = (Light)self;
-                var parameters = light.GetShadowCascade();
-                parameters.FadeStart = (float)value!;
-                light.SetShadowCascade(parameters);
-            }, DefaultShadowFadeStart);
-        RegisterAttribute("CSM Bias Auto Adjust", typeof(float), self => ((Light)self).GetShadowCascade().BiasAutoAdjust,
-            (self, value) =>
-            {
-                var light = (Light)self;
-                var parameters = light.GetShadowCascade();
-                parameters.BiasAutoAdjust = (float)value!;
-                light.SetShadowCascade(parameters);
-            }, DefaultBiasAutoAdjust);
-        RegisterAttribute("View Size Quantize", typeof(float), self => ((Light)self).GetShadowFocus().Quantize,
-            (self, value) =>
-            {
-                var light = (Light)self;
-                var parameters = light.GetShadowFocus();
-                parameters.Quantize = (float)value!;
-                light.SetShadowFocus(parameters);
-            }, DefaultShadowQuantize);
-        RegisterAttribute("View Size Minimum", typeof(float), self => ((Light)self).GetShadowFocus().MinView,
-            (self, value) =>
-            {
-                var light = (Light)self;
-                var parameters = light.GetShadowFocus();
-                parameters.MinView = (float)value!;
-                light.SetShadowFocus(parameters);
-            }, DefaultShadowMinView);
-        RegisterAttribute("Depth Constant Bias", typeof(float), self => ((Light)self).GetShadowBias().ConstantBias,
-            (self, value) =>
-            {
-                var light = (Light)self;
-                var parameters = light.GetShadowBias();
-                parameters.ConstantBias = (float)value!;
-                light.SetShadowBias(parameters);
-            }, DefaultConstantBias);
-        RegisterAttribute("Depth Slope Bias", typeof(float), self => ((Light)self).GetShadowBias().SlopeScaledBias,
-            (self, value) =>
-            {
-                var light = (Light)self;
-                var parameters = light.GetShadowBias();
-                parameters.SlopeScaledBias = (float)value!;
-                light.SetShadowBias(parameters);
-            }, DefaultSlopeScaledBias);
-        RegisterAttribute("Normal Offset", typeof(float), self => ((Light)self).GetShadowBias().NormalOffset,
-            (self, value) =>
-            {
-                var light = (Light)self;
-                var parameters = light.GetShadowBias();
-                parameters.NormalOffset = (float)value!;
-                light.SetShadowBias(parameters);
-            }, DefaultNormalOffset);
-        RegisterAttribute("Near/Farclip Ratio", typeof(float), self => ((Light)self).GetShadowNearFarRatio(),
-            (self, value) => ((Light)self).SetShadowNearFarRatio((float)value!), DefaultShadowNearFarRatio);
-        RegisterAttribute("Max Extrusion", typeof(float), self => ((Light)self).GetShadowMaxExtrusion(),
-            (self, value) => ((Light)self).SetShadowMaxExtrusion((float)value!), DefaultShadowMaxExtrusion);
-        RegisterAttribute("View Mask", typeof(uint), self => ((Light)self).GetViewMask(),
-            (self, value) => ((Light)self).SetViewMask((uint)value!), DefaultViewMask);
-        RegisterAttribute("Light Mask", typeof(uint), self => ((Light)self).GetLightMask(),
-            (self, value) => ((Light)self).SetLightMask((uint)value!), DefaultLightMask);
     }
 
-    /// <summary>Register object factory.</summary>
-    public new static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<Light>(ObjectCategory.Category_Scene);
-    }
 
     /// <summary>Destruct.</summary>
     public override void Dispose()
@@ -942,4 +1070,249 @@ public class Light : Drawable
                 break;
         }
     }
+
+    private static object? GetIsEnabledAttributeDefault() => true;
+
+    private static object? GetLightTypeAttributeDefault() => DefaultLightType;
+
+    private static object? GetLightImportanceAttributeDefault() => DefaultLightImportance;
+
+    private static object? GetLightModeAttributeDefault() => LightMode.Realtime;
+
+    private static object? GetColorAttributeDefault() => Color.White;
+
+    private static object? GetSpecularIntensityAttributeDefault() => DefaultSpecularIntensity;
+
+    private static object? GetBrightnessMultiplierAttributeDefault() => DefaultBrightness;
+
+    private static object? GetIndirectBrightnessAttributeDefault() => 1.0f;
+
+    private static object? GetTemperatureAttributeDefault() => DefaultTemperature;
+
+    private static object? GetUsePhysicalValuesAttributeDefault() => false;
+
+    private static object? GetRadiusAttributeDefault() => 0.0f;
+
+    private static object? GetLengthAttributeDefault() => 0.0f;
+
+    private static object? GetRangeAttributeDefault() => DefaultRange;
+
+    private static object? GetSpotFOVAttributeDefault() => DefaultLightFov;
+
+    private static object? GetSpotAspectRatioAttributeDefault() => 1.0f;
+
+    private static object? GetAttenuationTextureAttributeDefault() => new ResourceRef(new StringHash(nameof(Texture2D)));
+
+    private static object? GetLightShapeTextureAttributeDefault() => new ResourceRef(new StringHash(nameof(Texture)));
+
+    private static object? GetCanBeOccludedAttributeDefault() => true;
+
+    private static object? GetCastShadowsAttributeDefault() => false;
+
+    private static object? GetDrawDistanceAttributeDefault() => 0.0f;
+
+    private static object? GetFadeDistanceAttributeDefault() => 0.0f;
+
+    private static object? GetShadowDistanceAttributeDefault() => 0.0f;
+
+    private static object? GetShadowFadeDistanceAttributeDefault() => 0.0f;
+
+    private static object? GetShadowIntensityAttributeDefault() => 0.0f;
+
+    private static object? GetShadowResolutionAttributeDefault() => 1.0f;
+
+    private static object? GetFocusToSceneAttributeDefault() => true;
+
+    private object? GetSerializedFocusToScene()
+    {
+        Serializable self = this;
+        return ((Light)self).GetShadowFocus().Focus;
+    }
+
+    private void SetSerializedFocusToScene(object? value)
+    {
+        Serializable self = this;
+        var light = (Light)self;
+        var parameters = light.GetShadowFocus();
+        parameters.Focus = value is bool enabled && enabled;
+        light.SetShadowFocus(parameters);
+    }
+
+    private static object? GetNonUniformViewAttributeDefault() => true;
+
+    private object? GetSerializedNonUniformView()
+    {
+        Serializable self = this;
+        return ((Light)self).GetShadowFocus().NonUniform;
+    }
+
+    private void SetSerializedNonUniformView(object? value)
+    {
+        Serializable self = this;
+        var light = (Light)self;
+        var parameters = light.GetShadowFocus();
+        parameters.NonUniform = value is bool enabled && enabled;
+        light.SetShadowFocus(parameters);
+    }
+
+    private static object? GetAutoReduceSizeAttributeDefault() => true;
+
+    private object? GetSerializedAutoReduceSize()
+    {
+        Serializable self = this;
+        return ((Light)self).GetShadowFocus().AutoSize;
+    }
+
+    private void SetSerializedAutoReduceSize(object? value)
+    {
+        Serializable self = this;
+        var light = (Light)self;
+        var parameters = light.GetShadowFocus();
+        parameters.AutoSize = value is bool enabled && enabled;
+        light.SetShadowFocus(parameters);
+    }
+
+    private static object? GetCSMSplitsAttributeDefault() => new Vector4f(DefaultShadowSplit, 0.0f, 0.0f, 0.0f);
+
+    private object? GetSerializedCSMSplits()
+    {
+        Serializable self = this;
+        return ((Light)self).GetShadowCascade().Splits;
+    }
+
+    private void SetSerializedCSMSplits(object? value)
+    {
+        Serializable self = this;
+        var light = (Light)self;
+        var parameters = light.GetShadowCascade();
+        parameters.Splits = (Vector4f)value!;
+        light.SetShadowCascade(parameters);
+    }
+
+    private static object? GetCSMFadeStartAttributeDefault() => DefaultShadowFadeStart;
+
+    private object? GetSerializedCSMFadeStart()
+    {
+        Serializable self = this;
+        return ((Light)self).GetShadowCascade().FadeStart;
+    }
+
+    private void SetSerializedCSMFadeStart(object? value)
+    {
+        Serializable self = this;
+        var light = (Light)self;
+        var parameters = light.GetShadowCascade();
+        parameters.FadeStart = (float)value!;
+        light.SetShadowCascade(parameters);
+    }
+
+    private static object? GetCSMBiasAutoAdjustAttributeDefault() => DefaultBiasAutoAdjust;
+
+    private object? GetSerializedCSMBiasAutoAdjust()
+    {
+        Serializable self = this;
+        return ((Light)self).GetShadowCascade().BiasAutoAdjust;
+    }
+
+    private void SetSerializedCSMBiasAutoAdjust(object? value)
+    {
+        Serializable self = this;
+        var light = (Light)self;
+        var parameters = light.GetShadowCascade();
+        parameters.BiasAutoAdjust = (float)value!;
+        light.SetShadowCascade(parameters);
+    }
+
+    private static object? GetViewSizeQuantizeAttributeDefault() => DefaultShadowQuantize;
+
+    private object? GetSerializedViewSizeQuantize()
+    {
+        Serializable self = this;
+        return ((Light)self).GetShadowFocus().Quantize;
+    }
+
+    private void SetSerializedViewSizeQuantize(object? value)
+    {
+        Serializable self = this;
+        var light = (Light)self;
+        var parameters = light.GetShadowFocus();
+        parameters.Quantize = (float)value!;
+        light.SetShadowFocus(parameters);
+    }
+
+    private static object? GetViewSizeMinimumAttributeDefault() => DefaultShadowMinView;
+
+    private object? GetSerializedViewSizeMinimum()
+    {
+        Serializable self = this;
+        return ((Light)self).GetShadowFocus().MinView;
+    }
+
+    private void SetSerializedViewSizeMinimum(object? value)
+    {
+        Serializable self = this;
+        var light = (Light)self;
+        var parameters = light.GetShadowFocus();
+        parameters.MinView = (float)value!;
+        light.SetShadowFocus(parameters);
+    }
+
+    private static object? GetDepthConstantBiasAttributeDefault() => DefaultConstantBias;
+
+    private object? GetSerializedDepthConstantBias()
+    {
+        Serializable self = this;
+        return ((Light)self).GetShadowBias().ConstantBias;
+    }
+
+    private void SetSerializedDepthConstantBias(object? value)
+    {
+        Serializable self = this;
+        var light = (Light)self;
+        var parameters = light.GetShadowBias();
+        parameters.ConstantBias = (float)value!;
+        light.SetShadowBias(parameters);
+    }
+
+    private static object? GetDepthSlopeBiasAttributeDefault() => DefaultSlopeScaledBias;
+
+    private object? GetSerializedDepthSlopeBias()
+    {
+        Serializable self = this;
+        return ((Light)self).GetShadowBias().SlopeScaledBias;
+    }
+
+    private void SetSerializedDepthSlopeBias(object? value)
+    {
+        Serializable self = this;
+        var light = (Light)self;
+        var parameters = light.GetShadowBias();
+        parameters.SlopeScaledBias = (float)value!;
+        light.SetShadowBias(parameters);
+    }
+
+    private static object? GetNormalOffsetAttributeDefault() => DefaultNormalOffset;
+
+    private object? GetSerializedNormalOffset()
+    {
+        Serializable self = this;
+        return ((Light)self).GetShadowBias().NormalOffset;
+    }
+
+    private void SetSerializedNormalOffset(object? value)
+    {
+        Serializable self = this;
+        var light = (Light)self;
+        var parameters = light.GetShadowBias();
+        parameters.NormalOffset = (float)value!;
+        light.SetShadowBias(parameters);
+    }
+
+    private static object? GetNearFarclipRatioAttributeDefault() => DefaultShadowNearFarRatio;
+
+    private static object? GetMaxExtrusionAttributeDefault() => DefaultShadowMaxExtrusion;
+
+    private static object? GetViewMaskAttributeDefault() => DefaultViewMask;
+
+    private static object? GetLightMaskAttributeDefault() => DefaultLightMask;
 }

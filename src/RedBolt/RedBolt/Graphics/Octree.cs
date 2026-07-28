@@ -442,7 +442,29 @@ public sealed class ZoneLookupIndex : IDisposable
     }
 }
 
-public sealed class Octree : Component
+[Reflected(ObjectCategory.Category_Subsystem)]
+[Serialized(
+    "Bounding Box Min",
+    typeof(Vector3f),
+    DefaultSource = nameof(GetBoundingBoxMinAttributeDefault),
+    Getter = nameof(GetSerializedBoundingBoxMin),
+    Setter = nameof(SetSerializedBoundingBoxMin)
+)]
+[Serialized(
+    "Bounding Box Max",
+    typeof(Vector3f),
+    DefaultSource = nameof(GetBoundingBoxMaxAttributeDefault),
+    Getter = nameof(GetSerializedBoundingBoxMax),
+    Setter = nameof(SetSerializedBoundingBoxMax)
+)]
+[Serialized(
+    "Number of Levels",
+    typeof(uint),
+    DefaultSource = nameof(GetNumberOfLevelsAttributeDefault),
+    Getter = nameof(_numLevels),
+    Setter = nameof(SetSerializedNumberOfLevels)
+)]
+public sealed partial class Octree : Component
 {
     private const float DefaultOctreeSize = 1000.0f;
     private const uint DefaultOctreeLevels = 8;
@@ -481,31 +503,8 @@ public sealed class Octree : Component
         if (GetSubsystem<GraphicsSystem>() is null)
             SubscribeToEvent<CoreEvents.RenderUpdateEvent>(HandleRenderUpdate);
 
-        RegisterAttribute(
-            "Bounding Box Min",
-            typeof(Vector3f),
-            self => ((Octree)self)._worldBoundingBox.Min,
-            (self, value) => ((Octree)self).SetSize(new BoundingBox(value is Vector3f min ? min : -Vector3f.One * DefaultOctreeSize, ((Octree)self)._worldBoundingBox.Max), ((Octree)self)._numLevels),
-            -Vector3f.One * DefaultOctreeSize);
-        RegisterAttribute(
-            "Bounding Box Max",
-            typeof(Vector3f),
-            self => ((Octree)self)._worldBoundingBox.Max,
-            (self, value) => ((Octree)self).SetSize(new BoundingBox(((Octree)self)._worldBoundingBox.Min, value is Vector3f max ? max : Vector3f.One * DefaultOctreeSize), ((Octree)self)._numLevels),
-            Vector3f.One * DefaultOctreeSize);
-        RegisterAttribute(
-            "Number of Levels",
-            typeof(uint),
-            self => ((Octree)self)._numLevels,
-            (self, value) => ((Octree)self).SetSize(((Octree)self)._worldBoundingBox, value is uint levels ? levels : DefaultOctreeLevels),
-            DefaultOctreeLevels);
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<Octree>(ObjectCategory.Category_Subsystem);
-    }
 
     public override void Dispose()
     {
@@ -877,4 +876,50 @@ public sealed class Octree : Component
         SetSize(_worldBoundingBox, _numLevels);
     }
 
+
+    private static object? GetBoundingBoxMinAttributeDefault() => -Vector3f.One * DefaultOctreeSize;
+
+    private object? GetSerializedBoundingBoxMin()
+    {
+        Serializable self = this;
+        return ((Octree)self)._worldBoundingBox.Min;
+    }
+
+    private void SetSerializedBoundingBoxMin(object? value)
+    {
+        Serializable self = this;
+        ((Octree)self).SetSize(
+            new BoundingBox(
+                value is Vector3f min ? min : -Vector3f.One * DefaultOctreeSize,
+                ((Octree)self)._worldBoundingBox.Max),
+            ((Octree)self)._numLevels);
+    }
+
+    private static object? GetBoundingBoxMaxAttributeDefault() => Vector3f.One * DefaultOctreeSize;
+
+    private object? GetSerializedBoundingBoxMax()
+    {
+        Serializable self = this;
+        return ((Octree)self)._worldBoundingBox.Max;
+    }
+
+    private void SetSerializedBoundingBoxMax(object? value)
+    {
+        Serializable self = this;
+        ((Octree)self).SetSize(
+            new BoundingBox(
+                ((Octree)self)._worldBoundingBox.Min,
+                value is Vector3f max ? max : Vector3f.One * DefaultOctreeSize),
+            ((Octree)self)._numLevels);
+    }
+
+    private static object? GetNumberOfLevelsAttributeDefault() => DefaultOctreeLevels;
+
+    private void SetSerializedNumberOfLevels(object? value)
+    {
+        Serializable self = this;
+        ((Octree)self).SetSize(
+            ((Octree)self)._worldBoundingBox,
+            value is uint levels ? levels : DefaultOctreeLevels);
+    }
 }

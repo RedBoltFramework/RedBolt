@@ -29,7 +29,55 @@ using RedBolt.Math;
 namespace RedBolt.Scene;
 
 /// <summary>Spline for creating smooth movement based on Speed along a set of Control Points modified by the Interpolation Mode.</summary>
-public class SplinePath : Component
+[Reflected(ObjectCategory.Category_Logic)]
+[Serialized(
+    "Interpolation Mode",
+    typeof(InterpolationMode),
+    DefaultSource = nameof(GetInterpolationModeAttributeDefault),
+    Getter = nameof(InterpolationMode),
+    Setter = nameof(InterpolationMode)
+)]
+[Serialized(
+    "Speed",
+    typeof(float),
+    DefaultSource = nameof(GetSpeedAttributeDefault),
+    Getter = nameof(Speed),
+    Setter = nameof(Speed)
+)]
+[Serialized(
+    "Traveled",
+    typeof(float),
+    DefaultSource = nameof(GetTraveledAttributeDefault),
+    Getter = nameof(_traveled),
+    Mode = AttributeMode.Default | AttributeMode.NoEdit,
+    Setter = nameof(_traveled)
+)]
+[Serialized(
+    "Elapsed Time",
+    typeof(float),
+    DefaultSource = nameof(GetElapsedTimeAttributeDefault),
+    Getter = nameof(_elapsedTime),
+    Mode = AttributeMode.Default | AttributeMode.NoEdit,
+    Setter = nameof(_elapsedTime)
+)]
+[Serialized(
+    "Controlled",
+    typeof(uint),
+    DefaultSource = nameof(GetControlledAttributeDefault),
+    Getter = nameof(ControlledIdAttr),
+    Mode = AttributeMode.Default | AttributeMode.NodeId,
+    Setter = nameof(ControlledIdAttr)
+)]
+[Serialized(
+    "Control Points",
+    typeof(VariantVector),
+    Configure = nameof(ConfigureControlPointsAttribute),
+    DefaultSource = nameof(GetControlPointsAttributeDefault),
+    Getter = nameof(ControlPointIdsAttr),
+    Mode = AttributeMode.Default | AttributeMode.NodeIdVector,
+    Setter = nameof(ControlPointIdsAttr)
+)]
+public partial class SplinePath : Component
 {
     private static readonly StringVector ControlPointsStructureElementNames = new()
     {
@@ -61,51 +109,6 @@ public class SplinePath : Component
     /// <summary>Construct an Empty SplinePath.</summary>
     public SplinePath()
     {
-        RegisterAttribute(
-            "Interpolation Mode",
-            typeof(InterpolationMode),
-            self => ((SplinePath)self).InterpolationMode,
-            (self, value) => ((SplinePath)self).InterpolationMode = value is InterpolationMode typed ? typed : InterpolationMode.BezierCurve,
-            InterpolationMode.BezierCurve);
-        RegisterAttribute(
-            "Speed",
-            typeof(float),
-            self => ((SplinePath)self).Speed,
-            (self, value) => ((SplinePath)self).Speed = value is float typed ? typed : 1.0f,
-            1.0f);
-        RegisterAttribute(
-            "Traveled",
-            typeof(float),
-            self => ((SplinePath)self)._traveled,
-            (self, value) => ((SplinePath)self)._traveled = value is float typed ? typed : 0.0f,
-            0.0f,
-            AttributeMode.Default | AttributeMode.NoEdit);
-        RegisterAttribute(
-            "Elapsed Time",
-            typeof(float),
-            self => ((SplinePath)self)._elapsedTime,
-            (self, value) => ((SplinePath)self)._elapsedTime = value is float typed ? typed : 0.0f,
-            0.0f,
-            AttributeMode.Default | AttributeMode.NoEdit);
-        RegisterAttribute(
-            "Controlled",
-            typeof(uint),
-            self => ((SplinePath)self).ControlledIdAttr,
-            (self, value) => ((SplinePath)self).ControlledIdAttr = value is uint typed ? typed : 0u,
-            0u,
-            AttributeMode.Default | AttributeMode.NodeId);
-        using (var metadata = new Variant(ControlPointsStructureElementNames))
-        {
-            RegisterAttribute(
-                "Control Points",
-                typeof(VariantVector),
-                self => ((SplinePath)self).ControlPointIdsAttr,
-                (self, value) => ((SplinePath)self).ControlPointIdsAttr = (VariantVector)value!,
-                new VariantVector(),
-                AttributeMode.Default | AttributeMode.NodeIdVector)
-                .SetMetadata(AttributeMetadata.VectorStructElements, metadata);
-        }
-
         UpdateNodeIds();
     }
 
@@ -123,12 +126,6 @@ public class SplinePath : Component
         _controlledNode = null;
         _spline.Dispose();
         base.Dispose();
-    }
-
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<SplinePath>(ObjectCategory.Category_Logic);
     }
 
     /// <summary>Apply Attributes to the SplinePath.</summary>
@@ -456,5 +453,23 @@ public class SplinePath : Component
             _length += SystemMath.Abs((a - b).Length);
             a = b;
         }
+    }
+
+    private static object? GetInterpolationModeAttributeDefault() => InterpolationMode.BezierCurve;
+
+    private static object? GetSpeedAttributeDefault() => 1.0f;
+
+    private static object? GetTraveledAttributeDefault() => 0.0f;
+
+    private static object? GetElapsedTimeAttributeDefault() => 0.0f;
+
+    private static object? GetControlledAttributeDefault() => 0u;
+
+    private static object? GetControlPointsAttributeDefault() => new VariantVector();
+
+    private static void ConfigureControlPointsAttribute(AttributeHandle attribute)
+    {
+        using var metadata = new Variant(ControlPointsStructureElementNames);
+        attribute.SetMetadata(AttributeMetadata.VectorStructElements, metadata);
     }
 }

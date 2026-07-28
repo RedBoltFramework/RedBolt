@@ -92,7 +92,8 @@ public struct TextureFrame : IEquatable<TextureFrame>
 }
 
 /// <summary>Particle effect definition.</summary>
-public class ParticleEffect : ResourceType
+[Reflected]
+public partial class ParticleEffect : ResourceType
 {
     public const uint DefaultNumParticles = 10;
 
@@ -128,11 +129,6 @@ public class ParticleEffect : ResourceType
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<ParticleEffect>();
-    }
 
     /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
     public override bool BeginLoad(Deserializer source)

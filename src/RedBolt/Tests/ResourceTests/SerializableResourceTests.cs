@@ -47,7 +47,6 @@ public sealed class SerializableResourceTests
     {
         var previousContext = Context.Instance;
         var context = new Context();
-        context.AddFactoryReflection<Camera>();
         Context.SetInstance(context);
 
         try

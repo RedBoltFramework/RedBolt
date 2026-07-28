@@ -4,8 +4,19 @@ using RedBolt.Scene;
 namespace RedBolt.Tests;
 
 [Reflected("Tests")]
+[Serialized(
+    "Named Field",
+    typeof(int),
+    DefaultSource = nameof(_namedField),
+    EnumNamesSource = nameof(NamedFieldNames),
+    Getter = nameof(_namedField),
+    Setter = nameof(_namedField))]
 public partial class GeneratedReflectionObject : Serializable
 {
+    private static readonly string[] NamedFieldNames = ["Zero", "One"];
+
+    private int _namedField = 1;
+
     [Serialized("Field")]
     private int _field = 42;
 
@@ -53,8 +64,25 @@ public partial class GeneratedReflectionFromManualBase : ManualReflectionBase
 {
 }
 
-public sealed class GeneratedReflectionTests
+[Reflected("Tests", Factory = false)]
+public partial class GeneratedReflectionWithoutFactory : Serializable
 {
+}
+
+public sealed partial class GeneratedReflectionTests
+{
+    [Reflected("Tests")]
+    private partial class GeneratedNestedBase : Serializable
+    {
+        [Serialized("Nested Value")]
+        public int NestedValue { get; set; } = 9;
+    }
+
+    [Reflected("Tests")]
+    private sealed partial class GeneratedNestedDerived : GeneratedNestedBase
+    {
+    }
+
     [Fact]
     public void Generated_reflection_registers_user_assembly_and_initializer_defaults()
     {
@@ -66,17 +94,44 @@ public sealed class GeneratedReflectionTests
         {
             var reflection = context.GetReflection<GeneratedReflectionObject>();
             var instance = Assert.IsType<GeneratedReflectionObject>(reflection.CreateObject());
+            var withoutFactory = context.GetReflection<GeneratedReflectionWithoutFactory>();
 
             Assert.Equal("Tests", reflection.Category);
+            Assert.False(withoutFactory.HasObjectFactory());
+            Assert.Null(withoutFactory.CreateObject());
+            Assert.Equal(1, reflection.GetAttribute("Named Field").Accessor!.GetObject(instance));
             Assert.Equal(42, instance.Field);
             Assert.Equal("initial", instance.Property);
             Assert.Equal(17, instance.Custom);
+            Assert.Equal(1, reflection.GetAttribute("Named Field").DefaultValue.GetInt());
+            Assert.Equal(["Zero", "One"], reflection.GetAttribute("Named Field").EnumNames);
             Assert.Equal(42, reflection.GetAttribute("Field").DefaultValue.GetInt());
             Assert.Equal("initial", reflection.GetAttribute("Property").DefaultValue.GetString());
             Assert.Equal(17, reflection.GetAttribute("Custom").DefaultValue.GetInt());
 
             context.RegisterAssembly(typeof(GeneratedReflectionObject).Assembly);
-            Assert.Equal(3u, reflection.NumAttributes);
+            Assert.Equal(4u, reflection.NumAttributes);
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+    }
+
+    [Fact]
+    public void Generated_reflection_registers_private_nested_inheritance_in_order()
+    {
+        var previousContext = Context.Instance;
+        using var context = new Context();
+        Context.SetInstance(context);
+
+        try
+        {
+            var reflection = context.GetReflection<GeneratedNestedDerived>();
+            using var instance = Assert.IsType<GeneratedNestedDerived>(reflection.CreateObject());
+
+            Assert.Equal(9, reflection.GetAttribute("Nested Value").DefaultValue.GetInt());
+            Assert.Equal(9, instance.NestedValue);
         }
         finally
         {

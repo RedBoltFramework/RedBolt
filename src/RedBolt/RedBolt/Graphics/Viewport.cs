@@ -8,7 +8,8 @@ using SceneType = global::RedBolt.Scene.Scene;
 namespace RedBolt.Graphics;
 
 /// <summary>Viewport definition either for a render surface or the backbuffer.</summary>
-public class Viewport : RedObject
+[Reflected]
+public partial class Viewport : RedObject
 {
     /// <summary>Scene pointer.</summary>
     private readonly WeakReference<SceneType> _scene = new(null!);
@@ -83,11 +84,6 @@ public class Viewport : RedObject
         base.Dispose();
     }
 
-    /// <summary>Register object with the engine.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<Viewport>();
-    }
 
     /// <summary>Set scene.</summary>
     public void SetScene(SceneType? scene)

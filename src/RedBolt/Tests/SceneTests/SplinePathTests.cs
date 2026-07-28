@@ -8,11 +8,6 @@ namespace RedBolt.Tests;
 
 public sealed class SplinePathTests
 {
-    public SplinePathTests()
-    {
-        TestTypeRegistration.RegisterFactory<SplinePath>();
-    }
-
     [Fact]
     public void Spline_class_kind_and_owned_knot_lifetimes_match_cpp()
     {

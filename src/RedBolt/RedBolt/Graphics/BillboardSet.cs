@@ -40,7 +40,15 @@ public struct Billboard
 }
 
 /// <summary>Billboard component.</summary>
-public class BillboardSet : Drawable
+[Reflected(ObjectCategory.Category_Geometry)]
+[Serialized(
+    "Is Enabled",
+    typeof(bool),
+    DefaultSource = nameof(GetIsEnabledAttributeDefault),
+    Getter = nameof(Enabled),
+    Setter = nameof(SetEnabled)
+)]
+public partial class BillboardSet : Drawable
 {
     private static readonly float InvSqrtTwo = 1.0f / MathF.Sqrt(2.0f);
 
@@ -108,8 +116,6 @@ public class BillboardSet : Drawable
         : base(DrawableFlags.Geometry)
     {
         _compareBillboards = CompareBillboards;
-        RegisterAttribute("Is Enabled", typeof(bool), self => ((BillboardSet)self).Enabled,
-            (self, value) => ((BillboardSet)self).SetEnabled(value is bool enabled && enabled), true);
 
         _geometry.SetVertexBuffer(0, _vertexBuffer);
         _geometry.SetIndexBuffer(_indexBuffer);
@@ -136,11 +142,6 @@ public class BillboardSet : Drawable
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public new static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<BillboardSet>(ObjectCategory.Category_Geometry);
-    }
 
     /// <summary>Process octree raycast. May be called from a worker thread.</summary>
     public override void ProcessRayQuery(RayOctreeQuery query, List<RayQueryResult> results)
@@ -928,4 +929,6 @@ public class BillboardSet : Drawable
             _worldBoundingBoxDirty = true;
         }
     }
+
+    private static object? GetIsEnabledAttributeDefault() => true;
 }

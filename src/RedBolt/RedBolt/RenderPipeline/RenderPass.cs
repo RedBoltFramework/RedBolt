@@ -22,7 +22,29 @@ public readonly record struct RenderPassTraits(
 /// <summary>
 /// Render pass, component of render path.
 /// </summary>
-public abstract class RenderPass : Serializable
+[Reflected]
+[Serialized(
+    "Pass Name",
+    typeof(string),
+    DefaultSource = nameof(GetPassNameAttributeDefault),
+    Getter = nameof(_passName),
+    Setter = nameof(_passName)
+)]
+[Serialized(
+    "Is Enabled By Default",
+    typeof(bool),
+    DefaultSource = nameof(GetIsEnabledByDefaultAttributeDefault),
+    Getter = nameof(_enabledByDefault),
+    Setter = nameof(_enabledByDefault)
+)]
+[Serialized(
+    "Comment",
+    typeof(string),
+    DefaultSource = nameof(GetCommentAttributeDefault),
+    Getter = nameof(_comment),
+    Setter = nameof(_comment)
+)]
+public abstract partial class RenderPass : Serializable
 {
     protected string _passName = string.Empty;
     protected bool _enabledByDefault = true;
@@ -33,24 +55,6 @@ public abstract class RenderPass : Serializable
 
     public RenderPass()
     {
-        RegisterAttribute(
-            "Pass Name",
-            typeof(string),
-            self => ((RenderPass)self)._passName,
-            (self, value) => ((RenderPass)self)._passName = value as string ?? string.Empty,
-            string.Empty);
-        RegisterAttribute(
-            "Is Enabled By Default",
-            typeof(bool),
-            self => ((RenderPass)self)._enabledByDefault,
-            (self, value) => ((RenderPass)self)._enabledByDefault = value is bool enabled && enabled,
-            true);
-        RegisterAttribute(
-            "Comment",
-            typeof(string),
-            self => ((RenderPass)self)._comment,
-            (self, value) => ((RenderPass)self)._comment = value as string ?? string.Empty,
-            string.Empty);
     }
 
     public override void Dispose()
@@ -58,10 +62,6 @@ public abstract class RenderPass : Serializable
         base.Dispose();
     }
 
-    public static void RegisterObject(Context context)
-    {
-        context.AddAbstractReflection<RenderPass>();
-    }
 
     /// <summary>
     /// Return unique pass name.
@@ -162,4 +162,10 @@ public abstract class RenderPass : Serializable
             renderBuffer = new WeakReference<RenderBuffer>(value);
         }
     }
+
+    private static object? GetPassNameAttributeDefault() => string.Empty;
+
+    private static object? GetIsEnabledByDefaultAttributeDefault() => true;
+
+    private static object? GetCommentAttributeDefault() => string.Empty;
 }

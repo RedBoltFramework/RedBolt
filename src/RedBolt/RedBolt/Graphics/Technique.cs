@@ -376,7 +376,8 @@ public class Pass : PipelineStateTracker
 }
 
 /// <summary>Material technique. Consists of several passes.</summary>
-public class Technique : ResourceType
+[Reflected]
+public partial class Technique : ResourceType
 {
     /// <summary>Construct.</summary>
     public Technique()
@@ -395,12 +396,6 @@ public class Technique : ResourceType
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        var reflection = context.AddReflection<Technique>();
-        reflection.SetObjectFactory(static () => new Technique());
-    }
 
     /// <summary>Index for base pass. Initialized once GetPassIndex() has been called for the first time.</summary>
     public static int BasePassIndex;

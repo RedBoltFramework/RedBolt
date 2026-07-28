@@ -5,7 +5,7 @@ using RedBolt.Scene;
 
 namespace RedBolt.Tests;
 
-public sealed class ObjectReflectionTests
+public sealed partial class ObjectReflectionTests
 {
     private class BaseObject : RedObject
     {
@@ -15,7 +15,8 @@ public sealed class ObjectReflectionTests
     {
     }
 
-    private sealed class FactoryObject : RedObject
+    [Reflected("Core")]
+    private sealed partial class FactoryObject : RedObject
     {
     }
 
@@ -51,8 +52,9 @@ public sealed class ObjectReflectionTests
     [Fact]
     public void Registry_manages_factories_categories_and_attributes()
     {
-        var registry = new ObjectReflectionRegistry();
-        var reflection = registry.AddFactoryReflection<FactoryObject>("Core");
+        var registry = new Context();
+        registry.RegisterAttributedType<FactoryObject>();
+        var reflection = registry.GetReflection<FactoryObject>();
         var attribute = new AttributeInfo("Value", typeof(int), 1);
 
         reflection.AddAttribute(attribute).SetScopeHint(AttributeScopeHint.Node);
@@ -148,7 +150,6 @@ public sealed class ObjectReflectionTests
         Context.SetInstance(context);
         try
         {
-            context.AddFactoryReflection<FactoryObject>("Core");
             var value = new FactoryObject();
 
             Assert.Equal(typeof(FactoryObject).GetClassName(), value.GetTypeName());

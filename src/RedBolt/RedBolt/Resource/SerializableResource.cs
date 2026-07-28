@@ -16,10 +16,6 @@ public partial class SerializableResource : SimpleResource
     {
     }
 
-    public static void RegisterObject(Context context)
-    {
-        context.RegisterAttributedType<SerializableResource>();
-    }
 
     /// <summary>Destruct.</summary>
     public override void Dispose()

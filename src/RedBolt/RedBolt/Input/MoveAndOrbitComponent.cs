@@ -4,7 +4,8 @@ using RedBolt.Scene;
 
 namespace RedBolt.Input;
 
-public class MoveAndOrbitComponent : LogicComponent
+[Reflected(ObjectCategory.Category_Logic)]
+public partial class MoveAndOrbitComponent : LogicComponent
 {
     private Vector3f _velocity = Vector3f.Zero;
     private float _yaw;
@@ -17,11 +18,6 @@ public class MoveAndOrbitComponent : LogicComponent
     {
     }
 
-    /// <summary>Register object factory and attributes.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<MoveAndOrbitComponent>(ObjectCategory.Category_Logic);
-    }
 
     /// <summary>Handle scene node being assigned at creation.</summary>
     protected override void OnNodeSet(Node? previousNode, Node? currentNode)

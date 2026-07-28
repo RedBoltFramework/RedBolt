@@ -172,16 +172,7 @@ public class InputSystem : RedObject
 {
     public static void RegisterInputLibrary(Context context)
     {
-        InputMap.RegisterObject(context);
-        FreeFlyController.RegisterObject(context);
-        MoveAndOrbitComponent.RegisterObject(context);
-        MoveAndOrbitController.RegisterObject(context);
-        var reflection = context.AddFactoryReflection<PointerAdapter>();
-        reflection.SetObjectFactory(static () => new PointerAdapter());
-        reflection = context.AddFactoryReflection<DirectionAggregator>();
-        reflection.SetObjectFactory(static () => new DirectionAggregator());
-        reflection = context.AddFactoryReflection<DirectionalPadAdapter>();
-        reflection.SetObjectFactory(static () => new DirectionalPadAdapter());
+        context.RegisterAssembly(typeof(InputSystem).Assembly);
     }
 
     private const uint SdlInitVideo = 0x00000020u;

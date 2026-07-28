@@ -7,7 +7,17 @@ using SceneType = global::RedBolt.Scene.Scene;
 namespace RedBolt.Graphics;
 
 /// <summary>Renders several object instances while culling and receiving light as one unit. Can be used as a CPU-side optimization, but note that also regular StaticModels will use instanced rendering if possible.</summary>
-public class StaticModelGroup : StaticModel
+[Reflected(ObjectCategory.Category_Geometry)]
+[Serialized(
+    "Instance Nodes",
+    typeof(VariantVector),
+    Configure = nameof(ConfigureInstanceNodesAttribute),
+    DefaultSource = nameof(GetInstanceNodesAttributeDefault),
+    Getter = nameof(GetNodeIDsAttr),
+    Mode = AttributeMode.Default | AttributeMode.NodeIdVector,
+    Setter = nameof(SetNodeIDsAttr)
+)]
+public partial class StaticModelGroup : StaticModel
 {
     private static readonly StringVector InstanceNodesStructureElementNames = new()
     {
@@ -22,18 +32,6 @@ public class StaticModelGroup : StaticModel
     {
         // Initialize the default node IDs attribute
         UpdateNodeIDs();
-
-        using (var metadata = new Variant(InstanceNodesStructureElementNames))
-        {
-            RegisterAttribute(
-                "Instance Nodes",
-                typeof(VariantVector),
-                self => ((StaticModelGroup)self).GetNodeIDsAttr(),
-                (self, value) => ((StaticModelGroup)self).SetNodeIDsAttr((VariantVector)value!),
-                new VariantVector(),
-                AttributeMode.Default | AttributeMode.NodeIdVector)
-                .SetMetadata(AttributeMetadata.VectorStructElements, metadata);
-        }
     }
 
     /// <summary>Destruct.</summary>
@@ -48,13 +46,6 @@ public class StaticModelGroup : StaticModel
         }
         _instanceNodes.Clear();
         base.Dispose();
-    }
-
-    /// <summary>Register object factory. StaticModel must be registered first.</summary>
-    public new static void RegisterObject(Context context)
-    {
-        var reflection = context.AddFactoryReflection<StaticModelGroup>(ObjectCategory.Category_Geometry);
-        reflection.SetObjectFactory(static () => new StaticModelGroup());
     }
 
     /// <summary>Apply attribute changes that can not be applied immediately. Called after scene load or a network update.</summary>
@@ -448,4 +439,12 @@ public class StaticModelGroup : StaticModel
     private bool _nodesDirty;
     /// <summary>Whether nodes have been manipulated by the API and node ID attribute should be refreshed.</summary>
     private bool _nodeIdsDirty;
+
+    private static object? GetInstanceNodesAttributeDefault() => new VariantVector();
+
+    private static void ConfigureInstanceNodesAttribute(AttributeHandle attribute)
+    {
+        using var metadata = new Variant(InstanceNodesStructureElementNames);
+        attribute.SetMetadata(AttributeMetadata.VectorStructElements, metadata);
+    }
 }

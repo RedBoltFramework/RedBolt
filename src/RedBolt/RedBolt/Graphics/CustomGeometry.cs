@@ -21,7 +21,15 @@ public struct CustomGeometryVertex
     public Vector4f Tangent;
 }
 
-public sealed class CustomGeometry : Drawable
+[Reflected(ObjectCategory.Category_Geometry)]
+[Serialized(
+    "Is Enabled",
+    typeof(bool),
+    DefaultSource = nameof(GetIsEnabledAttributeDefault),
+    Getter = nameof(Enabled),
+    Setter = nameof(SetEnabled)
+)]
+public sealed partial class CustomGeometry : Drawable
 {
     private const uint MaskPosition = (uint)VertexMask.Position;
     private const uint MaskNormal = (uint)VertexMask.Normal;
@@ -40,19 +48,12 @@ public sealed class CustomGeometry : Drawable
     public CustomGeometry()
         : base(DrawableFlags.Geometry)
     {
-        RegisterAttribute("Is Enabled", typeof(bool), self => ((CustomGeometry)self).Enabled,
-            (self, value) => ((CustomGeometry)self).SetEnabled(value is bool enabled && enabled), true);
 
         _vertexBuffer.SetDebugName("CustomGeometry Geometry");
         _vertexBuffer.SetShadowed(true);
         SetNumGeometries(1u);
     }
 
-    /// <summary>Register object factory.</summary>
-    public new static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<CustomGeometry>(ObjectCategory.Category_Geometry);
-    }
 
     public override void Dispose()
     {
@@ -539,4 +540,6 @@ public sealed class CustomGeometry : Drawable
         box.Clear();
         return box;
     }
+
+    private static object? GetIsEnabledAttributeDefault() => true;
 }

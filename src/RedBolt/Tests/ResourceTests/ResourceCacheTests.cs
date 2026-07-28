@@ -267,9 +267,6 @@ public sealed class ResourceCacheTests
         var tempDir = CreateTempDir();
         try
         {
-            if (!Context.Instance.IsReflected<FailedResource>())
-                Context.Instance.AddFactoryReflection<FailedResource>();
-
             System.IO.File.WriteAllText(Path.Combine(tempDir, "Data", "background-failure.dat"), "failure");
             Resources.AddResourceDir(tempDir);
             Resources.SetReturnFailedResources(false);
@@ -324,9 +321,6 @@ public sealed class ResourceCacheTests
     [Fact]
     public void BackgroundLoader_dispose_clears_queue_before_waiting_for_loads()
     {
-        if (!Context.Instance.IsReflected<BlockingBackgroundResource>())
-            Context.Instance.AddFactoryReflection<BlockingBackgroundResource>();
-
         var tempDir = CreateTempDir();
         var loader = new BackgroundLoader(Resources);
         BlockingBackgroundResource.Reset();
@@ -732,7 +726,8 @@ internal sealed class ReentrantRouter(ResourceCache cache) : ResourceRouter
     }
 }
 
-public sealed class FailedResource : ResourceType
+[Reflected]
+public sealed partial class FailedResource : ResourceType
 {
     public FailedResource()
     {
@@ -750,7 +745,8 @@ public sealed class UnregisteredBackgroundResource : ResourceType
 {
 }
 
-public sealed class BlockingBackgroundResource : ResourceType
+[Reflected]
+public sealed partial class BlockingBackgroundResource : ResourceType
 {
     private static int _numCreated;
 

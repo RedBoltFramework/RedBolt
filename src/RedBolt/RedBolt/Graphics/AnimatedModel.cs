@@ -15,7 +15,8 @@ using RedBolt.Scene;
 namespace RedBolt.Graphics;
 
 /// <summary>Animated model component.</summary>
-public class AnimatedModel : StaticModel
+[Reflected(ObjectCategory.Category_Geometry)]
+public partial class AnimatedModel : StaticModel
 {
     /// <summary>Construct.</summary>
     public AnimatedModel()
@@ -49,11 +50,6 @@ public class AnimatedModel : StaticModel
         base.Dispose();
     }
 
-    /// <summary>Register object factory. Drawable must be registered first.</summary>
-    public new static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<AnimatedModel>(ObjectCategory.Category_Geometry);
-    }
 
     /// <summary>Apply attribute changes that can not be applied immediately. Called after scene load or a network update.</summary>
     public override void ApplyAttributes()

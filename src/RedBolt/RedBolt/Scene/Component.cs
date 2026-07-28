@@ -15,7 +15,8 @@ public enum AutoRemoveMode
 }
 
 /// <summary>Base class for components. Components can be created to scene nodes.</summary>
-public class Component : Serializable
+[Reflected(ObjectCategory.Category_Scene, Factory = false)]
+public partial class Component : Serializable
 {
     /// <summary>Construct.</summary>
     public Component()

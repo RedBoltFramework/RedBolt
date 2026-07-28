@@ -6,13 +6,8 @@ using SceneType = global::RedBolt.Scene.Scene;
 
 namespace RedBolt.Tests;
 
-public sealed class SceneResolverTests
+public sealed partial class SceneResolverTests
 {
-    public SceneResolverTests()
-    {
-        TestTypeRegistration.RegisterFactory<ResolverProbe>();
-    }
-
     [Fact]
     public void Resolve_rewrites_node_component_and_node_vector_ids()
     {
@@ -73,48 +68,47 @@ public sealed class SceneResolverTests
         return new WeakReference<ResolverProbe>(component);
     }
 
-    private sealed class ResolverProbe : Component
+    [Reflected]
+    [Serialized(
+        "Node ID",
+        typeof(uint),
+        DefaultSource = nameof(_nodeId),
+        Getter = nameof(_nodeId),
+        Mode = AttributeMode.NodeId,
+        Setter = nameof(_nodeId))]
+    [Serialized(
+        "Component ID",
+        typeof(uint),
+        DefaultSource = nameof(_componentId),
+        Getter = nameof(_componentId),
+        Mode = AttributeMode.ComponentId,
+        Setter = nameof(_componentId))]
+    [Serialized(
+        "Node IDs",
+        typeof(VariantVector),
+        DefaultSource = nameof(GetNodeIdsDefault),
+        Getter = nameof(_nodeIds),
+        Mode = AttributeMode.NodeIdVector,
+        Setter = nameof(SetNodeIds))]
+    private sealed partial class ResolverProbe : Component
     {
         private uint _nodeId;
         private uint _componentId;
         private VariantVector _nodeIds = [];
-
-        public ResolverProbe()
-        {
-            RegisterAttribute(
-                "Node ID",
-                typeof(uint),
-                self => ((ResolverProbe)self)._nodeId,
-                (self, value) => ((ResolverProbe)self)._nodeId = value is uint id ? id : 0u,
-                0u,
-                AttributeMode.NodeId);
-            RegisterAttribute(
-                "Component ID",
-                typeof(uint),
-                self => ((ResolverProbe)self)._componentId,
-                (self, value) => ((ResolverProbe)self)._componentId = value is uint id ? id : 0u,
-                0u,
-                AttributeMode.ComponentId);
-            RegisterAttribute(
-                "Node IDs",
-                typeof(VariantVector),
-                self => ((ResolverProbe)self)._nodeIds,
-                (self, value) =>
-                {
-                    var probe = (ResolverProbe)self;
-                    var nodeIds = value as VariantVector ?? [];
-                    probe._nodeIds.Dispose();
-                    probe._nodeIds = new VariantVector(nodeIds);
-                },
-                new VariantVector(),
-                AttributeMode.NodeIdVector);
-        }
 
         public uint NodeId => _nodeId;
 
         public uint ComponentId => _componentId;
 
         public VariantVector NodeIds => _nodeIds;
+
+        private static VariantVector GetNodeIdsDefault() => [];
+
+        private void SetNodeIds(VariantVector value)
+        {
+            _nodeIds.Dispose();
+            _nodeIds = new VariantVector(value);
+        }
 
         public override void Dispose()
         {

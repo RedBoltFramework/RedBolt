@@ -8,7 +8,8 @@ using ResourceType = global::RedBolt.Resource.Resource;
 namespace RedBolt.Scene;
 
 /// <summary>Object animation class, an object animation include one or more attribute animations and theirs wrap mode and speed for an Animatable object.</summary>
-public class ObjectAnimation : ResourceType
+[Reflected]
+public partial class ObjectAnimation : ResourceType
 {
     private readonly Dictionary<string, ValueAnimationInfo> _attributeAnimationInfos = new(StringComparer.Ordinal);
 
@@ -24,11 +25,6 @@ public class ObjectAnimation : ResourceType
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<ObjectAnimation>();
-    }
 
     /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
     public override bool BeginLoad(Deserializer source)

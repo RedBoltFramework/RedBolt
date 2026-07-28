@@ -28,11 +28,6 @@ public partial class XMLFile : Resource
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.RegisterAttributedType<XMLFile>();
-    }
 
     /// <summary>Load resource from stream. May be called from a worker thread. Return true if successful.</summary>
     public override bool BeginLoad(Deserializer source)

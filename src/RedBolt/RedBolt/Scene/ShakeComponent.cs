@@ -12,7 +12,50 @@ namespace RedBolt.Scene;
 /// Math for Game Programmers: Juicing Your Cameras With Math by Squirrel Eiserloh
 /// https://www.gdcvault.com/play/1033548/Math-for-Game-Programmers-Juicing
 /// </summary>
-public class ShakeComponent : LogicComponent
+[Reflected(ObjectCategory.Category_Scene)]
+[Serialized(
+    "Trauma",
+    typeof(float),
+    DefaultSource = nameof(GetTraumaAttributeDefault),
+    Getter = nameof(Trauma),
+    Setter = nameof(Trauma)
+)]
+[Serialized(
+    "Trauma Power",
+    typeof(float),
+    DefaultSource = nameof(GetTraumaPowerAttributeDefault),
+    Getter = nameof(TraumaPower),
+    Setter = nameof(TraumaPower)
+)]
+[Serialized(
+    "Trauma Falloff",
+    typeof(float),
+    DefaultSource = nameof(GetTraumaFalloffAttributeDefault),
+    Getter = nameof(_traumaFalloff),
+    Setter = nameof(_traumaFalloff)
+)]
+[Serialized(
+    "Time Scale",
+    typeof(float),
+    DefaultSource = nameof(GetTimeScaleAttributeDefault),
+    Getter = nameof(TimeScale),
+    Setter = nameof(TimeScale)
+)]
+[Serialized(
+    "Shift Range",
+    typeof(Vector3f),
+    DefaultSource = nameof(GetShiftRangeAttributeDefault),
+    Getter = nameof(ShiftRange),
+    Setter = nameof(ShiftRange)
+)]
+[Serialized(
+    "Rotation Range",
+    typeof(Vector3f),
+    DefaultSource = nameof(GetRotationRangeAttributeDefault),
+    Getter = nameof(RotationRange),
+    Setter = nameof(RotationRange)
+)]
+public partial class ShakeComponent : LogicComponent
 {
     public const float DefaultTimeScale = 16.0f;
 
@@ -27,12 +70,6 @@ public class ShakeComponent : LogicComponent
 
         SetUpdateEventMask(UpdateEvent.UseNoEvent);
 
-        RegisterAttribute("Trauma", typeof(float), self => ((ShakeComponent)self).Trauma, (self, value) => ((ShakeComponent)self).Trauma = value is float typed ? typed : 0.0f, 0.0f);
-        RegisterAttribute("Trauma Power", typeof(float), self => ((ShakeComponent)self).TraumaPower, (self, value) => ((ShakeComponent)self).TraumaPower = value is float typed ? typed : 2.0f, 2.0f);
-        RegisterAttribute("Trauma Falloff", typeof(float), self => ((ShakeComponent)self)._traumaFalloff, (self, value) => ((ShakeComponent)self)._traumaFalloff = value is float typed ? typed : 1.0f, 1.0f);
-        RegisterAttribute("Time Scale", typeof(float), self => ((ShakeComponent)self).TimeScale, (self, value) => ((ShakeComponent)self).TimeScale = value is float typed ? typed : DefaultTimeScale, DefaultTimeScale);
-        RegisterAttribute("Shift Range", typeof(Vector3f), self => ((ShakeComponent)self).ShiftRange, (self, value) => ((ShakeComponent)self).ShiftRange = value is Vector3f typed ? typed : Vector3f.Zero, Vector3f.Zero);
-        RegisterAttribute("Rotation Range", typeof(Vector3f), self => ((ShakeComponent)self).RotationRange, (self, value) => ((ShakeComponent)self).RotationRange = value is Vector3f typed ? typed : Vector3f.Zero, Vector3f.Zero);
     }
 
     /// <summary>Destruct.</summary>
@@ -41,11 +78,6 @@ public class ShakeComponent : LogicComponent
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<ShakeComponent>(ObjectCategory.Category_Scene);
-    }
 
     /// <summary>Set or get time scale. This is a multiplier for Perlin Noise argument.</summary>
     public float TimeScale { get; set; }
@@ -168,4 +200,16 @@ public class ShakeComponent : LogicComponent
     private Vector3f _lastKnownPosition = Vector3f.Zero;
     /// <summary>Last known rotation of the node.</summary>
     private Quaternion _lastKnownRotation = Quaternion.IDENTITY;
+
+    private static object? GetTraumaAttributeDefault() => 0.0f;
+
+    private static object? GetTraumaPowerAttributeDefault() => 2.0f;
+
+    private static object? GetTraumaFalloffAttributeDefault() => 1.0f;
+
+    private static object? GetTimeScaleAttributeDefault() => DefaultTimeScale;
+
+    private static object? GetShiftRangeAttributeDefault() => Vector3f.Zero;
+
+    private static object? GetRotationRangeAttributeDefault() => Vector3f.Zero;
 }

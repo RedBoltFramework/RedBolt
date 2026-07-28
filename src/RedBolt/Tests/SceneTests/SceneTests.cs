@@ -554,11 +554,11 @@ public sealed class SceneTests
     }
 
     [Fact]
-    public void RegisterObject_adds_scene_factory_reflection()
+    public void Reflected_attribute_adds_scene_factory_reflection()
     {
         var context = new Context();
 
-        SceneType.RegisterObject(context);
+        context.RegisterAttributedType<SceneType>();
 
         Assert.True(context.IsReflected<SceneType>());
         using var created = Assert.IsType<SceneType>(context.CreateObject(ObjectReflection<SceneType>.TypeId));

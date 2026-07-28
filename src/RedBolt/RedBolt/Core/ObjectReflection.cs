@@ -219,15 +219,6 @@ public class ObjectReflectionRegistry : IDisposable
         return reflection;
     }
 
-    public ObjectReflection AddFactoryReflection<T>(string category = "") where T : RedObject, new()
-    {
-        var reflection = AddReflection<T>(category);
-        reflection.SetObjectFactory(static () => new T());
-        return reflection;
-    }
-
-    public ObjectReflection AddAbstractReflection<T>(string category = "") where T : RedObject => AddReflection<T>(category);
-
     public ObjectReflection AddGeneratedReflection(Type type, string category, Func<RedObject>? factory)
     {
         ArgumentNullException.ThrowIfNull(type);

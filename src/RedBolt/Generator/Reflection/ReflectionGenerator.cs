@@ -99,13 +99,13 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
     {
         var reflectedAttribute = GetAttribute(type, ReflectedAttributeName)!;
         var category = GetConstructorString(reflectedAttribute, 0) ?? string.Empty;
-        var factory = GetNamedString(reflectedAttribute, "Factory");
+        var factory = GetNamedBool(reflectedAttribute, "Factory", true);
         var inheritAttributes = GetNamedBool(reflectedAttribute, "InheritAttributes", true);
         var attributes = GetSerializedMembers(type);
         var builder = new StringBuilder();
         AppendHeader(builder, type);
         builder.Append("    internal ");
-        if (type.BaseType is not null && GetAttribute(type.BaseType, ReflectedAttributeName) is not null)
+        if (HasAccessibleGeneratedBase(type))
             builder.Append("new ");
         builder.AppendLine("static void __RegisterGeneratedReflection(global::RedBolt.Core.Context context)");
         builder.AppendLine("    {");
@@ -127,10 +127,8 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
             .Append("), ")
             .Append(ToLiteral(category))
             .Append(", ");
-        if (type.IsAbstract)
+        if (type.IsAbstract || !factory)
             builder.Append("null");
-        else if (!string.IsNullOrEmpty(factory))
-            builder.Append("static () => ").Append(factory).Append("()");
         else
             builder.Append("static () => new ").Append(type.Name).Append("()");
         builder.AppendLine(");");
@@ -194,7 +192,8 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
 
         var mode = GetNamedEnum(attribute, "Mode", 65);
         var scopeHint = GetNamedEnum(attribute, "ScopeHint", 0);
-        var enumNames = GetNamedStringArray(attribute, "EnumNames");
+        var enumNames = GetNamedStringArray(type, attribute, "EnumNames", "EnumNamesSource");
+        var accessorFactory = GetNamedString(attribute, "AccessorFactory");
         var accessorType = GetNamedType(attribute, "AccessorType");
         var getter = GetNamedString(attribute, "Getter");
         var setter = GetNamedString(attribute, "Setter");
@@ -210,7 +209,11 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
             .Append(index).Append(", (global::RedBolt.Core.AttributeMode)").Append(mode).Append(", ")
             .Append(enumNames).Append(", ");
 
-        if (accessorType is not null)
+        if (!string.IsNullOrEmpty(accessorFactory))
+        {
+            builder.Append(accessorFactory).Append("()");
+        }
+        else if (accessorType is not null)
         {
             builder.Append("new ")
                 .Append(accessorType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
@@ -238,7 +241,14 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
     {
         var typeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         if (!string.IsNullOrEmpty(getter))
-            return "static self => ((" + typeName + ")self)." + getter + "()";
+        {
+            return FindMember(type, getter!) switch
+            {
+                IFieldSymbol field => "static self => ((" + typeName + ")self)." + field.Name,
+                IPropertySymbol property => "static self => ((" + typeName + ")self)." + property.Name,
+                _ => "static self => ((" + typeName + ")self)." + getter + "()"
+            };
+        }
         return symbol switch
         {
             IFieldSymbol field => "static self => ((" + typeName + ")self)." + field.Name,
@@ -252,7 +262,19 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
     {
         var typeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         if (!string.IsNullOrEmpty(setter))
-            return "static (self, value) => ((" + typeName + ")self)." + setter + "((" + valueTypeName + ")value!)";
+        {
+            return FindMember(type, setter!) switch
+            {
+                IFieldSymbol field when !field.IsReadOnly =>
+                    "static (self, value) => ((" + typeName + ")self)." + field.Name + " = (" + valueTypeName + ")value!",
+                IPropertySymbol property when property.SetMethod is not null =>
+                    "static (self, value) => ((" + typeName + ")self)." + property.Name + " = (" + valueTypeName + ")value!",
+                IMethodSymbol method when !method.IsStatic && method.Parameters.Length == 1 =>
+                    "static (self, value) => ((" + typeName + ")self)." + method.Name + "(("
+                    + method.Parameters[0].Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + ")value!)",
+                _ => "static (self, value) => ((" + typeName + ")self)." + setter + "((" + valueTypeName + ")value!)"
+            };
+        }
         return symbol switch
         {
             IFieldSymbol field when !field.IsReadOnly =>
@@ -272,7 +294,7 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         var defaultSource = GetNamedString(attribute, "DefaultSource");
         if (!string.IsNullOrEmpty(defaultSource))
         {
-            var source = type.GetMembers(defaultSource!).FirstOrDefault();
+            var source = FindMember(type, defaultSource!);
             return source switch
             {
                 IFieldSymbol field when field.IsConst || field.IsStatic => field.Name,
@@ -350,14 +372,37 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         builder.AppendLine("    {");
         foreach (var type in types.OrderBy(GetInheritanceDepth))
         {
-            var typeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-            builder.Append("        global::RedBolt.Core.GeneratedReflectionRegistration.Add(typeof(")
-                .Append(typeName).Append("), static context => ")
-                .Append(typeName).AppendLine(".__RegisterGeneratedReflection(context));");
+            if (type.ContainingType is null)
+            {
+                var typeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                builder.Append("        global::RedBolt.Core.GeneratedReflectionRegistration.Add(typeof(")
+                    .Append(typeName).Append("), static context => ")
+                    .Append(typeName).AppendLine(".__RegisterGeneratedReflection(context));");
+            }
+            else
+            {
+                var outermostType = type.ContainingType;
+                while (outermostType.ContainingType is not null)
+                    outermostType = outermostType.ContainingType;
+                builder.Append("        ")
+                    .Append(outermostType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)).Append('.')
+                    .Append(GetRegistrationMethodName(type)).AppendLine("();");
+            }
         }
         builder.AppendLine("    }");
         builder.AppendLine("}");
         return builder.ToString();
+    }
+
+    private static bool HasAccessibleGeneratedBase(INamedTypeSymbol type)
+    {
+        for (var baseType = type.BaseType; baseType is not null; baseType = baseType.BaseType)
+        {
+            if (GetAttribute(baseType, ReflectedAttributeName) is not null
+                && SymbolEqualityComparer.Default.Equals(type.ContainingAssembly, baseType.ContainingAssembly))
+                return true;
+        }
+        return false;
     }
 
     private static int GetInheritanceDepth(INamedTypeSymbol type)
@@ -375,13 +420,63 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
             builder.Append("namespace ").Append(type.ContainingNamespace.ToDisplayString()).AppendLine(";");
             builder.AppendLine();
         }
-        builder.Append(GetAccessibility(type)).Append(" partial class ").Append(type.Name).AppendLine();
+
+        var containingTypes = new Stack<INamedTypeSymbol>();
+        for (var current = type.ContainingType; current is not null; current = current.ContainingType)
+            containingTypes.Push(current);
+        foreach (var containingType in containingTypes)
+        {
+            builder.Append(GetAccessibility(containingType)).Append(" partial ")
+                .Append(GetTypeKeyword(containingType)).Append(' ')
+                .Append(GetDeclarationName(containingType)).AppendLine();
+            builder.AppendLine("{");
+        }
+
+        builder.Append(GetAccessibility(type)).Append(" partial ").Append(GetTypeKeyword(type)).Append(' ')
+            .Append(GetDeclarationName(type)).AppendLine();
         builder.AppendLine("{");
     }
 
     private static void AppendFooter(StringBuilder builder, INamedTypeSymbol type)
     {
         builder.AppendLine("}");
+        if (type.ContainingType is null)
+            return;
+
+        for (var current = type.ContainingType; current.ContainingType is not null; current = current.ContainingType)
+            builder.AppendLine("}");
+
+        var typeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        builder.AppendLine();
+        builder.Append("    internal static void ").Append(GetRegistrationMethodName(type)).AppendLine("()");
+        builder.AppendLine("    {");
+        builder.Append("        global::RedBolt.Core.GeneratedReflectionRegistration.Add(typeof(")
+            .Append(typeName).Append("), static context => ").Append(typeName)
+            .AppendLine(".__RegisterGeneratedReflection(context));");
+        builder.AppendLine("    }");
+        builder.AppendLine("}");
+    }
+
+    private static string GetRegistrationMethodName(INamedTypeSymbol type) =>
+        "__AddGeneratedReflection_" + GetHintName(type).Replace('.', '_');
+
+    private static string GetDeclarationName(INamedTypeSymbol type)
+    {
+        if (type.TypeParameters.Length == 0)
+            return type.Name;
+        return type.Name + "<" + string.Join(", ", type.TypeParameters.Select(static parameter => parameter.Name)) + ">";
+    }
+
+    private static string GetTypeKeyword(INamedTypeSymbol type)
+    {
+        if (type.IsRecord)
+            return type.TypeKind == TypeKind.Struct ? "record struct" : "record";
+        return type.TypeKind switch
+        {
+            TypeKind.Interface => "interface",
+            TypeKind.Struct => "struct",
+            _ => "class"
+        };
     }
 
     private static string GetAccessibility(INamedTypeSymbol type) =>
@@ -389,6 +484,10 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         {
             Accessibility.Public => "public",
             Accessibility.Internal => "internal",
+            Accessibility.Private => "private",
+            Accessibility.Protected => "protected",
+            Accessibility.ProtectedAndInternal => "private protected",
+            Accessibility.ProtectedOrInternal => "protected internal",
             _ => string.Empty
         };
 
@@ -396,6 +495,9 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
     {
         if (type.TypeKind != TypeKind.Class || type.Arity != 0)
             return false;
+        for (var current = type.ContainingType; current is not null; current = current.ContainingType)
+            if (current.Arity != 0)
+                return false;
         for (var current = type.BaseType; current is not null; current = current.BaseType)
             if (current.ToDisplayString() == "RedBolt.Core.RedObject")
                 return true;
@@ -440,14 +542,37 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
     private static ITypeSymbol? GetNamedType(AttributeData attribute, string name) =>
         attribute.NamedArguments.FirstOrDefault(pair => pair.Key == name).Value.Value as ITypeSymbol;
 
-    private static string GetNamedStringArray(AttributeData attribute, string name)
+    private static string GetNamedStringArray(
+        INamedTypeSymbol type,
+        AttributeData attribute,
+        string name,
+        string sourceName)
     {
+        var source = GetNamedString(attribute, sourceName);
+        if (!string.IsNullOrEmpty(source))
+        {
+            return FindMember(type, source!) is IMethodSymbol
+                ? source + "()"
+                : source!;
+        }
+
         var value = attribute.NamedArguments.FirstOrDefault(pair => pair.Key == name);
         if (value.Key is null || value.Value.IsNull)
             return "null";
         return "new string[] { "
             + string.Join(", ", value.Value.Values.Select(static item => ToLiteral((string)item.Value!)))
             + " }";
+    }
+
+    private static ISymbol? FindMember(INamedTypeSymbol type, string name)
+    {
+        for (var current = type; current is not null; current = current.BaseType)
+        {
+            var member = current.GetMembers(name).FirstOrDefault();
+            if (member is not null)
+                return member;
+        }
+        return null;
     }
 
     private static string GetHintName(INamedTypeSymbol type) =>

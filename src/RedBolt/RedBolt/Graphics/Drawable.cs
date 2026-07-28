@@ -197,7 +197,8 @@ public struct SourceBatch : ICloneable, IDisposable, IEquatable<SourceBatch>
 /// <summary>Base class for visible components.</summary>
 /// <remarks>
 /// </remarks>
-public abstract class Drawable : Component
+[Reflected(ObjectCategory.Category_Geometry)]
+public abstract partial class Drawable : Component
 {
     private sealed class DrawablePipelineStateTracker : PipelineStateTracker
     {
@@ -234,11 +235,6 @@ public abstract class Drawable : Component
         _pipelineStateTracker = new DrawablePipelineStateTracker(this);
     }
 
-    /// <summary>Register object attributes.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddAbstractReflection<Drawable>(ObjectCategory.Category_Geometry);
-    }
 
     public override void Dispose()
     {

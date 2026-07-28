@@ -119,7 +119,75 @@ public class LightProbeCollection : ICloneable
 }
 
 /// <summary>Light probe group.</summary>
-public class LightProbeGroup : Component
+[Reflected(ObjectCategory.Category_Scene)]
+[Serialized(
+    "Is Enabled",
+    typeof(bool),
+    DefaultSource = nameof(GetIsEnabledAttributeDefault),
+    Getter = nameof(Enabled),
+    Setter = nameof(SetEnabled)
+)]
+[Serialized(
+    "Light Mask",
+    typeof(uint),
+    DefaultSource = nameof(GetLightMaskAttributeDefault),
+    Getter = nameof(_lightMask),
+    Setter = nameof(_lightMask)
+)]
+[Serialized(
+    "Zone Mask",
+    typeof(uint),
+    DefaultSource = nameof(GetZoneMaskAttributeDefault),
+    Getter = nameof(_zoneMask),
+    Setter = nameof(_zoneMask)
+)]
+[Serialized(
+    "Auto Placement",
+    typeof(bool),
+    DefaultSource = nameof(GetAutoPlacementAttributeDefault),
+    Getter = nameof(GetAutoPlacementEnabled),
+    Setter = nameof(SetAutoPlacementEnabled)
+)]
+[Serialized(
+    "Auto Placement Step",
+    typeof(float),
+    DefaultSource = nameof(GetAutoPlacementStepAttributeDefault),
+    Getter = nameof(GetAutoPlacementStep),
+    Setter = nameof(SetAutoPlacementStep)
+)]
+[Serialized(
+    "Local Bounding Box Min",
+    typeof(Vector3f),
+    DefaultSource = nameof(GetLocalBoundingBoxMinAttributeDefault),
+    Getter = nameof(GetSerializedLocalBoundingBoxMin),
+    Mode = AttributeMode.Default | AttributeMode.NoEdit,
+    Setter = nameof(SetSerializedLocalBoundingBoxMin)
+)]
+[Serialized(
+    "Local Bounding Box Max",
+    typeof(Vector3f),
+    DefaultSource = nameof(GetLocalBoundingBoxMaxAttributeDefault),
+    Getter = nameof(GetSerializedLocalBoundingBoxMax),
+    Mode = AttributeMode.Default | AttributeMode.NoEdit,
+    Setter = nameof(SetSerializedLocalBoundingBoxMax)
+)]
+[Serialized(
+    "Serialized Light Probes",
+    typeof(string),
+    DefaultSource = nameof(GetSerializedLightProbesAttributeDefault),
+    Getter = nameof(GetSerializedLightProbes),
+    Mode = AttributeMode.Default | AttributeMode.NoEdit,
+    Setter = nameof(SetSerializedLightProbes)
+)]
+[Serialized(
+    "Baked Data File",
+    typeof(ResourceRef),
+    DefaultSource = nameof(GetBakedDataFileAttributeDefault),
+    Getter = nameof(GetBakedDataFileRef),
+    Mode = AttributeMode.Default | AttributeMode.NoEdit,
+    Setter = nameof(SetBakedDataFileRef)
+)]
+public partial class LightProbeGroup : Component
 {
     /// <summary>Auto placement limit: max grid size in one dimension.</summary>
     public const uint MaxAutoGridSize = 1024;
@@ -129,28 +197,6 @@ public class LightProbeGroup : Component
     /// <summary>Construct.</summary>
     public LightProbeGroup()
     {
-        RegisterAttribute("Is Enabled", typeof(bool), self => ((LightProbeGroup)self).Enabled,
-            (self, value) => ((LightProbeGroup)self).SetEnabled(value is bool enabled && enabled), true);
-        RegisterAttribute("Light Mask", typeof(uint), self => ((LightProbeGroup)self)._lightMask,
-            (self, value) => ((LightProbeGroup)self)._lightMask = (uint)value!, Drawable.DefaultLightMask);
-        RegisterAttribute("Zone Mask", typeof(uint), self => ((LightProbeGroup)self)._zoneMask,
-            (self, value) => ((LightProbeGroup)self)._zoneMask = (uint)value!, Drawable.DefaultZoneMask);
-        RegisterAttribute("Auto Placement", typeof(bool), self => ((LightProbeGroup)self).GetAutoPlacementEnabled(),
-            (self, value) => ((LightProbeGroup)self).SetAutoPlacementEnabled(value is bool enabled && enabled), true);
-        RegisterAttribute("Auto Placement Step", typeof(float), self => ((LightProbeGroup)self).GetAutoPlacementStep(),
-            (self, value) => ((LightProbeGroup)self).SetAutoPlacementStep((float)value!), 1.0f);
-        RegisterAttribute("Local Bounding Box Min", typeof(Vector3f), self => ((LightProbeGroup)self)._localBoundingBox.Min,
-            (self, value) => ((LightProbeGroup)self)._localBoundingBox.Min = (Vector3f)value!, Vector3f.Zero,
-            AttributeMode.Default | AttributeMode.NoEdit);
-        RegisterAttribute("Local Bounding Box Max", typeof(Vector3f), self => ((LightProbeGroup)self)._localBoundingBox.Max,
-            (self, value) => ((LightProbeGroup)self)._localBoundingBox.Max = (Vector3f)value!, Vector3f.Zero,
-            AttributeMode.Default | AttributeMode.NoEdit);
-        RegisterAttribute("Serialized Light Probes", typeof(string), self => ((LightProbeGroup)self).GetSerializedLightProbes(),
-            (self, value) => ((LightProbeGroup)self).SetSerializedLightProbes(value as string ?? string.Empty), string.Empty,
-            AttributeMode.Default | AttributeMode.NoEdit);
-        RegisterAttribute("Baked Data File", typeof(ResourceRef), self => ((LightProbeGroup)self).GetBakedDataFileRef(),
-            (self, value) => ((LightProbeGroup)self).SetBakedDataFileRef((ResourceRef)value!),
-            new ResourceRef(new StringHash(nameof(BinaryFile))), AttributeMode.Default | AttributeMode.NoEdit);
     }
 
     /// <summary>Destruct.</summary>
@@ -159,9 +205,6 @@ public class LightProbeGroup : Component
         base.Dispose();
     }
 
-    /// <summary>Register object factory. Drawable must be registered first.</summary>
-    public static void RegisterObject(Context context) =>
-        context.AddFactoryReflection<LightProbeGroup>(ObjectCategory.Category_Scene);
 
     /// <summary>Visualize the component as debug geometry.</summary>
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
@@ -466,4 +509,46 @@ public class LightProbeGroup : Component
     protected bool _bakedDataDirty;
     /// <summary>Baked data.</summary>
     protected readonly LightProbeCollectionBakedData _bakedData = new();
+
+    private static object? GetIsEnabledAttributeDefault() => true;
+
+    private static object? GetLightMaskAttributeDefault() => Drawable.DefaultLightMask;
+
+    private static object? GetZoneMaskAttributeDefault() => Drawable.DefaultZoneMask;
+
+    private static object? GetAutoPlacementAttributeDefault() => true;
+
+    private static object? GetAutoPlacementStepAttributeDefault() => 1.0f;
+
+    private static object? GetLocalBoundingBoxMinAttributeDefault() => Vector3f.Zero;
+
+    private object? GetSerializedLocalBoundingBoxMin()
+    {
+        Serializable self = this;
+        return ((LightProbeGroup)self)._localBoundingBox.Min;
+    }
+
+    private void SetSerializedLocalBoundingBoxMin(object? value)
+    {
+        Serializable self = this;
+        ((LightProbeGroup)self)._localBoundingBox.Min = (Vector3f)value!;
+    }
+
+    private static object? GetLocalBoundingBoxMaxAttributeDefault() => Vector3f.Zero;
+
+    private object? GetSerializedLocalBoundingBoxMax()
+    {
+        Serializable self = this;
+        return ((LightProbeGroup)self)._localBoundingBox.Max;
+    }
+
+    private void SetSerializedLocalBoundingBoxMax(object? value)
+    {
+        Serializable self = this;
+        ((LightProbeGroup)self)._localBoundingBox.Max = (Vector3f)value!;
+    }
+
+    private static object? GetSerializedLightProbesAttributeDefault() => string.Empty;
+
+    private static object? GetBakedDataFileAttributeDefault() => new ResourceRef(new StringHash(nameof(BinaryFile)));
 }

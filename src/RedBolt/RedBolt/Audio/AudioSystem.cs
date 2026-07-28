@@ -71,10 +71,7 @@ public class AudioSystem : RedObject
     /// <summary>Register Audio library objects.</summary>
     public static void RegisterAudioLibrary(Context context)
     {
-        Sound.RegisterObject(context);
-        SoundSource.RegisterObject(context);
-        SoundSource3D.RegisterObject(context);
-        SoundListener.RegisterObject(context);
+        context.RegisterAssembly(typeof(AudioSystem).Assembly);
     }
 
     /// <summary>Initialize sound output.</summary>

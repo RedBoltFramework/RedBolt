@@ -12,18 +12,12 @@ public class Serializable : RedObject
     private Dictionary<StringHash, Variant>? _instanceDefaultValues;
     private bool _setInstanceDefault;
     private bool _temporary;
-    private readonly List<AttributeInfo> _ownedAttributes = [];
-    private IReadOnlyList<AttributeInfo> _attributes;
-    private ObjectReflection? _attributeReflection;
-    private bool _attributeReflectionResolved;
-    private int _attributeRegistrationIndex;
+    private readonly IReadOnlyList<AttributeInfo> _attributes;
     private readonly Dictionary<StringHash, Variant> _attributeValues = new();
 
     public Serializable()
     {
-        _attributeReflection = GetReflection();
-        _attributeReflectionResolved = true;
-        _attributes = _attributeReflection?.Attributes ?? _ownedAttributes;
+        _attributes = GetReflection()?.Attributes ?? Array.Empty<AttributeInfo>();
     }
 
     public IReadOnlyList<AttributeInfo> Attributes => _attributes;
@@ -35,9 +29,6 @@ public class Serializable : RedObject
     public override void Dispose()
     {
         RemoveInstanceDefault();
-        for (var i = _ownedAttributes.Count - 1; i >= 0; --i)
-            _ownedAttributes[i].Dispose();
-        _ownedAttributes.Clear();
         foreach (var value in _attributeValues.Values)
         {
             var ownedValue = value;
@@ -591,131 +582,6 @@ public class Serializable : RedObject
             Serializable = this
         };
         SendEvent(ref eventData);
-    }
-
-    protected AttributeHandle RegisterAttribute(
-        string name,
-        Type valueType,
-        AttributeAccessor accessor,
-        object? defaultValue = null,
-        AttributeMode mode = AttributeMode.Default,
-        IReadOnlyList<string>? enumNames = null)
-    {
-        ArgumentNullException.ThrowIfNull(accessor);
-
-        if (!_attributeReflectionResolved)
-        {
-            _attributeReflection = GetReflection();
-            _attributeReflectionResolved = true;
-            if (_attributeReflection is not null)
-                _attributes = _attributeReflection.Attributes;
-        }
-
-        if (_attributeReflection is not null)
-        {
-            if (_attributeRegistrationIndex < _attributes.Count)
-            {
-                var registeredAttribute = _attributes[_attributeRegistrationIndex];
-                if (string.Equals(registeredAttribute.Name, name, StringComparison.Ordinal))
-                {
-                    ++_attributeRegistrationIndex;
-                    return new AttributeHandle(registeredAttribute);
-                }
-            }
-
-            var foundAttribute = FindAttribute(name);
-            if (foundAttribute is not null)
-            {
-                ++_attributeRegistrationIndex;
-                return new AttributeHandle(foundAttribute);
-            }
-
-            using var sharedDefaultVariant = Variant.FromObject(defaultValue);
-            using var sharedAttribute = new AttributeInfo(
-                name, valueType, sharedDefaultVariant, mode, enumNames, accessor);
-            var handle = _attributeReflection.AddAttribute(sharedAttribute);
-            ++_attributeRegistrationIndex;
-            return handle;
-        }
-
-        var existing = FindAttribute(name);
-        if (existing is not null)
-            return new AttributeHandle(existing);
-
-        using var defaultVariant = Variant.FromObject(defaultValue);
-        var attribute = new AttributeInfo(name, valueType, defaultVariant, mode, enumNames, accessor);
-        _ownedAttributes.Add(attribute);
-        return new AttributeHandle(attribute);
-    }
-
-    protected AttributeHandle RegisterAttribute(
-        string name,
-        Type valueType,
-        Func<Serializable, object?>? getter = null,
-        Action<Serializable, object?>? setter = null,
-        object? defaultValue = null,
-        AttributeMode mode = AttributeMode.Default,
-        IReadOnlyList<string>? enumNames = null)
-    {
-        if (!_attributeReflectionResolved)
-        {
-            _attributeReflection = GetReflection();
-            _attributeReflectionResolved = true;
-            if (_attributeReflection is not null)
-                _attributes = _attributeReflection.Attributes;
-        }
-
-        if (_attributeReflection is not null)
-        {
-            if (_attributeRegistrationIndex < _attributes.Count)
-            {
-                var registeredAttribute = _attributes[_attributeRegistrationIndex];
-                if (string.Equals(registeredAttribute.Name, name, StringComparison.Ordinal))
-                {
-                    ++_attributeRegistrationIndex;
-                    return new AttributeHandle(registeredAttribute);
-                }
-            }
-
-            var foundAttribute = FindAttribute(name);
-            if (foundAttribute is not null)
-            {
-                ++_attributeRegistrationIndex;
-                return new AttributeHandle(foundAttribute);
-            }
-
-            using var sharedDefaultVariant = Variant.FromObject(defaultValue);
-            using var sharedAttribute = new AttributeInfo(
-                name, valueType, sharedDefaultVariant, mode, enumNames, accessor: null, getter, setter);
-            var handle = _attributeReflection.AddAttribute(sharedAttribute);
-            ++_attributeRegistrationIndex;
-            return handle;
-        }
-
-        var existing = FindAttribute(name);
-        if (existing is not null)
-            return new AttributeHandle(existing);
-
-        using var defaultVariant = Variant.FromObject(defaultValue);
-        var attribute = new AttributeInfo(name, valueType, defaultVariant, mode, enumNames, accessor: null, getter, setter);
-        _ownedAttributes.Add(attribute);
-        return new AttributeHandle(attribute);
-    }
-
-    protected static AttributeHandle RegisterAttribute(
-        ObjectReflection reflection,
-        string name,
-        Type valueType,
-        Func<Serializable, object?>? getter = null,
-        Action<Serializable, object?>? setter = null,
-        object? defaultValue = null,
-        AttributeMode mode = AttributeMode.Default,
-        IReadOnlyList<string>? enumNames = null)
-    {
-        using var defaultVariant = Variant.FromObject(defaultValue);
-        using var attribute = new AttributeInfo(
-            name, valueType, defaultVariant, mode, enumNames, accessor: null, getter, setter);
-        return reflection.AddAttribute(attribute);
     }
 
     private AttributeInfo? FindAttribute(string name)

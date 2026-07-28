@@ -12,7 +12,15 @@ using SceneType = global::RedBolt.Scene.Scene;
 
 namespace RedBolt.Input;
 
-public class MoveAndOrbitController : Component
+[Reflected(ObjectCategory.Category_Logic)]
+[Serialized(
+    "InputSystem Map",
+    typeof(ResourceRef),
+    DefaultSource = nameof(GetInputSystemMapAttributeDefault),
+    Getter = nameof(GetInputMapAttr),
+    Setter = nameof(SetInputMapAttr)
+)]
+public partial class MoveAndOrbitController : Component
 {
     public const float DefaultMouseSensitivity = 0.1f;
     //Full motion per inch
@@ -41,12 +49,6 @@ public class MoveAndOrbitController : Component
     {
         UpdateEventSubscription();
 
-        RegisterAttribute(
-            "InputSystem Map",
-            typeof(ResourceRef),
-            self => ((MoveAndOrbitController)self).GetInputMapAttr(),
-            (self, value) => ((MoveAndOrbitController)self).SetInputMapAttr(value is ResourceRef resourceRef ? resourceRef : ResourceRef.Empty),
-            new ResourceRef(ObjectReflection<InputMap>.TypeId));
     }
 
     /// <summary>Destruct.</summary>
@@ -56,11 +58,6 @@ public class MoveAndOrbitController : Component
         GC.SuppressFinalize(this);
     }
 
-    /// <summary>Register object factory and attributes.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<MoveAndOrbitController>(ObjectCategory.Category_Logic);
-    }
 
     /// <summary>Apply attribute changes that can not be applied immediately. Called after scene load or a network update.</summary>
     public override void ApplyAttributes()
@@ -348,4 +345,6 @@ public class MoveAndOrbitController : Component
     private int _rotationTouchId = -1;
     /// <summary>Position where the touch gesture started.</summary>
     private Vector2i _movementTouchOrigin = Vector2i.Zero;
+
+    private static object? GetInputSystemMapAttributeDefault() => new ResourceRef(ObjectReflection<InputMap>.TypeId);
 }

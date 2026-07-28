@@ -8,13 +8,71 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
+using RedBolt.Scene;
 
 namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Render pass that applies a shader to the entire output area.
 /// </summary>
-public sealed class FullScreenShaderPass : RenderPass
+[Reflected(ObjectCategory.Category_RenderPass)]
+[Serialized(
+    "Shader Name",
+    typeof(string),
+    DefaultSource = nameof(GetShaderNameAttributeDefault),
+    Getter = nameof(GetSerializedShaderName),
+    Setter = nameof(SetShaderName)
+)]
+[Serialized(
+    "Shader Defines",
+    typeof(string),
+    DefaultSource = nameof(GetShaderDefinesAttributeDefault),
+    Getter = nameof(GetSerializedShaderDefines),
+    Setter = nameof(SetShaderDefines)
+)]
+[Serialized(
+    "Blend Mode",
+    typeof(BlendMode),
+    DefaultSource = nameof(GetBlendModeAttributeDefault),
+    Getter = nameof(GetSerializedBlendMode),
+    Setter = nameof(SetBlendMode)
+)]
+[Serialized(
+    "Read+Write Color Output",
+    typeof(bool),
+    DefaultSource = nameof(GetReadWriteColorOutputAttributeDefault),
+    Getter = nameof(GetSerializedReadWriteColorOutput),
+    Setter = nameof(SetNeedReadWriteColorBuffer)
+)]
+[Serialized(
+    "Bilinear Color Sampler",
+    typeof(bool),
+    DefaultSource = nameof(GetBilinearColorSamplerAttributeDefault),
+    Getter = nameof(GetSerializedBilinearColorSampler),
+    Setter = nameof(SetSerializedBilinearColorSampler)
+)]
+[Serialized(
+    "Disable On Default Parameters",
+    typeof(bool),
+    DefaultSource = nameof(GetDisableOnDefaultParametersAttributeDefault),
+    Getter = nameof(GetSerializedDisableOnDefaultParameters),
+    Setter = nameof(SetSerializedDisableOnDefaultParameters)
+)]
+[Serialized(
+    "Parameters Prefix",
+    typeof(string),
+    DefaultSource = nameof(GetParametersPrefixAttributeDefault),
+    Getter = nameof(GetSerializedParametersPrefix),
+    Setter = nameof(SetSerializedParametersPrefix)
+)]
+[Serialized(
+    "Parameters",
+    typeof(StringVariantMap),
+    DefaultSource = nameof(GetParametersAttributeDefault),
+    Getter = nameof(GetSerializedParameters),
+    Setter = nameof(SetParameters)
+)]
+public sealed partial class FullScreenShaderPass : RenderPass
 {
     public FullScreenShaderPass()
     {
@@ -26,60 +84,8 @@ public sealed class FullScreenShaderPass : RenderPass
             ParametersPrefix = string.Empty,
             Parameters = new StringVariantMap()
         };
-        RegisterAttribute(
-            "Shader Name",
-            typeof(string),
-            self => ((FullScreenShaderPass)self)._attributes.ShaderName,
-            (self, value) => ((FullScreenShaderPass)self).SetShaderName(value as string ?? string.Empty),
-            string.Empty);
-        RegisterAttribute(
-            "Shader Defines",
-            typeof(string),
-            self => ((FullScreenShaderPass)self)._attributes.ShaderDefines,
-            (self, value) => ((FullScreenShaderPass)self).SetShaderDefines(value as string ?? string.Empty),
-            string.Empty);
-        RegisterAttribute(
-            "Blend Mode",
-            typeof(BlendMode),
-            self => ((FullScreenShaderPass)self)._attributes.BlendMode,
-            (self, value) => ((FullScreenShaderPass)self).SetBlendMode(ParseBlendMode(value)),
-            BlendMode.Replace);
-        RegisterAttribute(
-            "Read+Write Color Output",
-            typeof(bool),
-            self => ((FullScreenShaderPass)self)._attributes.NeedReadWriteColorBuffer,
-            (self, value) => ((FullScreenShaderPass)self).SetNeedReadWriteColorBuffer(value is bool enabled && enabled),
-            false);
-        RegisterAttribute(
-            "Bilinear Color Sampler",
-            typeof(bool),
-            self => ((FullScreenShaderPass)self)._attributes.NeedBilinearColorSampler,
-            (self, value) => ((FullScreenShaderPass)self)._attributes.NeedBilinearColorSampler = value is bool enabled && enabled,
-            false);
-        RegisterAttribute(
-            "Disable On Default Parameters",
-            typeof(bool),
-            self => ((FullScreenShaderPass)self)._attributes.DisableOnDefaultParameters,
-            (self, value) => ((FullScreenShaderPass)self)._attributes.DisableOnDefaultParameters = value is bool enabled && enabled,
-            false);
-        RegisterAttribute(
-            "Parameters Prefix",
-            typeof(string),
-            self => ((FullScreenShaderPass)self)._attributes.ParametersPrefix,
-            (self, value) => ((FullScreenShaderPass)self)._attributes.ParametersPrefix = value as string ?? string.Empty,
-            string.Empty);
-        RegisterAttribute(
-            "Parameters",
-            typeof(StringVariantMap),
-            self => ((FullScreenShaderPass)self)._attributes.Parameters,
-            (self, value) => ((FullScreenShaderPass)self).SetParameters(value),
-            null);
     }
 
-    public new static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<FullScreenShaderPass>(ObjectCategory.Category_RenderPass);
-    }
 
     public override void CollectParameters(StringVariantMap parameters)
     {
@@ -276,12 +282,95 @@ public sealed class FullScreenShaderPass : RenderPass
     private readonly List<Variant> _shaderParameterDefaults = [];
     private readonly List<ShaderParameterDesc> _shaderParameters = [];
     private readonly List<ShaderResourceDesc> _shaderResources = [];
+
+    private static object? GetShaderNameAttributeDefault() => string.Empty;
+
+    private object? GetSerializedShaderName()
+    {
+        Serializable self = this;
+        return ((FullScreenShaderPass)self)._attributes.ShaderName;
+    }
+
+    private static object? GetShaderDefinesAttributeDefault() => string.Empty;
+
+    private object? GetSerializedShaderDefines()
+    {
+        Serializable self = this;
+        return ((FullScreenShaderPass)self)._attributes.ShaderDefines;
+    }
+
+    private static object? GetBlendModeAttributeDefault() => BlendMode.Replace;
+
+    private object? GetSerializedBlendMode()
+    {
+        Serializable self = this;
+        return ((FullScreenShaderPass)self)._attributes.BlendMode;
+    }
+
+    private static object? GetReadWriteColorOutputAttributeDefault() => false;
+
+    private object? GetSerializedReadWriteColorOutput()
+    {
+        Serializable self = this;
+        return ((FullScreenShaderPass)self)._attributes.NeedReadWriteColorBuffer;
+    }
+
+    private static object? GetBilinearColorSamplerAttributeDefault() => false;
+
+    private object? GetSerializedBilinearColorSampler()
+    {
+        Serializable self = this;
+        return ((FullScreenShaderPass)self)._attributes.NeedBilinearColorSampler;
+    }
+
+    private void SetSerializedBilinearColorSampler(object? value)
+    {
+        Serializable self = this;
+        ((FullScreenShaderPass)self)._attributes.NeedBilinearColorSampler = value is bool enabled && enabled;
+    }
+
+    private static object? GetDisableOnDefaultParametersAttributeDefault() => false;
+
+    private object? GetSerializedDisableOnDefaultParameters()
+    {
+        Serializable self = this;
+        return ((FullScreenShaderPass)self)._attributes.DisableOnDefaultParameters;
+    }
+
+    private void SetSerializedDisableOnDefaultParameters(object? value)
+    {
+        Serializable self = this;
+        ((FullScreenShaderPass)self)._attributes.DisableOnDefaultParameters = value is bool enabled && enabled;
+    }
+
+    private static object? GetParametersPrefixAttributeDefault() => string.Empty;
+
+    private object? GetSerializedParametersPrefix()
+    {
+        Serializable self = this;
+        return ((FullScreenShaderPass)self)._attributes.ParametersPrefix;
+    }
+
+    private void SetSerializedParametersPrefix(object? value)
+    {
+        Serializable self = this;
+        ((FullScreenShaderPass)self)._attributes.ParametersPrefix = value as string ?? string.Empty;
+    }
+
+    private static object? GetParametersAttributeDefault() => null;
+
+    private object? GetSerializedParameters()
+    {
+        Serializable self = this;
+        return ((FullScreenShaderPass)self)._attributes.Parameters;
+    }
 }
 
 /// <summary>
 /// Post-processing pass that converts HDR linear color input to LDR gamma color.
 /// </summary>
-public sealed class ToneMappingPass : RenderPass
+[Reflected(ObjectCategory.Category_RenderPass)]
+public sealed partial class ToneMappingPass : RenderPass
 {
     private const string DefaultComment = "Convert color from linear HDR space to gamma LDR space";
     private const string ModeName = "Tone Mapping: Mode";
@@ -307,10 +396,6 @@ public sealed class ToneMappingPass : RenderPass
         _traits = new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: false);
     }
 
-    public new static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<ToneMappingPass>(ObjectCategory.Category_RenderPass);
-    }
 
     public override void CollectParameters(StringVariantMap parameters)
     {
@@ -398,7 +483,8 @@ public sealed class ToneMappingPass : RenderPass
 /// <summary>
 /// Post-processing pass that adjusts HDR scene exposure.
 /// </summary>
-public sealed class AutoExposurePass : RenderPass
+[Reflected(ObjectCategory.Category_RenderPass)]
+public sealed partial class AutoExposurePass : RenderPass
 {
     private const string DefaultComment = "Adjust exposure of the camera within specified range";
     private const string AutoExposureName = "Exposure: Automatic";
@@ -445,10 +531,6 @@ public sealed class AutoExposurePass : RenderPass
         _traits = new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: false);
     }
 
-    public new static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<AutoExposurePass>(ObjectCategory.Category_RenderPass);
-    }
 
     public override void CollectParameters(StringVariantMap parameters)
     {
@@ -708,7 +790,8 @@ public sealed class AutoExposurePass : RenderPass
 /// <summary>
 /// Post-processing pass that applies bloom to the scene.
 /// </summary>
-public class BloomPass : RenderPass
+[Reflected(ObjectCategory.Category_RenderPass)]
+public partial class BloomPass : RenderPass
 {
     private const string DefaultComment = "Create bloom around bright parts of the image";
     private const string NumIterationsName = "Bloom: Num Iterations";
@@ -737,10 +820,6 @@ public class BloomPass : RenderPass
         _traits = new RenderPassTraits(NeedReadWriteColorBuffer: true, NeedBilinearColorSampler: true);
     }
 
-    public new static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<BloomPass>(ObjectCategory.Category_RenderPass);
-    }
 
     public override void CollectParameters(StringVariantMap parameters)
     {
@@ -1032,7 +1111,8 @@ public class BloomPass : RenderPass
 /// <summary>
 /// Post-processing pass that renders screen-space ambient occlusion.
 /// </summary>
-public class AmbientOcclusionPass : RenderPass
+[Reflected(ObjectCategory.Category_RenderPass)]
+public partial class AmbientOcclusionPass : RenderPass
 {
     private const string DefaultComment = "Screen-space ambient occlusion";
     private const string DownscaleName = "SSAO: Downscale";
@@ -1104,10 +1184,6 @@ public class AmbientOcclusionPass : RenderPass
         SetComment(DefaultComment);
     }
 
-    public new static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<AmbientOcclusionPass>(ObjectCategory.Category_RenderPass);
-    }
 
     public override void CollectParameters(StringVariantMap parameters)
     {
@@ -1484,7 +1560,8 @@ public class AmbientOcclusionPass : RenderPass
 /// <summary>
 /// Post-processing pass that renders outline from the color buffer.
 /// </summary>
-public class OutlineRenderPass : RenderPass
+[Reflected(ObjectCategory.Category_RenderPass)]
+public partial class OutlineRenderPass : RenderPass
 {
     private const string DefaultComment = "Draw outline of the contents of the color buffer";
     public static readonly StringHash ColorBufferId = "outline";
@@ -1500,10 +1577,6 @@ public class OutlineRenderPass : RenderPass
         SetComment(DefaultComment);
     }
 
-    public new static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<OutlineRenderPass>(ObjectCategory.Category_RenderPass);
-    }
 
     public override void CollectParameters(StringVariantMap parameters)
     {

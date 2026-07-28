@@ -16,7 +16,196 @@ namespace RedBolt.Graphics;
 /// <summary>
 /// Heightmap terrain component.
 /// </summary>
-public class Terrain : Component
+[Reflected(ObjectCategory.Category_Geometry)]
+[Serialized(
+    "Is Enabled",
+    typeof(bool),
+    DefaultSource = nameof(GetIsEnabledAttributeDefault),
+    Getter = nameof(Enabled),
+    Setter = nameof(SetEnabled)
+)]
+[Serialized(
+    "Height Map",
+    typeof(ResourceRef),
+    DefaultSource = nameof(GetHeightMapAttributeDefault),
+    Getter = nameof(GetHeightMapAttr),
+    Setter = nameof(SetHeightMapAttr)
+)]
+[Serialized(
+    "Material",
+    typeof(ResourceRef),
+    DefaultSource = nameof(GetMaterialAttributeDefault),
+    Getter = nameof(GetMaterialAttr),
+    Setter = nameof(SetMaterialAttr)
+)]
+[Serialized(
+    "North Neighbor NodeID",
+    typeof(uint),
+    DefaultSource = nameof(GetNorthNeighborNodeIDAttributeDefault),
+    Getter = nameof(_northID),
+    Mode = AttributeMode.Default | AttributeMode.NodeId,
+    Setter = nameof(SetSerializedNorthNeighborNodeID)
+)]
+[Serialized(
+    "South Neighbor NodeID",
+    typeof(uint),
+    DefaultSource = nameof(GetSouthNeighborNodeIDAttributeDefault),
+    Getter = nameof(_southID),
+    Mode = AttributeMode.Default | AttributeMode.NodeId,
+    Setter = nameof(SetSerializedSouthNeighborNodeID)
+)]
+[Serialized(
+    "West Neighbor NodeID",
+    typeof(uint),
+    DefaultSource = nameof(GetWestNeighborNodeIDAttributeDefault),
+    Getter = nameof(_westID),
+    Mode = AttributeMode.Default | AttributeMode.NodeId,
+    Setter = nameof(SetSerializedWestNeighborNodeID)
+)]
+[Serialized(
+    "East Neighbor NodeID",
+    typeof(uint),
+    DefaultSource = nameof(GetEastNeighborNodeIDAttributeDefault),
+    Getter = nameof(_eastID),
+    Mode = AttributeMode.Default | AttributeMode.NodeId,
+    Setter = nameof(SetSerializedEastNeighborNodeID)
+)]
+[Serialized(
+    "Vertex Spacing",
+    typeof(Vector3f),
+    DefaultSource = nameof(GetVertexSpacingAttributeDefault),
+    Getter = nameof(_spacing),
+    Setter = nameof(SetSerializedVertexSpacing)
+)]
+[Serialized(
+    "Patch Size",
+    typeof(int),
+    DefaultSource = nameof(GetPatchSizeAttributeDefault),
+    Getter = nameof(GetPatchSize),
+    Setter = nameof(SetPatchSizeAttr)
+)]
+[Serialized(
+    "Max LOD Levels",
+    typeof(uint),
+    DefaultSource = nameof(GetMaxLODLevelsAttributeDefault),
+    Getter = nameof(GetMaxLodLevels),
+    Setter = nameof(SetMaxLodLevelsAttr)
+)]
+[Serialized(
+    "Smooth Height Map",
+    typeof(bool),
+    DefaultSource = nameof(GetSmoothHeightMapAttributeDefault),
+    Getter = nameof(_smoothing),
+    Setter = nameof(SetSerializedSmoothHeightMap)
+)]
+[Serialized(
+    "Is Occluder",
+    typeof(bool),
+    DefaultSource = nameof(GetIsOccluderAttributeDefault),
+    Getter = nameof(IsOccluder),
+    Setter = nameof(SetOccluder)
+)]
+[Serialized(
+    "Can Be Occluded",
+    typeof(bool),
+    DefaultSource = nameof(GetCanBeOccludedAttributeDefault),
+    Getter = nameof(IsOccludee),
+    Setter = nameof(SetOccludee)
+)]
+[Serialized(
+    "Cast Shadows",
+    typeof(bool),
+    DefaultSource = nameof(GetCastShadowsAttributeDefault),
+    Getter = nameof(GetCastShadows),
+    Setter = nameof(SetCastShadows)
+)]
+[Serialized(
+    "Draw Distance",
+    typeof(float),
+    DefaultSource = nameof(GetDrawDistanceAttributeDefault),
+    Getter = nameof(GetDrawDistance),
+    Setter = nameof(SetDrawDistance)
+)]
+[Serialized(
+    "Shadow Distance",
+    typeof(float),
+    DefaultSource = nameof(GetShadowDistanceAttributeDefault),
+    Getter = nameof(GetShadowDistance),
+    Setter = nameof(SetShadowDistance)
+)]
+[Serialized(
+    "LOD Bias",
+    typeof(float),
+    DefaultSource = nameof(GetLODBiasAttributeDefault),
+    Getter = nameof(GetLodBias),
+    Setter = nameof(SetLodBias)
+)]
+[Serialized(
+    "View Mask",
+    typeof(uint),
+    DefaultSource = nameof(GetViewMaskAttributeDefault),
+    Getter = nameof(GetViewMask),
+    Setter = nameof(SetViewMask)
+)]
+[Serialized(
+    "Light Mask",
+    typeof(uint),
+    DefaultSource = nameof(GetLightMaskAttributeDefault),
+    Getter = nameof(GetLightMask),
+    Setter = nameof(SetLightMask)
+)]
+[Serialized(
+    "Shadow Mask",
+    typeof(uint),
+    DefaultSource = nameof(GetShadowMaskAttributeDefault),
+    Getter = nameof(GetShadowMask),
+    Setter = nameof(SetShadowMask)
+)]
+[Serialized(
+    "Zone Mask",
+    typeof(uint),
+    DefaultSource = nameof(GetZoneMaskAttributeDefault),
+    Getter = nameof(GetZoneMask),
+    Setter = nameof(SetZoneMask)
+)]
+[Serialized(
+    "Occlusion LOD level",
+    typeof(uint),
+    DefaultSource = nameof(GetOcclusionLODLevelAttributeDefault),
+    Getter = nameof(GetOcclusionLodLevel),
+    Setter = nameof(SetOcclusionLodLevelAttr)
+)]
+[Serialized(
+    "Bake Lightmap",
+    typeof(bool),
+    DefaultSource = nameof(GetBakeLightmapAttributeDefault),
+    Getter = nameof(_bakeLightmap),
+    Setter = nameof(SetSerializedBakeLightmap)
+)]
+[Serialized(
+    "Scale in Lightmap",
+    typeof(float),
+    DefaultSource = nameof(GetScaleInLightmapAttributeDefault),
+    Getter = nameof(_scaleInLightmap),
+    Setter = nameof(_scaleInLightmap)
+)]
+[Serialized(
+    "Lightmap Index",
+    typeof(uint),
+    DefaultSource = nameof(GetLightmapIndexAttributeDefault),
+    Getter = nameof(_lightmapIndex),
+    Mode = AttributeMode.Default | AttributeMode.NoEdit,
+    Setter = nameof(SetSerializedLightmapIndex)
+)]
+[Serialized(
+    "Lightmap Scale & Offset",
+    typeof(Vector4f),
+    DefaultSource = nameof(GetLightmapScaleOffsetAttributeDefault),
+    Getter = nameof(_lightmapScaleOffset),
+    Mode = AttributeMode.Default | AttributeMode.NoEdit,
+    Setter = nameof(SetSerializedLightmapScaleOffset)
+)]
+public partial class Terrain : Component
 {
     private static readonly Vector3f DefaultSpacing = new(1.0f, 0.25f, 1.0f);
     private const uint MinLodLevels = 1;
@@ -98,105 +287,6 @@ public class Terrain : Component
     /// <summary>Construct.</summary>
     public Terrain()
     {
-        RegisterAttribute("Is Enabled", typeof(bool), self => ((Terrain)self).Enabled,
-            (self, value) => ((Terrain)self).SetEnabled(value is bool enabled && enabled), true);
-        RegisterAttribute("Height Map", typeof(ResourceRef), self => ((Terrain)self).GetHeightMapAttr(),
-            (self, value) => ((Terrain)self).SetHeightMapAttr((ResourceRef)value!),
-            new ResourceRef(new StringHash(nameof(Image))));
-        RegisterAttribute("Material", typeof(ResourceRef), self => ((Terrain)self).GetMaterialAttr(),
-            (self, value) => ((Terrain)self).SetMaterialAttr((ResourceRef)value!),
-            new ResourceRef(new StringHash(nameof(Material))));
-        RegisterAttribute("North Neighbor NodeID", typeof(uint), self => ((Terrain)self)._northID,
-            (self, value) =>
-            {
-                var terrain = (Terrain)self;
-                terrain._northID = (uint)value!;
-                terrain.MarkNeighborsDirty();
-            }, 0u, AttributeMode.Default | AttributeMode.NodeId);
-        RegisterAttribute("South Neighbor NodeID", typeof(uint), self => ((Terrain)self)._southID,
-            (self, value) =>
-            {
-                var terrain = (Terrain)self;
-                terrain._southID = (uint)value!;
-                terrain.MarkNeighborsDirty();
-            }, 0u, AttributeMode.Default | AttributeMode.NodeId);
-        RegisterAttribute("West Neighbor NodeID", typeof(uint), self => ((Terrain)self)._westID,
-            (self, value) =>
-            {
-                var terrain = (Terrain)self;
-                terrain._westID = (uint)value!;
-                terrain.MarkNeighborsDirty();
-            }, 0u, AttributeMode.Default | AttributeMode.NodeId);
-        RegisterAttribute("East Neighbor NodeID", typeof(uint), self => ((Terrain)self)._eastID,
-            (self, value) =>
-            {
-                var terrain = (Terrain)self;
-                terrain._eastID = (uint)value!;
-                terrain.MarkNeighborsDirty();
-            }, 0u, AttributeMode.Default | AttributeMode.NodeId);
-        RegisterAttribute("Vertex Spacing", typeof(Vector3f), self => ((Terrain)self)._spacing,
-            (self, value) =>
-            {
-                var terrain = (Terrain)self;
-                terrain._spacing = (Vector3f)value!;
-                terrain.MarkTerrainDirty();
-            }, DefaultSpacing);
-        RegisterAttribute("Patch Size", typeof(int), self => ((Terrain)self).GetPatchSize(),
-            (self, value) => ((Terrain)self).SetPatchSizeAttr((int)value!), DefaultPatchSize);
-        RegisterAttribute("Max LOD Levels", typeof(uint), self => ((Terrain)self).GetMaxLodLevels(),
-            (self, value) => ((Terrain)self).SetMaxLodLevelsAttr((uint)value!), MaxLodLevelsConst);
-        RegisterAttribute("Smooth Height Map", typeof(bool), self => ((Terrain)self)._smoothing,
-            (self, value) =>
-            {
-                var terrain = (Terrain)self;
-                terrain._smoothing = value is bool enabled && enabled;
-                terrain.MarkTerrainDirty();
-            }, false);
-        RegisterAttribute("Is Occluder", typeof(bool), self => ((Terrain)self).IsOccluder(),
-            (self, value) => ((Terrain)self).SetOccluder(value is bool enabled && enabled), false);
-        RegisterAttribute("Can Be Occluded", typeof(bool), self => ((Terrain)self).IsOccludee(),
-            (self, value) => ((Terrain)self).SetOccludee(value is bool enabled && enabled), true);
-        RegisterAttribute("Cast Shadows", typeof(bool), self => ((Terrain)self).GetCastShadows(),
-            (self, value) => ((Terrain)self).SetCastShadows(value is bool enabled && enabled), false);
-        RegisterAttribute("Draw Distance", typeof(float), self => ((Terrain)self).GetDrawDistance(),
-            (self, value) => ((Terrain)self).SetDrawDistance((float)value!), 0.0f);
-        RegisterAttribute("Shadow Distance", typeof(float), self => ((Terrain)self).GetShadowDistance(),
-            (self, value) => ((Terrain)self).SetShadowDistance((float)value!), 0.0f);
-        RegisterAttribute("LOD Bias", typeof(float), self => ((Terrain)self).GetLodBias(),
-            (self, value) => ((Terrain)self).SetLodBias((float)value!), 1.0f);
-        RegisterAttribute("View Mask", typeof(uint), self => ((Terrain)self).GetViewMask(),
-            (self, value) => ((Terrain)self).SetViewMask((uint)value!), Drawable.DefaultViewMask);
-        RegisterAttribute("Light Mask", typeof(uint), self => ((Terrain)self).GetLightMask(),
-            (self, value) => ((Terrain)self).SetLightMask((uint)value!), Drawable.DefaultLightMask);
-        RegisterAttribute("Shadow Mask", typeof(uint), self => ((Terrain)self).GetShadowMask(),
-            (self, value) => ((Terrain)self).SetShadowMask((uint)value!), Drawable.DefaultShadowMask);
-        RegisterAttribute("Zone Mask", typeof(uint), self => ((Terrain)self).GetZoneMask(),
-            (self, value) => ((Terrain)self).SetZoneMask((uint)value!), Drawable.DefaultZoneMask);
-        RegisterAttribute("Occlusion LOD level", typeof(uint), self => ((Terrain)self).GetOcclusionLodLevel(),
-            (self, value) => ((Terrain)self).SetOcclusionLodLevelAttr((uint)value!), MathDefs.MaxUnsigned);
-        RegisterAttribute("Bake Lightmap", typeof(bool), self => ((Terrain)self)._bakeLightmap,
-            (self, value) =>
-            {
-                var terrain = (Terrain)self;
-                terrain._bakeLightmap = value is bool enabled && enabled;
-                terrain.MarkTerrainDirty();
-            }, false);
-        RegisterAttribute("Scale in Lightmap", typeof(float), self => ((Terrain)self)._scaleInLightmap,
-            (self, value) => ((Terrain)self)._scaleInLightmap = (float)value!, 1.0f);
-        RegisterAttribute("Lightmap Index", typeof(uint), self => ((Terrain)self)._lightmapIndex,
-            (self, value) =>
-            {
-                var terrain = (Terrain)self;
-                terrain._lightmapIndex = (uint)value!;
-                terrain.UpdatePatchesLightmaps();
-            }, 0u, AttributeMode.Default | AttributeMode.NoEdit);
-        RegisterAttribute("Lightmap Scale & Offset", typeof(Vector4f), self => ((Terrain)self)._lightmapScaleOffset,
-            (self, value) =>
-            {
-                var terrain = (Terrain)self;
-                terrain._lightmapScaleOffset = (Vector4f)value!;
-                terrain.UpdatePatchesLightmaps();
-            }, new Vector4f(1.0f, 1.0f, 0.0f, 0.0f), AttributeMode.Default | AttributeMode.NoEdit);
         _indexBuffer.SetShadowed(true);
     }
 
@@ -217,9 +307,6 @@ public class Terrain : Component
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context) =>
-        context.AddFactoryReflection<Terrain>(ObjectCategory.Category_Geometry);
 
     /// <inheritdoc />
     public override void ApplyAttributes()
@@ -1643,4 +1730,128 @@ public class Terrain : Component
     public bool GetCastShadows() => _castShadows;
     public bool IsOccluder() => _occluder;
     public bool IsOccludee() => _occludee;
+
+    private static object? GetIsEnabledAttributeDefault() => true;
+
+    private static object? GetHeightMapAttributeDefault() => new ResourceRef(new StringHash(nameof(Image)));
+
+    private static object? GetMaterialAttributeDefault() => new ResourceRef(new StringHash(nameof(Material)));
+
+    private static object? GetNorthNeighborNodeIDAttributeDefault() => 0u;
+
+    private void SetSerializedNorthNeighborNodeID(object? value)
+    {
+        Serializable self = this;
+        var terrain = (Terrain)self;
+        terrain._northID = (uint)value!;
+        terrain.MarkNeighborsDirty();
+    }
+
+    private static object? GetSouthNeighborNodeIDAttributeDefault() => 0u;
+
+    private void SetSerializedSouthNeighborNodeID(object? value)
+    {
+        Serializable self = this;
+        var terrain = (Terrain)self;
+        terrain._southID = (uint)value!;
+        terrain.MarkNeighborsDirty();
+    }
+
+    private static object? GetWestNeighborNodeIDAttributeDefault() => 0u;
+
+    private void SetSerializedWestNeighborNodeID(object? value)
+    {
+        Serializable self = this;
+        var terrain = (Terrain)self;
+        terrain._westID = (uint)value!;
+        terrain.MarkNeighborsDirty();
+    }
+
+    private static object? GetEastNeighborNodeIDAttributeDefault() => 0u;
+
+    private void SetSerializedEastNeighborNodeID(object? value)
+    {
+        Serializable self = this;
+        var terrain = (Terrain)self;
+        terrain._eastID = (uint)value!;
+        terrain.MarkNeighborsDirty();
+    }
+
+    private static object? GetVertexSpacingAttributeDefault() => DefaultSpacing;
+
+    private void SetSerializedVertexSpacing(object? value)
+    {
+        Serializable self = this;
+        var terrain = (Terrain)self;
+        terrain._spacing = (Vector3f)value!;
+        terrain.MarkTerrainDirty();
+    }
+
+    private static object? GetPatchSizeAttributeDefault() => DefaultPatchSize;
+
+    private static object? GetMaxLODLevelsAttributeDefault() => MaxLodLevelsConst;
+
+    private static object? GetSmoothHeightMapAttributeDefault() => false;
+
+    private void SetSerializedSmoothHeightMap(object? value)
+    {
+        Serializable self = this;
+        var terrain = (Terrain)self;
+        terrain._smoothing = value is bool enabled && enabled;
+        terrain.MarkTerrainDirty();
+    }
+
+    private static object? GetIsOccluderAttributeDefault() => false;
+
+    private static object? GetCanBeOccludedAttributeDefault() => true;
+
+    private static object? GetCastShadowsAttributeDefault() => false;
+
+    private static object? GetDrawDistanceAttributeDefault() => 0.0f;
+
+    private static object? GetShadowDistanceAttributeDefault() => 0.0f;
+
+    private static object? GetLODBiasAttributeDefault() => 1.0f;
+
+    private static object? GetViewMaskAttributeDefault() => Drawable.DefaultViewMask;
+
+    private static object? GetLightMaskAttributeDefault() => Drawable.DefaultLightMask;
+
+    private static object? GetShadowMaskAttributeDefault() => Drawable.DefaultShadowMask;
+
+    private static object? GetZoneMaskAttributeDefault() => Drawable.DefaultZoneMask;
+
+    private static object? GetOcclusionLODLevelAttributeDefault() => MathDefs.MaxUnsigned;
+
+    private static object? GetBakeLightmapAttributeDefault() => false;
+
+    private void SetSerializedBakeLightmap(object? value)
+    {
+        Serializable self = this;
+        var terrain = (Terrain)self;
+        terrain._bakeLightmap = value is bool enabled && enabled;
+        terrain.MarkTerrainDirty();
+    }
+
+    private static object? GetScaleInLightmapAttributeDefault() => 1.0f;
+
+    private static object? GetLightmapIndexAttributeDefault() => 0u;
+
+    private void SetSerializedLightmapIndex(object? value)
+    {
+        Serializable self = this;
+        var terrain = (Terrain)self;
+        terrain._lightmapIndex = (uint)value!;
+        terrain.UpdatePatchesLightmaps();
+    }
+
+    private static object? GetLightmapScaleOffsetAttributeDefault() => new Vector4f(1.0f, 1.0f, 0.0f, 0.0f);
+
+    private void SetSerializedLightmapScaleOffset(object? value)
+    {
+        Serializable self = this;
+        var terrain = (Terrain)self;
+        terrain._lightmapScaleOffset = (Vector4f)value!;
+        terrain.UpdatePatchesLightmaps();
+    }
 }

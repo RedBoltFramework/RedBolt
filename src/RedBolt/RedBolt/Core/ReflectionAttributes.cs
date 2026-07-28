@@ -15,7 +15,7 @@ public sealed class ReflectedAttribute : Attribute
 
     public string Category { get; }
 
-    public string? Factory { get; set; }
+    public bool Factory { get; set; } = true;
 
     public bool InheritAttributes { get; set; } = true;
 }
@@ -41,6 +41,8 @@ public sealed class SerializedAttribute : Attribute
 
     public Type? ValueType { get; }
 
+    public string? AccessorFactory { get; set; }
+
     public Type? AccessorType { get; set; }
 
     public string? Configure { get; set; }
@@ -48,6 +50,8 @@ public sealed class SerializedAttribute : Attribute
     public string? DefaultSource { get; set; }
 
     public string[]? EnumNames { get; set; }
+
+    public string? EnumNamesSource { get; set; }
 
     public string? Getter { get; set; }
 

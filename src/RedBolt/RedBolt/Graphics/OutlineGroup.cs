@@ -11,42 +11,42 @@ using SceneType = global::RedBolt.Scene.Scene;
 namespace RedBolt.Graphics;
 
 /// <summary>Group of selected drawables.</summary>
-public class OutlineGroup : Component
+[Reflected(ObjectCategory.Category_Scene)]
+[Serialized(
+    "Color",
+    typeof(Color),
+    DefaultSource = nameof(GetColorAttributeDefault),
+    Getter = nameof(GetColor),
+    Setter = nameof(SetColor)
+)]
+[Serialized(
+    "Render Order",
+    typeof(uint),
+    DefaultSource = nameof(GetRenderOrderAttributeDefault),
+    Getter = nameof(GetRenderOrder),
+    Setter = nameof(SetRenderOrder)
+)]
+[Serialized(
+    "Is Debug",
+    typeof(bool),
+    DefaultSource = nameof(GetIsDebugAttributeDefault),
+    Getter = nameof(IsDebug),
+    Setter = nameof(SetDebug)
+)]
+[Serialized(
+    "Drawables",
+    typeof(VariantVector),
+    DefaultSource = nameof(GetDrawablesAttributeDefault),
+    Getter = nameof(GetDrawablesAttr),
+    Setter = nameof(SetDrawablesAttr)
+)]
+public partial class OutlineGroup : Component
 {
     public OutlineGroup()
     {
-        RegisterAttribute(
-            "Color",
-            typeof(Color),
-            self => ((OutlineGroup)self).GetColor(),
-            (self, value) => ((OutlineGroup)self).SetColor(value is Color typed ? typed : Color.White),
-            Color.White);
-        RegisterAttribute(
-            "Render Order",
-            typeof(uint),
-            self => ((OutlineGroup)self).GetRenderOrder(),
-            (self, value) => ((OutlineGroup)self).SetRenderOrder(value is uint typed ? typed : 128u),
-            128u);
-        RegisterAttribute(
-            "Is Debug",
-            typeof(bool),
-            self => ((OutlineGroup)self).IsDebug(),
-            (self, value) => ((OutlineGroup)self).SetDebug(value is bool typed && typed),
-            false);
         // TODO: Not resolved on load
-        RegisterAttribute(
-            "Drawables",
-            typeof(VariantVector),
-            self => ((OutlineGroup)self).GetDrawablesAttr(),
-            (self, value) => ((OutlineGroup)self).SetDrawablesAttr((VariantVector)value!),
-            new VariantVector());
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<OutlineGroup>(ObjectCategory.Category_Scene);
-    }
 
     public override void Dispose()
     {
@@ -257,4 +257,12 @@ public class OutlineGroup : Component
 
     /// <summary>Cache of materials.</summary>
     private readonly Dictionary<MaterialKey, Material> _materials = [];
+
+    private static object? GetColorAttributeDefault() => Color.White;
+
+    private static object? GetRenderOrderAttributeDefault() => 128u;
+
+    private static object? GetIsDebugAttributeDefault() => false;
+
+    private static object? GetDrawablesAttributeDefault() => new VariantVector();
 }

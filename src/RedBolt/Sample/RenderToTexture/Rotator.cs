@@ -1,11 +1,13 @@
 using RedBolt;
+using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.Scene;
 
 /// <summary>
 /// Custom logic component for rotating a scene node.
 /// </summary>
-public class Rotator : LogicComponent
+[Reflected]
+public partial class Rotator : LogicComponent
 {
     /// <summary>
     /// Construct.

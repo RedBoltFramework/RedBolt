@@ -65,25 +65,85 @@ public struct AsyncProgress
     }
 }
 
-public class Scene : Node
+[Reflected(InheritAttributes = false)]
+[Serialized(
+    "Name",
+    typeof(string),
+    DefaultSource = nameof(GetNameAttributeDefault),
+    Getter = nameof(Name),
+    Setter = nameof(SetName)
+)]
+[Serialized(
+    "Time Scale",
+    typeof(float),
+    DefaultSource = nameof(GetTimeScaleAttributeDefault),
+    Getter = nameof(GetTimeScale),
+    Setter = nameof(SetTimeScale)
+)]
+[Serialized(
+    "Elapsed Time",
+    typeof(float),
+    DefaultSource = nameof(GetElapsedTimeAttributeDefault),
+    Getter = nameof(GetElapsedTime),
+    Setter = nameof(SetElapsedTime)
+)]
+[Serialized(
+    "Next Node ID",
+    typeof(uint),
+    DefaultSource = nameof(GetNextNodeIDAttributeDefault),
+    Getter = nameof(_nextNodeId),
+    Mode = AttributeMode.Default | AttributeMode.NoEdit,
+    Setter = nameof(_nextNodeId)
+)]
+[Serialized(
+    "Next Component ID",
+    typeof(uint),
+    DefaultSource = nameof(GetNextComponentIDAttributeDefault),
+    Getter = nameof(_nextComponentId),
+    Mode = AttributeMode.Default | AttributeMode.NoEdit,
+    Setter = nameof(_nextComponentId)
+)]
+[Serialized(
+    "Variables",
+    typeof(StringVariantMap),
+    DefaultSource = nameof(GetVariablesAttributeDefault),
+    Getter = nameof(GetSerializedVariables),
+    Setter = nameof(SetSerializedVariables)
+)]
+[Serialized(
+    "Update Events",
+    typeof(StringVector),
+    DefaultSource = nameof(GetUpdateEventsAttributeDefault),
+    Getter = nameof(GetUpdateEvents),
+    Setter = nameof(SetUpdateEvents)
+)]
+[Serialized(
+    "World Origin",
+    typeof(IntVector3),
+    DefaultSource = nameof(GetWorldOriginAttributeDefault),
+    Getter = nameof(GetWorldOrigin),
+    Setter = nameof(SetWorldOrigin)
+)]
+[Serialized(
+    "Elapsed Time Wrap",
+    typeof(Vector3d),
+    DefaultSource = nameof(GetElapsedTimeWrapAttributeDefault),
+    Getter = nameof(_elapsedTimeWrap),
+    Setter = nameof(_elapsedTimeWrap)
+)]
+[Serialized(
+    "Lightmaps",
+    typeof(ResourceRefList),
+    DefaultSource = nameof(GetLightmapsAttributeDefault),
+    Getter = nameof(GetSerializedLightmaps),
+    Setter = nameof(SetSerializedLightmaps)
+)]
+public partial class Scene : Node
 {
     /// <summary>Register Scene library objects.</summary>
     public static void RegisterSceneLibrary(Context context)
     {
-        context.AddAbstractReflection<Component>(ObjectCategory.Category_Scene);
-        context.AddAbstractReflection<LogicComponent>(ObjectCategory.Category_Scene);
-
-        ValueAnimation.RegisterObject(context);
-        ObjectAnimation.RegisterObject(context);
-        Node.RegisterObject(context);
-        RegisterObject(context);
-        SceneResource.RegisterObject(context);
-        UnknownComponent.RegisterObject(context);
-        SplinePath.RegisterObject(context);
-        PrefabReference.RegisterObject(context);
-        PrefabResource.RegisterObject(context);
-        ShakeComponent.RegisterObject(context);
-        WorldOrigin.RegisterObject(context);
+        context.RegisterAssembly(typeof(Scene).Assembly);
     }
 
     private readonly Dictionary<uint, Component> _components = [];
@@ -133,99 +193,8 @@ public class Scene : Node
         SubscribeToEvent<CoreEvents.UpdateEvent>(HandleUpdate);
         SubscribeToEvent<ResourceEvents.ResourceBackgroundLoaded>(HandleResourceBackgroundLoaded);
 
-        RegisterAttribute(
-            "Name",
-            typeof(string),
-            self => ((Scene)self).Name,
-            (self, value) => ((Scene)self).SetName(value as string ?? string.Empty),
-            string.Empty);
-        RegisterAttribute(
-            "Time Scale",
-            typeof(float),
-            self => ((Scene)self).GetTimeScale(),
-            (self, value) => ((Scene)self).SetTimeScale(value is float timeScale ? timeScale : 1.0f),
-            1.0f);
-        RegisterAttribute(
-            "Elapsed Time",
-            typeof(float),
-            self => ((Scene)self).GetElapsedTime(),
-            (self, value) => ((Scene)self).SetElapsedTime(value is float elapsedTime ? elapsedTime : 0.0f),
-            0.0f);
-        RegisterAttribute(
-            "Next Node ID",
-            typeof(uint),
-            self => ((Scene)self)._nextNodeId,
-            (self, value) => ((Scene)self)._nextNodeId = value is uint nextNodeId ? nextNodeId : 1u,
-            1u,
-            AttributeMode.Default | AttributeMode.NoEdit);
-        RegisterAttribute(
-            "Next Component ID",
-            typeof(uint),
-            self => ((Scene)self)._nextComponentId,
-            (self, value) => ((Scene)self)._nextComponentId = value is uint nextComponentId ? nextComponentId : 1u,
-            1u,
-            AttributeMode.Default | AttributeMode.NoEdit);
-        RegisterAttribute(
-            "Variables",
-            typeof(StringVariantMap),
-            self =>
-            {
-                var result = new StringVariantMap();
-                foreach (var (key, value) in ((Scene)self).Variables)
-                    result[key.Reverse()] = Variant.FromObject(value);
-                return result;
-            },
-            (self, value) =>
-            {
-                if (value is not StringVariantMap variables)
-                    return;
-
-                ((Scene)self).SetVariables(variables.Select(static pair =>
-                    new KeyValuePair<StringHash, object?>(new StringHash(pair.Key), pair.Value.GetObject())));
-            },
-            new StringVariantMap());
-        RegisterAttribute(
-            "Update Events",
-            typeof(StringVector),
-            self => ((Scene)self).GetUpdateEvents(),
-            (self, value) => ((Scene)self).SetUpdateEvents(value as StringVector ?? new StringVector()),
-            new StringVector(DefaultUpdateEvents));
-        RegisterAttribute(
-            "World Origin",
-            typeof(IntVector3),
-            self => ((Scene)self).GetWorldOrigin(),
-            (self, value) => ((Scene)self).SetWorldOrigin(value is IntVector3 worldOrigin ? worldOrigin : IntVector3.Zero),
-            IntVector3.Zero);
-        RegisterAttribute(
-            "Elapsed Time Wrap",
-            typeof(Vector3d),
-            self => ((Scene)self)._elapsedTimeWrap,
-            (self, value) => ((Scene)self)._elapsedTimeWrap = value is Vector3d elapsedTimeWrap
-                ? elapsedTimeWrap
-                : new Vector3d(1_000_000_000_000.0, 1024.0, 1.0),
-            new Vector3d(1_000_000_000_000.0, 1024.0, 1.0));
-        RegisterAttribute(
-            "Lightmaps",
-            typeof(ResourceRefList),
-            self => new ResourceRefList(ObjectReflection<Texture2D>.TypeId, ((Scene)self)._lightmapNames),
-            (self, value) =>
-            {
-                if (value is not ResourceRefList lightmaps)
-                    return;
-
-                ((Scene)self)._lightmapNames.Clear();
-                ((Scene)self)._lightmapNames.AddRange(lightmaps.Names);
-                ((Scene)self).ReloadLightmaps();
-            },
-            new ResourceRefList(ObjectReflection<Texture2D>.TypeId));
     }
 
-    public new static void RegisterObject(Context context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        context.AddFactoryReflection<Scene>();
-
-    }
 
     public override void Dispose()
     {
@@ -1665,5 +1634,61 @@ public class Scene : Node
             System.Array.Clear(Array, 0, Count);
             ArrayPool<T>.Shared.Return(Array);
         }
+    }
+
+    private static object? GetNameAttributeDefault() => string.Empty;
+
+    private static object? GetTimeScaleAttributeDefault() => 1.0f;
+
+    private static object? GetElapsedTimeAttributeDefault() => 0.0f;
+
+    private static object? GetNextNodeIDAttributeDefault() => 1u;
+
+    private static object? GetNextComponentIDAttributeDefault() => 1u;
+
+    private static object? GetVariablesAttributeDefault() => new StringVariantMap();
+
+    private object? GetSerializedVariables()
+    {
+        Serializable self = this;
+        var result = new StringVariantMap();
+        foreach (var (key, value) in ((Scene)self).Variables)
+            result[key.Reverse()] = Variant.FromObject(value);
+        return result;
+    }
+
+    private void SetSerializedVariables(object? value)
+    {
+        Serializable self = this;
+        if (value is not StringVariantMap variables)
+            return;
+
+        ((Scene)self).SetVariables(variables.Select(static pair =>
+            new KeyValuePair<StringHash, object?>(new StringHash(pair.Key), pair.Value.GetObject())));
+    }
+
+    private static object? GetUpdateEventsAttributeDefault() => new StringVector(DefaultUpdateEvents);
+
+    private static object? GetWorldOriginAttributeDefault() => IntVector3.Zero;
+
+    private static object? GetElapsedTimeWrapAttributeDefault() => new Vector3d(1_000_000_000_000.0, 1024.0, 1.0);
+
+    private static object? GetLightmapsAttributeDefault() => new ResourceRefList(ObjectReflection<Texture2D>.TypeId);
+
+    private object? GetSerializedLightmaps()
+    {
+        Serializable self = this;
+        return new ResourceRefList(ObjectReflection<Texture2D>.TypeId, ((Scene)self)._lightmapNames);
+    }
+
+    private void SetSerializedLightmaps(object? value)
+    {
+        Serializable self = this;
+        if (value is not ResourceRefList lightmaps)
+            return;
+
+        ((Scene)self)._lightmapNames.Clear();
+        ((Scene)self)._lightmapNames.AddRange(lightmaps.Names);
+        ((Scene)self).ReloadLightmaps();
     }
 }

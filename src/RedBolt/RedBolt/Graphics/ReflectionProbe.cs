@@ -85,7 +85,29 @@ public enum ReflectionProbeType
 }
 
 /// <summary>Reflection probe manager.</summary>
-public class ReflectionProbeManager : TrackedComponentRegistryBase
+[Reflected(ObjectCategory.Category_Subsystem)]
+[Serialized(
+    "Query Padding",
+    typeof(float),
+    DefaultSource = nameof(GetQueryPaddingAttributeDefault),
+    Getter = nameof(_queryPadding),
+    Setter = nameof(_queryPadding)
+)]
+[Serialized(
+    "Render Budget",
+    typeof(uint),
+    DefaultSource = nameof(GetRenderBudgetAttributeDefault),
+    Getter = nameof(_renderBudget),
+    Setter = nameof(_renderBudget)
+)]
+[Serialized(
+    "Filter Cubemaps",
+    typeof(bool),
+    DefaultSource = nameof(GetFilterCubemapsAttributeDefault),
+    Getter = nameof(_filterCubemaps),
+    Setter = nameof(_filterCubemaps)
+)]
+public partial class ReflectionProbeManager : TrackedComponentRegistryBase
 {
     public const float DefaultQueryPadding = 2.0f;
     public const uint DefaultRenderBudget = 6;
@@ -134,12 +156,6 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
         SubscribeToEvent<GraphicsEvents.DeviceResetEvent>(
             (ref GraphicsEvents.DeviceResetEvent _) => RestoreCubemaps());
         // TODO: port URHO3D_ACTION_STATIC_LABEL("Bake!", QueueBakeAll, "Renders all baked reflection probes");
-        RegisterAttribute("Query Padding", typeof(float), self => ((ReflectionProbeManager)self)._queryPadding,
-            (self, value) => ((ReflectionProbeManager)self)._queryPadding = (float)value!, DefaultQueryPadding);
-        RegisterAttribute("Render Budget", typeof(uint), self => ((ReflectionProbeManager)self)._renderBudget,
-            (self, value) => ((ReflectionProbeManager)self)._renderBudget = (uint)value!, DefaultRenderBudget);
-        RegisterAttribute("Filter Cubemaps", typeof(bool), self => ((ReflectionProbeManager)self)._filterCubemaps,
-            (self, value) => ((ReflectionProbeManager)self)._filterCubemaps = value is bool enabled && enabled, true);
     }
 
     public override void Dispose()
@@ -158,8 +174,6 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
 
     public override bool IsOnlyEnabledTracked => true;
 
-    public static void RegisterObject(Context context) =>
-        context.AddFactoryReflection<ReflectionProbeManager>(ObjectCategory.Category_Subsystem);
 
     public float QueryPadding
     {
@@ -670,10 +684,130 @@ public class ReflectionProbeManager : TrackedComponentRegistryBase
             QueryBvhRange(intersections, bvh, offset + 1 + stride, stride, worldBoundingBox);
         }
     }
+
+    private static object? GetQueryPaddingAttributeDefault() => DefaultQueryPadding;
+
+    private static object? GetRenderBudgetAttributeDefault() => DefaultRenderBudget;
+
+    private static object? GetFilterCubemapsAttributeDefault() => true;
 }
 
 /// <summary>Reflection probe component that specifies reflection applied within a region.</summary>
-public class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
+[Reflected(ObjectCategory.Category_Scene)]
+[Serialized(
+    "Is Enabled",
+    typeof(bool),
+    DefaultSource = nameof(GetIsEnabledAttributeDefault),
+    Getter = nameof(Enabled),
+    Setter = nameof(SetEnabled)
+)]
+[Serialized(
+    "Is Movable",
+    typeof(bool),
+    DefaultSource = nameof(GetIsMovableAttributeDefault),
+    Getter = nameof(IsMovable),
+    Setter = nameof(SetMovable)
+)]
+[Serialized(
+    "Probe Type",
+    typeof(ReflectionProbeType),
+    DefaultSource = nameof(GetProbeTypeAttributeDefault),
+    EnumNamesSource = nameof(ReflectionProbeTypeNames),
+    Getter = nameof(GetProbeType),
+    Setter = nameof(SetProbeType)
+)]
+[Serialized(
+    "Is Realtime Update",
+    typeof(bool),
+    DefaultSource = nameof(GetIsRealtimeUpdateAttributeDefault),
+    Getter = nameof(IsRealtimeUpdate),
+    Setter = nameof(SetRealtimeUpdate)
+)]
+[Serialized(
+    "Is Sliced Update",
+    typeof(bool),
+    DefaultSource = nameof(GetIsSlicedUpdateAttributeDefault),
+    Getter = nameof(IsSlicedUpdate),
+    Setter = nameof(SetSlicedUpdate)
+)]
+[Serialized(
+    "Bounding Box Min",
+    typeof(Vector3f),
+    DefaultSource = nameof(GetBoundingBoxMinAttributeDefault),
+    Getter = nameof(GetSerializedBoundingBoxMin),
+    Setter = nameof(SetSerializedBoundingBoxMin)
+)]
+[Serialized(
+    "Bounding Box Max",
+    typeof(Vector3f),
+    DefaultSource = nameof(GetBoundingBoxMaxAttributeDefault),
+    Getter = nameof(GetSerializedBoundingBoxMax),
+    Setter = nameof(SetSerializedBoundingBoxMax)
+)]
+[Serialized(
+    "Priority",
+    typeof(int),
+    DefaultSource = nameof(GetPriorityAttributeDefault),
+    Getter = nameof(GetPriority),
+    Setter = nameof(SetPriority)
+)]
+[Serialized(
+    "Texture",
+    typeof(ResourceRef),
+    DefaultSource = nameof(GetTextureAttributeDefault),
+    Getter = nameof(GetTextureAttr),
+    Setter = nameof(SetTextureAttr)
+)]
+[Serialized(
+    "Use Box Projection",
+    typeof(bool),
+    DefaultSource = nameof(GetUseBoxProjectionAttributeDefault),
+    Getter = nameof(IsBoxProjectionUsed),
+    Setter = nameof(SetBoxProjectionUsed)
+)]
+[Serialized(
+    "Projection Box Min",
+    typeof(Vector3f),
+    DefaultSource = nameof(GetProjectionBoxMinAttributeDefault),
+    Getter = nameof(GetSerializedProjectionBoxMin),
+    Setter = nameof(SetSerializedProjectionBoxMin)
+)]
+[Serialized(
+    "Projection Box Max",
+    typeof(Vector3f),
+    DefaultSource = nameof(GetProjectionBoxMaxAttributeDefault),
+    Getter = nameof(GetSerializedProjectionBoxMax),
+    Setter = nameof(SetSerializedProjectionBoxMax)
+)]
+[Serialized(
+    "Texture Size",
+    typeof(uint),
+    DefaultSource = nameof(GetTextureSizeAttributeDefault),
+    Getter = nameof(GetTextureSize),
+    Setter = nameof(SetTextureSize)
+)]
+[Serialized(
+    "View Mask",
+    typeof(uint),
+    DefaultSource = nameof(GetViewMaskAttributeDefault),
+    Getter = nameof(GetViewMask),
+    Setter = nameof(SetViewMask)
+)]
+[Serialized(
+    "Near Clip",
+    typeof(float),
+    DefaultSource = nameof(GetNearClipAttributeDefault),
+    Getter = nameof(GetNearClip),
+    Setter = nameof(SetNearClip)
+)]
+[Serialized(
+    "Far Clip",
+    typeof(float),
+    DefaultSource = nameof(GetFarClipAttributeDefault),
+    Getter = nameof(GetFarClip),
+    Setter = nameof(SetFarClip)
+)]
+public partial class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
 {
     private static readonly string[] ReflectionProbeTypeNames = ["Baked", "Mixed", "Dynamic", "Custom Texture"];
 
@@ -694,64 +828,6 @@ public class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
     public ReflectionProbe()
     {
         // TODO: port URHO3D_ACTION_STATIC_LABEL("Render!", QueueRender, "Renders cubemap for reflection probe");
-        RegisterAttribute("Is Enabled", typeof(bool), self => ((ReflectionProbe)self).Enabled,
-            (self, value) => ((ReflectionProbe)self).SetEnabled(value is bool enabled && enabled), true);
-        RegisterAttribute("Is Movable", typeof(bool), self => ((ReflectionProbe)self).IsMovable(),
-            (self, value) => ((ReflectionProbe)self).SetMovable(value is bool movable && movable), false);
-        RegisterAttribute("Probe Type", typeof(ReflectionProbeType), self => ((ReflectionProbe)self).GetProbeType(),
-            (self, value) => ((ReflectionProbe)self).SetProbeType((ReflectionProbeType)value!),
-            ReflectionProbeType.Baked, enumNames: ReflectionProbeTypeNames);
-        RegisterAttribute("Is Realtime Update", typeof(bool), self => ((ReflectionProbe)self).IsRealtimeUpdate(),
-            (self, value) => ((ReflectionProbe)self).SetRealtimeUpdate(value is bool realtime && realtime), false);
-        RegisterAttribute("Is Sliced Update", typeof(bool), self => ((ReflectionProbe)self).IsSlicedUpdate(),
-            (self, value) => ((ReflectionProbe)self).SetSlicedUpdate(value is bool sliced && sliced), false);
-        RegisterAttribute("Bounding Box Min", typeof(Vector3f), self => ((ReflectionProbe)self)._boundingBox.Min,
-            (self, value) =>
-            {
-                var probe = (ReflectionProbe)self;
-                probe._boundingBox.Min = (Vector3f)value!;
-                probe.MarkTransformDirty();
-            }, -Vector3f.One);
-        RegisterAttribute("Bounding Box Max", typeof(Vector3f), self => ((ReflectionProbe)self)._boundingBox.Max,
-            (self, value) =>
-            {
-                var probe = (ReflectionProbe)self;
-                probe._boundingBox.Max = (Vector3f)value!;
-                probe.MarkTransformDirty();
-            }, Vector3f.One);
-        RegisterAttribute("Priority", typeof(int), self => ((ReflectionProbe)self).GetPriority(),
-            (self, value) => ((ReflectionProbe)self).SetPriority((int)value!), 0);
-        RegisterAttribute("Texture", typeof(ResourceRef), self => ((ReflectionProbe)self).GetTextureAttr(),
-            (self, value) => ((ReflectionProbe)self).SetTextureAttr((ResourceRef)value!),
-            new ResourceRef(new StringHash(nameof(TextureCube))));
-        RegisterAttribute("Use Box Projection", typeof(bool), self => ((ReflectionProbe)self).IsBoxProjectionUsed(),
-            (self, value) => ((ReflectionProbe)self).SetBoxProjectionUsed(value is bool enabled && enabled), false);
-        RegisterAttribute("Projection Box Min", typeof(Vector3f), self => ((ReflectionProbe)self)._projectionBox.Min,
-            (self, value) =>
-            {
-                var probe = (ReflectionProbe)self;
-                probe._projectionBox.Min = (Vector3f)value!;
-                probe.UpdateProbeBoxData();
-            }, -Vector3f.One);
-        RegisterAttribute("Projection Box Max", typeof(Vector3f), self => ((ReflectionProbe)self)._projectionBox.Max,
-            (self, value) =>
-            {
-                var probe = (ReflectionProbe)self;
-                probe._projectionBox.Max = (Vector3f)value!;
-                probe.UpdateProbeBoxData();
-            }, Vector3f.One);
-        RegisterAttribute("Texture Size", typeof(uint), self => ((ReflectionProbe)self).GetTextureSize(),
-            (self, value) => ((ReflectionProbe)self).SetTextureSize((uint)value!),
-            CubemapRenderingSettings.DefaultTextureSize);
-        RegisterAttribute("View Mask", typeof(uint), self => ((ReflectionProbe)self).GetViewMask(),
-            (self, value) => ((ReflectionProbe)self).SetViewMask((uint)value!),
-            CubemapRenderingSettings.DefaultViewMask);
-        RegisterAttribute("Near Clip", typeof(float), self => ((ReflectionProbe)self).GetNearClip(),
-            (self, value) => ((ReflectionProbe)self).SetNearClip((float)value!),
-            CubemapRenderingSettings.DefaultNearClip);
-        RegisterAttribute("Far Clip", typeof(float), self => ((ReflectionProbe)self).GetFarClip(),
-            (self, value) => ((ReflectionProbe)self).SetFarClip((float)value!),
-            CubemapRenderingSettings.DefaultFarClip);
     }
 
     public override void Dispose()
@@ -768,8 +844,6 @@ public class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
         base.Dispose();
     }
 
-    public static void RegisterObject(Context context) =>
-        context.AddFactoryReflection<ReflectionProbe>(ObjectCategory.Category_Scene);
 
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest) =>
         DrawDebugGeometry(debug, depthTest, compact: false);
@@ -1022,4 +1096,92 @@ public class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
         _data.Value.CubemapCenter = position.ToVector4(1.0f);
         _data.Value.ProjectionBox = new BoundingBox(position + _projectionBox.Min, position + _projectionBox.Max);
     }
+
+    private static object? GetIsEnabledAttributeDefault() => true;
+
+    private static object? GetIsMovableAttributeDefault() => false;
+
+    private static object? GetProbeTypeAttributeDefault() => ReflectionProbeType.Baked;
+
+    private static object? GetIsRealtimeUpdateAttributeDefault() => false;
+
+    private static object? GetIsSlicedUpdateAttributeDefault() => false;
+
+    private static object? GetBoundingBoxMinAttributeDefault() => -Vector3f.One;
+
+    private object? GetSerializedBoundingBoxMin()
+    {
+        Serializable self = this;
+        return ((ReflectionProbe)self)._boundingBox.Min;
+    }
+
+    private void SetSerializedBoundingBoxMin(object? value)
+    {
+        Serializable self = this;
+        var probe = (ReflectionProbe)self;
+        probe._boundingBox.Min = (Vector3f)value!;
+        probe.MarkTransformDirty();
+    }
+
+    private static object? GetBoundingBoxMaxAttributeDefault() => Vector3f.One;
+
+    private object? GetSerializedBoundingBoxMax()
+    {
+        Serializable self = this;
+        return ((ReflectionProbe)self)._boundingBox.Max;
+    }
+
+    private void SetSerializedBoundingBoxMax(object? value)
+    {
+        Serializable self = this;
+        var probe = (ReflectionProbe)self;
+        probe._boundingBox.Max = (Vector3f)value!;
+        probe.MarkTransformDirty();
+    }
+
+    private static object? GetPriorityAttributeDefault() => 0;
+
+    private static object? GetTextureAttributeDefault() => new ResourceRef(new StringHash(nameof(TextureCube)));
+
+    private static object? GetUseBoxProjectionAttributeDefault() => false;
+
+    private static object? GetProjectionBoxMinAttributeDefault() => -Vector3f.One;
+
+    private object? GetSerializedProjectionBoxMin()
+    {
+        Serializable self = this;
+        return ((ReflectionProbe)self)._projectionBox.Min;
+    }
+
+    private void SetSerializedProjectionBoxMin(object? value)
+    {
+        Serializable self = this;
+        var probe = (ReflectionProbe)self;
+        probe._projectionBox.Min = (Vector3f)value!;
+        probe.UpdateProbeBoxData();
+    }
+
+    private static object? GetProjectionBoxMaxAttributeDefault() => Vector3f.One;
+
+    private object? GetSerializedProjectionBoxMax()
+    {
+        Serializable self = this;
+        return ((ReflectionProbe)self)._projectionBox.Max;
+    }
+
+    private void SetSerializedProjectionBoxMax(object? value)
+    {
+        Serializable self = this;
+        var probe = (ReflectionProbe)self;
+        probe._projectionBox.Max = (Vector3f)value!;
+        probe.UpdateProbeBoxData();
+    }
+
+    private static object? GetTextureSizeAttributeDefault() => CubemapRenderingSettings.DefaultTextureSize;
+
+    private static object? GetViewMaskAttributeDefault() => CubemapRenderingSettings.DefaultViewMask;
+
+    private static object? GetNearClipAttributeDefault() => CubemapRenderingSettings.DefaultNearClip;
+
+    private static object? GetFarClipAttributeDefault() => CubemapRenderingSettings.DefaultFarClip;
 }

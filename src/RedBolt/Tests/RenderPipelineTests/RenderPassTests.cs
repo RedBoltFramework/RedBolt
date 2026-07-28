@@ -5,12 +5,12 @@ using RedBolt.RenderPipeline;
 
 namespace RedBolt.Tests;
 
-public sealed class RenderPassTests
+public sealed partial class RenderPassTests
 {
     [Fact]
     public void Default_enabled_attribute_does_not_change_runtime_user_state()
     {
-        var pass = new TrackingRenderPass();
+        var pass = new RenderPassProbe();
 
         Assert.True(pass.IsEnabledByDefault());
         Assert.False(pass.IsEnabledEffectively());
@@ -25,13 +25,12 @@ public sealed class RenderPassTests
     [Fact]
     public void Clone_copies_attributes_without_copying_runtime_user_state()
     {
-        Context.Instance.AddFactoryReflection<TrackingRenderPass>();
-        var pass = new TrackingRenderPass();
+        var pass = new RenderPassProbe();
         pass.SetEnabled(true);
         pass.SetEnabledByDefault(false);
         pass.SetComment("Comment");
 
-        var clone = Assert.IsType<TrackingRenderPass>(pass.Clone());
+        var clone = Assert.IsType<RenderPassProbe>(pass.Clone());
 
         Assert.Equal("Tracking", clone.GetPassName());
         Assert.False(clone.IsEnabledByDefault());
@@ -42,7 +41,6 @@ public sealed class RenderPassTests
     [Fact]
     public void Clone_resets_empty_variant_default_without_dereferencing_it()
     {
-        Context.Instance.AddFactoryReflection<NullableAttributeRenderPass>();
         var pass = new NullableAttributeRenderPass();
 
         var clone = Assert.IsType<NullableAttributeRenderPass>(pass.Clone());
@@ -53,7 +51,7 @@ public sealed class RenderPassTests
     [Fact]
     public void Connect_to_render_buffer_keeps_existing_buffer_when_shared_state_changes()
     {
-        var pass = new TrackingRenderPass();
+        var pass = new RenderPassProbe();
         var pipeline = new StubRenderPipeline();
         using var firstBuffer = new StubRenderBuffer(pipeline);
         using var secondBuffer = new StubRenderBuffer(pipeline);
@@ -72,11 +70,12 @@ public sealed class RenderPassTests
         Assert.Same(firstBuffer, pass.Buffer);
     }
 
-    private sealed class TrackingRenderPass : RenderPass
+    [Reflected]
+    private sealed partial class RenderPassProbe : RenderPass
     {
         private WeakReference<RenderBuffer>? _buffer;
 
-        public TrackingRenderPass()
+        public RenderPassProbe()
         {
             _passName = "Tracking";
         }
@@ -129,17 +128,19 @@ public sealed class RenderPassTests
         public event RenderPipelineStatsHandler? CollectStatistics { add { } remove { } }
     }
 
-    private sealed class NullableAttributeRenderPass : RenderPass
+    [Reflected]
+    [Serialized(
+        "Optional",
+        typeof(string),
+        DefaultSource = nameof(_optional),
+        Getter = nameof(_optional),
+        Setter = nameof(_optional))]
+    private sealed partial class NullableAttributeRenderPass : RenderPass
     {
         private string? _optional;
 
         public NullableAttributeRenderPass()
         {
-            RegisterAttribute(
-                "Optional",
-                typeof(string),
-                self => ((NullableAttributeRenderPass)self)._optional,
-                (self, value) => ((NullableAttributeRenderPass)self)._optional = value as string);
         }
 
         public string? Optional => _optional;

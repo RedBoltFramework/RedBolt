@@ -160,7 +160,8 @@ public struct TechniqueEntry : IEquatable<TechniqueEntry>, IComparable<Technique
 /// <summary>Describes how to render 3D geometries.</summary>
 /// <remarks>
 /// </remarks>
-public sealed class Material : ResourceType
+[Reflected]
+public sealed partial class Material : ResourceType
 {
     private sealed class MaterialPipelineStateTracker : PipelineStateTracker
     {
@@ -196,11 +197,6 @@ public sealed class Material : ResourceType
         ResetToDefaults();
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<Material>();
-    }
 
     public override void Dispose()
     {

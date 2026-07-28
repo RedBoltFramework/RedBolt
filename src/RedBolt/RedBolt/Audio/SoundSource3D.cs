@@ -10,7 +10,45 @@ using SceneType = global::RedBolt.Scene.Scene;
 namespace RedBolt.Audio;
 
 /// <summary>Sound source component with 3D position attenuation.</summary>
-public sealed class SoundSource3D : SoundSource
+[Reflected(ObjectCategory.Category_Audio)]
+[RemoveSerialized("Attenuation")]
+[RemoveSerialized("Panning")]
+[Serialized(
+    "Near Distance",
+    typeof(float),
+    DefaultSource = nameof(GetNearDistanceAttributeDefault),
+    Getter = nameof(_nearDistance),
+    Setter = nameof(_nearDistance)
+)]
+[Serialized(
+    "Far Distance",
+    typeof(float),
+    DefaultSource = nameof(GetFarDistanceAttributeDefault),
+    Getter = nameof(_farDistance),
+    Setter = nameof(_farDistance)
+)]
+[Serialized(
+    "Inner Angle",
+    typeof(float),
+    DefaultSource = nameof(GetInnerAngleAttributeDefault),
+    Getter = nameof(_innerAngle),
+    Setter = nameof(_innerAngle)
+)]
+[Serialized(
+    "Outer Angle",
+    typeof(float),
+    DefaultSource = nameof(GetOuterAngleAttributeDefault),
+    Getter = nameof(_outerAngle),
+    Setter = nameof(_outerAngle)
+)]
+[Serialized(
+    "Rolloff Factor",
+    typeof(float),
+    DefaultSource = nameof(GetRolloffFactorAttributeDefault),
+    Getter = nameof(_rolloffFactor),
+    Setter = nameof(_rolloffFactor)
+)]
+public sealed partial class SoundSource3D : SoundSource
 {
     private float _nearDistance;
     private float _farDistance = 100.0f;
@@ -23,24 +61,6 @@ public sealed class SoundSource3D : SoundSource
         Attenuation = 0.0f;
     }
 
-    /// <summary>Register object factory.</summary>
-    public new static void RegisterObject(Context context)
-    {
-        var reflection = context.AddFactoryReflection<SoundSource3D>(ObjectCategory.Category_Audio);
-        reflection.CopyAttributesFrom(context.GetReflection<SoundSource>());
-        reflection.RemoveAttribute(new StringHash("Attenuation"));
-        reflection.RemoveAttribute(new StringHash("Panning"));
-        RegisterAttribute(reflection, "Near Distance", typeof(float), self => ((SoundSource3D)self)._nearDistance,
-            (self, value) => ((SoundSource3D)self)._nearDistance = (float)value!, 0.0f);
-        RegisterAttribute(reflection, "Far Distance", typeof(float), self => ((SoundSource3D)self)._farDistance,
-            (self, value) => ((SoundSource3D)self)._farDistance = (float)value!, 100.0f);
-        RegisterAttribute(reflection, "Inner Angle", typeof(float), self => ((SoundSource3D)self)._innerAngle,
-            (self, value) => ((SoundSource3D)self)._innerAngle = (float)value!, 360.0f);
-        RegisterAttribute(reflection, "Outer Angle", typeof(float), self => ((SoundSource3D)self)._outerAngle,
-            (self, value) => ((SoundSource3D)self)._outerAngle = (float)value!, 360.0f);
-        RegisterAttribute(reflection, "Rolloff Factor", typeof(float), self => ((SoundSource3D)self)._rolloffFactor,
-            (self, value) => ((SoundSource3D)self)._rolloffFactor = (float)value!, 2.0f);
-    }
 
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)
     {
@@ -159,4 +179,14 @@ public sealed class SoundSource3D : SoundSource
             }
         }
     }
+
+    private static object? GetNearDistanceAttributeDefault() => 0.0f;
+
+    private static object? GetFarDistanceAttributeDefault() => 100.0f;
+
+    private static object? GetInnerAngleAttributeDefault() => 360.0f;
+
+    private static object? GetOuterAngleAttributeDefault() => 360.0f;
+
+    private static object? GetRolloffFactorAttributeDefault() => 2.0f;
 }

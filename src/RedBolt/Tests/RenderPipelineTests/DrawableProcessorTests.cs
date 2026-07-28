@@ -9,16 +9,8 @@ using SceneType = global::RedBolt.Scene.Scene;
 namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
-public sealed class DrawableProcessorTests
+public sealed partial class DrawableProcessorTests
 {
-    public DrawableProcessorTests()
-    {
-        TestTypeRegistration.RegisterFactory<Octree>();
-        TestTypeRegistration.RegisterFactory<ReflectionProbeManager>();
-        TestTypeRegistration.RegisterFactory<Camera>();
-        TestTypeRegistration.RegisterFactory<TestOccluderDrawable>();
-    }
-
     [Fact]
     public void RenderPipelineStatsHasValueSemantics()
     {
@@ -475,7 +467,8 @@ public sealed class DrawableProcessorTests
         public void SortByShadowMapTexture() => SortLightProcessorsByShadowMapTexture();
     }
 
-    private sealed class TestOccluderDrawable : Drawable
+    [Reflected]
+    private sealed partial class TestOccluderDrawable : Drawable
     {
         public BoundingBox WorldBounds { get; set; } = new();
         public uint NumOccluderTriangles { get; set; }

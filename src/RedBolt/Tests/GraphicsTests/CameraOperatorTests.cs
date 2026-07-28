@@ -88,7 +88,7 @@ public sealed class CameraOperatorTests
     public void Camera_operator_registers_scene_factory_and_action_metadata()
     {
         var context = new Context();
-        CameraOperator.RegisterObject(context);
+        context.RegisterAttributedType<CameraOperator>();
 
         using var cameraOperator = Assert.IsType<CameraOperator>(
             context.CreateObject(ObjectReflection<CameraOperator>.TypeId));

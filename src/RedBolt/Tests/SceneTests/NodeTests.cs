@@ -9,21 +9,14 @@ using SceneType = global::RedBolt.Scene.Scene;
 namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
-public sealed class NodeTests
+public sealed partial class NodeTests
 {
-    public NodeTests()
-    {
-        TestTypeRegistration.RegisterFactory<AttachmentProbe>();
-        TestTypeRegistration.RegisterFactory<ListenerProbe>();
-    }
-
     [Fact]
     public void Node_prefab_archive_roundtrips_hierarchy_components_and_variables()
     {
         var previous = Context.Instance; Context.SetInstance(new Context());
         try
         {
-            RegisterPrefabTypes();
             var scene = new SceneType();
             var child = scene.CreateChild("Child");
             child.SetPosition(new Vector3f(1, 2, 3));
@@ -48,7 +41,6 @@ public sealed class NodeTests
     [Fact]
     public void Node_prefab_reader_writer_roundtrip_loads_hierarchy()
     {
-        RegisterPrefabTypes();
         var sourceScene = new SceneType();
         var source = sourceScene.CreateChild("Child");
         source.SetVar("score", 42);
@@ -102,17 +94,8 @@ public sealed class NodeTests
         return result;
     }
 
-    private static void RegisterPrefabTypes()
-    {
-        if (!Context.Instance.IsReflected<Node>())
-            Node.RegisterObject(Context.Instance);
-        if (!Context.Instance.IsReflected<SceneType>())
-            SceneType.RegisterObject(Context.Instance);
-        if (!Context.Instance.IsReflected<Camera>())
-            Context.Instance.AddFactoryReflection<Camera>();
-    }
-
-    private sealed class ListenerProbe : Component
+    [Reflected]
+    private sealed partial class ListenerProbe : Component
     {
         public int DirtyCount { get; private set; }
         public int NodeEnabledCount { get; private set; }
@@ -128,7 +111,8 @@ public sealed class NodeTests
         }
     }
 
-    private sealed class AttachmentProbe : Component
+    [Reflected]
+    private sealed partial class AttachmentProbe : Component
     {
         public bool WasQueryableOnNodeSet { get; private set; }
 

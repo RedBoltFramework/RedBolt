@@ -1,17 +1,13 @@
 using RedBolt;
+using RedBolt.Core;
 using RedBolt.Scene;
 using SceneType = global::RedBolt.Scene.Scene;
 
 namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
-public sealed class ComponentSearchFlagTests
+public sealed partial class ComponentSearchFlagTests
 {
-    public ComponentSearchFlagTests()
-    {
-        TestTypeRegistration.RegisterFactory<SearchProbe>();
-    }
-
     [Fact]
     public void ComponentSearchFlag_matches_rbfx_value_type_and_values()
     {
@@ -83,7 +79,8 @@ public sealed class ComponentSearchFlagTests
         return components.Select(static component => component.Node!).ToArray();
     }
 
-    private sealed class SearchProbe : Component
+    [Reflected]
+    private sealed partial class SearchProbe : Component
     {
     }
 }

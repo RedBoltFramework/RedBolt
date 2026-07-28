@@ -6,17 +6,17 @@ using RedBolt.Scene;
 
 namespace RedBolt.Tests;
 
-public sealed class SerializableTests
+public sealed partial class SerializableTests
 {
     [Fact]
     public void Serializable_roundtrips_binary_xml_json_and_archive()
     {
-        var source = new TestSerializable { Number = 42, Label = "rbfx" };
+        var source = new SerializableProbe { Number = 42, Label = "rbfx" };
 
         using var binary = new VectorBuffer();
         Assert.True(source.Save(binary));
         binary.Seek(0);
-        var binaryResult = new TestSerializable();
+        var binaryResult = new SerializableProbe();
         Assert.True(binaryResult.Load(binary));
         AssertValues(binaryResult);
         Assert.Equal(0, binaryResult.ApplyCount);
@@ -24,14 +24,14 @@ public sealed class SerializableTests
         var xml = new XMLFile { Name = string.Empty };
         var root = xml.CreateRoot("object");
         Assert.True(source.SaveXML(root));
-        var xmlResult = new TestSerializable();
+        var xmlResult = new SerializableProbe();
         Assert.True(xmlResult.LoadXML(root));
         AssertValues(xmlResult);
         Assert.Equal(0, xmlResult.ApplyCount);
 
         using var json = new JSONValue(JSONValueType.Object);
         Assert.True(source.SaveJSON(json));
-        var jsonResult = new TestSerializable();
+        var jsonResult = new SerializableProbe();
         Assert.True(jsonResult.LoadJSON(json));
         AssertValues(jsonResult);
         Assert.Equal(0, jsonResult.ApplyCount);
@@ -43,7 +43,7 @@ public sealed class SerializableTests
             var archive = new TestJSONOutputArchive();
             using (archive.OpenUnorderedBlock("object")) source.SerializeInBlock(archive);
             var input = new TestJSONInputArchive(archive.ToJsonString());
-            var archiveResult = new TestSerializable();
+            var archiveResult = new SerializableProbe();
             using (input.OpenUnorderedBlock("object")) archiveResult.SerializeInBlock(input);
             AssertValues(archiveResult);
             Assert.Equal(1, archiveResult.ApplyCount);
@@ -62,9 +62,8 @@ public sealed class SerializableTests
         Context.SetInstance(context);
         try
         {
-            context.AddFactoryReflection<TestSerializable>();
-            using var source = new TestSerializable { Number = 7, Label = "clone" };
-            using var clone = Assert.IsType<TestSerializable>(source.Clone());
+            using var source = new SerializableProbe { Number = 7, Label = "clone" };
+            using var clone = Assert.IsType<SerializableProbe>(source.Clone());
             Assert.Equal(7, clone.Number);
             Assert.Equal("clone", clone.Label);
         }
@@ -82,7 +81,7 @@ public sealed class SerializableTests
         Context.SetInstance(context);
         try
         {
-            using var source = new TestSerializable();
+            using var source = new UnreflectedSerializable();
             Assert.Null(source.Clone());
         }
         finally
@@ -115,7 +114,7 @@ public sealed class SerializableTests
     [Fact]
     public void Serializable_skips_non_object_json_attributes()
     {
-        using var serializable = new TestSerializable();
+        using var serializable = new SerializableProbe();
         using var json = new JSONValue(JSONValueType.Object);
         using var attributes = new JSONValue(42);
         json.Set("attributes", attributes);
@@ -132,9 +131,9 @@ public sealed class SerializableTests
         Context.SetInstance(context);
         try
         {
-            var reflection = context.Reflect<TestSerializable>();
-            using var serializable = new TestSerializable();
-            using var secondSerializable = new TestSerializable();
+            var reflection = context.GetReflection<SerializableProbe>();
+            using var serializable = new SerializableProbe();
+            using var secondSerializable = new SerializableProbe();
 
             Assert.Same(reflection, serializable.GetReflection());
             Assert.Equal(2, serializable.GetNumAttributes());
@@ -148,23 +147,19 @@ public sealed class SerializableTests
         }
     }
 
-    private static void AssertValues(TestSerializable value)
+    private static void AssertValues(SerializableProbe value)
     {
         Assert.Equal(42, value.Number);
         Assert.Equal("rbfx", value.Label);
     }
 
-    private sealed class TestSerializable : Serializable
+    [Reflected]
+    private sealed partial class SerializableProbe : Serializable
     {
-        public TestSerializable()
-        {
-            RegisterAttribute("Number", typeof(int), self => ((TestSerializable)self).Number,
-                (self, value) => ((TestSerializable)self).Number = (int)(value ?? 0), 0);
-            RegisterAttribute("Label", typeof(string), self => ((TestSerializable)self).Label,
-                (self, value) => ((TestSerializable)self).Label = (string?)value ?? string.Empty, string.Empty);
-        }
-
+        [Serialized("Number")]
         public int Number { get; set; }
+
+        [Serialized("Label")]
         public string Label { get; set; } = string.Empty;
         public int ApplyCount { get; private set; }
 
@@ -174,14 +169,16 @@ public sealed class SerializableTests
         }
     }
 
-    private sealed class DefaultSerializable : Serializable
+    [Reflected]
+    private sealed partial class DefaultSerializable : Serializable
     {
-        public DefaultSerializable()
-        {
-            RegisterAttribute("Value", typeof(byte[]), self => ((DefaultSerializable)self).Value,
-                (self, value) => ((DefaultSerializable)self).Value = (byte[]?)value ?? [], Array.Empty<byte>());
-        }
-
+        [Serialized("Value", DefaultSource = nameof(GetValueDefault))]
         public byte[] Value { get; set; } = [];
+
+        private static byte[] GetValueDefault() => [];
+    }
+
+    private sealed class UnreflectedSerializable : Serializable
+    {
     }
 }

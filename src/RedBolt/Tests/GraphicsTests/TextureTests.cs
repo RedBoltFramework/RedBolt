@@ -47,7 +47,7 @@ public sealed class TextureTests
     public void Texture2D_registers_empty_named_factory()
     {
         var context = new Context();
-        Texture2D.RegisterObject(context);
+        context.RegisterAttributedType<Texture2D>();
 
         using var texture = Assert.IsType<Texture2D>(context.CreateObject(ObjectReflection<Texture2D>.TypeId));
         Assert.Equal(string.Empty, texture.Name);
@@ -57,7 +57,7 @@ public sealed class TextureTests
     public void Texture3D_registers_empty_named_factory()
     {
         var context = new Context();
-        Texture3D.RegisterObject(context);
+        context.RegisterAttributedType<Texture3D>();
 
         using var texture = Assert.IsType<Texture3D>(context.CreateObject(ObjectReflection<Texture3D>.TypeId));
         Assert.Equal(string.Empty, texture.Name);
@@ -67,7 +67,7 @@ public sealed class TextureTests
     public void TextureCube_registers_empty_named_factory()
     {
         var context = new Context();
-        TextureCube.RegisterObject(context);
+        context.RegisterAttributedType<TextureCube>();
 
         using var texture = Assert.IsType<TextureCube>(context.CreateObject(ObjectReflection<TextureCube>.TypeId));
         Assert.Equal(string.Empty, texture.Name);
@@ -77,7 +77,7 @@ public sealed class TextureTests
     public void Texture2DArray_registers_empty_named_factory()
     {
         var context = new Context();
-        Texture2DArray.RegisterObject(context);
+        context.RegisterAttributedType<Texture2DArray>();
 
         using var texture = Assert.IsType<Texture2DArray>(context.CreateObject(ObjectReflection<Texture2DArray>.TypeId));
         Assert.Equal(string.Empty, texture.Name);

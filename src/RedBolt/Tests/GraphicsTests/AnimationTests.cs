@@ -36,7 +36,7 @@ public sealed class AnimationTests
     public void Animation_registers_empty_named_factory()
     {
         var context = new Context();
-        Animation.RegisterObject(context);
+        context.RegisterAttributedType<Animation>();
 
         using var animation = Assert.IsType<Animation>(context.CreateObject(ObjectReflection<Animation>.TypeId));
         Assert.Equal(string.Empty, animation.Name);

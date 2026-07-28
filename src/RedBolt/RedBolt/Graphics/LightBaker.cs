@@ -23,8 +23,130 @@ public enum LightBakingQuality
 }
 
 /// <summary>Light baker component.</summary>
-public class LightBaker : Component
+[Reflected(ObjectCategory.Category_Subsystem)]
+[Serialized(
+    "Output Directory",
+    typeof(string),
+    DefaultSource = nameof(GetOutputDirectoryAttributeDefault),
+    Getter = nameof(GetSerializedOutputDirectory),
+    Setter = nameof(SetSerializedOutputDirectory)
+)]
+[Serialized(
+    "Lightmap Size",
+    typeof(uint),
+    DefaultSource = nameof(GetLightmapSizeAttributeDefault),
+    Getter = nameof(GetSerializedLightmapSize),
+    Setter = nameof(SetSerializedLightmapSize)
+)]
+[Serialized(
+    "Texel Density",
+    typeof(float),
+    DefaultSource = nameof(GetTexelDensityAttributeDefault),
+    Getter = nameof(GetSerializedTexelDensity),
+    Setter = nameof(SetSerializedTexelDensity)
+)]
+[Serialized(
+    "Quality",
+    typeof(LightBakingQuality),
+    DefaultSource = nameof(GetQualityAttributeDefault),
+    EnumNamesSource = nameof(QualityNames),
+    Getter = nameof(GetQuality),
+    Setter = nameof(SetQuality)
+)]
+[Serialized(
+    "Direct Samples (Lightmap)",
+    typeof(uint),
+    DefaultSource = nameof(GetDirectSamplesLightmapAttributeDefault),
+    Getter = nameof(GetSerializedDirectSamplesLightmap),
+    Setter = nameof(SetSerializedDirectSamplesLightmap)
+)]
+[Serialized(
+    "Direct Samples (Light Probes)",
+    typeof(uint),
+    DefaultSource = nameof(GetDirectSamplesLightProbesAttributeDefault),
+    Getter = nameof(GetSerializedDirectSamplesLightProbes),
+    Setter = nameof(SetSerializedDirectSamplesLightProbes)
+)]
+[Serialized(
+    "Indirect Bounces",
+    typeof(uint),
+    DefaultSource = nameof(GetIndirectBouncesAttributeDefault),
+    Getter = nameof(GetSerializedIndirectBounces),
+    Setter = nameof(SetSerializedIndirectBounces)
+)]
+[Serialized(
+    "Indirect Samples (Texture)",
+    typeof(uint),
+    DefaultSource = nameof(GetIndirectSamplesTextureAttributeDefault),
+    Getter = nameof(GetSerializedIndirectSamplesTexture),
+    Setter = nameof(SetSerializedIndirectSamplesTexture)
+)]
+[Serialized(
+    "Indirect Samples (Light Probes)",
+    typeof(uint),
+    DefaultSource = nameof(GetIndirectSamplesLightProbesAttributeDefault),
+    Getter = nameof(GetSerializedIndirectSamplesLightProbes),
+    Setter = nameof(SetSerializedIndirectSamplesLightProbes)
+)]
+[Serialized(
+    "Filter Radius (Direct)",
+    typeof(uint),
+    DefaultSource = nameof(GetFilterRadiusDirectAttributeDefault),
+    Getter = nameof(GetSerializedFilterRadiusDirect),
+    Setter = nameof(SetSerializedFilterRadiusDirect)
+)]
+[Serialized(
+    "Filter Radius (Indirect)",
+    typeof(uint),
+    DefaultSource = nameof(GetFilterRadiusIndirectAttributeDefault),
+    Getter = nameof(GetSerializedFilterRadiusIndirect),
+    Setter = nameof(SetSerializedFilterRadiusIndirect)
+)]
+[Serialized(
+    "Chunk Size",
+    typeof(Vector3f),
+    DefaultSource = nameof(GetChunkSizeAttributeDefault),
+    Getter = nameof(GetSerializedChunkSize),
+    Setter = nameof(SetSerializedChunkSize)
+)]
+[Serialized(
+    "Chunk Indirect Padding",
+    typeof(float),
+    DefaultSource = nameof(GetChunkIndirectPaddingAttributeDefault),
+    Getter = nameof(GetSerializedChunkIndirectPadding),
+    Setter = nameof(SetSerializedChunkIndirectPadding)
+)]
+[Serialized(
+    "Chunk Shadow Distance",
+    typeof(float),
+    DefaultSource = nameof(GetChunkShadowDistanceAttributeDefault),
+    Getter = nameof(GetSerializedChunkShadowDistance),
+    Setter = nameof(SetSerializedChunkShadowDistance)
+)]
+[Serialized(
+    "Stitch Iterations",
+    typeof(uint),
+    DefaultSource = nameof(GetStitchIterationsAttributeDefault),
+    Getter = nameof(GetSerializedStitchIterations),
+    Setter = nameof(SetSerializedStitchIterations)
+)]
+[Serialized(
+    "Constant Normal Offset",
+    typeof(float),
+    DefaultSource = nameof(GetConstantNormalOffsetAttributeDefault),
+    Getter = nameof(GetSerializedConstantNormalOffset),
+    Setter = nameof(SetSerializedConstantNormalOffset)
+)]
+[Serialized(
+    "Position Scaled Normal Offset",
+    typeof(float),
+    DefaultSource = nameof(GetPositionScaledNormalOffsetAttributeDefault),
+    Getter = nameof(GetSerializedPositionScaledNormalOffset),
+    Setter = nameof(SetSerializedPositionScaledNormalOffset)
+)]
+public partial class LightBaker : Component
 {
+    private static readonly LightBakingSettings DefaultSettings = new();
     private static readonly string[] QualityNames =
     [
         "Custom",
@@ -80,174 +202,6 @@ public class LightBaker : Component
     /// <summary>Construct.</summary>
     public LightBaker()
     {
-        var defaultSettings = new LightBakingSettings();
-
-        RegisterAttribute("Output Directory", typeof(string),
-            self => ((LightBaker)self)._settings.Incremental.OutputDirectory,
-            (self, value) =>
-            {
-                var baker = (LightBaker)self;
-                var incremental = baker._settings.Incremental;
-                incremental.OutputDirectory = value as string ?? string.Empty;
-                baker._settings.Incremental = incremental;
-            },
-            string.Empty);
-        RegisterAttribute("Lightmap Size", typeof(uint),
-            self => ((LightBaker)self)._settings.Charting.LightmapSize,
-            (self, value) =>
-            {
-                var baker = (LightBaker)self;
-                var charting = baker._settings.Charting;
-                charting.LightmapSize = (uint)value!;
-                baker._settings.Charting = charting;
-            },
-            defaultSettings.Charting.LightmapSize);
-        RegisterAttribute("Texel Density", typeof(float),
-            self => ((LightBaker)self)._settings.Charting.TexelDensity,
-            (self, value) =>
-            {
-                var baker = (LightBaker)self;
-                var charting = baker._settings.Charting;
-                charting.TexelDensity = (float)value!;
-                baker._settings.Charting = charting;
-            },
-            defaultSettings.Charting.TexelDensity);
-        RegisterAttribute("Quality", typeof(LightBakingQuality),
-            self => ((LightBaker)self).GetQuality(),
-            (self, value) => ((LightBaker)self).SetQuality((LightBakingQuality)value!),
-            LightBakingQuality.Custom,
-            enumNames: QualityNames);
-        RegisterAttribute("Direct Samples (Lightmap)", typeof(uint),
-            self => ((LightBaker)self)._settings.DirectChartTracing.MaxSamples,
-            (self, value) =>
-            {
-                var baker = (LightBaker)self;
-                var tracing = baker._settings.DirectChartTracing;
-                tracing.MaxSamples = (uint)value!;
-                baker._settings.DirectChartTracing = tracing;
-            },
-            defaultSettings.DirectChartTracing.MaxSamples);
-        RegisterAttribute("Direct Samples (Light Probes)", typeof(uint),
-            self => ((LightBaker)self)._settings.DirectProbesTracing.MaxSamples,
-            (self, value) =>
-            {
-                var baker = (LightBaker)self;
-                var tracing = baker._settings.DirectProbesTracing;
-                tracing.MaxSamples = (uint)value!;
-                baker._settings.DirectProbesTracing = tracing;
-            },
-            defaultSettings.DirectProbesTracing.MaxSamples);
-        RegisterAttribute("Indirect Bounces", typeof(uint),
-            self => ((LightBaker)self)._settings.IndirectChartTracing.MaxBounces,
-            (self, value) =>
-            {
-                var baker = (LightBaker)self;
-                var tracing = baker._settings.IndirectChartTracing;
-                tracing.MaxBounces = (uint)value!;
-                baker._settings.IndirectChartTracing = tracing;
-            },
-            defaultSettings.IndirectChartTracing.MaxBounces);
-        RegisterAttribute("Indirect Samples (Texture)", typeof(uint),
-            self => ((LightBaker)self)._settings.IndirectChartTracing.MaxSamples,
-            (self, value) =>
-            {
-                var baker = (LightBaker)self;
-                var tracing = baker._settings.IndirectChartTracing;
-                tracing.MaxSamples = (uint)value!;
-                baker._settings.IndirectChartTracing = tracing;
-            },
-            defaultSettings.IndirectChartTracing.MaxSamples);
-        RegisterAttribute("Indirect Samples (Light Probes)", typeof(uint),
-            self => ((LightBaker)self)._settings.IndirectProbesTracing.MaxSamples,
-            (self, value) =>
-            {
-                var baker = (LightBaker)self;
-                var tracing = baker._settings.IndirectProbesTracing;
-                tracing.MaxSamples = (uint)value!;
-                baker._settings.IndirectProbesTracing = tracing;
-            },
-            defaultSettings.IndirectProbesTracing.MaxSamples);
-        RegisterAttribute("Filter Radius (Direct)", typeof(uint),
-            self => (uint)((LightBaker)self)._settings.DirectFilter.KernelRadius,
-            (self, value) =>
-            {
-                var baker = (LightBaker)self;
-                var filter = baker._settings.DirectFilter;
-                filter.KernelRadius = (int)(uint)value!;
-                baker._settings.DirectFilter = filter;
-            },
-            (uint)defaultSettings.DirectFilter.KernelRadius);
-        RegisterAttribute("Filter Radius (Indirect)", typeof(uint),
-            self => (uint)((LightBaker)self)._settings.IndirectFilter.KernelRadius,
-            (self, value) =>
-            {
-                var baker = (LightBaker)self;
-                var filter = baker._settings.IndirectFilter;
-                filter.KernelRadius = (int)(uint)value!;
-                baker._settings.IndirectFilter = filter;
-            },
-            (uint)defaultSettings.IndirectFilter.KernelRadius);
-        RegisterAttribute("Chunk Size", typeof(Vector3f),
-            self => ((LightBaker)self)._settings.Incremental.ChunkSize,
-            (self, value) =>
-            {
-                var baker = (LightBaker)self;
-                var incremental = baker._settings.Incremental;
-                incremental.ChunkSize = (Vector3f)value!;
-                baker._settings.Incremental = incremental;
-            },
-            defaultSettings.Incremental.ChunkSize);
-        RegisterAttribute("Chunk Indirect Padding", typeof(float),
-            self => ((LightBaker)self)._settings.Incremental.IndirectPadding,
-            (self, value) =>
-            {
-                var baker = (LightBaker)self;
-                var incremental = baker._settings.Incremental;
-                incremental.IndirectPadding = (float)value!;
-                baker._settings.Incremental = incremental;
-            },
-            defaultSettings.Incremental.IndirectPadding);
-        RegisterAttribute("Chunk Shadow Distance", typeof(float),
-            self => ((LightBaker)self)._settings.Incremental.DirectionalLightShadowDistance,
-            (self, value) =>
-            {
-                var baker = (LightBaker)self;
-                var incremental = baker._settings.Incremental;
-                incremental.DirectionalLightShadowDistance = (float)value!;
-                baker._settings.Incremental = incremental;
-            },
-            defaultSettings.Incremental.DirectionalLightShadowDistance);
-        RegisterAttribute("Stitch Iterations", typeof(uint),
-            self => ((LightBaker)self)._settings.Stitching.NumIterations,
-            (self, value) =>
-            {
-                var baker = (LightBaker)self;
-                var stitching = baker._settings.Stitching;
-                stitching.NumIterations = (uint)value!;
-                baker._settings.Stitching = stitching;
-            },
-            defaultSettings.Stitching.NumIterations);
-        RegisterAttribute("Constant Normal Offset", typeof(float),
-            self => ((LightBaker)self)._settings.GeometryBufferBaking.ConstantPositionBias,
-            (self, value) =>
-            {
-                var baker = (LightBaker)self;
-                var geometry = baker._settings.GeometryBufferBaking;
-                geometry.ConstantPositionBias = (float)value!;
-                baker._settings.GeometryBufferBaking = geometry;
-            },
-            defaultSettings.GeometryBufferBaking.ConstantPositionBias);
-        RegisterAttribute("Position Scaled Normal Offset", typeof(float),
-            self => ((LightBaker)self)._settings.GeometryBufferBaking.ScaledPositionBias,
-            (self, value) =>
-            {
-                var baker = (LightBaker)self;
-                var geometry = baker._settings.GeometryBufferBaking;
-                geometry.ScaledPositionBias = (float)value!;
-                baker._settings.GeometryBufferBaking = geometry;
-            },
-            defaultSettings.GeometryBufferBaking.ScaledPositionBias);
-
         SubscribeToEvent<CoreEvents.UpdateEvent>((ref CoreEvents.UpdateEvent _) => Update());
     }
 
@@ -266,12 +220,7 @@ public class LightBaker : Component
         base.Dispose();
     }
 
-    /// <summary>Register object factory. Drawable must be registered first.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<LightBaker>(ObjectCategory.Category_Subsystem);
-        // TODO: port URHO3D_ACTION_DYNAMIC_LABEL("Bake", BakeAsync, GetBakeLabel);
-    }
+    // TODO: port URHO3D_ACTION_DYNAMIC_LABEL("Bake", BakeAsync, GetBakeLabel);
 
     /// <summary>Set baking quality.</summary>
     public void SetQuality(LightBakingQuality quality)
@@ -456,5 +405,279 @@ public class LightBaker : Component
     {
         // TODO: port URHO3D_GLOW IncrementalLightBakerStatus.ToString()
         return "Baking is disabled in build options.";
+    }
+
+    private static object? GetOutputDirectoryAttributeDefault() => string.Empty;
+
+    private object? GetSerializedOutputDirectory()
+    {
+        Serializable self = this;
+        return ((LightBaker)self)._settings.Incremental.OutputDirectory;
+    }
+
+    private void SetSerializedOutputDirectory(object? value)
+    {
+        Serializable self = this;
+        var baker = (LightBaker)self;
+        var incremental = baker._settings.Incremental;
+        incremental.OutputDirectory = value as string ?? string.Empty;
+        baker._settings.Incremental = incremental;
+    }
+
+    private static object? GetLightmapSizeAttributeDefault() => DefaultSettings.Charting.LightmapSize;
+
+    private object? GetSerializedLightmapSize()
+    {
+        Serializable self = this;
+        return ((LightBaker)self)._settings.Charting.LightmapSize;
+    }
+
+    private void SetSerializedLightmapSize(object? value)
+    {
+        Serializable self = this;
+        var baker = (LightBaker)self;
+        var charting = baker._settings.Charting;
+        charting.LightmapSize = (uint)value!;
+        baker._settings.Charting = charting;
+    }
+
+    private static object? GetTexelDensityAttributeDefault() => DefaultSettings.Charting.TexelDensity;
+
+    private object? GetSerializedTexelDensity()
+    {
+        Serializable self = this;
+        return ((LightBaker)self)._settings.Charting.TexelDensity;
+    }
+
+    private void SetSerializedTexelDensity(object? value)
+    {
+        Serializable self = this;
+        var baker = (LightBaker)self;
+        var charting = baker._settings.Charting;
+        charting.TexelDensity = (float)value!;
+        baker._settings.Charting = charting;
+    }
+
+    private static object? GetQualityAttributeDefault() => LightBakingQuality.Custom;
+
+    private static object? GetDirectSamplesLightmapAttributeDefault() => DefaultSettings.DirectChartTracing.MaxSamples;
+
+    private object? GetSerializedDirectSamplesLightmap()
+    {
+        Serializable self = this;
+        return ((LightBaker)self)._settings.DirectChartTracing.MaxSamples;
+    }
+
+    private void SetSerializedDirectSamplesLightmap(object? value)
+    {
+        Serializable self = this;
+        var baker = (LightBaker)self;
+        var tracing = baker._settings.DirectChartTracing;
+        tracing.MaxSamples = (uint)value!;
+        baker._settings.DirectChartTracing = tracing;
+    }
+
+    private static object? GetDirectSamplesLightProbesAttributeDefault() => DefaultSettings.DirectProbesTracing.MaxSamples;
+
+    private object? GetSerializedDirectSamplesLightProbes()
+    {
+        Serializable self = this;
+        return ((LightBaker)self)._settings.DirectProbesTracing.MaxSamples;
+    }
+
+    private void SetSerializedDirectSamplesLightProbes(object? value)
+    {
+        Serializable self = this;
+        var baker = (LightBaker)self;
+        var tracing = baker._settings.DirectProbesTracing;
+        tracing.MaxSamples = (uint)value!;
+        baker._settings.DirectProbesTracing = tracing;
+    }
+
+    private static object? GetIndirectBouncesAttributeDefault() => DefaultSettings.IndirectChartTracing.MaxBounces;
+
+    private object? GetSerializedIndirectBounces()
+    {
+        Serializable self = this;
+        return ((LightBaker)self)._settings.IndirectChartTracing.MaxBounces;
+    }
+
+    private void SetSerializedIndirectBounces(object? value)
+    {
+        Serializable self = this;
+        var baker = (LightBaker)self;
+        var tracing = baker._settings.IndirectChartTracing;
+        tracing.MaxBounces = (uint)value!;
+        baker._settings.IndirectChartTracing = tracing;
+    }
+
+    private static object? GetIndirectSamplesTextureAttributeDefault() => DefaultSettings.IndirectChartTracing.MaxSamples;
+
+    private object? GetSerializedIndirectSamplesTexture()
+    {
+        Serializable self = this;
+        return ((LightBaker)self)._settings.IndirectChartTracing.MaxSamples;
+    }
+
+    private void SetSerializedIndirectSamplesTexture(object? value)
+    {
+        Serializable self = this;
+        var baker = (LightBaker)self;
+        var tracing = baker._settings.IndirectChartTracing;
+        tracing.MaxSamples = (uint)value!;
+        baker._settings.IndirectChartTracing = tracing;
+    }
+
+    private static object? GetIndirectSamplesLightProbesAttributeDefault() => DefaultSettings.IndirectProbesTracing.MaxSamples;
+
+    private object? GetSerializedIndirectSamplesLightProbes()
+    {
+        Serializable self = this;
+        return ((LightBaker)self)._settings.IndirectProbesTracing.MaxSamples;
+    }
+
+    private void SetSerializedIndirectSamplesLightProbes(object? value)
+    {
+        Serializable self = this;
+        var baker = (LightBaker)self;
+        var tracing = baker._settings.IndirectProbesTracing;
+        tracing.MaxSamples = (uint)value!;
+        baker._settings.IndirectProbesTracing = tracing;
+    }
+
+    private static object? GetFilterRadiusDirectAttributeDefault() => (uint)DefaultSettings.DirectFilter.KernelRadius;
+
+    private object? GetSerializedFilterRadiusDirect()
+    {
+        Serializable self = this;
+        return (uint)((LightBaker)self)._settings.DirectFilter.KernelRadius;
+    }
+
+    private void SetSerializedFilterRadiusDirect(object? value)
+    {
+        Serializable self = this;
+        var baker = (LightBaker)self;
+        var filter = baker._settings.DirectFilter;
+        filter.KernelRadius = (int)(uint)value!;
+        baker._settings.DirectFilter = filter;
+    }
+
+    private static object? GetFilterRadiusIndirectAttributeDefault() => (uint)DefaultSettings.IndirectFilter.KernelRadius;
+
+    private object? GetSerializedFilterRadiusIndirect()
+    {
+        Serializable self = this;
+        return (uint)((LightBaker)self)._settings.IndirectFilter.KernelRadius;
+    }
+
+    private void SetSerializedFilterRadiusIndirect(object? value)
+    {
+        Serializable self = this;
+        var baker = (LightBaker)self;
+        var filter = baker._settings.IndirectFilter;
+        filter.KernelRadius = (int)(uint)value!;
+        baker._settings.IndirectFilter = filter;
+    }
+
+    private static object? GetChunkSizeAttributeDefault() => DefaultSettings.Incremental.ChunkSize;
+
+    private object? GetSerializedChunkSize()
+    {
+        Serializable self = this;
+        return ((LightBaker)self)._settings.Incremental.ChunkSize;
+    }
+
+    private void SetSerializedChunkSize(object? value)
+    {
+        Serializable self = this;
+        var baker = (LightBaker)self;
+        var incremental = baker._settings.Incremental;
+        incremental.ChunkSize = (Vector3f)value!;
+        baker._settings.Incremental = incremental;
+    }
+
+    private static object? GetChunkIndirectPaddingAttributeDefault() => DefaultSettings.Incremental.IndirectPadding;
+
+    private object? GetSerializedChunkIndirectPadding()
+    {
+        Serializable self = this;
+        return ((LightBaker)self)._settings.Incremental.IndirectPadding;
+    }
+
+    private void SetSerializedChunkIndirectPadding(object? value)
+    {
+        Serializable self = this;
+        var baker = (LightBaker)self;
+        var incremental = baker._settings.Incremental;
+        incremental.IndirectPadding = (float)value!;
+        baker._settings.Incremental = incremental;
+    }
+
+    private static object? GetChunkShadowDistanceAttributeDefault() => DefaultSettings.Incremental.DirectionalLightShadowDistance;
+
+    private object? GetSerializedChunkShadowDistance()
+    {
+        Serializable self = this;
+        return ((LightBaker)self)._settings.Incremental.DirectionalLightShadowDistance;
+    }
+
+    private void SetSerializedChunkShadowDistance(object? value)
+    {
+        Serializable self = this;
+        var baker = (LightBaker)self;
+        var incremental = baker._settings.Incremental;
+        incremental.DirectionalLightShadowDistance = (float)value!;
+        baker._settings.Incremental = incremental;
+    }
+
+    private static object? GetStitchIterationsAttributeDefault() => DefaultSettings.Stitching.NumIterations;
+
+    private object? GetSerializedStitchIterations()
+    {
+        Serializable self = this;
+        return ((LightBaker)self)._settings.Stitching.NumIterations;
+    }
+
+    private void SetSerializedStitchIterations(object? value)
+    {
+        Serializable self = this;
+        var baker = (LightBaker)self;
+        var stitching = baker._settings.Stitching;
+        stitching.NumIterations = (uint)value!;
+        baker._settings.Stitching = stitching;
+    }
+
+    private static object? GetConstantNormalOffsetAttributeDefault() => DefaultSettings.GeometryBufferBaking.ConstantPositionBias;
+
+    private object? GetSerializedConstantNormalOffset()
+    {
+        Serializable self = this;
+        return ((LightBaker)self)._settings.GeometryBufferBaking.ConstantPositionBias;
+    }
+
+    private void SetSerializedConstantNormalOffset(object? value)
+    {
+        Serializable self = this;
+        var baker = (LightBaker)self;
+        var geometry = baker._settings.GeometryBufferBaking;
+        geometry.ConstantPositionBias = (float)value!;
+        baker._settings.GeometryBufferBaking = geometry;
+    }
+
+    private static object? GetPositionScaledNormalOffsetAttributeDefault() => DefaultSettings.GeometryBufferBaking.ScaledPositionBias;
+
+    private object? GetSerializedPositionScaledNormalOffset()
+    {
+        Serializable self = this;
+        return ((LightBaker)self)._settings.GeometryBufferBaking.ScaledPositionBias;
+    }
+
+    private void SetSerializedPositionScaledNormalOffset(object? value)
+    {
+        Serializable self = this;
+        var baker = (LightBaker)self;
+        var geometry = baker._settings.GeometryBufferBaking;
+        geometry.ScaledPositionBias = (float)value!;
+        baker._settings.GeometryBufferBaking = geometry;
     }
 }

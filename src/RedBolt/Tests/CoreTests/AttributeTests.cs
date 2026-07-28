@@ -5,7 +5,7 @@ using SceneType = global::RedBolt.Scene.Scene;
 
 namespace RedBolt.Tests;
 
-public class AttributeTests
+public partial class AttributeTests
 {
     [Fact]
     public void Serializable_routes_attribute_access_through_attribute_accessor()
@@ -82,19 +82,6 @@ public class AttributeTests
     }
 
     [Fact]
-    public void Serializable_destroys_owned_attribute_values()
-    {
-        var serializable = new CStringDefaultSerializable();
-        var attribute = Assert.Single(serializable.Attributes);
-
-        Assert.Equal("default", attribute.DefaultValue.GetCString().ToString());
-
-        serializable.Dispose();
-
-        Assert.True(attribute.DefaultValue.IsEmpty);
-    }
-
-    [Fact]
     public void ObjectReflection_destroys_removed_attribute_copies()
     {
         using var firstValue = new CString("first");
@@ -119,11 +106,16 @@ public class AttributeTests
         Assert.Equal("second", secondSource.DefaultValue.GetCString().ToString());
     }
 
-    private sealed class AccessorSerializable : Serializable
+    [Reflected]
+    [Serialized(
+        "Value",
+        typeof(int),
+        AccessorType = typeof(ValueAccessor),
+        DefaultSource = nameof(StoredValue))]
+    private sealed partial class AccessorSerializable : Serializable
     {
         public AccessorSerializable()
         {
-            RegisterAttribute("Value", typeof(int), new ValueAccessor(), defaultValue: 123);
         }
 
         public int StoredValue { get; set; } = 123;
@@ -139,15 +131,6 @@ public class AttributeTests
             {
                 ((AccessorSerializable)ptr).StoredValue = src.GetInt();
             }
-        }
-    }
-
-    private sealed class CStringDefaultSerializable : Serializable
-    {
-        public CStringDefaultSerializable()
-        {
-            using var defaultValue = new CString("default");
-            RegisterAttribute("Value", typeof(CString), defaultValue: defaultValue);
         }
     }
 }

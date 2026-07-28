@@ -21,7 +21,8 @@ public enum ShaderStage
     Pixel
 }
 
-public sealed class Shader : ResourceType
+[Reflected]
+public sealed partial class Shader : ResourceType
 {
     private const string UniversalShaderRoot = "Shaders/GLSL/";
     private const string ShaderRoot = "Shaders/GLSL/v2/";
@@ -62,12 +63,6 @@ public sealed class Shader : ResourceType
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        var reflection = context.AddReflection<Shader>();
-        reflection.SetObjectFactory(static () => new Shader());
-    }
 
     /// <summary>Return either vertex or pixel shader source code.</summary>
     public string SourceCode => _sourceCode;

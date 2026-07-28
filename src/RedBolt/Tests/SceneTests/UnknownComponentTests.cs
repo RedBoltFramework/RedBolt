@@ -36,12 +36,6 @@ public sealed class UnknownComponentTests
     [Fact]
     public void SceneResource_creates_unknown_component_placeholder()
     {
-        if (!Context.Instance.IsReflected<Node>())
-            Node.RegisterObject(Context.Instance);
-        if (!Context.Instance.IsReflected<SceneType>())
-            SceneType.RegisterObject(Context.Instance);
-        if (!Context.Instance.IsReflected<UnknownComponent>())
-            UnknownComponent.RegisterObject(Context.Instance);
         using var source = new SceneResource { Name = "Scenes/Test.scene" };
         using var prefab = new NodePrefab();
         var componentPrefab = new SerializablePrefab();

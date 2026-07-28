@@ -23,10 +23,6 @@ public partial class Graph : RedObject
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-    }
 
     /// <summary>Get number of nodes in the graph.</summary>
     public int GetNumNodes() => _nodes.Count;

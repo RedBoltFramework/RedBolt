@@ -24,7 +24,7 @@ public sealed class ShaderFileTests
     public void Shader_registers_empty_named_factory()
     {
         var context = new Context();
-        Shader.RegisterObject(context);
+        context.RegisterAttributedType<Shader>();
 
         using var shader = Assert.IsType<Shader>(context.CreateObject(ObjectReflection<Shader>.TypeId));
         Assert.Equal(string.Empty, shader.Name);

@@ -36,7 +36,8 @@ public enum GeometryType
 /// <summary>Defines one or more vertex buffers, an index buffer and a draw range.</summary>
 /// <remarks>
 /// </remarks>
-public sealed class Geometry : PipelineStateTracker
+[Reflected]
+public sealed partial class Geometry : PipelineStateTracker
 {
     private readonly IDFamily<Geometry> _idFamily = new();
 
@@ -94,11 +95,6 @@ public sealed class Geometry : PipelineStateTracker
         SetNumVertexBuffers(1);
     }
 
-    /// <summary>Register object with the engine.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<Geometry>();
-    }
 
     /// <summary>Destruct.</summary>
     public override void Dispose()

@@ -77,12 +77,6 @@ public partial class GraphNode : RedObject
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        context.RegisterAttributedType<GraphNode>();
-    }
 
     /// <summary>Return ID.</summary>
     public uint GetID() => _id;

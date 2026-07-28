@@ -5,18 +5,14 @@ using RedBolt.Resource;
 namespace RedBolt.Scene;
 
 /// <summary>Placeholder for allowing unregistered components to be loaded &amp; saved along with scenes.</summary>
-public class UnknownComponent : Component
+[Reflected]
+public partial class UnknownComponent : Component
 {
     /// <summary>Construct.</summary>
     public UnknownComponent()
     {
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<UnknownComponent>();
-    }
 
     /// <summary>Load from binary data. Return true if successful.</summary>
     public override bool Load(Deserializer source)

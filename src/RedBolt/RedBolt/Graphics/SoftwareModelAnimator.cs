@@ -39,7 +39,8 @@ public struct VertexBufferAnimationData : ICloneable
 }
 
 /// <summary>Class for software model animation (morphing and skinning).</summary>
-public class SoftwareModelAnimator : RedObject
+[Reflected]
+public partial class SoftwareModelAnimator : RedObject
 {
     /// <summary>Max number of bones.</summary>
     public const uint MaxBones = 4;
@@ -68,11 +69,6 @@ public class SoftwareModelAnimator : RedObject
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<SoftwareModelAnimator>();
-    }
 
     /// <summary>Initialize with model. Shall be manually called on model reload.</summary>
     public void Initialize(Model model, bool skinned, uint numBones)

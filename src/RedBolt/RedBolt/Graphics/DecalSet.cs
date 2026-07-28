@@ -109,7 +109,15 @@ public sealed class Decal : ICloneable
 }
 
 /// <summary>Decal renderer component.</summary>
-public class DecalSet : Drawable
+[Reflected(ObjectCategory.Category_Geometry)]
+[Serialized(
+    "Is Enabled",
+    typeof(bool),
+    DefaultSource = nameof(GetIsEnabledAttributeDefault),
+    Getter = nameof(Enabled),
+    Setter = nameof(SetEnabled)
+)]
+public partial class DecalSet : Drawable
 {
     private const uint MinVertices = 4;
     private const uint MinIndices = 6;
@@ -141,8 +149,6 @@ public class DecalSet : Drawable
     public DecalSet()
         : base(DrawableFlags.Geometry)
     {
-        RegisterAttribute("Is Enabled", typeof(bool), self => ((DecalSet)self).Enabled,
-            (self, value) => ((DecalSet)self).SetEnabled(value is bool enabled && enabled), true);
 
         _vertexBuffer.SetShadowed(true);
         _indexBuffer.SetShadowed(true);
@@ -167,8 +173,6 @@ public class DecalSet : Drawable
         base.Dispose();
     }
 
-    public new static void RegisterObject(Context context) =>
-        context.AddFactoryReflection<DecalSet>(ObjectCategory.Category_Geometry);
 
     public override void ApplyAttributes()
     {
@@ -1150,4 +1154,6 @@ public class DecalSet : Drawable
 
         return ret.GetBuffer();
     }
+
+    private static object? GetIsEnabledAttributeDefault() => true;
 }

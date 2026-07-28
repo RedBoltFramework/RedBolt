@@ -39,7 +39,39 @@ namespace RedBolt.Graphics;
 /// <summary>
 /// Component that drives an AnimatedModel's animations.
 /// </summary>
-public class AnimationController : AnimationStateSource
+[Reflected(ObjectCategory.Category_Logic)]
+[Serialized(
+    "Is Enabled",
+    typeof(bool),
+    DefaultSource = nameof(GetIsEnabledAttributeDefault),
+    Getter = nameof(Enabled),
+    Setter = nameof(SetEnabled)
+)]
+[Serialized(
+    "Reset Skeleton",
+    typeof(bool),
+    DefaultSource = nameof(GetResetSkeletonAttributeDefault),
+    Getter = nameof(IsSkeletonReset),
+    Setter = nameof(SetSkeletonReset)
+)]
+[Serialized(
+    "Animations",
+    typeof(VariantVector),
+    Configure = nameof(ConfigureAnimationsAttribute),
+    DefaultSource = nameof(GetAnimationsAttributeDefault),
+    Getter = nameof(GetAnimationsAttr),
+    Setter = nameof(SetAnimationsAttr)
+)]
+[Serialized(
+    "Update Pose",
+    typeof(bool),
+    Configure = nameof(ConfigureUpdatePoseAttribute),
+    DefaultSource = nameof(GetUpdatePoseAttributeDefault),
+    Getter = nameof(GetSerializedUpdatePose),
+    Mode = AttributeMode.Edit,
+    Setter = nameof(SetSerializedUpdatePose)
+)]
+public partial class AnimationController : AnimationStateSource
 {
     private const int InvalidAnimationIndex = -1;
     private static readonly StringVector AnimationParametersNames = new()
@@ -67,40 +99,6 @@ public class AnimationController : AnimationStateSource
     /// </summary>
     public AnimationController()
     {
-        RegisterAttribute(
-            "Is Enabled",
-            typeof(bool),
-            self => ((AnimationController)self).Enabled,
-            (self, value) => ((AnimationController)self).SetEnabled(value is bool enabled && enabled),
-            true);
-        RegisterAttribute(
-            "Reset Skeleton",
-            typeof(bool),
-            self => ((AnimationController)self).IsSkeletonReset(),
-            (self, value) => ((AnimationController)self).SetSkeletonReset(value is bool resetSkeleton && resetSkeleton),
-            false);
-        using (var metadata = new Variant(AnimationParametersNames))
-        {
-            RegisterAttribute(
-                "Animations",
-                typeof(VariantVector),
-                self => ((AnimationController)self).GetAnimationsAttr(),
-                (self, value) => ((AnimationController)self).SetAnimationsAttr(value as VariantVector ?? new VariantVector()),
-                new VariantVector())
-                .SetMetadata(AttributeMetadata.VectorStructElements, metadata);
-        }
-        RegisterAttribute(
-            "Update Pose",
-            typeof(bool),
-            _ => string.Empty,
-            (self, value) =>
-            {
-                if (value is true)
-                    ((AnimationController)self).UpdatePose();
-            },
-            false,
-            AttributeMode.Edit)
-            .SetMetadata(AttributeMetadata.IsAction, true);
     }
 
     public override void Dispose()
@@ -113,14 +111,6 @@ public class AnimationController : AnimationStateSource
         _tempAnimations.Clear();
         _animations.Clear();
         base.Dispose();
-    }
-
-    /// <summary>
-    /// Register object factory.
-    /// </summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<AnimationController>(ObjectCategory.Category_Logic);
     }
 
     /// <summary>
@@ -1116,4 +1106,32 @@ public class AnimationController : AnimationStateSource
     private bool _revisionDirty;
     private readonly Dictionary<Node, NodeAnimationOutput> _animatedNodes = [];
     private readonly Dictionary<AnimatedAttributeReference, Variant> _animatedAttributes = [];
+
+    private static object? GetIsEnabledAttributeDefault() => true;
+
+    private static object? GetResetSkeletonAttributeDefault() => false;
+
+    private static object? GetAnimationsAttributeDefault() => new VariantVector();
+
+    private static void ConfigureAnimationsAttribute(AttributeHandle attribute)
+    {
+        using var metadata = new Variant(AnimationParametersNames);
+        attribute.SetMetadata(AttributeMetadata.VectorStructElements, metadata);
+    }
+
+    private static object? GetUpdatePoseAttributeDefault() => false;
+
+    private static void ConfigureUpdatePoseAttribute(AttributeHandle attribute)
+    {
+        attribute.SetMetadata(AttributeMetadata.IsAction, true);
+    }
+
+    private object? GetSerializedUpdatePose() => string.Empty;
+
+    private void SetSerializedUpdatePose(object? value)
+    {
+        Serializable self = this;
+        if (value is true)
+            ((AnimationController)self).UpdatePose();
+    }
 }

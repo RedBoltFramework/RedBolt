@@ -8,16 +8,11 @@ namespace RedBolt.Tests.GraphicsTests;
 
 public sealed class DebugGeometryTests
 {
-    public DebugGeometryTests()
-    {
-        TestTypeRegistration.RegisterFactory<StaticModel>();
-    }
-
     [Fact]
     public void DebugRenderer_registers_factory_reflection()
     {
         var context = new Context();
-        DebugRenderer.RegisterObject(context);
+        context.RegisterAttributedType<DebugRenderer>();
 
         using var debugRenderer = Assert.IsType<DebugRenderer>(
             context.CreateObject(ObjectReflection<DebugRenderer>.TypeId));

@@ -43,7 +43,15 @@ public class AttributeAnimationInfo : ValueAnimationInfo
 }
 
 /// <summary>Base class for animatable object, an animatable object can be set animation on it's attributes, or can be set an object animation to it.</summary>
-public abstract class Animatable : Serializable
+[Reflected]
+[Serialized(
+    "Object Animation",
+    typeof(ResourceRef),
+    DefaultSource = nameof(GetObjectAnimationAttributeDefault),
+    Getter = nameof(GetObjectAnimationAttr),
+    Setter = nameof(SetSerializedObjectAnimation)
+)]
+public abstract partial class Animatable : Serializable
 {
     /// <summary>Animation enabled.</summary>
     private bool _animationEnabled = true;
@@ -55,16 +63,6 @@ public abstract class Animatable : Serializable
     /// <summary>Construct.</summary>
     protected Animatable()
     {
-        RegisterAttribute(
-            "Object Animation",
-            typeof(ResourceRef),
-            self => ((Animatable)self).GetObjectAnimationAttr(),
-            (self, value) =>
-            {
-                if (value is ResourceRef resourceRef)
-                    ((Animatable)self).SetObjectAnimationAttr(resourceRef);
-            },
-            new ResourceRef(ObjectReflection<ObjectAnimation>.TypeId));
     }
 
     /// <summary>Destruct.</summary>
@@ -75,11 +73,6 @@ public abstract class Animatable : Serializable
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddAbstractReflection<Animatable>();
-    }
 
     /// <summary>Load from XML data. Return true if successful.</summary>
     public override bool LoadXML(XMLElement source)
@@ -564,5 +557,14 @@ public abstract class Animatable : Serializable
         foreach (var info in _attributeAnimationInfos.Values)
             info.Dispose();
         _attributeAnimationInfos.Clear();
+    }
+
+    private static object? GetObjectAnimationAttributeDefault() => new ResourceRef(ObjectReflection<ObjectAnimation>.TypeId);
+
+    private void SetSerializedObjectAnimation(object? value)
+    {
+        Serializable self = this;
+        if (value is ResourceRef resourceRef)
+            ((Animatable)self).SetObjectAnimationAttr(resourceRef);
     }
 }

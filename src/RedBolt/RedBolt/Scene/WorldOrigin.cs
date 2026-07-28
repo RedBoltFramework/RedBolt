@@ -10,7 +10,50 @@ namespace RedBolt.Scene;
 /// <summary>
 /// Component that maintains world origin around the node.
 /// </summary>
-public class WorldOrigin : LogicComponent
+[Reflected(ObjectCategory.Category_Scene)]
+[Serialized(
+    "Is Enabled",
+    typeof(bool),
+    DefaultSource = nameof(GetIsEnabledAttributeDefault),
+    Getter = nameof(Enabled),
+    Setter = nameof(SetEnabled)
+)]
+[Serialized(
+    "Max Distance",
+    typeof(uint),
+    DefaultSource = nameof(GetMaxDistanceAttributeDefault),
+    Getter = nameof(_maxDistance),
+    Setter = nameof(_maxDistance)
+)]
+[Serialized(
+    "Step",
+    typeof(uint),
+    DefaultSource = nameof(GetStepAttributeDefault),
+    Getter = nameof(_step),
+    Setter = nameof(_step)
+)]
+[Serialized(
+    "Update X",
+    typeof(bool),
+    DefaultSource = nameof(GetUpdateXAttributeDefault),
+    Getter = nameof(_updateX),
+    Setter = nameof(_updateX)
+)]
+[Serialized(
+    "Update Y",
+    typeof(bool),
+    DefaultSource = nameof(GetUpdateYAttributeDefault),
+    Getter = nameof(_updateY),
+    Setter = nameof(_updateY)
+)]
+[Serialized(
+    "Update Z",
+    typeof(bool),
+    DefaultSource = nameof(GetUpdateZAttributeDefault),
+    Getter = nameof(_updateZ),
+    Setter = nameof(_updateZ)
+)]
+public partial class WorldOrigin : LogicComponent
 {
     public const uint MaxDistance = 8192;
     public const uint DefaultStep = 128;
@@ -19,42 +62,6 @@ public class WorldOrigin : LogicComponent
     {
         SetUpdateEventMask(UpdateEvent.UseUpdate);
 
-        RegisterAttribute(
-            "Is Enabled",
-            typeof(bool),
-            self => ((WorldOrigin)self).Enabled,
-            (self, value) => ((WorldOrigin)self).SetEnabled(value is bool enabled && enabled),
-            true);
-        RegisterAttribute(
-            "Max Distance",
-            typeof(uint),
-            self => ((WorldOrigin)self)._maxDistance,
-            (self, value) => ((WorldOrigin)self)._maxDistance = value is uint distance ? distance : 0u,
-            MaxDistance);
-        RegisterAttribute(
-            "Step",
-            typeof(uint),
-            self => ((WorldOrigin)self)._step,
-            (self, value) => ((WorldOrigin)self)._step = value is uint step ? step : 0u,
-            DefaultStep);
-        RegisterAttribute(
-            "Update X",
-            typeof(bool),
-            self => ((WorldOrigin)self)._updateX,
-            (self, value) => ((WorldOrigin)self)._updateX = value is bool enabled && enabled,
-            true);
-        RegisterAttribute(
-            "Update Y",
-            typeof(bool),
-            self => ((WorldOrigin)self)._updateY,
-            (self, value) => ((WorldOrigin)self)._updateY = value is bool enabled && enabled,
-            false);
-        RegisterAttribute(
-            "Update Z",
-            typeof(bool),
-            self => ((WorldOrigin)self)._updateZ,
-            (self, value) => ((WorldOrigin)self)._updateZ = value is bool enabled && enabled,
-            true);
     }
 
     /// <summary>Destruct.</summary>
@@ -63,10 +70,6 @@ public class WorldOrigin : LogicComponent
         base.Dispose();
     }
 
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<WorldOrigin>(ObjectCategory.Category_Scene);
-    }
 
     /// <summary>
     /// Implement LogicComponent.
@@ -177,4 +180,16 @@ public class WorldOrigin : LogicComponent
     private bool _updateX = true;
     private bool _updateY;
     private bool _updateZ = true;
+
+    private static object? GetIsEnabledAttributeDefault() => true;
+
+    private static object? GetMaxDistanceAttributeDefault() => MaxDistance;
+
+    private static object? GetStepAttributeDefault() => DefaultStep;
+
+    private static object? GetUpdateXAttributeDefault() => true;
+
+    private static object? GetUpdateYAttributeDefault() => false;
+
+    private static object? GetUpdateZAttributeDefault() => true;
 }

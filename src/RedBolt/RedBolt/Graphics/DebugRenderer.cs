@@ -12,7 +12,8 @@ namespace RedBolt.Graphics;
 /// <summary>
 /// Debug geometry rendering component. Should be added only to the root scene node.
 /// </summary>
-public class DebugRenderer : Component
+[Reflected("Subsystem")]
+public partial class DebugRenderer : Component
 {
     private const int MaxLines = 1_000_000;
     private const int MaxTriangles = 100_000;
@@ -37,13 +38,6 @@ public class DebugRenderer : Component
     private StaticPipelineStateId _depthTrianglesPipelineState;
     private StaticPipelineStateId _noDepthTrianglesPipelineState;
 
-    /// <summary>
-    /// Register object factory.
-    /// </summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<DebugRenderer>("Subsystem");
-    }
 
     public DebugRenderer()
     {

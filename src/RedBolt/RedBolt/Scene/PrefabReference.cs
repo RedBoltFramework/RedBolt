@@ -6,26 +6,29 @@ using RedBolt.Resource;
 namespace RedBolt.Scene;
 
 /// <summary>Component that instantiates prefab resource into the parent Node.</summary>
-public class PrefabReference : Component
+[Reflected(ObjectCategory.Category_Scene)]
+[Serialized(
+    "Prefab",
+    typeof(ResourceRef),
+    DefaultSource = nameof(GetPrefabAttributeDefault),
+    Getter = nameof(GetPrefabAttr),
+    Mode = AttributeMode.Default,
+    Setter = nameof(SetPrefabAttr),
+    ScopeHint = AttributeScopeHint.Node
+)]
+[Serialized(
+    "Path",
+    typeof(string),
+    DefaultSource = nameof(GetPathAttributeDefault),
+    Getter = nameof(GetPath),
+    Mode = AttributeMode.Default,
+    Setter = nameof(SetPath),
+    ScopeHint = AttributeScopeHint.Node
+)]
+public partial class PrefabReference : Component
 {
     public PrefabReference()
     {
-        RegisterAttribute(
-            "Prefab",
-            typeof(ResourceRef),
-            self => ((PrefabReference)self).GetPrefabAttr(),
-            (self, value) => ((PrefabReference)self).SetPrefabAttr(value is ResourceRef resourceRef ? resourceRef : ResourceRef.Empty),
-            new ResourceRef(nameof(PrefabResource)),
-            AttributeMode.Default)
-            .SetScopeHint(AttributeScopeHint.Node);
-        RegisterAttribute(
-            "Path",
-            typeof(string),
-            self => ((PrefabReference)self).GetPath(),
-            (self, value) => ((PrefabReference)self).SetPath(value as string ?? string.Empty),
-            string.Empty,
-            AttributeMode.Default)
-            .SetScopeHint(AttributeScopeHint.Node);
     }
 
     public override void Dispose()
@@ -37,15 +40,10 @@ public class PrefabReference : Component
         base.Dispose();
     }
 
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<PrefabReference>(ObjectCategory.Category_Scene);
-
-        // TODO: port reflection actions.
-        // URHO3D_ACTION_STATIC_LABEL("Inline", InlineConservative, "Convert prefab reference to nodes and components");
-        // URHO3D_ACTION_STATIC_LABEL("Inline+", InlineAggressive, "Same as Inline. Also converts all temporary objects to persistent");
-        // URHO3D_ACTION_STATIC_LABEL("Commit", CommitChanges, "Commit changes in this instance to the prefab resource");
-    }
+    // TODO: port reflection actions.
+    // URHO3D_ACTION_STATIC_LABEL("Inline", InlineConservative, "Convert prefab reference to nodes and components");
+    // URHO3D_ACTION_STATIC_LABEL("Inline+", InlineAggressive, "Same as Inline. Also converts all temporary objects to persistent");
+    // URHO3D_ACTION_STATIC_LABEL("Commit", CommitChanges, "Commit changes in this instance to the prefab resource");
 
     /// <summary>Apply attribute changes that can not be applied immediately. Called after scene load or a network update.</summary>
     public override void ApplyAttributes()
@@ -444,4 +442,8 @@ public class PrefabReference : Component
     private Node? _instanceNode;
     private int _numInstanceComponents;
     private int _numInstanceChildren;
+
+    private static object? GetPrefabAttributeDefault() => new ResourceRef(nameof(PrefabResource));
+
+    private static object? GetPathAttributeDefault() => string.Empty;
 }

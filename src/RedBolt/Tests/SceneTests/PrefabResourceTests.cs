@@ -15,10 +15,6 @@ public sealed class PrefabResourceTests
     public PrefabResourceTests(HeadlessEngineFixture fixture)
     {
         this._fixture = fixture;
-        if (!Context.Instance.IsReflected<Node>())
-            Node.RegisterObject(Context.Instance);
-        if (!Context.Instance.IsReflected<SceneType>())
-            SceneType.RegisterObject(Context.Instance);
     }
 
     private static AttributePrefab CreateAttribute(string name, Variant value)

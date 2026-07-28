@@ -10,13 +10,6 @@ namespace RedBolt.Tests;
 
 public sealed class AnimatedModelTests
 {
-    public AnimatedModelTests()
-    {
-        TestTypeRegistration.RegisterFactory<AnimatedModel>();
-        TestTypeRegistration.RegisterFactory<Camera>();
-        TestTypeRegistration.RegisterFactory<Octree>();
-    }
-
     [Fact]
     public void Animated_model_preserves_cpp_class_kind()
     {
@@ -30,7 +23,7 @@ public sealed class AnimatedModelTests
     {
         using var context = new Context();
 
-        AnimatedModel.RegisterObject(context);
+        context.RegisterAttributedType<AnimatedModel>();
 
         using var animatedModel = Assert.IsType<AnimatedModel>(
             context.CreateObject(ObjectReflection<AnimatedModel>.TypeId));

@@ -13,7 +13,8 @@ using SceneType = global::RedBolt.Scene.Scene;
 namespace RedBolt.Engine;
 
 /// <summary>Base class for an application state. Examples of a state would be a loading screen, a menu or a game screen.</summary>
-public class ApplicationState : RedObject
+[Reflected]
+public partial class ApplicationState : RedObject
 {
     private bool _active;
     private readonly List<Viewport?> _viewports = [];
@@ -34,12 +35,6 @@ public class ApplicationState : RedObject
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        var reflection = context.AddReflection<ApplicationState>();
-        reflection.SetObjectFactory(static () => new ApplicationState());
-    }
 
     /// <summary>Activate game state. Executed by StateManager.</summary>
     public virtual void Activate(StringVariantMap bundle)

@@ -5,7 +5,57 @@ using RedBolt.Scene;
 
 namespace RedBolt.Input;
 
-public class FreeFlyController : Component
+[Reflected]
+[Serialized(
+    "Speed",
+    typeof(float),
+    DefaultSource = nameof(GetSpeedAttributeDefault),
+    Getter = nameof(GetSpeed),
+    Setter = nameof(SetSpeed)
+)]
+[Serialized(
+    "Accelerated Speed",
+    typeof(float),
+    DefaultSource = nameof(GetAcceleratedSpeedAttributeDefault),
+    Getter = nameof(GetAcceleratedSpeed),
+    Setter = nameof(SetAcceleratedSpeed)
+)]
+[Serialized(
+    "Min Pitch",
+    typeof(float),
+    DefaultSource = nameof(GetMinPitchAttributeDefault),
+    Getter = nameof(GetMinPitch),
+    Setter = nameof(SetMinPitch)
+)]
+[Serialized(
+    "Max Pitch",
+    typeof(float),
+    DefaultSource = nameof(GetMaxPitchAttributeDefault),
+    Getter = nameof(GetMaxPitch),
+    Setter = nameof(SetMaxPitch)
+)]
+[Serialized(
+    "Mouse Sensitivity",
+    typeof(float),
+    DefaultSource = nameof(GetMouseSensitivityAttributeDefault),
+    Getter = nameof(GetMouseSensitivity),
+    Setter = nameof(SetMouseSensitivity)
+)]
+[Serialized(
+    "Touch Sensitivity",
+    typeof(float),
+    DefaultSource = nameof(GetTouchSensitivityAttributeDefault),
+    Getter = nameof(GetTouchSensitivity),
+    Setter = nameof(SetTouchSensitivity)
+)]
+[Serialized(
+    "Axis Sensitivity",
+    typeof(float),
+    DefaultSource = nameof(GetAxisSensitivityAttributeDefault),
+    Getter = nameof(GetAxisSensitivity),
+    Setter = nameof(SetAxisSensitivity)
+)]
+public partial class FreeFlyController : Component
 {
     private const float DefaultMouseSensitivity = 0.1f;
     // 90' motion per inch
@@ -32,13 +82,6 @@ public class FreeFlyController : Component
         _ignoreJoystickId = GetSubsystem<InputSystem>()!.FindAccelerometerJoystickId();
         SubscribeToEvent<InputEvents.MultitouchEvent>(_multitouchAdapter, HandleMultitouch);
 
-        RegisterAttribute("Speed", typeof(float), self => ((FreeFlyController)self).GetSpeed(), (self, value) => ((FreeFlyController)self).SetSpeed(value is float typed ? typed : 20.0f), 20.0f);
-        RegisterAttribute("Accelerated Speed", typeof(float), self => ((FreeFlyController)self).GetAcceleratedSpeed(), (self, value) => ((FreeFlyController)self).SetAcceleratedSpeed(value is float typed ? typed : 100.0f), 100.0f);
-        RegisterAttribute("Min Pitch", typeof(float), self => ((FreeFlyController)self).GetMinPitch(), (self, value) => ((FreeFlyController)self).SetMinPitch(value is float typed ? typed : -90.0f), -90.0f);
-        RegisterAttribute("Max Pitch", typeof(float), self => ((FreeFlyController)self).GetMaxPitch(), (self, value) => ((FreeFlyController)self).SetMaxPitch(value is float typed ? typed : 90.0f), 90.0f);
-        RegisterAttribute("Mouse Sensitivity", typeof(float), self => ((FreeFlyController)self).GetMouseSensitivity(), (self, value) => ((FreeFlyController)self).SetMouseSensitivity(value is float typed ? typed : DefaultMouseSensitivity), DefaultMouseSensitivity);
-        RegisterAttribute("Touch Sensitivity", typeof(float), self => ((FreeFlyController)self).GetTouchSensitivity(), (self, value) => ((FreeFlyController)self).SetTouchSensitivity(value is float typed ? typed : DefaultTouchRotationSensitivity), DefaultTouchRotationSensitivity);
-        RegisterAttribute("Axis Sensitivity", typeof(float), self => ((FreeFlyController)self).GetAxisSensitivity(), (self, value) => ((FreeFlyController)self).SetAxisSensitivity(value is float typed ? typed : DefaultAxisRotationSensitivity), DefaultAxisRotationSensitivity);
     }
 
     /// <summary>Destruct.</summary>
@@ -49,11 +92,6 @@ public class FreeFlyController : Component
         GC.SuppressFinalize(this);
     }
 
-    /// <summary>Register object factory and attributes.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<FreeFlyController>();
-    }
 
     /// <summary>Handle enabled/disabled state change. Changes update event subscription.</summary>
     public override void OnSetEnabled()
@@ -510,4 +548,18 @@ public class FreeFlyController : Component
     private bool _isActive;
     private bool _oldMouseVisible;
     private MouseMode _oldMouseMode;
+
+    private static object? GetSpeedAttributeDefault() => 20.0f;
+
+    private static object? GetAcceleratedSpeedAttributeDefault() => 100.0f;
+
+    private static object? GetMinPitchAttributeDefault() => -90.0f;
+
+    private static object? GetMaxPitchAttributeDefault() => 90.0f;
+
+    private static object? GetMouseSensitivityAttributeDefault() => DefaultMouseSensitivity;
+
+    private static object? GetTouchSensitivityAttributeDefault() => DefaultTouchRotationSensitivity;
+
+    private static object? GetAxisSensitivityAttributeDefault() => DefaultAxisRotationSensitivity;
 }

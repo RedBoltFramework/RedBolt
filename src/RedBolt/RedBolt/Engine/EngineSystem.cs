@@ -663,18 +663,6 @@ public class EngineSystem : RedObject
         GraphicsSystem.RegisterGraphicsLibrary(_context);
         SceneType.RegisterSceneLibrary(_context);
 
-        // Register render pipeline.
-        // Extract this code into function if you are adding more.
-        RenderPipelineComponent.RegisterObject(_context);
-        RenderPath.RegisterObject(_context);
-        RenderPass.RegisterObject(_context);
-        AmbientOcclusionPass.RegisterObject(_context);
-        AutoExposurePass.RegisterObject(_context);
-        BloomPass.RegisterObject(_context);
-        FullScreenShaderPass.RegisterObject(_context);
-        OutlineRenderPass.RegisterObject(_context);
-        ToneMappingPass.RegisterObject(_context);
-
         GeneratedReflectionRegistration.RefreshExternalAssemblies(_context);
     }
 

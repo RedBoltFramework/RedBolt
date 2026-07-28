@@ -23,11 +23,6 @@ public partial class PListFile : Resource
         base.Dispose();
     }
 
-    public static void RegisterObject(Context context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        context.RegisterAttributedType<PListFile>();
-    }
 
     public IReadOnlyDictionary<string, PListValue> Root => _root;
 

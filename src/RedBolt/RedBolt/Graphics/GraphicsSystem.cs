@@ -66,44 +66,7 @@ public class GraphicsSystem : RedObject
     /// <summary>Register Graphics library objects.</summary>
     public static void RegisterGraphicsLibrary(Context context)
     {
-        Animation.RegisterObject(context);
-        Material.RegisterObject(context);
-        Model.RegisterObject(context);
-        Shader.RegisterObject(context);
-        Technique.RegisterObject(context);
-        Texture2D.RegisterObject(context);
-        Texture2DArray.RegisterObject(context);
-        Texture3D.RegisterObject(context);
-        TextureCube.RegisterObject(context);
-        Camera.RegisterObject(context);
-        CameraOperator.RegisterObject(context);
-        Drawable.RegisterObject(context);
-        Light.RegisterObject(context);
-        LightBaker.RegisterObject(context);
-        LightProbeGroup.RegisterObject(context);
-        GlobalIllumination.RegisterObject(context);
-        StaticModel.RegisterObject(context);
-        StaticModelGroup.RegisterObject(context);
-        Skybox.RegisterObject(context);
-        AnimatedModel.RegisterObject(context);
-        AnimationController.RegisterObject(context);
-        BillboardSet.RegisterObject(context);
-        ParticleEffect.RegisterObject(context);
-        ParticleEmitter.RegisterObject(context);
-        RibbonTrail.RegisterObject(context);
-        CustomGeometry.RegisterObject(context);
-        DecalSet.RegisterObject(context);
-        Terrain.RegisterObject(context);
-        TerrainPatch.RegisterObject(context);
-        DebugRenderer.RegisterObject(context);
-        Octree.RegisterObject(context);
-        OutlineGroup.RegisterObject(context);
-        Zone.RegisterObject(context);
-        Geometry.RegisterObject(context);
-        Viewport.RegisterObject(context);
-        OcclusionBuffer.RegisterObject(context);
-        ReflectionProbe.RegisterObject(context);
-        ReflectionProbeManager.RegisterObject(context);
+        context.RegisterAssembly(typeof(GraphicsSystem).Assembly);
     }
 
     private const uint SdlInitVideo = 0x00000020u;

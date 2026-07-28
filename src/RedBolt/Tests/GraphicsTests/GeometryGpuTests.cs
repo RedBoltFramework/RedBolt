@@ -14,7 +14,7 @@ public sealed class GeometryGpuTests
     public void Geometry_registers_factory_reflection()
     {
         var context = new Context();
-        Geometry.RegisterObject(context);
+        context.RegisterAttributedType<Geometry>();
 
         using var geometry = Assert.IsType<Geometry>(
             context.CreateObject(ObjectReflection<Geometry>.TypeId));

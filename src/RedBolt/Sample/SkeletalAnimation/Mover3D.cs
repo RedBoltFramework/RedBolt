@@ -1,9 +1,11 @@
 using RedBolt;
+using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.Scene;
 
 /// <summary>Custom logic component for moving the animated model and rotating at area edges.</summary>
-public sealed class Mover3D : LogicComponent
+[Reflected]
+public sealed partial class Mover3D : LogicComponent
 {
     private float _moveSpeed;
     private float _rotationSpeed;

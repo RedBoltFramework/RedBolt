@@ -16,7 +16,162 @@ public enum ViewOverride : uint
     DisableOcclusion = 1 << 2
 }
 
-public sealed class Camera : Component
+[Reflected(ObjectCategory.Category_Scene)]
+[Serialized(
+    "Is Enabled",
+    typeof(bool),
+    DefaultSource = nameof(GetIsEnabledAttributeDefault),
+    Getter = nameof(Enabled),
+    Setter = nameof(SetEnabled)
+)]
+[Serialized(
+    "Near Clip",
+    typeof(float),
+    DefaultSource = nameof(GetNearClipAttributeDefault),
+    Getter = nameof(GetNearClip),
+    Setter = nameof(SetNearClip)
+)]
+[Serialized(
+    "Far Clip",
+    typeof(float),
+    DefaultSource = nameof(GetFarClipAttributeDefault),
+    Getter = nameof(GetFarClip),
+    Setter = nameof(SetFarClip)
+)]
+[Serialized(
+    "FOV",
+    typeof(float),
+    DefaultSource = nameof(GetFOVAttributeDefault),
+    Getter = nameof(GetFov),
+    Setter = nameof(SetFov)
+)]
+[Serialized(
+    "Aspect Ratio",
+    typeof(float),
+    DefaultSource = nameof(GetAspectRatioAttributeDefault),
+    Getter = nameof(GetAspectRatio),
+    Setter = nameof(SetAspectRatioInternal)
+)]
+[Serialized(
+    "Fill Mode",
+    typeof(FillMode),
+    DefaultSource = nameof(GetFillModeAttributeDefault),
+    Getter = nameof(GetFillMode),
+    Setter = nameof(SetFillMode)
+)]
+[Serialized(
+    "Auto Aspect Ratio",
+    typeof(bool),
+    DefaultSource = nameof(GetAutoAspectRatioAttributeDefault),
+    Getter = nameof(GetAutoAspectRatio),
+    Setter = nameof(SetAutoAspectRatio)
+)]
+[Serialized(
+    "Orthographic",
+    typeof(bool),
+    DefaultSource = nameof(GetOrthographicAttributeDefault),
+    Getter = nameof(IsOrthographic),
+    Setter = nameof(SetOrthographic)
+)]
+[Serialized(
+    "Orthographic Size",
+    typeof(float),
+    DefaultSource = nameof(GetOrthographicSizeAttributeDefault),
+    Getter = nameof(GetOrthoSize),
+    Setter = nameof(SetOrthoSizeAttr)
+)]
+[Serialized(
+    "Zoom",
+    typeof(float),
+    DefaultSource = nameof(GetZoomAttributeDefault),
+    Getter = nameof(GetZoom),
+    Setter = nameof(SetZoom)
+)]
+[Serialized(
+    "LOD Bias",
+    typeof(float),
+    DefaultSource = nameof(GetLODBiasAttributeDefault),
+    Getter = nameof(GetLodBias),
+    Setter = nameof(SetLodBias)
+)]
+[Serialized(
+    "View Mask",
+    typeof(uint),
+    DefaultSource = nameof(GetViewMaskAttributeDefault),
+    Getter = nameof(GetViewMask),
+    Setter = nameof(SetViewMask)
+)]
+[Serialized(
+    "Primary View Mask",
+    typeof(uint),
+    DefaultSource = nameof(GetPrimaryViewMaskAttributeDefault),
+    Getter = nameof(GetPrimaryViewMask),
+    Setter = nameof(SetPrimaryViewMask)
+)]
+[Serialized(
+    "Shadow View Mask",
+    typeof(uint),
+    DefaultSource = nameof(GetShadowViewMaskAttributeDefault),
+    Getter = nameof(GetShadowViewMask),
+    Setter = nameof(SetShadowViewMask)
+)]
+[Serialized(
+    "Zone Mask",
+    typeof(uint),
+    DefaultSource = nameof(GetZoneMaskAttributeDefault),
+    Getter = nameof(GetZoneMask),
+    Setter = nameof(SetZoneMask)
+)]
+[Serialized(
+    "View Override Flags",
+    typeof(ViewOverride),
+    DefaultSource = nameof(GetViewOverrideFlagsAttributeDefault),
+    Getter = nameof(GetViewOverrideFlags),
+    Setter = nameof(SetViewOverrideFlags)
+)]
+[Serialized(
+    "Projection Offset",
+    typeof(Vector2f),
+    DefaultSource = nameof(GetProjectionOffsetAttributeDefault),
+    Getter = nameof(GetProjectionOffset),
+    Setter = nameof(SetProjectionOffset)
+)]
+[Serialized(
+    "Reflection Plane",
+    typeof(Vector4f),
+    DefaultSource = nameof(GetReflectionPlaneAttributeDefault),
+    Getter = nameof(GetReflectionPlaneAttr),
+    Setter = nameof(SetReflectionPlaneAttr)
+)]
+[Serialized(
+    "Clip Plane",
+    typeof(Vector4f),
+    DefaultSource = nameof(GetClipPlaneAttributeDefault),
+    Getter = nameof(GetClipPlaneAttr),
+    Setter = nameof(SetClipPlaneAttr)
+)]
+[Serialized(
+    "Use Reflection",
+    typeof(bool),
+    DefaultSource = nameof(GetUseReflectionAttributeDefault),
+    Getter = nameof(GetUseReflection),
+    Setter = nameof(SetUseReflection)
+)]
+[Serialized(
+    "Use Clipping",
+    typeof(bool),
+    DefaultSource = nameof(GetUseClippingAttributeDefault),
+    Getter = nameof(GetUseClipping),
+    Setter = nameof(SetUseClipping)
+)]
+[Serialized(
+    "Draw Debug Geometry",
+    typeof(bool),
+    DefaultSource = nameof(GetDrawDebugGeometryAttributeDefault),
+    Getter = nameof(GetDrawDebugGeometry),
+    Setter = nameof(SetDrawDebugGeometry)
+)]
+public sealed partial class Camera : Component
 {
     public const uint DefaultViewMask = uint.MaxValue;
     public const uint DefaultZoneMask = uint.MaxValue;
@@ -64,35 +219,8 @@ public sealed class Camera : Component
     {
         var graphics = GetSubsystem<GraphicsSystem>();
         _graphics = graphics is not null ? new WeakReference<GraphicsSystem>(graphics) : null;
-        RegisterAttribute("Is Enabled", typeof(bool), self => ((Camera)self).Enabled, (self, value) => ((Camera)self).SetEnabled(value is bool enabled && enabled), true);
-        RegisterAttribute("Near Clip", typeof(float), self => ((Camera)self).GetNearClip(), (self, value) => ((Camera)self).SetNearClip((float)value!), DefaultNearClip);
-        RegisterAttribute("Far Clip", typeof(float), self => ((Camera)self).GetFarClip(), (self, value) => ((Camera)self).SetFarClip((float)value!), DefaultFarClip);
-        RegisterAttribute("FOV", typeof(float), self => ((Camera)self).GetFov(), (self, value) => ((Camera)self).SetFov((float)value!), DefaultFov);
-        RegisterAttribute("Aspect Ratio", typeof(float), self => ((Camera)self).GetAspectRatio(), (self, value) => ((Camera)self).SetAspectRatioInternal((float)value!), 1.0f);
-        RegisterAttribute("Fill Mode", typeof(FillMode), self => ((Camera)self).GetFillMode(), (self, value) => ((Camera)self).SetFillMode((FillMode)value!), FillMode.Solid);
-        RegisterAttribute("Auto Aspect Ratio", typeof(bool), self => ((Camera)self).GetAutoAspectRatio(), (self, value) => ((Camera)self).SetAutoAspectRatio(value is bool enabled && enabled), true);
-        RegisterAttribute("Orthographic", typeof(bool), self => ((Camera)self).IsOrthographic(), (self, value) => ((Camera)self).SetOrthographic(value is bool enabled && enabled), false);
-        RegisterAttribute("Orthographic Size", typeof(float), self => ((Camera)self).GetOrthoSize(), (self, value) => ((Camera)self).SetOrthoSizeAttr((float)value!), DefaultOrthoSize);
-        RegisterAttribute("Zoom", typeof(float), self => ((Camera)self).GetZoom(), (self, value) => ((Camera)self).SetZoom((float)value!), 1.0f);
-        RegisterAttribute("LOD Bias", typeof(float), self => ((Camera)self).GetLodBias(), (self, value) => ((Camera)self).SetLodBias((float)value!), 1.0f);
-        RegisterAttribute("View Mask", typeof(uint), self => ((Camera)self).GetViewMask(), (self, value) => ((Camera)self).SetViewMask((uint)value!), DefaultViewMask);
-        RegisterAttribute("Primary View Mask", typeof(uint), self => ((Camera)self).GetPrimaryViewMask(), (self, value) => ((Camera)self).SetPrimaryViewMask((uint)value!), DefaultViewMask);
-        RegisterAttribute("Shadow View Mask", typeof(uint), self => ((Camera)self).GetShadowViewMask(), (self, value) => ((Camera)self).SetShadowViewMask((uint)value!), DefaultViewMask);
-        RegisterAttribute("Zone Mask", typeof(uint), self => ((Camera)self).GetZoneMask(), (self, value) => ((Camera)self).SetZoneMask((uint)value!), DefaultZoneMask);
-        RegisterAttribute("View Override Flags", typeof(ViewOverride), self => ((Camera)self).GetViewOverrideFlags(), (self, value) => ((Camera)self).SetViewOverrideFlags((ViewOverride)value!), ViewOverride.None);
-        RegisterAttribute("Projection Offset", typeof(Vector2f), self => ((Camera)self).GetProjectionOffset(), (self, value) => ((Camera)self).SetProjectionOffset((Vector2f)value!), Vector2f.Zero);
-        RegisterAttribute("Reflection Plane", typeof(Vector4f), self => ((Camera)self).GetReflectionPlaneAttr(), (self, value) => ((Camera)self).SetReflectionPlaneAttr((Vector4f)value!), Plane.Up.ToVector4());
-        RegisterAttribute("Clip Plane", typeof(Vector4f), self => ((Camera)self).GetClipPlaneAttr(), (self, value) => ((Camera)self).SetClipPlaneAttr((Vector4f)value!), Plane.Up.ToVector4());
-        RegisterAttribute("Use Reflection", typeof(bool), self => ((Camera)self).GetUseReflection(), (self, value) => ((Camera)self).SetUseReflection(value is bool enabled && enabled), false);
-        RegisterAttribute("Use Clipping", typeof(bool), self => ((Camera)self).GetUseClipping(), (self, value) => ((Camera)self).SetUseClipping(value is bool enabled && enabled), false);
-        RegisterAttribute("Draw Debug Geometry", typeof(bool), self => ((Camera)self).GetDrawDebugGeometry(), (self, value) => ((Camera)self).SetDrawDebugGeometry(value is bool enabled && enabled), true);
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<Camera>(ObjectCategory.Category_Scene);
-    }
 
     public float AspectRatio
     {
@@ -888,4 +1016,48 @@ public sealed class Camera : Component
         _viewProjDirty = true;
         _frustumDirty = true;
     }
+
+    private static object? GetIsEnabledAttributeDefault() => true;
+
+    private static object? GetNearClipAttributeDefault() => DefaultNearClip;
+
+    private static object? GetFarClipAttributeDefault() => DefaultFarClip;
+
+    private static object? GetFOVAttributeDefault() => DefaultFov;
+
+    private static object? GetAspectRatioAttributeDefault() => 1.0f;
+
+    private static object? GetFillModeAttributeDefault() => FillMode.Solid;
+
+    private static object? GetAutoAspectRatioAttributeDefault() => true;
+
+    private static object? GetOrthographicAttributeDefault() => false;
+
+    private static object? GetOrthographicSizeAttributeDefault() => DefaultOrthoSize;
+
+    private static object? GetZoomAttributeDefault() => 1.0f;
+
+    private static object? GetLODBiasAttributeDefault() => 1.0f;
+
+    private static object? GetViewMaskAttributeDefault() => DefaultViewMask;
+
+    private static object? GetPrimaryViewMaskAttributeDefault() => DefaultViewMask;
+
+    private static object? GetShadowViewMaskAttributeDefault() => DefaultViewMask;
+
+    private static object? GetZoneMaskAttributeDefault() => DefaultZoneMask;
+
+    private static object? GetViewOverrideFlagsAttributeDefault() => ViewOverride.None;
+
+    private static object? GetProjectionOffsetAttributeDefault() => Vector2f.Zero;
+
+    private static object? GetReflectionPlaneAttributeDefault() => Plane.Up.ToVector4();
+
+    private static object? GetClipPlaneAttributeDefault() => Plane.Up.ToVector4();
+
+    private static object? GetUseReflectionAttributeDefault() => false;
+
+    private static object? GetUseClippingAttributeDefault() => false;
+
+    private static object? GetDrawDebugGeometryAttributeDefault() => true;
 }

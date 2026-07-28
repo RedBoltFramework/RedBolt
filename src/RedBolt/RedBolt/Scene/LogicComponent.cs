@@ -3,7 +3,8 @@ using RedBolt.Core;
 namespace RedBolt.Scene;
 
 /// <summary>Helper base class for user-defined game logic components that hooks up to update events and forwards them to virtual functions similar to ScriptInstance class.</summary>
-public class LogicComponent : Component
+[Reflected(ObjectCategory.Category_Scene, Factory = false)]
+public partial class LogicComponent : Component
 {
     private UpdateEvent _updateEventMask;
     private UpdateEvent _currentEventMask;

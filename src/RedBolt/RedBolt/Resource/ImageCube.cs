@@ -35,12 +35,6 @@ public partial class ImageCube : Resource
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        context.RegisterAttributedType<ImageCube>();
-    }
 
     private static Image? GetTileImage(Image source, int tileX, int tileY, int tileWidth, int tileHeight)
     {

@@ -8,7 +8,8 @@ using RedBolt.Resource;
 namespace RedBolt.Audio;
 
 /// <summary>Sound resource.</summary>
-public sealed class Sound : ResourceWithMetadata
+[Reflected]
+public sealed partial class Sound : ResourceWithMetadata
 {
     private sbyte[]? _data;
     private int _repeat;
@@ -25,11 +26,6 @@ public sealed class Sound : ResourceWithMetadata
     {
     }
 
-    /// <summary>Register object factory.</summary>
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<Sound>();
-    }
 
     public override bool BeginLoad(Deserializer source)
     {

@@ -31,7 +31,156 @@ public struct Particle
 }
 
 /// <summary>Particle emitter component.</summary>
-public class ParticleEmitter : BillboardSet
+[Reflected(ObjectCategory.Category_Geometry)]
+[RemoveSerialized("Is Enabled")]
+[Serialized(
+    "Is Enabled",
+    typeof(bool),
+    DefaultSource = nameof(GetIsEnabledAttributeDefault),
+    Getter = nameof(Enabled),
+    Setter = nameof(SetEnabled)
+)]
+[Serialized(
+    "Effect",
+    typeof(ResourceRef),
+    DefaultSource = nameof(GetEffectAttributeDefault),
+    Getter = nameof(GetEffectAttr),
+    Setter = nameof(SetEffectAttr)
+)]
+[Serialized(
+    "Can Be Occluded",
+    typeof(bool),
+    DefaultSource = nameof(GetCanBeOccludedAttributeDefault),
+    Getter = nameof(IsOccludee),
+    Setter = nameof(SetOccludee)
+)]
+[Serialized(
+    "Cast Shadows",
+    typeof(bool),
+    DefaultSource = nameof(GetCastShadowsAttributeDefault),
+    Getter = nameof(GetCastShadows),
+    Setter = nameof(SetCastShadows)
+)]
+[Serialized(
+    "Draw Distance",
+    typeof(float),
+    DefaultSource = nameof(GetDrawDistanceAttributeDefault),
+    Getter = nameof(GetDrawDistance),
+    Setter = nameof(SetDrawDistance)
+)]
+[Serialized(
+    "Shadow Distance",
+    typeof(float),
+    DefaultSource = nameof(GetShadowDistanceAttributeDefault),
+    Getter = nameof(GetShadowDistance),
+    Setter = nameof(SetShadowDistance)
+)]
+[Serialized(
+    "Animation LOD Bias",
+    typeof(float),
+    DefaultSource = nameof(GetAnimationLODBiasAttributeDefault),
+    Getter = nameof(GetAnimationLodBias),
+    Setter = nameof(SetAnimationLodBias)
+)]
+[Serialized(
+    "Is Emitting",
+    typeof(bool),
+    DefaultSource = nameof(GetIsEmittingAttributeDefault),
+    Getter = nameof(_emitting),
+    Setter = nameof(_emitting)
+)]
+[Serialized(
+    "Period Timer",
+    typeof(float),
+    DefaultSource = nameof(GetPeriodTimerAttributeDefault),
+    Getter = nameof(_periodTimer),
+    Mode = AttributeMode.Default | AttributeMode.NoEdit,
+    Setter = nameof(_periodTimer)
+)]
+[Serialized(
+    "Emission Timer",
+    typeof(float),
+    DefaultSource = nameof(GetEmissionTimerAttributeDefault),
+    Getter = nameof(_emissionTimer),
+    Mode = AttributeMode.Default | AttributeMode.NoEdit,
+    Setter = nameof(_emissionTimer)
+)]
+[Serialized(
+    "Autoremove Mode",
+    typeof(AutoRemoveMode),
+    DefaultSource = nameof(GetAutoremoveModeAttributeDefault),
+    EnumNamesSource = nameof(AutoRemoveModeNames),
+    Getter = nameof(_autoRemove),
+    Setter = nameof(_autoRemove)
+)]
+[Serialized(
+    "View Mask",
+    typeof(uint),
+    DefaultSource = nameof(GetViewMaskAttributeDefault),
+    Getter = nameof(GetViewMask),
+    Setter = nameof(SetViewMask)
+)]
+[Serialized(
+    "Light Mask",
+    typeof(uint),
+    DefaultSource = nameof(GetLightMaskAttributeDefault),
+    Getter = nameof(GetLightMask),
+    Setter = nameof(SetLightMask)
+)]
+[Serialized(
+    "Shadow Mask",
+    typeof(uint),
+    DefaultSource = nameof(GetShadowMaskAttributeDefault),
+    Getter = nameof(GetShadowMask),
+    Setter = nameof(SetShadowMask)
+)]
+[Serialized(
+    "Zone Mask",
+    typeof(uint),
+    DefaultSource = nameof(GetZoneMaskAttributeDefault),
+    Getter = nameof(GetZoneMask),
+    Setter = nameof(SetZoneMask)
+)]
+[Serialized(
+    "Global Illumination",
+    typeof(GlobalIlluminationType),
+    DefaultSource = nameof(GetGlobalIlluminationAttributeDefault),
+    EnumNamesSource = nameof(GlobalIlluminationTypeNames),
+    Getter = nameof(GetGlobalIlluminationType),
+    Setter = nameof(SetGlobalIlluminationType)
+)]
+[Serialized(
+    "Reflection Mode",
+    typeof(ReflectionMode),
+    DefaultSource = nameof(GetReflectionModeAttributeDefault),
+    EnumNamesSource = nameof(ReflectionModeNames),
+    Getter = nameof(GetReflectionMode),
+    Setter = nameof(SetReflectionMode)
+)]
+[Serialized(
+    "Particles",
+    typeof(VariantVector),
+    DefaultSource = nameof(GetParticlesAttributeDefault),
+    Getter = nameof(GetParticlesAttr),
+    Mode = AttributeMode.Default | AttributeMode.NoEdit,
+    Setter = nameof(SetParticlesAttr)
+)]
+[Serialized(
+    "Billboards",
+    typeof(VariantVector),
+    DefaultSource = nameof(GetBillboardsAttributeDefault),
+    Getter = nameof(GetParticleBillboardsAttr),
+    Mode = AttributeMode.Default | AttributeMode.NoEdit,
+    Setter = nameof(SetBillboardsAttr)
+)]
+[Serialized(
+    "Serialize Particles",
+    typeof(bool),
+    DefaultSource = nameof(GetSerializeParticlesAttributeDefault),
+    Getter = nameof(_serializeParticles),
+    Setter = nameof(_serializeParticles)
+)]
+public partial class ParticleEmitter : BillboardSet
 {
     private const uint MaxParticlesInFrame = 100;
     private static readonly string[] AutoRemoveModeNames = ["Disabled", "Component", "Node"];
@@ -43,55 +192,6 @@ public class ParticleEmitter : BillboardSet
     {
         SetNumParticles(ParticleEffect.DefaultNumParticles);
 
-        RegisterAttribute("Is Enabled", typeof(bool), self => ((ParticleEmitter)self).Enabled,
-            (self, value) => ((ParticleEmitter)self).SetEnabled(value is bool enabled && enabled), true);
-        RegisterAttribute("Effect", typeof(ResourceRef), self => ((ParticleEmitter)self).GetEffectAttr(),
-            (self, value) => ((ParticleEmitter)self).SetEffectAttr((ResourceRef)value!),
-            new ResourceRef(new StringHash(nameof(ParticleEffect))));
-        RegisterAttribute("Can Be Occluded", typeof(bool), self => ((ParticleEmitter)self).IsOccludee(),
-            (self, value) => ((ParticleEmitter)self).SetOccludee(value is bool enabled && enabled), true);
-        RegisterAttribute("Cast Shadows", typeof(bool), self => ((ParticleEmitter)self).GetCastShadows(),
-            (self, value) => ((ParticleEmitter)self).SetCastShadows(value is bool enabled && enabled), false);
-        RegisterAttribute("Draw Distance", typeof(float), self => ((ParticleEmitter)self).GetDrawDistance(),
-            (self, value) => ((ParticleEmitter)self).SetDrawDistance((float)value!), 0.0f);
-        RegisterAttribute("Shadow Distance", typeof(float), self => ((ParticleEmitter)self).GetShadowDistance(),
-            (self, value) => ((ParticleEmitter)self).SetShadowDistance((float)value!), 0.0f);
-        RegisterAttribute("Animation LOD Bias", typeof(float), self => ((ParticleEmitter)self).GetAnimationLodBias(),
-            (self, value) => ((ParticleEmitter)self).SetAnimationLodBias((float)value!), 1.0f);
-        RegisterAttribute("Is Emitting", typeof(bool), self => ((ParticleEmitter)self)._emitting,
-            (self, value) => ((ParticleEmitter)self)._emitting = value is bool enabled && enabled, true);
-        RegisterAttribute("Period Timer", typeof(float), self => ((ParticleEmitter)self)._periodTimer,
-            (self, value) => ((ParticleEmitter)self)._periodTimer = (float)value!, 0.0f,
-            AttributeMode.Default | AttributeMode.NoEdit);
-        RegisterAttribute("Emission Timer", typeof(float), self => ((ParticleEmitter)self)._emissionTimer,
-            (self, value) => ((ParticleEmitter)self)._emissionTimer = (float)value!, 0.0f,
-            AttributeMode.Default | AttributeMode.NoEdit);
-        RegisterAttribute("Autoremove Mode", typeof(AutoRemoveMode), self => ((ParticleEmitter)self)._autoRemove,
-            (self, value) => ((ParticleEmitter)self)._autoRemove = (AutoRemoveMode)value!, AutoRemoveMode.Disabled,
-            enumNames: AutoRemoveModeNames);
-        RegisterAttribute("View Mask", typeof(uint), self => ((ParticleEmitter)self).GetViewMask(),
-            (self, value) => ((ParticleEmitter)self).SetViewMask((uint)value!), DefaultViewMask);
-        RegisterAttribute("Light Mask", typeof(uint), self => ((ParticleEmitter)self).GetLightMask(),
-            (self, value) => ((ParticleEmitter)self).SetLightMask((uint)value!), DefaultLightMask);
-        RegisterAttribute("Shadow Mask", typeof(uint), self => ((ParticleEmitter)self).GetShadowMask(),
-            (self, value) => ((ParticleEmitter)self).SetShadowMask((uint)value!), DefaultShadowMask);
-        RegisterAttribute("Zone Mask", typeof(uint), self => ((ParticleEmitter)self).GetZoneMask(),
-            (self, value) => ((ParticleEmitter)self).SetZoneMask((uint)value!), DefaultZoneMask);
-        RegisterAttribute("Global Illumination", typeof(GlobalIlluminationType),
-            self => ((ParticleEmitter)self).GetGlobalIlluminationType(),
-            (self, value) => ((ParticleEmitter)self).SetGlobalIlluminationType((GlobalIlluminationType)value!),
-            GlobalIlluminationType.None, enumNames: GlobalIlluminationTypeNames);
-        RegisterAttribute("Reflection Mode", typeof(ReflectionMode), self => ((ParticleEmitter)self).GetReflectionMode(),
-            (self, value) => ((ParticleEmitter)self).SetReflectionMode((ReflectionMode)value!),
-            ReflectionMode.BlendProbesAndZone, enumNames: ReflectionModeNames);
-        RegisterAttribute("Particles", typeof(VariantVector), self => ((ParticleEmitter)self).GetParticlesAttr(),
-            (self, value) => ((ParticleEmitter)self).SetParticlesAttr((VariantVector)value!), new VariantVector(),
-            AttributeMode.Default | AttributeMode.NoEdit);
-        RegisterAttribute("Billboards", typeof(VariantVector), self => ((ParticleEmitter)self).GetParticleBillboardsAttr(),
-            (self, value) => ((ParticleEmitter)self).SetBillboardsAttr((VariantVector)value!), new VariantVector(),
-            AttributeMode.Default | AttributeMode.NoEdit);
-        RegisterAttribute("Serialize Particles", typeof(bool), self => ((ParticleEmitter)self)._serializeParticles,
-            (self, value) => ((ParticleEmitter)self)._serializeParticles = value is bool enabled && enabled, true);
     }
 
     /// <summary>Destruct.</summary>
@@ -102,11 +202,6 @@ public class ParticleEmitter : BillboardSet
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public static new void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<ParticleEmitter>(ObjectCategory.Category_Geometry);
-    }
 
     /// <summary>Handle enabled/disabled state change.</summary>
     public override void OnSetEnabled()
@@ -691,4 +786,44 @@ public class ParticleEmitter : BillboardSet
     private bool _sendFinishedEvent = true;
     /// <summary>Automatic removal mode.</summary>
     private AutoRemoveMode _autoRemove = AutoRemoveMode.Disabled;
+
+    private static object? GetIsEnabledAttributeDefault() => true;
+
+    private static object? GetEffectAttributeDefault() => new ResourceRef(new StringHash(nameof(ParticleEffect)));
+
+    private static object? GetCanBeOccludedAttributeDefault() => true;
+
+    private static object? GetCastShadowsAttributeDefault() => false;
+
+    private static object? GetDrawDistanceAttributeDefault() => 0.0f;
+
+    private static object? GetShadowDistanceAttributeDefault() => 0.0f;
+
+    private static object? GetAnimationLODBiasAttributeDefault() => 1.0f;
+
+    private static object? GetIsEmittingAttributeDefault() => true;
+
+    private static object? GetPeriodTimerAttributeDefault() => 0.0f;
+
+    private static object? GetEmissionTimerAttributeDefault() => 0.0f;
+
+    private static object? GetAutoremoveModeAttributeDefault() => AutoRemoveMode.Disabled;
+
+    private static object? GetViewMaskAttributeDefault() => DefaultViewMask;
+
+    private static object? GetLightMaskAttributeDefault() => DefaultLightMask;
+
+    private static object? GetShadowMaskAttributeDefault() => DefaultShadowMask;
+
+    private static object? GetZoneMaskAttributeDefault() => DefaultZoneMask;
+
+    private static object? GetGlobalIlluminationAttributeDefault() => GlobalIlluminationType.None;
+
+    private static object? GetReflectionModeAttributeDefault() => ReflectionMode.BlendProbesAndZone;
+
+    private static object? GetParticlesAttributeDefault() => new VariantVector();
+
+    private static object? GetBillboardsAttributeDefault() => new VariantVector();
+
+    private static object? GetSerializeParticlesAttributeDefault() => true;
 }

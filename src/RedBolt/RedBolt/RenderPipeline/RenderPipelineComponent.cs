@@ -10,7 +10,8 @@ namespace RedBolt.RenderPipeline;
 /// <summary>
 /// Scene component that spawns render pipeline instances.
 /// </summary>
-public class RenderPipelineComponent : Component
+[Reflected]
+public partial class RenderPipelineComponent : Component
 {
     private static readonly ResourceRef DefaultRenderPath =
         new(new StringHash(nameof(RenderPath)), "RenderPaths/Default.renderpath");
@@ -57,10 +58,6 @@ public class RenderPipelineComponent : Component
         base.Dispose();
     }
 
-    public static void RegisterObject(Context context)
-    {
-        context.AddFactoryReflection<RenderPipelineComponent>();
-    }
 
     public ref readonly RenderPipelineSettings Settings => ref _settings;
 

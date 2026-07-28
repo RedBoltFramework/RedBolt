@@ -47,7 +47,8 @@ public struct OcclusionBatch
 }
 
 /// <summary>Software renderer for occlusion.</summary>
-public sealed class OcclusionBuffer : RedObject
+[Reflected]
+public sealed partial class OcclusionBuffer : RedObject
 {
     private const int OcclusionMinSize = 8;
     private const int OcclusionDefaultMaxTriangles = 5000;
@@ -93,8 +94,6 @@ public sealed class OcclusionBuffer : RedObject
         base.Dispose();
     }
 
-    /// <summary>Register object with the engine.</summary>
-    public static void RegisterObject(Context context) => context.AddFactoryReflection<OcclusionBuffer>();
 
     /// <summary>Set occlusion buffer size and whether to reserve multiple buffers for threading optimization.</summary>
     public bool SetSize(int width, int height, bool threaded)

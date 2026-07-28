@@ -8,7 +8,8 @@ namespace RedBolt.Graphics;
 /// <summary>
 /// 2D texture resource.
 /// </summary>
-public class Texture2D : Texture
+[Reflected]
+public partial class Texture2D : Texture
 {
     /// <summary>
     /// Construct.
@@ -28,14 +29,6 @@ public class Texture2D : Texture
         base.Dispose();
     }
 
-    /// <summary>
-    /// Register object factory.
-    /// </summary>
-    public static void RegisterObject(Context context)
-    {
-        var reflection = context.AddReflection<Texture2D>();
-        reflection.SetObjectFactory(static () => new Texture2D());
-    }
 
     /// <summary>
     /// Load resource from stream. May be called from a worker thread. Return true if successful.

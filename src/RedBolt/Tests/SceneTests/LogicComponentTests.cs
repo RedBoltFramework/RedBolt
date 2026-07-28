@@ -1,4 +1,5 @@
 using RedBolt;
+using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.Scene;
 using SceneType = global::RedBolt.Scene.Scene;
@@ -6,14 +7,8 @@ using SceneType = global::RedBolt.Scene.Scene;
 namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
-public sealed class LogicComponentTests
+public sealed partial class LogicComponentTests
 {
-    public LogicComponentTests()
-    {
-        TestTypeRegistration.RegisterFactory<CountingLogic>();
-        TestTypeRegistration.RegisterFactory<CustomEventLogic>();
-    }
-
     [Fact]
     public void LogicComponent_matches_rbfx_concrete_class_shape()
     {
@@ -198,7 +193,8 @@ public sealed class LogicComponentTests
         Assert.Equal(allocatedBefore, allocatedAfter);
     }
 
-    private sealed class CountingLogic : LogicComponent
+    [Reflected]
+    private sealed partial class CountingLogic : LogicComponent
     {
         public int StartCount { get; private set; }
         public int DelayedStartCount { get; private set; }
@@ -256,7 +252,8 @@ public sealed class LogicComponentTests
         float SceneEvents.ISceneUpdateEvent.TimeStep => TimeStep;
     }
 
-    private sealed class CustomEventLogic : LogicComponent
+    [Reflected]
+    private sealed partial class CustomEventLogic : LogicComponent
     {
         public int DelayedStartCount { get; private set; }
         public int UpdateCount { get; private set; }

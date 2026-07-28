@@ -5,7 +5,7 @@ using RedBolt.Scene;
 namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
-public sealed class PrefabWriterTests
+public sealed partial class PrefabWriterTests
 {
     [Fact]
     public void Writer_types_match_native_extensible_noncopyable_classes_and_managed_size_mapping()
@@ -24,7 +24,7 @@ public sealed class PrefabWriterTests
     [Fact]
     public void Archive_writer_keeps_buffer_alive_until_destruction()
     {
-        var source = new TestSerializable { Number = 42, Label = "root" };
+        var source = new PrefabWriterProbe { Number = 42, Label = "root" };
         var output = new TestJSONOutputArchive();
         var writer = new PrefabWriterToArchive(output, blockName: "root");
 
@@ -46,8 +46,8 @@ public sealed class PrefabWriterTests
     [Fact]
     public void Memory_writer_writes_nested_nodes_and_components()
     {
-        var source = new TestSerializable { Number = 42, Label = "root" };
-        var component = new TestSerializable { Number = 7, Label = "component" };
+        var source = new PrefabWriterProbe { Number = 42, Label = "root" };
+        var component = new PrefabWriterProbe { Number = 7, Label = "component" };
         var prefab = new NodePrefab();
         using var writer = new PrefabWriterToMemory(prefab, PrefabSaveFlag.EnumsAsStrings);
 
@@ -76,8 +76,8 @@ public sealed class PrefabWriterTests
     [Fact]
     public void Archive_writer_roundtrips_through_prefab_reader()
     {
-        var source = new TestSerializable { Number = 42, Label = "root" };
-        var component = new TestSerializable { Number = 7, Label = "component" };
+        var source = new PrefabWriterProbe { Number = 42, Label = "root" };
+        var component = new PrefabWriterProbe { Number = 7, Label = "component" };
         var output = new TestJSONOutputArchive();
         using (var writer = new PrefabWriterToArchive(output, blockName: "root"))
         {
@@ -100,7 +100,7 @@ public sealed class PrefabWriterTests
     [Fact]
     public void Compact_attribute_names_roundtrip_through_prefab()
     {
-        var source = new TestSerializable { Number = 42, Label = "compact" };
+        var source = new PrefabWriterProbe { Number = 42, Label = "compact" };
         var prefab = new SerializablePrefab();
 
         prefab.Import(source, PrefabSaveFlag.CompactAttributeNames | PrefabSaveFlag.SaveDefaultValues);
@@ -109,29 +109,20 @@ public sealed class PrefabWriterTests
         Assert.All(prefab.Attributes, attribute => Assert.True(string.IsNullOrEmpty(attribute.Name)));
         Assert.All(prefab.Attributes, attribute => Assert.NotEqual(StringHash.Empty, attribute.NameHash));
 
-        var destination = new TestSerializable();
+        var destination = new PrefabWriterProbe();
         prefab.Export(destination);
 
         Assert.Equal(42, destination.Number);
         Assert.Equal("compact", destination.Label);
     }
 
-    private sealed class TestSerializable : Serializable
+    [Reflected]
+    private sealed partial class PrefabWriterProbe : Serializable
     {
-        public TestSerializable()
-        {
-            RegisterAttribute("Number", typeof(int), self => ((TestSerializable)self).Number,
-                (self, value) => ((TestSerializable)self).Number = (int)(value ?? 0), 0);
-            RegisterAttribute("Label", typeof(string), self => ((TestSerializable)self).Label,
-                (self, value) => ((TestSerializable)self).Label = (string?)value ?? string.Empty, string.Empty);
-        }
-
+        [Serialized("Number")]
         public int Number { get; set; }
-        public string Label { get; set; } = string.Empty;
 
-        public override ObjectReflection? GetReflection()
-        {
-            return Context.Instance.Reflect<TestSerializable>();
-        }
+        [Serialized("Label")]
+        public string Label { get; set; } = string.Empty;
     }
 }

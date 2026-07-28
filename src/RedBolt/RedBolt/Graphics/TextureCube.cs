@@ -21,7 +21,8 @@ public enum CubeMapFace
 /// <summary>
 /// Cube texture resource.
 /// </summary>
-public class TextureCube : Texture
+[Reflected]
+public partial class TextureCube : Texture
 {
     /// <summary>
     /// Construct.
@@ -41,14 +42,6 @@ public class TextureCube : Texture
         base.Dispose();
     }
 
-    /// <summary>
-    /// Register object factory.
-    /// </summary>
-    public static void RegisterObject(Context context)
-    {
-        var reflection = context.AddReflection<TextureCube>();
-        reflection.SetObjectFactory(static () => new TextureCube());
-    }
 
     /// <summary>
     /// Load resource from stream. May be called from a worker thread. Return true if successful.

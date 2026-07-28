@@ -320,7 +320,7 @@ The exhaustive list of allowed deviations is maintained in
 
 Agreed project-specific naming deviation: C# engine types use folder-matching namespaces; the `Audio`, `Engine`, `Graphics`, and `Input` subsystem classes are named `AudioSystem`, `EngineSystem`, `GraphicsSystem`, and `InputSystem`; and the render pipeline component class is named `RenderPipelineComponent`.
 
-Agreed project-specific reflection deviation: reflected C# objects and serializable attributes use generated `[Reflected]` and `[Serialized]` declarations instead of hand-written `RegisterObject` methods; library registration entry points register the generated assembly metadata.
+Agreed project-specific reflection deviation: reflected C# objects and serializable attributes must declare generated `[Reflected]`, `[Serialized]`, and `[RemoveSerialized]` metadata instead of hand-written `RegisterObject`, `RegisterAttribute`, or `AddFactoryReflection` registration. Preserve factory categories, non-factory types (`Factory = false`), inheritance, removals, defaults, modes, scope hints, enum names, accessors, and metadata configuration in those declarations. Named source members used only by generated reflection must remain private implementation details. Library registration entry points register the generated assembly metadata; only the generator and its runtime registration infrastructure may use the low-level reflection APIs that materialize those declarations.
 
 ## 11. SUCCESS CRITERIA (all must be true)
 

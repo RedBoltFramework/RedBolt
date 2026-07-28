@@ -10,7 +10,8 @@ using RedBolt.Scene;
 namespace RedBolt.Graphics;
 
 /// <summary>Individually rendered part of a heightmap terrain.</summary>
-public class TerrainPatch : Drawable
+[Reflected]
+public partial class TerrainPatch : Drawable
 {
     private static readonly float LodConstant = 1.0f / 150.0f;
 
@@ -75,8 +76,6 @@ public class TerrainPatch : Drawable
         base.Dispose();
     }
 
-    /// <summary>Register object factory.</summary>
-    public new static void RegisterObject(Context context) => context.AddFactoryReflection<TerrainPatch>();
 
     /// <summary>Process octree raycast. May be called from a worker thread.</summary>
     public override void ProcessRayQuery(RayOctreeQuery query, List<RayQueryResult> results)

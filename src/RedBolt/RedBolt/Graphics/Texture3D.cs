@@ -11,7 +11,8 @@ namespace RedBolt.Graphics;
 /// <summary>
 /// 3D texture resource.
 /// </summary>
-public class Texture3D : Texture
+[Reflected]
+public partial class Texture3D : Texture
 {
     /// <summary>
     /// Construct.
@@ -32,14 +33,6 @@ public class Texture3D : Texture
         base.Dispose();
     }
 
-    /// <summary>
-    /// Register object factory.
-    /// </summary>
-    public static void RegisterObject(Context context)
-    {
-        var reflection = context.AddReflection<Texture3D>();
-        reflection.SetObjectFactory(static () => new Texture3D());
-    }
 
     /// <summary>
     /// Load resource from stream. May be called from a worker thread. Return true if successful.

@@ -60,7 +60,7 @@ public sealed class ShakeComponentTests
         Assert.False(typeof(ICloneable).IsAssignableFrom(typeof(ShakeComponent)));
 
         using var context = new Context();
-        ShakeComponent.RegisterObject(context);
+        context.RegisterAttributedType<ShakeComponent>();
 
         Assert.True(context.IsReflected<ShakeComponent>());
         using var created = Assert.IsType<ShakeComponent>(context.CreateObject(ObjectReflection<ShakeComponent>.TypeId));

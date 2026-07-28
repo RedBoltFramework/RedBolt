@@ -9,17 +9,11 @@ namespace RedBolt.Tests;
 
 public sealed class AnimationControllerTests
 {
-    public AnimationControllerTests()
-    {
-        TestTypeRegistration.RegisterFactory<AnimationController>();
-        TestTypeRegistration.RegisterFactory<AnimatedModel>();
-    }
-
     [Fact]
     public void Animation_controller_registers_logic_factory()
     {
         var context = new Context();
-        AnimationController.RegisterObject(context);
+        context.RegisterAttributedType<AnimationController>();
 
         using var controller = Assert.IsType<AnimationController>(
             context.CreateObject(ObjectReflection<AnimationController>.TypeId));

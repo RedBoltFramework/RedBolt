@@ -128,11 +128,12 @@ public sealed class AudioTests
     }
 
     [Fact]
-    public void Microphone_registers_object_factory()
+    public void Microphone_has_generated_object_factory()
     {
-        Microphone.RegisterObject(_fixture.Context);
+        var reflection = _fixture.Context.GetReflection<Microphone>();
 
-        Assert.NotNull(_fixture.Context.GetReflection<Microphone>());
+        Assert.NotNull(reflection);
+        Assert.True(reflection.HasObjectFactory());
     }
 
     [Fact]

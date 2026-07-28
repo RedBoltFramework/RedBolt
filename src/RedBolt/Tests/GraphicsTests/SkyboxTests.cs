@@ -9,14 +9,13 @@ using SceneType = global::RedBolt.Scene.Scene;
 namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
-public sealed class SkyboxTests
+public sealed partial class SkyboxTests
 {
     private readonly HeadlessEngineFixture _fixture;
 
     public SkyboxTests(HeadlessEngineFixture fixture)
     {
         this._fixture = fixture;
-        TestTypeRegistration.RegisterFactory<TestSkybox>();
         FirstCubeTestData.AddResourceDirs(Resources);
     }
 
@@ -78,7 +77,8 @@ public sealed class SkyboxTests
         Assert.Equal(0, skybox.NumCustomWorldTransforms);
     }
 
-    private sealed class TestSkybox : Skybox
+    [Reflected]
+    private sealed partial class TestSkybox : Skybox
     {
         public int NumCustomWorldTransforms => _customWorldTransforms.Count;
     }

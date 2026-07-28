@@ -78,7 +78,8 @@ public struct AnimationTriggerPoint : ICloneable, IDisposable
 /// Skeletal animation resource.
 /// Don't use bone tracks and generic variant tracks with the same names.
 // C#: ObjectRevisionTracker is not ported; revision tracking is inlined here.
-public class Animation : ResourceWithMetadata
+[Reflected]
+public partial class Animation : ResourceWithMetadata
 {
     /// <summary>
     /// Construct.
@@ -109,14 +110,6 @@ public class Animation : ResourceWithMetadata
         base.Dispose();
     }
 
-    /// <summary>
-    /// Register object factory.
-    /// </summary>
-    public static void RegisterObject(Context context)
-    {
-        var reflection = context.AddReflection<Animation>();
-        reflection.SetObjectFactory(static () => new Animation());
-    }
 
     /// <summary>
     /// Reset resource state to default.

@@ -11,7 +11,7 @@ using RedBolt.Resource;
 namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
-public sealed class RenderPathTests
+public sealed partial class RenderPathTests
 {
     public RenderPathTests(HeadlessEngineFixture fixture)
     {
@@ -31,8 +31,8 @@ public sealed class RenderPathTests
     {
         var renderPath = new RenderPath();
         renderPath.SetName("RenderPaths/Test.xml");
-        var alpha = new TrackingRenderPass("Alpha") { EnabledByDefaultValue = false };
-        var beta = new TrackingRenderPass("Beta");
+        var alpha = new RenderPathTrackingPass("Alpha") { EnabledByDefaultValue = false };
+        var beta = new RenderPathTrackingPass("Beta");
         renderPath.AddPass(alpha);
         renderPath.AddPass(beta);
 
@@ -53,8 +53,8 @@ public sealed class RenderPathTests
     {
         var renderPath = new RenderPath();
         renderPath.SetName("RenderPaths/Test.xml");
-        renderPath.AddPass(new TrackingRenderPass("Alpha"));
-        renderPath.AddPass(new TrackingRenderPass("Beta"));
+        renderPath.AddPass(new RenderPathTrackingPass("Alpha"));
+        renderPath.AddPass(new RenderPathTrackingPass("Beta"));
 
         (string Name, bool Enabled)[] matchingPasses =
         [
@@ -73,7 +73,7 @@ public sealed class RenderPathTests
     {
         using var renderPath = new RenderPath();
         renderPath.SetName("RenderPaths/Test.renderpath");
-        var pass = new TrackingRenderPass("Alpha");
+        var pass = new RenderPathTrackingPass("Alpha");
         pass.SetComment("Comment");
         renderPath.AddPass(pass);
         using var parameters = new StringVariantMap();
@@ -85,7 +85,7 @@ public sealed class RenderPathTests
         using var clone = renderPath.Clone();
 
         Assert.Equal(string.Empty, clone.Name);
-        var clonedPass = Assert.IsType<TrackingRenderPass>(Assert.Single(clone.Passes));
+        var clonedPass = Assert.IsType<RenderPathTrackingPass>(Assert.Single(clone.Passes));
         Assert.NotSame(pass, clonedPass);
         Assert.Equal("Alpha", clonedPass.GetPassName());
         Assert.Equal("Comment", clonedPass.GetComment());
@@ -102,7 +102,7 @@ public sealed class RenderPathTests
 
         Assert.DoesNotContain("\"passes\"", output.ToJsonString());
 
-        renderPath.AddPass(new TrackingRenderPass("Alpha"));
+        renderPath.AddPass(new RenderPathTrackingPass("Alpha"));
         using var input = new TestJSONInputArchive("{}");
         using (input.OpenUnorderedBlock("resource"))
             renderPath.SerializeInBlock(input);
@@ -113,67 +113,50 @@ public sealed class RenderPathTests
     [Fact]
     public void Render_path_deserialization_creates_registered_render_pass_type()
     {
-        var context = Context.Instance;
-        context.AddFactoryReflection<TrackingRenderPass>(ObjectCategory.Category_RenderPass);
-        try
+        string json;
+        using (var source = new RenderPath())
+        using (var output = new TestJSONOutputArchive())
         {
-            string json;
-            using (var source = new RenderPath())
-            using (var output = new TestJSONOutputArchive())
-            {
-                source.AddPass(new TrackingRenderPass("Custom"));
-                using (output.OpenUnorderedBlock("resource"))
-                    source.SerializeInBlock(output);
-                json = output.ToJsonString();
-            }
-
-            using var restored = new RenderPath();
-            using var input = new TestJSONInputArchive(json);
-            using (input.OpenUnorderedBlock("resource"))
-                restored.SerializeInBlock(input);
-
-            Assert.IsType<TrackingRenderPass>(Assert.Single(restored.Passes));
-            Assert.Equal("Custom", restored.Passes[0].GetPassName());
+            source.AddPass(new RenderPathTrackingPass("Custom"));
+            using (output.OpenUnorderedBlock("resource"))
+                source.SerializeInBlock(output);
+            json = output.ToJsonString();
         }
-        finally
-        {
-            context.RemoveReflection<TrackingRenderPass>();
-        }
+
+        using var restored = new RenderPath();
+        using var input = new TestJSONInputArchive(json);
+        using (input.OpenUnorderedBlock("resource"))
+            restored.SerializeInBlock(input);
+
+        Assert.IsType<RenderPathTrackingPass>(Assert.Single(restored.Passes));
+        Assert.Equal("Custom", restored.Passes[0].GetPassName());
     }
 
     [Fact]
     public void Render_path_binary_serialization_uses_registered_render_pass_type_hash()
     {
         var context = Context.Instance;
-        context.AddFactoryReflection<TrackingRenderPass>(ObjectCategory.Category_RenderPass);
-        try
+        using var buffer = new VectorBuffer();
+        using var source = new RenderPath();
+        source.AddPass(new RenderPathTrackingPass("Custom"));
+        using (var output = new BinaryOutputArchive(context, buffer))
         {
-            using var buffer = new VectorBuffer();
-            using var source = new RenderPath();
-            source.AddPass(new TrackingRenderPass("Custom"));
-            using (var output = new BinaryOutputArchive(context, buffer))
-            {
-                using (output.OpenUnorderedBlock("resource"))
-                    source.SerializeInBlock(output);
-                output.Flush();
-            }
-
-            buffer.Seek(0);
-            using var restored = new RenderPath();
-            using (var input = new BinaryInputArchive(context, buffer))
-            {
-                using (input.OpenUnorderedBlock("resource"))
-                    restored.SerializeInBlock(input);
-                input.Flush();
-            }
-
-            Assert.IsType<TrackingRenderPass>(Assert.Single(restored.Passes));
-            Assert.Equal("Custom", restored.Passes[0].GetPassName());
+            using (output.OpenUnorderedBlock("resource"))
+                source.SerializeInBlock(output);
+            output.Flush();
         }
-        finally
+
+        buffer.Seek(0);
+        using var restored = new RenderPath();
+        using (var input = new BinaryInputArchive(context, buffer))
         {
-            context.RemoveReflection<TrackingRenderPass>();
+            using (input.OpenUnorderedBlock("resource"))
+                restored.SerializeInBlock(input);
+            input.Flush();
         }
+
+        Assert.IsType<RenderPathTrackingPass>(Assert.Single(restored.Passes));
+        Assert.Equal("Custom", restored.Passes[0].GetPassName());
     }
 
     [Fact]
@@ -181,8 +164,8 @@ public sealed class RenderPathTests
     {
         var renderPath = new RenderPath();
         renderPath.SetName("RenderPaths/Test.xml");
-        var alpha = new TrackingRenderPass("Alpha");
-        var beta = new TrackingRenderPass("Beta");
+        var alpha = new RenderPathTrackingPass("Alpha");
+        var beta = new RenderPathTrackingPass("Beta");
         renderPath.AddPass(alpha);
         renderPath.AddPass(beta);
 
@@ -228,8 +211,8 @@ public sealed class RenderPathTests
     {
         var renderPath = new RenderPath();
         renderPath.SetName("RenderPaths/Test.xml");
-        var first = new TrackingRenderPass("First");
-        var second = new TrackingRenderPass("Second") { InternallyEnabledValue = false };
+        var first = new RenderPathTrackingPass("First");
+        var second = new RenderPathTrackingPass("Second") { InternallyEnabledValue = false };
         renderPath.AddPass(first);
         renderPath.AddPass(second);
 
@@ -530,14 +513,15 @@ public sealed class RenderPathTests
         Assert.Equal(string.Empty, currentValue.ConvertToString());
     }
 
-    private sealed class TrackingRenderPass : RenderPass
+    [Reflected(ObjectCategory.Category_RenderPass)]
+    private sealed partial class RenderPathTrackingPass : RenderPass
     {
-        public TrackingRenderPass()
+        public RenderPathTrackingPass()
             : this(string.Empty)
         {
         }
 
-        public TrackingRenderPass(string passName)
+        public RenderPathTrackingPass(string passName)
         {
             _passName = passName;
         }
@@ -573,7 +557,7 @@ public sealed class RenderPathTests
 
         public override RenderPass Clone()
         {
-            var clone = new TrackingRenderPass(GetPassName())
+            var clone = new RenderPathTrackingPass(GetPassName())
             {
                 EnabledByDefaultValue = IsEnabledByDefault(),
                 InternallyEnabledValue = true
