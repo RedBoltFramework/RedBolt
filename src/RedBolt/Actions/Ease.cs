@@ -536,3 +536,32 @@ public partial class EaseElasticOut : EaseElastic
         return new ActionEaseState(this, target);
     }
 }
+
+/// -------------------------------------------------------------------
+/// <summary>ElasticInOut easing action.</summary>
+[Reflected]
+public partial class EaseElasticInOut : EaseElastic
+{
+    /// <summary>Construct.</summary>
+    public EaseElasticInOut()
+    {
+    }
+
+    /// <summary>Create reversed action.</summary>
+    public override FiniteTimeAction Reverse()
+    {
+        var result = new EaseElasticInOut();
+        result.SetInnerAction(InnerAction!.Reverse());
+        result.SetPeriod(Period);
+        return result;
+    }
+
+    /// <summary>Apply easing function to the time argument.</summary>
+    public override float Ease(float time) => EaseMath.ElasticInOut(time, Period);
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new ActionEaseState(this, target);
+    }
+}

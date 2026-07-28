@@ -217,7 +217,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `Enable : AttributeAction`
   - [x] `Disable : AttributeAction`
   - [x] `Blink : AttributeAction`
-- [ ] `Ease.h`
+- [x] `Ease.h`
   - [x] `ActionEase : FiniteTimeAction`
   - [x] `EaseElastic : ActionEase`
   - [x] `EaseBackIn/Out : ActionEase`
@@ -229,7 +229,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `EaseExponentialOut/In : ActionEase`
   - [x] `EaseExponentialInOut : ActionEase`
   - [x] `EaseElasticIn/Out : EaseElastic`
-  - [ ] `EaseElasticInOut : EaseElastic`
+  - [x] `EaseElasticInOut : EaseElastic`
 - [ ] `CallFunc.h`
   - [ ] `ActionCallHandler : RefCounted`
   - [ ] `CallFunc : ActionInstant`
