@@ -151,3 +151,90 @@ public partial class Repeat : FiniteTimeAction
     private int _times;
     private FiniteTimeAction? _innerAction;
 }
+
+/// <summary>Repeat inner action forever.</summary>
+[Reflected]
+public partial class RepeatForever : FiniteTimeAction
+{
+    private sealed class RepeatForeverState : FiniteTimeActionState
+    {
+        private readonly FiniteTimeAction _innerAction;
+        private FiniteTimeActionState _innerState;
+
+        public RepeatForeverState(RepeatForever action, RedObject? target)
+            : base(action, target)
+        {
+            _innerAction = action.InnerAction!;
+            _innerState = StartAction(_innerAction, target)!;
+        }
+
+        public override void Dispose()
+        {
+            _innerState.Dispose();
+            base.Dispose();
+        }
+
+        public override bool IsDone => false;
+
+        protected internal override void Step(float dt)
+        {
+            _innerState.Step(dt);
+            if (_innerState.IsDone)
+            {
+                var innerDt = _innerState.Duration - _innerState.Elapsed;
+                var innerState = StartAction(_innerAction, OriginalTarget)!;
+                _innerState.Dispose();
+                _innerState = innerState;
+                _innerState.Step(0);
+                _innerState.Step(innerDt);
+            }
+        }
+
+        public override void Stop()
+        {
+            _innerState.Stop();
+            base.Stop();
+        }
+    }
+
+    /// <summary>Construct.</summary>
+    public RepeatForever()
+    {
+        _innerAction = GetOrDefault(null);
+    }
+
+    /// <summary>Get action duration.</summary>
+    public override float Duration => float.MaxValue;
+
+    /// <summary>Set inner action.</summary>
+    public void SetInnerAction(FiniteTimeAction? action)
+    {
+        _innerAction = GetOrDefault(action);
+    }
+
+    /// <summary>Get inner action.</summary>
+    public FiniteTimeAction? InnerAction => _innerAction;
+
+    /// <summary>Create reversed action.</summary>
+    public override FiniteTimeAction Reverse()
+    {
+        var result = new RepeatForever();
+        result.SetInnerAction(_innerAction!.Reverse());
+        return result;
+    }
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public override void SerializeInBlock(Archive archive)
+    {
+        // Skipping FiniteTimeAction::SerializeInBlock on purpose to skip duration serialization
+        ArchiveSerialization.SerializeValue(archive, "innerAction", ref _innerAction);
+    }
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new RepeatForeverState(this, target);
+    }
+
+    private FiniteTimeAction? _innerAction;
+}

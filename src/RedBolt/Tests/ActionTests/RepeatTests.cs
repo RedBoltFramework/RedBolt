@@ -119,6 +119,111 @@ public sealed class RepeatTests
         }
     }
 
+    [Fact]
+    public void Repeat_forever_uses_maximum_duration()
+    {
+        using var manager = new ActionManager(false);
+        Context.Instance.RegisterSubsystem(manager);
+        try
+        {
+            using var innerAction = new DelayTime();
+            innerAction.SetDuration(2.0f);
+            using var action = new RepeatForever();
+            action.SetInnerAction(innerAction);
+
+            Assert.Same(innerAction, action.InnerAction);
+            Assert.Equal(float.MaxValue, action.Duration);
+        }
+        finally
+        {
+            Context.Instance.RemoveSubsystem<ActionManager>();
+        }
+    }
+
+    [Fact]
+    public void Repeat_forever_restarts_inner_action()
+    {
+        using var manager = new ActionManager(false);
+        Context.Instance.RegisterSubsystem(manager);
+        try
+        {
+            using var target = new Node();
+            using var innerAction = new RecordingAction();
+            innerAction.SetDuration(1.0f);
+            using var action = new RepeatForever();
+            action.SetInnerAction(innerAction);
+
+            var state = manager.AddAction(action, target);
+            Assert.NotNull(state);
+            manager.Update(0.0f);
+            manager.Update(1.5f);
+
+            Assert.False(state.IsDone);
+            Assert.Equal(2, innerAction.States.Count);
+            Assert.Equal([0.0f, 1.0f], innerAction.States[0].Updates);
+            Assert.False(innerAction.States[0].IsStopped);
+            Assert.True(innerAction.States[0].IsDisposed);
+            Assert.Equal([0.0f, 0.0f], innerAction.States[1].Updates);
+        }
+        finally
+        {
+            Context.Instance.RemoveSubsystem<ActionManager>();
+        }
+    }
+
+    [Fact]
+    public void Repeat_forever_reverses_inner_action()
+    {
+        using var manager = new ActionManager(false);
+        Context.Instance.RegisterSubsystem(manager);
+        try
+        {
+            using var innerAction = new MoveBy();
+            innerAction.SetDuration(2.0f);
+            innerAction.SetPositionDelta(new Vector3f(1.0f, 2.0f, 3.0f));
+            using var action = new RepeatForever();
+            action.SetInnerAction(innerAction);
+
+            using var reversed = Assert.IsType<RepeatForever>(action.Reverse());
+
+            var reversedInner = Assert.IsType<MoveBy>(reversed.InnerAction);
+            Assert.Equal(new Vector3f(-1.0f, -2.0f, -3.0f), reversedInner.PositionDelta);
+        }
+        finally
+        {
+            Context.Instance.RemoveSubsystem<ActionManager>();
+        }
+    }
+
+    [Fact]
+    public void Repeat_forever_serializes_inner_action()
+    {
+        using var manager = new ActionManager(false);
+        Context.Instance.RegisterSubsystem(manager);
+        try
+        {
+            using var innerAction = new DelayTime();
+            innerAction.SetDuration(2.0f);
+            using var action = new RepeatForever();
+            action.SetInnerAction(innerAction);
+
+            using var output = new TestJSONOutputArchive();
+            using (output.OpenUnorderedBlock("action"))
+                action.SerializeInBlock(output);
+
+            using var input = new TestJSONInputArchive(output.ToJsonString());
+            using var restored = new RepeatForever();
+            using (input.OpenUnorderedBlock("action"))
+                restored.SerializeInBlock(input);
+
+            Assert.Equal(2.0f, Assert.IsType<DelayTime>(restored.InnerAction).Duration);
+        }
+        finally
+        {
+            Context.Instance.RemoveSubsystem<ActionManager>();
+        }
+    }
+
     private sealed class RecordingAction : FiniteTimeAction
     {
         public List<RecordingState> States { get; } = [];
