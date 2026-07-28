@@ -97,6 +97,9 @@ target_link_libraries(RedBolt.Native
         Diligent-GraphicsEngine
         ${REDBOLT_DILIGENT_OPENGL_TARGET}
         ImGui
+        harfbuzz
+        harfbuzz-raster
+        RmlUi::RmlUi
         redbolt-native-support
         redbolt-diligent-support
         ${REDBOLT_GLEW_TARGET}

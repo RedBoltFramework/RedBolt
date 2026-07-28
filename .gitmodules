@@ -32,3 +32,9 @@
 [submodule "extern/DotRecast"]
 	path = extern/DotRecast
 	url = https://github.com/ikpil/DotRecast.git
+[submodule "extern/RmlUi"]
+	path = extern/RmlUi
+	url = https://github.com/mikke89/RmlUi.git
+[submodule "extern/harfbuzz"]
+	path = extern/harfbuzz
+	url = https://github.com/harfbuzz/harfbuzz.git

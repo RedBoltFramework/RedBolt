@@ -15,11 +15,13 @@ include(SDL.cmake)
 include(SDL_image.cmake)
 include(Diligent.cmake)
 include(DearImGui.cmake)
+include(HarfBuzz.cmake)
+include(RmlUi.cmake)
 include(STB.cmake)
 include(LZ4.cmake)
 include(WebP.cmake)
 include(XAtlas.cmake)
 
 add_custom_target(redbolt-native-dependency-batch
-    DEPENDS SDL2 redbolt-diligent-build ImGui
+    DEPENDS SDL2 redbolt-diligent-build ImGui harfbuzz harfbuzz-raster rmlui_core rmlui_debugger
     COMMENT "Building RedBolt native dependency batch")
