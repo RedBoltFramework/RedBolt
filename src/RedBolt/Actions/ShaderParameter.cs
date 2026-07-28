@@ -23,6 +23,7 @@
 namespace RedBolt.Actions;
 
 using RedBolt.Core;
+using RedBolt.Graphics;
 using RedBolt.IO;
 
 /// <summary>Animate shader parameter.</summary>
@@ -51,4 +52,87 @@ public partial class ShaderParameterAction : FiniteTimeAction
     }
 
     private string _name = string.Empty;
+}
+
+/// <summary>Animate shader parameter from current value to another.</summary>
+[Reflected]
+public partial class ShaderParameterTo : ShaderParameterAction
+{
+    private sealed class ShaderParameterToState : FiniteTimeActionState
+    {
+        private Variant _from;
+        private Variant _to;
+        private readonly string _name;
+
+        public ShaderParameterToState(ShaderParameterTo action, RedObject? target)
+            : base(action, target)
+        {
+            _to = action.To.Clone();
+            _name = action.Name;
+            if (Target is Material material)
+            {
+                using var from = Variant.FromObject(material.GetShaderParameter(_name));
+                _from = from.Clone();
+                if (_from.Type != _to.Type)
+                {
+                    _from.Dispose();
+                    _from = _to.Clone();
+                }
+            }
+        }
+
+        public override void Dispose()
+        {
+            _to.Dispose();
+            _from.Dispose();
+            base.Dispose();
+        }
+
+        public override void Update(float time)
+        {
+            if (Target is Material material)
+            {
+                using var value = _from.Lerp(_to, time);
+                material.SetShaderParameter(_name, value);
+            }
+        }
+    }
+
+    /// <summary>Construct.</summary>
+    public ShaderParameterTo()
+    {
+    }
+
+    // Get "to" value.
+    public void SetTo(Variant variant)
+    {
+        var value = variant.Clone();
+        _to.Dispose();
+        _to = value;
+    }
+
+    // Get "to" value.
+    public ref readonly Variant To => ref _to;
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public override void SerializeInBlock(Archive archive)
+    {
+        base.SerializeInBlock(archive);
+        ArchiveSerialization.SerializeOptionalValue(
+            archive, "to", ref _to, Variant.Empty, ArchiveSerialization.SerializeValue);
+    }
+
+    public override void Dispose()
+    {
+        _to.Dispose();
+        base.Dispose();
+    }
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new ShaderParameterToState(this, target);
+    }
+
+    private Variant _to;
 }

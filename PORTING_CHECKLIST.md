@@ -236,7 +236,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [ ] `SendEvent : ActionInstant`
 - [ ] `ShaderParameter.h` ⤴ needs `Graphics/Material`
   - [x] `ShaderParameterAction : FiniteTimeAction`
-  - [ ] `ShaderParameterTo : ShaderParameterAction`
+  - [x] `ShaderParameterTo : ShaderParameterAction`
   - [ ] `ShaderParameterFromTo : ShaderParameterTo`
 - [ ] `Parallel.h`
   - [ ] `Parallel : FiniteTimeAction`
