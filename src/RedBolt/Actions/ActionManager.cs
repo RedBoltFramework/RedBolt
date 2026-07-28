@@ -126,6 +126,9 @@ public class ActionManager : RedObject
                 {
                     if (ReferenceEquals(element.Target, targetReference))
                     {
+                        foreach (var actionState in element.ActionStates)
+                            (actionState as IDisposable)?.Dispose();
+                        element.ActionStates.Clear();
                         _targets.Remove(element);
                         break;
                     }
@@ -157,6 +160,9 @@ public class ActionManager : RedObject
                 {
                     if (ReferenceEquals(element.Target, targetReference))
                     {
+                        foreach (var actionState in element.ActionStates)
+                            (actionState as IDisposable)?.Dispose();
+                        element.ActionStates.Clear();
                         _targets.Remove(element);
                         break;
                     }
@@ -203,6 +209,11 @@ public class ActionManager : RedObject
                 // Do a step beyond duration to complete the action.
                 action.Step(duration * 2.0f);
             }
+            foreach (var action in element.ActionStates)
+            {
+                if (!ReferenceEquals(action, element.CurrentActionState))
+                    (action as IDisposable)?.Dispose();
+            }
             element.ActionStates.Clear();
             if (ReferenceEquals(_currentTarget, target))
             {
@@ -237,6 +248,11 @@ public class ActionManager : RedObject
             if (element.ActionStates.Contains(element.CurrentActionState) && !element.CurrentActionSalvaged)
                 element.CurrentActionSalvaged = true;
 
+            foreach (var action in element.ActionStates)
+            {
+                if (!ReferenceEquals(action, element.CurrentActionState))
+                    (action as IDisposable)?.Dispose();
+            }
             element.ActionStates.Clear();
             if (ReferenceEquals(_currentTarget, target))
             {
@@ -267,7 +283,17 @@ public class ActionManager : RedObject
         }
 
         if (element is not null)
-            element.ActionStates.RemoveAll(state => ReferenceEquals(state, actionState));
+        {
+            for (var index = element.ActionStates.Count - 1; index >= 0; --index)
+            {
+                if (ReferenceEquals(element.ActionStates[index], actionState))
+                {
+                    element.ActionStates.RemoveAt(index);
+                    if (!ReferenceEquals(element.CurrentActionState, actionState))
+                        (actionState as IDisposable)?.Dispose();
+                }
+            }
+        }
     }
 
     public int GetNumActions(RedObject? target)
@@ -370,6 +396,9 @@ public class ActionManager : RedObject
 
             if (!keyReference.TryGetTarget(out var target))
             {
+                foreach (var actionState in element.ActionStates)
+                    (actionState as IDisposable)?.Dispose();
+                element.ActionStates.Clear();
                 _targets.Remove(element);
                 continue;
             }
@@ -401,6 +430,8 @@ public class ActionManager : RedObject
                         // it. Now that step is done, it's safe to release it.
 
                         // currentTarget->currentAction->release();
+                        (element.CurrentActionState as IDisposable)?.Dispose();
+                        element.CurrentActionState = null;
                     }
                     else if (element.CurrentActionState.IsDone)
                     {
@@ -412,6 +443,11 @@ public class ActionManager : RedObject
                         CancelAction(actionState);
                     }
 
+                    if (element.CurrentActionState is not null
+                        && !element.ActionStates.Contains(element.CurrentActionState))
+                    {
+                        (element.CurrentActionState as IDisposable)?.Dispose();
+                    }
                     element.CurrentActionState = null;
                 }
             }

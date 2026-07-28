@@ -31,6 +31,7 @@ public sealed class ActionManagerTests
         Assert.Null(action.State.Target);
         Assert.Same(target, action.State.OriginalTarget);
         Assert.Equal(0, manager.GetNumActions(target));
+        Assert.True(action.State.IsDisposed);
     }
 
     [Fact]
@@ -58,6 +59,7 @@ public sealed class ActionManagerTests
 
         Assert.Empty(action.State!.Updates);
         Assert.Equal(0, manager.GetNumActions(target));
+        Assert.True(action.State.IsDisposed);
     }
 
     [Fact]
@@ -73,6 +75,7 @@ public sealed class ActionManagerTests
 
         Assert.Equal([0.0f, 1.0f], action.State!.Updates);
         Assert.Equal(0, manager.GetNumActions(target));
+        Assert.True(action.State.IsDisposed);
     }
 
     [Fact]
@@ -106,6 +109,14 @@ public sealed class ActionManagerTests
         }
 
         public List<float> Updates { get; } = [];
+
+        public bool IsDisposed { get; private set; }
+
+        public override void Dispose()
+        {
+            IsDisposed = true;
+            base.Dispose();
+        }
 
         public override void Update(float time)
         {
