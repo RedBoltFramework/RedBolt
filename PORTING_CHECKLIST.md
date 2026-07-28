@@ -615,8 +615,8 @@ Accepted deviations:
   - [x] `RmlSystem : Rml::SystemInterface` — `RefCounted` and `WeakPtr<Context>` dropped per managed deviation
 - [x] `RmlFile.h`
   - [x] `RmlFile : Rml::FileInterface` — `WeakPtr<Context>` dropped; file ownership mapped to `GCHandle`; loaded resources tracked with stdlib `HashSet`
-- [ ] `RmlRenderer.h`
-  - [ ] `RmlRenderer : Object, Rml::RenderInterface`
+- [x] `RmlRenderer.h`
+  - [x] `RmlRenderer : Object, Rml::RenderInterface` — RmlUi 6.2 official compatibility adapter; `Object` event role composed because C# has single inheritance
   - [x] `Material::CreateBaseMaterial` prerequisite
   - [x] `Texture` device-loss forwarding prerequisite
   - [x] UI batch pipeline-state cache prerequisite from `RenderPipeline/BatchStateCache.h`
