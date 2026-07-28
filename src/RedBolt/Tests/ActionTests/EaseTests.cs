@@ -60,4 +60,25 @@ public sealed class EaseTests
         var restoredInner = Assert.IsType<DelayTime>(restored.InnerAction);
         Assert.Equal(2.0f, restoredInner.Duration);
     }
+
+    [Fact]
+    public void Ease_elastic_serializes_period()
+    {
+        using var manager = new ActionManager(false);
+        using var action = new EaseElastic();
+
+        Assert.Equal(0.3f, action.Period);
+        action.SetPeriod(0.75f);
+
+        using var output = new TestJSONOutputArchive();
+        using (output.OpenUnorderedBlock("action"))
+            action.SerializeInBlock(output);
+
+        using var input = new TestJSONInputArchive(output.ToJsonString());
+        using var restored = new EaseElastic();
+        using (input.OpenUnorderedBlock("action"))
+            restored.SerializeInBlock(input);
+
+        Assert.Equal(0.75f, restored.Period);
+    }
 }

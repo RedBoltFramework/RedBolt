@@ -110,3 +110,33 @@ public partial class ActionEase : FiniteTimeAction
 
     private FiniteTimeAction? _innerAction;
 }
+
+/// <summary>ElasticIn easing action.</summary>
+[Reflected]
+public partial class EaseElastic : ActionEase
+{
+    /// <summary>Construct.</summary>
+    public EaseElastic()
+    {
+    }
+
+    /// <summary>Set period</summary>
+    public void SetPeriod(float period)
+    {
+        _period = period;
+    }
+
+    /// <summary>Get period</summary>
+    public float Period => _period;
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public override void SerializeInBlock(Archive archive)
+    {
+        // Skipping FiniteTimeAction::SerializeInBlock on purpose
+        base.SerializeInBlock(archive);
+        ArchiveSerialization.SerializeOptionalValue(
+            archive, "period_", ref _period, 0.3f, ArchiveSerialization.SerializeValue);
+    }
+
+    private float _period = 0.3f;
+}
