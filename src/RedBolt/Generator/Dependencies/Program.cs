@@ -129,6 +129,7 @@ internal static class Program
     private static readonly HashSet<string> RmlUiDirectorRecordCppTypeNames = new(StringComparer.Ordinal)
     {
         "Rml::FileInterface",
+        "Rml::RenderInterfaceCompatibility",
         "Rml::SystemInterface"
     };
 
@@ -332,6 +333,7 @@ internal static class Program
                 compilation,
                 options.FileStem,
                 includeCallbackReleaseRegistration: descriptor.Surface == "sdl");
+            renderedBindings = AddRmlUiLegacyAbi(renderedBindings, descriptor);
             renderedBindings.WriteToDirectory(options.OutputDirectory);
 
             var metadataDocument = BindingMetadataExporter.Export(
@@ -858,6 +860,46 @@ internal static class Program
             parameter.CppTypeName = "Rml::FileHandle";
         }
 
+        var renderInterfaceCompatibility = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::RenderInterfaceCompatibility");
+        renderInterfaceCompatibility.ClearIgnoreReason();
+        renderInterfaceCompatibility.Bases.Clear();
+        renderInterfaceCompatibility.ManagedBaseTypeName = null;
+        foreach (var method in renderInterfaceCompatibility.Members.OfType<FunctionBinding>())
+        {
+            if (method.IsConstructor || method.IsVirtual || method.NativeName == "GetAdaptedInterface")
+                method.ClearIgnoreReason();
+        }
+
+        var nativeUIntType = BindingType.CreateConfigured(
+            "uintptr_t", "nuint", BindingPrimitiveKind.NativeUInt);
+        foreach (var method in renderInterfaceCompatibility.Members.OfType<FunctionBinding>())
+        {
+            if (method.CppReturnTypeName is "Rml::TextureHandle" or "Rml::CompiledGeometryHandle")
+                method.ReturnType = nativeUIntType;
+            else if (method.NativeName == "GetAdaptedInterface")
+                method.ReturnType = BindingType.IntPtr;
+
+            foreach (var parameter in method.Parameters)
+            {
+                if (parameter.CppTypeName is "Rml::TextureHandle" or "Rml::CompiledGeometryHandle")
+                {
+                    parameter.Type = nativeUIntType;
+                    continue;
+                }
+
+                if (parameter.CppTypeName.Contains('*', StringComparison.Ordinal) ||
+                    parameter.CppTypeName.Contains("Rml::TextureHandle&", StringComparison.Ordinal) ||
+                    parameter.CppTypeName.Contains("Rml::Vector2", StringComparison.Ordinal) ||
+                    parameter.CppTypeName.Contains("Rml::Matrix4", StringComparison.Ordinal))
+                {
+                    parameter.Type = BindingType.IntPtr;
+                    parameter.Direction = BindingParameterDirection.In;
+                    parameter.AbiKind = BindingParameterAbiKind.Value;
+                }
+            }
+        }
+
         var log = compilation.Records.First(static record => record.CppQualifiedName == "Rml::Log");
         log.ClearIgnoreReason();
         foreach (var method in log.Members.OfType<FunctionBinding>())
@@ -886,9 +928,18 @@ internal static class Program
                      function.Parent is not RecordBinding &&
                      function.CppQualifiedName is
                          "Rml::GetFileInterface" or "Rml::SetFileInterface" or
+                         "Rml::GetRenderInterface" or "Rml::SetRenderInterface" or
                          "Rml::GetSystemInterface" or "Rml::SetSystemInterface"))
         {
             function.ClearIgnoreReason();
+            if (function.CppQualifiedName is "Rml::GetRenderInterface" or "Rml::SetRenderInterface")
+            {
+                if (function.NativeName.StartsWith("Get", StringComparison.Ordinal))
+                    function.ReturnType = BindingType.IntPtr;
+                else
+                    function.Parameters[0].Type = BindingType.IntPtr;
+                continue;
+            }
             if (function.NativeName.StartsWith("Get", StringComparison.Ordinal))
             {
                 function.ReturnType = function.ReturnType.WithManagedTypeFormatOverride(
@@ -984,13 +1035,16 @@ internal static class Program
                 if (member is FunctionBinding function &&
                     function.CppQualifiedName is
                         "Rml::GetFileInterface" or "Rml::SetFileInterface" or
+                        "Rml::GetRenderInterface" or "Rml::SetRenderInterface" or
                         "Rml::GetSystemInterface" or "Rml::SetSystemInterface")
                 {
                     continue;
                 }
 
                 if (member is RecordBinding record &&
-                    (record.CppQualifiedName is "Rml::FileInterface" or "Rml::Log" or "Rml::SystemInterface" ||
+                    (record.CppQualifiedName is
+                         "Rml::FileInterface" or "Rml::Log" or
+                         "Rml::RenderInterfaceCompatibility" or "Rml::SystemInterface" ||
                      record.CppQualifiedName.StartsWith("Rml::Vector2", StringComparison.Ordinal) ||
                      record.ManagedNamespace == "Std" && record.ManagedName == "String"))
                 {
@@ -1127,6 +1181,81 @@ internal static class Program
         var prunedCount = PruneMembers(compilation.Members, descriptor);
         compilation.InvalidateCaches();
         return prunedCount;
+    }
+
+    private static GeneratedBindingSet AddRmlUiLegacyAbi(
+        GeneratedBindingSet bindings, BindingSurfaceDescriptor descriptor)
+    {
+        if (descriptor.Surface != "rmlui")
+            return bindings;
+
+        var files = bindings.Files.Select(static file =>
+            file.RelativePath.EndsWith(".g.cpp", StringComparison.Ordinal)
+                ? file with
+                {
+                    Content = file.Content +
+                        """
+
+                        #include <cstddef>
+                        #include <type_traits>
+
+                        static_assert(std::is_standard_layout_v<Rml::Vector2f>);
+                        static_assert(sizeof(Rml::Vector2f) == sizeof(float) * 2);
+                        static_assert(offsetof(Rml::Vector2f, x) == 0);
+                        static_assert(offsetof(Rml::Vector2f, y) == sizeof(float));
+                        static_assert(std::is_standard_layout_v<Rml::Vector2i>);
+                        static_assert(sizeof(Rml::Vector2i) == sizeof(int) * 2);
+                        static_assert(offsetof(Rml::Vector2i, x) == 0);
+                        static_assert(offsetof(Rml::Vector2i, y) == sizeof(int));
+                        static_assert(std::is_standard_layout_v<Rml::Vertex>);
+                        static_assert(sizeof(Rml::Vertex) == 20);
+                        static_assert(offsetof(Rml::Vertex, position) == 0);
+                        static_assert(offsetof(Rml::Vertex, colour) == 8);
+                        static_assert(offsetof(Rml::Vertex, tex_coord) == 12);
+                        static_assert(std::is_standard_layout_v<Rml::Matrix4f>);
+                        static_assert(sizeof(Rml::Matrix4f) == sizeof(float) * 16);
+                        """
+                }
+                : file).ToList();
+        files.Add(new GeneratedBindingFile(
+            "RedBolt.Bindings.RmlUi.LegacyAbi.g.cs",
+            """
+            // <auto-generated />
+            #nullable enable
+            namespace RedBolt.Bindings.RmlUi;
+
+            using System.Runtime.CompilerServices;
+            using System.Runtime.InteropServices;
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct RmlUiLegacyVector2f
+            {
+                public float X;
+                public float Y;
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct RmlUiLegacyVector2i
+            {
+                public int X;
+                public int Y;
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct RmlUiLegacyVertex
+            {
+                public RmlUiLegacyVector2f Position;
+                public uint Colour;
+                public RmlUiLegacyVector2f TexCoord;
+            }
+
+            [InlineArray(16)]
+            public struct RmlUiLegacyMatrix4f
+            {
+                private float _element0;
+            }
+            """));
+        return new GeneratedBindingSet(files);
     }
 
     private static int PruneImGuiSurfaceIfApplicable(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)

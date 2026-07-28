@@ -1,5 +1,7 @@
 namespace RedBolt.Tests;
 
+using System.Runtime.InteropServices;
+
 using RedBolt.Bindings.RmlUi;
 
 public sealed class RmlUiBindingsTests
@@ -45,6 +47,29 @@ public sealed class RmlUiBindingsTests
         }
     }
 
+    [Fact]
+    public void Render_interface_compatibility_round_trips_adapted_pointer()
+    {
+        var original = RmlUiNativeBindings.GetRenderInterface();
+        using var renderInterface = new TestRenderInterface();
+        var adaptedInterface = renderInterface.GetAdaptedInterface();
+        try
+        {
+            RmlUiNativeBindings.SetRenderInterface(adaptedInterface);
+
+            Assert.NotEqual(nint.Zero, adaptedInterface);
+            Assert.Equal(adaptedInterface, RmlUiNativeBindings.GetRenderInterface());
+            Assert.Equal(8, Marshal.SizeOf<RmlUiLegacyVector2f>());
+            Assert.Equal(8, Marshal.SizeOf<RmlUiLegacyVector2i>());
+            Assert.Equal(20, Marshal.SizeOf<RmlUiLegacyVertex>());
+            Assert.Equal(64, Marshal.SizeOf<RmlUiLegacyMatrix4f>());
+        }
+        finally
+        {
+            RmlUiNativeBindings.SetRenderInterface(original);
+        }
+    }
+
     private sealed class TestSystemInterface : SystemInterface
     {
         public override double GetElapsedTime()
@@ -77,6 +102,22 @@ public sealed class RmlUiBindingsTests
         public override nuint Tell(nuint file)
         {
             return 0;
+        }
+    }
+
+    private sealed class TestRenderInterface : RenderInterfaceCompatibility
+    {
+        public override void RenderGeometry(
+            nint vertices, int numVertices, nint indices, int numIndices, nuint texture, nint translation)
+        {
+        }
+
+        public override void EnableScissorRegion(bool enable)
+        {
+        }
+
+        public override void SetScissorRegion(int x, int y, int width, int height)
+        {
         }
     }
 

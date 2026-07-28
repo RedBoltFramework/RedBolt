@@ -141,6 +141,7 @@ file(CONFIGURE OUTPUT "${REDBOLT_RMLUI_PARSE_HEADER}" CONTENT [=[
 #pragma once
 #include <RmlUi/Core/Core.h>
 #include <RmlUi/Core/FileInterface.h>
+#include <RmlUi/Core/RenderInterfaceCompatibility.h>
 #include <RmlUi/Core/SystemInterface.h>
 ]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_WEBP_PARSE_HEADER}" CONTENT [=[
