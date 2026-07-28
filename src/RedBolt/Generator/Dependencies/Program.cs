@@ -856,7 +856,31 @@ internal static class Program
         context.Bases.Clear();
         context.ManagedBaseTypeName = null;
         foreach (var method in context.Members.OfType<FunctionBinding>())
-            method.SetSilentExclusionReason("RmlUi context members are outside the event listener binding slice");
+        {
+            if (method.NativeName is
+                "GetDensityIndependentPixelRatio" or "GetDimensions" or "GetName" or "Render" or
+                "SetDensityIndependentPixelRatio" or "SetDimensions" or "Update")
+            {
+                method.ClearIgnoreReason();
+            }
+            else
+            {
+                method.SetSilentExclusionReason("RmlUi context member is outside the current binding slice");
+            }
+        }
+
+        var vector2iType = BindingType.CreateConfigured(
+            "Rml::Vector2<int>", "global::RedBolt.Bindings.RmlUi.RmlUiLegacyVector2i");
+        var getDimensions = context.Members.OfType<FunctionBinding>().First(static method =>
+            method.NativeName == "GetDimensions");
+        getDimensions.ReturnType = vector2iType;
+        getDimensions.CppReturnTypeName = "Rml::Vector2<int>";
+        var setDimensions = context.Members.OfType<FunctionBinding>().First(static method =>
+            method.NativeName == "SetDimensions");
+        var dimensionsParameter = setDimensions.Parameters.First(static parameter =>
+            parameter.NativeName == "dimensions");
+        dimensionsParameter.Type = vector2iType;
+        dimensionsParameter.CppTypeName = "Rml::Vector2<int>";
 
         var element = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Element");
@@ -978,11 +1002,34 @@ internal static class Program
         foreach (var function in compilation.Functions.Where(static function =>
                      function.Parent is not RecordBinding &&
                      function.CppQualifiedName is
+                         "Rml::CreateContext" or "Rml::Initialise" or "Rml::RemoveContext" or "Rml::Shutdown" or
                          "Rml::GetFileInterface" or "Rml::SetFileInterface" or
                          "Rml::GetRenderInterface" or "Rml::SetRenderInterface" or
                          "Rml::GetSystemInterface" or "Rml::SetSystemInterface"))
         {
             function.ClearIgnoreReason();
+            if (function.CppQualifiedName == "Rml::CreateContext")
+            {
+                function.ReturnType = function.ReturnType.WithManagedTypeFormatOverride(
+                    $"{function.ReturnType.ManagedTypeName}?");
+                foreach (var parameter in function.Parameters)
+                {
+                    if (parameter.NativeName == "dimensions")
+                    {
+                        parameter.Type = vector2iType;
+                        parameter.CppTypeName = "Rml::Vector2<int>";
+                    }
+                    else if (parameter.NativeName is "render_interface" or "text_input_handler")
+                    {
+                        parameter.Type = BindingType.IntPtr;
+                    }
+                }
+                continue;
+            }
+
+            if (function.CppQualifiedName is "Rml::Initialise" or "Rml::RemoveContext" or "Rml::Shutdown")
+                continue;
+
             if (function.CppQualifiedName is "Rml::GetRenderInterface" or "Rml::SetRenderInterface")
             {
                 if (function.NativeName.StartsWith("Get", StringComparison.Ordinal))
@@ -1085,6 +1132,7 @@ internal static class Program
                 var member = compilation.Members[index];
                 if (member is FunctionBinding function &&
                     function.CppQualifiedName is
+                        "Rml::CreateContext" or "Rml::Initialise" or "Rml::RemoveContext" or "Rml::Shutdown" or
                         "Rml::GetFileInterface" or "Rml::SetFileInterface" or
                         "Rml::GetRenderInterface" or "Rml::SetRenderInterface" or
                         "Rml::GetSystemInterface" or "Rml::SetSystemInterface")

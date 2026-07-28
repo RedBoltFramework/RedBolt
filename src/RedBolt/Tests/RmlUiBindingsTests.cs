@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 
 using RedBolt.Bindings.RmlUi;
 
+[Collection(nameof(RmlUiBindingsCollection))]
 public sealed class RmlUiBindingsTests
 {
     [Fact]
@@ -79,6 +80,24 @@ public sealed class RmlUiBindingsTests
         Assert.Same(eventListener, EventListener.CreateManagedWrapper(eventListener.Handle, false));
     }
 
+    [Fact]
+    public void Core_context_surface_is_generated()
+    {
+        Assert.NotNull(typeof(RmlUiNativeBindings).GetMethod(nameof(RmlUiNativeBindings.Initialise)));
+        Assert.NotNull(typeof(RmlUiNativeBindings).GetMethod(nameof(RmlUiNativeBindings.Shutdown)));
+        Assert.NotNull(typeof(RmlUiNativeBindings).GetMethod(
+            nameof(RmlUiNativeBindings.CreateContext),
+            [typeof(Std.String), typeof(RmlUiLegacyVector2i), typeof(nint), typeof(nint)]));
+        Assert.NotNull(typeof(RmlUiNativeBindings).GetMethod(
+            nameof(RmlUiNativeBindings.RemoveContext), [typeof(Std.String)]));
+        Assert.NotNull(typeof(Context).GetMethod(nameof(Context.GetDimensions)));
+        Assert.NotNull(typeof(Context).GetMethod(nameof(Context.SetDimensions)));
+        Assert.NotNull(typeof(Context).GetMethod(nameof(Context.GetDensityIndependentPixelRatio)));
+        Assert.NotNull(typeof(Context).GetMethod(nameof(Context.SetDensityIndependentPixelRatio)));
+        Assert.NotNull(typeof(Context).GetMethod(nameof(Context.Update)));
+        Assert.NotNull(typeof(Context).GetMethod(nameof(Context.Render)));
+    }
+
     private sealed class TestSystemInterface : SystemInterface
     {
         public override double GetElapsedTime()
@@ -140,3 +159,6 @@ public sealed class RmlUiBindingsTests
     private static nuint ExpectedFileHandle =>
         nuint.Size > sizeof(uint) ? unchecked((nuint)uint.MaxValue + 1) : uint.MaxValue;
 }
+
+[CollectionDefinition(nameof(RmlUiBindingsCollection), DisableParallelization = true)]
+public sealed class RmlUiBindingsCollection;

@@ -628,6 +628,7 @@ Accepted deviations:
   - [ ] `SoundEventListener : Rml::EventListener, NonCopyable`
   - [ ] `CustomEventListener : Rml::EventListener, NonCopyable`
 - [ ] `RmlUI.h`
+  - [x] generated RmlUi lifecycle and base `Context` name, dimensions, DPI, update, and render prerequisites
   - [ ] `RmlUI : Object`
 - [ ] `RmlUIComponent.h`
   - [ ] `RmlUIComponent : LogicComponent`
