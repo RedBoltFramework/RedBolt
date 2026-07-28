@@ -184,16 +184,16 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 
 ## B1. Actions `OPTIONAL` — tweening/action system; depends on Scene
 
-- [ ] `ActionState.h`
-  - [ ] `ActionState`
+- [x] `ActionState.h`
+  - [x] `ActionState`
 - [ ] `Attribute.h`
   - [ ] attribute-action helpers
-- [ ] `BaseAction.h`
-  - [ ] `BaseAction : Serializable`
-- [ ] `FiniteTimeAction.h`
-  - [ ] `FiniteTimeAction : BaseAction`
-- [ ] `FiniteTimeActionState.h`
-  - [ ] `FiniteTimeActionState : ActionState`
+- [x] `BaseAction.h`
+  - [x] `BaseAction : Serializable`
+- [x] `FiniteTimeAction.h`
+  - [x] `FiniteTimeAction : BaseAction`
+- [x] `FiniteTimeActionState.h`
+  - [x] `FiniteTimeActionState : ActionState`
 - [ ] `ActionInstant.h`
   - [ ] `ActionInstant : FiniteTimeAction`
 - [ ] `ActionInstantState.h`
@@ -244,8 +244,8 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [ ] `ActionSet : Resource`
 - [ ] `ActionBuilder.h`
   - [ ] `ActionBuilder`
-- [ ] `ActionManager.h`
-  - [ ] `ActionManager`
+- [x] `ActionManager.h`
+  - [x] `ActionManager`
 
 ## [x] B2. Audio `OPTIONAL` — depends on Scene, Resource
 
