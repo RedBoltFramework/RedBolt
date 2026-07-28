@@ -530,8 +530,8 @@ Accepted deviations:
   - [ ] particle helper free functions
 - [x] `Span.h`
   - [x] `Span` view type
-- [ ] `SpanVariants.h`
-  - [ ] span variant types
+- [x] `SpanVariants.h`
+  - [x] dormant span variant implementation comment
 - [ ] `UpdateContext.h`
   - [ ] `UpdateContext`
 - [ ] `ParticleGraphMemory.h`
