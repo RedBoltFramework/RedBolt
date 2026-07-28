@@ -218,7 +218,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `Disable : AttributeAction`
   - [x] `Blink : AttributeAction`
 - [ ] `Ease.h`
-  - [ ] `ActionEase : FiniteTimeAction`
+  - [x] `ActionEase : FiniteTimeAction`
   - [ ] `EaseElastic : ActionEase`
   - [ ] `EaseBackIn/Out/InOut : ActionEase`
   - [ ] `EaseBounceOut/In/InOut : ActionEase`
