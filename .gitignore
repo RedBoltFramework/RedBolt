@@ -5,6 +5,7 @@
 .opencode/package-lock.json
 .opencode/bun.lock
 .slim/deepwork/
+.pi*
 
 # CMake and build outputs.
 cmake-build/

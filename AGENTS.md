@@ -57,9 +57,7 @@ an initial direct port or is an unmodified feature being diagnosed.
 
 ## 2. TOOLS YOU MUST USE
 
-- jcodemunch-mcp: use this to read/search BOTH rbfx and RedBolt C++ and C# code.
-  - ALWAYS use jcodemunch-mcp to explore C++ and C# code (but not other kinds of scripts/text).
-  - DO NOT use plain grep, glob, find, cat, or Read for code exploration.
+- ast_search: use this to search BOTH rbfx and RedBolt C++ and C# code.
 - dotnet-trace: (optional) use this to check for GC allocations in the running sample.
 - debug-mcp: use this to debug crashes and wrong behavior at runtime.
   - Do NOT pass a `--timeout` argument to debug-mcp.
@@ -75,7 +73,6 @@ STEP 0 - Preparation
 STEP 1 - Classify and investigate the work
   - Select the applicable work mode in the SOURCE-OF-TRUTH AND DIVERGENCE RULE.
   - Follow that mode's investigation requirements before editing C#.
-  - Always use jcodemunch-mcp to explore the relevant source and call paths.
 
 STEP 2 - Match the class shape
   - Make sure the C# class has the SAME base classes / interfaces.
@@ -109,8 +106,7 @@ STEP 5 - Update status of ported items in `PORTING_CHECKLIST.md`. If completed,
 mark them as such. If incomplete, mark them as such and clarify what is missing.
 Make a note of any accepted deviations.
 
-STEP 6 - Commit the completed slice as a coherent checkpoint, then update the
-jcodemunch-mcp index only for files modified by this task.
+STEP 6 - Commit the completed slice as a coherent checkpoint.
 
 ## 4. NAMING RULES (follow exactly)
 
@@ -335,7 +331,7 @@ Agreed project-specific reflection deviation: reflected C# objects and serializa
 
 ## 12. IF YOU ARE UNSURE
 
-- Re-read the C++ source with jcodemunch-mcp. The C++ code is the source of truth.
+- Re-read the C++ source. The C++ code is the source of truth.
 - Match the C++ code. When in doubt, copy the C++ structure and logic.
 - If a proposed fix cannot be justified by pointing to corresponding C++ code,
   do not implement it.
