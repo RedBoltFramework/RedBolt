@@ -126,6 +126,11 @@ internal static class Program
         "hb_position_t"
     };
 
+    private static readonly HashSet<string> RmlUiDirectorRecordCppTypeNames = new(StringComparer.Ordinal)
+    {
+        "Rml::SystemInterface"
+    };
+
     private static readonly HashSet<string> RetainedDiligentFunctions = new(StringComparer.Ordinal)
     {
         "GetEngineFactoryOpenGL",
@@ -273,7 +278,10 @@ internal static class Program
                     MarshallerConfigurationFiles: marshallerHeaders,
                     EntryPointPrefix: descriptor.EntryPointPrefix,
                     OwnedFileRoots: options.OwnedHeaders,
-                    MarshallerClangArguments: marshallerClangArguments));
+                    MarshallerClangArguments: marshallerClangArguments,
+                    DirectorRecordCppTypeNames: descriptor.Surface == "rmlui"
+                        ? RmlUiDirectorRecordCppTypeNames
+                        : null));
 
             compilation.NamespaceMappings = descriptor.Surface switch
             {
@@ -284,6 +292,10 @@ internal static class Program
                 "xatlas" => new Dictionary<string, string>(StringComparer.Ordinal)
                 {
                     ["xatlas"] = descriptor.ManagedNamespace
+                },
+                "rmlui" => new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["Rml"] = descriptor.ManagedNamespace
                 },
                 _ => new Dictionary<string, string>(StringComparer.Ordinal)
             };
@@ -301,13 +313,14 @@ internal static class Program
             FixSdlVoidPointerFunctions(compilation, descriptor);
             FixStbVorbisBufferFunctions(compilation, descriptor);
             FixHarfBuzzTypes(compilation, descriptor);
+            FixRmlUiSurface(compilation, descriptor);
             FixXAtlasTypes(compilation, descriptor);
             if (descriptor.Surface == "webp")
             {
                 compilation.Functions.First(static function => function.NativeName == "WebPMemoryWrite")
                     .SetMetadata(MetadataKeys.ExposeNativeFunctionPointer, true);
             }
-            var prunedCount = IgnoreStdlibWrappers(compilation);
+            var prunedCount = IgnoreStdlibWrappers(compilation, descriptor);
             prunedCount += PruneDependencySurface(compilation, descriptor);
             prunedCount += PruneImGuiSurfaceIfApplicable(compilation, descriptor);
             ApplyImGuiEnumAliasSurfaceIfApplicable(compilation, descriptor);
@@ -782,13 +795,15 @@ internal static class Program
             });
     }
 
-    private static int IgnoreStdlibWrappers(BindingCompilation compilation)
+    private static int IgnoreStdlibWrappers(
+        BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
     {
         var ignoredCount = 0;
         foreach (var record in compilation.Records)
         {
             if (record.IsIgnored() ||
-                !record.CppQualifiedName.StartsWith("std::", StringComparison.Ordinal))
+                !record.CppQualifiedName.StartsWith("std::", StringComparison.Ordinal) ||
+                descriptor.Surface == "rmlui" && record.ManagedNamespace == "Std" && record.ManagedName == "String")
             {
                 continue;
             }
@@ -798,6 +813,55 @@ internal static class Program
         }
 
         return ignoredCount;
+    }
+
+    private static void FixRmlUiSurface(
+        BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
+    {
+        if (descriptor.Surface != "rmlui")
+            return;
+
+        var systemInterface = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::SystemInterface");
+        systemInterface.ClearIgnoreReason();
+        systemInterface.Bases.Clear();
+        systemInterface.ManagedBaseTypeName = null;
+        foreach (var method in systemInterface.Members.OfType<FunctionBinding>())
+        {
+            if (method.IsConstructor || method.IsVirtual)
+                method.ClearIgnoreReason();
+        }
+
+        var log = compilation.Records.First(static record => record.CppQualifiedName == "Rml::Log");
+        log.ClearIgnoreReason();
+        foreach (var method in log.Members.OfType<FunctionBinding>())
+            method.SetSilentExclusionReason("RmlUi logging helpers are outside the SystemInterface binding slice");
+
+        var logMessage = systemInterface.Members.OfType<FunctionBinding>().First(static method =>
+            method.NativeName == "LogMessage");
+        var logMessageType = logMessage.Parameters.First(static parameter => parameter.NativeName == "type");
+        var logType = compilation.Enums.First(static @enum =>
+            @enum.CppQualifiedName == "Rml::Log::Type");
+        logType.CppQualifiedName = "Rml::Log::Type";
+        logType.ManagedName = "LogType";
+        logType.ManagedNamespace = descriptor.ManagedNamespace;
+        logType.ClearIgnoreReason();
+
+        logMessageType.Type = BindingType.CreateEnum(
+            logType.CppQualifiedName, logType.ManagedName, enumId: logType.SymbolId);
+        logMessageType.CppTypeName = logType.CppQualifiedName;
+
+        var vector2 = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::Vector2");
+        vector2.ClearIgnoreReason();
+        vector2.Members.Clear();
+
+        foreach (var function in compilation.Functions.Where(static function =>
+                     function.Parent is null &&
+                     function.CppQualifiedName is "Rml::GetSystemInterface" or "Rml::SetSystemInterface"))
+        {
+            function.ClearIgnoreReason();
+        }
     }
 
     private static int PruneDependencySurface(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
@@ -870,6 +934,46 @@ internal static class Program
 
             compilation.InvalidateCaches();
             return harfBuzzPrunedCount;
+        }
+
+        if (descriptor.Surface == "rmlui")
+        {
+            var rmlUiPrunedCount = 0;
+            for (var index = compilation.Members.Count - 1; index >= 0; --index)
+            {
+                var member = compilation.Members[index];
+                if (member is FunctionBinding function &&
+                    function.CppQualifiedName is "Rml::GetSystemInterface" or "Rml::SetSystemInterface")
+                {
+                    continue;
+                }
+
+                if (member is RecordBinding record &&
+                    (record.CppQualifiedName is "Rml::Log" or "Rml::SystemInterface" ||
+                     record.CppQualifiedName.StartsWith("Rml::Vector2", StringComparison.Ordinal) ||
+                     record.ManagedNamespace == "Std" && record.ManagedName == "String"))
+                {
+                    continue;
+                }
+
+                if (member is EnumBinding @enum && @enum.CppQualifiedName == "Rml::Log::Type")
+                    continue;
+
+                compilation.Members.RemoveAt(index);
+                rmlUiPrunedCount++;
+            }
+
+            for (var index = compilation.TypeAliases.Count - 1; index >= 0; --index)
+            {
+                if (compilation.TypeAliases[index].CppQualifiedName == "Rml::Vector2f")
+                    continue;
+
+                compilation.TypeAliases.RemoveAt(index);
+                rmlUiPrunedCount++;
+            }
+
+            compilation.InvalidateCaches();
+            return rmlUiPrunedCount;
         }
 
         if (descriptor.Surface == "sdl")
@@ -1415,7 +1519,7 @@ internal static class Program
 
     private static void PrintUsage()
     {
-        Console.Error.WriteLine("Usage: RedBolt.Generator.Dependencies --surface <sdl|diligent|dearimgui|stb|lz4|harfbuzz|webp|xatlas|glslang|spirvcross|spirvtools> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
+        Console.Error.WriteLine("Usage: RedBolt.Generator.Dependencies --surface <sdl|diligent|dearimgui|stb|lz4|harfbuzz|rmlui|webp|xatlas|glslang|spirvcross|spirvtools> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
     }
 
     private sealed record BindingSurfaceDescriptor(
@@ -1493,6 +1597,16 @@ internal static class Program
                     "-xc",
                     "-std=c17",
                     false),
+                "rmlui" => new BindingSurfaceDescriptor(
+                    "rmlui",
+                    "RedBolt.Bindings.RmlUi",
+                    "RedBolt.Bindings.RmlUi",
+                    "RmlUiNativeBindings",
+                    nativeLibraryName,
+                    "redbolt_rmlui",
+                    "-xc++",
+                    "-std=c++20",
+                    true),
                 "webp" => new BindingSurfaceDescriptor(
                     "webp",
                     "RedBolt.Bindings.WebP",

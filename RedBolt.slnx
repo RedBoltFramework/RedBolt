@@ -35,6 +35,7 @@
     <Project Path="src/RedBolt/Bindings/Glslang/RedBolt.Bindings.Glslang.csproj" />
     <Project Path="src/RedBolt/Bindings/HarfBuzz/RedBolt.Bindings.HarfBuzz.csproj" />
     <Project Path="src/RedBolt/Bindings/Lz4/RedBolt.Bindings.Lz4.csproj" />
+    <Project Path="src/RedBolt/Bindings/RmlUi/RedBolt.Bindings.RmlUi.csproj" />
     <Project Path="src/RedBolt/Bindings/Sdl/RedBolt.Bindings.Sdl.csproj" />
     <Project Path="src/RedBolt/Bindings/ShaderCompiler/RedBolt.Bindings.ShaderCompiler.csproj" />
     <Project Path="src/RedBolt/Bindings/SpirVCross/RedBolt.Bindings.SpirVCross.csproj" />

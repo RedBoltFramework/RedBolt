@@ -13,6 +13,7 @@
     <ProjectReference Include="../Bindings/Diligent/RedBolt.Bindings.Diligent.csproj" />
     <ProjectReference Include="../Bindings/Glslang/RedBolt.Bindings.Glslang.csproj" />
     <ProjectReference Include="../Bindings/HarfBuzz/RedBolt.Bindings.HarfBuzz.csproj" />
+    <ProjectReference Include="../Bindings/RmlUi/RedBolt.Bindings.RmlUi.csproj" />
     <ProjectReference Include="../Bindings/SpirVCross/RedBolt.Bindings.SpirVCross.csproj" />
     <ProjectReference Include="../Bindings/SpirVTools/RedBolt.Bindings.SpirVTools.csproj" />
     <ProjectReference Include="../RedBolt/RedBolt.csproj" />
