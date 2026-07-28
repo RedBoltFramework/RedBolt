@@ -608,7 +608,7 @@ Accepted deviations:
 
 ## B13. RmlUI `OPTIONAL` — RmlUi HTML/CSS UI; depends on UI, Graphics
 
-- [x] native prerequisites — RmlUi 6.2 and HarfBuzz 14.2.1 raster; RmlUi font engine disabled, no FreeType
+- [x] native prerequisites — RmlUi 6.2 with standard-library containers and HarfBuzz 14.2.1 raster; RmlUi font engine disabled, no FreeType
   - [x] generated HarfBuzz font/raster bindings — verified non-empty A8 glyph output
 - [ ] `RmlSystem.h`
   - [ ] `RmlSystem : RefCounted, Rml::SystemInterface`
