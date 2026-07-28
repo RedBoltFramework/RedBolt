@@ -80,3 +80,21 @@ public partial class Show : AttributeAction
         return new SetAttributeState(this, target, GetAttribute(target), value);
     }
 }
+
+/// <summary>Hide target. The Target should have "Is Visible" attribute.</summary>
+[Reflected]
+public partial class Hide : AttributeAction
+{
+    /// <summary>Construct.</summary>
+    public Hide()
+        : base(AttributeActionConstants.IsVisibleAttribute)
+    {
+    }
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        using var value = new Variant(false);
+        return new SetAttributeState(this, target, GetAttribute(target), value);
+    }
+}

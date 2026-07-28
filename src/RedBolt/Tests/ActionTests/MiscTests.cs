@@ -40,6 +40,24 @@ public sealed partial class MiscTests
         Assert.False(target.IsVisible);
     }
 
+    [Fact]
+    public void Hide_clears_visible_attribute_once()
+    {
+        Context.Instance.RegisterAssembly(typeof(MiscTests).Assembly);
+        using var manager = new ActionManager(false);
+        using var target = new MiscTarget { IsVisible = true };
+        using var action = new Hide();
+
+        Assert.Equal(AttributeActionConstants.IsVisibleAttribute, action.AttributeName);
+        Assert.NotNull(manager.AddAction(action, target));
+        manager.Update(0.0f);
+        Assert.False(target.IsVisible);
+
+        target.IsVisible = true;
+        manager.Update(1.0f);
+        Assert.True(target.IsVisible);
+    }
+
     [Reflected]
     private sealed partial class MiscTarget : Serializable
     {
