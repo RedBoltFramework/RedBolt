@@ -24,6 +24,7 @@ namespace RedBolt.Actions;
 
 using RedBolt.Core;
 using RedBolt.IO;
+using RedBolt.Scene;
 
 /// <summary>Animate attribute between two values.</summary>
 [Reflected]
@@ -118,5 +119,78 @@ public partial class AttributeFromTo : AttributeAction
     }
 
     private Variant _from;
+    private Variant _to;
+}
+
+/// <summary>Animate attribute between current and provided value.</summary>
+[Reflected]
+public partial class AttributeTo : AttributeAction
+{
+    private sealed class AttributeToState : AttributeActionState
+    {
+        private Variant _from;
+        private Variant _to;
+
+        public AttributeToState(AttributeTo action, RedObject? target, AttributeInfo? attribute)
+            : base(action, target, attribute)
+        {
+            _to = action.To.Clone();
+            if (_attribute is not null)
+            {
+                _attribute.Accessor!.Get((Serializable)target!, ref _from);
+            }
+        }
+
+        public override void Dispose()
+        {
+            _to.Dispose();
+            _from.Dispose();
+            base.Dispose();
+        }
+
+        protected override void Update(float time, ref Variant value)
+        {
+            var result = _from.Lerp(_to, time);
+            value.Dispose();
+            value = result;
+        }
+    }
+
+    /// <summary>Construct.</summary>
+    public AttributeTo()
+    {
+    }
+
+    // Get "to" value.
+    public void SetTo(Variant variant)
+    {
+        var value = variant.Clone();
+        _to.Dispose();
+        _to = value;
+    }
+
+    // Get "to" value.
+    public ref readonly Variant To => ref _to;
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public override void SerializeInBlock(Archive archive)
+    {
+        base.SerializeInBlock(archive);
+        ArchiveSerialization.SerializeOptionalValue(
+            archive, "to", ref _to, Variant.Empty, ArchiveSerialization.SerializeValue);
+    }
+
+    public override void Dispose()
+    {
+        _to.Dispose();
+        base.Dispose();
+    }
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new AttributeToState(this, target, GetAttribute(target));
+    }
+
     private Variant _to;
 }

@@ -88,6 +88,27 @@ public partial class AttributeActionTests
         Assert.Equal(action.AttributeName, reversed.AttributeName);
     }
 
+    [Fact]
+    public void Attribute_to_interpolates_from_current_value()
+    {
+        Context.Instance.RegisterAssembly(typeof(AttributeActionTests).Assembly);
+        using var manager = new ActionManager(false);
+        using var target = new AttributeTarget { Value = 2.0f };
+        using var action = new AttributeTo();
+        using var to = new Variant(6.0f);
+        action.SetDuration(1.0f);
+        action.SetAttributeName("Value");
+        action.SetTo(to);
+
+        Assert.NotNull(manager.AddAction(action, target));
+        manager.Update(0.0f);
+        Assert.Equal(2.0f, target.Value);
+        manager.Update(0.5f);
+        Assert.Equal(4.0f, target.Value);
+        manager.Update(0.5f);
+        Assert.Equal(6.0f, target.Value);
+    }
+
     [Reflected]
     private sealed partial class AttributeTarget : Serializable
     {
