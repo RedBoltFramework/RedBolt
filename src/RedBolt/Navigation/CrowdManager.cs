@@ -62,10 +62,7 @@ public partial class CrowdManager : Component
     private CrowdAgentVelocityCallback? _velocityCallback;
     private CrowdAgentPositionCallback? _positionCallback;
     private WeakReference<NavigationMesh>? _navigationMesh;
-    [Serialized(
-        "Navigation Mesh",
-        Mode = AttributeMode.Default | AttributeMode.ComponentId
-    )]
+    [Serialized("Navigation Mesh", Mode = AttributeMode.Default | AttributeMode.ComponentId)]
     private uint _navigationMeshId;
     private uint _maxAgents = DefaultMaxAgents;
     private float _maxAgentRadius = DefaultMaxAgentRadius;
@@ -272,20 +269,14 @@ public partial class CrowdManager : Component
         }
     }
 
-    [Serialized(
-        "Filter Types",
-        DefaultSource = nameof(GetDefaultVariantVector)
-    )]
+    [Serialized("Filter Types", DefaultSource = nameof(GetDefaultVariantVector))]
     public VariantVector QueryFilterTypesAttr
     {
         get => GetQueryFilterTypesAttr();
         set => SetQueryFilterTypesAttr(value);
     }
 
-    [Serialized(
-        "Obstacle Avoidance Types",
-        DefaultSource = nameof(GetDefaultVariantVector)
-    )]
+    [Serialized("Obstacle Avoidance Types", DefaultSource = nameof(GetDefaultVariantVector))]
     public VariantVector ObstacleAvoidanceTypesAttr
     {
         get => GetObstacleAvoidanceTypesAttr();

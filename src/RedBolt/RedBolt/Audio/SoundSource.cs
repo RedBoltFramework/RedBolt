@@ -22,44 +22,21 @@ public partial class SoundSource : Component
     private static readonly string[] AutoRemoveModeNames = ["Disabled", "Component", "Node"];
 
     protected AudioSystem Audio = null!;
-    [Serialized(
-        "Type",
-        Setter = nameof(SetSoundType),
-        Order = 2
-    )]
+    [Serialized("Type", Setter = nameof(SetSoundType))]
     protected string SoundType = AudioDefs.SoundEffect;
     internal StringHash SoundTypeHash = new(AudioDefs.SoundEffect);
-    [Serialized(
-        "Frequency",
-        Order = 3
-    )]
+    [Serialized("Frequency")]
     internal float Frequency;
-    [Serialized(
-        "Gain",
-        Order = 4
-    )]
+    [Serialized("Gain")]
     protected float Gain = 1.0f;
-    [Serialized(
-        "Attenuation",
-        Order = 5
-    )]
+    [Serialized("Attenuation")]
     protected float Attenuation = 1.0f;
-    [Serialized(
-        "Panning",
-        Order = 6
-    )]
+    [Serialized("Panning")]
     protected float Panning;
-    [Serialized(
-        "Reach",
-        Order = 7
-    )]
+    [Serialized("Reach")]
     protected float Reach;
     protected float MasterGain;
-    [Serialized(
-        "Autoremove Mode",
-        EnumNamesSource = nameof(AutoRemoveModeNames),
-        Order = 11
-    )]
+    [Serialized("Autoremove Mode", EnumNamesSource = nameof(AutoRemoveModeNames))]
     protected AutoRemoveMode AutoRemove;
 
     private Sound? _sound;
@@ -70,16 +47,10 @@ public partial class SoundSource : Component
     private Sound? _streamBuffer;
     private int _unusedStreamSize;
     private sbyte[] _decodeBuffer = [];
-    [Serialized(
-        "Ignore Scene Time Scale",
-        Order = 9
-    )]
+    [Serialized("Ignore Scene Time Scale")]
     private bool _ignoreSceneTimeScale;
     private bool _sendFinishedEvent;
-    [Serialized(
-        "Low Frequency Effect",
-        Order = 8
-    )]
+    [Serialized("Low Frequency Effect")]
     private bool _lowFrequency;
     private readonly object _playLock = new();
 
@@ -222,12 +193,7 @@ public partial class SoundSource : Component
     public bool IsLowFrequency() => _lowFrequency;
     public AutoRemoveMode GetAutoRemoveMode() => AutoRemove;
     public bool GetIgnoreSceneTimeScale() => _ignoreSceneTimeScale;
-    [Serialized(
-        "Is Playing",
-        DefaultSource = nameof(GetIsPlayingAttributeDefault),
-        Setter = nameof(SetPlayingAttr),
-        Order = 10
-    )]
+    [Serialized("Is Playing", DefaultSource = nameof(GetIsPlayingAttributeDefault), Setter = nameof(SetPlayingAttr))]
     public bool IsPlaying() => _position.HasValue && (_sound != null || _soundStream != null);
 
     public void SetPlayPosition(int position)
@@ -332,12 +298,7 @@ public partial class SoundSource : Component
     }
 
     /// <summary>Set sound attribute for serialization.</summary>
-    [Serialized(
-        "Sound",
-        DefaultSource = nameof(GetSoundAttributeDefault),
-        Setter = nameof(SetSoundAttr),
-        Order = 1
-    )]
+    [Serialized("Sound", DefaultSource = nameof(GetSoundAttributeDefault), Setter = nameof(SetSoundAttr))]
     public ResourceRef GetSoundAttr() => GetSound() != null ? new ResourceRef(new StringHash(nameof(Sound)), GetSound()!.Name) : ResourceRef.Empty;
 
     public void SetPlayingAttr(bool value)
@@ -348,12 +309,7 @@ public partial class SoundSource : Component
             Stop();
     }
 
-    [Serialized(
-        "Play Position",
-        DefaultSource = nameof(GetPlayPositionAttributeDefault),
-        Setter = nameof(SetPositionAttr),
-        Order = 12
-    )]
+    [Serialized("Play Position", DefaultSource = nameof(GetPlayPositionAttributeDefault), Setter = nameof(SetPositionAttr))]
     public int GetPositionAttr() => _position ?? 0;
 
     public void SetPositionAttr(int value) => SetPlayPosition(value);
@@ -627,11 +583,7 @@ public partial class SoundSource : Component
     private static object? GetPlayPositionAttributeDefault() => 0;
 
 
-    [Serialized(
-        "Is Enabled",
-        DefaultSource = nameof(GetIsEnabledAttributeDefault),
-        Order = 0
-    )]
+    [Serialized("Is Enabled", DefaultSource = nameof(GetIsEnabledAttributeDefault))]
     private bool SerializedIsEnabled
     {
         get => Enabled;

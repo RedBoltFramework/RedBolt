@@ -113,10 +113,7 @@ public partial class AttributeTests
         {
         }
 
-        [Serialized(
-            "Value",
-            AccessorType = typeof(ValueAccessor)
-        )]
+        [Serialized("Value", AccessorType = typeof(ValueAccessor))]
         public int StoredValue { get; set; } = 123;
 
         private sealed class ValueAccessor : AttributeAccessor

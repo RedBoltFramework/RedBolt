@@ -347,13 +347,7 @@ public partial class StaticModelGroup : StaticModel
     }
 
     /// <summary>Return node IDs attribute.</summary>
-    [Serialized(
-        "Instance Nodes",
-        Configure = nameof(ConfigureInstanceNodesAttribute),
-        DefaultSource = nameof(GetInstanceNodesAttributeDefault),
-        Mode = AttributeMode.Default | AttributeMode.NodeIdVector,
-        Setter = nameof(SetNodeIDsAttr)
-    )]
+    [Serialized("Instance Nodes", Configure = nameof(ConfigureInstanceNodesAttribute), DefaultSource = nameof(GetInstanceNodesAttributeDefault), Mode = AttributeMode.Default | AttributeMode.NodeIdVector, Setter = nameof(SetNodeIDsAttr))]
     public VariantVector GetNodeIDsAttr()
     {
         if (_nodeIdsDirty)

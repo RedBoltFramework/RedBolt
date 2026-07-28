@@ -191,19 +191,20 @@ public sealed class AudioTests
     }
 
     [Fact]
-    public void Audio_component_attributes_match_cpp_registration()
+    public void Audio_component_attributes_follow_member_declaration_order()
     {
         var scene = new SceneType();
         var source = scene.CreateComponent<SoundSource>();
         var source3D = scene.CreateComponent<SoundSource3D>();
 
         Assert.Equal(
-            ["Is Enabled", "Sound", "Type", "Frequency", "Gain", "Attenuation", "Panning", "Reach",
-                "Low Frequency Effect", "Ignore Scene Time Scale", "Is Playing", "Autoremove Mode", "Play Position"],
+            ["Type", "Frequency", "Gain", "Attenuation", "Panning", "Reach", "Autoremove Mode",
+                "Ignore Scene Time Scale", "Low Frequency Effect", "Is Playing", "Sound", "Play Position",
+                "Is Enabled"],
             source.GetAttributes().Select(attribute => attribute.Name));
         Assert.Equal(
-            ["Is Enabled", "Sound", "Type", "Frequency", "Gain", "Reach", "Low Frequency Effect",
-                "Ignore Scene Time Scale", "Is Playing", "Autoremove Mode", "Play Position", "Near Distance",
+            ["Type", "Frequency", "Gain", "Reach", "Autoremove Mode", "Ignore Scene Time Scale",
+                "Low Frequency Effect", "Is Playing", "Sound", "Play Position", "Is Enabled", "Near Distance",
                 "Far Distance", "Inner Angle", "Outer Angle", "Rolloff Factor"],
             source3D.GetAttributes().Select(attribute => attribute.Name));
     }

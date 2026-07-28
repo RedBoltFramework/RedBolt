@@ -36,12 +36,7 @@ public partial class OffMeshConnection : Component
     private const uint DefaultArea = 1;
 
     private WeakReference<Node>? _endPoint;
-    [Serialized(
-        "Endpoint NodeID",
-        Mode = AttributeMode.Default | AttributeMode.NodeId,
-        Setter = nameof(SetEndPointID),
-        Order = 1
-    )]
+    [Serialized("Endpoint NodeID", Mode = AttributeMode.Default | AttributeMode.NodeId, Setter = nameof(SetEndPointID))]
     private int _endPointID;
     private float _radius = DefaultRadius;
     private bool _bidirectional = true;
@@ -101,10 +96,7 @@ public partial class OffMeshConnection : Component
 
     /// <summary>Set radius.</summary>
     /// <summary>Return radius.</summary>
-    [Serialized(
-        "Radius",
-        Order = 1001
-    )]
+    [Serialized("Radius")]
     public float Radius
     {
         get => _radius;
@@ -113,10 +105,7 @@ public partial class OffMeshConnection : Component
 
     /// <summary>Set bidirectional flag. Default true.</summary>
     /// <summary>Return whether is bidirectional.</summary>
-    [Serialized(
-        "Bidirectional",
-        Order = 1002
-    )]
+    [Serialized("Bidirectional")]
     public bool Bidirectional
     {
         get => _bidirectional;
@@ -125,10 +114,7 @@ public partial class OffMeshConnection : Component
 
     /// <summary>Set a user assigned mask.</summary>
     /// <summary>Return the user assigned mask.</summary>
-    [Serialized(
-        "Flags Mask",
-        Order = 1003
-    )]
+    [Serialized("Flags Mask")]
     public uint Mask
     {
         get => _mask;
@@ -137,10 +123,7 @@ public partial class OffMeshConnection : Component
 
     /// <summary>Sets the assigned area Id for the connection.</summary>
     /// <summary>Return the user assigned area ID.</summary>
-    [Serialized(
-        "Area Type",
-        Order = 1004
-    )]
+    [Serialized("Area Type")]
     public uint AreaID
     {
         get => _areaId;
@@ -159,12 +142,7 @@ public partial class OffMeshConnection : Component
     private static bool GetBidirectionalDefault() => true;
     private static uint GetMaskDefault() => DefaultMaskFlag;
     private static uint GetAreaIdDefault() => DefaultArea;
-    [Serialized(
-        "Is Enabled",
-        DefaultSource = nameof(GetEnabledDefault),
-        Setter = nameof(SetEnabled),
-        Order = 0
-    )]
+    [Serialized("Is Enabled", DefaultSource = nameof(GetEnabledDefault), Setter = nameof(SetEnabled))]
     private bool GetEnabled() => Enabled;
     private int GetEndPointID() => _endPointID;
     private void SetEndPointID(int value)

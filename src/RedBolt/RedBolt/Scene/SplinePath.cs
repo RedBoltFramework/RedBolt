@@ -43,18 +43,10 @@ public partial class SplinePath : Component
     /// <summary>The Speed of movement along the Spline.</summary>
     private float _speed = 1.0f;
     /// <summary>Amount of time that has elapsed while moving.</summary>
-    [Serialized(
-        "Elapsed Time",
-        Mode = AttributeMode.Default | AttributeMode.NoEdit,
-        Order = 3
-    )]
+    [Serialized("Elapsed Time", Mode = AttributeMode.Default | AttributeMode.NoEdit)]
     private float _elapsedTime;
     /// <summary>The fraction of the SplinePath covered.</summary>
-    [Serialized(
-        "Traveled",
-        Mode = AttributeMode.Default | AttributeMode.NoEdit,
-        Order = 2
-    )]
+    [Serialized("Traveled", Mode = AttributeMode.Default | AttributeMode.NoEdit)]
     private float _traveled;
     /// <summary>The length of the SplinePath.</summary>
     private float _length;
@@ -218,11 +210,7 @@ public partial class SplinePath : Component
     }
 
     /// <summary>Set the Interpolation Mode.</summary>
-    [Serialized(
-        "Interpolation Mode",
-        DefaultSource = nameof(GetInterpolationModeAttributeDefault),
-        Order = 0
-    )]
+    [Serialized("Interpolation Mode", DefaultSource = nameof(GetInterpolationModeAttributeDefault))]
     public InterpolationMode InterpolationMode
     {
         get => _spline.GetInterpolationMode();
@@ -234,10 +222,7 @@ public partial class SplinePath : Component
     }
 
     /// <summary>Set the movement Speed.</summary>
-    [Serialized(
-        "Speed",
-        Order = 1
-    )]
+    [Serialized("Speed")]
     public float Speed
     {
         get => _speed;
@@ -307,12 +292,7 @@ public partial class SplinePath : Component
     public bool IsFinished => _traveled >= 1.0f;
 
     /// <summary>Set Control Point Node IDs attribute.</summary>
-    [Serialized(
-        "Control Points",
-        Configure = nameof(ConfigureControlPointsAttribute),
-        Mode = AttributeMode.Default | AttributeMode.NodeIdVector,
-        Order = 5
-    )]
+    [Serialized("Control Points", Configure = nameof(ConfigureControlPointsAttribute), Mode = AttributeMode.Default | AttributeMode.NodeIdVector)]
     public VariantVector ControlPointIdsAttr
     {
         get => _controlPointIdsAttr;
@@ -349,11 +329,7 @@ public partial class SplinePath : Component
     }
 
     /// <summary>Set Controlled Node ID attribute.</summary>
-    [Serialized(
-        "Controlled",
-        Mode = AttributeMode.Default | AttributeMode.NodeId,
-        Order = 4
-    )]
+    [Serialized("Controlled", Mode = AttributeMode.Default | AttributeMode.NodeId)]
     public uint ControlledIdAttr
     {
         get => _controlledIdAttr;

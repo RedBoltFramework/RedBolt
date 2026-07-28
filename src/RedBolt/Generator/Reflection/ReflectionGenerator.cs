@@ -152,8 +152,7 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
 
         for (var index = 0; index < attributes.Count; ++index)
         {
-            if (!inheritanceWritten
-                && GetNamedInt(attributes[index].Attribute, "Order", int.MaxValue) >= inheritAttributesOrder)
+            if (!inheritanceWritten && index >= inheritAttributesOrder)
             {
                 AppendInheritedAttributes(builder, attributeSourceType!);
                 AppendRemovedAttributes(builder, type);
@@ -436,8 +435,7 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
             }
         }
 
-        return result.OrderBy(static item => GetNamedInt(item.Attribute, "Order", int.MaxValue))
-            .ThenBy(static item => item.Location?.SourceTree?.FilePath, StringComparer.Ordinal)
+        return result.OrderBy(static item => item.Location?.SourceTree?.FilePath, StringComparer.Ordinal)
             .ThenBy(static item => item.Location?.SourceSpan.Start ?? 0)
             .ToList();
     }

@@ -642,12 +642,7 @@ public partial class AnimationController : AnimationStateSource
         return parameters?.SpeedValue ?? 0.0f;
     }
 
-    [Serialized(
-        "Reset Skeleton",
-        DefaultSource = nameof(GetResetSkeletonAttributeDefault),
-        Setter = nameof(SetSkeletonReset),
-        Order = 1
-    )]
+    [Serialized("Reset Skeleton", DefaultSource = nameof(GetResetSkeletonAttributeDefault), Setter = nameof(SetSkeletonReset))]
     public bool IsSkeletonReset() => _resetSkeleton;
 
     public void SetSkeletonReset(bool resetSkeleton) => _resetSkeleton = resetSkeleton;
@@ -682,13 +677,7 @@ public partial class AnimationController : AnimationStateSource
     /// <summary>
     /// Return animation parameters attribute.
     /// </summary>
-    [Serialized(
-        "Animations",
-        Configure = nameof(ConfigureAnimationsAttribute),
-        DefaultSource = nameof(GetAnimationsAttributeDefault),
-        Setter = nameof(SetAnimationsAttr),
-        Order = 2
-    )]
+    [Serialized("Animations", Configure = nameof(ConfigureAnimationsAttribute), DefaultSource = nameof(GetAnimationsAttributeDefault), Setter = nameof(SetAnimationsAttr))]
     public VariantVector GetAnimationsAttr()
     {
         var numAnimations = _animations.Count;
@@ -1108,15 +1097,7 @@ public partial class AnimationController : AnimationStateSource
         attribute.SetMetadata(AttributeMetadata.IsAction, true);
     }
 
-    [Serialized(
-        "Update Pose",
-        typeof(bool),
-        Configure = nameof(ConfigureUpdatePoseAttribute),
-        DefaultSource = nameof(GetUpdatePoseAttributeDefault),
-        Mode = AttributeMode.Edit,
-        Setter = nameof(SetSerializedUpdatePose),
-        Order = 3
-    )]
+    [Serialized("Update Pose", typeof(bool), Configure = nameof(ConfigureUpdatePoseAttribute), DefaultSource = nameof(GetUpdatePoseAttributeDefault), Mode = AttributeMode.Edit, Setter = nameof(SetSerializedUpdatePose))]
     private object? GetSerializedUpdatePose() => string.Empty;
 
     private void SetSerializedUpdatePose(object? value)
@@ -1127,11 +1108,7 @@ public partial class AnimationController : AnimationStateSource
     }
 
 
-    [Serialized(
-        "Is Enabled",
-        DefaultSource = nameof(GetIsEnabledAttributeDefault),
-        Order = 0
-    )]
+    [Serialized("Is Enabled", DefaultSource = nameof(GetIsEnabledAttributeDefault))]
     private bool SerializedIsEnabled
     {
         get => Enabled;

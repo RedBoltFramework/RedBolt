@@ -32,10 +32,7 @@ public partial class Navigable : Component
 
     /// <summary>Set whether geometry is automatically collected from child nodes. Default true.</summary>
     /// <summary>Return whether geometry is automatically collected from child nodes.</summary>
-    [Serialized(
-        "Recursive",
-        Order = 1000
-    )]
+    [Serialized("Recursive")]
     public bool Recursive
     {
         get => _recursive;
@@ -44,10 +41,7 @@ public partial class Navigable : Component
 
     /// <summary>Set whether geometry is walkable. Default true.</summary>
     /// <summary>Return whether geometry is walkable.</summary>
-    [Serialized(
-        "Walkable",
-        Order = 1001
-    )]
+    [Serialized("Walkable")]
     public bool Walkable
     {
         get => _walkable;
@@ -70,11 +64,6 @@ public partial class Navigable : Component
     private static bool GetRecursiveDefault() => true;
     private static bool GetWalkableDefault() => true;
     private static uint GetAreaIdDefault() => NavigationDefs.DeduceAreaId;
-    [Serialized(
-        "Is Enabled",
-        DefaultSource = nameof(GetEnabledDefault),
-        Setter = nameof(SetEnabled),
-        Order = 0
-    )]
+    [Serialized("Is Enabled", DefaultSource = nameof(GetEnabledDefault), Setter = nameof(SetEnabled))]
     private bool GetEnabled() => Enabled;
 }

@@ -470,45 +470,24 @@ public partial class FreeFlyController : Component
     }
 
     /// <summary>Camera speed.</summary>
-    [Serialized(
-        "Speed",
-        Order = 0
-    )]
+    [Serialized("Speed")]
     private float _speed = 20.0f;
     /// <summary>Camera accelerated speed.</summary>
-    [Serialized(
-        "Accelerated Speed",
-        Order = 1
-    )]
+    [Serialized("Accelerated Speed")]
     private float _acceleratedSpeed = 100.0f;
     /// <summary>Mouse sensitivity</summary>
-    [Serialized(
-        "Mouse Sensitivity",
-        Order = 4
-    )]
+    [Serialized("Mouse Sensitivity")]
     private float _mouseSensitivity = DefaultMouseSensitivity;
     /// <summary>Touch sensitivity</summary>
-    [Serialized(
-        "Touch Sensitivity",
-        Order = 5
-    )]
+    [Serialized("Touch Sensitivity")]
     private float _touchSensitivity = DefaultTouchRotationSensitivity;
     /// <summary>Axis sensitivity</summary>
-    [Serialized(
-        "Axis Sensitivity",
-        Order = 6
-    )]
+    [Serialized("Axis Sensitivity")]
     private float _axisSensitivity = DefaultAxisRotationSensitivity;
     /// <summary>Pitch range</summary>
-    [Serialized(
-        "Min Pitch",
-        Order = 2
-    )]
+    [Serialized("Min Pitch")]
     private float _minPitch = -90.0f;
-    [Serialized(
-        "Max Pitch",
-        Order = 3
-    )]
+    [Serialized("Max Pitch")]
     private float _maxPitch = 90.0f;
     /// <summary>Gamepad default axis adapter</summary>
     private AxisAdapter _axisAdapter = new();

@@ -368,12 +368,7 @@ public partial class ParticleEmitter : BillboardSet
     }
 
     /// <summary>Set particles effect attribute.</summary>
-    [Serialized(
-        "Effect",
-        DefaultSource = nameof(GetEffectAttributeDefault),
-        Setter = nameof(SetEffectAttr),
-        Order = 1
-    )]
+    [Serialized("Effect", DefaultSource = nameof(GetEffectAttributeDefault), Setter = nameof(SetEffectAttr))]
     public ResourceRef GetEffectAttr() =>
         ResourceType.GetResourceRef(_effect, new StringHash(nameof(ParticleEffect)));
 
@@ -399,13 +394,7 @@ public partial class ParticleEmitter : BillboardSet
     }
 
     /// <summary>Return particles attribute. Returns particle amount only if particles are not to be serialized.</summary>
-    [Serialized(
-        "Particles",
-        DefaultSource = nameof(GetParticlesAttributeDefault),
-        Mode = AttributeMode.Default | AttributeMode.NoEdit,
-        Setter = nameof(SetParticlesAttr),
-        Order = 17
-    )]
+    [Serialized("Particles", DefaultSource = nameof(GetParticlesAttributeDefault), Mode = AttributeMode.Default | AttributeMode.NoEdit, Setter = nameof(SetParticlesAttr))]
     public VariantVector GetParticlesAttr()
     {
         var ret = new VariantVector();
@@ -432,13 +421,7 @@ public partial class ParticleEmitter : BillboardSet
     }
 
     /// <summary>Return billboards attribute. Returns billboard amount only if particles are not to be serialized.</summary>
-    [Serialized(
-        "Billboards",
-        DefaultSource = nameof(GetBillboardsAttributeDefault),
-        Mode = AttributeMode.Default | AttributeMode.NoEdit,
-        Setter = nameof(SetBillboardsAttr),
-        Order = 18
-    )]
+    [Serialized("Billboards", DefaultSource = nameof(GetBillboardsAttributeDefault), Mode = AttributeMode.Default | AttributeMode.NoEdit, Setter = nameof(SetBillboardsAttr))]
     public VariantVector GetParticleBillboardsAttr()
     {
         var ret = new VariantVector();
@@ -642,45 +625,27 @@ public partial class ParticleEmitter : BillboardSet
     /// <summary>Particles.</summary>
     private readonly List<Particle> _particles = [];
     /// <summary>Active/inactive period timer.</summary>
-    [Serialized(
-        "Period Timer",
-        Mode = AttributeMode.Default | AttributeMode.NoEdit,
-        Order = 8
-    )]
+    [Serialized("Period Timer", Mode = AttributeMode.Default | AttributeMode.NoEdit)]
     private float _periodTimer;
     /// <summary>New particle emission timer.</summary>
-    [Serialized(
-        "Emission Timer",
-        Mode = AttributeMode.Default | AttributeMode.NoEdit,
-        Order = 9
-    )]
+    [Serialized("Emission Timer", Mode = AttributeMode.Default | AttributeMode.NoEdit)]
     private float _emissionTimer;
     /// <summary>Last scene timestep.</summary>
     private float _lastTimeStep;
     /// <summary>Rendering framenumber on which was last updated.</summary>
     private uint _lastUpdateFrameNumber = MathDefs.MaxUnsigned;
     /// <summary>Currently emitting flag.</summary>
-    [Serialized(
-        "Is Emitting",
-        Order = 7
-    )]
+    [Serialized("Is Emitting")]
     private bool _emitting = true;
     /// <summary>Need update flag.</summary>
     private bool _needUpdate;
     /// <summary>Serialize particles flag.</summary>
-    [Serialized(
-        "Serialize Particles",
-        Order = 19
-    )]
+    [Serialized("Serialize Particles")]
     private bool _serializeParticles = true;
     /// <summary>Ready to send effect finish event flag.</summary>
     private bool _sendFinishedEvent = true;
     /// <summary>Automatic removal mode.</summary>
-    [Serialized(
-        "Autoremove Mode",
-        EnumNamesSource = nameof(AutoRemoveModeNames),
-        Order = 10
-    )]
+    [Serialized("Autoremove Mode", EnumNamesSource = nameof(AutoRemoveModeNames))]
     private AutoRemoveMode _autoRemove = AutoRemoveMode.Disabled;
 
     private static object? GetIsEnabledAttributeDefault() => true;
@@ -701,66 +666,42 @@ public partial class ParticleEmitter : BillboardSet
 
     private static object? GetBillboardsAttributeDefault() => new VariantVector();
 
-    [Serialized(
-        "Is Enabled",
-        DefaultSource = nameof(GetIsEnabledAttributeDefault),
-        Order = 0
-    )]
+    [Serialized("Is Enabled", DefaultSource = nameof(GetIsEnabledAttributeDefault))]
     private bool SerializedIsEnabled
     {
         get => Enabled;
         set => SetEnabled(value);
     }
 
-    [Serialized(
-        "Can Be Occluded",
-        DefaultSource = nameof(GetCanBeOccludedAttributeDefault),
-        Order = 2
-    )]
+    [Serialized("Can Be Occluded", DefaultSource = nameof(GetCanBeOccludedAttributeDefault))]
     private bool SerializedCanBeOccluded
     {
         get => IsOccludee();
         set => SetOccludee(value);
     }
 
-    [Serialized(
-        "Cast Shadows",
-        DefaultSource = nameof(GetCastShadowsAttributeDefault),
-        Order = 3
-    )]
+    [Serialized("Cast Shadows", DefaultSource = nameof(GetCastShadowsAttributeDefault))]
     private bool SerializedCastShadows
     {
         get => GetCastShadows();
         set => SetCastShadows(value);
     }
 
-    [Serialized(
-        "Draw Distance",
-        DefaultSource = nameof(GetDrawDistanceAttributeDefault),
-        Order = 4
-    )]
+    [Serialized("Draw Distance", DefaultSource = nameof(GetDrawDistanceAttributeDefault))]
     private float SerializedDrawDistance
     {
         get => GetDrawDistance();
         set => SetDrawDistance(value);
     }
 
-    [Serialized(
-        "Shadow Distance",
-        DefaultSource = nameof(GetShadowDistanceAttributeDefault),
-        Order = 5
-    )]
+    [Serialized("Shadow Distance", DefaultSource = nameof(GetShadowDistanceAttributeDefault))]
     private float SerializedShadowDistance
     {
         get => GetShadowDistance();
         set => SetShadowDistance(value);
     }
 
-    [Serialized(
-        "Animation LOD Bias",
-        DefaultSource = nameof(GetAnimationLODBiasAttributeDefault),
-        Order = 6
-    )]
+    [Serialized("Animation LOD Bias", DefaultSource = nameof(GetAnimationLODBiasAttributeDefault))]
     private float SerializedAnimationLODBias
     {
         get => GetAnimationLodBias();

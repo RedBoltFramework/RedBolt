@@ -447,11 +447,7 @@ public abstract partial class Animatable : Serializable
     }
 
     /// <summary>Return object animation attribute.</summary>
-    [Serialized(
-        "Object Animation",
-        DefaultSource = nameof(GetObjectAnimationAttributeDefault),
-        Setter = nameof(SetSerializedObjectAnimation)
-    )]
+    [Serialized("Object Animation", DefaultSource = nameof(GetObjectAnimationAttributeDefault), Setter = nameof(SetSerializedObjectAnimation))]
     public ResourceRef GetObjectAnimationAttr()
     {
         return ResourceType.GetResourceRef(_objectAnimation, ObjectReflection<ObjectAnimation>.TypeId);

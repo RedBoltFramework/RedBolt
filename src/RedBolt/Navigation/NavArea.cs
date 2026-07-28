@@ -87,19 +87,9 @@ public partial class NavArea : Component
     private static Vector3f GetDefaultBoundingBoxMin() => DefaultBoundingBoxMin;
     private static Vector3f GetDefaultBoundingBoxMax() => DefaultBoundingBoxMax;
     private static int GetDefaultAreaId() => DefaultAreaId;
-    [Serialized(
-        "Bounding Box Min",
-        DefaultSource = nameof(GetDefaultBoundingBoxMin),
-        Setter = nameof(SetBoundingBoxMin),
-        Order = 0
-    )]
+    [Serialized("Bounding Box Min", DefaultSource = nameof(GetDefaultBoundingBoxMin), Setter = nameof(SetBoundingBoxMin))]
     private Vector3f GetBoundingBoxMin() => _boundingBox.Min;
-    [Serialized(
-        "Bounding Box Max",
-        DefaultSource = nameof(GetDefaultBoundingBoxMax),
-        Setter = nameof(SetBoundingBoxMax),
-        Order = 1
-    )]
+    [Serialized("Bounding Box Max", DefaultSource = nameof(GetDefaultBoundingBoxMax), Setter = nameof(SetBoundingBoxMax))]
     private Vector3f GetBoundingBoxMax() => _boundingBox.Max;
     private void SetBoundingBoxMin(Vector3f value) => _boundingBox.Min = value;
     private void SetBoundingBoxMax(Vector3f value) => _boundingBox.Max = value;

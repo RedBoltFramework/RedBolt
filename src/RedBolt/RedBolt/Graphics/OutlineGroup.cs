@@ -91,12 +91,7 @@ public partial class OutlineGroup : Component
         _drawablesDirty = _drawablesAttr.Count != 0;
     }
 
-    [Serialized(
-        "Drawables",
-        DefaultSource = nameof(GetDrawablesAttributeDefault),
-        Setter = nameof(SetDrawablesAttr),
-        Order = 3
-    )]
+    [Serialized("Drawables", DefaultSource = nameof(GetDrawablesAttributeDefault), Setter = nameof(SetDrawablesAttr))]
     public VariantVector GetDrawablesAttr()
     {
         _drawablesAttr.Dispose();
@@ -224,22 +219,11 @@ public partial class OutlineGroup : Component
         result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
     }
 
-    [Serialized(
-        "Color",
-        Setter = nameof(SetColor),
-        Order = 0
-    )]
+    [Serialized("Color", Setter = nameof(SetColor))]
     private Color _color = Color.White;
-    [Serialized(
-        "Render Order",
-        Setter = nameof(SetRenderOrder),
-        Order = 1
-    )]
+    [Serialized("Render Order", Setter = nameof(SetRenderOrder))]
     private uint _renderOrder = 128;
-    [Serialized(
-        "Is Debug",
-        Order = 2
-    )]
+    [Serialized("Is Debug")]
     private bool _isDebug;
 
     /// <summary>Selected drawables.</summary>

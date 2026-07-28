@@ -48,55 +48,25 @@ public partial class IKStickTargets : IKSolverComponent
     }
 
 
-    [Serialized(
-        "Is Active",
-        Order = 1
-    )]
+    [Serialized("Is Active")]
     public bool IsActive { get => _isActive; set => _isActive = value; }
-    [Serialized(
-        "Is Position Sticky",
-        Order = 2
-    )]
+    [Serialized("Is Position Sticky")]
     public bool IsPositionSticky { get => _isPositionSticky; set => _isPositionSticky = value; }
-    [Serialized(
-        "Is Rotation Sticky",
-        Order = 3
-    )]
+    [Serialized("Is Rotation Sticky")]
     public bool IsRotationSticky { get => _isRotationSticky; set => _isRotationSticky = value; }
-    [Serialized(
-        "Position Threshold",
-        Order = 4
-    )]
+    [Serialized("Position Threshold")]
     public float PositionThreshold { get => _positionThreshold; set => _positionThreshold = value; }
-    [Serialized(
-        "Rotation Threshold",
-        Order = 5
-    )]
+    [Serialized("Rotation Threshold")]
     public float RotationThreshold { get => _rotationThreshold; set => _rotationThreshold = value; }
-    [Serialized(
-        "Time Threshold",
-        Order = 6
-    )]
+    [Serialized("Time Threshold")]
     public float TimeThreshold { get => _timeThreshold; set => _timeThreshold = value; }
-    [Serialized(
-        "Recover Time",
-        Order = 7
-    )]
+    [Serialized("Recover Time")]
     public float RecoverTime { get => _recoverTime; set => _recoverTime = value; }
-    [Serialized(
-        "Min Target Distances",
-        Order = 8
-    )]
+    [Serialized("Min Target Distances")]
     public float MinTargetDistance { get => _minTargetDistance; set => _minTargetDistance = value; }
-    [Serialized(
-        "Max Simultaneous Recoveries",
-        Order = 9
-    )]
+    [Serialized("Max Simultaneous Recoveries")]
     public int MaxSimultaneousRecoveries { get => _maxSimultaneousRecoveries; set => _maxSimultaneousRecoveries = value; }
-    [Serialized(
-        "Base World Velocity",
-        Order = 10
-    )]
+    [Serialized("Base World Velocity")]
     public Vector3f BaseWorldVelocity { get => _baseWorldVelocity; set => _baseWorldVelocity = value; }
 
     /// <summary>Implement IKSolverComponent.</summary>
@@ -386,11 +356,7 @@ public partial class IKStickTargets : IKSolverComponent
         return minDistance;
     }
 
-    [Serialized(
-        "Target Names",
-        Setter = nameof(SetTargetNames),
-        Order = 0
-    )]
+    [Serialized("Target Names", Setter = nameof(SetTargetNames))]
     private StringVector _targetNames = new StringVector();
     private bool _isActive = true;
     private bool _isPositionSticky = true;

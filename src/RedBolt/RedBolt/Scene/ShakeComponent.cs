@@ -38,11 +38,7 @@ public partial class ShakeComponent : LogicComponent
 
 
     /// <summary>Set or get time scale. This is a multiplier for Perlin Noise argument.</summary>
-    [Serialized(
-        "Time Scale",
-        DefaultSource = nameof(GetTimeScaleAttributeDefault),
-        Order = 3
-    )]
+    [Serialized("Time Scale", DefaultSource = nameof(GetTimeScaleAttributeDefault))]
     public float TimeScale { get; set; }
 
     /// <summary>Increase trauma value.</summary>
@@ -52,10 +48,7 @@ public partial class ShakeComponent : LogicComponent
     }
 
     /// <summary>Set or get trauma value.</summary>
-    [Serialized(
-        "Trauma",
-        Order = 0
-    )]
+    [Serialized("Trauma")]
     public float Trauma
     {
         get => _trauma;
@@ -72,11 +65,7 @@ public partial class ShakeComponent : LogicComponent
     }
 
     /// <summary>Set or get trauma power value.</summary>
-    [Serialized(
-        "Trauma Power",
-        DefaultSource = nameof(GetTraumaPowerAttributeDefault),
-        Order = 1
-    )]
+    [Serialized("Trauma Power", DefaultSource = nameof(GetTraumaPowerAttributeDefault))]
     public float TraumaPower { get; set; }
 
     /// <summary>Set or get trauma falloff (how many units to loose per second).</summary>
@@ -87,19 +76,11 @@ public partial class ShakeComponent : LogicComponent
     }
 
     /// <summary>Set or get shift range.</summary>
-    [Serialized(
-        "Shift Range",
-        DefaultSource = nameof(GetShiftRangeAttributeDefault),
-        Order = 4
-    )]
+    [Serialized("Shift Range", DefaultSource = nameof(GetShiftRangeAttributeDefault))]
     public Vector3f ShiftRange { get; set; }
 
     /// <summary>Set or get rotation range.</summary>
-    [Serialized(
-        "Rotation Range",
-        DefaultSource = nameof(GetRotationRangeAttributeDefault),
-        Order = 5
-    )]
+    [Serialized("Rotation Range", DefaultSource = nameof(GetRotationRangeAttributeDefault))]
     public Vector3f RotationRange { get; set; }
 
     /// <summary>Update node position.</summary>
@@ -170,11 +151,7 @@ public partial class ShakeComponent : LogicComponent
     /// <summary>Current trauma value.</summary>
     private float _trauma;
     /// <summary>Current trauma falloff.</summary>
-    [Serialized(
-        "Trauma Falloff",
-        DefaultSource = nameof(GetTraumaFalloffAttributeDefault),
-        Order = 2
-    )]
+    [Serialized("Trauma Falloff", DefaultSource = nameof(GetTraumaFalloffAttributeDefault))]
     private float _traumaFalloff;
 
     /// <summary>Flag indicating that original position and rotation are captured.</summary>

@@ -8,10 +8,7 @@ public partial class GeneratedReflectionObject : Serializable
 {
     private static readonly string[] NamedFieldNames = ["Zero", "One"];
 
-    [Serialized(
-        "Named Field",
-        EnumNamesSource = nameof(NamedFieldNames)
-    )]
+    [Serialized("Named Field", EnumNamesSource = nameof(NamedFieldNames))]
     private int _namedField = 1;
 
     [Serialized("Field")]
@@ -43,20 +40,14 @@ public partial class GeneratedReflectionObject : Serializable
 
     private static int GetSetterTargetDefault() => 29;
 
-    [Serialized(
-        "Custom",
-        DefaultSource = nameof(GetCustomDefault),
-        Setter = nameof(SetCustom))]
+    [Serialized("Custom", DefaultSource = nameof(GetCustomDefault), Setter = nameof(SetCustom))]
     private int GetCustom() => _custom;
 
     private void SetCustom(int value) => _custom = value;
 
     private int GetSetterTarget() => _setterTarget;
 
-    [Serialized(
-        "Setter Target",
-        DefaultSource = nameof(GetSetterTargetDefault),
-        Getter = nameof(GetSetterTarget))]
+    [Serialized("Setter Target", DefaultSource = nameof(GetSetterTargetDefault), Getter = nameof(GetSetterTarget))]
     private void SetSetterTarget(int value) => _setterTarget = value;
 }
 
@@ -80,10 +71,10 @@ public partial class GeneratedReflectionIntermediate : GeneratedReflectionObject
     InheritAttributesOrder = 1)]
 public partial class GeneratedExplicitInheritance : GeneratedReflectionIntermediate
 {
-    [Serialized("Before", Order = 0)]
+    [Serialized("Before")]
     public int Before { get; set; }
 
-    [Serialized("After", Order = 2)]
+    [Serialized("After")]
     public int After { get; set; }
 }
 
@@ -187,7 +178,7 @@ public sealed partial class GeneratedReflectionTests
     }
 
     [Fact]
-    public void Generated_reflection_uses_explicit_inheritance_source_and_insertion_order()
+    public void Generated_reflection_uses_explicit_inheritance_source_and_member_declaration_order()
     {
         var previousContext = Context.Instance;
         using var context = new Context();

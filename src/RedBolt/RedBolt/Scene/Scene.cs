@@ -90,34 +90,16 @@ public partial class Scene : Node
     private int _asyncLoadingMs = 5;
     private bool _asyncLoading;
     private Vector3d _elapsedTimes;
-    [Serialized(
-        "Elapsed Time Wrap",
-        Order = 8
-    )]
+    [Serialized("Elapsed Time Wrap")]
     private Vector3d _elapsedTimeWrap = new(1_000_000_000_000.0, 1024.0, 1.0);
-    [Serialized(
-        "Elapsed Time",
-        Setter = nameof(SetElapsedTime),
-        Order = 2
-    )]
+    [Serialized("Elapsed Time", Setter = nameof(SetElapsedTime))]
     private float _elapsedTime;
     private string _fileName = string.Empty;
-    [Serialized(
-        "World Origin",
-        Order = 7
-    )]
+    [Serialized("World Origin")]
     private IntVector3 _worldOrigin;
-    [Serialized(
-        "Next Component ID",
-        Mode = AttributeMode.Default | AttributeMode.NoEdit,
-        Order = 4
-    )]
+    [Serialized("Next Component ID", Mode = AttributeMode.Default | AttributeMode.NoEdit)]
     private uint _nextComponentId = 1;
-    [Serialized(
-        "Next Node ID",
-        Mode = AttributeMode.Default | AttributeMode.NoEdit,
-        Order = 3
-    )]
+    [Serialized("Next Node ID", Mode = AttributeMode.Default | AttributeMode.NoEdit)]
     private uint _nextNodeId = 1;
     private bool _manualUpdate;
     private bool _threadedUpdate;
@@ -161,11 +143,7 @@ public partial class Scene : Node
 
     public bool UpdateEnabled { get; set; } = true;
 
-    [Serialized(
-        "Time Scale",
-        Setter = nameof(SetTimeScale),
-        Order = 1
-    )]
+    [Serialized("Time Scale", Setter = nameof(SetTimeScale))]
     public float TimeScale { get; set; } = 1.0f;
 
     public float EffectiveTimeScale => UpdateEnabled ? TimeScale : 0.0f;
@@ -664,12 +642,7 @@ public partial class Scene : Node
         }
     }
 
-    [Serialized(
-        "Update Events",
-        DefaultSource = nameof(GetUpdateEventsAttributeDefault),
-        Setter = nameof(SetUpdateEvents),
-        Order = 6
-    )]
+    [Serialized("Update Events", DefaultSource = nameof(GetUpdateEventsAttributeDefault), Setter = nameof(SetUpdateEvents))]
     public StringVector GetUpdateEvents() => new(_updateEvents);
 
     public int GetNumLightmaps() => _lightmapNames.Count;
@@ -1602,13 +1575,7 @@ public partial class Scene : Node
 
     private static object? GetVariablesAttributeDefault() => new StringVariantMap();
 
-    [Serialized(
-        "Variables",
-        typeof(StringVariantMap),
-        DefaultSource = nameof(GetVariablesAttributeDefault),
-        Setter = nameof(SetSerializedVariables),
-        Order = 5
-    )]
+    [Serialized("Variables", typeof(StringVariantMap), DefaultSource = nameof(GetVariablesAttributeDefault), Setter = nameof(SetSerializedVariables))]
     private object? GetSerializedVariables()
     {
         Serializable self = this;
@@ -1632,13 +1599,7 @@ public partial class Scene : Node
 
     private static object? GetLightmapsAttributeDefault() => new ResourceRefList(ObjectReflection<Texture2D>.TypeId);
 
-    [Serialized(
-        "Lightmaps",
-        typeof(ResourceRefList),
-        DefaultSource = nameof(GetLightmapsAttributeDefault),
-        Setter = nameof(SetSerializedLightmaps),
-        Order = 9
-    )]
+    [Serialized("Lightmaps", typeof(ResourceRefList), DefaultSource = nameof(GetLightmapsAttributeDefault), Setter = nameof(SetSerializedLightmaps))]
     private object? GetSerializedLightmaps()
     {
         Serializable self = this;
@@ -1657,11 +1618,7 @@ public partial class Scene : Node
     }
 
 
-    [Serialized(
-        "Name",
-        DefaultSource = nameof(GetNameAttributeDefault),
-        Order = 0
-    )]
+    [Serialized("Name", DefaultSource = nameof(GetNameAttributeDefault))]
     private string SerializedName
     {
         get => Name;

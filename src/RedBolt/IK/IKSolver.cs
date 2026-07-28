@@ -125,20 +125,14 @@ public partial class IKSolver : LogicComponent
     }
 
     /// <summary>Attributes.</summary>
-    [Serialized(
-        "Solve when Paused",
-        Order = 1000
-    )]
+    [Serialized("Solve when Paused")]
     public bool SolveWhenPaused
     {
         get => _solveWhenPaused;
         set => _solveWhenPaused = value;
     }
 
-    [Serialized(
-        "Solve from Original",
-        Order = 1001
-    )]
+    [Serialized("Solve from Original")]
     public bool SolveFromOriginal
     {
         get => _solveFromOriginal;
@@ -170,12 +164,7 @@ public partial class IKSolver : LogicComponent
 
     private static bool GetContinuousRotationDefault() => false;
 
-    [Serialized(
-        "Is Enabled",
-        DefaultSource = nameof(GetEnabledDefault),
-        Setter = nameof(SetEnabled),
-        Order = 0
-    )]
+    [Serialized("Is Enabled", DefaultSource = nameof(GetEnabledDefault), Setter = nameof(SetEnabled))]
     private bool GetEnabled() => Enabled;
 
     private bool IsChainTreeExpired()

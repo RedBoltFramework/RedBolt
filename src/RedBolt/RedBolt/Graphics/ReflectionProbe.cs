@@ -675,43 +675,18 @@ public partial class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
 {
     private static readonly string[] ReflectionProbeTypeNames = ["Baked", "Mixed", "Dynamic", "Custom Texture"];
 
-    [Serialized(
-        "Is Movable",
-        Setter = nameof(SetMovable),
-        Order = 1
-    )]
+    [Serialized("Is Movable", Setter = nameof(SetMovable))]
     private bool _movable;
-    [Serialized(
-        "Probe Type",
-        DefaultSource = nameof(GetProbeTypeAttributeDefault),
-        EnumNamesSource = nameof(ReflectionProbeTypeNames),
-        Setter = nameof(SetProbeType),
-        Order = 2
-    )]
+    [Serialized("Probe Type", DefaultSource = nameof(GetProbeTypeAttributeDefault), EnumNamesSource = nameof(ReflectionProbeTypeNames), Setter = nameof(SetProbeType))]
     private ReflectionProbeType _probeType;
-    [Serialized(
-        "Is Realtime Update",
-        Setter = nameof(SetRealtimeUpdate),
-        Order = 3
-    )]
+    [Serialized("Is Realtime Update", Setter = nameof(SetRealtimeUpdate))]
     private bool _realtimeUpdate;
-    [Serialized(
-        "Is Sliced Update",
-        Order = 4
-    )]
+    [Serialized("Is Sliced Update")]
     private bool _slicedUpdate;
     private BoundingBox _boundingBox = new(-Vector3f.One, Vector3f.One);
-    [Serialized(
-        "Priority",
-        Setter = nameof(SetPriority),
-        Order = 7
-    )]
+    [Serialized("Priority", Setter = nameof(SetPriority))]
     private int _priority;
-    [Serialized(
-        "Use Box Projection",
-        Setter = nameof(SetBoxProjectionUsed),
-        Order = 9
-    )]
+    [Serialized("Use Box Projection", Setter = nameof(SetBoxProjectionUsed))]
     private bool _useBoxProjection;
     private BoundingBox _projectionBox = new(-Vector3f.One, Vector3f.One);
     private TextureCube? _texture;
@@ -834,12 +809,7 @@ public partial class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
         SetTexture(cache?.GetResourceOrNull<TextureCube>(value.Name));
     }
 
-    [Serialized(
-        "Texture",
-        DefaultSource = nameof(GetTextureAttributeDefault),
-        Setter = nameof(SetTextureAttr),
-        Order = 8
-    )]
+    [Serialized("Texture", DefaultSource = nameof(GetTextureAttributeDefault), Setter = nameof(SetTextureAttr))]
     public ResourceRef GetTextureAttr() =>
         ResourceType.GetResourceRef(_texture, new StringHash(nameof(TextureCube)));
 
@@ -874,12 +844,7 @@ public partial class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
         }
     }
 
-    [Serialized(
-        "Texture Size",
-        DefaultSource = nameof(GetTextureSizeAttributeDefault),
-        Setter = nameof(SetTextureSize),
-        Order = 12
-    )]
+    [Serialized("Texture Size", DefaultSource = nameof(GetTextureSizeAttributeDefault), Setter = nameof(SetTextureSize))]
     public uint GetTextureSize() => _cubemapRenderingSettings.TextureSize;
 
     public void SetViewMask(uint value)
@@ -888,12 +853,7 @@ public partial class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
             _cubemapRenderingSettings.ViewMask = value;
     }
 
-    [Serialized(
-        "View Mask",
-        DefaultSource = nameof(GetViewMaskAttributeDefault),
-        Setter = nameof(SetViewMask),
-        Order = 13
-    )]
+    [Serialized("View Mask", DefaultSource = nameof(GetViewMaskAttributeDefault), Setter = nameof(SetViewMask))]
     public uint GetViewMask() => _cubemapRenderingSettings.ViewMask;
 
     public void SetNearClip(float value)
@@ -902,12 +862,7 @@ public partial class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
             _cubemapRenderingSettings.NearClip = value;
     }
 
-    [Serialized(
-        "Near Clip",
-        DefaultSource = nameof(GetNearClipAttributeDefault),
-        Setter = nameof(SetNearClip),
-        Order = 14
-    )]
+    [Serialized("Near Clip", DefaultSource = nameof(GetNearClipAttributeDefault), Setter = nameof(SetNearClip))]
     public float GetNearClip() => _cubemapRenderingSettings.NearClip;
 
     public void SetFarClip(float value)
@@ -916,12 +871,7 @@ public partial class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
             _cubemapRenderingSettings.FarClip = value;
     }
 
-    [Serialized(
-        "Far Clip",
-        DefaultSource = nameof(GetFarClipAttributeDefault),
-        Setter = nameof(SetFarClip),
-        Order = 15
-    )]
+    [Serialized("Far Clip", DefaultSource = nameof(GetFarClipAttributeDefault), Setter = nameof(SetFarClip))]
     public float GetFarClip() => _cubemapRenderingSettings.FarClip;
 
     public ref readonly ReflectionProbeData GetProbeData() => ref _data.Value;
@@ -1029,13 +979,7 @@ public partial class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
 
     private static object? GetBoundingBoxMinAttributeDefault() => -Vector3f.One;
 
-    [Serialized(
-        "Bounding Box Min",
-        typeof(Vector3f),
-        DefaultSource = nameof(GetBoundingBoxMinAttributeDefault),
-        Setter = nameof(SetSerializedBoundingBoxMin),
-        Order = 5
-    )]
+    [Serialized("Bounding Box Min", typeof(Vector3f), DefaultSource = nameof(GetBoundingBoxMinAttributeDefault), Setter = nameof(SetSerializedBoundingBoxMin))]
     private object? GetSerializedBoundingBoxMin()
     {
         Serializable self = this;
@@ -1052,13 +996,7 @@ public partial class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
 
     private static object? GetBoundingBoxMaxAttributeDefault() => Vector3f.One;
 
-    [Serialized(
-        "Bounding Box Max",
-        typeof(Vector3f),
-        DefaultSource = nameof(GetBoundingBoxMaxAttributeDefault),
-        Setter = nameof(SetSerializedBoundingBoxMax),
-        Order = 6
-    )]
+    [Serialized("Bounding Box Max", typeof(Vector3f), DefaultSource = nameof(GetBoundingBoxMaxAttributeDefault), Setter = nameof(SetSerializedBoundingBoxMax))]
     private object? GetSerializedBoundingBoxMax()
     {
         Serializable self = this;
@@ -1079,13 +1017,7 @@ public partial class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
 
     private static object? GetProjectionBoxMinAttributeDefault() => -Vector3f.One;
 
-    [Serialized(
-        "Projection Box Min",
-        typeof(Vector3f),
-        DefaultSource = nameof(GetProjectionBoxMinAttributeDefault),
-        Setter = nameof(SetSerializedProjectionBoxMin),
-        Order = 10
-    )]
+    [Serialized("Projection Box Min", typeof(Vector3f), DefaultSource = nameof(GetProjectionBoxMinAttributeDefault), Setter = nameof(SetSerializedProjectionBoxMin))]
     private object? GetSerializedProjectionBoxMin()
     {
         Serializable self = this;
@@ -1102,13 +1034,7 @@ public partial class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
 
     private static object? GetProjectionBoxMaxAttributeDefault() => Vector3f.One;
 
-    [Serialized(
-        "Projection Box Max",
-        typeof(Vector3f),
-        DefaultSource = nameof(GetProjectionBoxMaxAttributeDefault),
-        Setter = nameof(SetSerializedProjectionBoxMax),
-        Order = 11
-    )]
+    [Serialized("Projection Box Max", typeof(Vector3f), DefaultSource = nameof(GetProjectionBoxMaxAttributeDefault), Setter = nameof(SetSerializedProjectionBoxMax))]
     private object? GetSerializedProjectionBoxMax()
     {
         Serializable self = this;
@@ -1132,11 +1058,7 @@ public partial class ReflectionProbe : TrackedComponent<ReflectionProbeManager>
     private static object? GetFarClipAttributeDefault() => CubemapRenderingSettings.DefaultFarClip;
 
 
-    [Serialized(
-        "Is Enabled",
-        DefaultSource = nameof(GetIsEnabledAttributeDefault),
-        Order = 0
-    )]
+    [Serialized("Is Enabled", DefaultSource = nameof(GetIsEnabledAttributeDefault))]
     private bool SerializedIsEnabled
     {
         get => Enabled;

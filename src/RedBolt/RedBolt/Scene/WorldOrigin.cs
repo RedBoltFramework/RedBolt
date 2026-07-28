@@ -133,39 +133,20 @@ public partial class WorldOrigin : LogicComponent
     /// </summary>
     public uint GetUpdateZ() => _updateZ ? 1u : 0u;
 
-    [Serialized(
-        "Max Distance",
-        Order = 1
-    )]
+    [Serialized("Max Distance")]
     private uint _maxDistance = MaxDistance;
-    [Serialized(
-        "Step",
-        Order = 2
-    )]
+    [Serialized("Step")]
     private uint _step = DefaultStep;
-    [Serialized(
-        "Update X",
-        Order = 3
-    )]
+    [Serialized("Update X")]
     private bool _updateX = true;
-    [Serialized(
-        "Update Y",
-        Order = 4
-    )]
+    [Serialized("Update Y")]
     private bool _updateY;
-    [Serialized(
-        "Update Z",
-        Order = 5
-    )]
+    [Serialized("Update Z")]
     private bool _updateZ = true;
 
     private static object? GetIsEnabledAttributeDefault() => true;
 
-    [Serialized(
-        "Is Enabled",
-        DefaultSource = nameof(GetIsEnabledAttributeDefault),
-        Order = 0
-    )]
+    [Serialized("Is Enabled", DefaultSource = nameof(GetIsEnabledAttributeDefault))]
     private bool SerializedIsEnabled
     {
         get => Enabled;

@@ -57,40 +57,19 @@ public partial class IKHeadSolver : IKSolverComponent
     [Serialized("Look At Target Name")]
     public string LookAtTargetName { get => _lookAtTargetName; set { _lookAtTargetName = value; OnTreeDirty(); } }
 
-    [Serialized(
-        "Position Weight",
-        Setter = nameof(SetPositionWeightAttribute)
-    )]
+    [Serialized("Position Weight", Setter = nameof(SetPositionWeightAttribute))]
     public float PositionWeight { get => _positionWeight; set => _positionWeight = value; }
-    [Serialized(
-        "Rotation Weight",
-        Setter = nameof(SetRotationWeightAttribute)
-    )]
+    [Serialized("Rotation Weight", Setter = nameof(SetRotationWeightAttribute))]
     public float RotationWeight { get => _rotationWeight; set => _rotationWeight = value; }
-    [Serialized(
-        "Direction Weight",
-        Setter = nameof(SetDirectionWeightAttribute)
-    )]
+    [Serialized("Direction Weight", Setter = nameof(SetDirectionWeightAttribute))]
     public float DirectionWeight { get => _directionWeight; set => _directionWeight = value; }
-    [Serialized(
-        "Look At Weight",
-        Setter = nameof(SetLookAtWeightAttribute)
-    )]
+    [Serialized("Look At Weight", Setter = nameof(SetLookAtWeightAttribute))]
     public float LookAtWeight { get => _lookAtWeight; set => _lookAtWeight = value; }
-    [Serialized(
-        "Eye Direction",
-        Setter = nameof(SetEyeDirectionAttribute)
-    )]
+    [Serialized("Eye Direction", Setter = nameof(SetEyeDirectionAttribute))]
     public Vector3f EyeDirection { get => _eyeDirection; set => _eyeDirection = value; }
-    [Serialized(
-        "Eye Offset",
-        Setter = nameof(SetEyeOffsetAttribute)
-    )]
+    [Serialized("Eye Offset", Setter = nameof(SetEyeOffsetAttribute))]
     public Vector3f EyeOffset { get => _eyeOffset; set => _eyeOffset = value; }
-    [Serialized(
-        "Neck Weight",
-        Setter = nameof(SetNeckWeightAttribute)
-    )]
+    [Serialized("Neck Weight", Setter = nameof(SetNeckWeightAttribute))]
     public float NeckWeight { get => _neckWeight; set => _neckWeight = value; }
 
     private void SetPositionWeightAttribute(float value)

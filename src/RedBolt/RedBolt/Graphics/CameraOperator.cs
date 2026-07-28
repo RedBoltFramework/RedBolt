@@ -46,16 +46,10 @@ public partial class CameraOperator : Component
     private readonly VariantVector _nodeIdsAttr = [];
     private bool _nodesDirty;
     private bool _nodeIdsDirty;
-    [Serialized(
-        "Track Bounding Box",
-        Order = 2
-    )]
+    [Serialized("Track Bounding Box")]
     private bool _boundingBoxEnabled;
     private BoundingBox _boundingBox = new();
-    [Serialized(
-        "Padding",
-        Order = 1
-    )]
+    [Serialized("Padding")]
     private Rect _padding = Rect.Zero;
     private readonly List<Vector3f> _points = [];
 
@@ -153,14 +147,7 @@ public partial class CameraOperator : Component
     /// <summary>
     /// Return node IDs attribute.
     /// </summary>
-    [Serialized(
-        "Tracked Nodes",
-        Configure = nameof(ConfigureTrackedNodesAttribute),
-        DefaultSource = nameof(GetTrackedNodesAttributeDefault),
-        Mode = AttributeMode.Default | AttributeMode.NodeIdVector,
-        Setter = nameof(SetNodeIDsAttr),
-        Order = 5
-    )]
+    [Serialized("Tracked Nodes", Configure = nameof(ConfigureTrackedNodesAttribute), DefaultSource = nameof(GetTrackedNodesAttributeDefault), Mode = AttributeMode.Default | AttributeMode.NodeIdVector, Setter = nameof(SetNodeIDsAttr))]
     public VariantVector GetNodeIDsAttr()
     {
         if (_nodeIdsDirty)
@@ -471,13 +458,7 @@ public partial class CameraOperator : Component
 
     private static object? GetBoundingBoxMinAttributeDefault() => -Vector3f.One;
 
-    [Serialized(
-        "Bounding Box Min",
-        typeof(Vector3f),
-        DefaultSource = nameof(GetBoundingBoxMinAttributeDefault),
-        Setter = nameof(SetSerializedBoundingBoxMin),
-        Order = 3
-    )]
+    [Serialized("Bounding Box Min", typeof(Vector3f), DefaultSource = nameof(GetBoundingBoxMinAttributeDefault), Setter = nameof(SetSerializedBoundingBoxMin))]
     private object? GetSerializedBoundingBoxMin()
     {
         Serializable self = this;
@@ -495,13 +476,7 @@ public partial class CameraOperator : Component
 
     private static object? GetBoundingBoxMaxAttributeDefault() => Vector3f.One;
 
-    [Serialized(
-        "Bounding Box Max",
-        typeof(Vector3f),
-        DefaultSource = nameof(GetBoundingBoxMaxAttributeDefault),
-        Setter = nameof(SetSerializedBoundingBoxMax),
-        Order = 4
-    )]
+    [Serialized("Bounding Box Max", typeof(Vector3f), DefaultSource = nameof(GetBoundingBoxMaxAttributeDefault), Setter = nameof(SetSerializedBoundingBoxMax))]
     private object? GetSerializedBoundingBoxMax()
     {
         Serializable self = this;
@@ -532,15 +507,7 @@ public partial class CameraOperator : Component
         attribute.SetMetadata(AttributeMetadata.IsAction, true);
     }
 
-    [Serialized(
-        "Update Camera",
-        typeof(bool),
-        Configure = nameof(ConfigureUpdateCameraAttribute),
-        DefaultSource = nameof(GetUpdateCameraAttributeDefault),
-        Mode = AttributeMode.Edit,
-        Setter = nameof(SetSerializedUpdateCamera),
-        Order = 6
-    )]
+    [Serialized("Update Camera", typeof(bool), Configure = nameof(ConfigureUpdateCameraAttribute), DefaultSource = nameof(GetUpdateCameraAttributeDefault), Mode = AttributeMode.Edit, Setter = nameof(SetSerializedUpdateCamera))]
     private object? GetSerializedUpdateCamera() => "Move camera to keep tracked nodes and/or bounding box in frustum";
 
     private void SetSerializedUpdateCamera(object? value)
@@ -551,11 +518,7 @@ public partial class CameraOperator : Component
     }
 
 
-    [Serialized(
-        "Is Enabled",
-        DefaultSource = nameof(GetIsEnabledAttributeDefault),
-        Order = 0
-    )]
+    [Serialized("Is Enabled", DefaultSource = nameof(GetIsEnabledAttributeDefault))]
     private bool SerializedIsEnabled
     {
         get => Enabled;

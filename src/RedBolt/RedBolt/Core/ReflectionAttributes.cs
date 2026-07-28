@@ -61,8 +61,6 @@ public sealed class SerializedAttribute : Attribute
 
     public AttributeMode Mode { get; set; } = AttributeMode.Default;
 
-    public int Order { get; set; } = int.MaxValue;
-
     public string? Setter { get; set; }
 
     public AttributeScopeHint ScopeHint { get; set; } = AttributeScopeHint.Attribute;

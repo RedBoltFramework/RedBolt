@@ -71,20 +71,11 @@ public sealed partial class SceneResolverTests
     [Reflected]
     private sealed partial class ResolverProbe : Component
     {
-        [Serialized(
-            "Node ID",
-            Mode = AttributeMode.NodeId
-        )]
+        [Serialized("Node ID", Mode = AttributeMode.NodeId)]
         private uint _nodeId;
-        [Serialized(
-            "Component ID",
-            Mode = AttributeMode.ComponentId
-        )]
+        [Serialized("Component ID", Mode = AttributeMode.ComponentId)]
         private uint _componentId;
-        [Serialized(
-            "Node IDs",
-            Mode = AttributeMode.NodeIdVector
-        )]
+        [Serialized("Node IDs", Mode = AttributeMode.NodeIdVector)]
         private VariantVector _nodeIds = [];
 
         public uint NodeId => _nodeId;

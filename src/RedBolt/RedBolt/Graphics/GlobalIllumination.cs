@@ -19,24 +19,13 @@ public partial class GlobalIllumination : Component
     private static List<(uint First, uint Second)>? _edges;
 
     /// <summary>Emission indirect brightness.</summary>
-    [Serialized(
-        "Emission Brightness",
-        Order = 0
-    )]
+    [Serialized("Emission Brightness")]
     private float _emissionBrightness = 1.0f;
     /// <summary>Reference on file with GI data.</summary>
-    [Serialized(
-        "Data File",
-        Mode = AttributeMode.Default | AttributeMode.NoEdit,
-        Setter = nameof(SetFileRef),
-        Order = 2
-    )]
+    [Serialized("Data File", Mode = AttributeMode.Default | AttributeMode.NoEdit, Setter = nameof(SetFileRef))]
     private ResourceRef _fileRef = new(new StringHash(nameof(BinaryFile)));
     /// <summary>Offset.</summary>
-    [Serialized(
-        "Offset",
-        Order = 1
-    )]
+    [Serialized("Offset")]
     private Vector3f _offset;
     /// <summary>Light probes mesh.</summary>
     private TetrahedralMesh _lightProbesMesh = new();

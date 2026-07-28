@@ -55,10 +55,7 @@ public partial class IKChainSolver : IKSolverComponent
     }
 
 
-    [Serialized(
-        "Target Name",
-        Order = 1
-    )]
+    [Serialized("Target Name")]
     public string TargetName
     {
         get => _targetName;
@@ -101,11 +98,7 @@ public partial class IKChainSolver : IKSolverComponent
         _chain.Solve(target!.WorldPosition, settings);
     }
 
-    [Serialized(
-        "Bone Names",
-        Setter = nameof(SetBoneNames),
-        Order = 0
-    )]
+    [Serialized("Bone Names", Setter = nameof(SetBoneNames))]
     private StringVector _boneNames = new StringVector();
     private string _targetName = string.Empty;
 

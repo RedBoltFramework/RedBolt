@@ -60,11 +60,7 @@ public partial class BillboardSet : Drawable
     /// <summary>Billboards.</summary>
     protected readonly List<Billboard> _billboards = [];
     /// <summary>Animation LOD bias.</summary>
-    [Serialized(
-        "Animation LOD Bias",
-        Order = 12,
-        Setter = nameof(SetAnimationLodBias)
-    )]
+    [Serialized("Animation LOD Bias", Setter = nameof(SetAnimationLodBias))]
     protected float _animationLodBias = 1.0f;
     /// <summary>Animation LOD timer.</summary>
     protected float _animationLodTimer;
@@ -931,11 +927,7 @@ public partial class BillboardSet : Drawable
     private static object? GetIsEnabledAttributeDefault() => true;
 
 
-    [Serialized(
-        "Is Enabled",
-        DefaultSource = nameof(GetIsEnabledAttributeDefault),
-        Order = 0
-    )]
+    [Serialized("Is Enabled", DefaultSource = nameof(GetIsEnabledAttributeDefault))]
     private bool SerializedIsEnabled
     {
         get => Enabled;

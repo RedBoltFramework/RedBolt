@@ -229,12 +229,7 @@ public sealed partial class FullScreenShaderPass : RenderPass
 
     private static object? GetShaderNameAttributeDefault() => string.Empty;
 
-    [Serialized(
-        "Shader Name",
-        typeof(string),
-        DefaultSource = nameof(GetShaderNameAttributeDefault),
-        Setter = nameof(SetShaderName)
-    )]
+    [Serialized("Shader Name", typeof(string), DefaultSource = nameof(GetShaderNameAttributeDefault), Setter = nameof(SetShaderName))]
     private object? GetSerializedShaderName()
     {
         Serializable self = this;
@@ -243,12 +238,7 @@ public sealed partial class FullScreenShaderPass : RenderPass
 
     private static object? GetShaderDefinesAttributeDefault() => string.Empty;
 
-    [Serialized(
-        "Shader Defines",
-        typeof(string),
-        DefaultSource = nameof(GetShaderDefinesAttributeDefault),
-        Setter = nameof(SetShaderDefines)
-    )]
+    [Serialized("Shader Defines", typeof(string), DefaultSource = nameof(GetShaderDefinesAttributeDefault), Setter = nameof(SetShaderDefines))]
     private object? GetSerializedShaderDefines()
     {
         Serializable self = this;
@@ -257,12 +247,7 @@ public sealed partial class FullScreenShaderPass : RenderPass
 
     private static object? GetBlendModeAttributeDefault() => BlendMode.Replace;
 
-    [Serialized(
-        "Blend Mode",
-        typeof(BlendMode),
-        DefaultSource = nameof(GetBlendModeAttributeDefault),
-        Setter = nameof(SetBlendMode)
-    )]
+    [Serialized("Blend Mode", typeof(BlendMode), DefaultSource = nameof(GetBlendModeAttributeDefault), Setter = nameof(SetBlendMode))]
     private object? GetSerializedBlendMode()
     {
         Serializable self = this;
@@ -271,12 +256,7 @@ public sealed partial class FullScreenShaderPass : RenderPass
 
     private static object? GetReadWriteColorOutputAttributeDefault() => false;
 
-    [Serialized(
-        "Read+Write Color Output",
-        typeof(bool),
-        DefaultSource = nameof(GetReadWriteColorOutputAttributeDefault),
-        Setter = nameof(SetNeedReadWriteColorBuffer)
-    )]
+    [Serialized("Read+Write Color Output", typeof(bool), DefaultSource = nameof(GetReadWriteColorOutputAttributeDefault), Setter = nameof(SetNeedReadWriteColorBuffer))]
     private object? GetSerializedReadWriteColorOutput()
     {
         Serializable self = this;
@@ -285,12 +265,7 @@ public sealed partial class FullScreenShaderPass : RenderPass
 
     private static object? GetBilinearColorSamplerAttributeDefault() => false;
 
-    [Serialized(
-        "Bilinear Color Sampler",
-        typeof(bool),
-        DefaultSource = nameof(GetBilinearColorSamplerAttributeDefault),
-        Setter = nameof(SetSerializedBilinearColorSampler)
-    )]
+    [Serialized("Bilinear Color Sampler", typeof(bool), DefaultSource = nameof(GetBilinearColorSamplerAttributeDefault), Setter = nameof(SetSerializedBilinearColorSampler))]
     private object? GetSerializedBilinearColorSampler()
     {
         Serializable self = this;
@@ -305,12 +280,7 @@ public sealed partial class FullScreenShaderPass : RenderPass
 
     private static object? GetDisableOnDefaultParametersAttributeDefault() => false;
 
-    [Serialized(
-        "Disable On Default Parameters",
-        typeof(bool),
-        DefaultSource = nameof(GetDisableOnDefaultParametersAttributeDefault),
-        Setter = nameof(SetSerializedDisableOnDefaultParameters)
-    )]
+    [Serialized("Disable On Default Parameters", typeof(bool), DefaultSource = nameof(GetDisableOnDefaultParametersAttributeDefault), Setter = nameof(SetSerializedDisableOnDefaultParameters))]
     private object? GetSerializedDisableOnDefaultParameters()
     {
         Serializable self = this;
@@ -325,12 +295,7 @@ public sealed partial class FullScreenShaderPass : RenderPass
 
     private static object? GetParametersPrefixAttributeDefault() => string.Empty;
 
-    [Serialized(
-        "Parameters Prefix",
-        typeof(string),
-        DefaultSource = nameof(GetParametersPrefixAttributeDefault),
-        Setter = nameof(SetSerializedParametersPrefix)
-    )]
+    [Serialized("Parameters Prefix", typeof(string), DefaultSource = nameof(GetParametersPrefixAttributeDefault), Setter = nameof(SetSerializedParametersPrefix))]
     private object? GetSerializedParametersPrefix()
     {
         Serializable self = this;
@@ -345,12 +310,7 @@ public sealed partial class FullScreenShaderPass : RenderPass
 
     private static object? GetParametersAttributeDefault() => null;
 
-    [Serialized(
-        "Parameters",
-        typeof(StringVariantMap),
-        DefaultSource = nameof(GetParametersAttributeDefault),
-        Setter = nameof(SetParameters)
-    )]
+    [Serialized("Parameters", typeof(StringVariantMap), DefaultSource = nameof(GetParametersAttributeDefault), Setter = nameof(SetParameters))]
     private object? GetSerializedParameters()
     {
         Serializable self = this;

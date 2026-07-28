@@ -42,7 +42,7 @@
 - [x] Capture and resolve OpenGL warnings produced by `08_Decals`, `20_HugeObjectCount`, and the remaining sample audit
 - [x] Profile steady-state GC allocations for every sample and remove hot-path GC churn that is absent from rbfx
 - [x] Remove the `EndFrame(image)` API deviation; subscribe to the EndFrame event and perform frame capture from the event handler as in rbfx
-- [x] Audit and port every rbfx `RegisterObject` body into generated reflection declarations, including exact factory categories and non-factory semantics, attribute order/defaults/modes/scope hints/enum names, removals, metadata configuration, and type-level base-attribute copying; remove the manual registration APIs and call sites
+- [x] Audit and port every rbfx `RegisterObject` body into generated reflection declarations, including exact factory categories and non-factory semantics, source-member attribute order/defaults/modes/scope hints/enum names, removals, metadata configuration, and type-level base-attribute copying; remove the manual registration APIs and call sites
 - [x] Make unit tests headless by default so they never create short-lived desktop windows; permit a real window only for behavior that cannot be verified headlessly
 - [x] Remove the `ContextEventSubscription` API deviation and restore rbfx-aligned event subscription ownership and lifetime behavior
 

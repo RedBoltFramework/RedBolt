@@ -89,11 +89,7 @@ public partial class MoveAndOrbitController : Component
     }
 
     /// <summary>Return input map attribute.</summary>
-    [Serialized(
-        "InputSystem Map",
-        DefaultSource = nameof(GetInputSystemMapAttributeDefault),
-        Setter = nameof(SetInputMapAttr)
-    )]
+    [Serialized("InputSystem Map", DefaultSource = nameof(GetInputSystemMapAttributeDefault), Setter = nameof(SetInputMapAttr))]
     public ResourceRef GetInputMapAttr()
     {
         return ResourceType.GetResourceRef(GetInputMap(), ObjectReflection<InputMap>.TypeId);

@@ -354,11 +354,7 @@ public partial class NavigationMesh : Component
     public bool IsInitialized => _navMesh is not null;
 
     /// <summary>Return or set the partition type used for polygon generation.</summary>
-    [Serialized(
-        "Partition Type",
-        DefaultSource = nameof(GetDefaultPartitionType),
-        EnumNames = ["watershed", "monotone"]
-    )]
+    [Serialized("Partition Type", DefaultSource = nameof(GetDefaultPartitionType), EnumNames = ["watershed", "monotone"])]
     public NavmeshPartitionType PartitionType
     {
         get => _partitionType;
@@ -366,11 +362,7 @@ public partial class NavigationMesh : Component
     }
 
     /// <summary>Set or return navigation data attribute.</summary>
-    [Serialized(
-        "Navigation Data",
-        DefaultSource = nameof(GetDefaultNavigationData),
-        Mode = AttributeMode.Default | AttributeMode.NoEdit
-    )]
+    [Serialized("Navigation Data", DefaultSource = nameof(GetDefaultNavigationData), Mode = AttributeMode.Default | AttributeMode.NoEdit)]
     public virtual byte[] NavigationData
     {
         get => GetNavigationDataAttr();

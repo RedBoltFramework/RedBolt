@@ -14,10 +14,7 @@ public sealed partial class SoundListener : Component
     private static object? GetIsEnabledAttributeDefault() => true;
 
 
-    [Serialized(
-        "Is Enabled",
-        DefaultSource = nameof(GetIsEnabledAttributeDefault)
-    )]
+    [Serialized("Is Enabled", DefaultSource = nameof(GetIsEnabledAttributeDefault))]
     private bool SerializedIsEnabled
     {
         get => Enabled;

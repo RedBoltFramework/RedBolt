@@ -418,19 +418,9 @@ public partial class PrefabReference : Component
     }
 
     private PrefabResource? _prefab;
-    [Serialized(
-        "Prefab",
-        Mode = AttributeMode.Default,
-        Setter = nameof(SetPrefabAttr),
-        ScopeHint = AttributeScopeHint.Node
-    )]
+    [Serialized("Prefab", Mode = AttributeMode.Default, Setter = nameof(SetPrefabAttr), ScopeHint = AttributeScopeHint.Node)]
     private ResourceRef _prefabRef = new(nameof(PrefabResource));
-    [Serialized(
-        "Path",
-        Mode = AttributeMode.Default,
-        Setter = nameof(SetPath),
-        ScopeHint = AttributeScopeHint.Node
-    )]
+    [Serialized("Path", Mode = AttributeMode.Default, Setter = nameof(SetPath), ScopeHint = AttributeScopeHint.Node)]
     private string _path = string.Empty;
     private bool _prefabDirty;
     private Node? _instanceNode;

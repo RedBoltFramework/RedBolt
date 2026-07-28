@@ -39,11 +39,7 @@ public partial class Node : Serializable
     private Matrix3x4 _worldTransform = Matrix3x4.Identity;
     private bool _dirty;
     private bool _enabled = true;
-    [Serialized(
-        "Is Enabled",
-        Setter = nameof(SetEnabled),
-        Order = 0
-    )]
+    [Serialized("Is Enabled", Setter = nameof(SetEnabled))]
     private bool _enabledPrev = true;
     private Node? _parent;
     private Scene? _scene;
@@ -57,11 +53,7 @@ public partial class Node : Serializable
     private readonly List<WeakReference<Component>> _listeners = [];
     // NodeImpl.
     private readonly List<Node> _dependencyNodes = [];
-    [Serialized(
-        "Name",
-        Setter = nameof(SetName),
-        Order = 1
-    )]
+    [Serialized("Name", Setter = nameof(SetName))]
     private string _name = string.Empty;
     private readonly List<string> _tags = [];
     private StringHash _nameHash;
@@ -709,20 +701,10 @@ public partial class Node : Serializable
 
     public IReadOnlyList<Component> Components => _components;
 
-    [Serialized(
-        "Tags",
-        DefaultSource = nameof(GetTagsAttributeDefault),
-        Setter = nameof(SetTags),
-        Order = 2
-    )]
+    [Serialized("Tags", DefaultSource = nameof(GetTagsAttributeDefault), Setter = nameof(SetTags))]
     public IReadOnlyList<string> Tags => _tags;
 
-    [Serialized(
-        "Variables",
-        DefaultSource = nameof(GetVariablesAttributeDefault),
-        Setter = nameof(SetSerializedVariables),
-        Order = 6
-    )]
+    [Serialized("Variables", DefaultSource = nameof(GetVariablesAttributeDefault), Setter = nameof(SetSerializedVariables))]
     public IReadOnlyDictionary<StringHash, object?> Variables => _variables;
 
     public uint Id => _id;
@@ -745,32 +727,21 @@ public partial class Node : Serializable
 
     public Node? Parent => _parent;
 
-    [Serialized(
-        "Position",
-        AccessorFactory = nameof(CreatePositionAttributeAccessor),
-        Order = 3
-    )]
+    [Serialized("Position", AccessorFactory = nameof(CreatePositionAttributeAccessor))]
     public Vector3f Position
     {
         get => _position;
         set => SetPosition(value);
     }
 
-    [Serialized(
-        "Rotation",
-        Order = 4
-    )]
+    [Serialized("Rotation")]
     public Quaternion Rotation
     {
         get => _rotation;
         set => SetRotation(value);
     }
 
-    [Serialized(
-        "Scale",
-        AccessorFactory = nameof(CreateScaleAttributeAccessor),
-        Order = 5
-    )]
+    [Serialized("Scale", AccessorFactory = nameof(CreateScaleAttributeAccessor))]
     public Vector3f Scale
     {
         get => _scale;
@@ -779,10 +750,7 @@ public partial class Node : Serializable
 
     public Scene? Scene => _scene;
 
-    [Serialized(
-        "World Origin Update Mode",
-        Order = 7
-    )]
+    [Serialized("World Origin Update Mode")]
     public WorldOriginUpdateMode WorldOriginUpdateMode
     {
         get => _worldOriginUpdateMode;

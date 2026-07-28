@@ -65,41 +65,20 @@ public partial class IKSpineSolver : IKSolverComponent
     }
 
 
-    [Serialized(
-        "Target Name",
-        Order = 1001
-    )]
+    [Serialized("Target Name")]
     public string TargetName { get => _targetName; set { _targetName = value; OnTreeDirty(); } }
-    [Serialized(
-        "Twist Target Name",
-        Order = 1002
-    )]
+    [Serialized("Twist Target Name")]
     public string TwistTargetName { get => _twistTargetName; set { _twistTargetName = value; OnTreeDirty(); } }
 
-    [Serialized(
-        "Position Weight",
-        Order = 1003
-    )]
+    [Serialized("Position Weight")]
     public float PositionWeight { get => _positionWeight; set => _positionWeight = value; }
-    [Serialized(
-        "Rotation Weight",
-        Order = 1004
-    )]
+    [Serialized("Rotation Weight")]
     public float RotationWeight { get => _rotationWeight; set => _rotationWeight = value; }
-    [Serialized(
-        "Twist Weight",
-        Order = 1005
-    )]
+    [Serialized("Twist Weight")]
     public float TwistWeight { get => _twistWeight; set => _twistWeight = value; }
-    [Serialized(
-        "Max Angle",
-        Order = 1006
-    )]
+    [Serialized("Max Angle")]
     public float MaxAngle { get => _maxAngle; set => _maxAngle = value; }
-    [Serialized(
-        "Bend Tweak",
-        Order = 1007
-    )]
+    [Serialized("Bend Tweak")]
     public float BendTweak { get => _bendTweak; set => _bendTweak = value; }
 
     /// <summary>Implement IKSolverComponent.</summary>
@@ -268,11 +247,7 @@ public partial class IKSpineSolver : IKSolverComponent
     }
 
 
-    [Serialized(
-        "Bone Names",
-        Setter = nameof(SetBoneNames),
-        Order = 0
-    )]
+    [Serialized("Bone Names", Setter = nameof(SetBoneNames))]
     private StringVector _boneNames = new StringVector();
     private string _twistTargetName = string.Empty;
     private string _targetName = string.Empty;

@@ -54,27 +54,13 @@ public partial class Terrain : Component
     private float[]? _heightData;
     private float[]? _sourceHeightData;
     private Material? _material;
-    [Serialized(
-        "Bake Lightmap",
-        Order = 22
-    )]
+    [Serialized("Bake Lightmap")]
     private bool _bakeLightmap;
-    [Serialized(
-        "Scale in Lightmap",
-        Order = 23
-    )]
+    [Serialized("Scale in Lightmap")]
     private float _scaleInLightmap = 1.0f;
-    [Serialized(
-        "Lightmap Index",
-        Mode = AttributeMode.Default | AttributeMode.NoEdit,
-        Order = 24
-    )]
+    [Serialized("Lightmap Index", Mode = AttributeMode.Default | AttributeMode.NoEdit)]
     private uint _lightmapIndex;
-    [Serialized(
-        "Lightmap Scale & Offset",
-        Mode = AttributeMode.Default | AttributeMode.NoEdit,
-        Order = 25
-    )]
+    [Serialized("Lightmap Scale & Offset", Mode = AttributeMode.Default | AttributeMode.NoEdit)]
     private Vector4f _lightmapScaleOffset = new(1.0f, 1.0f, 0.0f, 0.0f);
     private readonly List<WeakReference<TerrainPatch>> _patches = [];
     private readonly List<(uint Start, uint Count)> _drawRanges = [];
@@ -82,10 +68,7 @@ public partial class Terrain : Component
     private WeakReference<Terrain>? _south;
     private WeakReference<Terrain>? _west;
     private WeakReference<Terrain>? _east;
-    [Serialized(
-        "Vertex Spacing",
-        Order = 7
-    )]
+    [Serialized("Vertex Spacing")]
     private Vector3f _spacing = DefaultSpacing;
     private Vector3f _lastSpacing = Vector3f.Zero;
     private Vector2f _patchWorldOrigin = Vector2f.Zero;
@@ -93,115 +76,44 @@ public partial class Terrain : Component
     private Vector2i _numVertices = Vector2i.Zero;
     private Vector2i _lastNumVertices = Vector2i.Zero;
     private Vector2i _numPatches = Vector2i.Zero;
-    [Serialized(
-        "Patch Size",
-        Setter = nameof(SetPatchSizeAttr),
-        Order = 8
-    )]
+    [Serialized("Patch Size", Setter = nameof(SetPatchSizeAttr))]
     private int _patchSize = DefaultPatchSize;
     private int _lastPatchSize;
     private uint _numLodLevels = 1;
-    [Serialized(
-        "Max LOD Levels",
-        Setter = nameof(SetMaxLodLevelsAttr),
-        Order = 9
-    )]
+    [Serialized("Max LOD Levels", Setter = nameof(SetMaxLodLevelsAttr))]
     private uint _maxLodLevels = MaxLodLevelsConst;
-    [Serialized(
-        "Occlusion LOD level",
-        Setter = nameof(SetOcclusionLodLevelAttr),
-        Order = 21
-    )]
+    [Serialized("Occlusion LOD level", Setter = nameof(SetOcclusionLodLevelAttr))]
     private uint _occlusionLodLevel = MathDefs.MaxUnsigned;
-    [Serialized(
-        "Smooth Height Map",
-        Order = 10
-    )]
+    [Serialized("Smooth Height Map")]
     private bool _smoothing;
     private bool _visible = true;
-    [Serialized(
-        "Cast Shadows",
-        Setter = nameof(SetCastShadows),
-        Order = 13
-    )]
+    [Serialized("Cast Shadows", Setter = nameof(SetCastShadows))]
     private bool _castShadows;
-    [Serialized(
-        "Is Occluder",
-        Setter = nameof(SetOccluder),
-        Order = 11
-    )]
+    [Serialized("Is Occluder", Setter = nameof(SetOccluder))]
     private bool _occluder;
-    [Serialized(
-        "Can Be Occluded",
-        Setter = nameof(SetOccludee),
-        Order = 12
-    )]
+    [Serialized("Can Be Occluded", Setter = nameof(SetOccludee))]
     private bool _occludee = true;
-    [Serialized(
-        "View Mask",
-        Setter = nameof(SetViewMask),
-        Order = 17
-    )]
+    [Serialized("View Mask", Setter = nameof(SetViewMask))]
     private uint _viewMask = Drawable.DefaultViewMask;
-    [Serialized(
-        "Light Mask",
-        Setter = nameof(SetLightMask),
-        Order = 18
-    )]
+    [Serialized("Light Mask", Setter = nameof(SetLightMask))]
     private uint _lightMask = Drawable.DefaultLightMask;
-    [Serialized(
-        "Shadow Mask",
-        Setter = nameof(SetShadowMask),
-        Order = 19
-    )]
+    [Serialized("Shadow Mask", Setter = nameof(SetShadowMask))]
     private uint _shadowMask = Drawable.DefaultShadowMask;
-    [Serialized(
-        "Zone Mask",
-        Setter = nameof(SetZoneMask),
-        Order = 20
-    )]
+    [Serialized("Zone Mask", Setter = nameof(SetZoneMask))]
     private uint _zoneMask = Drawable.DefaultZoneMask;
-    [Serialized(
-        "Draw Distance",
-        Setter = nameof(SetDrawDistance),
-        Order = 14
-    )]
+    [Serialized("Draw Distance", Setter = nameof(SetDrawDistance))]
     private float _drawDistance;
-    [Serialized(
-        "Shadow Distance",
-        Setter = nameof(SetShadowDistance),
-        Order = 15
-    )]
+    [Serialized("Shadow Distance", Setter = nameof(SetShadowDistance))]
     private float _shadowDistance;
-    [Serialized(
-        "LOD Bias",
-        Setter = nameof(SetLodBias),
-        Order = 16
-    )]
+    [Serialized("LOD Bias", Setter = nameof(SetLodBias))]
     private float _lodBias = 1.0f;
-    [Serialized(
-        "North Neighbor NodeID",
-        Mode = AttributeMode.Default | AttributeMode.NodeId,
-        Order = 3
-    )]
+    [Serialized("North Neighbor NodeID", Mode = AttributeMode.Default | AttributeMode.NodeId)]
     private uint _northID;
-    [Serialized(
-        "South Neighbor NodeID",
-        Mode = AttributeMode.Default | AttributeMode.NodeId,
-        Order = 4
-    )]
+    [Serialized("South Neighbor NodeID", Mode = AttributeMode.Default | AttributeMode.NodeId)]
     private uint _southID;
-    [Serialized(
-        "West Neighbor NodeID",
-        Mode = AttributeMode.Default | AttributeMode.NodeId,
-        Order = 5
-    )]
+    [Serialized("West Neighbor NodeID", Mode = AttributeMode.Default | AttributeMode.NodeId)]
     private uint _westID;
-    [Serialized(
-        "East Neighbor NodeID",
-        Mode = AttributeMode.Default | AttributeMode.NodeId,
-        Order = 6
-    )]
+    [Serialized("East Neighbor NodeID", Mode = AttributeMode.Default | AttributeMode.NodeId)]
     private uint _eastID;
     private bool _recreateTerrain;
     private bool _neighborsDirty;
@@ -913,19 +825,9 @@ public partial class Terrain : Component
         }
     }
 
-    [Serialized(
-        "Material",
-        DefaultSource = nameof(GetMaterialAttributeDefault),
-        Setter = nameof(SetMaterialAttr),
-        Order = 2
-    )]
+    [Serialized("Material", DefaultSource = nameof(GetMaterialAttributeDefault), Setter = nameof(SetMaterialAttr))]
     public ResourceRef GetMaterialAttr() => ResourceType.GetResourceRef(_material, new StringHash(nameof(Material)));
-    [Serialized(
-        "Height Map",
-        DefaultSource = nameof(GetHeightMapAttributeDefault),
-        Setter = nameof(SetHeightMapAttr),
-        Order = 1
-    )]
+    [Serialized("Height Map", DefaultSource = nameof(GetHeightMapAttributeDefault), Setter = nameof(SetHeightMapAttr))]
     public ResourceRef GetHeightMapAttr() => ResourceType.GetResourceRef(_heightMap, new StringHash(nameof(Image)));
 
     public BoundingBox CalculateWorldBoundingBox()
@@ -1751,11 +1653,7 @@ public partial class Terrain : Component
     }
 
 
-    [Serialized(
-        "Is Enabled",
-        DefaultSource = nameof(GetIsEnabledAttributeDefault),
-        Order = 0
-    )]
+    [Serialized("Is Enabled", DefaultSource = nameof(GetIsEnabledAttributeDefault))]
     private bool SerializedIsEnabled
     {
         get => Enabled;

@@ -33,37 +33,17 @@ public sealed partial class Camera : Component
         0.0f, 0.0f, 1.0f, 0.0f,
         0.0f, 0.0f, 0.0f, 1.0f);
 
-    [Serialized(
-        "Aspect Ratio",
-        Setter = nameof(SetAspectRatioInternal),
-        Order = 4
-    )]
+    [Serialized("Aspect Ratio", Setter = nameof(SetAspectRatioInternal))]
     private float _aspectRatio = 1.0f;
     private float _farClip = DefaultFarClip;
-    [Serialized(
-        "FOV",
-        Setter = nameof(SetFov),
-        Order = 3
-    )]
+    [Serialized("FOV", Setter = nameof(SetFov))]
     private float _fov = DefaultFov;
-    [Serialized(
-        "LOD Bias",
-        Setter = nameof(SetLodBias),
-        Order = 10
-    )]
+    [Serialized("LOD Bias", Setter = nameof(SetLodBias))]
     private float _lodBias = 1.0f;
     private float _nearClip = DefaultNearClip;
-    [Serialized(
-        "Orthographic Size",
-        Setter = nameof(SetOrthoSizeAttr),
-        Order = 8
-    )]
+    [Serialized("Orthographic Size", Setter = nameof(SetOrthoSizeAttr))]
     private float _orthoSize = DefaultOrthoSize;
-    [Serialized(
-        "Zoom",
-        Setter = nameof(SetZoom),
-        Order = 9
-    )]
+    [Serialized("Zoom", Setter = nameof(SetZoom))]
     private float _zoom = 1.0f;
     private Plane _reflectionPlane = Plane.Up;
     private Plane _clipPlane = Plane.Up;
@@ -99,16 +79,10 @@ public sealed partial class Camera : Component
         set => SetAspectRatio(value);
     }
 
-    [Serialized(
-        "Auto Aspect Ratio",
-        Order = 6
-    )]
+    [Serialized("Auto Aspect Ratio")]
     public bool AutoAspectRatio { get; set; } = true;
 
-    [Serialized(
-        "Draw Debug Geometry",
-        Order = 21
-    )]
+    [Serialized("Draw Debug Geometry")]
     public bool DrawDebugGeometryEnabled { get; set; } = true;
 
     public Plane ClipPlane => _clipPlane;
@@ -129,10 +103,7 @@ public sealed partial class Camera : Component
         set => SetFarClip(value);
     }
 
-    [Serialized(
-        "Fill Mode",
-        Order = 5
-    )]
+    [Serialized("Fill Mode")]
     public FillMode FillMode { get; set; } = FillMode.Solid;
 
     public bool FlipVertical { get; set; }
@@ -163,11 +134,7 @@ public sealed partial class Camera : Component
         set => SetNearClip(value);
     }
 
-    [Serialized(
-        "Orthographic",
-        Setter = nameof(SetOrthographic),
-        Order = 7
-    )]
+    [Serialized("Orthographic", Setter = nameof(SetOrthographic))]
     public bool Orthographic { get; set; }
 
     public float OrthoSize
@@ -176,55 +143,31 @@ public sealed partial class Camera : Component
         set => SetOrthoSize(value);
     }
 
-    [Serialized(
-        "Primary View Mask",
-        Order = 12
-    )]
+    [Serialized("Primary View Mask")]
     public uint PrimaryViewMask { get; set; } = DefaultViewMask;
 
-    [Serialized(
-        "Projection Offset",
-        Setter = nameof(SetProjectionOffset),
-        Order = 16
-    )]
+    [Serialized("Projection Offset", Setter = nameof(SetProjectionOffset))]
     public Vector2f ProjectionOffset { get; set; }
 
-    [Serialized(
-        "Shadow View Mask",
-        Order = 13
-    )]
+    [Serialized("Shadow View Mask")]
     public uint ShadowViewMask { get; set; } = DefaultViewMask;
 
     public Plane ReflectionPlane => _reflectionPlane;
 
     public Zone? Zone => GetZone();
 
-    [Serialized(
-        "Use Clipping",
-        Setter = nameof(SetUseClipping),
-        Order = 20
-    )]
+    [Serialized("Use Clipping", Setter = nameof(SetUseClipping))]
     public bool UseClipping { get; set; }
 
-    [Serialized(
-        "Use Reflection",
-        Setter = nameof(SetUseReflection),
-        Order = 19
-    )]
+    [Serialized("Use Reflection", Setter = nameof(SetUseReflection))]
     public bool UseReflection { get; set; }
 
     public uint ViewMask => GetViewMask();
 
-    [Serialized(
-        "View Override Flags",
-        Order = 15
-    )]
+    [Serialized("View Override Flags")]
     public ViewOverride ViewOverrideFlags { get; set; }
 
-    [Serialized(
-        "Zone Mask",
-        Order = 14
-    )]
+    [Serialized("Zone Mask")]
     public uint ZoneMask { get; set; } = DefaultZoneMask;
 
     public float Zoom
@@ -371,12 +314,7 @@ public sealed partial class Camera : Component
         return viewPos.Z * viewPos.Z;
     }
 
-    [Serialized(
-        "Far Clip",
-        DefaultSource = nameof(GetFarClipAttributeDefault),
-        Setter = nameof(SetFarClip),
-        Order = 2
-    )]
+    [Serialized("Far Clip", DefaultSource = nameof(GetFarClipAttributeDefault), Setter = nameof(SetFarClip))]
     public float GetFarClip()
     {
         if (_projectionDirty)
@@ -402,12 +340,7 @@ public sealed partial class Camera : Component
         return !Orthographic ? distance / divisor : _orthoSize / divisor;
     }
 
-    [Serialized(
-        "Near Clip",
-        DefaultSource = nameof(GetNearClipAttributeDefault),
-        Setter = nameof(SetNearClip),
-        Order = 1
-    )]
+    [Serialized("Near Clip", DefaultSource = nameof(GetNearClipAttributeDefault), Setter = nameof(SetNearClip))]
     public float GetNearClip()
     {
         if (_projectionDirty)
@@ -640,12 +573,7 @@ public sealed partial class Camera : Component
         return Orthographic ? halfSize : halfSize * z;
     }
 
-    [Serialized(
-        "View Mask",
-        DefaultSource = nameof(GetViewMaskAttributeDefault),
-        Setter = nameof(SetViewMask),
-        Order = 11
-    )]
+    [Serialized("View Mask", DefaultSource = nameof(GetViewMaskAttributeDefault), Setter = nameof(SetViewMask))]
     public uint GetViewMask() => PrimaryViewMask | ShadowViewMask;
 
     public ViewOverride GetViewOverrideFlags() => ViewOverrideFlags;
@@ -807,12 +735,7 @@ public sealed partial class Camera : Component
         SetReflectionPlane(new Plane(value));
     }
 
-    [Serialized(
-        "Reflection Plane",
-        DefaultSource = nameof(GetReflectionPlaneAttributeDefault),
-        Setter = nameof(SetReflectionPlaneAttr),
-        Order = 17
-    )]
+    [Serialized("Reflection Plane", DefaultSource = nameof(GetReflectionPlaneAttributeDefault), Setter = nameof(SetReflectionPlaneAttr))]
     public Vector4f GetReflectionPlaneAttr() => _reflectionPlane.ToVector4();
 
     public void SetClipPlaneAttr(Vector4f value)
@@ -820,12 +743,7 @@ public sealed partial class Camera : Component
         SetClipPlane(new Plane(value));
     }
 
-    [Serialized(
-        "Clip Plane",
-        DefaultSource = nameof(GetClipPlaneAttributeDefault),
-        Setter = nameof(SetClipPlaneAttr),
-        Order = 18
-    )]
+    [Serialized("Clip Plane", DefaultSource = nameof(GetClipPlaneAttributeDefault), Setter = nameof(SetClipPlaneAttr))]
     public Vector4f GetClipPlaneAttr() => _clipPlane.ToVector4();
 
     public void SetViewMask(uint mask)
@@ -978,11 +896,7 @@ public sealed partial class Camera : Component
 
     private static object? GetClipPlaneAttributeDefault() => Plane.Up.ToVector4();
 
-    [Serialized(
-        "Is Enabled",
-        DefaultSource = nameof(GetIsEnabledAttributeDefault),
-        Order = 0
-    )]
+    [Serialized("Is Enabled", DefaultSource = nameof(GetIsEnabledAttributeDefault))]
     private bool SerializedIsEnabled
     {
         get => Enabled;

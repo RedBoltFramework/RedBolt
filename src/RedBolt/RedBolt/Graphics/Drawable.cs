@@ -349,20 +349,14 @@ public abstract partial class Drawable : Component
         set => SetOccludee(value);
     }
 
-    [Serialized(
-        "Global Illumination",
-        EnumNames = ["None", "Use LightMap", "Blend Light Probes"]
-    )]
+    [Serialized("Global Illumination", EnumNames = ["None", "Use LightMap", "Blend Light Probes"])]
     public GlobalIlluminationType GlobalIlluminationType
     {
         get => _globalIlluminationType;
         set => SetGlobalIlluminationType(value);
     }
 
-    [Serialized(
-        "Reflection Mode",
-        EnumNames = ["Zone", "Nearest Probe", "Blend Probes", "Blend Probes and Zone"]
-    )]
+    [Serialized("Reflection Mode", EnumNames = ["Zone", "Nearest Probe", "Blend Probes", "Blend Probes and Zone"])]
     public ReflectionMode ReflectionMode
     {
         get => _reflectionMode;

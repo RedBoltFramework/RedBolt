@@ -271,15 +271,14 @@ public sealed class ParticleEmitterTests
     }
 
     [Fact]
-    public void Constructor_registers_cpp_attributes_in_order()
+    public void Constructor_registers_attributes_in_member_declaration_order()
     {
         var emitter = new ParticleEmitter();
         var expectedNames = new[]
         {
-            "Is Enabled", "Effect", "Can Be Occluded", "Cast Shadows", "Draw Distance", "Shadow Distance",
-            "Animation LOD Bias", "Is Emitting", "Period Timer", "Emission Timer", "Autoremove Mode",
-            "View Mask", "Light Mask", "Shadow Mask", "Zone Mask", "Global Illumination", "Reflection Mode",
-            "Particles", "Billboards", "Serialize Particles"
+            "Effect", "Particles", "Billboards", "Period Timer", "Emission Timer", "Is Emitting",
+            "Serialize Particles", "Autoremove Mode", "Is Enabled", "Can Be Occluded", "Cast Shadows",
+            "Draw Distance", "Shadow Distance", "Animation LOD Bias"
         };
 
         var attributeIndex = 0;

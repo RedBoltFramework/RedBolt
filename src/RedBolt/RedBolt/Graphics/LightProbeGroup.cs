@@ -344,13 +344,7 @@ public partial class LightProbeGroup : Component
     }
 
     /// <summary>Return serialized light probes.</summary>
-    [Serialized(
-        "Serialized Light Probes",
-        DefaultSource = nameof(GetSerializedLightProbesAttributeDefault),
-        Mode = AttributeMode.Default | AttributeMode.NoEdit,
-        Setter = nameof(SetSerializedLightProbes),
-        Order = 7
-    )]
+    [Serialized("Serialized Light Probes", DefaultSource = nameof(GetSerializedLightProbesAttributeDefault), Mode = AttributeMode.Default | AttributeMode.NoEdit, Setter = nameof(SetSerializedLightProbes))]
     public string GetSerializedLightProbes()
     {
         using var buffer = new VectorBuffer();
@@ -433,41 +427,22 @@ public partial class LightProbeGroup : Component
     protected BoundingBox _localBoundingBox = new();
 
     /// <summary>Light mask of light probe group.</summary>
-    [Serialized(
-        "Light Mask",
-        Order = 1
-    )]
+    [Serialized("Light Mask")]
     protected uint _lightMask = Drawable.DefaultLightMask;
     /// <summary>Zone mask of light probe group.</summary>
-    [Serialized(
-        "Zone Mask",
-        Order = 2
-    )]
+    [Serialized("Zone Mask")]
     protected uint _zoneMask = Drawable.DefaultZoneMask;
     /// <summary>Whether the auto placement is enabled.</summary>
-    [Serialized(
-        "Auto Placement",
-        Setter = nameof(SetAutoPlacementEnabled),
-        Order = 3
-    )]
+    [Serialized("Auto Placement", Setter = nameof(SetAutoPlacementEnabled))]
     protected bool _autoPlacementEnabled = true;
     /// <summary>Automatic placement step.</summary>
-    [Serialized(
-        "Auto Placement Step",
-        Setter = nameof(SetAutoPlacementStep),
-        Order = 4
-    )]
+    [Serialized("Auto Placement Step", Setter = nameof(SetAutoPlacementStep))]
     protected float _autoPlacementStep = 1.0f;
     /// <summary>Last node scale used during auto placement.</summary>
     protected Vector3f _lastNodeScale;
 
     /// <summary>Reference on file with baked data.</summary>
-    [Serialized(
-        "Baked Data File",
-        Mode = AttributeMode.Default | AttributeMode.NoEdit,
-        Setter = nameof(SetBakedDataFileRef),
-        Order = 8
-    )]
+    [Serialized("Baked Data File", Mode = AttributeMode.Default | AttributeMode.NoEdit, Setter = nameof(SetBakedDataFileRef))]
     protected ResourceRef _bakedDataRef = new(new StringHash(nameof(BinaryFile)));
     /// <summary>Whether the baked data is dirty.</summary>
     protected bool _bakedDataDirty;
@@ -478,14 +453,7 @@ public partial class LightProbeGroup : Component
 
     private static object? GetLocalBoundingBoxMinAttributeDefault() => Vector3f.Zero;
 
-    [Serialized(
-        "Local Bounding Box Min",
-        typeof(Vector3f),
-        DefaultSource = nameof(GetLocalBoundingBoxMinAttributeDefault),
-        Mode = AttributeMode.Default | AttributeMode.NoEdit,
-        Setter = nameof(SetSerializedLocalBoundingBoxMin),
-        Order = 5
-    )]
+    [Serialized("Local Bounding Box Min", typeof(Vector3f), DefaultSource = nameof(GetLocalBoundingBoxMinAttributeDefault), Mode = AttributeMode.Default | AttributeMode.NoEdit, Setter = nameof(SetSerializedLocalBoundingBoxMin))]
     private object? GetSerializedLocalBoundingBoxMin()
     {
         Serializable self = this;
@@ -500,14 +468,7 @@ public partial class LightProbeGroup : Component
 
     private static object? GetLocalBoundingBoxMaxAttributeDefault() => Vector3f.Zero;
 
-    [Serialized(
-        "Local Bounding Box Max",
-        typeof(Vector3f),
-        DefaultSource = nameof(GetLocalBoundingBoxMaxAttributeDefault),
-        Mode = AttributeMode.Default | AttributeMode.NoEdit,
-        Setter = nameof(SetSerializedLocalBoundingBoxMax),
-        Order = 6
-    )]
+    [Serialized("Local Bounding Box Max", typeof(Vector3f), DefaultSource = nameof(GetLocalBoundingBoxMaxAttributeDefault), Mode = AttributeMode.Default | AttributeMode.NoEdit, Setter = nameof(SetSerializedLocalBoundingBoxMax))]
     private object? GetSerializedLocalBoundingBoxMax()
     {
         Serializable self = this;
@@ -522,11 +483,7 @@ public partial class LightProbeGroup : Component
 
     private static object? GetSerializedLightProbesAttributeDefault() => string.Empty;
 
-    [Serialized(
-        "Is Enabled",
-        DefaultSource = nameof(GetIsEnabledAttributeDefault),
-        Order = 0
-    )]
+    [Serialized("Is Enabled", DefaultSource = nameof(GetIsEnabledAttributeDefault))]
     private bool SerializedIsEnabled
     {
         get => Enabled;
