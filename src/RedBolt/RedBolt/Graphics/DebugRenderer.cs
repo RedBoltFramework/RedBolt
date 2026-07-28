@@ -699,7 +699,7 @@ public partial class DebugRenderer : Component
     private void InitializePipelineStates()
     {
         _pipelineStatesInitialized = true;
-        var graphics = GetSubsystem<GraphicsSystem>();
+        var graphics = GetSubsystem<Graphics>();
         if (graphics is null)
             return;
 

@@ -127,7 +127,7 @@ public class EngineSystem : RedObject
         Parameters = applicationParameters.Clone();
         var resources = GetSubsystem<ResourceCache>()!;
         var input = GetSubsystem<InputSystem>()!;
-        var graphics = GetSubsystem<GraphicsSystem>()!;
+        var graphics = GetSubsystem<Graphics>()!;
         var renderer = GetSubsystem<Renderer>()!;
 
         resources.RegisterDefaultResources();
@@ -225,7 +225,7 @@ public class EngineSystem : RedObject
             }
             catch (Exception exception)
             {
-                Log.GetLogger().LogError(exception, "GraphicsSystem initialization failed.");
+                Log.GetLogger().LogError(exception, "Graphics initialization failed.");
                 input.Shutdown();
                 throw;
             }
@@ -272,7 +272,7 @@ public class EngineSystem : RedObject
 
         var time = GetSubsystem<Time>()!;
         var input = GetSubsystem<InputSystem>()!;
-        var graphics = GetSubsystem<GraphicsSystem>()!;
+        var graphics = GetSubsystem<Graphics>()!;
         GetSubsystem<WorkQueue>()!.Update();
 
         if (!IsHeadless && !graphics.IsInitialized)
@@ -340,7 +340,7 @@ public class EngineSystem : RedObject
             width, height, isFullScreen ? " FullScreen" : " ", dpiScale);
 
         var input = GetSubsystem<InputSystem>();
-        var graphics = GetSubsystem<GraphicsSystem>();
+        var graphics = GetSubsystem<Graphics>();
         var mouseVisible = input?.MouseVisible ?? false;
         var mouseMode = input?.GetMouseMode() ?? MouseMode.Absolute;
 
@@ -459,7 +459,7 @@ public class EngineSystem : RedObject
         if (IsInitialized)
         {
             GetSubsystem<Renderer>()!.SetNumViewports(0);
-            GetSubsystem<GraphicsSystem>()!.Close();
+            GetSubsystem<Graphics>()!.Close();
             GetSubsystem<InputSystem>()!.Shutdown();
         }
         _configFile.Dispose();
@@ -567,7 +567,7 @@ public class EngineSystem : RedObject
     {
         if (!IsInitialized || IsHeadless)
             return;
-        var graphics = GetSubsystem<GraphicsSystem>()!;
+        var graphics = GetSubsystem<Graphics>()!;
         if (!graphics.BeginFrame())
             return;
 
@@ -659,7 +659,7 @@ public class EngineSystem : RedObject
         _context.InitializeEngineSubsystems(this);
 
         InputSystem.RegisterInputLibrary(_context);
-        GraphicsSystem.RegisterGraphicsLibrary(_context);
+        Graphics.RegisterGraphicsLibrary(_context);
         Scene.RegisterSceneLibrary(_context);
 
         GeneratedReflectionRegistration.RefreshExternalAssemblies(_context);
@@ -876,7 +876,7 @@ public class EngineSystem : RedObject
         if (!IsHeadless && !string.IsNullOrWhiteSpace(screenshotPath) && _screenshotFrameDelay-- <= 0)
         {
             using var screenshot = new Image();
-            if (GetSubsystem<GraphicsSystem>()!.TakeScreenShot(screenshot)
+            if (GetSubsystem<Graphics>()!.TakeScreenShot(screenshot)
                 && screenshot.SaveFile(new FileIdentifier(GetScreenshotPath(screenshotPath))))
             {
                 ++_screenshotIndex;
@@ -901,7 +901,7 @@ public class EngineSystem : RedObject
 
     private void DoExit()
     {
-        var graphics = GetSubsystem<GraphicsSystem>();
+        var graphics = GetSubsystem<Graphics>();
         if (graphics is not null)
         {
             graphics.SavePipelineStateCache(FileIdentifier.FromUri(Parameters.PsoCache));

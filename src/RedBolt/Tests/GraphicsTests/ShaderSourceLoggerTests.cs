@@ -19,7 +19,7 @@ public sealed class ShaderSourceLoggerTests
         try
         {
             context.InitializeEngineSubsystems(engine);
-            var graphics = context.GetSubsystem<GraphicsSystem>()!;
+            var graphics = context.GetSubsystem<Graphics>()!;
             var settings = graphics.GetSettings();
             settings.LogShaderSources = true;
             graphics.Configure(in settings);

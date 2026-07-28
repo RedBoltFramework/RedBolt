@@ -5,6 +5,7 @@ using System;
 using RedBolt;
 using RedBolt.Audio;
 using RedBolt.Bindings.DearImGui;
+using RedBolt.DearImGui;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Engine;

@@ -238,7 +238,7 @@ public class ShaderProgramCompositor : RedObject
             : $"URHO3D_GEOMETRY_CUSTOM={geometryTypeIndex} ");
 
         if (geometryType == GeometryType.Skinned)
-            result.AddShaderDefines(ShaderType.VS, $"URHO3D_MAXBONES={GraphicsSystem.GetMaxBones()} ");
+            result.AddShaderDefines(ShaderType.VS, $"URHO3D_MAXBONES={Graphics.GetMaxBones()} ");
     }
 
     private void ApplyPixelLightPixelAndCommonDefines(ref ShaderProgramDesc result, Light light, bool hasShadow,

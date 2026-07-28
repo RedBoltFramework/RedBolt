@@ -7,12 +7,12 @@ public sealed class GraphicsBoneLimitTests
     [Fact]
     public void Graphics_bone_limit_defaults_and_can_be_overridden()
     {
-        GraphicsSystem.SetMaxBones(0u);
-        Assert.Equal(128u, GraphicsSystem.GetMaxBones());
+        Graphics.SetMaxBones(0u);
+        Assert.Equal(128u, Graphics.GetMaxBones());
 
-        GraphicsSystem.SetMaxBones(96u);
-        Assert.Equal(96u, GraphicsSystem.GetMaxBones());
+        Graphics.SetMaxBones(96u);
+        Assert.Equal(96u, Graphics.GetMaxBones());
 
-        GraphicsSystem.SetMaxBones(0u);
+        Graphics.SetMaxBones(0u);
     }
 }

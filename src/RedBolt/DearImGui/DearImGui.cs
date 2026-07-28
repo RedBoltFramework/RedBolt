@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.DearImGui;
 
 using RedBolt.Bindings.DearImGui;
 using RedBolt.Bindings.Diligent;

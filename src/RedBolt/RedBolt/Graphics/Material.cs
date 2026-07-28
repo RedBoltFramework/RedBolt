@@ -713,7 +713,7 @@ public sealed partial class Material : ResourceType
     {
         ArgumentNullException.ThrowIfNull(source);
 
-        if (GetSubsystem<GraphicsSystem>() is null)
+        if (GetSubsystem<Graphics>() is null)
             return true;
 
         _loadXmlFile?.Dispose();
@@ -729,7 +729,7 @@ public sealed partial class Material : ResourceType
 
     public override bool EndLoad()
     {
-        if (GetSubsystem<GraphicsSystem>() is null)
+        if (GetSubsystem<Graphics>() is null)
             return true;
 
         if (_loadXmlFile is null)

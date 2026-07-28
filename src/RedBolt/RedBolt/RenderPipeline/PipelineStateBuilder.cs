@@ -21,7 +21,7 @@ public class PipelineStateBuilder : RedObject, BatchStateCacheCallback
     private readonly ShadowMapAllocator? _shadowMapAllocator;
     private readonly InstancingBuffer? _instancingBuffer;
 
-    private readonly GraphicsSystem _graphics;
+    private readonly Graphics _graphics;
     private readonly RenderDevice _renderDevice;
     private readonly PipelineStateCache _pipelineStateCache;
     private readonly ShaderProgramCompositor _compositor;
@@ -37,7 +37,7 @@ public class PipelineStateBuilder : RedObject, BatchStateCacheCallback
         _cameraProcessor = cameraProcessor;
         _shadowMapAllocator = shadowMapAllocator;
         _instancingBuffer = instancingBuffer;
-        _graphics = GetSubsystem<GraphicsSystem>()!;
+        _graphics = GetSubsystem<Graphics>()!;
         _renderDevice = GetSubsystem<RenderDevice>()!;
         _pipelineStateCache = GetSubsystem<PipelineStateCache>()!;
         _compositor = new ShaderProgramCompositor();

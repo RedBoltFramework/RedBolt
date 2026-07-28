@@ -1346,7 +1346,7 @@ public interface IRenderPipelineInterface
 public abstract class RenderPipelineView : RedObject, IRenderPipelineInterface
 {
     private readonly RenderPipelineComponent _renderPipeline;
-    protected readonly GraphicsSystem _graphics;
+    protected readonly Graphics _graphics;
     protected readonly Renderer _renderer;
 
     protected bool _linearColorSpace;
@@ -1355,7 +1355,7 @@ public abstract class RenderPipelineView : RedObject, IRenderPipelineInterface
     protected RenderPipelineView(RenderPipelineComponent renderPipeline)
     {
         _renderPipeline = renderPipeline ?? throw new ArgumentNullException(nameof(renderPipeline));
-        _graphics = GetSubsystem<GraphicsSystem>()!;
+        _graphics = GetSubsystem<Graphics>()!;
         _renderer = GetSubsystem<Renderer>()!;
     }
 
@@ -1403,17 +1403,17 @@ public abstract class RenderPipelineView : RedObject, IRenderPipelineInterface
     /// <summary>
     /// Called in the beginning of the update to check if pipeline should be executed.
     /// </summary>
-    public abstract bool Define(RenderSurface? renderTarget, Viewport viewport, GraphicsSystem graphics);
+    public abstract bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics);
 
     /// <summary>
     /// Called for defined pipelines before rendering. Frame info is only partially filled.
     /// </summary>
-    public abstract void Update(GraphicsSystem graphics);
+    public abstract void Update(Graphics graphics);
 
     /// <summary>
     /// Called for updated pipelines in appropriate order.
     /// </summary>
-    public abstract void Render(GraphicsSystem graphics, MaterialQuality materialQuality);
+    public abstract void Render(Graphics graphics, MaterialQuality materialQuality);
 
     /// <summary>
     /// Return frame info with all members filled.

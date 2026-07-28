@@ -30,7 +30,7 @@ public partial class PointerAdapter : RedObject
         var input = GetSubsystem<InputSystem>()!;
         _pointerPosition = input.GetMousePosition().ToVector2();
 
-        var graphics = GetSubsystem<GraphicsSystem>();
+        var graphics = GetSubsystem<Graphics>();
         if (graphics is not null)
         {
             _maxCursorSpeed = SystemMath.Max(graphics.Width, graphics.Height) / 2.0f;

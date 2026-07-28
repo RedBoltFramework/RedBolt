@@ -157,7 +157,7 @@ public partial class MoveAndOrbitController : Component
         TouchState? rotationTouch = null;
         FindTouchStates(movementRect, rotationRect, ref movementTouch, ref rotationTouch);
 
-        var dpi = GetSubsystem<GraphicsSystem>()!.GetDisplayDPI().Z;
+        var dpi = GetSubsystem<Graphics>()!.GetDisplayDPI().Z;
         dpi = dpi != 0.0f ? dpi : 96.0f;
 
         if (movementTouch is not null)
@@ -247,7 +247,7 @@ public partial class MoveAndOrbitController : Component
 
         if (screenRect == IntRect.Zero)
         {
-            var graphics = GetSubsystem<GraphicsSystem>();
+            var graphics = GetSubsystem<Graphics>();
             if (graphics is not null)
             {
                 screenRect = new IntRect(Vector2i.Zero, new Vector2i(graphics.Width, graphics.Height));

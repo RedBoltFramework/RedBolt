@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.DearImGui;
 
 using System.Runtime.CompilerServices;
 
@@ -84,7 +84,7 @@ public class ImGuiDiligentRendererEx : IDisposable
 
     public void NewFrame()
     {
-        var graphics = _renderDevice.GetSubsystem<GraphicsSystem>()!;
+        var graphics = _renderDevice.GetSubsystem<Graphics>()!;
         ImGui.ImGuiBackendRendererNewFrame(
             _nativeRenderer,
             checked((uint)graphics.Width),
@@ -164,7 +164,7 @@ public class ImGuiDiligentRendererEx : IDisposable
         RenderDevice renderDevice, TextureFormat colorBufferFormat, TextureFormat depthBufferFormat, int multiSample)
     {
         var pipelineStateCache = renderDevice.GetSubsystem<PipelineStateCache>()!;
-        var graphics = renderDevice.GetSubsystem<GraphicsSystem>()!;
+        var graphics = renderDevice.GetSubsystem<Graphics>()!;
 
         var desc = new GraphicsPipelineStateDesc
         {

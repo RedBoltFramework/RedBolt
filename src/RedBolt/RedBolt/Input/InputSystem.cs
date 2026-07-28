@@ -239,7 +239,7 @@ public class InputSystem : RedObject
 
     public bool HasFocus { get; private set; }
 
-    public bool IsMinimized => _isMinimized || (!HasFocus && GetSubsystem<GraphicsSystem>()?.GetFullscreen() == true);
+    public bool IsMinimized => _isMinimized || (!HasFocus && GetSubsystem<Graphics>()?.GetFullscreen() == true);
 
     public bool ToggleFullscreen { get; private set; } = true;
 
@@ -1047,7 +1047,7 @@ public class InputSystem : RedObject
 
         if ((key == Key.Return || key == Key.Return2 || key == Key.KpEnter) && newState && !wasDown && ToggleFullscreen &&
             (_keyDown.Contains(Key.LeftAlt) || _keyDown.Contains(Key.RightAlt)))
-            GetSubsystem<GraphicsSystem>()?.ToggleFullscreen();
+            GetSubsystem<Graphics>()?.ToggleFullscreen();
     }
 
     public void SetMouseButton(MouseButton button, bool newState, int clicks = 0)

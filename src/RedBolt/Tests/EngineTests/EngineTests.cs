@@ -194,7 +194,7 @@ public sealed class EngineTests
         engine.Value.Exit();
 
         Assert.True(engine.Value.IsExiting);
-        Assert.False(engine.Value.Context.GetSubsystem<GraphicsSystem>()!.IsInitialized);
+        Assert.False(engine.Value.Context.GetSubsystem<Graphics>()!.IsInitialized);
     }
 
     [Fact]
@@ -209,7 +209,7 @@ public sealed class EngineTests
             Headless = false
         });
 
-        var graphics = engine.Value.Context.GetSubsystem<GraphicsSystem>()!;
+        var graphics = engine.Value.Context.GetSubsystem<Graphics>()!;
         Assert.True(graphics.IsInitialized);
 
         engine.Value.Exit();

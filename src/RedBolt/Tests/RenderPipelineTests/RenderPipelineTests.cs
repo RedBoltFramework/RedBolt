@@ -669,7 +669,7 @@ public sealed class RenderPipelineTests : IDisposable
     [Fact]
     public void Graphics_clear_framebuffer_pipeline_settings_follow_requested_targets()
     {
-        var method = typeof(GraphicsSystem).GetMethod("GetClearFramebufferPipelineSettings", BindingFlags.NonPublic | BindingFlags.Static);
+        var method = typeof(Graphics).GetMethod("GetClearFramebufferPipelineSettings", BindingFlags.NonPublic | BindingFlags.Static);
 
         Assert.NotNull(method);
 
@@ -1300,13 +1300,13 @@ public sealed class RenderPipelineTests : IDisposable
 
         public override bool IsLinearColorSpace => false;
 
-        public override bool Define(RenderSurface? renderTarget, Viewport viewport, GraphicsSystem graphics) => false;
+        public override bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics) => false;
 
-        public override void Update(GraphicsSystem graphics)
+        public override void Update(Graphics graphics)
         {
         }
 
-        public override void Render(GraphicsSystem graphics, MaterialQuality materialQuality)
+        public override void Render(Graphics graphics, MaterialQuality materialQuality)
         {
         }
 

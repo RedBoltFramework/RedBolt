@@ -941,11 +941,11 @@ public partial class AnimatedModel : StaticModel
         if (renderer.GetSkinningMode() == SkinningMode.Auto && _model is not null)
         {
             // Fallback to software skinning if too many bones affect the model
-            if (_geometrySkinMatrices.Count == 0 && _model.GetSkeleton().GetNumBones() > GraphicsSystem.GetMaxBones())
+            if (_geometrySkinMatrices.Count == 0 && _model.GetSkeleton().GetNumBones() > Graphics.GetMaxBones())
             {
                 Log.GetLogger().LogWarning(
                     "Model {Name} have {NumBones} bones, but only {MaxBones} can be skinned on GPU. Falling back to software skinning.",
-                    _model.Name, _model.GetSkeleton().GetNumBones(), GraphicsSystem.GetMaxBones());
+                    _model.Name, _model.GetSkeleton().GetNumBones(), Graphics.GetMaxBones());
 
                 _softwareSkinning = true;
             }
@@ -1146,7 +1146,7 @@ public partial class AnimatedModel : StaticModel
 
     private void UpdateMorphs()
     {
-        var graphics = GetSubsystem<GraphicsSystem>();
+        var graphics = GetSubsystem<Graphics>();
         if (graphics is null)
             return;
 

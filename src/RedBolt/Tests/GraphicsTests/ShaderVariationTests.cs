@@ -16,7 +16,7 @@ public sealed class ShaderVariationTests
         Assert.False(typeof(ICloneable).IsAssignableFrom(type));
         Assert.Equal(typeof(RawShader), typeof(RawShader).GetMethod(nameof(IDisposable.Dispose))!.DeclaringType);
 
-        Assert.Equal(typeof(GraphicsSystem), type.GetField("_graphics", System.Reflection.BindingFlags.NonPublic |
+        Assert.Equal(typeof(Graphics), type.GetField("_graphics", System.Reflection.BindingFlags.NonPublic |
             System.Reflection.BindingFlags.Instance)!.FieldType);
         Assert.Equal(typeof(Shader), type.GetField("_owner", System.Reflection.BindingFlags.NonPublic |
             System.Reflection.BindingFlags.Instance)!.FieldType);

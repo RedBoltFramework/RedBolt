@@ -9,7 +9,7 @@ public static class ShaderSourceLogger
     public static void LogShaderSource(in FileIdentifier fileName, string defines, string source)
     {
         var context = Context.Instance;
-        var graphics = context.GetSubsystem<GraphicsSystem>()!;
+        var graphics = context.GetSubsystem<Graphics>()!;
         if (!graphics.GetSettings().LogShaderSources)
             return;
         var virtualFileSystem = context.GetSubsystem<VirtualFileSystem>()!;

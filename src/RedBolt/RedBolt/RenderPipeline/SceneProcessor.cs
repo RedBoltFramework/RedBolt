@@ -81,7 +81,7 @@ public class SceneProcessor : RedObject, LightProcessorCallback
 
     public const int ShadowMinPixels = 64;
 
-    protected readonly GraphicsSystem GraphicsDevice;
+    protected readonly Graphics GraphicsDevice;
     protected readonly RenderDevice RenderDevice;
     protected readonly RenderContext RenderContext;
     protected readonly IRenderPipelineInterface RenderPipeline;
@@ -121,7 +121,7 @@ public class SceneProcessor : RedObject, LightProcessorCallback
         ArgumentNullException.ThrowIfNull(renderPipeline);
         _ = shadowTechnique;
         RenderPipeline = renderPipeline;
-        GraphicsDevice = GetSubsystem<GraphicsSystem>()!;
+        GraphicsDevice = GetSubsystem<Graphics>()!;
         RenderDevice = GetSubsystem<RenderDevice>()!;
         RenderContext = RenderDevice.GetRenderContext();
         Debugger = renderPipeline.GetDebugger();

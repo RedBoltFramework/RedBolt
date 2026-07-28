@@ -407,7 +407,7 @@ public partial class FreeFlyController : Component
 
         if (eventType == MultitouchEventType.MultitouchMove)
         {
-            var graphics = GetSubsystem<GraphicsSystem>();
+            var graphics = GetSubsystem<Graphics>();
             var camera = Node.GetComponent<Camera>();
             var sensitivity = _touchSensitivity * 90.0f / 1080.0f;
             if (graphics is not null && camera is not null)

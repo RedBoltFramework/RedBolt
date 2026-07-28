@@ -1,4 +1,4 @@
-namespace RedBolt;
+namespace RedBolt.DearImGui;
 
 using RedBolt.Core;
 using RedBolt.Math;

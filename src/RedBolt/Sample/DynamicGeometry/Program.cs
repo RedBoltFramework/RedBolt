@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
+using RedBolt.DearImGui;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Engine;

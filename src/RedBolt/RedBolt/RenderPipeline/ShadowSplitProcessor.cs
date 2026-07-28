@@ -52,7 +52,7 @@ public class ShadowSplitProcessor : IDisposable
         _lightProcessor = owner;
         _light = new WeakReference<Light>(owner.Light);
         _splitIndex = splitIndex;
-        _renderBackend = Light.GetSubsystem<GraphicsSystem>()!.GetRenderBackend();
+        _renderBackend = Light.GetSubsystem<Graphics>()!.GetRenderBackend();
         _shadowScene = new Scene();
         _shadowCameraNode = _shadowScene.CreateChild("ShadowCamera", temporary: true);
         _shadowCamera = _shadowCameraNode.CreateComponent<Camera>();

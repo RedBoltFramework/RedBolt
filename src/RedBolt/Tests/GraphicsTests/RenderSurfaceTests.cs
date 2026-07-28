@@ -63,7 +63,7 @@ public sealed class RenderSurfaceTests
         surface.SetResolveDirty(true);
         Assert.True(surface.IsResolveDirty());
 
-        using var graphics = new GraphicsSystem();
+        using var graphics = new Graphics();
         Assert.Equal(new Vector2i(64, 32), RenderSurface.GetSize(graphics, surface));
         Assert.Equal(new IntRect(0, 0, 64, 32), RenderSurface.GetRect(graphics, surface));
 

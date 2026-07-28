@@ -16,7 +16,7 @@ using ShaderType = global::RedBolt.RenderAPI.ShaderType;
 public sealed class ShaderVariation : RawShader
 {
     /// <summary>Cached pointer to Graphics subsystem.</summary>
-    private readonly GraphicsSystem _graphics;
+    private readonly Graphics _graphics;
     /// <summary>Source shader.</summary>
     private readonly Shader _owner;
     /// <summary>Defines to use when compiling the shader.</summary>
@@ -28,7 +28,7 @@ public sealed class ShaderVariation : RawShader
     public ShaderVariation(Shader shader, ShaderType shaderType, string defines)
         : base(shaderType)
     {
-        _graphics = GetSubsystem<GraphicsSystem>()!;
+        _graphics = GetSubsystem<Graphics>()!;
         _owner = shader;
         _defines = defines;
         SetDebugName(GetShaderVariationName());

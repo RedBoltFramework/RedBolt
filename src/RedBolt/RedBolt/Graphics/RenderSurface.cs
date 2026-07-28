@@ -190,19 +190,19 @@ public sealed class RenderSurface : IDisposable
     }
 
     /// <summary>Property getters that can work with a null RenderSurface corresponding to the main viewport.</summary>
-    public static Vector2i GetSize(GraphicsSystem graphics, RenderSurface? renderSurface)
+    public static Vector2i GetSize(Graphics graphics, RenderSurface? renderSurface)
     {
         return renderSurface is not null ? renderSurface.GetSize() : graphics.GetSize();
     }
 
     /// <summary>Property getter that can work with a null RenderSurface corresponding to the main viewport.</summary>
-    public static IntRect GetRect(GraphicsSystem graphics, RenderSurface? renderSurface)
+    public static IntRect GetRect(Graphics graphics, RenderSurface? renderSurface)
     {
         return new IntRect(Vector2i.Zero, GetSize(graphics, renderSurface));
     }
 
     /// <summary>Return color format for the surface or main viewport.</summary>
-    public static TextureFormat GetColorFormat(GraphicsSystem graphics, RenderSurface? renderSurface)
+    public static TextureFormat GetColorFormat(Graphics graphics, RenderSurface? renderSurface)
     {
         var view = renderSurface is not null
             ? renderSurface.GetView()
@@ -211,7 +211,7 @@ public sealed class RenderSurface : IDisposable
     }
 
     /// <summary>Return depth format for the surface or main viewport.</summary>
-    public static TextureFormat GetDepthFormat(GraphicsSystem graphics, RenderSurface? renderSurface)
+    public static TextureFormat GetDepthFormat(Graphics graphics, RenderSurface? renderSurface)
     {
         var view = renderSurface is not null
             ? renderSurface.GetView()
@@ -220,13 +220,13 @@ public sealed class RenderSurface : IDisposable
     }
 
     /// <summary>Return multisampling level for the surface or main viewport.</summary>
-    public static int GetMultiSample(GraphicsSystem graphics, RenderSurface? renderSurface)
+    public static int GetMultiSample(Graphics graphics, RenderSurface? renderSurface)
     {
         return renderSurface is not null ? renderSurface.GetMultiSample() : graphics.GetMultiSample();
     }
 
     /// <summary>Return sRGB mode for the surface or main viewport.</summary>
-    public static bool GetSRGB(GraphicsSystem graphics, RenderSurface? renderSurface)
+    public static bool GetSRGB(Graphics graphics, RenderSurface? renderSurface)
     {
         if (renderSurface is not null)
             return renderSurface.GetParentTexture()!.GetSRGB();

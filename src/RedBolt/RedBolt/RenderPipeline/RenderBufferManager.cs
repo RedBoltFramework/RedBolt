@@ -19,7 +19,7 @@ public class RenderBufferManager : RedObject
     public RenderBufferManager(IRenderPipelineInterface renderPipeline)
     {
         _renderPipeline = renderPipeline;
-        _graphics = GetSubsystem<GraphicsSystem>()!;
+        _graphics = GetSubsystem<Graphics>()!;
         _renderer = GetSubsystem<Renderer>()!;
         _renderDevice = GetSubsystem<RenderDevice>()!;
         _renderContext = _renderDevice.GetRenderContext();
@@ -712,7 +712,7 @@ public class RenderBufferManager : RedObject
     }
 
     private readonly IRenderPipelineInterface _renderPipeline;
-    private readonly GraphicsSystem _graphics;
+    private readonly Graphics _graphics;
     private readonly Renderer _renderer;
     private readonly RenderDevice _renderDevice;
     private readonly RenderContext _renderContext;

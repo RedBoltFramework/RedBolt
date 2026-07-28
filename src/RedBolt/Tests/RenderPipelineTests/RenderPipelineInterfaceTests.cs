@@ -105,13 +105,13 @@ public sealed class RenderPipelineInterfaceTests(GraphicsEngineFixture fixture)
 
         public void RaiseUpdateBeginForTest() => RaiseUpdateBegin(default);
 
-        public override bool Define(RenderSurface? renderTarget, Viewport viewport, GraphicsSystem graphics) => true;
+        public override bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics) => true;
 
-        public override void Update(GraphicsSystem graphics)
+        public override void Update(Graphics graphics)
         {
         }
 
-        public override void Render(GraphicsSystem graphics, MaterialQuality materialQuality)
+        public override void Render(Graphics graphics, MaterialQuality materialQuality)
         {
         }
 

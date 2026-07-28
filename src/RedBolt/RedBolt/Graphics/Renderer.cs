@@ -148,7 +148,7 @@ public sealed class Renderer : RedObject
     public const int ShadowMinPixels = 64;
     public const int InstancingBufferDefaultSize = 1024;
 
-    private GraphicsSystem? _graphics;
+    private Graphics? _graphics;
     private RenderSurface? _backbufferSurface;
     private bool _backbufferSurfaceViewportsDirty;
     private Technique? _defaultTechnique;
@@ -533,7 +533,7 @@ public sealed class Renderer : RedObject
 
     private void Initialize()
     {
-        var graphics = GetSubsystem<GraphicsSystem>();
+        var graphics = GetSubsystem<Graphics>();
         var renderDevice = GetSubsystem<RenderDevice>();
         var cache = GetSubsystem<ResourceCache>();
 

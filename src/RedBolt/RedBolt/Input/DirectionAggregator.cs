@@ -75,7 +75,7 @@ public partial class DirectionAggregator : RedObject
         _input = GetSubsystem<InputSystem>()!;
 
         // By default the full axis range is about 1 inch
-        var graphics = GetSubsystem<GraphicsSystem>();
+        var graphics = GetSubsystem<Graphics>();
         if (graphics is not null && graphics.GetDisplayDPI().X > 0)
             _touchSensitivity = 2.0f / graphics.GetDisplayDPI().X;
         else

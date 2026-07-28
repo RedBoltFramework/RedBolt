@@ -155,7 +155,7 @@ public class DefaultRenderPipelineView : RenderPipelineView
     public override RenderPipelineDebugger GetDebugger() => _debugger;
 
     /// <summary>Implement RenderPipelineView.</summary>
-    public override bool Define(RenderSurface? renderTarget, Viewport viewport, GraphicsSystem graphics)
+    public override bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics)
     {
         if (viewport.GetScene() is null)
             return false;
@@ -275,7 +275,7 @@ public class DefaultRenderPipelineView : RenderPipelineView
         return true;
     }
 
-    public override void Update(GraphicsSystem graphics)
+    public override void Update(Graphics graphics)
     {
         var engineTime = GetRenderPipeline().GetSubsystem<Time>()!;
         _frameInfo.FrameNumber = engineTime.FrameNumber;
@@ -318,7 +318,7 @@ public class DefaultRenderPipelineView : RenderPipelineView
         RaiseUpdateEnd(_frameInfo);
     }
 
-    public override void Render(GraphicsSystem graphics, MaterialQuality materialQuality)
+    public override void Render(Graphics graphics, MaterialQuality materialQuality)
     {
         var caps = GetRenderPipeline().GetSubsystem<RenderDevice>()!.GetCaps();
         var canReadDepth = _settings.RenderBufferManager.ReadableDepth && caps.ReadOnlyDepth;

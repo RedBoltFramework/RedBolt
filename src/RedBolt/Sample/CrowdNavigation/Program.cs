@@ -28,6 +28,7 @@ using System.Linq;
 
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
+using RedBolt.DearImGui;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;

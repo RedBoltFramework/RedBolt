@@ -152,7 +152,7 @@ internal struct ObjectParameterBuilder
         {
             case GeometryType.Skinned:
             {
-                var count = (int)SystemMath.Min(sourceBatch.NumWorldTransforms, GraphicsSystem.GetMaxBones());
+                var count = (int)SystemMath.Min(sourceBatch.NumWorldTransforms, Graphics.GetMaxBones());
                 drawQueue.AddShaderParameter(ShaderConsts.Object_SkinMatrices, worldTransform[..count]);
                 break;
             }

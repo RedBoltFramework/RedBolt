@@ -50,7 +50,7 @@ public class HeadlessEngineFixture : IDisposable
 
     public Renderer Renderer => Engine.GetSubsystem<Renderer>()!;
 
-    public GraphicsSystem Graphics => Engine.GetSubsystem<GraphicsSystem>()!;
+    public Graphics Graphics => Engine.GetSubsystem<Graphics>()!;
 
     public RenderDevice RenderDevice => Engine.GetSubsystem<RenderDevice>()!;
 

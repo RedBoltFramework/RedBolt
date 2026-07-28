@@ -463,7 +463,7 @@ public class CubemapRenderer : RedObject
         if (_cachedPipelineStates is not null && _cachedPipelineStates.NumLevels == numLevels)
             return;
 
-        var graphics = GetSubsystem<GraphicsSystem>();
+        var graphics = GetSubsystem<Graphics>();
         var pipelineStateCache = GetSubsystem<PipelineStateCache>();
         if (graphics is null || pipelineStateCache is null)
             return;

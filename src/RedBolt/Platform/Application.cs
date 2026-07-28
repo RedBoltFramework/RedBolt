@@ -45,7 +45,7 @@ public abstract partial class Application : RedObject
 
     protected ResourceCache Resources => GetSubsystem<ResourceCache>()!;
 
-    protected RedBolt.Graphics.GraphicsSystem Graphics => GetSubsystem<RedBolt.Graphics.GraphicsSystem>()!;
+    protected RedBolt.Graphics.Graphics Graphics => GetSubsystem<RedBolt.Graphics.Graphics>()!;
 
     protected Renderer Renderer => GetSubsystem<Renderer>()!;
 

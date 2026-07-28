@@ -63,13 +63,13 @@ public sealed partial class Camera : Component
     private Matrix4 _inverseViewProj;
     private readonly Frustum _frustum = new();
     private readonly Frustum _viewSpaceFrustum = new();
-    private readonly WeakReference<GraphicsSystem>? _graphics;
+    private readonly WeakReference<Graphics>? _graphics;
     private Zone? _zone;
 
     public Camera()
     {
-        var graphics = GetSubsystem<GraphicsSystem>();
-        _graphics = graphics is not null ? new WeakReference<GraphicsSystem>(graphics) : null;
+        var graphics = GetSubsystem<Graphics>();
+        _graphics = graphics is not null ? new WeakReference<Graphics>(graphics) : null;
     }
 
 

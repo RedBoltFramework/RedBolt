@@ -135,7 +135,7 @@ public class LightProcessor : IDisposable
     public LightProcessor(Light light)
     {
         _light = new WeakReference<Light>(light);
-        _renderBackend = light.GetSubsystem<GraphicsSystem>()!.GetRenderBackend();
+        _renderBackend = light.GetSubsystem<Graphics>()!.GetRenderBackend();
         _cookedParams.LightShapeMatrix = Matrix4.Identity;
         for (var i = 0; i < Light.MaxCascadeSplits; ++i)
             _cookedParams.LightMatrices[i] = Matrix4.Identity;

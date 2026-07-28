@@ -367,7 +367,7 @@ public partial class DecalSet : Drawable
         float normalCutoff = 0.1f, uint subGeometry = uint.MaxValue)
     {
         // Do not add decals in headless mode
-        if (TryGetNode() is null || GetSubsystem<GraphicsSystem>() is null)
+        if (TryGetNode() is null || GetSubsystem<Graphics>() is null)
             return false;
 
         if (target is null || target.TryGetNode() is null)
@@ -820,7 +820,7 @@ public partial class DecalSet : Drawable
 
                 if (!found)
                 {
-                    if (_bones.Count >= GraphicsSystem.GetMaxBones())
+                    if (_bones.Count >= Graphics.GetMaxBones())
                     {
                         Log.GetLogger().LogWarning("Maximum skinned decal bone count reached");
                         return false;

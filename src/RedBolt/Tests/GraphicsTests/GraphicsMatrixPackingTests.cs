@@ -17,7 +17,7 @@ public sealed class GraphicsMatrixPackingTests
             13.0f, 14.0f, 15.0f, 16.0f);
         var buffer = new byte[16 * sizeof(float)];
 
-        var method = typeof(GraphicsSystem).GetMethod("WriteMatrix4", BindingFlags.NonPublic | BindingFlags.Static)
+        var method = typeof(Graphics).GetMethod("WriteMatrix4", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new InvalidOperationException("Graphics.WriteMatrix4 was not found.");
         method.Invoke(null, [buffer, 0, matrix]);
 
@@ -29,7 +29,7 @@ public sealed class GraphicsMatrixPackingTests
     [Fact]
     public void Fullscreen_camera_buffer_flips_projection_when_requested()
     {
-        var method = typeof(GraphicsSystem).GetMethod("BuildFullscreenCameraBufferData", BindingFlags.NonPublic | BindingFlags.Static)
+        var method = typeof(Graphics).GetMethod("BuildFullscreenCameraBufferData", BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new InvalidOperationException("Graphics.BuildFullscreenCameraBufferData was not found.");
 
         var regular = Assert.IsType<byte[]>(method.Invoke(null, [new Vector4f(0.5f, 0.0f, 0.0f, 0.0f), new Vector2f(0.25f, 0.5f), false]));

@@ -18,11 +18,11 @@ public sealed class CameraTests
 
         camera.SetZone(zone);
 
-        var graphicsReference = GetPrivateField<WeakReference<GraphicsSystem>?>(camera, "_graphics");
+        var graphicsReference = GetPrivateField<WeakReference<Graphics>?>(camera, "_graphics");
         var storedZone = GetPrivateField<Zone?>(camera, "_zone");
         Assert.NotNull(graphicsReference);
         Assert.True(graphicsReference.TryGetTarget(out var graphics));
-        Assert.Same(Context.Instance.GetSubsystem<GraphicsSystem>(), graphics);
+        Assert.Same(Context.Instance.GetSubsystem<Graphics>(), graphics);
         Assert.Same(zone, storedZone);
         Assert.Same(zone, camera.GetZone());
 
@@ -342,13 +342,13 @@ public sealed class CameraTests
 
         public override bool IsLinearColorSpace => false;
 
-        public override bool Define(RenderSurface? renderTarget, Viewport viewport, GraphicsSystem graphics) => false;
+        public override bool Define(RenderSurface? renderTarget, Viewport viewport, Graphics graphics) => false;
 
-        public override void Update(GraphicsSystem graphics)
+        public override void Update(Graphics graphics)
         {
         }
 
-        public override void Render(GraphicsSystem graphics, MaterialQuality materialQuality)
+        public override void Render(Graphics graphics, MaterialQuality materialQuality)
         {
         }
 

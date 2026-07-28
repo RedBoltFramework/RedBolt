@@ -149,7 +149,7 @@ public class RawBuffer : DeviceObject
         var renderDevice = _renderDevice?.GetRenderDevice();
         if (renderDevice is not null)
         {
-            var immediateContext = GetSubsystem<GraphicsSystem>()!.GetImmediateContext()!;
+            var immediateContext = GetSubsystem<Graphics>()!.GetImmediateContext()!;
             fixed (byte* dataPointer = data)
             {
                 if (_internalUsage == Usage.UsageDynamic)
@@ -201,7 +201,7 @@ public class RawBuffer : DeviceObject
         // If hardware dynamic buffer, map it
         if (_internalUsage == Usage.UsageDynamic)
         {
-            var immediateContext = GetSubsystem<GraphicsSystem>()!.GetImmediateContext();
+            var immediateContext = GetSubsystem<Graphics>()!.GetImmediateContext();
             Debug.Assert(immediateContext is not null);
 
             var gpuBuffer = IntPtr.Zero;
@@ -234,7 +234,7 @@ public class RawBuffer : DeviceObject
                 Update(_shadowData);
                 break;
             case MapKind.Dynamic:
-                GetSubsystem<GraphicsSystem>()!.GetImmediateContext()!.UnmapBuffer(_handle!, MapType.MapWrite);
+                GetSubsystem<Graphics>()!.GetImmediateContext()!.UnmapBuffer(_handle!, MapType.MapWrite);
                 break;
             case MapKind.Scratch:
             {
@@ -394,7 +394,7 @@ public class RawBuffer : DeviceObject
         }
         _internalUsage = bufferDesc.Usage;
 
-        var graphics = GetSubsystem<GraphicsSystem>()!;
+        var graphics = GetSubsystem<Graphics>()!;
         var device = _renderDevice!.GetRenderDevice()!;
         var immediateContext = graphics.GetImmediateContext();
 

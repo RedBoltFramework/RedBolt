@@ -479,7 +479,7 @@ public sealed partial class Octree : Component
 
         // If the engine is running headless, subscribe to RenderUpdate events for manually updating the octree
         // to allow raycasts and animation update
-        if (GetSubsystem<GraphicsSystem>() is null)
+        if (GetSubsystem<Graphics>() is null)
             SubscribeToEvent<CoreEvents.RenderUpdateEvent>(HandleRenderUpdate);
 
     }

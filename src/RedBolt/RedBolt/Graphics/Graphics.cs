@@ -60,12 +60,12 @@ public struct GraphicsSettings
     /// <summary>
     /// Graphics subsystem. Manages the application window, rendering state and GPU resources.
     /// </summary>
-public class GraphicsSystem : RedObject
+public class Graphics : RedObject
     {
     /// <summary>Register Graphics library objects.</summary>
     public static void RegisterGraphicsLibrary(Context context)
     {
-        context.RegisterAssembly(typeof(GraphicsSystem).Assembly);
+        context.RegisterAssembly(typeof(Graphics).Assembly);
     }
 
     private const uint SdlInitVideo = 0x00000020u;
@@ -197,7 +197,7 @@ layout(std140) uniform Material
     private string _lastShaderName = string.Empty;
     private GraphicsSettings _settings = new();
 
-    public GraphicsSystem()
+    public Graphics()
     {
         _ownerContext = Context.Instance;
         _windowPosition = new Vector2i(SdlWindowposUndefined, SdlWindowposUndefined);
@@ -506,7 +506,7 @@ layout(std140) uniform Material
     /// </summary>
     public void Close()
     {
-        if (ReferenceEquals(_ownerContext.GetSubsystem<GraphicsSystem>(), this))
+        if (ReferenceEquals(_ownerContext.GetSubsystem<Graphics>(), this))
         {
             var renderDevice = _ownerContext.GetSubsystem<RenderDevice>();
             _ownerContext.RemoveSubsystem<RenderDevice>();
@@ -1094,7 +1094,7 @@ layout(std140) uniform Material
         ArgumentNullException.ThrowIfNull(input);
 
         if (IsInitialized)
-            throw new InvalidOperationException("GraphicsSystem system is already initialized.");
+            throw new InvalidOperationException("Graphics system is already initialized.");
 
         _ownsRenderDeviceResources = true;
 
@@ -3064,7 +3064,7 @@ layout(std140) uniform Material
         }
 
         if (_device is null)
-            throw new InvalidOperationException("GraphicsSystem device is not initialized.");
+            throw new InvalidOperationException("Graphics device is not initialized.");
 
         using var nativeName = new CString(texture.Name);
         using var textureDescOwner = CreateTextureDesc();
@@ -3121,7 +3121,7 @@ layout(std140) uniform Material
         }
 
         if (_device is null)
-            throw new InvalidOperationException("GraphicsSystem device is not initialized.");
+            throw new InvalidOperationException("Graphics device is not initialized.");
 
         using var nativeName = new CString(texture.Name);
         using var textureDescOwner = CreateTextureDesc();
@@ -3173,7 +3173,7 @@ layout(std140) uniform Material
         }
 
         if (_device is null)
-            throw new InvalidOperationException("GraphicsSystem device is not initialized.");
+            throw new InvalidOperationException("Graphics device is not initialized.");
 
         using var nativeName = new CString(texture.Name);
         using var textureDescOwner = CreateTextureDesc();
@@ -3233,7 +3233,7 @@ layout(std140) uniform Material
         if (!NeedsResolvedTexture(texture))
             return (null, null);
         if (_device is null)
-            throw new InvalidOperationException("GraphicsSystem device is not initialized.");
+            throw new InvalidOperationException("Graphics device is not initialized.");
 
         using var resolvedDescOwner = CreateTextureDesc();
         var resolvedDesc = resolvedDescOwner.Desc;
@@ -4978,7 +4978,7 @@ layout(std140) uniform Material
             _semantic = new CString("ATTRIB");
             Count = elements.Count;
             if (Count == 0)
-                throw new InvalidOperationException("GraphicsSystem pipeline layout may not be empty.");
+                throw new InvalidOperationException("Graphics pipeline layout may not be empty.");
 
             var layoutElementSize = (int)DiligentNativeBindings.GetEngineFactoryOpenGL().GetAPIInfo().LayoutElementSize;
             _memory = Marshal.AllocHGlobal(Count * layoutElementSize);

@@ -157,7 +157,7 @@ public partial class Viewport : RedObject
         var renderDevice = GetSubsystem<RenderDevice>();
         var isOpenGl = renderDevice is not null && renderDevice.GetBackend() == RenderBackend.OpenGL;
 
-        var renderTargetSize = RenderSurface.GetSize(GetSubsystem<GraphicsSystem>()!, renderTarget);
+        var renderTargetSize = RenderSurface.GetSize(GetSubsystem<Graphics>()!, renderTarget);
 
         if (_rect == IntRect.Zero)
         {
@@ -204,7 +204,7 @@ public partial class Viewport : RedObject
 
         if (_rect == IntRect.Zero)
         {
-            var graphics = GetSubsystem<GraphicsSystem>()!;
+            var graphics = GetSubsystem<Graphics>()!;
             screenX = x / (float)graphics.Width;
             screenY = y / (float)graphics.Height;
         }
@@ -231,7 +231,7 @@ public partial class Viewport : RedObject
         if (_rect == IntRect.Zero)
         {
             /// <todo>This is incorrect if the viewport is used on a texture render target instead of the backbuffer, as it may have different dimensions.</todo>
-            var graphics = GetSubsystem<GraphicsSystem>()!;
+            var graphics = GetSubsystem<Graphics>()!;
             x = (int)(screenPoint.X * graphics.Width);
             y = (int)(screenPoint.Y * graphics.Height);
         }
@@ -257,7 +257,7 @@ public partial class Viewport : RedObject
         if (_rect == IntRect.Zero)
         {
             /// <todo>This is incorrect if the viewport is used on a texture render target instead of the backbuffer, as it may have different dimensions.</todo>
-            var graphics = GetSubsystem<GraphicsSystem>()!;
+            var graphics = GetSubsystem<Graphics>()!;
             screenX = x / (float)graphics.Width;
             screenY = y / (float)graphics.Height;
         }

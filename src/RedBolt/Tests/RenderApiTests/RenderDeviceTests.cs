@@ -338,13 +338,13 @@ public sealed class RenderDeviceTests
                 reportedWindowPosition = new Vector2i(eventData.X, eventData.Y);
             });
 
-            _fixture.Graphics.SetWindowTitle("GraphicsSystem Window API");
+            _fixture.Graphics.SetWindowTitle("Graphics Window API");
             var movedPosition = originalPosition + new Vector2i(1, 1);
             _fixture.Graphics.SetWindowPosition(movedPosition);
             var actualPosition = _fixture.Graphics.GetWindowPosition();
             _fixture.Graphics.OnWindowMoved();
 
-            Assert.Equal("GraphicsSystem Window API", _fixture.Graphics.GetWindowTitle());
+            Assert.Equal("Graphics Window API", _fixture.Graphics.GetWindowTitle());
             Assert.Equal(actualPosition, _fixture.Graphics.GetWindowPosition());
             Assert.Equal(1, windowPosEventCount);
             Assert.Equal(actualPosition, reportedWindowPosition);

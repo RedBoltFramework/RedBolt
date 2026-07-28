@@ -21,11 +21,11 @@ public class CameraProcessor : RedObject
     private readonly List<Camera?> _cameras = [];
 
     /// <summary>Graphics instance</summary>
-    private readonly GraphicsSystem? _graphics;
+    private readonly Graphics? _graphics;
 
     public CameraProcessor()
     {
-        _graphics = GetSubsystem<GraphicsSystem>();
+        _graphics = GetSubsystem<Graphics>();
     }
 
     public override void Dispose()

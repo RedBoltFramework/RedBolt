@@ -49,7 +49,7 @@ public partial class TextureCube : Texture
     public override bool BeginLoad(Deserializer source)
     {
         var cache = GetSubsystem<ResourceCache>()!;
-        var graphics = GetSubsystem<GraphicsSystem>();
+        var graphics = GetSubsystem<Graphics>();
 
         // In headless mode, do not actually load the texture, just return success
         if (graphics?.GetNativeRenderDevice() is null)
@@ -79,7 +79,7 @@ public partial class TextureCube : Texture
     public override bool EndLoad()
     {
         // In headless mode, do not actually load the texture, just return success
-        if (GetSubsystem<GraphicsSystem>()?.GetNativeRenderDevice() is null)
+        if (GetSubsystem<Graphics>()?.GetNativeRenderDevice() is null)
             return true;
 
         // If over the texture budget, see if materials can be freed to allow textures to be freed
