@@ -4,7 +4,8 @@ using RedBolt.Actions;
 using RedBolt.Core;
 using RedBolt.Scene;
 
-public class AttributeActionTests
+[Collection(nameof(HeadlessEngineCollection))]
+public partial class AttributeActionTests
 {
     [Fact]
     public void Constructors_and_attribute_name_accessors_match_source()
@@ -58,8 +59,39 @@ public class AttributeActionTests
         Assert.Equal(2.0f, target.Value);
     }
 
-    private sealed class AttributeTarget : Serializable
+    [Fact]
+    public void Attribute_from_to_interpolates_and_reverses()
     {
+        Context.Instance.RegisterAssembly(typeof(AttributeActionTests).Assembly);
+        using var manager = new ActionManager(false);
+        using var target = new AttributeTarget();
+        using var action = new AttributeFromTo();
+        using var from = new Variant(2.0f);
+        using var to = new Variant(6.0f);
+        action.SetDuration(1.0f);
+        action.SetAttributeName("Value");
+        action.SetFrom(from);
+        action.SetTo(to);
+
+        Assert.NotNull(manager.AddAction(action, target));
+        manager.Update(0.0f);
+        Assert.Equal(2.0f, target.Value);
+        manager.Update(0.5f);
+        Assert.Equal(4.0f, target.Value);
+        manager.Update(0.5f);
+        Assert.Equal(6.0f, target.Value);
+
+        using var reversed = (AttributeFromTo)action.Reverse();
+        Assert.Equal(6.0f, reversed.From.GetFloat());
+        Assert.Equal(2.0f, reversed.To.GetFloat());
+        Assert.Equal(action.Duration, reversed.Duration);
+        Assert.Equal(action.AttributeName, reversed.AttributeName);
+    }
+
+    [Reflected]
+    private sealed partial class AttributeTarget : Serializable
+    {
+        [Serialized("Value", AccessorType = typeof(ValueAccessor))]
         public float Value { get; set; }
     }
 
