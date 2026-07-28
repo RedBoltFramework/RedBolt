@@ -88,4 +88,70 @@ public sealed class ShaderParameterTests
 
         Assert.Equal(6.0f, Assert.IsType<float>(material.GetShaderParameter("Value")));
     }
+
+    [Fact]
+    public void Shader_parameter_from_to_serializes_values()
+    {
+        using var source = new Variant(2.0f);
+        using var destination = new Variant(6.0f);
+        using var action = new ShaderParameterFromTo();
+        action.SetDuration(2.0f);
+        action.SetName("Value");
+        action.SetFrom(source);
+        action.SetTo(destination);
+
+        using var output = new TestJSONOutputArchive();
+        using (output.OpenUnorderedBlock("action"))
+            action.SerializeInBlock(output);
+
+        using var input = new TestJSONInputArchive(output.ToJsonString());
+        using var restored = new ShaderParameterFromTo();
+        using (input.OpenUnorderedBlock("action"))
+            restored.SerializeInBlock(input);
+
+        Assert.Equal(2.0f, restored.Duration);
+        Assert.Equal("Value", restored.Name);
+        Assert.Equal(2.0f, restored.From.GetFloat());
+        Assert.Equal(6.0f, restored.To.GetFloat());
+    }
+
+    [Fact]
+    public void Shader_parameter_from_to_animates_between_values()
+    {
+        using var manager = new ActionManager(false);
+        using var material = new Material();
+        material.SetShaderParameter("Value", 100.0f);
+        using var source = new Variant(2.0f);
+        using var destination = new Variant(6.0f);
+        using var action = new ShaderParameterFromTo();
+        action.SetDuration(1.0f);
+        action.SetName("Value");
+        action.SetFrom(source);
+        action.SetTo(destination);
+
+        Assert.NotNull(manager.AddAction(action, material));
+        manager.Update(0.0f);
+        manager.Update(0.5f);
+
+        Assert.Equal(4.0f, Assert.IsType<float>(material.GetShaderParameter("Value")));
+    }
+
+    [Fact]
+    public void Shader_parameter_from_to_reverses_values()
+    {
+        using var source = new Variant(2.0f);
+        using var destination = new Variant(6.0f);
+        using var action = new ShaderParameterFromTo();
+        action.SetDuration(2.0f);
+        action.SetName("Value");
+        action.SetFrom(source);
+        action.SetTo(destination);
+
+        using var reversed = Assert.IsType<ShaderParameterFromTo>(action.Reverse());
+
+        Assert.Equal(2.0f, reversed.Duration);
+        Assert.Equal("Value", reversed.Name);
+        Assert.Equal(6.0f, reversed.From.GetFloat());
+        Assert.Equal(2.0f, reversed.To.GetFloat());
+    }
 }
