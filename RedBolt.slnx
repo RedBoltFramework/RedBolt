@@ -2,182 +2,62 @@
   <Folder Name="/extern/" />
   <Folder Name="/extern/DotRecast/" />
   <Folder Name="/extern/DotRecast/src/">
-    <Project Path="extern/DotRecast/src/DotRecast.Core/DotRecast.Core.csproj">
-      <Build Project="false" />
-    </Project>
-    <Project Path="extern/DotRecast/src/DotRecast.Detour.Crowd/DotRecast.Detour.Crowd.csproj">
-      <Build Project="false" />
-    </Project>
-    <Project Path="extern/DotRecast/src/DotRecast.Detour.TileCache/DotRecast.Detour.TileCache.csproj">
-      <Build Project="false" />
-    </Project>
-    <Project Path="extern/DotRecast/src/DotRecast.Detour/DotRecast.Detour.csproj">
-      <Build Project="false" />
-    </Project>
-    <Project Path="extern/DotRecast/src/DotRecast.Recast/DotRecast.Recast.csproj">
-      <Build Project="false" />
-    </Project>
+    <Project Path="extern/DotRecast/src/DotRecast.Core/DotRecast.Core.csproj" />
+    <Project Path="extern/DotRecast/src/DotRecast.Detour.Crowd/DotRecast.Detour.Crowd.csproj" />
+    <Project Path="extern/DotRecast/src/DotRecast.Detour.TileCache/DotRecast.Detour.TileCache.csproj" />
+    <Project Path="extern/DotRecast/src/DotRecast.Detour/DotRecast.Detour.csproj" />
+    <Project Path="extern/DotRecast/src/DotRecast.Recast/DotRecast.Recast.csproj" />
   </Folder>
   <Folder Name="/extern/SharpCpp/" />
   <Folder Name="/extern/SharpCpp/native/">
-    <Project Path="extern/SharpCpp/native/SharpCpp.Native/SharpCpp.Native.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/extern/SharpCpp/rbfx/">
-    <Project Path="extern/SharpCpp/rbfx/SharpCpp.Rbfx.Generator/SharpCpp.Rbfx.Generator.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/extern/SharpCpp/rbfx/Rbfx.UserCode/">
-    <Project Path="extern/SharpCpp/rbfx/Rbfx.UserCode/Rbfx.UserCode.Generator/Rbfx.UserCode.Generator.csproj">
-      <Build Project="false" />
-    </Project>
+    <Project Path="extern/SharpCpp/native/SharpCpp.Native/SharpCpp.Native.csproj" />
   </Folder>
   <Folder Name="/extern/SharpCpp/src/">
-    <Project Path="extern/SharpCpp/src/SharpCpp.Metadata/SharpCpp.Metadata.csproj">
-      <Build Project="false" />
-    </Project>
-    <Project Path="extern/SharpCpp/src/SharpCpp.Model/SharpCpp.Model.csproj">
-      <Build Project="false" />
-    </Project>
-    <Project Path="extern/SharpCpp/src/SharpCpp.Parsing/SharpCpp.Parsing.csproj">
-      <Build Project="false" />
-    </Project>
-    <Project Path="extern/SharpCpp/src/SharpCpp.Pipeline/SharpCpp.Pipeline.csproj">
-      <Build Project="false" />
-    </Project>
-    <Project Path="extern/SharpCpp/src/SharpCpp.Rendering/SharpCpp.Rendering.csproj">
-      <Build Project="false" />
-    </Project>
-    <Project Path="extern/SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj">
-      <Build Project="false" />
-    </Project>
-    <Project Path="extern/SharpCpp/src/SharpCpp.Tool/SharpCpp.Tool.csproj">
-      <Build Project="false" />
-    </Project>
+    <Project Path="extern/SharpCpp/src/SharpCpp.Metadata/SharpCpp.Metadata.csproj" />
+    <Project Path="extern/SharpCpp/src/SharpCpp.Model/SharpCpp.Model.csproj" />
+    <Project Path="extern/SharpCpp/src/SharpCpp.Parsing/SharpCpp.Parsing.csproj" />
+    <Project Path="extern/SharpCpp/src/SharpCpp.Pipeline/SharpCpp.Pipeline.csproj" />
+    <Project Path="extern/SharpCpp/src/SharpCpp.Rendering/SharpCpp.Rendering.csproj" />
+    <Project Path="extern/SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj" />
+    <Project Path="extern/SharpCpp/src/SharpCpp.Tool/SharpCpp.Tool.csproj" />
   </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/RedBolt/">
-    <Project Path="src/RedBolt/RedBolt/RedBolt.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/Bindings/" />
-  <Folder Name="/src/RedBolt/Bindings/DearImGui/">
-    <Project Path="src/RedBolt/Bindings/DearImGui/RedBolt.Bindings.DearImGui.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/Bindings/Diligent/">
-    <Project Path="src/RedBolt/Bindings/Diligent/RedBolt.Bindings.Diligent.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/Bindings/Glslang/">
-    <Project Path="src/RedBolt/Bindings/Glslang/RedBolt.Bindings.Glslang.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/Bindings/Lz4/">
-    <Project Path="src/RedBolt/Bindings/Lz4/RedBolt.Bindings.Lz4.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/Bindings/Sdl/">
-    <Project Path="src/RedBolt/Bindings/Sdl/RedBolt.Bindings.Sdl.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/Bindings/ShaderCompiler/">
-    <Project Path="src/RedBolt/Bindings/ShaderCompiler/RedBolt.Bindings.ShaderCompiler.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/Bindings/SpirVCross/">
-    <Project Path="src/RedBolt/Bindings/SpirVCross/RedBolt.Bindings.SpirVCross.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/Bindings/SpirVTools/">
-    <Project Path="src/RedBolt/Bindings/SpirVTools/RedBolt.Bindings.SpirVTools.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/Bindings/Stb/">
-    <Project Path="src/RedBolt/Bindings/Stb/RedBolt.Bindings.Stb.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/Bindings/WebP/">
-    <Project Path="src/RedBolt/Bindings/WebP/RedBolt.Bindings.WebP.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/Bindings/XAtlas/">
-    <Project Path="src/RedBolt/Bindings/XAtlas/RedBolt.Bindings.XAtlas.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/DearImGui/">
-    <Project Path="src/RedBolt/DearImGui/RedBolt.DearImGui.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/Generator/" />
-  <Folder Name="/src/RedBolt/Generator/Dependencies/">
-    <Project Path="src/RedBolt/Generator/Dependencies/RedBolt.Generator.Dependencies.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/Generator/Reflection/">
-    <Project Path="src/RedBolt/Generator/Reflection/RedBolt.Generator.Reflection.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/Glow/">
+    <Project Path="src/RedBolt/RedBolt/RedBolt.csproj" />
+    <Project Path="src/RedBolt/DearImGui/RedBolt.DearImGui.csproj" />
     <Project Path="src/RedBolt/Glow/RedBolt.Glow.csproj" />
-  </Folder>
-  <Folder Name="/src/RedBolt/Graphics/" />
-  <Folder Name="/src/RedBolt/Graphics/OpenGL/">
-    <Project Path="src/RedBolt/Graphics/OpenGL/RedBolt.Graphics.OpenGL.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/Graphics/OpenGLES/">
-    <Project Path="src/RedBolt/Graphics/OpenGLES/RedBolt.Graphics.OpenGLES.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/Graphics/Vulkan/">
-    <Project Path="src/RedBolt/Graphics/Vulkan/RedBolt.Graphics.Vulkan.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/IK/">
     <Project Path="src/RedBolt/IK/RedBolt.IK.csproj" />
-  </Folder>
-  <Folder Name="/src/RedBolt/Native/">
-    <Project Path="src/RedBolt/Native/RedBolt.Native.csproj">
-      <Build Project="false" />
-    </Project>
-    <Project Path="src/RedBolt/Native/RedBolt.Native.Web.csproj">
-      <Build Project="false" />
-    </Project>
-  </Folder>
-  <Folder Name="/src/RedBolt/Navigation/">
     <Project Path="src/RedBolt/Navigation/RedBolt.Navigation.csproj" />
   </Folder>
-  <Folder Name="/src/RedBolt/Platform/" />
-  <Folder Name="/src/RedBolt/Platform/Linux/">
-    <Project Path="src/RedBolt/Platform/Linux/RedBolt.Platform.Linux.csproj">
-      <Build Project="false" />
-    </Project>
+  <Folder Name="/src/RedBolt/Bindings/">
+    <Project Path="src/RedBolt/Bindings/DearImGui/RedBolt.Bindings.DearImGui.csproj" />
+    <Project Path="src/RedBolt/Bindings/Diligent/RedBolt.Bindings.Diligent.csproj" />
+    <Project Path="src/RedBolt/Bindings/Glslang/RedBolt.Bindings.Glslang.csproj" />
+    <Project Path="src/RedBolt/Bindings/Lz4/RedBolt.Bindings.Lz4.csproj" />
+    <Project Path="src/RedBolt/Bindings/Sdl/RedBolt.Bindings.Sdl.csproj" />
+    <Project Path="src/RedBolt/Bindings/ShaderCompiler/RedBolt.Bindings.ShaderCompiler.csproj" />
+    <Project Path="src/RedBolt/Bindings/SpirVCross/RedBolt.Bindings.SpirVCross.csproj" />
+    <Project Path="src/RedBolt/Bindings/SpirVTools/RedBolt.Bindings.SpirVTools.csproj" />
+    <Project Path="src/RedBolt/Bindings/Stb/RedBolt.Bindings.Stb.csproj" />
+    <Project Path="src/RedBolt/Bindings/WebP/RedBolt.Bindings.WebP.csproj" />
+    <Project Path="src/RedBolt/Bindings/XAtlas/RedBolt.Bindings.XAtlas.csproj" />
   </Folder>
-  <Folder Name="/src/RedBolt/Platform/Web/">
-    <Project Path="src/RedBolt/Platform/Web/RedBolt.Platform.Web.csproj">
-      <Build Project="false" />
-    </Project>
+  <Folder Name="/src/RedBolt/Generator/">
+    <Project Path="src/RedBolt/Generator/Dependencies/RedBolt.Generator.Dependencies.csproj" />
+    <Project Path="src/RedBolt/Generator/Reflection/RedBolt.Generator.Reflection.csproj" />
+  </Folder>
+  <Folder Name="/src/RedBolt/Graphics/">
+    <Project Path="src/RedBolt/Graphics/OpenGL/RedBolt.Graphics.OpenGL.csproj" />
+    <Project Path="src/RedBolt/Graphics/OpenGLES/RedBolt.Graphics.OpenGLES.csproj" />
+    <Project Path="src/RedBolt/Graphics/Vulkan/RedBolt.Graphics.Vulkan.csproj" />
+  </Folder>
+  <Folder Name="/src/RedBolt/Native/">
+    <Project Path="src/RedBolt/Native/RedBolt.Native.csproj" />
+    <Project Path="src/RedBolt/Native/RedBolt.Native.Web.csproj" />
+  </Folder>
+  <Folder Name="/src/RedBolt/Platform/">
+    <Project Path="src/RedBolt/Platform/Linux/RedBolt.Platform.Linux.csproj" />
+    <Project Path="src/RedBolt/Platform/Web/RedBolt.Platform.Web.csproj" />
   </Folder>
   <Folder Name="/src/RedBolt/Sample/">
     <Project Path="src/RedBolt/Sample/BakedLighting/RedBolt.Sample.BakedLighting.csproj" />
@@ -207,9 +87,7 @@
     <Project Path="src/RedBolt/Sample/AggregatedInput/RedBolt.Sample.AggregatedInput.csproj" />
     <Project Path="src/RedBolt/Sample/InputLogger/RedBolt.Sample.InputLogger.csproj" />
     <Project Path="src/RedBolt/Sample/VirtualFileSystem/RedBolt.Sample.VirtualFileSystem.csproj" />
-    <Project Path="src/RedBolt/Sample/Web/RedBolt.Sample.Web.csproj">
-      <Build Project="false" />
-    </Project>
+    <Project Path="src/RedBolt/Sample/Web/RedBolt.Sample.Web.csproj" />
   </Folder>
   <Folder Name="/src/RedBolt/Tests/">
     <Project Path="src/RedBolt/Tests/RedBolt.Tests.csproj" />

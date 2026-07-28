@@ -12,12 +12,12 @@
                       ReferenceOutputAssembly="false"
                       Private="false"
                       PrivateAssets="all"
-                      RedBoltProperties="$(RedBoltSharpCppNativeProperties)" />
+                      AdditionalProperties="$(RedBoltSharpCppNativeProperties)" />
     <ProjectReference Include="../Generator/Dependencies/RedBolt.Generator.Dependencies.csproj"
                       ReferenceOutputAssembly="false"
                       Private="false"
                       PrivateAssets="all"
-                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=" />
+                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset" />
   </ItemGroup>
 
   <Import Project="RedBolt.Native.targets" />

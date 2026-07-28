@@ -22,13 +22,13 @@
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
-                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=" />
+                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all"
-                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
   </ItemGroup>
 
   <ItemGroup>

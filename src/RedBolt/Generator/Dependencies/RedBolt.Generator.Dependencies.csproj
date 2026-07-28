@@ -10,16 +10,16 @@
 
   <ItemGroup>
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Model/SharpCpp.Model.csproj"
-                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Metadata/SharpCpp.Metadata.csproj"
-                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Parsing/SharpCpp.Parsing.csproj"
-                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Pipeline/SharpCpp.Pipeline.csproj"
-                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Rendering/SharpCpp.Rendering.csproj"
-                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
-                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
   </ItemGroup>
 </Project>

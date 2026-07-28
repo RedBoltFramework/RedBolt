@@ -10,6 +10,6 @@
   <ItemGroup>
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all"
-                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
   </ItemGroup>
 </Project>

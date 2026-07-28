@@ -4,7 +4,7 @@
   <ItemGroup>
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all"
-                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.csproj"
                       Condition="'$(RedBoltPlatform)' == 'linux-x64'"
                       ReferenceOutputAssembly="false"

@@ -22,21 +22,15 @@
   <ItemGroup>
     <WasmOptConfigurationFlags Include="--enable-threads" />
     <NativeFileReference Include="$(RedBoltWebEngineArchive)" />
-    <ProjectReference Include="../../RedBolt/RedBolt.csproj"
-                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm" />
-    <ProjectReference Include="../../IK/RedBolt.IK.csproj"
-                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm" />
-    <ProjectReference Include="../../Navigation/RedBolt.Navigation.csproj"
-                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm" />
-    <ProjectReference Include="../../Platform/Web/RedBolt.Platform.Web.csproj"
-                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm" />
-    <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj"
-                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm" />
+    <ProjectReference Include="../../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../../IK/RedBolt.IK.csproj" />
+    <ProjectReference Include="../../Navigation/RedBolt.Navigation.csproj" />
+    <ProjectReference Include="../../Platform/Web/RedBolt.Platform.Web.csproj" />
+    <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
     <ProjectReference Include="../../Native/RedBolt.Native.Web.csproj"
                       ReferenceOutputAssembly="false"
                       Private="false"
-                      PrivateAssets="all"
-                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm" />
+                      PrivateAssets="all" />
     <Compile Include="../*/Program.cs"
              Exclude="../Web/Program.cs"
              Link="Samples/%(RecursiveDir)%(Filename)%(Extension)" />
@@ -44,7 +38,7 @@
     <Compile Include="../SkeletalAnimation/Mover3D.cs" Link="Samples/Mover3D.cs" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all"
-                      RedBoltProperties="$(RedBoltSharpCppManagedProperties)" />
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
   </ItemGroup>
 
   <ItemGroup>

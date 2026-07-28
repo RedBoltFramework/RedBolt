@@ -8,6 +8,6 @@
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
-                      RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=" />
+                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset" />
   </ItemGroup>
 </Project>

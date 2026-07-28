@@ -95,25 +95,21 @@
     <RedBoltGlobalAliasesFile>$(RedBoltRoot)/src/RedBolt/RedBolt/GlobalAliases.cs</RedBoltGlobalAliasesFile>
   </PropertyGroup>
 
-
-
-  <Target Name="RedBoltPropagateProjectReferenceProperties"
-          BeforeTargets="AssignProjectConfiguration;_SplitProjectReferencesByFileExistence">
+  <Target Name="RedBoltConfigureBrowserProjectReferences"
+          BeforeTargets="AssignProjectConfiguration"
+          DependsOnTargets="IncludeTransitiveProjectReferences"
+          Condition="'$(RedBoltPlatform)' == 'browser-wasm'">
     <ItemGroup>
       <ProjectReference Update="@(ProjectReference)"
-                        Condition="'%(ProjectReference.RedBoltProperties)' == ''"
-                        RedBoltProperties="Configuration=$(Configuration);RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltNativePreset)" />
-    </ItemGroup>
-  </Target>
-
-  <Target Name="RedBoltSetProjectReferenceProperties"
-          AfterTargets="_SplitProjectReferencesByFileExistence"
-          BeforeTargets="_GetProjectReferenceTargetFrameworkProperties;ResolveProjectReferences">
-    <ItemGroup>
-      <_MSBuildProjectReferenceExistent Update="@(_MSBuildProjectReferenceExistent)"
-                                        Condition="'%(_MSBuildProjectReferenceExistent.RedBoltProperties)' != ''">
-        <SetConfiguration>%(_MSBuildProjectReferenceExistent.SetConfiguration);%(_MSBuildProjectReferenceExistent.RedBoltProperties)</SetConfiguration>
-      </_MSBuildProjectReferenceExistent>
+                        Condition="'%(ProjectReference.AdditionalProperties)' == ''
+                          and $([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/'))
+                          and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Dependencies'
+                          and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Reflection'
+                          and '%(ProjectReference.Filename)' != 'RedBolt.Graphics.OpenGLES'
+                          and '%(ProjectReference.Filename)' != 'RedBolt.Native.Web'
+                          and '%(ProjectReference.Filename)' != 'RedBolt.Platform.Web'">
+        <AdditionalProperties>RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm</AdditionalProperties>
+      </ProjectReference>
     </ItemGroup>
   </Target>
 
