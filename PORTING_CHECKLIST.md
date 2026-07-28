@@ -194,10 +194,10 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `FiniteTimeAction : BaseAction`
 - [x] `FiniteTimeActionState.h`
   - [x] `FiniteTimeActionState : ActionState`
-- [ ] `ActionInstant.h`
-  - [ ] `ActionInstant : FiniteTimeAction`
-- [ ] `ActionInstantState.h`
-  - [ ] `ActionInstantState : FiniteTimeActionState`
+- [x] `ActionInstant.h`
+  - [x] `ActionInstant : FiniteTimeAction`
+- [x] `ActionInstantState.h`
+  - [x] `ActionInstantState : FiniteTimeActionState`
 - [x] `AttributeAction.h`
   - [x] `AttributeAction : FiniteTimeAction`
 - [x] `AttributeActionState.h`
