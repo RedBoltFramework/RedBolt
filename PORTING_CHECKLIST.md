@@ -539,7 +539,8 @@ Accepted deviations:
 - [ ] `ParticleGraphPin.h`
   - [x] `ParticleGraphPinFlag`
   - [x] `ParticleGraphPinRef`
-  - [ ] `ParticleGraphPin`
+  - [x] `ParticleGraphPin`
+  - [ ] `ParticleGraphTypedPin<T>`
 - [ ] `Attribute.h`
   - [ ] particle attribute descriptors
 - [ ] `ParticleGraphNode.h`
