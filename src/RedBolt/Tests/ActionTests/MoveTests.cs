@@ -292,6 +292,40 @@ public partial class MoveTests
         Assert.Equal(action.Duration, reversed.Duration);
     }
 
+    [Fact]
+    public void Rotate_around_matches_parent_space_node_rotation_and_reverses()
+    {
+        var position = new Vector3f(3.0f, 2.0f, 0.0f);
+        var rotation = new Quaternion(15.0f, new Vector3f(1.0f, 0.0f, 0.0f));
+        var pivot = new Vector3f(1.0f, -2.0f, 0.0f);
+        var delta = new Quaternion(75.0f, new Vector3f(0.0f, 2.0f, 3.0f));
+
+        using var manager = new ActionManager(false);
+        using var movedNode = new Node();
+        movedNode.SetPosition(position);
+        movedNode.SetRotation(rotation);
+        using var expectedNode = new Node();
+        expectedNode.SetPosition(position);
+        expectedNode.SetRotation(rotation);
+        expectedNode.RotateAround(pivot, delta, TransformSpace.Parent);
+        using var action = new RotateAround();
+        action.SetDuration(2.0f);
+        action.SetRotationDelta(delta);
+        action.SetPivot(pivot);
+
+        Assert.NotNull(manager.AddAction(action, movedNode));
+        for (var i = 0; i < 5; ++i)
+            manager.Update(0.5f);
+
+        Assert.True(movedNode.Rotation.Equivalent(expectedNode.Rotation, 0.001f));
+        Assert.True(movedNode.Position.ApproximatelyEquivalent(expectedNode.Position, 0.001f));
+
+        using var reversed = (RotateAround)action.Reverse();
+        Assert.True(reversed.RotationDelta.Equivalent(action.RotationDelta.Inverse, 0.001f));
+        Assert.Equal(action.Pivot, reversed.Pivot);
+        Assert.Equal(action.Duration, reversed.Duration);
+    }
+
     [Reflected]
     private sealed partial class MoveTarget : Serializable
     {

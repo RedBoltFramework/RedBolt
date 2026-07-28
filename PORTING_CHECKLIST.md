@@ -202,13 +202,13 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `AttributeAction : FiniteTimeAction`
 - [x] `AttributeActionState.h`
   - [x] `AttributeActionState : FiniteTimeActionState`
-- [ ] `Move.h`
+- [x] `Move.h`
   - [x] `MoveBy : AttributeAction`
   - [x] `MoveByQuadratic : MoveBy`
   - [x] `JumpBy : AttributeAction`
   - [x] `ScaleBy : AttributeAction`
   - [x] `RotateBy : AttributeAction`
-  - [ ] `RotateAround : AttributeAction`
+  - [x] `RotateAround : AttributeAction`
 - [ ] `Misc.h`
   - [ ] `RemoveSelf : FiniteTimeAction`
   - [ ] `DelayTime : FiniteTimeAction`

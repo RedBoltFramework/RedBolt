@@ -29,6 +29,7 @@ using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Math;
+using RedBolt.Scene;
 
 /// <summary>Move by 3D or 2D offset action. Target should have attribute "Position" of type Vector3, Vector2, IntVector2 or IntVector3.</summary>
 [Reflected]
@@ -689,4 +690,172 @@ public partial class RotateBy : AttributeAction
     }
 
     private Quaternion _delta = Quaternion.IDENTITY;
+}
+
+/// <summary>Rotate around 3D point action. Target should have "Position" of type Vector3 and "Rotation" of type Quaternion attributes.</summary>
+[Reflected]
+public partial class RotateAround : AttributeAction
+{
+    private sealed class RotateAroundState : FiniteTimeActionState
+    {
+        private Quaternion _rotationDelta;
+        private Quaternion _startRotation;
+        private Quaternion _previousRotation;
+        private Vector3f _pivot;
+        private AttributeInfo? _rotationAttribute;
+        private AttributeInfo? _positionAttribute;
+
+        public RotateAroundState(RotateAround action, RedObject? target)
+            : base(action, target)
+        {
+            var serializable = target as Serializable;
+            if (serializable is null)
+            {
+                Log.GetLogger().LogError(
+                    "Can animate only serializable class but {TypeName} is not serializable.", target!.GetTypeName());
+                return;
+            }
+            {
+                const string rotationAttributeName = "Rotation";
+                _rotationAttribute =
+                    target!.Context.GetReflection(target.GetTypeNameHash()).GetAttribute(rotationAttributeName);
+                if (_rotationAttribute is null)
+                {
+                    Log.GetLogger().LogError(
+                        "Attribute {Attribute} not found in {TypeName}.", rotationAttributeName, target.GetTypeName());
+                    return;
+                }
+                if (_rotationAttribute.ValueType != typeof(Quaternion))
+                {
+                    Log.GetLogger().LogError(
+                        "Attribute {Attribute} is not of type {Type}.", rotationAttributeName,
+                        Variant.GetTypeName(VariantType.Quaternion));
+                    _rotationAttribute = null;
+                    return;
+                }
+            }
+            {
+                const string positionAttributeName = "Position";
+                _positionAttribute =
+                    target.Context.GetReflection(target.GetTypeNameHash()).GetAttribute(positionAttributeName);
+                if (_positionAttribute is null)
+                {
+                    Log.GetLogger().LogError(
+                        "Attribute {Attribute} not found in {TypeName}.", positionAttributeName, target.GetTypeName());
+                    return;
+                }
+                if (_positionAttribute.ValueType != typeof(Vector3f))
+                {
+                    Log.GetLogger().LogError(
+                        "Attribute {Attribute} is not of type {Type}.", positionAttributeName,
+                        Variant.GetTypeName(VariantType.Vector3));
+                    _positionAttribute = null;
+                    return;
+                }
+            }
+            _rotationDelta = action.RotationDelta;
+            _pivot = action.Pivot;
+            var rotationVariant = default(Variant);
+            try
+            {
+                _rotationAttribute.Accessor!.Get(serializable, ref rotationVariant);
+                _previousRotation = _startRotation = rotationVariant.GetQuaternion();
+            }
+            finally
+            {
+                rotationVariant.Dispose();
+            }
+        }
+
+        public override void Update(float time)
+        {
+            if (_positionAttribute is null || _rotationAttribute is null)
+                return;
+            var positionVariant = default(Variant);
+            var rotationVariant = default(Variant);
+            try
+            {
+                _positionAttribute.Accessor!.Get((Serializable)Target!, ref positionVariant);
+                _rotationAttribute.Accessor!.Get((Serializable)Target!, ref rotationVariant);
+
+                var currentRotation = rotationVariant.GetQuaternion();
+                var currentPosition = positionVariant.GetVector3();
+                var currentTR = new Matrix3x4(currentPosition, rotationVariant.GetQuaternion(), 1.0f);
+                var currentITR = currentTR.Inverse;
+                var localPivot = currentITR * _pivot;
+
+                var diff = _previousRotation.Inverse * currentRotation;
+                _startRotation = _startRotation * diff;
+                var newRotation = Quaternion.IDENTITY.Slerp(_rotationDelta, time) * _startRotation;
+                rotationVariant.Dispose();
+                rotationVariant = new Variant(newRotation);
+                _previousRotation = newRotation;
+
+                var newTR = new Matrix3x4(currentPosition, newRotation, 1.0f);
+                var newPivot = newTR * localPivot;
+                positionVariant.Dispose();
+                positionVariant = new Variant(currentPosition + (_pivot - newPivot));
+
+                _positionAttribute.Accessor.Set((Serializable)Target!, positionVariant);
+                _rotationAttribute.Accessor.Set((Serializable)Target!, rotationVariant);
+            }
+            finally
+            {
+                rotationVariant.Dispose();
+                positionVariant.Dispose();
+            }
+        }
+    }
+
+    /// <summary>Construct.</summary>
+    public RotateAround()
+    {
+    }
+
+    /// <summary>Set rotation delta.</summary>
+    public void SetRotationDelta(Quaternion delta)
+    {
+        _delta = delta;
+    }
+
+    /// <summary>Get rotation delta.</summary>
+    public Quaternion RotationDelta => _delta;
+
+    /// <summary>Set rotation pivot.</summary>
+    public void SetPivot(Vector3f pivot)
+    {
+        _pivot = pivot;
+    }
+
+    /// <summary>Get rotation pivot.</summary>
+    public Vector3f Pivot => _pivot;
+
+    /// <summary>Create reversed action.</summary>
+    public override FiniteTimeAction Reverse()
+    {
+        var result = new RotateAround();
+        result.SetDuration(Duration);
+        result.SetRotationDelta(_delta.Inverse);
+        result.SetPivot(Pivot);
+        return result;
+    }
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public override void SerializeInBlock(Archive archive)
+    {
+        base.SerializeInBlock(archive);
+        ArchiveSerialization.SerializeOptionalValue(
+            archive, "delta", ref _delta, Quaternion.IDENTITY, ArchiveSerialization.SerializeValue);
+        ArchiveSerialization.SerializeOptionalValue(
+            archive, "pivot", ref _pivot, Vector3f.Zero, ArchiveSerialization.SerializeValue);
+    }
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new RotateAroundState(this, target);
+    }
+
+    private Quaternion _delta = Quaternion.IDENTITY;
+    private Vector3f _pivot = Vector3f.Zero;
 }
