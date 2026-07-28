@@ -24,6 +24,7 @@ namespace RedBolt.Particles;
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 using RedBolt.Container;
@@ -180,6 +181,86 @@ public class ParticleGraphAttributeLayout
     /// All known attributes.
     /// </summary>
     private readonly List<AttrSpan> _attributes = [];
+
+    /// <summary>
+    /// Size of required attribute buffer.
+    /// </summary>
+    private int _position;
+
+    /// <summary>
+    /// Maximal number of particles.
+    /// </summary>
+    private int _capacity;
+}
+
+/// <summary>
+/// Memory layout for intermediate values.
+/// </summary>
+public class ParticleGraphBufferLayout
+{
+    /// <summary>
+    /// Reset layout.
+    /// </summary>
+    public void Reset(int capacity)
+    {
+        _position = 0;
+        _capacity = capacity;
+    }
+
+    /// <summary>
+    /// Allocate span. Returns allocated span index.
+    /// </summary>
+    public int Allocate(ParticleGraphContainerType container, VariantType type)
+    {
+        Debug.Assert(container != ParticleGraphContainerType.Auto);
+        var index = _spans.Count;
+        var size = (container == ParticleGraphContainerType.Scalar ? 1 : _capacity)
+            * VariantTypeUtility.GetVariantTypeSize(type);
+        _spans.Add(new PinSpan
+        {
+            Container = container,
+            Type = type,
+            Span = new ParticleGraphSpan(_position, size)
+        });
+        _position += size;
+        return index;
+    }
+
+    /// <summary>
+    /// Get amount of required memory to host intermediate values.
+    /// </summary>
+    public int RequiredMemory => _position;
+
+    /// <summary>
+    /// Get span by index.
+    /// </summary>
+    public ParticleGraphSpan this[int index] => _spans[index].Span;
+
+    /// <summary>
+    /// Attribute layout.
+    /// </summary>
+    private struct PinSpan
+    {
+        /// <summary>
+        /// Container type of attribute.
+        /// </summary>
+        public ParticleGraphContainerType Container;
+
+        /// <summary>
+        /// Type of attribute.
+        /// </summary>
+        public VariantType Type;
+
+        /// <summary>
+        /// Location at emitter attribute buffer.
+        /// </summary>
+        public ParticleGraphSpan Span;
+    }
+
+    /// <summary>
+    /// Allocated spans.
+    /// </summary>
+    private readonly List<PinSpan> _spans = [];
 
     /// <summary>
     /// Size of required attribute buffer.
