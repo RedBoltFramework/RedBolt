@@ -618,6 +618,7 @@ Accepted deviations:
 - [ ] `RmlRenderer.h`
   - [ ] `RmlRenderer : Object, Rml::RenderInterface`
   - [x] `Material::CreateBaseMaterial` prerequisite
+  - [x] `Texture` device-loss forwarding prerequisite
   - [x] UI batch pipeline-state cache prerequisite from `RenderPipeline/BatchStateCache.h`
   - [x] generated RmlUi 6.2 `RenderInterfaceCompatibility` director and layout-checked legacy value ABI
 - [ ] `RmlEventListeners.h`

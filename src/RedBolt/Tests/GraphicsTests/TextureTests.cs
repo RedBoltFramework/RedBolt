@@ -44,6 +44,18 @@ public sealed class TextureTests
     }
 
     [Fact]
+    public void Raw_texture_data_loss_is_forwarded_through_the_managed_composition()
+    {
+        using var texture = new Texture();
+        var rawTexture = texture.GetRawTexture();
+
+        rawTexture.ProcessDeviceObjectEvent(DeviceObjectEvent.Invalidate);
+        Assert.Equal(rawTexture.IsDataLost(), texture.IsDataLost());
+        texture.ClearDataLost();
+        Assert.False(texture.IsDataLost());
+    }
+
+    [Fact]
     public void Texture2D_registers_empty_named_factory()
     {
         var context = new Context();

@@ -73,6 +73,10 @@ public class Texture : ResourceWithMetadata
 
     public RawTexture GetRawTexture() => _rawTexture;
 
+    public bool IsDataLost() => _rawTexture.IsDataLost();
+
+    public void ClearDataLost() => _rawTexture.ClearDataLost();
+
     public bool IsCompressed()
     {
         var formatInfo = RenderAPIUtils.GetTextureFormatInfo(Format);
