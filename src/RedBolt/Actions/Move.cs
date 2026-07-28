@@ -614,3 +614,79 @@ public partial class ScaleBy : AttributeAction
 
     private Vector3f _delta = Vector3f.One;
 }
+
+/// <summary>Rotate by 3D delta action. Target should have attribute "Rotation" of type Quaternion.</summary>
+[Reflected]
+public partial class RotateBy : AttributeAction
+{
+    private sealed class RotateByState : AttributeActionState
+    {
+        private Quaternion _rotationDelta;
+        private Quaternion _startRotation;
+        private Quaternion _previousRotation;
+
+        public RotateByState(RotateBy action, RedObject? target, AttributeInfo? attribute)
+            : base(action, target, attribute)
+        {
+            _rotationDelta = action.RotationDelta;
+            _previousRotation = _startRotation = Get<Quaternion>();
+        }
+
+        protected override void Update(float time, ref Variant value)
+        {
+            var currentRotation = value.GetQuaternion();
+            var diff = _previousRotation.Inverse * currentRotation;
+            _startRotation = _startRotation * diff;
+            var newRotation = _startRotation * Quaternion.IDENTITY.Slerp(_rotationDelta, time);
+            value.Dispose();
+            value = new Variant(newRotation);
+            _previousRotation = newRotation;
+        }
+    }
+
+    /// <summary>Construct.</summary>
+    public RotateBy()
+    {
+    }
+
+    /// <summary>Set rotation delta.</summary>
+    public void SetRotationDelta(Quaternion delta)
+    {
+        _delta = delta;
+    }
+
+    /// <summary>Get rotation delta.</summary>
+    public Quaternion RotationDelta => _delta;
+
+    /// <summary>Create reversed action.</summary>
+    public override FiniteTimeAction Reverse()
+    {
+        var result = new RotateBy();
+        result.SetDuration(Duration);
+        result.SetRotationDelta(_delta.Inverse);
+        return result;
+    }
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public override void SerializeInBlock(Archive archive)
+    {
+        base.SerializeInBlock(archive);
+        ArchiveSerialization.SerializeOptionalValue(
+            archive, "delta", ref _delta, Quaternion.IDENTITY, ArchiveSerialization.SerializeValue);
+    }
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        var attribute = GetAttribute(target);
+        if (attribute is not null)
+        {
+            if (attribute.ValueType == typeof(Quaternion))
+                return new RotateByState(this, target, attribute);
+            Log.GetLogger().LogError("Attribute {Attribute} is not of valid type.", AttributeName);
+        }
+        return base.StartAction(target);
+    }
+
+    private Quaternion _delta = Quaternion.IDENTITY;
+}

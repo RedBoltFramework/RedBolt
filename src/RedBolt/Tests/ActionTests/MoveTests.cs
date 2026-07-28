@@ -265,6 +265,33 @@ public partial class MoveTests
         Assert.Equal(new Vector2f(2.0f, 6.0f), target.Scale2);
     }
 
+    [Fact]
+    public void Rotate_by_tracks_external_changes_and_reverses()
+    {
+        Context.Instance.RegisterAssembly(typeof(MoveTests).Assembly);
+        using var manager = new ActionManager(false);
+        using var target = new MoveTarget { Rotation = Quaternion.IDENTITY };
+        using var action = new RotateBy();
+        action.SetAttributeName("Rotation");
+        action.SetDuration(1.0f);
+        action.SetRotationDelta(new Quaternion(90.0f, Vector3f.Up));
+
+        Assert.NotNull(manager.AddAction(action, target));
+        manager.Update(0.0f);
+        var externalRotation = new Quaternion(30.0f, Vector3f.Right);
+        target.Rotation = externalRotation;
+        manager.Update(0.5f);
+        Assert.True(
+            target.Rotation.Equivalent(externalRotation * new Quaternion(45.0f, Vector3f.Up), 0.001f));
+        manager.Update(0.5f);
+        Assert.True(
+            target.Rotation.Equivalent(externalRotation * new Quaternion(90.0f, Vector3f.Up), 0.001f));
+
+        using var reversed = (RotateBy)action.Reverse();
+        Assert.True(reversed.RotationDelta.Equivalent(action.RotationDelta.Inverse, 0.001f));
+        Assert.Equal(action.Duration, reversed.Duration);
+    }
+
     [Reflected]
     private sealed partial class MoveTarget : Serializable
     {
@@ -285,5 +312,8 @@ public partial class MoveTests
 
         [Serialized("Scale2")]
         public Vector2f Scale2 { get; set; }
+
+        [Serialized("Rotation")]
+        public Quaternion Rotation { get; set; }
     }
 }
