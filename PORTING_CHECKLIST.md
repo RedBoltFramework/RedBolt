@@ -243,7 +243,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 - [ ] `Sequence.h`
   - [ ] `Sequence : FiniteTimeAction`
 - [ ] `Repeat.h`
-  - [ ] `Repeat : FiniteTimeAction`
+  - [x] `Repeat : FiniteTimeAction`
   - [ ] `RepeatForever : FiniteTimeAction`
 - [ ] `ActionSet.h`
   - [ ] `ActionSet : Resource`
