@@ -536,11 +536,11 @@ Accepted deviations:
   - [ ] `UpdateContext`
 - [ ] `ParticleGraphMemory.h`
   - [ ] particle graph memory pool
-- [ ] `ParticleGraphPin.h`
+- [x] `ParticleGraphPin.h`
   - [x] `ParticleGraphPinFlag`
   - [x] `ParticleGraphPinRef`
   - [x] `ParticleGraphPin`
-  - [ ] `ParticleGraphTypedPin<T>`
+  - [x] `ParticleGraphTypedPin<T>`
 - [ ] `Attribute.h`
   - [ ] particle attribute descriptors
 - [ ] `ParticleGraphNode.h`

@@ -1938,6 +1938,68 @@ public static class VariantTypeUtility
         SerializerOptions.Converters.Add(new JsonStringEnumConverter());
     }
 
+    public static VariantType GetVariantType<T>()
+    {
+        var type = typeof(T);
+        if (type == typeof(int) || type == typeof(uint) || type == typeof(StringHash))
+            return VariantType.Int;
+        if (type == typeof(long) || type == typeof(ulong))
+            return VariantType.Int64;
+        if (type == typeof(bool))
+            return VariantType.Bool;
+        if (type == typeof(float))
+            return VariantType.Float;
+        if (type == typeof(double))
+            return VariantType.Double;
+        if (type == typeof(Vector2f))
+            return VariantType.Vector2;
+        if (type == typeof(Vector3f))
+            return VariantType.Vector3;
+        if (type == typeof(Vector4f))
+            return VariantType.Vector4;
+        if (type == typeof(Vector2d))
+            return VariantType.DoubleVector2;
+        if (type == typeof(Vector3d))
+            return VariantType.DoubleVector3;
+        if (type == typeof(Quaternion))
+            return VariantType.Quaternion;
+        if (type == typeof(Color))
+            return VariantType.Color;
+        if (type == typeof(string))
+            return VariantType.String;
+        if (type == typeof(byte[]))
+            return VariantType.Buffer;
+        if (type == typeof(ResourceRef))
+            return VariantType.ResourceRef;
+        if (type == typeof(ResourceRefList))
+            return VariantType.ResourceRefList;
+        if (type == typeof(VariantVector))
+            return VariantType.VariantVector;
+        if (type == typeof(StringVector))
+            return VariantType.StringVector;
+        if (type == typeof(VariantMap))
+            return VariantType.VariantMap;
+        if (type == typeof(Rect))
+            return VariantType.Rect;
+        if (type == typeof(IntRect))
+            return VariantType.IntRect;
+        if (type == typeof(Vector2i))
+            return VariantType.Vector2i;
+        if (type == typeof(Vector3i))
+            return VariantType.Vector3i;
+        if (type == typeof(Matrix3))
+            return VariantType.Matrix3;
+        if (type == typeof(Matrix3x4))
+            return VariantType.Matrix3x4;
+        if (type == typeof(Matrix4))
+            return VariantType.Matrix4;
+        if (type == typeof(VariantCurve))
+            return VariantType.VariantCurve;
+        if (type == typeof(StringVariantMap))
+            return VariantType.StringVariantMap;
+        throw new NotSupportedException();
+    }
+
     public static VariantType GetVariantType(object? value)
     {
         return value switch

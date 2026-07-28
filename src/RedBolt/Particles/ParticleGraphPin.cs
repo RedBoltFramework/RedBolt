@@ -114,7 +114,7 @@ public class ParticleGraphPin : ICloneable
         _requestedValueType = VariantType.None;
     }
 
-    private ParticleGraphPin(ParticleGraphPin source)
+    protected ParticleGraphPin(ParticleGraphPin source)
     {
         _containerType = source._containerType;
         _valueType = source._valueType;
@@ -310,4 +310,24 @@ public class ParticleGraphPin : ICloneable
     /// Reference to a memory block that corresponds to the pin value.
     /// </summary>
     internal ParticleGraphPinRef _memory = new();
+}
+
+public class ParticleGraphTypedPin<T> : ParticleGraphPin
+{
+    public ParticleGraphTypedPin(ParticleGraphPinFlag flags, string name)
+        : base(flags, name, VariantTypeUtility.GetVariantType<T>())
+    {
+    }
+
+    public ParticleGraphTypedPin(string name)
+        : base(ParticleGraphPinFlag.Input, name, VariantTypeUtility.GetVariantType<T>())
+    {
+    }
+
+    private ParticleGraphTypedPin(ParticleGraphTypedPin<T> source)
+        : base(source)
+    {
+    }
+
+    public new ParticleGraphTypedPin<T> Clone() => new(this);
 }

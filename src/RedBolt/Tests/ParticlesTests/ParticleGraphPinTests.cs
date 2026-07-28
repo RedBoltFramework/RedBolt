@@ -1,6 +1,7 @@
 namespace RedBolt.Tests;
 
 using RedBolt.Core;
+using RedBolt.Math;
 using RedBolt.Particles;
 
 public class ParticleGraphPinTests
@@ -118,5 +119,61 @@ public class ParticleGraphPinTests
         Assert.True(clone.Connected);
         Assert.Equal(5, clone.ConnectedNodeIndex);
         Assert.Equal(6, clone.ConnectedPinIndex);
+    }
+}
+
+public class ParticleGraphTypedPinTests
+{
+    [Fact]
+    public void NameConstructorCreatesTypedInputPin()
+    {
+        var pin = new ParticleGraphTypedPin<float>("x");
+
+        Assert.True(pin.IsInput);
+        Assert.Equal("x", pin.Name);
+        Assert.Equal(VariantType.Float, pin.RequestedType);
+    }
+
+    [Fact]
+    public void FlagsConstructorCreatesTypedPinWithRequestedDirection()
+    {
+        var pin = new ParticleGraphTypedPin<Vector3f>(ParticleGraphPinFlag.Output, "out");
+
+        Assert.False(pin.IsInput);
+        Assert.Equal("out", pin.Name);
+        Assert.Equal(VariantType.Vector3, pin.RequestedType);
+    }
+
+    [Fact]
+    public void ClonePreservesTypedPin()
+    {
+        var source = new ParticleGraphTypedPin<Color>(ParticleGraphPinFlag.Output, "out");
+
+        var clone = source.Clone();
+
+        Assert.NotSame(source, clone);
+        Assert.IsType<ParticleGraphTypedPin<Color>>(clone);
+        Assert.Equal(source.Flags, clone.Flags);
+        Assert.Equal(source.Name, clone.Name);
+        Assert.Equal(source.RequestedType, clone.RequestedType);
+    }
+
+    [Theory]
+    [InlineData(VariantType.Int)]
+    [InlineData(VariantType.Float)]
+    [InlineData(VariantType.Vector3)]
+    [InlineData(VariantType.Matrix3x4)]
+    public void GenericVariantTypeMappingMatchesCppSpecializations(VariantType expected)
+    {
+        var actual = expected switch
+        {
+            VariantType.Int => VariantTypeUtility.GetVariantType<int>(),
+            VariantType.Float => VariantTypeUtility.GetVariantType<float>(),
+            VariantType.Vector3 => VariantTypeUtility.GetVariantType<Vector3f>(),
+            VariantType.Matrix3x4 => VariantTypeUtility.GetVariantType<Matrix3x4>(),
+            _ => VariantType.None
+        };
+
+        Assert.Equal(expected, actual);
     }
 }
