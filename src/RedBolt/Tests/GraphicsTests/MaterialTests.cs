@@ -15,6 +15,20 @@ using RedBolt.Scene;
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class MaterialTests
 {
+    [Fact]
+    public void CreateBaseMaterialCreatesBasePass()
+    {
+        using var material = Material.CreateBaseMaterial("v2/X_Basic", "VS", "PS");
+
+        var technique = Assert.Single(material.Techniques);
+        var pass = Assert.Single(technique.Technique!.GetPasses());
+        Assert.Equal("base", pass.Name);
+        Assert.Equal("v2/X_Basic", pass.VertexShader);
+        Assert.Equal("VS", pass.VertexShaderDefines);
+        Assert.Equal("v2/X_Basic", pass.PixelShader);
+        Assert.Equal("PS", pass.PixelShaderDefines);
+    }
+
     private readonly HeadlessEngineFixture _fixture;
 
     public MaterialTests(HeadlessEngineFixture fixture)

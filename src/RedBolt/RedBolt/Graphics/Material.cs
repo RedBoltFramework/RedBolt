@@ -213,6 +213,24 @@ public sealed partial class Material : ResourceType
         base.Dispose();
     }
 
+    /// <summary>
+    /// Create simple material with only base pass. Used by UI renderers.
+    /// </summary>
+    public static Material CreateBaseMaterial(string shaderName, string vsDefines, string psDefines)
+    {
+        var technique = new Technique();
+        var pass = technique.CreatePass("base");
+        pass.SetVertexShader(shaderName);
+        pass.SetVertexShaderDefines(vsDefines);
+        pass.SetPixelShader(shaderName);
+        pass.SetPixelShaderDefines(psDefines);
+
+        var material = new Material();
+        material.SetTechnique(0, technique);
+
+        return material;
+    }
+
     public uint GetObjectID() => _idFamily.GetObjectID();
 
     public uint GetPipelineStateHash() => _pipelineStateTracker.GetPipelineStateHash();

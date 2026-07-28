@@ -617,6 +617,7 @@ Accepted deviations:
   - [x] `RmlFile : Rml::FileInterface` — `WeakPtr<Context>` dropped; file ownership mapped to `GCHandle`; loaded resources tracked with stdlib `HashSet`
 - [ ] `RmlRenderer.h`
   - [ ] `RmlRenderer : Object, Rml::RenderInterface`
+  - [x] `Material::CreateBaseMaterial` prerequisite
   - [x] UI batch pipeline-state cache prerequisite from `RenderPipeline/BatchStateCache.h`
   - [x] generated RmlUi 6.2 `RenderInterfaceCompatibility` director and layout-checked legacy value ABI
 - [ ] `RmlEventListeners.h`
