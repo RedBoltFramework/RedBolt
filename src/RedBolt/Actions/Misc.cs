@@ -116,3 +116,21 @@ public partial class Enable : AttributeAction
         return new SetAttributeState(this, target, GetAttribute(target), value);
     }
 }
+
+/// <summary>Hide target. The Target should have "Is Enabled" attribute.</summary>
+[Reflected]
+public partial class Disable : AttributeAction
+{
+    /// <summary>Construct.</summary>
+    public Disable()
+        : base(AttributeActionConstants.IsEnabledAttribute)
+    {
+    }
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        using var value = new Variant(false);
+        return new SetAttributeState(this, target, GetAttribute(target), value);
+    }
+}
