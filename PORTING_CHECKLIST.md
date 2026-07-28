@@ -214,7 +214,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [ ] `DelayTime : FiniteTimeAction`
   - [x] `Show : AttributeAction`
   - [x] `Hide : AttributeAction`
-  - [ ] `Enable : AttributeAction`
+  - [x] `Enable : AttributeAction`
   - [ ] `Disable : AttributeAction`
   - [ ] `Blink : AttributeAction`
 - [ ] `Ease.h`

@@ -58,10 +58,31 @@ public sealed partial class MiscTests
         Assert.True(target.IsVisible);
     }
 
+    [Fact]
+    public void Enable_sets_enabled_attribute_once()
+    {
+        Context.Instance.RegisterAssembly(typeof(MiscTests).Assembly);
+        using var manager = new ActionManager(false);
+        using var target = new MiscTarget();
+        using var action = new Enable();
+
+        Assert.Equal(AttributeActionConstants.IsEnabledAttribute, action.AttributeName);
+        Assert.NotNull(manager.AddAction(action, target));
+        manager.Update(0.0f);
+        Assert.True(target.IsEnabled);
+
+        target.IsEnabled = false;
+        manager.Update(1.0f);
+        Assert.False(target.IsEnabled);
+    }
+
     [Reflected]
     private sealed partial class MiscTarget : Serializable
     {
         [Serialized("Is Visible")]
         public bool IsVisible { get; set; }
+
+        [Serialized("Is Enabled")]
+        public bool IsEnabled { get; set; }
     }
 }
