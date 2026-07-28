@@ -128,6 +128,7 @@ internal static class Program
 
     private static readonly HashSet<string> RmlUiDirectorRecordCppTypeNames = new(StringComparer.Ordinal)
     {
+        "Rml::EventListener",
         "Rml::FileInterface",
         "Rml::RenderInterfaceCompatibility",
         "Rml::SystemInterface"
@@ -846,6 +847,28 @@ internal static class Program
                 method.ClearIgnoreReason();
         }
 
+        var eventListener = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::EventListener");
+        eventListener.ClearIgnoreReason();
+        eventListener.Bases.Clear();
+        eventListener.ManagedBaseTypeName = null;
+        foreach (var method in eventListener.Members.OfType<FunctionBinding>())
+        {
+            if (method.IsConstructor || method.IsVirtual)
+                method.ClearIgnoreReason();
+
+            foreach (var parameter in method.Parameters)
+            {
+                if (parameter.CppTypeName.Contains("Rml::Event", StringComparison.Ordinal) ||
+                    parameter.CppTypeName.Contains("Rml::Element", StringComparison.Ordinal))
+                {
+                    parameter.Type = BindingType.IntPtr;
+                    parameter.Direction = BindingParameterDirection.In;
+                    parameter.AbiKind = BindingParameterAbiKind.Value;
+                }
+            }
+        }
+
         var fileHandleType = BindingType.CreateConfigured(
             "Rml::FileHandle", "nuint", BindingPrimitiveKind.NativeUInt);
         var open = fileInterface.Members.OfType<FunctionBinding>().First(static method =>
@@ -1043,7 +1066,7 @@ internal static class Program
 
                 if (member is RecordBinding record &&
                     (record.CppQualifiedName is
-                         "Rml::FileInterface" or "Rml::Log" or
+                         "Rml::EventListener" or "Rml::FileInterface" or "Rml::Log" or
                          "Rml::RenderInterfaceCompatibility" or "Rml::SystemInterface" ||
                      record.CppQualifiedName.StartsWith("Rml::Vector2", StringComparison.Ordinal) ||
                      record.ManagedNamespace == "Std" && record.ManagedName == "String"))

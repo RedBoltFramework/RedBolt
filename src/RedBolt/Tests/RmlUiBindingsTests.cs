@@ -70,6 +70,15 @@ public sealed class RmlUiBindingsTests
         }
     }
 
+    [Fact]
+    public void Event_listener_constructs_managed_director()
+    {
+        using var eventListener = new TestEventListener();
+
+        Assert.NotEqual(nint.Zero, eventListener.Handle);
+        Assert.Same(eventListener, EventListener.CreateManagedWrapper(eventListener.Handle, false));
+    }
+
     private sealed class TestSystemInterface : SystemInterface
     {
         public override double GetElapsedTime()
@@ -117,6 +126,13 @@ public sealed class RmlUiBindingsTests
         }
 
         public override void SetScissorRegion(int x, int y, int width, int height)
+        {
+        }
+    }
+
+    private sealed class TestEventListener : EventListener
+    {
+        public override void ProcessEvent(nint @event)
         {
         }
     }

@@ -622,6 +622,7 @@ Accepted deviations:
   - [x] UI batch pipeline-state cache prerequisite from `RenderPipeline/BatchStateCache.h`
   - [x] generated RmlUi 6.2 `RenderInterfaceCompatibility` director and layout-checked legacy value ABI
 - [ ] `RmlEventListeners.h`
+  - [x] generated RmlUi `EventListener` director prerequisite
   - [ ] `PipeEventListener : Rml::EventListener, NonCopyable`
   - [ ] `SoundEventListener : Rml::EventListener, NonCopyable`
   - [ ] `CustomEventListener : Rml::EventListener, NonCopyable`
