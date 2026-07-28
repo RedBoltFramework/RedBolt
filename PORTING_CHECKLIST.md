@@ -205,7 +205,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 - [ ] `Move.h`
   - [x] `MoveBy : AttributeAction`
   - [x] `MoveByQuadratic : MoveBy`
-  - [ ] `JumpBy : AttributeAction`
+  - [x] `JumpBy : AttributeAction`
   - [ ] `ScaleBy : AttributeAction`
   - [ ] `RotateBy : AttributeAction`
   - [ ] `RotateAround : AttributeAction`

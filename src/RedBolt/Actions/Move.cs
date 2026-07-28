@@ -362,3 +362,152 @@ public partial class MoveByQuadratic : MoveBy
 
     private Vector3f _control = Vector3f.Zero;
 }
+
+/// <summary>Move instantly by 3D offset action. Target should have attribute "Position" of type Vector3 or IntVector3.</summary>
+[Reflected]
+public partial class JumpBy : AttributeAction
+{
+    private sealed class JumpByVec3State : AttributeActionState
+    {
+        private Vector3f _positionDelta;
+        private bool _triggered;
+
+        public JumpByVec3State(JumpBy action, RedObject? target, AttributeInfo? attribute)
+            : base(action, target, attribute)
+        {
+            _positionDelta = action.PositionDelta;
+            _triggered = false;
+        }
+
+        protected override void Update(float time, ref Variant value)
+        {
+            if (_triggered)
+                return;
+            _triggered = true;
+            var result = value.GetVector3() + _positionDelta;
+            value.Dispose();
+            value = new Variant(result);
+        }
+    }
+
+    private sealed class JumpByIntVec3State : AttributeActionState
+    {
+        private Vector3f _positionDelta;
+        private bool _triggered;
+
+        public JumpByIntVec3State(JumpBy action, RedObject? target, AttributeInfo? attribute)
+            : base(action, target, attribute)
+        {
+            _positionDelta = action.PositionDelta;
+            _triggered = false;
+        }
+
+        protected override void Update(float time, ref Variant value)
+        {
+            if (_triggered)
+                return;
+            _triggered = true;
+            var result = value.GetIntVector3().ToVector3() + _positionDelta;
+            value.Dispose();
+            value = new Variant(result.ToIntVector3());
+        }
+    }
+
+    private sealed class JumpByVec2State : AttributeActionState
+    {
+        private Vector3f _positionDelta;
+        private bool _triggered;
+
+        public JumpByVec2State(JumpBy action, RedObject? target, AttributeInfo? attribute)
+            : base(action, target, attribute)
+        {
+            _positionDelta = action.PositionDelta;
+            _triggered = false;
+        }
+
+        protected override void Update(float time, ref Variant value)
+        {
+            if (_triggered)
+                return;
+            _triggered = true;
+            var result = value.GetVector2() + _positionDelta.ToVector2();
+            value.Dispose();
+            value = new Variant(result);
+        }
+    }
+
+    private sealed class JumpByIntVec2State : AttributeActionState
+    {
+        private Vector3f _positionDelta;
+        private bool _triggered;
+
+        public JumpByIntVec2State(JumpBy action, RedObject? target, AttributeInfo? attribute)
+            : base(action, target, attribute)
+        {
+            _positionDelta = action.PositionDelta;
+            _triggered = false;
+        }
+
+        protected override void Update(float time, ref Variant value)
+        {
+            if (_triggered)
+                return;
+            _triggered = true;
+            var result = value.GetIntVector2() + _positionDelta.ToIntVector2();
+            value.Dispose();
+            value = new Variant(result);
+        }
+    }
+
+    /// <summary>Construct.</summary>
+    public JumpBy()
+    {
+    }
+
+    /// <summary>Set position delta.</summary>
+    public void SetPositionDelta(Vector3f delta)
+    {
+        _delta = delta;
+    }
+
+    /// <summary>Get position delta.</summary>
+    public Vector3f PositionDelta => _delta;
+
+    /// <summary>Create reversed action.</summary>
+    public override FiniteTimeAction Reverse()
+    {
+        var result = new JumpBy();
+        result.SetDuration(Duration);
+        result.SetPositionDelta(-_delta);
+        return result;
+    }
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public override void SerializeInBlock(Archive archive)
+    {
+        base.SerializeInBlock(archive);
+        ArchiveSerialization.SerializeOptionalValue(
+            archive, "delta", ref _delta, Vector3f.Zero, ArchiveSerialization.SerializeValue);
+    }
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        var attribute = GetAttribute(target);
+        if (attribute is not null)
+        {
+            if (attribute.ValueType == typeof(Vector2f))
+                return new JumpByVec2State(this, target, attribute);
+            if (attribute.ValueType == typeof(Vector3f))
+                return new JumpByVec3State(this, target, attribute);
+            if (attribute.ValueType == typeof(Vector2i))
+                return new JumpByIntVec2State(this, target, attribute);
+            if (attribute.ValueType == typeof(Vector3i))
+                return new JumpByIntVec3State(this, target, attribute);
+            Log.GetLogger().LogError("Attribute {Attribute} is not of valid type.", AttributeName);
+        }
+        return base.StartAction(target);
+    }
+
+    private Vector3f _delta = Vector3f.Zero;
+}

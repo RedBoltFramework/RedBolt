@@ -158,6 +158,70 @@ public partial class MoveTests
         }
     }
 
+    [Fact]
+    public void Jump_by_triggers_once_and_reverses()
+    {
+        Context.Instance.RegisterAssembly(typeof(MoveTests).Assembly);
+        using var manager = new ActionManager(false);
+        using var target = new MoveTarget { Position = new Vector3f(1.0f, 2.0f, 3.0f) };
+        using var action = new JumpBy();
+        action.SetAttributeName("Position");
+        action.SetDuration(1.0f);
+        action.SetPositionDelta(new Vector3f(4.0f, 6.0f, 8.0f));
+
+        Assert.NotNull(manager.AddAction(action, target));
+        manager.Update(0.0f);
+        Assert.Equal(new Vector3f(5.0f, 8.0f, 11.0f), target.Position);
+        manager.Update(0.5f);
+        Assert.Equal(new Vector3f(5.0f, 8.0f, 11.0f), target.Position);
+
+        using var reversed = (JumpBy)action.Reverse();
+        Assert.Equal(new Vector3f(-4.0f, -6.0f, -8.0f), reversed.PositionDelta);
+        Assert.Equal(action.Duration, reversed.Duration);
+    }
+
+    [Fact]
+    public void Jump_by_supports_vector2_and_integer_vectors()
+    {
+        Context.Instance.RegisterAssembly(typeof(MoveTests).Assembly);
+        using var target = new MoveTarget
+        {
+            Position2 = new Vector2f(1.0f, 2.0f),
+            Position2i = new Vector2i(1, 2),
+            Position3i = new Vector3i(1, 2, 3)
+        };
+
+        using (var manager = new ActionManager(false))
+        using (var action = new JumpBy())
+        {
+            action.SetAttributeName("Position2");
+            action.SetPositionDelta(new Vector3f(4.0f, 6.0f, 8.0f));
+            manager.AddAction(action, target);
+            manager.Update(0.0f);
+            Assert.Equal(new Vector2f(5.0f, 8.0f), target.Position2);
+        }
+
+        using (var manager = new ActionManager(false))
+        using (var action = new JumpBy())
+        {
+            action.SetAttributeName("Position2i");
+            action.SetPositionDelta(new Vector3f(4.0f, 6.0f, 8.0f));
+            manager.AddAction(action, target);
+            manager.Update(0.0f);
+            Assert.Equal(new Vector2i(5, 8), target.Position2i);
+        }
+
+        using (var manager = new ActionManager(false))
+        using (var action = new JumpBy())
+        {
+            action.SetAttributeName("Position3i");
+            action.SetPositionDelta(new Vector3f(4.0f, 6.0f, 8.0f));
+            manager.AddAction(action, target);
+            manager.Update(0.0f);
+            Assert.Equal(new Vector3i(5, 8, 11), target.Position3i);
+        }
+    }
+
     [Reflected]
     private sealed partial class MoveTarget : Serializable
     {
