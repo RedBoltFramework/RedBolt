@@ -1,5 +1,6 @@
 namespace RedBolt.Core;
 
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -1936,6 +1937,75 @@ public static class VariantTypeUtility
     static VariantTypeUtility()
     {
         SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    }
+
+    /// <summary>
+    /// Return variant size in bytes from type. This is not the same as size of Variant class instance, this is a size of corresponding type.
+    /// </summary>
+    public static int GetVariantTypeSize(VariantType variant)
+    {
+        switch (variant)
+        {
+            case VariantType.None:
+                return 0;
+            case VariantType.Int:
+                return sizeof(int);
+            case VariantType.Int64:
+                return sizeof(long);
+            case VariantType.Bool:
+                return sizeof(bool);
+            case VariantType.Float:
+                return sizeof(float);
+            case VariantType.Double:
+                return sizeof(double);
+            case VariantType.Vector2:
+                return 8;
+            case VariantType.Vector3:
+                return 12;
+            case VariantType.DoubleVector2:
+                return 16;
+            case VariantType.DoubleVector3:
+                return 24;
+            case VariantType.Vector4:
+                return 16;
+            case VariantType.Quaternion:
+                return 16;
+            case VariantType.Color:
+                return 16;
+            case VariantType.String:
+                return IntPtr.Size == 8 ? 24 : 16;
+            case VariantType.Buffer:
+                return IntPtr.Size == 8 ? 32 : 16;
+            case VariantType.ResourceRef:
+                return IntPtr.Size == 8 ? 32 : 20;
+            case VariantType.ResourceRefList:
+                return IntPtr.Size == 8 ? 40 : 20;
+            case VariantType.VariantVector:
+                return IntPtr.Size == 8 ? 32 : 16;
+            case VariantType.StringVector:
+                return IntPtr.Size == 8 ? 32 : 16;
+            case VariantType.VariantMap:
+                return IntPtr.Size == 8 ? 48 : 32;
+            case VariantType.Rect:
+                return 16;
+            case VariantType.IntRect:
+                return 16;
+            case VariantType.Vector2i:
+                return 8;
+            case VariantType.Vector3i:
+                return 12;
+            case VariantType.Matrix3:
+                return 36;
+            case VariantType.Matrix3x4:
+                return 48;
+            case VariantType.Matrix4:
+                return 64;
+            case VariantType.StringVariantMap:
+                return IntPtr.Size == 8 ? 48 : 32;
+            default:
+                Debug.Assert(false, "Unsupported value type");
+                return 0;
+        }
     }
 
     public static VariantType GetVariantType<T>()

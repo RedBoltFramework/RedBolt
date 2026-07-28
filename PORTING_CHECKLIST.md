@@ -536,7 +536,7 @@ Accepted deviations:
   - [ ] `UpdateContext`
 - [ ] `ParticleGraphMemory.h`
   - [ ] `ParticleGraphSpan` (managed-reference value support pending)
-  - [ ] `ParticleGraphAttributeLayout`
+  - [x] `ParticleGraphAttributeLayout`
   - [ ] `ParticleGraphBufferLayout`
 - [x] `ParticleGraphPin.h`
   - [x] `ParticleGraphPinFlag`

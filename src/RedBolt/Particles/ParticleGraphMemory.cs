@@ -23,7 +23,11 @@
 namespace RedBolt.Particles;
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
+
+using RedBolt.Container;
+using RedBolt.Core;
 
 /// <summary>
 /// Memory layout definition.
@@ -77,4 +81,113 @@ public struct ParticleGraphSpan
     //     const auto slice = buffer.subspan(offset_, size_);
     //     return ea::span<T>(reinterpret_cast<T*>(slice.begin()), reinterpret_cast<T*>(slice.end()));
     // }
+}
+
+/// <summary>
+/// Memory layout for attributes.
+/// </summary>
+public class ParticleGraphAttributeLayout
+{
+    /// <summary>
+    /// Reset layout.
+    /// </summary>
+    public void Reset(int offset, int capacity)
+    {
+        _capacity = capacity;
+        _position = offset;
+        _attributes.Clear();
+    }
+
+    /// <summary>
+    /// Get or add attribute.
+    /// </summary>
+    public int GetOrAddAttribute(string name, VariantType type)
+    {
+        var nameHash = new StringHash(name);
+
+        //Look for attribute with linear complexity. We going to have low number of attributes so it doesn't worth to build a map.
+        for (var i = 0; i < _attributes.Count; ++i)
+        {
+            if (_attributes[i].NameHash == nameHash && _attributes[i].Type == type)
+                return i;
+        }
+
+        var index = _attributes.Count;
+        var size = VariantTypeUtility.GetVariantTypeSize(type) * _capacity;
+        _attributes.Add(new AttrSpan
+        {
+            Name = name,
+            NameHash = nameHash,
+            Type = type,
+            Span = new ParticleGraphSpan(_position, size)
+        });
+        _position += size;
+        return index;
+    }
+
+    /// <summary>
+    /// Get name by attribute index.
+    /// </summary>
+    public string GetName(int attrIndex) => _attributes[attrIndex].Name;
+
+    /// <summary>
+    /// Get type by attribute index.
+    /// </summary>
+    public VariantType GetType(int attrIndex) => _attributes[attrIndex].Type;
+
+    /// <summary>
+    /// Get number of attributes.
+    /// </summary>
+    public int NumAttributes => _attributes.Count;
+
+    /// <summary>
+    /// Get amount of required memory to host all attributes.
+    /// </summary>
+    public int RequiredMemory => _position;
+
+    /// <summary>
+    /// Get span by attribute index.
+    /// </summary>
+    public ParticleGraphSpan GetSpan(int attrIndex) => _attributes[attrIndex].Span;
+
+    /// <summary>
+    /// Attribute layout.
+    /// </summary>
+    private struct AttrSpan
+    {
+        /// <summary>
+        /// Name of attribute.
+        /// </summary>
+        public string Name;
+
+        /// <summary>
+        /// Attribute name hash.
+        /// </summary>
+        public StringHash NameHash;
+
+        /// <summary>
+        /// Type of attribute.
+        /// </summary>
+        public VariantType Type;
+
+        /// <summary>
+        /// Location at emitter attribute buffer.
+        /// </summary>
+        public ParticleGraphSpan Span;
+    }
+
+    /// <summary>
+    /// All known attributes.
+    /// </summary>
+    private readonly List<AttrSpan> _attributes = [];
+
+    /// <summary>
+    /// Size of required attribute buffer.
+    /// </summary>
+    private int _position;
+
+    /// <summary>
+    /// Maximal number of particles.
+    /// </summary>
+    private int _capacity;
 }
