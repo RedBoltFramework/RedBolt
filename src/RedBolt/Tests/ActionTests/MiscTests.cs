@@ -94,6 +94,28 @@ public sealed partial class MiscTests
         Assert.True(target.IsEnabled);
     }
 
+    [Fact]
+    public void Blink_toggles_enabled_attribute_and_restores_original()
+    {
+        Context.Instance.RegisterAssembly(typeof(MiscTests).Assembly);
+        using var manager = new ActionManager(false);
+        using var target = new MiscTarget();
+        using var action = new Blink();
+        action.SetDuration(1.0f);
+        action.SetNumOfBlinks(0);
+        Assert.Equal(1u, action.NumOfBlinks);
+        action.SetNumOfBlinks(2);
+
+        Assert.Equal(AttributeActionConstants.IsEnabledAttribute, action.AttributeName);
+        Assert.NotNull(manager.AddAction(action, target));
+        manager.Update(0.0f);
+        Assert.True(target.IsEnabled);
+        manager.Update(0.3f);
+        Assert.False(target.IsEnabled);
+        manager.Update(0.7f);
+        Assert.False(target.IsEnabled);
+    }
+
     [Reflected]
     private sealed partial class MiscTarget : Serializable
     {

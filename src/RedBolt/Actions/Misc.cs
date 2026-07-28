@@ -23,7 +23,10 @@
 
 namespace RedBolt.Actions;
 
+using System;
+
 using RedBolt.Core;
+using RedBolt.IO;
 using RedBolt.Scene;
 
 /// <summary>Remove self from parent. The Target of the action should be either Node or UIElement.</summary>
@@ -133,4 +136,42 @@ public partial class Disable : AttributeAction
         using var value = new Variant(false);
         return new SetAttributeState(this, target, GetAttribute(target), value);
     }
+}
+
+/// <summary>Blink target by toggling "Is Enabled" attribute. The Target should have "Is Enabled" attribute.</summary>
+[Reflected]
+public partial class Blink : AttributeAction
+{
+    /// <summary>Construct.</summary>
+    public Blink()
+        : base(AttributeActionConstants.IsEnabledAttribute)
+    {
+    }
+
+    /// <summary>Get number of blinks.</summary>
+    public uint NumOfBlinks => _times;
+
+    /// <summary>Set number of blinks.</summary>
+    public void SetNumOfBlinks(uint times)
+    {
+        _times = Math.Max(1u, times);
+    }
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public override void SerializeInBlock(Archive archive)
+    {
+        base.SerializeInBlock(archive);
+        ArchiveSerialization.SerializeOptionalValue(
+            archive, "times", ref _times, 1u, ArchiveSerialization.SerializeValue);
+    }
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        using var from = new Variant(false);
+        using var to = new Variant(true);
+        return new AttributeBlinkState(this, target, GetAttribute(target), from, to, _times);
+    }
+
+    protected uint _times = 1;
 }
