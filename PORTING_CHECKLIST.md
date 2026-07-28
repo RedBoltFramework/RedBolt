@@ -613,8 +613,8 @@ Accepted deviations:
   - [x] generated RmlUi `SystemInterface` director — standard-library `Std.String`, no EASTL projection
 - [x] `RmlSystem.h`
   - [x] `RmlSystem : Rml::SystemInterface` — `RefCounted` and `WeakPtr<Context>` dropped per managed deviation
-- [ ] `RmlFile.h`
-  - [ ] `RmlFile : Rml::FileInterface`
+- [x] `RmlFile.h`
+  - [x] `RmlFile : Rml::FileInterface` — `WeakPtr<Context>` dropped; file ownership mapped to `GCHandle`; loaded resources tracked with stdlib `HashSet`
 - [ ] `RmlRenderer.h`
   - [ ] `RmlRenderer : Object, Rml::RenderInterface`
 - [ ] `RmlEventListeners.h`

@@ -128,6 +128,7 @@ internal static class Program
 
     private static readonly HashSet<string> RmlUiDirectorRecordCppTypeNames = new(StringComparer.Ordinal)
     {
+        "Rml::FileInterface",
         "Rml::SystemInterface"
     };
 
@@ -832,10 +833,35 @@ internal static class Program
                 method.ClearIgnoreReason();
         }
 
+        var fileInterface = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::FileInterface");
+        fileInterface.ClearIgnoreReason();
+        fileInterface.Bases.Clear();
+        fileInterface.ManagedBaseTypeName = null;
+        foreach (var method in fileInterface.Members.OfType<FunctionBinding>())
+        {
+            if (method.IsConstructor || method.IsVirtual)
+                method.ClearIgnoreReason();
+        }
+
+        var fileHandleType = BindingType.CreateConfigured(
+            "Rml::FileHandle", "nuint", BindingPrimitiveKind.NativeUInt);
+        var open = fileInterface.Members.OfType<FunctionBinding>().First(static method =>
+            method.NativeName == "Open");
+        open.ReturnType = fileHandleType;
+        open.CppReturnTypeName = "Rml::FileHandle";
+        foreach (var parameter in fileInterface.Members.OfType<FunctionBinding>()
+                     .SelectMany(static method => method.Parameters)
+                     .Where(static parameter => parameter.NativeName == "file"))
+        {
+            parameter.Type = fileHandleType;
+            parameter.CppTypeName = "Rml::FileHandle";
+        }
+
         var log = compilation.Records.First(static record => record.CppQualifiedName == "Rml::Log");
         log.ClearIgnoreReason();
         foreach (var method in log.Members.OfType<FunctionBinding>())
-            method.SetSilentExclusionReason("RmlUi logging helpers are outside the SystemInterface binding slice");
+            method.SetSilentExclusionReason("RmlUi logging helpers are outside the interface binding slice");
 
         var logMessage = systemInterface.Members.OfType<FunctionBinding>().First(static method =>
             method.NativeName == "LogMessage");
@@ -857,10 +883,23 @@ internal static class Program
         vector2.Members.Clear();
 
         foreach (var function in compilation.Functions.Where(static function =>
-                     function.Parent is null &&
-                     function.CppQualifiedName is "Rml::GetSystemInterface" or "Rml::SetSystemInterface"))
+                     function.Parent is not RecordBinding &&
+                     function.CppQualifiedName is
+                         "Rml::GetFileInterface" or "Rml::SetFileInterface" or
+                         "Rml::GetSystemInterface" or "Rml::SetSystemInterface"))
         {
             function.ClearIgnoreReason();
+            if (function.NativeName.StartsWith("Get", StringComparison.Ordinal))
+            {
+                function.ReturnType = function.ReturnType.WithManagedTypeFormatOverride(
+                    $"{function.ReturnType.ManagedTypeName}?");
+            }
+            else
+            {
+                var parameter = function.Parameters[0];
+                parameter.Type = parameter.Type.WithManagedTypeFormatOverride(
+                    $"{parameter.Type.ManagedTypeName}?");
+            }
         }
     }
 
@@ -943,13 +982,15 @@ internal static class Program
             {
                 var member = compilation.Members[index];
                 if (member is FunctionBinding function &&
-                    function.CppQualifiedName is "Rml::GetSystemInterface" or "Rml::SetSystemInterface")
+                    function.CppQualifiedName is
+                        "Rml::GetFileInterface" or "Rml::SetFileInterface" or
+                        "Rml::GetSystemInterface" or "Rml::SetSystemInterface")
                 {
                     continue;
                 }
 
                 if (member is RecordBinding record &&
-                    (record.CppQualifiedName is "Rml::Log" or "Rml::SystemInterface" ||
+                    (record.CppQualifiedName is "Rml::FileInterface" or "Rml::Log" or "Rml::SystemInterface" ||
                      record.CppQualifiedName.StartsWith("Rml::Vector2", StringComparison.Ordinal) ||
                      record.ManagedNamespace == "Std" && record.ManagedName == "String"))
                 {
