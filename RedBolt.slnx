@@ -28,6 +28,7 @@
     <Project Path="src/RedBolt/Glow/RedBolt.Glow.csproj" />
     <Project Path="src/RedBolt/IK/RedBolt.IK.csproj" />
     <Project Path="src/RedBolt/Navigation/RedBolt.Navigation.csproj" />
+    <Project Path="src/RedBolt/RmlUI/RedBolt.RmlUI.csproj" />
   </Folder>
   <Folder Name="/src/RedBolt/Bindings/">
     <Project Path="src/RedBolt/Bindings/DearImGui/RedBolt.Bindings.DearImGui.csproj" />

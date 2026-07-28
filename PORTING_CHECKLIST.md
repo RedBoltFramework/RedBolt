@@ -611,8 +611,8 @@ Accepted deviations:
 - [x] native prerequisites — RmlUi 6.2 with standard-library containers and HarfBuzz 14.2.1 raster; RmlUi font engine disabled, no FreeType
   - [x] generated HarfBuzz font/raster bindings — verified non-empty A8 glyph output
   - [x] generated RmlUi `SystemInterface` director — standard-library `Std.String`, no EASTL projection
-- [ ] `RmlSystem.h`
-  - [ ] `RmlSystem : RefCounted, Rml::SystemInterface`
+- [x] `RmlSystem.h`
+  - [x] `RmlSystem : Rml::SystemInterface` — `RefCounted` and `WeakPtr<Context>` dropped per managed deviation
 - [ ] `RmlFile.h`
   - [ ] `RmlFile : Rml::FileInterface`
 - [ ] `RmlRenderer.h`
