@@ -222,6 +222,49 @@ public partial class MoveTests
         }
     }
 
+    [Fact]
+    public void Scale_by_tracks_external_changes_and_reverses()
+    {
+        Context.Instance.RegisterAssembly(typeof(MoveTests).Assembly);
+        using var manager = new ActionManager(false);
+        using var target = new MoveTarget { Scale = new Vector3f(1.0f, 2.0f, 3.0f) };
+        using var action = new ScaleBy();
+        action.SetAttributeName("Scale");
+        action.SetDuration(1.0f);
+        action.SetScaleDelta(new Vector3f(2.0f, 3.0f, 4.0f));
+
+        Assert.NotNull(manager.AddAction(action, target));
+        manager.Update(0.0f);
+        target.Scale *= 2.0f;
+        manager.Update(0.5f);
+        Assert.Equal(new Vector3f(3.0f, 8.0f, 15.0f), target.Scale);
+        manager.Update(0.5f);
+        Assert.Equal(new Vector3f(4.0f, 12.0f, 24.0f), target.Scale);
+
+        using var reversed = (ScaleBy)action.Reverse();
+        Assert.Equal(new Vector3f(0.5f, 1.0f / 3.0f, 0.25f), reversed.ScaleDelta);
+        Assert.Equal(action.Duration, reversed.Duration);
+    }
+
+    [Fact]
+    public void Scale_by_supports_vector2()
+    {
+        Context.Instance.RegisterAssembly(typeof(MoveTests).Assembly);
+        using var manager = new ActionManager(false);
+        using var target = new MoveTarget { Scale2 = new Vector2f(1.0f, 2.0f) };
+        using var action = new ScaleBy();
+        action.SetAttributeName("Scale2");
+        action.SetDuration(1.0f);
+        action.SetScaleDelta(new Vector3f(2.0f, 3.0f, 4.0f));
+
+        Assert.NotNull(manager.AddAction(action, target));
+        manager.Update(0.0f);
+        manager.Update(0.5f);
+        Assert.Equal(new Vector2f(1.5f, 4.0f), target.Scale2);
+        manager.Update(0.5f);
+        Assert.Equal(new Vector2f(2.0f, 6.0f), target.Scale2);
+    }
+
     [Reflected]
     private sealed partial class MoveTarget : Serializable
     {
@@ -236,5 +279,11 @@ public partial class MoveTests
 
         [Serialized("Position3i")]
         public Vector3i Position3i { get; set; }
+
+        [Serialized("Scale")]
+        public Vector3f Scale { get; set; }
+
+        [Serialized("Scale2")]
+        public Vector2f Scale2 { get; set; }
     }
 }

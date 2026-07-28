@@ -511,3 +511,106 @@ public partial class JumpBy : AttributeAction
 
     private Vector3f _delta = Vector3f.Zero;
 }
+
+/// <summary>Scale by 3D offset action. Target should have attribute "Scale" of type Vector3.</summary>
+[Reflected]
+public partial class ScaleBy : AttributeAction
+{
+    private sealed class ScaleByState : AttributeActionState
+    {
+        private Vector3f _scaleDelta;
+        private Vector3f _startScale;
+        private Vector3f _previousScale;
+
+        public ScaleByState(ScaleBy action, RedObject? target, AttributeInfo? attribute)
+            : base(action, target, attribute)
+        {
+            _scaleDelta = action.ScaleDelta;
+            _previousScale = _startScale = Get<Vector3f>();
+        }
+
+        protected override void Update(float time, ref Variant value)
+        {
+            var currentScale = value.GetVector3();
+            var diff = currentScale / _previousScale;
+            _startScale = _startScale * diff;
+            var newScale = _startScale * Vector3f.One.Lerp(_scaleDelta, time);
+            value.Dispose();
+            value = new Variant(newScale);
+            _previousScale = newScale;
+        }
+    }
+
+    private sealed class ScaleByVec2State : AttributeActionState
+    {
+        private Vector2f _scaleDelta;
+        private Vector2f _startScale;
+        private Vector2f _previousScale;
+
+        public ScaleByVec2State(ScaleBy action, RedObject? target, AttributeInfo? attribute)
+            : base(action, target, attribute)
+        {
+            _scaleDelta = action.ScaleDelta.ToVector2();
+            _previousScale = _startScale = Get<Vector2f>();
+        }
+
+        protected override void Update(float time, ref Variant value)
+        {
+            var currentScale = value.GetVector2();
+            var diff = currentScale / _previousScale;
+            _startScale = _startScale * diff;
+            var newScale = _startScale * Vector2f.One.Lerp(_scaleDelta, time);
+            value.Dispose();
+            value = new Variant(newScale);
+            _previousScale = newScale;
+        }
+    }
+
+    /// <summary>Construct.</summary>
+    public ScaleBy()
+    {
+    }
+
+    /// <summary>Set scale delta.</summary>
+    public void SetScaleDelta(Vector3f delta)
+    {
+        _delta = delta;
+    }
+
+    /// <summary>Get scale delta.</summary>
+    public Vector3f ScaleDelta => _delta;
+
+    /// <summary>Create reversed action.</summary>
+    public override FiniteTimeAction Reverse()
+    {
+        var result = new ScaleBy();
+        result.SetDuration(Duration);
+        result.SetScaleDelta(new Vector3f(1.0f / _delta.X, 1.0f / _delta.Y, 1.0f / _delta.Z));
+        return result;
+    }
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public override void SerializeInBlock(Archive archive)
+    {
+        base.SerializeInBlock(archive);
+        ArchiveSerialization.SerializeOptionalValue(
+            archive, "delta", ref _delta, Vector3f.One, ArchiveSerialization.SerializeValue);
+    }
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        var attribute = GetAttribute(target);
+        if (attribute is not null)
+        {
+            if (attribute.ValueType == typeof(Vector3f))
+                return new ScaleByState(this, target, attribute);
+            if (attribute.ValueType == typeof(Vector2f))
+                return new ScaleByVec2State(this, target, attribute);
+            Log.GetLogger().LogError("Attribute {Attribute} is not of valid type.", AttributeName);
+        }
+        return base.StartAction(target);
+    }
+
+    private Vector3f _delta = Vector3f.One;
+}
