@@ -1,9 +1,9 @@
+namespace RedBolt.RenderAPI;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Platform;
-
-namespace RedBolt.RenderAPI;
 
 /// <summary>
 /// Render API utility functions.

@@ -1,3 +1,5 @@
+namespace RedBolt.RenderPipeline;
+
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 
@@ -8,9 +10,6 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>Default implementation of render pipeline instance.</summary>
 public class DefaultRenderPipelineView : RenderPipelineView

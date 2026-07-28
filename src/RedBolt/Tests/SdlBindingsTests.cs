@@ -1,9 +1,9 @@
+namespace RedBolt.Tests;
+
 using System.Runtime.InteropServices;
 using System.Text;
 
 using RedBolt.Bindings.Sdl;
-
-namespace RedBolt.Tests;
 
 public sealed class SdlBindingsTests
 {

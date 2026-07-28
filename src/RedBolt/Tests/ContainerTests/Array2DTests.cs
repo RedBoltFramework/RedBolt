@@ -1,10 +1,10 @@
+namespace RedBolt.Tests;
+
 using System.Runtime.CompilerServices;
 
 using RedBolt;
 using RedBolt.Container;
 using RedBolt.Math;
-
-namespace RedBolt.Tests;
 
 public sealed class Array2DTests
 {

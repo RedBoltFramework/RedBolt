@@ -1,3 +1,5 @@
+namespace RedBolt.Scene;
+
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -5,8 +7,6 @@ using System.Runtime.InteropServices;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Logging;
-
-namespace RedBolt.Scene;
 
 /// <summary>
 /// Base class for simple tracked component.

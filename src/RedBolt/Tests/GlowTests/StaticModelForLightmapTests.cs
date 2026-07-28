@@ -1,10 +1,10 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Glow;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Resource;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
+using RedBolt.Scene;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class StaticModelForLightmapTests
@@ -21,7 +21,7 @@ public sealed class StaticModelForLightmapTests
     [Fact]
     public void Initialize_creates_baking_batches_and_geometry_mapping()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         scene.CreateComponent<Octree>();
         var sourceNode = scene.CreateChild("Source");
         sourceNode.SetPosition(new Vector3f(1.0f, 2.0f, 3.0f));

@@ -1,9 +1,9 @@
+namespace RedBolt.Tests.MathTests;
+
 using SystemMath = global::System.Math;
 using System.Reflection;
 
 using RedBolt.Math;
-
-namespace RedBolt.Tests.MathTests;
 
 public class PerlinNoiseTests
 {

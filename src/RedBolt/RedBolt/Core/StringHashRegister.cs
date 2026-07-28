@@ -1,9 +1,9 @@
+namespace RedBolt.Core;
+
 using Microsoft.Extensions.Logging;
 
 using RedBolt.Container;
 using RedBolt.Logging;
-
-namespace RedBolt.Core;
 
 public sealed class StringHashRegister
 {

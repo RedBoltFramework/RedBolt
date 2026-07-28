@@ -1,7 +1,7 @@
+namespace RedBolt.Math;
+
 using System.Globalization;
 using System.Runtime.InteropServices;
-
-namespace RedBolt.Math;
 
 /// <summary>Two-dimensional bounding rectangle.</summary>
 [StructLayout(LayoutKind.Sequential)]

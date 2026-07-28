@@ -1,3 +1,5 @@
+namespace RedBolt.RenderAPI;
+
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -6,8 +8,6 @@ using RedBolt.Bindings.Diligent;
 using RedBolt.Container;
 using RedBolt.Graphics;
 using RedBolt.Logging;
-
-namespace RedBolt.RenderAPI;
 
 /// <summary>Base class for GPU shader. It should be kept alive as long as the shader is used by any
 /// pipeline state. Shader handle is null if shader is not loaded or failed to load.</summary>

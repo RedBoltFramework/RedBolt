@@ -1,6 +1,6 @@
-using RedBolt.IO;
-
 namespace RedBolt.Core;
+
+using RedBolt.IO;
 
 /// <summary>Exception thrown on I/O error on Archive serialization/deserialization.</summary>
 /// <remarks>

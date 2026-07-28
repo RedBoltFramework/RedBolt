@@ -1,11 +1,11 @@
+namespace RedBolt.RenderAPI;
+
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 
 using RedBolt.Bindings.Diligent;
 using RedBolt.Container;
 using RedBolt.Logging;
-
-namespace RedBolt.RenderAPI;
 
 /// <summary>
 /// Generic pipeline state cache.

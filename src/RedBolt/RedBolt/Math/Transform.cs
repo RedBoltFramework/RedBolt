@@ -1,6 +1,6 @@
-using System.Runtime.InteropServices;
-
 namespace RedBolt.Math;
+
+using System.Runtime.InteropServices;
 
 /// <summary>3D transform decomposed into translation, rotation and scale components.</summary>
 /// <remarks>TODO: Expand it into something more user-friendly.</remarks>

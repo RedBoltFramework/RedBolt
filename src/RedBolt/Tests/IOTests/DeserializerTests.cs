@@ -1,10 +1,10 @@
+namespace RedBolt.Tests;
+
 using SystemMath = global::System.Math;
 
 using RedBolt;
 using RedBolt.Core;
 using RedBolt.IO;
-
-namespace RedBolt.Tests;
 
 public sealed class DeserializerTests
 {

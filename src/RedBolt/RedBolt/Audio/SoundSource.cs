@@ -1,3 +1,5 @@
+namespace RedBolt.Audio;
+
 using SystemMath = global::System.Math;
 
 using RedBolt.Container;
@@ -5,9 +7,6 @@ using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Audio;
 
 /// <summary>Compressed audio decode buffer length in milliseconds.</summary>
 public static class SoundSourceConstants

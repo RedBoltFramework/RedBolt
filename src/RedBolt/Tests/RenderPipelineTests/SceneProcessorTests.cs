@@ -1,11 +1,10 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class SceneProcessorTests
@@ -20,7 +19,7 @@ public sealed class SceneProcessorTests
     [Fact]
     public void IsLightShadowed_RespectsSettingsAndDistance()
     {
-        using var scene = new SceneType();
+        using var scene = new Scene();
         var lightNode = scene.CreateChild("Light");
         var light = lightNode.CreateComponent<Light>();
         light.SetCastShadows(true);
@@ -40,7 +39,7 @@ public sealed class SceneProcessorTests
     [Fact]
     public void Define_RequiresOctreeAndCamera()
     {
-        using var scene = new SceneType();
+        using var scene = new Scene();
         var cameraNode = scene.CreateChild("Camera");
         var camera = cameraNode.CreateComponent<Camera>();
         var viewport = new Viewport(scene, camera);

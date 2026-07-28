@@ -121,14 +121,19 @@ STEP 6 - Commit the completed slice as a coherent checkpoint.
 
 ## 4A. C# FILE HEADERS (follow exactly)
 
-Order C# file headers as follows:
+Keep leading copyright and license comments before the namespace declaration.
+Order namespace-bearing C# file headers as follows:
 
-1. `System.*` and `Microsoft.*` using directives.
-2. Package using directives, including NuGet and `extern/` dependencies such as SharpCpp.
-3. `RedBolt.*` using directives.
-4. Namespace declaration, when present.
+1. File-scoped namespace declaration.
+2. `System.*` and `Microsoft.*` using directives.
+3. Package using directives, including NuGet and `extern/` dependencies such as SharpCpp.
+4. `RedBolt.*` using directives.
 
-Alphabetize each group and separate adjacent groups with one empty line. Classify aliases by their target namespace. Separate the namespace declaration from the rest of the code with one empty line.
+All non-global using directives must be namespace-local. Alphabetize each group
+and separate adjacent groups with one empty line. Classify aliases by their
+target namespace. Separate the namespace declaration, using directives, and code
+with one empty line. Files containing only global using directives remain
+namespace-less because C# forbids global using directives inside a namespace.
 
 ## 5. TYPE MAPPING RULES
 
@@ -315,6 +320,9 @@ The exhaustive list of allowed deviations is maintained in
 `doc/ALLOWED_DEVIATIONS.md`. Anything not on that list must match C++.
 
 Agreed project-specific naming deviation: C# engine types use folder-matching namespaces; the `Audio`, `Engine`, `Graphics`, and `Input` subsystem classes are named `AudioSystem`, `EngineSystem`, `GraphicsSystem`, and `InputSystem`; and the render pipeline component class is named `RenderPipelineComponent`.
+
+Agreed project-specific namespace resolution deviation: namespace/type collisions
+are resolved with namespace-local using directives.
 
 Agreed project-specific reflection deviation: reflected C# objects and serializable attributes must declare generated `[Reflected]`, `[Serialized]`, and `[RemoveSerialized]` metadata instead of hand-written `RegisterObject`, `RegisterAttribute`, or `AddFactoryReflection` registration. Apply `[Serialized]` only to the instance field, property, getter, or setter that it serializes, never to a class. Infer the value type and available accessors from that member: a getter declaration names only a separate setter when required, and a setter declaration names only a separate getter when required. Field, auto-property, and simple-property backing-field initializers are their serialization defaults without `DefaultSource`; use a private named default source only when the target member cannot declare the required default. Inherited serialized members are copied from their reflected attribute source without forwarding declarations; use a private forwarding property only for a new subtype-specific serialized property whose storage/accessors are otherwise inherited. Preserve factory categories, non-factory types (`Factory = false`), exact attribute order inferred from serialized member declaration order, explicit inheritance source and insertion point, removals, defaults, modes, scope hints, enum names, custom accessors, and metadata configuration in those declarations. Named source members and forwarding properties used only by generated reflection must remain private implementation details. Library registration entry points register the generated assembly metadata; only the generator and its runtime registration infrastructure may use the low-level reflection APIs that materialize those declarations.
 

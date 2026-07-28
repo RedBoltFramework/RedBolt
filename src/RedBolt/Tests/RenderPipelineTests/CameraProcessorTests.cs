@@ -1,8 +1,8 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Graphics;
 using FillMode = global::RedBolt.Graphics.FillMode;
 using RedBolt.RenderPipeline;
-
-namespace RedBolt.Tests;
 
 public sealed class CameraProcessorTests
 {

@@ -1,8 +1,7 @@
+namespace RedBolt.Graphics;
+
 using RedBolt.Math;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Graphics;
 
 /// <summary>Lightmap chart allocation settings.</summary>
 public struct LightmapChartingSettings

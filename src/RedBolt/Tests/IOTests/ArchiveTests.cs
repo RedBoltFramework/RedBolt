@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using System.Runtime.InteropServices;
 
 using RedBolt;
@@ -8,8 +10,6 @@ using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-
-namespace RedBolt.Tests;
 
 public sealed class ArchiveTests
 {

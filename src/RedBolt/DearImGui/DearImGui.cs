@@ -1,3 +1,5 @@
+namespace RedBolt;
+
 using RedBolt.Bindings.DearImGui;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
@@ -5,8 +7,6 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.RenderAPI;
-
-namespace RedBolt;
 
 public class DearImGui : RedObject
 {

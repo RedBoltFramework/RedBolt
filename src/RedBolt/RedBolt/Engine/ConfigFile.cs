@@ -1,3 +1,5 @@
+namespace RedBolt.Engine;
+
 using Microsoft.Extensions.Logging;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -9,8 +11,6 @@ using RedBolt.IO;
 using FileMode = global::RedBolt.IO.FileMode;
 using RedBolt.Logging;
 using RedBolt.Resource;
-
-namespace RedBolt.Engine;
 
 /// <summary>Configuration parameter description.</summary>
 public sealed class ConfigVariableDefinition : ICloneable, IDisposable

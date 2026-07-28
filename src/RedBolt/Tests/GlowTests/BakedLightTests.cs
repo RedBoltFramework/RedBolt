@@ -1,9 +1,9 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Glow;
 using RedBolt.Graphics;
 using RedBolt.Math;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
+using RedBolt.Scene;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class BakedLightTests
@@ -11,7 +11,7 @@ public sealed class BakedLightTests
     [Fact]
     public void Baked_light_captures_spot_light_state()
     {
-        using var scene = new SceneType();
+        using var scene = new Scene();
         var node = scene.CreateChild("Light");
         node.SetPosition(new Vector3f(1.0f, 2.0f, 3.0f));
         node.SetRotation(new Quaternion(15.0f, 30.0f, 45.0f));
@@ -47,7 +47,7 @@ public sealed class BakedLightTests
     [Fact]
     public void Baked_directional_light_uses_radius_as_angle()
     {
-        using var scene = new SceneType();
+        using var scene = new Scene();
         var light = scene.CreateChild("Light").CreateComponent<Light>();
         light.SetLightType(LightType.Directional);
         light.SetRadius(4.0f);

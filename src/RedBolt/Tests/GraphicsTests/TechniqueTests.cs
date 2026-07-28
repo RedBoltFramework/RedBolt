@@ -1,10 +1,10 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Container;
 using RedBolt.Graphics;
 using CullMode = global::RedBolt.Graphics.CullMode;
 using RedBolt.IO;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class TechniqueTests

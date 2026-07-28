@@ -1,7 +1,7 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Glow;
 using RedBolt.Math;
-
-namespace RedBolt.Tests;
 
 public sealed class BakedSceneBackgroundTests
 {

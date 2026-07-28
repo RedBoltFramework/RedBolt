@@ -1,10 +1,9 @@
+namespace RedBolt.Tests.GraphicsTests;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests.GraphicsTests;
 
 public sealed class DebugGeometryTests
 {
@@ -144,7 +143,7 @@ public sealed class DebugGeometryTests
     [Fact]
     public void Drawable_debug_geometry_uses_world_bounds()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var drawable = scene.CreateChild("Drawable").CreateComponent<StaticModel>();
         drawable.SetBoundingBox(new BoundingBox(-1.0f, 1.0f));
         var debugRenderer = new DebugRenderer();

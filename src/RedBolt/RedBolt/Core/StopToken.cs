@@ -1,7 +1,7 @@
+namespace RedBolt.Core;
+
 using System.Runtime.CompilerServices;
 using System.Threading;
-
-namespace RedBolt.Core;
 
 /// <summary>
 /// Stop token used to thread-safely stop asynchronous task. This object can be passed

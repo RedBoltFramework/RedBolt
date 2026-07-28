@@ -1,10 +1,9 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed partial class LogicComponentTests
@@ -31,7 +30,7 @@ public sealed partial class LogicComponentTests
     [Fact]
     public void Scene_update_lifecycle_works()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var logic = scene.CreateChild("LogicNode").CreateComponent<CountingLogic>();
 
         scene.Update(0.25f);
@@ -48,7 +47,7 @@ public sealed partial class LogicComponentTests
     [Fact]
     public void Stop_lifecycle_works()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("LogicNode");
         var logic = node.CreateComponent<CountingLogic>();
         scene.Update(0.1f);
@@ -59,7 +58,7 @@ public sealed partial class LogicComponentTests
     [Fact]
     public void Delayed_start_is_not_replayed_after_reattach()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var firstNode = scene.CreateChild("First");
         var secondNode = scene.CreateChild("Second");
         var logic = firstNode.CreateComponent<CountingLogic>();
@@ -77,7 +76,7 @@ public sealed partial class LogicComponentTests
     [Fact]
     public void World_origin_updates_follow_event_mask()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var logic = scene.CreateChild("LogicNode").CreateComponent<CountingLogic>();
         logic.SetUpdateEventMask(UpdateEvent.UseWorldOriginUpdate | UpdateEvent.UseWorldOriginPostUpdate);
 
@@ -90,7 +89,7 @@ public sealed partial class LogicComponentTests
     [Fact]
     public void Disabled_component_unsubscribes_until_reenabled()
     {
-        using var scene = new SceneType();
+        using var scene = new Scene();
         var logic = scene.CreateChild("LogicNode").CreateComponent<CountingLogic>();
 
         logic.SetEnabled(false);
@@ -111,7 +110,7 @@ public sealed partial class LogicComponentTests
     [Fact]
     public void Delayed_start_runs_once_without_requested_update_events()
     {
-        using var scene = new SceneType();
+        using var scene = new Scene();
         var logic = new CountingLogic();
         logic.SetUpdateEventMask(UpdateEvent.UseNoEvent);
         scene.CreateChild("LogicNode").AddComponent(logic);
@@ -127,7 +126,7 @@ public sealed partial class LogicComponentTests
     [Fact]
     public void Logic_update_uses_scene_event_subscription_order()
     {
-        using var scene = new SceneType();
+        using var scene = new Scene();
         using var before = new TestEventReceiver();
         using var after = new TestEventReceiver();
         var calls = new List<string>();
@@ -148,8 +147,8 @@ public sealed partial class LogicComponentTests
     [Fact]
     public void Virtual_update_event_types_select_typed_struct_events()
     {
-        using var scene = new SceneType();
-        using var otherScene = new SceneType();
+        using var scene = new Scene();
+        using var otherScene = new Scene();
         var logic = scene.CreateChild("LogicNode").CreateComponent<CustomEventLogic>();
 
         Assert.Equal(typeof(CustomUpdateEvent), logic.GetUpdateEvent().Type);
@@ -178,7 +177,7 @@ public sealed partial class LogicComponentTests
     [Fact]
     public void Typed_custom_update_dispatch_does_not_allocate_after_warmup()
     {
-        using var scene = new SceneType();
+        using var scene = new Scene();
         scene.CreateChild("LogicNode").CreateComponent<CustomEventLogic>();
         var update = new CustomUpdateEvent { TimeStep = 0.25f };
 

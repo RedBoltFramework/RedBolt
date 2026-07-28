@@ -1,7 +1,7 @@
+namespace RedBolt.Graphics;
+
 using RedBolt.Core;
 using RedBolt.Scene;
-
-namespace RedBolt.Graphics;
 
 public static class DrawableEvents
 {

@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Container;
 using RedBolt.Core;
@@ -5,8 +7,6 @@ using RedBolt.Engine;
 using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Scene;
-
-namespace RedBolt.Tests;
 
 public sealed class StateManagerTests
 {

@@ -1,6 +1,6 @@
-using FileTime = System.UInt32;
-
 namespace RedBolt.IO;
+
+using FileTime = System.UInt32;
 
 [Flags]
 public enum ScanFlags : byte

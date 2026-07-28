@@ -1,8 +1,8 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed partial class PrefabWriterTests

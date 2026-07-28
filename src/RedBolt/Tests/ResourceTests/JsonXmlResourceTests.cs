@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using System.Xml.Linq;
 using System.Xml.XPath;
 
@@ -9,8 +11,6 @@ using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class JsonXmlResourceTests

@@ -1,8 +1,8 @@
+namespace RedBolt.Math;
+
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-namespace RedBolt.Math;
 
 [StructLayout(LayoutKind.Sequential)]
 public struct Matrix2 : IEquatable<Matrix2>, IApproximateEquatable<Matrix2>

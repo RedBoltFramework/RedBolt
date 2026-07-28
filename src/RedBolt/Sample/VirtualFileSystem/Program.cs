@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.VirtualFileSystem;
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -8,8 +10,8 @@ using RedBolt;
 using RedBolt.Bindings.DearImGui;
 using RedBolt.Core;
 using RedBolt.Engine;
-using RedBolt.Input;
 using RedBolt.IO;
+using RedBolt.Input;
 
 internal static class VirtualFileSystemProgram
 {

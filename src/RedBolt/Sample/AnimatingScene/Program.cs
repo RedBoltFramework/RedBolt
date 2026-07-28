@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.AnimatingScene;
+
 using System;
 
 using RedBolt;

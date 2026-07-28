@@ -1,16 +1,16 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
-using RedBolt.Input;
 using RedBolt.IO;
+using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
 using RedBolt.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class EngineTests

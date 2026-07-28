@@ -1,8 +1,8 @@
+namespace RedBolt.Tests;
+
 using Xunit;
 
 using RedBolt.Graphics;
-
-namespace RedBolt.Tests;
 
 public sealed class PipelineStateTrackerTests
 {

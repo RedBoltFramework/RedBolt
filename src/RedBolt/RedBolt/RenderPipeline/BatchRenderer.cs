@@ -1,8 +1,8 @@
+namespace RedBolt.RenderPipeline;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>Common parameters of batch rendering.</summary>
 public ref struct BatchRenderingContext

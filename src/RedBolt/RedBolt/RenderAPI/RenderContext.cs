@@ -1,3 +1,5 @@
+namespace RedBolt.RenderAPI;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
@@ -9,8 +11,6 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Math;
-
-namespace RedBolt.RenderAPI;
 
 /// <summary>
 /// Render context that consumes render commands.

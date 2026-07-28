@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.SkeletalAnimation;
+
 using System;
 using System.Runtime.InteropServices;
 using System.Text;

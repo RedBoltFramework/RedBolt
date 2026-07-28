@@ -1,8 +1,8 @@
+namespace RedBolt.IO;
+
 using System.Runtime.InteropServices;
 
 using RedBolt.Math;
-
-namespace RedBolt.IO;
 
 public static partial class ArchiveSerialization
 {

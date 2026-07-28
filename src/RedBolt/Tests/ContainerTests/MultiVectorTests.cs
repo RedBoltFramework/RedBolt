@@ -1,6 +1,6 @@
-using RedBolt.Container;
-
 namespace RedBolt.Tests.ContainerTests;
+
+using RedBolt.Container;
 
 public class MultiVectorTests
 {

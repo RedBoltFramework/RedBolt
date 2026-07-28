@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.TextureFormats;
+
 using System;
 
 using RedBolt;

@@ -1,7 +1,5 @@
-using System.Runtime.CompilerServices;
-
-[assembly: InternalsVisibleTo("RedBolt.Platform.Linux")]
-[assembly: InternalsVisibleTo("RedBolt.Platform.Web")]
-[assembly: InternalsVisibleTo("RedBolt.Graphics.OpenGL")]
-[assembly: InternalsVisibleTo("RedBolt.Graphics.OpenGLES")]
-[assembly: InternalsVisibleTo("RedBolt.Graphics.Vulkan")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Platform.Linux")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Platform.Web")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Graphics.OpenGL")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Graphics.OpenGLES")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Graphics.Vulkan")]

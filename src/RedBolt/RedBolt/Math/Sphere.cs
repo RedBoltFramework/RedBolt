@@ -1,7 +1,7 @@
+namespace RedBolt.Math;
+
 using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
-
-namespace RedBolt.Math;
 
 /// <summary>Circle in three-dimensional space.</summary>
 [StructLayout(LayoutKind.Sequential)]

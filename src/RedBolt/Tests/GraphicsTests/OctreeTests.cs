@@ -1,11 +1,10 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class OctreeTests
@@ -51,7 +50,7 @@ public sealed class OctreeTests
     [Fact]
     public void Size_and_levels_work()
     {
-        var octree = new SceneType().CreateComponent<Octree>();
+        var octree = new Scene().CreateComponent<Octree>();
         octree.SetSize(new BoundingBox(-100.0f, 100.0f), 4u);
         Assert.Equal(4u, octree.GetNumLevels());
     }
@@ -59,7 +58,7 @@ public sealed class OctreeTests
     [Fact]
     public void Drawable_collection_contains_inserted_drawables()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var octree = scene.CreateComponent<Octree>();
         octree.SetSize(new BoundingBox(-100.0f, 100.0f), 4u);
 
@@ -74,7 +73,7 @@ public sealed class OctreeTests
     [Fact]
     public void Bounding_volume_queries_work()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var octree = scene.CreateComponent<Octree>();
         octree.SetSize(new BoundingBox(-100.0f, 100.0f), 4u);
 
@@ -93,7 +92,7 @@ public sealed class OctreeTests
     [Fact]
     public void Raycast_single_hits_drawable()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var octree = scene.CreateComponent<Octree>();
         octree.SetSize(new BoundingBox(-100.0f, 100.0f), 4u);
 
@@ -114,10 +113,10 @@ public sealed class OctreeTests
     [Fact]
     public void Manual_drawable_add_and_remove_work()
     {
-        var octree = new SceneType().CreateComponent<Octree>();
+        var octree = new Scene().CreateComponent<Octree>();
         octree.SetSize(new BoundingBox(-100.0f, 100.0f), 4u);
 
-        var manualNode = new SceneType().CreateChild("Manual");
+        var manualNode = new Scene().CreateChild("Manual");
         var manual = manualNode.CreateComponent<StaticModel>();
         manualNode.Remove();
         manual.SetBoundingBox(new BoundingBox(
@@ -136,7 +135,7 @@ public sealed class OctreeTests
     [Fact]
     public void Lock_prevents_manual_add()
     {
-        var octree = new SceneType().CreateComponent<Octree>();
+        var octree = new Scene().CreateComponent<Octree>();
         octree.SetSize(new BoundingBox(-100.0f, 100.0f), 4u);
         octree.SetLocked(true);
         var manual = new StaticModel();
@@ -148,7 +147,7 @@ public sealed class OctreeTests
     [Fact]
     public void Scene_drawable_is_registered_without_being_manual()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var octree = scene.CreateComponent<Octree>();
         var node = scene.CreateChild("Drawable");
         var drawable = node.CreateComponent<StaticModel>();
@@ -161,7 +160,7 @@ public sealed class OctreeTests
     [Fact]
     public void Octant_children_and_recursive_insertion_work()
     {
-        var octree = new SceneType().CreateComponent<Octree>();
+        var octree = new Scene().CreateComponent<Octree>();
         octree.SetSize(new BoundingBox(-100.0f, 100.0f), 4u);
         var root = octree.GetRootOctant();
         var child = root.GetOrCreateChild(7u);
@@ -170,7 +169,7 @@ public sealed class OctreeTests
         Assert.Equal(1u, child.GetLevel());
         Assert.Equal(new BoundingBox(Vector3f.Zero, new Vector3f(100.0f, 100.0f, 100.0f)), child.GetWorldBoundingBox());
 
-        var manualNode = new SceneType().CreateChild("Manual");
+        var manualNode = new Scene().CreateChild("Manual");
         var manual = manualNode.CreateComponent<StaticModel>();
         manualNode.Remove();
         manual.SetBoundingBox(new BoundingBox(new Vector3f(10.0f, 10.0f, 10.0f), new Vector3f(11.0f, 11.0f, 11.0f)));
@@ -186,12 +185,12 @@ public sealed class OctreeTests
     [Fact]
     public void Resizing_octree_moves_child_drawables_to_root_and_queues_reinsertion()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var octree = scene.CreateComponent<Octree>();
         var box = new BoundingBox(-100.0f, 100.0f);
         octree.SetSize(box, 4u);
 
-        var manualNode = new SceneType().CreateChild("Manual");
+        var manualNode = new Scene().CreateChild("Manual");
         var manual = manualNode.CreateComponent<StaticModel>();
         manualNode.Remove();
         manual.SetBoundingBox(new BoundingBox(new Vector3f(10.0f, 10.0f, 10.0f), new Vector3f(11.0f, 11.0f, 11.0f)));
@@ -211,11 +210,11 @@ public sealed class OctreeTests
     [Fact]
     public void Disposing_octree_detaches_drawables_recursively()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var octree = scene.CreateComponent<Octree>();
         octree.SetSize(new BoundingBox(-100.0f, 100.0f), 4u);
 
-        var manualNode = new SceneType().CreateChild("Manual");
+        var manualNode = new Scene().CreateChild("Manual");
         var manual = manualNode.CreateComponent<StaticModel>();
         manualNode.Remove();
         manual.SetBoundingBox(new BoundingBox(new Vector3f(10.0f, 10.0f, 10.0f), new Vector3f(11.0f, 11.0f, 11.0f)));
@@ -231,7 +230,7 @@ public sealed class OctreeTests
     [Fact]
     public void Update_sends_drawable_update_finished_event()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var octree = scene.CreateComponent<Octree>();
         SceneEvents.SceneDrawableUpdateFinishedEvent? received = null;
         scene.SubscribeToEvent<SceneEvents.SceneDrawableUpdateFinishedEvent>((ref SceneEvents.SceneDrawableUpdateFinishedEvent eventData) => received = eventData);
@@ -246,7 +245,7 @@ public sealed class OctreeTests
     [Fact]
     public void Draw_debug_geometry_uses_scene_debug_renderer()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var octree = scene.CreateComponent<Octree>();
         var debugRenderer = scene.CreateComponent<DebugRenderer>();
         debugRenderer.SetView(new Camera());
@@ -260,7 +259,7 @@ public sealed class OctreeTests
     [Fact]
     public void World_origin_update_forwards_to_drawables()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var octree = scene.CreateComponent<Octree>();
         var drawable = new WorldOriginProbeDrawable();
         octree.AddManualDrawable(drawable);

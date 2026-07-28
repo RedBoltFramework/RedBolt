@@ -1,10 +1,10 @@
+namespace RedBolt;
+
 using System;
 using System.Runtime.InteropServices.JavaScript;
 
 using RedBolt.Engine;
 using RedBolt.Graphics;
-
-namespace RedBolt;
 
 public abstract partial class Application
 {

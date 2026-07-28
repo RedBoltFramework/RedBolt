@@ -1,11 +1,11 @@
+namespace RedBolt.Tests;
+
 using System.Reflection;
 
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class GraphicsCustomUniformTests

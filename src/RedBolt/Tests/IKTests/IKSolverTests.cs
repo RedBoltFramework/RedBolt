@@ -1,12 +1,11 @@
+namespace RedBolt.Tests;
+
 using System;
 
 using RedBolt.Core;
 using RedBolt.IK;
 using RedBolt.Math;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class IKSolverTests
@@ -95,7 +94,7 @@ public sealed class IKSolverTests
     [Fact]
     public void Limb_solver_reaches_target_and_sends_cpp_events()
     {
-        using var scene = new SceneType();
+        using var scene = new Scene();
         var rig = scene.CreateChild("Rig");
         var host = rig.CreateComponent<IKSolver>();
         var first = rig.CreateChild("First");
@@ -136,7 +135,7 @@ public sealed class IKSolverTests
     [Fact]
     public void All_solver_steady_state_paths_do_not_allocate()
     {
-        using var scene = new SceneType();
+        using var scene = new Scene();
         var rig = scene.CreateChild("Rig");
         var host = rig.CreateComponent<IKSolver>();
 
@@ -261,7 +260,7 @@ public sealed class IKSolverTests
     [Fact]
     public void Identity_solver_copies_target_transform()
     {
-        using var scene = new SceneType();
+        using var scene = new Scene();
         var rig = scene.CreateChild("Rig");
         var host = rig.CreateComponent<IKSolver>();
         var bone = rig.CreateChild("Bone");
@@ -281,7 +280,7 @@ public sealed class IKSolverTests
     [Fact]
     public void Stick_targets_recover_toward_repeated_desired_transform()
     {
-        using var scene = new SceneType();
+        using var scene = new Scene();
         var rig = scene.CreateChild("Rig");
         var host = rig.CreateComponent<IKSolver>();
         var target = rig.CreateChild("Target");

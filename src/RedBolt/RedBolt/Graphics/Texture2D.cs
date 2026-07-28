@@ -1,9 +1,9 @@
+namespace RedBolt.Graphics;
+
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
-
-namespace RedBolt.Graphics;
 
 /// <summary>
 /// 2D texture resource.

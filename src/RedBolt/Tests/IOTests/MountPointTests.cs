@@ -1,10 +1,10 @@
+namespace RedBolt.Tests;
+
 using System.Collections.Generic;
 
 using RedBolt;
 using RedBolt.IO;
 using FileMode = global::RedBolt.IO.FileMode;
-
-namespace RedBolt.Tests;
 
 public sealed class MountPointTests
 {

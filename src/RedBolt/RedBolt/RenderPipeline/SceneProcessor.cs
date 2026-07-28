@@ -1,3 +1,5 @@
+namespace RedBolt.RenderPipeline;
+
 using SystemMath = global::System.Math;
 
 using RedBolt.Core;
@@ -5,9 +7,6 @@ using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>Frustum query that only returns occluders.</summary>
 file sealed class OccluderOctreeQuery : FrustumOctreeQuery

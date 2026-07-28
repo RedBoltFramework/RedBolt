@@ -1,13 +1,13 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
-using RedBolt.Input;
 using RedBolt.IO;
+using RedBolt.Input;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
-
-namespace RedBolt.Tests;
 
 /// <summary>
 /// Fixture that boots a headless RedBolt engine once per test collection.

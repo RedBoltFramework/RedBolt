@@ -1,8 +1,7 @@
+namespace RedBolt.Graphics;
+
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Graphics;
 
 public static class GraphicsEvents
 {
@@ -46,7 +45,7 @@ public static class GraphicsEvents
         public RenderPipelineView? RenderPipelineView; // RenderPipelineView pointer
         public Texture? Texture; // Texture pointer
         public RenderSurface? Surface; // RenderSurface pointer
-        public SceneType? Scene; // Scene pointer
+        public Scene? Scene; // Scene pointer
         public Camera? Camera; // Camera pointer
     }
 
@@ -56,7 +55,7 @@ public static class GraphicsEvents
         public RenderPipelineView? RenderPipelineView; // RenderPipelineView pointer
         public Texture? Texture; // Texture pointer
         public RenderSurface? Surface; // RenderSurface pointer
-        public SceneType? Scene; // Scene pointer
+        public Scene? Scene; // Scene pointer
         public Camera? Camera; // Camera pointer
     }
 
@@ -66,7 +65,7 @@ public static class GraphicsEvents
         public RenderPipelineView? RenderPipelineView; // RenderPipelineView pointer
         public Texture? Texture; // Texture pointer
         public RenderSurface? Surface; // RenderSurface pointer
-        public SceneType? Scene; // Scene pointer
+        public Scene? Scene; // Scene pointer
         public Camera? Camera; // Camera pointer
     }
 
@@ -76,7 +75,7 @@ public static class GraphicsEvents
         public RenderPipelineView? RenderPipelineView; // RenderPipelineView pointer
         public Texture? Texture; // Texture pointer
         public RenderSurface? Surface; // RenderSurface pointer
-        public SceneType? Scene; // Scene pointer
+        public Scene? Scene; // Scene pointer
         public Camera? Camera; // Camera pointer
     }
 
@@ -86,7 +85,7 @@ public static class GraphicsEvents
         public RenderPipelineView? RenderPipelineView; // RenderPipelineView pointer
         public Texture? Texture; // Texture pointer
         public RenderSurface? Surface; // RenderSurface pointer
-        public SceneType? Scene; // Scene pointer
+        public Scene? Scene; // Scene pointer
         public Camera? Camera; // Camera pointer
     }
 
@@ -96,7 +95,7 @@ public static class GraphicsEvents
         public RenderPipelineView? RenderPipelineView; // RenderPipelineView pointer
         public Texture? Texture; // Texture pointer
         public RenderSurface? Surface; // RenderSurface pointer
-        public SceneType? Scene; // Scene pointer
+        public Scene? Scene; // Scene pointer
         public Camera? Camera; // Camera pointer
     }
 

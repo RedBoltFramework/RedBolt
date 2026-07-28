@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.AggregatedInput;
+
 using System;
 using System.Buffers;
 using System.Buffers.Text;

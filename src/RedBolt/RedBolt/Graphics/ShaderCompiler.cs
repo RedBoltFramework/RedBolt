@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -5,8 +7,6 @@ using RedBoltNative;
 
 using RedBolt.RenderAPI;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
-
-namespace RedBolt.Graphics;
 
 public static class ShaderCompiler
 {

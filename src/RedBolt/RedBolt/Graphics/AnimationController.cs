@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using SystemMath = global::System.Math;
@@ -32,9 +34,6 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Graphics;
 
 /// <summary>
 /// Component that drives an AnimatedModel's animations.
@@ -710,7 +709,7 @@ public partial class AnimationController : AnimationStateSource
     /// <summary>
     /// Handle scene being assigned.
     /// </summary>
-    protected internal override void OnSceneSet(SceneType? previousScene, SceneType? scene)
+    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
     {
         if (scene is not null && IsEnabledEffective)
             SubscribeToEvent<SceneEvents.ScenePostUpdateEvent>(scene, HandleScenePostUpdate);

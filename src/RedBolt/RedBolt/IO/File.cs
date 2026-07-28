@@ -1,3 +1,5 @@
+namespace RedBolt.IO;
+
 using Microsoft.Extensions.Logging;
 using System.Buffers.Binary;
 using System.IO;
@@ -9,8 +11,6 @@ using RedBolt.Bindings.Sdl;
 using RedBolt.Container;
 using RedBolt.Logging;
 using RedBolt.Math;
-
-namespace RedBolt.IO;
 
 /// <summary>File opened either through the filesystem or from within a package file.</summary>
 public class File : AbstractFile

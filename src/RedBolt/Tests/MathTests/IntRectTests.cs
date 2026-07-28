@@ -1,8 +1,8 @@
+namespace RedBolt.Tests;
+
 using System.Runtime.InteropServices;
 
 using RedBolt.Math;
-
-namespace RedBolt.Tests;
 
 public sealed class IntRectTests
 {

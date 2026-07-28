@@ -1,3 +1,5 @@
+namespace RedBolt.RenderAPI;
+
 using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -7,8 +9,6 @@ using RedBolt.Container;
 using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.RenderPipeline;
-
-namespace RedBolt.RenderAPI;
 
 /// <summary>
 /// Description of uniform buffer used by the shader program.

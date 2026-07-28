@@ -1,9 +1,9 @@
+namespace RedBolt.Input;
+
 using SystemMath = global::System.Math;
 
 using RedBolt.Core;
 using RedBolt.Scene;
-
-namespace RedBolt.Input;
 
 [Flags]
 public enum DirectionalPadAdapterMask : uint

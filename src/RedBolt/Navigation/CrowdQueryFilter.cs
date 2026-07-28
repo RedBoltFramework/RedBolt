@@ -20,10 +20,10 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Navigation;
+
 using DotRecast.Core.Numerics;
 using DotRecast.Detour;
-
-namespace RedBolt.Navigation;
 
 internal sealed class CrowdQueryFilter : IDtQueryFilter
 {

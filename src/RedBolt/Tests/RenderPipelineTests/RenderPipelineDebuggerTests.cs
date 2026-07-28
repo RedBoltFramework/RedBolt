@@ -1,12 +1,11 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class RenderPipelineDebuggerTests
@@ -139,7 +138,7 @@ public sealed class RenderPipelineDebuggerTests
     [Fact]
     public void Snapshot_batch_constructor_resolves_pixel_light_from_drawable_processor()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var octree = scene.CreateComponent<Octree>();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var light = scene.CreateChild("Light").CreateComponent<Light>();
@@ -190,7 +189,7 @@ public sealed class RenderPipelineDebuggerTests
     [Fact]
     public void Debugger_reports_batches_into_active_snapshot()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var octree = scene.CreateComponent<Octree>();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var light = scene.CreateChild("Light").CreateComponent<Light>();

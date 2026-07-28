@@ -1,9 +1,9 @@
+namespace RedBolt.Tests;
+
 using System.Reflection;
 
 using RedBolt;
 using RedBolt.Engine;
-
-namespace RedBolt.Tests;
 
 public sealed class EngineParameterTests
 {

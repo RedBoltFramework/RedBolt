@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.WindowSettings;
+
 using System;
 
 using RedBolt;

@@ -1,3 +1,5 @@
+namespace RedBolt.Core;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
@@ -5,8 +7,6 @@ using System.Runtime.InteropServices;
 
 using RedBolt.Container;
 using RedBolt.Logging;
-
-namespace RedBolt.Core;
 
 public static class ObjectReflection<T>
 {

@@ -21,13 +21,13 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Navigation;
+
 using DotRecast.Core;
 using DotRecast.Detour;
 using DotRecast.Recast;
 
 using RedBolt.Math;
-
-namespace RedBolt.Navigation;
 
 /// <summary>Navigation area stub.</summary>
 public struct NavAreaStub

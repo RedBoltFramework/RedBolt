@@ -2,6 +2,8 @@
 // This work is licensed under the terms of the MIT license.
 // For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
+namespace RedBolt.Graphics;
+
 using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
@@ -10,8 +12,6 @@ using RedBolt.Core;
 using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Scene;
-
-namespace RedBolt.Graphics;
 
 /// <summary>
 /// Animation blending mode.

@@ -1,12 +1,11 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed partial class NodeTests
@@ -17,7 +16,7 @@ public sealed partial class NodeTests
         var previous = Context.Instance; Context.SetInstance(new Context());
         try
         {
-            var scene = new SceneType();
+            var scene = new Scene();
             var child = scene.CreateChild("Child");
             child.SetPosition(new Vector3f(1, 2, 3));
             child.SetVar("score", 42);
@@ -25,7 +24,7 @@ public sealed partial class NodeTests
 
             var json = new TestJSONOutputArchive();
             using (json.OpenUnorderedBlock("root")) scene.SerializeInBlock(json);
-            var loadedScene = new SceneType();
+            var loadedScene = new Scene();
             var input = new TestJSONInputArchive(json.ToJsonString());
             using (input.OpenUnorderedBlock("root")) loadedScene.SerializeInBlock(input);
 
@@ -41,7 +40,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Node_prefab_reader_writer_roundtrip_loads_hierarchy()
     {
-        var sourceScene = new SceneType();
+        var sourceScene = new Scene();
         var source = sourceScene.CreateChild("Child");
         source.SetVar("score", 42);
         source.CreateComponent<Camera>().SetFov(73);
@@ -52,7 +51,7 @@ public sealed partial class NodeTests
         Assert.True(writer.IsEOF());
         Assert.Equal("Child", Assert.Single(prefab.Children).GetNodeName());
 
-        var destinationScene = new SceneType();
+        var destinationScene = new Scene();
         using var reader = new PrefabReaderFromMemory(prefab);
         Assert.True(destinationScene.Load(reader));
 
@@ -145,8 +144,8 @@ public sealed partial class NodeTests
     [Fact]
     public void Parenting_transfers_node_between_scenes_and_null_parent_is_ignored()
     {
-        var firstScene = new SceneType();
-        var secondScene = new SceneType();
+        var firstScene = new Scene();
+        var secondScene = new Scene();
         var child = firstScene.CreateChild("Child");
         var oldId = child.Id;
 
@@ -179,7 +178,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Component_is_queryable_during_node_attachment()
     {
-        var node = new SceneType().CreateChild("Node");
+        var node = new Scene().CreateChild("Node");
 
         var component = node.CreateComponent<AttachmentProbe>();
 
@@ -189,7 +188,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Listener_registration_does_not_retain_component()
     {
-        var source = new SceneType().CreateChild("Source");
+        var source = new Scene().CreateChild("Source");
         WeakReference<ListenerProbe> listenerReference = null!;
 
         void AddListener()
@@ -213,7 +212,7 @@ public sealed partial class NodeTests
     [Fact]
     public void SetAttribute_name_updates_property()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Original");
         Assert.True(node.SetAttribute("Name", "Renamed"));
         Assert.Equal("Renamed", node.Name);
@@ -222,7 +221,7 @@ public sealed partial class NodeTests
     [Fact]
     public void SetAttribute_position_updates_property()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Mover");
         Assert.True(node.SetAttribute("Position", new Vector3f(1.0f, 2.0f, 3.0f)));
         Assert.Equal(new Vector3f(1.0f, 2.0f, 3.0f), node.Position);
@@ -231,7 +230,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Tags_add_remove_has_work()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Tagged");
         node.SetTags(["editor", "dynamic"]);
         Assert.True(node.HasTag("editor"));
@@ -242,7 +241,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Variables_get_set_and_update_by_hash_work()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Vars");
         node.SetVar("Health", 100);
         Assert.Equal(100, node.GetVar("Health"));
@@ -256,7 +255,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Lazy_node_and_component_lookups_cache_matching_objects()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Parent");
         var child = node.CreateChild("Child");
         var camera = child.CreateComponent<Camera>();
@@ -272,7 +271,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Transform2d_helpers_canonicalize_z_components()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("TwoD");
         node.SetPosition(new Vector3f(1.0f, 2.0f, 3.0f));
         node.SetScale(new Vector3f(4.0f, 5.0f, 6.0f));
@@ -291,7 +290,7 @@ public sealed partial class NodeTests
     [Fact]
     public void FindComponents_honors_exact_vs_derived_search()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Search");
         node.CreateComponent<Camera>();
 
@@ -302,7 +301,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Component_queries_are_exact_and_runtime_overloads_work()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Node");
         var camera = node.CreateComponent<Camera>();
         var parent = scene.CreateChild("Parent");
@@ -329,7 +328,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Attribute_lookup_and_world_space_helpers_work()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Node");
 
         var (serializable, attributeIndex) = node.FindComponentAttribute("@/Position");
@@ -347,7 +346,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Listener_callbacks_follow_dirty_and_enabled_state()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var source = scene.CreateChild("Source");
         source.SetPosition(new Vector3f(1.0f, 2.0f, 3.0f));
 
@@ -373,7 +372,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Local_to_world_transform_math_works()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var parent = scene.CreateChild("Parent");
         parent.SetTransform(new Vector3f(1.0f, 2.0f, 3.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 3.0f, 4.0f));
         var child = parent.CreateChild("Child");
@@ -387,7 +386,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Matrix_world_transform_works()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var parent = scene.CreateChild("Parent");
         parent.SetTransform(new Vector3f(10.0f, 0.0f, 0.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 2.0f, 2.0f));
         var child = parent.CreateChild("Child");
@@ -413,7 +412,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Scene_root_transform_does_not_affect_root_children()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         scene.SetTransform(new Vector3f(10.0f, 20.0f, 30.0f), new Quaternion(45.0f, Vector3f.Up), new Vector3f(2.0f, 3.0f, 4.0f));
 
         var child = scene.CreateChild("Child");
@@ -433,7 +432,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Matrix_local_transform_works()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("MatrixLocal");
         node.SetTransformMatrix(new Matrix3x4(new Vector3f(1.0f, 2.0f, 3.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 3.0f, 4.0f)));
         Assert.True(node.GetPosition().ApproximatelyEquivalent(new Vector3f(1.0f, 2.0f, 3.0f)));
@@ -443,7 +442,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Rotate_around_works()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Rotate");
         node.SetPosition(new Vector3f(1.0f, 0.0f, 0.0f));
         node.RotateAround(Vector3f.Zero, new Quaternion(90.0f, Vector3f.Forward), TransformSpace.Parent);
@@ -453,7 +452,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Scale_modifiers_work()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Scale");
         node.SetPosition(new Vector3f(2.0f, 0.0f, 0.0f));
         node.ScaleBy(new Vector3f(2.0f, 3.0f, 4.0f));
@@ -465,7 +464,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Persistent_counts_and_child_id_overload_work()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Parent");
 
         node.CreateChild("PersistentChild");
@@ -483,7 +482,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Silent_transform_helpers_do_not_mark_dirty()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Silent");
         var child = node.CreateChild("Child");
         var listener = scene.CreateChild("Listener").CreateComponent<ListenerProbe>();
@@ -528,7 +527,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Reparenting_preserves_world_transform()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var parent = scene.CreateChild("OriginalParent");
         parent.SetTransform(new Vector3f(1.0f, 2.0f, 3.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 3.0f, 4.0f));
         var child = parent.CreateChild("Child");
@@ -547,7 +546,7 @@ public sealed partial class NodeTests
     [Fact]
     public void RemoveChild_detaches()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var parent = scene.CreateChild("Parent");
         var child = parent.CreateChild("Child");
         parent.RemoveChild(child);
@@ -558,7 +557,7 @@ public sealed partial class NodeTests
     [Fact]
     public void RemoveChildren_non_recursive_works()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var parent = scene.CreateChild("Parent");
         parent.CreateChild("Nested");
         scene.RemoveChildren(recursive: false);
@@ -569,7 +568,7 @@ public sealed partial class NodeTests
     [Fact]
     public void SetEnabled_does_not_disable_children_without_recursion()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var parent = scene.CreateChild("Parent");
         var child = parent.CreateChild("Child");
 
@@ -584,7 +583,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Deep_enabled_state_restores_previous_child_state()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var parent = scene.CreateChild("Parent");
         var child = parent.CreateChild("Child");
         child.SetEnabled(false);
@@ -607,7 +606,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Direct_child_hierarchy_helpers_work()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var parent = scene.CreateChild("Parent");
         parent.CreateChild("First");
         var second = parent.CreateChild("Second");
@@ -620,7 +619,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Child_filtering_by_tag_works()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var parent = scene.CreateChild("Parent");
         var first = parent.CreateChild("First");
         first.AddTag("selectable");
@@ -631,7 +630,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Child_filtering_by_component_works()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var parent = scene.CreateChild("Parent");
         parent.CreateChild("A");
         var b = parent.CreateChild("B");
@@ -642,7 +641,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Reorder_child_works()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var parent = scene.CreateChild("Parent");
         parent.CreateChild("First");
         var second = parent.CreateChild("Second");
@@ -654,7 +653,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Component_reordering_works()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Node");
         var camera = node.CreateComponent<Camera>();
         var model = node.CreateComponent<StaticModel>();
@@ -666,7 +665,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Component_queries_work()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Node");
         var model = node.CreateComponent<StaticModel>();
         node.CreateComponent<Camera>();
@@ -680,7 +679,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Clone_component_copies_data()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var source = scene.CreateChild("Source");
         var original = source.CreateComponent<Camera>();
         original.SetFov(75.0f);
@@ -696,7 +695,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Clone_recursive_with_filters_works()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var source = scene.CreateChild("Source");
         source.SetTags(["cloneable"]);
         source.SetVar("Score", 5);
@@ -724,7 +723,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Static_collection_helpers_work()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var a = scene.CreateChild("A").CreateComponent<Camera>();
         var b = scene.CreateChild("B").CreateComponent<Camera>();
         Assert.Equal(2, Node.GetNodes([a, b]).Count);
@@ -733,7 +732,7 @@ public sealed partial class NodeTests
     [Fact]
     public void Temporary_flag_is_effective_through_hierarchy()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var parent = scene.CreateChild("TempParent", temporary: true);
         Assert.True(parent.CreateChild("TempChild").IsTemporaryEffective());
     }

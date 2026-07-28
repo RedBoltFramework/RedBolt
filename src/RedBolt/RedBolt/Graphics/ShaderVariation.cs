@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -9,8 +11,6 @@ using FileMode = global::RedBolt.IO.FileMode;
 using RedBolt.Logging;
 using RedBolt.RenderAPI;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
-
-namespace RedBolt.Graphics;
 
 /// <summary>Vertex or pixel shader on the GPU.</summary>
 public sealed class ShaderVariation : RawShader

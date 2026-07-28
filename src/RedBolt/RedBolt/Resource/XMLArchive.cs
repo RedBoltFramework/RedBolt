@@ -1,9 +1,9 @@
+namespace RedBolt.Resource;
+
 using System.Diagnostics;
 
 using RedBolt.Core;
 using RedBolt.IO;
-
-namespace RedBolt.Resource;
 
 /// <summary>Base archive for XML serialization.</summary>
 public abstract class XMLArchiveBase<TBlock> : ArchiveBase

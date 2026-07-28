@@ -1,8 +1,8 @@
+namespace RedBolt.Math;
+
 using System.Runtime.InteropServices;
 
 using RedBolt.Scene;
-
-namespace RedBolt.Math;
 
 /// <summary>
 /// Aggregated settings of the IK solver.

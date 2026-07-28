@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -8,8 +10,6 @@ using RedBolt.RenderAPI;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
-
-namespace RedBolt.Graphics;
 
 /// <summary>
 /// Shader translated to the target language.

@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Glow;
+
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -32,8 +34,6 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
-
-namespace RedBolt.Glow;
 
 /// <summary>Lightmap UV generation settings.</summary>
 public struct LightmapUVGenerationSettings

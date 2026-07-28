@@ -1,10 +1,10 @@
+namespace RedBolt.Math;
+
 using System.Globalization;
 using SystemMath = global::System.Math;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-namespace RedBolt.Math;
 
 /// <summary>Two-dimensional vector with integer values.</summary>
 [StructLayout(LayoutKind.Sequential)]

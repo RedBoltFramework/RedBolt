@@ -1,3 +1,5 @@
+namespace RedBolt.Scene;
+
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
@@ -7,8 +9,6 @@ using FileMode = global::RedBolt.IO.FileMode;
 using RedBolt.Logging;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
-
-namespace RedBolt.Scene;
 
 /// <summary>Scene resource.</summary>
 /// <remarks>

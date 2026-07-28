@@ -1,3 +1,5 @@
+namespace RedBolt;
+
 using System;
 
 using RedBolt.Bindings.Diligent;
@@ -7,8 +9,6 @@ using RedBolt.Engine;
 using RedBolt.Math;
 using RedBolt.Platform;
 using RedBolt.RenderAPI;
-
-namespace RedBolt;
 
 public interface IOpenGLESGraphicsApi
 {

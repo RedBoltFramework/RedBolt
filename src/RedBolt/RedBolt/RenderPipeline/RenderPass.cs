@@ -1,3 +1,5 @@
+namespace RedBolt.RenderPipeline;
+
 using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -7,8 +9,6 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Scene;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Render pass traits that are important for render pipeline configuration.

@@ -1,6 +1,6 @@
-using SystemMath = global::System.Math;
-
 namespace RedBolt.Audio;
+
+using SystemMath = global::System.Math;
 
 /// <summary>Sound stream that supports manual buffering of data from the main thread.</summary>
 public sealed class BufferedSoundStream : SoundStream

@@ -1,3 +1,5 @@
+namespace RedBolt.RenderPipeline;
+
 using SystemMath = global::System.Math;
 
 using RedBolt.Container;
@@ -7,8 +9,6 @@ using CullMode = global::RedBolt.Graphics.CullMode;
 using FillMode = global::RedBolt.Graphics.FillMode;
 using RedBolt.RenderAPI;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Utility to build pipeline states for RenderPipeline.

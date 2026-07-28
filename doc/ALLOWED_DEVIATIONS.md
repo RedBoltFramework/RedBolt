@@ -42,6 +42,7 @@ These are the ONLY places C# is allowed to differ from C++:
 - The BakedLighting sample omits the optional, unported Navigation/Crowd behavior, preserves the character behavior as `TODO: port` comments, and uses `FreeFlyController` on the scene camera.
 - `SystemUI` is renamed to `DearImGui`.
 - C# engine types use namespaces matching their source folders. To avoid namespace/type collisions, the `Audio`, `Engine`, `Graphics`, and `Input` subsystem classes are named `AudioSystem`, `EngineSystem`, `GraphicsSystem`, and `InputSystem`, respectively, and the `RenderPipeline` component class is named `RenderPipelineComponent`.
+- Namespace-bearing C# files declare their file-scoped namespace before all non-global using directives. Namespace-local using directives resolve namespace/type collisions.
 - Calls to `GetSubsystem<T>()` in ported subsystem consumers assume that the requested subsystem is registered and return a non-null object. C# code may use a non-null field/reference and omit C++ null checks that only guard a missing subsystem.
 - The optional Actions subsystem and compile-gated Actions reflection/integration members are excluded from the current completion scope.
 

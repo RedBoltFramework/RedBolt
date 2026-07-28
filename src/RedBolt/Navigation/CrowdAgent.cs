@@ -20,7 +20,10 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Navigation;
+
 using Math = System.Math;
+
 using DotRecast.Core.Numerics;
 using DotRecast.Detour;
 using DotRecast.Detour.Crowd;
@@ -30,9 +33,6 @@ using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Scene;
-using SceneType = RedBolt.Scene.Scene;
-
-namespace RedBolt.Navigation;
 
 public enum CrowdAgentRequestedTarget
 {
@@ -601,7 +601,7 @@ public partial class CrowdAgent : Component
     }
 
     /// <summary>Handle scene being assigned.</summary>
-    protected override void OnSceneSet(SceneType? previousScene, SceneType? scene)
+    protected override void OnSceneSet(Scene? previousScene, Scene? scene)
     {
         if (scene is not null)
         {

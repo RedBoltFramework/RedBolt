@@ -1,16 +1,16 @@
+namespace RedBolt.Core;
+
 using SubsystemContainer = System.Collections.Generic.Dictionary<RedBolt.Container.StringHash, object>;
 
 using RedBolt.Audio;
 using RedBolt.Container;
 using RedBolt.Engine;
 using RedBolt.Graphics;
-using RedBolt.Input;
 using RedBolt.IO;
+using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
-
-namespace RedBolt.Core;
 
 /// <summary>
 /// List of cached subsystems that don't require hash map lookup.

@@ -1,9 +1,9 @@
+namespace RedBolt.Resource;
+
 using System.Buffers.Binary;
 using SystemMath = global::System.Math;
 
 using RedBolt.RenderAPI;
-
-namespace RedBolt.Resource;
 
 public static class Decompress
 {

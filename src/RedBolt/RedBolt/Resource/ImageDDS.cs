@@ -1,11 +1,11 @@
+namespace RedBolt.Resource;
+
 using System.Buffers.Binary;
 using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
 using RedBolt.IO;
 using RedBolt.RenderAPI;
-
-namespace RedBolt.Resource;
 
 /// <summary>DirectDraw color key definition.</summary>
 [StructLayout(LayoutKind.Sequential)]

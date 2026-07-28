@@ -1,8 +1,8 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Engine;
 using RedBolt.Logging;
-
-namespace RedBolt.Tests;
 
 public sealed class ApplicationCommandLineTests
 {

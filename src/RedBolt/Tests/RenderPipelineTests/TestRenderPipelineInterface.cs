@@ -1,9 +1,9 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderPipeline;
-
-namespace RedBolt.Tests;
 
 internal sealed class TestRenderPipelineInterface : IRenderPipelineInterface
 {

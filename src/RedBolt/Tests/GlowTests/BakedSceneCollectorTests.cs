@@ -1,10 +1,10 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Glow;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Resource;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
+using RedBolt.Scene;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class BakedSceneCollectorTests
@@ -21,7 +21,7 @@ public sealed class BakedSceneCollectorTests
     [Fact]
     public void Default_collector_locks_queries_and_unlocks_lightmapped_scene()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var octree = scene.CreateComponent<Octree>();
         octree.SetSize(new BoundingBox(-100.0f, 100.0f), 4);
 

@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 
@@ -9,9 +11,6 @@ using RedBolt.RenderAPI;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Graphics;
 
 public enum CubemapUpdateStage
 {
@@ -142,7 +141,7 @@ public class CubemapRenderer : RedObject
 
     public event Action<TextureCube>? CubemapRendered;
 
-    private readonly WeakReference<SceneType> _scene;
+    private readonly WeakReference<Scene> _scene;
     private readonly Node[] _renderCameraNodes = new Node[(int)CubeMapFace.MaxCubeMapFaces];
     private readonly Viewport[] _viewports = new Viewport[(int)CubeMapFace.MaxCubeMapFaces];
     private readonly RenderPipelineComponent _renderPipeline;
@@ -157,9 +156,9 @@ public class CubemapRenderer : RedObject
     private readonly WeakReference<TextureCube> _currentFilteredTexture = new(null!);
     private bool _viewportsConnectedToSelf;
     private CachedPipelineStates? _cachedPipelineStates;
-    public CubemapRenderer(SceneType scene)
+    public CubemapRenderer(Scene scene)
     {
-        _scene = new WeakReference<SceneType>(scene);
+        _scene = new WeakReference<Scene>(scene);
         _renderPipeline = new RenderPipelineComponent();
         InitializeRenderPipeline();
         InitializeCameras();

@@ -1,8 +1,8 @@
+namespace RedBolt.Input;
+
 using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.Scene;
-
-namespace RedBolt.Input;
 
 [Reflected(ObjectCategory.Category_Logic)]
 public partial class MoveAndOrbitComponent : LogicComponent

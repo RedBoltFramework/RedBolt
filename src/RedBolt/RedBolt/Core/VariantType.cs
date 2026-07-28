@@ -1,3 +1,5 @@
+namespace RedBolt.Core;
+
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -5,12 +7,10 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 
 using RedBolt.Container;
-using RedBolt.Input;
 using RedBolt.IO;
+using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Resource;
-
-namespace RedBolt.Core;
 
 public enum VariantType : byte
 {

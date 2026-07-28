@@ -1,9 +1,9 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Scene;
-
-namespace RedBolt.Tests;
 
 public sealed partial class ObjectReflectionTests
 {

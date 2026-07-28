@@ -1,11 +1,10 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class OutlineGroupTests
@@ -74,7 +73,7 @@ public sealed class OutlineGroupTests
     [Fact]
     public void Outline_group_tracks_drawables()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Drawable");
         var drawable = node.CreateComponent<StaticModel>();
         var outlineGroup = scene.CreateComponent<OutlineGroup>();
@@ -90,7 +89,7 @@ public sealed class OutlineGroupTests
     [Fact]
     public void Outline_group_resolves_drawable_attributes()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Drawable");
         var drawable = node.CreateComponent<StaticModel>();
         var outlineGroup = scene.CreateChild("Outline").CreateComponent<OutlineGroup>();

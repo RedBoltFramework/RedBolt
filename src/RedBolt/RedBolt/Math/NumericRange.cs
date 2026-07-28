@@ -1,7 +1,7 @@
+namespace RedBolt.Math;
+
 using System.Numerics;
 using System.Runtime.InteropServices;
-
-namespace RedBolt.Math;
 
 /// <summary>
 /// Numerical range (pair of min and max value). Invalid if flipped.

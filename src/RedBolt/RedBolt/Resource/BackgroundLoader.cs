@@ -1,10 +1,10 @@
+namespace RedBolt.Resource;
+
 using Microsoft.Extensions.Logging;
 
 using RedBolt.Core;
 using RedBolt.Input;
 using RedBolt.Logging;
-
-namespace RedBolt.Resource;
 
 public sealed class BackgroundLoadItem
 {

@@ -1,7 +1,7 @@
+namespace RedBolt.Core;
+
 using System.Runtime.CompilerServices;
 using System.Threading;
-
-namespace RedBolt.Core;
 
 /// <summary>
 /// Thread-safe cache that holds an object.

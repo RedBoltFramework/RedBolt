@@ -1,6 +1,6 @@
-using RedBolt.Engine;
-
 namespace RedBolt;
+
+using RedBolt.Engine;
 
 public abstract partial class Application
 {

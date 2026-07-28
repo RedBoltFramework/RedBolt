@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using System.Text;
 
 using RedBolt;
@@ -8,9 +10,6 @@ using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class SceneResourceTests
@@ -55,7 +54,7 @@ public sealed class SceneResourceTests
     [Fact]
     public void Removed_ids_can_be_reused()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Reused", 42);
         var camera = node.CreateComponent<Camera>(24);
 
@@ -224,7 +223,7 @@ public sealed class SceneResourceTests
         return resource;
     }
 
-    private static void AssertSceneLoaded(SceneType scene, string expectedFileName = "")
+    private static void AssertSceneLoaded(Scene scene, string expectedFileName = "")
     {
         Assert.True(scene.IsUpdateEnabled());
         Assert.True(MathDefs.Equals(scene.GetTimeScale(), 1.5f));

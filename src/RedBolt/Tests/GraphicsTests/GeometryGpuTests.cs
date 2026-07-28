@@ -1,11 +1,11 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using TextureAddressMode = global::RedBolt.RenderAPI.TextureAddressMode;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class GeometryGpuTests

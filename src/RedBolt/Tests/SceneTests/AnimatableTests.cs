@@ -1,10 +1,10 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-
-namespace RedBolt.Tests;
 
 [Reflected]
 internal sealed partial class TestAnimatable : Animatable

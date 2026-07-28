@@ -1,11 +1,10 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Core;
 using RedBolt.Glow;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class LightmapCharterTests
@@ -47,7 +46,7 @@ public sealed class LightmapCharterTests
     [Fact]
     public void Generate_and_apply_charts_updates_scene_geometry()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         scene.CreateComponent<Octree>();
         var model = new Model();
         using var lightmapSize = new Variant(new Vector2i(16, 8));

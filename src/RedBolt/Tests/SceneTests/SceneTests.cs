@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Core;
 using RedBolt.Graphics;
@@ -5,9 +7,6 @@ using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class SceneTests
@@ -15,10 +14,10 @@ public sealed class SceneTests
     [Fact]
     public void Scene_is_root_node_and_async_progress_is_value_type()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         Assert.IsAssignableFrom<Node>(scene);
         Assert.Same(scene, scene.GetScene());
-        Assert.Null(typeof(SceneType).GetProperty("Root"));
+        Assert.Null(typeof(Scene).GetProperty("Root"));
         Assert.True(typeof(AsyncProgress).IsValueType);
         Assert.NotEqual(0u, scene.Id);
         Assert.True(scene.GetNumAttributes() > 0);
@@ -27,7 +26,7 @@ public sealed class SceneTests
     [Fact]
     public void Empty_state_helpers_work()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         Assert.True(scene.IsEmpty());
         Assert.True(scene.IsEmpty(ignoreComponents: true));
     }
@@ -35,7 +34,7 @@ public sealed class SceneTests
     [Fact]
     public void Update_time_helpers_work()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         scene.SetTimeScale(2.0f);
         scene.SetElapsedTime(1.0f);
         scene.Update(0.5f);
@@ -50,7 +49,7 @@ public sealed class SceneTests
     [Fact]
     public void Structural_scene_events_and_registries_follow_mutations()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         using var receiver = new TestEventReceiver();
         var addedNodes = 0;
         var removedNodes = 0;
@@ -92,7 +91,7 @@ public sealed class SceneTests
     [Fact]
     public void Forced_update_events_run_while_scene_updates_are_disabled()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         using var receiver = new TestEventReceiver();
         var forcedUpdate = 0;
         var forcedPostUpdate = 0;
@@ -117,7 +116,7 @@ public sealed class SceneTests
     [Fact]
     public void Async_and_file_metadata_helpers_work()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         scene.SetUpdateEnabled(true);
         scene.SetAsyncLoadingMs(0);
         scene.SetFileName("Scenes/Test.scene");
@@ -133,7 +132,7 @@ public sealed class SceneTests
     [Fact]
     public void Threaded_update_state_follows_work_queue()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var workQueue = scene.GetSubsystem<WorkQueue>()!;
 
         scene.BeginThreadedUpdate();
@@ -146,7 +145,7 @@ public sealed class SceneTests
     [Fact]
     public void Node_and_component_lookup_works()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Lookup", 99);
         node.AddTag("lookup");
         var camera = node.CreateComponent<Camera>(124);
@@ -159,7 +158,7 @@ public sealed class SceneTests
     [Fact]
     public void Full_maps_contain_all_nodes_and_components()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var node = scene.CreateChild("Test");
         var camera = node.CreateComponent<Camera>();
 
@@ -177,7 +176,7 @@ public sealed class SceneTests
 
         try
         {
-            var scene = new SceneType();
+            var scene = new Scene();
             scene.AddLightmap(resourceName);
 
             Assert.Equal(1, scene.GetNumLightmaps());
@@ -200,7 +199,7 @@ public sealed class SceneTests
     [Fact]
     public void Dispose_clears_scene_nodes_and_components()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         scene.CreateChild("Temporary").CreateComponent<Camera>();
         var rootId = scene.Id;
 
@@ -216,7 +215,7 @@ public sealed class SceneTests
     [Fact]
     public void Free_node_and_component_ids_advance_independently()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
 
         var firstNodeId = scene.GetFreeNodeID();
         var secondNodeId = scene.GetFreeNodeID();
@@ -230,7 +229,7 @@ public sealed class SceneTests
     [Fact]
     public void Update_event_configuration_preserves_forced_event_names()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         scene.SetUpdateEvents(new StringVector
         {
             "@CustomForcedUpdate",
@@ -246,7 +245,7 @@ public sealed class SceneTests
     [Fact]
     public void Scene_archive_roundtrip_preserves_hierarchy()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var child = scene.CreateChild("Archived");
         child.SetPosition(new Vector3f(1, 2, 3));
         child.SetVar("score", 42);
@@ -256,7 +255,7 @@ public sealed class SceneTests
         using (json.OpenUnorderedBlock("scene"))
             scene.SerializeInBlock(json);
 
-        var loadedScene = new SceneType();
+        var loadedScene = new Scene();
         var input = new TestJSONInputArchive(json.ToJsonString());
         using (input.OpenUnorderedBlock("scene"))
             loadedScene.SerializeInBlock(input);
@@ -271,7 +270,7 @@ public sealed class SceneTests
     [Fact]
     public void Scene_load_entrypoints_read_xml_archive_and_json_node_formats()
     {
-        var source = new SceneType();
+        var source = new Scene();
         source.CreateChild("Loaded").CreateComponent<Camera>().SetFov(71);
 
         using var xmlFile = new XMLFile { Name = string.Empty };
@@ -280,14 +279,14 @@ public sealed class SceneTests
         using (xmlArchive.OpenUnorderedBlock(SceneResource.GetXmlRootName()))
             source.SerializeInBlock(xmlArchive);
 
-        var loadedFromXml = new SceneType();
+        var loadedFromXml = new Scene();
         Assert.True(loadedFromXml.LoadXML(xmlFile.GetRoot()));
         Assert.NotNull(loadedFromXml.GetChild("Loaded"));
 
         var json = new JSONValue();
         Assert.True(source.SaveJSON(json));
 
-        var loadedFromJson = new SceneType();
+        var loadedFromJson = new Scene();
         Assert.True(loadedFromJson.LoadJSON(json));
         Assert.NotNull(loadedFromJson.GetChild("Loaded"));
     }
@@ -302,7 +301,7 @@ public sealed class SceneTests
         Assert.True(sourceResource.Save(xml, InternalResourceFormat.Xml));
         xml.Seek(0);
 
-        var loadedFromXml = new SceneType();
+        var loadedFromXml = new Scene();
         Assert.True(loadedFromXml.Load(xml));
         Assert.True(loadedFromXml.GetChild("Loaded") is not null, $"count={loadedFromXml.GetNumChildren()}");
 
@@ -311,7 +310,7 @@ public sealed class SceneTests
         using var json = new MemoryBuffer(System.Text.Encoding.UTF8.GetBytes(jsonValue.ToString()));
         json.Seek(0);
 
-        var loadedFromJson = new SceneType();
+        var loadedFromJson = new Scene();
         Assert.True(loadedFromJson.Load(json));
         Assert.True(loadedFromJson.GetChild("Loaded") is not null, $"count={loadedFromJson.GetNumChildren()}");
     }
@@ -319,7 +318,7 @@ public sealed class SceneTests
     [Fact]
     public void Node_xml_roundtrip_preserves_hierarchy()
     {
-        var source = new SceneType();
+        var source = new Scene();
         source.CreateChild("Loaded").CreateComponent<Camera>().SetFov(83);
 
         using var stream = new VectorBuffer();
@@ -329,7 +328,7 @@ public sealed class SceneTests
         var xml = new XMLFile { Name = string.Empty };
         Assert.True(xml.Load(stream));
 
-        var loaded = new SceneType();
+        var loaded = new Scene();
         Assert.True(loaded.LoadXML(xml.GetRoot()));
         Assert.Equal(83.0f, loaded.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
     }
@@ -337,7 +336,7 @@ public sealed class SceneTests
     [Fact]
     public void Scene_binary_roundtrip_preserves_hierarchy()
     {
-        var source = new SceneType();
+        var source = new Scene();
         var child = source.CreateChild("Loaded");
         child.SetPosition(new Vector3f(1, 2, 3));
         child.CreateComponent<Camera>().SetFov(87);
@@ -346,7 +345,7 @@ public sealed class SceneTests
         Assert.True(source.Save(stream), "save");
         stream.Seek(0);
 
-        var loaded = new SceneType();
+        var loaded = new Scene();
         Assert.True(loaded.Load(stream), "load");
 
         var loadedChild = loaded.GetChild("Loaded");
@@ -358,34 +357,34 @@ public sealed class SceneTests
     [Fact]
     public void Scene_legacy_xml_and_json_roundtrip_preserve_hierarchy()
     {
-        var source = new SceneType();
+        var source = new Scene();
         source.CreateChild("Loaded").CreateComponent<Camera>().SetFov(89);
 
         using var xml = new VectorBuffer();
         Assert.True(source.SaveXML(xml));
         xml.Seek(0);
-        var loadedFromXml = new SceneType();
+        var loadedFromXml = new Scene();
         Assert.True(loadedFromXml.LoadXML(xml));
         Assert.Equal(89.0f, loadedFromXml.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
 
         using var json = new VectorBuffer();
         Assert.True(source.SaveJSON(json));
         json.Seek(0);
-        var loadedFromJson = new SceneType();
+        var loadedFromJson = new Scene();
         Assert.True(loadedFromJson.LoadJSON(json));
         Assert.Equal(89.0f, loadedFromJson.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
 
         var xmlBuffer = new VectorBuffer();
         Assert.True(source.SaveXML(xmlBuffer));
         xmlBuffer.Seek(0);
-        var loadedFromXmlBuffer = new SceneType();
+        var loadedFromXmlBuffer = new Scene();
         Assert.True(loadedFromXmlBuffer.LoadXML(xmlBuffer));
         Assert.Equal(89.0f, loadedFromXmlBuffer.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
 
         var jsonBuffer = new VectorBuffer();
         Assert.True(source.SaveJSON(jsonBuffer));
         jsonBuffer.Seek(0);
-        var loadedFromJsonBuffer = new SceneType();
+        var loadedFromJsonBuffer = new Scene();
         Assert.True(loadedFromJsonBuffer.LoadJSON(jsonBuffer));
         Assert.Equal(89.0f, loadedFromJsonBuffer.GetChild("Loaded")?.GetComponent<Camera>()?.GetFov());
     }
@@ -393,7 +392,7 @@ public sealed class SceneTests
     [Fact]
     public void Scene_instantiation_rewrites_ids_and_applies_transform()
     {
-        var source = new SceneType();
+        var source = new Scene();
         var sourceChild = source.CreateChild("Source");
         sourceChild.CreateComponent<Camera>(17).SetFov(91);
 
@@ -402,7 +401,7 @@ public sealed class SceneTests
 
         var json = new JSONValue();
         Assert.True(source.SaveJSON(json));
-        var instantiatedFromJson = new SceneType().InstantiateJSON(json, position, rotation);
+        var instantiatedFromJson = new Scene().InstantiateJSON(json, position, rotation);
         Assert.NotNull(instantiatedFromJson);
         Assert.NotEqual(source.Id, instantiatedFromJson!.Id);
         Assert.True(instantiatedFromJson.Position.ApproximatelyEquivalent(position));
@@ -410,34 +409,34 @@ public sealed class SceneTests
 
         var xmlFile = new XMLFile { Name = string.Empty };
         Assert.True(source.SaveXML(xmlFile.CreateRoot("node")));
-        var instantiatedFromXml = new SceneType().InstantiateXML(xmlFile.GetRoot(), position, rotation);
+        var instantiatedFromXml = new Scene().InstantiateXML(xmlFile.GetRoot(), position, rotation);
         Assert.NotNull(instantiatedFromXml);
         Assert.True(instantiatedFromXml!.Position.ApproximatelyEquivalent(position));
 
         var xmlBuffer = new VectorBuffer();
         Assert.True(source.SaveXML(xmlBuffer));
         xmlBuffer.Seek(0);
-        var instantiatedFromXmlBuffer = new SceneType().InstantiateXML(xmlBuffer, position, rotation);
+        var instantiatedFromXmlBuffer = new Scene().InstantiateXML(xmlBuffer, position, rotation);
         Assert.NotNull(instantiatedFromXmlBuffer);
 
         var binary = new VectorBuffer();
         Assert.True(sourceChild.Save(binary));
         binary.Seek(0);
-        var instantiatedFromBinary = new SceneType().Instantiate(binary, position, rotation);
+        var instantiatedFromBinary = new Scene().Instantiate(binary, position, rotation);
         Assert.NotNull(instantiatedFromBinary);
         Assert.True(instantiatedFromBinary!.Position.ApproximatelyEquivalent(position));
 
         var jsonBuffer = new VectorBuffer();
         Assert.True(source.SaveJSON(jsonBuffer));
         jsonBuffer.Seek(0);
-        var instantiatedFromJsonBuffer = new SceneType().InstantiateJSON(jsonBuffer, position, rotation);
+        var instantiatedFromJsonBuffer = new Scene().InstantiateJSON(jsonBuffer, position, rotation);
         Assert.NotNull(instantiatedFromJsonBuffer);
     }
 
     [Fact]
     public void Scene_clear_resets_state_and_id_generators()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         scene.CreateChild("Before", 100).CreateComponent<Camera>(200);
         scene.SetFileName("Scenes/Before.scene");
         scene.SetUpdateEvents(new StringVector { "CustomUpdate" });
@@ -448,7 +447,7 @@ public sealed class SceneTests
         Assert.Equal(string.Empty, scene.Name);
         Assert.Equal(string.Empty, scene.FileName);
         Assert.Equal(0u, scene.Checksum);
-        Assert.Equal(SceneType.DefaultUpdateEvents, scene.GetUpdateEvents());
+        Assert.Equal(Scene.DefaultUpdateEvents, scene.GetUpdateEvents());
 
         Assert.Equal(2u, scene.CreateChild("After").Id);
         Assert.Equal(1u, scene.CreateComponent<Camera>().Id);
@@ -458,11 +457,11 @@ public sealed class SceneTests
     public void Scene_binary_async_load_initializes_and_stops_progress()
     {
         using var saved = new VectorBuffer();
-        var sourceScene = new SceneType();
+        var sourceScene = new Scene();
         Assert.True(sourceScene.Save(saved));
 
         var file = new VectorBuffer(saved.Buffer.ToArray());
-        var scene = new SceneType();
+        var scene = new Scene();
 
         Assert.True(scene.LoadAsync(file, LoadMode.SceneAndResources));
         Assert.True(scene.IsAsyncLoading());
@@ -483,11 +482,11 @@ public sealed class SceneTests
     public void Scene_xml_async_load_initializes_and_finishes_progress()
     {
         using var saved = new VectorBuffer();
-        var sourceScene = new SceneType();
+        var sourceScene = new Scene();
         Assert.True(sourceScene.SaveXML(saved));
 
         var file = new VectorBuffer(saved.Buffer.ToArray());
-        var scene = new SceneType();
+        var scene = new Scene();
 
         Assert.True(scene.LoadAsyncXML(file, LoadMode.SceneAndResources));
         Assert.True(scene.IsAsyncLoading());
@@ -503,11 +502,11 @@ public sealed class SceneTests
     public void Scene_json_async_load_initializes_and_finishes_progress()
     {
         using var saved = new VectorBuffer();
-        var sourceScene = new SceneType();
+        var sourceScene = new Scene();
         Assert.True(sourceScene.SaveJSON(saved));
 
         var file = new VectorBuffer(saved.Buffer.ToArray());
-        var scene = new SceneType();
+        var scene = new Scene();
 
         Assert.True(scene.LoadAsyncJSON(file, LoadMode.SceneAndResources));
         Assert.True(scene.IsAsyncLoading());
@@ -522,7 +521,7 @@ public sealed class SceneTests
     [Fact]
     public void Component_indexes_track_matching_components()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         scene.CreateComponentIndex<Camera>();
 
         var node = scene.CreateChild("Indexed");
@@ -541,7 +540,7 @@ public sealed class SceneTests
     [Fact]
     public void Required_package_files_ignore_empty_packages()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         using var package = new PackageFile();
 
         scene.AddRequiredPackageFile(null);
@@ -558,10 +557,10 @@ public sealed class SceneTests
     {
         var context = new Context();
 
-        context.RegisterAttributedType<SceneType>();
+        context.RegisterAttributedType<Scene>();
 
-        Assert.True(context.IsReflected<SceneType>());
-        using var created = Assert.IsType<SceneType>(context.CreateObject(ObjectReflection<SceneType>.TypeId));
+        Assert.True(context.IsReflected<Scene>());
+        using var created = Assert.IsType<Scene>(context.CreateObject(ObjectReflection<Scene>.TypeId));
         Assert.Equal(10, created.NumAttributes);
         using var name = created.GetAttribute("Name");
         using var timeScale = created.GetAttribute("Time Scale");
@@ -579,7 +578,7 @@ public sealed class SceneTests
         Assert.Equal(2u, nextNodeId.GetUInt());
         Assert.Equal(1u, nextComponentId.GetUInt());
         Assert.IsType<StringVariantMap>(variables.GetObject());
-        Assert.Equal(SceneType.DefaultUpdateEvents, updateEvents.GetObject());
+        Assert.Equal(Scene.DefaultUpdateEvents, updateEvents.GetObject());
         Assert.Equal(IntVector3.Zero, worldOrigin.GetObject());
         Assert.Equal(new Vector3d(1_000_000_000_000.0, 1024.0, 1.0), elapsedTimeWrap.GetObject());
         Assert.Equal(ObjectReflection<Texture2D>.TypeId, Assert.IsType<ResourceRefList>(lightmaps.GetObject()).Type);

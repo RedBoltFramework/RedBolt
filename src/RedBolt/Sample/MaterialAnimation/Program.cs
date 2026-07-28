@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.MaterialAnimation;
+
 using System;
 
 using RedBolt;

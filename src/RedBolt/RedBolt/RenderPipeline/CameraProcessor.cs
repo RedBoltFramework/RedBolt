@@ -1,3 +1,5 @@
+namespace RedBolt.RenderPipeline;
+
 using Microsoft.Extensions.Logging;
 
 using RedBolt.Core;
@@ -6,8 +8,6 @@ using FillMode = global::RedBolt.Graphics.FillMode;
 using RedBolt.Logging;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>Utility to process render camera (not cull camera!).</summary>
 public class CameraProcessor : RedObject

@@ -1,14 +1,14 @@
+namespace RedBolt.Scene;
+
 using SystemMath = global::System.Math;
 
 using RedBolt.Container;
 using RedBolt.Core;
-using RedBolt.Input;
 using RedBolt.IO;
+using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
-
-namespace RedBolt.Scene;
 
 /// <summary>Scene node that may contain components and child nodes.</summary>
 [Reflected]

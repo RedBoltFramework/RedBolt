@@ -1,11 +1,10 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class CameraOperatorTests
@@ -13,7 +12,7 @@ public sealed class CameraOperatorTests
     [Fact]
     public void Camera_operator_stores_tracked_nodes_weakly_and_destroys_owned_ids()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var cameraOperator = new CameraOperator();
         var target = scene.CreateChild("Target");
 
@@ -33,7 +32,7 @@ public sealed class CameraOperatorTests
     [Fact]
     public void Camera_operator_tracks_nodes_and_refreshes_node_id_attribute()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var cameraNode = scene.CreateChild("Camera");
         cameraNode.CreateComponent<Camera>();
         var cameraOperator = cameraNode.CreateComponent<CameraOperator>();
@@ -55,7 +54,7 @@ public sealed class CameraOperatorTests
     [Fact]
     public void Camera_operator_resolves_node_ids_during_attribute_application()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var cameraNode = scene.CreateChild("Camera");
         cameraNode.CreateComponent<Camera>();
         var cameraOperator = cameraNode.CreateComponent<CameraOperator>();

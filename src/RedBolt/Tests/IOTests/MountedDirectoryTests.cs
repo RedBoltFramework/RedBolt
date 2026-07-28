@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,8 +10,6 @@ using RedBolt.Core;
 using RedBolt.IO;
 using FileMode = global::RedBolt.IO.FileMode;
 using RedBolt.Resource;
-
-namespace RedBolt.Tests;
 
 public sealed class MountedDirectoryTests
 {

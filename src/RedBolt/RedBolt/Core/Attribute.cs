@@ -1,3 +1,5 @@
+namespace RedBolt.Core;
+
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -5,9 +7,6 @@ using RedBolt.Container;
 using RedBolt.IO;
 using RedBolt.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Core;
 
 [Flags]
 public enum AttributeMode

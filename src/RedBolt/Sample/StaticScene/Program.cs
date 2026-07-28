@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.StaticScene;
+
 using System;
 
 using RedBolt;

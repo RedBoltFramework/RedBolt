@@ -1,3 +1,5 @@
+namespace RedBolt.RenderPipeline;
+
 using SystemMath = global::System.Math;
 
 using RedBolt.Core;
@@ -5,9 +7,6 @@ using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Flags related to geometry rendering.

@@ -1,3 +1,5 @@
+namespace RedBolt.RenderPipeline;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 
@@ -7,8 +9,6 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Description of shader program used for rendering.

@@ -1,11 +1,10 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class PrefabResourceTests
@@ -107,7 +106,7 @@ public sealed class PrefabResourceTests
     [Fact]
     public void Instantiate_reference_creates_prefab_reference_and_instance()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         using var resource = new PrefabResource();
         resource.SetName("Tree.prefab");
         var rootPrefab = resource.GetMutableNodePrefab();

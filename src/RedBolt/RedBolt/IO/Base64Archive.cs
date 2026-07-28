@@ -1,6 +1,6 @@
-using RedBolt.Core;
-
 namespace RedBolt.IO;
+
+using RedBolt.Core;
 
 /// <summary>Base64 output archive.</summary>
 public class Base64OutputArchive : BinaryOutputArchive

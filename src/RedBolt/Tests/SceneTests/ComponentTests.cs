@@ -1,8 +1,7 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ComponentTests
@@ -37,7 +36,7 @@ public sealed class ComponentTests
     [Fact]
     public void Component_attachment_lifecycle_matches_rbfx_order()
     {
-        using var scene = new SceneType();
+        using var scene = new Scene();
         var node = scene.CreateChild("Node");
         using var component = new LifecycleProbe();
 
@@ -67,7 +66,7 @@ public sealed class ComponentTests
             Transitions.Add(currentNode is null ? "node:clear" : "node:set");
         }
 
-        protected override void OnSceneSet(SceneType? previousScene, SceneType? scene)
+        protected override void OnSceneSet(Scene? previousScene, Scene? scene)
         {
             Transitions.Add(scene is null ? "scene:clear" : "scene:set");
         }

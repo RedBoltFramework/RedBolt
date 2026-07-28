@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Container;
@@ -6,8 +8,6 @@ using RedBolt.Graphics;
 using RedBolt.RenderAPI;
 using TextureAddressMode = global::RedBolt.RenderAPI.TextureAddressMode;
 using RedBolt.Resource;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class RawTextureTests

@@ -1,3 +1,5 @@
+namespace RedBolt.RenderAPI;
+
 using System.Collections.Immutable;
 using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
@@ -9,8 +11,6 @@ using CullMode = global::RedBolt.Graphics.CullMode;
 using FillMode = global::RedBolt.Graphics.FillMode;
 using RedBolt.Input;
 using RedBolt.Math;
-
-namespace RedBolt.RenderAPI;
 
 public static class RenderApiLimits
 {

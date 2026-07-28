@@ -1,3 +1,5 @@
+namespace RedBolt.Resource;
+
 using Microsoft.Extensions.Logging;
 using System.Globalization;
 using System.Text.Json.Nodes;
@@ -7,8 +9,6 @@ using RedBolt.Core;
 using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Scene;
-
-namespace RedBolt.Resource;
 
 public enum JSONValueType
 {

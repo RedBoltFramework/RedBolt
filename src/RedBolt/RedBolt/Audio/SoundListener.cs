@@ -1,7 +1,7 @@
+namespace RedBolt.Audio;
+
 using RedBolt.Core;
 using RedBolt.Scene;
-
-namespace RedBolt.Audio;
 
 /// <summary>Sound listener component for 3D audio positioning.</summary>
 [Reflected(ObjectCategory.Category_Audio)]

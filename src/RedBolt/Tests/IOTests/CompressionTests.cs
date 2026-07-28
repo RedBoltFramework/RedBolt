@@ -1,9 +1,9 @@
+namespace RedBolt.Tests;
+
 using System.Text;
 
 using RedBolt;
 using RedBolt.IO;
-
-namespace RedBolt.Tests;
 
 public sealed class CompressionTests
 {

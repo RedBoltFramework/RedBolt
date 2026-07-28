@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using SystemMath = global::System.Math;
@@ -5,14 +7,12 @@ using System.Runtime.InteropServices;
 
 using RedBolt.Container;
 using RedBolt.Core;
-using RedBolt.Input;
 using RedBolt.IO;
+using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-
-namespace RedBolt.Graphics;
 
 /// <summary>Animated model component.</summary>
 [Reflected(ObjectCategory.Category_Geometry)]

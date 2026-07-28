@@ -20,13 +20,13 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Scene;
+
 using SystemMath = global::System.Math;
 
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
-
-namespace RedBolt.Scene;
 
 /// <summary>Spline for creating smooth movement based on Speed along a set of Control Points modified by the Interpolation Mode.</summary>
 [Reflected(ObjectCategory.Category_Logic)]

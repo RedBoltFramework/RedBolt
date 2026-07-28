@@ -1,3 +1,5 @@
+namespace RedBolt.RenderPipeline;
+
 using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 
@@ -5,8 +7,6 @@ using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Cooked light parameters used by shader binding.

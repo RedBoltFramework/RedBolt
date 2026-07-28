@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Core;
 using RedBolt.Graphics;
@@ -5,9 +7,6 @@ using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class StaticModelGroupTests
@@ -54,7 +53,7 @@ public sealed class StaticModelGroupTests
     [Fact]
     public void Dispose_removes_instance_listener_without_disposing_node()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var instance = scene.CreateChild("Instance");
         var group = scene.CreateChild("Group").CreateComponent<StaticModelGroup>();
         group.AddInstanceNode(instance);
@@ -68,7 +67,7 @@ public sealed class StaticModelGroupTests
     [Fact]
     public void Instance_nodes_work()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var model = Resources.Get<Model>("Models/ProceduralBox");
         var material = Resources.Get<Material>("Materials/FirstCube");
         var group = scene.CreateChild("Group").CreateComponent<StaticModelGroup>();
@@ -91,7 +90,7 @@ public sealed class StaticModelGroupTests
     [Fact]
     public void NodeId_attribute_resolution_works()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var group = scene.CreateChild("Group").CreateComponent<StaticModelGroup>();
         group.SetModel(CreateOcclusionModel());
         group.SetMaterial(Resources.Get<Material>("Materials/FirstCube"));
@@ -110,7 +109,7 @@ public sealed class StaticModelGroupTests
     [Fact]
     public void Apply_attributes_removes_listeners_from_previous_instance_nodes()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var first = scene.CreateChild("First");
         var second = scene.CreateChild("Second");
         var group = scene.CreateChild("Group").CreateComponent<StaticModelGroup>();
@@ -131,7 +130,7 @@ public sealed class StaticModelGroupTests
     [Fact]
     public void Remove_instance_node_works()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var group = scene.CreateChild("Group").CreateComponent<StaticModelGroup>();
         group.SetModel(Resources.Get<Model>("Models/ProceduralBox"));
         group.SetMaterial(Resources.Get<Material>("Materials/FirstCube"));
@@ -151,7 +150,7 @@ public sealed class StaticModelGroupTests
     [Fact]
     public void Ray_query_uses_requested_geometry_detail()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var group = scene.CreateChild("Group").CreateComponent<StaticModelGroup>();
         group.SetModel(Resources.Get<Model>("Models/ProceduralBox"));
         group.SetMaterial(Resources.Get<Material>("Materials/FirstCube"));
@@ -174,7 +173,7 @@ public sealed class StaticModelGroupTests
     [Fact]
     public void Occluder_triangle_count_scales_with_enabled_instances_and_material()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var group = scene.CreateChild("Group").CreateComponent<StaticModelGroup>();
         var model = Resources.Get<Model>("Models/ProceduralBox");
         group.SetModel(model);
@@ -194,7 +193,7 @@ public sealed class StaticModelGroupTests
     [Fact]
     public void DrawOcclusion_submits_each_enabled_instance()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var group = scene.CreateChild("Group").CreateComponent<StaticModelGroup>();
         group.SetModel(Resources.Get<Model>("Models/ProceduralBox"));
         group.AddInstanceNode(scene.CreateChild("A"));
@@ -225,7 +224,7 @@ public sealed class StaticModelGroupTests
     [Fact]
     public void Batch_update_refreshes_group_distance_and_lod_distance()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var cameraNode = scene.CreateChild("Camera");
         cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -10.0f));
         var camera = cameraNode.CreateComponent<Camera>();

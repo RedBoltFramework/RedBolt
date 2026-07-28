@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 
@@ -6,8 +8,6 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-
-namespace RedBolt.Graphics;
 
 /// <summary>Individually rendered part of a heightmap terrain.</summary>
 [Reflected(InheritAttributes = false)]

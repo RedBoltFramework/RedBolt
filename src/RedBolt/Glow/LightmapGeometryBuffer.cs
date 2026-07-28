@@ -20,15 +20,15 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Glow;
+
 using System;
 using System.Collections.Generic;
 
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Glow;
+using RedBolt.Scene;
 
 /// <summary>Used for mapping between geometry ID in geometry buffer and actual geometry.</summary>
 public struct GeometryIdToObjectMapping
@@ -92,7 +92,7 @@ public struct LightmapGeometryBakingScene : ICloneable
     /// <summary>Size of lightmap chart.</summary>
     public int LightmapSize;
     /// <summary>Baking scene.</summary>
-    public SceneType? Scene;
+    public Scene? Scene;
     /// <summary>Baking camera.</summary>
     public Camera? Camera;
     /// <summary>Lightmap seams.</summary>

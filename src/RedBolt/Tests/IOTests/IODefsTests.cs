@@ -1,6 +1,6 @@
-using RedBolt.IO;
-
 namespace RedBolt.Tests;
+
+using RedBolt.IO;
 
 public sealed class IODefsTests
 {

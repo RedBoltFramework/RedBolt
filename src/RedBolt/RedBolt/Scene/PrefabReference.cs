@@ -1,9 +1,9 @@
+namespace RedBolt.Scene;
+
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Resource;
-
-namespace RedBolt.Scene;
 
 /// <summary>Component that instantiates prefab resource into the parent Node.</summary>
 [Reflected(ObjectCategory.Category_Scene)]

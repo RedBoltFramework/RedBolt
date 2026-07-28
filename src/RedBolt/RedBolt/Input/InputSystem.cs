@@ -1,3 +1,5 @@
+namespace RedBolt.Input;
+
 using Microsoft.Extensions.Logging;
 using System.Linq;
 using SystemMath = global::System.Math;
@@ -16,8 +18,6 @@ using RedBolt.Math;
 using RedBolt.Platform;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
-
-namespace RedBolt.Input;
 
 /// <summary>Input mouse modes.</summary>
 public enum MouseMode

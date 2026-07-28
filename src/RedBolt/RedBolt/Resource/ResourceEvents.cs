@@ -1,6 +1,6 @@
-using RedBolt.Container;
-
 namespace RedBolt.Resource;
+
+using RedBolt.Container;
 
 public static class ResourceEvents
 {

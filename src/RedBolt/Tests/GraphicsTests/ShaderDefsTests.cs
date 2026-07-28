@@ -1,6 +1,6 @@
-using RedBolt.Graphics;
-
 namespace RedBolt.Tests;
+
+using RedBolt.Graphics;
 
 public sealed class ShaderDefsTests
 {

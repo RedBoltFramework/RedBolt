@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.RenderToTexture;
+
 using System;
 
 using RedBolt;

@@ -1,8 +1,8 @@
+namespace RedBolt.RenderPipeline;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>Instancing buffer compositor.</summary>
 public class InstancingBuffer : RedObject

@@ -1,12 +1,11 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ZoneTests
@@ -23,7 +22,7 @@ public sealed class ZoneTests
     [Fact]
     public void Default_render_state_works()
     {
-        var zone = new SceneType().CreateChild("Zone").CreateComponent<Zone>();
+        var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
         Assert.Equal(DrawableFlags.Zone, zone.GetDrawableFlags());
         Assert.Equal(new Color(0.1f, 0.1f, 0.1f), zone.GetAmbientColor());
         Assert.Equal(Color.Black, zone.GetFogColor());
@@ -92,7 +91,7 @@ public sealed class ZoneTests
     [Fact]
     public void BoundingBox_and_ambient_roundtrip()
     {
-        var zone = new SceneType().CreateChild("Zone").CreateComponent<Zone>();
+        var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
         zone.SetBoundingBox(new BoundingBox(new Vector3f(-1.0f, -2.0f, -3.0f), new Vector3f(1.0f, 2.0f, 3.0f)));
         zone.SetAmbientColor(new Color(0.2f, 0.3f, 0.4f));
 
@@ -104,7 +103,7 @@ public sealed class ZoneTests
     [Fact]
     public void Fog_helpers_clamp_and_roundtrip()
     {
-        var zone = new SceneType().CreateChild("Zone").CreateComponent<Zone>();
+        var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
         zone.SetFogColor(new Color(0.5f, 0.6f, 0.7f));
         zone.SetFogStart(-1.0f);
         zone.SetFogEnd(-1.0f);
@@ -123,7 +122,7 @@ public sealed class ZoneTests
     [Fact]
     public void Mode_flags_work()
     {
-        var zone = new SceneType().CreateChild("Zone").CreateComponent<Zone>();
+        var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
         zone.SetHeightFog(true);
         zone.SetOverride(true);
         zone.SetAmbientGradient(true);
@@ -135,7 +134,7 @@ public sealed class ZoneTests
     [Fact]
     public void Ambient_gradient_fallback_works()
     {
-        var zone = new SceneType().CreateChild("Zone").CreateComponent<Zone>();
+        var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
         zone.SetAmbientColor(new Color(0.2f, 0.3f, 0.4f));
         zone.SetAmbientBrightness(2.0f);
         zone.UpdateCachedData();
@@ -148,7 +147,7 @@ public sealed class ZoneTests
     [Fact]
     public void Oriented_containment_works()
     {
-        var zone = new SceneType().CreateChild("Zone").CreateComponent<Zone>();
+        var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
         zone.SetBoundingBox(new BoundingBox(new Vector3f(-1.0f, -2.0f, -3.0f), new Vector3f(1.0f, 2.0f, 3.0f)));
         zone.Node.SetTransform(new Vector3f(5.0f, 0.0f, 0.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 1.0f, 1.0f));
         // World box: (3,-2,-3) to (7,2,3). Point (6,0,0) is inside.
@@ -158,7 +157,7 @@ public sealed class ZoneTests
     [Fact]
     public void World_bounding_box_updates_from_node_transform()
     {
-        var zone = new SceneType().CreateChild("Zone").CreateComponent<Zone>();
+        var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
         zone.SetBoundingBox(new BoundingBox(new Vector3f(-1.0f, -2.0f, -3.0f), new Vector3f(1.0f, 2.0f, 3.0f)));
         zone.Node.SetPosition(new Vector3f(5.0f, 0.0f, 0.0f));
 
@@ -168,7 +167,7 @@ public sealed class ZoneTests
     [Fact]
     public void Inverse_world_transform_works()
     {
-        var zone = new SceneType().CreateChild("Zone").CreateComponent<Zone>();
+        var zone = new Scene().CreateChild("Zone").CreateComponent<Zone>();
         zone.Node.SetTransform(new Vector3f(5.0f, 0.0f, 0.0f), Quaternion.IDENTITY, new Vector3f(2.0f, 1.0f, 1.0f));
         var result = zone.GetInverseWorldTransform() * new Vector3f(6.0f, 0.0f, 0.0f);
         Assert.True(result.ApproximatelyEquivalent(new Vector3f(0.5f, 0.0f, 0.0f)));
@@ -202,7 +201,7 @@ public sealed class ZoneTests
     [Fact]
     public void Ambient_gradient_uses_highest_priority_neighbor_at_each_end()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         scene.CreateComponent<Octree>();
         var zone = scene.CreateChild("Zone").CreateComponent<Zone>();
         zone.SetBoundingBox(new BoundingBox(new Vector3f(-1.0f, -1.0f, -10.0f), new Vector3f(1.0f, 1.0f, 10.0f)));
@@ -224,7 +223,7 @@ public sealed class ZoneTests
     public void Zone_lookup_selects_priority_and_background_zones()
     {
         var index = new ZoneLookupIndex();
-        var scene = new SceneType();
+        var scene = new Scene();
         var lowPriorityZone = scene.CreateChild("LowPriorityZone").CreateComponent<Zone>();
         lowPriorityZone.SetBoundingBox(new BoundingBox(new Vector3f(-10.0f, -10.0f, -10.0f), new Vector3f(10.0f, 10.0f, 10.0f)));
         lowPriorityZone.SetPriority(0);
@@ -246,7 +245,7 @@ public sealed class ZoneTests
     public void Zone_lookup_returns_default_zone_outside_matching_zones()
     {
         var index = new ZoneLookupIndex();
-        var scene = new SceneType();
+        var scene = new Scene();
         var zone = scene.CreateChild("Zone").CreateComponent<Zone>();
         zone.SetBoundingBox(new BoundingBox(new Vector3f(-1.0f, -1.0f, -1.0f), new Vector3f(1.0f, 1.0f, 1.0f)));
         index.AddZone(zone);
@@ -261,7 +260,7 @@ public sealed class ZoneTests
     [Fact]
     public void Draw_debug_geometry_uses_zone_bounds()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         scene.CreateComponent<Octree>();
         var zone = scene.CreateChild("Zone").CreateComponent<Zone>();
         var debugRenderer = scene.CreateComponent<DebugRenderer>();

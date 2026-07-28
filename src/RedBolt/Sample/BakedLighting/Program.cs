@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Sample.BakedLighting;
+
 using System;
 
 using RedBolt;

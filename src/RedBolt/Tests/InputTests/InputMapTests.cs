@@ -1,12 +1,12 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Container;
 using RedBolt.Core;
-using RedBolt.Input;
 using RedBolt.IO;
+using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Resource;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class InputMapTests

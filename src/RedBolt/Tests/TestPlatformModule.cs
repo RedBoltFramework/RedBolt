@@ -1,6 +1,6 @@
-using System.Runtime.CompilerServices;
-
 namespace RedBolt.Tests;
+
+using System.Runtime.CompilerServices;
 
 internal static class TestPlatformModule
 {

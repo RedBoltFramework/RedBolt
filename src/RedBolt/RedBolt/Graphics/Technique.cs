@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 
 using RedBolt.Container;
@@ -7,8 +9,6 @@ using RedBolt.Logging;
 using RedBolt.RenderPipeline;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
-
-namespace RedBolt.Graphics;
 
 public enum BlendMode
 {

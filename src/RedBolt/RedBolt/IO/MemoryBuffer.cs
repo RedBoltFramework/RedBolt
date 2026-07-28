@@ -1,8 +1,8 @@
+namespace RedBolt.IO;
+
 using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 using System.Text;
-
-namespace RedBolt.IO;
 
 /// <summary>Memory area that can be read and written to as a stream.</summary>
 public unsafe class MemoryBuffer : AbstractFile, ICloneable

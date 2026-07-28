@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 using System.Text;
@@ -5,15 +7,13 @@ using System.Text.RegularExpressions;
 
 using RedBolt.Container;
 using RedBolt.Core;
-using RedBolt.Input;
 using RedBolt.IO;
+using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.RenderAPI;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
-
-namespace RedBolt.Graphics;
 
 public enum ShaderStage
 {

@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
@@ -9,8 +11,6 @@ using RedBolt.Math;
 using RedBolt.RenderAPI;
 using TextureAddressMode = global::RedBolt.RenderAPI.TextureAddressMode;
 using RedBolt.Resource;
-
-namespace RedBolt.Graphics;
 
 internal static class TextureFormatUtility
 {

@@ -1,9 +1,9 @@
+namespace RedBolt.Tests;
+
 using Xunit;
 
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
-
-namespace RedBolt.Tests;
 
 public sealed class GraphicsUtilsTests
 {

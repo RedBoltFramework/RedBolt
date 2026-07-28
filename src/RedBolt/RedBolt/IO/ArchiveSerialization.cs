@@ -1,3 +1,5 @@
+namespace RedBolt.IO;
+
 using Microsoft.Extensions.Logging;
 using System.Globalization;
 using SystemMath = global::System.Math;
@@ -9,8 +11,6 @@ using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
-
-namespace RedBolt.IO;
 
 public delegate void ArchiveValueSerializer<T>(Archive archive, string name, ref T value);
 

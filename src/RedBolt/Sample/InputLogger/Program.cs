@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.InputLogger;
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;

@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.SkeletalAnimation;
+
 using RedBolt;
 using RedBolt.Core;
 using RedBolt.Math;

@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Container;
 using RedBolt.Core;
@@ -6,8 +8,6 @@ using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-
-namespace RedBolt.Tests;
 
 public sealed class ValueAnimationTests
 {

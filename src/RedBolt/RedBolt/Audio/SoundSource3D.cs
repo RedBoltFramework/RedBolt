@@ -1,3 +1,5 @@
+namespace RedBolt.Audio;
+
 using SystemMath = global::System.Math;
 
 using RedBolt.Container;
@@ -5,9 +7,6 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Audio;
 
 /// <summary>Sound source component with 3D position attenuation.</summary>
 [Reflected(ObjectCategory.Category_Audio)]

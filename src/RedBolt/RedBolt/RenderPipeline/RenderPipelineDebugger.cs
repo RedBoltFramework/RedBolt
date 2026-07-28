@@ -1,11 +1,11 @@
+namespace RedBolt.RenderPipeline;
+
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
-
-namespace RedBolt.RenderPipeline;
 
 public struct DebugFrameSnapshotBatch : ICloneable
 {

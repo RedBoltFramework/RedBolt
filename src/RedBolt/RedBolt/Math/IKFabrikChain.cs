@@ -1,6 +1,6 @@
-using System;
-
 namespace RedBolt.Math;
+
+using System;
 
 /// <summary>Generic unconstrained FABRIK chain.</summary>
 public class IKFabrikChain : IKChain, ICloneable

@@ -20,12 +20,12 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Navigation;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-
-namespace RedBolt.Navigation;
 
 /// <summary>A link between otherwise unconnected regions of the navigation mesh.</summary>
 [Reflected(ObjectCategory.Category_Navigation, InheritAttributes = false)]

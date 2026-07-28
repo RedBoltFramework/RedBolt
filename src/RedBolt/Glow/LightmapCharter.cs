@@ -20,20 +20,19 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Glow;
+
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using SystemMath = global::System.Math;
-
-using Microsoft.Extensions.Logging;
 
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Scene;
-
-namespace RedBolt.Glow;
 
 /// <summary>Region on the lightmap chart.</summary>
 public struct LightmapChartRegion

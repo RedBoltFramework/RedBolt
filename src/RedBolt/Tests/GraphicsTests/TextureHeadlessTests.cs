@@ -1,8 +1,8 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Graphics;
 using RedBolt.IO;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class TextureHeadlessTests

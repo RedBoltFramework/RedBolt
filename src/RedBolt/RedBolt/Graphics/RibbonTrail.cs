@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
@@ -9,9 +11,6 @@ using RedBolt.Math;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Graphics;
 
 public enum TrailType
 {
@@ -399,7 +398,7 @@ public partial class RibbonTrail : Drawable
         _batches[0] = batch;
     }
 
-    protected internal override void OnSceneSet(SceneType? previousScene, SceneType? scene)
+    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
     {
         base.OnSceneSet(previousScene, scene);
 

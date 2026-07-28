@@ -1,9 +1,9 @@
+namespace RedBolt.Tests;
+
 using System.Reflection;
 
 using RedBolt.Container;
 using RedBolt.RenderPipeline;
-
-namespace RedBolt.Tests;
 
 public sealed class ShaderConstsTests
 {

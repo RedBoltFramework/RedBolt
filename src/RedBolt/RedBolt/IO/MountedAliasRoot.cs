@@ -1,9 +1,9 @@
+namespace RedBolt.IO;
+
 using System;
 using System.Collections.Generic;
 
 using RedBolt.Input;
-
-namespace RedBolt.IO;
 
 /// <summary>Mount point that provides named aliases to other mount points.</summary>
 public class MountedAliasRoot : MountPoint

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.WebAssembly">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <StartupObject>WebProgram</StartupObject>
+    <StartupObject>RedBolt.Sample.Web.WebProgram</StartupObject>
     <CompressionEnabled>false</CompressionEnabled>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
     <EmccExtraLDFlags>-sFULL_ES3 -sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE=$dynCall -lidbfs.js -sEXPORTED_RUNTIME_METHODS+=FS -sEXPORTED_RUNTIME_METHODS+=addRunDependency -sEXPORTED_RUNTIME_METHODS+=removeRunDependency</EmccExtraLDFlags>
@@ -34,7 +34,8 @@
     <Compile Include="../*/Program.cs"
              Exclude="../Web/Program.cs"
              Link="Samples/%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="../AnimatingScene/Rotator.cs" Link="Samples/Rotator.cs" />
+    <Compile Include="../AnimatingScene/Rotator.cs" Link="Samples/AnimatingScene/Rotator.cs" />
+    <Compile Include="../RenderToTexture/Rotator.cs" Link="Samples/RenderToTexture/Rotator.cs" />
     <Compile Include="../SkeletalAnimation/Mover3D.cs" Link="Samples/Mover3D.cs" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all"

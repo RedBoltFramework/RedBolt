@@ -20,15 +20,14 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 
 using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Graphics;
 
 /// <summary>
 /// Helper component that tracks points in world space and updates camera position.
@@ -337,7 +336,7 @@ public partial class CameraOperator : Component
     /// <summary>
     /// Handle scene being assigned.
     /// </summary>
-    protected internal override void OnSceneSet(SceneType? previousScene, SceneType? scene)
+    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
     {
         UnsubscribeFromEvent<SceneEvents.SceneDrawableUpdateFinishedEvent>();
         if (scene is not null)

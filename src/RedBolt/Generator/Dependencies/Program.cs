@@ -1,3 +1,5 @@
+namespace RedBolt.Generator.Dependencies;
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,8 +11,6 @@ using SharpCpp.Model.Logging;
 using SharpCpp.Parsing;
 using SharpCpp.Pipeline;
 using SharpCpp.Rendering;
-
-namespace RedBolt.Generator.Dependencies;
 
 internal static class Program
 {

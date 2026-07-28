@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.HugeObjectCount;
+
 using System;
 using System.Collections.Generic;
 

@@ -1,8 +1,8 @@
+namespace RedBolt.Tests.MathTests;
+
 using System.Runtime.InteropServices;
 
 using RedBolt.Math;
-
-namespace RedBolt.Tests.MathTests;
 
 public class QuaternionTests
 {

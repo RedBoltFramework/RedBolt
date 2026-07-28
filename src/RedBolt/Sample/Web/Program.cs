@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.Web;
+
 using System;
 using System.Runtime.InteropServices.JavaScript;
 using System.Text;
@@ -6,6 +8,30 @@ using RedBolt;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Lz4;
 using RedBolt.Bindings.Sdl;
+using RedBolt.Sample.AggregatedInput;
+using RedBolt.Sample.AnimatingScene;
+using RedBolt.Sample.BakedLighting;
+using RedBolt.Sample.Billboards;
+using RedBolt.Sample.CameraOperator;
+using RedBolt.Sample.CameraShake;
+using RedBolt.Sample.Decals;
+using RedBolt.Sample.DynamicGeometry;
+using RedBolt.Sample.HelloGUI;
+using RedBolt.Sample.HelloWorld;
+using RedBolt.Sample.HugeObjectCount;
+using RedBolt.Sample.InputLogger;
+using RedBolt.Sample.LightAnimation;
+using RedBolt.Sample.MaterialAnimation;
+using RedBolt.Sample.MultipleViewports;
+using RedBolt.Sample.PointerAdapter;
+using RedBolt.Sample.RenderToTexture;
+using RedBolt.Sample.SkeletalAnimation;
+using RedBolt.Sample.SoundEffects;
+using RedBolt.Sample.SoundSynthesis;
+using RedBolt.Sample.StaticScene;
+using RedBolt.Sample.TextureFormats;
+using RedBolt.Sample.VirtualFileSystem;
+using RedBolt.Sample.WindowSettings;
 
 internal static class WebProgram
 {

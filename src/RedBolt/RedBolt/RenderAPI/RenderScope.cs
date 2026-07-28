@@ -1,3 +1,5 @@
+namespace RedBolt.RenderAPI;
+
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -5,8 +7,6 @@ using System.Text;
 
 using RedBolt.Bindings.Sdl;
 using RedBolt.Container;
-
-namespace RedBolt.RenderAPI;
 
 /// <summary>
 /// Utility class to add debug scope markers.

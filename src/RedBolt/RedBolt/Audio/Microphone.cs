@@ -1,10 +1,10 @@
+namespace RedBolt.Audio;
+
 using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
 using RedBolt.Bindings.Sdl;
 using RedBolt.Core;
-
-namespace RedBolt.Audio;
 
 /// <summary>Microphone audio input device.</summary>
 [Reflected]

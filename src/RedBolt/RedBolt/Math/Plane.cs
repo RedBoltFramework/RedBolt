@@ -1,6 +1,6 @@
-using System.Runtime.InteropServices;
-
 namespace RedBolt.Math;
+
+using System.Runtime.InteropServices;
 
 /// <summary>Surface in three-dimensional space.</summary>
 [StructLayout(LayoutKind.Sequential)]

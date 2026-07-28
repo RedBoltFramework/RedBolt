@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 
@@ -9,8 +11,6 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
-
-namespace RedBolt.Graphics;
 
 /// <summary>Vertex buffer morph data.</summary>
 public sealed class VertexBufferMorph : ICloneable

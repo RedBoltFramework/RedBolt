@@ -1,3 +1,5 @@
+namespace RedBolt.Core;
+
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -8,14 +10,12 @@ using RedBolt.Bindings.Sdl;
 using RedBolt.Container;
 using RedBolt.Engine;
 using RedBolt.Graphics;
-using RedBolt.Input;
 using RedBolt.IO;
+using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Platform;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
-
-namespace RedBolt.Core;
 
 public delegate void RefEventHandler<T>(ref T args) where T : struct;
 

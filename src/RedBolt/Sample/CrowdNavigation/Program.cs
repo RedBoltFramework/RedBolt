@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Sample.CrowdNavigation;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;

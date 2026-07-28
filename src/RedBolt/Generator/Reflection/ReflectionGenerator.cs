@@ -1,3 +1,5 @@
+namespace RedBolt.Generator.Reflection;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -7,8 +9,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
-
-namespace RedBolt.Generator.Reflection;
 
 [Generator]
 public sealed class ReflectionGenerator : IIncrementalGenerator
@@ -536,22 +536,29 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
     private static void AppendHeader(StringBuilder builder, INamedTypeSymbol type)
     {
         var usingDirectives = type.DeclaringSyntaxReferences
-            .Select(static reference => reference.GetSyntax().SyntaxTree.GetRoot())
-            .OfType<CompilationUnitSyntax>()
-            .SelectMany(static compilationUnit => compilationUnit.Usings)
+            .SelectMany(static reference =>
+            {
+                var declaration = reference.GetSyntax();
+                var compilationUnit = (CompilationUnitSyntax)declaration.SyntaxTree.GetRoot();
+                var namespaceDeclaration = declaration.Ancestors()
+                    .OfType<BaseNamespaceDeclarationSyntax>()
+                    .FirstOrDefault();
+                return compilationUnit.Usings.Concat(namespaceDeclaration?.Usings ?? default);
+            })
             .Select(static usingDirective => usingDirective.ToString())
             .Distinct(StringComparer.Ordinal)
             .ToArray();
-        foreach (var usingDirective in usingDirectives)
-            builder.AppendLine(usingDirective);
-        if (usingDirectives.Length != 0)
-            builder.AppendLine();
 
         if (!type.ContainingNamespace.IsGlobalNamespace)
         {
             builder.Append("namespace ").Append(type.ContainingNamespace.ToDisplayString()).AppendLine(";");
             builder.AppendLine();
         }
+
+        foreach (var usingDirective in usingDirectives)
+            builder.AppendLine(usingDirective);
+        if (usingDirectives.Length != 0)
+            builder.AppendLine();
 
         var containingTypes = new Stack<INamedTypeSymbol>();
         for (var current = type.ContainingType; current is not null; current = current.ContainingType)

@@ -20,10 +20,11 @@
 // THE SOFTWARE.
 //
 
-using System.IO;
-using Math = System.Math;
+namespace RedBolt.Navigation;
 
 using Microsoft.Extensions.Logging;
+using System.IO;
+using Math = System.Math;
 
 using DotRecast.Core;
 using DotRecast.Detour;
@@ -38,9 +39,6 @@ using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Scene;
-using SceneType = RedBolt.Scene.Scene;
-
-namespace RedBolt.Navigation;
 
 [Reflected(ObjectCategory.Category_Navigation)]
 public partial class DynamicNavigationMesh : NavigationMesh
@@ -469,7 +467,7 @@ public partial class DynamicNavigationMesh : NavigationMesh
         }
     }
 
-    protected override void OnSceneSet(SceneType? previousScene, SceneType? scene)
+    protected override void OnSceneSet(Scene? previousScene, Scene? scene)
     {
         base.OnSceneSet(previousScene, scene);
 

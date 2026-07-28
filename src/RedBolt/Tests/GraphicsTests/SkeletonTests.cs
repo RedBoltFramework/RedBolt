@@ -1,11 +1,10 @@
+namespace RedBolt.Tests;
+
 using Xunit;
 
 using RedBolt.Container;
 using RedBolt.Graphics;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 public sealed class SkeletonTests
 {
@@ -45,7 +44,7 @@ public sealed class SkeletonTests
         sourceBone.Name = "Root";
         sourceBone.NameHash = new StringHash("Root");
         sourceBone.ParentIndex = 0;
-        sourceBone.Node = new SceneType().CreateChild("Root");
+        sourceBone.Node = new Scene().CreateChild("Root");
 
         var destination = new Skeleton();
         destination.Define(source);
@@ -69,7 +68,7 @@ public sealed class SkeletonTests
         sourceBone.Name = "Root";
         sourceBone.NameHash = new StringHash("Root");
         sourceBone.ParentIndex = 0;
-        sourceBone.Node = new SceneType().CreateChild("CopyRoot");
+        sourceBone.Node = new Scene().CreateChild("CopyRoot");
 
         var boneCopy = (Bone)sourceBone.Clone();
         boneCopy.Name = "Copy";

@@ -1,3 +1,5 @@
+namespace RedBolt.Core;
+
 using System.Diagnostics;
 using System.Globalization;
 using SystemMath = global::System.Math;
@@ -7,8 +9,6 @@ using System.Text;
 using RedBolt.Bindings.Sdl;
 using RedBolt.Container;
 using RedBolt.IO;
-
-namespace RedBolt.Core;
 
 public enum PlatformId
 {

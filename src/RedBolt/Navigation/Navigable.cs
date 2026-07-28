@@ -3,10 +3,10 @@
 // This work is licensed under the terms of the MIT license.
 // For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
+namespace RedBolt.Navigation;
+
 using RedBolt.Core;
 using RedBolt.Scene;
-
-namespace RedBolt.Navigation;
 
 /// <summary>
 /// Component which tags geometry for inclusion in the navigation mesh. Optionally auto-includes geometry from child

@@ -1,9 +1,9 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Resource;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class PListFileTests

@@ -1,7 +1,7 @@
+namespace RedBolt.Core;
+
 using SystemMath = global::System.Math;
 using System.Text;
-
-namespace RedBolt.Core;
 
 public sealed class CommandLineParser
 {

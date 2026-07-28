@@ -1,7 +1,7 @@
+namespace RedBolt.IO;
+
 using RedBolt.Core;
 using RedBolt.Logging;
-
-namespace RedBolt.IO;
 
 public static class IOEvents
 {

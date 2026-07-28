@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 
@@ -8,9 +10,6 @@ using RedBolt.Math;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Graphics;
 
 public enum LightMode
 {

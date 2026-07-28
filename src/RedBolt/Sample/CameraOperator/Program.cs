@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.CameraOperator;
+
 using System;
 
 using RedBolt;

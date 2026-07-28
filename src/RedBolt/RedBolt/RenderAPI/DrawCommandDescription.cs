@@ -1,9 +1,9 @@
+namespace RedBolt.RenderAPI;
+
 using System.Runtime.CompilerServices;
 
 using RedBolt.Graphics;
 using RedBolt.RenderPipeline;
-
-namespace RedBolt.RenderAPI;
 
 /// <summary>Shader resource group, range in array.</summary>
 public record struct ShaderResourceRange(int First, int Second);

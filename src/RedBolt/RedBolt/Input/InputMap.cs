@@ -1,3 +1,5 @@
+namespace RedBolt.Input;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
@@ -9,8 +11,6 @@ using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
-
-namespace RedBolt.Input;
 
 [Reflected]
 public partial class InputMap : SimpleResource

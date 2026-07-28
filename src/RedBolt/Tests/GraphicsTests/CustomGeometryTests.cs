@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using System.Runtime.CompilerServices;
 
 using RedBolt;
@@ -6,9 +8,6 @@ using RedBolt.Math;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class CustomGeometryTests
@@ -26,7 +25,7 @@ public sealed class CustomGeometryTests
     [Fact]
     public void Defaults_are_correct()
     {
-        var custom = new SceneType().CreateChild("Custom").CreateComponent<CustomGeometry>();
+        var custom = new Scene().CreateChild("Custom").CreateComponent<CustomGeometry>();
         Assert.Equal(DrawableFlags.Geometry, custom.GetDrawableFlags());
         Assert.Equal(1u, custom.GetNumGeometries());
         Assert.False(custom.IsDynamic());
@@ -64,7 +63,7 @@ public sealed class CustomGeometryTests
     [Fact]
     public void Dynamic_vertex_definition_and_commit_work()
     {
-        var custom = new SceneType().CreateChild("Custom").CreateComponent<CustomGeometry>();
+        var custom = new Scene().CreateChild("Custom").CreateComponent<CustomGeometry>();
         custom.SetDynamic(true);
         custom.SetNumGeometries(2u);
 
@@ -99,7 +98,7 @@ public sealed class CustomGeometryTests
     [Fact]
     public void Vertex_buffer_metadata_is_correct()
     {
-        var custom = new SceneType().CreateChild("Custom").CreateComponent<CustomGeometry>();
+        var custom = new Scene().CreateChild("Custom").CreateComponent<CustomGeometry>();
         custom.SetDynamic(true);
         custom.SetNumGeometries(2u);
         custom.BeginGeometry(0u, PrimitiveType.TriangleList);
@@ -118,7 +117,7 @@ public sealed class CustomGeometryTests
     [Fact]
     public void Bounding_box_and_material_work()
     {
-        var custom = new SceneType().CreateChild("Custom").CreateComponent<CustomGeometry>();
+        var custom = new Scene().CreateChild("Custom").CreateComponent<CustomGeometry>();
         custom.SetDynamic(true);
         custom.BeginGeometry(0u, PrimitiveType.TriangleList);
         custom.DefineVertex(new Vector3f(0.0f, 0.0f, 0.0f));
@@ -136,7 +135,7 @@ public sealed class CustomGeometryTests
     [Fact]
     public void Occluder_triangle_count_respects_geometry_and_material()
     {
-        var custom = new SceneType().CreateChild("Custom").CreateComponent<CustomGeometry>();
+        var custom = new Scene().CreateChild("Custom").CreateComponent<CustomGeometry>();
         custom.BeginGeometry(0u, PrimitiveType.TriangleList);
         custom.DefineVertex(new Vector3f(0.0f, 0.0f, 0.0f));
         custom.DefineVertex(new Vector3f(2.0f, 0.0f, 0.0f));
@@ -155,7 +154,7 @@ public sealed class CustomGeometryTests
     [Fact]
     public void Material_attribute_resolves_resource_names()
     {
-        var custom = new SceneType().CreateChild("Custom").CreateComponent<CustomGeometry>();
+        var custom = new Scene().CreateChild("Custom").CreateComponent<CustomGeometry>();
         var material = Resources.Get<Material>("Materials/FirstCube");
 
         custom.SetMaterialsAttr(ResourceType.GetResourceRefList(new Material?[] { material }));
@@ -180,7 +179,7 @@ public sealed class CustomGeometryTests
     [Fact]
     public void Triangle_ray_query_uses_committed_geometry()
     {
-        var custom = new SceneType().CreateChild("Custom").CreateComponent<CustomGeometry>();
+        var custom = new Scene().CreateChild("Custom").CreateComponent<CustomGeometry>();
         custom.BeginGeometry(0u, PrimitiveType.TriangleList);
         custom.DefineVertex(new Vector3f(0.0f, 0.0f, 0.0f));
         custom.DefineVertex(new Vector3f(1.0f, 0.0f, 0.0f));
@@ -203,7 +202,7 @@ public sealed class CustomGeometryTests
     [Fact]
     public void Geometry_data_attribute_roundtrips()
     {
-        var custom = new SceneType().CreateChild("Custom").CreateComponent<CustomGeometry>();
+        var custom = new Scene().CreateChild("Custom").CreateComponent<CustomGeometry>();
         custom.SetDynamic(true);
         custom.SetNumGeometries(2u);
         custom.BeginGeometry(0u, PrimitiveType.TriangleList);

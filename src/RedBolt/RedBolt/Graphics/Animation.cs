@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
@@ -27,13 +29,11 @@ using System.Runtime.InteropServices;
 
 using RedBolt.Container;
 using RedBolt.Core;
-using RedBolt.Input;
 using RedBolt.IO;
 using FileMode = global::RedBolt.IO.FileMode;
+using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Resource;
-
-namespace RedBolt.Graphics;
 
 /// <summary>
 /// Animation trigger point.

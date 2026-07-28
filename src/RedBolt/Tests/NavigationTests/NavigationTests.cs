@@ -1,11 +1,10 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Navigation;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class NavigationTests
@@ -72,9 +71,9 @@ public sealed class NavigationTests
         Assert.Contains(attributes, attribute => attribute.Name == "Obstacle Avoidance Types");
     }
 
-    private SceneType CreateNavigationScene()
+    private Scene CreateNavigationScene()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var planeNode = scene.CreateChild("Plane");
         planeNode.SetScale(new Vector3f(20.0f, 1.0f, 20.0f));
         var model = planeNode.CreateComponent<StaticModel>();

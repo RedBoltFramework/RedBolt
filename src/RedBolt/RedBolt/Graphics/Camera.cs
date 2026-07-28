@@ -1,11 +1,11 @@
+namespace RedBolt.Graphics;
+
 using SystemMath = global::System.Math;
 
 using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-
-namespace RedBolt.Graphics;
 
 [Flags]
 public enum ViewOverride : uint

@@ -20,12 +20,12 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Glow;
+
 using System;
 using System.Collections.Generic;
 
 using RedBolt.Graphics;
-
-namespace RedBolt.Glow;
 
 /// <summary>Light probe collection with extra data needed for baking.</summary>
 public class LightProbeCollectionForBaking : LightProbeCollection, ICloneable

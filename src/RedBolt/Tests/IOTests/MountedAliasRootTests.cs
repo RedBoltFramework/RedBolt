@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,8 +8,6 @@ using System.Runtime.CompilerServices;
 using RedBolt;
 using RedBolt.IO;
 using FileMode = global::RedBolt.IO.FileMode;
-
-namespace RedBolt.Tests;
 
 public sealed class MountedAliasRootTests
 {

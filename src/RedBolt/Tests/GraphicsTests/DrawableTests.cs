@@ -1,10 +1,9 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 public sealed partial class DrawableTests
 {
@@ -70,7 +69,7 @@ public sealed partial class DrawableTests
     [Fact]
     public void Drawable_update_batches_calculates_distance_and_lod_distance()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var drawable = scene.CreateChild("Drawable").CreateComponent<CustomGeometry>();
         drawable.Node.SetPosition(new Vector3f(5.0f, 0.0f, 0.0f));
         var camera = new Camera();
@@ -143,7 +142,7 @@ public sealed partial class DrawableTests
     [Fact]
     public void Drawable_dispose_cancels_queued_octree_update()
     {
-        var octree = new SceneType().CreateComponent<Octree>();
+        var octree = new Scene().CreateComponent<Octree>();
         var drawable = new UpdateProbeDrawable();
         octree.AddManualDrawable(drawable);
         Assert.True(drawable.IsInOctree());

@@ -1,11 +1,11 @@
+namespace RedBolt.Core;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 
 using RedBolt.Container;
 using RedBolt.Logging;
 using RedBolt.Math;
-
-namespace RedBolt.Core;
 
 public enum InterpolationMode
 {

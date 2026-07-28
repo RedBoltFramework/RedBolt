@@ -1,3 +1,5 @@
+namespace RedBolt.Scene;
+
 using Microsoft.Extensions.Logging;
 using System.IO;
 
@@ -6,8 +8,6 @@ using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Resource;
-
-namespace RedBolt.Scene;
 
 /// <summary>
 /// Prefab resource. Contains representation of nodes and components with attributes, ready to be instantiated.

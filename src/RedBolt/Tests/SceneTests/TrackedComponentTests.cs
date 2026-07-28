@@ -1,9 +1,8 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Core;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed partial class TrackedComponentTests
@@ -11,7 +10,7 @@ public sealed partial class TrackedComponentTests
     [Fact]
     public void Registry_tracks_components_and_swap_erases()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var registry = scene.CreateComponent<TestRegistry>();
         var first = scene.CreateComponent<TestTracked>();
         var second = scene.CreateComponent<TestTracked>();
@@ -33,7 +32,7 @@ public sealed partial class TrackedComponentTests
     [Fact]
     public void Referenced_registry_reuses_index_with_a_new_version()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var registry = scene.CreateComponent<ReferencedTestRegistry>();
         var component = scene.CreateComponent<ReferencedTestComponent>();
         var firstReference = component.Reference;

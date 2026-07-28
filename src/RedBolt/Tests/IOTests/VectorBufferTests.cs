@@ -1,7 +1,7 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.IO;
-
-namespace RedBolt.Tests;
 
 public sealed class VectorBufferTests
 {

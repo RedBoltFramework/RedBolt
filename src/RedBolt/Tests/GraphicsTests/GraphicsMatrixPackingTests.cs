@@ -1,9 +1,9 @@
+namespace RedBolt.Tests;
+
 using System.Reflection;
 
 using RedBolt.Graphics;
 using RedBolt.Math;
-
-namespace RedBolt.Tests;
 
 public sealed class GraphicsMatrixPackingTests
 {

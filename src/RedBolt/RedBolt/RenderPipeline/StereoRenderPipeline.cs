@@ -1,3 +1,5 @@
+namespace RedBolt.RenderPipeline;
+
 using SystemMath = global::System.Math;
 
 using RedBolt.Core;
@@ -7,9 +9,6 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.RenderPipeline;
 
 internal class StereoFrustumOctreeQuery : OctreeQuery
 {

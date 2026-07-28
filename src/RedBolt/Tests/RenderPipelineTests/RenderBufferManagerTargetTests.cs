@@ -1,9 +1,9 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderPipeline;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class RenderBufferManagerTargetTests : IDisposable

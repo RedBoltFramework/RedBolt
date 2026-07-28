@@ -1,6 +1,6 @@
-using RedBolt.Core;
-
 namespace RedBolt.Tests;
+
+using RedBolt.Core;
 
 public class StopTokenTests
 {

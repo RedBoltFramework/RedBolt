@@ -1,8 +1,8 @@
+namespace RedBolt.IO;
+
 using SystemMath = global::System.Math;
 
 using RedBolt.Core;
-
-namespace RedBolt.IO;
 
 /// <summary>Binary output archive block.</summary>
 public class BinaryOutputArchiveBlock : ArchiveBlockBase, IDisposable

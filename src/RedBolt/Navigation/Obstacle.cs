@@ -20,15 +20,15 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Navigation;
+
 using Microsoft.Extensions.Logging;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Scene;
-using SceneType = RedBolt.Scene.Scene;
-
-namespace RedBolt.Navigation;
 
 /// <summary>Obstacle for dynamic navigation mesh.</summary>
 [Reflected(ObjectCategory.Category_Navigation, InheritAttributes = false)]
@@ -126,7 +126,7 @@ public partial class Obstacle : Component
     }
 
     /// <summary>Handle scene being assigned, identify our DynamicNavigationMesh.</summary>
-    protected override void OnSceneSet(SceneType? previousScene, SceneType? scene)
+    protected override void OnSceneSet(Scene? previousScene, Scene? scene)
     {
         if (scene is not null)
         {

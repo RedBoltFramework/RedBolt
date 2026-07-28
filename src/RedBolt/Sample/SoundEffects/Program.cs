@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.SoundEffects;
+
 using System;
 using System.Collections.Generic;
 

@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 
@@ -9,9 +11,6 @@ using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
 using RedBolt.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Graphics;
 
 /// <summary>Light vertex shader variations.</summary>
 public enum LightVsVariation
@@ -278,7 +277,7 @@ public sealed class Renderer : RedObject
         return count;
     }
 
-    public Viewport? GetViewportForScene(SceneType? scene, uint index = 0)
+    public Viewport? GetViewportForScene(Scene? scene, uint index = 0)
     {
         var matchIndex = 0u;
         foreach (var viewport in _viewports)

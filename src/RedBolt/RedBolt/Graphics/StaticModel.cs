@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using SystemMath = global::System.Math;
 
 using RedBolt.Container;
@@ -8,8 +10,6 @@ using RedBolt.RenderAPI;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-
-namespace RedBolt.Graphics;
 
 /// <summary>Static model per-geometry extra data.</summary>
 public struct StaticModelGeometryData

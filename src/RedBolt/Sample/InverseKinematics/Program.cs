@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.InverseKinematics;
+
 using System;
 using System.Collections.Generic;
 

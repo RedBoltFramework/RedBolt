@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 
 using RedBolt.Core;
@@ -5,8 +7,6 @@ using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
-
-namespace RedBolt.Graphics;
 
 /// <summary>
 /// 3D texture resource.

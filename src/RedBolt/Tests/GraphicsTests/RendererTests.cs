@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using SystemMath = global::System.Math;
 
 using RedBolt;
@@ -8,9 +10,6 @@ using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class RendererTests
@@ -41,7 +40,7 @@ public sealed class RendererTests
     [Fact]
     public void Viewport_registration_works()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
 
@@ -57,7 +56,7 @@ public sealed class RendererTests
     [Fact]
     public void Main_viewport_camera_mouse_position_is_normalized_at_input_end()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var viewport = new Viewport(scene, camera, new IntRect(100, 50, 500, 250));
         var texture = new Texture2D { Name = "Textures/MousePositionTarget" };
@@ -91,7 +90,7 @@ public sealed class RendererTests
     [Fact]
     public void Render_surface_viewport_queue_deduplicates_pairs_and_accepts_backbuffer_entries()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
         var texture = new Texture2D { Name = "Textures/QueueTarget" };
@@ -126,7 +125,7 @@ public sealed class RendererTests
     [Fact]
     public void Update_skips_backbuffer_viewport_assignment_when_graphics_is_uninitialized()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
         var texture = new Texture2D { Name = "Textures/BackbufferViewports" };
@@ -148,7 +147,7 @@ public sealed class RendererTests
     [Fact]
     public void Update_skips_pipeline_allocation_when_graphics_is_uninitialized()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         var viewport = new Viewport(scene, camera, new IntRect(0, 0, 320, 200));
 
@@ -298,7 +297,7 @@ public sealed class RendererTests
     [Fact]
     public void Common_frame_info_copy_has_independent_camera_slots()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var first = scene.CreateChild("First").CreateComponent<Camera>();
         var second = scene.CreateChild("Second").CreateComponent<Camera>();
         var replacement = scene.CreateChild("Replacement").CreateComponent<Camera>();

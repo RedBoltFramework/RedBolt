@@ -1,8 +1,8 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Container;
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
-
-namespace RedBolt.Tests;
 
 public sealed class GraphicsDefsTests
 {

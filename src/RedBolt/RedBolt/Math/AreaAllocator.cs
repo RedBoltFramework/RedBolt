@@ -1,6 +1,6 @@
-using System.Collections.Generic;
-
 namespace RedBolt.Math;
+
+using System.Collections.Generic;
 
 /// <summary>Rectangular area allocator.</summary>
 public class AreaAllocator : ICloneable

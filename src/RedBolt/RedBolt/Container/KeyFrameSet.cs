@@ -1,8 +1,8 @@
+namespace RedBolt.Container;
+
 using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-namespace RedBolt.Container;
 
 /// <summary>Sorted array of keyframes.</summary>
 /// <remarks>T: GetKeyFrameTime(T) must return <see cref="float"/> time to be used for ordering.</remarks>

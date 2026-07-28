@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.PointerAdapter;
+
 using System;
 
 using RedBolt;

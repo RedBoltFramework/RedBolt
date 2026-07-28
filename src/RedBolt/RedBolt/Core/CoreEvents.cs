@@ -1,6 +1,6 @@
-using RedBolt.Scene;
-
 namespace RedBolt.Core;
+
+using RedBolt.Scene;
 
 public static class CoreEvents
 {

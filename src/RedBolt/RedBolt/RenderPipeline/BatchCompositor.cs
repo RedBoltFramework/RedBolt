@@ -1,9 +1,9 @@
+namespace RedBolt.RenderPipeline;
+
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>Batch compositor for single scene pass.</summary>
 public class BatchCompositorPass : DrawableProcessorPass

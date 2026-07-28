@@ -1,6 +1,6 @@
-using System.Runtime.InteropServices;
-
 namespace RedBolt.Bindings.Diligent;
+
+using System.Runtime.InteropServices;
 
 [StructLayout(LayoutKind.Sequential)]
 public readonly struct BlendFactors(float red, float green, float blue, float alpha)

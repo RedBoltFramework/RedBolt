@@ -1,9 +1,9 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Glow;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class LightmapUVGeneratorTests

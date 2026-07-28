@@ -1,3 +1,5 @@
+namespace RedBolt.RenderPipeline;
+
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 
@@ -8,8 +10,6 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Class that manages all render buffers within viewport and viewport itself.

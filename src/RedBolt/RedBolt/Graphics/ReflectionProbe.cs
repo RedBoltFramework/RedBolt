@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 
@@ -10,9 +12,6 @@ using RedBolt.RenderAPI;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Graphics;
 
 /// <summary>Cached internal structure for reflection probe search.</summary>
 public class InternalReflectionProbeData : ICloneable
@@ -305,7 +304,7 @@ public partial class ReflectionProbeManager : TrackedComponentRegistryBase
 
     public bool HasDynamicProbes() => _spatial.MovableProbes.Count > 0;
 
-    protected override void OnAddedToScene(SceneType scene)
+    protected override void OnAddedToScene(Scene scene)
     {
         _cubemapRenderer = new CubemapRenderer(scene);
     }

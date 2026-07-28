@@ -1,8 +1,8 @@
+namespace RedBolt.Graphics;
+
 using RedBolt.Core;
 using RedBolt.IO;
 using FileMode = global::RedBolt.IO.FileMode;
-
-namespace RedBolt.Graphics;
 
 public static class ShaderSourceLogger
 {

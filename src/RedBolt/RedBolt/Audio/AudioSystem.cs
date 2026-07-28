@@ -1,3 +1,5 @@
+namespace RedBolt.Audio;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
@@ -9,8 +11,6 @@ using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Logging;
 using RedBolt.Math;
-
-namespace RedBolt.Audio;
 
 /// <summary>Audio subsystem.</summary>
 public class AudioSystem : RedObject

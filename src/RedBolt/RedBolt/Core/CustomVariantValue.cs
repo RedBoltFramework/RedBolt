@@ -1,6 +1,6 @@
-using RedBolt.IO;
-
 namespace RedBolt.Core;
+
+using RedBolt.IO;
 
 public interface IArchiveSerializable
 {

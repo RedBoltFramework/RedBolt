@@ -1,3 +1,5 @@
+namespace RedBolt;
+
 using Microsoft.Extensions.Logging;
 using System;
 
@@ -8,8 +10,6 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Platform;
 using RedBolt.RenderAPI;
-
-namespace RedBolt;
 
 public interface IVulkanGraphicsApi
 {

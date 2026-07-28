@@ -1,9 +1,9 @@
+namespace RedBolt.Input;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-
-namespace RedBolt.Input;
 
 [Reflected]
 public partial class FreeFlyController : Component

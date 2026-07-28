@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.HelloGUI;
+
 using System;
 
 using RedBolt;

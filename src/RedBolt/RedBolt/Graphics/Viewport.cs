@@ -1,18 +1,17 @@
+namespace RedBolt.Graphics;
+
 using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Graphics;
 
 /// <summary>Viewport definition either for a render surface or the backbuffer.</summary>
 [Reflected]
 public partial class Viewport : RedObject
 {
     /// <summary>Scene pointer.</summary>
-    private readonly WeakReference<SceneType> _scene = new(null!);
+    private readonly WeakReference<Scene> _scene = new(null!);
     /// <summary>Camera pointer.</summary>
     private readonly WeakReference<Camera> _camera = new(null!);
     /// <summary>Right eye camera pointer.</summary>
@@ -37,14 +36,14 @@ public partial class Viewport : RedObject
     }
 
     /// <summary>Construct with a full rectangle.</summary>
-    public Viewport(SceneType? scene, Camera? camera)
+    public Viewport(Scene? scene, Camera? camera)
     {
         _scene.SetTarget(scene!);
         _camera.SetTarget(camera!);
     }
 
     /// <summary>Construct with a specified rectangle.</summary>
-    public Viewport(SceneType? scene, Camera? camera, IntRect rect)
+    public Viewport(Scene? scene, Camera? camera, IntRect rect)
     {
         _scene.SetTarget(scene!);
         _camera.SetTarget(camera!);
@@ -52,7 +51,7 @@ public partial class Viewport : RedObject
     }
 
     /// <summary>Construct with a specified rectangle and render pipeline.</summary>
-    public Viewport(SceneType? scene, Camera? camera, IntRect rect, RenderPipelineComponent? renderPipeline)
+    public Viewport(Scene? scene, Camera? camera, IntRect rect, RenderPipelineComponent? renderPipeline)
     {
         _scene.SetTarget(scene!);
         _camera.SetTarget(camera!);
@@ -62,7 +61,7 @@ public partial class Viewport : RedObject
     }
 
     /// <summary>Construct for stereo with a render pipeline.</summary>
-    public Viewport(SceneType? scene, Camera? leftEye, Camera? rightEye, RenderPipelineComponent? renderPipeline)
+    public Viewport(Scene? scene, Camera? leftEye, Camera? rightEye, RenderPipelineComponent? renderPipeline)
     {
         _scene.SetTarget(scene!);
         _camera.SetTarget(leftEye!);
@@ -86,7 +85,7 @@ public partial class Viewport : RedObject
 
 
     /// <summary>Set scene.</summary>
-    public void SetScene(SceneType? scene)
+    public void SetScene(Scene? scene)
     {
         var hasScene = _scene.TryGetTarget(out var currentScene) && currentScene is not null;
         if (hasScene != (scene is not null))
@@ -123,7 +122,7 @@ public partial class Viewport : RedObject
     }
 
     /// <summary>Return scene.</summary>
-    public SceneType? GetScene() => _scene.TryGetTarget(out var scene) ? scene : null;
+    public Scene? GetScene() => _scene.TryGetTarget(out var scene) ? scene : null;
 
     /// <summary>Return viewport camera.</summary>
     public Camera? GetCamera() => _camera.TryGetTarget(out var camera) ? camera : null;

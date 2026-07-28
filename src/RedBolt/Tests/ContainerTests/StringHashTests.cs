@@ -1,9 +1,9 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
-
-namespace RedBolt.Tests;
 
 public sealed class StringHashTests
 {

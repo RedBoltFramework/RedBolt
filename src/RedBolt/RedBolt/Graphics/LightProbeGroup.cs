@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 
@@ -9,9 +11,6 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Graphics;
 
 /// <summary>Light probe description.</summary>
 public struct LightProbe
@@ -189,7 +188,7 @@ public partial class LightProbeGroup : Component
     }
 
     /// <summary>Collect all light probes from all enabled groups in the scene.</summary>
-    public static void CollectLightProbes(SceneType scene, LightProbeCollection collection,
+    public static void CollectLightProbes(Scene scene, LightProbeCollection collection,
         LightProbeCollectionBakedData? bakedData, bool reload = false)
     {
         var lightProbeGroups = new List<LightProbeGroup>();

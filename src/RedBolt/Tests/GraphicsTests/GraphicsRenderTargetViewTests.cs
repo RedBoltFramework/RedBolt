@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using System.Reflection;
 using System.Runtime.InteropServices;
 
@@ -10,8 +12,6 @@ using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class GraphicsRenderTargetViewTests

@@ -1,11 +1,11 @@
+namespace RedBolt.Input;
+
 using SystemMath = global::System.Math;
 
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-
-namespace RedBolt.Input;
 
 [Flags]
 public enum PointerAdapterMask : uint

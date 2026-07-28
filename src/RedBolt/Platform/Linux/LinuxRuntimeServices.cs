@@ -1,11 +1,11 @@
+namespace RedBolt;
+
 using System;
 
 using RedBolt.Bindings.Sdl;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Platform;
-
-namespace RedBolt;
 
 public static class LinuxPlatform
 {

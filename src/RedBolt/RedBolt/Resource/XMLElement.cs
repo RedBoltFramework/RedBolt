@@ -1,3 +1,5 @@
+namespace RedBolt.Resource;
+
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -9,8 +11,6 @@ using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Scene;
-
-namespace RedBolt.Resource;
 
 /// <summary>Element in an XML file.</summary>
 public class XMLElement : ICloneable, IDisposable

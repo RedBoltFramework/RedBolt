@@ -1,10 +1,10 @@
+namespace RedBolt.IO;
+
 using System;
 using System.Collections.Generic;
 using SystemMath = global::System.Math;
 
 using RedBolt.Core;
-
-namespace RedBolt.IO;
 
 /// <summary>Watches a set of directories for files being modified.</summary>
 public class MultiFileWatcher : RedObject

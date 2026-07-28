@@ -20,9 +20,9 @@
 // THE SOFTWARE.
 //
 
-using RedBolt.Scene;
-
 namespace RedBolt.Navigation;
+
+using RedBolt.Scene;
 
 public static class NavigationEvents
 {

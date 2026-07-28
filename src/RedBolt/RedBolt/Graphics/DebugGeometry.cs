@@ -1,6 +1,6 @@
-using RedBolt.Math;
-
 namespace RedBolt.Graphics;
+
+using RedBolt.Math;
 
 /// <summary>
 /// Debug rendering line.

@@ -1,12 +1,11 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class RenderPipelineInterfaceTests(GraphicsEngineFixture fixture)
@@ -14,7 +13,7 @@ public sealed class RenderPipelineInterfaceTests(GraphicsEngineFixture fixture)
     [Fact]
     public void Render_pipeline_view_exposes_global_context()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
         scene.CreateComponent<RenderPipelineComponent>();
         var viewport = new Viewport(scene, camera);
@@ -29,7 +28,7 @@ public sealed class RenderPipelineInterfaceTests(GraphicsEngineFixture fixture)
     [Fact]
     public void Render_pipeline_view_dispose_releases_signal_subscribers()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var pipeline = scene.CreateComponent<RenderPipelineComponent>();
         var view = new TrackingRenderPipelineView(pipeline);
         var updateBeginCount = 0;
@@ -55,7 +54,7 @@ public sealed class RenderPipelineInterfaceTests(GraphicsEngineFixture fixture)
         fixture.InitializeGraphics(parameters);
         try
         {
-            var scene = new SceneType();
+            var scene = new Scene();
             var camera = scene.CreateChild("Camera").CreateComponent<Camera>();
             scene.CreateComponent<RenderPipelineComponent>();
             var viewport = new Viewport(scene, camera);

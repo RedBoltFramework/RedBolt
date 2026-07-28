@@ -1,3 +1,5 @@
+namespace RedBolt.Engine;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 
@@ -8,9 +10,6 @@ using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Engine;
 
 /// <summary>Base class for an application state. Examples of a state would be a loading screen, a menu or a game screen.</summary>
 [Reflected]
@@ -171,7 +170,7 @@ public partial class ApplicationState : RedObject
     public Viewport? GetViewport(int index) => index >= 0 && index < _viewports.Count ? _viewports[index] : null;
 
     /// <summary>Return nth backbuffer viewport associated to a scene. Index 0 returns the first.</summary>
-    public Viewport? GetViewportForScene(SceneType? scene, int index)
+    public Viewport? GetViewportForScene(Scene? scene, int index)
     {
         for (var i = 0; i < _viewports.Count; ++i)
         {

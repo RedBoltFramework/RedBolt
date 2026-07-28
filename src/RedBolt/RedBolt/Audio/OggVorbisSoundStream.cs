@@ -1,9 +1,9 @@
+namespace RedBolt.Audio;
+
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 using RedBolt.Bindings.Stb;
-
-namespace RedBolt.Audio;
 
 /// <summary>Ogg Vorbis sound stream for compressed playback.</summary>
 public class OggVorbisSoundStream : SoundStream, IDisposable

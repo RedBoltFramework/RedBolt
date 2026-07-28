@@ -1,3 +1,5 @@
+namespace RedBolt.Resource;
+
 using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Xml;
@@ -8,8 +10,6 @@ using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Scene;
-
-namespace RedBolt.Resource;
 
 /// <summary>XML document resource.</summary>
 [Reflected]

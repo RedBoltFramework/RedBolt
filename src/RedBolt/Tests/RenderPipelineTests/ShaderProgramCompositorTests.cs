@@ -1,8 +1,8 @@
+namespace RedBolt.Tests;
+
 using RedBolt.RenderAPI;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
 using RedBolt.RenderPipeline;
-
-namespace RedBolt.Tests;
 
 public sealed class ShaderProgramCompositorTests
 {

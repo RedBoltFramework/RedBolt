@@ -1,11 +1,11 @@
+namespace RedBolt.Tests;
+
 using System.Text;
 
 using RedBolt;
 using RedBolt.IO;
 using File = global::RedBolt.IO.File;
 using FileMode = global::RedBolt.IO.FileMode;
-
-namespace RedBolt.Tests;
 
 public sealed class FileTests
 {

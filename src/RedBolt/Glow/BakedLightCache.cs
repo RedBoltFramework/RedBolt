@@ -20,12 +20,12 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Glow;
+
 using System;
 using System.Collections.Generic;
 
 using RedBolt.Math;
-
-namespace RedBolt.Glow;
 
 /// <summary>Baked lightmap data.</summary>
 public struct BakedLightmap : ICloneable

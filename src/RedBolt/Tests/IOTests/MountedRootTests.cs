@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using System;
 using System.IO;
 using System.Text;
@@ -5,8 +7,6 @@ using System.Text;
 using RedBolt;
 using RedBolt.IO;
 using FileMode = global::RedBolt.IO.FileMode;
-
-namespace RedBolt.Tests;
 
 public sealed class MountedRootTests
 {

@@ -1,3 +1,5 @@
+namespace RedBolt.Math;
+
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using SystemMath = global::System.Math;
@@ -5,8 +7,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using RedBolt.Logging;
-
-namespace RedBolt.Math;
 
 public partial class TetrahedralMesh
 {

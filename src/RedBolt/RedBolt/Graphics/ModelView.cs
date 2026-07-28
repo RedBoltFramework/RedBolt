@@ -1,9 +1,13 @@
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 using System.Buffers.Binary;
 using System.Collections;
 using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+
+using ModelVertexMorphVector = List<ModelVertexMorph>;
 
 using RedBolt.Container;
 using RedBolt.Core;
@@ -12,10 +16,6 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
-
-namespace RedBolt.Graphics;
-
-using ModelVertexMorphVector = List<ModelVertexMorph>;
 
 /// <summary>Model vertex format, unpacked for easy editing.</summary>
 public struct ModelVertexFormat : IEquatable<ModelVertexFormat>, ICloneable

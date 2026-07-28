@@ -1,6 +1,6 @@
-using RedBolt.Math;
-
 namespace RedBolt.Tests;
+
+using RedBolt.Math;
 
 public sealed class EaseMathTests
 {

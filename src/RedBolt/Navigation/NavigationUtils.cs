@@ -2,12 +2,12 @@
 // This work is licensed under the terms of the MIT license.
 // For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
+namespace RedBolt.Navigation;
+
 using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Scene;
-
-namespace RedBolt.Navigation;
 
 public struct NavigationGeometryInfo
 {

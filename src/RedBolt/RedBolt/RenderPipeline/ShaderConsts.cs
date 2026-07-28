@@ -1,7 +1,7 @@
+namespace RedBolt.RenderPipeline;
+
 using RedBolt.Container;
 using RedBolt.Graphics;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Built-in shader consts.

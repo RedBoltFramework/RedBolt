@@ -1,7 +1,7 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Resource;
-
-namespace RedBolt.Tests;
 
 internal static class RbfxTestData
 {

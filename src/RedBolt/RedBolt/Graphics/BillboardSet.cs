@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -8,8 +10,6 @@ using RedBolt.Math;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-
-namespace RedBolt.Graphics;
 
 /// <summary>One billboard in the billboard set.</summary>
 public struct Billboard

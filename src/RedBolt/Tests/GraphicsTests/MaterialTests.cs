@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using System.Reflection;
 
 using RedBolt;
@@ -9,9 +11,6 @@ using FillMode = global::RedBolt.Graphics.FillMode;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class MaterialTests
@@ -74,7 +73,7 @@ public sealed class MaterialTests
         material.MarkForAuxView(17u);
         Assert.Equal(17u, material.GetAuxViewFrameNumber());
 
-        var scene = new SceneType();
+        var scene = new Scene();
         material.SetScene(scene);
         Assert.Same(scene, material.GetScene());
         material.SetScene(null);

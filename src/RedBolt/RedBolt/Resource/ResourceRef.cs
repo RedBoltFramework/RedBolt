@@ -1,7 +1,7 @@
+namespace RedBolt.Resource;
+
 using RedBolt.Container;
 using RedBolt.Core;
-
-namespace RedBolt.Resource;
 
 public struct ResourceRef : IEquatable<ResourceRef>, ICloneable
 {

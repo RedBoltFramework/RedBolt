@@ -1,11 +1,10 @@
+namespace RedBolt.RenderPipeline;
+
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Scene component that spawns render pipeline instances.

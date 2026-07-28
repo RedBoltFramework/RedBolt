@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.LightAnimation;
+
 using System;
 
 using RedBolt;

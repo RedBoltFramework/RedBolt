@@ -1,11 +1,10 @@
+namespace RedBolt.Tests;
+
 using Xunit;
 
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 public sealed class AnimationControllerTests
 {
@@ -53,7 +52,7 @@ public sealed class AnimationControllerTests
     {
         var animation = new Animation { Name = "Walk" };
         animation.SetLength(2.0f);
-        var controller = new SceneType().CreateChild("Animated").CreateComponent<AnimationController>();
+        var controller = new Scene().CreateChild("Animated").CreateComponent<AnimationController>();
 
         var parameters = new AnimationParameters(animation)
             .Layer(1)
@@ -98,7 +97,7 @@ public sealed class AnimationControllerTests
         keepAnimation.SetLength(4.0f);
         var filteredAnimation = new Animation { Name = "Filtered" };
         filteredAnimation.SetLength(4.0f);
-        var controller = new SceneType().CreateChild("Animated").CreateComponent<AnimationController>();
+        var controller = new Scene().CreateChild("Animated").CreateComponent<AnimationController>();
 
         controller.AddAnimation(new AnimationParameters(keepAnimation).Layer(1).Weight(0.25f));
         controller.AddAnimation(new AnimationParameters(filteredAnimation).Layer(2).Weight(0.75f));
@@ -128,7 +127,7 @@ public sealed class AnimationControllerTests
     [Fact]
     public void Animation_controller_connects_states_to_attached_animated_model()
     {
-        var node = new SceneType().CreateChild("AnimatedModel");
+        var node = new Scene().CreateChild("AnimatedModel");
         node.CreateComponent<AnimatedModel>();
         var controller = node.CreateComponent<AnimationController>();
         var animation = new Animation { Name = "Walk" };
@@ -143,7 +142,7 @@ public sealed class AnimationControllerTests
     [Fact]
     public void Animation_trigger_event_owns_payload_until_dispatch_completes()
     {
-        var node = new SceneType().CreateChild("Animated");
+        var node = new Scene().CreateChild("Animated");
         var controller = node.CreateComponent<AnimationController>();
         using var animation = new Animation { Name = "Walk" };
         animation.SetLength(2.0f);

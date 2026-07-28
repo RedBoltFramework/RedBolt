@@ -1,8 +1,8 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
-
-namespace RedBolt.Tests;
 
 public sealed class DecompressTests
 {

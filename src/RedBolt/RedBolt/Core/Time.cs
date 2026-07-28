@@ -1,7 +1,7 @@
+namespace RedBolt.Core;
+
 using System;
 using System.Threading;
-
-namespace RedBolt.Core;
 
 public sealed class Time : RedObject
 {

@@ -1,9 +1,8 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Core;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed partial class ComponentSearchFlagTests
@@ -31,7 +30,7 @@ public sealed partial class ComponentSearchFlagTests
     [Fact]
     public void ComponentSearchFlag_distinguishes_one_level_and_recursive_searches()
     {
-        using var scene = new SceneType();
+        using var scene = new Scene();
         var grandparent = scene.CreateChild("Grandparent");
         var parent = grandparent.CreateChild("Parent");
         var current = parent.CreateChild("Current");
@@ -58,7 +57,7 @@ public sealed partial class ComponentSearchFlagTests
     [Fact]
     public void ComponentSearchFlag_applies_derived_and_enabled_filters_like_rbfx()
     {
-        using var scene = new SceneType();
+        using var scene = new Scene();
         var grandparent = scene.CreateChild("Grandparent");
         var parent = grandparent.CreateChild("Parent");
         var current = parent.CreateChild("Current");

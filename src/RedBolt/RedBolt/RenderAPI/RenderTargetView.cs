@@ -1,9 +1,9 @@
+namespace RedBolt.RenderAPI;
+
 using RedBolt.Bindings.Diligent;
 using RedBolt.Graphics;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
-
-namespace RedBolt.RenderAPI;
 
 internal enum RenderTargetViewType
 {

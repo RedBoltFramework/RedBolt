@@ -1,10 +1,10 @@
+namespace RedBolt.Math;
+
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using SystemMath = global::System.Math;
 
 using RedBolt.Logging;
-
-namespace RedBolt.Math;
 
 /// <summary>Tetrahedral mesh.</summary>
 public partial class TetrahedralMesh : ICloneable

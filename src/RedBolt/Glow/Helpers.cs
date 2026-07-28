@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Glow;
+
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
@@ -28,8 +30,6 @@ using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-
-namespace RedBolt.Glow;
 
 public static class Helpers
 {

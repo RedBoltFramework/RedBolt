@@ -1,8 +1,8 @@
+namespace RedBolt.Math;
+
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-namespace RedBolt.Math;
 
 /// <summary>4x4 matrix for arbitrary linear transforms including projection.</summary>
 [StructLayout(LayoutKind.Sequential)]

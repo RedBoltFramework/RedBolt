@@ -1,7 +1,7 @@
+namespace RedBolt.Resource;
+
 using RedBolt.Core;
 using RedBolt.IO;
-
-namespace RedBolt.Resource;
 
 /// <summary>Abstract graph node pin.</summary>
 public class GraphPin : IArchiveSerializable, IDisposable

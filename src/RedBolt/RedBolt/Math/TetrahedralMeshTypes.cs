@@ -1,9 +1,9 @@
+namespace RedBolt.Math;
+
 using System.Diagnostics;
 using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-
-namespace RedBolt.Math;
 
 /// <summary>Sphere with double precision components.</summary>
 [StructLayout(LayoutKind.Sequential)]

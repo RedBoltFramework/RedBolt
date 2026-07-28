@@ -1,3 +1,5 @@
+namespace RedBolt.RenderAPI;
+
 using System.Diagnostics;
 using SystemMath = global::System.Math;
 
@@ -8,8 +10,6 @@ using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderPipeline;
-
-namespace RedBolt.RenderAPI;
 
 /// <summary>Queue of draw commands.</summary>
 public class DrawCommandQueue

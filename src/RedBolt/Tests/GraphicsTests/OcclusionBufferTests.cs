@@ -1,10 +1,10 @@
+namespace RedBolt.Tests;
+
 using System.Buffers.Binary;
 
 using RedBolt.Graphics;
 using CullMode = global::RedBolt.Graphics.CullMode;
 using RedBolt.Math;
-
-namespace RedBolt.Tests;
 
 public sealed class OcclusionBufferTests
 {

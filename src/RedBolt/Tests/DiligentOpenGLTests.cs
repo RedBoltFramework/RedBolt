@@ -1,11 +1,11 @@
+namespace RedBolt.Tests;
+
 using System.Reflection;
 using System.Runtime.InteropServices;
 
 using RedBolt;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
-
-namespace RedBolt.Tests;
 
 public sealed class DiligentOpenGLTests
 {

@@ -1,10 +1,10 @@
+namespace RedBolt.Tests;
+
 using System.Text;
 
 using Xunit;
 
 using RedBolt.Container;
-
-namespace RedBolt.Tests;
 
 public sealed class CStringTests
 {

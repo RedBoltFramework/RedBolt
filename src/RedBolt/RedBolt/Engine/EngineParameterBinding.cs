@@ -1,7 +1,7 @@
+namespace RedBolt.Engine;
+
 using System.Globalization;
 using System.Reflection;
-
-namespace RedBolt.Engine;
 
 internal static class EngineParameterBinding
 {

@@ -2,13 +2,13 @@
 // This work is licensed under the terms of the MIT license.
 // For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
+namespace RedBolt.IK;
+
 using System;
 using System.Collections.Generic;
 
 using RedBolt.Math;
 using RedBolt.Scene;
-
-namespace RedBolt.IK;
 
 public sealed class IKNodeCache
 {

@@ -1,6 +1,6 @@
-using RedBolt.Core;
-
 namespace RedBolt.Input;
+
+using RedBolt.Core;
 
 public enum MultitouchEventType
 {

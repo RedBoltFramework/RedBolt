@@ -1,3 +1,5 @@
+namespace RedBolt.RenderAPI;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
@@ -12,8 +14,6 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Platform;
 using RedBolt.RenderPipeline;
-
-namespace RedBolt.RenderAPI;
 
 /// <summary>
 /// Wrapper for window and GAPI backend.

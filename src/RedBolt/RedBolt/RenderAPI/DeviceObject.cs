@@ -1,6 +1,6 @@
-using RedBolt.Core;
-
 namespace RedBolt.RenderAPI;
+
+using RedBolt.Core;
 
 /// <summary>
 /// Base class for GPU resources.

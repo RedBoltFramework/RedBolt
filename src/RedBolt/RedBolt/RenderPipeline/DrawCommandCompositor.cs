@@ -1,3 +1,5 @@
+namespace RedBolt.RenderPipeline;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 using System.Runtime.CompilerServices;
@@ -10,9 +12,6 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.RenderPipeline;
 
 internal static class BatchRendererHelpers
 {
@@ -785,7 +784,7 @@ internal ref struct DrawCommandCompositor
     private readonly DrawableProcessor _drawableProcessor;
     private readonly InstancingBuffer _instancingBuffer;
     private readonly FrameInfo _frameInfo;
-    private readonly SceneType _scene;
+    private readonly Scene _scene;
     private readonly IReadOnlyList<LightProcessor?> _lights;
     private readonly Node _cameraNode;
     private readonly float _depthRange;

@@ -1,6 +1,6 @@
-using RedBolt.Scene;
-
 namespace RedBolt.Tests;
+
+using RedBolt.Scene;
 
 public sealed class PrefabTypesTests
 {

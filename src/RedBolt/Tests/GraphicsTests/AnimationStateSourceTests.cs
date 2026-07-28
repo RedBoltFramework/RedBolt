@@ -1,7 +1,7 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Graphics;
-
-namespace RedBolt.Tests;
 
 public sealed class AnimationStateSourceTests
 {

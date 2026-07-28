@@ -20,13 +20,13 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Navigation;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Scene;
-
-namespace RedBolt.Navigation;
 
 [Reflected(ObjectCategory.Category_Navigation, InheritAttributes = false)]
 public partial class NavArea : Component

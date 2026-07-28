@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Container;
 using RedBolt.Core;
@@ -6,9 +8,6 @@ using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class StaticModelTests
@@ -45,7 +44,7 @@ public sealed class StaticModelTests
     [Fact]
     public void Scene_resource_applies_model_and_material_attributes()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         Assert.True(scene.LoadFile("Scenes/SimpleScene.scene"));
 
         var staticModel = scene.GetChild("Sample Cube")?.GetComponent<StaticModel>();
@@ -58,7 +57,7 @@ public sealed class StaticModelTests
     {
         var model = Resources.Get<Model>("Models/ProceduralBox");
         var material = Resources.Get<Material>("Materials/FirstCube");
-        var cube = new SceneType().CreateChild("Cube").CreateComponent<StaticModel>();
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
         cube.SetModel(model);
         cube.SetMaterial(material);
         Assert.Same(model, cube.GetModel());
@@ -72,7 +71,7 @@ public sealed class StaticModelTests
         var secondModel = new Model { Name = "Second" };
         secondModel.SetBoundingBox(new BoundingBox(
             new Vector3f(-2.0f, -2.0f, -2.0f), new Vector3f(2.0f, 2.0f, 2.0f)));
-        var staticModel = new SceneType().CreateChild("StaticModel").CreateComponent<StaticModel>();
+        var staticModel = new Scene().CreateChild("StaticModel").CreateComponent<StaticModel>();
         staticModel.SetModel(firstModel);
         staticModel.SetModel(secondModel);
 
@@ -92,7 +91,7 @@ public sealed class StaticModelTests
     {
         var model = Resources.Get<Model>("Models/ProceduralBox");
         var material = Resources.Get<Material>("Materials/FirstCube");
-        var cube = new SceneType().CreateChild("Cube").CreateComponent<StaticModel>();
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
         cube.SetModel(model);
         cube.SetMaterial(material);
 
@@ -113,7 +112,7 @@ public sealed class StaticModelTests
     {
         var model = Resources.Get<Model>("Models/ProceduralBox");
         var material = Resources.Get<Material>("Materials/FirstCube");
-        var cube = new SceneType().CreateChild("Cube").CreateComponent<StaticModel>();
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
         cube.SetModel(model);
         cube.SetMaterial(material);
 
@@ -128,7 +127,7 @@ public sealed class StaticModelTests
     public void Dispose_releases_owned_state_without_disposing_borrowed_model()
     {
         var model = Resources.Get<Model>("Models/ProceduralBox");
-        var cube = new SceneType().CreateChild("Cube").CreateComponent<StaticModel>();
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
         cube.SetModel(model);
         _ = cube.GetMaterialsAttr();
 
@@ -143,7 +142,7 @@ public sealed class StaticModelTests
     [Fact]
     public void Drawable_distance_and_masks_work()
     {
-        var cube = new SceneType().CreateChild("Cube").CreateComponent<StaticModel>();
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
         cube.SetDrawDistance(-1.0f);
         cube.SetShadowDistance(50.0f);
         cube.SetLodBias(0.0f);
@@ -175,7 +174,7 @@ public sealed class StaticModelTests
     [Fact]
     public void Lightmap_helpers_work()
     {
-        var cube = new SceneType().CreateChild("Cube").CreateComponent<StaticModel>();
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
         cube.SetBakeLightmap(true);
         cube.SetScaleInLightmap(0.0f);
         Assert.False(cube.GetBakeLightmapEffective());
@@ -193,7 +192,7 @@ public sealed class StaticModelTests
     [Fact]
     public void Occlusion_lod_level_works()
     {
-        var cube = new SceneType().CreateChild("Cube").CreateComponent<StaticModel>();
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
         cube.SetOcclusionLodLevel(2u);
         Assert.Equal(2u, cube.GetOcclusionLodLevel());
     }
@@ -202,7 +201,7 @@ public sealed class StaticModelTests
     public void Occluder_triangle_count_respects_geometry_and_material()
     {
         var model = Resources.Get<Model>("Models/ProceduralBox");
-        var cube = new SceneType().CreateChild("Cube").CreateComponent<StaticModel>();
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
         cube.SetModel(model);
         var geometry = cube.GetLodGeometry(0u, uint.MaxValue)!;
 
@@ -217,7 +216,7 @@ public sealed class StaticModelTests
     [Fact]
     public void DrawOcclusion_submits_indexed_geometry_and_respects_material()
     {
-        var cube = new SceneType().CreateChild("Cube").CreateComponent<StaticModel>();
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
         cube.SetModel(CreateOcclusionModel());
         var buffer = new OcclusionBuffer();
         Assert.True(buffer.SetSize(16, 16, false));
@@ -277,7 +276,7 @@ public sealed class StaticModelTests
     public void Lod_geometry_falls_back_to_visible_geometry_when_level_is_out_of_range()
     {
         var model = Resources.Get<Model>("Models/ProceduralBox");
-        var cube = new SceneType().CreateChild("Cube").CreateComponent<StaticModel>();
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
         cube.SetModel(model);
 
         Assert.Same(cube.GetLodGeometry(0u, uint.MaxValue), cube.GetLodGeometry(0u, 0u));
@@ -288,7 +287,7 @@ public sealed class StaticModelTests
     public void Bounding_boxes_work()
     {
         var model = Resources.Get<Model>("Models/ProceduralBox");
-        var cube = new SceneType().CreateChild("Cube").CreateComponent<StaticModel>();
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
         cube.SetModel(model);
 
         Assert.Equal(Intersection.Inside, model.GetBoundingBox().IsInside(Vector3f.Zero));
@@ -301,7 +300,7 @@ public sealed class StaticModelTests
     public void Custom_ray_query_uses_supplied_world_transform()
     {
         var model = Resources.Get<Model>("Models/ProceduralBox");
-        var cube = new SceneType().CreateChild("Cube").CreateComponent<StaticModel>();
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
         cube.SetModel(model);
         var transform = Matrix3x4.FromTranslation(new Vector3f(5.0f, 0.0f, 0.0f));
         var worldBoundingBox = model.GetBoundingBox().Transformed(transform);
@@ -319,7 +318,7 @@ public sealed class StaticModelTests
     [Fact]
     public void IsInsideLocal_requires_geometry_inside_bounding_box()
     {
-        var cube = new SceneType().CreateChild("Cube").CreateComponent<StaticModel>();
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
         cube.SetBoundingBox(new BoundingBox(new Vector3f(-1.0f, -1.0f, -1.0f), new Vector3f(1.0f, 1.0f, 1.0f)));
 
         Assert.False(cube.IsInsideLocal(Vector3f.Zero));
@@ -328,7 +327,7 @@ public sealed class StaticModelTests
     [Fact]
     public void ApplyMaterialList_ignores_missing_resource()
     {
-        var cube = new SceneType().CreateChild("Cube").CreateComponent<StaticModel>();
+        var cube = new Scene().CreateChild("Cube").CreateComponent<StaticModel>();
 
         cube.ApplyMaterialList("MissingMaterials.txt");
 

@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Container;
 using RedBolt.Core;
@@ -7,8 +9,6 @@ using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class ContextTests

@@ -1,10 +1,10 @@
+namespace RedBolt.Resource;
+
 using System.Globalization;
 using System.Runtime.InteropServices;
 
 using RedBolt.Input;
 using RedBolt.Math;
-
-namespace RedBolt.Resource;
 
 /// <summary>
 /// PList value types.

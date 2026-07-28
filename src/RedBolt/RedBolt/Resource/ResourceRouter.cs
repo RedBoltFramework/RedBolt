@@ -1,7 +1,7 @@
+namespace RedBolt.Resource;
+
 using RedBolt.Core;
 using RedBolt.IO;
-
-namespace RedBolt.Resource;
 
 /// <summary>
 /// Optional resource request processor.

@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.CameraShake;
+
 using System;
 
 using RedBolt;

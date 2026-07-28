@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.HelloWorld;
+
 using System;
 
 using RedBolt;

@@ -1,9 +1,9 @@
+namespace RedBolt.Tests;
+
 using System;
 
 using RedBolt.Glow;
 using RedBolt.Math;
-
-namespace RedBolt.Tests;
 
 public sealed class BakedSceneChunkTests
 {

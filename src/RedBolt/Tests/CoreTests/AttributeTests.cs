@@ -1,9 +1,8 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 public partial class AttributeTests
 {

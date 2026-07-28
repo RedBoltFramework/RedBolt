@@ -1,10 +1,10 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
-
-namespace RedBolt.Tests;
 
 public sealed class AnimationTrackTests
 {

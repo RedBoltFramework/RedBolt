@@ -1,10 +1,9 @@
+namespace RedBolt.Core;
+
 using RedBolt.Audio;
 using RedBolt.Graphics;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Core;
 
 public static class ObjectCategory
 {

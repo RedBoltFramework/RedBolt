@@ -1,6 +1,6 @@
-using RedBolt.RenderPipeline;
-
 namespace RedBolt.Tests;
+
+using RedBolt.RenderPipeline;
 
 public sealed class OutlineScenePassTests
 {

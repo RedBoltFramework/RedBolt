@@ -1,7 +1,7 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Engine;
-
-namespace RedBolt.Tests;
 
 public sealed class EngineEventsTests
 {

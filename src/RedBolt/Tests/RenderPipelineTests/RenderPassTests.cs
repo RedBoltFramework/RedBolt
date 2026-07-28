@@ -1,9 +1,9 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
-
-namespace RedBolt.Tests;
 
 public sealed partial class RenderPassTests
 {

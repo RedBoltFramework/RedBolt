@@ -1,6 +1,6 @@
-using RedBolt.Graphics;
-
 namespace RedBolt.Scene;
+
+using RedBolt.Graphics;
 
 /// <summary>Animation wrap mode.</summary>
 public enum WrapMode

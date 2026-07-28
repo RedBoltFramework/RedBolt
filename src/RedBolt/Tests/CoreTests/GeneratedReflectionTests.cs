@@ -1,7 +1,7 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Core;
 using RedBolt.Scene;
-
-namespace RedBolt.Tests;
 
 [Reflected("Tests")]
 public partial class GeneratedReflectionObject : Serializable
@@ -98,6 +98,13 @@ public partial class GeneratedReflectionWithoutFactory : Serializable
 {
 }
 
+[Reflected("Tests")]
+public partial class GeneratedReflectionNamespaceUsing : Serializable
+{
+    [Serialized("Imported Enum")]
+    public AutoRemoveMode ImportedEnum { get; set; } = AutoRemoveMode.Disabled;
+}
+
 public sealed partial class GeneratedReflectionTests
 {
     [Reflected("Tests")]
@@ -170,6 +177,29 @@ public sealed partial class GeneratedReflectionTests
 
             Assert.Equal(9, reflection.GetAttribute("Nested Value").DefaultValue.GetInt());
             Assert.Equal(9, instance.NestedValue);
+        }
+        finally
+        {
+            Context.SetInstance(previousContext);
+        }
+    }
+
+    [Fact]
+    public void Generated_reflection_preserves_namespace_local_using_directives()
+    {
+        var previousContext = Context.Instance;
+        using var context = new Context();
+        Context.SetInstance(context);
+
+        try
+        {
+            var reflection = context.GetReflection<GeneratedReflectionNamespaceUsing>();
+            using var instance = Assert.IsType<GeneratedReflectionNamespaceUsing>(reflection.CreateObject());
+
+            Assert.Equal(AutoRemoveMode.Disabled, instance.ImportedEnum);
+            Assert.Equal(
+                AutoRemoveMode.Disabled,
+                reflection.GetAttribute("Imported Enum").Accessor!.GetObject(instance));
         }
         finally
         {

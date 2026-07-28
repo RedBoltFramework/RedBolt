@@ -1,11 +1,11 @@
+namespace RedBolt.Graphics;
+
 using System.Runtime.InteropServices;
 using System.Text;
 
 using RedBoltNative;
 
 using RedBolt.Bindings.SpirVTools;
-
-namespace RedBolt.Graphics;
 
 public static class ShaderOptimizer
 {

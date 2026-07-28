@@ -1,9 +1,9 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Glow;
 using RedBolt.Graphics;
 using RedBolt.Math;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
+using RedBolt.Scene;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class HelpersTests
@@ -47,7 +47,7 @@ public sealed class HelpersTests
     [Fact]
     public void Lightmap_helpers_support_static_models_and_terrain()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var staticModel = scene.CreateChild("StaticModel").CreateComponent<StaticModel>();
         var terrain = scene.CreateChild("Terrain").CreateComponent<Terrain>();
         var scaleOffset = new Vector4f(0.5f, 0.25f, 0.125f, 0.0625f);

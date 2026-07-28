@@ -1,6 +1,6 @@
-using RedBolt.Math;
-
 namespace RedBolt.Tests.MathTests;
+
+using RedBolt.Math;
 
 public class MatrixParityTests
 {

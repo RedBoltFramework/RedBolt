@@ -1,3 +1,5 @@
+namespace RedBolt.RenderPipeline;
+
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using SystemMath = global::System.Math;
@@ -8,8 +10,6 @@ using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Base class for writable texture or texture region. Readability is not guaranteed.

@@ -1,7 +1,7 @@
+namespace RedBolt.IO;
+
 using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
-
-namespace RedBolt.IO;
 
 /// <summary>Dynamically sized buffer that can be read and written to as a stream.</summary>
 public class VectorBuffer : AbstractFile, ICloneable

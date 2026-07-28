@@ -1,6 +1,6 @@
-using RedBolt.Container;
-
 namespace RedBolt.Engine;
+
+using RedBolt.Container;
 
 public static class StateManagerEvents
 {

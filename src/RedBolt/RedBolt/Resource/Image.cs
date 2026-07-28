@@ -1,3 +1,5 @@
+namespace RedBolt.Resource;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
@@ -9,8 +11,6 @@ using FileMode = global::RedBolt.IO.FileMode;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
-
-namespace RedBolt.Resource;
 
 [Reflected]
 public partial class Image : Resource

@@ -1,11 +1,11 @@
+namespace RedBolt.Scene;
+
 using RedBolt.Core;
 using RedBolt.Graphics;
-using RedBolt.Input;
 using RedBolt.IO;
+using RedBolt.Input;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
-
-namespace RedBolt.Scene;
 
 /// <summary>Object animation class, an object animation include one or more attribute animations and theirs wrap mode and speed for an Animatable object.</summary>
 [Reflected]

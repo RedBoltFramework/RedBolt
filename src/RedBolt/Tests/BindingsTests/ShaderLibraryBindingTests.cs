@@ -1,8 +1,8 @@
+namespace RedBolt.Tests.BindingsTests;
+
 using RedBolt.Bindings.Glslang;
 using RedBolt.Bindings.SpirVCross;
 using RedBolt.Bindings.SpirVTools;
-
-namespace RedBolt.Tests.BindingsTests;
 
 public sealed class ShaderLibraryBindingTests
 {

@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -5,8 +7,6 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
-
-namespace RedBolt.Tests;
 
 public sealed class SoftwareModelAnimatorTests
 {

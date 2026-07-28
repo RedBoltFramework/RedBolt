@@ -20,11 +20,12 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Navigation;
+
+using Microsoft.Extensions.Logging;
 using System.Buffers.Binary;
 using System.IO;
 using Math = System.Math;
-
-using Microsoft.Extensions.Logging;
 
 using DotRecast.Core;
 using DotRecast.Core.Numerics;
@@ -39,9 +40,6 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-using SceneType = RedBolt.Scene.Scene;
-
-namespace RedBolt.Navigation;
 
 /// <summary>A flag representing the type of path point- none, the start of a path segment, the end of one, or an off-mesh connection.</summary>
 [Flags]
@@ -955,7 +953,7 @@ public partial class NavigationMesh : Component
         return result.Buffer.ToArray();
     }
 
-    protected override void OnSceneSet(SceneType? previousScene, SceneType? scene)
+    protected override void OnSceneSet(Scene? previousScene, Scene? scene)
     {
         base.OnSceneSet(previousScene, scene);
         if (previousScene is not null)

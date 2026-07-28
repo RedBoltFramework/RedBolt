@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.MultipleViewports;
+
 using System;
 
 using RedBolt;

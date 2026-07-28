@@ -1,6 +1,6 @@
-using RedBolt.Core;
-
 namespace RedBolt.Scene;
+
+using RedBolt.Core;
 
 /// <summary>Helper base class for user-defined game logic components that hooks up to update events and forwards them to virtual functions similar to ScriptInstance class.</summary>
 [Reflected(ObjectCategory.Category_Scene, Factory = false)]

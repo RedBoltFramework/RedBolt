@@ -1,10 +1,10 @@
+namespace RedBolt.Tests;
+
 using System.Runtime.CompilerServices;
 
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Resource;
-
-namespace RedBolt.Tests;
 
 public sealed class GraphNodeTests
 {

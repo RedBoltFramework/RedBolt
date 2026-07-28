@@ -1,10 +1,10 @@
+namespace RedBolt.IO;
+
 using SystemMath = global::System.Math;
 using System.Text;
 
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
-
-namespace RedBolt.IO;
 
 /// <summary>File identifier, similar to Uniform Resource Identifier (URI).</summary>
 /// <remarks>

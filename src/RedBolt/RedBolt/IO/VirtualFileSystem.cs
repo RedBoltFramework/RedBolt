@@ -1,3 +1,5 @@
+namespace RedBolt.IO;
+
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -6,8 +8,6 @@ using System.Text;
 
 using RedBolt.Core;
 using RedBolt.Logging;
-
-namespace RedBolt.IO;
 
 /// <summary>Subsystem for virtual file system.</summary>
 public class VirtualFileSystem : RedObject

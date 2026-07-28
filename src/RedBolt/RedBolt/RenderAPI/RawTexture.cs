@@ -1,3 +1,5 @@
+namespace RedBolt.RenderAPI;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 
@@ -5,8 +7,6 @@ using RedBolt.Bindings.Diligent;
 using RedBolt.Container;
 using RedBolt.Graphics;
 using RedBolt.Logging;
-
-namespace RedBolt.RenderAPI;
 
 public struct RawTextureHandles
 {

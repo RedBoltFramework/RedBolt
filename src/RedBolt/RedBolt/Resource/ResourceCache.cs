@@ -1,15 +1,15 @@
+namespace RedBolt.Resource;
+
 using SystemMath = global::System.Math;
 
 using RedBolt.Audio;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
-using RedBolt.Input;
 using RedBolt.IO;
 using FileMode = global::RedBolt.IO.FileMode;
+using RedBolt.Input;
 using RedBolt.RenderPipeline;
-
-namespace RedBolt.Resource;
 
 public sealed class ResourceGroup
 {

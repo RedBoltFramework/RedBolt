@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
 using SystemMath = global::System.Math;
@@ -10,9 +12,9 @@ using RedBolt.Bindings.Sdl;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Engine;
-using RedBolt.Input;
 using RedBolt.IO;
 using FileMode = global::RedBolt.IO.FileMode;
+using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Platform;
@@ -23,9 +25,6 @@ using RedBolt.RenderPipeline;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Graphics;
 
 /// <summary>Graphics settings that should be configured before initialization.</summary>
 public struct GraphicsSettings
@@ -4280,7 +4279,7 @@ layout(std140) uniform Material
             : 1.0f;
     }
 
-    internal Zone? FindZone(SceneType scene, Vector3f worldPosition)
+    internal Zone? FindZone(Scene scene, Vector3f worldPosition)
     {
         scene.GetComponents(_zonesScratch);
 
@@ -4298,7 +4297,7 @@ layout(std140) uniform Material
         return bestZone;
     }
 
-    private Vector4f GetAmbientForDrawable(SceneType scene, Drawable drawable)
+    private Vector4f GetAmbientForDrawable(Scene scene, Drawable drawable)
     {
         var zone = FindZone(scene, drawable.Node.WorldPosition);
         return zone is not null ? new Vector4f(zone.GetAmbientLighting(), 1.0f) : DefaultAmbient;

@@ -1,12 +1,11 @@
+namespace RedBolt.RenderPipeline;
+
 using SystemMath = global::System.Math;
 
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Manages single shadow split parameters and shadow casters.
@@ -27,7 +26,7 @@ public class ShadowSplitProcessor : IDisposable
     /// C++ creates a freestanding <c>Node(context)</c>. Managed nodes require a scene owner,
     /// so a private temporary scene holds the shadow-camera node for the same lifetime.
     /// </remarks>
-    private readonly SceneType _shadowScene;
+    private readonly Scene _shadowScene;
     private readonly Node _shadowCameraNode;
     private readonly Camera _shadowCamera;
     private readonly Frustum _splitFrustum = new();
@@ -54,7 +53,7 @@ public class ShadowSplitProcessor : IDisposable
         _light = new WeakReference<Light>(owner.Light);
         _splitIndex = splitIndex;
         _renderBackend = Light.GetSubsystem<GraphicsSystem>()!.GetRenderBackend();
-        _shadowScene = new SceneType();
+        _shadowScene = new Scene();
         _shadowCameraNode = _shadowScene.CreateChild("ShadowCamera", temporary: true);
         _shadowCamera = _shadowCameraNode.CreateComponent<Camera>();
     }

@@ -1,6 +1,6 @@
-using System.Collections.Generic;
-
 namespace RedBolt.Math;
+
+using System.Collections.Generic;
 
 /// <summary>A convex volume built from polygon faces.</summary>
 public class Polyhedron : ICloneable

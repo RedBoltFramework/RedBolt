@@ -1,12 +1,11 @@
+namespace RedBolt.RenderPipeline;
+
 using System.Runtime.InteropServices;
 
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>
 /// Scene batch sorted by pipeline state, material and geometry. Also sorted front to back.

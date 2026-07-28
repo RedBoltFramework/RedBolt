@@ -1,3 +1,5 @@
+namespace RedBolt.Core;
+
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -7,8 +9,6 @@ using System.Threading;
 
 using RedBolt.Container;
 using RedBolt.Logging;
-
-namespace RedBolt.Core;
 
 public enum TaskPriority
 {

@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 
@@ -7,8 +9,6 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
-
-namespace RedBolt.Graphics;
 
 /// <summary>Particle emitter shapes.</summary>
 public enum EmitterType

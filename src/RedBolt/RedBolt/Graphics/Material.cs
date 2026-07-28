@@ -1,17 +1,16 @@
+namespace RedBolt.Graphics;
+
 using System.Globalization;
 using SystemMath = global::System.Math;
 
 using RedBolt.Container;
 using RedBolt.Core;
-using RedBolt.Input;
 using RedBolt.IO;
+using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Graphics;
 
 public enum CullMode
 {
@@ -188,7 +187,7 @@ public sealed partial class Material : ResourceType
     private uint _auxViewFrameNumber;
     private bool _specular;
     private bool _subscribed;
-    private SceneType? _scene;
+    private Scene? _scene;
 
     public Material()
     {
@@ -320,7 +319,7 @@ public sealed partial class Material : ResourceType
 
     public bool GetSpecular() => _specular;
 
-    public SceneType? GetScene() => _scene;
+    public Scene? GetScene() => _scene;
 
     public string GetPixelShaderDefines() => PixelShaderDefines;
 
@@ -456,7 +455,7 @@ public sealed partial class Material : ResourceType
         Occlusion = enable;
     }
 
-    public void SetScene(SceneType? scene)
+    public void SetScene(Scene? scene)
     {
         UnsubscribeFromEvent<CoreEvents.UpdateEvent>();
         UnsubscribeFromEvent<SceneEvents.AttributeAnimationUpdateEvent>();

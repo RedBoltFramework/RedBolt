@@ -1,3 +1,5 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Audio;
 using RedBolt.Core;
@@ -5,9 +7,6 @@ using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class AudioTests
@@ -44,7 +43,7 @@ public sealed class AudioTests
     [Fact]
     public void Sound_source_starts_from_the_first_sample()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var source = scene.CreateChild().CreateComponent<SoundSource>();
         var sound = new Sound();
         sound.SetData([0, 0, 64, 0], 4);
@@ -62,7 +61,7 @@ public sealed class AudioTests
     [Fact]
     public void Sound_source_uses_play_position_as_playing_state()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var source = scene.CreateChild().CreateComponent<SoundSource>();
         var sound = new Sound();
         sound.SetData([0, 0, 64, 0, 0, 0], 6);
@@ -179,7 +178,7 @@ public sealed class AudioTests
     [Fact]
     public void Sound_source_3d_draws_attenuation_geometry()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var source = scene.CreateChild("SoundSource3D").CreateComponent<SoundSource3D>();
         source.SetDistanceAttenuation(1.0f, 5.0f, 2.0f);
         var debugRenderer = new DebugRenderer();
@@ -193,7 +192,7 @@ public sealed class AudioTests
     [Fact]
     public void Audio_component_attributes_follow_member_declaration_order()
     {
-        var scene = new SceneType();
+        var scene = new Scene();
         var source = scene.CreateComponent<SoundSource>();
         var source3D = scene.CreateComponent<SoundSource3D>();
 

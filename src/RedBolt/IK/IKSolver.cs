@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.IK;
+
 using System;
 using System.Collections.Generic;
 
@@ -27,8 +29,6 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-
-namespace RedBolt.IK;
 
 [Reflected(ObjectCategory.Category_IK, InheritAttributes = false)]
 public partial class IKSolver : LogicComponent

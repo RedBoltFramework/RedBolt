@@ -1,12 +1,11 @@
+namespace RedBolt.Graphics;
+
 using SystemMath = global::System.Math;
 
 using RedBolt.Core;
 using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Graphics;
 
 /// <summary>Octree octant.</summary>
 public class Octant : IDisposable
@@ -804,7 +803,7 @@ public sealed partial class Octree : Component
         DrawDebugGeometry(debug, depthTest);
     }
 
-    protected internal override void OnSceneSet(SceneType? previousScene, SceneType? scene)
+    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
     {
         base.OnSceneSet(previousScene, scene);
 

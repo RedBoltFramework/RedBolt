@@ -1,8 +1,8 @@
+namespace RedBolt;
+
 using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.Scene;
-
-namespace RedBolt;
 
 public static class DearImGuiEvents
 {

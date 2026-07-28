@@ -1,10 +1,10 @@
+namespace RedBolt.Graphics;
+
 using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.RenderPipeline;
 using RedBolt.Resource;
 using RedBolt.Scene;
-
-namespace RedBolt.Graphics;
 
 /// <summary>Static model component with fixed position in relation to the camera.</summary>
 [Reflected(ObjectCategory.Category_Geometry)]

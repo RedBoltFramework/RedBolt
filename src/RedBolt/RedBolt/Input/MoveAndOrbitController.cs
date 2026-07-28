@@ -1,3 +1,5 @@
+namespace RedBolt.Input;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 
@@ -8,9 +10,6 @@ using RedBolt.Math;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Input;
 
 [Reflected(ObjectCategory.Category_Logic)]
 public partial class MoveAndOrbitController : Component
@@ -110,7 +109,7 @@ public partial class MoveAndOrbitController : Component
     }
 
     /// <summary>Handle scene being assigned.</summary>
-    protected internal override void OnSceneSet(SceneType? previousScene, SceneType? scene)
+    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
     {
         UpdateEventSubscription();
     }

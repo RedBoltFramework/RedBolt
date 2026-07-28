@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using System.Runtime.CompilerServices;
 
 using RedBolt.Container;
@@ -6,9 +8,6 @@ using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Graphics;
 
 /// <summary>Group of selected drawables.</summary>
 [Reflected(ObjectCategory.Category_Scene)]

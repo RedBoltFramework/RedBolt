@@ -1,3 +1,5 @@
+namespace RedBolt.RenderPipeline;
+
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -5,8 +7,6 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.RenderAPI;
-
-namespace RedBolt.RenderPipeline;
 
 /// <summary>Key used to lookup cached pipeline states for PipelineBatch.</summary>
 /// <remarks>

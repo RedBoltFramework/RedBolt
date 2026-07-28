@@ -20,10 +20,10 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Glow;
+
 using RedBolt.Math;
 using RedBolt.Resource;
-
-namespace RedBolt.Glow;
 
 /// <summary>Scene background description.</summary>
 public struct BakedSceneBackground

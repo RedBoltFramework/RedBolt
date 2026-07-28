@@ -1,3 +1,5 @@
+namespace RedBolt.RenderAPI;
+
 using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 
@@ -10,8 +12,6 @@ using FillMode = global::RedBolt.Graphics.FillMode;
 using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.RenderPipeline;
-
-namespace RedBolt.RenderAPI;
 
 /// <summary>Cooked pipeline state.</summary>
 public class PipelineState : DeviceObject

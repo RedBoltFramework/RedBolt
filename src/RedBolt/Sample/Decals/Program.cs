@@ -1,3 +1,5 @@
+namespace RedBolt.Sample.Decals;
+
 using System;
 
 using RedBolt;

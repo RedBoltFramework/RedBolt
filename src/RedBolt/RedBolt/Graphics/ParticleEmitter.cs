@@ -1,3 +1,5 @@
+namespace RedBolt.Graphics;
+
 using RedBolt.Container;
 using RedBolt.Core;
 using Timer = global::RedBolt.Core.Timer;
@@ -5,9 +7,6 @@ using RedBolt.Math;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Graphics;
 
 /// <summary>One particle in the particle system.</summary>
 public struct Particle
@@ -449,7 +448,7 @@ public partial class ParticleEmitter : BillboardSet
     }
 
     /// <summary>Handle scene being assigned.</summary>
-    protected internal override void OnSceneSet(SceneType? previousScene, SceneType? scene)
+    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
     {
         base.OnSceneSet(previousScene, scene);
 

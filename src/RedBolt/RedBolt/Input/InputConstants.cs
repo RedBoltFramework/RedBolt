@@ -1,6 +1,6 @@
-using RedBolt.Bindings.Sdl;
-
 namespace RedBolt.Input;
+
+using RedBolt.Bindings.Sdl;
 
 [Flags]
 public enum MouseButton : uint

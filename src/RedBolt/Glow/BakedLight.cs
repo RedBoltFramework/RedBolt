@@ -20,10 +20,10 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Glow;
+
 using RedBolt.Graphics;
 using RedBolt.Math;
-
-namespace RedBolt.Glow;
 
 /// <summary>Baked light description.</summary>
 public struct BakedLight

@@ -1,7 +1,7 @@
+namespace RedBolt.Tests;
+
 using RedBolt.Graphics;
 using RedBolt.RenderPipeline;
-
-namespace RedBolt.Tests;
 
 public sealed class RenderPipelineSettingsTests
 {

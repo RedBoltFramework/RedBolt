@@ -1,9 +1,9 @@
+namespace RedBolt.Tests;
+
 using RedBolt;
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Logging;
-
-namespace RedBolt.Tests;
 
 public sealed class IOEventsTests
 {

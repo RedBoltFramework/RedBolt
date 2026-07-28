@@ -1,3 +1,5 @@
+namespace RedBolt.Engine;
+
 using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using SystemMath = global::System.Math;
@@ -5,8 +7,8 @@ using SystemMath = global::System.Math;
 using RedBolt.Audio;
 using RedBolt.Core;
 using RedBolt.Graphics;
-using RedBolt.Input;
 using RedBolt.IO;
+using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Platform;
 using RedBolt.RenderAPI;
@@ -14,9 +16,6 @@ using RedBolt.RenderPipeline;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Engine;
 
 public class EngineSystem : RedObject
 {
@@ -661,7 +660,7 @@ public class EngineSystem : RedObject
 
         InputSystem.RegisterInputLibrary(_context);
         GraphicsSystem.RegisterGraphicsLibrary(_context);
-        SceneType.RegisterSceneLibrary(_context);
+        Scene.RegisterSceneLibrary(_context);
 
         GeneratedReflectionRegistration.RefreshExternalAssemblies(_context);
     }

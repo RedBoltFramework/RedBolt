@@ -1,10 +1,10 @@
+namespace RedBolt.Resource;
+
 using Microsoft.Extensions.Logging;
 
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Logging;
-
-namespace RedBolt.Resource;
 
 [Reflected]
 public partial class PListFile : Resource

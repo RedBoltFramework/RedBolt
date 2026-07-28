@@ -1,10 +1,10 @@
+namespace RedBolt.Tests;
+
 using System.Reflection;
 
 using RedBolt;
 using RedBolt.Graphics;
 using RedBolt.RenderAPI;
-
-namespace RedBolt.Tests;
 
 [Collection(nameof(GraphicsEngineCollection))]
 public sealed class RenderPoolTests

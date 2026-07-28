@@ -1,3 +1,5 @@
+namespace RedBolt.IO;
+
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -9,8 +11,6 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using RedBolt.Logging;
-
-namespace RedBolt.IO;
 
 /// <summary>Named pipe for interprocess communication.</summary>
 public class NamedPipe : AbstractFile

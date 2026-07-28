@@ -20,6 +20,8 @@
 // THE SOFTWARE.
 //
 
+namespace RedBolt.Glow;
+
 using System;
 using System.Collections.Generic;
 
@@ -27,9 +29,6 @@ using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.Scene;
-using SceneType = global::RedBolt.Scene.Scene;
-
-namespace RedBolt.Glow;
 
 /// <summary>Interface of scene collector for light baking.</summary>
 /// <remarks>Objects may be loaded and unloaded even if scene is locked if it doesn't affect the outcome.</remarks>
@@ -41,7 +40,7 @@ public abstract class BakedSceneCollector : IDisposable
     }
 
     /// <summary>Called before everything else. Scene objects must stay unchanged after this call.</summary>
-    public abstract void LockScene(SceneType? scene, Vector3f chunkSize);
+    public abstract void LockScene(Scene? scene, Vector3f chunkSize);
     /// <summary>Return all scene chunks.</summary>
     public abstract List<Vector3i> GetChunks();
     /// <summary>Return all scene backgrounds. [0] is expected to be pitch-black background.</summary>
@@ -77,7 +76,7 @@ public abstract class BakedSceneCollector : IDisposable
 public class DefaultBakedSceneCollector : BakedSceneCollector
 {
     /// <summary>BakedSceneCollector implementation.</summary>
-    public override void LockScene(SceneType? scene, Vector3f chunkSize)
+    public override void LockScene(Scene? scene, Vector3f chunkSize)
     {
         _scene = scene;
         _chunkSize = chunkSize;
@@ -384,7 +383,7 @@ public class DefaultBakedSceneCollector : BakedSceneCollector
     }
 
     /// <summary>Scene.</summary>
-    private SceneType? _scene;
+    private Scene? _scene;
     /// <summary>Chunk size.</summary>
     private Vector3f _chunkSize;
     /// <summary>Bounding box of the scene.</summary>

@@ -1,3 +1,5 @@
+namespace RedBolt.Scene;
+
 using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 
@@ -5,8 +7,6 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.Math;
-
-namespace RedBolt.Scene;
 
 /// <summary>Base class for a value animation instance, which includes animation runtime information and updates the target object's value automatically.</summary>
 public class ValueAnimationInfo : ICloneable, IDisposable

@@ -1,3 +1,5 @@
+namespace RedBolt.Scene;
+
 using Microsoft.Extensions.Logging;
 using System.Diagnostics;
 using SystemMath = global::System.Math;
@@ -6,8 +8,6 @@ using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Logging;
-
-namespace RedBolt.Scene;
 
 /// <summary>
 /// Attribute prefab.
