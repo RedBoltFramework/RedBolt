@@ -235,7 +235,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `CallFunc : ActionInstant`
   - [ ] `SendEvent : ActionInstant`
 - [ ] `ShaderParameter.h` ⤴ needs `Graphics/Material`
-  - [ ] `ShaderParameterAction : FiniteTimeAction`
+  - [x] `ShaderParameterAction : FiniteTimeAction`
   - [ ] `ShaderParameterTo : ShaderParameterAction`
   - [ ] `ShaderParameterFromTo : ShaderParameterTo`
 - [ ] `Parallel.h`
