@@ -8,7 +8,7 @@
   <Target Name="RedBoltConfigureSolutionProjectProperties" BeforeTargets="Build">
     <ItemGroup>
       <ProjectReference Update="@(ProjectReference)">
-        <AdditionalProperties>%(ProjectReference.AdditionalProperties);ShouldUnsetParentConfigurationAndPlatform=false</AdditionalProperties>
+        <AdditionalProperties>%(ProjectReference.AdditionalProperties);OnlyReferenceAndBuildProjectsEnabledInSolutionConfiguration=false;ShouldUnsetParentConfigurationAndPlatform=false</AdditionalProperties>
       </ProjectReference>
     </ItemGroup>
   </Target>
