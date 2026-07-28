@@ -394,3 +394,59 @@ public partial class EaseSineInOut : ActionEase
         return new ActionEaseState(this, target);
     }
 }
+
+/// -------------------------------------------------------------------
+/// <summary>ExponentialOut easing action.</summary>
+[Reflected]
+public partial class EaseExponentialOut : ActionEase
+{
+    /// <summary>Construct.</summary>
+    public EaseExponentialOut()
+    {
+    }
+
+    /// <summary>Create reversed action.</summary>
+    public override FiniteTimeAction Reverse()
+    {
+        var result = new EaseExponentialIn();
+        result.SetInnerAction(InnerAction!.Reverse());
+        return result;
+    }
+
+    /// <summary>Apply easing function to the time argument.</summary>
+    public override float Ease(float time) => EaseMath.ExponentialOut(time);
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new ActionEaseState(this, target);
+    }
+}
+
+/// -------------------------------------------------------------------
+/// <summary>ExponentialIn easing action.</summary>
+[Reflected]
+public partial class EaseExponentialIn : ActionEase
+{
+    /// <summary>Construct.</summary>
+    public EaseExponentialIn()
+    {
+    }
+
+    /// <summary>Create reversed action.</summary>
+    public override FiniteTimeAction Reverse()
+    {
+        var result = new EaseExponentialOut();
+        result.SetInnerAction(InnerAction!.Reverse());
+        return result;
+    }
+
+    /// <summary>Apply easing function to the time argument.</summary>
+    public override float Ease(float time) => EaseMath.ExponentialIn(time);
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new ActionEaseState(this, target);
+    }
+}
