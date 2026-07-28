@@ -537,6 +537,8 @@ Accepted deviations:
 - [ ] `ParticleGraphMemory.h`
   - [ ] particle graph memory pool
 - [ ] `ParticleGraphPin.h`
+  - [x] `ParticleGraphPinFlag`
+  - [x] `ParticleGraphPinRef`
   - [ ] `ParticleGraphPin`
 - [ ] `Attribute.h`
   - [ ] particle attribute descriptors
