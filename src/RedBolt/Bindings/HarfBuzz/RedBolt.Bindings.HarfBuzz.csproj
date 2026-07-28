@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt.Bindings.HarfBuzz</AssemblyName>
+    <EnableLibraryImportGenerator>true</EnableLibraryImportGenerator>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DisableRuntimeMarshalling>true</DisableRuntimeMarshalling>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(RedBoltGeneratedBindingsDir)' != '' and Exists('$(RedBoltGeneratedBindingsDir)/harfbuzz')">
+    <Compile Include="$(RedBoltGeneratedBindingsDir)/harfbuzz/**/*.g.cs" LinkBase="Generated" />
+  </ItemGroup>
+</Project>

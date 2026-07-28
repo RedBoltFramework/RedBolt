@@ -1,0 +1,14 @@
+redbolt_add_native_binding_generation(
+    TARGET redbolt-generate-harfbuzz-bindings
+    SURFACE harfbuzz
+    HEADER "${REDBOLT_HARFBUZZ_PARSE_HEADER}"
+    HEADER_INCLUDE_PATH "HarfBuzzAll.h"
+    FILE_STEM "${REDBOLT_HARFBUZZ_BINDINGS_STEM}"
+    OUTPUT_DIR "${REDBOLT_HARFBUZZ_GENERATED_DIR}"
+    OUTPUT_METADATA "${REDBOLT_HARFBUZZ_BINDINGS_JSON}"
+    OUTPUT_CS "${REDBOLT_HARFBUZZ_BINDINGS_CS}"
+    OUTPUT_CPP "${REDBOLT_HARFBUZZ_BINDINGS_CPP}"
+    INCLUDE_DIRS "${REDBOLT_HARFBUZZ_SOURCE_ROOT}/src"
+    OWNED_HEADERS "${REDBOLT_HARFBUZZ_PARSE_HEADER}" "${REDBOLT_HARFBUZZ_SOURCE_ROOT}/src")
+
+add_dependencies(redbolt-generate-harfbuzz-bindings harfbuzz harfbuzz-raster)

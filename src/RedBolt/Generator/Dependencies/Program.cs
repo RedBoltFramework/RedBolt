@@ -76,6 +76,56 @@ internal static class Program
         "LZ4_versionNumber"
     };
 
+    private static readonly HashSet<string> RetainedHarfBuzzFunctions = new(StringComparer.Ordinal)
+    {
+        "hb_blob_create_from_file_or_fail",
+        "hb_blob_destroy",
+        "hb_face_create_or_fail",
+        "hb_face_destroy",
+        "hb_face_get_upem",
+        "hb_font_create",
+        "hb_font_destroy",
+        "hb_font_get_glyph",
+        "hb_font_get_glyph_extents",
+        "hb_font_get_glyph_h_advance",
+        "hb_font_set_scale",
+        "hb_ot_font_set_funcs",
+        "hb_raster_draw_create_or_fail",
+        "hb_raster_draw_destroy",
+        "hb_raster_draw_glyph_or_fail",
+        "hb_raster_draw_render",
+        "hb_raster_draw_reset",
+        "hb_raster_draw_set_glyph_extents",
+        "hb_raster_image_destroy",
+        "hb_raster_image_get_buffer",
+        "hb_raster_image_get_extents",
+        "hb_raster_image_get_format"
+    };
+
+    private static readonly HashSet<string> RetainedHarfBuzzRecords = new(StringComparer.Ordinal)
+    {
+        "hb_blob_t",
+        "hb_face_t",
+        "hb_font_t",
+        "hb_glyph_extents_t",
+        "hb_raster_draw_t",
+        "hb_raster_extents_t",
+        "hb_raster_image_t"
+    };
+
+    private static readonly HashSet<string> RetainedHarfBuzzEnums = new(StringComparer.Ordinal)
+    {
+        "hb_memory_mode_t",
+        "hb_raster_format_t"
+    };
+
+    private static readonly HashSet<string> RetainedHarfBuzzAliases = new(StringComparer.Ordinal)
+    {
+        "hb_bool_t",
+        "hb_codepoint_t",
+        "hb_position_t"
+    };
+
     private static readonly HashSet<string> RetainedDiligentFunctions = new(StringComparer.Ordinal)
     {
         "GetEngineFactoryOpenGL",
@@ -250,6 +300,7 @@ internal static class Program
             FixDiligentVulkanImageHandle(compilation, descriptor);
             FixSdlVoidPointerFunctions(compilation, descriptor);
             FixStbVorbisBufferFunctions(compilation, descriptor);
+            FixHarfBuzzTypes(compilation, descriptor);
             FixXAtlasTypes(compilation, descriptor);
             if (descriptor.Surface == "webp")
             {
@@ -789,6 +840,38 @@ internal static class Program
             return lz4PrunedCount;
         }
 
+        if (descriptor.Surface == "harfbuzz")
+        {
+            var harfBuzzPrunedCount = 0;
+            for (var index = compilation.Members.Count - 1; index >= 0; --index)
+            {
+                var member = compilation.Members[index];
+                if (member is FunctionBinding function && RetainedHarfBuzzFunctions.Contains(function.NativeName))
+                    continue;
+
+                if (member is RecordBinding record && RetainedHarfBuzzRecords.Contains(record.NativeName))
+                    continue;
+
+                if (member is EnumBinding enumBinding && RetainedHarfBuzzEnums.Contains(enumBinding.NativeName))
+                    continue;
+
+                compilation.Members.RemoveAt(index);
+                harfBuzzPrunedCount++;
+            }
+
+            for (var index = compilation.TypeAliases.Count - 1; index >= 0; --index)
+            {
+                if (RetainedHarfBuzzAliases.Contains(compilation.TypeAliases[index].NativeName))
+                    continue;
+
+                compilation.TypeAliases.RemoveAt(index);
+                harfBuzzPrunedCount++;
+            }
+
+            compilation.InvalidateCaches();
+            return harfBuzzPrunedCount;
+        }
+
         if (descriptor.Surface == "sdl")
         {
             var sdlPrunedCount = 0;
@@ -1257,6 +1340,20 @@ internal static class Program
         function.Parameters[2].AbiKind = BindingParameterAbiKind.Value;
     }
 
+    private static void FixHarfBuzzTypes(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
+    {
+        if (descriptor.Surface != "harfbuzz")
+            return;
+
+        var createBlob = compilation.Functions.First(static function =>
+            function.NativeName == "hb_blob_create_from_file_or_fail");
+        var fileName = createBlob.Parameters.First(static parameter => parameter.NativeName == "file_name");
+        fileName.Type = BindingType.CreateConfigured("const char*", "string");
+        fileName.Direction = BindingParameterDirection.In;
+        fileName.AbiKind = BindingParameterAbiKind.Value;
+        fileName.CppTypeName = "const char*";
+    }
+
     private static int PruneMembers(IList<BindingNode> members, BindingSurfaceDescriptor descriptor)
     {
         var prunedCount = 0;
@@ -1318,7 +1415,7 @@ internal static class Program
 
     private static void PrintUsage()
     {
-        Console.Error.WriteLine("Usage: RedBolt.Generator.Dependencies --surface <sdl|diligent|dearimgui|stb|lz4|webp|xatlas|glslang|spirvcross|spirvtools> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
+        Console.Error.WriteLine("Usage: RedBolt.Generator.Dependencies --surface <sdl|diligent|dearimgui|stb|lz4|harfbuzz|webp|xatlas|glslang|spirvcross|spirvtools> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
     }
 
     private sealed record BindingSurfaceDescriptor(
@@ -1385,6 +1482,16 @@ internal static class Program
                     "redbolt_lz4",
                     "-xc++",
                     "-std=c++20",
+                    false),
+                "harfbuzz" => new BindingSurfaceDescriptor(
+                    "harfbuzz",
+                    "RedBolt.Bindings.HarfBuzz",
+                    "RedBolt.Bindings.HarfBuzz",
+                    "HarfBuzzNativeBindings",
+                    nativeLibraryName,
+                    "redbolt_harfbuzz",
+                    "-xc",
+                    "-std=c17",
                     false),
                 "webp" => new BindingSurfaceDescriptor(
                     "webp",
