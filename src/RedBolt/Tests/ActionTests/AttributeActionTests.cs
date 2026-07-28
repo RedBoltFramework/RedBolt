@@ -109,6 +109,38 @@ public partial class AttributeActionTests
         Assert.Equal(6.0f, target.Value);
     }
 
+    [Fact]
+    public void Attribute_blink_switches_values_restores_original_and_reverses()
+    {
+        Context.Instance.RegisterAssembly(typeof(AttributeActionTests).Assembly);
+        using var manager = new ActionManager(false);
+        using var target = new AttributeTarget { Value = 2.0f };
+        using var action = new AttributeBlink();
+        using var from = new Variant(4.0f);
+        using var to = new Variant(8.0f);
+        action.SetDuration(1.0f);
+        action.SetAttributeName("Value");
+        action.SetFrom(from);
+        action.SetTo(to);
+        action.SetNumOfBlinks(0);
+        Assert.Equal(1u, action.NumOfBlinks);
+        action.SetNumOfBlinks(2);
+
+        Assert.NotNull(manager.AddAction(action, target));
+        manager.Update(0.0f);
+        Assert.Equal(8.0f, target.Value);
+        manager.Update(0.3f);
+        Assert.Equal(4.0f, target.Value);
+        manager.Update(0.7f);
+        Assert.Equal(2.0f, target.Value);
+
+        using var reversed = (AttributeFromTo)action.Reverse();
+        Assert.Equal(8.0f, reversed.From.GetFloat());
+        Assert.Equal(4.0f, reversed.To.GetFloat());
+        Assert.Equal(action.Duration, reversed.Duration);
+        Assert.Equal(action.AttributeName, reversed.AttributeName);
+    }
+
     [Reflected]
     private sealed partial class AttributeTarget : Serializable
     {

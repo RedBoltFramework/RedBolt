@@ -22,6 +22,8 @@
 
 namespace RedBolt.Actions;
 
+using System;
+
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Scene;
@@ -193,4 +195,83 @@ public partial class AttributeTo : AttributeAction
     }
 
     private Variant _to;
+}
+
+/// <summary>Animate attribute between two values.</summary>
+[Reflected]
+public partial class AttributeBlink : AttributeAction
+{
+    /// <summary>Construct.</summary>
+    public AttributeBlink()
+    {
+    }
+
+    // Set "from" value.
+    public void SetFrom(Variant variant)
+    {
+        var value = variant.Clone();
+        _from.Dispose();
+        _from = value;
+    }
+
+    // Get "to" value.
+    public void SetTo(Variant variant)
+    {
+        var value = variant.Clone();
+        _to.Dispose();
+        _to = value;
+    }
+
+    /// <summary>Set number of blinks.</summary>
+    public void SetNumOfBlinks(uint times)
+    {
+        _times = Math.Max(1u, times);
+    }
+
+    // Get "from" value.
+    public ref readonly Variant From => ref _from;
+
+    // Get "to" value.
+    public ref readonly Variant To => ref _to;
+
+    /// <summary>Get number of blinks.</summary>
+    public uint NumOfBlinks => _times;
+
+    /// <summary>Create reversed action.</summary>
+    public override FiniteTimeAction Reverse()
+    {
+        var result = new AttributeFromTo();
+        result.SetDuration(Duration);
+        result.SetAttributeName(AttributeName);
+        result.SetFrom(_to);
+        result.SetTo(_from);
+        return result;
+    }
+
+    /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
+    public override void SerializeInBlock(Archive archive)
+    {
+        base.SerializeInBlock(archive);
+        ArchiveSerialization.SerializeOptionalValue(
+            archive, "from", ref _from, Variant.Empty, ArchiveSerialization.SerializeValue);
+        ArchiveSerialization.SerializeOptionalValue(
+            archive, "to", ref _to, Variant.Empty, ArchiveSerialization.SerializeValue);
+    }
+
+    public override void Dispose()
+    {
+        _to.Dispose();
+        _from.Dispose();
+        base.Dispose();
+    }
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new AttributeBlinkState(this, target, GetAttribute(target), _from, _to, _times);
+    }
+
+    private Variant _from;
+    private Variant _to;
+    private uint _times = 1;
 }

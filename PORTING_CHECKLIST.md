@@ -186,8 +186,8 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 
 - [x] `ActionState.h`
   - [x] `ActionState`
-- [ ] `Attribute.h`
-  - [ ] attribute-action helpers
+- [x] `Attribute.h`
+  - [x] attribute-action helpers
 - [x] `BaseAction.h`
   - [x] `BaseAction : Serializable`
 - [x] `FiniteTimeAction.h`
