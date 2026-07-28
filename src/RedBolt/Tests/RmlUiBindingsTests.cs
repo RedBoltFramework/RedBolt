@@ -191,7 +191,9 @@ public sealed class RmlUiBindingsTests
         using var fontEngineInterface = new TestFontEngineInterface();
         using var renderInterface = new TestRenderInterface();
         using var name = new Std.String();
+        using var textInput = new Std.String();
         name.Assign("RedBolt.Tests.RmlUiBindings");
+        textInput.Assign("text");
         Context? context = null;
         var initialized = false;
         try
@@ -217,6 +219,25 @@ public sealed class RmlUiBindingsTests
             Assert.Equal(640, context.GetDimensions().X);
             Assert.Equal(480, context.GetDimensions().Y);
             Assert.Equal(1.5f, context.GetDensityIndependentPixelRatio());
+            Assert.Null(context.GetHoverElement());
+            using var focusElement = context.GetFocusElement();
+            Assert.NotNull(focusElement);
+            using (var root = context.GetRootElement())
+            {
+                Assert.Equal(root.Handle, focusElement.Handle);
+                Assert.Null(root.GetOwnerDocument());
+                using var tagName = root.GetTagName();
+                Assert.Equal("#root", tagName.ToString());
+                root.Blur();
+            }
+            Assert.True(context.ProcessKeyDown(Rml.Input.KeyIdentifier.KiReturn, 0));
+            Assert.True(context.ProcessKeyUp(Rml.Input.KeyIdentifier.KiReturn, 0));
+            Assert.True(context.ProcessTextInput((sbyte)'\n'));
+            Assert.True(context.ProcessTextInput(textInput));
+            Assert.True(context.ProcessMouseMove(10, 10, 0));
+            Assert.True(context.ProcessMouseButtonDown(0, 0));
+            Assert.True(context.ProcessMouseButtonUp(0, 0));
+            Assert.True(context.ProcessMouseWheel(1.0f, 0));
             Assert.True(context.Update());
             Assert.True(context.Render());
 
