@@ -5,6 +5,14 @@
     <RedBoltWebProject>$(MSBuildThisFileDirectory)src/RedBolt/Sample/Web/RedBolt.Sample.Web.csproj</RedBoltWebProject>
   </PropertyGroup>
 
+  <Target Name="RedBoltConfigureSolutionProjectProperties" BeforeTargets="Build">
+    <ItemGroup>
+      <ProjectReference Update="@(ProjectReference)">
+        <AdditionalProperties>%(ProjectReference.AdditionalProperties);ShouldUnsetParentConfigurationAndPlatform=false</AdditionalProperties>
+      </ProjectReference>
+    </ItemGroup>
+  </Target>
+
   <Target Name="RedBoltConfigureSolutionRestore"
           BeforeTargets="_FilterRestoreGraphProjectInputItems">
     <PropertyGroup>
@@ -21,6 +29,6 @@
     <MSBuild Projects="$(RedBoltWebProject)"
              Targets="Restore;Build"
              BuildInParallel="false"
-             Properties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm" />
+             Properties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm;ShouldUnsetParentConfigurationAndPlatform=false" />
   </Target>
 </Project>
