@@ -239,6 +239,40 @@ public sealed class EaseTests
         Assert.Equal([0.0f, EaseMath.BounceInOut(0.25f)], innerAction.State.Updates);
     }
 
+    [Fact]
+    public void Sine_in_and_out_reverse_each_other()
+    {
+        using var innerAction = new RecordingAction();
+        innerAction.SetDuration(1.0f);
+        using var action = new EaseSineOut();
+        action.SetInnerAction(innerAction);
+
+        Assert.Equal(EaseMath.SineOut(0.5f), action.Ease(0.5f));
+
+        using var reversed = Assert.IsType<EaseSineIn>(action.Reverse());
+        Assert.Equal(EaseMath.SineIn(0.5f), reversed.Ease(0.5f));
+        Assert.NotNull(reversed.InnerAction);
+        Assert.Same(innerAction, reversed.InnerAction.Reverse());
+    }
+
+    [Fact]
+    public void Sine_out_updates_inner_action_with_eased_time()
+    {
+        using var manager = new ActionManager(false);
+        using var target = new BaseAction();
+        using var innerAction = new RecordingAction();
+        innerAction.SetDuration(1.0f);
+        using var action = new EaseSineOut();
+        action.SetInnerAction(innerAction);
+
+        Assert.NotNull(manager.AddAction(action, target));
+        manager.Update(0.0f);
+        manager.Update(0.5f);
+
+        Assert.NotNull(innerAction.State);
+        Assert.Equal([0.0f, EaseMath.SineOut(0.5f)], innerAction.State.Updates);
+    }
+
     private sealed class RecordingAction : FiniteTimeAction
     {
         public RecordingState? State { get; private set; }

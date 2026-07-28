@@ -224,7 +224,8 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `EaseBackInOut : ActionEase`
   - [x] `EaseBounceOut/In : ActionEase`
   - [x] `EaseBounceInOut : ActionEase`
-  - [ ] `EaseSineOut/In/InOut : ActionEase`
+  - [x] `EaseSineOut/In : ActionEase`
+  - [ ] `EaseSineInOut : ActionEase`
   - [ ] `EaseExponentialOut/In/InOut : ActionEase`
   - [ ] `EaseElasticIn/Out/InOut : EaseElastic`
 - [ ] `CallFunc.h`

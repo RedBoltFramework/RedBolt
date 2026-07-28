@@ -310,3 +310,59 @@ public partial class EaseBounceInOut : ActionEase
         return new ActionEaseState(this, target);
     }
 }
+
+/// -------------------------------------------------------------------
+/// <summary>SineOut easing action.</summary>
+[Reflected]
+public partial class EaseSineOut : ActionEase
+{
+    /// <summary>Construct.</summary>
+    public EaseSineOut()
+    {
+    }
+
+    /// <summary>Create reversed action.</summary>
+    public override FiniteTimeAction Reverse()
+    {
+        var result = new EaseSineIn();
+        result.SetInnerAction(InnerAction!.Reverse());
+        return result;
+    }
+
+    /// <summary>Apply easing function to the time argument.</summary>
+    public override float Ease(float time) => EaseMath.SineOut(time);
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new ActionEaseState(this, target);
+    }
+}
+
+/// -------------------------------------------------------------------
+/// <summary>SineIn easing action.</summary>
+[Reflected]
+public partial class EaseSineIn : ActionEase
+{
+    /// <summary>Construct.</summary>
+    public EaseSineIn()
+    {
+    }
+
+    /// <summary>Create reversed action.</summary>
+    public override FiniteTimeAction Reverse()
+    {
+        var result = new EaseSineOut();
+        result.SetInnerAction(InnerAction!.Reverse());
+        return result;
+    }
+
+    /// <summary>Apply easing function to the time argument.</summary>
+    public override float Ease(float time) => EaseMath.SineIn(time);
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new ActionEaseState(this, target);
+    }
+}
