@@ -353,7 +353,7 @@ public class StereoRenderPipelineView : RenderPipelineView
     protected uint _oldPipelineStateHash;
     protected bool _settingsDirty;
 
-    public StereoRenderPipelineView(RenderPipelineComponent pipeline)
+    public StereoRenderPipelineView(RenderPipeline pipeline)
         : base(pipeline)
     {
         var settings = pipeline.Settings;
@@ -866,15 +866,15 @@ public class StereoRenderPipelineView : RenderPipelineView
         _renderBufferManager!.SetSettings(_settings.RenderBufferManager);
     }
 
-    private void OnSettingsChanged(RenderPipelineComponent pipeline, RenderPipelineSettings settings) => SetSettings(in settings);
+    private void OnSettingsChanged(RenderPipeline pipeline, RenderPipelineSettings settings) => SetSettings(in settings);
 
-    private void OnRenderPathChanged(RenderPipelineComponent pipeline, RenderPath? renderPath) => SetRenderPath(renderPath);
+    private void OnRenderPathChanged(RenderPipeline pipeline, RenderPath? renderPath) => SetRenderPath(renderPath);
 
-    private void OnParametersChanged(RenderPipelineComponent pipeline) => MarkParametersDirty();
+    private void OnParametersChanged(RenderPipeline pipeline) => MarkParametersDirty();
 }
 
 [Reflected]
-public partial class StereoRenderPipeline : RenderPipelineComponent
+public partial class StereoRenderPipeline : RenderPipeline
 {
     public StereoRenderPipeline()
     {

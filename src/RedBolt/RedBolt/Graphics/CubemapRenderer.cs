@@ -144,7 +144,7 @@ public class CubemapRenderer : RedObject
     private readonly WeakReference<Scene> _scene;
     private readonly Node[] _renderCameraNodes = new Node[(int)CubeMapFace.MaxCubeMapFaces];
     private readonly Viewport[] _viewports = new Viewport[(int)CubeMapFace.MaxCubeMapFaces];
-    private readonly RenderPipelineComponent _renderPipeline;
+    private readonly RenderPipeline _renderPipeline;
     private readonly TextureCube _viewportTexture = new();
     private readonly TextureCube _filteredTexture = new();
 
@@ -159,7 +159,7 @@ public class CubemapRenderer : RedObject
     public CubemapRenderer(Scene scene)
     {
         _scene = new WeakReference<Scene>(scene);
-        _renderPipeline = new RenderPipelineComponent();
+        _renderPipeline = new RenderPipeline();
         InitializeRenderPipeline();
         InitializeCameras();
     }

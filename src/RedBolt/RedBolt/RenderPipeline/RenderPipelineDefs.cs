@@ -1345,21 +1345,21 @@ public interface IRenderPipelineInterface
 /// </summary>
 public abstract class RenderPipelineView : RedObject, IRenderPipelineInterface
 {
-    private readonly RenderPipelineComponent _renderPipeline;
+    private readonly RenderPipeline _renderPipeline;
     protected readonly Graphics _graphics;
     protected readonly Renderer _renderer;
 
     protected bool _linearColorSpace;
     protected readonly List<ShaderParameterDesc> _frameParameters = [];
 
-    protected RenderPipelineView(RenderPipelineComponent renderPipeline)
+    protected RenderPipelineView(RenderPipeline renderPipeline)
     {
         _renderPipeline = renderPipeline ?? throw new ArgumentNullException(nameof(renderPipeline));
         _graphics = GetSubsystem<Graphics>()!;
         _renderer = GetSubsystem<Renderer>()!;
     }
 
-    public RenderPipelineComponent GetRenderPipeline() => _renderPipeline;
+    public RenderPipeline GetRenderPipeline() => _renderPipeline;
 
     protected void UpdateFrameParameters()
     {

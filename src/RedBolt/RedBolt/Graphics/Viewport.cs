@@ -26,7 +26,7 @@ public partial class Viewport : RedObject
     /// <summary>Whether to search for render pipeline automatically.</summary>
     private bool _autoRenderPipeline = true;
     /// <summary>Render pipeline component from scene.</summary>
-    private readonly WeakReference<RenderPipelineComponent> _renderPipeline = new(null!);
+    private readonly WeakReference<RenderPipeline> _renderPipeline = new(null!);
     /// <summary>Instance of render pipeline connected to render pipeline.</summary>
     private RenderPipelineView? _renderPipelineView;
 
@@ -51,7 +51,7 @@ public partial class Viewport : RedObject
     }
 
     /// <summary>Construct with a specified rectangle and render pipeline.</summary>
-    public Viewport(Scene? scene, Camera? camera, IntRect rect, RenderPipelineComponent? renderPipeline)
+    public Viewport(Scene? scene, Camera? camera, IntRect rect, RenderPipeline? renderPipeline)
     {
         _scene.SetTarget(scene!);
         _camera.SetTarget(camera!);
@@ -61,7 +61,7 @@ public partial class Viewport : RedObject
     }
 
     /// <summary>Construct for stereo with a render pipeline.</summary>
-    public Viewport(Scene? scene, Camera? leftEye, Camera? rightEye, RenderPipelineComponent? renderPipeline)
+    public Viewport(Scene? scene, Camera? leftEye, Camera? rightEye, RenderPipeline? renderPipeline)
     {
         _scene.SetTarget(scene!);
         _camera.SetTarget(leftEye!);
@@ -285,9 +285,9 @@ public partial class Viewport : RedObject
 
         if (renderPipeline is null && scene is not null)
         {
-            renderPipeline = scene.GetDerivedComponent<RenderPipelineComponent>();
+            renderPipeline = scene.GetDerivedComponent<RenderPipeline>();
             if (renderPipeline is null)
-                renderPipeline = scene.CreateComponent<RenderPipelineComponent>();
+                renderPipeline = scene.CreateComponent<RenderPipeline>();
             _renderPipeline.SetTarget(renderPipeline);
         }
 

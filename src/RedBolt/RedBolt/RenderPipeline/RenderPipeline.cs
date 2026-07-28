@@ -10,19 +10,19 @@ using RedBolt.Scene;
 /// Scene component that spawns render pipeline instances.
 /// </summary>
 [Reflected]
-public partial class RenderPipelineComponent : Component
+public partial class RenderPipeline : Component
 {
     private static readonly ResourceRef DefaultRenderPath =
         new(new StringHash(nameof(RenderPath)), "RenderPaths/Default.renderpath");
 
     /// <summary>Invoked when settings change.</summary>
-    public event Action<RenderPipelineComponent, RenderPipelineSettings>? SettingsChanged;
+    public event Action<RenderPipeline, RenderPipelineSettings>? SettingsChanged;
 
     /// <summary>Invoked when render path changes.</summary>
-    public event Action<RenderPipelineComponent, RenderPath?>? RenderPathChanged;
+    public event Action<RenderPipeline, RenderPath?>? RenderPathChanged;
 
     /// <summary>Invoked when render path parameters change.</summary>
-    public event Action<RenderPipelineComponent>? ParametersChanged;
+    public event Action<RenderPipeline>? ParametersChanged;
 
     private RenderPath? _renderPath;
     private IReadOnlyList<(string Name, bool Enabled)> _renderPasses = [];
@@ -33,7 +33,7 @@ public partial class RenderPipelineComponent : Component
     [ThreadStatic]
     private static VariantVector? _renderPassesAttributeResult;
 
-    public RenderPipelineComponent()
+    public RenderPipeline()
     {
         SetRenderPathAttr(DefaultRenderPath);
 

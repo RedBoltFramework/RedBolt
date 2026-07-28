@@ -215,7 +215,7 @@ public sealed class CameraTests
         Assert.Equal(typeof(WeakReference<Camera>), GetPrivateFieldInfo("_camera").FieldType);
         Assert.Equal(typeof(WeakReference<Camera>), GetPrivateFieldInfo("_rightEye").FieldType);
         Assert.Equal(typeof(WeakReference<Camera>), GetPrivateFieldInfo("_cullCamera").FieldType);
-        Assert.Equal(typeof(WeakReference<RenderPipelineComponent>), GetPrivateFieldInfo("_renderPipeline").FieldType);
+        Assert.Equal(typeof(WeakReference<RenderPipeline>), GetPrivateFieldInfo("_renderPipeline").FieldType);
         Assert.Equal(typeof(RenderPipelineView), GetPrivateFieldInfo("_renderPipelineView").FieldType);
     }
 
@@ -264,9 +264,9 @@ public sealed class CameraTests
     {
         var firstScene = new Scene();
         var firstCamera = firstScene.CreateChild("Camera").CreateComponent<Camera>();
-        firstScene.CreateComponent<RenderPipelineComponent>();
+        firstScene.CreateComponent<RenderPipeline>();
         var secondScene = new Scene();
-        secondScene.CreateComponent<RenderPipelineComponent>();
+        secondScene.CreateComponent<RenderPipeline>();
 
         var viewport = new Viewport(firstScene, firstCamera);
         viewport.AllocateView();
@@ -280,14 +280,14 @@ public sealed class CameraTests
 
         Assert.NotNull(secondView);
         Assert.NotSame(firstView, secondView);
-        Assert.Same(secondScene.GetComponent<RenderPipelineComponent>(), secondView.GetRenderPipeline());
+        Assert.Same(secondScene.GetComponent<RenderPipeline>(), secondView.GetRenderPipeline());
     }
 
     [Fact]
     public void Viewport_destroys_owned_render_pipeline_view_at_reset_boundaries()
     {
         var scene = new Scene();
-        var renderPipeline = new RenderPipelineComponent();
+        var renderPipeline = new RenderPipeline();
         var firstView = new TrackingRenderPipelineView(renderPipeline);
         var viewport = new Viewport(scene, null);
         SetPrivateField(viewport, "_renderPipelineView", firstView);
@@ -333,7 +333,7 @@ public sealed class CameraTests
         private FrameInfo _frameInfo;
         private RenderPipelineStats _stats;
 
-        public TrackingRenderPipelineView(RenderPipelineComponent renderPipeline)
+        public TrackingRenderPipelineView(RenderPipeline renderPipeline)
             : base(renderPipeline)
         {
         }

@@ -95,7 +95,7 @@ public sealed class RenderPipelineDebuggerTests
     [Fact]
     public void Each_render_pipeline_view_owns_its_debugger()
     {
-        var pipeline = new RenderPipelineComponent();
+        var pipeline = new RenderPipeline();
         var firstView = pipeline.Instantiate();
         var secondView = pipeline.Instantiate();
 
@@ -164,7 +164,7 @@ public sealed class RenderPipelineDebuggerTests
             Distance = 12.5f
         };
 
-        var pipeline = new RenderPipelineComponent();
+        var pipeline = new RenderPipeline();
         var view = pipeline.Instantiate();
         var processor = new DrawableProcessor(view);
         processor.OnUpdateBegin(new FrameInfo { Scene = scene, Octree = octree, Camera = camera });
@@ -195,7 +195,7 @@ public sealed class RenderPipelineDebuggerTests
         var light = scene.CreateChild("Light").CreateComponent<Light>();
         var drawable = scene.CreateChild("Model").CreateComponent<StaticModel>();
 
-        var pipeline = new RenderPipelineComponent();
+        var pipeline = new RenderPipeline();
         var view = pipeline.Instantiate();
         var processor = new DrawableProcessor(view);
         processor.OnUpdateBegin(new FrameInfo { Scene = scene, Octree = octree, Camera = camera });

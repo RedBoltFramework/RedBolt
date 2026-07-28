@@ -70,7 +70,7 @@ public class DefaultRenderPipelineView : RenderPipelineView
     private readonly ShaderParameterDesc[] _cameraParameters = new ShaderParameterDesc[2];
     private readonly ShaderResourceDesc[] _depthAndColorTextures = new ShaderResourceDesc[2];
 
-    public DefaultRenderPipelineView(RenderPipelineComponent renderPipeline)
+    public DefaultRenderPipelineView(RenderPipeline renderPipeline)
         : base(renderPipeline)
     {
         SetSettings(renderPipeline.Settings);
@@ -761,9 +761,9 @@ public class DefaultRenderPipelineView : RenderPipelineView
         result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
     }
 
-    private void OnSettingsChanged(RenderPipelineComponent pipeline, RenderPipelineSettings settings) => SetSettings(in settings);
+    private void OnSettingsChanged(RenderPipeline pipeline, RenderPipelineSettings settings) => SetSettings(in settings);
 
-    private void OnRenderPathChanged(RenderPipelineComponent pipeline, RenderPath? renderPath) => SetRenderPath(renderPath);
+    private void OnRenderPathChanged(RenderPipeline pipeline, RenderPath? renderPath) => SetRenderPath(renderPath);
 
-    private void OnParametersChanged(RenderPipelineComponent pipeline) => MarkParametersDirty();
+    private void OnParametersChanged(RenderPipeline pipeline) => MarkParametersDirty();
 }
