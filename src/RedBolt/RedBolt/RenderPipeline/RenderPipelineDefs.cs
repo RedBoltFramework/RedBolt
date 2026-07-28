@@ -420,6 +420,18 @@ public interface BatchStateCacheCallback
 }
 
 /// <summary>
+/// Pipeline state cache callback used to create actual pipeline state for UI batches.
+/// </summary>
+public interface UIBatchStateCacheCallback
+{
+    /// <summary>
+    /// Create pipeline state for given key.
+    /// Only attributes that constribute to pipeline state hashes are safe to use.
+    /// </summary>
+    PipelineState? CreateUIBatchPipelineState(UIBatchStateKey key, UIBatchStateCreateContext context);
+}
+
+/// <summary>
 /// Light processor callback.
 /// </summary>
 /// <remarks>

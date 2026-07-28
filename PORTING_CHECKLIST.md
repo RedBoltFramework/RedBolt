@@ -617,6 +617,7 @@ Accepted deviations:
   - [x] `RmlFile : Rml::FileInterface` — `WeakPtr<Context>` dropped; file ownership mapped to `GCHandle`; loaded resources tracked with stdlib `HashSet`
 - [ ] `RmlRenderer.h`
   - [ ] `RmlRenderer : Object, Rml::RenderInterface`
+  - [x] UI batch pipeline-state cache prerequisite from `RenderPipeline/BatchStateCache.h`
 - [ ] `RmlEventListeners.h`
   - [ ] `PipeEventListener : Rml::EventListener, NonCopyable`
   - [ ] `SoundEventListener : Rml::EventListener, NonCopyable`

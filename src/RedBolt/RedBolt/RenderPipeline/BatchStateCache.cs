@@ -220,3 +220,210 @@ public class BatchStateCache : IDisposable
         return entry?.IsValid == true ? entry : null;
     }
 }
+
+/// <summary>Key used to lookup cached pipeline states for UI batches.</summary>
+/// <remarks>It's assumed that all UI batches use the same vertex and index buffer formats and material pass.</remarks>
+public struct UIBatchStateKey : IEquatable<UIBatchStateKey>
+{
+    public bool LinearOutput { get; set; }
+    public PipelineStateOutputDesc OutputDesc { get; set; }
+    public Material? Material { get; set; }
+    public Pass? Pass { get; set; }
+    public BlendMode BlendMode { get; set; }
+    public uint SamplerStateHash { get; set; }
+
+    public UIBatchStateKey(bool linearOutput, PipelineStateOutputDesc outputDesc, Material? material,
+        Pass? pass, BlendMode blendMode, uint samplerStateHash)
+    {
+        LinearOutput = linearOutput;
+        OutputDesc = outputDesc;
+        Material = material;
+        Pass = pass;
+        BlendMode = blendMode;
+        SamplerStateHash = samplerStateHash;
+    }
+
+    public readonly bool Equals(UIBatchStateKey rhs)
+    {
+        return LinearOutput == rhs.LinearOutput
+            && OutputDesc.Equals(rhs.OutputDesc)
+            && ReferenceEquals(Material, rhs.Material)
+            && ReferenceEquals(Pass, rhs.Pass)
+            && BlendMode == rhs.BlendMode
+            && SamplerStateHash == rhs.SamplerStateHash;
+    }
+
+    public readonly uint ToHash()
+    {
+        var hash = 0u;
+        CombineHash(ref hash, LinearOutput ? 1u : 0u);
+        CombineHash(ref hash, OutputDesc.ToHash());
+        CombineHash(ref hash, MakeHash(Material));
+        CombineHash(ref hash, MakeHash(Pass));
+        CombineHash(ref hash, (uint)BlendMode);
+        CombineHash(ref hash, SamplerStateHash);
+        return hash;
+    }
+
+    public static bool operator ==(UIBatchStateKey left, UIBatchStateKey right) => left.Equals(right);
+
+    public static bool operator !=(UIBatchStateKey left, UIBatchStateKey right) => !left.Equals(right);
+
+    public override readonly bool Equals(object? obj) => obj is UIBatchStateKey rhs && Equals(rhs);
+
+    public override readonly int GetHashCode() => unchecked((int)ToHash());
+
+    private static uint MakeHash(object? value) => value is null ? 0u : unchecked((uint)RuntimeHelpers.GetHashCode(value));
+
+    private static void CombineHash(ref uint hash, uint value)
+    {
+        hash ^= value + 0x9e3779b9u + (hash << 6) + (hash >> 2);
+    }
+}
+
+/// <summary>Pipeline state UI batch cache entry. May be invalid.</summary>
+public struct CachedUIBatchState
+{
+    /// <summary>Whether the PipelineState is invalidated and should be recreated.</summary>
+    public bool Invalidated = true;
+    public PipelineState? PipelineState { get; set; }
+
+    /// <summary>Hashes of corresponding objects at the moment of pipeline state creation.</summary>
+    public uint MaterialHash { get; set; }
+    public uint PassHash { get; set; }
+
+    public CachedUIBatchState()
+    {
+    }
+}
+
+/// <summary>External context that is not present in the key but is necessary to create new pipeline state for UI batch.</summary>
+public struct UIBatchStateCreateContext
+{
+    public VertexBuffer? VertexBuffer { get; set; }
+    public IndexBuffer? IndexBuffer { get; set; }
+    public SamplerStateDesc? DefaultSampler { get; set; }
+
+    public UIBatchStateCreateContext(
+        VertexBuffer? vertexBuffer, IndexBuffer? indexBuffer, SamplerStateDesc? defaultSampler = null)
+    {
+        VertexBuffer = vertexBuffer;
+        IndexBuffer = indexBuffer;
+        DefaultSampler = defaultSampler;
+    }
+}
+
+/// <summary>Pipeline state cache for UI batches.</summary>
+public class UIBatchStateCache : IDisposable
+{
+    private readonly Dictionary<UIBatchStateKey, CachedUIBatchState> _cache = [];
+
+    public void Dispose() => _cache.Clear();
+
+    /// <summary>Invalidate cache.</summary>
+    public void Invalidate() => _cache.Clear();
+
+    /// <summary>Return existing pipeline state or null if not found. Thread-safe. Resulting state may be invalid.</summary>
+    public PipelineState? GetPipelineState(UIBatchStateKey key)
+    {
+        ref var entry = ref CollectionsMarshal.GetValueRefOrNullRef(_cache, key);
+        if (Unsafe.IsNullRef(ref entry) || Volatile.Read(ref entry.Invalidated))
+            return null;
+
+        if (entry.PipelineState is null
+            || key.Material!.GetPipelineStateHash() != entry.MaterialHash
+            || key.Pass!.GetPipelineStateHash() != entry.PassHash)
+        {
+            Volatile.Write(ref entry.Invalidated, true);
+            return null;
+        }
+
+        return entry.PipelineState;
+    }
+
+    /// <summary>Return existing or create new pipeline state. Not thread safe. Resulting state may be invalid.</summary>
+    public PipelineState? GetOrCreatePipelineState(
+        UIBatchStateKey key, UIBatchStateCreateContext context, UIBatchStateCacheCallback callback)
+    {
+        ref var entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_cache, key, out var exists);
+        if (!exists)
+            entry.Invalidated = true;
+        if (entry.PipelineState is null || Volatile.Read(ref entry.Invalidated)
+            || key.Material!.GetPipelineStateHash() != entry.MaterialHash
+            || key.Pass!.GetPipelineStateHash() != entry.PassHash)
+        {
+            entry.PipelineState = callback.CreateUIBatchPipelineState(key, context);
+            entry.MaterialHash = key.Material!.GetPipelineStateHash();
+            entry.PassHash = key.Pass!.GetPipelineStateHash();
+            Volatile.Write(ref entry.Invalidated, false);
+        }
+
+        return entry.PipelineState;
+    }
+}
+
+/// <summary>Default implementation of UIBatchStateCache.</summary>
+public class DefaultUIBatchStateCache : RedObject, UIBatchStateCacheCallback
+{
+    private readonly UIBatchStateCache _cache = new();
+    private string _vertexShaderDefines = string.Empty;
+    private string _pixelShaderDefines = string.Empty;
+
+    public override void Dispose()
+    {
+        _cache.Dispose();
+        base.Dispose();
+    }
+
+    public void Invalidate() => _cache.Invalidate();
+
+    public PipelineState? GetPipelineState(UIBatchStateKey key) => _cache.GetPipelineState(key);
+
+    public PipelineState? GetOrCreatePipelineState(UIBatchStateKey key, UIBatchStateCreateContext context)
+    {
+        return _cache.GetOrCreatePipelineState(key, context, this);
+    }
+
+    PipelineState? UIBatchStateCacheCallback.CreateUIBatchPipelineState(
+        UIBatchStateKey key, UIBatchStateCreateContext context)
+    {
+        var graphics = GetSubsystem<Graphics>();
+        var pipelineStateCache = GetSubsystem<PipelineStateCache>();
+
+        var desc = new GraphicsPipelineStateDesc
+        {
+            DebugName = $"UI Batch for '{key.Material!.Name}'"
+        };
+
+        GraphicsUtils.InitializeInputLayout(ref desc.InputLayout, [context.VertexBuffer]);
+        desc.PrimitiveType = PrimitiveType.TriangleList;
+        desc.Output = key.OutputDesc;
+        desc.ColorWriteEnabled = true;
+        desc.CullMode = CullMode.None;
+        desc.DepthCompareFunction = CompareMode.Always;
+        desc.DepthWriteEnabled = false;
+        desc.FillMode = FillMode.Solid;
+        desc.StencilTestEnabled = false;
+        desc.BlendMode = key.BlendMode;
+        desc.ScissorTestEnabled = true;
+
+        foreach (var (nameHash, texture) in key.Material.GetTextures())
+            desc.Samplers.Add(nameHash, texture.Texture.GetSamplerStateDesc());
+        if (context.DefaultSampler is { } defaultSampler)
+            desc.Samplers.Add(ShaderResources.Albedo, defaultSampler);
+
+        _vertexShaderDefines = key.Pass!.GetEffectiveVertexShaderDefines();
+        _pixelShaderDefines = key.Pass.GetEffectivePixelShaderDefines();
+
+        if (key.LinearOutput)
+        {
+            _vertexShaderDefines += " URHO3D_LINEAR_OUTPUT";
+            _pixelShaderDefines += " URHO3D_LINEAR_OUTPUT";
+        }
+
+        desc.VertexShader = graphics!.GetShader(ShaderType.VS, key.Pass.VertexShader, _vertexShaderDefines);
+        desc.PixelShader = graphics.GetShader(ShaderType.PS, key.Pass.PixelShader, _pixelShaderDefines);
+
+        return pipelineStateCache!.GetGraphicsPipelineState(desc);
+    }
+}

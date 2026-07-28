@@ -31,6 +31,18 @@ public sealed class BatchStateCacheTests
         }
     }
 
+    private sealed class UIBatchCallback : UIBatchStateCacheCallback
+    {
+        public PipelineState? State;
+        public int CreateCount;
+
+        public PipelineState? CreateUIBatchPipelineState(UIBatchStateKey key, UIBatchStateCreateContext context)
+        {
+            ++CreateCount;
+            return State;
+        }
+    }
+
     private readonly GraphicsEngineFixture _fixture;
 
     public BatchStateCacheTests(GraphicsEngineFixture fixture)
@@ -111,6 +123,31 @@ public sealed class BatchStateCacheTests
         Assert.Equal(0, placeholders.Count);
         Assert.Null(typeof(BatchStateCache).GetField("_outputDesc", System.Reflection.BindingFlags.Instance
             | System.Reflection.BindingFlags.NonPublic)!.GetValue(cache));
+    }
+
+    [Fact]
+    public void UI_batch_cache_reuses_and_invalidates_state_like_cpp()
+    {
+        using var material = new Material { Name = "UI Cache Material" };
+        using var technique = new Technique { Name = "UI Cache Technique" };
+        var pass = technique.CreatePass("base");
+        using var state = new PipelineState(_fixture.PipelineStateCache, CreateUnavailablePipelineStateDesc());
+        var callback = new UIBatchCallback { State = state };
+        using var cache = new UIBatchStateCache();
+        var key = new UIBatchStateKey(false, new PipelineStateOutputDesc(), material, pass, BlendMode.Alpha, 0);
+
+        Assert.Same(state, cache.GetOrCreatePipelineState(key, default, callback));
+        Assert.Same(state, cache.GetPipelineState(key));
+        Assert.Same(state, cache.GetOrCreatePipelineState(key, default, callback));
+        Assert.Equal(1, callback.CreateCount);
+
+        material.SetCullMode(CullMode.Clockwise);
+        Assert.Null(cache.GetPipelineState(key));
+        Assert.Same(state, cache.GetOrCreatePipelineState(key, default, callback));
+        Assert.Equal(2, callback.CreateCount);
+
+        cache.Invalidate();
+        Assert.Null(cache.GetPipelineState(key));
     }
 
     private static PipelineStateDesc CreateUnavailablePipelineStateDesc()
