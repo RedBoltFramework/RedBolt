@@ -40,37 +40,6 @@ namespace RedBolt.Graphics;
 /// Component that drives an AnimatedModel's animations.
 /// </summary>
 [Reflected(ObjectCategory.Category_Logic)]
-[Serialized(
-    "Is Enabled",
-    typeof(bool),
-    DefaultSource = nameof(GetIsEnabledAttributeDefault),
-    Getter = nameof(Enabled),
-    Setter = nameof(SetEnabled)
-)]
-[Serialized(
-    "Reset Skeleton",
-    typeof(bool),
-    DefaultSource = nameof(GetResetSkeletonAttributeDefault),
-    Getter = nameof(IsSkeletonReset),
-    Setter = nameof(SetSkeletonReset)
-)]
-[Serialized(
-    "Animations",
-    typeof(VariantVector),
-    Configure = nameof(ConfigureAnimationsAttribute),
-    DefaultSource = nameof(GetAnimationsAttributeDefault),
-    Getter = nameof(GetAnimationsAttr),
-    Setter = nameof(SetAnimationsAttr)
-)]
-[Serialized(
-    "Update Pose",
-    typeof(bool),
-    Configure = nameof(ConfigureUpdatePoseAttribute),
-    DefaultSource = nameof(GetUpdatePoseAttributeDefault),
-    Getter = nameof(GetSerializedUpdatePose),
-    Mode = AttributeMode.Edit,
-    Setter = nameof(SetSerializedUpdatePose)
-)]
 public partial class AnimationController : AnimationStateSource
 {
     private const int InvalidAnimationIndex = -1;
@@ -673,6 +642,12 @@ public partial class AnimationController : AnimationStateSource
         return parameters?.SpeedValue ?? 0.0f;
     }
 
+    [Serialized(
+        "Reset Skeleton",
+        DefaultSource = nameof(GetResetSkeletonAttributeDefault),
+        Setter = nameof(SetSkeletonReset),
+        Order = 1
+    )]
     public bool IsSkeletonReset() => _resetSkeleton;
 
     public void SetSkeletonReset(bool resetSkeleton) => _resetSkeleton = resetSkeleton;
@@ -707,6 +682,13 @@ public partial class AnimationController : AnimationStateSource
     /// <summary>
     /// Return animation parameters attribute.
     /// </summary>
+    [Serialized(
+        "Animations",
+        Configure = nameof(ConfigureAnimationsAttribute),
+        DefaultSource = nameof(GetAnimationsAttributeDefault),
+        Setter = nameof(SetAnimationsAttr),
+        Order = 2
+    )]
     public VariantVector GetAnimationsAttr()
     {
         var numAnimations = _animations.Count;
@@ -1126,6 +1108,15 @@ public partial class AnimationController : AnimationStateSource
         attribute.SetMetadata(AttributeMetadata.IsAction, true);
     }
 
+    [Serialized(
+        "Update Pose",
+        typeof(bool),
+        Configure = nameof(ConfigureUpdatePoseAttribute),
+        DefaultSource = nameof(GetUpdatePoseAttributeDefault),
+        Mode = AttributeMode.Edit,
+        Setter = nameof(SetSerializedUpdatePose),
+        Order = 3
+    )]
     private object? GetSerializedUpdatePose() => string.Empty;
 
     private void SetSerializedUpdatePose(object? value)
@@ -1133,5 +1124,17 @@ public partial class AnimationController : AnimationStateSource
         Serializable self = this;
         if (value is true)
             ((AnimationController)self).UpdatePose();
+    }
+
+
+    [Serialized(
+        "Is Enabled",
+        DefaultSource = nameof(GetIsEnabledAttributeDefault),
+        Order = 0
+    )]
+    private bool SerializedIsEnabled
+    {
+        get => Enabled;
+        set => SetEnabled(value);
     }
 }

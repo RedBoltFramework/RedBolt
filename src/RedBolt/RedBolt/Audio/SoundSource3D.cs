@@ -13,47 +13,17 @@ namespace RedBolt.Audio;
 [Reflected(ObjectCategory.Category_Audio)]
 [RemoveSerialized("Attenuation")]
 [RemoveSerialized("Panning")]
-[Serialized(
-    "Near Distance",
-    typeof(float),
-    DefaultSource = nameof(GetNearDistanceAttributeDefault),
-    Getter = nameof(_nearDistance),
-    Setter = nameof(_nearDistance)
-)]
-[Serialized(
-    "Far Distance",
-    typeof(float),
-    DefaultSource = nameof(GetFarDistanceAttributeDefault),
-    Getter = nameof(_farDistance),
-    Setter = nameof(_farDistance)
-)]
-[Serialized(
-    "Inner Angle",
-    typeof(float),
-    DefaultSource = nameof(GetInnerAngleAttributeDefault),
-    Getter = nameof(_innerAngle),
-    Setter = nameof(_innerAngle)
-)]
-[Serialized(
-    "Outer Angle",
-    typeof(float),
-    DefaultSource = nameof(GetOuterAngleAttributeDefault),
-    Getter = nameof(_outerAngle),
-    Setter = nameof(_outerAngle)
-)]
-[Serialized(
-    "Rolloff Factor",
-    typeof(float),
-    DefaultSource = nameof(GetRolloffFactorAttributeDefault),
-    Getter = nameof(_rolloffFactor),
-    Setter = nameof(_rolloffFactor)
-)]
 public sealed partial class SoundSource3D : SoundSource
 {
+    [Serialized("Near Distance")]
     private float _nearDistance;
+    [Serialized("Far Distance")]
     private float _farDistance = 100.0f;
+    [Serialized("Inner Angle")]
     private float _innerAngle = 360.0f;
+    [Serialized("Outer Angle")]
     private float _outerAngle = 360.0f;
+    [Serialized("Rolloff Factor")]
     private float _rolloffFactor = 2.0f;
 
     public SoundSource3D()
@@ -180,13 +150,5 @@ public sealed partial class SoundSource3D : SoundSource
         }
     }
 
-    private static object? GetNearDistanceAttributeDefault() => 0.0f;
 
-    private static object? GetFarDistanceAttributeDefault() => 100.0f;
-
-    private static object? GetInnerAngleAttributeDefault() => 360.0f;
-
-    private static object? GetOuterAngleAttributeDefault() => 360.0f;
-
-    private static object? GetRolloffFactorAttributeDefault() => 2.0f;
 }

@@ -21,14 +21,7 @@ public struct CustomGeometryVertex
     public Vector4f Tangent;
 }
 
-[Reflected(ObjectCategory.Category_Geometry)]
-[Serialized(
-    "Is Enabled",
-    typeof(bool),
-    DefaultSource = nameof(GetIsEnabledAttributeDefault),
-    Getter = nameof(Enabled),
-    Setter = nameof(SetEnabled)
-)]
+[Reflected(ObjectCategory.Category_Geometry, InheritAttributesOrder = 1)]
 public sealed partial class CustomGeometry : Drawable
 {
     private const uint MaskPosition = (uint)VertexMask.Position;
@@ -542,4 +535,16 @@ public sealed partial class CustomGeometry : Drawable
     }
 
     private static object? GetIsEnabledAttributeDefault() => true;
+
+
+    [Serialized(
+        "Is Enabled",
+        DefaultSource = nameof(GetIsEnabledAttributeDefault),
+        Order = 0
+    )]
+    private bool SerializedIsEnabled
+    {
+        get => Enabled;
+        set => SetEnabled(value);
+    }
 }

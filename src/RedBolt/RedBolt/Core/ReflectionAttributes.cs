@@ -18,10 +18,14 @@ public sealed class ReflectedAttribute : Attribute
     public bool Factory { get; set; } = true;
 
     public bool InheritAttributes { get; set; } = true;
+
+    public Type? InheritAttributesFrom { get; set; }
+
+    public int InheritAttributesOrder { get; set; }
 }
 
 [AttributeUsage(
-    AttributeTargets.Class | AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Method,
+    AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Method,
     AllowMultiple = true,
     Inherited = false)]
 public sealed class SerializedAttribute : Attribute
@@ -56,6 +60,8 @@ public sealed class SerializedAttribute : Attribute
     public string? Getter { get; set; }
 
     public AttributeMode Mode { get; set; } = AttributeMode.Default;
+
+    public int Order { get; set; } = int.MaxValue;
 
     public string? Setter { get; set; }
 

@@ -6,55 +6,6 @@ using RedBolt.Scene;
 namespace RedBolt.Input;
 
 [Reflected]
-[Serialized(
-    "Speed",
-    typeof(float),
-    DefaultSource = nameof(GetSpeedAttributeDefault),
-    Getter = nameof(GetSpeed),
-    Setter = nameof(SetSpeed)
-)]
-[Serialized(
-    "Accelerated Speed",
-    typeof(float),
-    DefaultSource = nameof(GetAcceleratedSpeedAttributeDefault),
-    Getter = nameof(GetAcceleratedSpeed),
-    Setter = nameof(SetAcceleratedSpeed)
-)]
-[Serialized(
-    "Min Pitch",
-    typeof(float),
-    DefaultSource = nameof(GetMinPitchAttributeDefault),
-    Getter = nameof(GetMinPitch),
-    Setter = nameof(SetMinPitch)
-)]
-[Serialized(
-    "Max Pitch",
-    typeof(float),
-    DefaultSource = nameof(GetMaxPitchAttributeDefault),
-    Getter = nameof(GetMaxPitch),
-    Setter = nameof(SetMaxPitch)
-)]
-[Serialized(
-    "Mouse Sensitivity",
-    typeof(float),
-    DefaultSource = nameof(GetMouseSensitivityAttributeDefault),
-    Getter = nameof(GetMouseSensitivity),
-    Setter = nameof(SetMouseSensitivity)
-)]
-[Serialized(
-    "Touch Sensitivity",
-    typeof(float),
-    DefaultSource = nameof(GetTouchSensitivityAttributeDefault),
-    Getter = nameof(GetTouchSensitivity),
-    Setter = nameof(SetTouchSensitivity)
-)]
-[Serialized(
-    "Axis Sensitivity",
-    typeof(float),
-    DefaultSource = nameof(GetAxisSensitivityAttributeDefault),
-    Getter = nameof(GetAxisSensitivity),
-    Setter = nameof(SetAxisSensitivity)
-)]
 public partial class FreeFlyController : Component
 {
     private const float DefaultMouseSensitivity = 0.1f;
@@ -519,17 +470,45 @@ public partial class FreeFlyController : Component
     }
 
     /// <summary>Camera speed.</summary>
+    [Serialized(
+        "Speed",
+        Order = 0
+    )]
     private float _speed = 20.0f;
     /// <summary>Camera accelerated speed.</summary>
+    [Serialized(
+        "Accelerated Speed",
+        Order = 1
+    )]
     private float _acceleratedSpeed = 100.0f;
     /// <summary>Mouse sensitivity</summary>
+    [Serialized(
+        "Mouse Sensitivity",
+        Order = 4
+    )]
     private float _mouseSensitivity = DefaultMouseSensitivity;
     /// <summary>Touch sensitivity</summary>
+    [Serialized(
+        "Touch Sensitivity",
+        Order = 5
+    )]
     private float _touchSensitivity = DefaultTouchRotationSensitivity;
     /// <summary>Axis sensitivity</summary>
+    [Serialized(
+        "Axis Sensitivity",
+        Order = 6
+    )]
     private float _axisSensitivity = DefaultAxisRotationSensitivity;
     /// <summary>Pitch range</summary>
+    [Serialized(
+        "Min Pitch",
+        Order = 2
+    )]
     private float _minPitch = -90.0f;
+    [Serialized(
+        "Max Pitch",
+        Order = 3
+    )]
     private float _maxPitch = 90.0f;
     /// <summary>Gamepad default axis adapter</summary>
     private AxisAdapter _axisAdapter = new();
@@ -549,17 +528,4 @@ public partial class FreeFlyController : Component
     private bool _oldMouseVisible;
     private MouseMode _oldMouseMode;
 
-    private static object? GetSpeedAttributeDefault() => 20.0f;
-
-    private static object? GetAcceleratedSpeedAttributeDefault() => 100.0f;
-
-    private static object? GetMinPitchAttributeDefault() => -90.0f;
-
-    private static object? GetMaxPitchAttributeDefault() => 90.0f;
-
-    private static object? GetMouseSensitivityAttributeDefault() => DefaultMouseSensitivity;
-
-    private static object? GetTouchSensitivityAttributeDefault() => DefaultTouchRotationSensitivity;
-
-    private static object? GetAxisSensitivityAttributeDefault() => DefaultAxisRotationSensitivity;
 }

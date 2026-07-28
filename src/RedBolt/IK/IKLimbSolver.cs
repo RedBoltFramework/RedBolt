@@ -49,77 +49,77 @@ public partial class IKLimbSolver : IKSolverComponent
     }
 
     /// <summary>Attributes.</summary>
-    [Serialized("Bone 0 Name", DefaultSource = nameof(_firstBoneName))]
+    [Serialized("Bone 0 Name")]
     public string FirstBoneName
     {
         get => _firstBoneName;
         set { _firstBoneName = value; OnTreeDirty(); }
     }
 
-    [Serialized("Bone 1 Name", DefaultSource = nameof(_secondBoneName))]
+    [Serialized("Bone 1 Name")]
     public string SecondBoneName
     {
         get => _secondBoneName;
         set { _secondBoneName = value; OnTreeDirty(); }
     }
 
-    [Serialized("Bone 2 Name", DefaultSource = nameof(_thirdBoneName))]
+    [Serialized("Bone 2 Name")]
     public string ThirdBoneName
     {
         get => _thirdBoneName;
         set { _thirdBoneName = value; OnTreeDirty(); }
     }
 
-    [Serialized("Target Name", DefaultSource = nameof(_targetName))]
+    [Serialized("Target Name")]
     public string TargetName
     {
         get => _targetName;
         set { _targetName = value; OnTreeDirty(); }
     }
 
-    [Serialized("Bend Target Name", DefaultSource = nameof(_bendTargetName))]
+    [Serialized("Bend Target Name")]
     public string BendTargetName
     {
         get => _bendTargetName;
         set { _bendTargetName = value; OnTreeDirty(); }
     }
 
-    [Serialized("Position Weight", DefaultSource = nameof(_positionWeight))]
+    [Serialized("Position Weight")]
     public float PositionWeight
     {
         get => _positionWeight;
         set => _positionWeight = value;
     }
 
-    [Serialized("Rotation Weight", DefaultSource = nameof(_rotationWeight))]
+    [Serialized("Rotation Weight")]
     public float RotationWeight
     {
         get => _rotationWeight;
         set => _rotationWeight = value;
     }
 
-    [Serialized("Bend Weight", DefaultSource = nameof(_bendWeight))]
+    [Serialized("Bend Weight")]
     public float BendWeight
     {
         get => _bendWeight;
         set => _bendWeight = value;
     }
 
-    [Serialized("Min Angle", DefaultSource = nameof(_minAngle))]
+    [Serialized("Min Angle")]
     public float MinAngle
     {
         get => _minAngle;
         set => _minAngle = value;
     }
 
-    [Serialized("Max Angle", DefaultSource = nameof(_maxAngle))]
+    [Serialized("Max Angle")]
     public float MaxAngle
     {
         get => _maxAngle;
         set => _maxAngle = value;
     }
 
-    [Serialized("Bend Direction", DefaultSource = nameof(_bendDirection))]
+    [Serialized("Bend Direction")]
     public Vector3f BendDirection
     {
         get => _bendDirection;

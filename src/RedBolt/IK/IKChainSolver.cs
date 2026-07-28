@@ -12,12 +12,6 @@ using RedBolt.Scene;
 namespace RedBolt.IK;
 
 [Reflected(ObjectCategory.Category_IK, InheritAttributes = false)]
-[Serialized(
-    "Bone Names",
-    typeof(StringVector),
-    DefaultSource = nameof(GetDefaultBoneNames),
-    Getter = nameof(GetBoneNames),
-    Setter = nameof(SetBoneNames))]
 public partial class IKChainSolver : IKSolverComponent
 {
 
@@ -60,9 +54,11 @@ public partial class IKChainSolver : IKSolverComponent
         return _boneNames;
     }
 
-    private static StringVector GetDefaultBoneNames() => new();
 
-    [Serialized("Target Name", DefaultSource = nameof(_targetName))]
+    [Serialized(
+        "Target Name",
+        Order = 1
+    )]
     public string TargetName
     {
         get => _targetName;
@@ -105,6 +101,11 @@ public partial class IKChainSolver : IKSolverComponent
         _chain.Solve(target!.WorldPosition, settings);
     }
 
+    [Serialized(
+        "Bone Names",
+        Setter = nameof(SetBoneNames),
+        Order = 0
+    )]
     private StringVector _boneNames = new StringVector();
     private string _targetName = string.Empty;
 

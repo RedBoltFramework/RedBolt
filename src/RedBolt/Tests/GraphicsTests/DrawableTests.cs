@@ -8,7 +8,7 @@ namespace RedBolt.Tests;
 
 public sealed partial class DrawableTests
 {
-    [Reflected]
+    [Reflected(InheritAttributes = false)]
     private sealed partial class UpdateProbeDrawable : Drawable
     {
         public int NumUpdates { get; private set; }

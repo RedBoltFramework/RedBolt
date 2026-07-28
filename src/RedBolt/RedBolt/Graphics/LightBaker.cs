@@ -24,126 +24,6 @@ public enum LightBakingQuality
 
 /// <summary>Light baker component.</summary>
 [Reflected(ObjectCategory.Category_Subsystem)]
-[Serialized(
-    "Output Directory",
-    typeof(string),
-    DefaultSource = nameof(GetOutputDirectoryAttributeDefault),
-    Getter = nameof(GetSerializedOutputDirectory),
-    Setter = nameof(SetSerializedOutputDirectory)
-)]
-[Serialized(
-    "Lightmap Size",
-    typeof(uint),
-    DefaultSource = nameof(GetLightmapSizeAttributeDefault),
-    Getter = nameof(GetSerializedLightmapSize),
-    Setter = nameof(SetSerializedLightmapSize)
-)]
-[Serialized(
-    "Texel Density",
-    typeof(float),
-    DefaultSource = nameof(GetTexelDensityAttributeDefault),
-    Getter = nameof(GetSerializedTexelDensity),
-    Setter = nameof(SetSerializedTexelDensity)
-)]
-[Serialized(
-    "Quality",
-    typeof(LightBakingQuality),
-    DefaultSource = nameof(GetQualityAttributeDefault),
-    EnumNamesSource = nameof(QualityNames),
-    Getter = nameof(GetQuality),
-    Setter = nameof(SetQuality)
-)]
-[Serialized(
-    "Direct Samples (Lightmap)",
-    typeof(uint),
-    DefaultSource = nameof(GetDirectSamplesLightmapAttributeDefault),
-    Getter = nameof(GetSerializedDirectSamplesLightmap),
-    Setter = nameof(SetSerializedDirectSamplesLightmap)
-)]
-[Serialized(
-    "Direct Samples (Light Probes)",
-    typeof(uint),
-    DefaultSource = nameof(GetDirectSamplesLightProbesAttributeDefault),
-    Getter = nameof(GetSerializedDirectSamplesLightProbes),
-    Setter = nameof(SetSerializedDirectSamplesLightProbes)
-)]
-[Serialized(
-    "Indirect Bounces",
-    typeof(uint),
-    DefaultSource = nameof(GetIndirectBouncesAttributeDefault),
-    Getter = nameof(GetSerializedIndirectBounces),
-    Setter = nameof(SetSerializedIndirectBounces)
-)]
-[Serialized(
-    "Indirect Samples (Texture)",
-    typeof(uint),
-    DefaultSource = nameof(GetIndirectSamplesTextureAttributeDefault),
-    Getter = nameof(GetSerializedIndirectSamplesTexture),
-    Setter = nameof(SetSerializedIndirectSamplesTexture)
-)]
-[Serialized(
-    "Indirect Samples (Light Probes)",
-    typeof(uint),
-    DefaultSource = nameof(GetIndirectSamplesLightProbesAttributeDefault),
-    Getter = nameof(GetSerializedIndirectSamplesLightProbes),
-    Setter = nameof(SetSerializedIndirectSamplesLightProbes)
-)]
-[Serialized(
-    "Filter Radius (Direct)",
-    typeof(uint),
-    DefaultSource = nameof(GetFilterRadiusDirectAttributeDefault),
-    Getter = nameof(GetSerializedFilterRadiusDirect),
-    Setter = nameof(SetSerializedFilterRadiusDirect)
-)]
-[Serialized(
-    "Filter Radius (Indirect)",
-    typeof(uint),
-    DefaultSource = nameof(GetFilterRadiusIndirectAttributeDefault),
-    Getter = nameof(GetSerializedFilterRadiusIndirect),
-    Setter = nameof(SetSerializedFilterRadiusIndirect)
-)]
-[Serialized(
-    "Chunk Size",
-    typeof(Vector3f),
-    DefaultSource = nameof(GetChunkSizeAttributeDefault),
-    Getter = nameof(GetSerializedChunkSize),
-    Setter = nameof(SetSerializedChunkSize)
-)]
-[Serialized(
-    "Chunk Indirect Padding",
-    typeof(float),
-    DefaultSource = nameof(GetChunkIndirectPaddingAttributeDefault),
-    Getter = nameof(GetSerializedChunkIndirectPadding),
-    Setter = nameof(SetSerializedChunkIndirectPadding)
-)]
-[Serialized(
-    "Chunk Shadow Distance",
-    typeof(float),
-    DefaultSource = nameof(GetChunkShadowDistanceAttributeDefault),
-    Getter = nameof(GetSerializedChunkShadowDistance),
-    Setter = nameof(SetSerializedChunkShadowDistance)
-)]
-[Serialized(
-    "Stitch Iterations",
-    typeof(uint),
-    DefaultSource = nameof(GetStitchIterationsAttributeDefault),
-    Getter = nameof(GetSerializedStitchIterations),
-    Setter = nameof(SetSerializedStitchIterations)
-)]
-[Serialized(
-    "Constant Normal Offset",
-    typeof(float),
-    DefaultSource = nameof(GetConstantNormalOffsetAttributeDefault),
-    Getter = nameof(GetSerializedConstantNormalOffset),
-    Setter = nameof(SetSerializedConstantNormalOffset)
-)]
-[Serialized(
-    "Position Scaled Normal Offset",
-    typeof(float),
-    DefaultSource = nameof(GetPositionScaledNormalOffsetAttributeDefault),
-    Getter = nameof(GetSerializedPositionScaledNormalOffset),
-    Setter = nameof(SetSerializedPositionScaledNormalOffset)
-)]
 public partial class LightBaker : Component
 {
     private static readonly LightBakingSettings DefaultSettings = new();
@@ -183,6 +63,13 @@ public partial class LightBaker : Component
     }
 
     /// <summary>Quality.</summary>
+    [Serialized(
+        "Quality",
+        DefaultSource = nameof(GetQualityAttributeDefault),
+        EnumNamesSource = nameof(QualityNames),
+        Setter = nameof(SetQuality),
+        Order = 3
+    )]
     private LightBakingQuality _quality;
 
     /// <summary>Light baking settings.</summary>
@@ -409,6 +296,13 @@ public partial class LightBaker : Component
 
     private static object? GetOutputDirectoryAttributeDefault() => string.Empty;
 
+    [Serialized(
+        "Output Directory",
+        typeof(string),
+        DefaultSource = nameof(GetOutputDirectoryAttributeDefault),
+        Setter = nameof(SetSerializedOutputDirectory),
+        Order = 0
+    )]
     private object? GetSerializedOutputDirectory()
     {
         Serializable self = this;
@@ -426,6 +320,13 @@ public partial class LightBaker : Component
 
     private static object? GetLightmapSizeAttributeDefault() => DefaultSettings.Charting.LightmapSize;
 
+    [Serialized(
+        "Lightmap Size",
+        typeof(uint),
+        DefaultSource = nameof(GetLightmapSizeAttributeDefault),
+        Setter = nameof(SetSerializedLightmapSize),
+        Order = 1
+    )]
     private object? GetSerializedLightmapSize()
     {
         Serializable self = this;
@@ -443,6 +344,13 @@ public partial class LightBaker : Component
 
     private static object? GetTexelDensityAttributeDefault() => DefaultSettings.Charting.TexelDensity;
 
+    [Serialized(
+        "Texel Density",
+        typeof(float),
+        DefaultSource = nameof(GetTexelDensityAttributeDefault),
+        Setter = nameof(SetSerializedTexelDensity),
+        Order = 2
+    )]
     private object? GetSerializedTexelDensity()
     {
         Serializable self = this;
@@ -462,6 +370,13 @@ public partial class LightBaker : Component
 
     private static object? GetDirectSamplesLightmapAttributeDefault() => DefaultSettings.DirectChartTracing.MaxSamples;
 
+    [Serialized(
+        "Direct Samples (Lightmap)",
+        typeof(uint),
+        DefaultSource = nameof(GetDirectSamplesLightmapAttributeDefault),
+        Setter = nameof(SetSerializedDirectSamplesLightmap),
+        Order = 4
+    )]
     private object? GetSerializedDirectSamplesLightmap()
     {
         Serializable self = this;
@@ -479,6 +394,13 @@ public partial class LightBaker : Component
 
     private static object? GetDirectSamplesLightProbesAttributeDefault() => DefaultSettings.DirectProbesTracing.MaxSamples;
 
+    [Serialized(
+        "Direct Samples (Light Probes)",
+        typeof(uint),
+        DefaultSource = nameof(GetDirectSamplesLightProbesAttributeDefault),
+        Setter = nameof(SetSerializedDirectSamplesLightProbes),
+        Order = 5
+    )]
     private object? GetSerializedDirectSamplesLightProbes()
     {
         Serializable self = this;
@@ -496,6 +418,13 @@ public partial class LightBaker : Component
 
     private static object? GetIndirectBouncesAttributeDefault() => DefaultSettings.IndirectChartTracing.MaxBounces;
 
+    [Serialized(
+        "Indirect Bounces",
+        typeof(uint),
+        DefaultSource = nameof(GetIndirectBouncesAttributeDefault),
+        Setter = nameof(SetSerializedIndirectBounces),
+        Order = 6
+    )]
     private object? GetSerializedIndirectBounces()
     {
         Serializable self = this;
@@ -513,6 +442,13 @@ public partial class LightBaker : Component
 
     private static object? GetIndirectSamplesTextureAttributeDefault() => DefaultSettings.IndirectChartTracing.MaxSamples;
 
+    [Serialized(
+        "Indirect Samples (Texture)",
+        typeof(uint),
+        DefaultSource = nameof(GetIndirectSamplesTextureAttributeDefault),
+        Setter = nameof(SetSerializedIndirectSamplesTexture),
+        Order = 7
+    )]
     private object? GetSerializedIndirectSamplesTexture()
     {
         Serializable self = this;
@@ -530,6 +466,13 @@ public partial class LightBaker : Component
 
     private static object? GetIndirectSamplesLightProbesAttributeDefault() => DefaultSettings.IndirectProbesTracing.MaxSamples;
 
+    [Serialized(
+        "Indirect Samples (Light Probes)",
+        typeof(uint),
+        DefaultSource = nameof(GetIndirectSamplesLightProbesAttributeDefault),
+        Setter = nameof(SetSerializedIndirectSamplesLightProbes),
+        Order = 8
+    )]
     private object? GetSerializedIndirectSamplesLightProbes()
     {
         Serializable self = this;
@@ -547,6 +490,13 @@ public partial class LightBaker : Component
 
     private static object? GetFilterRadiusDirectAttributeDefault() => (uint)DefaultSettings.DirectFilter.KernelRadius;
 
+    [Serialized(
+        "Filter Radius (Direct)",
+        typeof(uint),
+        DefaultSource = nameof(GetFilterRadiusDirectAttributeDefault),
+        Setter = nameof(SetSerializedFilterRadiusDirect),
+        Order = 9
+    )]
     private object? GetSerializedFilterRadiusDirect()
     {
         Serializable self = this;
@@ -564,6 +514,13 @@ public partial class LightBaker : Component
 
     private static object? GetFilterRadiusIndirectAttributeDefault() => (uint)DefaultSettings.IndirectFilter.KernelRadius;
 
+    [Serialized(
+        "Filter Radius (Indirect)",
+        typeof(uint),
+        DefaultSource = nameof(GetFilterRadiusIndirectAttributeDefault),
+        Setter = nameof(SetSerializedFilterRadiusIndirect),
+        Order = 10
+    )]
     private object? GetSerializedFilterRadiusIndirect()
     {
         Serializable self = this;
@@ -581,6 +538,13 @@ public partial class LightBaker : Component
 
     private static object? GetChunkSizeAttributeDefault() => DefaultSettings.Incremental.ChunkSize;
 
+    [Serialized(
+        "Chunk Size",
+        typeof(Vector3f),
+        DefaultSource = nameof(GetChunkSizeAttributeDefault),
+        Setter = nameof(SetSerializedChunkSize),
+        Order = 11
+    )]
     private object? GetSerializedChunkSize()
     {
         Serializable self = this;
@@ -598,6 +562,13 @@ public partial class LightBaker : Component
 
     private static object? GetChunkIndirectPaddingAttributeDefault() => DefaultSettings.Incremental.IndirectPadding;
 
+    [Serialized(
+        "Chunk Indirect Padding",
+        typeof(float),
+        DefaultSource = nameof(GetChunkIndirectPaddingAttributeDefault),
+        Setter = nameof(SetSerializedChunkIndirectPadding),
+        Order = 12
+    )]
     private object? GetSerializedChunkIndirectPadding()
     {
         Serializable self = this;
@@ -615,6 +586,13 @@ public partial class LightBaker : Component
 
     private static object? GetChunkShadowDistanceAttributeDefault() => DefaultSettings.Incremental.DirectionalLightShadowDistance;
 
+    [Serialized(
+        "Chunk Shadow Distance",
+        typeof(float),
+        DefaultSource = nameof(GetChunkShadowDistanceAttributeDefault),
+        Setter = nameof(SetSerializedChunkShadowDistance),
+        Order = 13
+    )]
     private object? GetSerializedChunkShadowDistance()
     {
         Serializable self = this;
@@ -632,6 +610,13 @@ public partial class LightBaker : Component
 
     private static object? GetStitchIterationsAttributeDefault() => DefaultSettings.Stitching.NumIterations;
 
+    [Serialized(
+        "Stitch Iterations",
+        typeof(uint),
+        DefaultSource = nameof(GetStitchIterationsAttributeDefault),
+        Setter = nameof(SetSerializedStitchIterations),
+        Order = 14
+    )]
     private object? GetSerializedStitchIterations()
     {
         Serializable self = this;
@@ -649,6 +634,13 @@ public partial class LightBaker : Component
 
     private static object? GetConstantNormalOffsetAttributeDefault() => DefaultSettings.GeometryBufferBaking.ConstantPositionBias;
 
+    [Serialized(
+        "Constant Normal Offset",
+        typeof(float),
+        DefaultSource = nameof(GetConstantNormalOffsetAttributeDefault),
+        Setter = nameof(SetSerializedConstantNormalOffset),
+        Order = 15
+    )]
     private object? GetSerializedConstantNormalOffset()
     {
         Serializable self = this;
@@ -666,6 +658,13 @@ public partial class LightBaker : Component
 
     private static object? GetPositionScaledNormalOffsetAttributeDefault() => DefaultSettings.GeometryBufferBaking.ScaledPositionBias;
 
+    [Serialized(
+        "Position Scaled Normal Offset",
+        typeof(float),
+        DefaultSource = nameof(GetPositionScaledNormalOffsetAttributeDefault),
+        Setter = nameof(SetSerializedPositionScaledNormalOffset),
+        Order = 16
+    )]
     private object? GetSerializedPositionScaledNormalOffset()
     {
         Serializable self = this;

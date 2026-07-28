@@ -129,14 +129,9 @@ public sealed partial class RenderPassTests
     }
 
     [Reflected]
-    [Serialized(
-        "Optional",
-        typeof(string),
-        DefaultSource = nameof(_optional),
-        Getter = nameof(_optional),
-        Setter = nameof(_optional))]
     private sealed partial class NullableAttributeRenderPass : RenderPass
     {
+        [Serialized("Optional")]
         private string? _optional;
 
         public NullableAttributeRenderPass()

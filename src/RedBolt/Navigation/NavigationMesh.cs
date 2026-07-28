@@ -212,7 +212,7 @@ public partial class NavigationMesh : Component
     }
 
     /// <summary>Return or set maximum number of tiles.</summary>
-    [Serialized("Max Tiles", DefaultSource = nameof(GetDefaultMaxTiles))]
+    [Serialized("Max Tiles")]
     public int MaxTiles
     {
         get => _maxTiles;
@@ -220,7 +220,7 @@ public partial class NavigationMesh : Component
     }
 
     /// <summary>Return or set tile size.</summary>
-    [Serialized("Tile Size", DefaultSource = nameof(GetDefaultTileSize))]
+    [Serialized("Tile Size")]
     public int TileSize
     {
         get => _tileSize;
@@ -228,7 +228,7 @@ public partial class NavigationMesh : Component
     }
 
     /// <summary>Return or set cell size.</summary>
-    [Serialized("Cell Size", DefaultSource = nameof(GetDefaultCellSize))]
+    [Serialized("Cell Size")]
     public float CellSize
     {
         get => _cellSize;
@@ -236,7 +236,7 @@ public partial class NavigationMesh : Component
     }
 
     /// <summary>Return or set cell height.</summary>
-    [Serialized("Cell Height", DefaultSource = nameof(GetDefaultCellHeight))]
+    [Serialized("Cell Height")]
     public float CellHeight
     {
         get => _cellHeight;
@@ -244,7 +244,7 @@ public partial class NavigationMesh : Component
     }
 
     /// <summary>Return or set min and max height of the navigation mesh, i.e. min and max Y value in world space.</summary>
-    [Serialized("Mesh Height Range", DefaultSource = nameof(GetDefaultHeightRange))]
+    [Serialized("Mesh Height Range")]
     public Vector2f HeightRange
     {
         get => _heightRange;
@@ -255,7 +255,7 @@ public partial class NavigationMesh : Component
     public bool IsHeightRangeValid => _heightRange.X < _heightRange.Y;
 
     /// <summary>Return or set navigation agent height.</summary>
-    [Serialized("Agent Height", DefaultSource = nameof(GetDefaultAgentHeight))]
+    [Serialized("Agent Height")]
     public float AgentHeight
     {
         get => _agentHeight;
@@ -263,7 +263,7 @@ public partial class NavigationMesh : Component
     }
 
     /// <summary>Return or set navigation agent radius.</summary>
-    [Serialized("Agent Radius", DefaultSource = nameof(GetDefaultAgentRadius))]
+    [Serialized("Agent Radius")]
     public float AgentRadius
     {
         get => _agentRadius;
@@ -271,7 +271,7 @@ public partial class NavigationMesh : Component
     }
 
     /// <summary>Return or set navigation agent max vertical climb.</summary>
-    [Serialized("Agent Max Climb", DefaultSource = nameof(GetDefaultAgentMaxClimb))]
+    [Serialized("Agent Max Climb")]
     public float AgentMaxClimb
     {
         get => _agentMaxClimb;
@@ -279,7 +279,7 @@ public partial class NavigationMesh : Component
     }
 
     /// <summary>Return or set navigation agent max slope.</summary>
-    [Serialized("Agent Max Slope", DefaultSource = nameof(GetDefaultAgentMaxSlope))]
+    [Serialized("Agent Max Slope")]
     public float AgentMaxSlope
     {
         get => _agentMaxSlope;
@@ -287,7 +287,7 @@ public partial class NavigationMesh : Component
     }
 
     /// <summary>Return or set region minimum size.</summary>
-    [Serialized("Region Min Size", DefaultSource = nameof(GetDefaultRegionMinSize))]
+    [Serialized("Region Min Size")]
     public float RegionMinSize
     {
         get => _regionMinSize;
@@ -295,7 +295,7 @@ public partial class NavigationMesh : Component
     }
 
     /// <summary>Return or set region merge size.</summary>
-    [Serialized("Region Merge Size", DefaultSource = nameof(GetDefaultRegionMergeSize))]
+    [Serialized("Region Merge Size")]
     public float RegionMergeSize
     {
         get => _regionMergeSize;
@@ -303,7 +303,7 @@ public partial class NavigationMesh : Component
     }
 
     /// <summary>Return or set edge max length.</summary>
-    [Serialized("Edge Max Length", DefaultSource = nameof(GetDefaultEdgeMaxLength))]
+    [Serialized("Edge Max Length")]
     public float EdgeMaxLength
     {
         get => _edgeMaxLength;
@@ -311,7 +311,7 @@ public partial class NavigationMesh : Component
     }
 
     /// <summary>Return or set edge max error.</summary>
-    [Serialized("Edge Max Error", DefaultSource = nameof(GetDefaultEdgeMaxError))]
+    [Serialized("Edge Max Error")]
     public float EdgeMaxError
     {
         get => _edgeMaxError;
@@ -319,7 +319,7 @@ public partial class NavigationMesh : Component
     }
 
     /// <summary>Return or set the maximum number of links per portal used in navigation mesh creation.</summary>
-    [Serialized("Portal Links Count", DefaultSource = nameof(GetDefaultMaxPortalLinks))]
+    [Serialized("Portal Links Count")]
     public int MaxPortalLinks
     {
         get => _maxPortalLinks;
@@ -327,7 +327,7 @@ public partial class NavigationMesh : Component
     }
 
     /// <summary>Return or set detail sampling distance.</summary>
-    [Serialized("Detail Sample Distance", DefaultSource = nameof(GetDefaultDetailSampleDistance))]
+    [Serialized("Detail Sample Distance")]
     public float DetailSampleDistance
     {
         get => _detailSampleDistance;
@@ -335,7 +335,7 @@ public partial class NavigationMesh : Component
     }
 
     /// <summary>Return or set detail sampling maximum error.</summary>
-    [Serialized("Detail Sample Max Error", DefaultSource = nameof(GetDefaultDetailSampleMaxError))]
+    [Serialized("Detail Sample Max Error")]
     public float DetailSampleMaxError
     {
         get => _detailSampleMaxError;
@@ -343,7 +343,7 @@ public partial class NavigationMesh : Component
     }
 
     /// <summary>Return or set navigation mesh bounding box padding.</summary>
-    [Serialized("Bounding Box Padding", DefaultSource = nameof(GetDefaultPadding))]
+    [Serialized("Bounding Box Padding")]
     public Vector3f Padding
     {
         get => _padding;
@@ -357,7 +357,8 @@ public partial class NavigationMesh : Component
     [Serialized(
         "Partition Type",
         DefaultSource = nameof(GetDefaultPartitionType),
-        EnumNames = ["watershed", "monotone"])]
+        EnumNames = ["watershed", "monotone"]
+    )]
     public NavmeshPartitionType PartitionType
     {
         get => _partitionType;
@@ -368,7 +369,8 @@ public partial class NavigationMesh : Component
     [Serialized(
         "Navigation Data",
         DefaultSource = nameof(GetDefaultNavigationData),
-        Mode = AttributeMode.Default | AttributeMode.NoEdit)]
+        Mode = AttributeMode.Default | AttributeMode.NoEdit
+    )]
     public virtual byte[] NavigationData
     {
         get => GetNavigationDataAttr();
@@ -377,7 +379,7 @@ public partial class NavigationMesh : Component
 
     /// <summary>Draw debug geometry for OffMeshConnection components.</summary>
     /// <summary>Return whether to draw OffMeshConnection components.</summary>
-    [Serialized("Draw OffMeshConnections", DefaultSource = nameof(GetDefaultDrawOffMeshConnections))]
+    [Serialized("Draw OffMeshConnections")]
     public bool DrawOffMeshConnections
     {
         get => _drawOffMeshConnections;
@@ -386,7 +388,7 @@ public partial class NavigationMesh : Component
 
     /// <summary>Draw debug geometry for NavArea components.</summary>
     /// <summary>Return whether to draw NavArea components.</summary>
-    [Serialized("Draw NavAreas", DefaultSource = nameof(GetDefaultDrawNavAreas))]
+    [Serialized("Draw NavAreas")]
     public bool DrawNavAreas
     {
         get => _drawNavAreas;
@@ -1721,27 +1723,8 @@ public partial class NavigationMesh : Component
         return center / poly.vertCount;
     }
 
-    private static int GetDefaultMaxTiles() => DefaultMaxTiles;
-    private static int GetDefaultTileSize() => DefaultTileSize;
-    private static float GetDefaultCellSize() => DefaultCellSize;
-    private static float GetDefaultCellHeight() => DefaultCellHeight;
-    private static Vector2f GetDefaultHeightRange() => Vector2f.Zero;
-    private static float GetDefaultAgentHeight() => DefaultAgentHeight;
-    private static float GetDefaultAgentRadius() => DefaultAgentRadius;
-    private static float GetDefaultAgentMaxClimb() => DefaultAgentMaxClimb;
-    private static float GetDefaultAgentMaxSlope() => DefaultAgentMaxSlope;
-    private static float GetDefaultRegionMinSize() => DefaultRegionMinSize;
-    private static float GetDefaultRegionMergeSize() => DefaultRegionMergeSize;
-    private static float GetDefaultEdgeMaxLength() => DefaultEdgeMaxLength;
-    private static float GetDefaultEdgeMaxError() => DefaultEdgeMaxError;
-    private static int GetDefaultMaxPortalLinks() => DefaultMaxPortalLinks;
-    private static float GetDefaultDetailSampleDistance() => DefaultDetailSampleDistance;
-    private static float GetDefaultDetailSampleMaxError() => DefaultDetailSampleMaxError;
-    private static Vector3f GetDefaultPadding() => Vector3f.One;
     private static byte[] GetDefaultNavigationData() => [];
     private static NavmeshPartitionType GetDefaultPartitionType() => NavmeshPartitionType.Watershed;
-    private static bool GetDefaultDrawOffMeshConnections() => false;
-    private static bool GetDefaultDrawNavAreas() => false;
 
     protected sealed class NavigationQueryFilter : IDtQueryFilter
     {

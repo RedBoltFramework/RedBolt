@@ -107,17 +107,16 @@ public partial class AttributeTests
     }
 
     [Reflected]
-    [Serialized(
-        "Value",
-        typeof(int),
-        AccessorType = typeof(ValueAccessor),
-        DefaultSource = nameof(StoredValue))]
     private sealed partial class AccessorSerializable : Serializable
     {
         public AccessorSerializable()
         {
         }
 
+        [Serialized(
+            "Value",
+            AccessorType = typeof(ValueAccessor)
+        )]
         public int StoredValue { get; set; } = 123;
 
         private sealed class ValueAccessor : AttributeAccessor

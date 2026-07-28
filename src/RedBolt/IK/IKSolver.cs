@@ -31,12 +31,6 @@ using RedBolt.Scene;
 namespace RedBolt.IK;
 
 [Reflected(ObjectCategory.Category_IK, InheritAttributes = false)]
-[Serialized(
-    "Is Enabled",
-    typeof(bool),
-    DefaultSource = nameof(GetEnabledDefault),
-    Getter = nameof(GetEnabled),
-    Setter = nameof(SetEnabled))]
 public partial class IKSolver : LogicComponent
 {
 
@@ -131,14 +125,20 @@ public partial class IKSolver : LogicComponent
     }
 
     /// <summary>Attributes.</summary>
-    [Serialized("Solve when Paused", DefaultSource = nameof(_solveWhenPaused))]
+    [Serialized(
+        "Solve when Paused",
+        Order = 1000
+    )]
     public bool SolveWhenPaused
     {
         get => _solveWhenPaused;
         set => _solveWhenPaused = value;
     }
 
-    [Serialized("Solve from Original", DefaultSource = nameof(_solveFromOriginal))]
+    [Serialized(
+        "Solve from Original",
+        Order = 1001
+    )]
     public bool SolveFromOriginal
     {
         get => _solveFromOriginal;
@@ -170,6 +170,12 @@ public partial class IKSolver : LogicComponent
 
     private static bool GetContinuousRotationDefault() => false;
 
+    [Serialized(
+        "Is Enabled",
+        DefaultSource = nameof(GetEnabledDefault),
+        Setter = nameof(SetEnabled),
+        Order = 0
+    )]
     private bool GetEnabled() => Enabled;
 
     private bool IsChainTreeExpired()

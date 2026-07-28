@@ -13,13 +13,6 @@ using SceneType = global::RedBolt.Scene.Scene;
 namespace RedBolt.Input;
 
 [Reflected(ObjectCategory.Category_Logic)]
-[Serialized(
-    "InputSystem Map",
-    typeof(ResourceRef),
-    DefaultSource = nameof(GetInputSystemMapAttributeDefault),
-    Getter = nameof(GetInputMapAttr),
-    Setter = nameof(SetInputMapAttr)
-)]
 public partial class MoveAndOrbitController : Component
 {
     public const float DefaultMouseSensitivity = 0.1f;
@@ -96,6 +89,11 @@ public partial class MoveAndOrbitController : Component
     }
 
     /// <summary>Return input map attribute.</summary>
+    [Serialized(
+        "InputSystem Map",
+        DefaultSource = nameof(GetInputSystemMapAttributeDefault),
+        Setter = nameof(SetInputMapAttr)
+    )]
     public ResourceRef GetInputMapAttr()
     {
         return ResourceType.GetResourceRef(GetInputMap(), ObjectReflection<InputMap>.TypeId);

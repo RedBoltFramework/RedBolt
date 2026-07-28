@@ -29,18 +29,6 @@ using RedBolt.Scene;
 namespace RedBolt.Navigation;
 
 [Reflected(ObjectCategory.Category_Navigation, InheritAttributes = false)]
-[Serialized(
-    "Bounding Box Min",
-    typeof(Vector3f),
-    DefaultSource = nameof(GetDefaultBoundingBoxMin),
-    Getter = nameof(GetBoundingBoxMin),
-    Setter = nameof(SetBoundingBoxMin))]
-[Serialized(
-    "Bounding Box Max",
-    typeof(Vector3f),
-    DefaultSource = nameof(GetDefaultBoundingBoxMax),
-    Getter = nameof(GetBoundingBoxMax),
-    Setter = nameof(SetBoundingBoxMax))]
 public partial class NavArea : Component
 {
     private const int MaxNavAreaId = 255;
@@ -99,7 +87,19 @@ public partial class NavArea : Component
     private static Vector3f GetDefaultBoundingBoxMin() => DefaultBoundingBoxMin;
     private static Vector3f GetDefaultBoundingBoxMax() => DefaultBoundingBoxMax;
     private static int GetDefaultAreaId() => DefaultAreaId;
+    [Serialized(
+        "Bounding Box Min",
+        DefaultSource = nameof(GetDefaultBoundingBoxMin),
+        Setter = nameof(SetBoundingBoxMin),
+        Order = 0
+    )]
     private Vector3f GetBoundingBoxMin() => _boundingBox.Min;
+    [Serialized(
+        "Bounding Box Max",
+        DefaultSource = nameof(GetDefaultBoundingBoxMax),
+        Setter = nameof(SetBoundingBoxMax),
+        Order = 1
+    )]
     private Vector3f GetBoundingBoxMax() => _boundingBox.Max;
     private void SetBoundingBoxMin(Vector3f value) => _boundingBox.Min = value;
     private void SetBoundingBoxMax(Vector3f value) => _boundingBox.Max = value;

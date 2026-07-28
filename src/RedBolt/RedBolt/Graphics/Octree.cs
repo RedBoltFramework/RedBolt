@@ -443,27 +443,6 @@ public sealed class ZoneLookupIndex : IDisposable
 }
 
 [Reflected(ObjectCategory.Category_Subsystem)]
-[Serialized(
-    "Bounding Box Min",
-    typeof(Vector3f),
-    DefaultSource = nameof(GetBoundingBoxMinAttributeDefault),
-    Getter = nameof(GetSerializedBoundingBoxMin),
-    Setter = nameof(SetSerializedBoundingBoxMin)
-)]
-[Serialized(
-    "Bounding Box Max",
-    typeof(Vector3f),
-    DefaultSource = nameof(GetBoundingBoxMaxAttributeDefault),
-    Getter = nameof(GetSerializedBoundingBoxMax),
-    Setter = nameof(SetSerializedBoundingBoxMax)
-)]
-[Serialized(
-    "Number of Levels",
-    typeof(uint),
-    DefaultSource = nameof(GetNumberOfLevelsAttributeDefault),
-    Getter = nameof(_numLevels),
-    Setter = nameof(SetSerializedNumberOfLevels)
-)]
 public sealed partial class Octree : Component
 {
     private const float DefaultOctreeSize = 1000.0f;
@@ -478,6 +457,11 @@ public sealed partial class Octree : Component
     private readonly List<Drawable> _drawables;
     private readonly object _octreeMutex;
     private readonly List<Drawable> _rayQueryDrawables;
+    [Serialized(
+        "Number of Levels",
+        DefaultSource = nameof(GetNumberOfLevelsAttributeDefault),
+        Order = 2
+    )]
     private uint _numLevels;
     private BoundingBox _worldBoundingBox = new();
     private readonly ZoneLookupIndex _zones;
@@ -879,6 +863,13 @@ public sealed partial class Octree : Component
 
     private static object? GetBoundingBoxMinAttributeDefault() => -Vector3f.One * DefaultOctreeSize;
 
+    [Serialized(
+        "Bounding Box Min",
+        typeof(Vector3f),
+        DefaultSource = nameof(GetBoundingBoxMinAttributeDefault),
+        Setter = nameof(SetSerializedBoundingBoxMin),
+        Order = 0
+    )]
     private object? GetSerializedBoundingBoxMin()
     {
         Serializable self = this;
@@ -897,6 +888,13 @@ public sealed partial class Octree : Component
 
     private static object? GetBoundingBoxMaxAttributeDefault() => Vector3f.One * DefaultOctreeSize;
 
+    [Serialized(
+        "Bounding Box Max",
+        typeof(Vector3f),
+        DefaultSource = nameof(GetBoundingBoxMaxAttributeDefault),
+        Setter = nameof(SetSerializedBoundingBoxMax),
+        Order = 1
+    )]
     private object? GetSerializedBoundingBoxMax()
     {
         Serializable self = this;

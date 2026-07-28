@@ -7,24 +7,6 @@ namespace RedBolt.Scene;
 
 /// <summary>Component that instantiates prefab resource into the parent Node.</summary>
 [Reflected(ObjectCategory.Category_Scene)]
-[Serialized(
-    "Prefab",
-    typeof(ResourceRef),
-    DefaultSource = nameof(GetPrefabAttributeDefault),
-    Getter = nameof(GetPrefabAttr),
-    Mode = AttributeMode.Default,
-    Setter = nameof(SetPrefabAttr),
-    ScopeHint = AttributeScopeHint.Node
-)]
-[Serialized(
-    "Path",
-    typeof(string),
-    DefaultSource = nameof(GetPathAttributeDefault),
-    Getter = nameof(GetPath),
-    Mode = AttributeMode.Default,
-    Setter = nameof(SetPath),
-    ScopeHint = AttributeScopeHint.Node
-)]
 public partial class PrefabReference : Component
 {
     public PrefabReference()
@@ -436,14 +418,24 @@ public partial class PrefabReference : Component
     }
 
     private PrefabResource? _prefab;
+    [Serialized(
+        "Prefab",
+        Mode = AttributeMode.Default,
+        Setter = nameof(SetPrefabAttr),
+        ScopeHint = AttributeScopeHint.Node
+    )]
     private ResourceRef _prefabRef = new(nameof(PrefabResource));
+    [Serialized(
+        "Path",
+        Mode = AttributeMode.Default,
+        Setter = nameof(SetPath),
+        ScopeHint = AttributeScopeHint.Node
+    )]
     private string _path = string.Empty;
     private bool _prefabDirty;
     private Node? _instanceNode;
     private int _numInstanceComponents;
     private int _numInstanceChildren;
 
-    private static object? GetPrefabAttributeDefault() => new ResourceRef(nameof(PrefabResource));
 
-    private static object? GetPathAttributeDefault() => string.Empty;
 }

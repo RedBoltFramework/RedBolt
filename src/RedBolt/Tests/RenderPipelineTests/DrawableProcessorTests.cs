@@ -467,7 +467,7 @@ public sealed partial class DrawableProcessorTests
         public void SortByShadowMapTexture() => SortLightProcessorsByShadowMapTexture();
     }
 
-    [Reflected]
+    [Reflected(InheritAttributes = false)]
     private sealed partial class TestOccluderDrawable : Drawable
     {
         public BoundingBox WorldBounds { get; set; } = new();

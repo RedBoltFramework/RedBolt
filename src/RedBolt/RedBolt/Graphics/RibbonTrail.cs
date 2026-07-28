@@ -51,14 +51,7 @@ public struct TrailPoint
 }
 
 /// <summary>Drawable component that creates a tail.</summary>
-[Reflected(ObjectCategory.Category_Geometry)]
-[Serialized(
-    "Is Enabled",
-    typeof(bool),
-    DefaultSource = nameof(GetIsEnabledAttributeDefault),
-    Getter = nameof(Enabled),
-    Setter = nameof(SetEnabled)
-)]
+[Reflected(ObjectCategory.Category_Geometry, InheritAttributesOrder = 1)]
 public partial class RibbonTrail : Drawable
 {
     private const uint MaxTailColumn = 16;
@@ -868,4 +861,16 @@ public partial class RibbonTrail : Drawable
     public bool GetUpdateInvisible() => _updateInvisible;
 
     private static object? GetIsEnabledAttributeDefault() => true;
+
+
+    [Serialized(
+        "Is Enabled",
+        DefaultSource = nameof(GetIsEnabledAttributeDefault),
+        Order = 0
+    )]
+    private bool SerializedIsEnabled
+    {
+        get => Enabled;
+        set => SetEnabled(value);
+    }
 }

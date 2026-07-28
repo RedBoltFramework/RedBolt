@@ -109,14 +109,7 @@ public sealed class Decal : ICloneable
 }
 
 /// <summary>Decal renderer component.</summary>
-[Reflected(ObjectCategory.Category_Geometry)]
-[Serialized(
-    "Is Enabled",
-    typeof(bool),
-    DefaultSource = nameof(GetIsEnabledAttributeDefault),
-    Getter = nameof(Enabled),
-    Setter = nameof(SetEnabled)
-)]
+[Reflected(ObjectCategory.Category_Geometry, InheritAttributesOrder = 7)]
 public partial class DecalSet : Drawable
 {
     private const uint MinVertices = 4;
@@ -1156,4 +1149,16 @@ public partial class DecalSet : Drawable
     }
 
     private static object? GetIsEnabledAttributeDefault() => true;
+
+
+    [Serialized(
+        "Is Enabled",
+        DefaultSource = nameof(GetIsEnabledAttributeDefault),
+        Order = 0
+    )]
+    private bool SerializedIsEnabled
+    {
+        get => Enabled;
+        set => SetEnabled(value);
+    }
 }

@@ -10,7 +10,7 @@ using RedBolt.Scene;
 namespace RedBolt.Graphics;
 
 /// <summary>Individually rendered part of a heightmap terrain.</summary>
-[Reflected]
+[Reflected(InheritAttributes = false)]
 public partial class TerrainPatch : Drawable
 {
     private static readonly float LodConstant = 1.0f / 150.0f;

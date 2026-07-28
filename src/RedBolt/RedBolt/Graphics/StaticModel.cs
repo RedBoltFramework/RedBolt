@@ -21,155 +21,9 @@ public struct StaticModelGeometryData
 }
 
 /// <summary>Static model component.</summary>
-[Reflected(ObjectCategory.Category_Geometry)]
-[Serialized(
-    "Is Enabled",
-    typeof(bool),
-    DefaultSource = nameof(GetIsEnabledAttributeDefault),
-    Getter = nameof(Enabled),
-    Setter = nameof(SetEnabled)
-)]
-[Serialized(
-    "Model",
-    typeof(ResourceRef),
-    DefaultSource = nameof(GetModelAttributeDefault),
-    Getter = nameof(GetModelAttr),
-    Setter = nameof(SetModelAttr)
-)]
-[Serialized(
-    "Material",
-    typeof(ResourceRefList),
-    DefaultSource = nameof(GetMaterialAttributeDefault),
-    Getter = nameof(GetMaterialsAttr),
-    Setter = nameof(SetMaterialsAttr)
-)]
-[Serialized(
-    "Is Occluder",
-    typeof(bool),
-    DefaultSource = nameof(GetIsOccluderAttributeDefault),
-    Getter = nameof(IsOccluder),
-    Setter = nameof(SetOccluder)
-)]
-[Serialized(
-    "Can Be Occluded",
-    typeof(bool),
-    DefaultSource = nameof(GetCanBeOccludedAttributeDefault),
-    Getter = nameof(IsOccludee),
-    Setter = nameof(SetOccludee)
-)]
-[Serialized(
-    "Cast Shadows",
-    typeof(bool),
-    DefaultSource = nameof(GetCastShadowsAttributeDefault),
-    Getter = nameof(GetCastShadows),
-    Setter = nameof(SetCastShadows)
-)]
-[Serialized(
-    "Draw Distance",
-    typeof(float),
-    DefaultSource = nameof(GetDrawDistanceAttributeDefault),
-    Getter = nameof(GetDrawDistance),
-    Setter = nameof(SetDrawDistance)
-)]
-[Serialized(
-    "Shadow Distance",
-    typeof(float),
-    DefaultSource = nameof(GetShadowDistanceAttributeDefault),
-    Getter = nameof(GetShadowDistance),
-    Setter = nameof(SetShadowDistance)
-)]
-[Serialized(
-    "LOD Bias",
-    typeof(float),
-    DefaultSource = nameof(GetLODBiasAttributeDefault),
-    Getter = nameof(GetLodBias),
-    Setter = nameof(SetLodBias)
-)]
-[Serialized(
-    "View Mask",
-    typeof(uint),
-    DefaultSource = nameof(GetViewMaskAttributeDefault),
-    Getter = nameof(GetViewMask),
-    Setter = nameof(SetViewMask)
-)]
-[Serialized(
-    "Light Mask",
-    typeof(uint),
-    DefaultSource = nameof(GetLightMaskAttributeDefault),
-    Getter = nameof(GetLightMask),
-    Setter = nameof(SetLightMask)
-)]
-[Serialized(
-    "Shadow Mask",
-    typeof(uint),
-    DefaultSource = nameof(GetShadowMaskAttributeDefault),
-    Getter = nameof(GetShadowMask),
-    Setter = nameof(SetShadowMask)
-)]
-[Serialized(
-    "Zone Mask",
-    typeof(uint),
-    DefaultSource = nameof(GetZoneMaskAttributeDefault),
-    Getter = nameof(GetZoneMask),
-    Setter = nameof(SetZoneMask)
-)]
-[Serialized(
-    "Global Illumination",
-    typeof(GlobalIlluminationType),
-    DefaultSource = nameof(GetGlobalIlluminationAttributeDefault),
-    EnumNamesSource = nameof(GlobalIlluminationTypeNames),
-    Getter = nameof(GetGlobalIlluminationType),
-    Setter = nameof(SetGlobalIlluminationType)
-)]
-[Serialized(
-    "Reflection Mode",
-    typeof(ReflectionMode),
-    DefaultSource = nameof(GetReflectionModeAttributeDefault),
-    EnumNamesSource = nameof(ReflectionModeNames),
-    Getter = nameof(GetReflectionMode),
-    Setter = nameof(SetReflectionMode)
-)]
-[Serialized(
-    "Occlusion LOD Level",
-    typeof(uint),
-    DefaultSource = nameof(GetOcclusionLODLevelAttributeDefault),
-    Getter = nameof(_occlusionLodLevel),
-    Setter = nameof(_occlusionLodLevel)
-)]
-[Serialized(
-    "Bake Lightmap",
-    typeof(bool),
-    DefaultSource = nameof(GetBakeLightmapAttributeDefault),
-    Getter = nameof(_bakeLightmap),
-    Setter = nameof(SetBakeLightmap)
-)]
-[Serialized(
-    "Scale in Lightmap",
-    typeof(float),
-    DefaultSource = nameof(GetScaleInLightmapAttributeDefault),
-    Getter = nameof(_scaleInLightmap),
-    Setter = nameof(_scaleInLightmap)
-)]
-[Serialized(
-    "Lightmap Index",
-    typeof(uint),
-    DefaultSource = nameof(GetLightmapIndexAttributeDefault),
-    Getter = nameof(_lightmapIndex),
-    Mode = AttributeMode.Default | AttributeMode.NoEdit,
-    Setter = nameof(SetLightmapIndex)
-)]
-[Serialized(
-    "Lightmap Scale & Offset",
-    typeof(Vector4f),
-    DefaultSource = nameof(GetLightmapScaleOffsetAttributeDefault),
-    Getter = nameof(_lightmapScaleOffset),
-    Mode = AttributeMode.Default | AttributeMode.NoEdit,
-    Setter = nameof(SetLightmapScaleOffset)
-)]
+[Reflected(ObjectCategory.Category_Geometry, InheritAttributesOrder = 9)]
 public partial class StaticModel : Drawable
 {
-    private static readonly string[] GlobalIlluminationTypeNames = ["None", "Use LightMap", "Blend Light Probes"];
-    private static readonly string[] ReflectionModeNames = ["Zone", "Nearest Probe", "Blend Probes", "Blend Probes and Zone"];
 
     /// <summary>Construct.</summary>
     public StaticModel()
@@ -199,30 +53,52 @@ public partial class StaticModel : Drawable
 
     public uint NumGeometries => (uint)_geometries.Count;
 
+    [Serialized(
+        "Occlusion LOD Level",
+        Order = 15
+    )]
     public uint OcclusionLodLevel
     {
         get => _occlusionLodLevel;
         set => SetOcclusionLodLevel(value);
     }
 
+    [Serialized(
+        "Bake Lightmap",
+        Order = 16
+    )]
     public bool BakeLightmap
     {
         get => _bakeLightmap;
         set => SetBakeLightmap(value);
     }
 
+    [Serialized(
+        "Scale in Lightmap",
+        Order = 17
+    )]
     public float ScaleInLightmap
     {
         get => _scaleInLightmap;
         set => SetScaleInLightmap(value);
     }
 
+    [Serialized(
+        "Lightmap Index",
+        Mode = AttributeMode.Default | AttributeMode.NoEdit,
+        Order = 18
+    )]
     public uint LightmapIndex
     {
         get => _lightmapIndex;
         set => SetLightmapIndex(value);
     }
 
+    [Serialized(
+        "Lightmap Scale & Offset",
+        Mode = AttributeMode.Default | AttributeMode.NoEdit,
+        Order = 19
+    )]
     public Vector4f LightmapScaleOffset
     {
         get => _lightmapScaleOffset;
@@ -548,6 +424,12 @@ public partial class StaticModel : Drawable
         SetModel(string.IsNullOrEmpty(value.Name) ? null : cache.GetResourceOrNull<Model>(value.Name));
     }
 
+    [Serialized(
+        "Model",
+        DefaultSource = nameof(GetModelAttributeDefault),
+        Setter = nameof(SetModelAttr),
+        Order = 1
+    )]
     public ResourceRef GetModelAttr() => ResourceType.GetResourceRef(Model, ObjectReflection<Model>.TypeId);
 
     public void SetMaterialsAttr(ResourceRefList value)
@@ -570,6 +452,12 @@ public partial class StaticModel : Drawable
         }
     }
 
+    [Serialized(
+        "Material",
+        DefaultSource = nameof(GetMaterialAttributeDefault),
+        Setter = nameof(SetMaterialsAttr),
+        Order = 2
+    )]
     public ResourceRefList GetMaterialsAttr()
     {
         while (_materialsAttr.Names.Count < _batches.Count)
@@ -735,25 +623,80 @@ public partial class StaticModel : Drawable
 
     private static object? GetLODBiasAttributeDefault() => 1.0f;
 
-    private static object? GetViewMaskAttributeDefault() => DefaultViewMask;
+    [Serialized(
+        "Is Enabled",
+        DefaultSource = nameof(GetIsEnabledAttributeDefault),
+        Order = 0
+    )]
+    private bool SerializedIsEnabled
+    {
+        get => Enabled;
+        set => SetEnabled(value);
+    }
 
-    private static object? GetLightMaskAttributeDefault() => DefaultLightMask;
+    [Serialized(
+        "Is Occluder",
+        DefaultSource = nameof(GetIsOccluderAttributeDefault),
+        Order = 3
+    )]
+    private bool SerializedIsOccluder
+    {
+        get => IsOccluder();
+        set => SetOccluder(value);
+    }
 
-    private static object? GetShadowMaskAttributeDefault() => DefaultShadowMask;
+    [Serialized(
+        "Can Be Occluded",
+        DefaultSource = nameof(GetCanBeOccludedAttributeDefault),
+        Order = 4
+    )]
+    private bool SerializedCanBeOccluded
+    {
+        get => IsOccludee();
+        set => SetOccludee(value);
+    }
 
-    private static object? GetZoneMaskAttributeDefault() => DefaultZoneMask;
+    [Serialized(
+        "Cast Shadows",
+        DefaultSource = nameof(GetCastShadowsAttributeDefault),
+        Order = 5
+    )]
+    private bool SerializedCastShadows
+    {
+        get => GetCastShadows();
+        set => SetCastShadows(value);
+    }
 
-    private static object? GetGlobalIlluminationAttributeDefault() => GlobalIlluminationType.None;
+    [Serialized(
+        "Draw Distance",
+        DefaultSource = nameof(GetDrawDistanceAttributeDefault),
+        Order = 6
+    )]
+    private float SerializedDrawDistance
+    {
+        get => GetDrawDistance();
+        set => SetDrawDistance(value);
+    }
 
-    private static object? GetReflectionModeAttributeDefault() => ReflectionMode.BlendProbesAndZone;
+    [Serialized(
+        "Shadow Distance",
+        DefaultSource = nameof(GetShadowDistanceAttributeDefault),
+        Order = 7
+    )]
+    private float SerializedShadowDistance
+    {
+        get => GetShadowDistance();
+        set => SetShadowDistance(value);
+    }
 
-    private static object? GetOcclusionLODLevelAttributeDefault() => uint.MaxValue;
-
-    private static object? GetBakeLightmapAttributeDefault() => false;
-
-    private static object? GetScaleInLightmapAttributeDefault() => 1.0f;
-
-    private static object? GetLightmapIndexAttributeDefault() => 0u;
-
-    private static object? GetLightmapScaleOffsetAttributeDefault() => new Vector4f(1.0f, 1.0f, 0.0f, 0.0f);
+    [Serialized(
+        "LOD Bias",
+        DefaultSource = nameof(GetLODBiasAttributeDefault),
+        Order = 8
+    )]
+    private float SerializedLODBias
+    {
+        get => GetLodBias();
+        set => SetLodBias(value);
+    }
 }

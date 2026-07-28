@@ -30,7 +30,7 @@ using RedBolt.Math;
 namespace RedBolt.Glow;
 
 /// <summary>Static model for rendering into lightmap. Lods, culling and features unrelated to rendering are disabled.</summary>
-[Reflected(ObjectCategory.Category_Geometry)]
+[Reflected(ObjectCategory.Category_Geometry, InheritAttributes = false)]
 public partial class StaticModelForLightmap : Drawable
 {
     /// <summary>Construct.</summary>

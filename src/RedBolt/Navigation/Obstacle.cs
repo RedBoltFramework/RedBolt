@@ -71,7 +71,7 @@ public partial class Obstacle : Component
     }
 
     /// <summary>Get or set the height of this obstacle.</summary>
-    [Serialized("Height", DefaultSource = nameof(GetDefaultHeight))]
+    [Serialized("Height")]
     public float Height
     {
         get => _height;
@@ -84,7 +84,7 @@ public partial class Obstacle : Component
     }
 
     /// <summary>Get or set the blocking radius of this obstacle.</summary>
-    [Serialized("Radius", DefaultSource = nameof(GetDefaultRadius))]
+    [Serialized("Radius")]
     public float Radius
     {
         get => _radius;
@@ -198,6 +198,4 @@ public partial class Obstacle : Component
         return false;
     }
 
-    private static float GetDefaultRadius() => 5.0f;
-    private static float GetDefaultHeight() => 5.0f;
 }

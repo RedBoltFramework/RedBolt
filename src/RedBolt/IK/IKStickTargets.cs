@@ -13,12 +13,6 @@ using RedBolt.Scene;
 namespace RedBolt.IK;
 
 [Reflected(ObjectCategory.Category_IK, InheritAttributes = false)]
-[Serialized(
-    "Target Names",
-    typeof(StringVector),
-    DefaultSource = nameof(GetDefaultTargetNames),
-    Getter = nameof(GetTargetNames),
-    Setter = nameof(SetTargetNames))]
 public partial class IKStickTargets : IKSolverComponent
 {
     public const float DefaultPositionThreshold = 0.3f;
@@ -53,27 +47,56 @@ public partial class IKStickTargets : IKSolverComponent
         return _targetNames;
     }
 
-    private static StringVector GetDefaultTargetNames() => new();
 
-    [Serialized("Is Active", DefaultSource = nameof(_isActive))]
+    [Serialized(
+        "Is Active",
+        Order = 1
+    )]
     public bool IsActive { get => _isActive; set => _isActive = value; }
-    [Serialized("Is Position Sticky", DefaultSource = nameof(_isPositionSticky))]
+    [Serialized(
+        "Is Position Sticky",
+        Order = 2
+    )]
     public bool IsPositionSticky { get => _isPositionSticky; set => _isPositionSticky = value; }
-    [Serialized("Is Rotation Sticky", DefaultSource = nameof(_isRotationSticky))]
+    [Serialized(
+        "Is Rotation Sticky",
+        Order = 3
+    )]
     public bool IsRotationSticky { get => _isRotationSticky; set => _isRotationSticky = value; }
-    [Serialized("Position Threshold", DefaultSource = nameof(_positionThreshold))]
+    [Serialized(
+        "Position Threshold",
+        Order = 4
+    )]
     public float PositionThreshold { get => _positionThreshold; set => _positionThreshold = value; }
-    [Serialized("Rotation Threshold", DefaultSource = nameof(_rotationThreshold))]
+    [Serialized(
+        "Rotation Threshold",
+        Order = 5
+    )]
     public float RotationThreshold { get => _rotationThreshold; set => _rotationThreshold = value; }
-    [Serialized("Time Threshold", DefaultSource = nameof(_timeThreshold))]
+    [Serialized(
+        "Time Threshold",
+        Order = 6
+    )]
     public float TimeThreshold { get => _timeThreshold; set => _timeThreshold = value; }
-    [Serialized("Recover Time", DefaultSource = nameof(_recoverTime))]
+    [Serialized(
+        "Recover Time",
+        Order = 7
+    )]
     public float RecoverTime { get => _recoverTime; set => _recoverTime = value; }
-    [Serialized("Min Target Distances", DefaultSource = nameof(_minTargetDistance))]
+    [Serialized(
+        "Min Target Distances",
+        Order = 8
+    )]
     public float MinTargetDistance { get => _minTargetDistance; set => _minTargetDistance = value; }
-    [Serialized("Max Simultaneous Recoveries", DefaultSource = nameof(_maxSimultaneousRecoveries))]
+    [Serialized(
+        "Max Simultaneous Recoveries",
+        Order = 9
+    )]
     public int MaxSimultaneousRecoveries { get => _maxSimultaneousRecoveries; set => _maxSimultaneousRecoveries = value; }
-    [Serialized("Base World Velocity", DefaultSource = nameof(_baseWorldVelocity))]
+    [Serialized(
+        "Base World Velocity",
+        Order = 10
+    )]
     public Vector3f BaseWorldVelocity { get => _baseWorldVelocity; set => _baseWorldVelocity = value; }
 
     /// <summary>Implement IKSolverComponent.</summary>
@@ -363,6 +386,11 @@ public partial class IKStickTargets : IKSolverComponent
         return minDistance;
     }
 
+    [Serialized(
+        "Target Names",
+        Setter = nameof(SetTargetNames),
+        Order = 0
+    )]
     private StringVector _targetNames = new StringVector();
     private bool _isActive = true;
     private bool _isPositionSticky = true;

@@ -23,31 +23,13 @@ public readonly record struct RenderPassTraits(
 /// Render pass, component of render path.
 /// </summary>
 [Reflected]
-[Serialized(
-    "Pass Name",
-    typeof(string),
-    DefaultSource = nameof(GetPassNameAttributeDefault),
-    Getter = nameof(_passName),
-    Setter = nameof(_passName)
-)]
-[Serialized(
-    "Is Enabled By Default",
-    typeof(bool),
-    DefaultSource = nameof(GetIsEnabledByDefaultAttributeDefault),
-    Getter = nameof(_enabledByDefault),
-    Setter = nameof(_enabledByDefault)
-)]
-[Serialized(
-    "Comment",
-    typeof(string),
-    DefaultSource = nameof(GetCommentAttributeDefault),
-    Getter = nameof(_comment),
-    Setter = nameof(_comment)
-)]
 public abstract partial class RenderPass : Serializable
 {
+    [Serialized("Pass Name")]
     protected string _passName = string.Empty;
+    [Serialized("Is Enabled By Default")]
     protected bool _enabledByDefault = true;
+    [Serialized("Comment")]
     protected string _comment = string.Empty;
     protected bool _isEnabledByUser;
     protected bool _isEnabledInternally = true;
@@ -163,9 +145,4 @@ public abstract partial class RenderPass : Serializable
         }
     }
 
-    private static object? GetPassNameAttributeDefault() => string.Empty;
-
-    private static object? GetIsEnabledByDefaultAttributeDefault() => true;
-
-    private static object? GetCommentAttributeDefault() => string.Empty;
 }

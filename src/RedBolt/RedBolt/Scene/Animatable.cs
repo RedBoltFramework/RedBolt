@@ -44,13 +44,6 @@ public class AttributeAnimationInfo : ValueAnimationInfo
 
 /// <summary>Base class for animatable object, an animatable object can be set animation on it's attributes, or can be set an object animation to it.</summary>
 [Reflected]
-[Serialized(
-    "Object Animation",
-    typeof(ResourceRef),
-    DefaultSource = nameof(GetObjectAnimationAttributeDefault),
-    Getter = nameof(GetObjectAnimationAttr),
-    Setter = nameof(SetSerializedObjectAnimation)
-)]
 public abstract partial class Animatable : Serializable
 {
     /// <summary>Animation enabled.</summary>
@@ -454,6 +447,11 @@ public abstract partial class Animatable : Serializable
     }
 
     /// <summary>Return object animation attribute.</summary>
+    [Serialized(
+        "Object Animation",
+        DefaultSource = nameof(GetObjectAnimationAttributeDefault),
+        Setter = nameof(SetSerializedObjectAnimation)
+    )]
     public ResourceRef GetObjectAnimationAttr()
     {
         return ResourceType.GetResourceRef(_objectAnimation, ObjectReflection<ObjectAnimation>.TypeId);

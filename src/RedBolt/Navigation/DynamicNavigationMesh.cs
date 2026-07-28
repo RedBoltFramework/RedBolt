@@ -321,7 +321,7 @@ public partial class DynamicNavigationMesh : NavigationMesh
     }
 
     /// <summary>Return or set the maximum number of obstacles allowed.</summary>
-    [Serialized("Max Obstacles", DefaultSource = nameof(GetDefaultMaxObstacles))]
+    [Serialized("Max Obstacles")]
     public int MaxObstacles
     {
         get => _maxObstacles;
@@ -329,7 +329,7 @@ public partial class DynamicNavigationMesh : NavigationMesh
     }
 
     /// <summary>Return or set the maximum number of layers permitted to build.</summary>
-    [Serialized("Max Layers", DefaultSource = nameof(GetDefaultMaxLayers))]
+    [Serialized("Max Layers")]
     public int MaximumLayers
     {
         get => _maxLayers;
@@ -343,7 +343,7 @@ public partial class DynamicNavigationMesh : NavigationMesh
 
     /// <summary>Draw debug geometry for Obstacles.</summary>
     /// <summary>Return whether to draw Obstacles.</summary>
-    [Serialized("Draw Obstacles", DefaultSource = nameof(GetDefaultDrawObstacles))]
+    [Serialized("Draw Obstacles")]
     public bool DrawObstacles
     {
         get => _drawObstacles;
@@ -791,9 +791,6 @@ public partial class DynamicNavigationMesh : NavigationMesh
         };
     }
 
-    private static int GetDefaultMaxObstacles() => DefaultMaxObstacles;
-    private static int GetDefaultMaxLayers() => DefaultMaxLayers;
-    private static bool GetDefaultDrawObstacles() => false;
 
     protected sealed class ObstacleUpdate
     {

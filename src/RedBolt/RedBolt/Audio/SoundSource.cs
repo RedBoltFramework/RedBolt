@@ -17,111 +17,49 @@ public static class SoundSourceConstants
 
 /// <summary>Sound source component with stereo position.</summary>
 [Reflected(ObjectCategory.Category_Audio)]
-[Serialized(
-    "Is Enabled",
-    typeof(bool),
-    DefaultSource = nameof(GetIsEnabledAttributeDefault),
-    Getter = nameof(Enabled),
-    Setter = nameof(SetEnabled)
-)]
-[Serialized(
-    "Sound",
-    typeof(ResourceRef),
-    DefaultSource = nameof(GetSoundAttributeDefault),
-    Getter = nameof(GetSoundAttr),
-    Setter = nameof(SetSoundAttr)
-)]
-[Serialized(
-    "Type",
-    typeof(string),
-    DefaultSource = nameof(GetTypeAttributeDefault),
-    Getter = nameof(GetSoundType),
-    Setter = nameof(SetSoundType)
-)]
-[Serialized(
-    "Frequency",
-    typeof(float),
-    DefaultSource = nameof(GetFrequencyAttributeDefault),
-    Getter = nameof(Frequency),
-    Setter = nameof(Frequency)
-)]
-[Serialized(
-    "Gain",
-    typeof(float),
-    DefaultSource = nameof(GetGainAttributeDefault),
-    Getter = nameof(Gain),
-    Setter = nameof(Gain)
-)]
-[Serialized(
-    "Attenuation",
-    typeof(float),
-    DefaultSource = nameof(GetAttenuationAttributeDefault),
-    Getter = nameof(Attenuation),
-    Setter = nameof(Attenuation)
-)]
-[Serialized(
-    "Panning",
-    typeof(float),
-    DefaultSource = nameof(GetPanningAttributeDefault),
-    Getter = nameof(Panning),
-    Setter = nameof(Panning)
-)]
-[Serialized(
-    "Reach",
-    typeof(float),
-    DefaultSource = nameof(GetReachAttributeDefault),
-    Getter = nameof(Reach),
-    Setter = nameof(Reach)
-)]
-[Serialized(
-    "Low Frequency Effect",
-    typeof(bool),
-    DefaultSource = nameof(GetLowFrequencyEffectAttributeDefault),
-    Getter = nameof(_lowFrequency),
-    Setter = nameof(_lowFrequency)
-)]
-[Serialized(
-    "Ignore Scene Time Scale",
-    typeof(bool),
-    DefaultSource = nameof(GetIgnoreSceneTimeScaleAttributeDefault),
-    Getter = nameof(_ignoreSceneTimeScale),
-    Setter = nameof(_ignoreSceneTimeScale)
-)]
-[Serialized(
-    "Is Playing",
-    typeof(bool),
-    DefaultSource = nameof(GetIsPlayingAttributeDefault),
-    Getter = nameof(IsPlaying),
-    Setter = nameof(SetPlayingAttr)
-)]
-[Serialized(
-    "Autoremove Mode",
-    typeof(AutoRemoveMode),
-    DefaultSource = nameof(GetAutoremoveModeAttributeDefault),
-    EnumNamesSource = nameof(AutoRemoveModeNames),
-    Getter = nameof(AutoRemove),
-    Setter = nameof(AutoRemove)
-)]
-[Serialized(
-    "Play Position",
-    typeof(int),
-    DefaultSource = nameof(GetPlayPositionAttributeDefault),
-    Getter = nameof(GetPositionAttr),
-    Setter = nameof(SetPositionAttr)
-)]
 public partial class SoundSource : Component
 {
     private static readonly string[] AutoRemoveModeNames = ["Disabled", "Component", "Node"];
 
     protected AudioSystem Audio = null!;
+    [Serialized(
+        "Type",
+        Setter = nameof(SetSoundType),
+        Order = 2
+    )]
     protected string SoundType = AudioDefs.SoundEffect;
     internal StringHash SoundTypeHash = new(AudioDefs.SoundEffect);
+    [Serialized(
+        "Frequency",
+        Order = 3
+    )]
     internal float Frequency;
+    [Serialized(
+        "Gain",
+        Order = 4
+    )]
     protected float Gain = 1.0f;
+    [Serialized(
+        "Attenuation",
+        Order = 5
+    )]
     protected float Attenuation = 1.0f;
+    [Serialized(
+        "Panning",
+        Order = 6
+    )]
     protected float Panning;
+    [Serialized(
+        "Reach",
+        Order = 7
+    )]
     protected float Reach;
     protected float MasterGain;
+    [Serialized(
+        "Autoremove Mode",
+        EnumNamesSource = nameof(AutoRemoveModeNames),
+        Order = 11
+    )]
     protected AutoRemoveMode AutoRemove;
 
     private Sound? _sound;
@@ -132,8 +70,16 @@ public partial class SoundSource : Component
     private Sound? _streamBuffer;
     private int _unusedStreamSize;
     private sbyte[] _decodeBuffer = [];
+    [Serialized(
+        "Ignore Scene Time Scale",
+        Order = 9
+    )]
     private bool _ignoreSceneTimeScale;
     private bool _sendFinishedEvent;
+    [Serialized(
+        "Low Frequency Effect",
+        Order = 8
+    )]
     private bool _lowFrequency;
     private readonly object _playLock = new();
 
@@ -276,6 +222,12 @@ public partial class SoundSource : Component
     public bool IsLowFrequency() => _lowFrequency;
     public AutoRemoveMode GetAutoRemoveMode() => AutoRemove;
     public bool GetIgnoreSceneTimeScale() => _ignoreSceneTimeScale;
+    [Serialized(
+        "Is Playing",
+        DefaultSource = nameof(GetIsPlayingAttributeDefault),
+        Setter = nameof(SetPlayingAttr),
+        Order = 10
+    )]
     public bool IsPlaying() => _position.HasValue && (_sound != null || _soundStream != null);
 
     public void SetPlayPosition(int position)
@@ -380,6 +332,12 @@ public partial class SoundSource : Component
     }
 
     /// <summary>Set sound attribute for serialization.</summary>
+    [Serialized(
+        "Sound",
+        DefaultSource = nameof(GetSoundAttributeDefault),
+        Setter = nameof(SetSoundAttr),
+        Order = 1
+    )]
     public ResourceRef GetSoundAttr() => GetSound() != null ? new ResourceRef(new StringHash(nameof(Sound)), GetSound()!.Name) : ResourceRef.Empty;
 
     public void SetPlayingAttr(bool value)
@@ -390,6 +348,12 @@ public partial class SoundSource : Component
             Stop();
     }
 
+    [Serialized(
+        "Play Position",
+        DefaultSource = nameof(GetPlayPositionAttributeDefault),
+        Setter = nameof(SetPositionAttr),
+        Order = 12
+    )]
     public int GetPositionAttr() => _position ?? 0;
 
     public void SetPositionAttr(int value) => SetPlayPosition(value);
@@ -657,25 +621,20 @@ public partial class SoundSource : Component
 
     private static object? GetSoundAttributeDefault() => new ResourceRef(new StringHash(nameof(Sound)));
 
-    private static object? GetTypeAttributeDefault() => AudioDefs.SoundEffect;
-
-    private static object? GetFrequencyAttributeDefault() => 0.0f;
-
-    private static object? GetGainAttributeDefault() => 1.0f;
-
-    private static object? GetAttenuationAttributeDefault() => 1.0f;
-
-    private static object? GetPanningAttributeDefault() => 0.0f;
-
-    private static object? GetReachAttributeDefault() => 0.0f;
-
-    private static object? GetLowFrequencyEffectAttributeDefault() => false;
-
-    private static object? GetIgnoreSceneTimeScaleAttributeDefault() => false;
-
     private static object? GetIsPlayingAttributeDefault() => false;
 
-    private static object? GetAutoremoveModeAttributeDefault() => AutoRemoveMode.Disabled;
 
     private static object? GetPlayPositionAttributeDefault() => 0;
+
+
+    [Serialized(
+        "Is Enabled",
+        DefaultSource = nameof(GetIsEnabledAttributeDefault),
+        Order = 0
+    )]
+    private bool SerializedIsEnabled
+    {
+        get => Enabled;
+        set => SetEnabled(value);
+    }
 }

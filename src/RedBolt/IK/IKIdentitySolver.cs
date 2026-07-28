@@ -39,7 +39,7 @@ public partial class IKIdentitySolver : IKSolverComponent
     }
 
     /// <summary>Attributes.</summary>
-    [Serialized("Bone Name", DefaultSource = nameof(_boneName))]
+    [Serialized("Bone Name")]
     public string BoneName
     {
         get => _boneName;
@@ -50,7 +50,7 @@ public partial class IKIdentitySolver : IKSolverComponent
         }
     }
 
-    [Serialized("Target Name", DefaultSource = nameof(_targetName))]
+    [Serialized("Target Name")]
     public string TargetName
     {
         get => _targetName;
@@ -64,7 +64,7 @@ public partial class IKIdentitySolver : IKSolverComponent
     // TODO: port
     // URHO3D_ACTION_STATIC_LABEL(
     //     "Update Properties", UpdateProperties, "Set properties below from current bone positions");
-    [Serialized("Rotation Offset", DefaultSource = nameof(GetDefaultRotationOffset))]
+    [Serialized("Rotation Offset")]
     public Quaternion RotationOffset
     {
         get => _rotationOffset;
@@ -102,7 +102,6 @@ public partial class IKIdentitySolver : IKSolverComponent
         _boneNode.MarkRotationDirty();
     }
 
-    private static Quaternion GetDefaultRotationOffset() => Quaternion.ZERO;
 
     private void EnsureInitialized()
     {

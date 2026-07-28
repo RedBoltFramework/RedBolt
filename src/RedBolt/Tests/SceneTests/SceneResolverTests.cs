@@ -69,31 +69,22 @@ public sealed partial class SceneResolverTests
     }
 
     [Reflected]
-    [Serialized(
-        "Node ID",
-        typeof(uint),
-        DefaultSource = nameof(_nodeId),
-        Getter = nameof(_nodeId),
-        Mode = AttributeMode.NodeId,
-        Setter = nameof(_nodeId))]
-    [Serialized(
-        "Component ID",
-        typeof(uint),
-        DefaultSource = nameof(_componentId),
-        Getter = nameof(_componentId),
-        Mode = AttributeMode.ComponentId,
-        Setter = nameof(_componentId))]
-    [Serialized(
-        "Node IDs",
-        typeof(VariantVector),
-        DefaultSource = nameof(GetNodeIdsDefault),
-        Getter = nameof(_nodeIds),
-        Mode = AttributeMode.NodeIdVector,
-        Setter = nameof(SetNodeIds))]
     private sealed partial class ResolverProbe : Component
     {
+        [Serialized(
+            "Node ID",
+            Mode = AttributeMode.NodeId
+        )]
         private uint _nodeId;
+        [Serialized(
+            "Component ID",
+            Mode = AttributeMode.ComponentId
+        )]
         private uint _componentId;
+        [Serialized(
+            "Node IDs",
+            Mode = AttributeMode.NodeIdVector
+        )]
         private VariantVector _nodeIds = [];
 
         public uint NodeId => _nodeId;
@@ -102,7 +93,6 @@ public sealed partial class SceneResolverTests
 
         public VariantVector NodeIds => _nodeIds;
 
-        private static VariantVector GetNodeIdsDefault() => [];
 
         private void SetNodeIds(VariantVector value)
         {

@@ -13,38 +13,30 @@ namespace RedBolt.Graphics;
 
 /// <summary>Global illumination manager.</summary>
 [Reflected(ObjectCategory.Category_Subsystem)]
-[Serialized(
-    "Emission Brightness",
-    typeof(float),
-    DefaultSource = nameof(GetEmissionBrightnessAttributeDefault),
-    Getter = nameof(_emissionBrightness),
-    Setter = nameof(_emissionBrightness)
-)]
-[Serialized(
-    "Offset",
-    typeof(Vector3f),
-    DefaultSource = nameof(GetOffsetAttributeDefault),
-    Getter = nameof(_offset),
-    Setter = nameof(_offset)
-)]
-[Serialized(
-    "Data File",
-    typeof(ResourceRef),
-    DefaultSource = nameof(GetDataFileAttributeDefault),
-    Getter = nameof(GetFileRef),
-    Mode = AttributeMode.Default | AttributeMode.NoEdit,
-    Setter = nameof(SetFileRef)
-)]
 public partial class GlobalIllumination : Component
 {
     [ThreadStatic]
     private static List<(uint First, uint Second)>? _edges;
 
     /// <summary>Emission indirect brightness.</summary>
+    [Serialized(
+        "Emission Brightness",
+        Order = 0
+    )]
     private float _emissionBrightness = 1.0f;
     /// <summary>Reference on file with GI data.</summary>
+    [Serialized(
+        "Data File",
+        Mode = AttributeMode.Default | AttributeMode.NoEdit,
+        Setter = nameof(SetFileRef),
+        Order = 2
+    )]
     private ResourceRef _fileRef = new(new StringHash(nameof(BinaryFile)));
     /// <summary>Offset.</summary>
+    [Serialized(
+        "Offset",
+        Order = 1
+    )]
     private Vector3f _offset;
     /// <summary>Light probes mesh.</summary>
     private TetrahedralMesh _lightProbesMesh = new();
@@ -221,9 +213,4 @@ public partial class GlobalIllumination : Component
         }
     }
 
-    private static object? GetEmissionBrightnessAttributeDefault() => 1.0f;
-
-    private static object? GetOffsetAttributeDefault() => Vector3f.Zero;
-
-    private static object? GetDataFileAttributeDefault() => new ResourceRef(new StringHash(nameof(BinaryFile)));
 }

@@ -38,7 +38,7 @@ public partial class IKRotateTo : IKSolverComponent
     }
 
     /// <summary>Attributes.</summary>
-    [Serialized("Bone 0 Name", DefaultSource = nameof(_firstBoneName))]
+    [Serialized("Bone 0 Name")]
     public string FirstBoneName
     {
         get => _firstBoneName;
@@ -49,7 +49,7 @@ public partial class IKRotateTo : IKSolverComponent
         }
     }
 
-    [Serialized("Bone 1 Name", DefaultSource = nameof(_secondBoneName))]
+    [Serialized("Bone 1 Name")]
     public string SecondBoneName
     {
         get => _secondBoneName;
@@ -60,7 +60,7 @@ public partial class IKRotateTo : IKSolverComponent
         }
     }
 
-    [Serialized("Target Name", DefaultSource = nameof(_targetName))]
+    [Serialized("Target Name")]
     public string TargetName
     {
         get => _targetName;
@@ -71,7 +71,7 @@ public partial class IKRotateTo : IKSolverComponent
         }
     }
 
-    [Serialized("Weight", DefaultSource = nameof(_weight))]
+    [Serialized("Weight")]
     public float Weight
     {
         get => _weight;

@@ -40,14 +40,7 @@ public struct Billboard
 }
 
 /// <summary>Billboard component.</summary>
-[Reflected(ObjectCategory.Category_Geometry)]
-[Serialized(
-    "Is Enabled",
-    typeof(bool),
-    DefaultSource = nameof(GetIsEnabledAttributeDefault),
-    Getter = nameof(Enabled),
-    Setter = nameof(SetEnabled)
-)]
+[Reflected(ObjectCategory.Category_Geometry, InheritAttributesOrder = 13)]
 public partial class BillboardSet : Drawable
 {
     private static readonly float InvSqrtTwo = 1.0f / MathF.Sqrt(2.0f);
@@ -67,6 +60,11 @@ public partial class BillboardSet : Drawable
     /// <summary>Billboards.</summary>
     protected readonly List<Billboard> _billboards = [];
     /// <summary>Animation LOD bias.</summary>
+    [Serialized(
+        "Animation LOD Bias",
+        Order = 12,
+        Setter = nameof(SetAnimationLodBias)
+    )]
     protected float _animationLodBias = 1.0f;
     /// <summary>Animation LOD timer.</summary>
     protected float _animationLodTimer;
@@ -931,4 +929,16 @@ public partial class BillboardSet : Drawable
     }
 
     private static object? GetIsEnabledAttributeDefault() => true;
+
+
+    [Serialized(
+        "Is Enabled",
+        DefaultSource = nameof(GetIsEnabledAttributeDefault),
+        Order = 0
+    )]
+    private bool SerializedIsEnabled
+    {
+        get => Enabled;
+        set => SetEnabled(value);
+    }
 }

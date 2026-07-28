@@ -17,194 +17,6 @@ namespace RedBolt.Graphics;
 /// Heightmap terrain component.
 /// </summary>
 [Reflected(ObjectCategory.Category_Geometry)]
-[Serialized(
-    "Is Enabled",
-    typeof(bool),
-    DefaultSource = nameof(GetIsEnabledAttributeDefault),
-    Getter = nameof(Enabled),
-    Setter = nameof(SetEnabled)
-)]
-[Serialized(
-    "Height Map",
-    typeof(ResourceRef),
-    DefaultSource = nameof(GetHeightMapAttributeDefault),
-    Getter = nameof(GetHeightMapAttr),
-    Setter = nameof(SetHeightMapAttr)
-)]
-[Serialized(
-    "Material",
-    typeof(ResourceRef),
-    DefaultSource = nameof(GetMaterialAttributeDefault),
-    Getter = nameof(GetMaterialAttr),
-    Setter = nameof(SetMaterialAttr)
-)]
-[Serialized(
-    "North Neighbor NodeID",
-    typeof(uint),
-    DefaultSource = nameof(GetNorthNeighborNodeIDAttributeDefault),
-    Getter = nameof(_northID),
-    Mode = AttributeMode.Default | AttributeMode.NodeId,
-    Setter = nameof(SetSerializedNorthNeighborNodeID)
-)]
-[Serialized(
-    "South Neighbor NodeID",
-    typeof(uint),
-    DefaultSource = nameof(GetSouthNeighborNodeIDAttributeDefault),
-    Getter = nameof(_southID),
-    Mode = AttributeMode.Default | AttributeMode.NodeId,
-    Setter = nameof(SetSerializedSouthNeighborNodeID)
-)]
-[Serialized(
-    "West Neighbor NodeID",
-    typeof(uint),
-    DefaultSource = nameof(GetWestNeighborNodeIDAttributeDefault),
-    Getter = nameof(_westID),
-    Mode = AttributeMode.Default | AttributeMode.NodeId,
-    Setter = nameof(SetSerializedWestNeighborNodeID)
-)]
-[Serialized(
-    "East Neighbor NodeID",
-    typeof(uint),
-    DefaultSource = nameof(GetEastNeighborNodeIDAttributeDefault),
-    Getter = nameof(_eastID),
-    Mode = AttributeMode.Default | AttributeMode.NodeId,
-    Setter = nameof(SetSerializedEastNeighborNodeID)
-)]
-[Serialized(
-    "Vertex Spacing",
-    typeof(Vector3f),
-    DefaultSource = nameof(GetVertexSpacingAttributeDefault),
-    Getter = nameof(_spacing),
-    Setter = nameof(SetSerializedVertexSpacing)
-)]
-[Serialized(
-    "Patch Size",
-    typeof(int),
-    DefaultSource = nameof(GetPatchSizeAttributeDefault),
-    Getter = nameof(GetPatchSize),
-    Setter = nameof(SetPatchSizeAttr)
-)]
-[Serialized(
-    "Max LOD Levels",
-    typeof(uint),
-    DefaultSource = nameof(GetMaxLODLevelsAttributeDefault),
-    Getter = nameof(GetMaxLodLevels),
-    Setter = nameof(SetMaxLodLevelsAttr)
-)]
-[Serialized(
-    "Smooth Height Map",
-    typeof(bool),
-    DefaultSource = nameof(GetSmoothHeightMapAttributeDefault),
-    Getter = nameof(_smoothing),
-    Setter = nameof(SetSerializedSmoothHeightMap)
-)]
-[Serialized(
-    "Is Occluder",
-    typeof(bool),
-    DefaultSource = nameof(GetIsOccluderAttributeDefault),
-    Getter = nameof(IsOccluder),
-    Setter = nameof(SetOccluder)
-)]
-[Serialized(
-    "Can Be Occluded",
-    typeof(bool),
-    DefaultSource = nameof(GetCanBeOccludedAttributeDefault),
-    Getter = nameof(IsOccludee),
-    Setter = nameof(SetOccludee)
-)]
-[Serialized(
-    "Cast Shadows",
-    typeof(bool),
-    DefaultSource = nameof(GetCastShadowsAttributeDefault),
-    Getter = nameof(GetCastShadows),
-    Setter = nameof(SetCastShadows)
-)]
-[Serialized(
-    "Draw Distance",
-    typeof(float),
-    DefaultSource = nameof(GetDrawDistanceAttributeDefault),
-    Getter = nameof(GetDrawDistance),
-    Setter = nameof(SetDrawDistance)
-)]
-[Serialized(
-    "Shadow Distance",
-    typeof(float),
-    DefaultSource = nameof(GetShadowDistanceAttributeDefault),
-    Getter = nameof(GetShadowDistance),
-    Setter = nameof(SetShadowDistance)
-)]
-[Serialized(
-    "LOD Bias",
-    typeof(float),
-    DefaultSource = nameof(GetLODBiasAttributeDefault),
-    Getter = nameof(GetLodBias),
-    Setter = nameof(SetLodBias)
-)]
-[Serialized(
-    "View Mask",
-    typeof(uint),
-    DefaultSource = nameof(GetViewMaskAttributeDefault),
-    Getter = nameof(GetViewMask),
-    Setter = nameof(SetViewMask)
-)]
-[Serialized(
-    "Light Mask",
-    typeof(uint),
-    DefaultSource = nameof(GetLightMaskAttributeDefault),
-    Getter = nameof(GetLightMask),
-    Setter = nameof(SetLightMask)
-)]
-[Serialized(
-    "Shadow Mask",
-    typeof(uint),
-    DefaultSource = nameof(GetShadowMaskAttributeDefault),
-    Getter = nameof(GetShadowMask),
-    Setter = nameof(SetShadowMask)
-)]
-[Serialized(
-    "Zone Mask",
-    typeof(uint),
-    DefaultSource = nameof(GetZoneMaskAttributeDefault),
-    Getter = nameof(GetZoneMask),
-    Setter = nameof(SetZoneMask)
-)]
-[Serialized(
-    "Occlusion LOD level",
-    typeof(uint),
-    DefaultSource = nameof(GetOcclusionLODLevelAttributeDefault),
-    Getter = nameof(GetOcclusionLodLevel),
-    Setter = nameof(SetOcclusionLodLevelAttr)
-)]
-[Serialized(
-    "Bake Lightmap",
-    typeof(bool),
-    DefaultSource = nameof(GetBakeLightmapAttributeDefault),
-    Getter = nameof(_bakeLightmap),
-    Setter = nameof(SetSerializedBakeLightmap)
-)]
-[Serialized(
-    "Scale in Lightmap",
-    typeof(float),
-    DefaultSource = nameof(GetScaleInLightmapAttributeDefault),
-    Getter = nameof(_scaleInLightmap),
-    Setter = nameof(_scaleInLightmap)
-)]
-[Serialized(
-    "Lightmap Index",
-    typeof(uint),
-    DefaultSource = nameof(GetLightmapIndexAttributeDefault),
-    Getter = nameof(_lightmapIndex),
-    Mode = AttributeMode.Default | AttributeMode.NoEdit,
-    Setter = nameof(SetSerializedLightmapIndex)
-)]
-[Serialized(
-    "Lightmap Scale & Offset",
-    typeof(Vector4f),
-    DefaultSource = nameof(GetLightmapScaleOffsetAttributeDefault),
-    Getter = nameof(_lightmapScaleOffset),
-    Mode = AttributeMode.Default | AttributeMode.NoEdit,
-    Setter = nameof(SetSerializedLightmapScaleOffset)
-)]
 public partial class Terrain : Component
 {
     private static readonly Vector3f DefaultSpacing = new(1.0f, 0.25f, 1.0f);
@@ -242,9 +54,27 @@ public partial class Terrain : Component
     private float[]? _heightData;
     private float[]? _sourceHeightData;
     private Material? _material;
+    [Serialized(
+        "Bake Lightmap",
+        Order = 22
+    )]
     private bool _bakeLightmap;
+    [Serialized(
+        "Scale in Lightmap",
+        Order = 23
+    )]
     private float _scaleInLightmap = 1.0f;
+    [Serialized(
+        "Lightmap Index",
+        Mode = AttributeMode.Default | AttributeMode.NoEdit,
+        Order = 24
+    )]
     private uint _lightmapIndex;
+    [Serialized(
+        "Lightmap Scale & Offset",
+        Mode = AttributeMode.Default | AttributeMode.NoEdit,
+        Order = 25
+    )]
     private Vector4f _lightmapScaleOffset = new(1.0f, 1.0f, 0.0f, 0.0f);
     private readonly List<WeakReference<TerrainPatch>> _patches = [];
     private readonly List<(uint Start, uint Count)> _drawRanges = [];
@@ -252,6 +82,10 @@ public partial class Terrain : Component
     private WeakReference<Terrain>? _south;
     private WeakReference<Terrain>? _west;
     private WeakReference<Terrain>? _east;
+    [Serialized(
+        "Vertex Spacing",
+        Order = 7
+    )]
     private Vector3f _spacing = DefaultSpacing;
     private Vector3f _lastSpacing = Vector3f.Zero;
     private Vector2f _patchWorldOrigin = Vector2f.Zero;
@@ -259,26 +93,115 @@ public partial class Terrain : Component
     private Vector2i _numVertices = Vector2i.Zero;
     private Vector2i _lastNumVertices = Vector2i.Zero;
     private Vector2i _numPatches = Vector2i.Zero;
+    [Serialized(
+        "Patch Size",
+        Setter = nameof(SetPatchSizeAttr),
+        Order = 8
+    )]
     private int _patchSize = DefaultPatchSize;
     private int _lastPatchSize;
     private uint _numLodLevels = 1;
+    [Serialized(
+        "Max LOD Levels",
+        Setter = nameof(SetMaxLodLevelsAttr),
+        Order = 9
+    )]
     private uint _maxLodLevels = MaxLodLevelsConst;
+    [Serialized(
+        "Occlusion LOD level",
+        Setter = nameof(SetOcclusionLodLevelAttr),
+        Order = 21
+    )]
     private uint _occlusionLodLevel = MathDefs.MaxUnsigned;
+    [Serialized(
+        "Smooth Height Map",
+        Order = 10
+    )]
     private bool _smoothing;
     private bool _visible = true;
+    [Serialized(
+        "Cast Shadows",
+        Setter = nameof(SetCastShadows),
+        Order = 13
+    )]
     private bool _castShadows;
+    [Serialized(
+        "Is Occluder",
+        Setter = nameof(SetOccluder),
+        Order = 11
+    )]
     private bool _occluder;
+    [Serialized(
+        "Can Be Occluded",
+        Setter = nameof(SetOccludee),
+        Order = 12
+    )]
     private bool _occludee = true;
+    [Serialized(
+        "View Mask",
+        Setter = nameof(SetViewMask),
+        Order = 17
+    )]
     private uint _viewMask = Drawable.DefaultViewMask;
+    [Serialized(
+        "Light Mask",
+        Setter = nameof(SetLightMask),
+        Order = 18
+    )]
     private uint _lightMask = Drawable.DefaultLightMask;
+    [Serialized(
+        "Shadow Mask",
+        Setter = nameof(SetShadowMask),
+        Order = 19
+    )]
     private uint _shadowMask = Drawable.DefaultShadowMask;
+    [Serialized(
+        "Zone Mask",
+        Setter = nameof(SetZoneMask),
+        Order = 20
+    )]
     private uint _zoneMask = Drawable.DefaultZoneMask;
+    [Serialized(
+        "Draw Distance",
+        Setter = nameof(SetDrawDistance),
+        Order = 14
+    )]
     private float _drawDistance;
+    [Serialized(
+        "Shadow Distance",
+        Setter = nameof(SetShadowDistance),
+        Order = 15
+    )]
     private float _shadowDistance;
+    [Serialized(
+        "LOD Bias",
+        Setter = nameof(SetLodBias),
+        Order = 16
+    )]
     private float _lodBias = 1.0f;
+    [Serialized(
+        "North Neighbor NodeID",
+        Mode = AttributeMode.Default | AttributeMode.NodeId,
+        Order = 3
+    )]
     private uint _northID;
+    [Serialized(
+        "South Neighbor NodeID",
+        Mode = AttributeMode.Default | AttributeMode.NodeId,
+        Order = 4
+    )]
     private uint _southID;
+    [Serialized(
+        "West Neighbor NodeID",
+        Mode = AttributeMode.Default | AttributeMode.NodeId,
+        Order = 5
+    )]
     private uint _westID;
+    [Serialized(
+        "East Neighbor NodeID",
+        Mode = AttributeMode.Default | AttributeMode.NodeId,
+        Order = 6
+    )]
     private uint _eastID;
     private bool _recreateTerrain;
     private bool _neighborsDirty;
@@ -990,7 +913,19 @@ public partial class Terrain : Component
         }
     }
 
+    [Serialized(
+        "Material",
+        DefaultSource = nameof(GetMaterialAttributeDefault),
+        Setter = nameof(SetMaterialAttr),
+        Order = 2
+    )]
     public ResourceRef GetMaterialAttr() => ResourceType.GetResourceRef(_material, new StringHash(nameof(Material)));
+    [Serialized(
+        "Height Map",
+        DefaultSource = nameof(GetHeightMapAttributeDefault),
+        Setter = nameof(SetHeightMapAttr),
+        Order = 1
+    )]
     public ResourceRef GetHeightMapAttr() => ResourceType.GetResourceRef(_heightMap, new StringHash(nameof(Image)));
 
     public BoundingBox CalculateWorldBoundingBox()
@@ -1737,7 +1672,6 @@ public partial class Terrain : Component
 
     private static object? GetMaterialAttributeDefault() => new ResourceRef(new StringHash(nameof(Material)));
 
-    private static object? GetNorthNeighborNodeIDAttributeDefault() => 0u;
 
     private void SetSerializedNorthNeighborNodeID(object? value)
     {
@@ -1747,7 +1681,6 @@ public partial class Terrain : Component
         terrain.MarkNeighborsDirty();
     }
 
-    private static object? GetSouthNeighborNodeIDAttributeDefault() => 0u;
 
     private void SetSerializedSouthNeighborNodeID(object? value)
     {
@@ -1757,7 +1690,6 @@ public partial class Terrain : Component
         terrain.MarkNeighborsDirty();
     }
 
-    private static object? GetWestNeighborNodeIDAttributeDefault() => 0u;
 
     private void SetSerializedWestNeighborNodeID(object? value)
     {
@@ -1767,7 +1699,6 @@ public partial class Terrain : Component
         terrain.MarkNeighborsDirty();
     }
 
-    private static object? GetEastNeighborNodeIDAttributeDefault() => 0u;
 
     private void SetSerializedEastNeighborNodeID(object? value)
     {
@@ -1777,7 +1708,6 @@ public partial class Terrain : Component
         terrain.MarkNeighborsDirty();
     }
 
-    private static object? GetVertexSpacingAttributeDefault() => DefaultSpacing;
 
     private void SetSerializedVertexSpacing(object? value)
     {
@@ -1787,12 +1717,6 @@ public partial class Terrain : Component
         terrain.MarkTerrainDirty();
     }
 
-    private static object? GetPatchSizeAttributeDefault() => DefaultPatchSize;
-
-    private static object? GetMaxLODLevelsAttributeDefault() => MaxLodLevelsConst;
-
-    private static object? GetSmoothHeightMapAttributeDefault() => false;
-
     private void SetSerializedSmoothHeightMap(object? value)
     {
         Serializable self = this;
@@ -1800,30 +1724,6 @@ public partial class Terrain : Component
         terrain._smoothing = value is bool enabled && enabled;
         terrain.MarkTerrainDirty();
     }
-
-    private static object? GetIsOccluderAttributeDefault() => false;
-
-    private static object? GetCanBeOccludedAttributeDefault() => true;
-
-    private static object? GetCastShadowsAttributeDefault() => false;
-
-    private static object? GetDrawDistanceAttributeDefault() => 0.0f;
-
-    private static object? GetShadowDistanceAttributeDefault() => 0.0f;
-
-    private static object? GetLODBiasAttributeDefault() => 1.0f;
-
-    private static object? GetViewMaskAttributeDefault() => Drawable.DefaultViewMask;
-
-    private static object? GetLightMaskAttributeDefault() => Drawable.DefaultLightMask;
-
-    private static object? GetShadowMaskAttributeDefault() => Drawable.DefaultShadowMask;
-
-    private static object? GetZoneMaskAttributeDefault() => Drawable.DefaultZoneMask;
-
-    private static object? GetOcclusionLODLevelAttributeDefault() => MathDefs.MaxUnsigned;
-
-    private static object? GetBakeLightmapAttributeDefault() => false;
 
     private void SetSerializedBakeLightmap(object? value)
     {
@@ -1833,10 +1733,6 @@ public partial class Terrain : Component
         terrain.MarkTerrainDirty();
     }
 
-    private static object? GetScaleInLightmapAttributeDefault() => 1.0f;
-
-    private static object? GetLightmapIndexAttributeDefault() => 0u;
-
     private void SetSerializedLightmapIndex(object? value)
     {
         Serializable self = this;
@@ -1845,7 +1741,6 @@ public partial class Terrain : Component
         terrain.UpdatePatchesLightmaps();
     }
 
-    private static object? GetLightmapScaleOffsetAttributeDefault() => new Vector4f(1.0f, 1.0f, 0.0f, 0.0f);
 
     private void SetSerializedLightmapScaleOffset(object? value)
     {
@@ -1853,5 +1748,17 @@ public partial class Terrain : Component
         var terrain = (Terrain)self;
         terrain._lightmapScaleOffset = (Vector4f)value!;
         terrain.UpdatePatchesLightmaps();
+    }
+
+
+    [Serialized(
+        "Is Enabled",
+        DefaultSource = nameof(GetIsEnabledAttributeDefault),
+        Order = 0
+    )]
+    private bool SerializedIsEnabled
+    {
+        get => Enabled;
+        set => SetEnabled(value);
     }
 }

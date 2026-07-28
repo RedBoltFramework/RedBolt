@@ -172,10 +172,9 @@ public sealed partial class SerializableTests
     [Reflected]
     private sealed partial class DefaultSerializable : Serializable
     {
-        [Serialized("Value", DefaultSource = nameof(GetValueDefault))]
+        [Serialized("Value")]
         public byte[] Value { get; set; } = [];
 
-        private static byte[] GetValueDefault() => [];
     }
 
     private sealed class UnreflectedSerializable : Serializable

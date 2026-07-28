@@ -47,50 +47,50 @@ public partial class IKHeadSolver : IKSolverComponent
     }
 
     /// <summary>Attributes.</summary>
-    [Serialized("Neck Bone Name", DefaultSource = nameof(_neckBoneName))]
+    [Serialized("Neck Bone Name")]
     public string NeckBoneName { get => _neckBoneName; set { _neckBoneName = value; OnTreeDirty(); } }
-    [Serialized("Head Bone Name", DefaultSource = nameof(_headBoneName))]
+    [Serialized("Head Bone Name")]
     public string HeadBoneName { get => _headBoneName; set { _headBoneName = value; OnTreeDirty(); } }
 
-    [Serialized("Target Name", DefaultSource = nameof(_targetName))]
+    [Serialized("Target Name")]
     public string TargetName { get => _targetName; set { _targetName = value; OnTreeDirty(); } }
-    [Serialized("Look At Target Name", DefaultSource = nameof(_lookAtTargetName))]
+    [Serialized("Look At Target Name")]
     public string LookAtTargetName { get => _lookAtTargetName; set { _lookAtTargetName = value; OnTreeDirty(); } }
 
     [Serialized(
         "Position Weight",
-        DefaultSource = nameof(_positionWeight),
-        Setter = nameof(SetPositionWeightAttribute))]
+        Setter = nameof(SetPositionWeightAttribute)
+    )]
     public float PositionWeight { get => _positionWeight; set => _positionWeight = value; }
     [Serialized(
         "Rotation Weight",
-        DefaultSource = nameof(_rotationWeight),
-        Setter = nameof(SetRotationWeightAttribute))]
+        Setter = nameof(SetRotationWeightAttribute)
+    )]
     public float RotationWeight { get => _rotationWeight; set => _rotationWeight = value; }
     [Serialized(
         "Direction Weight",
-        DefaultSource = nameof(_directionWeight),
-        Setter = nameof(SetDirectionWeightAttribute))]
+        Setter = nameof(SetDirectionWeightAttribute)
+    )]
     public float DirectionWeight { get => _directionWeight; set => _directionWeight = value; }
     [Serialized(
         "Look At Weight",
-        DefaultSource = nameof(_lookAtWeight),
-        Setter = nameof(SetLookAtWeightAttribute))]
+        Setter = nameof(SetLookAtWeightAttribute)
+    )]
     public float LookAtWeight { get => _lookAtWeight; set => _lookAtWeight = value; }
     [Serialized(
         "Eye Direction",
-        DefaultSource = nameof(_eyeDirection),
-        Setter = nameof(SetEyeDirectionAttribute))]
+        Setter = nameof(SetEyeDirectionAttribute)
+    )]
     public Vector3f EyeDirection { get => _eyeDirection; set => _eyeDirection = value; }
     [Serialized(
         "Eye Offset",
-        DefaultSource = nameof(_eyeOffset),
-        Setter = nameof(SetEyeOffsetAttribute))]
+        Setter = nameof(SetEyeOffsetAttribute)
+    )]
     public Vector3f EyeOffset { get => _eyeOffset; set => _eyeOffset = value; }
     [Serialized(
         "Neck Weight",
-        DefaultSource = nameof(_neckWeight),
-        Setter = nameof(SetNeckWeightAttribute))]
+        Setter = nameof(SetNeckWeightAttribute)
+    )]
     public float NeckWeight { get => _neckWeight; set => _neckWeight = value; }
 
     private void SetPositionWeightAttribute(float value)

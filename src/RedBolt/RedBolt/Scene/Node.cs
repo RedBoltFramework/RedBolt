@@ -12,60 +12,6 @@ namespace RedBolt.Scene;
 
 /// <summary>Scene node that may contain components and child nodes.</summary>
 [Reflected]
-[Serialized(
-    "Is Enabled",
-    typeof(bool),
-    DefaultSource = nameof(GetIsEnabledAttributeDefault),
-    Getter = nameof(IsEnabledSelf),
-    Setter = nameof(SetEnabled)
-)]
-[Serialized(
-    "Name",
-    typeof(string),
-    DefaultSource = nameof(GetNameAttributeDefault),
-    Getter = nameof(Name),
-    Setter = nameof(SetName)
-)]
-[Serialized(
-    "Tags",
-    typeof(IReadOnlyList<string>),
-    DefaultSource = nameof(GetTagsAttributeDefault),
-    Getter = nameof(Tags),
-    Setter = nameof(SetTags)
-)]
-[Serialized(
-    "Position",
-    typeof(Vector3f),
-    AccessorFactory = nameof(CreatePositionAttributeAccessor),
-    DefaultSource = nameof(GetPositionAttributeDefault)
-)]
-[Serialized(
-    "Rotation",
-    typeof(Quaternion),
-    DefaultSource = nameof(GetRotationAttributeDefault),
-    Getter = nameof(Rotation),
-    Setter = nameof(Rotation)
-)]
-[Serialized(
-    "Scale",
-    typeof(Vector3f),
-    AccessorFactory = nameof(CreateScaleAttributeAccessor),
-    DefaultSource = nameof(GetScaleAttributeDefault)
-)]
-[Serialized(
-    "Variables",
-    typeof(IReadOnlyDictionary<StringHash, object?>),
-    DefaultSource = nameof(GetVariablesAttributeDefault),
-    Getter = nameof(Variables),
-    Setter = nameof(SetSerializedVariables)
-)]
-[Serialized(
-    "World Origin Update Mode",
-    typeof(WorldOriginUpdateMode),
-    DefaultSource = nameof(GetWorldOriginUpdateModeAttributeDefault),
-    Getter = nameof(_worldOriginUpdateMode),
-    Setter = nameof(_worldOriginUpdateMode)
-)]
 public partial class Node : Serializable
 {
     private sealed class Vector3AttributeAccessor : AttributeAccessor
@@ -93,6 +39,11 @@ public partial class Node : Serializable
     private Matrix3x4 _worldTransform = Matrix3x4.Identity;
     private bool _dirty;
     private bool _enabled = true;
+    [Serialized(
+        "Is Enabled",
+        Setter = nameof(SetEnabled),
+        Order = 0
+    )]
     private bool _enabledPrev = true;
     private Node? _parent;
     private Scene? _scene;
@@ -106,6 +57,11 @@ public partial class Node : Serializable
     private readonly List<WeakReference<Component>> _listeners = [];
     // NodeImpl.
     private readonly List<Node> _dependencyNodes = [];
+    [Serialized(
+        "Name",
+        Setter = nameof(SetName),
+        Order = 1
+    )]
     private string _name = string.Empty;
     private readonly List<string> _tags = [];
     private StringHash _nameHash;
@@ -753,8 +709,20 @@ public partial class Node : Serializable
 
     public IReadOnlyList<Component> Components => _components;
 
+    [Serialized(
+        "Tags",
+        DefaultSource = nameof(GetTagsAttributeDefault),
+        Setter = nameof(SetTags),
+        Order = 2
+    )]
     public IReadOnlyList<string> Tags => _tags;
 
+    [Serialized(
+        "Variables",
+        DefaultSource = nameof(GetVariablesAttributeDefault),
+        Setter = nameof(SetSerializedVariables),
+        Order = 6
+    )]
     public IReadOnlyDictionary<StringHash, object?> Variables => _variables;
 
     public uint Id => _id;
@@ -777,18 +745,32 @@ public partial class Node : Serializable
 
     public Node? Parent => _parent;
 
+    [Serialized(
+        "Position",
+        AccessorFactory = nameof(CreatePositionAttributeAccessor),
+        Order = 3
+    )]
     public Vector3f Position
     {
         get => _position;
         set => SetPosition(value);
     }
 
+    [Serialized(
+        "Rotation",
+        Order = 4
+    )]
     public Quaternion Rotation
     {
         get => _rotation;
         set => SetRotation(value);
     }
 
+    [Serialized(
+        "Scale",
+        AccessorFactory = nameof(CreateScaleAttributeAccessor),
+        Order = 5
+    )]
     public Vector3f Scale
     {
         get => _scale;
@@ -797,6 +779,10 @@ public partial class Node : Serializable
 
     public Scene? Scene => _scene;
 
+    [Serialized(
+        "World Origin Update Mode",
+        Order = 7
+    )]
     public WorldOriginUpdateMode WorldOriginUpdateMode
     {
         get => _worldOriginUpdateMode;
@@ -2697,22 +2683,12 @@ public partial class Node : Serializable
         _dirty = false;
     }
 
-
-    private static object? GetIsEnabledAttributeDefault() => true;
-
-    private static object? GetNameAttributeDefault() => string.Empty;
-
     private static object? GetTagsAttributeDefault() => Array.Empty<string>();
 
     private static AttributeAccessor CreatePositionAttributeAccessor() => new Vector3AttributeAccessor(self => self.Position, (self, value) => self.Position = value);
 
-    private static object? GetPositionAttributeDefault() => Vector3f.Zero;
-
-    private static object? GetRotationAttributeDefault() => Quaternion.IDENTITY;
-
     private static AttributeAccessor CreateScaleAttributeAccessor() => new Vector3AttributeAccessor(self => self.Scale, (self, value) => self.Scale = value);
 
-    private static object? GetScaleAttributeDefault() => Vector3f.One;
 
     private static object? GetVariablesAttributeDefault() => new Dictionary<StringHash, object?>();
 
@@ -2724,5 +2700,4 @@ public partial class Node : Serializable
             : value is IEnumerable<KeyValuePair<StringHash, object?>> variablesValue ? variablesValue : []);
     }
 
-    private static object? GetWorldOriginUpdateModeAttributeDefault() => WorldOriginUpdateMode.Move;
 }

@@ -13,48 +13,6 @@ namespace RedBolt.Scene;
 /// https://www.gdcvault.com/play/1033548/Math-for-Game-Programmers-Juicing
 /// </summary>
 [Reflected(ObjectCategory.Category_Scene)]
-[Serialized(
-    "Trauma",
-    typeof(float),
-    DefaultSource = nameof(GetTraumaAttributeDefault),
-    Getter = nameof(Trauma),
-    Setter = nameof(Trauma)
-)]
-[Serialized(
-    "Trauma Power",
-    typeof(float),
-    DefaultSource = nameof(GetTraumaPowerAttributeDefault),
-    Getter = nameof(TraumaPower),
-    Setter = nameof(TraumaPower)
-)]
-[Serialized(
-    "Trauma Falloff",
-    typeof(float),
-    DefaultSource = nameof(GetTraumaFalloffAttributeDefault),
-    Getter = nameof(_traumaFalloff),
-    Setter = nameof(_traumaFalloff)
-)]
-[Serialized(
-    "Time Scale",
-    typeof(float),
-    DefaultSource = nameof(GetTimeScaleAttributeDefault),
-    Getter = nameof(TimeScale),
-    Setter = nameof(TimeScale)
-)]
-[Serialized(
-    "Shift Range",
-    typeof(Vector3f),
-    DefaultSource = nameof(GetShiftRangeAttributeDefault),
-    Getter = nameof(ShiftRange),
-    Setter = nameof(ShiftRange)
-)]
-[Serialized(
-    "Rotation Range",
-    typeof(Vector3f),
-    DefaultSource = nameof(GetRotationRangeAttributeDefault),
-    Getter = nameof(RotationRange),
-    Setter = nameof(RotationRange)
-)]
 public partial class ShakeComponent : LogicComponent
 {
     public const float DefaultTimeScale = 16.0f;
@@ -80,6 +38,11 @@ public partial class ShakeComponent : LogicComponent
 
 
     /// <summary>Set or get time scale. This is a multiplier for Perlin Noise argument.</summary>
+    [Serialized(
+        "Time Scale",
+        DefaultSource = nameof(GetTimeScaleAttributeDefault),
+        Order = 3
+    )]
     public float TimeScale { get; set; }
 
     /// <summary>Increase trauma value.</summary>
@@ -89,6 +52,10 @@ public partial class ShakeComponent : LogicComponent
     }
 
     /// <summary>Set or get trauma value.</summary>
+    [Serialized(
+        "Trauma",
+        Order = 0
+    )]
     public float Trauma
     {
         get => _trauma;
@@ -105,6 +72,11 @@ public partial class ShakeComponent : LogicComponent
     }
 
     /// <summary>Set or get trauma power value.</summary>
+    [Serialized(
+        "Trauma Power",
+        DefaultSource = nameof(GetTraumaPowerAttributeDefault),
+        Order = 1
+    )]
     public float TraumaPower { get; set; }
 
     /// <summary>Set or get trauma falloff (how many units to loose per second).</summary>
@@ -115,9 +87,19 @@ public partial class ShakeComponent : LogicComponent
     }
 
     /// <summary>Set or get shift range.</summary>
+    [Serialized(
+        "Shift Range",
+        DefaultSource = nameof(GetShiftRangeAttributeDefault),
+        Order = 4
+    )]
     public Vector3f ShiftRange { get; set; }
 
     /// <summary>Set or get rotation range.</summary>
+    [Serialized(
+        "Rotation Range",
+        DefaultSource = nameof(GetRotationRangeAttributeDefault),
+        Order = 5
+    )]
     public Vector3f RotationRange { get; set; }
 
     /// <summary>Update node position.</summary>
@@ -188,6 +170,11 @@ public partial class ShakeComponent : LogicComponent
     /// <summary>Current trauma value.</summary>
     private float _trauma;
     /// <summary>Current trauma falloff.</summary>
+    [Serialized(
+        "Trauma Falloff",
+        DefaultSource = nameof(GetTraumaFalloffAttributeDefault),
+        Order = 2
+    )]
     private float _traumaFalloff;
 
     /// <summary>Flag indicating that original position and rotation are captured.</summary>
@@ -201,7 +188,6 @@ public partial class ShakeComponent : LogicComponent
     /// <summary>Last known rotation of the node.</summary>
     private Quaternion _lastKnownRotation = Quaternion.IDENTITY;
 
-    private static object? GetTraumaAttributeDefault() => 0.0f;
 
     private static object? GetTraumaPowerAttributeDefault() => 2.0f;
 

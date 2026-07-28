@@ -14,12 +14,6 @@ using RedBolt.Scene;
 namespace RedBolt.IK;
 
 [Reflected(ObjectCategory.Category_IK, InheritAttributes = false)]
-[Serialized(
-    "Bone Names",
-    typeof(StringVector),
-    DefaultSource = nameof(GetDefaultBoneNames),
-    Getter = nameof(GetBoneNames),
-    Setter = nameof(SetBoneNames))]
 public partial class IKSpineSolver : IKSolverComponent
 {
 
@@ -70,22 +64,42 @@ public partial class IKSpineSolver : IKSolverComponent
         return _boneNames;
     }
 
-    private static StringVector GetDefaultBoneNames() => new();
 
-    [Serialized("Target Name", DefaultSource = nameof(_targetName))]
+    [Serialized(
+        "Target Name",
+        Order = 1001
+    )]
     public string TargetName { get => _targetName; set { _targetName = value; OnTreeDirty(); } }
-    [Serialized("Twist Target Name", DefaultSource = nameof(_twistTargetName))]
+    [Serialized(
+        "Twist Target Name",
+        Order = 1002
+    )]
     public string TwistTargetName { get => _twistTargetName; set { _twistTargetName = value; OnTreeDirty(); } }
 
-    [Serialized("Position Weight", DefaultSource = nameof(_positionWeight))]
+    [Serialized(
+        "Position Weight",
+        Order = 1003
+    )]
     public float PositionWeight { get => _positionWeight; set => _positionWeight = value; }
-    [Serialized("Rotation Weight", DefaultSource = nameof(_rotationWeight))]
+    [Serialized(
+        "Rotation Weight",
+        Order = 1004
+    )]
     public float RotationWeight { get => _rotationWeight; set => _rotationWeight = value; }
-    [Serialized("Twist Weight", DefaultSource = nameof(_twistWeight))]
+    [Serialized(
+        "Twist Weight",
+        Order = 1005
+    )]
     public float TwistWeight { get => _twistWeight; set => _twistWeight = value; }
-    [Serialized("Max Angle", DefaultSource = nameof(_maxAngle))]
+    [Serialized(
+        "Max Angle",
+        Order = 1006
+    )]
     public float MaxAngle { get => _maxAngle; set => _maxAngle = value; }
-    [Serialized("Bend Tweak", DefaultSource = nameof(_bendTweak))]
+    [Serialized(
+        "Bend Tweak",
+        Order = 1007
+    )]
     public float BendTweak { get => _bendTweak; set => _bendTweak = value; }
 
     /// <summary>Implement IKSolverComponent.</summary>
@@ -253,8 +267,12 @@ public partial class IKSpineSolver : IKSolverComponent
         return sign * (angle > 180.0f ? angle - 360.0f : angle);
     }
 
-    private static Quaternion GetDefaultTwistRotationOffset() => Quaternion.ZERO;
 
+    [Serialized(
+        "Bone Names",
+        Setter = nameof(SetBoneNames),
+        Order = 0
+    )]
     private StringVector _boneNames = new StringVector();
     private string _twistTargetName = string.Empty;
     private string _targetName = string.Empty;
@@ -268,7 +286,7 @@ public partial class IKSpineSolver : IKSolverComponent
     // URHO3D_ACTION_STATIC_LABEL(
     //     "Update Properties", UpdateProperties, "Set properties below from current bone positions");
     /// <summary>This orientation of twist bone in object space is equivalent to having no twist.</summary>
-    [Serialized("Twist Rotation Offset", DefaultSource = nameof(GetDefaultTwistRotationOffset))]
+    [Serialized("Twist Rotation Offset")]
     private Quaternion _twistRotationOffset = Quaternion.ZERO;
 
     private IKSpineChain _chain = new();

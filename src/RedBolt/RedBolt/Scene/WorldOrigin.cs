@@ -11,48 +11,6 @@ namespace RedBolt.Scene;
 /// Component that maintains world origin around the node.
 /// </summary>
 [Reflected(ObjectCategory.Category_Scene)]
-[Serialized(
-    "Is Enabled",
-    typeof(bool),
-    DefaultSource = nameof(GetIsEnabledAttributeDefault),
-    Getter = nameof(Enabled),
-    Setter = nameof(SetEnabled)
-)]
-[Serialized(
-    "Max Distance",
-    typeof(uint),
-    DefaultSource = nameof(GetMaxDistanceAttributeDefault),
-    Getter = nameof(_maxDistance),
-    Setter = nameof(_maxDistance)
-)]
-[Serialized(
-    "Step",
-    typeof(uint),
-    DefaultSource = nameof(GetStepAttributeDefault),
-    Getter = nameof(_step),
-    Setter = nameof(_step)
-)]
-[Serialized(
-    "Update X",
-    typeof(bool),
-    DefaultSource = nameof(GetUpdateXAttributeDefault),
-    Getter = nameof(_updateX),
-    Setter = nameof(_updateX)
-)]
-[Serialized(
-    "Update Y",
-    typeof(bool),
-    DefaultSource = nameof(GetUpdateYAttributeDefault),
-    Getter = nameof(_updateY),
-    Setter = nameof(_updateY)
-)]
-[Serialized(
-    "Update Z",
-    typeof(bool),
-    DefaultSource = nameof(GetUpdateZAttributeDefault),
-    Getter = nameof(_updateZ),
-    Setter = nameof(_updateZ)
-)]
 public partial class WorldOrigin : LogicComponent
 {
     public const uint MaxDistance = 8192;
@@ -175,21 +133,42 @@ public partial class WorldOrigin : LogicComponent
     /// </summary>
     public uint GetUpdateZ() => _updateZ ? 1u : 0u;
 
+    [Serialized(
+        "Max Distance",
+        Order = 1
+    )]
     private uint _maxDistance = MaxDistance;
+    [Serialized(
+        "Step",
+        Order = 2
+    )]
     private uint _step = DefaultStep;
+    [Serialized(
+        "Update X",
+        Order = 3
+    )]
     private bool _updateX = true;
+    [Serialized(
+        "Update Y",
+        Order = 4
+    )]
     private bool _updateY;
+    [Serialized(
+        "Update Z",
+        Order = 5
+    )]
     private bool _updateZ = true;
 
     private static object? GetIsEnabledAttributeDefault() => true;
 
-    private static object? GetMaxDistanceAttributeDefault() => MaxDistance;
-
-    private static object? GetStepAttributeDefault() => DefaultStep;
-
-    private static object? GetUpdateXAttributeDefault() => true;
-
-    private static object? GetUpdateYAttributeDefault() => false;
-
-    private static object? GetUpdateZAttributeDefault() => true;
+    [Serialized(
+        "Is Enabled",
+        DefaultSource = nameof(GetIsEnabledAttributeDefault),
+        Order = 0
+    )]
+    private bool SerializedIsEnabled
+    {
+        get => Enabled;
+        set => SetEnabled(value);
+    }
 }

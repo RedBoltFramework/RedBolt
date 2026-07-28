@@ -13,12 +13,6 @@ namespace RedBolt.Navigation;
 /// nodes.
 /// </summary>
 [Reflected(ObjectCategory.Category_Navigation, InheritAttributes = false)]
-[Serialized(
-    "Is Enabled",
-    typeof(bool),
-    DefaultSource = nameof(GetEnabledDefault),
-    Getter = nameof(GetEnabled),
-    Setter = nameof(SetEnabled))]
 public partial class Navigable : Component
 {
     private bool _recursive = true;
@@ -38,7 +32,10 @@ public partial class Navigable : Component
 
     /// <summary>Set whether geometry is automatically collected from child nodes. Default true.</summary>
     /// <summary>Return whether geometry is automatically collected from child nodes.</summary>
-    [Serialized("Recursive", DefaultSource = nameof(GetRecursiveDefault))]
+    [Serialized(
+        "Recursive",
+        Order = 1000
+    )]
     public bool Recursive
     {
         get => _recursive;
@@ -47,7 +44,10 @@ public partial class Navigable : Component
 
     /// <summary>Set whether geometry is walkable. Default true.</summary>
     /// <summary>Return whether geometry is walkable.</summary>
-    [Serialized("Walkable", DefaultSource = nameof(GetWalkableDefault))]
+    [Serialized(
+        "Walkable",
+        Order = 1001
+    )]
     public bool Walkable
     {
         get => _walkable;
@@ -70,5 +70,11 @@ public partial class Navigable : Component
     private static bool GetRecursiveDefault() => true;
     private static bool GetWalkableDefault() => true;
     private static uint GetAreaIdDefault() => NavigationDefs.DeduceAreaId;
+    [Serialized(
+        "Is Enabled",
+        DefaultSource = nameof(GetEnabledDefault),
+        Setter = nameof(SetEnabled),
+        Order = 0
+    )]
     private bool GetEnabled() => Enabled;
 }

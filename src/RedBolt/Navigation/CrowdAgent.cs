@@ -264,7 +264,7 @@ public partial class CrowdAgent : Component
     }
 
     /// <summary>Update the node position. When set to false, the node position should be updated by other means (e.g. using Physics) in response to the CrowdAgentReposition event.</summary>
-    [Serialized("Update Node Position", DefaultSource = nameof(GetDefaultUpdateNodePosition))]
+    [Serialized("Update Node Position")]
     public bool UpdateNodePosition
     {
         get => _updateNodePosition;
@@ -372,7 +372,7 @@ public partial class CrowdAgent : Component
     }
 
     /// <summary>Set the agent's navigation quality.</summary>
-    [Serialized("Navigation Quality", DefaultSource = nameof(GetDefaultNavigationQuality))]
+    [Serialized("Navigation Quality")]
     public NavigationQuality NavigationQuality
     {
         get => _navQuality;
@@ -386,7 +386,7 @@ public partial class CrowdAgent : Component
         }
     }
 
-    [Serialized("Collision Query Range", DefaultSource = nameof(GetDefaultCollisionQueryRange))]
+    [Serialized("Collision Query Range")]
     public float CollisionQueryRange
     {
         get => _collisionQueryRange;
@@ -400,7 +400,7 @@ public partial class CrowdAgent : Component
         }
     }
 
-    [Serialized("Separation Weight", DefaultSource = nameof(GetDefaultSeparationWeight))]
+    [Serialized("Separation Weight")]
     public float SeparationWeight
     {
         get => _separationWeight;
@@ -414,7 +414,7 @@ public partial class CrowdAgent : Component
         }
     }
 
-    [Serialized("Collision Layer", DefaultSource = nameof(GetDefaultCollisionLayer))]
+    [Serialized("Collision Layer")]
     public uint CollisionLayer
     {
         get => _collisionLayer;
@@ -428,7 +428,7 @@ public partial class CrowdAgent : Component
         }
     }
 
-    [Serialized("Collision Mask", DefaultSource = nameof(GetDefaultCollisionMask))]
+    [Serialized("Collision Mask")]
     public uint CollisionMask
     {
         get => _collisionMask;
@@ -767,12 +767,6 @@ public partial class CrowdAgent : Component
         return false;
     }
 
-    private static bool GetDefaultUpdateNodePosition() => true;
-    private static NavigationQuality GetDefaultNavigationQuality() => NavigationQuality.High;
-    private static float GetDefaultCollisionQueryRange() => DefaultCollisionQueryRange;
-    private static float GetDefaultSeparationWeight() => DefaultSeparationWeight;
-    private static uint GetDefaultCollisionLayer() => DefaultCollisionLayer;
-    private static uint GetDefaultCollisionMask() => DefaultCollisionMask;
 
     private static RcVec3f ToRecast(Vector3f value) => new(value.X, value.Y, value.Z);
     private static Vector3f FromRecast(RcVec3f value) => new(value.X, value.Y, value.Z);

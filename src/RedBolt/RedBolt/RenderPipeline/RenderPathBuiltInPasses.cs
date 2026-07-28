@@ -16,62 +16,6 @@ namespace RedBolt.RenderPipeline;
 /// Render pass that applies a shader to the entire output area.
 /// </summary>
 [Reflected(ObjectCategory.Category_RenderPass)]
-[Serialized(
-    "Shader Name",
-    typeof(string),
-    DefaultSource = nameof(GetShaderNameAttributeDefault),
-    Getter = nameof(GetSerializedShaderName),
-    Setter = nameof(SetShaderName)
-)]
-[Serialized(
-    "Shader Defines",
-    typeof(string),
-    DefaultSource = nameof(GetShaderDefinesAttributeDefault),
-    Getter = nameof(GetSerializedShaderDefines),
-    Setter = nameof(SetShaderDefines)
-)]
-[Serialized(
-    "Blend Mode",
-    typeof(BlendMode),
-    DefaultSource = nameof(GetBlendModeAttributeDefault),
-    Getter = nameof(GetSerializedBlendMode),
-    Setter = nameof(SetBlendMode)
-)]
-[Serialized(
-    "Read+Write Color Output",
-    typeof(bool),
-    DefaultSource = nameof(GetReadWriteColorOutputAttributeDefault),
-    Getter = nameof(GetSerializedReadWriteColorOutput),
-    Setter = nameof(SetNeedReadWriteColorBuffer)
-)]
-[Serialized(
-    "Bilinear Color Sampler",
-    typeof(bool),
-    DefaultSource = nameof(GetBilinearColorSamplerAttributeDefault),
-    Getter = nameof(GetSerializedBilinearColorSampler),
-    Setter = nameof(SetSerializedBilinearColorSampler)
-)]
-[Serialized(
-    "Disable On Default Parameters",
-    typeof(bool),
-    DefaultSource = nameof(GetDisableOnDefaultParametersAttributeDefault),
-    Getter = nameof(GetSerializedDisableOnDefaultParameters),
-    Setter = nameof(SetSerializedDisableOnDefaultParameters)
-)]
-[Serialized(
-    "Parameters Prefix",
-    typeof(string),
-    DefaultSource = nameof(GetParametersPrefixAttributeDefault),
-    Getter = nameof(GetSerializedParametersPrefix),
-    Setter = nameof(SetSerializedParametersPrefix)
-)]
-[Serialized(
-    "Parameters",
-    typeof(StringVariantMap),
-    DefaultSource = nameof(GetParametersAttributeDefault),
-    Getter = nameof(GetSerializedParameters),
-    Setter = nameof(SetParameters)
-)]
 public sealed partial class FullScreenShaderPass : RenderPass
 {
     public FullScreenShaderPass()
@@ -285,6 +229,12 @@ public sealed partial class FullScreenShaderPass : RenderPass
 
     private static object? GetShaderNameAttributeDefault() => string.Empty;
 
+    [Serialized(
+        "Shader Name",
+        typeof(string),
+        DefaultSource = nameof(GetShaderNameAttributeDefault),
+        Setter = nameof(SetShaderName)
+    )]
     private object? GetSerializedShaderName()
     {
         Serializable self = this;
@@ -293,6 +243,12 @@ public sealed partial class FullScreenShaderPass : RenderPass
 
     private static object? GetShaderDefinesAttributeDefault() => string.Empty;
 
+    [Serialized(
+        "Shader Defines",
+        typeof(string),
+        DefaultSource = nameof(GetShaderDefinesAttributeDefault),
+        Setter = nameof(SetShaderDefines)
+    )]
     private object? GetSerializedShaderDefines()
     {
         Serializable self = this;
@@ -301,6 +257,12 @@ public sealed partial class FullScreenShaderPass : RenderPass
 
     private static object? GetBlendModeAttributeDefault() => BlendMode.Replace;
 
+    [Serialized(
+        "Blend Mode",
+        typeof(BlendMode),
+        DefaultSource = nameof(GetBlendModeAttributeDefault),
+        Setter = nameof(SetBlendMode)
+    )]
     private object? GetSerializedBlendMode()
     {
         Serializable self = this;
@@ -309,6 +271,12 @@ public sealed partial class FullScreenShaderPass : RenderPass
 
     private static object? GetReadWriteColorOutputAttributeDefault() => false;
 
+    [Serialized(
+        "Read+Write Color Output",
+        typeof(bool),
+        DefaultSource = nameof(GetReadWriteColorOutputAttributeDefault),
+        Setter = nameof(SetNeedReadWriteColorBuffer)
+    )]
     private object? GetSerializedReadWriteColorOutput()
     {
         Serializable self = this;
@@ -317,6 +285,12 @@ public sealed partial class FullScreenShaderPass : RenderPass
 
     private static object? GetBilinearColorSamplerAttributeDefault() => false;
 
+    [Serialized(
+        "Bilinear Color Sampler",
+        typeof(bool),
+        DefaultSource = nameof(GetBilinearColorSamplerAttributeDefault),
+        Setter = nameof(SetSerializedBilinearColorSampler)
+    )]
     private object? GetSerializedBilinearColorSampler()
     {
         Serializable self = this;
@@ -331,6 +305,12 @@ public sealed partial class FullScreenShaderPass : RenderPass
 
     private static object? GetDisableOnDefaultParametersAttributeDefault() => false;
 
+    [Serialized(
+        "Disable On Default Parameters",
+        typeof(bool),
+        DefaultSource = nameof(GetDisableOnDefaultParametersAttributeDefault),
+        Setter = nameof(SetSerializedDisableOnDefaultParameters)
+    )]
     private object? GetSerializedDisableOnDefaultParameters()
     {
         Serializable self = this;
@@ -345,6 +325,12 @@ public sealed partial class FullScreenShaderPass : RenderPass
 
     private static object? GetParametersPrefixAttributeDefault() => string.Empty;
 
+    [Serialized(
+        "Parameters Prefix",
+        typeof(string),
+        DefaultSource = nameof(GetParametersPrefixAttributeDefault),
+        Setter = nameof(SetSerializedParametersPrefix)
+    )]
     private object? GetSerializedParametersPrefix()
     {
         Serializable self = this;
@@ -359,6 +345,12 @@ public sealed partial class FullScreenShaderPass : RenderPass
 
     private static object? GetParametersAttributeDefault() => null;
 
+    [Serialized(
+        "Parameters",
+        typeof(StringVariantMap),
+        DefaultSource = nameof(GetParametersAttributeDefault),
+        Setter = nameof(SetParameters)
+    )]
     private object? GetSerializedParameters()
     {
         Serializable self = this;

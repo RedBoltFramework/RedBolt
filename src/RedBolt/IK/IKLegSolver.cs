@@ -69,45 +69,45 @@ public partial class IKLegSolver : IKSolverComponent
     }
 
     /// <summary>Attributes.</summary>
-    [Serialized("Thigh Bone Name", DefaultSource = nameof(_thighBoneName))]
+    [Serialized("Thigh Bone Name")]
     public string ThighBoneName { get => _thighBoneName; set { _thighBoneName = value; OnTreeDirty(); } }
-    [Serialized("Calf Bone Name", DefaultSource = nameof(_calfBoneName))]
+    [Serialized("Calf Bone Name")]
     public string CalfBoneName { get => _calfBoneName; set { _calfBoneName = value; OnTreeDirty(); } }
-    [Serialized("Heel Bone Name", DefaultSource = nameof(_heelBoneName))]
+    [Serialized("Heel Bone Name")]
     public string HeelBoneName { get => _heelBoneName; set { _heelBoneName = value; OnTreeDirty(); } }
-    [Serialized("Toe Bone Name", DefaultSource = nameof(_toeBoneName))]
+    [Serialized("Toe Bone Name")]
     public string ToeBoneName { get => _toeBoneName; set { _toeBoneName = value; OnTreeDirty(); } }
 
-    [Serialized("Target Name", DefaultSource = nameof(_targetName))]
+    [Serialized("Target Name")]
     public string TargetName { get => _targetName; set { _targetName = value; OnTreeDirty(); } }
-    [Serialized("Heel Target Name", DefaultSource = nameof(_heelTargetName))]
+    [Serialized("Heel Target Name")]
     public string HeelTargetName { get => _heelTargetName; set { _heelTargetName = value; OnTreeDirty(); } }
-    [Serialized("Bend Target Name", DefaultSource = nameof(_bendTargetName))]
+    [Serialized("Bend Target Name")]
     public string BendTargetName { get => _bendTargetName; set { _bendTargetName = value; OnTreeDirty(); } }
-    [Serialized("Ground Target Name", DefaultSource = nameof(_groundTargetName))]
+    [Serialized("Ground Target Name")]
     public string GroundTargetName { get => _groundTargetName; set { _groundTargetName = value; OnTreeDirty(); } }
 
-    [Serialized("Position Weight", DefaultSource = nameof(_positionWeight))]
+    [Serialized("Position Weight")]
     public float PositionWeight { get => _positionWeight; set => _positionWeight = value; }
-    [Serialized("Rotation Weight", DefaultSource = nameof(_rotationWeight))]
+    [Serialized("Rotation Weight")]
     public float RotationWeight { get => _rotationWeight; set => _rotationWeight = value; }
-    [Serialized("Heel Weight", DefaultSource = nameof(_heelWeight))]
+    [Serialized("Heel Weight")]
     public float HeelWeight { get => _heelWeight; set => _heelWeight = value; }
-    [Serialized("Bend Weight", DefaultSource = nameof(_bendWeight))]
+    [Serialized("Bend Weight")]
     public float BendWeight { get => _bendWeight; set => _bendWeight = value; }
-    [Serialized("Min Angle", DefaultSource = nameof(_minKneeAngle))]
+    [Serialized("Min Angle")]
     public float MinAngle { get => _minKneeAngle; set => _minKneeAngle = value; }
-    [Serialized("Max Angle", DefaultSource = nameof(_maxKneeAngle))]
+    [Serialized("Max Angle")]
     public float MaxAngle { get => _maxKneeAngle; set => _maxKneeAngle = value; }
-    [Serialized("Tiptoe Factor", DefaultSource = nameof(_tiptoeFactor))]
+    [Serialized("Tiptoe Factor")]
     public float TiptoeFactor { get => _tiptoeFactor; set => _tiptoeFactor = value; }
-    [Serialized("Bend Direction", DefaultSource = nameof(_bendDirection))]
+    [Serialized("Bend Direction")]
     public Vector3f BendDirection { get => _bendDirection; set => _bendDirection = value; }
 
     // TODO: port
     // URHO3D_ACTION_STATIC_LABEL(
     //     "Update Properties", UpdateProperties, "Set properties below from current bone positions");
-    [Serialized("Heel Ground Offset", DefaultSource = nameof(_heelGroundOffset))]
+    [Serialized("Heel Ground Offset")]
     public float HeelGroundOffset { get => _heelGroundOffset; set => _heelGroundOffset = value; }
 
     /// <summary>Implement IKSolverComponent.</summary>

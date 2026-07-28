@@ -12,34 +12,6 @@ namespace RedBolt.Graphics;
 
 /// <summary>Group of selected drawables.</summary>
 [Reflected(ObjectCategory.Category_Scene)]
-[Serialized(
-    "Color",
-    typeof(Color),
-    DefaultSource = nameof(GetColorAttributeDefault),
-    Getter = nameof(GetColor),
-    Setter = nameof(SetColor)
-)]
-[Serialized(
-    "Render Order",
-    typeof(uint),
-    DefaultSource = nameof(GetRenderOrderAttributeDefault),
-    Getter = nameof(GetRenderOrder),
-    Setter = nameof(SetRenderOrder)
-)]
-[Serialized(
-    "Is Debug",
-    typeof(bool),
-    DefaultSource = nameof(GetIsDebugAttributeDefault),
-    Getter = nameof(IsDebug),
-    Setter = nameof(SetDebug)
-)]
-[Serialized(
-    "Drawables",
-    typeof(VariantVector),
-    DefaultSource = nameof(GetDrawablesAttributeDefault),
-    Getter = nameof(GetDrawablesAttr),
-    Setter = nameof(SetDrawablesAttr)
-)]
 public partial class OutlineGroup : Component
 {
     public OutlineGroup()
@@ -119,6 +91,12 @@ public partial class OutlineGroup : Component
         _drawablesDirty = _drawablesAttr.Count != 0;
     }
 
+    [Serialized(
+        "Drawables",
+        DefaultSource = nameof(GetDrawablesAttributeDefault),
+        Setter = nameof(SetDrawablesAttr),
+        Order = 3
+    )]
     public VariantVector GetDrawablesAttr()
     {
         _drawablesAttr.Dispose();
@@ -246,8 +224,22 @@ public partial class OutlineGroup : Component
         result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
     }
 
+    [Serialized(
+        "Color",
+        Setter = nameof(SetColor),
+        Order = 0
+    )]
     private Color _color = Color.White;
+    [Serialized(
+        "Render Order",
+        Setter = nameof(SetRenderOrder),
+        Order = 1
+    )]
     private uint _renderOrder = 128;
+    [Serialized(
+        "Is Debug",
+        Order = 2
+    )]
     private bool _isDebug;
 
     /// <summary>Selected drawables.</summary>
@@ -257,12 +249,6 @@ public partial class OutlineGroup : Component
 
     /// <summary>Cache of materials.</summary>
     private readonly Dictionary<MaterialKey, Material> _materials = [];
-
-    private static object? GetColorAttributeDefault() => Color.White;
-
-    private static object? GetRenderOrderAttributeDefault() => 128u;
-
-    private static object? GetIsDebugAttributeDefault() => false;
 
     private static object? GetDrawablesAttributeDefault() => new VariantVector();
 }

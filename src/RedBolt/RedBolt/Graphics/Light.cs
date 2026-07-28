@@ -135,286 +135,7 @@ public class LightBatchQueue
 {
 }
 
-[Reflected(ObjectCategory.Category_Scene)]
-[Serialized(
-    "Is Enabled",
-    typeof(bool),
-    DefaultSource = nameof(GetIsEnabledAttributeDefault),
-    Getter = nameof(Enabled),
-    Setter = nameof(SetEnabled)
-)]
-[Serialized(
-    "Light Type",
-    typeof(LightType),
-    DefaultSource = nameof(GetLightTypeAttributeDefault),
-    Getter = nameof(GetLightType),
-    Setter = nameof(SetLightType)
-)]
-[Serialized(
-    "Light Importance",
-    typeof(LightImportance),
-    DefaultSource = nameof(GetLightImportanceAttributeDefault),
-    Getter = nameof(GetLightImportance),
-    Setter = nameof(SetLightImportance)
-)]
-[Serialized(
-    "Light Mode",
-    typeof(LightMode),
-    DefaultSource = nameof(GetLightModeAttributeDefault),
-    Getter = nameof(GetLightMode),
-    Setter = nameof(SetLightMode)
-)]
-[Serialized(
-    "Color",
-    typeof(Color),
-    AccessorType = typeof(ColorAttributeAccessor),
-    DefaultSource = nameof(GetColorAttributeDefault)
-)]
-[Serialized(
-    "Specular Intensity",
-    typeof(float),
-    DefaultSource = nameof(GetSpecularIntensityAttributeDefault),
-    Getter = nameof(GetSpecularIntensity),
-    Setter = nameof(SetSpecularIntensity)
-)]
-[Serialized(
-    "Brightness Multiplier",
-    typeof(float),
-    DefaultSource = nameof(GetBrightnessMultiplierAttributeDefault),
-    Getter = nameof(GetBrightness),
-    Setter = nameof(SetBrightness)
-)]
-[Serialized(
-    "Indirect Brightness",
-    typeof(float),
-    DefaultSource = nameof(GetIndirectBrightnessAttributeDefault),
-    Getter = nameof(GetIndirectBrightness),
-    Setter = nameof(SetIndirectBrightness)
-)]
-[Serialized(
-    "Temperature",
-    typeof(float),
-    DefaultSource = nameof(GetTemperatureAttributeDefault),
-    Getter = nameof(GetTemperature),
-    Setter = nameof(SetTemperature)
-)]
-[Serialized(
-    "Use Physical Values",
-    typeof(bool),
-    DefaultSource = nameof(GetUsePhysicalValuesAttributeDefault),
-    Getter = nameof(GetUsePhysicalValues),
-    Setter = nameof(SetUsePhysicalValues)
-)]
-[Serialized(
-    "Radius",
-    typeof(float),
-    DefaultSource = nameof(GetRadiusAttributeDefault),
-    Getter = nameof(GetRadius),
-    Setter = nameof(SetRadius)
-)]
-[Serialized(
-    "Length",
-    typeof(float),
-    DefaultSource = nameof(GetLengthAttributeDefault),
-    Getter = nameof(GetLength),
-    Setter = nameof(SetLength)
-)]
-[Serialized(
-    "Range",
-    typeof(float),
-    DefaultSource = nameof(GetRangeAttributeDefault),
-    Getter = nameof(GetRange),
-    Setter = nameof(SetRange)
-)]
-[Serialized(
-    "Spot FOV",
-    typeof(float),
-    DefaultSource = nameof(GetSpotFOVAttributeDefault),
-    Getter = nameof(GetFov),
-    Setter = nameof(SetFov)
-)]
-[Serialized(
-    "Spot Aspect Ratio",
-    typeof(float),
-    DefaultSource = nameof(GetSpotAspectRatioAttributeDefault),
-    Getter = nameof(GetAspectRatio),
-    Setter = nameof(SetAspectRatio)
-)]
-[Serialized(
-    "Attenuation Texture",
-    typeof(ResourceRef),
-    DefaultSource = nameof(GetAttenuationTextureAttributeDefault),
-    Getter = nameof(GetRampTextureAttr),
-    Setter = nameof(SetRampTextureAttr)
-)]
-[Serialized(
-    "Light Shape Texture",
-    typeof(ResourceRef),
-    DefaultSource = nameof(GetLightShapeTextureAttributeDefault),
-    Getter = nameof(GetShapeTextureAttr),
-    Setter = nameof(SetShapeTextureAttr)
-)]
-[Serialized(
-    "Can Be Occluded",
-    typeof(bool),
-    DefaultSource = nameof(GetCanBeOccludedAttributeDefault),
-    Getter = nameof(IsOccludee),
-    Setter = nameof(SetOccludee)
-)]
-[Serialized(
-    "Cast Shadows",
-    typeof(bool),
-    DefaultSource = nameof(GetCastShadowsAttributeDefault),
-    Getter = nameof(GetCastShadows),
-    Setter = nameof(SetCastShadows)
-)]
-[Serialized(
-    "Draw Distance",
-    typeof(float),
-    DefaultSource = nameof(GetDrawDistanceAttributeDefault),
-    Getter = nameof(GetDrawDistance),
-    Setter = nameof(SetDrawDistance)
-)]
-[Serialized(
-    "Fade Distance",
-    typeof(float),
-    DefaultSource = nameof(GetFadeDistanceAttributeDefault),
-    Getter = nameof(GetFadeDistance),
-    Setter = nameof(SetFadeDistance)
-)]
-[Serialized(
-    "Shadow Distance",
-    typeof(float),
-    DefaultSource = nameof(GetShadowDistanceAttributeDefault),
-    Getter = nameof(GetShadowDistance),
-    Setter = nameof(SetShadowDistance)
-)]
-[Serialized(
-    "Shadow Fade Distance",
-    typeof(float),
-    DefaultSource = nameof(GetShadowFadeDistanceAttributeDefault),
-    Getter = nameof(GetShadowFadeDistance),
-    Setter = nameof(SetShadowFadeDistance)
-)]
-[Serialized(
-    "Shadow Intensity",
-    typeof(float),
-    DefaultSource = nameof(GetShadowIntensityAttributeDefault),
-    Getter = nameof(GetShadowIntensity),
-    Setter = nameof(SetShadowIntensity)
-)]
-[Serialized(
-    "Shadow Resolution",
-    typeof(float),
-    DefaultSource = nameof(GetShadowResolutionAttributeDefault),
-    Getter = nameof(GetShadowResolution),
-    Setter = nameof(SetShadowResolution)
-)]
-[Serialized(
-    "Focus To Scene",
-    typeof(bool),
-    DefaultSource = nameof(GetFocusToSceneAttributeDefault),
-    Getter = nameof(GetSerializedFocusToScene),
-    Setter = nameof(SetSerializedFocusToScene)
-)]
-[Serialized(
-    "Non-uniform View",
-    typeof(bool),
-    DefaultSource = nameof(GetNonUniformViewAttributeDefault),
-    Getter = nameof(GetSerializedNonUniformView),
-    Setter = nameof(SetSerializedNonUniformView)
-)]
-[Serialized(
-    "Auto-Reduce Size",
-    typeof(bool),
-    DefaultSource = nameof(GetAutoReduceSizeAttributeDefault),
-    Getter = nameof(GetSerializedAutoReduceSize),
-    Setter = nameof(SetSerializedAutoReduceSize)
-)]
-[Serialized(
-    "CSM Splits",
-    typeof(Vector4f),
-    DefaultSource = nameof(GetCSMSplitsAttributeDefault),
-    Getter = nameof(GetSerializedCSMSplits),
-    Setter = nameof(SetSerializedCSMSplits)
-)]
-[Serialized(
-    "CSM Fade Start",
-    typeof(float),
-    DefaultSource = nameof(GetCSMFadeStartAttributeDefault),
-    Getter = nameof(GetSerializedCSMFadeStart),
-    Setter = nameof(SetSerializedCSMFadeStart)
-)]
-[Serialized(
-    "CSM Bias Auto Adjust",
-    typeof(float),
-    DefaultSource = nameof(GetCSMBiasAutoAdjustAttributeDefault),
-    Getter = nameof(GetSerializedCSMBiasAutoAdjust),
-    Setter = nameof(SetSerializedCSMBiasAutoAdjust)
-)]
-[Serialized(
-    "View Size Quantize",
-    typeof(float),
-    DefaultSource = nameof(GetViewSizeQuantizeAttributeDefault),
-    Getter = nameof(GetSerializedViewSizeQuantize),
-    Setter = nameof(SetSerializedViewSizeQuantize)
-)]
-[Serialized(
-    "View Size Minimum",
-    typeof(float),
-    DefaultSource = nameof(GetViewSizeMinimumAttributeDefault),
-    Getter = nameof(GetSerializedViewSizeMinimum),
-    Setter = nameof(SetSerializedViewSizeMinimum)
-)]
-[Serialized(
-    "Depth Constant Bias",
-    typeof(float),
-    DefaultSource = nameof(GetDepthConstantBiasAttributeDefault),
-    Getter = nameof(GetSerializedDepthConstantBias),
-    Setter = nameof(SetSerializedDepthConstantBias)
-)]
-[Serialized(
-    "Depth Slope Bias",
-    typeof(float),
-    DefaultSource = nameof(GetDepthSlopeBiasAttributeDefault),
-    Getter = nameof(GetSerializedDepthSlopeBias),
-    Setter = nameof(SetSerializedDepthSlopeBias)
-)]
-[Serialized(
-    "Normal Offset",
-    typeof(float),
-    DefaultSource = nameof(GetNormalOffsetAttributeDefault),
-    Getter = nameof(GetSerializedNormalOffset),
-    Setter = nameof(SetSerializedNormalOffset)
-)]
-[Serialized(
-    "Near/Farclip Ratio",
-    typeof(float),
-    DefaultSource = nameof(GetNearFarclipRatioAttributeDefault),
-    Getter = nameof(GetShadowNearFarRatio),
-    Setter = nameof(SetShadowNearFarRatio)
-)]
-[Serialized(
-    "Max Extrusion",
-    typeof(float),
-    DefaultSource = nameof(GetMaxExtrusionAttributeDefault),
-    Getter = nameof(GetShadowMaxExtrusion),
-    Setter = nameof(SetShadowMaxExtrusion)
-)]
-[Serialized(
-    "View Mask",
-    typeof(uint),
-    DefaultSource = nameof(GetViewMaskAttributeDefault),
-    Getter = nameof(GetViewMask),
-    Setter = nameof(SetViewMask)
-)]
-[Serialized(
-    "Light Mask",
-    typeof(uint),
-    DefaultSource = nameof(GetLightMaskAttributeDefault),
-    Getter = nameof(GetLightMask),
-    Setter = nameof(SetLightMask)
-)]
+[Reflected(ObjectCategory.Category_Scene, InheritAttributes = false)]
 public partial class Light : Drawable
 {
     private sealed class ColorAttributeAccessor : AttributeAccessor
@@ -452,9 +173,29 @@ public partial class Light : Drawable
     public const LightType DefaultLightType = LightType.Point;
     public const LightImportance DefaultLightImportance = LightImportance.Auto;
 
+    [Serialized(
+        "Light Type",
+        Setter = nameof(SetLightType),
+        Order = 1
+    )]
     private LightType _lightType = LightType.Point;
+    [Serialized(
+        "Range",
+        Setter = nameof(SetRange),
+        Order = 12
+    )]
     private float _range = DefaultRange;
+    [Serialized(
+        "Spot FOV",
+        Setter = nameof(SetFov),
+        Order = 13
+    )]
     private float _fov = DefaultLightFov;
+    [Serialized(
+        "Spot Aspect Ratio",
+        Setter = nameof(SetAspectRatio),
+        Order = 14
+    )]
     private float _aspectRatio = 1.0f;
     private Texture? _rampTexture;
     private Texture? _shapeTexture;
@@ -528,24 +269,67 @@ public partial class Light : Drawable
 
     public LightType LightType => _lightType;
 
+    [Serialized(
+        "Light Importance",
+        Order = 2
+    )]
     public LightImportance LightImportance { get; private set; } = LightImportance.Auto;
 
+    [Serialized(
+        "Light Mode",
+        Order = 3
+    )]
     public LightMode LightMode { get; private set; } = LightMode.Realtime;
 
+    [Serialized(
+        "Color",
+        AccessorType = typeof(ColorAttributeAccessor),
+        Order = 4
+    )]
     public Color Color { get; private set; } = Color.White;
 
+    [Serialized(
+        "Temperature",
+        Setter = nameof(SetTemperature),
+        Order = 8
+    )]
     public float Temperature { get; private set; } = DefaultTemperature;
 
+    [Serialized(
+        "Radius",
+        Order = 10
+    )]
     public float Radius { get; private set; }
 
+    [Serialized(
+        "Length",
+        Order = 11
+    )]
     public float Length { get; private set; }
 
+    [Serialized(
+        "Use Physical Values",
+        Order = 9
+    )]
     public bool UsePhysicalValues { get; private set; }
 
+    [Serialized(
+        "Specular Intensity",
+        Setter = nameof(SetSpecularIntensity),
+        Order = 5
+    )]
     public float SpecularIntensity { get; private set; } = DefaultSpecularIntensity;
 
+    [Serialized(
+        "Brightness Multiplier",
+        Order = 6
+    )]
     public float Brightness { get; private set; } = DefaultBrightness;
 
+    [Serialized(
+        "Indirect Brightness",
+        Order = 7
+    )]
     public float IndirectBrightness { get; private set; } = 1.0f;
 
     public float Range => _range;
@@ -554,8 +338,18 @@ public partial class Light : Drawable
 
     public float AspectRatio => _aspectRatio;
 
+    [Serialized(
+        "Fade Distance",
+        Setter = nameof(SetFadeDistance),
+        Order = 20
+    )]
     public float FadeDistance { get; private set; }
 
+    [Serialized(
+        "Shadow Fade Distance",
+        Setter = nameof(SetShadowFadeDistance),
+        Order = 22
+    )]
     public float ShadowFadeDistance { get; private set; }
 
     public BiasParameters ShadowBias { get; private set; } = new(DefaultConstantBias, DefaultSlopeScaledBias, DefaultNormalOffset);
@@ -564,12 +358,32 @@ public partial class Light : Drawable
 
     public FocusParameters ShadowFocus { get; private set; } = new(true, true, true, DefaultShadowQuantize, DefaultShadowMinView);
 
+    [Serialized(
+        "Shadow Intensity",
+        Setter = nameof(SetShadowIntensity),
+        Order = 23
+    )]
     public float ShadowIntensity { get; private set; }
 
+    [Serialized(
+        "Shadow Resolution",
+        Setter = nameof(SetShadowResolution),
+        Order = 24
+    )]
     public float ShadowResolution { get; private set; } = 1.0f;
 
+    [Serialized(
+        "Near/Farclip Ratio",
+        Setter = nameof(SetShadowNearFarRatio),
+        Order = 36
+    )]
     public float ShadowNearFarRatio { get; private set; } = DefaultShadowNearFarRatio;
 
+    [Serialized(
+        "Max Extrusion",
+        Setter = nameof(SetShadowMaxExtrusion),
+        Order = 37
+    )]
     public float ShadowMaxExtrusion { get; private set; } = DefaultShadowMaxExtrusion;
 
     public void SetLightType(LightType type)
@@ -868,6 +682,12 @@ public partial class Light : Drawable
         _rampTexture = string.IsNullOrEmpty(value.Name) ? null : cache.GetResource(value.Type, value.Name) as Texture;
     }
 
+    [Serialized(
+        "Attenuation Texture",
+        DefaultSource = nameof(GetAttenuationTextureAttributeDefault),
+        Setter = nameof(SetRampTextureAttr),
+        Order = 15
+    )]
     public ResourceRef GetRampTextureAttr() => ResourceType.GetResourceRef(_rampTexture, new StringHash("Texture2D"));
 
     public void SetShapeTextureAttr(ResourceRef value)
@@ -876,6 +696,12 @@ public partial class Light : Drawable
         _shapeTexture = string.IsNullOrEmpty(value.Name) ? null : cache.GetResource(value.Type, value.Name) as Texture;
     }
 
+    [Serialized(
+        "Light Shape Texture",
+        DefaultSource = nameof(GetLightShapeTextureAttributeDefault),
+        Setter = nameof(SetShapeTextureAttr),
+        Order = 16
+    )]
     public ResourceRef GetShapeTextureAttr()
     {
         if (_shapeTexture is not null)
@@ -1073,34 +899,6 @@ public partial class Light : Drawable
 
     private static object? GetIsEnabledAttributeDefault() => true;
 
-    private static object? GetLightTypeAttributeDefault() => DefaultLightType;
-
-    private static object? GetLightImportanceAttributeDefault() => DefaultLightImportance;
-
-    private static object? GetLightModeAttributeDefault() => LightMode.Realtime;
-
-    private static object? GetColorAttributeDefault() => Color.White;
-
-    private static object? GetSpecularIntensityAttributeDefault() => DefaultSpecularIntensity;
-
-    private static object? GetBrightnessMultiplierAttributeDefault() => DefaultBrightness;
-
-    private static object? GetIndirectBrightnessAttributeDefault() => 1.0f;
-
-    private static object? GetTemperatureAttributeDefault() => DefaultTemperature;
-
-    private static object? GetUsePhysicalValuesAttributeDefault() => false;
-
-    private static object? GetRadiusAttributeDefault() => 0.0f;
-
-    private static object? GetLengthAttributeDefault() => 0.0f;
-
-    private static object? GetRangeAttributeDefault() => DefaultRange;
-
-    private static object? GetSpotFOVAttributeDefault() => DefaultLightFov;
-
-    private static object? GetSpotAspectRatioAttributeDefault() => 1.0f;
-
     private static object? GetAttenuationTextureAttributeDefault() => new ResourceRef(new StringHash(nameof(Texture2D)));
 
     private static object? GetLightShapeTextureAttributeDefault() => new ResourceRef(new StringHash(nameof(Texture)));
@@ -1111,18 +909,18 @@ public partial class Light : Drawable
 
     private static object? GetDrawDistanceAttributeDefault() => 0.0f;
 
-    private static object? GetFadeDistanceAttributeDefault() => 0.0f;
 
     private static object? GetShadowDistanceAttributeDefault() => 0.0f;
 
-    private static object? GetShadowFadeDistanceAttributeDefault() => 0.0f;
-
-    private static object? GetShadowIntensityAttributeDefault() => 0.0f;
-
-    private static object? GetShadowResolutionAttributeDefault() => 1.0f;
-
     private static object? GetFocusToSceneAttributeDefault() => true;
 
+    [Serialized(
+        "Focus To Scene",
+        typeof(bool),
+        DefaultSource = nameof(GetFocusToSceneAttributeDefault),
+        Setter = nameof(SetSerializedFocusToScene),
+        Order = 25
+    )]
     private object? GetSerializedFocusToScene()
     {
         Serializable self = this;
@@ -1140,6 +938,13 @@ public partial class Light : Drawable
 
     private static object? GetNonUniformViewAttributeDefault() => true;
 
+    [Serialized(
+        "Non-uniform View",
+        typeof(bool),
+        DefaultSource = nameof(GetNonUniformViewAttributeDefault),
+        Setter = nameof(SetSerializedNonUniformView),
+        Order = 26
+    )]
     private object? GetSerializedNonUniformView()
     {
         Serializable self = this;
@@ -1157,6 +962,13 @@ public partial class Light : Drawable
 
     private static object? GetAutoReduceSizeAttributeDefault() => true;
 
+    [Serialized(
+        "Auto-Reduce Size",
+        typeof(bool),
+        DefaultSource = nameof(GetAutoReduceSizeAttributeDefault),
+        Setter = nameof(SetSerializedAutoReduceSize),
+        Order = 27
+    )]
     private object? GetSerializedAutoReduceSize()
     {
         Serializable self = this;
@@ -1174,6 +986,13 @@ public partial class Light : Drawable
 
     private static object? GetCSMSplitsAttributeDefault() => new Vector4f(DefaultShadowSplit, 0.0f, 0.0f, 0.0f);
 
+    [Serialized(
+        "CSM Splits",
+        typeof(Vector4f),
+        DefaultSource = nameof(GetCSMSplitsAttributeDefault),
+        Setter = nameof(SetSerializedCSMSplits),
+        Order = 28
+    )]
     private object? GetSerializedCSMSplits()
     {
         Serializable self = this;
@@ -1191,6 +1010,13 @@ public partial class Light : Drawable
 
     private static object? GetCSMFadeStartAttributeDefault() => DefaultShadowFadeStart;
 
+    [Serialized(
+        "CSM Fade Start",
+        typeof(float),
+        DefaultSource = nameof(GetCSMFadeStartAttributeDefault),
+        Setter = nameof(SetSerializedCSMFadeStart),
+        Order = 29
+    )]
     private object? GetSerializedCSMFadeStart()
     {
         Serializable self = this;
@@ -1208,6 +1034,13 @@ public partial class Light : Drawable
 
     private static object? GetCSMBiasAutoAdjustAttributeDefault() => DefaultBiasAutoAdjust;
 
+    [Serialized(
+        "CSM Bias Auto Adjust",
+        typeof(float),
+        DefaultSource = nameof(GetCSMBiasAutoAdjustAttributeDefault),
+        Setter = nameof(SetSerializedCSMBiasAutoAdjust),
+        Order = 30
+    )]
     private object? GetSerializedCSMBiasAutoAdjust()
     {
         Serializable self = this;
@@ -1225,6 +1058,13 @@ public partial class Light : Drawable
 
     private static object? GetViewSizeQuantizeAttributeDefault() => DefaultShadowQuantize;
 
+    [Serialized(
+        "View Size Quantize",
+        typeof(float),
+        DefaultSource = nameof(GetViewSizeQuantizeAttributeDefault),
+        Setter = nameof(SetSerializedViewSizeQuantize),
+        Order = 31
+    )]
     private object? GetSerializedViewSizeQuantize()
     {
         Serializable self = this;
@@ -1242,6 +1082,13 @@ public partial class Light : Drawable
 
     private static object? GetViewSizeMinimumAttributeDefault() => DefaultShadowMinView;
 
+    [Serialized(
+        "View Size Minimum",
+        typeof(float),
+        DefaultSource = nameof(GetViewSizeMinimumAttributeDefault),
+        Setter = nameof(SetSerializedViewSizeMinimum),
+        Order = 32
+    )]
     private object? GetSerializedViewSizeMinimum()
     {
         Serializable self = this;
@@ -1259,6 +1106,13 @@ public partial class Light : Drawable
 
     private static object? GetDepthConstantBiasAttributeDefault() => DefaultConstantBias;
 
+    [Serialized(
+        "Depth Constant Bias",
+        typeof(float),
+        DefaultSource = nameof(GetDepthConstantBiasAttributeDefault),
+        Setter = nameof(SetSerializedDepthConstantBias),
+        Order = 33
+    )]
     private object? GetSerializedDepthConstantBias()
     {
         Serializable self = this;
@@ -1276,6 +1130,13 @@ public partial class Light : Drawable
 
     private static object? GetDepthSlopeBiasAttributeDefault() => DefaultSlopeScaledBias;
 
+    [Serialized(
+        "Depth Slope Bias",
+        typeof(float),
+        DefaultSource = nameof(GetDepthSlopeBiasAttributeDefault),
+        Setter = nameof(SetSerializedDepthSlopeBias),
+        Order = 34
+    )]
     private object? GetSerializedDepthSlopeBias()
     {
         Serializable self = this;
@@ -1293,6 +1154,13 @@ public partial class Light : Drawable
 
     private static object? GetNormalOffsetAttributeDefault() => DefaultNormalOffset;
 
+    [Serialized(
+        "Normal Offset",
+        typeof(float),
+        DefaultSource = nameof(GetNormalOffsetAttributeDefault),
+        Setter = nameof(SetSerializedNormalOffset),
+        Order = 35
+    )]
     private object? GetSerializedNormalOffset()
     {
         Serializable self = this;
@@ -1308,11 +1176,85 @@ public partial class Light : Drawable
         light.SetShadowBias(parameters);
     }
 
-    private static object? GetNearFarclipRatioAttributeDefault() => DefaultShadowNearFarRatio;
-
-    private static object? GetMaxExtrusionAttributeDefault() => DefaultShadowMaxExtrusion;
-
     private static object? GetViewMaskAttributeDefault() => DefaultViewMask;
 
     private static object? GetLightMaskAttributeDefault() => DefaultLightMask;
+
+
+    [Serialized(
+        "Is Enabled",
+        DefaultSource = nameof(GetIsEnabledAttributeDefault),
+        Order = 0
+    )]
+    private bool SerializedIsEnabled
+    {
+        get => Enabled;
+        set => SetEnabled(value);
+    }
+
+    [Serialized(
+        "Can Be Occluded",
+        DefaultSource = nameof(GetCanBeOccludedAttributeDefault),
+        Order = 17
+    )]
+    private bool SerializedCanBeOccluded
+    {
+        get => IsOccludee();
+        set => SetOccludee(value);
+    }
+
+    [Serialized(
+        "Cast Shadows",
+        DefaultSource = nameof(GetCastShadowsAttributeDefault),
+        Order = 18
+    )]
+    private bool SerializedCastShadows
+    {
+        get => GetCastShadows();
+        set => SetCastShadows(value);
+    }
+
+    [Serialized(
+        "Draw Distance",
+        DefaultSource = nameof(GetDrawDistanceAttributeDefault),
+        Order = 19
+    )]
+    private float SerializedDrawDistance
+    {
+        get => GetDrawDistance();
+        set => SetDrawDistance(value);
+    }
+
+    [Serialized(
+        "Shadow Distance",
+        DefaultSource = nameof(GetShadowDistanceAttributeDefault),
+        Order = 21
+    )]
+    private float SerializedShadowDistance
+    {
+        get => GetShadowDistance();
+        set => SetShadowDistance(value);
+    }
+
+    [Serialized(
+        "View Mask",
+        DefaultSource = nameof(GetViewMaskAttributeDefault),
+        Order = 38
+    )]
+    private uint SerializedViewMask
+    {
+        get => GetViewMask();
+        set => SetViewMask(value);
+    }
+
+    [Serialized(
+        "Light Mask",
+        DefaultSource = nameof(GetLightMaskAttributeDefault),
+        Order = 39
+    )]
+    private uint SerializedLightMask
+    {
+        get => GetLightMask();
+        set => SetLightMask(value);
+    }
 }

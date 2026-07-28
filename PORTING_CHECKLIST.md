@@ -4,7 +4,7 @@
 
 - [~] Shared `RedBolt.dll`, one selected platform assembly, independently referenceable graphics-backend assemblies, and common managed output are complete; one-invocation Linux/Web native-binding generation remains pending
 - [x] Move managed engine types into folder-matching namespaces, update all consumers and generated reflection metadata, and rename the namespace-colliding subsystems to `AudioSystem`, `EngineSystem`, `GraphicsSystem`, and `InputSystem`.
-- [x] Replace all hand-written object-factory and serializable-attribute registration with generated `[Reflected]`, `[Serialized]`, and `[RemoveSerialized]` declarations, including factory categories and opt-outs, inheritance, removals, defaults, modes, scope hints, enum names, custom accessors, metadata configuration, nested user types, and assembly registration.
+- [x] Replace all hand-written object-factory and serializable-attribute registration with generated `[Reflected]`, member-targeted `[Serialized]`, and `[RemoveSerialized]` declarations, including inferred field/property/getter/setter access, initializer defaults, factory categories and opt-outs, ordered inheritance, removals, modes, scope hints, enum names, custom accessors, metadata configuration, nested user types, and assembly registration.
 
 ## Samples
 

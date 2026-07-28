@@ -30,53 +30,6 @@ namespace RedBolt.Scene;
 
 /// <summary>Spline for creating smooth movement based on Speed along a set of Control Points modified by the Interpolation Mode.</summary>
 [Reflected(ObjectCategory.Category_Logic)]
-[Serialized(
-    "Interpolation Mode",
-    typeof(InterpolationMode),
-    DefaultSource = nameof(GetInterpolationModeAttributeDefault),
-    Getter = nameof(InterpolationMode),
-    Setter = nameof(InterpolationMode)
-)]
-[Serialized(
-    "Speed",
-    typeof(float),
-    DefaultSource = nameof(GetSpeedAttributeDefault),
-    Getter = nameof(Speed),
-    Setter = nameof(Speed)
-)]
-[Serialized(
-    "Traveled",
-    typeof(float),
-    DefaultSource = nameof(GetTraveledAttributeDefault),
-    Getter = nameof(_traveled),
-    Mode = AttributeMode.Default | AttributeMode.NoEdit,
-    Setter = nameof(_traveled)
-)]
-[Serialized(
-    "Elapsed Time",
-    typeof(float),
-    DefaultSource = nameof(GetElapsedTimeAttributeDefault),
-    Getter = nameof(_elapsedTime),
-    Mode = AttributeMode.Default | AttributeMode.NoEdit,
-    Setter = nameof(_elapsedTime)
-)]
-[Serialized(
-    "Controlled",
-    typeof(uint),
-    DefaultSource = nameof(GetControlledAttributeDefault),
-    Getter = nameof(ControlledIdAttr),
-    Mode = AttributeMode.Default | AttributeMode.NodeId,
-    Setter = nameof(ControlledIdAttr)
-)]
-[Serialized(
-    "Control Points",
-    typeof(VariantVector),
-    Configure = nameof(ConfigureControlPointsAttribute),
-    DefaultSource = nameof(GetControlPointsAttributeDefault),
-    Getter = nameof(ControlPointIdsAttr),
-    Mode = AttributeMode.Default | AttributeMode.NodeIdVector,
-    Setter = nameof(ControlPointIdsAttr)
-)]
 public partial class SplinePath : Component
 {
     private static readonly StringVector ControlPointsStructureElementNames = new()
@@ -90,8 +43,18 @@ public partial class SplinePath : Component
     /// <summary>The Speed of movement along the Spline.</summary>
     private float _speed = 1.0f;
     /// <summary>Amount of time that has elapsed while moving.</summary>
+    [Serialized(
+        "Elapsed Time",
+        Mode = AttributeMode.Default | AttributeMode.NoEdit,
+        Order = 3
+    )]
     private float _elapsedTime;
     /// <summary>The fraction of the SplinePath covered.</summary>
+    [Serialized(
+        "Traveled",
+        Mode = AttributeMode.Default | AttributeMode.NoEdit,
+        Order = 2
+    )]
     private float _traveled;
     /// <summary>The length of the SplinePath.</summary>
     private float _length;
@@ -255,6 +218,11 @@ public partial class SplinePath : Component
     }
 
     /// <summary>Set the Interpolation Mode.</summary>
+    [Serialized(
+        "Interpolation Mode",
+        DefaultSource = nameof(GetInterpolationModeAttributeDefault),
+        Order = 0
+    )]
     public InterpolationMode InterpolationMode
     {
         get => _spline.GetInterpolationMode();
@@ -266,6 +234,10 @@ public partial class SplinePath : Component
     }
 
     /// <summary>Set the movement Speed.</summary>
+    [Serialized(
+        "Speed",
+        Order = 1
+    )]
     public float Speed
     {
         get => _speed;
@@ -335,6 +307,12 @@ public partial class SplinePath : Component
     public bool IsFinished => _traveled >= 1.0f;
 
     /// <summary>Set Control Point Node IDs attribute.</summary>
+    [Serialized(
+        "Control Points",
+        Configure = nameof(ConfigureControlPointsAttribute),
+        Mode = AttributeMode.Default | AttributeMode.NodeIdVector,
+        Order = 5
+    )]
     public VariantVector ControlPointIdsAttr
     {
         get => _controlPointIdsAttr;
@@ -371,6 +349,11 @@ public partial class SplinePath : Component
     }
 
     /// <summary>Set Controlled Node ID attribute.</summary>
+    [Serialized(
+        "Controlled",
+        Mode = AttributeMode.Default | AttributeMode.NodeId,
+        Order = 4
+    )]
     public uint ControlledIdAttr
     {
         get => _controlledIdAttr;
@@ -456,16 +439,6 @@ public partial class SplinePath : Component
     }
 
     private static object? GetInterpolationModeAttributeDefault() => InterpolationMode.BezierCurve;
-
-    private static object? GetSpeedAttributeDefault() => 1.0f;
-
-    private static object? GetTraveledAttributeDefault() => 0.0f;
-
-    private static object? GetElapsedTimeAttributeDefault() => 0.0f;
-
-    private static object? GetControlledAttributeDefault() => 0u;
-
-    private static object? GetControlPointsAttributeDefault() => new VariantVector();
 
     private static void ConfigureControlPointsAttribute(AttributeHandle attribute)
     {

@@ -8,15 +8,6 @@ namespace RedBolt.Graphics;
 
 /// <summary>Renders several object instances while culling and receiving light as one unit. Can be used as a CPU-side optimization, but note that also regular StaticModels will use instanced rendering if possible.</summary>
 [Reflected(ObjectCategory.Category_Geometry)]
-[Serialized(
-    "Instance Nodes",
-    typeof(VariantVector),
-    Configure = nameof(ConfigureInstanceNodesAttribute),
-    DefaultSource = nameof(GetInstanceNodesAttributeDefault),
-    Getter = nameof(GetNodeIDsAttr),
-    Mode = AttributeMode.Default | AttributeMode.NodeIdVector,
-    Setter = nameof(SetNodeIDsAttr)
-)]
 public partial class StaticModelGroup : StaticModel
 {
     private static readonly StringVector InstanceNodesStructureElementNames = new()
@@ -356,6 +347,13 @@ public partial class StaticModelGroup : StaticModel
     }
 
     /// <summary>Return node IDs attribute.</summary>
+    [Serialized(
+        "Instance Nodes",
+        Configure = nameof(ConfigureInstanceNodesAttribute),
+        DefaultSource = nameof(GetInstanceNodesAttributeDefault),
+        Mode = AttributeMode.Default | AttributeMode.NodeIdVector,
+        Setter = nameof(SetNodeIDsAttr)
+    )]
     public VariantVector GetNodeIDsAttr()
     {
         if (_nodeIdsDirty)

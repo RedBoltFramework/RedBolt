@@ -303,24 +303,28 @@ public abstract partial class Drawable : Component
         set => SetLodBias(value);
     }
 
+    [Serialized("View Mask")]
     public uint ViewMask
     {
         get => _viewMask;
         set => SetViewMask(value);
     }
 
+    [Serialized("Light Mask")]
     public uint LightMask
     {
         get => _lightMask;
         set => SetLightMask(value);
     }
 
+    [Serialized("Shadow Mask")]
     public uint ShadowMask
     {
         get => _shadowMask;
         set => SetShadowMask(value);
     }
 
+    [Serialized("Zone Mask")]
     public uint ZoneMask
     {
         get => _zoneMask;
@@ -345,12 +349,20 @@ public abstract partial class Drawable : Component
         set => SetOccludee(value);
     }
 
+    [Serialized(
+        "Global Illumination",
+        EnumNames = ["None", "Use LightMap", "Blend Light Probes"]
+    )]
     public GlobalIlluminationType GlobalIlluminationType
     {
         get => _globalIlluminationType;
         set => SetGlobalIlluminationType(value);
     }
 
+    [Serialized(
+        "Reflection Mode",
+        EnumNames = ["Zone", "Nearest Probe", "Blend Probes", "Blend Probes and Zone"]
+    )]
     public ReflectionMode ReflectionMode
     {
         get => _reflectionMode;

@@ -14,147 +14,7 @@ namespace RedBolt.Graphics;
 /// <summary>Component that describes global rendering properties.</summary>
 /// <remarks>
 /// </remarks>
-[Reflected(ObjectCategory.Category_Scene)]
-[Serialized(
-    "Is Enabled",
-    typeof(bool),
-    DefaultSource = nameof(GetIsEnabledAttributeDefault),
-    Getter = nameof(Enabled),
-    Setter = nameof(SetEnabled)
-)]
-[Serialized(
-    "Bounding Box Min",
-    typeof(Vector3f),
-    DefaultSource = nameof(GetBoundingBoxMinAttributeDefault),
-    Getter = nameof(GetSerializedBoundingBoxMin),
-    Setter = nameof(SetSerializedBoundingBoxMin)
-)]
-[Serialized(
-    "Bounding Box Max",
-    typeof(Vector3f),
-    DefaultSource = nameof(GetBoundingBoxMaxAttributeDefault),
-    Getter = nameof(GetSerializedBoundingBoxMax),
-    Setter = nameof(SetSerializedBoundingBoxMax)
-)]
-[Serialized(
-    "Ambient Color",
-    typeof(Color),
-    DefaultSource = nameof(GetAmbientColorAttributeDefault),
-    Getter = nameof(_ambientColor),
-    Setter = nameof(SetAmbientColor)
-)]
-[Serialized(
-    "Ambient Brightness",
-    typeof(float),
-    DefaultSource = nameof(GetAmbientBrightnessAttributeDefault),
-    Getter = nameof(_ambientBrightness),
-    Setter = nameof(SetAmbientBrightness)
-)]
-[Serialized(
-    "Background Brightness",
-    typeof(float),
-    DefaultSource = nameof(GetBackgroundBrightnessAttributeDefault),
-    Getter = nameof(_backgroundBrightness),
-    Setter = nameof(SetBackgroundBrightness)
-)]
-[Serialized(
-    "Is Background Static",
-    typeof(bool),
-    DefaultSource = nameof(GetIsBackgroundStaticAttributeDefault),
-    Getter = nameof(_backgroundStatic),
-    Setter = nameof(SetBackgroundStatic)
-)]
-[Serialized(
-    "Fog Color",
-    typeof(Color),
-    DefaultSource = nameof(GetFogColorAttributeDefault),
-    Getter = nameof(_fogColor),
-    Setter = nameof(SetFogColor)
-)]
-[Serialized(
-    "Fog Start",
-    typeof(float),
-    DefaultSource = nameof(GetFogStartAttributeDefault),
-    Getter = nameof(_fogStart),
-    Setter = nameof(_fogStart)
-)]
-[Serialized(
-    "Fog End",
-    typeof(float),
-    DefaultSource = nameof(GetFogEndAttributeDefault),
-    Getter = nameof(_fogEnd),
-    Setter = nameof(_fogEnd)
-)]
-[Serialized(
-    "Fog Height",
-    typeof(float),
-    DefaultSource = nameof(GetFogHeightAttributeDefault),
-    Getter = nameof(_fogHeight),
-    Setter = nameof(_fogHeight)
-)]
-[Serialized(
-    "Fog Height Scale",
-    typeof(float),
-    DefaultSource = nameof(GetFogHeightScaleAttributeDefault),
-    Getter = nameof(_fogHeightScale),
-    Setter = nameof(_fogHeightScale)
-)]
-[Serialized(
-    "Height Fog Mode",
-    typeof(bool),
-    DefaultSource = nameof(GetHeightFogModeAttributeDefault),
-    Getter = nameof(_heightFog),
-    Setter = nameof(_heightFog)
-)]
-[Serialized(
-    "Override Mode",
-    typeof(bool),
-    DefaultSource = nameof(GetOverrideModeAttributeDefault),
-    Getter = nameof(_override),
-    Setter = nameof(_override)
-)]
-[Serialized(
-    "Ambient Gradient",
-    typeof(bool),
-    DefaultSource = nameof(GetAmbientGradientAttributeDefault),
-    Getter = nameof(_ambientGradient),
-    Setter = nameof(_ambientGradient)
-)]
-[Serialized(
-    "Priority",
-    typeof(int),
-    DefaultSource = nameof(GetPriorityAttributeDefault),
-    Getter = nameof(_priority),
-    Setter = nameof(SetSerializedPriority)
-)]
-[Serialized(
-    "Zone Texture",
-    typeof(ResourceRef),
-    DefaultSource = nameof(GetZoneTextureAttributeDefault),
-    Getter = nameof(GetZoneTextureAttr),
-    Setter = nameof(SetZoneTextureAttr)
-)]
-[Serialized(
-    "Light Mask",
-    typeof(uint),
-    DefaultSource = nameof(GetLightMaskAttributeDefault),
-    Getter = nameof(GetLightMask),
-    Setter = nameof(SetLightMask)
-)]
-[Serialized(
-    "Shadow Mask",
-    typeof(uint),
-    DefaultSource = nameof(GetShadowMaskAttributeDefault),
-    Getter = nameof(GetShadowMask),
-    Setter = nameof(SetShadowMask)
-)]
-[Serialized(
-    "Zone Mask",
-    typeof(uint),
-    DefaultSource = nameof(GetZoneMaskAttributeDefault),
-    Getter = nameof(GetZoneMask),
-    Setter = nameof(SetZoneMask)
-)]
+[Reflected(ObjectCategory.Category_Scene, InheritAttributes = false)]
 public partial class Zone : Drawable
 {
     private const float DefaultFogStart = 250.0f;
@@ -169,21 +29,73 @@ public partial class Zone : Drawable
 
     private Matrix3x4 _inverseWorld = Matrix3x4.Identity;
     private bool _inverseWorldDirty = true;
+    [Serialized(
+        "Height Fog Mode",
+        Order = 12
+    )]
     private bool _heightFog;
+    [Serialized(
+        "Override Mode",
+        Order = 13
+    )]
     private bool _override;
+    [Serialized(
+        "Ambient Gradient",
+        Order = 14
+    )]
     private bool _ambientGradient;
     private BoundingBox _lastWorldBoundingBox = new();
+    [Serialized(
+        "Ambient Color",
+        Order = 3
+    )]
     private Color _ambientColor = DefaultAmbientColor;
+    [Serialized(
+        "Ambient Brightness",
+        Order = 4
+    )]
     private float _ambientBrightness = 1.0f;
+    [Serialized(
+        "Background Brightness",
+        Order = 5
+    )]
     private float _backgroundBrightness;
+    [Serialized(
+        "Is Background Static",
+        Order = 6
+    )]
     private bool _backgroundStatic;
     private Color _ambientStartColor = new();
     private Color _ambientEndColor = new();
+    [Serialized(
+        "Fog Color",
+        Order = 7
+    )]
     private Color _fogColor = DefaultFogColor;
+    [Serialized(
+        "Fog Start",
+        Order = 8
+    )]
     private float _fogStart = DefaultFogStart;
+    [Serialized(
+        "Fog End",
+        Order = 9
+    )]
     private float _fogEnd = DefaultFogEnd;
+    [Serialized(
+        "Fog Height",
+        Order = 10
+    )]
     private float _fogHeight = DefaultFogHeight;
+    [Serialized(
+        "Fog Height Scale",
+        Order = 11
+    )]
     private float _fogHeightScale = DefaultFogHeightScale;
+    [Serialized(
+        "Priority",
+        Order = 15
+    )]
     private int _priority;
     private Texture? _zoneTexture;
     private readonly WeakReference<Zone> _lastAmbientStartZone = new(null!);
@@ -331,6 +243,12 @@ public partial class Zone : Drawable
         MarkCachedAmbientDirty();
     }
 
+    [Serialized(
+        "Zone Texture",
+        DefaultSource = nameof(GetZoneTextureAttributeDefault),
+        Setter = nameof(SetZoneTextureAttr),
+        Order = 16
+    )]
     public ResourceRef GetZoneTextureAttr() => ResourceType.GetResourceRef(_zoneTexture, ObjectReflection<TextureCube>.TypeId);
 
     public StrongBox<ReflectionProbeData> GetReflectionProbe() => _reflectionProbeData.GetStorage();
@@ -598,6 +516,13 @@ public partial class Zone : Drawable
 
     private static object? GetBoundingBoxMinAttributeDefault() => DefaultBoundingBoxMin;
 
+    [Serialized(
+        "Bounding Box Min",
+        typeof(Vector3f),
+        DefaultSource = nameof(GetBoundingBoxMinAttributeDefault),
+        Setter = nameof(SetSerializedBoundingBoxMin),
+        Order = 1
+    )]
     private object? GetSerializedBoundingBoxMin()
     {
         Serializable self = this;
@@ -614,6 +539,13 @@ public partial class Zone : Drawable
 
     private static object? GetBoundingBoxMaxAttributeDefault() => DefaultBoundingBoxMax;
 
+    [Serialized(
+        "Bounding Box Max",
+        typeof(Vector3f),
+        DefaultSource = nameof(GetBoundingBoxMaxAttributeDefault),
+        Setter = nameof(SetSerializedBoundingBoxMax),
+        Order = 2
+    )]
     private object? GetSerializedBoundingBoxMax()
     {
         Serializable self = this;
@@ -627,32 +559,6 @@ public partial class Zone : Drawable
         zone._boundingBox.Max = (Vector3f)value!;
         zone.MarkNodeDirty();
     }
-
-    private static object? GetAmbientColorAttributeDefault() => DefaultAmbientColor;
-
-    private static object? GetAmbientBrightnessAttributeDefault() => 1.0f;
-
-    private static object? GetBackgroundBrightnessAttributeDefault() => 0.0f;
-
-    private static object? GetIsBackgroundStaticAttributeDefault() => false;
-
-    private static object? GetFogColorAttributeDefault() => DefaultFogColor;
-
-    private static object? GetFogStartAttributeDefault() => DefaultFogStart;
-
-    private static object? GetFogEndAttributeDefault() => DefaultFogEnd;
-
-    private static object? GetFogHeightAttributeDefault() => DefaultFogHeight;
-
-    private static object? GetFogHeightScaleAttributeDefault() => DefaultFogHeightScale;
-
-    private static object? GetHeightFogModeAttributeDefault() => false;
-
-    private static object? GetOverrideModeAttributeDefault() => false;
-
-    private static object? GetAmbientGradientAttributeDefault() => false;
-
-    private static object? GetPriorityAttributeDefault() => 0;
 
     private void SetSerializedPriority(object? value)
     {
@@ -669,4 +575,49 @@ public partial class Zone : Drawable
     private static object? GetShadowMaskAttributeDefault() => DefaultShadowMask;
 
     private static object? GetZoneMaskAttributeDefault() => DefaultZoneMask;
+
+
+    [Serialized(
+        "Is Enabled",
+        DefaultSource = nameof(GetIsEnabledAttributeDefault),
+        Order = 0
+    )]
+    private bool SerializedIsEnabled
+    {
+        get => Enabled;
+        set => SetEnabled(value);
+    }
+
+    [Serialized(
+        "Light Mask",
+        DefaultSource = nameof(GetLightMaskAttributeDefault),
+        Order = 17
+    )]
+    private uint SerializedLightMask
+    {
+        get => GetLightMask();
+        set => SetLightMask(value);
+    }
+
+    [Serialized(
+        "Shadow Mask",
+        DefaultSource = nameof(GetShadowMaskAttributeDefault),
+        Order = 18
+    )]
+    private uint SerializedShadowMask
+    {
+        get => GetShadowMask();
+        set => SetShadowMask(value);
+    }
+
+    [Serialized(
+        "Zone Mask",
+        DefaultSource = nameof(GetZoneMaskAttributeDefault),
+        Order = 19
+    )]
+    private uint SerializedZoneMask
+    {
+        get => GetZoneMask();
+        set => SetZoneMask(value);
+    }
 }

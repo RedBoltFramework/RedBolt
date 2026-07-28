@@ -34,59 +34,6 @@ namespace RedBolt.Graphics;
 /// Helper component that tracks points in world space and updates camera position.
 /// </summary>
 [Reflected(ObjectCategory.Category_Scene)]
-[Serialized(
-    "Is Enabled",
-    typeof(bool),
-    DefaultSource = nameof(GetIsEnabledAttributeDefault),
-    Getter = nameof(Enabled),
-    Setter = nameof(SetEnabled)
-)]
-[Serialized(
-    "Padding",
-    typeof(Rect),
-    DefaultSource = nameof(GetPaddingAttributeDefault),
-    Getter = nameof(GetPadding),
-    Setter = nameof(SetPadding)
-)]
-[Serialized(
-    "Track Bounding Box",
-    typeof(bool),
-    DefaultSource = nameof(GetTrackBoundingBoxAttributeDefault),
-    Getter = nameof(IsBoundingBoxTrackingEnabled),
-    Setter = nameof(SetBoundingBoxTrackingEnabled)
-)]
-[Serialized(
-    "Bounding Box Min",
-    typeof(Vector3f),
-    DefaultSource = nameof(GetBoundingBoxMinAttributeDefault),
-    Getter = nameof(GetSerializedBoundingBoxMin),
-    Setter = nameof(SetSerializedBoundingBoxMin)
-)]
-[Serialized(
-    "Bounding Box Max",
-    typeof(Vector3f),
-    DefaultSource = nameof(GetBoundingBoxMaxAttributeDefault),
-    Getter = nameof(GetSerializedBoundingBoxMax),
-    Setter = nameof(SetSerializedBoundingBoxMax)
-)]
-[Serialized(
-    "Tracked Nodes",
-    typeof(VariantVector),
-    Configure = nameof(ConfigureTrackedNodesAttribute),
-    DefaultSource = nameof(GetTrackedNodesAttributeDefault),
-    Getter = nameof(GetNodeIDsAttr),
-    Mode = AttributeMode.Default | AttributeMode.NodeIdVector,
-    Setter = nameof(SetNodeIDsAttr)
-)]
-[Serialized(
-    "Update Camera",
-    typeof(bool),
-    Configure = nameof(ConfigureUpdateCameraAttribute),
-    DefaultSource = nameof(GetUpdateCameraAttributeDefault),
-    Getter = nameof(GetSerializedUpdateCamera),
-    Mode = AttributeMode.Edit,
-    Setter = nameof(SetSerializedUpdateCamera)
-)]
 public partial class CameraOperator : Component
 {
     private static readonly StringVector InstanceNodesStructureElementNames = new()
@@ -99,8 +46,16 @@ public partial class CameraOperator : Component
     private readonly VariantVector _nodeIdsAttr = [];
     private bool _nodesDirty;
     private bool _nodeIdsDirty;
+    [Serialized(
+        "Track Bounding Box",
+        Order = 2
+    )]
     private bool _boundingBoxEnabled;
     private BoundingBox _boundingBox = new();
+    [Serialized(
+        "Padding",
+        Order = 1
+    )]
     private Rect _padding = Rect.Zero;
     private readonly List<Vector3f> _points = [];
 
@@ -198,6 +153,14 @@ public partial class CameraOperator : Component
     /// <summary>
     /// Return node IDs attribute.
     /// </summary>
+    [Serialized(
+        "Tracked Nodes",
+        Configure = nameof(ConfigureTrackedNodesAttribute),
+        DefaultSource = nameof(GetTrackedNodesAttributeDefault),
+        Mode = AttributeMode.Default | AttributeMode.NodeIdVector,
+        Setter = nameof(SetNodeIDsAttr),
+        Order = 5
+    )]
     public VariantVector GetNodeIDsAttr()
     {
         if (_nodeIdsDirty)
@@ -506,12 +469,15 @@ public partial class CameraOperator : Component
 
     private static object? GetIsEnabledAttributeDefault() => true;
 
-    private static object? GetPaddingAttributeDefault() => Rect.Zero;
-
-    private static object? GetTrackBoundingBoxAttributeDefault() => false;
-
     private static object? GetBoundingBoxMinAttributeDefault() => -Vector3f.One;
 
+    [Serialized(
+        "Bounding Box Min",
+        typeof(Vector3f),
+        DefaultSource = nameof(GetBoundingBoxMinAttributeDefault),
+        Setter = nameof(SetSerializedBoundingBoxMin),
+        Order = 3
+    )]
     private object? GetSerializedBoundingBoxMin()
     {
         Serializable self = this;
@@ -529,6 +495,13 @@ public partial class CameraOperator : Component
 
     private static object? GetBoundingBoxMaxAttributeDefault() => Vector3f.One;
 
+    [Serialized(
+        "Bounding Box Max",
+        typeof(Vector3f),
+        DefaultSource = nameof(GetBoundingBoxMaxAttributeDefault),
+        Setter = nameof(SetSerializedBoundingBoxMax),
+        Order = 4
+    )]
     private object? GetSerializedBoundingBoxMax()
     {
         Serializable self = this;
@@ -559,6 +532,15 @@ public partial class CameraOperator : Component
         attribute.SetMetadata(AttributeMetadata.IsAction, true);
     }
 
+    [Serialized(
+        "Update Camera",
+        typeof(bool),
+        Configure = nameof(ConfigureUpdateCameraAttribute),
+        DefaultSource = nameof(GetUpdateCameraAttributeDefault),
+        Mode = AttributeMode.Edit,
+        Setter = nameof(SetSerializedUpdateCamera),
+        Order = 6
+    )]
     private object? GetSerializedUpdateCamera() => "Move camera to keep tracked nodes and/or bounding box in frustum";
 
     private void SetSerializedUpdateCamera(object? value)
@@ -566,5 +548,17 @@ public partial class CameraOperator : Component
         Serializable self = this;
         if (value is true)
             ((CameraOperator)self).MoveCamera();
+    }
+
+
+    [Serialized(
+        "Is Enabled",
+        DefaultSource = nameof(GetIsEnabledAttributeDefault),
+        Order = 0
+    )]
+    private bool SerializedIsEnabled
+    {
+        get => Enabled;
+        set => SetEnabled(value);
     }
 }
