@@ -4,6 +4,8 @@ using System.Runtime.InteropServices;
 
 using RedBolt.Bindings.RmlUi;
 
+using RedBoltNative;
+
 [Collection(nameof(RmlUiBindingsCollection))]
 public sealed class RmlUiBindingsTests
 {
@@ -96,6 +98,88 @@ public sealed class RmlUiBindingsTests
         finally
         {
             RmlUiNativeBindings.SetFontEngineInterface(original);
+        }
+    }
+
+    [Fact]
+    public void HarfBuzz_font_engine_rasterizes_rml_document()
+    {
+        var originalFileInterface = RmlUiNativeBindings.GetFileInterface();
+        var originalFontEngineInterface = RmlUiNativeBindings.GetFontEngineInterface();
+        var originalRenderInterface = RmlUiNativeBindings.GetRenderInterface();
+        using var fileInterface = new TestDiskFileInterface();
+        using var fontEngineInterface = new RmlHarfBuzzFontEngine();
+        using var renderInterface = new TestRenderInterface();
+        using var fontPath = new Std.String();
+        using var contextName = new Std.String();
+        using var documentSource = new Std.String();
+        using var sourceUrl = new Std.String();
+        fontPath.Assign(Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory, "..", "Data", "Fonts", "Anonymous Pro.ttf")));
+        contextName.Assign("RedBolt.Tests.RmlUiBindings.HarfBuzz");
+        documentSource.Assign("""
+            <rml>
+            <head>
+                <style>
+                    body { font-family: "Anonymous Pro"; font-size: 32px; color: white; }
+                </style>
+            </head>
+            <body>HarfBuzz raster</body>
+            </rml>
+            """);
+        sourceUrl.Assign("memory://harfbuzz.rml");
+        Context? context = null;
+        ElementDocument? document = null;
+        var initialized = false;
+        try
+        {
+            RmlUiNativeBindings.SetFileInterface(fileInterface);
+            RmlUiNativeBindings.SetFontEngineInterface(fontEngineInterface);
+            RmlUiNativeBindings.SetRenderInterface(renderInterface.GetAdaptedInterface());
+            Assert.True(RmlUiNativeBindings.Initialise());
+            initialized = true;
+
+            Assert.True(RmlUiNativeBindings.LoadFontFace(fontPath));
+            context = RmlUiNativeBindings.CreateContext(
+                contextName, new RmlUiLegacyVector2i { X = 640, Y = 480 });
+            Assert.NotNull(context);
+            document = context.LoadDocumentFromMemory(documentSource, sourceUrl);
+            Assert.NotNull(document);
+
+            document.Show(ModalFlag.None, FocusFlag.None);
+            Assert.True(context.Update());
+            Assert.True(context.Render());
+            Assert.True(renderInterface.GeneratedTexture);
+            Assert.True(renderInterface.RenderedTexturedGeometry);
+            Assert.True(renderInterface.TextureDimensions.X > 0);
+            Assert.True(renderInterface.TextureDimensions.Y > 0);
+
+            document.Close();
+            document.Dispose();
+            document = null;
+            Assert.True(context.Update());
+            context.Dispose();
+            context = null;
+            Assert.True(RmlUiNativeBindings.RemoveContext(contextName));
+            RmlUiNativeBindings.Shutdown();
+            initialized = false;
+        }
+        finally
+        {
+            if (document is not null)
+            {
+                document.Close();
+                document.Dispose();
+                context?.Update();
+            }
+            context?.Dispose();
+            if (context is not null)
+                RmlUiNativeBindings.RemoveContext(contextName);
+            if (initialized)
+                RmlUiNativeBindings.Shutdown();
+            RmlUiNativeBindings.SetRenderInterface(originalRenderInterface);
+            RmlUiNativeBindings.SetFontEngineInterface(originalFontEngineInterface);
+            RmlUiNativeBindings.SetFileInterface(originalFileInterface);
         }
     }
 
@@ -193,9 +277,17 @@ public sealed class RmlUiBindingsTests
 
     private sealed class TestRenderInterface : RenderInterfaceCompatibility
     {
+        public bool GeneratedTexture { get; private set; }
+
+        public bool RenderedTexturedGeometry { get; private set; }
+
+        public RmlUiLegacyVector2i TextureDimensions { get; private set; }
+
         public override void RenderGeometry(
             nint vertices, int numVertices, nint indices, int numIndices, nuint texture, nint translation)
         {
+            if (vertices != 0 && numVertices > 0 && indices != 0 && numIndices > 0 && texture != 0)
+                RenderedTexturedGeometry = true;
         }
 
         public override void EnableScissorRegion(bool enable)
@@ -204,6 +296,59 @@ public sealed class RmlUiBindingsTests
 
         public override void SetScissorRegion(int x, int y, int width, int height)
         {
+        }
+
+        public override unsafe bool GenerateTexture(nint textureHandle, nint source, nint sourceDimensions)
+        {
+            if (textureHandle == 0 || source == 0 || sourceDimensions == 0)
+                return false;
+            TextureDimensions = *(RmlUiLegacyVector2i*)sourceDimensions;
+            *(nuint*)textureHandle = 1;
+            GeneratedTexture = true;
+            return true;
+        }
+    }
+
+    private sealed class TestDiskFileInterface : FileInterface
+    {
+        public override nuint Open(Std.String path)
+        {
+            if (!System.IO.File.Exists(path.ToString()))
+                return 0;
+            return (nuint)GCHandle.ToIntPtr(GCHandle.Alloc(System.IO.File.OpenRead(path.ToString())));
+        }
+
+        public override void Close(nuint file)
+        {
+            var handle = GCHandle.FromIntPtr((nint)file);
+            ((FileStream)handle.Target!).Dispose();
+            handle.Free();
+        }
+
+        public override unsafe nuint Read(nint buffer, nuint size, nuint file)
+        {
+            var handle = GCHandle.FromIntPtr((nint)file);
+            return (nuint)((FileStream)handle.Target!).Read(new Span<byte>((void*)buffer, checked((int)size)));
+        }
+
+        public override bool Seek(nuint file, nint offset, int origin)
+        {
+            var handle = GCHandle.FromIntPtr((nint)file);
+            var stream = (FileStream)handle.Target!;
+            stream.Seek(offset, (SeekOrigin)origin);
+            return true;
+        }
+
+        public override nuint Tell(nuint file)
+        {
+            var handle = GCHandle.FromIntPtr((nint)file);
+            return (nuint)((FileStream)handle.Target!).Position;
+        }
+
+        public override nuint Length(nuint file)
+        {
+            var handle = GCHandle.FromIntPtr((nint)file);
+            return (nuint)((FileStream)handle.Target!).Length;
         }
     }
 

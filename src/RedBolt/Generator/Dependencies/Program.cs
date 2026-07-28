@@ -863,6 +863,17 @@ internal static class Program
                 method.SetSilentExclusionReason("RmlUi font engine member is outside the lifecycle binding slice");
         }
 
+        var harfBuzzFontEngine = compilation.Records.First(static record =>
+            record.CppQualifiedName == "RedBoltNative::RmlHarfBuzzFontEngine");
+        harfBuzzFontEngine.ClearIgnoreReason();
+        foreach (var method in harfBuzzFontEngine.Members.OfType<FunctionBinding>())
+        {
+            if (method.IsConstructor)
+                method.ClearIgnoreReason();
+            else
+                method.SetSilentExclusionReason("RmlUi HarfBuzz font engine is accessed through FontEngineInterface");
+        }
+
         var eventListener = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::EventListener");
 
@@ -875,7 +886,8 @@ internal static class Program
         {
             if (method.NativeName is
                 "GetDensityIndependentPixelRatio" or "GetDimensions" or "GetName" or "Render" or
-                "SetDensityIndependentPixelRatio" or "SetDimensions" or "Update")
+                "LoadDocumentFromMemory" or "SetDensityIndependentPixelRatio" or "SetDimensions" or
+                "UnloadDocument" or "Update")
             {
                 method.ClearIgnoreReason();
             }
@@ -911,6 +923,24 @@ internal static class Program
                 method.SetSilentExclusionReason("RmlUi element member is outside the event listener binding slice");
         }
 
+        var elementDocument = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::ElementDocument");
+        elementDocument.ClearIgnoreReason();
+        foreach (var method in elementDocument.Members.OfType<FunctionBinding>())
+        {
+            if (method.NativeName is "Close" or "GetContext" or "Hide" or "Show")
+                method.ClearIgnoreReason();
+            else
+                method.SetSilentExclusionReason("RmlUi document member is outside the current binding slice");
+        }
+
+        foreach (var method in context.Members.OfType<FunctionBinding>()
+                     .Where(static method => method.NativeName == "LoadDocumentFromMemory"))
+        {
+            method.ReturnType = method.ReturnType.WithManagedTypeFormatOverride(
+                $"{method.ReturnType.ManagedTypeName}?");
+        }
+
         var @event = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Event");
         @event.ClearIgnoreReason();
@@ -936,6 +966,25 @@ internal static class Program
         var eventPhase = compilation.Enums.First(static @enum =>
             @enum.CppQualifiedName == "Rml::EventPhase");
         eventPhase.ClearIgnoreReason();
+        var focusFlag = compilation.Enums.First(static @enum =>
+            @enum.CppQualifiedName == "Rml::FocusFlag");
+        focusFlag.ClearIgnoreReason();
+        var modalFlag = compilation.Enums.First(static @enum =>
+            @enum.CppQualifiedName == "Rml::ModalFlag");
+        modalFlag.ClearIgnoreReason();
+        var fontWeight = compilation.Enums.First(static @enum =>
+            @enum.CppQualifiedName == "Rml::Style::FontWeight");
+        fontWeight.ClearIgnoreReason();
+        var fontWeightType = BindingType.CreateEnum(
+            fontWeight.CppQualifiedName, fontWeight.ManagedName, enumId: fontWeight.SymbolId);
+        foreach (var parameter in compilation.Functions
+                     .Where(static function => function.CppQualifiedName == "Rml::LoadFontFace")
+                     .SelectMany(static function => function.Parameters)
+                     .Where(static parameter => parameter.NativeName == "weight"))
+        {
+            parameter.Type = fontWeightType;
+            parameter.CppTypeName = fontWeight.CppQualifiedName;
+        }
 
         var fileHandleType = BindingType.CreateConfigured(
             "Rml::FileHandle", "nuint", BindingPrimitiveKind.NativeUInt);
@@ -1018,12 +1067,19 @@ internal static class Program
         foreach (var function in compilation.Functions.Where(static function =>
                      function.Parent is not RecordBinding &&
                      function.CppQualifiedName is
-                         "Rml::CreateContext" or "Rml::Initialise" or "Rml::RemoveContext" or "Rml::Shutdown" or
+                         "Rml::CreateContext" or "Rml::Initialise" or "Rml::LoadFontFace" or "Rml::RemoveContext" or "Rml::Shutdown" or
                          "Rml::GetFileInterface" or "Rml::SetFileInterface" or
                          "Rml::GetFontEngineInterface" or "Rml::SetFontEngineInterface" or
                          "Rml::GetRenderInterface" or "Rml::SetRenderInterface" or
                          "Rml::GetSystemInterface" or "Rml::SetSystemInterface"))
         {
+            if (function.CppQualifiedName == "Rml::LoadFontFace" &&
+                function.Parameters.FirstOrDefault()?.CppTypeName != "const Rml::String&")
+            {
+                function.SetSilentExclusionReason("RmlUi memory font loading is outside the current binding slice");
+                continue;
+            }
+
             function.ClearIgnoreReason();
             if (function.CppQualifiedName == "Rml::CreateContext")
             {
@@ -1149,7 +1205,7 @@ internal static class Program
                 var member = compilation.Members[index];
                 if (member is FunctionBinding function &&
                     function.CppQualifiedName is
-                        "Rml::CreateContext" or "Rml::Initialise" or "Rml::RemoveContext" or "Rml::Shutdown" or
+                        "Rml::CreateContext" or "Rml::Initialise" or "Rml::LoadFontFace" or "Rml::RemoveContext" or "Rml::Shutdown" or
                         "Rml::GetFileInterface" or "Rml::SetFileInterface" or
                         "Rml::GetFontEngineInterface" or "Rml::SetFontEngineInterface" or
                         "Rml::GetRenderInterface" or "Rml::SetRenderInterface" or
@@ -1161,8 +1217,10 @@ internal static class Program
                 if (member is RecordBinding record &&
                     (record.CppQualifiedName is
                          "Rml::Context" or "Rml::Element" or "Rml::Event" or
-                         "Rml::EventListener" or "Rml::FileInterface" or "Rml::FontEngineInterface" or "Rml::Log" or
-                         "Rml::RenderInterfaceCompatibility" or "Rml::SystemInterface" ||
+                         "Rml::ElementDocument" or "Rml::EventListener" or "Rml::FileInterface" or
+                         "Rml::FontEngineInterface" or "Rml::Log" or
+                         "Rml::RenderInterfaceCompatibility" or "Rml::SystemInterface" or
+                         "RedBoltNative::RmlHarfBuzzFontEngine" ||
                      record.CppQualifiedName.StartsWith("Rml::Vector2", StringComparison.Ordinal) ||
                      record.ManagedNamespace == "Std" && record.ManagedName == "String"))
                 {
@@ -1170,7 +1228,9 @@ internal static class Program
                 }
 
                 if (member is EnumBinding @enum &&
-                    @enum.CppQualifiedName is "Rml::EventPhase" or "Rml::Log::Type")
+                    @enum.CppQualifiedName is
+                        "Rml::EventPhase" or "Rml::FocusFlag" or "Rml::Log::Type" or "Rml::ModalFlag" or
+                        "Rml::Style::FontWeight")
                     continue;
 
                 compilation.Members.RemoveAt(index);

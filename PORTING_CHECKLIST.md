@@ -612,6 +612,8 @@ Accepted deviations:
   - [x] generated HarfBuzz font/raster bindings — verified non-empty A8 glyph output
   - [x] generated RmlUi `SystemInterface` director — standard-library `Std.String`, no EASTL projection
   - [x] generated RmlUi `FontEngineInterface` lifecycle director — context initialization verified without the default FreeType engine
+  - [x] native HarfBuzz font engine — shaping, A8 rasterization, dynamic atlas, and textured RmlUi geometry verified
+  - [ ] native HarfBuzz font engine effects and fallback-face shaping
 - [x] `RmlSystem.h`
   - [x] `RmlSystem : Rml::SystemInterface` — `RefCounted` and `WeakPtr<Context>` dropped per managed deviation
 - [x] `RmlFile.h`
@@ -630,6 +632,7 @@ Accepted deviations:
   - [ ] `CustomEventListener : Rml::EventListener, NonCopyable`
 - [ ] `RmlUI.h`
   - [x] generated RmlUi lifecycle and base `Context` name, dimensions, DPI, update, and render prerequisites
+  - [x] generated RmlUi font loading and document load, show, hide, close, and unload prerequisites
   - [ ] `RmlUI : Object`
 - [ ] `RmlUIComponent.h`
   - [ ] `RmlUIComponent : LogicComponent`
