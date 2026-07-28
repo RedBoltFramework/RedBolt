@@ -100,6 +100,103 @@ public class Terrain : Component
     {
         RegisterAttribute("Is Enabled", typeof(bool), self => ((Terrain)self).Enabled,
             (self, value) => ((Terrain)self).SetEnabled(value is bool enabled && enabled), true);
+        RegisterAttribute("Height Map", typeof(ResourceRef), self => ((Terrain)self).GetHeightMapAttr(),
+            (self, value) => ((Terrain)self).SetHeightMapAttr((ResourceRef)value!),
+            new ResourceRef(new StringHash(nameof(Image))));
+        RegisterAttribute("Material", typeof(ResourceRef), self => ((Terrain)self).GetMaterialAttr(),
+            (self, value) => ((Terrain)self).SetMaterialAttr((ResourceRef)value!),
+            new ResourceRef(new StringHash(nameof(Material))));
+        RegisterAttribute("North Neighbor NodeID", typeof(uint), self => ((Terrain)self)._northID,
+            (self, value) =>
+            {
+                var terrain = (Terrain)self;
+                terrain._northID = (uint)value!;
+                terrain.MarkNeighborsDirty();
+            }, 0u, AttributeMode.Default | AttributeMode.NodeId);
+        RegisterAttribute("South Neighbor NodeID", typeof(uint), self => ((Terrain)self)._southID,
+            (self, value) =>
+            {
+                var terrain = (Terrain)self;
+                terrain._southID = (uint)value!;
+                terrain.MarkNeighborsDirty();
+            }, 0u, AttributeMode.Default | AttributeMode.NodeId);
+        RegisterAttribute("West Neighbor NodeID", typeof(uint), self => ((Terrain)self)._westID,
+            (self, value) =>
+            {
+                var terrain = (Terrain)self;
+                terrain._westID = (uint)value!;
+                terrain.MarkNeighborsDirty();
+            }, 0u, AttributeMode.Default | AttributeMode.NodeId);
+        RegisterAttribute("East Neighbor NodeID", typeof(uint), self => ((Terrain)self)._eastID,
+            (self, value) =>
+            {
+                var terrain = (Terrain)self;
+                terrain._eastID = (uint)value!;
+                terrain.MarkNeighborsDirty();
+            }, 0u, AttributeMode.Default | AttributeMode.NodeId);
+        RegisterAttribute("Vertex Spacing", typeof(Vector3f), self => ((Terrain)self)._spacing,
+            (self, value) =>
+            {
+                var terrain = (Terrain)self;
+                terrain._spacing = (Vector3f)value!;
+                terrain.MarkTerrainDirty();
+            }, DefaultSpacing);
+        RegisterAttribute("Patch Size", typeof(int), self => ((Terrain)self).GetPatchSize(),
+            (self, value) => ((Terrain)self).SetPatchSizeAttr((int)value!), DefaultPatchSize);
+        RegisterAttribute("Max LOD Levels", typeof(uint), self => ((Terrain)self).GetMaxLodLevels(),
+            (self, value) => ((Terrain)self).SetMaxLodLevelsAttr((uint)value!), MaxLodLevelsConst);
+        RegisterAttribute("Smooth Height Map", typeof(bool), self => ((Terrain)self)._smoothing,
+            (self, value) =>
+            {
+                var terrain = (Terrain)self;
+                terrain._smoothing = value is bool enabled && enabled;
+                terrain.MarkTerrainDirty();
+            }, false);
+        RegisterAttribute("Is Occluder", typeof(bool), self => ((Terrain)self).IsOccluder(),
+            (self, value) => ((Terrain)self).SetOccluder(value is bool enabled && enabled), false);
+        RegisterAttribute("Can Be Occluded", typeof(bool), self => ((Terrain)self).IsOccludee(),
+            (self, value) => ((Terrain)self).SetOccludee(value is bool enabled && enabled), true);
+        RegisterAttribute("Cast Shadows", typeof(bool), self => ((Terrain)self).GetCastShadows(),
+            (self, value) => ((Terrain)self).SetCastShadows(value is bool enabled && enabled), false);
+        RegisterAttribute("Draw Distance", typeof(float), self => ((Terrain)self).GetDrawDistance(),
+            (self, value) => ((Terrain)self).SetDrawDistance((float)value!), 0.0f);
+        RegisterAttribute("Shadow Distance", typeof(float), self => ((Terrain)self).GetShadowDistance(),
+            (self, value) => ((Terrain)self).SetShadowDistance((float)value!), 0.0f);
+        RegisterAttribute("LOD Bias", typeof(float), self => ((Terrain)self).GetLodBias(),
+            (self, value) => ((Terrain)self).SetLodBias((float)value!), 1.0f);
+        RegisterAttribute("View Mask", typeof(uint), self => ((Terrain)self).GetViewMask(),
+            (self, value) => ((Terrain)self).SetViewMask((uint)value!), Drawable.DefaultViewMask);
+        RegisterAttribute("Light Mask", typeof(uint), self => ((Terrain)self).GetLightMask(),
+            (self, value) => ((Terrain)self).SetLightMask((uint)value!), Drawable.DefaultLightMask);
+        RegisterAttribute("Shadow Mask", typeof(uint), self => ((Terrain)self).GetShadowMask(),
+            (self, value) => ((Terrain)self).SetShadowMask((uint)value!), Drawable.DefaultShadowMask);
+        RegisterAttribute("Zone Mask", typeof(uint), self => ((Terrain)self).GetZoneMask(),
+            (self, value) => ((Terrain)self).SetZoneMask((uint)value!), Drawable.DefaultZoneMask);
+        RegisterAttribute("Occlusion LOD level", typeof(uint), self => ((Terrain)self).GetOcclusionLodLevel(),
+            (self, value) => ((Terrain)self).SetOcclusionLodLevelAttr((uint)value!), MathDefs.MaxUnsigned);
+        RegisterAttribute("Bake Lightmap", typeof(bool), self => ((Terrain)self)._bakeLightmap,
+            (self, value) =>
+            {
+                var terrain = (Terrain)self;
+                terrain._bakeLightmap = value is bool enabled && enabled;
+                terrain.MarkTerrainDirty();
+            }, false);
+        RegisterAttribute("Scale in Lightmap", typeof(float), self => ((Terrain)self)._scaleInLightmap,
+            (self, value) => ((Terrain)self)._scaleInLightmap = (float)value!, 1.0f);
+        RegisterAttribute("Lightmap Index", typeof(uint), self => ((Terrain)self)._lightmapIndex,
+            (self, value) =>
+            {
+                var terrain = (Terrain)self;
+                terrain._lightmapIndex = (uint)value!;
+                terrain.UpdatePatchesLightmaps();
+            }, 0u, AttributeMode.Default | AttributeMode.NoEdit);
+        RegisterAttribute("Lightmap Scale & Offset", typeof(Vector4f), self => ((Terrain)self)._lightmapScaleOffset,
+            (self, value) =>
+            {
+                var terrain = (Terrain)self;
+                terrain._lightmapScaleOffset = (Vector4f)value!;
+                terrain.UpdatePatchesLightmaps();
+            }, new Vector4f(1.0f, 1.0f, 0.0f, 0.0f), AttributeMode.Default | AttributeMode.NoEdit);
         _indexBuffer.SetShadowed(true);
     }
 
@@ -1484,6 +1581,18 @@ public class Terrain : Component
         SetPatchNeighbors(GetPatch(_numPatches.X - 1, 0));
         SetPatchNeighbors(GetPatch(0, _numPatches.Y - 1));
         SetPatchNeighbors(GetPatch(_numPatches.X - 1, _numPatches.Y - 1));
+    }
+
+    /// <summary>Mark neighbors dirty.</summary>
+    private void MarkNeighborsDirty()
+    {
+        _neighborsDirty = true;
+    }
+
+    /// <summary>Mark terrain dirty.</summary>
+    private void MarkTerrainDirty()
+    {
+        _recreateTerrain = true;
     }
 
     /// <summary>Update lightmap settings in patches.</summary>

@@ -1,4 +1,5 @@
 using RedBolt;
+using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Resource;
 using RedBolt.Scene;
@@ -97,6 +98,27 @@ public sealed class TerrainTests
         Assert.Equal(32, terrain.GetPatchSize());
         terrain.SetPatchSize(16);
         Assert.Equal(16, terrain.GetPatchSize());
+    }
+
+    [Fact]
+    public void Legacy_baked_lighting_scene_loads_terrain_attributes()
+    {
+        var cache = Context.Instance.GetSubsystem<ResourceCache>()!;
+        var xmlFile = cache.Get<XMLFile>("Scenes/BakedLightingExample.xml");
+        using var root = xmlFile.GetRoot();
+        using var scene = new SceneType();
+
+        Assert.True(scene.LoadXML(root));
+        var terrain = scene.FindComponent<Terrain>();
+        Assert.NotNull(terrain);
+        Assert.NotNull(terrain!.GetHeightMap());
+        Assert.NotNull(terrain.GetMaterial());
+        Assert.Equal(new Vector3f(0.6f, 0.01f, 0.6f), terrain.GetSpacing());
+        Assert.True(terrain.GetBakeLightmap());
+        Assert.Equal(1u, terrain.GetLightmapIndex());
+        Assert.Equal(new Vector4f(0.375f, 0.75f, 0.00195312f, 0.00195312f), terrain.GetLightmapScaleOffset());
+        Assert.True(terrain.GetNumPatches().X > 0);
+        Assert.True(terrain.GetNumPatches().Y > 0);
     }
 
     [Fact]
