@@ -643,7 +643,7 @@ Accepted deviations:
   - [x] generated stdlib `Rml::Variant`, `std::vector<Variant>`, functional data-model, and RedBolt math-type projection prerequisites
   - [x] generated RmlUi `VariableDefinition`, `DataVariable`, and `DataAddressEntry` director prerequisites with record-value callback ownership
   - [x] `Variant` scalar, string, pointer, vector, and color conversions
-  - [~] `RmlUI : Object` — lifecycle, input, rendering, reload, context instancing, plugin, debugger, HarfBuzz font loading, variant conversions, and managed `VariantVector`/`VariantMap` data-variable definitions ported; standalone by-reference `Variant` binding and drop-file dictionary dispatch remain
+  - [~] `RmlUI : Object` — lifecycle, input, rendering, reload, context instancing, plugin, debugger, HarfBuzz font loading, variant conversions, drop-file dictionary dispatch, and managed `VariantVector`/`VariantMap` data-variable definitions ported; standalone by-reference `Variant` binding remains
 - [ ] `RmlUIComponent.h`
   - [x] generated RmlUi document layout, focus, scrolling, property, computed-style, and RedBolt `Vector2f` projection prerequisites
   - [x] generated RmlUi data-model transform callbacks with value-return ownership transfer

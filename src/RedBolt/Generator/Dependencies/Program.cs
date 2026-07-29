@@ -815,7 +815,7 @@ internal static class Program
             if (record.IsIgnored() ||
                 !record.CppQualifiedName.StartsWith("std::", StringComparison.Ordinal) ||
                 descriptor.Surface == "rmlui" && record.ManagedNamespace == "Std" &&
-                record.ManagedName is "String" or "Vector")
+                record.ManagedName is "String" or "UnorderedMap" or "Vector")
             {
                 continue;
             }
@@ -961,6 +961,20 @@ internal static class Program
 
         var element = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Element");
+        var unorderedMap = compilation.Records.First(static record =>
+            record.CppQualifiedName == "std::unordered_map");
+        unorderedMap.ClearIgnoreReason();
+        for (var index = unorderedMap.SupportedGenericInstantiations.Count - 1; index >= 0; --index)
+        {
+            var typeArguments = unorderedMap.SupportedGenericInstantiations[index].TypeArguments;
+            if (typeArguments.Count >= 2 &&
+                typeArguments[0].CppTypeName.Contains("basic_string<char>", StringComparison.Ordinal) &&
+                typeArguments[1].CppTypeName == "Rml::Variant")
+            {
+                continue;
+            }
+            unorderedMap.SupportedGenericInstantiations.RemoveAt(index);
+        }
         element.ClearIgnoreReason();
         element.Bases.Clear();
         element.ManagedBaseTypeName = null;
@@ -972,6 +986,11 @@ internal static class Program
                     "GetParentNode" or "GetProperty" or "GetTagName" or "IsVisible" or "ResolveLength" or
                     "ScrollIntoView" or "SetProperty") ||
                 (method.IsGeneric && method.NativeName is "GetAttribute" or "SetAttribute");
+            if (method.NativeName == "DispatchEvent" && method.Parameters.Count == 2 &&
+                method.Parameters[0].Type.RecordId == "record:std::basic_string")
+            {
+                retained = true;
+            }
             if (method.NativeName == "GetBox" && method.Parameters.Count != 0)
                 retained = false;
             if (method.NativeName == "ScrollIntoView" &&
@@ -1909,7 +1928,7 @@ internal static class Program
                          "Rml::ComputedValues" or "Rml::Style::ComputedValues" or
                          "RedBoltNative::RmlHarfBuzzFontEngine" ||
                      record.CppQualifiedName.StartsWith("Rml::Vector2", StringComparison.Ordinal) ||
-                     record.ManagedNamespace == "Std" && record.ManagedName is "String" or "Vector"))
+                     record.ManagedNamespace == "Std" && record.ManagedName is "String" or "UnorderedMap" or "Vector"))
                 {
                     continue;
                 }

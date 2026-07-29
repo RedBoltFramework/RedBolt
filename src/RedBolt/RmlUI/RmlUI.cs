@@ -1405,14 +1405,20 @@ public partial class RmlUI : RedObject
         if (!input.IsMouseVisible())
             return;
 
-        // TODO: port
-        // if (auto* element = rmlContext_->GetHoverElement())
-        // {
-        //     Rml::Dictionary args;
-        //     args["path"] = eventData[P_FILENAME].GetString().c_str();
-        //     element->DispatchEvent("dropfile", args);
-        // }
-        _ = eventData;
+        if (_rmlContext!.GetHoverElement() is { } element)
+        {
+            using var args = new Std.UnorderedMap<Std.String, RmlVariant>();
+            using var pathName = new Std.String();
+            using var pathValue = new Std.String();
+            using var pathVariant = new RmlVariant();
+            using var eventType = new Std.String();
+            pathName.Assign("path");
+            pathValue.Assign(eventData.FileName);
+            pathVariant.Assign(pathValue);
+            args.Add(pathName, pathVariant);
+            eventType.Assign("dropfile");
+            element.DispatchEvent(eventType, args);
+        }
     }
 
     /// <summary>Handle rendering to a texture.</summary>

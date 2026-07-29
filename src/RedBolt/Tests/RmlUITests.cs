@@ -1,6 +1,7 @@
 namespace RedBolt.Tests;
 
 using RedBolt.Bindings.RmlUi;
+using RedBolt.Container;
 using RedBolt.Core;
 using CoreContext = RedBolt.Core.Context;
 using CoreVariant = RedBolt.Core.Variant;
@@ -20,7 +21,8 @@ public sealed class RmlUITests
         var previousContext = CoreContext.Instance;
         using var context = new CoreContext();
         CoreContext.SetInstance(context);
-        context.RegisterSubsystem(new Input());
+        using var input = new Input();
+        context.RegisterSubsystem(input);
         context.RegisterSubsystem(new Localization());
         RmlUI.RegisterRmlUILibrary(context);
 
@@ -76,6 +78,7 @@ public sealed class RmlUITests
                 "<span>{{value}}</span>" +
                 "<button id=\"set\" data-event-click=\"value = 'changed'\">Set</button>" +
                 "<button id=\"apply\" data-event-click=\"apply('applied')\" onclick=\"event:test\">Apply</button>" +
+                "<div style=\"position: absolute; left: 0px; top: 0px; width: 100px; height: 100px;\" ondropfile=\"event:dropped\"></div>" +
                 "</div></body></rml>");
             source.Assign("memory://RedBolt.Tests/RmlUI.rml");
 
@@ -112,10 +115,17 @@ public sealed class RmlUITests
             }
 
             ElementDocument? unloadedDocument = null;
+            var dropEventCount = 0;
             ui.OnDocumentClosedEvent += document => unloadedDocument = document;
+            ui.SubscribeToEvent<RmlCustomEvent>((ref RmlCustomEvent eventData) =>
+            {
+                if (eventData.EventType == new StringHash("dropped"))
+                    ++dropEventCount;
+            });
             var document = ui.GetRmlContext().LoadDocumentFromMemory(markup, source);
 
             Assert.NotNull(document);
+            document.Show();
             ui.GetRmlContext().Update();
             Assert.True(getCount > 0);
 
@@ -131,6 +141,12 @@ public sealed class RmlUITests
             Assert.Equal("applied", value);
             Assert.Equal(1, eventCount);
             Assert.True(modelHandle.IsVariableDirty(valueName));
+
+            input.SetMouseVisible(true);
+            ui.GetRmlContext().ProcessMouseMove(10, 10, 0);
+            var dropFile = new InputEvents.DropFileEvent { FileName = "/tmp/dropped.txt" };
+            context.SendEvent(ref dropFile);
+            Assert.Equal(1, dropEventCount);
 
             document.Close();
             Assert.Same(document, unloadedDocument);
