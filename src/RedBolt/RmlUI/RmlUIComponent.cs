@@ -5,6 +5,7 @@
 namespace RedBolt.RmlUI;
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using RedBolt.Bindings.RmlUi;
@@ -82,17 +83,18 @@ public partial class RmlUIComponent : LogicComponent
         });
     }
 
-    public bool BindDataModelVariant(string name, ref CoreVariant value)
+    public bool BindDataModelVariant(string name, StrongBox<CoreVariant> value)
     {
         var constructor = ExpectDataModelConstructor();
-        if (constructor is null || _typeRegister is null)
+        if (constructor is null || _variantDefinitions is null)
         {
             return false;
         }
 
-        // TODO: port
-        // return constructor->BindCustomDataVariable(name, {typeRegister_->GetDefinition<Variant>(), value});
-        return false;
+        using var nativeName = new Std.String();
+        nativeName.Assign(name);
+        using var dataVariable = _variantDefinitions.Create(value);
+        return constructor.BindCustomDataVariable(nativeName, dataVariable);
     }
 
     public bool BindDataModelVariantVector(string name, VariantVector value)

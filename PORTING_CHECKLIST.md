@@ -631,7 +631,7 @@ Accepted deviations:
   - [x] `PipeEventListener : Rml::EventListener, NonCopyable`
   - [x] `SoundEventListener : Rml::EventListener, NonCopyable`
   - [x] `CustomEventListener : Rml::EventListener, NonCopyable` — custom `StringHash` dispatch mapped to typed `RmlCustomEvent`
-- [ ] `RmlUI.h`
+- [x] `RmlUI.h`
   - [x] generated RmlUi lifecycle and base `Context` name, dimensions, DPI, update, and render prerequisites
   - [x] generated RmlUi `ContextInstancer` ownership and release lifecycle prerequisite
   - [x] generated RmlUi `Plugin` director and registration lifecycle prerequisite
@@ -643,11 +643,11 @@ Accepted deviations:
   - [x] generated stdlib `Rml::Variant`, `std::vector<Variant>`, functional data-model, and RedBolt math-type projection prerequisites
   - [x] generated RmlUi `VariableDefinition`, `DataVariable`, and `DataAddressEntry` director prerequisites with record-value callback ownership
   - [x] `Variant` scalar, string, pointer, vector, and color conversions
-  - [~] `RmlUI : Object` — lifecycle, input, rendering, reload, context instancing, plugin, debugger, HarfBuzz font loading, variant conversions, drop-file dictionary dispatch, and managed `VariantVector`/`VariantMap` data-variable definitions ported; standalone by-reference `Variant` binding remains
-- [ ] `RmlUIComponent.h`
+  - [x] `RmlUI : Object` — lifecycle, input, rendering, reload, context instancing, plugin, debugger, HarfBuzz font loading, variant conversions, drop-file dictionary dispatch, and managed `Variant`, `VariantVector`, and `VariantMap` data-variable definitions ported
+- [x] `RmlUIComponent.h`
   - [x] generated RmlUi document layout, focus, scrolling, property, computed-style, and RedBolt `Vector2f` projection prerequisites
   - [x] generated RmlUi data-model transform callbacks with value-return ownership transfer
-  - [~] `RmlUIComponent : LogicComponent` — document, canvas, focus, position, size, modal, scalar property, event, data-model lifecycle, and custom `VariantVector`/`VariantMap` binding ported; standalone by-reference `Variant` binding remains
+  - [x] `RmlUIComponent : LogicComponent` — document, canvas, focus, position, size, modal, scalar property, event, data-model lifecycle, and custom `Variant`, `VariantVector`, and `VariantMap` binding ported
 - [x] `RmlCanvasComponent.h`
   - [x] generated RmlUi context document-unload prerequisite
   - [x] `RmlCanvasComponent : LogicComponent`

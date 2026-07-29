@@ -24,6 +24,7 @@ namespace RedBolt.RmlUI;
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -115,6 +116,19 @@ public partial class RmlUI : RedObject
         bool OwnsResult { get; }
         CoreVariant Get();
         bool Set(in CoreVariant value);
+    }
+
+    private sealed class VariantBinding(StrongBox<CoreVariant> value) : IVariantBinding
+    {
+        public bool OwnsResult => false;
+        public CoreVariant Get() => value.Value;
+        public bool Set(in CoreVariant newValue)
+        {
+            var copy = newValue.Clone();
+            value.Value.Dispose();
+            value.Value = copy;
+            return true;
+        }
     }
 
     private sealed class VariantVectorItemBinding(VariantVector value, int index) : IVariantBinding
@@ -473,6 +487,9 @@ public partial class RmlUI : RedObject
 
         public DataVariable Create(VariantMap value) =>
             new(_variantMapDefinition, _storage.Add(value));
+
+        public DataVariable Create(StrongBox<CoreVariant> value) =>
+            new(_variantDefinition, _storage.Add(new VariantBinding(value)));
 
         public void Dispose()
         {
