@@ -143,6 +143,15 @@ public sealed class RmlUiBindingsTests
             context = RmlUiNativeBindings.CreateContext(
                 contextName, new RmlUiLegacyVector2i { X = 640, Y = 480 });
             Assert.NotNull(context);
+            Assert.True(RmlUiNativeBindings.Initialise(context));
+            RmlUiNativeBindings.SetVisible(true);
+            Assert.True(RmlUiNativeBindings.IsVisible());
+            RmlUiNativeBindings.SetVisible(false);
+            Assert.True(context.Update());
+            Assert.False(RmlUiNativeBindings.IsVisible());
+            Factory.ClearStyleSheetCache();
+            Factory.ClearTemplateCache();
+            RmlUiNativeBindings.ReleaseTextures();
             document = context.LoadDocumentFromMemory(documentSource, sourceUrl);
             Assert.NotNull(document);
 

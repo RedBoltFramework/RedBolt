@@ -877,6 +877,17 @@ internal static class Program
         var eventListener = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::EventListener");
 
+        var factory = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::Factory");
+        factory.ClearIgnoreReason();
+        foreach (var method in factory.Members.OfType<FunctionBinding>())
+        {
+            if (method.NativeName is "ClearStyleSheetCache" or "ClearTemplateCache")
+                method.ClearIgnoreReason();
+            else
+                method.SetSilentExclusionReason("RmlUi factory member is outside the current binding slice");
+        }
+
         var context = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Context");
         context.ClearIgnoreReason();
@@ -1110,7 +1121,9 @@ internal static class Program
         foreach (var function in compilation.Functions.Where(static function =>
                      function.Parent is not RecordBinding &&
                      function.CppQualifiedName is
-                         "Rml::CreateContext" or "Rml::Initialise" or "Rml::LoadFontFace" or "Rml::RemoveContext" or "Rml::Shutdown" or
+                         "Rml::CreateContext" or "Rml::Debugger::Initialise" or "Rml::Debugger::IsVisible" or
+                         "Rml::Debugger::SetVisible" or "Rml::Initialise" or "Rml::LoadFontFace" or
+                         "Rml::ReleaseTextures" or "Rml::RemoveContext" or "Rml::Shutdown" or
                          "Rml::GetFileInterface" or "Rml::SetFileInterface" or
                          "Rml::GetFontEngineInterface" or "Rml::SetFontEngineInterface" or
                          "Rml::GetRenderInterface" or "Rml::SetRenderInterface" or
@@ -1124,6 +1137,13 @@ internal static class Program
             }
 
             function.ClearIgnoreReason();
+            if (function.CppQualifiedName.StartsWith("Rml::Debugger::", StringComparison.Ordinal))
+                continue;
+            if (function.CppQualifiedName == "Rml::ReleaseTextures")
+            {
+                function.Parameters[0].Type = BindingType.IntPtr;
+                continue;
+            }
             if (function.CppQualifiedName == "Rml::CreateContext")
             {
                 function.ReturnType = function.ReturnType.WithManagedTypeFormatOverride(
@@ -1248,7 +1268,9 @@ internal static class Program
                 var member = compilation.Members[index];
                 if (member is FunctionBinding function &&
                     function.CppQualifiedName is
-                        "Rml::CreateContext" or "Rml::Initialise" or "Rml::LoadFontFace" or "Rml::RemoveContext" or "Rml::Shutdown" or
+                        "Rml::CreateContext" or "Rml::Debugger::Initialise" or "Rml::Debugger::IsVisible" or
+                        "Rml::Debugger::SetVisible" or "Rml::Initialise" or "Rml::LoadFontFace" or
+                        "Rml::ReleaseTextures" or "Rml::RemoveContext" or "Rml::Shutdown" or
                         "Rml::GetFileInterface" or "Rml::SetFileInterface" or
                         "Rml::GetFontEngineInterface" or "Rml::SetFontEngineInterface" or
                         "Rml::GetRenderInterface" or "Rml::SetRenderInterface" or
@@ -1261,7 +1283,7 @@ internal static class Program
                     (record.CppQualifiedName is
                          "Rml::Context" or "Rml::Element" or "Rml::Event" or
                          "Rml::ElementDocument" or "Rml::EventListener" or "Rml::FileInterface" or
-                         "Rml::FontEngineInterface" or "Rml::Log" or
+                         "Rml::Factory" or "Rml::FontEngineInterface" or "Rml::Log" or
                          "Rml::RenderInterfaceCompatibility" or "Rml::SystemInterface" or
                          "RedBoltNative::RmlHarfBuzzFontEngine" ||
                      record.CppQualifiedName.StartsWith("Rml::Vector2", StringComparison.Ordinal) ||

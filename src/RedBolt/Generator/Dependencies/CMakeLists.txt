@@ -142,12 +142,14 @@ file(CONFIGURE OUTPUT "${REDBOLT_HARFBUZZ_PARSE_HEADER}" CONTENT [=[
 ]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_RMLUI_PARSE_HEADER}" CONTENT [=[
 #pragma once
+#include <RmlUi/Debugger.h>
 #include <RmlUi/Core/Core.h>
 #include <RmlUi/Core/Context.h>
 #include <RmlUi/Core/Element.h>
 #include <RmlUi/Core/ElementDocument.h>
 #include <RmlUi/Core/Event.h>
 #include <RmlUi/Core/EventListener.h>
+#include <RmlUi/Core/Factory.h>
 #include <RmlUi/Core/FileInterface.h>
 #include <RmlUi/Core/FontEngineInterface.h>
 #include <RmlUi/Core/RenderInterfaceCompatibility.h>
