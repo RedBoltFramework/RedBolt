@@ -39,21 +39,13 @@ endforeach()
 string(APPEND redbolt_wasm_mri "save\nend\n")
 file(GENERATE OUTPUT "${REDBOLT_WASM_MRI_FILE}" CONTENT "${redbolt_wasm_mri}")
 
-file(GLOB_RECURSE redbolt_wasm_resource_files CONFIGURE_DEPENDS
-    RELATIVE "${PROJECT_SOURCE_DIR}/bin"
-    "${PROJECT_SOURCE_DIR}/bin/CoreData/*"
-    "${PROJECT_SOURCE_DIR}/bin/Data/*")
 set(REDBOLT_WASM_RESOURCE_MANIFEST "${CMAKE_BINARY_DIR}/generated/web/resources.manifest.json")
-set(redbolt_wasm_resource_manifest "[\n")
-set(redbolt_wasm_resource_separator "")
-foreach(resource_file IN LISTS redbolt_wasm_resource_files)
-    string(APPEND redbolt_wasm_resource_manifest
-        "${redbolt_wasm_resource_separator}  {\"name\":\"../resources/${resource_file}\",\"virtualPath\":\"${resource_file}\"}")
-    set(redbolt_wasm_resource_separator ",\n")
-endforeach()
-string(APPEND redbolt_wasm_resource_manifest "\n]\n")
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/generated/web")
-file(WRITE "${REDBOLT_WASM_RESOURCE_MANIFEST}" "${redbolt_wasm_resource_manifest}")
+file(WRITE "${REDBOLT_WASM_RESOURCE_MANIFEST}"
+    "[\n"
+    "  {\"name\":\"../resources/CoreData.pak\",\"virtualPath\":\"CoreData.pak\"},\n"
+    "  {\"name\":\"../resources/Data.pak\",\"virtualPath\":\"Data.pak\"}\n"
+    "]\n")
 
 add_custom_command(
     OUTPUT "${REDBOLT_WASM_ENGINE_ARCHIVE}"

@@ -6,9 +6,13 @@
 - [x] Move managed engine types into folder-matching namespaces and namespace-first file headers, update all consumers and generated reflection metadata, and restore the namespace-colliding subsystem and render-pipeline class names.
 - [x] Replace all hand-written object-factory and serializable-attribute registration with generated `[Reflected]`, member-targeted `[Serialized]`, and `[RemoveSerialized]` declarations, including inferred field/property/getter/setter access, initializer defaults, factory categories and opt-outs, ordered inheritance, removals, modes, scope hints, enum names, custom accessors, metadata configuration, nested user types, and assembly registration.
 
+## Tools
+
+- [x] `PackageTool` — UPAK and block-compressed ULZ4 creation, package information and file listing modes, ignored extension and hidden-path filtering, base-path prefixes, checksums, and package freshness checks are ported and round-trip verified
+
 ## Samples
 
-- [~] WebAssembly host — dedicated CMake/Emscripten preset, generated native bindings, common managed engine publish, pthread-capable WebGL 2 host, virtual filesystem staging, and a framework-free C#-to-C++ rendering prototype build successfully; browser rendering awaits user verification
+- [~] WebAssembly host — dedicated CMake/Emscripten preset, generated native bindings, common managed engine publish, pthread-capable WebGL 2 host, compressed `CoreData.pak` and `Data.pak` virtual filesystem staging without raw resource directories, and a framework-free C#-to-C++ rendering prototype build successfully; browser rendering awaits user verification
 - [x] Replace `REDBOLT_WEB_SAMPLE` source guards with per-sample static desktop entry points and an explicitly selected static Web host entry point; desktop and Web builds share the same sample sources without platform-specific preprocessor branches
 - [x] `01_HelloWorld` — extensible native class/method order, explicit construction, base startup, empty update semantics, reverse deterministic UI-replacement teardown, and Hello World text mapped to Dear ImGui without the non-native 3D scene
 - [x] `02_HelloGUI` — extensible native class/method order, POD integer drag state and placement, reverse deterministic UI-replacement teardown, and control, title, close, and draggable-position demonstrations mapped to Dear ImGui widgets without the non-native 3D scene

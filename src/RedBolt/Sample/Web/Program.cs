@@ -42,9 +42,8 @@ internal static class WebProgram
         var lz4Version = Lz4NativeBindings.Lz4VersionNumber();
         var sdlRevision = Encoding.UTF8.GetString(SdlNativeBindings.SdlGetRevision());
         var diligentFactory = DiligentNativeBindings.GetEngineFactoryOpenGL();
-        var resourcesReady = System.IO.File.Exists("CoreData/Models/Box.mdl")
-            && System.IO.File.Exists("Data/Models/Mushroom.mdl")
-            && System.IO.File.Exists("Data/Materials/Mushroom.xml");
+        var resourcesReady = System.IO.File.Exists("CoreData.pak")
+            && System.IO.File.Exists("Data.pak");
         var sampleName = BrowserDom.GetSelectedSample();
         Application application = sampleName switch
         {

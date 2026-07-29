@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt.PackageTool</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <OutputPath>$(RedBoltOutputRoot)/tools/</OutputPath>
+    <UseAppHost>false</UseAppHost>
+    <BuildInParallel>false</BuildInParallel>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../RedBolt/RedBolt.csproj" />
+  </ItemGroup>
+</Project>
