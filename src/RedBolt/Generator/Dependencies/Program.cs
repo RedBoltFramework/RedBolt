@@ -135,7 +135,8 @@ internal static class Program
         "Rml::FontEngineInterface",
         "Rml::Plugin",
         "Rml::RenderInterfaceCompatibility",
-        "Rml::SystemInterface"
+        "Rml::SystemInterface",
+        "Rml::VariableDefinition"
     };
 
     private static readonly HashSet<string> RetainedDiligentFunctions = new(StringComparer.Ordinal)
@@ -1663,7 +1664,7 @@ internal static class Program
         {
             if (!method.IsGeneric &&
                 (method.IsConstructor && method.Parameters.Count == 0 ||
-                 method.NativeName is ("BindEventCallback" or "BindFunc" or "GetDataTypeRegister" or
+                 method.NativeName is ("BindCustomDataVariable" or "BindEventCallback" or "BindFunc" or "GetDataTypeRegister" or
                      "GetModelHandle" or "RegisterTransformFunc")))
                 method.ClearIgnoreReason();
             else
@@ -1717,6 +1718,62 @@ internal static class Program
                 method.ClearIgnoreReason();
             else
                 method.SetSilentExclusionReason("RmlUi type register member is outside the component binding slice");
+        }
+
+        var variableDefinition = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::VariableDefinition");
+        variableDefinition.ClearIgnoreReason();
+        variableDefinition.Bases.Clear();
+        variableDefinition.ManagedBaseTypeName = null;
+        foreach (var method in variableDefinition.Members.OfType<FunctionBinding>())
+        {
+            if (method.IsConstructor || method.NativeName is "Child" or "Get" or "Set" or "Size" or "Type")
+                method.ClearIgnoreReason();
+            else
+                method.SetSilentExclusionReason("RmlUi variable definition member is outside the data-model binding slice");
+
+            foreach (var parameter in method.Parameters.Where(static parameter =>
+                         parameter.CppTypeName is "void *" or "void*"))
+            {
+                parameter.Type = BindingType.IntPtr;
+            }
+        }
+        var variableDefinitionChild = variableDefinition.Members.OfType<FunctionBinding>().First(static method =>
+            method.NativeName == "Child");
+        variableDefinitionChild.ReturnType = variableDefinitionChild.ReturnType
+            .WithCppTypeName("Rml::DataVariable")
+            .WithCppIsRecordValue(true);
+
+        var dataVariable = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::DataVariable");
+        dataVariable.ClearIgnoreReason();
+        dataVariable.Bases.Clear();
+        dataVariable.ManagedBaseTypeName = null;
+        foreach (var method in dataVariable.Members.OfType<FunctionBinding>())
+        {
+            if (method.IsConstructor || method.NativeName is "Child" or "Get" or "Set" or "Size" or "Type")
+                method.ClearIgnoreReason();
+            else
+                method.SetSilentExclusionReason("RmlUi data variable member is outside the data-model binding slice");
+
+            foreach (var parameter in method.Parameters.Where(static parameter =>
+                         parameter.CppTypeName is "void *" or "void*"))
+            {
+                parameter.Type = BindingType.IntPtr;
+            }
+        }
+
+        var dataAddressEntry = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::DataAddressEntry");
+        dataAddressEntry.ClearIgnoreReason();
+        dataAddressEntry.Bases.Clear();
+        dataAddressEntry.ManagedBaseTypeName = null;
+        foreach (var member in dataAddressEntry.Members)
+        {
+            if (member is FieldBinding { NativeName: "name" or "index" })
+                member.ClearIgnoreReason();
+            else
+                member.SetSilentExclusionReason("RmlUi data address member is outside the data-model binding slice");
         }
 
         var handle = compilation.Records.First(static record =>
@@ -1842,7 +1899,8 @@ internal static class Program
                 if (member is RecordBinding record &&
                     (record.CppQualifiedName is
                          "Rml::Box" or "Rml::Context" or "Rml::DataModelConstructor" or
-                         "Rml::DataModelHandle" or "Rml::DataTypeRegister" or "Rml::Element" or
+                         "Rml::DataModelHandle" or "Rml::DataTypeRegister" or "Rml::DataVariable" or
+                         "Rml::DataAddressEntry" or "Rml::VariableDefinition" or "Rml::Element" or
                          "Rml::Event" or "Rml::NumericValue" or "Rml::ScrollIntoViewOptions" or "Rml::Variant" or
                          "Rml::ContextInstancer" or "Rml::ElementDocument" or "Rml::EventListener" or
                          "Rml::EventListenerInstancer" or "Rml::FileInterface" or
@@ -1859,7 +1917,7 @@ internal static class Program
                 if (member is EnumBinding @enum &&
                     @enum.CppQualifiedName is
                         "Rml::BoxArea" or "Rml::EventPhase" or "Rml::FocusFlag" or "Rml::Log::Type" or
-                        "Rml::ModalFlag" or "Rml::PropertyId" or "Rml::Variant::Type" or
+                        "Rml::DataVariableType" or "Rml::ModalFlag" or "Rml::PropertyId" or "Rml::Variant::Type" or
                         "Rml::Input::KeyIdentifier" or "Rml::Input::KeyModifier" or
                         "Rml::ScrollAlignment" or "Rml::ScrollBehavior" or "Rml::ScrollParentage" or
                         "Rml::Style::Focus" or "Rml::Style::FontWeight" or "Rml::Style::TabIndex" or "Rml::Unit")

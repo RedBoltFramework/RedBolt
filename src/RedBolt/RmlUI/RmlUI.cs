@@ -24,9 +24,11 @@ namespace RedBolt.RmlUI;
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 using RedBolt.Bindings.RmlUi;
+using RedBolt.Container;
 using RedBolt.Core;
 using CoreContext = RedBolt.Core.Context;
 using CoreVariant = RedBolt.Core.Variant;
@@ -106,6 +108,384 @@ public partial class RmlUI : RedObject
             var rmlContext = (RmlContext)document.GetContext();
             rmlContext.GetOwnerSubsystem()?.OnDocumentUnload(document);
         }
+    }
+
+    private interface IVariantBinding
+    {
+        bool OwnsResult { get; }
+        CoreVariant Get();
+        bool Set(in CoreVariant value);
+    }
+
+    private sealed class VariantVectorItemBinding(VariantVector value, int index) : IVariantBinding
+    {
+        public bool OwnsResult => false;
+        public CoreVariant Get() => value[index];
+        public bool Set(in CoreVariant newValue)
+        {
+            value[index] = newValue;
+            return true;
+        }
+    }
+
+    private sealed class VariantMapItemBinding(VariantMap value, StringHash name) : IVariantBinding
+    {
+        public bool OwnsResult => false;
+        public CoreVariant Get() => value[name];
+        public bool Set(in CoreVariant newValue)
+        {
+            value[name] = newValue;
+            return true;
+        }
+    }
+
+    private sealed class NestedVariantVectorItemBinding(IVariantBinding parent, int index) : IVariantBinding
+    {
+        public bool OwnsResult => false;
+        public CoreVariant Get() => parent.Get().GetVariantVector()[index];
+        public bool Set(in CoreVariant value)
+        {
+            parent.Get().GetVariantVector()[index] = value;
+            return true;
+        }
+    }
+
+    private sealed class NestedVariantMapItemBinding(IVariantBinding parent, StringHash name) : IVariantBinding
+    {
+        public bool OwnsResult => false;
+        public CoreVariant Get() => parent.Get().GetVariantMap()[name];
+        public bool Set(in CoreVariant value)
+        {
+            parent.Get().GetVariantMap()[name] = value;
+            return true;
+        }
+    }
+
+    private sealed class ResourceRefListItemBinding(IVariantBinding parent, int index) : IVariantBinding
+    {
+        public bool OwnsResult => true;
+        public CoreVariant Get() => new(parent.Get().GetResourceRefList().Names[index]);
+
+        public bool Set(in CoreVariant value)
+        {
+            var resourceRefList = parent.Get().GetResourceRefList();
+            resourceRefList.Names[index] = value.GetString();
+            using var replacement = new CoreVariant(resourceRefList);
+            return parent.Set(replacement);
+        }
+    }
+
+    private sealed class StringVectorItemBinding(IVariantBinding parent, int index) : IVariantBinding
+    {
+        public bool OwnsResult => true;
+        public CoreVariant Get() => new(parent.Get().GetStringVector()[index]);
+        public bool Set(in CoreVariant value)
+        {
+            parent.Get().GetStringVector()[index] = value.GetString();
+            return true;
+        }
+    }
+
+    private sealed class IntegerBinding(Func<int> getter) : IVariantBinding
+    {
+        public bool OwnsResult => true;
+        public CoreVariant Get() => new(getter());
+        public bool Set(in CoreVariant value) => false;
+    }
+
+    private readonly record struct DataVariableBindingKey(nint Parent, string Name, int Index);
+
+    private sealed class DataVariableStorage : IDisposable
+    {
+        public nint Add(object value)
+        {
+            var handle = GCHandle.Alloc(value);
+            _handles.Add(handle);
+            return GCHandle.ToIntPtr(handle);
+        }
+
+        public nint GetOrAdd(nint parent, string name, int index, Func<object> factory)
+        {
+            var key = new DataVariableBindingKey(parent, name, index);
+            if (_children.TryGetValue(key, out var result))
+                return result;
+
+            result = Add(factory());
+            _children.Add(key, result);
+            return result;
+        }
+
+        public T Get<T>(nint ptr)
+            where T : class
+        {
+            return (T)GCHandle.FromIntPtr(ptr).Target!;
+        }
+
+        public void Dispose()
+        {
+            for (var i = _handles.Count - 1; i >= 0; --i)
+                _handles[i].Free();
+            _handles.Clear();
+            _children.Clear();
+        }
+
+        private readonly List<GCHandle> _handles = [];
+        private readonly Dictionary<DataVariableBindingKey, nint> _children = [];
+    }
+
+    private sealed class VariantMapDefinition : VariableDefinition
+    {
+        public VariantMapDefinition(DataTypeRegister typeRegister, DataVariableStorage storage,
+            VariantDefinition variantDefinition)
+            : base(DataVariableType.Struct)
+        {
+            _register = typeRegister;
+            _storage = storage;
+            _variantDefinition = variantDefinition;
+        }
+
+        public override DataVariable Child(nint ptr, DataAddressEntry address)
+        {
+            using var nativeName = address.Name;
+            var name = nativeName.ToString();
+            if (name.Length == 0)
+            {
+                EngineLog.GetLogger().Warning("Expected a struct member name but none given.");
+                return new DataVariable();
+            }
+
+            var value = _storage.Get<VariantMap>(ptr);
+            var key = new StringHash(name);
+            if (!value.ContainsKey(key))
+            {
+                EngineLog.GetLogger().Warning("Member {} not found in data struct.", name);
+                return new DataVariable();
+            }
+
+            var child = _storage.GetOrAdd(ptr, name, -1, () => new VariantMapItemBinding(value, key));
+            return new DataVariable(_variantDefinition, child);
+        }
+
+        private readonly DataTypeRegister _register;
+        private readonly DataVariableStorage _storage;
+        private readonly VariantDefinition _variantDefinition;
+    }
+
+    private sealed class VariantDefinition : VariableDefinition
+    {
+        public VariantDefinition(DataTypeRegister typeRegister, DataVariableStorage storage)
+            : base(DataVariableType.Scalar)
+        {
+            _register = typeRegister;
+            _storage = storage;
+        }
+
+        public override bool Get(nint ptr, RmlVariant variant)
+        {
+            var binding = _storage.Get<IVariantBinding>(ptr);
+            var value = binding.Get();
+            try
+            {
+                return ToRmlUi(value, variant);
+            }
+            finally
+            {
+                if (binding.OwnsResult)
+                    value.Dispose();
+            }
+        }
+
+        public override bool Set(nint ptr, RmlVariant variant)
+        {
+            if (!FromRmlUi(variant, out var value))
+                return false;
+
+            try
+            {
+                return _storage.Get<IVariantBinding>(ptr).Set(value);
+            }
+            finally
+            {
+                value.Dispose();
+            }
+        }
+
+        public override int Size(nint ptr)
+        {
+            var binding = _storage.Get<IVariantBinding>(ptr);
+            var value = binding.Get();
+            try
+            {
+                return value.Type switch
+                {
+                    CoreVariantType.ResourceRefList => value.GetResourceRefList().Names.Count,
+                    CoreVariantType.StringVector => value.GetStringVector().Count,
+                    CoreVariantType.VariantVector => value.GetVariantVector().Count,
+                    _ => 0
+                };
+            }
+            finally
+            {
+                if (binding.OwnsResult)
+                    value.Dispose();
+            }
+        }
+
+        public override DataVariable Child(nint ptr, DataAddressEntry address)
+        {
+            var binding = _storage.Get<IVariantBinding>(ptr);
+            var value = binding.Get();
+            try
+            {
+                using var nativeName = address.Name;
+                var name = nativeName.ToString();
+                if (name.Length == 0)
+                {
+                    var index = address.Index;
+                    switch (value.Type)
+                    {
+                        case CoreVariantType.VariantVector:
+                        {
+                            var vector = value.GetVariantVector();
+                            if (!ValidateIndex(index, vector.Count))
+                                return new DataVariable();
+                            var child = _storage.GetOrAdd(ptr, string.Empty, index,
+                                () => new NestedVariantVectorItemBinding(binding, index));
+                            return new DataVariable(this, child);
+                        }
+                        case CoreVariantType.ResourceRefList:
+                        {
+                            var vector = value.GetResourceRefList().Names;
+                            if (!ValidateIndex(index, vector.Count))
+                                return new DataVariable();
+                            var child = _storage.GetOrAdd(ptr, string.Empty, index,
+                                () => new ResourceRefListItemBinding(binding, index));
+                            return new DataVariable(this, child);
+                        }
+                        case CoreVariantType.StringVector:
+                        {
+                            var vector = value.GetStringVector();
+                            if (!ValidateIndex(index, vector.Count))
+                                return new DataVariable();
+                            var child = _storage.GetOrAdd(ptr, string.Empty, index,
+                                () => new StringVectorItemBinding(binding, index));
+                            return new DataVariable(this, child);
+                        }
+                        default:
+                            EngineLog.GetLogger().Warning(
+                                "Index operation is not valid on type {}.", value.GetTypeName());
+                            return new DataVariable();
+                    }
+                }
+
+                switch (value.Type)
+                {
+                    case CoreVariantType.VariantMap:
+                    {
+                        var valuePtr = value.GetVariantMap();
+                        var key = new StringHash(name);
+                        if (!valuePtr.ContainsKey(key))
+                        {
+                            EngineLog.GetLogger().Warning("Member {} not found in VariantMap.", name);
+                            return new DataVariable();
+                        }
+
+                        var child = _storage.GetOrAdd(ptr, name, -1,
+                            () => new NestedVariantMapItemBinding(binding, key));
+                        return new DataVariable(this, child);
+                    }
+                    default:
+                        EngineLog.GetLogger().Warning(
+                            "Get property {} operation is not valid on type {}.", name, value.GetTypeName());
+                        return new DataVariable();
+                }
+            }
+            finally
+            {
+                if (binding.OwnsResult)
+                    value.Dispose();
+            }
+        }
+
+        private static bool ValidateIndex(int index, int size)
+        {
+            if (index < 0 || index >= size)
+            {
+                EngineLog.GetLogger().Warning("Data array index {} out of bounds.", index);
+                return false;
+            }
+            return true;
+        }
+
+        private readonly DataTypeRegister _register;
+        private readonly DataVariableStorage _storage;
+    }
+
+    private sealed class VariantVectorDefinition : VariableDefinition
+    {
+        public VariantVectorDefinition(DataVariableStorage storage, VariantDefinition variantDefinition)
+            : base(DataVariableType.Array)
+        {
+            _storage = storage;
+            _variantDefinition = variantDefinition;
+        }
+
+        public override int Size(nint ptr) => _storage.Get<VariantVector>(ptr).Count;
+
+        public override DataVariable Child(nint ptr, DataAddressEntry address)
+        {
+            var value = _storage.Get<VariantVector>(ptr);
+            var index = address.Index;
+            if (index < 0 || index >= value.Count)
+            {
+                using var nativeName = address.Name;
+                var name = nativeName.ToString();
+                if (name == "size")
+                {
+                    var size = _storage.GetOrAdd(ptr, name, index, () => new IntegerBinding(() => value.Count));
+                    return new DataVariable(_variantDefinition, size);
+                }
+
+                EngineLog.GetLogger().Warning("Data array index out of bounds.");
+                return new DataVariable();
+            }
+
+            var child = _storage.GetOrAdd(ptr, string.Empty, index,
+                () => new VariantVectorItemBinding(value, index));
+            return new DataVariable(_variantDefinition, child);
+        }
+
+        private readonly DataVariableStorage _storage;
+        private readonly VariantDefinition _variantDefinition;
+    }
+
+    internal sealed class VariantDefinitions : IDisposable
+    {
+        public VariantDefinitions(DataTypeRegister typeRegister)
+        {
+            _variantDefinition = new VariantDefinition(typeRegister, _storage);
+            _variantVectorDefinition = new VariantVectorDefinition(_storage, _variantDefinition);
+            _variantMapDefinition = new VariantMapDefinition(typeRegister, _storage, _variantDefinition);
+        }
+
+        public DataVariable Create(VariantVector value) =>
+            new(_variantVectorDefinition, _storage.Add(value));
+
+        public DataVariable Create(VariantMap value) =>
+            new(_variantMapDefinition, _storage.Add(value));
+
+        public void Dispose()
+        {
+            _variantMapDefinition.Dispose();
+            _variantVectorDefinition.Dispose();
+            _variantDefinition.Dispose();
+            _storage.Dispose();
+        }
+
+        private readonly DataVariableStorage _storage = new();
+        private readonly VariantDefinition _variantDefinition;
+        private readonly VariantVectorDefinition _variantVectorDefinition;
+        private readonly VariantMapDefinition _variantMapDefinition;
     }
 
     /// <summary>For internal use only! Helper class used to associate instance of RmlUI with Rml::Context.</summary>
@@ -796,6 +1176,11 @@ public partial class RmlUI : RedObject
         nativeString.Assign(stringValue);
         destination.Assign(nativeString);
         return true;
+    }
+
+    internal static VariantDefinitions RegisterVariantDefinition(DataTypeRegister typeRegister)
+    {
+        return new VariantDefinitions(typeRegister);
     }
 
     internal static string InsertVariablePlaceholders(string content, nint dataModelId)

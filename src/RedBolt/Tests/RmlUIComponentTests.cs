@@ -2,6 +2,7 @@ namespace RedBolt.Tests;
 
 using System.IO;
 
+using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.Resource;
@@ -13,6 +14,12 @@ public sealed class RmlUIComponentTests
 {
     private sealed class ComponentProbe : RmlUIComponent
     {
+        public ComponentProbe(VariantVector values, VariantMap properties)
+        {
+            _values = values;
+            _properties = properties;
+        }
+
         public bool DataModelInitialized { get; private set; }
 
         protected override void OnDataModelInitialized()
@@ -21,7 +28,12 @@ public sealed class RmlUIComponentTests
             Assert.True(BindDataModelProperty("value",
                 (ref Variant value) => value = new Variant("bound"),
                 (in Variant value) => { }));
+            Assert.True(BindDataModelVariantVector("values", _values));
+            Assert.True(BindDataModelVariantMap("properties", _properties));
         }
+
+        private readonly VariantVector _values;
+        private readonly VariantMap _properties;
     }
 
     private readonly GraphicsEngineFixture _fixture;
@@ -39,7 +51,12 @@ public sealed class RmlUIComponentTests
         var resourcePath = Path.Combine(resourceDirectory, ResourceName);
         Directory.CreateDirectory(Path.GetDirectoryName(resourcePath)!);
         File.WriteAllText(resourcePath,
-            "<rml><head></head><body data-model=\"{{__data_model_id}}\"><span>{{value}}</span></body></rml>");
+            "<rml><head></head><body data-model=\"{{__data_model_id}}\">" +
+            "<span>{{value}}</span>" +
+            "<div data-for=\"item : values\">{{item}}</div>" +
+            "<span>{{properties.number}}</span>" +
+            "<button id=\"set-number\" data-event-click=\"properties.number = 99\">Set</button>" +
+            "</body></rml>");
 
         RmlUI.RegisterRmlUILibrary(_fixture.Context);
         using var localization = new Localization();
@@ -50,8 +67,10 @@ public sealed class RmlUIComponentTests
 
         try
         {
+            using var values = new VariantVector { new("first"), new("second") };
+            using var properties = new VariantMap { [new StringHash("number")] = new Variant(42) };
             using var node = new Node();
-            using var component = new ComponentProbe();
+            using var component = new ComponentProbe(values, properties);
             component.SetAutoSize(false);
             component.SetPosition(new Vector2f(4.0f, 5.0f));
             component.SetSize(new Vector2f(30.0f, 20.0f));
@@ -66,6 +85,14 @@ public sealed class RmlUIComponentTests
             Assert.Equal(ResourceName, component.GetResource().Name);
             Assert.Equal(new Vector2f(30.0f, 20.0f), component.GetSize());
             Assert.NotNull(_fixture.Context.GetReflection(typeof(RmlUIComponent).GetClassName()));
+
+            ui.GetRmlContext().Update();
+            using var buttonId = new Std.String();
+            buttonId.Assign("set-number");
+            var setNumber = document.GetElementById(buttonId);
+            Assert.NotNull(setNumber);
+            setNumber.Click();
+            Assert.Equal(99, properties[new StringHash("number")].GetInt());
 
             component.SetEnabled(false);
             Assert.Null(component.GetDocument());

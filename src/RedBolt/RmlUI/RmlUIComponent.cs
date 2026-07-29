@@ -98,27 +98,29 @@ public partial class RmlUIComponent : LogicComponent
     public bool BindDataModelVariantVector(string name, VariantVector value)
     {
         var constructor = ExpectDataModelConstructor();
-        if (constructor is null || _typeRegister is null)
+        if (constructor is null || _variantDefinitions is null)
         {
             return false;
         }
 
-        // TODO: port
-        // return constructor->BindCustomDataVariable(name, {typeRegister_->GetDefinition<VariantVector>(), value});
-        return false;
+        using var nativeName = new Std.String();
+        nativeName.Assign(name);
+        using var dataVariable = _variantDefinitions.Create(value);
+        return constructor.BindCustomDataVariable(nativeName, dataVariable);
     }
 
     public bool BindDataModelVariantMap(string name, VariantMap value)
     {
         var constructor = ExpectDataModelConstructor();
-        if (constructor is null || _typeRegister is null)
+        if (constructor is null || _variantDefinitions is null)
         {
             return false;
         }
 
-        // TODO: port
-        // return constructor->BindCustomDataVariable(name, {typeRegister_->GetDefinition<VariantMap>(), value});
-        return false;
+        using var nativeName = new Std.String();
+        nativeName.Assign(name);
+        using var dataVariable = _variantDefinitions.Create(value);
+        return constructor.BindCustomDataVariable(nativeName, dataVariable);
     }
 
     public bool BindDataModelEvent(string name, EventFunc eventCallback)
@@ -639,8 +641,7 @@ public partial class RmlUIComponent : LogicComponent
         using var nativeModelName = new Std.String();
         nativeModelName.Assign(_dataModelName);
         _modelConstructor = context.CreateDataModel(nativeModelName, _typeRegister);
-        // TODO: port
-        // RegisterVariantDefinition(&*typeRegister_);
+        _variantDefinitions = RmlUI.RegisterVariantDefinition(_typeRegister);
 
         using var focusName = new Std.String();
         focusName.Assign("focus");
@@ -670,6 +671,8 @@ public partial class RmlUIComponent : LogicComponent
 
         _dataModel!.Dispose();
         _dataModel = null;
+        _variantDefinitions!.Dispose();
+        _variantDefinitions = null;
         _typeRegister!.Dispose();
         _typeRegister = null;
         _dataModelName = string.Empty;
@@ -779,6 +782,7 @@ public partial class RmlUIComponent : LogicComponent
 
     /// <summary>Type registry for the data model.</summary>
     private DataTypeRegister? _typeRegister;
+    private RmlUI.VariantDefinitions? _variantDefinitions;
     /// <summary>Data model for the document.</summary>
     private DataModelHandle? _dataModel;
     /// <summary>Name of the data model.</summary>
