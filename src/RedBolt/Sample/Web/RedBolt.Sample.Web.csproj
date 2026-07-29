@@ -32,7 +32,7 @@
                       Private="false"
                       PrivateAssets="all" />
     <Compile Include="../*/Program.cs"
-             Exclude="../Web/Program.cs"
+             Exclude="../HelloRmlUI/Program.cs;../Web/Program.cs"
              Link="Samples/%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="../AnimatingScene/Rotator.cs" Link="Samples/AnimatingScene/Rotator.cs" />
     <Compile Include="../RenderToTexture/Rotator.cs" Link="Samples/RenderToTexture/Rotator.cs" />

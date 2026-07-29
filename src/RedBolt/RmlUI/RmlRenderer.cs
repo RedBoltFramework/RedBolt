@@ -56,16 +56,35 @@ public class RmlRenderer : RenderInterfaceCompatibility
     {
         public Image? Image;
         public Texture2D? Texture;
+        public bool OwnsTexture;
+
+        private int _textureReferences = 1;
+        private bool _disposed;
+
+        public void RetainTexture()
+        {
+            ++_textureReferences;
+        }
+
+        public void ReleaseTexture()
+        {
+            if (--_textureReferences != 0)
+                return;
+
+            if (OwnsTexture)
+                Texture?.Dispose();
+            Texture = null;
+        }
 
         public void Dispose()
         {
-            if (Image is not null)
-            {
-                Texture?.Dispose();
-                Image.Dispose();
-            }
+            if (_disposed)
+                return;
+
+            _disposed = true;
+            Image?.Dispose();
             Image = null;
-            Texture = null;
+            ReleaseTexture();
         }
     }
 
@@ -119,7 +138,7 @@ public class RmlRenderer : RenderInterfaceCompatibility
     private bool _isRenderSurfaceSRGB;
     private Vector2i _viewportSize;
     private DrawCommandQueue? _drawQueue;
-    private readonly List<Texture2D> _textures = [];
+    private readonly List<CachedRmlTexture> _textures = [];
     private Matrix4 _projection;
 
     private bool _scissorEnabled;
@@ -145,6 +164,8 @@ public class RmlRenderer : RenderInterfaceCompatibility
         _vertexBuffer!.Discard();
         _indexBuffer!.Discard();
         _drawQueue.Reset();
+        foreach (var texture in _textures)
+            texture.ReleaseTexture();
         _textures.Clear();
 
         var vertexBuffer = _vertexBuffer.GetVertexBuffer();
@@ -210,7 +231,7 @@ public class RmlRenderer : RenderInterfaceCompatibility
         var texture = new Texture2D();
         texture.SetData(image);
 
-        var cachedTexture = new CachedRmlTexture { Image = image, Texture = texture };
+        var cachedTexture = new CachedRmlTexture { Image = image, Texture = texture, OwnsTexture = true };
         *(nuint*)textureHandle = WrapTextureHandle(cachedTexture);
         return true;
     }
@@ -299,7 +320,8 @@ public class RmlRenderer : RenderInterfaceCompatibility
         if (texture is not null)
         {
             GraphicsUtils.AddShaderResource(_drawQueue, ShaderResources.Albedo, texture);
-            _textures.Add(texture);
+            cachedTexture!.RetainTexture();
+            _textures.Add(cachedTexture);
         }
         _drawQueue.CommitShaderResources();
 
@@ -397,6 +419,8 @@ public class RmlRenderer : RenderInterfaceCompatibility
 
     protected override bool ReleaseNativeHandle(nint handle)
     {
+        foreach (var texture in _textures)
+            texture.ReleaseTexture();
         _textures.Clear();
         _indexBuffer?.Dispose();
         _vertexBuffer?.Dispose();

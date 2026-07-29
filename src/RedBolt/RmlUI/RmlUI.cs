@@ -73,7 +73,10 @@ public partial class RmlUI : RedObject
         /// <summary>Create an instance of inline event listener, if applicable.</summary>
         public override EventListener InstanceEventListener(Std.String value, Element element)
         {
-            return PipeEventListener.CreateInstancer(value.ToString(), element)!;
+            var listener = PipeEventListener.CreateInstancer(value.ToString(), element);
+            if (listener is not null)
+                EventListeners[listener.Handle] = listener;
+            return listener!;
         }
     }
 
@@ -526,6 +529,7 @@ public partial class RmlUI : RedObject
     private static readonly RmlEventListenerInstancer EventListenerInstancerInstance = new();
     private static readonly RmlContextInstancer ContextInstancerInstance = new();
     private static readonly RmlPlugin PluginInstance = new();
+    private static readonly Dictionary<nint, EventListener> EventListeners = [];
     private static readonly Std.String MousePassthroughAttribute = CreateNativeString("mouse-passthrough");
     internal static readonly Std.String ComponentPtrAttribute = CreateNativeString("__RmlUIComponentPtr__");
 
@@ -1033,6 +1037,11 @@ public partial class RmlUI : RedObject
     public static void RegisterRmlUILibrary(CoreContext context)
     {
         context.RegisterAssembly(typeof(RmlUI).Assembly);
+    }
+
+    internal static void ReleaseEventListener(EventListener listener)
+    {
+        EventListeners.Remove(listener.Handle);
     }
 
     /// <summary>Try to convert variant from RmlUI to RedBolt.</summary>

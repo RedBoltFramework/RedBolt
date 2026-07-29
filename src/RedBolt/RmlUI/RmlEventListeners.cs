@@ -218,6 +218,7 @@ internal sealed class PipeEventListener : EventListener
         foreach (var listener in _listeners)
             listener.Dispose();
         _listeners.Clear();
+        RmlUI.ReleaseEventListener(this);
         Dispose();
     }
 
@@ -265,6 +266,7 @@ internal sealed class SoundEventListener : EventListener
         _soundNode?.Dispose();
         _soundNode = null;
         _soundPlayer = null;
+        RmlUI.ReleaseEventListener(this);
         Dispose();
     }
 
@@ -308,6 +310,7 @@ internal sealed class CustomEventListener : EventListener
     public override void OnDetach(Element element)
     {
         _eventData.Dispose();
+        RmlUI.ReleaseEventListener(this);
         Dispose();
     }
 

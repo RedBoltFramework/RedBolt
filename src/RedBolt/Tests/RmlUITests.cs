@@ -128,6 +128,9 @@ public sealed class RmlUITests
             document.Show();
             ui.GetRmlContext().Update();
             Assert.True(getCount > 0);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
 
             var setButton = document.GetElementById(setButtonId);
             Assert.NotNull(setButton);

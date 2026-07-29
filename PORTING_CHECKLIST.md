@@ -30,6 +30,7 @@
 - [x] `29_SoundSynthesis` — sound-source node ownership, buffered mono stream playback, reusable zero-churn synthesis buffer, two-oscillator generation, low-pass filtering, Dear ImGui coefficient display, baseline rendering, both filter-control branches and clamp endpoints, and deterministic teardown are runtime-verified
 - [x] `39_CrowdNavigation` — dynamic navigation mesh, obstacles, off-mesh connections, crowd agents and callbacks, moving barrels, formation targets, tile streaming, debug rendering, camera, and Dear ImGui instructions are ported and runtime-verified
 - [x] `106_BakedLighting` — native baked scene and lightmap/probe assets, native-compatible packed light-probe serialization, complete rbfx Terrain attribute registration and legacy-scene terrain reconstruction, NavigationMesh rebuild, CrowdAgent character movement and animation, CrowdManager avoidance tuning, texture toggling, Dear ImGui instructions, desktop/Web wiring, and deterministic teardown are ported and runtime-verified
+- [x] `107_HelloRmlUI` — reflected data-model window, scalar and custom `Variant` bindings, custom events, backbuffer and render-to-texture canvases, cube animation, HarfBuzz-rasterized text, native shared texture/listener lifetimes, and deterministic teardown are ported and runtime-verified
 - [x] `112_AggregatedInput` — direction aggregation, directional-pad aggregation, raw key/joystick/hat/disconnect/touch logging, synthesized key logging and repeats, and Dear ImGui visualization are ported and runtime-verified
 - [x] `113_InputLogger` — dual viewports, all input-event subscriptions and decoded parameters, C++ identity/parameter/time-threshold event merging, viewport-relative mouse reporting, bounded logging, and Dear ImGui output are runtime-verified; the standalone managed application replaces the optional, unported plugin application wrapper
 - [x] `116_VirtualFileSystem` — mount-point enumeration, editable identifier query, file metadata, reverse lookup, editable scan path/filter/flags, recursive file scanning, non-recursive directory scanning, and Dear ImGui output are ported and runtime-verified
@@ -619,7 +620,7 @@ Accepted deviations:
 - [x] `RmlFile.h`
   - [x] `RmlFile : Rml::FileInterface` — `WeakPtr<Context>` dropped; file ownership mapped to `GCHandle`; loaded resources tracked with stdlib `HashSet`
 - [x] `RmlRenderer.h`
-  - [x] `RmlRenderer : Object, Rml::RenderInterface` — RmlUi 6.2 official compatibility adapter; `Object` event role composed because C# has single inheritance
+  - [x] `RmlRenderer : Object, Rml::RenderInterface` — RmlUi 6.2 official compatibility adapter; `Object` event role composed because C# has single inheritance; queued generated textures preserve native `SharedPtr` lifetime through execution
   - [x] `Material::CreateBaseMaterial` prerequisite
   - [x] `Texture` device-loss forwarding prerequisite
   - [x] UI batch pipeline-state cache prerequisite from `RenderPipeline/BatchStateCache.h`

@@ -67,6 +67,7 @@
     <Project Path="src/RedBolt/Sample/CrowdNavigation/RedBolt.Sample.CrowdNavigation.csproj" />
     <Project Path="src/RedBolt/Sample/Navigation/RedBolt.Sample.Navigation.csproj" />
     <Project Path="src/RedBolt/Sample/HelloGUI/RedBolt.Sample.HelloGUI.csproj" />
+    <Project Path="src/RedBolt/Sample/HelloRmlUI/RedBolt.Sample.HelloRmlUI.csproj" />
     <Project Path="src/RedBolt/Sample/InverseKinematics/RedBolt.Sample.InverseKinematics.csproj" />
     <Project Path="src/RedBolt/Sample/MultipleViewports/RedBolt.Sample.MultipleViewports.csproj" />
     <Project Path="src/RedBolt/Sample/HelloWorld/RedBolt.Sample.HelloWorld.csproj" />

@@ -305,12 +305,7 @@ public class VertexBuffer : PipelineStateTracker
         var size = checked((int)(vertexCount * _vertexSize));
         MarkPipelineStateHashDirty();
 
-        if (_rawBuffer is not null)
-        {
-            _rawBuffer.Destroy();
-            _rawBuffer.Dispose();
-        }
-        _rawBuffer = new VertexRawBuffer(_flags);
+        _rawBuffer ??= new VertexRawBuffer(_flags);
         var flags = (_shadowedPending ? BufferFlag.Shadowed : BufferFlag.None)
             | (dynamic ? BufferFlag.Dynamic : BufferFlag.None);
         if (elementList.Count != 0 && elementList[0].StepRate != 0)

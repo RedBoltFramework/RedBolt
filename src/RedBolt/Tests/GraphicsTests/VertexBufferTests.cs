@@ -139,6 +139,7 @@ public sealed class VertexBufferTests
         var dynamicBuffer = new DynamicVertexBuffer();
         Assert.True(dynamicBuffer.Initialize(1,
             new[] { new VertexElement(VertexElementType.Vector3, VertexElementSemantic.Position) }));
+        var rawBuffer = dynamicBuffer.GetVertexBuffer().GetRawBuffer();
 
         var first = dynamicBuffer.AddVertices(1);
         VertexBuffer.PackVertexData(new[] { new Vector4f(1, 2, 3, 1) }, sourceStride: 16, dest: first.Data.Span,
@@ -149,6 +150,7 @@ public sealed class VertexBufferTests
 
         Assert.Equal(0u, first.StartVertex);
         Assert.Equal(3u, dynamicBuffer.GetVertexCount());
+        Assert.Same(rawBuffer, dynamicBuffer.GetVertexBuffer().GetRawBuffer());
         Assert.Equal(36, dynamicBuffer.GetVertexBuffer().GetShadowData().Length);
     }
 }
