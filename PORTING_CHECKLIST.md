@@ -651,8 +651,8 @@ Accepted deviations:
 - [x] `RmlCanvasComponent.h`
   - [x] generated RmlUi context document-unload prerequisite
   - [x] `RmlCanvasComponent : LogicComponent`
-- [ ] `RmlSerializableInspector.h`
-  - [ ] `RmlSerializableInspector : RmlUIComponent`
+- [x] `RmlSerializableInspector.h`
+  - [x] `RmlSerializableInspector : RmlUIComponent` — reflected bool, number, and enum attributes use generated custom data-variable directors
 
 ## B14. SystemUI `OPTIONAL` — Dear ImGui editor/debug; depends on Graphics, Input
 

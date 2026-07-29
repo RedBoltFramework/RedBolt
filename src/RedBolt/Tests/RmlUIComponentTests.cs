@@ -2,6 +2,8 @@ namespace RedBolt.Tests;
 
 using System.IO;
 
+using ElementDocument = RedBolt.Bindings.RmlUi.ElementDocument;
+
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Math;
@@ -10,8 +12,18 @@ using RedBolt.RmlUI;
 using RedBolt.Scene;
 
 [Collection(nameof(GraphicsEngineCollection))]
-public sealed class RmlUIComponentTests
+public sealed partial class RmlUIComponentTests
 {
+    [Reflected("Tests")]
+    private sealed partial class InspectorTarget : Serializable
+    {
+        [Serialized("Enabled")]
+        public bool Enabled { get; set; } = true;
+
+        [Serialized("Count")]
+        public int Count { get; set; } = 42;
+    }
+
     private sealed class ComponentProbe : RmlUIComponent
     {
         public ComponentProbe(VariantVector values, VariantMap properties)
@@ -98,6 +110,57 @@ public sealed class RmlUIComponentTests
             Assert.Null(component.GetDocument());
             Assert.Null(RmlUIComponent.FromDocument(document));
             node.RemoveComponent(component);
+        }
+        finally
+        {
+            _fixture.Resources.RemoveResourceDir(resourceDirectory);
+            _fixture.Context.RemoveSubsystem<RmlUI>();
+            _fixture.Context.RemoveSubsystem<Localization>();
+            Directory.Delete(resourceDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Serializable_inspector_edits_supported_attributes()
+    {
+        const string ResourceName = "RmlUI/SerializableInspectorTest.rml";
+        var resourceDirectory = Path.Combine(Path.GetTempPath(), $"redbolt-rmlui-{Guid.NewGuid():N}");
+        var resourcePath = Path.Combine(resourceDirectory, ResourceName);
+        Directory.CreateDirectory(Path.GetDirectoryName(resourcePath)!);
+        File.WriteAllText(resourcePath,
+            "<rml><head></head><body data-model=\"{{__data_model_id}}\">" +
+            "<div data-for=\"attribute : attributes\">" +
+            "<input id=\"set-enabled\" type=\"checkbox\" value=\"value\" " +
+            "data-if=\"attribute.type == 1\" data-checked=\"attribute.value\"/>" +
+            "</div>" +
+            "</body></rml>");
+
+        RmlUI.RegisterRmlUILibrary(_fixture.Context);
+        using var localization = new Localization();
+        _fixture.Context.RegisterSubsystem(localization);
+        using var ui = new RmlUI("inspector-test");
+        _fixture.Context.RegisterSubsystem(ui);
+        Assert.True(_fixture.Resources.AddResourceDir(resourceDirectory));
+
+        try
+        {
+            using var target = new InspectorTarget();
+            using var node = new Node();
+            using var inspector = new RmlSerializableInspector();
+            inspector.Connect(target);
+            inspector.SetResource(ResourceName);
+            node.AddComponent(inspector);
+
+            var document = Assert.IsType<ElementDocument>(inspector.GetDocument());
+            ui.GetRmlContext().Update();
+
+            using var enabledId = new Std.String();
+            enabledId.Assign("set-enabled");
+            document.GetElementById(enabledId)!.Click();
+            Assert.False(target.Enabled);
+
+            Assert.NotNull(_fixture.Context.GetReflection(typeof(RmlSerializableInspector).GetClassName()));
+            node.RemoveComponent(inspector);
         }
         finally
         {
