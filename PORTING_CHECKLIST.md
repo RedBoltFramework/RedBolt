@@ -645,8 +645,9 @@ Accepted deviations:
   - [~] `RmlUI : Object` — lifecycle, input, rendering, reload, context instancing, plugin, debugger, HarfBuzz font loading, and variant conversions ported; custom Variant data-model definition registration and drop-file dictionary dispatch remain
 - [ ] `RmlUIComponent.h`
   - [ ] `RmlUIComponent : LogicComponent`
-- [ ] `RmlCanvasComponent.h`
-  - [ ] `RmlCanvasComponent : LogicComponent`
+- [x] `RmlCanvasComponent.h`
+  - [x] generated RmlUi context document-unload prerequisite
+  - [x] `RmlCanvasComponent : LogicComponent`
 - [ ] `RmlSerializableInspector.h`
   - [ ] `RmlSerializableInspector : RmlUIComponent`
 

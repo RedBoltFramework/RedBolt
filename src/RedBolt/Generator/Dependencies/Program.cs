@@ -912,7 +912,7 @@ internal static class Program
                 "LoadDocumentFromMemory" or "SetDensityIndependentPixelRatio" or "SetDimensions" or
                 "ProcessKeyDown" or "ProcessKeyUp" or "ProcessMouseButtonDown" or "ProcessMouseButtonUp" or
                 "ProcessMouseMove" or "ProcessMouseWheel" or "ProcessTextInput" or
-                "UnloadDocument" or "Update")
+                "UnloadAllDocuments" or "UnloadDocument" or "Update")
             {
                 if (method.NativeName == "ProcessMouseWheel" &&
                     method.Parameters[0].CppTypeName != "float")
