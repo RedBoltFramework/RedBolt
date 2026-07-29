@@ -10,6 +10,17 @@ using RedBoltNative;
 public sealed class RmlUiBindingsTests
 {
     [Fact]
+    public void Variant_round_trips_vector_value()
+    {
+        using var variant = new Variant();
+        var value = new Vector3f(1.0f, 2.0f, 3.0f);
+
+        Assert.Equal(value, variant.Get(value));
+        variant.Assign(value);
+        Assert.Equal(value, variant.Get<Vector3f>());
+    }
+
+    [Fact]
     public void System_interface_round_trips_managed_director()
     {
         var original = RmlUiNativeBindings.GetSystemInterface();

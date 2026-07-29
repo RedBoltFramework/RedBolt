@@ -987,7 +987,7 @@ internal static class Program
                     "ScrollIntoView" or "SetProperty") ||
                 (method.IsGeneric && method.NativeName is "GetAttribute" or "SetAttribute");
             if (method.NativeName == "DispatchEvent" && method.Parameters.Count == 2 &&
-                method.Parameters[0].Type.RecordId == "record:std::basic_string")
+                method.Parameters[0].CppTypeName == "const Rml::String&")
             {
                 retained = true;
             }
@@ -1261,6 +1261,13 @@ internal static class Program
         {
             parameter.Type = BindingType.IntPtr;
         }
+        var releaseContext = contextInstancer.Members.OfType<FunctionBinding>().First(static method =>
+            method.NativeName == "ReleaseContext");
+        releaseContext.Parameters.First(static parameter => parameter.NativeName == "context").CallbackTakesOwnership = true;
+        var instanceContext = contextInstancer.Members.OfType<FunctionBinding>().First(static method =>
+            method.NativeName == "InstanceContext");
+        instanceContext.ReturnType = context.HandleType;
+        instanceContext.ReturnsOwnedHandle = true;
         contextInstancer.Members.Add(new FunctionBinding(
             "method:Rml::ContextInstancer::Release",
             "Release",
@@ -1565,21 +1572,26 @@ internal static class Program
         var vector2fType = BindingType.CreateConfigured(
             "Rml::Vector2f", "Vector2f",
             marshallerTypeName: null,
-            managedMarshaller: "global::RedBolt.Math.Vector2fMarshaller");
+            managedMarshaller: "global::RedBolt.Math.Vector2fMarshaller")
+            .WithCppIsRecordValue(true);
         var vector3fType = BindingType.CreateConfigured(
             "Rml::Vector3f", "Vector3f",
             marshallerTypeName: null,
-            managedMarshaller: "global::RedBolt.Math.Vector3fMarshaller");
+            managedMarshaller: "global::RedBolt.Math.Vector3fMarshaller")
+            .WithCppIsRecordValue(true);
         var vector4fType = BindingType.CreateConfigured(
             "Rml::Vector4f", "Vector4f",
             marshallerTypeName: null,
-            managedMarshaller: "global::RedBolt.Math.Vector4fMarshaller");
+            managedMarshaller: "global::RedBolt.Math.Vector4fMarshaller")
+            .WithCppIsRecordValue(true);
         var colourfType = BindingType.CreateConfigured(
             "Rml::Colourf", "global::RedBolt.Math.Color",
             marshallerTypeName: null,
-            managedMarshaller: "global::RedBolt.Math.ColorMarshaller");
+            managedMarshaller: "global::RedBolt.Math.ColorMarshaller")
+            .WithCppIsRecordValue(true);
         var colourbType = BindingType.CreateConfigured(
-            "Rml::Colourb", "global::RedBolt.Bindings.RmlUi.RmlUiLegacyColourb");
+            "Rml::Colourb", "global::RedBolt.Bindings.RmlUi.RmlUiLegacyColourb")
+            .WithCppIsRecordValue(true);
         var get = variant.Members.OfType<FunctionBinding>().First(static method =>
             method.IsGeneric && method.NativeName == "Get");
         foreach (var type in new[]
@@ -1689,11 +1701,26 @@ internal static class Program
             else
                 method.SetSilentExclusionReason("RmlUi data-model constructor member is outside the functional binding slice");
         }
+        var bindEventCallback = constructor.Members.OfType<FunctionBinding>().First(static method =>
+            method.NativeName == "BindEventCallback");
+        bindEventCallback.Parameters.First(static parameter =>
+            parameter.NativeName == "event_func").Type = compilation.TypeAliases.First(static alias =>
+            alias.CppQualifiedName == "Rml::DataEventFunc").TargetType;
+        var bindFunc = constructor.Members.OfType<FunctionBinding>().First(static method =>
+            method.NativeName == "BindFunc");
+        bindFunc.Parameters.First(static parameter =>
+            parameter.NativeName == "get_func").Type = compilation.TypeAliases.First(static alias =>
+            alias.CppQualifiedName == "Rml::DataGetFunc").TargetType;
+        bindFunc.Parameters.First(static parameter =>
+            parameter.NativeName == "set_func").Type = compilation.TypeAliases.First(static alias =>
+            alias.CppQualifiedName == "Rml::DataSetFunc").TargetType;
         var registerTransformFunc = constructor.Members.OfType<FunctionBinding>().First(static method =>
             method.NativeName == "RegisterTransformFunc");
         var transformFuncParameter = registerTransformFunc.Parameters.First(static parameter =>
             parameter.NativeName == "transform_func");
-        var transformFuncType = transformFuncParameter.Type;
+        var transformFuncAlias = compilation.TypeAliases.First(static alias =>
+            alias.CppQualifiedName == "Rml::DataTransformFunc");
+        var transformFuncType = transformFuncAlias.TargetType;
         var transformReturnType = transformFuncType.CallbackReturnType!
             .WithCppTypeName("Rml::Variant")
             .WithCppIsRecordValue(true);
