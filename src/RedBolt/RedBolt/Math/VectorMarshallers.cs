@@ -14,6 +14,26 @@ public static class Vector2fMarshaller
     public static BaseRealVector2<float> ConvertToManaged(BaseRealVector2<float> unmanaged) => unmanaged;
 }
 
+[CustomMarshaller(typeof(BaseIntegerVector2<int>), MarshalMode.ManagedToUnmanagedIn, typeof(Vector2iMarshaller))]
+[CustomMarshaller(typeof(BaseIntegerVector2<int>), MarshalMode.ManagedToUnmanagedOut, typeof(Vector2iMarshaller))]
+[CustomMarshaller(typeof(BaseIntegerVector2<int>), MarshalMode.UnmanagedToManagedOut, typeof(Vector2iMarshaller))]
+public static class Vector2iMarshaller
+{
+    public static BaseIntegerVector2<int> ConvertToUnmanaged(BaseIntegerVector2<int> managed) => managed;
+
+    public static BaseIntegerVector2<int> ConvertToManaged(BaseIntegerVector2<int> unmanaged) => unmanaged;
+}
+
+[CustomMarshaller(typeof(BaseRealVector3<float>), MarshalMode.ManagedToUnmanagedIn, typeof(Vector3fMarshaller))]
+[CustomMarshaller(typeof(BaseRealVector3<float>), MarshalMode.ManagedToUnmanagedOut, typeof(Vector3fMarshaller))]
+[CustomMarshaller(typeof(BaseRealVector3<float>), MarshalMode.UnmanagedToManagedOut, typeof(Vector3fMarshaller))]
+public static class Vector3fMarshaller
+{
+    public static BaseRealVector3<float> ConvertToUnmanaged(BaseRealVector3<float> managed) => managed;
+
+    public static BaseRealVector3<float> ConvertToManaged(BaseRealVector3<float> unmanaged) => unmanaged;
+}
+
 [CustomMarshaller(typeof(Vector4f), MarshalMode.ManagedToUnmanagedIn, typeof(Vector4fMarshaller))]
 [CustomMarshaller(typeof(Vector4f), MarshalMode.ManagedToUnmanagedOut, typeof(Vector4fMarshaller))]
 [CustomMarshaller(typeof(Vector4f), MarshalMode.UnmanagedToManagedOut, typeof(Vector4fMarshaller))]
@@ -22,4 +42,14 @@ public static class Vector4fMarshaller
     public static Vector4f ConvertToUnmanaged(Vector4f managed) => managed;
 
     public static Vector4f ConvertToManaged(Vector4f unmanaged) => unmanaged;
+}
+
+[CustomMarshaller(typeof(Color), MarshalMode.ManagedToUnmanagedIn, typeof(ColorMarshaller))]
+[CustomMarshaller(typeof(Color), MarshalMode.ManagedToUnmanagedOut, typeof(ColorMarshaller))]
+[CustomMarshaller(typeof(Color), MarshalMode.UnmanagedToManagedOut, typeof(ColorMarshaller))]
+public static class ColorMarshaller
+{
+    public static Color ConvertToUnmanaged(Color managed) => managed;
+
+    public static Color ConvertToManaged(Color unmanaged) => unmanaged;
 }

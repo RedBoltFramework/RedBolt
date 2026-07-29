@@ -108,7 +108,7 @@ public class RmlSystem : SystemInterface
     }
 
     /// <summary>Activate keyboard (for touchscreen devices)</summary>
-    public override void ActivateKeyboard(Vector2<float> caretPosition, float lineHeight)
+    public override void ActivateKeyboard(Vector2f caretPosition, float lineHeight)
     {
         var input = Context.Instance.GetSubsystem<Input>();
         var time = Context.Instance.GetSubsystem<Time>();

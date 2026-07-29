@@ -31,6 +31,7 @@ using RedBolt.Audio;
 using RedBolt.Bindings.RmlUi;
 using RedBolt.Container;
 using RedBolt.Core;
+using CoreVariant = RedBolt.Core.Variant;
 using EngineLog = RedBolt.Logging.Log;
 using RedBolt.Resource;
 using RedBolt.Scene;
@@ -84,25 +85,25 @@ internal static class RmlEventListeners
         return (resource, volume);
     }
 
-    private static Variant ToVariant(JSONValue json)
+    private static CoreVariant ToVariant(JSONValue json)
     {
         switch (json.GetValueType())
         {
             case JSONValueType.Null:
                 return default;
             case JSONValueType.Bool:
-                return new Variant(json.GetBool());
+                return new CoreVariant(json.GetBool());
             case JSONValueType.Number:
                 return json.GetNumberType() switch
                 {
-                    JSONNumberType.NaN => new Variant(float.NaN),
-                    JSONNumberType.Int => new Variant(json.GetInt()),
-                    JSONNumberType.UInt => new Variant(json.GetUInt()),
-                    JSONNumberType.FloatDouble => new Variant(json.GetFloat()),
+                    JSONNumberType.NaN => new CoreVariant(float.NaN),
+                    JSONNumberType.Int => new CoreVariant(json.GetInt()),
+                    JSONNumberType.UInt => new CoreVariant(json.GetUInt()),
+                    JSONNumberType.FloatDouble => new CoreVariant(json.GetFloat()),
                     _ => default
                 };
             case JSONValueType.String:
-                return new Variant(json.GetString());
+                return new CoreVariant(json.GetString());
             case JSONValueType.Array:
             {
                 using var array = new VariantVector();
@@ -111,7 +112,7 @@ internal static class RmlEventListeners
                     using var value = ToVariant(item);
                     array.Add(value);
                 }
-                return new Variant(array);
+                return new CoreVariant(array);
             }
             case JSONValueType.Object:
             {
@@ -121,7 +122,7 @@ internal static class RmlEventListeners
                     using var value = ToVariant(item.Value);
                     map[item.Key] = value;
                 }
-                return new Variant(map);
+                return new CoreVariant(map);
             }
             default:
                 return default;

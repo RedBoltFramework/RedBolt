@@ -29,6 +29,8 @@ using System.Threading;
 using RedBolt.Bindings.RmlUi;
 using RedBolt.Core;
 using CoreContext = RedBolt.Core.Context;
+using CoreVariant = RedBolt.Core.Variant;
+using CoreVariantType = RedBolt.Core.VariantType;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.IO;
@@ -36,6 +38,8 @@ using EngineLog = RedBolt.Logging.Log;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
+using RmlVariant = RedBolt.Bindings.RmlUi.Variant;
+using RmlVariantType = RedBolt.Bindings.RmlUi.VariantType;
 
 /// <summary>Previous and current canvas sizes.</summary>
 public struct RmlCanvasResizedArgs
@@ -306,7 +310,7 @@ public partial class RmlUI : RedObject
         using var nativeName = new Std.String();
         nativeName.Assign(name);
         _rmlContext = (RmlContext)RmlUiNativeBindings.CreateContext(
-            nativeName, ToRmlUi(GetDesiredCanvasSize()))!;
+            nativeName, GetDesiredCanvasSize())!;
         _rmlContext.SetOwnerSubsystem(this);
 
         var ui = CoreContext.Instance.GetSubsystem<RmlUI>();
@@ -463,10 +467,10 @@ public partial class RmlUI : RedObject
         _clearColor = clearColor ?? Color.TransparentBlack;
         var args = new RmlCanvasResizedArgs
         {
-            OldSize = ToVector2i(_rmlContext!.GetDimensions()),
+            OldSize = _rmlContext!.GetDimensions(),
             NewSize = GetDesiredCanvasSize()
         };
-        _rmlContext.SetDimensions(ToRmlUi(args.NewSize));
+        _rmlContext.SetDimensions(args.NewSize);
         OnCanvasResizedEvent?.Invoke(args);
     }
 
@@ -567,7 +571,7 @@ public partial class RmlUI : RedObject
         System.Diagnostics.Debug.Assert(document.GetContext() == _rmlContext);
 
         // Keep some properties of the old document
-        var oldPosition = ToVector2(document.GetAbsoluteOffset(BoxArea.Border));
+        var oldPosition = document.GetAbsoluteOffset(BoxArea.Border);
         var oldModal = document.IsModal() ? ModalFlag.Modal : ModalFlag.None;
         var oldVisible = document.IsVisible();
 
@@ -634,6 +638,166 @@ public partial class RmlUI : RedObject
         context.RegisterAssembly(typeof(RmlUI).Assembly);
     }
 
+    /// <summary>Try to convert variant from RmlUI to RedBolt.</summary>
+    public static bool FromRmlUi(RmlVariant source, out CoreVariant destination)
+    {
+        switch (source.GetVariantType())
+        {
+            case RmlVariantType.None:
+                destination = default;
+                return true;
+            case RmlVariantType.Bool:
+                destination = new CoreVariant(source.Get<bool>());
+                return true;
+            case RmlVariantType.Int:
+                destination = new CoreVariant(source.Get<int>());
+                return true;
+            case RmlVariantType.Int64:
+                destination = new CoreVariant(source.Get<long>());
+                return true;
+            case RmlVariantType.Float:
+                destination = new CoreVariant(source.Get<float>());
+                return true;
+            case RmlVariantType.Double:
+                destination = new CoreVariant(source.Get<double>());
+                return true;
+            case RmlVariantType.String:
+            {
+                using var value = source.Get<Std.String>();
+                destination = new CoreVariant(value.ToString());
+                return true;
+            }
+            case RmlVariantType.Voidptr:
+                destination = new CoreVariant(source.Get<nint>());
+                return true;
+            case RmlVariantType.Vector2:
+                destination = new CoreVariant(source.Get<Vector2f>());
+                return true;
+            case RmlVariantType.Vector3:
+                destination = new CoreVariant(source.Get<Vector3f>());
+                return true;
+            case RmlVariantType.Vector4:
+                destination = new CoreVariant(source.Get<Vector4f>());
+                return true;
+            case RmlVariantType.Colourf:
+                destination = new CoreVariant(source.Get<Color>());
+                return true;
+            case RmlVariantType.Colourb:
+            {
+                var value = source.Get<RmlUiLegacyColourb>();
+                destination = new CoreVariant(new Color(value.Red, value.Green, value.Blue, value.Alpha) * (1.0f / 255.0f));
+                return true;
+            }
+            case RmlVariantType.Byte:
+                destination = new CoreVariant((uint)source.Get<byte>());
+                return true;
+            case RmlVariantType.Char:
+                destination = new CoreVariant((int)source.Get<sbyte>());
+                return true;
+            case RmlVariantType.Uint:
+                destination = new CoreVariant(source.Get<uint>());
+                return true;
+            case RmlVariantType.Uint64:
+                destination = new CoreVariant(source.Get<ulong>());
+                return true;
+            case RmlVariantType.Scriptinterface:
+            case RmlVariantType.Transformptr:
+            case RmlVariantType.Transitionlist:
+            case RmlVariantType.Animationlist:
+            case RmlVariantType.Decoratorsptr:
+            case RmlVariantType.Filtersptr:
+            case RmlVariantType.Fonteffectsptr:
+            case RmlVariantType.Colorstoplist:
+            case RmlVariantType.Boxshadowlist:
+                break;
+        }
+
+        using var stringValue = source.Get<Std.String>();
+        destination = new CoreVariant(stringValue.ToString());
+        return true;
+    }
+
+    /// <summary>Try to convert variant from RedBolt to RmlUI.</summary>
+    public static bool ToRmlUi(in CoreVariant source, RmlVariant destination)
+    {
+        switch (source.Type)
+        {
+            case CoreVariantType.None:
+                destination.Clear();
+                return true;
+            case CoreVariantType.Bool:
+                destination.Assign(source.GetBool());
+                return true;
+            case CoreVariantType.Int:
+                destination.Assign(source.GetInt());
+                return true;
+            case CoreVariantType.Int64:
+                destination.Assign(source.GetInt64());
+                return true;
+            case CoreVariantType.Float:
+                destination.Assign(source.GetFloat());
+                return true;
+            case CoreVariantType.Double:
+                destination.Assign(source.GetDouble());
+                return true;
+            case CoreVariantType.String:
+            {
+                using var assignedString = new Std.String();
+                assignedString.Assign(source.GetString());
+                destination.Assign(assignedString);
+                return true;
+            }
+            case CoreVariantType.VoidPtr:
+                destination.Assign(source.GetVoidPtr());
+                return true;
+            case CoreVariantType.Vector2:
+                destination.Assign(source.GetVector2());
+                return true;
+            case CoreVariantType.Vector3:
+                destination.Assign(source.GetVector3());
+                return true;
+            case CoreVariantType.Vector4:
+                destination.Assign(source.GetVector4());
+                return true;
+            case CoreVariantType.Color:
+                destination.Assign(source.GetColor());
+                return true;
+            case CoreVariantType.Quaternion:
+            case CoreVariantType.Buffer:
+            case CoreVariantType.ResourceRef:
+            case CoreVariantType.ResourceRefList:
+            case CoreVariantType.VariantVector:
+            case CoreVariantType.VariantMap:
+            case CoreVariantType.IntRect:
+            case CoreVariantType.Vector2i:
+            case CoreVariantType.Ptr:
+            case CoreVariantType.Matrix3:
+            case CoreVariantType.Matrix3x4:
+            case CoreVariantType.Matrix4:
+            case CoreVariantType.StringVector:
+            case CoreVariantType.Rect:
+            case CoreVariantType.Vector3i:
+            case CoreVariantType.Custom:
+            case CoreVariantType.VariantCurve:
+            case CoreVariantType.StringVariantMap:
+            case CoreVariantType.DoubleVector2:
+            case CoreVariantType.DoubleVector3:
+            case CoreVariantType.CString:
+                break;
+        }
+
+        var stringValue = source.ToString();
+        if (stringValue.Length == 0)
+        {
+            EngineLog.GetLogger().Error("This variant type conversion is not supported: {}", source.Type);
+            return false;
+        }
+        using var nativeString = new Std.String();
+        nativeString.Assign(stringValue);
+        destination.Assign(nativeString);
+        return true;
+    }
+
     private static string InsertVariablePlaceholders(string content, nint dataModelId)
     {
         // Replace special placeholders in .rml file contents and model names to allow deriving unique model names
@@ -676,12 +840,6 @@ public partial class RmlUI : RedObject
             rmlModifiers |= (int)Rml.Input.KeyModifier.KmShift;
         return rmlModifiers;
     }
-
-    private static RmlUiLegacyVector2i ToRmlUi(Vector2i value) => new() { X = value.X, Y = value.Y };
-
-    private static Vector2i ToVector2i(RmlUiLegacyVector2i value) => new(value.X, value.Y);
-
-    private static Vector2f ToVector2(RmlUiLegacyVector2f value) => new(value.X, value.Y);
 
     /// <summary>Returns a size that this UI screen will cover.</summary>
     private Vector2i GetDesiredCanvasSize()
@@ -727,10 +885,10 @@ public partial class RmlUI : RedObject
     {
         var args = new RmlCanvasResizedArgs
         {
-            OldSize = ToVector2i(_rmlContext!.GetDimensions()),
+            OldSize = _rmlContext!.GetDimensions(),
             NewSize = GetDesiredCanvasSize()
         };
-        _rmlContext.SetDimensions(ToRmlUi(args.NewSize));
+        _rmlContext.SetDimensions(args.NewSize);
         OnCanvasResizedEvent?.Invoke(args);
     }
 

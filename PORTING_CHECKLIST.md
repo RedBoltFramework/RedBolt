@@ -640,7 +640,9 @@ Accepted deviations:
   - [x] generated RmlUi debugger visibility and texture, style-sheet, and template cache release prerequisites
   - [x] generated RmlUi document enumeration, source, visibility, modal, position, and property reload prerequisites
   - [x] generated RmlUi element boolean and component-pointer attribute prerequisites
-  - [~] `RmlUI : Object` — lifecycle, input, rendering, reload, context instancing, plugin, debugger, and HarfBuzz font loading ported; generated `Rml::Variant`/data-model definitions and drop-file dictionary dispatch remain
+  - [x] generated stdlib `Rml::Variant`, `std::vector<Variant>`, functional data-model, and RedBolt math-type projection prerequisites
+  - [x] `Variant` scalar, string, pointer, vector, and color conversions
+  - [~] `RmlUI : Object` — lifecycle, input, rendering, reload, context instancing, plugin, debugger, HarfBuzz font loading, and variant conversions ported; custom Variant data-model definition registration and drop-file dictionary dispatch remain
 - [ ] `RmlUIComponent.h`
   - [ ] `RmlUIComponent : LogicComponent`
 - [ ] `RmlCanvasComponent.h`

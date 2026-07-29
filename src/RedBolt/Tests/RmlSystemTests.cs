@@ -48,7 +48,7 @@ public sealed class RmlSystemTests
             system.SetClipboardText(message);
             system.GetClipboardText(translated);
             Assert.Equal("RmlSystem test", translated.ToString());
-            system.ActivateKeyboard(null!, 0.0f);
+            system.ActivateKeyboard(Vector2f.Zero, 0.0f);
             Assert.True(system.TextInputActivatedThisFrame());
             system.DeactivateKeyboard();
         }

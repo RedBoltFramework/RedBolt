@@ -813,7 +813,8 @@ internal static class Program
         {
             if (record.IsIgnored() ||
                 !record.CppQualifiedName.StartsWith("std::", StringComparison.Ordinal) ||
-                descriptor.Surface == "rmlui" && record.ManagedNamespace == "Std" && record.ManagedName == "String")
+                descriptor.Surface == "rmlui" && record.ManagedNamespace == "Std" &&
+                record.ManagedName is "String" or "Vector")
             {
                 continue;
             }
@@ -941,7 +942,9 @@ internal static class Program
         }
 
         var vector2iType = BindingType.CreateConfigured(
-            "Rml::Vector2<int>", "global::RedBolt.Bindings.RmlUi.RmlUiLegacyVector2i");
+            "Rml::Vector2<int>", "Vector2i",
+            marshallerTypeName: null,
+            managedMarshaller: "global::RedBolt.Math.Vector2iMarshaller");
         var getDimensions = context.Members.OfType<FunctionBinding>().First(static method =>
             method.NativeName == "GetDimensions");
         getDimensions.ReturnType = vector2iType;
@@ -953,6 +956,8 @@ internal static class Program
         dimensionsParameter.Type = vector2iType;
         dimensionsParameter.CppTypeName = "Rml::Vector2<int>";
 
+        FixRmlUiDataModelSurface(compilation, context);
+
         var element = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Element");
         element.ClearIgnoreReason();
@@ -961,8 +966,8 @@ internal static class Program
         foreach (var method in element.Members.OfType<FunctionBinding>())
         {
             if ((!method.IsGeneric && method.NativeName is
-                    "Blur" or "GetAbsoluteOffset" or "GetContext" or "GetOwnerDocument" or "GetProperty" or
-                    "GetTagName" or "IsVisible" or "SetProperty") ||
+                    "Blur" or "Click" or "GetAbsoluteOffset" or "GetContext" or "GetElementById" or
+                    "GetOwnerDocument" or "GetProperty" or "GetTagName" or "IsVisible" or "SetProperty") ||
                 (method.IsGeneric && method.NativeName is "GetAttribute" or "SetAttribute"))
                 method.ClearIgnoreReason();
             else
@@ -1008,7 +1013,7 @@ internal static class Program
                 $"{method.ReturnType.ManagedTypeName}?");
         }
         foreach (var method in element.Members.OfType<FunctionBinding>()
-                     .Where(static method => method.NativeName == "GetOwnerDocument"))
+                     .Where(static method => method.NativeName is "GetElementById" or "GetOwnerDocument"))
         {
             method.ReturnType = method.ReturnType.WithManagedTypeFormatOverride(
                 $"{method.ReturnType.ManagedTypeName}?");
@@ -1021,7 +1026,9 @@ internal static class Program
         }
 
         var vector2fType = BindingType.CreateConfigured(
-            "Rml::Vector2<float>", "global::RedBolt.Bindings.RmlUi.RmlUiLegacyVector2f");
+            "Rml::Vector2<float>", "Vector2f",
+            marshallerTypeName: null,
+            managedMarshaller: "global::RedBolt.Math.Vector2fMarshaller");
         var getAbsoluteOffset = element.Members.OfType<FunctionBinding>().First(static method =>
             method.NativeName == "GetAbsoluteOffset");
         getAbsoluteOffset.ReturnType = vector2fType;
@@ -1318,6 +1325,185 @@ internal static class Program
         }
     }
 
+    private static void FixRmlUiDataModelSurface(BindingCompilation compilation, RecordBinding context)
+    {
+        var variant = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::Variant");
+        variant.ClearIgnoreReason();
+        variant.Bases.Clear();
+        variant.ManagedBaseTypeName = null;
+        foreach (var method in variant.Members.OfType<FunctionBinding>())
+        {
+            if (method.IsConstructor && !method.IsGeneric ||
+                method.NativeName is "Clear" or "GetType" ||
+                method.IsGeneric && method.NativeName == "Get")
+                method.ClearIgnoreReason();
+            else
+                method.SetSilentExclusionReason("RmlUi variant member is outside the data-model binding slice");
+        }
+
+        var stringType = BindingType.CreateConfigured(
+            "Rml::String",
+            "global::Std.String",
+            marshallerTypeName: null,
+            managedMarshaller: "global::Std.__StringMarshaller<global::SharpCpp.Support.BorrowedNativeHandle>");
+        var int64Type = BindingType.CreateConfigured(
+            "int64_t", "long", BindingPrimitiveKind.Int64);
+        var uint64Type = BindingType.CreateConfigured(
+            "uint64_t", "ulong", BindingPrimitiveKind.UInt64);
+        var vector2fType = BindingType.CreateConfigured(
+            "Rml::Vector2f", "Vector2f",
+            marshallerTypeName: null,
+            managedMarshaller: "global::RedBolt.Math.Vector2fMarshaller");
+        var vector3fType = BindingType.CreateConfigured(
+            "Rml::Vector3f", "Vector3f",
+            marshallerTypeName: null,
+            managedMarshaller: "global::RedBolt.Math.Vector3fMarshaller");
+        var vector4fType = BindingType.CreateConfigured(
+            "Rml::Vector4f", "Vector4f",
+            marshallerTypeName: null,
+            managedMarshaller: "global::RedBolt.Math.Vector4fMarshaller");
+        var colourfType = BindingType.CreateConfigured(
+            "Rml::Colourf", "global::RedBolt.Math.Color",
+            marshallerTypeName: null,
+            managedMarshaller: "global::RedBolt.Math.ColorMarshaller");
+        var colourbType = BindingType.CreateConfigured(
+            "Rml::Colourb", "global::RedBolt.Bindings.RmlUi.RmlUiLegacyColourb");
+        var get = variant.Members.OfType<FunctionBinding>().First(static method =>
+            method.IsGeneric && method.NativeName == "Get");
+        foreach (var type in new[]
+                 {
+                     BindingType.Boolean,
+                     BindingType.Int8,
+                     BindingType.UInt8,
+                     BindingType.Int32,
+                     BindingType.UInt32,
+                     int64Type,
+                     uint64Type,
+                     BindingType.Single,
+                     BindingType.Double,
+                     BindingType.IntPtr,
+                     stringType,
+                     vector2fType,
+                     vector3fType,
+                     vector4fType,
+                     colourfType,
+                     colourbType
+                 })
+        {
+            get.SupportedGenericInstantiations.Add(new RecordGenericInstantiationBinding([type]));
+        }
+
+        var assign = new FunctionBinding(
+            "method:Rml::Variant::operator_assign:T",
+            "operator=",
+            "Assign",
+            BindingType.CreateHandle("Rml::Variant&", "Variant", variant.SymbolId),
+            entryPointName: "redbolt_rmlui_Rml_Variant_operator_assign_generic",
+            cppReturnTypeName: "Rml::Variant&",
+            cppQualifiedName: "Rml::Variant::operator=")
+        {
+            HeaderIncludePath = variant.HeaderIncludePath,
+            IsStatic = false,
+            IsConstMethod = false,
+            OwningRecordCppTypeName = variant.CppQualifiedName
+        };
+        assign.GenericParameters.Add(new BindingGenericParameter("T", 0));
+        assign.Parameters.Add(new ParameterBinding(
+            "parameter:Rml::Variant::operator_assign:T:value",
+            "value",
+            "value",
+            BindingType.CreateGenericParameter("T"),
+            cppTypeName: "T&&"));
+        foreach (var type in new[]
+                 {
+                     BindingType.Boolean,
+                     BindingType.Int8,
+                     BindingType.UInt8,
+                     BindingType.Int32,
+                     BindingType.UInt32,
+                     int64Type,
+                     uint64Type,
+                     BindingType.Single,
+                     BindingType.Double,
+                     BindingType.IntPtr,
+                     stringType,
+                     vector2fType,
+                     vector3fType,
+                     vector4fType,
+                     colourfType,
+                     colourbType
+                 })
+        {
+            assign.SupportedGenericInstantiations.Add(new RecordGenericInstantiationBinding(
+                [type.WithCppTypeName($"const {type.CppTypeName}&").WithCppIsReference(true)]));
+        }
+        variant.Members.Add(assign);
+
+        var variantType = compilation.Enums.First(static @enum =>
+            @enum.CppQualifiedName == "Rml::Variant::Type");
+        variantType.ManagedName = "VariantType";
+        variantType.ManagedNamespace = variant.ManagedNamespace;
+        variantType.ClearIgnoreReason();
+        var getVariantType = variant.Members.OfType<FunctionBinding>().First(static method =>
+            method.NativeName == "GetType");
+        getVariantType.ManagedName = "GetVariantType";
+        getVariantType.ReturnType = BindingType.CreateEnum(
+            variantType.CppQualifiedName, variantType.ManagedName, enumId: variantType.SymbolId);
+
+        foreach (var vector in compilation.Records.Where(static record =>
+                     record.ManagedNamespace == "Std" && record.ManagedName == "Vector"))
+        {
+            for (var index = vector.SupportedGenericInstantiations.Count - 1; index >= 0; --index)
+            {
+                if (vector.SupportedGenericInstantiations[index].TypeArguments.Any(static type =>
+                        type.CppTypeName.Contains("Rml::Variant", StringComparison.Ordinal)))
+                    continue;
+                vector.SupportedGenericInstantiations.RemoveAt(index);
+            }
+        }
+
+        var constructor = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::DataModelConstructor");
+        constructor.ClearIgnoreReason();
+        constructor.Bases.Clear();
+        constructor.ManagedBaseTypeName = null;
+        foreach (var method in constructor.Members.OfType<FunctionBinding>())
+        {
+            if (!method.IsConstructor && !method.IsGeneric &&
+                method.NativeName is ("BindEventCallback" or "BindFunc" or "GetModelHandle"))
+                method.ClearIgnoreReason();
+            else
+                method.SetSilentExclusionReason("RmlUi data-model constructor member is outside the functional binding slice");
+        }
+
+        var handle = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::DataModelHandle");
+        handle.ClearIgnoreReason();
+        handle.Bases.Clear();
+        handle.ManagedBaseTypeName = null;
+        foreach (var method in handle.Members.OfType<FunctionBinding>())
+        {
+            if (!method.IsConstructor &&
+                method.NativeName is ("DirtyAllVariables" or "DirtyVariable" or "IsVariableDirty"))
+                method.ClearIgnoreReason();
+            else
+                method.SetSilentExclusionReason("RmlUi data-model handle member is outside the synchronization binding slice");
+        }
+
+        foreach (var method in context.Members.OfType<FunctionBinding>())
+        {
+            if (method.NativeName is not ("CreateDataModel" or "GetDataModel" or "RemoveDataModel"))
+                continue;
+            method.ClearIgnoreReason();
+            foreach (var parameter in method.Parameters.Where(static parameter =>
+                         parameter.NativeName == "data_type_register"))
+            {
+                parameter.Type = BindingType.IntPtr;
+            }
+        }
+    }
+
     private static int PruneDependencySurface(BindingCompilation compilation, BindingSurfaceDescriptor descriptor)
     {
         if (descriptor.Surface == "glslang")
@@ -1412,14 +1598,15 @@ internal static class Program
 
                 if (member is RecordBinding record &&
                     (record.CppQualifiedName is
-                         "Rml::Context" or "Rml::Element" or "Rml::Event" or
+                         "Rml::Context" or "Rml::DataModelConstructor" or "Rml::DataModelHandle" or
+                         "Rml::Element" or "Rml::Event" or "Rml::Variant" or
                          "Rml::ContextInstancer" or "Rml::ElementDocument" or "Rml::EventListener" or
                          "Rml::EventListenerInstancer" or "Rml::FileInterface" or
                          "Rml::Factory" or "Rml::FontEngineInterface" or "Rml::Log" or "Rml::Property" or
                          "Rml::Plugin" or "Rml::RenderInterfaceCompatibility" or "Rml::SystemInterface" or
                          "RedBoltNative::RmlHarfBuzzFontEngine" ||
                      record.CppQualifiedName.StartsWith("Rml::Vector2", StringComparison.Ordinal) ||
-                     record.ManagedNamespace == "Std" && record.ManagedName == "String"))
+                     record.ManagedNamespace == "Std" && record.ManagedName is "String" or "Vector"))
                 {
                     continue;
                 }
@@ -1427,7 +1614,7 @@ internal static class Program
                 if (member is EnumBinding @enum &&
                     @enum.CppQualifiedName is
                         "Rml::BoxArea" or "Rml::EventPhase" or "Rml::FocusFlag" or "Rml::Log::Type" or
-                        "Rml::ModalFlag" or "Rml::PropertyId" or
+                        "Rml::ModalFlag" or "Rml::PropertyId" or "Rml::Variant::Type" or
                         "Rml::Input::KeyIdentifier" or "Rml::Input::KeyModifier" or "Rml::Style::FontWeight")
                     continue;
 
@@ -1437,7 +1624,9 @@ internal static class Program
 
             for (var index = compilation.TypeAliases.Count - 1; index >= 0; --index)
             {
-                if (compilation.TypeAliases[index].CppQualifiedName == "Rml::Vector2f")
+                if (compilation.TypeAliases[index].CppQualifiedName is
+                    "Rml::DataEventFunc" or "Rml::DataGetFunc" or "Rml::DataSetFunc" or
+                    "Rml::VariantList" or "Rml::Vector2f")
                     continue;
 
                 compilation.TypeAliases.RemoveAt(index);
@@ -1580,10 +1769,33 @@ internal static class Program
                         static_assert(sizeof(Rml::Vector2f) == sizeof(float) * 2);
                         static_assert(offsetof(Rml::Vector2f, x) == 0);
                         static_assert(offsetof(Rml::Vector2f, y) == sizeof(float));
+                        static_assert(std::is_standard_layout_v<Rml::Vector3f>);
+                        static_assert(sizeof(Rml::Vector3f) == sizeof(float) * 3);
+                        static_assert(offsetof(Rml::Vector3f, x) == 0);
+                        static_assert(offsetof(Rml::Vector3f, y) == sizeof(float));
+                        static_assert(offsetof(Rml::Vector3f, z) == sizeof(float) * 2);
+                        static_assert(std::is_standard_layout_v<Rml::Vector4f>);
+                        static_assert(sizeof(Rml::Vector4f) == sizeof(float) * 4);
+                        static_assert(offsetof(Rml::Vector4f, x) == 0);
+                        static_assert(offsetof(Rml::Vector4f, y) == sizeof(float));
+                        static_assert(offsetof(Rml::Vector4f, z) == sizeof(float) * 2);
+                        static_assert(offsetof(Rml::Vector4f, w) == sizeof(float) * 3);
                         static_assert(std::is_standard_layout_v<Rml::Vector2i>);
                         static_assert(sizeof(Rml::Vector2i) == sizeof(int) * 2);
                         static_assert(offsetof(Rml::Vector2i, x) == 0);
                         static_assert(offsetof(Rml::Vector2i, y) == sizeof(int));
+                        static_assert(std::is_standard_layout_v<Rml::Colourf>);
+                        static_assert(sizeof(Rml::Colourf) == sizeof(float) * 4);
+                        static_assert(offsetof(Rml::Colourf, red) == 0);
+                        static_assert(offsetof(Rml::Colourf, green) == sizeof(float));
+                        static_assert(offsetof(Rml::Colourf, blue) == sizeof(float) * 2);
+                        static_assert(offsetof(Rml::Colourf, alpha) == sizeof(float) * 3);
+                        static_assert(std::is_standard_layout_v<Rml::Colourb>);
+                        static_assert(sizeof(Rml::Colourb) == sizeof(unsigned char) * 4);
+                        static_assert(offsetof(Rml::Colourb, red) == 0);
+                        static_assert(offsetof(Rml::Colourb, green) == sizeof(unsigned char));
+                        static_assert(offsetof(Rml::Colourb, blue) == sizeof(unsigned char) * 2);
+                        static_assert(offsetof(Rml::Colourb, alpha) == sizeof(unsigned char) * 3);
                         static_assert(std::is_standard_layout_v<Rml::Vertex>);
                         static_assert(sizeof(Rml::Vertex) == 20);
                         static_assert(offsetof(Rml::Vertex, position) == 0);
@@ -1616,6 +1828,15 @@ internal static class Program
             {
                 public int X;
                 public int Y;
+            }
+
+            [StructLayout(LayoutKind.Sequential)]
+            public struct RmlUiLegacyColourb
+            {
+                public byte Red;
+                public byte Green;
+                public byte Blue;
+                public byte Alpha;
             }
 
             [StructLayout(LayoutKind.Sequential)]

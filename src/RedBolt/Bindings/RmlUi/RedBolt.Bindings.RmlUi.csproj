@@ -9,4 +9,8 @@
   <ItemGroup Condition="'$(RedBoltGeneratedBindingsDir)' != '' and Exists('$(RedBoltGeneratedBindingsDir)/rmlui')">
     <Compile Include="$(RedBoltGeneratedBindingsDir)/rmlui/**/*.g.cs" LinkBase="Generated" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../RedBolt/RedBolt.csproj" />
+  </ItemGroup>
 </Project>

@@ -132,7 +132,7 @@ public sealed class RmlUiBindingsTests
 
             context = RmlUiNativeBindings.CreateContext(
                 name,
-                new RmlUiLegacyVector2i { X = 320, Y = 200 },
+                new Vector2i(320, 200),
                 renderInterface.GetAdaptedInterface(),
                 0);
 
@@ -279,7 +279,7 @@ public sealed class RmlUiBindingsTests
 
             Assert.True(RmlUiNativeBindings.LoadFontFace(fontPath));
             context = RmlUiNativeBindings.CreateContext(
-                contextName, new RmlUiLegacyVector2i { X = 640, Y = 480 });
+                contextName, new Vector2i(640, 480));
             Assert.NotNull(context);
             Assert.True(RmlUiNativeBindings.Initialise(context));
             RmlUiNativeBindings.SetVisible(true);
@@ -381,7 +381,7 @@ public sealed class RmlUiBindingsTests
             Assert.True(fontEngineInterface.IsInitialized);
 
             context = RmlUiNativeBindings.CreateContext(
-                name, new RmlUiLegacyVector2i { X = 320, Y = 200 });
+                name, new Vector2i(320, 200));
 
             Assert.NotNull(context);
             Assert.Equal(320, context.GetDimensions().X);
@@ -389,7 +389,7 @@ public sealed class RmlUiBindingsTests
             using var contextName = context.GetName();
             Assert.Equal("RedBolt.Tests.RmlUiBindings", contextName.ToString());
 
-            context.SetDimensions(new RmlUiLegacyVector2i { X = 640, Y = 480 });
+            context.SetDimensions(new Vector2i(640, 480));
             context.SetDensityIndependentPixelRatio(1.5f);
 
             Assert.Equal(640, context.GetDimensions().X);
