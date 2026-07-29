@@ -68,7 +68,7 @@ input.submit
 {
     border: 1dp #45614a;
     border-top: 1dp #688762;
-    decorator: gradient(vertical #3c5c4a #25413a);
+    decorator: vertical-gradient(#3c5c4a #25413a);
     display: inline-block;
     text-align: center;
     padding: 4dp 8dp;
@@ -82,25 +82,25 @@ input.submit:hover
 {
     border: 1dp #45614a;
     border-top: 1dp #688762;
-    decorator: gradient(vertical #3b785a #225b4b);
+    decorator: vertical-gradient(#3b785a #225b4b);
 }
 
 button:active,
 input.submit:active
 {
-    decorator: gradient(vertical #225b4b #3b785a);
+    decorator: vertical-gradient(#225b4b #3b785a);
 }
 
 input.submit:disabled
 {
-    decorator: gradient(vertical #3c5c4a #25413a);
+    decorator: vertical-gradient(#3c5c4a #25413a);
 }
 
 /* X button */
 .close-window
 {
     border: 2dp #6b8a64;
-    decorator: image(close-button), gradient(vertical #c45036 #7f2c24);
+    decorator: image(close-button), vertical-gradient(#c45036 #7f2c24);
     border: 0dp;
     width: 20dp;
     height: 20dp;
@@ -112,12 +112,12 @@ input.submit:disabled
 
 .close-window:hover
 {
-    decorator: image(close-button), gradient(vertical #7f2c24 #c45036);
+    decorator: image(close-button), vertical-gradient(#7f2c24 #c45036);
 }
 
 .close-window:active
 {
-    decorator: image(close-button), gradient(vertical #c45036 #7f2c24);
+    decorator: image(close-button), vertical-gradient(#c45036 #7f2c24);
 }
 
 /* textarea */
@@ -273,46 +273,46 @@ input.range sliderarrowdec
     border: 1dp #45614a;
     border-top: #688762;
     border-radius: 3dp;
-    decorator: gradient(vertical #3c5c4a #25413a);
+    decorator: vertical-gradient(#3c5c4a #25413a);
 }
 
 scrollbarvertical sliderarrowdec
 {
-     decorator: image(arrow-down flip-vertical), gradient(vertical #3c5c4a #25413a);
+     decorator: image(arrow-down flip-vertical), vertical-gradient(#3c5c4a #25413a);
 }
 scrollbarvertical sliderarrowinc
 {
-     decorator: image(arrow-down), gradient(vertical #3c5c4a #25413a);
+     decorator: image(arrow-down), vertical-gradient(#3c5c4a #25413a);
 }
 
 scrollbarhorizontal sliderarrowdec,
 input.range sliderarrowdec
 {
-     decorator: image(arrow-right flip-horizontal), gradient(vertical #3c5c4a #25413a);
+     decorator: image(arrow-right flip-horizontal), vertical-gradient(#3c5c4a #25413a);
 }
 scrollbarhorizontal sliderarrowinc,
 input.range sliderarrowinc
 {
-     decorator: image(arrow-right), gradient(vertical #3c5c4a #25413a);
+     decorator: image(arrow-right), vertical-gradient(#3c5c4a #25413a);
 }
 
 scrollbarvertical sliderarrowinc:hover
 {
-    decorator: image(arrow-down), gradient(vertical #3b785a #357e57);
+    decorator: image(arrow-down), vertical-gradient(#3b785a #357e57);
 }
 scrollbarvertical sliderarrowdec:hover
 {
-    decorator: image(arrow-down flip-vertical),gradient(vertical #3b785a #357e57);
+    decorator: image(arrow-down flip-vertical),vertical-gradient(#3b785a #357e57);
 }
 scrollbarhorizontal sliderarrowinc:hover,
 input.range sliderarrowinc:hover
 {
-    decorator: image(arrow-right), gradient(vertical #3b785a #357e57);
+    decorator: image(arrow-right), vertical-gradient(#3b785a #357e57);
 }
 scrollbarhorizontal sliderarrowdec:hover,
 input.range sliderarrowdec:hover
 {
-    decorator: image(arrow-right flip-horizontal), gradient(vertical #3b785a #357e57);
+    decorator: image(arrow-right flip-horizontal), vertical-gradient(#3b785a #357e57);
 }
 
 sliderbar
@@ -322,17 +322,17 @@ sliderbar
     border: 1dp #45614a;
     border-top: #688762;
     border-radius: 3dp;
-    decorator: gradient(vertical #3c5c4a #25413a);
+    decorator: vertical-gradient(#3c5c4a #25413a);
 }
 
 sliderbar:hover
 {
-    decorator: gradient(vertical #3b785a #357e57);
+    decorator: vertical-gradient(#3b785a #357e57);
 }
 
 sliderbar:active
 {
-    decorator: gradient(vertical #357e57 #3b785a);
+    decorator: vertical-gradient(#357e57 #3b785a);
 }
 
 scrollbarhorizontal > sliderbar
@@ -351,7 +351,7 @@ progress
     border: 1dp #45614a;
     border-top: #688762;
     border-radius: 3dp;
-    decorator: gradient(vertical #3c5c4a #25413a);
+    decorator: vertical-gradient(#3c5c4a #25413a);
 }
 
 progress.horizontal

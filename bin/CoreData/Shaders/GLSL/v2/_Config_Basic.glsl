@@ -72,10 +72,18 @@
 
 /// =================================== Extensions ===================================
 
-#extension GL_ARB_shading_language_420pack: enable
-#extension GL_EXT_clip_cull_distance: enable
-#extension GL_ANGLE_clip_cull_distance: enable
-#extension GL_OES_standard_derivatives : enable
+#ifdef GL_ARB_shading_language_420pack
+    #extension GL_ARB_shading_language_420pack: enable
+#endif
+#ifdef GL_EXT_clip_cull_distance
+    #extension GL_EXT_clip_cull_distance: enable
+#endif
+#ifdef GL_ANGLE_clip_cull_distance
+    #extension GL_ANGLE_clip_cull_distance: enable
+#endif
+#ifdef GL_OES_standard_derivatives
+    #extension GL_OES_standard_derivatives : enable
+#endif
 
 
 /// =================================== Types and constants ===================================

@@ -5,9 +5,10 @@
 # Do exactly what is written. Do not invent steps. Do not skip steps.
 # ==========================================================================
 
-## 0. VOCABULARY
+## 0. VOCABULARY AND STYLE
 
-Reasoning and response format is defined by `caveman` skill.
+Reasoning and response format defined by ASD-STE100 Simplified Technical English.
+Technical style is defined by `ponytail*` skills.
 
 ## 1. WHAT YOU ARE DOING
 
