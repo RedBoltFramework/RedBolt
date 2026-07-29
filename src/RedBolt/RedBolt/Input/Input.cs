@@ -1395,11 +1395,6 @@ public class Input : RedObject
         var scancode = (Scancode)(uint)@event.KeyKeysymScancode;
         var key = ConvertSdlKeyCode((Key)@event.KeyKeysymSym, scancode);
         SetKey(key, scancode, true);
-        if (scancode == Scancode.Escape)
-        {
-            ExitRequested = true;
-            SendEvent<InputEvents.ExitRequestedEvent>();
-        }
     }
 
     private void HandleKeyUp(SdlEvent @event)
