@@ -101,8 +101,11 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 - [x] Packet 0 baseline — generated binding commands share one prebuilt dependency-generator binary, so clean
   regeneration is deterministic under `-j16`; CMake configuration is explicitly started only for a missing binary
   directory and otherwise relies on CMake's dependency-driven regeneration; binding outputs depend on their parsed
-  headers, SharpCpp sources, and RedBolt generator sources; unchanged native builds skip generation, compilation, and
-  linking; direct native CMake builds are rejected outside MSBuild; all 1520 tests pass; screenshot-on-exit retains the valid rendered
+  headers, SharpCpp sources, and RedBolt generator sources; the dependency generator has one shared pipeline and one
+  generator per native target; stale SDL, SPIRV-Cross, C primitive, invalid alias, and xatlas callback rewrites are removed
+  after their SharpCpp causes or redundant projections were resolved; unchanged native builds skip generation, compilation, and
+  linking; direct native CMake builds are rejected outside MSBuild; all 1982 RedBolt tests and 548 SharpCpp tests pass;
+  screenshot-on-exit retains the valid rendered
   buffer through final-frame capture; and `MoveAndOrbitController` acquires the scene input subsystem before
   evaluating its input map. The required two-second MultipleViewports capture is visibly correct on both the Radeon
   driver and the host's llvmpipe fallback.

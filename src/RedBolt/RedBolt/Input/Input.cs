@@ -563,7 +563,7 @@ public class Input : RedObject
                 finally
                 {
                     if (fileNamePointer != IntPtr.Zero)
-                        SdlNativeBindings.SdlFree(in fileNamePointer);
+                        SdlNativeBindings.SdlFree(fileNamePointer);
                 }
             }
             else if (eventType == SdlEventType.SdlWindowevent && _nativeEvent.WindowEvent == (byte)SdlWindowEventID.SdlWindoweventClose)
