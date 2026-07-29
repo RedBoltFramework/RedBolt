@@ -198,6 +198,14 @@ Build:
   git submodule update --init --recursive
   dotnet build RedBolt.slnx --configuration Debug
 
+After any SharpCpp change, build and test SharpCpp independently:
+  dotnet build extern/SharpCpp/SharpCpp.slnx --configuration Debug
+  dotnet test extern/SharpCpp/SharpCpp.slnx --configuration Debug
+
+The independent SharpCpp test run must include and pass all SharpCpp tests,
+including the generated-binding E2E and rbfx E2E suites. SharpCpp test projects
+must not be added to `RedBolt.slnx`.
+
 CMake is auxiliary and is invoked by C# build targets. Do not call CMake directly
 for normal build or verification; build through `dotnet`, `.slnx`, or `.csproj`.
 

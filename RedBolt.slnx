@@ -95,10 +95,4 @@
   <Folder Name="/src/RedBolt/Tests/">
     <Project Path="src/RedBolt/Tests/RedBolt.Tests.csproj" />
   </Folder>
-  <Folder Name="/src/RedBolt/Tests/SharpCpp/">
-    <Project Path="extern/SharpCpp/tests/SharpCpp.Tests.E2E/SharpCpp.Tests.E2E.csproj" />
-    <Project Path="extern/SharpCpp/tests/SharpCpp.Tests.Metadata/SharpCpp.Tests.Metadata.csproj" />
-    <Project Path="extern/SharpCpp/tests/SharpCpp.Tests.Model/SharpCpp.Tests.Model.csproj" />
-    <Project Path="extern/SharpCpp/tests/SharpCpp.Tests.Rendering/SharpCpp.Tests.Rendering.csproj" />
-  </Folder>
 </Solution>
