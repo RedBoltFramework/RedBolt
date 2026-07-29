@@ -26,22 +26,25 @@
 
   <ItemGroup>
     <WasmOptConfigurationFlags Include="--enable-threads" />
+    <TrimmerRootAssembly Include="$(AssemblyName)" />
     <NativeFileReference Include="$(RedBoltWebEngineArchive)" />
     <ProjectReference Include="../../RedBolt/RedBolt.csproj" />
     <ProjectReference Include="../../IK/RedBolt.IK.csproj" />
     <ProjectReference Include="../../Navigation/RedBolt.Navigation.csproj" />
     <ProjectReference Include="../../Platform/Web/RedBolt.Platform.Web.csproj" />
     <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
+    <ProjectReference Include="../../RmlUI/RedBolt.RmlUI.csproj" />
+    <ProjectReference Include="../../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset" />
     <ProjectReference Include="../../Native/RedBolt.Native.Web.csproj"
                       ReferenceOutputAssembly="false"
                       Private="false"
                       PrivateAssets="all" />
-    <Compile Include="../*/Program.cs"
-             Exclude="../AdvancedUI/Program.cs;../HelloRmlUI/Program.cs;../Web/Program.cs"
+    <Compile Include="../**/*.cs"
+             Exclude="../Web/**/*.cs"
              Link="Samples/%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="../AnimatingScene/Rotator.cs" Link="Samples/AnimatingScene/Rotator.cs" />
-    <Compile Include="../RenderToTexture/Rotator.cs" Link="Samples/RenderToTexture/Rotator.cs" />
-    <Compile Include="../SkeletalAnimation/Mover3D.cs" Link="Samples/Mover3D.cs" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all"
                       AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
