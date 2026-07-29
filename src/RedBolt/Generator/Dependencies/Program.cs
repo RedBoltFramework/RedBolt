@@ -943,12 +943,19 @@ internal static class Program
         element.ManagedBaseTypeName = null;
         foreach (var method in element.Members.OfType<FunctionBinding>())
         {
-            if (!method.IsGeneric && method.NativeName is
-                "Blur" or "GetAbsoluteOffset" or "GetContext" or "GetOwnerDocument" or "GetProperty" or
-                "GetTagName" or "IsVisible" or "SetProperty")
+            if ((!method.IsGeneric && method.NativeName is
+                    "Blur" or "GetAbsoluteOffset" or "GetContext" or "GetOwnerDocument" or "GetProperty" or
+                    "GetTagName" or "IsVisible" or "SetProperty") ||
+                (method.IsGeneric && method.NativeName is "GetAttribute" or "SetAttribute"))
                 method.ClearIgnoreReason();
             else
                 method.SetSilentExclusionReason("RmlUi element member is outside the current binding slice");
+        }
+        foreach (var method in element.Members.OfType<FunctionBinding>()
+                     .Where(static method => method.IsGeneric && method.NativeName is "GetAttribute" or "SetAttribute"))
+        {
+            method.SupportedGenericInstantiations.Add(new RecordGenericInstantiationBinding([BindingType.Boolean]));
+            method.SupportedGenericInstantiations.Add(new RecordGenericInstantiationBinding([BindingType.IntPtr]));
         }
 
         var elementDocument = compilation.Records.First(static record =>

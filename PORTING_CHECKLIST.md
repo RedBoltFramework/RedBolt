@@ -636,6 +636,7 @@ Accepted deviations:
   - [x] generated RmlUi context keyboard, text, mouse, focus, hover, root, and element inspection prerequisites
   - [x] generated RmlUi debugger visibility and texture, style-sheet, and template cache release prerequisites
   - [x] generated RmlUi document enumeration, source, visibility, modal, position, and property reload prerequisites
+  - [x] generated RmlUi element boolean and component-pointer attribute prerequisites
   - [ ] `RmlUI : Object`
 - [ ] `RmlUIComponent.h`
   - [ ] `RmlUIComponent : LogicComponent`

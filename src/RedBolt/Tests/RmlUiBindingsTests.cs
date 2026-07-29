@@ -119,6 +119,8 @@ public sealed class RmlUiBindingsTests
         using var leftValue = new Std.String();
         using var topName = new Std.String();
         using var topValue = new Std.String();
+        using var mousePassthroughName = new Std.String();
+        using var componentPointerName = new Std.String();
         fontPath.Assign(Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "Data", "Fonts", "Anonymous Pro.ttf")));
         contextName.Assign("RedBolt.Tests.RmlUiBindings.HarfBuzz");
@@ -138,6 +140,8 @@ public sealed class RmlUiBindingsTests
         leftValue.Assign("12px");
         topName.Assign("top");
         topValue.Assign("8px");
+        mousePassthroughName.Assign("mouse-passthrough");
+        componentPointerName.Assign("__RmlUIComponentPtr__");
         Context? context = null;
         ElementDocument? document = null;
         var initialized = false;
@@ -176,6 +180,10 @@ public sealed class RmlUiBindingsTests
             Assert.Equal(context.Handle, documentContext.Handle);
             var loadedSourceUrl = document.GetSourceURL();
             Assert.Equal(sourceUrl.ToString(), loadedSourceUrl.ToString());
+            document.SetAttribute(mousePassthroughName, true);
+            Assert.True(document.GetAttribute(mousePassthroughName, false));
+            document.SetAttribute(componentPointerName, (nint)0x1234);
+            Assert.Equal((nint)0x1234, document.GetAttribute(componentPointerName, (nint)0));
 
             Assert.True(document.SetProperty(leftName, leftValue));
             Assert.True(document.SetProperty(topName, topValue));
