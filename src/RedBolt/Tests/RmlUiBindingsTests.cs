@@ -105,6 +105,53 @@ public sealed class RmlUiBindingsTests
     }
 
     [Fact]
+    public void Plugin_dispatches_managed_lifecycle()
+    {
+        var originalFileInterface = RmlUiNativeBindings.GetFileInterface();
+        var originalFontEngineInterface = RmlUiNativeBindings.GetFontEngineInterface();
+        var originalRenderInterface = RmlUiNativeBindings.GetRenderInterface();
+        var originalSystemInterface = RmlUiNativeBindings.GetSystemInterface();
+        using var fileInterface = new TestFileInterface();
+        using var fontEngineInterface = new TestFontEngineInterface();
+        using var renderInterface = new TestRenderInterface();
+        using var systemInterface = new TestSystemInterface();
+        using var plugin = new TestPlugin();
+        var initialized = false;
+        var registered = false;
+        try
+        {
+            RmlUiNativeBindings.SetFileInterface(fileInterface);
+            RmlUiNativeBindings.SetFontEngineInterface(fontEngineInterface);
+            RmlUiNativeBindings.SetRenderInterface(renderInterface.GetAdaptedInterface());
+            RmlUiNativeBindings.SetSystemInterface(systemInterface);
+            Assert.True(RmlUiNativeBindings.Initialise());
+            initialized = true;
+
+            RmlUiNativeBindings.RegisterPlugin(plugin);
+            registered = true;
+
+            Assert.True(plugin.IsInitialized);
+            Assert.False(plugin.IsShutdown);
+
+            RmlUiNativeBindings.UnregisterPlugin(plugin);
+            registered = false;
+
+            Assert.True(plugin.IsShutdown);
+        }
+        finally
+        {
+            if (registered)
+                RmlUiNativeBindings.UnregisterPlugin(plugin);
+            if (initialized)
+                RmlUiNativeBindings.Shutdown();
+            RmlUiNativeBindings.SetFileInterface(originalFileInterface);
+            RmlUiNativeBindings.SetFontEngineInterface(originalFontEngineInterface);
+            RmlUiNativeBindings.SetRenderInterface(originalRenderInterface);
+            RmlUiNativeBindings.SetSystemInterface(originalSystemInterface);
+        }
+    }
+
+    [Fact]
     public void Font_engine_interface_round_trips_managed_director()
     {
         var original = RmlUiNativeBindings.GetFontEngineInterface();
@@ -479,6 +526,28 @@ public sealed class RmlUiBindingsTests
         {
             Value = value.ToString();
             return eventListener;
+        }
+    }
+
+    private sealed class TestPlugin : Plugin
+    {
+        public bool IsInitialized { get; private set; }
+
+        public bool IsShutdown { get; private set; }
+
+        public override int GetEventClasses()
+        {
+            return 2;
+        }
+
+        public override void OnInitialise()
+        {
+            IsInitialized = true;
+        }
+
+        public override void OnShutdown()
+        {
+            IsShutdown = true;
         }
     }
 

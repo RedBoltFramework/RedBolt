@@ -633,6 +633,7 @@ Accepted deviations:
   - [ ] `CustomEventListener : Rml::EventListener, NonCopyable`
 - [ ] `RmlUI.h`
   - [x] generated RmlUi lifecycle and base `Context` name, dimensions, DPI, update, and render prerequisites
+  - [x] generated RmlUi `Plugin` director and registration lifecycle prerequisite
   - [x] generated RmlUi font loading and document load, show, hide, close, and unload prerequisites
   - [x] generated RmlUi context keyboard, text, mouse, focus, hover, root, and element inspection prerequisites
   - [x] generated RmlUi debugger visibility and texture, style-sheet, and template cache release prerequisites

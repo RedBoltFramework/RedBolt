@@ -153,6 +153,7 @@ file(CONFIGURE OUTPUT "${REDBOLT_RMLUI_PARSE_HEADER}" CONTENT [=[
 #include <RmlUi/Core/Factory.h>
 #include <RmlUi/Core/FileInterface.h>
 #include <RmlUi/Core/FontEngineInterface.h>
+#include <RmlUi/Core/Plugin.h>
 #include <RmlUi/Core/RenderInterfaceCompatibility.h>
 #include <RmlUi/Core/SystemInterface.h>
 #include <RedBolt/RmlHarfBuzzFontEngine.hpp>

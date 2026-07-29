@@ -132,6 +132,7 @@ internal static class Program
         "Rml::EventListenerInstancer",
         "Rml::FileInterface",
         "Rml::FontEngineInterface",
+        "Rml::Plugin",
         "Rml::RenderInterfaceCompatibility",
         "Rml::SystemInterface"
     };
@@ -1054,6 +1055,18 @@ internal static class Program
         var eventPhase = compilation.Enums.First(static @enum =>
             @enum.CppQualifiedName == "Rml::EventPhase");
         eventPhase.ClearIgnoreReason();
+
+        var plugin = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::Plugin");
+        plugin.ClearIgnoreReason();
+        plugin.Bases.Clear();
+        plugin.ManagedBaseTypeName = null;
+        foreach (var method in plugin.Members.OfType<FunctionBinding>())
+        {
+            if (method.IsConstructor || method.IsVirtual)
+                method.ClearIgnoreReason();
+        }
+
         var focusFlag = compilation.Enums.First(static @enum =>
             @enum.CppQualifiedName == "Rml::FocusFlag");
         focusFlag.ClearIgnoreReason();
@@ -1199,7 +1212,8 @@ internal static class Program
                      function.CppQualifiedName is
                          "Rml::CreateContext" or "Rml::Debugger::Initialise" or "Rml::Debugger::IsVisible" or
                          "Rml::Debugger::SetVisible" or "Rml::Initialise" or "Rml::LoadFontFace" or
-                         "Rml::ReleaseTextures" or "Rml::RemoveContext" or "Rml::Shutdown" or
+                         "Rml::RegisterPlugin" or "Rml::ReleaseTextures" or "Rml::RemoveContext" or
+                         "Rml::Shutdown" or "Rml::UnregisterPlugin" or
                          "Rml::GetFileInterface" or "Rml::SetFileInterface" or
                          "Rml::GetFontEngineInterface" or "Rml::SetFontEngineInterface" or
                          "Rml::GetRenderInterface" or "Rml::SetRenderInterface" or
@@ -1346,7 +1360,8 @@ internal static class Program
                     function.CppQualifiedName is
                         "Rml::CreateContext" or "Rml::Debugger::Initialise" or "Rml::Debugger::IsVisible" or
                         "Rml::Debugger::SetVisible" or "Rml::Initialise" or "Rml::LoadFontFace" or
-                        "Rml::ReleaseTextures" or "Rml::RemoveContext" or "Rml::Shutdown" or
+                        "Rml::RegisterPlugin" or "Rml::ReleaseTextures" or "Rml::RemoveContext" or
+                        "Rml::Shutdown" or "Rml::UnregisterPlugin" or
                         "Rml::GetFileInterface" or "Rml::SetFileInterface" or
                         "Rml::GetFontEngineInterface" or "Rml::SetFontEngineInterface" or
                         "Rml::GetRenderInterface" or "Rml::SetRenderInterface" or
@@ -1361,7 +1376,7 @@ internal static class Program
                          "Rml::ElementDocument" or "Rml::EventListener" or
                          "Rml::EventListenerInstancer" or "Rml::FileInterface" or
                          "Rml::Factory" or "Rml::FontEngineInterface" or "Rml::Log" or "Rml::Property" or
-                         "Rml::RenderInterfaceCompatibility" or "Rml::SystemInterface" or
+                         "Rml::Plugin" or "Rml::RenderInterfaceCompatibility" or "Rml::SystemInterface" or
                          "RedBoltNative::RmlHarfBuzzFontEngine" ||
                      record.CppQualifiedName.StartsWith("Rml::Vector2", StringComparison.Ordinal) ||
                      record.ManagedNamespace == "Std" && record.ManagedName == "String"))
