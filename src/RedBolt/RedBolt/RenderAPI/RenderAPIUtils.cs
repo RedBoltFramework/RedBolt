@@ -555,8 +555,7 @@ public static class RenderAPIUtils
         for (var i = 0; i < infos.Length; ++i)
         {
             var format = (global::RedBolt.Bindings.Diligent.TextureFormat)i;
-            var handle = global::RedBolt.Bindings.Diligent.DiligentNativeBindings.GetTextureFormatAttribs(format);
-            using var info = global::RedBolt.Bindings.Diligent.TextureFormatAttribs.CreateManagedWrapper(handle, false);
+            using var info = global::RedBolt.Bindings.Diligent.DiligentNativeBindings.GetTextureFormatAttribs(format);
             infos[i] = new TextureFormatInfo(
                 global::System.Runtime.InteropServices.Marshal.PtrToStringUTF8(info.Name) ?? string.Empty,
                 info.Format, info.ComponentSize, info.NumComponents,

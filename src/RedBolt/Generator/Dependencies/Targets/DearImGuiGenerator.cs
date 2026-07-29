@@ -19,23 +19,6 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
         "-std=c++17",
         true)
 {
-    private static readonly HashSet<string> ProblematicRecordCppNames = new(StringComparer.Ordinal)
-    {
-        "ImFontGlyph",
-        "ImFontBaked",
-        "ImGuiStoragePair",
-        "ImGuiInputTextCallbackData",
-        "ImFontAtlas"
-    };
-
-    private static readonly HashSet<string> ProblematicFunctionNames = new(StringComparer.Ordinal)
-    {
-        "IsMouseReleasedWithDelay",
-        "GetItemFlags",
-        "GetMouseCursor",
-        "TableGetColumnFlags"
-    };
-
     protected override string MarshallerLanguageStandardArgument => "-std=c++20";
 
     protected override IEnumerable<string> GetAdditionalMarshallerHeaders(GeneratorOptions options)
@@ -50,41 +33,13 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
             "ImGuiValueMarshallers.hpp");
     }
 
-    protected override void PostProcessCompilation(BindingCompilation compilation)
+    protected override void ConfigureBeforeValidation(BindingCompilation compilation)
     {
         ConfigureFunctions(compilation);
     }
 
     protected override void AfterPruneCompilation(BindingCompilation compilation) =>
         ApplyEnumAliasSurface(compilation);
-
-    protected override int PruneCompilation(BindingCompilation compilation)
-    {
-        var prunedCount = 0;
-        foreach (var record in compilation.Records)
-        {
-            if (!ProblematicRecordCppNames.Contains(record.CppQualifiedName))
-                continue;
-
-            record.SetSilentExclusionReason(
-                "Dear ImGui record contains bit-fields, anonymous unions, or char* fields not yet supported by SharpCpp rendering");
-            prunedCount++;
-        }
-
-        foreach (var function in compilation.Functions)
-        {
-            if (!ProblematicFunctionNames.Contains(function.NativeName))
-                continue;
-
-            function.SetSilentExclusionReason(
-                "Dear ImGui function has unsupported C++ syntax in the managed surface");
-            prunedCount++;
-        }
-
-        PruneFunctionsWithExcludedTypes(compilation);
-        compilation.InvalidateCaches();
-        return prunedCount;
-    }
 
     private static void ConfigureFunctions(BindingCompilation compilation)
     {
@@ -104,7 +59,6 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
             buffer.Direction = BindingParameterDirection.In;
             buffer.AbiKind = BindingParameterAbiKind.Value;
             buffer.CppTypeName = "char*";
-            function.ClearIgnoreReason();
             function.SetMetadata(MetadataKeys.NativeDefaultArgumentAdapter, true);
         }
 
@@ -213,43 +167,4 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
         return type;
     }
 
-    private static void PruneFunctionsWithExcludedTypes(BindingCompilation compilation)
-    {
-        var excludedRecordSymbolIds = compilation.Records
-            .Where(static record => record.IsIgnored())
-            .Select(static record => record.SymbolId)
-            .ToHashSet(StringComparer.Ordinal);
-
-        foreach (var function in compilation.Functions)
-        {
-            if (function.IsIgnored())
-                continue;
-
-            if (ReferencesExcludedRecord(function.ReturnType, excludedRecordSymbolIds) ||
-                function.Parameters.Any(parameter =>
-                    ReferencesExcludedRecord(parameter.Type, excludedRecordSymbolIds)))
-            {
-                function.SetSilentExclusionReason("Dear ImGui function references an excluded record type");
-            }
-        }
-
-        foreach (var field in compilation.Records.SelectMany(static record =>
-                     record.Members.OfType<FieldBinding>()))
-        {
-            if (!field.IsIgnored() && ReferencesExcludedRecord(field.Type, excludedRecordSymbolIds))
-                field.SetSilentExclusionReason("Dear ImGui field references an excluded record type");
-        }
-    }
-
-    private static bool ReferencesExcludedRecord(BindingType type, HashSet<string> excludedSymbolIds)
-    {
-        if (type.RecordId is not null && excludedSymbolIds.Contains(type.RecordId))
-            return true;
-
-        return type.GenericArguments.Any(argument => ReferencesExcludedRecord(argument, excludedSymbolIds)) ||
-            type.FixedArrayElementType is not null &&
-            ReferencesExcludedRecord(type.FixedArrayElementType, excludedSymbolIds) ||
-            type.DynamicArrayElementType is not null &&
-            ReferencesExcludedRecord(type.DynamicArrayElementType, excludedSymbolIds);
-    }
 }

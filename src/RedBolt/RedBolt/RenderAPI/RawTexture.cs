@@ -690,8 +690,7 @@ public class RawTexture : DeviceObject
             return false;
 
         var nativeFormat = _parameters.Format;
-        using (var formatInfo = TextureFormatAttribs.CreateManagedWrapper(
-                   DiligentNativeBindings.GetTextureFormatAttribs(nativeFormat), false))
+        using (var formatInfo = DiligentNativeBindings.GetTextureFormatAttribs(nativeFormat))
         {
             _formatBlockWidth = checked((int)formatInfo.BlockWidth);
             _formatBlockHeight = checked((int)formatInfo.BlockHeight);

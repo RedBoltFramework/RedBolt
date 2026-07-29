@@ -33,10 +33,34 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
         "Rml::VariableDefinition"
     };
 
+    private static readonly HashSet<string> RetainedFreeFunctions = new(StringComparer.Ordinal)
+    {
+        "Rml::CreateContext",
+        "Rml::Debugger::Initialise",
+        "Rml::Debugger::IsVisible",
+        "Rml::Debugger::SetVisible",
+        "Rml::GetFileInterface",
+        "Rml::GetFontEngineInterface",
+        "Rml::GetRenderInterface",
+        "Rml::GetSystemInterface",
+        "Rml::Initialise",
+        "Rml::LoadFontFace",
+        "Rml::RegisterPlugin",
+        "Rml::ReleaseTextures",
+        "Rml::RemoveContext",
+        "Rml::SetFileInterface",
+        "Rml::SetFontEngineInterface",
+        "Rml::SetRenderInterface",
+        "Rml::SetSystemInterface",
+        "Rml::Shutdown",
+        "Rml::UnregisterPlugin"
+    };
+
     protected override IReadOnlyDictionary<string, string> NamespaceMappings { get; } =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["Rml"] = "RedBolt.Bindings.RmlUi"
+            ["Rml"] = "RedBolt.Bindings.RmlUi",
+            ["RedBoltNative"] = "RedBoltNative"
         };
 
     protected override IReadOnlySet<string>? DirectorRecordCppTypeNames =>
@@ -57,7 +81,7 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
     protected override bool RetainStdlibWrapper(RecordBinding record) =>
         record.ManagedNamespace == "Std" && record.ManagedName is "String" or "UnorderedMap" or "Vector";
 
-    protected override void PostProcessCompilation(BindingCompilation compilation)
+    protected override void ConfigureBeforeValidation(BindingCompilation compilation)
     {
         ConfigureSurface(compilation);
     }
@@ -71,47 +95,28 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
     {
         var systemInterface = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::SystemInterface");
-        systemInterface.ClearIgnoreReason();
         systemInterface.Bases.Clear();
         systemInterface.ManagedBaseTypeName = null;
-        foreach (var method in systemInterface.Members.OfType<FunctionBinding>())
-        {
-            if (method.IsConstructor || method.IsVirtual)
-                method.ClearIgnoreReason();
-        }
-
         var fileInterface = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::FileInterface");
-        fileInterface.ClearIgnoreReason();
         fileInterface.Bases.Clear();
         fileInterface.ManagedBaseTypeName = null;
-        foreach (var method in fileInterface.Members.OfType<FunctionBinding>())
-        {
-            if (method.IsConstructor || method.IsVirtual)
-                method.ClearIgnoreReason();
-        }
 
         var fontEngineInterface = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::FontEngineInterface");
-        fontEngineInterface.ClearIgnoreReason();
         fontEngineInterface.Bases.Clear();
         fontEngineInterface.ManagedBaseTypeName = null;
         foreach (var method in fontEngineInterface.Members.OfType<FunctionBinding>())
         {
-            if (method.IsConstructor || method.NativeName is "Initialize" or "Shutdown")
-                method.ClearIgnoreReason();
-            else
+            if (!method.IsConstructor && method.NativeName is not ("Initialize" or "Shutdown"))
                 method.SetSilentExclusionReason("RmlUi font engine member is outside the lifecycle binding slice");
         }
 
         var harfBuzzFontEngine = compilation.Records.First(static record =>
             record.CppQualifiedName == "RedBoltNative::RmlHarfBuzzFontEngine");
-        harfBuzzFontEngine.ClearIgnoreReason();
         foreach (var method in harfBuzzFontEngine.Members.OfType<FunctionBinding>())
         {
-            if (method.IsConstructor)
-                method.ClearIgnoreReason();
-            else
+            if (!method.IsConstructor)
                 method.SetSilentExclusionReason("RmlUi HarfBuzz font engine is accessed through FontEngineInterface");
         }
 
@@ -120,14 +125,11 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
 
         var factory = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Factory");
-        factory.ClearIgnoreReason();
         foreach (var method in factory.Members.OfType<FunctionBinding>())
         {
-            if (method.NativeName is
-                "ClearStyleSheetCache" or "ClearTemplateCache" or
-                "InstanceEventListener" or "RegisterContextInstancer" or "RegisterEventListenerInstancer")
-                method.ClearIgnoreReason();
-            else
+            if (method.NativeName is not (
+                    "ClearStyleSheetCache" or "ClearTemplateCache" or
+                    "InstanceEventListener" or "RegisterContextInstancer" or "RegisterEventListenerInstancer"))
                 method.SetSilentExclusionReason("RmlUi factory member is outside the current binding slice");
         }
         var registerEventListenerInstancer = factory.Members.OfType<FunctionBinding>().First(static method =>
@@ -138,7 +140,6 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
 
         var context = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Context");
-        context.ClearIgnoreReason();
         context.Bases.Clear();
         context.ManagedBaseTypeName = null;
         foreach (var method in context.Members.OfType<FunctionBinding>())
@@ -147,6 +148,7 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
                 "GetDensityIndependentPixelRatio" or "GetDimensions" or "GetDocument" or "GetFocusElement" or
                 "GetHoverElement" or "GetName" or "GetNumDocuments" or "GetRootElement" or "Render" or
                 "LoadDocumentFromMemory" or "SetDensityIndependentPixelRatio" or "SetDimensions" or
+                "CreateDataModel" or "GetDataModel" or "RemoveDataModel" or
                 "ProcessKeyDown" or "ProcessKeyUp" or "ProcessMouseButtonDown" or "ProcessMouseButtonUp" or
                 "ProcessMouseMove" or "ProcessMouseWheel" or "ProcessTextInput" or
                 "UnloadAllDocuments" or "UnloadDocument" or "Update")
@@ -163,7 +165,6 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
                     method.SetSilentExclusionReason("RmlUi Character text input overload is outside the current binding slice");
                     continue;
                 }
-                method.ClearIgnoreReason();
             }
             else
             {
@@ -197,21 +198,25 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
 
         var element = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Element");
+        var dispatchEvent = element.Members.OfType<FunctionBinding>().First(static method =>
+            method.NativeName == "DispatchEvent" &&
+            method.Parameters.Count == 2 &&
+            method.Parameters[0].CppTypeName == "const Rml::String&");
+        var dictionaryTypeArguments = dispatchEvent.Parameters[1].Type.GenericArguments
+            .Select(BindingTypeKey.From)
+            .ToArray();
         var unorderedMap = compilation.Records.First(static record =>
             record.CppQualifiedName == "std::unordered_map");
-        unorderedMap.ClearIgnoreReason();
         for (var index = unorderedMap.SupportedGenericInstantiations.Count - 1; index >= 0; --index)
         {
-            var typeArguments = unorderedMap.SupportedGenericInstantiations[index].TypeArguments;
-            if (typeArguments.Count >= 2 &&
-                typeArguments[0].CppTypeName.Contains("basic_string<char>", StringComparison.Ordinal) &&
-                typeArguments[1].CppTypeName == "Rml::Variant")
+            var typeArguments = unorderedMap.SupportedGenericInstantiations[index].TypeArguments
+                .Select(BindingTypeKey.From);
+            if (typeArguments.SequenceEqual(dictionaryTypeArguments))
             {
                 continue;
             }
             unorderedMap.SupportedGenericInstantiations.RemoveAt(index);
         }
-        element.ClearIgnoreReason();
         element.Bases.Clear();
         element.ManagedBaseTypeName = null;
         foreach (var method in element.Members.OfType<FunctionBinding>())
@@ -232,9 +237,7 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
             if (method.NativeName == "ScrollIntoView" &&
                 method.Parameters.FirstOrDefault()?.CppTypeName != "Rml::ScrollIntoViewOptions")
                 retained = false;
-            if (retained)
-                method.ClearIgnoreReason();
-            else
+            if (!retained)
                 method.SetSilentExclusionReason("RmlUi element member is outside the current binding slice");
         }
         foreach (var method in element.Members.OfType<FunctionBinding>()
@@ -246,27 +249,21 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
 
         var elementDocument = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::ElementDocument");
-        elementDocument.ClearIgnoreReason();
         foreach (var method in elementDocument.Members.OfType<FunctionBinding>())
         {
-            if (method.NativeName is
-                "Close" or "FindNextTabElement" or "GetContext" or "GetSourceURL" or
-                "Hide" or "IsModal" or "Show" or "UpdateDocument")
-                method.ClearIgnoreReason();
-            else
+            if (method.NativeName is not (
+                    "Close" or "FindNextTabElement" or "GetContext" or "GetSourceURL" or
+                    "Hide" or "IsModal" or "Show" or "UpdateDocument"))
                 method.SetSilentExclusionReason("RmlUi document member is outside the current binding slice");
         }
 
         var property = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Property");
-        property.ClearIgnoreReason();
         property.Bases.Clear();
         property.ManagedBaseTypeName = null;
         foreach (var member in property.Members)
         {
-            if (member is FunctionBinding { NativeName: "GetNumericValue" } method)
-                method.ClearIgnoreReason();
-            else
+            if (member is not FunctionBinding { NativeName: "GetNumericValue" })
                 member.SetSilentExclusionReason("RmlUi property member is outside the component binding slice");
         }
         var unit = compilation.Enums.First(static @enum =>
@@ -325,7 +322,8 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
             "Property",
             property.ManagedName,
             property.HandleType,
-            "redbolt_rmlui_Rml_Property_Property_float_Unit")
+            "redbolt_rmlui_Rml_Property_Property_float_Unit",
+            cppQualifiedName: "Rml::Property::Property")
         {
             HeaderIncludePath = property.HeaderIncludePath,
             IsConstructor = true,
@@ -348,35 +346,28 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
 
         var box = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Box");
-        box.ClearIgnoreReason();
         box.Bases.Clear();
         box.ManagedBaseTypeName = null;
         foreach (var method in box.Members.OfType<FunctionBinding>())
         {
-            if (!method.IsConstructor && method.NativeName == "GetSize")
-                method.ClearIgnoreReason();
-            else
+            if (method.IsConstructor || method.NativeName != "GetSize")
                 method.SetSilentExclusionReason("RmlUi box member is outside the component binding slice");
         }
 
         var computedValues = compilation.Records.First(static record =>
             record.CppQualifiedName is "Rml::ComputedValues" or "Rml::Style::ComputedValues");
-        computedValues.ClearIgnoreReason();
         computedValues.Bases.Clear();
         computedValues.ManagedNamespace = ManagedNamespace;
         computedValues.ManagedBaseTypeName = null;
         foreach (var method in computedValues.Members.OfType<FunctionBinding>())
         {
-            if (!method.IsConstructor && method.IsConstMethod && method.Parameters.Count == 0 &&
-                method.NativeName is "focus" or "tab_index")
-                method.ClearIgnoreReason();
-            else
+            if (method.IsConstructor || !method.IsConstMethod || method.Parameters.Count != 0 ||
+                method.NativeName is not ("focus" or "tab_index"))
                 method.SetSilentExclusionReason("RmlUi computed-value member is outside the component binding slice");
         }
 
         var numericValue = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::NumericValue");
-        numericValue.ClearIgnoreReason();
         numericValue.Bases.Clear();
         numericValue.ManagedBaseTypeName = null;
         foreach (var member in numericValue.Members)
@@ -384,14 +375,11 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
 
         var scrollIntoViewOptions = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::ScrollIntoViewOptions");
-        scrollIntoViewOptions.ClearIgnoreReason();
         scrollIntoViewOptions.Bases.Clear();
         scrollIntoViewOptions.ManagedBaseTypeName = null;
         foreach (var member in scrollIntoViewOptions.Members)
         {
-            if (member is FunctionBinding { IsConstructor: true } constructor)
-                constructor.ClearIgnoreReason();
-            else
+            if (member is not FunctionBinding { IsConstructor: true })
                 member.SetSilentExclusionReason("RmlUi scroll options fields are outside the component binding slice");
         }
 
@@ -449,47 +437,26 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
 
         var @event = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Event");
-        @event.ClearIgnoreReason();
         @event.Bases.Clear();
         @event.ManagedBaseTypeName = null;
         foreach (var method in @event.Members.OfType<FunctionBinding>())
         {
-            if (method.NativeName is "GetCurrentElement" or "GetPhase" or "GetTargetElement" or "IsPropagating")
-                method.ClearIgnoreReason();
-            else
+            if (method.NativeName is not ("GetCurrentElement" or "GetPhase" or "GetTargetElement" or "IsPropagating"))
                 method.SetSilentExclusionReason("RmlUi event member is outside the event listener binding slice");
         }
 
-        eventListener.ClearIgnoreReason();
         eventListener.Bases.Clear();
         eventListener.ManagedBaseTypeName = null;
-        foreach (var method in eventListener.Members.OfType<FunctionBinding>())
-        {
-            if (method.IsConstructor || method.IsVirtual)
-                method.ClearIgnoreReason();
-        }
 
         var eventListenerInstancer = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::EventListenerInstancer");
-        eventListenerInstancer.ClearIgnoreReason();
         eventListenerInstancer.Bases.Clear();
         eventListenerInstancer.ManagedBaseTypeName = null;
-        foreach (var method in eventListenerInstancer.Members.OfType<FunctionBinding>())
-        {
-            if (method.IsConstructor || method.IsVirtual)
-                method.ClearIgnoreReason();
-        }
 
         var contextInstancer = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::ContextInstancer");
-        contextInstancer.ClearIgnoreReason();
         contextInstancer.Bases.Clear();
         contextInstancer.ManagedBaseTypeName = null;
-        foreach (var method in contextInstancer.Members.OfType<FunctionBinding>())
-        {
-            if (method.IsConstructor || method.IsVirtual)
-                method.ClearIgnoreReason();
-        }
         foreach (var parameter in contextInstancer.Members.OfType<FunctionBinding>()
                      .Where(static method => method.NativeName == "InstanceContext")
                      .SelectMany(static method => method.Parameters)
@@ -519,30 +486,13 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
             OwningRecordCppTypeName = contextInstancer.CppQualifiedName
         });
 
-        var eventPhase = compilation.Enums.First(static @enum =>
-            @enum.CppQualifiedName == "Rml::EventPhase");
-        eventPhase.ClearIgnoreReason();
-
         var plugin = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Plugin");
-        plugin.ClearIgnoreReason();
         plugin.Bases.Clear();
         plugin.ManagedBaseTypeName = null;
-        foreach (var method in plugin.Members.OfType<FunctionBinding>())
-        {
-            if (method.IsConstructor || method.IsVirtual)
-                method.ClearIgnoreReason();
-        }
 
-        var focusFlag = compilation.Enums.First(static @enum =>
-            @enum.CppQualifiedName == "Rml::FocusFlag");
-        focusFlag.ClearIgnoreReason();
-        var modalFlag = compilation.Enums.First(static @enum =>
-            @enum.CppQualifiedName == "Rml::ModalFlag");
-        modalFlag.ClearIgnoreReason();
         var boxArea = compilation.Enums.First(static @enum =>
             @enum.CppQualifiedName == "Rml::BoxArea");
-        boxArea.ClearIgnoreReason();
         var boxAreaType = BindingType.CreateEnum(
             boxArea.CppQualifiedName, boxArea.ManagedName, enumId: boxArea.SymbolId);
         foreach (var parameter in element.Members.OfType<FunctionBinding>()
@@ -555,7 +505,6 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
         }
         var propertyId = compilation.Enums.First(static @enum =>
             @enum.CppQualifiedName == "Rml::PropertyId");
-        propertyId.ClearIgnoreReason();
         var propertyIdType = BindingType.CreateEnum(
             propertyId.CppQualifiedName, propertyId.ManagedName, enumId: propertyId.SymbolId);
         foreach (var parameter in element.Members.OfType<FunctionBinding>()
@@ -577,13 +526,11 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
                  })
         {
             var @enum = compilation.Enums.First(@enum => @enum.CppQualifiedName == cppQualifiedName);
-            @enum.ClearIgnoreReason();
             if (cppQualifiedName is "Rml::Style::Focus" or "Rml::Style::TabIndex")
                 @enum.ManagedNamespace = ManagedNamespace;
         }
         var keyIdentifier = compilation.Enums.First(static @enum =>
             @enum.CppQualifiedName == "Rml::Input::KeyIdentifier");
-        keyIdentifier.ClearIgnoreReason();
         var keyIdentifierType = BindingType.CreateEnum(
             keyIdentifier.CppQualifiedName, keyIdentifier.ManagedName, enumId: keyIdentifier.SymbolId);
         foreach (var parameter in context.Members.OfType<FunctionBinding>()
@@ -594,12 +541,8 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
             parameter.Type = keyIdentifierType;
             parameter.CppTypeName = keyIdentifier.CppQualifiedName;
         }
-        var keyModifier = compilation.Enums.First(static @enum =>
-            @enum.CppQualifiedName == "Rml::Input::KeyModifier");
-        keyModifier.ClearIgnoreReason();
         var fontWeight = compilation.Enums.First(static @enum =>
             @enum.CppQualifiedName == "Rml::Style::FontWeight");
-        fontWeight.ClearIgnoreReason();
         var fontWeightType = BindingType.CreateEnum(
             fontWeight.CppQualifiedName, fontWeight.ManagedName, enumId: fontWeight.SymbolId);
         foreach (var parameter in compilation.Functions
@@ -627,14 +570,8 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
 
         var renderInterfaceCompatibility = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::RenderInterfaceCompatibility");
-        renderInterfaceCompatibility.ClearIgnoreReason();
         renderInterfaceCompatibility.Bases.Clear();
         renderInterfaceCompatibility.ManagedBaseTypeName = null;
-        foreach (var method in renderInterfaceCompatibility.Members.OfType<FunctionBinding>())
-        {
-            if (method.IsConstructor || method.IsVirtual || method.NativeName == "GetAdaptedInterface")
-                method.ClearIgnoreReason();
-        }
 
         var nativeUIntType = BindingType.CreateConfigured(
             "uintptr_t", "nuint", BindingPrimitiveKind.NativeUInt);
@@ -666,7 +603,6 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
         }
 
         var log = compilation.Records.First(static record => record.CppQualifiedName == "Rml::Log");
-        log.ClearIgnoreReason();
         foreach (var method in log.Members.OfType<FunctionBinding>())
             method.SetSilentExclusionReason("RmlUi logging helpers are outside the interface binding slice");
 
@@ -678,7 +614,6 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
         logType.CppQualifiedName = "Rml::Log::Type";
         logType.ManagedName = "LogType";
         logType.ManagedNamespace = ManagedNamespace;
-        logType.ClearIgnoreReason();
 
         logMessageType.Type = BindingType.CreateEnum(
             logType.CppQualifiedName, logType.ManagedName, enumId: logType.SymbolId);
@@ -686,21 +621,17 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
 
         var vector2 = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Vector2");
-        vector2.ClearIgnoreReason();
         vector2.Members.Clear();
 
         foreach (var function in compilation.Functions.Where(static function =>
-                     function.Parent is not RecordBinding &&
-                     function.CppQualifiedName is
-                         "Rml::CreateContext" or "Rml::Debugger::Initialise" or "Rml::Debugger::IsVisible" or
-                         "Rml::Debugger::SetVisible" or "Rml::Initialise" or "Rml::LoadFontFace" or
-                         "Rml::RegisterPlugin" or "Rml::ReleaseTextures" or "Rml::RemoveContext" or
-                         "Rml::Shutdown" or "Rml::UnregisterPlugin" or
-                         "Rml::GetFileInterface" or "Rml::SetFileInterface" or
-                         "Rml::GetFontEngineInterface" or "Rml::SetFontEngineInterface" or
-                         "Rml::GetRenderInterface" or "Rml::SetRenderInterface" or
-                         "Rml::GetSystemInterface" or "Rml::SetSystemInterface"))
+                     function.Parent is not RecordBinding))
         {
+            if (!RetainedFreeFunctions.Contains(function.CppQualifiedName))
+            {
+                function.SetSilentExclusionReason("RmlUi free function is outside the current binding slice");
+                continue;
+            }
+
             if (function.CppQualifiedName == "Rml::LoadFontFace" &&
                 function.Parameters.FirstOrDefault()?.CppTypeName != "const Rml::String&")
             {
@@ -708,7 +639,6 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
                 continue;
             }
 
-            function.ClearIgnoreReason();
             if (function.CppQualifiedName.StartsWith("Rml::Debugger::", StringComparison.Ordinal))
                 continue;
             if (function.CppQualifiedName == "Rml::ReleaseTextures")
@@ -764,16 +694,13 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
     {
         var variant = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Variant");
-        variant.ClearIgnoreReason();
         variant.Bases.Clear();
         variant.ManagedBaseTypeName = null;
         foreach (var method in variant.Members.OfType<FunctionBinding>())
         {
-            if (method.IsConstructor && !method.IsGeneric ||
-                method.NativeName is "Clear" or "GetType" ||
-                method.IsGeneric && method.NativeName == "Get")
-                method.ClearIgnoreReason();
-            else
+            if (!(method.IsConstructor && !method.IsGeneric ||
+                  method.NativeName is "Clear" or "GetType" ||
+                  method.IsGeneric && method.NativeName == "Get"))
                 method.SetSilentExclusionReason("RmlUi variant member is outside the data-model binding slice");
         }
         var variantBooleanConstructor = new FunctionBinding(
@@ -781,7 +708,8 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
             "Variant",
             variant.ManagedName,
             variant.HandleType,
-            "redbolt_rmlui_Rml_Variant_Variant_bool")
+            "redbolt_rmlui_Rml_Variant_Variant_bool",
+            cppQualifiedName: "Rml::Variant::Variant")
         {
             HeaderIncludePath = variant.HeaderIncludePath,
             IsConstructor = true,
@@ -897,13 +825,13 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
             assign.SupportedGenericInstantiations.Add(new RecordGenericInstantiationBinding(
                 [type.WithCppTypeName($"const {type.CppTypeName}&").WithCppIsReference(true)]));
         }
+        assign.SetMetadata(MetadataKeys.ExplicitManagedRename, true);
         variant.Members.Add(assign);
 
         var variantType = compilation.Enums.First(static @enum =>
             @enum.CppQualifiedName == "Rml::Variant::Type");
         variantType.ManagedName = "VariantType";
         variantType.ManagedNamespace = variant.ManagedNamespace;
-        variantType.ClearIgnoreReason();
         var getVariantType = variant.Members.OfType<FunctionBinding>().First(static method =>
             method.NativeName == "GetType");
         getVariantType.ManagedName = "GetVariantType";
@@ -924,17 +852,14 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
 
         var constructor = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::DataModelConstructor");
-        constructor.ClearIgnoreReason();
         constructor.Bases.Clear();
         constructor.ManagedBaseTypeName = null;
         foreach (var method in constructor.Members.OfType<FunctionBinding>())
         {
-            if (!method.IsGeneric &&
-                (method.IsConstructor && method.Parameters.Count == 0 ||
-                 method.NativeName is ("BindCustomDataVariable" or "BindEventCallback" or "BindFunc" or "GetDataTypeRegister" or
-                     "GetModelHandle" or "RegisterTransformFunc")))
-                method.ClearIgnoreReason();
-            else
+            if (method.IsGeneric ||
+                !(method.IsConstructor && method.Parameters.Count == 0 ||
+                  method.NativeName is ("BindCustomDataVariable" or "BindEventCallback" or "BindFunc" or "GetDataTypeRegister" or
+                      "GetModelHandle" or "RegisterTransformFunc")))
                 method.SetSilentExclusionReason("RmlUi data-model constructor member is outside the functional binding slice");
         }
         var bindEventCallback = constructor.Members.OfType<FunctionBinding>().First(static method =>
@@ -991,27 +916,21 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
 
         var typeRegister = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::DataTypeRegister");
-        typeRegister.ClearIgnoreReason();
         typeRegister.Bases.Clear();
         typeRegister.ManagedBaseTypeName = null;
         foreach (var method in typeRegister.Members.OfType<FunctionBinding>())
         {
-            if (method.IsConstructor)
-                method.ClearIgnoreReason();
-            else
+            if (!method.IsConstructor)
                 method.SetSilentExclusionReason("RmlUi type register member is outside the component binding slice");
         }
 
         var variableDefinition = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::VariableDefinition");
-        variableDefinition.ClearIgnoreReason();
         variableDefinition.Bases.Clear();
         variableDefinition.ManagedBaseTypeName = null;
         foreach (var method in variableDefinition.Members.OfType<FunctionBinding>())
         {
-            if (method.IsConstructor || method.NativeName is "Child" or "Get" or "Set" or "Size" or "Type")
-                method.ClearIgnoreReason();
-            else
+            if (!method.IsConstructor && method.NativeName is not ("Child" or "Get" or "Set" or "Size" or "Type"))
                 method.SetSilentExclusionReason("RmlUi variable definition member is outside the data-model binding slice");
 
             foreach (var parameter in method.Parameters.Where(static parameter =>
@@ -1028,14 +947,11 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
 
         var dataVariable = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::DataVariable");
-        dataVariable.ClearIgnoreReason();
         dataVariable.Bases.Clear();
         dataVariable.ManagedBaseTypeName = null;
         foreach (var method in dataVariable.Members.OfType<FunctionBinding>())
         {
-            if (method.IsConstructor || method.NativeName is "Child" or "Get" or "Set" or "Size" or "Type")
-                method.ClearIgnoreReason();
-            else
+            if (!method.IsConstructor && method.NativeName is not ("Child" or "Get" or "Set" or "Size" or "Type"))
                 method.SetSilentExclusionReason("RmlUi data variable member is outside the data-model binding slice");
 
             foreach (var parameter in method.Parameters.Where(static parameter =>
@@ -1047,28 +963,22 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
 
         var dataAddressEntry = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::DataAddressEntry");
-        dataAddressEntry.ClearIgnoreReason();
         dataAddressEntry.Bases.Clear();
         dataAddressEntry.ManagedBaseTypeName = null;
         foreach (var member in dataAddressEntry.Members)
         {
-            if (member is FieldBinding { NativeName: "name" or "index" })
-                member.ClearIgnoreReason();
-            else
+            if (member is not FieldBinding { NativeName: "name" or "index" })
                 member.SetSilentExclusionReason("RmlUi data address member is outside the data-model binding slice");
         }
 
         var handle = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::DataModelHandle");
-        handle.ClearIgnoreReason();
         handle.Bases.Clear();
         handle.ManagedBaseTypeName = null;
         foreach (var method in handle.Members.OfType<FunctionBinding>())
         {
-            if (!method.IsConstructor &&
-                method.NativeName is ("DirtyAllVariables" or "DirtyVariable" or "IsVariableDirty"))
-                method.ClearIgnoreReason();
-            else
+            if (method.IsConstructor ||
+                method.NativeName is not ("DirtyAllVariables" or "DirtyVariable" or "IsVariableDirty"))
                 method.SetSilentExclusionReason("RmlUi data-model handle member is outside the synchronization binding slice");
         }
 
@@ -1076,7 +986,6 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
         {
             if (method.NativeName is not ("CreateDataModel" or "GetDataModel" or "RemoveDataModel"))
                 continue;
-            method.ClearIgnoreReason();
             foreach (var parameter in method.Parameters.Where(static parameter =>
                          parameter.NativeName == "data_type_register"))
             {
@@ -1094,15 +1003,7 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
             {
                 var member = compilation.Members[index];
                 if (member is FunctionBinding function &&
-                    function.CppQualifiedName is
-                        "Rml::CreateContext" or "Rml::Debugger::Initialise" or "Rml::Debugger::IsVisible" or
-                        "Rml::Debugger::SetVisible" or "Rml::Initialise" or "Rml::LoadFontFace" or
-                        "Rml::RegisterPlugin" or "Rml::ReleaseTextures" or "Rml::RemoveContext" or
-                        "Rml::Shutdown" or "Rml::UnregisterPlugin" or
-                        "Rml::GetFileInterface" or "Rml::SetFileInterface" or
-                        "Rml::GetFontEngineInterface" or "Rml::SetFontEngineInterface" or
-                        "Rml::GetRenderInterface" or "Rml::SetRenderInterface" or
-                        "Rml::GetSystemInterface" or "Rml::SetSystemInterface")
+                    RetainedFreeFunctions.Contains(function.CppQualifiedName))
                 {
                     continue;
                 }

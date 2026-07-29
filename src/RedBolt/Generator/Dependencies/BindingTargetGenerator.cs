@@ -99,15 +99,20 @@ internal abstract class BindingTargetGenerator(
             compilation.NativeSupportHeaders.Add(marshallerHeader.Replace('\\', '/'));
 
         ConfigureCompilation(compilation);
+        var ignoredStdlibWrapperCount = 0;
         BindingCompilationBootstrapPipeline.Apply(
             compilation,
             marshallerHeaders,
             clangArguments,
-            marshallerClangArguments);
-        PostProcessCompilation(compilation);
+            marshallerClangArguments,
+            bindingCompilation =>
+            {
+                ConfigureBeforeValidation(bindingCompilation);
+                ignoredStdlibWrapperCount = IgnoreStdlibWrappers(bindingCompilation);
+            },
+            PostProcessCompilation);
 
-        var prunedCount = IgnoreStdlibWrappers(compilation);
-        prunedCount += PruneCompilation(compilation);
+        var prunedCount = ignoredStdlibWrapperCount + PruneCompilation(compilation);
         AfterPruneCompilation(compilation);
 
         var renderedBindings = BindingOutputRenderer.Render(
@@ -132,6 +137,10 @@ internal abstract class BindingTargetGenerator(
         Array.Empty<string>();
 
     protected virtual void ConfigureCompilation(BindingCompilation compilation)
+    {
+    }
+
+    protected virtual void ConfigureBeforeValidation(BindingCompilation compilation)
     {
     }
 

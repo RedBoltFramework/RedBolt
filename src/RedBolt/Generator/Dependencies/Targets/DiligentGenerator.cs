@@ -93,8 +93,6 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
     protected override void PostProcessCompilation(BindingCompilation compilation)
     {
         ConfigureBlendFactors(compilation);
-        ConfigureTextureFormatReturn(compilation);
-        ConfigureVulkanImageHandle(compilation);
     }
 
     protected override int PruneCompilation(BindingCompilation compilation)
@@ -125,31 +123,6 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
         blendFactors.Type = BindingType.CreateConfigured(
             "const float*",
             "global::RedBolt.Bindings.Diligent.BlendFactors");
-    }
-
-    private static void ConfigureTextureFormatReturn(BindingCompilation compilation)
-    {
-        var function = compilation.Functions.FirstOrDefault(static item =>
-            item.NativeName == "GetTextureFormatAttribs" ||
-            item.CppQualifiedName.EndsWith("::GetTextureFormatAttribs", StringComparison.Ordinal));
-        if (function is not null)
-            function.ReturnType = BindingType.IntPtr;
-    }
-
-    private static void ConfigureVulkanImageHandle(BindingCompilation compilation)
-    {
-        var renderDeviceVk = compilation.Records.FirstOrDefault(static record =>
-            record.CppQualifiedName == "Diligent::IRenderDeviceVk");
-        var createTexture = renderDeviceVk?.Members.OfType<FunctionBinding>().FirstOrDefault(static method =>
-            method.NativeName == "CreateTextureFromVulkanImage");
-        var vkImage = createTexture?.Parameters.FirstOrDefault(static parameter =>
-            parameter.NativeName == "vkImage");
-        if (vkImage is null)
-            return;
-
-        vkImage.Type = BindingType.CreateConfigured("VkImage", "nint", BindingPrimitiveKind.NativeInt);
-        vkImage.CppTypeName = "VkImage";
-        createTexture!.ClearIgnoreReason();
     }
 
     private static int PruneTopLevelFunctions(IList<BindingNode> members)

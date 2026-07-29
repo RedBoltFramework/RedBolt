@@ -366,8 +366,7 @@ public sealed class RenderDevice : RedObject
         }
 
         using var desc = stagingTexture.GetDesc();
-        using var formatInfo = TextureFormatAttribs.CreateManagedWrapper(
-            DiligentNativeBindings.GetTextureFormatAttribs(desc.Format), false);
+        using var formatInfo = DiligentNativeBindings.GetTextureFormatAttribs(desc.Format);
         if (formatInfo.GetElementSize() != 4 || formatInfo.ComponentType == ComponentType.ComponentTypeCompressed)
         {
             Log.GetLogger().LogError("Unexpected backbuffer for RenderDevice.TakeScreenShot");

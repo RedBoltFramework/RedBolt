@@ -315,6 +315,12 @@ with resource prefix paths `.;..`.
 Native dependencies (SDL, Diligent, Dear ImGui) are accessed through generated bindings.
 
 - Use SharpCpp to AUTOMATICALLY generate the bindings.
+- Move behavior into SharpCpp only when it implements dependency-agnostic support
+  for a generic C++ or binding shape. Keep project-specific policy in the RedBolt
+  dependency generator, including rules keyed to particular types, methods,
+  parameters, fields, enum names, curated surfaces, or semantic mappings.
+  Dear ImGui enum normalization is explicitly project-specific and must remain
+  in the Dear ImGui generator.
 - If the generated bindings are not enough, in this priority order:
     1. Fix our generator so it produces correct bindings. (PREFERRED)
     2. Fix SharpCpp so it produces correct bindings.

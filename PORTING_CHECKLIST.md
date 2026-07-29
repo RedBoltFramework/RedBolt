@@ -103,8 +103,10 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
   directory and otherwise relies on CMake's dependency-driven regeneration; binding outputs depend on their parsed
   headers, SharpCpp sources, and RedBolt generator sources; the dependency generator has one shared pipeline and one
   generator per native target; stale SDL, SPIRV-Cross, C primitive, invalid alias, and xatlas callback rewrites are removed
-  after their SharpCpp causes or redundant projections were resolved; unchanged native builds skip generation, compilation, and
-  linking; direct native CMake builds are rejected outside MSBuild; all 1982 RedBolt tests and 548 SharpCpp tests pass;
+  after their SharpCpp causes or redundant projections were resolved; SharpCpp implements only dependency-agnostic C++
+  shape support while named surfaces, semantic mappings, and Dear ImGui enum normalization remain in the target generators;
+  every generated target log permanently lists all SharpCpp ignored/excluded nodes and warnings; unchanged native builds skip generation, compilation, and
+  linking; direct native CMake builds are rejected outside MSBuild; all 1982 RedBolt tests and 572 SharpCpp tests pass;
   screenshot-on-exit retains the valid rendered
   buffer through final-frame capture; and `MoveAndOrbitController` acquires the scene input subsystem before
   evaluating its input map. The required two-second MultipleViewports capture is visibly correct on both the Radeon
