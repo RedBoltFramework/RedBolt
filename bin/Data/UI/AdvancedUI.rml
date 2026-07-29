@@ -111,7 +111,7 @@
 
     button:hover:not([disabled]),
     button:active:not([disabled]) {
-        transform: scale(1.045);
+        transform: scale(1.015);
     }
 
     button:active:not([disabled]) {
@@ -299,7 +299,7 @@
             </div>
         </div>
 
-        <div class="arrange-vertically">
+        <div class="arrange-vertically" data-class-hidden="current_page != 2">
             <div class="window about-window" data-class-hidden="current_page != 2">
                 <div class="about-text bg-dark">
                     <h1>AdvancedUI Sample</h1>
