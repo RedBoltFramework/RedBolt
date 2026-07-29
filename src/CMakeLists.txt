@@ -28,7 +28,6 @@ add_custom_target(redbolt-generate-native-bindings
         redbolt-generate-glslang-bindings
         redbolt-generate-spirv-cross-bindings
         redbolt-generate-spirv-tools-bindings
-        redbolt-generate-spirv-optimizer-bindings
         redbolt-generate-shader-compiler-bindings)
 
 add_subdirectory(RedBolt/Native)

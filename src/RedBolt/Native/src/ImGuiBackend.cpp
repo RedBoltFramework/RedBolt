@@ -15,33 +15,6 @@ using Diligent::ImGuiDiligentRenderer;
 extern "C"
 {
 
-// ---- ImGui context management ----
-
-void* ImGuiBackend_CreateContext(void* sharedFontAtlas)
-{
-    return ImGui::CreateContext(static_cast<ImFontAtlas*>(sharedFontAtlas));
-}
-
-void ImGuiBackend_DestroyContext(void* ctx)
-{
-    ImGui::DestroyContext(static_cast<ImGuiContext*>(ctx));
-}
-
-void* ImGuiBackend_GetCurrentContext()
-{
-    return ImGui::GetCurrentContext();
-}
-
-void ImGuiBackend_SetCurrentContext(void* ctx)
-{
-    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(ctx));
-}
-
-void ImGuiBackend_SetDisplaySize(float width, float height)
-{
-    ImGui::GetIO().DisplaySize = ImVec2(width, height);
-}
-
 bool ImGuiBackend_IsWithinFrameScope()
 {
     return ImGui::GetCurrentContext()->WithinFrameScope;
@@ -54,34 +27,9 @@ bool ImGuiBackend_HasCurrentWindow()
 
 // ---- SDL2 backend ----
 
-bool ImGuiBackend_InitForOther(void* sdlWindow)
-{
-    return ImGui_ImplSDL2_InitForOther(static_cast<SDL_Window*>(sdlWindow));
-}
-
-bool ImGuiBackend_InitForOpenGL(void* sdlWindow, void* glContext)
-{
-    return ImGui_ImplSDL2_InitForOpenGL(static_cast<SDL_Window*>(sdlWindow), glContext);
-}
-
-bool ImGuiBackend_InitForD3D(void* sdlWindow)
-{
-    return ImGui_ImplSDL2_InitForD3D(static_cast<SDL_Window*>(sdlWindow));
-}
-
-void ImGuiBackend_Shutdown()
-{
-    ImGui_ImplSDL2_Shutdown();
-}
-
 bool ImGuiBackend_ProcessEvent(void* sdlEvent)
 {
     return ImGui_ImplSDL2_ProcessEvent(static_cast<SDL_Event*>(sdlEvent));
-}
-
-void ImGuiBackend_NewFrame()
-{
-    ImGui_ImplSDL2_NewFrame();
 }
 
 // ---- Diligent renderer ----
@@ -143,20 +91,6 @@ void ImGuiBackend_Renderer_InvalidateDeviceObjects(void* renderer)
 void ImGuiBackend_Renderer_CreateDeviceObjects(void* renderer)
 {
     static_cast<ImGuiDiligentRenderer*>(renderer)->CreateDeviceObjects();
-}
-
-// ---- Font atlas help ----
-
-bool ImGuiBackend_BuildFontAtlas()
-{
-    ImFontAtlas* atlas = ImGui::GetIO().Fonts;
-    if (!atlas)
-        return false;
-
-    unsigned char* pixels;
-    int width, height;
-    atlas->GetTexDataAsRGBA32(&pixels, &width, &height);
-    return true;
 }
 
 }

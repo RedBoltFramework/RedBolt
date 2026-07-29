@@ -365,11 +365,11 @@ public static class ShaderTranslator
         CheckSpvc(SpirVCrossNativeBindings.SpvcContextCreate(out context), context: null);
         try
         {
-            var bytecode = shader.Bytecode.ToArray();
-            if (bytecode.Length == 0)
+            var bytecode = CollectionsMarshal.AsSpan(shader.Bytecode);
+            if (bytecode.IsEmpty)
                 throw new InvalidOperationException("SPIR-V shader is empty.");
             CheckSpvc(SpirVCrossNativeBindings.SpvcContextParseSpirv(
-                context, in bytecode[0], checked((nuint)bytecode.Length), out var parsedIr), context);
+                context, bytecode, checked((nuint)bytecode.Length), out var parsedIr), context);
             CheckSpvc(SpirVCrossNativeBindings.SpvcContextCreateCompiler(context, backend, parsedIr,
                 SpvcCaptureMode.SpvcCaptureModeTakeOwnership, out var compiler), context);
             return compiler;

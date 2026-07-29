@@ -55,7 +55,6 @@ internal static class Program
             "glslang" => new GlslangGenerator(nativeLibraryName),
             "spirvcross" => new SpirVCrossGenerator(nativeLibraryName),
             "spirvtools" => new SpirVToolsGenerator(nativeLibraryName),
-            "spirvoptimizer" => new SpirVOptimizerGenerator(nativeLibraryName),
             "shadercompiler" => new ShaderCompilerGenerator(nativeLibraryName),
             _ => throw new ArgumentException($"Unknown binding surface '{surface}'.", nameof(surface))
         };
@@ -64,6 +63,6 @@ internal static class Program
     private static void PrintUsage()
     {
         Console.Error.WriteLine(
-            "Usage: RedBolt.Generator.Dependencies --surface <sdl|diligent|dearimgui|stb|lz4|harfbuzz|rmlui|webp|xatlas|glslang|spirvcross|spirvtools|spirvoptimizer|shadercompiler> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --redbolt-root <path> --native-library-name <name> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
+            "Usage: RedBolt.Generator.Dependencies --surface <sdl|diligent|dearimgui|stb|lz4|harfbuzz|rmlui|webp|xatlas|glslang|spirvcross|spirvtools|shadercompiler> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --redbolt-root <path> --native-library-name <name> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
     }
 }

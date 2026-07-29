@@ -51,10 +51,8 @@ add_library(RedBolt.Native ${_redbolt_native_library_type}
     "${REDBOLT_GLSLANG_BINDINGS_CPP}"
     "${REDBOLT_SPIRV_CROSS_BINDINGS_CPP}"
     "${REDBOLT_SPIRV_TOOLS_BINDINGS_CPP}"
-    "${REDBOLT_SPIRV_OPTIMIZER_BINDINGS_CPP}"
     "${REDBOLT_SHADER_COMPILER_BINDINGS_CPP}"
     src/RmlHarfBuzzFontEngine.cpp
-    src/SpirVOptimizerSupport.cpp
     src/ShaderCompilerSupport.cpp
     src/StbImpl.cpp)
 

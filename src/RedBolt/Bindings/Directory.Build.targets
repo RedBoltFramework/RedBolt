@@ -61,7 +61,7 @@
                Exclude="@(Compile)"
                LinkBase="Generated"
                Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVCross'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/spirv-tools/**/*.g.cs;$(RedBoltGeneratedBindingsDir)/spirv-optimizer/**/*.g.cs"
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/spirv-tools/**/*.g.cs"
                Exclude="@(Compile)"
                LinkBase="Generated"
                Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVTools'" />

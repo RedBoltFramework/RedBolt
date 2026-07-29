@@ -56,28 +56,20 @@ public class OggVorbisSoundStream : SoundStream, IDisposable
             return 0;
 
         var channels = Stereo ? 2u : 1u;
-        var handle = GCHandle.Alloc(dest, GCHandleType.Pinned);
-        try
-        {
-            var output = handle.AddrOfPinnedObject();
-            var outSamples = (uint)StbVorbisNativeBindings.StbVorbisGetSamplesShortInterleaved(
-                _decoder, checked((int)channels), output, checked((int)(numBytes >> 1)));
-            var outBytes = (outSamples * channels) << 1;
+        var output = MemoryMarshal.Cast<sbyte, short>(dest.AsSpan());
+        var outSamples = (uint)StbVorbisNativeBindings.StbVorbisGetSamplesShortInterleaved(
+            _decoder, checked((int)channels), output, checked((int)(numBytes >> 1)));
+        var outBytes = (outSamples * channels) << 1;
 
-            if (outBytes < numBytes && !StopAtEnd)
-            {
-                numBytes -= outBytes;
-                StbVorbisNativeBindings.StbVorbisSeekStart(_decoder);
-                outSamples = (uint)StbVorbisNativeBindings.StbVorbisGetSamplesShortInterleaved(
-                    _decoder, checked((int)channels), IntPtr.Add(output, checked((int)outBytes)), checked((int)(numBytes >> 1)));
-                outBytes += (outSamples * channels) << 1;
-            }
-
-            return outBytes;
-        }
-        finally
+        if (outBytes < numBytes && !StopAtEnd)
         {
-            handle.Free();
+            numBytes -= outBytes;
+            StbVorbisNativeBindings.StbVorbisSeekStart(_decoder);
+            outSamples = (uint)StbVorbisNativeBindings.StbVorbisGetSamplesShortInterleaved(
+                _decoder, checked((int)channels), output[checked((int)(outBytes >> 1))..], checked((int)(numBytes >> 1)));
+            outBytes += (outSamples * channels) << 1;
         }
+
+        return outBytes;
     }
 }

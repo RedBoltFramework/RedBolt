@@ -330,7 +330,7 @@ public partial class Image : Resource
             using var features = new RedBolt.Bindings.WebP.WebPBitstreamFeatures();
             const int webpDecoderAbiVersion = 0x0210;
             if (RedBolt.Bindings.WebP.WebPNativeBindings.WebPGetFeaturesInternal(
-                    in data[0], (nuint)data.Length, features, webpDecoderAbiVersion)
+                    data, (nuint)data.Length, features, webpDecoderAbiVersion)
                 != RedBolt.Bindings.WebP.VP8StatusCode.Vp8StatusOk)
             {
                 Log.GetLogger().LogError("Error reading WebP image: {Name}", source.Name);
@@ -343,9 +343,9 @@ public partial class Image : Resource
             var imageData = new byte[checked(width * height * components)];
             var decoded = components == 4
                 ? RedBolt.Bindings.WebP.WebPNativeBindings.WebPDecodeRGBAInto(
-                    in data[0], (nuint)data.Length, out imageData[0], (nuint)imageData.Length, 4 * width)
+                    data, (nuint)data.Length, imageData, (nuint)imageData.Length, 4 * width)
                 : RedBolt.Bindings.WebP.WebPNativeBindings.WebPDecodeRGBInto(
-                    in data[0], (nuint)data.Length, out imageData[0], (nuint)imageData.Length, 3 * width);
+                    data, (nuint)data.Length, imageData, (nuint)imageData.Length, 3 * width);
             if (decoded == IntPtr.Zero)
             {
                 Log.GetLogger().LogError("Error decoding WebP image:{Name}", source.Name);

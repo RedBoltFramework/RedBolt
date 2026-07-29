@@ -1,14 +1,16 @@
 namespace RedBolt.Graphics;
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-
-using RedBoltNative;
 
 using RedBolt.Bindings.SpirVTools;
 
 public static class ShaderOptimizer
 {
+    [ThreadStatic]
+    private static StringBuilder? _optimizerOutput;
+
     private static SpvTargetEnv GetTarget(TargetShaderLanguage targetLanguage)
     {
         return targetLanguage switch
@@ -23,23 +25,132 @@ public static class ShaderOptimizer
     {
         var isVulkan = targetLanguage == TargetShaderLanguage.Vulkan10;
         var targetEnv = GetTarget(targetLanguage);
+        var output = new StringBuilder();
+        _optimizerOutput = output;
 
-        using var spirvOptimizer = new SpirVOptimizerSupport();
-        var bytecode = CollectionsMarshal.AsSpan(shader.Bytecode);
-        uint emptyBytecode = 0;
-        ref var firstWord = ref (bytecode.IsEmpty ? ref emptyBytecode : ref MemoryMarshal.GetReference(bytecode));
-        var result = spirvOptimizer.Optimize(in firstWord, (nuint)bytecode.Length, (uint)targetEnv, isVulkan);
-        optimizerOutput += Encoding.UTF8.GetString(spirvOptimizer.GetOutput());
+        try
+        {
+            var result = OptimizeSpirVShader(CollectionsMarshal.AsSpan(shader.Bytecode), targetEnv, isVulkan,
+                out var optimizedBytecode);
+            if (!result)
+                return !isVulkan;
 
-        if (!result)
-            return !isVulkan;
+            shader.Bytecode = optimizedBytecode;
+            return true;
+        }
+        finally
+        {
+            _optimizerOutput = null;
+            optimizerOutput += output;
+        }
+    }
 
-        var optimizedSize = spirvOptimizer.GetBytecodeSize();
-        var optimizedBytecode = new List<uint>(checked((int)optimizedSize));
-        for (nuint i = 0; i < optimizedSize; ++i)
-            optimizedBytecode.Add(spirvOptimizer.GetBytecodeWord(i));
-        shader.Bytecode = optimizedBytecode;
+    private static unsafe bool OptimizeSpirVShader(ReadOnlySpan<uint> bytecode, SpvTargetEnv targetEnv,
+        bool isVulkan, out List<uint> optimizedBytecode)
+    {
+        optimizedBytecode = [];
+        var optimizer = SpirVToolsNativeBindings.SpvOptimizerCreate(targetEnv);
+        var options = SpirVToolsNativeBindings.SpvOptimizerOptionsCreate();
+        SpvBinaryT? optimizedBinary = null;
 
-        return true;
+        try
+        {
+            SpirVToolsNativeBindings.SpvOptimizerSetMessageConsumer(
+                optimizer,
+                (nint)(delegate* unmanaged[Cdecl]<SpvMessageLevelT, nint, nint, nint, void>)&AppendOptimizerMessage);
+
+            if (isVulkan)
+                SpirVToolsNativeBindings.SpvOptimizerRegisterLegalizationPasses(optimizer);
+
+            ReadOnlySpan<byte> optimizationFlag = "-O\0"u8;
+            fixed (byte* optimizationFlagPointer = optimizationFlag)
+            {
+                ReadOnlySpan<nint> optimizationFlags = [(nint)optimizationFlagPointer];
+                if (!SpirVToolsNativeBindings.SpvOptimizerRegisterPassesFromFlagsWhilePreservingTheInterface(
+                        optimizer, optimizationFlags, (nuint)optimizationFlags.Length))
+                {
+                    return false;
+                }
+            }
+
+            SpirVToolsNativeBindings.SpvOptimizerOptionsSetRunValidator(options, !isVulkan);
+            if (SpirVToolsNativeBindings.SpvOptimizerRun(
+                    optimizer, bytecode, (nuint)bytecode.Length, out optimizedBinary, options) !=
+                SpvResultT.SpvSuccess)
+            {
+                return false;
+            }
+
+            if (isVulkan && !ValidateSpirV(optimizedBinary, targetEnv))
+                return false;
+
+            var optimizedSize = checked((int)optimizedBinary.WordCount);
+            optimizedBytecode = new List<uint>(optimizedSize);
+            var words = (uint*)optimizedBinary.Code;
+            for (var i = 0; i < optimizedSize; ++i)
+                optimizedBytecode.Add(words[i]);
+            return true;
+        }
+        finally
+        {
+            if (optimizedBinary is not null)
+            {
+                if (!optimizedBinary.IsNull)
+                    SpirVToolsNativeBindings.SpvBinaryDestroy(optimizedBinary);
+                optimizedBinary.Dispose();
+            }
+
+            SpirVToolsNativeBindings.SpvOptimizerOptionsDestroy(options);
+            options.Dispose();
+            SpirVToolsNativeBindings.SpvOptimizerDestroy(optimizer);
+            optimizer.Dispose();
+        }
+    }
+
+    private static bool ValidateSpirV(SpvBinaryT binary, SpvTargetEnv targetEnv)
+    {
+        var context = SpirVToolsNativeBindings.SpvContextCreate(targetEnv);
+        SpvDiagnosticT? diagnostic = null;
+
+        try
+        {
+            unsafe
+            {
+                var words = new ReadOnlySpan<uint>((void*)binary.Code, checked((int)binary.WordCount));
+                if (SpirVToolsNativeBindings.SpvValidateBinary(
+                        context, words, (nuint)words.Length, out diagnostic) == SpvResultT.SpvSuccess)
+                {
+                    return true;
+                }
+            }
+
+            if (diagnostic is not null && !diagnostic.IsNull)
+                AppendError(Marshal.PtrToStringUTF8(diagnostic.Error));
+            return false;
+        }
+        finally
+        {
+            if (diagnostic is not null)
+            {
+                if (!diagnostic.IsNull)
+                    SpirVToolsNativeBindings.SpvDiagnosticDestroy(diagnostic);
+                diagnostic.Dispose();
+            }
+
+            SpirVToolsNativeBindings.SpvContextDestroy(context);
+            context.Dispose();
+        }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    private static void AppendOptimizerMessage(SpvMessageLevelT level, nint source, nint position, nint message)
+    {
+        if (level <= SpvMessageLevelT.SpvMsgError)
+            AppendError(Marshal.PtrToStringUTF8(message));
+    }
+
+    private static void AppendError(string? message)
+    {
+        _optimizerOutput?.Append("Failed to optimize SPIR-V shader: ").Append(message).Append('\n');
     }
 }

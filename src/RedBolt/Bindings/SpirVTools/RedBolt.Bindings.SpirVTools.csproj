@@ -8,7 +8,6 @@
 
   <ItemGroup Condition="'$(RedBoltGeneratedBindingsDir)' != '' and Exists('$(RedBoltGeneratedBindingsDir)/spirv-tools')">
     <Compile Include="$(RedBoltGeneratedBindingsDir)/spirv-tools/**/*.g.cs" LinkBase="Generated" />
-    <Compile Include="$(RedBoltGeneratedBindingsDir)/spirv-optimizer/**/*.g.cs" LinkBase="Generated" />
   </ItemGroup>
 
 </Project>

@@ -15,7 +15,7 @@ public class DearImGui : RedObject
     /// <summary>Construct.</summary>
     public DearImGui(ImGuiConfigFlags flags = 0)
     {
-        _imContext = ImGui.ImGuiBackendCreateContext(0);
+        _imContext = ImGui.CreateContext();
         SetCurrentContext();
 
         var io = ImGui.GetIO();
@@ -45,7 +45,7 @@ public class DearImGui : RedObject
 
         SetCurrentContext();
         PlatformShutdown();
-        ImGui.ImGuiBackendDestroyContext(_imContext);
+        ImGui.DestroyContext(_imContext);
         _imContext = 0;
         base.Dispose();
     }
@@ -115,21 +115,23 @@ public class DearImGui : RedObject
         SetCurrentContext();
         var renderDevice = GetSubsystem<RenderDevice>()!;
         var size = renderDevice.GetSwapChainSize();
-        ImGui.ImGuiBackendSetDisplaySize(size.X, size.Y);
+        var io = ImGui.GetIO();
+        io.DisplaySizeX = size.X;
+        io.DisplaySizeY = size.Y;
 
         var sdlWindow = renderDevice.GetSDLWindow()!;
         switch (renderDevice.GetBackend())
         {
             case RenderBackend.OpenGL:
-                ImGui.ImGuiBackendInitForOpenGL(sdlWindow.Handle, SdlNativeBindings.SdlGlGetCurrentContext());
+                ImGui.ImGuiImplSDL2InitForOpenGL(sdlWindow.Handle, SdlNativeBindings.SdlGlGetCurrentContext());
                 break;
             case RenderBackend.Vulkan:
                 // Diligent manages Vulkan on its own.
-                ImGui.ImGuiBackendInitForOther(sdlWindow.Handle);
+                ImGui.ImGuiImplSDL2InitForOther(sdlWindow.Handle);
                 break;
             case RenderBackend.D3D11:
             case RenderBackend.D3D12:
-                ImGui.ImGuiBackendInitForD3D(sdlWindow.Handle);
+                ImGui.ImGuiImplSDL2InitForD3D(sdlWindow.Handle);
                 break;
             default:
                 throw new InvalidOperationException("Not implemented");
@@ -151,7 +153,7 @@ public class DearImGui : RedObject
 
         _renderer?.Dispose();
         _renderer = null;
-        ImGui.ImGuiBackendShutdown();
+        ImGui.ImGuiImplSDL2Shutdown();
     }
 
     private void ReallocateFontTexture()
@@ -248,7 +250,9 @@ public class DearImGui : RedObject
     private void OnScreenMode(ref GraphicsEvents.ScreenModeEvent args)
     {
         SetCurrentContext();
-        ImGui.ImGuiBackendSetDisplaySize(args.Width, args.Height);
+        var io = ImGui.GetIO();
+        io.DisplaySizeX = args.Width;
+        io.DisplaySizeY = args.Height;
     }
 
     private void OnInputBegin()
@@ -271,7 +275,7 @@ public class DearImGui : RedObject
         // TODO: port per-screen font texture allocation and TexID assignment when SharpCpp exposes ImFontAtlas.
 
         _renderer!.NewFrame();
-        ImGui.ImGuiBackendNewFrame();
+        ImGui.ImGuiImplSDL2NewFrame();
 
         ImGui.NewFrame();
 
@@ -336,7 +340,7 @@ public class DearImGui : RedObject
     private void SetCurrentContext()
     {
         if (_imContext != 0)
-            ImGui.ImGuiBackendSetCurrentContext(_imContext);
+            ImGui.SetCurrentContext(_imContext);
     }
 
     private readonly List<Texture2D> _fontTextures = [];

@@ -42,7 +42,6 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
         "GetTemporaryGLProgramUniformName",
         "GetTemporaryGLProgramUniformBlockOffset",
         "GetTemporaryGLProgramUniformSize",
-        "GetShaderCodeBufferVariableAt",
         "GetTextureFormatAttribs"
     };
 
