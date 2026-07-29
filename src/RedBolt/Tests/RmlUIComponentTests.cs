@@ -27,14 +27,23 @@ public sealed partial class RmlUIComponentTests
 
     private sealed class ComponentProbe : RmlUIComponent
     {
-        public ComponentProbe(StrongBox<Variant> value, VariantVector values, VariantMap properties)
+        public ComponentProbe(
+            StrongBox<Variant> value, VariantVector values, VariantMap properties, StringVector strings)
         {
             _value = value;
             _values = values;
             _properties = properties;
+            _strings = strings;
         }
 
         public bool DataModelInitialized { get; private set; }
+        public int InspectedStringCount { get; private set; }
+        public string InspectedString { get; private set; } = string.Empty;
+
+        public void RefreshDataModel()
+        {
+            DirtyAllVariables();
+        }
 
         protected override void OnDataModelInitialized()
         {
@@ -45,11 +54,20 @@ public sealed partial class RmlUIComponentTests
             Assert.True(BindDataModelVariant("variant", _value));
             Assert.True(BindDataModelVariantVector("values", _values));
             Assert.True(BindDataModelVariantMap("properties", _properties));
+            Assert.True(BindDataModelStringVector("strings", _strings));
+            Assert.True(BindDataModelEvent("inspect_strings", InspectStrings));
+        }
+
+        private void InspectStrings(VariantVector arguments)
+        {
+            InspectedString = arguments[0].GetString();
+            InspectedStringCount = arguments[1].GetInt();
         }
 
         private readonly StrongBox<Variant> _value;
         private readonly VariantVector _values;
         private readonly VariantMap _properties;
+        private readonly StringVector _strings;
     }
 
     private readonly GraphicsEngineFixture _fixture;
@@ -71,9 +89,11 @@ public sealed partial class RmlUIComponentTests
             "<span>{{value}}</span>" +
             "<span>{{variant}}</span>" +
             "<div data-for=\"item : values\">{{item}}</div>" +
+            "<div data-for=\"item : strings\">{{item}}</div>" +
             "<span>{{properties.number}}</span>" +
             "<button id=\"set-variant\" data-event-click=\"variant = 'changed'\">Set</button>" +
             "<button id=\"set-number\" data-event-click=\"properties.number = 99\">Set</button>" +
+            "<button id=\"inspect-strings\" data-event-click=\"inspect_strings(strings[0], strings.size)\">Inspect</button>" +
             "</body></rml>");
 
         RmlUI.RegisterRmlUILibrary(_fixture.Context);
@@ -88,8 +108,9 @@ public sealed partial class RmlUIComponentTests
         {
             using var values = new VariantVector { new("first"), new("second") };
             using var properties = new VariantMap { [new StringHash("number")] = new Variant(42) };
+            var strings = new StringVector { "first string", "second string" };
             using var node = new Node();
-            using var component = new ComponentProbe(value, values, properties);
+            using var component = new ComponentProbe(value, values, properties, strings);
             component.SetAutoSize(false);
             component.SetPosition(new Vector2f(4.0f, 5.0f));
             component.SetSize(new Vector2f(30.0f, 20.0f));
@@ -108,8 +129,10 @@ public sealed partial class RmlUIComponentTests
             ui.GetRmlContext().Update();
             using var setVariantId = new Std.String();
             using var buttonId = new Std.String();
+            using var inspectStringsId = new Std.String();
             setVariantId.Assign("set-variant");
             buttonId.Assign("set-number");
+            inspectStringsId.Assign("inspect-strings");
             var setVariant = document.GetElementById(setVariantId);
             Assert.NotNull(setVariant);
             setVariant.Click();
@@ -118,6 +141,17 @@ public sealed partial class RmlUIComponentTests
             Assert.NotNull(setNumber);
             setNumber.Click();
             Assert.Equal(99, properties[new StringHash("number")].GetInt());
+            var inspectStrings = document.GetElementById(inspectStringsId);
+            Assert.NotNull(inspectStrings);
+            inspectStrings.Click();
+            Assert.Equal("first string", component.InspectedString);
+            Assert.Equal(2, component.InspectedStringCount);
+            strings[0] = "changed string";
+            component.RefreshDataModel();
+            ui.GetRmlContext().Update();
+            inspectStrings.Click();
+            Assert.Equal("changed string", component.InspectedString);
+            Assert.Equal(2, component.InspectedStringCount);
 
             component.SetEnabled(false);
             Assert.Null(component.GetDocument());

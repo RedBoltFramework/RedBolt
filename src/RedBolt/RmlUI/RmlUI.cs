@@ -203,6 +203,17 @@ public partial class RmlUI : RedObject
         }
     }
 
+    private sealed class DirectStringVectorItemBinding(StringVector value, int index) : IVariantBinding
+    {
+        public bool OwnsResult => true;
+        public CoreVariant Get() => new(value[index]);
+        public bool Set(in CoreVariant newValue)
+        {
+            value[index] = newValue.GetString();
+            return true;
+        }
+    }
+
     private sealed class IntegerBinding(Func<int> getter) : IVariantBinding
     {
         public bool OwnsResult => true;
@@ -476,12 +487,51 @@ public partial class RmlUI : RedObject
         private readonly VariantDefinition _variantDefinition;
     }
 
+    private sealed class StringVectorDefinition : VariableDefinition
+    {
+        public StringVectorDefinition(DataVariableStorage storage, VariantDefinition variantDefinition)
+            : base(DataVariableType.Array)
+        {
+            _storage = storage;
+            _variantDefinition = variantDefinition;
+        }
+
+        public override int Size(nint ptr) => _storage.Get<StringVector>(ptr).Count;
+
+        public override DataVariable Child(nint ptr, DataAddressEntry address)
+        {
+            var value = _storage.Get<StringVector>(ptr);
+            var index = address.Index;
+            if (index < 0 || index >= value.Count)
+            {
+                using var nativeName = address.Name;
+                var name = nativeName.ToString();
+                if (name == "size")
+                {
+                    var size = _storage.GetOrAdd(ptr, name, index, () => new IntegerBinding(() => value.Count));
+                    return new DataVariable(_variantDefinition, size);
+                }
+
+                EngineLog.GetLogger().Warning("Data array index out of bounds.");
+                return new DataVariable();
+            }
+
+            var child = _storage.GetOrAdd(ptr, string.Empty, index,
+                () => new DirectStringVectorItemBinding(value, index));
+            return new DataVariable(_variantDefinition, child);
+        }
+
+        private readonly DataVariableStorage _storage;
+        private readonly VariantDefinition _variantDefinition;
+    }
+
     internal sealed class VariantDefinitions : IDisposable
     {
         public VariantDefinitions(DataTypeRegister typeRegister)
         {
             _variantDefinition = new VariantDefinition(typeRegister, _storage);
             _variantVectorDefinition = new VariantVectorDefinition(_storage, _variantDefinition);
+            _stringVectorDefinition = new StringVectorDefinition(_storage, _variantDefinition);
             _variantMapDefinition = new VariantMapDefinition(typeRegister, _storage, _variantDefinition);
         }
 
@@ -491,12 +541,16 @@ public partial class RmlUI : RedObject
         public DataVariable Create(VariantMap value) =>
             new(_variantMapDefinition, _storage.Add(value));
 
+        public DataVariable Create(StringVector value) =>
+            new(_stringVectorDefinition, _storage.Add(value));
+
         public DataVariable Create(StrongBox<CoreVariant> value) =>
             new(_variantDefinition, _storage.Add(new VariantBinding(value)));
 
         public void Dispose()
         {
             _variantMapDefinition.Dispose();
+            _stringVectorDefinition.Dispose();
             _variantVectorDefinition.Dispose();
             _variantDefinition.Dispose();
             _storage.Dispose();
@@ -505,6 +559,7 @@ public partial class RmlUI : RedObject
         private readonly DataVariableStorage _storage = new();
         private readonly VariantDefinition _variantDefinition;
         private readonly VariantVectorDefinition _variantVectorDefinition;
+        private readonly StringVectorDefinition _stringVectorDefinition;
         private readonly VariantMapDefinition _variantMapDefinition;
     }
 

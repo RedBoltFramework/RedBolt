@@ -125,6 +125,20 @@ public partial class RmlUIComponent : LogicComponent
         return constructor.BindCustomDataVariable(nativeName, dataVariable);
     }
 
+    public bool BindDataModelStringVector(string name, StringVector value)
+    {
+        var constructor = ExpectDataModelConstructor();
+        if (constructor is null || _variantDefinitions is null)
+        {
+            return false;
+        }
+
+        using var nativeName = new Std.String();
+        nativeName.Assign(name);
+        using var dataVariable = _variantDefinitions.Create(value);
+        return constructor.BindCustomDataVariable(nativeName, dataVariable);
+    }
+
     public bool BindDataModelEvent(string name, EventFunc eventCallback)
     {
         var constructor = ExpectDataModelConstructor();
