@@ -128,6 +128,7 @@ internal static class Program
 
     private static readonly HashSet<string> RmlUiDirectorRecordCppTypeNames = new(StringComparer.Ordinal)
     {
+        "Rml::ContextInstancer",
         "Rml::EventListener",
         "Rml::EventListenerInstancer",
         "Rml::FileInterface",
@@ -886,7 +887,7 @@ internal static class Program
         {
             if (method.NativeName is
                 "ClearStyleSheetCache" or "ClearTemplateCache" or
-                "InstanceEventListener" or "RegisterEventListenerInstancer")
+                "InstanceEventListener" or "RegisterContextInstancer" or "RegisterEventListenerInstancer")
                 method.ClearIgnoreReason();
             else
                 method.SetSilentExclusionReason("RmlUi factory member is outside the current binding slice");
@@ -904,7 +905,7 @@ internal static class Program
         context.ManagedBaseTypeName = null;
         foreach (var method in context.Members.OfType<FunctionBinding>())
         {
-            if (method.NativeName is
+            if (method.IsConstructor || method.NativeName is
                 "GetDensityIndependentPixelRatio" or "GetDimensions" or "GetDocument" or "GetFocusElement" or
                 "GetHoverElement" or "GetName" or "GetNumDocuments" or "GetRootElement" or "Render" or
                 "LoadDocumentFromMemory" or "SetDensityIndependentPixelRatio" or "SetDimensions" or
@@ -930,6 +931,13 @@ internal static class Program
             {
                 method.SetSilentExclusionReason("RmlUi context member is outside the current binding slice");
             }
+        }
+        foreach (var parameter in context.Members.OfType<FunctionBinding>()
+                     .Where(static method => method.IsConstructor)
+                     .SelectMany(static method => method.Parameters)
+                     .Where(static parameter => parameter.NativeName is "render_manager" or "text_input_handler"))
+        {
+            parameter.Type = BindingType.IntPtr;
         }
 
         var vector2iType = BindingType.CreateConfigured(
@@ -1051,6 +1059,38 @@ internal static class Program
             if (method.IsConstructor || method.IsVirtual)
                 method.ClearIgnoreReason();
         }
+
+        var contextInstancer = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::ContextInstancer");
+        contextInstancer.ClearIgnoreReason();
+        contextInstancer.Bases.Clear();
+        contextInstancer.ManagedBaseTypeName = null;
+        foreach (var method in contextInstancer.Members.OfType<FunctionBinding>())
+        {
+            if (method.IsConstructor || method.IsVirtual)
+                method.ClearIgnoreReason();
+        }
+        foreach (var parameter in contextInstancer.Members.OfType<FunctionBinding>()
+                     .Where(static method => method.NativeName == "InstanceContext")
+                     .SelectMany(static method => method.Parameters)
+                     .Where(static parameter => parameter.NativeName is "render_manager" or "text_input_handler"))
+        {
+            parameter.Type = BindingType.IntPtr;
+        }
+        contextInstancer.Members.Add(new FunctionBinding(
+            "method:Rml::ContextInstancer::Release",
+            "Release",
+            "Release",
+            BindingType.Void,
+            "redbolt_rmlui_Rml_ContextInstancer_Release",
+            cppQualifiedName: "Rml::Releasable::Release")
+        {
+            AccessModifier = BindingAccessModifier.Protected,
+            IsStatic = false,
+            IsPureVirtual = true,
+            IsVirtual = true,
+            OwningRecordCppTypeName = contextInstancer.CppQualifiedName
+        });
 
         var eventPhase = compilation.Enums.First(static @enum =>
             @enum.CppQualifiedName == "Rml::EventPhase");
@@ -1373,7 +1413,7 @@ internal static class Program
                 if (member is RecordBinding record &&
                     (record.CppQualifiedName is
                          "Rml::Context" or "Rml::Element" or "Rml::Event" or
-                         "Rml::ElementDocument" or "Rml::EventListener" or
+                         "Rml::ContextInstancer" or "Rml::ElementDocument" or "Rml::EventListener" or
                          "Rml::EventListenerInstancer" or "Rml::FileInterface" or
                          "Rml::Factory" or "Rml::FontEngineInterface" or "Rml::Log" or "Rml::Property" or
                          "Rml::Plugin" or "Rml::RenderInterfaceCompatibility" or "Rml::SystemInterface" or

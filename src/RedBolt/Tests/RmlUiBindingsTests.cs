@@ -105,6 +105,61 @@ public sealed class RmlUiBindingsTests
     }
 
     [Fact]
+    public void Context_instancer_dispatches_managed_lifecycle()
+    {
+        var originalFileInterface = RmlUiNativeBindings.GetFileInterface();
+        var originalFontEngineInterface = RmlUiNativeBindings.GetFontEngineInterface();
+        var originalRenderInterface = RmlUiNativeBindings.GetRenderInterface();
+        var originalSystemInterface = RmlUiNativeBindings.GetSystemInterface();
+        using var fileInterface = new TestFileInterface();
+        using var fontEngineInterface = new TestFontEngineInterface();
+        using var renderInterface = new TestRenderInterface();
+        using var systemInterface = new TestSystemInterface();
+        using var contextInstancer = new TestContextInstancer();
+        using var name = new Std.String();
+        var initialized = false;
+        Context? context = null;
+        name.Assign("managed-instancer");
+        try
+        {
+            RmlUiNativeBindings.SetFileInterface(fileInterface);
+            RmlUiNativeBindings.SetFontEngineInterface(fontEngineInterface);
+            RmlUiNativeBindings.SetRenderInterface(renderInterface.GetAdaptedInterface());
+            RmlUiNativeBindings.SetSystemInterface(systemInterface);
+            Assert.True(RmlUiNativeBindings.Initialise());
+            initialized = true;
+            Factory.RegisterContextInstancer(contextInstancer);
+
+            context = RmlUiNativeBindings.CreateContext(
+                name,
+                new RmlUiLegacyVector2i { X = 320, Y = 200 },
+                renderInterface.GetAdaptedInterface(),
+                0);
+
+            Assert.NotNull(context);
+            Assert.Equal("managed-instancer", contextInstancer.Name);
+            Assert.NotEqual(nint.Zero, contextInstancer.RenderManager);
+            Assert.NotEqual(nint.Zero, contextInstancer.TextInputHandler);
+            Assert.Same(contextInstancer.Context, context);
+            Assert.True(RmlUiNativeBindings.RemoveContext(name));
+            context = null;
+            Assert.True(contextInstancer.WasReleased);
+        }
+        finally
+        {
+            Factory.RegisterContextInstancer(null!);
+            if (context is not null)
+                RmlUiNativeBindings.RemoveContext(name);
+            if (initialized)
+                RmlUiNativeBindings.Shutdown();
+            RmlUiNativeBindings.SetFileInterface(originalFileInterface);
+            RmlUiNativeBindings.SetFontEngineInterface(originalFontEngineInterface);
+            RmlUiNativeBindings.SetRenderInterface(originalRenderInterface);
+            RmlUiNativeBindings.SetSystemInterface(originalSystemInterface);
+        }
+    }
+
+    [Fact]
     public void Plugin_dispatches_managed_lifecycle()
     {
         var originalFileInterface = RmlUiNativeBindings.GetFileInterface();
@@ -526,6 +581,38 @@ public sealed class RmlUiBindingsTests
         {
             Value = value.ToString();
             return eventListener;
+        }
+    }
+
+    private sealed class TestContextInstancer : ContextInstancer
+    {
+        public Context? Context { get; private set; }
+
+        public string? Name { get; private set; }
+
+        public nint RenderManager { get; private set; }
+
+        public nint TextInputHandler { get; private set; }
+
+        public bool WasReleased { get; private set; }
+
+        public override Context InstanceContext(Std.String name, nint renderManager, nint textInputHandler)
+        {
+            Name = name.ToString();
+            RenderManager = renderManager;
+            TextInputHandler = textInputHandler;
+            Context = new Context(name, renderManager, textInputHandler);
+            return Context;
+        }
+
+        public override void ReleaseContext(Context context)
+        {
+            WasReleased = true;
+            context.Dispose();
+        }
+
+        protected override void Release()
+        {
         }
     }
 

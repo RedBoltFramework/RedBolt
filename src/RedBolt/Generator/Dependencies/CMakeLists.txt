@@ -145,6 +145,7 @@ file(CONFIGURE OUTPUT "${REDBOLT_RMLUI_PARSE_HEADER}" CONTENT [=[
 #include <RmlUi/Debugger.h>
 #include <RmlUi/Core/Core.h>
 #include <RmlUi/Core/Context.h>
+#include <RmlUi/Core/ContextInstancer.h>
 #include <RmlUi/Core/Element.h>
 #include <RmlUi/Core/ElementDocument.h>
 #include <RmlUi/Core/Event.h>
