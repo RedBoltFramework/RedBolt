@@ -129,6 +129,7 @@ internal static class Program
     private static readonly HashSet<string> RmlUiDirectorRecordCppTypeNames = new(StringComparer.Ordinal)
     {
         "Rml::EventListener",
+        "Rml::EventListenerInstancer",
         "Rml::FileInterface",
         "Rml::FontEngineInterface",
         "Rml::RenderInterfaceCompatibility",
@@ -882,11 +883,18 @@ internal static class Program
         factory.ClearIgnoreReason();
         foreach (var method in factory.Members.OfType<FunctionBinding>())
         {
-            if (method.NativeName is "ClearStyleSheetCache" or "ClearTemplateCache")
+            if (method.NativeName is
+                "ClearStyleSheetCache" or "ClearTemplateCache" or
+                "InstanceEventListener" or "RegisterEventListenerInstancer")
                 method.ClearIgnoreReason();
             else
                 method.SetSilentExclusionReason("RmlUi factory member is outside the current binding slice");
         }
+        var registerEventListenerInstancer = factory.Members.OfType<FunctionBinding>().First(static method =>
+            method.NativeName == "RegisterEventListenerInstancer");
+        registerEventListenerInstancer.Parameters[0].Type =
+            registerEventListenerInstancer.Parameters[0].Type.WithManagedTypeFormatOverride(
+                $"{registerEventListenerInstancer.Parameters[0].Type.ManagedTypeName}?");
 
         var context = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Context");
@@ -1027,6 +1035,17 @@ internal static class Program
         eventListener.Bases.Clear();
         eventListener.ManagedBaseTypeName = null;
         foreach (var method in eventListener.Members.OfType<FunctionBinding>())
+        {
+            if (method.IsConstructor || method.IsVirtual)
+                method.ClearIgnoreReason();
+        }
+
+        var eventListenerInstancer = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::EventListenerInstancer");
+        eventListenerInstancer.ClearIgnoreReason();
+        eventListenerInstancer.Bases.Clear();
+        eventListenerInstancer.ManagedBaseTypeName = null;
+        foreach (var method in eventListenerInstancer.Members.OfType<FunctionBinding>())
         {
             if (method.IsConstructor || method.IsVirtual)
                 method.ClearIgnoreReason();
@@ -1339,7 +1358,8 @@ internal static class Program
                 if (member is RecordBinding record &&
                     (record.CppQualifiedName is
                          "Rml::Context" or "Rml::Element" or "Rml::Event" or
-                         "Rml::ElementDocument" or "Rml::EventListener" or "Rml::FileInterface" or
+                         "Rml::ElementDocument" or "Rml::EventListener" or
+                         "Rml::EventListenerInstancer" or "Rml::FileInterface" or
                          "Rml::Factory" or "Rml::FontEngineInterface" or "Rml::Log" or "Rml::Property" or
                          "Rml::RenderInterfaceCompatibility" or "Rml::SystemInterface" or
                          "RedBoltNative::RmlHarfBuzzFontEngine" ||

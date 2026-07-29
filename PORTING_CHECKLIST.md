@@ -626,6 +626,7 @@ Accepted deviations:
   - [x] generated RmlUi 6.2 `RenderInterfaceCompatibility` director and layout-checked legacy value ABI
 - [ ] `RmlEventListeners.h`
   - [x] generated RmlUi `EventListener` director prerequisite
+  - [x] generated RmlUi `EventListenerInstancer` director and factory registration prerequisite
   - [x] generated typed `Event`, `Element`, `Context`, and `EventPhase` listener callback prerequisites
   - [ ] `PipeEventListener : Rml::EventListener, NonCopyable`
   - [ ] `SoundEventListener : Rml::EventListener, NonCopyable`

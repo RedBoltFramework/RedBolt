@@ -83,6 +83,28 @@ public sealed class RmlUiBindingsTests
     }
 
     [Fact]
+    public void Event_listener_instancer_dispatches_managed_director()
+    {
+        using var eventListener = new TestEventListener();
+        using var eventListenerInstancer = new TestEventListenerInstancer(eventListener);
+        using var value = new Std.String();
+        value.Assign("event:test");
+        try
+        {
+            Factory.RegisterEventListenerInstancer(eventListenerInstancer);
+
+            var instancedListener = Factory.InstanceEventListener(value, null!);
+
+            Assert.Same(eventListener, instancedListener);
+            Assert.Equal("event:test", eventListenerInstancer.Value);
+        }
+        finally
+        {
+            Factory.RegisterEventListenerInstancer(null);
+        }
+    }
+
+    [Fact]
     public void Font_engine_interface_round_trips_managed_director()
     {
         var original = RmlUiNativeBindings.GetFontEngineInterface();
@@ -446,6 +468,17 @@ public sealed class RmlUiBindingsTests
     {
         public override void ProcessEvent(Event @event)
         {
+        }
+    }
+
+    private sealed class TestEventListenerInstancer(EventListener eventListener) : EventListenerInstancer
+    {
+        public string? Value { get; private set; }
+
+        public override EventListener InstanceEventListener(Std.String value, Element element)
+        {
+            Value = value.ToString();
+            return eventListener;
         }
     }
 
