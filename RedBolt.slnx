@@ -93,6 +93,7 @@
     <Project Path="src/RedBolt/Sample/SoundSynthesis/RedBolt.Sample.SoundSynthesis.csproj" />
     <Project Path="src/RedBolt/Sample/Decals/RedBolt.Sample.Decals.csproj" />
     <Project Path="src/RedBolt/Sample/PointerAdapter/RedBolt.Sample.PointerAdapter.csproj" />
+    <Project Path="src/RedBolt/Sample/Text3D/RedBolt.Sample.Text3D.csproj" />
     <Project Path="src/RedBolt/Sample/TextureFormats/RedBolt.Sample.TextureFormats.csproj" />
     <Project Path="src/RedBolt/Sample/LightAnimation/RedBolt.Sample.LightAnimation.csproj" />
     <Project Path="src/RedBolt/Sample/AggregatedInput/RedBolt.Sample.AggregatedInput.csproj" />

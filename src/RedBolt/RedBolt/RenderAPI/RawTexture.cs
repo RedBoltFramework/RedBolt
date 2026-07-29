@@ -452,7 +452,7 @@ public class RawTexture : DeviceObject
                             source += rowStride;
                         }
                     }
-                    uploadData = destination;
+                    uploadData = (byte*)scratchBuffer;
                     rowStride = alignedRowStride;
                     sliceStride = alignedSliceStride;
                 }

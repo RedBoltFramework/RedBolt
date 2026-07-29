@@ -167,7 +167,7 @@ public class CubemapRenderer : RedObject
     public override void Dispose()
     {
         for (var face = (int)CubeMapFace.MaxCubeMapFaces - 1; face >= 0; --face)
-            _renderCameraNodes[face].Remove();
+            _renderCameraNodes[face].Dispose();
         CubemapRendered = null;
         base.Dispose();
     }
@@ -186,8 +186,7 @@ public class CubemapRenderer : RedObject
 
         for (var face = 0; face < (int)CubeMapFace.MaxCubeMapFaces; ++face)
         {
-            // TODO: port C++ freestanding Node(context); managed nodes currently require a scene owner.
-            var cameraNode = scene!.CreateTemporaryChild($"CubemapCamera_{face}");
+            var cameraNode = new Node();
             cameraNode.SetWorldRotation(FaceRotations[face]);
             var camera = cameraNode.CreateComponent<Camera>();
             camera.SetFov(90.0f);

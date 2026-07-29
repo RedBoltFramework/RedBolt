@@ -66,6 +66,7 @@ public sealed class ResourceCache : RedObject
 
         RegisterLoader<Material>(name => LoadFileBackedResource(name, AppendExtensionIfMissing(name, ".xml"),
             static () => new Material()));
+        RegisterLoader<Font>(name => LoadFileBackedResource(name, static () => new Font()));
         RegisterLoader<RenderPath>(name => LoadFileBackedResource(
             name,
             GetRenderPathLookupNames(name),

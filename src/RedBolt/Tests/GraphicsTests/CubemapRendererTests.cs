@@ -93,17 +93,20 @@ public sealed class CubemapRendererTests
     }
 
     [Fact]
-    public void Dispose_releases_managed_scene_owned_camera_nodes()
+    public void Dispose_releases_freestanding_camera_nodes()
     {
         var scene = new Scene();
         var initialChildren = scene.GetNumChildren();
         var renderer = new CubemapRenderer(scene);
+        var cameraNodes = GetPrivateField<Node[]>(renderer, "_renderCameraNodes");
 
-        Assert.Equal(initialChildren + (uint)CubeMapFace.MaxCubeMapFaces, scene.GetNumChildren());
+        Assert.Equal(initialChildren, scene.GetNumChildren());
+        Assert.All(cameraNodes, static cameraNode => Assert.Equal(1, cameraNode.GetNumComponents()));
 
         renderer.Dispose();
 
         Assert.Equal(initialChildren, scene.GetNumChildren());
+        Assert.All(cameraNodes, static cameraNode => Assert.Equal(0, cameraNode.GetNumComponents()));
     }
 
     [Fact]

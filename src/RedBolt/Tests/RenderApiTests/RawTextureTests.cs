@@ -39,6 +39,23 @@ public sealed class RawTextureTests
         });
     }
 
+    [Fact]
+    public void Texture2D_unaligned_upload_and_readback_use_repacked_data()
+    {
+        WithInitializedGraphics(() =>
+        {
+            byte[] imageData = [1, 2, 3];
+            using var texture = new Texture2D { Name = "Textures/UnalignedRawTexture2D" };
+            texture.SetNumLevels(1);
+            Assert.True(texture.SetSize(3, 1, TextureFormat.TexFormatR8Unorm));
+            Assert.True(texture.SetData(0, 0, 0, 3, 1, imageData));
+
+            var readback = new byte[imageData.Length];
+            Assert.True(texture.GetData(0, readback));
+            Assert.Equal(imageData, readback);
+        });
+    }
+
     private readonly GraphicsEngineFixture _fixture;
 
     public RawTextureTests(GraphicsEngineFixture fixture)

@@ -22,7 +22,7 @@ public struct CustomGeometryVertex
 }
 
 [Reflected(ObjectCategory.Category_Geometry, InheritAttributesOrder = 1)]
-public sealed partial class CustomGeometry : Drawable
+public partial class CustomGeometry : Drawable
 {
     private const uint MaskPosition = (uint)VertexMask.Position;
     private const uint MaskNormal = (uint)VertexMask.Normal;

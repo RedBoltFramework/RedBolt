@@ -11,6 +11,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
     <ProjectReference Include="../Bindings/Diligent/RedBolt.Bindings.Diligent.csproj" />
     <ProjectReference Include="../Bindings/Glslang/RedBolt.Bindings.Glslang.csproj" />
+    <ProjectReference Include="../Bindings/HarfBuzz/RedBolt.Bindings.HarfBuzz.csproj" />
     <ProjectReference Include="../Bindings/ShaderCompiler/RedBolt.Bindings.ShaderCompiler.csproj" />
     <ProjectReference Include="../Bindings/Sdl/RedBolt.Bindings.Sdl.csproj" />
     <ProjectReference Include="../Bindings/SpirVCross/RedBolt.Bindings.SpirVCross.csproj" />
