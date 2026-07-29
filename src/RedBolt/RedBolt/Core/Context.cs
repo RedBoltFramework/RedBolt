@@ -45,11 +45,6 @@ public class Context : ObjectReflectionRegistry
 
     private static Context _instance = new();
 
-    static Context()
-    {
-        GeneratedReflectionRegistration.SetCurrentContext(_instance);
-    }
-
     private static int _sdlInitCounter;
 
     private readonly SubsystemCache _subsystems = new();

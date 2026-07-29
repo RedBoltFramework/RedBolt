@@ -175,7 +175,11 @@ public static class GeneratedReflectionRegistration
         lock (Sync)
         {
             if (!TypeRegistrars.TryGetValue(type, out registrar!))
-                throw new InvalidOperationException($"Type {type.FullName} has no generated RedBolt reflection registrar.");
+            {
+                RuntimeHelpers.RunModuleConstructor(type.Module.ModuleHandle);
+                if (!TypeRegistrars.TryGetValue(type, out registrar!))
+                    throw new InvalidOperationException($"Type {type.FullName} has no generated RedBolt reflection registrar.");
+            }
 
             registration = ContextRegistrations.GetOrCreateValue(context);
             if (!refresh && registration.Registered.Contains(type))
