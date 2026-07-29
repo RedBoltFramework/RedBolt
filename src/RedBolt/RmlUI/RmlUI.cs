@@ -130,7 +130,7 @@ public partial class RmlUI : RedObject
     private static readonly RmlContextInstancer ContextInstancerInstance = new();
     private static readonly RmlPlugin PluginInstance = new();
     private static readonly Std.String MousePassthroughAttribute = CreateNativeString("mouse-passthrough");
-    private static readonly Std.String ComponentPtrAttribute = CreateNativeString("__RmlUIComponentPtr__");
+    internal static readonly Std.String ComponentPtrAttribute = CreateNativeString("__RmlUIComponentPtr__");
 
     /// <summary>Map engine keys to RmlUi keys. Note that top bit is cleared from key constants when they are used as array index.</summary>
     private static readonly Dictionary<Key, Rml.Input.KeyIdentifier> KeyMap = new()
@@ -798,7 +798,7 @@ public partial class RmlUI : RedObject
         return true;
     }
 
-    private static string InsertVariablePlaceholders(string content, nint dataModelId)
+    internal static string InsertVariablePlaceholders(string content, nint dataModelId)
     {
         // Replace special placeholders in .rml file contents and model names to allow deriving unique model names
         return content.Replace("{{__data_model_id}}", dataModelId.ToString(), StringComparison.Ordinal);

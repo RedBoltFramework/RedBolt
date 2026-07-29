@@ -644,7 +644,9 @@ Accepted deviations:
   - [x] `Variant` scalar, string, pointer, vector, and color conversions
   - [~] `RmlUI : Object` — lifecycle, input, rendering, reload, context instancing, plugin, debugger, HarfBuzz font loading, and variant conversions ported; custom Variant data-model definition registration and drop-file dictionary dispatch remain
 - [ ] `RmlUIComponent.h`
-  - [ ] `RmlUIComponent : LogicComponent`
+  - [x] generated RmlUi document layout, focus, scrolling, property, computed-style, and RedBolt `Vector2f` projection prerequisites
+  - [x] generated RmlUi data-model transform callbacks with value-return ownership transfer
+  - [~] `RmlUIComponent : LogicComponent` — document, canvas, focus, position, size, modal, scalar property, event, and data-model lifecycle ported; custom `Variant`, `VariantVector`, and `VariantMap` definitions remain
 - [x] `RmlCanvasComponent.h`
   - [x] generated RmlUi context document-unload prerequisite
   - [x] `RmlCanvasComponent : LogicComponent`

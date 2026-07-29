@@ -965,10 +965,18 @@ internal static class Program
         element.ManagedBaseTypeName = null;
         foreach (var method in element.Members.OfType<FunctionBinding>())
         {
-            if ((!method.IsGeneric && method.NativeName is
-                    "Blur" or "Click" or "GetAbsoluteOffset" or "GetContext" or "GetElementById" or
-                    "GetOwnerDocument" or "GetProperty" or "GetTagName" or "IsVisible" or "SetProperty") ||
-                (method.IsGeneric && method.NativeName is "GetAttribute" or "SetAttribute"))
+            var retained = (!method.IsGeneric && method.NativeName is
+                    "Blur" or "Click" or "Focus" or "GetAbsoluteOffset" or "GetBox" or "GetComputedValues" or
+                    "GetContext" or "GetElementById" or "GetFocusLeafNode" or "GetOwnerDocument" or
+                    "GetParentNode" or "GetProperty" or "GetTagName" or "IsVisible" or "ResolveLength" or
+                    "ScrollIntoView" or "SetProperty") ||
+                (method.IsGeneric && method.NativeName is "GetAttribute" or "SetAttribute");
+            if (method.NativeName == "GetBox" && method.Parameters.Count != 0)
+                retained = false;
+            if (method.NativeName == "ScrollIntoView" &&
+                method.Parameters.FirstOrDefault()?.CppTypeName != "Rml::ScrollIntoViewOptions")
+                retained = false;
+            if (retained)
                 method.ClearIgnoreReason();
             else
                 method.SetSilentExclusionReason("RmlUi element member is outside the current binding slice");
@@ -986,7 +994,8 @@ internal static class Program
         foreach (var method in elementDocument.Members.OfType<FunctionBinding>())
         {
             if (method.NativeName is
-                "Close" or "GetContext" or "GetSourceURL" or "Hide" or "IsModal" or "Show" or "UpdateDocument")
+                "Close" or "FindNextTabElement" or "GetContext" or "GetSourceURL" or
+                "Hide" or "IsModal" or "Show" or "UpdateDocument")
                 method.ClearIgnoreReason();
             else
                 method.SetSilentExclusionReason("RmlUi document member is outside the current binding slice");
@@ -998,7 +1007,137 @@ internal static class Program
         property.Bases.Clear();
         property.ManagedBaseTypeName = null;
         foreach (var member in property.Members)
-            member.SetSilentExclusionReason("RmlUi property internals are outside the document reload binding slice");
+        {
+            if (member is FunctionBinding { NativeName: "GetNumericValue" } method)
+                method.ClearIgnoreReason();
+            else
+                member.SetSilentExclusionReason("RmlUi property member is outside the component binding slice");
+        }
+        var unit = compilation.Enums.First(static @enum =>
+            @enum.CppQualifiedName == "Rml::Unit");
+        unit.IsFlags = true;
+        if (unit.Values.Count == 0)
+        {
+            foreach (var value in new[]
+                     {
+                         new EnumValueBinding("UNKNOWN", "Unknown", "0"),
+                         new EnumValueBinding("KEYWORD", "Keyword", "1"),
+                         new EnumValueBinding("STRING", "String", "2"),
+                         new EnumValueBinding("COLOUR", "Colour", "4"),
+                         new EnumValueBinding("RATIO", "Ratio", "8"),
+                         new EnumValueBinding("NUMBER", "Number", "16"),
+                         new EnumValueBinding("PERCENT", "Percent", "32"),
+                         new EnumValueBinding("PX", "Px", "64"),
+                         new EnumValueBinding("DP", "Dp", "128"),
+                         new EnumValueBinding("VW", "Vw", "256"),
+                         new EnumValueBinding("VH", "Vh", "512"),
+                         new EnumValueBinding("X", "X", "1024"),
+                         new EnumValueBinding("EM", "Em", "2048"),
+                         new EnumValueBinding("REM", "Rem", "4096"),
+                         new EnumValueBinding("INCH", "Inch", "8192"),
+                         new EnumValueBinding("CM", "Cm", "16384"),
+                         new EnumValueBinding("MM", "Mm", "32768"),
+                         new EnumValueBinding("PT", "Pt", "65536"),
+                         new EnumValueBinding("PC", "Pc", "131072"),
+                         new EnumValueBinding("PPI_UNIT", "PpiUnit", "253952"),
+                         new EnumValueBinding("DEG", "Deg", "262144"),
+                         new EnumValueBinding("RAD", "Rad", "524288"),
+                         new EnumValueBinding("TRANSFORM", "Transform", "1048576"),
+                         new EnumValueBinding("TRANSITION", "Transition", "2097152"),
+                         new EnumValueBinding("ANIMATION", "Animation", "4194304"),
+                         new EnumValueBinding("DECORATOR", "Decorator", "8388608"),
+                         new EnumValueBinding("FILTER", "Filter", "16777216"),
+                         new EnumValueBinding("FONTEFFECT", "FontEffect", "33554432"),
+                         new EnumValueBinding("COLORSTOPLIST", "ColorStopList", "67108864"),
+                         new EnumValueBinding("BOXSHADOWLIST", "BoxShadowList", "134217728"),
+                         new EnumValueBinding("LENGTH", "Length", "261056"),
+                         new EnumValueBinding("LENGTH_PERCENT", "LengthPercent", "261088"),
+                         new EnumValueBinding("NUMBER_PERCENT", "NumberPercent", "48"),
+                         new EnumValueBinding("NUMBER_LENGTH_PERCENT", "NumberLengthPercent", "261104"),
+                         new EnumValueBinding("DP_SCALABLE_LENGTH", "DpScalableLength", "254080"),
+                         new EnumValueBinding("ANGLE", "Angle", "786432"),
+                         new EnumValueBinding("NUMERIC", "Numeric", "1048560")
+                     })
+            {
+                unit.Values.Add(value);
+            }
+        }
+        var unitType = BindingType.CreateEnum(
+            unit.CppQualifiedName, unit.ManagedName, enumId: unit.SymbolId);
+        var propertyConstructor = new FunctionBinding(
+            "constructor:Rml::Property:float:Rml::Unit",
+            "Property",
+            property.ManagedName,
+            property.HandleType,
+            "redbolt_rmlui_Rml_Property_Property_float_Unit")
+        {
+            HeaderIncludePath = property.HeaderIncludePath,
+            IsConstructor = true,
+            IsStatic = false,
+            OwningRecordCppTypeName = property.CppQualifiedName
+        };
+        propertyConstructor.Parameters.Add(new ParameterBinding(
+            "parameter:Rml::Property::Property:float:value",
+            "value",
+            "value",
+            BindingType.Single,
+            cppTypeName: "float"));
+        propertyConstructor.Parameters.Add(new ParameterBinding(
+            "parameter:Rml::Property::Property:Rml::Unit:unit",
+            "unit",
+            "unit",
+            unitType,
+            cppTypeName: "Rml::Unit"));
+        property.Members.Add(propertyConstructor);
+
+        var box = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::Box");
+        box.ClearIgnoreReason();
+        box.Bases.Clear();
+        box.ManagedBaseTypeName = null;
+        foreach (var method in box.Members.OfType<FunctionBinding>())
+        {
+            if (!method.IsConstructor && method.NativeName == "GetSize")
+                method.ClearIgnoreReason();
+            else
+                method.SetSilentExclusionReason("RmlUi box member is outside the component binding slice");
+        }
+
+        var computedValues = compilation.Records.First(static record =>
+            record.CppQualifiedName is "Rml::ComputedValues" or "Rml::Style::ComputedValues");
+        computedValues.ClearIgnoreReason();
+        computedValues.Bases.Clear();
+        computedValues.ManagedNamespace = descriptor.ManagedNamespace;
+        computedValues.ManagedBaseTypeName = null;
+        foreach (var method in computedValues.Members.OfType<FunctionBinding>())
+        {
+            if (!method.IsConstructor && method.IsConstMethod && method.Parameters.Count == 0 &&
+                method.NativeName is "focus" or "tab_index")
+                method.ClearIgnoreReason();
+            else
+                method.SetSilentExclusionReason("RmlUi computed-value member is outside the component binding slice");
+        }
+
+        var numericValue = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::NumericValue");
+        numericValue.ClearIgnoreReason();
+        numericValue.Bases.Clear();
+        numericValue.ManagedBaseTypeName = null;
+        foreach (var member in numericValue.Members)
+            member.SetSilentExclusionReason("RmlUi numeric value is passed opaquely");
+
+        var scrollIntoViewOptions = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::ScrollIntoViewOptions");
+        scrollIntoViewOptions.ClearIgnoreReason();
+        scrollIntoViewOptions.Bases.Clear();
+        scrollIntoViewOptions.ManagedBaseTypeName = null;
+        foreach (var member in scrollIntoViewOptions.Members)
+        {
+            if (member is FunctionBinding { IsConstructor: true } constructor)
+                constructor.ClearIgnoreReason();
+            else
+                member.SetSilentExclusionReason("RmlUi scroll options fields are outside the component binding slice");
+        }
 
         foreach (var method in context.Members.OfType<FunctionBinding>()
                      .Where(static method => method.NativeName == "LoadDocumentFromMemory"))
@@ -1019,6 +1158,18 @@ internal static class Program
                 $"{method.ReturnType.ManagedTypeName}?");
         }
         foreach (var method in element.Members.OfType<FunctionBinding>()
+                     .Where(static method => method.NativeName is "GetFocusLeafNode" or "GetParentNode"))
+        {
+            method.ReturnType = method.ReturnType.WithManagedTypeFormatOverride(
+                $"{method.ReturnType.ManagedTypeName}?");
+        }
+        foreach (var method in elementDocument.Members.OfType<FunctionBinding>()
+                     .Where(static method => method.NativeName == "FindNextTabElement"))
+        {
+            method.ReturnType = method.ReturnType.WithManagedTypeFormatOverride(
+                $"{method.ReturnType.ManagedTypeName}?");
+        }
+        foreach (var method in element.Members.OfType<FunctionBinding>()
                      .Where(static method => method.NativeName == "GetProperty"))
         {
             method.ReturnType = method.ReturnType.WithManagedTypeFormatOverride(
@@ -1033,6 +1184,12 @@ internal static class Program
             method.NativeName == "GetAbsoluteOffset");
         getAbsoluteOffset.ReturnType = vector2fType;
         getAbsoluteOffset.CppReturnTypeName = "Rml::Vector2<float>";
+        foreach (var getSize in box.Members.OfType<FunctionBinding>()
+                     .Where(static method => method.NativeName == "GetSize"))
+        {
+            getSize.ReturnType = vector2fType;
+            getSize.CppReturnTypeName = "Rml::Vector2<float>";
+        }
 
         var @event = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Event");
@@ -1145,6 +1302,21 @@ internal static class Program
         {
             parameter.Type = propertyIdType;
             parameter.CppTypeName = propertyId.CppQualifiedName;
+        }
+        foreach (var cppQualifiedName in new[]
+                 {
+                     "Rml::Unit",
+                     "Rml::ScrollAlignment",
+                     "Rml::ScrollBehavior",
+                     "Rml::ScrollParentage",
+                     "Rml::Style::Focus",
+                     "Rml::Style::TabIndex"
+                 })
+        {
+            var @enum = compilation.Enums.First(@enum => @enum.CppQualifiedName == cppQualifiedName);
+            @enum.ClearIgnoreReason();
+            if (cppQualifiedName is "Rml::Style::Focus" or "Rml::Style::TabIndex")
+                @enum.ManagedNamespace = descriptor.ManagedNamespace;
         }
         var keyIdentifier = compilation.Enums.First(static @enum =>
             @enum.CppQualifiedName == "Rml::Input::KeyIdentifier");
@@ -1341,6 +1513,25 @@ internal static class Program
             else
                 method.SetSilentExclusionReason("RmlUi variant member is outside the data-model binding slice");
         }
+        var variantBooleanConstructor = new FunctionBinding(
+            "constructor:Rml::Variant:bool",
+            "Variant",
+            variant.ManagedName,
+            variant.HandleType,
+            "redbolt_rmlui_Rml_Variant_Variant_bool")
+        {
+            HeaderIncludePath = variant.HeaderIncludePath,
+            IsConstructor = true,
+            IsStatic = false,
+            OwningRecordCppTypeName = variant.CppQualifiedName
+        };
+        variantBooleanConstructor.Parameters.Add(new ParameterBinding(
+            "parameter:Rml::Variant::Variant:bool:value",
+            "value",
+            "value",
+            BindingType.Boolean,
+            cppTypeName: "bool"));
+        variant.Members.Add(variantBooleanConstructor);
 
         var stringType = BindingType.CreateConfigured(
             "Rml::String",
@@ -1470,11 +1661,62 @@ internal static class Program
         constructor.ManagedBaseTypeName = null;
         foreach (var method in constructor.Members.OfType<FunctionBinding>())
         {
-            if (!method.IsConstructor && !method.IsGeneric &&
-                method.NativeName is ("BindEventCallback" or "BindFunc" or "GetModelHandle"))
+            if (!method.IsGeneric &&
+                (method.IsConstructor && method.Parameters.Count == 0 ||
+                 method.NativeName is ("BindEventCallback" or "BindFunc" or "GetDataTypeRegister" or
+                     "GetModelHandle" or "RegisterTransformFunc")))
                 method.ClearIgnoreReason();
             else
                 method.SetSilentExclusionReason("RmlUi data-model constructor member is outside the functional binding slice");
+        }
+        var registerTransformFunc = constructor.Members.OfType<FunctionBinding>().First(static method =>
+            method.NativeName == "RegisterTransformFunc");
+        var transformFuncParameter = registerTransformFunc.Parameters.First(static parameter =>
+            parameter.NativeName == "transform_func");
+        var transformFuncType = transformFuncParameter.Type;
+        var transformReturnType = transformFuncType.CallbackReturnType!
+            .WithCppTypeName("Rml::Variant")
+            .WithCppIsRecordValue(true);
+        var projectedTransformFuncType = BindingType.CreateCallback(
+            transformFuncType.CppTypeName,
+            transformFuncType.Marshaller.PublicTypeName,
+            transformFuncType.ManagedMarshaller,
+            transformReturnType,
+            transformFuncType.CallbackParameterTypes);
+        if (transformFuncType.AliasCppQualifiedName is not null && transformFuncType.AliasNativeName is not null)
+        {
+            projectedTransformFuncType = projectedTransformFuncType.WithAliasSurface(
+                transformFuncType.AliasCppQualifiedName, transformFuncType.AliasNativeName);
+        }
+        transformFuncParameter.Type = projectedTransformFuncType;
+        for (var index = 0; index < compilation.TypeAliases.Count; ++index)
+        {
+            var alias = compilation.TypeAliases[index];
+            if (alias.CppQualifiedName != "Rml::DataTransformFunc")
+                continue;
+            compilation.TypeAliases[index] = alias with
+            {
+                TargetType = BindingType.CreateCallback(
+                    alias.TargetType.CppTypeName,
+                    alias.TargetType.Marshaller.PublicTypeName,
+                    alias.TargetType.ManagedMarshaller,
+                    transformReturnType,
+                    alias.TargetType.CallbackParameterTypes)
+            };
+            break;
+        }
+
+        var typeRegister = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::DataTypeRegister");
+        typeRegister.ClearIgnoreReason();
+        typeRegister.Bases.Clear();
+        typeRegister.ManagedBaseTypeName = null;
+        foreach (var method in typeRegister.Members.OfType<FunctionBinding>())
+        {
+            if (method.IsConstructor)
+                method.ClearIgnoreReason();
+            else
+                method.SetSilentExclusionReason("RmlUi type register member is outside the component binding slice");
         }
 
         var handle = compilation.Records.First(static record =>
@@ -1499,7 +1741,8 @@ internal static class Program
             foreach (var parameter in method.Parameters.Where(static parameter =>
                          parameter.NativeName == "data_type_register"))
             {
-                parameter.Type = BindingType.IntPtr;
+                parameter.Type = BindingType.CreateHandle(
+                    "Rml::DataTypeRegister*", "DataTypeRegister", typeRegister.SymbolId);
             }
         }
     }
@@ -1598,12 +1841,14 @@ internal static class Program
 
                 if (member is RecordBinding record &&
                     (record.CppQualifiedName is
-                         "Rml::Context" or "Rml::DataModelConstructor" or "Rml::DataModelHandle" or
-                         "Rml::Element" or "Rml::Event" or "Rml::Variant" or
+                         "Rml::Box" or "Rml::Context" or "Rml::DataModelConstructor" or
+                         "Rml::DataModelHandle" or "Rml::DataTypeRegister" or "Rml::Element" or
+                         "Rml::Event" or "Rml::NumericValue" or "Rml::ScrollIntoViewOptions" or "Rml::Variant" or
                          "Rml::ContextInstancer" or "Rml::ElementDocument" or "Rml::EventListener" or
                          "Rml::EventListenerInstancer" or "Rml::FileInterface" or
                          "Rml::Factory" or "Rml::FontEngineInterface" or "Rml::Log" or "Rml::Property" or
                          "Rml::Plugin" or "Rml::RenderInterfaceCompatibility" or "Rml::SystemInterface" or
+                         "Rml::ComputedValues" or "Rml::Style::ComputedValues" or
                          "RedBoltNative::RmlHarfBuzzFontEngine" ||
                      record.CppQualifiedName.StartsWith("Rml::Vector2", StringComparison.Ordinal) ||
                      record.ManagedNamespace == "Std" && record.ManagedName is "String" or "Vector"))
@@ -1615,7 +1860,9 @@ internal static class Program
                     @enum.CppQualifiedName is
                         "Rml::BoxArea" or "Rml::EventPhase" or "Rml::FocusFlag" or "Rml::Log::Type" or
                         "Rml::ModalFlag" or "Rml::PropertyId" or "Rml::Variant::Type" or
-                        "Rml::Input::KeyIdentifier" or "Rml::Input::KeyModifier" or "Rml::Style::FontWeight")
+                        "Rml::Input::KeyIdentifier" or "Rml::Input::KeyModifier" or
+                        "Rml::ScrollAlignment" or "Rml::ScrollBehavior" or "Rml::ScrollParentage" or
+                        "Rml::Style::Focus" or "Rml::Style::FontWeight" or "Rml::Style::TabIndex" or "Rml::Unit")
                     continue;
 
                 compilation.Members.RemoveAt(index);
@@ -1625,7 +1872,7 @@ internal static class Program
             for (var index = compilation.TypeAliases.Count - 1; index >= 0; --index)
             {
                 if (compilation.TypeAliases[index].CppQualifiedName is
-                    "Rml::DataEventFunc" or "Rml::DataGetFunc" or "Rml::DataSetFunc" or
+                    "Rml::DataEventFunc" or "Rml::DataGetFunc" or "Rml::DataSetFunc" or "Rml::DataTransformFunc" or
                     "Rml::VariantList" or "Rml::Vector2f")
                     continue;
 
