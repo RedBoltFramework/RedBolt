@@ -896,8 +896,8 @@ internal static class Program
         foreach (var method in context.Members.OfType<FunctionBinding>())
         {
             if (method.NativeName is
-                "GetDensityIndependentPixelRatio" or "GetDimensions" or "GetFocusElement" or "GetHoverElement" or
-                "GetName" or "GetRootElement" or "Render" or
+                "GetDensityIndependentPixelRatio" or "GetDimensions" or "GetDocument" or "GetFocusElement" or
+                "GetHoverElement" or "GetName" or "GetNumDocuments" or "GetRootElement" or "Render" or
                 "LoadDocumentFromMemory" or "SetDensityIndependentPixelRatio" or "SetDimensions" or
                 "ProcessKeyDown" or "ProcessKeyUp" or "ProcessMouseButtonDown" or "ProcessMouseButtonUp" or
                 "ProcessMouseMove" or "ProcessMouseWheel" or "ProcessTextInput" or
@@ -943,7 +943,9 @@ internal static class Program
         element.ManagedBaseTypeName = null;
         foreach (var method in element.Members.OfType<FunctionBinding>())
         {
-            if (method.NativeName is "Blur" or "GetContext" or "GetOwnerDocument" or "GetTagName")
+            if (!method.IsGeneric && method.NativeName is
+                "Blur" or "GetAbsoluteOffset" or "GetContext" or "GetOwnerDocument" or "GetProperty" or
+                "GetTagName" or "IsVisible" or "SetProperty")
                 method.ClearIgnoreReason();
             else
                 method.SetSilentExclusionReason("RmlUi element member is outside the current binding slice");
@@ -954,11 +956,20 @@ internal static class Program
         elementDocument.ClearIgnoreReason();
         foreach (var method in elementDocument.Members.OfType<FunctionBinding>())
         {
-            if (method.NativeName is "Close" or "GetContext" or "Hide" or "Show")
+            if (method.NativeName is
+                "Close" or "GetContext" or "GetSourceURL" or "Hide" or "IsModal" or "Show" or "UpdateDocument")
                 method.ClearIgnoreReason();
             else
                 method.SetSilentExclusionReason("RmlUi document member is outside the current binding slice");
         }
+
+        var property = compilation.Records.First(static record =>
+            record.CppQualifiedName == "Rml::Property");
+        property.ClearIgnoreReason();
+        property.Bases.Clear();
+        property.ManagedBaseTypeName = null;
+        foreach (var member in property.Members)
+            member.SetSilentExclusionReason("RmlUi property internals are outside the document reload binding slice");
 
         foreach (var method in context.Members.OfType<FunctionBinding>()
                      .Where(static method => method.NativeName == "LoadDocumentFromMemory"))
@@ -967,7 +978,7 @@ internal static class Program
                 $"{method.ReturnType.ManagedTypeName}?");
         }
         foreach (var method in context.Members.OfType<FunctionBinding>()
-                     .Where(static method => method.NativeName is "GetFocusElement" or "GetHoverElement"))
+                     .Where(static method => method.NativeName is "GetDocument" or "GetFocusElement" or "GetHoverElement"))
         {
             method.ReturnType = method.ReturnType.WithManagedTypeFormatOverride(
                 $"{method.ReturnType.ManagedTypeName}?");
@@ -978,6 +989,19 @@ internal static class Program
             method.ReturnType = method.ReturnType.WithManagedTypeFormatOverride(
                 $"{method.ReturnType.ManagedTypeName}?");
         }
+        foreach (var method in element.Members.OfType<FunctionBinding>()
+                     .Where(static method => method.NativeName == "GetProperty"))
+        {
+            method.ReturnType = method.ReturnType.WithManagedTypeFormatOverride(
+                $"{method.ReturnType.ManagedTypeName}?");
+        }
+
+        var vector2fType = BindingType.CreateConfigured(
+            "Rml::Vector2<float>", "global::RedBolt.Bindings.RmlUi.RmlUiLegacyVector2f");
+        var getAbsoluteOffset = element.Members.OfType<FunctionBinding>().First(static method =>
+            method.NativeName == "GetAbsoluteOffset");
+        getAbsoluteOffset.ReturnType = vector2fType;
+        getAbsoluteOffset.CppReturnTypeName = "Rml::Vector2<float>";
 
         var @event = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Event");
@@ -1010,6 +1034,32 @@ internal static class Program
         var modalFlag = compilation.Enums.First(static @enum =>
             @enum.CppQualifiedName == "Rml::ModalFlag");
         modalFlag.ClearIgnoreReason();
+        var boxArea = compilation.Enums.First(static @enum =>
+            @enum.CppQualifiedName == "Rml::BoxArea");
+        boxArea.ClearIgnoreReason();
+        var boxAreaType = BindingType.CreateEnum(
+            boxArea.CppQualifiedName, boxArea.ManagedName, enumId: boxArea.SymbolId);
+        foreach (var parameter in element.Members.OfType<FunctionBinding>()
+                     .Where(static method => method.NativeName == "GetAbsoluteOffset")
+                     .SelectMany(static method => method.Parameters)
+                     .Where(static parameter => parameter.NativeName == "area"))
+        {
+            parameter.Type = boxAreaType;
+            parameter.CppTypeName = boxArea.CppQualifiedName;
+        }
+        var propertyId = compilation.Enums.First(static @enum =>
+            @enum.CppQualifiedName == "Rml::PropertyId");
+        propertyId.ClearIgnoreReason();
+        var propertyIdType = BindingType.CreateEnum(
+            propertyId.CppQualifiedName, propertyId.ManagedName, enumId: propertyId.SymbolId);
+        foreach (var parameter in element.Members.OfType<FunctionBinding>()
+                     .Where(static method => method.NativeName is "GetProperty" or "SetProperty")
+                     .SelectMany(static method => method.Parameters)
+                     .Where(static parameter => parameter.NativeName == "id"))
+        {
+            parameter.Type = propertyIdType;
+            parameter.CppTypeName = propertyId.CppQualifiedName;
+        }
         var keyIdentifier = compilation.Enums.First(static @enum =>
             @enum.CppQualifiedName == "Rml::Input::KeyIdentifier");
         keyIdentifier.ClearIgnoreReason();
@@ -1283,7 +1333,7 @@ internal static class Program
                     (record.CppQualifiedName is
                          "Rml::Context" or "Rml::Element" or "Rml::Event" or
                          "Rml::ElementDocument" or "Rml::EventListener" or "Rml::FileInterface" or
-                         "Rml::Factory" or "Rml::FontEngineInterface" or "Rml::Log" or
+                         "Rml::Factory" or "Rml::FontEngineInterface" or "Rml::Log" or "Rml::Property" or
                          "Rml::RenderInterfaceCompatibility" or "Rml::SystemInterface" or
                          "RedBoltNative::RmlHarfBuzzFontEngine" ||
                      record.CppQualifiedName.StartsWith("Rml::Vector2", StringComparison.Ordinal) ||
@@ -1294,7 +1344,8 @@ internal static class Program
 
                 if (member is EnumBinding @enum &&
                     @enum.CppQualifiedName is
-                        "Rml::EventPhase" or "Rml::FocusFlag" or "Rml::Log::Type" or "Rml::ModalFlag" or
+                        "Rml::BoxArea" or "Rml::EventPhase" or "Rml::FocusFlag" or "Rml::Log::Type" or
+                        "Rml::ModalFlag" or "Rml::PropertyId" or
                         "Rml::Input::KeyIdentifier" or "Rml::Input::KeyModifier" or "Rml::Style::FontWeight")
                     continue;
 

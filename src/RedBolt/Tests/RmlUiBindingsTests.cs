@@ -114,6 +114,11 @@ public sealed class RmlUiBindingsTests
         using var contextName = new Std.String();
         using var documentSource = new Std.String();
         using var sourceUrl = new Std.String();
+        using var documentId = new Std.String();
+        using var leftName = new Std.String();
+        using var leftValue = new Std.String();
+        using var topName = new Std.String();
+        using var topValue = new Std.String();
         fontPath.Assign(Path.GetFullPath(Path.Combine(
             AppContext.BaseDirectory, "..", "Data", "Fonts", "Anonymous Pro.ttf")));
         contextName.Assign("RedBolt.Tests.RmlUiBindings.HarfBuzz");
@@ -124,10 +129,15 @@ public sealed class RmlUiBindingsTests
                     body { font-family: "Anonymous Pro"; font-size: 32px; color: white; }
                 </style>
             </head>
-            <body>HarfBuzz raster</body>
+            <body id="harfbuzz-document">HarfBuzz raster</body>
             </rml>
             """);
         sourceUrl.Assign("memory://harfbuzz.rml");
+        documentId.Assign("harfbuzz-document");
+        leftName.Assign("left");
+        leftValue.Assign("12px");
+        topName.Assign("top");
+        topValue.Assign("8px");
         Context? context = null;
         ElementDocument? document = null;
         var initialized = false;
@@ -152,10 +162,35 @@ public sealed class RmlUiBindingsTests
             Factory.ClearStyleSheetCache();
             Factory.ClearTemplateCache();
             RmlUiNativeBindings.ReleaseTextures();
+            var initialDocumentCount = context.GetNumDocuments();
             document = context.LoadDocumentFromMemory(documentSource, sourceUrl);
             Assert.NotNull(document);
+            Assert.Equal(initialDocumentCount + 1, context.GetNumDocuments());
+            var indexedDocument = context.GetDocument(initialDocumentCount);
+            Assert.NotNull(indexedDocument);
+            Assert.Equal(document.Handle, indexedDocument.Handle);
+            var namedDocument = context.GetDocument(documentId);
+            Assert.NotNull(namedDocument);
+            Assert.Equal(document.Handle, namedDocument.Handle);
+            var documentContext = document.GetContext();
+            Assert.Equal(context.Handle, documentContext.Handle);
+            var loadedSourceUrl = document.GetSourceURL();
+            Assert.Equal(sourceUrl.ToString(), loadedSourceUrl.ToString());
 
-            document.Show(ModalFlag.None, FocusFlag.None);
+            Assert.True(document.SetProperty(leftName, leftValue));
+            Assert.True(document.SetProperty(topName, topValue));
+            var leftProperty = document.GetProperty(PropertyId.Left);
+            Assert.NotNull(leftProperty);
+            using (var leftCopy = leftProperty.Clone())
+                Assert.True(document.SetProperty(PropertyId.Left, leftCopy));
+            document.UpdateDocument();
+            var absoluteOffset = document.GetAbsoluteOffset(BoxArea.Border);
+            Assert.Equal(12.0f, absoluteOffset.X);
+            Assert.Equal(8.0f, absoluteOffset.Y);
+
+            document.Show(ModalFlag.Modal, FocusFlag.None);
+            Assert.True(document.IsVisible());
+            Assert.True(document.IsModal());
             Assert.True(context.Update());
             Assert.True(context.Render());
             Assert.True(renderInterface.GeneratedTexture);
