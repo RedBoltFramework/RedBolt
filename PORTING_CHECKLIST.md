@@ -624,13 +624,13 @@ Accepted deviations:
   - [x] `Texture` device-loss forwarding prerequisite
   - [x] UI batch pipeline-state cache prerequisite from `RenderPipeline/BatchStateCache.h`
   - [x] generated RmlUi 6.2 `RenderInterfaceCompatibility` director and layout-checked legacy value ABI
-- [ ] `RmlEventListeners.h`
+- [x] `RmlEventListeners.h`
   - [x] generated RmlUi `EventListener` director prerequisite
   - [x] generated RmlUi `EventListenerInstancer` director and factory registration prerequisite
   - [x] generated typed `Event`, `Element`, `Context`, and `EventPhase` listener callback prerequisites
-  - [ ] `PipeEventListener : Rml::EventListener, NonCopyable`
-  - [ ] `SoundEventListener : Rml::EventListener, NonCopyable`
-  - [ ] `CustomEventListener : Rml::EventListener, NonCopyable`
+  - [x] `PipeEventListener : Rml::EventListener, NonCopyable`
+  - [x] `SoundEventListener : Rml::EventListener, NonCopyable`
+  - [x] `CustomEventListener : Rml::EventListener, NonCopyable` — custom `StringHash` dispatch mapped to typed `RmlCustomEvent`
 - [ ] `RmlUI.h`
   - [x] generated RmlUi lifecycle and base `Context` name, dimensions, DPI, update, and render prerequisites
   - [x] generated RmlUi `ContextInstancer` ownership and release lifecycle prerequisite
@@ -640,7 +640,7 @@ Accepted deviations:
   - [x] generated RmlUi debugger visibility and texture, style-sheet, and template cache release prerequisites
   - [x] generated RmlUi document enumeration, source, visibility, modal, position, and property reload prerequisites
   - [x] generated RmlUi element boolean and component-pointer attribute prerequisites
-  - [ ] `RmlUI : Object`
+  - [~] `RmlUI : Object` — lifecycle, input, rendering, reload, context instancing, plugin, debugger, and HarfBuzz font loading ported; generated `Rml::Variant`/data-model definitions and drop-file dictionary dispatch remain
 - [ ] `RmlUIComponent.h`
   - [ ] `RmlUIComponent : LogicComponent`
 - [ ] `RmlCanvasComponent.h`
