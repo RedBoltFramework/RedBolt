@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt.Bindings.Jolt</AssemblyName>
+    <EnableLibraryImportGenerator>true</EnableLibraryImportGenerator>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DisableRuntimeMarshalling>true</DisableRuntimeMarshalling>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../RedBolt/RedBolt.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RedBoltGeneratedBindingsDir)' != '' and Exists('$(RedBoltGeneratedBindingsDir)/jolt')">
+    <Compile Include="$(RedBoltGeneratedBindingsDir)/jolt/**/*.g.cs" LinkBase="Generated" />
+  </ItemGroup>
+</Project>

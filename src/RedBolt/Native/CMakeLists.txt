@@ -52,6 +52,7 @@ add_library(RedBolt.Native ${_redbolt_native_library_type}
     "${REDBOLT_SPIRV_CROSS_BINDINGS_CPP}"
     "${REDBOLT_SPIRV_TOOLS_BINDINGS_CPP}"
     "${REDBOLT_SHADER_COMPILER_BINDINGS_CPP}"
+    "${REDBOLT_JOLT_BINDINGS_CPP}"
     src/RmlHarfBuzzFontEngine.cpp
     src/ShaderCompilerSupport.cpp
     src/StbImpl.cpp)
@@ -69,6 +70,7 @@ set_source_files_properties(
     "${REDBOLT_GLSLANG_BINDINGS_CPP}"
     "${REDBOLT_SPIRV_CROSS_BINDINGS_CPP}"
     "${REDBOLT_SPIRV_TOOLS_BINDINGS_CPP}"
+    "${REDBOLT_JOLT_BINDINGS_CPP}"
     PROPERTIES
         GENERATED TRUE)
 
@@ -89,7 +91,7 @@ set_target_properties(RedBolt.Native PROPERTIES
     BUILD_WITH_INSTALL_RPATH TRUE)
 
 target_compile_definitions(RedBolt.Native PRIVATE REDBOLT_NATIVE_BUILD)
-target_include_directories(RedBolt.Native PRIVATE "${REDBOLT_STB_INCLUDE_DIR}" "${REDBOLT_LZ4_INCLUDE_DIR}" "${REDBOLT_HARFBUZZ_SOURCE_ROOT}/src" "${REDBOLT_RMLUI_SOURCE_ROOT}/Include" "${REDBOLT_WEBP_INCLUDE_DIR}" "${REDBOLT_XATLAS_INCLUDE_DIR}" "${REDBOLT_XATLAS_GENERATED_DIR}" "${REDBOLT_GLSLANG_SOURCE_ROOT}" "${REDBOLT_SPIRV_CROSS_SOURCE_ROOT}" "${REDBOLT_SPIRV_TOOLS_SOURCE_ROOT}/include")
+target_include_directories(RedBolt.Native PRIVATE "${REDBOLT_STB_INCLUDE_DIR}" "${REDBOLT_LZ4_INCLUDE_DIR}" "${REDBOLT_HARFBUZZ_SOURCE_ROOT}/src" "${REDBOLT_RMLUI_SOURCE_ROOT}/Include" "${REDBOLT_WEBP_INCLUDE_DIR}" "${REDBOLT_XATLAS_INCLUDE_DIR}" "${REDBOLT_XATLAS_GENERATED_DIR}" "${REDBOLT_GLSLANG_SOURCE_ROOT}" "${REDBOLT_SPIRV_CROSS_SOURCE_ROOT}" "${REDBOLT_SPIRV_TOOLS_SOURCE_ROOT}/include" "${REDBOLT_JOLT_INCLUDE_DIR}")
 target_compile_options(RedBolt.Native PRIVATE
     "$<$<CXX_COMPILER_ID:GNU>:-Wno-attributes>"
     "$<$<CXX_COMPILER_ID:Clang>:-Wno-attributes>")
@@ -109,6 +111,7 @@ target_link_libraries(RedBolt.Native
         "${REDBOLT_LZ4_LIBRARY}"
         "${REDBOLT_WEBP_LIBRARY}"
         "${REDBOLT_XATLAS_LIBRARY}"
+        ${REDBOLT_JOLT_LIBRARY}
         glslang
         glslang-default-resource-limits
         SPIRV

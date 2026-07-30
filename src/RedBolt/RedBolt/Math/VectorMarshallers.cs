@@ -2,6 +2,7 @@
 
 namespace RedBolt.Math;
 
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 
 [CustomMarshaller(typeof(BaseRealVector2<float>), MarshalMode.ManagedToUnmanagedIn, typeof(Vector2fMarshaller))]
@@ -24,14 +25,22 @@ public static class Vector2iMarshaller
     public static BaseIntegerVector2<int> ConvertToManaged(BaseIntegerVector2<int> unmanaged) => unmanaged;
 }
 
-[CustomMarshaller(typeof(BaseRealVector3<float>), MarshalMode.ManagedToUnmanagedIn, typeof(Vector3fMarshaller))]
-[CustomMarshaller(typeof(BaseRealVector3<float>), MarshalMode.ManagedToUnmanagedOut, typeof(Vector3fMarshaller))]
-[CustomMarshaller(typeof(BaseRealVector3<float>), MarshalMode.UnmanagedToManagedOut, typeof(Vector3fMarshaller))]
+[CustomMarshaller(typeof(BaseRealVector3<float>), MarshalMode.Default, typeof(Vector3fMarshaller))]
 public static class Vector3fMarshaller
 {
-    public static BaseRealVector3<float> ConvertToUnmanaged(BaseRealVector3<float> managed) => managed;
+    public static Vector3fAbi ConvertToUnmanaged(BaseRealVector3<float> managed) =>
+        new(managed.X, managed.Y, managed.Z);
 
-    public static BaseRealVector3<float> ConvertToManaged(BaseRealVector3<float> unmanaged) => unmanaged;
+    public static BaseRealVector3<float> ConvertToManaged(Vector3fAbi unmanaged) =>
+        new(unmanaged.X, unmanaged.Y, unmanaged.Z);
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public struct Vector3fAbi(float x, float y, float z)
+{
+    public float X = x;
+    public float Y = y;
+    public float Z = z;
 }
 
 [CustomMarshaller(typeof(Vector4f), MarshalMode.ManagedToUnmanagedIn, typeof(Vector4fMarshaller))]

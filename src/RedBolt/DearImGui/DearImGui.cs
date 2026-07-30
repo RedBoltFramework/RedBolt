@@ -70,7 +70,7 @@ public class DearImGui : RedObject
 
         var io = ImGui.GetIO();
         _revertMousePositionOnDisable = revertMousePositionOnDisable;
-        _revertMousePosition = new Vector2f(io.MousePosX, io.MousePosY);
+        _revertMousePosition = io.MousePos;
     }
 
     /// <summary>Return relative mouse movement value.</summary>
@@ -116,8 +116,7 @@ public class DearImGui : RedObject
         var renderDevice = GetSubsystem<RenderDevice>()!;
         var size = renderDevice.GetSwapChainSize();
         var io = ImGui.GetIO();
-        io.DisplaySizeX = size.X;
-        io.DisplaySizeY = size.Y;
+        io.DisplaySize = new Vector2f(size.X, size.Y);
 
         var sdlWindow = renderDevice.GetSDLWindow()!;
         switch (renderDevice.GetBackend())
@@ -251,8 +250,7 @@ public class DearImGui : RedObject
     {
         SetCurrentContext();
         var io = ImGui.GetIO();
-        io.DisplaySizeX = args.Width;
-        io.DisplaySizeY = args.Height;
+        io.DisplaySize = new Vector2f(args.Width, args.Height);
     }
 
     private void OnInputBegin()
@@ -309,10 +307,8 @@ public class DearImGui : RedObject
         if (!_enableRelativeMouseMove && _revertMousePositionOnDisable)
         {
             _revertMousePositionOnDisable = false;
-            io.MousePosX = _revertMousePosition.X;
-            io.MousePosY = _revertMousePosition.Y;
-            io.MousePosPrevX = _revertMousePosition.X;
-            io.MousePosPrevY = _revertMousePosition.Y;
+            io.MousePos = _revertMousePosition;
+            io.MousePosPrev = _revertMousePosition;
             io.WantSetMousePos = true;
         }
 

@@ -19,6 +19,7 @@
 - [x] `04_StaticScene` — extensible native class/method order, explicit construction and base startup, strong scene/camera ownership, renderer-retained viewport aliases, reverse deterministic teardown, POD transforms and `int` object count/index mapping, plane, directional light, randomized mushroom field, and Dear ImGui instructions reconciled to rbfx
 - [x] `05_AnimatingScene` — extensible sample class shape, native method/order structure, generated `[Reflected]` `Rotator` factory metadata matching rbfx `SamplesManager`, strong scene/camera/viewport ownership, reverse deterministic teardown, scene, zone, static-model, node-logic animation, camera, point-light, viewport, Dear ImGui instructions, and shared `Rotator` POD value semantics reconciled and runtime-verified
 - [x] `09_MultipleViewports` — extensible native class/method/field order, explicit construction, angle-axis rear-camera rotation, strong scene/camera ownership, renderer-retained viewport aliases, reverse deterministic teardown, scene, rear camera, dual viewports, automatic render pipeline allocation, render-target viewport handling, Dear ImGui instructions, requested window sizing, delayed multi-frame screenshots, and stable Vulkan shadows are runtime-verified against rbfx
+- [x] `11_Physics` — intentional Jolt implementation with a static floor, dynamic box pyramid, 20-unit free-fly camera, left-click pyramid-matching box spawning, Jolt collision and raycast coverage, deterministic teardown, and reviewed screenshot capture
 - [x] `34_DynamicGeometry` — extensible sample class shape, native method/field order, deep model clones, retained animating-buffer aliases, POD vertex/index copies, guarded buffer mapping, strong scene/camera/viewport ownership, reverse deterministic teardown, from-scratch pyramid geometry, animation, camera, zone lighting, automatic render pipeline, and Dear ImGui instructions reconciled to rbfx
 - [x] `10_RenderToTexture` — extensible native class/method/field order, explicit construction and base startup, generated `[Reflected]` `Rotator` factory metadata matching rbfx `SamplesManager`, two-scene render-to-texture composition, queued RenderSurface viewport, strong scene/camera/texture/material ownership, reverse deterministic teardown, POD value copies and `int` indices/sizes, Dear ImGui instructions, native texture-descriptor defaults, copied texture-view descriptors, render-surface scheduling, resolved shader-resource sampling, and shared `Rotator` semantics are reconciled and runtime-verified
 - [x] `14_SoundEffects` — hidden scene and music-source ownership, three sound-effect resources, looping music playback and stop, scene pause/resume and time scale, sound/music master gains, pan, reach, LFE, no-device microphone handling, seeded recorded-stream playback, Dear ImGui controls, baseline/audit screenshots, and deterministic teardown are runtime-verified
@@ -271,6 +272,16 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 ## B3. UI `EXCLUDED` — retained-mode UI; depends on Graphics, Resource, Input
 
 ## B4. Physics `OPTIONAL` — Bullet; depends on Scene, Graphics
+
+- [x] Intentional RedBolt Jolt core slice
+  - [x] Lean generated Jolt binding target with common intrusive-reference, static-field, generic, and projected-value API support in SharpCpp
+  - [x] `PhysicsWorld`-owned static Jolt registration and deterministic lifetime
+  - [x] Direct RedBolt vector, quaternion, and ray projections with dedicated projected-ABI layout and native round-trip coverage
+  - [x] Physics definitions and collision events
+  - [x] `PhysicsWorld` fixed-step simulation, interpolation, contacts, collision filtering, and closest raycasts
+  - [x] `CollisionShape` box, sphere, cylinder, and capsule support
+  - [x] `RigidBody` static, dynamic, kinematic, trigger, transform, velocity, force, impulse, damping, gravity, CCD, and collision-layer support
+  - [x] Desktop and Web Physics sample with a free-fly camera, matched pyramid and thrown boxes, click spawning, and a controls window
 
 - [ ] `PhysicsDefs.h`
   - [ ] physics enums / constants

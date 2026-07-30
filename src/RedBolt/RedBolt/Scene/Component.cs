@@ -219,11 +219,18 @@ public partial class Component : Serializable
         OnNodeSet(previousNode, _node);
     }
 
-    /// <summary>Return a component from the scene root that sends out fixed update events (either PhysicsWorld or PhysicsWorld2D). Return null if neither exists.</summary>
+    /// <summary>Return a component from the scene root that sends fixed update events. Return null if none exists.</summary>
     protected Component? GetFixedUpdateSource()
     {
-        Component? result = null;
-        return result;
+        var scene = Scene;
+        if (scene is null)
+            return null;
+        foreach (var component in scene.GetAllComponents().Values)
+        {
+            if (component is IFixedUpdateSource)
+                return component;
+        }
+        return null;
     }
 
     /// <summary>Perform autoremove. Called by subclasses. Caller should keep a weak pointer to itself to check whether was actually removed, and return immediately without further member operations in that case.</summary>

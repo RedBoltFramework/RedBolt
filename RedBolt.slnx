@@ -28,6 +28,7 @@
     <Project Path="src/RedBolt/DearImGui/RedBolt.DearImGui.csproj" />
     <Project Path="src/RedBolt/Glow/RedBolt.Glow.csproj" />
     <Project Path="src/RedBolt/IK/RedBolt.IK.csproj" />
+    <Project Path="src/RedBolt/JoltPhysics/RedBolt.JoltPhysics.csproj" />
     <Project Path="src/RedBolt/Navigation/RedBolt.Navigation.csproj" />
     <Project Path="src/RedBolt/RmlUI/RedBolt.RmlUI.csproj" />
     <Project Path="src/RedBolt/Particles/RedBolt.Particles.csproj" />
@@ -37,6 +38,7 @@
     <Project Path="src/RedBolt/Bindings/Diligent/RedBolt.Bindings.Diligent.csproj" />
     <Project Path="src/RedBolt/Bindings/Glslang/RedBolt.Bindings.Glslang.csproj" />
     <Project Path="src/RedBolt/Bindings/HarfBuzz/RedBolt.Bindings.HarfBuzz.csproj" />
+    <Project Path="src/RedBolt/Bindings/Jolt/RedBolt.Bindings.Jolt.csproj" />
     <Project Path="src/RedBolt/Bindings/Lz4/RedBolt.Bindings.Lz4.csproj" />
     <Project Path="src/RedBolt/Bindings/RmlUi/RedBolt.Bindings.RmlUi.csproj" />
     <Project Path="src/RedBolt/Bindings/Sdl/RedBolt.Bindings.Sdl.csproj" />
@@ -85,6 +87,7 @@
     <Project Path="src/RedBolt/Sample/CameraShake/RedBolt.Sample.CameraShake.csproj" />
     <Project Path="src/RedBolt/Sample/Billboards/RedBolt.Sample.Billboards.csproj" />
     <Project Path="src/RedBolt/Sample/Particles/RedBolt.Sample.Particles.csproj" />
+    <Project Path="src/RedBolt/Sample/Physics/RedBolt.Sample.Physics.csproj" />
     <Project Path="src/RedBolt/Sample/MaterialAnimation/RedBolt.Sample.MaterialAnimation.csproj" />
     <Project Path="src/RedBolt/Sample/HugeObjectCount/RedBolt.Sample.HugeObjectCount.csproj" />
     <Project Path="src/RedBolt/Sample/CameraOperator/RedBolt.Sample.CameraOperator.csproj" />

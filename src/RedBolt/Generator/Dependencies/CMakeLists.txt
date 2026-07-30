@@ -44,6 +44,7 @@ set(REDBOLT_GLSLANG_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/glslang" CACH
 set(REDBOLT_SPIRV_CROSS_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/spirv-cross" CACHE INTERNAL "SPIRV-Cross binding output")
 set(REDBOLT_SPIRV_TOOLS_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/spirv-tools" CACHE INTERNAL "SPIRV-Tools binding output")
 set(REDBOLT_SHADER_COMPILER_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/shader-compiler" CACHE INTERNAL "Shader compiler binding output")
+set(REDBOLT_JOLT_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/jolt" CACHE INTERNAL "Jolt binding output")
 
 set(REDBOLT_SDL_BINDINGS_STEM "RedBolt.Bindings.Sdl" CACHE INTERNAL "SDL binding stem")
 set(REDBOLT_DILIGENT_BINDINGS_STEM "RedBolt.Bindings.Diligent" CACHE INTERNAL "Diligent binding stem")
@@ -58,8 +59,9 @@ set(REDBOLT_GLSLANG_BINDINGS_STEM "RedBolt.Bindings.Glslang" CACHE INTERNAL "gls
 set(REDBOLT_SPIRV_CROSS_BINDINGS_STEM "RedBolt.Bindings.SpirVCross" CACHE INTERNAL "SPIRV-Cross binding stem")
 set(REDBOLT_SPIRV_TOOLS_BINDINGS_STEM "RedBolt.Bindings.SpirVTools" CACHE INTERNAL "SPIRV-Tools binding stem")
 set(REDBOLT_SHADER_COMPILER_BINDINGS_STEM "RedBolt.Bindings.ShaderCompiler" CACHE INTERNAL "Shader compiler binding stem")
+set(REDBOLT_JOLT_BINDINGS_STEM "RedBolt.Bindings.Jolt" CACHE INTERNAL "Jolt binding stem")
 
-foreach(binding SDL DILIGENT IMGUI STB LZ4 HARFBUZZ RMLUI WEBP XATLAS GLSLANG SPIRV_CROSS SPIRV_TOOLS SHADER_COMPILER)
+foreach(binding SDL DILIGENT IMGUI STB LZ4 HARFBUZZ RMLUI WEBP XATLAS GLSLANG SPIRV_CROSS SPIRV_TOOLS SHADER_COMPILER JOLT)
     set(REDBOLT_${binding}_BINDINGS_CS
         "${REDBOLT_${binding}_GENERATED_DIR}/${REDBOLT_${binding}_BINDINGS_STEM}.Bindings.g.cs"
         CACHE INTERNAL "${binding} generated C# binding")
@@ -83,6 +85,9 @@ set(REDBOLT_RMLUI_PARSE_HEADER "${REDBOLT_RMLUI_GENERATED_DIR}/RmlUiAll.hpp" CAC
 set(REDBOLT_WEBP_PARSE_HEADER "${REDBOLT_WEBP_GENERATED_DIR}/WebPAll.hpp" CACHE INTERNAL "WebP parse header")
 set(REDBOLT_XATLAS_PARSE_HEADER "${REDBOLT_XATLAS_GENERATED_DIR}/XAtlasAll.hpp" CACHE INTERNAL "xatlas parse header")
 set(REDBOLT_SHADER_COMPILER_PARSE_HEADER "${REDBOLT_SHADER_COMPILER_GENERATED_DIR}/ShaderCompilerAll.hpp" CACHE INTERNAL "Shader compiler parse header")
+set(REDBOLT_JOLT_PARSE_HEADER "${REDBOLT_JOLT_GENERATED_DIR}/JoltAll.hpp" CACHE INTERNAL "Jolt parse header")
+set(REDBOLT_JOLT_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/include" CACHE INTERNAL "RedBolt Jolt support include directory")
+set(REDBOLT_JOLT_SUPPORT_HEADER "${REDBOLT_JOLT_SUPPORT_INCLUDE_DIR}/RedBolt/JoltMarshallers.hpp" CACHE INTERNAL "RedBolt Jolt marshaller header")
 
 set(REDBOLT_DILIGENT_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/include" CACHE INTERNAL "RedBolt native support include directory" FORCE)
 set(REDBOLT_DILIGENT_SUPPORT_HEADER "${REDBOLT_DILIGENT_SUPPORT_INCLUDE_DIR}/RedBolt/DiligentSupport.hpp" CACHE INTERNAL "RedBolt Diligent support header")
@@ -113,7 +118,8 @@ file(MAKE_DIRECTORY
     "${REDBOLT_GLSLANG_GENERATED_DIR}"
     "${REDBOLT_SPIRV_CROSS_GENERATED_DIR}"
     "${REDBOLT_SPIRV_TOOLS_GENERATED_DIR}"
-    "${REDBOLT_SHADER_COMPILER_GENERATED_DIR}")
+    "${REDBOLT_SHADER_COMPILER_GENERATED_DIR}"
+    "${REDBOLT_JOLT_GENERATED_DIR}")
 
 file(CONFIGURE OUTPUT "${REDBOLT_STB_PARSE_HEADER}" CONTENT [=[
 #pragma once
@@ -172,6 +178,34 @@ file(CONFIGURE OUTPUT "${REDBOLT_SHADER_COMPILER_PARSE_HEADER}" CONTENT [=[
 #pragma once
 #include <RedBolt/ShaderCompilerSupport.hpp>
 ]=] @ONLY)
+file(CONFIGURE OUTPUT "${REDBOLT_JOLT_PARSE_HEADER}" CONTENT [=[
+#pragma once
+#include <RedBolt/JoltMarshallers.hpp>
+#include <Jolt/RegisterTypes.h>
+#include <Jolt/Core/Factory.h>
+#include <Jolt/Core/JobSystemThreadPool.h>
+#include <Jolt/Core/TempAllocator.h>
+#include <Jolt/Physics/Body/Body.h>
+#include <Jolt/Physics/Body/BodyCreationSettings.h>
+#include <Jolt/Physics/Body/MassProperties.h>
+#include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayerInterfaceMask.h>
+#include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayerInterfaceTable.h>
+#include <Jolt/Physics/Collision/BroadPhase/ObjectVsBroadPhaseLayerFilterMask.h>
+#include <Jolt/Physics/Collision/BroadPhase/ObjectVsBroadPhaseLayerFilterTable.h>
+#include <Jolt/Physics/Collision/ContactListener.h>
+#include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
+#include <Jolt/Physics/Collision/ObjectLayerPairFilterMask.h>
+#include <Jolt/Physics/Collision/ObjectLayerPairFilterTable.h>
+#include <Jolt/Physics/Collision/Shape/BoxShape.h>
+#include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
+#include <Jolt/Physics/Collision/Shape/CylinderShape.h>
+#include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
+#include <Jolt/Physics/Collision/Shape/ScaledShape.h>
+#include <Jolt/Physics/Collision/Shape/SphereShape.h>
+#include <Jolt/Physics/Collision/TransformedShape.h>
+#include <Jolt/Physics/SoftBody/SoftBodyCreationSettings.h>
+#include <Jolt/Physics/PhysicsSystem.h>
+]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_SDL_PARSE_SOURCE}" CONTENT [=[
 #include <SDL_config.h>
 #include <SDL.h>
@@ -215,6 +249,10 @@ set(REDBOLT_BINDING_INCLUDE_DIRS
     "${REDBOLT_SHARPCPP_ROOT}/include"
     ${REDBOLT_DILIGENT_INCLUDE_DIRS}
     CACHE INTERNAL "Include directories used by RedBolt SharpCpp dependency generation")
+set(_redbolt_binding_defines ${REDBOLT_DILIGENT_BINDING_DEFINES})
+if(CMAKE_BUILD_TYPE MATCHES "^(Release|Distribution|ReleaseASAN|ReleaseUBSAN|ReleaseTSAN|ReleaseCoverage)$")
+    list(APPEND _redbolt_binding_defines NDEBUG)
+endif()
 set(REDBOLT_BINDING_DEFINES
-    ${REDBOLT_DILIGENT_BINDING_DEFINES}
-    CACHE INTERNAL "Compile definitions used by RedBolt SharpCpp dependency generation")
+    ${_redbolt_binding_defines}
+    CACHE INTERNAL "Compile definitions used by RedBolt SharpCpp dependency generation" FORCE)

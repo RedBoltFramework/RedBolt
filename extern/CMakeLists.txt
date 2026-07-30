@@ -21,7 +21,7 @@ include(STB.cmake)
 include(LZ4.cmake)
 include(WebP.cmake)
 include(XAtlas.cmake)
-
+include(Jolt.cmake)
 add_custom_target(redbolt-native-dependency-batch
-    DEPENDS SDL2 redbolt-diligent-build ImGui harfbuzz harfbuzz-raster rmlui_core rmlui_debugger
+    DEPENDS SDL2 redbolt-diligent-build ImGui harfbuzz harfbuzz-raster rmlui_core rmlui_debugger Jolt
     COMMENT "Building RedBolt native dependency batch")

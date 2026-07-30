@@ -38,3 +38,6 @@
 [submodule "extern/harfbuzz"]
 	path = extern/harfbuzz
 	url = https://github.com/harfbuzz/harfbuzz.git
+[submodule "extern/JoltPhysics"]
+	path = extern/JoltPhysics
+	url = https://github.com/jrouwe/JoltPhysics.git

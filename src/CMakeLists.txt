@@ -13,6 +13,7 @@ add_subdirectory(RedBolt/Bindings/Glslang)
 add_subdirectory(RedBolt/Bindings/SpirVCross)
 add_subdirectory(RedBolt/Bindings/SpirVTools)
 add_subdirectory(RedBolt/Bindings/ShaderCompiler)
+add_subdirectory(RedBolt/Bindings/Jolt)
 
 add_custom_target(redbolt-generate-native-bindings
     DEPENDS
@@ -28,7 +29,8 @@ add_custom_target(redbolt-generate-native-bindings
         redbolt-generate-glslang-bindings
         redbolt-generate-spirv-cross-bindings
         redbolt-generate-spirv-tools-bindings
-        redbolt-generate-shader-compiler-bindings)
+        redbolt-generate-shader-compiler-bindings
+        redbolt-generate-jolt-bindings)
 
 add_subdirectory(RedBolt/Native)
 

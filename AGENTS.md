@@ -101,7 +101,8 @@ STEP 3A - Fixes discovered while building or testing
     b. Do not use a symptom as permission to change the source of truth or to
        create an alternate execution path.
 
-STEP 4 - Build and test (see section 6). Do not move on until it is GREEN.
+STEP 4 - Build and run the focused tests (see section 6). Do not move on until
+it is GREEN.
 
 STEP 5 - Update status of ported items in `PORTING_CHECKLIST.md`. If completed,
 mark them as such. If incomplete, mark them as such and clarify what is missing.
@@ -193,19 +194,30 @@ implementation and MUST be ported explicitly.
   C++ does not own, and never mutate or dispose an alias when C++ operates on an
   independent copy.
 
-## 6. BUILD AND VERIFY (run these commands)
+## 6. BUILD AND VERIFY
 
-Build:
+During development, build the smallest affected project and run the focused
+tests for the changed area. Use a test filter when a test project contains
+unrelated tests. Do not run unrelated solution-wide test suites as an iteration
+gate.
+
+Run focused RedBolt tests:
+  dotnet test src/RedBolt/Tests/RedBolt.Tests.csproj --configuration Debug --filter <FILTER>
+
+After any SharpCpp change, run the generated-binding SharpCpp E2E tests. No
+other SharpCpp test suite is required during development:
+  dotnet test extern/SharpCpp/tests/SharpCpp.Tests.E2E/SharpCpp.Tests.E2E.csproj --configuration Debug
+
+When the task is complete, if SharpCpp was modified, also run the SharpCpp rbfx
+wrapper E2E tests:
+  dotnet test extern/SharpCpp/rbfx/SharpCpp.Rbfx.Tests.E2E/SharpCpp.Rbfx.Tests.E2E.csproj --configuration Debug
+
+Both required SharpCpp E2E test projects must pass before the task is complete.
+SharpCpp test projects must not be added to `RedBolt.slnx`.
+
+At task completion, build:
   git submodule update --init --recursive
   dotnet build RedBolt.slnx --configuration Debug
-
-After any SharpCpp change, build and test SharpCpp independently:
-  dotnet build extern/SharpCpp/SharpCpp.slnx --configuration Debug
-  dotnet test extern/SharpCpp/SharpCpp.slnx --configuration Debug
-
-The independent SharpCpp test run must include and pass all SharpCpp tests,
-including the generated-binding E2E and rbfx E2E suites. SharpCpp test projects
-must not be added to `RedBolt.slnx`.
 
 CMake is auxiliary and is invoked by C# build targets. Do not call CMake directly
 for normal build or verification; build through `dotnet`, `.slnx`, or `.csproj`.
@@ -215,8 +227,7 @@ Use MultipleViewports when no more relevant sample exists:
   rm -f /tmp/screenshot.png
   build/bin/Debug/samples/RedBolt.Sample.MultipleViewports --timeout 2 --screenshot-on-exit /tmp/screenshot.png
 
-Run the tests (adjust the filter to your area):
-  dotnet test src/RedBolt/Tests/RedBolt.Tests.csproj --configuration Debug
+Run the relevant focused tests at task completion.
 
 Review the captured screenshot as a success gate. The relevant scene must render correctly and must not be black or otherwise visibly broken.
 
@@ -261,7 +272,11 @@ with resource prefix paths `.;..`.
 - Preserve C++ code layout.
 - Commit only code that builds and works. In case this is a larger rework - it must be completed before committing.
 - Add or update focused unit tests when you change behavior.
-- After ANY change: build, run tests, and run the most relevant rendering sample with screenshot capture and review as a success gate. Use MultipleViewports when no more relevant sample exists.
+- After ANY implementation change: build the affected project and run the
+  relevant focused tests.
+- At task completion, run the most relevant rendering sample with screenshot
+  capture and review as a success gate. Use MultipleViewports when no more
+  relevant sample exists.
 - After finishing a slice: commit a coherent checkpoint.
 - If the current API cannot express a piece of C++ yet:
     - Add the C++ version as a C# COMMENT with a `// TODO: port` note,
@@ -347,7 +362,9 @@ Agreed project-specific reflection deviation: reflected C# objects and serializa
 ## 11. SUCCESS CRITERIA (all must be true)
 
 - [ ] The project builds with no errors.
-- [ ] All tests pass.
+- [ ] All required focused tests pass.
+- [ ] If SharpCpp was modified, its generated-binding and rbfx wrapper E2E tests
+      pass.
 - [ ] The C# class outline matches the C++ class outline as closely as possible.
 - [ ] The C# method bodies match the C++ method bodies as closely as possible.
 - [ ] The most relevant rendering sample for the changed area runs and its reviewed screenshot shows a correct scene; use MultipleViewports when no more relevant sample exists.
