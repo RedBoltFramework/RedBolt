@@ -140,14 +140,14 @@ public class BatchRenderer : RedObject
             if (!objectParameterBuilder.IsBatchInstanced(pipelineBatch))
                 continue;
 
-            var sourceBatch = pipelineBatch.GetSourceBatch();
+            ref readonly var sourceBatch = ref pipelineBatch.GetSourceBatch();
             if (objectParameterBuilder.IsAmbientEnabled())
                 objectParameterBuilder.SetBatchAmbient(_drawableProcessor!.GetGeometryLighting(pipelineBatch.DrawableIndex));
 
             var numWorldTransforms = checked((int)sourceBatch.NumWorldTransforms);
             for (var i = 0; i < numWorldTransforms; ++i)
                 objectParameterBuilder.AddBatchesToInstancingBuffer(
-                    _instancingBuffer, sourceBatch, sourceBatch.WorldTransform, i);
+                    _instancingBuffer, in sourceBatch, sourceBatch.WorldTransform, i);
             batches.NumInstances += numWorldTransforms;
         }
     }
@@ -171,14 +171,14 @@ public class BatchRenderer : RedObject
             if (!objectParameterBuilder.IsBatchInstanced(pipelineBatch))
                 continue;
 
-            var sourceBatch = pipelineBatch.GetSourceBatch();
+            ref readonly var sourceBatch = ref pipelineBatch.GetSourceBatch();
             if (objectParameterBuilder.IsAmbientEnabled())
                 objectParameterBuilder.SetBatchAmbient(_drawableProcessor!.GetGeometryLighting(pipelineBatch.DrawableIndex));
 
             var numWorldTransforms = checked((int)sourceBatch.NumWorldTransforms);
             for (var i = 0; i < numWorldTransforms; ++i)
                 objectParameterBuilder.AddBatchesToInstancingBuffer(
-                    _instancingBuffer, sourceBatch, sourceBatch.WorldTransform, i);
+                    _instancingBuffer, in sourceBatch, sourceBatch.WorldTransform, i);
             batches.NumInstances += numWorldTransforms;
         }
     }

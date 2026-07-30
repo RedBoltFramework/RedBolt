@@ -51,7 +51,7 @@ public sealed class StaticModelForLightmapTests
         Assert.Equal(0, objectMapping.LodIndex);
 
         var batches = staticModelForLightmap.GetBatches();
-        Assert.Equal(multiTapOffsets.Length, batches.Count);
+        Assert.Equal(multiTapOffsets.Length, batches.Length);
         foreach (var batch in batches)
         {
             Assert.Same(sourceModel.GetGeometry(0, 0), batch.Geometry);

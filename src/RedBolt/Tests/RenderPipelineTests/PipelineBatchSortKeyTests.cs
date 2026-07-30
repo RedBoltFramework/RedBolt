@@ -1,5 +1,8 @@
 namespace RedBolt.Tests;
 
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+
 using RedBolt;
 using RedBolt.Container;
 using RedBolt.Graphics;
@@ -41,7 +44,8 @@ public sealed class PipelineBatchSortKeyTests
         };
 
         var batches = new List<PipelineBatch> { batch };
-        var key = new PipelineBatchByState(batches, 0);
+        ref var storedBatch = ref CollectionsMarshal.AsSpan(batches)[0];
+        var key = new PipelineBatchByState(batches, 0, ref storedBatch);
 
         var expectedPrimary = 7ul << (int)PipelineBatchByState.RenderOrderOffset;
         expectedPrimary |= ((ulong)pipelineState.GetObjectID() & PipelineBatchByState.PipelineStateMask)
@@ -87,6 +91,17 @@ public sealed class PipelineBatchSortKeyTests
     }
 
     [Fact]
+    public void Source_batch_is_borrowed_by_reference()
+    {
+        using var drawable = new CustomGeometry();
+        var batch = new PipelineBatch(drawable, 0);
+        ref readonly var expected = ref drawable.GetBatches()[0];
+        ref readonly var actual = ref batch.GetSourceBatch();
+
+        Assert.True(Unsafe.AreSame(ref Unsafe.AsRef(in expected), ref Unsafe.AsRef(in actual)));
+    }
+
+    [Fact]
     public void Back_to_front_key_sorts_render_order_then_descending_distance()
     {
         using var firstMaterial = new Material { Name = "First" };
@@ -101,9 +116,9 @@ public sealed class PipelineBatchSortKeyTests
         };
         var keys = new[]
         {
-            new PipelineBatchBackToFront(batches, 0),
-            new PipelineBatchBackToFront(batches, 1),
-            new PipelineBatchBackToFront(batches, 2)
+            CreateBackToFrontKey(batches, 0),
+            CreateBackToFrontKey(batches, 1),
+            CreateBackToFrontKey(batches, 2)
         };
 
         Array.Sort(keys);
@@ -111,6 +126,12 @@ public sealed class PipelineBatchSortKeyTests
         Assert.Equal(8, keys[0].Distance);
         Assert.Equal(2, keys[1].Distance);
         Assert.Equal(2, keys[2].RenderOrder);
+    }
+
+    private static PipelineBatchBackToFront CreateBackToFrontKey(List<PipelineBatch> batches, int index)
+    {
+        ref var batch = ref CollectionsMarshal.AsSpan(batches)[index];
+        return new PipelineBatchBackToFront(batches, index, ref batch);
     }
 
     [Fact]
@@ -138,7 +159,8 @@ public sealed class PipelineBatchSortKeyTests
         {
             new() { Material = material, Geometry = geometry, PipelineState = pipelineState }
         };
-        var storage = new List<PipelineBatchByState> { new(batches, 0) };
+        ref var pipelineBatch = ref CollectionsMarshal.AsSpan(batches)[0];
+        var storage = new List<PipelineBatchByState> { new(batches, 0, ref pipelineBatch) };
         var group = new PipelineBatchGroup<PipelineBatchByState>
         {
             Batches = storage,

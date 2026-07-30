@@ -4,6 +4,14 @@ using RedBolt.Container;
 
 public class MultiVectorTests
 {
+    private readonly record struct ManagedValue(
+        object First,
+        object Second,
+        object Third,
+        object Fourth,
+        object Fifth,
+        object Sixth);
+
     private sealed class CloneableValue(int value) : ICloneable
     {
         public int Value = value;
@@ -115,6 +123,25 @@ public class MultiVectorTests
         Assert.NotSame(source, values[index]);
         Assert.NotSame(values[index], destination[0]);
         Assert.NotSame(values[index], clone[index]);
+    }
+
+    [Fact]
+    public void PushBackPreservesManagedReferencesInValueTypes()
+    {
+        var references = Enumerable.Range(0, 6).Select(_ => new object()).ToArray();
+        var value = new ManagedValue(
+            references[0], references[1], references[2], references[3], references[4], references[5]);
+        var values = new MultiVector<ManagedValue>();
+        values.Resize(1);
+
+        var index = values.PushBack(0, value);
+
+        Assert.Same(references[0], values[index].First);
+        Assert.Same(references[1], values[index].Second);
+        Assert.Same(references[2], values[index].Third);
+        Assert.Same(references[3], values[index].Fourth);
+        Assert.Same(references[4], values[index].Fifth);
+        Assert.Same(references[5], values[index].Sixth);
     }
 
     [Fact]

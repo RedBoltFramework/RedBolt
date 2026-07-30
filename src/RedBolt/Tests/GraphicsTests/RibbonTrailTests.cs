@@ -51,7 +51,7 @@ public sealed class RibbonTrailTests
 
         Assert.Equal(0u, geometry.GetNumVertexBuffers());
         Assert.Null(geometry.GetIndexBuffer());
-        Assert.Empty(trail.GetBatches());
+        Assert.Equal(0, trail.GetBatches().Length);
     }
 
     [Fact]

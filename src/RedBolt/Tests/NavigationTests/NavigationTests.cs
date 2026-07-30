@@ -2,13 +2,20 @@ namespace RedBolt.Tests;
 
 using RedBolt.Core;
 using RedBolt.Graphics;
+using RedBolt.IO;
+using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.Navigation;
+using RedBolt.Resource;
 using RedBolt.Scene;
 
 [Collection(nameof(HeadlessEngineCollection))]
 public sealed class NavigationTests
 {
+    private sealed class EventReceiver : RedObject
+    {
+    }
+
     private readonly HeadlessEngineFixture _fixture;
 
     public NavigationTests(HeadlessEngineFixture fixture)
@@ -30,6 +37,25 @@ public sealed class NavigationTests
 
         Assert.NotEmpty(path);
         Assert.True((path[^1] - new Vector3f(5.0f, 0.0f, 0.0f)).Length < 1.0f);
+    }
+
+    [Fact]
+    public void Baked_lighting_navigation_skips_empty_boundary_tiles()
+    {
+        var log = _fixture.Engine.GetSubsystem<Log>()!;
+        using var receiver = new EventReceiver();
+        var errors = new List<string>();
+        receiver.SubscribeToEvent<IOEvents.LogMessage>(log, (ref IOEvents.LogMessage eventData) =>
+        {
+            if (eventData.Level == (int)LogLevel.Error)
+                errors.Add(eventData.Message);
+        });
+        using var scene = new Scene();
+        using var root = _fixture.Resources.Get<XMLFile>("Scenes/BakedLightingExample.xml").GetRoot();
+        scene.LoadXML(root);
+
+        Assert.True(scene.FindComponent<NavigationMesh>()!.Rebuild());
+        Assert.Empty(errors);
     }
 
     [Fact]

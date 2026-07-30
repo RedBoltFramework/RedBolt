@@ -566,7 +566,11 @@ public partial class AnimatedModel : StaticModel
         SetModel(string.IsNullOrEmpty(value.Name) ? null : cache.GetResourceOrNull<Model>(value.Name), false);
     }
 
+    private static object? GetBonesEnabledAttributeDefault() => new VariantVector();
+
     /// <summary>Set bones' animation enabled attribute.</summary>
+    [Serialized("Bone Animation Enabled", typeof(VariantVector), DefaultSource = nameof(GetBonesEnabledAttributeDefault),
+        Getter = nameof(GetBonesEnabledAttr), Mode = AttributeMode.Default | AttributeMode.NoEdit)]
     public void SetBonesEnabledAttr(VariantVector value)
     {
         var bones = _skeleton.GetModifiableBones();

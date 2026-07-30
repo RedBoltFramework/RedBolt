@@ -181,6 +181,28 @@ implementation and MUST be ported explicitly.
   when the struct contains managed references or native handles. Verify whether
   the C++ operation is deep, shallow, borrowed, owned, copied, or moved and map
   that behavior explicitly.
+- Web Release AOT can corrupt large managed structs that contain reference
+  fields when they cross struct return buffers, `Span.CopyTo`, or generic
+  by-value collection APIs. Desktop and Web Debug builds may not reproduce the
+  fault. For a C++ reference or in-place construction, use a managed `ref` and
+  initialize the reserved destination storage field by field. Do not add an
+  allocation. Verify the Release Web build.
+- Web Release AOT can lower an interior `ref` into a managed list or array to a
+  raw pointer. Do not keep this `ref` across a call that can allocate or trigger
+  garbage collection. Keep the index and reacquire the `ref` after the call.
+- Do not compile native Emscripten code with `-pthread` when the final .NET Web
+  module has WebAssembly threads disabled. The mismatched thread-local storage
+  model can corrupt native `thread_local` state without a crash. Use the same
+  thread model for all native objects and the final module.
+- Threaded Web builds require cross-origin isolation for `SharedArrayBuffer`.
+  Serve them with `cmake/ServeWebAssembly.py`, or configure the deployment
+  server to return `Cross-Origin-Opener-Policy: same-origin` and
+  `Cross-Origin-Embedder-Policy: require-corp`.
+- The threaded .NET Web runtime runs the managed entry point in a worker. SDL's
+  Emscripten EGL path creates and binds its WebGL context on the browser thread,
+  so direct GL calls from managed code have no current context. Do not enable
+  WebAssembly threads for the SDL/EGL renderer until the context is transferred
+  to the worker or every GL call is proxied to its owner.
 - Port every C++ destructor as `Dispose()`. Preserve destructor-body actions,
   teardown ordering, callbacks, unregistering, resource release, and ownership
   effects. Do not rely on garbage collection or a finalizer as a replacement for
@@ -272,11 +294,8 @@ with resource prefix paths `.;..`.
 - Preserve C++ code layout.
 - Commit only code that builds and works. In case this is a larger rework - it must be completed before committing.
 - Add or update focused unit tests when you change behavior.
-- After ANY implementation change: build the affected project and run the
-  relevant focused tests.
-- At task completion, run the most relevant rendering sample with screenshot
-  capture and review as a success gate. Use MultipleViewports when no more
-  relevant sample exists.
+  - *IMPORTANT*: Test the behavior, not shape!
+- After ANY change: build, run tests, and run the most relevant rendering sample with screenshot capture and review as a success gate. Use MultipleViewports when no more relevant sample exists.
 - After finishing a slice: commit a coherent checkpoint.
 - If the current API cannot express a piece of C++ yet:
     - Add the C++ version as a C# COMMENT with a `// TODO: port` note,
@@ -358,6 +377,12 @@ Agreed project-specific RmlUi container deviation: use upstream RmlUi standard-l
 types directly; do not project RmlUi types through EASTL or `Ea.*` marshallers.
 
 Agreed project-specific reflection deviation: reflected C# objects and serializable attributes must declare generated `[Reflected]`, `[Serialized]`, and `[RemoveSerialized]` metadata instead of hand-written `RegisterObject`, `RegisterAttribute`, or `AddFactoryReflection` registration. Apply `[Serialized]` only to the instance field, property, getter, or setter that it serializes, never to a class. Infer the value type and available accessors from that member: a getter declaration names only a separate setter when required, and a setter declaration names only a separate getter when required. Field, auto-property, and simple-property backing-field initializers are their serialization defaults without `DefaultSource`; use a private named default source only when the target member cannot declare the required default. Inherited serialized members are copied from their reflected attribute source without forwarding declarations; use a private forwarding property only for a new subtype-specific serialized property whose storage/accessors are otherwise inherited. Preserve factory categories, non-factory types (`Factory = false`), exact attribute order inferred from serialized member declaration order, explicit inheritance source and insertion point, removals, defaults, modes, scope hints, enum names, custom accessors, and metadata configuration in those declarations. Named source members and forwarding properties used only by generated reflection must remain private implementation details. Library registration entry points register the generated assembly metadata; only the generator and its runtime registration infrastructure may use the low-level reflection APIs that materialize those declarations.
+
+Agreed project-specific Web AOT deviation: when the Web Release AOT compiler
+corrupts a large managed struct copy, replace the affected C++ reference or
+in-place construction mapping with `ref` access and explicit field-by-field
+initialization into reserved destination storage. Preserve C++ copy semantics,
+ordering, and allocation behavior.
 
 ## 11. SUCCESS CRITERIA (all must be true)
 

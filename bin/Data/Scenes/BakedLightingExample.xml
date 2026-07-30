@@ -6,7 +6,6 @@
 	<attribute name="Next Node ID" value="16777488" />
 	<attribute name="Next Component ID" value="622" />
 	<attribute name="Variables" />
-	<attribute name="Variable Names" value="" />
 	<attribute name="Lightmaps" value="Texture2D;Scenes/BakedLightingExample.xml.d/Textures/Lightmap-0.png;Scenes/BakedLightingExample.xml.d/Textures/Lightmap-1.png" />
 	<component type="Octree" id="1" />
 	<component type="LightBaker" id="3">

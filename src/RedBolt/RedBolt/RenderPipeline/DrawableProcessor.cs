@@ -688,9 +688,9 @@ public class DrawableProcessor : RedObject
             var needAmbient = false;
 
             var sourceBatches = drawable.GetBatches();
-            for (var sourceBatchIndex = 0; sourceBatchIndex < sourceBatches.Count; ++sourceBatchIndex)
+            for (var sourceBatchIndex = 0; sourceBatchIndex < sourceBatches.Length; ++sourceBatchIndex)
             {
-                var sourceBatch = sourceBatches[sourceBatchIndex];
+                ref readonly var sourceBatch = ref sourceBatches[sourceBatchIndex];
                 if (sourceBatch.Geometry is null || sourceBatch.Geometry.IsEmpty || sourceBatch.NumWorldTransforms == 0)
                     continue;
 

@@ -1,6 +1,7 @@
 namespace RedBolt.Graphics;
 
 using SystemMath = global::System.Math;
+using System.Runtime.InteropServices;
 
 using RedBolt.Core;
 using RedBolt.Logging;
@@ -484,7 +485,7 @@ public abstract partial class Drawable : Component
     /// <summary>
     /// Return draw call source data.
     /// </summary>
-    public IReadOnlyList<SourceBatch> GetBatches() => _batches;
+    public ReadOnlySpan<SourceBatch> GetBatches() => CollectionsMarshal.AsSpan(_batches);
 
     /// <summary>Process raycast with custom transform.</summary>
     public void ProcessCustomRayQuery(RayOctreeQuery query, BoundingBox worldBoundingBox, List<RayQueryResult> results)

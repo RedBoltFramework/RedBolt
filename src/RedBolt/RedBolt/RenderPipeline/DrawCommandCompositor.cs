@@ -111,7 +111,7 @@ internal struct ObjectParameterBuilder
     }
 
     /// <summary>Add uniforms to instancing buffer for instanced batches.</summary>
-    public void AddBatchesToInstancingBuffer(InstancingBuffer instancingBuffer, SourceBatch sourceBatch,
+    public void AddBatchesToInstancingBuffer(InstancingBuffer instancingBuffer, in SourceBatch sourceBatch,
         ReadOnlySpan<Matrix3x4> worldTransform, int instanceIndex)
     {
         instancingBuffer.AddInstance();
@@ -126,7 +126,7 @@ internal struct ObjectParameterBuilder
     }
 
     /// <summary>Add uniforms to draw queue for non-instanced batch.</summary>
-    public void AddBatchUniformsToDrawQueue(DrawCommandQueue drawQueue, Node cameraNode, SourceBatch sourceBatch,
+    public void AddBatchUniformsToDrawQueue(DrawCommandQueue drawQueue, Node cameraNode, in SourceBatch sourceBatch,
         ReadOnlySpan<Matrix3x4> worldTransform, int instanceIndex)
     {
         if (!drawQueue.BeginShaderParameterGroup(ShaderParameterGroup.Object, true))
@@ -211,8 +211,8 @@ internal ref struct DrawCommandCompositor
     /// <summary>Process batches.</summary>
     public void ProcessSceneBatch(in PipelineBatch pipelineBatch)
     {
-        var sourceBatch = pipelineBatch.GetSourceBatch();
-        ProcessBatch(pipelineBatch, sourceBatch, sourceBatch.WorldTransform);
+        ref readonly var sourceBatch = ref pipelineBatch.GetSourceBatch();
+        ProcessBatch(in pipelineBatch, in sourceBatch, sourceBatch.WorldTransform);
     }
 
     public void ProcessLightVolumeBatch(in PipelineBatch pipelineBatch)
@@ -220,7 +220,7 @@ internal ref struct DrawCommandCompositor
         var light = _lights[pipelineBatch.PixelLightIndex]!.Light;
         _lightVolumeHelpers.Transform = light.GetVolumeTransform(_ctx.Camera);
         var worldTransform = MemoryMarshal.CreateReadOnlySpan(ref _lightVolumeHelpers.Transform, 1);
-        ProcessBatch(pipelineBatch, _lightVolumeHelpers.SourceBatch, worldTransform);
+        ProcessBatch(in pipelineBatch, in _lightVolumeHelpers.SourceBatch, worldTransform);
     }
 
     public void FlushDrawCommands(int nextInstanceIndex)
@@ -329,7 +329,7 @@ internal ref struct DrawCommandCompositor
         }
     }
 
-    private void CheckDirtyLightmap(SourceBatch sourceBatch)
+    private void CheckDirtyLightmap(in SourceBatch sourceBatch)
     {
         var prev = _current.LightmapScaleOffset;
         var lightmapChanged = !Nullable.Equals(prev, sourceBatch.LightmapScaleOffset);
@@ -414,7 +414,7 @@ internal ref struct DrawCommandCompositor
             }
 
             if (_enabled.AmbientLighting && _current.LightmapScaleOffset is { } lmOffset)
-                drawQueue.AddShaderParameter(ShaderConsts.Material_LMOffset, lmOffset);
+                drawQueue.AddShaderParameter(ShaderConsts.Material_LMOffset, in lmOffset);
 
             drawQueue.CommitShaderParameterGroup(ShaderParameterGroup.Material);
         }
@@ -652,7 +652,7 @@ internal ref struct DrawCommandCompositor
             drawable?.GetFullNameDebug() ?? "unknown Drawable");
     }
 
-    private void CommitDrawCalls(int numInstances, SourceBatch sourceBatch, ReadOnlySpan<Matrix3x4> worldTransform)
+    private void CommitDrawCalls(int numInstances, in SourceBatch sourceBatch, ReadOnlySpan<Matrix3x4> worldTransform)
     {
         var drawQueue = _ctx.DrawQueue;
         var hasIndexBuffer = _current.Geometry!.GetIndexBuffer() is not null;
@@ -670,7 +670,7 @@ internal ref struct DrawCommandCompositor
         for (var i = 0; i < numInstances; ++i)
         {
             var cameraNode = _frameInfo.ViewReferenceNode ?? _cameraNode;
-            _objectParameterBuilder.AddBatchUniformsToDrawQueue(drawQueue, cameraNode, sourceBatch, worldTransform, i);
+            _objectParameterBuilder.AddBatchUniformsToDrawQueue(drawQueue, cameraNode, in sourceBatch, worldTransform, i);
 
             if (_ctx.InstanceMultiplier == 1)
             {
@@ -710,7 +710,7 @@ internal ref struct DrawCommandCompositor
         _instancingGroup.Count = 0;
     }
 
-    private void ProcessBatch(in PipelineBatch pipelineBatch, SourceBatch sourceBatch,
+    private void ProcessBatch(in PipelineBatch pipelineBatch, in SourceBatch sourceBatch,
         ReadOnlySpan<Matrix3x4> worldTransform)
     {
         if (pipelineBatch.Geometry!.GetEffectiveIndexCount() == 0)
@@ -729,7 +729,7 @@ internal ref struct DrawCommandCompositor
         if (_enabled.AmbientLighting)
         {
             CheckDirtyReflectionProbe(in lightAccumulator);
-            CheckDirtyLightmap(sourceBatch);
+            CheckDirtyLightmap(in sourceBatch);
         }
 
         var numBatchInstances = pipelineBatch.GeometryType == GeometryType.Static
@@ -765,7 +765,7 @@ internal ref struct DrawCommandCompositor
             {
                 if (_objectParameterBuilder.IsAmbientEnabled())
                     _objectParameterBuilder.SetBatchAmbient(in lightAccumulator);
-                CommitDrawCalls(numBatchInstances, sourceBatch, worldTransform);
+                CommitDrawCalls(numBatchInstances, in sourceBatch, worldTransform);
             }
         }
         else

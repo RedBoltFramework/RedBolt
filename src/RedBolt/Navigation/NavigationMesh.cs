@@ -1421,7 +1421,7 @@ public partial class NavigationMesh : Component
             if (geometryInfo.Component is Drawable drawable)
             {
                 var batches = drawable.GetBatches();
-                for (var j = 0; j < batches.Count; ++j)
+                for (var j = 0; j < batches.Length; ++j)
                 {
                     AddTriMeshGeometry(
                         build, drawable.GetLodGeometry(checked((uint)j), geometryInfo.LodLevel),
@@ -1534,6 +1534,8 @@ public partial class NavigationMesh : Component
         build.ContourSet = RcContours.BuildContours(build.Context, build.CompactHeightField!,
             config.MaxSimplificationError, config.MaxEdgeLen, RcBuildContoursFlags.RC_CONTOUR_TESS_WALL_EDGES);
         build.PolyMesh = RcMeshs.BuildPolyMesh(build.Context, build.ContourSet, config.MaxVertsPerPoly);
+        if (build.PolyMesh.nverts == 0 || build.PolyMesh.npolys == 0)
+            return false;
         build.PolyMeshDetail = RcMeshDetails.BuildPolyMeshDetail(build.Context, build.PolyMesh,
             build.CompactHeightField!, config.DetailSampleDist, config.DetailSampleMaxError);
         if (build.PolyMeshDetail is null)

@@ -440,7 +440,7 @@ public partial class DecalSet : Drawable
         _decals.Add(newDecal);
 
         var faces = new List<List<DecalVertex>>();
-        var numBatches = (uint)target.GetBatches().Count;
+        var numBatches = (uint)target.GetBatches().Length;
         if (subGeometry < numBatches)
             GetFaces(faces, target, subGeometry, decalFrustum, decalNormal, normalCutoff);
         else

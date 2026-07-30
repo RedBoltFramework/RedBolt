@@ -28,7 +28,9 @@ public sealed class WorkQueueVector<T> : MultiVector<T>
 {
     public void Clear() => base.Clear(WorkQueue.GetThreadIndexCount());
 
-    public MultiVector<T>.Index Insert(T value) => PushBack(WorkQueue.GetThreadIndex(), value);
+    public MultiVector<T>.Index Insert(in T value) => PushBack(WorkQueue.GetThreadIndex(), in value);
+
+    public ref T Emplace() => ref EmplaceBack(WorkQueue.GetThreadIndex());
 
     public ref T Emplace(Func<T> factory) => ref EmplaceBack(WorkQueue.GetThreadIndex(), factory);
 }

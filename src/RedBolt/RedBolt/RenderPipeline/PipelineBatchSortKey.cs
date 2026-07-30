@@ -49,13 +49,13 @@ public struct PipelineBatchByState : IComparable<PipelineBatchByState>
     public ref readonly PipelineBatch PipelineBatch =>
         ref CollectionsMarshal.AsSpan(_pipelineBatches!)[_pipelineBatchIndex];
 
-    public PipelineBatchByState(List<PipelineBatch> pipelineBatches, int pipelineBatchIndex)
+    public PipelineBatchByState(List<PipelineBatch> pipelineBatches, int pipelineBatchIndex,
+        ref PipelineBatch pipelineBatch)
     {
         _pipelineBatches = pipelineBatches;
         _pipelineBatchIndex = pipelineBatchIndex;
         PrimaryKey = 0;
         SecondaryKey = 0;
-        ref readonly var pipelineBatch = ref PipelineBatch;
 
         PrimaryKey |= ((ulong)pipelineBatch.Material!.GetRenderOrder() & RenderOrderMask) << (int)RenderOrderOffset;
         PrimaryKey |= ((ulong)pipelineBatch.PipelineState!.GetObjectID() & PipelineStateMask) << (int)PipelineStateOffset;
@@ -89,11 +89,11 @@ public struct PipelineBatchBackToFront : IComparable<PipelineBatchBackToFront>
     public ref readonly PipelineBatch PipelineBatch =>
         ref CollectionsMarshal.AsSpan(_pipelineBatches!)[_pipelineBatchIndex];
 
-    public PipelineBatchBackToFront(List<PipelineBatch> pipelineBatches, int pipelineBatchIndex)
+    public PipelineBatchBackToFront(List<PipelineBatch> pipelineBatches, int pipelineBatchIndex,
+        ref PipelineBatch pipelineBatch)
     {
         _pipelineBatches = pipelineBatches;
         _pipelineBatchIndex = pipelineBatchIndex;
-        ref readonly var pipelineBatch = ref PipelineBatch;
         RenderOrder = pipelineBatch.Material!.GetRenderOrder();
         Distance = pipelineBatch.Distance;
     }

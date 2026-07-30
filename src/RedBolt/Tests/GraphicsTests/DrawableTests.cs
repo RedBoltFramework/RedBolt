@@ -35,7 +35,7 @@ public sealed partial class DrawableTests
     {
         using var drawable = new CustomGeometry();
 
-        Assert.Single(drawable.GetBatches());
+        Assert.Equal(1, drawable.GetBatches().Length);
 
         ref var hint = ref drawable.GetMutableLightProbeTetrahedronHint();
         Assert.Equal(uint.MaxValue, hint);

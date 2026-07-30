@@ -48,6 +48,11 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, ICloneab
         Set(value);
     }
 
+    public CString(ReadOnlySpan<byte> value) : this()
+    {
+        Set(value);
+    }
+
     public IntPtr Pointer
     {
         get
@@ -163,6 +168,8 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, ICloneab
         return other is not null && EqualsUtf8BytesString(ContentBytes, other);
     }
 
+    public bool Equals(ReadOnlySpan<byte> other) => ContentBytes.SequenceEqual(other);
+
     public override bool Equals(object? obj)
     {
         return obj is CString cstring
@@ -215,6 +222,13 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, ICloneab
         EnsureCapacity(rawByteLength + 1);
         Utf8.GetBytes(value.AsSpan(), WritableStorage[..rawByteLength]);
         SetByteLength(rawByteLength);
+    }
+
+    private void Set(ReadOnlySpan<byte> value)
+    {
+        EnsureCapacity(value.Length + 1);
+        value.CopyTo(WritableStorage);
+        SetByteLength(value.Length);
     }
 
     private void ParsePlaceholder(ReadOnlySpan<char> format, int index, ReadOnlySpan<object?> args, out int consumed)

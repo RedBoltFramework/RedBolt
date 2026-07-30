@@ -57,11 +57,11 @@ public sealed class ShaderProgramReflectionTests
             Assert.NotNull(vertexShader);
             Assert.NotNull(pixelShader);
 
-            var reflection = new ShaderProgramReflection([vertexShader!, pixelShader!]);
+            using var reflection = new ShaderProgramReflection([vertexShader!, pixelShader!]);
             var albedo = reflection.GetShaderResource(new StringHash("Albedo"));
 
             Assert.NotNull(albedo);
-            Assert.Equal("sAlbedo", albedo!.InternalName);
+            Assert.True(albedo!.InternalName.Equals("sAlbedo"));
         });
     }
 
@@ -76,22 +76,22 @@ public sealed class ShaderProgramReflectionTests
             Assert.NotNull(vertexShader);
             Assert.NotNull(pixelShader);
 
-            var reflection = new ShaderProgramReflection([vertexShader!, pixelShader!]);
+            using var reflection = new ShaderProgramReflection([vertexShader!, pixelShader!]);
             var frameBuffer = reflection.GetUniformBuffer(ShaderParameterGroup.Frame);
             var cameraBuffer = reflection.GetUniformBuffer(ShaderParameterGroup.Camera);
             var customBuffer = reflection.GetUniformBuffer(ShaderParameterGroup.Custom);
 
             Assert.NotNull(frameBuffer);
-            Assert.Equal("Frame", frameBuffer!.InternalName);
+            Assert.True(frameBuffer!.InternalName.Equals("Frame"));
             Assert.True(frameBuffer.Size > 0);
             Assert.True(frameBuffer.Hash != 0u);
 
             Assert.NotNull(cameraBuffer);
-            Assert.Equal("Camera", cameraBuffer!.InternalName);
+            Assert.True(cameraBuffer!.InternalName.Equals("Camera"));
             Assert.True(cameraBuffer.Size > 0);
 
             Assert.NotNull(customBuffer);
-            Assert.Equal("Custom", customBuffer!.InternalName);
+            Assert.True(customBuffer!.InternalName.Equals("Custom"));
             Assert.True(customBuffer.Size > 0);
         });
     }
@@ -107,7 +107,7 @@ public sealed class ShaderProgramReflectionTests
             Assert.NotNull(vertexShader);
             Assert.NotNull(pixelShader);
 
-            var reflection = new ShaderProgramReflection([vertexShader!, pixelShader!]);
+            using var reflection = new ShaderProgramReflection([vertexShader!, pixelShader!]);
             var inputInvSize = reflection.GetUniform(new StringHash("InputInvSize"));
 
             Assert.NotNull(inputInvSize);
@@ -120,6 +120,36 @@ public sealed class ShaderProgramReflectionTests
             Assert.Equal(2, inputInvSize.Value.NumRows);
             Assert.Equal(1, inputInvSize.Value.NumColumns);
             Assert.Equal(0, inputInvSize.Value.ArraySize);
+        });
+    }
+
+    [Fact]
+    public void OpenGL_program_reflection_discovers_lightmap_scale_offset()
+    {
+        WithInitializedGraphics(() =>
+        {
+            var defines = "URHO3D_GEOMETRY_STATIC URHO3D_HAS_LIGHTMAP";
+            var vertexShader = _fixture.Graphics.GetShader(ShaderType.VS, "M_Default", defines);
+            var pixelShader = _fixture.Graphics.GetShader(ShaderType.PS, "M_Default", defines);
+
+            Assert.NotNull(vertexShader);
+            Assert.NotNull(pixelShader);
+
+            var temporaryGlProgram = DiligentNativeBindings.CreateTemporaryGLProgram(
+                vertexShader!.GetHandle()!, pixelShader!.GetHandle()!, null!, null!, null!, false);
+            try
+            {
+                using var reflection = new ShaderProgramReflection(temporaryGlProgram);
+                var lightmapScaleOffset = reflection.GetUniform(new StringHash("LMOffset"));
+
+                Assert.NotNull(lightmapScaleOffset);
+                Assert.Equal(ShaderParameterGroup.Material, lightmapScaleOffset!.Value.Group);
+                Assert.Equal(16, lightmapScaleOffset.Value.Size);
+            }
+            finally
+            {
+                DiligentNativeBindings.DeleteTemporaryGLProgram(temporaryGlProgram);
+            }
         });
     }
 

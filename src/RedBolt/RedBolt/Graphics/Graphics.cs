@@ -2109,7 +2109,7 @@ layout(std140) uniform Material
 
             }
 
-            var reflection = isOpenGl && !hasSeparableShaderPrograms
+            using var reflection = isOpenGl && !hasSeparableShaderPrograms
                 ? new ShaderProgramReflection(temporaryGlProgram)
                 : new ShaderProgramReflection([vertexVariation, pixelVariation]);
             var customLayout = CreateCustomUniformLayout(reflection);
@@ -2223,7 +2223,7 @@ layout(std140) uniform Material
         var pixelShader = pixelVariation.GetHandle();
         if (vertexShader is null || vertexShader.IsNull || pixelShader is null || pixelShader.IsNull)
             return null;
-        var reflection = new ShaderProgramReflection([vertexVariation, pixelVariation]);
+        using var reflection = new ShaderProgramReflection([vertexVariation, pixelVariation]);
         var customLayout = CreateCustomUniformLayout(reflection);
         var samplerOverrides = new ImmutableSamplersDesc();
         if (bilinearColorSampler)
@@ -2339,7 +2339,7 @@ layout(std140) uniform Material
         var pixelShader = pixelVariation.GetHandle();
         if (vertexShader is null || vertexShader.IsNull || pixelShader is null || pixelShader.IsNull)
             return null;
-        var reflection = new ShaderProgramReflection([vertexVariation, pixelVariation]);
+        using var reflection = new ShaderProgramReflection([vertexVariation, pixelVariation]);
         var customLayout = CreateCustomUniformLayout(reflection);
         var settings = GetClearFramebufferPipelineSettings(flags);
 
@@ -4691,7 +4691,7 @@ layout(std140) uniform Material
     }
 
     private static void AddShaderVariableLookupEntries(Dictionary<PipelineVariableKey, IShaderResourceVariable> result,
-        IShaderResourceBinding shaderResources, string name)
+        IShaderResourceBinding shaderResources, CString name)
     {
         AddShaderVariableLookupEntry(result, shaderResources,
             global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, name);
@@ -4700,15 +4700,14 @@ layout(std140) uniform Material
     }
 
     private static void AddShaderVariableLookupEntry(Dictionary<PipelineVariableKey, IShaderResourceVariable> result,
-        IShaderResourceBinding shaderResources, global::RedBolt.Bindings.Diligent.ShaderType shaderType, string name)
+        IShaderResourceBinding shaderResources, global::RedBolt.Bindings.Diligent.ShaderType shaderType, CString name)
     {
-        using var internalName = new CString(name);
         unsafe
         {
-            ref var internalNameRef = ref System.Runtime.CompilerServices.Unsafe.AsRef<sbyte>((void*)internalName.Pointer);
+            ref var internalNameRef = ref System.Runtime.CompilerServices.Unsafe.AsRef<sbyte>((void*)name.Pointer);
             var variable = shaderResources.GetVariableByName(shaderType, in internalNameRef);
             if (variable is not null && !variable.IsNull)
-                result[new PipelineVariableKey(shaderType, name)] = variable;
+                result[new PipelineVariableKey(shaderType, name.ConvertToString())] = variable;
         }
     }
 
@@ -5124,7 +5123,6 @@ layout(std140) uniform Material
 
     private sealed class TemporaryImmutableSamplers : IDisposable
     {
-        private readonly CString[] _names;
         private readonly SamplerDesc[] _descriptions;
         private readonly ImmutableSamplerDesc[] _samplers;
         private readonly IntPtr _memory;
@@ -5134,7 +5132,6 @@ layout(std140) uniform Material
         {
             var resources = reflection.ShaderResources.ToArray();
             Count = (uint)resources.Length;
-            _names = new CString[resources.Length];
             _descriptions = new SamplerDesc[resources.Length];
             _samplers = new ImmutableSamplerDesc[resources.Length];
             if (resources.Length == 0)
@@ -5146,12 +5143,11 @@ layout(std140) uniform Material
             {
                 var pair = resources[i];
                 var source = FindSampler(overrides, pair.Key) ?? SamplerStateDesc.Bilinear();
-                _names[i] = new CString(pair.Value.InternalName);
                 _descriptions[i] = CreateSamplerDesc(source, renderDevice);
                 _samplers[i] = ImmutableSamplerDesc.CreateManagedWrapper(
                     IntPtr.Add(_memory, immutableSamplerDescSize * i), false);
                 _samplers[i].ShaderStages = stages;
-                _samplers[i].SamplerOrTextureName = _names[i].Pointer;
+                _samplers[i].SamplerOrTextureName = pair.Value.InternalName.Pointer;
                 _samplers[i].Desc = _descriptions[i];
             }
             First = _samplers[0];
@@ -5166,8 +5162,6 @@ layout(std140) uniform Material
                 sampler?.Dispose();
             foreach (var description in _descriptions)
                 description?.Dispose();
-            foreach (var name in _names)
-                name?.Dispose();
             if (_memory != IntPtr.Zero)
                 Marshal.FreeHGlobal(_memory);
         }

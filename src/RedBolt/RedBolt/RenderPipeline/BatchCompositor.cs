@@ -1,5 +1,7 @@
 namespace RedBolt.RenderPipeline;
 
+using System.Runtime.InteropServices;
+
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
@@ -145,7 +147,7 @@ public class BatchCompositorPass : DrawableProcessorPass
         // Always add deferred batch if possible.
         if (desc.Pass is not null)
         {
-            AddPipelineBatch(desc, _deferredCache, DeferredBatches, _delayedDeferredBatches);
+            AddPipelineBatch(ref desc, _deferredCache, DeferredBatches, _delayedDeferredBatches);
             return;
         }
 
@@ -178,9 +180,9 @@ public class BatchCompositorPass : DrawableProcessorPass
                 desc.InitializeLitBatch(lightProcessor, lightIndex, lightProcessor.ForwardLitHash);
 
                 if (light.IsNegative())
-                    AddPipelineBatch(desc, _lightCache, NegativeLightBatches, _delayedNegativeLightBatches);
+                    AddPipelineBatch(ref desc, _lightCache, NegativeLightBatches, _delayedNegativeLightBatches);
                 else
-                    AddPipelineBatch(desc, _lightCache, LightBatches, _delayedLightBatches);
+                    AddPipelineBatch(ref desc, _lightCache, LightBatches, _delayedLightBatches);
             }
 
             // Initialize vertex lights after all light batches
@@ -193,13 +195,13 @@ public class BatchCompositorPass : DrawableProcessorPass
             var light = _drawableProcessor.GetLightProcessor(litBaseLightIndex)!;
             desc.InitializeLitBatch(light, litBaseLightIndex, light.ForwardLitHash);
             desc.Pass = geometryBatch.LitBasePass;
-            AddPipelineBatch(desc, _litBaseCache, BaseBatches, _delayedLitBaseBatches);
+            AddPipelineBatch(ref desc, _litBaseCache, BaseBatches, _delayedLitBaseBatches);
         }
         else
         {
             desc.InitializeLitBatch(null, int.MaxValue, 0);
             desc.Pass = geometryBatch.UnlitBasePass;
-            AddPipelineBatch(desc, _unlitBaseCache, BaseBatches, _delayedUnlitBaseBatches);
+            AddPipelineBatch(ref desc, _unlitBaseCache, BaseBatches, _delayedUnlitBaseBatches);
         }
     }
 
@@ -216,13 +218,26 @@ public class BatchCompositorPass : DrawableProcessorPass
         {
             for (var innerIndex = 0; innerIndex < delayedBatchBuckets[outerIndex].Count; ++innerIndex)
             {
-                ref var desc = ref delayedBatches[new MultiVector<PipelineBatchDesc>.Index(outerIndex, innerIndex)];
+                var descIndex = new MultiVector<PipelineBatchDesc>.Index(outerIndex, innerIndex);
+                ref var desc = ref delayedBatches[descIndex];
                 var pipelineState = cache.GetOrCreatePipelineState(desc.GetKey(), ctx, _batchStateCacheCallback);
                 if (pipelineState is null)
                     continue;
 
-                var pipelineBatchIndex = batches.Insert(new PipelineBatch(desc));
-                ref var pipelineBatch = ref batches[pipelineBatchIndex];
+                ref var resolvedDesc = ref delayedBatches[descIndex];
+                ref var pipelineBatch = ref batches.Emplace();
+                pipelineBatch.Drawable = resolvedDesc.Drawable;
+                pipelineBatch.Geometry = resolvedDesc.Geometry;
+                pipelineBatch.Material = resolvedDesc.Material;
+                pipelineBatch.PipelineState = resolvedDesc.PipelineState;
+                pipelineBatch.UserData = resolvedDesc.UserData;
+                pipelineBatch.DrawableIndex = resolvedDesc.DrawableIndex;
+                pipelineBatch.PixelLightIndex = resolvedDesc.PixelLightIndex;
+                pipelineBatch.VertexLightsHash = resolvedDesc.VertexLightsHash;
+                pipelineBatch.SourceBatchIndex = resolvedDesc.SourceBatchIndex;
+                pipelineBatch.LightmapIndex = resolvedDesc.LightmapIndex;
+                pipelineBatch.Distance = resolvedDesc.Distance;
+                pipelineBatch.GeometryType = resolvedDesc.GeometryType;
                 if (pipelineState.IsValid)
                     pipelineBatch.PipelineState = pipelineState;
                 else if (GetPlaceholderPipelineState(cache, pipelineState) is { } placeholder)
@@ -239,18 +254,29 @@ public class BatchCompositorPass : DrawableProcessorPass
         }
     }
 
-    private void AddPipelineBatch(PipelineBatchDesc desc, BatchStateCache cache,
+    private void AddPipelineBatch(ref PipelineBatchDesc desc, BatchStateCache cache,
         WorkQueueVector<PipelineBatch> batches, WorkQueueVector<PipelineBatchDesc> delayedBatches)
     {
         var pipelineState = cache.GetPipelineState(desc.GetKey().LookupKey);
         if (pipelineState is not null && pipelineState.IsValid)
         {
-            var pipelineBatchIndex = batches.Insert(new PipelineBatch(desc));
-            ref var pipelineBatch = ref batches[pipelineBatchIndex];
+            ref var pipelineBatch = ref batches.Emplace();
+            pipelineBatch.Drawable = desc.Drawable;
+            pipelineBatch.Geometry = desc.Geometry;
+            pipelineBatch.Material = desc.Material;
+            pipelineBatch.PipelineState = desc.PipelineState;
+            pipelineBatch.UserData = desc.UserData;
+            pipelineBatch.DrawableIndex = desc.DrawableIndex;
+            pipelineBatch.PixelLightIndex = desc.PixelLightIndex;
+            pipelineBatch.VertexLightsHash = desc.VertexLightsHash;
+            pipelineBatch.SourceBatchIndex = desc.SourceBatchIndex;
+            pipelineBatch.LightmapIndex = desc.LightmapIndex;
+            pipelineBatch.Distance = desc.Distance;
+            pipelineBatch.GeometryType = desc.GeometryType;
             pipelineBatch.PipelineState = pipelineState;
         }
         else
-            delayedBatches.Insert(desc);
+            delayedBatches.Insert(in desc);
     }
 
     private PipelineState? GetPlaceholderPipelineState(BatchStateCache cache, PipelineState original)
@@ -419,8 +445,8 @@ public class BatchCompositor : RedObject
 
     public void ComposeSceneBatches()
     {
-        foreach (var pass in _passes)
-            pass.ComposeBatches();
+        for (var i = 0; i < _passes.Count; ++i)
+            _passes[i].ComposeBatches();
     }
 
     public void ComposeLightVolumeBatches()
@@ -456,9 +482,22 @@ public class BatchCompositor : RedObject
             var pipelineState = _lightVolumeCache.GetOrCreatePipelineState(desc.GetKey(), ctx, _batchStateCacheCallback);
             if (pipelineState is not null && pipelineState.IsValid)
             {
-                var pipelineBatch = new PipelineBatch(desc);
+                var batchIndex = _lightVolumeBatches.Count;
+                CollectionsMarshal.SetCount(_lightVolumeBatches, batchIndex + 1);
+                ref var pipelineBatch = ref CollectionsMarshal.AsSpan(_lightVolumeBatches)[batchIndex];
+                pipelineBatch.Drawable = desc.Drawable;
+                pipelineBatch.Geometry = desc.Geometry;
+                pipelineBatch.Material = desc.Material;
+                pipelineBatch.PipelineState = desc.PipelineState;
+                pipelineBatch.UserData = desc.UserData;
+                pipelineBatch.DrawableIndex = desc.DrawableIndex;
+                pipelineBatch.PixelLightIndex = desc.PixelLightIndex;
+                pipelineBatch.VertexLightsHash = desc.VertexLightsHash;
+                pipelineBatch.SourceBatchIndex = desc.SourceBatchIndex;
+                pipelineBatch.LightmapIndex = desc.LightmapIndex;
+                pipelineBatch.Distance = desc.Distance;
+                pipelineBatch.GeometryType = desc.GeometryType;
                 pipelineBatch.PipelineState = pipelineState;
-                _lightVolumeBatches.Add(pipelineBatch);
             }
         }
 
@@ -505,23 +544,38 @@ public class BatchCompositor : RedObject
 
     private static void AppendSortKeys(List<PipelineBatchByState> sortedBatches, MultiVector<PipelineBatch> pipelineBatches)
     {
-        foreach (var batches in pipelineBatches.GetUnderlyingCollection())
-            AppendSortKeys(sortedBatches, batches);
+        var batchBuckets = pipelineBatches.GetUnderlyingCollection();
+        for (var i = 0; i < batchBuckets.Count; ++i)
+            AppendSortKeys(sortedBatches, batchBuckets[i]);
     }
 
     private static void AppendSortKeys(List<PipelineBatchByState> sortedBatches, List<PipelineBatch> pipelineBatches)
     {
+        var sortedIndex = sortedBatches.Count;
+        CollectionsMarshal.SetCount(sortedBatches, sortedIndex + pipelineBatches.Count);
+        var sortedBatchSpan = CollectionsMarshal.AsSpan(sortedBatches);
         for (var i = 0; i < pipelineBatches.Count; ++i)
-            sortedBatches.Add(new PipelineBatchByState(pipelineBatches, i));
+        {
+            ref var pipelineBatch = ref CollectionsMarshal.AsSpan(pipelineBatches)[i];
+            sortedBatchSpan[sortedIndex++] = new PipelineBatchByState(pipelineBatches, i, ref pipelineBatch);
+        }
     }
 
     private static void AppendSortKeys(List<PipelineBatchBackToFront> sortedBatches,
         MultiVector<PipelineBatch> pipelineBatches)
     {
-        foreach (var batches in pipelineBatches.GetUnderlyingCollection())
+        var batchBuckets = pipelineBatches.GetUnderlyingCollection();
+        for (var bucketIndex = 0; bucketIndex < batchBuckets.Count; ++bucketIndex)
         {
+            var batches = batchBuckets[bucketIndex];
+            var sortedIndex = sortedBatches.Count;
+            CollectionsMarshal.SetCount(sortedBatches, sortedIndex + batches.Count);
+            var sortedBatchSpan = CollectionsMarshal.AsSpan(sortedBatches);
             for (var i = 0; i < batches.Count; ++i)
-                sortedBatches.Add(new PipelineBatchBackToFront(batches, i));
+            {
+                ref var pipelineBatch = ref CollectionsMarshal.AsSpan(batches)[i];
+                sortedBatchSpan[sortedIndex++] = new PipelineBatchBackToFront(batches, i, ref pipelineBatch);
+            }
         }
     }
 
@@ -574,9 +628,9 @@ public class BatchCompositor : RedObject
 
             // Add batches
             var sourceBatches = drawable.GetBatches();
-            for (var j = 0; j < sourceBatches.Count; ++j)
+            for (var j = 0; j < sourceBatches.Length; ++j)
             {
-                var sourceBatch = sourceBatches[j];
+                ref readonly var sourceBatch = ref sourceBatches[j];
                 if (sourceBatch.Geometry is null || sourceBatch.NumWorldTransforms == 0)
                     continue;
 
@@ -599,9 +653,22 @@ public class BatchCompositor : RedObject
                 {
                     if (pipelineState.IsValid)
                     {
-                        var pipelineBatch = new PipelineBatch(desc);
+                        var batchIndex = shadowBatches.Count;
+                        CollectionsMarshal.SetCount(shadowBatches, batchIndex + 1);
+                        ref var pipelineBatch = ref CollectionsMarshal.AsSpan(shadowBatches)[batchIndex];
+                        pipelineBatch.Drawable = desc.Drawable;
+                        pipelineBatch.Geometry = desc.Geometry;
+                        pipelineBatch.Material = desc.Material;
+                        pipelineBatch.PipelineState = desc.PipelineState;
+                        pipelineBatch.UserData = desc.UserData;
+                        pipelineBatch.DrawableIndex = desc.DrawableIndex;
+                        pipelineBatch.PixelLightIndex = desc.PixelLightIndex;
+                        pipelineBatch.VertexLightsHash = desc.VertexLightsHash;
+                        pipelineBatch.SourceBatchIndex = desc.SourceBatchIndex;
+                        pipelineBatch.LightmapIndex = desc.LightmapIndex;
+                        pipelineBatch.Distance = desc.Distance;
+                        pipelineBatch.GeometryType = desc.GeometryType;
                         pipelineBatch.PipelineState = pipelineState;
-                        shadowBatches.Add(pipelineBatch);
                     }
                 }
                 else
@@ -629,9 +696,23 @@ public class BatchCompositor : RedObject
                 var pipelineState = _shadowCache.GetOrCreatePipelineState(desc.GetKey(), ctx, _batchStateCacheCallback);
                 if (pipelineState is not null && pipelineState.IsValid)
                 {
-                    var pipelineBatch = new PipelineBatch(desc);
+                    var shadowBatches = split.MutableUnsortedShadowBatches;
+                    var batchIndex = shadowBatches.Count;
+                    CollectionsMarshal.SetCount(shadowBatches, batchIndex + 1);
+                    ref var pipelineBatch = ref CollectionsMarshal.AsSpan(shadowBatches)[batchIndex];
+                    pipelineBatch.Drawable = desc.Drawable;
+                    pipelineBatch.Geometry = desc.Geometry;
+                    pipelineBatch.Material = desc.Material;
+                    pipelineBatch.PipelineState = desc.PipelineState;
+                    pipelineBatch.UserData = desc.UserData;
+                    pipelineBatch.DrawableIndex = desc.DrawableIndex;
+                    pipelineBatch.PixelLightIndex = desc.PixelLightIndex;
+                    pipelineBatch.VertexLightsHash = desc.VertexLightsHash;
+                    pipelineBatch.SourceBatchIndex = desc.SourceBatchIndex;
+                    pipelineBatch.LightmapIndex = desc.LightmapIndex;
+                    pipelineBatch.Distance = desc.Distance;
+                    pipelineBatch.GeometryType = desc.GeometryType;
                     pipelineBatch.PipelineState = pipelineState;
-                    split.MutableUnsortedShadowBatches.Add(pipelineBatch);
                 }
             }
         }

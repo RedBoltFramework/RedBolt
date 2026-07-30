@@ -115,7 +115,7 @@ public sealed class TerrainPatchTests
         Assert.Null(patch.GetOwner());
         Assert.Null(patch.GetNorthPatch());
         Assert.Empty(patch.GetLodErrors());
-        Assert.Empty(patch.GetBatches());
+        Assert.Equal(0, patch.GetBatches().Length);
         Assert.NotNull(geometry);
         Assert.NotNull(vertexBuffer);
         Assert.Null(typeof(TerrainPatch).GetField("_geometry", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(patch));

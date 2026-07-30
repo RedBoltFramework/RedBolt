@@ -30,6 +30,20 @@ public sealed class AnimatedModelTests
     }
 
     [Fact]
+    public void Bone_animation_enabled_attribute_updates_skeleton()
+    {
+        using var context = new Context();
+        context.RegisterAttributedType<AnimatedModel>();
+        var animatedModel = new Scene().CreateChild("AnimatedModel").CreateComponent<AnimatedModel>();
+        animatedModel.SetModel(CreateSkeletonModel("AnimatedModel", BoneCollisionShape.None), true);
+
+        var attribute = context.GetReflection<AnimatedModel>().GetAttribute("Bone Animation Enabled");
+        attribute.Accessor!.SetObject(animatedModel, new VariantVector([new Variant(false)]));
+
+        Assert.False(animatedModel.GetSkeleton().GetBone(0)!.Animated);
+    }
+
+    [Fact]
     public void Animated_model_copies_skeleton_and_morphs_from_model()
     {
         var model = new Model { Name = "AnimatedModel" };

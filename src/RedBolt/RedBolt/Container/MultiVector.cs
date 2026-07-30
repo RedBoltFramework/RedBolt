@@ -26,6 +26,16 @@ public class MultiVector<T> : IEnumerable<T>, ICloneable, IDisposable
 
     /// <summary>Emplace element at the back of specified outer vector.</summary>
     /// <remarks>C++ forwards variadic constructor arguments; the managed equivalent accepts a factory.</remarks>
+    public ref T EmplaceBack(int outerIndex)
+    {
+        var values = _values[outerIndex];
+        var inner = values.Count;
+        CollectionsMarshal.SetCount(values, inner + 1);
+        return ref CollectionsMarshal.AsSpan(values)[inner];
+    }
+
+    /// <summary>Emplace element at the back of specified outer vector.</summary>
+    /// <remarks>C++ forwards variadic constructor arguments; the managed equivalent accepts a factory.</remarks>
     public ref T EmplaceBack(int outerIndex, Func<T> factory)
     {
         var value = factory();
@@ -35,10 +45,17 @@ public class MultiVector<T> : IEnumerable<T>, ICloneable, IDisposable
     }
 
     /// <summary>Push element into back of specified outer vector. Return index of added element.</summary>
-    public Index PushBack(int outerIndex, T value)
+    public Index PushBack(int outerIndex, in T value)
     {
-        var inner = _values[outerIndex].Count;
-        _values[outerIndex].Add(CopyValue(value));
+        var values = _values[outerIndex];
+        var inner = values.Count;
+        if (IsCloneable)
+            values.Add(CopyValue(value));
+        else
+        {
+            CollectionsMarshal.SetCount(values, inner + 1);
+            CollectionsMarshal.AsSpan(values)[inner] = value;
+        }
         return new Index(outerIndex, inner);
     }
 

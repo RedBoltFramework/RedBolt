@@ -23,6 +23,15 @@ public sealed class CStringTests
     }
 
     [Fact]
+    public void Utf8_constructor_adds_zero_terminator()
+    {
+        using var value = new CString("Frame"u8);
+
+        Assert.True(value.Equals("Frame"u8));
+        Assert.Equal((byte)0, value.Bytes[^1]);
+    }
+
+    [Fact]
     public void Small_values_use_inline_storage_until_capacity_is_exceeded()
     {
         var value = new CString("inline");

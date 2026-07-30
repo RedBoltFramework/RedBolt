@@ -38,7 +38,7 @@ public sealed class BillboardSetTests
         Assert.Null(set.GetMaterial());
 
         var batches = set.GetBatches();
-        Assert.Single(batches);
+        Assert.Equal(1, batches.Length);
         Assert.Equal(GeometryType.Billboard, batches[0].GeometryType);
         Assert.Equal(1u, batches[0].NumWorldTransforms);
         Assert.NotNull(batches[0].Geometry);

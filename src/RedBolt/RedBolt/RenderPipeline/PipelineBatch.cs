@@ -8,6 +8,8 @@ using RedBolt.RenderAPI;
 /// </summary>
 public struct PipelineBatch
 {
+    private static readonly SourceBatch DefaultSourceBatch = new();
+
     public Drawable? Drawable { get; set; }
     public Geometry? Geometry { get; set; }
     public Material? Material { get; set; }
@@ -21,9 +23,11 @@ public struct PipelineBatch
     public float Distance { get; set; }
     public GeometryType GeometryType { get; set; }
 
-    public SourceBatch GetSourceBatch()
+    public ref readonly SourceBatch GetSourceBatch()
     {
-        return SourceBatchIndex != int.MaxValue ? Drawable!.GetBatches()[SourceBatchIndex] : default;
+        if (SourceBatchIndex != int.MaxValue)
+            return ref Drawable!.GetBatches()[SourceBatchIndex];
+        return ref DefaultSourceBatch;
     }
 
     public PipelineBatch()
@@ -40,7 +44,7 @@ public struct PipelineBatch
         PixelLightIndex = int.MaxValue;
         SourceBatchIndex = sourceBatchIndex;
 
-        var sourceBatch = GetSourceBatch();
+        ref readonly var sourceBatch = ref GetSourceBatch();
         Geometry = sourceBatch.Geometry;
         Material = sourceBatch.Material;
         LightmapIndex = checked((int)sourceBatch.LightmapIndex);
@@ -48,7 +52,7 @@ public struct PipelineBatch
         GeometryType = sourceBatch.GeometryType;
     }
 
-    public PipelineBatch(PipelineBatchDesc desc)
+    public PipelineBatch(ref PipelineBatchDesc desc)
     {
         Drawable = desc.Drawable;
         Geometry = desc.Geometry;
@@ -70,6 +74,8 @@ public struct PipelineBatch
 /// </summary>
 public struct PipelineBatchDesc
 {
+    private static readonly SourceBatch DefaultSourceBatch = new();
+
     public Drawable? Drawable { get; set; }
     public Geometry? Geometry { get; set; }
     public Material? Material { get; set; }
@@ -94,9 +100,11 @@ public struct PipelineBatchDesc
     public int PixelLightForPipelineStateIndex { get; set; }
     public uint PixelLightForPipelineStateHash { get; set; }
 
-    public SourceBatch GetSourceBatch()
+    public ref readonly SourceBatch GetSourceBatch()
     {
-        return SourceBatchIndex != int.MaxValue ? Drawable!.GetBatches()[SourceBatchIndex] : default;
+        if (SourceBatchIndex != int.MaxValue)
+            return ref Drawable!.GetBatches()[SourceBatchIndex];
+        return ref DefaultSourceBatch;
     }
 
     public PipelineBatchDesc()
@@ -113,7 +121,7 @@ public struct PipelineBatchDesc
         PixelLightIndex = int.MaxValue;
         SourceBatchIndex = sourceBatchIndex;
 
-        var sourceBatch = GetSourceBatch();
+        ref readonly var sourceBatch = ref GetSourceBatch();
         Geometry = sourceBatch.Geometry;
         Material = sourceBatch.Material;
         LightmapIndex = checked((int)sourceBatch.LightmapIndex);

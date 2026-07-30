@@ -365,6 +365,7 @@ public class PipelineState : DeviceObject
     {
         ReleaseIfNotNull(_handle);
         ReleaseIfNotNull(_shaderResourceBinding);
+        _reflection?.Dispose();
         _handle = null;
         _shaderResourceBinding = null;
         _reflection = null;
@@ -511,7 +512,6 @@ public class PipelineState : DeviceObject
 
     private sealed class TemporaryImmutableSamplers : IDisposable
     {
-        private readonly CString[] _names;
         private readonly SamplerDesc[] _descriptions;
         private readonly ImmutableSamplerDesc[] _samplers;
         private readonly IntPtr _memory;
@@ -521,7 +521,6 @@ public class PipelineState : DeviceObject
         {
             var resources = reflection.ShaderResources.ToArray();
             Count = resources.Length;
-            _names = new CString[resources.Length];
             _descriptions = new SamplerDesc[resources.Length];
             _samplers = new ImmutableSamplerDesc[resources.Length];
             if (resources.Length == 0)
@@ -539,12 +538,11 @@ public class PipelineState : DeviceObject
                     Log.GetLogger().LogWarning(
                         "Default sampler is used for resource '{Name}'", pair.Value.InternalName);
                 }
-                _names[i] = new CString(pair.Value.InternalName);
                 _descriptions[i] = CreateSamplerDesc(source.Value, renderDevice);
                 _samplers[i] = ImmutableSamplerDesc.CreateManagedWrapper(
                     IntPtr.Add(_memory, immutableSamplerDescSize * i), false);
                 _samplers[i].ShaderStages = stages;
-                _samplers[i].SamplerOrTextureName = _names[i].Pointer;
+                _samplers[i].SamplerOrTextureName = pair.Value.InternalName.Pointer;
                 _samplers[i].Desc = _descriptions[i];
             }
             First = _samplers[0];
@@ -557,7 +555,6 @@ public class PipelineState : DeviceObject
         {
             foreach (var sampler in _samplers) sampler?.Dispose();
             foreach (var description in _descriptions) description?.Dispose();
-            foreach (var name in _names) name?.Dispose();
             if (_memory != IntPtr.Zero)
                 Marshal.FreeHGlobal(_memory);
         }

@@ -181,34 +181,34 @@ public class DrawCommandQueue
     }
 
     /// <summary>Add shader parameter. Shall be called only if BeginShaderParameterGroup returned true.</summary>
-    public void AddShaderParameter(StringHash name, Variant value)
+    public void AddShaderParameter(StringHash name, in Variant value)
     {
         if (TryGetShaderParameterDestination(name, out var destination, out var expectedSize)
-            && !ConstantBufferCollection.StoreParameter(destination, value))
+            && !ConstantBufferCollection.StoreParameter(destination, in value))
             LogUnexpectedShaderParameterType(name, expectedSize);
     }
 
     /// <summary>Add shader parameter. Shall be called only if BeginShaderParameterGroup returned true.</summary>
-    public void AddShaderParameter<T>(StringHash name, T value) where T : unmanaged
+    public void AddShaderParameter<T>(StringHash name, in T value) where T : unmanaged
     {
         if (TryGetShaderParameterDestination(name, out var destination, out var expectedSize)
-            && !ConstantBufferCollection.StoreParameter(destination, value))
+            && !ConstantBufferCollection.StoreParameter(destination, in value))
             LogUnexpectedShaderParameterType(name, expectedSize);
     }
 
     /// <summary>Add shader parameter. Shall be called only if BeginShaderParameterGroup returned true.</summary>
-    public void AddShaderParameter(StringHash name, Matrix3 value)
+    public void AddShaderParameter(StringHash name, in Matrix3 value)
     {
         if (TryGetShaderParameterDestination(name, out var destination, out var expectedSize)
-            && !ConstantBufferCollection.StoreParameter(destination, value))
+            && !ConstantBufferCollection.StoreParameter(destination, in value))
             LogUnexpectedShaderParameterType(name, expectedSize);
     }
 
     /// <summary>Add shader parameter. Shall be called only if BeginShaderParameterGroup returned true.</summary>
-    public void AddShaderParameter(StringHash name, Matrix3x4 value)
+    public void AddShaderParameter(StringHash name, in Matrix3x4 value)
     {
         if (TryGetShaderParameterDestination(name, out var destination, out var expectedSize)
-            && !ConstantBufferCollection.StoreParameter(destination, value))
+            && !ConstantBufferCollection.StoreParameter(destination, in value))
             LogUnexpectedShaderParameterType(name, expectedSize);
     }
 

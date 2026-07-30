@@ -13,7 +13,7 @@ using RedBolt.RenderPipeline;
 /// <summary>
 /// Description of uniform buffer used by the shader program.
 /// </summary>
-public sealed class UniformBufferReflection
+public sealed class UniformBufferReflection : IDisposable
 {
     private readonly List<IShaderResourceVariable> _variables = [];
 
@@ -21,13 +21,18 @@ public sealed class UniformBufferReflection
 
     public uint Hash { get; internal set; }
 
-    public string InternalName { get; internal set; } = string.Empty;
+    public CString InternalName { get; internal set; } = new();
 
     public IReadOnlyList<IShaderResourceVariable> Variables => _variables;
 
     internal void AddVariable(IShaderResourceVariable variable)
     {
         _variables.Add(variable);
+    }
+
+    public void Dispose()
+    {
+        InternalName.Dispose();
     }
 }
 
@@ -48,17 +53,22 @@ public readonly record struct UniformReflection(
 /// <summary>
 /// Description of resource used by the shader program, excluding uniform buffers and samplers.
 /// </summary>
-public sealed class ShaderResourceReflection
+public sealed class ShaderResourceReflection : IDisposable
 {
-    public string InternalName { get; internal set; } = string.Empty;
+    public CString InternalName { get; internal set; } = new();
 
     public IShaderResourceVariable? Variable { get; internal set; }
+
+    public void Dispose()
+    {
+        InternalName.Dispose();
+    }
 }
 
 /// <summary>
 /// Description of shader program: uniform buffers, resources, etc.
 /// </summary>
-public sealed class ShaderProgramReflection
+public sealed class ShaderProgramReflection : IDisposable
 {
     private readonly UniformBufferReflection?[] _uniformBuffers = new UniformBufferReflection?[RenderApiLimits.MaxShaderParameterGroups];
     private readonly Dictionary<StringHash, UniformReflection> _uniforms = [];
@@ -74,73 +84,90 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
     {
         ArgumentNullException.ThrowIfNull(shaders);
 
-        foreach (var shader in shaders)
+        try
         {
-            if (shader?.GetHandle() is { IsNull: false } handle)
-                ReflectNativeShader(handle);
-        }
+            foreach (var shader in shaders)
+            {
+                if (shader?.GetHandle() is { IsNull: false } handle)
+                    ReflectNativeShader(handle);
+            }
 
-        RecalculateUniformHash();
+            RecalculateUniformHash();
+        }
+        catch
+        {
+            Dispose();
+            throw;
+        }
     }
 
-    internal ShaderProgramReflection(nint temporaryGlProgram)
+    public ShaderProgramReflection(nint temporaryGlProgram)
     {
-        var indexToGroup = new List<ShaderParameterGroup>();
-        var numUniformBlocks = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockCount(temporaryGlProgram);
-        for (var uniformBlockIndex = 0; uniformBlockIndex < numUniformBlocks; ++uniformBlockIndex)
+        try
         {
-            var internalName = System.Text.Encoding.UTF8.GetString(
-                DiligentNativeBindings.GetTemporaryGLProgramUniformBlockName(temporaryGlProgram, (uint)uniformBlockIndex));
-            if (!TryParseConstantBufferName(internalName, out var group))
+            var indexToGroup = new List<ShaderParameterGroup>();
+            var numUniformBlocks = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockCount(temporaryGlProgram);
+            for (var uniformBlockIndex = 0; uniformBlockIndex < numUniformBlocks; ++uniformBlockIndex)
             {
-                Log.GetLogger().Warning("Unknown constant buffer '{0}' is ignored", internalName);
-                continue;
-            }
-
-            AddUniformBuffer(group, internalName,
-                checked((int)DiligentNativeBindings.GetTemporaryGLProgramUniformBlockDataSize(temporaryGlProgram, (uint)uniformBlockIndex)));
-
-            var blockIndex = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockIndex(
-                temporaryGlProgram, System.Text.Encoding.UTF8.GetBytes(internalName));
-            while (indexToGroup.Count <= blockIndex)
-                indexToGroup.Add((ShaderParameterGroup)RenderApiLimits.MaxShaderParameterGroups);
-            indexToGroup[(int)blockIndex] = group;
-        }
-
-        var numUniforms = DiligentNativeBindings.GetTemporaryGLProgramUniformCount(temporaryGlProgram);
-        for (var uniformIndex = 0; uniformIndex < numUniforms; ++uniformIndex)
-        {
-            var internalName = System.Text.Encoding.UTF8.GetString(
-                DiligentNativeBindings.GetTemporaryGLProgramUniformName(temporaryGlProgram, (uint)uniformIndex));
-            if (TrySanitizeSrvName(internalName, out var resourceName))
-            {
-                AddShaderResource(resourceName, internalName);
-                continue;
-            }
-            if (TrySanitizeUavName(internalName, out var unorderedAccessViewName))
-            {
-                AddUnorderedAccessView(unorderedAccessViewName, internalName);
-                continue;
-            }
-            if (!TrySanitizeGlUniformName(internalName, out var uniformName))
-                continue;
-
-            var blockIndex = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockIndex(
-                temporaryGlProgram, (uint)uniformIndex);
-            var blockOffset = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockOffset(
-                temporaryGlProgram, (uint)uniformIndex);
-            if (blockIndex >= 0 && blockIndex < indexToGroup.Count)
-            {
-                var group = indexToGroup[blockIndex];
-                if (group != (ShaderParameterGroup)RenderApiLimits.MaxShaderParameterGroups)
+                var internalName =
+                    DiligentNativeBindings.GetTemporaryGLProgramUniformBlockName(temporaryGlProgram, (uint)uniformBlockIndex);
+                if (!TryParseConstantBufferName(internalName, out var group))
                 {
-                    AddUniform(uniformName, group, blockOffset,
-                        checked((int)DiligentNativeBindings.GetTemporaryGLProgramUniformSize(temporaryGlProgram, (uint)uniformIndex)),
-                        default, default, 0, 0, 0);
+                    Log.GetLogger().Warning("Unknown constant buffer '{0}' is ignored",
+                        System.Text.Encoding.UTF8.GetString(internalName));
+                    continue;
+                }
+
+                AddUniformBuffer(group, internalName,
+                    checked((int)DiligentNativeBindings.GetTemporaryGLProgramUniformBlockDataSize(temporaryGlProgram, (uint)uniformBlockIndex)));
+
+                var blockIndex = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockIndex(
+                    temporaryGlProgram, internalName);
+                while (indexToGroup.Count <= blockIndex)
+                    indexToGroup.Add((ShaderParameterGroup)RenderApiLimits.MaxShaderParameterGroups);
+                indexToGroup[(int)blockIndex] = group;
+            }
+
+            var numUniforms = DiligentNativeBindings.GetTemporaryGLProgramUniformCount(temporaryGlProgram);
+            for (var uniformIndex = 0; uniformIndex < numUniforms; ++uniformIndex)
+            {
+                var internalName = System.Text.Encoding.UTF8.GetString(
+                    DiligentNativeBindings.GetTemporaryGLProgramUniformName(temporaryGlProgram, (uint)uniformIndex));
+                if (TrySanitizeSrvName(internalName, out var resourceName))
+                {
+                    AddShaderResource(resourceName, internalName);
+                    continue;
+                }
+                if (TrySanitizeUavName(internalName, out var unorderedAccessViewName))
+                {
+                    AddUnorderedAccessView(unorderedAccessViewName, internalName);
+                    continue;
+                }
+                if (!TrySanitizeGlUniformName(internalName, out var uniformName))
+                    continue;
+
+                var blockIndex = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockIndex(
+                    temporaryGlProgram, (uint)uniformIndex);
+                var blockOffset = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockOffset(
+                    temporaryGlProgram, (uint)uniformIndex);
+                if (blockIndex >= 0 && blockIndex < indexToGroup.Count)
+                {
+                    var group = indexToGroup[blockIndex];
+                    if (group != (ShaderParameterGroup)RenderApiLimits.MaxShaderParameterGroups)
+                    {
+                        AddUniform(uniformName, group, blockOffset,
+                            checked((int)DiligentNativeBindings.GetTemporaryGLProgramUniformSize(temporaryGlProgram, (uint)uniformIndex)),
+                            default, default, 0, 0, 0);
+                    }
                 }
             }
+            RecalculateUniformHash();
         }
-        RecalculateUniformHash();
+        catch
+        {
+            Dispose();
+            throw;
+        }
     }
 
     public UniformBufferReflection? GetUniformBuffer(ShaderParameterGroup group)
@@ -174,6 +201,16 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
 
     internal string GetUniformName(StringHash name) => _uniformNames[name];
 
+    public void Dispose()
+    {
+        foreach (var uniformBuffer in _uniformBuffers)
+            uniformBuffer?.Dispose();
+        foreach (var resource in _shaderResources.Values)
+            resource.Dispose();
+        foreach (var resource in _unorderedAccessViews.Values)
+            resource.Dispose();
+    }
+
     public void ConnectToShaderVariables(PipelineStateType pipelineType, IShaderResourceBinding binding)
     {
         ArgumentNullException.ThrowIfNull(binding);
@@ -185,10 +222,9 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
             if (uniformBuffer is null || uniformBuffer.Size == 0)
                 continue;
 
-            using var internalName = new CString(uniformBuffer.InternalName);
             unsafe
             {
-                ref var internalNameRef = ref Unsafe.AsRef<sbyte>((void*)internalName.Pointer);
+                ref var internalNameRef = ref Unsafe.AsRef<sbyte>((void*)uniformBuffer.InternalName.Pointer);
                 foreach (var shaderType in shaderTypes)
                 {
                     var shaderVariable = binding.GetVariableByName(ToNativeShaderType(shaderType), in internalNameRef);
@@ -200,10 +236,9 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
 
         foreach (var resource in _shaderResources.Values)
         {
-            using var internalName = new CString(resource.InternalName);
             unsafe
             {
-                ref var internalNameRef = ref Unsafe.AsRef<sbyte>((void*)internalName.Pointer);
+                ref var internalNameRef = ref Unsafe.AsRef<sbyte>((void*)resource.InternalName.Pointer);
                 foreach (var shaderType in shaderTypes)
                 {
                     var shaderVariable = binding.GetVariableByName(ToNativeShaderType(shaderType), in internalNameRef);
@@ -218,10 +253,9 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
 
         foreach (var resource in _unorderedAccessViews.Values)
         {
-            using var internalName = new CString(resource.InternalName);
             unsafe
             {
-                ref var internalNameRef = ref Unsafe.AsRef<sbyte>((void*)internalName.Pointer);
+                ref var internalNameRef = ref Unsafe.AsRef<sbyte>((void*)resource.InternalName.Pointer);
                 foreach (var shaderType in shaderTypes)
                 {
                     var shaderVariable = binding.GetVariableByName(ToNativeShaderType(shaderType), in internalNameRef);
@@ -271,14 +305,33 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
         {
             if (existingBuffer.Size != size)
                 Log.GetLogger().Warning("Uniform buffer #{0} has inconsistent size in different stages", group);
-            if (existingBuffer.InternalName != internalName)
+            if (!existingBuffer.InternalName.Equals(internalName))
                 Log.GetLogger().Warning("Uniform buffer #{0} has inconsistent name in different stages", group);
             return;
         }
 
         _uniformBuffers[index] = new UniformBufferReflection
         {
-            InternalName = internalName,
+            InternalName = new CString(internalName),
+            Size = size
+        };
+    }
+
+    private void AddUniformBuffer(ShaderParameterGroup group, ReadOnlySpan<byte> internalName, int size)
+    {
+        var index = (int)group;
+        if (_uniformBuffers[index] is { } existingBuffer)
+        {
+            if (existingBuffer.Size != size)
+                Log.GetLogger().Warning("Uniform buffer #{0} has inconsistent size in different stages", group);
+            if (!existingBuffer.InternalName.Equals(internalName))
+                Log.GetLogger().Warning("Uniform buffer #{0} has inconsistent name in different stages", group);
+            return;
+        }
+
+        _uniformBuffers[index] = new UniformBufferReflection
+        {
+            InternalName = new CString(internalName),
             Size = size
         };
     }
@@ -352,7 +405,7 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
 
         _shaderResources[name] = new ShaderResourceReflection
         {
-            InternalName = internalName
+            InternalName = new CString(internalName)
         };
     }
 
@@ -366,7 +419,7 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
 
         _unorderedAccessViews[name] = new ShaderResourceReflection
         {
-            InternalName = internalName
+            InternalName = new CString(internalName)
         };
     }
 
@@ -425,6 +478,22 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
             "Material" => ShaderParameterGroup.Material,
             "Object" => ShaderParameterGroup.Object,
             "Custom" => ShaderParameterGroup.Custom,
+            _ => (ShaderParameterGroup)(-1)
+        };
+        return (int)group >= 0;
+    }
+
+    private static bool TryParseConstantBufferName(ReadOnlySpan<byte> name, out ShaderParameterGroup group)
+    {
+        group = name switch
+        {
+            _ when name.SequenceEqual("Frame"u8) => ShaderParameterGroup.Frame,
+            _ when name.SequenceEqual("Camera"u8) => ShaderParameterGroup.Camera,
+            _ when name.SequenceEqual("Zone"u8) => ShaderParameterGroup.Zone,
+            _ when name.SequenceEqual("Light"u8) => ShaderParameterGroup.Light,
+            _ when name.SequenceEqual("Material"u8) => ShaderParameterGroup.Material,
+            _ when name.SequenceEqual("Object"u8) => ShaderParameterGroup.Object,
+            _ when name.SequenceEqual("Custom"u8) => ShaderParameterGroup.Custom,
             _ => (ShaderParameterGroup)(-1)
         };
         return (int)group >= 0;
