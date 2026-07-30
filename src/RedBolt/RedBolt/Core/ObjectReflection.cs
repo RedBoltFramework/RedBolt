@@ -10,6 +10,11 @@ using RedBolt.Logging;
 
 public static class ObjectReflection<T>
 {
+    static ObjectReflection()
+    {
+        RuntimeHelpers.RunModuleConstructor(typeof(T).Module.ModuleHandle);
+    }
+
     public static Type Type { get; } = typeof(T);
 
     public static string ClassName { get; } = Type.GetClassName();

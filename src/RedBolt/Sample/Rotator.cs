@@ -1,4 +1,4 @@
-namespace RedBolt.Sample.AnimatingScene;
+namespace RedBolt.Sample;
 
 using RedBolt;
 using RedBolt.Core;

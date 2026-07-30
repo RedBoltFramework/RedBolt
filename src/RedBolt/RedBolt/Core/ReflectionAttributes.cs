@@ -157,6 +157,9 @@ public static class GeneratedReflectionRegistration
 
     internal static void RefreshExternalAssemblies(Context context)
     {
+        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            RuntimeHelpers.RunModuleConstructor(assembly.ManifestModule.ModuleHandle);
+
         Assembly[] assemblies;
         lock (Sync)
         {

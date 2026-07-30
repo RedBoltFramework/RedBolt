@@ -4,6 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../Rotator.cs" Link="Rotator.cs" />
     <ProjectReference Include="../../RedBolt/RedBolt.csproj" />
     <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
   </ItemGroup>
