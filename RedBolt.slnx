@@ -83,6 +83,7 @@
     <Project Path="src/RedBolt/Sample/DynamicGeometry/RedBolt.Sample.DynamicGeometry.csproj" />
     <Project Path="src/RedBolt/Sample/CameraShake/RedBolt.Sample.CameraShake.csproj" />
     <Project Path="src/RedBolt/Sample/Billboards/RedBolt.Sample.Billboards.csproj" />
+    <Project Path="src/RedBolt/Sample/Particles/RedBolt.Sample.Particles.csproj" />
     <Project Path="src/RedBolt/Sample/MaterialAnimation/RedBolt.Sample.MaterialAnimation.csproj" />
     <Project Path="src/RedBolt/Sample/HugeObjectCount/RedBolt.Sample.HugeObjectCount.csproj" />
     <Project Path="src/RedBolt/Sample/CameraOperator/RedBolt.Sample.CameraOperator.csproj" />

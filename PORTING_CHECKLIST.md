@@ -27,6 +27,7 @@
 - [-] `03_Sprites` — **EXCLUDED** · reason: depends on the optional, unported Urho2D subsystem
 - [x] `06_SkeletalAnimation` — sample, generated `[Reflected]` `Mover3D` factory metadata, animated models, controller playback, scene, lighting, camera, skeleton and bounds debug geometry, and Dear ImGui instructions are ported and runtime-verified
 - [x] `07_Billboards` — scene population, grouped shadow casters, animated billboard sets, rotating shadow-casting spotlights, camera, debug geometry, and Dear ImGui instructions are ported and runtime-verified
+- [x] `Particles` — intentional RedBolt 3D particle showcase with counter-rotating fire, smoke, burst, and disco effects, neon point lighting, camera controls, Dear ImGui instructions, deterministic teardown, and runtime-verified screenshot capture
 - [x] `08_Decals` — scene population, occluders, per-viewport normalized mouse updates at input end, cursor raycast, decal creation and buffer upload, camera, debug geometry, and Dear ImGui instructions are ported and runtime-verified
 - [x] `20_HugeObjectCount` — 62,500-object scene, grouped and ungrouped modes, animation toggle, camera, and Dear ImGui instructions are ported; startup, live group rebuild, and steady-state rendering are runtime-verified after restoring shared reflection attributes and linear reverse teardown
 - [x] `30_LightAnimation` — animated point light, scene population, camera, animated Dear ImGui text, and five-frame Dear ImGui texture animation are ported and runtime-verified
