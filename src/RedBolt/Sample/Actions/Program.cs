@@ -34,6 +34,11 @@ internal static class ActionsProgram
 
 sealed class ActionsApplication : Application
 {
+    private struct ActionPulseEvent
+    {
+        public int Count;
+    }
+
     private sealed class DemoElement : IDisposable
     {
         public DemoElement(string name, Node node, RedObject target, FiniteTimeAction action, Material material,
@@ -74,6 +79,7 @@ sealed class ActionsApplication : Application
     private Viewport? _viewport;
     private ActionManager? _actionManager;
     private int _callbackCount;
+    private int _eventCount;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -214,6 +220,9 @@ sealed class ActionsApplication : Application
         AddElement("Callback", new ActionBuilder().DelayTime(1.0f)
             .CallFunc(this, static (application, _) => application.HandleCallback()).DelayTime(2.0f)
             .RepeatForever().Build()!);
+        AddElement("Typed Event", new ActionBuilder().DelayTime(1.5f)
+            .SendEvent(new ActionPulseEvent { Count = 1 }).DelayTime(1.5f).RepeatForever().Build()!);
+        SubscribeToEvent<ActionPulseEvent>(_markers[^1].Target, HandleActionPulse);
         AddElement("Remove Self", new ActionBuilder().DelayTime(2.0f).RemoveSelf().Build()!);
     }
 
@@ -311,6 +320,12 @@ sealed class ActionsApplication : Application
         _status.FormatInPlace($"Callback fired {_callbackCount} times");
     }
 
+    private void HandleActionPulse(ref ActionPulseEvent eventData)
+    {
+        _eventCount += eventData.Count;
+        _status.FormatInPlace($"Typed event received {_eventCount} times");
+    }
+
     private void DrawControls()
     {
         var activeActions = 0;
@@ -324,7 +339,7 @@ sealed class ActionsApplication : Application
         if (ImGui.Begin("Action System Lab\0"u8, ref windowOpen,
             ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            ImGui.TextUnformatted("26 live targets: sequencing, parallelism, easing,\nattributes, shaders, callbacks, repeats, and removal.\0"u8);
+            ImGui.TextUnformatted("27 live targets: sequencing, parallelism, easing,\nattributes, shaders, typed events, repeats, and removal.\0"u8);
             ImGui.Separator();
             if (ImGui.Button("Run all\0"u8))
                 RunAll();

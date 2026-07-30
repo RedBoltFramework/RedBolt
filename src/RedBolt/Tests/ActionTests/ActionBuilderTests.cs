@@ -78,4 +78,23 @@ public sealed class ActionBuilderTests
         manager.Update(1.0f);
         Assert.Equal(new Vector3f(1.0f, 0.0f, 0.0f), target.Position);
     }
+
+    [Fact]
+    public void Send_event_builders_preserve_typed_event_data()
+    {
+        var eventData = new TestEvent { Value = 42 };
+
+        var populated = Assert.IsType<SendEvent<TestEvent>>(
+            new ActionBuilder().SendEvent(eventData).Build());
+        var empty = Assert.IsType<SendEvent<TestEvent>>(
+            new ActionBuilder().SendEvent<TestEvent>().Build());
+
+        Assert.Equal(42, populated.EventData.Value);
+        Assert.Equal(0, empty.EventData.Value);
+    }
+
+    private struct TestEvent
+    {
+        public int Value;
+    }
 }

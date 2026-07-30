@@ -85,7 +85,7 @@ public class ActionCallHandlerImpl<T> : ActionCallHandler
 }
 
 /// <summary>Call function on each action tick.</summary>
-/// <remarks>This is not serializable action. If you want something you can save in a file please use SendEvent</remarks>
+/// <remarks>This action is not serializable.</remarks>
 [Reflected]
 public partial class CallFunc : ActionInstant
 {
@@ -127,4 +127,48 @@ public partial class CallFunc : ActionInstant
     }
 
     protected ActionCallHandler? _actionCallHandler;
+}
+
+/// <summary>Send typed event on target object.</summary>
+public class SendEvent<T> : ActionInstant
+    where T : struct
+{
+    private sealed class SendEventState : FiniteTimeActionState
+    {
+        public SendEventState(SendEvent<T> action, RedObject? target)
+            : base(action, target)
+        {
+            _eventData = action.EventData;
+        }
+
+        public override void Update(float time)
+        {
+            Target!.SendEvent(ref _eventData);
+        }
+
+        private T _eventData;
+    }
+
+    /// <summary>Construct.</summary>
+    public SendEvent()
+    {
+    }
+
+    /// <summary>Get event args.</summary>
+    public T EventData => _eventData;
+
+    /// <summary>Set event args.</summary>
+    public void SetEventData(in T eventData)
+    {
+        _eventData = eventData;
+    }
+
+    /// <summary>Create new action state from the action.</summary>
+    protected internal override ActionState StartAction(RedObject? target)
+    {
+        return new SendEventState(this, target);
+    }
+
+    /// <summary>Event arguments.</summary>
+    private T _eventData;
 }

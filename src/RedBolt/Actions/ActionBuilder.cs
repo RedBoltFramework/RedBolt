@@ -265,14 +265,19 @@ public class ActionBuilder
         return Then(action);
     }
 
-    // TODO: port
-    // ActionBuilder& ActionBuilder::SendEvent(ea::string_view eventType, const StringVariantMap& data)
-    // {
-    //     const auto action = MakeShared<Actions::SendEvent>(context_);
-    //     action->SetEventType(eventType);
-    //     action->SetEventData(data);
-    //     return Then(action);
-    // }
+    /// <summary>Continue with SendEvent action.</summary>
+    public ActionBuilder SendEvent<T>() where T : struct
+    {
+        return Then(new SendEvent<T>());
+    }
+
+    /// <summary>Continue with SendEvent action.</summary>
+    public ActionBuilder SendEvent<T>(in T data) where T : struct
+    {
+        var action = new SendEvent<T>();
+        action.SetEventData(data);
+        return Then(action);
+    }
 
     /// <summary>Continue with CallFunc action.</summary>
     public ActionBuilder CallFunc(ActionCallHandler? handler)
