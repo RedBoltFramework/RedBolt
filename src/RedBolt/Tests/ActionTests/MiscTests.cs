@@ -103,7 +103,7 @@ public sealed partial class MiscTests
         using var action = new Blink();
         action.SetDuration(1.0f);
         action.SetNumOfBlinks(0);
-        Assert.Equal(1u, action.NumOfBlinks);
+        Assert.Equal(1, action.NumOfBlinks);
         action.SetNumOfBlinks(2);
 
         Assert.Equal(AttributeActionConstants.IsEnabledAttribute, action.AttributeName);

@@ -68,6 +68,7 @@
     <Project Path="src/RedBolt/Platform/Web/RedBolt.Platform.Web.csproj" />
   </Folder>
   <Folder Name="/src/RedBolt/Sample/">
+    <Project Path="src/RedBolt/Sample/Actions/RedBolt.Sample.Actions.csproj" />
     <Project Path="src/RedBolt/Sample/BakedLighting/RedBolt.Sample.BakedLighting.csproj" />
     <Project Path="src/RedBolt/Sample/CrowdNavigation/RedBolt.Sample.CrowdNavigation.csproj" />
     <Project Path="src/RedBolt/Sample/Navigation/RedBolt.Sample.Navigation.csproj" />

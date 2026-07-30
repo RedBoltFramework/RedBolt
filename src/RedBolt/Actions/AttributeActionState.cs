@@ -139,12 +139,12 @@ public class AttributeBlinkState : AttributeActionState
 {
     public AttributeBlinkState(
         FiniteTimeAction action, RedObject? target, AttributeInfo? attribute, Variant from,
-        Variant to, uint times)
+        Variant to, int times)
         : base(action, target, attribute)
     {
         _from = from.Clone();
         _to = to.Clone();
-        _times = Math.Max(1u, times);
+        _times = Math.Max(1, times);
         Get(ref _originalState);
     }
 
@@ -169,7 +169,7 @@ public class AttributeBlinkState : AttributeActionState
         Set(_originalState);
     }
 
-    private uint _times;
+    private int _times;
     private Variant _originalState;
     private Variant _from;
     private Variant _to;

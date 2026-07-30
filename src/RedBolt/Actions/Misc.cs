@@ -149,12 +149,12 @@ public partial class Blink : AttributeAction
     }
 
     /// <summary>Get number of blinks.</summary>
-    public uint NumOfBlinks => _times;
+    public int NumOfBlinks => _times;
 
     /// <summary>Set number of blinks.</summary>
-    public void SetNumOfBlinks(uint times)
+    public void SetNumOfBlinks(int times)
     {
-        _times = Math.Max(1u, times);
+        _times = Math.Max(1, times);
     }
 
     /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
@@ -162,7 +162,7 @@ public partial class Blink : AttributeAction
     {
         base.SerializeInBlock(archive);
         ArchiveSerialization.SerializeOptionalValue(
-            archive, "times", ref _times, 1u, ArchiveSerialization.SerializeValue);
+            archive, "times", ref _times, 1, ArchiveSerialization.SerializeValue);
     }
 
     /// <summary>Create new action state from the action.</summary>
@@ -173,7 +173,7 @@ public partial class Blink : AttributeAction
         return new AttributeBlinkState(this, target, GetAttribute(target), from, to, _times);
     }
 
-    protected uint _times = 1;
+    protected int _times = 1;
 }
 
 /// <summary>Action that does nothing but waits.</summary>

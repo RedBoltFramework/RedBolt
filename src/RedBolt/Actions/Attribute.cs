@@ -223,9 +223,9 @@ public partial class AttributeBlink : AttributeAction
     }
 
     /// <summary>Set number of blinks.</summary>
-    public void SetNumOfBlinks(uint times)
+    public void SetNumOfBlinks(int times)
     {
-        _times = Math.Max(1u, times);
+        _times = Math.Max(1, times);
     }
 
     // Get "from" value.
@@ -235,7 +235,7 @@ public partial class AttributeBlink : AttributeAction
     public ref readonly Variant To => ref _to;
 
     /// <summary>Get number of blinks.</summary>
-    public uint NumOfBlinks => _times;
+    public int NumOfBlinks => _times;
 
     /// <summary>Create reversed action.</summary>
     public override FiniteTimeAction Reverse()
@@ -273,5 +273,5 @@ public partial class AttributeBlink : AttributeAction
 
     private Variant _from;
     private Variant _to;
-    private uint _times = 1;
+    private int _times = 1;
 }

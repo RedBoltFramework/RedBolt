@@ -38,6 +38,7 @@
 - [x] `107_HelloRmlUI` — reflected data-model window, scalar and custom `Variant` bindings, custom events, backbuffer and render-to-texture canvases, cube animation, HarfBuzz-rasterized text, native shared texture/listener lifetimes, and deterministic teardown are ported and runtime-verified
 - [-] `110_AdvancedNetworking` — **EXCLUDED** · reason: depends on the optional, unported Network, Replica, and Physics subsystems; its RmlUI widget directly invokes `Network` server, connection, and disconnect APIs
 - [x] `112_AggregatedInput` — direction aggregation, directional-pad aggregation, raw key/joystick/hat/disconnect/touch logging, synthesized key logging and repeats, and Dear ImGui visualization are ported and runtime-verified
+- [x] `113_Actions` — engine `ActionBuilder`, the native easing gallery, sequencing, parallel actions, movement, rotation, scale, repeat modes, attribute animation, shader-parameter animation, callbacks, enable/disable, blink, removal, per-track controls, Dear ImGui status, neon 3D presentation, deterministic teardown, and screenshot capture are runtime-verified; typed-event `SendEvent` remains pending
 - [x] `113_InputLogger` — dual viewports, all input-event subscriptions and decoded parameters, C++ identity/parameter/time-threshold event merging, viewport-relative mouse reporting, bounded logging, and Dear ImGui output are runtime-verified; the standalone managed application replaces the optional, unported plugin application wrapper
 - [~] `114_AdvancedUI` — reflected RmlUI data model, direct `StringVector` list binding, callback-driven main/load/about views, saved-game mutation, focus restoration, sound event attributes, subtle animated button hover, interactive overlapping load/about views, F9 debugger toggle, HarfBuzz-rasterized text, skybox scene, standalone state host, and Escape navigation are ported and runtime-verified; built-in UI `Text3D` is excluded
   - [x] Hovered UI items use a subtle animated enlargement.
@@ -259,8 +260,8 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `RepeatForever : FiniteTimeAction`
 - [ ] `ActionSet.h`
   - [ ] `ActionSet : Resource`
-- [ ] `ActionBuilder.h`
-  - [ ] `ActionBuilder`
+- [~] `ActionBuilder.h`
+  - [~] `ActionBuilder` — all builders except typed-event `SendEvent` are ported
 - [x] `ActionManager.h`
   - [x] `ActionManager`
 

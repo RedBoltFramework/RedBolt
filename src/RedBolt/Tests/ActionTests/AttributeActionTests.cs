@@ -123,7 +123,7 @@ public partial class AttributeActionTests
         action.SetFrom(from);
         action.SetTo(to);
         action.SetNumOfBlinks(0);
-        Assert.Equal(1u, action.NumOfBlinks);
+        Assert.Equal(1, action.NumOfBlinks);
         action.SetNumOfBlinks(2);
 
         Assert.NotNull(manager.AddAction(action, target));
