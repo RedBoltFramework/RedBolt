@@ -172,7 +172,7 @@ public partial class Light : Drawable
     public const LightType DefaultLightType = LightType.Point;
     public const LightImportance DefaultLightImportance = LightImportance.Auto;
 
-    [Serialized("Light Type", Setter = nameof(SetLightType))]
+    [Serialized("Light Type", EnumNames = ["Directional", "Spot", "Point"], Setter = nameof(SetLightType))]
     private LightType _lightType = LightType.Point;
     [Serialized("Range", Setter = nameof(SetRange))]
     private float _range = DefaultRange;
@@ -252,10 +252,10 @@ public partial class Light : Drawable
 
     public LightType LightType => _lightType;
 
-    [Serialized("Light Importance")]
+    [Serialized("Light Importance", EnumNames = ["Auto", "Important", "Not Important"])]
     public LightImportance LightImportance { get; private set; } = LightImportance.Auto;
 
-    [Serialized("Light Mode")]
+    [Serialized("Light Mode", EnumNames = ["Realtime", "Mixed", "Baked"])]
     public LightMode LightMode { get; private set; } = LightMode.Realtime;
 
     [Serialized("Color", AccessorType = typeof(ColorAttributeAccessor))]

@@ -2,6 +2,7 @@ namespace RedBolt.Tests;
 
 using RedBolt;
 using RedBolt.Container;
+using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Resource;
@@ -55,6 +56,27 @@ public sealed class LightTests
         var light = new Scene().CreateChild("Light").CreateComponent<Light>();
         light.SetLightMode(LightMode.Baked);
         Assert.Equal(0u, light.GetLightMaskEffective());
+    }
+
+    [Fact]
+    public void Baked_lighting_scene_restores_light_enums()
+    {
+        var cache = Context.Instance.GetSubsystem<ResourceCache>()!;
+        var xmlFile = cache.Get<XMLFile>("Scenes/BakedLightingExample.xml");
+        using var root = xmlFile.GetRoot();
+        using var scene = new Scene();
+
+        Assert.True(scene.LoadXML(root));
+        var lights = scene.FindComponents<Light>();
+        Assert.Equal(3, lights.Count);
+        Assert.Equal(LightType.Directional, lights[0].GetLightType());
+        Assert.Equal(LightType.Point, lights[1].GetLightType());
+        Assert.Equal(LightType.Spot, lights[2].GetLightType());
+        Assert.All(lights, static light =>
+        {
+            Assert.Equal(LightMode.Baked, light.GetLightMode());
+            Assert.Equal(0u, light.GetLightMaskEffective());
+        });
     }
 
     [Fact]
