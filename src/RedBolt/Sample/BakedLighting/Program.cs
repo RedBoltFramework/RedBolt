@@ -99,6 +99,7 @@ public class BakedLighting : Application
 
         var camera = _scene.FindComponent<Camera>()!;
         _cameraNode = camera.Node!;
+        _cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -8.0f));
         _viewport = new Viewport(_scene, camera);
         Renderer.SetViewport(0, _viewport);
 
@@ -116,8 +117,8 @@ public class BakedLighting : Application
         crowdManager.SetObstacleAvoidanceParams(0, parameters);
 
         // Initialize yaw and pitch angles
-        _cameraRotationPitch = _scene.GetChild("Camera Rotation Pitch", true)!;
-        _cameraRotationYaw = _scene.GetChild("Camera Rotation Yaw", true)!;
+        _cameraRotationPitch = _cameraNode.Parent!;
+        _cameraRotationYaw = _cameraRotationPitch.Parent!;
         _yaw = _cameraRotationYaw.WorldRotation.YawAngle;
         _pitch = _cameraRotationPitch.WorldRotation.PitchAngle;
     }
