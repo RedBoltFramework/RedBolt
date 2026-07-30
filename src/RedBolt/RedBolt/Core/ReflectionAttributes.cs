@@ -124,7 +124,11 @@ public static class GeneratedReflectionRegistration
         lock (Sync)
         {
             if (!AssemblyTypes.TryGetValue(assembly, out var registeredTypes))
-                throw new InvalidOperationException($"Assembly {assembly.FullName} has no generated RedBolt reflection registrar.");
+            {
+                RuntimeHelpers.RunModuleConstructor(assembly.ManifestModule.ModuleHandle);
+                if (!AssemblyTypes.TryGetValue(assembly, out registeredTypes))
+                    throw new InvalidOperationException($"Assembly {assembly.FullName} has no generated RedBolt reflection registrar.");
+            }
             types = registeredTypes.ToArray();
         }
 
