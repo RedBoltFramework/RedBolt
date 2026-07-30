@@ -31,7 +31,15 @@ public abstract partial class Application
 
     private void RunFrame()
     {
-        Engine.RunFrame(_updateAction);
+        try
+        {
+            Engine.RunFrame(_updateAction);
+        }
+        catch (Exception exception)
+        {
+            Console.Error.WriteLine(exception.ToString());
+            throw;
+        }
     }
 
     private static void HandleScreenMode(ref GraphicsEvents.ScreenModeEvent eventData)

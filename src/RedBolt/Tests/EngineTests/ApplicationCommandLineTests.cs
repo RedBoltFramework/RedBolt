@@ -66,6 +66,28 @@ public sealed class ApplicationCommandLineTests
         Assert.False(application.Started);
     }
 
+    [Fact]
+    public void Application_prints_full_unhandled_exception()
+    {
+        using var application = new ThrowingApplication();
+        using var output = new StringWriter();
+        var previousError = Console.Error;
+        Console.SetError(output);
+        try
+        {
+            var exitCode = application.Run([]);
+
+            Assert.Equal(Application.FailureExitCode, exitCode);
+        }
+        finally
+        {
+            Console.SetError(previousError);
+        }
+
+        Assert.Contains("System.InvalidOperationException: Application failure.", output.ToString());
+        Assert.Contains("ThrowingApplication.Start", output.ToString());
+    }
+
     private sealed class ProbeApplication : Application
     {
         public EngineParameters? ObservedParameters { get; private set; }
@@ -102,6 +124,20 @@ public sealed class ApplicationCommandLineTests
                 WindowWidth = Engine.Parameters.WindowWidth
             };
             Exit();
+        }
+    }
+
+    private sealed class ThrowingApplication : Application
+    {
+        protected override void Setup(EngineParameters parameters)
+        {
+            parameters.ApplicationName = "RedBolt.Tests.Throwing";
+            parameters.Headless = true;
+        }
+
+        protected override void Start()
+        {
+            throw new InvalidOperationException("Application failure.");
         }
     }
 }

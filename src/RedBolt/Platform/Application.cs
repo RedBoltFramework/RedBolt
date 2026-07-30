@@ -132,6 +132,7 @@ public abstract partial class Application : RedObject
         }
         catch (Exception exception)
         {
+            Console.Error.WriteLine(exception.ToString());
             Log.GetLogger().LogCritical(exception, "Unhandled exception in application run loop.");
             if (ProcessUtils.GetPlatform() == PlatformId.Web)
                 throw;
