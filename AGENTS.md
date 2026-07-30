@@ -198,11 +198,23 @@ implementation and MUST be ported explicitly.
   Serve them with `cmake/ServeWebAssembly.py`, or configure the deployment
   server to return `Cross-Origin-Opener-Policy: same-origin` and
   `Cross-Origin-Embedder-Policy: require-corp`.
+- Emscripten enables its internal stack-first layout at `-O0` when the user
+  does not set `GLOBAL_BASE`. This layout gives the threaded .NET runtime
+  incorrect main-thread stack bounds and triggers a Mono assertion before the
+  managed entry point. Keep an explicit nonzero `GLOBAL_BASE` when Web linking
+  uses `-O0`.
 - The threaded .NET Web runtime runs the managed entry point in a worker. SDL's
-  Emscripten EGL path creates and binds its WebGL context on the browser thread,
-  so direct GL calls from managed code have no current context. Do not enable
-  WebAssembly threads for the SDL/EGL renderer until the context is transferred
-  to the worker or every GL call is proxied to its owner.
+  Emscripten EGL path does not initialize the thread-local state used by
+  `OFFSCREEN_FRAMEBUFFER` GL proxies. Create and bind the context through
+  `emscripten_webgl_*` so Emscripten records the context owner and proxies GL
+  calls to it.
+- Browser APIs and JavaScript module state such as Web Audio belong to the
+  browser thread. Access them from native worker code through
+  `MAIN_THREAD_EM_ASM`, not plain `EM_ASM`.
+- Threaded .NET rejects synchronous JavaScript-to-C# calls from the browser
+  thread. Browser-driven frame and event callbacks must call `[JSExport]`
+  methods that return `Task`, and JavaScript must await the resulting Promise.
+  Return `Task.CompletedTask` when the managed operation is synchronous.
 - Port every C++ destructor as `Dispose()`. Preserve destructor-body actions,
   teardown ordering, callbacks, unregistering, resource release, and ownership
   effects. Do not rely on garbage collection or a finalizer as a replacement for

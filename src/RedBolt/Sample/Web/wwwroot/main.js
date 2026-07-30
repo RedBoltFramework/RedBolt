@@ -29,15 +29,16 @@ function isFullScreen() {
         || document.msFullscreenElement);
 }
 
-function viewportResizeHandler() {
+async function viewportResizeHandler() {
     if (document.hidden || !resizeHandler)
         return;
 
     calculateCanvasSize();
     if (isFullScreen())
-        fullscreenResizeHandler(screen.width * devicePixelRatio, screen.height * devicePixelRatio, devicePixelRatio);
+        await fullscreenResizeHandler(
+            screen.width * devicePixelRatio, screen.height * devicePixelRatio, devicePixelRatio);
     else
-        resizeHandler(canvasWidth, canvasHeight, devicePixelRatio);
+        await resizeHandler(canvasWidth, canvasHeight, devicePixelRatio);
 }
 
 function visibilityChanged() {
@@ -156,10 +157,12 @@ moduleConfig = {
     monitorRunDependencies,
     preRun: [initializePersistentStorage]
 };
-const { setModuleImports, runMain } = await dotnet
+const { getAssemblyExports, setModuleImports, runMain } = await dotnet
     .withConfig({ resources: { vfs } })
     .withModuleConfig(moduleConfig)
     .create();
+const platformExports = await getAssemblyExports('RedBolt.Platform.Web.dll');
+const applicationExports = platformExports.RedBolt.Platform.Application;
 
 setModuleImports('main.js', {
     dom: {
@@ -173,9 +176,11 @@ setModuleImports('main.js', {
     canvas: {
         getWidth: () => canvasWidth,
         getHeight: () => canvasHeight,
-        setResizeHandlers: (resizeCallback, fullscreenResizeCallback) => {
-            resizeHandler = resizeCallback;
-            fullscreenResizeHandler = fullscreenResizeCallback;
+        setResizeHandlers: () => {
+            resizeHandler = (width, height, dpiScale) =>
+                applicationExports.ResizeCanvasAsync(width, height, false, dpiScale);
+            fullscreenResizeHandler = (width, height, dpiScale) =>
+                applicationExports.ResizeCanvasAsync(width, height, true, dpiScale);
         },
         setRendererSize: (width, height) => {
             console.log('Engine renderer size changed to', width, height);
@@ -191,13 +196,13 @@ setModuleImports('main.js', {
             console.log('Renderer and canvas resolution mismatch, updating renderer resolution',
                 canvasWidth, canvasHeight);
             if (resizeHandler)
-                resizeHandler(canvasWidth, canvasHeight, devicePixelRatio);
+                resizeHandler(canvasWidth, canvasHeight, devicePixelRatio).catch(error => console.error(error));
         }
     },
     mainLoop: {
-        set: callback => {
-            const runFrame = () => {
-                callback();
+        set: () => {
+            const runFrame = async () => {
+                await applicationExports.RunFrameAsync();
                 requestAnimationFrame(runFrame);
             };
             requestAnimationFrame(runFrame);

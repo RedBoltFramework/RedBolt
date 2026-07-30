@@ -23,6 +23,7 @@
 #if SDL_VIDEO_DRIVER_EMSCRIPTEN && SDL_VIDEO_OPENGL_EGL
 
 #include <emscripten/emscripten.h>
+#include <emscripten/html5_webgl.h>
 #include <GLES2/gl2.h>
 
 #include "SDL_emscriptenvideo.h"
@@ -82,18 +83,85 @@ Emscripten_GLES_LoadLibrary(_THIS, const char *path) {
     return 0;
 }
 
-SDL_EGL_CreateContext_impl(Emscripten)
-SDL_EGL_MakeCurrent_impl(Emscripten)
+SDL_GLContext
+Emscripten_GLES_CreateContext(_THIS, SDL_Window *window)
+{
+    SDL_WindowData *window_data;
+    EmscriptenWebGLContextAttributes attribs;
+    EMSCRIPTEN_WEBGL_CONTEXT_HANDLE context;
+
+    emscripten_webgl_init_context_attributes(&attribs);
+
+    attribs.alpha = _this->gl_config.alpha_size > 0;
+    attribs.depth = _this->gl_config.depth_size > 0;
+    attribs.stencil = _this->gl_config.stencil_size > 0;
+    attribs.antialias = _this->gl_config.multisamplebuffers == 1;
+
+    if (_this->gl_config.major_version == 3) {
+        attribs.majorVersion = 2;
+    }
+    window_data = (SDL_WindowData *)window->driverdata;
+
+    if (window_data->gl_context) {
+        SDL_SetError("Cannot create multiple webgl contexts per window");
+        return NULL;
+    }
+
+    context = emscripten_webgl_create_context(window_data->canvas_id, &attribs);
+
+    if (!context) {
+        SDL_SetError("Could not create webgl context");
+        return NULL;
+    }
+    if (emscripten_webgl_make_context_current(context) != EMSCRIPTEN_RESULT_SUCCESS) {
+        emscripten_webgl_destroy_context(context);
+        return NULL;
+    }
+
+    window_data->gl_context = (SDL_GLContext)context;
+
+    return (SDL_GLContext)context;
+}
+
+void
+Emscripten_GLES_DeleteContext(_THIS, SDL_GLContext context)
+{
+    SDL_Window *window;
+
+    for (window = _this->windows; window; window = window->next) {
+        SDL_WindowData *window_data = (SDL_WindowData *)window->driverdata;
+        if (window_data->gl_context == context) {
+            window_data->gl_context = NULL;
+        }
+    }
+
+    emscripten_webgl_destroy_context((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)context);
+}
 
 int
 Emscripten_GLES_SwapWindow(_THIS, SDL_Window * window)
 {
-    EGLBoolean ret = SDL_EGL_SwapBuffers(_this, ((SDL_WindowData *) window->driverdata)->egl_surface);
+    EMSCRIPTEN_RESULT ret = emscripten_webgl_commit_frame();
     if (emscripten_has_asyncify() && SDL_GetHintBoolean(SDL_HINT_EMSCRIPTEN_ASYNCIFY, SDL_TRUE)) {
         /* give back control to browser for screen refresh */
         emscripten_sleep(0);
     }
     return ret;
+}
+
+int
+Emscripten_GLES_MakeCurrent(_THIS, SDL_Window *window, SDL_GLContext context)
+{
+    if (window && context) {
+        SDL_WindowData *window_data = (SDL_WindowData *)window->driverdata;
+        if (context != window_data->gl_context) {
+            return SDL_SetError("Cannot make context current to another window");
+        }
+    }
+    if (emscripten_webgl_make_context_current((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)context) != EMSCRIPTEN_RESULT_SUCCESS) {
+        return SDL_SetError("Unable to make context current");
+    }
+    return 0;
 }
 
 void
@@ -116,4 +184,3 @@ Emscripten_GLES_GetDrawableSize(_THIS, SDL_Window * window, int * w, int * h)
 #endif /* SDL_VIDEO_DRIVER_EMSCRIPTEN && SDL_VIDEO_OPENGL_EGL */
 
 /* vi: set ts=4 sw=4 expandtab: */
-

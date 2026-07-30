@@ -36,6 +36,7 @@ typedef struct SDL_WindowData
 {
 #if SDL_VIDEO_OPENGL_EGL
     EGLSurface egl_surface;
+    SDL_GLContext gl_context;
 #endif
     SDL_Window *window;
     SDL_Surface *surface;
