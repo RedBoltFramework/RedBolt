@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 
+using RedBolt.Audio;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
@@ -23,6 +24,7 @@ public abstract partial class Application : RedObject
     protected Application()
     {
         Engine = new Engine();
+        Audio.RegisterAudioSubsystem(Engine.Context);
         _updateAction = Update;
         InitializeMainLoop();
         SubscribeToEvent<IOEvents.LogMessage>(HandleLogMessage);

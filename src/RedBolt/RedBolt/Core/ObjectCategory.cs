@@ -1,6 +1,5 @@
 namespace RedBolt.Core;
 
-using RedBolt.Audio;
 using RedBolt.Graphics;
 using RedBolt.RenderPipeline;
 using RedBolt.Scene;

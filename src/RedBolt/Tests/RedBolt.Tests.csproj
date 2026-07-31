@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Actions/RedBolt.Actions.csproj" />
+    <ProjectReference Include="../Audio/RedBolt.Audio.csproj" />
     <Compile Include="$(RedBoltRoot)/src/RedBolt/RedBolt/GlobalAliases.cs"
              Link="GlobalAliases.cs"
              Visible="false" />

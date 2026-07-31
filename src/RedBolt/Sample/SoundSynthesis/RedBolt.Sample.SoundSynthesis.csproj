@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../../Audio/RedBolt.Audio.csproj" />
     <ProjectReference Include="../../Bindings/Diligent/RedBolt.Bindings.Diligent.csproj" />
     <ProjectReference Include="../../Bindings/DearImGui/RedBolt.Bindings.DearImGui.csproj" />
     <ProjectReference Include="../../RedBolt/RedBolt.csproj" />

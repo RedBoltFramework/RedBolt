@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using System.Collections.Immutable;
 using SystemMath = global::System.Math;
 
-using RedBolt.Audio;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.IO;
@@ -39,8 +38,6 @@ public class Engine : RedObject
     private bool _exitRequired;
     private bool _exiting;
     private bool _headless;
-    private bool _audioPaused;
-
     private readonly Dictionary<string, object?> _customParameters = new(StringComparer.Ordinal);
     private bool _screenshotCapturedForExit;
     private int _screenshotIndex;
@@ -230,15 +227,6 @@ public class Engine : RedObject
                 throw;
             }
 
-            var audio = GetSubsystem<Audio>()!;
-            if (Parameters.Sound)
-            {
-                audio.SetMode(
-                    Parameters.SoundBuffer,
-                    Parameters.SoundMixRate,
-                    (SpeakerMode)Parameters.SoundMode,
-                    Parameters.SoundInterpolation);
-            }
         }
 
         renderer.SetTextureQuality(Parameters.TextureQuality);
@@ -255,6 +243,7 @@ public class Engine : RedObject
         _timeStep = 0.0f;
         _lastTimeSteps.Clear();
         _frameTimer.Reset();
+        SendEvent<EngineEvents.EngineInitializedEvent>();
         Log.GetLogger().LogInformation("Initialized engine");
         return true;
     }
@@ -287,22 +276,7 @@ public class Engine : RedObject
 
         time.BeginFrame(timeStep);
 
-        var audio = GetSubsystem<Audio>()!;
         var isPaused = PauseMinimized && input.IsMinimized;
-        if (isPaused)
-        {
-            if (audio.IsPlaying())
-            {
-                audio.Stop();
-                _audioPaused = true;
-            }
-        }
-        else if (_audioPaused)
-        {
-            audio.Play();
-            _audioPaused = false;
-        }
-
         if (!IsHeadless)
         {
             input.BeginFrame();
@@ -472,7 +446,6 @@ public class Engine : RedObject
         _timeStep = 0.0f;
         _lastTimeSteps.Clear();
         _timeOut = 0;
-        _audioPaused = false;
         _exitRequired = false;
         _screenshotCapturedForExit = false;
         _screenshotIndex = 0;

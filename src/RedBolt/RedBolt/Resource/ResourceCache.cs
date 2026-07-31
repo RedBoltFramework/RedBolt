@@ -2,7 +2,6 @@ namespace RedBolt.Resource;
 
 using SystemMath = global::System.Math;
 
-using RedBolt.Audio;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Graphics;
@@ -71,15 +70,20 @@ public sealed class ResourceCache : RedObject
             name,
             GetRenderPathLookupNames(name),
             static () => new RenderPath()));
-        RegisterLoader<Sound>(name => LoadFileBackedResource(
-            name,
-            static () => new Sound()));
     }
 
     public void RegisterLoader<T>(Func<string, T?> loader)
         where T : Resource
     {
         _loaders[typeof(T)] = loader ?? throw new ArgumentNullException(nameof(loader));
+    }
+
+    /// <summary>Register a loader for a resource stored in the virtual file system.</summary>
+    public void RegisterFileBackedLoader<T>(Func<T> factory)
+        where T : Resource
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        RegisterLoader<T>(name => LoadFileBackedResource(name, factory));
     }
 
     public bool AddManualResource(Resource resource)

@@ -1,6 +1,7 @@
 namespace RedBolt.Tests;
 
 using RedBolt;
+using RedBolt.Audio;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
@@ -18,6 +19,7 @@ public class HeadlessEngineFixture : IDisposable
     public HeadlessEngineFixture()
     {
         Engine = new Engine();
+        Audio.RegisterAudioSubsystem(Engine.Context);
         var parameters = new EngineParameters
         {
             ApplicationName = "RedBolt.Tests",

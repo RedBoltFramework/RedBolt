@@ -28,6 +28,7 @@
     <NativeFileReference Include="$(RedBoltWebEngineArchive)" />
     <ProjectReference Include="../../RedBolt/RedBolt.csproj" />
     <ProjectReference Include="../../Actions/RedBolt.Actions.csproj" />
+    <ProjectReference Include="../../Audio/RedBolt.Audio.csproj" />
     <ProjectReference Include="../../IK/RedBolt.IK.csproj" />
     <ProjectReference Include="../../JoltPhysics/RedBolt.JoltPhysics.csproj" />
     <ProjectReference Include="../../Navigation/RedBolt.Navigation.csproj" />

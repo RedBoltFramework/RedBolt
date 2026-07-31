@@ -1,6 +1,5 @@
 namespace RedBolt.Engine;
 
-using RedBolt.Audio;
 using RedBolt.Graphics;
 using RedBolt.Logging;
 using RedBolt.RenderAPI;

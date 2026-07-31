@@ -9,8 +9,11 @@ using System.Text;
 using RedBolt.Bindings.Sdl;
 using RedBolt.Container;
 using RedBolt.Core;
+using RedBolt.Engine;
+using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Math;
+using RedBolt.Resource;
 
 /// <summary>Audio subsystem.</summary>
 public class Audio : RedObject
@@ -42,6 +45,7 @@ public class Audio : RedObject
     private bool _interpolation;
     private SpeakerMode _speakerMode = SpeakerMode.Auto;
     private bool _playing;
+    private bool _pausedByMinimize;
     private readonly Dictionary<StringHash, float> _masterGain = [];
     private readonly HashSet<StringHash> _pausedSoundTypes = [];
     private readonly List<SoundSource> _soundSources = [];
@@ -54,7 +58,9 @@ public class Audio : RedObject
         Context.RequireSdl(SdlInitAudio);
         _masterGain[SoundMasterHash] = 1.0f;
         RegisterAudioLibrary(Context);
+        SubscribeToEvent<CoreEvents.BeginFrameEvent>(HandleBeginFrame);
         SubscribeToEvent<CoreEvents.RenderUpdateEvent>(HandleRenderUpdate);
+        SubscribeToEvent<EngineEvents.EngineInitializedEvent>(HandleEngineInitialized);
         _callbackHandle = GCHandle.Alloc(this);
     }
 
@@ -71,7 +77,24 @@ public class Audio : RedObject
     /// <summary>Register Audio library objects.</summary>
     public static void RegisterAudioLibrary(Context context)
     {
+        ArgumentNullException.ThrowIfNull(context);
         context.RegisterAssembly(typeof(Audio).Assembly);
+        context.GetSubsystem<ResourceCache>()?.RegisterFileBackedLoader<Sound>(static () => new Sound());
+    }
+
+    /// <summary>Register the Audio subsystem and its reflected types in a context.</summary>
+    public static Audio RegisterAudioSubsystem(Context context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        RegisterAudioLibrary(context);
+
+        var audio = context.GetSubsystem<Audio>();
+        if (audio is not null)
+            return audio;
+
+        audio = new Audio();
+        context.RegisterSubsystem(audio);
+        return audio;
     }
 
     /// <summary>Initialize sound output.</summary>
@@ -424,6 +447,39 @@ public class Audio : RedObject
                 microphone._deviceId = 0;
             }
         }
+    }
+
+    private void HandleBeginFrame(ref CoreEvents.BeginFrameEvent _)
+    {
+        var engine = GetSubsystem<Engine>();
+        var input = GetSubsystem<Input>();
+        var paused = engine?.PauseMinimized == true && input?.IsMinimized == true;
+        if (paused)
+        {
+            if (IsPlaying())
+            {
+                Stop();
+                _pausedByMinimize = true;
+            }
+        }
+        else if (_pausedByMinimize)
+        {
+            Play();
+            _pausedByMinimize = false;
+        }
+    }
+
+    private void HandleEngineInitialized(ref EngineEvents.EngineInitializedEvent _)
+    {
+        var engine = GetSubsystem<Engine>();
+        if (engine is null || engine.IsHeadless || !engine.Parameters.Sound)
+            return;
+
+        SetMode(
+            engine.Parameters.SoundBuffer,
+            engine.Parameters.SoundMixRate,
+            (SpeakerMode)engine.Parameters.SoundMode,
+            engine.Parameters.SoundInterpolation);
     }
 
     private void HandleRenderUpdate(ref CoreEvents.RenderUpdateEvent eventData)

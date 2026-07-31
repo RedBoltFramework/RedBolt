@@ -5,7 +5,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-using RedBolt.Audio;
 using RedBolt.Bindings.Sdl;
 using RedBolt.Container;
 using RedBolt.Engine;
@@ -168,7 +167,6 @@ public class Context : ObjectReflectionRegistry
         RegisterSubsystem(new Input());
         RegisterSubsystem(new Graphics());
         RegisterSubsystem(new Renderer());
-        RegisterSubsystem(new Audio());
         RegisterSubsystem(new StateManager());
     }
 

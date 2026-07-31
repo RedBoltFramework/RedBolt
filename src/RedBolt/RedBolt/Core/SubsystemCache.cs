@@ -2,7 +2,6 @@ namespace RedBolt.Core;
 
 using SubsystemContainer = System.Collections.Generic.Dictionary<RedBolt.Container.StringHash, object>;
 
-using RedBolt.Audio;
 using RedBolt.Container;
 using RedBolt.Engine;
 using RedBolt.Graphics;
@@ -27,7 +26,6 @@ public sealed class SubsystemCache
         typeof(ResourceCache),
         typeof(Localization),
         typeof(Input),
-        typeof(Audio),
         typeof(Graphics),
         typeof(Renderer),
         typeof(RenderDevice),
