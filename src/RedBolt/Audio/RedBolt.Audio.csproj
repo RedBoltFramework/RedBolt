@@ -10,6 +10,9 @@
     <ProjectReference Include="../Bindings/Sdl/RedBolt.Bindings.Sdl.csproj" />
     <ProjectReference Include="../Bindings/Stb/RedBolt.Bindings.Stb.csproj" />
     <ProjectReference Include="../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      PrivateAssets="all"
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"

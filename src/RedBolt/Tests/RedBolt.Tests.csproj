@@ -54,7 +54,11 @@
 
   <ItemGroup>
     <None Remove="xunit.runner.json" />
+    <None Remove="VisualRegression/References/**/*" />
     <Content Include="xunit.runner.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="VisualRegression/References/**/*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
