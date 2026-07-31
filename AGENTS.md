@@ -307,7 +307,11 @@ with resource prefix paths `.;..`.
 - Commit only code that builds and works. In case this is a larger rework - it must be completed before committing.
 - Add or update focused unit tests when you change behavior.
   - *IMPORTANT*: Test the behavior, not shape!
-- After ANY change: build, run tests, and run the most relevant rendering sample with screenshot capture and review as a success gate. Use MultipleViewports when no more relevant sample exists.
+- After ANY implementation change: build the affected project and run the
+  relevant focused tests.
+- At task completion, run the most relevant rendering sample with screenshot
+  capture and review as a success gate. Use MultipleViewports when no more
+  relevant sample exists.
 - After finishing a slice: commit a coherent checkpoint.
 - If the current API cannot express a piece of C++ yet:
     - Add the C++ version as a C# COMMENT with a `// TODO: port` note,
