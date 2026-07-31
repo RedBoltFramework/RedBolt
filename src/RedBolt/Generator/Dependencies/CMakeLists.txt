@@ -250,7 +250,7 @@ set(REDBOLT_BINDING_INCLUDE_DIRS
     ${REDBOLT_DILIGENT_INCLUDE_DIRS}
     CACHE INTERNAL "Include directories used by RedBolt SharpCpp dependency generation")
 set(_redbolt_binding_defines ${REDBOLT_DILIGENT_BINDING_DEFINES})
-if(CMAKE_BUILD_TYPE MATCHES "^(Release|Distribution|ReleaseASAN|ReleaseUBSAN|ReleaseTSAN|ReleaseCoverage)$")
+if(CMAKE_CONFIGURATION_TYPES OR CMAKE_BUILD_TYPE MATCHES "^(Release|Distribution|ReleaseASAN|ReleaseUBSAN|ReleaseTSAN|ReleaseCoverage)$")
     list(APPEND _redbolt_binding_defines NDEBUG)
 endif()
 set(REDBOLT_BINDING_DEFINES
