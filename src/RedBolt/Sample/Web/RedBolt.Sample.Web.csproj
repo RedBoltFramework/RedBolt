@@ -4,7 +4,7 @@
     <StartupObject>RedBolt.Sample.Web.WebProgram</StartupObject>
     <CompressionEnabled>false</CompressionEnabled>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
-    <EmccExtraLDFlags>-sGLOBAL_BASE=1024 -sFULL_ES3 -sOFFSCREEN_FRAMEBUFFER -sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE=$dynCall -lidbfs.js -sEXPORTED_RUNTIME_METHODS+=FS -sEXPORTED_RUNTIME_METHODS+=addRunDependency -sEXPORTED_RUNTIME_METHODS+=removeRunDependency</EmccExtraLDFlags>
+    <EmccExtraLDFlags>-sFULL_ES3 -sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE=$dynCall -lidbfs.js -sEXPORTED_RUNTIME_METHODS+=FS -sEXPORTED_RUNTIME_METHODS+=addRunDependency -sEXPORTED_RUNTIME_METHODS+=removeRunDependency</EmccExtraLDFlags>
     <EmccLinkOptimizationFlag>-O0</EmccLinkOptimizationFlag>
     <PublishTrimmed>true</PublishTrimmed>
     <RunAOTCompilation Condition="'$(Configuration)' == 'Release'">true</RunAOTCompilation>
@@ -24,7 +24,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <WasmOptConfigurationFlags Include="--enable-threads" />
     <TrimmerRootAssembly Include="$(AssemblyName)" />
     <NativeFileReference Include="$(RedBoltWebEngineArchive)" />
     <ProjectReference Include="../../RedBolt/RedBolt.csproj" />

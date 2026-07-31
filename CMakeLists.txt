@@ -26,7 +26,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 if(EMSCRIPTEN)
-    add_compile_options(-pthread -mbulk-memory)
+    add_compile_options(-mbulk-memory)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${_redbolt_emscripten_environment}")
 endif()
 
