@@ -1,6 +1,7 @@
 <Project>
   <PropertyGroup>
     <RedBoltSolutionBuildRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)build'))</RedBoltSolutionBuildRoot>
+    <RedBoltWebSampleProject>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)src/RedBolt/Sample/Web/RedBolt.Sample.Web.csproj'))</RedBoltWebSampleProject>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
   </PropertyGroup>
 
@@ -14,6 +15,14 @@
         SharpCppIntermediateRoot=$(RedBoltSolutionBuildRoot)/obj/managed/tools
       </_GenerateRestoreGraphProjectEntryInputProperties>
     </PropertyGroup>
+  </Target>
+
+  <Target Name="RedBoltRestoreBrowserProjects"
+          AfterTargets="Restore">
+    <MSBuild Projects="$(RedBoltWebSampleProject)"
+             Targets="Restore"
+             BuildInParallel="false"
+             Properties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm" />
   </Target>
 
 </Project>

@@ -114,10 +114,12 @@
   </Target>
 
   <Target Name="RedBoltConfigureRestoreGraph"
-          BeforeTargets="_GenerateRestoreProjectPathItems;_GenerateProjectRestoreGraphPerFramework">
+          BeforeTargets="_FilterRestoreGraphProjectInputItems;_GenerateRestoreProjectPathItemsPerFramework;_GenerateProjectRestoreGraphPerFramework">
     <PropertyGroup>
       <_GenerateRestoreGraphProjectEntryInputProperties>
         $(_GenerateRestoreGraphProjectEntryInputProperties);
+        RedBoltPlatform=$(RedBoltPlatform);
+        RedBoltNativePreset=$(RedBoltNativePreset);
         SharpCppBuildRoot=$(RedBoltBuildRoot);
         SharpCppOutputDir=$(SharpCppOutputDir);
         SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)
