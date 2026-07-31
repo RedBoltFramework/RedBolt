@@ -1,7 +1,5 @@
 namespace RedBolt.Tests;
 
-using System.Globalization;
-using System.Text;
 using SystemMath = global::System.Math;
 
 using RedBolt.IO;
@@ -55,9 +53,10 @@ internal sealed class VisualRegressionImage
     {
         ArgumentException.ThrowIfNullOrEmpty(fileName);
 
-        return string.Equals(Path.GetExtension(fileName), ".ppm", StringComparison.OrdinalIgnoreCase)
-            ? LoadPpm(fileName)
-            : LoadImage(fileName);
+        if (!string.Equals(Path.GetExtension(fileName), ".png", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("Visual regression references must be PNG images.", nameof(fileName));
+
+        return LoadPng(fileName);
     }
 
     public static VisualRegressionImage Solid(int width, int height, byte red, byte green, byte blue,
@@ -79,44 +78,6 @@ internal sealed class VisualRegressionImage
     {
         ArgumentNullException.ThrowIfNull(pixels);
         return new VisualRegressionImage(width, height, (byte[])pixels.Clone());
-    }
-
-    public VisualRegressionImage Resize(int width, int height)
-    {
-        if (width <= 0)
-            throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0)
-            throw new ArgumentOutOfRangeException(nameof(height));
-
-        var pixels = new byte[checked(width * height * 4)];
-        for (var y = 0; y < height; ++y)
-        {
-            var sourceTop = y * Height / height;
-            var sourceBottom = SystemMath.Max(sourceTop + 1, (y + 1) * Height / height);
-            for (var x = 0; x < width; ++x)
-            {
-                var sourceLeft = x * Width / width;
-                var sourceRight = SystemMath.Max(sourceLeft + 1, (x + 1) * Width / width);
-                var sums = new int[4];
-                var samples = 0;
-                for (var sourceY = sourceTop; sourceY < sourceBottom; ++sourceY)
-                {
-                    for (var sourceX = sourceLeft; sourceX < sourceRight; ++sourceX)
-                    {
-                        var sourceIndex = (sourceY * Width + sourceX) * 4;
-                        for (var channel = 0; channel < 4; ++channel)
-                            sums[channel] += Pixels[sourceIndex + channel];
-                        ++samples;
-                    }
-                }
-
-                var targetIndex = (y * width + x) * 4;
-                for (var channel = 0; channel < 4; ++channel)
-                    pixels[targetIndex + channel] = checked((byte)((sums[channel] + samples / 2) / samples));
-            }
-        }
-
-        return new VisualRegressionImage(width, height, pixels);
     }
 
     public VisualRegressionComparison Compare(VisualRegressionImage expected,
@@ -216,121 +177,13 @@ internal sealed class VisualRegressionImage
             throw new IOException($"Could not save visual regression image '{fileName}'.");
     }
 
-    public void SavePpm(string fileName)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(fileName);
-        var directoryName = Path.GetDirectoryName(fileName);
-        if (!string.IsNullOrEmpty(directoryName))
-            Directory.CreateDirectory(directoryName);
-
-        using var writer = new StreamWriter(fileName, false, Encoding.ASCII);
-        writer.WriteLine("P3");
-        writer.WriteLine($"{Width} {Height}");
-        writer.WriteLine("255");
-        for (var y = 0; y < Height; ++y)
-        {
-            for (var x = 0; x < Width; ++x)
-            {
-                var index = (y * Width + x) * 4;
-                writer.Write(Pixels[index].ToString(CultureInfo.InvariantCulture));
-                writer.Write(' ');
-                writer.Write(Pixels[index + 1].ToString(CultureInfo.InvariantCulture));
-                writer.Write(' ');
-                writer.Write(Pixels[index + 2].ToString(CultureInfo.InvariantCulture));
-                writer.Write(' ');
-            }
-
-            writer.WriteLine();
-        }
-    }
-
-    private static VisualRegressionImage LoadImage(string fileName)
+    private static VisualRegressionImage LoadPng(string fileName)
     {
         using var source = new VectorBuffer(HostFile.ReadAllBytes(fileName));
         using var image = new Image();
         if (!image.BeginLoad(source))
             throw new InvalidDataException($"Could not load visual regression image '{fileName}'.");
         return FromImage(image);
-    }
-
-    private static VisualRegressionImage LoadPpm(string fileName)
-    {
-        var data = HostFile.ReadAllBytes(fileName);
-        var reader = new PpmReader(data);
-        if (!string.Equals(reader.ReadToken(), "P3", StringComparison.Ordinal))
-            throw new InvalidDataException($"Reference '{fileName}' is not an ASCII PPM image.");
-
-        var width = reader.ReadInt();
-        var height = reader.ReadInt();
-        var maxValue = reader.ReadInt();
-        if (width <= 0 || height <= 0 || maxValue <= 0)
-            throw new InvalidDataException($"Reference '{fileName}' has invalid dimensions or color range.");
-
-        var pixels = new byte[checked(width * height * 4)];
-        for (var i = 0; i < pixels.Length; i += 4)
-        {
-            pixels[i] = ScalePpmValue(reader.ReadInt(), maxValue);
-            pixels[i + 1] = ScalePpmValue(reader.ReadInt(), maxValue);
-            pixels[i + 2] = ScalePpmValue(reader.ReadInt(), maxValue);
-            pixels[i + 3] = byte.MaxValue;
-        }
-
-        return new VisualRegressionImage(width, height, pixels);
-    }
-
-    private static byte ScalePpmValue(int value, int maxValue)
-    {
-        if (value < 0 || value > maxValue)
-            throw new InvalidDataException("PPM color component is outside its declared range.");
-        return checked((byte)((value * byte.MaxValue + maxValue / 2) / maxValue));
-    }
-
-    private sealed class PpmReader
-    {
-        private readonly byte[] _data;
-        private int _position;
-
-        public PpmReader(byte[] data)
-        {
-            _data = data;
-        }
-
-        public string ReadToken()
-        {
-            SkipWhitespaceAndComments();
-            var start = _position;
-            while (_position < _data.Length && _data[_position] > (byte)' ')
-                ++_position;
-            if (start == _position)
-                throw new InvalidDataException("Unexpected end of PPM image.");
-            return Encoding.ASCII.GetString(_data, start, _position - start);
-        }
-
-        public int ReadInt()
-        {
-            var token = ReadToken();
-            if (!int.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value))
-                throw new InvalidDataException($"Invalid PPM integer '{token}'.");
-            return value;
-        }
-
-        private void SkipWhitespaceAndComments()
-        {
-            while (_position < _data.Length)
-            {
-                if (_data[_position] <= (byte)' ')
-                {
-                    ++_position;
-                    continue;
-                }
-
-                if (_data[_position] != (byte)'#')
-                    return;
-
-                while (_position < _data.Length && _data[_position] != (byte)'\n')
-                    ++_position;
-            }
-        }
     }
 }
 

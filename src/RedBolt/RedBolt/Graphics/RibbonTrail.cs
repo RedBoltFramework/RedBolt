@@ -104,6 +104,9 @@ public partial class RibbonTrail : Drawable
         : base(DrawableFlags.Geometry)
     {
 
+        _vertexBuffer.SetShadowed(true);
+        _indexBuffer.SetShadowed(true);
+
         _geometry.SetVertexBuffer(0, _vertexBuffer);
         _geometry.SetIndexBuffer(_indexBuffer);
 
@@ -475,6 +478,8 @@ public partial class RibbonTrail : Drawable
         {
             _indexBuffer.SetSize(0, false);
             _vertexBuffer.SetSize(0, mask, true);
+            _geometry.SetVertexBuffer(0, _vertexBuffer);
+            _geometry.SetIndexBuffer(_indexBuffer);
             _geometry.SetDrawRange(PrimitiveType.TriangleList, 0, 0, false);
             batch.Geometry = _geometry;
             _batches[0] = batch;
@@ -483,6 +488,8 @@ public partial class RibbonTrail : Drawable
 
         _indexBuffer.SetSize((_numPoints - 1) * indexPerSegment, false);
         _vertexBuffer.SetSize(_numPoints * vertexPerSegment, mask, true);
+        _geometry.SetVertexBuffer(0, _vertexBuffer);
+        _geometry.SetIndexBuffer(_indexBuffer);
         _geometry.SetDrawRange(PrimitiveType.TriangleList, 0, (_numPoints - 1) * indexPerSegment, false);
         batch.Geometry = _geometry;
         _batches[0] = batch;

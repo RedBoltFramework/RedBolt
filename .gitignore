@@ -15,6 +15,7 @@ CMakeUserPresets.json
 compile_commands.json
 RedBolt.log
 imgui.ini
+src/RedBolt/Tests/VisualRegression/References/**/*_shot.png
 
 # .NET outputs.
 bin/

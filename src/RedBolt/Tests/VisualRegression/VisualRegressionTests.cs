@@ -40,108 +40,54 @@ public sealed class VisualRegressionTests
         Assert.True(comparison.DifferingPixelRatio > 0.4);
     }
 
-    [VisualFact]
-    public void Static_scenes_capture_low_resolution_reference()
+    [Fact]
+    public void Visual_reference_shot_path_uses_reference_directory_and_base_name()
     {
-        using var fixture = new GraphicsEngineFixture();
-        var parameters = new EngineParameters
-        {
-            ApplicationName = "RedBolt.Tests.VisualRegression",
-            RenderBackend = RenderBackend.OpenGL,
-            FullScreen = false,
-            Borderless = false,
-            MultiSample = 1,
-            VSync = false,
-            WindowHidden = true,
-            WindowMaximize = false,
-            WindowWidth = 96,
-            WindowHeight = 64
-        };
+        var referenceFile = Path.Combine("references", "mushroom-ambient.png");
 
-        RbfxTestData.AddResourceDirs(fixture.Resources);
-        try
-        {
-            fixture.InitializeGraphics(parameters);
-            using var redScene = CreateStaticScene("Red", Color.Red, 96.0f / 64.0f, out var redCamera);
-            using var greenScene = CreateStaticScene("Green", Color.Green, 96.0f / 64.0f, out var greenCamera);
-            using var blueScene = CreateStaticScene("Blue", Color.Blue, 96.0f / 64.0f, out var blueCamera);
+        var shotFile = VisualRegressionReferences.GetShotPath(referenceFile);
 
-            fixture.Renderer.SetNumViewports(3);
-            using var redViewport = new Viewport(redScene, redCamera, new IntRect(0, 0, 32, 64));
-            using var greenViewport = new Viewport(greenScene, greenCamera, new IntRect(32, 0, 64, 64));
-            using var blueViewport = new Viewport(blueScene, blueCamera, new IntRect(64, 0, 96, 64));
-            fixture.Renderer.SetViewport(0, redViewport);
-            fixture.Renderer.SetViewport(1, greenViewport);
-            fixture.Renderer.SetViewport(2, blueViewport);
-
-            Assert.True(fixture.Graphics.BeginFrame());
-            try
-            {
-                fixture.Renderer.Update(0.0f);
-                fixture.Renderer.Render();
-                fixture.Graphics.ResetRenderTargets();
-            }
-            finally
-            {
-                fixture.Graphics.EndFrame();
-            }
-
-            using var screenshot = new Image();
-            Assert.True(fixture.Graphics.TakeScreenShot(screenshot));
-            var actual = VisualRegressionImage.FromImage(screenshot).Resize(48, 32);
-            var referenceFile = VisualRegressionReferences.GetPath("static-scenes.ppm");
-            if (VisualRegressionReferences.UpdateReferences)
-            {
-                actual.SavePpm(referenceFile);
-                return;
-            }
-
-            var expected = VisualRegressionImage.Load(referenceFile);
-            var comparison = actual.Compare(expected);
-            if (!comparison.IsMatch)
-            {
-                var artifactDirectory = VisualRegressionReferences.GetArtifactDirectory();
-                actual.SavePng(Path.Combine(artifactDirectory, "static-scenes.actual.png"));
-                if (actual.Width == expected.Width && actual.Height == expected.Height)
-                    actual.CreateDifference(expected).SavePng(
-                        Path.Combine(artifactDirectory, "static-scenes.diff.png"));
-            }
-
-            Assert.True(comparison.IsMatch,
-                $"Static scene screenshot did not match '{referenceFile}': {comparison}. "
-                + $"Artifacts: {VisualRegressionReferences.GetArtifactDirectory()}");
-        }
-        finally
-        {
-            fixture.Renderer.SetNumViewports(0);
-            RbfxTestData.RemoveResourceDirs(fixture.Resources);
-        }
+        Assert.Equal(Path.Combine("references", "mushroom-ambient_shot.png"), shotFile);
     }
 
-    private static Scene CreateStaticScene(string name, Color clearColor, float aspectRatio, out Camera camera)
+    [VisualFact]
+    public void Mushroom_model_renders_with_zone_ambient_lighting()
+    {
+        using var fixture = new VisualRegressionFixture();
+        using var scene = CreateAmbientModelScene(fixture.Resources, 128.0f / 96.0f, out var camera);
+
+        fixture.AssertMatches(scene, camera, "mushroom-ambient.png");
+    }
+
+    private static Scene CreateAmbientModelScene(ResourceCache resources, float aspectRatio, out Camera camera)
     {
         var scene = new Scene();
         scene.CreateComponent<Octree>();
 
-        var zone = scene.CreateChild($"{name}Zone").CreateComponent<Zone>();
+        var zone = scene.CreateChild("AmbientZone").CreateComponent<Zone>();
         zone.SetBoundingBox(new BoundingBox(-1000.0f, 1000.0f));
-        zone.SetFogColor(clearColor);
-        zone.SetFogStart(0.0f);
-        zone.SetFogEnd(1000.0f);
+        zone.SetAmbientColor(new Color(0.7f, 0.7f, 0.7f));
+        zone.SetAmbientBrightness(1.0f);
+        zone.SetFogColor(Color.Black);
+        zone.SetFogStart(1000.0f);
+        zone.SetFogEnd(2000.0f);
 
-        var cameraNode = scene.CreateChild($"{name}Camera");
-        cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -5.0f));
+        var modelNode = scene.CreateChild("Mushroom");
+        modelNode.SetPosition(new Vector3f(0.0f, 0.0f, 0.0f));
+        modelNode.SetScale(1.5f);
+        var model = modelNode.CreateComponent<StaticModel>();
+        model.SetModel(resources.Get<Model>("Models/Mushroom.mdl"));
+        model.SetMaterial(resources.Get<Material>("Materials/Mushroom.xml"));
+
+        var cameraNode = scene.CreateChild("Camera");
+        cameraNode.SetPosition(new Vector3f(0.0f, 1.5f, -3.5f));
+        cameraNode.LookAt(new Vector3f(0.0f, 1.0f, 0.0f), Vector3f.Up);
         camera = cameraNode.CreateComponent<Camera>();
         camera.SetAspectRatio(aspectRatio);
+        camera.SetFov(45.0f);
         camera.SetNearClip(0.1f);
         camera.SetFarClip(100.0f);
         return scene;
-    }
-
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
-    private sealed class VisualFactAttribute : Xunit.FactAttribute
-    {
-        public VisualFactAttribute() => Skip = VisualRegressionReferences.SkipReason;
     }
 
 }
@@ -183,6 +129,15 @@ internal static class VisualRegressionReferences
         throw new FileNotFoundException(
             $"Visual regression reference '{fileName}' was not found. "
             + "Set REDBOLT_VISUAL_REFERENCE_ROOT or rebuild the test project.", path);
+    }
+
+    public static string GetShotPath(string referenceFile)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(referenceFile);
+
+        var directory = Path.GetDirectoryName(referenceFile);
+        var fileName = $"{Path.GetFileNameWithoutExtension(referenceFile)}_shot.png";
+        return string.IsNullOrEmpty(directory) ? fileName : Path.Combine(directory, fileName);
     }
 
     public static string GetArtifactDirectory()
