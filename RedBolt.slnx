@@ -106,7 +106,4 @@
     <Project Path="src/RedBolt/Sample/VirtualFileSystem/RedBolt.Sample.VirtualFileSystem.csproj" />
     <Project Path="src/RedBolt/Sample/Web/RedBolt.Sample.Web.csproj" />
   </Folder>
-  <Folder Name="/src/RedBolt/Tests/">
-    <Project Path="src/RedBolt/Tests/RedBolt.Tests.csproj" />
-  </Folder>
 </Solution>

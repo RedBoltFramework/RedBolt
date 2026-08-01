@@ -236,7 +236,7 @@ unrelated tests. Do not run unrelated solution-wide test suites as an iteration
 gate.
 
 Run focused RedBolt tests:
-  dotnet test src/RedBolt/Tests/RedBolt.Tests.csproj --configuration Debug --filter <FILTER>
+  dotnet test ../RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --filter <FILTER>
 
 After any SharpCpp change, run the generated-binding SharpCpp E2E tests. No
 other SharpCpp test suite is required during development:

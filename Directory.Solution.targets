@@ -1,9 +1,15 @@
 <Project>
   <PropertyGroup>
     <RedBoltSolutionBuildRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)build'))</RedBoltSolutionBuildRoot>
+    <RedBoltTestsRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../RedBolt.Tests'))</RedBoltTestsRoot>
+    <RedBoltTestsProject>$(RedBoltTestsRoot)/RedBolt.Tests.csproj</RedBoltTestsProject>
     <RedBoltWebSampleProject>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)src/RedBolt/Sample/Web/RedBolt.Sample.Web.csproj'))</RedBoltWebSampleProject>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
   </PropertyGroup>
+
+  <ItemGroup Condition="Exists('$(RedBoltTestsProject)')">
+    <ProjectReference Include="$(RedBoltTestsProject)" />
+  </ItemGroup>
 
   <Target Name="RedBoltConfigureSolutionRestore"
           BeforeTargets="_FilterRestoreGraphProjectInputItems">

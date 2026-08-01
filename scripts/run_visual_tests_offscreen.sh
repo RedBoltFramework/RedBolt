@@ -4,7 +4,8 @@ set -euo pipefail
 
 script_directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repository_root="$(cd -- "$script_directory/.." && pwd)"
-reference_root="${REDBOLT_VISUAL_REFERENCE_ROOT:-$repository_root/src/RedBolt/Tests/VisualRegression/References}"
+tests_root="${REDBOLT_TESTS_ROOT:-$repository_root/../RedBolt.Tests}"
+reference_root="${REDBOLT_VISUAL_REFERENCE_ROOT:-$tests_root/VisualRegression/References}"
 xvfb_root="${REDBOLT_XVFB_ROOT:-${XDG_DATA_HOME:-$HOME/.local/share}/redbolt/xvfb}"
 cmake_root="${REDBOLT_CMAKE_ROOT:-${XDG_DATA_HOME:-$HOME/.local/share}/uv/tools/cmake/bin}"
 
@@ -40,6 +41,8 @@ export MESA_LOADER_DRIVER_OVERRIDE="${MESA_LOADER_DRIVER_OVERRIDE:-llvmpipe}"
 export SDL_VIDEODRIVER="${SDL_VIDEODRIVER:-x11}"
 export SDL_AUDIODRIVER="${SDL_AUDIODRIVER:-dummy}"
 export REDBOLT_RUN_VISUAL_TESTS="${REDBOLT_RUN_VISUAL_TESTS:-1}"
+export REDBOLT_RUN_GRAPHICS_BACKEND_LIFECYCLE="${REDBOLT_RUN_GRAPHICS_BACKEND_LIFECYCLE:-1}"
+export REDBOLT_RUN_DILIGENT_GL_SMOKE="${REDBOLT_RUN_DILIGENT_GL_SMOKE:-1}"
 export REDBOLT_VISUAL_REFERENCE_ROOT="$reference_root"
 
 if [[ -z "${LD_PRELOAD:-}" && -f "$repository_root/build/xvfb-redirect.so" ]]; then
@@ -47,5 +50,5 @@ if [[ -z "${LD_PRELOAD:-}" && -f "$repository_root/build/xvfb-redirect.so" ]]; t
 fi
 
 exec "$xvfb_run" -a -s "-screen 0 256x192x24 -nolisten tcp" \
-    dotnet test "$repository_root/src/RedBolt/Tests/RedBolt.Tests.csproj" \
+    dotnet test "$tests_root/RedBolt.Tests.csproj" \
     --configuration Debug --no-restore "$@"

@@ -27,8 +27,9 @@ creating hundreds of nearly identical tests.
   publishes failed shots and diffs.
 - [x] Repeat-capture determinism check: render the same scene twice and prove
   the two native PNGs are identical or within an explicitly documented bound.
-- [ ] Per-test comparison policy for alpha, color space, and expected edge
-  tolerance instead of one global tolerance for every feature.
+- [x] Per-capture comparison policy: all readbacks are normalized to RGBA,
+  alpha is compared, output color space is selected explicitly by the
+  pipeline test, and edge-sensitive cases can set their own tolerance.
 
 ## Capture contract
 
@@ -90,11 +91,41 @@ used to combine unrelated cases.
 | Diagnostics | `OutlineGroup`, `DebugRenderer`, `DebugGeometry`, `OcclusionBuffer` | Outlines, debug primitives, depth-tested overlays, occlusion behavior |
 | Pipeline | `RenderPipeline`, `RenderPath`, `DefaultRenderPipeline`, built-in render passes | Forward/deferred paths, G-buffer, tone mapping, exposure, bloom, AO, outlines |
 | Resource plumbing | `Texture2D`, `Texture2DArray`, `Texture3D`, `TextureCube`, `RenderSurface` | Texture sampling, array/volume/cubemap data, render-to-texture |
+| Render API boundary | `RenderDevice`, `RenderContext`, `DrawCommandQueue`, `RawBuffer`, `RawTexture`, `PipelineState` | Native target binding, clear, queue execution, shader parameters, buffer/texture upload, and readback |
 
 `GraphicsUtils`, shader compiler/translator/optimizer classes, buffer packing,
 `ModelView` serialization, octree query math, and animation data containers
 should remain primarily unit/diagnostic coverage unless a missing screenshot
 reveals a consumer-side regression.
+
+The Render API boundary follows the same rule: a screenshot is required for
+an operation that can change raster output, while descriptor equality,
+reflection, resource lifetime, pool reuse, and error handling remain unit
+tests. The direct boundary captures are intentionally small and use one
+native `Texture2D` target so a failure can be attributed to the API call or
+the first pipeline consumer rather than to a large scene.
+
+## RenderAPI and RenderPipeline pixel boundary
+
+The following matrix is the executable plan for the two requested layers.
+Every checked row has a `[VisualFact]` method and a tracked PNG reference;
+the companion unit tests cover behavior that cannot produce pixels.
+
+| Layer | Pixel contract | Visual test and reference(s) | Companion non-visual coverage |
+| --- | --- | --- | --- |
+| RenderAPI `RenderContext` | Bind a native color target, set its viewport, clear it, and read it back at native resolution | `VisualRegressionRenderApiTests.Render_context_clear_writes_the_bound_native_texture` — `References/render-api/context-clear.png` | `RenderContextTests` target binding, viewport, MRT, and state tracking |
+| RenderAPI `DrawCommandQueue` | Submit reflected custom uniforms, scissor state, geometry buffers, and indexed draws through `RenderContext.Execute` | `VisualRegressionRenderApiTests.Draw_command_queue_renders_parameterized_scissor_regions` — `References/render-api/draw-command-queue.png` | `DrawCommandQueueTests` command snapshots, constant-buffer reuse, and resource ranges |
+| RenderAPI `RawTexture` + pipeline copy | Upload RGBA pixels to a raw-backed `Texture2D`, sample them through the fullscreen copy pipeline, and read the destination | `VisualRegressionRenderApiTests.Raw_texture_upload_and_render_pipeline_copy_preserve_pixels` — `References/render-api/raw-texture-copy.png` | `RawTextureTests`, `RawBufferTests`, and `RawShaderTests` |
+| RenderPipeline render buffers | Copy/clear intermediate buffers and preserve output dimensions, slices, faces, and resolve state | `VisualRegressionRenderSurfaceTests` and `VisualRegressionRenderApiTests` — `References/surfaces/*` and `References/render-api/*` | `RenderBufferManagerTargetTests`, `RenderBufferManagerTests`, and `RenderPoolTests` |
+| RenderPipeline path and post-processing | Select forward/deferred paths and execute fullscreen pass, color-space, HDR, exposure, AO, bloom, and outline changes | `VisualRegressionPipelineTests` — `References/pipeline/*` | `RenderPipelineTests`, `RenderPathTests`, and built-in pass tests |
+| RenderPipeline shadow configuration | Render the active 16-bit, 24-bit, PCF, and variance-shadow branches | `VisualRegressionZoneLightingTests.Shadow_quality_formats_and_filters_render_stable_variants` — `References/lighting/shadow-quality-*.png` | `ShadowMapAllocatorTests`, `PipelineStateBuilderTests`, and `RenderPipelineSettingsTests` |
+| RenderPipeline environment techniques | Submit the tracked `M_Skymesh` and `M_Skyplane` techniques with fixed resources | `VisualRegressionEnvironmentTests.Skymesh_and_skyplane_techniques_render_fixed_resources` — `References/environment/skymesh.png` and `skyplane.png` | shader/technique resource loading tests |
+
+The `ShadowQuality` enum also names `BlurVsm`, but no active RenderPipeline
+setting selects a separate blur pass in this tree; it is therefore not
+pretended to be screenshot coverage. Likewise, `RenderPipelineDebugger`
+produces structured pass/batch data rather than user-visible raster output;
+its snapshot state machine is covered by `RenderPipelineDebuggerTests`.
 
 ## Test backlog
 
@@ -114,9 +145,10 @@ reveals a consumer-side regression.
   small sample count; check edges, alpha, and resolved render-surface output.
 - [x] `Visual_opengl_llvmpipe_smoke`: make the rootless software-renderer
   command a repeatable documented/CI entry point.
-- [ ] `Visual_backend_smoke_matrix`: add a second backend only when a
-  rootless software implementation is available and references are intended
-  to be portable across it.
+- [ ] `Visual_backend_smoke_matrix`: the visual fixture can now select a
+  requested backend, but the available Vulkan/lavapipe runtime currently
+  crashes in native initialization in this environment; keep this row
+  pending until a stable second-backend runtime is part of CI.
 
 ### 2. Camera, view, and viewport behavior
 
@@ -251,8 +283,9 @@ reveals a consumer-side regression.
   selected objects.
 - [x] `Visual_realtime_mixed_baked_lights`: Realtime, Mixed, and Baked light
   modes with explicit expected contribution.
-- [ ] `Visual_shadow_quality_gallery`: simple 16/24-bit, PCF, VSM, and blurred
-  VSM where supported by the backend.
+- [x] `Visual_shadow_quality_gallery`: active simple 16/24-bit, PCF, and VSM
+  branches; the unimplemented `BlurVsm` enum value is tracked as a unit-only
+  limitation below.
 - [x] `Visual_directional_cascaded_shadows`: cascade splits, fade, focus, and
   stable shadow transitions.
 - [x] `Visual_point_and_spot_shadows`: point/spot shadow projection and atlas
@@ -269,7 +302,8 @@ reveals a consumer-side regression.
 - [x] `Visual_skybox_cubemap`: `Skybox` with all six faces, rotation, and
   material/texture orientation.
 - [x] `Visual_skybox_hdr_scale`: HDR scale and background brightness.
-- [ ] `Visual_skymesh_and_skyplane`: skymesh and skyplane techniques.
+- [x] `Visual_skymesh_and_skyplane`: tracked `M_Skymesh` and `M_Skyplane`
+  resources rendered through their real material techniques.
 - [x] `Visual_zone_cubemap_ambient`: zone texture contributing environment
   lighting and background.
 - [x] `Visual_reflection_probe_baked`: baked probe selection and priority.
@@ -420,8 +454,9 @@ reveals a consumer-side regression.
   group and final compositing.
 - [x] `Visual_render_path_parameters`: runtime parameter update and resource
   reload produce the expected frame.
-- [ ] `Visual_render_pipeline_debug_snapshot`: debug visualization of passes,
-  batches, and render buffers where it is intended as a user-visible output.
+- [ ] `Visual_render_pipeline_debug_snapshot`: the current debugger is a
+  structured diagnostic snapshot, not a user-visible raster output; its
+  state machine and pass ordering remain covered by unit tests.
 
 ### 12. Renderer settings and portability matrix
 
@@ -429,27 +464,33 @@ reveals a consumer-side regression.
 - [x] `Visual_texture_filter_matrix`: all supported filter modes and
   anisotropy values.
 - [x] `Visual_skinning_mode_matrix`: Auto/Hardware/Software on the same pose.
-- [ ] `Visual_shadow_quality_matrix`: all supported shadow formats/filters.
+- [x] `Visual_shadow_quality_matrix`: all active renderer-selected shadow
+  formats/filters; `BlurVsm` has no active selecting setting.
 - [x] `Visual_material_quality_matrix`: material quality and fallback paths.
 - [x] `Visual_msaa_matrix`: no MSAA and supported MSAA levels.
 - [x] `Visual_opengl_software_matrix`: llvmpipe with the stable reference set.
 - [ ] `Visual_second_backend_matrix`: a second backend only after its color,
   depth, and clip-space conventions are explicitly normalized.
-- [ ] `Visual_reference_alpha_policy`: decide whether alpha is meaningful for
-  every capture and add an explicit opaque/transparent policy.
+- [x] `Visual_reference_alpha_policy`: readbacks are always normalized to
+  RGBA, 1-3 component inputs become opaque, and all four channels participate
+  in comparison; transparent captures retain and compare their alpha.
 
 The remaining unchecked items are intentionally deferred rather than silently
 treated as covered. CI artifact publishing belongs to the repository's
 external CI configuration; the current rootless runner is the executable
-entry point. Shadow-quality variants have an enum but no active renderer
-setting that selects those algorithms, and skymesh/skyplane are not Graphics
-components in this tree. Fallback/RTL text needs a tracked font with the
-required glyphs. A second backend needs a separate native software runtime and
-normalized clip/color behavior. The animation-LOD and render-pipeline debug
-items remain follow-up cases because they need deterministic frame/diagnostic
-hooks beyond the current screenshot fixture.
+entry point. `BlurVsm` is an enum value without an active selecting render
+pass. Fallback/RTL text needs a tracked font with the required glyphs. A
+second backend needs a stable native software runtime and normalized
+clip/color behavior; the current Vulkan/lavapipe probe aborts the native test
+host during initialization. Animation-LOD/invisible-update coverage needs a
+fixed non-zero frame-time hook, while the debugger produces structured data
+and is already covered by RenderPipeline unit tests rather than PNGs.
 
 ## Suggested implementation order
+
+The RenderAPI/RenderPipeline pixel-boundary matrix above is implemented and
+reference-reviewed. The broader graphics backlog below remains the order for
+future feature additions outside that boundary.
 
 1. Build the reusable fixture and finish the camera/viewport tests.
 2. Add the box baseline, primitive gallery, static-model LOD, and material
