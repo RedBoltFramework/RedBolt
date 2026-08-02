@@ -90,33 +90,35 @@ public sealed class ConfigFile : RedObject
         public void SerializeInBlock(Archive archive)
         {
             var count = archive.IsInput ? 0 : Flavor.Components?.Count ?? 0;
-            using var arrayBlock = archive.OpenArrayBlock("Flavor", count);
-            if (archive.IsInput)
             {
-                Flavor.Components ??= new ApplicationFlavorMap();
-                Flavor.Components.Clear();
-                for (var i = 0; i < arrayBlock.SizeHint; ++i)
+                using var arrayBlock = archive.OpenArrayBlock("Flavor", count);
+                if (archive.IsInput)
                 {
-                    using var itemBlock = archive.OpenUnorderedBlock("item");
-                    var key = string.Empty;
-                    var tags = new List<string>();
-                    ArchiveSerialization.SerializeValue(archive, "key", ref key);
-                    ArchiveSerialization.SerializeStringVector(archive, "tags", tags);
-                    if (!string.IsNullOrEmpty(key))
+                    Flavor.Components ??= new ApplicationFlavorMap();
+                    Flavor.Components.Clear();
+                    for (var i = 0; i < arrayBlock.SizeHint; ++i)
                     {
-                        Flavor.Components[key] = new ApplicationFlavorComponent(tags);
+                        using var itemBlock = archive.OpenUnorderedBlock("item");
+                        var key = string.Empty;
+                        var tags = new List<string>();
+                        ArchiveSerialization.SerializeValue(archive, "key", ref key);
+                        ArchiveSerialization.SerializeStringVector(archive, "tags", tags);
+                        if (!string.IsNullOrEmpty(key))
+                        {
+                            Flavor.Components[key] = new ApplicationFlavorComponent(tags);
+                        }
                     }
                 }
-            }
-            else
-            {
-                foreach (var (key, tags) in Flavor.Components ?? new ApplicationFlavorMap())
+                else
                 {
-                    using var itemBlock = archive.OpenUnorderedBlock("item");
-                    var k = key;
-                    var tagList = tags.ToList();
-                    ArchiveSerialization.SerializeValue(archive, "key", ref k);
-                    ArchiveSerialization.SerializeStringVector(archive, "tags", tagList);
+                    foreach (var (key, tags) in Flavor.Components ?? new ApplicationFlavorMap())
+                    {
+                        using var itemBlock = archive.OpenUnorderedBlock("item");
+                        var k = key;
+                        var tagList = tags.ToList();
+                        ArchiveSerialization.SerializeValue(archive, "key", ref k);
+                        ArchiveSerialization.SerializeStringVector(archive, "tags", tagList);
+                    }
                 }
             }
 

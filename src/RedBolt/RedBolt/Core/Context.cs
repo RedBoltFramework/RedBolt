@@ -100,6 +100,12 @@ public class Context : ObjectReflectionRegistry
 
         var pluginManager = GetSubsystem("PluginManager");
 
+        // StateManager deactivates the current ApplicationState during disposal.
+        // Keep the engine services it may use alive until that transition is done.
+        var stateManager = GetSubsystem("StateManager");
+        RemoveSubsystem("StateManager");
+        (stateManager as IDisposable)?.Dispose();
+
         var virtualReality = GetSubsystem("VirtualReality");
         RemoveSubsystem("VirtualReality");
         (virtualReality as IDisposable)?.Dispose();
@@ -125,9 +131,6 @@ public class Context : ObjectReflectionRegistry
         var graphics = GetSubsystem("Graphics");
         RemoveSubsystem("Graphics");
         (graphics as IDisposable)?.Dispose();
-        var stateManager = GetSubsystem("StateManager");
-        RemoveSubsystem("StateManager");
-        (stateManager as IDisposable)?.Dispose();
 
         var remainingSubsystems = new HashSet<object>(ReferenceEqualityComparer.Instance);
         foreach (var subsystem in _subsystems.GetContainer().Values)

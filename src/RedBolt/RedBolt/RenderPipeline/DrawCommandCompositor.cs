@@ -462,6 +462,15 @@ internal ref struct DrawCommandCompositor
             GraphicsUtils.AddShaderResource(drawQueue, nameHash, texture.Texture);
         }
 
+        // A material pass may still reference a texture sampler after the material texture
+        // has been removed. Bind the device fallback in that case so Vulkan does not leave
+        // an active shader resource variable unbound.
+        var renderDevice = _ctx.Camera.GetSubsystem<RenderDevice>()!;
+        AddDefaultMaterialTexture(drawQueue, ShaderResources.Albedo, renderDevice.GetDefaultAlbedoTexture());
+        AddDefaultMaterialTexture(drawQueue, ShaderResources.Normal, renderDevice.GetDefaultNormalTexture());
+        AddDefaultMaterialTexture(drawQueue, ShaderResources.Properties, renderDevice.GetDefaultPropertiesTexture());
+        AddDefaultMaterialTexture(drawQueue, ShaderResources.Emission, renderDevice.GetDefaultEmissionTexture());
+
         if (_current.LightmapTexture is not null)
             GraphicsUtils.AddShaderResource(drawQueue, ShaderResources.Emission, _current.LightmapTexture);
         if (_current.PixelLightRamp is not null)
@@ -481,6 +490,25 @@ internal ref struct DrawCommandCompositor
         drawQueue.CommitShaderResources();
         _dirty.LightmapTextures = false;
         _dirty.PixelLightTextures = false;
+    }
+
+    private void AddDefaultMaterialTexture(DrawCommandQueue drawQueue, StringHash name, RawTexture? defaultTexture)
+    {
+        if (_current.Material!.GetTexture(name) is null
+            && !HasGlobalResource(name)
+            && defaultTexture is not null)
+            drawQueue.AddShaderResource(name, defaultTexture);
+    }
+
+    private bool HasGlobalResource(StringHash name)
+    {
+        foreach (var resource in _ctx.GlobalResources)
+        {
+            if (resource.Name == name && resource.Texture is not null)
+                return true;
+        }
+
+        return false;
     }
 
     private void AddFrameConstants()

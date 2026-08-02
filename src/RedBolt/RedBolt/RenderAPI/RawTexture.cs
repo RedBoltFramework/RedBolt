@@ -346,6 +346,24 @@ public class RawTexture : DeviceObject
         {
             if (_handles.ShaderResourceView is null)
                 return;
+
+            // Vulkan's mip generator requires a defined source image layout.
+            // Textures created without initial data start in UNDEFINED state;
+            // make that first transition explicit before recording the blits.
+            if (_renderDevice!.GetBackend() == RenderBackend.Vulkan)
+            {
+                var shaderTexture = _handles.ResolvedTexture ?? _handles.Texture!;
+                if (shaderTexture.GetState() == ResourceState.ResourceStateUndefined)
+                {
+                    using var transition = new StateTransitionDesc(
+                        shaderTexture,
+                        ResourceState.ResourceStateUndefined,
+                        ResourceState.ResourceStateShaderResource,
+                        StateTransitionFlags.StateTransitionFlagUpdateState);
+                    _renderDevice.GetImmediateContext()!.TransitionResourceState(transition);
+                }
+            }
+
             _renderDevice!.GetImmediateContext()!.GenerateMips(_handles.ShaderResourceView);
         }
         _levelsDirty = false;
@@ -567,9 +585,9 @@ public class RawTexture : DeviceObject
             try
             {
                 var sizeInBlocks = new Vector3i(
-                    (_parameters.Size.X + _formatBlockWidth - 1) / _formatBlockWidth,
-                    (_parameters.Size.Y + _formatBlockHeight - 1) / _formatBlockHeight,
-                    _parameters.Size.Z);
+                    (levelSize.X + _formatBlockWidth - 1) / _formatBlockWidth,
+                    (levelSize.Y + _formatBlockHeight - 1) / _formatBlockHeight,
+                    levelSize.Z);
                 rowSize = checked(sizeInBlocks.X * _formatElementSize);
                 var source = (byte*)mapped.PData;
                 var sourceRowStride = (nuint)mapped.Stride;

@@ -134,7 +134,9 @@ public static class ShaderTranslator
                 Language = GlslangSourceT.GlslangSourceGlsl,
                 Stage = stage,
                 Client = envClient,
-                ClientVersion = GlslangTargetClientVersionT.GlslangTargetOpengl450,
+                ClientVersion = targetLanguage == TargetShaderLanguage.Vulkan10
+                    ? GlslangTargetClientVersionT.GlslangTargetVulkan10
+                    : GlslangTargetClientVersionT.GlslangTargetOpengl450,
                 TargetLanguage = GlslangTargetLanguageT.GlslangTargetSpv,
                 TargetLanguageVersion = GlslangTargetLanguageVersionT.GlslangTargetSpv10,
                 Code = source,
@@ -148,7 +150,8 @@ public static class ShaderTranslator
 
             shader = GlslangNativeBindings.GlslangShaderCreate(input);
             GlslangNativeBindings.GlslangShaderSetOptions(shader,
-                (int)GlslangShaderOptionsT.GlslangShaderAutoMapLocations);
+                (int)(GlslangShaderOptionsT.GlslangShaderAutoMapBindings
+                    | GlslangShaderOptionsT.GlslangShaderAutoMapLocations));
             if (GlslangNativeBindings.GlslangShaderPreprocess(shader, input) == 0)
             {
                 outputShader.CompilerOutput = Marshal.PtrToStringUTF8(

@@ -11,14 +11,13 @@ using RedBolt.Math;
 using RedBolt.Platform;
 using RedBolt.RenderAPI;
 
-public interface IVulkanGraphicsApi
-{
-    ISwapChainVk SwapChain { get; }
-}
-
 /// <summary>Vulkan graphics backend.</summary>
 public sealed class VulkanGraphicsBackend : IGraphicsBackend
 {
+    private static readonly object SharedDeviceSync = new();
+    private static IRenderDevice? SharedRenderDevice;
+    private static IDeviceContext? SharedImmediateContext;
+
     public RenderBackend Backend => RenderBackend.Vulkan;
 
     public bool UsesOpenGLWindow => false;
@@ -42,57 +41,106 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
         if (factory.IsNull)
             throw new InvalidOperationException("Generated GetEngineFactoryVk binding returned a null factory.");
 
-        factory.CreateDeviceAndContextsVk(createInfo, out var device, out var immediateContext);
-        if (device.IsNull || immediateContext.IsNull)
-            throw new InvalidOperationException("Generated CreateDeviceAndContextsVk binding returned a null device or context.");
+        IRenderDevice device;
+        IDeviceContext immediateContext;
+        lock (SharedDeviceSync)
+        {
+            if (SharedRenderDevice is null || SharedRenderDevice.IsNull
+                || SharedImmediateContext is null || SharedImmediateContext.IsNull)
+            {
+                factory.CreateDeviceAndContextsVk(createInfo, out device, out immediateContext);
+                if (device.IsNull || immediateContext.IsNull)
+                {
+                    if (!device.IsNull)
+                        _ = device.Release();
+                    if (!immediateContext.IsNull)
+                        _ = immediateContext.Release();
+                    throw new InvalidOperationException(
+                        "Generated CreateDeviceAndContextsVk binding returned a null device or context.");
+                }
 
-        using var swapChainDesc = new SwapChainDesc
-        {
-            ColorBufferFormat = windowSettings.SRgb
-                ? TextureFormat.TexFormatRgba8UnormSrgb
-                : TextureFormat.TexFormatRgba8Unorm,
-            DepthBufferFormat = TextureFormat.TexFormatUnknown
-        };
-        var nativeWindowInfo = platform.GetNativeWindowInfo(window);
-        using var nativeWindow = new LinuxNativeWindow
-        {
-            PDisplay = nativeWindowInfo.Display,
-            WindowId = nativeWindowInfo.WindowId
-        };
-        factory.CreateSwapChainVk(device, immediateContext, swapChainDesc, nativeWindow,
-            out var nativeSwapChain);
-        if (nativeSwapChain.IsNull)
-            throw new InvalidOperationException("Generated CreateSwapChainVk binding returned a null swap chain.");
+                // Keep the first returned reference as the process-wide shared
+                // context. Each Graphics/RenderDevice pair receives one extra
+                // reference below and releases it during normal disposal.
+                SharedRenderDevice = device;
+                SharedImmediateContext = immediateContext;
+            }
+            else
+            {
+                device = SharedRenderDevice;
+                immediateContext = SharedImmediateContext;
+            }
 
-        var swapChainVulkan = ISwapChainVk.QueryManagedWrapper(nativeSwapChain)
-            ?? throw new InvalidOperationException("Vulkan swap chain interface is unavailable.");
-        var depthFormat = RenderDevice.SelectDefaultDepthFormat(device, true);
-        var multiSample = (int)MathDefs.NextPowerOfTwo(
-            (uint)System.Math.Clamp(parameters.MultiSample, 1, 16));
-        using (var formatInfo = device.GetTextureFormatInfoExt(swapChainDesc.ColorBufferFormat))
-        {
-            while (multiSample > 1 && ((int)formatInfo.SampleCounts & multiSample) == 0)
-                multiSample >>= 1;
+            _ = device.AddRef();
+            _ = immediateContext.AddRef();
         }
-        multiSample = System.Math.Max(1, multiSample);
 
-        var swapChain = DiligentNativeBindings.CreateProxySwapChainMS(
-            device, immediateContext, nativeSwapChain, (uint)depthFormat, (uint)multiSample);
-        _ = nativeSwapChain.Release();
-        if (swapChain.IsNull)
-            throw new InvalidOperationException("Generated CreateProxySwapChainMS binding returned a null swap chain.");
-
-        return new GraphicsBackendResources
+        ISwapChain? nativeSwapChain = null;
+        ISwapChainVk? swapChainVulkan = null;
+        ISwapChain? swapChain = null;
+        try
         {
-            Factory = factory,
-            Device = device,
-            ImmediateContext = immediateContext,
-            SwapChain = swapChain,
-            Lifetime = new VulkanLifetime(swapChainVulkan),
-            Width = width,
-            Height = height,
-            MultiSample = multiSample
-        };
+            using var swapChainDesc = new SwapChainDesc
+            {
+                ColorBufferFormat = windowSettings.SRgb
+                    ? TextureFormat.TexFormatRgba8UnormSrgb
+                    : TextureFormat.TexFormatRgba8Unorm,
+                DepthBufferFormat = TextureFormat.TexFormatUnknown
+            };
+            var nativeWindowInfo = platform.GetNativeWindowInfo(window);
+            using var nativeWindow = new LinuxNativeWindow
+            {
+                PDisplay = nativeWindowInfo.Display,
+                WindowId = nativeWindowInfo.WindowId
+            };
+            factory.CreateSwapChainVk(device, immediateContext, swapChainDesc, nativeWindow,
+                out nativeSwapChain);
+            if (nativeSwapChain.IsNull)
+                throw new InvalidOperationException("Generated CreateSwapChainVk binding returned a null swap chain.");
+
+            swapChainVulkan = ISwapChainVk.QueryManagedWrapper(nativeSwapChain)
+                ?? throw new InvalidOperationException("Vulkan swap chain interface is unavailable.");
+            var depthFormat = RenderDevice.SelectDefaultDepthFormat(device, true);
+            var multiSample = (int)MathDefs.NextPowerOfTwo(
+                (uint)System.Math.Clamp(parameters.MultiSample, 1, 16));
+            using (var formatInfo = device.GetTextureFormatInfoExt(swapChainDesc.ColorBufferFormat))
+            {
+                while (multiSample > 1 && ((int)formatInfo.SampleCounts & multiSample) == 0)
+                    multiSample >>= 1;
+            }
+            multiSample = System.Math.Max(1, multiSample);
+
+            swapChain = DiligentNativeBindings.CreateProxySwapChainMS(
+                device, immediateContext, nativeSwapChain, (uint)depthFormat, (uint)multiSample);
+            _ = nativeSwapChain.Release();
+            nativeSwapChain = null;
+            if (swapChain.IsNull)
+                throw new InvalidOperationException("Generated CreateProxySwapChainMS binding returned a null swap chain.");
+
+            return new GraphicsBackendResources
+            {
+                Factory = factory,
+                Device = device,
+                ImmediateContext = immediateContext,
+                SwapChain = swapChain,
+                Lifetime = new VulkanLifetime(swapChainVulkan, window),
+                Width = width,
+                Height = height,
+                MultiSample = multiSample
+            };
+        }
+        catch
+        {
+            if (nativeSwapChain is { IsNull: false })
+                _ = nativeSwapChain.Release();
+            if (swapChain is { IsNull: false })
+                _ = swapChain.Release();
+            if (swapChainVulkan is { IsNull: false })
+                swapChainVulkan.Dispose();
+            _ = immediateContext.Release();
+            _ = device.Release();
+            throw;
+        }
     }
 
     private static void EnableOptionalFeatures(EngineVkCreateInfo createInfo)
@@ -200,7 +248,7 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
         }
     }
 
-    private sealed class VulkanLifetime(ISwapChainVk swapChainVulkan)
+    private sealed class VulkanLifetime(ISwapChainVk swapChainVulkan, SdlWindow window)
         : IGraphicsBackendLifetime, IVulkanGraphicsApi
     {
         public nint NativeContext => IntPtr.Zero;
@@ -213,21 +261,14 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
 
         public void Resize(IRenderDevice renderDevice, ISwapChain swapChain)
         {
-            using var renderDeviceVulkan = IRenderDeviceVk.QueryManagedWrapper(renderDevice)
-                ?? throw new InvalidOperationException("Vulkan render device interface is unavailable.");
-            uint width = 0;
-            uint height = 0;
-            if (DiligentNativeBindings.GetVulkanSurfaceExtent(
-                    renderDeviceVulkan, swapChainVulkan, ref width, ref height))
-                swapChain.Resize(width, height);
-            else
-                Log.GetLogger().LogError("Cannot resize Vulkan swap chain");
+            SdlNativeBindings.SdlGetWindowSize(window, out var width, out var height);
+            swapChain.Resize((uint)System.Math.Max(width, 0), (uint)System.Math.Max(height, 0));
         }
 
         public void ReleaseBeforeCommonResources()
         {
             if (!swapChainVulkan.IsNull)
-                _ = swapChainVulkan.Release();
+                swapChainVulkan.Dispose();
         }
 
         public void ReleaseAfterCommonResources(SdlWindow? window)

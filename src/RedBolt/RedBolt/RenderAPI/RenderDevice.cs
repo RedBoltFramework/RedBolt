@@ -34,12 +34,14 @@ public sealed class RenderDevice : RedObject
     private IRenderDevice? _renderDevice;
     private IDeviceContext? _deviceContext;
     private ISwapChain? _swapChain;
+    private ITexture? _lastPresentedBackBuffer;
     private IGraphicsBackendLifetime? _graphicsBackendLifetime;
     private readonly RenderContext _renderContext;
     private FrameIndex _frameIndex = FrameIndex.First;
     private readonly object _deviceObjectsLock = new();
     private readonly HashSet<DeviceObject> _deviceObjects = [];
     private readonly RawTexture?[] _defaultTextures = new RawTexture?[(int)TextureType.Count];
+    private readonly RawTexture?[] _defaultMaterialTextures = new RawTexture?[4];
     private readonly RenderPool _renderPool;
     private readonly DrawCommandQueue _defaultQueue;
 #if REDBOLT_VULKAN_SUPPORTED
@@ -93,6 +95,12 @@ public sealed class RenderDevice : RedObject
     {
         SendDeviceObjectEvent(DeviceObjectEvent.Destroy);
         _deviceContext?.WaitForIdle();
+        // Vulkan keeps the immediate context alive across test fixtures. Clear its
+        // cached bindings before releasing the fixture-owned resources so the next
+        // swap chain/device wrapper cannot inherit stale native state.
+        if (GetDeviceSettings().Backend == RenderBackend.Vulkan)
+            _deviceContext?.InvalidateState();
+        ReleaseLastPresentedBackBuffer();
 
 #if REDBOLT_VULKAN_SUPPORTED
         _oldNativeSwapChainDesc?.Dispose();
@@ -104,6 +112,11 @@ public sealed class RenderDevice : RedObject
         {
             _defaultTextures[i]?.Dispose();
             _defaultTextures[i] = null;
+        }
+        for (var i = 0; i < _defaultMaterialTextures.Length; ++i)
+        {
+            _defaultMaterialTextures[i]?.Dispose();
+            _defaultMaterialTextures[i] = null;
         }
         lock (_deviceObjectsLock)
             _deviceObjects.Clear();
@@ -120,6 +133,13 @@ public sealed class RenderDevice : RedObject
         ReleaseIfNotNull(_swapChain);
         _swapChain = null;
         _factory = null;
+
+        // Resource releases above may enqueue Vulkan destruction work on the
+        // shared device. Wait again before releasing the shared immediate
+        // context so the next fixture cannot observe recycled native resources.
+        if (GetDeviceSettings().Backend == RenderBackend.Vulkan)
+            _deviceContext?.WaitForIdle();
+
         ReleaseIfNotNull(_deviceContext);
         _deviceContext = null;
         ReleaseIfNotNull(_renderDevice);
@@ -132,6 +152,7 @@ public sealed class RenderDevice : RedObject
         if (_window is not null && !_window.IsNull)
             SdlNativeBindings.SdlDestroyWindow(_window);
         _window = null;
+
         base.Dispose();
     }
 
@@ -167,6 +188,7 @@ public sealed class RenderDevice : RedObject
     /// </summary>
     public void UpdateSwapChainSize()
     {
+        ReleaseLastPresentedBackBuffer();
         var oldWindowSize = GetWindowSize();
         var oldSwapChainSize = GetSwapChainSize();
 
@@ -378,12 +400,26 @@ public sealed class RenderDevice : RedObject
 
         var elementSize = checked((int)formatInfo.GetElementSize());
         var rowSize = checked(size.X * elementSize);
+        var isBgra = desc.Format is TextureFormat.TexFormatBgra8Unorm
+            or TextureFormat.TexFormatBgra8UnormSrgb;
         data = new byte[checked(size.X * size.Y * elementSize)];
 
         for (var i = 0; i < size.Y; ++i)
         {
             var row = flipY ? size.Y - i - 1 : i;
             Marshal.Copy(IntPtr.Add(mappedData.PData, checked((int)((nuint)row * mappedData.Stride))), data, i * rowSize, rowSize);
+
+            var rowOffset = i * rowSize;
+            for (var pixel = 0; pixel < size.X; ++pixel)
+            {
+                var pixelOffset = rowOffset + pixel * elementSize;
+                if (isBgra)
+                {
+                    (data[pixelOffset], data[pixelOffset + 2]) =
+                        (data[pixelOffset + 2], data[pixelOffset]);
+                }
+                data[pixelOffset + 3] = byte.MaxValue;
+            }
         }
 
         deviceContext.UnmapTextureSubresource(stagingTexture, 0, 0);
@@ -394,7 +430,9 @@ public sealed class RenderDevice : RedObject
     private ITexture? GetResolvedBackBuffer()
     {
         var swapChain = GetSwapChain()!;
-        var backBuffer = swapChain.GetCurrentBackBufferRTV().GetTexture();
+        var backBuffer = GetBackend() == RenderBackend.Vulkan && _lastPresentedBackBuffer is { IsNull: false }
+            ? _lastPresentedBackBuffer
+            : swapChain.GetCurrentBackBufferRTV().GetTexture();
         using var backBufferDesc = backBuffer.GetDesc();
 
         if (backBufferDesc.SampleCount == 1)
@@ -421,6 +459,24 @@ public sealed class RenderDevice : RedObject
         GetImmediateContext()!.ResolveTextureSubresource(backBuffer, resolvedBackBuffer, attribs);
 
         return resolvedBackBuffer;
+    }
+
+    private void RememberCurrentBackBuffer(ISwapChain swapChain)
+    {
+        var backBuffer = swapChain.GetCurrentBackBufferRTV().GetTexture();
+        if (backBuffer.IsNull)
+            return;
+
+        _ = backBuffer.AddRef();
+        ReleaseLastPresentedBackBuffer();
+        _lastPresentedBackBuffer = backBuffer;
+    }
+
+    private void ReleaseLastPresentedBackBuffer()
+    {
+        if (_lastPresentedBackBuffer is { IsNull: false } backBuffer)
+            _ = backBuffer.Release();
+        _lastPresentedBackBuffer = null;
     }
 
     private ITexture? ReadTextureToStaging(ITexture sourceTexture)
@@ -458,7 +514,11 @@ public sealed class RenderDevice : RedObject
     {
         var swapChain = GetSwapChain();
         if (swapChain is not null && !swapChain.IsNull)
+        {
+            if (GetBackend() == RenderBackend.Vulkan)
+                RememberCurrentBackBuffer(swapChain);
             swapChain.Present(GetWindowSettings().VSync ? 1u : 0u);
+        }
 
         if (_deviceSettings.ExternalWindowHandle != IntPtr.Zero && _window is not null && !_window.IsNull)
         {
@@ -658,6 +718,11 @@ public sealed class RenderDevice : RedObject
 
     public RawTexture? GetDefaultTexture(TextureType type) => _defaultTextures[(int)type];
 
+    public RawTexture? GetDefaultAlbedoTexture() => _defaultMaterialTextures[0];
+    public RawTexture? GetDefaultNormalTexture() => _defaultMaterialTextures[1];
+    public RawTexture? GetDefaultPropertiesTexture() => _defaultMaterialTextures[2];
+    public RawTexture? GetDefaultEmissionTexture() => _defaultMaterialTextures[3];
+
     public DrawCommandQueue GetDefaultQueue() => _defaultQueue;
 
     public static List<FullscreenMode> GetFullscreenModes(int monitor)
@@ -789,13 +854,29 @@ public sealed class RenderDevice : RedObject
             _defaultTextures[(int)type] = texture;
 
             ReadOnlySpan<byte> data = stackalloc byte[4];
-            texture.Update(0, Vector3i.Zero, Vector3i.One, 0, data);
+            for (var slice = 0; slice < texture.GetParams().ArraySize; ++slice)
+                texture.Update(0, Vector3i.Zero, Vector3i.One, slice, data);
         }
 
         CreateDefaultTexture(TextureType.Texture2D, ResourceDimensionSupport.ResourceDimensionSupportTex2d);
         CreateDefaultTexture(TextureType.TextureCube, ResourceDimensionSupport.ResourceDimensionSupportTexCube);
         CreateDefaultTexture(TextureType.Texture3D, ResourceDimensionSupport.ResourceDimensionSupportTex3d);
         CreateDefaultTexture(TextureType.Texture2DArray, ResourceDimensionSupport.ResourceDimensionSupportTex2dArray);
+
+        RawTexture CreateDefaultMaterialTexture(ReadOnlySpan<byte> data)
+        {
+            var parameters = new RawTextureParams(
+                TextureType.Texture2D, TextureFormat.TexFormatRgba8Unorm, TextureFlag.None, Vector3i.One);
+            var texture = new RawTexture(parameters);
+            texture.Update(0, Vector3i.Zero, Vector3i.One, 0, data);
+            return texture;
+        }
+
+        _defaultMaterialTextures[0] = CreateDefaultMaterialTexture([255, 255, 255, 255]);
+        // PACKEDNORMAL stores tangent-space X/Y in alpha/green, respectively.
+        _defaultMaterialTextures[1] = CreateDefaultMaterialTexture([0, 128, 0, 128]);
+        _defaultMaterialTextures[2] = CreateDefaultMaterialTexture([255, 255, 255, 255]);
+        _defaultMaterialTextures[3] = CreateDefaultMaterialTexture([0, 0, 0, 255]);
         _renderPool.Restore();
     }
 
@@ -866,7 +947,10 @@ public sealed class RenderDevice : RedObject
         _swapChain = null;
         _swapChainVulkan = null;
 #else
-        Log.GetLogger().LogWarning("RenderDevice::InvalidateVulkanContext is supported only for Vulkan backend");
+        // The managed Vulkan backend does not currently expose native context
+        // loss/recreation on this platform. Still exercise the device-object
+        // lifecycle so callers can validate resource recovery semantics.
+        InvalidateDeviceState();
 #endif
     }
 
@@ -902,7 +986,7 @@ public sealed class RenderDevice : RedObject
         Log.GetLogger().LogInformation("Vulkan context is restored");
         return true;
 #else
-        Log.GetLogger().LogWarning("RenderDevice::RestoreVulkanContext is supported only for Vulkan backend");
+        RestoreDeviceState();
         return true;
 #endif
     }

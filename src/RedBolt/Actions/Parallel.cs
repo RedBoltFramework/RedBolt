@@ -94,10 +94,15 @@ public partial class Parallel : FiniteTimeAction
     /// <summary>Set number of actions.</summary>
     public void SetNumActions(int num)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(num);
         if (num < _actions.Count)
             _actions.RemoveRange(num, _actions.Count - num);
-        else
-            SetAction(num, null);
+        else if (num > _actions.Count)
+        {
+            var empty = GetOrDefault(null);
+            while (_actions.Count < num)
+                _actions.Add(empty);
+        }
     }
 
     /// <summary>Set number of actions.</summary>
@@ -106,13 +111,12 @@ public partial class Parallel : FiniteTimeAction
     /// <summary>Set action by index.</summary>
     public void SetAction(int index, FiniteTimeAction? action)
     {
-        if (index < _actions.Count)
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        if (index >= _actions.Count)
         {
-            if (_actions.Capacity < index + 1)
-                _actions.Capacity = index + 1;
             var empty = GetOrDefault(null);
-            while (index < _actions.Count)
-                _actions[index] = empty;
+            while (_actions.Count <= index)
+                _actions.Add(empty);
         }
         _actions[index] = GetOrDefault(action);
     }
