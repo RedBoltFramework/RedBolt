@@ -182,16 +182,6 @@ file(CONFIGURE OUTPUT "${REDBOLT_EMBREE_PARSE_HEADER}" CONTENT [=[
 #pragma once
 #include <embree4/rtcore_ray.h>
 #include <embree4/rtcore.h>
-
-inline RTCRay* RedBoltEmbreeGetFilterRay(const RTCFilterFunctionNArguments* arguments)
-{
-    return reinterpret_cast<RTCRay*>(arguments->ray);
-}
-
-inline RTCHit* RedBoltEmbreeGetFilterHit(const RTCFilterFunctionNArguments* arguments)
-{
-    return reinterpret_cast<RTCHit*>(arguments->hit);
-}
 ]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_SHADER_COMPILER_PARSE_HEADER}" CONTENT [=[
 #pragma once
