@@ -109,7 +109,7 @@ public partial class LightBaker : Component
             task = _task;
             taskData = _taskData;
             if (_state != InternalState.NotStarted)
-                taskData!.StopToken.Stop();
+                taskData?.StopToken.Stop();
         }
 
         task?.GetAwaiter().GetResult();
@@ -210,7 +210,10 @@ public partial class LightBaker : Component
     /// <summary>Update settings before baking.</summary>
     private bool UpdateSettings()
     {
-        var scene = Scene!;
+        var scene = Scene;
+        if (scene is null)
+            return false;
+
         var gi = scene.GetComponent<GlobalIllumination>();
 
         if (gi is null)
@@ -261,7 +264,14 @@ public partial class LightBaker : Component
         if (state is InternalState.ScheduledSync or InternalState.ScheduledAsync)
         {
             if (!UpdateSettings())
+            {
+                lock (_stateLock)
+                {
+                    if (_state is InternalState.ScheduledSync or InternalState.ScheduledAsync)
+                        _state = InternalState.NotStarted;
+                }
                 return;
+            }
 
             var taskData = new TaskData
             {
