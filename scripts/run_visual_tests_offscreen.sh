@@ -5,7 +5,7 @@ set -euo pipefail
 script_directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repository_root="$(cd -- "$script_directory/.." && pwd)"
 tests_root="${REDBOLT_TESTS_ROOT:-$repository_root/../RedBolt.Tests}"
-reference_root="${REDBOLT_VISUAL_REFERENCE_ROOT:-$tests_root/VisualRegression/References}"
+reference_root="${REDBOLT_VISUAL_REFERENCE_ROOT:-$tests_root/src/RedBolt/Tests/VisualRegression/References}"
 xvfb_root="${REDBOLT_XVFB_ROOT:-${XDG_DATA_HOME:-$HOME/.local/share}/redbolt/xvfb}"
 cmake_root="${REDBOLT_CMAKE_ROOT:-${XDG_DATA_HOME:-$HOME/.local/share}/uv/tools/cmake/bin}"
 

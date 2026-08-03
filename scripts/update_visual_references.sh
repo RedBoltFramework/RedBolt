@@ -5,7 +5,7 @@ set -euo pipefail
 script_directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repository_root="$(cd -- "$script_directory/.." && pwd)"
 tests_root="${REDBOLT_TESTS_ROOT:-$repository_root/../RedBolt.Tests}"
-reference_root="${1:-$tests_root/VisualRegression/References}"
+reference_root="${1:-$tests_root/src/RedBolt/Tests/VisualRegression/References}"
 
 if [[ ! -d "$reference_root" ]]; then
     printf 'Reference directory does not exist: %s\n' "$reference_root" >&2
