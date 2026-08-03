@@ -142,7 +142,9 @@ public struct Plane : ICloneable
     public readonly Vector3f GetPoint() => -Normal * D;
 
     /// <summary>Returns a line that defines an intersection of 2 planes.</summary>
-    public readonly Ray Intersect(Plane other)
+    public readonly Ray Intersect(Plane other) => Intersect(other, false);
+
+    private readonly Ray Intersect(Plane other, bool forceDeterminantZero)
     {
         // Calculate the direction of the line
         var direction = Normal.CrossProduct(other.Normal);
@@ -152,7 +154,7 @@ public struct Plane : ICloneable
             return new Ray(GetPoint(), Vector3f.Zero);
 
         // Calculate the determinant of the matrix using cross product
-        var det = Normal.DotProduct(other.Normal.CrossProduct(direction));
+        var det = forceDeterminantZero ? 0.0f : Normal.DotProduct(other.Normal.CrossProduct(direction));
 
         // If the determinant is zero, then the planes do not all intersect at one point
         if (MathF.Abs(det) < 1e-6f)

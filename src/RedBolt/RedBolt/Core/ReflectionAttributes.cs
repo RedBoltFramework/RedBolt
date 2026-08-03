@@ -124,11 +124,11 @@ public static class GeneratedReflectionRegistration
         lock (Sync)
         {
             if (!AssemblyTypes.TryGetValue(assembly, out var registeredTypes))
-            {
                 RuntimeHelpers.RunModuleConstructor(assembly.ManifestModule.ModuleHandle);
-                if (!AssemblyTypes.TryGetValue(assembly, out registeredTypes))
-                    throw new InvalidOperationException($"Assembly {assembly.FullName} has no generated RedBolt reflection registrar.");
-            }
+
+            if (!AssemblyTypes.TryGetValue(assembly, out registeredTypes))
+                throw new InvalidOperationException($"Assembly {assembly.FullName} has no generated RedBolt reflection registrar.");
+
             types = registeredTypes.ToArray();
         }
 
@@ -182,11 +182,10 @@ public static class GeneratedReflectionRegistration
         lock (Sync)
         {
             if (!TypeRegistrars.TryGetValue(type, out registrar!))
-            {
                 RuntimeHelpers.RunModuleConstructor(type.Module.ModuleHandle);
-                if (!TypeRegistrars.TryGetValue(type, out registrar!))
-                    throw new InvalidOperationException($"Type {type.FullName} has no generated RedBolt reflection registrar.");
-            }
+
+            if (!TypeRegistrars.TryGetValue(type, out registrar!))
+                throw new InvalidOperationException($"Type {type.FullName} has no generated RedBolt reflection registrar.");
 
             registration = ContextRegistrations.GetOrCreateValue(context);
             if (!refresh && registration.Registered.Contains(type))

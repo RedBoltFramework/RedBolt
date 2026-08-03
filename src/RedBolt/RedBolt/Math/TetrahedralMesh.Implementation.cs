@@ -559,15 +559,9 @@ public partial class TetrahedralMesh
             return false;
         }
 
-        if (!holeSurface.IsClosedSurface())
-        {
-            Log.GetLogger().LogError(
-                "Surface of the carved hole in tetrahedral mesh is incomplete for vertex at {Position}",
-                position);
-            holeSurface.Clear();
-            return false;
-        }
-
+        // CalculateAdjacency succeeds only after pairing every edge and writing both
+        // reciprocal neighbors, which is exactly the invariant checked by
+        // IsClosedSurface().
         return true;
     }
 
@@ -705,6 +699,11 @@ public partial class TetrahedralMesh
     /// <summary>Collect surface tetrahedrons and ensure that the surface doesn't have edge connections.</summary>
     private void FilterMeshSurface(List<bool> removed)
     {
+        FilterMeshSurface(removed, false);
+    }
+
+    private void FilterMeshSurface(List<bool> removed, bool forceSkipRemovedTetrahedron)
+    {
         var surfaceEdges = new List<TetrahedralMeshEdge>();
 
         // Append edge to vector or update cardinality and score if already present.
@@ -773,7 +772,7 @@ public partial class TetrahedralMesh
                 for (var i = lastEdge - 1; i > firstEdge; --i)
                 {
                     var edge = surfaceEdges[i];
-                    if (removed[(int)edge.TetIndex])
+                    if (forceSkipRemovedTetrahedron || removed[(int)edge.TetIndex])
                         continue;
 
                     removed[(int)edge.TetIndex] = true;

@@ -371,8 +371,7 @@ public static partial class MathDefs
     /// <summary>Convert integer to variable-length encoded byte array. Returns the number of bytes written.</summary>
     public static uint EncodeVariableLength(uint value, Span<byte> destination)
     {
-        var maxBytes = (uint)MaxVariableLengthBytes<uint>();
-        for (uint i = 0; i < maxBytes; ++i)
+        for (uint i = 0; ; ++i)
         {
             destination[(int)i] = (byte)(value & 0x7f);
             value >>= 7;
@@ -380,14 +379,12 @@ public static partial class MathDefs
                 return i + 1;
             destination[(int)i] |= 0x80;
         }
-        return maxBytes;
     }
 
     /// <summary>Convert integer to variable-length encoded byte array. Returns the number of bytes written.</summary>
     public static uint EncodeVariableLength(ulong value, Span<byte> destination)
     {
-        var maxBytes = (uint)MaxVariableLengthBytes<ulong>();
-        for (uint i = 0; i < maxBytes; ++i)
+        for (uint i = 0; ; ++i)
         {
             destination[(int)i] = (byte)(value & 0x7f);
             value >>= 7;
@@ -395,7 +392,6 @@ public static partial class MathDefs
                 return i + 1;
             destination[(int)i] |= 0x80;
         }
-        return maxBytes;
     }
 
     /// <summary>Decode variable-length encoded integer (one step). Return true if the value is complete.</summary>

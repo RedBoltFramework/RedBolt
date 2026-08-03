@@ -586,15 +586,12 @@ public class StateManager : RedObject
             var nextState = nextQueueItem.State;
             if (nextState is null)
             {
-                nextState = GetCachedState(nextQueueItem.StateType);
+                nextState = GetCachedState(nextQueueItem.StateType)
+                    ?? Context.CreateObject(nextQueueItem.StateType) as ApplicationState;
                 if (nextState is null)
                 {
-                    nextState = Context.CreateObject(nextQueueItem.StateType) as ApplicationState;
-                    if (nextState is null)
-                    {
-                        Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, "Can't create application state object", null, static (state, _) => state);
-                        continue;
-                    }
+                    Log.GetLogger().Log(Microsoft.Extensions.Logging.LogLevel.Error, default, "Can't create application state object", null, static (state, _) => state);
+                    continue;
                 }
             }
             _destinationState = nextState.GetTypeNameHash();

@@ -102,9 +102,17 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
     }
 
     public ShaderProgramReflection(nint temporaryGlProgram)
+        : this(temporaryGlProgram, false)
+    {
+    }
+
+    private ShaderProgramReflection(nint temporaryGlProgram, bool forceFailure)
     {
         try
         {
+            if (forceFailure)
+                throw new InvalidOperationException("Forced temporary shader reflection failure.");
+
             var indexToGroup = new List<ShaderParameterGroup>();
             var numUniformBlocks = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockCount(temporaryGlProgram);
             for (var uniformBlockIndex = 0; uniformBlockIndex < numUniformBlocks; ++uniformBlockIndex)

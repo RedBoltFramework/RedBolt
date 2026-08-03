@@ -239,12 +239,7 @@ public static class RenderAPIUtils
 
     public static RenderBackend SelectRenderBackend(RenderBackend? requestedBackend = null)
     {
-        var platform = ProcessUtils.GetPlatform();
-        var defaultBackend = platform switch
-        {
-            PlatformId.Windows or PlatformId.UniversalWindowsPlatform => RenderBackend.D3D11,
-            _ => RenderBackend.OpenGL
-        };
+        var defaultBackend = GetDefaultRenderBackend(ProcessUtils.GetPlatform());
 
         var backend = requestedBackend ?? defaultBackend;
         var supportedBackends = Context.Instance.RuntimeServices.GraphicsBackends;
@@ -256,6 +251,12 @@ public static class RenderAPIUtils
 
         return supportedBackends.First().Backend;
     }
+
+    private static RenderBackend GetDefaultRenderBackend(PlatformId platform) => platform switch
+    {
+        PlatformId.Windows or PlatformId.UniversalWindowsPlatform => RenderBackend.D3D11,
+        _ => RenderBackend.OpenGL
+    };
 
     public static ShaderTranslationPolicy SelectShaderTranslationPolicy(
         RenderBackend backend, ShaderTranslationPolicy? requestedPolicy = null)

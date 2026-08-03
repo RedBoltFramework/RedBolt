@@ -226,9 +226,14 @@ public class Context : ObjectReflectionRegistry
     {
         ++_sdlInitCounter;
 
-        if (_sdlInitCounter == 1 && SdlNativeBindings.SdlInit(0) != 0)
+        var initResult = _sdlInitCounter == 1 ? SdlNativeBindings.SdlInit(0) : 0;
+        return RequireSdlCore(sdlFlags, initResult);
+    }
+
+    private bool RequireSdlCore(uint sdlFlags, int initResult)
+    {
+        if (!HandleSdlInitResult(initResult))
         {
-            Log.GetLogger().LogError("Failed to initialise SDL: {SdlError}", DecodeSdlError());
             return false;
         }
 
@@ -269,6 +274,15 @@ public class Context : ObjectReflectionRegistry
 
         _subsystems.Remove(GetSubsystemTypeId(subsystem.GetType()));
         return true;
+    }
+
+    private static bool HandleSdlInitResult(int result)
+    {
+        if (result == 0)
+            return true;
+
+        Log.GetLogger().LogError("Failed to initialise SDL: {SdlError}", DecodeSdlError());
+        return false;
     }
 
     public T? GetSubsystem<T>()

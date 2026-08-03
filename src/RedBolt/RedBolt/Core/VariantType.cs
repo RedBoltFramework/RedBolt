@@ -1034,7 +1034,6 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
             Matrix3x4 typedValue => typedValue,
             Matrix4 typedValue => typedValue,
             VariantVector typedValue => typedValue,
-            StringVector typedValue => typedValue,
             VariantMap typedValue => typedValue,
             StringVariantMap typedValue => typedValue,
             VariantCurve typedValue => typedValue,
@@ -1494,9 +1493,6 @@ public struct Variant : IEquatable<Variant>, ICloneable, IDisposable
 
     private static void AddSequenceHash<T>(ref HashCode hash, IEnumerable<T> sequence)
     {
-        if (sequence is null)
-            return;
-
         foreach (var item in sequence)
             hash.Add(item);
     }
@@ -1556,25 +1552,29 @@ public sealed class VariantMap : Dictionary<StringHash, Variant>, IDictionary<St
     public new Variant this[StringHash key]
     {
         get => base[key];
-        set
+        set => SetValue(key, value, false);
+    }
+
+    private void SetValue(StringHash key, Variant value, bool forceFailure)
+    {
+        var copy = value.Clone();
+        if (TryGetValue(key, out var previousValue))
         {
-            var copy = value.Clone();
-            if (TryGetValue(key, out var previousValue))
+            base[key] = copy;
+            previousValue.Dispose();
+        }
+        else
+        {
+            try
             {
+                if (forceFailure)
+                    throw new InvalidOperationException("Forced VariantMap assignment failure.");
                 base[key] = copy;
-                previousValue.Dispose();
             }
-            else
+            catch
             {
-                try
-                {
-                    base[key] = copy;
-                }
-                catch
-                {
-                    copy.Dispose();
-                    throw;
-                }
+                copy.Dispose();
+                throw;
             }
         }
     }
@@ -1688,9 +1688,16 @@ public sealed class VariantVector : List<Variant>, IList<Variant>, IDisposable
 
     public new void Add(Variant value)
     {
+        AddValue(value, false);
+    }
+
+    private void AddValue(Variant value, bool forceFailure)
+    {
         var copy = value.Clone();
         try
         {
+            if (forceFailure)
+                throw new InvalidOperationException("Forced VariantVector addition failure.");
             base.Add(copy);
         }
         catch
@@ -1826,25 +1833,29 @@ public sealed class StringVariantMap : Dictionary<string, Variant>, IDictionary<
     public new Variant this[string key]
     {
         get => base[key];
-        set
+        set => SetValue(key, value, false);
+    }
+
+    private void SetValue(string key, Variant value, bool forceFailure)
+    {
+        var copy = value.Clone();
+        if (TryGetValue(key, out var previousValue))
         {
-            var copy = value.Clone();
-            if (TryGetValue(key, out var previousValue))
+            base[key] = copy;
+            previousValue.Dispose();
+        }
+        else
+        {
+            try
             {
+                if (forceFailure)
+                    throw new InvalidOperationException("Forced StringVariantMap assignment failure.");
                 base[key] = copy;
-                previousValue.Dispose();
             }
-            else
+            catch
             {
-                try
-                {
-                    base[key] = copy;
-                }
-                catch
-                {
-                    copy.Dispose();
-                    throw;
-                }
+                copy.Dispose();
+                throw;
             }
         }
     }

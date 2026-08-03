@@ -39,9 +39,7 @@ public sealed class HiresTimer
     public long GetUSec(bool reset = false)
     {
         var currentTime = Stopwatch.GetTimestamp();
-        var elapsedTime = currentTime - _startTime;
-        if (elapsedTime < 0)
-            elapsedTime = 0;
+        var elapsedTime = System.Math.Max(0, currentTime - _startTime);
 
         if (reset)
             _startTime = currentTime;

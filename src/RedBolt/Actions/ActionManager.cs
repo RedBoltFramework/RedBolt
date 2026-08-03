@@ -25,6 +25,7 @@ namespace RedBolt.Actions;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using Microsoft.Extensions.Logging;
 
@@ -103,71 +104,46 @@ public class ActionManager : RedObject
         base.Dispose();
     }
 
-    public void CompleteAllActions()
+    public void CompleteAllActions() => ProcessAllActions(CompleteAllActionsOnTarget, RemoveExpiredTarget);
+
+    private void ProcessAllActions(Action<RedObject> processTarget,
+        Action<WeakReference<RedObject>> processExpiredTarget)
     {
         if (_targets.Count == 0)
             return;
 
-        _tmpKeysArray.Clear();
-
-        foreach (var element in _targets)
-        {
-            if (element.Target is not null)
-                _tmpKeysArray.Add(element.Target);
-        }
+        CollectTargetReferences();
 
         foreach (var targetReference in _tmpKeysArray)
         {
             if (targetReference.TryGetTarget(out var target))
-                CompleteAllActionsOnTarget(target);
+                processTarget(target);
             else
-            {
-                foreach (var element in _targets)
-                {
-                    if (ReferenceEquals(element.Target, targetReference))
-                    {
-                        foreach (var actionState in element.ActionStates)
-                            (actionState as IDisposable)?.Dispose();
-                        element.ActionStates.Clear();
-                        _targets.Remove(element);
-                        break;
-                    }
-                }
-            }
+                processExpiredTarget(targetReference);
         }
     }
 
-    public void CancelAllActions()
+    public void CancelAllActions() => ProcessAllActions(CancelAllActionsFromTarget, RemoveExpiredTarget);
+
+    private void RemoveExpiredTarget(WeakReference<RedObject> targetReference)
     {
-        if (_targets.Count == 0)
+        var element = _targets.FirstOrDefault(element => ReferenceEquals(element.Target, targetReference));
+        if (element is null)
             return;
 
-        _tmpKeysArray.Clear();
+        foreach (var actionState in element.ActionStates)
+            (actionState as IDisposable)?.Dispose();
+        element.ActionStates.Clear();
+        _targets.Remove(element);
+    }
 
+    private void CollectTargetReferences()
+    {
+        _tmpKeysArray.Clear();
         foreach (var element in _targets)
         {
             if (element.Target is not null)
                 _tmpKeysArray.Add(element.Target);
-        }
-
-        foreach (var targetReference in _tmpKeysArray)
-        {
-            if (targetReference.TryGetTarget(out var target))
-                CancelAllActionsFromTarget(target);
-            else
-            {
-                foreach (var element in _targets)
-                {
-                    if (ReferenceEquals(element.Target, targetReference))
-                    {
-                        foreach (var actionState in element.ActionStates)
-                            (actionState as IDisposable)?.Dispose();
-                        element.ActionStates.Clear();
-                        _targets.Remove(element);
-                        break;
-                    }
-                }
-            }
         }
     }
 
@@ -176,17 +152,10 @@ public class ActionManager : RedObject
         if (target is null)
             return;
 
-        HashElement? element = null;
-        foreach (var candidate in _targets)
-        {
-            if (candidate.Target is not null
-                && candidate.Target.TryGetTarget(out var candidateTarget)
-                && ReferenceEquals(candidateTarget, target))
-            {
-                element = candidate;
-                break;
-            }
-        }
+        var element = _targets.FirstOrDefault(candidate =>
+            candidate.Target is not null
+            && candidate.Target.TryGetTarget(out var candidateTarget)
+            && ReferenceEquals(candidateTarget, target));
 
         if (element is not null)
         {

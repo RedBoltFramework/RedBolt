@@ -202,16 +202,22 @@ public struct ApplicationFlavor : ICloneable
 
     private static ApplicationFlavor CreatePlatformFlavor()
     {
-        string platformStr;
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            platformStr = "platform=desktop,windows";
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            platformStr = "platform=desktop,macos";
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            platformStr = "platform=desktop,linux";
-        else
-            platformStr = string.Empty;
+        var platformStr = GetPlatformFlavorString(
+            RuntimeInformation.IsOSPlatform(OSPlatform.Windows),
+            RuntimeInformation.IsOSPlatform(OSPlatform.OSX),
+            RuntimeInformation.IsOSPlatform(OSPlatform.Linux));
 
         return string.IsNullOrEmpty(platformStr) ? EmptyValue.Clone() : new ApplicationFlavor(platformStr);
+    }
+
+    private static string GetPlatformFlavorString(bool isWindows, bool isMacOs, bool isLinux)
+    {
+        if (isWindows)
+            return "platform=desktop,windows";
+        if (isMacOs)
+            return "platform=desktop,macos";
+        if (isLinux)
+            return "platform=desktop,linux";
+        return string.Empty;
     }
 }

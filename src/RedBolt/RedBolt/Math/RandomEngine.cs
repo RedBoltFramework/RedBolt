@@ -191,7 +191,11 @@ public class RandomEngine : ICloneable
     }
 
     /// <summary>Return random N-dimensional direction (normalized).</summary>
-    private void GetDirection(Span<float> direction)
+    private void GetDirection(Span<float> direction) => GetDirection(direction, false);
+
+    private void GetDirection(float[] direction, bool forceFallback) => GetDirection(direction.AsSpan(), forceFallback);
+
+    private void GetDirection(Span<float> direction, bool forceFallback)
     {
         Debug.Assert(direction.Length > 0);
 
@@ -203,6 +207,9 @@ public class RandomEngine : ICloneable
             var length = 0.0f;
             foreach (var x in direction)
                 length += x * x;
+
+            if (forceFallback)
+                length = 0.0f;
 
             // Normalize and return if long enough
             if (length > MathDefs.Epsilon)

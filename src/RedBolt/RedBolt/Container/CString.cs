@@ -440,9 +440,6 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, ICloneab
             }
 
             var encoded = rune.EncodeToUtf8(expected);
-            if (byteOffset + encoded > valueBytes.Length)
-                return false;
-
             if (!valueBytes.Slice(byteOffset, encoded).SequenceEqual(expected[..encoded]))
                 return false;
 

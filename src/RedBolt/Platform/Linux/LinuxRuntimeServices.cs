@@ -41,7 +41,12 @@ internal sealed class LinuxPlatformRuntime : IPlatformRuntime
             VersionMinor = version.Minor,
             VersionPatch = version.Patch
         };
-        if (SdlNativeBindings.SdlGetWindowWMInfo(window, wmInfo) != SdlBool.SdlTrue)
+        return ValidateNativeWindowInfo(SdlNativeBindings.SdlGetWindowWMInfo(window, wmInfo), wmInfo);
+    }
+
+    private static NativeWindowInfo ValidateNativeWindowInfo(SdlBool result, SdlSysWMinfo wmInfo)
+    {
+        if (result != SdlBool.SdlTrue)
             throw new InvalidOperationException("Generated SDL_GetWindowWMInfo binding failed for the window.");
 
         if (wmInfo.Subsystem != SdlSyswmType.SdlSyswmX11)

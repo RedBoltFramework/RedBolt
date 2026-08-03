@@ -16,7 +16,6 @@ public sealed class Time : RedObject
     public uint FrameNumber
     {
         get => _frameNumber;
-        private set => _frameNumber = value;
     }
 
     public float TimeStep
@@ -71,14 +70,19 @@ public sealed class Time : RedObject
 
     public static void Sleep(uint milliseconds)
     {
+        Sleep(milliseconds, static value => Thread.Sleep(value));
+    }
+
+    private static void Sleep(uint milliseconds, Action<int> sleep)
+    {
         var remaining = milliseconds;
         while (remaining > int.MaxValue)
         {
-            Thread.Sleep(int.MaxValue);
+            sleep(int.MaxValue);
             remaining -= int.MaxValue;
         }
 
-        Thread.Sleep((int)remaining);
+        sleep((int)remaining);
     }
 
     public void BeginFrame(float elapsedTimeStep)

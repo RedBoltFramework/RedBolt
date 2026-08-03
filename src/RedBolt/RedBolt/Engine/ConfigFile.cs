@@ -399,11 +399,7 @@ public sealed class ConfigFile : RedObject
             }
         }
         else
-        {
-            using var overrides = jsonFile.Root.GetStringVariantMap();
-            foreach (var (name, value) in overrides)
-                ApplyOverride(name, value);
-        }
+            Log.GetLogger().LogWarning("ConfigFile overrides '{FileName}' do not contain an object root.", fileName);
 
         Log.GetLogger().LogInformation("ConfigFile overrides '{FileName}' are loaded.", fileName);
         return true;

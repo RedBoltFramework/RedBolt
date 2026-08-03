@@ -62,6 +62,12 @@ public static class LightmapUVGenerator
     /// <summary>Generate lightmap UVs for the model.</summary>
     public static unsafe bool GenerateLightmapUV(ModelView modelView, in LightmapUVGenerationSettings settings)
     {
+        return GenerateLightmapUV(modelView, settings, false);
+    }
+
+    private static unsafe bool GenerateLightmapUV(ModelView modelView, LightmapUVGenerationSettings settings,
+        bool forceMeshAddFailure)
+    {
         // Create atlas
         var atlas = XAtlasNativeBindings.Create();
         try
@@ -78,6 +84,15 @@ public static class LightmapUVGenerator
                 {
                     if (geometryLodView.Vertices.Count != 0 && geometryLodView.PrimitiveType == PrimitiveType.TriangleList)
                     {
+                        if (geometryLodView.Indices.Count % 3 != 0)
+                            return false;
+
+                        foreach (var index in geometryLodView.Indices)
+                        {
+                            if (index >= geometryLodView.Vertices.Count)
+                                return false;
+                        }
+
                         using var meshDecl = new MeshDecl();
                         var positions = new Vector4f[geometryLodView.Vertices.Count];
                         var normals = new Vector4f[geometryLodView.Vertices.Count];
@@ -100,8 +115,7 @@ public static class LightmapUVGenerator
                             meshDecl.IndexCount = (uint)geometryLodView.Indices.Count;
                             meshDecl.IndexFormat = IndexFormat.UInt32;
 
-                            var error = XAtlasNativeBindings.AddMesh(atlas, meshDecl);
-                            if (error != AddMeshError.Success)
+                            if (!TryAddMesh(atlas, meshDecl, forceMeshAddFailure))
                                 return false;
                         }
 
@@ -186,5 +200,13 @@ public static class LightmapUVGenerator
             XAtlasNativeBindings.Destroy(atlas);
             atlas.Dispose();
         }
+    }
+
+    private static bool TryAddMesh(Atlas atlas, MeshDecl meshDecl, bool forceFailure)
+    {
+        var error = forceFailure
+            ? (AddMeshError)int.MaxValue
+            : XAtlasNativeBindings.AddMesh(atlas, meshDecl);
+        return error == AddMeshError.Success;
     }
 }

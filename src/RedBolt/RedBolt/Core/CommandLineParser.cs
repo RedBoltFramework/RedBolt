@@ -145,13 +145,9 @@ public sealed class CommandLineParser
 
         public abstract bool RequiresValue { get; }
 
-        public virtual void Apply()
-        {
-        }
+        public abstract void Apply();
 
-        public virtual void Apply(string value)
-        {
-        }
+        public abstract void Apply(string value);
 
         public abstract string RenderSignature();
     }
@@ -171,6 +167,10 @@ public sealed class CommandLineParser
         public override void Apply()
         {
             _apply();
+        }
+
+        public override void Apply(string value)
+        {
         }
 
         public override string RenderSignature()
@@ -193,6 +193,10 @@ public sealed class CommandLineParser
         public string ValueName { get; }
 
         public override bool RequiresValue => true;
+
+        public override void Apply()
+        {
+        }
 
         public override void Apply(string value)
         {
