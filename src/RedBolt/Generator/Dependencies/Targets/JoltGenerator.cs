@@ -30,6 +30,10 @@ internal sealed class JoltGenerator(string nativeLibraryName)
 
     protected override IReadOnlySet<string>? DirectorRecordCppTypeNames => DirectorRecords;
 
+    // Jolt exposes director callbacks as well; keep the callback lifetime
+    // support local to this optional wrapper rather than relying on SDL.
+    protected override bool IncludeCallbackReleaseRegistration => true;
+
     protected override IEnumerable<string> GetAdditionalMarshallerHeaders(GeneratorOptions options)
     {
         yield return System.IO.Path.Combine(

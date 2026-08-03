@@ -659,9 +659,11 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
             _world = new WeakReference<PhysicsWorld>(world);
         }
 
-        public override ValidateResult OnContactValidate(Body inBody1, Body inBody2, Vector3f inBaseOffset, IntPtr inCollisionResult) =>
-            ValidateResult.AcceptAllContactsForThisBodyPair;
-
+        // Jolt's OnContactValidate callback takes CollideShapeResult, which is
+        // intentionally not exposed by the generated bindings because the
+        // native type is only forward-declared. The native default
+        // implementation accepts all contacts, which is the behavior this
+        // listener requires, so leave the callback unoverridden.
         public override void OnContactAdded(Body inBody1, Body inBody2, ContactManifold inManifold, ContactSettings ioSettings)
         {
             if (_world.TryGetTarget(out var world))

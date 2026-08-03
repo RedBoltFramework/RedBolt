@@ -66,6 +66,11 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
     protected override IReadOnlySet<string>? DirectorRecordCppTypeNames =>
         RmlUiDirectorRecordCppTypeNames;
 
+    // RmlUi uses SharpCpp directors, so its wrapper must own the callback
+    // release registration entry point.  This used to be supplied by the
+    // monolithic native library through the SDL-generated unit.
+    protected override bool IncludeCallbackReleaseRegistration => true;
+
     protected override IEnumerable<string> GetAdditionalMarshallerHeaders(GeneratorOptions options)
     {
         yield return Path.Combine(

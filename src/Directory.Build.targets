@@ -6,11 +6,15 @@
       <DependencyFile ParameterType="System.String" Required="true" />
       <MainProjectName ParameterType="System.String" Required="true" />
       <NativeRuntimeDirectory ParameterType="System.String" Required="true" />
+      <NativeModuleManifestDirectory ParameterType="System.String" Required="true" />
       <RelocateAllProjectLibraries ParameterType="System.Boolean" Required="true" />
       <RuntimeIdentifier ParameterType="System.String" Required="true" />
+      <NativeAssets ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
     </ParameterGroup>
     <Task>
       <Using Namespace="System.IO" />
+      <Using Namespace="System.Collections.Generic" />
+      <Using Namespace="Microsoft.Build.Utilities" />
       <Using Namespace="System.Linq" />
       <Using Namespace="System.Text.RegularExpressions" />
       <Code Type="Fragment" Language="cs"><![CDATA[
@@ -29,6 +33,90 @@
                     + Environment.NewLine
                     + match.Groups["indent"].Value
                     + "\"path\": \".\",");
+
+        if (!Directory.Exists(NativeModuleManifestDirectory))
+            throw new InvalidOperationException(
+                "RedBolt native module manifests were not generated at '"
+                + NativeModuleManifestDirectory + "'.");
+
+        var selectorsByModule = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var artifactsByModule = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+        var requiresByModule = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+        string ReadProperty(string json, string property)
+        {
+            var match = Regex.Match(json,
+                "\\\"" + Regex.Escape(property) + "\\\"\\s*:\\s*\\\"(?<value>[^\\\"]+)\\\"");
+            return match.Success ? match.Groups["value"].Value : "";
+        }
+
+        List<string> ReadArray(string json, string property)
+        {
+            var match = Regex.Match(json,
+                "\\\"" + Regex.Escape(property) + "\\\"\\s*:\\s*\\[(?<values>.*?)\\]",
+                RegexOptions.Singleline);
+            if (!match.Success)
+                return new List<string>();
+            return Regex.Matches(match.Groups["values"].Value, "\\\"(?<value>[^\\\"]+)\\\"")
+                .Cast<Match>()
+                .Select(value => value.Groups["value"].Value)
+                .ToList();
+        }
+
+        foreach (var manifestFile in Directory.GetFiles(NativeModuleManifestDirectory, "*.json"))
+        {
+            if (Path.GetFileName(manifestFile).Equals("index.json", StringComparison.OrdinalIgnoreCase))
+                continue;
+            var manifest = File.ReadAllText(manifestFile);
+            var module = ReadProperty(manifest, "module");
+            var selector = ReadProperty(manifest, "managedSelector");
+            if (module.Length == 0 || selector.Length == 0)
+                throw new InvalidOperationException("Invalid RedBolt native module manifest '" + manifestFile + "'.");
+            selectorsByModule[module] = selector;
+            artifactsByModule[module] = ReadArray(manifest, "artifacts");
+            requiresByModule[module] = ReadArray(manifest, "requires");
+        }
+
+        var selectedModules = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var module in selectorsByModule)
+        {
+            var selectorPattern = "\\\"" + Regex.Escape(module.Value) + "(?:/[^\\\"]+)?\\\"\\s*:\\s*\\{";
+            if (Regex.IsMatch(contents, selectorPattern))
+                selectedModules.Add(module.Key);
+        }
+
+        var modulesAdded = true;
+        while (modulesAdded)
+        {
+            modulesAdded = false;
+            foreach (var module in selectedModules.ToArray())
+            {
+                if (!requiresByModule.TryGetValue(module, out var requires))
+                    continue;
+                foreach (var required in requires)
+                    if (selectedModules.Add(required))
+                        modulesAdded = true;
+            }
+        }
+
+        var nativeFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var module in selectedModules)
+        {
+            if (!artifactsByModule.TryGetValue(module, out var artifacts))
+                throw new InvalidOperationException("Native module '" + module + "' is not registered.");
+            foreach (var artifact in artifacts)
+            {
+                var path = Path.Combine(NativeRuntimeDirectory, artifact);
+                if (!File.Exists(path))
+                    throw new FileNotFoundException("Native module artifact was not built.", path);
+                nativeFiles.Add(artifact);
+            }
+        }
+        NativeAssets = nativeFiles
+            .OrderBy(path => path)
+            .Select(path => (Microsoft.Build.Framework.ITaskItem)new TaskItem(
+                Path.Combine(NativeRuntimeDirectory, path)))
+            .ToArray();
 
         var runtimeTargetIndex = transformed.IndexOf("/" + RuntimeIdentifier + "\": {");
         var redBoltIndex = transformed.IndexOf("\"RedBolt/", runtimeTargetIndex);
@@ -71,10 +159,10 @@
             ++closingLineStart;
             var nativeEntries = string.Join(
                 "," + Environment.NewLine,
-                Directory.GetFiles(NativeRuntimeDirectory, "*.so")
-                    .OrderBy(path => Path.GetFileName(path))
+                nativeFiles
+                    .OrderBy(path => path)
                     .Select(path => "        \"runtimes/" + RuntimeIdentifier + "/native/"
-                        + Path.GetFileName(path) + "\": {}"));
+                        + path + "\": {}"));
             transformed = transformed.Insert(
                 closingLineStart,
                 "      \"native\": {" + Environment.NewLine

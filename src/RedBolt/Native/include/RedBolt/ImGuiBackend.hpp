@@ -17,6 +17,16 @@ RB_IMGUI_EXPORT bool ImGuiBackend_HasCurrentWindow();
 // SDL2 backend
 RB_IMGUI_EXPORT bool ImGuiBackend_ProcessEvent(void* sdlEvent);
 
+// Opaque ImGui context and SDL backend shims. The public ImGui headers only
+// forward-declare ImGuiContext and SDL_Window, so these small ABI-safe
+// functions keep those implementation details out of generated bindings.
+RB_IMGUI_EXPORT void* ImGuiBackend_CreateContext();
+RB_IMGUI_EXPORT void ImGuiBackend_DestroyContext(void* context);
+RB_IMGUI_EXPORT void ImGuiBackend_SetCurrentContext(void* context);
+RB_IMGUI_EXPORT bool ImGuiBackend_Sdl2InitForOpenGL(void* window, void* context);
+RB_IMGUI_EXPORT bool ImGuiBackend_Sdl2InitForOther(void* window);
+RB_IMGUI_EXPORT bool ImGuiBackend_Sdl2InitForD3D(void* window);
+
 // Diligent renderer
 RB_IMGUI_EXPORT void* ImGuiBackend_CreateRenderer(
     void* renderDevice,

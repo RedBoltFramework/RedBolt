@@ -35,8 +35,7 @@ set(REDBOLT_SHARPCPP_ROOT "${REDBOLT_EXTERN_ROOT}/SharpCpp" CACHE PATH "Path to 
 set(REDBOLT_RUNTIME_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/bin/$<CONFIG>/runtimes/linux-x64/native" CACHE PATH "RedBolt runtime output directory")
 set(REDBOLT_GENERATED_ROOT "${CMAKE_BINARY_DIR}/generated" CACHE INTERNAL "RedBolt generated file root")
 set(REDBOLT_NATIVE_GENERATED_DIR "${REDBOLT_GENERATED_ROOT}/redbolt-native" CACHE INTERNAL "RedBolt generated native binding root")
-
-set(REDBOLT_NATIVE_LIBRARY_NAME "RedBolt.Native" CACHE INTERNAL "RedBolt generated binding native library name")
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/RedBoltNativeModules.cmake")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/$<CONFIG>")
 set(CMAKE_BUILD_RPATH "$ORIGIN")

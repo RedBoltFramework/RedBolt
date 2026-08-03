@@ -1,10 +1,10 @@
 function(redbolt_add_native_binding_generation)
     set(options)
-    set(oneValueArgs TARGET SURFACE HEADER HEADER_INCLUDE_PATH FILE_STEM OUTPUT_DIR OUTPUT_CS OUTPUT_CPP OUTPUT_METADATA)
+    set(oneValueArgs TARGET SURFACE HEADER HEADER_INCLUDE_PATH FILE_STEM OUTPUT_DIR OUTPUT_CS OUTPUT_CPP OUTPUT_METADATA NATIVE_LIBRARY_NAME)
     set(multiValueArgs INCLUDE_DIRS DEFINES OWNED_HEADERS)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    foreach(required TARGET SURFACE HEADER HEADER_INCLUDE_PATH FILE_STEM OUTPUT_DIR OUTPUT_CS OUTPUT_CPP OUTPUT_METADATA)
+    foreach(required TARGET SURFACE HEADER HEADER_INCLUDE_PATH FILE_STEM OUTPUT_DIR OUTPUT_CS OUTPUT_CPP OUTPUT_METADATA NATIVE_LIBRARY_NAME)
         if(NOT ARG_${required})
             message(FATAL_ERROR "redbolt_add_native_binding_generation missing ${required}")
         endif()
@@ -101,7 +101,7 @@ function(redbolt_add_native_binding_generation)
             --log "${generator_log}"
             --sharpcpp-root "${REDBOLT_SHARPCPP_ROOT}"
             --redbolt-root "${CMAKE_SOURCE_DIR}"
-            --native-library-name "${REDBOLT_NATIVE_LIBRARY_NAME}"
+            --native-library-name "${ARG_NATIVE_LIBRARY_NAME}"
             --compiler "${CMAKE_CXX_COMPILER}"
             ${include_args}
             ${define_args}

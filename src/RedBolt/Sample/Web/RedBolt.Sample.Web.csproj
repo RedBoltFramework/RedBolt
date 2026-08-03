@@ -14,7 +14,7 @@
     <WasmRunWasmOpt>false</WasmRunWasmOpt>
     <WasmStripILAfterAOT Condition="'$(Configuration)' == 'Release'">true</WasmStripILAfterAOT>
     <PublishDir>$(RedBoltWebOutputDir)/</PublishDir>
-    <RedBoltWebEngineArchive Condition="'$(RedBoltWebEngineArchive)' == ''">$(RedBoltNativeBuildDir)/lib/Release/wasm/RedBolt.Native.a</RedBoltWebEngineArchive>
+    <RedBoltWebEngineArchive Condition="'$(RedBoltWebEngineArchive)' == ''">$(RedBoltNativeBuildDir)/lib/Release/wasm/RedBolt.Native.Web.a</RedBoltWebEngineArchive>
     <RedBoltWebResourcesManifest Condition="'$(RedBoltWebResourcesManifest)' == ''">$(RedBoltNativeBuildDir)/generated/web/resources.manifest.json</RedBoltWebResourcesManifest>
     <RedBoltWebPackageDirectory>$(RedBoltIntermediateRoot)/packages</RedBoltWebPackageDirectory>
     <RedBoltWebCoreDataPackage>$(RedBoltWebPackageDirectory)/CoreData.pak</RedBoltWebCoreDataPackage>

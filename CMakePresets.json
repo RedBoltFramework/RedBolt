@@ -33,7 +33,7 @@
       "configurePreset": "linux-x64",
       "configuration": "Debug",
       "targets": [
-        "RedBolt.Native"
+        "redbolt-native-all"
       ]
     },
     {
@@ -41,7 +41,7 @@
       "configurePreset": "linux-x64",
       "configuration": "Release",
       "targets": [
-        "RedBolt.Native"
+        "redbolt-native-all"
       ]
     },
     {

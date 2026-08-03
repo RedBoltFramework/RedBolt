@@ -32,6 +32,37 @@ bool ImGuiBackend_ProcessEvent(void* sdlEvent)
     return ImGui_ImplSDL2_ProcessEvent(static_cast<SDL_Event*>(sdlEvent));
 }
 
+void* ImGuiBackend_CreateContext()
+{
+    return ImGui::CreateContext();
+}
+
+void ImGuiBackend_DestroyContext(void* context)
+{
+    ImGui::DestroyContext(static_cast<ImGuiContext*>(context));
+}
+
+void ImGuiBackend_SetCurrentContext(void* context)
+{
+    ImGui::SetCurrentContext(static_cast<ImGuiContext*>(context));
+}
+
+bool ImGuiBackend_Sdl2InitForOpenGL(void* window, void* context)
+{
+    return ImGui_ImplSDL2_InitForOpenGL(
+        static_cast<SDL_Window*>(window), context);
+}
+
+bool ImGuiBackend_Sdl2InitForOther(void* window)
+{
+    return ImGui_ImplSDL2_InitForOther(static_cast<SDL_Window*>(window));
+}
+
+bool ImGuiBackend_Sdl2InitForD3D(void* window)
+{
+    return ImGui_ImplSDL2_InitForD3D(static_cast<SDL_Window*>(window));
+}
+
 // ---- Diligent renderer ----
 
 void* ImGuiBackend_CreateRenderer(

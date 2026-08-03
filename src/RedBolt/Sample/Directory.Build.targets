@@ -16,8 +16,23 @@
     <RedBoltUseParentRuntimeAssemblies DependencyFile="$(ProjectDepsFilePath)"
                                        MainProjectName="$(AssemblyName)"
                                        NativeRuntimeDirectory="$(RedBoltNativeOutputRoot)"
+                                       NativeModuleManifestDirectory="$(RedBoltNativeModuleManifestDirectory)"
                                        RelocateAllProjectLibraries="true"
-                                       RuntimeIdentifier="$(RuntimeIdentifier)" />
+                                       RuntimeIdentifier="$(RuntimeIdentifier)">
+      <Output TaskParameter="NativeAssets" ItemName="_RedBoltNativeAssets" />
+    </RedBoltUseParentRuntimeAssemblies>
+  </Target>
+
+  <Target Name="RedBoltAddNativeFilesToPublish"
+          AfterTargets="ComputeFilesToPublish"
+          DependsOnTargets="RedBoltConfigureParentRuntimeAssemblies"
+          Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
+    <ItemGroup>
+      <ResolvedFileToPublish Include="@(_RedBoltNativeAssets)">
+        <RelativePath>runtimes/$(RuntimeIdentifier)/native/%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
   </Target>
 
   <Target Name="RedBoltKeepSharedAssembliesInParent"

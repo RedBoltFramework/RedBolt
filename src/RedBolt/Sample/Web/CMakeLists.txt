@@ -29,8 +29,28 @@ function(redbolt_collect_static_targets root_target output_variable)
     set("${output_variable}" "${static_targets}" PARENT_SCOPE)
 endfunction()
 
-redbolt_collect_static_targets(RedBolt.Native redbolt_wasm_static_targets)
-set(REDBOLT_WASM_ENGINE_ARCHIVE "${CMAKE_BINARY_DIR}/lib/Release/wasm/RedBolt.Native.a")
+set(redbolt_wasm_native_module_targets
+    ${REDBOLT_SDL_NATIVE_TARGET}
+    ${REDBOLT_DILIGENT_NATIVE_TARGET}
+    ${REDBOLT_IMGUI_NATIVE_TARGET}
+    ${REDBOLT_STB_NATIVE_TARGET}
+    ${REDBOLT_LZ4_NATIVE_TARGET}
+    ${REDBOLT_HARFBUZZ_NATIVE_TARGET}
+    ${REDBOLT_RMLUI_NATIVE_TARGET}
+    ${REDBOLT_WEBP_NATIVE_TARGET}
+    ${REDBOLT_GLSLANG_NATIVE_TARGET}
+    ${REDBOLT_SPIRV_CROSS_NATIVE_TARGET}
+    ${REDBOLT_SPIRV_TOOLS_NATIVE_TARGET}
+    ${REDBOLT_SHADER_COMPILER_NATIVE_TARGET}
+    ${REDBOLT_JOLT_NATIVE_TARGET})
+set(redbolt_wasm_static_targets)
+foreach(redbolt_wasm_module_target IN LISTS redbolt_wasm_native_module_targets)
+    redbolt_collect_static_targets(
+        "${redbolt_wasm_module_target}" redbolt_wasm_module_static_targets)
+    list(APPEND redbolt_wasm_static_targets ${redbolt_wasm_module_static_targets})
+endforeach()
+list(REMOVE_DUPLICATES redbolt_wasm_static_targets)
+set(REDBOLT_WASM_ENGINE_ARCHIVE "${CMAKE_BINARY_DIR}/lib/Release/wasm/RedBolt.Native.Web.a")
 set(REDBOLT_WASM_MRI_FILE "${CMAKE_BINARY_DIR}/redbolt-wasm-archives.mri")
 set(redbolt_wasm_mri "create ${REDBOLT_WASM_ENGINE_ARCHIVE}\n")
 foreach(target IN LISTS redbolt_wasm_static_targets)
