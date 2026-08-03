@@ -22,12 +22,19 @@
 
 namespace RedBolt.Glow;
 
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.InteropServices;
 
 using RedBolt.Core;
 using RedBolt.Graphics;
+using RedBolt.Logging;
 using RedBolt.Math;
+using RedBolt.RenderAPI;
+using RedBolt.RenderPipeline;
+using RedBolt.Resource;
 using RedBolt.Scene;
 
 /// <summary>Used for mapping between geometry ID in geometry buffer and actual geometry.</summary>
@@ -152,7 +159,7 @@ public struct LightmapChartGeometryBuffer : ICloneable
 
     /// <summary>Geometry buffer.</summary>
     public List<Vector3f> Positions;
-    public List<Vector3f> SmoothPositions; // TODO: Implement
+    public List<Vector3f> SmoothPositions;
     public List<Vector3f> SmoothNormals;
     public List<Vector3f> FaceNormals;
     public List<int> GeometryIds;
@@ -242,4 +249,305 @@ public struct LightmapChartGeometryBuffer : ICloneable
     }
 
     readonly object ICloneable.Clone() => Clone();
+}
+
+public static class LightmapGeometryBuffer
+{
+    private static readonly Vector2f[] MultiTapOffsets =
+    [
+        new(1.0f, 1.0f), new(1.0f, -1.0f), new(-1.0f, 1.0f), new(-1.0f, -1.0f),
+        new(1.0f, 0.5f), new(1.0f, -0.5f), new(-1.0f, 0.5f), new(-1.0f, -0.5f),
+        new(0.5f, 1.0f), new(0.5f, -1.0f), new(-0.5f, 1.0f), new(-0.5f, -1.0f),
+        new(1.0f, 0.0f), new(-1.0f, 0.0f), new(0.0f, 1.0f), new(0.0f, -1.0f),
+        new(0.5f, 0.5f), new(0.5f, -0.5f), new(-0.5f, 0.5f), new(-0.5f, -0.5f),
+        new(0.5f, 0.0f), new(-0.5f, 0.0f), new(0.0f, 0.5f), new(0.0f, -0.5f),
+        Vector2f.Zero
+    ];
+
+    private readonly record struct Edge(int First, int Second)
+    {
+        public static Edge Ordered(int first, int second) => first < second
+            ? new Edge(first, second) : new Edge(second, first);
+    }
+
+    private static List<LightmapSeam> CollectModelSeams(Model model, int uvChannel)
+    {
+        var modelView = new ModelView();
+        if (!modelView.ImportModel(model))
+            return [];
+        var sharedLightmapUv = modelView.GetMetadata(LightmapUVGenerationSettings.LightmapSharedUV).GetBool();
+        var positionEpsilonSquared = MathDefs.LargeEpsilon * MathDefs.LargeEpsilon;
+        var normalEpsilonSquared = positionEpsilonSquared;
+        var uvEpsilonSquared = positionEpsilonSquared;
+        var boundingBox = modelView.CalculateBoundingBox();
+        var hashStep = Vector3f.Max(boundingBox.Size / MathDefs.LargeValue,
+            Vector3f.One * MathDefs.LargeEpsilon);
+        Vector3i ComputeHash(Vector3f position) => Vector3f.FloorToInt((position - boundingBox.Min) / hashStep);
+
+        var seams = new List<LightmapSeam>();
+        foreach (var geometry in modelView.GetGeometries())
+        {
+            foreach (var lod in geometry.Lods)
+            {
+                var format = lod.VertexFormat;
+                if (format.Position == ModelVertexFormat.Undefined || format.Normal == ModelVertexFormat.Undefined
+                    || format.Uv[uvChannel] == ModelVertexFormat.Undefined)
+                    return [];
+
+                var edges = new HashSet<Edge>();
+                for (var faceIndex = 0; faceIndex < lod.Indices.Count / 3; ++faceIndex)
+                {
+                    var a = checked((int)lod.Indices[faceIndex * 3]);
+                    var b = checked((int)lod.Indices[faceIndex * 3 + 1]);
+                    var c = checked((int)lod.Indices[faceIndex * 3 + 2]);
+                    edges.Add(Edge.Ordered(a, b));
+                    edges.Add(Edge.Ordered(b, c));
+                    edges.Add(Edge.Ordered(c, a));
+                }
+
+                var edgeHash = new Dictionary<Vector3i, HashSet<Edge>>();
+                foreach (var edge in edges)
+                {
+                    foreach (var index in new[] { edge.First, edge.Second })
+                    {
+                        var hash = ComputeHash(lod.Vertices[index].Position.ToVector3());
+                        if (!edgeHash.TryGetValue(hash, out var bucket))
+                            edgeHash.Add(hash, bucket = []);
+                        bucket.Add(edge);
+                    }
+                }
+
+                foreach (var edge in edges)
+                {
+                    var candidates = new HashSet<Edge>();
+                    foreach (var index in new[] { edge.First, edge.Second })
+                    {
+                        var hash = ComputeHash(lod.Vertices[index].Position.ToVector3());
+                        for (var z = -1; z <= 1; ++z)
+                        for (var y = -1; y <= 1; ++y)
+                        for (var x = -1; x <= 1; ++x)
+                        {
+                            if (edgeHash.TryGetValue(hash + new Vector3i(x, y, z), out var bucket))
+                                candidates.UnionWith(bucket);
+                        }
+                    }
+
+                    var edgePosition0 = lod.Vertices[edge.First].Position.ToVector3();
+                    var edgePosition1 = lod.Vertices[edge.Second].Position.ToVector3();
+                    var edgeNormal0 = lod.Vertices[edge.First].Normal.ToVector3();
+                    var edgeNormal1 = lod.Vertices[edge.Second].Normal.ToVector3();
+                    var edgeUv0 = lod.Vertices[edge.First].Uv[uvChannel].ToVector2();
+                    var edgeUv1 = lod.Vertices[edge.Second].Uv[uvChannel].ToVector2();
+
+                    foreach (var sourceCandidate in candidates)
+                    {
+                        if (sourceCandidate == edge)
+                            continue;
+                        var candidate = sourceCandidate;
+                        if ((lod.Vertices[candidate.First].Position.ToVector3() - edgePosition1).LengthSquared
+                            < positionEpsilonSquared)
+                            candidate = new Edge(candidate.Second, candidate.First);
+
+                        var candidatePosition0 = lod.Vertices[candidate.First].Position.ToVector3();
+                        var candidatePosition1 = lod.Vertices[candidate.Second].Position.ToVector3();
+                        var candidateNormal0 = lod.Vertices[candidate.First].Normal.ToVector3();
+                        var candidateNormal1 = lod.Vertices[candidate.Second].Normal.ToVector3();
+                        var candidateUv0 = lod.Vertices[candidate.First].Uv[uvChannel].ToVector2();
+                        var candidateUv1 = lod.Vertices[candidate.Second].Uv[uvChannel].ToVector2();
+                        if ((edgePosition0 - candidatePosition0).LengthSquared >= positionEpsilonSquared
+                            || (edgePosition1 - candidatePosition1).LengthSquared >= positionEpsilonSquared
+                            || (edgeNormal0 - candidateNormal0).LengthSquared >= normalEpsilonSquared
+                            || (edgeNormal1 - candidateNormal1).LengthSquared >= normalEpsilonSquared)
+                            continue;
+                        if ((edgeUv0 - candidateUv0).LengthSquared < uvEpsilonSquared
+                            && (edgeUv1 - candidateUv1).LengthSquared < uvEpsilonSquared)
+                            continue;
+
+                        var edgeUvDelta = (edgeUv1 - edgeUv0).ToVector3();
+                        var collinear0 = edgeUvDelta.CrossProduct((candidateUv0 - edgeUv0).ToVector3()).LengthSquared
+                            < uvEpsilonSquared;
+                        var collinear1 = edgeUvDelta.CrossProduct((candidateUv1 - edgeUv0).ToVector3()).LengthSquared
+                            < uvEpsilonSquared;
+                        if (collinear0 && collinear1)
+                            continue;
+
+                        var seam = new LightmapSeam();
+                        seam.Positions[0] = edgeUv0;
+                        seam.Positions[1] = edgeUv1;
+                        seam.OtherPositions[0] = candidateUv0;
+                        seam.OtherPositions[1] = candidateUv1;
+                        seams.Add(seam);
+                    }
+                }
+
+                if (sharedLightmapUv)
+                    break;
+            }
+        }
+        return seams;
+    }
+
+    public static LightmapGeometryBakingScenesArray GenerateLightmapGeometryBakingScenes(Context context,
+        IReadOnlyList<Component> geometries, int lightmapSize, LightmapGeometryBakingSettings settings)
+    {
+        var texelSize = Vector2f.One / lightmapSize;
+        var scaledAndConstBias = new Vector2f(settings.ScaledPositionBias, settings.ConstantPositionBias);
+        var bakingMaterial = context.GetSubsystem<ResourceCache>()!.GetResourceOrNull<Material>(settings.MaterialName);
+        if (bakingMaterial is null)
+        {
+            Log.GetLogger().LogError("Cannot load material '{Material}'", settings.MaterialName);
+            return new LightmapGeometryBakingScenesArray();
+        }
+
+        var modelSeams = new Dictionary<Model, List<LightmapSeam>>();
+        foreach (var geometry in geometries)
+        {
+            if (geometry is StaticModel staticModel && staticModel.GetModel() is { } model)
+                modelSeams.TryAdd(model, CollectModelSeams(model, checked((int)settings.UVChannel)));
+        }
+
+        var result = new LightmapGeometryBakingScenesArray();
+        result.IdToObject.Add(new GeometryIdToObjectMapping());
+        var bakingScenes = new Dictionary<int, LightmapGeometryBakingScene>();
+        for (var objectIndex = 0; objectIndex < geometries.Count; ++objectIndex)
+        {
+            var geometry = geometries[objectIndex];
+            var node = geometry.Node!;
+            var lightmapIndex = Helpers.GetLightmapIndex(geometry);
+            var scaleOffset = Helpers.GetLightmapScaleOffset(geometry);
+            var scale = scaleOffset.ToVector2();
+            var offset = new Vector2f(scaleOffset.Z, scaleOffset.W);
+            if (!bakingScenes.TryGetValue(lightmapIndex, out var bakingScene))
+            {
+                var scene = new Scene();
+                scene.CreateComponent<Octree>();
+                var cameraNode = scene.CreateChild();
+                cameraNode.SetPosition(Vector3f.Back * MathDefs.LargeValue);
+                var camera = cameraNode.CreateComponent<Camera>();
+                camera.SetFarClip(MathDefs.LargeValue * 2.0f);
+                camera.SetOrthographic(true);
+                camera.SetOrthoSize(MathDefs.LargeValue * 2.0f);
+                bakingScene = new LightmapGeometryBakingScene
+                {
+                    Context = context,
+                    Index = lightmapIndex,
+                    LightmapSize = lightmapSize,
+                    Scene = scene,
+                    Camera = camera
+                };
+            }
+
+            if (geometry is StaticModel staticModel)
+            {
+                var bakingNode = bakingScene.Scene!.CreateChild();
+                bakingNode.SetPosition(node.GetWorldPosition());
+                bakingNode.SetRotation(node.GetWorldRotation());
+                bakingNode.SetScale(node.GetWorldScale());
+                foreach (var seam in modelSeams[staticModel.GetModel()!])
+                    bakingScene.Seams.Add(seam.Transformed(scale, offset));
+                var staticModelForLightmap = bakingNode.CreateComponent<StaticModelForLightmap>();
+                result.IdToObject.AddRange(staticModelForLightmap.Initialize(objectIndex, staticModel,
+                    bakingMaterial, result.IdToObject.Count, MultiTapOffsets, texelSize,
+                    scaleOffset, scaledAndConstBias));
+            }
+            else if (geometry is Terrain terrain)
+            {
+                for (var tap = 0; tap < MultiTapOffsets.Length; ++tap)
+                {
+                    var bakingNode = bakingScene.Scene!.CreateChild();
+                    bakingNode.SetPosition(node.GetWorldPosition());
+                    bakingNode.SetRotation(node.GetWorldRotation());
+                    bakingNode.SetScale(node.GetWorldScale());
+                    var terrainForLightmap = bakingNode.CreateComponent<Terrain>();
+                    terrainForLightmap.SetMaxLodLevels(1);
+                    terrainForLightmap.SetSpacing(terrain.GetSpacing());
+                    terrainForLightmap.SetPatchSize(terrain.GetPatchSize());
+                    terrainForLightmap.SetSmoothing(terrain.GetSmoothing());
+                    terrainForLightmap.SetBakeLightmap(true);
+                    terrainForLightmap.SetScaleInLightmap(0.0f);
+                    terrainForLightmap.SetHeightMap(terrain.GetHeightMap());
+                    var material = Helpers.CreateBakingMaterial(bakingMaterial, terrain.GetMaterial(),
+                        scaleOffset, tap, MultiTapOffsets.Length, MultiTapOffsets[tap] * texelSize,
+                        result.IdToObject.Count, scaledAndConstBias);
+                    terrainForLightmap.SetMaterial(material);
+                }
+                result.IdToObject.Add(new GeometryIdToObjectMapping
+                {
+                    ObjectIndex = objectIndex,
+                    GeometryIndex = 0,
+                    LodIndex = 0
+                });
+            }
+            bakingScenes[lightmapIndex] = bakingScene;
+        }
+
+        result.BakingScenes.AddRange(bakingScenes.Values);
+        return result;
+    }
+
+    public static LightmapChartGeometryBuffer BakeLightmapGeometryBuffer(LightmapGeometryBakingScene bakingScene)
+    {
+        var graphics = bakingScene.Context!.GetSubsystem<Graphics>()!;
+        if (!graphics.BeginFrame())
+        {
+            Log.GetLogger().LogError("Failed to begin lightmap geometry buffer rendering");
+            return new LightmapChartGeometryBuffer();
+        }
+
+        try
+        {
+            var result = new LightmapChartGeometryBuffer(bakingScene.Index, bakingScene.LightmapSize);
+            using var viewport = new Viewport(bakingScene.Scene, bakingScene.Camera);
+            using var view = new LightmapRenderPipelineView();
+            view.RenderGeometryBuffer(viewport, result.LightmapSize);
+            var pixelCount = result.LightmapSize * result.LightmapSize;
+            var buffer = new Vector4f[pixelCount];
+
+            ReadTexture(view.PositionBuffer!, buffer);
+            for (var i = 0; i < pixelCount; ++i)
+            {
+                result.Positions[i] = buffer[i].ToVector3();
+                result.GeometryIds[i] = checked((int)buffer[i].W);
+            }
+            ReadTexture(view.SmoothPositionBuffer!, buffer);
+            for (var i = 0; i < pixelCount; ++i)
+            {
+                result.SmoothPositions[i] = buffer[i].ToVector3();
+                result.TexelRadiuses[i] = buffer[i].W;
+            }
+            ReadTexture(view.FaceNormalBuffer!, buffer);
+            for (var i = 0; i < pixelCount; ++i)
+                result.FaceNormals[i] = buffer[i].ToVector3();
+            ReadTexture(view.SmoothNormalBuffer!, buffer);
+            for (var i = 0; i < pixelCount; ++i)
+                result.SmoothNormals[i] = buffer[i].ToVector3();
+            ReadTexture(view.AlbedoBuffer!, buffer);
+            for (var i = 0; i < pixelCount; ++i)
+                result.Albedo[i] = buffer[i].ToVector3();
+            ReadTexture(view.EmissionBuffer!, buffer);
+            for (var i = 0; i < pixelCount; ++i)
+                result.Emission[i] = buffer[i].ToVector3();
+            result.Seams.AddRange(bakingScene.Seams.Select(static seam => seam.Clone()));
+            return result;
+        }
+        finally
+        {
+            graphics.EndFrame();
+        }
+    }
+
+    public static List<LightmapChartGeometryBuffer> BakeLightmapGeometryBuffers(
+        IReadOnlyList<LightmapGeometryBakingScene> bakingScenes)
+    {
+        var result = new List<LightmapChartGeometryBuffer>(bakingScenes.Count);
+        foreach (var bakingScene in bakingScenes)
+            result.Add(BakeLightmapGeometryBuffer(bakingScene));
+        return result;
+    }
+
+    private static void ReadTexture(RawTexture texture, Vector4f[] destination)
+    {
+        var bytes = MemoryMarshal.AsBytes(destination.AsSpan());
+        texture.Read(0, 0, bytes);
+    }
 }

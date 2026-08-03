@@ -66,6 +66,21 @@ public sealed class SerializedAttribute : Attribute
     public AttributeScopeHint ScopeHint { get; set; } = AttributeScopeHint.Attribute;
 }
 
+[AttributeUsage(AttributeTargets.Method, Inherited = false)]
+public sealed class CallableAttribute : Attribute
+{
+    public CallableAttribute(string name)
+    {
+        Name = name;
+    }
+
+    public string Name { get; }
+
+    public string Label { get; set; } = string.Empty;
+
+    public string? LabelSource { get; set; }
+}
+
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 public sealed class RemoveSerializedAttribute : Attribute
 {

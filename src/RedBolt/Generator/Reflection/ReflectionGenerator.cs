@@ -15,6 +15,7 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
 {
     private const string ReflectedAttributeName = "RedBolt.Core.ReflectedAttribute";
     private const string SerializedAttributeName = "RedBolt.Core.SerializedAttribute";
+    private const string CallableAttributeName = "RedBolt.Core.CallableAttribute";
     private const string RemoveSerializedAttributeName = "RedBolt.Core.RemoveSerializedAttribute";
 
     private static readonly DiagnosticDescriptor PartialTypeRequired = new(
@@ -45,6 +46,14 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         "RBREF004",
         "Invalid serialized member",
         "Serialized attribute '{0}' must target an instance field, property, getter, or setter",
+        "RedBolt.Reflection",
+        DiagnosticSeverity.Error,
+        true);
+
+    private static readonly DiagnosticDescriptor InvalidCallableMember = new(
+        "RBREF005",
+        "Invalid callable member",
+        "Callable attribute '{0}' must target a parameterless instance method returning void and use a valid string label source",
         "RedBolt.Reflection",
         DiagnosticSeverity.Error,
         true);
@@ -112,7 +121,7 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         var inheritAttributesFrom = GetNamedType(reflectedAttribute, "InheritAttributesFrom") as INamedTypeSymbol;
         var inheritAttributesOrder = GetNamedInt(reflectedAttribute, "InheritAttributesOrder", 0);
         var attributeSourceType = inheritAttributesFrom ?? type.BaseType;
-        var attributes = GetSerializedMembers(type);
+        var attributes = GetReflectedMembers(type);
         var builder = new StringBuilder();
         AppendHeader(builder, type);
         builder.Append("    internal ");
@@ -159,7 +168,10 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
                 inheritanceWritten = true;
             }
 
-            if (!AppendSerializedAttribute(context, builder, type, attributes[index], index))
+            var succeeded = attributes[index].IsCallable
+                ? AppendCallableAttribute(context, builder, type, attributes[index], index)
+                : AppendSerializedAttribute(context, builder, type, attributes[index], index);
+            if (!succeeded)
                 return null;
         }
 
@@ -200,7 +212,7 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         SourceProductionContext context,
         StringBuilder builder,
         INamedTypeSymbol type,
-        SerializedMember serialized,
+        ReflectedMember serialized,
         int index)
     {
         var attribute = serialized.Attribute;
@@ -274,6 +286,89 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         if (!string.IsNullOrEmpty(configure))
             builder.Append("        ").Append(configure).Append("(__handle").Append(index).AppendLine(");");
         return true;
+    }
+
+    private static bool AppendCallableAttribute(
+        SourceProductionContext context,
+        StringBuilder builder,
+        INamedTypeSymbol type,
+        ReflectedMember callable,
+        int index)
+    {
+        var attribute = callable.Attribute;
+        var name = GetConstructorString(attribute, 0)!;
+        var labelGetter = GetCallableLabelGetter(type, attribute);
+        if (callable.Symbol is not IMethodSymbol
+            {
+                IsStatic: false,
+                MethodKind: MethodKind.Ordinary,
+                Parameters.Length: 0,
+                ReturnsVoid: true,
+                Arity: 0
+            } method || labelGetter is null)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                InvalidCallableMember,
+                callable.Location,
+                name));
+            return false;
+        }
+
+        var typeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        builder.Append("        using var __default").Append(index)
+            .AppendLine(" = global::RedBolt.Core.Variant.FromObject(false);");
+        builder.Append("        using var __attribute").Append(index)
+            .Append(" = new global::RedBolt.Core.AttributeInfo(")
+            .Append(ToLiteral(name))
+            .Append(", typeof(bool), __default").Append(index)
+            .Append(", global::RedBolt.Core.AttributeMode.Edit, enumNames: null, accessor: null, getter: ")
+            .Append(labelGetter)
+            .Append(", setter: static (self, value) => { if (value is true) ((")
+            .Append(typeName).Append(")self).")
+            .Append(method.Name).AppendLine("(); });");
+        builder.Append("        var __handle").Append(index)
+            .Append(" = reflection.AddAttribute(__attribute").Append(index).AppendLine(");");
+        builder.Append("        using var __isAction").Append(index)
+            .AppendLine(" = global::RedBolt.Core.Variant.FromObject(true);");
+        builder.Append("        __handle").Append(index)
+            .Append(".SetMetadata(global::RedBolt.Core.AttributeMetadata.IsAction, __isAction")
+            .Append(index).AppendLine(");");
+        return true;
+    }
+
+    private static string? GetCallableLabelGetter(INamedTypeSymbol type, AttributeData attribute)
+    {
+        var labelSource = GetNamedString(attribute, "LabelSource");
+        if (string.IsNullOrEmpty(labelSource))
+            return "static self => " + ToLiteral(GetNamedString(attribute, "Label") ?? string.Empty);
+
+        var typeName = type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        return FindMember(type, labelSource!) switch
+        {
+            IFieldSymbol { Type.SpecialType: SpecialType.System_String } field when field.IsStatic =>
+                "static self => " + typeName + "." + field.Name,
+            IFieldSymbol { Type.SpecialType: SpecialType.System_String } field =>
+                "static self => ((" + typeName + ")self)." + field.Name,
+            IPropertySymbol { Type.SpecialType: SpecialType.System_String, GetMethod: not null } property
+                when property.IsStatic => "static self => " + typeName + "." + property.Name,
+            IPropertySymbol { Type.SpecialType: SpecialType.System_String, GetMethod: not null } property =>
+                "static self => ((" + typeName + ")self)." + property.Name,
+            IMethodSymbol
+            {
+                ReturnType.SpecialType: SpecialType.System_String,
+                Parameters.Length: 0,
+                Arity: 0,
+                IsStatic: true
+            } method => "static self => " + typeName + "." + method.Name + "()",
+            IMethodSymbol
+            {
+                ReturnType.SpecialType: SpecialType.System_String,
+                Parameters.Length: 0,
+                Arity: 0,
+                IsStatic: false
+            } method => "static self => ((" + typeName + ")self)." + method.Name + "()",
+            _ => null
+        };
     }
 
     private static string GetGetter(INamedTypeSymbol type, ISymbol? symbol, string? getter)
@@ -420,18 +515,18 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         return null;
     }
 
-    private static List<SerializedMember> GetSerializedMembers(INamedTypeSymbol type)
+    private static List<ReflectedMember> GetReflectedMembers(INamedTypeSymbol type)
     {
-        var result = new List<SerializedMember>();
+        var result = new List<ReflectedMember>();
         foreach (var member in type.GetMembers())
         {
-            AddSerializedAttributes(result, member);
+            AddReflectedAttributes(result, member);
             if (member is IPropertySymbol property)
             {
                 if (property.GetMethod is not null)
-                    AddSerializedAttributes(result, property.GetMethod);
+                    AddReflectedAttributes(result, property.GetMethod);
                 if (property.SetMethod is not null)
-                    AddSerializedAttributes(result, property.SetMethod);
+                    AddReflectedAttributes(result, property.SetMethod);
             }
         }
 
@@ -440,11 +535,19 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
             .ToList();
     }
 
-    private static void AddSerializedAttributes(List<SerializedMember> result, ISymbol symbol)
+    private static void AddReflectedAttributes(List<ReflectedMember> result, ISymbol symbol)
     {
-        foreach (var attribute in symbol.GetAttributes()
-                     .Where(static attribute => attribute.AttributeClass?.ToDisplayString() == SerializedAttributeName))
-            result.Add(new SerializedMember(symbol, attribute, attribute.ApplicationSyntaxReference?.GetSyntax().GetLocation()));
+        foreach (var attribute in symbol.GetAttributes())
+        {
+            var attributeName = attribute.AttributeClass?.ToDisplayString();
+            if (attributeName is not SerializedAttributeName and not CallableAttributeName)
+                continue;
+            result.Add(new ReflectedMember(
+                symbol,
+                attribute,
+                attribute.ApplicationSyntaxReference?.GetSyntax().GetLocation(),
+                attributeName == CallableAttributeName));
+        }
     }
 
     private static ITypeSymbol? GetValueType(AttributeData attribute, ISymbol? symbol)
@@ -723,13 +826,14 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
     private static string ToLiteral(string value) =>
         SymbolDisplay.FormatLiteral(value, true);
 
-    private readonly struct SerializedMember
+    private readonly struct ReflectedMember
     {
-        public SerializedMember(ISymbol? symbol, AttributeData attribute, Location? location)
+        public ReflectedMember(ISymbol? symbol, AttributeData attribute, Location? location, bool isCallable)
         {
             Symbol = symbol;
             Attribute = attribute;
             Location = location;
+            IsCallable = isCallable;
         }
 
         public ISymbol? Symbol { get; }
@@ -737,5 +841,7 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         public AttributeData Attribute { get; }
 
         public Location? Location { get; }
+
+        public bool IsCallable { get; }
     }
 }

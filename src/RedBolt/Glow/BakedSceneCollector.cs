@@ -75,6 +75,12 @@ public abstract class BakedSceneCollector : IDisposable
 /// <summary>Standard scene collector for light baking.</summary>
 public class DefaultBakedSceneCollector : BakedSceneCollector
 {
+    public override void Dispose()
+    {
+        UnlockScene();
+        base.Dispose();
+    }
+
     /// <summary>BakedSceneCollector implementation.</summary>
     public override void LockScene(Scene? scene, Vector3f chunkSize)
     {

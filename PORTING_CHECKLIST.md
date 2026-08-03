@@ -617,18 +617,18 @@ Accepted deviations:
 - [-] `EmbreeForward.h` — **EXCLUDED** · reason: Embree forward decls · replaced-by: generated Embree interop
 - [x] `LightmapUVGenerator.h`
   - [x] `struct LightmapUVGenerationSettings`
-- [ ] `RaytracerScene.h`
-  - [ ] `RaytracerScene : RefCounted`
+- [x] `RaytracerScene.h`
+  - [x] `RaytracerScene : RefCounted`
 - [x] `BakedLight.h`
   - [x] baked light structs
-- [ ] `BakedLightCache.h`
+- [x] `BakedLightCache.h`
   - [x] `struct BakedLightmap`
-  - [ ] `BakedLightCache`
-  - [ ] `BakedLightMemoryCache : BakedLightCache`
+  - [x] `BakedLightCache`
+  - [x] `BakedLightMemoryCache : BakedLightCache`
 - [x] `BakedSceneBackground.h`
   - [x] baked scene background structs
-- [~] `BakedSceneChunk.h`
-  - [~] baked scene chunk structs — `LightProbeCollectionForBaking` complete; `BakedSceneChunk` and chunk creation remain pending their collector, geometry-buffer, and raytracer prerequisites
+- [x] `BakedSceneChunk.h`
+  - [x] baked scene chunk structs and chunk creation
 - [x] `BakedSceneCollector.h`
   - [x] `BakedSceneCollector`
   - [x] `DefaultBakedSceneCollector : BakedSceneCollector`
@@ -636,16 +636,18 @@ Accepted deviations:
   - [x] `StaticModelForLightmap : Drawable`
 - [x] `LightmapCharter.h`
   - [x] chart layout helpers
-- [~] `LightmapGeometryBuffer.h`
-  - [x] geometry buffer structs — scene generation and geometry-buffer baking functions remain pending their render-pipeline prerequisites
-- [ ] `LightmapStitcher.h`
-  - [ ] seam stitching helpers
-- [ ] `LightmapFilter.h`
-  - [ ] lightmap filtering helpers
-- [ ] `LightTracer.h`
-  - [ ] light tracing helpers
-- [ ] `IncrementalLightBaker.h`
-  - [ ] `IncrementalLightBaker`
+- [x] `LightmapGeometryBuffer.h`
+  - [x] geometry buffer structs, scene generation, and geometry-buffer baking
+- [x] `LightmapStitcher.h`
+  - [x] seam stitching helpers
+- [x] `LightmapFilter.h`
+  - [x] lightmap filtering helpers
+- [x] `LightTracer.h`
+  - [x] light tracing helpers
+- [x] `IncrementalLightBaker.h`
+  - [x] `IncrementalLightBaker`
+- [x] `Graphics/LightBaker.h`
+  - [x] `LightBaker : Component` with callable asynchronous bake action
 
 ## B13. RmlUI `OPTIONAL` — RmlUi HTML/CSS UI; depends on UI, Graphics
 

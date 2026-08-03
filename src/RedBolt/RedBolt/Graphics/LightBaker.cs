@@ -1,9 +1,11 @@
 namespace RedBolt.Graphics;
 
 using Microsoft.Extensions.Logging;
+using System;
 using System.Threading.Tasks;
 
 using RedBolt.Core;
+using RedBolt.Glow;
 using Timer = global::RedBolt.Core.Timer;
 using RedBolt.Logging;
 using RedBolt.Scene;
@@ -35,7 +37,7 @@ public partial class LightBaker : Component
     ];
 
     /// <summary>Baking task data.</summary>
-    private sealed class TaskData
+    private sealed class TaskData : IDisposable
     {
         /// <summary>Caller.</summary>
         public WeakReference<LightBaker>? WeakSelf = null;
@@ -43,7 +45,19 @@ public partial class LightBaker : Component
         public StopToken StopToken = new();
         /// <summary>Timer to measure total time.</summary>
         public Timer Timer = new();
-        // TODO: port URHO3D_GLOW IncrementalLightBaker, DefaultBakedSceneCollector, BakedLightMemoryCache
+        /// <summary>Scene collector.</summary>
+        public DefaultBakedSceneCollector SceneCollector = new();
+        /// <summary>Memory cache.</summary>
+        public BakedLightMemoryCache Cache = new();
+        /// <summary>Baker.</summary>
+        public IncrementalLightBaker Baker = new();
+
+        public void Dispose()
+        {
+            Baker.Dispose();
+            Cache.Dispose();
+            SceneCollector.Dispose();
+        }
     }
 
     /// <summary>Internal baking state.</summary>
@@ -88,19 +102,23 @@ public partial class LightBaker : Component
     /// <summary>Destruct.</summary>
     public override void Dispose()
     {
-        if (_state != InternalState.NotStarted)
+        Task? task;
+        TaskData? taskData;
+        lock (_stateLock)
         {
-            _taskData!.StopToken.Stop();
-            ((IAsyncResult)_task!).AsyncWaitHandle.WaitOne();
+            task = _task;
+            taskData = _taskData;
+            if (_state != InternalState.NotStarted)
+                taskData!.StopToken.Stop();
         }
 
+        task?.GetAwaiter().GetResult();
+        taskData?.Dispose();
         _taskData = null;
-        _task?.Dispose();
+        task?.Dispose();
         _task = null;
         base.Dispose();
     }
-
-    // TODO: port URHO3D_ACTION_DYNAMIC_LABEL("Bake", BakeAsync, GetBakeLabel);
 
     /// <summary>Set baking quality.</summary>
     public void SetQuality(LightBakingQuality quality)
@@ -179,6 +197,7 @@ public partial class LightBaker : Component
     }
 
     /// <summary>Bake light in worker thread.</summary>
+    [Callable("Bake", LabelSource = nameof(GetBakeLabel))]
     public void BakeAsync()
     {
         lock (_stateLock)
@@ -192,9 +211,7 @@ public partial class LightBaker : Component
     private bool UpdateSettings()
     {
         var scene = Scene!;
-        var octree = scene.GetComponent<Octree>()!;
         var gi = scene.GetComponent<GlobalIllumination>();
-        var zone = octree.GetBackgroundZone();
 
         if (gi is null)
         {
@@ -243,11 +260,51 @@ public partial class LightBaker : Component
         // Start baking
         if (state is InternalState.ScheduledSync or InternalState.ScheduledAsync)
         {
-            // Glow (URHO3D_GLOW) is not yet ported — match C++ #else path
-            Log.GetLogger().LogError("Enable URHO3D_GLOW in build options");
-            lock (_stateLock)
-                _state = InternalState.NotStarted;
-            return;
+            if (!UpdateSettings())
+                return;
+
+            var taskData = new TaskData
+            {
+                WeakSelf = new WeakReference<LightBaker>(this)
+            };
+            if (!taskData.Baker.Initialize(_settings, Scene!, taskData.SceneCollector, taskData.Cache))
+            {
+                taskData.Dispose();
+                Log.GetLogger().LogError("Cannot initialize light baking");
+                lock (_stateLock)
+                    _state = InternalState.NotStarted;
+                return;
+            }
+
+            taskData.Baker.ProcessScene();
+            if (state == InternalState.ScheduledSync)
+            {
+                taskData.Baker.Bake(taskData.StopToken);
+                lock (_stateLock)
+                {
+                    _state = InternalState.CommitPending;
+                    _taskData = taskData;
+                }
+                state = InternalState.CommitPending;
+            }
+            else
+            {
+                lock (_stateLock)
+                {
+                    _state = InternalState.InProgress;
+                    _taskData = taskData;
+                    _task = Task.Run(() =>
+                    {
+                        taskData.Baker.Bake(taskData.StopToken);
+                        if (taskData.WeakSelf!.TryGetTarget(out var self))
+                        {
+                            lock (self._stateLock)
+                                self._state = InternalState.CommitPending;
+                        }
+                    });
+                }
+                return;
+            }
         }
 
         // Commit changes
@@ -256,12 +313,12 @@ public partial class LightBaker : Component
             // If was async task, close future
             if (_task is not null)
             {
-                _task.Wait();
+                _task.GetAwaiter().GetResult();
                 _task.Dispose();
                 _task = null;
             }
 
-            // TODO: port URHO3D_GLOW taskData_->baker_.CommitScene()
+            _taskData!.Baker.CommitScene();
 
             // Compile light probes
             var gi = Scene!.GetComponent<GlobalIllumination>()!;
@@ -272,19 +329,23 @@ public partial class LightBaker : Component
             Log.GetLogger().LogInformation("Light baking is finished in {Seconds} seconds", totalMSec / 1000);
 
             // Reset
+            var completedTaskData = _taskData;
             lock (_stateLock)
             {
                 _state = InternalState.NotStarted;
                 _taskData = null;
             }
+            completedTaskData.Dispose();
         }
     }
 
     /// <summary>Return baking status.</summary>
     private string GetBakeLabel()
     {
-        // TODO: port URHO3D_GLOW IncrementalLightBakerStatus.ToString()
-        return "Baking is disabled in build options.";
+        lock (_stateLock)
+            return _taskData is not null
+                ? _taskData.Baker.Status.ToString()
+                : "Re-bake lightmaps and light probes!";
     }
 
     private static object? GetOutputDirectoryAttributeDefault() => string.Empty;

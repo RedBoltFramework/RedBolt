@@ -5,6 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="../RedBolt/Graphics/LightBaker.cs" Link="Graphics/LightBaker.cs" />
+
     <ProjectReference Include="../Bindings/XAtlas/RedBolt.Bindings.XAtlas.csproj" />
     <ProjectReference Include="../Bindings/Embree/RedBolt.Bindings.Embree.csproj" />
     <ProjectReference Include="../RedBolt/RedBolt.csproj" />
