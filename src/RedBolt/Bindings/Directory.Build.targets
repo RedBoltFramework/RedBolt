@@ -2,6 +2,15 @@
   <Import Project="$(MSBuildThisFileDirectory)../../Directory.Build.targets" />
 
   <ItemGroup>
+    <!-- Shared standard-library wrappers live outside generated modules. Every
+         binding module gets the contracts/types so generated provider glue can
+         register against the process-wide registry. -->
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Std/SharpCpp.Std.csproj"
+                      PrivateAssets="all"
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/rbfx/SharpCpp.Ea/SharpCpp.Ea.csproj"
+                      PrivateAssets="all"
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all"
                       AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
