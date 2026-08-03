@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Bindings/XAtlas/RedBolt.Bindings.XAtlas.csproj" />
+    <ProjectReference Include="../Bindings/Embree/RedBolt.Bindings.Embree.csproj" />
     <ProjectReference Include="../RedBolt/RedBolt.csproj" />
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"

@@ -41,3 +41,6 @@
 [submodule "extern/JoltPhysics"]
 	path = extern/JoltPhysics
 	url = https://github.com/jrouwe/JoltPhysics.git
+[submodule "extern/Embree"]
+	path = extern/Embree
+	url = https://github.com/RenderKit/embree.git

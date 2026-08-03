@@ -9,6 +9,7 @@ add_subdirectory(RedBolt/Bindings/HarfBuzz)
 add_subdirectory(RedBolt/Bindings/RmlUi)
 add_subdirectory(RedBolt/Bindings/WebP)
 add_subdirectory(RedBolt/Bindings/XAtlas)
+add_subdirectory(RedBolt/Bindings/Embree)
 add_subdirectory(RedBolt/Bindings/Glslang)
 add_subdirectory(RedBolt/Bindings/SpirVCross)
 add_subdirectory(RedBolt/Bindings/SpirVTools)
@@ -26,6 +27,7 @@ add_custom_target(redbolt-generate-native-bindings
         redbolt-generate-rmlui-bindings
         redbolt-generate-webp-bindings
         redbolt-generate-xatlas-bindings
+        redbolt-generate-embree-bindings
         redbolt-generate-glslang-bindings
         redbolt-generate-spirv-cross-bindings
         redbolt-generate-spirv-tools-bindings

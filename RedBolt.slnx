@@ -35,6 +35,7 @@
     <Project Path="src/RedBolt/Particles/RedBolt.Particles.csproj" />
   </Folder>
   <Folder Name="/src/RedBolt/Bindings/">
+    <Project Path="src/RedBolt/Bindings/Embree/RedBolt.Bindings.Embree.csproj" />
     <Project Path="src/RedBolt/Bindings/DearImGui/RedBolt.Bindings.DearImGui.csproj" />
     <Project Path="src/RedBolt/Bindings/Diligent/RedBolt.Bindings.Diligent.csproj" />
     <Project Path="src/RedBolt/Bindings/Glslang/RedBolt.Bindings.Glslang.csproj" />

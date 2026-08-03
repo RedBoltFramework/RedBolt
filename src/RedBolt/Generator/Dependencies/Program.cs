@@ -52,6 +52,7 @@ internal static class Program
             "rmlui" => new RmlUiGenerator(nativeLibraryName),
             "webp" => new WebPGenerator(nativeLibraryName),
             "xatlas" => new XAtlasGenerator(nativeLibraryName),
+            "embree" => new EmbreeGenerator(nativeLibraryName),
             "glslang" => new GlslangGenerator(nativeLibraryName),
             "spirvcross" => new SpirVCrossGenerator(nativeLibraryName),
             "spirvtools" => new SpirVToolsGenerator(nativeLibraryName),
@@ -64,6 +65,6 @@ internal static class Program
     private static void PrintUsage()
     {
         Console.Error.WriteLine(
-            "Usage: RedBolt.Generator.Dependencies --surface <sdl|diligent|dearimgui|stb|lz4|harfbuzz|rmlui|webp|xatlas|glslang|spirvcross|spirvtools|shadercompiler|jolt> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --redbolt-root <path> --native-library-name <name> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
+            "Usage: RedBolt.Generator.Dependencies --surface <sdl|diligent|dearimgui|stb|lz4|harfbuzz|rmlui|webp|xatlas|embree|glslang|spirvcross|spirvtools|shadercompiler|jolt> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --redbolt-root <path> --native-library-name <name> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
     }
 }

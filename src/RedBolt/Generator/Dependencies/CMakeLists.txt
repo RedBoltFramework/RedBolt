@@ -40,6 +40,7 @@ set(REDBOLT_HARFBUZZ_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/harfbuzz" CA
 set(REDBOLT_RMLUI_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/rmlui" CACHE INTERNAL "RmlUi binding output")
 set(REDBOLT_WEBP_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/webp" CACHE INTERNAL "WebP binding output")
 set(REDBOLT_XATLAS_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/xatlas" CACHE INTERNAL "xatlas binding output")
+set(REDBOLT_EMBREE_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/embree" CACHE INTERNAL "Embree binding output")
 set(REDBOLT_GLSLANG_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/glslang" CACHE INTERNAL "glslang binding output")
 set(REDBOLT_SPIRV_CROSS_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/spirv-cross" CACHE INTERNAL "SPIRV-Cross binding output")
 set(REDBOLT_SPIRV_TOOLS_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/spirv-tools" CACHE INTERNAL "SPIRV-Tools binding output")
@@ -55,13 +56,14 @@ set(REDBOLT_HARFBUZZ_BINDINGS_STEM "RedBolt.Bindings.HarfBuzz" CACHE INTERNAL "H
 set(REDBOLT_RMLUI_BINDINGS_STEM "RedBolt.Bindings.RmlUi" CACHE INTERNAL "RmlUi binding stem")
 set(REDBOLT_WEBP_BINDINGS_STEM "RedBolt.Bindings.WebP" CACHE INTERNAL "WebP binding stem")
 set(REDBOLT_XATLAS_BINDINGS_STEM "RedBolt.Bindings.XAtlas" CACHE INTERNAL "xatlas binding stem")
+set(REDBOLT_EMBREE_BINDINGS_STEM "RedBolt.Bindings.Embree" CACHE INTERNAL "Embree binding stem")
 set(REDBOLT_GLSLANG_BINDINGS_STEM "RedBolt.Bindings.Glslang" CACHE INTERNAL "glslang binding stem")
 set(REDBOLT_SPIRV_CROSS_BINDINGS_STEM "RedBolt.Bindings.SpirVCross" CACHE INTERNAL "SPIRV-Cross binding stem")
 set(REDBOLT_SPIRV_TOOLS_BINDINGS_STEM "RedBolt.Bindings.SpirVTools" CACHE INTERNAL "SPIRV-Tools binding stem")
 set(REDBOLT_SHADER_COMPILER_BINDINGS_STEM "RedBolt.Bindings.ShaderCompiler" CACHE INTERNAL "Shader compiler binding stem")
 set(REDBOLT_JOLT_BINDINGS_STEM "RedBolt.Bindings.Jolt" CACHE INTERNAL "Jolt binding stem")
 
-foreach(binding SDL DILIGENT IMGUI STB LZ4 HARFBUZZ RMLUI WEBP XATLAS GLSLANG SPIRV_CROSS SPIRV_TOOLS SHADER_COMPILER JOLT)
+foreach(binding SDL DILIGENT IMGUI STB LZ4 HARFBUZZ RMLUI WEBP XATLAS EMBREE GLSLANG SPIRV_CROSS SPIRV_TOOLS SHADER_COMPILER JOLT)
     set(REDBOLT_${binding}_BINDINGS_CS
         "${REDBOLT_${binding}_GENERATED_DIR}/${REDBOLT_${binding}_BINDINGS_STEM}.Bindings.g.cs"
         CACHE INTERNAL "${binding} generated C# binding")
@@ -84,6 +86,7 @@ set(REDBOLT_HARFBUZZ_PARSE_HEADER "${REDBOLT_HARFBUZZ_GENERATED_DIR}/HarfBuzzAll
 set(REDBOLT_RMLUI_PARSE_HEADER "${REDBOLT_RMLUI_GENERATED_DIR}/RmlUiAll.hpp" CACHE INTERNAL "RmlUi parse header")
 set(REDBOLT_WEBP_PARSE_HEADER "${REDBOLT_WEBP_GENERATED_DIR}/WebPAll.hpp" CACHE INTERNAL "WebP parse header")
 set(REDBOLT_XATLAS_PARSE_HEADER "${REDBOLT_XATLAS_GENERATED_DIR}/XAtlasAll.hpp" CACHE INTERNAL "xatlas parse header")
+set(REDBOLT_EMBREE_PARSE_HEADER "${REDBOLT_EMBREE_GENERATED_DIR}/EmbreeAll.hpp" CACHE INTERNAL "Embree parse header")
 set(REDBOLT_SHADER_COMPILER_PARSE_HEADER "${REDBOLT_SHADER_COMPILER_GENERATED_DIR}/ShaderCompilerAll.hpp" CACHE INTERNAL "Shader compiler parse header")
 set(REDBOLT_JOLT_PARSE_HEADER "${REDBOLT_JOLT_GENERATED_DIR}/JoltAll.hpp" CACHE INTERNAL "Jolt parse header")
 set(REDBOLT_JOLT_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/include" CACHE INTERNAL "RedBolt Jolt support include directory")
@@ -115,6 +118,7 @@ file(MAKE_DIRECTORY
     "${REDBOLT_RMLUI_GENERATED_DIR}"
     "${REDBOLT_WEBP_GENERATED_DIR}"
     "${REDBOLT_XATLAS_GENERATED_DIR}"
+    "${REDBOLT_EMBREE_GENERATED_DIR}"
     "${REDBOLT_GLSLANG_GENERATED_DIR}"
     "${REDBOLT_SPIRV_CROSS_GENERATED_DIR}"
     "${REDBOLT_SPIRV_TOOLS_GENERATED_DIR}"
@@ -173,6 +177,21 @@ file(CONFIGURE OUTPUT "${REDBOLT_XATLAS_PARSE_HEADER}" CONTENT [=[
 #pragma once
 #include <cstddef>
 #include <xatlas.h>
+]=] @ONLY)
+file(CONFIGURE OUTPUT "${REDBOLT_EMBREE_PARSE_HEADER}" CONTENT [=[
+#pragma once
+#include <embree4/rtcore_ray.h>
+#include <embree4/rtcore.h>
+
+inline RTCRay* RedBoltEmbreeGetFilterRay(const RTCFilterFunctionNArguments* arguments)
+{
+    return reinterpret_cast<RTCRay*>(arguments->ray);
+}
+
+inline RTCHit* RedBoltEmbreeGetFilterHit(const RTCFilterFunctionNArguments* arguments)
+{
+    return reinterpret_cast<RTCHit*>(arguments->hit);
+}
 ]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_SHADER_COMPILER_PARSE_HEADER}" CONTENT [=[
 #pragma once
