@@ -40,6 +40,12 @@ internal static class CompilerToolchainDiscovery
             clangResourceDirectory = null;
         }
 
+        if (clangResourceDirectory is null &&
+            !string.Equals(includeCompilerPath, compilerPath, StringComparison.Ordinal))
+        {
+            includeDirectories = DiscoverVerboseSearchPaths(compilerPath, targetTriple);
+        }
+
         includeDirectories = FilterClangBuiltinIncludeDirectories(
             includeDirectories,
             clangResourceDirectory,
@@ -60,10 +66,22 @@ internal static class CompilerToolchainDiscovery
 
         var candidates = new List<string>();
         if (parserClangMajorVersion is int majorVersion)
+        {
             candidates.Add($"clang++-{majorVersion}");
+            candidates.Add($"clang-{majorVersion}");
+
+            var compilerDirectory = Path.GetDirectoryName(Path.GetFullPath(compilerPath));
+            var compilerPrefix = compilerDirectory is null ? null : Directory.GetParent(compilerDirectory)?.FullName;
+            if (compilerPrefix is not null)
+            {
+                candidates.Add(Path.Combine(compilerPrefix, "lib", $"llvm{majorVersion}", "bin", "clang++"));
+                candidates.Add(Path.Combine(compilerPrefix, "lib", $"llvm-{majorVersion}", "bin", "clang++"));
+                candidates.Add(Path.Combine(compilerPrefix, "lib", $"llvm{majorVersion}", "bin", "clang"));
+                candidates.Add(Path.Combine(compilerPrefix, "lib", $"llvm-{majorVersion}", "bin", "clang"));
+            }
+        }
+
         candidates.Add("clang++");
-        if (parserClangMajorVersion is int clangMajorVersion)
-            candidates.Add($"clang-{clangMajorVersion}");
         candidates.Add("clang");
 
         foreach (var candidate in candidates.Distinct(StringComparer.Ordinal))

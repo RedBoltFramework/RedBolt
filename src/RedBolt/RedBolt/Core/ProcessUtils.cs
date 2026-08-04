@@ -279,7 +279,9 @@ public static class ProcessUtils
 
     public static bool OpenURL(string url)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(url);
+        ArgumentNullException.ThrowIfNull(url);
+        if (!Uri.TryCreate(url, UriKind.Absolute, out _))
+            return false;
 
         try
         {

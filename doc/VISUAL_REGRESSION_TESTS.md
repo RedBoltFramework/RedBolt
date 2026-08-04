@@ -12,13 +12,14 @@ creating hundreds of nearly identical tests.
 
 ## Current status
 
-- [x] Opt-in GPU visual test execution.
+- [x] Visual tests run by default when a display exists.
+- [x] `REDBOLT_TEST_GRAPHICS_API=opengl|vulkan` selects the graphics backend.
 - [x] Hidden native-resolution OpenGL capture; no downsampling.
 - [x] PNG references, actual captures, amplified difference images, and
   side-by-side `<reference>_shot.png` failure captures.
 - [x] `../RedBolt.Tests/scripts/update_visual_references.sh` updates all matching shots.
-- [x] `../RedBolt.Tests/scripts/run_tests.sh` runs the suite on an available
-  desktop display or through a hidden Xvfb/llvmpipe session without root.
+- [x] `./RedBolt.Tests/scripts/with_software_renderer.sh` runs the suite through headless
+  Xvfb/llvmpipe software rendering when no display is available.
 - [x] `Mushroom_model_renders_with_zone_ambient_lighting`: one real model,
   no `Light` component, zone ambient lighting only.
 - [x] Reusable scene/capture fixture with per-test dimensions, thresholds,
@@ -511,13 +512,29 @@ test harness rather than a relaxed comparison threshold.
 
 ## Running and updating references
 
-From the RedBolt repository root, run against the checked-in references. The
-runner uses an available desktop display, or a rootless software-rendered
-session when no desktop display is available, so failure shots are beside the
-files that the updater will replace:
+From the workspace root, run the visual tests against the checked-in
+references. They run by default when a display exists. For headless software
+rendering, wrap the same command with `./RedBolt.Tests/scripts/with_software_renderer.sh`; failure
+shots are beside the files that the updater will replace:
 
 ```bash
-../RedBolt.Tests/scripts/run_tests.sh \
+dotnet test ./RedBolt.Tests/RedBolt.Tests.csproj \
+  --filter FullyQualifiedName~VisualRegression \
+  --logger "console;verbosity=minimal"
+```
+
+```bash
+./RedBolt.Tests/scripts/with_software_renderer.sh dotnet test ./RedBolt.Tests/RedBolt.Tests.csproj \
+  --filter FullyQualifiedName~VisualRegression \
+  --logger "console;verbosity=minimal"
+```
+
+Select the graphics backend with `REDBOLT_TEST_GRAPHICS_API=opengl|vulkan`.
+For example:
+
+```bash
+REDBOLT_TEST_GRAPHICS_API=vulkan \
+  ./RedBolt.Tests/scripts/with_software_renderer.sh dotnet test ./RedBolt.Tests/RedBolt.Tests.csproj \
   --filter FullyQualifiedName~VisualRegression \
   --logger "console;verbosity=minimal"
 ```
