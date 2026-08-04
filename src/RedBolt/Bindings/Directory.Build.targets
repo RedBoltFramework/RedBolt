@@ -59,6 +59,10 @@
                Exclude="@(Compile)"
                LinkBase="Generated"
                Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.XAtlas'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/embree/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Embree'" />
       <Compile Include="$(RedBoltGeneratedBindingsDir)/glslang/**/*.g.cs"
                Exclude="@(Compile)"
                LinkBase="Generated"

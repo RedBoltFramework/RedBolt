@@ -51,6 +51,13 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
         "Release"
     };
 
+    private static readonly IReadOnlyDictionary<string, FixedWidthAliasProjection> FixedWidthAliases =
+        new Dictionary<string, FixedWidthAliasProjection>(StringComparer.Ordinal)
+        {
+            ["Diligent::Uint64"] = new(BindingPrimitiveKind.UInt64, "ulong"),
+            ["Diligent::Int64"] = new(BindingPrimitiveKind.Int64, "long")
+        };
+
     private static readonly IReadOnlyDictionary<string, string> QueryableInterfaces =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
@@ -89,6 +96,12 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
         }
     }
 
+    protected override void ConfigureBeforeValidation(BindingCompilation compilation)
+    {
+        FixedWidthAliasNormalizer.Normalize(compilation, FixedWidthAliases);
+        ConfigureSetVertexBuffersOffsets(compilation);
+    }
+
     protected override void PostProcessCompilation(BindingCompilation compilation)
     {
         ConfigureBlendFactors(compilation);
@@ -122,6 +135,29 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
         blendFactors.Type = BindingType.CreateConfigured(
             "const float*",
             "global::RedBolt.Bindings.Diligent.BlendFactors");
+    }
+
+    private static void ConfigureSetVertexBuffersOffsets(BindingCompilation compilation)
+    {
+        var deviceContext = compilation.Records.FirstOrDefault(static record =>
+            record.CppQualifiedName == "Diligent::IDeviceContext");
+        var setVertexBuffers = deviceContext?.Members.OfType<FunctionBinding>().FirstOrDefault(static method =>
+            method.NativeName == "SetVertexBuffers");
+        var offsets = setVertexBuffers?.Parameters.FirstOrDefault(static parameter =>
+            parameter.NativeName == "pOffsets" && parameter.CppTypeName == "const Diligent::Uint64*");
+        if (offsets is null || offsets.Type is not
+            {
+                Kind: BindingTypeKind.Primitive,
+                PrimitiveKind: BindingPrimitiveKind.NativeUInt,
+                CppTypeName: "unsigned long"
+            })
+        {
+            return;
+        }
+
+        offsets.Type = FixedWidthAliasNormalizer.ProjectType(
+            offsets.Type,
+            new FixedWidthAliasProjection(BindingPrimitiveKind.UInt64, "ulong"));
     }
 
     private static int PruneTopLevelFunctions(IList<BindingNode> members)

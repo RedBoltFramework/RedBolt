@@ -19,7 +19,10 @@ internal static class CompilerToolchainDiscovery
         var parserClangMajorVersion = DiscoverParserClangMajorVersion();
         var toolchainClangCompilerPath = ResolveToolchainCompiler(compilerPath, parserClangMajorVersion);
         var targetTriple = DiscoverTargetTriple(compilerPath);
-        var includeDirectories = DiscoverVerboseSearchPaths(toolchainClangCompilerPath, targetTriple);
+        var includeCompilerPath = targetTriple?.StartsWith("wasm", StringComparison.OrdinalIgnoreCase) == true
+            ? compilerPath
+            : toolchainClangCompilerPath;
+        var includeDirectories = DiscoverVerboseSearchPaths(includeCompilerPath, targetTriple);
         var clangResourceDirectory = DiscoverClangResourceDirectoryOverride();
         var usesResourceDirectoryOverride = clangResourceDirectory is not null;
 
