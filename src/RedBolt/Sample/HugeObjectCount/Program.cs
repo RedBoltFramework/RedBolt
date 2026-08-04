@@ -175,14 +175,14 @@ sealed class HugeObjectCountApplication : Application
     private void DrawInstructions()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Huge Object Count\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        if (ImGui.Begin("Huge Object Count"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             var time = GetSubsystem<Time>()!;
-            _fpsText.FormatInPlace($"FPS: {time.GetFramesPerSecond():F1}\0");
-            ImGui.TextUnformatted("Use WASD keys and mouse/touch to move\nSpace to toggle animation\nG to toggle object group optimization\0"u8);
-            ImGui.TextUnformatted(_fpsText.Bytes);
-            if (ImGui.Button(_animate ? "Animation: On\0"u8 : "Animation: Off\0"u8)) _animate = !_animate;
-            if (ImGui.Button(_useGroups ? "Groups: On\0"u8 : "Groups: Off\0"u8)) { _useGroups = !_useGroups; CreateScene(); }
+            _fpsText.FormatInPlace($"FPS: {time.GetFramesPerSecond():F1}");
+            ImGui.TextUnformatted("Use WASD keys and mouse/touch to move\nSpace to toggle animation\nG to toggle object group optimization"u8);
+            ImGui.TextUnformatted(_fpsText.ContentBytes);
+            if (ImGui.Button(_animate ? "Animation: On"u8 : "Animation: Off"u8)) _animate = !_animate;
+            if (ImGui.Button(_useGroups ? "Groups: On"u8 : "Groups: Off"u8)) { _useGroups = !_useGroups; CreateScene(); }
         }
         ImGui.End();
     }

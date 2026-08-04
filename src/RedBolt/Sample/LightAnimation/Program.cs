@@ -111,7 +111,7 @@ sealed class LightAnimationApplication : Application
             var texture = cache.Get<Texture2D>($"Urho2D/GoldIcon/{i + 1}.png");
             _spriteTextures[i] = texture;
             var textureView = texture.GetRawTexture()!.GetHandles().ShaderResourceView!;
-            _spriteTextureReferences[i] = new ImTextureRef(textureView.Handle);
+            _spriteTextureReferences[i] = new ImTextureRef((ulong)(nuint)textureView.Handle);
         }
 
         // Create more StaticModel objects to the scene, randomly positioned, rotated and scaled. For rotation, we construct a
@@ -171,17 +171,17 @@ sealed class LightAnimationApplication : Application
     private void DrawInstructions()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Light Animation\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        if (ImGui.Begin("Light Animation"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            ImGui.TextUnformatted("Use WASD keys and right mouse button to move\0"u8);
+            ImGui.TextUnformatted("Use WASD keys and right mouse button to move"u8);
             if (_uiTime < 1.0f)
-                ImGui.TextUnformatted("WHITE\0"u8);
+                ImGui.TextUnformatted("WHITE"u8);
             else if (_uiTime < 2.0f)
-                ImGui.TextUnformatted("RED\0"u8);
+                ImGui.TextUnformatted("RED"u8);
             else if (_uiTime < 3.0f)
-                ImGui.TextUnformatted("YELLOW\0"u8);
+                ImGui.TextUnformatted("YELLOW"u8);
             else
-                ImGui.TextUnformatted("GREEN\0"u8);
+                ImGui.TextUnformatted("GREEN"u8);
 
             var spriteFrame = (int)(_uiTime * 10.0f) % _spriteTextures.Length;
             _dearImGui!.ReferenceTexture(_spriteTextures[spriteFrame]!);

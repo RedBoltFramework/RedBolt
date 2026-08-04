@@ -185,30 +185,30 @@ public class HelloGUI : Application
         if (!_windowOpen)
             return;
 
-        var visible = ImGui.Begin(_windowTitle.Bytes, ref _windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings);
+        var visible = ImGui.Begin(_windowTitle.ContentBytes, ref _windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings);
         if (!_windowOpen)
             HandleClosePressed();
 
         if (visible)
         {
-            if (ImGui.Checkbox("CheckBox\0"u8, ref _checkBox))
+            if (ImGui.Checkbox("CheckBox"u8, ref _checkBox))
                 HandleControlClicked("CheckBox");
 
-            if (ImGui.Button("Button\0"u8))
+            if (ImGui.Button("Button"u8))
                 HandleControlClicked("Button");
 
-            if (ImGui.InputInt("LineEdit\0"u8, out _lineEdit))
+            if (ImGui.InputInt("LineEdit"u8, out _lineEdit))
                 HandleControlClicked("LineEdit");
 
-            if (ImGui.DragInt("Fish X\0"u8, out _fishPositionX, 1.0f, 0, Graphics.Width) ||
-                ImGui.DragInt("Fish Y\0"u8, out _fishPositionY, 1.0f, 0, Graphics.Height))
+            if (ImGui.DragInt("Fish X"u8, out _fishPositionX, 1.0f, 0, Graphics.Width) ||
+                ImGui.DragInt("Fish Y"u8, out _fishPositionY, 1.0f, 0, Graphics.Height))
             {
                 HandleDragBegin();
                 HandleDragMove();
             }
 
-            ImGui.TextUnformatted("Please drag me!\0"u8);
-            if (ImGui.Button("Close\0"u8))
+            ImGui.TextUnformatted("Please drag me!"u8);
+            if (ImGui.Button("Close"u8))
                 HandleClosePressed();
         }
 

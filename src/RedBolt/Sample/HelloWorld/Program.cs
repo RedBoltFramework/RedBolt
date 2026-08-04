@@ -104,8 +104,8 @@ public class HelloWorld : Application
     private void DrawText()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Hello World\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
-            ImGui.TextUnformatted(_helloText.Bytes);
+        if (ImGui.Begin("Hello World"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+            ImGui.TextUnformatted(_helloText.ContentBytes);
         ImGui.End();
     }
 

@@ -129,8 +129,8 @@ sealed class CameraShakeApplication : Application
     private static void DrawInstructions()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Camera Shake\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
-            ImGui.TextUnformatted("Press SPACE to shake camera\0"u8);
+        if (ImGui.Begin("Camera Shake"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+            ImGui.TextUnformatted("Press SPACE to shake camera"u8);
         ImGui.End();
     }
 }

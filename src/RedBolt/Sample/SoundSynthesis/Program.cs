@@ -161,8 +161,8 @@ public class SoundSynthesis : Application
     private void DrawInstructions()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Sound Synthesis\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
-            ImGui.TextUnformatted(_instructionLine!.Bytes);
+        if (ImGui.Begin("Sound Synthesis"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+            ImGui.TextUnformatted(_instructionLine!.ContentBytes);
         ImGui.End();
     }
 

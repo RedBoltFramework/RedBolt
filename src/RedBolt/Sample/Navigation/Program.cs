@@ -331,12 +331,12 @@ public sealed class NavigationSample : Application
     private void DrawInstructions()
     {
         var open = true;
-        if (ImGui.Begin("Navigation\0"u8, ref open, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        if (ImGui.Begin("Navigation"u8, ref open, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            ImGui.TextUnformatted("Use WASD keys to move, RMB to rotate view\0"u8);
-            ImGui.TextUnformatted("LMB to set destination, SHIFT+LMB to teleport\0"u8);
-            ImGui.TextUnformatted("MMB or O to add or remove obstacles\0"u8);
-            ImGui.TextUnformatted("Tab toggles streaming; Space toggles debug geometry\0"u8);
+            ImGui.TextUnformatted("Use WASD keys to move, RMB to rotate view"u8);
+            ImGui.TextUnformatted("LMB to set destination, SHIFT+LMB to teleport"u8);
+            ImGui.TextUnformatted("MMB or O to add or remove obstacles"u8);
+            ImGui.TextUnformatted("Tab toggles streaming; Space toggles debug geometry"u8);
         }
         ImGui.End();
     }

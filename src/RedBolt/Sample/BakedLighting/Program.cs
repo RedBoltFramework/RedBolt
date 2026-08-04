@@ -219,11 +219,11 @@ public class BakedLighting : Application
     private static void DrawInstructions()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Baked Lighting\0"u8, ref windowOpen,
+        if (ImGui.Begin("Baked Lighting"u8, ref windowOpen,
             ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            ImGui.TextUnformatted("Use WASD keys and the right mouse button to move\0"u8);
-            ImGui.TextUnformatted("Shift to sprint\0"u8);
+            ImGui.TextUnformatted("Use WASD keys and the right mouse button to move"u8);
+            ImGui.TextUnformatted("Shift to sprint"u8);
         }
         ImGui.End();
     }

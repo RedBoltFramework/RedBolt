@@ -77,5 +77,5 @@ sealed class DecalsApplication : Application
         if (decal is null) { decal = targetNode.CreateComponent<DecalSet>(); decal.SetMaterial(Resources.Get<Material>("Materials/UrhoDecal.xml")); }
         decal.AddDecal(hitDrawable, result.Position, _cameraNode.Rotation, 0.5f, 1.0f, 1.0f, Vector2f.Zero, Vector2f.One);
     }
-    private void DrawInstructions() { var windowOpen = true; if (ImGui.Begin("Decals\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings)) { ImGui.TextUnformatted("Use WASD keys to move\0"u8); ImGui.TextUnformatted("LMB to paint decals, RMB to rotate view\0"u8); ImGui.TextUnformatted(_drawDebug ? "Debug geometry requested\0"u8 : "Space to toggle debug geometry\0"u8); } ImGui.End(); }
+    private void DrawInstructions() { var windowOpen = true; if (ImGui.Begin("Decals"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings)) { ImGui.TextUnformatted("Use WASD keys to move"u8); ImGui.TextUnformatted("LMB to paint decals, RMB to rotate view"u8); ImGui.TextUnformatted(_drawDebug ? "Debug geometry requested"u8 : "Space to toggle debug geometry"u8); } ImGui.End(); }
 }

@@ -208,21 +208,21 @@ public class WindowSettingsDemo : Application
     private void DrawUI()
     {
         var windowOpen = true;
-        if (!ImGui.Begin("Window Settings\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        if (!ImGui.Begin("Window Settings"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             ImGui.End();
             return;
         }
 
-        ImGui.TextUnformatted(_resolutionLabel.Bytes);
-        ImGui.InputInt("Monitor\0"u8, out _monitor);
-        ImGui.InputInt("Mode index\0"u8, out _mode);
-        ImGui.Checkbox("Fullscreen\0"u8, ref _fullscreen);
-        ImGui.Checkbox("Borderless\0"u8, ref _borderless);
-        ImGui.Checkbox("Resizable\0"u8, ref _resizable);
-        ImGui.Checkbox("V-Sync\0"u8, ref _vSync);
-        ImGui.InputInt("MSAA index\0"u8, out _multiSample);
-        if (ImGui.Button("Apply\0"u8))
+        ImGui.TextUnformatted(_resolutionLabel.ContentBytes);
+        ImGui.InputInt("Monitor"u8, out _monitor);
+        ImGui.InputInt("Mode index"u8, out _mode);
+        ImGui.Checkbox("Fullscreen"u8, ref _fullscreen);
+        ImGui.Checkbox("Borderless"u8, ref _borderless);
+        ImGui.Checkbox("Resizable"u8, ref _resizable);
+        ImGui.Checkbox("V-Sync"u8, ref _vSync);
+        ImGui.InputInt("MSAA index"u8, out _multiSample);
+        if (ImGui.Button("Apply"u8))
             ApplySettings();
         ImGui.End();
     }

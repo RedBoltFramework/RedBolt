@@ -8,6 +8,33 @@ namespace SharpCpp
 
 template <>
 struct [[sharpcpp::managed_type(
+    public_type = "global::System.ReadOnlySpan<byte>",
+    managed_marshaller = "global::SharpCpp.Support.Utf8SpanAbiMarshaller",
+    suppress_emission = true,
+    undefaultable = true
+)]]
+Marshaller<ImStrv>
+{
+    using cpp_type = ImStrv;
+    struct abi_type
+    {
+        const char* data{};
+        std::size_t size{};
+    };
+
+    abi_type ConvertToAbi(cpp_type value) noexcept
+    {
+        return { value.Begin, value.Begin == nullptr ? 0 : static_cast<std::size_t>(value.End - value.Begin) };
+    }
+
+    cpp_type ConvertToCpp(abi_type value) noexcept
+    {
+        return value.data == nullptr ? cpp_type{} : cpp_type(value.data, value.data + value.size);
+    }
+};
+
+template <>
+struct [[sharpcpp::managed_type(
     public_type = "Vector2f",
     managed_marshaller = "global::RedBolt.Math.Vector2fMarshaller",
     suppress_emission = true

@@ -224,11 +224,11 @@ sealed class InverseKinematicsApplication : Application
     private static void DrawInstructions()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Inverse Kinematics\0"u8, ref windowOpen,
+        if (ImGui.Begin("Inverse Kinematics"u8, ref windowOpen,
             ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            ImGui.TextUnformatted("Drag the joint spheres with the left mouse button\0"u8);
-            ImGui.TextUnformatted("Use WASD and the right mouse button to move the camera\0"u8);
+            ImGui.TextUnformatted("Drag the joint spheres with the left mouse button"u8);
+            ImGui.TextUnformatted("Use WASD and the right mouse button to move the camera"u8);
         }
         ImGui.End();
     }

@@ -289,13 +289,13 @@ sealed class InputLoggerApplication : Application
 
     private void AddLine(string value)
     {
-        _displayLines.Add(Encoding.UTF8.GetBytes(value + "\0"));
+        _displayLines.Add(Encoding.UTF8.GetBytes(value));
     }
 
     private void Draw()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Input Logger\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        if (ImGui.Begin("Input Logger"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             foreach (var line in _displayLines)
                 ImGui.TextUnformatted(line);

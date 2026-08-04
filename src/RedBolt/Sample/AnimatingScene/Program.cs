@@ -197,8 +197,8 @@ public class AnimatingScene : Application
     {
         _instructionLine.FormatInPlace("Use WASD keys and mouse/touch to move");
         var windowOpen = true;
-        if (ImGui.Begin("Animating Scene\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
-            ImGui.TextUnformatted(_instructionLine.Bytes);
+        if (ImGui.Begin("Animating Scene"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+            ImGui.TextUnformatted(_instructionLine.ContentBytes);
         ImGui.End();
     }
 

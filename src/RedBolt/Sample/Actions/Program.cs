@@ -336,34 +336,34 @@ sealed class ActionsApplication : Application
         ImGui.SetNextWindowPos(new Vector2f(16.0f, 16.0f), ImGuiCond.ImGuiCondAlways);
         ImGui.SetNextWindowSize(new Vector2f(385.0f, 680.0f), ImGuiCond.ImGuiCondAlways);
         var windowOpen = true;
-        if (ImGui.Begin("Action System Lab\0"u8, ref windowOpen,
+        if (ImGui.Begin("Action System Lab"u8, ref windowOpen,
             ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            ImGui.TextUnformatted("27 live targets: sequencing, parallelism, easing,\nattributes, shaders, typed events, repeats, and removal.\0"u8);
+            ImGui.TextUnformatted("27 live targets: sequencing, parallelism, easing,\nattributes, shaders, typed events, repeats, and removal."u8);
             ImGui.Separator();
-            if (ImGui.Button("Run all\0"u8))
+            if (ImGui.Button("Run all"u8))
                 RunAll();
             ImGui.SameLine();
-            if (ImGui.Button("Cancel all\0"u8))
+            if (ImGui.Button("Cancel all"u8))
             {
                 _actionManager!.CancelAllActions();
                 _status.FormatInPlace("All actions canceled");
             }
             ImGui.SameLine();
-            if (ImGui.Button("Complete all\0"u8))
+            if (ImGui.Button("Complete all"u8))
             {
                 _actionManager!.CompleteAllActions();
                 _status.FormatInPlace("All finite actions completed");
             }
 
-            ImGui.TextUnformatted(_running.Bytes);
-            ImGui.TextUnformatted(_status.Bytes);
+            ImGui.TextUnformatted(_running.ContentBytes);
+            ImGui.TextUnformatted(_status.ContentBytes);
             ImGui.Separator();
-            ImGui.TextUnformatted("Click a track to reset and run it alone:\0"u8);
+            ImGui.TextUnformatted("Click a track to reset and run it alone:"u8);
 
             for (var i = 0; i < _markers.Count; ++i)
             {
-                if (ImGui.Button(_markers[i].Label.Bytes))
+                if (ImGui.Button(_markers[i].Label.ContentBytes))
                     Run(_markers[i]);
                 if (i % 2 == 0)
                     ImGui.SameLine();

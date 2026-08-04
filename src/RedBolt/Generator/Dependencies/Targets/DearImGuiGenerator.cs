@@ -45,6 +45,16 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
     {
         foreach (var function in compilation.Functions)
         {
+            if (function.NativeName is "GetID" or "PushID" or "TreePush" &&
+                function.Parameters.Count > 0 &&
+                function.Parameters[0].Type.CppTypeName == "const char*")
+            {
+                function.SetSilentExclusionReason("const char* compatibility shim duplicates the ImStrv binding");
+            }
+        }
+
+        foreach (var function in compilation.Functions)
+        {
             if (function.NativeName is not ("InputText" or "InputTextMultiline" or "InputTextWithHint"))
                 continue;
 

@@ -249,6 +249,28 @@ file(CONFIGURE OUTPUT "${REDBOLT_IMGUI_PARSE_SOURCE}" CONTENT [=[
 #define IMGUI_IMPL_API IMGUI_API
 #include <imgui_impl_sdl2.h>
 #include <RedBolt/ImGuiBackend.hpp>
+
+namespace ImGui
+{
+#define REDBOLT_IMGUI_TEXT_ARGS(text) "%.*s", ((text) ? (text).length() : 0), ((text) ? (text).Begin : "")
+inline void Text(ImStrv text) { Text(REDBOLT_IMGUI_TEXT_ARGS(text)); }
+inline void TextColored(const ImVec4& color, ImStrv text) { TextColored(color, REDBOLT_IMGUI_TEXT_ARGS(text)); }
+inline void TextDisabled(ImStrv text) { TextDisabled(REDBOLT_IMGUI_TEXT_ARGS(text)); }
+inline void TextWrapped(ImStrv text) { TextWrapped(REDBOLT_IMGUI_TEXT_ARGS(text)); }
+inline void LabelText(ImStrv label, ImStrv text) { LabelText(label, REDBOLT_IMGUI_TEXT_ARGS(text)); }
+inline void BulletText(ImStrv text) { BulletText(REDBOLT_IMGUI_TEXT_ARGS(text)); }
+inline bool TreeNode(ImStrv id, ImStrv text) { return TreeNode(id, REDBOLT_IMGUI_TEXT_ARGS(text)); }
+inline bool TreeNode(const void* id, ImStrv text) { return TreeNode(id, REDBOLT_IMGUI_TEXT_ARGS(text)); }
+inline bool TreeNodeEx(ImStrv id, ImGuiTreeNodeFlags flags, ImStrv text) { return TreeNodeEx(id, flags, REDBOLT_IMGUI_TEXT_ARGS(text)); }
+inline bool TreeNodeEx(const void* id, ImGuiTreeNodeFlags flags, ImStrv text) { return TreeNodeEx(id, flags, REDBOLT_IMGUI_TEXT_ARGS(text)); }
+inline void SetTooltip(ImStrv text) { SetTooltip(REDBOLT_IMGUI_TEXT_ARGS(text)); }
+inline void SetItemTooltip(ImStrv text) { SetItemTooltip(REDBOLT_IMGUI_TEXT_ARGS(text)); }
+inline void LogText(ImStrv text) { LogText(REDBOLT_IMGUI_TEXT_ARGS(text)); }
+#ifndef IMGUI_DISABLE_DEBUG_TOOLS
+inline void DebugLog(ImStrv text) { DebugLog(REDBOLT_IMGUI_TEXT_ARGS(text)); }
+#endif
+#undef REDBOLT_IMGUI_TEXT_ARGS
+}
 ]=] @ONLY)
 
 set(REDBOLT_SDL_OWNED_HEADERS "${REDBOLT_SDL_BUILD_INCLUDE_DIR};${REDBOLT_SDL_IMAGE_HEADER}" CACHE INTERNAL "SDL owned headers")

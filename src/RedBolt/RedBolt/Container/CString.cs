@@ -33,7 +33,6 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, ICloneab
     }
     private Span<byte> WritableStorage => GetStorage();
     private ReadOnlySpan<byte> Storage => GetStorage();
-    private ReadOnlySpan<byte> ContentBytes => Storage[.._byteLength];
     private ReadOnlySpan<byte> TerminatedBytes => Storage[..(_byteLength + 1)];
 
     public static CString Empty { get; } = new(string.Empty);
@@ -65,6 +64,8 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, ICloneab
     }
 
     public ReadOnlySpan<byte> Bytes => TerminatedBytes;
+
+    public ReadOnlySpan<byte> ContentBytes => Storage[.._byteLength];
 
     public int Length => Utf8.GetCharCount(ContentBytes);
 

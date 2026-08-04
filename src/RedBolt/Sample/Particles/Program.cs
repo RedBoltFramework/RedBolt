@@ -167,11 +167,11 @@ sealed class ParticlesApplication : Application
     private static void DrawInstructions()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Particle Vortex\0"u8, ref windowOpen,
+        if (ImGui.Begin("Particle Vortex"u8, ref windowOpen,
             ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            ImGui.TextUnformatted("Fire, smoke, sparks, and color in one scene\0"u8);
-            ImGui.TextUnformatted("Use WASD keys and the right mouse button to move\0"u8);
+            ImGui.TextUnformatted("Fire, smoke, sparks, and color in one scene"u8);
+            ImGui.TextUnformatted("Use WASD keys and the right mouse button to move"u8);
         }
         ImGui.End();
     }

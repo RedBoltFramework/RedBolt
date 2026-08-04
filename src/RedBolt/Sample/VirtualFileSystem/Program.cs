@@ -305,6 +305,6 @@ sealed class VirtualFileSystemApplication : Application
 
     private static byte[] ToUtf8(string value)
     {
-        return Encoding.UTF8.GetBytes(value + "\0");
+        return Encoding.UTF8.GetBytes(value);
     }
 }

@@ -189,11 +189,11 @@ public class TextureFormatsSample : Application
     private static void DrawInstructions()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Texture Formats\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        if (ImGui.Begin("Texture Formats"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            ImGui.TextUnformatted("Supported on Software: left\0"u8);
-            ImGui.TextUnformatted("Supported on Hardware: right\0"u8);
-            ImGui.TextUnformatted("Use WASD keys and right mouse button to move\0"u8);
+            ImGui.TextUnformatted("Supported on Software: left"u8);
+            ImGui.TextUnformatted("Supported on Hardware: right"u8);
+            ImGui.TextUnformatted("Use WASD keys and right mouse button to move"u8);
         }
         ImGui.End();
     }

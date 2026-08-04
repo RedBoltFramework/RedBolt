@@ -261,10 +261,10 @@ public class MultipleViewports : Application
     private void DrawInstructions()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Multiple Viewports\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        if (ImGui.Begin("Multiple Viewports"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            ImGui.TextUnformatted("Use WASD keys and mouse/touch to move\nB to toggle bloom, F to toggle FXAA\nSpace to toggle debug geometry\0"u8);
-            if (ImGui.Button(_drawDebug ? "Debug geometry: On\0"u8 : "Debug geometry: Off\0"u8))
+            ImGui.TextUnformatted("Use WASD keys and mouse/touch to move\nB to toggle bloom, F to toggle FXAA\nSpace to toggle debug geometry"u8);
+            if (ImGui.Button(_drawDebug ? "Debug geometry: On"u8 : "Debug geometry: Off"u8))
                 _drawDebug = !_drawDebug;
         }
         ImGui.End();

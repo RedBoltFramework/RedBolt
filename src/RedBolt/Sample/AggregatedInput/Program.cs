@@ -111,14 +111,14 @@ sealed class AggregatedInputApplication : Application
 
     private void AddFilteredEvent(string str)
     {
-        _filteredEvents.Add(Encoding.UTF8.GetBytes(str + "\0"));
+        _filteredEvents.Add(Encoding.UTF8.GetBytes(str));
         if (_filteredEvents.Count > 32)
             _filteredEvents.RemoveAt(0);
     }
 
     private void AddRawEvent(string str)
     {
-        _rawEvents.Add(Encoding.UTF8.GetBytes(str + "\0"));
+        _rawEvents.Add(Encoding.UTF8.GetBytes(str));
         if (_rawEvents.Count > 32)
             _rawEvents.RemoveAt(0);
     }
@@ -212,9 +212,9 @@ sealed class AggregatedInputApplication : Application
     private void Draw()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Aggregated Input\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        if (ImGui.Begin("Aggregated Input"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            ImGui.TextUnformatted("Move marker around with keyboard, joystick or touch\0"u8);
+            ImGui.TextUnformatted("Move marker around with keyboard, joystick or touch"u8);
             ImGui.TextUnformatted(_directionText.AsSpan(0, _directionTextLength));
 
             var up = _dpadInput!.GetScancodeDown(Scancode.Up);
@@ -222,26 +222,26 @@ sealed class AggregatedInputApplication : Application
             var left = _dpadInput.GetScancodeDown(Scancode.Left);
             var right = _dpadInput.GetScancodeDown(Scancode.Right);
             if (!up && !down && !left && !right)
-                ImGui.TextUnformatted("DPad: none\0"u8);
+                ImGui.TextUnformatted("DPad: none"u8);
             else
             {
                 if (up)
-                    ImGui.TextUnformatted("DPad: Up\0"u8);
+                    ImGui.TextUnformatted("DPad: Up"u8);
                 if (down)
-                    ImGui.TextUnformatted("DPad: Down\0"u8);
+                    ImGui.TextUnformatted("DPad: Down"u8);
                 if (left)
-                    ImGui.TextUnformatted("DPad: Left\0"u8);
+                    ImGui.TextUnformatted("DPad: Left"u8);
                 if (right)
-                    ImGui.TextUnformatted("DPad: Right\0"u8);
+                    ImGui.TextUnformatted("DPad: Right"u8);
             }
 
             ImGui.Separator();
-            ImGui.TextUnformatted("Input events:\0"u8);
+            ImGui.TextUnformatted("Input events:"u8);
             for (var i = _rawEvents.Count - 1; i >= 0; --i)
                 ImGui.TextUnformatted(_rawEvents[i]);
 
             ImGui.Separator();
-            ImGui.TextUnformatted("Filtered events:\0"u8);
+            ImGui.TextUnformatted("Filtered events:"u8);
             for (var i = _filteredEvents.Count - 1; i >= 0; --i)
                 ImGui.TextUnformatted(_filteredEvents[i]);
         }

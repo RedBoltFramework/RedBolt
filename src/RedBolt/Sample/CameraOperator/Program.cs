@@ -122,14 +122,14 @@ sealed class CameraOperatorSampleApplication : Application
     private void DrawInstructions()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Camera Operator\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        if (ImGui.Begin("Camera Operator"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            ImGui.TextUnformatted("Right click to rotate camera\0"u8);
-            if (ImGui.Checkbox("Track Cube A\0"u8, ref _trackCubeA))
+            ImGui.TextUnformatted("Right click to rotate camera"u8);
+            if (ImGui.Checkbox("Track Cube A"u8, ref _trackCubeA))
                 TrackCubeAToggled(_trackCubeA);
-            if (ImGui.Checkbox("Track Cube B\0"u8, ref _trackCubeB))
+            if (ImGui.Checkbox("Track Cube B"u8, ref _trackCubeB))
                 TrackCubeBToggled(_trackCubeB);
-            if (ImGui.Checkbox("Orthographic\0"u8, ref _orthographic))
+            if (ImGui.Checkbox("Orthographic"u8, ref _orthographic))
                 OrthographicToggled(_orthographic);
         }
         ImGui.End();

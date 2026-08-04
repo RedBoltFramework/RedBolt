@@ -161,8 +161,8 @@ public class PhysicsSample : Application
     private static void DrawInstructions()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Physics\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
-            ImGui.TextUnformatted("WASD + mouse: move camera\nLeft mouse button: throw a box\nEscape: exit\0"u8);
+        if (ImGui.Begin("Physics"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+            ImGui.TextUnformatted("WASD + mouse: move camera\nLeft mouse button: throw a box\nEscape: exit"u8);
         ImGui.End();
     }
 

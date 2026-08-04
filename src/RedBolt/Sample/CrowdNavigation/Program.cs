@@ -408,12 +408,12 @@ public sealed class CrowdNavigationSample : Application
         if (!_showInstructions)
             return;
         var open = true;
-        if (ImGui.Begin("Crowd Navigation\0"u8, ref open, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        if (ImGui.Begin("Crowd Navigation"u8, ref open, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            ImGui.TextUnformatted("Use WASD keys to move, RMB to rotate view\0"u8);
-            ImGui.TextUnformatted("LMB sets destination, SHIFT+LMB spawns a Jack\0"u8);
-            ImGui.TextUnformatted("MMB or O adds/removes obstacles or agents\0"u8);
-            ImGui.TextUnformatted("Tab toggles streaming; Space toggles debug; F12 toggles help\0"u8);
+            ImGui.TextUnformatted("Use WASD keys to move, RMB to rotate view"u8);
+            ImGui.TextUnformatted("LMB sets destination, SHIFT+LMB spawns a Jack"u8);
+            ImGui.TextUnformatted("MMB or O adds/removes obstacles or agents"u8);
+            ImGui.TextUnformatted("Tab toggles streaming; Space toggles debug; F12 toggles help"u8);
         }
         ImGui.End();
     }

@@ -178,8 +178,8 @@ public class StaticScene : Application
     private void DrawInstructions()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Static Scene\0"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
-            ImGui.TextUnformatted("Use WASD keys and mouse/touch to move\0"u8);
+        if (ImGui.Begin("Static Scene"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+            ImGui.TextUnformatted("Use WASD keys and mouse/touch to move"u8);
         ImGui.End();
     }
 
