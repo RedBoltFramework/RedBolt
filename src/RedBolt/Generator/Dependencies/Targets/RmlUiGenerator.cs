@@ -203,25 +203,6 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
 
         var element = compilation.Records.First(static record =>
             record.CppQualifiedName == "Rml::Element");
-        var dispatchEvent = element.Members.OfType<FunctionBinding>().First(static method =>
-            method.NativeName == "DispatchEvent" &&
-            method.Parameters.Count == 2 &&
-            method.Parameters[0].CppTypeName == "const Rml::String&");
-        var dictionaryTypeArguments = dispatchEvent.Parameters[1].Type.GenericArguments
-            .Select(BindingTypeKey.From)
-            .ToArray();
-        var unorderedMap = compilation.Records.First(static record =>
-            record.CppQualifiedName == "std::unordered_map");
-        for (var index = unorderedMap.SupportedGenericInstantiations.Count - 1; index >= 0; --index)
-        {
-            var typeArguments = unorderedMap.SupportedGenericInstantiations[index].TypeArguments
-                .Select(BindingTypeKey.From);
-            if (typeArguments.SequenceEqual(dictionaryTypeArguments))
-            {
-                continue;
-            }
-            unorderedMap.SupportedGenericInstantiations.RemoveAt(index);
-        }
         element.Bases.Clear();
         element.ManagedBaseTypeName = null;
         foreach (var method in element.Members.OfType<FunctionBinding>())
