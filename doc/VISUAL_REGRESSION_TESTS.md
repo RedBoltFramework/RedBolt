@@ -16,9 +16,9 @@ creating hundreds of nearly identical tests.
 - [x] Hidden native-resolution OpenGL capture; no downsampling.
 - [x] PNG references, actual captures, amplified difference images, and
   side-by-side `<reference>_shot.png` failure captures.
-- [x] `scripts/update_visual_references.sh` updates all matching shots.
-- [x] `scripts/run_visual_tests_offscreen.sh` runs the suite through a hidden
-  Xvfb/llvmpipe session without root.
+- [x] `../RedBolt.Tests/scripts/update_visual_references.sh` updates all matching shots.
+- [x] `../RedBolt.Tests/scripts/run_tests.sh` runs the suite on an available
+  desktop display or through a hidden Xvfb/llvmpipe session without root.
 - [x] `Mushroom_model_renders_with_zone_ambient_lighting`: one real model,
   no `Light` component, zone ambient lighting only.
 - [x] Reusable scene/capture fixture with per-test dimensions, thresholds,
@@ -511,11 +511,13 @@ test harness rather than a relaxed comparison threshold.
 
 ## Running and updating references
 
-Run against the checked-in references in a rootless software-rendered session
-so failure shots are beside the files that the updater will replace:
+From the RedBolt repository root, run against the checked-in references. The
+runner uses an available desktop display, or a rootless software-rendered
+session when no desktop display is available, so failure shots are beside the
+files that the updater will replace:
 
 ```bash
-scripts/run_visual_tests_offscreen.sh \
+../RedBolt.Tests/scripts/run_tests.sh \
   --filter FullyQualifiedName~VisualRegression \
   --logger "console;verbosity=minimal"
 ```
@@ -528,7 +530,7 @@ are additionally written to `/tmp/RedBoltVisualRegression` by default. Set
 To update all references from reviewed shots, run:
 
 ```bash
-bash scripts/update_visual_references.sh
+bash ../RedBolt.Tests/scripts/update_visual_references.sh
 ```
 
 The script searches the checked-in reference directory recursively, copies
