@@ -59,7 +59,8 @@ set(REDBOLT_DILIGENT_INCLUDE_DIRS
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsAccessories/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineOpenGL/interface"
-    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/HLSL2GLSLConverterLib/interface")
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/HLSL2GLSLConverterLib/interface"
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/glew/include")
 
 if(EMSCRIPTEN)
     list(APPEND REDBOLT_DILIGENT_INCLUDE_DIRS
@@ -88,6 +89,7 @@ set(REDBOLT_DILIGENT_BINDING_DEFINES
     ${_redbolt_graphics_defines}
     "METAL_SUPPORTED=0"
     "DILIGENT_NO_HLSL=1"
+    "GLEW_NO_GLU=1"
     CACHE INTERNAL "Diligent compile definitions used by RedBolt SharpCpp generation")
 
 add_library(redbolt-diligent-headers INTERFACE)

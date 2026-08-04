@@ -168,7 +168,7 @@ public class RawBuffer : DeviceObject
                 }
                 else
                 {
-                    immediateContext.UpdateBuffer(_handle!, checked((ulong)offset), checked((ulong)size),
+                    immediateContext.UpdateBuffer(_handle!, checked((nuint)offset), checked((nuint)size),
                         (IntPtr)dataPointer, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
                 }
             }
@@ -383,7 +383,7 @@ public class RawBuffer : DeviceObject
             Usage = (_parameters.Flags & BufferFlag.Immutable) != 0 ? Usage.UsageImmutable : Usage.UsageDefault,
             CPUAccessFlags = CpuAccessFlags.CpuAccessNone,
             Mode = BufferMode.BufferModeUndefined,
-            Size = checked((ulong)_parameters.Size),
+            Size = checked((nuint)_parameters.Size),
             ElementByteStride = checked((uint)_parameters.Stride)
         };
 
@@ -408,7 +408,7 @@ public class RawBuffer : DeviceObject
         {
             fixed (byte* dataPointer = data)
             {
-                using var bufferData = new BufferData((IntPtr)dataPointer, checked((ulong)_parameters.Size), immediateContext);
+                using var bufferData = new BufferData((IntPtr)dataPointer, checked((nuint)_parameters.Size), immediateContext);
                 device.CreateBuffer(bufferDesc, bufferData, out _handle);
             }
         }

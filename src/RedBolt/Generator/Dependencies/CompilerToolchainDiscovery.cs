@@ -16,10 +16,10 @@ internal static class CompilerToolchainDiscovery
         if (string.IsNullOrWhiteSpace(compilerPath))
             return new CompilerToolchainInfo(Array.Empty<string>(), null, null, null, null);
 
-        var toolchainClangCompilerPath = ResolveToolchainCompiler(compilerPath);
-        var targetTriple = DiscoverTargetTriple(compilerPath);
         var parserClangMajorVersion = DiscoverParserClangMajorVersion();
-        var includeDirectories = DiscoverVerboseSearchPaths(compilerPath, targetTriple);
+        var toolchainClangCompilerPath = ResolveToolchainCompiler(compilerPath, parserClangMajorVersion);
+        var targetTriple = DiscoverTargetTriple(compilerPath);
+        var includeDirectories = DiscoverVerboseSearchPaths(toolchainClangCompilerPath, targetTriple);
         var clangResourceDirectory = DiscoverClangResourceDirectoryOverride();
         var usesResourceDirectoryOverride = clangResourceDirectory is not null;
 
@@ -50,12 +50,20 @@ internal static class CompilerToolchainDiscovery
             ignoredClangResourceDirectory);
     }
 
-    private static string ResolveToolchainCompiler(string compilerPath)
+    private static string ResolveToolchainCompiler(string compilerPath, int? parserClangMajorVersion)
     {
         if (LooksLikeClangCompiler(compilerPath))
             return compilerPath;
 
-        foreach (var candidate in new[] { "clang++", "clang" })
+        var candidates = new List<string>();
+        if (parserClangMajorVersion is int majorVersion)
+            candidates.Add($"clang++-{majorVersion}");
+        candidates.Add("clang++");
+        if (parserClangMajorVersion is int clangMajorVersion)
+            candidates.Add($"clang-{clangMajorVersion}");
+        candidates.Add("clang");
+
+        foreach (var candidate in candidates.Distinct(StringComparer.Ordinal))
         {
             if (CommandExists(candidate))
                 return candidate;

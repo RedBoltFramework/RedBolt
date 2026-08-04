@@ -14,8 +14,8 @@ function(redbolt_add_native_binding_generation)
     set(generator_log "${ARG_OUTPUT_DIR}/${ARG_FILE_STEM}.log")
 
     # Keep the ClangSharp parser's include search path aligned with the native
-    # compiler. This matters for user-local sysroots (for example X11 headers
-    # installed under ~/.local) that are supplied through CMAKE_CXX_FLAGS.
+    # compiler. This matters for custom sysroots and include directories that
+    # are supplied through CMAKE_CXX_FLAGS.
     set(compiler_flag_include_dirs)
     separate_arguments(compiler_flags NATIVE_COMMAND "${CMAKE_CXX_FLAGS}")
     list(LENGTH compiler_flags compiler_flag_count)
@@ -44,7 +44,7 @@ function(redbolt_add_native_binding_generation)
     endwhile()
 
     set(include_args)
-    foreach(include_dir IN LISTS REDBOLT_BINDING_INCLUDE_DIRS ARG_INCLUDE_DIRS compiler_flag_include_dirs CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES)
+    foreach(include_dir IN LISTS REDBOLT_BINDING_INCLUDE_DIRS ARG_INCLUDE_DIRS compiler_flag_include_dirs)
         if(NOT include_dir STREQUAL "")
             list(APPEND include_args --include "${include_dir}")
         endif()

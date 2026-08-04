@@ -79,7 +79,7 @@ public class DrawCommandQueue
         public readonly List<IBuffer?> UniformBuffers = [];
         public readonly List<ITextureView?> ShaderResourceViews = [];
         public readonly IBuffer?[] VertexBufferHandles = new IBuffer?[RenderApiLimits.MaxVertexStreams];
-        public readonly ulong[] VertexBufferOffsets = new ulong[RenderApiLimits.MaxVertexStreams];
+        public readonly nuint[] VertexBufferOffsets = new nuint[RenderApiLimits.MaxVertexStreams];
 
         public Temporary()
         {
@@ -575,7 +575,7 @@ public class DrawCommandQueue
 
                     _temp.VertexBufferHandles[i] = vertexBuffer.GetHandle();
                     _temp.VertexBufferOffsets[i] = needInstanceOffset
-                        ? checked((ulong)cmd.InstanceStart * (ulong)vertexBuffer.GetStride())
+                        ? checked((nuint)cmd.InstanceStart * (nuint)vertexBuffer.GetStride())
                         : 0;
                 }
 

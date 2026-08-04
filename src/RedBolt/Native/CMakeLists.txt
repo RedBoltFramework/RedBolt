@@ -7,6 +7,8 @@ target_link_libraries(redbolt-native-support INTERFACE
 
 add_library(redbolt-diligent-support STATIC
     src/DiligentSupport.cpp)
+target_compile_definitions(redbolt-diligent-support PRIVATE
+    GLEW_NO_GLU)
 target_link_libraries(redbolt-diligent-support
     PUBLIC
         redbolt-native-support
@@ -14,7 +16,8 @@ target_link_libraries(redbolt-diligent-support
         SDL2::SDL2
         ${REDBOLT_GLEW_TARGET})
 target_include_directories(redbolt-diligent-support PRIVATE
-    "${CMAKE_SOURCE_DIR}/extern/Diligent/Graphics/GraphicsEngine/include")
+    "${CMAKE_SOURCE_DIR}/extern/Diligent/Graphics/GraphicsEngine/include"
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/glew/include")
 set_target_properties(redbolt-diligent-support PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
 

@@ -49,8 +49,7 @@ internal abstract class BindingTargetGenerator(
         "-mno-avx512cd",
         "-mno-avx512dq",
         "-mno-avx512vl",
-        "-U__SSE__",
-        "-U__x86_64__"
+        "-U__SSE__"
     ];
 
     private static readonly string[] ParseWarningDisableArguments =

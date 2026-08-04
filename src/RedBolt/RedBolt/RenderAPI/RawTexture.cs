@@ -476,8 +476,8 @@ public class RawTexture : DeviceObject
                 }
 
                 _updateSubresource.PData = (nint)uploadData;
-                _updateSubresource.Stride = checked((ulong)rowStride);
-                _updateSubresource.DepthStride = checked((ulong)sliceStride);
+                _updateSubresource.Stride = checked((nuint)rowStride);
+                _updateSubresource.DepthStride = checked((nuint)sliceStride);
                 context.UpdateTexture(_handles.Texture!, checked((uint)level), checked((uint)arraySlice), _updateBox, _updateSubresource,
                     ResourceStateTransitionMode.ResourceStateTransitionModeNone,
                     ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
