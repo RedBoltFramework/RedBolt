@@ -108,7 +108,7 @@ public sealed class GLTFImporter : RedObject
     private TinyGltfModel? _model;
     private ModelView? _modelView;
     private readonly List<ModelView> _modelViews = [];
-    private readonly Dictionary<int, CookedModel> _modelsByMesh = [];
+    private readonly Dictionary<(int Mesh, int Skin), CookedModel> _modelsByMesh = [];
     private readonly Dictionary<string, RedBolt.Graphics.Material> _materialsByName = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _savedResources = new(StringComparer.Ordinal);
     private readonly List<RedBolt.Graphics.Animation> _animations = [];
@@ -255,15 +255,15 @@ public sealed class GLTFImporter : RedObject
                 _modelViews.Add(_modelView);
             }
             var usedModelResourceNames = new HashSet<string>(_savedResources.Keys, StringComparer.Ordinal);
-            foreach (var (meshIndices, modelView, materialList, nameHint) in models)
+            foreach (var (modelPairs, modelView, materialList, nameHint) in models)
             {
                 var localResourceName = CreateUniqueResourceName("Models", nameHint, ".mdl", usedModelResourceNames);
                 var modelResource = modelView.ExportModel(
                     Settings.GpuResources ? ModelViewExportFlag.None : ModelViewExportFlag.Headless,
                     resourceNamePrefix + localResourceName);
                 var importedModel = new CookedModel(modelResource, materialList);
-                foreach (var meshIndex in meshIndices)
-                    _modelsByMesh.Add(meshIndex, importedModel);
+                foreach (var modelPair in modelPairs)
+                    _modelsByMesh.Add(modelPair, importedModel);
                 _modelViews.Add(modelView);
                 _modelView ??= modelView;
                 AddCookedResource(modelResource, outputPath, localResourceName);
@@ -456,7 +456,7 @@ public sealed class GLTFImporter : RedObject
     }
 
     private void ImportPrefabs(TinyGltfModel model, string outputPath, string resourceNamePrefix,
-        IReadOnlyDictionary<int, CookedModel> modelsByMesh)
+        IReadOnlyDictionary<(int Mesh, int Skin), CookedModel> modelsByMesh)
     {
         using var sourceScenes = model.Scenes;
         using var sourceNodes = model.Nodes;
@@ -541,7 +541,7 @@ public sealed class GLTFImporter : RedObject
     }
 
     private void ImportPrefabNode(RedBolt.Scene.Node parent, int nodeIndex, Std.Vector<TinyGltfNode> sourceNodes,
-        IReadOnlyDictionary<int, CookedModel> modelsByMesh, ISet<int> visiting)
+        IReadOnlyDictionary<(int Mesh, int Skin), CookedModel> modelsByMesh, ISet<int> visiting)
     {
         if ((uint)nodeIndex >= (uint)sourceNodes.Count || !visiting.Add(nodeIndex))
             throw new InvalidDataException($"Scene references invalid or cyclic node #{nodeIndex}.");
@@ -550,7 +550,7 @@ public sealed class GLTFImporter : RedObject
         var node = parent.CreateChild(string.IsNullOrEmpty(sourceName.ToString()) ? $"Node_{nodeIndex}" : sourceName.ToString());
         var transform = ReadNodeTransform(source);
         node.SetTransform(ConvertScenePosition(transform.Position), ConvertSceneRotation(transform.Rotation), transform.Scale);
-        if (modelsByMesh.TryGetValue(source.Mesh, out var importedModel))
+        if (modelsByMesh.TryGetValue((source.Mesh, source.Skin), out var importedModel))
         {
             StaticModel modelComponent = source.Skin < 0 && importedModel.Model.GetNumMorphs() == 0
                 ? node.CreateComponent<StaticModel>()
@@ -1213,32 +1213,68 @@ public sealed class GLTFImporter : RedObject
     private static bool HasMipmaps(int minFilter, int magFilter) => minFilter < 0 || magFilter < 0
         || minFilter is 9984 or 9985 or 9986 or 9987;
 
-    private List<(List<int> MeshIndices, ModelView View, IReadOnlyList<string> Materials, string NameHint)> BuildModelViews(
-        TinyGltfModel model, IReadOnlyList<string> materialNames, IReadOnlyDictionary<int, List<BoneView>> skinBonesByMesh)
+    private List<(List<(int Mesh, int Skin)> ModelPairs, ModelView View, IReadOnlyList<string> Materials, string NameHint)> BuildModelViews(
+        TinyGltfModel model, IReadOnlyList<string> materialNames, IReadOnlyDictionary<int, List<BoneView>> skinBonesByIndex)
     {
         using var meshes = model.Meshes;
-        var meshGroups = new Dictionary<string, List<(int Index, float Distance)>>();
+        using var sourceNodes = model.Nodes;
+        var meshSkinPairs = new HashSet<(int Mesh, int Skin)>();
+        for (var nodeIndex = 0; nodeIndex < sourceNodes.Count; ++nodeIndex)
+        {
+            using var node = sourceNodes[nodeIndex];
+            if (node.Mesh < 0)
+                continue;
+            if ((uint)node.Mesh >= (uint)meshes.Count || node.Skin >= 0 && !skinBonesByIndex.ContainsKey(node.Skin))
+                throw new InvalidDataException("glTF node references an invalid mesh or skin.");
+            meshSkinPairs.Add((node.Mesh, node.Skin));
+        }
         for (var meshIndex = 0; meshIndex < meshes.Count; ++meshIndex)
         {
-            using var mesh = meshes[meshIndex];
+            if (!meshSkinPairs.Any(pair => pair.Mesh == meshIndex))
+                meshSkinPairs.Add((meshIndex, -1));
+        }
+
+        var modelSkinByPair = new Dictionary<(int Mesh, int Skin), int>();
+        foreach (var pair in meshSkinPairs.OrderBy(static pair => pair.Skin < 0).ThenBy(static pair => pair.Mesh)
+                     .ThenBy(static pair => pair.Skin))
+        {
+            var matchingSkin = -1;
+            foreach (var existing in modelSkinByPair.Where(existing => existing.Key.Mesh == pair.Mesh))
+            {
+                if (pair.Skin < 0 || existing.Value >= 0
+                    && AreSkinBonesCompatible(skinBonesByIndex[existing.Value], skinBonesByIndex[pair.Skin]))
+                {
+                    matchingSkin = existing.Value;
+                    break;
+                }
+            }
+            modelSkinByPair.Add(pair, matchingSkin < 0 ? pair.Skin : matchingSkin);
+        }
+
+        var meshGroups = new Dictionary<(string Name, int Skin), List<(int Index, float Distance)>>();
+        foreach (var (pair, skinIndex) in modelSkinByPair)
+        {
+            using var mesh = meshes[pair.Mesh];
             using var name = mesh.Name;
-            var groupName = $"#{meshIndex}";
+            var groupName = $"#{pair.Mesh}";
             var distance = 0.0f;
             if (Settings.CombineLODs && TryParseLodName(name.ToString(), out var baseName, out var lodDistance))
             {
                 groupName = baseName;
                 distance = lodDistance;
             }
-            if (!meshGroups.TryGetValue(groupName, out var group))
+            if (!meshGroups.TryGetValue((groupName, skinIndex), out var group))
             {
                 group = [];
-                meshGroups.Add(groupName, group);
+                meshGroups.Add((groupName, skinIndex), group);
             }
-            group.Add((meshIndex, distance));
+            if (!group.Any(value => value.Index == pair.Mesh))
+                group.Add((pair.Mesh, distance));
         }
 
-        var result = new List<(List<int>, ModelView, IReadOnlyList<string>, string)>();
-        foreach (var (groupName, group) in meshGroups)
+        var result = new List<(List<(int Mesh, int Skin)>, ModelView, IReadOnlyList<string>, string)>();
+        foreach (var ((groupName, skinIndex), group) in meshGroups.OrderBy(static pair => pair.Key.Name)
+                     .ThenBy(static pair => pair.Key.Skin))
         {
             group.Sort(static (left, right) => left.Distance.CompareTo(right.Distance));
             var lodsByGeometry = new List<List<GeometryLODView>>();
@@ -1289,14 +1325,8 @@ public sealed class GLTFImporter : RedObject
                 Lods = lods,
                 Material = materialsByGeometry[index]
             }).ToList());
-            var bones = group.Where(value => skinBonesByMesh.ContainsKey(value.Index))
-                .Select(value => skinBonesByMesh[value.Index]).ToList();
-            if (bones.Count != 0)
-            {
-                if (bones.Skip(1).Any(candidate => !candidate.SequenceEqual(bones[0])))
-                    throw new InvalidDataException("glTF LOD meshes use incompatible skins.");
-                view.SetBones(bones[0]);
-            }
+            if (skinIndex >= 0)
+                view.SetBones(skinBonesByIndex[skinIndex]);
             if (Settings.MirrorX)
                 view.MirrorGeometriesX();
             if (Settings.Scale != 1.0f)
@@ -1304,7 +1334,10 @@ public sealed class GLTFImporter : RedObject
             view.CalculateMissingNormals(flatNormals: true);
             view.CalculateMissingTangents();
             view.Normalize();
-            result.Add(([.. group.Select(value => value.Index)], view, materialsByGeometry,
+            var modelPairs = modelSkinByPair.Where(pair => pair.Value == skinIndex
+                    && group.Any(mesh => mesh.Index == pair.Key.Mesh))
+                .Select(static pair => pair.Key).ToList();
+            result.Add((modelPairs, view, materialsByGeometry,
                 groupName.StartsWith('#') ? Settings.AssetName : groupName));
         }
         return result;
@@ -1335,11 +1368,10 @@ public sealed class GLTFImporter : RedObject
                 continue;
             if (meshNode.Mesh < 0 || (uint)meshNode.Skin >= (uint)skins.Count)
                 throw new InvalidDataException("glTF skinned node references an invalid mesh or skin.");
+            if (result.ContainsKey(meshNode.Skin))
+                continue;
             using var skin = skins[meshNode.Skin];
-            var bones = BuildSkinBones(model, sourceNodes, parents, skin);
-            if (result.TryGetValue(meshNode.Mesh, out var existing) && !AreSkinBonesCompatible(existing, bones))
-                throw new InvalidDataException("glTF mesh is used with incompatible skins.");
-            result[meshNode.Mesh] = bones;
+            result.Add(meshNode.Skin, BuildSkinBones(model, sourceNodes, parents, skin));
         }
         return result;
     }
