@@ -13,6 +13,7 @@ using RedBolt.RenderAPI;
 using TinyGltfModel = RedBolt.Bindings.TinyGltf.Model;
 using TinyGltfPrimitive = RedBolt.Bindings.TinyGltf.Primitive;
 using TinyGltfAccessor = RedBolt.Bindings.TinyGltf.Accessor;
+using GraphicsModel = RedBolt.Graphics.Model;
 
 /// <summary>Options controlling glTF import.</summary>
 public sealed class GLTFImporterSettings : IArchiveSerializable
@@ -100,6 +101,8 @@ public sealed class GLTFImporter : RedObject
 
     private TinyGltfModel? _model;
     private ModelView? _modelView;
+    private GraphicsModel? _modelResource;
+    private readonly Dictionary<string, string> _savedResources = new(StringComparer.Ordinal);
     private bool _processed;
 
     public GLTFImporter(GLTFImporterSettings settings)
@@ -113,7 +116,7 @@ public sealed class GLTFImporter : RedObject
     public string LastWarning { get; private set; } = string.Empty;
     public TinyGltfModel? SourceModel => _model;
     public ModelView? ImportedModel => _modelView;
-    public IReadOnlyDictionary<string, string> SavedResources { get; } = new Dictionary<string, string>();
+    public IReadOnlyDictionary<string, string> SavedResources => _savedResources;
 
     /// <summary>Load a primary glTF or GLB file. A source model can only be loaded once.</summary>
     public bool LoadFile(string fileName)
@@ -220,9 +223,15 @@ public sealed class GLTFImporter : RedObject
         try
         {
             var modelView = BuildModelView(_model);
+            var localResourceName = $"Models/{SanitizeResourceName(Settings.AssetName, "Model")}.mdl";
+            var resourceName = resourceNamePrefix + localResourceName;
+            var modelResource = modelView.ExportModel(
+                Settings.GpuResources ? ModelViewExportFlag.None : ModelViewExportFlag.Headless, resourceName);
+            _savedResources[resourceName] = Path.Combine(outputPath, localResourceName);
             _model.Dispose();
             _model = null;
             _modelView = modelView;
+            _modelResource = modelResource;
             _processed = true;
             callback?.OnModelLoaded(modelView);
             return true;
@@ -233,8 +242,23 @@ public sealed class GLTFImporter : RedObject
         }
     }
 
-    /// <summary>Static mesh conversion does not create files; generated resources are immediately available from <see cref="ImportedModel"/>.</summary>
-    public bool SaveResources() => _processed || Fail("Imported assets weren't cooked.");
+    /// <summary>Save cooked model resources to the output paths provided to <see cref="Process"/>.</summary>
+    public bool SaveResources()
+    {
+        if (!_processed || _modelResource is null)
+            return Fail("Imported assets weren't cooked.");
+
+        foreach (var (resourceName, fileName) in _savedResources)
+        {
+            var directory = Path.GetDirectoryName(fileName);
+            if (!string.IsNullOrEmpty(directory))
+                Directory.CreateDirectory(directory);
+            using var file = new File(fileName, FileMode.Write);
+            if (!file.IsOpen || !_modelResource.Save(file))
+                return Fail($"Failed to save imported resource '{resourceName}'.");
+        }
+        return true;
+    }
 
     public Transform ConvertTransform(Transform sourceTransform)
     {
@@ -255,6 +279,8 @@ public sealed class GLTFImporter : RedObject
     {
         _modelView?.Dispose();
         _modelView = null;
+        _modelResource?.Dispose();
+        _modelResource = null;
         _model?.Dispose();
         _model = null;
         base.Dispose();
@@ -608,6 +634,12 @@ public sealed class GLTFImporter : RedObject
             HighRenderQuality = source.Preview.HighRenderQuality
         }
     };
+
+    private static string SanitizeResourceName(string value, string fallback)
+    {
+        var result = string.Concat(value.Select(character => char.IsLetterOrDigit(character) || character is '_' or '-' ? character : '_'));
+        return string.IsNullOrWhiteSpace(result) ? fallback : result;
+    }
 
     private void RenameNodes(TinyGltfModel model)
     {
