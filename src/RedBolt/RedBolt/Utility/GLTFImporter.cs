@@ -225,13 +225,17 @@ public sealed class GLTFImporter : RedObject
         using var nativeFileName = new Std.String(fileName);
         using var secondaryModel = new TinyGltfModel();
         ConfigureImageLoader(loader);
-        var loaded = string.Equals(Path.GetExtension(fileName), ".glb", StringComparison.OrdinalIgnoreCase)
+        var extension = Path.GetExtension(fileName);
+        var loaded = string.Equals(extension, ".glb", StringComparison.OrdinalIgnoreCase)
             ? loader.LoadBinaryFromFile(secondaryModel, error, warning, nativeFileName)
-            : loader.LoadASCIIFromFile(secondaryModel, error, warning, nativeFileName);
+            : string.Equals(extension, ".gltf", StringComparison.OrdinalIgnoreCase)
+                ? loader.LoadASCIIFromFile(secondaryModel, error, warning, nativeFileName)
+                : false;
         LastWarning = warning.ToString();
         if (!loaded)
-            return Fail(error.ToString());
+            return Fail(string.IsNullOrEmpty(error.ToString()) ? $"Unknown glTF file extension '{extension}'." : error.ToString());
 
+        ValidateExtensions(secondaryModel);
         RenameNodes(secondaryModel);
         MergeModels(_model, secondaryModel, Settings.KeepNamesOnMerge ? null : assetName);
         return true;
