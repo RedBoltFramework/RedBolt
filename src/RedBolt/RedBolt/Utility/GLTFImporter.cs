@@ -815,10 +815,7 @@ public sealed class GLTFImporter : RedObject
 
     private void CreateAnimationTrack(RedBolt.Graphics.Animation animation, string name, TransformTrackSource source)
     {
-        var times = new SortedSet<float>();
-        source.Position?.Times.ForEach(time => times.Add(time));
-        source.Rotation?.Times.ForEach(time => times.Add(time));
-        source.Scale?.Times.ForEach(time => times.Add(time));
+        var times = MergeAnimationTimes(source.Position?.Times, source.Rotation?.Times, source.Scale?.Times);
         if (times.Count == 0)
             return;
 
@@ -849,7 +846,26 @@ public sealed class GLTFImporter : RedObject
                 keyFrame.Scale = scale.Sample(time, static (first, second, factor) => first.Lerp(second, factor));
             track.KeyFrames.Add(keyFrame);
         }
-        animation.SetLength(times.Max);
+        animation.SetLength(times[^1]);
+    }
+
+    private List<float> MergeAnimationTimes(params List<float>?[] sourceTimes)
+    {
+        var result = sourceTimes.Where(static times => times is not null).SelectMany(static times => times!).ToList();
+        result.Sort();
+        if (result.Count < 2)
+            return result;
+
+        var lastValidIndex = 0;
+        for (var index = 1; index < result.Count; ++index)
+        {
+            if (result[index] - result[lastValidIndex] < Settings.KeyFrameTimeError)
+                result[index] = -MathDefs.LargeValue;
+            else
+                lastValidIndex = index;
+        }
+        result.RemoveAll(static time => time < 0.0f);
+        return result;
     }
 
     private void AddCookedResource(Resource resource, string outputPath, string localResourceName)
