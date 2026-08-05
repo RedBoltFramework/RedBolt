@@ -431,7 +431,7 @@ public sealed class GLTFImporter : RedObject
         using var sourceName = source.Name;
         var node = parent.CreateChild(string.IsNullOrEmpty(sourceName.ToString()) ? $"Node_{nodeIndex}" : sourceName.ToString());
         var transform = ReadNodeTransform(source);
-        node.SetTransform(ConvertScenePosition(transform.Position), transform.Rotation, transform.Scale);
+        node.SetTransform(ConvertScenePosition(transform.Position), ConvertSceneRotation(transform.Rotation), transform.Scale);
         if (modelsByMesh.TryGetValue(source.Mesh, out var importedModel))
         {
             StaticModel modelComponent = source.Skin < 0
@@ -505,6 +505,10 @@ public sealed class GLTFImporter : RedObject
             result.X = -result.X;
         return result;
     }
+
+    private Quaternion ConvertSceneRotation(Quaternion rotation) => Settings.MirrorX
+        ? new Quaternion(rotation.W, rotation.X, -rotation.Y, -rotation.Z)
+        : rotation;
 
     private Dictionary<string, TransformTrackSource> ReadAnimationTracks(TinyGltfModel model,
         RedBolt.Bindings.TinyGltf.Animation sourceAnimation, Std.Vector<RedBolt.Bindings.TinyGltf.Node> sourceNodes,
@@ -1105,7 +1109,7 @@ public sealed class GLTFImporter : RedObject
                 Name = name,
                 ParentIndex = nodeToBone.GetValueOrDefault(parents[nodeIndex], -1),
                 Position = ConvertScenePosition(transform.Position),
-                Rotation = transform.Rotation,
+                Rotation = ConvertSceneRotation(transform.Rotation),
                 Scale = transform.Scale
             };
             if (boneIndex < joints.Count && boneIndex < offsetMatrices.Count)
