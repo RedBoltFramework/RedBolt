@@ -9,11 +9,11 @@ using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.IO;
 using RedBolt.RenderAPI;
+using RedBolt.Resource;
 
 using TinyGltfModel = RedBolt.Bindings.TinyGltf.Model;
 using TinyGltfPrimitive = RedBolt.Bindings.TinyGltf.Primitive;
 using TinyGltfAccessor = RedBolt.Bindings.TinyGltf.Accessor;
-using GraphicsModel = RedBolt.Graphics.Model;
 
 /// <summary>Options controlling glTF import.</summary>
 public sealed class GLTFImporterSettings : IArchiveSerializable
@@ -101,8 +101,9 @@ public sealed class GLTFImporter : RedObject
 
     private TinyGltfModel? _model;
     private ModelView? _modelView;
-    private GraphicsModel? _modelResource;
     private readonly Dictionary<string, string> _savedResources = new(StringComparer.Ordinal);
+    private readonly List<RedBolt.Graphics.Animation> _animations = [];
+    private readonly List<(Resource Resource, string FileName)> _cookedResources = [];
     private bool _processed;
 
     public GLTFImporter(GLTFImporterSettings settings)
@@ -116,6 +117,7 @@ public sealed class GLTFImporter : RedObject
     public string LastWarning { get; private set; } = string.Empty;
     public TinyGltfModel? SourceModel => _model;
     public ModelView? ImportedModel => _modelView;
+    public IReadOnlyList<RedBolt.Graphics.Animation> ImportedAnimations => _animations;
     public IReadOnlyDictionary<string, string> SavedResources => _savedResources;
 
     /// <summary>Load a primary glTF or GLB file. A source model can only be loaded once.</summary>
@@ -229,17 +231,20 @@ public sealed class GLTFImporter : RedObject
             var resourceName = resourceNamePrefix + localResourceName;
             var modelResource = modelView.ExportModel(
                 Settings.GpuResources ? ModelViewExportFlag.None : ModelViewExportFlag.Headless, resourceName);
-            _savedResources[resourceName] = Path.Combine(outputPath, localResourceName);
+            AddCookedResource(modelResource, outputPath, localResourceName);
+            _modelView = modelView;
+            callback?.OnModelLoaded(modelView);
+            ImportAnimations(_model, outputPath, resourceNamePrefix, callback);
             _model.Dispose();
             _model = null;
-            _modelView = modelView;
-            _modelResource = modelResource;
             _processed = true;
-            callback?.OnModelLoaded(modelView);
             return true;
         }
         catch (InvalidDataException exception)
         {
+            _modelView?.Dispose();
+            _modelView = null;
+            ClearCookedResources();
             return Fail(exception.Message);
         }
     }
@@ -247,17 +252,17 @@ public sealed class GLTFImporter : RedObject
     /// <summary>Save cooked model resources to the output paths provided to <see cref="Process"/>.</summary>
     public bool SaveResources()
     {
-        if (!_processed || _modelResource is null)
+        if (!_processed || _cookedResources.Count == 0)
             return Fail("Imported assets weren't cooked.");
 
-        foreach (var (resourceName, fileName) in _savedResources)
+        foreach (var (resource, fileName) in _cookedResources)
         {
             var directory = Path.GetDirectoryName(fileName);
             if (!string.IsNullOrEmpty(directory))
                 Directory.CreateDirectory(directory);
             using var file = new File(fileName, FileMode.Write);
-            if (!file.IsOpen || !_modelResource.Save(file))
-                return Fail($"Failed to save imported resource '{resourceName}'.");
+            if (!file.IsOpen || !resource.Save(file))
+                return Fail($"Failed to save imported resource '{resource.Name}'.");
         }
         return true;
     }
@@ -281,8 +286,7 @@ public sealed class GLTFImporter : RedObject
     {
         _modelView?.Dispose();
         _modelView = null;
-        _modelResource?.Dispose();
-        _modelResource = null;
+        ClearCookedResources();
         _model?.Dispose();
         _model = null;
         base.Dispose();
@@ -309,10 +313,227 @@ public sealed class GLTFImporter : RedObject
             using (extension)
             {
                 if (extension.ToString() != "KHR_materials_unlit")
-                    LastWarning = string.IsNullOrEmpty(LastWarning)
-                        ? $"Unsupported extension used: '{extension}'."
-                        : $"{LastWarning}\nUnsupported extension used: '{extension}'.";
+                    Warn($"Unsupported extension used: '{extension}'.");
             }
+        }
+    }
+
+    private void ImportAnimations(TinyGltfModel model, string outputPath, string resourceNamePrefix,
+        GLTFImporterCallback? callback)
+    {
+        using var sourceAnimations = model.Animations;
+        using var sourceNodes = model.Nodes;
+        var usedResourceNames = new HashSet<string>(StringComparer.Ordinal);
+        for (var animationIndex = 0; animationIndex < sourceAnimations.Count; ++animationIndex)
+        {
+            using var sourceAnimation = sourceAnimations[animationIndex];
+            using var sourceName = sourceAnimation.Name;
+            var tracks = ReadAnimationTracks(model, sourceAnimation, sourceNodes, animationIndex);
+            if (tracks.Count == 0)
+                continue;
+
+            var nameHint = string.IsNullOrEmpty(sourceName.ToString()) ? $"Animation_{animationIndex}" : sourceName.ToString();
+            var localResourceName = CreateUniqueResourceName("Animations", nameHint, ".ani", usedResourceNames);
+            var animation = new RedBolt.Graphics.Animation();
+            animation.SetName(resourceNamePrefix + localResourceName);
+            animation.SetAnimationName(Path.GetFileNameWithoutExtension(localResourceName));
+            foreach (var (trackName, sourceTrack) in tracks)
+                CreateAnimationTrack(animation, trackName, sourceTrack);
+
+            AddCookedResource(animation, outputPath, localResourceName);
+            _animations.Add(animation);
+            callback?.OnAnimationLoaded(animation);
+        }
+    }
+
+    private Dictionary<string, TransformTrackSource> ReadAnimationTracks(TinyGltfModel model,
+        RedBolt.Bindings.TinyGltf.Animation sourceAnimation, Std.Vector<RedBolt.Bindings.TinyGltf.Node> sourceNodes,
+        int animationIndex)
+    {
+        using var channels = sourceAnimation.Channels;
+        using var samplers = sourceAnimation.Samplers;
+        var result = new Dictionary<string, TransformTrackSource>(StringComparer.Ordinal);
+        for (var channelIndex = 0; channelIndex < channels.Count; ++channelIndex)
+        {
+            using var channel = channels[channelIndex];
+            using var path = channel.TargetPath;
+            var targetPath = path.ToString();
+            if (targetPath is not ("translation" or "rotation" or "scale"))
+            {
+                Warn($"Unsupported animation channel '{targetPath}' in animation #{animationIndex}.");
+                continue;
+            }
+            if ((uint)channel.TargetNode >= (uint)sourceNodes.Count || (uint)channel.Sampler >= (uint)samplers.Count)
+                throw new InvalidDataException("glTF animation references an invalid node or sampler.");
+
+            using var node = sourceNodes[channel.TargetNode];
+            using var nodeName = node.Name;
+            var trackName = string.IsNullOrEmpty(nodeName.ToString()) ? $"Node_{channel.TargetNode}" : nodeName.ToString();
+            using var sampler = samplers[channel.Sampler];
+            using var interpolation = sampler.Interpolation;
+            var interpolationName = interpolation.ToString();
+            if (interpolationName == "CUBICSPLINE")
+            {
+                Warn($"Cubic spline animation channel '{targetPath}' in animation #{animationIndex} is not supported.");
+                continue;
+            }
+            if (interpolationName is not ("" or "LINEAR" or "STEP"))
+                throw new InvalidDataException($"glTF animation uses unsupported interpolation '{interpolationName}'.");
+
+            var times = ReadFloatAccessor(model, sampler.Input, TypeScalar).Select(static value => value[0]).ToList();
+            if (!result.TryGetValue(trackName, out var track))
+            {
+                track = new TransformTrackSource();
+                result.Add(trackName, track);
+            }
+
+            var step = interpolationName == "STEP";
+            switch (targetPath)
+            {
+                case "translation":
+                    if (track.Position is not null)
+                        throw new InvalidDataException($"Duplicate translation animation channel in animation #{animationIndex}.");
+                    AddAnimationChannel(track, times, ReadAnimationVectors(model, sampler.Output, TypeVec3, animationIndex), step,
+                        static (source, value) => source.Position = value);
+                    break;
+                case "rotation":
+                    if (track.Rotation is not null)
+                        throw new InvalidDataException($"Duplicate rotation animation channel in animation #{animationIndex}.");
+                    AddAnimationChannel(track, times, ReadAnimationRotations(model, sampler.Output, animationIndex), step,
+                        static (source, value) => source.Rotation = value);
+                    break;
+                case "scale":
+                    if (track.Scale is not null)
+                        throw new InvalidDataException($"Duplicate scale animation channel in animation #{animationIndex}.");
+                    AddAnimationChannel(track, times, ReadAnimationVectors(model, sampler.Output, TypeVec3, animationIndex), step,
+                        static (source, value) => source.Scale = value);
+                    break;
+            }
+        }
+        return result;
+    }
+
+    private static List<Vector3f> ReadAnimationVectors(TinyGltfModel model, int accessorIndex, int expectedType,
+        int animationIndex)
+    {
+        var values = ReadFloatAccessor(model, accessorIndex, expectedType);
+        if (values.Count == 0)
+            throw new InvalidDataException($"glTF animation #{animationIndex} has no values.");
+        return values.Select(static value => new Vector3f(value[0], value[1], value[2])).ToList();
+    }
+
+    private static List<Quaternion> ReadAnimationRotations(TinyGltfModel model, int accessorIndex, int animationIndex)
+    {
+        var values = ReadFloatAccessor(model, accessorIndex, TypeVec4);
+        if (values.Count == 0)
+            throw new InvalidDataException($"glTF animation #{animationIndex} has no values.");
+        return values.Select(static value => new Quaternion(value[3], value[0], value[1], value[2])).ToList();
+    }
+
+    private static void AddAnimationChannel<T>(TransformTrackSource track, List<float> times, List<T> values, bool step,
+        Action<TransformTrackSource, ChannelSamples<T>> assign)
+    {
+        if (times.Count != values.Count)
+            throw new InvalidDataException("glTF animation channel input and output counts differ.");
+        var samples = new ChannelSamples<T>(times, values, step);
+        assign(track, samples);
+    }
+
+    private void CreateAnimationTrack(RedBolt.Graphics.Animation animation, string name, TransformTrackSource source)
+    {
+        var times = new SortedSet<float>();
+        source.Position?.Times.ForEach(time => times.Add(time));
+        source.Rotation?.Times.ForEach(time => times.Add(time));
+        source.Scale?.Times.ForEach(time => times.Add(time));
+        if (times.Count == 0)
+            return;
+
+        var track = animation.CreateTrack(name);
+        if (source.Position is not null)
+            track.ChannelMask |= RedBolt.Graphics.AnimationChannel.Position;
+        if (source.Rotation is not null)
+            track.ChannelMask |= RedBolt.Graphics.AnimationChannel.Rotation;
+        if (source.Scale is not null)
+            track.ChannelMask |= RedBolt.Graphics.AnimationChannel.Scale;
+        foreach (var time in times)
+        {
+            var keyFrame = new AnimationKeyFrame { Time = time };
+            if (source.Position is { } position)
+            {
+                keyFrame.Position = position.Sample(time, static (first, second, factor) => first.Lerp(second, factor)) * Settings.Scale;
+                if (Settings.MirrorX)
+                    keyFrame.Position.X = -keyFrame.Position.X;
+            }
+            if (source.Rotation is { } rotation)
+            {
+                keyFrame.Rotation = rotation.Sample(time, static (first, second, factor) => first.Slerp(second, factor));
+                if (Settings.MirrorX)
+                    keyFrame.Rotation = new Quaternion(keyFrame.Rotation.W, keyFrame.Rotation.X,
+                        -keyFrame.Rotation.Y, -keyFrame.Rotation.Z);
+            }
+            if (source.Scale is { } scale)
+                keyFrame.Scale = scale.Sample(time, static (first, second, factor) => first.Lerp(second, factor));
+            track.KeyFrames.Add(keyFrame);
+        }
+        animation.SetLength(times.Max);
+    }
+
+    private void AddCookedResource(Resource resource, string outputPath, string localResourceName)
+    {
+        var fileName = Path.Combine(outputPath, localResourceName);
+        _savedResources.Add(resource.Name, fileName);
+        _cookedResources.Add((resource, fileName));
+    }
+
+    private void ClearCookedResources()
+    {
+        foreach (var (resource, _) in _cookedResources)
+            resource.Dispose();
+        _cookedResources.Clear();
+        _animations.Clear();
+        _savedResources.Clear();
+    }
+
+    private static string CreateUniqueResourceName(string directory, string nameHint, string extension, ISet<string> usedNames)
+    {
+        var name = SanitizeResourceName(nameHint, "Resource");
+        for (var index = 0; ; ++index)
+        {
+            var result = $"{directory}/{name}{(index == 0 ? string.Empty : $"_{index}")}{extension}";
+            if (usedNames.Add(result))
+                return result;
+        }
+    }
+
+    private void Warn(string warning) => LastWarning = string.IsNullOrEmpty(LastWarning) ? warning : $"{LastWarning}\n{warning}";
+
+    private sealed class TransformTrackSource
+    {
+        public ChannelSamples<Vector3f>? Position;
+        public ChannelSamples<Quaternion>? Rotation;
+        public ChannelSamples<Vector3f>? Scale;
+    }
+
+    private sealed class ChannelSamples<T>(List<float> times, List<T> values, bool step)
+    {
+        public List<float> Times { get; } = times;
+        private List<T> Values { get; } = values;
+        private bool Step { get; } = step;
+
+        public T Sample(float time, Func<T, T, float, T> interpolate)
+        {
+            var index = Times.BinarySearch(time);
+            if (index >= 0)
+                return Values[index];
+            index = ~index;
+            if (index == 0)
+                return Values[0];
+            if (index == Times.Count)
+                return Values[^1];
+            if (Step)
+                return Values[index - 1];
+            var factor = (time - Times[index - 1]) / (Times[index] - Times[index - 1]);
+            return interpolate(Values[index - 1], Values[index], factor);
         }
     }
 
