@@ -109,6 +109,7 @@ public sealed class GLTFImporter : RedObject
     private ModelView? _modelView;
     private readonly List<ModelView> _modelViews = [];
     private readonly Dictionary<(int Mesh, int Skin), CookedModel> _modelsByMesh = [];
+    private readonly Dictionary<int, string> _boneNamesByNode = [];
     private readonly Dictionary<string, RedBolt.Graphics.Material> _materialsByName = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _savedResources = new(StringComparer.Ordinal);
     private readonly List<RedBolt.Graphics.Animation> _animations = [];
@@ -666,7 +667,8 @@ public sealed class GLTFImporter : RedObject
 
             using var node = sourceNodes[channel.TargetNode];
             using var nodeName = node.Name;
-            var trackName = string.IsNullOrEmpty(nodeName.ToString()) ? $"Node_{channel.TargetNode}" : nodeName.ToString();
+            var trackName = _boneNamesByNode.GetValueOrDefault(channel.TargetNode,
+                string.IsNullOrEmpty(nodeName.ToString()) ? $"Node_{channel.TargetNode}" : nodeName.ToString());
             using var sampler = samplers[channel.Sampler];
             using var interpolation = sampler.Interpolation;
             var interpolationName = interpolation.ToString();
@@ -888,6 +890,7 @@ public sealed class GLTFImporter : RedObject
         _modelViews.Clear();
         _modelView = null;
         _modelsByMesh.Clear();
+        _boneNamesByNode.Clear();
         _materialsByName.Clear();
         foreach (var (resource, _) in _cookedResources)
             resource.Dispose();
@@ -1446,6 +1449,8 @@ public sealed class GLTFImporter : RedObject
         }
         if (Settings.CleanupBoneNames)
             CleanupBoneNames(result);
+        for (var boneIndex = 0; boneIndex < boneNodes.Count; ++boneIndex)
+            _boneNamesByNode.TryAdd(boneNodes[boneIndex], result[boneIndex].Name);
         return result;
     }
 
