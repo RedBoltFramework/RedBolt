@@ -1307,6 +1307,8 @@ public sealed class GLTFImporter : RedObject
                 if (numMorphs >= 0 && numMorphs != meshMorphs)
                     throw new InvalidDataException("glTF LOD meshes use incompatible morph targets.");
                 numMorphs = meshMorphs;
+                if (weights.Count != 0 && weights.Count != meshMorphs)
+                    throw new InvalidDataException("glTF mesh morph weight count does not match its targets.");
                 if (morphWeights.Count == 0)
                     morphWeights.AddRange(weights.Select(static weight => (float)weight));
                 while (lodsByGeometry.Count < primitives.Count)
