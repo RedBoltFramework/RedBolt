@@ -2,6 +2,7 @@ namespace RedBolt.Utility;
 
 using System.Buffers.Binary;
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using RedBolt.Bindings.TinyGltf;
@@ -10,6 +11,7 @@ using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.IO;
 using RedBolt.RenderAPI;
+using RedBolt.RenderPipeline;
 using RedBolt.Resource;
 
 using TinyGltfModel = RedBolt.Bindings.TinyGltf.Model;
@@ -104,6 +106,7 @@ public sealed class GLTFImporter : RedObject
     private ModelView? _modelView;
     private readonly Dictionary<string, string> _savedResources = new(StringComparer.Ordinal);
     private readonly List<RedBolt.Graphics.Animation> _animations = [];
+    private readonly List<Texture2D> _importedTextures = [];
     private readonly List<(Resource Resource, string FileName)> _cookedResources = [];
     private bool _processed;
 
@@ -135,6 +138,7 @@ public sealed class GLTFImporter : RedObject
         using var warning = new Std.String();
         using var nativeFileName = new Std.String(fileName);
         var model = new TinyGltfModel();
+        ConfigureImageLoader(loader);
         var loaded = string.Equals(Path.GetExtension(fileName), ".glb", StringComparison.OrdinalIgnoreCase)
             ? loader.LoadBinaryFromFile(model, error, warning, nativeFileName)
             : loader.LoadASCIIFromFile(model, error, warning, nativeFileName);
@@ -167,6 +171,7 @@ public sealed class GLTFImporter : RedObject
             using var error = new Std.String();
             using var warning = new Std.String();
             var model = new TinyGltfModel();
+            ConfigureImageLoader(loader);
             var loaded = loader.LoadBinaryFromMemory(model, error, warning, pin.AddrOfPinnedObject(), checked((uint)bytes.Length));
             LastWarning = warning.ToString();
             if (!loaded)
@@ -203,6 +208,7 @@ public sealed class GLTFImporter : RedObject
         using var warning = new Std.String();
         using var nativeFileName = new Std.String(fileName);
         using var secondaryModel = new TinyGltfModel();
+        ConfigureImageLoader(loader);
         var loaded = string.Equals(Path.GetExtension(fileName), ".glb", StringComparison.OrdinalIgnoreCase)
             ? loader.LoadBinaryFromFile(secondaryModel, error, warning, nativeFileName)
             : loader.LoadASCIIFromFile(secondaryModel, error, warning, nativeFileName);
@@ -299,6 +305,22 @@ public sealed class GLTFImporter : RedObject
         if (_model is null && !_processed)
             return true;
         return Fail("Primary source model is already loaded or processed.");
+    }
+
+    private static unsafe void ConfigureImageLoader(TinyGLTF loader) => loader.SetImageLoader(
+        (nint)(delegate* unmanaged[Cdecl]<nint, int, nint, nint, int, int, byte*, int, nint, byte>)&LoadImageData, 0);
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    private static unsafe byte LoadImageData(nint imageHandle, int imageIndex, nint error, nint warning,
+        int requestedWidth, int requestedHeight, byte* bytes, int size, nint userData)
+    {
+        if (imageHandle == 0 || bytes is null || size < 0)
+            return 0;
+        using var image = RedBolt.Bindings.TinyGltf.Image.CreateManagedWrapper(imageHandle, ownsHandle: false);
+        using var imageData = new Std.Vector<byte>(new ReadOnlySpan<byte>(bytes, size));
+        image.AsIs = true;
+        image.ImageValue = imageData;
+        return 1;
     }
 
     private bool Fail(string error)
@@ -492,6 +514,9 @@ public sealed class GLTFImporter : RedObject
         foreach (var (resource, _) in _cookedResources)
             resource.Dispose();
         _cookedResources.Clear();
+        foreach (var texture in _importedTextures)
+            texture.Dispose();
+        _importedTextures.Clear();
         _animations.Clear();
         _savedResources.Clear();
     }
@@ -544,6 +569,8 @@ public sealed class GLTFImporter : RedObject
         using var sourceMaterials = model.Materials;
         var resourceNames = new List<string>(sourceMaterials.Count);
         var usedResourceNames = new HashSet<string>(StringComparer.Ordinal);
+        var importedTextures = new Dictionary<int, Texture2D>();
+        var usedTextureNames = new HashSet<string>(StringComparer.Ordinal);
         for (var materialIndex = 0; materialIndex < sourceMaterials.Count; ++materialIndex)
         {
             using var source = sourceMaterials[materialIndex];
@@ -562,6 +589,24 @@ public sealed class GLTFImporter : RedObject
             material.SetShaderParameter("Metallic", (float)source.PbrMetallicRoughnessMetallicFactor);
             material.SetShaderParameter("Roughness", (float)source.PbrMetallicRoughnessRoughnessFactor);
             material.SetShaderParameter("AlphaCutoff", (float)source.AlphaCutoff);
+            SetMaterialTexture(material, ShaderResources.Albedo, source.PbrMetallicRoughnessBaseColorTextureIndex,
+                model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
+            SetMaterialTexture(material, ShaderResources.Properties,
+                source.PbrMetallicRoughnessMetallicRoughnessTextureIndex >= 0
+                    ? source.PbrMetallicRoughnessMetallicRoughnessTextureIndex
+                    : source.OcclusionTextureIndex,
+                model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
+            SetMaterialTexture(material, ShaderResources.Normal, source.NormalTextureIndex,
+                model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
+            material.SetShaderParameter("NormalScale", (float)source.NormalTextureScale);
+            using var emissiveFactor = source.EmissiveFactor;
+            if (emissiveFactor.Count == 3)
+            {
+                var color = new Color(new Vector3f((float)emissiveFactor[0], (float)emissiveFactor[1], (float)emissiveFactor[2]));
+                material.SetShaderParameter("MatEmissiveColor", color.LinearToGamma().ToVector3());
+            }
+            SetMaterialTexture(material, ShaderResources.Emission, source.EmissiveTextureIndex,
+                model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
             if (source.DoubleSided)
             {
                 material.SetCullMode(CullMode.None);
@@ -571,6 +616,72 @@ public sealed class GLTFImporter : RedObject
             resourceNames.Add(material.Name);
         }
         return resourceNames;
+    }
+
+    private void SetMaterialTexture(RedBolt.Graphics.Material material, string slot, int textureIndex,
+        TinyGltfModel model, string outputPath, string resourceNamePrefix, Dictionary<int, Texture2D> importedTextures,
+        ISet<string> usedTextureNames)
+    {
+        if (textureIndex < 0)
+            return;
+        if (!importedTextures.TryGetValue(textureIndex, out var texture))
+        {
+            texture = ImportTexture(model, textureIndex, outputPath, resourceNamePrefix, usedTextureNames);
+            importedTextures.Add(textureIndex, texture);
+        }
+        material.SetTexture(slot, texture);
+    }
+
+    private Texture2D ImportTexture(TinyGltfModel model, int textureIndex, string outputPath, string resourceNamePrefix,
+        ISet<string> usedTextureNames)
+    {
+        using var sourceTextures = model.Textures;
+        if ((uint)textureIndex >= (uint)sourceTextures.Count)
+            throw new InvalidDataException($"Material references invalid texture #{textureIndex}.");
+        using var sourceTexture = sourceTextures[textureIndex];
+        using var sourceImages = model.Images;
+        if ((uint)sourceTexture.Source >= (uint)sourceImages.Count)
+            throw new InvalidDataException($"Texture #{textureIndex} references invalid image #{sourceTexture.Source}.");
+        using var sourceImage = sourceImages[sourceTexture.Source];
+        using var imageData = sourceImage.ImageValue;
+        var pixels = imageData.ToArray();
+        var components = sourceImage.Component;
+
+        using var sourceName = sourceImage.Name;
+        var localResourceName = CreateUniqueResourceName("Textures",
+            string.IsNullOrEmpty(sourceName.ToString()) ? $"Texture_{textureIndex}" : sourceName.ToString(),
+            ".png", usedTextureNames);
+        var image = new RedBolt.Resource.Image();
+        image.SetName(resourceNamePrefix + localResourceName);
+        if (sourceImage.AsIs)
+        {
+            using var source = new MemoryBuffer(pixels);
+            if (!image.Load(source))
+            {
+                image.Dispose();
+                throw new InvalidDataException($"Texture #{textureIndex} has invalid image data.");
+            }
+        }
+        else if (sourceImage.Width <= 0 || sourceImage.Height <= 0 || components is < 1 or > 4
+            || pixels.Length < checked(sourceImage.Width * sourceImage.Height * components)
+            || !image.SetSize(sourceImage.Width, sourceImage.Height, components))
+        {
+            image.Dispose();
+            throw new InvalidDataException($"Texture #{textureIndex} has invalid decoded image data.");
+        }
+        else
+            image.SetData(pixels);
+        AddCookedResource(image, outputPath, localResourceName);
+
+        var texture = new Texture2D();
+        texture.SetName(image.Name);
+        if (Settings.GpuResources && !texture.SetData(image))
+        {
+            texture.Dispose();
+            throw new InvalidDataException($"Texture #{textureIndex} could not be uploaded.");
+        }
+        _importedTextures.Add(texture);
+        return texture;
     }
 
     private ModelView BuildModelView(TinyGltfModel model, IReadOnlyList<string> materialNames)
