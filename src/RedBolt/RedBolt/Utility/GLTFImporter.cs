@@ -29,7 +29,7 @@ public sealed class GLTFImporterSettings : IArchiveSerializable
     public bool KeepNamesOnMerge;
     public bool AddEmptyNodesToSkeleton;
     public float OffsetMatrixError = 0.00002f;
-    public float KeyFrameTimeError = float.Epsilon;
+    public float KeyFrameTimeError = MathDefs.Epsilon;
     public Dictionary<string, string> NodeRenames = new(StringComparer.Ordinal);
     public bool GpuResources;
     public PreviewOptions Preview = new();
@@ -59,7 +59,11 @@ public sealed class GLTFImporterSettings : IArchiveSerializable
         ArchiveSerialization.SerializeOptionalValue(archive, "keepNamesOnMerge", ref KeepNamesOnMerge, false, ArchiveSerialization.SerializeValue);
         ArchiveSerialization.SerializeOptionalValue(archive, "addEmptyNodesToSkeleton", ref AddEmptyNodesToSkeleton, false, ArchiveSerialization.SerializeValue);
         ArchiveSerialization.SerializeOptionalValue(archive, "offsetMatrixError", ref OffsetMatrixError, 0.00002f, ArchiveSerialization.SerializeValue);
-        ArchiveSerialization.SerializeOptionalValue(archive, "keyFrameTimeError", ref KeyFrameTimeError, float.Epsilon, ArchiveSerialization.SerializeValue);
+        ArchiveSerialization.SerializeOptionalValue(archive, "keyFrameTimeError", ref KeyFrameTimeError, MathDefs.Epsilon, ArchiveSerialization.SerializeValue);
+        ArchiveSerialization.SerializeOptionalValue(archive, "nodeRenames", ref NodeRenames,
+            new Dictionary<string, string>(StringComparer.Ordinal),
+            static (Archive ar, string name, ref Dictionary<string, string> value) =>
+                ArchiveSerialization.SerializeStringMap(ar, name, value));
         ArchiveSerialization.SerializeOptionalValue(archive, "gpuResources", ref GpuResources, false, ArchiveSerialization.SerializeValue);
         ArchiveSerialization.SerializeOptionalValue(archive, "addLights", ref Preview.AddLights, true, ArchiveSerialization.SerializeValue);
         ArchiveSerialization.SerializeOptionalValue(archive, "addSkybox", ref Preview.AddSkybox, true, ArchiveSerialization.SerializeValue);
@@ -95,7 +99,8 @@ public sealed class GLTFImporter : RedObject
 
     public GLTFImporter(GLTFImporterSettings settings)
     {
-        Settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        ArgumentNullException.ThrowIfNull(settings);
+        Settings = CloneSettings(settings);
     }
 
     public GLTFImporterSettings Settings { get; }
@@ -129,6 +134,7 @@ public sealed class GLTFImporter : RedObject
             return Fail(error.ToString());
         }
 
+        RenameNodes(model);
         _model = model;
         return true;
     }
@@ -157,6 +163,7 @@ public sealed class GLTFImporter : RedObject
                 return Fail(error.ToString());
             }
 
+            RenameNodes(model);
             _model = model;
             return true;
         }
@@ -179,6 +186,8 @@ public sealed class GLTFImporter : RedObject
         try
         {
             var modelView = BuildModelView(_model);
+            _model.Dispose();
+            _model = null;
             _modelView = modelView;
             _processed = true;
             callback?.OnModelLoaded(modelView);
@@ -191,7 +200,7 @@ public sealed class GLTFImporter : RedObject
     }
 
     /// <summary>Static mesh conversion does not create files; generated resources are immediately available from <see cref="ImportedModel"/>.</summary>
-    public bool SaveResources() => _processed;
+    public bool SaveResources() => _processed || Fail("Imported assets weren't cooked.");
 
     public Transform ConvertTransform(Transform sourceTransform)
     {
@@ -200,8 +209,12 @@ public sealed class GLTFImporter : RedObject
 
         var position = sourceTransform.Position * Settings.Scale;
         if (Settings.MirrorX)
+        {
             position.X = -position.X;
-        return new Transform(Settings.Rotation * position, Settings.Rotation * sourceTransform.Rotation, sourceTransform.Scale);
+            sourceTransform.Rotation = new Quaternion(sourceTransform.Rotation.W, sourceTransform.Rotation.X,
+                -sourceTransform.Rotation.Y, -sourceTransform.Rotation.Z);
+        }
+        return new Transform(position, sourceTransform.Rotation, sourceTransform.Scale);
     }
 
     public override void Dispose()
@@ -232,10 +245,11 @@ public sealed class GLTFImporter : RedObject
         using var meshes = model.Meshes;
         for (var meshIndex = 0; meshIndex < meshes.Count; ++meshIndex)
         {
-            var mesh = meshes[meshIndex];
+            using var mesh = meshes[meshIndex];
             using var primitives = mesh.Primitives;
-            foreach (var primitive in primitives)
+            for (var primitiveIndex = 0; primitiveIndex < primitives.Count; ++primitiveIndex)
             {
+                using var primitive = primitives[primitiveIndex];
                 var lod = BuildPrimitive(model, primitive);
                 geometries.Add(new GeometryView { Lods = [lod] });
             }
@@ -312,7 +326,7 @@ public sealed class GLTFImporter : RedObject
 
     private static List<float[]> ReadFloatAccessor(TinyGltfModel model, int accessorIndex, int expectedType)
     {
-        var accessor = GetAccessor(model, accessorIndex);
+        using var accessor = GetAccessor(model, accessorIndex);
         if (accessor.ComponentType != ComponentFloat || accessor.Type != expectedType)
             throw new InvalidDataException("glTF accessor has an unsupported component or value type.");
 
@@ -332,7 +346,7 @@ public sealed class GLTFImporter : RedObject
 
     private static List<uint> ReadIndices(TinyGltfModel model, int accessorIndex)
     {
-        var accessor = GetAccessor(model, accessorIndex);
+        using var accessor = GetAccessor(model, accessorIndex);
         if (accessor.Type != TypeScalar)
             throw new InvalidDataException("glTF index accessor is not scalar.");
         var componentSize = accessor.ComponentType switch
@@ -366,11 +380,11 @@ public sealed class GLTFImporter : RedObject
         using var bufferViews = model.BufferViews;
         if ((uint)accessor.BufferView >= (uint)bufferViews.Count)
             throw new InvalidDataException("glTF accessor references an invalid buffer view.");
-        var bufferView = bufferViews[accessor.BufferView];
+        using var bufferView = bufferViews[accessor.BufferView];
         using var buffers = model.Buffers;
         if ((uint)bufferView.Buffer >= (uint)buffers.Count)
             throw new InvalidDataException("glTF buffer view references an invalid buffer.");
-        var buffer = buffers[bufferView.Buffer];
+        using var buffer = buffers[bufferView.Buffer];
         using var data = buffer.Data;
         count = checked((int)accessor.Count);
         stride = bufferView.ByteStride == 0 ? elementSize : checked((int)bufferView.ByteStride);
@@ -405,4 +419,51 @@ public sealed class GLTFImporter : RedObject
         6 => PrimitiveType.TriangleFan,
         _ => throw new InvalidDataException($"glTF primitive mode {mode} is not supported.")
     };
+
+    private static GLTFImporterSettings CloneSettings(GLTFImporterSettings source) => new()
+    {
+        AssetName = source.AssetName,
+        MirrorX = source.MirrorX,
+        Scale = source.Scale,
+        Rotation = source.Rotation,
+        FadeTransparency = source.FadeTransparency,
+        CleanupBoneNames = source.CleanupBoneNames,
+        CleanupRootNodes = source.CleanupRootNodes,
+        CombineLODs = source.CombineLODs,
+        SkipTags = [.. source.SkipTags],
+        KeepNamesOnMerge = source.KeepNamesOnMerge,
+        AddEmptyNodesToSkeleton = source.AddEmptyNodesToSkeleton,
+        OffsetMatrixError = source.OffsetMatrixError,
+        KeyFrameTimeError = source.KeyFrameTimeError,
+        NodeRenames = new(source.NodeRenames, StringComparer.Ordinal),
+        GpuResources = source.GpuResources,
+        Preview = new GLTFImporterSettings.PreviewOptions
+        {
+            AddLights = source.Preview.AddLights,
+            AddSkybox = source.Preview.AddSkybox,
+            SkyboxMaterial = source.Preview.SkyboxMaterial,
+            AddReflectionProbe = source.Preview.AddReflectionProbe,
+            ReflectionProbeCubemap = source.Preview.ReflectionProbeCubemap,
+            HighRenderQuality = source.Preview.HighRenderQuality
+        }
+    };
+
+    private void RenameNodes(TinyGltfModel model)
+    {
+        if (Settings.NodeRenames.Count == 0)
+            return;
+
+        using var nodes = model.Nodes;
+        for (var index = 0; index < nodes.Count; ++index)
+        {
+            using var node = nodes[index];
+            using var name = node.Name;
+            if (!Settings.NodeRenames.TryGetValue(name.ToString(), out var replacement))
+                continue;
+
+            using var nativeReplacement = new Std.String(replacement);
+            node.Name = nativeReplacement;
+            nodes[index] = node;
+        }
+    }
 }

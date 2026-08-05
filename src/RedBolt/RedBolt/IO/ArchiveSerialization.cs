@@ -747,6 +747,36 @@ public static partial class ArchiveSerialization
         }
     }
 
+    public static void SerializeStringMap(Archive archive, string name, Dictionary<string, string> value)
+    {
+        var size = value.Count;
+        using var block = archive.OpenArrayBlock(name, size);
+        if (archive.IsInput)
+        {
+            value.Clear();
+            for (var index = 0; index < block.SizeHint; ++index)
+            {
+                using var itemBlock = archive.OpenUnorderedBlock("element");
+                var key = string.Empty;
+                var item = string.Empty;
+                archive.Serialize("key", ref key);
+                archive.Serialize("value", ref item);
+                value[key] = item;
+            }
+        }
+        else
+        {
+            foreach (var (key, item) in value)
+            {
+                using var itemBlock = archive.OpenUnorderedBlock("element");
+                var keyCopy = key;
+                var itemCopy = item;
+                archive.Serialize("key", ref keyCopy);
+                archive.Serialize("value", ref itemCopy);
+            }
+        }
+    }
+
     public static void SerializeStringVector(Archive archive, string name, List<string> values)
     {
         var size = values.Count;
