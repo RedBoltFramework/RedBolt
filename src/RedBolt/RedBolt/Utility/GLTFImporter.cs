@@ -434,8 +434,11 @@ public sealed class GLTFImporter : RedObject
         {
             using var sourceAnimation = sourceAnimations[animationIndex];
             using var sourceName = sourceAnimation.Name;
+            var sourceNameText = sourceName.ToString();
+            if (IsNameSkipped(sourceNameText))
+                continue;
             var tracks = ReadAnimationTracks(model, sourceAnimation, sourceNodes, animationIndex);
-            var nameHint = string.IsNullOrEmpty(sourceName.ToString()) ? $"Animation_{animationIndex}" : sourceName.ToString();
+            var nameHint = string.IsNullOrEmpty(sourceNameText) ? $"Animation_{animationIndex}" : sourceNameText;
             var localResourceName = CreateUniqueResourceName("Animations", nameHint, ".ani", usedResourceNames);
             var animation = new RedBolt.Graphics.Animation();
             animation.SetName(resourceNamePrefix + localResourceName);
