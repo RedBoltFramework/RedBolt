@@ -676,6 +676,7 @@ public sealed class GLTFImporter : RedObject
         else
             image.SetData(pixels);
         AddCookedResource(image, outputPath, localResourceName);
+        CookSamplerParameters(model, sourceTexture, outputPath, resourceNamePrefix, localResourceName);
 
         var texture = new Texture2D();
         texture.SetName(image.Name);
@@ -687,6 +688,62 @@ public sealed class GLTFImporter : RedObject
         _importedTextures.Add(texture);
         return texture;
     }
+
+    private void CookSamplerParameters(TinyGltfModel model, RedBolt.Bindings.TinyGltf.Texture sourceTexture,
+        string outputPath, string resourceNamePrefix, string imageResourceName)
+    {
+        if (sourceTexture.Sampler < 0)
+            return;
+        using var samplers = model.Samplers;
+        if ((uint)sourceTexture.Sampler >= (uint)samplers.Count)
+            throw new InvalidDataException($"Texture references invalid sampler #{sourceTexture.Sampler}.");
+        using var sampler = samplers[sourceTexture.Sampler];
+        var parameters = new XMLFile();
+        var root = parameters.CreateRoot("texture");
+        AddAddress(root, "u", sampler.WrapS);
+        AddAddress(root, "v", sampler.WrapT);
+        if (GetFilterMode(sampler.MinFilter, sampler.MagFilter) is { } filterMode)
+            root.CreateChild("filter").SetAttribute("mode", filterMode);
+        if (!HasMipmaps(sampler.MinFilter, sampler.MagFilter))
+            root.CreateChild("mipmap").SetBool("enable", false);
+        if (!root.GetChild().NotNull)
+        {
+            parameters.Dispose();
+            return;
+        }
+
+        var localResourceName = Path.ChangeExtension(imageResourceName, ".xml");
+        parameters.SetName(resourceNamePrefix + localResourceName);
+        AddCookedResource(parameters, outputPath, localResourceName);
+    }
+
+    private static void AddAddress(XMLElement root, string coordinate, int sourceMode)
+    {
+        var mode = sourceMode switch
+        {
+            33071 => "clamp",
+            33648 => "mirror",
+            _ => "wrap"
+        };
+        if (mode != "wrap")
+        {
+            var address = root.CreateChild("address");
+            address.SetAttribute("coord", coordinate);
+            address.SetAttribute("mode", mode);
+        }
+    }
+
+    private static string? GetFilterMode(int minFilter, int magFilter)
+    {
+        if (minFilter < 0 || magFilter < 0)
+            return null;
+        if (magFilter == 9728)
+            return minFilter is 9728 or 9984 ? "nearest" : "nearestanisotropic";
+        return minFilter == 9985 ? "bilinear" : null;
+    }
+
+    private static bool HasMipmaps(int minFilter, int magFilter) => minFilter < 0 || magFilter < 0
+        || minFilter is 9984 or 9985 or 9986 or 9987;
 
     private ModelView BuildModelView(TinyGltfModel model, IReadOnlyList<string> materialNames)
     {
