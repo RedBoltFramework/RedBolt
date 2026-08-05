@@ -430,29 +430,8 @@ public sealed class GLTFImporter : RedObject
         using var source = sourceNodes[nodeIndex];
         using var sourceName = source.Name;
         var node = parent.CreateChild(string.IsNullOrEmpty(sourceName.ToString()) ? $"Node_{nodeIndex}" : sourceName.ToString());
-        using var matrix = source.Matrix;
-        if (matrix.Count != 0)
-        {
-            if (matrix.Count != 16)
-                throw new InvalidDataException("glTF node matrix does not contain 16 values.");
-            Span<float> values = stackalloc float[16];
-            for (var index = 0; index < values.Length; ++index)
-                values[index] = (float)matrix[index];
-            var transform = Transform.FromMatrix3x4(new Matrix3x4(new Matrix4(values).Transpose));
-            node.SetTransform(ConvertScenePosition(transform.Position), transform.Rotation, transform.Scale);
-        }
-        else
-        {
-            using var translation = source.Translation;
-            if (translation.Count == 3)
-                node.SetPosition(ConvertScenePosition(translation));
-            using var rotation = source.Rotation;
-            if (rotation.Count == 4)
-                node.SetRotation(new Quaternion((float)rotation[3], (float)rotation[0], (float)rotation[1], (float)rotation[2]));
-            using var scale = source.Scale;
-            if (scale.Count == 3)
-                node.SetScale(new Vector3f((float)scale[0], (float)scale[1], (float)scale[2]));
-        }
+        var transform = ReadNodeTransform(source);
+        node.SetTransform(ConvertScenePosition(transform.Position), transform.Rotation, transform.Scale);
         if (modelsByMesh.TryGetValue(source.Mesh, out var importedModel))
         {
             StaticModel modelComponent = source.Skin < 0
@@ -1092,36 +1071,116 @@ public sealed class GLTFImporter : RedObject
                 throw new InvalidDataException("glTF skin references an invalid or duplicate joint.");
         }
 
-        var result = new List<BoneView>(joints.Count);
-        var usedNames = new HashSet<string>(StringComparer.Ordinal);
-        for (var boneIndex = 0; boneIndex < joints.Count; ++boneIndex)
+        var skeletonNodes = new HashSet<int>(jointToBone.Keys);
+        var skeletonRoot = GetSkinRoot(skin, jointToBone.Keys, parents);
+        foreach (var jointIndex in jointToBone.Keys)
         {
-            var jointIndex = joints[boneIndex];
-            using var joint = sourceNodes[jointIndex];
-            using var sourceName = joint.Name;
-            var nameHint = string.IsNullOrEmpty(sourceName.ToString()) ? $"Bone_{jointIndex}" : sourceName.ToString();
+            for (var nodeIndex = jointIndex; nodeIndex != skeletonRoot; nodeIndex = parents[nodeIndex])
+            {
+                if (nodeIndex < 0)
+                    throw new InvalidDataException("glTF skin joint is not below its skeleton root.");
+                skeletonNodes.Add(nodeIndex);
+            }
+            skeletonNodes.Add(skeletonRoot);
+        }
+        var boneNodes = jointToBone.Keys.Concat(Enumerable.Range(0, sourceNodes.Count)
+            .Where(nodeIndex => skeletonNodes.Contains(nodeIndex) && !jointToBone.ContainsKey(nodeIndex))).ToList();
+        var nodeToBone = boneNodes.Select((nodeIndex, boneIndex) => (nodeIndex, boneIndex))
+            .ToDictionary(static pair => pair.nodeIndex, static pair => pair.boneIndex);
+
+        var result = new List<BoneView>(boneNodes.Count);
+        var usedNames = new HashSet<string>(StringComparer.Ordinal);
+        for (var boneIndex = 0; boneIndex < boneNodes.Count; ++boneIndex)
+        {
+            var nodeIndex = boneNodes[boneIndex];
+            using var node = sourceNodes[nodeIndex];
+            using var sourceName = node.Name;
+            var nameHint = string.IsNullOrEmpty(sourceName.ToString()) ? $"Bone_{nodeIndex}" : sourceName.ToString();
             var name = nameHint;
             for (var suffix = 1; !usedNames.Add(name); ++suffix)
                 name = $"{nameHint}_{suffix}";
+            var transform = ReadNodeTransform(node);
             var bone = new BoneView
             {
                 Name = name,
-                ParentIndex = jointToBone.GetValueOrDefault(parents[jointIndex], -1)
+                ParentIndex = nodeToBone.GetValueOrDefault(parents[nodeIndex], -1),
+                Position = ConvertScenePosition(transform.Position),
+                Rotation = transform.Rotation,
+                Scale = transform.Scale
             };
-            using var translation = joint.Translation;
-            if (translation.Count == 3)
-                bone.Position = ConvertScenePosition(translation);
-            using var rotation = joint.Rotation;
-            if (rotation.Count == 4)
-                bone.Rotation = new Quaternion((float)rotation[3], (float)rotation[0], (float)rotation[1], (float)rotation[2]);
-            using var scale = joint.Scale;
-            if (scale.Count == 3)
-                bone.Scale = new Vector3f((float)scale[0], (float)scale[1], (float)scale[2]);
-            if (boneIndex < offsetMatrices.Count)
+            if (boneIndex < joints.Count && boneIndex < offsetMatrices.Count)
                 bone.OffsetMatrix = offsetMatrices[boneIndex];
             result.Add(bone);
         }
         return result;
+    }
+
+    private static int GetSkinRoot(RedBolt.Bindings.TinyGltf.Skin skin, IEnumerable<int> joints,
+        IReadOnlyList<int> parents)
+    {
+        if (skin.Skeleton >= 0 && skin.Skeleton < parents.Count && joints.All(joint => IsDescendantOf(joint, skin.Skeleton, parents)))
+            return skin.Skeleton;
+
+        using var enumerator = joints.GetEnumerator();
+        if (!enumerator.MoveNext())
+            throw new InvalidDataException("glTF skin has no joints.");
+        var root = enumerator.Current;
+        while (enumerator.MoveNext())
+        {
+            root = GetCommonParent(root, enumerator.Current, parents);
+            if (root < 0)
+                throw new InvalidDataException("glTF skin joints do not have a common root.");
+        }
+        return root;
+    }
+
+    private static bool IsDescendantOf(int nodeIndex, int ancestorIndex, IReadOnlyList<int> parents)
+    {
+        for (; nodeIndex >= 0; nodeIndex = parents[nodeIndex])
+        {
+            if (nodeIndex == ancestorIndex)
+                return true;
+        }
+        return false;
+    }
+
+    private static int GetCommonParent(int first, int second, IReadOnlyList<int> parents)
+    {
+        var ancestors = new HashSet<int>();
+        for (; first >= 0; first = parents[first])
+            ancestors.Add(first);
+        for (; second >= 0; second = parents[second])
+        {
+            if (ancestors.Contains(second))
+                return second;
+        }
+        return -1;
+    }
+
+    private static Transform ReadNodeTransform(TinyGltfNode source)
+    {
+        using var matrix = source.Matrix;
+        if (matrix.Count != 0)
+        {
+            if (matrix.Count != 16)
+                throw new InvalidDataException("glTF node matrix does not contain 16 values.");
+            Span<float> values = stackalloc float[16];
+            for (var index = 0; index < values.Length; ++index)
+                values[index] = (float)matrix[index];
+            return Transform.FromMatrix3x4(new Matrix3x4(new Matrix4(values).Transpose));
+        }
+
+        var transform = new Transform();
+        using var translation = source.Translation;
+        if (translation.Count == 3)
+            transform.Position = new Vector3f((float)translation[0], (float)translation[1], (float)translation[2]);
+        using var rotation = source.Rotation;
+        if (rotation.Count == 4)
+            transform.Rotation = new Quaternion((float)rotation[3], (float)rotation[0], (float)rotation[1], (float)rotation[2]);
+        using var scale = source.Scale;
+        if (scale.Count == 3)
+            transform.Scale = new Vector3f((float)scale[0], (float)scale[1], (float)scale[2]);
+        return transform;
     }
 
     private static bool TryParseLodName(string name, out string baseName, out float distance)
