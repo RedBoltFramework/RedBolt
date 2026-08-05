@@ -991,6 +991,11 @@ public sealed class GLTFImporter : RedObject
             material.SetShaderParameter("Metallic", (float)source.PbrMetallicRoughnessMetallicFactor);
             material.SetShaderParameter("Roughness", (float)source.PbrMetallicRoughnessRoughnessFactor);
             material.SetShaderParameter("AlphaCutoff", (float)source.AlphaCutoff);
+            if (source.PbrMetallicRoughnessBaseColorTextureIndex >= 0
+                && source.PbrMetallicRoughnessBaseColorTextureTexCoord != 0)
+            {
+                Warn($"Material '{sourceName}' has non-standard UV for diffuse texture #{source.PbrMetallicRoughnessBaseColorTextureIndex}.");
+            }
             SetMaterialTexture(material, ShaderResources.Albedo, source.PbrMetallicRoughnessBaseColorTextureIndex,
                 model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
             var occlusionTextureIndex = source.OcclusionTextureIndex;
@@ -1000,6 +1005,13 @@ public sealed class GLTFImporter : RedObject
                 Warn($"Material '{sourceName}' uses different UVs for metallic-roughness and occlusion textures; occlusion is ignored.");
                 occlusionTextureIndex = -1;
             }
+            if (source.PbrMetallicRoughnessMetallicRoughnessTextureIndex >= 0
+                && source.PbrMetallicRoughnessMetallicRoughnessTextureTexCoord != 0)
+            {
+                Warn($"Material '{sourceName}' has non-standard UV for metallic-roughness texture #{source.PbrMetallicRoughnessMetallicRoughnessTextureIndex}.");
+            }
+            if (occlusionTextureIndex >= 0 && source.OcclusionTextureTexCoord != 0)
+                Warn($"Material '{sourceName}' has non-standard UV for occlusion texture #{occlusionTextureIndex}.");
             SetPropertiesTexture(material, source.PbrMetallicRoughnessMetallicRoughnessTextureIndex,
                 occlusionTextureIndex, model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
             if (occlusionTextureIndex >= 0)
@@ -1030,11 +1042,14 @@ public sealed class GLTFImporter : RedObject
     private void InitializeMaterialTechnique(RedBolt.Graphics.Material material, RedBolt.Bindings.TinyGltf.Material source)
     {
         using var alphaMode = source.AlphaMode;
+        using var sourceName = source.Name;
         var isOpaque = alphaMode.ToString() == "OPAQUE";
         var isAlphaMask = alphaMode.ToString() == "MASK";
         var isTransparent = alphaMode.ToString() == "BLEND";
         if (!isOpaque && !isAlphaMask && !isTransparent)
             throw new InvalidDataException($"glTF material has an unknown alpha mode '{alphaMode}'.");
+        if (isAlphaMask && source.AlphaCutoff != 0.5)
+            Warn($"Material '{sourceName}' has non-standard alpha cutoff.");
 
         using var extensionsJson = source.ExtensionsJsonString;
         var isUnlit = extensionsJson.ToString().Contains("KHR_materials_unlit", StringComparison.Ordinal);
