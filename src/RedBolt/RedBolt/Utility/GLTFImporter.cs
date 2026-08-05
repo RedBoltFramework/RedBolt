@@ -433,6 +433,7 @@ public sealed class GLTFImporter : RedObject
     {
         using var sourceAnimations = model.Animations;
         using var sourceNodes = model.Nodes;
+        var nodePaths = GetNodePaths(sourceNodes);
         var usedResourceNames = new HashSet<string>(StringComparer.Ordinal);
         for (var animationIndex = 0; animationIndex < sourceAnimations.Count; ++animationIndex)
         {
@@ -441,7 +442,7 @@ public sealed class GLTFImporter : RedObject
             var sourceNameText = sourceName.ToString();
             if (IsNameSkipped(sourceNameText))
                 continue;
-            var tracks = ReadAnimationTracks(model, sourceAnimation, sourceNodes, animationIndex);
+            var tracks = ReadAnimationTracks(model, sourceAnimation, sourceNodes, nodePaths, animationIndex);
             var nameHint = string.IsNullOrEmpty(sourceNameText) ? $"Animation_{animationIndex}" : sourceNameText;
             var localResourceName = CreateUniqueResourceName("Animations", nameHint, ".ani", usedResourceNames);
             var animation = new RedBolt.Graphics.Animation();
@@ -449,7 +450,7 @@ public sealed class GLTFImporter : RedObject
             animation.SetAnimationName(Path.GetFileNameWithoutExtension(localResourceName));
             foreach (var (trackName, sourceTrack) in tracks)
                 CreateAnimationTrack(animation, trackName, sourceTrack);
-            ReadMorphAnimationTracks(animation, model, sourceAnimation, sourceNodes, animationIndex);
+            ReadMorphAnimationTracks(animation, model, sourceAnimation, sourceNodes, nodePaths, animationIndex);
             if (animation.Tracks.Count == 0 && animation.VariantTracks.Count == 0)
             {
                 animation.Dispose();
@@ -645,6 +646,7 @@ public sealed class GLTFImporter : RedObject
 
     private Dictionary<string, TransformTrackSource> ReadAnimationTracks(TinyGltfModel model,
         RedBolt.Bindings.TinyGltf.Animation sourceAnimation, Std.Vector<RedBolt.Bindings.TinyGltf.Node> sourceNodes,
+        IReadOnlyDictionary<int, string> nodePaths,
         int animationIndex)
     {
         using var channels = sourceAnimation.Channels;
@@ -667,8 +669,7 @@ public sealed class GLTFImporter : RedObject
 
             using var node = sourceNodes[channel.TargetNode];
             using var nodeName = node.Name;
-            var trackName = _boneNamesByNode.GetValueOrDefault(channel.TargetNode,
-                string.IsNullOrEmpty(nodeName.ToString()) ? $"Node_{channel.TargetNode}" : nodeName.ToString());
+            var trackName = _boneNamesByNode.GetValueOrDefault(channel.TargetNode, nodePaths[channel.TargetNode]);
             using var sampler = samplers[channel.Sampler];
             using var interpolation = sampler.Interpolation;
             var interpolationName = interpolation.ToString();
@@ -710,7 +711,8 @@ public sealed class GLTFImporter : RedObject
     }
 
     private static void ReadMorphAnimationTracks(RedBolt.Graphics.Animation animation, TinyGltfModel model,
-        RedBolt.Bindings.TinyGltf.Animation sourceAnimation, Std.Vector<TinyGltfNode> sourceNodes, int animationIndex)
+        RedBolt.Bindings.TinyGltf.Animation sourceAnimation, Std.Vector<TinyGltfNode> sourceNodes,
+        IReadOnlyDictionary<int, string> nodePaths, int animationIndex)
     {
         using var channels = sourceAnimation.Channels;
         using var samplers = sourceAnimation.Samplers;
@@ -729,8 +731,7 @@ public sealed class GLTFImporter : RedObject
             var morphCount = GetMorphCount(model, node.Mesh);
             if (morphCount == 0)
                 throw new InvalidDataException($"Animation #{animationIndex} weights channel targets a mesh without morphs.");
-            using var nodeName = node.Name;
-            var targetName = string.IsNullOrEmpty(nodeName.ToString()) ? $"Node_{channel.TargetNode}" : nodeName.ToString();
+            var targetName = nodePaths[channel.TargetNode];
             using var sampler = samplers[channel.Sampler];
             using var interpolation = sampler.Interpolation;
             var interpolationName = interpolation.ToString();
@@ -1599,6 +1600,67 @@ public sealed class GLTFImporter : RedObject
                 return true;
         }
         return false;
+    }
+
+    private static Dictionary<int, string> GetNodePaths(Std.Vector<TinyGltfNode> sourceNodes)
+    {
+        var parents = Enumerable.Repeat(-1, sourceNodes.Count).ToArray();
+        for (var parentIndex = 0; parentIndex < sourceNodes.Count; ++parentIndex)
+        {
+            using var parent = sourceNodes[parentIndex];
+            using var children = parent.Children;
+            foreach (var childIndex in children)
+            {
+                if ((uint)childIndex >= (uint)sourceNodes.Count || parents[childIndex] >= 0)
+                    throw new InvalidDataException("glTF animation hierarchy has invalid or shared nodes.");
+                parents[childIndex] = parentIndex;
+            }
+        }
+
+        var names = new string[sourceNodes.Count];
+        for (var nodeIndex = 0; nodeIndex < sourceNodes.Count; ++nodeIndex)
+        {
+            using var node = sourceNodes[nodeIndex];
+            using var name = node.Name;
+            names[nodeIndex] = string.IsNullOrEmpty(name.ToString()) ? $"Node_{nodeIndex}" : name.ToString();
+        }
+        var paths = new Dictionary<int, string>(sourceNodes.Count);
+        var visiting = new HashSet<int>();
+        for (var nodeIndex = 0; nodeIndex < sourceNodes.Count; ++nodeIndex)
+            GetPath(nodeIndex);
+        return paths;
+
+        string GetPath(int nodeIndex)
+        {
+            if (paths.TryGetValue(nodeIndex, out var path))
+                return path;
+            if (!visiting.Add(nodeIndex))
+                throw new InvalidDataException("glTF animation hierarchy is cyclic.");
+            var parentIndex = parents[nodeIndex];
+            if (parentIndex < 0)
+                path = names[nodeIndex];
+            else
+            {
+                using var parent = sourceNodes[parentIndex];
+                using var siblings = parent.Children;
+                var childPosition = -1;
+                var namesakeCount = 0;
+                for (var index = 0; index < siblings.Count; ++index)
+                {
+                    if (siblings[index] == nodeIndex)
+                        childPosition = index;
+                    if (names[siblings[index]] == names[nodeIndex])
+                        ++namesakeCount;
+                }
+                if (childPosition < 0)
+                    throw new InvalidDataException("glTF animation hierarchy is inconsistent.");
+                var segment = namesakeCount == 1 ? names[nodeIndex] : $"#{childPosition}";
+                path = $"{GetPath(parentIndex)}/{segment}";
+            }
+            visiting.Remove(nodeIndex);
+            paths.Add(nodeIndex, path);
+            return path;
+        }
     }
 
     private static int GetCommonParent(int first, int second, IReadOnlyList<int> parents)

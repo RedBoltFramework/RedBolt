@@ -770,7 +770,7 @@ public partial class AnimationController : AnimationStateSource
                 continue;
             }
 
-            var trackNode = GetTrackNodeByNameHash(track.NameHash, startNode);
+            var trackNode = GetTrackNodeByName(track.Name, startNode);
             if (trackNode is not null)
             {
                 state.AddNodeTrack(new NodeAnimationStateTrack
@@ -881,17 +881,18 @@ public partial class AnimationController : AnimationStateSource
         return result;
     }
 
-    private Node? GetTrackNodeByNameHash(StringHash trackNameHash, Node? startBone)
+    private Node? GetTrackNodeByName(string trackName, Node? startBone)
     {
         // Empty track name means that we animate the node itself
-        if (trackNameHash == StringHash.Empty)
+        if (string.IsNullOrEmpty(trackName))
             return Node;
 
         // If track name hash matches start bone name hash then we animate the start bone
+        var trackNameHash = new StringHash(trackName);
         if (trackNameHash == startBone!.GetNameHash())
             return startBone;
 
-        return startBone.GetChild(trackNameHash, true);
+        return trackName.Contains('/') ? startBone.FindChild(trackName) : startBone.GetChild(trackNameHash, true);
     }
 
     private Animation? GetAnimationByName(string name)
