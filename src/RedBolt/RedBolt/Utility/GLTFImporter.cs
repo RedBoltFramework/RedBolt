@@ -1744,6 +1744,8 @@ public sealed class GLTFImporter : RedObject
         }
         else
             result.Indices.AddRange(Enumerable.Range(0, positions.Count).Select(static index => checked((uint)index)));
+        if (primitive.Mode == 2)
+            result.Indices.Add(0);
         return result;
     }
 
@@ -1989,6 +1991,7 @@ public sealed class GLTFImporter : RedObject
     {
         0 => PrimitiveType.PointList,
         1 => PrimitiveType.LineList,
+        2 => PrimitiveType.LineStrip,
         3 => PrimitiveType.LineStrip,
         4 => PrimitiveType.TriangleList,
         5 => PrimitiveType.TriangleStrip,
