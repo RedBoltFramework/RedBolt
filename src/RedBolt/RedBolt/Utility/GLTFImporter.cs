@@ -143,6 +143,7 @@ public sealed class GLTFImporter : RedObject
             return false;
 
         using var loader = new TinyGLTF();
+        loader.SetStoreOriginalJSONForExtrasAndExtensions(true);
         using var error = new Std.String();
         using var warning = new Std.String();
         using var nativeFileName = new Std.String(fileName);
@@ -177,6 +178,7 @@ public sealed class GLTFImporter : RedObject
         try
         {
             using var loader = new TinyGLTF();
+            loader.SetStoreOriginalJSONForExtrasAndExtensions(true);
             using var error = new Std.String();
             using var warning = new Std.String();
             var model = new TinyGltfModel();
@@ -213,6 +215,7 @@ public sealed class GLTFImporter : RedObject
             return Fail($"glTF file '{fileName}' does not exist.");
 
         using var loader = new TinyGLTF();
+        loader.SetStoreOriginalJSONForExtrasAndExtensions(true);
         using var error = new Std.String();
         using var warning = new Std.String();
         using var nativeFileName = new Std.String(fileName);
@@ -798,6 +801,7 @@ public sealed class GLTFImporter : RedObject
                 ".xml", usedResourceNames);
             var material = new RedBolt.Graphics.Material();
             material.SetName(resourceNamePrefix + localResourceName);
+            InitializeMaterialTechnique(material, source);
             using var baseColor = source.PbrMetallicRoughnessBaseColorFactor;
             if (baseColor.Count == 4)
             {
@@ -832,6 +836,47 @@ public sealed class GLTFImporter : RedObject
             resourceNames.Add(material.Name);
         }
         return resourceNames;
+    }
+
+    private void InitializeMaterialTechnique(RedBolt.Graphics.Material material, RedBolt.Bindings.TinyGltf.Material source)
+    {
+        using var alphaMode = source.AlphaMode;
+        var isOpaque = alphaMode.ToString() == "OPAQUE";
+        var isAlphaMask = alphaMode.ToString() == "MASK";
+        var isTransparent = alphaMode.ToString() == "BLEND";
+        if (!isOpaque && !isAlphaMask && !isTransparent)
+            throw new InvalidDataException($"glTF material has an unknown alpha mode '{alphaMode}'.");
+
+        using var extensionsJson = source.ExtensionsJsonString;
+        var isUnlit = extensionsJson.ToString().Contains("KHR_materials_unlit", StringComparison.Ordinal);
+        var normalMap = source.NormalTextureIndex >= 0 && !isUnlit;
+        var techniqueName = isUnlit
+            ? isTransparent ? "Techniques/UnlitTransparent.xml" : "Techniques/UnlitOpaque.xml"
+            : normalMap
+                ? isTransparent
+                    ? Settings.FadeTransparency ? "Techniques/LitTransparentFadeNormalMap.xml" : "Techniques/LitTransparentNormalMap.xml"
+                    : "Techniques/LitOpaqueNormalMap.xml"
+                : isTransparent
+                    ? Settings.FadeTransparency ? "Techniques/LitTransparentFade.xml" : "Techniques/LitTransparent.xml"
+                    : "Techniques/LitOpaque.xml";
+        var technique = GetSubsystem<ResourceCache>()?.GetResourceOrNull<Technique>(techniqueName)
+            ?? throw new InvalidDataException($"Cannot find standard technique '{techniqueName}'.");
+        material.SetTechnique(0, technique, normalMap ? MaterialQuality.Medium : MaterialQuality.Low);
+        if (normalMap)
+        {
+            var fallbackTechniqueName = isTransparent
+                ? Settings.FadeTransparency ? "Techniques/LitTransparentFade.xml" : "Techniques/LitTransparent.xml"
+                : "Techniques/LitOpaque.xml";
+            var fallbackTechnique = GetSubsystem<ResourceCache>()?.GetResourceOrNull<Technique>(fallbackTechniqueName)
+                ?? throw new InvalidDataException($"Cannot find standard technique '{fallbackTechniqueName}'.");
+            material.SetTechnique(1, fallbackTechnique, MaterialQuality.Low);
+        }
+
+        var shaderDefines = isAlphaMask ? "ALPHAMASK " : string.Empty;
+        if (!isUnlit)
+            shaderDefines += "PBR ";
+        material.SetVertexShaderDefines(shaderDefines);
+        material.SetPixelShaderDefines(shaderDefines);
     }
 
     private void SetMaterialTexture(RedBolt.Graphics.Material material, string slot, int textureIndex,
@@ -1487,12 +1532,10 @@ public sealed class GLTFImporter : RedObject
 
         var componentCount = GetComponentCount(expectedType);
         var count = checked((int)accessor.Count);
-        if (accessor.BufferView < 0)
-            throw new InvalidDataException(accessor.SparseIsSparse
-                ? "Base-less sparse glTF accessors are unsupported by TinyGLTF."
-                : "glTF accessor does not reference a buffer view.");
-        var result = ReadFloatBufferView(model, accessor.BufferView, checked((int)accessor.ByteOffset), accessor.ComponentType,
-            componentCount, count, accessor.Normalized);
+        var result = accessor.BufferView >= 0
+            ? ReadFloatBufferView(model, accessor.BufferView, checked((int)accessor.ByteOffset), accessor.ComponentType,
+                componentCount, count, accessor.Normalized)
+            : Enumerable.Range(0, count).Select(_ => new float[componentCount]).ToList();
         ApplySparseFloatValues(model, accessor, result, componentCount);
 
         return result;
@@ -1501,12 +1544,9 @@ public sealed class GLTFImporter : RedObject
     private static List<Matrix3x4> ReadMatrix4Accessor(TinyGltfModel model, int accessorIndex)
     {
         using var accessor = GetAccessor(model, accessorIndex);
-        if (accessor.Type != TypeMat4 || accessor.ComponentType != ComponentFloat || accessor.SparseIsSparse)
+        if (accessor.Type != TypeMat4 || accessor.ComponentType != ComponentFloat)
             throw new InvalidDataException("glTF inverse bind matrices have an unsupported accessor format.");
-        if (accessor.BufferView < 0)
-            throw new InvalidDataException("glTF inverse bind matrices do not reference a buffer view.");
-        var values = ReadFloatBufferView(model, accessor.BufferView, checked((int)accessor.ByteOffset), ComponentFloat,
-            16, checked((int)accessor.Count), normalized: false);
+        var values = ReadFloatAccessor(model, accessorIndex, TypeMat4);
         return values.Select(static value => new Matrix3x4(new Matrix4(value).Transpose)).ToList();
     }
 
@@ -1530,11 +1570,9 @@ public sealed class GLTFImporter : RedObject
             throw new InvalidDataException("glTF index accessor has an unsupported component type.");
 
         var count = checked((int)accessor.Count);
-        if (accessor.BufferView < 0)
-            throw new InvalidDataException(accessor.SparseIsSparse
-                ? "Base-less sparse glTF accessors are unsupported by TinyGLTF."
-                : "glTF accessor does not reference a buffer view.");
-        var result = ReadUnsignedBufferView(model, accessor.BufferView, checked((int)accessor.ByteOffset), accessor.ComponentType, count);
+        var result = accessor.BufferView >= 0
+            ? ReadUnsignedBufferView(model, accessor.BufferView, checked((int)accessor.ByteOffset), accessor.ComponentType, count)
+            : Enumerable.Repeat(0u, count).ToList();
         ApplySparseIndices(model, accessor, result);
         return result;
     }
@@ -1644,6 +1682,7 @@ public sealed class GLTFImporter : RedObject
         TypeVec2 => 2,
         TypeVec3 => 3,
         TypeVec4 => 4,
+        TypeMat4 => 16,
         _ => throw new InvalidDataException("glTF accessor has an unsupported value type.")
     };
 
