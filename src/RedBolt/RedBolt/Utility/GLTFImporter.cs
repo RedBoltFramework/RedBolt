@@ -142,6 +142,7 @@ public sealed class GLTFImporter : RedObject
             return Fail(error.ToString());
         }
 
+        ValidateExtensions(model);
         RenameNodes(model);
         _model = model;
         return true;
@@ -171,6 +172,7 @@ public sealed class GLTFImporter : RedObject
                 return Fail(error.ToString());
             }
 
+            ValidateExtensions(model);
             RenameNodes(model);
             _model = model;
             return true;
@@ -297,6 +299,21 @@ public sealed class GLTFImporter : RedObject
     {
         LastError = string.IsNullOrWhiteSpace(error) ? "TinyGLTF failed to load the document." : error;
         return false;
+    }
+
+    private void ValidateExtensions(TinyGltfModel model)
+    {
+        using var extensions = model.ExtensionsUsed;
+        foreach (var extension in extensions)
+        {
+            using (extension)
+            {
+                if (extension.ToString() != "KHR_materials_unlit")
+                    LastWarning = string.IsNullOrEmpty(LastWarning)
+                        ? $"Unsupported extension used: '{extension}'."
+                        : $"{LastWarning}\nUnsupported extension used: '{extension}'.";
+            }
+        }
     }
 
     private ModelView BuildModelView(TinyGltfModel model)
