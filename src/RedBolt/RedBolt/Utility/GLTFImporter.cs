@@ -13,10 +13,12 @@ using RedBolt.IO;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
 using RedBolt.Resource;
+using RedBolt.Scene;
 
 using TinyGltfModel = RedBolt.Bindings.TinyGltf.Model;
 using TinyGltfPrimitive = RedBolt.Bindings.TinyGltf.Primitive;
 using TinyGltfAccessor = RedBolt.Bindings.TinyGltf.Accessor;
+using TinyGltfNode = RedBolt.Bindings.TinyGltf.Node;
 
 /// <summary>Options controlling glTF import.</summary>
 public sealed class GLTFImporterSettings : IArchiveSerializable
@@ -245,6 +247,7 @@ public sealed class GLTFImporter : RedObject
             _modelView = modelView;
             callback?.OnModelLoaded(modelView);
             ImportAnimations(_model, outputPath, resourceNamePrefix, callback);
+            ImportPrefabs(_model, outputPath, resourceNamePrefix);
             _model.Dispose();
             _model = null;
             _processed = true;
@@ -370,6 +373,66 @@ public sealed class GLTFImporter : RedObject
             _animations.Add(animation);
             callback?.OnAnimationLoaded(animation);
         }
+    }
+
+    private void ImportPrefabs(TinyGltfModel model, string outputPath, string resourceNamePrefix)
+    {
+        using var sourceScenes = model.Scenes;
+        using var sourceNodes = model.Nodes;
+        var usedResourceNames = new HashSet<string>(StringComparer.Ordinal);
+        for (var sceneIndex = 0; sceneIndex < sourceScenes.Count; ++sceneIndex)
+        {
+            using var sourceScene = sourceScenes[sceneIndex];
+            using var sourceName = sourceScene.Name;
+            var localResourceName = sourceScenes.Count == 1
+                ? "Prefab.prefab"
+                : CreateUniqueResourceName("Prefabs", sourceName.ToString(), ".prefab", usedResourceNames);
+            using var scene = new RedBolt.Scene.Scene();
+            var root = scene.CreateChild(Settings.AssetName);
+            root.SetRotation(Settings.Rotation);
+            using var roots = sourceScene.Nodes;
+            var visiting = new HashSet<int>();
+            foreach (var rootIndex in roots)
+                ImportPrefabNode(root, rootIndex, sourceNodes, visiting);
+
+            var prefab = new PrefabResource();
+            scene.GeneratePrefab(prefab.GetMutableScenePrefab());
+            prefab.NormalizeIds();
+            prefab.SetName(resourceNamePrefix + localResourceName);
+            AddCookedResource(prefab, outputPath, localResourceName);
+        }
+    }
+
+    private void ImportPrefabNode(RedBolt.Scene.Node parent, int nodeIndex, Std.Vector<TinyGltfNode> sourceNodes,
+        ISet<int> visiting)
+    {
+        if ((uint)nodeIndex >= (uint)sourceNodes.Count || !visiting.Add(nodeIndex))
+            throw new InvalidDataException($"Scene references invalid or cyclic node #{nodeIndex}.");
+        using var source = sourceNodes[nodeIndex];
+        using var sourceName = source.Name;
+        var node = parent.CreateChild(string.IsNullOrEmpty(sourceName.ToString()) ? $"Node_{nodeIndex}" : sourceName.ToString());
+        using var translation = source.Translation;
+        if (translation.Count == 3)
+            node.SetPosition(ConvertScenePosition(translation));
+        using var rotation = source.Rotation;
+        if (rotation.Count == 4)
+            node.SetRotation(new Quaternion((float)rotation[3], (float)rotation[0], (float)rotation[1], (float)rotation[2]));
+        using var scale = source.Scale;
+        if (scale.Count == 3)
+            node.SetScale(new Vector3f((float)scale[0], (float)scale[1], (float)scale[2]));
+        using var children = source.Children;
+        foreach (var childIndex in children)
+            ImportPrefabNode(node, childIndex, sourceNodes, visiting);
+        visiting.Remove(nodeIndex);
+    }
+
+    private Vector3f ConvertScenePosition(Std.Vector<double> position)
+    {
+        var result = new Vector3f((float)position[0] * Settings.Scale, (float)position[1] * Settings.Scale,
+            (float)position[2] * Settings.Scale);
+        if (Settings.MirrorX)
+            result.X = -result.X;
+        return result;
     }
 
     private Dictionary<string, TransformTrackSource> ReadAnimationTracks(TinyGltfModel model,
@@ -696,8 +759,8 @@ public sealed class GLTFImporter : RedObject
             return;
         var metallicRoughness = GetImportedTexture(metallicRoughnessTextureIndex);
         var occlusion = GetImportedTexture(occlusionTextureIndex);
-        var width = Math.Max(metallicRoughness?.Image.Width ?? 0, occlusion?.Image.Width ?? 0);
-        var height = Math.Max(metallicRoughness?.Image.Height ?? 0, occlusion?.Image.Height ?? 0);
+        var width = System.Math.Max(metallicRoughness?.Image.Width ?? 0, occlusion?.Image.Width ?? 0);
+        var height = System.Math.Max(metallicRoughness?.Image.Height ?? 0, occlusion?.Image.Height ?? 0);
         if (width <= 0 || height <= 0)
             throw new InvalidDataException("Metallic-roughness-occlusion texture has invalid dimensions.");
 
