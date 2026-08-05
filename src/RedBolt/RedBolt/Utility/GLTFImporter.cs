@@ -1321,7 +1321,7 @@ public sealed class GLTFImporter : RedObject
                 throw new InvalidDataException("glTF skinned node references an invalid mesh or skin.");
             using var skin = skins[meshNode.Skin];
             var bones = BuildSkinBones(model, sourceNodes, parents, skin);
-            if (result.TryGetValue(meshNode.Mesh, out var existing) && !existing.SequenceEqual(bones))
+            if (result.TryGetValue(meshNode.Mesh, out var existing) && !AreSkinBonesCompatible(existing, bones))
                 throw new InvalidDataException("glTF mesh is used with incompatible skins.");
             result[meshNode.Mesh] = bones;
         }
@@ -1390,8 +1390,68 @@ public sealed class GLTFImporter : RedObject
                 bone.OffsetMatrix = offsetMatrices[boneIndex];
             result.Add(bone);
         }
+        if (Settings.CleanupBoneNames)
+            CleanupBoneNames(result);
         return result;
     }
+
+    private bool AreSkinBonesCompatible(IReadOnlyList<BoneView> first, IReadOnlyList<BoneView> second)
+    {
+        if (first.Count != second.Count)
+            return false;
+        for (var index = 0; index < first.Count; ++index)
+        {
+            if (first[index].Name != second[index].Name || first[index].ParentIndex != second[index].ParentIndex
+                || !first[index].OffsetMatrix.ApproximatelyEquivalent(second[index].OffsetMatrix, Settings.OffsetMatrixError))
+                return false;
+        }
+        return true;
+    }
+
+    private static void CleanupBoneNames(List<BoneView> bones)
+    {
+        var prefixLength = FindCommonPrefixWord(bones.Select(static bone => bone.Name).ToList());
+        if (prefixLength == 0)
+            return;
+        for (var index = 0; index < bones.Count; ++index)
+        {
+            var bone = bones[index];
+            bone.Name = bone.Name[prefixLength..];
+            bones[index] = bone;
+        }
+    }
+
+    private static int FindCommonPrefixWord(IReadOnlyList<string> names)
+    {
+        if (names.Count <= 1)
+            return 0;
+        var prefix = names[0][..FindCommonPrefixWord(names[0], names[1])];
+        for (var index = 2; index < names.Count; ++index)
+            prefix = prefix[..FindCommonPrefixWord(prefix, names[index], preserveNonEmptyLeft: false)];
+        return prefix.Length;
+    }
+
+    private static int FindCommonPrefixWord(string left, string right, bool preserveNonEmptyLeft = true,
+        bool preserveNonEmptyRight = true)
+    {
+        if (left.Length == 0 || right.Length == 0)
+            return 0;
+        var maxLength = System.Math.Min(left.Length - (preserveNonEmptyLeft ? 1 : 0),
+            right.Length - (preserveNonEmptyRight ? 1 : 0));
+        var length = 0;
+        while (length < maxLength && left[length] == right[length])
+            ++length;
+        while (length > 0)
+        {
+            if (length < left.Length && IsWordBorder(left[length - 1], left[length]))
+                break;
+            --length;
+        }
+        return length;
+    }
+
+    private static bool IsWordBorder(char first, char second) => char.IsWhiteSpace(first) || char.IsPunctuation(first)
+        || char.IsLetter(first) != char.IsLetter(second) || char.IsLower(first) && char.IsUpper(second);
 
     private static void AppendEmptySkeletonNodes(Std.Vector<TinyGltfNode> sourceNodes, ISet<int> skeletonNodes)
     {
