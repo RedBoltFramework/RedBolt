@@ -410,6 +410,9 @@ public sealed class GLTFImporter : RedObject
             foreach (var rootIndex in roots)
                 ImportPrefabNode(root, rootIndex, sourceNodes, modelsByMesh, visiting);
 
+            RemoveSkippedPrefabNodes(root);
+            CleanupPrefabRoot(scene, root);
+
             var prefab = new PrefabResource();
             scene.GeneratePrefab(prefab.GetMutableScenePrefab());
             prefab.NormalizeIds();
@@ -426,15 +429,29 @@ public sealed class GLTFImporter : RedObject
         using var source = sourceNodes[nodeIndex];
         using var sourceName = source.Name;
         var node = parent.CreateChild(string.IsNullOrEmpty(sourceName.ToString()) ? $"Node_{nodeIndex}" : sourceName.ToString());
-        using var translation = source.Translation;
-        if (translation.Count == 3)
-            node.SetPosition(ConvertScenePosition(translation));
-        using var rotation = source.Rotation;
-        if (rotation.Count == 4)
-            node.SetRotation(new Quaternion((float)rotation[3], (float)rotation[0], (float)rotation[1], (float)rotation[2]));
-        using var scale = source.Scale;
-        if (scale.Count == 3)
-            node.SetScale(new Vector3f((float)scale[0], (float)scale[1], (float)scale[2]));
+        using var matrix = source.Matrix;
+        if (matrix.Count != 0)
+        {
+            if (matrix.Count != 16)
+                throw new InvalidDataException("glTF node matrix does not contain 16 values.");
+            Span<float> values = stackalloc float[16];
+            for (var index = 0; index < values.Length; ++index)
+                values[index] = (float)matrix[index];
+            var transform = Transform.FromMatrix3x4(new Matrix3x4(new Matrix4(values).Transpose));
+            node.SetTransform(ConvertScenePosition(transform.Position), transform.Rotation, transform.Scale);
+        }
+        else
+        {
+            using var translation = source.Translation;
+            if (translation.Count == 3)
+                node.SetPosition(ConvertScenePosition(translation));
+            using var rotation = source.Rotation;
+            if (rotation.Count == 4)
+                node.SetRotation(new Quaternion((float)rotation[3], (float)rotation[0], (float)rotation[1], (float)rotation[2]));
+            using var scale = source.Scale;
+            if (scale.Count == 3)
+                node.SetScale(new Vector3f((float)scale[0], (float)scale[1], (float)scale[2]));
+        }
         if (source.Skin < 0 && modelsByMesh.TryGetValue(source.Mesh, out var importedModel))
         {
             var staticModel = node.CreateComponent<StaticModel>();
@@ -452,10 +469,56 @@ public sealed class GLTFImporter : RedObject
         visiting.Remove(nodeIndex);
     }
 
+    private void RemoveSkippedPrefabNodes(RedBolt.Scene.Node root)
+    {
+        if (Settings.SkipTags.Count == 0)
+            return;
+
+        foreach (var node in root.GetChildren(recursive: true))
+        {
+            if (!IsNameSkipped(node.Name) || HasSkippedAncestor(node, root))
+                continue;
+            node.Remove();
+        }
+    }
+
+    private void CleanupPrefabRoot(RedBolt.Scene.Scene scene, RedBolt.Scene.Node root)
+    {
+        if (!Settings.CleanupRootNodes || root.GetNumComponents() != 0)
+            return;
+
+        var newRoot = root;
+        while (newRoot.GetNumChildren() == 1 && newRoot.GetNumComponents() == 0)
+            newRoot = newRoot.GetChild(0)!;
+
+        if (ReferenceEquals(newRoot, root))
+            return;
+        newRoot.SetParent(scene);
+        newRoot.SetName(root.Name);
+        root.Remove();
+    }
+
+    private bool IsNameSkipped(string name) => Settings.SkipTags.Any(tag => !string.IsNullOrEmpty(tag)
+        && name.Contains(tag, StringComparison.Ordinal));
+
+    private bool HasSkippedAncestor(RedBolt.Scene.Node node, RedBolt.Scene.Node root)
+    {
+        for (var ancestor = node.Parent; ancestor is not null && !ReferenceEquals(ancestor, root); ancestor = ancestor.Parent)
+        {
+            if (IsNameSkipped(ancestor.Name))
+                return true;
+        }
+        return false;
+    }
+
     private Vector3f ConvertScenePosition(Std.Vector<double> position)
     {
-        var result = new Vector3f((float)position[0] * Settings.Scale, (float)position[1] * Settings.Scale,
-            (float)position[2] * Settings.Scale);
+        return ConvertScenePosition(new Vector3f((float)position[0], (float)position[1], (float)position[2]));
+    }
+
+    private Vector3f ConvertScenePosition(Vector3f position)
+    {
+        var result = position * Settings.Scale;
         if (Settings.MirrorX)
             result.X = -result.X;
         return result;
