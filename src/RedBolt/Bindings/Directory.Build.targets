@@ -39,6 +39,10 @@
                Exclude="@(Compile)"
                LinkBase="Generated"
                Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Stb'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/tinygltf/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.TinyGltf'" />
       <Compile Include="$(RedBoltGeneratedBindingsDir)/lz4/**/*.g.cs"
                Exclude="@(Compile)"
                LinkBase="Generated"

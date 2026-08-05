@@ -19,6 +19,7 @@
     <ProjectReference Include="../Bindings/SpirVCross/RedBolt.Bindings.SpirVCross.csproj" />
     <ProjectReference Include="../Bindings/SpirVTools/RedBolt.Bindings.SpirVTools.csproj" />
     <ProjectReference Include="../Bindings/Stb/RedBolt.Bindings.Stb.csproj" />
+    <ProjectReference Include="../Bindings/TinyGltf/RedBolt.Bindings.TinyGltf.csproj" />
     <ProjectReference Include="../Bindings/Lz4/RedBolt.Bindings.Lz4.csproj" />
     <ProjectReference Include="../Bindings/WebP/RedBolt.Bindings.WebP.csproj" />
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
@@ -29,6 +30,9 @@
 
   <ItemGroup>
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      PrivateAssets="all"
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Std/SharpCpp.Std.csproj"
                       PrivateAssets="all"
                       AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
   </ItemGroup>
