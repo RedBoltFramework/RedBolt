@@ -435,9 +435,6 @@ public sealed class GLTFImporter : RedObject
             using var sourceAnimation = sourceAnimations[animationIndex];
             using var sourceName = sourceAnimation.Name;
             var tracks = ReadAnimationTracks(model, sourceAnimation, sourceNodes, animationIndex);
-            if (tracks.Count == 0)
-                continue;
-
             var nameHint = string.IsNullOrEmpty(sourceName.ToString()) ? $"Animation_{animationIndex}" : sourceName.ToString();
             var localResourceName = CreateUniqueResourceName("Animations", nameHint, ".ani", usedResourceNames);
             var animation = new RedBolt.Graphics.Animation();
@@ -445,6 +442,12 @@ public sealed class GLTFImporter : RedObject
             animation.SetAnimationName(Path.GetFileNameWithoutExtension(localResourceName));
             foreach (var (trackName, sourceTrack) in tracks)
                 CreateAnimationTrack(animation, trackName, sourceTrack);
+            ReadMorphAnimationTracks(animation, model, sourceAnimation, sourceNodes, animationIndex);
+            if (animation.Tracks.Count == 0 && animation.VariantTracks.Count == 0)
+            {
+                animation.Dispose();
+                continue;
+            }
 
             AddCookedResource(animation, outputPath, localResourceName);
             _animations.Add(animation);
@@ -487,6 +490,8 @@ public sealed class GLTFImporter : RedObject
             foreach (var rootIndex in roots)
                 ImportPrefabNode(root, rootIndex, sourceNodes, modelsByMesh, visiting);
 
+            if (_animations.Count != 0)
+                root.CreateComponent<AnimationController>().PlayNew(new AnimationParameters(_animations[0]).Looped());
             RemoveSkippedPrefabNodes(root);
             CleanupPrefabRoot(scene, root);
             InitializeDefaultSceneContent(scene);
@@ -643,6 +648,8 @@ public sealed class GLTFImporter : RedObject
             using var channel = channels[channelIndex];
             using var path = channel.TargetPath;
             var targetPath = path.ToString();
+            if (targetPath == "weights")
+                continue;
             if (targetPath is not ("translation" or "rotation" or "scale"))
             {
                 Warn($"Unsupported animation channel '{targetPath}' in animation #{animationIndex}.");
@@ -692,6 +699,83 @@ public sealed class GLTFImporter : RedObject
             }
         }
         return result;
+    }
+
+    private static void ReadMorphAnimationTracks(RedBolt.Graphics.Animation animation, TinyGltfModel model,
+        RedBolt.Bindings.TinyGltf.Animation sourceAnimation, Std.Vector<TinyGltfNode> sourceNodes, int animationIndex)
+    {
+        using var channels = sourceAnimation.Channels;
+        using var samplers = sourceAnimation.Samplers;
+        for (var channelIndex = 0; channelIndex < channels.Count; ++channelIndex)
+        {
+            using var channel = channels[channelIndex];
+            using var path = channel.TargetPath;
+            if (path.ToString() != "weights")
+                continue;
+            if ((uint)channel.TargetNode >= (uint)sourceNodes.Count || (uint)channel.Sampler >= (uint)samplers.Count)
+                throw new InvalidDataException("glTF animation references an invalid node or sampler.");
+
+            using var node = sourceNodes[channel.TargetNode];
+            if (node.Mesh < 0)
+                throw new InvalidDataException($"Animation #{animationIndex} weights channel targets a node without a mesh.");
+            var morphCount = GetMorphCount(model, node.Mesh);
+            if (morphCount == 0)
+                throw new InvalidDataException($"Animation #{animationIndex} weights channel targets a mesh without morphs.");
+            using var nodeName = node.Name;
+            var targetName = string.IsNullOrEmpty(nodeName.ToString()) ? $"Node_{channel.TargetNode}" : nodeName.ToString();
+            using var sampler = samplers[channel.Sampler];
+            using var interpolation = sampler.Interpolation;
+            var interpolationName = interpolation.ToString();
+            if (interpolationName is not ("" or "LINEAR" or "STEP" or "CUBICSPLINE"))
+                throw new InvalidDataException($"glTF animation uses unsupported interpolation '{interpolationName}'.");
+
+            var times = ReadFloatAccessor(model, sampler.Input, TypeScalar).Select(static value => value[0]).ToList();
+            var values = ReadFloatAccessor(model, sampler.Output, TypeScalar).Select(static value => value[0]).ToList();
+            var valuesPerKey = interpolationName == "CUBICSPLINE" ? morphCount * 3 : morphCount;
+            if (times.Count == 0 || values.Count != times.Count * valuesPerKey)
+                throw new InvalidDataException("glTF morph animation channel input and output counts differ.");
+
+            for (var morphIndex = 0; morphIndex < morphCount; ++morphIndex)
+            {
+                var track = animation.CreateVariantTrack($"{targetName}/@AnimatedModel/Morphs/{morphIndex}");
+                track.Interpolation = interpolationName switch
+                {
+                    "STEP" => KeyFrameInterpolation.None,
+                    "CUBICSPLINE" => KeyFrameInterpolation.TangentSpline,
+                    _ => KeyFrameInterpolation.Linear
+                };
+                for (var keyIndex = 0; keyIndex < times.Count; ++keyIndex)
+                {
+                    var valueOffset = keyIndex * valuesPerKey + (interpolationName == "CUBICSPLINE" ? morphCount : 0) + morphIndex;
+                    track.KeyFrames.Add(new VariantCurvePoint { Time = times[keyIndex], Value = new Variant(values[valueOffset]) });
+                    if (interpolationName == "CUBICSPLINE")
+                    {
+                        track.InTangents.Add(new Variant(values[keyIndex * valuesPerKey + morphIndex]));
+                        track.OutTangents.Add(new Variant(values[keyIndex * valuesPerKey + morphCount * 2 + morphIndex]));
+                    }
+                }
+                track.Commit();
+            }
+        }
+    }
+
+    private static int GetMorphCount(TinyGltfModel model, int meshIndex)
+    {
+        using var meshes = model.Meshes;
+        if ((uint)meshIndex >= (uint)meshes.Count)
+            throw new InvalidDataException("glTF animation references an invalid mesh.");
+        using var mesh = meshes[meshIndex];
+        using var primitives = mesh.Primitives;
+        var morphCount = -1;
+        for (var primitiveIndex = 0; primitiveIndex < primitives.Count; ++primitiveIndex)
+        {
+            using var primitive = primitives[primitiveIndex];
+            using var targets = primitive.Targets;
+            if (morphCount >= 0 && morphCount != targets.Count)
+                throw new InvalidDataException("glTF mesh primitives use incompatible morph targets.");
+            morphCount = targets.Count;
+        }
+        return System.Math.Max(morphCount, 0);
     }
 
     private static List<Vector3f> ReadAnimationVectors(TinyGltfModel model, int accessorIndex, int expectedType,
