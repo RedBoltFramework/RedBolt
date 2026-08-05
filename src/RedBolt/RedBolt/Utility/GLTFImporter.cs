@@ -1320,8 +1320,13 @@ public sealed class GLTFImporter : RedObject
                     var lod = BuildPrimitive(model, primitive, meshMorphs);
                     lod.LodDistance = distance;
                     lodsByGeometry[primitiveIndex].Add(lod);
-                    if (materialsByGeometry[primitiveIndex].Length == 0 && (uint)primitive.Material < (uint)materialNames.Count)
-                        materialsByGeometry[primitiveIndex] = materialNames[primitive.Material];
+                    if (primitive.Material >= 0)
+                    {
+                        if ((uint)primitive.Material >= (uint)materialNames.Count)
+                            throw new InvalidDataException("glTF primitive references an invalid material.");
+                        if (materialsByGeometry[primitiveIndex].Length == 0)
+                            materialsByGeometry[primitiveIndex] = materialNames[primitive.Material];
+                    }
                 }
             }
             var view = new ModelView();
