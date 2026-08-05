@@ -173,6 +173,35 @@ public sealed class GLTFImporter : RedObject
         }
     }
 
+    /// <summary>Load and merge animation data from a secondary glTF file.</summary>
+    public bool MergeFile(string fileName, string assetName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+        ArgumentNullException.ThrowIfNull(assetName);
+        if (_processed)
+            return Fail("Source glTF model is already processed.");
+        if (_model is null)
+            return Fail("Primary source glTF model is not loaded.");
+        if (!System.IO.File.Exists(fileName))
+            return Fail($"glTF file '{fileName}' does not exist.");
+
+        using var loader = new TinyGLTF();
+        using var error = new Std.String();
+        using var warning = new Std.String();
+        using var nativeFileName = new Std.String(fileName);
+        using var secondaryModel = new TinyGltfModel();
+        var loaded = string.Equals(Path.GetExtension(fileName), ".glb", StringComparison.OrdinalIgnoreCase)
+            ? loader.LoadBinaryFromFile(secondaryModel, error, warning, nativeFileName)
+            : loader.LoadASCIIFromFile(secondaryModel, error, warning, nativeFileName);
+        LastWarning = warning.ToString();
+        if (!loaded)
+            return Fail(error.ToString());
+
+        RenameNodes(secondaryModel);
+        MergeModels(_model, secondaryModel, Settings.KeepNamesOnMerge ? null : assetName);
+        return true;
+    }
+
     /// <summary>Convert the primary source model into a static <see cref="ModelView"/>.</summary>
     public bool Process(string outputPath, string resourceNamePrefix, GLTFImporterCallback? callback = null)
     {
@@ -465,5 +494,113 @@ public sealed class GLTFImporter : RedObject
             node.Name = nativeReplacement;
             nodes[index] = node;
         }
+    }
+
+    private static void MergeModels(TinyGltfModel outputModel, TinyGltfModel inputModel, string? overrideName)
+    {
+        var sourceToDestinationNodes = MapNodesByNames(inputModel, outputModel);
+
+        using var outputBuffers = outputModel.Buffers;
+        var startBufferIndex = outputBuffers.Count;
+        using var inputBuffers = inputModel.Buffers;
+        for (var index = 0; index < inputBuffers.Count; ++index)
+        {
+            using var buffer = inputBuffers[index];
+            outputBuffers.Add(buffer);
+        }
+
+        using var outputBufferViews = outputModel.BufferViews;
+        var startBufferViewIndex = outputBufferViews.Count;
+        using var inputBufferViews = inputModel.BufferViews;
+        for (var index = 0; index < inputBufferViews.Count; ++index)
+        {
+            using var bufferView = inputBufferViews[index];
+            bufferView.Buffer += startBufferIndex;
+            outputBufferViews.Add(bufferView);
+        }
+
+        using var outputAccessors = outputModel.Accessors;
+        var startAccessorIndex = outputAccessors.Count;
+        using var inputAccessors = inputModel.Accessors;
+        for (var index = 0; index < inputAccessors.Count; ++index)
+        {
+            using var accessor = inputAccessors[index];
+            accessor.BufferView += startBufferViewIndex;
+            outputAccessors.Add(accessor);
+        }
+
+        using var outputAnimations = outputModel.Animations;
+        var startAnimationIndex = outputAnimations.Count;
+        using var inputAnimations = inputModel.Animations;
+        for (var index = 0; index < inputAnimations.Count; ++index)
+        {
+            using var animation = inputAnimations[index];
+            outputAnimations.Add(animation);
+        }
+
+        for (var animationIndex = startAnimationIndex; animationIndex < outputAnimations.Count; ++animationIndex)
+        {
+            using var animation = outputAnimations[animationIndex];
+            if (overrideName is not null && inputAnimations.Count == 1)
+            {
+                using var name = new Std.String(overrideName);
+                animation.Name = name;
+            }
+
+            using var channels = animation.Channels;
+            for (var channelIndex = channels.Count - 1; channelIndex >= 0; --channelIndex)
+            {
+                using var channel = channels[channelIndex];
+                if (sourceToDestinationNodes.TryGetValue(channel.TargetNode, out var destinationNode))
+                {
+                    channel.TargetNode = destinationNode;
+                    channels[channelIndex] = channel;
+                    continue;
+                }
+
+                channels.RemoveAt(channelIndex);
+            }
+
+            using var samplers = animation.Samplers;
+            for (var samplerIndex = 0; samplerIndex < samplers.Count; ++samplerIndex)
+            {
+                using var sampler = samplers[samplerIndex];
+                sampler.Input += startAccessorIndex;
+                sampler.Output += startAccessorIndex;
+                samplers[samplerIndex] = sampler;
+            }
+            outputAnimations[animationIndex] = animation;
+        }
+    }
+
+    private static Dictionary<int, int> MapNodesByNames(TinyGltfModel sourceModel, TinyGltfModel destinationModel)
+    {
+        var destinationNodes = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var (index, name) in GetNodeNames(destinationModel))
+        {
+            if (name.Length != 0)
+                destinationNodes.TryAdd(name, index);
+        }
+
+        var result = new Dictionary<int, int>();
+        foreach (var (sourceIndex, name) in GetNodeNames(sourceModel))
+        {
+            if (name.Length != 0 && destinationNodes.TryGetValue(name, out var destinationIndex))
+                result[sourceIndex] = destinationIndex;
+        }
+        return result;
+    }
+
+    private static Dictionary<int, string> GetNodeNames(TinyGltfModel model)
+    {
+        var result = new Dictionary<int, string>();
+        using var nodes = model.Nodes;
+        for (var index = 0; index < nodes.Count; ++index)
+        {
+            using var node = nodes[index];
+            using var name = node.Name;
+            result[index] = name.ToString();
+        }
+        return result;
     }
 }
