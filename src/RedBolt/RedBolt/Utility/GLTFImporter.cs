@@ -85,13 +85,18 @@ public class GLTFImporterCallback
 /// <summary>Loads glTF assets through TinyGLTF and converts static mesh primitives into <see cref="ModelView"/>.</summary>
 public sealed class GLTFImporter : RedObject
 {
+    private const int ComponentByte = 5120;
     private const int ComponentUnsignedByte = 5121;
+    private const int ComponentShort = 5122;
     private const int ComponentUnsignedShort = 5123;
+    private const int ComponentInt = 5124;
     private const int ComponentUnsignedInt = 5125;
     private const int ComponentFloat = 5126;
+    private const int ComponentDouble = 5130;
     private const int TypeScalar = 65;
     private const int TypeVec2 = 2;
     private const int TypeVec3 = 3;
+    private const int TypeVec4 = 4;
 
     private TinyGltfModel? _model;
     private ModelView? _modelView;
@@ -299,11 +304,14 @@ public sealed class GLTFImporter : RedObject
         using var attributes = primitive.Attributes;
         var positionAccessor = GetAttribute(attributes, "POSITION", required: true);
         var normalAccessor = GetAttribute(attributes, "NORMAL", required: false);
+        var tangentAccessor = GetAttribute(attributes, "TANGENT", required: false);
         var uvAccessor = GetAttribute(attributes, "TEXCOORD_0", required: false);
         var positions = ReadFloatAccessor(model, positionAccessor, TypeVec3);
         var normals = normalAccessor >= 0 ? ReadFloatAccessor(model, normalAccessor, TypeVec3) : null;
+        var tangents = tangentAccessor >= 0 ? ReadFloatAccessor(model, tangentAccessor, TypeVec4) : null;
         var uvs = uvAccessor >= 0 ? ReadFloatAccessor(model, uvAccessor, TypeVec2) : null;
         if ((normals is not null && normals.Count != positions.Count) ||
+            (tangents is not null && tangents.Count != positions.Count) ||
             (uvs is not null && uvs.Count != positions.Count))
             throw new InvalidDataException("glTF primitive attributes have incompatible vertex counts.");
 
@@ -311,6 +319,8 @@ public sealed class GLTFImporter : RedObject
         result.VertexFormat.Position = VertexElementType.Vector3;
         if (normals is not null)
             result.VertexFormat.Normal = VertexElementType.Vector3;
+        if (tangents is not null)
+            result.VertexFormat.Tangent = VertexElementType.Vector4;
         if (uvs is not null)
             result.VertexFormat.Uv[0] = VertexElementType.Vector2;
         for (var index = 0; index < positions.Count; ++index)
@@ -321,7 +331,12 @@ public sealed class GLTFImporter : RedObject
             if (normals is not null)
             {
                 var normal = normals[index];
-                vertex.SetNormal(new Vector3f(normal[0], normal[1], normal[2]));
+                vertex.SetNormal(new Vector3f(normal[0], normal[1], normal[2]).Normalized);
+            }
+            if (tangents is not null)
+            {
+                var tangent = tangents[index];
+                vertex.Tangent = new Vector4f(tangent[0], tangent[1], tangent[2], tangent[3]);
             }
             if (uvs is not null)
             {
@@ -356,20 +371,16 @@ public sealed class GLTFImporter : RedObject
     private static List<float[]> ReadFloatAccessor(TinyGltfModel model, int accessorIndex, int expectedType)
     {
         using var accessor = GetAccessor(model, accessorIndex);
-        if (accessor.ComponentType != ComponentFloat || accessor.Type != expectedType)
-            throw new InvalidDataException("glTF accessor has an unsupported component or value type.");
+        if (accessor.Type != expectedType)
+            throw new InvalidDataException("glTF accessor has an unexpected value type.");
 
-        var componentCount = expectedType == TypeVec3 ? 3 : 2;
-        var bytes = GetAccessorBytes(model, accessor, componentCount * sizeof(float), out var count, out var stride);
-        var result = new List<float[]>(count);
-        for (var index = 0; index < count; ++index)
-        {
-            var value = new float[componentCount];
-            var offset = checked(index * stride);
-            for (var component = 0; component < componentCount; ++component)
-                value[component] = BinaryPrimitives.ReadSingleLittleEndian(bytes.AsSpan(offset + component * sizeof(float), sizeof(float)));
-            result.Add(value);
-        }
+        var componentCount = GetComponentCount(expectedType);
+        var count = checked((int)accessor.Count);
+        if (accessor.BufferView < 0)
+            throw new InvalidDataException("glTF accessor does not reference a buffer view.");
+        var result = ReadFloatBufferView(model, accessor.BufferView, checked((int)accessor.ByteOffset), accessor.ComponentType,
+            componentCount, count, accessor.Normalized);
+
         return result;
     }
 
@@ -378,56 +389,121 @@ public sealed class GLTFImporter : RedObject
         using var accessor = GetAccessor(model, accessorIndex);
         if (accessor.Type != TypeScalar)
             throw new InvalidDataException("glTF index accessor is not scalar.");
-        var componentSize = accessor.ComponentType switch
+        if (accessor.ComponentType is not (ComponentUnsignedByte or ComponentUnsignedShort or ComponentUnsignedInt))
+            throw new InvalidDataException("glTF index accessor has an unsupported component type.");
+
+        var count = checked((int)accessor.Count);
+        if (accessor.BufferView < 0)
+            throw new InvalidDataException("glTF accessor does not reference a buffer view.");
+        var result = ReadUnsignedBufferView(model, accessor.BufferView, checked((int)accessor.ByteOffset), accessor.ComponentType, count);
+        return result;
+    }
+
+    private static List<float[]> ReadFloatBufferView(TinyGltfModel model, int bufferViewIndex, int byteOffset,
+        int componentType, int componentCount, int count, bool normalized)
+    {
+        var componentSize = GetComponentSize(componentType);
+        var bytes = GetBufferViewBytes(model, bufferViewIndex, byteOffset, componentSize * componentCount, count, out var stride);
+        var result = new List<float[]>(count);
+        for (var index = 0; index < count; ++index)
         {
-            ComponentUnsignedByte => sizeof(byte),
-            ComponentUnsignedShort => sizeof(ushort),
-            ComponentUnsignedInt => sizeof(uint),
-            _ => throw new InvalidDataException("glTF index accessor has an unsupported component type.")
-        };
-        var bytes = GetAccessorBytes(model, accessor, componentSize, out var count, out var stride);
+            var value = new float[componentCount];
+            var offset = checked(index * stride);
+            for (var component = 0; component < componentCount; ++component)
+                value[component] = ReadFloatComponent(bytes.AsSpan(offset + component * componentSize, componentSize), componentType, normalized);
+            result.Add(value);
+        }
+        return result;
+    }
+
+    private static List<uint> ReadUnsignedBufferView(TinyGltfModel model, int bufferViewIndex, int byteOffset,
+        int componentType, int count)
+    {
+        if (componentType is not (ComponentUnsignedByte or ComponentUnsignedShort or ComponentUnsignedInt))
+            throw new InvalidDataException("glTF accessor has an unsupported unsigned component type.");
+        var componentSize = GetComponentSize(componentType);
+        var bytes = GetBufferViewBytes(model, bufferViewIndex, byteOffset, componentSize, count, out var stride);
         var result = new List<uint>(count);
         for (var index = 0; index < count; ++index)
         {
-            var offset = checked(index * stride);
-            result.Add(accessor.ComponentType switch
+            var value = bytes.AsSpan(checked(index * stride), componentSize);
+            result.Add(componentType switch
             {
-                ComponentUnsignedByte => bytes[offset],
-                ComponentUnsignedShort => BinaryPrimitives.ReadUInt16LittleEndian(bytes.AsSpan(offset, sizeof(ushort))),
-                ComponentUnsignedInt => BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(offset, sizeof(uint))),
-                _ => 0
+                ComponentUnsignedByte => value[0],
+                ComponentUnsignedShort => BinaryPrimitives.ReadUInt16LittleEndian(value),
+                ComponentUnsignedInt => BinaryPrimitives.ReadUInt32LittleEndian(value),
+                _ => throw new InvalidDataException("glTF accessor has an unsupported unsigned component type.")
             });
         }
         return result;
     }
 
-    private static byte[] GetAccessorBytes(TinyGltfModel model, TinyGltfAccessor accessor, int elementSize,
-        out int count, out int stride)
+    private static byte[] GetBufferViewBytes(TinyGltfModel model, int bufferViewIndex, int byteOffset,
+        int elementSize, int count, out int stride)
     {
-        if (accessor.BufferView < 0)
-            throw new InvalidDataException("Sparse glTF accessors are not supported.");
         using var bufferViews = model.BufferViews;
-        if ((uint)accessor.BufferView >= (uint)bufferViews.Count)
+        if ((uint)bufferViewIndex >= (uint)bufferViews.Count)
             throw new InvalidDataException("glTF accessor references an invalid buffer view.");
-        using var bufferView = bufferViews[accessor.BufferView];
+        using var bufferView = bufferViews[bufferViewIndex];
         using var buffers = model.Buffers;
         if ((uint)bufferView.Buffer >= (uint)buffers.Count)
             throw new InvalidDataException("glTF buffer view references an invalid buffer.");
         using var buffer = buffers[bufferView.Buffer];
         using var data = buffer.Data;
-        count = checked((int)accessor.Count);
         stride = bufferView.ByteStride == 0 ? elementSize : checked((int)bufferView.ByteStride);
         if (stride < elementSize)
             throw new InvalidDataException("glTF accessor stride is smaller than its element size.");
-        var start = checked((int)(bufferView.ByteOffset + accessor.ByteOffset));
+        var start = checked((int)bufferView.ByteOffset + byteOffset);
         var length = count == 0 ? 0 : checked((count - 1) * stride + elementSize);
-        if (accessor.ByteOffset > bufferView.ByteLength || checked((nuint)length) > bufferView.ByteLength - accessor.ByteOffset ||
+        if ((nuint)byteOffset > bufferView.ByteLength || checked((nuint)length) > bufferView.ByteLength - (nuint)byteOffset ||
             start < 0 || length < 0 || start > data.Count - length)
             throw new InvalidDataException("glTF accessor is outside its buffer.");
         var result = new byte[length];
         for (var index = 0; index < length; ++index)
             result[index] = data[start + index];
         return result;
+    }
+
+    private static int GetComponentCount(int type) => type switch
+    {
+        TypeScalar => 1,
+        TypeVec2 => 2,
+        TypeVec3 => 3,
+        TypeVec4 => 4,
+        _ => throw new InvalidDataException("glTF accessor has an unsupported value type.")
+    };
+
+    private static int GetComponentSize(int componentType) => componentType switch
+    {
+        ComponentUnsignedByte or ComponentByte => sizeof(byte),
+        ComponentShort or ComponentUnsignedShort => sizeof(short),
+        ComponentInt or ComponentUnsignedInt or ComponentFloat => sizeof(int),
+        ComponentDouble => sizeof(double),
+        _ => throw new InvalidDataException("glTF accessor has an unsupported component type.")
+    };
+
+    private static float ReadFloatComponent(ReadOnlySpan<byte> value, int componentType, bool normalized)
+    {
+        var result = componentType switch
+        {
+            ComponentByte => (float)(sbyte)value[0],
+            ComponentUnsignedByte => value[0],
+            ComponentShort => BinaryPrimitives.ReadInt16LittleEndian(value),
+            ComponentUnsignedShort => BinaryPrimitives.ReadUInt16LittleEndian(value),
+            ComponentInt => BinaryPrimitives.ReadInt32LittleEndian(value),
+            ComponentUnsignedInt => BinaryPrimitives.ReadUInt32LittleEndian(value),
+            ComponentFloat => BinaryPrimitives.ReadSingleLittleEndian(value),
+            ComponentDouble => (float)BinaryPrimitives.ReadDoubleLittleEndian(value),
+            _ => throw new InvalidDataException("glTF accessor has an unsupported component type.")
+        };
+        return normalized ? componentType switch
+        {
+            ComponentByte => System.Math.Max(-1.0f, result / sbyte.MaxValue),
+            ComponentUnsignedByte => result / byte.MaxValue,
+            ComponentShort => System.Math.Max(-1.0f, result / short.MaxValue),
+            ComponentUnsignedShort => result / ushort.MaxValue,
+            _ => result
+        } : result;
     }
 
     private static TinyGltfAccessor GetAccessor(TinyGltfModel model, int index)
