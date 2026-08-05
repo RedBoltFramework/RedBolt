@@ -242,6 +242,7 @@ public sealed class GLTFImporter : RedObject
 
         try
         {
+            PreprocessModel(_model, callback);
             var materialNames = ImportMaterials(_model, outputPath, resourceNamePrefix);
             var models = BuildModelViews(_model, materialNames, BuildSkinBones(_model));
             if (models.Count == 0)
@@ -277,6 +278,64 @@ public sealed class GLTFImporter : RedObject
             ClearCookedResources();
             return Fail(exception.Message);
         }
+    }
+
+    private static void PreprocessModel(TinyGltfModel model, GLTFImporterCallback? callback)
+    {
+        if (callback is null)
+            return;
+        var artificialSkinNodes = callback.GetArtificialSkinNodes();
+        if (artificialSkinNodes.Count == 0)
+            return;
+
+        using var skins = model.Skins;
+        if (skins.Count != 0)
+            return;
+        using var nodes = model.Nodes;
+        using var meshes = model.Meshes;
+        var skinNames = new HashSet<string>(artificialSkinNodes, StringComparer.Ordinal);
+        var emptyMeshIndex = -1;
+        for (var nodeIndex = 0; nodeIndex < nodes.Count; ++nodeIndex)
+        {
+            using var node = nodes[nodeIndex];
+            using var name = node.Name;
+            if (node.Skin >= 0 || !skinNames.Contains(name.ToString()))
+                continue;
+            if (emptyMeshIndex < 0)
+            {
+                emptyMeshIndex = meshes.Count;
+                using var emptyMesh = new RedBolt.Bindings.TinyGltf.Mesh();
+                meshes.Add(emptyMesh);
+            }
+
+            var skinIndex = skins.Count;
+            using var skin = new RedBolt.Bindings.TinyGltf.Skin();
+            skin.Skeleton = nodeIndex;
+            using (var joints = skin.Joints)
+            {
+                foreach (var childIndex in EnumerateDescendants(nodes, nodeIndex, new HashSet<int>()))
+                    joints.Add(childIndex);
+            }
+            skins.Add(skin);
+            node.Skin = skinIndex;
+            node.Mesh = emptyMeshIndex;
+            nodes[nodeIndex] = node;
+        }
+    }
+
+    private static IEnumerable<int> EnumerateDescendants(Std.Vector<TinyGltfNode> nodes, int nodeIndex, ISet<int> visiting)
+    {
+        if ((uint)nodeIndex >= (uint)nodes.Count || !visiting.Add(nodeIndex))
+            throw new InvalidDataException("glTF node hierarchy is invalid or cyclic.");
+        using var node = nodes[nodeIndex];
+        using var children = node.Children;
+        foreach (var childIndex in children)
+        {
+            yield return childIndex;
+            foreach (var descendant in EnumerateDescendants(nodes, childIndex, visiting))
+                yield return descendant;
+        }
+        visiting.Remove(nodeIndex);
     }
 
     /// <summary>Save cooked model resources to the output paths provided to <see cref="Process"/>.</summary>
@@ -434,7 +493,7 @@ public sealed class GLTFImporter : RedObject
         node.SetTransform(ConvertScenePosition(transform.Position), ConvertSceneRotation(transform.Rotation), transform.Scale);
         if (modelsByMesh.TryGetValue(source.Mesh, out var importedModel))
         {
-            StaticModel modelComponent = source.Skin < 0
+            StaticModel modelComponent = source.Skin < 0 && importedModel.Model.GetNumMorphs() == 0
                 ? node.CreateComponent<StaticModel>()
                 : node.CreateComponent<AnimatedModel>();
             modelComponent.SetModel(importedModel.Model);
@@ -443,6 +502,14 @@ public sealed class GLTFImporter : RedObject
             {
                 if (_materialsByName.TryGetValue(importedModel.Materials[materialIndex], out var material))
                     modelComponent.SetMaterial((uint)materialIndex, material);
+            }
+            if (modelComponent is AnimatedModel animatedModel)
+            {
+                using var weights = source.Weights;
+                if (weights.Count != 0 && weights.Count != animatedModel.GetNumMorphs())
+                    throw new InvalidDataException("glTF node morph weight count does not match its mesh.");
+                for (var morphIndex = 0; morphIndex < weights.Count; ++morphIndex)
+                    animatedModel.SetMorphWeight(morphIndex, (float)weights[morphIndex]);
             }
         }
         using var children = source.Children;
@@ -980,10 +1047,25 @@ public sealed class GLTFImporter : RedObject
             group.Sort(static (left, right) => left.Distance.CompareTo(right.Distance));
             var lodsByGeometry = new List<List<GeometryLODView>>();
             var materialsByGeometry = new List<string>();
+            var morphWeights = new List<float>();
+            var numMorphs = -1;
             foreach (var (meshIndex, distance) in group)
             {
                 using var mesh = meshes[meshIndex];
                 using var primitives = mesh.Primitives;
+                using var weights = mesh.Weights;
+                var meshMorphs = 0;
+                if (primitives.Count != 0)
+                {
+                    using var firstPrimitive = primitives[0];
+                    using var targets = firstPrimitive.Targets;
+                    meshMorphs = targets.Count;
+                }
+                if (numMorphs >= 0 && numMorphs != meshMorphs)
+                    throw new InvalidDataException("glTF LOD meshes use incompatible morph targets.");
+                numMorphs = meshMorphs;
+                if (morphWeights.Count == 0)
+                    morphWeights.AddRange(weights.Select(static weight => (float)weight));
                 while (lodsByGeometry.Count < primitives.Count)
                 {
                     lodsByGeometry.Add([]);
@@ -992,7 +1074,7 @@ public sealed class GLTFImporter : RedObject
                 for (var primitiveIndex = 0; primitiveIndex < primitives.Count; ++primitiveIndex)
                 {
                     using var primitive = primitives[primitiveIndex];
-                    var lod = BuildPrimitive(model, primitive);
+                    var lod = BuildPrimitive(model, primitive, meshMorphs);
                     lod.LodDistance = distance;
                     lodsByGeometry[primitiveIndex].Add(lod);
                     if (materialsByGeometry[primitiveIndex].Length == 0 && (uint)primitive.Material < (uint)materialNames.Count)
@@ -1001,6 +1083,11 @@ public sealed class GLTFImporter : RedObject
             }
             var view = new ModelView();
             view.SetName(groupName.StartsWith('#') ? Settings.AssetName : groupName);
+            view.SetMorphs(Enumerable.Range(0, numMorphs).Select(index => new ModelMorphView
+            {
+                Name = string.Empty,
+                InitialWeight = index < morphWeights.Count ? morphWeights[index] : 0.0f
+            }).ToList());
             view.SetGeometries(lodsByGeometry.Select((lods, index) => new GeometryView
             {
                 Lods = lods,
@@ -1249,7 +1336,7 @@ public sealed class GLTFImporter : RedObject
         return false;
     }
 
-    private static GeometryLODView BuildPrimitive(TinyGltfModel model, TinyGltfPrimitive primitive)
+    private static GeometryLODView BuildPrimitive(TinyGltfModel model, TinyGltfPrimitive primitive, int expectedMorphs)
     {
         using var attributes = primitive.Attributes;
         var positionAccessor = GetAttribute(attributes, "POSITION", required: true);
@@ -1336,6 +1423,17 @@ public sealed class GLTFImporter : RedObject
             result.Vertices.Add(vertex);
         }
 
+        using (var targets = primitive.Targets)
+        {
+            if (targets.Count != expectedMorphs)
+                throw new InvalidDataException("glTF mesh primitives use incompatible morph targets.");
+            for (var morphIndex = 0; morphIndex < targets.Count; ++morphIndex)
+            {
+                using var target = targets[morphIndex];
+                result.Morphs[(uint)morphIndex] = ReadVertexMorphs(model, target, positions.Count);
+            }
+        }
+
         if (primitive.Indices >= 0)
         {
             var indices = ReadIndices(model, primitive.Indices);
@@ -1346,6 +1444,29 @@ public sealed class GLTFImporter : RedObject
         else
             result.Indices.AddRange(Enumerable.Range(0, positions.Count).Select(static index => checked((uint)index)));
         return result;
+    }
+
+    private static List<ModelVertexMorph> ReadVertexMorphs(TinyGltfModel model, Std.Map<Std.String, int> attributes,
+        int vertexCount)
+    {
+        var positionAccessor = GetAttribute(attributes, "POSITION", required: false);
+        var normalAccessor = GetAttribute(attributes, "NORMAL", required: false);
+        var tangentAccessor = GetAttribute(attributes, "TANGENT", required: false);
+        var positions = positionAccessor >= 0 ? ReadFloatAccessor(model, positionAccessor, TypeVec3) : null;
+        var normals = normalAccessor >= 0 ? ReadFloatAccessor(model, normalAccessor, TypeVec3) : null;
+        var tangents = tangentAccessor >= 0 ? ReadFloatAccessor(model, tangentAccessor, TypeVec3) : null;
+        if ((positions is not null && positions.Count != vertexCount) ||
+            (normals is not null && normals.Count != vertexCount) ||
+            (tangents is not null && tangents.Count != vertexCount))
+            throw new InvalidDataException("glTF morph target attributes have incompatible vertex counts.");
+
+        return Enumerable.Range(0, vertexCount).Select(index => new ModelVertexMorph
+        {
+            Index = (uint)index,
+            PositionDelta = positions is null ? Vector3f.Zero : new Vector3f(positions[index][0], positions[index][1], positions[index][2]),
+            NormalDelta = normals is null ? Vector3f.Zero : new Vector3f(normals[index][0], normals[index][1], normals[index][2]),
+            TangentDelta = tangents is null ? Vector3f.Zero : new Vector3f(tangents[index][0], tangents[index][1], tangents[index][2])
+        }).ToList();
     }
 
     private static int GetAttribute(Std.Map<Std.String, int> attributes, string name, bool required)

@@ -23,6 +23,20 @@ internal sealed class TinyGltfGenerator(string nativeLibraryName)
     protected override bool RetainStdlibWrapper(RecordBinding record) =>
         record.ManagedNamespace == "Std" && record.ManagedName is "Map" or "String" or "Vector";
 
+    protected override void AfterPruneCompilation(BindingCompilation compilation)
+    {
+        var vector = compilation.Records.Single(record => record.CppQualifiedName == "std::vector");
+        foreach (var field in compilation.Descendants<FieldBinding>())
+            field.Type = NormalizeMapElement(field.Type);
+
+        for (var index = 0; index < vector.SupportedGenericInstantiations.Count; ++index)
+        {
+            var instantiation = vector.SupportedGenericInstantiations[index];
+            vector.SupportedGenericInstantiations[index] = new(
+                instantiation.TypeArguments.Select(NormalizeMapElement));
+        }
+    }
+
     protected override GeneratedBindingSet TransformBindings(GeneratedBindingSet bindings)
     {
         var unsupportedSymbols = bindings.Files
@@ -178,6 +192,14 @@ internal sealed class TinyGltfGenerator(string nativeLibraryName)
                 return index;
         }
         throw new InvalidOperationException("Generated C++ template specialization has unbalanced brackets.");
+    }
+
+    private static BindingType NormalizeMapElement(BindingType type)
+    {
+        var arguments = type.GenericArguments.Select(NormalizeMapElement).ToArray();
+        if (type.RecordId == "record:std::map" && type.CppTypeName.EndsWith('*'))
+            type = type.WithCppTypeName(type.CppTypeName[..^1].TrimEnd());
+        return type.WithGenericArguments(arguments);
     }
 
     protected override IReadOnlyDictionary<string, string> NamespaceMappings { get; } =
