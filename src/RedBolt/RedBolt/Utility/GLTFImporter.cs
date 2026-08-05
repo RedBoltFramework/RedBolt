@@ -103,6 +103,7 @@ public sealed class GLTFImporter : RedObject
     private const int TypeVec2 = 2;
     private const int TypeVec3 = 3;
     private const int TypeVec4 = 4;
+    private const int TypeMat4 = 36;
 
     private TinyGltfModel? _model;
     private ModelView? _modelView;
@@ -242,7 +243,7 @@ public sealed class GLTFImporter : RedObject
         try
         {
             var materialNames = ImportMaterials(_model, outputPath, resourceNamePrefix);
-            var models = BuildModelViews(_model, materialNames);
+            var models = BuildModelViews(_model, materialNames, BuildSkinBones(_model));
             if (models.Count == 0)
             {
                 _modelView = new ModelView();
@@ -452,15 +453,17 @@ public sealed class GLTFImporter : RedObject
             if (scale.Count == 3)
                 node.SetScale(new Vector3f((float)scale[0], (float)scale[1], (float)scale[2]));
         }
-        if (source.Skin < 0 && modelsByMesh.TryGetValue(source.Mesh, out var importedModel))
+        if (modelsByMesh.TryGetValue(source.Mesh, out var importedModel))
         {
-            var staticModel = node.CreateComponent<StaticModel>();
-            staticModel.SetModel(importedModel.Model);
-            staticModel.SetCastShadows(true);
+            StaticModel modelComponent = source.Skin < 0
+                ? node.CreateComponent<StaticModel>()
+                : node.CreateComponent<AnimatedModel>();
+            modelComponent.SetModel(importedModel.Model);
+            modelComponent.SetCastShadows(true);
             for (var materialIndex = 0; materialIndex < importedModel.Materials.Count; ++materialIndex)
             {
                 if (_materialsByName.TryGetValue(importedModel.Materials[materialIndex], out var material))
-                    staticModel.SetMaterial((uint)materialIndex, material);
+                    modelComponent.SetMaterial((uint)materialIndex, material);
             }
         }
         using var children = source.Children;
@@ -960,7 +963,7 @@ public sealed class GLTFImporter : RedObject
         || minFilter is 9984 or 9985 or 9986 or 9987;
 
     private List<(List<int> MeshIndices, ModelView View, IReadOnlyList<string> Materials, string NameHint)> BuildModelViews(
-        TinyGltfModel model, IReadOnlyList<string> materialNames)
+        TinyGltfModel model, IReadOnlyList<string> materialNames, IReadOnlyDictionary<int, List<BoneView>> skinBonesByMesh)
     {
         using var meshes = model.Meshes;
         var meshGroups = new Dictionary<string, List<(int Index, float Distance)>>();
@@ -1015,6 +1018,14 @@ public sealed class GLTFImporter : RedObject
                 Lods = lods,
                 Material = materialsByGeometry[index]
             }).ToList());
+            var bones = group.Where(value => skinBonesByMesh.ContainsKey(value.Index))
+                .Select(value => skinBonesByMesh[value.Index]).ToList();
+            if (bones.Count != 0)
+            {
+                if (bones.Skip(1).Any(candidate => !candidate.SequenceEqual(bones[0])))
+                    throw new InvalidDataException("glTF LOD meshes use incompatible skins.");
+                view.SetBones(bones[0]);
+            }
             if (Settings.MirrorX)
                 view.MirrorGeometriesX();
             if (Settings.Scale != 1.0f)
@@ -1024,6 +1035,91 @@ public sealed class GLTFImporter : RedObject
             view.Normalize();
             result.Add(([.. group.Select(value => value.Index)], view, materialsByGeometry,
                 groupName.StartsWith('#') ? Settings.AssetName : groupName));
+        }
+        return result;
+    }
+
+    private Dictionary<int, List<BoneView>> BuildSkinBones(TinyGltfModel model)
+    {
+        using var sourceNodes = model.Nodes;
+        var parents = Enumerable.Repeat(-1, sourceNodes.Count).ToArray();
+        for (var nodeIndex = 0; nodeIndex < sourceNodes.Count; ++nodeIndex)
+        {
+            using var sourceNode = sourceNodes[nodeIndex];
+            using var children = sourceNode.Children;
+            foreach (var childIndex in children)
+            {
+                if ((uint)childIndex >= (uint)parents.Length || parents[childIndex] >= 0)
+                    throw new InvalidDataException("glTF skin hierarchy has invalid or shared nodes.");
+                parents[childIndex] = nodeIndex;
+            }
+        }
+
+        using var skins = model.Skins;
+        var result = new Dictionary<int, List<BoneView>>();
+        for (var nodeIndex = 0; nodeIndex < sourceNodes.Count; ++nodeIndex)
+        {
+            using var meshNode = sourceNodes[nodeIndex];
+            if (meshNode.Skin < 0)
+                continue;
+            if (meshNode.Mesh < 0 || (uint)meshNode.Skin >= (uint)skins.Count)
+                throw new InvalidDataException("glTF skinned node references an invalid mesh or skin.");
+            using var skin = skins[meshNode.Skin];
+            var bones = BuildSkinBones(model, sourceNodes, parents, skin);
+            if (result.TryGetValue(meshNode.Mesh, out var existing) && !existing.SequenceEqual(bones))
+                throw new InvalidDataException("glTF mesh is used with incompatible skins.");
+            result[meshNode.Mesh] = bones;
+        }
+        return result;
+    }
+
+    private List<BoneView> BuildSkinBones(TinyGltfModel model, Std.Vector<TinyGltfNode> sourceNodes, IReadOnlyList<int> parents,
+        RedBolt.Bindings.TinyGltf.Skin skin)
+    {
+        using var joints = skin.Joints;
+        if (joints.Count == 0)
+            throw new InvalidDataException("glTF skin has no joints.");
+        var offsetMatrices = skin.InverseBindMatrices >= 0
+            ? ReadMatrix4Accessor(model, skin.InverseBindMatrices)
+            : [];
+        if (offsetMatrices.Count != 0 && offsetMatrices.Count != joints.Count)
+            throw new InvalidDataException("glTF skin inverse bind matrix count does not match its joints.");
+        var jointToBone = new Dictionary<int, int>();
+        for (var boneIndex = 0; boneIndex < joints.Count; ++boneIndex)
+        {
+            var jointIndex = joints[boneIndex];
+            if ((uint)jointIndex >= (uint)sourceNodes.Count || !jointToBone.TryAdd(jointIndex, boneIndex))
+                throw new InvalidDataException("glTF skin references an invalid or duplicate joint.");
+        }
+
+        var result = new List<BoneView>(joints.Count);
+        var usedNames = new HashSet<string>(StringComparer.Ordinal);
+        for (var boneIndex = 0; boneIndex < joints.Count; ++boneIndex)
+        {
+            var jointIndex = joints[boneIndex];
+            using var joint = sourceNodes[jointIndex];
+            using var sourceName = joint.Name;
+            var nameHint = string.IsNullOrEmpty(sourceName.ToString()) ? $"Bone_{jointIndex}" : sourceName.ToString();
+            var name = nameHint;
+            for (var suffix = 1; !usedNames.Add(name); ++suffix)
+                name = $"{nameHint}_{suffix}";
+            var bone = new BoneView
+            {
+                Name = name,
+                ParentIndex = jointToBone.GetValueOrDefault(parents[jointIndex], -1)
+            };
+            using var translation = joint.Translation;
+            if (translation.Count == 3)
+                bone.Position = ConvertScenePosition(translation);
+            using var rotation = joint.Rotation;
+            if (rotation.Count == 4)
+                bone.Rotation = new Quaternion((float)rotation[3], (float)rotation[0], (float)rotation[1], (float)rotation[2]);
+            using var scale = joint.Scale;
+            if (scale.Count == 3)
+                bone.Scale = new Vector3f((float)scale[0], (float)scale[1], (float)scale[2]);
+            if (boneIndex < offsetMatrices.Count)
+                bone.OffsetMatrix = offsetMatrices[boneIndex];
+            result.Add(bone);
         }
         return result;
     }
@@ -1168,6 +1264,18 @@ public sealed class GLTFImporter : RedObject
         ApplySparseFloatValues(model, accessor, result, componentCount);
 
         return result;
+    }
+
+    private static List<Matrix3x4> ReadMatrix4Accessor(TinyGltfModel model, int accessorIndex)
+    {
+        using var accessor = GetAccessor(model, accessorIndex);
+        if (accessor.Type != TypeMat4 || accessor.ComponentType != ComponentFloat || accessor.SparseIsSparse)
+            throw new InvalidDataException("glTF inverse bind matrices have an unsupported accessor format.");
+        if (accessor.BufferView < 0)
+            throw new InvalidDataException("glTF inverse bind matrices do not reference a buffer view.");
+        var values = ReadFloatBufferView(model, accessor.BufferView, checked((int)accessor.ByteOffset), ComponentFloat,
+            16, checked((int)accessor.Count), normalized: false);
+        return values.Select(static value => new Matrix3x4(new Matrix4(value).Transpose)).ToList();
     }
 
     private static (List<float[]> Values, int Components) ReadColorAccessor(TinyGltfModel model, int accessorIndex)
