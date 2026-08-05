@@ -110,6 +110,8 @@ public sealed class GLTFImporter : RedObject
     private readonly List<(Resource Resource, string FileName)> _cookedResources = [];
     private bool _processed;
 
+    private sealed record ImportedTexture(Texture2D Texture, RedBolt.Resource.Image Image);
+
     public GLTFImporter(GLTFImporterSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
@@ -569,7 +571,7 @@ public sealed class GLTFImporter : RedObject
         using var sourceMaterials = model.Materials;
         var resourceNames = new List<string>(sourceMaterials.Count);
         var usedResourceNames = new HashSet<string>(StringComparer.Ordinal);
-        var importedTextures = new Dictionary<int, Texture2D>();
+        var importedTextures = new Dictionary<int, ImportedTexture>();
         var usedTextureNames = new HashSet<string>(StringComparer.Ordinal);
         for (var materialIndex = 0; materialIndex < sourceMaterials.Count; ++materialIndex)
         {
@@ -591,11 +593,8 @@ public sealed class GLTFImporter : RedObject
             material.SetShaderParameter("AlphaCutoff", (float)source.AlphaCutoff);
             SetMaterialTexture(material, ShaderResources.Albedo, source.PbrMetallicRoughnessBaseColorTextureIndex,
                 model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
-            SetMaterialTexture(material, ShaderResources.Properties,
-                source.PbrMetallicRoughnessMetallicRoughnessTextureIndex >= 0
-                    ? source.PbrMetallicRoughnessMetallicRoughnessTextureIndex
-                    : source.OcclusionTextureIndex,
-                model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
+            SetPropertiesTexture(material, source.PbrMetallicRoughnessMetallicRoughnessTextureIndex,
+                source.OcclusionTextureIndex, model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
             SetMaterialTexture(material, ShaderResources.Normal, source.NormalTextureIndex,
                 model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
             material.SetShaderParameter("NormalScale", (float)source.NormalTextureScale);
@@ -619,7 +618,7 @@ public sealed class GLTFImporter : RedObject
     }
 
     private void SetMaterialTexture(RedBolt.Graphics.Material material, string slot, int textureIndex,
-        TinyGltfModel model, string outputPath, string resourceNamePrefix, Dictionary<int, Texture2D> importedTextures,
+        TinyGltfModel model, string outputPath, string resourceNamePrefix, Dictionary<int, ImportedTexture> importedTextures,
         ISet<string> usedTextureNames)
     {
         if (textureIndex < 0)
@@ -629,10 +628,10 @@ public sealed class GLTFImporter : RedObject
             texture = ImportTexture(model, textureIndex, outputPath, resourceNamePrefix, usedTextureNames);
             importedTextures.Add(textureIndex, texture);
         }
-        material.SetTexture(slot, texture);
+        material.SetTexture(slot, texture.Texture);
     }
 
-    private Texture2D ImportTexture(TinyGltfModel model, int textureIndex, string outputPath, string resourceNamePrefix,
+    private ImportedTexture ImportTexture(TinyGltfModel model, int textureIndex, string outputPath, string resourceNamePrefix,
         ISet<string> usedTextureNames)
     {
         using var sourceTextures = model.Textures;
@@ -686,8 +685,64 @@ public sealed class GLTFImporter : RedObject
             throw new InvalidDataException($"Texture #{textureIndex} could not be uploaded.");
         }
         _importedTextures.Add(texture);
-        return texture;
+        return new ImportedTexture(texture, image);
     }
+
+    private void SetPropertiesTexture(RedBolt.Graphics.Material material, int metallicRoughnessTextureIndex,
+        int occlusionTextureIndex, TinyGltfModel model, string outputPath, string resourceNamePrefix,
+        Dictionary<int, ImportedTexture> importedTextures, ISet<string> usedTextureNames)
+    {
+        if (metallicRoughnessTextureIndex < 0 && occlusionTextureIndex < 0)
+            return;
+        var metallicRoughness = GetImportedTexture(metallicRoughnessTextureIndex);
+        var occlusion = GetImportedTexture(occlusionTextureIndex);
+        var width = Math.Max(metallicRoughness?.Image.Width ?? 0, occlusion?.Image.Width ?? 0);
+        var height = Math.Max(metallicRoughness?.Image.Height ?? 0, occlusion?.Image.Height ?? 0);
+        if (width <= 0 || height <= 0)
+            throw new InvalidDataException("Metallic-roughness-occlusion texture has invalid dimensions.");
+
+        var source = metallicRoughness ?? occlusion!;
+        var localResourceName = CreateUniqueResourceName("Textures", $"{Path.GetFileNameWithoutExtension(source.Image.Name)}_Properties",
+            ".png", usedTextureNames);
+        var image = new RedBolt.Resource.Image();
+        image.SetName(resourceNamePrefix + localResourceName);
+        image.SetSize(width, height, occlusion is null ? 3 : 4);
+        for (var y = 0; y < height; ++y)
+        {
+            for (var x = 0; x < width; ++x)
+            {
+                var color = metallicRoughness is { } metallic ? (SamplePixel(metallic.Image, x, y, width, height) >> 8) & 0xffffu : 0xffffu;
+                color |= occlusion is { } occlusionImage ? (SamplePixel(occlusionImage.Image, x, y, width, height) & 0xffu) << 24 : 0xff000000u;
+                image.SetPixelInt(x, y, color);
+            }
+        }
+        AddCookedResource(image, outputPath, localResourceName);
+
+        var texture = new Texture2D();
+        texture.SetName(image.Name);
+        if (Settings.GpuResources && !texture.SetData(image))
+        {
+            texture.Dispose();
+            throw new InvalidDataException("Metallic-roughness-occlusion texture could not be uploaded.");
+        }
+        _importedTextures.Add(texture);
+        material.SetTexture(ShaderResources.Properties, texture);
+
+        ImportedTexture? GetImportedTexture(int index)
+        {
+            if (index < 0)
+                return null;
+            if (!importedTextures.TryGetValue(index, out var texture))
+            {
+                texture = ImportTexture(model, index, outputPath, resourceNamePrefix, usedTextureNames);
+                importedTextures.Add(index, texture);
+            }
+            return texture;
+        }
+    }
+
+    private static uint SamplePixel(RedBolt.Resource.Image image, int x, int y, int width, int height) =>
+        image.GetPixelInt(x * image.Width / width, y * image.Height / height);
 
     private void CookSamplerParameters(TinyGltfModel model, RedBolt.Bindings.TinyGltf.Texture sourceTexture,
         string outputPath, string resourceNamePrefix, string imageResourceName)
