@@ -149,14 +149,17 @@ public sealed class GLTFImporter : RedObject
         using var nativeFileName = new Std.String(fileName);
         var model = new TinyGltfModel();
         ConfigureImageLoader(loader);
-        var loaded = string.Equals(Path.GetExtension(fileName), ".glb", StringComparison.OrdinalIgnoreCase)
+        var extension = Path.GetExtension(fileName);
+        var loaded = string.Equals(extension, ".glb", StringComparison.OrdinalIgnoreCase)
             ? loader.LoadBinaryFromFile(model, error, warning, nativeFileName)
-            : loader.LoadASCIIFromFile(model, error, warning, nativeFileName);
+            : string.Equals(extension, ".gltf", StringComparison.OrdinalIgnoreCase)
+                ? loader.LoadASCIIFromFile(model, error, warning, nativeFileName)
+                : false;
         LastWarning = warning.ToString();
         if (!loaded)
         {
             model.Dispose();
-            return Fail(error.ToString());
+            return Fail(string.IsNullOrEmpty(error.ToString()) ? $"Unknown glTF file extension '{extension}'." : error.ToString());
         }
 
         ValidateExtensions(model);
