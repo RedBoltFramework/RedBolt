@@ -473,6 +473,8 @@ public sealed class GLTFImporter : RedObject
         using var sourceScenes = model.Scenes;
         using var sourceNodes = model.Nodes;
         var usedResourceNames = new HashSet<string>(StringComparer.Ordinal);
+        var attachSkinnedAnimationController = _animations.Count != 0
+            && modelsByMesh.Keys.Where(static key => key.Skin >= 0).Select(static key => key.Skin).Distinct().Count() == 1;
         for (var sceneIndex = 0; sceneIndex < sourceScenes.Count; ++sceneIndex)
         {
             using var sourceScene = sourceScenes[sceneIndex];
@@ -500,7 +502,7 @@ public sealed class GLTFImporter : RedObject
             using var roots = sourceScene.Nodes;
             var visiting = new HashSet<int>();
             foreach (var rootIndex in roots)
-                ImportPrefabNode(root, rootIndex, sourceNodes, modelsByMesh, visiting);
+                ImportPrefabNode(root, rootIndex, sourceNodes, modelsByMesh, attachSkinnedAnimationController, visiting);
 
             if (_animations.Count != 0)
                 root.CreateComponent<AnimationController>().PlayNew(new AnimationParameters(_animations[0]).Looped());
@@ -553,7 +555,8 @@ public sealed class GLTFImporter : RedObject
     }
 
     private void ImportPrefabNode(RedBolt.Scene.Node parent, int nodeIndex, Std.Vector<TinyGltfNode> sourceNodes,
-        IReadOnlyDictionary<(int Mesh, int Skin), CookedModel> modelsByMesh, ISet<int> visiting)
+        IReadOnlyDictionary<(int Mesh, int Skin), CookedModel> modelsByMesh, bool attachSkinnedAnimationController,
+        ISet<int> visiting)
     {
         if ((uint)nodeIndex >= (uint)sourceNodes.Count || !visiting.Add(nodeIndex))
             throw new InvalidDataException($"Scene references invalid or cyclic node #{nodeIndex}.");
@@ -582,11 +585,13 @@ public sealed class GLTFImporter : RedObject
                 for (var morphIndex = 0; morphIndex < weights.Count; ++morphIndex)
                     animatedModel.SetMorphWeight(morphIndex, (float)weights[morphIndex]);
                 TweakEmptyAnimatedModel(animatedModel);
+                if (attachSkinnedAnimationController && source.Skin >= 0)
+                    node.CreateComponent<AnimationController>().PlayNew(new AnimationParameters(_animations[0]).Looped());
             }
         }
         using var children = source.Children;
         foreach (var childIndex in children)
-            ImportPrefabNode(node, childIndex, sourceNodes, modelsByMesh, visiting);
+            ImportPrefabNode(node, childIndex, sourceNodes, modelsByMesh, attachSkinnedAnimationController, visiting);
         visiting.Remove(nodeIndex);
     }
 
