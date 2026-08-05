@@ -305,14 +305,30 @@ public sealed class GLTFImporter : RedObject
         var positionAccessor = GetAttribute(attributes, "POSITION", required: true);
         var normalAccessor = GetAttribute(attributes, "NORMAL", required: false);
         var tangentAccessor = GetAttribute(attributes, "TANGENT", required: false);
-        var uvAccessor = GetAttribute(attributes, "TEXCOORD_0", required: false);
+        var uvAccessors = Enumerable.Range(0, ModelVertex.MaxUVs)
+            .Select(index => GetAttribute(attributes, $"TEXCOORD_{index}", required: false)).ToArray();
+        var colorAccessors = Enumerable.Range(0, ModelVertex.MaxColors)
+            .Select(index => GetAttribute(attributes, $"COLOR_{index}", required: false)).ToArray();
+        var jointsAccessor = GetAttribute(attributes, "JOINTS_0", required: false);
+        var weightsAccessor = GetAttribute(attributes, "WEIGHTS_0", required: false);
         var positions = ReadFloatAccessor(model, positionAccessor, TypeVec3);
         var normals = normalAccessor >= 0 ? ReadFloatAccessor(model, normalAccessor, TypeVec3) : null;
         var tangents = tangentAccessor >= 0 ? ReadFloatAccessor(model, tangentAccessor, TypeVec4) : null;
-        var uvs = uvAccessor >= 0 ? ReadFloatAccessor(model, uvAccessor, TypeVec2) : null;
+        var uvs = uvAccessors.Select(accessor => accessor >= 0 ? ReadFloatAccessor(model, accessor, TypeVec2) : null).ToArray();
+        var colors = new (List<float[]> Values, int Components)?[ModelVertex.MaxColors];
+        for (var colorIndex = 0; colorIndex < colors.Length; ++colorIndex)
+        {
+            if (colorAccessors[colorIndex] >= 0)
+                colors[colorIndex] = ReadColorAccessor(model, colorAccessors[colorIndex]);
+        }
+        var joints = jointsAccessor >= 0 ? ReadFloatAccessor(model, jointsAccessor, TypeVec4) : null;
+        var weights = weightsAccessor >= 0 ? ReadFloatAccessor(model, weightsAccessor, TypeVec4) : null;
         if ((normals is not null && normals.Count != positions.Count) ||
             (tangents is not null && tangents.Count != positions.Count) ||
-            (uvs is not null && uvs.Count != positions.Count))
+            uvs.Any(uv => uv is not null && uv.Count != positions.Count) ||
+            colors.Any(color => color is { } value && value.Values.Count != positions.Count) ||
+            (joints is not null && joints.Count != positions.Count) ||
+            (weights is not null && weights.Count != positions.Count))
             throw new InvalidDataException("glTF primitive attributes have incompatible vertex counts.");
 
         var result = new GeometryLODView { PrimitiveType = ConvertPrimitiveType(primitive.Mode) };
@@ -321,8 +337,20 @@ public sealed class GLTFImporter : RedObject
             result.VertexFormat.Normal = VertexElementType.Vector3;
         if (tangents is not null)
             result.VertexFormat.Tangent = VertexElementType.Vector4;
-        if (uvs is not null)
-            result.VertexFormat.Uv[0] = VertexElementType.Vector2;
+        for (var uvIndex = 0; uvIndex < uvs.Length; ++uvIndex)
+        {
+            if (uvs[uvIndex] is not null)
+                result.VertexFormat.Uv[uvIndex] = VertexElementType.Vector2;
+        }
+        for (var colorIndex = 0; colorIndex < colors.Length; ++colorIndex)
+        {
+            if (colors[colorIndex] is { } color)
+                result.VertexFormat.Color[colorIndex] = color.Components == 3 ? VertexElementType.Vector3 : VertexElementType.Vector4;
+        }
+        if (joints is not null)
+            result.VertexFormat.BlendIndices = VertexElementType.UByte4;
+        if (weights is not null)
+            result.VertexFormat.BlendWeights = VertexElementType.UByte4Norm;
         for (var index = 0; index < positions.Count; ++index)
         {
             var vertex = new ModelVertex();
@@ -338,11 +366,23 @@ public sealed class GLTFImporter : RedObject
                 var tangent = tangents[index];
                 vertex.Tangent = new Vector4f(tangent[0], tangent[1], tangent[2], tangent[3]);
             }
-            if (uvs is not null)
+            for (var uvIndex = 0; uvIndex < uvs.Length; ++uvIndex)
             {
-                var uv = uvs[index];
-                vertex.Uv[0] = new Vector4f(uv[0], uv[1], 0, 0);
+                if (uvs[uvIndex] is { } uv)
+                    vertex.Uv[uvIndex] = new Vector4f(uv[index][0], uv[index][1], 0, 0);
             }
+            for (var colorIndex = 0; colorIndex < colors.Length; ++colorIndex)
+            {
+                if (colors[colorIndex] is { } color)
+                {
+                    var value = color.Values[index];
+                    vertex.Color[colorIndex] = new Vector4f(value[0], value[1], value[2], color.Components == 3 ? 1 : value[3]);
+                }
+            }
+            if (joints is not null)
+                vertex.BlendIndices = ToVector4(joints[index]);
+            if (weights is not null)
+                vertex.BlendWeights = ToVector4(weights[index]);
             result.Vertices.Add(vertex);
         }
 
@@ -382,6 +422,17 @@ public sealed class GLTFImporter : RedObject
             componentCount, count, accessor.Normalized);
 
         return result;
+    }
+
+    private static (List<float[]> Values, int Components) ReadColorAccessor(TinyGltfModel model, int accessorIndex)
+    {
+        using var accessor = GetAccessor(model, accessorIndex);
+        return accessor.Type switch
+        {
+            TypeVec3 => (ReadFloatAccessor(model, accessorIndex, TypeVec3), 3),
+            TypeVec4 => (ReadFloatAccessor(model, accessorIndex, TypeVec4), 4),
+            _ => throw new InvalidDataException("glTF vertex color has an unexpected value type.")
+        };
     }
 
     private static List<uint> ReadIndices(TinyGltfModel model, int accessorIndex)
@@ -505,6 +556,8 @@ public sealed class GLTFImporter : RedObject
             _ => result
         } : result;
     }
+
+    private static Vector4f ToVector4(float[] value) => new(value[0], value[1], value[2], value[3]);
 
     private static TinyGltfAccessor GetAccessor(TinyGltfModel model, int index)
     {
