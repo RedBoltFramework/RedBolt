@@ -1331,6 +1331,7 @@ public sealed class GLTFImporter : RedObject
                     }
                 }
             }
+            numMorphs = System.Math.Max(numMorphs, 0);
             var view = new ModelView();
             view.SetName(groupName.StartsWith('#') ? Settings.AssetName : groupName);
             view.SetMorphs(Enumerable.Range(0, numMorphs).Select(index => new ModelMorphView
