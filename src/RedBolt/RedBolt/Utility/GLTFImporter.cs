@@ -1160,9 +1160,12 @@ public sealed class GLTFImporter : RedObject
         var componentCount = GetComponentCount(expectedType);
         var count = checked((int)accessor.Count);
         if (accessor.BufferView < 0)
-            throw new InvalidDataException("glTF accessor does not reference a buffer view.");
+            throw new InvalidDataException(accessor.SparseIsSparse
+                ? "Base-less sparse glTF accessors are unsupported by TinyGLTF."
+                : "glTF accessor does not reference a buffer view.");
         var result = ReadFloatBufferView(model, accessor.BufferView, checked((int)accessor.ByteOffset), accessor.ComponentType,
             componentCount, count, accessor.Normalized);
+        ApplySparseFloatValues(model, accessor, result, componentCount);
 
         return result;
     }
@@ -1188,9 +1191,46 @@ public sealed class GLTFImporter : RedObject
 
         var count = checked((int)accessor.Count);
         if (accessor.BufferView < 0)
-            throw new InvalidDataException("glTF accessor does not reference a buffer view.");
+            throw new InvalidDataException(accessor.SparseIsSparse
+                ? "Base-less sparse glTF accessors are unsupported by TinyGLTF."
+                : "glTF accessor does not reference a buffer view.");
         var result = ReadUnsignedBufferView(model, accessor.BufferView, checked((int)accessor.ByteOffset), accessor.ComponentType, count);
+        ApplySparseIndices(model, accessor, result);
         return result;
+    }
+
+    private static void ApplySparseFloatValues(TinyGltfModel model, TinyGltfAccessor accessor, List<float[]> destination,
+        int componentCount)
+    {
+        if (!accessor.SparseIsSparse)
+            return;
+        var indices = ReadSparseIndices(model, accessor, destination.Count);
+        var values = ReadFloatBufferView(model, accessor.SparseValuesBufferView, accessor.SparseValuesByteOffset,
+            accessor.ComponentType, componentCount, indices.Count, accessor.Normalized);
+        for (var index = 0; index < indices.Count; ++index)
+            destination[(int)indices[index]] = values[index];
+    }
+
+    private static void ApplySparseIndices(TinyGltfModel model, TinyGltfAccessor accessor, List<uint> destination)
+    {
+        if (!accessor.SparseIsSparse)
+            return;
+        var indices = ReadSparseIndices(model, accessor, destination.Count);
+        var values = ReadUnsignedBufferView(model, accessor.SparseValuesBufferView, accessor.SparseValuesByteOffset,
+            accessor.ComponentType, indices.Count);
+        for (var index = 0; index < indices.Count; ++index)
+            destination[(int)indices[index]] = values[index];
+    }
+
+    private static List<uint> ReadSparseIndices(TinyGltfModel model, TinyGltfAccessor accessor, int destinationCount)
+    {
+        if (accessor.SparseCount < 0 || accessor.SparseCount > destinationCount)
+            throw new InvalidDataException("glTF sparse accessor count is invalid.");
+        var indices = ReadUnsignedBufferView(model, accessor.SparseIndicesBufferView, accessor.SparseIndicesByteOffset,
+            accessor.SparseIndicesComponentType, accessor.SparseCount);
+        if (indices.Any(index => index >= (uint)destinationCount))
+            throw new InvalidDataException("glTF sparse accessor index is outside its accessor.");
+        return indices;
     }
 
     private static List<float[]> ReadFloatBufferView(TinyGltfModel model, int bufferViewIndex, int byteOffset,
