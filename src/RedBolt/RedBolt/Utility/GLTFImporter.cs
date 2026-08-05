@@ -975,6 +975,8 @@ public sealed class GLTFImporter : RedObject
                 model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
             SetPropertiesTexture(material, source.PbrMetallicRoughnessMetallicRoughnessTextureIndex,
                 source.OcclusionTextureIndex, model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
+            if (source.OcclusionTextureIndex >= 0)
+                material.SetShaderParameter("OcclusionStrength", (float)source.OcclusionTextureStrength);
             SetMaterialTexture(material, ShaderResources.Normal, source.NormalTextureIndex,
                 model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
             material.SetShaderParameter("NormalScale", (float)source.NormalTextureScale);
