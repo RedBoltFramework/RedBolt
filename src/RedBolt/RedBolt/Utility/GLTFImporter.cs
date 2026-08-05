@@ -466,6 +466,20 @@ public sealed class GLTFImporter : RedObject
                 ? "Prefab.prefab"
                 : CreateUniqueResourceName("Prefabs", sourceName.ToString(), ".prefab", usedResourceNames);
             using var scene = new RedBolt.Scene.Scene();
+            scene.CreateComponent<Octree>();
+            var renderPipeline = scene.CreateComponent<RenderPipeline>();
+            if (Settings.Preview.HighRenderQuality)
+            {
+                var pipelineSettings = renderPipeline.Settings;
+                var renderBufferManager = pipelineSettings.RenderBufferManager;
+                renderBufferManager.ColorSpace = RenderPipelineColorSpace.LinearLDR;
+                pipelineSettings.RenderBufferManager = renderBufferManager;
+                var sceneProcessor = pipelineSettings.SceneProcessor;
+                sceneProcessor.PcfKernelSize = 5;
+                pipelineSettings.SceneProcessor = sceneProcessor;
+                renderPipeline.SetSettings(in pipelineSettings);
+                renderPipeline.SetRenderPassEnabled("Postprocess: FXAA v3", true);
+            }
             var root = scene.CreateChild(Settings.AssetName);
             root.SetRotation(Settings.Rotation);
             using var roots = sourceScene.Nodes;
@@ -475,12 +489,49 @@ public sealed class GLTFImporter : RedObject
 
             RemoveSkippedPrefabNodes(root);
             CleanupPrefabRoot(scene, root);
+            InitializeDefaultSceneContent(scene);
 
             var prefab = new PrefabResource();
             scene.GeneratePrefab(prefab.GetMutableScenePrefab());
             prefab.NormalizeIds();
             prefab.SetName(resourceNamePrefix + localResourceName);
             AddCookedResource(prefab, outputPath, localResourceName);
+        }
+    }
+
+    private void InitializeDefaultSceneContent(RedBolt.Scene.Scene scene)
+    {
+        var cache = GetSubsystem<ResourceCache>();
+        var defaultPosition = new Vector3f(-1.0f, 2.0f, 1.0f);
+        if (Settings.Preview.AddLights && scene.FindComponent<RedBolt.Graphics.Light>() is null)
+        {
+            var node = scene.CreateChild("Default Light");
+            node.SetPosition(defaultPosition);
+            node.SetDirection(new Vector3f(1.0f, -2.0f, -1.0f));
+            var light = node.CreateComponent<RedBolt.Graphics.Light>();
+            light.SetLightType(LightType.Directional);
+            light.SetCastShadows(true);
+        }
+
+        if (Settings.Preview.AddSkybox && scene.FindComponent<Skybox>() is null
+            && cache?.GetResourceOrNull<RedBolt.Graphics.Material>(Settings.Preview.SkyboxMaterial) is { } skyboxMaterial
+            && cache.GetResourceOrNull<RedBolt.Graphics.Model>("Models/Box.mdl") is { } boxModel)
+        {
+            var node = scene.CreateChild("Default Skybox");
+            node.SetPosition(defaultPosition);
+            var skybox = node.CreateComponent<Skybox>();
+            skybox.SetModel(boxModel);
+            skybox.SetMaterial(skyboxMaterial);
+        }
+
+        if (Settings.Preview.AddReflectionProbe && scene.FindComponent<Zone>() is null
+            && cache?.GetResourceOrNull<TextureCube>(Settings.Preview.ReflectionProbeCubemap) is { } skyboxTexture)
+        {
+            var node = scene.CreateChild("Default Zone");
+            node.SetPosition(defaultPosition);
+            var zone = node.CreateComponent<Zone>();
+            zone.SetBackgroundBrightness(0.5f);
+            zone.SetZoneTexture(skyboxTexture);
         }
     }
 
