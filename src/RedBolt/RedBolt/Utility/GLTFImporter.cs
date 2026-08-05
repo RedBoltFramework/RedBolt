@@ -1344,6 +1344,8 @@ public sealed class GLTFImporter : RedObject
                 view.ScaleGeometries(Settings.Scale);
             view.CalculateMissingNormals(flatNormals: true);
             view.CalculateMissingTangents();
+            view.RecalculateBoneBoundingBoxes();
+            view.RepairBoneWeights();
             view.Normalize();
             var modelPairs = modelSkinByPair.Where(pair => pair.Value == skinIndex
                     && group.Any(mesh => mesh.Index == pair.Key.Mesh))
