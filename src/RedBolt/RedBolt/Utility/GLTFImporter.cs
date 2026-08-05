@@ -973,9 +973,16 @@ public sealed class GLTFImporter : RedObject
             material.SetShaderParameter("AlphaCutoff", (float)source.AlphaCutoff);
             SetMaterialTexture(material, ShaderResources.Albedo, source.PbrMetallicRoughnessBaseColorTextureIndex,
                 model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
+            var occlusionTextureIndex = source.OcclusionTextureIndex;
+            if (source.PbrMetallicRoughnessMetallicRoughnessTextureIndex >= 0 && occlusionTextureIndex >= 0
+                && source.PbrMetallicRoughnessMetallicRoughnessTextureTexCoord != source.OcclusionTextureTexCoord)
+            {
+                Warn($"Material '{sourceName}' uses different UVs for metallic-roughness and occlusion textures; occlusion is ignored.");
+                occlusionTextureIndex = -1;
+            }
             SetPropertiesTexture(material, source.PbrMetallicRoughnessMetallicRoughnessTextureIndex,
-                source.OcclusionTextureIndex, model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
-            if (source.OcclusionTextureIndex >= 0)
+                occlusionTextureIndex, model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
+            if (occlusionTextureIndex >= 0)
                 material.SetShaderParameter("OcclusionStrength", (float)source.OcclusionTextureStrength);
             SetMaterialTexture(material, ShaderResources.Normal, source.NormalTextureIndex,
                 model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
