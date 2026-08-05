@@ -227,7 +227,8 @@ public sealed class GLTFImporter : RedObject
 
         try
         {
-            var modelView = BuildModelView(_model);
+            var materialNames = ImportMaterials(_model, outputPath, resourceNamePrefix);
+            var modelView = BuildModelView(_model, materialNames);
             var localResourceName = $"Models/{SanitizeResourceName(Settings.AssetName, "Model")}.mdl";
             var resourceName = resourceNamePrefix + localResourceName;
             var modelResource = modelView.ExportModel(
@@ -538,7 +539,41 @@ public sealed class GLTFImporter : RedObject
         }
     }
 
-    private ModelView BuildModelView(TinyGltfModel model)
+    private List<string> ImportMaterials(TinyGltfModel model, string outputPath, string resourceNamePrefix)
+    {
+        using var sourceMaterials = model.Materials;
+        var resourceNames = new List<string>(sourceMaterials.Count);
+        var usedResourceNames = new HashSet<string>(StringComparer.Ordinal);
+        for (var materialIndex = 0; materialIndex < sourceMaterials.Count; ++materialIndex)
+        {
+            using var source = sourceMaterials[materialIndex];
+            using var sourceName = source.Name;
+            var localResourceName = CreateUniqueResourceName("Materials",
+                string.IsNullOrEmpty(sourceName.ToString()) ? $"Material_{materialIndex}" : sourceName.ToString(),
+                ".xml", usedResourceNames);
+            var material = new RedBolt.Graphics.Material();
+            material.SetName(resourceNamePrefix + localResourceName);
+            using var baseColor = source.PbrMetallicRoughnessBaseColorFactor;
+            if (baseColor.Count == 4)
+            {
+                var color = new Color(new Vector4f((float)baseColor[0], (float)baseColor[1], (float)baseColor[2], (float)baseColor[3]));
+                material.SetShaderParameter("MatDiffColor", color.LinearToGamma().ToVector4());
+            }
+            material.SetShaderParameter("Metallic", (float)source.PbrMetallicRoughnessMetallicFactor);
+            material.SetShaderParameter("Roughness", (float)source.PbrMetallicRoughnessRoughnessFactor);
+            material.SetShaderParameter("AlphaCutoff", (float)source.AlphaCutoff);
+            if (source.DoubleSided)
+            {
+                material.SetCullMode(CullMode.None);
+                material.SetShadowCullMode(CullMode.None);
+            }
+            AddCookedResource(material, outputPath, localResourceName);
+            resourceNames.Add(material.Name);
+        }
+        return resourceNames;
+    }
+
+    private ModelView BuildModelView(TinyGltfModel model, IReadOnlyList<string> materialNames)
     {
         var geometries = new List<GeometryView>();
         using var meshes = model.Meshes;
@@ -566,21 +601,27 @@ public sealed class GLTFImporter : RedObject
         {
             group.Sort(static (left, right) => left.Distance.CompareTo(right.Distance));
             var lodsByGeometry = new List<List<GeometryLODView>>();
+            var materialsByGeometry = new List<string>();
             foreach (var (meshIndex, distance) in group)
             {
                 using var mesh = meshes[meshIndex];
                 using var primitives = mesh.Primitives;
                 while (lodsByGeometry.Count < primitives.Count)
+                {
                     lodsByGeometry.Add([]);
+                    materialsByGeometry.Add(string.Empty);
+                }
                 for (var primitiveIndex = 0; primitiveIndex < primitives.Count; ++primitiveIndex)
                 {
                     using var primitive = primitives[primitiveIndex];
                     var lod = BuildPrimitive(model, primitive);
                     lod.LodDistance = distance;
                     lodsByGeometry[primitiveIndex].Add(lod);
+                    if (materialsByGeometry[primitiveIndex].Length == 0 && (uint)primitive.Material < (uint)materialNames.Count)
+                        materialsByGeometry[primitiveIndex] = materialNames[primitive.Material];
                 }
             }
-            geometries.AddRange(lodsByGeometry.Select(static lods => new GeometryView { Lods = lods }));
+            geometries.AddRange(lodsByGeometry.Select((lods, index) => new GeometryView { Lods = lods, Material = materialsByGeometry[index] }));
         }
 
         var result = new ModelView();
