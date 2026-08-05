@@ -536,12 +536,7 @@ public sealed class GLTFImporter : RedObject
             using var sampler = samplers[channel.Sampler];
             using var interpolation = sampler.Interpolation;
             var interpolationName = interpolation.ToString();
-            if (interpolationName == "CUBICSPLINE")
-            {
-                Warn($"Cubic spline animation channel '{targetPath}' in animation #{animationIndex} is not supported.");
-                continue;
-            }
-            if (interpolationName is not ("" or "LINEAR" or "STEP"))
+            if (interpolationName is not ("" or "LINEAR" or "STEP" or "CUBICSPLINE"))
                 throw new InvalidDataException($"glTF animation uses unsupported interpolation '{interpolationName}'.");
 
             var times = ReadFloatAccessor(model, sampler.Input, TypeScalar).Select(static value => value[0]).ToList();
@@ -552,24 +547,25 @@ public sealed class GLTFImporter : RedObject
             }
 
             var step = interpolationName == "STEP";
+            var cubicSpline = interpolationName == "CUBICSPLINE";
             switch (targetPath)
             {
                 case "translation":
                     if (track.Position is not null)
                         throw new InvalidDataException($"Duplicate translation animation channel in animation #{animationIndex}.");
-                    AddAnimationChannel(track, times, ReadAnimationVectors(model, sampler.Output, TypeVec3, animationIndex), step,
+                    AddAnimationChannel(track, times, ReadCubicSplineValues(ReadAnimationVectors(model, sampler.Output, TypeVec3, animationIndex), times.Count, cubicSpline), step,
                         static (source, value) => source.Position = value);
                     break;
                 case "rotation":
                     if (track.Rotation is not null)
                         throw new InvalidDataException($"Duplicate rotation animation channel in animation #{animationIndex}.");
-                    AddAnimationChannel(track, times, ReadAnimationRotations(model, sampler.Output, animationIndex), step,
+                    AddAnimationChannel(track, times, ReadCubicSplineValues(ReadAnimationRotations(model, sampler.Output, animationIndex), times.Count, cubicSpline), step,
                         static (source, value) => source.Rotation = value);
                     break;
                 case "scale":
                     if (track.Scale is not null)
                         throw new InvalidDataException($"Duplicate scale animation channel in animation #{animationIndex}.");
-                    AddAnimationChannel(track, times, ReadAnimationVectors(model, sampler.Output, TypeVec3, animationIndex), step,
+                    AddAnimationChannel(track, times, ReadCubicSplineValues(ReadAnimationVectors(model, sampler.Output, TypeVec3, animationIndex), times.Count, cubicSpline), step,
                         static (source, value) => source.Scale = value);
                     break;
             }
@@ -592,6 +588,15 @@ public sealed class GLTFImporter : RedObject
         if (values.Count == 0)
             throw new InvalidDataException($"glTF animation #{animationIndex} has no values.");
         return values.Select(static value => new Quaternion(value[3], value[0], value[1], value[2])).ToList();
+    }
+
+    private static List<T> ReadCubicSplineValues<T>(List<T> values, int keyCount, bool cubicSpline)
+    {
+        if (!cubicSpline)
+            return values;
+        if (values.Count != keyCount * 3)
+            throw new InvalidDataException("glTF cubic spline animation channel input and output counts differ.");
+        return values.Where((_, index) => index % 3 == 1).ToList();
     }
 
     private static void AddAnimationChannel<T>(TransformTrackSource track, List<float> times, List<T> values, bool step,
