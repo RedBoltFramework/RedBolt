@@ -1016,6 +1016,8 @@ public sealed class GLTFImporter : RedObject
                 occlusionTextureIndex, model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
             if (occlusionTextureIndex >= 0)
                 material.SetShaderParameter("OcclusionStrength", (float)source.OcclusionTextureStrength);
+            if (source.NormalTextureIndex >= 0 && source.NormalTextureTexCoord != 0)
+                Warn($"Material '{sourceName}' has non-standard UV for normal texture #{source.NormalTextureIndex}.");
             SetMaterialTexture(material, ShaderResources.Normal, source.NormalTextureIndex,
                 model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
             material.SetShaderParameter("NormalScale", (float)source.NormalTextureScale);
@@ -1025,6 +1027,8 @@ public sealed class GLTFImporter : RedObject
                 var color = new Color(new Vector3f((float)emissiveFactor[0], (float)emissiveFactor[1], (float)emissiveFactor[2]));
                 material.SetShaderParameter("MatEmissiveColor", color.LinearToGamma().ToVector3());
             }
+            if (source.EmissiveTextureIndex >= 0 && source.EmissiveTextureTexCoord != 0)
+                Warn($"Material '{sourceName}' has non-standard UV for emissive texture #{source.EmissiveTextureIndex}.");
             SetMaterialTexture(material, ShaderResources.Emission, source.EmissiveTextureIndex,
                 model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
             if (source.DoubleSided)
