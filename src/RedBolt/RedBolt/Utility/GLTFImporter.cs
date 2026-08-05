@@ -1619,14 +1619,26 @@ public sealed class GLTFImporter : RedObject
 
         var transform = new Transform();
         using var translation = source.Translation;
-        if (translation.Count == 3)
+        if (translation.Count != 0)
+        {
+            if (translation.Count != 3)
+                throw new InvalidDataException("glTF node translation does not contain 3 values.");
             transform.Position = new Vector3f((float)translation[0], (float)translation[1], (float)translation[2]);
+        }
         using var rotation = source.Rotation;
-        if (rotation.Count == 4)
+        if (rotation.Count != 0)
+        {
+            if (rotation.Count != 4)
+                throw new InvalidDataException("glTF node rotation does not contain 4 values.");
             transform.Rotation = new Quaternion((float)rotation[3], (float)rotation[0], (float)rotation[1], (float)rotation[2]);
+        }
         using var scale = source.Scale;
-        if (scale.Count == 3)
+        if (scale.Count != 0)
+        {
+            if (scale.Count != 3)
+                throw new InvalidDataException("glTF node scale does not contain 3 values.");
             transform.Scale = new Vector3f((float)scale[0], (float)scale[1], (float)scale[2]);
+        }
         return transform;
     }
 
