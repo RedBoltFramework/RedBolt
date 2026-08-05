@@ -403,6 +403,23 @@ public partial class AnimatedModel : StaticModel
         _updateInvisible = enable;
     }
 
+    private static float GetAnimationLodBiasAttributeDefault() => 1.0f;
+
+    [Serialized("Animation LOD Bias", DefaultSource = nameof(GetAnimationLodBiasAttributeDefault),
+        Setter = nameof(SetAnimationLodBias))]
+    private float SerializedAnimationLodBias
+    {
+        get => GetAnimationLodBias();
+        set => SetAnimationLodBias(value);
+    }
+
+    [Serialized("Update Invisible", Setter = nameof(SetUpdateInvisible))]
+    private bool SerializedUpdateInvisible
+    {
+        get => GetUpdateInvisible();
+        set => SetUpdateInvisible(value);
+    }
+
     /// <summary>Set vertex morph weight by index.</summary>
     public void SetMorphWeight(int index, float weight)
     {

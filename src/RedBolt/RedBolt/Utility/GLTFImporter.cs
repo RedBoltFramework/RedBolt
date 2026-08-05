@@ -577,12 +577,22 @@ public sealed class GLTFImporter : RedObject
                     throw new InvalidDataException("glTF node morph weight count does not match its mesh.");
                 for (var morphIndex = 0; morphIndex < weights.Count; ++morphIndex)
                     animatedModel.SetMorphWeight(morphIndex, (float)weights[morphIndex]);
+                TweakEmptyAnimatedModel(animatedModel);
             }
         }
         using var children = source.Children;
         foreach (var childIndex in children)
             ImportPrefabNode(node, childIndex, sourceNodes, modelsByMesh, visiting);
         visiting.Remove(nodeIndex);
+    }
+
+    private static void TweakEmptyAnimatedModel(AnimatedModel animatedModel)
+    {
+        if (animatedModel.GetNumGeometries() != 0)
+            return;
+
+        animatedModel.SetUpdateInvisible(true);
+        animatedModel.SetAnimationLodBias(0.0f);
     }
 
     private void RemoveSkippedPrefabNodes(RedBolt.Scene.Node root)
