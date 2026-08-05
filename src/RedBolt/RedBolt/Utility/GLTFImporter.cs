@@ -1,6 +1,7 @@
 namespace RedBolt.Utility;
 
 using System.Buffers.Binary;
+using System.Globalization;
 using System.Runtime.InteropServices;
 
 using RedBolt.Bindings.TinyGltf;
@@ -541,16 +542,45 @@ public sealed class GLTFImporter : RedObject
     {
         var geometries = new List<GeometryView>();
         using var meshes = model.Meshes;
+        var meshGroups = new Dictionary<string, List<(int Index, float Distance)>>();
         for (var meshIndex = 0; meshIndex < meshes.Count; ++meshIndex)
         {
             using var mesh = meshes[meshIndex];
-            using var primitives = mesh.Primitives;
-            for (var primitiveIndex = 0; primitiveIndex < primitives.Count; ++primitiveIndex)
+            using var name = mesh.Name;
+            var groupName = $"#{meshIndex}";
+            var distance = 0.0f;
+            if (Settings.CombineLODs && TryParseLodName(name.ToString(), out var baseName, out var lodDistance))
             {
-                using var primitive = primitives[primitiveIndex];
-                var lod = BuildPrimitive(model, primitive);
-                geometries.Add(new GeometryView { Lods = [lod] });
+                groupName = baseName;
+                distance = lodDistance;
             }
+            if (!meshGroups.TryGetValue(groupName, out var group))
+            {
+                group = [];
+                meshGroups.Add(groupName, group);
+            }
+            group.Add((meshIndex, distance));
+        }
+
+        foreach (var group in meshGroups.Values)
+        {
+            group.Sort(static (left, right) => left.Distance.CompareTo(right.Distance));
+            var lodsByGeometry = new List<List<GeometryLODView>>();
+            foreach (var (meshIndex, distance) in group)
+            {
+                using var mesh = meshes[meshIndex];
+                using var primitives = mesh.Primitives;
+                while (lodsByGeometry.Count < primitives.Count)
+                    lodsByGeometry.Add([]);
+                for (var primitiveIndex = 0; primitiveIndex < primitives.Count; ++primitiveIndex)
+                {
+                    using var primitive = primitives[primitiveIndex];
+                    var lod = BuildPrimitive(model, primitive);
+                    lod.LodDistance = distance;
+                    lodsByGeometry[primitiveIndex].Add(lod);
+                }
+            }
+            geometries.AddRange(lodsByGeometry.Select(static lods => new GeometryView { Lods = lods }));
         }
 
         var result = new ModelView();
@@ -564,6 +594,20 @@ public sealed class GLTFImporter : RedObject
         result.CalculateMissingTangents();
         result.Normalize();
         return result;
+    }
+
+    private static bool TryParseLodName(string name, out string baseName, out float distance)
+    {
+        var marker = name.LastIndexOf("_LOD", StringComparison.Ordinal);
+        if (marker > 0 && float.TryParse(name.AsSpan(marker + 4), NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture, out distance))
+        {
+            baseName = name[..marker];
+            return true;
+        }
+        baseName = string.Empty;
+        distance = 0.0f;
+        return false;
     }
 
     private static GeometryLODView BuildPrimitive(TinyGltfModel model, TinyGltfPrimitive primitive)
