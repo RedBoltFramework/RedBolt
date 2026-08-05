@@ -1087,6 +1087,8 @@ public sealed class GLTFImporter : RedObject
             }
             skeletonNodes.Add(skeletonRoot);
         }
+        if (Settings.AddEmptyNodesToSkeleton)
+            AppendEmptySkeletonNodes(sourceNodes, skeletonNodes);
         var boneNodes = jointToBone.Keys.Concat(Enumerable.Range(0, sourceNodes.Count)
             .Where(nodeIndex => skeletonNodes.Contains(nodeIndex) && !jointToBone.ContainsKey(nodeIndex))).ToList();
         var nodeToBone = boneNodes.Select((nodeIndex, boneIndex) => (nodeIndex, boneIndex))
@@ -1117,6 +1119,47 @@ public sealed class GLTFImporter : RedObject
             result.Add(bone);
         }
         return result;
+    }
+
+    private static void AppendEmptySkeletonNodes(Std.Vector<TinyGltfNode> sourceNodes, ISet<int> skeletonNodes)
+    {
+        foreach (var nodeIndex in skeletonNodes.ToArray())
+        {
+            using var node = sourceNodes[nodeIndex];
+            using var children = node.Children;
+            foreach (var childIndex in children)
+            {
+                if ((uint)childIndex < (uint)sourceNodes.Count && !skeletonNodes.Contains(childIndex)
+                    && IsRecursivelyEmpty(sourceNodes, childIndex, new HashSet<int>()))
+                    AddNodeSubtree(sourceNodes, childIndex, skeletonNodes);
+            }
+        }
+    }
+
+    private static bool IsRecursivelyEmpty(Std.Vector<TinyGltfNode> sourceNodes, int nodeIndex, ISet<int> visiting)
+    {
+        if (!visiting.Add(nodeIndex))
+            return false;
+        using var node = sourceNodes[nodeIndex];
+        if (node.Mesh >= 0 || node.Skin >= 0)
+            return false;
+        using var children = node.Children;
+        return children.All(childIndex => (uint)childIndex < (uint)sourceNodes.Count
+            && IsRecursivelyEmpty(sourceNodes, childIndex, visiting));
+    }
+
+    private static void AddNodeSubtree(Std.Vector<TinyGltfNode> sourceNodes, int nodeIndex, ISet<int> destination)
+    {
+        if (!destination.Add(nodeIndex))
+            return;
+        using var node = sourceNodes[nodeIndex];
+        using var children = node.Children;
+        foreach (var childIndex in children)
+        {
+            if ((uint)childIndex >= (uint)sourceNodes.Count)
+                throw new InvalidDataException("glTF skin hierarchy references an invalid child node.");
+            AddNodeSubtree(sourceNodes, childIndex, destination);
+        }
     }
 
     private static int GetSkinRoot(RedBolt.Bindings.TinyGltf.Skin skin, IEnumerable<int> joints,
