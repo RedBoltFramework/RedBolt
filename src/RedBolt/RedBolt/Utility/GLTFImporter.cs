@@ -106,6 +106,9 @@ public sealed class GLTFImporter : RedObject
 
     private TinyGltfModel? _model;
     private ModelView? _modelView;
+    private readonly List<ModelView> _modelViews = [];
+    private readonly Dictionary<int, CookedModel> _modelsByMesh = [];
+    private readonly Dictionary<string, RedBolt.Graphics.Material> _materialsByName = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _savedResources = new(StringComparer.Ordinal);
     private readonly List<RedBolt.Graphics.Animation> _animations = [];
     private readonly List<Texture2D> _importedTextures = [];
@@ -113,6 +116,7 @@ public sealed class GLTFImporter : RedObject
     private bool _processed;
 
     private sealed record ImportedTexture(Texture2D Texture, RedBolt.Resource.Image Image);
+    private sealed record CookedModel(RedBolt.Graphics.Model Model, IReadOnlyList<string> Materials);
 
     public GLTFImporter(GLTFImporterSettings settings)
     {
@@ -238,16 +242,30 @@ public sealed class GLTFImporter : RedObject
         try
         {
             var materialNames = ImportMaterials(_model, outputPath, resourceNamePrefix);
-            var modelView = BuildModelView(_model, materialNames);
-            var localResourceName = $"Models/{SanitizeResourceName(Settings.AssetName, "Model")}.mdl";
-            var resourceName = resourceNamePrefix + localResourceName;
-            var modelResource = modelView.ExportModel(
-                Settings.GpuResources ? ModelViewExportFlag.None : ModelViewExportFlag.Headless, resourceName);
-            AddCookedResource(modelResource, outputPath, localResourceName);
-            _modelView = modelView;
-            callback?.OnModelLoaded(modelView);
+            var models = BuildModelViews(_model, materialNames);
+            if (models.Count == 0)
+            {
+                _modelView = new ModelView();
+                _modelView.SetName(Settings.AssetName);
+                _modelViews.Add(_modelView);
+            }
+            var usedModelResourceNames = new HashSet<string>(_savedResources.Keys, StringComparer.Ordinal);
+            foreach (var (meshIndices, modelView, materialList, nameHint) in models)
+            {
+                var localResourceName = CreateUniqueResourceName("Models", nameHint, ".mdl", usedModelResourceNames);
+                var modelResource = modelView.ExportModel(
+                    Settings.GpuResources ? ModelViewExportFlag.None : ModelViewExportFlag.Headless,
+                    resourceNamePrefix + localResourceName);
+                var importedModel = new CookedModel(modelResource, materialList);
+                foreach (var meshIndex in meshIndices)
+                    _modelsByMesh.Add(meshIndex, importedModel);
+                _modelViews.Add(modelView);
+                _modelView ??= modelView;
+                AddCookedResource(modelResource, outputPath, localResourceName);
+                callback?.OnModelLoaded(modelView);
+            }
             ImportAnimations(_model, outputPath, resourceNamePrefix, callback);
-            ImportPrefabs(_model, outputPath, resourceNamePrefix);
+            ImportPrefabs(_model, outputPath, resourceNamePrefix, _modelsByMesh);
             _model.Dispose();
             _model = null;
             _processed = true;
@@ -255,8 +273,6 @@ public sealed class GLTFImporter : RedObject
         }
         catch (InvalidDataException exception)
         {
-            _modelView?.Dispose();
-            _modelView = null;
             ClearCookedResources();
             return Fail(exception.Message);
         }
@@ -297,8 +313,6 @@ public sealed class GLTFImporter : RedObject
 
     public override void Dispose()
     {
-        _modelView?.Dispose();
-        _modelView = null;
         ClearCookedResources();
         _model?.Dispose();
         _model = null;
@@ -375,7 +389,8 @@ public sealed class GLTFImporter : RedObject
         }
     }
 
-    private void ImportPrefabs(TinyGltfModel model, string outputPath, string resourceNamePrefix)
+    private void ImportPrefabs(TinyGltfModel model, string outputPath, string resourceNamePrefix,
+        IReadOnlyDictionary<int, CookedModel> modelsByMesh)
     {
         using var sourceScenes = model.Scenes;
         using var sourceNodes = model.Nodes;
@@ -393,7 +408,7 @@ public sealed class GLTFImporter : RedObject
             using var roots = sourceScene.Nodes;
             var visiting = new HashSet<int>();
             foreach (var rootIndex in roots)
-                ImportPrefabNode(root, rootIndex, sourceNodes, visiting);
+                ImportPrefabNode(root, rootIndex, sourceNodes, modelsByMesh, visiting);
 
             var prefab = new PrefabResource();
             scene.GeneratePrefab(prefab.GetMutableScenePrefab());
@@ -404,7 +419,7 @@ public sealed class GLTFImporter : RedObject
     }
 
     private void ImportPrefabNode(RedBolt.Scene.Node parent, int nodeIndex, Std.Vector<TinyGltfNode> sourceNodes,
-        ISet<int> visiting)
+        IReadOnlyDictionary<int, CookedModel> modelsByMesh, ISet<int> visiting)
     {
         if ((uint)nodeIndex >= (uint)sourceNodes.Count || !visiting.Add(nodeIndex))
             throw new InvalidDataException($"Scene references invalid or cyclic node #{nodeIndex}.");
@@ -420,9 +435,20 @@ public sealed class GLTFImporter : RedObject
         using var scale = source.Scale;
         if (scale.Count == 3)
             node.SetScale(new Vector3f((float)scale[0], (float)scale[1], (float)scale[2]));
+        if (source.Skin < 0 && modelsByMesh.TryGetValue(source.Mesh, out var importedModel))
+        {
+            var staticModel = node.CreateComponent<StaticModel>();
+            staticModel.SetModel(importedModel.Model);
+            staticModel.SetCastShadows(true);
+            for (var materialIndex = 0; materialIndex < importedModel.Materials.Count; ++materialIndex)
+            {
+                if (_materialsByName.TryGetValue(importedModel.Materials[materialIndex], out var material))
+                    staticModel.SetMaterial((uint)materialIndex, material);
+            }
+        }
         using var children = source.Children;
         foreach (var childIndex in children)
-            ImportPrefabNode(node, childIndex, sourceNodes, visiting);
+            ImportPrefabNode(node, childIndex, sourceNodes, modelsByMesh, visiting);
         visiting.Remove(nodeIndex);
     }
 
@@ -576,6 +602,12 @@ public sealed class GLTFImporter : RedObject
 
     private void ClearCookedResources()
     {
+        foreach (var modelView in _modelViews)
+            modelView.Dispose();
+        _modelViews.Clear();
+        _modelView = null;
+        _modelsByMesh.Clear();
+        _materialsByName.Clear();
         foreach (var (resource, _) in _cookedResources)
             resource.Dispose();
         _cookedResources.Clear();
@@ -675,6 +707,7 @@ public sealed class GLTFImporter : RedObject
                 material.SetShadowCullMode(CullMode.None);
             }
             AddCookedResource(material, outputPath, localResourceName);
+            _materialsByName.Add(material.Name, material);
             resourceNames.Add(material.Name);
         }
         return resourceNames;
@@ -863,9 +896,9 @@ public sealed class GLTFImporter : RedObject
     private static bool HasMipmaps(int minFilter, int magFilter) => minFilter < 0 || magFilter < 0
         || minFilter is 9984 or 9985 or 9986 or 9987;
 
-    private ModelView BuildModelView(TinyGltfModel model, IReadOnlyList<string> materialNames)
+    private List<(List<int> MeshIndices, ModelView View, IReadOnlyList<string> Materials, string NameHint)> BuildModelViews(
+        TinyGltfModel model, IReadOnlyList<string> materialNames)
     {
-        var geometries = new List<GeometryView>();
         using var meshes = model.Meshes;
         var meshGroups = new Dictionary<string, List<(int Index, float Distance)>>();
         for (var meshIndex = 0; meshIndex < meshes.Count; ++meshIndex)
@@ -887,7 +920,8 @@ public sealed class GLTFImporter : RedObject
             group.Add((meshIndex, distance));
         }
 
-        foreach (var group in meshGroups.Values)
+        var result = new List<(List<int>, ModelView, IReadOnlyList<string>, string)>();
+        foreach (var (groupName, group) in meshGroups)
         {
             group.Sort(static (left, right) => left.Distance.CompareTo(right.Distance));
             var lodsByGeometry = new List<List<GeometryLODView>>();
@@ -911,19 +945,23 @@ public sealed class GLTFImporter : RedObject
                         materialsByGeometry[primitiveIndex] = materialNames[primitive.Material];
                 }
             }
-            geometries.AddRange(lodsByGeometry.Select((lods, index) => new GeometryView { Lods = lods, Material = materialsByGeometry[index] }));
+            var view = new ModelView();
+            view.SetName(groupName.StartsWith('#') ? Settings.AssetName : groupName);
+            view.SetGeometries(lodsByGeometry.Select((lods, index) => new GeometryView
+            {
+                Lods = lods,
+                Material = materialsByGeometry[index]
+            }).ToList());
+            if (Settings.MirrorX)
+                view.MirrorGeometriesX();
+            if (Settings.Scale != 1.0f)
+                view.ScaleGeometries(Settings.Scale);
+            view.CalculateMissingNormals(flatNormals: true);
+            view.CalculateMissingTangents();
+            view.Normalize();
+            result.Add(([.. group.Select(value => value.Index)], view, materialsByGeometry,
+                groupName.StartsWith('#') ? Settings.AssetName : groupName));
         }
-
-        var result = new ModelView();
-        result.SetName(Settings.AssetName);
-        result.SetGeometries(geometries);
-        if (Settings.MirrorX)
-            result.MirrorGeometriesX();
-        if (Settings.Scale != 1.0f)
-            result.ScaleGeometries(Settings.Scale);
-        result.CalculateMissingNormals(flatNormals: true);
-        result.CalculateMissingTangents();
-        result.Normalize();
         return result;
     }
 
