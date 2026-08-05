@@ -296,6 +296,9 @@ public sealed class GLTFImporter : RedObject
             result.MirrorGeometriesX();
         if (Settings.Scale != 1.0f)
             result.ScaleGeometries(Settings.Scale);
+        result.CalculateMissingNormals(flatNormals: true);
+        result.CalculateMissingTangents();
+        result.Normalize();
         return result;
     }
 
