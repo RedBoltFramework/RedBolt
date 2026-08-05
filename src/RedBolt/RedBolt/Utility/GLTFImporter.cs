@@ -648,8 +648,12 @@ public sealed class GLTFImporter : RedObject
         var components = sourceImage.Component;
 
         using var sourceName = sourceImage.Name;
+        using var sourceUri = sourceImage.Uri;
+        var nameHint = sourceName.ToString();
+        if (string.IsNullOrEmpty(nameHint) && !sourceUri.ToString().StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            nameHint = Path.GetFileNameWithoutExtension(sourceUri.ToString());
         var localResourceName = CreateUniqueResourceName("Textures",
-            string.IsNullOrEmpty(sourceName.ToString()) ? $"Texture_{textureIndex}" : sourceName.ToString(),
+            string.IsNullOrEmpty(nameHint) ? $"Texture_{textureIndex}" : nameHint,
             ".png", usedTextureNames);
         var image = new RedBolt.Resource.Image();
         image.SetName(resourceNamePrefix + localResourceName);
