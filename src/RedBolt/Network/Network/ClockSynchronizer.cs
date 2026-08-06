@@ -121,7 +121,7 @@ public enum ClockSynchronizerPhase : uint
 }
 
 /// <summary>Message exchanged between client and server to synchronize time.</summary>
-public struct ClockSynchronizerMessage
+public struct ClockSynchronizerMessage : INetworkSerializableMessage
 {
     public void Load(Deserializer source)
     {
@@ -140,6 +140,10 @@ public struct ClockSynchronizerMessage
         destination.WriteUInt(RemoteReceived);
         destination.WriteUInt(RemoteSent);
     }
+
+    readonly void INetworkSerializableMessage.Save(VectorBuffer destination) => Save(destination);
+
+    void INetworkSerializableMessage.Load(MemoryBuffer source) => Load(source);
 
     public override readonly string ToString() => $"{{magic={Magic}, phase={(uint)Phase}, ...}}";
 

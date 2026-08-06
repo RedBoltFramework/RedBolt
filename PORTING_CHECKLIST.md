@@ -438,35 +438,37 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] protocol message-id constants
 - [x] `PacketTypeFlags.h`
   - [x] `PacketTypeFlags`
-- [ ] `NetworkEvents.h`
-  - [ ] network event definitions
+- [x] `NetworkEvents.h`
+  - [x] network event definitions
 - [x] `URL.h`
   - [x] `URL`
-- [ ] `MessageUtils.h`
-  - [ ] `LargeMessageWriter`
-  - [ ] `LargeMessageReader`
-  - [ ] `MultiMessageWriter`
+- [x] `MessageUtils.h`
+  - [x] `LargeMessageWriter`
+  - [x] `LargeMessageReader`
+  - [x] `MultiMessageWriter`
+- [x] `NetworkStatisticsCounter.h`
+  - [x] `NetworkStatisticsCounter`
 - [x] `ClockSynchronizer.h`
   - [x] `FilteredUint`
   - [x] `ClockSynchronizer`
 - [ ] `AbstractConnection.h`
   - [ ] `AbstractConnection : Object, IDFamily<AbstractConnection>`
-- [ ] `Transport/NetworkConnection.h`
-  - [ ] `NetworkConnection : Object`
-- [ ] `Transport/NetworkServer.h`
-  - [ ] `NetworkServer : Object`
-- [ ] `Transport/DataChannel/DataChannelConnection.h`
-  - [ ] `DataChannelConnection : NetworkConnection`
-- [ ] `Transport/DataChannel/DataChannelServer.h`
-  - [ ] `DataChannelServer : NetworkServer`
+- [x] `Transport/NetworkConnection.h`
+  - [x] `NetworkConnection : Object`
+- [x] `Transport/NetworkServer.h`
+  - [x] `NetworkServer : Object`
+- [x] `Transport/DataChannel/DataChannelConnection.h`
+  - [x] `DataChannelConnection : NetworkConnection`
+- [x] `Transport/DataChannel/DataChannelServer.h`
+  - [x] `DataChannelServer : NetworkServer`
 - [ ] `Connection.h`
   - [ ] `Connection : AbstractConnection`
 - [ ] `HttpRequest.h`
   - [ ] `HttpRequest : RefCounted, Deserializer, Thread`
 - [ ] `LANDiscoveryManager.h`
   - [ ] `LANDiscoveryManager : Object`
-- [ ] `Network.h`
-  - [ ] `Network : Object`
+- [x] `Network.h`
+  - [x] `Network : Object`
 
 ## B9. Replica `OPTIONAL` — scene replication; depends on Network, Scene, Graphics
 

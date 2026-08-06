@@ -171,6 +171,7 @@ public sealed class WorkQueue : RedObject
     {
         if (_workQueue == null)
         {
+            SetMainThread();
             _threadIndexCount = 1;
             _workQueue = this;
         }
@@ -465,6 +466,11 @@ public sealed class WorkQueue : RedObject
     public static bool IsProcessingThread()
     {
         return GetThreadIndex() < _threadIndexCount;
+    }
+
+    public static bool IsMainThread()
+    {
+        return Thread.CurrentThread.ManagedThreadId == GetMainThreadId();
     }
 
     public static void ForEachParallel(WorkQueue workQueue, int bucket, int size, Action<int, int> callback)

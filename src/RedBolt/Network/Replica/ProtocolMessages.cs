@@ -24,8 +24,9 @@ namespace RedBolt.Replica;
 
 using RedBolt.Core;
 using RedBolt.IO;
+using RedBolt.Network;
 
-public struct MsgConfigure
+public struct MsgConfigure : INetworkSerializableMessage
 {
     public MsgConfigure()
     {
@@ -50,7 +51,7 @@ public struct MsgConfigure
     public VariantMap Settings;
 }
 
-public struct MsgSynchronized
+public struct MsgSynchronized : INetworkSerializableMessage
 {
     public readonly void Save(VectorBuffer destination)
     {
@@ -67,7 +68,7 @@ public struct MsgSynchronized
     public uint Magic;
 }
 
-public struct MsgSceneClock
+public struct MsgSceneClock : INetworkSerializableMessage
 {
     public readonly void Save(VectorBuffer destination)
     {
