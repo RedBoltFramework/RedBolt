@@ -262,7 +262,7 @@ public sealed class WebRTCSTUN : Application
         if (ushort.TryParse(input, out var parsedPort) && parsedPort != 0)
         {
             signalingPort = parsedPort;
-            dataPort = checked((ushort)(signalingPort + 1));
+            dataPort = unchecked((ushort)(signalingPort + 1));
         }
         ClearText();
 
