@@ -488,9 +488,9 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `NetworkTime`
 - [x] `NetworkValue.h`
   - [x] `NetworkValue<T>` / interpolation helpers
-- [ ] `TickSynchronizer.h`
+- [x] `TickSynchronizer.h`
   - [x] `TickSynchronizer`
-  - [ ] `SceneUpdateSynchronizer : Object`
+  - [x] `SceneUpdateSynchronizer : Object` (non-Physics branch)
 - [x] `ClientInputStatistics.h`
   - [x] `ClientInputStatistics`
 - [ ] `NetworkObject.h`

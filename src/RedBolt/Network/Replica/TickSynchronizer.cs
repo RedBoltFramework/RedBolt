@@ -4,6 +4,9 @@
 
 namespace RedBolt.Replica;
 
+using RedBolt.Core;
+using RedBolt.Scene;
+
 /// <summary>
 /// Helper class that synchronizes two fixed-timestep clocks.
 /// Leader and follower ticks are synchronized when their beginnings correspond to the same moment in time.
@@ -102,4 +105,65 @@ public class TickSynchronizer
     private float _timeAccumulator;
     private uint _numFollowerTicks;
     private uint _numPendingFollowerTicks;
+}
+
+public readonly record struct SceneUpdateSynchronizerParams(
+    bool IsServer, uint NetworkFrequency, bool AllowZeroUpdatesOnServer = false);
+
+/// <summary>Synchronizes Scene updates with the network clock.</summary>
+public sealed class SceneUpdateSynchronizer : RedObject
+{
+    public SceneUpdateSynchronizer(Scene scene, SceneUpdateSynchronizerParams parameters)
+    {
+        _parameters = parameters;
+        _scene = scene;
+        _synchronizer = new TickSynchronizer(parameters.NetworkFrequency, parameters.IsServer);
+        _synchronizer.SetFollowerFrequency(parameters.NetworkFrequency);
+
+        if (parameters.IsServer)
+        {
+            scene.SetManualUpdate(true);
+            SubscribeToEvent<CoreEvents.UpdateEvent>(UpdateSceneOnServer);
+        }
+    }
+
+    public void Synchronize(NetworkFrame networkFrame, float overtime)
+    {
+        UpdateFollowerFrequency();
+        var synchronizedTick = _synchronizer.Synchronize(overtime);
+        _synchronizedNetworkFrame = new NetworkFrameSync
+        {
+            NetworkFrame = networkFrame,
+            Offset = synchronizedTick
+        };
+    }
+
+    public void Update(float timeStep)
+    {
+        UpdateFollowerFrequency();
+        _synchronizer.Update(timeStep);
+    }
+
+    public override void Dispose()
+    {
+        _scene.SetManualUpdate(false);
+        base.Dispose();
+    }
+
+    private void UpdateFollowerFrequency()
+    {
+    }
+
+    private void UpdateSceneOnServer(ref CoreEvents.UpdateEvent eventData)
+    {
+        var fixedTimeStep = 1.0f / _synchronizer.FollowerFrequency;
+        var numSteps = _synchronizer.PendingFollowerTicks;
+        if (numSteps != 0 || _parameters.AllowZeroUpdatesOnServer)
+            _scene.Update(numSteps * fixedTimeStep);
+    }
+
+    private readonly SceneUpdateSynchronizerParams _parameters;
+    private readonly Scene _scene;
+    private readonly TickSynchronizer _synchronizer;
+    private NetworkFrameSync? _synchronizedNetworkFrame;
 }
