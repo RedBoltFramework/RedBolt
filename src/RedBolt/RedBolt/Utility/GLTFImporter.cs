@@ -115,6 +115,7 @@ public sealed class GLTFImporter : RedObject
     private readonly List<RedBolt.Graphics.Animation> _animations = [];
     private readonly List<Texture2D> _importedTextures = [];
     private readonly List<(Resource Resource, string FileName)> _cookedResources = [];
+    private bool _hasSceneAnimations;
     private bool _processed;
 
     private sealed record ImportedTexture(Texture2D Texture, RedBolt.Resource.Image Image);
@@ -447,6 +448,7 @@ public sealed class GLTFImporter : RedObject
             if (IsNameSkipped(sourceNameText))
                 continue;
             var tracks = ReadAnimationTracks(model, sourceAnimation, sourceNodes, nodePaths, animationIndex);
+            _hasSceneAnimations |= tracks.Keys.Any(trackName => !_boneNamesByNode.ContainsValue(trackName));
             var nameHint = string.IsNullOrEmpty(sourceNameText) ? $"Animation_{animationIndex}" : sourceNameText;
             var localResourceName = CreateUniqueResourceName("Animations", nameHint, ".ani", usedResourceNames);
             var animation = new RedBolt.Graphics.Animation();
@@ -501,11 +503,16 @@ public sealed class GLTFImporter : RedObject
             root.SetRotation(Settings.Rotation);
             using var roots = sourceScene.Nodes;
             var visiting = new HashSet<int>();
-            foreach (var rootIndex in roots)
-                ImportPrefabNode(root, rootIndex, sourceNodes, modelsByMesh, attachSkinnedAnimationController, visiting);
-
-            if (_animations.Count != 0)
+            if (_hasSceneAnimations)
                 root.CreateComponent<AnimationController>().PlayNew(new AnimationParameters(_animations[0]).Looped());
+            var sceneRoots = new HashSet<int>(roots);
+            foreach (var rootIndex in GetRootNodeIndexes(sourceNodes))
+            {
+                if (sceneRoots.Contains(rootIndex))
+                    ImportPrefabNode(root, rootIndex, sourceNodes, modelsByMesh, attachSkinnedAnimationController, visiting);
+                else if (_hasSceneAnimations)
+                    scene.CreateChild("Disabled Node Placeholder");
+            }
             RemoveSkippedPrefabNodes(root);
             CleanupPrefabRoot(scene, root);
             InitializeDefaultSceneContent(scene);
@@ -602,6 +609,19 @@ public sealed class GLTFImporter : RedObject
 
         animatedModel.SetUpdateInvisible(true);
         animatedModel.SetAnimationLodBias(0.0f);
+    }
+
+    private static IEnumerable<int> GetRootNodeIndexes(Std.Vector<TinyGltfNode> sourceNodes)
+    {
+        var childNodes = new HashSet<int>();
+        for (var nodeIndex = 0; nodeIndex < sourceNodes.Count; ++nodeIndex)
+        {
+            using var node = sourceNodes[nodeIndex];
+            using var children = node.Children;
+            foreach (var childIndex in children)
+                childNodes.Add(childIndex);
+        }
+        return Enumerable.Range(0, sourceNodes.Count).Where(nodeIndex => !childNodes.Contains(nodeIndex));
     }
 
     private void RemoveSkippedPrefabNodes(RedBolt.Scene.Node root)
