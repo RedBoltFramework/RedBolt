@@ -57,16 +57,16 @@ public readonly struct NetworkFrame : IEquatable<NetworkFrame>
     public static NetworkFrame operator ++(NetworkFrame frame)
     {
         Debug.Assert(frame != Max);
-        return new NetworkFrame(frame.Value + 1);
+        return new NetworkFrame(unchecked(frame.Value + 1));
     }
 
     public static NetworkFrame operator --(NetworkFrame frame)
     {
         Debug.Assert(frame != Min);
-        return new NetworkFrame(frame.Value - 1);
+        return new NetworkFrame(unchecked(frame.Value - 1));
     }
 
-    public static long operator -(NetworkFrame lhs, NetworkFrame rhs) => lhs.Value - rhs.Value;
+    public static long operator -(NetworkFrame lhs, NetworkFrame rhs) => unchecked(lhs.Value - rhs.Value);
 
     public static NetworkFrame operator +(NetworkFrame lhs, long rhs) => new(unchecked(lhs.Value + rhs));
 
@@ -83,6 +83,14 @@ public readonly struct NetworkFrame : IEquatable<NetworkFrame>
     public static bool operator ==(NetworkFrame lhs, NetworkFrame rhs) => lhs.Equals(rhs);
 
     public static bool operator !=(NetworkFrame lhs, NetworkFrame rhs) => !lhs.Equals(rhs);
+
+    public static bool operator <(NetworkFrame lhs, NetworkFrame rhs) => lhs.Value < rhs.Value;
+
+    public static bool operator >(NetworkFrame lhs, NetworkFrame rhs) => lhs.Value > rhs.Value;
+
+    public static bool operator <=(NetworkFrame lhs, NetworkFrame rhs) => lhs.Value <= rhs.Value;
+
+    public static bool operator >=(NetworkFrame lhs, NetworkFrame rhs) => lhs.Value >= rhs.Value;
 }
 
 /// <summary>Marker used to synchronize the beginning of the fixed-step event (like physical world update) and the network frame.</summary>

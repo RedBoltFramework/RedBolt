@@ -480,8 +480,8 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [ ] network callback interfaces
 - [x] `NetworkTime.h`
   - [x] `NetworkTime`
-- [ ] `NetworkValue.h`
-  - [ ] `NetworkValue<T>` / interpolation helpers
+- [x] `NetworkValue.h`
+  - [x] `NetworkValue<T>` / interpolation helpers
 - [ ] `TickSynchronizer.h`
   - [x] `TickSynchronizer`
   - [ ] `SceneUpdateSynchronizer : Object`
