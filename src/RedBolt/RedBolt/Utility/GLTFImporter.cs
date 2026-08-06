@@ -1015,7 +1015,11 @@ public sealed class GLTFImporter : RedObject
             SetPropertiesTexture(material, source.PbrMetallicRoughnessMetallicRoughnessTextureIndex,
                 occlusionTextureIndex, model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
             if (occlusionTextureIndex >= 0)
+            {
+                if (source.OcclusionTextureStrength != 1.0)
+                    Warn($"Material '{sourceName}' has non-default occlusion strength for occlusion texture #{occlusionTextureIndex}.");
                 material.SetShaderParameter("OcclusionStrength", (float)source.OcclusionTextureStrength);
+            }
             if (source.NormalTextureIndex >= 0 && source.NormalTextureTexCoord != 0)
                 Warn($"Material '{sourceName}' has non-standard UV for normal texture #{source.NormalTextureIndex}.");
             SetMaterialTexture(material, ShaderResources.Normal, source.NormalTextureIndex,
