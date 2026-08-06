@@ -456,7 +456,7 @@ public sealed class GLTFImporter : RedObject
             animation.SetAnimationName(Path.GetFileNameWithoutExtension(localResourceName));
             foreach (var (trackName, sourceTrack) in tracks)
                 CreateAnimationTrack(animation, trackName, sourceTrack);
-            ReadMorphAnimationTracks(animation, model, sourceAnimation, sourceNodes, nodePaths, animationIndex);
+            _hasSceneAnimations |= ReadMorphAnimationTracks(animation, model, sourceAnimation, sourceNodes, nodePaths, animationIndex);
             if (animation.Tracks.Count == 0 && animation.VariantTracks.Count == 0)
             {
                 animation.Dispose();
@@ -483,7 +483,8 @@ public sealed class GLTFImporter : RedObject
             using var sourceName = sourceScene.Name;
             var localResourceName = sourceScenes.Count == 1
                 ? "Prefab.prefab"
-                : CreateUniqueResourceName("Prefabs", sourceName.ToString(), ".prefab", usedResourceNames);
+                : CreateUniqueResourceName("Prefabs", string.IsNullOrEmpty(sourceName.ToString()) ? "Prefab" : sourceName.ToString(),
+                    ".prefab", usedResourceNames);
             using var scene = new RedBolt.Scene.Scene();
             scene.CreateComponent<Octree>();
             var renderPipeline = scene.CreateComponent<RenderPipeline>();
@@ -503,15 +504,18 @@ public sealed class GLTFImporter : RedObject
             root.SetRotation(Settings.Rotation);
             using var roots = sourceScene.Nodes;
             var visiting = new HashSet<int>();
-            if (_hasSceneAnimations)
+            if (_animations.Count != 0)
                 root.CreateComponent<AnimationController>().PlayNew(new AnimationParameters(_animations[0]).Looped());
-            var sceneRoots = new HashSet<int>(roots);
-            foreach (var rootIndex in GetRootNodeIndexes(sourceNodes))
+            foreach (var rootIndex in roots)
+                ImportPrefabNode(root, rootIndex, sourceNodes, modelsByMesh, attachSkinnedAnimationController, visiting);
+            if (_hasSceneAnimations)
             {
-                if (sceneRoots.Contains(rootIndex))
-                    ImportPrefabNode(root, rootIndex, sourceNodes, modelsByMesh, attachSkinnedAnimationController, visiting);
-                else if (_hasSceneAnimations)
-                    scene.CreateChild("Disabled Node Placeholder");
+                var sceneRoots = new HashSet<int>(roots);
+                foreach (var rootIndex in GetRootNodeIndexes(sourceNodes))
+                {
+                    if (!sceneRoots.Contains(rootIndex))
+                        scene.CreateChild("Disabled Node Placeholder");
+                }
             }
             RemoveSkippedPrefabNodes(root);
             CleanupPrefabRoot(scene, root);
@@ -749,10 +753,11 @@ public sealed class GLTFImporter : RedObject
         return result;
     }
 
-    private static void ReadMorphAnimationTracks(RedBolt.Graphics.Animation animation, TinyGltfModel model,
+    private static bool ReadMorphAnimationTracks(RedBolt.Graphics.Animation animation, TinyGltfModel model,
         RedBolt.Bindings.TinyGltf.Animation sourceAnimation, Std.Vector<TinyGltfNode> sourceNodes,
         IReadOnlyDictionary<int, string> nodePaths, int animationIndex)
     {
+        var hasSceneAnimations = false;
         using var channels = sourceAnimation.Channels;
         using var samplers = sourceAnimation.Samplers;
         for (var channelIndex = 0; channelIndex < channels.Count; ++channelIndex)
@@ -767,6 +772,7 @@ public sealed class GLTFImporter : RedObject
             using var node = sourceNodes[channel.TargetNode];
             if (node.Mesh < 0)
                 throw new InvalidDataException($"Animation #{animationIndex} weights channel targets a node without a mesh.");
+            hasSceneAnimations |= node.Skin < 0;
             var morphCount = GetMorphCount(model, node.Mesh);
             if (morphCount == 0)
                 throw new InvalidDataException($"Animation #{animationIndex} weights channel targets a mesh without morphs.");
@@ -805,6 +811,7 @@ public sealed class GLTFImporter : RedObject
                 track.Commit();
             }
         }
+        return hasSceneAnimations;
     }
 
     private static int GetMorphCount(TinyGltfModel model, int meshIndex)
