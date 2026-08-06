@@ -451,8 +451,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 - [x] `ClockSynchronizer.h`
   - [x] `FilteredUint`
   - [x] `ClockSynchronizer`
-- [ ] `AbstractConnection.h`
-  - [ ] `AbstractConnection : Object, IDFamily<AbstractConnection>`
+- [x] `AbstractConnection.h` — removed on `rk/network`; superseded by transport connections
 - [x] `Transport/NetworkConnection.h`
   - [x] `NetworkConnection : Object`
 - [x] `Transport/NetworkServer.h`
@@ -461,12 +460,17 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `DataChannelConnection : NetworkConnection`
 - [x] `Transport/DataChannel/DataChannelServer.h`
   - [x] `DataChannelServer : NetworkServer`
-- [ ] `Connection.h`
-  - [ ] `Connection : AbstractConnection`
-- [ ] `HttpRequest.h`
-  - [ ] `HttpRequest : RefCounted, Deserializer, Thread`
-- [ ] `LANDiscoveryManager.h`
-  - [ ] `LANDiscoveryManager : Object`
+- [x] `Connection.h` — removed on `rk/network`; superseded by `NetworkConnection`
+- [x] `HttpRequest.h`
+  - [x] `HttpRequest : Deserializer` with managed worker task
+- [x] `LANDiscoveryManager.h`
+  - [x] `LANDiscoveryManager : Object`
+- [x] `NetworkMessageLogger.h`
+  - [x] `NetworkMessageLogger`
+- [ ] `NetworkLoadableScene.h`
+  - [ ] `NetworkLoadableScene : Object`
+- [ ] `ReplicatedPeer.h`
+  - [ ] `ReplicatedPeer`
 - [x] `Network.h`
   - [x] `Network : Object`
 
