@@ -440,15 +440,15 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `PacketTypeFlags`
 - [ ] `NetworkEvents.h`
   - [ ] network event definitions
-- [ ] `URL.h`
-  - [ ] `URL`
+- [x] `URL.h`
+  - [x] `URL`
 - [ ] `MessageUtils.h`
   - [ ] `LargeMessageWriter`
   - [ ] `LargeMessageReader`
   - [ ] `MultiMessageWriter`
-- [ ] `ClockSynchronizer.h`
-  - [ ] `FilteredUint`
-  - [ ] `ClockSynchronizer`
+- [x] `ClockSynchronizer.h`
+  - [x] `FilteredUint`
+  - [x] `ClockSynchronizer`
 - [ ] `AbstractConnection.h`
   - [ ] `AbstractConnection : Object, IDFamily<AbstractConnection>`
 - [ ] `Transport/NetworkConnection.h`
