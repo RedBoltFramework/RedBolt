@@ -110,16 +110,29 @@ public sealed class GLTFImporter : RedObject
     private readonly List<ModelView> _modelViews = [];
     private readonly Dictionary<(int Mesh, int Skin), CookedModel> _modelsByMesh = [];
     private readonly Dictionary<int, string> _boneNamesByNode = [];
+    private readonly Dictionary<int, int> _skeletonRootsBySkin = [];
+    private readonly Dictionary<int, List<int>> _skinnedMeshNodesBySkeletonRoot = [];
+    private readonly Dictionary<int, HashSet<int>> _skeletonNodesByRoot = [];
+    private readonly Dictionary<int, RedBolt.Graphics.Animation> _animationsBySkeletonRoot = [];
+    private int[] _nodeParents = [];
     private readonly Dictionary<string, RedBolt.Graphics.Material> _materialsByName = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _savedResources = new(StringComparer.Ordinal);
     private readonly List<RedBolt.Graphics.Animation> _animations = [];
     private readonly List<Texture2D> _importedTextures = [];
-    private readonly List<(Resource Resource, string FileName)> _cookedResources = [];
+    private readonly List<CookedResource> _cookedResources = [];
     private bool _hasSceneAnimations;
     private bool _processed;
 
     private sealed record ImportedTexture(Texture2D Texture, RedBolt.Resource.Image Image);
     private sealed record CookedModel(RedBolt.Graphics.Model Model, IReadOnlyList<string> Materials);
+    private sealed record CookedResource(Resource Resource, string FileName, byte[]? OriginalData = null);
+
+    private enum MaterialVariant
+    {
+        LitNormalMap,
+        Lit,
+        Unlit
+    }
 
     public GLTFImporter(GLTFImporterSettings settings)
     {
@@ -267,6 +280,7 @@ public sealed class GLTFImporter : RedObject
             foreach (var (modelPairs, modelView, materialList, nameHint) in models)
             {
                 var localResourceName = CreateUniqueResourceName("Models", nameHint, ".mdl", usedModelResourceNames);
+                callback?.OnModelLoaded(modelView);
                 var modelResource = modelView.ExportModel(
                     Settings.GpuResources ? ModelViewExportFlag.None : ModelViewExportFlag.Headless,
                     resourceNamePrefix + localResourceName);
@@ -276,7 +290,6 @@ public sealed class GLTFImporter : RedObject
                 _modelViews.Add(modelView);
                 _modelView ??= modelView;
                 AddCookedResource(modelResource, outputPath, localResourceName);
-                callback?.OnModelLoaded(modelView);
             }
             ImportAnimations(_model, outputPath, resourceNamePrefix, callback);
             ImportPrefabs(_model, outputPath, resourceNamePrefix, _modelsByMesh);
@@ -356,11 +369,16 @@ public sealed class GLTFImporter : RedObject
         if (!_processed || _cookedResources.Count == 0)
             return Fail("Imported assets weren't cooked.");
 
-        foreach (var (resource, fileName) in _cookedResources)
+        foreach (var (resource, fileName, originalData) in _cookedResources)
         {
             var directory = Path.GetDirectoryName(fileName);
             if (!string.IsNullOrEmpty(directory))
                 Directory.CreateDirectory(directory);
+            if (originalData is not null)
+            {
+                System.IO.File.WriteAllBytes(fileName, originalData);
+                continue;
+            }
             if (resource is RedBolt.Resource.Image image && !image.SaveFile(new FileIdentifier(fileName)))
                 return Fail($"Failed to save imported resource '{resource.Name}'.");
             if (resource is RedBolt.Resource.Image)
@@ -451,30 +469,39 @@ public sealed class GLTFImporter : RedObject
             var sourceNameText = sourceName.ToString();
             if (IsNameSkipped(sourceNameText))
                 continue;
-            var tracks = ReadAnimationTracks(model, sourceAnimation, sourceNodes, nodePaths, animationIndex);
-            _hasSceneAnimations |= tracks.Values.Any(static track => !track.IsBone);
+            var trackGroups = ReadAnimationTracks(model, sourceAnimation, sourceNodes, nodePaths, animationIndex);
+            if (trackGroups.Count == 0)
+                trackGroups.Add(-1, new Dictionary<string, TransformTrackSource>(StringComparer.Ordinal));
             var nameHint = string.IsNullOrEmpty(sourceNameText) ? $"Animation_{animationIndex}" : sourceNameText;
-            var localResourceName = CreateUniqueResourceName("Animations", nameHint, ".ani", usedResourceNames);
-            var animation = new RedBolt.Graphics.Animation();
-            animation.SetName(resourceNamePrefix + localResourceName);
-            animation.SetAnimationName(Path.GetFileNameWithoutExtension(localResourceName));
-            foreach (var (trackName, sourceTrack) in tracks)
+            foreach (var (skeletonRoot, tracks) in trackGroups)
             {
-                if (sourceTrack.IsBone)
-                    CreateAnimationTrack(animation, trackName, sourceTrack);
-                else
-                    CreateSceneAnimationTracks(animation, trackName, sourceTrack);
-            }
-            _hasSceneAnimations |= ReadMorphAnimationTracks(animation, model, sourceAnimation, sourceNodes, nodePaths, animationIndex);
-            if (animation.Tracks.Count == 0 && animation.VariantTracks.Count == 0)
-            {
-                animation.Dispose();
-                continue;
-            }
+                var groupNameHint = trackGroups.Count <= 1 ? nameHint : $"{nameHint}_{(skeletonRoot < 0 ? "R" : skeletonRoot)}";
+                var localResourceName = CreateUniqueResourceName("Animations", groupNameHint, ".ani", usedResourceNames);
+                var animation = new RedBolt.Graphics.Animation();
+                animation.SetName(resourceNamePrefix + localResourceName);
+                animation.SetAnimationName(Path.GetFileNameWithoutExtension(localResourceName));
+                foreach (var (trackName, sourceTrack) in tracks)
+                {
+                    if (sourceTrack.IsBone)
+                        CreateAnimationTrack(animation, trackName, sourceTrack);
+                    else
+                        CreateSceneAnimationTracks(animation, trackName, sourceTrack);
+                }
+                _hasSceneAnimations |= skeletonRoot < 0 && tracks.Values.Any(static track => !track.IsBone);
+                if (skeletonRoot < 0)
+                    _hasSceneAnimations |= ReadMorphAnimationTracks(animation, model, sourceAnimation, sourceNodes, nodePaths, animationIndex);
+                if (animation.Tracks.Count == 0 && animation.VariantTracks.Count == 0)
+                {
+                    animation.Dispose();
+                    continue;
+                }
 
-            AddCookedResource(animation, outputPath, localResourceName);
-            _animations.Add(animation);
-            callback?.OnAnimationLoaded(animation);
+                AddCookedResource(animation, outputPath, localResourceName);
+                _animations.Add(animation);
+                if (skeletonRoot >= 0 && animationIndex == 0)
+                    _animationsBySkeletonRoot.TryAdd(skeletonRoot, animation);
+                callback?.OnAnimationLoaded(animation);
+            }
         }
     }
 
@@ -514,8 +541,10 @@ public sealed class GLTFImporter : RedObject
             var visiting = new HashSet<int>();
             if (_hasSceneAnimations)
                 root.CreateComponent<AnimationController>().PlayNew(new AnimationParameters(_animations[0]).Looped());
+            var nodesBySourceIndex = new Dictionary<int, RedBolt.Scene.Node>();
             foreach (var rootIndex in roots)
-                ImportPrefabNode(root, rootIndex, sourceNodes, modelsByMesh, attachSkinnedAnimationController, visiting);
+                ImportPrefabNode(root, rootIndex, sourceNodes, modelsByMesh, attachSkinnedAnimationController, visiting,
+                    nodesBySourceIndex);
             if (_hasSceneAnimations)
             {
                 var sceneRoots = new HashSet<int>(roots);
@@ -587,27 +616,74 @@ public sealed class GLTFImporter : RedObject
 
     private void ImportPrefabNode(RedBolt.Scene.Node parent, int nodeIndex, Std.Vector<TinyGltfNode> sourceNodes,
         IReadOnlyDictionary<(int Mesh, int Skin), CookedModel> modelsByMesh, bool attachSkinnedAnimationController,
-        ISet<int> visiting)
+        ISet<int> visiting, IDictionary<int, RedBolt.Scene.Node> nodesBySourceIndex)
     {
         if ((uint)nodeIndex >= (uint)sourceNodes.Count || !visiting.Add(nodeIndex))
             throw new InvalidDataException($"Scene references invalid or cyclic node #{nodeIndex}.");
         using var source = sourceNodes[nodeIndex];
         using var sourceName = source.Name;
-        var node = parent.CreateChild(string.IsNullOrEmpty(sourceName.ToString()) ? $"Node_{nodeIndex}" : sourceName.ToString());
+        using var children = source.Children;
+        var hasSkinnedMeshes = _skinnedMeshNodesBySkeletonRoot.TryGetValue(nodeIndex, out var skinnedMeshNodes);
+        if (source.Mesh >= 0 && source.Skin >= 0 && children.Count == 0 && !hasSkinnedMeshes)
+        {
+            visiting.Remove(nodeIndex);
+            return;
+        }
+
+        var isExisting = nodesBySourceIndex.TryGetValue(nodeIndex, out var node);
+        node ??= parent.CreateChild(string.IsNullOrEmpty(sourceName.ToString()) ? $"Node_{nodeIndex}" : sourceName.ToString());
+        nodesBySourceIndex[nodeIndex] = node;
         var transform = ReadNodeTransform(source);
-        node.SetTransform(ConvertScenePosition(transform.Position), ConvertSceneRotation(transform.Rotation), transform.Scale);
+        if (hasSkinnedMeshes)
+        {
+            var skinnedMeshNames = skinnedMeshNodes!.Select(index =>
+            {
+                using var skinnedMeshSource = sourceNodes[index];
+                using var skinnedMeshName = skinnedMeshSource.Name;
+                return skinnedMeshName.ToString();
+            }).Where(static name => !string.IsNullOrEmpty(name));
+            var skinnedMeshName = string.Join('_', skinnedMeshNames);
+            node.SetName(string.IsNullOrEmpty(skinnedMeshName) ? "SkinnedMesh" : skinnedMeshName);
+            foreach (var skinnedMeshNodeIndex in skinnedMeshNodes!)
+            {
+                using var skinnedMeshSource = sourceNodes[skinnedMeshNodeIndex];
+                if (!modelsByMesh.TryGetValue((skinnedMeshSource.Mesh, skinnedMeshSource.Skin), out var skinnedModel))
+                    continue;
+                var animatedModel = node.CreateComponent<AnimatedModel>();
+                InitializeModelComponent(animatedModel, skinnedModel);
+                using var weights = skinnedMeshSource.Weights;
+                if (weights.Count != 0 && weights.Count != animatedModel.GetNumMorphs())
+                    throw new InvalidDataException("glTF node morph weight count does not match its mesh.");
+                for (var morphIndex = 0; morphIndex < weights.Count; ++morphIndex)
+                    animatedModel.SetMorphWeight(morphIndex, (float)weights[morphIndex]);
+                TweakEmptyAnimatedModel(animatedModel);
+            }
+            if (attachSkinnedAnimationController && _animationsBySkeletonRoot.TryGetValue(nodeIndex, out var animation))
+                node.CreateComponent<AnimationController>().PlayNew(new AnimationParameters(animation).Looped());
+            var skeletonRoot = node.GetChild(0) ?? throw new InvalidDataException("Cannot connect glTF skeleton root.");
+            skeletonRoot.SetTransform(ConvertScenePosition(transform.Position), ConvertSceneRotation(transform.Rotation), transform.Scale);
+            foreach (var (boneNodeIndex, boneName) in _boneNamesByNode)
+            {
+                if (!_skeletonNodesByRoot[nodeIndex].Contains(boneNodeIndex))
+                    continue;
+                var boneNode = node.GetChild(boneName, recursive: true);
+                if (boneNode is not null)
+                    nodesBySourceIndex[boneNodeIndex] = boneNode;
+            }
+            foreach (var childIndex in children)
+                ImportPrefabNode(skeletonRoot, childIndex, sourceNodes, modelsByMesh, attachSkinnedAnimationController, visiting,
+                    nodesBySourceIndex);
+            visiting.Remove(nodeIndex);
+            return;
+        }
+        if (!isExisting)
+            node.SetTransform(ConvertScenePosition(transform.Position), ConvertSceneRotation(transform.Rotation), transform.Scale);
         if (modelsByMesh.TryGetValue((source.Mesh, source.Skin), out var importedModel))
         {
             StaticModel modelComponent = source.Skin < 0 && importedModel.Model.GetNumMorphs() == 0
                 ? node.CreateComponent<StaticModel>()
                 : node.CreateComponent<AnimatedModel>();
-            modelComponent.SetModel(importedModel.Model);
-            modelComponent.SetCastShadows(true);
-            for (var materialIndex = 0; materialIndex < importedModel.Materials.Count; ++materialIndex)
-            {
-                if (_materialsByName.TryGetValue(importedModel.Materials[materialIndex], out var material))
-                    modelComponent.SetMaterial((uint)materialIndex, material);
-            }
+            InitializeModelComponent(modelComponent, importedModel);
             if (modelComponent is AnimatedModel animatedModel)
             {
                 using var weights = source.Weights;
@@ -616,14 +692,22 @@ public sealed class GLTFImporter : RedObject
                 for (var morphIndex = 0; morphIndex < weights.Count; ++morphIndex)
                     animatedModel.SetMorphWeight(morphIndex, (float)weights[morphIndex]);
                 TweakEmptyAnimatedModel(animatedModel);
-                if (attachSkinnedAnimationController && source.Skin >= 0)
-                    node.CreateComponent<AnimationController>().PlayNew(new AnimationParameters(_animations[0]).Looped());
             }
         }
-        using var children = source.Children;
         foreach (var childIndex in children)
-            ImportPrefabNode(node, childIndex, sourceNodes, modelsByMesh, attachSkinnedAnimationController, visiting);
+            ImportPrefabNode(node, childIndex, sourceNodes, modelsByMesh, attachSkinnedAnimationController, visiting, nodesBySourceIndex);
         visiting.Remove(nodeIndex);
+    }
+
+    private void InitializeModelComponent(StaticModel modelComponent, CookedModel importedModel)
+    {
+        modelComponent.SetModel(importedModel.Model);
+        modelComponent.SetCastShadows(true);
+        for (var materialIndex = 0; materialIndex < importedModel.Materials.Count; ++materialIndex)
+        {
+            if (_materialsByName.TryGetValue(importedModel.Materials[materialIndex], out var material))
+                modelComponent.SetMaterial((uint)materialIndex, material);
+        }
     }
 
     private static void TweakEmptyAnimatedModel(AnimatedModel animatedModel)
@@ -707,14 +791,14 @@ public sealed class GLTFImporter : RedObject
         ? new Quaternion(rotation.W, rotation.X, -rotation.Y, -rotation.Z)
         : rotation;
 
-    private Dictionary<string, TransformTrackSource> ReadAnimationTracks(TinyGltfModel model,
+    private Dictionary<int, Dictionary<string, TransformTrackSource>> ReadAnimationTracks(TinyGltfModel model,
         RedBolt.Bindings.TinyGltf.Animation sourceAnimation, Std.Vector<RedBolt.Bindings.TinyGltf.Node> sourceNodes,
         IReadOnlyDictionary<int, string> nodePaths,
         int animationIndex)
     {
         using var channels = sourceAnimation.Channels;
         using var samplers = sourceAnimation.Samplers;
-        var result = new Dictionary<string, TransformTrackSource>(StringComparer.Ordinal);
+        var result = new Dictionary<int, Dictionary<string, TransformTrackSource>>();
         for (var channelIndex = 0; channelIndex < channels.Count; ++channelIndex)
         {
             using var channel = channels[channelIndex];
@@ -731,6 +815,12 @@ public sealed class GLTFImporter : RedObject
             using var nodeName = node.Name;
             var isBone = _boneNamesByNode.TryGetValue(channel.TargetNode, out var boneName);
             var trackName = isBone ? boneName! : nodePaths[channel.TargetNode];
+            var skeletonRoot = GetNearestSkeletonRoot(channel.TargetNode);
+            if (!result.TryGetValue(skeletonRoot, out var tracks))
+            {
+                tracks = new Dictionary<string, TransformTrackSource>(StringComparer.Ordinal);
+                result.Add(skeletonRoot, tracks);
+            }
             using var sampler = samplers[channel.Sampler];
             using var interpolation = sampler.Interpolation;
             var interpolationName = interpolation.ToString();
@@ -738,10 +828,10 @@ public sealed class GLTFImporter : RedObject
                 throw new InvalidDataException($"glTF animation uses unsupported interpolation '{interpolationName}'.");
 
             var times = ReadFloatAccessor(model, sampler.Input, TypeScalar).Select(static value => value[0]).ToList();
-            if (!result.TryGetValue(trackName, out var track))
+            if (!tracks.TryGetValue(trackName, out var track))
             {
                 track = new TransformTrackSource { IsBone = isBone };
-                result.Add(trackName, track);
+                tracks.Add(trackName, track);
             }
 
             var interpolationMode = interpolationName switch
@@ -773,6 +863,16 @@ public sealed class GLTFImporter : RedObject
             }
         }
         return result;
+    }
+
+    private int GetNearestSkeletonRoot(int nodeIndex)
+    {
+        for (; nodeIndex >= 0; nodeIndex = _nodeParents[nodeIndex])
+        {
+            if (_skinnedMeshNodesBySkeletonRoot.ContainsKey(nodeIndex))
+                return nodeIndex;
+        }
+        return -1;
     }
 
     private static bool ReadMorphAnimationTracks(RedBolt.Graphics.Animation animation, TinyGltfModel model,
@@ -978,11 +1078,11 @@ public sealed class GLTFImporter : RedObject
         return result;
     }
 
-    private void AddCookedResource(Resource resource, string outputPath, string localResourceName)
+    private void AddCookedResource(Resource resource, string outputPath, string localResourceName, byte[]? originalData = null)
     {
         var fileName = Path.Combine(outputPath, localResourceName);
         _savedResources.Add(resource.Name, fileName);
-        _cookedResources.Add((resource, fileName));
+        _cookedResources.Add(new CookedResource(resource, fileName, originalData));
     }
 
     private void ClearCookedResources()
@@ -993,8 +1093,13 @@ public sealed class GLTFImporter : RedObject
         _modelView = null;
         _modelsByMesh.Clear();
         _boneNamesByNode.Clear();
+        _skeletonRootsBySkin.Clear();
+        _skinnedMeshNodesBySkeletonRoot.Clear();
+        _skeletonNodesByRoot.Clear();
+        _animationsBySkeletonRoot.Clear();
+        _nodeParents = [];
         _materialsByName.Clear();
-        foreach (var (resource, _) in _cookedResources)
+        foreach (var (resource, _, _) in _cookedResources)
             resource.Dispose();
         _cookedResources.Clear();
         foreach (var texture in _importedTextures)
@@ -1051,10 +1156,10 @@ public sealed class GLTFImporter : RedObject
         }
     }
 
-    private List<string> ImportMaterials(TinyGltfModel model, string outputPath, string resourceNamePrefix)
+    private List<string[]> ImportMaterials(TinyGltfModel model, string outputPath, string resourceNamePrefix)
     {
         using var sourceMaterials = model.Materials;
-        var resourceNames = new List<string>(sourceMaterials.Count);
+        var resourceNames = new List<string[]>(sourceMaterials.Count);
         var usedResourceNames = new HashSet<string>(StringComparer.Ordinal);
         var importedTextures = new Dictionary<int, ImportedTexture>();
         var usedTextureNames = new HashSet<string>(StringComparer.Ordinal);
@@ -1062,20 +1167,30 @@ public sealed class GLTFImporter : RedObject
         {
             using var source = sourceMaterials[materialIndex];
             using var sourceName = source.Name;
-            var localResourceName = CreateUniqueResourceName("Materials",
-                string.IsNullOrEmpty(sourceName.ToString()) ? $"Material_{materialIndex}" : sourceName.ToString(),
-                ".xml", usedResourceNames);
-            var material = new RedBolt.Graphics.Material();
-            material.SetName(resourceNamePrefix + localResourceName);
-            InitializeMaterialTechnique(material, source);
+            var variants = new string[3];
+            var isUnlit = IsUnlitMaterial(source);
+            foreach (var variant in new[] { MaterialVariant.LitNormalMap, MaterialVariant.Lit, MaterialVariant.Unlit })
+            {
+                if (isUnlit && variant is not MaterialVariant.Unlit
+                    || variant is MaterialVariant.LitNormalMap && source.NormalTextureIndex < 0)
+                    continue;
+                var localResourceName = CreateUniqueResourceName("Materials",
+                    $"{(string.IsNullOrEmpty(sourceName.ToString()) ? $"Material_{materialIndex}" : sourceName.ToString())}_{variant}",
+                    ".xml", usedResourceNames);
+                var material = new RedBolt.Graphics.Material();
+                material.SetName(resourceNamePrefix + localResourceName);
+                InitializeMaterialTechnique(material, source, variant);
             using var baseColor = source.PbrMetallicRoughnessBaseColorFactor;
             if (baseColor.Count == 4)
             {
                 var color = new Color(new Vector4f((float)baseColor[0], (float)baseColor[1], (float)baseColor[2], (float)baseColor[3]));
                 material.SetShaderParameter("MatDiffColor", color.LinearToGamma().ToVector4());
             }
-            material.SetShaderParameter("Metallic", (float)source.PbrMetallicRoughnessMetallicFactor);
-            material.SetShaderParameter("Roughness", (float)source.PbrMetallicRoughnessRoughnessFactor);
+            if (variant is not MaterialVariant.Unlit)
+            {
+                material.SetShaderParameter("Metallic", (float)source.PbrMetallicRoughnessMetallicFactor);
+                material.SetShaderParameter("Roughness", (float)source.PbrMetallicRoughnessRoughnessFactor);
+            }
             material.SetShaderParameter("AlphaCutoff", (float)source.AlphaCutoff);
             if (source.PbrMetallicRoughnessBaseColorTextureIndex >= 0
                 && source.PbrMetallicRoughnessBaseColorTextureTexCoord != 0)
@@ -1098,19 +1213,25 @@ public sealed class GLTFImporter : RedObject
             }
             if (occlusionTextureIndex >= 0 && source.OcclusionTextureTexCoord != 0)
                 Warn($"Material '{sourceName}' has non-standard UV for occlusion texture #{occlusionTextureIndex}.");
-            SetPropertiesTexture(material, source.PbrMetallicRoughnessMetallicRoughnessTextureIndex,
-                occlusionTextureIndex, model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
-            if (occlusionTextureIndex >= 0)
+            if (variant is not MaterialVariant.Unlit)
             {
-                if (source.OcclusionTextureStrength != 1.0)
-                    Warn($"Material '{sourceName}' has non-default occlusion strength for occlusion texture #{occlusionTextureIndex}.");
-                material.SetShaderParameter("OcclusionStrength", (float)source.OcclusionTextureStrength);
+                SetPropertiesTexture(material, source.PbrMetallicRoughnessMetallicRoughnessTextureIndex,
+                    occlusionTextureIndex, model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
+                if (occlusionTextureIndex >= 0)
+                {
+                    if (source.OcclusionTextureStrength != 1.0)
+                        Warn($"Material '{sourceName}' has non-default occlusion strength for occlusion texture #{occlusionTextureIndex}.");
+                    material.SetShaderParameter("OcclusionStrength", (float)source.OcclusionTextureStrength);
+                }
             }
             if (source.NormalTextureIndex >= 0 && source.NormalTextureTexCoord != 0)
                 Warn($"Material '{sourceName}' has non-standard UV for normal texture #{source.NormalTextureIndex}.");
-            SetMaterialTexture(material, ShaderResources.Normal, source.NormalTextureIndex,
-                model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
-            material.SetShaderParameter("NormalScale", (float)source.NormalTextureScale);
+            if (variant is MaterialVariant.LitNormalMap)
+            {
+                SetMaterialTexture(material, ShaderResources.Normal, source.NormalTextureIndex,
+                    model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
+                material.SetShaderParameter("NormalScale", (float)source.NormalTextureScale);
+            }
             using var emissiveFactor = source.EmissiveFactor;
             if (emissiveFactor.Count == 3)
             {
@@ -1119,8 +1240,9 @@ public sealed class GLTFImporter : RedObject
             }
             if (source.EmissiveTextureIndex >= 0 && source.EmissiveTextureTexCoord != 0)
                 Warn($"Material '{sourceName}' has non-standard UV for emissive texture #{source.EmissiveTextureIndex}.");
-            SetMaterialTexture(material, ShaderResources.Emission, source.EmissiveTextureIndex,
-                model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
+            if (variant is not MaterialVariant.Unlit)
+                SetMaterialTexture(material, ShaderResources.Emission, source.EmissiveTextureIndex,
+                    model, outputPath, resourceNamePrefix, importedTextures, usedTextureNames);
             if (source.DoubleSided)
             {
                 material.SetCullMode(CullMode.None);
@@ -1128,12 +1250,17 @@ public sealed class GLTFImporter : RedObject
             }
             AddCookedResource(material, outputPath, localResourceName);
             _materialsByName.Add(material.Name, material);
-            resourceNames.Add(material.Name);
+                variants[(int)variant] = material.Name;
+            }
+            variants[(int)MaterialVariant.Lit] ??= variants[(int)MaterialVariant.Unlit];
+            variants[(int)MaterialVariant.LitNormalMap] ??= variants[(int)MaterialVariant.Lit];
+            resourceNames.Add(variants);
         }
         return resourceNames;
     }
 
-    private void InitializeMaterialTechnique(RedBolt.Graphics.Material material, RedBolt.Bindings.TinyGltf.Material source)
+    private void InitializeMaterialTechnique(RedBolt.Graphics.Material material, RedBolt.Bindings.TinyGltf.Material source,
+        MaterialVariant variant)
     {
         using var alphaMode = source.AlphaMode;
         using var sourceName = source.Name;
@@ -1145,9 +1272,8 @@ public sealed class GLTFImporter : RedObject
         if (isAlphaMask && source.AlphaCutoff != 0.5)
             Warn($"Material '{sourceName}' has non-standard alpha cutoff.");
 
-        using var extensionsJson = source.ExtensionsJsonString;
-        var isUnlit = extensionsJson.ToString().Contains("KHR_materials_unlit", StringComparison.Ordinal);
-        var normalMap = source.NormalTextureIndex >= 0 && !isUnlit;
+        var isUnlit = variant is MaterialVariant.Unlit || IsUnlitMaterial(source);
+        var normalMap = variant is MaterialVariant.LitNormalMap && !isUnlit && source.NormalTextureIndex >= 0;
         var techniqueName = isUnlit
             ? isTransparent ? "Techniques/UnlitTransparent.xml" : "Techniques/UnlitOpaque.xml"
             : normalMap
@@ -1175,6 +1301,12 @@ public sealed class GLTFImporter : RedObject
             shaderDefines += "PBR ";
         material.SetVertexShaderDefines(shaderDefines);
         material.SetPixelShaderDefines(shaderDefines);
+    }
+
+    private static bool IsUnlitMaterial(RedBolt.Bindings.TinyGltf.Material source)
+    {
+        using var extensionsJson = source.ExtensionsJsonString;
+        return extensionsJson.ToString().Contains("KHR_materials_unlit", StringComparison.Ordinal);
     }
 
     private void SetMaterialTexture(RedBolt.Graphics.Material material, string slot, int textureIndex,
@@ -1243,7 +1375,7 @@ public sealed class GLTFImporter : RedObject
         }
         else
             image.SetData(pixels);
-        AddCookedResource(image, outputPath, localResourceName);
+        AddCookedResource(image, outputPath, localResourceName, sourceImage.AsIs ? pixels : null);
         CookSamplerParameters(model, sourceTexture, outputPath, resourceNamePrefix, localResourceName);
 
         var texture = new Texture2D();
@@ -1370,7 +1502,7 @@ public sealed class GLTFImporter : RedObject
         || minFilter is 9984 or 9985 or 9986 or 9987;
 
     private List<(List<(int Mesh, int Skin)> ModelPairs, ModelView View, IReadOnlyList<string> Materials, string NameHint)> BuildModelViews(
-        TinyGltfModel model, IReadOnlyList<string> materialNames, IReadOnlyDictionary<int, List<BoneView>> skinBonesByIndex)
+        TinyGltfModel model, IReadOnlyList<string[]> materialNames, IReadOnlyDictionary<int, List<BoneView>> skinBonesByIndex)
     {
         using var meshes = model.Meshes;
         using var sourceNodes = model.Nodes;
@@ -1472,7 +1604,7 @@ public sealed class GLTFImporter : RedObject
                         if ((uint)primitive.Material >= (uint)materialNames.Count)
                             throw new InvalidDataException("glTF primitive references an invalid material.");
                         if (materialsByGeometry[primitiveIndex].Length == 0)
-                            materialsByGeometry[primitiveIndex] = materialNames[primitive.Material];
+                            materialsByGeometry[primitiveIndex] = materialNames[primitive.Material][(int)GetMaterialVariant(lod)];
                     }
                 }
             }
@@ -1509,10 +1641,18 @@ public sealed class GLTFImporter : RedObject
         return result;
     }
 
+    private static MaterialVariant GetMaterialVariant(GeometryLODView lod)
+    {
+        if (lod.PrimitiveType is PrimitiveType.TriangleList || lod.VertexFormat.Tangent != ModelVertexFormat.Undefined)
+            return MaterialVariant.LitNormalMap;
+        return lod.VertexFormat.Normal != ModelVertexFormat.Undefined ? MaterialVariant.Lit : MaterialVariant.Unlit;
+    }
+
     private Dictionary<int, List<BoneView>> BuildSkinBones(TinyGltfModel model)
     {
         using var sourceNodes = model.Nodes;
         var parents = Enumerable.Repeat(-1, sourceNodes.Count).ToArray();
+        _nodeParents = parents;
         for (var nodeIndex = 0; nodeIndex < sourceNodes.Count; ++nodeIndex)
         {
             using var sourceNode = sourceNodes[nodeIndex];
@@ -1534,16 +1674,24 @@ public sealed class GLTFImporter : RedObject
                 continue;
             if (meshNode.Mesh < 0 || (uint)meshNode.Skin >= (uint)skins.Count)
                 throw new InvalidDataException("glTF skinned node references an invalid mesh or skin.");
-            if (result.ContainsKey(meshNode.Skin))
-                continue;
-            using var skin = skins[meshNode.Skin];
-            result.Add(meshNode.Skin, BuildSkinBones(model, sourceNodes, parents, skin));
+            if (!result.ContainsKey(meshNode.Skin))
+            {
+                using var skin = skins[meshNode.Skin];
+                result.Add(meshNode.Skin, BuildSkinBones(model, sourceNodes, parents, skin, meshNode.Skin));
+            }
+            var skeletonRoot = _skeletonRootsBySkin[meshNode.Skin];
+            if (!_skinnedMeshNodesBySkeletonRoot.TryGetValue(skeletonRoot, out var skinnedMeshNodes))
+            {
+                skinnedMeshNodes = [];
+                _skinnedMeshNodesBySkeletonRoot.Add(skeletonRoot, skinnedMeshNodes);
+            }
+            skinnedMeshNodes.Add(nodeIndex);
         }
         return result;
     }
 
     private List<BoneView> BuildSkinBones(TinyGltfModel model, Std.Vector<TinyGltfNode> sourceNodes, IReadOnlyList<int> parents,
-        RedBolt.Bindings.TinyGltf.Skin skin)
+        RedBolt.Bindings.TinyGltf.Skin skin, int skinIndex)
     {
         using var joints = skin.Joints;
         if (joints.Count == 0)
@@ -1565,6 +1713,7 @@ public sealed class GLTFImporter : RedObject
 
         var skeletonNodes = new HashSet<int>(jointToBone.Keys);
         var skeletonRoot = GetSkinRoot(skin, jointToBone.Keys, parents);
+        _skeletonRootsBySkin.Add(skinIndex, skeletonRoot);
         foreach (var jointIndex in jointToBone.Keys)
         {
             for (var nodeIndex = jointIndex; nodeIndex != skeletonRoot; nodeIndex = parents[nodeIndex])
@@ -1577,6 +1726,12 @@ public sealed class GLTFImporter : RedObject
         }
         if (Settings.AddEmptyNodesToSkeleton)
             AppendEmptySkeletonNodes(sourceNodes, skeletonNodes);
+        if (!_skeletonNodesByRoot.TryGetValue(skeletonRoot, out var skeletonNodesByRoot))
+        {
+            skeletonNodesByRoot = [];
+            _skeletonNodesByRoot.Add(skeletonRoot, skeletonNodesByRoot);
+        }
+        skeletonNodesByRoot.UnionWith(skeletonNodes);
         var boneNodes = jointToBone.Keys.Concat(Enumerable.Range(0, sourceNodes.Count)
             .Where(nodeIndex => skeletonNodes.Contains(nodeIndex) && !jointToBone.ContainsKey(nodeIndex))).ToList();
         var nodeToBone = boneNodes.Select((nodeIndex, boneIndex) => (nodeIndex, boneIndex))
