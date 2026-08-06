@@ -43,14 +43,19 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
 
     private static void ConfigureFunctions(BindingCompilation compilation)
     {
+        var overloadsByName = compilation.Functions.ToLookup(static function => function.CppQualifiedName);
         foreach (var function in compilation.Functions)
         {
-            if (function.NativeName is "GetID" or "PushID" or "TreePush" &&
-                function.Parameters.Count > 0 &&
-                function.Parameters[0].Type.CppTypeName == "const char*")
+            if (function.Parameters.Any(static parameter =>
+                    IsVaList(parameter.CppTypeName) || IsVaList(parameter.Type.CppTypeName)))
             {
-                function.SetSilentExclusionReason("const char* compatibility shim duplicates the ImStrv binding");
+                function.SetSilentExclusionReason("callables with va_list arguments are not supported");
+                continue;
             }
+
+            if (overloadsByName[function.CppQualifiedName]
+                .Any(other => !ReferenceEquals(function, other) && IsConstCharCompatibilityOverload(function, other)))
+                function.SetSilentExclusionReason("const char* compatibility shim duplicates the ImStrv binding");
         }
 
         foreach (var function in compilation.Functions)
@@ -86,6 +91,31 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
             }
         }
     }
+
+    private static bool IsConstCharCompatibilityOverload(FunctionBinding candidate, FunctionBinding other)
+    {
+        if (candidate.Parameters.Count != other.Parameters.Count)
+            return false;
+
+        var replacedImStrv = false;
+        for (var index = 0; index < candidate.Parameters.Count; ++index)
+        {
+            var candidateType = candidate.Parameters[index].Type.CppTypeName;
+            var otherType = other.Parameters[index].Type.CppTypeName;
+            if (candidateType == otherType)
+                continue;
+            if (candidateType == "const char*" && otherType == "ImStrv")
+            {
+                replacedImStrv = true;
+                continue;
+            }
+            return false;
+        }
+        return replacedImStrv;
+    }
+
+    private static bool IsVaList(string cppTypeName) =>
+        cppTypeName.Contains("va_list", StringComparison.Ordinal);
 
     private static void ApplyEnumAliasSurface(BindingCompilation compilation)
     {
