@@ -1204,12 +1204,21 @@ public sealed class GLTFImporter : RedObject
 
         using var sourceName = sourceImage.Name;
         using var sourceUri = sourceImage.Uri;
+        using var sourceMimeType = sourceImage.MimeType;
         var nameHint = sourceName.ToString();
-        if (string.IsNullOrEmpty(nameHint) && !sourceUri.ToString().StartsWith("data:", StringComparison.OrdinalIgnoreCase))
-            nameHint = Path.GetFileNameWithoutExtension(sourceUri.ToString());
+        var uri = sourceUri.ToString();
+        var mimeType = sourceMimeType.ToString();
+        if (string.IsNullOrEmpty(nameHint) && !uri.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+            nameHint = Path.GetFileNameWithoutExtension(uri);
+        var extension = mimeType == "image/jpeg" || uri.EndsWith(".jpg", StringComparison.Ordinal)
+            || uri.EndsWith(".jpeg", StringComparison.Ordinal)
+            ? ".jpg"
+            : mimeType == "image/png" || uri.EndsWith(".png", StringComparison.Ordinal)
+                ? ".png"
+                : throw new InvalidDataException($"Image #{sourceTexture.Source} '{sourceName}' has unknown type '{mimeType}'.");
         var localResourceName = CreateUniqueResourceName("Textures",
             string.IsNullOrEmpty(nameHint) ? $"Texture_{textureIndex}" : nameHint,
-            ".png", usedTextureNames);
+            extension, usedTextureNames);
         var image = new RedBolt.Resource.Image();
         image.SetName(resourceNamePrefix + localResourceName);
         if (sourceImage.AsIs)
