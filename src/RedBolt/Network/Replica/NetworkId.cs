@@ -91,5 +91,5 @@ public struct NetworkFrameSync
     /// <summary>Synchronized network frame.</summary>
     public NetworkFrame NetworkFrame;
     /// <summary>Index of the fixed-step event that corresponds to the beginning of the synchronized network frame. If network update rate is the same as fixed-step event rate, index is always zero.</summary>
-    public int Offset;
+    public uint Offset;
 }

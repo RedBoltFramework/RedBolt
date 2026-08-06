@@ -472,10 +472,10 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 
 - [x] `NetworkId.h`
   - [x] `NetworkId`
-- [ ] `NetworkSettingsConsts.h`
-  - [ ] network settings constants
-- [ ] `ProtocolMessages.h`
-  - [ ] protocol message structs
+- [x] `NetworkSettingsConsts.h`
+  - [x] network settings constants
+- [x] `ProtocolMessages.h`
+  - [x] protocol message structs
 - [ ] `NetworkCallbacks.h`
   - [ ] network callback interfaces
 - [x] `NetworkTime.h`
@@ -483,10 +483,10 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 - [ ] `NetworkValue.h`
   - [ ] `NetworkValue<T>` / interpolation helpers
 - [ ] `TickSynchronizer.h`
-  - [ ] `TickSynchronizer`
+  - [x] `TickSynchronizer`
   - [ ] `SceneUpdateSynchronizer : Object`
-- [ ] `ClientInputStatistics.h`
-  - [ ] `ClientInputStatistics`
+- [x] `ClientInputStatistics.h`
+  - [x] `ClientInputStatistics`
 - [ ] `NetworkObject.h`
   - [ ] `NetworkObject`
 - [ ] `StaticNetworkObject.h`
