@@ -16,6 +16,7 @@ add_subdirectory(RedBolt/Bindings/SpirVCross)
 add_subdirectory(RedBolt/Bindings/SpirVTools)
 add_subdirectory(RedBolt/Bindings/ShaderCompiler)
 add_subdirectory(RedBolt/Bindings/Jolt)
+add_subdirectory(RedBolt/Bindings/LibDataChannel)
 
 add_custom_target(redbolt-generate-native-bindings
     DEPENDS
@@ -35,6 +36,8 @@ add_custom_target(redbolt-generate-native-bindings
         redbolt-generate-spirv-tools-bindings
         redbolt-generate-shader-compiler-bindings
         redbolt-generate-jolt-bindings)
+add_dependencies(redbolt-generate-native-bindings
+    redbolt-generate-libdatachannel-bindings)
 
 add_subdirectory(RedBolt/Native)
 

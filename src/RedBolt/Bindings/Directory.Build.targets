@@ -87,6 +87,10 @@
                Exclude="@(Compile)"
                LinkBase="Generated"
                Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Jolt'" />
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/libdatachannel/**/*.g.cs"
+               Exclude="@(Compile)"
+               LinkBase="Generated"
+               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.LibDataChannel'" />
     </ItemGroup>
   </Target>
 </Project>

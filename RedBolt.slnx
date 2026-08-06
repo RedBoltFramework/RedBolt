@@ -32,6 +32,7 @@
     <Project Path="src/RedBolt/Utility/RedBolt.Utility.csproj" />
     <Project Path="src/RedBolt/JoltPhysics/RedBolt.JoltPhysics.csproj" />
     <Project Path="src/RedBolt/Navigation/RedBolt.Navigation.csproj" />
+    <Project Path="src/RedBolt/Network/RedBolt.Network.csproj" />
     <Project Path="src/RedBolt/RmlUI/RedBolt.RmlUI.csproj" />
     <Project Path="src/RedBolt/Particles/RedBolt.Particles.csproj" />
   </Folder>
@@ -42,6 +43,7 @@
     <Project Path="src/RedBolt/Bindings/Glslang/RedBolt.Bindings.Glslang.csproj" />
     <Project Path="src/RedBolt/Bindings/HarfBuzz/RedBolt.Bindings.HarfBuzz.csproj" />
     <Project Path="src/RedBolt/Bindings/Jolt/RedBolt.Bindings.Jolt.csproj" />
+    <Project Path="src/RedBolt/Bindings/LibDataChannel/RedBolt.Bindings.LibDataChannel.csproj" />
     <Project Path="src/RedBolt/Bindings/Lz4/RedBolt.Bindings.Lz4.csproj" />
     <Project Path="src/RedBolt/Bindings/RmlUi/RedBolt.Bindings.RmlUi.csproj" />
     <Project Path="src/RedBolt/Bindings/Sdl/RedBolt.Bindings.Sdl.csproj" />

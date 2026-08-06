@@ -21,6 +21,19 @@ The port must be 1:1 (as close as possible) to the original C++ code.
 "1:1" means: same classes, same methods, same fields, same order, same logic.
 You may only change things that this document explicitly allows you to change.
 
+### NETWORK AND REPLICA PORT SEQUENCE
+
+Use the sibling rbfx checkout on the `rk/network` branch as the source of truth.
+Port the Network and Replica subsystems in two phases:
+
+1. Go through the C++ classes and do a low-effort 1:1 syntax conversion to C#,
+   preserving all behavior. Do not stop phase 1 to repair the build.
+2. Fix the build by adjusting and completing the ported code without changing
+   the rbfx behavior.
+
+Do not commit the non-building phase-1 state. Complete phase 2 before making a
+coherent checkpoint commit.
+
 ### SOURCE-OF-TRUTH AND DIVERGENCE RULE
 
 Before editing C# code, select exactly one of the following work modes. The

@@ -63,7 +63,8 @@ set(_redbolt_native_common_include_dirs
     "${REDBOLT_GLSLANG_SOURCE_ROOT}"
     "${REDBOLT_SPIRV_CROSS_SOURCE_ROOT}"
     "${REDBOLT_SPIRV_TOOLS_SOURCE_ROOT}/include"
-    "${REDBOLT_JOLT_INCLUDE_DIR}")
+    "${REDBOLT_JOLT_INCLUDE_DIR}"
+    "${REDBOLT_LIBDATACHANNEL_INCLUDE_DIR}")
 
 set(_redbolt_generated_binding_sources
     "${REDBOLT_SDL_BINDINGS_CPP}"
@@ -81,7 +82,8 @@ set(_redbolt_generated_binding_sources
     "${REDBOLT_SPIRV_CROSS_BINDINGS_CPP}"
     "${REDBOLT_SPIRV_TOOLS_BINDINGS_CPP}"
     "${REDBOLT_SHADER_COMPILER_BINDINGS_CPP}"
-    "${REDBOLT_JOLT_BINDINGS_CPP}")
+    "${REDBOLT_JOLT_BINDINGS_CPP}"
+    "${REDBOLT_LIBDATACHANNEL_BINDINGS_CPP}")
 set_source_files_properties(${_redbolt_generated_binding_sources}
     PROPERTIES GENERATED TRUE)
 
@@ -270,6 +272,14 @@ redbolt_add_native_wrapper(
     SOURCES "${REDBOLT_JOLT_BINDINGS_CPP}"
     LINK_LIBRARIES ${REDBOLT_JOLT_LIBRARY})
 
+redbolt_add_native_wrapper(
+    MODULE LIBDATACHANNEL
+    TARGET "${REDBOLT_LIBDATACHANNEL_NATIVE_TARGET}"
+    OUTPUT_NAME "${REDBOLT_LIBDATACHANNEL_NATIVE_LIBRARY_NAME}"
+    GENERATION_TARGET redbolt-generate-libdatachannel-bindings
+    SOURCES "${REDBOLT_LIBDATACHANNEL_BINDINGS_CPP}"
+    LINK_LIBRARIES ${REDBOLT_LIBDATACHANNEL_LIBRARY})
+
 if(NOT EMSCRIPTEN)
     find_library(REDBOLT_VULKAN_LIBRARY NAMES vulkan REQUIRED)
     target_link_libraries(${REDBOLT_DILIGENT_NATIVE_TARGET} PRIVATE
@@ -359,7 +369,8 @@ add_custom_target(redbolt-native-all
         ${REDBOLT_SPIRV_CROSS_NATIVE_TARGET}
         ${REDBOLT_SPIRV_TOOLS_NATIVE_TARGET}
         ${REDBOLT_SHADER_COMPILER_NATIVE_TARGET}
-        ${REDBOLT_JOLT_NATIVE_TARGET})
+        ${REDBOLT_JOLT_NATIVE_TARGET}
+        ${REDBOLT_LIBDATACHANNEL_NATIVE_TARGET})
 if(NOT EMSCRIPTEN)
     add_dependencies(redbolt-native-all redbolt-native-manifests)
 endif()

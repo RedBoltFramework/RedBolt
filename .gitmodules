@@ -47,3 +47,6 @@
 [submodule "extern/tinygltf"]
 	path = extern/tinygltf
 	url = https://github.com/syoyo/tinygltf.git
+[submodule "extern/libdatachannel"]
+	path = extern/libdatachannel
+	url = https://github.com/rbfx/libdatachannel.git

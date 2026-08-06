@@ -434,10 +434,10 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 
 ## B8. Network `OPTIONAL` — depends on IO, Core
 
-- [ ] `Protocol.h`
-  - [ ] protocol message-id constants
-- [ ] `PacketTypeFlags.h`
-  - [ ] `PacketTypeFlags`
+- [x] `Protocol.h`
+  - [x] protocol message-id constants
+- [x] `PacketTypeFlags.h`
+  - [x] `PacketTypeFlags`
 - [ ] `NetworkEvents.h`
   - [ ] network event definitions
 - [ ] `URL.h`
@@ -470,16 +470,16 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 
 ## B9. Replica `OPTIONAL` — scene replication; depends on Network, Scene, Graphics
 
-- [ ] `NetworkId.h`
-  - [ ] `NetworkId`
+- [x] `NetworkId.h`
+  - [x] `NetworkId`
 - [ ] `NetworkSettingsConsts.h`
   - [ ] network settings constants
 - [ ] `ProtocolMessages.h`
   - [ ] protocol message structs
 - [ ] `NetworkCallbacks.h`
   - [ ] network callback interfaces
-- [ ] `NetworkTime.h`
-  - [ ] `NetworkTime`
+- [x] `NetworkTime.h`
+  - [x] `NetworkTime`
 - [ ] `NetworkValue.h`
   - [ ] `NetworkValue<T>` / interpolation helpers
 - [ ] `TickSynchronizer.h`
