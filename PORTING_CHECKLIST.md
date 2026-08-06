@@ -496,6 +496,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 - [x] `TickSynchronizer.h`
   - [x] `TickSynchronizer`
   - [x] `SceneUpdateSynchronizer : Object` (non-Physics branch)
+  - [-] `PhysicsTickSynchronizer : Object` — **EXCLUDED** · reason: declared only under rbfx `URHO3D_PHYSICS` and depends on its legacy Bullet `PhysicsWorld`/physics-step events, which RedBolt's Jolt subsystem does not provide
 - [x] `ClientInputStatistics.h`
   - [x] `ClientInputStatistics`
 - [x] `NetworkObject.h`
@@ -519,8 +520,8 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `FilteredByDistance : NetworkBehavior`
 - [x] `TrackedAnimatedModel.h`
   - [x] `TrackedAnimatedModel : NetworkBehavior`
-- [ ] `PredictedKinematicController.h` ⤴ needs `Physics`
-  - [ ] `PredictedKinematicController : BaseFeedbackBehavior<PredictedKinematicControllerFrame>`
+- [-] `PredictedKinematicController.h` ⤴ needs `Physics` — **EXCLUDED** · reason: the entire rbfx declaration and its three behavior tests are compiled only under `URHO3D_PHYSICS` and require the legacy Bullet `KinematicCharacterController`; the independent `ClientInputStatistics` test from that test file is ported
+  - [-] `PredictedKinematicController : BaseFeedbackBehavior<PredictedKinematicControllerFrame>`
 - [x] `ReplicationManager.h`
   - [x] `NetworkObjectRegistry : ReferencedComponentRegistryBase`
   - [x] `ReplicationManager : NetworkObjectRegistry`
