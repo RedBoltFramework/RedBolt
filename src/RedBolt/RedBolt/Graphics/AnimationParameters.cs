@@ -43,14 +43,14 @@ public sealed class AnimationParameters : IEquatable<AnimationParameters?>, IClo
     public AnimationParameters(Animation? animation)
     {
         _animation = animation;
-        _animationName = animation?.AnimationNameHash ?? StringHash.Empty;
+        _animationName = animation?.GetNameHash() ?? StringHash.Empty;
         _time = new WrappedScalar<float>(0.0f, 0.0f, animation?.Length ?? MathDefs.LargeValue);
     }
 
     public AnimationParameters(Animation? animation, float minTime, float maxTime)
     {
         _animation = animation;
-        _animationName = animation?.AnimationNameHash ?? StringHash.Empty;
+        _animationName = animation?.GetNameHash() ?? StringHash.Empty;
         _time = new WrappedScalar<float>(0.0f, minTime, maxTime);
     }
 
@@ -256,7 +256,7 @@ public sealed class AnimationParameters : IEquatable<AnimationParameters?>, IClo
 
         var animationName = variants[index++].GetResourceRef().Name;
         result._animation = GetAnimation(animationName);
-        result._animationName = result._animation?.AnimationNameHash ?? StringHash.Empty;
+        result._animationName = result._animation?.GetNameHash() ?? StringHash.Empty;
 
         result.IsLooped = variants[index++].GetBool();
         result.RemoveOnCompletion = variants[index++].GetBool();
