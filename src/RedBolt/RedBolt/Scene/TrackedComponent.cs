@@ -463,3 +463,66 @@ public class TrackedComponent<RegistryComponentType> : TrackedComponentBase
 
     private RegistryComponentType? _registry;
 }
+
+/// <summary>
+/// Template base of any referenced component that automatically registers itself in registry.
+/// </summary>
+public class ReferencedComponent<RegistryComponentType> : ReferencedComponentBase
+    where RegistryComponentType : ReferencedComponentRegistryBase
+{
+    public override void Dispose()
+    {
+        _registry = null;
+        base.Dispose();
+    }
+
+    public RegistryComponentType? Registry => _registry;
+
+    public override bool ShouldBeTrackedInRegistry
+    {
+        get
+        {
+            if (_registry?.IsOnlyEnabledTracked == true)
+                return IsEnabledEffective;
+            return true;
+        }
+    }
+
+    public override void ReconnectToRegistry()
+    {
+        _registry = Scene?.GetDerivedComponent<RegistryComponentType>();
+    }
+
+    public override void OnSetEnabled()
+    {
+        if (_registry?.IsOnlyEnabledTracked == true)
+        {
+            var wasEnabled = IsTrackedInRegistry;
+            var isEnabled = ShouldBeTrackedInRegistry;
+            if (wasEnabled != isEnabled)
+            {
+                if (isEnabled)
+                    _registry.AddTrackedComponent(this);
+                else
+                    _registry.RemoveTrackedComponent(this);
+            }
+        }
+    }
+
+    protected internal override void OnSceneSet(Scene? previousScene, Scene? scene)
+    {
+        var newRegistry = scene?.GetDerivedComponent<RegistryComponentType>();
+        if (ReferenceEquals(newRegistry, _registry))
+            return;
+
+        if (_registry is not null && IsTrackedInRegistry)
+            _registry.RemoveTrackedComponent(this);
+
+        _registry = newRegistry;
+
+        if (_registry is not null && ShouldBeTrackedInRegistry)
+            _registry.AddTrackedComponent(this);
+    }
+
+    private RegistryComponentType? _registry;
+}

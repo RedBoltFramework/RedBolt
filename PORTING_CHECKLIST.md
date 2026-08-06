@@ -469,8 +469,8 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `NetworkMessageLogger`
 - [ ] `NetworkLoadableScene.h`
   - [ ] `NetworkLoadableScene : Object`
-- [ ] `ReplicatedPeer.h`
-  - [ ] `ReplicatedPeer`
+- [x] `ReplicatedPeer.h`
+  - [x] `ReplicatedPeer`
 - [x] `Network.h`
   - [x] `Network : Object`
 
@@ -482,8 +482,8 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] network settings constants
 - [x] `ProtocolMessages.h`
   - [x] protocol message structs
-- [ ] `NetworkCallbacks.h`
-  - [ ] network callback interfaces
+- [x] `NetworkCallbacks.h`
+  - [x] network callback interfaces
 - [x] `NetworkTime.h`
   - [x] `NetworkTime`
 - [x] `NetworkValue.h`
@@ -493,37 +493,37 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `SceneUpdateSynchronizer : Object` (non-Physics branch)
 - [x] `ClientInputStatistics.h`
   - [x] `ClientInputStatistics`
-- [ ] `NetworkObject.h`
-  - [ ] `NetworkObject`
-- [ ] `StaticNetworkObject.h`
-  - [ ] `StaticNetworkObject : NetworkObject`
-- [ ] `BehaviorNetworkObject.h`
-  - [ ] `NetworkBehavior`
-  - [ ] `BehaviorNetworkObject : StaticNetworkObject`
+- [x] `NetworkObject.h`
+  - [x] `NetworkObject`
+- [x] `StaticNetworkObject.h`
+  - [x] `StaticNetworkObject : NetworkObject`
+- [x] `BehaviorNetworkObject.h`
+  - [x] `NetworkBehavior`
+  - [x] `BehaviorNetworkObject : StaticNetworkObject`
 - [ ] `BaseFeedbackBehavior.h`
   - [ ] `BaseFeedbackBehavior<T>`
-- [ ] `ReplicatedTransform.h`
-  - [ ] `ReplicatedTransform : NetworkBehavior`
-- [ ] `ReplicatedParent.h`
-  - [ ] `ReplicatedParent : NetworkBehavior`
+- [x] `ReplicatedTransform.h`
+  - [x] `ReplicatedTransform : NetworkBehavior`
+- [x] `ReplicatedParent.h`
+  - [x] `ReplicatedParent : NetworkBehavior`
 - [ ] `ReplicatedAnimation.h`
   - [ ] `ReplicatedAnimation : NetworkBehavior`
-- [ ] `FilteredByOwner.h`
-  - [ ] `FilteredByOwner : NetworkBehavior`
-- [ ] `FilteredByDistance.h`
-  - [ ] `FilteredByDistance : NetworkBehavior`
+- [x] `FilteredByOwner.h`
+  - [x] `FilteredByOwner : NetworkBehavior`
+- [x] `FilteredByDistance.h`
+  - [x] `FilteredByDistance : NetworkBehavior`
 - [ ] `TrackedAnimatedModel.h`
   - [ ] `TrackedAnimatedModel : NetworkBehavior`
 - [ ] `PredictedKinematicController.h` ⤴ needs `Physics`
   - [ ] `PredictedKinematicController : BaseFeedbackBehavior<PredictedKinematicControllerFrame>`
-- [ ] `ReplicationManager.h`
-  - [ ] `NetworkObjectRegistry : ReferencedComponentRegistryBase`
-  - [ ] `ReplicationManager : NetworkObjectRegistry`
-- [ ] `ClientReplica.h`
-  - [ ] `ClientReplicaClock : Object`
-  - [ ] `ClientReplica : ClientReplicaClock`
-- [ ] `ServerReplicator.h`
-  - [ ] `ServerReplicator : Object`
+- [x] `ReplicationManager.h`
+  - [x] `NetworkObjectRegistry : ReferencedComponentRegistryBase`
+  - [x] `ReplicationManager : NetworkObjectRegistry`
+- [x] `ClientReplica.h`
+  - [x] `ClientReplicaClock : Object`
+  - [x] `ClientReplica : ClientReplicaClock`
+- [x] `ServerReplicator.h`
+  - [x] `ServerReplicator : Object`
 
 ## B10. IK `OPTIONAL` — inverse kinematics; depends on Scene, Math/InverseKinematics
 
