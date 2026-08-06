@@ -509,7 +509,7 @@ public sealed class GLTFImporter : RedObject
             root.SetRotation(Settings.Rotation);
             using var roots = sourceScene.Nodes;
             var visiting = new HashSet<int>();
-            if (_animations.Count != 0)
+            if (_hasSceneAnimations)
                 root.CreateComponent<AnimationController>().PlayNew(new AnimationParameters(_animations[0]).Looped());
             foreach (var rootIndex in roots)
                 ImportPrefabNode(root, rootIndex, sourceNodes, modelsByMesh, attachSkinnedAnimationController, visiting);
