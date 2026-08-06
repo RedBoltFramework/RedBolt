@@ -480,8 +480,7 @@ public sealed class GLTFImporter : RedObject
         using var sourceScenes = model.Scenes;
         using var sourceNodes = model.Nodes;
         var usedResourceNames = new HashSet<string>(StringComparer.Ordinal);
-        var attachSkinnedAnimationController = _animations.Count != 0
-            && modelsByMesh.Keys.Where(static key => key.Skin >= 0).Select(static key => key.Skin).Distinct().Count() == 1;
+        var attachSkinnedAnimationController = _animations.Count != 0;
         for (var sceneIndex = 0; sceneIndex < sourceScenes.Count; ++sceneIndex)
         {
             using var sourceScene = sourceScenes[sceneIndex];
