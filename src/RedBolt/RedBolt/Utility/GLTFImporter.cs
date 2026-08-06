@@ -1454,6 +1454,8 @@ public sealed class GLTFImporter : RedObject
             : [];
         if (offsetMatrices.Count != 0 && offsetMatrices.Count != joints.Count)
             throw new InvalidDataException("glTF skin inverse bind matrix count does not match its joints.");
+        for (var matrixIndex = 0; matrixIndex < offsetMatrices.Count; ++matrixIndex)
+            offsetMatrices[matrixIndex] = ConvertInverseBindMatrix(offsetMatrices[matrixIndex]);
         var jointToBone = new Dictionary<int, int>();
         for (var boneIndex = 0; boneIndex < joints.Count; ++boneIndex)
         {
@@ -1638,6 +1640,22 @@ public sealed class GLTFImporter : RedObject
                 return true;
         }
         return false;
+    }
+
+    private Matrix3x4 ConvertInverseBindMatrix(Matrix3x4 matrix)
+    {
+        if (Settings.MirrorX)
+        {
+            matrix.M01 = -matrix.M01;
+            matrix.M10 = -matrix.M10;
+            matrix.M02 = -matrix.M02;
+            matrix.M20 = -matrix.M20;
+            matrix.M03 = -matrix.M03;
+        }
+        matrix.M03 *= Settings.Scale;
+        matrix.M13 *= Settings.Scale;
+        matrix.M23 *= Settings.Scale;
+        return matrix;
     }
 
     private static Dictionary<int, string> GetNodePaths(Std.Vector<TinyGltfNode> sourceNodes)
