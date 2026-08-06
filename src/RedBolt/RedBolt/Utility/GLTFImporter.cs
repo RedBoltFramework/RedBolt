@@ -715,10 +715,7 @@ public sealed class GLTFImporter : RedObject
             if (targetPath == "weights")
                 continue;
             if (targetPath is not ("translation" or "rotation" or "scale"))
-            {
-                Warn($"Unsupported animation channel '{targetPath}' in animation #{animationIndex}.");
-                continue;
-            }
+                throw new InvalidDataException($"Unknown animation channel '{targetPath}'.");
             if ((uint)channel.TargetNode >= (uint)sourceNodes.Count || (uint)channel.Sampler >= (uint)samplers.Count)
                 throw new InvalidDataException("glTF animation references an invalid node or sampler.");
 
