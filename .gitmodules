@@ -44,3 +44,6 @@
 [submodule "extern/Embree"]
 	path = extern/Embree
 	url = https://github.com/RenderKit/embree.git
+[submodule "extern/tinygltf"]
+	path = extern/tinygltf
+	url = https://github.com/syoyo/tinygltf.git

@@ -4,6 +4,7 @@ add_subdirectory(RedBolt/Bindings/Sdl)
 add_subdirectory(RedBolt/Bindings/Diligent)
 add_subdirectory(RedBolt/Bindings/DearImGui)
 add_subdirectory(RedBolt/Bindings/Stb)
+add_subdirectory(RedBolt/Bindings/TinyGltf)
 add_subdirectory(RedBolt/Bindings/Lz4)
 add_subdirectory(RedBolt/Bindings/HarfBuzz)
 add_subdirectory(RedBolt/Bindings/RmlUi)
@@ -22,6 +23,7 @@ add_custom_target(redbolt-generate-native-bindings
         redbolt-generate-diligent-bindings
         redbolt-generate-dearimgui-bindings
         redbolt-generate-stb-bindings
+        redbolt-generate-tinygltf-bindings
         redbolt-generate-lz4-bindings
         redbolt-generate-harfbuzz-bindings
         redbolt-generate-rmlui-bindings
