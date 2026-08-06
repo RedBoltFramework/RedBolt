@@ -448,14 +448,19 @@ public sealed class GLTFImporter : RedObject
             if (IsNameSkipped(sourceNameText))
                 continue;
             var tracks = ReadAnimationTracks(model, sourceAnimation, sourceNodes, nodePaths, animationIndex);
-            _hasSceneAnimations |= tracks.Keys.Any(trackName => !_boneNamesByNode.ContainsValue(trackName));
+            _hasSceneAnimations |= tracks.Values.Any(static track => !track.IsBone);
             var nameHint = string.IsNullOrEmpty(sourceNameText) ? $"Animation_{animationIndex}" : sourceNameText;
             var localResourceName = CreateUniqueResourceName("Animations", nameHint, ".ani", usedResourceNames);
             var animation = new RedBolt.Graphics.Animation();
             animation.SetName(resourceNamePrefix + localResourceName);
             animation.SetAnimationName(Path.GetFileNameWithoutExtension(localResourceName));
             foreach (var (trackName, sourceTrack) in tracks)
-                CreateAnimationTrack(animation, trackName, sourceTrack);
+            {
+                if (sourceTrack.IsBone)
+                    CreateAnimationTrack(animation, trackName, sourceTrack);
+                else
+                    CreateSceneAnimationTracks(animation, trackName, sourceTrack);
+            }
             _hasSceneAnimations |= ReadMorphAnimationTracks(animation, model, sourceAnimation, sourceNodes, nodePaths, animationIndex);
             if (animation.Tracks.Count == 0 && animation.VariantTracks.Count == 0)
             {
@@ -721,7 +726,8 @@ public sealed class GLTFImporter : RedObject
 
             using var node = sourceNodes[channel.TargetNode];
             using var nodeName = node.Name;
-            var trackName = _boneNamesByNode.GetValueOrDefault(channel.TargetNode, nodePaths[channel.TargetNode]);
+            var isBone = _boneNamesByNode.TryGetValue(channel.TargetNode, out var boneName);
+            var trackName = isBone ? boneName! : nodePaths[channel.TargetNode];
             using var sampler = samplers[channel.Sampler];
             using var interpolation = sampler.Interpolation;
             var interpolationName = interpolation.ToString();
@@ -731,30 +737,34 @@ public sealed class GLTFImporter : RedObject
             var times = ReadFloatAccessor(model, sampler.Input, TypeScalar).Select(static value => value[0]).ToList();
             if (!result.TryGetValue(trackName, out var track))
             {
-                track = new TransformTrackSource();
+                track = new TransformTrackSource { IsBone = isBone };
                 result.Add(trackName, track);
             }
 
-            var step = interpolationName == "STEP";
-            var cubicSpline = interpolationName == "CUBICSPLINE";
+            var interpolationMode = interpolationName switch
+            {
+                "STEP" => KeyFrameInterpolation.None,
+                "CUBICSPLINE" => KeyFrameInterpolation.TangentSpline,
+                _ => KeyFrameInterpolation.Linear
+            };
             switch (targetPath)
             {
                 case "translation":
                     if (track.Position is not null)
                         throw new InvalidDataException($"Duplicate translation animation channel in animation #{animationIndex}.");
-                    AddAnimationChannel(track, times, ReadCubicSplineValues(ReadAnimationVectors(model, sampler.Output, TypeVec3, animationIndex), times.Count, cubicSpline), step,
+                    AddAnimationChannel(track, times, ReadAnimationVectors(model, sampler.Output, TypeVec3, animationIndex), interpolationMode,
                         static (source, value) => source.Position = value);
                     break;
                 case "rotation":
                     if (track.Rotation is not null)
                         throw new InvalidDataException($"Duplicate rotation animation channel in animation #{animationIndex}.");
-                    AddAnimationChannel(track, times, ReadCubicSplineValues(ReadAnimationRotations(model, sampler.Output, animationIndex), times.Count, cubicSpline), step,
+                    AddAnimationChannel(track, times, ReadAnimationRotations(model, sampler.Output, animationIndex), interpolationMode,
                         static (source, value) => source.Rotation = value);
                     break;
                 case "scale":
                     if (track.Scale is not null)
                         throw new InvalidDataException($"Duplicate scale animation channel in animation #{animationIndex}.");
-                    AddAnimationChannel(track, times, ReadCubicSplineValues(ReadAnimationVectors(model, sampler.Output, TypeVec3, animationIndex), times.Count, cubicSpline), step,
+                    AddAnimationChannel(track, times, ReadAnimationVectors(model, sampler.Output, TypeVec3, animationIndex), interpolationMode,
                         static (source, value) => source.Scale = value);
                     break;
             }
@@ -859,21 +869,23 @@ public sealed class GLTFImporter : RedObject
         return values.Select(static value => new Quaternion(value[3], value[0], value[1], value[2])).ToList();
     }
 
-    private static List<T> ReadCubicSplineValues<T>(List<T> values, int keyCount, bool cubicSpline)
-    {
-        if (!cubicSpline)
-            return values;
-        if (values.Count != keyCount * 3)
-            throw new InvalidDataException("glTF cubic spline animation channel input and output counts differ.");
-        return values.Where((_, index) => index % 3 == 1).ToList();
-    }
-
-    private static void AddAnimationChannel<T>(TransformTrackSource track, List<float> times, List<T> values, bool step,
+    private static void AddAnimationChannel<T>(TransformTrackSource track, List<float> times, List<T> values,
+        KeyFrameInterpolation interpolation,
         Action<TransformTrackSource, ChannelSamples<T>> assign)
     {
+        List<T>? inTangents = null;
+        List<T>? outTangents = null;
+        if (interpolation == KeyFrameInterpolation.TangentSpline)
+        {
+            if (values.Count != times.Count * 3)
+                throw new InvalidDataException("glTF cubic spline animation channel input and output counts differ.");
+            inTangents = values.Where((_, index) => index % 3 == 0).ToList();
+            outTangents = values.Where((_, index) => index % 3 == 2).ToList();
+            values = values.Where((_, index) => index % 3 == 1).ToList();
+        }
         if (times.Count != values.Count)
             throw new InvalidDataException("glTF animation channel input and output counts differ.");
-        var samples = new ChannelSamples<T>(times, values, step);
+        var samples = new ChannelSamples<T>(times, values, interpolation, inTangents, outTangents);
         assign(track, samples);
     }
 
@@ -911,6 +923,37 @@ public sealed class GLTFImporter : RedObject
             track.KeyFrames.Add(keyFrame);
         }
         animation.SetLength(times[^1]);
+    }
+
+    private void CreateSceneAnimationTracks(RedBolt.Graphics.Animation animation, string name, TransformTrackSource source)
+    {
+        if (source.Position is { } position)
+            CreateSceneAnimationTrack(animation, name, "Position", position, value => new Variant(ConvertScenePosition(value)));
+        if (source.Rotation is { } rotation)
+            CreateSceneAnimationTrack(animation, name, "Rotation", rotation, value => new Variant(ConvertSceneRotation(value)));
+        if (source.Scale is { } scale)
+            CreateSceneAnimationTrack(animation, name, "Scale", scale, static value => new Variant(value));
+    }
+
+    private static void CreateSceneAnimationTrack<T>(RedBolt.Graphics.Animation animation, string name, string attribute,
+        ChannelSamples<T> source, Func<T, Variant> convert)
+    {
+        var track = animation.CreateVariantTrack($"{name}/@/{attribute}");
+        track.Interpolation = source.Interpolation;
+        for (var index = 0; index < source.Times.Count; ++index)
+        {
+            track.KeyFrames.Add(new VariantCurvePoint
+            {
+                Time = source.Times[index],
+                Value = convert(source.Values[index])
+            });
+            if (source.Interpolation != KeyFrameInterpolation.TangentSpline)
+                continue;
+            track.InTangents.Add(convert(source.InTangents![index]));
+            track.OutTangents.Add(convert(source.OutTangents![index]));
+        }
+        track.Commit();
+        animation.SetLength(System.Math.Max(animation.Length, source.Times[^1]));
     }
 
     private List<float> MergeAnimationTimes(params List<float>?[] sourceTimes)
@@ -973,16 +1016,20 @@ public sealed class GLTFImporter : RedObject
 
     private sealed class TransformTrackSource
     {
+        public bool IsBone;
         public ChannelSamples<Vector3f>? Position;
         public ChannelSamples<Quaternion>? Rotation;
         public ChannelSamples<Vector3f>? Scale;
     }
 
-    private sealed class ChannelSamples<T>(List<float> times, List<T> values, bool step)
+    private sealed class ChannelSamples<T>(List<float> times, List<T> values, KeyFrameInterpolation interpolation,
+        List<T>? inTangents, List<T>? outTangents)
     {
         public List<float> Times { get; } = times;
-        private List<T> Values { get; } = values;
-        private bool Step { get; } = step;
+        public List<T> Values { get; } = values;
+        public KeyFrameInterpolation Interpolation { get; } = interpolation;
+        public List<T>? InTangents { get; } = inTangents;
+        public List<T>? OutTangents { get; } = outTangents;
 
         public T Sample(float time, Func<T, T, float, T> interpolate)
         {
@@ -994,7 +1041,7 @@ public sealed class GLTFImporter : RedObject
                 return Values[0];
             if (index == Times.Count)
                 return Values[^1];
-            if (Step)
+            if (Interpolation == KeyFrameInterpolation.None)
                 return Values[index - 1];
             var factor = (time - Times[index - 1]) / (Times[index] - Times[index - 1]);
             return interpolate(Values[index - 1], Values[index], factor);
