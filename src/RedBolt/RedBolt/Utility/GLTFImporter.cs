@@ -543,25 +543,37 @@ public sealed class GLTFImporter : RedObject
             light.SetCastShadows(true);
         }
 
-        if (Settings.Preview.AddSkybox && scene.FindComponent<Skybox>() is null
-            && cache?.GetResourceOrNull<RedBolt.Graphics.Material>(Settings.Preview.SkyboxMaterial) is { } skyboxMaterial
-            && cache.GetResourceOrNull<RedBolt.Graphics.Model>("Models/Box.mdl") is { } boxModel)
+        if (Settings.Preview.AddSkybox && scene.FindComponent<Skybox>() is null)
         {
-            var node = scene.CreateChild("Default Skybox");
-            node.SetPosition(defaultPosition);
-            var skybox = node.CreateComponent<Skybox>();
-            skybox.SetModel(boxModel);
-            skybox.SetMaterial(skyboxMaterial);
+            var skyboxMaterial = cache?.GetResourceOrNull<RedBolt.Graphics.Material>(Settings.Preview.SkyboxMaterial);
+            var boxModel = cache?.GetResourceOrNull<RedBolt.Graphics.Model>("Models/Box.mdl");
+            if (skyboxMaterial is null)
+                Warn($"Cannot add default skybox with material '{Settings.Preview.SkyboxMaterial}'.");
+            else if (boxModel is null)
+                Warn("Cannot add default skybox with model 'Models/Box.mdl'.");
+            else
+            {
+                var node = scene.CreateChild("Default Skybox");
+                node.SetPosition(defaultPosition);
+                var skybox = node.CreateComponent<Skybox>();
+                skybox.SetModel(boxModel);
+                skybox.SetMaterial(skyboxMaterial);
+            }
         }
 
-        if (Settings.Preview.AddReflectionProbe && scene.FindComponent<Zone>() is null
-            && cache?.GetResourceOrNull<TextureCube>(Settings.Preview.ReflectionProbeCubemap) is { } skyboxTexture)
+        if (Settings.Preview.AddReflectionProbe && scene.FindComponent<Zone>() is null)
         {
-            var node = scene.CreateChild("Default Zone");
-            node.SetPosition(defaultPosition);
-            var zone = node.CreateComponent<Zone>();
-            zone.SetBackgroundBrightness(0.5f);
-            zone.SetZoneTexture(skyboxTexture);
+            var skyboxTexture = cache?.GetResourceOrNull<TextureCube>(Settings.Preview.ReflectionProbeCubemap);
+            if (skyboxTexture is null)
+                Warn($"Cannot add default reflection probe with material '{Settings.Preview.ReflectionProbeCubemap}'.");
+            else
+            {
+                var node = scene.CreateChild("Default Zone");
+                node.SetPosition(defaultPosition);
+                var zone = node.CreateComponent<Zone>();
+                zone.SetBackgroundBrightness(0.5f);
+                zone.SetZoneTexture(skyboxTexture);
+            }
         }
     }
 
