@@ -2243,9 +2243,10 @@ public sealed class GLTFImporter : RedObject
         }
     }
 
-    private static void MergeModels(TinyGltfModel outputModel, TinyGltfModel inputModel, string? overrideName)
+    private void MergeModels(TinyGltfModel outputModel, TinyGltfModel inputModel, string? overrideName)
     {
         var sourceToDestinationNodes = MapNodesByNames(inputModel, outputModel);
+        var sourceNodeNames = GetNodeNames(inputModel);
 
         using var outputBuffers = outputModel.Buffers;
         var startBufferIndex = outputBuffers.Count;
@@ -2285,6 +2286,7 @@ public sealed class GLTFImporter : RedObject
             outputAnimations.Add(animation);
         }
 
+        var ignoredNodes = new HashSet<string>(StringComparer.Ordinal);
         for (var animationIndex = startAnimationIndex; animationIndex < outputAnimations.Count; ++animationIndex)
         {
             using var animation = outputAnimations[animationIndex];
@@ -2305,6 +2307,7 @@ public sealed class GLTFImporter : RedObject
                     continue;
                 }
 
+                ignoredNodes.Add(sourceNodeNames.GetValueOrDefault(channel.TargetNode, "[Invalid node]"));
                 channels.RemoveAt(channelIndex);
             }
 
@@ -2318,6 +2321,8 @@ public sealed class GLTFImporter : RedObject
             }
             outputAnimations[animationIndex] = animation;
         }
+        if (ignoredNodes.Count != 0)
+            Warn($"Ignored nodes in animation: {string.Join(", ", ignoredNodes)}");
     }
 
     private static Dictionary<int, int> MapNodesByNames(TinyGltfModel sourceModel, TinyGltfModel destinationModel)
