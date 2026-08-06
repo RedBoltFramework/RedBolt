@@ -1617,11 +1617,24 @@ public sealed class GLTFImporter : RedObject
         }
     }
 
-    private static int GetSkinRoot(RedBolt.Bindings.TinyGltf.Skin skin, IEnumerable<int> joints,
+    private int GetSkinRoot(RedBolt.Bindings.TinyGltf.Skin skin, IEnumerable<int> joints,
         IReadOnlyList<int> parents)
     {
-        if (skin.Skeleton >= 0 && skin.Skeleton < parents.Count && joints.All(joint => IsDescendantOf(joint, skin.Skeleton, parents)))
-            return skin.Skeleton;
+        if (skin.Skeleton >= 0)
+        {
+            if (skin.Skeleton >= parents.Count)
+                throw new InvalidDataException("glTF skin references an invalid skeleton node.");
+            var isSkeletonRoot = true;
+            foreach (var joint in joints)
+            {
+                if (IsDescendantOf(joint, skin.Skeleton, parents))
+                    continue;
+                Warn($"Skeleton node #{skin.Skeleton} is not a parent of joint node #{joint}.");
+                isSkeletonRoot = false;
+            }
+            if (isSkeletonRoot)
+                return skin.Skeleton;
+        }
 
         using var enumerator = joints.GetEnumerator();
         if (!enumerator.MoveNext())
