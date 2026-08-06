@@ -1495,7 +1495,7 @@ public sealed class GLTFImporter : RedObject
         var offsetMatrices = skin.InverseBindMatrices >= 0
             ? ReadMatrix4Accessor(model, skin.InverseBindMatrices)
             : [];
-        if (offsetMatrices.Count != 0 && offsetMatrices.Count != joints.Count)
+        if (offsetMatrices.Count != 0 && offsetMatrices.Count < joints.Count)
             throw new InvalidDataException("glTF skin inverse bind matrix count does not match its joints.");
         for (var matrixIndex = 0; matrixIndex < offsetMatrices.Count; ++matrixIndex)
             offsetMatrices[matrixIndex] = ConvertInverseBindMatrix(offsetMatrices[matrixIndex]);
