@@ -361,6 +361,10 @@ public sealed class GLTFImporter : RedObject
             var directory = Path.GetDirectoryName(fileName);
             if (!string.IsNullOrEmpty(directory))
                 Directory.CreateDirectory(directory);
+            if (resource is RedBolt.Resource.Image image && !image.SaveFile(new FileIdentifier(fileName)))
+                return Fail($"Failed to save imported resource '{resource.Name}'.");
+            if (resource is RedBolt.Resource.Image)
+                continue;
             using var file = new File(fileName, FileMode.Write);
             if (!file.IsOpen || !resource.Save(file))
                 return Fail($"Failed to save imported resource '{resource.Name}'.");
