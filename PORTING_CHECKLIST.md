@@ -807,8 +807,8 @@ Accepted deviations:
   - [ ] `GenerateWorldSpaceTracksTransformer : BaseAssetPostTransformer`
 - [ ] `RetargetAnimationsTransformer.h`
   - [ ] `RetargetAnimationsTransformer : BaseAssetPostTransformer`
-- [ ] `AnimationMetadata.h`
-  - [ ] animation metadata helpers
+- [x] `AnimationMetadata.h` — faithful C# source conversion is present and builds in the optional Utility module
+  - [x] animation metadata helpers
 - [ ] `AssetPipeline.h`
   - [ ] `AssetPipeline : Resource`
 - [ ] `FileSystemReflection.h`
@@ -822,10 +822,10 @@ Accepted deviations:
 - [ ] `SceneSelection.h`
   - [ ] `struct PackedSceneSelection`
   - [ ] `SceneSelection`
-- [ ] `GLTFImporter.h`
-  - [ ] `struct GLTFImporterSettings`
-  - [ ] `GLTFImporterCallback`
-  - [ ] `GLTFImporter : Object`
+- [x] `GLTFImporter.h` — faithful C# source conversion is present in the optional Utility module and the full solution builds
+  - [x] `struct GLTFImporterSettings`
+  - [x] `GLTFImporterCallback`
+  - [x] `GLTFImporter : Object`
 - [ ] `SceneRendererToTexture.h`
   - [ ] `CustomBackbufferTexture : Object`
   - [ ] `SceneRendererToTexture : CustomBackbufferTexture`

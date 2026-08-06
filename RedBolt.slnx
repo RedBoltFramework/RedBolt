@@ -29,6 +29,7 @@
     <Project Path="src/RedBolt/DearImGui/RedBolt.DearImGui.csproj" />
     <Project Path="src/RedBolt/Glow/RedBolt.Glow.csproj" />
     <Project Path="src/RedBolt/IK/RedBolt.IK.csproj" />
+    <Project Path="src/RedBolt/Utility/RedBolt.Utility.csproj" />
     <Project Path="src/RedBolt/JoltPhysics/RedBolt.JoltPhysics.csproj" />
     <Project Path="src/RedBolt/Navigation/RedBolt.Navigation.csproj" />
     <Project Path="src/RedBolt/RmlUI/RedBolt.RmlUI.csproj" />

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt.Utility</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../Bindings/TinyGltf/RedBolt.Bindings.TinyGltf.csproj" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Std/SharpCpp.Std.csproj"
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
+  </ItemGroup>
+</Project>
