@@ -996,6 +996,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 - [x] `InspectorTab/SoundInspector.h` — sorted sound selections, metadata, playback controls, and timeline seeking are ported; generated `SliderFloat` input/output uses `ref`; plugin entry point is deferred
 - [x] `SettingsTab.h` — responsive tree/page layouts, selection, hotkey forwarding, reset controls, and unsaved state are ported; persistent UTF-8 labels and page unique names preserve stable ImGui IDs; plugin entry point is deferred
 - [x] `SettingsTab/KeyBindingsPage.h` — non-serializable settings registration contract and command/press/hold binding table are ported and software-renderer tested; a reusable UTF-8 buffer avoids per-frame encoding allocation, and the plugin entry point remains an explicit deferred `TODO: port`
+- [x] `SettingsTab/LaunchPage.h` — configuration rendering, unused-name generation, descending removals, native-width hash change detection, unsaved marking, and the unspecified-plugin choice are ported and software-renderer interaction-tested; loaded plugin choices and the plugin entry point remain explicit deferred `TODO: port` paths
 - [ ] Foundation tabs, inspectors, scene tools, and resource browser inventory and port
 
 ## Editor/Assets

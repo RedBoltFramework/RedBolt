@@ -1,0 +1,198 @@
+//
+// Copyright (c) 2017-2020 the rbfx project.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//
+
+namespace RedBolt.Editor.Foundation;
+
+using System;
+using System.Collections.Generic;
+
+using RedBolt.Bindings.DearImGui;
+using RedBolt.Container;
+using RedBolt.Editor.Core;
+using RedBolt.Editor.Project;
+using RedBolt.IO;
+using RedBolt.SystemUI;
+
+// TODO: port Foundation_LaunchPage when editor plugins are ported.
+// void Foundation_LaunchPage(Context* context, SettingsTab* settingsTab)
+// {
+//     auto project = settingsTab->GetProject();
+//     auto settingsManager = project->GetSettingsManager();
+//     settingsManager->AddPage(MakeShared<LaunchPage>(context));
+// }
+
+/// <summary>Tab that displays project settings.</summary>
+public class LaunchPage : SettingsPage
+{
+    public LaunchPage()
+    {
+        _launchManager = new WeakReference<LaunchManager>(GetSubsystem<Project>().LaunchManager);
+    }
+
+    public override void Dispose()
+    {
+        _mainPlugin.Dispose();
+        _title.Dispose();
+        base.Dispose();
+    }
+
+    /// <summary>Implement SettingsPage.</summary>
+    public override string UniqueName => "Project.Launch";
+
+    public override bool IsSerializable => false;
+
+    public override void SerializeInBlock(Archive archive)
+    {
+    }
+
+    public override void RenderSettings()
+    {
+        if (!_launchManager.TryGetTarget(out var launchManager))
+            return;
+
+        _pendingConfigurationsRemoved.Clear();
+
+        var oldHash = MakeHash(launchManager.Configurations);
+
+        var index = 0;
+        foreach (var config in launchManager.MutableConfigurations)
+        {
+            RenderConfiguration(index, config);
+            ImGui.Separator();
+            ++index;
+        }
+
+        if (ImGui.Button("\uf0fe Add new launch configuration"u8))
+        {
+            using var config = new LaunchConfiguration();
+            config.Name = GetUnusedConfigurationName();
+            launchManager.AddConfiguration(config);
+        }
+
+        _pendingConfigurationsRemoved.Sort();
+        for (var i = _pendingConfigurationsRemoved.Count - 1; i >= 0; --i)
+            launchManager.RemoveConfiguration(_pendingConfigurationsRemoved[i]);
+
+        var newHash = MakeHash(launchManager.Configurations);
+        if (oldHash != newHash)
+        {
+            var project = GetSubsystem<Project>();
+            project.MarkUnsaved();
+        }
+
+        static uint MakeHash(IReadOnlyList<LaunchConfiguration> configurations)
+        {
+            if (IntPtr.Size == 4)
+            {
+                var result32 = 0u;
+                foreach (var configuration in configurations)
+                {
+                    var hash = configuration.ToHash();
+                    result32 ^= hash + 0x9e3779b9u + (result32 << 6) + (result32 >> 2);
+                }
+                return result32;
+            }
+
+            var result64 = 0ul;
+            foreach (var configuration in configurations)
+            {
+                var hash = configuration.ToHash();
+                result64 ^= hash + 0x9e3779b97f4a7c15ul + (result64 << 6) + (result64 >> 2);
+            }
+
+            var foldedResult = (uint)result64;
+            var highValue = (uint)(result64 >> 32);
+            if (highValue != 0)
+                foldedResult ^= highValue + 0x9e3779b9u + (foldedResult << 6) + (foldedResult >> 2);
+            return foldedResult;
+        }
+    }
+
+    private string GetUnusedConfigurationName()
+    {
+        _launchManager.TryGetTarget(out var launchManager);
+
+        var name = string.Empty;
+        for (var i = 0; i < 1024; ++i)
+        {
+            name = $"Configuration {i}";
+            if (!launchManager!.HasConfiguration(name))
+                break;
+        }
+        return name;
+    }
+
+    private void RenderConfiguration(int index, LaunchConfiguration config)
+    {
+        using var guard = new IdScopeGuard(index);
+
+        if (ImGui.Button("\uf2ed"u8))
+            _pendingConfigurationsRemoved.Add(index);
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Remove this launch configuration"u8);
+
+        ImGui.SameLine();
+
+        _launchManager.TryGetTarget(out var launchManager);
+        var isBadName = config.Name.Length == 0
+            || !ReferenceEquals(launchManager!.FindConfiguration(config.Name), config);
+        _title.FormatInPlace($"{(isBadName ? "\uf071" : string.Empty)}{config.Name}");
+        if (!ImGui.CollapsingHeader(
+                _title.ContentBytes, ImGuiTreeNodeFlags.ImGuiTreeNodeFlagsDefaultOpen))
+        {
+            return;
+        }
+
+        Widgets.InputText("Name"u8, ref config.Name);
+        RenderMainPlugin(ref config.MainPlugin);
+    }
+
+    private void RenderMainPlugin(ref string mainPlugin)
+    {
+        _mainPlugin.Set(mainPlugin.Length != 0 ? mainPlugin : LaunchConfiguration.UnspecifiedName);
+        if (!ImGui.BeginCombo("Main Plugin"u8, _mainPlugin.ContentBytes))
+            return;
+
+        _mainPlugin.Set(LaunchConfiguration.UnspecifiedName);
+        if (ImGui.Selectable(_mainPlugin.ContentBytes, mainPlugin.Length == 0))
+            mainPlugin = string.Empty;
+
+        // TODO: port plugin choices when PluginManager is ported.
+        // auto pluginManager = GetSubsystem<PluginManager>();
+        // for (const ea::string& plugin : pluginManager->GetLoadedPlugins())
+        // {
+        //     const auto pluginApplication = pluginManager->GetPluginApplication(plugin, true);
+        //     if (!pluginApplication || !pluginApplication->IsMain())
+        //         continue;
+        //
+        //     if (ui::Selectable(plugin.c_str(), plugin == mainPlugin))
+        //         mainPlugin = plugin;
+        // }
+        ImGui.EndCombo();
+    }
+
+    private readonly WeakReference<LaunchManager> _launchManager;
+
+    private readonly List<int> _pendingConfigurationsRemoved = [];
+    private readonly CString _title = new();
+    private readonly CString _mainPlugin = new();
+}
