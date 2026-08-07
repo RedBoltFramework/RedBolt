@@ -786,9 +786,9 @@ Accepted deviations:
   - [x] `ModelInspectorWidget : ResourceInspectorWidget` — native empty property table and read-only save policy are ported and software-renderer tested
 - [x] `Texture2DInspectorWidget.h`
   - [x] `Texture2DInspectorWidget : ResourceInspectorWidget` — sRGB, linear-space, filter, and U/V address property mappings preserve the native enum labels and read-only save policy and are software-renderer tested
-- [~] `TextureCubeInspectorWidget.h`
+- [x] `TextureCubeInspectorWidget.h`
   - [x] `SphericalHarmonicsGenerator : Object` — native cubemap-face copy, GPU readback, weighted SH integration, XML replacement, and persistence are ported and software-renderer tested
-  - [ ] `TextureCubeInspectorWidget : ResourceInspectorWidget`
+  - [x] `TextureCubeInspectorWidget : ResourceInspectorWidget` — all six native texture properties, read-only policy, ImGui generation action, and deferred begin-rendering SH queue are ported and software-renderer tested
 - [ ] `StandardSerializableHooks.h`
   - [ ] serializable inspector hooks registration
 
