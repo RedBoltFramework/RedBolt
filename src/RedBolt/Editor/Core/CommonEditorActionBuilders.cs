@@ -23,10 +23,21 @@
 namespace RedBolt.Editor.Core;
 
 using System;
+using System.Diagnostics;
 
+using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Scene;
 using RedBolt.Utility;
+
+file static class CommonEditorActionBuilderHelpers
+{
+    public static AttributeScopeHint GetScopeHint(Context context, StringHash componentType)
+    {
+        var reflection = context.GetReflection(componentType);
+        return reflection is not null ? reflection.GetEffectiveScopeHint() : AttributeScopeHint.Serializable;
+    }
+}
 
 /// <summary>
 /// Helper factory classes to create actions.
@@ -129,5 +140,67 @@ public class RemoveNodeActionBuilder
     private readonly AttributeScopeHint _scopeHint;
 
     private EditorAction? _action;
+    private PackedSceneData _oldSceneData = new();
+}
+
+public class CreateComponentActionBuilder
+{
+    public CreateComponentActionBuilder(Node? node, StringHash componentType)
+    {
+        var scene = node!.Scene;
+        _scene = scene is not null ? new WeakReference<Scene>(scene) : null;
+        _scopeHint = CommonEditorActionBuilderHelpers.GetScopeHint(scene!.Context, componentType);
+
+        switch (_scopeHint)
+        {
+            case AttributeScopeHint.Attribute:
+            case AttributeScopeHint.Serializable:
+            {
+                // No need to prepare
+                break;
+            }
+            case AttributeScopeHint.Node:
+            {
+                _oldNodeData = new PackedNodeData(node);
+                break;
+            }
+            case AttributeScopeHint.Scene:
+            {
+                _oldSceneData = PackedSceneData.FromScene(scene);
+                break;
+            }
+        }
+    }
+
+    public EditorAction? Build(Component? component)
+    {
+        var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+        Debug.Assert(_scopeHint == CommonEditorActionBuilderHelpers.GetScopeHint(
+            scene!.Context, component!.GetTypeNameHash()));
+
+        switch (_scopeHint)
+        {
+            case AttributeScopeHint.Attribute:
+            case AttributeScopeHint.Serializable:
+            {
+                return new CreateRemoveComponentAction(component, false);
+            }
+            case AttributeScopeHint.Node:
+            {
+                var node = component.Node;
+                return new ChangeNodeSubtreeAction(scene, _oldNodeData, node);
+            }
+            case AttributeScopeHint.Scene:
+            {
+                return new ChangeSceneAction(scene, _oldSceneData);
+            }
+            default: return null;
+        }
+    }
+
+    private readonly WeakReference<Scene>? _scene;
+    private readonly AttributeScopeHint _scopeHint;
+
+    private PackedNodeData _oldNodeData = new();
     private PackedSceneData _oldSceneData = new();
 }
