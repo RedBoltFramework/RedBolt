@@ -859,8 +859,10 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `EditorAction`
   - [x] `BaseEditorActionWrapper`
   - [x] `UndoManager`
-- [ ] `HotkeyManager.h`
-- [ ] `IniHelpers.h`
+- [x] `HotkeyManager.h`
+  - [x] `EditorHotkey`
+  - [x] `HotkeyManager`
+- [x] `IniHelpers.h` — uses .NET UTF-8 and invariant integer conversion per allowed string-utility deviation
 - [ ] `SettingsManager.h`
 - [ ] `CommonEditorActions.h`
 - [ ] `CommonEditorActionBuilders.h`

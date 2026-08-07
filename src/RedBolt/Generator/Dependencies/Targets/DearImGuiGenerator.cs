@@ -46,6 +46,12 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
         var overloadsByName = compilation.Functions.ToLookup(static function => function.CppQualifiedName);
         foreach (var function in compilation.Functions)
         {
+            if (function.NativeName == "ImGui_ImplSDL2_KeyEventToImGuiKey")
+            {
+                foreach (var parameter in function.Parameters)
+                    parameter.Type = BindingType.Int32;
+            }
+
             if (function.Parameters.Any(static parameter =>
                     IsVaList(parameter.CppTypeName) || IsVaList(parameter.Type.CppTypeName)))
             {

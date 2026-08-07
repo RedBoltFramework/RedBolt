@@ -267,6 +267,8 @@ file(CONFIGURE OUTPUT "${REDBOLT_IMGUI_PARSE_SOURCE}" CONTENT [=[
 #include <imgui_impl_sdl2.h>
 #include <RedBolt/ImGuiBackend.hpp>
 
+IMGUI_IMPL_API ImGuiKey ImGui_ImplSDL2_KeyEventToImGuiKey(SDL_Keycode keycode, SDL_Scancode scancode);
+
 namespace ImGui
 {
 #define REDBOLT_IMGUI_TEXT_ARGS(text) "%.*s", ((text) ? (text).length() : 0), ((text) ? (text).Begin : "")
