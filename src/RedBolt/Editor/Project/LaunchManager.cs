@@ -23,6 +23,7 @@
 namespace RedBolt.Editor.Project;
 
 using System;
+using System.Collections.Generic;
 
 using RedBolt.Container;
 using RedBolt.Core;
@@ -104,4 +105,100 @@ public class LaunchConfiguration : ICloneable, IDisposable
     {
         result ^= hash + 0x9e3779b9u + (result << 6) + (result >> 2);
     }
+}
+
+/// <summary>Manages launch configurations in the project.</summary>
+public class LaunchManager : RedObject
+{
+    public LaunchManager()
+    {
+    }
+
+    public override void Dispose()
+    {
+        DisposeConfigurations();
+        base.Dispose();
+    }
+
+    public override void SerializeInBlock(Archive archive)
+    {
+        var serializeConfigurations = !archive.IsUnorderedAccessSupportedInCurrentBlock
+            || (archive.IsInput
+                ? archive.HasElementOrBlock("Configurations")
+                : _configurations.Count != 0);
+        if (!serializeConfigurations)
+        {
+            if (archive.IsInput)
+                DisposeConfigurations();
+            return;
+        }
+
+        var size = _configurations.Count;
+        using var block = archive.OpenArrayBlock("Configurations", size);
+        if (archive.IsInput)
+        {
+            DisposeConfigurations();
+            for (var index = 0; index < block.SizeHint; ++index)
+                _configurations.Add(new LaunchConfiguration());
+        }
+
+        for (var index = 0; index < (archive.IsInput ? block.SizeHint : size); ++index)
+        {
+            using var elementBlock = archive.OpenUnorderedBlock("element");
+            _configurations[index].SerializeInBlock(archive);
+        }
+    }
+
+    public void AddConfiguration(LaunchConfiguration configuration)
+    {
+        _configurations.Add(configuration.Clone());
+    }
+
+    public void RemoveConfiguration(int index)
+    {
+        _configurations[index].Dispose();
+        _configurations.RemoveAt(index);
+    }
+
+    public LaunchConfiguration? FindConfiguration(string name)
+    {
+        foreach (var configuration in _configurations)
+        {
+            if (configuration.Name == name)
+                return configuration;
+        }
+        return null;
+    }
+
+    public bool HasConfiguration(string name)
+    {
+        return FindConfiguration(name) is not null;
+    }
+
+    public List<LaunchConfiguration> MutableConfigurations => _configurations;
+
+    public IReadOnlyList<LaunchConfiguration> Configurations => _configurations;
+
+    public StringVector GetSortedConfigurations()
+    {
+        var result = new StringVector();
+        foreach (var configuration in _configurations)
+            result.Add(configuration.Name);
+        result.Sort(StringComparer.Ordinal);
+        for (var index = result.Count - 1; index > 0; --index)
+        {
+            if (result[index] == result[index - 1])
+                result.RemoveAt(index);
+        }
+        return result;
+    }
+
+    private void DisposeConfigurations()
+    {
+        for (var index = _configurations.Count - 1; index >= 0; --index)
+            _configurations[index].Dispose();
+        _configurations.Clear();
+    }
+
+    private readonly List<LaunchConfiguration> _configurations = [];
 }
