@@ -101,4 +101,96 @@ public static class Widgets
         if (isOpened)
             ProcessUtils.OpenURL(Encoding.UTF8.GetString(url));
     }
+
+    /// <summary>Parameters for rendering arbitrary variant value.</summary>
+    public struct EditVariantOptions
+    {
+        /// <summary>Increment per pixel for scalar scrolls.</summary>
+        public double StepValue = 0.01;
+        /// <summary>Minimum value (for component).</summary>
+        public double MinimumValue;
+        /// <summary>Maximum value (for component).</summary>
+        public double MaximumValue;
+        /// <summary>Whether to treat Vector3 and Vector4 as color values.</summary>
+        public bool IsColor;
+        /// <summary>Whether to allow resize for dynamically sized containers.</summary>
+        public bool IsResizeAllowed;
+        /// <summary>Whether to allow element type changes for containers.</summary>
+        public bool IsTypeChangeAllowed;
+        /// <summary>Whether to treat integer as bitmask.</summary>
+        public bool IsBitmask;
+        /// <summary>Whether to extract elements metadata dynamically from the inspected StringVariantMap itself.</summary>
+        public bool UsesDynamicMetadata;
+        /// <summary>Enum values used to convert integer to string.</summary>
+        public StringVector? IntToString;
+        /// <summary>Allowed resource types.</summary>
+        public StringVector? ResourceTypeNames;
+        /// <summary>Structure array element names.</summary>
+        public StringVector? SizedStructVectorElementNames;
+
+        public EditVariantOptions()
+        {
+        }
+
+        public EditVariantOptions AsColor()
+        {
+            IsColor = true;
+            return this;
+        }
+
+        public EditVariantOptions AsBitmask()
+        {
+            IsBitmask = true;
+            return this;
+        }
+
+        public EditVariantOptions Range(double min, double max)
+        {
+            MinimumValue = min;
+            MaximumValue = max;
+            return this;
+        }
+
+        public EditVariantOptions Step(double step)
+        {
+            StepValue = step;
+            return this;
+        }
+
+        public EditVariantOptions Enum(StringVector values)
+        {
+            IntToString = values;
+            return this;
+        }
+
+        public EditVariantOptions ResourceTypes(StringVector types)
+        {
+            ResourceTypeNames = types;
+            return this;
+        }
+
+        public EditVariantOptions SizedStructVector(StringVector names)
+        {
+            SizedStructVectorElementNames = names;
+            return this;
+        }
+
+        public EditVariantOptions AllowResize()
+        {
+            IsResizeAllowed = true;
+            return this;
+        }
+
+        public EditVariantOptions AllowTypeChange()
+        {
+            IsTypeChangeAllowed = true;
+            return this;
+        }
+
+        public EditVariantOptions DynamicMetadata()
+        {
+            UsesDynamicMetadata = true;
+            return this;
+        }
+    }
 }

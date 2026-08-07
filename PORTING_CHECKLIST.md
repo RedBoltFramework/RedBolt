@@ -720,13 +720,14 @@ Accepted deviations:
   - [~] ImGui integration helpers
   - [x] `IdScopeGuard`
   - [x] `ColorScopeGuard`
-- [ ] `Widgets.h`
-  - [ ] shared widget free functions
+- [~] `Widgets.h`
+  - [~] shared widget free functions
   - [x] `GetSmallButtonSize`
   - [x] `ToolbarButton` — uses public `Button` until internal `ButtonEx` flags are generated; exact call site retains `TODO: port`
   - [x] `ToolbarSeparator`
   - [x] `Underline`
   - [x] `TextURL` — UTF-8 spans preserve native string lifetime without per-frame conversions
+  - [x] `EditVariantOptions` — C# field names use `Value` and predicate forms where native fluent methods otherwise collide
 - [~] `ImGuiDiligentRendererEx.h`
   - [~] `ImGuiDiligentRendererEx` — native constructor/destructor, base renderer ownership, main-viewport frame/render path, render pipelines, class shape, sizes, and failure unwinding reconciled; secondary OS-window callbacks and implicit-copy cloning remain exact `TODO: port` items because SharpCpp excludes `ImGuiPlatformIO` function-pointer fields and does not expose native `ImGuiDiligentRenderer` base copy construction
 - [~] `SystemUI.h`
