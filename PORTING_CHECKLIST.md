@@ -977,6 +977,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 - [x] `Shared/InspectorWithPreview.h` — typed request priority, stable sorted selection reuse, undo/save edit boundaries, single-resource preview ownership, and both native child layouts are ported and software-renderer tested
 - [x] `HierarchyBrowserTab.h` — native weak source ownership is preserved; `Foundation_HierarchyBrowserTab` plugin entry point is deferred
 - [x] `InspectorTab.h` — owns registered addons, connects on activation, and weakly forwards the active source; plugin entry point is deferred
+- [x] `InspectorTab/AnimationInspector.h` — animation type dispatch and read-only animation widget construction are ported; plugin entry point remains an explicit deferred `TODO: port`
 - [x] `InspectorTab/EmptyInspector.h` — lowest-priority inspect-request sink and activation signal are ported; plugin entry point is deferred
 - [x] `InspectorTab/PlaceholderResourceInspector.h` — non-empty resource selections are summarized at native fallback priority; plugin entry point is deferred
 - [x] `InspectorTab/SoundInspector.h` — sorted sound selections, metadata, playback controls, and timeline seeking are ported; generated `SliderFloat` input/output uses `ref`; plugin entry point is deferred
