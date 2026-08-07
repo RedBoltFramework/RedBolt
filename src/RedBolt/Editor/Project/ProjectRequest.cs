@@ -71,3 +71,11 @@ public class ProjectRequest : RedObject
     private readonly PriorityQueue<CallbackDesc, int> _callbacks = new(
         Comparer<int>.Create(static (lhs, rhs) => rhs.CompareTo(lhs)));
 }
+
+/// <summary>Base class for all inspector requests.</summary>
+public class BaseInspectRequest : ProjectRequest
+{
+    public BaseInspectRequest()
+    {
+    }
+}

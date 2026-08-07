@@ -921,7 +921,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 - [ ] `ProjectRequest.h`
   - [x] `ProjectRequest`
   - [ ] `OpenResourceRequest`
-  - [ ] `BaseInspectRequest`
+  - [x] `BaseInspectRequest`
   - [ ] `InspectResourceRequest`
   - [ ] `InspectNodeComponentRequest`
   - [ ] `CreateResourceRequest`
