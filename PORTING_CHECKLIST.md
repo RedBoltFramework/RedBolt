@@ -725,6 +725,8 @@ Accepted deviations:
   - [x] `GetSmallButtonSize`
   - [x] `ToolbarButton` — uses public `Button` until internal `ButtonEx` flags are generated; exact call site retains `TODO: port`
   - [x] `ToolbarSeparator`
+  - [x] `GetItemLabelColor`
+  - [x] `GetItemBackgroundColor`
   - [x] `Underline`
   - [x] `TextURL` — UTF-8 spans preserve native string lifetime without per-frame conversions
   - [x] `EditVariantOptions` — C# field names use `Value` and predicate forms where native fluent methods otherwise collide

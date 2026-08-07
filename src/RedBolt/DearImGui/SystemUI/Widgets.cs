@@ -71,6 +71,30 @@ public static class Widgets
         ImGui.SetCursorPosX(ImGui.GetCursorPosX() + style.FramePadding.X);
     }
 
+    /// <summary>Return recommended color for item label.</summary>
+    public static Color GetItemLabelColor(bool isUndefined, bool defaultValue)
+    {
+        using var style = ImGui.GetStyle();
+        using var colors = style.Colors;
+        if (isUndefined)
+            return new Color(colors[(int)ImGuiCol.ImGuiColTextDisabled]);
+        else if (defaultValue)
+            return new Color(0.85f, 0.85f, 0.85f, 1.0f);
+        else
+            return new Color(1.0f, 1.0f, 0.75f, 1.0f);
+    }
+
+    /// <summary>Return recommended color for item background.</summary>
+    public static Color GetItemBackgroundColor(bool isUndefined)
+    {
+        using var style = ImGui.GetStyle();
+        using var colors = style.Colors;
+        if (isUndefined)
+            return new Color(0.09f, 0.09f, 0.09f, 1.0f);
+        else
+            return new Color(colors[(int)ImGuiCol.ImGuiColFrameBg]);
+    }
+
     /// <summary>Underline previously rendered item (usually text).</summary>
     public static void Underline(Color color)
     {
