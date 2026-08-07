@@ -947,7 +947,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 - [x] `LaunchManager.h`
   - [x] `LaunchConfiguration` — managed reference type preserves mutable pointer use; `Clone` and `Dispose` preserve C++ value and lifetime semantics
   - [x] `LaunchManager`
-- [ ] `CloseDialog.h`
+- [x] `CloseDialog.h` — request value copies, sorted persistent UTF-8 item storage, save enablement, modal fallback discard, save/discard/cancel callback exclusivity, active-state transitions, and deterministic storage cleanup are ported and software-renderer tested
   - [x] `CloseResourceRequest` — managed reference type with `Clone` preserves implicit C++ value-copy semantics
   - [x] `CloseDialog` — `CString` item storage preserves native UTF-8 ordering without per-frame conversions
 - [x] `ProjectRequest.h`
