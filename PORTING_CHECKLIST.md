@@ -887,7 +887,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `RemoveNodeActionBuilder`
   - [x] `CreateComponentActionBuilder`
   - [x] `RemoveComponentActionBuilder`
-  - [ ] `ChangeAttributeBuffer`
+  - [x] `ChangeAttributeBuffer` — managed reference type preserves stored `ChangeAttributeBuffer&`; `Clone` and `Dispose` preserve implicit value and lifetime semantics
   - [ ] `ChangeNodeAttributesActionBuilder`
   - [ ] `ChangeComponentAttributesActionBuilder`
 - [ ] `EditorPlugin.h` — **DEFERRED** · editor plugins will be ported later; keep explicit `TODO: port` call-site guidance

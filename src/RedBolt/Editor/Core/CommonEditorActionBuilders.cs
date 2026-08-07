@@ -23,6 +23,7 @@
 namespace RedBolt.Editor.Core;
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 using RedBolt.Container;
@@ -268,4 +269,67 @@ public class RemoveComponentActionBuilder
     private EditorAction? _action;
     private PackedNodeData _oldNodeData = new();
     private PackedSceneData _oldSceneData = new();
+}
+
+public class ChangeAttributeBuffer : ICloneable, IDisposable
+{
+    public VariantVector OldValues;
+    public VariantVector NewValues;
+
+    public List<PackedComponentData> OldComponents;
+    public List<PackedComponentData> NewComponents;
+
+    public List<PackedNodeData> OldNodes;
+    public List<PackedNodeData> NewNodes;
+
+    public PackedSceneData OldScene;
+    public PackedSceneData NewScene;
+
+    public ChangeAttributeBuffer()
+    {
+        OldValues = new VariantVector();
+        NewValues = new VariantVector();
+        OldComponents = [];
+        NewComponents = [];
+        OldNodes = [];
+        NewNodes = [];
+        OldScene = new PackedSceneData();
+        NewScene = new PackedSceneData();
+    }
+
+    private ChangeAttributeBuffer(ChangeAttributeBuffer rhs)
+    {
+        OldValues = new VariantVector(rhs.OldValues);
+        NewValues = new VariantVector(rhs.NewValues);
+        OldComponents = [];
+        foreach (var component in rhs.OldComponents)
+            OldComponents.Add(component.Clone());
+        NewComponents = [];
+        foreach (var component in rhs.NewComponents)
+            NewComponents.Add(component.Clone());
+        OldNodes = [];
+        foreach (var node in rhs.OldNodes)
+            OldNodes.Add(node.Clone());
+        NewNodes = [];
+        foreach (var node in rhs.NewNodes)
+            NewNodes.Add(node.Clone());
+        OldScene = rhs.OldScene.Clone();
+        NewScene = rhs.NewScene.Clone();
+    }
+
+    public ChangeAttributeBuffer Clone() => new(this);
+
+    object ICloneable.Clone() => Clone();
+
+    public void Dispose()
+    {
+        NewScene = new PackedSceneData();
+        OldScene = new PackedSceneData();
+        NewNodes.Clear();
+        OldNodes.Clear();
+        NewComponents.Clear();
+        OldComponents.Clear();
+        NewValues.Dispose();
+        OldValues.Dispose();
+    }
 }
