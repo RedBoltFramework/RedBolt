@@ -36,6 +36,7 @@ using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.DearImGui;
 using RedBolt.Container;
 using RedBolt.Core;
+using RedBolt.Editor.Assets;
 using RedBolt.Editor.Core;
 using RedBolt.Engine;
 using RedBolt.IO;
@@ -896,7 +897,7 @@ public class Project : RedObject
 
         string[] defaultTransformers =
         [
-            "ModelImporter",
+            typeof(ModelImporter).GetClassName(),
             typeof(CalculateAnimationVelocityTransformer).GetClassName(),
             typeof(GenerateWorldSpaceTracksTransformer).GetClassName(),
             typeof(RetargetAnimationsTransformer).GetClassName(),

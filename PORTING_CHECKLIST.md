@@ -958,7 +958,12 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 
 ## Editor/Assets
 
-- [ ] Model importer and editor asset pipeline integration
+- [x] `ModelImporter.h`
+  - [x] `struct ResetRootMotionInfo` — managed value type preserves native archive layout
+  - [x] `struct TransformerParams` — composition preserves `GLTFImporterSettings` inheritance; `Clone` and `Dispose` preserve native value and metadata ownership semantics
+  - [x] `ModelImporter : AssetTransformer` — callback forwarding replaces C++ secondary inheritance; Glow UV generation, GLTF/FBX/Blend inputs, parameter overlays, animation metadata, root-motion reset, nested transformers, and temporary cleanup are ported
+  - [x] Editor default asset pipeline uses reflected `ModelImporter` type name
+  - [ ] `Assets_ModelImporter` plugin entry point — **DEFERRED** with the editor plugin system; its `EditorApplication` call site must remain explicit `TODO: port` guidance
 
 ## Editor application and data
 

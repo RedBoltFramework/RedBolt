@@ -20,6 +20,8 @@ internal sealed class TinyGltfGenerator(string nativeLibraryName)
         "-std=c++20",
         true)
 {
+    protected override bool IncludeCallbackReleaseRegistration => true;
+
     protected override bool RetainStdlibWrapper(RecordBinding record) =>
         record.ManagedNamespace == "Std" && record.ManagedName is "Map" or "String" or "Vector";
 
