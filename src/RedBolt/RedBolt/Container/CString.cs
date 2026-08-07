@@ -71,7 +71,34 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, ICloneab
 
     public int ByteLength => _byteLength;
 
+    public int Capacity => _capacity;
+
     public void Clear() => SetByteLength(0);
+
+    public void Set(string value)
+    {
+        value ??= string.Empty;
+        var rawByteLength = Utf8.GetByteCount(value);
+        EnsureCapacity(rawByteLength + 1);
+        Utf8.GetBytes(value.AsSpan(), WritableStorage[..rawByteLength]);
+        SetByteLength(rawByteLength);
+    }
+
+    public void Set(ReadOnlySpan<byte> value)
+    {
+        EnsureCapacity(value.Length + 1);
+        value.CopyTo(WritableStorage);
+        SetByteLength(value.Length);
+    }
+
+    public void Resize(int byteLength)
+    {
+        var previousByteLength = _byteLength;
+        EnsureCapacity(byteLength + 1);
+        if (byteLength > previousByteLength)
+            WritableStorage.Slice(previousByteLength, byteLength - previousByteLength).Clear();
+        SetByteLength(byteLength);
+    }
 
     public string ConvertToString() => Utf8.GetString(ContentBytes);
 
@@ -214,22 +241,6 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, ICloneab
             Marshal.FreeHGlobal(HeapPointer);
 
         InitializeSmallBuffer();
-    }
-
-    private void Set(string value)
-    {
-        value ??= string.Empty;
-        var rawByteLength = Utf8.GetByteCount(value);
-        EnsureCapacity(rawByteLength + 1);
-        Utf8.GetBytes(value.AsSpan(), WritableStorage[..rawByteLength]);
-        SetByteLength(rawByteLength);
-    }
-
-    private void Set(ReadOnlySpan<byte> value)
-    {
-        EnsureCapacity(value.Length + 1);
-        value.CopyTo(WritableStorage);
-        SetByteLength(value.Length);
     }
 
     private void ParsePlaceholder(ReadOnlySpan<char> format, int index, ReadOnlySpan<object?> args, out int consumed)
