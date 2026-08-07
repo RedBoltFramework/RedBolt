@@ -817,8 +817,10 @@ Accepted deviations:
   - [x] `AssetTransformerHierarchy : Object`
 - [x] `BaseAssetPostTransformer.h`
   - [x] `BaseAssetPostTransformer : AssetTransformer`
-- [ ] `CalculateAnimationVelocityTransformer.h`
-  - [ ] `CalculateAnimationVelocityTransformer : BaseAssetPostTransformer`
+- [x] `CalculateAnimationVelocityTransformer.h`
+  - [x] `struct CalculateAnimationVelocityParams` — managed reference type and `Clone` preserve C++ value-copy semantics
+  - [x] `struct CalculateAnimationVelocityTask` — managed reference type, strong resource references, and `Clone` preserve C++ value and `SharedPtr` copies
+  - [x] `CalculateAnimationVelocityTransformer : BaseAssetPostTransformer`
 - [ ] `GenerateWorldSpaceTracksTransformer.h`
   - [ ] `GenerateWorldSpaceTracksTransformer : BaseAssetPostTransformer`
 - [ ] `RetargetAnimationsTransformer.h`
