@@ -129,10 +129,29 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
                 function.Parameters.First(static parameter => parameter.NativeName == "v").Direction =
                     BindingParameterDirection.Ref;
             }
-            if (function.NativeName == "SliderFloat")
+            if (function.NativeName is "DragFloat" or "DragInt" or "SliderFloat")
             {
                 function.Parameters.First(static parameter => parameter.NativeName == "v").Direction =
                     BindingParameterDirection.Ref;
+            }
+            if (function.NativeName is "ColorEdit4" or "DragFloat2" or "DragFloat3" or "DragFloat4"
+                or "DragInt2" or "DragInt3")
+            {
+                var value = function.Parameters.First(static parameter => parameter.NativeName is "col" or "v");
+                value.Type = function.NativeName.StartsWith("DragInt", StringComparison.Ordinal)
+                    ? BindingType.Int32
+                    : BindingType.Single;
+                value.Direction = BindingParameterDirection.In;
+                value.AbiKind = BindingParameterAbiKind.Pointer;
+                value.CppTypeName = $"{value.Type.CppTypeName}*";
+                value.SetMetadata(MetadataKeys.InputPointerArray, true);
+                value.SetMetadata(MetadataKeys.WritablePointerArray, true);
+                if (function.NativeName != "ColorEdit4")
+                {
+                    var format = function.Parameters.First(static parameter => parameter.NativeName == "format");
+                    format.ManagedDefaultValueExpression = null;
+                    format.SetMetadata(MetadataKeys.UndefaultableParam, true);
+                }
             }
         }
     }
