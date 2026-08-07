@@ -69,10 +69,15 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
             if (function.NativeName is not ("InputText" or "InputTextMultiline" or "InputTextWithHint"))
                 continue;
 
-            for (var index = function.Parameters.Count - 1; index >= 0; --index)
+            foreach (var parameter in function.Parameters)
             {
-                if (function.Parameters[index].NativeName is "callback" or "user_data")
-                    function.Parameters.RemoveAt(index);
+                if (parameter.NativeName is not ("callback" or "user_data"))
+                    continue;
+
+                parameter.Type = BindingType.IntPtr;
+                parameter.Direction = BindingParameterDirection.In;
+                parameter.AbiKind = BindingParameterAbiKind.Value;
+                parameter.ManagedDefaultValueExpression = "default";
             }
 
             var buffer = function.Parameters.First(static parameter => parameter.NativeName == "buf");
