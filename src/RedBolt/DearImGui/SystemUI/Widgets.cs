@@ -29,7 +29,7 @@ using RedBolt.Bindings.DearImGui;
 using RedBolt.Core;
 using RedBolt.Math;
 
-public static class Widgets
+public static partial class Widgets
 {
     /// <summary>Return best size of small square button with one icon.</summary>
     public static float GetSmallButtonSize()

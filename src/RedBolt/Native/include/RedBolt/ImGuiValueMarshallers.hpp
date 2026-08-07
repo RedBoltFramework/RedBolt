@@ -29,7 +29,7 @@ Marshaller<ImStrv>
 
     cpp_type ConvertToCpp(abi_type value) noexcept
     {
-        return value.data == nullptr ? cpp_type{} : cpp_type(value.data, value.data + value.size);
+        return value.data == nullptr ? cpp_type("") : cpp_type(value.data, value.data + value.size);
     }
 };
 
