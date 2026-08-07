@@ -488,3 +488,163 @@ public class ChangeNodeAttributesActionBuilder
 
     private readonly List<WeakReference<Node>?> _nodes;
 }
+
+public class ChangeComponentAttributesActionBuilder
+{
+    public ChangeComponentAttributesActionBuilder(
+        ChangeAttributeBuffer buffer, Scene? scene, IReadOnlyList<Component?> components, AttributeInfo attr)
+    {
+        _buffer = buffer;
+        _scene = scene is not null ? new WeakReference<Scene>(scene) : null;
+        _attributeName = attr.Name;
+        _scopeHint = attr.ScopeHint;
+        _components = CommonEditorActionBuilderHelpers.ToWeakPtr(components);
+        _nodes = CommonEditorActionBuilderHelpers.ToWeakPtr(Node.GetParentNodes(
+            (IEnumerable<Node>)Node.GetNodes((IEnumerable<Component>)components)));
+
+        switch (_scopeHint)
+        {
+            case AttributeScopeHint.Attribute:
+            {
+                _buffer.OldValues.Clear();
+                foreach (var component in components)
+                {
+                    using var value = component!.GetAttribute(_attributeName);
+                    _buffer.OldValues.Add(value);
+                }
+                break;
+            }
+
+            case AttributeScopeHint.Serializable:
+            {
+                _buffer.OldComponents.Clear();
+                foreach (var component in components)
+                    _buffer.OldComponents.Add(new PackedComponentData(component!));
+                break;
+            }
+
+            case AttributeScopeHint.Node:
+            {
+                _buffer.OldNodes.Clear();
+                foreach (var weakNode in _nodes)
+                {
+                    var node = weakNode is not null && weakNode.TryGetTarget(out var nodeTarget)
+                        ? nodeTarget
+                        : null;
+                    _buffer.OldNodes.Add(new PackedNodeData(node!));
+                }
+                break;
+            }
+
+            case AttributeScopeHint.Scene:
+            {
+                _buffer.OldScene = PackedSceneData.FromScene(scene!);
+                break;
+            }
+
+            default: break;
+        }
+    }
+
+    public ChangeComponentAttributesActionBuilder(
+        ChangeAttributeBuffer buffer, Scene? scene, IEnumerable<Component?> components, AttributeInfo attr)
+        : this(buffer, scene, ToComponentsVector(components), attr)
+    {
+    }
+
+    public EditorAction? Build()
+    {
+        switch (_scopeHint)
+        {
+            case AttributeScopeHint.Attribute:
+            {
+                _buffer.NewValues.Clear();
+                var components = new List<Component>(_components.Count);
+                foreach (var weakComponent in _components)
+                {
+                    var component = weakComponent is not null
+                        && weakComponent.TryGetTarget(out var componentTarget)
+                        ? componentTarget
+                        : null;
+                    using var value = component!.GetAttribute(_attributeName);
+                    _buffer.NewValues.Add(value);
+                    components.Add(component);
+                }
+
+                var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+                return new ChangeComponentAttributesAction(
+                    scene!, _attributeName, components, _buffer.OldValues, _buffer.NewValues);
+            }
+
+            case AttributeScopeHint.Serializable:
+            {
+                _buffer.NewComponents.Clear();
+                foreach (var weakComponent in _components)
+                {
+                    var component = weakComponent is not null
+                        && weakComponent.TryGetTarget(out var componentTarget)
+                        ? componentTarget
+                        : null;
+                    _buffer.NewComponents.Add(new PackedComponentData(component!));
+                }
+
+                var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+                var compositeAction = new CompositeEditorAction();
+                for (var index = 0; index < _components.Count; ++index)
+                {
+                    compositeAction.EmplaceAction(new ChangeComponentAction(
+                        scene, _buffer.OldComponents[index], _buffer.NewComponents[index]));
+                }
+                return compositeAction;
+            }
+
+            case AttributeScopeHint.Node:
+            {
+                _buffer.NewNodes.Clear();
+                foreach (var weakNode in _nodes)
+                {
+                    var node = weakNode is not null && weakNode.TryGetTarget(out var nodeTarget)
+                        ? nodeTarget
+                        : null;
+                    _buffer.NewNodes.Add(new PackedNodeData(node!));
+                }
+
+                var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+                var compositeAction = new CompositeEditorAction();
+                for (var index = 0; index < _nodes.Count; ++index)
+                {
+                    compositeAction.EmplaceAction(new ChangeNodeSubtreeAction(
+                        scene, _buffer.OldNodes[index], _buffer.NewNodes[index]));
+                }
+                return compositeAction;
+            }
+
+            case AttributeScopeHint.Scene:
+            {
+                var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+                _buffer.NewScene = PackedSceneData.FromScene(scene!);
+
+                return new ChangeSceneAction(scene, _buffer.OldScene, _buffer.NewScene);
+            }
+
+            default: return null;
+        }
+    }
+
+    private static List<Component?> ToComponentsVector(IEnumerable<Component?> components)
+    {
+        var result = new List<Component?>();
+        foreach (var component in components)
+            result.Add(component);
+        return result;
+    }
+
+    private readonly ChangeAttributeBuffer _buffer;
+    private readonly WeakReference<Scene>? _scene;
+
+    private readonly string _attributeName;
+    private readonly AttributeScopeHint _scopeHint;
+
+    private readonly List<WeakReference<Component>?> _components;
+    private readonly List<WeakReference<Node>?> _nodes;
+}
