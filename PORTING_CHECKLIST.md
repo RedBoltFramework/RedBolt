@@ -863,7 +863,11 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `EditorHotkey`
   - [x] `HotkeyManager`
 - [x] `IniHelpers.h` — uses .NET UTF-8 and invariant integer conversion per allowed string-utility deviation
-- [ ] `SettingsManager.h`
+- [x] `SettingsManager.h` — C++ simple-page template contract maps to `ISimpleSettingsPageValues`
+  - [x] `SettingsPage`
+  - [x] `SimpleSettingsPage<T>`
+  - [x] `SettingsPageGroup`
+  - [x] `SettingsManager`
 - [ ] `CommonEditorActions.h`
 - [ ] `CommonEditorActionBuilders.h`
 - [ ] `EditorPlugin.h` — **DEFERRED** · editor plugins will be ported later; keep explicit `TODO: port` call-site guidance
