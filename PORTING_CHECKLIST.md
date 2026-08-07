@@ -879,7 +879,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `ReorderNodeAction`
   - [x] `ReorderComponentAction`
   - [x] `ReparentNodeAction`
-  - [ ] `ChangeComponentAction`
+  - [x] `ChangeComponentAction`
   - [ ] `ChangeNodeSubtreeAction`
   - [ ] `ChangeSceneAction`
 - [ ] `CommonEditorActionBuilders.h`

@@ -692,3 +692,65 @@ public class ReparentNodeAction : EditorAction
     private readonly int _oldIndex;
     private uint _newParentId;
 }
+
+/// <summary>Change entire Component.</summary>
+public class ChangeComponentAction : EditorAction
+{
+    public ChangeComponentAction(Scene? scene, PackedComponentData oldData, Component newData)
+    {
+        _scene = scene is not null ? new WeakReference<Scene>(scene) : null;
+        _oldData = oldData.Clone();
+        _newData = new PackedComponentData(newData);
+    }
+
+    public ChangeComponentAction(Scene? scene, PackedComponentData oldData, PackedComponentData newData)
+    {
+        _scene = scene is not null ? new WeakReference<Scene>(scene) : null;
+        _oldData = oldData.Clone();
+        _newData = newData.Clone();
+    }
+
+    /// <summary>Implement EditorAction.</summary>
+    public override bool CanUndoRedo()
+    {
+        return _scene is not null && _scene.TryGetTarget(out var scene)
+            && scene.GetComponent(_oldData.Id) is not null;
+    }
+
+    public override void Redo()
+    {
+        UpdateComponent(_oldData.Id, _newData);
+    }
+
+    public override void Undo()
+    {
+        UpdateComponent(_oldData.Id, _oldData);
+    }
+
+    private void UpdateComponent(uint componentId, PackedComponentData data)
+    {
+        var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+        var component = scene!.GetComponent(componentId);
+        data.Update(component!);
+    }
+
+    public override bool MergeWith(EditorAction other)
+    {
+        if (other is not ChangeComponentAction otherAction)
+            return false;
+
+        var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+        var otherScene = otherAction._scene is not null && otherAction._scene.TryGetTarget(out var otherSceneTarget)
+            ? otherSceneTarget
+            : null;
+        if (!ReferenceEquals(scene, otherScene))
+            return false;
+
+        _newData = otherAction._newData.Clone();
+        return true;
+    }
+
+    private readonly WeakReference<Scene>? _scene;
+    private readonly PackedComponentData _oldData;
+    private PackedComponentData _newData;
+}
