@@ -915,6 +915,30 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 - [x] `LaunchManager.h`
   - [x] `LaunchConfiguration` — managed reference type preserves mutable pointer use; `Clone` and `Dispose` preserve C++ value and lifetime semantics
   - [x] `LaunchManager`
+- [ ] `CloseDialog.h`
+  - [x] `CloseResourceRequest` — managed reference type with `Clone` preserves implicit C++ value-copy semantics
+  - [ ] `CloseDialog`
+- [ ] `ProjectRequest.h`
+  - [ ] `ProjectRequest`
+  - [ ] `OpenResourceRequest`
+  - [ ] `BaseInspectRequest`
+  - [ ] `InspectResourceRequest`
+  - [ ] `InspectNodeComponentRequest`
+  - [ ] `CreateResourceRequest`
+- [ ] `ResourceFactory.h`
+  - [ ] `ResourceFactory`
+  - [ ] `BaseResourceFactory`
+  - [ ] `SimpleResourceFactory`
+- [ ] `ModifyResourceAction.h`
+  - [ ] `ModifyResourceAction`
+- [ ] `ResourceEditorTab.h`
+  - [ ] `ResourceEditorTab`
+  - [ ] `ResourceActionWrapper`
+- [ ] `AssetManager.h`
+  - [ ] `AssetManager`
+- [ ] `ToolManager.h`
+  - [ ] `ToolManager`
+- [ ] `CreateComponentMenu.h`
 - [ ] Remaining project layer inventory and port
 
 ## Editor/Foundation
