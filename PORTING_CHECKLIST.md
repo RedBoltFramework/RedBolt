@@ -958,6 +958,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 - [x] `Shared/InspectorSource.h` — C++ signal maps to a C# event; multiple-inheritance role maps to an interface with native defaults
 - [x] `HierarchyBrowserTab.h` — native weak source ownership is preserved; `Foundation_HierarchyBrowserTab` plugin entry point is deferred
 - [x] `InspectorTab.h` — owns registered addons, connects on activation, and weakly forwards the active source; plugin entry point is deferred
+- [x] `InspectorTab/EmptyInspector.h` — lowest-priority inspect-request sink and activation signal are ported; plugin entry point is deferred
 - [ ] Foundation tabs, inspectors, scene tools, and resource browser inventory and port
 
 ## Editor/Assets
