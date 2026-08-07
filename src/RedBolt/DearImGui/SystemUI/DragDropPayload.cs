@@ -24,9 +24,73 @@ namespace RedBolt.SystemUI;
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
+using RedBolt.Bindings.DearImGui;
 using RedBolt.Container;
 using RedBolt.Core;
+
+/// <summary>Base class for drag&amp;drop payload.</summary>
+public class DragDropPayload : IDisposable
+{
+    public delegate DragDropPayload CreateCallback();
+
+    public static void Set(DragDropPayload payload)
+    {
+        Context.Instance.SetGlobalVar(DragDropPayloadVariable, Variant.MakeCustomValue(payload));
+    }
+
+    public static DragDropPayload? Get()
+    {
+        using var payload = ImGui.GetDragDropPayload();
+        if (!payload.IsNull && payload.IsDataType(DragDropPayloadType))
+        {
+            using var variant = Context.Instance.GetGlobalVar(DragDropPayloadVariable).Clone();
+            return variant.GetCustom<DragDropPayload>();
+        }
+        return null;
+    }
+
+    /// <summary>Call this function on every frame from drag source.</summary>
+    public static void UpdateSource(CreateCallback createPayload)
+    {
+        ImGui.SetDragDropPayload(DragDropPayloadType, IntPtr.Zero, 0, ImGuiCond.ImGuiCondOnce);
+
+        using (var nativePayload = ImGui.GetDragDropPayload())
+        {
+            if (nativePayload.Data == IntPtr.Zero)
+            {
+                var createdPayload = createPayload();
+                Set(createdPayload);
+                nativePayload.Data = new IntPtr(1);
+            }
+        }
+
+        var payload = Get();
+        Debug.Assert(payload is not null);
+        ImGui.TextUnformatted(payload!.GetDisplayBytes());
+    }
+
+    /// <summary>Format string to display while dragging.</summary>
+    public virtual string GetDisplayString() => "Drop me";
+
+    public virtual void Dispose()
+    {
+        _displayString.Dispose();
+        GC.SuppressFinalize(this);
+    }
+
+    private ReadOnlySpan<byte> GetDisplayBytes()
+    {
+        _displayString.Set(GetDisplayString());
+        return _displayString.ContentBytes;
+    }
+
+    private static ReadOnlySpan<byte> DragDropPayloadType => "DragDropPayload"u8;
+    private static readonly StringHash DragDropPayloadVariable = new("SystemUI_DragDropPayload");
+
+    private readonly CString _displayString = new();
+}
 
 /// <summary>Resource file descriptor.</summary>
 public class ResourceFileDescriptor : ICloneable
