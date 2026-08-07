@@ -924,7 +924,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `BaseInspectRequest`
   - [ ] `InspectResourceRequest`
   - [x] `InspectNodeComponentRequest` — managed weak references use unique scene IDs for stable canonical ordering because CLR object addresses are movable
-  - [ ] `CreateResourceRequest`
+  - [x] `CreateResourceRequest` — strong managed reference preserves dropped `SharedPtr` ownership
 - [ ] `ResourceFactory.h`
   - [x] `ResourceFactory`
   - [ ] `BaseResourceFactory`

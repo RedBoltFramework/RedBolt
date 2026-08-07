@@ -166,3 +166,22 @@ public class InspectNodeComponentRequest : BaseInspectRequest
     private readonly List<WeakReference<Node>> _nodes = [];
     private readonly List<WeakReference<Component>> _components = [];
 }
+
+/// <summary>Request to create resource.</summary>
+public class CreateResourceRequest : ProjectRequest
+{
+    public CreateResourceRequest(ResourceFactory factory)
+    {
+        _factory = factory;
+    }
+
+    public override void Dispose()
+    {
+        _factory = null;
+        base.Dispose();
+    }
+
+    public ResourceFactory Factory => _factory!;
+
+    private ResourceFactory? _factory;
+}
