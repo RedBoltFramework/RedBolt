@@ -150,3 +150,63 @@ public class CreateRemoveNodeAction : EditorAction
     private readonly WeakReference<Scene>? _scene;
     private readonly PackedNodeData _data;
 }
+
+/// <summary>Create or remove component.</summary>
+public class CreateRemoveComponentAction : EditorAction
+{
+    public CreateRemoveComponentAction(Component component, bool removed)
+    {
+        _removed = removed;
+        var scene = component.Scene;
+        _scene = scene is not null ? new WeakReference<Scene>(scene) : null;
+        _data = new PackedComponentData(component);
+    }
+
+    /// <summary>Implement EditorAction.</summary>
+    public override bool CanUndoRedo()
+    {
+        return _scene is not null && _scene.TryGetTarget(out _);
+    }
+
+    public override void Redo()
+    {
+        if (_removed)
+            RemoveComponent();
+        else
+            AddComponent();
+    }
+
+    public override void Undo()
+    {
+        if (_removed)
+            AddComponent();
+        else
+            RemoveComponent();
+    }
+
+    private void AddComponent()
+    {
+        if (_scene is null || !_scene.TryGetTarget(out var scene))
+            return;
+
+        var component = _data.SpawnExact(scene);
+        if (component is null)
+            throw new UndoException($"Cannot create component with id {_data.Id}");
+    }
+
+    private void RemoveComponent()
+    {
+        if (_scene is null || !_scene.TryGetTarget(out var scene))
+            return;
+
+        var component = scene.GetComponent(_data.Id);
+        if (component is not null)
+            component.Remove();
+        else
+            throw new UndoException($"Cannot remove component with id {_data.Id}");
+    }
+
+    private readonly bool _removed;
+    private readonly WeakReference<Scene>? _scene;
+    private readonly PackedComponentData _data;
+}
