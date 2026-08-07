@@ -813,8 +813,8 @@ Accepted deviations:
   - [x] `struct AssetTransformerOutput` — managed reference type and `Clone` preserve C++ value-copy semantics
   - [x] `struct AssetTransformerDependency` — managed reference type and `Clone` preserve C++ value-copy semantics
   - [x] `AssetTransformer : Serializable` — direct `System.IO` mapping replaces native `FileSystem` and `TemporaryDir`
-- [ ] `AssetTransformerHierarchy.h`
-  - [ ] `AssetTransformerHierarchy : Object`
+- [x] `AssetTransformerHierarchy.h`
+  - [x] `AssetTransformerHierarchy : Object`
 - [x] `BaseAssetPostTransformer.h`
   - [x] `BaseAssetPostTransformer : AssetTransformer`
 - [ ] `CalculateAnimationVelocityTransformer.h`
