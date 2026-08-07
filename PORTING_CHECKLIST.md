@@ -734,8 +734,14 @@ Accepted deviations:
   - [x] `Underline`
   - [x] `TextURL` — UTF-8 spans preserve native string lifetime without per-frame conversions
   - [x] `EditVariantOptions` — C# field names use `Value` and predicate forms where native fluent methods otherwise collide
+  - [x] `EditResourceRef`
+  - [x] `EditResourceRefList`
   - [x] `EditBitmask`
-  - [~] `EditVariant` — numeric, color, quaternion, enum, and bitmask editors are ported; string, resource, and container editors remain
+  - [x] `EditVariantType`
+  - [x] `EditVariantVector`
+  - [x] `EditStringVector`
+  - [x] `EditStringVariantMap`
+  - [x] `EditVariant` — every rbfx-supported scalar, string, resource, and container branch is ported; native TODO branches remain TODO
   - [x] empty ImGui labels preserve native valid-empty `ImStrv` semantics
 - [~] `ImGuiDiligentRendererEx.h`
   - [~] `ImGuiDiligentRendererEx` — native constructor/destructor, base renderer ownership, main-viewport frame/render path, render pipelines, class shape, sizes, and failure unwinding reconciled; secondary OS-window callbacks and implicit-copy cloning remain exact `TODO: port` items because SharpCpp excludes `ImGuiPlatformIO` function-pointer fields and does not expose native `ImGuiDiligentRenderer` base copy construction

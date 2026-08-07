@@ -78,9 +78,14 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, ICloneab
     public void Set(string value)
     {
         value ??= string.Empty;
+        Set(value.AsSpan());
+    }
+
+    public void Set(ReadOnlySpan<char> value)
+    {
         var rawByteLength = Utf8.GetByteCount(value);
         EnsureCapacity(rawByteLength + 1);
-        Utf8.GetBytes(value.AsSpan(), WritableStorage[..rawByteLength]);
+        Utf8.GetBytes(value, WritableStorage[..rawByteLength]);
         SetByteLength(rawByteLength);
     }
 

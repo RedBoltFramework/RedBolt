@@ -25,12 +25,16 @@ namespace RedBolt.SystemUI;
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using RedBolt.Bindings.DearImGui;
 using RedBolt.Container;
 using RedBolt.Core;
+using RedBolt.Graphics;
 using RedBolt.Math;
+using RedBolt.Resource;
 
 public static partial class Widgets
 {
@@ -68,6 +72,70 @@ public static partial class Widgets
         return format[..4];
     }
 
+    private static StringHash? GetMatchingType(
+        ResourceFileDescriptor descriptor, StringHash currentType, StringVector? allowedTypes)
+    {
+        if (allowedTypes is null)
+            return descriptor.HasObjectType(currentType) ? currentType : (StringHash?)null;
+
+        if (allowedTypes.Count == 0)
+            return new StringHash(descriptor.MostDerivedType);
+
+        foreach (var type in allowedTypes)
+        {
+            if (descriptor.HasObjectType(type))
+                return new StringHash(type);
+        }
+        return null;
+    }
+
+    private static int GetWrappedIndex(int index, int numberOfLabels)
+    {
+        if (index == 0)
+            return 0;
+        return (index - 1) % (numberOfLabels - 1) + 1;
+    }
+
+    private static ReadOnlySpan<char> StripSpaces(string value)
+    {
+        var result = value.AsSpan();
+        while (!result.IsEmpty && result[0] == ' ')
+            result = result[1..];
+        return result;
+    }
+
+    private static unsafe bool InputText(ReadOnlySpan<byte> label, string value, ImGuiInputTextFlags flags)
+    {
+        InputTextBuffer.Set(value);
+        var callback = (IntPtr)(delegate* unmanaged[Cdecl]<IntPtr, int>)&InputTextCallback;
+        return ImGui.InputText(
+            label,
+            InputTextBuffer.Pointer,
+            (nuint)InputTextBuffer.Capacity,
+            flags | ImGuiInputTextFlags.ImGuiInputTextFlagsCallbackResize,
+            callback,
+            GCHandle.ToIntPtr(InputTextBufferHandle));
+    }
+
+    private static string GetInputTextValue(string value)
+    {
+        return InputTextBuffer.Equals(value) ? value : InputTextBuffer.ConvertToString();
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    private static int InputTextCallback(IntPtr dataPointer)
+    {
+        using var data = ImGuiInputTextCallbackData.CreateManagedWrapper(dataPointer, ownsHandle: false);
+        if (data.EventFlag == ImGuiInputTextFlags.ImGuiInputTextFlagsCallbackResize)
+        {
+            var value = (CString)GCHandle.FromIntPtr(data.UserData).Target!;
+            Debug.Assert(data.Buf == value.Pointer);
+            value.Resize(data.BufTextLen);
+            data.Buf = value.Pointer;
+        }
+        return 0;
+    }
+
     private static void PruneQuaternionCache()
     {
         const uint expireTimeMs = 1000;
@@ -102,6 +170,158 @@ public static partial class Widgets
         ref var info = ref CollectionsMarshal.GetValueRefOrAddDefault(QuaternionCache, id, out _);
         info.Value = quaternion;
         info.Angles = angles;
+    }
+
+    public static bool EditResourceRef(ref StringHash type, ref string name, StringVector? allowedTypes)
+    {
+        var modified = false;
+
+        if (allowedTypes is { Count: > 0 })
+        {
+            if (ImGui.Button("\uf03a"u8))
+                ImGui.OpenPopup("##SelectType"u8);
+            if (ImGui.IsItemHovered())
+            {
+                TooltipBuffer.FormatInPlace($"Select resource type ({allowedTypes.Count} allowed)");
+                ImGui.SetTooltip(TooltipBuffer.ContentBytes);
+            }
+            ImGui.SameLine();
+
+            if (ImGui.BeginPopup("##SelectType"u8))
+            {
+                foreach (var allowedType in allowedTypes)
+                {
+                    LabelBuffer.Set(allowedType);
+                    if (ImGui.Selectable(LabelBuffer.ContentBytes, type == new StringHash(allowedType)))
+                    {
+                        type = new StringHash(allowedType);
+                        modified = true;
+                    }
+                }
+                ImGui.EndPopup();
+            }
+        }
+
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+        if (InputText(
+                "##Name"u8,
+                name,
+                ImGuiInputTextFlags.ImGuiInputTextFlagsEnterReturnsTrue
+                    | ImGuiInputTextFlags.ImGuiInputTextFlagsNoUndoRedo))
+        {
+            modified = true;
+        }
+        name = GetInputTextValue(name);
+
+        if (allowedTypes is not null && ImGui.IsItemHovered())
+        {
+            if (allowedTypes.Count == 0)
+                ImGui.SetTooltip("Resource: any type"u8);
+            else
+            {
+                string? typeName = null;
+                foreach (var allowedType in allowedTypes)
+                {
+                    if (type != new StringHash(allowedType))
+                        continue;
+                    typeName = allowedType;
+                    break;
+                }
+                TooltipBuffer.FormatInPlace($"Resource: {typeName ?? "Unknown"}");
+                ImGui.SetTooltip(TooltipBuffer.ContentBytes);
+            }
+        }
+
+        if (ImGui.BeginDragDropTarget())
+        {
+            var payload = DragDropPayload.Get() as ResourceDragDropPayload;
+            if (payload is { Resources.Count: 1 } && !payload.Resources[0].IsDirectory)
+            {
+                var descriptor = payload.Resources[0];
+                var matchingType = GetMatchingType(descriptor, type, allowedTypes);
+                if (matchingType.HasValue)
+                {
+                    using var acceptedPayload = ImGui.AcceptDragDropPayload("DragDropPayload"u8);
+                    if (!acceptedPayload.IsNull)
+                    {
+                        name = descriptor.ResourceName;
+                        type = matchingType.Value;
+                        modified = true;
+                    }
+                }
+            }
+            ImGui.EndDragDropTarget();
+        }
+
+        return modified;
+    }
+
+    public static bool EditResourceRefList(
+        ref StringHash type,
+        StringVector names,
+        StringVector? allowedTypes,
+        bool resizable,
+        StringVector? elementNames = null)
+    {
+        return EditResourceRefList(ref type, (IList<string>)names, allowedTypes, resizable, elementNames);
+    }
+
+    private static bool EditResourceRefList(
+        ref StringHash type,
+        IList<string> names,
+        StringVector? allowedTypes,
+        bool resizable,
+        StringVector? elementNames)
+    {
+        var modified = false;
+        int? pendingRemove = null;
+
+        for (var index = 0; index < names.Count; ++index)
+        {
+            using var idGuard = new IdScopeGuard(index);
+            if (resizable)
+            {
+                if (ImGui.Button("\uf2ed"u8))
+                    pendingRemove = index;
+                ImGui.SameLine();
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("Remove item"u8);
+            }
+            else if (elementNames is { Count: > 0 })
+            {
+                var wrappedIndex = index % elementNames.Count;
+                if (wrappedIndex == 0)
+                    ImGui.Separator();
+                LabelBuffer.Set(StripSpaces(elementNames[wrappedIndex]));
+                ItemLabel(LabelBuffer.ContentBytes);
+            }
+
+            var name = names[index];
+            if (EditResourceRef(ref type, ref name, allowedTypes))
+                modified = true;
+            names[index] = name;
+        }
+
+        if (pendingRemove.HasValue && pendingRemove.Value < names.Count)
+        {
+            names.RemoveAt(pendingRemove.Value);
+            modified = true;
+        }
+
+        if (resizable)
+        {
+            if (ImGui.Button("\uf0fe Add item"u8))
+            {
+                names.Add(string.Empty);
+                modified = true;
+            }
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Add item"u8);
+        }
+        else if (names.Count == 0)
+            ImGui.NewLine();
+
+        return modified;
     }
 
     public static bool EditBitmask(ref uint value)
@@ -189,6 +409,255 @@ public static partial class Widgets
         return modified;
     }
 
+    public static bool EditVariantType(ref VariantType value)
+    {
+        return EditVariantType(ref value, "\uf03a"u8);
+    }
+
+    public static bool EditVariantType(ref VariantType value, ReadOnlySpan<byte> button)
+    {
+        var modified = false;
+        if (ImGui.Button(button))
+            ImGui.OpenPopup("##SelectType"u8);
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("Select variant type"u8);
+
+        if (ImGui.BeginPopup("##SelectType"u8))
+        {
+            foreach (var allowedType in AllowedVariantTypes)
+            {
+                LabelBuffer.Set(Variant.GetTypeName(allowedType));
+                if (!ImGui.Selectable(LabelBuffer.ContentBytes, value == allowedType))
+                    continue;
+                value = allowedType;
+                modified = true;
+            }
+            ImGui.EndPopup();
+        }
+        return modified;
+    }
+
+    public static bool EditVariantVector(
+        VariantVector value, bool resizable, bool dynamicTypes, StringVector? elementNames = null)
+    {
+        var modified = false;
+        int? pendingRemove = null;
+
+        for (var index = 0; index < value.Count; ++index)
+        {
+            using var idGuard = new IdScopeGuard(index);
+
+            if (elementNames is { Count: > 1 })
+            {
+                var wrappedIndex = GetWrappedIndex(index, elementNames.Count);
+                if (wrappedIndex == 1)
+                    ImGui.Separator();
+                LabelBuffer.Set(StripSpaces(elementNames[wrappedIndex]));
+                ItemLabel(LabelBuffer.ContentBytes);
+            }
+
+            if (resizable)
+            {
+                if (ImGui.Button("\uf2ed"u8))
+                    pendingRemove = index;
+                ImGui.SameLine();
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("Remove item"u8);
+            }
+
+            ref var element = ref CollectionsMarshal.AsSpan(value)[index];
+            var elementType = element.Type;
+            if (dynamicTypes)
+            {
+                if (EditVariantType(ref elementType))
+                {
+                    SetVariant(ref element, new Variant(elementType));
+                    modified = true;
+                }
+                ImGui.SameLine();
+            }
+
+            if (EditVariantValue(ref element))
+                modified = true;
+        }
+
+        if (pendingRemove.HasValue && pendingRemove.Value < value.Count)
+        {
+            value.RemoveAt(pendingRemove.Value);
+            modified = true;
+        }
+
+        if (resizable)
+        {
+            using var idGuard = new IdScopeGuard("##AddElement"u8);
+            var newElementType = VariantType.None;
+            if (EditVariantType(ref newElementType, "\uf0fe Add item"u8))
+            {
+                using var newElement = new Variant(newElementType);
+                value.Add(newElement);
+                modified = true;
+            }
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Add item"u8);
+        }
+
+        return modified;
+    }
+
+    public static bool EditStringVector(StringVector value, bool resizable)
+    {
+        var modified = false;
+        int? pendingRemove = null;
+
+        for (var index = 0; index < value.Count; ++index)
+        {
+            using var idGuard = new IdScopeGuard(index);
+            if (resizable)
+            {
+                if (ImGui.Button("\uf2ed"u8))
+                    pendingRemove = index;
+                ImGui.SameLine();
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("Remove item"u8);
+            }
+
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+            var committed = InputText(
+                ""u8,
+                value[index],
+                ImGuiInputTextFlags.ImGuiInputTextFlagsEnterReturnsTrue
+                    | ImGuiInputTextFlags.ImGuiInputTextFlagsNoUndoRedo);
+            value[index] = GetInputTextValue(value[index]);
+            if (committed)
+                return true;
+        }
+
+        if (pendingRemove.HasValue && pendingRemove.Value < value.Count)
+        {
+            value.RemoveAt(pendingRemove.Value);
+            modified = true;
+        }
+
+        if (resizable)
+        {
+            using var idGuard = new IdScopeGuard("##AddElement"u8);
+            var isButtonClicked = ImGui.Button("\uf0fe Add item"u8);
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+            var isTextCommitted = InputText(
+                ""u8,
+                NewStringElement,
+                ImGuiInputTextFlags.ImGuiInputTextFlagsEnterReturnsTrue
+                    | ImGuiInputTextFlags.ImGuiInputTextFlagsNoUndoRedo);
+            NewStringElement = GetInputTextValue(NewStringElement);
+
+            if (isButtonClicked || isTextCommitted)
+            {
+                value.Add(NewStringElement);
+                modified = true;
+            }
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Add item"u8);
+        }
+
+        return modified;
+    }
+
+    public static bool EditStringVariantMap(
+        StringVariantMap value, bool resizable, bool dynamicTypes, bool dynamicMetadata)
+    {
+        var modified = false;
+        string? pendingRemove = null;
+        var sortedKeys = new List<string>(value.Keys);
+        sortedKeys.Sort(StringComparer.Ordinal);
+
+        foreach (var key in sortedKeys)
+        {
+            if (dynamicMetadata && key.EndsWith('@'))
+                continue;
+
+            LabelBuffer.Set(key);
+            using var idGuard = new IdScopeGuard(LabelBuffer.ContentBytes);
+            ItemLabel(LabelBuffer.ContentBytes);
+
+            if (resizable)
+            {
+                if (ImGui.Button("\uf2ed"u8))
+                    pendingRemove = key;
+                ImGui.SameLine();
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("Remove item"u8);
+            }
+
+            ref var element = ref CollectionsMarshal.GetValueRefOrNullRef(value, key);
+            Debug.Assert(!Unsafe.IsNullRef(ref element));
+            var elementType = element.Type;
+            if (dynamicTypes)
+            {
+                if (EditVariantType(ref elementType))
+                {
+                    SetVariant(ref element, new Variant(elementType));
+                    modified = true;
+                }
+                ImGui.SameLine();
+            }
+
+            if (dynamicMetadata)
+            {
+                var metadataKey = key + "@";
+                if (elementType == VariantType.Int
+                    && value.TryGetValue(metadataKey, out var metadata)
+                    && metadata.Type == VariantType.StringVector)
+                {
+                    var options = new EditVariantOptions().Enum(metadata.GetStringVector());
+                    if (EditVariant(ref element, in options))
+                        modified = true;
+                    continue;
+                }
+            }
+
+            if (EditVariantValue(ref element))
+                modified = true;
+        }
+
+        if (pendingRemove is not null && value.ContainsKey(pendingRemove))
+        {
+            value.Remove(pendingRemove);
+            modified = true;
+        }
+
+        if (resizable)
+        {
+            using var idGuard = new IdScopeGuard("##AddElement"u8);
+            TooltipBuffer.FormatInPlace($"\uf0fe Add new {Variant.GetTypeName(NewMapElementType)}");
+            var isButtonClicked = ImGui.Button(TooltipBuffer.ContentBytes);
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Add new item to the map"u8);
+            ImGui.SameLine();
+
+            EditVariantType(ref NewMapElementType);
+            ImGui.SameLine();
+
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+            var isTextCommitted = InputText(
+                ""u8,
+                NewMapKey,
+                ImGuiInputTextFlags.ImGuiInputTextFlagsEnterReturnsTrue);
+            NewMapKey = GetInputTextValue(NewMapKey);
+
+            if (isButtonClicked || isTextCommitted)
+            {
+                using var newValue = new Variant(NewMapElementType);
+                value[NewMapKey] = newValue;
+                modified = true;
+            }
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("Item name"u8);
+        }
+
+        return modified;
+    }
+
     public static bool EditVariantValue(ref Variant value)
     {
         var options = new EditVariantOptions().AllowResize().AllowTypeChange();
@@ -243,14 +712,26 @@ public static partial class Widgets
             return EditVariantQuaternion(ref value, in options);
         case VariantType.Color:
             return EditVariantColor(ref value, in options);
+        case VariantType.String:
+            return EditVariantString(ref value, in options);
+        case VariantType.ResourceRef:
+            return EditVariantResourceRef(ref value, in options);
+        case VariantType.ResourceRefList:
+            return EditVariantResourceRefList(ref value, in options);
+        case VariantType.VariantVector:
+            return EditVariantVector(ref value, in options);
         case VariantType.Vector2i:
             return EditVariantIntVector2(ref value, in options);
         case VariantType.Vector3i:
             return EditVariantIntVector3(ref value, in options);
+        case VariantType.StringVector:
+            return EditVariantStringVector(ref value, in options);
         case VariantType.Rect:
             return EditVariantRect(ref value, in options);
         case VariantType.Int64:
             return EditVariantInt64(ref value, in options);
+        case VariantType.StringVariantMap:
+            return EditVariantStringVariantMap(ref value, in options);
         default:
             ImGui.Button("TODO: Implement"u8);
             return false;
@@ -528,6 +1009,24 @@ public static partial class Widgets
         return true;
     }
 
+    private static bool EditVariantString(ref Variant value, in EditVariantOptions options)
+    {
+        var current = value.GetString();
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+        var isCommitted = InputText(
+            ""u8,
+            current,
+            ImGuiInputTextFlags.ImGuiInputTextFlagsEnterReturnsTrue
+                | ImGuiInputTextFlags.ImGuiInputTextFlagsNoUndoRedo
+                | ImGuiInputTextFlags.ImGuiInputTextFlagsCallbackAlways);
+        var isDeactivated = ImGui.IsItemDeactivatedAfterEdit();
+        if (!isCommitted && !isDeactivated)
+            return false;
+
+        SetVariant(ref value, new Variant(GetInputTextValue(current)));
+        return true;
+    }
+
     private static bool EditVariantEnum(ref Variant value, in EditVariantOptions options)
     {
         var items = options.IntToString!;
@@ -552,6 +1051,94 @@ public static partial class Widgets
         return changed;
     }
 
+    private static bool EditVariantResourceRef(ref Variant value, in EditVariantOptions options)
+    {
+        var current = value.GetResourceRef();
+        var allowedTypes = current.Type == TextureType ? LightShapeTypes : options.ResourceTypeNames;
+        if (!EditResourceRef(ref current.Type, ref current.Name, allowedTypes))
+            return false;
+        SetVariant(ref value, new Variant(current));
+        return true;
+    }
+
+    private static bool EditVariantResourceRefList(ref Variant value, in EditVariantOptions options)
+    {
+        var current = value.GetResourceRefList();
+        var effectiveLines = current.Names.Count + (options.IsResizeAllowed ? 1 : 0);
+        if (effectiveLines > 1)
+        {
+            ImGui.NewLine();
+            ImGui.Indent();
+        }
+        if (EditResourceRefList(
+                ref current.Type,
+                current.Names,
+                options.ResourceTypeNames,
+                options.IsResizeAllowed,
+                options.SizedStructVectorElementNames))
+        {
+            SetVariant(ref value, new Variant(current));
+            return true;
+        }
+        if (effectiveLines > 1)
+            ImGui.Unindent();
+        return false;
+    }
+
+    private static bool EditVariantVector(ref Variant value, in EditVariantOptions options)
+    {
+        if (!ImGui.CollapsingHeader("##Elements"u8))
+            return false;
+
+        var current = value.GetVariantVector();
+        var modified = false;
+        ImGui.Indent();
+        if (EditVariantVector(
+                current,
+                options.IsResizeAllowed,
+                options.IsTypeChangeAllowed,
+                options.SizedStructVectorElementNames))
+        {
+            modified = true;
+        }
+        ImGui.Unindent();
+        return modified;
+    }
+
+    private static bool EditVariantStringVector(ref Variant value, in EditVariantOptions options)
+    {
+        if (!ImGui.CollapsingHeader("##Elements"u8))
+            return false;
+
+        var current = value.GetStringVector();
+        var modified = false;
+        ImGui.Indent();
+        if (EditStringVector(current, options.IsResizeAllowed))
+            modified = true;
+        ImGui.Unindent();
+        return modified;
+    }
+
+    private static bool EditVariantStringVariantMap(ref Variant value, in EditVariantOptions options)
+    {
+        if (!ImGui.CollapsingHeader("##Elements"u8))
+            return false;
+
+        var current = value.GetStringVariantMap();
+        var modified = false;
+        ImGui.Indent();
+        if (EditStringVariantMap(
+                current,
+                options.IsResizeAllowed,
+                options.IsTypeChangeAllowed,
+                options.UsesDynamicMetadata))
+        {
+            modified = true;
+        }
+        ImGui.Unindent();
+        return modified;
+    }
+
     private static bool EditVariantBitmask(ref Variant value, in EditVariantOptions options)
     {
         var current = value.GetUInt();
@@ -567,7 +1154,46 @@ public static partial class Widgets
         value = replacement;
     }
 
+    private static readonly VariantType[] AllowedVariantTypes =
+    [
+        VariantType.Int,
+        VariantType.Bool,
+        VariantType.Float,
+        VariantType.Vector2,
+        VariantType.DoubleVector2,
+        VariantType.Vector3,
+        VariantType.Vector4,
+        VariantType.DoubleVector3,
+        VariantType.Quaternion,
+        VariantType.Color,
+        VariantType.String,
+        VariantType.Buffer,
+        VariantType.ResourceRef,
+        VariantType.ResourceRefList,
+        VariantType.VariantVector,
+        VariantType.VariantMap,
+        VariantType.IntRect,
+        VariantType.Vector2i,
+        VariantType.Matrix3,
+        VariantType.Matrix3x4,
+        VariantType.Matrix4,
+        VariantType.Double,
+        VariantType.StringVector,
+        VariantType.Rect,
+        VariantType.Vector3i,
+        VariantType.Int64,
+        VariantType.VariantCurve,
+        VariantType.StringVariantMap,
+    ];
+    private static readonly StringHash TextureType = typeof(Texture).GetTypeId();
+    private static readonly StringVector LightShapeTypes = new(
+        [typeof(Texture2D).GetClassName(), typeof(TextureCube).GetClassName()]);
     private static readonly Dictionary<uint, QuaternionCachedInfo> QuaternionCache = [];
     private static readonly CString LabelBuffer = new();
     private static readonly CString TooltipBuffer = new();
+    private static readonly CString InputTextBuffer = new();
+    private static readonly GCHandle InputTextBufferHandle = GCHandle.Alloc(InputTextBuffer);
+    private static string NewStringElement = string.Empty;
+    private static string NewMapKey = string.Empty;
+    private static VariantType NewMapElementType = VariantType.String;
 }
