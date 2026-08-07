@@ -29,6 +29,7 @@ using System.Diagnostics;
 using RedBolt.Bindings.DearImGui;
 using RedBolt.Container;
 using RedBolt.Core;
+using RedBolt.Scene;
 
 /// <summary>Base class for drag&amp;drop payload.</summary>
 public class DragDropPayload : IDisposable
@@ -190,4 +191,24 @@ public class ResourceDragDropPayload : DragDropPayload
         Resources.Clear();
         base.Dispose();
     }
+}
+
+/// <summary>Drag&amp;drop payload containing nodes and components.</summary>
+public class NodeComponentDragDropPayload : DragDropPayload
+{
+    public override void Dispose()
+    {
+        DisplayString = string.Empty;
+        Components.Clear();
+        Nodes.Clear();
+        Scene = null;
+        base.Dispose();
+    }
+
+    public override string GetDisplayString() => DisplayString.Length != 0 ? DisplayString : "???";
+
+    public WeakReference<Scene>? Scene;
+    public List<WeakReference<Node>> Nodes = [];
+    public List<WeakReference<Component>> Components = [];
+    public string DisplayString = string.Empty;
 }

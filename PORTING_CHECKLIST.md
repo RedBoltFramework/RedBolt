@@ -740,11 +740,11 @@ Accepted deviations:
 - [ ] `TransformGizmo.h`
   - [ ] `TransformGizmo`
   - [ ] `TransformNodesGizmo`
-- [ ] `DragDropPayload.h`
+- [x] `DragDropPayload.h`
   - [x] `DragDropPayload : RefCounted` — managed payload remains strongly owned by the global custom `Variant`; ImGui receives an equivalent non-dereferenced nonzero marker
   - [x] `struct ResourceFileDescriptor` — managed reference type and `Clone` preserve C++ value-copy semantics
   - [x] `ResourceDragDropPayload : DragDropPayload`
-  - [ ] `NodeComponentDragDropPayload : DragDropPayload`
+  - [x] `NodeComponentDragDropPayload : DragDropPayload`
 - [ ] `SerializableInspectorWidget.h`
   - [ ] `SerializableInspectorWidget : Object`
 - [ ] `NodeInspectorWidget.h`
