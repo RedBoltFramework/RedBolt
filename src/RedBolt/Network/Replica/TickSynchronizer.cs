@@ -5,6 +5,7 @@
 namespace RedBolt.Replica;
 
 using RedBolt.Core;
+using RedBolt.JoltPhysics;
 using RedBolt.Scene;
 
 /// <summary>
@@ -120,10 +121,21 @@ public sealed class SceneUpdateSynchronizer : RedObject
         _synchronizer = new TickSynchronizer(parameters.NetworkFrequency, parameters.IsServer);
         _synchronizer.SetFollowerFrequency(parameters.NetworkFrequency);
 
+        _physicsWorld = scene.GetComponent<PhysicsWorld>();
+
         if (parameters.IsServer)
         {
             scene.SetManualUpdate(true);
             SubscribeToEvent<CoreEvents.UpdateEvent>(UpdateSceneOnServer);
+        }
+
+        if (_physicsWorld is not null)
+        {
+            _physicsWorld.ManualUpdate = true;
+            _wasInterpolated = _physicsWorld.Interpolation;
+            if (parameters.IsServer)
+                _physicsWorld.Interpolation = false;
+            SubscribeToEvent<SceneEvents.SceneSubsystemUpdateEvent>(scene, UpdatePhysics);
         }
     }
 
@@ -147,11 +159,33 @@ public sealed class SceneUpdateSynchronizer : RedObject
     public override void Dispose()
     {
         _scene.SetManualUpdate(false);
+        if (_physicsWorld is not null)
+        {
+            _physicsWorld.ManualUpdate = false;
+            _physicsWorld.Interpolation = _wasInterpolated;
+        }
         base.Dispose();
     }
 
     private void UpdateFollowerFrequency()
     {
+        if (_physicsWorld is not null)
+            _synchronizer.SetFollowerFrequency(checked((uint)_physicsWorld.Fps));
+    }
+
+    private void UpdatePhysics(ref SceneEvents.SceneSubsystemUpdateEvent eventData)
+    {
+        if (_physicsWorld is null)
+            return;
+        var fixedTimeStep = 1.0f / _synchronizer.FollowerFrequency;
+        var overtime = _physicsWorld.Interpolation ? _synchronizer.FollowerAccumulatedTime : 0.0f;
+        _physicsWorld.CustomUpdate(
+            _synchronizer.PendingFollowerTicks,
+            fixedTimeStep,
+            overtime,
+            _synchronizedNetworkFrame is { } synchronized ? checked((long)synchronized.NetworkFrame.Value) : null,
+            _synchronizedNetworkFrame?.Offset ?? 0);
+        _synchronizedNetworkFrame = null;
     }
 
     private void UpdateSceneOnServer(ref CoreEvents.UpdateEvent eventData)
@@ -165,5 +199,7 @@ public sealed class SceneUpdateSynchronizer : RedObject
     private readonly SceneUpdateSynchronizerParams _parameters;
     private readonly Scene _scene;
     private readonly TickSynchronizer _synchronizer;
+    private readonly PhysicsWorld? _physicsWorld;
+    private readonly bool _wasInterpolated;
     private NetworkFrameSync? _synchronizedNetworkFrame;
 }

@@ -11,6 +11,7 @@
 #include <Jolt/Math/Quat.h>
 #include <Jolt/Physics/Body/BodyID.h>
 #include <Jolt/Physics/Body/MassProperties.h>
+#include <Jolt/Physics/Character/Character.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/RayCast.h>
@@ -205,3 +206,13 @@ template <>
 struct Marshaller<JPH::RayCastResult&> : ProjectedValueReferenceMarshallerBase<JPH::RayCastResult> {};
 
 } // namespace SharpCpp
+
+namespace JPH
+{
+
+inline void SetCharacterSettingsShape(CharacterSettings& settings, const Shape* shape)
+{
+    settings.mShape = shape;
+}
+
+} // namespace JPH

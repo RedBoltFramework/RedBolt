@@ -79,6 +79,8 @@
     <Project Path="src/RedBolt/Sample/Actions/RedBolt.Sample.Actions.csproj" />
     <Project Path="src/RedBolt/Sample/BakedLighting/RedBolt.Sample.BakedLighting.csproj" />
     <Project Path="src/RedBolt/Sample/Chat/RedBolt.Sample.Chat.csproj" />
+    <Project Path="src/RedBolt/Sample/SceneReplication/RedBolt.Sample.SceneReplication.csproj" />
+    <Project Path="src/RedBolt/Sample/AdvancedNetworking/RedBolt.Sample.AdvancedNetworking.csproj" />
     <Project Path="src/RedBolt/Sample/CrowdNavigation/RedBolt.Sample.CrowdNavigation.csproj" />
     <Project Path="src/RedBolt/Sample/Navigation/RedBolt.Sample.Navigation.csproj" />
     <Project Path="src/RedBolt/Sample/HelloGUI/RedBolt.Sample.HelloGUI.csproj" />

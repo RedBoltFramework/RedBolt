@@ -42,6 +42,7 @@ public static class PhysicsEvents
     {
         public PhysicsWorld World;
         public float TimeStep;
+        public long? NetworkFrame;
     }
 
     public struct PhysicsPostStepEvent

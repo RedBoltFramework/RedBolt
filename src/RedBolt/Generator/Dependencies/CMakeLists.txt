@@ -228,6 +228,7 @@ file(CONFIGURE OUTPUT "${REDBOLT_JOLT_PARSE_HEADER}" CONTENT [=[
 #include <Jolt/Physics/Collision/Shape/ScaledShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Collision/TransformedShape.h>
+#include <Jolt/Physics/Character/Character.h>
 #include <Jolt/Physics/SoftBody/SoftBodyCreationSettings.h>
 #include <Jolt/Physics/PhysicsSystem.h>
 ]=] @ONLY)

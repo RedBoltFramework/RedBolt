@@ -25,7 +25,7 @@
 - [x] `14_SoundEffects` — hidden scene and music-source ownership, three sound-effect resources, looping music playback and stop, scene pause/resume and time scale, sound/music master gains, pan, reach, LFE, no-device microphone handling, seeded recorded-stream playback, Dear ImGui controls, baseline/audit screenshots, and deterministic teardown are runtime-verified
 - [x] `15_Navigation` — static navigation-mesh building and queries, partial rebuilds, path following, obstacle editing, tile streaming, debug rendering, camera, and Dear ImGui instructions are ported and runtime-verified
 - [x] `16_Chat` — DataChannel server/client startup, direct address connection, user network message handling, server broadcast, disconnect behavior, rolling chat history, and Dear ImGui controls are ported and runtime-verified
-- [-] `17_SceneReplication` — **EXCLUDED** · reason: rbfx gates this sample on its legacy `URHO3D_PHYSICS` subsystem and Bullet `PhysicsWorld`/`RigidBody` APIs, which are not present in RedBolt's Jolt subsystem
+- [x] `17_SceneReplication` — authoritative scene replication, owner controls, network statistics, Jolt rigid-body floor and player physics, local server/client startup, and Dear ImGui controls are ported and runtime-verified
 - [x] `43_HttpRequestDemo` — managed HTTP request startup and state handling, response/status/error logging, JSON origin parsing, and Dear ImGui status output are ported and runtime-verified
 - [x] `53_LANDiscovery` — discovery beacon data, server broadcast, host discovery/reannouncement, ten-second expiry, server listing, and Dear ImGui controls are ported and runtime-verified
 - [x] `54_WindowSettingsDemo` — extensible native class/method order, explicit construction and base startup, screen-mode and scene-update event lifetimes, world-space box rotation, strong scene/camera ownership, renderer-retained viewport aliases, reverse deterministic teardown, POD fullscreen-mode values, `int` indices/sizes, native fullscreen/DPI/refresh-rate/MSAA Apply semantics, and Dear ImGui controls reconciled and runtime-verified
@@ -41,7 +41,7 @@
 - [x] `39_CrowdNavigation` — dynamic navigation mesh, obstacles, off-mesh connections, crowd agents and callbacks, moving barrels, formation targets, tile streaming, debug rendering, camera, and Dear ImGui instructions are ported and runtime-verified
 - [x] `106_BakedLighting` — native baked scene and lightmap/probe assets, native-compatible packed light-probe serialization, C++ light type/importance/mode enum-name serialization and baked-only lighting parity, complete rbfx Terrain attribute registration and legacy-scene terrain reconstruction, NavigationMesh rebuild, CrowdAgent character movement and animation, CrowdManager avoidance tuning, texture toggling, Dear ImGui instructions, desktop/Web wiring, and deterministic teardown are ported and runtime-verified
 - [x] `107_HelloRmlUI` — reflected data-model window, scalar and custom `Variant` bindings, custom events, backbuffer and render-to-texture canvases, cube animation, HarfBuzz-rasterized text, native shared texture/listener lifetimes, and deterministic teardown are ported and runtime-verified
-- [-] `110_AdvancedNetworking` — **EXCLUDED** · reason: Network, Replica, and RmlUI are available, but rbfx gates the sample on its legacy `URHO3D_PHYSICS` subsystem and Bullet `KinematicCharacterController`, which are not present in RedBolt's Jolt subsystem
+- [x] `110_AdvancedNetworking` — Jolt KCC movement, client prediction and reconciliation, animated player replication, distance filtering, lag-compensated temporal raycasts, hit markers, local server/client startup, cheat controls, and Dear ImGui UI are ported and runtime-verified
 - [x] `112_AggregatedInput` — direction aggregation, directional-pad aggregation, raw key/joystick/hat/disconnect/touch logging, synthesized key logging and repeats, and Dear ImGui visualization are ported and runtime-verified
 - [x] `113_Actions` — engine `ActionBuilder`, the native easing gallery, sequencing, parallel actions, movement, rotation, scale, repeat modes, attribute animation, shader-parameter animation, typed events, callbacks, enable/disable, blink, removal, per-track controls, Dear ImGui status, neon 3D presentation, deterministic teardown, and screenshot capture are runtime-verified
 - [x] `113_InputLogger` — dual viewports, all input-event subscriptions and decoded parameters, C++ identity/parameter/time-threshold event merging, viewport-relative mouse reporting, bounded logging, and Dear ImGui output are runtime-verified; the standalone managed application replaces the optional, unported plugin application wrapper
@@ -305,8 +305,8 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [ ] `RigidBody : Component, btMotionState`
 - [ ] `Constraint.h`
   - [ ] `Constraint : Component`
-- [ ] `KinematicCharacterController.h`
-  - [ ] `KinematicCharacterController : Component`
+- [x] `KinematicCharacterController.h` — ported to Jolt `Character`
+  - [x] `KinematicCharacterController : Component`
 - [ ] `RaycastVehicleWheel.h`
   - [ ] `RaycastVehicleWheel : Component`
 - [ ] `RaycastVehicle.h`
@@ -496,7 +496,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 - [x] `TickSynchronizer.h`
   - [x] `TickSynchronizer`
   - [x] `SceneUpdateSynchronizer : Object` (non-Physics branch)
-  - [-] `PhysicsTickSynchronizer : Object` — **EXCLUDED** · reason: declared only under rbfx `URHO3D_PHYSICS` and depends on its legacy Bullet `PhysicsWorld`/physics-step events, which RedBolt's Jolt subsystem does not provide
+  - [x] `PhysicsTickSynchronizer : Object` — ported as Jolt-backed `TickSynchronizer`
 - [x] `ClientInputStatistics.h`
   - [x] `ClientInputStatistics`
 - [x] `NetworkObject.h`
@@ -520,8 +520,8 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `FilteredByDistance : NetworkBehavior`
 - [x] `TrackedAnimatedModel.h`
   - [x] `TrackedAnimatedModel : NetworkBehavior`
-- [-] `PredictedKinematicController.h` ⤴ needs `Physics` — **EXCLUDED** · reason: the entire rbfx declaration and its three behavior tests are compiled only under `URHO3D_PHYSICS` and require the legacy Bullet `KinematicCharacterController`; the independent `ClientInputStatistics` test from that test file is ported
-  - [-] `PredictedKinematicController : BaseFeedbackBehavior<PredictedKinematicControllerFrame>`
+- [x] `PredictedKinematicController.h` ⤴ uses Jolt `KinematicCharacterController`
+  - [x] `PredictedKinematicController : BaseFeedbackBehavior<PredictedKinematicControllerFrame>`
 - [x] `ReplicationManager.h`
   - [x] `NetworkObjectRegistry : ReferencedComponentRegistryBase`
   - [x] `ReplicationManager : NetworkObjectRegistry`

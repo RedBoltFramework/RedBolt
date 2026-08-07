@@ -143,7 +143,7 @@ public partial class DataChannelConnection : NetworkConnection
 
     public override void Dispose()
     {
-        if (_state != NetworkConnectionState.Disconnected)
+        if (_state is NetworkConnectionState.Connected or NetworkConnectionState.Connecting)
         {
             RedBolt.Logging.Log.GetLogger().LogWarning(
                 "DataChannelConnection was not properly disconnected before destruction. Forcing disconnect.");

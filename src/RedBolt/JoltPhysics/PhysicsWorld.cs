@@ -47,6 +47,7 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
     private static int _joltReferenceCount;
 
     private readonly object _contactLock = new();
+    private readonly List<WeakReference<KinematicCharacterController>> _kinematicCharacters = [];
     private readonly List<WeakReference<RigidBody>> _rigidBodies = [];
     private readonly List<WeakReference<CollisionShape>> _collisionShapes = [];
     private readonly Dictionary<uint, WeakReference<RigidBody>> _bodiesById = [];
@@ -69,6 +70,7 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
     private bool _manualUpdate;
     private bool _disposed;
     private float _timeAccumulator;
+    private SynchronizedStep? _synchronizedStep;
 
     /// <summary>Construct.</summary>
     public PhysicsWorld()
@@ -113,6 +115,11 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         {
             if (_rigidBodies[i].TryGetTarget(out var rigidBody))
                 rigidBody.ReleaseBody();
+        }
+        for (var i = 0; i < _kinematicCharacters.Count; ++i)
+        {
+            if (_kinematicCharacters[i].TryGetTarget(out var character))
+                character.ReleaseCharacter();
         }
         _bodiesById.Clear();
         World.SetContactListener(null!);
@@ -265,7 +272,8 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
     }
 
     /// <summary>Update physics with an explicit number of fixed steps and overtime.</summary>
-    public void CustomUpdate(uint numSteps, float fixedTimeStep, float overtime)
+    public void CustomUpdate(uint numSteps, float fixedTimeStep, float overtime,
+        long? networkFrame = null, uint synchronizedStepOffset = 0)
     {
         var timeStep = numSteps * fixedTimeStep + overtime;
         var preUpdate = new PhysicsEvents.PhysicsPreUpdateEvent { World = this, TimeStep = timeStep };
@@ -273,6 +281,8 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         IsSimulating = true;
         try
         {
+            _synchronizedStep = networkFrame is not null
+                ? new SynchronizedStep(networkFrame.Value, synchronizedStepOffset) : null;
             for (var i = 0u; i < numSteps; ++i)
                 SimulateStep(fixedTimeStep);
             _timeAccumulator = MathF.Max(overtime, 0.0f);
@@ -351,6 +361,25 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
                 return;
         }
         _rigidBodies.Add(new WeakReference<RigidBody>(body));
+    }
+
+    internal void AddKinematicCharacter(KinematicCharacterController character)
+    {
+        for (var i = 0; i < _kinematicCharacters.Count; ++i)
+        {
+            if (_kinematicCharacters[i].TryGetTarget(out var existing) && ReferenceEquals(existing, character))
+                return;
+        }
+        _kinematicCharacters.Add(new WeakReference<KinematicCharacterController>(character));
+    }
+
+    internal void RemoveKinematicCharacter(KinematicCharacterController character)
+    {
+        for (var i = _kinematicCharacters.Count - 1; i >= 0; --i)
+        {
+            if (!_kinematicCharacters[i].TryGetTarget(out var existing) || ReferenceEquals(existing, character))
+                _kinematicCharacters.RemoveAt(i);
+        }
     }
 
     internal void RemoveRigidBody(RigidBody body)
@@ -437,8 +466,26 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
                 _rigidBodies.RemoveAt(i);
         }
 
-        var preStep = new PhysicsEvents.PhysicsPreStepEvent { World = this, TimeStep = timeStep };
+        var preStep = new PhysicsEvents.PhysicsPreStepEvent
+        {
+            World = this,
+            TimeStep = timeStep,
+            NetworkFrame = _synchronizedStep is { Offset: 0 } synchronized ? synchronized.NetworkFrame : null
+        };
         SendEvent(ref preStep);
+        if (_synchronizedStep is { } synchronizedStep)
+        {
+            _synchronizedStep = synchronizedStep.Offset == 0
+                ? null
+                : synchronizedStep with { Offset = synchronizedStep.Offset - 1 };
+        }
+        for (var i = _kinematicCharacters.Count - 1; i >= 0; --i)
+        {
+            if (_kinematicCharacters[i].TryGetTarget(out var character))
+                character.PrepareStep(timeStep);
+            else
+                _kinematicCharacters.RemoveAt(i);
+        }
         LastUpdateError = World.Update(timeStep, 1, _tempAllocator, _jobSystem);
         if (LastUpdateError != EPhysicsUpdateError.None)
             throw new InvalidOperationException($"Jolt physics update failed: {LastUpdateError}.");
@@ -447,6 +494,11 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         {
             if (_rigidBodies[i].TryGetTarget(out var body))
                 body.CaptureSimulationTransform();
+        }
+        for (var i = 0; i < _kinematicCharacters.Count; ++i)
+        {
+            if (_kinematicCharacters[i].TryGetTarget(out var character))
+                character.CaptureSimulationTransform();
         }
         SendCollisionEvents();
         var postStep = new PhysicsEvents.PhysicsPostStepEvent { World = this, TimeStep = timeStep };
@@ -649,6 +701,7 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
     }
 
     private readonly record struct ContactData(BodyPair Pair, bool Trigger, PhysicsContact Contact);
+    private readonly record struct SynchronizedStep(long NetworkFrame, uint Offset);
 
     private sealed class PhysicsContactListener : ContactListener
     {
