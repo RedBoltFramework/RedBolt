@@ -754,3 +754,71 @@ public class ChangeComponentAction : EditorAction
     private readonly PackedComponentData _oldData;
     private PackedComponentData _newData;
 }
+
+/// <summary>Change subtree of nodes.</summary>
+public class ChangeNodeSubtreeAction : EditorAction
+{
+    public ChangeNodeSubtreeAction(Scene? scene, PackedNodeData oldData, Node? newData)
+    {
+        _scene = scene is not null ? new WeakReference<Scene>(scene) : null;
+        _oldData = oldData.Clone();
+        _newData = newData is not null ? new PackedNodeData(newData) : new PackedNodeData();
+        _newRemoved = newData is null;
+    }
+
+    public ChangeNodeSubtreeAction(Scene? scene, PackedNodeData oldData, PackedNodeData newData)
+    {
+        _scene = scene is not null ? new WeakReference<Scene>(scene) : null;
+        _oldData = oldData.Clone();
+        _newData = newData.Clone();
+        _newRemoved = false;
+    }
+
+    /// <summary>Implement EditorAction.</summary>
+    public override bool CanUndoRedo()
+    {
+        return _scene is not null && _scene.TryGetTarget(out _);
+    }
+
+    public override void Redo()
+    {
+        UpdateSubtree(_oldData.Id, _newRemoved ? null : _newData);
+    }
+
+    public override void Undo()
+    {
+        UpdateSubtree(_oldData.Id, _oldData);
+    }
+
+    private void UpdateSubtree(uint nodeId, PackedNodeData? data)
+    {
+        var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+        var oldNode = scene!.GetNode(nodeId);
+        if (oldNode is not null)
+            oldNode.Remove();
+        if (data is not null)
+            data.SpawnExact(scene);
+    }
+
+    public override bool MergeWith(EditorAction other)
+    {
+        if (other is not ChangeNodeSubtreeAction otherAction)
+            return false;
+
+        var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+        var otherScene = otherAction._scene is not null && otherAction._scene.TryGetTarget(out var otherSceneTarget)
+            ? otherSceneTarget
+            : null;
+        if (!ReferenceEquals(scene, otherScene) || _newData.Id != otherAction._newData.Id)
+            return false;
+
+        _newData = otherAction._newData.Clone();
+        _newRemoved = otherAction._newRemoved;
+        return true;
+    }
+
+    private readonly WeakReference<Scene>? _scene;
+    private readonly PackedNodeData _oldData;
+    private PackedNodeData _newData;
+    private bool _newRemoved;
+}

@@ -880,7 +880,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `ReorderComponentAction`
   - [x] `ReparentNodeAction`
   - [x] `ChangeComponentAction`
-  - [ ] `ChangeNodeSubtreeAction`
+  - [x] `ChangeNodeSubtreeAction`
   - [ ] `ChangeSceneAction`
 - [ ] `CommonEditorActionBuilders.h`
 - [ ] `EditorPlugin.h` — **DEFERRED** · editor plugins will be ported later; keep explicit `TODO: port` call-site guidance
