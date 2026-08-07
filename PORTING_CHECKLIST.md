@@ -840,9 +840,9 @@ Accepted deviations:
   - [x] `PackedComponentData`
   - [x] `PackedNodeComponentData`
   - [x] `PackedSceneData`
-- [ ] `SceneSelection.h`
-  - [ ] `struct PackedSceneSelection`
-  - [ ] `SceneSelection`
+- [x] `SceneSelection.h`
+  - [x] `struct PackedSceneSelection` — managed reference type and `Clone` preserve C++ value-copy semantics
+  - [x] `SceneSelection` — `WeakReference` sets preserve native weak ownership and target-identity set semantics without allocating during selection queries
 - [x] `GLTFImporter.h` — faithful C# source conversion is present in the optional Utility module and the full solution builds
   - [x] `struct GLTFImporterSettings`
   - [x] `GLTFImporterCallback`
