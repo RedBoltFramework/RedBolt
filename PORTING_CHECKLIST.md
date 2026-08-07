@@ -735,8 +735,8 @@ Accepted deviations:
   - [ ] `DebugHud : Object`
 - [ ] `SystemMessageBox.h`
   - [ ] `SystemMessageBox : Object`
-- [ ] `BaseWidget.h`
-  - [ ] `BaseWidget : Object`
+- [x] `BaseWidget.h`
+  - [x] `BaseWidget : Object`
 - [ ] `ResourceInspectorWidget.h`
   - [ ] `ResourceInspectorWidget : BaseWidget`
 - [ ] `SceneWidget.h`
