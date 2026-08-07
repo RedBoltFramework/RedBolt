@@ -2,6 +2,8 @@ namespace RedBolt.RenderPipeline;
 
 using RedBolt.Container;
 using RedBolt.Core;
+using RedBolt.Graphics;
+using RedBolt.Math;
 using RedBolt.Resource;
 using ResourceType = global::RedBolt.Resource.Resource;
 using RedBolt.Scene;
@@ -55,6 +57,374 @@ public partial class RenderPipeline : Component
         RenderPathChanged = null;
         SettingsChanged = null;
         base.Dispose();
+    }
+
+    private static object? GetRenderPathAttributeDefault() => DefaultRenderPath;
+
+    [Serialized("Render Path", typeof(ResourceRef), DefaultSource = nameof(GetRenderPathAttributeDefault), Setter = nameof(SetRenderPathAttr))]
+    private object? GetSerializedRenderPath() => GetRenderPathAttr();
+
+    private static object? GetRenderPassesAttributeDefault() => new VariantVector();
+
+    [Serialized("Render Passes", typeof(VariantVector), DefaultSource = nameof(GetRenderPassesAttributeDefault), Setter = nameof(SetRenderPassesAttr))]
+    private object? GetSerializedRenderPasses() => GetRenderPassesAttr();
+
+    private static object? GetRenderPathParametersAttributeDefault() => new StringVariantMap();
+
+    private static void ConfigureRenderPathParametersAttribute(AttributeHandle attribute)
+    {
+        attribute.SetMetadata(AttributeMetadata.DynamicMetadata, true);
+    }
+
+    [Serialized("Render Path Parameters", typeof(StringVariantMap), Configure = nameof(ConfigureRenderPathParametersAttribute), DefaultSource = nameof(GetRenderPathParametersAttributeDefault), Setter = nameof(SetRenderPathParameters))]
+    private object? GetSerializedRenderPathParameters() => GetRenderPathParameters();
+
+    private static object? GetFrameShaderParametersAttributeDefault() => new StringVariantMap();
+
+    [Serialized("Frame Shader Parameters", typeof(StringVariantMap), DefaultSource = nameof(GetFrameShaderParametersAttributeDefault), Setter = nameof(SetFrameShaderParameters))]
+    private object? GetSerializedFrameShaderParameters() => GetFrameShaderParameters();
+
+    private static object? GetColorSpaceAttributeDefault() => RenderPipelineColorSpace.GammaLDR;
+
+    [Serialized("Color Space", DefaultSource = nameof(GetColorSpaceAttributeDefault), EnumNames = ["LDR Gamma", "LDR Linear", "HDR Linear", "Optimized"])]
+    private RenderPipelineColorSpace SerializedColorSpace
+    {
+        get => _settings.RenderBufferManager.ColorSpace;
+        set
+        {
+            var settings = _settings.RenderBufferManager;
+            settings.ColorSpace = value;
+            _settings.RenderBufferManager = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetMaterialQualityAttributeDefault() => new SceneProcessorSettings().MaterialQuality;
+
+    [Serialized("Material Quality", DefaultSource = nameof(GetMaterialQualityAttributeDefault), EnumNames = ["Low", "Medium", "High"])]
+    private MaterialQuality SerializedMaterialQuality
+    {
+        get => _settings.SceneProcessor.MaterialQuality;
+        set
+        {
+            var settings = _settings.SceneProcessor;
+            settings.MaterialQuality = value;
+            _settings.SceneProcessor = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetSpecularQualityAttributeDefault() => new SceneProcessorSettings().SpecularQuality;
+
+    [Serialized("Specular Quality", DefaultSource = nameof(GetSpecularQualityAttributeDefault), EnumNames = ["Disabled", "Simple", "Antialiased"])]
+    private SpecularQuality SerializedSpecularQuality
+    {
+        get => _settings.SceneProcessor.SpecularQuality;
+        set
+        {
+            var settings = _settings.SceneProcessor;
+            settings.SpecularQuality = value;
+            _settings.SceneProcessor = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetReflectionQualityAttributeDefault() => new SceneProcessorSettings().ReflectionQuality;
+
+    [Serialized("Reflection Quality", DefaultSource = nameof(GetReflectionQualityAttributeDefault), EnumNames = ["Vertex", "Pixel"])]
+    private ReflectionQuality SerializedReflectionQuality
+    {
+        get => _settings.SceneProcessor.ReflectionQuality;
+        set
+        {
+            var settings = _settings.SceneProcessor;
+            settings.ReflectionQuality = value;
+            _settings.SceneProcessor = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetLinearReflectionMapsAttributeDefault() => new SceneProcessorSettings().LinearReflectionMaps;
+
+    [Serialized("Linear Space Reflection Maps", DefaultSource = nameof(GetLinearReflectionMapsAttributeDefault))]
+    private bool SerializedLinearReflectionMaps
+    {
+        get => _settings.SceneProcessor.LinearReflectionMaps;
+        set
+        {
+            var settings = _settings.SceneProcessor;
+            settings.LinearReflectionMaps = value;
+            _settings.SceneProcessor = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetReadableDepthAttributeDefault() => new RenderBufferManagerSettings().ReadableDepth;
+
+    [Serialized("Readable Depth", DefaultSource = nameof(GetReadableDepthAttributeDefault))]
+    private bool SerializedReadableDepth
+    {
+        get => _settings.RenderBufferManager.ReadableDepth;
+        set
+        {
+            var settings = _settings.RenderBufferManager;
+            settings.ReadableDepth = value;
+            _settings.RenderBufferManager = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetMaxVertexLightsAttributeDefault() => new DrawableProcessorSettings().MaxVertexLights;
+
+    [Serialized("Max Vertex Lights", DefaultSource = nameof(GetMaxVertexLightsAttributeDefault))]
+    private int SerializedMaxVertexLights
+    {
+        get => _settings.SceneProcessor.MaxVertexLights;
+        set
+        {
+            var settings = _settings.SceneProcessor;
+            settings.MaxVertexLights = value;
+            _settings.SceneProcessor = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetMaxPixelLightsAttributeDefault() => new DrawableProcessorSettings().MaxPixelLights;
+
+    [Serialized("Max Pixel Lights", DefaultSource = nameof(GetMaxPixelLightsAttributeDefault))]
+    private int SerializedMaxPixelLights
+    {
+        get => _settings.SceneProcessor.MaxPixelLights;
+        set
+        {
+            var settings = _settings.SceneProcessor;
+            settings.MaxPixelLights = value;
+            _settings.SceneProcessor = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetAmbientModeAttributeDefault() => DrawableAmbientMode.Directional;
+
+    [Serialized("Ambient Mode", DefaultSource = nameof(GetAmbientModeAttributeDefault), EnumNames = ["Constant", "Flat", "Directional"])]
+    private DrawableAmbientMode SerializedAmbientMode
+    {
+        get => _settings.SceneProcessor.AmbientMode;
+        set
+        {
+            var settings = _settings.SceneProcessor;
+            settings.AmbientMode = value;
+            _settings.SceneProcessor = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetEnableInstancingAttributeDefault() => true;
+
+    [Serialized("Enable Instancing", DefaultSource = nameof(GetEnableInstancingAttributeDefault))]
+    private bool SerializedEnableInstancing
+    {
+        get => _settings.InstancingBuffer.EnableInstancing;
+        set
+        {
+            var settings = _settings.InstancingBuffer;
+            settings.EnableInstancing = value;
+            _settings.InstancingBuffer = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetDepthPrePassAttributeDefault() => false;
+
+    [Serialized("Depth Pre-Pass", DefaultSource = nameof(GetDepthPrePassAttributeDefault))]
+    private bool SerializedDepthPrePass
+    {
+        get => _settings.SceneProcessor.DepthPrePass;
+        set
+        {
+            var settings = _settings.SceneProcessor;
+            settings.DepthPrePass = value;
+            _settings.SceneProcessor = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetLightingModeAttributeDefault() => DirectLightingMode.Forward;
+
+    [Serialized("Lighting Mode", DefaultSource = nameof(GetLightingModeAttributeDefault), EnumNames = ["Forward", "Deferred Blinn-Phong", "Deferred PBR"])]
+    private DirectLightingMode SerializedLightingMode
+    {
+        get => _settings.SceneProcessor.LightingMode;
+        set
+        {
+            var settings = _settings.SceneProcessor;
+            settings.LightingMode = value;
+            _settings.SceneProcessor = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetEnableShadowsAttributeDefault() => true;
+
+    [Serialized("Enable Shadows", DefaultSource = nameof(GetEnableShadowsAttributeDefault))]
+    private bool SerializedEnableShadows
+    {
+        get => _settings.SceneProcessor.EnableShadows;
+        set
+        {
+            var settings = _settings.SceneProcessor;
+            settings.EnableShadows = value;
+            _settings.SceneProcessor = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetCubemapBoxProjectionAttributeDefault() => false;
+
+    [Serialized("Cubemap Box Projection", DefaultSource = nameof(GetCubemapBoxProjectionAttributeDefault))]
+    private bool SerializedCubemapBoxProjection
+    {
+        get => _settings.SceneProcessor.CubemapBoxProjection;
+        set
+        {
+            var settings = _settings.SceneProcessor;
+            settings.CubemapBoxProjection = value;
+            _settings.SceneProcessor = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetPcfKernelSizeAttributeDefault() => 1;
+
+    [Serialized("PCF Kernel Size", DefaultSource = nameof(GetPcfKernelSizeAttributeDefault))]
+    private int SerializedPcfKernelSize
+    {
+        get => _settings.SceneProcessor.PcfKernelSize;
+        set
+        {
+            var settings = _settings.SceneProcessor;
+            settings.PcfKernelSize = value;
+            _settings.SceneProcessor = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetEnableVarianceShadowMapsAttributeDefault() => false;
+
+    [Serialized("Use Variance Shadow Maps", DefaultSource = nameof(GetEnableVarianceShadowMapsAttributeDefault))]
+    private bool SerializedEnableVarianceShadowMaps
+    {
+        get => _settings.ShadowMapAllocator.EnableVarianceShadowMaps;
+        set
+        {
+            var settings = _settings.ShadowMapAllocator;
+            settings.EnableVarianceShadowMaps = value;
+            _settings.ShadowMapAllocator = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetVarianceShadowMapParamsAttributeDefault() => new BatchRendererSettings().VarianceShadowMapParams;
+
+    [Serialized("VSM Shadow Settings", DefaultSource = nameof(GetVarianceShadowMapParamsAttributeDefault))]
+    private Vector2f SerializedVarianceShadowMapParams
+    {
+        get => _settings.SceneProcessor.VarianceShadowMapParams;
+        set
+        {
+            var settings = _settings.SceneProcessor;
+            settings.VarianceShadowMapParams = value;
+            _settings.SceneProcessor = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetVarianceShadowMapMultiSampleAttributeDefault() => 1;
+
+    [Serialized("VSM Multi Sample", DefaultSource = nameof(GetVarianceShadowMapMultiSampleAttributeDefault))]
+    private int SerializedVarianceShadowMapMultiSample
+    {
+        get => _settings.ShadowMapAllocator.VarianceShadowMapMultiSample;
+        set
+        {
+            var settings = _settings.ShadowMapAllocator;
+            settings.VarianceShadowMapMultiSample = value;
+            _settings.ShadowMapAllocator = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetUse16BitShadowMapsAttributeDefault() => false;
+
+    [Serialized("16-bit Shadow Maps", DefaultSource = nameof(GetUse16BitShadowMapsAttributeDefault))]
+    private bool SerializedUse16BitShadowMaps
+    {
+        get => _settings.ShadowMapAllocator.Use16BitShadowMaps;
+        set
+        {
+            var settings = _settings.ShadowMapAllocator;
+            settings.Use16BitShadowMaps = value;
+            _settings.ShadowMapAllocator = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetDrawDebugGeometryAttributeDefault() => true;
+
+    [Serialized("Draw Debug Geometry", DefaultSource = nameof(GetDrawDebugGeometryAttributeDefault))]
+    private bool SerializedDrawDebugGeometry
+    {
+        get => _settings.DrawDebugGeometry;
+        set
+        {
+            _settings.DrawDebugGeometry = value;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetDepthBiasScaleAttributeDefault() => 1.0f;
+
+    [Serialized("Depth Bias Scale", DefaultSource = nameof(GetDepthBiasScaleAttributeDefault))]
+    private float SerializedDepthBiasScale
+    {
+        get => _settings.ShadowMapAllocator.DepthBiasScale;
+        set
+        {
+            var settings = _settings.ShadowMapAllocator;
+            settings.DepthBiasScale = value;
+            _settings.ShadowMapAllocator = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetDepthBiasOffsetAttributeDefault() => 0.0f;
+
+    [Serialized("Depth Bias Offset", DefaultSource = nameof(GetDepthBiasOffsetAttributeDefault))]
+    private float SerializedDepthBiasOffset
+    {
+        get => _settings.ShadowMapAllocator.DepthBiasOffset;
+        set
+        {
+            var settings = _settings.ShadowMapAllocator;
+            settings.DepthBiasOffset = value;
+            _settings.ShadowMapAllocator = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetNormalOffsetScaleAttributeDefault() => 1.0f;
+
+    [Serialized("Normal Offset Scale", DefaultSource = nameof(GetNormalOffsetScaleAttributeDefault))]
+    private float SerializedNormalOffsetScale
+    {
+        get => _settings.SceneProcessor.NormalOffsetScale;
+        set
+        {
+            var settings = _settings.SceneProcessor;
+            settings.NormalOffsetScale = value;
+            _settings.SceneProcessor = settings;
+            MarkSettingsDirty();
+        }
     }
 
 

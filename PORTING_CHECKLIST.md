@@ -192,6 +192,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A10. RenderPipeline — depends on Graphics, RenderAPI, Scene
 
+- [x] `RenderPipeline` serialized attributes — restored C++ registration order, defaults, enum labels, callbacks, and dynamic metadata
+
 ## [x] A11. Input — depends on Core, Graphics (window)
 
 ## [x] A12. Engine — top-level orchestration, depends on all Part-A above
