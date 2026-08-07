@@ -22,7 +22,11 @@
 
 namespace RedBolt.Editor.Core;
 
+using System;
 using System.Collections.Generic;
+
+using RedBolt.Scene;
+using RedBolt.Utility;
 
 /// <summary>Empty action.</summary>
 public class EmptyEditorAction : EditorAction
@@ -85,4 +89,64 @@ public class CompositeEditorAction : EditorAction
     }
 
     private readonly List<EditorAction> _actions = [];
+}
+
+/// <summary>Create or remove node.</summary>
+public class CreateRemoveNodeAction : EditorAction
+{
+    public CreateRemoveNodeAction(Node node, bool removed)
+    {
+        _removed = removed;
+        var scene = node.Scene;
+        _scene = scene is not null ? new WeakReference<Scene>(scene) : null;
+        _data = new PackedNodeData(node);
+    }
+
+    /// <summary>Implement EditorAction.</summary>
+    public override bool CanUndoRedo()
+    {
+        return _scene is not null && _scene.TryGetTarget(out _);
+    }
+
+    public override void Redo()
+    {
+        if (_removed)
+            RemoveNode();
+        else
+            AddNode();
+    }
+
+    public override void Undo()
+    {
+        if (_removed)
+            AddNode();
+        else
+            RemoveNode();
+    }
+
+    private void AddNode()
+    {
+        if (_scene is null || !_scene.TryGetTarget(out var scene))
+            return;
+
+        var node = _data.SpawnExact(scene);
+        if (node is null)
+            throw new UndoException($"Cannot create node with id {_data.Id}");
+    }
+
+    private void RemoveNode()
+    {
+        if (_scene is null || !_scene.TryGetTarget(out var scene))
+            return;
+
+        var node = scene.GetNode(_data.Id);
+        if (node is not null)
+            node.Remove();
+        else
+            throw new UndoException($"Cannot remove node with id {_data.Id}");
+    }
+
+    private readonly bool _removed;
+    private readonly WeakReference<Scene>? _scene;
+    private readonly PackedNodeData _data;
 }

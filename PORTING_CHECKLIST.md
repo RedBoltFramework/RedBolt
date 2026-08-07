@@ -871,7 +871,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 - [ ] `CommonEditorActions.h`
   - [x] `EmptyEditorAction`
   - [x] `CompositeEditorAction`
-  - [ ] `CreateRemoveNodeAction`
+  - [x] `CreateRemoveNodeAction`
   - [ ] `CreateRemoveComponentAction`
   - [ ] `ChangeNodeTransformAction`
   - [ ] `ChangeNodeAttributesAction`
