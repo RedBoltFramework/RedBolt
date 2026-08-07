@@ -826,8 +826,8 @@ Accepted deviations:
 - [ ] `AssetPipeline.h`
   - [ ] `AssetPipeline : Resource`
 - [ ] `FileSystemReflection.h`
-  - [ ] `struct FileSystemEntry`
-  - [ ] `FileSystemReflection : Object`
+  - [x] `struct FileSystemEntry` — managed reference type with `Clone` preserves recursive C++ value copies and stable parent references
+  - [x] `FileSystemReflection : Object` — excluded native `FileSystem` calls map to `System.IO`
 - [x] `PackedSceneData.h`
   - [x] `PackedNodeData`
   - [x] `PackedComponentData`
