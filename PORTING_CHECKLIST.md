@@ -774,8 +774,8 @@ Accepted deviations:
   - [x] `NodeComponentDragDropPayload : DragDropPayload`
 - [x] `SerializableInspectorWidget.h`
   - [x] `SerializableInspectorWidget : Object` — weak selection pruning, titles, hook registries and copy helpers, attribute/action rendering and edit boundaries, metadata-driven variant options, and explicit owned `Variant` cleanup are ported and software-renderer interaction-tested; borrowed enum metadata avoids per-frame allocation
-- [ ] `NodeInspectorWidget.h`
-  - [ ] `NodeInspectorWidget : Object`
+- [x] `NodeInspectorWidget.h`
+  - [x] `NodeInspectorWidget : Object` — weak node/component aliases preserve native non-ownership; ordered duplicate-type matching, inspector rebuilds, skipped counts, edit/action forwarding, and deferred multi-node removal are ported and software-renderer tested; persistent UTF-8 text and reference-identity ImGui IDs avoid render-path string allocation
 - [ ] `SceneHierarchyWidget.h`
   - [ ] `SceneHierarchyWidget : Object`
 - [ ] `MaterialInspectorWidget.h`
