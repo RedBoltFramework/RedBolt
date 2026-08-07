@@ -827,7 +827,7 @@ Accepted deviations:
   - [ ] `struct FileSystemEntry`
   - [ ] `FileSystemReflection : Object`
 - [ ] `PackedSceneData.h`
-  - [ ] `PackedNodeData`
+  - [x] `PackedNodeData`
   - [ ] `PackedComponentData`
   - [ ] `PackedNodeComponentData`
   - [ ] `PackedSceneData`
