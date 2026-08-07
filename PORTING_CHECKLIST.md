@@ -897,7 +897,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `EditorHotkey`
   - [x] `HotkeyManager`
 - [x] `IniHelpers.h` — uses .NET UTF-8 and invariant integer conversion per allowed string-utility deviation
-- [x] `SettingsManager.h` — C++ simple-page template contract maps to `ISimpleSettingsPageValues`
+- [x] `SettingsManager.h` — C++ simple-page template contract maps to `ISimpleSettingsPageValues`, including construction and reset through `T{}` so struct default member initializers are preserved
   - [x] `SettingsPage`
   - [x] `SimpleSettingsPage<T>`
   - [x] `SettingsPageGroup`

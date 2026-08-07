@@ -73,6 +73,11 @@ public abstract class SettingsPage : RedObject
 public class SimpleSettingsPage<T> : SettingsPage
     where T : struct, ISimpleSettingsPageValues
 {
+    public SimpleSettingsPage()
+    {
+        _values = new T();
+    }
+
     /// <summary>Implement SettingsPage.</summary>
     public override string UniqueName => _values.UniqueName;
 
