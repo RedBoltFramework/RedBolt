@@ -27,6 +27,7 @@ using System.Collections.Generic;
 
 using RedBolt.Core;
 using RedBolt.Scene;
+using RedBolt.SystemUI;
 
 /// <summary>Base class for project-wide requests. Should be used from main thread only!</summary>
 public class ProjectRequest : RedObject
@@ -73,12 +74,50 @@ public class ProjectRequest : RedObject
         Comparer<int>.Create(static (lhs, rhs) => rhs.CompareTo(lhs)));
 }
 
+/// <summary>Request to open resource.</summary>
+public class OpenResourceRequest : ProjectRequest
+{
+    public OpenResourceRequest(string resourceName)
+    {
+        var project = GetSubsystem<Project>();
+        _resourceDesc = project.GetResourceDescriptor(resourceName);
+    }
+
+    public ResourceFileDescriptor Resource => _resourceDesc;
+
+    private readonly ResourceFileDescriptor _resourceDesc;
+}
+
 /// <summary>Base class for all inspector requests.</summary>
 public class BaseInspectRequest : ProjectRequest
 {
     public BaseInspectRequest()
     {
     }
+}
+
+/// <summary>Request to inspect one or more resources.</summary>
+public class InspectResourceRequest : BaseInspectRequest
+{
+    public InspectResourceRequest(IEnumerable<string> resourceNames)
+    {
+        var project = GetSubsystem<Project>();
+        foreach (var resourceName in resourceNames)
+            _resourceDescs.Add(project.GetResourceDescriptor(resourceName));
+    }
+
+    public IReadOnlyList<ResourceFileDescriptor> Resources => _resourceDescs;
+
+    public List<string> GetSortedResourceNames()
+    {
+        var resourceNames = new List<string>(_resourceDescs.Count);
+        foreach (var descriptor in _resourceDescs)
+            resourceNames.Add(descriptor.ResourceName);
+        resourceNames.Sort(StringComparer.Ordinal);
+        return resourceNames;
+    }
+
+    private readonly List<ResourceFileDescriptor> _resourceDescs = [];
 }
 
 /// <summary>Request to inspect one or more nodes or components.</summary>

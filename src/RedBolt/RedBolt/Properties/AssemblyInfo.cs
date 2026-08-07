@@ -1,4 +1,5 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Platform.Linux")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Editor")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Platform.Web")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Graphics.OpenGL")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Graphics.OpenGLES")]

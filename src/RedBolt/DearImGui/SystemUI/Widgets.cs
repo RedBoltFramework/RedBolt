@@ -31,6 +31,46 @@ using RedBolt.Math;
 
 public static class Widgets
 {
+    /// <summary>Return best size of small square button with one icon.</summary>
+    public static float GetSmallButtonSize()
+    {
+        using var style = ImGui.GetStyle();
+        return ImGui.GetFontSize() + style.FramePadding.Y * 2.0f;
+    }
+
+    /// <summary>Render toolbar button with optional tooltip. May be toggled on.</summary>
+    public static bool ToolbarButton(ReadOnlySpan<byte> label, ReadOnlySpan<byte> tooltip = default, bool active = false)
+    {
+        using var style = ImGui.GetStyle();
+        using var colors = style.Colors;
+        var dimension = GetSmallButtonSize();
+
+        if (active)
+            ImGui.PushStyleColor(ImGuiCol.ImGuiColButton, new Vector4f(colors[(int)ImGuiCol.ImGuiColButtonActive]));
+        ImGui.PushStyleVar(ImGuiStyleVar.ImGuiStyleVarFramePadding, new Vector2f());
+
+        // TODO: port ButtonEx(..., ImGuiButtonFlags_PressedOnClick) when generated bindings expose imgui_internal.h.
+        var result = ImGui.Button(label, new Vector2f(dimension, dimension));
+
+        ImGui.PopStyleVar();
+        if (active)
+            ImGui.PopStyleColor();
+
+        ImGui.SameLine(0, 0);
+
+        if (ImGui.IsItemHovered() && tooltip.Length != 0)
+            ImGui.SetTooltip(tooltip);
+
+        return result;
+    }
+
+    /// <summary>Render a bit of space in toolbar between buttons.</summary>
+    public static void ToolbarSeparator()
+    {
+        using var style = ImGui.GetStyle();
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + style.FramePadding.X);
+    }
+
     /// <summary>Underline previously rendered item (usually text).</summary>
     public static void Underline(Color color)
     {

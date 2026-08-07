@@ -176,6 +176,7 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A4. IO — depends on Container, Core
 
+- [x] `TemporaryDir.h` — `IDisposable` preserves automatic recursive cleanup
 - [-] `FileSystem.h` — **EXCLUDED** · reason: use standard library functionality
 - [-] `MacFileWatcher.h` — **EXCLUDED** · reason: macOS FSEvents backend · replaced-by: `FileSystemWatcher`
 - [-] `RWOpsWrapper.h` — **EXCLUDED** · reason: SDL_RWops C++ adapter · replaced-by: generated SDL interop
@@ -719,6 +720,9 @@ Accepted deviations:
   - [ ] ImGui integration helpers
 - [ ] `Widgets.h`
   - [ ] shared widget free functions
+  - [x] `GetSmallButtonSize`
+  - [x] `ToolbarButton` — uses public `Button` until internal `ButtonEx` flags are generated; exact call site retains `TODO: port`
+  - [x] `ToolbarSeparator`
   - [x] `Underline`
   - [x] `TextURL` — UTF-8 spans preserve native string lifetime without per-frame conversions
 - [~] `ImGuiDiligentRendererEx.h`
@@ -904,18 +908,18 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 
 ## Editor/Project
 
-- [ ] `EditorTab.h`
+- [x] `EditorTab.h`
   - [x] `EditorTabFlag` / `EditorTabFlags` — mapped to a C# flags enum
   - [x] `EditorTabPlacement`
   - [x] `EditorConfigurable`
   - [x] `SeparatorHelper`
-  - [ ] `EditorTab`
-- [ ] `Project.h`
+  - [x] `EditorTab` — exact `ContentRegionRect` queries remain explicit `TODO: port` until internal Dear ImGui state is bound
+- [x] `Project.h`
   - [x] `ProjectFlag` / `ProjectFlags` — mapped to a C# flags enum
   - [x] `CloseProjectResult`
-  - [ ] `ResourceCacheGuard` — `TODO: port` retained mount ownership before `VirtualFileSystem.UnmountAll` can express dropped `SharedPtr` lifetime semantics
+  - [x] `ResourceCacheGuard` — internal no-dispose VFS detach preserves original mount identity and order across project lifetime
   - [x] `AnalyzeFileContext` — managed reference preserves const callback aliasing; `Dispose` preserves owned member destruction order
-  - [ ] `Project`
+  - [x] `Project` — plugin, DockBuilder, and XR call sites retain explicit `TODO: port` guidance for deferred or unavailable APIs
 - [x] `CreateDefaultScene.h`
   - [x] `DefaultSceneParameters`
   - [x] `CreateDefaultScene`
@@ -925,24 +929,24 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 - [ ] `CloseDialog.h`
   - [x] `CloseResourceRequest` — managed reference type with `Clone` preserves implicit C++ value-copy semantics
   - [x] `CloseDialog` — `CString` item storage preserves native UTF-8 ordering without per-frame conversions
-- [ ] `ProjectRequest.h`
+- [x] `ProjectRequest.h`
   - [x] `ProjectRequest`
-  - [ ] `OpenResourceRequest`
+  - [x] `OpenResourceRequest`
   - [x] `BaseInspectRequest`
-  - [ ] `InspectResourceRequest`
+  - [x] `InspectResourceRequest`
   - [x] `InspectNodeComponentRequest` — managed weak references use unique scene IDs for stable canonical ordering because CLR object addresses are movable
   - [x] `CreateResourceRequest` — strong managed reference preserves dropped `SharedPtr` ownership
 - [ ] `ResourceFactory.h`
   - [x] `ResourceFactory`
   - [x] `BaseResourceFactory` — generated raw ImGui callback and resizable `CString` storage preserve `ea::string` text input behavior
   - [x] `SimpleResourceFactory`
-- [ ] `ModifyResourceAction.h`
-  - [ ] `ModifyResourceAction`
-- [ ] `ResourceEditorTab.h`
-  - [ ] `ResourceEditorTab`
-  - [ ] `ResourceActionWrapper`
-- [ ] `AssetManager.h`
-  - [ ] `AssetManager`
+- [x] `ModifyResourceAction.h`
+  - [x] `ModifyResourceAction`
+- [x] `ResourceEditorTab.h`
+  - [x] `ResourceEditorTab` — deterministic delayed callback preserves native shared-finally close sequencing
+  - [x] `ResourceActionWrapper`
+- [x] `AssetManager.h`
+  - [x] `AssetManager`
 - [x] `ToolManager.h`
   - [x] `ToolManager` — `.NET Process` provides the native `FileSystem::SystemRun` operation; resizable `CString` inputs preserve `ea::string` editing
 - [x] `CreateComponentMenu.h` — uses the global managed `Context`; persistent UTF-8 labels preserve native menu rendering without per-frame conversions

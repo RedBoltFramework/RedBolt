@@ -177,17 +177,22 @@ public class VirtualFileSystem : RedObject
     }
 
     /// <summary>Remove all mount points.</summary>
-    public void UnmountAll()
+    public void UnmountAll() => UnmountAll(true);
+
+    internal void UnmountAll(bool disposeMountPoints)
     {
         lock (_mountMutex)
         {
-            for (var i = _mountPoints.Count - 1; i >= 0; --i)
+            if (disposeMountPoints)
             {
-                if (!ReferenceEquals(_mountPoints[i], _aliasMountPoint))
-                    _mountPoints[i].Dispose();
+                for (var i = _mountPoints.Count - 1; i >= 0; --i)
+                {
+                    if (!ReferenceEquals(_mountPoints[i], _aliasMountPoint))
+                        _mountPoints[i].Dispose();
+                }
+                _aliasMountPoint?.Dispose();
             }
             _mountPoints.Clear();
-            _aliasMountPoint?.Dispose();
             _aliasMountPoint = null;
         }
     }
