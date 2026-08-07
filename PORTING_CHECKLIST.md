@@ -719,6 +719,7 @@ Accepted deviations:
 - [~] `ImGui.h`
   - [~] ImGui integration helpers
   - [x] `IdScopeGuard`
+  - [x] `ColorScopeGuard`
 - [ ] `Widgets.h`
   - [ ] shared widget free functions
   - [x] `GetSmallButtonSize`

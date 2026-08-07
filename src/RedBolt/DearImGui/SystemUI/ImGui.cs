@@ -8,6 +8,7 @@ namespace RedBolt.SystemUI;
 using System;
 
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Math;
 
 /// <summary>State guard for paired ID scope calls.</summary>
 public class IdScopeGuard : IDisposable
@@ -31,4 +32,66 @@ public class IdScopeGuard : IDisposable
     {
         ImGui.PopID();
     }
+}
+
+public class ColorScopeGuard : IDisposable
+{
+    public ColorScopeGuard(ImGuiCol id, Vector4f color, bool enabled = true)
+    {
+        _numColors = enabled ? 1 : 0;
+        if (enabled)
+            ImGui.PushStyleColor(id, color);
+    }
+
+    public ColorScopeGuard(ReadOnlySpan<(ImGuiCol Id, Vector4f Color)> colors, bool enabled = true)
+    {
+        _numColors = enabled ? colors.Length : 0;
+        if (enabled)
+        {
+            foreach (var (id, color) in colors)
+                ImGui.PushStyleColor(id, color);
+        }
+    }
+
+    public ColorScopeGuard(ImGuiCol id, uint color, bool enabled = true)
+    {
+        _numColors = enabled ? 1 : 0;
+        if (enabled)
+            ImGui.PushStyleColor(id, color);
+    }
+
+    public ColorScopeGuard(ReadOnlySpan<(ImGuiCol Id, uint Color)> colors, bool enabled = true)
+    {
+        _numColors = enabled ? colors.Length : 0;
+        if (enabled)
+        {
+            foreach (var (id, color) in colors)
+                ImGui.PushStyleColor(id, color);
+        }
+    }
+
+    public ColorScopeGuard(ImGuiCol id, Color color, bool enabled = true)
+    {
+        _numColors = enabled ? 1 : 0;
+        if (enabled)
+            ImGui.PushStyleColor(id, new Vector4f(color.R, color.G, color.B, color.A));
+    }
+
+    public ColorScopeGuard(ReadOnlySpan<(ImGuiCol Id, Color Color)> colors, bool enabled = true)
+    {
+        _numColors = enabled ? colors.Length : 0;
+        if (enabled)
+        {
+            foreach (var (id, color) in colors)
+                ImGui.PushStyleColor(id, new Vector4f(color.R, color.G, color.B, color.A));
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_numColors > 0)
+            ImGui.PopStyleColor(_numColors);
+    }
+
+    private readonly int _numColors;
 }
