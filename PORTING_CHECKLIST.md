@@ -897,9 +897,9 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 
 ## Editor/Project
 
-- [ ] `CreateDefaultScene.h`
+- [x] `CreateDefaultScene.h`
   - [x] `DefaultSceneParameters`
-  - [ ] `CreateDefaultScene`
+  - [x] `CreateDefaultScene`
 - [x] `LaunchManager.h`
   - [x] `LaunchConfiguration` — managed reference type preserves mutable pointer use; `Clone` and `Dispose` preserve C++ value and lifetime semantics
   - [x] `LaunchManager`
