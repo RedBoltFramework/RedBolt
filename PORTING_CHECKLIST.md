@@ -979,6 +979,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 - [x] `ConcurrentAssetProcessing.h` — command-pipe input/output serialization, single-process command dispatch, remote batch processing, configurable concurrency, copied asynchronous inputs, and temporary-directory lifetime are ported and software-renderer tested; generated `SliderInt` input/output uses `ref`
 - [x] `Shared/HierarchyBrowserSource.h` — C++ multiple-inheritance role mapped to a C# interface with native no-op defaults
 - [x] `Shared/InspectorSource.h` — C++ signal maps to a C# event; multiple-inheritance role maps to an interface with native defaults
+- [x] `Shared/CameraController.h` — native camera settings and page state, nine passive hotkeys, free-look/orbit/scroll motion, camera-state restoration, orthographic aspect preservation, and focus smoothing are ported and software-renderer tested; a static key map avoids per-frame managed allocation, and generated `InputFloat` input/output uses `ref`
 - [x] `Shared/InspectorWithPreview.h` — typed request priority, stable sorted selection reuse, undo/save edit boundaries, single-resource preview ownership, and both native child layouts are ported and software-renderer tested
 - [x] `HierarchyBrowserTab.h` — native weak source ownership is preserved; `Foundation_HierarchyBrowserTab` plugin entry point is deferred
 - [x] `InspectorTab.h` — owns registered addons, connects on activation, and weakly forwards the active source; plugin entry point is deferred
