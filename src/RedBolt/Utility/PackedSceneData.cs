@@ -23,6 +23,7 @@
 namespace RedBolt.Utility;
 
 using System;
+using System.Collections.Generic;
 
 using RedBolt.Container;
 using RedBolt.Core;
@@ -238,4 +239,62 @@ public class PackedComponentData : ICloneable
     private int _indexInParent;
     private StringHash _type;
     private VectorBuffer _data = new();
+}
+
+/// <summary>Packed nodes and components.</summary>
+public class PackedNodeComponentData : ICloneable
+{
+    public PackedNodeComponentData()
+    {
+    }
+
+    private PackedNodeComponentData(PackedNodeComponentData rhs)
+    {
+        foreach (var node in rhs._nodes)
+            _nodes.Add(node.Clone());
+        foreach (var component in rhs._components)
+            _components.Add(component.Clone());
+    }
+
+    public PackedNodeComponentData Clone() => new(this);
+
+    object ICloneable.Clone() => Clone();
+
+    /// <summary>Pack nodes.</summary>
+    public static PackedNodeComponentData FromNodes(IEnumerable<Node?> nodes)
+    {
+        var result = new PackedNodeComponentData();
+        foreach (var node in nodes)
+        {
+            if (node is not null)
+                result._nodes.Add(new PackedNodeData(node));
+        }
+        return result;
+    }
+
+    /// <summary>Pack components.</summary>
+    public static PackedNodeComponentData FromComponents(IEnumerable<Component?> components)
+    {
+        var result = new PackedNodeComponentData();
+        foreach (var component in components)
+        {
+            if (component is not null)
+                result._components.Add(new PackedComponentData(component));
+        }
+        return result;
+    }
+
+    /// <summary>Return contents</summary>
+    public bool HasNodes => _nodes.Count != 0;
+
+    public IReadOnlyList<PackedNodeData> Nodes => _nodes;
+
+    public bool HasComponents => _components.Count != 0;
+
+    public IReadOnlyList<PackedComponentData> Components => _components;
+
+    public bool HasNodesOrComponents => HasNodes || HasComponents;
+
+    private readonly List<PackedNodeData> _nodes = [];
+    private readonly List<PackedComponentData> _components = [];
 }

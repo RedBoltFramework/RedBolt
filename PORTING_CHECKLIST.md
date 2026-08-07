@@ -829,7 +829,7 @@ Accepted deviations:
 - [ ] `PackedSceneData.h`
   - [x] `PackedNodeData`
   - [x] `PackedComponentData`
-  - [ ] `PackedNodeComponentData`
+  - [x] `PackedNodeComponentData`
   - [ ] `PackedSceneData`
 - [ ] `SceneSelection.h`
   - [ ] `struct PackedSceneSelection`
