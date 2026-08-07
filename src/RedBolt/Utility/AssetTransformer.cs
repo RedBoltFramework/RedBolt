@@ -205,3 +205,28 @@ public class AssetTransformerOutput : ICloneable
         value.SerializeInBlock(archive);
     }
 }
+
+/// <summary>Dependency between two transformer classes.</summary>
+/// <remarks>Note: this dependency is global within a project regardless of transformer scope!</remarks>
+public class AssetTransformerDependency : ICloneable
+{
+    public string Class = string.Empty;
+    public string DependsOn = string.Empty;
+
+    public void SerializeInBlock(Archive archive)
+    {
+        ArchiveSerialization.SerializeValue(archive, "Class", ref Class);
+        ArchiveSerialization.SerializeValue(archive, "DependsOn", ref DependsOn);
+    }
+
+    public AssetTransformerDependency Clone()
+    {
+        return new AssetTransformerDependency
+        {
+            Class = Class,
+            DependsOn = DependsOn,
+        };
+    }
+
+    object ICloneable.Clone() => Clone();
+}

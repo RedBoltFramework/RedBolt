@@ -811,7 +811,7 @@ Accepted deviations:
 - [ ] `AssetTransformer.h`
   - [x] `struct AssetTransformerInput` — managed reference type and `Clone` preserve C++ value-copy semantics
   - [x] `struct AssetTransformerOutput` — managed reference type and `Clone` preserve C++ value-copy semantics
-  - [ ] `struct AssetTransformerDependency`
+  - [x] `struct AssetTransformerDependency` — managed reference type and `Clone` preserve C++ value-copy semantics
   - [ ] `AssetTransformer : Serializable`
 - [ ] `AssetTransformerHierarchy.h`
   - [ ] `AssetTransformerHierarchy : Object`
