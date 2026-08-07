@@ -77,6 +77,14 @@ public sealed class Chat : Application
         parameters.WindowTitle = "RedBolt Chat";
     }
 
+    protected override void SetupCommandLine(CommandLineParser parser, EngineParameters parameters)
+    {
+        parser.AddFlag(["--start-server"], "Start the chat server on launch.",
+            () => _startServerOnLaunch = true);
+        parser.AddOption(["--connect"], "address", "Connect to a chat server on launch.",
+            address => _connectOnLaunch = address);
+    }
+
     protected override void Start()
     {
         base.Start();
@@ -91,6 +99,11 @@ public sealed class Chat : Application
         SubscribeToEvent<IOEvents.LogMessage>(HandleSampleLogMessage);
         Input.SetMouseMode(MouseMode.Free);
         Input.SetMouseVisible(true);
+
+        if (_startServerOnLaunch)
+            StartServer();
+        else if (!string.IsNullOrWhiteSpace(_connectOnLaunch))
+            Connect(_connectOnLaunch);
     }
 
     protected override void Stop()
@@ -131,9 +144,12 @@ public sealed class Chat : Application
                 Connect();
             if (!clientConnected && !serverRunning)
             {
-                ImGui.SameLine();
-                if (ImGui.Button("Start Server"u8))
-                    StartServer();
+                if (ProcessUtils.GetPlatform() != PlatformId.Web)
+                {
+                    ImGui.SameLine();
+                    if (ImGui.Button("Start Server"u8))
+                        StartServer();
+                }
             }
             if ((clientConnected || serverRunning) && ImGui.Button("Disconnect"u8))
                 Disconnect();
@@ -166,9 +182,9 @@ public sealed class Chat : Application
         }
     }
 
-    private void Connect()
+    private void Connect(string? address = null)
     {
-        var address = ReadText().Trim();
+        address ??= ReadText().Trim();
         if (address.Length == 0)
             address = "localhost";
         ClearText();
@@ -182,7 +198,9 @@ public sealed class Chat : Application
         }
         if (!_clientConnection.IsDisconnected)
             return;
-        _clientConnection.Connect(new URL($"{address}:{ChatServerPort}"));
+        _clientConnection.Connect(new URL(address.Contains("://", StringComparison.Ordinal)
+            ? address
+            : $"ws://{address}:{ChatServerPort}"));
     }
 
     private void Disconnect()
@@ -270,4 +288,6 @@ public sealed class Chat : Application
     private DataChannelServer? _server;
     private DataChannelConnection? _clientConnection;
     private readonly List<WeakReference<NetworkConnection>> _serverConnections = [];
+    private bool _startServerOnLaunch;
+    private string? _connectOnLaunch;
 }

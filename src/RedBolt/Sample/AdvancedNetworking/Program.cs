@@ -333,8 +333,11 @@ public sealed class AdvancedNetworking : Application
             {
                 ImGui.InputText("Server address"u8, _addressBuffer, AddressBufferSize);
                 if (ImGui.Button("Connect"u8)) Connect();
-                ImGui.SameLine();
-                if (ImGui.Button("Start server"u8)) StartServer();
+                if (ProcessUtils.GetPlatform() != PlatformId.Web)
+                {
+                    ImGui.SameLine();
+                    if (ImGui.Button("Start server"u8)) StartServer();
+                }
             }
             else if (ImGui.Button("Stop networking"u8))
                 StopNetworking();
@@ -381,7 +384,9 @@ public sealed class AdvancedNetworking : Application
         _clientConnection = new AdvancedNetworkingConnection();
         _clientConnection.ReplicationPeer.SetReplicationManager(_scene!.GetComponent<ReplicationManager>());
         _clientConnection.MessageReceived += HandleClientMessage;
-        if (!_clientConnection.Connect(new URL($"ws://{address}:{ServerPort}")))
+        if (!_clientConnection.Connect(new URL(address.Contains("://", StringComparison.Ordinal)
+                ? address
+                : $"ws://{address}:{ServerPort}")))
         {
             _clientConnection.Dispose();
             _clientConnection = null;

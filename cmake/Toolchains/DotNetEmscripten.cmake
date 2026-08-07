@@ -6,9 +6,25 @@ else()
     get_filename_component(_redbolt_dotnet_root "${_redbolt_dotnet_executable}" DIRECTORY)
 endif()
 
+set(_redbolt_dotnet_pack_roots "${_redbolt_dotnet_root}")
+if(DEFINED ENV{DOTNET_CLI_HOME} AND NOT "$ENV{DOTNET_CLI_HOME}" STREQUAL "")
+    list(APPEND _redbolt_dotnet_pack_roots "$ENV{DOTNET_CLI_HOME}/.dotnet")
+endif()
+if(DEFINED ENV{HOME} AND NOT "$ENV{HOME}" STREQUAL "")
+    list(APPEND _redbolt_dotnet_pack_roots
+        "$ENV{HOME}/.dotnet"
+        "$ENV{HOME}/.local/share/dotnet"
+        "$ENV{HOME}/.local")
+endif()
+list(REMOVE_DUPLICATES _redbolt_dotnet_pack_roots)
+
 function(_redbolt_latest_emscripten_pack output pattern)
-    file(GLOB _redbolt_pack_versions LIST_DIRECTORIES TRUE
-        "${_redbolt_dotnet_root}/packs/${pattern}/*")
+    set(_redbolt_pack_versions)
+    foreach(_redbolt_pack_root IN LISTS _redbolt_dotnet_pack_roots)
+        file(GLOB _redbolt_root_pack_versions LIST_DIRECTORIES TRUE
+            "${_redbolt_pack_root}/packs/${pattern}/*")
+        list(APPEND _redbolt_pack_versions ${_redbolt_root_pack_versions})
+    endforeach()
     if(NOT _redbolt_pack_versions)
         message(FATAL_ERROR
             "The installed .NET SDK does not contain ${pattern}. Install the wasm-tools workload.")

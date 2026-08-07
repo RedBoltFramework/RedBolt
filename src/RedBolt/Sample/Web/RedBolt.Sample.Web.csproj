@@ -32,6 +32,7 @@
     <ProjectReference Include="../../IK/RedBolt.IK.csproj" />
     <ProjectReference Include="../../JoltPhysics/RedBolt.JoltPhysics.csproj" />
     <ProjectReference Include="../../Navigation/RedBolt.Navigation.csproj" />
+    <ProjectReference Include="../../Network/RedBolt.Network.csproj" />
     <ProjectReference Include="../../Platform/Web/RedBolt.Platform.Web.csproj" />
     <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
     <ProjectReference Include="../../RmlUI/RedBolt.RmlUI.csproj" />
@@ -44,7 +45,7 @@
                       Private="false"
                       PrivateAssets="all" />
     <Compile Include="../**/*.cs"
-             Exclude="../Web/**/*.cs"
+             Exclude="../Web/**/*.cs;../WebRTCSTUN/**/*.cs"
              Link="Samples/%(RecursiveDir)%(Filename)%(Extension)" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all"
@@ -79,6 +80,12 @@
     <ItemGroup>
       <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
                              Condition="'%(RelativePath)' == 'RedBolt.Generator.Dependencies.deps.json' or '%(RelativePath)' == 'RedBolt.Generator.Dependencies.runtimeconfig.json'" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="RedBoltConfigureWebPInvokeModules" BeforeTargets="_GenerateManagedToNative">
+    <ItemGroup>
+      <_WasmPInvokeModules Include="RedBolt.Native.Sdl;RedBolt.Native.Diligent;RedBolt.Native.DearImGui;RedBolt.Native.Stb;RedBolt.Native.TinyGltf;RedBolt.Native.Lz4;RedBolt.Native.HarfBuzz;RedBolt.Native.RmlUi;RedBolt.Native.WebP;RedBolt.Native.Glslang;RedBolt.Native.SpirVCross;RedBolt.Native.SpirVTools;RedBolt.Native.ShaderCompiler;RedBolt.Native.Jolt" />
     </ItemGroup>
   </Target>
 

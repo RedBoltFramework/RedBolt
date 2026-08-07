@@ -261,9 +261,12 @@ public sealed class SceneReplication : Application
                 ImGui.InputText("Server address"u8, _addressBuffer, AddressBufferSize);
                 if (ImGui.Button("Connect"u8))
                     Connect();
-                ImGui.SameLine();
-                if (ImGui.Button("Start server"u8))
-                    StartServer();
+                if (ProcessUtils.GetPlatform() != PlatformId.Web)
+                {
+                    ImGui.SameLine();
+                    if (ImGui.Button("Start server"u8))
+                        StartServer();
+                }
             }
             else if (ImGui.Button("Disconnect"u8))
                 Disconnect();
@@ -370,7 +373,9 @@ public sealed class SceneReplication : Application
             address = "localhost";
         _clientConnection = new ReplicatedDataChannelConnection();
         _clientConnection.ReplicationPeer.SetReplicationManager(_scene!.GetComponent<ReplicationManager>());
-        _clientConnection.Connect(new URL($"ws://{address}:{ServerPort}"));
+        _clientConnection.Connect(new URL(address.Contains("://", StringComparison.Ordinal)
+            ? address
+            : $"ws://{address}:{ServerPort}"));
     }
 
     private void StartServer()

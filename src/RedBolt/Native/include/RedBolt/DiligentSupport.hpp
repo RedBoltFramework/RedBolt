@@ -1,9 +1,16 @@
 #pragma once
 
+#if PLATFORM_WEB
+#include <GLES3/gl3.h>
+#ifndef GL_PROGRAM_SEPARABLE
+#define GL_PROGRAM_SEPARABLE 0x8258
+#endif
+#else
 #ifndef GLEW_STATIC
 #define GLEW_STATIC
 #endif
 #include <GL/glew.h>
+#endif
 
 #include <EngineFactoryOpenGL.h>
 #include <DeviceContextGL.h>
