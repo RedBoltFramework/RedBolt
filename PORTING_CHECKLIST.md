@@ -815,8 +815,8 @@ Accepted deviations:
   - [x] `AssetTransformer : Serializable` — direct `System.IO` mapping replaces native `FileSystem` and `TemporaryDir`
 - [ ] `AssetTransformerHierarchy.h`
   - [ ] `AssetTransformerHierarchy : Object`
-- [ ] `BaseAssetPostTransformer.h`
-  - [ ] `BaseAssetPostTransformer : AssetTransformer`
+- [x] `BaseAssetPostTransformer.h`
+  - [x] `BaseAssetPostTransformer : AssetTransformer`
 - [ ] `CalculateAnimationVelocityTransformer.h`
   - [ ] `CalculateAnimationVelocityTransformer : BaseAssetPostTransformer`
 - [ ] `GenerateWorldSpaceTracksTransformer.h`
