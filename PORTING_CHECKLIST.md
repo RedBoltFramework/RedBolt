@@ -810,7 +810,7 @@ Accepted deviations:
   - [ ] registration entry point
 - [ ] `AssetTransformer.h`
   - [x] `struct AssetTransformerInput` — managed reference type and `Clone` preserve C++ value-copy semantics
-  - [ ] `struct AssetTransformerOutput`
+  - [x] `struct AssetTransformerOutput` — managed reference type and `Clone` preserve C++ value-copy semantics
   - [ ] `struct AssetTransformerDependency`
   - [ ] `AssetTransformer : Serializable`
 - [ ] `AssetTransformerHierarchy.h`

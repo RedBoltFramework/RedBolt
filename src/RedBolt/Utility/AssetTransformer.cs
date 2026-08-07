@@ -23,6 +23,7 @@
 namespace RedBolt.Utility;
 
 using System;
+using System.Collections.Generic;
 
 using RedBolt.Engine;
 using RedBolt.IO;
@@ -136,6 +137,69 @@ public class AssetTransformerInput : ICloneable
     }
 
     private static void SerializeValue(Archive archive, string name, AssetTransformerInput value)
+    {
+        using var block = archive.OpenUnorderedBlock(name);
+        value.SerializeInBlock(archive);
+    }
+}
+
+/// <summary>Transformer execution result (should be serializable on its own).</summary>
+public class AssetTransformerOutput : ICloneable
+{
+    public void SerializeInBlock(Archive archive)
+    {
+        ArchiveSerialization.SerializeValue(archive, "sourceModified", ref SourceModified);
+        ArchiveSerialization.SerializeVector(
+            archive, "outputResourceNames", OutputResourceNames, ArchiveSerialization.SerializeValue);
+        ArchiveSerialization.SerializeSet(
+            archive, "modifiedResourceNames", ModifiedResourceNames, ArchiveSerialization.SerializeValue);
+        ArchiveSerialization.SerializeSet(
+            archive, "appliedTransformers", AppliedTransformers, ArchiveSerialization.SerializeValue);
+        ArchiveSerialization.SerializeMap(archive, "dependencyModificationTimes", DependencyModificationTimes,
+            ArchiveSerialization.SerializeValue, ArchiveSerialization.SerializeValue);
+    }
+
+    public static AssetTransformerOutput FromBase64(string base64)
+    {
+        using var archive = new Base64InputArchive(base64);
+        var result = new AssetTransformerOutput();
+        SerializeValue(archive, "output", result);
+        return result;
+    }
+
+    public string ToBase64()
+    {
+        using var archive = new Base64OutputArchive();
+        SerializeValue(archive, "output", this);
+        return archive.GetBase64();
+    }
+
+    public AssetTransformerOutput Clone()
+    {
+        return new AssetTransformerOutput
+        {
+            SourceModified = SourceModified,
+            OutputResourceNames = [.. OutputResourceNames],
+            ModifiedResourceNames = new HashSet<string>(ModifiedResourceNames, StringComparer.Ordinal),
+            AppliedTransformers = new HashSet<string>(AppliedTransformers, StringComparer.Ordinal),
+            DependencyModificationTimes = new Dictionary<string, uint>(DependencyModificationTimes, StringComparer.Ordinal),
+        };
+    }
+
+    object ICloneable.Clone() => Clone();
+
+    /// <summary>Whether the source file was modified.</summary>
+    public bool SourceModified;
+    /// <summary>Resource names of the output files. Do not add source files here!</summary>
+    public List<string> OutputResourceNames = [];
+    /// <summary>Resource names of additionally modified files (outside of temporary folder).</summary>
+    public HashSet<string> ModifiedResourceNames = new(StringComparer.Ordinal);
+    /// <summary>Types of transformers that were applied to the asset.</summary>
+    public HashSet<string> AppliedTransformers = new(StringComparer.Ordinal);
+    /// <summary>Other files that were used to generate the output.</summary>
+    public Dictionary<string, uint> DependencyModificationTimes = new(StringComparer.Ordinal);
+
+    private static void SerializeValue(Archive archive, string name, AssetTransformerOutput value)
     {
         using var block = archive.OpenUnorderedBlock(name);
         value.SerializeInBlock(archive);
