@@ -26,6 +26,7 @@ using System;
 using System.Collections.Generic;
 
 using RedBolt.Core;
+using RedBolt.Scene;
 
 /// <summary>Base class for project-wide requests. Should be used from main thread only!</summary>
 public class ProjectRequest : RedObject
@@ -78,4 +79,90 @@ public class BaseInspectRequest : ProjectRequest
     public BaseInspectRequest()
     {
     }
+}
+
+/// <summary>Request to inspect one or more nodes or components.</summary>
+public class InspectNodeComponentRequest : BaseInspectRequest
+{
+    public InspectNodeComponentRequest(IEnumerable<Node?> nodes, IEnumerable<Component?> components)
+    {
+        foreach (var node in nodes)
+        {
+            if (node is not null)
+                _nodes.Add(new WeakReference<Node>(node));
+        }
+        foreach (var component in components)
+        {
+            if (component is not null)
+                _components.Add(new WeakReference<Component>(component));
+        }
+
+        _nodes.Sort(static (lhs, rhs) =>
+        {
+            lhs.TryGetTarget(out var lhsNode);
+            rhs.TryGetTarget(out var rhsNode);
+            return (lhsNode?.Id ?? 0).CompareTo(rhsNode?.Id ?? 0);
+        });
+        _components.Sort(static (lhs, rhs) =>
+        {
+            lhs.TryGetTarget(out var lhsComponent);
+            rhs.TryGetTarget(out var rhsComponent);
+            return (lhsComponent?.Id ?? 0).CompareTo(rhsComponent?.Id ?? 0);
+        });
+    }
+
+    public override void Dispose()
+    {
+        _components.Clear();
+        _nodes.Clear();
+        base.Dispose();
+    }
+
+    public IReadOnlyList<WeakReference<Node>> Nodes => _nodes;
+
+    public IReadOnlyList<WeakReference<Component>> Components => _components;
+
+    /// <summary>Return scene if all nodes and components belong to the same scene, null otherwise.</summary>
+    public Scene? CommonScene
+    {
+        get
+        {
+            Scene? scene = null;
+
+            foreach (var nodeReference in _nodes)
+            {
+                if (!nodeReference.TryGetTarget(out var node))
+                    continue;
+
+                var nodeScene = node.Scene;
+                if (nodeScene is null || (scene is not null && !ReferenceEquals(scene, nodeScene)))
+                    return null;
+
+                scene = nodeScene;
+            }
+
+            foreach (var componentReference in _components)
+            {
+                if (!componentReference.TryGetTarget(out var component))
+                    continue;
+
+                var componentScene = component.Scene;
+                if (componentScene is null || (scene is not null && !ReferenceEquals(scene, componentScene)))
+                    return null;
+
+                scene = componentScene;
+            }
+
+            return scene;
+        }
+    }
+
+    public bool IsEmpty => _nodes.Count == 0 && _components.Count == 0;
+
+    public bool HasNodes => _nodes.Count != 0;
+
+    public bool HasComponents => _components.Count != 0;
+
+    private readonly List<WeakReference<Node>> _nodes = [];
+    private readonly List<WeakReference<Component>> _components = [];
 }

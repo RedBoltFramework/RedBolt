@@ -923,7 +923,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [ ] `OpenResourceRequest`
   - [x] `BaseInspectRequest`
   - [ ] `InspectResourceRequest`
-  - [ ] `InspectNodeComponentRequest`
+  - [x] `InspectNodeComponentRequest` — managed weak references use unique scene IDs for stable canonical ordering because CLR object addresses are movable
   - [ ] `CreateResourceRequest`
 - [ ] `ResourceFactory.h`
   - [ ] `ResourceFactory`
