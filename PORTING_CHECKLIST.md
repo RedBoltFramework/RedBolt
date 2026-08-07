@@ -828,7 +828,7 @@ Accepted deviations:
   - [ ] `FileSystemReflection : Object`
 - [ ] `PackedSceneData.h`
   - [x] `PackedNodeData`
-  - [ ] `PackedComponentData`
+  - [x] `PackedComponentData`
   - [ ] `PackedNodeComponentData`
   - [ ] `PackedSceneData`
 - [ ] `SceneSelection.h`

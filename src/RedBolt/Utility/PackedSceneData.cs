@@ -24,6 +24,7 @@ namespace RedBolt.Utility;
 
 using System;
 
+using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.IO;
 using RedBolt.Scene;
@@ -126,4 +127,115 @@ public class PackedNodeData : ICloneable
     private string _name = string.Empty;
     private VectorBuffer _data = new();
     private AttributeScopeHint _scopeHint;
+}
+
+/// <summary>Packed component data.</summary>
+public class PackedComponentData : ICloneable
+{
+    public PackedComponentData()
+    {
+    }
+
+    /// <summary>Create from existing component.</summary>
+    public PackedComponentData(Component component)
+    {
+        _id = component.Id;
+        _nodeId = component.TryGetNode() is not null ? component.Node.Id : 0;
+        _indexInParent = component.GetIndexInParent();
+        _type = component.GetTypeNameHash();
+
+        ArchiveSerialization.ConsumeArchiveException(() =>
+        {
+            using var archive = new BinaryOutputArchive(Context.Instance, _data);
+
+            using var block = archive.OpenUnorderedBlock("component");
+            component.SerializeInBlock(archive, true);
+        });
+    }
+
+    private PackedComponentData(PackedComponentData rhs)
+    {
+        _id = rhs._id;
+        _nodeId = rhs._nodeId;
+        _indexInParent = rhs._indexInParent;
+        _type = rhs._type;
+        _data = (VectorBuffer)rhs._data.Clone();
+    }
+
+    public PackedComponentData Clone() => new(this);
+
+    object ICloneable.Clone() => Clone();
+
+    /// <summary>Spawn exact component in the scene. May fail.</summary>
+    public Component? SpawnExact(Scene scene)
+    {
+        var node = scene.GetNode(_nodeId);
+        if (node is null)
+            return null;
+
+        var component = node.CreateComponent(_type, _id);
+        if (component is null)
+            return null;
+
+        if (component.Id != _id)
+        {
+            component.Remove();
+            return null;
+        }
+
+        ArchiveSerialization.ConsumeArchiveException(() =>
+        {
+            using var view = new MemoryBuffer(_data.GetBuffer());
+            using var archive = new BinaryInputArchive(Context.Instance, view);
+
+            using var block = archive.OpenUnorderedBlock("component");
+            component.SerializeInBlock(archive, true);
+        });
+
+        node.ReorderComponent(component, _indexInParent);
+        return component;
+    }
+
+    /// <summary>Spawn similar component at the node. May fail only if component type is unknown.</summary>
+    public Component? SpawnCopy(Node node)
+    {
+        var component = node.CreateComponent(_type, _id);
+        if (component is null)
+            return null;
+
+        ArchiveSerialization.ConsumeArchiveException(() =>
+        {
+            using var view = new MemoryBuffer(_data.GetBuffer());
+            using var archive = new BinaryInputArchive(Context.Instance, view);
+
+            using var block = archive.OpenUnorderedBlock("component");
+            component.SerializeInBlock(archive, true);
+        });
+
+        return component;
+    }
+
+    /// <summary>Update attributes of existing component.</summary>
+    public void Update(Component component)
+    {
+        ArchiveSerialization.ConsumeArchiveException(() =>
+        {
+            using var view = new MemoryBuffer(_data.GetBuffer());
+            using var archive = new BinaryInputArchive(Context.Instance, view);
+
+            using var block = archive.OpenUnorderedBlock("component");
+            component.SerializeInBlock(archive, true);
+        });
+    }
+
+    /// <summary>Return component ID.</summary>
+    public uint Id => _id;
+
+    public StringHash Type => _type;
+
+    private uint _id;
+    private uint _nodeId;
+    private int _indexInParent;
+    private StringHash _type;
+    private VectorBuffer _data = new();
 }
