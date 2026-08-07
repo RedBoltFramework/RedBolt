@@ -90,6 +90,14 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
                 function.Parameters.First(static parameter => parameter.NativeName == "p_open").Direction =
                     BindingParameterDirection.Ref;
             }
+            if (function.CppQualifiedName == "ImGui::BeginPopupModal")
+            {
+                var open = function.Parameters.First(static parameter => parameter.NativeName == "p_open");
+                open.Type = BindingType.IntPtr;
+                open.Direction = BindingParameterDirection.In;
+                open.AbiKind = BindingParameterAbiKind.Value;
+                open.CppTypeName = "bool*";
+            }
             if (function.NativeName == "Checkbox")
             {
                 function.Parameters.First(static parameter => parameter.NativeName == "v").Direction =
