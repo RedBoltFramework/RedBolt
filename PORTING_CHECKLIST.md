@@ -716,8 +716,9 @@ Accepted deviations:
 
 - [x] `SystemUIEvents.h`
   - [x] system-UI event definitions
-- [ ] `ImGui.h`
-  - [ ] ImGui integration helpers
+- [~] `ImGui.h`
+  - [~] ImGui integration helpers
+  - [x] `IdScopeGuard`
 - [ ] `Widgets.h`
   - [ ] shared widget free functions
   - [x] `GetSmallButtonSize`
