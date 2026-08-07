@@ -621,3 +621,74 @@ public class ReorderComponentAction : EditorAction
     private readonly int _oldIndex;
     private int _newIndex;
 }
+
+/// <summary>Reparent node.</summary>
+public class ReparentNodeAction : EditorAction
+{
+    public ReparentNodeAction(Node node, Node newParent)
+    {
+        var scene = node.Scene;
+        _scene = scene is not null ? new WeakReference<Scene>(scene) : null;
+        _nodeId = node.Id;
+        _oldParentId = node.Parent!.Id;
+        _oldIndex = node.GetIndexInParent();
+        _newParentId = newParent.Id;
+    }
+
+    /// <summary>Implement EditorAction.</summary>
+    public override bool CanUndoRedo()
+    {
+        return _scene is not null && _scene.TryGetTarget(out var scene)
+            && scene.GetNode(_nodeId) is not null && scene.GetNode(_oldParentId) is not null
+            && scene.GetNode(_newParentId) is not null;
+    }
+
+    public override void Redo()
+    {
+        Reparent(_newParentId, null);
+    }
+
+    public override void Undo()
+    {
+        Reparent(_oldParentId, _oldIndex);
+    }
+
+    private void Reparent(uint parentId, int? index)
+    {
+        var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+        var node = scene!.GetNode(_nodeId);
+        var parent = scene.GetNode(parentId);
+        if (node is null)
+            throw new UndoException($"Cannot find node with id {_nodeId}");
+        else if (parent is null)
+            throw new UndoException($"Cannot find parent node with id {parentId}");
+        else
+        {
+            node.SetParent(parent);
+            if (index.HasValue)
+                parent.ReorderChild(node, index.Value);
+        }
+    }
+
+    public override bool MergeWith(EditorAction other)
+    {
+        if (other is not ReparentNodeAction otherAction)
+            return false;
+
+        var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+        var otherScene = otherAction._scene is not null && otherAction._scene.TryGetTarget(out var otherSceneTarget)
+            ? otherSceneTarget
+            : null;
+        if (!ReferenceEquals(scene, otherScene) || _nodeId != otherAction._nodeId)
+            return false;
+
+        _newParentId = otherAction._newParentId;
+        return true;
+    }
+
+    private readonly WeakReference<Scene>? _scene;
+    private readonly uint _nodeId;
+    private readonly uint _oldParentId;
+    private readonly int _oldIndex;
+    private uint _newParentId;
+}
