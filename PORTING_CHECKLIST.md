@@ -843,3 +843,45 @@ Accepted deviations:
   - [ ] `SceneRendererToTexture : CustomBackbufferTexture`
 - [ ] `SceneViewerApplication.h` ⤴ needs `Plugins`
   - [ ] `SceneViewerApplication : MainPluginApplication`
+
+---
+
+# EDITOR APPLICATION
+
+The managed editor lives under `src/RedBolt/Editor`, matching rbfx's separate `EditorLibrary` boundary.
+User-code reloading and engine/editor plugins are deferred by request. Keep their native call sites as explicit
+`TODO: port` guidance when the surrounding editor class is ported; do not replace them with alternate reload or plugin paths.
+
+## Editor/Core
+
+- [x] `UndoManager.h`
+  - [x] `UndoException`
+  - [x] `EditorAction`
+  - [x] `BaseEditorActionWrapper`
+  - [x] `UndoManager`
+- [ ] `HotkeyManager.h`
+- [ ] `IniHelpers.h`
+- [ ] `SettingsManager.h`
+- [ ] `CommonEditorActions.h`
+- [ ] `CommonEditorActionBuilders.h`
+- [ ] `EditorPlugin.h` — **DEFERRED** · editor plugins will be ported later; keep explicit `TODO: port` call-site guidance
+- [ ] `EditorPluginManager.h` — **DEFERRED** · editor plugins will be ported later; keep explicit `TODO: port` call-site guidance
+
+## Editor/Project
+
+- [ ] Project layer inventory and port
+
+## Editor/Foundation
+
+- [ ] Foundation tabs, inspectors, scene tools, and resource browser inventory and port
+
+## Editor/Assets
+
+- [ ] Model importer and editor asset pipeline integration
+
+## Editor application and data
+
+- [ ] `EditorApplication`
+- [ ] Editor executable and desktop build integration
+- [ ] `EditorData` resources and runtime staging
+- [ ] User-code reloading — **DEFERRED** · port later; keep explicit `TODO: port` call-site guidance

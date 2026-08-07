@@ -25,6 +25,7 @@
   <Folder Name="/src/RedBolt/">
     <Project Path="src/RedBolt/Actions/RedBolt.Actions.csproj" />
     <Project Path="src/RedBolt/Audio/RedBolt.Audio.csproj" />
+    <Project Path="src/RedBolt/Editor/RedBolt.Editor.csproj" />
     <Project Path="src/RedBolt/RedBolt/RedBolt.csproj" />
     <Project Path="src/RedBolt/DearImGui/RedBolt.DearImGui.csproj" />
     <Project Path="src/RedBolt/Glow/RedBolt.Glow.csproj" />
