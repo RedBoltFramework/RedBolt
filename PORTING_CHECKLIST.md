@@ -733,6 +733,9 @@ Accepted deviations:
   - [x] `GetItemBackgroundColor`
   - [x] `Underline`
   - [x] `TextURL` — UTF-8 spans preserve native string lifetime without per-frame conversions
+  - [x] `FitContent`
+  - [x] `Image`
+  - [x] `ImageItem` — the caller retains one generated `ImTextureRef` wrapper because the current binding projects this native value type as an owned class
   - [x] `EditVariantOptions` — C# field names use `Value` and predicate forms where native fluent methods otherwise collide
   - [x] `EditResourceRef`
   - [x] `EditResourceRefList`
@@ -757,8 +760,8 @@ Accepted deviations:
   - [x] `BaseWidget : Object`
 - [x] `ResourceInspectorWidget.h`
   - [x] `ResourceInspectorWidget : BaseWidget` — borrowed property descriptors, multi-resource undefined/default presentation, save disabling, deferred batched setters, and edit-boundary events are ported and interaction-tested
-- [ ] `SceneWidget.h`
-  - [ ] `SceneWidget : BaseWidget`
+- [x] `SceneWidget.h`
+  - [x] `SceneWidget : BaseWidget` — default scene, lazy render-to-texture setup, light tracking, orbit/zoom controls, skybox replacement, camera framing, and explicit owned-resource disposal are ported and software-renderer tested
 - [ ] `Texture2DWidget.h`
   - [ ] `Texture2DWidget : BaseWidget`
 - [ ] `TransformGizmo.h`

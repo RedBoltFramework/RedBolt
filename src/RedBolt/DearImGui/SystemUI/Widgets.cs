@@ -23,10 +23,12 @@
 namespace RedBolt.SystemUI;
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 using RedBolt.Bindings.DearImGui;
 using RedBolt.Core;
+using RedBolt.Graphics;
 using RedBolt.Math;
 
 public static partial class Widgets
@@ -194,6 +196,45 @@ public static partial class Widgets
 
         if (isOpened)
             ProcessUtils.OpenURL(Encoding.UTF8.GetString(url));
+    }
+
+    /// <summary>Fit content into area.</summary>
+    public static Vector2f FitContent(Vector2f contentArea, Vector2f originalSize)
+    {
+        const float epsilon = 1.1920929e-7f;
+        if (contentArea.X <= epsilon || contentArea.Y <= epsilon
+            || originalSize.X <= epsilon || originalSize.Y <= epsilon)
+        {
+            return Vector2f.Zero;
+        }
+        var contentAspect = contentArea.X / contentArea.Y;
+        var imageAspect = originalSize.X / originalSize.Y;
+        if (contentAspect > imageAspect)
+            return new Vector2f(contentArea.Y * imageAspect, contentArea.Y);
+        else
+            return new Vector2f(contentArea.X, contentArea.X / imageAspect);
+    }
+
+    /// <summary>Render Texture2D as ImGui item.</summary>
+    public static void Image(Texture2D texture, ImTextureRef textureReference, Vector2f size)
+    {
+        var systemUI = Context.Instance.GetSubsystem<global::RedBolt.DearImGui.DearImGui>()!;
+        systemUI.ReferenceTexture(texture);
+
+        var textureView = texture.GetRawTexture().GetHandles().ShaderResourceView!;
+        textureReference.TexID = (ulong)(nuint)textureView.Handle;
+        ImGui.Image(textureReference, size);
+    }
+
+    /// <summary>Render Texture2D as ImGui item.</summary>
+    public static void ImageItem(Texture2D texture, ImTextureRef textureReference, Vector2f size)
+    {
+        using var window = ImGui.GetCurrentWindow();
+        var id = window.GetID(RuntimeHelpers.GetHashCode(texture));
+        var cursorPosition = ImGui.GetCursorScreenPos();
+        var boundingBox = new Rect(cursorPosition, cursorPosition + size);
+        Image(texture, textureReference, size);
+        ImGui.ItemAdd(in boundingBox, id);
     }
 
     /// <summary>Parameters for rendering arbitrary variant value.</summary>

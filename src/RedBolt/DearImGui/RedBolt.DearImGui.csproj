@@ -10,6 +10,7 @@
     <ProjectReference Include="../RedBolt/RedBolt.csproj" />
     <ProjectReference Include="../Bindings/DearImGui/RedBolt.Bindings.DearImGui.csproj" />
     <ProjectReference Include="../Bindings/Sdl/RedBolt.Bindings.Sdl.csproj" />
+    <ProjectReference Include="../Utility/RedBolt.Utility.csproj" />
   </ItemGroup>
 
   <ItemGroup>
