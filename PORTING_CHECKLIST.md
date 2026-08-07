@@ -955,6 +955,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 ## Editor/Foundation
 
 - [x] `Shared/HierarchyBrowserSource.h` — C++ multiple-inheritance role mapped to a C# interface with native no-op defaults
+- [x] `Shared/InspectorSource.h` — C++ signal maps to a C# event; multiple-inheritance role maps to an interface with native defaults
 - [x] `HierarchyBrowserTab.h` — native weak source ownership is preserved; `Foundation_HierarchyBrowserTab` plugin entry point is deferred
 - [ ] Foundation tabs, inspectors, scene tools, and resource browser inventory and port
 
