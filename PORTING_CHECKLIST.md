@@ -976,6 +976,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 ## Editor/Foundation
 
 - [x] `StandardFileTypes.h` — native callback order and all binary, XML, JSON, audio, scene, material, serializable-resource, render-path, texture, model, animation, asset-pipeline, font, and prefab type tags are ported and software-renderer tested
+- [x] `ConcurrentAssetProcessing.h` — command-pipe input/output serialization, single-process command dispatch, remote batch processing, configurable concurrency, copied asynchronous inputs, and temporary-directory lifetime are ported and software-renderer tested; generated `SliderInt` input/output uses `ref`
 - [x] `Shared/HierarchyBrowserSource.h` — C++ multiple-inheritance role mapped to a C# interface with native no-op defaults
 - [x] `Shared/InspectorSource.h` — C++ signal maps to a C# event; multiple-inheritance role maps to an interface with native defaults
 - [x] `Shared/InspectorWithPreview.h` — typed request priority, stable sorted selection reuse, undo/save edit boundaries, single-resource preview ownership, and both native child layouts are ported and software-renderer tested
