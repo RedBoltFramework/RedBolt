@@ -900,8 +900,8 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 - [ ] `Project.h`
   - [x] `ProjectFlag` / `ProjectFlags` — mapped to a C# flags enum
   - [x] `CloseProjectResult`
-  - [ ] `ResourceCacheGuard`
-  - [ ] `AnalyzeFileContext`
+  - [ ] `ResourceCacheGuard` — `TODO: port` retained mount ownership before `VirtualFileSystem.UnmountAll` can express dropped `SharedPtr` lifetime semantics
+  - [x] `AnalyzeFileContext` — managed reference preserves const callback aliasing; `Dispose` preserves owned member destruction order
   - [ ] `Project`
 - [x] `CreateDefaultScene.h`
   - [x] `DefaultSceneParameters`

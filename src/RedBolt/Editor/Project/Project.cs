@@ -23,6 +23,10 @@
 namespace RedBolt.Editor.Project;
 
 using System;
+using System.Collections.Generic;
+
+using RedBolt.IO;
+using RedBolt.Resource;
 
 /// <summary>Project configuration flags.</summary>
 [Flags]
@@ -41,4 +45,42 @@ public enum CloseProjectResult
     Undefined,
     Closed,
     Canceled
+}
+
+/// <summary>File type analysis context.</summary>
+public class AnalyzeFileContext : IDisposable
+{
+    public AbstractFile? BinaryFile;
+    public XMLFile? XmlFile;
+    public JSONFile? JsonFile;
+
+    public bool HasXMLRoot(string root)
+    {
+        if (XmlFile is null)
+            return false;
+
+        using var xmlRoot = XmlFile.GetRoot();
+        return string.Equals(xmlRoot.Name, root, StringComparison.OrdinalIgnoreCase);
+    }
+
+    public bool HasXMLRoot(IEnumerable<string> roots)
+    {
+        foreach (var root in roots)
+        {
+            if (HasXMLRoot(root))
+                return true;
+        }
+        return false;
+    }
+
+    public void Dispose()
+    {
+        JsonFile?.Dispose();
+        JsonFile = null;
+        XmlFile?.Dispose();
+        XmlFile = null;
+        BinaryFile?.Dispose();
+        BinaryFile = null;
+        GC.SuppressFinalize(this);
+    }
 }
