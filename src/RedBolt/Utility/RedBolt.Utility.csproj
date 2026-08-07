@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../IK/RedBolt.IK.csproj" />
     <ProjectReference Include="../Bindings/TinyGltf/RedBolt.Bindings.TinyGltf.csproj" />
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"

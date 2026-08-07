@@ -825,8 +825,9 @@ Accepted deviations:
   - [x] `struct GenerateWorldSpaceTracksParams` — managed reference type and `Clone` preserve C++ value-copy semantics; standard C# sets and maps replace EASTL containers
   - [x] `struct GenerateWorldSpaceTracksTask` — managed reference type, strong resource references, and `Clone` preserve C++ value and `SharedPtr` copies
   - [x] `GenerateWorldSpaceTracksTransformer : BaseAssetPostTransformer`
-- [ ] `RetargetAnimationsTransformer.h`
-  - [ ] `RetargetAnimationsTransformer : BaseAssetPostTransformer`
+- [x] `RetargetAnimationsTransformer.h`
+  - [x] `struct RetargetAnimationTask` — managed reference type and `Clone` preserve C++ value copies, strong resource references, and nested standard collections
+  - [x] `RetargetAnimationsTransformer : BaseAssetPostTransformer` — the enabled native IK path uses the existing managed IK module
 - [x] `AnimationMetadata.h` — faithful C# source conversion is present and builds in the optional Utility module
   - [x] animation metadata helpers
 - [x] `AssetPipeline.h`
