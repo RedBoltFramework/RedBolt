@@ -204,3 +204,68 @@ public class CreateComponentActionBuilder
     private PackedNodeData _oldNodeData = new();
     private PackedSceneData _oldSceneData = new();
 }
+
+public class RemoveComponentActionBuilder
+{
+    public RemoveComponentActionBuilder(Component? component)
+    {
+        var scene = component!.Scene;
+        _scene = scene is not null ? new WeakReference<Scene>(scene) : null;
+        var node = component.TryGetNode();
+        _node = node is not null ? new WeakReference<Node>(node) : null;
+        _scopeHint = CommonEditorActionBuilderHelpers.GetScopeHint(
+            scene!.Context, component.GetTypeNameHash());
+
+        switch (_scopeHint)
+        {
+            case AttributeScopeHint.Attribute:
+            case AttributeScopeHint.Serializable:
+            {
+                _action = new CreateRemoveComponentAction(component, true);
+                break;
+            }
+            case AttributeScopeHint.Node:
+            {
+                _oldNodeData = new PackedNodeData(node!);
+                break;
+            }
+            case AttributeScopeHint.Scene:
+            {
+                _oldSceneData = PackedSceneData.FromScene(scene);
+                break;
+            }
+        }
+    }
+
+    public EditorAction? Build()
+    {
+        switch (_scopeHint)
+        {
+            case AttributeScopeHint.Attribute:
+            case AttributeScopeHint.Serializable:
+            {
+                return _action;
+            }
+            case AttributeScopeHint.Node:
+            {
+                var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+                var node = _node is not null && _node.TryGetTarget(out var nodeTarget) ? nodeTarget : null;
+                return new ChangeNodeSubtreeAction(scene, _oldNodeData, node);
+            }
+            case AttributeScopeHint.Scene:
+            {
+                var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+                return new ChangeSceneAction(scene, _oldSceneData);
+            }
+            default: return null;
+        }
+    }
+
+    private readonly WeakReference<Scene>? _scene;
+    private readonly WeakReference<Node>? _node;
+    private readonly AttributeScopeHint _scopeHint;
+
+    private EditorAction? _action;
+    private PackedNodeData _oldNodeData = new();
+    private PackedSceneData _oldSceneData = new();
+}

@@ -886,7 +886,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `CreateNodeActionBuilder`
   - [x] `RemoveNodeActionBuilder`
   - [x] `CreateComponentActionBuilder`
-  - [ ] `RemoveComponentActionBuilder`
+  - [x] `RemoveComponentActionBuilder`
   - [ ] `ChangeAttributeBuffer`
   - [ ] `ChangeNodeAttributesActionBuilder`
   - [ ] `ChangeComponentAttributesActionBuilder`
