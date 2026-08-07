@@ -24,7 +24,9 @@ namespace RedBolt.Editor.Core;
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
+using RedBolt.Core;
 using RedBolt.Math;
 using RedBolt.Scene;
 using RedBolt.Utility;
@@ -298,4 +300,95 @@ public class ChangeNodeTransformAction : EditorAction
 
     private readonly WeakReference<Scene>? _scene;
     private readonly Dictionary<uint, NodeData> _nodes;
+}
+
+/// <summary>Change attribute values of nodes.</summary>
+public class ChangeNodeAttributesAction : EditorAction
+{
+    public ChangeNodeAttributesAction(
+        Scene scene,
+        string attributeName,
+        IEnumerable<Node> nodes,
+        VariantVector oldValues,
+        VariantVector newValues)
+    {
+        _scene = new WeakReference<Scene>(scene);
+        _attributeName = attributeName;
+        _oldValues = new VariantVector(oldValues);
+        _newValues = new VariantVector(newValues);
+
+        foreach (var node in nodes)
+            _nodeIds.Add(node.Id);
+
+        Debug.Assert(_nodeIds.Count == _oldValues.Count);
+        Debug.Assert(_nodeIds.Count == _newValues.Count);
+    }
+
+    /// <summary>Implement EditorAction.</summary>
+    public override bool CanUndoRedo()
+    {
+        if (!_scene.TryGetTarget(out var scene))
+            return false;
+
+        foreach (var nodeId in _nodeIds)
+        {
+            if (scene.GetNode(nodeId) is null)
+                return false;
+        }
+        return true;
+    }
+
+    public override void Redo()
+    {
+        SetAttributeValues(_newValues);
+    }
+
+    public override void Undo()
+    {
+        SetAttributeValues(_oldValues);
+    }
+
+    private void SetAttributeValues(VariantVector values)
+    {
+        if (!_scene.TryGetTarget(out var scene))
+            return;
+
+        for (var index = 0; index < _nodeIds.Count; ++index)
+        {
+            var node = scene.GetNode(_nodeIds[index]);
+            if (node is not null)
+            {
+                node.SetAttribute(_attributeName, values[index]);
+                node.ApplyAttributes();
+            }
+        }
+    }
+
+    public override bool MergeWith(EditorAction other)
+    {
+        if (other is not ChangeNodeAttributesAction otherAction)
+            return false;
+
+        var scene = _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+        var otherScene = otherAction._scene.TryGetTarget(out var otherSceneTarget) ? otherSceneTarget : null;
+        if (!ReferenceEquals(scene, otherScene) || _nodeIds.Count != otherAction._nodeIds.Count)
+            return false;
+
+        for (var index = 0; index < _nodeIds.Count; ++index)
+        {
+            if (_nodeIds[index] != otherAction._nodeIds[index])
+                return false;
+        }
+
+        var newValues = new VariantVector(otherAction._newValues);
+        _newValues.Dispose();
+        _newValues = newValues;
+        return true;
+    }
+
+    private readonly WeakReference<Scene> _scene;
+    private readonly string _attributeName;
+    private readonly List<uint> _nodeIds = [];
+    private readonly VariantVector _oldValues;
+    private VariantVector _newValues;
 }
