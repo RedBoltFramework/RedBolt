@@ -919,7 +919,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `CloseResourceRequest` — managed reference type with `Clone` preserves implicit C++ value-copy semantics
   - [x] `CloseDialog` — `CString` item storage preserves native UTF-8 ordering without per-frame conversions
 - [ ] `ProjectRequest.h`
-  - [ ] `ProjectRequest`
+  - [x] `ProjectRequest`
   - [ ] `OpenResourceRequest`
   - [ ] `BaseInspectRequest`
   - [ ] `InspectResourceRequest`
