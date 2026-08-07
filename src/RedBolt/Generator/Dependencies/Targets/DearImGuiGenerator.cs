@@ -108,6 +108,11 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
                 function.Parameters.First(static parameter => parameter.NativeName == "v").Direction =
                     BindingParameterDirection.Ref;
             }
+            if (function.NativeName == "SliderFloat")
+            {
+                function.Parameters.First(static parameter => parameter.NativeName == "v").Direction =
+                    BindingParameterDirection.Ref;
+            }
         }
     }
 

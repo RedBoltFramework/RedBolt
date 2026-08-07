@@ -242,24 +242,24 @@ public class SoundEffects : Application
                 HandleResumeScene();
 
             var sceneTimeScale = _scene!.GetTimeScale();
-            if (ImGui.SliderFloat("Scene Time Scale"u8, out sceneTimeScale, 0.0f, 2.0f))
+            if (ImGui.SliderFloat("Scene Time Scale"u8, ref sceneTimeScale, 0.0f, 2.0f))
                 HandleSceneTimeScale(sceneTimeScale);
 
             // Create sliders for controlling sound and music master volume
             var audio = GetSubsystem<Audio>()!;
             var soundVolume = audio.GetMasterGain(AudioDefs.SoundEffect);
-            if (ImGui.SliderFloat("Sound Volume"u8, out soundVolume, 0.0f, 1.0f))
+            if (ImGui.SliderFloat("Sound Volume"u8, ref soundVolume, 0.0f, 1.0f))
                 HandleSoundVolume(soundVolume);
             var musicVolume = audio.GetMasterGain(AudioDefs.SoundMusic);
-            if (ImGui.SliderFloat("Music Volume"u8, out musicVolume, 0.0f, 1.0f))
+            if (ImGui.SliderFloat("Music Volume"u8, ref musicVolume, 0.0f, 1.0f))
                 HandleMusicVolume(musicVolume);
 
             var pan = (_pan + 1.0f) * 0.5f;
-            if (ImGui.SliderFloat("Sound Panning"u8, out pan, 0.0f, 1.0f))
+            if (ImGui.SliderFloat("Sound Panning"u8, ref pan, 0.0f, 1.0f))
                 HandleSoundPan(pan);
 
             var reach = (_reach + 1.0f) * 0.5f;
-            if (ImGui.SliderFloat("Sound Reach"u8, out reach, 0.0f, 1.0f))
+            if (ImGui.SliderFloat("Sound Reach"u8, ref reach, 0.0f, 1.0f))
                 HandleSoundReach(reach);
 
             var lfe = _lfe;

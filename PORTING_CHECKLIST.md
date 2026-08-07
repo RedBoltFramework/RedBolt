@@ -960,6 +960,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 - [x] `InspectorTab.h` — owns registered addons, connects on activation, and weakly forwards the active source; plugin entry point is deferred
 - [x] `InspectorTab/EmptyInspector.h` — lowest-priority inspect-request sink and activation signal are ported; plugin entry point is deferred
 - [x] `InspectorTab/PlaceholderResourceInspector.h` — non-empty resource selections are summarized at native fallback priority; plugin entry point is deferred
+- [x] `InspectorTab/SoundInspector.h` — sorted sound selections, metadata, playback controls, and timeline seeking are ported; generated `SliderFloat` input/output uses `ref`; plugin entry point is deferred
 - [ ] Foundation tabs, inspectors, scene tools, and resource browser inventory and port
 
 ## Editor/Assets
