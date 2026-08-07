@@ -21,17 +21,23 @@ The port must be 1:1 (as close as possible) to the original C++ code.
 "1:1" means: same classes, same methods, same fields, same order, same logic.
 You may only change things that this document explicitly allows you to change.
 
-### NETWORK AND REPLICA PORT SEQUENCE
+### C++ TO C# PORT SEQUENCE
 
-Use the sibling rbfx checkout on the `rk/network` branch as the source of truth.
-Port the Network and Replica subsystems in two phases:
+Use two separate passes for every initial direct port:
 
-1. Go through the C++ classes and do a low-effort 1:1 syntax conversion to C#,
-   preserving all behavior. Do not stop phase 1 to repair the build.
-2. Fix the build by adjusting and completing the ported code without changing
-   the rbfx behavior.
+1. Find and read all relevant C++ declarations, definitions, and call paths.
+   Then do a low-effort 1:1 syntax conversion to C#, preserving the C++
+   structure, order, logic, and comments. Apply the required mappings and any
+   obvious allowed deviations when they are easy and reduce work in pass 2.
+   Do not improvise or try to perfect the port in this pass. Defer uncertain
+   mappings, API mismatches, inconsistencies, and build errors to pass 2. Do not
+   stop this pass to build or repair the port.
+2. After the syntax-conversion pass is complete, build the port and fix build
+   errors, inconsistencies, API mismatches, missing mappings, and other
+   integration issues. Keep every fix faithful to C++ behavior and the allowed
+   deviations in `doc/ALLOWED_DEVIATIONS.md`.
 
-Do not commit the non-building phase-1 state. Complete phase 2 before making a
+Do not commit the non-building pass-1 state. Complete pass 2 before making a
 coherent checkpoint commit.
 
 ### SOURCE-OF-TRUTH AND DIVERGENCE RULE
@@ -72,6 +78,7 @@ an initial direct port or is an unmodified feature being diagnosed.
 ## 2. TOOLS YOU MUST USE
 
 - ast_search: use this to search BOTH rbfx and RedBolt C++ and C# code.
+- ast-grep: use this for AST-based structural searches in C++ and C# code.
 - dotnet-trace: (optional) use this to check for GC allocations in the running sample.
 - debug-mcp: use this to debug crashes and wrong behavior at runtime.
   - Do NOT pass a `--timeout` argument to debug-mcp.
