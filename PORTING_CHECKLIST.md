@@ -742,7 +742,7 @@ Accepted deviations:
   - [ ] `TransformNodesGizmo`
 - [ ] `DragDropPayload.h`
   - [ ] `DragDropPayload : RefCounted`
-  - [ ] `struct ResourceFileDescriptor`
+  - [x] `struct ResourceFileDescriptor` — managed reference type and `Clone` preserve C++ value-copy semantics
   - [ ] `ResourceDragDropPayload : DragDropPayload`
   - [ ] `NodeComponentDragDropPayload : DragDropPayload`
 - [ ] `SerializableInspectorWidget.h`
