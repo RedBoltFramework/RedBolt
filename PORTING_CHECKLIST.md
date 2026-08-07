@@ -927,7 +927,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `CreateResourceRequest` — strong managed reference preserves dropped `SharedPtr` ownership
 - [ ] `ResourceFactory.h`
   - [x] `ResourceFactory`
-  - [ ] `BaseResourceFactory`
+  - [x] `BaseResourceFactory` — generated raw ImGui callback and resizable `CString` storage preserve `ea::string` text input behavior
   - [ ] `SimpleResourceFactory`
 - [ ] `ModifyResourceAction.h`
   - [ ] `ModifyResourceAction`
