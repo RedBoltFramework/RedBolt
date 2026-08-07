@@ -172,3 +172,22 @@ public class ResourceFileDescriptor : ICloneable
 
     object ICloneable.Clone() => Clone();
 }
+
+/// <summary>Drag&amp;drop payload containing reference to a resource or directory.</summary>
+public class ResourceDragDropPayload : DragDropPayload
+{
+    public override string GetDisplayString()
+    {
+        return Resources.Count == 1
+            ? Resources[0].LocalName
+            : $"{Resources.Count} items";
+    }
+
+    public List<ResourceFileDescriptor> Resources = [];
+
+    public override void Dispose()
+    {
+        Resources.Clear();
+        base.Dispose();
+    }
+}
