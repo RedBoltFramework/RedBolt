@@ -483,3 +483,72 @@ public class ChangeComponentAttributesAction : EditorAction
     private readonly VariantVector _oldValues;
     private VariantVector _newValues;
 }
+
+/// <summary>Reorder node in the parent node.</summary>
+public class ReorderNodeAction : EditorAction
+{
+    public ReorderNodeAction(Node node, int oldIndex, int newIndex)
+    {
+        var scene = node.Scene;
+        _scene = scene is not null ? new WeakReference<Scene>(scene) : null;
+        _parentNodeId = node.Parent!.Id;
+        _nodeId = node.Id;
+        _oldIndex = oldIndex;
+        _newIndex = newIndex;
+    }
+
+    /// <summary>Implement EditorAction.</summary>
+    public override bool CanUndoRedo()
+    {
+        return _scene is not null && _scene.TryGetTarget(out var scene)
+            && scene.GetNode(_parentNodeId) is not null && scene.GetNode(_nodeId) is not null;
+    }
+
+    public override void Redo()
+    {
+        Reorder(_newIndex);
+    }
+
+    public override void Undo()
+    {
+        Reorder(_oldIndex);
+    }
+
+    private void Reorder(int index)
+    {
+        var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+        var parentNode = scene!.GetNode(_parentNodeId);
+        var node = scene.GetNode(_nodeId);
+        if (parentNode is null)
+            throw new UndoException($"Cannot find parent node with id {_parentNodeId}");
+        else if (node is null)
+            throw new UndoException($"Cannot find node with id {_nodeId}");
+        else
+            parentNode.ReorderChild(node, index);
+    }
+
+    public override bool MergeWith(EditorAction other)
+    {
+        if (other is not ReorderNodeAction otherAction)
+            return false;
+
+        var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+        var otherScene = otherAction._scene is not null && otherAction._scene.TryGetTarget(out var otherSceneTarget)
+            ? otherSceneTarget
+            : null;
+        if (!ReferenceEquals(scene, otherScene) || _nodeId != otherAction._nodeId
+            || _parentNodeId != otherAction._parentNodeId)
+        {
+            return false;
+        }
+
+        _newIndex = otherAction._newIndex;
+        return true;
+    }
+
+    private readonly WeakReference<Scene>? _scene;
+    private readonly uint _parentNodeId;
+    private readonly uint _nodeId;
+    private readonly int _oldIndex;
+    private int _newIndex;
+}
