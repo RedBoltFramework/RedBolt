@@ -826,11 +826,11 @@ Accepted deviations:
 - [ ] `FileSystemReflection.h`
   - [ ] `struct FileSystemEntry`
   - [ ] `FileSystemReflection : Object`
-- [ ] `PackedSceneData.h`
+- [x] `PackedSceneData.h`
   - [x] `PackedNodeData`
   - [x] `PackedComponentData`
   - [x] `PackedNodeComponentData`
-  - [ ] `PackedSceneData`
+  - [x] `PackedSceneData`
 - [ ] `SceneSelection.h`
   - [ ] `struct PackedSceneSelection`
   - [ ] `SceneSelection`

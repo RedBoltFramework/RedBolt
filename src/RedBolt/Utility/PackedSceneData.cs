@@ -298,3 +298,58 @@ public class PackedNodeComponentData : ICloneable
     private readonly List<PackedNodeData> _nodes = [];
     private readonly List<PackedComponentData> _components = [];
 }
+
+/// <summary>Packed Scene as whole.</summary>
+public class PackedSceneData : ICloneable
+{
+    public PackedSceneData()
+    {
+    }
+
+    private PackedSceneData(PackedSceneData rhs)
+    {
+        _sceneData = (VectorBuffer)rhs._sceneData.Clone();
+    }
+
+    public PackedSceneData Clone() => new(this);
+
+    object ICloneable.Clone() => Clone();
+
+    /// <summary>Load into scene.</summary>
+    public void ToScene(Scene scene, PrefabLoadFlag loadFlags = PrefabLoadFlag.None)
+    {
+        ArchiveSerialization.ConsumeArchiveException(() =>
+        {
+            using var view = new MemoryBuffer(_sceneData.GetBuffer());
+            using var archive = new BinaryInputArchive(Context.Instance, view);
+
+            using var block = archive.OpenUnorderedBlock("scene");
+            scene.SerializeInBlock(
+                archive, true, PrefabSaveFlag.CompactAttributeNames, loadFlags);
+        });
+    }
+
+    /// <summary>Pack whole scene.</summary>
+    public static PackedSceneData FromScene(Scene scene)
+    {
+        var result = new PackedSceneData();
+
+        ArchiveSerialization.ConsumeArchiveException(() =>
+        {
+            using var archive = new BinaryOutputArchive(Context.Instance, result._sceneData);
+
+            using var block = archive.OpenUnorderedBlock("scene");
+            scene.SerializeInBlock(archive, true,
+                PrefabSaveFlag.CompactAttributeNames | PrefabSaveFlag.SaveDefaultValues, PrefabLoadFlag.None);
+        });
+
+        return result;
+    }
+
+    /// <summary>Return contents</summary>
+    public VectorBuffer SceneData => _sceneData;
+
+    public bool HasSceneData => _sceneData.Size > 0;
+
+    private VectorBuffer _sceneData = new();
+}
