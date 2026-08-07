@@ -869,6 +869,19 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `SettingsPageGroup`
   - [x] `SettingsManager`
 - [ ] `CommonEditorActions.h`
+  - [x] `EmptyEditorAction`
+  - [ ] `CompositeEditorAction`
+  - [ ] `CreateRemoveNodeAction`
+  - [ ] `CreateRemoveComponentAction`
+  - [ ] `ChangeNodeTransformAction`
+  - [ ] `ChangeNodeAttributesAction`
+  - [ ] `ChangeComponentAttributesAction`
+  - [ ] `ReorderNodeAction`
+  - [ ] `ReorderComponentAction`
+  - [ ] `ReparentNodeAction`
+  - [ ] `ChangeComponentAction`
+  - [ ] `ChangeNodeSubtreeAction`
+  - [ ] `ChangeSceneAction`
 - [ ] `CommonEditorActionBuilders.h`
 - [ ] `EditorPlugin.h` — **DEFERRED** · editor plugins will be ported later; keep explicit `TODO: port` call-site guidance
 - [ ] `EditorPluginManager.h` — **DEFERRED** · editor plugins will be ported later; keep explicit `TODO: port` call-site guidance
