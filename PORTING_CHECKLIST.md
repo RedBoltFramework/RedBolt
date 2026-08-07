@@ -938,7 +938,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [ ] `AssetManager`
 - [ ] `ToolManager.h`
   - [ ] `ToolManager`
-- [ ] `CreateComponentMenu.h`
+- [x] `CreateComponentMenu.h` — uses the global managed `Context`; persistent UTF-8 labels preserve native menu rendering without per-frame conversions
 - [ ] Remaining project layer inventory and port
 
 ## Editor/Foundation
