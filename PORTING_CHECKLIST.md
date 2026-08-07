@@ -778,8 +778,8 @@ Accepted deviations:
   - [x] `NodeInspectorWidget : Object` — weak node/component aliases preserve native non-ownership; ordered duplicate-type matching, inspector rebuilds, skipped counts, edit/action forwarding, and deferred multi-node removal are ported and software-renderer tested; persistent UTF-8 text and reference-identity ImGui IDs avoid render-path string allocation
 - [ ] `SceneHierarchyWidget.h`
   - [ ] `SceneHierarchyWidget : Object`
-- [ ] `MaterialInspectorWidget.h`
-  - [ ] `MaterialInspectorWidget : Object`
+- [x] `MaterialInspectorWidget.h`
+  - [x] `MaterialInspectorWidget : Object` — preview scene and orbit controls, technique discovery/editing, multi-material undefined state, material properties and shader defines, default/custom textures, shader parameters, force-save signaling, and explicit owned-resource/`Variant` cleanup are ported and software-renderer interaction-tested; reusable UTF-8 and sorted scratch storage avoid render-path managed allocation, and the declaration-only native `UpdateCachedTechniques` remains an explicit `TODO: port`
 - [x] `AnimationInspectorWidget.h`
   - [x] `AnimationInspectorWidget : ResourceInspectorWidget` — native length accessors and read-only save policy are ported and software-renderer tested
 - [x] `ModelInspectorWidget.h`

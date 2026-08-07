@@ -122,6 +122,14 @@ public static partial class Widgets
         return InputTextBuffer.Equals(value) ? value : InputTextBuffer.ConvertToString();
     }
 
+    public static bool InputText(
+        ReadOnlySpan<byte> label, ref string value, ImGuiInputTextFlags flags = default)
+    {
+        var result = InputText(label, value, flags);
+        value = GetInputTextValue(value);
+        return result;
+    }
+
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     private static int InputTextCallback(IntPtr dataPointer)
     {
