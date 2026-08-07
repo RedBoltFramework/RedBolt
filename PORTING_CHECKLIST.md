@@ -982,6 +982,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 - [x] `InspectorTab.h` — owns registered addons, connects on activation, and weakly forwards the active source; plugin entry point is deferred
 - [x] `InspectorTab/AnimationInspector.h` — animation type dispatch and read-only animation widget construction are ported; plugin entry point remains an explicit deferred `TODO: port`
 - [x] `InspectorTab/Texture2DInspector.h` — texture type dispatch, read-only property widget construction, and aspect-fitted texture preview are ported and software-renderer tested; plugin entry point remains an explicit deferred `TODO: port`
+- [x] `InspectorTab/TextureCubeInspector.h` — texture-cube type dispatch, read-only cube widget construction, and skybox scene preview are ported and software-renderer tested; plugin entry point remains an explicit deferred `TODO: port`
 - [x] `InspectorTab/ModelInspector.h` — model type dispatch, read-only model widget construction, and framed static-model scene preview are ported and software-renderer tested; plugin entry point remains an explicit deferred `TODO: port`
 - [x] `InspectorTab/EmptyInspector.h` — lowest-priority inspect-request sink and activation signal are ported; plugin entry point is deferred
 - [x] `InspectorTab/PlaceholderResourceInspector.h` — non-empty resource selections are summarized at native fallback priority; plugin entry point is deferred
