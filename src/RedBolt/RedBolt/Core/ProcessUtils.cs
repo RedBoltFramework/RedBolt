@@ -277,6 +277,41 @@ public static class ProcessUtils
 
     public static uint GetCurrentProcessID() => (uint)Environment.ProcessId;
 
+    public static int SystemRun(string fileName, ReadOnlySpan<string> arguments, out string output)
+    {
+        output = string.Empty;
+
+        try
+        {
+            using var process = new Process();
+            process.StartInfo = new ProcessStartInfo
+            {
+                FileName = fileName,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+            };
+            foreach (var argument in arguments)
+                process.StartInfo.ArgumentList.Add(argument);
+
+            if (!process.Start())
+                return -1;
+
+            var standardOutput = process.StandardOutput.ReadToEndAsync();
+            var standardError = process.StandardError.ReadToEndAsync();
+            process.WaitForExit();
+            output = standardOutput.GetAwaiter().GetResult() + standardError.GetAwaiter().GetResult();
+            return process.ExitCode;
+        }
+        catch (Exception exception) when (exception is System.ComponentModel.Win32Exception
+            or InvalidOperationException or PlatformNotSupportedException or System.IO.IOException)
+        {
+            output = string.Empty;
+            return -1;
+        }
+    }
+
     public static bool OpenURL(string url)
     {
         ArgumentNullException.ThrowIfNull(url);

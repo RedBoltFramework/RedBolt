@@ -719,6 +719,8 @@ Accepted deviations:
   - [ ] ImGui integration helpers
 - [ ] `Widgets.h`
   - [ ] shared widget free functions
+  - [x] `Underline`
+  - [x] `TextURL` — UTF-8 spans preserve native string lifetime without per-frame conversions
 - [~] `ImGuiDiligentRendererEx.h`
   - [~] `ImGuiDiligentRendererEx` — native constructor/destructor, base renderer ownership, main-viewport frame/render path, render pipelines, class shape, sizes, and failure unwinding reconciled; secondary OS-window callbacks and implicit-copy cloning remain exact `TODO: port` items because SharpCpp excludes `ImGuiPlatformIO` function-pointer fields and does not expose native `ImGuiDiligentRenderer` base copy construction
 - [~] `SystemUI.h`
@@ -936,8 +938,8 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [ ] `ResourceActionWrapper`
 - [ ] `AssetManager.h`
   - [ ] `AssetManager`
-- [ ] `ToolManager.h`
-  - [ ] `ToolManager`
+- [x] `ToolManager.h`
+  - [x] `ToolManager` — `.NET Process` provides the native `FileSystem::SystemRun` operation; resizable `CString` inputs preserve `ea::string` editing
 - [x] `CreateComponentMenu.h` — uses the global managed `Context`; persistent UTF-8 labels preserve native menu rendering without per-frame conversions
 - [ ] Remaining project layer inventory and port
 
