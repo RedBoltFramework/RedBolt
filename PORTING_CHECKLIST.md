@@ -809,7 +809,7 @@ Accepted deviations:
 - [ ] `UtilityLibrary.h`
   - [ ] registration entry point
 - [ ] `AssetTransformer.h`
-  - [ ] `struct AssetTransformerInput`
+  - [x] `struct AssetTransformerInput` — managed reference type and `Clone` preserve C++ value-copy semantics
   - [ ] `struct AssetTransformerOutput`
   - [ ] `struct AssetTransformerDependency`
   - [ ] `AssetTransformer : Serializable`

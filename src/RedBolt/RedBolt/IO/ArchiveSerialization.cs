@@ -771,6 +771,89 @@ public static partial class ArchiveSerialization
         }
     }
 
+    public static void SerializeVector<T>(Archive archive, string name, IList<T> vector,
+        ArchiveValueSerializer<T> serializeValue, string element = "element")
+    {
+        var size = vector.Count;
+        using var block = archive.OpenArrayBlock(name, size);
+        if (archive.IsInput)
+        {
+            vector.Clear();
+            for (var index = 0; index < block.SizeHint; ++index)
+            {
+                var value = default(T)!;
+                serializeValue(archive, element, ref value);
+                vector.Add(value);
+            }
+        }
+        else
+        {
+            for (var index = 0; index < size; ++index)
+            {
+                var value = vector[index];
+                serializeValue(archive, element, ref value);
+                vector[index] = value;
+            }
+        }
+    }
+
+    public static void SerializeMap<TKey, TValue>(Archive archive, string name, IDictionary<TKey, TValue> map,
+        ArchiveValueSerializer<TKey> serializeKey, ArchiveValueSerializer<TValue> serializeValue,
+        string element = "element") where TKey : notnull
+    {
+        var size = map.Count;
+        using var block = archive.OpenArrayBlock(name, size);
+        if (archive.IsInput)
+        {
+            map.Clear();
+            for (var index = 0; index < block.SizeHint; ++index)
+            {
+                using var elementBlock = archive.OpenUnorderedBlock(element);
+                var key = default(TKey)!;
+                var value = default(TValue)!;
+                serializeKey(archive, "key", ref key);
+                serializeValue(archive, "value", ref value);
+                map[key] = value;
+            }
+        }
+        else
+        {
+            foreach (var (key, value) in map)
+            {
+                using var elementBlock = archive.OpenUnorderedBlock(element);
+                var keyCopy = key;
+                var valueCopy = value;
+                serializeKey(archive, "key", ref keyCopy);
+                serializeValue(archive, "value", ref valueCopy);
+            }
+        }
+    }
+
+    public static void SerializeSet<T>(Archive archive, string name, ISet<T> set,
+        ArchiveValueSerializer<T> serializeValue, string element = "element")
+    {
+        var size = set.Count;
+        using var block = archive.OpenArrayBlock(name, size);
+        if (archive.IsInput)
+        {
+            set.Clear();
+            for (var index = 0; index < block.SizeHint; ++index)
+            {
+                var value = default(T)!;
+                serializeValue(archive, element, ref value);
+                set.Add(value);
+            }
+        }
+        else
+        {
+            foreach (var value in set)
+            {
+                var valueCopy = value;
+                serializeValue(archive, element, ref valueCopy);
+            }
+        }
+    }
+
     private static void SerializeVariantPrimitive<T>(Archive archive, string name, ref Variant variant,
         Func<Variant, T> getter, Func<T, Variant> constructor)
     {
