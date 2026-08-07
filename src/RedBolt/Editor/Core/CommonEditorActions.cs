@@ -552,3 +552,72 @@ public class ReorderNodeAction : EditorAction
     private readonly int _oldIndex;
     private int _newIndex;
 }
+
+/// <summary>Reorder component in the node.</summary>
+public class ReorderComponentAction : EditorAction
+{
+    public ReorderComponentAction(Component component, int oldIndex, int newIndex)
+    {
+        var scene = component.Scene;
+        _scene = scene is not null ? new WeakReference<Scene>(scene) : null;
+        _nodeId = component.Node.Id;
+        _componentId = component.Id;
+        _oldIndex = oldIndex;
+        _newIndex = newIndex;
+    }
+
+    /// <summary>Implement EditorAction.</summary>
+    public override bool CanUndoRedo()
+    {
+        return _scene is not null && _scene.TryGetTarget(out var scene)
+            && scene.GetNode(_nodeId) is not null && scene.GetComponent(_componentId) is not null;
+    }
+
+    public override void Redo()
+    {
+        Reorder(_newIndex);
+    }
+
+    public override void Undo()
+    {
+        Reorder(_oldIndex);
+    }
+
+    private void Reorder(int index)
+    {
+        var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+        var node = scene!.GetNode(_nodeId);
+        var component = scene.GetComponent(_componentId);
+        if (node is null)
+            throw new UndoException($"Cannot find node with id {_nodeId}");
+        else if (component is null)
+            throw new UndoException($"Cannot find component with id {_componentId}");
+        else
+            node.ReorderComponent(component, index);
+    }
+
+    public override bool MergeWith(EditorAction other)
+    {
+        if (other is not ReorderComponentAction otherAction)
+            return false;
+
+        var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+        var otherScene = otherAction._scene is not null && otherAction._scene.TryGetTarget(out var otherSceneTarget)
+            ? otherSceneTarget
+            : null;
+        if (!ReferenceEquals(scene, otherScene) || _nodeId != otherAction._nodeId
+            || _componentId != otherAction._componentId)
+        {
+            return false;
+        }
+
+        _newIndex = otherAction._newIndex;
+        return true;
+    }
+
+    private readonly WeakReference<Scene>? _scene;
+    private readonly uint _nodeId;
+    private readonly uint _componentId;
+    private readonly int _oldIndex;
+    private int _newIndex;
+}
