@@ -779,8 +779,8 @@ Accepted deviations:
   - [ ] `MaterialInspectorWidget : Object`
 - [x] `AnimationInspectorWidget.h`
   - [x] `AnimationInspectorWidget : ResourceInspectorWidget` — native length accessors and read-only save policy are ported and software-renderer tested
-- [ ] `ModelInspectorWidget.h`
-  - [ ] `ModelInspectorWidget : ResourceInspectorWidget`
+- [x] `ModelInspectorWidget.h`
+  - [x] `ModelInspectorWidget : ResourceInspectorWidget` — native empty property table and read-only save policy are ported and software-renderer tested
 - [ ] `Texture2DInspectorWidget.h`
   - [ ] `Texture2DInspectorWidget : ResourceInspectorWidget`
 - [ ] `TextureCubeInspectorWidget.h`
