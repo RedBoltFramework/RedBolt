@@ -762,8 +762,8 @@ Accepted deviations:
   - [x] `ResourceInspectorWidget : BaseWidget` — borrowed property descriptors, multi-resource undefined/default presentation, save disabling, deferred batched setters, and edit-boundary events are ported and interaction-tested
 - [x] `SceneWidget.h`
   - [x] `SceneWidget : BaseWidget` — default scene, lazy render-to-texture setup, light tracking, orbit/zoom controls, skybox replacement, camera framing, and explicit owned-resource disposal are ported and software-renderer tested
-- [ ] `Texture2DWidget.h`
-  - [ ] `Texture2DWidget : BaseWidget`
+- [x] `Texture2DWidget.h`
+  - [x] `Texture2DWidget : BaseWidget` — strong texture lifetime, square preview area, aspect fitting, and horizontal centering are ported and software-renderer tested; the caller-owned generated `ImTextureRef` keeps rendering allocation-free
 - [ ] `TransformGizmo.h`
   - [ ] `TransformGizmo`
   - [ ] `TransformNodesGizmo`
