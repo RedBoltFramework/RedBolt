@@ -784,8 +784,8 @@ Accepted deviations:
   - [x] `AnimationInspectorWidget : ResourceInspectorWidget` — native length accessors and read-only save policy are ported and software-renderer tested
 - [x] `ModelInspectorWidget.h`
   - [x] `ModelInspectorWidget : ResourceInspectorWidget` — native empty property table and read-only save policy are ported and software-renderer tested
-- [ ] `Texture2DInspectorWidget.h`
-  - [ ] `Texture2DInspectorWidget : ResourceInspectorWidget`
+- [x] `Texture2DInspectorWidget.h`
+  - [x] `Texture2DInspectorWidget : ResourceInspectorWidget` — sRGB, linear-space, filter, and U/V address property mappings preserve the native enum labels and read-only save policy and are software-renderer tested
 - [ ] `TextureCubeInspectorWidget.h`
   - [ ] `SphericalHarmonicsGenerator : Object`
   - [ ] `TextureCubeInspectorWidget : ResourceInspectorWidget`
