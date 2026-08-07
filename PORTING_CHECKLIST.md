@@ -917,7 +917,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `LaunchManager`
 - [ ] `CloseDialog.h`
   - [x] `CloseResourceRequest` — managed reference type with `Clone` preserves implicit C++ value-copy semantics
-  - [ ] `CloseDialog`
+  - [x] `CloseDialog` — `CString` item storage preserves native UTF-8 ordering without per-frame conversions
 - [ ] `ProjectRequest.h`
   - [ ] `ProjectRequest`
   - [ ] `OpenResourceRequest`
