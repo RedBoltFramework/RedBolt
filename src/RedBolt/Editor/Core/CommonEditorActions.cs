@@ -392,3 +392,94 @@ public class ChangeNodeAttributesAction : EditorAction
     private readonly VariantVector _oldValues;
     private VariantVector _newValues;
 }
+
+/// <summary>Change attribute values of a components.</summary>
+public class ChangeComponentAttributesAction : EditorAction
+{
+    public ChangeComponentAttributesAction(
+        Scene scene,
+        string attributeName,
+        IEnumerable<Component> components,
+        VariantVector oldValues,
+        VariantVector newValues)
+    {
+        _scene = new WeakReference<Scene>(scene);
+        _attributeName = attributeName;
+        _oldValues = new VariantVector(oldValues);
+        _newValues = new VariantVector(newValues);
+
+        foreach (var component in components)
+            _componentIds.Add(component.Id);
+
+        Debug.Assert(_componentIds.Count == _oldValues.Count);
+        Debug.Assert(_componentIds.Count == _newValues.Count);
+    }
+
+    /// <summary>Implement EditorAction.</summary>
+    public override bool CanUndoRedo()
+    {
+        if (!_scene.TryGetTarget(out var scene))
+            return false;
+
+        foreach (var componentId in _componentIds)
+        {
+            if (scene.GetComponent(componentId) is null)
+                return false;
+        }
+        return true;
+    }
+
+    public override void Redo()
+    {
+        SetAttributeValues(_newValues);
+    }
+
+    public override void Undo()
+    {
+        SetAttributeValues(_oldValues);
+    }
+
+    private void SetAttributeValues(VariantVector values)
+    {
+        if (!_scene.TryGetTarget(out var scene))
+            return;
+
+        for (var index = 0; index < _componentIds.Count; ++index)
+        {
+            var component = scene.GetComponent(_componentIds[index]);
+            if (component is not null)
+            {
+                component.SetAttribute(_attributeName, values[index]);
+                component.ApplyAttributes();
+            }
+        }
+    }
+
+    public override bool MergeWith(EditorAction other)
+    {
+        if (other is not ChangeComponentAttributesAction otherAction)
+            return false;
+
+        var scene = _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+        var otherScene = otherAction._scene.TryGetTarget(out var otherSceneTarget) ? otherSceneTarget : null;
+        if (!ReferenceEquals(scene, otherScene) || _componentIds.Count != otherAction._componentIds.Count)
+            return false;
+
+        for (var index = 0; index < _componentIds.Count; ++index)
+        {
+            if (_componentIds[index] != otherAction._componentIds[index])
+                return false;
+        }
+
+        var newValues = new VariantVector(otherAction._newValues);
+        _newValues.Dispose();
+        _newValues = newValues;
+        return true;
+    }
+
+    private readonly WeakReference<Scene> _scene;
+    private readonly string _attributeName;
+    private readonly List<uint> _componentIds = [];
+    private readonly VariantVector _oldValues;
+    private VariantVector _newValues;
+}

@@ -875,7 +875,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `CreateRemoveComponentAction`
   - [x] `ChangeNodeTransformAction`
   - [x] `ChangeNodeAttributesAction`
-  - [ ] `ChangeComponentAttributesAction`
+  - [x] `ChangeComponentAttributesAction`
   - [ ] `ReorderNodeAction`
   - [ ] `ReorderComponentAction`
   - [ ] `ReparentNodeAction`
