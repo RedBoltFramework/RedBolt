@@ -873,7 +873,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `CompositeEditorAction`
   - [x] `CreateRemoveNodeAction`
   - [x] `CreateRemoveComponentAction`
-  - [ ] `ChangeNodeTransformAction`
+  - [x] `ChangeNodeTransformAction`
   - [ ] `ChangeNodeAttributesAction`
   - [ ] `ChangeComponentAttributesAction`
   - [ ] `ReorderNodeAction`

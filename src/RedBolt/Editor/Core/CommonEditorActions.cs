@@ -25,6 +25,7 @@ namespace RedBolt.Editor.Core;
 using System;
 using System.Collections.Generic;
 
+using RedBolt.Math;
 using RedBolt.Scene;
 using RedBolt.Utility;
 
@@ -209,4 +210,92 @@ public class CreateRemoveComponentAction : EditorAction
     private readonly bool _removed;
     private readonly WeakReference<Scene>? _scene;
     private readonly PackedComponentData _data;
+}
+
+/// <summary>Change node transform.</summary>
+public class ChangeNodeTransformAction : EditorAction
+{
+    public ChangeNodeTransformAction(Node node, Transform oldTransform)
+    {
+        var scene = node.Scene;
+        _scene = scene is not null ? new WeakReference<Scene>(scene) : null;
+        _nodes = new Dictionary<uint, NodeData>
+        {
+            [node.Id] = new NodeData
+            {
+                OldTransform = oldTransform,
+                NewTransform = node.GetTransform()
+            }
+        };
+    }
+
+    /// <summary>Implement EditorAction.</summary>
+    public override bool CanUndoRedo()
+    {
+        return _scene is not null && _scene.TryGetTarget(out _);
+    }
+
+    public override void Redo()
+    {
+        if (_scene is null || !_scene.TryGetTarget(out var scene))
+            return;
+
+        foreach (var pair in _nodes)
+        {
+            var node = scene.GetNode(pair.Key);
+            if (node is not null)
+                node.SetTransform(pair.Value.NewTransform);
+            else
+                throw new UndoException($"Cannot find node with id {pair.Key}");
+        }
+    }
+
+    public override void Undo()
+    {
+        if (_scene is null || !_scene.TryGetTarget(out var scene))
+            return;
+
+        foreach (var pair in _nodes)
+        {
+            var node = scene.GetNode(pair.Key);
+            if (node is not null)
+                node.SetTransform(pair.Value.OldTransform);
+            else
+                throw new UndoException($"Cannot find node with id {pair.Key}");
+        }
+    }
+
+    public override bool MergeWith(EditorAction other)
+    {
+        if (other is not ChangeNodeTransformAction otherAction)
+            return false;
+
+        var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+        var otherScene = otherAction._scene is not null && otherAction._scene.TryGetTarget(out var otherSceneTarget)
+            ? otherSceneTarget
+            : null;
+        if (!ReferenceEquals(scene, otherScene))
+            return false;
+
+        foreach (var pair in otherAction._nodes)
+        {
+            if (_nodes.TryGetValue(pair.Key, out var nodeData))
+            {
+                nodeData.NewTransform = pair.Value.NewTransform;
+                _nodes[pair.Key] = nodeData;
+            }
+            else
+                _nodes[pair.Key] = pair.Value;
+        }
+        return true;
+    }
+
+    private struct NodeData
+    {
+        public Transform OldTransform;
+        public Transform NewTransform;
+    }
+
+    private readonly WeakReference<Scene>? _scene;
+    private readonly Dictionary<uint, NodeData> _nodes;
 }
