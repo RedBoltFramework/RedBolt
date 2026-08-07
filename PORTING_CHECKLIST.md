@@ -847,9 +847,9 @@ Accepted deviations:
   - [x] `struct GLTFImporterSettings`
   - [x] `GLTFImporterCallback`
   - [x] `GLTFImporter : Object`
-- [ ] `SceneRendererToTexture.h`
-  - [ ] `CustomBackbufferTexture : Object`
-  - [ ] `SceneRendererToTexture : CustomBackbufferTexture`
+- [x] `SceneRendererToTexture.h`
+  - [x] `CustomBackbufferTexture : Object`
+  - [x] `SceneRendererToTexture : CustomBackbufferTexture`
 - [ ] `SceneViewerApplication.h` ⤴ needs `Plugins`
   - [ ] `SceneViewerApplication : MainPluginApplication`
 
