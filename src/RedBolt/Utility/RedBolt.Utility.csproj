@@ -7,6 +7,10 @@
   <ItemGroup>
     <ProjectReference Include="../RedBolt/RedBolt.csproj" />
     <ProjectReference Include="../Bindings/TinyGltf/RedBolt.Bindings.TinyGltf.csproj" />
+    <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Std/SharpCpp.Std.csproj"
                       AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
   </ItemGroup>

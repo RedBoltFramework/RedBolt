@@ -808,11 +808,11 @@ Accepted deviations:
 
 - [ ] `UtilityLibrary.h`
   - [ ] registration entry point
-- [ ] `AssetTransformer.h`
+- [x] `AssetTransformer.h`
   - [x] `struct AssetTransformerInput` — managed reference type and `Clone` preserve C++ value-copy semantics
   - [x] `struct AssetTransformerOutput` — managed reference type and `Clone` preserve C++ value-copy semantics
   - [x] `struct AssetTransformerDependency` — managed reference type and `Clone` preserve C++ value-copy semantics
-  - [ ] `AssetTransformer : Serializable`
+  - [x] `AssetTransformer : Serializable` — direct `System.IO` mapping replaces native `FileSystem` and `TemporaryDir`
 - [ ] `AssetTransformerHierarchy.h`
   - [ ] `AssetTransformerHierarchy : Object`
 - [ ] `BaseAssetPostTransformer.h`
