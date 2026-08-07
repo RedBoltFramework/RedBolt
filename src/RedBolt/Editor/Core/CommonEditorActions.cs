@@ -822,3 +822,63 @@ public class ChangeNodeSubtreeAction : EditorAction
     private PackedNodeData _newData;
     private bool _newRemoved;
 }
+
+/// <summary>Change entire scene.</summary>
+public class ChangeSceneAction : EditorAction
+{
+    public ChangeSceneAction(Scene? scene, PackedSceneData oldData)
+    {
+        _scene = scene is not null ? new WeakReference<Scene>(scene) : null;
+        _oldData = oldData.Clone();
+        _newData = PackedSceneData.FromScene(scene!);
+    }
+
+    public ChangeSceneAction(Scene? scene, PackedSceneData oldData, PackedSceneData newData)
+    {
+        _scene = scene is not null ? new WeakReference<Scene>(scene) : null;
+        _oldData = oldData.Clone();
+        _newData = newData.Clone();
+    }
+
+    /// <summary>Implement EditorAction.</summary>
+    public override bool CanUndoRedo()
+    {
+        return _scene is not null && _scene.TryGetTarget(out _);
+    }
+
+    public override void Redo()
+    {
+        UpdateScene(_newData);
+    }
+
+    public override void Undo()
+    {
+        UpdateScene(_oldData);
+    }
+
+    private void UpdateScene(PackedSceneData data)
+    {
+        var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+        data.ToScene(scene!);
+    }
+
+    public override bool MergeWith(EditorAction other)
+    {
+        if (other is not ChangeSceneAction otherAction)
+            return false;
+
+        var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+        var otherScene = otherAction._scene is not null && otherAction._scene.TryGetTarget(out var otherSceneTarget)
+            ? otherSceneTarget
+            : null;
+        if (!ReferenceEquals(scene, otherScene))
+            return false;
+
+        _newData = otherAction._newData.Clone();
+        return true;
+    }
+
+    private readonly WeakReference<Scene>? _scene;
+    private readonly PackedSceneData _oldData;
+    private PackedSceneData _newData;
+}
