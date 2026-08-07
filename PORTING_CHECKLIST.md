@@ -901,7 +901,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `EditorTabFlag` / `EditorTabFlags` — mapped to a C# flags enum
   - [x] `EditorTabPlacement`
   - [x] `EditorConfigurable`
-  - [ ] `SeparatorHelper`
+  - [x] `SeparatorHelper`
   - [ ] `EditorTab`
 - [ ] `Project.h`
   - [x] `ProjectFlag` / `ProjectFlags` — mapped to a C# flags enum

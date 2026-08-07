@@ -61,3 +61,21 @@ public abstract class EditorConfigurable : RedObject
     /// <summary>Return entry that should be read.</summary>
     public abstract string IniEntry { get; }
 }
+
+/// <summary>Helper class to spawn separators only once.</summary>
+public class SeparatorHelper
+{
+    public void Add()
+    {
+        if (!_added)
+            ImGui.Separator();
+        _added = true;
+    }
+
+    public void Reset()
+    {
+        _added = false;
+    }
+
+    private bool _added;
+}
