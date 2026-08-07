@@ -80,3 +80,54 @@ public class CreateNodeActionBuilder
 
     private PackedSceneData _oldSceneData = new();
 }
+
+public class RemoveNodeActionBuilder
+{
+    public RemoveNodeActionBuilder(Node? node)
+    {
+        var scene = node!.Scene;
+        _scene = scene is not null ? new WeakReference<Scene>(scene) : null;
+        _scopeHint = node.GetEffectiveScopeHint();
+
+        switch (_scopeHint)
+        {
+            case AttributeScopeHint.Attribute:
+            case AttributeScopeHint.Serializable:
+            case AttributeScopeHint.Node:
+            {
+                _action = new CreateRemoveNodeAction(node, true);
+                break;
+            }
+            case AttributeScopeHint.Scene:
+            {
+                _oldSceneData = PackedSceneData.FromScene(scene!);
+                break;
+            }
+        }
+    }
+
+    public EditorAction? Build()
+    {
+        switch (_scopeHint)
+        {
+            case AttributeScopeHint.Attribute:
+            case AttributeScopeHint.Serializable:
+            case AttributeScopeHint.Node:
+            {
+                return _action;
+            }
+            case AttributeScopeHint.Scene:
+            {
+                var scene = _scene is not null && _scene.TryGetTarget(out var sceneTarget) ? sceneTarget : null;
+                return new ChangeSceneAction(scene, _oldSceneData);
+            }
+            default: return null;
+        }
+    }
+
+    private readonly WeakReference<Scene>? _scene;
+    private readonly AttributeScopeHint _scopeHint;
+
+    private EditorAction? _action;
+    private PackedSceneData _oldSceneData = new();
+}

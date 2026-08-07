@@ -884,7 +884,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `ChangeSceneAction`
 - [ ] `CommonEditorActionBuilders.h`
   - [x] `CreateNodeActionBuilder`
-  - [ ] `RemoveNodeActionBuilder`
+  - [x] `RemoveNodeActionBuilder`
   - [ ] `CreateComponentActionBuilder`
   - [ ] `RemoveComponentActionBuilder`
   - [ ] `ChangeAttributeBuffer`
