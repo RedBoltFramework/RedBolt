@@ -755,8 +755,8 @@ Accepted deviations:
   - [ ] `SystemMessageBox : Object`
 - [x] `BaseWidget.h`
   - [x] `BaseWidget : Object`
-- [ ] `ResourceInspectorWidget.h`
-  - [ ] `ResourceInspectorWidget : BaseWidget`
+- [x] `ResourceInspectorWidget.h`
+  - [x] `ResourceInspectorWidget : BaseWidget` — borrowed property descriptors, multi-resource undefined/default presentation, save disabling, deferred batched setters, and edit-boundary events are ported and interaction-tested
 - [ ] `SceneWidget.h`
   - [ ] `SceneWidget : BaseWidget`
 - [ ] `Texture2DWidget.h`
