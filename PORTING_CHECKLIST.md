@@ -870,7 +870,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `SettingsManager`
 - [ ] `CommonEditorActions.h`
   - [x] `EmptyEditorAction`
-  - [ ] `CompositeEditorAction`
+  - [x] `CompositeEditorAction`
   - [ ] `CreateRemoveNodeAction`
   - [ ] `CreateRemoveComponentAction`
   - [ ] `ChangeNodeTransformAction`

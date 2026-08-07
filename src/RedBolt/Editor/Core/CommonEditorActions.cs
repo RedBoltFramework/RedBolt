@@ -22,6 +22,8 @@
 
 namespace RedBolt.Editor.Core;
 
+using System.Collections.Generic;
+
 /// <summary>Empty action.</summary>
 public class EmptyEditorAction : EditorAction
 {
@@ -35,4 +37,52 @@ public class EmptyEditorAction : EditorAction
     public override void Undo()
     {
     }
+}
+
+/// <summary>Composite action.</summary>
+public class CompositeEditorAction : EditorAction
+{
+    /// <summary>Add action to composite.</summary>
+    public void AddAction(EditorAction action) => _actions.Add(action);
+
+    public void EmplaceAction<T>(T action)
+        where T : EditorAction
+    {
+        _actions.Add(action);
+    }
+
+    /// <summary>Implement EditorAction.</summary>
+    public override bool CanRedo()
+    {
+        foreach (var action in _actions)
+        {
+            if (!action.CanRedo())
+                return false;
+        }
+        return true;
+    }
+
+    public override bool CanUndo()
+    {
+        foreach (var action in _actions)
+        {
+            if (!action.CanUndo())
+                return false;
+        }
+        return true;
+    }
+
+    public override void Redo()
+    {
+        foreach (var action in _actions)
+            action.Redo();
+    }
+
+    public override void Undo()
+    {
+        for (var i = _actions.Count - 1; i >= 0; --i)
+            _actions[i].Undo();
+    }
+
+    private readonly List<EditorAction> _actions = [];
 }
