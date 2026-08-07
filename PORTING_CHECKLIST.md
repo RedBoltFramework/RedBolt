@@ -883,6 +883,13 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
   - [x] `ChangeNodeSubtreeAction`
   - [x] `ChangeSceneAction`
 - [ ] `CommonEditorActionBuilders.h`
+  - [x] `CreateNodeActionBuilder`
+  - [ ] `RemoveNodeActionBuilder`
+  - [ ] `CreateComponentActionBuilder`
+  - [ ] `RemoveComponentActionBuilder`
+  - [ ] `ChangeAttributeBuffer`
+  - [ ] `ChangeNodeAttributesActionBuilder`
+  - [ ] `ChangeComponentAttributesActionBuilder`
 - [ ] `EditorPlugin.h` — **DEFERRED** · editor plugins will be ported later; keep explicit `TODO: port` call-site guidance
 - [ ] `EditorPluginManager.h` — **DEFERRED** · editor plugins will be ported later; keep explicit `TODO: port` call-site guidance
 
