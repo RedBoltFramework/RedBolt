@@ -6,7 +6,12 @@ set(sctp_werror OFF CACHE BOOL "Disable usrsctp warnings as errors" FORCE)
 if(EMSCRIPTEN)
     add_library(datachannel-static INTERFACE)
 else()
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.25)
     add_subdirectory(libdatachannel EXCLUDE_FROM_ALL)
+    target_compile_options(juice PRIVATE
+        "$<$<COMPILE_LANG_AND_ID:C,GNU,Clang,AppleClang>:-std=gnu11>")
+    target_compile_options(juice-static PRIVATE
+        "$<$<COMPILE_LANG_AND_ID:C,GNU,Clang,AppleClang>:-std=gnu11>")
 endif()
 
 set(REDBOLT_LIBDATACHANNEL_INCLUDE_DIR
