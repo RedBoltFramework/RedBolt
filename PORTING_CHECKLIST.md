@@ -777,8 +777,8 @@ Accepted deviations:
   - [ ] `SceneHierarchyWidget : Object`
 - [ ] `MaterialInspectorWidget.h`
   - [ ] `MaterialInspectorWidget : Object`
-- [ ] `AnimationInspectorWidget.h`
-  - [ ] `AnimationInspectorWidget : ResourceInspectorWidget`
+- [x] `AnimationInspectorWidget.h`
+  - [x] `AnimationInspectorWidget : ResourceInspectorWidget` — native length accessors and read-only save policy are ported and software-renderer tested
 - [ ] `ModelInspectorWidget.h`
   - [ ] `ModelInspectorWidget : ResourceInspectorWidget`
 - [ ] `Texture2DInspectorWidget.h`
