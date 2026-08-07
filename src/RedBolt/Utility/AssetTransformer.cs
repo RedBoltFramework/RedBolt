@@ -425,6 +425,7 @@ public class AssetTransformerDependency : ICloneable
     public string Class = string.Empty;
     public string DependsOn = string.Empty;
 
+    // TODO: Extract common code to Resource
     public void SerializeInBlock(Archive archive)
     {
         ArchiveSerialization.SerializeValue(archive, "Class", ref Class);

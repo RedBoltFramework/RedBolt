@@ -825,8 +825,8 @@ Accepted deviations:
   - [ ] `RetargetAnimationsTransformer : BaseAssetPostTransformer`
 - [x] `AnimationMetadata.h` — faithful C# source conversion is present and builds in the optional Utility module
   - [x] animation metadata helpers
-- [ ] `AssetPipeline.h`
-  - [ ] `AssetPipeline : Resource`
+- [x] `AssetPipeline.h`
+  - [x] `AssetPipeline : Resource`
 - [ ] `FileSystemReflection.h`
   - [x] `struct FileSystemEntry` — managed reference type with `Clone` preserves recursive C++ value copies and stable parent references
   - [x] `FileSystemReflection : Object` — excluded native `FileSystem` calls map to `System.IO`

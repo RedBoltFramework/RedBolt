@@ -437,78 +437,21 @@ public class Serializable : RedObject
 
     public void SerializeInBlock(Archive archive, bool serializeTemporary)
     {
-        var count = 0;
+        var compactSave = !archive.IsHumanReadable;
+        var flags = PrefabArchiveFlag.IgnoreSerializableId | PrefabArchiveFlag.IgnoreSerializableType
+            | (serializeTemporary ? PrefabArchiveFlag.SerializeTemporary : PrefabArchiveFlag.None);
+
+        using var prefab = new SerializablePrefab();
+
         if (!archive.IsInput)
-        {
-            foreach (var attribute in _attributes)
-            {
-                if (attribute.ShouldSave || serializeTemporary && (attribute.Mode & AttributeMode.Temporary) != 0)
-                    ++count;
-            }
-        }
+            prefab.Import(this, serializeTemporary ? PrefabSaveFlag.SaveTemporary : PrefabSaveFlag.None);
 
-        using var block = archive.OpenArrayBlock("attributes", count);
+        prefab.SerializeInBlock(archive, flags, compactSave);
+
         if (archive.IsInput)
-        {
-            for (var i = 0; i < block.SizeHint; ++i)
-            {
-                using var item = archive.OpenUnorderedBlock("attribute");
-                var name = string.Empty;
-                ArchiveSerialization.SerializeOptionalValue(
-                    archive, "name", ref name, string.Empty,
-                    static (Archive valueArchive, string valueName, ref string value) =>
-                        ArchiveSerialization.SerializeValue(valueArchive, valueName, ref value));
-                var attribute = FindAttribute(name);
-                var type = attribute?.DefaultValue.Type ?? VariantType.None;
-                ArchiveSerialization.SerializeOptionalValue(
-                    archive, "type", ref type, VariantType.None,
-                    static (Archive valueArchive, string valueName, ref VariantType value) =>
-                        ArchiveSerialization.SerializeValue(valueArchive, valueName, ref value));
-                var value = new Variant(type);
-                try
-                {
-                    ArchiveSerialization.SerializeVariantAsType(archive, "value", ref value, type);
-                    if (attribute is not null && (attribute.ShouldLoad || serializeTemporary && (attribute.Mode & AttributeMode.Temporary) != 0))
-                        OnSetAttribute(attribute, value);
-                }
-                finally
-                {
-                    value.Dispose();
-                }
-            }
-            ApplyAttributes();
-        }
-        else
-        {
-            foreach (var attribute in _attributes)
-            {
-                if (!attribute.ShouldSave
-                    && (!serializeTemporary || (attribute.Mode & AttributeMode.Temporary) == 0))
-                    continue;
+            prefab.Export(this);
 
-                using var item = archive.OpenUnorderedBlock("attribute");
-                var name = attribute.Name;
-                ArchiveSerialization.SerializeOptionalValue(
-                    archive, "name", ref name, string.Empty,
-                    static (Archive valueArchive, string valueName, ref string value) =>
-                        ArchiveSerialization.SerializeValue(valueArchive, valueName, ref value));
-                var value = default(Variant);
-                OnGetAttribute(attribute, ref value);
-                try
-                {
-                    var type = value.Type;
-                    ArchiveSerialization.SerializeOptionalValue(
-                        archive, "type", ref type, VariantType.None,
-                        static (Archive valueArchive, string valueName, ref VariantType valueType) =>
-                            ArchiveSerialization.SerializeValue(valueArchive, valueName, ref valueType));
-                    ArchiveSerialization.SerializeVariantAsType(archive, "value", ref value, type);
-                }
-                finally
-                {
-                    value.Dispose();
-                }
-            }
-        }
+        ApplyAttributes();
     }
 
     public Serializable? Clone(bool resetToDefault = true)
