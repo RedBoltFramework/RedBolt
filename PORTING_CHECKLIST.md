@@ -897,6 +897,12 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 
 ## Editor/Project
 
+- [ ] `Project.h`
+  - [x] `ProjectFlag` / `ProjectFlags` — mapped to a C# flags enum
+  - [x] `CloseProjectResult`
+  - [ ] `ResourceCacheGuard`
+  - [ ] `AnalyzeFileContext`
+  - [ ] `Project`
 - [x] `CreateDefaultScene.h`
   - [x] `DefaultSceneParameters`
   - [x] `CreateDefaultScene`
