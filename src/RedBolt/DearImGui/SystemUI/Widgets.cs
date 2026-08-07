@@ -257,7 +257,7 @@ public static partial class Widgets
         /// <summary>Whether to extract elements metadata dynamically from the inspected StringVariantMap itself.</summary>
         public bool UsesDynamicMetadata;
         /// <summary>Enum values used to convert integer to string.</summary>
-        public StringVector? IntToString;
+        public IReadOnlyList<string>? IntToString;
         /// <summary>Allowed resource types.</summary>
         public StringVector? ResourceTypeNames;
         /// <summary>Structure array element names.</summary>
@@ -292,7 +292,7 @@ public static partial class Widgets
             return this;
         }
 
-        public EditVariantOptions Enum(StringVector values)
+        public EditVariantOptions Enum(IReadOnlyList<string> values)
         {
             IntToString = values;
             return this;

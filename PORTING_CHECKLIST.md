@@ -772,8 +772,8 @@ Accepted deviations:
   - [x] `struct ResourceFileDescriptor` — managed reference type and `Clone` preserve C++ value-copy semantics
   - [x] `ResourceDragDropPayload : DragDropPayload`
   - [x] `NodeComponentDragDropPayload : DragDropPayload`
-- [ ] `SerializableInspectorWidget.h`
-  - [ ] `SerializableInspectorWidget : Object`
+- [x] `SerializableInspectorWidget.h`
+  - [x] `SerializableInspectorWidget : Object` — weak selection pruning, titles, hook registries and copy helpers, attribute/action rendering and edit boundaries, metadata-driven variant options, and explicit owned `Variant` cleanup are ported and software-renderer interaction-tested; borrowed enum metadata avoids per-frame allocation
 - [ ] `NodeInspectorWidget.h`
   - [ ] `NodeInspectorWidget : Object`
 - [ ] `SceneHierarchyWidget.h`
