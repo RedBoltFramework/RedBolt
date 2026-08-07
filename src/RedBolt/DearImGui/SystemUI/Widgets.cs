@@ -44,17 +44,19 @@ public static class Widgets
         using var style = ImGui.GetStyle();
         using var colors = style.Colors;
         var dimension = GetSmallButtonSize();
+        using var colorGuard = new ColorScopeGuard(
+            ImGuiCol.ImGuiColButton,
+            new Vector4f(colors[(int)ImGuiCol.ImGuiColButtonActive]),
+            active);
 
-        if (active)
-            ImGui.PushStyleColor(ImGuiCol.ImGuiColButton, new Vector4f(colors[(int)ImGuiCol.ImGuiColButtonActive]));
         ImGui.PushStyleVar(ImGuiStyleVar.ImGuiStyleVarFramePadding, new Vector2f());
 
-        // TODO: port ButtonEx(..., ImGuiButtonFlags_PressedOnClick) when generated bindings expose imgui_internal.h.
-        var result = ImGui.Button(label, new Vector2f(dimension, dimension));
+        var result = ImGui.ButtonEx(
+            label,
+            new Vector2f(dimension, dimension),
+            (ImGuiButtonFlags)ImGuiButtonFlagsPrivate.ImGuiButtonFlagsPressedOnClick);
 
         ImGui.PopStyleVar();
-        if (active)
-            ImGui.PopStyleColor();
 
         ImGui.SameLine(0, 0);
 
@@ -69,6 +71,74 @@ public static class Widgets
     {
         using var style = ImGui.GetStyle();
         ImGui.SetCursorPosX(ImGui.GetCursorPosX() + style.FramePadding.X);
+    }
+
+    /// <summary>Render a label for the next item, on either the left or the right.</summary>
+    public static void ItemLabel(ReadOnlySpan<byte> title, Color? color = null, bool isLeft = true)
+    {
+        using var window = ImGui.GetCurrentWindow();
+        using var style = ImGui.GetStyle();
+
+        var lineStart = ImGui.GetCursorScreenPos();
+        var fullWidth = ImGui.GetContentRegionAvail().X;
+        var itemWidth = ImGui.CalcItemWidth() + style.ItemSpacing.X;
+        var textSize = ImGui.CalcTextSize(title);
+
+        var textRect = new Rect(ImGui.GetCursorScreenPos(), ImGui.GetCursorScreenPos());
+        if (!isLeft)
+            textRect.Min.X += itemWidth;
+        textRect.Max = textRect.Min;
+        textRect.Max.X += fullWidth - itemWidth;
+        textRect.Max.Y += textSize.Y;
+
+        ImGui.SetCursorScreenPos(textRect.Min);
+
+        ImGui.AlignTextToFramePadding();
+        var textBaseOffset = window.DcCurrLineTextBaseOffset;
+        textRect.Min.Y += textBaseOffset;
+        textRect.Max.Y += textBaseOffset;
+
+        ImGui.ItemSize(in textRect);
+        if (ImGui.ItemAdd(in textRect, window.GetID(title)))
+        {
+            using var colorGuard = new ColorScopeGuard(
+                ImGuiCol.ImGuiColText,
+                color.GetValueOrDefault(Color.Black).ToUInt(),
+                color.HasValue);
+            using var drawList = ImGui.GetWindowDrawList();
+            ImGui.RenderTextEllipsis(
+                drawList,
+                textRect.Min,
+                textRect.Max,
+                textRect.Max.X,
+                title,
+                textSize);
+
+            if (textRect.Size.X < textSize.X && ImGui.IsItemHovered())
+                ImGui.SetTooltip(title);
+        }
+
+        if (isLeft)
+        {
+            ImGui.SetCursorScreenPos(textRect.Max - new Vector2f(0.0f, textSize.Y + textBaseOffset));
+            ImGui.SameLine();
+        }
+        else
+            ImGui.SetCursorScreenPos(lineStart);
+    }
+
+    /// <summary>Render an item label inside an ID scope of the same name.</summary>
+    public readonly struct ItemLabelScopeGuard : IDisposable
+    {
+        public ItemLabelScopeGuard(ReadOnlySpan<byte> title, Color? color = null, bool isLeft = true)
+        {
+            _idScope = new IdScopeGuard(title);
+            ItemLabel(title, color, isLeft);
+        }
+
+        public void Dispose() => _idScope.Dispose();
+
+        private readonly IdScopeGuard _idScope;
     }
 
     /// <summary>Return recommended color for item label.</summary>

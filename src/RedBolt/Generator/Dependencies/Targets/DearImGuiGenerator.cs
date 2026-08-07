@@ -54,6 +54,19 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
         var overloadsByName = compilation.Functions.ToLookup(static function => function.CppQualifiedName);
         foreach (var function in compilation.Functions)
         {
+            if (function.NativeName == "RenderTextEllipsis")
+            {
+                var textSize = function.Parameters.First(static parameter => parameter.NativeName == "text_size_if_known");
+                textSize.AbiKind = BindingParameterAbiKind.Pointer;
+            }
+
+            if (function.NativeName == "ItemAdd")
+            {
+                var navigationRectangle = function.Parameters.First(static parameter => parameter.NativeName == "nav_bb");
+                navigationRectangle.AbiKind = BindingParameterAbiKind.Pointer;
+                navigationRectangle.SetMetadata(MetadataKeys.UnexpressibleDefault, true);
+            }
+
             if (function.NativeName == "ImGui_ImplSDL2_KeyEventToImGuiKey")
             {
                 foreach (var parameter in function.Parameters)

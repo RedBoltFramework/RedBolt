@@ -724,8 +724,10 @@ Accepted deviations:
 - [~] `Widgets.h`
   - [~] shared widget free functions
   - [x] `GetSmallButtonSize`
-  - [x] `ToolbarButton` — uses public `Button` until internal `ButtonEx` flags are generated; exact call site retains `TODO: port`
+  - [x] `ToolbarButton`
   - [x] `ToolbarSeparator`
+  - [x] `ItemLabel`
+  - [x] `ItemLabelScopeGuard` — native guard inheritance maps to allocation-free value composition
   - [x] `GetItemLabelColor`
   - [x] `GetItemBackgroundColor`
   - [x] `Underline`
