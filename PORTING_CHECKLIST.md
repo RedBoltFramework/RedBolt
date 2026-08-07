@@ -928,7 +928,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 - [ ] `ResourceFactory.h`
   - [x] `ResourceFactory`
   - [x] `BaseResourceFactory` — generated raw ImGui callback and resizable `CString` storage preserve `ea::string` text input behavior
-  - [ ] `SimpleResourceFactory`
+  - [x] `SimpleResourceFactory`
 - [ ] `ModifyResourceAction.h`
   - [ ] `ModifyResourceAction`
 - [ ] `ResourceEditorTab.h`

@@ -216,3 +216,35 @@ public abstract class BaseResourceFactory : ResourceFactory
     private GCHandle _localFileNameInputHandle;
     private GCHandle _newResourcePathInputHandle;
 }
+
+/// <summary>Simple implementation of ResourceFactory.</summary>
+public class SimpleResourceFactory : BaseResourceFactory
+{
+    public delegate void Callback(string fileName, string resourceName);
+
+    public SimpleResourceFactory(int group, string title, string fileName, Callback callback)
+        : base(group, title)
+    {
+        _fileName = fileName;
+        _callback = callback;
+
+        Debug.Assert(_callback is not null);
+    }
+
+    /// <summary>Overridable interface.</summary>
+    public override string DefaultFileName => _fileName;
+
+    public override void CommitAndClose()
+    {
+        _callback!(FinalFileName, FinalResourceName);
+    }
+
+    public override void Dispose()
+    {
+        _callback = null;
+        base.Dispose();
+    }
+
+    private readonly string _fileName;
+    private Callback? _callback;
+}
