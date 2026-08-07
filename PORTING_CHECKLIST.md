@@ -718,6 +718,7 @@ Accepted deviations:
   - [x] system-UI event definitions
 - [~] `ImGui.h`
   - [~] ImGui integration helpers
+  - [x] generated `imgui_internal.h` widget primitives with allocation-free `ImRect` value projection
   - [x] `IdScopeGuard`
   - [x] `ColorScopeGuard`
 - [~] `Widgets.h`

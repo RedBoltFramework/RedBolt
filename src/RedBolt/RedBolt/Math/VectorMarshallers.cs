@@ -53,6 +53,14 @@ public static class Vector4fMarshaller
     public static Vector4f ConvertToManaged(Vector4f unmanaged) => unmanaged;
 }
 
+[CustomMarshaller(typeof(Rect), MarshalMode.Default, typeof(RectMarshaller))]
+public static class RectMarshaller
+{
+    public static Rect ConvertToUnmanaged(Rect managed) => managed;
+
+    public static Rect ConvertToManaged(Rect unmanaged) => unmanaged;
+}
+
 [CustomMarshaller(typeof(Color), MarshalMode.ManagedToUnmanagedIn, typeof(ColorMarshaller))]
 [CustomMarshaller(typeof(Color), MarshalMode.ManagedToUnmanagedOut, typeof(ColorMarshaller))]
 [CustomMarshaller(typeof(Color), MarshalMode.UnmanagedToManagedOut, typeof(ColorMarshaller))]

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <SharpCpp/Marshaller.hpp>
-#include <imgui.h>
+#include <imgui_internal.h>
 
 namespace SharpCpp
 {
@@ -93,6 +93,38 @@ struct ReturnMarshaller<ImVec4>
 {
     using cpp_type = ImVec4;
     using abi_type = ImVec4;
+    abi_type ConvertToAbi(const cpp_type& v) noexcept { return v; }
+    cpp_type ConvertToCpp(const abi_type& v) noexcept { return v; }
+};
+
+template <>
+struct [[sharpcpp::managed_type(
+    public_type = "global::RedBolt.Math.Rect",
+    managed_marshaller = "global::RedBolt.Math.RectMarshaller",
+    suppress_emission = true
+)]]
+Marshaller<ImRect>
+{
+    using cpp_type = ImRect;
+    using abi_type = ImRect;
+    abi_type ConvertToAbi(const cpp_type& v) noexcept { return v; }
+    cpp_type ConvertToCpp(abi_type v) noexcept { return v; }
+};
+
+template <>
+struct Marshaller<const ImRect&>
+{
+    using cpp_type = const ImRect&;
+    using abi_type = const ImRect*;
+    abi_type ConvertToAbi(cpp_type v) noexcept { return &v; }
+    cpp_type ConvertToCpp(abi_type v) noexcept { return *v; }
+};
+
+template <>
+struct ReturnMarshaller<ImRect>
+{
+    using cpp_type = ImRect;
+    using abi_type = ImRect;
     abi_type ConvertToAbi(const cpp_type& v) noexcept { return v; }
     cpp_type ConvertToCpp(const abi_type& v) noexcept { return v; }
 };

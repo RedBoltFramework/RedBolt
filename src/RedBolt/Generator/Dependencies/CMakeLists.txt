@@ -25,6 +25,7 @@ file(GLOB_RECURSE REDBOLT_DEPENDENCIES_GENERATOR_INPUTS CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cs"
     "${CMAKE_CURRENT_SOURCE_DIR}/*.csproj")
 list(APPEND REDBOLT_DEPENDENCIES_GENERATOR_INPUTS
+    "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/include/RedBolt/ImGuiValueMarshallers.hpp"
     "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/include/RedBolt/RmlHarfBuzzFontEngine.hpp"
     "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/include/RedBolt/RmlUiValueMarshallers.hpp")
 
@@ -263,6 +264,7 @@ file(CONFIGURE OUTPUT "${REDBOLT_DILIGENT_PARSE_HEADER}" CONTENT [=[
 file(CONFIGURE OUTPUT "${REDBOLT_IMGUI_PARSE_SOURCE}" CONTENT [=[
 #include <SDL.h>
 #include <imgui.h>
+#include <imgui_internal.h>
 #define IMGUI_IMPL_API IMGUI_API
 #include <imgui_impl_sdl2.h>
 #include <RedBolt/ImGuiBackend.hpp>

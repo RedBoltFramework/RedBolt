@@ -36,6 +36,14 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
     protected override void ConfigureBeforeValidation(BindingCompilation compilation)
     {
         ConfigureFunctions(compilation);
+        foreach (var record in compilation.Records.Where(static record =>
+                     record.NativeName is "ImFontAtlasBuilder" or "ImGuiContext" or "ImGuiDockContext"))
+            record.HasCopyConstructor = false;
+        foreach (var field in compilation.Records
+                     .Where(static record => record.NativeName is "ImDrawDataBuilder" or "ImGuiViewportP")
+                     .SelectMany(static record => record.Members.OfType<FieldBinding>())
+                     .Where(static field => field.NativeName is "Layers" or "DrawDataBuilder_Layers"))
+            field.SetSilentExclusionReason("ImVector pointer arrays have no managed container projection");
     }
 
     protected override void AfterPruneCompilation(BindingCompilation compilation) =>
