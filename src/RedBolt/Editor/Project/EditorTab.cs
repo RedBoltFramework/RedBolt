@@ -24,6 +24,9 @@ namespace RedBolt.Editor.Project;
 
 using System;
 
+using RedBolt.Bindings.DearImGui;
+using RedBolt.Core;
+
 [Flags]
 public enum EditorTabFlag
 {
@@ -40,4 +43,21 @@ public enum EditorTabPlacement
     DockLeft,
     DockRight,
     DockBottom,
+}
+
+/// <summary>Interface for entity configurable via INI file.</summary>
+public abstract class EditorConfigurable : RedObject
+{
+    public EditorConfigurable()
+    {
+    }
+
+    /// <summary>Write all UI settings to text INI file.</summary>
+    public abstract void WriteIniSettings(ImGuiTextBuffer output);
+
+    /// <summary>Read one line of text INI file. May be called several times.</summary>
+    public abstract void ReadIniSettings(string line);
+
+    /// <summary>Return entry that should be read.</summary>
+    public abstract string IniEntry { get; }
 }
