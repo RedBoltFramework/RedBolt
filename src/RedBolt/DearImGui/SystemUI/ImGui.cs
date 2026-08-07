@@ -11,7 +11,7 @@ using RedBolt.Bindings.DearImGui;
 using RedBolt.Math;
 
 /// <summary>State guard for paired ID scope calls.</summary>
-public class IdScopeGuard : IDisposable
+public readonly struct IdScopeGuard : IDisposable
 {
     public IdScopeGuard(ReadOnlySpan<byte> id)
     {
@@ -34,7 +34,7 @@ public class IdScopeGuard : IDisposable
     }
 }
 
-public class ColorScopeGuard : IDisposable
+public readonly struct ColorScopeGuard : IDisposable
 {
     public ColorScopeGuard(ImGuiCol id, Vector4f color, bool enabled = true)
     {

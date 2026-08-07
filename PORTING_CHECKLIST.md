@@ -719,8 +719,8 @@ Accepted deviations:
 - [~] `ImGui.h`
   - [~] ImGui integration helpers
   - [x] generated `imgui_internal.h` widget primitives with allocation-free `ImRect` value projection
-  - [x] `IdScopeGuard`
-  - [x] `ColorScopeGuard`
+  - [x] `IdScopeGuard` — stack-only native RAII maps to an allocation-free C# value guard
+  - [x] `ColorScopeGuard` — stack-only native RAII maps to an allocation-free C# value guard
 - [~] `Widgets.h`
   - [~] shared widget free functions
   - [x] `GetSmallButtonSize`
