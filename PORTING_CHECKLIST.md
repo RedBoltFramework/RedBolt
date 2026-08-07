@@ -821,8 +821,10 @@ Accepted deviations:
   - [x] `struct CalculateAnimationVelocityParams` — managed reference type and `Clone` preserve C++ value-copy semantics
   - [x] `struct CalculateAnimationVelocityTask` — managed reference type, strong resource references, and `Clone` preserve C++ value and `SharedPtr` copies
   - [x] `CalculateAnimationVelocityTransformer : BaseAssetPostTransformer`
-- [ ] `GenerateWorldSpaceTracksTransformer.h`
-  - [ ] `GenerateWorldSpaceTracksTransformer : BaseAssetPostTransformer`
+- [x] `GenerateWorldSpaceTracksTransformer.h`
+  - [x] `struct GenerateWorldSpaceTracksParams` — managed reference type and `Clone` preserve C++ value-copy semantics; standard C# sets and maps replace EASTL containers
+  - [x] `struct GenerateWorldSpaceTracksTask` — managed reference type, strong resource references, and `Clone` preserve C++ value and `SharedPtr` copies
+  - [x] `GenerateWorldSpaceTracksTransformer : BaseAssetPostTransformer`
 - [ ] `RetargetAnimationsTransformer.h`
   - [ ] `RetargetAnimationsTransformer : BaseAssetPostTransformer`
 - [x] `AnimationMetadata.h` — faithful C# source conversion is present and builds in the optional Utility module
