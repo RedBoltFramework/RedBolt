@@ -277,10 +277,10 @@ public class DearImGui : RedObject
 
         ImGui.NewFrame();
 
+        ImGui.BeginFrame();
+
         if (!input.IsMouseVisible())
             ImGui.SetMouseCursor(ImGuiMouseCursor.ImGuiMouseCursorNone);
-
-        // TODO: port ImGuizmo::BeginFrame when ImGuizmo is exposed by generated bindings.
     }
 
     private void OnRenderEnd()

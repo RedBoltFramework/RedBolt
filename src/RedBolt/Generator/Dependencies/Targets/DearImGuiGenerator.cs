@@ -73,6 +73,21 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
                     parameter.Type = BindingType.Int32;
             }
 
+            if (function.CppQualifiedName == "ImGuizmo::Manipulate")
+            {
+                foreach (var parameter in function.Parameters.Where(static parameter =>
+                             parameter.NativeName is "view" or "projection" or "matrix"
+                                 or "deltaMatrix" or "snap" or "localBounds" or "boundsSnap"))
+                {
+                    parameter.Type = BindingType.Single;
+                    parameter.Direction = BindingParameterDirection.In;
+                    parameter.AbiKind = BindingParameterAbiKind.Pointer;
+                    parameter.SetMetadata(MetadataKeys.InputPointerArray, true);
+                    if (parameter.NativeName is "matrix" or "deltaMatrix")
+                        parameter.SetMetadata(MetadataKeys.WritablePointerArray, true);
+                }
+            }
+
             if (function.Parameters.Any(static parameter =>
                     IsVaList(parameter.CppTypeName) || IsVaList(parameter.Type.CppTypeName)))
             {

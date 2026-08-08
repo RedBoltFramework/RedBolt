@@ -43,6 +43,15 @@ endif()
 set_target_properties(redbolt-imgui-backend PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
 
+add_library(redbolt-imguizmo STATIC
+    thirdparty/ImGuizmo/ImGuizmo.cpp)
+target_include_directories(redbolt-imguizmo PUBLIC
+    thirdparty/ImGuizmo)
+target_link_libraries(redbolt-imguizmo PUBLIC
+    ImGui)
+set_target_properties(redbolt-imguizmo PROPERTIES
+    POSITION_INDEPENDENT_CODE ON)
+
 if(EMSCRIPTEN)
     set(_redbolt_native_library_type STATIC)
 else()
@@ -155,6 +164,7 @@ redbolt_add_native_wrapper(
     SOURCES "${REDBOLT_IMGUI_BINDINGS_CPP}"
     LINK_LIBRARIES
         ImGui
+        redbolt-imguizmo
         redbolt-imgui-backend
         Diligent-GraphicsEngine
         ${REDBOLT_DILIGENT_OPENGL_TARGET}
