@@ -1,5 +1,10 @@
 namespace RedBolt.DearImGui;
 
+using System.Globalization;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
+
 using RedBolt.Bindings.DearImGui;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
@@ -7,6 +12,7 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.RenderAPI;
+using RedBolt.Resource;
 using RedBolt.SystemUI;
 
 public class DearImGui : RedObject
@@ -49,6 +55,9 @@ public class DearImGui : RedObject
         PlatformShutdown();
         ImGui.DestroyContext(_imContext);
         _imContext = 0;
+        for (var i = _fontDataHandles.Count - 1; i >= 0; --i)
+            _fontDataHandles[i].Free();
+        _fontDataHandles.Clear();
         base.Dispose();
     }
 
@@ -78,12 +87,89 @@ public class DearImGui : RedObject
     /// <summary>Return relative mouse movement value.</summary>
     public Vector2f RelativeMouseMove => _relativeMouseMove;
 
-    // TODO: port ImFont* AddFont(const ea::string& fontPath, const ImWchar* ranges = nullptr, float size = 0, bool merge = false)
-    // when SharpCpp exposes ImFontAtlas and ImFontConfig.
-    // TODO: port ImFont* AddFont(const void* data, unsigned dsize, const char* name, const ImWchar* ranges = nullptr,
-    // float size = 0, bool merge = false) when SharpCpp exposes ImFontAtlas and ImFontConfig.
-    // TODO: port ImFont* AddFontCompressed(const void* data, unsigned dsize, const char* name,
-    // const ImWchar* ranges = nullptr, float size = 0, bool merge = false) when SharpCpp exposes ImFontAtlas and ImFontConfig.
+    /// <summary>Add font to imgui subsystem.</summary>
+    /// <param name="fontPath">A string pointing to TTF font resource.</param>
+    /// <param name="ranges">Optional ranges of font that should be used.</param>
+    /// <param name="size">A font size. If 0 then size of last font is used.</param>
+    /// <param name="merge">Set to true if new font should be merged to last active font.</param>
+    /// <returns>ImFont instance that may be used for setting current font when drawing GUI.</returns>
+    public ImFont? AddFont(string fontPath, ReadOnlySpan<ushort> ranges = default, float size = 0, bool merge = false)
+    {
+        var previousSize = _fontSizes.Count == 0 ? DefaultFontSize : _fontSizes[^1];
+        _fontSizes.Add(size);
+        size = size == 0 ? previousSize : size;
+
+        using var fontFile = GetSubsystem<ResourceCache>().GetFile(fontPath);
+        if (fontFile is not null)
+        {
+            var data = new byte[checked((int)fontFile.Size)];
+            var bytesLength = checked((int)fontFile.Read(data));
+            return AddFont(data.AsSpan(0, bytesLength), Path.GetFileNameWithoutExtension(fontPath), ranges, size, merge);
+        }
+        return null;
+    }
+
+    public ImFont? AddFont(ReadOnlySpan<byte> data, string name, ReadOnlySpan<ushort> ranges = default,
+        float size = 0, bool merge = false)
+    {
+        var previousSize = _fontSizes.Count == 0 ? DefaultFontSize : _fontSizes[^1];
+        _fontSizes.Add(size);
+        size = size == 0 ? previousSize : size;
+
+        using var config = new ImFontConfig
+        {
+            MergeMode = merge,
+            FontDataOwnedByAtlas = false,
+            PixelSnapH = true,
+        };
+        SetFontName(config, name, size);
+
+        var fontData = data.ToArray();
+        var fontDataHandle = GCHandle.Alloc(fontData, GCHandleType.Pinned);
+        _fontDataHandles.Add(fontDataHandle);
+
+        using var io = ImGui.GetIO();
+        using var fonts = io.Fonts;
+        var newFont = fonts.AddFontFromMemoryTTF(
+            fontDataHandle.AddrOfPinnedObject(), fontData.Length, size, config, ranges);
+        if (!newFont.IsNull)
+        {
+            ReallocateFontTexture();
+            return newFont;
+        }
+        return null;
+    }
+
+    public ImFont? AddFontCompressed(ReadOnlySpan<byte> data, string name, ReadOnlySpan<ushort> ranges = default,
+        float size = 0, bool merge = false)
+    {
+        var previousSize = _fontSizes.Count == 0 ? DefaultFontSize : _fontSizes[^1];
+        _fontSizes.Add(size);
+        size = size == 0 ? previousSize : size;
+
+        using var config = new ImFontConfig
+        {
+            MergeMode = merge,
+            FontDataOwnedByAtlas = false,
+            PixelSnapH = true,
+        };
+        SetFontName(config, name, size);
+
+        var fontData = data.ToArray();
+        var fontDataHandle = GCHandle.Alloc(fontData, GCHandleType.Pinned);
+        _fontDataHandles.Add(fontDataHandle);
+
+        using var io = ImGui.GetIO();
+        using var fonts = io.Fonts;
+        var newFont = fonts.AddFontFromMemoryCompressedTTF(
+            fontDataHandle.AddrOfPinnedObject(), fontData.Length, size, config, ranges);
+        if (!newFont.IsNull)
+        {
+            ReallocateFontTexture();
+            return newFont;
+        }
+        return null;
+    }
 
     /// <summary>Apply built-in system ui style.</summary>
     /// <param name="darkStyle">Enables dark style, otherwise it is a light style.</param>
@@ -160,6 +246,17 @@ public class DearImGui : RedObject
     private void ReallocateFontTexture()
     {
         // TODO: port the complete C++ body when SharpCpp exposes ImFontAtlas and its per-monitor atlas collection.
+    }
+
+    private static void SetFontName(ImFontConfig config, string name, float size)
+    {
+        var formattedName = string.Create(CultureInfo.InvariantCulture, $"{name} ({size:F2})");
+        var nameBytes = Encoding.UTF8.GetBytes(formattedName);
+        using var configName = config.Name;
+        var length = global::System.Math.Min(nameBytes.Length, configName.Length - 1);
+        for (var i = 0; i < length; ++i)
+            configName[i] = unchecked((sbyte)nameBytes[i]);
+        configName[length] = 0;
     }
 
     private void ClearPerScreenFonts()
@@ -343,6 +440,7 @@ public class DearImGui : RedObject
 
     private readonly List<Texture2D> _fontTextures = [];
     private readonly List<float> _fontSizes = [];
+    private readonly List<GCHandle> _fontDataHandles = [];
     private nint _imContext;
     private readonly List<ITextureView> _referencedTextures = [];
     private bool _enableRelativeMouseMove;

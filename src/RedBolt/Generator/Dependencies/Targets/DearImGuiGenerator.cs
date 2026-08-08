@@ -73,6 +73,15 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
                     parameter.Type = BindingType.Int32;
             }
 
+            if (function.NativeName is "AddFontFromMemoryTTF" or "AddFontFromMemoryCompressedTTF")
+            {
+                var glyphRanges = function.Parameters.First(static parameter => parameter.NativeName == "glyph_ranges");
+                glyphRanges.Type = BindingType.UInt16;
+                glyphRanges.Direction = BindingParameterDirection.In;
+                glyphRanges.AbiKind = BindingParameterAbiKind.Pointer;
+                glyphRanges.SetMetadata(MetadataKeys.InputPointerArray, true);
+            }
+
             if (function.CppQualifiedName == "ImGuizmo::Manipulate")
             {
                 foreach (var parameter in function.Parameters.Where(static parameter =>
