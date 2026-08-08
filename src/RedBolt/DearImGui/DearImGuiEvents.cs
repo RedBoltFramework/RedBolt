@@ -14,6 +14,12 @@ public static class DearImGuiEvents
     {
     }
 
+    /// <summary>Message box acknowledgement.</summary>
+    public struct MessageAckEvent
+    {
+        public bool OK; // bool
+    }
+
     public struct AttributeInspectorMenuEvent
     {
         public Serializable? Serializable; // Serializable pointer
