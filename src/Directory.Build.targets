@@ -188,6 +188,10 @@
           DependsOnTargets="IncludeTransitiveProjectReferences"
           Condition="'$(RedBoltPlatform)' == 'browser-wasm'">
     <ItemGroup>
+      <ProjectReference Remove="@(ProjectReference)"
+                        Condition="'%(ProjectReference.Filename)' == 'RedBolt.Utility'
+                          or '%(ProjectReference.Filename)' == 'RedBolt.Bindings.TinyGltf'
+                          or '%(ProjectReference.Filename)' == 'RedBolt.Bindings.LibDataChannel'" />
       <ProjectReference Update="@(ProjectReference)"
                         Condition="'%(ProjectReference.AdditionalProperties)' == ''
                           and $([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/'))
