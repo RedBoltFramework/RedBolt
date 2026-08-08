@@ -245,7 +245,9 @@ public class DearImGui : RedObject
 
     private void ReallocateFontTexture()
     {
-        // TODO: port the complete C++ body when SharpCpp exposes ImFontAtlas and its per-monitor atlas collection.
+        ClearPerScreenFonts();
+        _renderer?.RecreateFontTexture();
+        // TODO: port per-monitor font atlases when ImGui platform monitor callbacks are available.
     }
 
     private static void SetFontName(ImFontConfig config, string name, float size)

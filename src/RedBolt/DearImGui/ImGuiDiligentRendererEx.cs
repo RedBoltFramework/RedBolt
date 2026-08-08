@@ -92,6 +92,11 @@ public class ImGuiDiligentRendererEx : IDisposable
             (uint)graphics.GetSwapChainPreTransform());
     }
 
+    public void RecreateFontTexture()
+    {
+        ImGui.ImGuiBackendRendererCreateDeviceObjects(_nativeRenderer);
+    }
+
     public void RenderDrawData(ImDrawData drawData)
     {
         using var renderScope = RenderScope.Acquire(_renderDevice.GetRenderContext(), "ImGUI: Render main viewport");
