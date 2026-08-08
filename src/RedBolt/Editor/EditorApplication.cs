@@ -156,7 +156,10 @@ public unsafe class EditorApplication : Application
         parameters.ReloadPlugins = false;
         parameters.Profile = true;
 
-        // TODO: port FileSystem::FindResourcePrefixPath and assign EP_RESOURCE_PREFIX_PATHS when non-empty.
+        // Use detected prefix path as default. Could be overridden with command line.
+        var prefixPath = FindResourcePrefixPath();
+        if (prefixPath.Length != 0)
+            parameters.ResourcePrefixPaths = prefixPath;
 
         // TODO: Consider scaling fonts based on DPI. ImGuiConfigFlags_DpiEnableScaleFonts seems to create issues on Retina.
         var imguiFlags = (ImGuiConfigFlags)ImGuiConfigFlagsDpiEnableScaleFonts;
@@ -217,7 +220,7 @@ public unsafe class EditorApplication : Application
         }
         console.SetAutoVisibleOnError(false);
 
-        // TODO: port FileSystem::SetExecuteConsoleCommands(false).
+        // Managed Console only dispatches commands to registered event receivers and never executes shell commands.
 
         // Hud will be rendered manually.
         var debugHud = Context.GetSubsystem<DebugHud>();
@@ -898,6 +901,20 @@ public unsafe class EditorApplication : Application
             return string.Empty;
         path = path.Replace('\\', '/');
         return path.EndsWith("/", StringComparison.Ordinal) ? path : path + "/";
+    }
+
+    private static string FindResourcePrefixPath()
+    {
+        foreach (var path in new[] { Environment.CurrentDirectory, AppContext.BaseDirectory })
+        {
+            for (var directory = new DirectoryInfo(Path.GetFullPath(path)); directory.Parent is not null;
+                 directory = directory.Parent)
+            {
+                if (Directory.Exists(Path.Combine(directory.FullName, "CoreData")))
+                    return AddTrailingSlash(directory.FullName);
+            }
+        }
+        return string.Empty;
     }
 
     private static void Reveal(string path)
