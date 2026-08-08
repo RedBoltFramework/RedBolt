@@ -237,6 +237,32 @@ public static partial class Widgets
         ImGui.ItemAdd(in boundingBox, id);
     }
 
+    /// <summary>Render Texture2D as an ImGui button.</summary>
+    public static bool ImageButton(Texture2D texture, ImTextureRef textureReference, Vector2f size)
+    {
+        return ImageButton(texture, textureReference, size, Vector2f.Zero, Vector2f.One, -1, Vector4f.Zero, Vector4f.One);
+    }
+
+    /// <summary>Render Texture2D as an ImGui button.</summary>
+    public static bool ImageButton(Texture2D texture, ImTextureRef textureReference, Vector2f size,
+        Vector2f uv0, Vector2f uv1, int framePadding, Vector4f backgroundColor, Vector4f tintColor)
+    {
+        var systemUI = Context.Instance.GetSubsystem<global::RedBolt.DearImGui.DearImGui>()!;
+        systemUI.ReferenceTexture(texture);
+
+        var textureView = texture.GetRawTexture().GetHandles().ShaderResourceView!;
+        textureReference.TexID = (ulong)(nuint)textureView.Handle;
+
+        using var window = ImGui.GetCurrentWindow();
+        _ = framePadding;
+
+        ImGui.PushID(RuntimeHelpers.GetHashCode(texture));
+        var id = window.GetID("#image"u8);
+        ImGui.PopID();
+
+        return ImGui.ImageButtonEx(id, textureReference, in size, in uv0, in uv1, in backgroundColor, in tintColor);
+    }
+
     /// <summary>Parameters for rendering arbitrary variant value.</summary>
     public struct EditVariantOptions
     {
