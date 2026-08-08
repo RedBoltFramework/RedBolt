@@ -7,6 +7,7 @@ public sealed class CommandLineParser
 {
     private readonly Dictionary<string, CommandLineOption> _optionsByAlias = new(StringComparer.Ordinal);
     private readonly List<CommandLineOption> _options = [];
+    private readonly List<PositionalCommandLineOption> _positionalOptions = [];
 
     public CommandLineParser(string applicationName)
     {
@@ -28,10 +29,18 @@ public sealed class CommandLineParser
         AddOptionCore(new ValueCommandLineOption(GetAliases(aliases), description, valueName, action));
     }
 
+    public void AddPositional(string valueName, string description, Action<string> action)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(valueName);
+        ArgumentNullException.ThrowIfNull(action);
+        _positionalOptions.Add(new PositionalCommandLineOption(valueName, description, action));
+    }
+
     public CommandLineParseResult Parse(IReadOnlyList<string> args)
     {
         ArgumentNullException.ThrowIfNull(args);
 
+        var positionalIndex = 0;
         for (var index = 0; index < args.Count; ++index)
         {
             var argument = args[index];
@@ -39,7 +48,20 @@ public sealed class CommandLineParser
                 return CommandLineParseResult.HelpRequested();
 
             if (!argument.StartsWith("-", StringComparison.Ordinal))
-                return CommandLineParseResult.Failure($"Unexpected positional argument '{argument}'.");
+            {
+                if (positionalIndex >= _positionalOptions.Count)
+                    return CommandLineParseResult.Failure($"Unexpected positional argument '{argument}'.");
+
+                try
+                {
+                    _positionalOptions[positionalIndex++].Apply(argument);
+                }
+                catch (Exception exception) when (exception is ArgumentException or FormatException or InvalidOperationException)
+                {
+                    return CommandLineParseResult.Failure(exception.Message);
+                }
+                continue;
+            }
 
             var equalsIndex = argument.IndexOf('=');
             var optionName = equalsIndex >= 0 ? argument[..equalsIndex] : argument;
@@ -78,7 +100,10 @@ public sealed class CommandLineParser
     public string GetUsage()
     {
         var builder = new StringBuilder();
-        builder.AppendLine($"Usage: {ApplicationName} [options]");
+        builder.Append($"Usage: {ApplicationName} [options]");
+        foreach (var option in _positionalOptions)
+            builder.Append(" [").Append(option.ValueName).Append(']');
+        builder.AppendLine();
         builder.AppendLine();
         builder.AppendLine("Options:");
 
@@ -98,6 +123,15 @@ public sealed class CommandLineParser
             builder.Append("  ").Append(renderedOptions[index].PadRight(width)).Append("  ").AppendLine(_options[index].Description);
 
         builder.Append("  ").Append(renderedOptions[^1].PadRight(width)).Append("  ").AppendLine("Show this help message");
+
+        if (_positionalOptions.Count != 0)
+        {
+            builder.AppendLine();
+            builder.AppendLine("Arguments:");
+            width = _positionalOptions.Max(static option => option.ValueName.Length);
+            foreach (var option in _positionalOptions)
+                builder.Append("  ").Append(option.ValueName.PadRight(width)).Append("  ").AppendLine(option.Description);
+        }
         return builder.ToString();
     }
 
@@ -207,6 +241,27 @@ public sealed class CommandLineParser
         {
             var signature = string.Join(", ", Aliases);
             return $"{signature} <{ValueName}>";
+        }
+    }
+
+    private sealed class PositionalCommandLineOption
+    {
+        private readonly Action<string> _apply;
+
+        public PositionalCommandLineOption(string valueName, string description, Action<string> apply)
+        {
+            ValueName = valueName;
+            Description = description;
+            _apply = apply;
+        }
+
+        public string ValueName { get; }
+
+        public string Description { get; }
+
+        public void Apply(string value)
+        {
+            _apply(value);
         }
     }
 }
