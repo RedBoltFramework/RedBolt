@@ -752,8 +752,8 @@ Accepted deviations:
   - [~] `SystemUI : Object` — class shape, lifecycle, event flow, relative mouse mode, style, rendering, and texture-reference lifetime reconciled as `DearImGui`; three font-loading overloads, per-screen font atlases/TexID assignment, monitor refresh, ImGuizmo frame start, and managed `io.UserData` remain explicit `TODO: port` items until generated bindings expose the required native APIs
 - [x] `Console.h`
   - [x] `Console : Object` — log ring history, filters, byte-accurate selection and copy, URI events, interpreter discovery and command dispatch, visibility/update flow, and deterministic UTF-8 storage are ported and software-renderer tested; Dear ImGui 1.92 cursor-boundary validation uses the prescribed zero-size item
-- [ ] `DebugHud.h`
-  - [ ] `DebugHud : Object`
+- [x] `DebugHud.h`
+  - [x] `DebugHud : Object` — mode cycling, application stats, frame/device/renderer metrics, event-driven viewport overlay, and deterministic unsubscription are ported and software-renderer tested; ordinal stat ordering preserves `ea::map`, reusable UTF-8 storage avoids render-path conversion allocation, and nullable `ImGui::Begin` close state remains an explicit generated-binding `TODO: port`
 - [ ] `SystemMessageBox.h`
   - [ ] `SystemMessageBox : Object`
 - [x] `BaseWidget.h`
