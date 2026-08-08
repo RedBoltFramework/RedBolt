@@ -103,4 +103,5 @@ public static class ShaderResources
     public static readonly ConstString LightShape = new("LightShape");
     public static readonly ConstString ShadowMap = new("ShadowMap");
     public static readonly ConstString DepthBuffer = new("DepthBuffer");
+    public static readonly ConstString HarfBuzzAtlas = new("HarfBuzzAtlas");
 }

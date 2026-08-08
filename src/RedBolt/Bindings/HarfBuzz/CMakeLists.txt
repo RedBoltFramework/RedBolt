@@ -12,4 +12,4 @@ redbolt_add_native_binding_generation(
     INCLUDE_DIRS "${REDBOLT_HARFBUZZ_SOURCE_ROOT}/src"
     OWNED_HEADERS "${REDBOLT_HARFBUZZ_PARSE_HEADER}" "${REDBOLT_HARFBUZZ_SOURCE_ROOT}/src")
 
-add_dependencies(redbolt-generate-harfbuzz-bindings harfbuzz harfbuzz-raster)
+add_dependencies(redbolt-generate-harfbuzz-bindings harfbuzz harfbuzz-raster harfbuzz-gpu)

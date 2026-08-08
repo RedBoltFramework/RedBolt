@@ -26,9 +26,21 @@ void main()
 #ifdef URHO3D_PIXEL_SHADER
 
 SAMPLER(0, sampler2D sTexture)
+UNIFORM_BUFFER_BEGIN(6, Custom)
+    UNIFORM(int cHarfBuzzFontTexture)
+UNIFORM_BUFFER_END(6, Custom)
+
+#include "_HarfBuzzGpu.glsl"
+
 void main()
 {
-    vec4 color = vColor * texture(sTexture, vTexCoord);
+    uint glyphLoc;
+    vec2 renderCoord;
+    vec4 color = vColor;
+    if (cHarfBuzzFontTexture != 0 && HarfBuzzGpuDecode(vTexCoord, glyphLoc, renderCoord))
+        color.a *= HarfBuzzGpuCoverageDecoded(vTexCoord, glyphLoc, renderCoord);
+    else
+        color *= texture(sTexture, vTexCoord);
 #ifdef URHO3D_LINEAR_OUTPUT
     color.rgb = GammaToLinearSpace(color.rgb);
 #endif

@@ -7,6 +7,7 @@
 #include <imgui_impl_sdl2.h>
 
 #include "ImGuiDiligentRenderer.hpp"
+#include "ImGuiHarfBuzzGpu.hpp"
 
 #include <SDL.h>
 
@@ -23,6 +24,13 @@ bool ImGuiBackend_IsWithinFrameScope()
 bool ImGuiBackend_HasCurrentWindow()
 {
     return ImGui::GetCurrentWindowRead() != nullptr;
+}
+
+bool ImGuiBackend_InstallHarfBuzzGpuFontLoader()
+{
+    ImFontAtlas* atlas = ImGui::GetIO().Fonts;
+    atlas->SetFontLoader(RedBoltNative::GetImGuiHarfBuzzGpuFontLoader());
+    return atlas->FontLoader == RedBoltNative::GetImGuiHarfBuzzGpuFontLoader();
 }
 
 // ---- SDL2 backend ----
@@ -103,7 +111,9 @@ void ImGuiBackend_Renderer_RenderDrawData(
     void* userPSO,
     void* userSRB,
     void* textureVar,
-    void* constantsVar)
+    void* constantsVar,
+    void* harfBuzzAtlasVar,
+    void* pixelConstantsVar)
 {
     static_cast<ImGuiDiligentRenderer*>(renderer)->RenderDrawData(
         static_cast<Diligent::IDeviceContext*>(deviceContext),
@@ -111,7 +121,9 @@ void ImGuiBackend_Renderer_RenderDrawData(
         static_cast<Diligent::IPipelineState*>(userPSO),
         static_cast<Diligent::IShaderResourceBinding*>(userSRB),
         static_cast<Diligent::IShaderResourceVariable*>(textureVar),
-        static_cast<Diligent::IShaderResourceVariable*>(constantsVar));
+        static_cast<Diligent::IShaderResourceVariable*>(constantsVar),
+        static_cast<Diligent::IShaderResourceVariable*>(harfBuzzAtlasVar),
+        static_cast<Diligent::IShaderResourceVariable*>(pixelConstantsVar));
 }
 
 void ImGuiBackend_Renderer_InvalidateDeviceObjects(void* renderer)

@@ -26,12 +26,17 @@
  */
 
 #include "ImGuiDiligentRenderer.hpp"
+#include "ImGuiHarfBuzzGpu.hpp"
+
+#include <RedBolt/HarfBuzzGpuAtlas.hpp>
 
 #include <Diligent/Graphics/GraphicsEngine/interface/DeviceContext.h>
 #include <Diligent/Graphics/GraphicsEngine/interface/RenderDevice.h>
 #include <Diligent/Graphics/GraphicsTools/interface/MapHelper.hpp>
 
+#include <algorithm>
 #include <cstddef>
+#include <cstdio>
 
 namespace Diligent
 {
@@ -350,8 +355,13 @@ void ImGuiDiligentRenderer::InvalidateDeviceObjects()
     m_pVB.Release();
     m_pIB.Release();
     m_pVertexConstantBuffer.Release();
+    m_pPixelConstantBuffer.Release();
     m_pPSO.Release();
     m_pFontSRV.Release();
+    m_pHarfBuzzAtlas.Release();
+    m_pHarfBuzzAtlasSRV.Release();
+    m_HarfBuzzAtlasHeight = 0;
+    m_HarfBuzzUploadedTexels = 0;
     m_pSRB.Release();
 }
 
@@ -494,6 +504,14 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
         BuffDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
         m_pDevice->CreateBuffer(BuffDesc, nullptr, &m_pVertexConstantBuffer);
     }
+    {
+        BufferDesc BuffDesc;
+        BuffDesc.Size           = sizeof(Int32) * 4;
+        BuffDesc.Usage          = USAGE_DYNAMIC;
+        BuffDesc.BindFlags      = BIND_UNIFORM_BUFFER;
+        BuffDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
+        m_pDevice->CreateBuffer(BuffDesc, nullptr, &m_pPixelConstantBuffer);
+    }
     m_pPSO->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Constants")->Set(m_pVertexConstantBuffer);
 
     CreateFontsTexture();
@@ -532,6 +550,84 @@ void ImGuiDiligentRenderer::CreateFontsTexture()
 
     // Store our identifier
     IO.Fonts->TexID = reinterpret_cast<ImTextureID>(m_pFontSRV.RawPtr());
+}
+
+bool ImGuiDiligentRenderer::SynchronizeHarfBuzzAtlas(IDeviceContext* pCtx)
+{
+    auto* atlas = RedBoltNative::GetImGuiHarfBuzzGpuAtlas(ImGui::GetIO().Fonts);
+    if (!atlas || atlas->GetUsedTexels() <= 1)
+        return true;
+
+    const auto& formatInfo = m_pDevice->GetTextureFormatInfoExt(TEX_FORMAT_RGBA16_SINT);
+    if ((formatInfo.BindFlags & BIND_SHADER_RESOURCE) == 0)
+    {
+        if (!m_HarfBuzzFailureLogged)
+        {
+            std::fprintf(stderr, "HarfBuzz GPU atlas failure for ImGui renderer: RGBA16_SINT is unsupported\n");
+            m_HarfBuzzFailureLogged = true;
+        }
+        return false;
+    }
+
+    const auto& data = atlas->GetData();
+    const Uint32 height = static_cast<Uint32>(atlas->GetHeight());
+    if (!m_pHarfBuzzAtlas || m_HarfBuzzAtlasHeight != height)
+    {
+        TextureDesc desc;
+        desc.Name = "ImGui HarfBuzz GPU atlas";
+        desc.Type = RESOURCE_DIM_TEX_2D;
+        desc.Width = RedBoltNative::HarfBuzzGpuAtlas::Width;
+        desc.Height = height;
+        desc.Format = TEX_FORMAT_RGBA16_SINT;
+        desc.BindFlags = BIND_SHADER_RESOURCE;
+        desc.Usage = USAGE_DEFAULT;
+        TextureSubResData subresource(data->data(), RedBoltNative::HarfBuzzGpuAtlas::Width
+            * RedBoltNative::HarfBuzzGpuAtlas::TexelSize);
+        TextureData initialData(&subresource, 1);
+        m_pHarfBuzzAtlas.Release();
+        m_pHarfBuzzAtlasSRV.Release();
+        m_pDevice->CreateTexture(desc, &initialData, &m_pHarfBuzzAtlas);
+        if (!m_pHarfBuzzAtlas)
+        {
+            if (!m_HarfBuzzFailureLogged)
+            {
+                std::fprintf(stderr, "HarfBuzz GPU atlas failure for ImGui renderer: texture creation failed\n");
+                m_HarfBuzzFailureLogged = true;
+            }
+            return false;
+        }
+        m_pHarfBuzzAtlasSRV = m_pHarfBuzzAtlas->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
+        if (!m_pHarfBuzzAtlasSRV)
+        {
+            if (!m_HarfBuzzFailureLogged)
+            {
+                std::fprintf(stderr, "HarfBuzz GPU atlas failure for ImGui renderer: shader resource view creation failed\n");
+                m_HarfBuzzFailureLogged = true;
+            }
+            m_pHarfBuzzAtlas.Release();
+            return false;
+        }
+        m_HarfBuzzAtlasHeight = height;
+        m_HarfBuzzUploadedTexels = static_cast<Uint32>(atlas->GetUsedTexels());
+        return true;
+    }
+
+    const Uint32 usedTexels = static_cast<Uint32>(atlas->GetUsedTexels());
+    while (m_HarfBuzzUploadedTexels < usedTexels)
+    {
+        const Uint32 row = m_HarfBuzzUploadedTexels / RedBoltNative::HarfBuzzGpuAtlas::Width;
+        const Uint32 x = m_HarfBuzzUploadedTexels % RedBoltNative::HarfBuzzGpuAtlas::Width;
+        const Uint32 count = std::min(usedTexels - m_HarfBuzzUploadedTexels,
+            static_cast<Uint32>(RedBoltNative::HarfBuzzGpuAtlas::Width) - x);
+        const Box box{x, x + count, row, row + 1};
+        const TextureSubResData subresource(
+            data->data() + static_cast<std::size_t>(m_HarfBuzzUploadedTexels) * RedBoltNative::HarfBuzzGpuAtlas::TexelSize,
+            count * RedBoltNative::HarfBuzzGpuAtlas::TexelSize);
+        pCtx->UpdateTexture(m_pHarfBuzzAtlas, 0, 0, box, subresource,
+            RESOURCE_STATE_TRANSITION_MODE_TRANSITION, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        m_HarfBuzzUploadedTexels += count;
+    }
+    return true;
 }
 
 float4 ImGuiDiligentRenderer::TransformClipRect(const ImVec2& DisplaySize, const float4& rect) const
@@ -647,7 +743,7 @@ float4 ImGuiDiligentRenderer::TransformClipRect(const ImVec2& DisplaySize, const
     }
 }
 
-void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDrawData, IPipelineState* pUserPSO, IShaderResourceBinding* pUserSRB, IShaderResourceVariable* pUserTextureVar, IShaderResourceVariable* pUserConstantsVar)
+void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDrawData, IPipelineState* pUserPSO, IShaderResourceBinding* pUserSRB, IShaderResourceVariable* pUserTextureVar, IShaderResourceVariable* pUserConstantsVar, IShaderResourceVariable* pUserHarfBuzzAtlasVar, IShaderResourceVariable* pUserPixelConstantsVar)
 {
     // Avoid rendering when minimized
     if (pDrawData->DisplaySize.x <= 0.0f || pDrawData->DisplaySize.y <= 0.0f)
@@ -657,12 +753,26 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
     IPipelineState* pPSO = m_pPSO;
     IShaderResourceBinding* pSRB = m_pSRB;
     IShaderResourceVariable* pTextureVar = m_pTextureVar;
-    if (pUserPSO && pUserSRB && pUserTextureVar && pUserConstantsVar)
+    const bool harfBuzzAtlasReady = SynchronizeHarfBuzzAtlas(pCtx);
+    IShaderResourceVariable* pPixelConstantsVar = nullptr;
+    const bool userGpuBindingsReady = pUserPSO && pUserSRB && pUserTextureVar && pUserConstantsVar
+        && pUserHarfBuzzAtlasVar && pUserPixelConstantsVar;
+    if (userGpuBindingsReady)
     {
         pPSO = pUserPSO;
         pSRB = pUserSRB;
         pTextureVar = pUserTextureVar;
         pUserConstantsVar->Set(m_pVertexConstantBuffer);
+        pPixelConstantsVar = pUserPixelConstantsVar;
+        pPixelConstantsVar->Set(m_pPixelConstantBuffer);
+        if (m_pHarfBuzzAtlasSRV)
+            pUserHarfBuzzAtlasVar->Set(m_pHarfBuzzAtlasSRV);
+    }
+    else if (auto* atlas = RedBoltNative::GetImGuiHarfBuzzGpuAtlas(ImGui::GetIO().Fonts);
+        atlas && atlas->GetUsedTexels() > 1 && !m_HarfBuzzFailureLogged)
+    {
+        std::fprintf(stderr, "HarfBuzz GPU rendering failed for ImGui renderer: dedicated shader binding is unavailable\n");
+        m_HarfBuzzFailureLogged = true;
     }
 
     // Create and grow vertex/index buffers if needed
@@ -775,6 +885,7 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
     }
 
     ITextureView* pLastTextureView = nullptr;
+    bool lastHarfBuzzFontTexture = false;
     auto SetupRenderState = [&]() //
     {
         // Setup shader and vertex buffers
@@ -798,6 +909,7 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
                            static_cast<Uint32>(m_RenderSurfaceHeight));
 
         pLastTextureView = nullptr;
+        lastHarfBuzzFontTexture = false;
     };
 
     SetupRenderState();
@@ -850,10 +962,20 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
                 // Bind texture
                 auto* pTextureView = reinterpret_cast<ITextureView*>(pCmd->GetTexID());
                 VERIFY_EXPR(pTextureView);
-                if (pTextureView != pLastTextureView)
+                const bool harfBuzzFontTexture = pTextureView == m_pFontSRV.RawPtr();
+                if (harfBuzzFontTexture && (!harfBuzzAtlasReady || !pPixelConstantsVar))
+                    continue;
+                if (pTextureView != pLastTextureView || harfBuzzFontTexture != lastHarfBuzzFontTexture)
                 {
                     pLastTextureView = pTextureView;
+                    lastHarfBuzzFontTexture = harfBuzzFontTexture;
                     pTextureVar->Set(pTextureView);
+                    if (pPixelConstantsVar)
+                    {
+                        MapHelper<Int32> constants(pCtx, m_pPixelConstantBuffer, MAP_WRITE, MAP_FLAG_DISCARD);
+                        constants[0] = harfBuzzFontTexture ? 1 : 0;
+                        constants[1] = constants[2] = constants[3] = 0;
+                    }
                     pCtx->CommitShaderResources(pSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
                 }
 

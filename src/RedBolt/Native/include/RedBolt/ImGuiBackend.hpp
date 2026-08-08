@@ -13,6 +13,7 @@ extern "C"
 
 RB_IMGUI_EXPORT bool ImGuiBackend_IsWithinFrameScope();
 RB_IMGUI_EXPORT bool ImGuiBackend_HasCurrentWindow();
+RB_IMGUI_EXPORT bool ImGuiBackend_InstallHarfBuzzGpuFontLoader();
 
 // SDL2 backend
 RB_IMGUI_EXPORT bool ImGuiBackend_ProcessEvent(void* sdlEvent);
@@ -50,7 +51,9 @@ RB_IMGUI_EXPORT void ImGuiBackend_Renderer_RenderDrawData(
     void* userPSO,
     void* userSRB,
     void* textureVar,
-    void* constantsVar);
+    void* constantsVar,
+    void* harfBuzzAtlasVar,
+    void* pixelConstantsVar);
 
 RB_IMGUI_EXPORT void ImGuiBackend_Renderer_InvalidateDeviceObjects(void* renderer);
 RB_IMGUI_EXPORT void ImGuiBackend_Renderer_CreateDeviceObjects(void* renderer);

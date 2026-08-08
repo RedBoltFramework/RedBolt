@@ -28,6 +28,8 @@ public class DearImGui : RedObject
         SetCurrentContext();
 
         var io = ImGui.GetIO();
+        if (!ImGui.ImGuiBackendInstallHarfBuzzGpuFontLoader())
+            throw new InvalidOperationException("Could not initialize the HarfBuzz GPU ImGui font loader.");
         // TODO: port io.UserData = this when generated bindings can retain a managed Object pointer as native user data.
         // UI subsystem is responsible for managing cursors and that interferes with ImGui.
         io.ConfigFlags |= flags;

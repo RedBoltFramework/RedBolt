@@ -163,6 +163,7 @@ file(CONFIGURE OUTPUT "${REDBOLT_HARFBUZZ_PARSE_HEADER}" CONTENT [=[
 #include <hb.h>
 #include <hb-ot.h>
 #include <hb-raster.h>
+#include <hb-gpu.h>
 ]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_RMLUI_PARSE_HEADER}" CONTENT [=[
 #pragma once

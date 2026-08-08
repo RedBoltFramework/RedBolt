@@ -22,6 +22,7 @@
 
 namespace RedBolt.Graphics;
 
+using Microsoft.Extensions.Logging;
 using System.Globalization;
 using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
@@ -32,6 +33,7 @@ using System.Xml.Linq;
 using RedBolt.Bindings.HarfBuzz;
 using RedBolt.Core;
 using RedBolt.IO;
+using RedBolt.Logging;
 using RedBolt.RenderAPI;
 using TextureAddressMode = global::RedBolt.RenderAPI.TextureAddressMode;
 using RedBolt.Resource;
@@ -42,6 +44,11 @@ public sealed partial class Font : ResourceType
 {
     private HbBlobT? _blob;
     private HbFaceT? _face;
+    private HbFontT? _gpuFont;
+    private HbGpuDrawT? _gpuDraw;
+    private HarfBuzzGpuAtlas? _gpuAtlas;
+    private bool _gpuTextureFailureLogged;
+    private readonly Dictionary<uint, HarfBuzzGpuGlyph?> _gpuGlyphs = [];
     private readonly Dictionary<int, TextFontFace> _faces = [];
     private SdfFontData? _sdfData;
     private bool _sdfFont;
@@ -80,11 +87,35 @@ public sealed partial class Font : ResourceType
         }
 
         _face = HarfBuzzNativeBindings.HbFaceCreateOrFail(_blob, 0);
-        if (_face.IsNull || HarfBuzzNativeBindings.HbFaceGetUpem(_face) == 0)
+        if (_face.IsNull)
         {
             ReleaseFont();
             return false;
         }
+        UnitsPerEm = checked((int)HarfBuzzNativeBindings.HbFaceGetUpem(_face));
+        if (UnitsPerEm == 0)
+        {
+            ReleaseFont();
+            return false;
+        }
+
+        _gpuFont = HarfBuzzNativeBindings.HbFontCreate(_face);
+        if (_gpuFont.IsNull)
+        {
+            Log.GetLogger().LogError("HarfBuzz GPU font initialization failed for font {Font}", Name);
+            ReleaseFont();
+            return false;
+        }
+        HarfBuzzNativeBindings.HbOtFontSetFuncs(_gpuFont);
+        HarfBuzzNativeBindings.HbFontSetScale(_gpuFont, UnitsPerEm, UnitsPerEm);
+        _gpuDraw = HarfBuzzNativeBindings.HbGpuDrawCreateOrFail();
+        if (_gpuDraw.IsNull)
+        {
+            Log.GetLogger().LogError("HarfBuzz GPU encoder initialization failed for font {Font}", Name);
+            ReleaseFont();
+            return false;
+        }
+        _gpuAtlas = new HarfBuzzGpuAtlas();
 
         SetMemoryUse(checked((int)source.Size));
         return true;
@@ -112,7 +143,7 @@ public sealed partial class Font : ResourceType
         var scale = SystemMath.Max(1, (int)MathF.Round(pointSize * HarfBuzzFontFace.HarfBuzzScale));
         if (!_faces.TryGetValue(scale, out var face))
         {
-            face = new HarfBuzzFontFace(_face, scale);
+            face = new HarfBuzzFontFace(this, _face, scale);
             _faces.Add(scale, face);
         }
         return face;
@@ -127,6 +158,25 @@ public sealed partial class Font : ResourceType
 
     private void ReleaseFont()
     {
+        _gpuGlyphs.Clear();
+        _gpuTextureFailureLogged = false;
+        _gpuAtlas?.Dispose();
+        _gpuAtlas = null;
+        if (_gpuDraw is not null)
+        {
+            if (!_gpuDraw.IsNull)
+                HarfBuzzNativeBindings.HbGpuDrawDestroy(_gpuDraw);
+            _gpuDraw.Dispose();
+            _gpuDraw = null;
+        }
+        if (_gpuFont is not null)
+        {
+            if (!_gpuFont.IsNull)
+                HarfBuzzNativeBindings.HbFontDestroy(_gpuFont);
+            _gpuFont.Dispose();
+            _gpuFont = null;
+        }
+
         if (_face is not null)
         {
             if (!_face.IsNull)
@@ -142,8 +192,79 @@ public sealed partial class Font : ResourceType
             _blob.Dispose();
             _blob = null;
         }
+        UnitsPerEm = 0;
+    }
+
+    internal int UnitsPerEm { get; private set; }
+
+    internal Texture2D? GetGpuTexture()
+    {
+        var texture = _gpuAtlas?.GetTexture();
+        if (texture is null && !_gpuTextureFailureLogged)
+        {
+            _gpuTextureFailureLogged = true;
+            Log.GetLogger().LogError(
+                "HarfBuzz GPU atlas creation failed for Text3D font {Font}; GPU text geometry is suppressed", Name);
+        }
+        return texture;
+    }
+
+    internal unsafe HarfBuzzGpuGlyph? GetGpuGlyph(uint codepoint)
+    {
+        if (_gpuGlyphs.TryGetValue(codepoint, out var cached))
+            return cached;
+        if (_gpuDraw is null || _gpuFont is null || _gpuAtlas is null
+            || HarfBuzzNativeBindings.HbGpuDrawGlyphOrFail(_gpuDraw, _gpuFont, codepoint) == 0)
+        {
+            return CacheGpuFailure(codepoint, "outline encoding failed");
+        }
+
+        using var extents = new HbGlyphExtentsT();
+        var blob = HarfBuzzNativeBindings.HbGpuDrawEncode(_gpuDraw, extents);
+        if (blob.IsNull)
+        {
+            blob.Dispose();
+            return CacheGpuFailure(codepoint, "blob encoding failed");
+        }
+
+        try
+        {
+            var length = checked((int)HarfBuzzNativeBindings.HbBlobGetLength(blob));
+            var offset = 0;
+            if (length != 0)
+            {
+                var data = HarfBuzzNativeBindings.HbBlobGetData(blob, out var dataLength);
+                if (data == IntPtr.Zero || dataLength != (uint)length || length % HarfBuzzGpuAtlas.TexelSize != 0
+                    || !_gpuAtlas.TryAppend(new ReadOnlySpan<byte>((void*)data, length), out offset))
+                {
+                    return CacheGpuFailure(codepoint, "atlas overflow or malformed blob");
+                }
+            }
+
+            var glyph = new HarfBuzzGpuGlyph(
+                codepoint, offset, extents.XBearing, extents.YBearing, extents.Width, extents.Height);
+            _gpuGlyphs.Add(codepoint, glyph);
+            return glyph;
+        }
+        finally
+        {
+            HarfBuzzNativeBindings.HbGpuDrawRecycleBlob(_gpuDraw, blob);
+            blob.Dispose();
+        }
+    }
+
+    private HarfBuzzGpuGlyph? CacheGpuFailure(uint codepoint, string reason)
+    {
+        Log.GetLogger().LogError(
+            "HarfBuzz GPU glyph failure for font {Font}, glyph {Glyph}, renderer Text3D: {Reason}",
+            Name, codepoint, reason);
+        _gpuGlyphs[codepoint] = null;
+        return null;
     }
 }
+
+internal sealed record HarfBuzzGpuGlyph(
+    uint Codepoint, int AtlasOffset, int XBearing, int YBearing, int Width, int Height);
 
 internal sealed class TextFontGlyph
 {
@@ -156,6 +277,11 @@ internal sealed class TextFontGlyph
     public int AtlasX;
     public int AtlasY;
     public int Page;
+    public int AtlasOffset;
+    public float RenderBearingX;
+    public float RenderBearingY;
+    public float RenderWidth;
+    public float RenderHeight;
 }
 
 internal abstract class TextFontFace : IDisposable
@@ -173,19 +299,14 @@ internal abstract class TextFontFace : IDisposable
 internal sealed class HarfBuzzFontFace : TextFontFace
 {
     public const int HarfBuzzScale = 64;
-    private const int AtlasSize = 1024;
-    private const int AtlasPadding = 1;
 
+    private readonly Font _owner;
     private readonly HbFontT _font;
     private readonly Dictionary<uint, TextFontGlyph> _glyphs = [];
-    private readonly byte[] _atlasPixels = new byte[AtlasSize * AtlasSize];
-    private Texture2D? _texture;
-    private int _atlasX = AtlasPadding;
-    private int _atlasY = AtlasPadding;
-    private int _atlasRowHeight;
 
-    public HarfBuzzFontFace(HbFaceT face, int scale)
+    public HarfBuzzFontFace(Font owner, HbFaceT face, int scale)
     {
+        _owner = owner;
         _font = HarfBuzzNativeBindings.HbFontCreate(face);
         HarfBuzzNativeBindings.HbOtFontSetFuncs(_font);
         HarfBuzzNativeBindings.HbFontSetScale(_font, scale, scale);
@@ -206,19 +327,12 @@ internal sealed class HarfBuzzFontFace : TextFontFace
             return null;
 
         if (_glyphs.TryGetValue(codepoint, out var glyph))
-        {
-            EnsureTexture();
             return glyph;
-        }
 
-        glyph = RasterizeGlyph(codepoint);
+        glyph = CreateGlyph(codepoint);
+        if (glyph is null)
+            return null;
         _glyphs.Add(codepoint, glyph);
-        EnsureTexture();
-        if (_texture is not null && glyph.Width != 0 && glyph.Height != 0)
-        {
-            _texture.SetData(0, glyph.AtlasX, glyph.AtlasY, glyph.Width, glyph.Height,
-                GetAtlasRegion(glyph.AtlasX, glyph.AtlasY, glyph.Width, glyph.Height));
-        }
         return glyph;
     }
 
@@ -231,146 +345,41 @@ internal sealed class HarfBuzzFontFace : TextFontFace
     {
         if (index != 0)
             return null;
-        EnsureTexture();
-        return _texture;
+        return _owner.GetGpuTexture();
     }
 
     public override void Dispose()
     {
-        _texture?.Dispose();
-        _texture = null;
         if (!_font.IsNull)
             HarfBuzzNativeBindings.HbFontDestroy(_font);
         _font.Dispose();
         _glyphs.Clear();
     }
 
-    private TextFontGlyph RasterizeGlyph(uint codepoint)
+    private TextFontGlyph? CreateGlyph(uint codepoint)
     {
+        var gpuGlyph = _owner.GetGpuGlyph(codepoint);
+        if (gpuGlyph is null)
+            return null;
+
+        var outlineScale = PointSize / _owner.UnitsPerEm;
+        var renderWidth = gpuGlyph.Width * outlineScale;
+        var renderHeight = -gpuGlyph.Height * outlineScale;
         var glyph = new TextFontGlyph
         {
             Codepoint = codepoint,
-            Advance = HarfBuzzNativeBindings.HbFontGetGlyphHAdvance(_font, codepoint) / (float)HarfBuzzScale
+            Advance = HarfBuzzNativeBindings.HbFontGetGlyphHAdvance(_font, codepoint) / (float)HarfBuzzScale,
+            AtlasOffset = gpuGlyph.AtlasOffset,
+            RenderBearingX = gpuGlyph.XBearing * outlineScale,
+            RenderBearingY = gpuGlyph.YBearing * outlineScale,
+            RenderWidth = renderWidth,
+            RenderHeight = renderHeight,
+            BearingX = (int)MathF.Round(gpuGlyph.XBearing * outlineScale),
+            BearingY = (int)MathF.Round(gpuGlyph.YBearing * outlineScale),
+            Width = SystemMath.Max(0, (int)MathF.Ceiling(renderWidth)),
+            Height = SystemMath.Max(0, (int)MathF.Ceiling(renderHeight))
         };
-
-        using var glyphExtents = new HbGlyphExtentsT();
-        if (HarfBuzzNativeBindings.HbFontGetGlyphExtents(_font, codepoint, glyphExtents) == 0)
-            return glyph;
-
-        var draw = HarfBuzzNativeBindings.HbRasterDrawCreateOrFail();
-        if (draw.IsNull)
-        {
-            draw.Dispose();
-            return glyph;
-        }
-
-        try
-        {
-            HarfBuzzNativeBindings.HbRasterDrawSetScaleFactor(draw, HarfBuzzScale, HarfBuzzScale);
-            if (HarfBuzzNativeBindings.HbRasterDrawSetGlyphExtents(draw, glyphExtents) == 0
-                || HarfBuzzNativeBindings.HbRasterDrawGlyphOrFail(draw, _font, codepoint) == 0)
-            {
-                return glyph;
-            }
-
-            var image = HarfBuzzNativeBindings.HbRasterDrawRender(draw);
-            if (image.IsNull)
-            {
-                image.Dispose();
-                return glyph;
-            }
-
-            try
-            {
-                if (HarfBuzzNativeBindings.HbRasterImageGetFormat(image) != HbRasterFormatT.HbRasterFormatA8)
-                    return glyph;
-
-                using var extents = new HbRasterExtentsT();
-                HarfBuzzNativeBindings.HbRasterImageGetExtents(image, extents);
-                glyph.BearingX = extents.XOrigin;
-                glyph.BearingY = extents.YOrigin + checked((int)extents.Height);
-                glyph.Width = checked((int)extents.Width);
-                glyph.Height = checked((int)extents.Height);
-                if (glyph.Width == 0 || glyph.Height == 0 || !AllocateAtlas(glyph))
-                    return glyph;
-
-                CopyGlyph(
-                    HarfBuzzNativeBindings.HbRasterImageGetBuffer(image),
-                    checked((int)extents.Stride),
-                    glyph);
-                return glyph;
-            }
-            finally
-            {
-                HarfBuzzNativeBindings.HbRasterImageDestroy(image);
-                image.Dispose();
-            }
-        }
-        finally
-        {
-            HarfBuzzNativeBindings.HbRasterDrawDestroy(draw);
-            draw.Dispose();
-        }
-    }
-
-    private bool AllocateAtlas(TextFontGlyph glyph)
-    {
-        if (_atlasX + glyph.Width + AtlasPadding > AtlasSize)
-        {
-            _atlasX = AtlasPadding;
-            _atlasY += _atlasRowHeight + AtlasPadding;
-            _atlasRowHeight = 0;
-        }
-
-        if (_atlasY + glyph.Height + AtlasPadding > AtlasSize)
-        {
-            glyph.Width = 0;
-            glyph.Height = 0;
-            return false;
-        }
-
-        glyph.AtlasX = _atlasX;
-        glyph.AtlasY = _atlasY;
-        _atlasX += glyph.Width + AtlasPadding;
-        _atlasRowHeight = SystemMath.Max(_atlasRowHeight, glyph.Height);
-        return true;
-    }
-
-    private unsafe void CopyGlyph(IntPtr source, int stride, TextFontGlyph glyph)
-    {
-        var sourcePixels = new ReadOnlySpan<byte>((void*)source, checked(stride * glyph.Height));
-        for (var row = 0; row < glyph.Height; ++row)
-        {
-            var sourceRow = sourcePixels.Slice((glyph.Height - row - 1) * stride, glyph.Width);
-            sourceRow.CopyTo(_atlasPixels.AsSpan(
-                (glyph.AtlasY + row) * AtlasSize + glyph.AtlasX,
-                glyph.Width));
-        }
-    }
-
-    private byte[] GetAtlasRegion(int x, int y, int width, int height)
-    {
-        var result = new byte[checked(width * height)];
-        for (var row = 0; row < height; ++row)
-        {
-            _atlasPixels.AsSpan((y + row) * AtlasSize + x, width)
-                .CopyTo(result.AsSpan(row * width, width));
-        }
-        return result;
-    }
-
-    private void EnsureTexture()
-    {
-        if (_texture is not null || Context.Instance.GetSubsystem<Graphics>()?.GetNativeRenderDevice() is null)
-            return;
-
-        _texture = new Texture2D();
-        _texture.SetNumLevels(1);
-        _texture.SetFilterMode(TextureFilterMode.Bilinear);
-        _texture.SetAddressMode(TextureCoordinate.U, TextureAddressMode.Clamp);
-        _texture.SetAddressMode(TextureCoordinate.V, TextureAddressMode.Clamp);
-        _texture.SetSize(AtlasSize, AtlasSize, TextureFormat.TexFormatR8Unorm);
-        _texture.SetData(0, 0, 0, AtlasSize, AtlasSize, _atlasPixels);
+        return glyph;
     }
 }
 

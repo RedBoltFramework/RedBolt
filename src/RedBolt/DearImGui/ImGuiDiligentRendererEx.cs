@@ -132,17 +132,27 @@ public class ImGuiDiligentRendererEx : IDisposable
         var srb = pipelineState.GetShaderResourceBinding()!;
         IShaderResourceVariable? textureVar;
         IShaderResourceVariable? constantsVar;
+        IShaderResourceVariable? harfBuzzAtlasVar;
+        IShaderResourceVariable? pixelConstantsVar;
         unsafe
         {
             fixed (byte* textureName = "sTexture\0"u8)
             fixed (byte* cameraName = "Camera\0"u8)
+            fixed (byte* harfBuzzAtlasName = "sHarfBuzzAtlas\0"u8)
+            fixed (byte* customName = "Custom\0"u8)
             {
                 ref var textureNameRef = ref Unsafe.As<byte, sbyte>(ref *textureName);
                 ref var cameraNameRef = ref Unsafe.As<byte, sbyte>(ref *cameraName);
+                ref var harfBuzzAtlasNameRef = ref Unsafe.As<byte, sbyte>(ref *harfBuzzAtlasName);
+                ref var customNameRef = ref Unsafe.As<byte, sbyte>(ref *customName);
                 textureVar = srb.GetVariableByName(
                     global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, in textureNameRef);
                 constantsVar = srb.GetVariableByName(
                     global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, in cameraNameRef);
+                harfBuzzAtlasVar = srb.GetVariableByName(
+                    global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, in harfBuzzAtlasNameRef);
+                pixelConstantsVar = srb.GetVariableByName(
+                    global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, in customNameRef);
             }
         }
 
@@ -153,7 +163,9 @@ public class ImGuiDiligentRendererEx : IDisposable
             pipelineState.GetHandle()!.Handle,
             srb.Handle,
             textureVar!.Handle,
-            constantsVar!.Handle);
+            constantsVar!.Handle,
+            harfBuzzAtlasVar!.Handle,
+            pixelConstantsVar!.Handle);
     }
 
     // TODO: port ImGuiDiligentRendererEx* GetBackendData() with the managed renderer callback handle.
@@ -204,6 +216,7 @@ public class ImGuiDiligentRendererEx : IDisposable
         desc.ScissorTestEnabled = true;
 
         desc.Samplers.Add("Texture", SamplerStateDesc.Bilinear(TextureAddressMode.Wrap));
+        desc.Samplers.Add("HarfBuzzAtlas", SamplerStateDesc.Nearest(TextureAddressMode.Clamp));
 
         return pipelineStateCache.GetGraphicsPipelineState(desc)!;
     }

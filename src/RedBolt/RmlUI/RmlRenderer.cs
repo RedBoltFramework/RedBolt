@@ -25,6 +25,7 @@ namespace RedBolt.RmlUI;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.RmlUi;
@@ -32,9 +33,11 @@ using RedBolt.Core;
 using Context = RedBolt.Core.Context;
 using RedBolt.Graphics;
 using RedBolt.Math;
+using RedBolt.Logging;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
 using RedBolt.Resource;
+using TextureAddressMode = global::RedBolt.RenderAPI.TextureAddressMode;
 
 public class RmlRenderer : RenderInterfaceCompatibility
 {
@@ -55,8 +58,10 @@ public class RmlRenderer : RenderInterfaceCompatibility
     private sealed class CachedRmlTexture : IDisposable
     {
         public Image? Image;
+        public byte[]? HarfBuzzGpuData;
         public Texture2D? Texture;
         public bool OwnsTexture;
+        public bool IsHarfBuzzGpu;
 
         private int _textureReferences = 1;
         private bool _disposed;
@@ -126,6 +131,7 @@ public class RmlRenderer : RenderInterfaceCompatibility
     private Material? _noTextureMaterial;
     private Material? _alphaMapMaterial;
     private Material? _diffMapMaterial;
+    private Material? _harfBuzzGpuMaterial;
 
     /// <summary>Cached between frames and calls.</summary>
     private DefaultUIBatchStateCache? _batchStateCache;
@@ -146,6 +152,7 @@ public class RmlRenderer : RenderInterfaceCompatibility
 
     private bool _transformEnabled;
     private Matrix3x4 _transform = Matrix3x4.Identity;
+    private bool _harfBuzzGpuTextureFailureLogged;
 
     public RmlRenderer()
     {
@@ -224,9 +231,71 @@ public class RmlRenderer : RenderInterfaceCompatibility
     public override unsafe bool GenerateTexture(nint textureHandle, nint source, nint sourceDimensions)
     {
         var size = *(RmlUiLegacyVector2i*)sourceDimensions;
+        var sourceLength = checked(size.X * size.Y * 4);
+        var sourceData = new ReadOnlySpan<byte>((void*)source, sourceLength);
+        var isRawAtlas = size.X == 1024
+            && sourceData.Length >= 8
+            && sourceData[..8].SequenceEqual("RBHBGPU1"u8);
+        var isTransportAtlas = size.X == 2048
+            && sourceData.Length >= 12
+            && sourceData[0] == (byte)'R' && sourceData[1] == (byte)'B' && sourceData[2] == (byte)'H'
+            && sourceData[3] == 0xff
+            && sourceData[4] == (byte)'B' && sourceData[5] == (byte)'G' && sourceData[6] == (byte)'P'
+            && sourceData[7] == 0xff
+            && sourceData[8] == (byte)'U' && sourceData[9] == (byte)'1'
+            && sourceData[10] == 0 && sourceData[11] == 0xff;
+        if (isRawAtlas || isTransportAtlas)
+        {
+            const int AtlasWidth = 512;
+            if (size.Y is < 8 or > 512 || (size.Y & (size.Y - 1)) != 0)
+                return LogHarfBuzzGpuTextureFailure($"invalid atlas height {size.Y}");
+            if (!Context.Instance.GetSubsystem<RenderDevice>()!.IsTextureFormatSupported(TextureFormat.TexFormatRgba16Sint))
+                return LogHarfBuzzGpuTextureFailure("RGBA16_SINT is unsupported");
+
+            var atlasDataLength = checked(AtlasWidth * size.Y * 8);
+            byte[] backingData;
+            if (isRawAtlas)
+                backingData = sourceData[..atlasDataLength].ToArray();
+            else
+            {
+                var requiredTransportLength = checked(12 + ((atlasDataLength + 2) / 3) * 4);
+                if (sourceData.Length < requiredTransportLength)
+                    return LogHarfBuzzGpuTextureFailure("truncated callback atlas data");
+                backingData = new byte[atlasDataLength];
+                for (var index = 0; index < backingData.Length; ++index)
+                    backingData[index] = sourceData[12 + (index / 3) * 4 + index % 3];
+                if (!backingData.AsSpan(0, 8).SequenceEqual("RBHBGPU1"u8))
+                    return LogHarfBuzzGpuTextureFailure("invalid decoded atlas signature");
+            }
+            var gpuTexture = new Texture2D();
+            gpuTexture.SetNumLevels(1);
+            gpuTexture.SetFilterMode(TextureFilterMode.Nearest);
+            gpuTexture.SetAddressMode(TextureCoordinate.U, TextureAddressMode.Clamp);
+            gpuTexture.SetAddressMode(TextureCoordinate.V, TextureAddressMode.Clamp);
+            if (!gpuTexture.SetSize(AtlasWidth, size.Y, TextureFormat.TexFormatRgba16Sint))
+            {
+                gpuTexture.Dispose();
+                return LogHarfBuzzGpuTextureFailure("RGBA16_SINT allocation failed");
+            }
+            if (!gpuTexture.SetData(0, 0, 0, AtlasWidth, size.Y, backingData))
+            {
+                gpuTexture.Dispose();
+                return LogHarfBuzzGpuTextureFailure("atlas upload failed");
+            }
+            var gpuCachedTexture = new CachedRmlTexture
+            {
+                HarfBuzzGpuData = backingData,
+                Texture = gpuTexture,
+                OwnsTexture = true,
+                IsHarfBuzzGpu = true
+            };
+            *(nuint*)textureHandle = WrapTextureHandle(gpuCachedTexture);
+            return true;
+        }
+
         var image = new Image();
         image.SetSize(size.X, size.Y, 4);
-        new ReadOnlySpan<byte>((void*)source, checked(size.X * size.Y * 4)).CopyTo(image.GetData());
+        sourceData.CopyTo(image.GetData());
 
         var texture = new Texture2D();
         texture.SetData(image);
@@ -292,11 +361,21 @@ public class RmlRenderer : RenderInterfaceCompatibility
         var texture = cachedTexture?.Texture;
         if (texture is not null && texture.IsDataLost())
         {
-            texture.SetData(cachedTexture!.Image);
+            var restored = cachedTexture!.IsHarfBuzzGpu
+                ? texture.SetData(0, 0, 0, texture.Width, texture.Height, cachedTexture.HarfBuzzGpuData!)
+                : texture.SetData(cachedTexture.Image);
+            if (!restored)
+            {
+                if (cachedTexture.IsHarfBuzzGpu)
+                    LogHarfBuzzGpuTextureFailure("device-loss atlas restoration failed");
+                return;
+            }
             texture.ClearDataLost();
         }
 
         var material = GetBatchMaterial(texture);
+        if (cachedTexture?.IsHarfBuzzGpu == true && texture is not null)
+            material.SetTexture("HarfBuzzAtlas", texture);
         var pass = material.GetDefaultPass()!;
 
         var samplerStateHash = texture?.GetSamplerStateDesc().ToHash() ?? 0;
@@ -305,6 +384,12 @@ public class RmlRenderer : RenderInterfaceCompatibility
         var batchStateKey = new UIBatchStateKey(_isRenderSurfaceSRGB,
             renderContext.GetCurrentRenderTargetsDesc(), material, pass, BlendMode.Alpha, samplerStateHash);
         var pipelineState = _batchStateCache!.GetOrCreatePipelineState(batchStateKey, _batchStateCreateContext);
+        if (pipelineState is null)
+        {
+            if (cachedTexture?.IsHarfBuzzGpu == true)
+                LogHarfBuzzGpuTextureFailure("dedicated material or shader binding failed");
+            return;
+        }
 
         IntRect scissor;
         if (!_scissorEnabled)
@@ -315,11 +400,12 @@ public class RmlRenderer : RenderInterfaceCompatibility
             scissor = _scissor;
 
         _drawQueue!.SetScissorRect(scissor);
-        _drawQueue.SetPipelineState(pipelineState!);
+        _drawQueue.SetPipelineState(pipelineState);
 
         if (texture is not null)
         {
-            GraphicsUtils.AddShaderResource(_drawQueue, ShaderResources.Albedo, texture);
+            GraphicsUtils.AddShaderResource(_drawQueue,
+                cachedTexture!.IsHarfBuzzGpu ? ShaderResources.HarfBuzzAtlas : ShaderResources.Albedo, texture);
             cachedTexture!.RetainTexture();
             _textures.Add(cachedTexture);
         }
@@ -405,16 +491,30 @@ public class RmlRenderer : RenderInterfaceCompatibility
         _alphaMapMaterial = Material.CreateBaseMaterial("v2/X_Basic", AlphaMapDefines, AlphaMapDefines);
         _diffMapMaterial?.Dispose();
         _diffMapMaterial = Material.CreateBaseMaterial("v2/X_Basic", DiffMapDefines, DiffMapDefines);
+        _harfBuzzGpuMaterial?.Dispose();
+        _harfBuzzGpuMaterial = Material.CreateBaseMaterial("v2/X_HarfBuzzGpu", BaseDefines, BaseDefines);
     }
 
     private Material GetBatchMaterial(Texture2D? texture)
     {
         if (texture is null)
             return _noTextureMaterial!;
+        else if (texture.Format == TextureFormat.TexFormatRgba16Sint)
+            return _harfBuzzGpuMaterial!;
         else if (texture.Format == TextureFormat.TexFormatR8Unorm)
             return _alphaMapMaterial!;
         else
             return _diffMapMaterial!;
+    }
+
+    private bool LogHarfBuzzGpuTextureFailure(string reason)
+    {
+        if (!_harfBuzzGpuTextureFailureLogged)
+        {
+            _harfBuzzGpuTextureFailureLogged = true;
+            Log.GetLogger().LogError("HarfBuzz GPU rendering failed for RmlUI: {Reason}", reason);
+        }
+        return false;
     }
 
     protected override bool ReleaseNativeHandle(nint handle)
@@ -425,6 +525,7 @@ public class RmlRenderer : RenderInterfaceCompatibility
         _indexBuffer?.Dispose();
         _vertexBuffer?.Dispose();
         _batchStateCache?.Dispose();
+        _harfBuzzGpuMaterial?.Dispose();
         _diffMapMaterial?.Dispose();
         _alphaMapMaterial?.Dispose();
         _noTextureMaterial?.Dispose();

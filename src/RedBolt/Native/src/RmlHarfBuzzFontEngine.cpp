@@ -1,6 +1,7 @@
 #include <RedBolt/RmlHarfBuzzFontEngine.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cmath>
 #include <cstdint>
@@ -8,11 +9,14 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include <hb-ot.h>
-#include <hb-raster.h>
+#include <hb-gpu.h>
+
+#include <RedBolt/HarfBuzzGpuAtlas.hpp>
 
 #include <RmlUi/Core/CallbackTexture.h>
 #include <RmlUi/Core/Core.h>
@@ -29,9 +33,9 @@ namespace
 {
 
 constexpr float HarfBuzzScale = 64.0f;
-constexpr int InitialAtlasSize = 256;
-constexpr int MaximumAtlasSize = 4096;
-constexpr int AtlasPadding = 1;
+constexpr int AtlasTransportWidth = 2048;
+constexpr std::array<std::uint8_t, 12> AtlasTransportSignature{
+    'R', 'B', 'H', 0xff, 'B', 'G', 'P', 0xff, 'U', '1', 0, 0xff};
 
 std::string ToLower(std::string value)
 {
@@ -74,10 +78,24 @@ Rml::Style::FontStyle GetFaceStyle(hb_face_t* face)
     return italic != 0.0f || slant != 0.0f ? Rml::Style::FontStyle::Italic : Rml::Style::FontStyle::Normal;
 }
 
+struct Glyph
+{
+    hb_codepoint_t codepoint{};
+    int bearingX{};
+    int bearingY{};
+    int width{};
+    int height{};
+    int atlasOffset{};
+};
+
 struct Face
 {
     ~Face()
     {
+        if (gpuDraw)
+            hb_gpu_draw_destroy(gpuDraw);
+        if (gpuFont)
+            hb_font_destroy(gpuFont);
         if (face)
             hb_face_destroy(face);
         if (blob)
@@ -86,22 +104,22 @@ struct Face
 
     hb_blob_t* blob{};
     hb_face_t* face{};
+    hb_font_t* gpuFont{};
+    hb_gpu_draw_t* gpuDraw{};
+    int unitsPerEm{};
+    HarfBuzzGpuAtlas atlas;
+    std::unordered_map<hb_codepoint_t, Glyph> glyphs;
+    std::unordered_set<hb_codepoint_t> failedGlyphs;
+    std::shared_ptr<std::vector<std::uint8_t>> atlasTransport;
+    std::size_t atlasTransportEncodedBytes{};
+    int atlasTransportHeight{};
+    std::unique_ptr<Rml::CallbackTextureSource> atlasSource;
+    bool atlasDirty{};
+    int version{};
     std::string family;
     Rml::Style::FontStyle style{Rml::Style::FontStyle::Normal};
     Rml::Style::FontWeight weight{Rml::Style::FontWeight::Normal};
     bool fallback{};
-};
-
-struct Glyph
-{
-    hb_codepoint_t codepoint{};
-    int bearingX{};
-    int bearingY{};
-    int width{};
-    int height{};
-    int atlasX{};
-    int atlasY{};
-    std::vector<Rml::byte> bitmap;
 };
 
 struct ShapedGlyph
@@ -125,12 +143,6 @@ struct FontHandle
     hb_font_t* font{};
     int size{};
     Rml::FontMetrics metrics{};
-    std::unordered_map<hb_codepoint_t, Glyph> glyphs;
-    std::shared_ptr<std::vector<Rml::byte>> atlasPixels;
-    std::unique_ptr<Rml::CallbackTextureSource> atlasSource;
-    Rml::Vector2i atlasDimensions{};
-    bool atlasDirty{};
-    int version{};
 };
 
 std::vector<ShapedGlyph> Shape(FontHandle& handle, Rml::StringView string, const Rml::TextShapingContext& context)
@@ -183,136 +195,90 @@ std::vector<ShapedGlyph> Shape(FontHandle& handle, Rml::StringView string, const
     return result;
 }
 
-bool RasterizeGlyph(FontHandle& handle, hb_codepoint_t codepoint)
+void RefreshAtlasSource(Face& face)
 {
-    if (handle.glyphs.contains(codepoint))
-        return true;
-
-    Glyph glyph;
-    glyph.codepoint = codepoint;
-
-    hb_glyph_extents_t glyphExtents{};
-    if (!hb_font_get_glyph_extents(handle.font, codepoint, &glyphExtents))
+    const auto atlasData = face.atlas.GetData();
+    const int atlasHeight = face.atlas.GetHeight();
+    if (!face.atlasTransport || face.atlasTransportHeight != atlasHeight)
     {
-        handle.glyphs.emplace(codepoint, std::move(glyph));
-        return true;
+        face.atlasTransport = std::make_shared<std::vector<std::uint8_t>>(
+            static_cast<std::size_t>(AtlasTransportWidth) * atlasHeight * 4);
+        for (std::size_t alpha = 3; alpha < face.atlasTransport->size(); alpha += 4)
+            (*face.atlasTransport)[alpha] = 0xff;
+        std::copy(AtlasTransportSignature.begin(), AtlasTransportSignature.end(), face.atlasTransport->begin());
+        face.atlasTransportEncodedBytes = 0;
+        face.atlasTransportHeight = atlasHeight;
     }
 
-    hb_raster_draw_t* draw = hb_raster_draw_create_or_fail();
-    if (!draw)
-        return false;
-
-    hb_raster_draw_set_scale_factor(draw, HarfBuzzScale, HarfBuzzScale);
-    const bool hasExtents = hb_raster_draw_set_glyph_extents(draw, &glyphExtents);
-    const bool drewGlyph = hasExtents && hb_raster_draw_glyph_or_fail(draw, handle.font, codepoint);
-    hb_raster_image_t* image = drewGlyph ? hb_raster_draw_render(draw) : nullptr;
-    if (!image)
-    {
-        hb_raster_draw_destroy(draw);
-        handle.glyphs.emplace(codepoint, std::move(glyph));
-        return true;
-    }
-
-    hb_raster_extents_t extents{};
-    hb_raster_image_get_extents(image, &extents);
-    glyph.bearingX = extents.x_origin;
-    glyph.bearingY = extents.y_origin + static_cast<int>(extents.height);
-    glyph.width = static_cast<int>(extents.width);
-    glyph.height = static_cast<int>(extents.height);
-    glyph.bitmap.resize(static_cast<size_t>(glyph.width) * static_cast<size_t>(glyph.height));
-
-    const Rml::byte* source = hb_raster_image_get_buffer(image);
-    for (int row = 0; row < glyph.height; ++row)
-    {
-        const int sourceRow = glyph.height - row - 1;
-        std::copy_n(source + static_cast<size_t>(sourceRow) * extents.stride, glyph.width,
-            glyph.bitmap.data() + static_cast<size_t>(row) * glyph.width);
-    }
-
-    hb_raster_image_destroy(image);
-    hb_raster_draw_destroy(draw);
-    handle.glyphs.emplace(codepoint, std::move(glyph));
-    handle.atlasDirty = true;
-    return true;
-}
-
-bool PackAtlas(FontHandle& handle, int atlasSize)
-{
-    std::vector<Glyph*> glyphs;
-    glyphs.reserve(handle.glyphs.size());
-    for (auto& [codepoint, glyph] : handle.glyphs)
-    {
-        if (glyph.width > 0 && glyph.height > 0)
-            glyphs.push_back(&glyph);
-    }
-    std::sort(glyphs.begin(), glyphs.end(), [](const Glyph* lhs, const Glyph* rhs) {
-        if (lhs->height == rhs->height)
-            return lhs->codepoint < rhs->codepoint;
-        return lhs->height > rhs->height;
-    });
-
-    int x = AtlasPadding;
-    int y = AtlasPadding;
-    int rowHeight = 0;
-    for (Glyph* glyph : glyphs)
-    {
-        if (glyph->width + AtlasPadding * 2 > atlasSize || glyph->height + AtlasPadding * 2 > atlasSize)
-            return false;
-        if (x + glyph->width + AtlasPadding > atlasSize)
-        {
-            x = AtlasPadding;
-            y += rowHeight + AtlasPadding;
-            rowHeight = 0;
-        }
-        if (y + glyph->height + AtlasPadding > atlasSize)
-            return false;
-
-        glyph->atlasX = x;
-        glyph->atlasY = y;
-        x += glyph->width + AtlasPadding;
-        rowHeight = std::max(rowHeight, glyph->height);
-    }
-
-    auto pixels = std::make_shared<std::vector<Rml::byte>>(
-        static_cast<size_t>(atlasSize) * static_cast<size_t>(atlasSize) * 4, 0);
-    for (const Glyph* glyph : glyphs)
-    {
-        for (int row = 0; row < glyph->height; ++row)
-        {
-            for (int column = 0; column < glyph->width; ++column)
-            {
-                const Rml::byte value = glyph->bitmap[static_cast<size_t>(row) * glyph->width + column];
-                const size_t destination =
-                    (static_cast<size_t>(glyph->atlasY + row) * atlasSize + glyph->atlasX + column) * 4;
-                (*pixels)[destination + 0] = value;
-                (*pixels)[destination + 1] = value;
-                (*pixels)[destination + 2] = value;
-                (*pixels)[destination + 3] = value;
-            }
-        }
-    }
-
-    const Rml::Vector2i dimensions(atlasSize, atlasSize);
-    handle.atlasPixels = pixels;
-    handle.atlasDimensions = dimensions;
-    handle.atlasSource = std::make_unique<Rml::CallbackTextureSource>(
-        [pixels, dimensions](const Rml::CallbackTextureInterface& textureInterface) {
+    const std::size_t usedBytes = static_cast<std::size_t>(face.atlas.GetUsedTexels()) * HarfBuzzGpuAtlas::TexelSize;
+    for (std::size_t index = face.atlasTransportEncodedBytes; index < usedBytes; ++index)
+        (*face.atlasTransport)[AtlasTransportSignature.size() + (index / 3) * 4 + index % 3] = (*atlasData)[index];
+    face.atlasTransportEncodedBytes = usedBytes;
+    const auto pixels = face.atlasTransport;
+    const Rml::Vector2i callbackDimensions(AtlasTransportWidth, atlasHeight);
+    face.atlasSource = std::make_unique<Rml::CallbackTextureSource>(
+        [pixels, callbackDimensions](const Rml::CallbackTextureInterface& textureInterface) {
             return textureInterface.GenerateTexture(
-                Rml::Span<const Rml::byte>(pixels->data(), pixels->size()), dimensions);
+                Rml::Span<const Rml::byte>(reinterpret_cast<const Rml::byte*>(pixels->data()), pixels->size()),
+                callbackDimensions);
         });
-    handle.atlasDirty = false;
-    ++handle.version;
-    return true;
+    face.atlasDirty = false;
 }
 
-bool RebuildAtlas(FontHandle& handle)
+const Glyph* EncodeGlyph(Face& face, hb_codepoint_t codepoint)
 {
-    for (int size = InitialAtlasSize; size <= MaximumAtlasSize; size *= 2)
+    if (const auto found = face.glyphs.find(codepoint); found != face.glyphs.end())
+        return &found->second;
+    if (face.failedGlyphs.contains(codepoint))
+        return nullptr;
+
+    if (!hb_gpu_draw_glyph_or_fail(face.gpuDraw, face.gpuFont, codepoint))
     {
-        if (PackAtlas(handle, size))
-            return true;
+        Rml::Log::Message(Rml::Log::LT_ERROR,
+            "HarfBuzz GPU glyph failure for RmlUI font %s, glyph %u: outline encoding failed",
+            face.family.c_str(), codepoint);
+        face.failedGlyphs.insert(codepoint);
+        return nullptr;
     }
-    return false;
+
+    hb_glyph_extents_t extents{};
+    hb_blob_t* blob = hb_gpu_draw_encode(face.gpuDraw, &extents);
+    if (!blob)
+    {
+        Rml::Log::Message(Rml::Log::LT_ERROR,
+            "HarfBuzz GPU glyph failure for RmlUI font %s, glyph %u: blob encoding failed",
+            face.family.c_str(), codepoint);
+        face.failedGlyphs.insert(codepoint);
+        return nullptr;
+    }
+
+    Glyph glyph{codepoint, extents.x_bearing, extents.y_bearing, extents.width, -extents.height, 0};
+    const unsigned int length = hb_blob_get_length(blob);
+    bool success = true;
+    if (length != 0)
+    {
+        unsigned int dataLength = 0;
+        const char* data = hb_blob_get_data(blob, &dataLength);
+        success = data && dataLength == length && face.atlas.Append(data, length, glyph.atlasOffset);
+    }
+    hb_gpu_draw_recycle_blob(face.gpuDraw, blob);
+
+    if (!success)
+    {
+        Rml::Log::Message(Rml::Log::LT_ERROR,
+            "HarfBuzz GPU glyph failure for RmlUI font %s, glyph %u: atlas overflow or malformed blob",
+            face.family.c_str(), codepoint);
+        face.failedGlyphs.insert(codepoint);
+        return nullptr;
+    }
+
+    const auto [inserted, unused] = face.glyphs.emplace(codepoint, glyph);
+    if (length != 0)
+    {
+        face.atlasDirty = true;
+        ++face.version;
+    }
+    return &inserted->second;
 }
 
 void PopulateMetrics(FontHandle& handle)
@@ -377,6 +343,20 @@ public:
         auto face = std::make_unique<Face>();
         face->blob = blob;
         face->face = harfBuzzFace;
+        face->unitsPerEm = static_cast<int>(hb_face_get_upem(harfBuzzFace));
+        face->gpuFont = hb_font_create(harfBuzzFace);
+        if (face->gpuFont)
+        {
+            hb_ot_font_set_funcs(face->gpuFont);
+            hb_font_set_scale(face->gpuFont, face->unitsPerEm, face->unitsPerEm);
+            face->gpuDraw = hb_gpu_draw_create_or_fail();
+        }
+        if (!face->gpuFont || !face->gpuDraw)
+        {
+            Rml::Log::Message(Rml::Log::LT_ERROR,
+                "HarfBuzz GPU encoder initialization failed for RmlUI font %s", family.c_str());
+            return false;
+        }
         face->family = ToLower(std::move(family));
         face->style = style;
         face->weight = weight;
@@ -490,6 +470,11 @@ int RmlHarfBuzzFontEngine::GetStringWidth(Rml::FontFaceHandle handle, Rml::Strin
 {
     FontHandle& fontHandle = *reinterpret_cast<FontHandle*>(handle);
     const std::vector<ShapedGlyph> glyphs = Shape(fontHandle, string, textShapingContext);
+    for (const ShapedGlyph& glyph : glyphs)
+    {
+        if (!EncodeGlyph(*fontHandle.face, glyph.codepoint))
+            return 0;
+    }
     float width = 0.0f;
     for (const ShapedGlyph& glyph : glyphs)
         width += static_cast<float>(glyph.xAdvance) / HarfBuzzScale + textShapingContext.letter_spacing;
@@ -518,38 +503,51 @@ int RmlHarfBuzzFontEngine::GenerateString(Rml::RenderManager& renderManager, Rml
     const std::vector<ShapedGlyph> shapedGlyphs = Shape(handle, string, textShapingContext);
     for (const ShapedGlyph& shapedGlyph : shapedGlyphs)
     {
-        if (!RasterizeGlyph(handle, shapedGlyph.codepoint))
+        if (!EncodeGlyph(*handle.face, shapedGlyph.codepoint))
             return 0;
     }
-    if (handle.atlasDirty && !RebuildAtlas(handle))
-        return 0;
+    if (handle.face->atlasDirty)
+        RefreshAtlasSource(*handle.face);
 
-    meshList.clear();
-    if (!handle.atlasSource)
-        return 0;
-    meshList.resize(1);
-    Rml::TexturedMesh& texturedMesh = meshList.front();
-    texturedMesh.texture = handle.atlasSource->GetTexture(renderManager);
-    texturedMesh.mesh.vertices.reserve(shapedGlyphs.size() * 4);
-    texturedMesh.mesh.indices.reserve(shapedGlyphs.size() * 6);
+    Rml::TexturedMesh* texturedMesh = nullptr;
+    if (handle.face->atlasSource)
+    {
+        meshList.emplace_back();
+        texturedMesh = &meshList.back();
+        texturedMesh->texture = handle.face->atlasSource->GetTexture(renderManager);
+        texturedMesh->mesh.vertices.reserve(shapedGlyphs.size() * 4);
+        texturedMesh->mesh.indices.reserve(shapedGlyphs.size() * 6);
+    }
 
     Rml::Vector2f cursor = position;
     for (const ShapedGlyph& shapedGlyph : shapedGlyphs)
     {
-        const Glyph& glyph = handle.glyphs.at(shapedGlyph.codepoint);
-        if (glyph.width > 0 && glyph.height > 0)
+        const Glyph& glyph = handle.face->glyphs.at(shapedGlyph.codepoint);
+        if (texturedMesh && glyph.atlasOffset != 0 && glyph.width > 0 && glyph.height > 0)
         {
-            const Rml::Vector2f origin(
-                cursor.x + static_cast<float>(shapedGlyph.xOffset) / HarfBuzzScale + glyph.bearingX,
-                cursor.y - static_cast<float>(shapedGlyph.yOffset) / HarfBuzzScale - glyph.bearingY);
-            const Rml::Vector2f dimensions(static_cast<float>(glyph.width), static_cast<float>(glyph.height));
+            const float scale = static_cast<float>(handle.size) / handle.face->unitsPerEm;
+            const float width = glyph.width * scale;
+            const float height = glyph.height * scale;
+            const float paddingX = std::min(1.0f, width * 0.25f);
+            const float paddingY = std::min(1.0f, height * 0.25f);
+            const Rml::Vector2f unpaddedOrigin(
+                cursor.x + static_cast<float>(shapedGlyph.xOffset) / HarfBuzzScale + glyph.bearingX * scale,
+                cursor.y - static_cast<float>(shapedGlyph.yOffset) / HarfBuzzScale - glyph.bearingY * scale);
+            const Rml::Vector2f origin = unpaddedOrigin.Round() - Rml::Vector2f(paddingX, paddingY);
+            const Rml::Vector2f dimensions(width + 2.0f * paddingX, height + 2.0f * paddingY);
+            const float localLeft = -paddingX / width;
+            const float localTop = -paddingY / height;
+            const float localRight = 1.0f + paddingX / width;
+            const float localBottom = 1.0f + paddingY / height;
+            const int lowOffset = glyph.atlasOffset & 0x1ff;
+            const int highOffset = glyph.atlasOffset >> 9;
             const Rml::Vector2f topLeft(
-                static_cast<float>(glyph.atlasX) / handle.atlasDimensions.x,
-                static_cast<float>(glyph.atlasY) / handle.atlasDimensions.y);
+                PackHarfBuzzGpuCoordinate(lowOffset, localLeft),
+                PackHarfBuzzGpuCoordinate(highOffset, localTop));
             const Rml::Vector2f bottomRight(
-                static_cast<float>(glyph.atlasX + glyph.width) / handle.atlasDimensions.x,
-                static_cast<float>(glyph.atlasY + glyph.height) / handle.atlasDimensions.y);
-            Rml::MeshUtilities::GenerateQuad(texturedMesh.mesh, origin.Round(), dimensions, colour, topLeft, bottomRight);
+                PackHarfBuzzGpuCoordinate(lowOffset, localRight),
+                PackHarfBuzzGpuCoordinate(highOffset, localBottom));
+            Rml::MeshUtilities::GenerateQuad(texturedMesh->mesh, origin, dimensions, colour, topLeft, bottomRight);
         }
         cursor.x += static_cast<float>(shapedGlyph.xAdvance) / HarfBuzzScale + textShapingContext.letter_spacing;
         cursor.y -= static_cast<float>(shapedGlyph.yAdvance) / HarfBuzzScale;
@@ -560,7 +558,7 @@ int RmlHarfBuzzFontEngine::GenerateString(Rml::RenderManager& renderManager, Rml
 
 int RmlHarfBuzzFontEngine::GetVersion(Rml::FontFaceHandle handle)
 {
-    return reinterpret_cast<FontHandle*>(handle)->version;
+    return reinterpret_cast<FontHandle*>(handle)->face->version;
 }
 
 void RmlHarfBuzzFontEngine::ReleaseFontResources()

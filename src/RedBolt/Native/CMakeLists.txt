@@ -24,6 +24,7 @@ set_target_properties(redbolt-diligent-support PROPERTIES
 # ImGui backend library compiled without DILIGENT_SHARP_GEN.
 add_library(redbolt-imgui-backend STATIC
     src/ImGuiBackend.cpp
+    thirdparty/ImGuiHarfBuzzGpu.cpp
     thirdparty/ImGuiDiligentRenderer.cpp)
 target_compile_definitions(redbolt-imgui-backend PRIVATE
     REDBOLT_NATIVE_BUILD
@@ -36,7 +37,9 @@ target_link_libraries(redbolt-imgui-backend
     PUBLIC
         Diligent-GraphicsEngine
         ${REDBOLT_DILIGENT_OPENGL_TARGET}
-        ImGui)
+        ImGui
+        harfbuzz
+        harfbuzz-gpu)
 if(NOT EMSCRIPTEN)
     target_link_libraries(redbolt-imgui-backend PUBLIC ${REDBOLT_DILIGENT_VULKAN_TARGET})
 endif()
@@ -200,7 +203,7 @@ redbolt_add_native_wrapper(
     OUTPUT_NAME "${REDBOLT_HARFBUZZ_NATIVE_LIBRARY_NAME}"
     GENERATION_TARGET redbolt-generate-harfbuzz-bindings
     SOURCES "${REDBOLT_HARFBUZZ_BINDINGS_CPP}"
-    LINK_LIBRARIES harfbuzz harfbuzz-raster)
+    LINK_LIBRARIES harfbuzz harfbuzz-raster harfbuzz-gpu)
 
 redbolt_add_native_wrapper(
     MODULE RMLUI
@@ -212,7 +215,7 @@ redbolt_add_native_wrapper(
         RmlUi::RmlUi
         redbolt-native-support
         harfbuzz
-        harfbuzz-raster)
+        harfbuzz-gpu)
 
 redbolt_add_native_wrapper(
     MODULE WEBP

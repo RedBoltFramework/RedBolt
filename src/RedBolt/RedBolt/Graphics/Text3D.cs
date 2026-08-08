@@ -70,6 +70,7 @@ public sealed partial class Text3D : CustomGeometry
     private readonly record struct PositionedGlyph(TextFontGlyph Glyph, float X);
 
     private readonly Technique _textTechnique;
+    private readonly Technique _gpuTextTechnique;
     private readonly List<Material> _textMaterials = [];
     private readonly Color[] _colors = [Color.White, Color.White, Color.White, Color.White];
     private readonly List<float> _rowWidths = [];
@@ -99,6 +100,13 @@ public sealed partial class Text3D : CustomGeometry
         pass.SetBlendMode(BlendMode.Alpha);
         pass.SetDepthWrite(false);
 
+        _gpuTextTechnique = new Technique();
+        pass = _gpuTextTechnique.CreatePass("alpha");
+        pass.SetVertexShader("HarfBuzzGpuText");
+        pass.SetPixelShader("HarfBuzzGpuText");
+        pass.SetBlendMode(BlendMode.Alpha);
+        pass.SetDepthWrite(false);
+
         SetNumTextMaterials(1);
         base.SetMaterial(_textMaterials[0]);
     }
@@ -110,6 +118,7 @@ public sealed partial class Text3D : CustomGeometry
         for (var i = _textMaterials.Count - 1; i >= 0; --i)
             _textMaterials[i].Dispose();
         _textMaterials.Clear();
+        _gpuTextTechnique.Dispose();
         _textTechnique.Dispose();
         base.Dispose();
     }
@@ -222,6 +231,7 @@ public sealed partial class Text3D : CustomGeometry
     {
         _depthTest = enable;
         _textTechnique.GetPass("alpha")!.SetDepthTestMode(enable ? CompareMode.LessEqual : CompareMode.Always);
+        _gpuTextTechnique.GetPass("alpha")!.SetDepthTestMode(enable ? CompareMode.LessEqual : CompareMode.Always);
     }
 
     /// <summary>Return font.</summary>
@@ -434,10 +444,22 @@ public sealed partial class Text3D : CustomGeometry
             _ => 0.0f
         };
 
+        Texture2D? gpuTexture = null;
+        if (!face.IsSdf)
+        {
+            gpuTexture = face.GetTexture(0);
+            if (gpuTexture is null)
+            {
+                Commit();
+                UpdateTextMaterials(null, numPages);
+                return;
+            }
+        }
+
         for (var page = 0; page < numPages; ++page)
         {
             BeginGeometry((uint)page, PrimitiveType.TriangleList);
-            var texture = face.GetTexture(page);
+            var texture = face.IsSdf ? face.GetTexture(page) : gpuTexture;
             for (var rowIndex = 0; rowIndex < lines.Count; ++rowIndex)
             {
                 var line = lines[rowIndex];
@@ -452,11 +474,12 @@ public sealed partial class Text3D : CustomGeometry
                 {
                     var positionedGlyph = line.Glyphs[glyphIndex];
                     var glyph = positionedGlyph.Glyph;
-                    if (glyph.Page != page || glyph.Width == 0 || glyph.Height == 0)
+                    if (glyph.Page != page || glyph.Width == 0 || glyph.Height == 0 || !face.IsSdf && glyph.AtlasOffset == 0)
                         continue;
 
-                    var left = originX + rowOffset + positionedGlyph.X + glyph.BearingX;
-                    var top = baseline - glyph.BearingY;
+                    var left = originX + rowOffset + positionedGlyph.X
+                        + (face.IsSdf ? glyph.BearingX : glyph.RenderBearingX);
+                    var top = baseline - (face.IsSdf ? glyph.BearingY : glyph.RenderBearingY);
                     AddGlyph(
                         glyph,
                         left,
@@ -467,13 +490,14 @@ public sealed partial class Text3D : CustomGeometry
                         _height,
                         texture?.Width ?? 1,
                         texture?.Height ?? 1,
-                        textScale);
+                        textScale,
+                        face.IsSdf);
                 }
             }
         }
 
         Commit();
-        UpdateTextMaterials(face, numPages);
+        UpdateTextMaterials(face, numPages, gpuTexture);
     }
 
     private List<TextLine> Layout(TextFontFace face)
@@ -524,8 +548,15 @@ public sealed partial class Text3D : CustomGeometry
         float blockHeight,
         int textureWidth,
         int textureHeight,
-        float textScale)
+        float textScale,
+        bool isSdf)
     {
+        if (!isSdf)
+        {
+            AddGpuGlyph(glyph, left, top, originX, originY, blockWidth, blockHeight, textScale);
+            return;
+        }
+
         var right = left + glyph.Width;
         var bottom = top + glyph.Height;
         var textureLeft = glyph.AtlasX / (float)textureWidth;
@@ -547,6 +578,51 @@ public sealed partial class Text3D : CustomGeometry
             GetColor(right, top, originX, originY, blockWidth, blockHeight));
     }
 
+    private void AddGpuGlyph(
+        TextFontGlyph glyph,
+        float left,
+        float top,
+        float originX,
+        float originY,
+        float blockWidth,
+        float blockHeight,
+        float textScale)
+    {
+        var width = glyph.RenderWidth;
+        var height = glyph.RenderHeight;
+        var paddingX = HarfBuzzGpuUv.GetPadding(width);
+        var paddingY = HarfBuzzGpuUv.GetPadding(height);
+        var localLeft = -paddingX / width;
+        var localTop = -paddingY / height;
+        var localRight = 1.0f + paddingX / width;
+        var localBottom = 1.0f + paddingY / height;
+        left -= paddingX;
+        top -= paddingY;
+        var right = left + width + 2.0f * paddingX;
+        var bottom = top + height + 2.0f * paddingY;
+
+        AddGpuVertex(left, top, glyph.AtlasOffset, localLeft, localTop, textScale,
+            GetColor(left, top, originX, originY, blockWidth, blockHeight));
+        AddGpuVertex(left, bottom, glyph.AtlasOffset, localLeft, localBottom, textScale,
+            GetColor(left, bottom, originX, originY, blockWidth, blockHeight));
+        AddGpuVertex(right, bottom, glyph.AtlasOffset, localRight, localBottom, textScale,
+            GetColor(right, bottom, originX, originY, blockWidth, blockHeight));
+        AddGpuVertex(left, top, glyph.AtlasOffset, localLeft, localTop, textScale,
+            GetColor(left, top, originX, originY, blockWidth, blockHeight));
+        AddGpuVertex(right, bottom, glyph.AtlasOffset, localRight, localBottom, textScale,
+            GetColor(right, bottom, originX, originY, blockWidth, blockHeight));
+        AddGpuVertex(right, top, glyph.AtlasOffset, localRight, localTop, textScale,
+            GetColor(right, top, originX, originY, blockWidth, blockHeight));
+    }
+
+    private void AddGpuVertex(
+        float x, float y, int atlasOffset, float localX, float localY, float textScale, Color color)
+    {
+        DefineVertex(new Vector3f(x * TextScaling * textScale, -y * TextScaling * textScale, 0.0f));
+        DefineColor(color);
+        DefineTexCoord(HarfBuzzGpuUv.Pack(atlasOffset, localX, localY));
+    }
+
     private void AddVertex(float x, float y, float u, float v, float textScale, Color color)
     {
         DefineVertex(new Vector3f(x * TextScaling * textScale, -y * TextScaling * textScale, 0.0f));
@@ -554,7 +630,7 @@ public sealed partial class Text3D : CustomGeometry
         DefineTexCoord(new Vector2f(u, v));
     }
 
-    private void UpdateTextMaterials(TextFontFace? face, int count)
+    private void UpdateTextMaterials(TextFontFace? face, int count, Texture2D? gpuTexture = null)
     {
         SetNumTextMaterials(count);
         _textTechnique.GetPass("alpha")!.SetPixelShaderDefines(face?.IsSdf == true
@@ -563,7 +639,10 @@ public sealed partial class Text3D : CustomGeometry
         for (var i = 0; i < count; ++i)
         {
             var material = _textMaterials[i];
-            material.SetTexture("Albedo", face?.GetTexture(i));
+            var isGpu = face is not null && !face.IsSdf;
+            material.SetTechnique(0, isGpu ? _gpuTextTechnique : _textTechnique);
+            material.SetTexture("Albedo", isGpu ? null : face?.GetTexture(i));
+            material.SetTexture("HarfBuzzAtlas", isGpu ? gpuTexture : null);
             base.SetMaterial((uint)i, material);
         }
     }

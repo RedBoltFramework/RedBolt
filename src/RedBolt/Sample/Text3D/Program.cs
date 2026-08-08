@@ -123,7 +123,7 @@ public sealed class Text3DApplication : Application
         bodyNode.SetScale(1.7f);
         var body = bodyNode.CreateComponent<Text3DComponent>();
         body.SetFont(font, 36.0f);
-        body.SetText("HarfBuzz raster\nNo UI subsystem");
+        body.SetText("HarfBuzz GPU\nNo UI subsystem");
         body.SetTextAlignment(HorizontalAlignment.Center);
         body.SetAlignment(HorizontalAlignment.Center, VerticalAlignment.Center);
 

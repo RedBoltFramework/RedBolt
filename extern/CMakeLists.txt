@@ -26,5 +26,5 @@ include(Jolt.cmake)
 include(Embree.cmake)
 include(LibDataChannel.cmake)
 add_custom_target(redbolt-native-dependency-batch
-    DEPENDS SDL2 redbolt-diligent-build ImGui harfbuzz harfbuzz-raster rmlui_core rmlui_debugger Jolt embree datachannel-static
+    DEPENDS SDL2 redbolt-diligent-build ImGui harfbuzz harfbuzz-raster harfbuzz-gpu rmlui_core rmlui_debugger Jolt embree datachannel-static
     COMMENT "Building RedBolt native dependency batch")

@@ -43,6 +43,7 @@ namespace Diligent
 struct IRenderDevice;
 struct IDeviceContext;
 struct IBuffer;
+struct ITexture;
 struct IPipelineState;
 struct ITextureView;
 struct IShaderResourceBinding;
@@ -63,21 +64,25 @@ public:
                   Uint32            RenderSurfaceHeight,
                   SURFACE_TRANSFORM SurfacePreTransform);
     void EndFrame();
-    void RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDrawData, IPipelineState* pUserPSO = nullptr, IShaderResourceBinding* pUserSRB = nullptr, IShaderResourceVariable* pUserTextureVar = nullptr, IShaderResourceVariable* pUserConstantsVar = nullptr);
+    void RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDrawData, IPipelineState* pUserPSO = nullptr, IShaderResourceBinding* pUserSRB = nullptr, IShaderResourceVariable* pUserTextureVar = nullptr, IShaderResourceVariable* pUserConstantsVar = nullptr, IShaderResourceVariable* pUserHarfBuzzAtlasVar = nullptr, IShaderResourceVariable* pUserPixelConstantsVar = nullptr);
     void InvalidateDeviceObjects();
     void CreateDeviceObjects();
     void CreateFontsTexture();
 
 private:
     inline float4 TransformClipRect(const ImVec2& DisplaySize, const float4& rect) const;
+    bool SynchronizeHarfBuzzAtlas(IDeviceContext* pCtx);
 
 private:
     RefCntAutoPtr<IRenderDevice>          m_pDevice;
     RefCntAutoPtr<IBuffer>                m_pVB;
     RefCntAutoPtr<IBuffer>                m_pIB;
     RefCntAutoPtr<IBuffer>                m_pVertexConstantBuffer;
+    RefCntAutoPtr<IBuffer>                m_pPixelConstantBuffer;
     RefCntAutoPtr<IPipelineState>         m_pPSO;
     RefCntAutoPtr<ITextureView>           m_pFontSRV;
+    RefCntAutoPtr<ITexture>               m_pHarfBuzzAtlas;
+    RefCntAutoPtr<ITextureView>           m_pHarfBuzzAtlasSRV;
     RefCntAutoPtr<IShaderResourceBinding> m_pSRB;
     IShaderResourceVariable*              m_pTextureVar = nullptr;
 
@@ -89,6 +94,9 @@ private:
     Uint32               m_RenderSurfaceHeight = 0;
     SURFACE_TRANSFORM    m_SurfacePreTransform = SURFACE_TRANSFORM_IDENTITY;
     bool                 m_BaseVertexSupported = false;
+    Uint32               m_HarfBuzzAtlasHeight = 0;
+    Uint32               m_HarfBuzzUploadedTexels = 0;
+    bool                 m_HarfBuzzFailureLogged = false;
 };
 
 } // namespace Diligent
