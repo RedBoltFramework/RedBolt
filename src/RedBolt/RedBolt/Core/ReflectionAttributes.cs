@@ -1,6 +1,7 @@
 namespace RedBolt.Core;
 
 using System.Reflection;
+using System.Runtime.Loader;
 using System.Runtime.CompilerServices;
 
 using RedBolt.Container;
@@ -123,7 +124,11 @@ public static class GeneratedReflectionRegistration
                 AssemblyTypes.Add(type.Assembly, types);
             }
             types.Add(type);
-            context = type.Assembly == typeof(Context).Assembly ? null : _currentContext;
+            var loadContext = AssemblyLoadContext.GetLoadContext(type.Assembly);
+            context = type.Assembly == typeof(Context).Assembly
+                || loadContext is not null && loadContext != AssemblyLoadContext.Default
+                ? null
+                : _currentContext;
         }
 
         if (context is not null)
@@ -151,6 +156,76 @@ public static class GeneratedReflectionRegistration
             RegisterType(context, type, true);
     }
 
+    internal static AssemblyRegistration RegisterAssemblyScoped(Context context, Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(assembly);
+
+        Type[] types;
+        lock (Sync)
+        {
+            if (!AssemblyTypes.TryGetValue(assembly, out var registeredTypes))
+                RuntimeHelpers.RunModuleConstructor(assembly.ManifestModule.ModuleHandle);
+            if (!AssemblyTypes.TryGetValue(assembly, out registeredTypes))
+                throw new InvalidOperationException($"Assembly {assembly.FullName} has no generated RedBolt reflection registrar.");
+            types = registeredTypes.ToArray();
+        }
+
+        var ownedTypes = types
+            .Where(type => context.GetReflection(new StringHash(type.GetClassName())) is null)
+            .ToArray();
+        var conflict = types.FirstOrDefault(type =>
+        {
+            var reflection = context.GetReflection(new StringHash(type.GetClassName()));
+            return reflection is not null && reflection.ManagedType != type;
+        });
+        if (conflict is not null)
+            throw new InvalidOperationException($"Reflection type '{conflict.GetClassName()}' is already registered by another assembly.");
+        try
+        {
+            RegisterAssembly(context, assembly);
+            return new AssemblyRegistration(context, assembly, ownedTypes);
+        }
+        catch
+        {
+            UnregisterAssembly(context, ownedTypes);
+            throw;
+        }
+    }
+
+    internal static void UnregisterAssembly(Context context, IReadOnlyList<Type> types)
+    {
+        for (var index = types.Count - 1; index >= 0; --index)
+        {
+            var type = types[index];
+            var typeId = new StringHash(type.GetClassName());
+            if (context.GetReflection(typeId)?.ManagedType == type)
+                context.RemoveReflection(typeId);
+        }
+
+        lock (Sync)
+        {
+            if (!ContextRegistrations.TryGetValue(context, out var registration))
+                return;
+            foreach (var type in types)
+                registration.Registered.Remove(type);
+        }
+    }
+
+    internal static void ForgetCollectibleAssembly(Assembly assembly)
+    {
+        if (AssemblyLoadContext.GetLoadContext(assembly)?.IsCollectible != true)
+            return;
+
+        lock (Sync)
+        {
+            if (!AssemblyTypes.Remove(assembly, out var types))
+                return;
+            foreach (var type in types)
+                TypeRegistrars.Remove(type);
+        }
+    }
+
     public static void RegisterType(Context context, Type type)
     {
         RegisterType(context, type, false);
@@ -173,13 +248,17 @@ public static class GeneratedReflectionRegistration
     internal static void RefreshExternalAssemblies(Context context)
     {
         foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            RuntimeHelpers.RunModuleConstructor(assembly.ManifestModule.ModuleHandle);
+        {
+            if (AssemblyLoadContext.GetLoadContext(assembly) == AssemblyLoadContext.Default)
+                RuntimeHelpers.RunModuleConstructor(assembly.ManifestModule.ModuleHandle);
+        }
 
         Assembly[] assemblies;
         lock (Sync)
         {
             assemblies = AssemblyTypes.Keys
-                .Where(static assembly => assembly != typeof(Context).Assembly)
+                .Where(static assembly => assembly != typeof(Context).Assembly
+                    && AssemblyLoadContext.GetLoadContext(assembly) == AssemblyLoadContext.Default)
                 .ToArray();
         }
 
@@ -232,7 +311,9 @@ public static class GeneratedReflectionRegistration
         lock (Sync)
         {
             _currentContext = context;
-            assemblies = AssemblyTypes.Keys.ToArray();
+            assemblies = AssemblyTypes.Keys
+                .Where(static assembly => AssemblyLoadContext.GetLoadContext(assembly) == AssemblyLoadContext.Default)
+                .ToArray();
         }
 
         foreach (var assembly in assemblies)
@@ -245,5 +326,31 @@ public static class GeneratedReflectionRegistration
         for (var current = type.BaseType; current is not null; current = current.BaseType)
             ++depth;
         return depth;
+    }
+}
+
+/// <summary>Scoped ownership of reflection registered from one user assembly.</summary>
+public sealed class AssemblyRegistration : IDisposable
+{
+    private Context? _context;
+    private IReadOnlyList<Type>? _types;
+
+    internal AssemblyRegistration(Context context, Assembly assembly, IReadOnlyList<Type> types)
+    {
+        _context = context;
+        Assembly = assembly;
+        _types = types;
+    }
+
+    public Assembly Assembly { get; }
+
+    public void Dispose()
+    {
+        if (_context is null || _types is null)
+            return;
+        GeneratedReflectionRegistration.UnregisterAssembly(_context, _types);
+        _context = null;
+        _types = null;
+        GC.SuppressFinalize(this);
     }
 }
