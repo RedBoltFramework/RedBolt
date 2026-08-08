@@ -134,6 +134,11 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
                 function.Parameters.First(static parameter => parameter.NativeName == "current_item").Direction =
                     BindingParameterDirection.Ref;
             }
+            if (function.NativeName == "RadioButton"
+                && function.Parameters.FirstOrDefault(static parameter => parameter.NativeName == "v") is { } radioValue)
+            {
+                radioValue.Direction = BindingParameterDirection.Ref;
+            }
             if (function.NativeName is "DragFloat" or "DragInt" or "InputFloat" or "SliderFloat" or "SliderInt")
             {
                 function.Parameters.First(static parameter => parameter.NativeName == "v").Direction =
