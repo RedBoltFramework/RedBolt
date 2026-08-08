@@ -7,6 +7,7 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.RenderAPI;
+using RedBolt.SystemUI;
 
 public class DearImGui : RedObject
 {
@@ -24,6 +25,7 @@ public class DearImGui : RedObject
         io.ConfigFlags |= flags;
 
         PlatformInitialize();
+        StandardSerializableHooks.Register(Context);
 
         // Subscribe to events
         SubscribeToEvent<InputEvents.SDLRawInputEvent>(OnRawEvent);
