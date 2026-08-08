@@ -84,6 +84,12 @@ public class Context : ObjectReflectionRegistry
         GeneratedReflectionRegistration.RegisterAssembly(this, assembly);
     }
 
+    /// <summary>Register generated reflection and return ownership that can be removed before unloading an assembly.</summary>
+    public AssemblyRegistration RegisterAssemblyScoped(Assembly assembly)
+    {
+        return GeneratedReflectionRegistration.RegisterAssemblyScoped(this, assembly);
+    }
+
     public void RegisterAttributedType(Type type)
     {
         GeneratedReflectionRegistration.RegisterType(this, type);
