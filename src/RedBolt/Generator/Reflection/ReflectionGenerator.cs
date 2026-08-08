@@ -622,7 +622,29 @@ public sealed class ReflectionGenerator : IIncrementalGenerator
         for (var baseType = type.BaseType; baseType is not null; baseType = baseType.BaseType)
         {
             if (GetAttribute(baseType, ReflectedAttributeName) is not null
-                && SymbolEqualityComparer.Default.Equals(type.ContainingAssembly, baseType.ContainingAssembly))
+                && HasInternalAccess(baseType.ContainingAssembly, type.ContainingAssembly))
+                return true;
+        }
+        return false;
+    }
+
+    private static bool HasInternalAccess(IAssemblySymbol declaringAssembly, IAssemblySymbol accessingAssembly)
+    {
+        if (SymbolEqualityComparer.Default.Equals(declaringAssembly, accessingAssembly))
+            return true;
+
+        foreach (var attribute in declaringAssembly.GetAttributes())
+        {
+            if (attribute.AttributeClass?.ToDisplayString() != "System.Runtime.CompilerServices.InternalsVisibleToAttribute"
+                || attribute.ConstructorArguments.Length == 0
+                || attribute.ConstructorArguments[0].Value is not string friendAssembly)
+            {
+                continue;
+            }
+
+            var separator = friendAssembly.IndexOf(',');
+            var friendAssemblyName = separator >= 0 ? friendAssembly[..separator] : friendAssembly;
+            if (string.Equals(friendAssemblyName.Trim(), accessingAssembly.Identity.Name, StringComparison.Ordinal))
                 return true;
         }
         return false;
