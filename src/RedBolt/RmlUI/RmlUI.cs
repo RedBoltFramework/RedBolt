@@ -886,6 +886,7 @@ public partial class RmlUI : RedObject
     /// <summary>Load a font resource for RmlUi to use.</summary>
     public bool LoadFont(string resourceName, bool fallback = false)
     {
+        using var providerModule = global::Std.Infrastructure.ProviderRegistry.PushModule("RedBolt.Bindings.RmlUi");
         using var nativeName = new Std.String();
         nativeName.Assign(resourceName);
         return RmlUiNativeBindings.LoadFontFace(nativeName, fallback);

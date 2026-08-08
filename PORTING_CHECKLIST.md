@@ -12,7 +12,7 @@
 
 ## Samples
 
-- [x] WebAssembly host — dedicated CMake/Emscripten preset, generated native bindings, common managed engine publish, pthread-capable WebGL 2 host, compressed `CoreData.pak` and `Data.pak` virtual filesystem staging without raw resource directories, and a framework-free C#-to-C++ rendering prototype build and render successfully in the browser
+- [x] WebAssembly host — dedicated CMake/Emscripten preset, generated native bindings, common managed engine publish, pthread-capable WebGL 2 host, compressed `CoreData.pak` and `Data.pak` virtual filesystem staging without raw resource directories, browser build-graph exclusion of desktop-only transitive projects, and a framework-free C#-to-C++ rendering prototype build and render successfully in the browser
 - [x] Replace `REDBOLT_WEB_SAMPLE` source guards with per-sample static desktop entry points and an explicitly selected static Web host entry point; desktop and Web builds share the same sample sources without platform-specific preprocessor branches
 - [x] `01_HelloWorld` — extensible native class/method order, explicit construction, base startup, empty update semantics, reverse deterministic UI-replacement teardown, and Hello World text mapped to Dear ImGui without the non-native 3D scene
 - [x] `02_HelloGUI` — extensible native class/method order, POD integer drag state and placement, reverse deterministic UI-replacement teardown, and control, title, close, and draggable-position demonstrations mapped to Dear ImGui widgets without the non-native 3D scene
@@ -1024,7 +1024,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 
 ## Editor application and data
 
-- [x] `EditorApplication` — command-line/setup state, recent-project serialization and previews, project lifecycle, custom fonts/style/settings handlers, dockspace/start page/menu/toolbar rendering with collision-free launch-tile IDs, graceful shutdown, console links, and profiler launch are ported and software-renderer runtime-tested; editor plugins, user plugin reload, NFD folder picking, console-command suppression, and resource-prefix discovery remain explicit `TODO: port` call sites
+- [x] `EditorApplication` — command-line/setup state, recent-project serialization and previews, project lifecycle, external `Project.json`/project-directory drops with empty-directory creation and graceful active-project replacement, custom fonts/style/settings handlers, dockspace/start page/menu/toolbar rendering with collision-free launch-tile IDs, graceful shutdown, console links, and profiler launch are ported and software-renderer runtime-tested; editor plugins, user plugin reload, NFD folder picking, console-command suppression, and resource-prefix discovery remain explicit `TODO: port` call sites
 - [x] Editor executable and desktop build integration — the Linux apphost, runtime dependency manifest, native-module probing, command-line entry point, and real llvmpipe launch are wired and tested
 - [x] `EditorData` resources and runtime staging — all 53 authoritative rbfx resources are tracked and symlinked beside desktop build outputs by the native build target
 - [ ] User-code reloading — **DEFERRED** · port later; keep explicit `TODO: port` call-site guidance

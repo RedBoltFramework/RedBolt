@@ -354,6 +354,7 @@ public unsafe class EditorApplication : Application
         SubscribeToEvent<CoreEvents.EndFrameEvent>((ref CoreEvents.EndFrameEvent _) => UpdateProjectStatus());
         SubscribeToEvent<RedBolt.Input.InputEvents.ExitRequestedEvent>(
             (ref RedBolt.Input.InputEvents.ExitRequestedEvent _) => OnExitRequested());
+        SubscribeToEvent<RedBolt.Input.InputEvents.DropFileEvent>(OnDropFile);
         SubscribeToEvent<EngineEvents.ConsoleUriClickEvent>(OnConsoleUriClick);
 
         if (!isHeadless)
@@ -932,6 +933,25 @@ public unsafe class EditorApplication : Application
     protected void OnExitRequested()
     {
         _exiting = true;
+    }
+
+    protected void OnDropFile(ref RedBolt.Input.InputEvents.DropFileEvent eventData)
+    {
+        var projectPath = eventData.FileName;
+        if (File.Exists(projectPath))
+        {
+            if (!string.Equals(Path.GetFileName(projectPath), "Project.json", StringComparison.Ordinal))
+                return;
+            projectPath = Path.GetDirectoryName(projectPath) ?? string.Empty;
+        }
+        else if (!Directory.Exists(projectPath)
+            || (!File.Exists(Path.Combine(projectPath, "Project.json"))
+                && Directory.GetFileSystemEntries(projectPath).Length != 0))
+        {
+            return;
+        }
+
+        OpenProject(projectPath);
     }
 
     protected void OnConsoleUriClick(ref EngineEvents.ConsoleUriClickEvent args)
