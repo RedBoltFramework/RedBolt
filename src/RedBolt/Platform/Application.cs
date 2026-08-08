@@ -40,8 +40,6 @@ public abstract partial class Application : RedObject
 
     public string ErrorMessage { get; private set; } = string.Empty;
 
-    public int MaxFrameCount { get; set; } = 10_000;
-
     protected Engine Engine { get; }
 
     protected ResourceCache Resources => GetSubsystem<ResourceCache>()!;

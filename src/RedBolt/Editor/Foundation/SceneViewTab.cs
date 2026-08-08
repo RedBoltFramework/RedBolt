@@ -1399,6 +1399,9 @@ public class SceneViewTab : ResourceEditorTab
 
     private void SavePagePreview(SceneViewPage page)
     {
+        if (GetSubsystem<Graphics>()?.IsInitialized != true)
+            return;
+
         var texture = page.Renderer.Texture;
         using var image = texture.GetImage();
 
