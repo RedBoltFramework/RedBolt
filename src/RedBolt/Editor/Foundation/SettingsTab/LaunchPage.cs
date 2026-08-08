@@ -32,14 +32,6 @@ using RedBolt.Editor.Project;
 using RedBolt.IO;
 using RedBolt.SystemUI;
 
-// TODO: port Foundation_LaunchPage when editor plugins are ported.
-// void Foundation_LaunchPage(Context* context, SettingsTab* settingsTab)
-// {
-//     auto project = settingsTab->GetProject();
-//     auto settingsManager = project->GetSettingsManager();
-//     settingsManager->AddPage(MakeShared<LaunchPage>(context));
-// }
-
 /// <summary>Tab that displays project settings.</summary>
 public class LaunchPage : SettingsPage
 {

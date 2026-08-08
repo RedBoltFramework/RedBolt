@@ -43,12 +43,6 @@ using RedBolt.Scene;
 using RedBolt.SystemUI;
 using RedBolt.Utility;
 
-// TODO: port Foundation_CreatePrefabFromNode when editor plugins are ported.
-// void Foundation_CreatePrefabFromNode(Context* context, SceneViewTab* sceneViewTab)
-// {
-//     sceneViewTab->RegisterAddon<CreatePrefabFromNode>();
-// }
-
 /// <summary>Intermediate class for request processing.</summary>
 public class PrefabFromNodeFactory : BaseResourceFactory
 {

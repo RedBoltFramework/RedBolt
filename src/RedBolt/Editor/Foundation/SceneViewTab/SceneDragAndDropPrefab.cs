@@ -36,12 +36,6 @@ using RedBolt.Resource;
 using RedBolt.Scene;
 using RedBolt.SystemUI;
 
-// TODO: port Foundation_SceneDragAndDropPrefab when editor plugins are ported.
-// void Foundation_SceneDragAndDropPrefab(Context* context, SceneViewTab* sceneViewTab)
-// {
-//     sceneViewTab->RegisterAddon<SceneDragAndDropPrefab>();
-// }
-
 /// <summary>Add-on to create new nodes via drag&amp;drop.</summary>
 public class SceneDragAndDropPrefab : SceneViewAddon
 {

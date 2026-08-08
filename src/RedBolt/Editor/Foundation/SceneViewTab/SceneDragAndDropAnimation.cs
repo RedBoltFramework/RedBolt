@@ -15,12 +15,6 @@ using RedBolt.Resource;
 using RedBolt.Scene;
 using RedBolt.SystemUI;
 
-// TODO: port Foundation_SceneDragAndDropAnimation when editor plugins are ported.
-// void Foundation_SceneDragAndDropAnimation(Context* context, SceneViewTab* sceneViewTab)
-// {
-//     sceneViewTab->RegisterAddon<SceneDragAndDropAnimation>();
-// }
-
 /// <summary>Add-on to update materials via drag&amp;drop.</summary>
 public class SceneDragAndDropAnimation : SceneViewAddon
 {

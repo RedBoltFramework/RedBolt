@@ -33,12 +33,6 @@ using RedBolt.Resource;
 using RedBolt.Scene;
 using RedBolt.SystemUI;
 
-// TODO: port Foundation_AnimationViewTab when editor plugins are ported.
-// void Foundation_AnimationViewTab(Context* context, Project* project)
-// {
-//     project->AddTab(MakeShared<AnimationViewTab>(context));
-// }
-
 /// <summary>Tab that renders Scene and enables Scene manipulation.</summary>
 public class AnimationViewTab : CustomSceneViewTab
 {

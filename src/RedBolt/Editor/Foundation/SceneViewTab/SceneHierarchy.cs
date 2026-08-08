@@ -30,32 +30,6 @@ using RedBolt.Scene;
 using RedBolt.SystemUI;
 using RedBolt.Utility;
 
-// TODO: port Foundation_SceneHierarchy when editor plugins are ported.
-// void Foundation_SceneHierarchy(Context* context, SceneViewTab* sceneViewTab)
-// {
-//     sceneViewTab->RegisterAddon<SceneHierarchy>();
-// }
-
-// TODO: port Foundation_SceneViewGlue when editor plugins are ported.
-// void Foundation_SceneViewGlue(Context* context, SceneViewTab* sceneViewTab)
-// {
-//     auto project = sceneViewTab->GetProject();
-//     const WeakPtr<HierarchyBrowserTab> hierarchyBrowserTab{
-//         project->FindTab<HierarchyBrowserTab>()};
-//     const WeakPtr<SceneHierarchy> sceneHierarchy{
-//         sceneViewTab->GetAddon<SceneHierarchy>()};
-//
-//     if (hierarchyBrowserTab && sceneHierarchy)
-//     {
-//         sceneViewTab->OnFocused.Subscribe(sceneHierarchy.Get(),
-//             [hierarchyBrowserTab](SceneHierarchy* sceneHierarchy)
-//         {
-//             if (hierarchyBrowserTab)
-//                 hierarchyBrowserTab->ConnectToSource(sceneHierarchy);
-//         });
-//     }
-// }
-
 /// <summary>Scene hierarchy provider for hierarchy browser tab.</summary>
 public class SceneHierarchy : SceneViewAddon, HierarchyBrowserSource
 {

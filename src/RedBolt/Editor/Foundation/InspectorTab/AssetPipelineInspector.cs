@@ -22,12 +22,6 @@ using RedBolt.Scene;
 using RedBolt.SystemUI;
 using RedBolt.Utility;
 
-// TODO: port Foundation_AssetPipelineInspector when editor plugins are ported.
-// void Foundation_AssetPipelineInspector(Context* context, InspectorTab* inspectorTab)
-// {
-//     inspectorTab->RegisterAddon<AssetPipelineInspector>(inspectorTab->GetProject());
-// }
-
 /// <summary>Scene hierarchy provider for hierarchy browser tab.</summary>
 public class AssetPipelineInspector : RedObject, InspectorSource
 {

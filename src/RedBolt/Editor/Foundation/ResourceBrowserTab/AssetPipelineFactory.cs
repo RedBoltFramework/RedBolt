@@ -29,12 +29,6 @@ using RedBolt.IO;
 using RedBolt.Resource;
 using RedBolt.Utility;
 
-// TODO: port Foundation_AssetPipelineFactory when editor plugins are ported.
-// void Foundation_AssetPipelineFactory(Context* context, ResourceBrowserTab* resourceBrowserTab)
-// {
-//     resourceBrowserTab->AddFactory(MakeShared<AssetPipelineFactory>(context));
-// }
-
 /// <summary>Camera controller used by Scene View.</summary>
 public class AssetPipelineFactory : BaseResourceFactory
 {

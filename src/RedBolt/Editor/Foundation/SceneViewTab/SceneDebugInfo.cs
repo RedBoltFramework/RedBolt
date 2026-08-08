@@ -30,18 +30,6 @@ using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.SystemUI;
 
-// TODO: port Foundation_SceneDebugInfo when editor plugins are ported.
-// void Foundation_SceneDebugInfo(Context* context, SceneViewTab* sceneViewTab)
-// {
-//     auto project = sceneViewTab->GetProject();
-//     auto settingsManager = project->GetSettingsManager();
-//
-//     auto settingsPage = MakeShared<SceneDebugInfo::SettingsPage>(context);
-//     settingsManager->AddPage(settingsPage);
-//
-//     sceneViewTab->RegisterAddon<SceneDebugInfo>(settingsPage);
-// }
-
 /// <summary>Add-on to manage debug HUD in scene.</summary>
 public class SceneDebugInfo : SceneViewAddon
 {

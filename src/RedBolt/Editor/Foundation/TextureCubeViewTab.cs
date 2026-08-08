@@ -28,12 +28,6 @@ using RedBolt.Graphics;
 using RedBolt.Resource;
 using RedBolt.SystemUI;
 
-// TODO: port Foundation_TextureCubeViewTab when editor plugins are ported.
-// void Foundation_TextureCubeViewTab(Context* context, Project* project)
-// {
-//     project->AddTab(MakeShared<TextureCubeViewTab>(context));
-// }
-
 /// <summary>Tab that renders Scene and enables Scene manipulation.</summary>
 public class TextureCubeViewTab : CustomSceneViewTab
 {

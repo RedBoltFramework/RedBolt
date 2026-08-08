@@ -22,12 +22,6 @@ using RedBolt.Resource;
 using RedBolt.Scene;
 using RedBolt.SystemUI;
 
-// TODO: port Foundation_RenderPathInspector when editor plugins are ported.
-// void Foundation_RenderPathInspector(Context* context, InspectorTab* inspectorTab)
-// {
-//     inspectorTab->RegisterAddon<RenderPathInspector>(inspectorTab->GetProject());
-// }
-
 /// <summary>Scene hierarchy provider for hierarchy browser tab.</summary>
 public class RenderPathInspector : RedObject, InspectorSource
 {

@@ -42,12 +42,6 @@ using RedBolt.Scene;
 using RedBolt.SystemUI;
 using RedBolt.Utility;
 
-// TODO: port Foundation_SceneScreenshot when editor plugins are ported.
-// void Foundation_SceneScreenshot(Context* context, SceneViewTab* sceneViewTab)
-// {
-//     sceneViewTab->RegisterAddon<SceneScreenshot>();
-// }
-
 /// <summary>Add-on that takes high-resolution screenshots from the scene.</summary>
 public class SceneScreenshot : SceneViewAddon
 {

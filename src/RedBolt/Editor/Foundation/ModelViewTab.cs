@@ -29,12 +29,6 @@ using RedBolt.Resource;
 using RedBolt.Scene;
 using RedBolt.SystemUI;
 
-// TODO: port Foundation_ModelViewTab when editor plugins are ported.
-// void Foundation_ModelViewTab(Context* context, Project* project)
-// {
-//     project->AddTab(MakeShared<ModelViewTab>(context));
-// }
-
 /// <summary>Tab that renders Scene and enables Scene manipulation.</summary>
 public class ModelViewTab : CustomSceneViewTab
 {

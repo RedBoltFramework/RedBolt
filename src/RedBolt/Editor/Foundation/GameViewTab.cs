@@ -43,12 +43,6 @@ using EngineSubsystem = RedBolt.Engine.Engine;
 using ProjectSubsystem = RedBolt.Editor.Project.Project;
 using RmlUISubsystem = RedBolt.RmlUI.RmlUI;
 
-// TODO: port Foundation_GameViewTab when editor plugins are ported.
-// void Foundation_GameViewTab(Context* context, Project* project)
-// {
-//     project->AddTab(MakeShared<GameViewTab>(context));
-// }
-
 /// <summary>Tab that renders Scene and enables Scene manipulation.</summary>
 public class GameViewTab : EditorTab
 {
@@ -67,14 +61,14 @@ public class GameViewTab : EditorTab
 
         BindHotkey(HotkeyReleaseInput, ReleaseInput);
 
-        // TODO: port editor plugins.
+        // TODO: port reloadable user plugins.
         // auto pluginManager = GetSubsystem<PluginManager>();
         // pluginManager->SetQuitApplicationCallback([this] { QuitApplication(); });
     }
 
     public override void Dispose()
     {
-        // TODO: port editor plugins.
+        // TODO: port reloadable user plugins.
         // auto pluginManager = GetSubsystem<PluginManager>();
         // pluginManager->SetQuitApplicationCallback([] {});
 
@@ -225,7 +219,7 @@ public class GameViewTab : EditorTab
         {
             _engine = GetSubsystem<EngineSubsystem>();
             _renderer = GetSubsystem<Renderer>();
-            // TODO: port editor plugins.
+            // TODO: port reloadable user plugins.
             // pluginManager_(GetSubsystem<PluginManager>())
             _input = GetSubsystem<Input>();
             // TODO: built-in UI is excluded from the managed port.
@@ -248,7 +242,7 @@ public class GameViewTab : EditorTab
             _backbuffer.SetActive(true);
             GrabInput();
 
-            // TODO: port editor plugins.
+            // TODO: port reloadable user plugins.
             // pluginManager_->StartApplication();
             UpdatePreferredMouseSetup();
 
@@ -308,7 +302,7 @@ public class GameViewTab : EditorTab
         {
             ReleaseInput();
 
-            // TODO: port editor plugins.
+            // TODO: port reloadable user plugins.
             // pluginManager_->StopApplication();
             _backbuffer.SetActive(false);
 
@@ -357,7 +351,7 @@ public class GameViewTab : EditorTab
 
         private readonly EngineSubsystem _engine;
         private readonly Renderer _renderer;
-        // TODO: port PluginManager* pluginManager_ when editor plugins are ported.
+        // TODO: port PluginManager* pluginManager_ with reloadable user plugins.
         private readonly Input _input;
         // TODO: built-in UI is excluded from the managed port.
         // UI* legacyUI_{};

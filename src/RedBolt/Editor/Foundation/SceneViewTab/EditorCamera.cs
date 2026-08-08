@@ -30,18 +30,6 @@ using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Math;
 
-// TODO: port Foundation_EditorCamera when editor plugins are ported.
-// void Foundation_EditorCamera(Context* context, SceneViewTab* sceneViewTab)
-// {
-//     auto project = sceneViewTab->GetProject();
-//     auto settingsManager = project->GetSettingsManager();
-//
-//     auto settingsPage = MakeShared<EditorCamera::SettingsPage>(context);
-//     settingsManager->AddPage(settingsPage);
-//
-//     sceneViewTab->RegisterAddon<EditorCamera>(settingsPage);
-// }
-
 /// <summary>Camera controller used by Scene View.</summary>
 public class EditorCamera : SceneViewAddon
 {

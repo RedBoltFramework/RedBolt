@@ -30,12 +30,6 @@ using RedBolt.Math;
 using RedBolt.Resource;
 using RedBolt.SystemUI;
 
-// TODO: port Foundation_Texture2DViewTab when editor plugins are ported.
-// void Foundation_Texture2DViewTab(Context* context, Project* project)
-// {
-//     project->AddTab(MakeShared<Texture2DViewTab>(context));
-// }
-
 /// <summary>Tab that renders Scene and enables Scene manipulation.</summary>
 public class Texture2DViewTab : CustomSceneViewTab
 {

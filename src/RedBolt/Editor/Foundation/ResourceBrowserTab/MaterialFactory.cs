@@ -28,12 +28,6 @@ using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Resource;
 
-// TODO: port Foundation_MaterialFactory when editor plugins are ported.
-// void Foundation_MaterialFactory(Context* context, ResourceBrowserTab* resourceBrowserTab)
-// {
-//     resourceBrowserTab->AddFactory(MakeShared<MaterialFactory>(context));
-// }
-
 /// <summary>Camera controller used by Scene View.</summary>
 public class MaterialFactory : BaseResourceFactory
 {

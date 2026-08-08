@@ -189,9 +189,8 @@ public class EditorTab : EditorConfigurable
     /// <summary>Called when all tabs are created and multi-tab plugins can be safely applied.</summary>
     public virtual void ApplyPlugins()
     {
-        // TODO: port editor plugins.
-        // auto editorPluginManager = GetSubsystem<EditorPluginManager>();
-        // editorPluginManager->Apply(this);
+        var editorPluginManager = GetSubsystem<EditorPluginManager>();
+        editorPluginManager.Apply(this);
     }
 
     /// <summary>Called when project is fully loaded.</summary>

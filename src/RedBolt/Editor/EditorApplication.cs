@@ -16,6 +16,10 @@ using Microsoft.Extensions.Logging;
 using RedBolt.Bindings.DearImGui;
 using RedBolt.Container;
 using RedBolt.Core;
+using RedBolt.Editor.Assets;
+using RedBolt.Editor.Core;
+using RedBolt.Editor.Foundation;
+using RedBolt.Editor.Foundation.Shared;
 using RedBolt.Editor.Project;
 using RedBolt.Engine;
 using RedBolt.Graphics;
@@ -40,55 +44,164 @@ public unsafe class EditorApplication : Application
 
     public EditorApplication()
     {
-        // TODO: port editor plugins.
-        // editorPluginManager_ = MakeShared<EditorPluginManager>(context_);
-        // editorPluginManager_->AddPlugin("Assets.ModelImporter", &Assets_ModelImporter);
-        // editorPluginManager_->AddPlugin("Foundation.StandardFileTypes", &Foundation_StandardFileTypes);
-        // editorPluginManager_->AddPlugin("Foundation.ConcurrentAssetProcessing", &Foundation_ConcurrentAssetProcessing);
-        // editorPluginManager_->AddPlugin("Foundation.GameView", &Foundation_GameViewTab);
-        // editorPluginManager_->AddPlugin("Foundation.SceneView", &Foundation_SceneViewTab);
-        // editorPluginManager_->AddPlugin("Foundation.Texture2DView", &Foundation_Texture2DViewTab);
-        // editorPluginManager_->AddPlugin("Foundation.TextureCubeView", &Foundation_TextureCubeViewTab);
-        // editorPluginManager_->AddPlugin("Foundation.ModelView", &Foundation_ModelViewTab);
-        // editorPluginManager_->AddPlugin("Foundation.AnimationView", &Foundation_AnimationViewTab);
-        // editorPluginManager_->AddPlugin("Foundation.Console", &Foundation_ConsoleTab);
-        // editorPluginManager_->AddPlugin("Foundation.ResourceBrowser", &Foundation_ResourceBrowserTab);
-        // editorPluginManager_->AddPlugin("Foundation.HierarchyBrowser", &Foundation_HierarchyBrowserTab);
-        // editorPluginManager_->AddPlugin("Foundation.Settings", &Foundation_SettingsTab);
-        // editorPluginManager_->AddPlugin("Foundation.Inspector", &Foundation_InspectorTab);
-        // editorPluginManager_->AddPlugin("Foundation.Settings.KeyBindings", &Foundation_KeyBindingsPage);
-        // editorPluginManager_->AddPlugin("Foundation.Settings.Launch", &Foundation_LaunchPage);
-        // editorPluginManager_->AddPlugin("Foundation.Settings.Plugins", &Foundation_PluginsPage);
-        // editorPluginManager_->AddPlugin("Foundation.SceneView.CreatePrefabFromNode", &Foundation_CreatePrefabFromNode);
-        // editorPluginManager_->AddPlugin("Foundation.SceneView.EditorCamera", &Foundation_EditorCamera);
-        // editorPluginManager_->AddPlugin("Foundation.SceneView.Selector", &Foundation_SceneSelector);
-        // editorPluginManager_->AddPlugin("Foundation.SceneView.Hierarchy", &Foundation_SceneHierarchy);
-        // editorPluginManager_->AddPlugin("Foundation.SceneView.SelectionRenderer", &Foundation_SceneSelectionRenderer);
-        // editorPluginManager_->AddPlugin("Foundation.SceneView.TransformGizmo", &Foundation_TransformManipulator);
-        // editorPluginManager_->AddPlugin("Foundation.SceneView.DragAndDropPrefab", &Foundation_SceneDragAndDropPrefab);
-        // editorPluginManager_->AddPlugin("Foundation.SceneView.DragAndDropMaterial", &Foundation_SceneDragAndDropMaterial);
-        // editorPluginManager_->AddPlugin("Foundation.SceneView.DragAndDropAnimation", &Foundation_SceneDragAndDropAnimation);
-        // editorPluginManager_->AddPlugin("Foundation.SceneView.DebugInfo", &Foundation_SceneDebugInfo);
-        // editorPluginManager_->AddPlugin("Foundation.SceneView.Screenshot", &Foundation_SceneScreenshot);
-        // editorPluginManager_->AddPlugin("Foundation.Inspector.Empty", &Foundation_EmptyInspector);
-        // editorPluginManager_->AddPlugin("Foundation.Inspector.AssetPipeline", &Foundation_AssetPipelineInspector);
-        // editorPluginManager_->AddPlugin("Foundation.Inspector.Animation", &Foundation_AnimationInspector);
-        // editorPluginManager_->AddPlugin("Foundation.Inspector.Texture2D", &Foundation_Texture2DInspector);
-        // editorPluginManager_->AddPlugin("Foundation.Inspector.TextureCube", &Foundation_TextureCubeInspector);
-        // editorPluginManager_->AddPlugin("Foundation.Inspector.Model", &Foundation_ModelInspector);
-        // editorPluginManager_->AddPlugin("Foundation.Inspector.Prefab", &Foundation_PrefabInspector);
-        // editorPluginManager_->AddPlugin("Foundation.Inspector.Material", &Foundation_MaterialInspector);
-        // editorPluginManager_->AddPlugin("Foundation.Inspector.NodeComponent", &Foundation_NodeComponentInspector);
-        // editorPluginManager_->AddPlugin("Foundation.Inspector.PlaceholderResource", &Foundation_PlaceholderResourceInspector);
-        // editorPluginManager_->AddPlugin("Foundation.Inspector.RenderPath", &Foundation_RenderPathInspector);
-        // editorPluginManager_->AddPlugin("Foundation.Inspector.SerializableResource", &Foundation_SerializableResourceInspector);
-        // editorPluginManager_->AddPlugin("Foundation.Inspector.Sound", &Foundation_SoundInspector);
-        // editorPluginManager_->AddPlugin("Foundation.ResourceBrowser.AssetPipelineFactory", &Foundation_AssetPipelineFactory);
-        // editorPluginManager_->AddPlugin("Foundation.ResourceBrowser.MaterialFactory", &Foundation_MaterialFactory);
-        // editorPluginManager_->AddPlugin("Foundation.ResourceBrowser.SceneFactory", &Foundation_SceneFactory);
-        // editorPluginManager_->AddPlugin("Foundation.Glue.Project", &Foundation_ProjectGlue);
-        // editorPluginManager_->AddPlugin("Foundation.Glue.ResourceBrowser", &Foundation_ResourceBrowserGlue);
-        // editorPluginManager_->AddPlugin("Foundation.Glue.SceneView", &Foundation_SceneViewGlue);
+        _editorPluginManager = new EditorPluginManager();
+
+        _editorPluginManager.AddPlugin<EditorProject>("Assets.ModelImporter", static _ =>
+        {
+            if (!Context.Instance.IsReflected<ModelImporter>())
+                Context.Instance.RegisterAssembly(typeof(ModelImporter).Assembly);
+        });
+
+        _editorPluginManager.AddPlugin<EditorProject>("Foundation.StandardFileTypes", StandardFileTypes.Register);
+        _editorPluginManager.AddPlugin<EditorProject>(
+            "Foundation.ConcurrentAssetProcessing", ConcurrentAssetProcessing.Register);
+
+        _editorPluginManager.AddPlugin<EditorProject>(
+            "Foundation.GameView", static project => project.AddTab(new GameViewTab()));
+        _editorPluginManager.AddPlugin<EditorProject>("Foundation.SceneView", static project =>
+        {
+            project.AddTab(new SceneViewTab());
+            if (!Context.Instance.IsReflected<SceneResourceForEditor>())
+                Context.Instance.RegisterAssembly(typeof(SceneResourceForEditor).Assembly);
+        });
+        _editorPluginManager.AddPlugin<EditorProject>(
+            "Foundation.Texture2DView", static project => project.AddTab(new Texture2DViewTab()));
+        _editorPluginManager.AddPlugin<EditorProject>(
+            "Foundation.TextureCubeView", static project => project.AddTab(new TextureCubeViewTab()));
+        _editorPluginManager.AddPlugin<EditorProject>(
+            "Foundation.ModelView", static project => project.AddTab(new ModelViewTab()));
+        _editorPluginManager.AddPlugin<EditorProject>(
+            "Foundation.AnimationView", static project => project.AddTab(new AnimationViewTab()));
+        _editorPluginManager.AddPlugin<EditorProject>(
+            "Foundation.Console", static project => project.AddTab(new ConsoleTab()));
+        _editorPluginManager.AddPlugin<EditorProject>(
+            "Foundation.ResourceBrowser", static project => project.AddTab(new ResourceBrowserTab()));
+        _editorPluginManager.AddPlugin<EditorProject>(
+            "Foundation.HierarchyBrowser", static project => project.AddTab(new HierarchyBrowserTab()));
+        _editorPluginManager.AddPlugin<EditorProject>(
+            "Foundation.Settings", static project => project.AddTab(new SettingsTab()));
+        _editorPluginManager.AddPlugin<EditorProject>(
+            "Foundation.Inspector", static project => project.AddTab(new InspectorTab()));
+
+        _editorPluginManager.AddPlugin<SettingsTab>("Foundation.Settings.KeyBindings", static settingsTab =>
+            settingsTab.GetProject().SettingsManager.AddPage(new KeyBindingsPage()));
+        _editorPluginManager.AddPlugin<SettingsTab>("Foundation.Settings.Launch", static settingsTab =>
+            settingsTab.GetProject().SettingsManager.AddPage(new LaunchPage()));
+        // TODO: port Foundation_PluginsPage with reloadable user plugins.
+
+        _editorPluginManager.AddPlugin<SceneViewTab>(
+            "Foundation.SceneView.CreatePrefabFromNode", static sceneViewTab =>
+                sceneViewTab.RegisterAddon(new CreatePrefabFromNode(sceneViewTab)));
+        _editorPluginManager.AddPlugin<SceneViewTab>("Foundation.SceneView.EditorCamera", static sceneViewTab =>
+        {
+            var settingsPage = new CameraController.SettingsPage();
+            sceneViewTab.GetProject().SettingsManager.AddPage(settingsPage);
+            sceneViewTab.RegisterAddon(new EditorCamera(sceneViewTab, settingsPage));
+        });
+        _editorPluginManager.AddPlugin<SceneViewTab>(
+            "Foundation.SceneView.Selector", static sceneViewTab =>
+                sceneViewTab.RegisterAddon(new SceneSelector(sceneViewTab)));
+        _editorPluginManager.AddPlugin<SceneViewTab>(
+            "Foundation.SceneView.Hierarchy", static sceneViewTab =>
+                sceneViewTab.RegisterAddon(new SceneHierarchy(sceneViewTab)));
+        _editorPluginManager.AddPlugin<SceneViewTab>(
+            "Foundation.SceneView.SelectionRenderer", static sceneViewTab =>
+        {
+            var settingsPage = new SceneSelectionRenderer.SettingsPage();
+            sceneViewTab.GetProject().SettingsManager.AddPage(settingsPage);
+            sceneViewTab.RegisterAddon(new SceneSelectionRenderer(sceneViewTab, settingsPage));
+        });
+        _editorPluginManager.AddPlugin<SceneViewTab>(
+            "Foundation.SceneView.TransformGizmo", static sceneViewTab =>
+        {
+            var settingsPage = new TransformManipulator.SettingsPage();
+            sceneViewTab.GetProject().SettingsManager.AddPage(settingsPage);
+            sceneViewTab.RegisterAddon(new TransformManipulator(sceneViewTab, settingsPage));
+        });
+        _editorPluginManager.AddPlugin<SceneViewTab>(
+            "Foundation.SceneView.DragAndDropPrefab", static sceneViewTab =>
+                sceneViewTab.RegisterAddon(new SceneDragAndDropPrefab(sceneViewTab)));
+        _editorPluginManager.AddPlugin<SceneViewTab>(
+            "Foundation.SceneView.DragAndDropMaterial", static sceneViewTab =>
+                sceneViewTab.RegisterAddon(new SceneDragAndDropMaterial(sceneViewTab)));
+        _editorPluginManager.AddPlugin<SceneViewTab>(
+            "Foundation.SceneView.DragAndDropAnimation", static sceneViewTab =>
+                sceneViewTab.RegisterAddon(new SceneDragAndDropAnimation(sceneViewTab)));
+        _editorPluginManager.AddPlugin<SceneViewTab>("Foundation.SceneView.DebugInfo", static sceneViewTab =>
+        {
+            var settingsPage = new SceneDebugInfo.SettingsPage();
+            sceneViewTab.GetProject().SettingsManager.AddPage(settingsPage);
+            sceneViewTab.RegisterAddon(new SceneDebugInfo(sceneViewTab, settingsPage));
+        });
+        _editorPluginManager.AddPlugin<SceneViewTab>(
+            "Foundation.SceneView.Screenshot", static sceneViewTab =>
+                sceneViewTab.RegisterAddon(new SceneScreenshot(sceneViewTab)));
+
+        _editorPluginManager.AddPlugin<InspectorTab>("Foundation.Inspector.Empty", static inspectorTab =>
+            inspectorTab.RegisterAddon(new EmptyInspector(inspectorTab.GetProject())));
+        _editorPluginManager.AddPlugin<InspectorTab>(
+            "Foundation.Inspector.AssetPipeline", static inspectorTab =>
+                inspectorTab.RegisterAddon(new AssetPipelineInspector(inspectorTab.GetProject())));
+        _editorPluginManager.AddPlugin<InspectorTab>("Foundation.Inspector.Animation", static inspectorTab =>
+            inspectorTab.RegisterAddon(new AnimationInspector(inspectorTab.GetProject())));
+        _editorPluginManager.AddPlugin<InspectorTab>("Foundation.Inspector.Texture2D", static inspectorTab =>
+            inspectorTab.RegisterAddon(new Texture2DInspector(inspectorTab.GetProject())));
+        _editorPluginManager.AddPlugin<InspectorTab>("Foundation.Inspector.TextureCube", static inspectorTab =>
+            inspectorTab.RegisterAddon(new TextureCubeInspector(inspectorTab.GetProject())));
+        _editorPluginManager.AddPlugin<InspectorTab>("Foundation.Inspector.Model", static inspectorTab =>
+            inspectorTab.RegisterAddon(new ModelInspector(inspectorTab.GetProject())));
+        _editorPluginManager.AddPlugin<InspectorTab>("Foundation.Inspector.Prefab", static inspectorTab =>
+            inspectorTab.RegisterAddon(new PrefabInspector(inspectorTab.GetProject())));
+        _editorPluginManager.AddPlugin<InspectorTab>("Foundation.Inspector.Material", static inspectorTab =>
+            inspectorTab.RegisterAddon(new MaterialInspector(inspectorTab.GetProject())));
+        _editorPluginManager.AddPlugin<InspectorTab>(
+            "Foundation.Inspector.NodeComponent", static inspectorTab =>
+                inspectorTab.RegisterAddon(new NodeComponentInspector(inspectorTab.GetProject())));
+        _editorPluginManager.AddPlugin<InspectorTab>(
+            "Foundation.Inspector.PlaceholderResource", static inspectorTab =>
+                inspectorTab.RegisterAddon(new PlaceholderResourceInspector(inspectorTab.GetProject())));
+        _editorPluginManager.AddPlugin<InspectorTab>("Foundation.Inspector.RenderPath", static inspectorTab =>
+            inspectorTab.RegisterAddon(new RenderPathInspector(inspectorTab.GetProject())));
+        _editorPluginManager.AddPlugin<InspectorTab>(
+            "Foundation.Inspector.SerializableResource", static inspectorTab =>
+                inspectorTab.RegisterAddon(new SerializableResourceInspector(inspectorTab.GetProject())));
+        _editorPluginManager.AddPlugin<InspectorTab>("Foundation.Inspector.Sound", static inspectorTab =>
+            inspectorTab.RegisterAddon(new SoundInspector(inspectorTab.GetProject())));
+
+        _editorPluginManager.AddPlugin<ResourceBrowserTab>(
+            "Foundation.ResourceBrowser.AssetPipelineFactory", static resourceBrowserTab =>
+                resourceBrowserTab.AddFactory(new AssetPipelineFactory()));
+        _editorPluginManager.AddPlugin<ResourceBrowserTab>(
+            "Foundation.ResourceBrowser.MaterialFactory", static resourceBrowserTab =>
+                resourceBrowserTab.AddFactory(new MaterialFactory()));
+        _editorPluginManager.AddPlugin<ResourceBrowserTab>(
+            "Foundation.ResourceBrowser.SceneFactory", static resourceBrowserTab =>
+        {
+            resourceBrowserTab.AddFactory(new SceneFactory(true));
+            resourceBrowserTab.AddFactory(new SceneFactory(false));
+        });
+
+        // TODO: port Foundation_ProjectGlue with reloadable user plugins.
+        _editorPluginManager.AddPlugin<ResourceBrowserTab>(
+            "Foundation.Glue.ResourceBrowser", static _ => { });
+        _editorPluginManager.AddPlugin<SceneViewTab>("Foundation.Glue.SceneView", static sceneViewTab =>
+        {
+            var hierarchyBrowserTab = sceneViewTab.GetProject().FindTab<HierarchyBrowserTab>();
+            var sceneHierarchy = sceneViewTab.GetAddon<SceneHierarchy>();
+            if (hierarchyBrowserTab is null || sceneHierarchy is null)
+                return;
+
+            var hierarchyBrowserTabWeak = new WeakReference<HierarchyBrowserTab>(hierarchyBrowserTab);
+            var sceneHierarchyWeak = new WeakReference<SceneHierarchy>(sceneHierarchy);
+            sceneViewTab.OnFocused += _ =>
+            {
+                if (hierarchyBrowserTabWeak.TryGetTarget(out var hierarchyBrowserTabTarget)
+                    && sceneHierarchyWeak.TryGetTarget(out var sceneHierarchyTarget))
+                {
+                    hierarchyBrowserTabTarget.ConnectToSource(sceneHierarchyTarget);
+                }
+            };
+        });
     }
 
     public override void Dispose()
@@ -104,6 +217,7 @@ public unsafe class EditorApplication : Application
             labels.Dispose();
         _recentProjectLabels.Clear();
         _projectPreviewTextureReference.Dispose();
+        _editorPluginManager.Dispose();
 
         using (global::Std.Infrastructure.ProviderRegistry.PushModule("RedBolt.Bindings.RmlUi"))
             base.Dispose();
@@ -131,8 +245,7 @@ public unsafe class EditorApplication : Application
 
     protected override void Setup(EngineParameters parameters)
     {
-        // TODO: port editor plugins.
-        // context_->RegisterSubsystem(editorPluginManager_, EditorPluginManager::GetTypeStatic());
+        Context.RegisterSubsystem(_editorPluginManager);
 
         // Required until SDL supports hdpi on Windows.
         // The managed SDL backend configures process DPI awareness during platform initialization.
@@ -272,8 +385,7 @@ public unsafe class EditorApplication : Application
         Context.RemoveSubsystem<WorkQueue>(); // Prevents deadlock when unloading plugin AppDomain in managed host.
         workQueue.Dispose();
 
-        // TODO: port editor plugins.
-        // context_->RemoveSubsystem<EditorPluginManager>();
+        Context.RemoveSubsystem<EditorPluginManager>();
 
         // TODO: port NFD_Quit().
     }
@@ -952,7 +1064,7 @@ public unsafe class EditorApplication : Application
     /// <summary>Persistent state.</summary>
     protected readonly List<string> _recentProjects = [];
 
-    // TODO: port EditorPluginManager editorPluginManager_.
+    protected readonly EditorPluginManager _editorPluginManager;
     /// <summary>Currently loaded project.</summary>
     protected EditorProject? _project;
 

@@ -28,14 +28,6 @@ using RedBolt.Editor.Core;
 using RedBolt.Editor.Project;
 using RedBolt.IO;
 
-// TODO: port Foundation_KeyBindingsPage when editor plugins are ported.
-// void Foundation_KeyBindingsPage(Context* context, SettingsTab* settingsTab)
-// {
-//     auto project = settingsTab->GetProject();
-//     auto settingsManager = project->GetSettingsManager();
-//     settingsManager->AddPage(MakeShared<KeyBindingsPage>(context));
-// }
-
 /// <summary>Tab that displays project settings.</summary>
 public class KeyBindingsPage : SettingsPage
 {

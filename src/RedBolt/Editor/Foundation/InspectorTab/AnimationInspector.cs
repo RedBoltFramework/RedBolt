@@ -32,12 +32,6 @@ using RedBolt.Graphics;
 using RedBolt.Resource;
 using RedBolt.SystemUI;
 
-// TODO: port Foundation_AnimationInspector when editor plugins are ported.
-// void Foundation_AnimationInspector(Context* context, InspectorTab* inspectorTab)
-// {
-//     inspectorTab->RegisterAddon<AnimationInspector>(inspectorTab->GetProject());
-// }
-
 /// <summary>Scene hierarchy provider for hierarchy browser tab.</summary>
 public class AnimationInspector : InspectorWithPreview
 {

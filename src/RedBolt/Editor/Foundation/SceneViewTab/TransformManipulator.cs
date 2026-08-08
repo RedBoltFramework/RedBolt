@@ -16,18 +16,6 @@ using RedBolt.Math;
 using RedBolt.Scene;
 using RedBolt.SystemUI;
 
-// TODO: port Foundation_TransformManipulator when editor plugins are ported.
-// void Foundation_TransformManipulator(Context* context, SceneViewTab* sceneViewTab)
-// {
-//     auto project = sceneViewTab->GetProject();
-//     auto settingsManager = project->GetSettingsManager();
-//
-//     auto settingsPage = MakeShared<TransformManipulator::SettingsPage>(context);
-//     settingsManager->AddPage(settingsPage);
-//
-//     sceneViewTab->RegisterAddon<TransformManipulator>(settingsPage);
-// }
-
 /// <summary>Add-on to manage scene selection with mouse and render debug geometry.</summary>
 public class TransformManipulator : SceneViewAddon
 {

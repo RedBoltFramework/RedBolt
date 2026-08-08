@@ -38,12 +38,6 @@ using RedBolt.Math;
 using RedBolt.SystemUI;
 using RedBolt.Utility;
 
-// TODO: port Foundation_ResourceBrowserTab when editor plugins are ported.
-// void Foundation_ResourceBrowserTab(Context* context, Project* project)
-// {
-//     project->AddTab(MakeShared<ResourceBrowserTab>(context));
-// }
-
 public class ResourceBrowserTab : EditorTab
 {
     private static readonly EditorHotkey HotkeyDelete =
@@ -357,7 +351,7 @@ public class ResourceBrowserTab : EditorTab
         var selectedRightPaths = IniHelpers.ReadStringFromIni(line, "SelectedRightPaths");
         if (selectedRightPaths is not null)
         {
-            var selectedPaths = selectedRightPaths.Split(';');
+            var selectedPaths = selectedRightPaths.Split(';', StringSplitOptions.RemoveEmptyEntries);
             _right.SelectedPaths.Clear();
             foreach (var path in selectedPaths)
                 _right.SelectedPaths.Add(path);

@@ -45,15 +45,6 @@ using RedBolt.Scene;
 using RedBolt.SystemUI;
 using RedBolt.Utility;
 
-// TODO: port Foundation_SceneViewTab when editor plugins are ported.
-// void Foundation_SceneViewTab(Context* context, Project* project)
-// {
-//     project->AddTab(MakeShared<SceneViewTab>(context));
-//
-//     if (!context->IsReflected<SceneResourceForEditor>())
-//         context->AddFactoryReflection<SceneResourceForEditor>();
-// }
-
 /// <summary>Declare Editor-only type to avoid interference with user code.</summary>
 [Reflected]
 public partial class SceneResourceForEditor : SceneResource

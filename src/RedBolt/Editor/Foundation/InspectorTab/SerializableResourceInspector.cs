@@ -18,12 +18,6 @@ using RedBolt.Resource;
 using RedBolt.Scene;
 using RedBolt.SystemUI;
 
-// TODO: port Foundation_SerializableResourceInspector when editor plugins are ported.
-// void Foundation_SerializableResourceInspector(Context* context, InspectorTab* inspectorTab)
-// {
-//     inspectorTab->RegisterAddon<SerializableResourceInspector>(inspectorTab->GetProject());
-// }
-
 /// <summary>Scene hierarchy provider for hierarchy browser tab.</summary>
 public class SerializableResourceInspector : RedObject, InspectorSource
 {

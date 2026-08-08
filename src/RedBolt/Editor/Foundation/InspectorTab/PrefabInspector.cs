@@ -54,12 +54,6 @@ file static class PrefabInspectorHelpers
     }
 }
 
-// TODO: port Foundation_PrefabInspector when editor plugins are ported.
-// void Foundation_PrefabInspector(Context* context, InspectorTab* inspectorTab)
-// {
-//     inspectorTab->RegisterAddon<PrefabInspector>(inspectorTab->GetProject());
-// }
-
 /// <summary>Scene hierarchy provider for hierarchy browser tab.</summary>
 public class PrefabInspector : InspectorWithPreview
 {

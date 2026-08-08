@@ -33,18 +33,6 @@ using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Scene;
 
-// TODO: port Foundation_SceneSelectionRenderer when editor plugins are ported.
-// void Foundation_SceneSelectionRenderer(Context* context, SceneViewTab* sceneViewTab)
-// {
-//     auto project = sceneViewTab->GetProject();
-//     auto settingsManager = project->GetSettingsManager();
-//
-//     auto settingsPage = MakeShared<SceneSelectionRenderer::SettingsPage>(context);
-//     settingsManager->AddPage(settingsPage);
-//
-//     sceneViewTab->RegisterAddon<SceneSelectionRenderer>(settingsPage);
-// }
-
 /// <summary>Add-on to manage scene selection with mouse and render debug geometry.</summary>
 public class SceneSelectionRenderer : SceneViewAddon
 {

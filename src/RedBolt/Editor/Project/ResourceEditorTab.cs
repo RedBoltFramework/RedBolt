@@ -219,7 +219,7 @@ public abstract class ResourceEditorTab : EditorTab
         var value = IniHelpers.ReadStringFromIni(line, "ResourceNames");
         if (value is not null)
         {
-            var resourceNames = value.Split('|');
+            var resourceNames = value.Split('|', StringSplitOptions.RemoveEmptyEntries);
             foreach (var resourceName in resourceNames)
                 OpenResource(resourceName);
         }

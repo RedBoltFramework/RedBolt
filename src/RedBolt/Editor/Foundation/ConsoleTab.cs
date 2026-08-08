@@ -12,12 +12,6 @@ using RedBolt.Editor.Project;
 using RedBolt.Logging;
 using ConsoleSubsystem = RedBolt.SystemUI.Console;
 
-// TODO: port Foundation_ConsoleTab when editor plugins are ported.
-// void Foundation_ConsoleTab(Context* context, Project* project)
-// {
-//     project->AddTab(MakeShared<ConsoleTab>(context));
-// }
-
 /// <summary>Tab that displays application log and enables console input.</summary>
 public class ConsoleTab : EditorTab
 {

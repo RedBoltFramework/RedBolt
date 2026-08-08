@@ -203,7 +203,7 @@ public class Project : RedObject
         _hotkeyManager = new HotkeyManager();
         _undoManager = new UndoManager();
         _settingsManager = new SettingsManager();
-        // TODO: port plugins.
+        // TODO: port reloadable user plugins.
         // pluginManager_(MakeShared<PluginManager>(context_))
         _launchManager = new LaunchManager();
         _toolManager = new ToolManager();
@@ -215,7 +215,7 @@ public class Project : RedObject
         Context.RegisterSubsystem<Project>(this);
         ++_numActiveProjects;
 
-        // TODO: port plugins.
+        // TODO: port reloadable user plugins.
         // context_->RemoveSubsystem<PluginManager>();
         // context_->RegisterSubsystem(pluginManager_);
         // pluginManager_->SetQuitApplicationCallback([] {});
@@ -296,7 +296,7 @@ public class Project : RedObject
 
     public override void SerializeInBlock(Archive archive)
     {
-        // TODO: port plugins.
+        // TODO: port reloadable user plugins.
         // SerializeOptionalValue(archive, "PluginManager", *pluginManager_, AlwaysSerialize{});
         if (archive.IsInput && !archive.HasElementOrBlock("LaunchManager"))
             return;
@@ -388,7 +388,7 @@ public class Project : RedObject
         _tabs.Clear();
         _sortedTabs.Clear();
 
-        // TODO: port plugins.
+        // TODO: port reloadable user plugins.
         // context_->RemoveSubsystem<PluginManager>();
         // context_->RegisterSubsystem<PluginManager>();
     }
@@ -986,7 +986,7 @@ public class Project : RedObject
 
     private void InitializeDefaultProject()
     {
-        // TODO: port plugins.
+        // TODO: port reloadable user plugins.
         // pluginManager_->SetPluginsLoaded({SceneViewerApplication::GetStaticPluginName()});
 
         const string configName = "View Current Scene";
@@ -1083,9 +1083,8 @@ public class Project : RedObject
 
     private void ApplyPlugins()
     {
-        // TODO: port plugins.
-        // auto editorPluginManager = GetSubsystem<EditorPluginManager>();
-        // editorPluginManager->Apply(this);
+        var editorPluginManager = GetSubsystem<EditorPluginManager>();
+        editorPluginManager.Apply(this);
 
         foreach (var tab in _tabs)
             tab.ApplyPlugins();
@@ -1247,7 +1246,7 @@ public class Project : RedObject
 
     private void RenderPluginReloadToolbar()
     {
-        // TODO: port plugins.
+        // TODO: port reloadable user plugins.
         // Preserve Project::RenderPluginReloadToolbar after PluginManager is available.
     }
 

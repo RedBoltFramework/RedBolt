@@ -25,13 +25,6 @@ namespace RedBolt.Editor.Foundation;
 using RedBolt.Bindings.DearImGui;
 using RedBolt.Editor.Project;
 
-// TODO: port Foundation_SceneFactory when editor plugins are ported.
-// void Foundation_SceneFactory(Context* context, ResourceBrowserTab* resourceBrowserTab)
-// {
-//     resourceBrowserTab->AddFactory(MakeShared<SceneFactory>(context, true));
-//     resourceBrowserTab->AddFactory(MakeShared<SceneFactory>(context, false));
-// }
-
 /// <summary>Camera controller used by Scene View.</summary>
 public class SceneFactory : BaseResourceFactory
 {
