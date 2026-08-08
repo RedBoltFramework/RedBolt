@@ -418,7 +418,7 @@ public class Input : RedObject
 
     public void PollEvents()
     {
-        if (!Enabled || !IsInitialized || _nativeEvent is null)
+        if (!IsInitialized || _nativeEvent is null)
             return;
 
         while (SdlNativeBindings.SdlPollEvent(_nativeEvent) != 0)
@@ -576,6 +576,13 @@ public class Input : RedObject
                 HandleWindowEvent(_nativeEvent);
             }
         }
+
+        if (!Enabled)
+        {
+            SendEvent<InputEvents.InputEndEvent>();
+            return;
+        }
+
         HandleWrappedMouse();
 
         if (_suppressNextMouseMove && MouseMove != Vector2i.Zero)
