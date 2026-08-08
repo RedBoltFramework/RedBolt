@@ -13,7 +13,9 @@ using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
+#if !REDBOLT_PLATFORM_BROWSER
 using RedBolt.SystemUI;
+#endif
 
 public class DearImGui : RedObject
 {
@@ -31,7 +33,9 @@ public class DearImGui : RedObject
         io.ConfigFlags |= flags;
 
         PlatformInitialize();
+#if !REDBOLT_PLATFORM_BROWSER
         StandardSerializableHooks.Register(Context);
+#endif
 
         // Subscribe to events
         SubscribeToEvent<InputEvents.SDLRawInputEvent>(OnRawEvent);

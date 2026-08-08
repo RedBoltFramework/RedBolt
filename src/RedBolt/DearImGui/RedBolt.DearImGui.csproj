@@ -10,11 +10,16 @@
     <ProjectReference Include="../RedBolt/RedBolt.csproj" />
     <ProjectReference Include="../Bindings/DearImGui/RedBolt.Bindings.DearImGui.csproj" />
     <ProjectReference Include="../Bindings/Sdl/RedBolt.Bindings.Sdl.csproj" />
-    <ProjectReference Include="../Utility/RedBolt.Utility.csproj" />
+    <ProjectReference Include="../Utility/RedBolt.Utility.csproj"
+                      Condition="'$(RedBoltPlatform)' != 'browser-wasm'" />
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
                       GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RedBoltPlatform)' == 'browser-wasm'">
+    <Compile Remove="SystemUI/**/*.cs" />
   </ItemGroup>
 
   <ItemGroup>
