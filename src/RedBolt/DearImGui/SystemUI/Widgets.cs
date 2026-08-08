@@ -72,7 +72,8 @@ public static partial class Widgets
     public static void ToolbarSeparator()
     {
         using var style = ImGui.GetStyle();
-        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + style.FramePadding.X);
+        ImGui.Dummy(new Vector2f(style.FramePadding.X, 0.0f));
+        ImGui.SameLine(0.0f, 0.0f);
     }
 
     /// <summary>Render a label for the next item, on either the left or the right.</summary>
