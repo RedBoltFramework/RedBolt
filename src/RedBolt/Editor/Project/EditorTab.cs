@@ -395,6 +395,8 @@ public class EditorTab : EditorConfigurable
 
     internal ReadOnlySpan<byte> TitleBytes => _titleCString.ContentBytes;
 
+    internal ReadOnlySpan<byte> UniqueIdBytes => _uniqueIdCString.ContentBytes;
+
     private readonly string _title;
     private readonly string _guid;
     private readonly string _uniqueId;

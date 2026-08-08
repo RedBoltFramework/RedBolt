@@ -1041,27 +1041,38 @@ public class Project : RedObject
     {
         _pendingResetLayout = false;
 
-        // TODO: port DockBuilder calls when generated Dear ImGui bindings expose imgui_internal.h.
-        // ui::DockBuilderRemoveNode(dockspaceId_);
-        // ui::DockBuilderAddNode(dockspaceId_, 0);
-        // ui::DockBuilderSetNodeSize(dockspaceId_, ui::GetMainViewport()->Size);
-        //
-        // ImGuiID dockCenter = dockspaceId_;
-        // ImGuiID dockLeft = ui::DockBuilderSplitNode(dockCenter, ImGuiDir_Left, 0.20f, nullptr, &dockCenter);
-        // ImGuiID dockRight = ui::DockBuilderSplitNode(dockCenter, ImGuiDir_Right, 0.30f, nullptr, &dockCenter);
-        // ImGuiID dockBottom = ui::DockBuilderSplitNode(dockCenter, ImGuiDir_Down, 0.30f, nullptr, &dockCenter);
-        //
-        // for (EditorTab* tab : tabs_)
-        // {
-        //     switch (tab->GetPlacement())
-        //     {
-        //     case EditorTabPlacement::DockCenter: ui::DockBuilderDockWindow(tab->GetUniqueId().c_str(), dockCenter); break;
-        //     case EditorTabPlacement::DockLeft: ui::DockBuilderDockWindow(tab->GetUniqueId().c_str(), dockLeft); break;
-        //     case EditorTabPlacement::DockRight: ui::DockBuilderDockWindow(tab->GetUniqueId().c_str(), dockRight); break;
-        //     case EditorTabPlacement::DockBottom: ui::DockBuilderDockWindow(tab->GetUniqueId().c_str(), dockBottom); break;
-        //     }
-        // }
-        // ui::DockBuilderFinish(dockspaceId_);
+        ImGui.DockBuilderRemoveNode(_dockspaceId);
+        ImGui.DockBuilderAddNode(_dockspaceId);
+        using (var viewport = ImGui.GetMainViewport())
+            ImGui.DockBuilderSetNodeSize(_dockspaceId, viewport.Size);
+
+        var dockCenter = _dockspaceId;
+        var dockLeft = ImGui.DockBuilderSplitNode(
+            dockCenter, (ImGuiDir)0, 0.20f, out _, out dockCenter);
+        var dockRight = ImGui.DockBuilderSplitNode(
+            dockCenter, (ImGuiDir)1, 0.30f, out _, out dockCenter);
+        var dockBottom = ImGui.DockBuilderSplitNode(
+            dockCenter, (ImGuiDir)3, 0.30f, out _, out dockCenter);
+
+        foreach (var tab in _tabs)
+        {
+            switch (tab.Placement)
+            {
+                case EditorTabPlacement.DockCenter:
+                    ImGui.DockBuilderDockWindow(tab.UniqueIdBytes, dockCenter);
+                    break;
+                case EditorTabPlacement.DockLeft:
+                    ImGui.DockBuilderDockWindow(tab.UniqueIdBytes, dockLeft);
+                    break;
+                case EditorTabPlacement.DockRight:
+                    ImGui.DockBuilderDockWindow(tab.UniqueIdBytes, dockRight);
+                    break;
+                case EditorTabPlacement.DockBottom:
+                    ImGui.DockBuilderDockWindow(tab.UniqueIdBytes, dockBottom);
+                    break;
+            }
+        }
+        ImGui.DockBuilderFinish(_dockspaceId);
 
         foreach (var tab in _tabs)
         {
