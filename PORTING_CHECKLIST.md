@@ -197,6 +197,8 @@ Present under `src/RedBolt/`: `Container`, `Core`, `Math`, `IO`, `Resource`, `Sc
 
 ## [x] A11. Input — depends on Core, Graphics (window)
 
+- [x] SDL window bootstrap and events — zero-sized windowed requests use the native 1024x768 fallback, implicit placement targets the configured monitor, maximize happens after graphics initialization, and resize events update the drawable-sized swap chain
+
 ## [x] A12. Engine — top-level orchestration, depends on all Part-A above
 
 ---
@@ -1022,7 +1024,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 
 ## Editor application and data
 
-- [x] `EditorApplication` — command-line/setup state, recent-project serialization and previews, project lifecycle, custom fonts/style/settings handlers, dockspace/start page/menu/toolbar rendering, graceful shutdown, console links, and profiler launch are ported and software-renderer runtime-tested; editor plugins, user plugin reload, NFD folder picking, console-command suppression, and resource-prefix discovery remain explicit `TODO: port` call sites
+- [x] `EditorApplication` — command-line/setup state, recent-project serialization and previews, project lifecycle, custom fonts/style/settings handlers, dockspace/start page/menu/toolbar rendering with collision-free launch-tile IDs, graceful shutdown, console links, and profiler launch are ported and software-renderer runtime-tested; editor plugins, user plugin reload, NFD folder picking, console-command suppression, and resource-prefix discovery remain explicit `TODO: port` call sites
 - [x] Editor executable and desktop build integration — the Linux apphost, runtime dependency manifest, native-module probing, command-line entry point, and real llvmpipe launch are wired and tested
 - [x] `EditorData` resources and runtime staging — all 53 authoritative rbfx resources are tracked and symlinked beside desktop build outputs by the native build target
 - [ ] User-code reloading — **DEFERRED** · port later; keep explicit `TODO: port` call-site guidance

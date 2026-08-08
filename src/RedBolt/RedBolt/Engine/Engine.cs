@@ -218,6 +218,10 @@ public class Engine : RedObject
             try
             {
                 graphics.Initialize(Parameters, graphicsSettings.RenderDevice, windowSettings, input);
+                if (Parameters.WindowPositionX.HasValue && Parameters.WindowPositionY.HasValue)
+                    graphics.SetWindowPosition(Parameters.WindowPositionX.Value, Parameters.WindowPositionY.Value);
+                if (Parameters.WindowMaximize)
+                    graphics.Maximize();
                 graphics.InitializePipelineStateCache(FileIdentifier.FromUri(Parameters.PsoCache));
             }
             catch (Exception exception)

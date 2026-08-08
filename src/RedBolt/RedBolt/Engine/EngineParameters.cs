@@ -136,9 +136,9 @@ public sealed class EngineParameters
 
     public bool WindowMaximize { get; set; } = true;
 
-    public int? WindowPositionX { get; set; } = 0;
+    public int? WindowPositionX { get; set; }
 
-    public int? WindowPositionY { get; set; } = 0;
+    public int? WindowPositionY { get; set; }
 
     public bool WindowResizable { get; set; }
 

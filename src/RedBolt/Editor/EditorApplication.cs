@@ -650,6 +650,8 @@ public unsafe class EditorApplication : Application
             {
                 for (var col = 0; col < 3; ++col, ++index)
                 {
+                    using var guard = new IdScopeGuard(index);
+
                     // Last tile never shows a project.
                     if (_recentProjects.Count <= index || row == 2 && col == 2)
                     {

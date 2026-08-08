@@ -271,7 +271,6 @@ public class Input : RedObject
         var explicitRect = _explicitWindowRect;
         var windowWidth = explicitRect?.Width > 0 ? explicitRect.Value.Width : parameters.WindowWidth;
         var windowHeight = explicitRect?.Height > 0 ? explicitRect.Value.Height : parameters.WindowHeight;
-        _backbufferSize = new Vector2i(windowWidth, windowHeight);
         _systemToBackbufferScale = Vector2f.One;
         TouchEmulation = parameters.TouchEmulation;
 
@@ -285,6 +284,31 @@ public class Input : RedObject
 
         try
         {
+            var monitor = parameters.Monitor;
+            var numMonitors = SdlNativeBindings.SdlGetNumVideoDisplays();
+            if (monitor < 0 || monitor >= numMonitors)
+                monitor = 0;
+
+            if (windowWidth == 0 && windowHeight == 0)
+            {
+                if (parameters.FullScreen || parameters.Borderless)
+                {
+                    using var desktopMode = new SdlDisplayMode();
+                    if (SdlNativeBindings.SdlGetDesktopDisplayMode(monitor, desktopMode) == 0)
+                    {
+                        windowWidth = desktopMode.W;
+                        windowHeight = desktopMode.H;
+                    }
+                }
+
+                if (windowWidth == 0 || windowHeight == 0)
+                {
+                    windowWidth = 1024;
+                    windowHeight = 768;
+                }
+            }
+            _backbufferSize = new Vector2i(windowWidth, windowHeight);
+
             var backend = RenderAPIUtils.SelectRenderBackend(parameters.RenderBackend);
             var graphicsBackend = Context.Instance.RuntimeServices.GetGraphicsBackend(backend);
             graphicsBackend.ConfigureWindow();
@@ -304,11 +328,10 @@ public class Input : RedObject
                 windowFlags |= SdlWindowFlags.SdlWindowBorderless;
             if (parameters.WindowResizable)
                 windowFlags |= SdlWindowFlags.SdlWindowResizable;
-            if (parameters.WindowMaximize)
-                windowFlags |= SdlWindowFlags.SdlWindowMaximized;
 
-            var windowX = explicitRect?.Left ?? parameters.WindowPositionX ?? 64;
-            var windowY = explicitRect?.Top ?? parameters.WindowPositionY ?? 64;
+            var undefinedWindowPosition = unchecked((int)(0x1FFF0000u | (uint)monitor));
+            var windowX = explicitRect?.Left ?? parameters.WindowPositionX ?? undefinedWindowPosition;
+            var windowY = explicitRect?.Top ?? parameters.WindowPositionY ?? undefinedWindowPosition;
             SdlWindow? window = null;
             if (graphicsBackend.UsesOpenGLWindow)
             {
@@ -355,9 +378,6 @@ public class Input : RedObject
                 throw new InvalidOperationException($"Could not create window: {Encoding.UTF8.GetString(SdlNativeBindings.SdlGetError()).TrimEnd('\0')}");
             _window = window;
             _ownsWindow = true;
-
-            if (parameters.WindowMaximize)
-                SdlNativeBindings.SdlMaximizeWindow(_window);
 
             _nativeEvent = new SdlEvent();
             ResetJoysticks();
@@ -1489,23 +1509,30 @@ public class Input : RedObject
     private void HandleWindowEvent(SdlEvent @event)
     {
         var windowEvent = (SdlWindowEventID)@event.WindowEvent;
-        if (windowEvent == SdlWindowEventID.SdlWindoweventFocusGained)
+        switch (windowEvent)
         {
+        case SdlWindowEventID.SdlWindoweventFocusGained:
             GainFocus();
-            return;
-        }
-        else if (windowEvent == SdlWindowEventID.SdlWindoweventFocusLost)
-        {
+            break;
+        case SdlWindowEventID.SdlWindoweventFocusLost:
             LoseFocus();
-            return;
-        }
-        else if (windowEvent == SdlWindowEventID.SdlWindoweventMinimized)
+            break;
+        case SdlWindowEventID.SdlWindoweventMinimized:
             _isMinimized = true;
-        else if (windowEvent == SdlWindowEventID.SdlWindoweventRestored)
+            SendInputFocusEvent();
+            break;
+        case SdlWindowEventID.SdlWindoweventMaximized:
+        case SdlWindowEventID.SdlWindoweventRestored:
             _isMinimized = false;
-
-        var eventData = new InputEvents.InputFocusEvent { Focus = HasFocus, Minimized = IsMinimized };
-        SendEvent(ref eventData);
+            SendInputFocusEvent();
+            break;
+        case SdlWindowEventID.SdlWindoweventResized:
+            GetSubsystem<Graphics>()?.OnWindowResized();
+            break;
+        case SdlWindowEventID.SdlWindoweventMoved:
+            GetSubsystem<Graphics>()?.OnWindowMoved();
+            break;
+        }
     }
 
     private void GainFocus()
