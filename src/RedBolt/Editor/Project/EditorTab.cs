@@ -268,23 +268,19 @@ public class EditorTab : EditorConfigurable
     /// <summary>Return size of the window content. Should be called only during content rendering.</summary>
     public Vector2i GetContentSize()
     {
-        // TODO: port exact ImGuiWindow::ContentRegionRect access when generated bindings expose internal window state.
-        // const ImGuiContext& g = *GImGui;
-        // const ImGuiWindow* window = g.CurrentWindow;
-        // const ImRect rect = ImRound(window->ContentRegionRect);
-        // return {RoundToInt(rect.GetWidth()), RoundToInt(rect.GetHeight())};
-        return Vector2f.RoundToInt(ImGui.GetContentRegionAvail());
+        using var window = ImGui.GetCurrentWindow();
+        var rect = window.ContentRegionRect;
+        var min = new Vector2i(MathDefs.RoundToInt(rect.Min.X), MathDefs.RoundToInt(rect.Min.Y));
+        var max = new Vector2i(MathDefs.RoundToInt(rect.Max.X), MathDefs.RoundToInt(rect.Max.Y));
+        return max - min;
     }
 
     /// <summary>Return position of the window content in absolute coordinates. Should be called only during content rendering.</summary>
     public Vector2i GetContentPosition()
     {
-        // TODO: port exact ImGuiWindow::ContentRegionRect access when generated bindings expose internal window state.
-        // const ImGuiContext& g = *GImGui;
-        // const ImGuiWindow* window = g.CurrentWindow;
-        // const ImRect rect = ImRound(window->ContentRegionRect);
-        // return VectorRoundToInt(ToVector2(rect.Min));
-        return Vector2f.RoundToInt(ImGui.GetCursorScreenPos());
+        using var window = ImGui.GetCurrentWindow();
+        var rect = window.ContentRegionRect;
+        return new Vector2i(MathDefs.RoundToInt(rect.Min.X), MathDefs.RoundToInt(rect.Min.Y));
     }
 
     /// <summary>Return whether the document is modified and prompt to save should be shown.</summary>
