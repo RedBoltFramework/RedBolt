@@ -520,6 +520,26 @@ public class Context : ObjectReflectionRegistry
         return HasSubscribedToEvent(receiver);
     }
 
+    /// <summary>
+    /// Return non-specific event receivers for an event type, or null if they do not exist.
+    /// </summary>
+    public IReadOnlyList<RedObject>? GetEventReceivers<T>() where T : struct
+    {
+        if (!_structEventSubscriptions.TryGetValue(typeof(T), out var bucket))
+            return null;
+
+        var receivers = new List<RedObject>(bucket.Subscriptions.Count);
+        foreach (var subscription in bucket.Subscriptions)
+        {
+            if (subscription.IsRemoved || subscription.Sender is not null)
+                continue;
+
+            if (subscription.TryGetReceiver(out var receiver) && receiver is not null)
+                receivers.Add(receiver);
+        }
+        return receivers;
+    }
+
     public RedObject? GetEventSender()
     {
         return _activeEventInvocations.Count > 0 ? _activeEventInvocations[^1].Sender : null;
