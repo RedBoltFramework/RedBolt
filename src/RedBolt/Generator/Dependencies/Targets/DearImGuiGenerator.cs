@@ -154,7 +154,7 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
             {
                 radioValue.Direction = BindingParameterDirection.Ref;
             }
-            if (function.NativeName is "DragFloat" or "DragInt" or "InputFloat" or "SliderFloat" or "SliderInt")
+            if (function.NativeName is "DragFloat" or "DragInt" or "InputFloat" or "InputInt" or "SliderFloat" or "SliderInt")
             {
                 function.Parameters.First(static parameter => parameter.NativeName == "v").Direction =
                     BindingParameterDirection.Ref;

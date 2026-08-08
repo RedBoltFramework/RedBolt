@@ -197,11 +197,11 @@ public class HelloGUI : Application
             if (ImGui.Button("Button"u8))
                 HandleControlClicked("Button");
 
-            if (ImGui.InputInt("LineEdit"u8, out _lineEdit))
+            if (ImGui.InputInt("LineEdit"u8, ref _lineEdit))
                 HandleControlClicked("LineEdit");
 
-            if (ImGui.DragInt("Fish X"u8, out _fishPositionX, 1.0f, 0, Graphics.Width) ||
-                ImGui.DragInt("Fish Y"u8, out _fishPositionY, 1.0f, 0, Graphics.Height))
+            if (ImGui.DragInt("Fish X"u8, ref _fishPositionX, 1.0f, 0, Graphics.Width) ||
+                ImGui.DragInt("Fish Y"u8, ref _fishPositionY, 1.0f, 0, Graphics.Height))
             {
                 HandleDragBegin();
                 HandleDragMove();
