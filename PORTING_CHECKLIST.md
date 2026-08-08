@@ -1022,7 +1022,7 @@ User-code reloading and engine/editor plugins are deferred by request. Keep thei
 
 ## Editor application and data
 
-- [ ] `EditorApplication`
+- [x] `EditorApplication` — command-line/setup state, recent-project serialization and previews, project lifecycle, custom fonts/style/settings handlers, dockspace/start page/menu/toolbar rendering, graceful shutdown, console links, and profiler launch are ported and software-renderer runtime-tested; editor plugins, user plugin reload, NFD folder picking, console-command suppression, and resource-prefix discovery remain explicit `TODO: port` call sites
 - [ ] Editor executable and desktop build integration
 - [ ] `EditorData` resources and runtime staging
 - [ ] User-code reloading — **DEFERRED** · port later; keep explicit `TODO: port` call-site guidance
