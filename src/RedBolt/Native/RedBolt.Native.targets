@@ -24,6 +24,8 @@
           Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/CoreData&quot; &quot;$(RedBoltOutputDir)/CoreData&quot;" />
     <Exec Condition="'$(RedBoltPlatform)' == 'linux-x64' and !Exists('$(RedBoltOutputDir)/Data')"
           Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/Data&quot; &quot;$(RedBoltOutputDir)/Data&quot;" />
+    <Exec Condition="'$(RedBoltPlatform)' == 'linux-x64' and !Exists('$(RedBoltOutputDir)/EditorData')"
+          Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/EditorData&quot; &quot;$(RedBoltOutputDir)/EditorData&quot;" />
   </Target>
 
   <Target Name="RedBoltCleanNative" AfterTargets="Clean">

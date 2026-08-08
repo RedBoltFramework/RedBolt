@@ -2,6 +2,9 @@
   <PropertyGroup>
     <AssemblyName>RedBolt.Editor</AssemblyName>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <OutputType>Exe</OutputType>
+    <RuntimeIdentifier Condition="'$(RedBoltPlatform)' == 'linux-x64'">linux-x64</RuntimeIdentifier>
+    <GenerateRuntimeConfigDevFile Condition="'$(RuntimeIdentifier)' == 'linux-x64'">true</GenerateRuntimeConfigDevFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,4 +25,19 @@
                       PrivateAssets="all"
                       AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
   </ItemGroup>
+
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
+    <AdditionalProbingPath Include="$(RedBoltOutputRoot)" />
+  </ItemGroup>
+
+  <Target Name="RedBoltConfigureEditorRuntimeAssemblies"
+          AfterTargets="GenerateBuildDependencyFile"
+          Condition="'$(RuntimeIdentifier)' == 'linux-x64' and Exists('$(ProjectDepsFilePath)')">
+    <RedBoltUseParentRuntimeAssemblies DependencyFile="$(ProjectDepsFilePath)"
+                                       MainProjectName="$(AssemblyName)"
+                                       NativeRuntimeDirectory="$(RedBoltNativeOutputRoot)"
+                                       NativeModuleManifestDirectory="$(RedBoltNativeModuleManifestDirectory)"
+                                       RelocateAllProjectLibraries="false"
+                                       RuntimeIdentifier="$(RuntimeIdentifier)" />
+  </Target>
 </Project>
