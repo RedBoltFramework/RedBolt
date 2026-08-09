@@ -106,6 +106,7 @@ public sealed class Text3DApplication : Application
         light.SetCastShadows(true);
 
         var font = Resources.Get<Font>("Fonts/Anonymous Pro.ttf");
+        var shapedFont = Resources.Get<Font>("Fonts/NotoSans-CondensedItalic.ttf");
         var sdfFont = Resources.Get<Font>("Fonts/BlueHighway.sdf");
 
         var titleNode = _scene.CreateChild("Title");
@@ -122,8 +123,8 @@ public sealed class Text3DApplication : Application
         bodyNode.SetRotation(new Quaternion(0.0f, 20.0f, 0.0f));
         bodyNode.SetScale(1.7f);
         var body = bodyNode.CreateComponent<Text3DComponent>();
-        body.SetFont(font, 36.0f);
-        body.SetText("HarfBuzz GPU\nNo UI subsystem");
+        body.SetFont(shapedFont, 36.0f);
+        body.SetText("office fi fl · Cafe\u0301\nNo UI subsystem");
         body.SetTextAlignment(HorizontalAlignment.Center);
         body.SetAlignment(HorizontalAlignment.Center, VerticalAlignment.Center);
 

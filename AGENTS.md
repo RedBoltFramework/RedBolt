@@ -385,6 +385,10 @@ with resource prefix paths `.;..`.
 Native dependencies (SDL, Diligent, Dear ImGui) are accessed through generated bindings.
 
 - Use SharpCpp to AUTOMATICALLY generate the bindings.
+- Bind the complete native dependency surface by default. Never use symbol
+  whitelists or allowlists to prune generated bindings.
+- Base binding and type decisions only on SharpCpp AST/model facts. Never infer
+  type semantics from rendered C++ type-name strings.
 - Move behavior into SharpCpp only when it implements dependency-agnostic support
   for a generic C++ or binding shape. Keep project-specific policy in the RedBolt
   dependency generator, including rules keyed to particular types, methods,

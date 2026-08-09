@@ -24,9 +24,26 @@ struct EncodedGlyph
     hb_glyph_extents_t extents{};
 };
 
+struct ShapedGlyph
+{
+    ImFontGlyph glyph;
+    unsigned cluster{};
+    float xOffset{};
+    float yOffset{};
+    float yAdvance{};
+};
+
 struct AtlasData
 {
+    ~AtlasData()
+    {
+        if (buffer)
+            hb_buffer_destroy(buffer);
+    }
+
     HarfBuzzGpuAtlas atlas;
+    hb_buffer_t* buffer{hb_buffer_create()};
+    ImVector<ShapedGlyph> shapedGlyphs;
 };
 
 struct SourceData
@@ -68,7 +85,7 @@ void LogGlyphFailure(ImFontConfig* src, ImWchar codepoint, const char* reason)
 bool LoaderInit(ImFontAtlas* atlas)
 {
     atlas->FontLoaderData = IM_NEW(AtlasData)();
-    return atlas->FontLoaderData != nullptr;
+    return atlas->FontLoaderData != nullptr && static_cast<AtlasData*>(atlas->FontLoaderData)->buffer != nullptr;
 }
 
 void LoaderShutdown(ImFontAtlas* atlas)
@@ -202,30 +219,20 @@ const EncodedGlyph* EncodeGlyph(ImFontAtlas* atlas, ImFontConfig* src, hb_codepo
     return &source->glyphs.emplace(glyph, encoded).first->second;
 }
 
-bool FontBakedLoadGlyph(ImFontAtlas* atlas, ImFontConfig* src, ImFontBaked* baked, void* storage,
-    ImWchar codepoint, ImFontGlyph* outGlyph, float* outAdvanceX)
+bool BuildGlyph(ImFontAtlas* atlas, ImFontConfig* src, ImFontBaked* baked, BakedData* bakedData,
+    hb_codepoint_t glyph, ImWchar codepoint, float advance, bool encode, ImFontGlyph* outGlyph)
 {
-    auto* source = static_cast<SourceData*>(src->FontLoaderData);
-    auto* bakedData = static_cast<BakedData*>(storage);
-    hb_codepoint_t glyph = 0;
-    if (!hb_font_get_nominal_glyph(source->font, codepoint, &glyph))
-        return false;
-
-    const float advance = hb_font_get_glyph_h_advance(bakedData->font, glyph) / 64.0f;
-    if (outAdvanceX)
-    {
-        *outAdvanceX = advance;
+    *outGlyph = ImFontGlyph();
+    outGlyph->Codepoint = codepoint;
+    outGlyph->AdvanceX = advance;
+    outGlyph->PackId = ImFontAtlasRectId_Invalid;
+    if (!encode)
         return true;
-    }
 
     const EncodedGlyph* encoded = EncodeGlyph(atlas, src, glyph);
     if (!encoded)
         return false;
 
-    *outGlyph = ImFontGlyph();
-    outGlyph->Codepoint = codepoint;
-    outGlyph->AdvanceX = advance;
-    outGlyph->PackId = ImFontAtlasRectId_Invalid;
     const float width = encoded->extents.width * bakedData->layoutScale;
     const float height = -encoded->extents.height * bakedData->layoutScale;
     if (encoded->atlasOffset == 0 || width <= 0.0f || height <= 0.0f)
@@ -257,6 +264,371 @@ bool FontBakedLoadGlyph(ImFontAtlas* atlas, ImFontConfig* src, ImFontBaked* bake
     return true;
 }
 
+bool FontBakedLoadGlyph(ImFontAtlas* atlas, ImFontConfig* src, ImFontBaked* baked, void* storage,
+    ImWchar codepoint, ImFontGlyph* outGlyph, float* outAdvanceX)
+{
+    auto* source = static_cast<SourceData*>(src->FontLoaderData);
+    auto* bakedData = static_cast<BakedData*>(storage);
+    hb_codepoint_t glyph = 0;
+    if (!hb_font_get_nominal_glyph(source->font, codepoint, &glyph))
+        return false;
+
+    const float advance = hb_font_get_glyph_h_advance(bakedData->font, glyph) / 64.0f;
+    if (outAdvanceX)
+    {
+        *outAdvanceX = advance;
+        return true;
+    }
+
+    const bool encode = !atlas->Builder || !atlas->Builder->PreloadedAllGlyphsRanges;
+    return BuildGlyph(atlas, src, baked, bakedData, glyph, codepoint, advance, encode, outGlyph);
+}
+
+bool IsGlyphInSourceRanges(const ImFontConfig* src, ImWchar codepoint)
+{
+    if (const ImWchar* ranges = src->GlyphRanges)
+    {
+        bool included = false;
+        for (; ranges[0] != 0; ranges += 2)
+            if (codepoint >= ranges[0] && codepoint <= ranges[1])
+            {
+                included = true;
+                break;
+            }
+        if (!included)
+            return false;
+    }
+
+    if (const ImWchar* ranges = src->GlyphExcludeRanges)
+        for (; ranges[0] != 0; ranges += 2)
+            if (codepoint >= ranges[0] && codepoint <= ranges[1])
+                return false;
+    return true;
+}
+
+int FindSourceIndex(ImFont* font, ImWchar codepoint)
+{
+    for (int i = 0; i < font->Sources.Size; ++i)
+    {
+        auto* src = font->Sources[i];
+        auto* data = static_cast<SourceData*>(src->FontLoaderData);
+        hb_codepoint_t glyph = 0;
+        if (IsGlyphInSourceRanges(src, codepoint) && data
+            && hb_font_get_nominal_glyph(data->font, codepoint, &glyph))
+            return i;
+    }
+    return 0;
+}
+
+BakedData* GetBakedData(ImFontBaked* baked, int sourceIndex)
+{
+    char* storage = static_cast<char*>(baked->FontLoaderDatas);
+    for (int i = 0; i < sourceIndex; ++i)
+    {
+        const ImFontConfig* src = baked->OwnerFont->Sources[i];
+        const ImFontLoader* loader = src->FontLoader ? src->FontLoader : baked->OwnerFont->OwnerAtlas->FontLoader;
+        storage += loader->FontBakedSrcLoaderDataSize;
+    }
+    return reinterpret_cast<BakedData*>(storage);
+}
+
+const char* DecodeCodepoint(const char* text, const char* textEnd, ImWchar& codepoint)
+{
+    unsigned value = static_cast<unsigned char>(*text);
+    int length = value < 0x80 ? 1 : ImTextCharFromUtf8(&value, text, textEnd);
+    if (length <= 0)
+        length = 1;
+    codepoint = static_cast<ImWchar>(value);
+    return text + length;
+}
+
+void ApplySourceConfig(ImFontConfig* src, ImFontBaked* baked, ImFontGlyph& glyph)
+{
+    const float refSize = baked->OwnerFont->Sources[0]->SizePixels;
+    const float scale = refSize != 0.0f ? baked->Size / refSize : 1.0f;
+    const float advance = ImClamp(glyph.AdvanceX, src->GlyphMinAdvanceX * scale, src->GlyphMaxAdvanceX * scale);
+    if (advance != glyph.AdvanceX)
+    {
+        const float offset = src->PixelSnapH
+            ? ImTrunc((advance - glyph.AdvanceX) * 0.5f)
+            : (advance - glyph.AdvanceX) * 0.5f;
+        glyph.X0 += offset;
+        glyph.X1 += offset;
+    }
+    glyph.AdvanceX = (src->PixelSnapH ? IM_ROUND(advance) : advance) + src->GlyphExtraAdvanceX;
+}
+
+const ImVector<ShapedGlyph>& ShapeText(ImFont* font, ImFontBaked* baked, const char* text, const char* textEnd)
+{
+    auto* atlasData = static_cast<AtlasData*>(font->OwnerAtlas->FontLoaderData);
+    atlasData->shapedGlyphs.resize(0);
+    const char* runBegin = text;
+    while (runBegin < textEnd)
+    {
+        ImWchar firstCodepoint = 0;
+        const char* firstEnd = DecodeCodepoint(runBegin, textEnd, firstCodepoint);
+        if (firstCodepoint == '\r')
+        {
+            runBegin = firstEnd;
+            continue;
+        }
+
+        const int sourceIndex = FindSourceIndex(font, firstCodepoint);
+        const char* runEnd = firstEnd;
+        while (runEnd < textEnd)
+        {
+            ImWchar codepoint = 0;
+            const char* next = DecodeCodepoint(runEnd, textEnd, codepoint);
+            if (codepoint == '\r' || FindSourceIndex(font, codepoint) != sourceIndex)
+                break;
+            runEnd = next;
+        }
+
+        ImFontConfig* src = font->Sources[sourceIndex];
+        BakedData* bakedData = GetBakedData(baked, sourceIndex);
+        hb_buffer_clear_contents(atlasData->buffer);
+        const int runLength = static_cast<int>(runEnd - runBegin);
+        hb_buffer_add_utf8(atlasData->buffer, runBegin, runLength, 0, runLength);
+        hb_buffer_guess_segment_properties(atlasData->buffer);
+        hb_shape(bakedData->font, atlasData->buffer, nullptr, 0);
+
+        unsigned infoCount = 0;
+        unsigned positionCount = 0;
+        const hb_glyph_info_t* infos = hb_buffer_get_glyph_infos(atlasData->buffer, &infoCount);
+        const hb_glyph_position_t* positions = hb_buffer_get_glyph_positions(atlasData->buffer, &positionCount);
+        const unsigned count = ImMin(infoCount, positionCount);
+        for (unsigned i = 0; i < count; ++i)
+        {
+            ShapedGlyph shaped;
+            const float advance = positions[i].x_advance / 64.0f;
+            BuildGlyph(font->OwnerAtlas, src, baked, bakedData, infos[i].codepoint, 0, advance, true, &shaped.glyph);
+            ApplySourceConfig(src, baked, shaped.glyph);
+            shaped.glyph.SourceIdx = static_cast<unsigned>(sourceIndex);
+            shaped.cluster = static_cast<unsigned>(runBegin - text) + infos[i].cluster;
+            shaped.xOffset = positions[i].x_offset / 64.0f;
+            shaped.yOffset = -positions[i].y_offset / 64.0f;
+            shaped.yAdvance = -positions[i].y_advance / 64.0f;
+            atlasData->shapedGlyphs.push_back(shaped);
+        }
+        runBegin = runEnd;
+    }
+    return atlasData->shapedGlyphs;
+}
+
+float GetClusterAdvance(const ImVector<ShapedGlyph>& glyphs, unsigned cluster)
+{
+    float result = 0.0f;
+    for (const ShapedGlyph& glyph : glyphs)
+        if (glyph.cluster == cluster)
+            result += glyph.glyph.AdvanceX;
+    return result;
+}
+
+const char* FindLineEnd(const char* text, const char* textEnd)
+{
+    const void* newline = ImMemchr(text, '\n', static_cast<size_t>(textEnd - text));
+    return newline ? static_cast<const char*>(newline) : textEnd;
+}
+
+const char* FontCalcWordWrapPosition(ImFont* font, float size, const char* text, const char* textEnd,
+    float wrapWidth, ImDrawTextFlags flags)
+{
+    const char* lineEnd = FindLineEnd(text, textEnd);
+    ImFontBaked* baked = font->GetFontBaked(size);
+    const ImVector<ShapedGlyph>& glyphs = ShapeText(font, baked, text, lineEnd);
+    const float scale = size / baked->Size;
+    const float limit = wrapWidth / scale;
+    const bool keepBlanks = (flags & ImDrawTextFlags_WrapKeepBlanks) != 0;
+    const char* lastWrap = nullptr;
+    float width = 0.0f;
+    for (const char* cursor = text; cursor < lineEnd;)
+    {
+        ImWchar codepoint = 0;
+        const char* next = DecodeCodepoint(cursor, lineEnd, codepoint);
+        const float advance = GetClusterAdvance(glyphs, static_cast<unsigned>(cursor - text));
+        if (width + advance > limit)
+        {
+            if (lastWrap && lastWrap > text)
+                return lastWrap;
+            return cursor == text ? next : cursor;
+        }
+        width += advance;
+
+        const bool blank = codepoint == ' ' || codepoint == '\t';
+        const bool punctuation = codepoint == '.' || codepoint == ',' || codepoint == ';'
+            || codepoint == '!' || codepoint == '?' || codepoint == '"';
+        if (blank)
+            lastWrap = keepBlanks ? next : cursor;
+        else if (punctuation)
+            lastWrap = next;
+        cursor = next;
+    }
+    return lineEnd;
+}
+
+ImVec2 FontCalcTextSize(ImFont* font, float size, float maxWidth, float wrapWidth,
+    const char* textBegin, const char* textEndDisplay, const char* textEnd, const char** outRemaining,
+    ImVec2* outOffset, ImDrawTextFlags flags)
+{
+    if (!textEndDisplay)
+        textEndDisplay = textEnd;
+    ImFontBaked* baked = font->GetFontBaked(size);
+    const float scale = size / baked->Size;
+    const float lineHeight = size;
+    ImVec2 textSize(0.0f, 0.0f);
+    float lineWidth = 0.0f;
+    const bool wordWrap = wrapWidth > 0.0f;
+    const char* cursor = textBegin;
+    while (cursor < textEndDisplay)
+    {
+        const char* lineEnd = FindLineEnd(cursor, textEndDisplay);
+        const char* spanEnd = wordWrap
+            ? FontCalcWordWrapPosition(font, size, cursor, lineEnd, wrapWidth - lineWidth, flags)
+            : lineEnd;
+        const ImVector<ShapedGlyph>& glyphs = ShapeText(font, baked, cursor, spanEnd);
+        float spanWidth = 0.0f;
+        for (const ShapedGlyph& glyph : glyphs)
+            spanWidth += glyph.glyph.AdvanceX * scale;
+
+        if (lineWidth + spanWidth >= maxWidth)
+        {
+            float acceptedWidth = 0.0f;
+            for (const char* character = cursor; character < spanEnd;)
+            {
+                ImWchar codepoint = 0;
+                const char* next = DecodeCodepoint(character, spanEnd, codepoint);
+                const float advance = GetClusterAdvance(glyphs, static_cast<unsigned>(character - cursor)) * scale;
+                if (lineWidth + acceptedWidth + advance >= maxWidth)
+                {
+                    lineWidth += acceptedWidth;
+                    cursor = character;
+                    goto done;
+                }
+                acceptedWidth += advance;
+                character = next;
+            }
+        }
+        lineWidth += spanWidth;
+        cursor = spanEnd;
+
+        if (wordWrap && cursor < lineEnd)
+        {
+            textSize.x = ImMax(textSize.x, lineWidth);
+            textSize.y += lineHeight;
+            lineWidth = 0.0f;
+            cursor = ImTextCalcWordWrapNextLineStart(cursor, lineEnd, flags);
+            if (flags & ImDrawTextFlags_StopOnNewLine)
+                break;
+            continue;
+        }
+        if (lineEnd < textEndDisplay)
+        {
+            textSize.x = ImMax(textSize.x, lineWidth);
+            textSize.y += lineHeight;
+            lineWidth = 0.0f;
+            cursor = lineEnd + 1;
+            if (flags & ImDrawTextFlags_StopOnNewLine)
+                break;
+            continue;
+        }
+        cursor = lineEnd;
+    }
+
+done:
+    textSize.x = ImMax(textSize.x, lineWidth);
+    if (outOffset)
+        *outOffset = ImVec2(lineWidth, textSize.y + lineHeight);
+    if (lineWidth > 0.0f || textSize.y == 0.0f)
+        textSize.y += lineHeight;
+    if (outRemaining)
+        *outRemaining = cursor;
+    return textSize;
+}
+
+void RenderShapedSpan(ImFont* font, ImFontBaked* baked, ImDrawList* drawList, float size,
+    float& x, float& y, ImU32 color, const ImVec4& clipRect, const char* text, const char* textEnd,
+    ImDrawTextFlags flags)
+{
+    const ImVector<ShapedGlyph>& glyphs = ShapeText(font, baked, text, textEnd);
+    const float scale = size / baked->Size;
+    const bool fineClip = (flags & ImDrawTextFlags_CpuFineClip) != 0;
+    const ImU32 untintedColor = color | ~IM_COL32_A_MASK;
+    for (const ShapedGlyph& shaped : glyphs)
+    {
+        const ImFontGlyph& glyph = shaped.glyph;
+        if (glyph.Visible)
+        {
+            float x1 = x + (glyph.X0 + shaped.xOffset) * scale;
+            float x2 = x + (glyph.X1 + shaped.xOffset) * scale;
+            float y1 = y + (glyph.Y0 + shaped.yOffset) * scale;
+            float y2 = y + (glyph.Y1 + shaped.yOffset) * scale;
+            float u1 = glyph.U0;
+            float v1 = glyph.V0;
+            float u2 = glyph.U1;
+            float v2 = glyph.V1;
+            if (x1 <= clipRect.z && x2 >= clipRect.x && y1 <= clipRect.w && y2 >= clipRect.y)
+            {
+                if (fineClip)
+                {
+                    if (x1 < clipRect.x) { u1 += (1.0f - (x2 - clipRect.x) / (x2 - x1)) * (u2 - u1); x1 = clipRect.x; }
+                    if (y1 < clipRect.y) { v1 += (1.0f - (y2 - clipRect.y) / (y2 - y1)) * (v2 - v1); y1 = clipRect.y; }
+                    if (x2 > clipRect.z) { u2 = u1 + ((clipRect.z - x1) / (x2 - x1)) * (u2 - u1); x2 = clipRect.z; }
+                    if (y2 > clipRect.w) { v2 = v1 + ((clipRect.w - y1) / (y2 - y1)) * (v2 - v1); y2 = clipRect.w; }
+                }
+                if (x1 < x2 && y1 < y2)
+                {
+                    drawList->PrimReserve(6, 4);
+                    drawList->PrimRectUV(ImVec2(x1, y1), ImVec2(x2, y2), ImVec2(u1, v1), ImVec2(u2, v2),
+                        glyph.Colored ? untintedColor : color);
+                }
+            }
+        }
+        x += glyph.AdvanceX * scale;
+        y += shaped.yAdvance * scale;
+    }
+}
+
+void FontRenderText(ImFont* font, ImDrawList* drawList, float size, const ImVec2& position, ImU32 color,
+    const ImVec4& clipRect, const char* text, const char* textEnd, float wrapWidth, ImDrawTextFlags flags)
+{
+    float x = position.x;
+    float y = position.y;
+    if ((drawList->Flags & ImDrawListFlags_TextNoPixelSnap) == 0)
+    {
+        x = IM_TRUNC(x);
+        y = IM_TRUNC(y);
+    }
+    const float originX = x;
+    const float lineHeight = size;
+    const bool wordWrap = wrapWidth > 0.0f;
+    ImFontBaked* baked = font->GetFontBaked(size);
+    const char* cursor = text;
+    while (cursor < textEnd && y <= clipRect.w)
+    {
+        const char* lineEnd = FindLineEnd(cursor, textEnd);
+        const char* spanEnd = wordWrap
+            ? FontCalcWordWrapPosition(font, size, cursor, lineEnd, wrapWidth - (x - originX), flags)
+            : lineEnd;
+        RenderShapedSpan(font, baked, drawList, size, x, y, color, clipRect, cursor, spanEnd, flags);
+        cursor = spanEnd;
+        if (wordWrap && cursor < lineEnd)
+        {
+            x = originX;
+            y += lineHeight;
+            cursor = ImTextCalcWordWrapNextLineStart(cursor, lineEnd, flags);
+            continue;
+        }
+        if (lineEnd < textEnd)
+        {
+            x = originX;
+            y += lineHeight;
+            cursor = lineEnd + 1;
+            continue;
+        }
+        cursor = lineEnd;
+    }
+}
+
 } // namespace
 
 const ImFontLoader* GetImGuiHarfBuzzGpuFontLoader()
@@ -268,6 +640,9 @@ const ImFontLoader* GetImGuiHarfBuzzGpuFontLoader()
     loader.FontSrcInit = FontSrcInit;
     loader.FontSrcDestroy = FontSrcDestroy;
     loader.FontSrcContainsGlyph = FontSrcContainsGlyph;
+    loader.FontCalcWordWrapPosition = FontCalcWordWrapPosition;
+    loader.FontCalcTextSize = FontCalcTextSize;
+    loader.FontRenderText = FontRenderText;
     loader.FontBakedInit = FontBakedInit;
     loader.FontBakedDestroy = FontBakedDestroy;
     loader.FontBakedLoadGlyph = FontBakedLoadGlyph;

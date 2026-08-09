@@ -54,7 +54,7 @@
 - [x] `119_WebRTCSTUN` — direct STUN/ICE client and muxed-port server paths, retry handling, relay-room WebSocket signaling via generated libdatachannel bindings, native WebSocket ownership handoff, ICE state/candidate logging, multi-client chat, and Dear ImGui controls are ported and runtime-verified
 - [x] `121_CameraOperator` — scene archive loading, both camera tracks, track removal, orthographic projection, and Dear ImGui controls are ported and runtime-verified
 - [x] `122_TextureFormats` — extensible native class/method order, explicit construction and base startup, software/hardware texture setup, comparison scene, camera, viewport, reverse deterministic teardown, Dear ImGui labels, overview/normal screenshots, Escape exit, and apitrace replay are runtime-verified; unsupported-format RGBA8 conversion warnings match rbfx `Texture::SetData`, while built-in UI `Text3D` is excluded
-- [x] standalone `Text3D` — HarfBuzz font loading, A8 glyph rasterization, append-only atlas upload, rbfx pre-baked SDF metrics, multi-page atlases and shader path, 3D geometry, alignment, wrapping, colors, serialized baked-scene attributes, dedicated free-look 3D sample, and the five labels in `106_BakedLighting` are ported without a UI subsystem dependency
+- [x] standalone `Text3D` — HarfBuzz contextual shaping, GPU-outline encoding and append-only atlas upload, rbfx pre-baked SDF metrics, multi-page atlases and shader path, 3D geometry, alignment, wrapping, colors, serialized baked-scene attributes, dedicated free-look 3D sample, and the five labels in `106_BakedLighting` are ported without a UI subsystem dependency
 - [x] Profile startup and remove the rbfx deviations responsible for the long `20_HugeObjectCount` load time: shared type-level attribute registration, registry-based component construction, and linear reverse scene/octree teardown now match rbfx
 - [x] Restore the rbfx `Audio` constructor registration path for `Sound`, `SoundSource`, `SoundSource3D`, and `SoundListener`, including type-level base-attribute copying; runtime-verify every `14_SoundEffects` control path
 - [x] Capture and resolve OpenGL warnings produced by `08_Decals`, `20_HugeObjectCount`, and the remaining sample audit
@@ -720,6 +720,7 @@ Accepted deviations:
   - [x] system-UI event definitions
 - [~] `ImGui.h`
   - [~] ImGui integration helpers
+  - [x] intentional RedBolt HarfBuzz GPU loader shapes text runs, preserves wrapping and measurement semantics, selects merged-font sources by configured ranges, and lazily encodes visible outlines without exhausting the GPU atlas
   - [x] generated `imgui_internal.h` widget primitives with allocation-free `ImRect` value projection
   - [x] mutable scalar and fixed-array widget bindings preserve input values without native-array allocations
   - [x] `IdScopeGuard` — stack-only native RAII maps to an allocation-free C# value guard
@@ -751,7 +752,7 @@ Accepted deviations:
 - [~] `ImGuiDiligentRendererEx.h`
   - [~] `ImGuiDiligentRendererEx` — native constructor/destructor, base renderer ownership, main-viewport frame/render path, render pipelines, class shape, sizes, and failure unwinding reconciled; secondary OS-window callbacks and implicit-copy cloning remain exact `TODO: port` items because SharpCpp excludes `ImGuiPlatformIO` function-pointer fields and does not expose native `ImGuiDiligentRenderer` base copy construction
 - [~] `SystemUI.h`
-  - [~] `SystemUI : Object` — class shape, lifecycle, event flow, relative mouse mode, all three font-loading overloads, style, rendering, and texture-reference lifetime reconciled as `DearImGui`; generated glyph-range spans preserve nullable native range pointers and managed font buffers remain pinned for their native atlas lifetime; per-screen font atlases/TexID assignment, monitor refresh, ImGuizmo frame start, and managed `io.UserData` remain explicit `TODO: port` items until generated bindings expose the required native APIs
+  - [~] `SystemUI : Object` — class shape, lifecycle, event flow, relative mouse mode, all three font-loading overloads, style, rendering, and texture-reference lifetime reconciled as `DearImGui`; nullable native glyph ranges, managed font buffers, and copied glyph-range arrays remain pinned for their native atlas lifetime, while contextual shaping and merged icon fonts are behavior- and visual-regression-tested; per-screen font atlases/TexID assignment, monitor refresh, ImGuizmo frame start, and managed `io.UserData` remain explicit `TODO: port` items until generated bindings expose the required native APIs
 - [x] `Console.h`
   - [x] `Console : Object` — log ring history, filters, byte-accurate selection and copy, URI events, interpreter discovery and command dispatch, visibility/update flow, and deterministic UTF-8 storage are ported and software-renderer tested; Dear ImGui 1.92 cursor-boundary validation uses the prescribed zero-size item
 - [x] `DebugHud.h`

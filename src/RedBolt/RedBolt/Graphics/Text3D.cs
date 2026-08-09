@@ -67,7 +67,7 @@ public sealed partial class Text3D : CustomGeometry
         public float Width;
     }
 
-    private readonly record struct PositionedGlyph(TextFontGlyph Glyph, float X);
+    private readonly record struct PositionedGlyph(TextFontGlyph Glyph, float X, float Y);
 
     private readonly Technique _textTechnique;
     private readonly Technique _gpuTextTechnique;
@@ -479,7 +479,8 @@ public sealed partial class Text3D : CustomGeometry
 
                     var left = originX + rowOffset + positionedGlyph.X
                         + (face.IsSdf ? glyph.BearingX : glyph.RenderBearingX);
-                    var top = baseline - (face.IsSdf ? glyph.BearingY : glyph.RenderBearingY);
+                    var top = baseline + positionedGlyph.Y
+                        - (face.IsSdf ? glyph.BearingY : glyph.RenderBearingY);
                     AddGlyph(
                         glyph,
                         left,
@@ -501,6 +502,58 @@ public sealed partial class Text3D : CustomGeometry
     }
 
     private List<TextLine> Layout(TextFontFace face)
+    {
+        return face is HarfBuzzFontFace harfBuzzFace
+            ? LayoutShaped(harfBuzzFace)
+            : LayoutUnshaped(face);
+    }
+
+    private List<TextLine> LayoutShaped(HarfBuzzFontFace face)
+    {
+        var lines = new List<TextLine> { new() };
+        var text = new StringBuilder();
+        foreach (var rune in _text.EnumerateRunes())
+        {
+            if (rune.Value == '\r')
+                continue;
+            if (rune.Value == '\n')
+            {
+                AppendShapedLine(face, text.ToString(), lines);
+                text.Clear();
+                lines.Add(new TextLine());
+                continue;
+            }
+
+            ++_numChars;
+            text.Append(rune);
+        }
+        AppendShapedLine(face, text.ToString(), lines);
+        return lines;
+    }
+
+    private void AppendShapedLine(HarfBuzzFontFace face, string text, List<TextLine> lines)
+    {
+        foreach (var shapedGlyph in face.Shape(text))
+        {
+            var line = lines[^1];
+            if (_wordWrap && _width > 0 && line.Glyphs.Count != 0
+                && line.Width + shapedGlyph.XAdvance > _width)
+            {
+                line = new TextLine();
+                lines.Add(line);
+            }
+
+            var glyph = face.GetGlyph(shapedGlyph.GlyphId);
+            if (glyph is not null)
+            {
+                line.Glyphs.Add(new PositionedGlyph(
+                    glyph, line.Width + shapedGlyph.XOffset, shapedGlyph.YOffset));
+            }
+            line.Width += shapedGlyph.XAdvance;
+        }
+    }
+
+    private List<TextLine> LayoutUnshaped(TextFontFace face)
     {
         var lines = new List<TextLine> { new() };
         uint previousGlyph = 0;
@@ -531,7 +584,7 @@ public sealed partial class Text3D : CustomGeometry
             }
 
             var x = line.Width + kerning;
-            line.Glyphs.Add(new PositionedGlyph(glyph, x));
+            line.Glyphs.Add(new PositionedGlyph(glyph, x, 0.0f));
             line.Width = x + glyph.Advance;
             previousGlyph = glyph.Codepoint;
         }

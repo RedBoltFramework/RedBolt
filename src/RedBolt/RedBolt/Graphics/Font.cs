@@ -284,6 +284,9 @@ internal sealed class TextFontGlyph
     public float RenderHeight;
 }
 
+internal readonly record struct TextShapedGlyph(
+    uint GlyphId, float XAdvance, float XOffset, float YOffset);
+
 internal abstract class TextFontFace : IDisposable
 {
     public abstract bool IsSdf { get; }
@@ -326,6 +329,11 @@ internal sealed class HarfBuzzFontFace : TextFontFace
         if (HarfBuzzNativeBindings.HbFontGetGlyph(_font, (uint)rune.Value, 0, out var codepoint) == 0)
             return null;
 
+        return GetGlyph(codepoint);
+    }
+
+    public TextFontGlyph? GetGlyph(uint codepoint)
+    {
         if (_glyphs.TryGetValue(codepoint, out var glyph))
             return glyph;
 
@@ -334,6 +342,50 @@ internal sealed class HarfBuzzFontFace : TextFontFace
             return null;
         _glyphs.Add(codepoint, glyph);
         return glyph;
+    }
+
+    public List<TextShapedGlyph> Shape(string text)
+    {
+        var utf8 = Encoding.UTF8.GetBytes(text);
+        var buffer = HarfBuzzNativeBindings.HbBufferCreate();
+        HbGlyphInfoT? infos = null;
+        HbGlyphPositionT? positions = null;
+        try
+        {
+            HarfBuzzNativeBindings.HbBufferAddUtf8(
+                buffer, MemoryMarshal.Cast<byte, sbyte>(utf8), utf8.Length, 0, utf8.Length);
+            HarfBuzzNativeBindings.HbBufferGuessSegmentProperties(buffer);
+            HarfBuzzNativeBindings.HbShape(_font, buffer, null!, 0);
+
+            infos = HarfBuzzNativeBindings.HbBufferGetGlyphInfos(buffer, out var infoCount);
+            positions = HarfBuzzNativeBindings.HbBufferGetGlyphPositions(buffer, out var positionCount);
+            var count = checked((int)SystemMath.Min(infoCount, positionCount));
+            var result = new List<TextShapedGlyph>(count);
+            for (var i = 0; i < count; ++i)
+            {
+                var info = i == 0 ? infos : infos.GetArrayElement((nuint)i);
+                var position = i == 0 ? positions : positions.GetArrayElement((nuint)i);
+                result.Add(new TextShapedGlyph(
+                    (uint)info.Codepoint,
+                    (int)position.XAdvance / (float)HarfBuzzScale,
+                    (int)position.XOffset / (float)HarfBuzzScale,
+                    -(int)position.YOffset / (float)HarfBuzzScale));
+                if (i != 0)
+                {
+                    position.Dispose();
+                    info.Dispose();
+                }
+            }
+            return result;
+        }
+        finally
+        {
+            positions?.Dispose();
+            infos?.Dispose();
+            if (!buffer.IsNull)
+                HarfBuzzNativeBindings.HbBufferDestroy(buffer);
+            buffer.Dispose();
+        }
     }
 
     public override float GetKerning(uint left, uint right)

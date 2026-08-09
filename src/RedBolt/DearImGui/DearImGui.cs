@@ -61,9 +61,9 @@ public class DearImGui : RedObject
         PlatformShutdown();
         ImGui.DestroyContext(_imContext);
         _imContext = 0;
-        for (var i = _fontDataHandles.Count - 1; i >= 0; --i)
-            _fontDataHandles[i].Free();
-        _fontDataHandles.Clear();
+        for (var i = _fontMemoryHandles.Count - 1; i >= 0; --i)
+            _fontMemoryHandles[i].Free();
+        _fontMemoryHandles.Clear();
         base.Dispose();
     }
 
@@ -132,12 +132,13 @@ public class DearImGui : RedObject
 
         var fontData = data.ToArray();
         var fontDataHandle = GCHandle.Alloc(fontData, GCHandleType.Pinned);
-        _fontDataHandles.Add(fontDataHandle);
+        _fontMemoryHandles.Add(fontDataHandle);
+        var fontRanges = PinFontRanges(ranges);
 
         using var io = ImGui.GetIO();
         using var fonts = io.Fonts;
         var newFont = fonts.AddFontFromMemoryTTF(
-            fontDataHandle.AddrOfPinnedObject(), fontData.Length, size, config, ranges);
+            fontDataHandle.AddrOfPinnedObject(), fontData.Length, size, config, fontRanges);
         if (!newFont.IsNull)
         {
             ReallocateFontTexture();
@@ -163,12 +164,13 @@ public class DearImGui : RedObject
 
         var fontData = data.ToArray();
         var fontDataHandle = GCHandle.Alloc(fontData, GCHandleType.Pinned);
-        _fontDataHandles.Add(fontDataHandle);
+        _fontMemoryHandles.Add(fontDataHandle);
+        var fontRanges = PinFontRanges(ranges);
 
         using var io = ImGui.GetIO();
         using var fonts = io.Fonts;
         var newFont = fonts.AddFontFromMemoryCompressedTTF(
-            fontDataHandle.AddrOfPinnedObject(), fontData.Length, size, config, ranges);
+            fontDataHandle.AddrOfPinnedObject(), fontData.Length, size, config, fontRanges);
         if (!newFont.IsNull)
         {
             ReallocateFontTexture();
@@ -446,9 +448,19 @@ public class DearImGui : RedObject
             ImGui.SetCurrentContext(_imContext);
     }
 
+    private ReadOnlySpan<ushort> PinFontRanges(ReadOnlySpan<ushort> ranges)
+    {
+        if (ranges.IsEmpty)
+            return default;
+
+        var copy = ranges.ToArray();
+        _fontMemoryHandles.Add(GCHandle.Alloc(copy, GCHandleType.Pinned));
+        return copy;
+    }
+
     private readonly List<Texture2D> _fontTextures = [];
     private readonly List<float> _fontSizes = [];
-    private readonly List<GCHandle> _fontDataHandles = [];
+    private readonly List<GCHandle> _fontMemoryHandles = [];
     private nint _imContext;
     private readonly List<ITextureView> _referencedTextures = [];
     private bool _enableRelativeMouseMove;
