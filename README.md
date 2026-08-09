@@ -7,15 +7,18 @@ Contributor and coding-session rules now live in `AGENTS.md`.
 ## Build
 
 ```bash
-git submodule update --init --recursive
+cmake --preset linux-x64
 dotnet build RedBolt.slnx --configuration Debug
 ```
+
+The CMake configure step downloads the pinned dependencies with CPM.cmake.
 
 All generated files and binaries are written below `build/`. CMake remains available for native-only diagnosis, but the solution is the supported full-build entry point and builds Linux and WebAssembly components in dependency order.
 
 Cross-compile the Windows x64 build from Linux with MinGW-w64 on `PATH`:
 
 ```bash
+cmake --preset win-x64
 dotnet build src/RedBolt/Editor/RedBolt.Editor.csproj \
   --configuration Debug -p:RedBoltBuildWindows=true
 ```

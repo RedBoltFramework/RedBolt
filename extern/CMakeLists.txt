@@ -1,3 +1,5 @@
+include(Dependencies.cmake)
+
 redbolt_require_path("${REDBOLT_EXTERN_ROOT}" "REDBOLT_EXTERN_ROOT")
 
 if(NOT COMMAND install_third_party_libs)

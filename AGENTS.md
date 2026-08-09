@@ -270,7 +270,7 @@ Both required SharpCpp E2E test projects must pass before the task is complete.
 SharpCpp test projects must not be added to `RedBolt.slnx`.
 
 At task completion, build:
-  git submodule update --init --recursive
+  cmake --preset linux-x64
   dotnet build RedBolt.slnx --configuration Debug
 
 CMake is auxiliary and is invoked by C# build targets. Do not call CMake directly

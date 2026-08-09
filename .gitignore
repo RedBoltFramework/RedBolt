@@ -16,6 +16,24 @@ compile_commands.json
 RedBolt.log
 imgui.ini
 
+# Dependencies populated by CPM.cmake.
+extern/Diligent/
+extern/DotRecast/
+extern/Embree/
+extern/JoltPhysics/
+extern/LZ4/
+extern/RmlUi/
+extern/SDL_image/
+extern/STB/
+extern/SharpCpp/
+extern/WebP/
+extern/harfbuzz/
+extern/imgui/
+extern/libdatachannel/
+extern/openssl/
+extern/tinygltf/
+extern/xatlas/
+
 # .NET outputs.
 bin/
 obj/
