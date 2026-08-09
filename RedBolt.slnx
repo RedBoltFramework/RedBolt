@@ -18,13 +18,13 @@
     <Project Path="src/RedBolt/Actions/RedBolt.Actions.csproj" />
     <Project Path="src/RedBolt/Audio/RedBolt.Audio.csproj" />
     <Project Path="src/RedBolt/Editor/RedBolt.Editor.csproj" />
-    <Project Path="src/RedBolt/RedBolt/RedBolt.csproj" />
+    <Project Path="src/RedBolt/Core/RedBolt.Core.csproj" />
     <Project Path="src/RedBolt/DearImGui/RedBolt.DearImGui.csproj" />
     <Project Path="src/RedBolt/Glow/RedBolt.Glow.csproj" />
     <Project Path="src/RedBolt/IK/RedBolt.IK.csproj" />
     <Project Path="src/RedBolt/Utility/RedBolt.Utility.csproj" />
     <Project Path="src/RedBolt/UserCode/Desktop/RedBolt.UserCode.Desktop.csproj" />
-    <Project Path="src/RedBolt/JoltPhysics/RedBolt.JoltPhysics.csproj" />
+    <Project Path="src/RedBolt/PhysicsJolt/RedBolt.PhysicsJolt.csproj" />
     <Project Path="src/RedBolt/Navigation/RedBolt.Navigation.csproj" />
     <Project Path="src/RedBolt/Network/RedBolt.Network.csproj" />
     <Project Path="src/RedBolt/RmlUI/RedBolt.RmlUI.csproj" />

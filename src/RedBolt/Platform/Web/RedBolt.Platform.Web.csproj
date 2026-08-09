@@ -6,7 +6,7 @@
   <ItemGroup>
     <Compile Include="../Application.cs" Link="Application.cs" />
     <ProjectReference Include="../../Audio/RedBolt.Audio.csproj" />
-    <ProjectReference Include="../../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
     <ProjectReference Include="../../Graphics/OpenGLES/RedBolt.Graphics.OpenGLES.csproj" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all"

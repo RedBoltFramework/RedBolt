@@ -4,8 +4,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../RedBolt/RedBolt.csproj" />
-    <ProjectReference Include="../JoltPhysics/RedBolt.JoltPhysics.csproj" />
+    <ProjectReference Include="../Core/RedBolt.Core.csproj" />
+    <ProjectReference Include="../PhysicsJolt/RedBolt.PhysicsJolt.csproj" />
     <ProjectReference Include="../Bindings/LibDataChannel/RedBolt.Bindings.LibDataChannel.csproj"
                       Condition="'$(RedBoltPlatform)' != 'browser-wasm'" />
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="../RedBolt/GlobalUsings.cs" Link="GlobalUsings.cs" Visible="false" />
+    <Compile Include="../Core/GlobalUsings.cs" Link="GlobalUsings.cs" Visible="false" />
     <Compile Remove="Network/Transport/DataChannel/DataChannelConnection.cs;Network/Transport/DataChannel/DataChannelInterop.cs;Network/Transport/DataChannel/DataChannelServer.cs"
              Condition="'$(RedBoltPlatform)' == 'browser-wasm'" />
   </ItemGroup>

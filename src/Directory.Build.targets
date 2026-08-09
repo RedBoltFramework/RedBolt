@@ -213,7 +213,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <RedBoltGlobalAliasesFile>$(RedBoltRoot)/src/RedBolt/RedBolt/GlobalAliases.cs</RedBoltGlobalAliasesFile>
+    <RedBoltGlobalAliasesFile>$(RedBoltRoot)/src/RedBolt/Core/GlobalAliases.cs</RedBoltGlobalAliasesFile>
     <RedBoltPdbOutputDir>$(RedBoltOutputDir)/pdb</RedBoltPdbOutputDir>
     <PdbFile>$(RedBoltPdbOutputDir)/$(AssemblyName).pdb</PdbFile>
     <CopyOutputSymbolsToOutputDirectory>false</CopyOutputSymbolsToOutputDirectory>

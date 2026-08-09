@@ -6,6 +6,6 @@
   <ItemGroup>
     <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
     <ProjectReference Include="../../IK/RedBolt.IK.csproj" />
-    <ProjectReference Include="../../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
   </ItemGroup>
 </Project>

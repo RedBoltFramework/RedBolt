@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Rotator.cs" Link="Rotator.cs" />
-    <ProjectReference Include="../../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
     <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
   </ItemGroup>
 </Project>

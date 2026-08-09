@@ -3,7 +3,7 @@
 // This work is licensed under the terms of the MIT license.
 // For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
-namespace RedBolt.JoltPhysics;
+namespace RedBolt.PhysicsJolt;
 
 using Color = RedBolt.Math.Color;
 using RedBolt.Bindings.Jolt;

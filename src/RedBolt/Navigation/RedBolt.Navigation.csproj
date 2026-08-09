@@ -4,7 +4,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../Core/RedBolt.Core.csproj" />
     <ProjectReference Include="$(RedBoltRoot)/extern/DotRecast/src/DotRecast.Detour.Crowd/DotRecast.Detour.Crowd.csproj"
                       AdditionalProperties="$(RedBoltExternalManagedProperties)"
                       SetTargetFramework="TargetFramework=$(RedBoltTargetFramework)"
@@ -32,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="../RedBolt/GlobalUsings.cs" Link="GlobalUsings.cs" Visible="false" />
+    <Compile Include="../Core/GlobalUsings.cs" Link="GlobalUsings.cs" Visible="false" />
   </ItemGroup>
 
   <ItemGroup>

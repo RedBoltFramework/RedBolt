@@ -30,8 +30,8 @@ using RedBolt.DearImGui;
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
-using RedBolt.JoltPhysics;
 using RedBolt.Math;
+using RedBolt.PhysicsJolt;
 using RedBolt.Platform;
 using RedBolt.Scene;
 
@@ -63,7 +63,7 @@ public class PhysicsSample : Application
     protected override void Start()
     {
         base.Start();
-        RedBolt.JoltPhysics.Physics.RegisterPhysicsLibrary(RedBolt.Core.Context.Instance);
+        RedBolt.PhysicsJolt.Physics.RegisterPhysicsLibrary(RedBolt.Core.Context.Instance);
         CreateScene();
         CreateInstructions();
         Renderer.SetViewport(0, new Viewport(_scene!, _cameraNode!.GetComponent<Camera>()!));

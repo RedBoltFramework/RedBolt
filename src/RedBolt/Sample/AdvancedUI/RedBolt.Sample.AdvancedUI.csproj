@@ -11,7 +11,7 @@
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
                       GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset" />
-    <ProjectReference Include="../../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
     <ProjectReference Include="../../RmlUI/RedBolt.RmlUI.csproj" />
   </ItemGroup>
 </Project>

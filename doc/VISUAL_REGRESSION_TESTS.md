@@ -5,7 +5,7 @@ deterministic scene, a native-resolution PNG reference, and a test are all
 checked in. API, serialization, and shader-compiler tests are still valuable,
 but they do not replace a screenshot for behavior that reaches the rasterizer.
 
-The graphics review covered the classes in `src/RedBolt/RedBolt/Graphics` and
+The graphics review covered the classes in `src/RedBolt/Core/Graphics` and
 the render-pipeline passes they feed. The plan deliberately groups related
 properties into gallery captures where that gives better coverage without
 creating hundreds of nearly identical tests.

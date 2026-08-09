@@ -1,10 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <AssemblyName>RedBolt.JoltPhysics</AssemblyName>
+    <AssemblyName>RedBolt.PhysicsJolt</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../Core/RedBolt.Core.csproj" />
     <ProjectReference Include="../Bindings/Jolt/RedBolt.Bindings.Jolt.csproj" />
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"
@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="../RedBolt/GlobalUsings.cs" Link="GlobalUsings.cs" Visible="false" />
+    <Compile Include="../Core/GlobalUsings.cs" Link="GlobalUsings.cs" Visible="false" />
   </ItemGroup>
 
   <ItemGroup>

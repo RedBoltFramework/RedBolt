@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-namespace RedBolt.JoltPhysics;
+namespace RedBolt.PhysicsJolt;
 
 /// <summary>Collision shape type.</summary>
 public enum ShapeType

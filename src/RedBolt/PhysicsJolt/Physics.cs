@@ -1,4 +1,4 @@
-namespace RedBolt.JoltPhysics;
+namespace RedBolt.PhysicsJolt;
 
 using RedBolt.Core;
 

@@ -20,7 +20,7 @@
 // THE SOFTWARE.
 //
 
-namespace RedBolt.JoltPhysics;
+namespace RedBolt.PhysicsJolt;
 
 using RedBolt.Bindings.Jolt;
 using RedBolt.Core;

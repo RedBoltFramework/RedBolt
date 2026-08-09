@@ -11,7 +11,7 @@
     <ProjectReference Include="../DearImGui/RedBolt.DearImGui.csproj" />
     <ProjectReference Include="../Glow/RedBolt.Glow.csproj" />
     <ProjectReference Include="../Platform/Linux/RedBolt.Platform.Linux.csproj" />
-    <ProjectReference Include="../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../Core/RedBolt.Core.csproj" />
     <ProjectReference Include="../RmlUI/RedBolt.RmlUI.csproj" />
     <ProjectReference Include="../Utility/RedBolt.Utility.csproj" />
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"

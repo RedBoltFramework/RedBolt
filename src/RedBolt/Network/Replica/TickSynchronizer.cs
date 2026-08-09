@@ -5,7 +5,7 @@
 namespace RedBolt.Replica;
 
 using RedBolt.Core;
-using RedBolt.JoltPhysics;
+using RedBolt.PhysicsJolt;
 using RedBolt.Scene;
 
 /// <summary>

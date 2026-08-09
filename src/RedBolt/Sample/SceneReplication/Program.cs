@@ -18,9 +18,9 @@ using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.IO;
-using RedBolt.JoltPhysics;
 using RedBolt.Math;
 using RedBolt.Network;
+using RedBolt.PhysicsJolt;
 using RedBolt.Platform;
 using RedBolt.Replica;
 using RedBolt.Resource;
@@ -142,7 +142,7 @@ public sealed class SceneReplication : Application
     {
         base.Start();
         Context.RegisterSubsystem(new RedBolt.Network.Network());
-        RedBolt.JoltPhysics.Physics.RegisterPhysicsLibrary(Context);
+        RedBolt.PhysicsJolt.Physics.RegisterPhysicsLibrary(Context);
         Context.RegisterAssembly(typeof(SceneReplicationPlayer).Assembly);
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
         _addressBuffer = Marshal.AllocHGlobal(AddressBufferSize);

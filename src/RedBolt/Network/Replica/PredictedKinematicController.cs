@@ -6,8 +6,8 @@ namespace RedBolt.Replica;
 
 using RedBolt.Core;
 using RedBolt.IO;
-using RedBolt.JoltPhysics;
 using RedBolt.Math;
+using RedBolt.PhysicsJolt;
 
 public struct PredictedKinematicControllerFrame
 {

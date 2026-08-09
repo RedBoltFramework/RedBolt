@@ -26,11 +26,11 @@
   <ItemGroup>
     <TrimmerRootAssembly Include="$(AssemblyName)" />
     <NativeFileReference Include="$(RedBoltWebEngineArchive)" />
-    <ProjectReference Include="../../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
     <ProjectReference Include="../../Actions/RedBolt.Actions.csproj" />
     <ProjectReference Include="../../Audio/RedBolt.Audio.csproj" />
     <ProjectReference Include="../../IK/RedBolt.IK.csproj" />
-    <ProjectReference Include="../../JoltPhysics/RedBolt.JoltPhysics.csproj" />
+    <ProjectReference Include="../../PhysicsJolt/RedBolt.PhysicsJolt.csproj" />
     <ProjectReference Include="../../Navigation/RedBolt.Navigation.csproj" />
     <ProjectReference Include="../../Network/RedBolt.Network.csproj" />
     <ProjectReference Include="../../Platform/Web/RedBolt.Platform.Web.csproj" />

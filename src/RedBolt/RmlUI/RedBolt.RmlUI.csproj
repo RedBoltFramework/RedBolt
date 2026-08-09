@@ -10,7 +10,7 @@
     <ProjectReference Include="../Audio/RedBolt.Audio.csproj" />
     <ProjectReference Include="../Bindings/RmlUi/RedBolt.Bindings.RmlUi.csproj" />
     <ProjectReference Include="../Bindings/Sdl/RedBolt.Bindings.Sdl.csproj" />
-    <ProjectReference Include="../RedBolt/RedBolt.csproj" />
+    <ProjectReference Include="../Core/RedBolt.Core.csproj" />
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
