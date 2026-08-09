@@ -50,3 +50,6 @@
 [submodule "extern/libdatachannel"]
 	path = extern/libdatachannel
 	url = https://github.com/rbfx/libdatachannel.git
+[submodule "extern/openssl"]
+	path = extern/openssl
+	url = https://github.com/openssl/openssl.git

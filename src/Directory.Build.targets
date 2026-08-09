@@ -317,7 +317,7 @@
 
   <Target Name="RedBoltIncludeGlobalAliases"
           BeforeTargets="CoreCompile"
-          Condition="Exists('$(RedBoltGlobalAliasesFile)') and ('@(ProjectReference->WithMetadataValue(&quot;Filename&quot;, &quot;RedBolt&quot;))' != '' or '@(ReferencePath->WithMetadataValue(&quot;Filename&quot;, &quot;RedBolt&quot;))' != '')">
+          Condition="Exists('$(RedBoltGlobalAliasesFile)') and ('@(ProjectReference->WithMetadataValue(&quot;Filename&quot;, &quot;RedBolt.Core&quot;))' != '' or '@(ReferencePath->WithMetadataValue(&quot;Filename&quot;, &quot;RedBolt.Core&quot;))' != '')">
     <ItemGroup>
       <Compile Include="$(RedBoltGlobalAliasesFile)"
                Exclude="@(Compile)"
