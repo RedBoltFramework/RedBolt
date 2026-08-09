@@ -71,9 +71,9 @@
              RemoveProperties="RuntimeIdentifier;SelfContained;PublishSelfContained" />
     <MakeDir Directories="$(RedBoltWebPackageDirectory)" />
     <Exec Command="dotnet &quot;$(RedBoltPackageToolAssembly)&quot; &quot;$(RedBoltRoot)/bin/CoreData&quot; &quot;$(RedBoltWebCoreDataPackage)&quot; -q -c"
-          EnvironmentVariables="LD_LIBRARY_PATH=$(RedBoltOutputRoot)/runtimes/linux-x64/native" />
+          EnvironmentVariables="LD_LIBRARY_PATH=$(RedBoltNativeOutputRoot)" />
     <Exec Command="dotnet &quot;$(RedBoltPackageToolAssembly)&quot; &quot;$(RedBoltRoot)/bin/Data&quot; &quot;$(RedBoltWebDataPackage)&quot; -q -c"
-          EnvironmentVariables="LD_LIBRARY_PATH=$(RedBoltOutputRoot)/runtimes/linux-x64/native" />
+          EnvironmentVariables="LD_LIBRARY_PATH=$(RedBoltNativeOutputRoot)" />
   </Target>
 
   <Target Name="RedBoltExcludeBuildToolsFromPublish" AfterTargets="ComputeFilesToPublish">
@@ -100,5 +100,10 @@
              BuildInParallel="false"
              Properties="Configuration=$(Configuration);RuntimeIdentifier=browser-wasm;RedBoltPublishWebInProgress=true;BuildProjectReferences=false" />
     <Touch Files="$(RedBoltWebOutputDir)/wwwroot/index.html" />
+  </Target>
+
+  <Target Name="RedBoltPrepareWebOutputDirectories"
+          AfterTargets="RedBoltPublishWebAfterBuild">
+    <MakeDir Directories="$(RedBoltWebOutputDir)/pdb;$(RedBoltWebOutputDir)/runtimes" />
   </Target>
 </Project>

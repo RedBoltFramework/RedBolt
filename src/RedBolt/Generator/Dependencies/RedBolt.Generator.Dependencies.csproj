@@ -3,7 +3,7 @@
     <UseAppHost>false</UseAppHost>
     <AssemblyName>RedBolt.Generator.Dependencies</AssemblyName>
     <OutputType>Exe</OutputType>
-    <OutputPath>$(SharpCppOutputDir)/</OutputPath>
+    <OutputPath>$(RedBoltToolsOutputDir)/</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <BuildInParallel>false</BuildInParallel>
   </PropertyGroup>

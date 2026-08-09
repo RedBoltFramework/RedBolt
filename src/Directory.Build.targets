@@ -5,10 +5,9 @@
     <ParameterGroup>
       <DependencyFile ParameterType="System.String" Required="true" />
       <MainProjectName ParameterType="System.String" Required="true" />
-      <NativeRuntimeDirectory ParameterType="System.String" Required="true" />
-      <NativeModuleManifestDirectory ParameterType="System.String" Required="true" />
-      <RelocateAllProjectLibraries ParameterType="System.Boolean" Required="true" />
-      <RuntimeIdentifier ParameterType="System.String" Required="true" />
+      <NativeRuntimeDirectory ParameterType="System.String" />
+      <NativeModuleManifestDirectory ParameterType="System.String" />
+      <RuntimeIdentifier ParameterType="System.String" />
       <NativeAssets ParameterType="Microsoft.Build.Framework.ITaskItem[]" Output="true" />
     </ParameterGroup>
     <Task>
@@ -20,154 +19,188 @@
       <Code Type="Fragment" Language="cs"><![CDATA[
         var contents = File.ReadAllText(DependencyFile);
         var expression = new Regex(
-            "^(?<prefix>\\s*\\\"(?<name>[^\\\"]+)/[^\\\"]+\\\": \\{\\r?\\n(?<indent>\\s*))\\\"type\\\": \\\"(?:project|reference)\\\",",
+            "^(?<prefix>\\s*\\\"(?<name>[^\\\"]+)/[^\\\"]+\\\": \\{\\r?\\n(?<indent>\\s*))"
+                + "\\\"type\\\": \\\"(?:project|reference|package)\\\","
+                + "(?:\\r?\\n\\s*\\\"path\\\": \\\"[^\\\"]+\\\",)?",
             RegexOptions.Multiline);
         var transformed = expression.Replace(
             contents,
             match => match.Groups["name"].Value == MainProjectName
-                || (!RelocateAllProjectLibraries
-                    && !match.Groups["name"].Value.StartsWith("RedBolt", StringComparison.Ordinal))
                 ? match.Value
                 : match.Groups["prefix"].Value
                     + "\"type\": \"package\","
                     + Environment.NewLine
                     + match.Groups["indent"].Value
                     + "\"path\": \".\",");
+        transformed = Regex.Replace(
+            transformed,
+            "^\\s*\\\"path\\\": (?!\\\"\\.\\\")\\\"[^\\\"]+\\\",\\r?\\n",
+            "",
+            RegexOptions.Multiline);
+        var managedPackageAsset = new Regex(
+            "\\\"(?:lib|runtimes/[^/\\\"]+/lib)/[^\\\"]*/(?<file>(?![^/\\\"]+\\.resources\\.dll)[^/\\\"]+\\.dll)\\\":");
+        transformed = managedPackageAsset.Replace(
+            transformed,
+            match => "\"" + match.Groups["file"].Value + "\":");
 
-        if (!Directory.Exists(NativeModuleManifestDirectory))
-            throw new InvalidOperationException(
-                "RedBolt native module manifests were not generated at '"
-                + NativeModuleManifestDirectory + "'.");
-
-        var selectorsByModule = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var artifactsByModule = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        var requiresByModule = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-
-        string ReadProperty(string json, string property)
+        NativeAssets = Array.Empty<Microsoft.Build.Framework.ITaskItem>();
+        if (!string.IsNullOrEmpty(RuntimeIdentifier))
         {
-            var match = Regex.Match(json,
-                "\\\"" + Regex.Escape(property) + "\\\"\\s*:\\s*\\\"(?<value>[^\\\"]+)\\\"");
-            return match.Success ? match.Groups["value"].Value : "";
-        }
+            if (!Directory.Exists(NativeModuleManifestDirectory))
+                throw new InvalidOperationException(
+                    "RedBolt native module manifests were not generated at '"
+                    + NativeModuleManifestDirectory + "'.");
 
-        List<string> ReadArray(string json, string property)
-        {
-            var match = Regex.Match(json,
-                "\\\"" + Regex.Escape(property) + "\\\"\\s*:\\s*\\[(?<values>.*?)\\]",
-                RegexOptions.Singleline);
-            if (!match.Success)
-                return new List<string>();
-            return Regex.Matches(match.Groups["values"].Value, "\\\"(?<value>[^\\\"]+)\\\"")
-                .Cast<Match>()
-                .Select(value => value.Groups["value"].Value)
-                .ToList();
-        }
+            var selectorsByModule = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var artifactsByModule = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+            var requiresByModule = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var manifestFile in Directory.GetFiles(NativeModuleManifestDirectory, "*.json"))
-        {
-            if (Path.GetFileName(manifestFile).Equals("index.json", StringComparison.OrdinalIgnoreCase))
-                continue;
-            var manifest = File.ReadAllText(manifestFile);
-            var module = ReadProperty(manifest, "module");
-            var selector = ReadProperty(manifest, "managedSelector");
-            if (module.Length == 0 || selector.Length == 0)
-                throw new InvalidOperationException("Invalid RedBolt native module manifest '" + manifestFile + "'.");
-            selectorsByModule[module] = selector;
-            artifactsByModule[module] = ReadArray(manifest, "artifacts");
-            requiresByModule[module] = ReadArray(manifest, "requires");
-        }
-
-        var selectedModules = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var module in selectorsByModule)
-        {
-            var selectorPattern = "\\\"" + Regex.Escape(module.Value) + "(?:/[^\\\"]+)?\\\"\\s*:\\s*\\{";
-            if (Regex.IsMatch(contents, selectorPattern))
-                selectedModules.Add(module.Key);
-        }
-
-        var modulesAdded = true;
-        while (modulesAdded)
-        {
-            modulesAdded = false;
-            foreach (var module in selectedModules.ToArray())
+            string ReadProperty(string json, string property)
             {
-                if (!requiresByModule.TryGetValue(module, out var requires))
+                var match = Regex.Match(json,
+                    "\\\"" + Regex.Escape(property) + "\\\"\\s*:\\s*\\\"(?<value>[^\\\"]+)\\\"");
+                return match.Success ? match.Groups["value"].Value : "";
+            }
+
+            List<string> ReadArray(string json, string property)
+            {
+                var match = Regex.Match(json,
+                    "\\\"" + Regex.Escape(property) + "\\\"\\s*:\\s*\\[(?<values>.*?)\\]",
+                    RegexOptions.Singleline);
+                if (!match.Success)
+                    return new List<string>();
+                return Regex.Matches(match.Groups["values"].Value, "\\\"(?<value>[^\\\"]+)\\\"")
+                    .Cast<Match>()
+                    .Select(value => value.Groups["value"].Value)
+                    .ToList();
+            }
+
+            foreach (var manifestFile in Directory.GetFiles(NativeModuleManifestDirectory, "*.json"))
+            {
+                if (Path.GetFileName(manifestFile).Equals("index.json", StringComparison.OrdinalIgnoreCase))
                     continue;
-                foreach (var required in requires)
-                    if (selectedModules.Add(required))
-                        modulesAdded = true;
+                var manifest = File.ReadAllText(manifestFile);
+                var module = ReadProperty(manifest, "module");
+                var selector = ReadProperty(manifest, "managedSelector");
+                if (module.Length == 0 || selector.Length == 0)
+                    throw new InvalidOperationException("Invalid RedBolt native module manifest '" + manifestFile + "'.");
+                selectorsByModule[module] = selector;
+                artifactsByModule[module] = ReadArray(manifest, "artifacts");
+                requiresByModule[module] = ReadArray(manifest, "requires");
             }
-        }
 
-        var nativeFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var module in selectedModules)
-        {
-            if (!artifactsByModule.TryGetValue(module, out var artifacts))
-                throw new InvalidOperationException("Native module '" + module + "' is not registered.");
-            foreach (var artifact in artifacts)
+            var selectedModules = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var module in selectorsByModule)
             {
-                var path = Path.Combine(NativeRuntimeDirectory, artifact);
-                if (!File.Exists(path))
-                    throw new FileNotFoundException("Native module artifact was not built.", path);
-                nativeFiles.Add(artifact);
+                var selectorPattern = "\\\"" + Regex.Escape(module.Value) + "(?:/[^\\\"]+)?\\\"\\s*:\\s*\\{";
+                if (Regex.IsMatch(contents, selectorPattern))
+                    selectedModules.Add(module.Key);
             }
-        }
-        NativeAssets = nativeFiles
-            .OrderBy(path => path)
-            .Select(path => (Microsoft.Build.Framework.ITaskItem)new TaskItem(
-                Path.Combine(NativeRuntimeDirectory, path)))
-            .ToArray();
 
-        var runtimeTargetIndex = transformed.IndexOf("/" + RuntimeIdentifier + "\": {");
-        var redBoltIndex = transformed.IndexOf("\"RedBolt/", runtimeTargetIndex);
-        var objectStart = transformed.IndexOf('{', redBoltIndex);
-        var objectEnd = -1;
-        var depth = 0;
-        var inString = false;
-        var escaped = false;
-        for (var index = objectStart; index < transformed.Length; ++index)
-        {
-            var character = transformed[index];
-            if (inString)
+            var modulesAdded = true;
+            while (modulesAdded)
             {
-                if (escaped)
-                    escaped = false;
-                else if (character == '\\')
-                    escaped = true;
-                else if (character == '"')
-                    inString = false;
+                modulesAdded = false;
+                foreach (var module in selectedModules.ToArray())
+                {
+                    if (!requiresByModule.TryGetValue(module, out var requires))
+                        continue;
+                    foreach (var required in requires)
+                        if (selectedModules.Add(required))
+                            modulesAdded = true;
+                }
             }
-            else if (character == '"')
-            {
-                inString = true;
-            }
-            else if (character == '{')
-            {
-                ++depth;
-            }
-            else if (character == '}' && --depth == 0)
-            {
-                objectEnd = index;
-                break;
-            }
-        }
 
-        if (transformed.IndexOf("\"native\": {", objectStart, objectEnd - objectStart) < 0)
-        {
-            var closingLineStart = transformed.LastIndexOf('\n', objectEnd) + 1;
-            transformed = transformed.Insert(closingLineStart - 1, ",");
-            ++closingLineStart;
-            var nativeEntries = string.Join(
-                "," + Environment.NewLine,
-                nativeFiles
-                    .OrderBy(path => path)
-                    .Select(path => "        \"runtimes/" + RuntimeIdentifier + "/native/"
-                        + path + "\": {}"));
-            transformed = transformed.Insert(
-                closingLineStart,
-                "      \"native\": {" + Environment.NewLine
-                    + nativeEntries + Environment.NewLine
-                    + "      }" + Environment.NewLine);
+            var nativeFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var nativeFilesBySelector = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var module in selectedModules)
+            {
+                if (!artifactsByModule.TryGetValue(module, out var artifacts))
+                    throw new InvalidOperationException("Native module '" + module + "' is not registered.");
+                var selector = selectorsByModule[module];
+                if (!nativeFilesBySelector.TryGetValue(selector, out var selectorFiles))
+                {
+                    selectorFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                    nativeFilesBySelector[selector] = selectorFiles;
+                }
+                foreach (var artifact in artifacts)
+                {
+                    var path = Path.Combine(NativeRuntimeDirectory, artifact);
+                    if (!File.Exists(path))
+                        throw new FileNotFoundException("Native module artifact was not built.", path);
+                    nativeFiles.Add(artifact);
+                    selectorFiles.Add(artifact);
+                }
+            }
+            NativeAssets = nativeFiles
+                .OrderBy(path => path)
+                .Select(path => (Microsoft.Build.Framework.ITaskItem)new TaskItem(
+                    Path.Combine(NativeRuntimeDirectory, path)))
+                .ToArray();
+
+            void AddNativeAssets(string selector, IEnumerable<string> files)
+            {
+                var runtimeTargetIndex = transformed.IndexOf("/" + RuntimeIdentifier + "\": {");
+                var libraryIndex = transformed.IndexOf("\"" + selector + "/", runtimeTargetIndex);
+                if (runtimeTargetIndex < 0 || libraryIndex < 0)
+                    throw new InvalidOperationException(
+                        "Managed selector '" + selector + "' was not found in '" + DependencyFile + "'.");
+                var objectStart = transformed.IndexOf('{', libraryIndex);
+                var objectEnd = -1;
+                var depth = 0;
+                var inString = false;
+                var escaped = false;
+                for (var index = objectStart; index < transformed.Length; ++index)
+                {
+                    var character = transformed[index];
+                    if (inString)
+                    {
+                        if (escaped)
+                            escaped = false;
+                        else if (character == '\\')
+                            escaped = true;
+                        else if (character == '"')
+                            inString = false;
+                    }
+                    else if (character == '"')
+                    {
+                        inString = true;
+                    }
+                    else if (character == '{')
+                    {
+                        ++depth;
+                    }
+                    else if (character == '}' && --depth == 0)
+                    {
+                        objectEnd = index;
+                        break;
+                    }
+                }
+
+                if (objectEnd < 0)
+                    throw new InvalidOperationException(
+                        "Managed selector '" + selector + "' has an invalid dependency entry.");
+                if (transformed.IndexOf("\"native\": {", objectStart, objectEnd - objectStart) >= 0)
+                    return;
+
+                var closingLineStart = transformed.LastIndexOf('\n', objectEnd) + 1;
+                transformed = transformed.Insert(closingLineStart - 1, ",");
+                ++closingLineStart;
+                var nativeEntries = string.Join(
+                    "," + Environment.NewLine,
+                    files
+                        .OrderBy(path => path)
+                        .Select(path => "        \"runtimes/" + RuntimeIdentifier + "/native/"
+                            + path + "\": {}"));
+                transformed = transformed.Insert(
+                    closingLineStart,
+                    "      \"native\": {" + Environment.NewLine
+                        + nativeEntries + Environment.NewLine
+                        + "      }" + Environment.NewLine);
+            }
+
+            foreach (var selector in nativeFilesBySelector)
+                AddNativeAssets(selector.Key, selector.Value);
         }
 
         File.WriteAllText(DependencyFile, transformed);
@@ -181,7 +214,69 @@
 
   <PropertyGroup>
     <RedBoltGlobalAliasesFile>$(RedBoltRoot)/src/RedBolt/RedBolt/GlobalAliases.cs</RedBoltGlobalAliasesFile>
+    <RedBoltPdbOutputDir>$(RedBoltOutputDir)/pdb</RedBoltPdbOutputDir>
+    <PdbFile>$(RedBoltPdbOutputDir)/$(AssemblyName).pdb</PdbFile>
+    <CopyOutputSymbolsToOutputDirectory>false</CopyOutputSymbolsToOutputDirectory>
+    <GenerateRuntimeConfigDevFile Condition="'$(RedBoltPlatform)' != 'browser-wasm' and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">true</GenerateRuntimeConfigDevFile>
   </PropertyGroup>
+
+  <ItemGroup Condition="'$(RedBoltPlatform)' != 'browser-wasm' and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">
+    <AdditionalProbingPath Include="$(RedBoltCoreOutputDir)" />
+    <AdditionalProbingPath Include="$(RedBoltExternOutputDir)" />
+    <AdditionalProbingPath Include="$(RedBoltToolsOutputDir)" />
+  </ItemGroup>
+
+  <Target Name="RedBoltPrepareOutputDirectories" BeforeTargets="CoreCompile">
+    <MakeDir Directories="$(RedBoltCoreOutputDir)/pdb;$(RedBoltCoreOutputDir)/runtimes;$(RedBoltExternOutputDir)/pdb;$(RedBoltExternOutputDir)/runtimes;$(RedBoltToolsOutputDir)/pdb;$(RedBoltToolsOutputDir)/runtimes;$(RedBoltOutputDir);$(RedBoltPdbOutputDir);$(RedBoltOutputDir)/runtimes" />
+  </Target>
+
+  <Target Name="RedBoltStageExternalRuntimeAssets"
+          BeforeTargets="_CopyFilesMarkedCopyLocal"
+          Condition="'$(RedBoltPlatform)' != 'browser-wasm'">
+    <ItemGroup>
+      <_RedBoltExternalRuntimeAsset Include="@(ReferenceCopyLocalPaths)"
+                                    Condition="'%(ReferenceCopyLocalPaths.ReferenceSourceTarget)' != 'ProjectReference' and '%(ReferenceCopyLocalPaths.PathInPackage)' != ''">
+        <DestinationPath>$(RedBoltExternOutputDir)/%(ReferenceCopyLocalPaths.PathInPackage)</DestinationPath>
+        <DestinationDirectory>$([System.IO.Path]::GetDirectoryName('$(RedBoltExternOutputDir)/%(ReferenceCopyLocalPaths.PathInPackage)'))</DestinationDirectory>
+      </_RedBoltExternalRuntimeAsset>
+      <_RedBoltExternalRuntimeAsset Condition="'%(_RedBoltExternalRuntimeAsset.Extension)' == '.dll' and !$([System.String]::Copy('%(_RedBoltExternalRuntimeAsset.Filename)').EndsWith('.resources')) and ($([System.String]::Copy('%(_RedBoltExternalRuntimeAsset.PathInPackage)').StartsWith('lib/')) or $([System.String]::Copy('%(_RedBoltExternalRuntimeAsset.PathInPackage)').Contains('/lib/')))">
+        <DestinationPath>$(RedBoltExternOutputDir)/%(_RedBoltExternalRuntimeAsset.Filename)%(_RedBoltExternalRuntimeAsset.Extension)</DestinationPath>
+        <DestinationDirectory>$(RedBoltExternOutputDir)</DestinationDirectory>
+      </_RedBoltExternalRuntimeAsset>
+    </ItemGroup>
+    <MakeDir Directories="@(_RedBoltExternalRuntimeAsset->'%(DestinationDirectory)')" />
+    <Copy SourceFiles="@(_RedBoltExternalRuntimeAsset)"
+          DestinationFiles="@(_RedBoltExternalRuntimeAsset->'%(DestinationPath)')"
+          SkipUnchangedFiles="true" />
+    <ItemGroup>
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="RedBoltConfigureRuntimeAssemblies"
+          AfterTargets="GenerateBuildDependencyFile"
+          Condition="'$(RedBoltPlatform)' != 'browser-wasm' and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true') and Exists('$(ProjectDepsFilePath)')">
+    <RedBoltUseParentRuntimeAssemblies DependencyFile="$(ProjectDepsFilePath)"
+                                       MainProjectName="$(AssemblyName)"
+                                       NativeRuntimeDirectory="$(RedBoltNativeOutputRoot)"
+                                       NativeModuleManifestDirectory="$(RedBoltNativeModuleManifestDirectory)"
+                                       RuntimeIdentifier="$(RuntimeIdentifier)">
+      <Output TaskParameter="NativeAssets" ItemName="_RedBoltNativeAssets" />
+    </RedBoltUseParentRuntimeAssemblies>
+  </Target>
+
+  <Target Name="RedBoltConfigureDotRecastProjectReferences"
+          BeforeTargets="AssignProjectConfiguration"
+          DependsOnTargets="IncludeTransitiveProjectReferences">
+    <ItemGroup>
+      <ProjectReference Update="@(ProjectReference)"
+                        Condition="$([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/extern/DotRecast/'))"
+                        AdditionalProperties="$(RedBoltExternalManagedProperties)"
+                        SetTargetFramework="TargetFramework=$(RedBoltTargetFramework)"
+                        GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset;RuntimeIdentifier;SelfContained;PublishSelfContained"
+                        SkipGetTargetFrameworkProperties="true" />
+    </ItemGroup>
+  </Target>
 
   <Target Name="RedBoltConfigureBrowserProjectReferences"
           BeforeTargets="AssignProjectConfiguration"

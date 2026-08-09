@@ -285,11 +285,15 @@ Run the relevant focused tests at task completion.
 
 Review the captured screenshot as a success gate. The relevant scene must render correctly and must not be black or otherwise visibly broken.
 
-Shared desktop managed libraries are in:
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug
+Desktop engine libraries are in:
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/core
 
-Desktop native libraries are in:
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/runtimes/linux-x64/native
+Desktop bindings, external libraries, and native libraries are in:
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/extern
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/extern/runtimes/linux-x64/native
+
+Desktop tools and the editor are in:
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/tools
 
 Desktop sample executables and sample-specific files are in:
   /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/samples
@@ -300,8 +304,12 @@ Test output binaries are in:
 Web output is in:
   /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/web
 
-C# build targets symlink runtime resource directories into the shared desktop
-output directory. Tests consume these directories from their parent output.
+C# build targets symlink runtime resource directories into the desktop output
+root. Tests consume these directories from their parent output.
+
+Each desktop output category stores managed and native PDB files in its `pdb/`
+directory and native runtime files in its `runtimes/` directory. Executables
+probe the `core`, `extern`, and `tools` categories instead of copying libraries.
 
 The engine sets the process working directory to the managed executable directory.
 Samples and tests that consume the staged resource directories use `CoreData;Data`

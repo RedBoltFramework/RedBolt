@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup Condition="'$(RedBoltPdbOutputDir)' != ''">
+    <PdbFile>$(RedBoltPdbOutputDir)/$(AssemblyName).pdb</PdbFile>
+    <CopyOutputSymbolsToOutputDirectory>false</CopyOutputSymbolsToOutputDirectory>
+  </PropertyGroup>
+
+  <Target Name="RedBoltPrepareManagedOutput" BeforeTargets="CoreCompile">
+    <MakeDir Directories="$(OutputPath);$(RedBoltPdbOutputDir)" />
+  </Target>
+
+  <Target Name="RedBoltKeepExternalDependenciesExternal"
+          BeforeTargets="_CopyFilesMarkedCopyLocal">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)" />
+    </ItemGroup>
+  </Target>
+</Project>

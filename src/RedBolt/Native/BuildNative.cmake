@@ -5,7 +5,8 @@ foreach(required_variable
         REDBOLT_NATIVE_TARGET
         REDBOLT_SHARPCPP_ROOT
         REDBOLT_GENERATOR_DLL
-        REDBOLT_RUNTIME_OUTPUT_DIR)
+        REDBOLT_RUNTIME_OUTPUT_DIR
+        REDBOLT_PDB_OUTPUT_DIR)
     if(NOT DEFINED ${required_variable} OR "${${required_variable}}" STREQUAL "")
         message(FATAL_ERROR "${required_variable} is required")
     endif()
@@ -35,6 +36,11 @@ if(EXISTS "${_redbolt_native_cache}")
         LIMIT_COUNT 1)
     string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_runtime_output "${_redbolt_cached_runtime_output}")
     file(STRINGS "${_redbolt_native_cache}"
+        _redbolt_cached_pdb_output
+        REGEX "^REDBOLT_PDB_OUTPUT_DIR:[^=]*="
+        LIMIT_COUNT 1)
+    string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_pdb_output "${_redbolt_cached_pdb_output}")
+    file(STRINGS "${_redbolt_native_cache}"
         _redbolt_cached_configuration
         REGEX "^REDBOLT_CONFIGURATION:[^=]*="
         LIMIT_COUNT 1)
@@ -46,6 +52,7 @@ if(EXISTS "${_redbolt_native_cache}")
     string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_cmake_command "${_redbolt_cached_cmake_command}")
     if(_redbolt_cached_generator STREQUAL REDBOLT_GENERATOR_DLL
             AND _redbolt_cached_runtime_output STREQUAL REDBOLT_RUNTIME_OUTPUT_DIR
+            AND _redbolt_cached_pdb_output STREQUAL REDBOLT_PDB_OUTPUT_DIR
             AND _redbolt_cached_configuration STREQUAL REDBOLT_CONFIGURATION
             AND _redbolt_cached_cmake_command STREQUAL CMAKE_COMMAND)
         set(_redbolt_configure_native FALSE)
@@ -61,6 +68,7 @@ if(_redbolt_configure_native)
             "-DREDBOLT_DEPENDENCIES_GENERATOR_DLL=${REDBOLT_GENERATOR_DLL}"
             "-DREDBOLT_CONFIGURATION=${REDBOLT_CONFIGURATION}"
             "-DREDBOLT_RUNTIME_OUTPUT_DIR=${REDBOLT_RUNTIME_OUTPUT_DIR}"
+            "-DREDBOLT_PDB_OUTPUT_DIR=${REDBOLT_PDB_OUTPUT_DIR}"
         WORKING_DIRECTORY "${REDBOLT_SOURCE_DIR}"
         COMMAND_ERROR_IS_FATAL ANY)
 endif()

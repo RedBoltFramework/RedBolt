@@ -2,7 +2,8 @@
   <PropertyGroup>
     <AssemblyName>RedBolt.PackageTool</AssemblyName>
     <OutputType>Exe</OutputType>
-    <OutputPath>$(RedBoltOutputRoot)/tools/</OutputPath>
+    <RuntimeIdentifier Condition="'$(RedBoltPlatform)' == 'linux-x64'">linux-x64</RuntimeIdentifier>
+    <OutputPath>$(RedBoltToolsOutputDir)/</OutputPath>
     <UseAppHost>false</UseAppHost>
     <BuildInParallel>false</BuildInParallel>
   </PropertyGroup>

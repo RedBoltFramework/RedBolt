@@ -2,45 +2,18 @@
   <Import Project="$(MSBuildThisFileDirectory)../../Directory.Build.targets" />
 
   <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
-    <AdditionalProbingPath Include="$(RedBoltOutputRoot)" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Platform/Linux/RedBolt.Platform.Linux.csproj" />
   </ItemGroup>
 
-  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
-    <GenerateRuntimeConfigDevFile>true</GenerateRuntimeConfigDevFile>
-  </PropertyGroup>
-
-  <Target Name="RedBoltConfigureParentRuntimeAssemblies"
-          AfterTargets="GenerateBuildDependencyFile"
-          Condition="'$(RuntimeIdentifier)' == 'linux-x64' and Exists('$(ProjectDepsFilePath)')">
-    <RedBoltUseParentRuntimeAssemblies DependencyFile="$(ProjectDepsFilePath)"
-                                       MainProjectName="$(AssemblyName)"
-                                       NativeRuntimeDirectory="$(RedBoltNativeOutputRoot)"
-                                       NativeModuleManifestDirectory="$(RedBoltNativeModuleManifestDirectory)"
-                                       RelocateAllProjectLibraries="true"
-                                       RuntimeIdentifier="$(RuntimeIdentifier)">
-      <Output TaskParameter="NativeAssets" ItemName="_RedBoltNativeAssets" />
-    </RedBoltUseParentRuntimeAssemblies>
-  </Target>
-
   <Target Name="RedBoltAddNativeFilesToPublish"
           AfterTargets="ComputeFilesToPublish"
-          DependsOnTargets="RedBoltConfigureParentRuntimeAssemblies"
+          DependsOnTargets="RedBoltConfigureRuntimeAssemblies"
           Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
     <ItemGroup>
       <ResolvedFileToPublish Include="@(_RedBoltNativeAssets)">
         <RelativePath>runtimes/$(RuntimeIdentifier)/native/%(Filename)%(Extension)</RelativePath>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       </ResolvedFileToPublish>
-    </ItemGroup>
-  </Target>
-
-  <Target Name="RedBoltKeepSharedAssembliesInParent"
-          BeforeTargets="_CopyFilesMarkedCopyLocal"
-          Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
-    <ItemGroup>
-      <ReferenceCopyLocalPaths Remove="@(ReferenceCopyLocalPaths)"
-                               Condition="$([System.String]::Copy('%(Filename)').StartsWith('RedBolt')) or '%(Filename)' == 'SharpCpp.Support'" />
     </ItemGroup>
   </Target>
 

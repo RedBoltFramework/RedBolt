@@ -1,13 +1,5 @@
 <Solution>
   <Folder Name="/extern/" />
-  <Folder Name="/extern/DotRecast/" />
-  <Folder Name="/extern/DotRecast/src/">
-    <Project Path="extern/DotRecast/src/DotRecast.Core/DotRecast.Core.csproj" />
-    <Project Path="extern/DotRecast/src/DotRecast.Detour.Crowd/DotRecast.Detour.Crowd.csproj" />
-    <Project Path="extern/DotRecast/src/DotRecast.Detour.TileCache/DotRecast.Detour.TileCache.csproj" />
-    <Project Path="extern/DotRecast/src/DotRecast.Detour/DotRecast.Detour.csproj" />
-    <Project Path="extern/DotRecast/src/DotRecast.Recast/DotRecast.Recast.csproj" />
-  </Folder>
   <Folder Name="/extern/SharpCpp/" />
   <Folder Name="/extern/SharpCpp/native/">
     <Project Path="extern/SharpCpp/native/SharpCpp.Native/SharpCpp.Native.csproj" />

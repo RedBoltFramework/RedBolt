@@ -4,6 +4,7 @@
     <RedBoltBuildRoot>$(RedBoltRoot)/build</RedBoltBuildRoot>
     <RedBoltSharpCppRoot>$(RedBoltRoot)/extern/SharpCpp</RedBoltSharpCppRoot>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    <RedBoltTargetFramework>net10.0</RedBoltTargetFramework>
 
     <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and ('$(MSBuildProjectName)' == 'RedBolt.Generator.Dependencies' or '$(MSBuildProjectName)' == 'RedBolt.Generator.Reflection')">tools</RedBoltPlatform>
     <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and ('$(MSBuildProjectName)' == 'RedBolt.Graphics.OpenGLES' or '$(MSBuildProjectName)' == 'RedBolt.Native.Web' or '$(MSBuildProjectName)' == 'RedBolt.Platform.Web' or '$(MSBuildProjectName)' == 'RedBolt.Sample.Web')">browser-wasm</RedBoltPlatform>
@@ -18,16 +19,24 @@
     <RedBoltNativeModuleManifestDirectory Condition="'$(RedBoltNativeBuildDir)' != ''">$(RedBoltNativeBuildDir)/generated/native-modules/$(Configuration)</RedBoltNativeModuleManifestDirectory>
 
     <RedBoltOutputRoot>$(RedBoltBuildRoot)/bin/$(Configuration)</RedBoltOutputRoot>
+    <RedBoltCoreOutputDir>$(RedBoltOutputRoot)/core</RedBoltCoreOutputDir>
+    <RedBoltExternOutputDir>$(RedBoltOutputRoot)/extern</RedBoltExternOutputDir>
+    <RedBoltToolsOutputDir>$(RedBoltOutputRoot)/tools</RedBoltToolsOutputDir>
     <RedBoltIntermediateRoot>$(RedBoltBuildRoot)/obj/managed/$(RedBoltPlatform)</RedBoltIntermediateRoot>
     <RedBoltOutputDir Condition="'$(RedBoltPlatform)' == 'browser-wasm'">$(RedBoltIntermediateRoot)/staging/$(MSBuildProjectName)/$(Configuration)</RedBoltOutputDir>
-    <RedBoltOutputDir Condition="'$(RedBoltOutputDir)' == ''">$(RedBoltOutputRoot)</RedBoltOutputDir>
-    <RedBoltNativeOutputRoot>$(RedBoltOutputRoot)/runtimes/$(RedBoltPlatform)/native</RedBoltNativeOutputRoot>
-    <SharpCppOutputDir>$(RedBoltOutputRoot)/tools</SharpCppOutputDir>
+    <RedBoltOutputDir Condition="'$(RedBoltOutputDir)' == '' and $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Bindings.'))">$(RedBoltExternOutputDir)</RedBoltOutputDir>
+    <RedBoltOutputDir Condition="'$(RedBoltOutputDir)' == '' and ('$(MSBuildProjectName)' == 'RedBolt.Editor' or '$(MSBuildProjectName)' == 'RedBolt.PackageTool' or $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Generator.')))">$(RedBoltToolsOutputDir)</RedBoltOutputDir>
+    <RedBoltOutputDir Condition="'$(RedBoltOutputDir)' == ''">$(RedBoltCoreOutputDir)</RedBoltOutputDir>
+    <RedBoltNativeOutputRoot>$(RedBoltExternOutputDir)/runtimes/$(RedBoltPlatform)/native</RedBoltNativeOutputRoot>
+    <RedBoltNativePdbOutputRoot>$(RedBoltExternOutputDir)/pdb</RedBoltNativePdbOutputRoot>
+    <RedBoltManagedOutputTargets>$(RedBoltRoot)/cmake/RedBoltManagedOutput.targets</RedBoltManagedOutputTargets>
+    <RedBoltExternalManagedProperties>Configuration=$(Configuration);TargetFramework=$(RedBoltTargetFramework);TargetFrameworks=$(RedBoltTargetFramework);OutputPath=$(RedBoltExternOutputDir)/;AppendTargetFrameworkToOutputPath=false;AppendRuntimeIdentifierToOutputPath=false;RedBoltPdbOutputDir=$(RedBoltExternOutputDir)/pdb;CustomBeforeMicrosoftCommonTargets=$(RedBoltManagedOutputTargets)</RedBoltExternalManagedProperties>
+    <SharpCppOutputDir>$(RedBoltExternOutputDir)</SharpCppOutputDir>
     <SharpCppIntermediateRoot>$(RedBoltBuildRoot)/obj/managed/tools</SharpCppIntermediateRoot>
-    <RedBoltSharpCppManagedProperties>Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=;SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)</RedBoltSharpCppManagedProperties>
-    <RedBoltSharpCppNativeProperties>Configuration=$(Configuration);SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppCMakeSourceDir=$(RedBoltRoot);SharpCppNativePreset=$(RedBoltNativePreset);SharpCppNativeBuildDir=$(RedBoltNativeBuildDir);SharpCppNativeTarget=sharpcpp-native;SharpCppConfigureNative=$(RedBoltConfigureNative);SharpCppBuildE2E=false;SharpCppBuildRbfx=false;SharpCppManagedOutputRoot=$(RedBoltOutputRoot)/tools;SharpCppNativeOutputRoot=$(RedBoltNativeOutputRoot);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(RedBoltIntermediateRoot)/native-tools;SharpCppNativeConfigureArguments=-DREDBOLT_SHARPCPP_ROOT=$(RedBoltSharpCppRoot)</RedBoltSharpCppNativeProperties>
+    <RedBoltSharpCppManagedProperties>Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=;SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppManagedOutputRoot=$(RedBoltExternOutputDir);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot);RedBoltPdbOutputDir=$(RedBoltExternOutputDir)/pdb;CustomBeforeMicrosoftCommonTargets=$(RedBoltManagedOutputTargets)</RedBoltSharpCppManagedProperties>
+    <RedBoltSharpCppNativeProperties>Configuration=$(Configuration);SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppCMakeSourceDir=$(RedBoltRoot);SharpCppNativePreset=$(RedBoltNativePreset);SharpCppNativeBuildDir=$(RedBoltNativeBuildDir);SharpCppNativeTarget=sharpcpp-native;SharpCppConfigureNative=$(RedBoltConfigureNative);SharpCppBuildE2E=false;SharpCppBuildRbfx=false;SharpCppManagedOutputRoot=$(RedBoltExternOutputDir);SharpCppNativeOutputRoot=$(RedBoltNativeOutputRoot);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(RedBoltIntermediateRoot)/native-tools;SharpCppNativeConfigureArguments=-DREDBOLT_SHARPCPP_ROOT=$(RedBoltSharpCppRoot);RedBoltPdbOutputDir=$(RedBoltExternOutputDir)/pdb;CustomBeforeMicrosoftCommonTargets=$(RedBoltManagedOutputTargets)</RedBoltSharpCppNativeProperties>
 
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>$(RedBoltTargetFramework)</TargetFramework>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <OutputPath>$(RedBoltOutputDir)/</OutputPath>
