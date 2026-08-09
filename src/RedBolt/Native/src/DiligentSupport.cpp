@@ -589,6 +589,11 @@ ISwapChain* CreateProxySwapChainMS(IRenderDevice* device, IDeviceContext* device
 #if VULKAN_SUPPORTED
 bool GetVulkanSurfaceExtent(IRenderDeviceVk* device, ISwapChainVk* swapChain, Uint32& width, Uint32& height)
 {
+#if PLATFORM_WIN32
+    if (volkInitialize() != VK_SUCCESS)
+        return false;
+    volkLoadInstance(device->GetVkInstance());
+#endif
     VkSurfaceCapabilitiesKHR surfCapabilities = {};
     const VkResult err = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
         device->GetVkPhysicalDevice(), swapChain->GetVkSurface(), &surfCapabilities);

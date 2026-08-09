@@ -56,10 +56,14 @@ public sealed class OpenGLGraphicsBackend : IGraphicsBackend
             using var engineCreateInfo = new EngineGLCreateInfo
             {
                 FeaturesSeparablePrograms = DeviceFeatureState.DeviceFeatureStateOptional,
-                FeaturesShaderResourceQueries = DeviceFeatureState.DeviceFeatureStateOptional,
-                WindowPDisplay = nativeWindowInfo.Display,
-                WindowWindowId = nativeWindowInfo.WindowId
+                FeaturesShaderResourceQueries = DeviceFeatureState.DeviceFeatureStateOptional
             };
+#if REDBOLT_PLATFORM_LINUX
+            engineCreateInfo.WindowPDisplay = nativeWindowInfo.Display;
+            engineCreateInfo.WindowWindowId = checked((uint)nativeWindowInfo.Window);
+#elif REDBOLT_PLATFORM_WINDOWS
+            engineCreateInfo.WindowHWnd = nativeWindowInfo.Window;
+#endif
             using var swapChainDesc = new SwapChainDesc
             {
                 ColorBufferFormat = effectiveSrgb != 0

@@ -21,7 +21,10 @@ public interface IPlatformRuntime
 }
 
 /// <summary>Native window information shared between platform and graphics modules.</summary>
-public readonly record struct NativeWindowInfo(nint Display, uint WindowId);
+public readonly record struct NativeWindowInfo(nint Display, nint Window)
+{
+    public uint WindowId => checked((uint)Window);
+}
 
 /// <summary>Graphics backend implemented by a graphics module.</summary>
 public interface IGraphicsBackend

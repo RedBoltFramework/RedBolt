@@ -860,7 +860,13 @@ layout(std140) uniform Material
         using var nativeWindow = new LinuxNativeWindow
         {
             PDisplay = nativeWindowInfo.Display,
-            WindowId = nativeWindowInfo.WindowId
+            WindowId = checked((uint)nativeWindowInfo.Window)
+        };
+#elif REDBOLT_PLATFORM_WINDOWS
+        var nativeWindowInfo = GetSubsystem<Input>()!.GetNativeWindowInfo();
+        using var nativeWindow = new Win32NativeWindow
+        {
+            HWnd = nativeWindowInfo.Window
         };
 #else
 #error Vulkan native window restoration is not ported for this platform

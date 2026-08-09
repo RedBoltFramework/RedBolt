@@ -55,6 +55,6 @@ internal sealed class LinuxPlatformRuntime : IPlatformRuntime
         if (wmInfo.InfoX11Display == IntPtr.Zero || wmInfo.InfoX11Window == 0)
             throw new InvalidOperationException("SDL X11 WM info did not contain display and window handles.");
 
-        return new NativeWindowInfo(wmInfo.InfoX11Display, checked((uint)wmInfo.InfoX11Window));
+        return new NativeWindowInfo(wmInfo.InfoX11Display, checked((nint)wmInfo.InfoX11Window));
     }
 }

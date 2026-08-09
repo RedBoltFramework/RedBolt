@@ -4,13 +4,17 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <OutputType>Exe</OutputType>
     <RuntimeIdentifier Condition="'$(RedBoltPlatform)' == 'linux-x64'">linux-x64</RuntimeIdentifier>
-    <GenerateRuntimeConfigDevFile Condition="'$(RuntimeIdentifier)' == 'linux-x64'">true</GenerateRuntimeConfigDevFile>
+    <RuntimeIdentifier Condition="'$(RedBoltPlatform)' == 'win-x64'">win-x64</RuntimeIdentifier>
+    <GenerateRuntimeConfigDevFile Condition="'$(RuntimeIdentifier)' == 'linux-x64' or '$(RuntimeIdentifier)' == 'win-x64'">true</GenerateRuntimeConfigDevFile>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../DearImGui/RedBolt.DearImGui.csproj" />
     <ProjectReference Include="../Glow/RedBolt.Glow.csproj" />
-    <ProjectReference Include="../Platform/Linux/RedBolt.Platform.Linux.csproj" />
+    <ProjectReference Include="../Platform/Linux/RedBolt.Platform.Linux.csproj"
+                      Condition="'$(RedBoltPlatform)' == 'linux-x64'" />
+    <ProjectReference Include="../Platform/Windows/RedBolt.Platform.Windows.csproj"
+                      Condition="'$(RedBoltPlatform)' == 'win-x64'" />
     <ProjectReference Include="../Core/RedBolt.Core.csproj" />
     <ProjectReference Include="../RmlUI/RedBolt.RmlUI.csproj" />
     <ProjectReference Include="../Utility/RedBolt.Utility.csproj" />

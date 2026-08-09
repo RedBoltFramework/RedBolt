@@ -1,4 +1,22 @@
 <Project>
+  <UsingTask TaskName="RedBoltInvalidateStaleDependencyFile"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <DependencyFile ParameterType="System.String" Required="true" />
+      <RuntimeIdentifier ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        if (File.Exists(DependencyFile)
+            && !File.ReadAllText(DependencyFile).Contains(
+                "/" + RuntimeIdentifier + "\": {"))
+            File.Delete(DependencyFile);
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
   <UsingTask TaskName="RedBoltUseParentRuntimeAssemblies"
              TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
@@ -141,8 +159,11 @@
             void AddNativeAssets(string selector, IEnumerable<string> files)
             {
                 var runtimeTargetIndex = transformed.IndexOf("/" + RuntimeIdentifier + "\": {");
+                if (runtimeTargetIndex < 0)
+                    throw new InvalidOperationException(
+                        "Runtime target '" + RuntimeIdentifier + "' was not found in '" + DependencyFile + "'.");
                 var libraryIndex = transformed.IndexOf("\"" + selector + "/", runtimeTargetIndex);
-                if (runtimeTargetIndex < 0 || libraryIndex < 0)
+                if (libraryIndex < 0)
                     throw new InvalidOperationException(
                         "Managed selector '" + selector + "' was not found in '" + DependencyFile + "'.");
                 var objectStart = transformed.IndexOf('{', libraryIndex);
@@ -263,6 +284,13 @@
                                        RuntimeIdentifier="$(RuntimeIdentifier)">
       <Output TaskParameter="NativeAssets" ItemName="_RedBoltNativeAssets" />
     </RedBoltUseParentRuntimeAssemblies>
+  </Target>
+
+  <Target Name="RedBoltInvalidateStaleRuntimeDependencyFile"
+          BeforeTargets="GenerateBuildDependencyFile"
+          Condition="'$(RuntimeIdentifier)' != '' and Exists('$(ProjectDepsFilePath)')">
+    <RedBoltInvalidateStaleDependencyFile DependencyFile="$(ProjectDepsFilePath)"
+                                          RuntimeIdentifier="$(RuntimeIdentifier)" />
   </Target>
 
   <Target Name="RedBoltConfigureDotRecastProjectReferences"

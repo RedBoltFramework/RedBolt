@@ -88,11 +88,18 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
                 DepthBufferFormat = TextureFormat.TexFormatUnknown
             };
             var nativeWindowInfo = platform.GetNativeWindowInfo(window);
+#if REDBOLT_PLATFORM_LINUX
             using var nativeWindow = new LinuxNativeWindow
             {
                 PDisplay = nativeWindowInfo.Display,
-                WindowId = nativeWindowInfo.WindowId
+                WindowId = checked((uint)nativeWindowInfo.Window)
             };
+#elif REDBOLT_PLATFORM_WINDOWS
+            using var nativeWindow = new Win32NativeWindow
+            {
+                HWnd = nativeWindowInfo.Window
+            };
+#endif
             factory.CreateSwapChainVk(device, immediateContext, swapChainDesc, nativeWindow,
                 out nativeSwapChain);
             if (nativeSwapChain.IsNull)

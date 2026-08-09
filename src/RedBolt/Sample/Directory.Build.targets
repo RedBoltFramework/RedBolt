@@ -5,10 +5,14 @@
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Platform/Linux/RedBolt.Platform.Linux.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Platform/Windows/RedBolt.Platform.Windows.csproj" />
+  </ItemGroup>
+
   <Target Name="RedBoltAddNativeFilesToPublish"
           AfterTargets="ComputeFilesToPublish"
           DependsOnTargets="RedBoltConfigureRuntimeAssemblies"
-          Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
+          Condition="'$(RuntimeIdentifier)' == 'linux-x64' or '$(RuntimeIdentifier)' == 'win-x64'">
     <ItemGroup>
       <ResolvedFileToPublish Include="@(_RedBoltNativeAssets)">
         <RelativePath>runtimes/$(RuntimeIdentifier)/native/%(Filename)%(Extension)</RelativePath>

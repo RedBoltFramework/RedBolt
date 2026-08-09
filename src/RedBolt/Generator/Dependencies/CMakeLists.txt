@@ -304,6 +304,13 @@ set(REDBOLT_BINDING_INCLUDE_DIRS
     "${REDBOLT_SHARPCPP_ROOT}/include"
     ${REDBOLT_DILIGENT_INCLUDE_DIRS}
     CACHE INTERNAL "Include directories used by RedBolt SharpCpp dependency generation")
+if(MINGW)
+    list(PREPEND REDBOLT_BINDING_INCLUDE_DIRS
+        "${CMAKE_SOURCE_DIR}/cmake/Toolchains/MinGW/include")
+endif()
+set(REDBOLT_BINDING_INCLUDE_DIRS
+    "${REDBOLT_BINDING_INCLUDE_DIRS}"
+    CACHE INTERNAL "Include directories used by RedBolt SharpCpp dependency generation" FORCE)
 set(_redbolt_binding_defines ${REDBOLT_DILIGENT_BINDING_DEFINES})
 if(CMAKE_CONFIGURATION_TYPES OR CMAKE_BUILD_TYPE MATCHES "^(Release|Distribution|ReleaseASAN|ReleaseUBSAN|ReleaseTSAN|ReleaseCoverage)$")
     list(APPEND _redbolt_binding_defines NDEBUG)

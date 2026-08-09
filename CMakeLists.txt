@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.28)
 
 project(RedBoltFramework VERSION 0.1.0 LANGUAGES C CXX)
 
+if(MINGW)
+    include_directories(BEFORE SYSTEM "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Toolchains/MinGW/include")
+endif()
+
 add_custom_target(redbolt-msbuild-build-guard ALL
     COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/CheckMsBuildBuild.cmake"
     VERBATIM)
@@ -32,7 +36,12 @@ endif()
 
 set(REDBOLT_EXTERN_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/extern" CACHE PATH "Path to RedBolt native dependency sources" FORCE)
 set(REDBOLT_SHARPCPP_ROOT "${REDBOLT_EXTERN_ROOT}/SharpCpp" CACHE PATH "Path to the SharpCpp source tree" FORCE)
-set(REDBOLT_RUNTIME_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/bin/$<CONFIG>/extern/runtimes/linux-x64/native" CACHE PATH "RedBolt runtime output directory")
+if(WIN32)
+    set(_redbolt_default_runtime_identifier win-x64)
+else()
+    set(_redbolt_default_runtime_identifier linux-x64)
+endif()
+set(REDBOLT_RUNTIME_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/bin/$<CONFIG>/extern/runtimes/${_redbolt_default_runtime_identifier}/native" CACHE PATH "RedBolt runtime output directory")
 set(REDBOLT_PDB_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/bin/$<CONFIG>/extern/pdb" CACHE PATH "RedBolt PDB output directory")
 set(REDBOLT_GENERATED_ROOT "${CMAKE_BINARY_DIR}/generated" CACHE INTERNAL "RedBolt generated file root")
 set(REDBOLT_NATIVE_GENERATED_DIR "${REDBOLT_GENERATED_ROOT}/redbolt-native" CACHE INTERNAL "RedBolt generated native binding root")

@@ -32,6 +32,12 @@ using Context = RedBolt.Core.Context;
 using RedBolt.IO;
 using RedBolt.Resource;
 
+#if REDBOLT_PLATFORM_WINDOWS
+using RmlSize = System.UInt64;
+#else
+using RmlSize = System.UIntPtr;
+#endif
+
 public class RmlFile : FileInterface
 {
     /// <summary>Construct.</summary>
@@ -61,7 +67,7 @@ public class RmlFile : FileInterface
     }
 
     /// <summary>Reads data from a previously opened file.</summary>
-    public override unsafe nuint Read(nint buffer, nuint size, nuint file)
+    public override unsafe RmlSize Read(nint buffer, RmlSize size, nuint file)
     {
         var handle = GCHandle.FromIntPtr((nint)file);
         return ((AbstractFile)handle.Target!).Read(new Span<byte>((void*)buffer, checked((int)size)));
@@ -83,14 +89,14 @@ public class RmlFile : FileInterface
     }
 
     /// <summary>Returns the current position of the file pointer.</summary>
-    public override nuint Tell(nuint file)
+    public override RmlSize Tell(nuint file)
     {
         var handle = GCHandle.FromIntPtr((nint)file);
         return ((AbstractFile)handle.Target!).Tell();
     }
 
     /// <summary>Returns the length of the file.</summary>
-    public override nuint Length(nuint file)
+    public override RmlSize Length(nuint file)
     {
         var handle = GCHandle.FromIntPtr((nint)file);
         return ((AbstractFile)handle.Target!).GetSize();

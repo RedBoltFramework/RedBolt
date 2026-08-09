@@ -6,9 +6,12 @@
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     <RedBoltTargetFramework>net10.0</RedBoltTargetFramework>
 
-    <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and ('$(MSBuildProjectName)' == 'RedBolt.Generator.Dependencies' or '$(MSBuildProjectName)' == 'RedBolt.Generator.Reflection')">tools</RedBoltPlatform>
-    <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and ('$(MSBuildProjectName)' == 'RedBolt.Graphics.OpenGLES' or '$(MSBuildProjectName)' == 'RedBolt.Native.Web' or '$(MSBuildProjectName)' == 'RedBolt.Platform.Web' or '$(MSBuildProjectName)' == 'RedBolt.Sample.Web')">browser-wasm</RedBoltPlatform>
+    <RedBoltPlatform Condition="'$(MSBuildProjectName)' == 'RedBolt.Generator.Dependencies' or '$(MSBuildProjectName)' == 'RedBolt.Generator.Reflection'">tools</RedBoltPlatform>
+    <RedBoltPlatform Condition="'$(MSBuildProjectName)' == 'RedBolt.Graphics.OpenGLES' or '$(MSBuildProjectName)' == 'RedBolt.Native.Web' or '$(MSBuildProjectName)' == 'RedBolt.Platform.Web' or '$(MSBuildProjectName)' == 'RedBolt.Sample.Web'">browser-wasm</RedBoltPlatform>
+    <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and '$(RedBoltBuildWindows)' == 'true'">win-x64</RedBoltPlatform>
     <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and '$([MSBuild]::IsOSPlatform(`Linux`))' == 'true'">linux-x64</RedBoltPlatform>
+    <DefineConstants Condition="'$(RedBoltPlatform)' == 'linux-x64'">$(DefineConstants);REDBOLT_PLATFORM_LINUX</DefineConstants>
+    <DefineConstants Condition="'$(RedBoltPlatform)' == 'win-x64'">$(DefineConstants);REDBOLT_PLATFORM_WINDOWS</DefineConstants>
     <DefineConstants Condition="'$(RedBoltPlatform)' == 'browser-wasm'">$(DefineConstants);REDBOLT_PLATFORM_BROWSER</DefineConstants>
     <WasmEnableThreads Condition="'$(RedBoltPlatform)' == 'browser-wasm'">false</WasmEnableThreads>
     <RedBoltNativePreset Condition="'$(RedBoltPlatform)' != 'tools'">$(RedBoltPlatform)</RedBoltNativePreset>

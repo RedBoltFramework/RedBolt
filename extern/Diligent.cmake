@@ -51,6 +51,42 @@ if(NOT EMSCRIPTEN)
     set_property(TARGET spirv-cross-c-shared PROPERTY SOVERSION)
 endif()
 
+if(MINGW)
+    function(redbolt_replace_diligent_link_library target old_name new_name)
+        foreach(_redbolt_link_property IN ITEMS LINK_LIBRARIES INTERFACE_LINK_LIBRARIES)
+            get_target_property(_redbolt_link_libraries ${target} ${_redbolt_link_property})
+            if(_redbolt_link_libraries)
+                string(REPLACE "${old_name}" "${new_name}"
+                    _redbolt_link_libraries "${_redbolt_link_libraries}")
+                set_property(TARGET ${target} PROPERTY
+                    ${_redbolt_link_property} "${_redbolt_link_libraries}")
+            endif()
+        endforeach()
+    endfunction()
+
+    foreach(_redbolt_diligent_target IN ITEMS
+            Diligent-GraphicsEngineOpenGL-shared
+            Diligent-GraphicsEngineVk-shared
+            Diligent-Archiver-shared)
+        get_target_property(_redbolt_link_options ${_redbolt_diligent_target} LINK_OPTIONS)
+        get_target_property(_redbolt_binary_dir ${_redbolt_diligent_target} BINARY_DIR)
+        list(TRANSFORM _redbolt_link_options REPLACE
+            "^LINKER:--version-script=export.map$"
+            "LINKER:--version-script=${_redbolt_binary_dir}/export.map")
+        set_property(TARGET ${_redbolt_diligent_target} PROPERTY LINK_OPTIONS ${_redbolt_link_options})
+    endforeach()
+
+    foreach(_redbolt_diligent_target IN ITEMS
+            Diligent-GraphicsEngineOpenGL-static
+            Diligent-Archiver-static)
+        redbolt_replace_diligent_link_library(
+            ${_redbolt_diligent_target} "opengl32.lib" "opengl32")
+    endforeach()
+
+    redbolt_replace_diligent_link_library(
+        Diligent-Win32Platform "Shlwapi.lib" "shlwapi")
+endif()
+
 set(REDBOLT_DILIGENT_INCLUDE_DIRS
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Primitives/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Platforms/interface"
@@ -65,6 +101,12 @@ set(REDBOLT_DILIGENT_INCLUDE_DIRS
 if(EMSCRIPTEN)
     list(APPEND REDBOLT_DILIGENT_INCLUDE_DIRS
         "${REDBOLT_DILIGENT_SOURCE_ROOT}/Platforms/Emscripten/interface")
+elseif(WIN32)
+    list(APPEND REDBOLT_DILIGENT_INCLUDE_DIRS
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/Platforms/Win32/interface"
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineVulkan/interface"
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/Vulkan-Headers/include"
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/volk")
 else()
     list(APPEND REDBOLT_DILIGENT_INCLUDE_DIRS
         "${REDBOLT_DILIGENT_SOURCE_ROOT}/Platforms/Linux/interface"
@@ -78,6 +120,9 @@ set(REDBOLT_DILIGENT_INCLUDE_DIRS ${REDBOLT_DILIGENT_INCLUDE_DIRS}
 if(EMSCRIPTEN)
     set(_redbolt_platform_defines "PLATFORM_WEB=1" "PLATFORM_EMSCRIPTEN=1" "PLATFORM_LINUX=0")
     set(_redbolt_graphics_defines "GL_SUPPORTED=0" "GLES_SUPPORTED=1" "VULKAN_SUPPORTED=0" "WEBGPU_SUPPORTED=0")
+elseif(WIN32)
+    set(_redbolt_platform_defines "PLATFORM_WIN32=1" "PLATFORM_LINUX=0")
+    set(_redbolt_graphics_defines "GL_SUPPORTED=1" "GLES_SUPPORTED=0" "VULKAN_SUPPORTED=1" "WEBGPU_SUPPORTED=0")
 else()
     set(_redbolt_platform_defines "PLATFORM_WEB=0" "PLATFORM_EMSCRIPTEN=0" "PLATFORM_LINUX=1")
     set(_redbolt_graphics_defines "GL_SUPPORTED=1" "GLES_SUPPORTED=0" "VULKAN_SUPPORTED=1" "WEBGPU_SUPPORTED=0")
@@ -96,10 +141,8 @@ add_library(redbolt-diligent-headers INTERFACE)
 target_include_directories(redbolt-diligent-headers SYSTEM INTERFACE
     ${REDBOLT_DILIGENT_INCLUDE_DIRS})
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Emscripten" OR WIN32)
     target_compile_definitions(redbolt-diligent-headers INTERFACE ${REDBOLT_DILIGENT_BINDING_DEFINES})
-elseif(WIN32)
-    target_compile_definitions(redbolt-diligent-headers INTERFACE PLATFORM_WIN32=1)
 elseif(APPLE)
     target_compile_definitions(redbolt-diligent-headers INTERFACE PLATFORM_MACOS=1 PLATFORM_APPLE=1)
 else()
@@ -122,9 +165,14 @@ if(EMSCRIPTEN)
 else()
     set(REDBOLT_DILIGENT_OPENGL_TARGET Diligent-GraphicsEngineOpenGL-shared)
     set(REDBOLT_DILIGENT_VULKAN_TARGET Diligent-GraphicsEngineVk-shared)
-    set(REDBOLT_GLEW_TARGET "")
+    if(WIN32)
+        set(REDBOLT_GLEW_TARGET glew-static opengl32)
+        set(REDBOLT_SPIRV_TOOLS_TARGET SPIRV-Tools)
+    else()
+        set(REDBOLT_GLEW_TARGET "")
+        set(REDBOLT_SPIRV_TOOLS_TARGET SPIRV-Tools-shared)
+    endif()
     set(REDBOLT_SPIRV_CROSS_TARGET spirv-cross-c-shared)
-    set(REDBOLT_SPIRV_TOOLS_TARGET SPIRV-Tools-shared)
 endif()
 set(REDBOLT_DILIGENT_OPENGL_TARGET "${REDBOLT_DILIGENT_OPENGL_TARGET}" CACHE INTERNAL "" FORCE)
 set(REDBOLT_DILIGENT_VULKAN_TARGET "${REDBOLT_DILIGENT_VULKAN_TARGET}" CACHE INTERNAL "" FORCE)

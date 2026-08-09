@@ -3,6 +3,7 @@
     <AssemblyName>RedBolt.PackageTool</AssemblyName>
     <OutputType>Exe</OutputType>
     <RuntimeIdentifier Condition="'$(RedBoltPlatform)' == 'linux-x64'">linux-x64</RuntimeIdentifier>
+    <RuntimeIdentifier Condition="'$(RedBoltPlatform)' == 'win-x64'">win-x64</RuntimeIdentifier>
     <OutputPath>$(RedBoltToolsOutputDir)/</OutputPath>
     <UseAppHost>false</UseAppHost>
     <BuildInParallel>false</BuildInParallel>

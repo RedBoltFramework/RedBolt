@@ -1,8 +1,10 @@
 <Project>
   <PropertyGroup>
     <RedBoltCMakeTarget Condition="'$(RedBoltPlatform)' == 'linux-x64'">redbolt-native-all</RedBoltCMakeTarget>
+    <RedBoltCMakeTarget Condition="'$(RedBoltPlatform)' == 'win-x64'">redbolt-native-all</RedBoltCMakeTarget>
     <RedBoltCMakeTarget Condition="'$(RedBoltPlatform)' == 'browser-wasm'">redbolt-wasm-native</RedBoltCMakeTarget>
     <RedBoltCMakeConfigurationArguments Condition="'$(RedBoltPlatform)' == 'linux-x64'">--config &quot;$(Configuration)&quot;</RedBoltCMakeConfigurationArguments>
+    <RedBoltCMakeConfigurationArguments Condition="'$(RedBoltPlatform)' == 'win-x64'">--config &quot;$(Configuration)&quot;</RedBoltCMakeConfigurationArguments>
   </PropertyGroup>
 
   <Target Name="RedBoltBuildNative" AfterTargets="Build">
@@ -15,7 +17,7 @@
     <Error Condition="!Exists('$(RedBoltToolsOutputDir)/RedBolt.Generator.Dependencies.dll')"
            Text="The RedBolt dependency generator was not built at '$(RedBoltToolsOutputDir)/RedBolt.Generator.Dependencies.dll'." />
     <MakeDir Directories="$(RedBoltBuildRoot);$(RedBoltOutputDir);$(RedBoltIntermediateRoot)" />
-    <MakeDir Condition="'$(RedBoltPlatform)' == 'linux-x64'"
+    <MakeDir Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'"
              Directories="$(RedBoltNativeOutputRoot)" />
     <Exec WorkingDirectory="$(RedBoltRoot)"
           IgnoreStandardErrorWarningFormat="true"

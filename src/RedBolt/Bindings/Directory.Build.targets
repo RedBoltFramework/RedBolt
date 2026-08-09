@@ -12,7 +12,7 @@
                       PrivateAssets="all"
                       AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.csproj"
-                      Condition="'$(RedBoltPlatform)' == 'linux-x64'"
+                      Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Web.csproj"

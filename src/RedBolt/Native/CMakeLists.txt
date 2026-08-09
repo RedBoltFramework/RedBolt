@@ -124,6 +124,11 @@ function(redbolt_add_native_wrapper)
     target_compile_options(${ARG_TARGET} PRIVATE
         "$<$<CXX_COMPILER_ID:GNU>:-Wno-attributes>"
         "$<$<CXX_COMPILER_ID:Clang>:-Wno-attributes>")
+    if(MINGW)
+        target_compile_options(${ARG_TARGET} PRIVATE
+            -Wa,-mbig-obj
+            -include cstdint)
+    endif()
     target_link_libraries(${ARG_TARGET} PRIVATE
         redbolt-native-support
         ${ARG_LINK_LIBRARIES})
@@ -141,6 +146,7 @@ redbolt_add_native_wrapper(
     TARGET "${REDBOLT_SDL_NATIVE_TARGET}"
     OUTPUT_NAME "${REDBOLT_SDL_NATIVE_LIBRARY_NAME}"
     GENERATION_TARGET redbolt-generate-sdl-bindings
+    COMPILE_DEFINITIONS "$<$<BOOL:${MINGW}>:SDL_STATIC=1>"
     SOURCES "${REDBOLT_SDL_BINDINGS_CPP}"
     LINK_LIBRARIES SDL2::SDL2 redbolt-sdl2-image)
 
@@ -294,7 +300,11 @@ redbolt_add_native_wrapper(
     LINK_LIBRARIES ${REDBOLT_LIBDATACHANNEL_LIBRARY})
 
 if(NOT EMSCRIPTEN)
-    find_library(REDBOLT_VULKAN_LIBRARY NAMES vulkan REQUIRED)
+    if(WIN32)
+        set(REDBOLT_VULKAN_LIBRARY volk::volk)
+    else()
+        find_library(REDBOLT_VULKAN_LIBRARY NAMES vulkan REQUIRED)
+    endif()
     target_link_libraries(${REDBOLT_DILIGENT_NATIVE_TARGET} PRIVATE
         ${REDBOLT_VULKAN_LIBRARY})
     target_link_libraries(${REDBOLT_IMGUI_NATIVE_TARGET} PRIVATE
@@ -305,9 +315,39 @@ if(D3D11_SUPPORTED OR D3D12_SUPPORTED)
     target_link_libraries(${REDBOLT_SHADER_COMPILER_NATIVE_TARGET} PRIVATE d3dcompiler)
 endif()
 
+if(MINGW)
+    set(_redbolt_mingw_runtime_files)
+    foreach(_redbolt_mingw_runtime IN ITEMS
+            libgcc_s_seh-1.dll
+            libstdc++-6.dll
+            libwinpthread-1.dll)
+        execute_process(
+            COMMAND "${CMAKE_CXX_COMPILER}" "-print-file-name=${_redbolt_mingw_runtime}"
+            OUTPUT_VARIABLE _redbolt_mingw_runtime_file
+            OUTPUT_STRIP_TRAILING_WHITESPACE)
+        if(NOT EXISTS "${_redbolt_mingw_runtime_file}")
+            message(FATAL_ERROR "MinGW runtime was not found: ${_redbolt_mingw_runtime}")
+        endif()
+        list(APPEND _redbolt_mingw_runtime_files "${_redbolt_mingw_runtime_file}")
+    endforeach()
+    add_custom_command(TARGET ${REDBOLT_SDL_NATIVE_TARGET} POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            ${_redbolt_mingw_runtime_files}
+            "$<TARGET_FILE_DIR:${REDBOLT_SDL_NATIVE_TARGET}>"
+        COMMENT "Copying MinGW runtime libraries"
+        VERBATIM)
+endif()
+
 if(NOT EMSCRIPTEN)
     set(_redbolt_native_manifest_directory
         "${REDBOLT_GENERATED_ROOT}/native-modules/$<CONFIG>")
+    set(_redbolt_runtime_dependency_arguments)
+    if(WIN32)
+        list(APPEND _redbolt_runtime_dependency_arguments
+            "-DCMAKE_GET_RUNTIME_DEPENDENCIES_PLATFORM=windows+pe"
+            "-DCMAKE_GET_RUNTIME_DEPENDENCIES_TOOL=objdump"
+            "-DCMAKE_GET_RUNTIME_DEPENDENCIES_COMMAND=${CMAKE_OBJDUMP}")
+    endif()
     set(_redbolt_native_manifest_files)
     set(_redbolt_previous_native_manifest_file)
     foreach(_redbolt_native_module IN LISTS REDBOLT_NATIVE_MODULES)
@@ -340,6 +380,7 @@ if(NOT EMSCRIPTEN)
                 "-DREDBOLT_MANAGED_SELECTOR=${_redbolt_manifest_selector}"
                 "-DREDBOLT_NATIVE_LIBRARY_NAME=${_redbolt_manifest_library_name}"
                 "-DREDBOLT_REQUIRES=${_redbolt_manifest_requires_csv}"
+                ${_redbolt_runtime_dependency_arguments}
                 -P "${CMAKE_SOURCE_DIR}/cmake/WriteNativeModuleManifest.cmake"
             DEPENDS ${_redbolt_manifest_depends}
             COMMENT "Writing ${_redbolt_native_module} native module manifest"
