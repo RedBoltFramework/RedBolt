@@ -1,7 +1,3 @@
-set(REDBOLT_SDL_IMAGE_SOURCE_ROOT "${REDBOLT_EXTERN_ROOT}/SDL_image" CACHE INTERNAL "SDL_image source root")
-redbolt_require_path("${REDBOLT_SDL_IMAGE_SOURCE_ROOT}/CMakeLists.txt" "SDL_image source")
-
-add_library(redbolt-sdl2-image INTERFACE)
 if(TARGET SDL2 AND NOT TARGET SDL2::SDL2)
     add_library(SDL2::SDL2 ALIAS SDL2)
 endif()
@@ -19,8 +15,19 @@ set(SDL2IMAGE_TIF OFF CACHE BOOL "" FORCE)
 set(SDL2IMAGE_WEBP OFF CACHE BOOL "" FORCE)
 set(_redbolt_saved_build_shared_libs "${BUILD_SHARED_LIBS}")
 set(BUILD_SHARED_LIBS OFF)
-redbolt_add_external_subdirectory("${REDBOLT_SDL_IMAGE_SOURCE_ROOT}" "${CMAKE_BINARY_DIR}/deps/SDL_image")
+
+CPMAddPackage(
+    NAME SDL_image
+    GIT_REPOSITORY https://github.com/libsdl-org/SDL_image.git
+    GIT_TAG 1fe71e1086e00b73999a8b63ad6afabb8ce43b23
+    CUSTOM_CACHE_KEY "."
+    GIT_SUBMODULES ":!*"
+    EXCLUDE_FROM_ALL YES)
 set(BUILD_SHARED_LIBS "${_redbolt_saved_build_shared_libs}")
+set(REDBOLT_SDL_IMAGE_SOURCE_ROOT "${SDL_image_SOURCE_DIR}" CACHE INTERNAL "SDL_image source root")
+redbolt_require_path("${REDBOLT_SDL_IMAGE_SOURCE_ROOT}/CMakeLists.txt" "SDL_image source")
+
+add_library(redbolt-sdl2-image INTERFACE)
 if(MINGW)
     target_compile_definitions(SDL2_image PRIVATE SDL_STATIC=1)
 endif()

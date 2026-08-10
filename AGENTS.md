@@ -260,11 +260,11 @@ Run focused RedBolt tests:
 
 After any SharpCpp change, run the generated-binding SharpCpp E2E tests. No
 other SharpCpp test suite is required during development:
-  dotnet test extern/SharpCpp/tests/SharpCpp.Tests.E2E/SharpCpp.Tests.E2E.csproj --configuration Debug
+  dotnet test extern/sharpcpp/tests/SharpCpp.Tests.E2E/SharpCpp.Tests.E2E.csproj --configuration Debug
 
 When the task is complete, if SharpCpp was modified, also run the SharpCpp rbfx
 wrapper E2E tests:
-  dotnet test extern/SharpCpp/rbfx/SharpCpp.Rbfx.Tests.E2E/SharpCpp.Rbfx.Tests.E2E.csproj --configuration Debug
+  dotnet test extern/sharpcpp/rbfx/SharpCpp.Rbfx.Tests.E2E/SharpCpp.Rbfx.Tests.E2E.csproj --configuration Debug
 
 Both required SharpCpp E2E test projects must pass before the task is complete.
 SharpCpp test projects must not be added to `RedBolt.slnx`.

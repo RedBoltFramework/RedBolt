@@ -1,6 +1,3 @@
-set(REDBOLT_WEBP_SOURCE_ROOT "${REDBOLT_EXTERN_ROOT}/WebP" CACHE INTERNAL "WebP source root")
-redbolt_require_path("${REDBOLT_WEBP_SOURCE_ROOT}/CMakeLists.txt" "WebP source")
-
 set(WEBP_BUILD_ANIM_UTILS OFF CACHE BOOL "" FORCE)
 set(WEBP_BUILD_CWEBP OFF CACHE BOOL "" FORCE)
 set(WEBP_BUILD_DWEBP OFF CACHE BOOL "" FORCE)
@@ -13,7 +10,15 @@ set(WEBP_BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
 set(WEBP_BUILD_LIBWEBPMUX OFF CACHE BOOL "" FORCE)
 set(WEBP_BUILD_WEBP_JS OFF CACHE BOOL "" FORCE)
 set(WEBP_BUILD_FUZZTEST OFF CACHE BOOL "" FORCE)
-redbolt_add_external_subdirectory("${REDBOLT_WEBP_SOURCE_ROOT}" "${CMAKE_BINARY_DIR}/deps/WebP")
+
+CPMAddPackage(
+    NAME WebP
+    GIT_REPOSITORY https://chromium.googlesource.com/webm/libwebp
+    GIT_TAG 733c91e461c18cf1127c9ed0a80dccbcfed599d3
+    CUSTOM_CACHE_KEY "."
+    EXCLUDE_FROM_ALL YES)
+set(REDBOLT_WEBP_SOURCE_ROOT "${WebP_SOURCE_DIR}" CACHE INTERNAL "WebP source root")
+redbolt_require_path("${REDBOLT_WEBP_SOURCE_ROOT}/CMakeLists.txt" "WebP source")
 if(NOT EMSCRIPTEN)
     foreach(_target webp sharpyuv)
         set_property(TARGET ${_target} PROPERTY VERSION)

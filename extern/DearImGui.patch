@@ -1,0 +1,82 @@
+From 49ed37b2bcf2d219b47833cb6a5bde83c49a309d Mon Sep 17 00:00:00 2001
+From: Rokas Kupstys <rokups@zoho.com>
+Date: Sun, 9 Aug 2026 09:23:36 +0300
+Subject: [PATCH] Allow font loaders to shape rendered text
+
+---
+ imgui_draw.cpp   | 26 ++++++++++++++++++++++++++
+ imgui_internal.h |  3 +++
+ 2 files changed, 29 insertions(+)
+
+diff --git a/imgui_draw.cpp b/imgui_draw.cpp
+index 4511d61e0d57..0936300a5781 100644
+--- a/imgui_draw.cpp
++++ b/imgui_draw.cpp
+@@ -5565,6 +5565,10 @@ void ImTextInitClassifiers()
+ // Refer to imgui_test_suite's "drawlist_text_wordwrap_1" for tests.
+ const char* ImFontCalcWordWrapPositionEx(ImFont* font, float size, const char* text_begin, const char* text_end, float wrap_width, ImDrawTextFlags flags)
+ {
++    const ImFontLoader* loader = font->OwnerAtlas->FontLoader;
++    if (loader->FontCalcWordWrapPosition)
++        return loader->FontCalcWordWrapPosition(font, size, text_begin, text_end, wrap_width, flags);
++
+     // For references, possible wrap point marked with ^
+     //  "aaa bbb, ccc,ddd. eee   fff. ggg!"
+     //      ^    ^    ^   ^   ^__    ^    ^
+@@ -5685,6 +5689,10 @@ const char* ImFont::CalcWordWrapPosition(float size, ImStrv text, float wrap_wid
+ 
+ ImVec2 ImFontCalcTextSizeEx(ImFont* font, float size, float max_width, float wrap_width, const char* text_begin, const char* text_end_display, const char* text_end, const char** out_remaining, ImVec2* out_offset, ImDrawTextFlags flags)
+ {
++    const ImFontLoader* loader = font->OwnerAtlas->FontLoader;
++    if (loader->FontCalcTextSize)
++        return loader->FontCalcTextSize(font, size, max_width, wrap_width, text_begin, text_end_display, text_end, out_remaining, out_offset, flags);
++
+     ImFontBaked* baked = font->GetFontBaked(size);
+ 
+     const float line_height = size;
+@@ -5781,6 +5789,17 @@ ImVec2 ImFont::CalcTextSizeA(float size, float max_width, float wrap_width, ImSt
+ // Note: as with every ImDrawList drawing function, this expects that the font atlas texture is bound.
+ void ImFont::RenderChar(ImDrawList* draw_list, float size, const ImVec2& pos, ImU32 col, ImWchar c, const ImVec4* cpu_fine_clip)
+ {
++    const ImFontLoader* loader = OwnerAtlas->FontLoader;
++    if (loader->FontRenderText)
++    {
++        char text[5];
++        const int text_size = ImTextCharToUtf8(text, c);
++        const ImVec4 clip_rect = cpu_fine_clip ? *cpu_fine_clip : draw_list->_CmdHeader.ClipRect;
++        loader->FontRenderText(this, draw_list, size, pos, col, clip_rect, text, text + text_size, 0.0f,
++            cpu_fine_clip ? ImDrawTextFlags_CpuFineClip : ImDrawTextFlags_None);
++        return;
++    }
++
+     ImFontBaked* baked = GetFontBaked(size);
+     const ImFontGlyph* glyph = baked->FindGlyph(c);
+     if (!glyph || !glyph->Visible)
+@@ -5826,6 +5845,13 @@ void ImFont::RenderChar(ImDrawList* draw_list, float size, const ImVec2& pos, Im
+ // DO NOT CALL DIRECTLY THIS WILL CHANGE WILDLY IN 2026. Use ImDrawList::AddText().
+ void ImFont::RenderText(ImDrawList* draw_list, float size, const ImVec2& pos, ImU32 col, const ImVec4& clip_rect, ImStrv text, float wrap_width, ImDrawTextFlags flags)
+ {
++    const ImFontLoader* loader = OwnerAtlas->FontLoader;
++    if (loader->FontRenderText)
++    {
++        loader->FontRenderText(this, draw_list, size, pos, col, clip_rect, text.Begin, text.End, wrap_width, flags);
++        return;
++    }
++
+ begin:
+     // Align to be pixel perfect
+     float x = pos.x;
+diff --git a/imgui_internal.h b/imgui_internal.h
+index 6a4518c9c7f5..9c8a71bcb054 100644
+--- a/imgui_internal.h
++++ b/imgui_internal.h
+@@ -4218,6 +4218,9 @@ struct ImFontLoader
+     bool            (*FontSrcInit)(ImFontAtlas* atlas, ImFontConfig* src);
+     void            (*FontSrcDestroy)(ImFontAtlas* atlas, ImFontConfig* src);
+     bool            (*FontSrcContainsGlyph)(ImFontAtlas* atlas, ImFontConfig* src, ImWchar codepoint);
++    const char*     (*FontCalcWordWrapPosition)(ImFont* font, float size, const char* text, const char* text_end, float wrap_width, ImDrawTextFlags flags);
++    ImVec2          (*FontCalcTextSize)(ImFont* font, float size, float max_width, float wrap_width, const char* text_begin, const char* text_end_display, const char* text_end, const char** out_remaining, ImVec2* out_offset, ImDrawTextFlags flags);
++    void            (*FontRenderText)(ImFont* font, ImDrawList* draw_list, float size, const ImVec2& pos, ImU32 col, const ImVec4& clip_rect, const char* text_begin, const char* text_end, float wrap_width, ImDrawTextFlags flags);
+     bool            (*FontBakedInit)(ImFontAtlas* atlas, ImFontConfig* src, ImFontBaked* baked, void* loader_data_for_baked_src);
+     void            (*FontBakedDestroy)(ImFontAtlas* atlas, ImFontConfig* src, ImFontBaked* baked, void* loader_data_for_baked_src);
+     bool            (*FontBakedLoadGlyph)(ImFontAtlas* atlas, ImFontConfig* src, ImFontBaked* baked, void* loader_data_for_baked_src, ImWchar codepoint, ImFontGlyph* out_glyph, float* out_advance_x);

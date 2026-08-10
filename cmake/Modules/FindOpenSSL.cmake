@@ -1,4 +1,3 @@
-#
 # Copyright (c) 2017-2022 the rbfx project.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,12 +17,11 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-#
 
-# A dummy script to help dependencies of libdatachannel to find OpenSSL.
-if(TARGET ssl)
+# Reuse RedBolt's OpenSSL targets when dependencies call find_package(OpenSSL).
+if(TARGET ssl AND NOT TARGET OpenSSL::SSL)
     add_library(OpenSSL::SSL ALIAS ssl)
 endif()
-if(TARGET crypto)
+if(TARGET crypto AND NOT TARGET OpenSSL::Crypto)
     add_library(OpenSSL::Crypto ALIAS crypto)
 endif()

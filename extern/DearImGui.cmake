@@ -1,4 +1,11 @@
-set(REDBOLT_IMGUI_SOURCE_ROOT "${REDBOLT_EXTERN_ROOT}/imgui" CACHE INTERNAL "Dear ImGui source root")
+CPMAddPackage(
+    NAME imgui
+    GIT_REPOSITORY https://github.com/RedBoltFramework/imgui.git
+    GIT_TAG docking-string-view
+    CUSTOM_CACHE_KEY "."
+    PATCHES "${CMAKE_CURRENT_LIST_DIR}/DearImGui.patch"
+    DOWNLOAD_ONLY YES)
+set(REDBOLT_IMGUI_SOURCE_ROOT "${imgui_SOURCE_DIR}" CACHE INTERNAL "Dear ImGui source root")
 redbolt_require_path("${REDBOLT_IMGUI_SOURCE_ROOT}/imgui.h" "Dear ImGui source headers")
 
 add_library(ImGui ${REDBOLT_EXTERNAL_LIBRARY_TYPE}

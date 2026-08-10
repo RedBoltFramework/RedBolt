@@ -1,6 +1,3 @@
-set(REDBOLT_JOLT_SOURCE_ROOT "${REDBOLT_EXTERN_ROOT}/JoltPhysics" CACHE INTERNAL "Jolt Physics source root")
-redbolt_require_path("${REDBOLT_JOLT_SOURCE_ROOT}/Build/CMakeLists.txt" "Jolt Physics build")
-
 set(OBJECT_LAYER_BITS 32 CACHE STRING "Use 16 collision layer and mask bits" FORCE)
 
 set(JPH_BUILD_SHARED_LIBS OFF CACHE BOOL "Build Jolt statically" FORCE)
@@ -28,9 +25,15 @@ set(USE_TZCNT OFF CACHE BOOL "Build portable Jolt binaries" FORCE)
 set(USE_F16C OFF CACHE BOOL "Build portable Jolt binaries" FORCE)
 set(USE_FMADD OFF CACHE BOOL "Build portable Jolt binaries" FORCE)
 
-redbolt_add_external_subdirectory(
-    "${REDBOLT_JOLT_SOURCE_ROOT}/Build"
-    "${CMAKE_BINARY_DIR}/deps/JoltPhysics")
+CPMAddPackage(
+    NAME JoltPhysics
+    GIT_REPOSITORY https://github.com/jrouwe/JoltPhysics.git
+    GIT_TAG 341ac92c7a8a63a4a37729ad6eca21f9a5a51e13
+    CUSTOM_CACHE_KEY "."
+    SOURCE_SUBDIR Build
+    EXCLUDE_FROM_ALL YES)
+set(REDBOLT_JOLT_SOURCE_ROOT "${JoltPhysics_SOURCE_DIR}" CACHE INTERNAL "Jolt Physics source root")
+redbolt_require_path("${REDBOLT_JOLT_SOURCE_ROOT}/Build/CMakeLists.txt" "Jolt Physics build")
 set_target_properties(Jolt PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set(REDBOLT_JOLT_INCLUDE_DIR "${REDBOLT_JOLT_SOURCE_ROOT}" CACHE INTERNAL "Jolt Physics include directory")
 set(REDBOLT_JOLT_LIBRARY Jolt CACHE INTERNAL "RedBolt Jolt Physics target")

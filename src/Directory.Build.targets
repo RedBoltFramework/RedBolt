@@ -298,7 +298,7 @@
           DependsOnTargets="IncludeTransitiveProjectReferences">
     <ItemGroup>
       <ProjectReference Update="@(ProjectReference)"
-                        Condition="$([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/extern/DotRecast/'))"
+                        Condition="$([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltBuildRoot)/deps/DotRecast/'))"
                         AdditionalProperties="$(RedBoltExternalManagedProperties)"
                         SetTargetFramework="TargetFramework=$(RedBoltTargetFramework)"
                         GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset;RuntimeIdentifier;SelfContained;PublishSelfContained"
@@ -335,7 +335,6 @@
         $(_GenerateRestoreGraphProjectEntryInputProperties);
         RedBoltPlatform=$(RedBoltPlatform);
         RedBoltNativePreset=$(RedBoltNativePreset);
-        SharpCppBuildRoot=$(RedBoltBuildRoot);
         SharpCppOutputDir=$(SharpCppOutputDir);
         SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)
       </_GenerateRestoreGraphProjectEntryInputProperties>

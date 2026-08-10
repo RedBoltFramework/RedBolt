@@ -27,10 +27,10 @@
 
 #pragma once
 
-#include <Diligent/Common/interface/BasicMath.hpp>
-#include <Diligent/Common/interface/RefCntAutoPtr.hpp>
-#include <Diligent/Graphics/GraphicsEngine/interface/GraphicsTypes.h>
-#include <Diligent/Primitives/interface/BasicTypes.h>
+#include <BasicMath.hpp>
+#include <BasicTypes.h>
+#include <GraphicsTypes.h>
+#include <RefCntAutoPtr.hpp>
 #include <imgui.h>
 
 #include <memory>

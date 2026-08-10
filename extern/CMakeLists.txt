@@ -1,6 +1,17 @@
-include(Dependencies.cmake)
+if(MSVC)
+    add_compile_options(/W0)
+else()
+    add_compile_options(-w)
+endif()
 
-redbolt_require_path("${REDBOLT_EXTERN_ROOT}" "REDBOLT_EXTERN_ROOT")
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules")
+set(CPM_DONT_UPDATE_MODULE_PATH ON CACHE BOOL "Use RedBolt's checked-in CMake modules" FORCE)
+set(CPM_SOURCE_CACHE "${REDBOLT_DEPENDENCY_ROOT}" CACHE PATH "CPM dependency source cache" FORCE)
+unset(CPM_DIRECTORY CACHE)
+include("${CMAKE_SOURCE_DIR}/cmake/CPM.cmake")
+set(FETCHCONTENT_BASE_DIR "${CMAKE_BINARY_DIR}/deps")
+
+redbolt_require_path("${REDBOLT_DEPENDENCY_ROOT}" "REDBOLT_DEPENDENCY_ROOT")
 
 if(NOT COMMAND install_third_party_libs)
     function(install_third_party_libs)
@@ -12,6 +23,7 @@ if(NOT COMMAND group_sources)
     endfunction()
 endif()
 
+include(DotRecast.cmake)
 include(SharpCpp.cmake)
 include(SDL.cmake)
 include(SDL_image.cmake)

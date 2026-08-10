@@ -1,18 +1,5 @@
 <Solution>
   <Folder Name="/extern/" />
-  <Folder Name="/extern/SharpCpp/" />
-  <Folder Name="/extern/SharpCpp/native/">
-    <Project Path="extern/SharpCpp/native/SharpCpp.Native/SharpCpp.Native.csproj" />
-  </Folder>
-  <Folder Name="/extern/SharpCpp/src/">
-    <Project Path="extern/SharpCpp/src/SharpCpp.Metadata/SharpCpp.Metadata.csproj" />
-    <Project Path="extern/SharpCpp/src/SharpCpp.Model/SharpCpp.Model.csproj" />
-    <Project Path="extern/SharpCpp/src/SharpCpp.Parsing/SharpCpp.Parsing.csproj" />
-    <Project Path="extern/SharpCpp/src/SharpCpp.Pipeline/SharpCpp.Pipeline.csproj" />
-    <Project Path="extern/SharpCpp/src/SharpCpp.Rendering/SharpCpp.Rendering.csproj" />
-    <Project Path="extern/SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj" />
-    <Project Path="extern/SharpCpp/src/SharpCpp.Tool/SharpCpp.Tool.csproj" />
-  </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/RedBolt/">
     <Project Path="src/RedBolt/Actions/RedBolt.Actions.csproj" />

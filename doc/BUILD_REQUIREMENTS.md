@@ -14,12 +14,6 @@ Install these tools and make them available on `PATH`:
 - Ninja with the `Ninja Multi-Config` generator;
 - a C++20 compiler and linker.
 
-Initialize the source dependencies after cloning:
-
-```sh
-git submodule update --init --recursive
-```
-
 The versions used for the current build are .NET SDK 10.0.110, CMake 3.28.3,
 and Ninja 1.11.1.
 
@@ -87,8 +81,8 @@ dotnet build src/RedBolt/Editor/RedBolt.Editor.csproj \
 ```
 
 `cmake --build --preset win-x64-debug` is the native-only equivalent. The
-repository applies `cmake/Patches/Diligent-MinGW.patch` automatically during a
-MinGW configure; do not patch the Diligent submodule by hand.
+repository applies `extern/Diligent.patch` through CPM during population; do
+not patch the Diligent checkout by hand.
 
 ## Direct3D smoke tests with Wine
 

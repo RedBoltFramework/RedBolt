@@ -30,9 +30,9 @@
 
 #include <RedBolt/HarfBuzzGpuAtlas.hpp>
 
-#include <Diligent/Graphics/GraphicsEngine/interface/DeviceContext.h>
-#include <Diligent/Graphics/GraphicsEngine/interface/RenderDevice.h>
-#include <Diligent/Graphics/GraphicsTools/interface/MapHelper.hpp>
+#include <DeviceContext.h>
+#include <MapHelper.hpp>
+#include <RenderDevice.h>
 
 #include <algorithm>
 #include <cstddef>

@@ -1,0 +1,258 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -2,7 +2,7 @@
+   message(FATAL_ERROR "Prevented in-tree build. Please create a build directory outside of the SDL source code and run \"cmake -S ${CMAKE_SOURCE_DIR} -B .\" from there")
+ endif()
+
+-cmake_minimum_required(VERSION 3.0.0)
++cmake_minimum_required(VERSION 3.0...3.25)
+ project(SDL2 C CXX)
+
+ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+@@ -523,9 +523,10 @@
+ set(SDL2_DISABLE_SDL2MAIN ON)
+ set(SDL_TEST OFF)
+ set(SDL_TESTS OFF)
+-set(SDL_SHARED OFF)
+-set(SDL_STATIC ON)
+-set(SDL_STATIC_PIC ON)
++set(SDL_SHARED ON)
++set(SDL_STATIC OFF)
++set(SDL_RPATH ON)
++set(SDL_STATIC_PIC OFF)
+ set(SDL_VULKAN OFF)
+ if (APPLE)
+   set (SDL_METAL ON)
+@@ -3358,55 +3359,61 @@
+   add_library(SDL2::SDL2 ALIAS SDL2-static)
+ endif()
+
++if(TARGET SDL2-static)
++  set(SDL_REDBOLT_TARGET SDL2-static)
++elseif(TARGET SDL2)
++  set(SDL_REDBOLT_TARGET SDL2)
++else()
++  message(FATAL_ERROR "Expected SDL2 or SDL2-static target to exist")
++endif()
++
+ ########################################################################################################################
+
+ # General includes
+ # Urho3D - use 'generated' path suffix for generated config header file, the suffic prevents overwriting the header file with the same name in the source tree in case of non out-of-source build tree is being used
+-target_include_directories (SDL2-static SYSTEM
++target_include_directories (${SDL_REDBOLT_TARGET} SYSTEM
+   PUBLIC $<BUILD_INTERFACE:${SDL2_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>>
+          $<BUILD_INTERFACE:${SDL2_BINARY_DIR}/include/SDL/generated>
+          $<BUILD_INTERFACE:${SDL2_SOURCE_DIR}/include>
+-         $<INSTALL_INTERFACE:${DEST_THIRDPARTY_HEADERS_DIR}/SDL>
++         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/SDL>
+ )
+ if (WEB)
+-    target_compile_options(SDL2-static PUBLIC -sUSE_SDL=0)
++    target_compile_options(${SDL_REDBOLT_TARGET} PUBLIC -sUSE_SDL=0)
+ endif ()
+ if (("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND (NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS "10.0")) OR
+ ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang" AND (NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS "11.0")))
+   # Fix multiple definition of `WAYLAND_*' with GCC 10, because -fno-common is a new default.
+-  target_compile_options(SDL2-static PRIVATE -fcommon)
++  target_compile_options(${SDL_REDBOLT_TARGET} PRIVATE -fcommon)
+ endif ()
+-if (BUILD_SHARED_LIBS)
+-  target_compile_definitions(SDL2-static PRIVATE -DSDL_EXPORTS PUBLIC -DSDL_IMPORTS)
++if (SDL_SHARED)
++  target_compile_definitions(${SDL_REDBOLT_TARGET} PRIVATE -DSDL_EXPORTS PUBLIC -DSDL_IMPORTS)
+ endif ()
+ if (WIN32)
+-  target_link_libraries (SDL2-static PUBLIC user32 gdi32 imm32 version winmm setupapi)
++  target_link_libraries (${SDL_REDBOLT_TARGET} PUBLIC user32 gdi32 imm32 version winmm setupapi)
+ elseif (ANDROID)
+-  target_link_libraries (SDL2-static PUBLIC dl log android)
++  target_link_libraries (${SDL_REDBOLT_TARGET} PUBLIC dl log android)
+ elseif (APPLE)
+-  target_link_libraries (SDL2-static PUBLIC iconv "-framework AudioToolbox" "-framework CoreAudio")
++  target_link_libraries (${SDL_REDBOLT_TARGET} PUBLIC iconv "-framework AudioToolbox" "-framework CoreAudio")
+   if (IOS)
+-    target_link_libraries (SDL2-static PUBLIC "-framework AVFoundation" "-framework CoreGraphics" "-framework CoreBluetooth" "-framework CoreMotion" "-framework Foundation" "-framework GameController" "-framework OpenGLES" "-framework QuartzCore" "-framework UIKit")
++    target_link_libraries (${SDL_REDBOLT_TARGET} PUBLIC "-framework AVFoundation" "-framework CoreGraphics" "-framework CoreBluetooth" "-framework CoreMotion" "-framework Foundation" "-framework GameController" "-framework OpenGLES" "-framework QuartzCore" "-framework UIKit")
+   else ()
+-    target_link_libraries (SDL2-static PUBLIC "-framework Carbon" "-framework Cocoa" "-framework CoreFoundation" "-framework SystemConfiguration" "-framework CoreServices" "-framework CoreVideo" "-framework ForceFeedback" "-framework IOKit" "-framework OpenGL")
++    target_link_libraries (${SDL_REDBOLT_TARGET} PUBLIC "-framework Carbon" "-framework Cocoa" "-framework CoreFoundation" "-framework SystemConfiguration" "-framework CoreServices" "-framework CoreVideo" "-framework ForceFeedback" "-framework IOKit" "-framework OpenGL")
+   endif ()
+ elseif (EMSCRIPTEN)
+-  target_link_libraries(SDL2-static PUBLIC "-s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0")
++  target_link_libraries(${SDL_REDBOLT_TARGET} PUBLIC "-s DISABLE_DEPRECATED_FIND_EVENT_TARGET_BEHAVIOR=0")
+ endif ()
+
+ if (IOS OR UWP OR ANDROID)
+-    target_sources(SDL2-static PRIVATE ${SDLMAIN_SOURCES})
++    target_sources(${SDL_REDBOLT_TARGET} PRIVATE ${SDLMAIN_SOURCES})
+ endif ()
+
+ # Install headers for building and using the Urho3D library (install dependency for InputEvents.h)
+-install (DIRECTORY include/ DESTINATION ${DEST_THIRDPARTY_HEADERS_DIR}/SDL/ FILES_MATCHING PATTERN *.h)    # Note: the trailing slash is significant
++install (DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/SDL/ FILES_MATCHING PATTERN *.h)    # Note: the trailing slash is significant
+ install (FILES
+   "${SDL2_BINARY_DIR}/include/SDL_revision.h"
+-  #"${SDL2_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>/SDL_config.h"
+-  DESTINATION ${DEST_THIRDPARTY_HEADERS_DIR}/SDL)
++  "${SDL2_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>/SDL_config.h"
++  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/SDL)
+
+-if (NOT URHO3D_MERGE_STATIC_LIBS)
+-  install(TARGETS SDL2-static EXPORT Urho3D ARCHIVE DESTINATION ${DEST_ARCHIVE_DIR_CONFIG})
+-endif ()
++install_third_party_libs(${SDL_REDBOLT_TARGET})
+
+ group_sources()
+--- a/src/audio/emscripten/SDL_emscriptenaudio.c
++++ b/src/audio/emscripten/SDL_emscriptenaudio.c
+@@ -263,7 +263,7 @@
+     this->hidden = (struct SDL_PrivateAudioData *)0x1;
+
+     /* limit to native freq */
+-    this->spec.freq = EM_ASM_INT_V({
++    this->spec.freq = MAIN_THREAD_EM_ASM_INT({
+       var SDL2 = Module['SDL2'];
+       return SDL2.audioContext.sampleRate;
+     });
+--- a/src/audio/pipewire/SDL_pipewire.c
++++ b/src/audio/pipewire/SDL_pipewire.c
+@@ -620,7 +620,7 @@
+
+         /* Need to parse the parameters to get the sample rate */
+         for (i = 0; i < info->n_params; ++i) {
+-            pw_node_enum_params(node->proxy, 0, info->params[i].id, 0, 0, NULL);
++            pw_node_enum_params((struct pw_node*)node->proxy, 0, info->params[i].id, 0, 0, NULL);
+         }
+
+         hotplug_core_sync(node);
+--- a/src/video/emscripten/SDL_emscriptenopengles.c
++++ b/src/video/emscripten/SDL_emscriptenopengles.c
+@@ -23,6 +23,7 @@
+ #if SDL_VIDEO_DRIVER_EMSCRIPTEN && SDL_VIDEO_OPENGL_EGL
+
+ #include <emscripten/emscripten.h>
++#include <emscripten/html5_webgl.h>
+ #include <GLES2/gl2.h>
+
+ #include "SDL_emscriptenvideo.h"
+@@ -82,13 +83,65 @@
+     return 0;
+ }
+
+-SDL_EGL_CreateContext_impl(Emscripten)
+-SDL_EGL_MakeCurrent_impl(Emscripten)
++SDL_GLContext
++Emscripten_GLES_CreateContext(_THIS, SDL_Window *window)
++{
++    SDL_WindowData *window_data;
++    EmscriptenWebGLContextAttributes attribs;
++    EMSCRIPTEN_WEBGL_CONTEXT_HANDLE context;
++
++    emscripten_webgl_init_context_attributes(&attribs);
++
++    attribs.alpha = _this->gl_config.alpha_size > 0;
++    attribs.depth = _this->gl_config.depth_size > 0;
++    attribs.stencil = _this->gl_config.stencil_size > 0;
++    attribs.antialias = _this->gl_config.multisamplebuffers == 1;
++
++    if (_this->gl_config.major_version == 3) {
++        attribs.majorVersion = 2;
++    }
++    window_data = (SDL_WindowData *)window->driverdata;
++
++    if (window_data->gl_context) {
++        SDL_SetError("Cannot create multiple webgl contexts per window");
++        return NULL;
++    }
++
++    context = emscripten_webgl_create_context(window_data->canvas_id, &attribs);
++
++    if (!context) {
++        SDL_SetError("Could not create webgl context");
++        return NULL;
++    }
++    if (emscripten_webgl_make_context_current(context) != EMSCRIPTEN_RESULT_SUCCESS) {
++        emscripten_webgl_destroy_context(context);
++        return NULL;
++    }
++
++    window_data->gl_context = (SDL_GLContext)context;
++
++    return (SDL_GLContext)context;
++}
++
++void
++Emscripten_GLES_DeleteContext(_THIS, SDL_GLContext context)
++{
++    SDL_Window *window;
++
++    for (window = _this->windows; window; window = window->next) {
++        SDL_WindowData *window_data = (SDL_WindowData *)window->driverdata;
++        if (window_data->gl_context == context) {
++            window_data->gl_context = NULL;
++        }
++    }
++
++    emscripten_webgl_destroy_context((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)context);
++}
+
+ int
+ Emscripten_GLES_SwapWindow(_THIS, SDL_Window * window)
+ {
+-    EGLBoolean ret = SDL_EGL_SwapBuffers(_this, ((SDL_WindowData *) window->driverdata)->egl_surface);
++    EMSCRIPTEN_RESULT ret = emscripten_webgl_commit_frame();
+     if (emscripten_has_asyncify() && SDL_GetHintBoolean(SDL_HINT_EMSCRIPTEN_ASYNCIFY, SDL_TRUE)) {
+         /* give back control to browser for screen refresh */
+         emscripten_sleep(0);
+@@ -96,6 +149,21 @@
+     return ret;
+ }
+
++int
++Emscripten_GLES_MakeCurrent(_THIS, SDL_Window *window, SDL_GLContext context)
++{
++    if (window && context) {
++        SDL_WindowData *window_data = (SDL_WindowData *)window->driverdata;
++        if (context != window_data->gl_context) {
++            return SDL_SetError("Cannot make context current to another window");
++        }
++    }
++    if (emscripten_webgl_make_context_current((EMSCRIPTEN_WEBGL_CONTEXT_HANDLE)context) != EMSCRIPTEN_RESULT_SUCCESS) {
++        return SDL_SetError("Unable to make context current");
++    }
++    return 0;
++}
++
+ void
+ Emscripten_GLES_GetDrawableSize(_THIS, SDL_Window * window, int * w, int * h)
+ {
+@@ -116,4 +184,3 @@
+ #endif /* SDL_VIDEO_DRIVER_EMSCRIPTEN && SDL_VIDEO_OPENGL_EGL */
+
+ /* vi: set ts=4 sw=4 expandtab: */
+-
+--- a/src/video/emscripten/SDL_emscriptenopengles.h
++++ b/src/video/emscripten/SDL_emscriptenopengles.h
+@@ -34,10 +34,10 @@
+ #define Emscripten_GLES_UnloadLibrary SDL_EGL_UnloadLibrary
+ #define Emscripten_GLES_SetSwapInterval SDL_EGL_SetSwapInterval
+ #define Emscripten_GLES_GetSwapInterval SDL_EGL_GetSwapInterval
+-#define Emscripten_GLES_DeleteContext SDL_EGL_DeleteContext
+
+ extern int Emscripten_GLES_LoadLibrary(_THIS, const char *path);
+ extern SDL_GLContext Emscripten_GLES_CreateContext(_THIS, SDL_Window * window);
++extern void Emscripten_GLES_DeleteContext(_THIS, SDL_GLContext context);
+ extern int Emscripten_GLES_SwapWindow(_THIS, SDL_Window * window);
+ extern int Emscripten_GLES_MakeCurrent(_THIS, SDL_Window * window, SDL_GLContext context);
+ extern void Emscripten_GLES_GetDrawableSize(_THIS, SDL_Window * window, int * w, int * h);
+--- a/src/video/emscripten/SDL_emscriptenvideo.h
++++ b/src/video/emscripten/SDL_emscriptenvideo.h
+@@ -36,6 +36,7 @@
+ {
+ #if SDL_VIDEO_OPENGL_EGL
+     EGLSurface egl_surface;
++    SDL_GLContext gl_context;
+ #endif
+     SDL_Window *window;
+     SDL_Surface *surface;

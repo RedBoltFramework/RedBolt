@@ -16,7 +16,7 @@ target_link_libraries(redbolt-diligent-support
         SDL2::SDL2
         ${REDBOLT_GLEW_TARGET})
 target_include_directories(redbolt-diligent-support PRIVATE
-    "${CMAKE_SOURCE_DIR}/extern/Diligent/Graphics/GraphicsEngine/include"
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine/include"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/glew/include")
 set_target_properties(redbolt-diligent-support PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
@@ -31,11 +31,11 @@ target_compile_definitions(redbolt-imgui-backend PRIVATE
     ${REDBOLT_DILIGENT_BINDING_DEFINES})
 target_include_directories(redbolt-imgui-backend PRIVATE
     include
-    thirdparty
-    "${CMAKE_SOURCE_DIR}/extern")
+    thirdparty)
 target_link_libraries(redbolt-imgui-backend
     PUBLIC
         Diligent-GraphicsEngine
+        Diligent-GraphicsTools
         ${REDBOLT_DILIGENT_D3D11_TARGET}
         ${REDBOLT_DILIGENT_D3D12_TARGET}
         ${REDBOLT_DILIGENT_OPENGL_TARGET}
