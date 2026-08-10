@@ -5,6 +5,10 @@
 #endif
 #include <windows.h>
 
+#ifndef _Maybenull_
+#define _Maybenull_
+#endif
+
 #if defined(__MINGW32__) && !defined(SetThreadDescription)
 #ifdef __cplusplus
 extern "C"

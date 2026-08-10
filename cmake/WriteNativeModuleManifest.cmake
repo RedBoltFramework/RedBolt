@@ -76,6 +76,11 @@ else()
 endif()
 
 set(_redbolt_artifacts "${_redbolt_native_filename}")
+if(DEFINED REDBOLT_EXTRA_ARTIFACTS AND NOT REDBOLT_EXTRA_ARTIFACTS STREQUAL "")
+    string(REPLACE "," ";" _redbolt_extra_artifacts
+        "${REDBOLT_EXTRA_ARTIFACTS}")
+    list(APPEND _redbolt_artifacts ${_redbolt_extra_artifacts})
+endif()
 foreach(_redbolt_dependency IN LISTS _redbolt_resolved_dependencies)
     get_filename_component(_redbolt_dependency_filename
         "${_redbolt_dependency}" NAME)

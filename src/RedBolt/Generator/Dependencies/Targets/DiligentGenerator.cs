@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using SharpCpp.Model.Ast;
+using SharpCpp.Rendering;
 
 internal sealed class DiligentGenerator(string nativeLibraryName)
     : BindingTargetGenerator(
@@ -18,10 +19,15 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
         "-std=c++20",
         true)
 {
+    private readonly HashSet<string> _byteEnums = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _sbyteEnums = new(StringComparer.Ordinal);
+
     private static readonly HashSet<string> RetainedFunctions = new(StringComparer.Ordinal)
     {
-        "GetEngineFactoryOpenGL",
-        "GetEngineFactoryVk",
+        "LoadAndGetEngineFactoryOpenGL",
+        "LoadAndGetEngineFactoryD3D11",
+        "LoadAndGetEngineFactoryD3D12",
+        "LoadAndGetEngineFactoryVk",
         "InstallDebugMessageCallback",
         "CreateTemporaryGLProgram",
         "CreateProxySwapChainGL",
@@ -98,8 +104,55 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
 
     protected override void ConfigureBeforeValidation(BindingCompilation compilation)
     {
+        foreach (var @enum in compilation.Enums)
+        {
+            @enum.UnderlyingPrimitiveKind = @enum.UnderlyingTypeName switch
+            {
+                "Diligent::Int8" or "Int8" => BindingPrimitiveKind.Int8,
+                "Diligent::Uint8" or "Uint8" => BindingPrimitiveKind.UInt8,
+                "Diligent::Uint16" or "Uint16" => BindingPrimitiveKind.UInt16,
+                "Diligent::Uint32" or "Uint32" => BindingPrimitiveKind.UInt32,
+                _ => @enum.UnderlyingPrimitiveKind
+            };
+            if (@enum.UnderlyingPrimitiveKind is BindingPrimitiveKind.UInt8
+                or BindingPrimitiveKind.UInt16 or BindingPrimitiveKind.UInt32)
+            {
+                var managedType = @enum.UnderlyingPrimitiveKind switch
+                {
+                    BindingPrimitiveKind.UInt8 => "byte",
+                    BindingPrimitiveKind.UInt16 => "ushort",
+                    _ => "uint"
+                };
+                foreach (var value in @enum.Values)
+                {
+                    if (value.ValueExpression.StartsWith("-", StringComparison.Ordinal))
+                        value.ValueExpression = $"unchecked(({managedType}){value.ValueExpression})";
+                }
+            }
+            if (@enum.UnderlyingPrimitiveKind == BindingPrimitiveKind.UInt8)
+                _byteEnums.Add(@enum.ManagedName);
+            else if (@enum.UnderlyingPrimitiveKind == BindingPrimitiveKind.Int8)
+                _sbyteEnums.Add(@enum.ManagedName);
+        }
+
         FixedWidthAliasNormalizer.Normalize(compilation, FixedWidthAliases);
         ConfigureSetVertexBuffersOffsets(compilation);
+    }
+
+    protected override GeneratedBindingSet TransformBindings(GeneratedBindingSet bindings)
+    {
+        return new(bindings.Files.Select(file => file.RelativePath.EndsWith(".g.cs", StringComparison.Ordinal)
+            ? file with { Content = CorrectByteEnumUnderlyingTypes(file.Content) }
+            : file).ToArray());
+    }
+
+    private string CorrectByteEnumUnderlyingTypes(string content)
+    {
+        foreach (var managedName in _byteEnums)
+            content = content.Replace($"public enum {managedName} : int", $"public enum {managedName} : byte", StringComparison.Ordinal);
+        foreach (var managedName in _sbyteEnums)
+            content = content.Replace($"public enum {managedName} : int", $"public enum {managedName} : sbyte", StringComparison.Ordinal);
+        return content;
     }
 
     protected override void PostProcessCompilation(BindingCompilation compilation)

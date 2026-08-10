@@ -190,7 +190,9 @@ public class PipelineState : DeviceObject
                 ResourceLayoutNumImmutableSamplers = (uint)samplers.Count
             };
             using var createInfo = new ComputePipelineStateCreateInfo { PSODesc = nativeDesc, PCS = shader };
-            createInfo.PPSOCache = GetSubsystem<PipelineStateCache>()!.GetHandle()!;
+            var pipelineStateCache = GetSubsystem<PipelineStateCache>()!.GetHandle();
+            if (pipelineStateCache is { IsNull: false })
+                createInfo.PPSOCache = pipelineStateCache;
             device.CreateComputePipelineState(createInfo, out _handle);
             if (_handle is null || _handle.IsNull)
             {
@@ -328,7 +330,9 @@ public class PipelineState : DeviceObject
 
             ConfigureBlendState(createInfo, desc.BlendMode, desc.ColorWriteEnabled);
             ConfigureStencilState(createInfo, desc);
-            createInfo.PPSOCache = GetSubsystem<PipelineStateCache>()!.GetHandle()!;
+            var pipelineStateCache = GetSubsystem<PipelineStateCache>()!.GetHandle();
+            if (pipelineStateCache is { IsNull: false })
+                createInfo.PPSOCache = pipelineStateCache;
             device.CreateGraphicsPipelineState(createInfo, out _handle);
             if (_handle is null || _handle.IsNull)
             {
@@ -481,7 +485,7 @@ public class PipelineState : DeviceObject
                 if (inputIndex != -1)
                     ++Count;
             }
-            var elementSize = (int)DiligentNativeBindings.GetEngineFactoryOpenGL().GetAPIInfo().LayoutElementSize;
+            var elementSize = (int)DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL().GetAPIInfo().LayoutElementSize;
             _memory = Marshal.AllocHGlobal((int)Count * elementSize);
             var destinationIndex = 0;
             for (var i = 0; i < elements.Length; ++i)
@@ -526,7 +530,7 @@ public class PipelineState : DeviceObject
             if (resources.Length == 0)
                 return;
 
-            var immutableSamplerDescSize = (int)DiligentNativeBindings.GetEngineFactoryOpenGL().GetAPIInfo().ImmutableSamplerDescSize;
+            var immutableSamplerDescSize = (int)DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL().GetAPIInfo().ImmutableSamplerDescSize;
             _memory = Marshal.AllocHGlobal(checked(immutableSamplerDescSize * resources.Length));
             for (var i = 0; i < resources.Length; ++i)
             {

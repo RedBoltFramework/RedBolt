@@ -1,6 +1,9 @@
+set(REDBOLT_BINDING_CXX_COMPILER "${CMAKE_CXX_COMPILER}" CACHE FILEPATH
+    "C++ compiler used to discover headers for native binding generation")
+
 function(redbolt_add_native_binding_generation)
     set(options)
-    set(oneValueArgs TARGET SURFACE HEADER HEADER_INCLUDE_PATH FILE_STEM OUTPUT_DIR OUTPUT_CS OUTPUT_CPP OUTPUT_METADATA NATIVE_LIBRARY_NAME)
+    set(oneValueArgs TARGET SURFACE HEADER HEADER_INCLUDE_PATH FILE_STEM OUTPUT_DIR OUTPUT_CS OUTPUT_CPP OUTPUT_METADATA NATIVE_LIBRARY_NAME COMPILER)
     set(multiValueArgs INCLUDE_DIRS DEFINES OWNED_HEADERS)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
@@ -44,7 +47,10 @@ function(redbolt_add_native_binding_generation)
     endwhile()
 
     set(include_args)
-    foreach(include_dir IN LISTS REDBOLT_BINDING_INCLUDE_DIRS ARG_INCLUDE_DIRS compiler_flag_include_dirs)
+    foreach(include_dir IN LISTS
+            REDBOLT_BINDING_INCLUDE_DIRS
+            ARG_INCLUDE_DIRS
+            compiler_flag_include_dirs)
         if(NOT include_dir STREQUAL "")
             list(APPEND include_args --include "${include_dir}")
         endif()
@@ -84,6 +90,11 @@ function(redbolt_add_native_binding_generation)
         list(PREPEND binding_generator_command "${_redbolt_emscripten_environment}")
     endif()
 
+    set(binding_compiler "${REDBOLT_BINDING_CXX_COMPILER}")
+    if(ARG_COMPILER)
+        set(binding_compiler "${ARG_COMPILER}")
+    endif()
+
     add_custom_command(
         OUTPUT
             "${ARG_OUTPUT_CS}"
@@ -102,7 +113,7 @@ function(redbolt_add_native_binding_generation)
             --sharpcpp-root "${REDBOLT_SHARPCPP_ROOT}"
             --redbolt-root "${CMAKE_SOURCE_DIR}"
             --native-library-name "${ARG_NATIVE_LIBRARY_NAME}"
-            --compiler "${CMAKE_CXX_COMPILER}"
+            --compiler "${binding_compiler}"
             ${include_args}
             ${define_args}
             ${owned_header_args}

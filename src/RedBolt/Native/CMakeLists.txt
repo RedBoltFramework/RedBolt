@@ -36,6 +36,8 @@ target_include_directories(redbolt-imgui-backend PRIVATE
 target_link_libraries(redbolt-imgui-backend
     PUBLIC
         Diligent-GraphicsEngine
+        ${REDBOLT_DILIGENT_D3D11_TARGET}
+        ${REDBOLT_DILIGENT_D3D12_TARGET}
         ${REDBOLT_DILIGENT_OPENGL_TARGET}
         ImGui
         harfbuzz
@@ -139,6 +141,9 @@ function(redbolt_add_native_wrapper)
         INSTALL_RPATH "$ORIGIN"
         INSTALL_RPATH_USE_LINK_PATH OFF
         BUILD_WITH_INSTALL_RPATH TRUE)
+    if(WIN32)
+        set_target_properties(${ARG_TARGET} PROPERTIES PREFIX "")
+    endif()
 endfunction()
 
 redbolt_add_native_wrapper(
@@ -159,6 +164,8 @@ redbolt_add_native_wrapper(
     LINK_LIBRARIES
         SDL2::SDL2
         Diligent-GraphicsEngine
+        ${REDBOLT_DILIGENT_D3D11_TARGET}
+        ${REDBOLT_DILIGENT_D3D12_TARGET}
         ${REDBOLT_DILIGENT_OPENGL_TARGET}
         redbolt-native-support
         redbolt-diligent-support
@@ -317,14 +324,29 @@ endif()
 
 if(MINGW)
     set(_redbolt_mingw_runtime_files)
-    foreach(_redbolt_mingw_runtime IN ITEMS
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        get_filename_component(_redbolt_mingw_root "${CMAKE_CXX_COMPILER}" DIRECTORY)
+        get_filename_component(_redbolt_mingw_root "${_redbolt_mingw_root}" DIRECTORY)
+        set(_redbolt_mingw_runtime_names
+            libc++.dll
+            libunwind.dll
+            libwinpthread-1.dll)
+    else()
+        set(_redbolt_mingw_runtime_names
             libgcc_s_seh-1.dll
             libstdc++-6.dll
             libwinpthread-1.dll)
-        execute_process(
-            COMMAND "${CMAKE_CXX_COMPILER}" "-print-file-name=${_redbolt_mingw_runtime}"
-            OUTPUT_VARIABLE _redbolt_mingw_runtime_file
-            OUTPUT_STRIP_TRAILING_WHITESPACE)
+    endif()
+    foreach(_redbolt_mingw_runtime IN LISTS _redbolt_mingw_runtime_names)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            set(_redbolt_mingw_runtime_file
+                "${_redbolt_mingw_root}/${CMAKE_SYSTEM_PROCESSOR}-w64-mingw32/bin/${_redbolt_mingw_runtime}")
+        else()
+            execute_process(
+                COMMAND "${CMAKE_CXX_COMPILER}" "-print-file-name=${_redbolt_mingw_runtime}"
+                OUTPUT_VARIABLE _redbolt_mingw_runtime_file
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+        endif()
         if(NOT EXISTS "${_redbolt_mingw_runtime_file}")
             message(FATAL_ERROR "MinGW runtime was not found: ${_redbolt_mingw_runtime}")
         endif()
@@ -367,6 +389,23 @@ if(NOT EMSCRIPTEN)
         set(_redbolt_manifest_depends
             "${_redbolt_manifest_target}"
             "${CMAKE_SOURCE_DIR}/cmake/WriteNativeModuleManifest.cmake")
+        set(_redbolt_manifest_extra_artifacts)
+        if(_redbolt_native_module STREQUAL "DILIGENT")
+            foreach(_redbolt_diligent_runtime_target IN ITEMS
+                    "${REDBOLT_DILIGENT_D3D11_TARGET}"
+                    "${REDBOLT_DILIGENT_D3D12_TARGET}"
+                    "${REDBOLT_DILIGENT_OPENGL_TARGET}"
+                    "${REDBOLT_DILIGENT_VULKAN_TARGET}")
+                if(_redbolt_diligent_runtime_target)
+                    list(APPEND _redbolt_manifest_extra_artifacts
+                        "$<TARGET_FILE_NAME:${_redbolt_diligent_runtime_target}>")
+                    list(APPEND _redbolt_manifest_depends
+                        "${_redbolt_diligent_runtime_target}")
+                endif()
+            endforeach()
+        endif()
+        string(REPLACE ";" "," _redbolt_manifest_extra_artifacts_csv
+            "${_redbolt_manifest_extra_artifacts}")
         if(_redbolt_previous_native_manifest_file)
             list(APPEND _redbolt_manifest_depends
                 "${_redbolt_previous_native_manifest_file}")
@@ -380,6 +419,7 @@ if(NOT EMSCRIPTEN)
                 "-DREDBOLT_MANAGED_SELECTOR=${_redbolt_manifest_selector}"
                 "-DREDBOLT_NATIVE_LIBRARY_NAME=${_redbolt_manifest_library_name}"
                 "-DREDBOLT_REQUIRES=${_redbolt_manifest_requires_csv}"
+                "-DREDBOLT_EXTRA_ARTIFACTS=${_redbolt_manifest_extra_artifacts_csv}"
                 ${_redbolt_runtime_dependency_arguments}
                 -P "${CMAKE_SOURCE_DIR}/cmake/WriteNativeModuleManifest.cmake"
             DEPENDS ${_redbolt_manifest_depends}

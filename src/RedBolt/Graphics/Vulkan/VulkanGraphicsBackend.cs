@@ -37,9 +37,9 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
         if (deviceSettings.AdapterId.HasValue)
             createInfo.AdapterId = checked((uint)deviceSettings.AdapterId.Value);
 
-        var factory = DiligentNativeBindings.GetEngineFactoryVk();
+        var factory = DiligentNativeBindings.LoadAndGetEngineFactoryVk();
         if (factory.IsNull)
-            throw new InvalidOperationException("Generated GetEngineFactoryVk binding returned a null factory.");
+            throw new InvalidOperationException("Vulkan engine factory could not be loaded.");
 
         IRenderDevice device;
         IDeviceContext immediateContext;

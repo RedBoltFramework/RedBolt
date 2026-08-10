@@ -72,12 +72,14 @@ public class PipelineStateCache : DeviceObject
         else
             _renderDevice.GetRenderDevice()!.CreatePipelineStateCache(createInfo, out newHandle!);
 
-        if (newHandle is not null)
+        if (newHandle is { IsNull: false })
         {
             if (_handle is { IsNull: false })
                 _ = _handle.Release();
             _handle = newHandle;
         }
+        else
+            _handle = null;
 
         if (_handle is null || _handle.IsNull)
             Log.GetLogger().LogError("Failed to create GPU Pipeline State Cache.");

@@ -35,9 +35,13 @@
 #endif
 
 #if D3D11_SUPPORTED
+#include <d3d11.h>
+#include <EngineFactoryD3D11.h>
 #include <RenderDeviceD3D11.h>
 #endif
 #if D3D12_SUPPORTED
+#include <d3d12.h>
+#include <EngineFactoryD3D12.h>
 #include <RenderDeviceD3D12.h>
 #endif
 #if VULKAN_SUPPORTED

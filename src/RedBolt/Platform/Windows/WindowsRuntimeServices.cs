@@ -12,6 +12,8 @@ public static class WindowsPlatform
     {
         var runtimeServices = new RuntimeServices(new WindowsPlatformRuntime(),
         [
+            new D3D11GraphicsBackend(),
+            new D3D12GraphicsBackend(),
             new OpenGLGraphicsBackend(),
             new VulkanGraphicsBackend()
         ]);

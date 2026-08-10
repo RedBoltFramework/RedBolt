@@ -1,5 +1,31 @@
 set(REDBOLT_DILIGENT_SOURCE_ROOT "${REDBOLT_EXTERN_ROOT}/Diligent" CACHE INTERNAL "Diligent source root")
 redbolt_require_path("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine/interface/GraphicsTypes.h" "Diligent headers")
+if(MINGW)
+    set(_redbolt_diligent_mingw_patch "${CMAKE_CURRENT_LIST_DIR}/../cmake/Patches/Diligent-MinGW.patch")
+    execute_process(
+        COMMAND "${GIT_EXECUTABLE}" apply --check "${_redbolt_diligent_mingw_patch}"
+        WORKING_DIRECTORY "${REDBOLT_DILIGENT_SOURCE_ROOT}"
+        RESULT_VARIABLE _redbolt_diligent_patch_applies
+        OUTPUT_QUIET ERROR_QUIET)
+    if(_redbolt_diligent_patch_applies EQUAL 0)
+        execute_process(
+            COMMAND "${GIT_EXECUTABLE}" apply "${_redbolt_diligent_mingw_patch}"
+            WORKING_DIRECTORY "${REDBOLT_DILIGENT_SOURCE_ROOT}"
+            RESULT_VARIABLE _redbolt_diligent_patch_result)
+        if(NOT _redbolt_diligent_patch_result EQUAL 0)
+            message(FATAL_ERROR "Failed to apply Diligent MinGW compatibility patch")
+        endif()
+    else()
+        execute_process(
+            COMMAND "${GIT_EXECUTABLE}" apply --reverse --check "${_redbolt_diligent_mingw_patch}"
+            WORKING_DIRECTORY "${REDBOLT_DILIGENT_SOURCE_ROOT}"
+            RESULT_VARIABLE _redbolt_diligent_patch_is_applied
+            OUTPUT_QUIET ERROR_QUIET)
+        if(NOT _redbolt_diligent_patch_is_applied EQUAL 0)
+            message(FATAL_ERROR "Diligent MinGW compatibility patch does not apply cleanly")
+        endif()
+    endif()
+endif()
 
 set(DILIGENT_INSTALL_CORE OFF CACHE BOOL "" FORCE)
 set(DILIGENT_INSTALL_PDB OFF CACHE BOOL "" FORCE)
@@ -8,8 +34,13 @@ set(DILIGENT_NO_FORMAT_VALIDATION ON CACHE BOOL "" FORCE)
 set(DILIGENT_NO_HLSL ON CACHE BOOL "" FORCE)
 set(DILIGENT_NO_ARCHIVER OFF CACHE BOOL "" FORCE)
 set(DILIGENT_NO_SUPER_RESOLUTION ON CACHE BOOL "" FORCE)
-set(DILIGENT_NO_DIRECT3D11 ON CACHE BOOL "" FORCE)
-set(DILIGENT_NO_DIRECT3D12 ON CACHE BOOL "" FORCE)
+if(WIN32)
+    set(DILIGENT_NO_DIRECT3D11 OFF CACHE BOOL "" FORCE)
+    set(DILIGENT_NO_DIRECT3D12 OFF CACHE BOOL "" FORCE)
+else()
+    set(DILIGENT_NO_DIRECT3D11 ON CACHE BOOL "" FORCE)
+    set(DILIGENT_NO_DIRECT3D12 ON CACHE BOOL "" FORCE)
+endif()
 set(DILIGENT_NO_OPENGL OFF CACHE BOOL "" FORCE)
 set(DILIGENT_NO_METAL ON CACHE BOOL "" FORCE)
 set(DILIGENT_NO_WEBGPU ON CACHE BOOL "" FORCE)
@@ -23,10 +54,15 @@ if(EMSCRIPTEN)
 else()
     set(DILIGENT_NO_VULKAN OFF CACHE BOOL "" FORCE)
 endif()
+if(MINGW)
+    set(DILIGENT_D3D12_COMPILED_SHADERS_DIR
+        "${CMAKE_CURRENT_LIST_DIR}/../cmake/Toolchains/MinGW/CompiledShaders/GenerateMips"
+        CACHE PATH "" FORCE)
+endif()
 
 set(_redbolt_saved_build_shared_libs "${BUILD_SHARED_LIBS}")
 set(BUILD_SHARED_LIBS OFF)
-if(EMSCRIPTEN)
+if(EMSCRIPTEN OR MINGW)
     set(CMAKE_CXX_LINK_LIBRARY_USING_WHOLE_ARCHIVE
         "LINKER:--whole-archive"
         "<LINK_ITEM>"
@@ -38,15 +74,31 @@ redbolt_add_external_subdirectory(
     "${CMAKE_BINARY_DIR}/deps/Diligent")
 set(BUILD_SHARED_LIBS "${_redbolt_saved_build_shared_libs}")
 
+if(MINGW AND (D3D11_SUPPORTED OR D3D12_SUPPORTED))
+    target_compile_definitions(Diligent-BuildSettings INTERFACE _Maybenull_=)
+    target_include_directories(Diligent-ShaderTools PUBLIC
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/DirectXShaderCompiler")
+endif()
+
 if(NOT EMSCRIPTEN)
     set_target_properties(glew-static PROPERTIES
         C_VISIBILITY_PRESET default
         CXX_VISIBILITY_PRESET default
         VISIBILITY_INLINES_HIDDEN OFF)
-    set_target_properties(
+    set(_redbolt_diligent_shared_targets
         Diligent-GraphicsEngineOpenGL-shared
-        Diligent-GraphicsEngineVk-shared
-        PROPERTIES PREFIX "${CMAKE_SHARED_LIBRARY_PREFIX}")
+        Diligent-GraphicsEngineVk-shared)
+    if(WIN32)
+        list(APPEND _redbolt_diligent_shared_targets
+            Diligent-GraphicsEngineD3D11-shared
+            Diligent-GraphicsEngineD3D12-shared)
+    endif()
+    if(WIN32)
+        set_target_properties(${_redbolt_diligent_shared_targets} PROPERTIES PREFIX "")
+    else()
+        set_target_properties(${_redbolt_diligent_shared_targets}
+            PROPERTIES PREFIX "${CMAKE_SHARED_LIBRARY_PREFIX}")
+    endif()
     set_property(TARGET spirv-cross-c-shared PROPERTY VERSION)
     set_property(TARGET spirv-cross-c-shared PROPERTY SOVERSION)
 endif()
@@ -69,12 +121,15 @@ if(MINGW)
             Diligent-GraphicsEngineVk-shared
             Diligent-Archiver-shared)
         get_target_property(_redbolt_link_options ${_redbolt_diligent_target} LINK_OPTIONS)
-        get_target_property(_redbolt_binary_dir ${_redbolt_diligent_target} BINARY_DIR)
-        list(TRANSFORM _redbolt_link_options REPLACE
-            "^LINKER:--version-script=export.map$"
-            "LINKER:--version-script=${_redbolt_binary_dir}/export.map")
+        list(FILTER _redbolt_link_options EXCLUDE REGEX "--version-script")
         set_property(TARGET ${_redbolt_diligent_target} PROPERTY LINK_OPTIONS ${_redbolt_link_options})
     endforeach()
+    target_sources(Diligent-GraphicsEngineOpenGL-shared PRIVATE
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineOpenGL/src/GraphicsEngineOpenGL.def")
+    target_sources(Diligent-GraphicsEngineVk-shared PRIVATE
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineVulkan/src/GraphicsEngineVk.def")
+    target_sources(Diligent-Archiver-shared PRIVATE
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/Archiver/src/Archiver.def")
 
     foreach(_redbolt_diligent_target IN ITEMS
             Diligent-GraphicsEngineOpenGL-static
@@ -82,6 +137,18 @@ if(MINGW)
         redbolt_replace_diligent_link_library(
             ${_redbolt_diligent_target} "opengl32.lib" "opengl32")
     endforeach()
+
+    foreach(_redbolt_diligent_target IN ITEMS
+            Diligent-GraphicsEngineD3D11-static
+            Diligent-GraphicsEngineD3D12-static)
+        redbolt_replace_diligent_link_library(
+            ${_redbolt_diligent_target} "dxgi.lib" "dxgi")
+        redbolt_replace_diligent_link_library(
+            ${_redbolt_diligent_target} "d3dcompiler.lib" "d3dcompiler")
+        target_link_libraries(${_redbolt_diligent_target} PUBLIC dxguid)
+    endforeach()
+    redbolt_replace_diligent_link_library(
+        Diligent-GraphicsEngineD3D11-static "d3d11.lib" "d3d11")
 
     redbolt_replace_diligent_link_library(
         Diligent-Win32Platform "Shlwapi.lib" "shlwapi")
@@ -104,6 +171,9 @@ if(EMSCRIPTEN)
 elseif(WIN32)
     list(APPEND REDBOLT_DILIGENT_INCLUDE_DIRS
         "${REDBOLT_DILIGENT_SOURCE_ROOT}/Platforms/Win32/interface"
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineD3DBase/interface"
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineD3D11/interface"
+        "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineD3D12/interface"
         "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineVulkan/interface"
         "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/Vulkan-Headers/include"
         "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/volk")
@@ -122,15 +192,13 @@ if(EMSCRIPTEN)
     set(_redbolt_graphics_defines "GL_SUPPORTED=0" "GLES_SUPPORTED=1" "VULKAN_SUPPORTED=0" "WEBGPU_SUPPORTED=0")
 elseif(WIN32)
     set(_redbolt_platform_defines "PLATFORM_WIN32=1" "PLATFORM_LINUX=0")
-    set(_redbolt_graphics_defines "GL_SUPPORTED=1" "GLES_SUPPORTED=0" "VULKAN_SUPPORTED=1" "WEBGPU_SUPPORTED=0")
+    set(_redbolt_graphics_defines "D3D11_SUPPORTED=1" "D3D12_SUPPORTED=1" "GL_SUPPORTED=1" "GLES_SUPPORTED=0" "VULKAN_SUPPORTED=1" "WEBGPU_SUPPORTED=0")
 else()
     set(_redbolt_platform_defines "PLATFORM_WEB=0" "PLATFORM_EMSCRIPTEN=0" "PLATFORM_LINUX=1")
     set(_redbolt_graphics_defines "GL_SUPPORTED=1" "GLES_SUPPORTED=0" "VULKAN_SUPPORTED=1" "WEBGPU_SUPPORTED=0")
 endif()
 set(REDBOLT_DILIGENT_BINDING_DEFINES
     ${_redbolt_platform_defines}
-    "D3D11_SUPPORTED=0"
-    "D3D12_SUPPORTED=0"
     ${_redbolt_graphics_defines}
     "METAL_SUPPORTED=0"
     "DILIGENT_NO_HLSL=1"
@@ -155,6 +223,11 @@ target_link_libraries(redbolt-diligent-headers INTERFACE
 if(NOT EMSCRIPTEN)
     target_link_libraries(redbolt-diligent-headers INTERFACE Diligent-GraphicsEngineVkInterface)
 endif()
+if(WIN32)
+    target_link_libraries(redbolt-diligent-headers INTERFACE
+        Diligent-GraphicsEngineD3D11Interface
+        Diligent-GraphicsEngineD3D12Interface)
+endif()
 
 if(EMSCRIPTEN)
     set(REDBOLT_DILIGENT_OPENGL_TARGET Diligent-GraphicsEngineOpenGL-static)
@@ -166,9 +239,13 @@ else()
     set(REDBOLT_DILIGENT_OPENGL_TARGET Diligent-GraphicsEngineOpenGL-shared)
     set(REDBOLT_DILIGENT_VULKAN_TARGET Diligent-GraphicsEngineVk-shared)
     if(WIN32)
+        set(REDBOLT_DILIGENT_D3D11_TARGET Diligent-GraphicsEngineD3D11-shared)
+        set(REDBOLT_DILIGENT_D3D12_TARGET Diligent-GraphicsEngineD3D12-shared)
         set(REDBOLT_GLEW_TARGET glew-static opengl32)
         set(REDBOLT_SPIRV_TOOLS_TARGET SPIRV-Tools)
     else()
+        set(REDBOLT_DILIGENT_D3D11_TARGET "")
+        set(REDBOLT_DILIGENT_D3D12_TARGET "")
         set(REDBOLT_GLEW_TARGET "")
         set(REDBOLT_SPIRV_TOOLS_TARGET SPIRV-Tools-shared)
     endif()
@@ -176,11 +253,15 @@ else()
 endif()
 set(REDBOLT_DILIGENT_OPENGL_TARGET "${REDBOLT_DILIGENT_OPENGL_TARGET}" CACHE INTERNAL "" FORCE)
 set(REDBOLT_DILIGENT_VULKAN_TARGET "${REDBOLT_DILIGENT_VULKAN_TARGET}" CACHE INTERNAL "" FORCE)
+set(REDBOLT_DILIGENT_D3D11_TARGET "${REDBOLT_DILIGENT_D3D11_TARGET}" CACHE INTERNAL "" FORCE)
+set(REDBOLT_DILIGENT_D3D12_TARGET "${REDBOLT_DILIGENT_D3D12_TARGET}" CACHE INTERNAL "" FORCE)
 set(REDBOLT_GLEW_TARGET "${REDBOLT_GLEW_TARGET}" CACHE INTERNAL "" FORCE)
 set(REDBOLT_SPIRV_CROSS_TARGET "${REDBOLT_SPIRV_CROSS_TARGET}" CACHE INTERNAL "" FORCE)
 set(REDBOLT_SPIRV_TOOLS_TARGET "${REDBOLT_SPIRV_TOOLS_TARGET}" CACHE INTERNAL "" FORCE)
 set(REDBOLT_DILIGENT_ENGINE_TARGETS
     Diligent-GraphicsEngine
+    ${REDBOLT_DILIGENT_D3D11_TARGET}
+    ${REDBOLT_DILIGENT_D3D12_TARGET}
     ${REDBOLT_DILIGENT_OPENGL_TARGET}
     ${REDBOLT_DILIGENT_VULKAN_TARGET})
 add_custom_target(redbolt-diligent-build

@@ -164,7 +164,10 @@ public static class RenderAPIUtils
 
     public static bool IsDepthTextureFormat(TextureFormat format)
     {
-        var componentType = NativeTextureFormatInfos[(int)format].ComponentType;
+        var formatValue = (int)format;
+        if ((uint)formatValue >= (uint)NativeTextureFormatInfos.Length)
+            throw new ArgumentOutOfRangeException(nameof(format), formatValue, "Texture format is outside the native Diligent range.");
+        var componentType = NativeTextureFormatInfos[formatValue].ComponentType;
         return componentType is global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeDepth
             or global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeDepthStencil;
     }

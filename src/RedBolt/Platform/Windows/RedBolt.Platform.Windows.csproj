@@ -7,6 +7,7 @@
     <Compile Include="../Application.cs" Link="Application.cs" />
     <ProjectReference Include="../../Audio/RedBolt.Audio.csproj" />
     <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
+    <ProjectReference Include="../../Graphics/Direct3D/RedBolt.Graphics.Direct3D.csproj" />
     <ProjectReference Include="../../Graphics/OpenGL/RedBolt.Graphics.OpenGL.csproj" />
     <ProjectReference Include="../../Graphics/Vulkan/RedBolt.Graphics.Vulkan.csproj" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"

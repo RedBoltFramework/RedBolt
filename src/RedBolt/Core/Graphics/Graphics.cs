@@ -1126,13 +1126,15 @@ layout(std140) uniform Material
             _configuredMultiSample = backendResources.MultiSample;
 
             using (var swapChainDescription = _swapChain.GetDesc())
+            {
                 _swapChainPreTransform = swapChainDescription.PreTransform;
+                _swapChainColorFormat = swapChainDescription.ColorBufferFormat;
+                _swapChainDepthFormat = swapChainDescription.DepthBufferFormat;
+            }
             _renderTargetView = _swapChain.GetCurrentBackBufferRTV();
             _depthStencilView = _swapChain.GetDepthBufferDSV();
             if (_renderTargetView.IsNull || _depthStencilView.IsNull)
                 throw new InvalidOperationException("Swap chain render target or depth view was null.");
-            _swapChainColorFormat = GetTextureViewFormat(_renderTargetView);
-            _swapChainDepthFormat = GetTextureViewFormat(_depthStencilView);
             _renderTargets[0] = _renderTargetView;
 
             windowSettings.Size = new Vector2i(Width, Height);
@@ -4469,14 +4471,14 @@ layout(std140) uniform Material
 
     private static TextureDescOwner CreateTextureDesc()
     {
-        var factory = DiligentNativeBindings.GetEngineFactoryOpenGL();
+        var factory = DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL();
         var apiInfo = factory.GetAPIInfo();
         return new TextureDescOwner((int)apiInfo.TextureDescSize);
     }
 
     private static TextureViewDescOwner CreateTextureViewDesc()
     {
-        var factory = DiligentNativeBindings.GetEngineFactoryOpenGL();
+        var factory = DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL();
         var apiInfo = factory.GetAPIInfo();
         return new TextureViewDescOwner((int)apiInfo.TextureViewDescSize);
     }
@@ -4985,7 +4987,7 @@ layout(std140) uniform Material
             if (Count == 0)
                 throw new InvalidOperationException("Graphics pipeline layout may not be empty.");
 
-            var layoutElementSize = (int)DiligentNativeBindings.GetEngineFactoryOpenGL().GetAPIInfo().LayoutElementSize;
+            var layoutElementSize = (int)DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL().GetAPIInfo().LayoutElementSize;
             _memory = Marshal.AllocHGlobal(Count * layoutElementSize);
             for (var i = 0; i < Count; ++i)
             {
@@ -5143,7 +5145,7 @@ layout(std140) uniform Material
             if (resources.Length == 0)
                 return;
 
-            var immutableSamplerDescSize = (int)DiligentNativeBindings.GetEngineFactoryOpenGL().GetAPIInfo().ImmutableSamplerDescSize;
+            var immutableSamplerDescSize = (int)DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL().GetAPIInfo().ImmutableSamplerDescSize;
             _memory = Marshal.AllocHGlobal(checked(immutableSamplerDescSize * resources.Length));
             for (var i = 0; i < resources.Length; ++i)
             {

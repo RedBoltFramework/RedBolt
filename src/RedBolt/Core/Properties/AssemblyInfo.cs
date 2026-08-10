@@ -5,4 +5,5 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Graphics.OpenGL")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Graphics.OpenGLES")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Graphics.Vulkan")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Graphics.Direct3D")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.UserCode.Desktop")]

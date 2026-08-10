@@ -19,7 +19,11 @@ internal static class CompilerToolchainDiscovery
         var parserClangMajorVersion = DiscoverParserClangMajorVersion();
         var toolchainClangCompilerPath = ResolveToolchainCompiler(compilerPath, parserClangMajorVersion);
         var targetTriple = DiscoverTargetTriple(compilerPath);
-        var includeCompilerPath = targetTriple?.StartsWith("wasm", StringComparison.OrdinalIgnoreCase) == true
+        var useRequestedCompilerIncludes =
+            targetTriple?.StartsWith("wasm", StringComparison.OrdinalIgnoreCase) == true ||
+            targetTriple?.Contains("windows", StringComparison.OrdinalIgnoreCase) == true ||
+            targetTriple?.Contains("mingw", StringComparison.OrdinalIgnoreCase) == true;
+        var includeCompilerPath = useRequestedCompilerIncludes
             ? compilerPath
             : toolchainClangCompilerPath;
         var includeDirectories = DiscoverVerboseSearchPaths(includeCompilerPath, targetTriple);

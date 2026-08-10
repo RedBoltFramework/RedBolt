@@ -72,9 +72,9 @@ public sealed class OpenGLGraphicsBackend : IGraphicsBackend
                 DepthBufferFormat = TextureFormat.TexFormatUnknown
             };
 
-            var factory = DiligentNativeBindings.GetEngineFactoryOpenGL();
+            var factory = DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL();
             if (factory.IsNull)
-                throw new InvalidOperationException("Generated GetEngineFactoryOpenGL binding returned a null factory.");
+                throw new InvalidOperationException("OpenGL engine factory could not be loaded.");
 
             factory.AttachToActiveGLContext(engineCreateInfo, out var device, out var immediateContext);
             if (device.IsNull || immediateContext.IsNull)

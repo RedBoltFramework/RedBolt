@@ -29,6 +29,11 @@ set(EMBREE_CMAKEEXPORT_DIR "${CMAKE_INSTALL_LIBDIR}" CACHE STRING "Embree CMake 
 redbolt_add_external_subdirectory(
     "${REDBOLT_EMBREE_SOURCE_ROOT}"
     "${CMAKE_BINARY_DIR}/deps/Embree")
+if(MINGW)
+    foreach(_redbolt_embree_target IN ITEMS embree lexers math simd sys tasking)
+        target_compile_definitions(${_redbolt_embree_target} PRIVATE _USE_MATH_DEFINES)
+    endforeach()
+endif()
 set_target_properties(embree PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set(REDBOLT_EMBREE_INCLUDE_DIR "${REDBOLT_EMBREE_SOURCE_ROOT}/include" CACHE INTERNAL "Embree source include directory")
 set(REDBOLT_EMBREE_BUILD_INCLUDE_DIR "${CMAKE_BINARY_DIR}/deps/Embree/include" CACHE INTERNAL "Embree generated include directory")
