@@ -375,7 +375,7 @@ if(NOT EMSCRIPTEN AND NOT ANDROID)
     endif()
     set(_redbolt_native_manifest_files)
     set(_redbolt_previous_native_manifest_file)
-    foreach(_redbolt_native_module IN LISTS REDBOLT_NATIVE_MODULES)
+    foreach(_redbolt_native_module IN LISTS REDBOLT_SELECTED_NATIVE_MODULES)
         redbolt_native_module_value(
             "${_redbolt_native_module}" TARGET _redbolt_manifest_target)
         redbolt_native_module_value(
@@ -439,6 +439,7 @@ if(NOT EMSCRIPTEN AND NOT ANDROID)
         COMMAND "${CMAKE_COMMAND}"
             "-DREDBOLT_MANIFEST_DIRECTORY=${_redbolt_native_manifest_directory}"
             "-DREDBOLT_INDEX_FILE=${_redbolt_native_manifest_index}"
+            "-DREDBOLT_MODULES=${REDBOLT_SELECTED_NATIVE_MODULES}"
             -P "${CMAKE_SOURCE_DIR}/cmake/WriteNativeModuleIndex.cmake"
         DEPENDS
             ${_redbolt_native_manifest_files}
@@ -449,25 +450,14 @@ if(NOT EMSCRIPTEN AND NOT ANDROID)
         DEPENDS "${_redbolt_native_manifest_index}")
 endif()
 
-add_custom_target(redbolt-native-all
-    DEPENDS
-        ${REDBOLT_SDL_NATIVE_TARGET}
-        ${REDBOLT_DILIGENT_NATIVE_TARGET}
-        ${REDBOLT_IMGUI_NATIVE_TARGET}
-        ${REDBOLT_STB_NATIVE_TARGET}
-        ${REDBOLT_TINYGLTF_NATIVE_TARGET}
-        ${REDBOLT_LZ4_NATIVE_TARGET}
-        ${REDBOLT_HARFBUZZ_NATIVE_TARGET}
-        ${REDBOLT_RMLUI_NATIVE_TARGET}
-        ${REDBOLT_WEBP_NATIVE_TARGET}
-        ${REDBOLT_XATLAS_NATIVE_TARGET}
-        ${REDBOLT_EMBREE_NATIVE_TARGET}
-        ${REDBOLT_GLSLANG_NATIVE_TARGET}
-        ${REDBOLT_SPIRV_CROSS_NATIVE_TARGET}
-        ${REDBOLT_SPIRV_TOOLS_NATIVE_TARGET}
-        ${REDBOLT_SHADER_COMPILER_NATIVE_TARGET}
-        ${REDBOLT_JOLT_NATIVE_TARGET}
-        ${REDBOLT_LIBDATACHANNEL_NATIVE_TARGET})
+set(_redbolt_selected_native_targets)
+foreach(_redbolt_selected_native_module IN LISTS REDBOLT_SELECTED_NATIVE_MODULES)
+    redbolt_native_module_value(
+        "${_redbolt_selected_native_module}" TARGET _redbolt_selected_native_target)
+    list(APPEND _redbolt_selected_native_targets "${_redbolt_selected_native_target}")
+endforeach()
+
+add_custom_target(redbolt-native-all DEPENDS ${_redbolt_selected_native_targets})
 if(NOT EMSCRIPTEN AND NOT ANDROID)
     add_dependencies(redbolt-native-all redbolt-native-manifests)
 endif()
@@ -484,19 +474,5 @@ if(ANDROID)
     add_custom_target(redbolt-android-native
         DEPENDS
             redbolt-android-java
-            ${REDBOLT_SDL_NATIVE_TARGET}
-            ${REDBOLT_DILIGENT_NATIVE_TARGET}
-            ${REDBOLT_IMGUI_NATIVE_TARGET}
-            ${REDBOLT_STB_NATIVE_TARGET}
-            ${REDBOLT_TINYGLTF_NATIVE_TARGET}
-            ${REDBOLT_LZ4_NATIVE_TARGET}
-            ${REDBOLT_HARFBUZZ_NATIVE_TARGET}
-            ${REDBOLT_RMLUI_NATIVE_TARGET}
-            ${REDBOLT_WEBP_NATIVE_TARGET}
-            ${REDBOLT_GLSLANG_NATIVE_TARGET}
-            ${REDBOLT_SPIRV_CROSS_NATIVE_TARGET}
-            ${REDBOLT_SPIRV_TOOLS_NATIVE_TARGET}
-            ${REDBOLT_SHADER_COMPILER_NATIVE_TARGET}
-            ${REDBOLT_JOLT_NATIVE_TARGET}
-            ${REDBOLT_LIBDATACHANNEL_NATIVE_TARGET})
+            ${_redbolt_selected_native_targets})
 endif()

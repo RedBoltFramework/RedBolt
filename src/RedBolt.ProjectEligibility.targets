@@ -1,0 +1,54 @@
+<Project>
+  <PropertyGroup>
+    <_RedBoltProjectPlatformEnabled>false</_RedBoltProjectPlatformEnabled>
+    <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'tools'">true</_RedBoltProjectPlatformEnabled>
+    <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'linux-x64' and '$(RedBoltLinuxEnabled)' == 'true' and '$(RedBoltX64Enabled)' == 'true'">true</_RedBoltProjectPlatformEnabled>
+    <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'win-x64' and '$(RedBoltWindowsEnabled)' == 'true' and '$(RedBoltX64Enabled)' == 'true'">true</_RedBoltProjectPlatformEnabled>
+    <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'android-x64' and '$(RedBoltAndroidEnabled)' == 'true' and '$(RedBoltX64Enabled)' == 'true'">true</_RedBoltProjectPlatformEnabled>
+    <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'android-arm64' and '$(RedBoltAndroidEnabled)' == 'true' and '$(RedBoltArm64Enabled)' == 'true'">true</_RedBoltProjectPlatformEnabled>
+    <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'browser-wasm' and '$(RedBoltWebEnabled)' == 'true'">true</_RedBoltProjectPlatformEnabled>
+
+    <_RedBoltProjectModuleEnabled>true</_RedBoltProjectModuleEnabled>
+    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Actions'">$(RedBoltActionsEnabled)</_RedBoltProjectModuleEnabled>
+    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Audio'">$(RedBoltAudioEnabled)</_RedBoltProjectModuleEnabled>
+    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.DearImGui' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.DearImGui'">$(RedBoltDearImGuiEnabled)</_RedBoltProjectModuleEnabled>
+    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Glow' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.XAtlas' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.Embree'">$(RedBoltGlowEnabled)</_RedBoltProjectModuleEnabled>
+    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.IK'">$(RedBoltIKEnabled)</_RedBoltProjectModuleEnabled>
+    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Navigation'">$(RedBoltNavigationEnabled)</_RedBoltProjectModuleEnabled>
+    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Network' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.LibDataChannel'">$(RedBoltNetworkEnabled)</_RedBoltProjectModuleEnabled>
+    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Particles'">$(RedBoltParticlesEnabled)</_RedBoltProjectModuleEnabled>
+    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.PhysicsJolt' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.Jolt'">$(RedBoltPhysicsJoltEnabled)</_RedBoltProjectModuleEnabled>
+    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.RmlUI' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.RmlUi'">$(RedBoltRmlUIEnabled)</_RedBoltProjectModuleEnabled>
+    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Utility' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.TinyGltf'">$(RedBoltUtilityEnabled)</_RedBoltProjectModuleEnabled>
+    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Editor'">$(RedBoltEditorEnabled)</_RedBoltProjectModuleEnabled>
+    <_RedBoltProjectModuleEnabled Condition="$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Sample.')) or '$(MSBuildProjectName)' == 'RedBolt.UserCode.Desktop'">$(RedBoltSamplesEnabled)</_RedBoltProjectModuleEnabled>
+    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Tests'">$(RedBoltTestsEnabled)</_RedBoltProjectModuleEnabled>
+
+    <_RedBoltProjectPlatformSupported>true</_RedBoltProjectPlatformSupported>
+    <_RedBoltProjectPlatformSupported Condition="('$(MSBuildProjectName)' == 'RedBolt.Native.Android' or '$(MSBuildProjectName)' == 'RedBolt.Sample.Android') and !$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">false</_RedBoltProjectPlatformSupported>
+    <_RedBoltProjectPlatformSupported Condition="('$(MSBuildProjectName)' == 'RedBolt.Native.Web' or '$(MSBuildProjectName)' == 'RedBolt.Sample.Web') and '$(RedBoltPlatform)' != 'browser-wasm'">false</_RedBoltProjectPlatformSupported>
+    <_RedBoltProjectPlatformSupported Condition="('$(MSBuildProjectName)' == 'RedBolt.Native' or ('$(MSBuildProjectName)' != 'RedBolt.Sample.Android' and '$(MSBuildProjectName)' != 'RedBolt.Sample.Web' and $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Sample.'))) or '$(MSBuildProjectName)' == 'RedBolt.Editor' or '$(MSBuildProjectName)' == 'RedBolt.UserCode.Desktop' or '$(MSBuildProjectName)' == 'RedBolt.Tests') and '$(RedBoltPlatform)' != 'linux-x64' and '$(RedBoltPlatform)' != 'win-x64'">false</_RedBoltProjectPlatformSupported>
+    <_RedBoltProjectPlatformSupported Condition="('$(MSBuildProjectName)' == 'RedBolt.Glow' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.XAtlas' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.Embree') and '$(RedBoltPlatform)' != 'linux-x64' and '$(RedBoltPlatform)' != 'win-x64'">false</_RedBoltProjectPlatformSupported>
+    <_RedBoltProjectPlatformSupported Condition="('$(MSBuildProjectName)' == 'RedBolt.Utility' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.TinyGltf') and '$(RedBoltPlatform)' == 'browser-wasm'">false</_RedBoltProjectPlatformSupported>
+
+    <RedBoltProjectBuildEnabled Condition="'$(_RedBoltProjectPlatformEnabled)' == 'true' and '$(_RedBoltProjectPlatformSupported)' == 'true' and '$(_RedBoltProjectModuleEnabled)' == 'true'">true</RedBoltProjectBuildEnabled>
+    <RedBoltProjectBuildEnabled Condition="'$(RedBoltIgnoreBuildSelection)' == 'true'">true</RedBoltProjectBuildEnabled>
+    <RedBoltProjectBuildEnabled Condition="'$(RedBoltProjectBuildEnabled)' == ''">false</RedBoltProjectBuildEnabled>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(RedBoltProjectBuildEnabled)' != 'true'">
+    <BuildDependsOn>RedBoltReportSkippedProject</BuildDependsOn>
+    <RebuildDependsOn>RedBoltReportSkippedProject</RebuildDependsOn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'RedBolt.Build'">
+    <BuildDependsOn>RedBoltBuildSelectedProjects</BuildDependsOn>
+    <RebuildDependsOn>RedBoltBuildSelectedProjects</RebuildDependsOn>
+    <CleanDependsOn>RedBoltCleanSelectedProjects</CleanDependsOn>
+  </PropertyGroup>
+
+  <Target Name="RedBoltReportSkippedProject">
+    <Message Importance="high"
+             Text="Skipping $(MSBuildProjectName): it is disabled for RedBolt platform '$(RedBoltPlatform)'." />
+  </Target>
+</Project>

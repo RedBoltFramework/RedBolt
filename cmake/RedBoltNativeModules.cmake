@@ -113,3 +113,30 @@ foreach(_redbolt_native_module IN LISTS REDBOLT_NATIVE_MODULES)
         message(FATAL_ERROR "Incomplete native module '${_redbolt_native_module}'")
     endif()
 endforeach()
+
+set(REDBOLT_ENABLED_NATIVE_MODULES "" CACHE STRING
+    "Comma-separated RedBolt native wrapper modules to build")
+if(REDBOLT_ENABLED_NATIVE_MODULES STREQUAL "")
+    set(REDBOLT_SELECTED_NATIVE_MODULES ${REDBOLT_NATIVE_MODULES})
+else()
+    string(REPLACE "," ";" REDBOLT_SELECTED_NATIVE_MODULES
+        "${REDBOLT_ENABLED_NATIVE_MODULES}")
+    list(TRANSFORM REDBOLT_SELECTED_NATIVE_MODULES TOUPPER)
+    list(REMOVE_DUPLICATES REDBOLT_SELECTED_NATIVE_MODULES)
+    foreach(_redbolt_selected_native_module IN LISTS REDBOLT_SELECTED_NATIVE_MODULES)
+        list(FIND REDBOLT_NATIVE_MODULES
+            "${_redbolt_selected_native_module}" _redbolt_selected_native_index)
+        if(_redbolt_selected_native_index EQUAL -1)
+            message(FATAL_ERROR
+                "Unknown RedBolt native module '${_redbolt_selected_native_module}'")
+        endif()
+    endforeach()
+endif()
+
+# These wrappers are not available on the corresponding platform. The managed
+# project graph makes the same platform choice.
+if(ANDROID)
+    list(REMOVE_ITEM REDBOLT_SELECTED_NATIVE_MODULES XATLAS EMBREE)
+elseif(EMSCRIPTEN)
+    list(REMOVE_ITEM REDBOLT_SELECTED_NATIVE_MODULES XATLAS EMBREE LIBDATACHANNEL)
+endif()

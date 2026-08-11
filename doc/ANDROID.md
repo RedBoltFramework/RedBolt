@@ -27,9 +27,15 @@ The project reads the root from the `RedBoltAndroidRoot` MSBuild property. Set t
 Restore and build the Android sample host:
 
 ```sh
-dotnet restore src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj
+dotnet restore src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj \
+  -p:RedBoltDisablePlatforms=all -p:RedBoltEnablePlatforms=android \
+  -p:RedBoltDisableArchitectures=all -p:RedBoltEnableArchitectures=all \
+  -p:RedBoltEnableModules=all
 dotnet build src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj \
-  --configuration Debug --no-restore
+  --configuration Debug --no-restore \
+  -p:RedBoltDisablePlatforms=all -p:RedBoltEnablePlatforms=android \
+  -p:RedBoltDisableArchitectures=all -p:RedBoltEnableArchitectures=all \
+  -p:RedBoltEnableModules=all
 ```
 
 The build configures and builds both native ABIs, generates the C# and SDL Java bindings, packages `bin/CoreData` and `bin/Data`, and applies the standard Android debug signature. It produces one APK per ABI:
@@ -45,7 +51,10 @@ Build both Release packages the same way:
 
 ```sh
 dotnet build src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj \
-  --configuration Release --no-restore
+  --configuration Release --no-restore \
+  -p:RedBoltDisablePlatforms=all -p:RedBoltEnablePlatforms=android \
+  -p:RedBoltDisableArchitectures=all -p:RedBoltEnableArchitectures=all \
+  -p:RedBoltEnableModules=all
 ```
 
 To build only one ABI, select its platform and disable the companion build:
@@ -54,6 +63,9 @@ To build only one ABI, select its platform and disable the companion build:
 dotnet build src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj \
   --configuration Debug --no-restore \
   -p:RedBoltPlatform=android-x64 \
+  -p:RedBoltDisablePlatforms=all -p:RedBoltEnablePlatforms=android \
+  -p:RedBoltDisableArchitectures=all -p:RedBoltEnableArchitectures=x64 \
+  -p:RedBoltEnableModules=all \
   -p:RedBoltBuildAllAndroidPackages=false
 ```
 

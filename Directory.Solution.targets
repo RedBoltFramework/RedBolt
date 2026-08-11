@@ -1,15 +1,104 @@
 <Project>
   <PropertyGroup>
     <RedBoltSolutionBuildRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)build'))</RedBoltSolutionBuildRoot>
-    <RedBoltTestsRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../RedBolt.Tests'))</RedBoltTestsRoot>
-    <RedBoltTestsProject>$(RedBoltTestsRoot)/RedBolt.Tests.csproj</RedBoltTestsProject>
-    <RedBoltWebSampleProject>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)src/RedBolt/Sample/Web/RedBolt.Sample.Web.csproj'))</RedBoltWebSampleProject>
+    <RedBoltTraversalProject>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)src/RedBolt/Build/RedBolt.Build.csproj'))</RedBoltTraversalProject>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
   </PropertyGroup>
 
-  <ItemGroup Condition="Exists('$(RedBoltTestsProject)')">
-    <ProjectReference Include="$(RedBoltTestsProject)" />
-  </ItemGroup>
+  <UsingTask TaskName="RedBoltSaveBuildConfig"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <ConfigFile ParameterType="System.String" Required="true" />
+      <EnablePlatforms ParameterType="System.String" />
+      <DisablePlatforms ParameterType="System.String" />
+      <EnableArchitectures ParameterType="System.String" />
+      <DisableArchitectures ParameterType="System.String" />
+      <EnableModules ParameterType="System.String" />
+      <DisableModules ParameterType="System.String" />
+      <SavedEnablePlatforms ParameterType="System.String" />
+      <SavedDisablePlatforms ParameterType="System.String" />
+      <SavedEnableArchitectures ParameterType="System.String" />
+      <SavedDisableArchitectures ParameterType="System.String" />
+      <SavedEnableModules ParameterType="System.String" />
+      <SavedDisableModules ParameterType="System.String" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Linq" />
+      <Using Namespace="System.Text" />
+      <Using Namespace="System.Xml" />
+      <Using Namespace="System.Xml.Linq" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        string Canonical(string value) => string.Join(",",
+            (value ?? "")
+                .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(key => key.Trim().ToLowerInvariant())
+                .Where(key => key.Length != 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase));
+
+        var names = new[]
+        {
+            "EnablePlatforms", "DisablePlatforms",
+            "EnableArchitectures", "DisableArchitectures",
+            "EnableModules", "DisableModules"
+        };
+        var values = new[]
+        {
+            Canonical(EnablePlatforms), Canonical(DisablePlatforms),
+            Canonical(EnableArchitectures), Canonical(DisableArchitectures),
+            Canonical(EnableModules), Canonical(DisableModules)
+        };
+        var saved = new[]
+        {
+            Canonical(SavedEnablePlatforms), Canonical(SavedDisablePlatforms),
+            Canonical(SavedEnableArchitectures), Canonical(SavedDisableArchitectures),
+            Canonical(SavedEnableModules), Canonical(SavedDisableModules)
+        };
+
+        if (values.SequenceEqual(saved, StringComparer.Ordinal))
+            return true;
+
+        var group = new XElement("PropertyGroup");
+        for (var index = 0; index < names.Length; ++index)
+        {
+            group.Add(new XElement("_RedBoltSaved" + names[index], values[index]));
+            group.Add(new XElement(
+                "RedBolt" + names[index],
+                new XAttribute("Condition", "'" + "$" + "(RedBolt" + names[index] + ")' == ''"),
+                values[index]));
+        }
+        var document = new XDocument(new XElement("Project", group));
+        var directory = Path.GetDirectoryName(ConfigFile);
+        if (!string.IsNullOrEmpty(directory))
+            Directory.CreateDirectory(directory);
+        var temporaryFile = ConfigFile + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            var settings = new XmlWriterSettings
+            {
+                Encoding = new UTF8Encoding(false),
+                Indent = true,
+                OmitXmlDeclaration = true,
+                NewLineChars = Environment.NewLine
+            };
+            using (var writer = XmlWriter.Create(temporaryFile, settings))
+                document.Save(writer);
+            if (File.Exists(ConfigFile))
+                File.Replace(temporaryFile, ConfigFile, null);
+            else
+                File.Move(temporaryFile, ConfigFile);
+        }
+        finally
+        {
+            if (File.Exists(temporaryFile))
+                File.Delete(temporaryFile);
+        }
+        Log.LogMessage(MessageImportance.High, "Saved RedBolt build configuration to '{0}'.", ConfigFile);
+      ]]></Code>
+    </Task>
+  </UsingTask>
 
   <Target Name="RedBoltConfigureSolutionRestore"
           BeforeTargets="_FilterRestoreGraphProjectInputItems">
@@ -21,14 +110,32 @@
         SharpCppIntermediateRoot=$(RedBoltSolutionBuildRoot)/obj/managed/tools
       </_GenerateRestoreGraphProjectEntryInputProperties>
     </PropertyGroup>
+    <ItemGroup>
+      <RestoreGraphProjectInputItems Remove="@(RestoreGraphProjectInputItems)" />
+      <RestoreGraphProjectInputItems Include="$(RedBoltTraversalProject)" />
+    </ItemGroup>
   </Target>
 
-  <Target Name="RedBoltRestoreBrowserProjects"
-          AfterTargets="Restore">
-    <MSBuild Projects="$(RedBoltWebSampleProject)"
-             Targets="Restore"
+  <Target Name="RedBoltRestoreSelectedProjects" AfterTargets="Restore">
+    <MSBuild Projects="$(RedBoltTraversalProject)"
+             Targets="RedBoltRestoreSelectedProjects"
              BuildInParallel="false"
-             Properties="Configuration=$(Configuration);RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm" />
+             Properties="Configuration=$(Configuration)" />
   </Target>
 
+  <Target Name="RedBoltPersistBuildConfiguration" AfterTargets="Build;Rebuild">
+    <RedBoltSaveBuildConfig ConfigFile="$(RedBoltBuildConfigPath)"
+                            EnablePlatforms="$(RedBoltEnablePlatforms)"
+                            DisablePlatforms="$(RedBoltDisablePlatforms)"
+                            EnableArchitectures="$(RedBoltEnableArchitectures)"
+                            DisableArchitectures="$(RedBoltDisableArchitectures)"
+                            EnableModules="$(RedBoltEnableModules)"
+                            DisableModules="$(RedBoltDisableModules)"
+                            SavedEnablePlatforms="$(_RedBoltSavedEnablePlatforms)"
+                            SavedDisablePlatforms="$(_RedBoltSavedDisablePlatforms)"
+                            SavedEnableArchitectures="$(_RedBoltSavedEnableArchitectures)"
+                            SavedDisableArchitectures="$(_RedBoltSavedDisableArchitectures)"
+                            SavedEnableModules="$(_RedBoltSavedEnableModules)"
+                            SavedDisableModules="$(_RedBoltSavedDisableModules)" />
+  </Target>
 </Project>

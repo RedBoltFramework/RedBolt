@@ -519,12 +519,14 @@ shots are beside the files that the updater will replace:
 
 ```bash
 dotnet test ./RedBolt.Tests/RedBolt.Tests.csproj \
+  -p:RedBoltEnableModules=all \
   --filter FullyQualifiedName~VisualRegression \
   --logger "console;verbosity=minimal"
 ```
 
 ```bash
 ./RedBolt.Tests/scripts/with_software_renderer.sh dotnet test ./RedBolt.Tests/RedBolt.Tests.csproj \
+  -p:RedBoltEnableModules=all \
   --filter FullyQualifiedName~VisualRegression \
   --logger "console;verbosity=minimal"
 ```
@@ -535,6 +537,7 @@ For example:
 ```bash
 REDBOLT_TEST_GRAPHICS_API=vulkan \
   ./RedBolt.Tests/scripts/with_software_renderer.sh dotnet test ./RedBolt.Tests/RedBolt.Tests.csproj \
+  -p:RedBoltEnableModules=all \
   --filter FullyQualifiedName~VisualRegression \
   --logger "console;verbosity=minimal"
 ```

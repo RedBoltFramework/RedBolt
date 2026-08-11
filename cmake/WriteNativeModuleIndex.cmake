@@ -2,8 +2,16 @@ if(NOT DEFINED REDBOLT_MANIFEST_DIRECTORY OR NOT DEFINED REDBOLT_INDEX_FILE)
     message(FATAL_ERROR "Native module index arguments are incomplete")
 endif()
 
-file(GLOB _redbolt_manifest_files
-    "${REDBOLT_MANIFEST_DIRECTORY}/*.json")
+if(DEFINED REDBOLT_MODULES AND NOT REDBOLT_MODULES STREQUAL "")
+    set(_redbolt_manifest_files)
+    foreach(_redbolt_module IN LISTS REDBOLT_MODULES)
+        list(APPEND _redbolt_manifest_files
+            "${REDBOLT_MANIFEST_DIRECTORY}/${_redbolt_module}.json")
+    endforeach()
+else()
+    file(GLOB _redbolt_manifest_files
+        "${REDBOLT_MANIFEST_DIRECTORY}/*.json")
+endif()
 list(SORT _redbolt_manifest_files)
 file(MAKE_DIRECTORY "${REDBOLT_MANIFEST_DIRECTORY}")
 

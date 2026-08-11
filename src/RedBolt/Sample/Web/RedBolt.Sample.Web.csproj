@@ -67,7 +67,7 @@
     <MSBuild Projects="$(RedBoltPackageToolProject)"
              Targets="Build"
              BuildInParallel="false"
-             Properties="Configuration=$(Configuration);RedBoltPlatform=linux-x64;RedBoltNativePreset=linux-x64"
+             Properties="Configuration=$(Configuration);RedBoltPlatform=linux-x64;RedBoltNativePreset=linux-x64;RedBoltIgnoreBuildSelection=true"
              RemoveProperties="RuntimeIdentifier;SelfContained;PublishSelfContained" />
     <MakeDir Directories="$(RedBoltWebPackageDirectory)" />
     <Exec Command="dotnet &quot;$(RedBoltPackageToolAssembly)&quot; &quot;$(RedBoltRoot)/bin/CoreData&quot; &quot;$(RedBoltWebCoreDataPackage)&quot; -q -c"
@@ -93,7 +93,7 @@
           AfterTargets="Build"
           Inputs="$(TargetPath);$(RedBoltWebEngineArchive);@(ReferenceCopyLocalPaths);@(Content);$(RedBoltWebCoreDataPackage);$(RedBoltWebDataPackage)"
           Outputs="$(RedBoltWebOutputDir)/wwwroot/index.html"
-          Condition="'$(RedBoltPublishWebAfterBuild)' != 'false' and '$(RedBoltPublishWebInProgress)' != 'true'">
+          Condition="'$(RedBoltProjectBuildEnabled)' == 'true' and '$(RedBoltPublishWebAfterBuild)' != 'false' and '$(RedBoltPublishWebInProgress)' != 'true'">
     <RemoveDir Directories="$(RedBoltWebOutputDir)" />
     <MSBuild Projects="$(MSBuildProjectFullPath)"
              Targets="Publish"

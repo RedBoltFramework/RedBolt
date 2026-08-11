@@ -29,21 +29,13 @@ function(redbolt_collect_static_targets root_target output_variable)
     set("${output_variable}" "${static_targets}" PARENT_SCOPE)
 endfunction()
 
-set(redbolt_wasm_native_module_targets
-    ${REDBOLT_SDL_NATIVE_TARGET}
-    ${REDBOLT_DILIGENT_NATIVE_TARGET}
-    ${REDBOLT_IMGUI_NATIVE_TARGET}
-    ${REDBOLT_STB_NATIVE_TARGET}
-    ${REDBOLT_TINYGLTF_NATIVE_TARGET}
-    ${REDBOLT_LZ4_NATIVE_TARGET}
-    ${REDBOLT_HARFBUZZ_NATIVE_TARGET}
-    ${REDBOLT_RMLUI_NATIVE_TARGET}
-    ${REDBOLT_WEBP_NATIVE_TARGET}
-    ${REDBOLT_GLSLANG_NATIVE_TARGET}
-    ${REDBOLT_SPIRV_CROSS_NATIVE_TARGET}
-    ${REDBOLT_SPIRV_TOOLS_NATIVE_TARGET}
-    ${REDBOLT_SHADER_COMPILER_NATIVE_TARGET}
-    ${REDBOLT_JOLT_NATIVE_TARGET})
+set(redbolt_wasm_native_module_targets)
+foreach(redbolt_wasm_native_module IN LISTS REDBOLT_SELECTED_NATIVE_MODULES)
+    redbolt_native_module_value(
+        "${redbolt_wasm_native_module}" TARGET redbolt_wasm_native_module_target)
+    list(APPEND redbolt_wasm_native_module_targets
+        "${redbolt_wasm_native_module_target}")
+endforeach()
 set(redbolt_wasm_static_targets)
 foreach(redbolt_wasm_module_target IN LISTS redbolt_wasm_native_module_targets)
     redbolt_collect_static_targets(

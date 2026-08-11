@@ -78,7 +78,7 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="RedBoltFinalizeAndroidPackage" AfterTargets="Build">
+  <Target Name="RedBoltFinalizeAndroidPackage" AfterTargets="Build" Condition="'$(RedBoltProjectBuildEnabled)' == 'true'">
     <PropertyGroup>
       <_RedBoltSignedApk>$(RedBoltOutputDir)/$(ApplicationId)-Signed.apk</_RedBoltSignedApk>
       <_RedBoltPackagedApk>$(RedBoltAndroidPackageOutputDirectory)/RedBolt.Sample.Android.apk</_RedBoltPackagedApk>

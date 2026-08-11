@@ -24,7 +24,7 @@ native engine, including the Vulkan loader, OpenGL, X11, audio, and threading
 libraries. Mesa's `llvmpipe` and Vulkan `lavapipe` drivers plus Xvfb are needed
 to run graphics tests without a physical display.
 
-Configure and build the complete solution:
+Configure and build the default Linux development set:
 
 ```sh
 cmake --preset linux-x64
@@ -32,8 +32,9 @@ dotnet restore RedBolt.slnx
 dotnet build RedBolt.slnx --configuration Debug --no-restore
 ```
 
-The solution includes the WebAssembly sample. Install its SDK workload if the
-build reports that the Emscripten toolchain is missing:
+The default set is Linux x64, all engine modules, the editor, and desktop
+samples. Tests and non-Linux platforms are disabled by default. Enable the Web
+platform before installing its SDK workload:
 
 ```sh
 dotnet workload install wasm-tools
@@ -46,6 +47,61 @@ dotnet restore src/RedBolt/Editor/RedBolt.Editor.csproj
 dotnet build src/RedBolt/Editor/RedBolt.Editor.csproj \
   --configuration Debug --no-restore
 ```
+
+## Saved build selection
+
+`RedBolt.slnx` keeps every project visible, while its traversal project builds
+only projects that match the selected platforms, architectures, and modules.
+Use these case-insensitive, comma- or semicolon-separated MSBuild properties:
+
+| Property | Keys |
+| --- | --- |
+| `RedBoltEnablePlatforms`, `RedBoltDisablePlatforms` | `linux`, `windows`, `android`, `web`, `all` |
+| `RedBoltEnableArchitectures`, `RedBoltDisableArchitectures` | `x64`, `arm64`, `all` |
+| `RedBoltEnableModules`, `RedBoltDisableModules` | `actions`, `audio`, `dear-imgui`, `glow`, `ik`, `navigation`, `network`, `particles`, `physics-jolt`, `rml-ui`, `utility`, `editor`, `samples`, `tests`, `all` |
+
+MSBuild itself treats commas and semicolons in a `-p:` switch as property
+separators. Escape a multi-key command-line value, for example
+`-p:RedBoltEnablePlatforms=linux%2cwindows`. Values in props files do not need
+that command-line escaping.
+
+Selection uses `(defaults - disabled) + enabled`, so an explicit enable wins.
+The core engine and build tools are always enabled. Web uses WebAssembly and
+does not depend on the architecture list. Platform/architecture pairs that no
+project supports simply select no project; they are not configuration errors.
+
+On a fresh checkout, the defaults are Linux x64, all engine modules, the
+editor, and samples; tests are excluded. For example, opt into only core plus
+Actions on Linux x64 with:
+
+```sh
+dotnet build RedBolt.slnx --configuration Debug \
+  -p:RedBoltDisablePlatforms=all \
+  -p:RedBoltEnablePlatforms=linux \
+  -p:RedBoltDisableArchitectures=all \
+  -p:RedBoltEnableArchitectures=x64 \
+  -p:RedBoltDisableModules=all \
+  -p:RedBoltEnableModules=actions
+```
+
+Properties passed to a successful solution `Build` or `Rebuild` are
+canonicalized and saved atomically in `build/BuildConfig.props`. Later solution
+builds load that file automatically. A command-line property overrides its
+saved value and updates the file; properties not supplied retain their saved
+values. A build or rebuild with none of the six selection properties leaves
+the file and its modification time unchanged. Direct project builds,
+`Restore`, and `Clean` never save selection changes.
+
+Delete `build/BuildConfig.props` to return to fresh defaults. Passing an empty
+property value clears just that saved list. Unknown keys are errors and leave
+the previous saved configuration intact.
+
+Modules with managed dependencies must include them: `network` requires
+`physics-jolt`, `rml-ui` requires `audio`, and `editor` requires `dear-imgui`,
+`glow`, `rml-ui`, and `utility`. The `samples` and `tests` sets require every
+engine module. Disabled projects report that they were skipped and do not
+compile their C# sources. Native builds likewise compile only the core wrappers
+and wrappers needed by enabled modules.
 
 ## Windows x64 cross-build
 
@@ -74,11 +130,21 @@ cmake --preset win-x64 \
   -DREDBOLT_TINYGLTF_BINDING_CXX_COMPILER="$gcc_mingw_cxx"
 
 dotnet restore src/RedBolt/Editor/RedBolt.Editor.csproj \
-  -p:RedBoltBuildWindows=true
+  -p:RedBoltPlatform=win-x64 \
+  -p:RedBoltDisablePlatforms=all -p:RedBoltEnablePlatforms=windows \
+  -p:RedBoltDisableArchitectures=all -p:RedBoltEnableArchitectures=x64 \
+  -p:RedBoltEnableModules=all
 dotnet build src/RedBolt/Editor/RedBolt.Editor.csproj \
   --configuration Debug --no-restore \
-  -p:RedBoltBuildWindows=true
+  -p:RedBoltPlatform=win-x64 \
+  -p:RedBoltDisablePlatforms=all -p:RedBoltEnablePlatforms=windows \
+  -p:RedBoltDisableArchitectures=all -p:RedBoltEnableArchitectures=x64 \
+  -p:RedBoltEnableModules=all
 ```
+
+`RedBoltBuildWindows=true` remains as a deprecated compatibility alias for a
+direct Windows build. Prefer the platform selectors and the low-level
+`RedBoltPlatform=win-x64` property shown above.
 
 `cmake --build --preset win-x64-debug` is the native-only equivalent. The
 repository applies `extern/Diligent.patch` through CPM during population; do
@@ -153,6 +219,7 @@ software-rendering harness:
 cd ../RedBolt.Tests
 dotnet build RedBolt.Tests.csproj \
   --configuration Debug --no-restore \
+  -p:RedBoltEnableModules=all \
   -p:RedBoltKeepParentRuntimeAssemblies=true \
   -p:BuildProjectReferences=false
 

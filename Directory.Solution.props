@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <RedBoltRoot>$(MSBuildThisFileDirectory)</RedBoltRoot>
+  </PropertyGroup>
+  <Import Project="$(RedBoltRoot)/RedBolt.BuildConfig.props" />
+</Project>
