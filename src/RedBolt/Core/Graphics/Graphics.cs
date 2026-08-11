@@ -17,7 +17,6 @@ using FileMode = global::RedBolt.IO.FileMode;
 using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Math;
-using RedBolt.Platform;
 using RedBolt.RenderAPI;
 using ShaderType = global::RedBolt.RenderAPI.ShaderType;
 using TextureAddressMode = global::RedBolt.RenderAPI.TextureAddressMode;
@@ -1118,7 +1117,7 @@ layout(std140) uniform Material
         {
             var graphicsBackend = _ownerContext.RuntimeServices.GetGraphicsBackend(backend);
             var backendResources = graphicsBackend.Initialize(
-                parameters, deviceSettings, windowSettings, _window, _ownerContext.RuntimeServices.Platform);
+                parameters, deviceSettings, windowSettings, _window);
             _factory = backendResources.Factory;
             _device = backendResources.Device;
             _immediateContext = backendResources.ImmediateContext;

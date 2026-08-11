@@ -9,7 +9,6 @@ using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
-using RedBolt.Platform;
 using RedBolt.Scene;
 
 internal static class CameraShakeProgram
@@ -52,11 +51,10 @@ sealed class CameraShakeApplication : Application
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowMaximize = false;
-        if (ProcessUtils.GetPlatform() != PlatformId.Web)
-        {
+#if !REDBOLT_PLATFORM_BROWSER
             parameters.WindowHeight = 720;
             parameters.WindowWidth = 1280;
-        }
+#endif
         parameters.WindowTitle = "RedBolt Camera Shake";
     }
 

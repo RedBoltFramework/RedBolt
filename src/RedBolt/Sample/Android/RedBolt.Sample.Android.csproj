@@ -31,7 +31,6 @@
     <ProjectReference Include="../../PhysicsJolt/RedBolt.PhysicsJolt.csproj" />
     <ProjectReference Include="../../Navigation/RedBolt.Navigation.csproj" />
     <ProjectReference Include="../../Network/RedBolt.Network.csproj" />
-    <ProjectReference Include="../../Platform/Android/RedBolt.Platform.Android.csproj" />
     <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
     <ProjectReference Include="../../RmlUI/RedBolt.RmlUI.csproj" />
     <ProjectReference Include="../../Generator/Reflection/RedBolt.Generator.Reflection.csproj"

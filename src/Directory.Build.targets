@@ -339,9 +339,7 @@
                           and $([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/'))
                           and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Dependencies'
                           and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Reflection'
-                          and '%(ProjectReference.Filename)' != 'RedBolt.Graphics.OpenGLES'
-                          and '%(ProjectReference.Filename)' != 'RedBolt.Native.Web'
-                          and '%(ProjectReference.Filename)' != 'RedBolt.Platform.Web'">
+                          and '%(ProjectReference.Filename)' != 'RedBolt.Native.Web'">
         <AdditionalProperties>RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm</AdditionalProperties>
       </ProjectReference>
     </ItemGroup>
@@ -357,8 +355,7 @@
                           and $([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/'))
                           and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Dependencies'
                           and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Reflection'
-                          and '%(ProjectReference.Filename)' != 'RedBolt.Native.Android'
-                          and '%(ProjectReference.Filename)' != 'RedBolt.Platform.Android'">
+                          and '%(ProjectReference.Filename)' != 'RedBolt.Native.Android'">
         <AdditionalProperties>RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltNativePreset);RedBoltTargetFramework=$(RedBoltTargetFramework)</AdditionalProperties>
       </ProjectReference>
     </ItemGroup>

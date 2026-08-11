@@ -43,20 +43,10 @@
   <Folder Name="/src/RedBolt/Tools/">
     <Project Path="src/RedBolt/Tools/PackageTool/RedBolt.PackageTool.csproj" />
   </Folder>
-  <Folder Name="/src/RedBolt/Graphics/">
-    <Project Path="src/RedBolt/Graphics/OpenGL/RedBolt.Graphics.OpenGL.csproj" />
-    <Project Path="src/RedBolt/Graphics/OpenGLES/RedBolt.Graphics.OpenGLES.csproj" />
-    <Project Path="src/RedBolt/Graphics/Vulkan/RedBolt.Graphics.Vulkan.csproj" />
-  </Folder>
   <Folder Name="/src/RedBolt/Native/">
     <Project Path="src/RedBolt/Native/RedBolt.Native.csproj" />
     <Project Path="src/RedBolt/Native/RedBolt.Native.Android.csproj" />
     <Project Path="src/RedBolt/Native/RedBolt.Native.Web.csproj" />
-  </Folder>
-  <Folder Name="/src/RedBolt/Platform/">
-    <Project Path="src/RedBolt/Platform/Android/RedBolt.Platform.Android.csproj" />
-    <Project Path="src/RedBolt/Platform/Linux/RedBolt.Platform.Linux.csproj" />
-    <Project Path="src/RedBolt/Platform/Web/RedBolt.Platform.Web.csproj" />
   </Folder>
   <Folder Name="/src/RedBolt/Sample/">
     <Project Path="src/RedBolt/Sample/Actions/RedBolt.Sample.Actions.csproj" />

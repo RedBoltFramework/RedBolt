@@ -15,7 +15,6 @@ using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Math;
-using RedBolt.Platform;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
 
@@ -320,8 +319,6 @@ public class Input : RedObject
             windowFlags |= parameters.WindowHidden
                 ? SdlWindowFlags.SdlWindowHidden
                 : SdlWindowFlags.SdlWindowShown;
-            if (Context.Instance.RuntimeServices.Platform.UseHighDensityWindow)
-                windowFlags |= SdlWindowFlags.SdlWindowAllowHighdpi;
             if (parameters.FullScreen)
                 windowFlags |= SdlWindowFlags.SdlWindowFullscreenDesktop;
             else if (parameters.Borderless)

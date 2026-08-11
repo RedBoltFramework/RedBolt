@@ -241,8 +241,9 @@ public sealed class Console : RedObject
                             && System.Math.Max(_selection.X, _selection.Y) > textEnd)
                         {
                             // Append new line if this line is selected to the end and selection on the next line exists.
-                            if (OperatingSystem.IsWindows())
-                                _copyBuffer.Add((byte)'\r');
+#if REDBOLT_PLATFORM_WINDOWS
+                            _copyBuffer.Add((byte)'\r');
+#endif
                             _copyBuffer.Add((byte)'\n');
                         }
                     }

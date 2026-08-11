@@ -1,4 +1,5 @@
-namespace RedBolt;
+#if REDBOLT_PLATFORM_LINUX || REDBOLT_PLATFORM_WINDOWS
+namespace RedBolt.RenderAPI.Backends;
 
 using System;
 
@@ -7,16 +8,15 @@ using RedBolt.Bindings.Sdl;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Math;
-using RedBolt.Platform;
 using RedBolt.RenderAPI;
 
-public interface IOpenGLESGraphicsApi
+public interface IOpenGLGraphicsApi
 {
     nint Context { get; }
 }
 
-/// <summary>OpenGL ES graphics backend.</summary>
-public sealed class OpenGLESGraphicsBackend : IGraphicsBackend
+/// <summary>Desktop OpenGL graphics backend.</summary>
+public sealed class OpenGLGraphicsBackend : IGraphicsBackend
 {
     public RenderBackend Backend => RenderBackend.OpenGL;
 
@@ -25,14 +25,14 @@ public sealed class OpenGLESGraphicsBackend : IGraphicsBackend
     public void ConfigureWindow()
     {
         CheckSdl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlDoublebuffer, 1), "SDL_GL_SetAttribute doublebuffer");
-        CheckSdl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMajorVersion, 3), "SDL_GL_SetAttribute major version");
-        CheckSdl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMinorVersion, 0), "SDL_GL_SetAttribute minor version");
+        CheckSdl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMajorVersion, 4), "SDL_GL_SetAttribute major version");
+        CheckSdl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMinorVersion, 1), "SDL_GL_SetAttribute minor version");
         CheckSdl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextProfileMask,
-            (int)SdlGLprofile.SdlGlContextProfileEs), "SDL_GL_SetAttribute profile mask");
+            (int)SdlGLprofile.SdlGlContextProfileCore), "SDL_GL_SetAttribute profile mask");
     }
 
     public GraphicsBackendResources Initialize(EngineParameters parameters, RenderDeviceSettings deviceSettings,
-        WindowSettings windowSettings, SdlWindow window, IPlatformRuntime platform)
+        WindowSettings windowSettings, SdlWindow window)
     {
         var glContext = SdlNativeBindings.SdlGlCreateContext(window);
         if (glContext == IntPtr.Zero)
@@ -41,6 +41,7 @@ public sealed class OpenGLESGraphicsBackend : IGraphicsBackend
         try
         {
             CheckSdl(SdlNativeBindings.SdlGlMakeCurrent(window, glContext), "SDL_GL_MakeCurrent");
+            _ = SdlNativeBindings.SdlGlSetSwapInterval(parameters.VSync ? 1 : 0);
             SdlNativeBindings.SdlGlGetDrawableSize(window, out var width, out var height);
 
             var multiSample = (int)System.Math.Clamp(
@@ -51,11 +52,18 @@ public sealed class OpenGLESGraphicsBackend : IGraphicsBackend
             _ = SdlNativeBindings.SdlGlGetAttribute(SdlGLattr.SdlGlFramebufferSrgbCapable,
                 out var effectiveSrgb);
 
+            var nativeWindowInfo = NativeWindow.GetInfo(window);
             using var engineCreateInfo = new EngineGLCreateInfo
             {
                 FeaturesSeparablePrograms = DeviceFeatureState.DeviceFeatureStateOptional,
                 FeaturesShaderResourceQueries = DeviceFeatureState.DeviceFeatureStateOptional
             };
+#if REDBOLT_PLATFORM_LINUX
+            engineCreateInfo.WindowPDisplay = nativeWindowInfo.Display;
+            engineCreateInfo.WindowWindowId = checked((uint)nativeWindowInfo.Window);
+#elif REDBOLT_PLATFORM_WINDOWS
+            engineCreateInfo.WindowHWnd = nativeWindowInfo.Window;
+#endif
             using var swapChainDesc = new SwapChainDesc
             {
                 ColorBufferFormat = effectiveSrgb != 0
@@ -87,7 +95,7 @@ public sealed class OpenGLESGraphicsBackend : IGraphicsBackend
                 Device = device,
                 ImmediateContext = immediateContext,
                 SwapChain = swapChain,
-                Lifetime = new OpenGLESLifetime(window, glContext),
+                Lifetime = new OpenGLLifetime(window, glContext),
                 Width = width,
                 Height = height,
                 MultiSample = multiSample
@@ -106,8 +114,8 @@ public sealed class OpenGLESGraphicsBackend : IGraphicsBackend
             throw new InvalidOperationException($"{operation} failed with {result}.");
     }
 
-    private sealed class OpenGLESLifetime(SdlWindow window, nint glContext)
-        : IGraphicsBackendLifetime, IOpenGLESGraphicsApi
+    private sealed class OpenGLLifetime(SdlWindow window, nint glContext)
+        : IGraphicsBackendLifetime, IOpenGLGraphicsApi
     {
         public nint NativeContext => glContext;
 
@@ -115,6 +123,7 @@ public sealed class OpenGLESGraphicsBackend : IGraphicsBackend
 
         public void SetVSync(bool enable)
         {
+            _ = SdlNativeBindings.SdlGlSetSwapInterval(enable ? 1 : 0);
         }
 
         public void Resize(IRenderDevice renderDevice, ISwapChain swapChain)
@@ -135,3 +144,4 @@ public sealed class OpenGLESGraphicsBackend : IGraphicsBackend
         }
     }
 }
+#endif

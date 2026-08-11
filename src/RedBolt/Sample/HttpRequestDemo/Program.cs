@@ -30,7 +30,6 @@ using RedBolt.DearImGui;
 using RedBolt.Engine;
 using RedBolt.Input;
 using RedBolt.Network;
-using RedBolt.Platform;
 using RedBolt.Resource;
 
 internal static class HttpRequestDemoProgram
@@ -61,11 +60,10 @@ public sealed class HttpRequestDemo : Application
         parameters.WindowMaximize = false;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = ".;..";
-        if (ProcessUtils.GetPlatform() != PlatformId.Web)
-        {
+#if !REDBOLT_PLATFORM_BROWSER
             parameters.WindowWidth = 1280;
             parameters.WindowHeight = 720;
-        }
+#endif
         parameters.WindowTitle = "RedBolt HTTP Request Demo";
     }
 

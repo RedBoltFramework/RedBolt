@@ -1,12 +1,15 @@
-namespace RedBolt.Platform;
+namespace RedBolt.Engine;
 
 using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
+#if REDBOLT_PLATFORM_BROWSER
+using System.Runtime.InteropServices.JavaScript;
+using System.Runtime.Versioning;
+using System.Threading.Tasks;
+#endif
 
-using RedBolt.Audio;
 using RedBolt.Core;
-using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Input;
@@ -20,13 +23,18 @@ public abstract partial class Application : RedObject
 
     private string _startupErrors = string.Empty;
     private readonly Action<float> _updateAction;
+#if REDBOLT_PLATFORM_BROWSER
+    private static Application _currentApplication = null!;
+#endif
 
     protected Application()
     {
         Engine = new Engine();
-        Audio.RegisterAudioSubsystem(Engine.Context);
         _updateAction = Update;
-        InitializeMainLoop();
+#if REDBOLT_PLATFORM_BROWSER
+        _currentApplication = this;
+        SubscribeToEvent<GraphicsEvents.ScreenModeEvent>(HandleScreenMode);
+#endif
         SubscribeToEvent<IOEvents.LogMessage>(HandleLogMessage);
     }
 
@@ -80,10 +88,21 @@ public abstract partial class Application : RedObject
         ArgumentNullException.ThrowIfNull(args);
 
         var parameters = new EngineParameters();
-        Context.Instance.RuntimeServices.Platform.InitializeApplicationParameters(parameters);
+#if REDBOLT_PLATFORM_BROWSER
+        parameters.WindowWidth = GetCanvasWidth();
+        parameters.WindowHeight = GetCanvasHeight();
+#endif
         Setup(parameters);
-        Context.Instance.RuntimeServices.Platform.FinalizeApplicationParameters(parameters);
 #if REDBOLT_PLATFORM_ANDROID
+        parameters.ApplicationPreferencesDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            parameters.ApplicationName) + Path.DirectorySeparatorChar;
+        parameters.Borderless = false;
+        parameters.EngineCliParameters = false;
+        parameters.FullScreen = true;
+        parameters.ResourcePrefixPaths = "/apk";
+        parameters.WindowMaximize = false;
+        parameters.WindowResizable = false;
         if (args.Length != 0)
             parameters.EngineCliParameters = true;
 #endif
@@ -139,9 +158,11 @@ public abstract partial class Application : RedObject
         {
             Console.Error.WriteLine(exception.ToString());
             Log.GetLogger().LogCritical(exception, "Unhandled exception in application run loop.");
-            if (ProcessUtils.GetPlatform() == PlatformId.Web)
-                throw;
+#if REDBOLT_PLATFORM_BROWSER
+            throw;
+#else
             ErrorExit(exception.Message);
+#endif
         }
         finally
         {
@@ -194,7 +215,68 @@ public abstract partial class Application : RedObject
         return ExitCode != 0 || Engine.IsExiting;
     }
 
-    private partial void InitializeMainLoop();
+    private bool RunMainLoop()
+    {
+#if REDBOLT_PLATFORM_BROWSER
+        SetCanvasResizeHandlers();
+        SetMainLoop();
+        return true;
+#else
+        while (!Engine.IsExiting)
+            Engine.RunFrame(_updateAction);
 
-    private partial bool RunMainLoop();
+        return false;
+#endif
+    }
+
+#if REDBOLT_PLATFORM_BROWSER
+    private void RunFrame()
+    {
+        try
+        {
+            Engine.RunFrame(_updateAction);
+        }
+        catch (Exception exception)
+        {
+            Console.Error.WriteLine(exception.ToString());
+            throw;
+        }
+    }
+
+    [SupportedOSPlatform("browser")]
+    [JSExport]
+    internal static Task RunFrameAsync()
+    {
+        _currentApplication.RunFrame();
+        return Task.CompletedTask;
+    }
+
+    [SupportedOSPlatform("browser")]
+    [JSExport]
+    internal static Task ResizeCanvasAsync(int width, int height, bool fullscreen, float dpiScale)
+    {
+        _currentApplication.Engine.OnCanvasResize(width, height, fullscreen, dpiScale);
+        return Task.CompletedTask;
+    }
+
+    private static void HandleScreenMode(ref GraphicsEvents.ScreenModeEvent eventData)
+    {
+        SetRendererSize(eventData.Width, eventData.Height);
+    }
+
+    [JSImport("canvas.getWidth", "main.js")]
+    private static partial int GetCanvasWidth();
+
+    [JSImport("canvas.getHeight", "main.js")]
+    private static partial int GetCanvasHeight();
+
+    [JSImport("canvas.setResizeHandlers", "main.js")]
+    private static partial void SetCanvasResizeHandlers();
+
+    [JSImport("canvas.setRendererSize", "main.js")]
+    private static partial void SetRendererSize(int width, int height);
+
+    [JSImport("mainLoop.set", "main.js")]
+    private static partial void SetMainLoop();
+#endif
 }

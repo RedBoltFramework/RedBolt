@@ -9,7 +9,6 @@ using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Input;
 using RedBolt.Logging;
-using RedBolt.Platform;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
 using RedBolt.Resource;
@@ -29,9 +28,15 @@ public class Engine : RedObject
     private float _timeStep;
     private int _timeStepSmoothing = 2;
     private int _minFps = 10;
-    private int _maxFps = OperatingSystem.IsAndroid() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS() ? 60 : 200;
-    private int _maxInactiveFps = OperatingSystem.IsAndroid() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS() ? 10 : 60;
-    private bool _pauseMinimized = OperatingSystem.IsAndroid() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS();
+#if REDBOLT_PLATFORM_ANDROID
+    private int _maxFps = 60;
+    private int _maxInactiveFps = 10;
+    private bool _pauseMinimized = true;
+#else
+    private int _maxFps = 200;
+    private int _maxInactiveFps = 60;
+    private bool _pauseMinimized;
+#endif
     private long _timeOut;
     private bool _autoExit = true;
     private bool _initialized;
@@ -195,13 +200,15 @@ public class Engine : RedObject
 
             var windowSettings = new WindowSettings
             {
-                Mode = ProcessUtils.GetPlatform() == PlatformId.Web
-                    ? WindowMode.Windowed
-                    : Parameters.FullScreen
+#if REDBOLT_PLATFORM_BROWSER
+                Mode = WindowMode.Windowed,
+#else
+                Mode = Parameters.FullScreen
                         ? WindowMode.Fullscreen
                         : Parameters.Borderless
                             ? WindowMode.Borderless
                             : WindowMode.Windowed,
+#endif
                 Size = new Vector2i(Parameters.WindowWidth, Parameters.WindowHeight),
                 Title = Parameters.WindowTitle,
                 Resizable = Parameters.WindowResizable,
@@ -373,8 +380,9 @@ public class Engine : RedObject
 
     public void SetAutoExit(bool enable)
     {
-        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS())
-            enable = true;
+#if REDBOLT_PLATFORM_ANDROID
+        enable = true;
+#endif
         AutoExit = enable;
     }
 
@@ -525,10 +533,12 @@ public class Engine : RedObject
             ApplyConfiguredResourcePaths();
         }
 
-        if (ProcessUtils.GetPlatform() == PlatformId.Web)
-            virtualFileSystem.MountDir("conf", "/IndexedDB/");
-        else if (!string.IsNullOrEmpty(GetAppPreferencesDir()))
+#if REDBOLT_PLATFORM_BROWSER
+        virtualFileSystem.MountDir("conf", "/IndexedDB/");
+#else
+        if (!string.IsNullOrEmpty(GetAppPreferencesDir()))
             virtualFileSystem.MountDir("conf", GetAppPreferencesDir());
+#endif
     }
 
     public string GetAppPreferencesDir() => _appPreferencesDir;

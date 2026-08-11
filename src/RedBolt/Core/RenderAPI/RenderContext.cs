@@ -49,7 +49,11 @@ public class RenderContext : RedObject
     {
         this._renderDevice = renderDevice ?? throw new ArgumentNullException(nameof(renderDevice));
         _renderPool = renderDevice.GetRenderPool();
-        _debugScopeEnabled = ProcessUtils.GetPlatform() != PlatformId.Web;
+#if REDBOLT_PLATFORM_BROWSER
+        _debugScopeEnabled = false;
+#else
+        _debugScopeEnabled = true;
+#endif
         _swapChainColorTarget = [RenderTargetView.SwapChainColor(renderDevice)];
         SubscribeToEvent<GraphicsEvents.DeviceLostEvent>(renderDevice,
             (ref GraphicsEvents.DeviceLostEvent _) => ResetCachedContextState());

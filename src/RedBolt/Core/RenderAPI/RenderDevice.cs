@@ -12,7 +12,6 @@ using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Math;
-using RedBolt.Platform;
 using RedBolt.RenderPipeline;
 
 /// <summary>
@@ -324,7 +323,8 @@ public sealed class RenderDevice : RedObject
             SdlNativeBindings.SdlDelay(delayMs);
             return RestoreVulkanContext();
         }
-        else if (ProcessUtils.GetPlatform() == PlatformId.Android)
+#if REDBOLT_PLATFORM_ANDROID
+        else
         {
             System.Diagnostics.Debug.Assert(GetDeviceSettings().Backend == RenderBackend.OpenGL);
 
@@ -333,6 +333,7 @@ public sealed class RenderDevice : RedObject
             SdlNativeBindings.SdlDelay(delayMs);
             return RestoreGLESContext();
         }
+#else
         else
         {
             InvalidateDeviceState();
@@ -340,6 +341,7 @@ public sealed class RenderDevice : RedObject
             RestoreDeviceState();
             return true;
         }
+#endif
     }
 
     /// <summary>
@@ -634,8 +636,12 @@ public sealed class RenderDevice : RedObject
         {
             ComputeShaders = adapterInfo.FeaturesComputeShaders == DeviceFeatureState.DeviceFeatureStateEnabled,
             DrawBaseVertex = (adapterInfo.DrawCommandCapFlags & DrawCommandCapFlags.DrawCommandCapFlagBaseVertex) != 0,
-            DrawBaseInstance = !RenderAPIUtils.IsOpenGLESBackend(GetBackend()) && !OperatingSystem.IsMacOS(),
-            ReadOnlyDepth = !OperatingSystem.IsBrowser(),
+            DrawBaseInstance = !RenderAPIUtils.IsOpenGLESBackend(GetBackend()),
+#if REDBOLT_PLATFORM_BROWSER
+            ReadOnlyDepth = false,
+#else
+            ReadOnlyDepth = true,
+#endif
             SrgbOutput = IsRenderTargetFormatSupported(TextureFormat.TexFormatRgba8UnormSrgb)
                 || IsRenderTargetFormatSupported(TextureFormat.TexFormatBgra8UnormSrgb),
             HdrOutput = IsRenderTargetFormatSupported(TextureFormat.TexFormatRgba16Float),
@@ -727,9 +733,9 @@ public sealed class RenderDevice : RedObject
 
     public static List<FullscreenMode> GetFullscreenModes(int monitor)
     {
-        if (OperatingSystem.IsBrowser())
-            return [];
-
+#if REDBOLT_PLATFORM_BROWSER
+        return [];
+#else
         var result = new List<FullscreenMode>();
         var numModes = SdlNativeBindings.SdlGetNumDisplayModes(monitor);
         for (var i = 0; i < numModes; ++i)
@@ -754,8 +760,8 @@ public sealed class RenderDevice : RedObject
             if (result[i] == result[i - 1])
                 result.RemoveAt(i);
         }
-
         return result;
+#endif
     }
 
     public static int GetClosestFullscreenModeIndex(IReadOnlyList<FullscreenMode> modes, FullscreenMode desiredMode)
@@ -1057,16 +1063,10 @@ public sealed class RenderDevice : RedObject
 
     private static void ValidateWindowSettings(ref WindowSettings settings)
     {
-        var platform = ProcessUtils.GetPlatform();
-
-        if (platform is PlatformId.iOS or PlatformId.TvOS)
-            settings.Mode = WindowMode.Fullscreen;
-
-        if (platform == PlatformId.Web && settings.Mode == WindowMode.Fullscreen)
+#if REDBOLT_PLATFORM_BROWSER
+        if (settings.Mode == WindowMode.Fullscreen)
             settings.Mode = WindowMode.Borderless;
-
-        if (platform == PlatformId.UniversalWindowsPlatform && settings.Mode == WindowMode.Borderless)
-            settings.Mode = WindowMode.Fullscreen;
+#endif
 
         var numMonitors = SdlNativeBindings.SdlGetNumVideoDisplays();
         if (settings.Monitor < 0 || settings.Monitor >= numMonitors)
@@ -1075,9 +1075,7 @@ public sealed class RenderDevice : RedObject
         settings.MultiSample = (int)SystemMath.Clamp(
             MathDefs.ClosestPowerOfTwo((uint)SystemMath.Max(settings.MultiSample, 1)), 1u, 16u);
 
-        if (platform == PlatformId.iOS)
-            settings.Resizable = true;
-        else if (settings.Mode != WindowMode.Windowed)
+        if (settings.Mode != WindowMode.Windowed)
             settings.Resizable = false;
 
         const int defaultWindowWidth = 1024;

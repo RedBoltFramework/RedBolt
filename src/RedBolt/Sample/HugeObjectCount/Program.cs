@@ -12,7 +12,6 @@ using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Math;
-using RedBolt.Platform;
 using RedBolt.Scene;
 
 internal static class HugeObjectCountProgram
@@ -51,10 +50,9 @@ sealed class HugeObjectCountApplication : Application
         parameters.Borderless = false; parameters.FullScreen = false;
         parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowMaximize = false;
-        if (ProcessUtils.GetPlatform() != PlatformId.Web)
-        {
+#if !REDBOLT_PLATFORM_BROWSER
             parameters.WindowHeight = 720; parameters.WindowWidth = 1280;
-        }
+#endif
         parameters.WindowTitle = "RedBolt Huge Object Count";
     }
 

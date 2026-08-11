@@ -34,7 +34,6 @@ using RedBolt.Engine;
 using RedBolt.IO;
 using RedBolt.Input;
 using RedBolt.Network;
-using RedBolt.Platform;
 
 internal static class ChatProgram
 {
@@ -69,11 +68,10 @@ public sealed class Chat : Application
         parameters.WindowMaximize = false;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = ".;..";
-        if (ProcessUtils.GetPlatform() != PlatformId.Web)
-        {
+#if !REDBOLT_PLATFORM_BROWSER
             parameters.WindowWidth = 1280;
             parameters.WindowHeight = 720;
-        }
+#endif
         parameters.WindowTitle = "RedBolt Chat";
     }
 
@@ -144,12 +142,11 @@ public sealed class Chat : Application
                 Connect();
             if (!clientConnected && !serverRunning)
             {
-                if (ProcessUtils.GetPlatform() != PlatformId.Web)
-                {
+#if !REDBOLT_PLATFORM_BROWSER
                     ImGui.SameLine();
                     if (ImGui.Button("Start Server"u8))
                         StartServer();
-                }
+#endif
             }
             if ((clientConnected || serverRunning) && ImGui.Button("Disconnect"u8))
                 Disconnect();

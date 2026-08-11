@@ -11,7 +11,6 @@ using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Input;
 using RedBolt.Math;
-using RedBolt.Platform;
 using RedBolt.Scene;
 
 internal static class SoundSynthesisProgram
@@ -55,6 +54,8 @@ public class SoundSynthesis : Application
     /// <summary>Setup after engine initialization and before running the main loop.</summary>
     protected override void Start()
     {
+        Audio.RegisterAudioSubsystem(Context);
+
         // Execute base class startup
         base.Start();
 
@@ -174,11 +175,10 @@ public class SoundSynthesis : Application
         parameters.WindowMaximize = false;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = ".;..";
-        if (ProcessUtils.GetPlatform() != PlatformId.Web)
-        {
+#if !REDBOLT_PLATFORM_BROWSER
             parameters.WindowHeight = 540;
             parameters.WindowWidth = 960;
-        }
+#endif
         parameters.WindowTitle = "RedBolt Sound Synthesis";
     }
 

@@ -3,7 +3,6 @@ namespace RedBolt.RenderAPI;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.IO;
-using RedBolt.Platform;
 
 /// <summary>
 /// Render API utility functions.
@@ -73,16 +72,16 @@ public static class RenderAPIUtils
 
     public static bool IsOpenGLESBackend(RenderBackend backend)
     {
-        var platform = ProcessUtils.GetPlatform();
-        var isMobilePlatform = platform is PlatformId.Android or PlatformId.iOS or PlatformId.TvOS or PlatformId.Web or PlatformId.RaspberryPi;
-        return backend == RenderBackend.OpenGL && isMobilePlatform;
+#if REDBOLT_PLATFORM_ANDROID || REDBOLT_PLATFORM_BROWSER
+        return backend == RenderBackend.OpenGL;
+#else
+        return false;
+#endif
     }
 
     public static bool IsMetalBackend(RenderBackend backend)
     {
-        var platform = ProcessUtils.GetPlatform();
-        var isApplePlatform = platform is PlatformId.iOS or PlatformId.TvOS or PlatformId.MacOS;
-        return backend == RenderBackend.Vulkan && isApplePlatform;
+        return false;
     }
 
     public static string ToString(RenderBackend backend)
@@ -242,7 +241,11 @@ public static class RenderAPIUtils
 
     public static RenderBackend SelectRenderBackend(RenderBackend? requestedBackend = null)
     {
-        var defaultBackend = GetDefaultRenderBackend(ProcessUtils.GetPlatform());
+#if REDBOLT_PLATFORM_WINDOWS
+        const RenderBackend defaultBackend = RenderBackend.D3D11;
+#else
+        const RenderBackend defaultBackend = RenderBackend.OpenGL;
+#endif
 
         var backend = requestedBackend ?? defaultBackend;
         var supportedBackends = Context.Instance.RuntimeServices.GraphicsBackends;
@@ -254,12 +257,6 @@ public static class RenderAPIUtils
 
         return supportedBackends.First().Backend;
     }
-
-    private static RenderBackend GetDefaultRenderBackend(PlatformId platform) => platform switch
-    {
-        PlatformId.Windows or PlatformId.UniversalWindowsPlatform => RenderBackend.D3D11,
-        _ => RenderBackend.OpenGL
-    };
 
     public static ShaderTranslationPolicy SelectShaderTranslationPolicy(
         RenderBackend backend, ShaderTranslationPolicy? requestedPolicy = null)

@@ -10,7 +10,6 @@ using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Math;
-using RedBolt.Platform;
 using RedBolt.Scene;
 
 internal static class LightAnimationProgram
@@ -44,11 +43,10 @@ sealed class LightAnimationApplication : Application
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowMaximize = false;
-        if (ProcessUtils.GetPlatform() != PlatformId.Web)
-        {
+#if !REDBOLT_PLATFORM_BROWSER
             parameters.WindowWidth = 1280;
             parameters.WindowHeight = 720;
-        }
+#endif
         parameters.WindowTitle = "RedBolt Light Animation";
     }
 

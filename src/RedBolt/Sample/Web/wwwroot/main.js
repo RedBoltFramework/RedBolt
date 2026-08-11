@@ -338,8 +338,8 @@ const { getAssemblyExports, setModuleImports, runMain } = await dotnet
     .withApplicationArgumentsFromQuery()
     .withModuleConfig(moduleConfig)
     .create();
-const platformExports = await getAssemblyExports('RedBolt.Platform.Web.dll');
-const applicationExports = platformExports.RedBolt.Platform.Application;
+const coreExports = await getAssemblyExports('RedBolt.Core.dll');
+const applicationExports = coreExports.RedBolt.Engine.Application;
 const networkExports = await getAssemblyExports('RedBolt.Network.dll');
 networkInterop = networkExports.RedBolt.Network.BrowserDataChannelInterop;
 

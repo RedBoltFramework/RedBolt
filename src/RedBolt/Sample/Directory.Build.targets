@@ -1,14 +1,6 @@
 <Project>
   <Import Project="$(MSBuildThisFileDirectory)../../Directory.Build.targets" />
 
-  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64'">
-    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Platform/Linux/RedBolt.Platform.Linux.csproj" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
-    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Platform/Windows/RedBolt.Platform.Windows.csproj" />
-  </ItemGroup>
-
   <Target Name="RedBoltAddNativeFilesToPublish"
           AfterTargets="ComputeFilesToPublish"
           DependsOnTargets="RedBoltConfigureRuntimeAssemblies"

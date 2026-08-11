@@ -196,12 +196,15 @@ public abstract class DesktopAssemblyBackend : IAssemblyBackend
 
     private static void EnsureSupported()
     {
-        if ((!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux() && !OperatingSystem.IsMacOS())
-            || !RuntimeFeature.IsDynamicCodeSupported)
+#if !REDBOLT_PLATFORM_WINDOWS && !REDBOLT_PLATFORM_LINUX
+        throw new PlatformNotSupportedException("Desktop user-code loading requires a desktop build.");
+#else
+        if (!RuntimeFeature.IsDynamicCodeSupported)
         {
             throw new PlatformNotSupportedException(
-                "Desktop user-code loading requires Windows, Linux, or macOS with dynamic code support.");
+                "Desktop user-code loading requires dynamic code support.");
         }
+#endif
     }
 
     private sealed class DesktopUserCodeAssembly : UserCodeAssembly

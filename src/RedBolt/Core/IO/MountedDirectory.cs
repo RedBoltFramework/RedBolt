@@ -108,12 +108,14 @@ public class MountedDirectory : WatchableMountPoint
             return 0;
 
         var modifiedTime = System.IO.File.GetLastWriteTimeUtc(fullPath);
-        if (OperatingSystem.IsWindows() && creationIsModification)
+#if REDBOLT_PLATFORM_WINDOWS
+        if (creationIsModification)
         {
             var creationTime = System.IO.File.GetCreationTimeUtc(fullPath);
             if (creationTime > modifiedTime)
                 modifiedTime = creationTime;
         }
+#endif
 
         var seconds = new DateTimeOffset(modifiedTime).ToUnixTimeSeconds();
         return seconds > 0 ? unchecked((uint)seconds) : 0u;

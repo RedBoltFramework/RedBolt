@@ -106,7 +106,7 @@ public class PackageFile : MountPoint
         if (_entries.ContainsKey(fileName))
             return true;
 
-        if (OperatingSystem.IsWindows())
+#if REDBOLT_PLATFORM_WINDOWS
         {
             foreach (var entryName in _entries.Keys)
             {
@@ -114,6 +114,7 @@ public class PackageFile : MountPoint
                     return true;
             }
         }
+#endif
 
         return false;
     }
@@ -124,7 +125,7 @@ public class PackageFile : MountPoint
         if (_entries.TryGetValue(fileName, out var entry))
             return entry;
 
-        if (OperatingSystem.IsWindows())
+#if REDBOLT_PLATFORM_WINDOWS
         {
             foreach (var pair in _entries)
             {
@@ -132,6 +133,7 @@ public class PackageFile : MountPoint
                     return pair.Value;
             }
         }
+#endif
 
         return null;
     }
@@ -237,12 +239,14 @@ public class PackageFile : MountPoint
             return null;
 
         var modifiedTime = System.IO.File.GetLastWriteTimeUtc(_fileName);
-        if (OperatingSystem.IsWindows() && creationIsModification)
+#if REDBOLT_PLATFORM_WINDOWS
+        if (creationIsModification)
         {
             var creationTime = System.IO.File.GetCreationTimeUtc(_fileName);
             if (creationTime > modifiedTime)
                 modifiedTime = creationTime;
         }
+#endif
 
         var seconds = new DateTimeOffset(modifiedTime).ToUnixTimeSeconds();
         return seconds > 0 ? unchecked((uint)seconds) : 0u;
@@ -270,7 +274,11 @@ public class PackageFile : MountPoint
                 filterExtension = string.Empty;
         }
 
-        var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+#if REDBOLT_PLATFORM_WINDOWS
+        const StringComparison comparison = StringComparison.OrdinalIgnoreCase;
+#else
+        const StringComparison comparison = StringComparison.Ordinal;
+#endif
         foreach (var entryName in GetEntryNames())
         {
             if (!entryName.StartsWith(pathName, comparison))

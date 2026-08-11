@@ -444,7 +444,11 @@ public struct Quaternion : ICloneable, IEquatable<Quaternion>, IApproximateEquat
 
     /// <summary>Spherical interpolation with another quaternion.</summary>
     public readonly Quaternion Slerp(Quaternion rhs, float t)
-        => Slerp(rhs, t, OperatingSystem.IsBrowser());
+#if REDBOLT_PLATFORM_BROWSER
+        => Slerp(rhs, t, true);
+#else
+        => Slerp(rhs, t, false);
+#endif
 
     private readonly Quaternion Slerp(Quaternion rhs, float t, bool useFastApproximation)
     {

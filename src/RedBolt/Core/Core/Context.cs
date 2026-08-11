@@ -12,7 +12,6 @@ using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Input;
 using RedBolt.Logging;
-using RedBolt.Platform;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
 

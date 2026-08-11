@@ -1005,12 +1005,13 @@ public class AssetManager : RedObject
         try
         {
             var modifiedTime = File.GetLastWriteTimeUtc(fileName);
-            if (OperatingSystem.IsWindows())
+#if REDBOLT_PLATFORM_WINDOWS
             {
                 var creationTime = File.GetCreationTimeUtc(fileName);
                 if (creationTime > modifiedTime)
                     modifiedTime = creationTime;
             }
+#endif
             var seconds = new DateTimeOffset(modifiedTime).ToUnixTimeSeconds();
             return seconds > 0 ? unchecked((uint)seconds) : 0u;
         }

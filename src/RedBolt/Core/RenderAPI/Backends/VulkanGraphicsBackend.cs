@@ -1,4 +1,5 @@
-namespace RedBolt;
+#if REDBOLT_PLATFORM_LINUX || REDBOLT_PLATFORM_WINDOWS
+namespace RedBolt.RenderAPI.Backends;
 
 using Microsoft.Extensions.Logging;
 using System;
@@ -8,7 +9,6 @@ using RedBolt.Bindings.Sdl;
 using RedBolt.Engine;
 using RedBolt.Logging;
 using RedBolt.Math;
-using RedBolt.Platform;
 using RedBolt.RenderAPI;
 
 /// <summary>Vulkan graphics backend.</summary>
@@ -27,7 +27,7 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
     }
 
     public GraphicsBackendResources Initialize(EngineParameters parameters, RenderDeviceSettings deviceSettings,
-        WindowSettings windowSettings, SdlWindow window, IPlatformRuntime platform)
+        WindowSettings windowSettings, SdlWindow window)
     {
         SdlNativeBindings.SdlGetWindowSize(window, out var width, out var height);
 
@@ -87,7 +87,7 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
                     : TextureFormat.TexFormatRgba8Unorm,
                 DepthBufferFormat = TextureFormat.TexFormatUnknown
             };
-            var nativeWindowInfo = platform.GetNativeWindowInfo(window);
+            var nativeWindowInfo = NativeWindow.GetInfo(window);
 #if REDBOLT_PLATFORM_LINUX
             using var nativeWindow = new LinuxNativeWindow
             {
@@ -283,3 +283,4 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
         }
     }
 }
+#endif

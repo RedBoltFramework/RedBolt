@@ -34,12 +34,15 @@ internal static class CompilerToolchainDiscovery
         var includeDirectories = DiscoverVerboseSearchPaths(includeCompilerPath, targetTriple, sysroot);
         var clangResourceDirectory = DiscoverClangResourceDirectoryOverride();
         var usesResourceDirectoryOverride = clangResourceDirectory is not null;
+        var requiresTargetToolchainResourceDirectory =
+            targetTriple?.Contains("android", StringComparison.OrdinalIgnoreCase) == true;
 
         if (clangResourceDirectory is null && LooksLikeClangCompiler(toolchainClangCompilerPath))
             clangResourceDirectory = DiscoverClangResourceDirectory(toolchainClangCompilerPath);
 
         string? ignoredClangResourceDirectory = null;
         if (!usesResourceDirectoryOverride &&
+            !requiresTargetToolchainResourceDirectory &&
             !string.IsNullOrWhiteSpace(clangResourceDirectory) &&
             parserClangMajorVersion is int parserClangMajor &&
             TryGetClangMajorVersionFromResourceDirectory(clangResourceDirectory, out var resourceClangMajor) &&

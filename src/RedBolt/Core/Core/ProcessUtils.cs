@@ -35,9 +35,11 @@ public static class ProcessUtils
     private static readonly List<string> _arguments = [];
 
     public static string DynLibSuffix =>
-        OperatingSystem.IsWindows() ? ".dll" :
-        OperatingSystem.IsMacOS() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS() ? ".dylib" :
+#if REDBOLT_PLATFORM_WINDOWS
+        ".dll";
+#else
         ".so";
+#endif
 
     /// <summary>Print Unicode text to the console.</summary>
     public static void PrintUnicode(string value, bool error = false)
@@ -98,8 +100,9 @@ public static class ProcessUtils
         if (skipFirstArgument && _arguments.Count > 0)
             _arguments.RemoveAt(0);
 
-        if (OperatingSystem.IsWindows())
-            _arguments.Remove("--win32-console");
+#if REDBOLT_PLATFORM_WINDOWS
+        _arguments.Remove("--win32-console");
+#endif
 
         return _arguments;
     }
@@ -119,75 +122,40 @@ public static class ProcessUtils
 
     public static PlatformId GetPlatform()
     {
-        if (OperatingSystem.IsAndroid())
-            return PlatformId.Android;
-        if (OperatingSystem.IsIOS())
-            return PlatformId.iOS;
-        if (OperatingSystem.IsTvOS())
-            return PlatformId.TvOS;
-        if (OperatingSystem.IsMacOS())
-            return PlatformId.MacOS;
-        if (OperatingSystem.IsWindows())
-            return PlatformId.Windows;
-        if (OperatingSystem.IsBrowser())
-            return PlatformId.Web;
-        if (OperatingSystem.IsLinux())
-        {
-            if (System.IO.File.Exists("/sys/firmware/devicetree/base/model"))
-            {
-                try
-                {
-                    var model = System.IO.File.ReadAllText("/sys/firmware/devicetree/base/model");
-                    if (model.Contains("Raspberry Pi", StringComparison.OrdinalIgnoreCase))
-                        return PlatformId.RaspberryPi;
-                }
-                catch
-                {
-                }
-            }
-
-            return PlatformId.Linux;
-        }
-
+#if REDBOLT_PLATFORM_ANDROID
+        return PlatformId.Android;
+#elif REDBOLT_PLATFORM_BROWSER
+        return PlatformId.Web;
+#elif REDBOLT_PLATFORM_WINDOWS
+        return PlatformId.Windows;
+#elif REDBOLT_PLATFORM_LINUX
+        return PlatformId.Linux;
+#else
         return PlatformId.Unknown;
+#endif
     }
 
     public static string GetPlatformName()
     {
-        switch (GetPlatform())
-        {
-            case PlatformId.Windows:
-                return "Windows";
-            case PlatformId.UniversalWindowsPlatform:
-                return "UWP";
-
-            case PlatformId.Linux:
-                return "Linux";
-            case PlatformId.Android:
-                return "Android";
-            case PlatformId.RaspberryPi:
-                return "Raspberry Pi";
-
-            case PlatformId.MacOS:
-                return "macOS";
-            case PlatformId.iOS:
-                return "iOS";
-            case PlatformId.TvOS:
-                return "tvOS";
-
-            case PlatformId.Web:
-                return "Web";
-
-            default:
-                return "(?)";
-        }
+#if REDBOLT_PLATFORM_ANDROID
+        return "Android";
+#elif REDBOLT_PLATFORM_BROWSER
+        return "Web";
+#elif REDBOLT_PLATFORM_WINDOWS
+        return "Windows";
+#elif REDBOLT_PLATFORM_LINUX
+        return "Linux";
+#else
+        return "(?)";
+#endif
     }
 
     public static uint GetNumPhysicalCPUs()
     {
         var cpuCount = 0u;
 
-        if (OperatingSystem.IsLinux() && System.IO.File.Exists("/proc/cpuinfo"))
+#if REDBOLT_PLATFORM_LINUX
+        if (System.IO.File.Exists("/proc/cpuinfo"))
         {
             try
             {
@@ -221,6 +189,7 @@ public static class ProcessUtils
             {
             }
         }
+#endif
 
         if (cpuCount == 0)
             cpuCount = GetNumLogicalCPUs();
@@ -240,7 +209,8 @@ public static class ProcessUtils
 
     public static ulong GetTotalMemory()
     {
-        if (OperatingSystem.IsLinux() && System.IO.File.Exists("/proc/meminfo"))
+#if REDBOLT_PLATFORM_LINUX
+        if (System.IO.File.Exists("/proc/meminfo"))
         {
             try
             {
@@ -258,6 +228,7 @@ public static class ProcessUtils
             {
             }
         }
+#endif
 
         var totalAvailableMemory = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes;
         return totalAvailableMemory > 0 ? (ulong)totalAvailableMemory : 0UL;

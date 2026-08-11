@@ -11,7 +11,6 @@ using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Math;
-using RedBolt.Platform;
 using RedBolt.Scene;
 
 internal static class AnimatingSceneProgram
@@ -159,11 +158,10 @@ public class AnimatingScene : Application
         parameters.WindowMaximize = false;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = ".;..";
-        if (ProcessUtils.GetPlatform() != PlatformId.Web)
-        {
+#if !REDBOLT_PLATFORM_BROWSER
             parameters.WindowHeight = 720;
             parameters.WindowWidth = 1280;
-        }
+#endif
         parameters.WindowTitle = "RedBolt Animating Scene";
     }
 

@@ -1,4 +1,5 @@
-namespace RedBolt;
+#if REDBOLT_PLATFORM_WINDOWS
+namespace RedBolt.RenderAPI.Backends;
 
 using System;
 using System.Runtime.InteropServices;
@@ -7,7 +8,6 @@ using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
 using RedBolt.Engine;
 using RedBolt.Math;
-using RedBolt.Platform;
 using RedBolt.RenderAPI;
 
 public abstract class Direct3DGraphicsBackend : IGraphicsBackend
@@ -21,7 +21,7 @@ public abstract class Direct3DGraphicsBackend : IGraphicsBackend
     }
 
     public GraphicsBackendResources Initialize(EngineParameters parameters, RenderDeviceSettings deviceSettings,
-        WindowSettings windowSettings, SdlWindow window, IPlatformRuntime platform)
+        WindowSettings windowSettings, SdlWindow window)
     {
         SdlNativeBindings.SdlGetWindowSize(window, out var width, out var height);
         // Wine's D3D11 sRGB render-target path omits the gamma encode. A linear
@@ -40,7 +40,7 @@ public abstract class Direct3DGraphicsBackend : IGraphicsBackend
             RefreshRateNumerator = checked((uint)System.Math.Max(windowSettings.RefreshRate, 0)),
             RefreshRateDenominator = 1
         };
-        var nativeWindowInfo = platform.GetNativeWindowInfo(window);
+        var nativeWindowInfo = NativeWindow.GetInfo(window);
         using var nativeWindow = new Win32NativeWindow { HWnd = nativeWindowInfo.Window };
 
         var resources = CreateNativeResources(deviceSettings, swapChainDesc, fullScreenDesc, nativeWindow);
@@ -277,3 +277,4 @@ public sealed class D3D12GraphicsBackend : Direct3DGraphicsBackend
         }
     }
 }
+#endif

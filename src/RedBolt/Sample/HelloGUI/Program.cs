@@ -9,7 +9,6 @@ using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Input;
-using RedBolt.Platform;
 
 internal static class HelloGUIProgram
 {
@@ -223,11 +222,10 @@ public class HelloGUI : Application
         parameters.WindowMaximize = false;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = ".;..";
-        if (ProcessUtils.GetPlatform() != PlatformId.Web)
-        {
+#if !REDBOLT_PLATFORM_BROWSER
             parameters.WindowHeight = 720;
             parameters.WindowWidth = 1280;
-        }
+#endif
         parameters.WindowTitle = "RedBolt Hello GUI";
     }
 

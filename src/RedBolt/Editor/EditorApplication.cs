@@ -26,7 +26,6 @@ using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Math;
-using RedBolt.Platform;
 using RedBolt.Resource;
 using RedBolt.SystemUI;
 
@@ -277,11 +276,12 @@ public unsafe class EditorApplication : Application
         var imguiFlags = (ImGuiConfigFlags)ImGuiConfigFlagsDpiEnableScaleFonts;
         imguiFlags |= ImGuiConfigFlags.ImGuiConfigFlagsViewportsEnable;
 
-        if (OperatingSystem.IsLinux()
-            && string.Equals(Environment.GetEnvironmentVariable("XDG_SESSION_TYPE"), "wayland", StringComparison.Ordinal))
+#if REDBOLT_PLATFORM_LINUX
+        if (string.Equals(Environment.GetEnvironmentVariable("XDG_SESSION_TYPE"), "wayland", StringComparison.Ordinal))
         {
             imguiFlags &= ~ImGuiConfigFlags.ImGuiConfigFlagsViewportsEnable;
         }
+#endif
 
         parameters.SystemUIFlags = (uint)imguiFlags;
     }
@@ -968,7 +968,11 @@ public unsafe class EditorApplication : Application
     protected void OpenProfilerApplication()
     {
         var programDirectory = Path.GetDirectoryName(Environment.ProcessPath) ?? string.Empty;
-        var profilerPath = Path.Combine(programDirectory, OperatingSystem.IsWindows() ? "Profiler.exe" : "Profiler");
+#if REDBOLT_PLATFORM_WINDOWS
+        var profilerPath = Path.Combine(programDirectory, "Profiler.exe");
+#else
+        var profilerPath = Path.Combine(programDirectory, "Profiler");
+#endif
         try
         {
             Process.Start(new ProcessStartInfo(profilerPath) { UseShellExecute = false })?.Dispose();
@@ -1050,23 +1054,16 @@ public unsafe class EditorApplication : Application
     private static void Reveal(string path)
     {
         var startInfo = new ProcessStartInfo { UseShellExecute = false };
-        if (OperatingSystem.IsWindows())
-        {
-            startInfo.FileName = "explorer.exe";
-            startInfo.ArgumentList.Add("/select,");
-            startInfo.ArgumentList.Add(path);
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            startInfo.FileName = "open";
-            startInfo.ArgumentList.Add("-R");
-            startInfo.ArgumentList.Add(path);
-        }
-        else
+#if REDBOLT_PLATFORM_WINDOWS
+        startInfo.FileName = "explorer.exe";
+        startInfo.ArgumentList.Add("/select,");
+        startInfo.ArgumentList.Add(path);
+#else
         {
             startInfo.FileName = "xdg-open";
             startInfo.ArgumentList.Add(Directory.Exists(path) ? path : Path.GetDirectoryName(path) ?? path);
         }
+#endif
         Process.Start(startInfo)?.Dispose();
     }
 

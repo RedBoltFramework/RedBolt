@@ -281,8 +281,14 @@ public class File : AbstractFile
         return OpenInternal(fileName, mode, logErrors: false);
     }
 
-    internal static bool IsAndroidAssetPath(string fileName) =>
-        OperatingSystem.IsAndroid() && fileName.StartsWith("/apk/", StringComparison.Ordinal);
+    internal static bool IsAndroidAssetPath(string fileName)
+    {
+#if REDBOLT_PLATFORM_ANDROID
+        return fileName.StartsWith("/apk/", StringComparison.Ordinal);
+#else
+        return false;
+#endif
+    }
 
     /// <summary>Open from within a package file. Return true if successful.</summary>
     public bool Open(PackageFile? package, string fileName)

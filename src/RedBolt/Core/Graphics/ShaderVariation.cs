@@ -140,8 +140,9 @@ public sealed class ShaderVariation : RawShader
     private void SaveByteCode(in FileIdentifier binaryShaderName)
     {
         // TODO: Enable shader cache in Web. Currently it is disabled because of suboptimal persistent storage support.
-        if (ProcessUtils.GetPlatform() == PlatformId.Web)
-            return;
+#if REDBOLT_PLATFORM_BROWSER
+        return;
+#else
 
         var virtualFileSystem = GetSubsystem<VirtualFileSystem>();
         if (virtualFileSystem is null || binaryShaderName.IsEmpty())
@@ -159,6 +160,7 @@ public sealed class ShaderVariation : RawShader
         {
             file.Close();
         }
+#endif
     }
 
     private string GetCachedVariationName(string extension)

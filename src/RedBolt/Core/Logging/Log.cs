@@ -8,7 +8,6 @@ using System.Text;
 using RedBolt.Core;
 using RedBolt.IO;
 using FileMode = global::RedBolt.IO.FileMode;
-using RedBolt.Platform;
 
 public enum LogLevel
 {
@@ -367,7 +366,11 @@ internal class LogImpl : RedObject
 /// <summary>Logging subsystem.</summary>
 public class Log : RedObject
 {
-    private static readonly string NullDevice = OperatingSystem.IsWindows() ? "NUL" : "/dev/null";
+#if REDBOLT_PLATFORM_WINDOWS
+    private const string NullDevice = "NUL";
+#else
+    private const string NullDevice = "/dev/null";
+#endif
     private static bool _threadErrorDisplayed;
 
     /// <summary>Implementation hiding logger class types from public headers.</summary>
@@ -408,8 +411,9 @@ public class Log : RedObject
     /// <summary>Open the log file.</summary>
     public void Open(string fileName, in LogFileParams parameters)
     {
-        if (!Context.Instance.RuntimeServices.Platform.SupportsFileLogging)
-            return;
+#if REDBOLT_PLATFORM_BROWSER
+        return;
+#else
 
         if (string.IsNullOrEmpty(fileName) || fileName == NullDevice)
             return;
@@ -442,13 +446,15 @@ public class Log : RedObject
                 return;
             }
         }
+#endif
     }
 
     /// <summary>Close the log file.</summary>
     public void Close()
     {
-        if (Context.Instance.RuntimeServices.Platform.SupportsFileLogging)
-            _impl.Close();
+#if !REDBOLT_PLATFORM_BROWSER
+        _impl.Close();
+#endif
     }
 
     /// <summary>Set logging level.</summary>

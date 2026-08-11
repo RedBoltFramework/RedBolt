@@ -197,16 +197,15 @@ public partial class ApplicationState : RedObject
     {
         var input = GetSubsystem<Input>()!;
 
-        if (ProcessUtils.GetPlatform() != PlatformId.Web)
-        {
-            input.SetMouseMode(_mouseMode);
-        }
-        else
+#if REDBOLT_PLATFORM_BROWSER
         {
             input.SetMouseVisible(true);
             SubscribeToEvent<InputEvents.MouseButtonDownEvent>(HandleMouseModeRequest);
             SubscribeToEvent<InputEvents.MouseModeChangedEvent>(HandleMouseModeChange);
         }
+#else
+        input.SetMouseMode(_mouseMode);
+#endif
     }
 
     /// <summary>Handle request for mouse mode on web platform.</summary>

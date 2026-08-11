@@ -1604,23 +1604,16 @@ public class ResourceBrowserTab : EditorTab
     private static void RevealInExplorer(string path)
     {
         var startInfo = new ProcessStartInfo { UseShellExecute = false };
-        if (OperatingSystem.IsWindows())
-        {
-            startInfo.FileName = "explorer.exe";
-            startInfo.ArgumentList.Add("/select,");
-            startInfo.ArgumentList.Add(path);
-        }
-        else if (OperatingSystem.IsMacOS())
-        {
-            startInfo.FileName = "open";
-            startInfo.ArgumentList.Add("-R");
-            startInfo.ArgumentList.Add(path);
-        }
-        else
+#if REDBOLT_PLATFORM_WINDOWS
+        startInfo.FileName = "explorer.exe";
+        startInfo.ArgumentList.Add("/select,");
+        startInfo.ArgumentList.Add(path);
+#else
         {
             startInfo.FileName = "xdg-open";
             startInfo.ArgumentList.Add(Directory.Exists(path) ? path : GetPath(path));
         }
+#endif
         Process.Start(startInfo)?.Dispose();
     }
 

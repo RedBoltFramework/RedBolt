@@ -10,7 +10,6 @@ using global::Android.OS;
 using global::Android.Widget;
 
 using RedBolt.IO;
-using RedBolt.Platform;
 
 [Activity(Label = "RedBolt samples", MainLauncher = true, Exported = true)]
 public sealed class SamplePickerActivity : Activity
@@ -68,7 +67,7 @@ public sealed class SampleActivity : Org.Libsdl.App.SDLActivity
         global::Android.Util.Log.Info("RedBolt", $"Starting sample {sample.Id}");
         VerifyPackagedAssets();
         var applicationType = typeof(SampleActivity).Assembly.GetType(sample.ApplicationType, true)!;
-        using var application = (RedBolt.Platform.Application?)Activator.CreateInstance(applicationType, true)
+        using var application = (RedBolt.Engine.Application?)Activator.CreateInstance(applicationType, true)
             ?? throw new InvalidOperationException($"Cannot create RedBolt sample application: {sample.ApplicationType}");
 
         try

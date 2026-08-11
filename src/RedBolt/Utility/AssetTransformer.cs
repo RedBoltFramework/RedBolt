@@ -299,9 +299,11 @@ public partial class AssetTransformer : Serializable
                     foreach (var pathComponent in pathComponents)
                     {
                         currentPath = Path.Combine(currentPath, pathComponent);
-                        if ((!OperatingSystem.IsWindows() && pathComponent.StartsWith(".", StringComparison.Ordinal))
-                            || (OperatingSystem.IsWindows()
-                                && (System.IO.File.GetAttributes(currentPath) & FileAttributes.Hidden) != 0))
+#if REDBOLT_PLATFORM_WINDOWS
+                        if ((System.IO.File.GetAttributes(currentPath) & FileAttributes.Hidden) != 0)
+#else
+                        if (pathComponent.StartsWith(".", StringComparison.Ordinal))
+#endif
                         {
                             isHidden = true;
                             break;
@@ -396,12 +398,13 @@ public partial class AssetTransformer : Serializable
         try
         {
             var modifiedTime = System.IO.File.GetLastWriteTimeUtc(fileName);
-            if (OperatingSystem.IsWindows())
+#if REDBOLT_PLATFORM_WINDOWS
             {
                 var creationTime = System.IO.File.GetCreationTimeUtc(fileName);
                 if (creationTime > modifiedTime)
                     modifiedTime = creationTime;
             }
+#endif
 
             var seconds = new DateTimeOffset(modifiedTime).ToUnixTimeSeconds();
             modificationTime = seconds > 0 ? unchecked((uint)seconds) : 0u;

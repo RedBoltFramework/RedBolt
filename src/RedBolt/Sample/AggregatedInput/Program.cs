@@ -12,7 +12,6 @@ using RedBolt.DearImGui;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Input;
-using RedBolt.Platform;
 
 internal static class AggregatedInputProgram
 {
@@ -53,11 +52,10 @@ sealed class AggregatedInputApplication : Application
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowMaximize = false;
-        if (ProcessUtils.GetPlatform() != PlatformId.Web)
-        {
+#if !REDBOLT_PLATFORM_BROWSER
             parameters.WindowWidth = 1280;
             parameters.WindowHeight = 720;
-        }
+#endif
         parameters.WindowTitle = "RedBolt Aggregated Input";
     }
 

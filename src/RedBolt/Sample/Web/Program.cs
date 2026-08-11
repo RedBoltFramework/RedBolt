@@ -7,14 +7,12 @@ using System.Text;
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Lz4;
 using RedBolt.Bindings.Sdl;
-using RedBolt.Platform;
+using RedBolt.Engine;
 
 internal static class WebProgram
 {
     private static void Main()
     {
-        WebPlatform.Initialize();
-
         var lz4Version = Lz4NativeBindings.Lz4VersionNumber();
         var sdlRevision = Encoding.UTF8.GetString(SdlNativeBindings.SdlGetRevision());
         var diligentFactory = DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL();

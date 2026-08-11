@@ -20,7 +20,6 @@ using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Network;
 using RedBolt.PhysicsJolt;
-using RedBolt.Platform;
 using RedBolt.Replica;
 using RedBolt.Resource;
 using RedBolt.Scene;
@@ -174,11 +173,10 @@ public sealed class AdvancedNetworking : Application
         parameters.WindowMaximize = false;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = ".;..";
-        if (ProcessUtils.GetPlatform() != PlatformId.Web)
-        {
+#if !REDBOLT_PLATFORM_BROWSER
             parameters.WindowWidth = 1280;
             parameters.WindowHeight = 720;
-        }
+#endif
         parameters.WindowTitle = "RedBolt Advanced Networking (Jolt KCC)";
     }
 
@@ -333,11 +331,10 @@ public sealed class AdvancedNetworking : Application
             {
                 ImGui.InputText("Server address"u8, _addressBuffer, AddressBufferSize);
                 if (ImGui.Button("Connect"u8)) Connect();
-                if (ProcessUtils.GetPlatform() != PlatformId.Web)
-                {
+#if !REDBOLT_PLATFORM_BROWSER
                     ImGui.SameLine();
                     if (ImGui.Button("Start server"u8)) StartServer();
-                }
+#endif
             }
             else if (ImGui.Button("Stop networking"u8))
                 StopNetworking();

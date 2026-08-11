@@ -35,7 +35,6 @@ using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Navigation;
-using RedBolt.Platform;
 using RedBolt.Resource;
 using RedBolt.Scene;
 
@@ -426,11 +425,10 @@ public sealed class CrowdNavigationSample : Application
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowMaximize = false;
-        if (ProcessUtils.GetPlatform() != PlatformId.Web)
-        {
+#if !REDBOLT_PLATFORM_BROWSER
             parameters.WindowWidth = 1280;
             parameters.WindowHeight = 720;
-        }
+#endif
         parameters.WindowTitle = "RedBolt Crowd Navigation";
     }
 
