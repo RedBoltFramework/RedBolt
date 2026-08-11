@@ -4,12 +4,6 @@ target_include_directories(redbolt-native-support INTERFACE
 target_link_libraries(redbolt-native-support INTERFACE
     SharpCpp::NativeSupport
     redbolt-diligent-headers)
-if(ANDROID)
-    # Diligent's Android shared backend hides its RTTI. RedBolt-side proxy and
-    # binding code therefore cannot use Debug-only dynamic_cast checks on
-    # objects created by that DSO, although the release static_cast is valid.
-    target_compile_options(redbolt-native-support INTERFACE -UDILIGENT_DEBUG)
-endif()
 
 add_library(redbolt-diligent-support STATIC
     src/DiligentSupport.cpp)
@@ -51,9 +45,6 @@ target_link_libraries(redbolt-imgui-backend
         ImGui
         harfbuzz
         harfbuzz-gpu)
-if(ANDROID)
-    target_compile_options(redbolt-imgui-backend PRIVATE -UDILIGENT_DEBUG)
-endif()
 if(NOT EMSCRIPTEN AND NOT ANDROID)
     target_link_libraries(redbolt-imgui-backend PUBLIC ${REDBOLT_DILIGENT_VULKAN_TARGET})
 endif()

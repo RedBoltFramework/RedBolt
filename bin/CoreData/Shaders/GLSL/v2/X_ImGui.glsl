@@ -1,6 +1,10 @@
 #include "_Config.glsl"
 #include "_GammaCorrection.glsl"
 
+#if defined(GL_ES) && defined(REDBOLT_ANDROID)
+precision highp int;
+#endif
+
 VERTEX_OUTPUT_HIGHP(vec2 vTexCoord)
 VERTEX_OUTPUT(half4 vColor)
 

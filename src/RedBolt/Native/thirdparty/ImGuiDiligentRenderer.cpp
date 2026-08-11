@@ -581,12 +581,18 @@ bool ImGuiDiligentRenderer::SynchronizeHarfBuzzAtlas(IDeviceContext* pCtx)
         desc.Format = TEX_FORMAT_RGBA16_SINT;
         desc.BindFlags = BIND_SHADER_RESOURCE;
         desc.Usage = USAGE_DEFAULT;
+#ifndef __ANDROID__
         TextureSubResData subresource(data->data(), RedBoltNative::HarfBuzzGpuAtlas::Width
             * RedBoltNative::HarfBuzzGpuAtlas::TexelSize);
         TextureData initialData(&subresource, 1);
+#endif
         m_pHarfBuzzAtlas.Release();
         m_pHarfBuzzAtlasSRV.Release();
+#ifdef __ANDROID__
+        m_pDevice->CreateTexture(desc, nullptr, &m_pHarfBuzzAtlas);
+#else
         m_pDevice->CreateTexture(desc, &initialData, &m_pHarfBuzzAtlas);
+#endif
         if (!m_pHarfBuzzAtlas)
         {
             if (!m_HarfBuzzFailureLogged)
@@ -608,8 +614,12 @@ bool ImGuiDiligentRenderer::SynchronizeHarfBuzzAtlas(IDeviceContext* pCtx)
             return false;
         }
         m_HarfBuzzAtlasHeight = height;
+#ifdef __ANDROID__
+        m_HarfBuzzUploadedTexels = 0;
+#else
         m_HarfBuzzUploadedTexels = static_cast<Uint32>(atlas->GetUsedTexels());
         return true;
+#endif
     }
 
     const Uint32 usedTexels = static_cast<Uint32>(atlas->GetUsedTexels());

@@ -30,6 +30,10 @@ public class DearImGui : RedObject
         var io = ImGui.GetIO();
         if (!ImGui.ImGuiBackendInstallHarfBuzzGpuFontLoader())
             throw new InvalidOperationException("Could not initialize the HarfBuzz GPU ImGui font loader.");
+#if REDBOLT_PLATFORM_ANDROID
+        // The Android sampler path does not reliably render ImGui's baked line atlas.
+        ImGui.GetStyle().AntiAliasedLinesUseTex = false;
+#endif
         // TODO: port io.UserData = this when generated bindings can retain a managed Object pointer as native user data.
         // UI subsystem is responsible for managing cursors and that interferes with ImGui.
         io.ConfigFlags |= flags;

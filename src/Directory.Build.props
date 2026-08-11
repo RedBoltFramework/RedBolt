@@ -42,6 +42,7 @@
     <RedBoltNativePdbOutputRoot>$(RedBoltExternOutputDir)/pdb</RedBoltNativePdbOutputRoot>
     <RedBoltManagedOutputTargets>$(RedBoltRoot)/cmake/RedBoltManagedOutput.targets</RedBoltManagedOutputTargets>
     <RedBoltRestorePlatform>$(RedBoltPlatform)</RedBoltRestorePlatform>
+    <RedBoltRestorePlatform Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">android</RedBoltRestorePlatform>
     <RedBoltRestorePlatform Condition="'$(MSBuildProjectName)' == 'RedBolt.Generator.Dependencies' or '$(MSBuildProjectName)' == 'RedBolt.Generator.Reflection'">tools</RedBoltRestorePlatform>
     <RedBoltExternalManagedProperties>Configuration=$(Configuration);TargetFramework=net10.0;TargetFrameworks=net10.0;OutputPath=$(RedBoltExternOutputDir)/;AppendTargetFrameworkToOutputPath=false;AppendRuntimeIdentifierToOutputPath=false;RedBoltPdbOutputDir=$(RedBoltExternOutputDir)/pdb;CustomBeforeMicrosoftCommonTargets=$(RedBoltManagedOutputTargets)</RedBoltExternalManagedProperties>
     <SharpCppOutputDir>$(RedBoltExternOutputDir)</SharpCppOutputDir>

@@ -32,27 +32,36 @@ dotnet build src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj \
   --configuration Debug --no-restore
 ```
 
-The build configures and builds both native ABIs, generates the C# and SDL Java bindings, packages `bin/CoreData` and `bin/Data`, and applies the standard Android debug signature. The signed APK is:
+The build configures and builds both native ABIs, generates the C# and SDL Java bindings, packages `bin/CoreData` and `bin/Data`, and applies the standard Android debug signature. It produces one APK per ABI:
 
 ```text
-build/obj/managed/android-x64/staging/RedBolt.Sample.Android/Debug/org.redbolt.samples-Signed.apk
+build/bin/Debug/android/RedBolt.Sample.Android-android-x64-Debug.apk
+build/bin/Debug/android/RedBolt.Sample.Android-android-arm64-Debug.apk
 ```
 
-The universal Debug APK contains both native ABIs and the complete sample data set, so it is large.
+Each APK contains only its matching native ABI and the complete sample data set.
 
-For a smaller x86_64 Release package suitable for the emulator, build only that runtime:
+Build both Release packages the same way:
 
 ```sh
 dotnet build src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj \
-  --configuration Release --no-restore \
-  -p:RedBoltAndroidRuntimeIdentifiers=android-x64 \
-  -p:RedBoltAndroidPackageArm64=false
+  --configuration Release --no-restore
 ```
 
-The resulting APK is:
+To build only one ABI, select its platform and disable the companion build:
+
+```sh
+dotnet build src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj \
+  --configuration Debug --no-restore \
+  -p:RedBoltPlatform=android-x64 \
+  -p:RedBoltBuildAllAndroidPackages=false
+```
+
+The Release APKs are:
 
 ```text
-build/obj/managed/android-x64/staging/RedBolt.Sample.Android/Release/org.redbolt.samples-Signed.apk
+build/bin/Release/android/RedBolt.Sample.Android-android-x64-Release.apk
+build/bin/Release/android/RedBolt.Sample.Android-android-arm64-Release.apk
 ```
 
 .NET applies the standard Android debug key unless explicit release signing properties are supplied; configure a production key before distribution.
@@ -79,8 +88,20 @@ Launch one sample directly and save a screenshot:
 
 ```sh
 scripts/run_android_emulator.sh \
-  --sample hello-world \
-  --screenshot build/android-hello-world.png
+  --sample camera-shake \
+  --screenshot build/android-samples-camera-shake.png
 ```
 
-The script creates a user-local `redbolt-api36` AVD when needed, starts it without a window by default, installs the signed APK, and launches either the picker or the requested sample. Use `--window` for an interactive emulator and `--shutdown` to stop it after the run.
+Run the x86_64 Release APK and capture the rendered scene used by the final Android test:
+
+```sh
+scripts/run_android_emulator.sh \
+  --apk build/bin/Release/android/RedBolt.Sample.Android-android-x64-Release.apk \
+  --sample camera-shake \
+  --screenshot build/test-results/android-samples-camera-shake-release.png \
+  --shutdown
+```
+
+The script creates a user-local `redbolt-api36` AVD when needed, starts it without a window by default, installs the signed Samples APK, and launches either the picker or the requested sample. It enables KVM after a successful emulator acceleration probe; otherwise it falls back to software CPU emulation and extends the boot and runtime timeouts for the slower launch. Set `REDBOLT_ANDROID_ACCEL=on` or `off` only to override that automatic choice for diagnostics. Requested samples must log both the packaged-asset and Dear ImGui readiness markers; crash and Diligent assertion checks are scoped to the launched RedBolt process.
+
+The helper prefers a side-by-side emulator at `$android_root/emulator-stable/emulator` when present, then falls back to the SDK-managed emulator. Set `REDBOLT_ANDROID_EMULATOR` to select another executable. It uses the `swangle` software GPU mode by default (ANGLE with SwiftShader); override that with `REDBOLT_ANDROID_GPU` only when testing another renderer. CPU acceleration and GPU rendering are selected independently, so the default combines KVM CPU acceleration with software rendering. For a launched sample, `--screenshot` captures RedBolt's rendered back buffer rather than Android's system UI. Use `--window` for an interactive emulator and `--shutdown` to stop it after the run.

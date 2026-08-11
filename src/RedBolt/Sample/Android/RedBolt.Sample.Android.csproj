@@ -11,13 +11,16 @@
     <RedBoltTargetFramework>net10.0-android</RedBoltTargetFramework>
     <TargetFramework>$(RedBoltTargetFramework)</TargetFramework>
     <RedBoltAndroidRuntimeIdentifiers Condition="'$(RedBoltAndroidRuntimeIdentifiers)' == ''">android-arm64;android-x64</RedBoltAndroidRuntimeIdentifiers>
-    <RuntimeIdentifiers>$(RedBoltAndroidRuntimeIdentifiers)</RuntimeIdentifiers>
-    <RedBoltAndroidPackageArm64 Condition="'$(RedBoltAndroidPackageArm64)' == ''">true</RedBoltAndroidPackageArm64>
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(RedBoltPlatform)</RuntimeIdentifier>
+    <RuntimeIdentifiers>$(RuntimeIdentifier)</RuntimeIdentifiers>
+    <RedBoltBuildAllAndroidPackages Condition="'$(RedBoltBuildAllAndroidPackages)' == ''">true</RedBoltBuildAllAndroidPackages>
     <SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
     <TrimMode>partial</TrimMode>
-    <RedBoltAndroidArm64Output>$(RedBoltOutputRoot)/extern/runtimes/android-arm64/native</RedBoltAndroidArm64Output>
-    <RedBoltAndroidX64Output>$(RedBoltOutputRoot)/extern/runtimes/android-x64/native</RedBoltAndroidX64Output>
-    <RedBoltAndroidJavaDirectory>$(RedBoltBuildRoot)/native/android-x64/generated/android/java</RedBoltAndroidJavaDirectory>
+    <RedBoltAndroidNativeOutput>$(RedBoltOutputRoot)/extern/runtimes/$(RedBoltPlatform)/native</RedBoltAndroidNativeOutput>
+    <RedBoltAndroidNdkTriple Condition="'$(RedBoltPlatform)' == 'android-arm64'">aarch64-linux-android</RedBoltAndroidNdkTriple>
+    <RedBoltAndroidNdkTriple Condition="'$(RedBoltPlatform)' == 'android-x64'">x86_64-linux-android</RedBoltAndroidNdkTriple>
+    <RedBoltAndroidJavaDirectory>$(RedBoltBuildRoot)/native/$(RedBoltPlatform)/generated/android/java</RedBoltAndroidJavaDirectory>
+    <RedBoltAndroidPackageOutputDirectory>$(RedBoltOutputRoot)/android</RedBoltAndroidPackageOutputDirectory>
   </PropertyGroup>
 
   <ItemGroup>
@@ -43,24 +46,24 @@
                       AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
   </ItemGroup>
 
+  <Target Name="RedBoltConfigureAndroidRuntimeRestore"
+          BeforeTargets="_FilterRestoreGraphProjectInputItems;_GenerateRestoreProjectPathItemsPerFramework;_GenerateProjectRestoreGraphPerFramework">
+    <PropertyGroup>
+      <RuntimeIdentifiers>$(RedBoltAndroidRuntimeIdentifiers)</RuntimeIdentifiers>
+    </PropertyGroup>
+  </Target>
+
   <Target Name="RedBoltPrepareAndroidRuntime"
           BeforeTargets="_CollectJavaSourceForBinding">
     <MSBuild Projects="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Android.csproj"
              Targets="Build"
              BuildInParallel="false"
              Condition="'$(RedBoltBuildAndroidNative)' != 'false'"
-             Properties="Configuration=$(Configuration);RedBoltPlatform=android-x64;RedBoltNativePreset=android-x64;RedBoltTargetFramework=$(RedBoltTargetFramework);AndroidSdkDirectory=$(AndroidSdkDirectory);AndroidNdkDirectory=$(AndroidNdkDirectory);JavaSdkDirectory=$(JavaSdkDirectory)" />
-    <MSBuild Projects="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Android.csproj"
-             Targets="RedBoltBuildNative"
-             BuildInParallel="false"
-             Condition="'$(RedBoltBuildAndroidNative)' != 'false' and '$(RedBoltAndroidPackageArm64)' == 'true'"
-             Properties="Configuration=$(Configuration);RedBoltPlatform=android-arm64;RedBoltNativePreset=android-arm64;RedBoltTargetFramework=$(RedBoltTargetFramework);AndroidSdkDirectory=$(AndroidSdkDirectory);AndroidNdkDirectory=$(AndroidNdkDirectory);JavaSdkDirectory=$(JavaSdkDirectory)" />
-    <Copy SourceFiles="$(AndroidNdkDirectory)/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so"
-          DestinationFiles="$(RedBoltAndroidArm64Output)/libc++_shared.so"
-          Condition="'$(RedBoltAndroidPackageArm64)' == 'true'"
-          SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(AndroidNdkDirectory)/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/x86_64-linux-android/libc++_shared.so"
-          DestinationFiles="$(RedBoltAndroidX64Output)/libc++_shared.so"
+             Properties="Configuration=$(Configuration);RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltPlatform);RedBoltTargetFramework=$(RedBoltTargetFramework);AndroidSdkDirectory=$(AndroidSdkDirectory);AndroidNdkDirectory=$(AndroidNdkDirectory);JavaSdkDirectory=$(JavaSdkDirectory)" />
+    <Error Condition="'$(RedBoltAndroidNdkTriple)' == ''"
+           Text="Unsupported Android platform '$(RedBoltPlatform)'." />
+    <Copy SourceFiles="$(AndroidNdkDirectory)/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/$(RedBoltAndroidNdkTriple)/libc++_shared.so"
+          DestinationFiles="$(RedBoltAndroidNativeOutput)/libc++_shared.so"
           SkipUnchangedFiles="true" />
     <ItemGroup>
       <AndroidJavaSource Include="$(RedBoltAndroidJavaDirectory)/**/*.java" Bind="false" />
@@ -72,10 +75,27 @@
           BeforeTargets="_BuildApkEmbed;_BuildApkFastDev"
           DependsOnTargets="RedBoltPrepareAndroidRuntime">
     <ItemGroup>
-      <AndroidNativeLibrary Include="$(RedBoltAndroidArm64Output)/*.so"
-                            Condition="'$(RedBoltAndroidPackageArm64)' == 'true'" />
-      <AndroidNativeLibrary Include="$(RedBoltAndroidX64Output)/*.so" />
+      <AndroidNativeLibrary Include="$(RedBoltAndroidNativeOutput)/*.so" />
     </ItemGroup>
+  </Target>
+
+  <Target Name="RedBoltFinalizeAndroidPackage" AfterTargets="Build">
+    <PropertyGroup>
+      <_RedBoltSignedApk>$(RedBoltOutputDir)/$(ApplicationId)-Signed.apk</_RedBoltSignedApk>
+      <_RedBoltPackagedApk>$(RedBoltAndroidPackageOutputDirectory)/RedBolt.Sample.Android-$(RedBoltPlatform)-$(Configuration).apk</_RedBoltPackagedApk>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(_RedBoltSignedApk)')"
+           Text="Android package was not produced at '$(_RedBoltSignedApk)'." />
+    <MakeDir Directories="$(RedBoltAndroidPackageOutputDirectory)" />
+    <Copy SourceFiles="$(_RedBoltSignedApk)"
+          DestinationFiles="$(_RedBoltPackagedApk)"
+          SkipUnchangedFiles="true" />
+    <Message Importance="high" Text="Android package: $(_RedBoltPackagedApk)" />
+    <MSBuild Projects="$(MSBuildProjectFullPath)"
+             Targets="Build"
+             BuildInParallel="false"
+             Condition="'$(BuildingSolutionFile)' != 'true' and '$(RedBoltPlatform)' == 'android-x64' and '$(RedBoltBuildAllAndroidPackages)' == 'true' and '$(RedBoltAndroidPackageInnerBuild)' != 'true'"
+             Properties="Configuration=$(Configuration);RedBoltPlatform=android-arm64;RedBoltNativePreset=android-arm64;RedBoltBuildAllAndroidPackages=false;RedBoltAndroidPackageInnerBuild=true" />
   </Target>
 
   <ItemGroup>

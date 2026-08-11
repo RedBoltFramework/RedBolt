@@ -537,12 +537,15 @@ layout(std140) uniform Material
     /// <summary>
     /// End frame rendering and swap buffers.
     /// </summary>
-    public void EndFrame()
+    public void EndFrame() => EndFrame(null);
+
+    internal void EndFrame(Action? beforePresent)
     {
         if (!IsInitialized)
             return;
 
         SendEvent<GraphicsEvents.EndRenderingEvent>();
+        beforePresent?.Invoke();
         GetSubsystem<RenderDevice>()!.Present();
     }
 

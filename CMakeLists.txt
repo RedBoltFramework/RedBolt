@@ -36,6 +36,9 @@ if(EMSCRIPTEN)
 endif()
 
 if(ANDROID)
+    # Keep generated managed signatures identical across Android ABIs. Clang
+    # otherwise treats plain char as unsigned on arm64 and signed on x86_64.
+    add_compile_options(-fsigned-char)
     add_link_options("-Wl,-z,max-page-size=16384")
 endif()
 

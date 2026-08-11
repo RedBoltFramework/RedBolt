@@ -333,6 +333,13 @@ public class Engine : RedObject
 
     public void Exit()
     {
+#if REDBOLT_PLATFORM_ANDROID
+        if (!IsHeadless && !string.IsNullOrWhiteSpace(Parameters.ScreenshotOnExit))
+        {
+            _exitRequired = true;
+            return;
+        }
+#endif
         DoExit();
     }
 
@@ -551,7 +558,11 @@ public class Engine : RedObject
         GetSubsystem<Renderer>()!.Render();
 
         graphics.ResetRenderTargets();
+#if REDBOLT_PLATFORM_ANDROID
+        graphics.EndFrame(CaptureScreenshotForExit);
+#else
         graphics.EndFrame();
+#endif
     }
 
     /// <summary>Load and merge config files.</summary>
@@ -847,7 +858,7 @@ public class Engine : RedObject
             _exitRequired = true;
     }
 
-    private void HandleEndFrame()
+    private void CaptureScreenshotForExit()
     {
         var screenshotPath = _exitRequired && !_screenshotCapturedForExit ? Parameters.ScreenshotOnExit : null;
         if (!IsHeadless && !string.IsNullOrWhiteSpace(screenshotPath) && _screenshotFrameDelay-- <= 0)
@@ -861,7 +872,13 @@ public class Engine : RedObject
                 _screenshotFrameDelay = Parameters.ScreenshotFrameDelay;
             }
         }
+    }
 
+    private void HandleEndFrame()
+    {
+#if !REDBOLT_PLATFORM_ANDROID
+        CaptureScreenshotForExit();
+#endif
         if (_exitRequired && (IsHeadless || string.IsNullOrWhiteSpace(Parameters.ScreenshotOnExit) || _screenshotCapturedForExit))
             DoExit();
     }

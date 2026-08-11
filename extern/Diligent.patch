@@ -496,3 +496,98 @@ index 593d01772..7c33306b1 100644
      surface_ = EGL_NO_SURFACE;
 +    owns_display_ = false;
  }
+diff --git a/Common/interface/RefCountedObjectImpl.hpp b/Common/interface/RefCountedObjectImpl.hpp
+index 715870dd4..2392f118a 100644
+--- a/Common/interface/RefCountedObjectImpl.hpp
++++ b/Common/interface/RefCountedObjectImpl.hpp
+@@ -54 +54 @@ class RefCntWeakPtr;
+-class RefCountersImpl : public IReferenceCounters
++class DILIGENT_REF_COUNTERS_API RefCountersImpl : public IReferenceCounters
+@@ -447,4 +447,5 @@ private:
+-    virtual void SelfDestroy()
+-    {
+-        delete this;
+-    }
++#if PLATFORM_ANDROID
++    virtual void SelfDestroy();
++#else
++    virtual void SelfDestroy() { delete this; }
++#endif
+diff --git a/Graphics/GraphicsEngineOpenGL/CMakeLists.txt b/Graphics/GraphicsEngineOpenGL/CMakeLists.txt
+index c127612b4..f6a49ba64 100644
+--- a/Graphics/GraphicsEngineOpenGL/CMakeLists.txt
++++ b/Graphics/GraphicsEngineOpenGL/CMakeLists.txt
+@@ -176,0 +177,5 @@ add_library(Diligent-GraphicsEngineOpenGL-shared SHARED
++if(PLATFORM_ANDROID)
++    target_sources(Diligent-GraphicsEngineOpenGL-shared PRIVATE
++        src/AndroidRefCounters.cpp)
++endif()
++
+diff --git a/Primitives/interface/ReferenceCounters.h b/Primitives/interface/ReferenceCounters.h
+index 118b118c7..9c2a9d21a 100644
+--- a/Primitives/interface/ReferenceCounters.h
++++ b/Primitives/interface/ReferenceCounters.h
+@@ -40,0 +41,6 @@ typedef Int32 ReferenceCounterValueType;
++#    if PLATFORM_ANDROID
++#        define DILIGENT_REF_COUNTERS_API __attribute__((visibility("default")))
++#    else
++#        define DILIGENT_REF_COUNTERS_API
++#    endif
++
+@@ -44 +50 @@ typedef Int32 ReferenceCounterValueType;
+-class IReferenceCounters
++class DILIGENT_REF_COUNTERS_API IReferenceCounters
+@@ -135,0 +142,6 @@ public:
++
++#    if PLATFORM_ANDROID
++protected:
++    // Gives Android one canonical RTTI owner without changing existing method offsets.
++    virtual void AndroidRTTIAnchor();
++#    endif
+diff --git a/Graphics/GraphicsEngineOpenGL/src/AndroidRefCounters.cpp b/Graphics/GraphicsEngineOpenGL/src/AndroidRefCounters.cpp
+new file mode 100644
+index 000000000..3edbaa3fa
+--- /dev/null
++++ b/Graphics/GraphicsEngineOpenGL/src/AndroidRefCounters.cpp
+@@ -0,0 +1,41 @@
++/*
++ *  Copyright 2019-2026 Diligent Graphics LLC
++ *  Copyright 2015-2019 Egor Yusov
++ *
++ *  Licensed under the Apache License, Version 2.0 (the "License");
++ *  you may not use this file except in compliance with the License.
++ *  You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS,
++ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ *
++ *  In no event and under no legal theory, whether in tort (including negligence),
++ *  contract, or otherwise, unless required by applicable law (such as deliberate
++ *  and grossly negligent acts) or agreed to in writing, shall any Contributor be
++ *  liable for any damages, including any direct, indirect, special, incidental,
++ *  or consequential damages of any character arising as a result of this License or
++ *  out of the use or inability to use the software (including but not limited to damages
++ *  for loss of goodwill, work stoppage, computer failure or malfunction, or any and
++ *  all other commercial damages or losses), even if such Contributor has been advised
++ *  of the possibility of such damages.
++ */
++
++#include "../../../Common/interface/RefCountedObjectImpl.hpp"
++
++namespace Diligent
++{
++
++void IReferenceCounters::AndroidRTTIAnchor()
++{}
++
++void RefCountersImpl::SelfDestroy()
++{
++    delete this;
++}
++
++} // namespace Diligent

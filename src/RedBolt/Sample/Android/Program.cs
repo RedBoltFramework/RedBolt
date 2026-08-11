@@ -46,20 +46,23 @@ public sealed class SamplePickerActivity : Activity
     {
         var intent = new Intent(this, typeof(SampleActivity));
         intent.PutExtra(SampleActivity.SampleExtra, sampleId);
+        intent.PutExtra(SampleActivity.ScreenshotExtra, Intent?.GetStringExtra(SampleActivity.ScreenshotExtra));
         StartActivity(intent);
     }
 }
 
-[Activity(Label = "RedBolt sample", Exported = false,
+[Activity(Label = "RedBolt samples", Exported = false,
     ScreenOrientation = ScreenOrientation.Landscape,
     ConfigurationChanges = ConfigChanges.KeyboardHidden | ConfigChanges.Orientation | ConfigChanges.ScreenSize)]
 public sealed class SampleActivity : Org.Libsdl.App.SDLActivity
 {
     internal const string SampleExtra = "sample";
+    internal const string ScreenshotExtra = "screenshot";
 
     protected override void RunMain()
     {
-        var sampleId = Intent?.GetStringExtra(SampleExtra) ?? "hello-world";
+        var sampleId = Intent?.GetStringExtra(SampleExtra)
+            ?? throw new InvalidOperationException("A RedBolt sample id is required.");
         var sample = SampleCatalog.Entries.FirstOrDefault(entry => entry.Id == sampleId)
             ?? throw new InvalidOperationException($"Unknown RedBolt sample: {sampleId}");
 
@@ -68,10 +71,18 @@ public sealed class SampleActivity : Org.Libsdl.App.SDLActivity
         var applicationType = typeof(SampleActivity).Assembly.GetType(sample.ApplicationType, true)!;
         using var application = (RedBolt.Platform.Application?)Activator.CreateInstance(applicationType, true)
             ?? throw new InvalidOperationException($"Cannot create RedBolt sample application: {sample.ApplicationType}");
+        var screenshotName = Intent?.GetStringExtra(ScreenshotExtra);
+        string[] arguments = screenshotName is null
+            ? []
+            : new[]
+            {
+                "--screenshot-on-exit",
+                global::System.IO.Path.Combine(GetExternalFilesDir(null)!.AbsolutePath, screenshotName)
+            };
 
         try
         {
-            var exitCode = application.Run([]);
+            var exitCode = application.Run(arguments);
             global::Android.Util.Log.Info("RedBolt", $"Sample {sample.Id} exited with code {exitCode}");
         }
         catch (Exception exception)

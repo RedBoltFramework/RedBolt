@@ -45,7 +45,7 @@
                       Private="false"
                       PrivateAssets="all" />
     <Compile Include="../**/*.cs"
-             Exclude="../Web/**/*.cs;../WebRTCSTUN/**/*.cs"
+             Exclude="../Android/**/*.cs;../Web/**/*.cs;../WebRTCSTUN/**/*.cs"
              Link="Samples/%(RecursiveDir)%(Filename)%(Extension)" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all"

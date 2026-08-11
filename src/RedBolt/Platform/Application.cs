@@ -83,6 +83,10 @@ public abstract partial class Application : RedObject
         Context.Instance.RuntimeServices.Platform.InitializeApplicationParameters(parameters);
         Setup(parameters);
         Context.Instance.RuntimeServices.Platform.FinalizeApplicationParameters(parameters);
+#if REDBOLT_PLATFORM_ANDROID
+        if (args.Length != 0)
+            parameters.EngineCliParameters = true;
+#endif
 
         if (parameters.EngineCliParameters)
         {
