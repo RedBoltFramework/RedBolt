@@ -16,11 +16,11 @@
     <RedBoltBuildAllAndroidPackages Condition="'$(RedBoltBuildAllAndroidPackages)' == ''">true</RedBoltBuildAllAndroidPackages>
     <SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
     <TrimMode>partial</TrimMode>
-    <RedBoltAndroidNativeOutput>$(RedBoltOutputRoot)/extern/runtimes/$(RedBoltPlatform)/native</RedBoltAndroidNativeOutput>
+    <RedBoltAndroidNativeOutput>$(RedBoltNativeOutputRoot)</RedBoltAndroidNativeOutput>
     <RedBoltAndroidNdkTriple Condition="'$(RedBoltPlatform)' == 'android-arm64'">aarch64-linux-android</RedBoltAndroidNdkTriple>
     <RedBoltAndroidNdkTriple Condition="'$(RedBoltPlatform)' == 'android-x64'">x86_64-linux-android</RedBoltAndroidNdkTriple>
     <RedBoltAndroidJavaDirectory>$(RedBoltBuildRoot)/native/$(RedBoltPlatform)/generated/android/java</RedBoltAndroidJavaDirectory>
-    <RedBoltAndroidPackageOutputDirectory>$(RedBoltOutputRoot)/android</RedBoltAndroidPackageOutputDirectory>
+    <RedBoltAndroidPackageOutputDirectory>$(RedBoltOutputRoot)/app</RedBoltAndroidPackageOutputDirectory>
   </PropertyGroup>
 
   <ItemGroup>
@@ -82,7 +82,7 @@
   <Target Name="RedBoltFinalizeAndroidPackage" AfterTargets="Build">
     <PropertyGroup>
       <_RedBoltSignedApk>$(RedBoltOutputDir)/$(ApplicationId)-Signed.apk</_RedBoltSignedApk>
-      <_RedBoltPackagedApk>$(RedBoltAndroidPackageOutputDirectory)/RedBolt.Sample.Android-$(RedBoltPlatform)-$(Configuration).apk</_RedBoltPackagedApk>
+      <_RedBoltPackagedApk>$(RedBoltAndroidPackageOutputDirectory)/RedBolt.Sample.Android.apk</_RedBoltPackagedApk>
     </PropertyGroup>
     <Error Condition="!Exists('$(_RedBoltSignedApk)')"
            Text="Android package was not produced at '$(_RedBoltSignedApk)'." />

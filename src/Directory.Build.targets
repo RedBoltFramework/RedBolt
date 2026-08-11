@@ -252,10 +252,22 @@
     <AdditionalProbingPath Include="$(RedBoltCoreOutputDir)" />
     <AdditionalProbingPath Include="$(RedBoltExternOutputDir)" />
     <AdditionalProbingPath Include="$(RedBoltToolsOutputDir)" />
+    <AdditionalProbingPath Include="$(RedBoltHostExternOutputDir)" />
+    <AdditionalProbingPath Include="$(RedBoltHostToolsOutputDir)" />
   </ItemGroup>
 
+  <Target Name="RedBoltValidatePlatform" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(RedBoltPlatform)' != 'tools'
+                      and '$(RedBoltPlatform)' != 'linux-x64'
+                      and '$(RedBoltPlatform)' != 'win-x64'
+                      and '$(RedBoltPlatform)' != 'browser-wasm'
+                      and '$(RedBoltPlatform)' != 'android-x64'
+                      and '$(RedBoltPlatform)' != 'android-arm64'"
+           Text="Unsupported RedBolt platform '$(RedBoltPlatform)'." />
+  </Target>
+
   <Target Name="RedBoltPrepareOutputDirectories" BeforeTargets="CoreCompile">
-    <MakeDir Directories="$(RedBoltCoreOutputDir)/pdb;$(RedBoltCoreOutputDir)/runtimes;$(RedBoltExternOutputDir)/pdb;$(RedBoltExternOutputDir)/runtimes;$(RedBoltToolsOutputDir)/pdb;$(RedBoltToolsOutputDir)/runtimes;$(RedBoltOutputDir);$(RedBoltPdbOutputDir);$(RedBoltOutputDir)/runtimes" />
+    <MakeDir Directories="$(RedBoltOutputDir);$(RedBoltPdbOutputDir);$(RedBoltOutputDir)/runtimes" />
   </Target>
 
   <Target Name="RedBoltStageExternalRuntimeAssets"

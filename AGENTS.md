@@ -279,37 +279,42 @@ for normal build or verification; build through `dotnet`, `.slnx`, or `.csproj`.
 Run the most relevant rendering sample for the changed area and capture a screenshot.
 Use MultipleViewports when no more relevant sample exists:
   rm -f /tmp/screenshot.png
-  build/bin/Debug/samples/RedBolt.Sample.MultipleViewports --timeout 2 --screenshot-on-exit /tmp/screenshot.png
+  build/bin/Debug/linux-x64/samples/RedBolt.Sample.MultipleViewports --timeout 2 --screenshot-on-exit /tmp/screenshot.png
 
 Run the relevant focused tests at task completion.
 
 Review the captured screenshot as a success gate. The relevant scene must render correctly and must not be black or otherwise visibly broken.
 
 Desktop engine libraries are in:
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/core
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/linux-x64/core
 
 Desktop bindings, external libraries, and native libraries are in:
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/extern
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/extern/runtimes/linux-x64/native
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/linux-x64/extern
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/linux-x64/extern/runtimes/linux-x64/native
 
 Desktop tools and the editor are in:
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/tools
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/linux-x64/tools
+
+Build-host tools and platform-neutral managed dependencies are in:
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/host/tools
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/host/extern
 
 Desktop sample executables and sample-specific files are in:
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/samples
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/linux-x64/samples
 
 Test output binaries are in:
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/tests
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/linux-x64/tests
 
 Web output is in:
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/web
+  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/browser-wasm/web
 
 C# build targets symlink runtime resource directories into the desktop output
 root. Tests consume these directories from their parent output.
 
 Each desktop output category stores managed and native PDB files in its `pdb/`
 directory and native runtime files in its `runtimes/` directory. Executables
-probe the `core`, `extern`, and `tools` categories instead of copying libraries.
+probe the target `core`, `extern`, and `tools` categories and the shared host
+categories instead of copying libraries.
 
 The engine sets the process working directory to the managed executable directory.
 Samples and tests that consume the staged resource directories use `CoreData;Data`

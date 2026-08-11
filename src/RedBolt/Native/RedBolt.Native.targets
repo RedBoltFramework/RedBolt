@@ -15,14 +15,14 @@
            Text="No CMake target is configured for '$(RedBoltPlatform)'." />
     <Error Condition="!Exists('$(RedBoltSharpCppRoot)')"
            Text="SharpCpp was not found at '$(RedBoltSharpCppRoot)'." />
-    <Error Condition="!Exists('$(RedBoltToolsOutputDir)/RedBolt.Generator.Dependencies.dll')"
-           Text="The RedBolt dependency generator was not built at '$(RedBoltToolsOutputDir)/RedBolt.Generator.Dependencies.dll'." />
+    <Error Condition="!Exists('$(RedBoltHostToolsOutputDir)/RedBolt.Generator.Dependencies.dll')"
+           Text="The RedBolt dependency generator was not built at '$(RedBoltHostToolsOutputDir)/RedBolt.Generator.Dependencies.dll'." />
     <MakeDir Directories="$(RedBoltBuildRoot);$(RedBoltOutputDir);$(RedBoltIntermediateRoot)" />
     <MakeDir Condition="'$(RedBoltPlatform)' != 'browser-wasm'"
              Directories="$(RedBoltNativeOutputRoot)" />
     <Exec WorkingDirectory="$(RedBoltRoot)"
           IgnoreStandardErrorWarningFormat="true"
-          Command="cmake -E env ANDROID_NDK_ROOT=&quot;$(AndroidNdkDirectory)&quot; cmake -DREDBOLT_SOURCE_DIR=&quot;$(RedBoltRoot)&quot; -DREDBOLT_NATIVE_PRESET=&quot;$(RedBoltNativePreset)&quot; -DREDBOLT_NATIVE_BUILD_DIR=&quot;$(RedBoltNativeBuildDir)&quot; -DREDBOLT_NATIVE_TARGET=&quot;$(RedBoltCMakeTarget)&quot; -DREDBOLT_CONFIGURATION=&quot;$(Configuration)&quot; -DREDBOLT_SHARPCPP_ROOT=&quot;$(RedBoltSharpCppRoot)&quot; -DREDBOLT_GENERATOR_DLL=&quot;$(RedBoltToolsOutputDir)/RedBolt.Generator.Dependencies.dll&quot; -DREDBOLT_RUNTIME_OUTPUT_DIR=&quot;$(RedBoltNativeOutputRoot)&quot; -DREDBOLT_PDB_OUTPUT_DIR=&quot;$(RedBoltNativePdbOutputRoot)&quot; -P &quot;$(MSBuildThisFileDirectory)BuildNative.cmake&quot;" />
+          Command="cmake -E env ANDROID_NDK_ROOT=&quot;$(AndroidNdkDirectory)&quot; cmake -DREDBOLT_SOURCE_DIR=&quot;$(RedBoltRoot)&quot; -DREDBOLT_NATIVE_PRESET=&quot;$(RedBoltNativePreset)&quot; -DREDBOLT_NATIVE_BUILD_DIR=&quot;$(RedBoltNativeBuildDir)&quot; -DREDBOLT_NATIVE_TARGET=&quot;$(RedBoltCMakeTarget)&quot; -DREDBOLT_CONFIGURATION=&quot;$(Configuration)&quot; -DREDBOLT_SHARPCPP_ROOT=&quot;$(RedBoltSharpCppRoot)&quot; -DREDBOLT_GENERATOR_DLL=&quot;$(RedBoltHostToolsOutputDir)/RedBolt.Generator.Dependencies.dll&quot; -DREDBOLT_RUNTIME_OUTPUT_DIR=&quot;$(RedBoltNativeOutputRoot)&quot; -DREDBOLT_PDB_OUTPUT_DIR=&quot;$(RedBoltNativePdbOutputRoot)&quot; -P &quot;$(MSBuildThisFileDirectory)BuildNative.cmake&quot;" />
     <Exec Condition="'$(RedBoltPlatform)' == 'linux-x64' and !Exists('$(RedBoltOutputRoot)/CoreData')"
           Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/CoreData&quot; &quot;$(RedBoltOutputRoot)/CoreData&quot;" />
     <Exec Condition="'$(RedBoltPlatform)' == 'linux-x64' and !Exists('$(RedBoltOutputRoot)/Data')"

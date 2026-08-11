@@ -100,10 +100,11 @@ dotnet publish src/RedBolt/Sample/Text3D/RedBolt.Sample.Text3D.csproj \
   --configuration Debug --no-restore --runtime win-x64 \
   --self-contained true -p:RedBoltBuildWindows=true
 
-publish_dir=build/bin/Debug/samples/win-x64/publish
-cp -a build/bin/Debug/core/*.dll "$publish_dir/"
-cp -a build/bin/Debug/extern/*.dll "$publish_dir/"
-cp -a build/bin/Debug/extern/runtimes/win-x64/native/*.dll "$publish_dir/"
+publish_dir=build/bin/Debug/win-x64/samples/win-x64/publish
+cp -a build/bin/Debug/win-x64/core/*.dll "$publish_dir/"
+cp -a build/bin/Debug/win-x64/extern/*.dll "$publish_dir/"
+cp -a build/bin/Debug/win-x64/extern/runtimes/win-x64/native/*.dll "$publish_dir/"
+cp -a build/bin/Debug/host/extern/*.dll "$publish_dir/"
 ```
 
 The explicit staging keeps the repository's shared managed-output layout while
@@ -113,7 +114,7 @@ without input and `--screenshot-on-exit` proves that a frame was rendered.
 
 ```sh
 repo_dir=$(pwd)
-publish_dir="$repo_dir/build/bin/Debug/samples/win-x64/publish"
+publish_dir="$repo_dir/build/bin/Debug/win-x64/samples/win-x64/publish"
 wine_root=/path/to/wine-installation
 wine_executable="$wine_root/bin/wine"
 winepath_executable="$wine_root/bin/winepath"

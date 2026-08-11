@@ -7,7 +7,7 @@ These are the ONLY places C# is allowed to differ from C++:
 - SubscribeToEvent / SendEvent are upgraded to the new struct-based event format.
 - CommandLineParser is used instead of CLI11.
 - WorkQueue is rebuilt using a thread-pool.
-- Managed platform/graphics composition uses one selected platform assembly and any supported graphics-backend assemblies. Shared desktop managed libraries use `build/bin/<configuration>`, native libraries use `build/bin/<configuration>/runtimes/<platform>-<architecture>/native`, desktop sample executables and sample-specific files use `build/bin/<configuration>/samples`, tests use `build/bin/<configuration>/tests`, Web output uses `build/bin/<configuration>/web`, and platform-specific behavior is delegated through runtime contracts.
+- Managed platform/graphics composition uses one selected platform assembly and any supported graphics-backend assemblies. Platform outputs use `build/bin/<configuration>/<platform>`, build-host tools and platform-neutral dependencies use `build/bin/<configuration>/host`, native libraries use `<platform>/extern/runtimes/<platform>/native`, desktop sample executables and sample-specific files use `<platform>/samples`, tests use `<platform>/tests`, Web output uses `browser-wasm/web`, and platform-specific behavior is delegated through runtime contracts.
 - Native shared-library filenames use conventional platform-neutral names.
 - Minor API tweaks are allowed ONLY to avoid GC churn.
 - Managed tests may request hidden SDL windows through `EngineParameters.WindowHidden`; normal engine behavior remains visible by default.

@@ -35,8 +35,8 @@ dotnet build src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj \
 The build configures and builds both native ABIs, generates the C# and SDL Java bindings, packages `bin/CoreData` and `bin/Data`, and applies the standard Android debug signature. It produces one APK per ABI:
 
 ```text
-build/bin/Debug/android/RedBolt.Sample.Android-android-x64-Debug.apk
-build/bin/Debug/android/RedBolt.Sample.Android-android-arm64-Debug.apk
+build/bin/Debug/android-x64/app/RedBolt.Sample.Android.apk
+build/bin/Debug/android-arm64/app/RedBolt.Sample.Android.apk
 ```
 
 Each APK contains only its matching native ABI and the complete sample data set.
@@ -60,8 +60,8 @@ dotnet build src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj \
 The Release APKs are:
 
 ```text
-build/bin/Release/android/RedBolt.Sample.Android-android-x64-Release.apk
-build/bin/Release/android/RedBolt.Sample.Android-android-arm64-Release.apk
+build/bin/Release/android-x64/app/RedBolt.Sample.Android.apk
+build/bin/Release/android-arm64/app/RedBolt.Sample.Android.apk
 ```
 
 .NET applies the standard Android debug key unless explicit release signing properties are supplied; configure a production key before distribution.
@@ -96,7 +96,7 @@ Run the x86_64 Release APK and capture the rendered scene used by the final Andr
 
 ```sh
 scripts/run_android_emulator.sh \
-  --apk build/bin/Release/android/RedBolt.Sample.Android-android-x64-Release.apk \
+  --apk build/bin/Release/android-x64/app/RedBolt.Sample.Android.apk \
   --sample camera-shake \
   --screenshot build/test-results/android-samples-camera-shake-release.png \
   --shutdown

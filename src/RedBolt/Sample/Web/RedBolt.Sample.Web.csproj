@@ -20,7 +20,8 @@
     <RedBoltWebCoreDataPackage>$(RedBoltWebPackageDirectory)/CoreData.pak</RedBoltWebCoreDataPackage>
     <RedBoltWebDataPackage>$(RedBoltWebPackageDirectory)/Data.pak</RedBoltWebDataPackage>
     <RedBoltPackageToolProject>$(RedBoltRoot)/src/RedBolt/Tools/PackageTool/RedBolt.PackageTool.csproj</RedBoltPackageToolProject>
-    <RedBoltPackageToolAssembly>$(RedBoltOutputRoot)/tools/RedBolt.PackageTool.dll</RedBoltPackageToolAssembly>
+    <RedBoltPackageToolAssembly>$(RedBoltHostToolsOutputDir)/RedBolt.PackageTool.dll</RedBoltPackageToolAssembly>
+    <RedBoltPackageToolNativeOutput>$(RedBoltArtifactsRoot)/linux-x64/extern/runtimes/linux-x64/native</RedBoltPackageToolNativeOutput>
   </PropertyGroup>
 
   <ItemGroup>
@@ -71,9 +72,9 @@
              RemoveProperties="RuntimeIdentifier;SelfContained;PublishSelfContained" />
     <MakeDir Directories="$(RedBoltWebPackageDirectory)" />
     <Exec Command="dotnet &quot;$(RedBoltPackageToolAssembly)&quot; &quot;$(RedBoltRoot)/bin/CoreData&quot; &quot;$(RedBoltWebCoreDataPackage)&quot; -q -c"
-          EnvironmentVariables="LD_LIBRARY_PATH=$(RedBoltNativeOutputRoot)" />
+          EnvironmentVariables="LD_LIBRARY_PATH=$(RedBoltPackageToolNativeOutput)" />
     <Exec Command="dotnet &quot;$(RedBoltPackageToolAssembly)&quot; &quot;$(RedBoltRoot)/bin/Data&quot; &quot;$(RedBoltWebDataPackage)&quot; -q -c"
-          EnvironmentVariables="LD_LIBRARY_PATH=$(RedBoltNativeOutputRoot)" />
+          EnvironmentVariables="LD_LIBRARY_PATH=$(RedBoltPackageToolNativeOutput)" />
   </Target>
 
   <Target Name="RedBoltExcludeBuildToolsFromPublish" AfterTargets="ComputeFilesToPublish">

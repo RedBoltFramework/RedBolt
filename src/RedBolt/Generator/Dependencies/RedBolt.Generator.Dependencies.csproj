@@ -5,7 +5,7 @@
     <UseAppHost>false</UseAppHost>
     <AssemblyName>RedBolt.Generator.Dependencies</AssemblyName>
     <OutputType>Exe</OutputType>
-    <OutputPath>$(RedBoltToolsOutputDir)/</OutputPath>
+    <OutputPath>$(RedBoltHostToolsOutputDir)/</OutputPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <BuildInParallel>false</BuildInParallel>
   </PropertyGroup>

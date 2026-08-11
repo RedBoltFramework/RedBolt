@@ -17,7 +17,7 @@
       <_GenerateRestoreGraphProjectEntryInputProperties>
         $(_GenerateRestoreGraphProjectEntryInputProperties);
         SharpCppBuildRoot=$(RedBoltSolutionBuildRoot);
-        SharpCppOutputDir=$(RedBoltSolutionBuildRoot)/bin/$(Configuration)/extern;
+        SharpCppOutputDir=$(RedBoltSolutionBuildRoot)/bin/$(Configuration)/host/extern;
         SharpCppIntermediateRoot=$(RedBoltSolutionBuildRoot)/obj/managed/tools
       </_GenerateRestoreGraphProjectEntryInputProperties>
     </PropertyGroup>
