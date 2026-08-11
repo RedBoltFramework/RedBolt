@@ -19,6 +19,11 @@
                       Condition="'$(RedBoltPlatform)' == 'browser-wasm'"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all" />
+    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Android.csproj"
+                      Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all"
+                      AdditionalProperties="RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltNativePreset);RedBoltTargetFramework=$(RedBoltTargetFramework);AndroidSdkDirectory=$(AndroidSdkDirectory);AndroidNdkDirectory=$(AndroidNdkDirectory);JavaSdkDirectory=$(JavaSdkDirectory)" />
   </ItemGroup>
 
   <Target Name="RedBoltIncludeGeneratedBindings" BeforeTargets="CoreCompile">

@@ -738,7 +738,7 @@ public partial class RmlUI : RedObject
     /// <summary>Other instances of RmlUI.</summary>
     private readonly List<WeakReference<RmlUI>> _siblingSubsystems = [];
     private readonly RenderTargetView[] _renderTargets = new RenderTargetView[1];
-    private readonly Std.String _textInput = new();
+    private readonly Std.String _textInput = CreateNativeString();
     private bool _disposed;
 
     /// <summary>Construct.</summary>
@@ -763,7 +763,7 @@ public partial class RmlUI : RedObject
             RmlUiNativeBindings.RegisterPlugin(PluginInstance);
         }
 
-        using var nativeName = new Std.String();
+        using var nativeName = CreateNativeString();
         nativeName.Assign(name);
         _rmlContext = (RmlContext)RmlUiNativeBindings.CreateContext(
             nativeName, GetDesiredCanvasSize())!;
@@ -812,7 +812,7 @@ public partial class RmlUI : RedObject
 
         if (_rmlContext is not null)
         {
-            using var nativeName = new Std.String();
+            using var nativeName = CreateNativeString();
             nativeName.Assign(_name);
             if (!RmlUiNativeBindings.RemoveContext(nativeName))
                 EngineLog.GetLogger().Error("Removal of RmlUI context {} failed.", _name);
@@ -862,8 +862,8 @@ public partial class RmlUI : RedObject
         _file!.AddResourceLoaded(path);
 
         // Load document from memory.
-        using var nativeContents = new Std.String();
-        using var nativePath = new Std.String();
+        using var nativeContents = CreateNativeString();
+        using var nativePath = CreateNativeString();
         nativeContents.Assign(fileContents);
         nativePath.Assign(path);
         return _rmlContext!.LoadDocumentFromMemory(nativeContents, nativePath);
@@ -886,8 +886,7 @@ public partial class RmlUI : RedObject
     /// <summary>Load a font resource for RmlUi to use.</summary>
     public bool LoadFont(string resourceName, bool fallback = false)
     {
-        using var providerModule = global::Std.Infrastructure.ProviderRegistry.PushModule("RedBolt.Bindings.RmlUi");
-        using var nativeName = new Std.String();
+        using var nativeName = CreateNativeString();
         nativeName.Assign(resourceName);
         return RmlUiNativeBindings.LoadFontFace(nativeName, fallback);
     }
@@ -1204,7 +1203,7 @@ public partial class RmlUI : RedObject
                 return true;
             case CoreVariantType.String:
             {
-                using var assignedString = new Std.String();
+                using var assignedString = CreateNativeString();
                 assignedString.Assign(source.GetString());
                 destination.Assign(assignedString);
                 return true;
@@ -1254,7 +1253,7 @@ public partial class RmlUI : RedObject
             EngineLog.GetLogger().Error("This variant type conversion is not supported: {}", source.Type);
             return false;
         }
-        using var nativeString = new Std.String();
+        using var nativeString = CreateNativeString();
         nativeString.Assign(stringValue);
         destination.Assign(nativeString);
         return true;
@@ -1271,9 +1270,13 @@ public partial class RmlUI : RedObject
         return content.Replace("{{__data_model_id}}", dataModelId.ToString(), StringComparison.Ordinal);
     }
 
+    internal static Std.String CreateNativeString() => new(
+        global::Std.Infrastructure.ProviderRegistry.Resolve<global::Std.Infrastructure.IStringProvider>(
+            "RedBolt.Bindings.RmlUi"));
+
     private static Std.String CreateNativeString(string value)
     {
-        var result = new Std.String();
+        var result = CreateNativeString();
         result.Assign(value);
         return result;
     }
@@ -1490,10 +1493,10 @@ public partial class RmlUI : RedObject
         if (_rmlContext!.GetHoverElement() is { } element)
         {
             using var args = new Std.UnorderedMap<Std.String, RmlVariant>();
-            using var pathName = new Std.String();
-            using var pathValue = new Std.String();
+            using var pathName = CreateNativeString();
+            using var pathValue = CreateNativeString();
             using var pathVariant = new RmlVariant();
-            using var eventType = new Std.String();
+            using var eventType = CreateNativeString();
             pathName.Assign("path");
             pathValue.Assign(eventData.FileName);
             pathVariant.Assign(pathValue);

@@ -50,16 +50,33 @@ if(EXISTS "${_redbolt_native_cache}")
         REGEX "^CMAKE_COMMAND:[^=]*="
         LIMIT_COUNT 1)
     string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_cmake_command "${_redbolt_cached_cmake_command}")
+    set(_redbolt_cached_build_type_matches TRUE)
+    if(REDBOLT_NATIVE_PRESET MATCHES "^android-")
+        file(STRINGS "${_redbolt_native_cache}"
+            _redbolt_cached_build_type
+            REGEX "^CMAKE_BUILD_TYPE:[^=]*="
+            LIMIT_COUNT 1)
+        string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_build_type "${_redbolt_cached_build_type}")
+        if(NOT _redbolt_cached_build_type STREQUAL REDBOLT_CONFIGURATION)
+            set(_redbolt_cached_build_type_matches FALSE)
+        endif()
+    endif()
     if(_redbolt_cached_generator STREQUAL REDBOLT_GENERATOR_DLL
             AND _redbolt_cached_runtime_output STREQUAL REDBOLT_RUNTIME_OUTPUT_DIR
             AND _redbolt_cached_pdb_output STREQUAL REDBOLT_PDB_OUTPUT_DIR
             AND _redbolt_cached_configuration STREQUAL REDBOLT_CONFIGURATION
-            AND _redbolt_cached_cmake_command STREQUAL CMAKE_COMMAND)
+            AND _redbolt_cached_cmake_command STREQUAL CMAKE_COMMAND
+            AND _redbolt_cached_build_type_matches)
         set(_redbolt_configure_native FALSE)
     endif()
 endif()
 
 if(_redbolt_configure_native)
+    set(_redbolt_configure_arguments)
+    if(REDBOLT_NATIVE_PRESET MATCHES "^android-")
+        list(APPEND _redbolt_configure_arguments
+            "-DCMAKE_BUILD_TYPE=${REDBOLT_CONFIGURATION}")
+    endif()
     execute_process(
         COMMAND "${CMAKE_COMMAND}"
             --preset "${REDBOLT_NATIVE_PRESET}"
@@ -69,6 +86,7 @@ if(_redbolt_configure_native)
             "-DREDBOLT_CONFIGURATION=${REDBOLT_CONFIGURATION}"
             "-DREDBOLT_RUNTIME_OUTPUT_DIR=${REDBOLT_RUNTIME_OUTPUT_DIR}"
             "-DREDBOLT_PDB_OUTPUT_DIR=${REDBOLT_PDB_OUTPUT_DIR}"
+            ${_redbolt_configure_arguments}
         WORKING_DIRECTORY "${REDBOLT_SOURCE_DIR}"
         COMMAND_ERROR_IS_FATAL ANY)
 endif()

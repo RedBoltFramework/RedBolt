@@ -4,6 +4,12 @@ target_include_directories(redbolt-native-support INTERFACE
 target_link_libraries(redbolt-native-support INTERFACE
     SharpCpp::NativeSupport
     redbolt-diligent-headers)
+if(ANDROID)
+    # Diligent's Android shared backend hides its RTTI. RedBolt-side proxy and
+    # binding code therefore cannot use Debug-only dynamic_cast checks on
+    # objects created by that DSO, although the release static_cast is valid.
+    target_compile_options(redbolt-native-support INTERFACE -UDILIGENT_DEBUG)
+endif()
 
 add_library(redbolt-diligent-support STATIC
     src/DiligentSupport.cpp)
@@ -15,6 +21,9 @@ target_link_libraries(redbolt-diligent-support
     PRIVATE
         SDL2::SDL2
         ${REDBOLT_GLEW_TARGET})
+if(ANDROID)
+    target_link_libraries(redbolt-diligent-support PRIVATE GLESv3 EGL)
+endif()
 target_include_directories(redbolt-diligent-support PRIVATE
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine/include"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/glew/include")
@@ -42,7 +51,10 @@ target_link_libraries(redbolt-imgui-backend
         ImGui
         harfbuzz
         harfbuzz-gpu)
-if(NOT EMSCRIPTEN)
+if(ANDROID)
+    target_compile_options(redbolt-imgui-backend PRIVATE -UDILIGENT_DEBUG)
+endif()
+if(NOT EMSCRIPTEN AND NOT ANDROID)
     target_link_libraries(redbolt-imgui-backend PUBLIC ${REDBOLT_DILIGENT_VULKAN_TARGET})
 endif()
 set_target_properties(redbolt-imgui-backend PROPERTIES
@@ -306,7 +318,7 @@ redbolt_add_native_wrapper(
     SOURCES "${REDBOLT_LIBDATACHANNEL_BINDINGS_CPP}"
     LINK_LIBRARIES ${REDBOLT_LIBDATACHANNEL_LIBRARY})
 
-if(NOT EMSCRIPTEN)
+if(NOT EMSCRIPTEN AND NOT ANDROID)
     if(WIN32)
         set(REDBOLT_VULKAN_LIBRARY volk::volk)
     else()
@@ -360,7 +372,7 @@ if(MINGW)
         VERBATIM)
 endif()
 
-if(NOT EMSCRIPTEN)
+if(NOT EMSCRIPTEN AND NOT ANDROID)
     set(_redbolt_native_manifest_directory
         "${REDBOLT_GENERATED_ROOT}/native-modules/$<CONFIG>")
     set(_redbolt_runtime_dependency_arguments)
@@ -465,6 +477,35 @@ add_custom_target(redbolt-native-all
         ${REDBOLT_SHADER_COMPILER_NATIVE_TARGET}
         ${REDBOLT_JOLT_NATIVE_TARGET}
         ${REDBOLT_LIBDATACHANNEL_NATIVE_TARGET})
-if(NOT EMSCRIPTEN)
+if(NOT EMSCRIPTEN AND NOT ANDROID)
     add_dependencies(redbolt-native-all redbolt-native-manifests)
+endif()
+
+if(ANDROID)
+    set(_redbolt_android_java_directory "${REDBOLT_GENERATED_ROOT}/android/java")
+    add_custom_target(redbolt-android-java
+        COMMAND "${CMAKE_COMMAND}" -E rm -rf "${_redbolt_android_java_directory}"
+        COMMAND "${CMAKE_COMMAND}" -E copy_directory
+            "${REDBOLT_SDL_SOURCE_ROOT}/android-project/app/src/main/java"
+            "${_redbolt_android_java_directory}"
+        COMMENT "Staging SDL Android Java sources"
+        VERBATIM)
+    add_custom_target(redbolt-android-native
+        DEPENDS
+            redbolt-android-java
+            ${REDBOLT_SDL_NATIVE_TARGET}
+            ${REDBOLT_DILIGENT_NATIVE_TARGET}
+            ${REDBOLT_IMGUI_NATIVE_TARGET}
+            ${REDBOLT_STB_NATIVE_TARGET}
+            ${REDBOLT_TINYGLTF_NATIVE_TARGET}
+            ${REDBOLT_LZ4_NATIVE_TARGET}
+            ${REDBOLT_HARFBUZZ_NATIVE_TARGET}
+            ${REDBOLT_RMLUI_NATIVE_TARGET}
+            ${REDBOLT_WEBP_NATIVE_TARGET}
+            ${REDBOLT_GLSLANG_NATIVE_TARGET}
+            ${REDBOLT_SPIRV_CROSS_NATIVE_TARGET}
+            ${REDBOLT_SPIRV_TOOLS_NATIVE_TARGET}
+            ${REDBOLT_SHADER_COMPILER_NATIVE_TARGET}
+            ${REDBOLT_JOLT_NATIVE_TARGET}
+            ${REDBOLT_LIBDATACHANNEL_NATIVE_TARGET})
 endif()

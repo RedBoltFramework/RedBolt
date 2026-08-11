@@ -16,6 +16,10 @@ public interface IPlatformRuntime
 
     void InitializeApplicationParameters(EngineParameters parameters);
 
+    void FinalizeApplicationParameters(EngineParameters parameters)
+    {
+    }
+
     /// <summary>Return native window information required by graphics backends.</summary>
     NativeWindowInfo GetNativeWindowInfo(SdlWindow window);
 }

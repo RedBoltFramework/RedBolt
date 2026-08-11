@@ -1,5 +1,27 @@
-set(REDBOLT_BINDING_CXX_COMPILER "${CMAKE_CXX_COMPILER}" CACHE FILEPATH
-    "C++ compiler used to discover headers for native binding generation")
+if(REDBOLT_ANDROID_BUILD OR ANDROID)
+    find_program(_redbolt_binding_cxx_compiler NAMES clang++-20 clang++ REQUIRED)
+    string(REGEX REPLACE "^android-" "" _redbolt_android_api "${ANDROID_PLATFORM}")
+    if(ANDROID_ABI STREQUAL "x86_64")
+        set(_redbolt_binding_target_triple "x86_64-linux-android${_redbolt_android_api}")
+    elseif(ANDROID_ABI STREQUAL "arm64-v8a")
+        set(_redbolt_binding_target_triple "aarch64-linux-android${_redbolt_android_api}")
+    else()
+        message(FATAL_ERROR "Unsupported Android ABI for binding generation: ${ANDROID_ABI}")
+    endif()
+    get_filename_component(_redbolt_android_compiler_bin "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    get_filename_component(_redbolt_android_toolchain_root "${_redbolt_android_compiler_bin}" DIRECTORY)
+    set(_redbolt_binding_sysroot "${_redbolt_android_toolchain_root}/sysroot")
+else()
+    set(_redbolt_binding_cxx_compiler "${CMAKE_CXX_COMPILER}")
+    set(_redbolt_binding_target_triple "")
+    set(_redbolt_binding_sysroot "")
+endif()
+set(REDBOLT_BINDING_CXX_COMPILER "${_redbolt_binding_cxx_compiler}" CACHE FILEPATH
+    "C++ compiler used to discover headers for native binding generation" FORCE)
+set(REDBOLT_BINDING_TARGET_TRIPLE "${_redbolt_binding_target_triple}" CACHE INTERNAL
+    "Target triple used for native binding generation" FORCE)
+set(REDBOLT_BINDING_SYSROOT "${_redbolt_binding_sysroot}" CACHE INTERNAL
+    "Sysroot used for native binding generation" FORCE)
 
 function(redbolt_add_native_binding_generation)
     set(options)
@@ -95,6 +117,19 @@ function(redbolt_add_native_binding_generation)
         set(binding_compiler "${ARG_COMPILER}")
     endif()
 
+    set(binding_toolchain_args)
+    if(REDBOLT_BINDING_TARGET_TRIPLE)
+        list(APPEND binding_toolchain_args --compiler-target "${REDBOLT_BINDING_TARGET_TRIPLE}")
+    endif()
+    if(REDBOLT_BINDING_SYSROOT)
+        list(APPEND binding_toolchain_args --compiler-sysroot "${REDBOLT_BINDING_SYSROOT}")
+    endif()
+
+    set(binding_native_library_name "${ARG_NATIVE_LIBRARY_NAME}")
+    if(ANDROID)
+        set(binding_native_library_name "lib${ARG_NATIVE_LIBRARY_NAME}.so")
+    endif()
+
     add_custom_command(
         OUTPUT
             "${ARG_OUTPUT_CS}"
@@ -112,8 +147,9 @@ function(redbolt_add_native_binding_generation)
             --log "${generator_log}"
             --sharpcpp-root "${REDBOLT_SHARPCPP_ROOT}"
             --redbolt-root "${CMAKE_SOURCE_DIR}"
-            --native-library-name "${ARG_NATIVE_LIBRARY_NAME}"
+            --native-library-name "${binding_native_library_name}"
             --compiler "${binding_compiler}"
+            ${binding_toolchain_args}
             ${include_args}
             ${define_args}
             ${owned_header_args}

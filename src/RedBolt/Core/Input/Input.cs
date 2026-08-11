@@ -88,7 +88,7 @@ public struct JoystickState : ICloneable
         Hats ??= [];
         Array.Fill(Buttons, false);
         Array.Fill(ButtonPress, false);
-        using var joystick = Joystick != IntPtr.Zero && Controller == IntPtr.Zero
+        var joystick = Joystick != IntPtr.Zero && Controller == IntPtr.Zero
             ? SdlJoystick.CreateManagedWrapper(Joystick, ownsHandle: false)
             : null;
         for (var i = 0; i < Axes.Length; i++)

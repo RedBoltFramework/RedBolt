@@ -1,4 +1,11 @@
 <Project>
+  <ItemGroup>
+    <ProjectReference Update="@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.Generator.Dependencies'));@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.Generator.Reflection'))"
+                      SetTargetFramework="TargetFramework=net10.0"
+                      SkipGetTargetFrameworkProperties="true"
+                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset;RedBoltTargetFramework;TargetFramework;TargetFrameworks;RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishSelfContained" />
+  </ItemGroup>
+
   <UsingTask TaskName="RedBoltInvalidateStaleDependencyFile"
              TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
@@ -238,10 +245,10 @@
     <RedBoltPdbOutputDir>$(RedBoltOutputDir)/pdb</RedBoltPdbOutputDir>
     <PdbFile>$(RedBoltPdbOutputDir)/$(AssemblyName).pdb</PdbFile>
     <CopyOutputSymbolsToOutputDirectory>false</CopyOutputSymbolsToOutputDirectory>
-    <GenerateRuntimeConfigDevFile Condition="'$(RedBoltPlatform)' != 'browser-wasm' and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">true</GenerateRuntimeConfigDevFile>
+    <GenerateRuntimeConfigDevFile Condition="('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">true</GenerateRuntimeConfigDevFile>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(RedBoltPlatform)' != 'browser-wasm' and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">
+  <ItemGroup Condition="('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">
     <AdditionalProbingPath Include="$(RedBoltCoreOutputDir)" />
     <AdditionalProbingPath Include="$(RedBoltExternOutputDir)" />
     <AdditionalProbingPath Include="$(RedBoltToolsOutputDir)" />
@@ -253,7 +260,7 @@
 
   <Target Name="RedBoltStageExternalRuntimeAssets"
           BeforeTargets="_CopyFilesMarkedCopyLocal"
-          Condition="'$(RedBoltPlatform)' != 'browser-wasm'">
+          Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'">
     <ItemGroup>
       <_RedBoltExternalRuntimeAsset Include="@(ReferenceCopyLocalPaths)"
                                     Condition="'%(ReferenceCopyLocalPaths.ReferenceSourceTarget)' != 'ProjectReference' and '%(ReferenceCopyLocalPaths.PathInPackage)' != ''">
@@ -276,7 +283,7 @@
 
   <Target Name="RedBoltConfigureRuntimeAssemblies"
           AfterTargets="GenerateBuildDependencyFile"
-          Condition="'$(RedBoltPlatform)' != 'browser-wasm' and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true') and Exists('$(ProjectDepsFilePath)')">
+          Condition="('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true') and Exists('$(ProjectDepsFilePath)')">
     <RedBoltUseParentRuntimeAssemblies DependencyFile="$(ProjectDepsFilePath)"
                                        MainProjectName="$(AssemblyName)"
                                        NativeRuntimeDirectory="$(RedBoltNativeOutputRoot)"
@@ -298,9 +305,9 @@
           DependsOnTargets="IncludeTransitiveProjectReferences">
     <ItemGroup>
       <ProjectReference Update="@(ProjectReference)"
-                        Condition="$([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltBuildRoot)/deps/DotRecast/'))"
+                        Condition="$([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/extern/dotrecast/'))"
                         AdditionalProperties="$(RedBoltExternalManagedProperties)"
-                        SetTargetFramework="TargetFramework=$(RedBoltTargetFramework)"
+                        SetTargetFramework="TargetFramework=net10.0"
                         GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset;RuntimeIdentifier;SelfContained;PublishSelfContained"
                         SkipGetTargetFrameworkProperties="true" />
     </ItemGroup>
@@ -324,6 +331,23 @@
                           and '%(ProjectReference.Filename)' != 'RedBolt.Native.Web'
                           and '%(ProjectReference.Filename)' != 'RedBolt.Platform.Web'">
         <AdditionalProperties>RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm</AdditionalProperties>
+      </ProjectReference>
+    </ItemGroup>
+  </Target>
+
+  <Target Name="RedBoltConfigureAndroidProjectReferences"
+          BeforeTargets="AssignProjectConfiguration"
+          DependsOnTargets="IncludeTransitiveProjectReferences"
+          Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
+    <ItemGroup>
+      <ProjectReference Update="@(ProjectReference)"
+                        Condition="'%(ProjectReference.AdditionalProperties)' == ''
+                          and $([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/'))
+                          and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Dependencies'
+                          and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Reflection'
+                          and '%(ProjectReference.Filename)' != 'RedBolt.Native.Android'
+                          and '%(ProjectReference.Filename)' != 'RedBolt.Platform.Android'">
+        <AdditionalProperties>RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltNativePreset);RedBoltTargetFramework=$(RedBoltTargetFramework)</AdditionalProperties>
       </ProjectReference>
     </ItemGroup>
   </Target>

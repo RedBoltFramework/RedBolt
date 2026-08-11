@@ -1,6 +1,6 @@
 # RedBolt
 
-RedBolt is a C# port of rbfx. Its C#-centric build drives managed compilation, native dependencies, generated SharpCpp bindings, desktop samples, tests, and the WebAssembly sample.
+RedBolt is a C# port of rbfx. Its C#-centric build drives managed compilation, native dependencies, generated SharpCpp bindings, desktop samples, tests, and the Android and WebAssembly sample hosts.
 
 Contributor and coding-session rules now live in `AGENTS.md`.
 
@@ -32,3 +32,5 @@ project automatically; without the sibling repository, the framework solution
 still builds without tests.
 
 For architecture notes, porting strategy, and binding details, see `doc/`.
+
+Android builds use OpenGL ES 3, require API 24 or newer, and produce a universal Debug APK with `arm64-v8a` and `x86_64` libraries or an x86_64 Release APK for emulator testing. See [doc/ANDROID.md](doc/ANDROID.md) for setup, build, and emulator commands.

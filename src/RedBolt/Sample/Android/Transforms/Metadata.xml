@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<metadata>
+  <remove-node path="/api/package[@name='org.libsdl.app']/class[@name='SDLControllerManager']" />
+  <remove-node path="/api/package[@name='org.libsdl.app']/class[@name='SDLActivity']/field[@name='mClipboardHandler']" />
+  <remove-node path="/api/package[@name='org.libsdl.app']/class[@name='SDLActivity']/field[@name='mMotionListener']" />
+  <remove-node path="/api/package[@name='org.libsdl.app']/class[@name='SDLActivity']/field[@name='mSurface']" />
+  <remove-node path="/api/package[@name='org.libsdl.app']/class[@name='SDLActivity']/method[@name='getMotionListener']" />
+</metadata>

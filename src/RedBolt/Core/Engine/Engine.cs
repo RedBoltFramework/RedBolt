@@ -29,9 +29,9 @@ public class Engine : RedObject
     private float _timeStep;
     private int _timeStepSmoothing = 2;
     private int _minFps = 10;
-    private int _maxFps = 200;
-    private int _maxInactiveFps = 60;
-    private bool _pauseMinimized;
+    private int _maxFps = OperatingSystem.IsAndroid() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS() ? 60 : 200;
+    private int _maxInactiveFps = OperatingSystem.IsAndroid() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS() ? 10 : 60;
+    private bool _pauseMinimized = OperatingSystem.IsAndroid() || OperatingSystem.IsIOS() || OperatingSystem.IsTvOS();
     private long _timeOut;
     private bool _autoExit = true;
     private bool _initialized;

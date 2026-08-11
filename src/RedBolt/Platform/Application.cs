@@ -82,6 +82,7 @@ public abstract partial class Application : RedObject
         var parameters = new EngineParameters();
         Context.Instance.RuntimeServices.Platform.InitializeApplicationParameters(parameters);
         Setup(parameters);
+        Context.Instance.RuntimeServices.Platform.FinalizeApplicationParameters(parameters);
 
         if (parameters.EngineCliParameters)
         {

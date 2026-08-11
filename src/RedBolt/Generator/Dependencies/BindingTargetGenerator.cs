@@ -184,8 +184,18 @@ internal abstract class BindingTargetGenerator(
         if (!clangArguments.Contains($"-I{sharpCppIncludeRoot}", StringComparer.Ordinal))
             clangArguments.Add($"-I{sharpCppIncludeRoot}");
 
-        var toolchainInfo = CompilerToolchainDiscovery.Discover(options.CompilerPath);
-        if (toolchainInfo.TargetTriple?.StartsWith("wasm", StringComparison.OrdinalIgnoreCase) != true)
+        var toolchainInfo = CompilerToolchainDiscovery.Discover(
+            options.CompilerPath,
+            options.CompilerTarget,
+            options.CompilerSysroot);
+        var targetTriple = toolchainInfo.TargetTriple;
+        var isX86Target = string.IsNullOrWhiteSpace(targetTriple) ||
+            targetTriple.StartsWith("x86", StringComparison.OrdinalIgnoreCase) ||
+            targetTriple.StartsWith("i386", StringComparison.OrdinalIgnoreCase) ||
+            targetTriple.StartsWith("i486", StringComparison.OrdinalIgnoreCase) ||
+            targetTriple.StartsWith("i586", StringComparison.OrdinalIgnoreCase) ||
+            targetTriple.StartsWith("i686", StringComparison.OrdinalIgnoreCase);
+        if (isX86Target)
             clangArguments.AddRange(ParseSimdDisableArguments);
 
         if (!string.IsNullOrWhiteSpace(toolchainInfo.TargetTriple) &&
@@ -194,6 +204,9 @@ internal abstract class BindingTargetGenerator(
         {
             clangArguments.Add($"--target={toolchainInfo.TargetTriple}");
         }
+
+        if (!string.IsNullOrWhiteSpace(options.CompilerSysroot))
+            clangArguments.Add($"--sysroot={options.CompilerSysroot}");
 
         if (!string.IsNullOrWhiteSpace(toolchainInfo.ClangResourceDirectory) &&
             !clangArguments.Any(static argument =>

@@ -18,6 +18,8 @@ internal sealed class GeneratorOptions
     public required string RedBoltRoot { get; init; }
     public required string NativeLibraryName { get; init; }
     public required string CompilerPath { get; init; }
+    public string? CompilerTarget { get; init; }
+    public string? CompilerSysroot { get; init; }
     public required IReadOnlyList<string> IncludeDirectories { get; init; }
     public required IReadOnlyList<string> Defines { get; init; }
     public required IReadOnlyList<string> OwnedHeaders { get; init; }
@@ -37,6 +39,8 @@ internal sealed class GeneratorOptions
             RedBoltRoot = Path.GetFullPath(RequireOption(args, "--redbolt-root")),
             NativeLibraryName = RequireOption(args, "--native-library-name"),
             CompilerPath = Path.GetFullPath(RequireOption(args, "--compiler")),
+            CompilerTarget = GetOption(args, "--compiler-target"),
+            CompilerSysroot = GetOptionalPath(args, "--compiler-sysroot"),
             IncludeDirectories = GetRepeatedOption(args, "--include").Select(Path.GetFullPath).ToArray(),
             Defines = GetRepeatedOption(args, "--define").ToArray(),
             OwnedHeaders = GetRepeatedOption(args, "--owned-header").Select(Path.GetFullPath).ToArray()
@@ -68,5 +72,11 @@ internal sealed class GeneratorOptions
             if (string.Equals(args[i], name, StringComparison.Ordinal))
                 yield return args[i + 1];
         }
+    }
+
+    private static string? GetOptionalPath(string[] args, string name)
+    {
+        var value = GetOption(args, name);
+        return string.IsNullOrWhiteSpace(value) ? null : Path.GetFullPath(value);
     }
 }

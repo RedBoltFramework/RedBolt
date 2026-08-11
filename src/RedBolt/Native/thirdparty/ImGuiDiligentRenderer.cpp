@@ -962,9 +962,8 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
                 // Bind texture
                 auto* pTextureView = reinterpret_cast<ITextureView*>(pCmd->GetTexID());
                 VERIFY_EXPR(pTextureView);
-                const bool harfBuzzFontTexture = pTextureView == m_pFontSRV.RawPtr();
-                if (harfBuzzFontTexture && (!harfBuzzAtlasReady || !pPixelConstantsVar))
-                    continue;
+                const bool harfBuzzFontTexture = pPixelConstantsVar && harfBuzzAtlasReady
+                    && pTextureView == m_pFontSRV.RawPtr();
                 if (pTextureView != pLastTextureView || harfBuzzFontTexture != lastHarfBuzzFontTexture)
                 {
                     pLastTextureView = pTextureView;

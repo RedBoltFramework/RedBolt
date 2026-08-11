@@ -704,9 +704,13 @@ layout(std140) uniform Material
 
     public Vector2i GetDesktopResolution(int monitor)
     {
+#if REDBOLT_PLATFORM_ANDROID
+        return new Vector2i(Width, Height);
+#else
         using var mode = new SdlDisplayMode();
         SdlNativeBindings.SdlGetDesktopDisplayMode(monitor, mode);
         return new Vector2i(mode.W, mode.H);
+#endif
     }
 
     public int GetMonitorCount() => SdlNativeBindings.SdlGetNumVideoDisplays();

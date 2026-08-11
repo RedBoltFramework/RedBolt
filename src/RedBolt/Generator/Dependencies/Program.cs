@@ -67,6 +67,6 @@ internal static class Program
     private static void PrintUsage()
     {
         Console.Error.WriteLine(
-            "Usage: RedBolt.Generator.Dependencies --surface <sdl|diligent|dearimgui|stb|tinygltf|lz4|harfbuzz|rmlui|webp|xatlas|embree|glslang|spirvcross|spirvtools|shadercompiler|jolt|libdatachannel> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --redbolt-root <path> --native-library-name <name> --compiler <path> [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
+            "Usage: RedBolt.Generator.Dependencies --surface <sdl|diligent|dearimgui|stb|tinygltf|lz4|harfbuzz|rmlui|webp|xatlas|embree|glslang|spirvcross|spirvtools|shadercompiler|jolt|libdatachannel> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --redbolt-root <path> --native-library-name <name> --compiler <path> [--compiler-target <triple>] [--compiler-sysroot <path>] [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
     }
 }

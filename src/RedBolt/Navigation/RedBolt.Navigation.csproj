@@ -5,24 +5,24 @@
 
   <ItemGroup>
     <ProjectReference Include="../Core/RedBolt.Core.csproj" />
-    <ProjectReference Include="$(RedBoltBuildRoot)/deps/DotRecast/src/DotRecast.Detour.Crowd/DotRecast.Detour.Crowd.csproj"
+    <ProjectReference Include="$(RedBoltRoot)/extern/dotrecast/src/DotRecast.Detour.Crowd/DotRecast.Detour.Crowd.csproj"
                       AdditionalProperties="$(RedBoltExternalManagedProperties)"
-                      SetTargetFramework="TargetFramework=$(RedBoltTargetFramework)"
+                      SetTargetFramework="TargetFramework=net10.0"
                       GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset;RuntimeIdentifier;SelfContained;PublishSelfContained"
                       SkipGetTargetFrameworkProperties="true" />
-    <ProjectReference Include="$(RedBoltBuildRoot)/deps/DotRecast/src/DotRecast.Detour.TileCache/DotRecast.Detour.TileCache.csproj"
+    <ProjectReference Include="$(RedBoltRoot)/extern/dotrecast/src/DotRecast.Detour.TileCache/DotRecast.Detour.TileCache.csproj"
                       AdditionalProperties="$(RedBoltExternalManagedProperties)"
-                      SetTargetFramework="TargetFramework=$(RedBoltTargetFramework)"
+                      SetTargetFramework="TargetFramework=net10.0"
                       GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset;RuntimeIdentifier;SelfContained;PublishSelfContained"
                       SkipGetTargetFrameworkProperties="true" />
-    <ProjectReference Include="$(RedBoltBuildRoot)/deps/DotRecast/src/DotRecast.Detour/DotRecast.Detour.csproj"
+    <ProjectReference Include="$(RedBoltRoot)/extern/dotrecast/src/DotRecast.Detour/DotRecast.Detour.csproj"
                       AdditionalProperties="$(RedBoltExternalManagedProperties)"
-                      SetTargetFramework="TargetFramework=$(RedBoltTargetFramework)"
+                      SetTargetFramework="TargetFramework=net10.0"
                       GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset;RuntimeIdentifier;SelfContained;PublishSelfContained"
                       SkipGetTargetFrameworkProperties="true" />
-    <ProjectReference Include="$(RedBoltBuildRoot)/deps/DotRecast/src/DotRecast.Recast/DotRecast.Recast.csproj"
+    <ProjectReference Include="$(RedBoltRoot)/extern/dotrecast/src/DotRecast.Recast/DotRecast.Recast.csproj"
                       AdditionalProperties="$(RedBoltExternalManagedProperties)"
-                      SetTargetFramework="TargetFramework=$(RedBoltTargetFramework)"
+                      SetTargetFramework="TargetFramework=net10.0"
                       GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset;RuntimeIdentifier;SelfContained;PublishSelfContained"
                       SkipGetTargetFrameworkProperties="true" />
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"

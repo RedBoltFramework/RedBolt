@@ -50,14 +50,17 @@
   </Folder>
   <Folder Name="/src/RedBolt/Native/">
     <Project Path="src/RedBolt/Native/RedBolt.Native.csproj" />
+    <Project Path="src/RedBolt/Native/RedBolt.Native.Android.csproj" />
     <Project Path="src/RedBolt/Native/RedBolt.Native.Web.csproj" />
   </Folder>
   <Folder Name="/src/RedBolt/Platform/">
+    <Project Path="src/RedBolt/Platform/Android/RedBolt.Platform.Android.csproj" />
     <Project Path="src/RedBolt/Platform/Linux/RedBolt.Platform.Linux.csproj" />
     <Project Path="src/RedBolt/Platform/Web/RedBolt.Platform.Web.csproj" />
   </Folder>
   <Folder Name="/src/RedBolt/Sample/">
     <Project Path="src/RedBolt/Sample/Actions/RedBolt.Sample.Actions.csproj" />
+    <Project Path="src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj" />
     <Project Path="src/RedBolt/Sample/BakedLighting/RedBolt.Sample.BakedLighting.csproj" />
     <Project Path="src/RedBolt/Sample/Chat/RedBolt.Sample.Chat.csproj" />
     <Project Path="src/RedBolt/Sample/SceneReplication/RedBolt.Sample.SceneReplication.csproj" />

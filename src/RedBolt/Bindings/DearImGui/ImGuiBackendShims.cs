@@ -4,24 +4,30 @@ using System.Runtime.InteropServices;
 
 public static partial class ImGui
 {
-    [LibraryImport("RedBolt.Native.DearImGui", EntryPoint = "ImGuiBackend_CreateContext")]
+#if REDBOLT_PLATFORM_ANDROID
+    private const string NativeLibraryName = "libRedBolt.Native.DearImGui.so";
+#else
+    private const string NativeLibraryName = "RedBolt.Native.DearImGui";
+#endif
+
+    [LibraryImport(NativeLibraryName, EntryPoint = "ImGuiBackend_CreateContext")]
     private static partial nint NativeImGuiBackendCreateContext();
 
-    [LibraryImport("RedBolt.Native.DearImGui", EntryPoint = "ImGuiBackend_DestroyContext")]
+    [LibraryImport(NativeLibraryName, EntryPoint = "ImGuiBackend_DestroyContext")]
     private static partial void NativeImGuiBackendDestroyContext(nint context);
 
-    [LibraryImport("RedBolt.Native.DearImGui", EntryPoint = "ImGuiBackend_SetCurrentContext")]
+    [LibraryImport(NativeLibraryName, EntryPoint = "ImGuiBackend_SetCurrentContext")]
     private static partial void NativeImGuiBackendSetCurrentContext(nint context);
 
-    [LibraryImport("RedBolt.Native.DearImGui", EntryPoint = "ImGuiBackend_Sdl2InitForOpenGL")]
+    [LibraryImport(NativeLibraryName, EntryPoint = "ImGuiBackend_Sdl2InitForOpenGL")]
     [return: MarshalAs(UnmanagedType.I1)]
     private static partial bool NativeImGuiBackendSdl2InitForOpenGL(nint window, nint context);
 
-    [LibraryImport("RedBolt.Native.DearImGui", EntryPoint = "ImGuiBackend_Sdl2InitForOther")]
+    [LibraryImport(NativeLibraryName, EntryPoint = "ImGuiBackend_Sdl2InitForOther")]
     [return: MarshalAs(UnmanagedType.I1)]
     private static partial bool NativeImGuiBackendSdl2InitForOther(nint window);
 
-    [LibraryImport("RedBolt.Native.DearImGui", EntryPoint = "ImGuiBackend_Sdl2InitForD3D")]
+    [LibraryImport(NativeLibraryName, EntryPoint = "ImGuiBackend_Sdl2InitForD3D")]
     [return: MarshalAs(UnmanagedType.I1)]
     private static partial bool NativeImGuiBackendSdl2InitForD3D(nint window);
 

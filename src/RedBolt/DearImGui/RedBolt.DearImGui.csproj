@@ -11,14 +11,14 @@
     <ProjectReference Include="../Bindings/DearImGui/RedBolt.Bindings.DearImGui.csproj" />
     <ProjectReference Include="../Bindings/Sdl/RedBolt.Bindings.Sdl.csproj" />
     <ProjectReference Include="../Utility/RedBolt.Utility.csproj"
-                      Condition="'$(RedBoltPlatform)' != 'browser-wasm'" />
+                      Condition="'$(RedBoltPlatform)' != 'browser-wasm' and !$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))" />
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
                       GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(RedBoltPlatform)' == 'browser-wasm'">
+  <ItemGroup Condition="'$(RedBoltPlatform)' == 'browser-wasm' or $([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
     <Compile Remove="SystemUI/**/*.cs" />
   </ItemGroup>
 

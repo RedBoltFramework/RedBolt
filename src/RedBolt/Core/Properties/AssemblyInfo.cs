@@ -2,6 +2,7 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Platform.Windows")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Editor")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Platform.Web")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Platform.Android")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Graphics.OpenGL")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Graphics.OpenGLES")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("RedBolt.Graphics.Vulkan")]

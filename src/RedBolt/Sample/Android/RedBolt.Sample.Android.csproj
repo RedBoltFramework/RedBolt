@@ -1,0 +1,87 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt.Sample.Android</AssemblyName>
+    <ApplicationId>org.redbolt.samples</ApplicationId>
+    <ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
+    <ApplicationVersion>1</ApplicationVersion>
+    <AndroidPackageFormat>apk</AndroidPackageFormat>
+    <AndroidStripNativeLibraries>true</AndroidStripNativeLibraries>
+    <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+    <OutputType>Exe</OutputType>
+    <RedBoltTargetFramework>net10.0-android</RedBoltTargetFramework>
+    <TargetFramework>$(RedBoltTargetFramework)</TargetFramework>
+    <RedBoltAndroidRuntimeIdentifiers Condition="'$(RedBoltAndroidRuntimeIdentifiers)' == ''">android-arm64;android-x64</RedBoltAndroidRuntimeIdentifiers>
+    <RuntimeIdentifiers>$(RedBoltAndroidRuntimeIdentifiers)</RuntimeIdentifiers>
+    <RedBoltAndroidPackageArm64 Condition="'$(RedBoltAndroidPackageArm64)' == ''">true</RedBoltAndroidPackageArm64>
+    <SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
+    <TrimMode>partial</TrimMode>
+    <RedBoltAndroidArm64Output>$(RedBoltOutputRoot)/extern/runtimes/android-arm64/native</RedBoltAndroidArm64Output>
+    <RedBoltAndroidX64Output>$(RedBoltOutputRoot)/extern/runtimes/android-x64/native</RedBoltAndroidX64Output>
+    <RedBoltAndroidJavaDirectory>$(RedBoltBuildRoot)/native/android-x64/generated/android/java</RedBoltAndroidJavaDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
+    <ProjectReference Include="../../Actions/RedBolt.Actions.csproj" />
+    <ProjectReference Include="../../Audio/RedBolt.Audio.csproj" />
+    <ProjectReference Include="../../IK/RedBolt.IK.csproj" />
+    <ProjectReference Include="../../PhysicsJolt/RedBolt.PhysicsJolt.csproj" />
+    <ProjectReference Include="../../Navigation/RedBolt.Navigation.csproj" />
+    <ProjectReference Include="../../Network/RedBolt.Network.csproj" />
+    <ProjectReference Include="../../Platform/Android/RedBolt.Platform.Android.csproj" />
+    <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
+    <ProjectReference Include="../../RmlUI/RedBolt.RmlUI.csproj" />
+    <ProjectReference Include="../../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset;RedBoltTargetFramework" />
+    <Compile Include="../**/*.cs"
+             Exclude="../Android/**/*.cs;../Web/**/*.cs;../WebRTCSTUN/**/*.cs;../WindowSettings/**/*.cs"
+             Link="Samples/%(RecursiveDir)%(Filename)%(Extension)" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      PrivateAssets="all"
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
+  </ItemGroup>
+
+  <Target Name="RedBoltPrepareAndroidRuntime"
+          BeforeTargets="_CollectJavaSourceForBinding">
+    <MSBuild Projects="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Android.csproj"
+             Targets="Build"
+             BuildInParallel="false"
+             Condition="'$(RedBoltBuildAndroidNative)' != 'false'"
+             Properties="Configuration=$(Configuration);RedBoltPlatform=android-x64;RedBoltNativePreset=android-x64;RedBoltTargetFramework=$(RedBoltTargetFramework);AndroidSdkDirectory=$(AndroidSdkDirectory);AndroidNdkDirectory=$(AndroidNdkDirectory);JavaSdkDirectory=$(JavaSdkDirectory)" />
+    <MSBuild Projects="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Android.csproj"
+             Targets="RedBoltBuildNative"
+             BuildInParallel="false"
+             Condition="'$(RedBoltBuildAndroidNative)' != 'false' and '$(RedBoltAndroidPackageArm64)' == 'true'"
+             Properties="Configuration=$(Configuration);RedBoltPlatform=android-arm64;RedBoltNativePreset=android-arm64;RedBoltTargetFramework=$(RedBoltTargetFramework);AndroidSdkDirectory=$(AndroidSdkDirectory);AndroidNdkDirectory=$(AndroidNdkDirectory);JavaSdkDirectory=$(JavaSdkDirectory)" />
+    <Copy SourceFiles="$(AndroidNdkDirectory)/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so"
+          DestinationFiles="$(RedBoltAndroidArm64Output)/libc++_shared.so"
+          Condition="'$(RedBoltAndroidPackageArm64)' == 'true'"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(AndroidNdkDirectory)/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/x86_64-linux-android/libc++_shared.so"
+          DestinationFiles="$(RedBoltAndroidX64Output)/libc++_shared.so"
+          SkipUnchangedFiles="true" />
+    <ItemGroup>
+      <AndroidJavaSource Include="$(RedBoltAndroidJavaDirectory)/**/*.java" Bind="false" />
+      <AndroidJavaSource Update="$(RedBoltAndroidJavaDirectory)/org/libsdl/app/SDLActivity.java" Bind="true" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="RedBoltCollectAndroidNativeLibraries"
+          BeforeTargets="_BuildApkEmbed;_BuildApkFastDev"
+          DependsOnTargets="RedBoltPrepareAndroidRuntime">
+    <ItemGroup>
+      <AndroidNativeLibrary Include="$(RedBoltAndroidArm64Output)/*.so"
+                            Condition="'$(RedBoltAndroidPackageArm64)' == 'true'" />
+      <AndroidNativeLibrary Include="$(RedBoltAndroidX64Output)/*.so" />
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <AndroidAsset Include="../../../../bin/CoreData/**/*"
+                  Link="CoreData/%(RecursiveDir)%(Filename)%(Extension)" />
+    <AndroidAsset Include="../../../../bin/Data/**/*"
+                  Link="Data/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

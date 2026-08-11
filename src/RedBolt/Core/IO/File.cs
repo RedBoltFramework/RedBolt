@@ -275,6 +275,15 @@ public class File : AbstractFile
         return OpenInternal(fileName, mode);
     }
 
+    /// <summary>Open a filesystem or Android asset file without logging a failed probe.</summary>
+    internal bool TryOpen(string fileName, FileMode mode)
+    {
+        return OpenInternal(fileName, mode, logErrors: false);
+    }
+
+    internal static bool IsAndroidAssetPath(string fileName) =>
+        OperatingSystem.IsAndroid() && fileName.StartsWith("/apk/", StringComparison.Ordinal);
+
     /// <summary>Open from within a package file. Return true if successful.</summary>
     public bool Open(PackageFile? package, string fileName)
     {
@@ -395,7 +404,7 @@ public class File : AbstractFile
     }
 
     /// <summary>Open file internally using either C standard IO functions or SDL RWops for Android asset files. Return true if successful.</summary>
-    private bool OpenInternal(string fileName, FileMode mode, bool fromPackage = false)
+    private bool OpenInternal(string fileName, FileMode mode, bool fromPackage = false, bool logErrors = true)
     {
         Close();
         _compressed = false;
@@ -408,11 +417,12 @@ public class File : AbstractFile
             return false;
         }
 
-        if (OperatingSystem.IsAndroid() && fileName.StartsWith("/apk/", StringComparison.Ordinal))
+        if (IsAndroidAssetPath(fileName))
         {
             if (mode != FileMode.Read)
             {
-                Log.GetLogger().LogError("Only read mode is supported for Android asset files");
+                if (logErrors)
+                    Log.GetLogger().LogError("Only read mode is supported for Android asset files");
                 return false;
             }
 
@@ -421,7 +431,8 @@ public class File : AbstractFile
             _assetHandle = SdlNativeBindings.SdlRWFromFile(assetName.Bytes, readMode.Bytes);
             if (_assetHandle.IsNull)
             {
-                Log.GetLogger().LogError("Could not open Android asset file {FileName}", fileName);
+                if (logErrors)
+                    Log.GetLogger().LogError("Could not open Android asset file {FileName}", fileName);
                 _assetHandle = null;
                 return false;
             }
@@ -476,13 +487,15 @@ public class File : AbstractFile
         }
         catch (IOException)
         {
-            Log.GetLogger().LogError("Could not open file {FileName}", fileName);
+            if (logErrors)
+                Log.GetLogger().LogError("Could not open file {FileName}", fileName);
             Close();
             return false;
         }
         catch (UnauthorizedAccessException)
         {
-            Log.GetLogger().LogError("Could not open file {FileName}", fileName);
+            if (logErrors)
+                Log.GetLogger().LogError("Could not open file {FileName}", fileName);
             Close();
             return false;
         }

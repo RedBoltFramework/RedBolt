@@ -1,5 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk" TreatAsLocalProperty="RedBoltTargetFramework;TargetFramework">
   <PropertyGroup>
+    <RedBoltTargetFramework>net10.0</RedBoltTargetFramework>
+    <TargetFramework>$(RedBoltTargetFramework)</TargetFramework>
     <IsRoslynComponent>true</IsRoslynComponent>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
   </PropertyGroup>

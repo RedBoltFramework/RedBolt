@@ -453,7 +453,7 @@ public partial class RmlSerializableInspector : RmlUIComponent
     protected override void OnDataModelInitialized()
     {
         var constructor = GetDataModelConstructor()!;
-        using var attributesName = new Std.String();
+        using var attributesName = RmlUI.CreateNativeString();
         attributesName.Assign("attributes");
         using var attributes = _attributeDefinitions.Create(_attributes);
         constructor.BindCustomDataVariable(attributesName, attributes);

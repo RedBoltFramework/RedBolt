@@ -11,14 +11,19 @@ internal static class CompilerToolchainDiscovery
 {
     private const string ClangResourceDirectoryOverrideVariable = "REDBOLT_CLANG_RESOURCE_DIRECTORY";
 
-    public static CompilerToolchainInfo Discover(string compilerPath)
+    public static CompilerToolchainInfo Discover(
+        string compilerPath,
+        string? targetTripleOverride = null,
+        string? sysroot = null)
     {
         if (string.IsNullOrWhiteSpace(compilerPath))
             return new CompilerToolchainInfo(Array.Empty<string>(), null, null, null, null);
 
         var parserClangMajorVersion = DiscoverParserClangMajorVersion();
         var toolchainClangCompilerPath = ResolveToolchainCompiler(compilerPath, parserClangMajorVersion);
-        var targetTriple = DiscoverTargetTriple(compilerPath);
+        var targetTriple = string.IsNullOrWhiteSpace(targetTripleOverride)
+            ? DiscoverTargetTriple(compilerPath)
+            : targetTripleOverride;
         var useRequestedCompilerIncludes =
             targetTriple?.StartsWith("wasm", StringComparison.OrdinalIgnoreCase) == true ||
             targetTriple?.Contains("windows", StringComparison.OrdinalIgnoreCase) == true ||
@@ -26,7 +31,7 @@ internal static class CompilerToolchainDiscovery
         var includeCompilerPath = useRequestedCompilerIncludes
             ? compilerPath
             : toolchainClangCompilerPath;
-        var includeDirectories = DiscoverVerboseSearchPaths(includeCompilerPath, targetTriple);
+        var includeDirectories = DiscoverVerboseSearchPaths(includeCompilerPath, targetTriple, sysroot);
         var clangResourceDirectory = DiscoverClangResourceDirectoryOverride();
         var usesResourceDirectoryOverride = clangResourceDirectory is not null;
 
@@ -47,7 +52,7 @@ internal static class CompilerToolchainDiscovery
         if (clangResourceDirectory is null &&
             !string.Equals(includeCompilerPath, compilerPath, StringComparison.Ordinal))
         {
-            includeDirectories = DiscoverVerboseSearchPaths(compilerPath, targetTriple);
+            includeDirectories = DiscoverVerboseSearchPaths(compilerPath, targetTriple, sysroot);
         }
 
         includeDirectories = FilterClangBuiltinIncludeDirectories(
@@ -97,7 +102,10 @@ internal static class CompilerToolchainDiscovery
         return compilerPath;
     }
 
-    private static IReadOnlyList<string> DiscoverVerboseSearchPaths(string compilerPath, string? targetTriple)
+    private static IReadOnlyList<string> DiscoverVerboseSearchPaths(
+        string compilerPath,
+        string? targetTriple,
+        string? sysroot)
     {
         try
         {
@@ -112,6 +120,9 @@ internal static class CompilerToolchainDiscovery
 
             if (!string.IsNullOrWhiteSpace(targetTriple) && LooksLikeClangCompiler(compilerPath))
                 startInfo.ArgumentList.Add($"--target={targetTriple}");
+
+            if (!string.IsNullOrWhiteSpace(sysroot) && LooksLikeClangCompiler(compilerPath))
+                startInfo.ArgumentList.Add($"--sysroot={sysroot}");
 
             startInfo.ArgumentList.Add("-E");
             startInfo.ArgumentList.Add("-x");

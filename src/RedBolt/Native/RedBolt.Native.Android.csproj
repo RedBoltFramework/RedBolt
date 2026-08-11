@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <AssemblyName>RedBolt.Native.Android.Build</AssemblyName>
+    <CopyBuildOutputToOutputDirectory>false</CopyBuildOutputToOutputDirectory>
+    <CopyOutputSymbolsToOutputDirectory>false</CopyOutputSymbolsToOutputDirectory>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/native/SharpCpp.Native/SharpCpp.Native.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false"
+                      PrivateAssets="all"
+                      AdditionalProperties="$(RedBoltSharpCppNativeProperties)" />
+    <ProjectReference Include="../Generator/Dependencies/RedBolt.Generator.Dependencies.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false"
+                      PrivateAssets="all"
+                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset;RedBoltTargetFramework" />
+  </ItemGroup>
+
+  <Import Project="RedBolt.Native.targets" />
+</Project>

@@ -3,6 +3,7 @@
 ## Managed architecture
 
 - [~] Shared `RedBolt.Core.dll`, one selected platform assembly, independently referenceable graphics-backend assemblies, and common managed output are complete; one-invocation Linux/Web native-binding generation remains pending
+- [x] Android host — API 24 minimum and API 36 target, SDL lifecycle bridge, OpenGL ES 3 backend, generated Android native bindings, `arm64-v8a` and `x86_64` native builds, debug-signed APK, Web-compatible sample picker, packaged resources, and emulator smoke harness
 - [x] Move managed engine types into folder-matching namespaces and namespace-first file headers, update all consumers and generated reflection metadata, and restore the namespace-colliding subsystem and render-pipeline class names.
 - [x] Replace all hand-written object-factory and serializable-attribute registration with generated `[Reflected]`, member-targeted `[Serialized]`, and `[RemoveSerialized]` declarations, including inferred field/property/getter/setter access, initializer defaults, factory categories and opt-outs, ordered inheritance, removals, modes, scope hints, enum names, custom accessors, metadata configuration, nested user types, assembly registration, and generated-registrar activation for assemblies and generic reflected types loaded after WebAssembly startup.
 

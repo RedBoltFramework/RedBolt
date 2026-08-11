@@ -104,6 +104,38 @@
 +install_third_party_libs(${SDL_REDBOLT_TARGET})
 
  group_sources()
+--- a/android-project/app/src/main/java/org/libsdl/app/SDLActivity.java
++++ b/android-project/app/src/main/java/org/libsdl/app/SDLActivity.java
+@@ -65,2 +65,0 @@
+-import io.urho3d.UrhoActivity;
+-
+@@ -310,3 +308,13 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityC
++    /** Run the application on SDL's display thread. */
++    protected void runMain() {
++        nativeRunMain(getMainSharedObject(), getMainFunction(), getArguments());
++    }
++
++    /** Return the native libraries required before the managed application starts. */
++    protected List<String> getLibraries() {
++        return java.util.Collections.singletonList("SDL2");
++    }
++
+     /**
+      * This method is called by SDL before starting the native application thread.
+      * It can be overridden to provide the arguments after the application name.
+@@ -354,8 +362,7 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityC
+         // Urho3D - auto load all the shared libraries available in the library path
+         String errorMsgBrokenLib = "";
+         try {
+-            //loadLibraries();
+-            onLoadLibrary(UrhoActivity.getLibraryNames(this));
++            onLoadLibrary(getLibraries());
+             mBrokenLibraries = false; /* success */
+         } catch(UnsatisfiedLinkError e) {
+             System.err.println(e.getMessage());
+@@ -1821 +1828 @@ class SDLMain implements Runnable {
+-        SDLActivity.nativeRunMain(library, function, arguments);
++        SDLActivity.mSingleton.runMain();
 --- a/src/audio/emscripten/SDL_emscriptenaudio.c
 +++ b/src/audio/emscripten/SDL_emscriptenaudio.c
 @@ -263,7 +263,7 @@

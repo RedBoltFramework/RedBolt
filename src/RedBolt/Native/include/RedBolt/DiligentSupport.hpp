@@ -1,6 +1,6 @@
 #pragma once
 
-#if PLATFORM_WEB
+#if PLATFORM_WEB || PLATFORM_ANDROID
 #include <GLES3/gl3.h>
 #ifndef GL_PROGRAM_SEPARABLE
 #define GL_PROGRAM_SEPARABLE 0x8258

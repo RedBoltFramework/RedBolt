@@ -125,47 +125,64 @@ public class ImGuiDiligentRendererEx : IDisposable
 
     private void RenderDrawDataWith(ImDrawData drawData, PipelineState pipelineState)
     {
+        var deviceContext = _renderDevice.GetImmediateContext();
+        if (drawData is null || drawData.IsNull || deviceContext is null || deviceContext.IsNull)
+            return;
+
         pipelineState.Restore();
         if (!pipelineState.IsValid)
             return;
 
-        var srb = pipelineState.GetShaderResourceBinding()!;
+        var srb = pipelineState.GetShaderResourceBinding();
         IShaderResourceVariable? textureVar;
         IShaderResourceVariable? constantsVar;
         IShaderResourceVariable? harfBuzzAtlasVar;
         IShaderResourceVariable? pixelConstantsVar;
-        unsafe
+        if (srb is { IsNull: false })
         {
-            fixed (byte* textureName = "sTexture\0"u8)
-            fixed (byte* cameraName = "Camera\0"u8)
-            fixed (byte* harfBuzzAtlasName = "sHarfBuzzAtlas\0"u8)
-            fixed (byte* customName = "Custom\0"u8)
+            unsafe
             {
-                ref var textureNameRef = ref Unsafe.As<byte, sbyte>(ref *textureName);
-                ref var cameraNameRef = ref Unsafe.As<byte, sbyte>(ref *cameraName);
-                ref var harfBuzzAtlasNameRef = ref Unsafe.As<byte, sbyte>(ref *harfBuzzAtlasName);
-                ref var customNameRef = ref Unsafe.As<byte, sbyte>(ref *customName);
-                textureVar = srb.GetVariableByName(
-                    global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, in textureNameRef);
-                constantsVar = srb.GetVariableByName(
-                    global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, in cameraNameRef);
-                harfBuzzAtlasVar = srb.GetVariableByName(
-                    global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, in harfBuzzAtlasNameRef);
-                pixelConstantsVar = srb.GetVariableByName(
-                    global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, in customNameRef);
+                fixed (byte* textureName = "sTexture\0"u8)
+                fixed (byte* cameraName = "Camera\0"u8)
+                fixed (byte* harfBuzzAtlasName = "sHarfBuzzAtlas\0"u8)
+                fixed (byte* customName = "Custom\0"u8)
+                {
+                    ref var textureNameRef = ref Unsafe.As<byte, sbyte>(ref *textureName);
+                    ref var cameraNameRef = ref Unsafe.As<byte, sbyte>(ref *cameraName);
+                    ref var harfBuzzAtlasNameRef = ref Unsafe.As<byte, sbyte>(ref *harfBuzzAtlasName);
+                    ref var customNameRef = ref Unsafe.As<byte, sbyte>(ref *customName);
+                    textureVar = srb.GetVariableByName(
+                        global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, in textureNameRef);
+                    constantsVar = srb.GetVariableByName(
+                        global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, in cameraNameRef);
+                    harfBuzzAtlasVar = srb.GetVariableByName(
+                        global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, in harfBuzzAtlasNameRef);
+                    pixelConstantsVar = srb.GetVariableByName(
+                        global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, in customNameRef);
+                }
             }
         }
+        else
+            textureVar = constantsVar = harfBuzzAtlasVar = pixelConstantsVar = null;
 
         ImGui.ImGuiBackendRendererRenderDrawData(
             _nativeRenderer,
-            _renderDevice.GetImmediateContext()!.Handle,
+            deviceContext.Handle,
             drawData.Handle,
-            pipelineState.GetHandle()!.Handle,
-            srb.Handle,
-            textureVar!.Handle,
-            constantsVar!.Handle,
-            harfBuzzAtlasVar!.Handle,
-            pixelConstantsVar!.Handle);
+            pipelineState.GetHandle()?.Handle ?? 0,
+            srb?.Handle ?? 0,
+            textureVar?.Handle ?? 0,
+            constantsVar?.Handle ?? 0,
+            harfBuzzAtlasVar?.Handle ?? 0,
+            pixelConstantsVar?.Handle ?? 0);
+#if REDBOLT_PLATFORM_ANDROID
+        if (!_androidUiReadyLogged && drawData.TotalVtxCount > 0)
+        {
+            global::Android.Util.Log.Info("RedBolt",
+                $"Dear ImGui UI ready: {drawData.TotalVtxCount} vertices, {drawData.TotalIdxCount} indices");
+            _androidUiReadyLogged = true;
+        }
+#endif
     }
 
     // TODO: port ImGuiDiligentRendererEx* GetBackendData() with the managed renderer callback handle.
@@ -203,6 +220,9 @@ public class ImGuiDiligentRendererEx : IDisposable
         desc.ColorWriteEnabled = true;
 
         var shaderDefines = string.Empty;
+#if REDBOLT_PLATFORM_ANDROID
+        shaderDefines += "REDBOLT_ANDROID ";
+#endif
         if (IsSRGBTextureFormat(colorBufferFormat))
             shaderDefines += "URHO3D_LINEAR_OUTPUT ";
 
@@ -232,5 +252,8 @@ public class ImGuiDiligentRendererEx : IDisposable
     // TODO: port bool isCachedStateInvalid_{} with the secondary-window render path.
     private readonly PipelineState _primaryPipelineState;
     private readonly PipelineState _secondaryPipelineState;
+#if REDBOLT_PLATFORM_ANDROID
+    private bool _androidUiReadyLogged;
+#endif
     // TODO: port ea::vector<ImGuiViewport*> viewports_ with the secondary-window callback path.
 }

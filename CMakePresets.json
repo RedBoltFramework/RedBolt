@@ -35,6 +35,36 @@
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/Toolchains/DotNetEmscripten.cmake"
       }
+    },
+    {
+      "name": "android-arm64",
+      "displayName": "Android arm64-v8a GLES",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/native/${presetName}",
+      "cacheVariables": {
+        "ANDROID_ABI": "arm64-v8a",
+        "ANDROID_PLATFORM": "android-24",
+        "ANDROID_STL": "c++_shared",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_TOOLCHAIN_FILE": "$env{ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake",
+        "REDBOLT_ANDROID_BUILD": "ON"
+      }
+    },
+    {
+      "name": "android-x64",
+      "displayName": "Android x86_64 GLES",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/native/${presetName}",
+      "cacheVariables": {
+        "ANDROID_ABI": "x86_64",
+        "ANDROID_PLATFORM": "android-24",
+        "ANDROID_STL": "c++_shared",
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_TOOLCHAIN_FILE": "$env{ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake",
+        "REDBOLT_ANDROID_BUILD": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -75,6 +105,20 @@
       "configurePreset": "browser-wasm",
       "targets": [
         "redbolt-wasm-native"
+      ]
+    },
+    {
+      "name": "android-arm64-debug",
+      "configurePreset": "android-arm64",
+      "targets": [
+        "redbolt-android-native"
+      ]
+    },
+    {
+      "name": "android-x64-debug",
+      "configurePreset": "android-x64",
+      "targets": [
+        "redbolt-android-native"
       ]
     }
   ]

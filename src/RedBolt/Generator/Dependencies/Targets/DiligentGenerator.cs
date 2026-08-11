@@ -137,6 +137,7 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
 
         FixedWidthAliasNormalizer.Normalize(compilation, FixedWidthAliases);
         ConfigureSetVertexBuffersOffsets(compilation);
+        ConfigureAndroidResume(compilation);
     }
 
     protected override GeneratedBindingSet TransformBindings(GeneratedBindingSet bindings)
@@ -211,6 +212,22 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
         offsets.Type = FixedWidthAliasNormalizer.ProjectType(
             offsets.Type,
             new FixedWidthAliasProjection(BindingPrimitiveKind.UInt64, "ulong"));
+    }
+
+    private static void ConfigureAndroidResume(BindingCompilation compilation)
+    {
+        var renderDevice = compilation.Records.FirstOrDefault(static record =>
+            record.CppQualifiedName == "Diligent::IRenderDeviceGLES");
+        var resume = renderDevice?.Members.OfType<FunctionBinding>().FirstOrDefault(static method =>
+            method.NativeName == "Resume");
+        var window = resume?.Parameters.FirstOrDefault(static parameter =>
+            parameter.NativeName == "window" && parameter.CppTypeName == "ANativeWindow*");
+        if (window is null)
+            return;
+
+        window.Type = BindingType.IntPtr;
+        window.Direction = BindingParameterDirection.In;
+        window.AbiKind = BindingParameterAbiKind.Value;
     }
 
     private static int PruneTopLevelFunctions(IList<BindingNode> members)

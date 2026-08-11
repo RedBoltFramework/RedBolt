@@ -39,7 +39,12 @@ public class MountedDirectory : WatchableMountPoint
         if (!AcceptsScheme(fileName.Scheme))
             return false;
 
-        return System.IO.File.Exists(_directory + fileName.FileName);
+        var fullPath = _directory + fileName.FileName;
+        if (!File.IsAndroidAssetPath(fullPath))
+            return System.IO.File.Exists(fullPath);
+
+        using var file = new File();
+        return file.TryOpen(fullPath, FileMode.Read);
     }
 
     /// <summary>Implement MountPoint.</summary>
@@ -53,7 +58,11 @@ public class MountedDirectory : WatchableMountPoint
         var needWrite = mode == FileMode.Write || mode == FileMode.ReadWrite;
         var fullPath = _directory + fileName.FileName;
 
-        if (needRead && !System.IO.File.Exists(fullPath))
+        var isAndroidAsset = File.IsAndroidAssetPath(fullPath);
+        if (needRead && !isAndroidAsset && !System.IO.File.Exists(fullPath))
+            return null;
+
+        if (needWrite && isAndroidAsset)
             return null;
 
         if (needWrite)
@@ -76,7 +85,8 @@ public class MountedDirectory : WatchableMountPoint
             }
         }
 
-        var file = new File(fullPath, mode);
+        var file = new File();
+        _ = isAndroidAsset ? file.TryOpen(fullPath, mode) : file.Open(fullPath, mode);
         if (!file.IsOpen)
         {
             file.Dispose();
@@ -94,6 +104,9 @@ public class MountedDirectory : WatchableMountPoint
             return null;
 
         var fullPath = _directory + fileName.FileName;
+        if (File.IsAndroidAssetPath(fullPath))
+            return 0;
+
         var modifiedTime = System.IO.File.GetLastWriteTimeUtc(fullPath);
         if (OperatingSystem.IsWindows() && creationIsModification)
         {

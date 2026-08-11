@@ -332,7 +332,7 @@ private:
         if (m_SwapChainDesc.PreTransform == SURFACE_TRANSFORM_OPTIMAL)
             m_SwapChainDesc.PreTransform = SURFACE_TRANSFORM_IDENTITY;
 
-#if PLATFORM_IOS || PLATFORM_TVOS
+#if PLATFORM_IOS || PLATFORM_TVOS || PLATFORM_ANDROID
         glGetIntegerv(GL_FRAMEBUFFER_BINDING, reinterpret_cast<GLint*>(&defaultFBO_));
 #endif
 

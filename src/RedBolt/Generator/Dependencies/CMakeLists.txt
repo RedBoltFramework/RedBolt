@@ -80,8 +80,8 @@ foreach(binding SDL DILIGENT IMGUI STB TINYGLTF LZ4 HARFBUZZ RMLUI WEBP XATLAS E
         CACHE INTERNAL "${binding} binding metadata")
 endforeach()
 
-set(REDBOLT_SDL_BUILD_INCLUDE_DIR "${CMAKE_BINARY_DIR}/deps/SDL/include" CACHE INTERNAL "SDL generated include directory")
-set(REDBOLT_SDL_CONFIG_INCLUDE_DIR "${CMAKE_BINARY_DIR}/deps/SDL/include-config-$<LOWER_CASE:$<CONFIG>>" CACHE INTERNAL "SDL configuration include directory")
+set(REDBOLT_SDL_BUILD_INCLUDE_DIR "${SDL2_BINARY_DIR}/include" CACHE INTERNAL "SDL generated include directory" FORCE)
+set(REDBOLT_SDL_CONFIG_INCLUDE_DIR "${SDL2_BINARY_DIR}/include-config-$<LOWER_CASE:$<CONFIG>>" CACHE INTERNAL "SDL configuration include directory" FORCE)
 set(REDBOLT_SDL_PARSE_SOURCE "${REDBOLT_SDL_GENERATED_DIR}/SDLAll.cpp" CACHE INTERNAL "SDL parse source")
 set(REDBOLT_DILIGENT_PARSE_HEADER "${REDBOLT_DILIGENT_GENERATED_DIR}/DiligentAll.hpp" CACHE INTERNAL "Diligent parse header")
 set(REDBOLT_IMGUI_PARSE_SOURCE "${REDBOLT_IMGUI_GENERATED_DIR}/ImGuiAll.cpp" CACHE INTERNAL "Dear ImGui parse source")

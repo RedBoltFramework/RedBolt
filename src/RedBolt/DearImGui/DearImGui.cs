@@ -13,7 +13,7 @@ using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
-#if !REDBOLT_PLATFORM_BROWSER
+#if !REDBOLT_PLATFORM_BROWSER && !REDBOLT_PLATFORM_ANDROID
 using RedBolt.SystemUI;
 #endif
 
@@ -35,7 +35,7 @@ public class DearImGui : RedObject
         io.ConfigFlags |= flags;
 
         PlatformInitialize();
-#if !REDBOLT_PLATFORM_BROWSER
+#if !REDBOLT_PLATFORM_BROWSER && !REDBOLT_PLATFORM_ANDROID
         StandardSerializableHooks.Register(Context);
 #endif
 
@@ -409,8 +409,12 @@ public class DearImGui : RedObject
         }
 
         var io = ImGui.GetIO();
+#if REDBOLT_PLATFORM_ANDROID
+        ImGui.Render();
+#else
         if (ImGui.ImGuiBackendIsWithinFrameScope())
             ImGui.Render();
+#endif
 
         // Revert mouse position after relative movement
         if (!_enableRelativeMouseMove && _revertMousePositionOnDisable)
