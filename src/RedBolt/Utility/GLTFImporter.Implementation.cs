@@ -28,11 +28,9 @@ internal static partial class GLTFImporterFunctions
     {
         using var loader = new Tg.TinyGLTF();
         loader.SetImageLoader(GLTFTextureImporter.LoadImageData, IntPtr.Zero);
-        var stringProvider = Std.Infrastructure.ProviderRegistry.Resolve<Std.Infrastructure.IStringProvider>(
-            "RedBolt.Bindings.TinyGltf");
-        using var errorMessage = new Std.String(stringProvider);
-        using var warningMessage = new Std.String(stringProvider);
-        using var nativeFileName = new Std.String(fileName, stringProvider);
+        using var errorMessage = new Std.String();
+        using var warningMessage = new Std.String();
+        using var nativeFileName = new Std.String(fileName);
         var model = new Tg.Model();
         if (fileName.EndsWith(".gltf", StringComparison.Ordinal))
         {
@@ -54,10 +52,8 @@ internal static partial class GLTFImporterFunctions
     {
         using var loader = new Tg.TinyGLTF();
         loader.SetImageLoader(GLTFTextureImporter.LoadImageData, IntPtr.Zero);
-        var stringProvider = Std.Infrastructure.ProviderRegistry.Resolve<Std.Infrastructure.IStringProvider>(
-            "RedBolt.Bindings.TinyGltf");
-        using var errorMessage = new Std.String(stringProvider);
-        using var warningMessage = new Std.String(stringProvider);
+        using var errorMessage = new Std.String();
+        using var warningMessage = new Std.String();
         var model = new Tg.Model();
         fixed (byte* dataPointer = data)
         {

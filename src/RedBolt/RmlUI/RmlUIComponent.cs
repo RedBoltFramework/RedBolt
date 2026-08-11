@@ -59,7 +59,7 @@ public partial class RmlUIComponent : LogicComponent
             return false;
         }
 
-        using var nativeName = RmlUI.CreateNativeString();
+        using var nativeName = new Std.String();
         nativeName.Assign(name);
         return constructor.BindFunc(nativeName, outputValue =>
         {
@@ -91,7 +91,7 @@ public partial class RmlUIComponent : LogicComponent
             return false;
         }
 
-        using var nativeName = RmlUI.CreateNativeString();
+        using var nativeName = new Std.String();
         nativeName.Assign(name);
         using var dataVariable = _variantDefinitions.Create(value);
         return constructor.BindCustomDataVariable(nativeName, dataVariable);
@@ -105,7 +105,7 @@ public partial class RmlUIComponent : LogicComponent
             return false;
         }
 
-        using var nativeName = RmlUI.CreateNativeString();
+        using var nativeName = new Std.String();
         nativeName.Assign(name);
         using var dataVariable = _variantDefinitions.Create(value);
         return constructor.BindCustomDataVariable(nativeName, dataVariable);
@@ -119,7 +119,7 @@ public partial class RmlUIComponent : LogicComponent
             return false;
         }
 
-        using var nativeName = RmlUI.CreateNativeString();
+        using var nativeName = new Std.String();
         nativeName.Assign(name);
         using var dataVariable = _variantDefinitions.Create(value);
         return constructor.BindCustomDataVariable(nativeName, dataVariable);
@@ -133,7 +133,7 @@ public partial class RmlUIComponent : LogicComponent
             return false;
         }
 
-        using var nativeName = RmlUI.CreateNativeString();
+        using var nativeName = new Std.String();
         nativeName.Assign(name);
         using var dataVariable = _variantDefinitions.Create(value);
         return constructor.BindCustomDataVariable(nativeName, dataVariable);
@@ -147,7 +147,7 @@ public partial class RmlUIComponent : LogicComponent
             return false;
         }
 
-        using var nativeName = RmlUI.CreateNativeString();
+        using var nativeName = new Std.String();
         nativeName.Assign(name);
         return constructor.BindEventCallback(nativeName, (model, @event, args) =>
         {
@@ -169,7 +169,7 @@ public partial class RmlUIComponent : LogicComponent
     {
         if (_dataModel is null)
             return false;
-        using var nativeName = RmlUI.CreateNativeString();
+        using var nativeName = new Std.String();
         nativeName.Assign(variableName);
         return _dataModel.IsVariableDirty(nativeName);
     }
@@ -178,7 +178,7 @@ public partial class RmlUIComponent : LogicComponent
     {
         if (_dataModel is null)
             return;
-        using var nativeName = RmlUI.CreateNativeString();
+        using var nativeName = new Std.String();
         nativeName.Assign(variableName);
         _dataModel.DirtyVariable(nativeName);
     }
@@ -493,7 +493,7 @@ public partial class RmlUIComponent : LogicComponent
             }
             else
             {
-                using var elementId = RmlUI.CreateNativeString();
+                using var elementId = new Std.String();
                 elementId.Assign(_pendingFocusId);
                 var element = _document.GetElementById(elementId);
                 if (element is not null && element.Focus(true))
@@ -654,25 +654,25 @@ public partial class RmlUIComponent : LogicComponent
             GetDataModelName(), GCHandle.ToIntPtr(_componentHandle));
 
         _typeRegister = new DataTypeRegister();
-        using var nativeModelName = RmlUI.CreateNativeString();
+        using var nativeModelName = new Std.String();
         nativeModelName.Assign(_dataModelName);
         _modelConstructor = context.CreateDataModel(nativeModelName, _typeRegister);
         _variantDefinitions = RmlUI.RegisterVariantDefinition(_typeRegister);
 
-        using var focusName = RmlUI.CreateNativeString();
+        using var focusName = new Std.String();
         focusName.Assign("focus");
         _modelConstructor.BindEventCallback(focusName, DoFocusById);
 
-        using var keyOkName = RmlUI.CreateNativeString();
+        using var keyOkName = new Std.String();
         keyOkName.Assign("is_key_ok");
         _modelConstructor.RegisterTransformFunc(keyOkName, IsKeyOk);
-        using var keyCancelName = RmlUI.CreateNativeString();
+        using var keyCancelName = new Std.String();
         keyCancelName.Assign("is_key_cancel");
         _modelConstructor.RegisterTransformFunc(keyCancelName, IsKeyCancel);
-        using var keySecondaryName = RmlUI.CreateNativeString();
+        using var keySecondaryName = new Std.String();
         keySecondaryName.Assign("is_key_secondary");
         _modelConstructor.RegisterTransformFunc(keySecondaryName, IsKeySecondary);
-        using var keyTertiaryName = RmlUI.CreateNativeString();
+        using var keyTertiaryName = new Std.String();
         keyTertiaryName.Assign("is_key_tertiary");
         _modelConstructor.RegisterTransformFunc(keyTertiaryName, IsKeyTertiary);
     }
@@ -681,7 +681,7 @@ public partial class RmlUIComponent : LogicComponent
     {
         var ui = GetUI();
         var context = ui.GetRmlContext();
-        using var nativeModelName = RmlUI.CreateNativeString();
+        using var nativeModelName = new Std.String();
         nativeModelName.Assign(_dataModelName);
         context.RemoveDataModel(nativeModelName);
 

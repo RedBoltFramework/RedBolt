@@ -585,8 +585,8 @@ public partial class RmlUI : RedObject
     private static readonly RmlContextInstancer ContextInstancerInstance = new();
     private static readonly RmlPlugin PluginInstance = new();
     private static readonly Dictionary<nint, EventListener> EventListeners = [];
-    private static readonly Std.String MousePassthroughAttribute = CreateNativeString("mouse-passthrough");
-    internal static readonly Std.String ComponentPtrAttribute = CreateNativeString("__RmlUIComponentPtr__");
+    private static readonly Std.String MousePassthroughAttribute = new("mouse-passthrough");
+    internal static readonly Std.String ComponentPtrAttribute = new("__RmlUIComponentPtr__");
 
     /// <summary>Map engine keys to RmlUi keys. Note that top bit is cleared from key constants when they are used as array index.</summary>
     private static readonly Dictionary<Key, Rml.Input.KeyIdentifier> KeyMap = new()
@@ -738,7 +738,7 @@ public partial class RmlUI : RedObject
     /// <summary>Other instances of RmlUI.</summary>
     private readonly List<WeakReference<RmlUI>> _siblingSubsystems = [];
     private readonly RenderTargetView[] _renderTargets = new RenderTargetView[1];
-    private readonly Std.String _textInput = CreateNativeString();
+    private readonly Std.String _textInput = new();
     private bool _disposed;
 
     /// <summary>Construct.</summary>
@@ -763,7 +763,7 @@ public partial class RmlUI : RedObject
             RmlUiNativeBindings.RegisterPlugin(PluginInstance);
         }
 
-        using var nativeName = CreateNativeString();
+        using var nativeName = new Std.String();
         nativeName.Assign(name);
         _rmlContext = (RmlContext)RmlUiNativeBindings.CreateContext(
             nativeName, GetDesiredCanvasSize())!;
@@ -812,7 +812,7 @@ public partial class RmlUI : RedObject
 
         if (_rmlContext is not null)
         {
-            using var nativeName = CreateNativeString();
+            using var nativeName = new Std.String();
             nativeName.Assign(_name);
             if (!RmlUiNativeBindings.RemoveContext(nativeName))
                 EngineLog.GetLogger().Error("Removal of RmlUI context {} failed.", _name);
@@ -862,8 +862,8 @@ public partial class RmlUI : RedObject
         _file!.AddResourceLoaded(path);
 
         // Load document from memory.
-        using var nativeContents = CreateNativeString();
-        using var nativePath = CreateNativeString();
+        using var nativeContents = new Std.String();
+        using var nativePath = new Std.String();
         nativeContents.Assign(fileContents);
         nativePath.Assign(path);
         return _rmlContext!.LoadDocumentFromMemory(nativeContents, nativePath);
@@ -886,7 +886,7 @@ public partial class RmlUI : RedObject
     /// <summary>Load a font resource for RmlUi to use.</summary>
     public bool LoadFont(string resourceName, bool fallback = false)
     {
-        using var nativeName = CreateNativeString();
+        using var nativeName = new Std.String();
         nativeName.Assign(resourceName);
         return RmlUiNativeBindings.LoadFontFace(nativeName, fallback);
     }
@@ -1203,7 +1203,7 @@ public partial class RmlUI : RedObject
                 return true;
             case CoreVariantType.String:
             {
-                using var assignedString = CreateNativeString();
+                using var assignedString = new Std.String();
                 assignedString.Assign(source.GetString());
                 destination.Assign(assignedString);
                 return true;
@@ -1253,7 +1253,7 @@ public partial class RmlUI : RedObject
             EngineLog.GetLogger().Error("This variant type conversion is not supported: {}", source.Type);
             return false;
         }
-        using var nativeString = CreateNativeString();
+        using var nativeString = new Std.String();
         nativeString.Assign(stringValue);
         destination.Assign(nativeString);
         return true;
@@ -1268,17 +1268,6 @@ public partial class RmlUI : RedObject
     {
         // Replace special placeholders in .rml file contents and model names to allow deriving unique model names
         return content.Replace("{{__data_model_id}}", dataModelId.ToString(), StringComparison.Ordinal);
-    }
-
-    internal static Std.String CreateNativeString() => new(
-        global::Std.Infrastructure.ProviderRegistry.Resolve<global::Std.Infrastructure.IStringProvider>(
-            "RedBolt.Bindings.RmlUi"));
-
-    private static Std.String CreateNativeString(string value)
-    {
-        var result = CreateNativeString();
-        result.Assign(value);
-        return result;
     }
 
     private static MouseButton MakeTouchIDMask(int id)
@@ -1493,10 +1482,10 @@ public partial class RmlUI : RedObject
         if (_rmlContext!.GetHoverElement() is { } element)
         {
             using var args = new Std.UnorderedMap<Std.String, RmlVariant>();
-            using var pathName = CreateNativeString();
-            using var pathValue = CreateNativeString();
+            using var pathName = new Std.String();
+            using var pathValue = new Std.String();
             using var pathVariant = new RmlVariant();
-            using var eventType = CreateNativeString();
+            using var eventType = new Std.String();
             pathName.Assign("path");
             pathValue.Assign(eventData.FileName);
             pathVariant.Assign(pathValue);

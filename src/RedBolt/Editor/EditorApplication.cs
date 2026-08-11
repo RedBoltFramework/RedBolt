@@ -219,8 +219,7 @@ public unsafe class EditorApplication : Application
         _projectPreviewTextureReference.Dispose();
         _editorPluginManager.Dispose();
 
-        using (global::Std.Infrastructure.ProviderRegistry.PushModule("RedBolt.Bindings.RmlUi"))
-            base.Dispose();
+        base.Dispose();
 
         if (_settingsHandlerTypeName != 0)
         {
@@ -345,10 +344,7 @@ public unsafe class EditorApplication : Application
         debugHud.SetMode(DebugHudMode.None);
 
         if (Context.GetSubsystem<RmlUISubsystem>() is null)
-        {
-            using var providerModule = global::Std.Infrastructure.ProviderRegistry.PushModule("RedBolt.Bindings.RmlUi");
             Context.RegisterSubsystem(new RmlUISubsystem());
-        }
 
         SubscribeToEvent<CoreEvents.UpdateEvent>((ref CoreEvents.UpdateEvent _) => Render());
         SubscribeToEvent<CoreEvents.EndFrameEvent>((ref CoreEvents.EndFrameEvent _) => UpdateProjectStatus());
