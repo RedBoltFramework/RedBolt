@@ -42,4 +42,18 @@ does not build tests.
 
 For architecture notes, porting strategy, and binding details, see `doc/`.
 
+## NuGet packages
+
+Create managed module, RID-specific native runtime, tool, resource, and
+SharpCpp development packages with:
+
+```bash
+dotnet run --file packaging/nuget/package.cs -- create
+```
+
+The command uses the normal saved platform/module selection and writes a
+validated local package set below `build/package/nuget/out/`. See the
+[NuGet packaging guide](packaging/nuget/README.md) for package names and
+consumer configuration.
+
 Android builds use OpenGL ES 3, require API 24 or newer, and produce a universal Debug APK with `arm64-v8a` and `x86_64` libraries or an x86_64 Release APK for emulator testing. See [doc/ANDROID.md](doc/ANDROID.md) for setup, build, and emulator commands.
