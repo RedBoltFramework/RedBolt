@@ -21,7 +21,7 @@
 - [x] `05_AnimatingScene` — extensible sample class shape, native method/order structure, generated `[Reflected]` `Rotator` factory metadata matching rbfx `SamplesManager`, strong scene/camera/viewport ownership, reverse deterministic teardown, scene, zone, static-model, node-logic animation, camera, point-light, viewport, Dear ImGui instructions, and shared `Rotator` POD value semantics reconciled and runtime-verified
 - [x] `09_MultipleViewports` — extensible native class/method/field order, explicit construction, angle-axis rear-camera rotation, strong scene/camera ownership, renderer-retained viewport aliases, reverse deterministic teardown, scene, rear camera, dual viewports, automatic render pipeline allocation, render-target viewport handling, Dear ImGui instructions, requested window sizing, delayed multi-frame screenshots, and stable Vulkan shadows are runtime-verified against rbfx
 - [x] `11_Physics` — intentional Jolt implementation with a static floor, dynamic box pyramid, 20-unit free-fly camera, left-click pyramid-matching box spawning, Jolt collision and raycast coverage, deterministic teardown, and reviewed screenshot capture
-- [x] `46_RaycastVehicle` — Jolt raycast vehicle, terrain heightfield, four-wheel chassis, WASD/F input map, skid dust, collision-aware chase camera, 1000 mushroom prefabs, physics debug rendering, Dear ImGui instructions, desktop/Web/Android wiring, deterministic teardown, and screenshot capture are ported and runtime-verified
+- [x] `46_RaycastVehicle` — Jolt raycast vehicle, terrain heightfield, four-wheel chassis, WASD/F input map, skid dust, collision-aware chase camera, 1000 mushroom prefabs, physics debug rendering, Dear ImGui instructions, desktop/Web/Android wiring, deterministic teardown, and screenshot capture are ported and runtime-verified; wheel basis, engine/brake units, suspension response, terrain contact stability, combined throttle/steering, and airborne wheel interpolation are covered by direction, settling, and visual-pose regressions
 - [x] `34_DynamicGeometry` — extensible sample class shape, native method/field order, deep model clones, retained animating-buffer aliases, POD vertex/index copies, guarded buffer mapping, strong scene/camera/viewport ownership, reverse deterministic teardown, from-scratch pyramid geometry, animation, camera, zone lighting, automatic render pipeline, and Dear ImGui instructions reconciled to rbfx
 - [x] `10_RenderToTexture` — extensible native class/method/field order, explicit construction and base startup, generated `[Reflected]` `Rotator` factory metadata matching rbfx `SamplesManager`, two-scene render-to-texture composition, queued RenderSurface viewport, strong scene/camera/texture/material ownership, reverse deterministic teardown, POD value copies and `int` indices/sizes, Dear ImGui instructions, native texture-descriptor defaults, copied texture-view descriptors, render-surface scheduling, resolved shader-resource sampling, and shared `Rotator` semantics are reconciled and runtime-verified
 - [x] `14_SoundEffects` — hidden scene and music-source ownership, three sound-effect resources, looping music playback and stop, scene pause/resume and time scale, sound/music master gains, pan, reach, LFE, no-device microphone handling, seeded recorded-stream playback, Dear ImGui controls, baseline/audit screenshots, and deterministic teardown are runtime-verified
@@ -283,33 +283,36 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 
 ## B3. UI `EXCLUDED` — retained-mode UI; depends on Graphics, Resource, Input
 
-## B4. Physics `OPTIONAL` — Bullet; depends on Scene, Graphics
+## [x] B4. Physics `OPTIONAL` — adapted from Bullet to Jolt; depends on Scene, Graphics
 
 - [x] Intentional RedBolt Jolt core slice
   - [x] Lean generated Jolt binding target with common intrusive-reference, static-field, generic, and projected-value API support in SharpCpp
   - [x] `PhysicsWorld`-owned static Jolt registration and deterministic lifetime
   - [x] Direct RedBolt vector, quaternion, and ray projections with dedicated projected-ABI layout and native round-trip coverage
   - [x] Physics definitions and collision events
-  - [x] `PhysicsWorld` fixed-step simulation, interpolation, contacts, collision filtering, and closest raycasts
-  - [x] `CollisionShape` box, sphere, cylinder, capsule, and terrain-heightfield support
-  - [x] `RigidBody` static, dynamic, kinematic, trigger, transform, velocity, force, impulse, damping, gravity, CCD, and collision-layer support
+  - [x] `PhysicsWorld` fixed-step simulation, interpolation, contacts, collision filtering, complete ray/sweep/overlap query surface, and cached geometry ownership
+  - [x] `CollisionShape` box, sphere, plane, cylinder, capsule, cone, model/custom triangle mesh, convex hull, terrain heightfield, and dynamic concave mesh support
+  - [x] `RigidBody` static, dynamic, kinematic, trigger, transform, velocity, force, impulse, reset, damping, gravity, CCD, mass batching, center of mass, and collision-layer support
   - [x] Desktop and Web Physics sample with a free-fly camera, matched pyramid and thrown boxes, click spawning, and a controls window
 
-- [ ] `PhysicsDefs.h`
-  - [ ] physics enums / constants
-- [ ] `PhysicsEvents.h`
-  - [ ] physics event definitions
-- [ ] `PhysicsUtils.h`
-  - [ ] Bullet <-> engine conversion helpers
-- [ ] `CollisionGeometryDataCache.h`
-  - [ ] `CollisionGeometryDataCache : Object`
-- [ ] `PhysicsWorld.h`
-  - [ ] `struct PhysicsRaycastResult`
-  - [ ] `PhysicsWorld : Component, btIDebugDraw`
-- [ ] `CollisionShape.h`
-  - [ ] `CollisionShape : Component`
-- [ ] `RigidBody.h`
-  - [ ] `RigidBody : Component, btMotionState`
+- [x] `PhysicsDefs.h`
+  - [x] physics enums / constants
+- [x] `PhysicsEvents.h`
+  - [x] physics event definitions, including post-update overtime
+- [x] `PhysicsUtils.h` — Bullet conversion helpers are replaced by direct Jolt ABI projections for RedBolt vectors, quaternions, rays, body IDs, sub-shape IDs, and raycast results
+- [x] `CollisionGeometryDataCache.h`
+  - [x] `CollisionGeometryDataCache : RedObject` with weak model/LOD entries, dynamic-buffer bypass, reload invalidation, release, and pruning
+- [x] `PhysicsWorld.h`
+  - [x] `struct PhysicsRaycastResult`
+  - [x] `PhysicsWorld : Component` with Jolt simulation/debug adapters, all-hit and segmented rays, sphere/convex sweeps, sphere/box/body queries, collision refresh, and rbfx compatibility settings
+  - Jolt shape casts are translational; the rbfx end-rotation argument is retained but Jolt has no rotational sweep equivalent.
+  - `Internal Edge Utility` and `Split Impulse` remain reflected for rbfx serialization compatibility; Jolt handles these behaviors without Bullet-style per-world toggles.
+- [x] `CollisionShape.h`
+  - [x] `CollisionShape : Component` with every rbfx `ShapeType`, model/custom geometry sources, cache integration, resource reloads, terrain LOD, bounds, and debug drawing
+  - The unbounded Bullet plane is represented by a large bounded Jolt half-space adapter, and dynamic GImpact meshes use immutable compounds of triangle shapes.
+- [x] `RigidBody.h`
+  - [x] `RigidBody : Component` with Jolt body lifecycle, motion/interpolation, force/impulse API, reset, mass batching, contacts, and rbfx serialized state
+  - `Anisotropic Friction`, `Rolling Friction`, and `Contact Threshold` remain reflected for rbfx serialization compatibility; Jolt has no per-body equivalents.
 - [x] `Constraint.h` — ported with Jolt point, hinge, six-DOF slider, and swing-twist constraints
   - [x] `Constraint : Component`
   - Jolt contact validation provides reference-counted collision suppression for connected body pairs.
@@ -321,6 +324,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 - [x] `RaycastVehicle.h` — ported to Jolt `VehicleConstraint` and `WheeledVehicleController`
   - [x] `RaycastVehicle : LogicComponent`
   - Static wheel changes recreate the native vehicle because Jolt wheel settings are immutable after construction.
+  - The adapter preserves Bullet's wheel-forward cross-product and nominal force/impulse units, maps its mass-normalized suspension to Jolt effective-mass springs, and uses Jolt's narrow wheel sphere cast to avoid triangle-edge contact chatter.
   - `Roll Influence` is mapped through Jolt's suspension force point. `Max Suspension Force` remains reflected for rbfx
     serialization compatibility; Jolt has no per-wheel suspension force cap.
 - [x] `TriggerAnimator.h`

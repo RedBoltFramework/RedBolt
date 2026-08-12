@@ -23,6 +23,7 @@
 namespace RedBolt.PhysicsJolt;
 
 using SystemMath = global::System.Math;
+using Sphere = RedBolt.Math.Sphere;
 
 using RedBolt.Bindings.Jolt;
 using RedBolt.Core;
@@ -64,14 +65,23 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
     private readonly BroadPhaseLayerFilter _raycastBroadPhaseLayerFilter;
     private readonly BodyInterface _bodyInterface;
     private readonly NarrowPhaseQuery _narrowPhaseQuery;
+    private readonly CollisionGeometryDataCache _triMeshCache;
+    private readonly CollisionGeometryDataCache _convexCache;
+    private readonly CollisionGeometryDataCache _gImpactTrimeshCache;
     private Vector3f _gravity = new(0.0f, -9.81f, 0.0f);
     private int _fps = DefaultFps;
     private int _maxSubSteps;
     private int _numIterations = 10;
+    private float _maxNetworkAngularVelocity = 100.0f;
     private bool _interpolation = true;
+    private bool _updateEnabled = true;
+    private bool _internalEdge = true;
+    private bool _splitImpulse;
     private bool _manualUpdate;
     private bool _disposed;
     private float _timeAccumulator;
+    private DebugRenderer? _debugRenderer;
+    private bool _debugDepthTest;
     private SynchronizedStep? _synchronizedStep;
 
     /// <summary>Construct.</summary>
@@ -90,6 +100,9 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
                 MaxPhysicsJobs, MaxPhysicsBarriers, SystemMath.Max(Environment.ProcessorCount - 1, 0));
             _contactListener = new PhysicsContactListener(this);
             _raycastBroadPhaseLayerFilter = new BroadPhaseLayerFilter();
+            _triMeshCache = new CollisionGeometryDataCache(ShapeType.TriangleMesh);
+            _convexCache = new CollisionGeometryDataCache(ShapeType.ConvexHull);
+            _gImpactTrimeshCache = new CollisionGeometryDataCache(ShapeType.GImpactMesh);
 
             World.Init(MaxBodies, 0, MaxBodyPairs, MaxContactConstraints,
                 _broadPhaseLayerInterface, _objectVsBroadPhaseLayerFilter, _objectLayerPairFilter);
@@ -129,10 +142,14 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
                 character.ReleaseCharacter();
         }
         _bodiesById.Clear();
+        _debugRenderer = null;
         World.SetContactListener(null!);
         _raycastBroadPhaseLayerFilter.Dispose();
         _narrowPhaseQuery.Dispose();
         _bodyInterface.Dispose();
+        _gImpactTrimeshCache.Dispose();
+        _convexCache.Dispose();
+        _triMeshCache.Dispose();
         World.Dispose();
         _contactListener.Dispose();
         _jobSystem.Dispose();
@@ -156,6 +173,25 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
             else
                 _collisionShapes.RemoveAt(i);
         }
+    }
+
+    /// <summary>Draw physics debug geometry using the configured or scene debug renderer.</summary>
+    public void DrawDebugGeometry(bool depthTest)
+    {
+        _debugDepthTest = depthTest;
+        DrawDebugGeometry(_debugRenderer ?? GetComponent<DebugRenderer>(), _debugDepthTest);
+    }
+
+    /// <summary>Set debug renderer used by physics debug drawing.</summary>
+    public void SetDebugRenderer(DebugRenderer? debug)
+    {
+        _debugRenderer = debug;
+    }
+
+    /// <summary>Set debug geometry depth test mode used by native callbacks.</summary>
+    public void SetDebugDepthTest(bool enable)
+    {
+        _debugDepthTest = enable;
     }
 
     /// <summary>Return or set gravity.</summary>
@@ -199,12 +235,43 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         }
     }
 
+    /// <summary>Return or set maximum angular velocity used by network replication.</summary>
+    [Serialized("Net Max Angular Vel.")]
+    public float MaxNetworkAngularVelocity
+    {
+        get => _maxNetworkAngularVelocity;
+        set => _maxNetworkAngularVelocity = SystemMath.Clamp(value, 1.0f, 32767.0f);
+    }
+
     /// <summary>Return or set transform interpolation.</summary>
     [Serialized("Interpolation")]
     public bool Interpolation
     {
         get => _interpolation;
         set => _interpolation = value;
+    }
+
+    /// <summary>Return or set whether Jolt mesh active-edge handling is enabled. Kept for rbfx compatibility.</summary>
+    [Serialized("Internal Edge Utility")]
+    public bool InternalEdge
+    {
+        get => _internalEdge;
+        set => _internalEdge = value;
+    }
+
+    /// <summary>Return or set split-impulse mode. Jolt resolves penetration without a Bullet-style toggle.</summary>
+    [Serialized("Split Impulse")]
+    public bool SplitImpulse
+    {
+        get => _splitImpulse;
+        set => _splitImpulse = value;
+    }
+
+    /// <summary>Return or set whether automatic scene-driven physics updates are enabled.</summary>
+    public bool UpdateEnabled
+    {
+        get => _updateEnabled;
+        set => _updateEnabled = value;
     }
 
     /// <summary>Return or set manual update mode.</summary>
@@ -237,6 +304,24 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
 
     /// <summary>Return the native Jolt job system.</summary>
     public JobSystemThreadPool JobSystem => _jobSystem;
+
+    /// <summary>Return triangle mesh collision geometry cache.</summary>
+    public CollisionGeometryDataCache TriMeshCache => _triMeshCache;
+
+    /// <summary>Return convex hull collision geometry cache.</summary>
+    public CollisionGeometryDataCache ConvexCache => _convexCache;
+
+    /// <summary>Return dynamic concave mesh collision geometry cache.</summary>
+    public CollisionGeometryDataCache GImpactTrimeshCache => _gImpactTrimeshCache;
+
+    /// <summary>Release all cached collision geometry for a model.</summary>
+    public void RemoveCachedGeometry(Model model)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+        _triMeshCache.ReleaseCachedGeometry(model);
+        _convexCache.ReleaseCachedGeometry(model);
+        _gImpactTrimeshCache.ReleaseCachedGeometry(model);
+    }
 
     /// <summary>Update physics simulation.</summary>
     public void Update(float timeStep)
@@ -274,7 +359,10 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         {
             IsSimulating = false;
         }
-        var postUpdate = new PhysicsEvents.PhysicsPostUpdateEvent { World = this, TimeStep = timeStep };
+        var postUpdate = new PhysicsEvents.PhysicsPostUpdateEvent
+        {
+            World = this, TimeStep = timeStep, Overtime = _maxSubSteps < 0 ? 0.0f : _timeAccumulator
+        };
         SendEvent(ref postUpdate);
     }
 
@@ -299,23 +387,53 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         {
             IsSimulating = false;
         }
-        var postUpdate = new PhysicsEvents.PhysicsPostUpdateEvent { World = this, TimeStep = timeStep };
+        var postUpdate = new PhysicsEvents.PhysicsPostUpdateEvent
+        {
+            World = this, TimeStep = timeStep, Overtime = MathF.Max(overtime, 0.0f)
+        };
         SendEvent(ref postUpdate);
+    }
+
+    /// <summary>Refresh the broad phase without advancing dynamics.</summary>
+    public void UpdateCollisions()
+    {
+        LastUpdateError = World.Update(0.0f, 1, _tempAllocator, _jobSystem);
+        if (LastUpdateError != EPhysicsUpdateError.None)
+            throw new InvalidOperationException($"Jolt physics collision update failed: {LastUpdateError}.");
+    }
+
+    /// <summary>Raycast against the world and append all hits in distance order.</summary>
+    public void Raycast(ICollection<PhysicsRaycastResult> result, Ray ray, float maxDistance,
+        uint collisionMask = uint.MaxValue)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        if (maxDistance <= 0.0f)
+            return;
+
+        var nativeRay = ray;
+        nativeRay.Direction *= maxDistance;
+        using var filter = new PhysicsObjectLayerFilter(collisionMask);
+        using var query = new RedBoltPhysicsQueryResults();
+        query.Raycast(World, in nativeRay, _raycastBroadPhaseLayerFilter, filter);
+        for (var i = 0u; i < query.GetNumHits(); ++i)
+            result.Add(GetQueryResult(query, i, maxDistance));
     }
 
     /// <summary>Raycast against the world and return the closest hit.</summary>
     public bool TryRaycastSingle(Ray ray, float maxDistance, out PhysicsRaycastResult result, uint collisionMask = uint.MaxValue)
     {
-        result = default;
+        result = NoHitResult();
         if (maxDistance <= 0.0f)
             return false;
 
         var direction = ray.Direction * maxDistance;
         var nativeRay = ray;
         nativeRay.Direction = direction;
-        var hit = new JoltRayCastResult { BodyId = uint.MaxValue, Fraction = 1.0f };
+        // Jolt reports success when the unchanged maximum fraction is exactly 1, so use a sentinel just beyond the ray.
+        var hit = new JoltRayCastResult { BodyId = uint.MaxValue, Fraction = 1.0f + MathDefs.Epsilon };
         using var filter = new PhysicsObjectLayerFilter(collisionMask);
-        if (!_narrowPhaseQuery.CastRay(in nativeRay, ref hit, _raycastBroadPhaseLayerFilter, filter))
+        if (!_narrowPhaseQuery.CastRay(in nativeRay, ref hit, _raycastBroadPhaseLayerFilter, filter) ||
+            hit.BodyId == uint.MaxValue || hit.Fraction > 1.0f)
             return false;
 
         var position = ray.Origin + direction * hit.Fraction;
@@ -344,6 +462,135 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         TryRaycastSingle(ray, maxDistance, out result, collisionMask);
     }
 
+    /// <summary>Raycast in overlapping segments and return the closest hit.</summary>
+    public void RaycastSingleSegmented(ref PhysicsRaycastResult result, Ray ray, float maxDistance,
+        float segmentDistance, uint collisionMask = uint.MaxValue, float overlapDistance = 0.1f)
+    {
+        result = NoHitResult();
+        if (maxDistance <= 0.0f || segmentDistance <= 0.0f || overlapDistance < 0.0f ||
+            overlapDistance >= segmentDistance)
+            return;
+
+        var count = (int)MathF.Ceiling(maxDistance / segmentDistance);
+        var start = ray.Origin;
+        var overlap = ray.Direction * overlapDistance;
+        var remainingDistance = maxDistance;
+        for (var i = 0; i < count; ++i)
+        {
+            var distance = MathF.Min(remainingDistance, segmentDistance);
+            var segmentRay = new Ray(start, ray.Direction);
+            if (TryRaycastSingle(segmentRay, distance, out result, collisionMask))
+            {
+                result.Distance = (result.Position - ray.Origin).Length;
+                return;
+            }
+            start += ray.Direction * distance - overlap;
+            remainingDistance -= segmentDistance;
+        }
+    }
+
+    /// <summary>Sweep a sphere through the world and return the closest hit.</summary>
+    public void SphereCast(ref PhysicsRaycastResult result, Ray ray, float radius, float maxDistance,
+        uint collisionMask = uint.MaxValue)
+    {
+        result = NoHitResult();
+        if (maxDistance <= 0.0f || radius < 0.0f)
+            return;
+
+        var nativeRay = ray;
+        nativeRay.Direction *= maxDistance;
+        using var filter = new PhysicsObjectLayerFilter(collisionMask);
+        using var query = new RedBoltPhysicsQueryResults();
+        query.SphereCast(World, in nativeRay, radius, _raycastBroadPhaseLayerFilter, filter);
+        if (query.GetNumHits() != 0)
+            result = GetQueryResult(query, 0, maxDistance);
+    }
+
+    /// <summary>Sweep a collision shape through the world and return the closest hit.</summary>
+    public void ConvexCast(ref PhysicsRaycastResult result, CollisionShape shape, Vector3f startPosition,
+        Quaternion startRotation, Vector3f endPosition, Quaternion endRotation,
+        uint collisionMask = uint.MaxValue)
+    {
+        ArgumentNullException.ThrowIfNull(shape);
+        result = NoHitResult();
+        var nativeShape = shape.JoltShape;
+        if (nativeShape is null || shape.ShapeType is ShapeType.StaticPlane or ShapeType.TriangleMesh or
+            ShapeType.Terrain or ShapeType.GImpactMesh)
+            return;
+
+        var ignoredBodyId = shape.GetComponent<RigidBody>()?.JoltBodyId ?? uint.MaxValue;
+        ConvexCastNative(ref result, nativeShape, startPosition, startRotation, endPosition, endRotation,
+            ignoredBodyId, collisionMask);
+    }
+
+    /// <summary>Sweep a native Jolt shape through the world and return the closest hit.</summary>
+    public void ConvexCast(ref PhysicsRaycastResult result, Shape shape, Vector3f startPosition,
+        Quaternion startRotation, Vector3f endPosition, Quaternion endRotation,
+        uint collisionMask = uint.MaxValue)
+    {
+        ArgumentNullException.ThrowIfNull(shape);
+        ConvexCastNative(ref result, shape, startPosition, startRotation, endPosition, endRotation,
+            uint.MaxValue, collisionMask);
+    }
+
+    private void ConvexCastNative(ref PhysicsRaycastResult result, Shape shape, Vector3f startPosition,
+        Quaternion startRotation, Vector3f endPosition, Quaternion endRotation, uint ignoredBodyId,
+        uint collisionMask)
+    {
+        result = NoHitResult();
+        // Jolt's shape cast is translational. The end rotation remains part of the rbfx-compatible API.
+        _ = endRotation;
+        using var filter = new PhysicsObjectLayerFilter(collisionMask);
+        using var query = new RedBoltPhysicsQueryResults();
+        query.ConvexCast(World, shape, Vector3f.One, startPosition, startRotation, endPosition,
+            ignoredBodyId, _raycastBroadPhaseLayerFilter, filter);
+        if (query.GetNumHits() != 0)
+            result = GetQueryResult(query, 0, (endPosition - startPosition).Length);
+    }
+
+    /// <summary>Return rigid bodies overlapping a sphere.</summary>
+    public void GetRigidBodies(ICollection<RigidBody> result, Sphere sphere, uint collisionMask = uint.MaxValue)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        result.Clear();
+        if (sphere.Radius < 0.0f)
+            return;
+        using var filter = new PhysicsObjectLayerFilter(collisionMask);
+        using var query = new RedBoltPhysicsQueryResults();
+        query.QuerySphere(World, sphere.Center, sphere.Radius, _raycastBroadPhaseLayerFilter, filter);
+        AddQueryBodies(result, query);
+    }
+
+    /// <summary>Return rigid bodies overlapping an axis-aligned box.</summary>
+    public void GetRigidBodies(ICollection<RigidBody> result, BoundingBox box, uint collisionMask = uint.MaxValue)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        result.Clear();
+        if (!box.Defined)
+            return;
+        using var filter = new PhysicsObjectLayerFilter(collisionMask);
+        using var query = new RedBoltPhysicsQueryResults();
+        query.QueryBox(World, box.Min, box.Max, _raycastBroadPhaseLayerFilter, filter);
+        AddQueryBodies(result, query);
+    }
+
+    /// <summary>Return rigid bodies currently overlapping the specified body.</summary>
+    public void GetRigidBodies(ICollection<RigidBody> result, RigidBody body)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(body);
+        result.Clear();
+        var bodyId = body.JoltBodyId;
+        var shape = body.JoltShape;
+        if (bodyId is null || shape is null)
+            return;
+        using var filter = new PhysicsObjectLayerFilter(body.CollisionMask);
+        using var query = new RedBoltPhysicsQueryResults();
+        query.QueryShape(World, shape, body.Position, body.Rotation, bodyId.Value,
+            _raycastBroadPhaseLayerFilter, filter);
+        AddQueryBodies(result, query);
+    }
+
     /// <summary>Return colliding bodies from the last simulation step.</summary>
     public void GetCollidingBodies(ICollection<RigidBody> result, RigidBody body)
     {
@@ -364,7 +611,7 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         }
     }
 
-    internal void AddRigidBody(RigidBody body)
+    public void AddRigidBody(RigidBody body)
     {
         for (var i = 0; i < _rigidBodies.Count; ++i)
         {
@@ -393,7 +640,7 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         }
     }
 
-    internal void RemoveRigidBody(RigidBody body)
+    public void RemoveRigidBody(RigidBody body)
     {
         for (var i = _rigidBodies.Count - 1; i >= 0; --i)
         {
@@ -402,7 +649,7 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         }
     }
 
-    internal void AddCollisionShape(CollisionShape shape)
+    public void AddCollisionShape(CollisionShape shape)
     {
         for (var i = 0; i < _collisionShapes.Count; ++i)
         {
@@ -412,7 +659,7 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         _collisionShapes.Add(new WeakReference<CollisionShape>(shape));
     }
 
-    internal void RemoveCollisionShape(CollisionShape shape)
+    public void RemoveCollisionShape(CollisionShape shape)
     {
         for (var i = _collisionShapes.Count - 1; i >= 0; --i)
         {
@@ -421,7 +668,7 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         }
     }
 
-    internal void AddConstraint(Constraint constraint)
+    public void AddConstraint(Constraint constraint)
     {
         for (var i = 0; i < _constraints.Count; ++i)
         {
@@ -431,7 +678,7 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         _constraints.Add(new WeakReference<Constraint>(constraint));
     }
 
-    internal void RemoveConstraint(Constraint constraint)
+    public void RemoveConstraint(Constraint constraint)
     {
         for (var i = _constraints.Count - 1; i >= 0; --i)
         {
@@ -499,7 +746,7 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
 
     private void HandleSceneSubsystemUpdate(ref SceneEvents.SceneSubsystemUpdateEvent eventData)
     {
-        if (!_manualUpdate && IsEnabledEffective)
+        if (_updateEnabled && !_manualUpdate && IsEnabledEffective)
             Update(eventData.TimeStep);
     }
 
@@ -711,6 +958,38 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         _bodiesById.Remove(bodyId);
         return null;
     }
+
+    private PhysicsRaycastResult GetQueryResult(RedBoltPhysicsQueryResults query, uint index, float distance)
+    {
+        var fraction = query.GetHitFraction(index);
+        return new PhysicsRaycastResult
+        {
+            Body = GetBody(query.GetHitBodyId(index)),
+            Position = query.GetHitPosition(index),
+            Normal = query.GetHitNormal(index),
+            Distance = distance * fraction,
+            HitFraction = fraction
+        };
+    }
+
+    private void AddQueryBodies(ICollection<RigidBody> result, RedBoltPhysicsQueryResults query)
+    {
+        for (var i = 0u; i < query.GetNumBodies(); ++i)
+        {
+            var body = GetBody(query.GetBodyId(i));
+            if (body is not null && !result.Contains(body))
+                result.Add(body);
+        }
+    }
+
+    private static PhysicsRaycastResult NoHitResult() => new()
+    {
+        Position = Vector3f.Zero,
+        Normal = Vector3f.Zero,
+        Distance = float.PositiveInfinity,
+        HitFraction = 0.0f,
+        Body = null
+    };
 
     private static bool ShouldSignal(RigidBody bodyA, RigidBody bodyB)
     {

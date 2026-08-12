@@ -365,8 +365,12 @@ public partial class RaycastVehicle : LogicComponent
             var wheel = _wheelComponents[i];
             if (wheel.TryGetNode() is not { } wheelNode)
                 continue;
-            wheelNode.SetWorldPosition(GetWheelPosition(i) + vehicleNode.WorldRotation * wheel.Offset);
-            wheelNode.SetWorldRotation(GetWheelRotation(i) * wheel.Rotation);
+            // Compose the fixed-step wheel pose with the interpolated scene-node pose. Using Jolt's world-space
+            // wheel transform here puts the wheels one physics step ahead of the chassis while it is moving.
+            var localPosition = _vehicle.GetWheelLocalPosition((uint)i) + wheel.Offset;
+            var localRotation = _vehicle.GetWheelLocalRotation((uint)i);
+            wheelNode.SetWorldPosition(vehicleNode.LocalToWorld(localPosition));
+            wheelNode.SetWorldRotation(vehicleNode.WorldRotation * localRotation * wheel.Rotation);
         }
     }
 

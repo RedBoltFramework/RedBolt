@@ -42,9 +42,13 @@ public partial class RigidBody : Component
     private readonly List<Constraint> _constraints = [];
     private readonly List<RaycastVehicle> _vehicles = [];
     private WeakReference<PhysicsWorld>? _physicsWorld;
+    private RedBoltCompoundShape? _compoundShapeOwner;
+    private Shape? _compoundShape;
     private uint _bodyId = InvalidBodyId;
     private float _mass = DefaultMass;
     private float _friction = DefaultFriction;
+    private Vector3f _anisotropicFriction = Vector3f.One;
+    private float _rollingFriction;
     private float _restitution = DefaultRestitution;
     private Vector3f _linearVelocity;
     private Vector3f _angularVelocity;
@@ -57,6 +61,7 @@ public partial class RigidBody : Component
     private uint _collisionLayer = DefaultCollisionLayer;
     private uint _collisionMask = DefaultCollisionMask;
     private CollisionEventMode _collisionEventMode = CollisionEventMode.Active;
+    private float _contactProcessingThreshold = 1.0e18f;
     private float _ccdRadius;
     private float _ccdMotionThreshold;
     private bool _useGravity = true;
@@ -71,6 +76,8 @@ public partial class RigidBody : Component
     private Quaternion _kinematicTargetRotation = Quaternion.IDENTITY;
     private bool _kinematicTargetDirty;
     private bool _hasSimulated;
+    private bool _enableMassUpdate = true;
+    private Vector3f _centerOfMass;
 
     /// <summary>Construct.</summary>
     public RigidBody()
@@ -294,6 +301,22 @@ public partial class RigidBody : Component
         }
     }
 
+    /// <summary>Return or set directional friction. Jolt keeps this value for rbfx serialization compatibility.</summary>
+    [Serialized("Anisotropic Friction")]
+    public Vector3f AnisotropicFriction
+    {
+        get => _anisotropicFriction;
+        set => _anisotropicFriction = value;
+    }
+
+    /// <summary>Return or set rolling friction. Jolt keeps this value for rbfx serialization compatibility.</summary>
+    [Serialized("Rolling Friction")]
+    public float RollingFriction
+    {
+        get => _rollingFriction;
+        set => _rollingFriction = MathF.Max(value, 0.0f);
+    }
+
     /// <summary>Return or set restitution coefficient.</summary>
     [Serialized("Restitution")]
     public float Restitution
@@ -415,6 +438,14 @@ public partial class RigidBody : Component
         }
     }
 
+    /// <summary>Return or set the contact processing distance threshold.</summary>
+    [Serialized("Contact Threshold")]
+    public float ContactProcessingThreshold
+    {
+        get => _contactProcessingThreshold;
+        set => _contactProcessingThreshold = value;
+    }
+
     /// <summary>Set collision layer and mask.</summary>
     public void SetCollisionLayerAndMask(uint layer, uint mask)
     {
@@ -436,11 +467,17 @@ public partial class RigidBody : Component
     /// <summary>Return whether the rigid body is active.</summary>
     public bool IsActive => TryGetBodyInterface(out var bodyInterface) && bodyInterface.IsActive(in _bodyId);
 
+    /// <summary>Return center-of-mass offset reported by the active collision shape.</summary>
+    public Vector3f CenterOfMass => _centerOfMass;
+
     /// <summary>Return physics world.</summary>
     public PhysicsWorld? PhysicsWorld => _physicsWorld is not null && _physicsWorld.TryGetTarget(out var world) ? world : null;
 
     /// <summary>Return native Jolt body ID, or null if the body has not been created.</summary>
     public uint? JoltBodyId => _bodyId == InvalidBodyId ? null : _bodyId;
+
+    /// <summary>Return the native Jolt shape currently assigned to the body.</summary>
+    public Shape? JoltShape => _compoundShape ?? GetActiveCollisionShape()?.JoltShape;
 
     /// <summary>Apply force to center of mass.</summary>
     public void ApplyForce(Vector3f force)
@@ -486,6 +523,13 @@ public partial class RigidBody : Component
             bodyInterface.AddAngularImpulse(in _bodyId, torque);
     }
 
+    /// <summary>Reset accumulated force and torque.</summary>
+    public void ResetForces()
+    {
+        if (_bodyId != InvalidBodyId && _physicsWorld is not null && _physicsWorld.TryGetTarget(out var world))
+            JoltNativeBindings.RedBoltResetBodyForces(world.World, _bodyId);
+    }
+
     /// <summary>Activate rigid body if it was resting.</summary>
     public void Activate()
     {
@@ -497,6 +541,28 @@ public partial class RigidBody : Component
     public void ReAddBodyToWorld()
     {
         AddBodyToWorld();
+    }
+
+    /// <summary>Temporarily suppress body recreation when collision shapes are edited.</summary>
+    public void DisableMassUpdate()
+    {
+        _enableMassUpdate = false;
+    }
+
+    /// <summary>Re-enable mass updates and recreate the body with the current shape.</summary>
+    public void EnableMassUpdate()
+    {
+        if (!_enableMassUpdate)
+        {
+            _enableMassUpdate = true;
+            AddBodyToWorld();
+        }
+    }
+
+    /// <summary>Prepare interpolation state before the scene origin changes.</summary>
+    public void PrepareToWorldOriginUpdate()
+    {
+        _hasSimulated = false;
     }
 
     /// <summary>Return colliding rigid bodies from the last simulation step.</summary>
@@ -511,7 +577,10 @@ public partial class RigidBody : Component
     public void ReleaseBody()
     {
         if (_bodyId == InvalidBodyId || _physicsWorld is null || !_physicsWorld.TryGetTarget(out var world))
+        {
+            ReleaseCompoundShape();
             return;
+        }
 
         var vehicles = _vehicles.ToArray();
         for (var i = 0; i < vehicles.Length; ++i)
@@ -527,6 +596,7 @@ public partial class RigidBody : Component
         bodyInterface.DestroyBody(in _bodyId);
         world.UnregisterBody(_bodyId);
         _bodyId = InvalidBodyId;
+        ReleaseCompoundShape();
         _hasSimulated = false;
     }
 
@@ -570,17 +640,17 @@ public partial class RigidBody : Component
 
     internal void NotifyShapeChanged(CollisionShape shape)
     {
-        if (ReferenceEquals(GetActiveCollisionShape(), shape) || !HasUsableShape())
+        if (_enableMassUpdate && ReferenceEquals(shape.TryGetNode(), _node))
             AddBodyToWorld();
     }
 
-    internal void AddConstraint(Constraint constraint)
+    public void AddConstraint(Constraint constraint)
     {
         if (!_constraints.Contains(constraint))
             _constraints.Add(constraint);
     }
 
-    internal void RemoveConstraint(Constraint constraint)
+    public void RemoveConstraint(Constraint constraint)
     {
         _constraints.Remove(constraint);
         Activate();
@@ -640,6 +710,28 @@ public partial class RigidBody : Component
         world.IsApplyingTransforms = false;
     }
 
+    /// <summary>Apply a new world transform after a simulation step.</summary>
+    public void ApplyWorldTransform(Vector3f position, Quaternion rotation)
+    {
+        if (_node is null)
+            return;
+        _previousPosition = _currentPosition = position;
+        _previousRotation = _currentRotation = rotation;
+        if (_physicsWorld is null || !_physicsWorld.TryGetTarget(out var world))
+            return;
+        world.IsApplyingTransforms = true;
+        _node.SetWorldPosition(position);
+        _node.SetWorldRotation(rotation);
+        world.IsApplyingTransforms = false;
+    }
+
+    /// <summary>Recreate the body to update mass and inertia from the current collision shape.</summary>
+    public void UpdateMass()
+    {
+        if (_enableMassUpdate)
+            AddBodyToWorld();
+    }
+
     internal void OffsetWorldPosition(Vector3f delta)
     {
         if (!TryGetBodyInterface(out var bodyInterface))
@@ -663,10 +755,14 @@ public partial class RigidBody : Component
         var angularVelocity = _bodyId != InvalidBodyId ? AngularVelocity : _angularVelocity;
         ReleaseBody();
 
-        var collisionShape = GetActiveCollisionShape();
-        var shape = collisionShape?.JoltShape;
+        var shape = CreateBodyShape();
         if (!IsEnabledEffective || shape is null)
+        {
+            _centerOfMass = Vector3f.Zero;
             return;
+        }
+
+        _centerOfMass = shape.GetCenterOfMass();
 
         using var settings = new BodyCreationSettings(shape, position, rotation, GetMotionType(), GetObjectLayer());
         settings.MLinearVelocity = linearVelocity;
@@ -715,7 +811,41 @@ public partial class RigidBody : Component
         return null;
     }
 
-    private bool HasUsableShape() => GetActiveCollisionShape() is not null;
+    private Shape? CreateBodyShape()
+    {
+        if (_node is null)
+            return null;
+        var components = _node.GetComponents<CollisionShape>();
+        var shapes = new List<Shape>(components.Count);
+        for (var i = 0; i < components.Count; ++i)
+        {
+            if (components[i].IsEnabledEffective && components[i].JoltShape is { } shape)
+                shapes.Add(shape);
+        }
+        if (shapes.Count == 0)
+            return null;
+        if (shapes.Count == 1)
+            return shapes[0];
+
+        _compoundShapeOwner = new RedBoltCompoundShape();
+        for (var i = 0; i < shapes.Count; ++i)
+            _compoundShapeOwner.AddShape(shapes[i]);
+        if (!_compoundShapeOwner.Build())
+        {
+            ReleaseCompoundShape();
+            return null;
+        }
+        _compoundShape = _compoundShapeOwner.GetShape();
+        return _compoundShape;
+    }
+
+    private void ReleaseCompoundShape()
+    {
+        _compoundShape?.Dispose();
+        _compoundShape = null;
+        _compoundShapeOwner?.Dispose();
+        _compoundShapeOwner = null;
+    }
 
     private EMotionType GetMotionType() => _kinematic ? EMotionType.Kinematic : _mass > 0.0f ? EMotionType.Dynamic : EMotionType.Static;
 
@@ -745,7 +875,7 @@ public partial class RigidBody : Component
             bodyInterface.SetObjectLayer(in _bodyId, GetObjectLayer());
     }
 
-    private void UpdateGravity()
+    public void UpdateGravity()
     {
         if (TryGetBodyInterface(out var bodyInterface))
             bodyInterface.SetGravityFactor(in _bodyId, _useGravity && _gravityOverride == Vector3f.Zero ? 1.0f : 0.0f);
