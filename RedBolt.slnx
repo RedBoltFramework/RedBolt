@@ -74,6 +74,7 @@
     <Project Path="src/RedBolt/Sample/Billboards/RedBolt.Sample.Billboards.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/Particles/RedBolt.Sample.Particles.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/Physics/RedBolt.Sample.Physics.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Sample/RaycastVehicle/RedBolt.Sample.RaycastVehicle.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/MaterialAnimation/RedBolt.Sample.MaterialAnimation.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/HugeObjectCount/RedBolt.Sample.HugeObjectCount.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/HttpRequestDemo/RedBolt.Sample.HttpRequestDemo.csproj"><Build Project="false" /></Project>

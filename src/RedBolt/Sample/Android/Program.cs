@@ -121,6 +121,7 @@ internal static class SampleCatalog
         new("navigation", "Navigation", "RedBolt.Sample.Navigation.NavigationSample"),
         new("particles", "Particles", "RedBolt.Sample.Particles.ParticlesApplication"),
         new("physics", "Physics", "RedBolt.Sample.Physics.PhysicsSample"),
+        new("raycast-vehicle", "Raycast Vehicle", "RedBolt.Sample.RaycastVehicle.RaycastVehicleDemo"),
         new("pointer-adapter", "Pointer Adapter", "RedBolt.Sample.PointerAdapter.PointerAdapterApplication"),
         new("render-to-texture", "Render to Texture", "RedBolt.Sample.RenderToTexture.RenderToTexture"),
         new("scene-replication", "Scene Replication", "RedBolt.Sample.SceneReplication.SceneReplication"),
