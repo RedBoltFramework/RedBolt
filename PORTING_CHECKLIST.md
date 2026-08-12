@@ -301,7 +301,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] physics event definitions, including post-update overtime
 - [x] `PhysicsUtils.h` — Bullet conversion helpers are replaced by direct Jolt ABI projections for RedBolt vectors, quaternions, rays, body IDs, sub-shape IDs, and raycast results
 - [x] `CollisionGeometryDataCache.h`
-  - [x] `CollisionGeometryDataCache : RedObject` with weak model/LOD entries, dynamic-buffer bypass, reload invalidation, release, and pruning
+  - [x] `CollisionGeometryDataCache : RedObject` with weak model/LOD entries, dynamic-buffer bypass, main-thread reload subscription, invalidation, release, and pruning
 - [x] `PhysicsWorld.h`
   - [x] `struct PhysicsRaycastResult`
   - [x] `PhysicsWorld : Component` with Jolt simulation/debug adapters, all-hit and segmented rays, sphere/convex sweeps, sphere/box/body queries, collision refresh, and rbfx compatibility settings

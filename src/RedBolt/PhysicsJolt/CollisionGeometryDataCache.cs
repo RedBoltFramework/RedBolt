@@ -38,13 +38,15 @@ public sealed class CollisionGeometryDataCache : RedObject
         public readonly List<WeakReference<CollisionGeometryData>?> Lods = [];
     }
 
+    private readonly WorkQueue _workQueue;
+    private readonly ShapeType _shapeType;
     private readonly object _mutex = new();
     private readonly List<CacheEntry> _cache = [];
-    private readonly ShapeType _shapeType;
 
     /// <summary>Construct a cache for one geometry shape type.</summary>
     public CollisionGeometryDataCache(ShapeType shapeType)
     {
+        _workQueue = GetSubsystem<WorkQueue>();
         _shapeType = shapeType;
     }
 
@@ -59,7 +61,14 @@ public sealed class CollisionGeometryDataCache : RedObject
         if (!HasDynamicBuffers(model, lodLevel))
         {
             StoreCachedGeometry(model, lodLevel, geometry);
-            SubscribeToEvent<ResourceEvents.ReloadFinished>(model, HandleReloadFinished);
+
+            var weakSelf = new WeakReference<CollisionGeometryDataCache>(this);
+            var weakModel = new WeakReference<Model>(model);
+            _workQueue.PostTaskForMainThread(() =>
+            {
+                if (weakSelf.TryGetTarget(out var self) && weakModel.TryGetTarget(out var targetModel))
+                    self.SubscribeToReload(targetModel);
+            });
         }
         return geometry;
     }
@@ -150,6 +159,11 @@ public sealed class CollisionGeometryDataCache : RedObject
                 entry.Lods.Add(null);
             entry.Lods[(int)lodLevel] = new WeakReference<CollisionGeometryData>(geometry);
         }
+    }
+
+    private void SubscribeToReload(Model model)
+    {
+        SubscribeToEvent<ResourceEvents.ReloadFinished>(model, HandleReloadFinished);
     }
 
     private void HandleReloadFinished(ref ResourceEvents.ReloadFinished eventData)
