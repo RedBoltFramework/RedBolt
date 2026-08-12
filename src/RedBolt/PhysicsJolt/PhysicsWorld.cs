@@ -50,7 +50,9 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
     private readonly List<WeakReference<KinematicCharacterController>> _kinematicCharacters = [];
     private readonly List<WeakReference<RigidBody>> _rigidBodies = [];
     private readonly List<WeakReference<CollisionShape>> _collisionShapes = [];
+    private readonly List<WeakReference<Constraint>> _constraints = [];
     private readonly Dictionary<uint, WeakReference<RigidBody>> _bodiesById = [];
+    private readonly Dictionary<BodyPair, int> _disabledCollisionPairs = [];
     private readonly Dictionary<BodyPair, ContactData> _currentContacts = [];
     private readonly Dictionary<BodyPair, ContactData> _previousContacts = [];
     private readonly BroadPhaseLayerInterfaceMask _broadPhaseLayerInterface;
@@ -111,6 +113,11 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
             return;
         _disposed = true;
 
+        for (var i = 0; i < _constraints.Count; ++i)
+        {
+            if (_constraints[i].TryGetTarget(out var constraint))
+                constraint.ReleaseConstraint();
+        }
         for (var i = 0; i < _rigidBodies.Count; ++i)
         {
             if (_rigidBodies[i].TryGetTarget(out var rigidBody))
@@ -410,6 +417,57 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         }
     }
 
+    internal void AddConstraint(Constraint constraint)
+    {
+        for (var i = 0; i < _constraints.Count; ++i)
+        {
+            if (_constraints[i].TryGetTarget(out var existing) && ReferenceEquals(existing, constraint))
+                return;
+        }
+        _constraints.Add(new WeakReference<Constraint>(constraint));
+    }
+
+    internal void RemoveConstraint(Constraint constraint)
+    {
+        for (var i = _constraints.Count - 1; i >= 0; --i)
+        {
+            if (!_constraints[i].TryGetTarget(out var existing) || ReferenceEquals(existing, constraint))
+                _constraints.RemoveAt(i);
+        }
+    }
+
+    internal void NotifyBodyCreated(RigidBody body)
+    {
+        for (var i = _constraints.Count - 1; i >= 0; --i)
+        {
+            if (_constraints[i].TryGetTarget(out var constraint))
+                constraint.NotifyBodyCreated(body);
+            else
+                _constraints.RemoveAt(i);
+        }
+    }
+
+    internal void DisableCollision(uint body1, uint body2)
+    {
+        lock (_contactLock)
+        {
+            var pair = new BodyPair(body1, body2);
+            _disabledCollisionPairs[pair] = _disabledCollisionPairs.GetValueOrDefault(pair) + 1;
+        }
+    }
+
+    internal void EnableCollision(uint body1, uint body2)
+    {
+        lock (_contactLock)
+        {
+            var pair = new BodyPair(body1, body2);
+            if (!_disabledCollisionPairs.TryGetValue(pair, out var count) || count <= 1)
+                _disabledCollisionPairs.Remove(pair);
+            else
+                _disabledCollisionPairs[pair] = count - 1;
+        }
+    }
+
     internal void RegisterBody(uint bodyId, RigidBody body)
     {
         _bodiesById[bodyId] = new WeakReference<RigidBody>(body);
@@ -660,6 +718,12 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
             bodyA.IsActive || bodyB.IsActive;
     }
 
+    private bool IsCollisionDisabled(uint body1, uint body2)
+    {
+        lock (_contactLock)
+            return _disabledCollisionPairs.ContainsKey(new BodyPair(body1, body2));
+    }
+
     private static void AcquireJolt()
     {
         lock (_joltSync)
@@ -712,11 +776,14 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
             _world = new WeakReference<PhysicsWorld>(world);
         }
 
-        // Jolt's OnContactValidate callback takes CollideShapeResult, which is
-        // intentionally not exposed by the generated bindings because the
-        // native type is only forward-declared. The native default
-        // implementation accepts all contacts, which is the behavior this
-        // listener requires, so leave the callback unoverridden.
+        public override ValidateResult OnContactValidate(Body inBody1, Body inBody2,
+            Vector3f inBaseOffset, CollideShapeResult inCollisionResult)
+        {
+            return _world.TryGetTarget(out var world) && world.IsCollisionDisabled(inBody1.GetID(), inBody2.GetID())
+                ? ValidateResult.RejectAllContactsForThisBodyPair
+                : ValidateResult.AcceptAllContactsForThisBodyPair;
+        }
+
         public override void OnContactAdded(Body inBody1, Body inBody2, ContactManifold inManifold, ContactSettings ioSettings)
         {
             if (_world.TryGetTarget(out var world))

@@ -309,8 +309,10 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [ ] `CollisionShape : Component`
 - [ ] `RigidBody.h`
   - [ ] `RigidBody : Component, btMotionState`
-- [ ] `Constraint.h`
-  - [ ] `Constraint : Component`
+- [x] `Constraint.h` — ported with Jolt point, hinge, six-DOF slider, and swing-twist constraints
+  - [x] `Constraint : Component`
+  - Jolt contact validation provides reference-counted collision suppression for connected body pairs.
+  - `ERP` and `CFM` remain reflected for rbfx serialization compatibility; Jolt has no per-constraint equivalents.
 - [x] `KinematicCharacterController.h` — ported to Jolt `Character`
   - [x] `KinematicCharacterController : Component`
 - [ ] `RaycastVehicleWheel.h`

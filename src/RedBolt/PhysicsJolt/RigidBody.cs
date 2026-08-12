@@ -39,6 +39,7 @@ public partial class RigidBody : Component
     private const uint DefaultCollisionMask = uint.MaxValue;
     private const uint InvalidBodyId = uint.MaxValue;
 
+    private readonly List<Constraint> _constraints = [];
     private WeakReference<PhysicsWorld>? _physicsWorld;
     private uint _bodyId = InvalidBodyId;
     private float _mass = DefaultMass;
@@ -511,6 +512,10 @@ public partial class RigidBody : Component
         if (_bodyId == InvalidBodyId || _physicsWorld is null || !_physicsWorld.TryGetTarget(out var world))
             return;
 
+        var constraints = _constraints.ToArray();
+        for (var i = 0; i < constraints.Length; ++i)
+            constraints[i].ReleaseConstraintForBodyRecreation();
+
         var bodyInterface = world.BodyInterface;
         if (bodyInterface.IsAdded(in _bodyId))
             bodyInterface.RemoveBody(in _bodyId);
@@ -562,6 +567,18 @@ public partial class RigidBody : Component
     {
         if (ReferenceEquals(GetActiveCollisionShape(), shape) || !HasUsableShape())
             AddBodyToWorld();
+    }
+
+    internal void AddConstraint(Constraint constraint)
+    {
+        if (!_constraints.Contains(constraint))
+            _constraints.Add(constraint);
+    }
+
+    internal void RemoveConstraint(Constraint constraint)
+    {
+        _constraints.Remove(constraint);
+        Activate();
     }
 
     internal void PrepareStep(float timeStep)
@@ -663,6 +680,7 @@ public partial class RigidBody : Component
         _kinematicTargetRotation = rotation;
         _kinematicTargetDirty = false;
         _hasSimulated = false;
+        world.NotifyBodyCreated(this);
     }
 
     private CollisionShape? GetActiveCollisionShape()
