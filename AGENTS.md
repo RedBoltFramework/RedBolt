@@ -215,8 +215,9 @@ implementation and MUST be ported explicitly.
   model can corrupt native `thread_local` state without a crash. Use the same
   thread model for all native objects and the final module.
 - Threaded Web builds require cross-origin isolation for `SharedArrayBuffer`.
-  Serve them with `cmake/ServeWebAssembly.py`, or configure the deployment
-  server to return `Cross-Origin-Opener-Policy: same-origin` and
+  Serve them with `dotnet run --file scripts/serve_webassembly.cs -- --directory <output>`,
+  or configure the deployment server to return
+  `Cross-Origin-Opener-Policy: same-origin` and
   `Cross-Origin-Embedder-Policy: require-corp`.
 - Emscripten enables its internal stack-first layout at `-O0` when the user
   does not set `GLOBAL_BASE`. This layout gives the threaded .NET runtime

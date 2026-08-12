@@ -93,13 +93,13 @@ export JAVA_HOME="$android_root/jdk"
 Run the picker:
 
 ```sh
-scripts/run_android_emulator.sh
+dotnet run --file scripts/run_android_emulator.cs
 ```
 
 Launch one sample directly and save a screenshot:
 
 ```sh
-scripts/run_android_emulator.sh \
+dotnet run --file scripts/run_android_emulator.cs -- \
   --sample camera-shake \
   --screenshot build/android-samples-camera-shake.png
 ```
@@ -107,7 +107,7 @@ scripts/run_android_emulator.sh \
 Run the x86_64 Release APK and capture the rendered scene used by the final Android test:
 
 ```sh
-scripts/run_android_emulator.sh \
+dotnet run --file scripts/run_android_emulator.cs -- \
   --apk build/bin/Release/android-x64/app/RedBolt.Sample.Android.apk \
   --sample camera-shake \
   --screenshot build/test-results/android-samples-camera-shake-release.png \
