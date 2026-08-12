@@ -315,10 +315,13 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - `ERP` and `CFM` remain reflected for rbfx serialization compatibility; Jolt has no per-constraint equivalents.
 - [x] `KinematicCharacterController.h` — ported to Jolt `Character`
   - [x] `KinematicCharacterController : Component`
-- [ ] `RaycastVehicleWheel.h`
-  - [ ] `RaycastVehicleWheel : Component`
-- [ ] `RaycastVehicle.h`
-  - [ ] `RaycastVehicle : LogicComponent`
+- [x] `RaycastVehicleWheel.h` — ported to the Jolt vehicle constraint adapter
+  - [x] `RaycastVehicleWheel : Component`
+- [x] `RaycastVehicle.h` — ported to Jolt `VehicleConstraint` and `WheeledVehicleController`
+  - [x] `RaycastVehicle : LogicComponent`
+  - Static wheel changes recreate the native vehicle because Jolt wheel settings are immutable after construction.
+  - `Roll Influence` is mapped through Jolt's suspension force point. `Max Suspension Force` remains reflected for rbfx
+    serialization compatibility; Jolt has no per-wheel suspension force cap.
 - [x] `TriggerAnimator.h`
   - [x] `TriggerAnimator : Component`
 

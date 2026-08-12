@@ -40,6 +40,7 @@ public partial class RigidBody : Component
     private const uint InvalidBodyId = uint.MaxValue;
 
     private readonly List<Constraint> _constraints = [];
+    private readonly List<RaycastVehicle> _vehicles = [];
     private WeakReference<PhysicsWorld>? _physicsWorld;
     private uint _bodyId = InvalidBodyId;
     private float _mass = DefaultMass;
@@ -512,6 +513,10 @@ public partial class RigidBody : Component
         if (_bodyId == InvalidBodyId || _physicsWorld is null || !_physicsWorld.TryGetTarget(out var world))
             return;
 
+        var vehicles = _vehicles.ToArray();
+        for (var i = 0; i < vehicles.Length; ++i)
+            vehicles[i].ReleaseVehicleForBodyRecreation();
+
         var constraints = _constraints.ToArray();
         for (var i = 0; i < constraints.Length; ++i)
             constraints[i].ReleaseConstraintForBodyRecreation();
@@ -579,6 +584,17 @@ public partial class RigidBody : Component
     {
         _constraints.Remove(constraint);
         Activate();
+    }
+
+    internal void AddVehicle(RaycastVehicle vehicle)
+    {
+        if (!_vehicles.Contains(vehicle))
+            _vehicles.Add(vehicle);
+    }
+
+    internal void RemoveVehicle(RaycastVehicle vehicle)
+    {
+        _vehicles.Remove(vehicle);
     }
 
     internal void PrepareStep(float timeStep)
@@ -681,6 +697,9 @@ public partial class RigidBody : Component
         _kinematicTargetDirty = false;
         _hasSimulated = false;
         world.NotifyBodyCreated(this);
+        var vehicles = _vehicles.ToArray();
+        for (var i = 0; i < vehicles.Length; ++i)
+            vehicles[i].NotifyBodyCreated(this);
     }
 
     private CollisionShape? GetActiveCollisionShape()
