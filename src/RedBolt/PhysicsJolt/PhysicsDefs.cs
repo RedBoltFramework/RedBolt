@@ -48,8 +48,19 @@ public enum CollisionEventMode
 }
 
 /// <summary>Physics raycast result.</summary>
-public struct PhysicsRaycastResult
+public struct PhysicsRaycastResult : IEquatable<PhysicsRaycastResult>
 {
+    /// <summary>Test for equality.</summary>
+    public static bool operator ==(PhysicsRaycastResult left, PhysicsRaycastResult right) => !(left != right);
+    /// <summary>Test for inequality.</summary>
+    public static bool operator !=(PhysicsRaycastResult left, PhysicsRaycastResult right) =>
+        left.Position != right.Position || left.Normal != right.Normal || left.Distance != right.Distance ||
+        !ReferenceEquals(left.Body, right.Body);
+
+    public readonly bool Equals(PhysicsRaycastResult other) => this == other;
+    public override readonly bool Equals(object? obj) => obj is PhysicsRaycastResult other && Equals(other);
+    public override readonly int GetHashCode() => HashCode.Combine(Position, Normal, Distance, Body);
+
     /// <summary>Hit rigid body.</summary>
     public RigidBody? Body;
     /// <summary>Hit position in world space.</summary>

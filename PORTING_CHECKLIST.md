@@ -303,7 +303,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
 - [x] `CollisionGeometryDataCache.h`
   - [x] `CollisionGeometryDataCache : RedObject` with weak model/LOD entries, dynamic-buffer bypass, main-thread reload subscription, invalidation, release, and pruning
 - [x] `PhysicsWorld.h`
-  - [x] `struct PhysicsRaycastResult`
+  - [x] `struct PhysicsRaycastResult` with rbfx payload inequality semantics
   - [x] `struct DelayedWorldTransform`
   - [x] `PhysicsWorld : Component` with Jolt simulation/debug adapters, parent-first delayed body transforms, all-hit and segmented rays, sphere/convex sweeps, sphere/box/body queries, collision refresh, and rbfx compatibility settings
   - Jolt shape casts are translational; the rbfx end-rotation argument is retained but Jolt has no rotational sweep equivalent.
