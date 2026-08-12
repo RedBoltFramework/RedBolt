@@ -438,7 +438,7 @@ public partial class Constraint : Component
 
     protected override void OnMarkedDirty(Node node)
     {
-        if ((_cachedWorldScale - node.WorldScale).LengthSquared > 0.01f)
+        if (PhysicsUtils.HasWorldScaleChanged(_cachedWorldScale, node.WorldScale))
             ApplyFrames();
     }
 

@@ -299,7 +299,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] physics enums / constants
 - [x] `PhysicsEvents.h`
   - [x] physics event definitions, including post-update overtime
-- [x] `PhysicsUtils.h` — Bullet conversion helpers are replaced by direct Jolt ABI projections for RedBolt vectors, quaternions, rays, body IDs, sub-shape IDs, and raycast results
+- [x] `PhysicsUtils.h` — `HasWorldScaleChanged` is ported directly; Bullet conversion helpers are replaced by direct Jolt ABI projections for RedBolt vectors, quaternions, rays, body IDs, sub-shape IDs, and raycast results
 - [x] `CollisionGeometryDataCache.h`
   - [x] `CollisionGeometryDataCache : RedObject` with weak model/LOD entries, dynamic-buffer bypass, main-thread reload subscription, invalidation, release, and pruning
 - [x] `PhysicsWorld.h`

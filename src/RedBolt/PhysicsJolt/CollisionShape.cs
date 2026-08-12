@@ -480,7 +480,7 @@ public partial class CollisionShape : Component
     protected override void OnMarkedDirty(Node node)
     {
         var worldScale = node.WorldScale;
-        if ((_cachedWorldScale - worldScale).LengthSquared <= 0.01f)
+        if (!PhysicsUtils.HasWorldScaleChanged(_cachedWorldScale, worldScale))
             return;
         _cachedWorldScale = worldScale;
         UpdateShape();
