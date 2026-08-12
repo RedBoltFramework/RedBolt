@@ -301,15 +301,17 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] physics event definitions, including post-update overtime
 - [x] `PhysicsUtils.h` — `HasWorldScaleChanged` is ported directly; Bullet conversion helpers are replaced by direct Jolt ABI projections for RedBolt vectors, quaternions, rays, body IDs, sub-shape IDs, and raycast results
 - [x] `CollisionGeometryDataCache.h`
-  - [x] `CollisionGeometryDataCache : RedObject` with weak model/LOD entries, dynamic-buffer bypass, main-thread reload subscription, invalidation, release, and pruning
+  - [x] `CollisionGeometryData` and `CollisionGeometryDataCache : RedObject` with weak model/LOD entries, dynamic-buffer bypass, main-thread reload subscription, invalidation, release, and pruning
 - [x] `PhysicsWorld.h`
   - [x] `struct PhysicsRaycastResult` with rbfx payload inequality semantics
   - [x] `struct DelayedWorldTransform`
   - [x] `PhysicsWorld : Component` with Jolt simulation/debug adapters, parent-first delayed body transforms, all-hit and segmented rays, sphere/convex sweeps, sphere/box/body queries, collision refresh, and rbfx compatibility settings
   - Jolt shape casts are translational; the rbfx end-rotation argument is retained but Jolt has no rotational sweep equivalent.
+  - Bullet-only `ManifoldPair` and `PhysicsWorldConfig` internals are replaced by Jolt contact tracking and world initialization.
   - `Internal Edge Utility` and `Split Impulse` remain reflected for rbfx serialization compatibility; Jolt handles these behaviors without Bullet-style per-world toggles.
 - [x] `CollisionShape.h`
   - [x] `CollisionShape : Component` with every rbfx `ShapeType`, model/custom geometry sources, cache integration, resource reloads, terrain LOD, bounds, debug drawing, and the derived custom-shape extension hook
+  - Bullet-only `TriangleMeshData`, `GImpactMeshData`, `ConvexData`, and `HeightfieldData` storage is represented by backend-neutral cached geometry and Jolt shapes.
   - The unbounded Bullet plane is represented by a large bounded Jolt half-space adapter, and dynamic GImpact meshes use immutable compounds of triangle shapes.
 - [x] `RigidBody.h`
   - [x] `RigidBody : Component` with Jolt body lifecycle, parented motion/interpolation, force/impulse API, reset, mass batching, contacts, and rbfx serialized state
@@ -325,6 +327,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `RaycastVehicleWheel : Component`
 - [x] `RaycastVehicle.h` — ported to Jolt `VehicleConstraint` and `WheeledVehicleController`
   - [x] `RaycastVehicle : LogicComponent`
+  - The private Bullet `RaycastVehicleData` record is represented by the private Jolt vehicle adapter.
   - Static wheel changes recreate the native vehicle because Jolt wheel settings are immutable after construction.
   - The adapter preserves Bullet's wheel-forward cross-product and nominal force/impulse units, maps its mass-normalized suspension to Jolt effective-mass springs, and uses Jolt's narrow wheel sphere cast to avoid triangle-edge contact chatter.
   - `Roll Influence` is mapped through Jolt's suspension force point. `Max Suspension Force` remains reflected for rbfx

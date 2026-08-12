@@ -14,11 +14,9 @@
 #include <Jolt/Core/StaticArray.h>
 #include <Jolt/Math/Quat.h>
 #include <Jolt/Physics/Body/BodyID.h>
-#include <Jolt/Physics/Character/Character.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/RayCast.h>
-#include <Jolt/Physics/Collision/Shape/Shape.h>
 #include <Jolt/Physics/Collision/Shape/SubShapeID.h>
 #include <Jolt/Physics/Vehicle/VehicleConstraint.h>
 namespace SharpCpp
