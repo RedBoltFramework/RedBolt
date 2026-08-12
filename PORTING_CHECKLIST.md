@@ -304,14 +304,15 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] `CollisionGeometryDataCache : RedObject` with weak model/LOD entries, dynamic-buffer bypass, main-thread reload subscription, invalidation, release, and pruning
 - [x] `PhysicsWorld.h`
   - [x] `struct PhysicsRaycastResult`
-  - [x] `PhysicsWorld : Component` with Jolt simulation/debug adapters, all-hit and segmented rays, sphere/convex sweeps, sphere/box/body queries, collision refresh, and rbfx compatibility settings
+  - [x] `struct DelayedWorldTransform`
+  - [x] `PhysicsWorld : Component` with Jolt simulation/debug adapters, parent-first delayed body transforms, all-hit and segmented rays, sphere/convex sweeps, sphere/box/body queries, collision refresh, and rbfx compatibility settings
   - Jolt shape casts are translational; the rbfx end-rotation argument is retained but Jolt has no rotational sweep equivalent.
   - `Internal Edge Utility` and `Split Impulse` remain reflected for rbfx serialization compatibility; Jolt handles these behaviors without Bullet-style per-world toggles.
 - [x] `CollisionShape.h`
   - [x] `CollisionShape : Component` with every rbfx `ShapeType`, model/custom geometry sources, cache integration, resource reloads, terrain LOD, bounds, debug drawing, and the derived custom-shape extension hook
   - The unbounded Bullet plane is represented by a large bounded Jolt half-space adapter, and dynamic GImpact meshes use immutable compounds of triangle shapes.
 - [x] `RigidBody.h`
-  - [x] `RigidBody : Component` with Jolt body lifecycle, motion/interpolation, force/impulse API, reset, mass batching, contacts, and rbfx serialized state
+  - [x] `RigidBody : Component` with Jolt body lifecycle, parented motion/interpolation, force/impulse API, reset, mass batching, contacts, and rbfx serialized state
   - `Anisotropic Friction`, `Rolling Friction`, and `Contact Threshold` remain reflected for rbfx serialization compatibility; Jolt has no per-body equivalents.
 - [x] `Constraint.h` — ported with Jolt point, hinge, six-DOF slider, and swing-twist constraints
   - [x] `Constraint : Component`

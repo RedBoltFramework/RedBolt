@@ -57,6 +57,7 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
     private readonly Dictionary<BodyPair, int> _disabledCollisionPairs = [];
     private readonly Dictionary<BodyPair, ContactData> _currentContacts = [];
     private readonly Dictionary<BodyPair, ContactData> _previousContacts = [];
+    private readonly Dictionary<RigidBody, DelayedWorldTransform> _delayedWorldTransforms = [];
     private readonly BroadPhaseLayerInterfaceMask _broadPhaseLayerInterface;
     private readonly PhysicsObjectLayerPairFilter _objectLayerPairFilter;
     private readonly ObjectVsBroadPhaseLayerFilterMask _objectVsBroadPhaseLayerFilter;
@@ -287,7 +288,7 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
     public bool IsSimulating { get; private set; }
 
     /// <summary>Return whether scene transforms are being applied from simulation.</summary>
-    public bool IsApplyingTransforms { get; internal set; }
+    public bool IsApplyingTransforms { get; set; }
 
     /// <summary>Return the last Jolt update status.</summary>
     public EPhysicsUpdateError LastUpdateError { get; private set; }
@@ -681,6 +682,13 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         }
     }
 
+    /// <summary>Add a delayed world transform assignment for a parented rigid body.</summary>
+    public void AddDelayedWorldTransform(in DelayedWorldTransform transform)
+    {
+        if (transform.RigidBody is not null)
+            _delayedWorldTransforms[transform.RigidBody] = transform;
+    }
+
     internal void NotifyBodyCreated(RigidBody body)
     {
         for (var i = _constraints.Count - 1; i >= 0; --i)
@@ -821,10 +829,32 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
     private void ApplyWorldTransforms(float interpolation)
     {
         interpolation = SystemMath.Clamp(interpolation, 0.0f, 1.0f);
+        _delayedWorldTransforms.Clear();
         for (var i = 0; i < _rigidBodies.Count; ++i)
         {
             if (_rigidBodies[i].TryGetTarget(out var body))
                 body.ApplyWorldTransform(interpolation);
+        }
+        ApplyDelayedWorldTransforms();
+    }
+
+    private void ApplyDelayedWorldTransforms()
+    {
+        while (_delayedWorldTransforms.Count != 0)
+        {
+            RigidBody? readyBody = null;
+            DelayedWorldTransform readyTransform = default;
+            foreach (var (body, transform) in _delayedWorldTransforms)
+            {
+                if (transform.ParentRigidBody is not null &&
+                    _delayedWorldTransforms.ContainsKey(transform.ParentRigidBody))
+                    continue;
+                readyBody = body;
+                readyTransform = transform;
+                break;
+            }
+            readyBody!.ApplyWorldTransform(readyTransform.WorldPosition, readyTransform.WorldRotation);
+            _delayedWorldTransforms.Remove(readyBody);
         }
     }
 

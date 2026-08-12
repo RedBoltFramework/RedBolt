@@ -719,10 +719,21 @@ public partial class RigidBody : Component
         var rotation = _previousRotation.Slerp(_currentRotation, interpolation);
         if (_physicsWorld is null || !_physicsWorld.TryGetTarget(out var world))
             return;
-        world.IsApplyingTransforms = true;
-        _node.SetWorldPosition(position);
-        _node.SetWorldRotation(rotation);
-        world.IsApplyingTransforms = false;
+        var parent = _node.Parent;
+        var parentRigidBody = parent is not null && parent != Scene ? parent.GetComponent<RigidBody>() : null;
+        if (parentRigidBody is null)
+            ApplyWorldTransform(position, rotation);
+        else
+        {
+            var delayed = new DelayedWorldTransform
+            {
+                RigidBody = this,
+                ParentRigidBody = parentRigidBody,
+                WorldPosition = position,
+                WorldRotation = rotation
+            };
+            world.AddDelayedWorldTransform(in delayed);
+        }
     }
 
     /// <summary>Apply a new world transform after a simulation step.</summary>
@@ -730,8 +741,6 @@ public partial class RigidBody : Component
     {
         if (_node is null)
             return;
-        _previousPosition = _currentPosition = position;
-        _previousRotation = _currentRotation = rotation;
         if (_physicsWorld is null || !_physicsWorld.TryGetTarget(out var world))
             return;
         world.IsApplyingTransforms = true;

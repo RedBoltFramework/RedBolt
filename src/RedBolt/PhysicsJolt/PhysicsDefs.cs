@@ -22,6 +22,8 @@
 
 namespace RedBolt.PhysicsJolt;
 
+using RedBolt.Math;
+
 /// <summary>Collision shape type.</summary>
 public enum ShapeType
 {
@@ -58,6 +60,19 @@ public struct PhysicsRaycastResult
     public float Distance;
     /// <summary>Normalized hit distance in the requested ray interval.</summary>
     public float HitFraction;
+}
+
+/// <summary>Delayed world transform assignment for parented rigid bodies.</summary>
+public struct DelayedWorldTransform
+{
+    /// <summary>Rigid body.</summary>
+    public RigidBody? RigidBody;
+    /// <summary>Parent rigid body.</summary>
+    public RigidBody? ParentRigidBody;
+    /// <summary>New world position.</summary>
+    public Vector3f WorldPosition;
+    /// <summary>New world rotation.</summary>
+    public Quaternion WorldRotation;
 }
 
 /// <summary>Physics contact point reported as part of a collision manifold.</summary>
