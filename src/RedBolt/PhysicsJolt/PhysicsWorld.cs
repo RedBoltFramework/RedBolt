@@ -833,6 +833,23 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         var id1 = body1.GetID();
         var id2 = body2.GetID();
         var pair = new BodyPair(id1, id2);
+        var character1 = GetCharacter(id1);
+        var character2 = GetCharacter(id2);
+        if (character1?.IsTrigger == true)
+        {
+            if (character2 is not null)
+                settings.MIsSensor = true;
+            else
+            {
+                settings.MInvMassScale2 = 0.0f;
+                settings.MInvInertiaScale2 = 0.0f;
+            }
+        }
+        else if (character2?.IsTrigger == true)
+        {
+            settings.MInvMassScale1 = 0.0f;
+            settings.MInvInertiaScale1 = 0.0f;
+        }
         var normal = manifold.MWorldSpaceNormal;
         if (pair.Body1 != id1)
             normal = -normal;

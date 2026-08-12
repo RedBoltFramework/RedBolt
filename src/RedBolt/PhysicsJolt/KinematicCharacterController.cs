@@ -43,6 +43,12 @@ public partial class KinematicCharacterController : Component
     private Vector3f _previousPosition;
     private Vector3f _nextPosition;
     private Vector3f _latestPosition;
+    private bool _readdToWorld;
+
+    /// <summary>Construct.</summary>
+    public KinematicCharacterController()
+    {
+    }
 
     public override void Dispose()
     {
@@ -53,7 +59,18 @@ public partial class KinematicCharacterController : Component
         base.Dispose();
     }
 
-    public override void ApplyAttributes() => RecreateCharacter();
+    public override void OnSetAttribute(AttributeInfo attribute, Variant value)
+    {
+        base.OnSetAttribute(attribute, value);
+        _readdToWorld = true;
+    }
+
+    public override void ApplyAttributes()
+    {
+        if (_readdToWorld || IsEnabledEffective && _character is null)
+            RecreateCharacter();
+        _readdToWorld = false;
+    }
 
     public override void OnSetEnabled()
     {
@@ -67,13 +84,17 @@ public partial class KinematicCharacterController : Component
     {
         if (debug is null || _node is null || !IsEnabledEffective)
             return;
-        var center = GetRawPosition() + _offset;
+        var center = RawPosition + _offset;
         var radius = _diameter * 0.5f;
         var cylinderHeight = MathF.Max(_height - _diameter, 0.0f);
         debug.AddCylinder(center, radius, cylinderHeight, Color.Green, depthTest);
         debug.AddSphere(new Sphere(center + Vector3f.Up * (cylinderHeight * 0.5f), radius), Color.Green, depthTest);
         debug.AddSphere(new Sphere(center - Vector3f.Up * (cylinderHeight * 0.5f), radius), Color.Green, depthTest);
     }
+
+    /// <summary>Draw debug geometry using the scene debug renderer.</summary>
+    public virtual void DrawDebugGeometry() =>
+        DrawDebugGeometry(Scene?.GetComponent<DebugRenderer>(), true);
 
     [Serialized("Gravity")]
     public Vector3f Gravity
@@ -206,7 +227,12 @@ public partial class KinematicCharacterController : Component
     public bool IsTrigger
     {
         get => _trigger;
-        set => _trigger = value;
+        set
+        {
+            if (_trigger == value)
+                return;
+            _trigger = value;
+        }
     }
 
     [Serialized("Activate Triggers")]
@@ -258,18 +284,17 @@ public partial class KinematicCharacterController : Component
     {
         _smoothingConstant = smoothConstant;
         _positionOffset -= offset;
-        Warp(GetRawPosition() + offset);
+        WarpKinematic(RawPosition + offset);
+        _node?.SetWorldPosition(_latestPosition);
     }
 
-    public Vector3f GetRawPosition() => RawPosition;
-
-    public void Warp(Vector3f position)
+    /// <summary>Instantly reset character position to a new value.</summary>
+    protected void WarpKinematic(Vector3f position)
     {
         _latestPosition = position + _positionOffset;
         _previousPosition = position;
         _nextPosition = position;
         _character?.SetPosition(position);
-        _node?.SetWorldPosition(_latestPosition);
     }
 
     internal void PrepareStep(float timeStep)
@@ -304,7 +329,7 @@ public partial class KinematicCharacterController : Component
             return;
         _character.PostSimulation(0.05f);
         _previousPosition = _nextPosition;
-        _nextPosition = GetRawPosition();
+        _nextPosition = RawPosition;
     }
 
     internal void ReleaseCharacter()
@@ -391,7 +416,7 @@ public partial class KinematicCharacterController : Component
     private void HandlePhysicsPreUpdate(ref PhysicsEvents.PhysicsPreUpdateEvent eventData)
     {
         if (_node is not null && !_node.WorldPosition.ApproximatelyEquivalent(_latestPosition, MathDefs.LargeEpsilon))
-            Warp(_node.WorldPosition);
+            WarpKinematic(_node.WorldPosition);
     }
 
     private void HandlePhysicsPostUpdate(ref PhysicsEvents.PhysicsPostUpdateEvent eventData)

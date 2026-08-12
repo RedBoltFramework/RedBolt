@@ -149,7 +149,7 @@ public partial class PredictedKinematicController : BaseFeedbackBehavior<Predict
         if (!IsConnectedToComponents)
             return;
         CheckAndCorrectController(frame);
-        _currentFrameData.StartPosition = Scene!.ToAbsoluteWorldPosition(_kinematicController!.GetRawPosition());
+        _currentFrameData.StartPosition = Scene!.ToAbsoluteWorldPosition(_kinematicController!.RawPosition);
         _currentFrameData.Rotation = Node!.GetWorldRotation();
         CreateFrameOnClient(frame, _currentFrameData);
         ApplyActionsOnClient();

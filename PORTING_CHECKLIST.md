@@ -318,7 +318,8 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - Jolt contact validation provides reference-counted collision suppression for connected body pairs.
   - `ERP` and `CFM` remain reflected for rbfx serialization compatibility; Jolt has no per-constraint equivalents.
 - [x] `KinematicCharacterController.h` — ported to Jolt `Character`
-  - [x] `KinematicCharacterController : Component`
+  - [x] `KinematicCharacterController : Component` with deferred attribute application, raw-position correction, debug drawing, and trigger-mode contact response
+  - Trigger characters retain Jolt ground contacts while the contact listener gives contacted rigid bodies infinite effective mass, so characters do not push them.
 - [x] `RaycastVehicleWheel.h` — ported to the Jolt vehicle constraint adapter
   - [x] `RaycastVehicleWheel : Component`
 - [x] `RaycastVehicle.h` — ported to Jolt `VehicleConstraint` and `WheeledVehicleController`
