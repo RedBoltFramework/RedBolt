@@ -319,13 +319,17 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
             return false;
 
         var position = ray.Origin + direction * hit.Fraction;
+        var body = GetBody(hit.BodyId);
         var normal = Vector3f.Zero;
-        using (var transformedShape = _bodyInterface.GetTransformedShape(in hit.BodyId))
+        if (body is not null || _bodyInterface.IsAdded(in hit.BodyId))
+        {
+            using var transformedShape = _bodyInterface.GetTransformedShape(in hit.BodyId);
             normal = transformedShape.GetWorldSpaceSurfaceNormal(in hit.SubShapeId, position);
+        }
 
         result = new PhysicsRaycastResult
         {
-            Body = GetBody(hit.BodyId),
+            Body = body,
             Position = position,
             Normal = normal,
             Distance = maxDistance * hit.Fraction,
