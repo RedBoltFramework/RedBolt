@@ -679,7 +679,7 @@ public partial class RigidBody : Component
         settings.MAngularDamping = _angularDamping;
         settings.MGravityFactor = _useGravity && _gravityOverride == Vector3f.Zero ? 1.0f : 0.0f;
         settings.MMotionQuality = _ccdMotionThreshold > 0.0f ? EMotionQuality.LinearCast : EMotionQuality.Discrete;
-        settings.MAllowDynamicOrKinematic = true;
+        settings.MAllowDynamicOrKinematic = _mass > 0.0f || _kinematic;
         if (_mass > 0.0f)
         {
             settings.MOverrideMassProperties = EOverrideMassProperties.CalculateInertia;

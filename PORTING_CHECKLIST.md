@@ -290,7 +290,7 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [x] Direct RedBolt vector, quaternion, and ray projections with dedicated projected-ABI layout and native round-trip coverage
   - [x] Physics definitions and collision events
   - [x] `PhysicsWorld` fixed-step simulation, interpolation, contacts, collision filtering, and closest raycasts
-  - [x] `CollisionShape` box, sphere, cylinder, and capsule support
+  - [x] `CollisionShape` box, sphere, cylinder, capsule, and terrain-heightfield support
   - [x] `RigidBody` static, dynamic, kinematic, trigger, transform, velocity, force, impulse, damping, gravity, CCD, and collision-layer support
   - [x] Desktop and Web Physics sample with a free-fly camera, matched pyramid and thrown boxes, click spawning, and a controls window
 

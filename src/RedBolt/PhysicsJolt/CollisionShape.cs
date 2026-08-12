@@ -26,6 +26,7 @@ using Color = RedBolt.Math.Color;
 using RedBolt.Bindings.Jolt;
 using RedBolt.Core;
 using RedBolt.Graphics;
+using RedBolt.Logging;
 using RedBolt.Math;
 using Sphere = RedBolt.Math.Sphere;
 using RedBolt.Scene;
@@ -40,11 +41,13 @@ public partial class CollisionShape : Component
     private WeakReference<PhysicsWorld>? _physicsWorld;
     private WeakReference<RigidBody>? _rigidBody;
     private Shape? _shape;
+    private RedBoltHeightFieldShape? _heightFieldShape;
     private ShapeType _shapeType = ShapeType.Box;
     private Vector3f _position;
     private Quaternion _rotation = Quaternion.IDENTITY;
     private Vector3f _size = Vector3f.One;
     private Vector3f _cachedWorldScale = Vector3f.One;
+    private int _lodLevel;
     private float _margin = DefaultCollisionMargin;
     private bool _recreateShape = true;
 
@@ -124,6 +127,10 @@ public partial class CollisionShape : Component
                 debug.AddSphere(new Sphere(shapePosition + shapeRotation * new Vector3f(0.0f, cylinderHeight * 0.5f, 0.0f), radius), color, depthTest);
                 debug.AddSphere(new Sphere(shapePosition - shapeRotation * new Vector3f(0.0f, cylinderHeight * 0.5f, 0.0f), radius), color, depthTest);
                 break;
+
+            case ShapeType.Terrain:
+                GetComponent<Terrain>()?.DrawDebugGeometry(debug, depthTest);
+                break;
         }
     }
 
@@ -164,6 +171,20 @@ public partial class CollisionShape : Component
         _size = new Vector3f(diameter, height, diameter);
         _position = position;
         _rotation = rotation ?? Quaternion.IDENTITY;
+        UpdateShape();
+    }
+
+    /// <summary>Set as a terrain. Only works if the same scene node contains a Terrain component.</summary>
+    public void SetTerrain(int lodLevel = 0)
+    {
+        if (GetComponent<Terrain>() is null)
+        {
+            Log.GetLogger().Error("No terrain component, can not set terrain shape");
+            return;
+        }
+
+        _shapeType = ShapeType.Terrain;
+        _lodLevel = System.Math.Max(lodLevel, 0);
         UpdateShape();
     }
 
@@ -223,6 +244,22 @@ public partial class CollisionShape : Component
         }
     }
 
+    /// <summary>Return or set model LOD level used for terrain collision.</summary>
+    [Serialized("LOD Level")]
+    public int LodLevel
+    {
+        get => _lodLevel;
+        set
+        {
+            value = System.Math.Max(value, 0);
+            if (_lodLevel == value)
+                return;
+            _lodLevel = value;
+            if (_shapeType == ShapeType.Terrain)
+                UpdateShape();
+        }
+    }
+
     /// <summary>Set offset transform.</summary>
     public void SetTransform(Vector3f position, Quaternion rotation)
     {
@@ -252,7 +289,8 @@ public partial class CollisionShape : Component
     public Shape? JoltShape => _shape;
 
     /// <summary>Return whether this shape type has a Jolt scene-glue implementation.</summary>
-    public bool IsSupported => _shapeType is ShapeType.Box or ShapeType.Sphere or ShapeType.Cylinder or ShapeType.Capsule;
+    public bool IsSupported => _shapeType is ShapeType.Box or ShapeType.Sphere or ShapeType.Cylinder or
+        ShapeType.Capsule or ShapeType.Terrain;
 
     /// <summary>Update the native collision shape and notify the rigid body.</summary>
     public void NotifyRigidBody()
@@ -268,18 +306,20 @@ public partial class CollisionShape : Component
     /// <summary>Release the collision shape.</summary>
     public void ReleaseShape()
     {
-        _shape?.Dispose();
-        _shape = null;
+        ReleaseNativeShape();
         NotifyRigidBody();
     }
 
     protected override void OnNodeSet(Node? previousNode, Node? currentNode)
     {
         previousNode?.RemoveListener(this);
+        if (previousNode is not null)
+            UnsubscribeFromEvent<DrawableEvents.TerrainCreatedEvent>(previousNode);
         if (currentNode is not null)
         {
             currentNode.AddListener(this);
             _cachedWorldScale = currentNode.WorldScale;
+            SubscribeToEvent<DrawableEvents.TerrainCreatedEvent>(currentNode, HandleTerrainCreated);
         }
     }
 
@@ -314,8 +354,7 @@ public partial class CollisionShape : Component
     private void UpdateShape()
     {
         _recreateShape = false;
-        _shape?.Dispose();
-        _shape = null;
+        ReleaseNativeShape();
         if (_node is null || _physicsWorld is null || !_physicsWorld.TryGetTarget(out _))
         {
             _recreateShape = true;
@@ -330,6 +369,7 @@ public partial class CollisionShape : Component
             ShapeType.Sphere => CreateSphere(_size.Abs * worldScale),
             ShapeType.Cylinder => CreateCylinder(_size.Abs * worldScale),
             ShapeType.Capsule => CreateCapsule(_size.Abs * worldScale),
+            ShapeType.Terrain => CreateTerrain(worldScale),
             _ => null
         };
 
@@ -385,5 +425,81 @@ public partial class CollisionShape : Component
         var radius = MathF.Max(MathF.Max(size.X, size.Z) * 0.5f, MinimumExtent);
         var halfCylinder = MathF.Max(size.Y * 0.5f - radius, MinimumExtent);
         return new CapsuleShape(halfCylinder, radius);
+    }
+
+    private unsafe Shape? CreateTerrain(Vector3f worldScale)
+    {
+        var terrain = GetComponent<Terrain>();
+        var sourceData = terrain?.GetHeightData();
+        if (terrain is null || sourceData is null)
+            return null;
+
+        var sourceSize = terrain.GetNumVertices();
+        if (sourceSize.X != sourceSize.Y || sourceSize.X < 2 || sourceData.Length < sourceSize.X * sourceSize.Y)
+            return null;
+
+        var sampleCount = sourceSize.X;
+        var samples = sourceData;
+        var spacing = terrain.GetSpacing();
+        var skip = 1;
+        for (var i = 0; i < _lodLevel; ++i)
+        {
+            var nextCount = (sampleCount + 1) / 2;
+            if (nextCount <= 2)
+                break;
+            sampleCount = nextCount;
+            skip *= 2;
+            spacing.X *= 2.0f;
+            spacing.Z *= 2.0f;
+        }
+
+        if (skip > 1)
+        {
+            samples = new float[sampleCount * sampleCount];
+            for (var z = 0; z < sampleCount; ++z)
+            {
+                for (var x = 0; x < sampleCount; ++x)
+                {
+                    var sourceX = System.Math.Min(x * skip, sourceSize.X - 1);
+                    var sourceZ = System.Math.Min(z * skip, sourceSize.Y - 1);
+                    samples[z * sampleCount + x] = sourceData[sourceZ * sourceSize.X + sourceX];
+                }
+            }
+        }
+
+        var scale = new Vector3f(
+            spacing.X * worldScale.X * _size.X,
+            worldScale.Y * _size.Y,
+            spacing.Z * worldScale.Z * _size.Z);
+        var offset = new Vector3f(
+            -0.5f * (sampleCount - 1) * scale.X,
+            0.0f,
+            -0.5f * (sampleCount - 1) * scale.Z);
+
+        fixed (float* sampleData = samples)
+        {
+            var heightField = new RedBoltHeightFieldShape((nint)sampleData, (uint)sampleCount, offset, scale);
+            if (!heightField.IsValid())
+            {
+                heightField.Dispose();
+                return null;
+            }
+            _heightFieldShape = heightField;
+            return heightField.GetShape();
+        }
+    }
+
+    private void ReleaseNativeShape()
+    {
+        _shape?.Dispose();
+        _shape = null;
+        _heightFieldShape?.Dispose();
+        _heightFieldShape = null;
+    }
+
+    private void HandleTerrainCreated(ref DrawableEvents.TerrainCreatedEvent eventData)
+    {
+        if (_shapeType == ShapeType.Terrain)
+            UpdateShape();
     }
 }

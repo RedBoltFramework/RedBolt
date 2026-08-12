@@ -16,6 +16,7 @@
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
 #include <Jolt/Physics/Collision/CastResult.h>
 #include <Jolt/Physics/Collision/RayCast.h>
+#include <Jolt/Physics/Collision/Shape/HeightFieldShape.h>
 #include <Jolt/Physics/Collision/Shape/SubShapeID.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/PhysicsSystem.h>
@@ -223,6 +224,27 @@ inline void SetCharacterSettingsShape(CharacterSettings& settings, const Shape* 
 {
     settings.mShape = shape;
 }
+
+class RedBoltHeightFieldShape : public NonCopyable
+{
+public:
+    RedBoltHeightFieldShape(const void* samples, uint32_t sampleCount, Vec3Arg offset, Vec3Arg scale)
+    {
+        if (samples == nullptr || sampleCount < 2)
+            return;
+
+        HeightFieldShapeSettings settings(static_cast<const float*>(samples), offset, scale, sampleCount);
+        const auto result = settings.Create();
+        if (result.IsValid())
+            shape_ = result.Get().GetPtr();
+    }
+
+    bool IsValid() const { return shape_ != nullptr; }
+    const Shape* GetShape() const { return shape_; }
+
+private:
+    RefConst<Shape> shape_{};
+};
 
 class RedBoltRaycastVehicle : public NonCopyable
 {
