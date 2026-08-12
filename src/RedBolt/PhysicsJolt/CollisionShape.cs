@@ -43,10 +43,6 @@ public partial class CollisionShape : Component
     private WeakReference<PhysicsWorld>? _physicsWorld;
     private WeakReference<RigidBody>? _rigidBody;
     private Shape? _shape;
-    private RedBoltHeightFieldShape? _heightFieldShape;
-    private RedBoltPlaneShape? _planeShape;
-    private RedBoltConeShape? _coneShape;
-    private RedBoltGeometryShape? _geometryShape;
     private CollisionGeometryData? _geometry;
     private Model? _model;
     private ShapeType _shapeType = ShapeType.Box;
@@ -571,34 +567,17 @@ public partial class CollisionShape : Component
         return new CapsuleShape(halfCylinder, radius);
     }
 
-    private Shape? CreateStaticPlane()
-    {
-        var planeShape = new RedBoltPlaneShape();
-        if (!planeShape.IsValid())
-        {
-            planeShape.Dispose();
-            return null;
-        }
-        _planeShape = planeShape;
-        return planeShape.GetShape();
-    }
+    private static Shape CreateStaticPlane() => JoltShapeFactory.CreatePlane();
 
     private Shape? CreateCone(Vector3f size)
     {
         var halfHeight = MathF.Max(size.Y * 0.5f, MinimumExtent);
         var radius = MathF.Max(MathF.Max(size.X, size.Z) * 0.5f, MinimumExtent);
         var convexRadius = MathF.Min(_margin, MathF.Min(halfHeight, radius));
-        var coneShape = new RedBoltConeShape(halfHeight, radius, convexRadius);
-        if (!coneShape.IsValid())
-        {
-            coneShape.Dispose();
-            return null;
-        }
-        _coneShape = coneShape;
-        return coneShape.GetShape();
+        return JoltShapeFactory.CreateCone(halfHeight, radius, convexRadius);
     }
 
-    private unsafe Shape? CreateCachedGeometryShape(CollisionGeometryDataCache? cache, Vector3f worldScale)
+    private Shape? CreateCachedGeometryShape(CollisionGeometryDataCache? cache, Vector3f worldScale)
     {
         if (cache is null)
             return null;
@@ -631,32 +610,15 @@ public partial class CollisionShape : Component
         if (scaledVertices.Length == 0 || (_shapeType != ShapeType.ConvexHull && indices.Length < 3))
             return null;
 
-        fixed (Vector3f* vertexData = scaledVertices)
-        fixed (uint* indexData = indices)
+        return _shapeType switch
         {
-            var geometryShape = new RedBoltGeometryShape(
-                (nint)vertexData,
-                checked((uint)scaledVertices.Length),
-                indices.Length == 0 ? 0 : (nint)indexData,
-                checked((uint)indices.Length),
-                _shapeType switch
-                {
-                    ShapeType.ConvexHull => 1u,
-                    ShapeType.GImpactMesh => 2u,
-                    _ => 0u
-                },
-                _margin);
-            if (!geometryShape.IsValid())
-            {
-                geometryShape.Dispose();
-                return null;
-            }
-            _geometryShape = geometryShape;
-            return geometryShape.GetShape();
-        }
+            ShapeType.ConvexHull => JoltShapeFactory.CreateConvexHull(scaledVertices, _margin),
+            ShapeType.GImpactMesh => JoltShapeFactory.CreateTriangleCompound(scaledVertices, indices, _margin),
+            _ => JoltShapeFactory.CreateMesh(scaledVertices, indices)
+        };
     }
 
-    private unsafe Shape? CreateTerrain(Vector3f worldScale)
+    private Shape? CreateTerrain(Vector3f worldScale)
     {
         var terrain = GetComponent<Terrain>();
         var sourceData = terrain?.GetHeightData();
@@ -705,31 +667,13 @@ public partial class CollisionShape : Component
             0.0f,
             -0.5f * (sampleCount - 1) * scale.Z);
 
-        fixed (float* sampleData = samples)
-        {
-            var heightField = new RedBoltHeightFieldShape((nint)sampleData, (uint)sampleCount, offset, scale);
-            if (!heightField.IsValid())
-            {
-                heightField.Dispose();
-                return null;
-            }
-            _heightFieldShape = heightField;
-            return heightField.GetShape();
-        }
+        return JoltShapeFactory.CreateHeightField(samples, (uint)sampleCount, offset, scale);
     }
 
     private void ReleaseNativeShape()
     {
         _shape?.Dispose();
         _shape = null;
-        _geometryShape?.Dispose();
-        _geometryShape = null;
-        _coneShape?.Dispose();
-        _coneShape = null;
-        _planeShape?.Dispose();
-        _planeShape = null;
-        _heightFieldShape?.Dispose();
-        _heightFieldShape = null;
         _geometry = null;
     }
 

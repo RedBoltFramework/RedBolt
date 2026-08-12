@@ -53,6 +53,7 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
     private readonly List<WeakReference<CollisionShape>> _collisionShapes = [];
     private readonly List<WeakReference<Constraint>> _constraints = [];
     private readonly Dictionary<uint, WeakReference<RigidBody>> _bodiesById = [];
+    private readonly Dictionary<uint, WeakReference<KinematicCharacterController>> _charactersById = [];
     private readonly Dictionary<BodyPair, int> _disabledCollisionPairs = [];
     private readonly Dictionary<BodyPair, ContactData> _currentContacts = [];
     private readonly Dictionary<BodyPair, ContactData> _previousContacts = [];
@@ -142,6 +143,7 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
                 character.ReleaseCharacter();
         }
         _bodiesById.Clear();
+        _charactersById.Clear();
         _debugRenderer = null;
         World.SetContactListener(null!);
         _raycastBroadPhaseLayerFilter.Dispose();
@@ -413,10 +415,9 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         var nativeRay = ray;
         nativeRay.Direction *= maxDistance;
         using var filter = new PhysicsObjectLayerFilter(collisionMask);
-        using var query = new RedBoltPhysicsQueryResults();
-        query.Raycast(World, in nativeRay, _raycastBroadPhaseLayerFilter, filter);
-        for (var i = 0u; i < query.GetNumHits(); ++i)
-            result.Add(GetQueryResult(query, i, maxDistance));
+        var hits = JoltPhysicsQuery.Raycast(World, nativeRay, _raycastBroadPhaseLayerFilter, filter);
+        for (var i = 0; i < hits.Length; ++i)
+            result.Add(GetQueryResult(hits[i], maxDistance));
     }
 
     /// <summary>Raycast against the world and return the closest hit.</summary>
@@ -500,10 +501,9 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         var nativeRay = ray;
         nativeRay.Direction *= maxDistance;
         using var filter = new PhysicsObjectLayerFilter(collisionMask);
-        using var query = new RedBoltPhysicsQueryResults();
-        query.SphereCast(World, in nativeRay, radius, _raycastBroadPhaseLayerFilter, filter);
-        if (query.GetNumHits() != 0)
-            result = GetQueryResult(query, 0, maxDistance);
+        if (JoltPhysicsQuery.SphereCast(
+            World, nativeRay, radius, _raycastBroadPhaseLayerFilter, filter, out var hit))
+            result = GetQueryResult(hit, maxDistance);
     }
 
     /// <summary>Sweep a collision shape through the world and return the closest hit.</summary>
@@ -541,11 +541,9 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         // Jolt's shape cast is translational. The end rotation remains part of the rbfx-compatible API.
         _ = endRotation;
         using var filter = new PhysicsObjectLayerFilter(collisionMask);
-        using var query = new RedBoltPhysicsQueryResults();
-        query.ConvexCast(World, shape, Vector3f.One, startPosition, startRotation, endPosition,
-            ignoredBodyId, _raycastBroadPhaseLayerFilter, filter);
-        if (query.GetNumHits() != 0)
-            result = GetQueryResult(query, 0, (endPosition - startPosition).Length);
+        if (JoltPhysicsQuery.ConvexCast(World, shape, Vector3f.One, startPosition, startRotation,
+            endPosition, ignoredBodyId, _raycastBroadPhaseLayerFilter, filter, out var hit))
+            result = GetQueryResult(hit, (endPosition - startPosition).Length);
     }
 
     /// <summary>Return rigid bodies overlapping a sphere.</summary>
@@ -556,9 +554,8 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         if (sphere.Radius < 0.0f)
             return;
         using var filter = new PhysicsObjectLayerFilter(collisionMask);
-        using var query = new RedBoltPhysicsQueryResults();
-        query.QuerySphere(World, sphere.Center, sphere.Radius, _raycastBroadPhaseLayerFilter, filter);
-        AddQueryBodies(result, query);
+        AddQueryBodies(result, JoltPhysicsQuery.QuerySphere(
+            World, sphere.Center, sphere.Radius, _raycastBroadPhaseLayerFilter, filter));
     }
 
     /// <summary>Return rigid bodies overlapping an axis-aligned box.</summary>
@@ -569,9 +566,8 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         if (!box.Defined)
             return;
         using var filter = new PhysicsObjectLayerFilter(collisionMask);
-        using var query = new RedBoltPhysicsQueryResults();
-        query.QueryBox(World, box.Min, box.Max, _raycastBroadPhaseLayerFilter, filter);
-        AddQueryBodies(result, query);
+        AddQueryBodies(result, JoltPhysicsQuery.QueryBox(
+            World, box.Min, box.Max, _raycastBroadPhaseLayerFilter, filter));
     }
 
     /// <summary>Return rigid bodies currently overlapping the specified body.</summary>
@@ -585,10 +581,8 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         if (bodyId is null || shape is null)
             return;
         using var filter = new PhysicsObjectLayerFilter(body.CollisionMask);
-        using var query = new RedBoltPhysicsQueryResults();
-        query.QueryShape(World, shape, body.Position, body.Rotation, bodyId.Value,
-            _raycastBroadPhaseLayerFilter, filter);
-        AddQueryBodies(result, query);
+        AddQueryBodies(result, JoltPhysicsQuery.QueryShape(World, shape, body.Position, body.Rotation,
+            bodyId.Value, _raycastBroadPhaseLayerFilter, filter));
     }
 
     /// <summary>Return colliding bodies from the last simulation step.</summary>
@@ -729,6 +723,16 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         _bodiesById.Remove(bodyId);
     }
 
+    internal void RegisterCharacter(uint bodyId, KinematicCharacterController character)
+    {
+        _charactersById[bodyId] = new WeakReference<KinematicCharacterController>(character);
+    }
+
+    internal void UnregisterCharacter(uint bodyId)
+    {
+        _charactersById.Remove(bodyId);
+    }
+
     protected override void OnSceneSet(Scene? previousScene, Scene? scene)
     {
         base.OnSceneSet(previousScene, scene);
@@ -829,22 +833,48 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         var id1 = body1.GetID();
         var id2 = body2.GetID();
         var pair = new BodyPair(id1, id2);
-        var point = manifold.GetWorldSpaceContactPointOn1(0);
         var normal = manifold.MWorldSpaceNormal;
         if (pair.Body1 != id1)
             normal = -normal;
-        var contact = new ContactData(
-            pair,
-            settings.MIsSensor || body1.IsSensor() || body2.IsSensor(),
-            new PhysicsContact
+
+        var pointCount = manifold.MRelativeContactPointsOn1.Count;
+        if (pointCount == 0)
+            return;
+        var contacts = new PhysicsContact[pointCount];
+        for (var i = 0; i < pointCount; ++i)
+        {
+            contacts[i] = new PhysicsContact
             {
-                Position = point,
+                // Match rbfx's manifold event payload, which reports the point on shape 2.
+                Position = manifold.GetWorldSpaceContactPointOn2(checked((uint)i)),
                 Normal = normal,
                 Distance = -manifold.MPenetrationDepth,
                 Impulse = 0.0f
-            });
+            };
+        }
+
+        var contact = new ContactData(
+            pair,
+            settings.MIsSensor || body1.IsSensor() || body2.IsSensor(),
+            GetCharacter(id1) is not null && body2.IsSensor() ||
+                GetCharacter(id2) is not null && body1.IsSensor(),
+            contacts);
         lock (_contactLock)
+        {
+            if (_currentContacts.TryGetValue(pair, out var existing))
+            {
+                var combined = new PhysicsContact[existing.Contacts.Length + contacts.Length];
+                existing.Contacts.CopyTo(combined, 0);
+                contacts.CopyTo(combined, existing.Contacts.Length);
+                contact = contact with
+                {
+                    Trigger = existing.Trigger || contact.Trigger,
+                    CharacterTrigger = existing.CharacterTrigger || contact.CharacterTrigger,
+                    Contacts = combined
+                };
+            }
             _currentContacts[pair] = contact;
+        }
     }
 
     private void SendCollisionEvents()
@@ -853,6 +883,8 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         {
             foreach (var (pair, contact) in _currentContacts)
             {
+                if (TrySendCharacterTriggerEvent(pair, contact, _previousContacts.GetValueOrDefault(pair)))
+                    continue;
                 var bodyA = GetBody(pair.Body1);
                 var bodyB = GetBody(pair.Body2);
                 if (bodyA is null || bodyB is null || !ShouldSignal(bodyA, bodyB))
@@ -867,7 +899,7 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
                     var start = new PhysicsEvents.PhysicsCollisionStartEvent
                     {
                         World = this, NodeA = nodeA, NodeB = nodeB, BodyA = bodyA, BodyB = bodyB,
-                        Trigger = contact.Trigger, Contact = contact.Contact
+                        Trigger = contact.Trigger, Contacts = contact.Contacts
                     };
                     SendEvent(ref start);
                 }
@@ -877,15 +909,19 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
                 var ongoing = new PhysicsEvents.PhysicsCollisionEvent
                 {
                     World = this, NodeA = nodeA, NodeB = nodeB, BodyA = bodyA, BodyB = bodyB,
-                    Trigger = contact.Trigger, Contact = contact.Contact
+                    Trigger = contact.Trigger, Contacts = contact.Contacts
                 };
                 SendEvent(ref ongoing);
                 SendNodeCollisionEvents(bodyA, nodeA, bodyB, nodeB, contact, isNew);
                 if (bodyA.TryGetNode() is not null && bodyB.TryGetNode() is not null)
                 {
-                    var flippedContact = contact.Contact;
-                    flippedContact.Normal = -flippedContact.Normal;
-                    var flipped = contact with { Contact = flippedContact };
+                    var flippedContacts = new PhysicsContact[contact.Contacts.Length];
+                    for (var i = 0; i < contact.Contacts.Length; ++i)
+                    {
+                        flippedContacts[i] = contact.Contacts[i];
+                        flippedContacts[i].Normal = -flippedContacts[i].Normal;
+                    }
+                    var flipped = contact with { Contacts = flippedContacts };
                     SendNodeCollisionEvents(bodyB, nodeB, bodyA, nodeA, flipped, isNew);
                 }
             }
@@ -893,6 +929,8 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
             foreach (var (pair, contact) in _previousContacts)
             {
                 if (_currentContacts.ContainsKey(pair))
+                    continue;
+                if (TrySendCharacterTriggerEvent(pair, default, contact))
                     continue;
                 var bodyA = GetBody(pair.Body1);
                 var bodyB = GetBody(pair.Body2);
@@ -935,7 +973,7 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
             var start = new PhysicsEvents.NodeCollisionStartEvent
             {
                 Body = body, OtherNode = otherNode, OtherBody = otherBody,
-                Trigger = contact.Trigger, Contact = contact.Contact
+                Trigger = contact.Trigger, Contacts = contact.Contacts
             };
             node.SendEvent(ref start);
         }
@@ -944,7 +982,7 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         var ongoing = new PhysicsEvents.NodeCollisionEvent
         {
             Body = body, OtherNode = otherNode, OtherBody = otherBody,
-            Trigger = contact.Trigger, Contact = contact.Contact
+            Trigger = contact.Trigger, Contacts = contact.Contacts
         };
         node.SendEvent(ref ongoing);
     }
@@ -959,24 +997,57 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         return null;
     }
 
-    private PhysicsRaycastResult GetQueryResult(RedBoltPhysicsQueryResults query, uint index, float distance)
+    private KinematicCharacterController? GetCharacter(uint bodyId)
     {
-        var fraction = query.GetHitFraction(index);
+        if (!_charactersById.TryGetValue(bodyId, out var weakCharacter))
+            return null;
+        if (weakCharacter.TryGetTarget(out var character))
+            return character;
+        _charactersById.Remove(bodyId);
+        return null;
+    }
+
+    private bool TrySendCharacterTriggerEvent(BodyPair pair, ContactData current, ContactData previous)
+    {
+        var character = GetCharacter(pair.Body1);
+        var otherBodyId = pair.Body2;
+        if (character is null)
+        {
+            character = GetCharacter(pair.Body2);
+            otherBodyId = pair.Body1;
+        }
+        if (character is null)
+            return false;
+
+        var otherBody = GetBody(otherBodyId);
+        if (otherBody is null || !character.ActivateTriggers)
+            return true;
+
+        if (current.CharacterTrigger)
+            character.SendTriggerCollisionEvent(
+                this, otherBody, isNew: character.BeginTriggerContact(otherBodyId), isEnd: false);
+        else if (previous.CharacterTrigger && character.EndTriggerContact(otherBodyId))
+            character.SendTriggerCollisionEvent(this, otherBody, isNew: false, isEnd: true);
+        return true;
+    }
+
+    private PhysicsRaycastResult GetQueryResult(JoltPhysicsQuery.Hit hit, float distance)
+    {
         return new PhysicsRaycastResult
         {
-            Body = GetBody(query.GetHitBodyId(index)),
-            Position = query.GetHitPosition(index),
-            Normal = query.GetHitNormal(index),
-            Distance = distance * fraction,
-            HitFraction = fraction
+            Body = GetBody(hit.BodyId),
+            Position = hit.Position,
+            Normal = hit.Normal,
+            Distance = distance * hit.Fraction,
+            HitFraction = hit.Fraction
         };
     }
 
-    private void AddQueryBodies(ICollection<RigidBody> result, RedBoltPhysicsQueryResults query)
+    private void AddQueryBodies(ICollection<RigidBody> result, uint[] bodyIds)
     {
-        for (var i = 0u; i < query.GetNumBodies(); ++i)
+        for (var i = 0; i < bodyIds.Length; ++i)
         {
-            var body = GetBody(query.GetBodyId(i));
+            var body = GetBody(bodyIds[i]);
             if (body is not null && !result.Contains(body))
                 result.Add(body);
         }
@@ -1047,7 +1118,8 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         public uint Body2 { get; }
     }
 
-    private readonly record struct ContactData(BodyPair Pair, bool Trigger, PhysicsContact Contact);
+    private readonly record struct ContactData(
+        BodyPair Pair, bool Trigger, bool CharacterTrigger, PhysicsContact[] Contacts);
     private readonly record struct SynchronizedStep(long NetworkFrame, uint Offset);
 
     private sealed class PhysicsContactListener : ContactListener

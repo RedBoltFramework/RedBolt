@@ -30,7 +30,6 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Scene;
-using JoltRaycastVehicle = RedBolt.Bindings.Jolt.RedBoltRaycastVehicle;
 using MathColor = RedBolt.Math.Color;
 
 /// <summary>Raycast vehicle component.</summary>

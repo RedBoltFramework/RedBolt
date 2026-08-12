@@ -42,7 +42,9 @@ internal sealed class GeneratorOptions
             CompilerTarget = GetOption(args, "--compiler-target"),
             CompilerSysroot = GetOptionalPath(args, "--compiler-sysroot"),
             IncludeDirectories = GetRepeatedOption(args, "--include").Select(Path.GetFullPath).ToArray(),
-            Defines = GetRepeatedOption(args, "--define").ToArray(),
+            Defines = GetRepeatedOption(args, "--define")
+                .Where(static define => !string.IsNullOrWhiteSpace(define))
+                .ToArray(),
             OwnedHeaders = GetRepeatedOption(args, "--owned-header").Select(Path.GetFullPath).ToArray()
         };
     }

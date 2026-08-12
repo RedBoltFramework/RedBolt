@@ -57,10 +57,10 @@ public static class PhysicsEvents
         public PhysicsWorld World;
         public Node NodeA;
         public Node NodeB;
-        public RigidBody BodyA;
-        public RigidBody BodyB;
+        public RigidBody? BodyA;
+        public RigidBody? BodyB;
         public bool Trigger;
-        public PhysicsContact Contact;
+        public IReadOnlyList<PhysicsContact> Contacts;
     }
 
     public struct PhysicsCollisionEvent
@@ -68,10 +68,10 @@ public static class PhysicsEvents
         public PhysicsWorld World;
         public Node NodeA;
         public Node NodeB;
-        public RigidBody BodyA;
-        public RigidBody BodyB;
+        public RigidBody? BodyA;
+        public RigidBody? BodyB;
         public bool Trigger;
-        public PhysicsContact Contact;
+        public IReadOnlyList<PhysicsContact> Contacts;
     }
 
     public struct PhysicsCollisionEndEvent
@@ -79,34 +79,34 @@ public static class PhysicsEvents
         public PhysicsWorld World;
         public Node NodeA;
         public Node NodeB;
-        public RigidBody BodyA;
-        public RigidBody BodyB;
+        public RigidBody? BodyA;
+        public RigidBody? BodyB;
         public bool Trigger;
     }
 
     public struct NodeCollisionStartEvent
     {
-        public RigidBody Body;
+        public RigidBody? Body;
         public Node OtherNode;
-        public RigidBody OtherBody;
+        public RigidBody? OtherBody;
         public bool Trigger;
-        public PhysicsContact Contact;
+        public IReadOnlyList<PhysicsContact> Contacts;
     }
 
     public struct NodeCollisionEvent
     {
-        public RigidBody Body;
+        public RigidBody? Body;
         public Node OtherNode;
-        public RigidBody OtherBody;
+        public RigidBody? OtherBody;
         public bool Trigger;
-        public PhysicsContact Contact;
+        public IReadOnlyList<PhysicsContact> Contacts;
     }
 
     public struct NodeCollisionEndEvent
     {
-        public RigidBody Body;
+        public RigidBody? Body;
         public Node OtherNode;
-        public RigidBody OtherBody;
+        public RigidBody? OtherBody;
         public bool Trigger;
     }
 }

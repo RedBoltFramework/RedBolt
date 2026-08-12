@@ -17,6 +17,7 @@ using Sphere = RedBolt.Math.Sphere;
 [Reflected(ObjectCategory.Category_Physics, InheritAttributes = false)]
 public partial class KinematicCharacterController : Component
 {
+    private readonly HashSet<uint> _activeTriggerBodies = [];
     private WeakReference<PhysicsWorld>? _physicsWorld;
     private Character? _character;
     private uint _collisionLayer = 1;
@@ -35,6 +36,7 @@ public partial class KinematicCharacterController : Component
     private bool _trigger = true;
     private bool _activateTriggers = true;
     private Vector3f _walkIncrement;
+    private Vector3f _lastWalkVelocity;
     private Vector3f _angularVelocity;
     private Vector3f _positionOffset;
     private float _smoothingConstant;
@@ -110,14 +112,14 @@ public partial class KinematicCharacterController : Component
     public float LinearDamping
     {
         get => _linearDamping;
-        set => _linearDamping = MathF.Max(value, 0.0f);
+        set => _linearDamping = System.Math.Clamp(value, 0.0f, 1.0f);
     }
 
     [Serialized("Angular Damping")]
     public float AngularDamping
     {
         get => _angularDamping;
-        set => _angularDamping = MathF.Max(value, 0.0f);
+        set => _angularDamping = System.Math.Clamp(value, 0.0f, 1.0f);
     }
 
     [Serialized("Height")]
@@ -211,7 +213,12 @@ public partial class KinematicCharacterController : Component
     public bool ActivateTriggers
     {
         get => _activateTriggers;
-        set => _activateTriggers = value;
+        set
+        {
+            _activateTriggers = value;
+            if (!value)
+                _activeTriggerBodies.Clear();
+        }
     }
 
     public Vector3f RawPosition => _character?.GetPosition() ?? _node?.WorldPosition ?? _latestPosition;
@@ -262,6 +269,7 @@ public partial class KinematicCharacterController : Component
         _previousPosition = position;
         _nextPosition = position;
         _character?.SetPosition(position);
+        _node?.SetWorldPosition(_latestPosition);
     }
 
     internal void PrepareStep(float timeStep)
@@ -270,16 +278,24 @@ public partial class KinematicCharacterController : Component
             return;
 
         var velocity = _character.GetLinearVelocity();
+        velocity -= _lastWalkVelocity;
+        var damping = MathF.Pow(1.0f - _linearDamping, timeStep);
+        velocity *= damping;
         var verticalSpeed = velocity.DotProduct(Vector3f.Up);
         if (OnGround && verticalSpeed < 0.0f)
             verticalSpeed = 0.0f;
         var walkVelocity = _walkIncrement / timeStep;
         walkVelocity -= Vector3f.Up * walkVelocity.DotProduct(Vector3f.Up);
-        velocity = walkVelocity + Vector3f.Up * verticalSpeed + _gravity * timeStep;
+        velocity -= Vector3f.Up * velocity.DotProduct(Vector3f.Up);
+        if (_walkIncrement != Vector3f.Zero || _lastWalkVelocity != Vector3f.Zero)
+            velocity = Vector3f.Zero;
+        velocity += walkVelocity + Vector3f.Up * verticalSpeed + _gravity * timeStep;
         var fallSpeed = -velocity.DotProduct(Vector3f.Up);
         if (fallSpeed > _fallSpeed)
             velocity += Vector3f.Up * (fallSpeed - _fallSpeed);
-        _character.SetLinearAndAngularVelocity(velocity, _angularVelocity * MathF.Max(0.0f, 1.0f - _angularDamping * timeStep));
+        _lastWalkVelocity = walkVelocity;
+        _angularVelocity *= MathF.Pow(1.0f - _angularDamping, timeStep);
+        _character.SetLinearAndAngularVelocity(velocity, _angularVelocity);
     }
 
     internal void CaptureSimulationTransform()
@@ -295,9 +311,13 @@ public partial class KinematicCharacterController : Component
     {
         if (_character is null)
             return;
+        var bodyId = _character.GetBodyID();
+        if (_physicsWorld is not null && _physicsWorld.TryGetTarget(out var world))
+            world.UnregisterCharacter(bodyId);
         _character.RemoveFromPhysicsSystem();
         _character.Dispose();
         _character = null;
+        _activeTriggerBodies.Clear();
     }
 
     protected override void OnNodeSet(Node? previousNode, Node? currentNode)
@@ -354,10 +374,12 @@ public partial class KinematicCharacterController : Component
             MMaxSlopeAngle = _maxSlope * MathDefs.DegToRad,
             MUp = Vector3f.Up
         };
-        JoltNativeBindings.SetCharacterSettingsShape(settings, shape);
+        settings.MShape = shape;
         _character = new Character(settings, position, Quaternion.IDENTITY, 0, world.World);
         _character.AddToPhysicsSystem();
+        world.RegisterCharacter(_character.GetBodyID(), this);
         _character.SetLinearVelocity(velocity);
+        _lastWalkVelocity = Vector3f.Zero;
         _previousPosition = _nextPosition = _latestPosition = position;
     }
 
@@ -376,11 +398,89 @@ public partial class KinematicCharacterController : Component
     {
         if (_node is null || _physicsWorld is null || !_physicsWorld.TryGetTarget(out var world))
             return;
-        var factor = MathDefs.InverseExponentialDecay(_smoothingConstant * eventData.TimeStep);
-        _positionOffset = _positionOffset.Lerp(Vector3f.Zero, factor);
-        _latestPosition = _nextPosition + _positionOffset;
+        if (world.Interpolation)
+        {
+            var factor = MathDefs.InverseExponentialDecay(_smoothingConstant * eventData.TimeStep);
+            _positionOffset = _positionOffset.Lerp(Vector3f.Zero, factor);
+            var interpolation = System.Math.Clamp(eventData.Overtime * world.Fps, 0.0f, 1.0f);
+            _latestPosition = _previousPosition.Lerp(_nextPosition, interpolation) + _positionOffset;
+        }
+        else
+            _latestPosition = _nextPosition;
         world.IsApplyingTransforms = true;
         _node.SetWorldPosition(_latestPosition);
         world.IsApplyingTransforms = false;
     }
+
+    internal void SendTriggerCollisionEvent(
+        PhysicsWorld world, RigidBody otherBody, bool isNew, bool isEnd)
+    {
+        var node = TryGetNode();
+        var otherNode = otherBody.TryGetNode();
+        if (node is null || otherNode is null)
+            return;
+
+        if (isEnd)
+        {
+            var physicsEnd = new PhysicsEvents.PhysicsCollisionEndEvent
+            {
+                World = world, NodeA = node, NodeB = otherNode, BodyA = null, BodyB = otherBody, Trigger = true
+            };
+            SendEvent(ref physicsEnd);
+            var nodeEnd = new PhysicsEvents.NodeCollisionEndEvent
+            {
+                Body = null, OtherNode = otherNode, OtherBody = otherBody, Trigger = true
+            };
+            node.SendEvent(ref nodeEnd);
+            var otherNodeEnd = new PhysicsEvents.NodeCollisionEndEvent
+            {
+                Body = otherBody, OtherNode = node, OtherBody = null, Trigger = true
+            };
+            otherNode.SendEvent(ref otherNodeEnd);
+            return;
+        }
+
+        var contacts = Array.Empty<PhysicsContact>();
+        if (isNew)
+        {
+            var physicsStart = new PhysicsEvents.PhysicsCollisionStartEvent
+            {
+                World = world, NodeA = node, NodeB = otherNode, BodyA = null, BodyB = otherBody,
+                Trigger = true, Contacts = contacts
+            };
+            SendEvent(ref physicsStart);
+            var nodeStart = new PhysicsEvents.NodeCollisionStartEvent
+            {
+                Body = null, OtherNode = otherNode, OtherBody = otherBody, Trigger = true, Contacts = contacts
+            };
+            node.SendEvent(ref nodeStart);
+            var otherNodeStart = new PhysicsEvents.NodeCollisionStartEvent
+            {
+                Body = otherBody, OtherNode = node, OtherBody = null, Trigger = true, Contacts = contacts
+            };
+            otherNode.SendEvent(ref otherNodeStart);
+            return;
+        }
+
+        var physicsOngoing = new PhysicsEvents.PhysicsCollisionEvent
+        {
+            World = world, NodeA = node, NodeB = otherNode, BodyA = null, BodyB = otherBody,
+            Trigger = true, Contacts = contacts
+        };
+        SendEvent(ref physicsOngoing);
+        var nodeOngoing = new PhysicsEvents.NodeCollisionEvent
+        {
+            Body = null, OtherNode = otherNode, OtherBody = otherBody, Trigger = true, Contacts = contacts
+        };
+        node.SendEvent(ref nodeOngoing);
+        var otherNodeOngoing = new PhysicsEvents.NodeCollisionEvent
+        {
+            Body = otherBody, OtherNode = node, OtherBody = null, Trigger = true, Contacts = contacts
+        };
+        otherNode.SendEvent(ref otherNodeOngoing);
+    }
+
+    internal bool BeginTriggerContact(uint bodyId) => _activeTriggerBodies.Add(bodyId);
+
+    internal bool EndTriggerContact(uint bodyId) => _activeTriggerBodies.Remove(bodyId);
 }

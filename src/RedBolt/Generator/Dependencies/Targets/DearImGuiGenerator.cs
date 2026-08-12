@@ -36,6 +36,7 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
     protected override void ConfigureBeforeValidation(BindingCompilation compilation)
     {
         ConfigureFunctions(compilation);
+        ExcludeUnconstrainedImVectorHelpers(compilation);
         foreach (var record in compilation.Records.Where(static record =>
                      record.NativeName is "ImFontAtlasBuilder" or "ImGuiContext" or "ImGuiDockContext"))
             record.HasCopyConstructor = false;
@@ -44,6 +45,22 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
                      .SelectMany(static record => record.Members.OfType<FieldBinding>())
                      .Where(static field => field.NativeName is "Layers" or "DrawDataBuilder_Layers"))
             field.SetSilentExclusionReason("ImVector pointer arrays have no managed container projection");
+    }
+
+    private static void ExcludeUnconstrainedImVectorHelpers(BindingCompilation compilation)
+    {
+        foreach (var function in compilation.Records
+                     .Where(static record => record.NativeName == "ImVector")
+                     .SelectMany(static record => record.Members.OfType<FunctionBinding>())
+                     .Where(static function => function.NativeName is
+                         "clear_delete" or "contains" or "find" or "find_index" or
+                         "find_erase" or "find_erase_unsorted"))
+        {
+            // ImVector declares these for every T, but their bodies require either a
+            // pointer element or operator==. The declarations carry no C++ constraint
+            // that SharpCpp can use to select valid specializations.
+            function.SetSilentExclusionReason("unconstrained ImVector helper is not valid for every element type");
+        }
     }
 
     protected override void AfterPruneCompilation(BindingCompilation compilation) =>

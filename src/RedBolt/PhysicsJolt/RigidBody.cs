@@ -42,7 +42,6 @@ public partial class RigidBody : Component
     private readonly List<Constraint> _constraints = [];
     private readonly List<RaycastVehicle> _vehicles = [];
     private WeakReference<PhysicsWorld>? _physicsWorld;
-    private RedBoltCompoundShape? _compoundShapeOwner;
     private Shape? _compoundShape;
     private uint _bodyId = InvalidBodyId;
     private float _mass = DefaultMass;
@@ -527,7 +526,23 @@ public partial class RigidBody : Component
     public void ResetForces()
     {
         if (_bodyId != InvalidBodyId && _physicsWorld is not null && _physicsWorld.TryGetTarget(out var world))
-            JoltNativeBindings.RedBoltResetBodyForces(world.World, _bodyId);
+        {
+            using var bodyLock = world.World.GetBodyLockInterface();
+            using var mutex = bodyLock.LockWrite(in _bodyId);
+            try
+            {
+                using var body = bodyLock.TryGetBody(in _bodyId);
+                if (!body.IsNull)
+                {
+                    body.ResetForce();
+                    body.ResetTorque();
+                }
+            }
+            finally
+            {
+                bodyLock.UnlockWrite(mutex);
+            }
+        }
     }
 
     /// <summary>Activate rigid body if it was resting.</summary>
@@ -779,7 +794,8 @@ public partial class RigidBody : Component
         if (_mass > 0.0f)
         {
             settings.MOverrideMassProperties = EOverrideMassProperties.CalculateInertia;
-            settings.MMassPropertiesOverrideMMass = _mass;
+            using var massProperties = settings.MMassPropertiesOverride;
+            massProperties.MMass = _mass;
         }
 
         _bodyId = world.BodyInterface.CreateAndAddBody(settings, _mass > 0.0f ? EActivation.Activate : EActivation.DontActivate);
@@ -827,15 +843,7 @@ public partial class RigidBody : Component
         if (shapes.Count == 1)
             return shapes[0];
 
-        _compoundShapeOwner = new RedBoltCompoundShape();
-        for (var i = 0; i < shapes.Count; ++i)
-            _compoundShapeOwner.AddShape(shapes[i]);
-        if (!_compoundShapeOwner.Build())
-        {
-            ReleaseCompoundShape();
-            return null;
-        }
-        _compoundShape = _compoundShapeOwner.GetShape();
+        _compoundShape = JoltShapeFactory.CreateCompound(shapes);
         return _compoundShape;
     }
 
@@ -843,8 +851,6 @@ public partial class RigidBody : Component
     {
         _compoundShape?.Dispose();
         _compoundShape = null;
-        _compoundShapeOwner?.Dispose();
-        _compoundShapeOwner = null;
     }
 
     private EMotionType GetMotionType() => _kinematic ? EMotionType.Kinematic : _mass > 0.0f ? EMotionType.Dynamic : EMotionType.Static;

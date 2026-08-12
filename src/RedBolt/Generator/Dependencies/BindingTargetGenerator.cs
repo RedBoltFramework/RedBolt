@@ -279,6 +279,7 @@ internal abstract class BindingTargetGenerator(
         {
             if (record.IsIgnored() ||
                 !record.CppQualifiedName.StartsWith("std::", StringComparison.Ordinal) ||
+                !string.IsNullOrWhiteSpace(record.GetMetadata<string>(MetadataKeys.ManagedWrapperAssembly)) ||
                 RetainStdlibWrapper(record))
             {
                 continue;

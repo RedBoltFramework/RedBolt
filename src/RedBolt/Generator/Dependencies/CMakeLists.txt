@@ -222,7 +222,9 @@ file(CONFIGURE OUTPUT "${REDBOLT_JOLT_PARSE_HEADER}" CONTENT [=[
 #include <Jolt/Physics/Collision/BroadPhase/ObjectVsBroadPhaseLayerFilterTable.h>
 #include <Jolt/Physics/Collision/CollideShape.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
+#include <Jolt/Physics/Collision/CollisionCollectorImpl.h>
 #include <Jolt/Physics/Collision/NarrowPhaseQuery.h>
+#include <Jolt/Physics/Collision/ShapeCast.h>
 #include <Jolt/Physics/Collision/ObjectLayerPairFilterMask.h>
 #include <Jolt/Physics/Collision/ObjectLayerPairFilterTable.h>
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
@@ -249,6 +251,17 @@ file(CONFIGURE OUTPUT "${REDBOLT_JOLT_PARSE_HEADER}" CONTENT [=[
 #include <Jolt/Physics/Vehicle/VehicleConstraint.h>
 #include <Jolt/Physics/Vehicle/WheeledVehicleController.h>
 #include <Jolt/Physics/PhysicsSystem.h>
+
+namespace JPH
+{
+using RedBoltAllHitCastRayCollector [[sharpcpp::materialize]] = AllHitCollisionCollector<CastRayCollector>;
+using RedBoltClosestCastShapeCollector [[sharpcpp::materialize]] = ClosestHitCollisionCollector<CastShapeCollector>;
+using RedBoltAllHitCollideShapeCollector [[sharpcpp::materialize]] = AllHitCollisionCollector<CollideShapeCollector>;
+
+static_assert(sizeof(RedBoltAllHitCastRayCollector) > 0);
+static_assert(sizeof(RedBoltClosestCastShapeCollector) > 0);
+static_assert(sizeof(RedBoltAllHitCollideShapeCollector) > 0);
+}
 ]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_SDL_PARSE_SOURCE}" CONTENT [=[
 #include <SDL_config.h>
@@ -327,7 +340,9 @@ set(REDBOLT_BINDING_INCLUDE_DIRS
     "${REDBOLT_BINDING_INCLUDE_DIRS}"
     CACHE INTERNAL "Include directories used by RedBolt SharpCpp dependency generation" FORCE)
 set(_redbolt_binding_defines ${REDBOLT_DILIGENT_BINDING_DEFINES})
-if(CMAKE_CONFIGURATION_TYPES OR CMAKE_BUILD_TYPE MATCHES "^(Release|Distribution|ReleaseASAN|ReleaseUBSAN|ReleaseTSAN|ReleaseCoverage)$")
+if(CMAKE_CONFIGURATION_TYPES)
+    list(APPEND _redbolt_binding_defines "$<$<NOT:$<CONFIG:Debug>>:NDEBUG>")
+elseif(CMAKE_BUILD_TYPE MATCHES "^(Release|Distribution|ReleaseASAN|ReleaseUBSAN|ReleaseTSAN|ReleaseCoverage)$")
     list(APPEND _redbolt_binding_defines NDEBUG)
 endif()
 set(REDBOLT_BINDING_DEFINES

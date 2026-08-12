@@ -60,7 +60,7 @@ public struct PhysicsRaycastResult
     public float HitFraction;
 }
 
-/// <summary>Representative physics contact.</summary>
+/// <summary>Physics contact point reported as part of a collision manifold.</summary>
 public struct PhysicsContact
 {
     /// <summary>Contact position in world space.</summary>
