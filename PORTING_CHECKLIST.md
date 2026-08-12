@@ -319,8 +319,8 @@ Ordered so that optional subsystems depended on by other optional subsystems com
   - [ ] `RaycastVehicleWheel : Component`
 - [ ] `RaycastVehicle.h`
   - [ ] `RaycastVehicle : LogicComponent`
-- [ ] `TriggerAnimator.h`
-  - [ ] `TriggerAnimator : Component`
+- [x] `TriggerAnimator.h`
+  - [x] `TriggerAnimator : Component`
 
 ## B5. Physics2D `OPTIONAL` — Box2D; depends on Scene, Graphics
 
