@@ -95,19 +95,6 @@ index 588768df5..786d05767 100644
  
      template <typename ResourceType>
      ResourceType& GetResource(Uint32 ResIndex) const
-diff --git a/Graphics/GraphicsEngineD3D11/include/pch.h b/Graphics/GraphicsEngineD3D11/include/pch.h
-index 0ecad30ea..49bf00a18 100644
---- a/Graphics/GraphicsEngineD3D11/include/pch.h
-+++ b/Graphics/GraphicsEngineD3D11/include/pch.h
-@@ -69,7 +69,7 @@
- 
- #include "WinHPostface.h"
- 
--#ifndef NTDDI_WIN10_FE // First defined in Win SDK 10.0.20348.0
-+#if !defined(NTDDI_WIN10_FE) || (defined(__MINGW32__) && !defined(__clang__)) // First defined in Win SDK 10.0.20348.0
- constexpr D3D_FEATURE_LEVEL D3D_FEATURE_LEVEL_12_2 = static_cast<D3D_FEATURE_LEVEL>(0xc200);
- #endif
-
 diff --git a/Graphics/GraphicsEngineD3D11/src/ShaderResourcesD3D11.cpp b/Graphics/GraphicsEngineD3D11/src/ShaderResourcesD3D11.cpp
 index bbfbf1b3a..abb639f61 100755
 --- a/Graphics/GraphicsEngineD3D11/src/ShaderResourcesD3D11.cpp
@@ -208,19 +195,18 @@ index ccdafa312..a4311f6b9 100644
      }
  
  
-diff --git a/Graphics/GraphicsEngineD3D12/include/pch.h b/Graphics/GraphicsEngineD3D12/include/pch.h
-index 2167680c3..66367ec02 100644
---- a/Graphics/GraphicsEngineD3D12/include/pch.h
-+++ b/Graphics/GraphicsEngineD3D12/include/pch.h
-@@ -44,7 +44,7 @@
+diff --git a/Graphics/GraphicsEngineD3D12/src/CommandContext.cpp b/Graphics/GraphicsEngineD3D12/src/CommandContext.cpp
+--- a/Graphics/GraphicsEngineD3D12/src/CommandContext.cpp
++++ b/Graphics/GraphicsEngineD3D12/src/CommandContext.cpp
+@@ -171,8 +171,6 @@ public:
+     template <typename ResourceType>
+     void GetD3D12ResourceAndState(ResourceType& Resource);
  
- #include "WinHPostface.h"
- 
--#ifndef NTDDI_WIN10_FE // First defined in Win SDK 10.0.20348.0
-+#if !defined(NTDDI_WIN10_FE) || (defined(__MINGW32__) && !defined(__clang__)) // First defined in Win SDK 10.0.20348.0
- constexpr D3D_FEATURE_LEVEL D3D_FEATURE_LEVEL_12_2 = static_cast<D3D_FEATURE_LEVEL>(0xc200);
- #endif
- 
+-    template <> void GetD3D12ResourceAndState<BufferD3D12Impl>(BufferD3D12Impl& Buffer);
+-
+     void AddD3D12ResourceBarriers(TextureD3D12Impl& Tex, D3D12_RESOURCE_BARRIER& d3d12Barrier);
+     void AddD3D12ResourceBarriers(BufferD3D12Impl& Buff, D3D12_RESOURCE_BARRIER& d3d12Barrier);
+     void AddD3D12ResourceBarriers(TopLevelASD3D12Impl& TLAS, D3D12_RESOURCE_BARRIER& d3d12Barrier);
 diff --git a/Graphics/GraphicsEngineD3D12/src/EngineFactoryD3D12.cpp b/Graphics/GraphicsEngineD3D12/src/EngineFactoryD3D12.cpp
 index 2736bc0f7..f5002e8a5 100644
 --- a/Graphics/GraphicsEngineD3D12/src/EngineFactoryD3D12.cpp

@@ -65,11 +65,11 @@
 
   <Target Name="RedBoltRestoreSelectedProjects" DependsOnTargets="RedBoltValidateBuildConfiguration">
     <Message Importance="high" Text="Restoring selected RedBolt build variants." />
-    <MSBuild Projects="@(_RedBoltDesktopProject)" Targets="Restore" BuildInParallel="true" Properties="$(_RedBoltLinuxProperties)" Condition="'$(RedBoltLinuxEnabled)' == 'true' and '$(RedBoltX64Enabled)' == 'true'" />
-    <MSBuild Projects="@(_RedBoltDesktopProject)" Targets="Restore" BuildInParallel="true" Properties="$(_RedBoltWindowsProperties)" Condition="'$(RedBoltWindowsEnabled)' == 'true' and '$(RedBoltX64Enabled)' == 'true'" />
-    <MSBuild Projects="@(_RedBoltAndroidProject)" Targets="Restore" BuildInParallel="true" Properties="$(_RedBoltAndroidX64Properties)" Condition="'$(RedBoltAndroidEnabled)' == 'true' and '$(RedBoltX64Enabled)' == 'true'" />
-    <MSBuild Projects="@(_RedBoltAndroidProject)" Targets="Restore" BuildInParallel="true" Properties="$(_RedBoltAndroidArm64Properties)" Condition="'$(RedBoltAndroidEnabled)' == 'true' and '$(RedBoltArm64Enabled)' == 'true'" />
-    <MSBuild Projects="@(_RedBoltWebProject)" Targets="Restore" BuildInParallel="true" Properties="$(_RedBoltWebProperties)" Condition="'$(RedBoltWebEnabled)' == 'true'" />
+    <MSBuild Projects="@(_RedBoltDesktopProject)" Targets="Restore" BuildInParallel="false" Properties="$(_RedBoltLinuxProperties)" Condition="'$(RedBoltLinuxEnabled)' == 'true' and '$(RedBoltX64Enabled)' == 'true'" />
+    <MSBuild Projects="@(_RedBoltDesktopProject)" Targets="Restore" BuildInParallel="false" Properties="$(_RedBoltWindowsProperties)" Condition="'$(RedBoltWindowsEnabled)' == 'true' and '$(RedBoltX64Enabled)' == 'true'" />
+    <MSBuild Projects="@(_RedBoltAndroidProject)" Targets="Restore" BuildInParallel="false" Properties="$(_RedBoltAndroidX64Properties)" Condition="'$(RedBoltAndroidEnabled)' == 'true' and '$(RedBoltX64Enabled)' == 'true'" />
+    <MSBuild Projects="@(_RedBoltAndroidProject)" Targets="Restore" BuildInParallel="false" Properties="$(_RedBoltAndroidArm64Properties)" Condition="'$(RedBoltAndroidEnabled)' == 'true' and '$(RedBoltArm64Enabled)' == 'true'" />
+    <MSBuild Projects="@(_RedBoltWebProject)" Targets="Restore" BuildInParallel="false" Properties="$(_RedBoltWebProperties)" Condition="'$(RedBoltWebEnabled)' == 'true'" />
   </Target>
 
   <Target Name="RedBoltBuildSelectedProjects" DependsOnTargets="RedBoltValidateBuildConfiguration">

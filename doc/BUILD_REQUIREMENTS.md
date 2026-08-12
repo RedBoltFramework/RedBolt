@@ -60,6 +60,12 @@ Use these case-insensitive, comma- or semicolon-separated MSBuild properties:
 | `RedBoltEnableArchitectures`, `RedBoltDisableArchitectures` | `x64`, `arm64`, `all` |
 | `RedBoltEnableModules`, `RedBoltDisableModules` | `actions`, `audio`, `dear-imgui`, `glow`, `ik`, `navigation`, `network`, `particles`, `physics-jolt`, `rml-ui`, `utility`, `editor`, `samples`, `tests`, `all` |
 
+Use `-p:RedBoltFull` to enable all platforms, architectures, and modules:
+
+```sh
+dotnet build RedBolt.slnx -p:RedBoltFull
+```
+
 MSBuild itself treats commas and semicolons in a `-p:` switch as property
 separators. Escape a multi-key command-line value, for example
 `-p:RedBoltEnablePlatforms=linux%2cwindows`. Values in props files do not need

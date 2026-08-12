@@ -1,11 +1,16 @@
 <Project>
   <PropertyGroup>
     <RedBoltBuildConfigPath Condition="'$(RedBoltBuildConfigPath)' == ''">$(RedBoltRoot)/build/BuildConfig.props</RedBoltBuildConfigPath>
+    <RedBoltFull Condition="'$(RedBoltFull)' == ''">false</RedBoltFull>
   </PropertyGroup>
 
   <Import Project="$(RedBoltBuildConfigPath)" Condition="Exists('$(RedBoltBuildConfigPath)')" />
 
   <PropertyGroup>
+    <RedBoltEnablePlatforms Condition="'$(RedBoltFull)' != 'false'">all</RedBoltEnablePlatforms>
+    <RedBoltEnableArchitectures Condition="'$(RedBoltFull)' != 'false'">all</RedBoltEnableArchitectures>
+    <RedBoltEnableModules Condition="'$(RedBoltFull)' != 'false'">all</RedBoltEnableModules>
+
     <_RedBoltSavedEnablePlatforms Condition="'$(_RedBoltSavedEnablePlatforms)' == ''"></_RedBoltSavedEnablePlatforms>
     <_RedBoltSavedDisablePlatforms Condition="'$(_RedBoltSavedDisablePlatforms)' == ''"></_RedBoltSavedDisablePlatforms>
     <_RedBoltSavedEnableArchitectures Condition="'$(_RedBoltSavedEnableArchitectures)' == ''"></_RedBoltSavedEnableArchitectures>

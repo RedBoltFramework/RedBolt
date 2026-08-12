@@ -30,16 +30,16 @@ internal static class FixedWidthAliasNormalizer
 
         foreach (var function in compilation.Functions)
         {
-            function.ReturnType = NormalizeType(function.ReturnType, projections);
+            function.ReturnType = NormalizeType(function.ReturnType, function.CppReturnTypeName, projections);
             foreach (var parameter in function.Parameters)
-                parameter.Type = NormalizeType(parameter.Type, projections);
+                parameter.Type = NormalizeType(parameter.Type, parameter.CppTypeName, projections);
             NormalizeGenericInstantiations(function.SupportedGenericInstantiations, projections);
         }
 
         foreach (var record in compilation.Records)
         {
             foreach (var field in record.Members.OfType<FieldBinding>())
-                field.Type = NormalizeType(field.Type, projections);
+                field.Type = NormalizeType(field.Type, field.CppTypeName, projections);
             NormalizeGenericInstantiations(record.SupportedGenericInstantiations, projections);
         }
 
@@ -73,6 +73,17 @@ internal static class FixedWidthAliasNormalizer
             for (var index = 0; index < instantiation.TypeArguments.Count; ++index)
                 instantiation.UpdateTypeArgument(index, NormalizeType(instantiation.TypeArguments[index], projections));
         }
+    }
+
+    private static BindingType NormalizeType(
+        BindingType type,
+        string cppTypeName,
+        IReadOnlyDictionary<string, FixedWidthAliasProjection> projections)
+    {
+        type = NormalizeType(type, projections);
+        return TryGetProjection(cppTypeName, projections, out var projection)
+            ? ProjectType(type, projection)
+            : type;
     }
 
     private static BindingType NormalizeType(

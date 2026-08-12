@@ -22,6 +22,13 @@ internal abstract class BindingTargetGenerator(
     string languageStandardArgument,
     bool useMarshallerConfiguration)
 {
+    private static readonly IReadOnlyDictionary<string, FixedWidthAliasProjection> NativeSizeAliases =
+        new Dictionary<string, FixedWidthAliasProjection>(StringComparer.Ordinal)
+        {
+            ["size_t"] = new(BindingPrimitiveKind.NativeUInt, "nuint"),
+            ["std::size_t"] = new(BindingPrimitiveKind.NativeUInt, "nuint")
+        };
+
     private static readonly string[] ParseCompatibilityDefines =
     [
         "SDL_DISABLE_MM3DNOW_H=1",
@@ -97,6 +104,7 @@ internal abstract class BindingTargetGenerator(
         foreach (var marshallerHeader in marshallerHeaders)
             compilation.NativeSupportHeaders.Add(marshallerHeader.Replace('\\', '/'));
 
+        FixedWidthAliasNormalizer.Normalize(compilation, NativeSizeAliases);
         ConfigureCompilation(compilation);
         var ignoredStdlibWrapperCount = 0;
         BindingCompilationBootstrapPipeline.Apply(

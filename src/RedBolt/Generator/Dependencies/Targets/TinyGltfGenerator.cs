@@ -25,6 +25,22 @@ internal sealed class TinyGltfGenerator(string nativeLibraryName)
     protected override bool RetainStdlibWrapper(RecordBinding record) =>
         record.ManagedNamespace == "Std" && record.ManagedName is "Map" or "String" or "Vector";
 
+    protected override void ConfigureCompilation(BindingCompilation compilation)
+    {
+        foreach (var alias in compilation.TypeAliases)
+        {
+            foreach (var field in compilation.Descendants<FieldBinding>()
+                         .Where(field => field.CppTypeName == alias.NativeName ||
+                                         field.CppTypeName == alias.CppQualifiedName))
+                field.Type = alias.TargetType;
+
+            foreach (var parameter in compilation.Descendants<ParameterBinding>()
+                         .Where(parameter => parameter.CppTypeName == alias.NativeName ||
+                                             parameter.CppTypeName == alias.CppQualifiedName))
+                parameter.Type = alias.TargetType;
+        }
+    }
+
     protected override void AfterPruneCompilation(BindingCompilation compilation)
     {
         var vector = compilation.Records.Single(record => record.CppQualifiedName == "std::vector");

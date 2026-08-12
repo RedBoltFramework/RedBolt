@@ -349,6 +349,16 @@ if(MINGW)
                 COMMAND "${CMAKE_CXX_COMPILER}" "-print-file-name=${_redbolt_mingw_runtime}"
                 OUTPUT_VARIABLE _redbolt_mingw_runtime_file
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
+            if(NOT EXISTS "${_redbolt_mingw_runtime_file}")
+                execute_process(
+                    COMMAND "${CMAKE_CXX_COMPILER}" -dumpmachine
+                    OUTPUT_VARIABLE _redbolt_mingw_target
+                    OUTPUT_STRIP_TRAILING_WHITESPACE)
+                get_filename_component(_redbolt_mingw_root "${CMAKE_CXX_COMPILER}" DIRECTORY)
+                get_filename_component(_redbolt_mingw_root "${_redbolt_mingw_root}" DIRECTORY)
+                set(_redbolt_mingw_runtime_file
+                    "${_redbolt_mingw_root}/${_redbolt_mingw_target}/bin/${_redbolt_mingw_runtime}")
+            endif()
         endif()
         if(NOT EXISTS "${_redbolt_mingw_runtime_file}")
             message(FATAL_ERROR "MinGW runtime was not found: ${_redbolt_mingw_runtime}")
