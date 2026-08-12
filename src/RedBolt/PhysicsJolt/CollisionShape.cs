@@ -486,6 +486,13 @@ public partial class CollisionShape : Component
         UpdateShape();
     }
 
+    /// <summary>Instantiate a collision shape whose type is not one of <see cref="PhysicsJolt.ShapeType"/>.</summary>
+    /// <remarks>
+    /// Override this method in a derived component that uses a custom shape type and return the corresponding
+    /// non-standard Jolt <see cref="Shape"/>. The default implementation returns <see langword="null"/>.
+    /// </remarks>
+    protected virtual Shape? UpdateDerivedShape(int shapeType, Vector3f newWorldScale) => null;
+
     private void UpdateShape()
     {
         _recreateShape = false;
@@ -510,7 +517,7 @@ public partial class CollisionShape : Component
             ShapeType.ConvexHull => CreateCachedGeometryShape(physicsWorld.ConvexCache, worldScale),
             ShapeType.Terrain => CreateTerrain(worldScale),
             ShapeType.GImpactMesh => CreateCachedGeometryShape(physicsWorld.GImpactTrimeshCache, worldScale),
-            _ => null
+            _ => UpdateDerivedShape((int)_shapeType, _cachedWorldScale)
         };
 
         if (shape is not null && (_position != Vector3f.Zero || !_rotation.ApproximatelyEquivalent(Quaternion.IDENTITY)))
