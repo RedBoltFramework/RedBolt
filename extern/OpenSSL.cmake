@@ -26,7 +26,7 @@ if(EMSCRIPTEN)
 endif()
 
 CPMAddPackage(
-    NAME OpenSSL
+    NAME openssl
     GIT_REPOSITORY https://github.com/openssl/openssl.git
     GIT_TAG OpenSSL_1_1_1q
     CUSTOM_CACHE_KEY "."
@@ -35,7 +35,7 @@ CPMAddPackage(
 
 # Adapted from rbfx's CMake build for OpenSSL 1.1.1q.
 set(REDBOLT_OPENSSL_SOURCE_DIR
-    "${OpenSSL_SOURCE_DIR}"
+    "${openssl_SOURCE_DIR}"
     CACHE INTERNAL "OpenSSL source directory")
 redbolt_require_path("${REDBOLT_OPENSSL_SOURCE_DIR}" "OpenSSL source tree")
 set(_redbolt_openssl_binary_dir "${CMAKE_BINARY_DIR}/deps/OpenSSL")

@@ -2,7 +2,7 @@
   <PropertyGroup>
     <RedBoltRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</RedBoltRoot>
     <RedBoltBuildRoot>$(RedBoltRoot)/build</RedBoltBuildRoot>
-    <RedBoltSharpCppRoot>$(RedBoltRoot)/extern/sharpcpp</RedBoltSharpCppRoot>
+    <RedBoltSharpCppRoot>$(RedBoltRoot)/extern/SharpCpp</RedBoltSharpCppRoot>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and ('$(MSBuildProjectName)' == 'RedBolt.Build' or '$(MSBuildProjectName)' == 'RedBolt.Generator.Dependencies' or '$(MSBuildProjectName)' == 'RedBolt.Generator.Reflection')">tools</RedBoltPlatform>
     <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and ('$(MSBuildProjectName)' == 'RedBolt.Native.Web' or '$(MSBuildProjectName)' == 'RedBolt.Sample.Web')">browser-wasm</RedBoltPlatform>

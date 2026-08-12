@@ -43,7 +43,7 @@ if(ANDROID)
 endif()
 
 set(REDBOLT_DEPENDENCY_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/extern" CACHE PATH "Path to RedBolt dependency sources" FORCE)
-set(REDBOLT_SHARPCPP_ROOT "${REDBOLT_DEPENDENCY_ROOT}/sharpcpp" CACHE PATH "Path to the SharpCpp source tree" FORCE)
+set(REDBOLT_SHARPCPP_ROOT "${REDBOLT_DEPENDENCY_ROOT}/SharpCpp" CACHE PATH "Path to the SharpCpp source tree" FORCE)
 if(ANDROID)
     if(ANDROID_ABI STREQUAL "arm64-v8a")
         set(_redbolt_default_runtime_identifier android-arm64)

@@ -317,7 +317,7 @@
           DependsOnTargets="IncludeTransitiveProjectReferences">
     <ItemGroup>
       <ProjectReference Update="@(ProjectReference)"
-                        Condition="$([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/extern/dotrecast/'))"
+                        Condition="$([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/extern/DotRecast/'))"
                         AdditionalProperties="$(RedBoltExternalManagedProperties)"
                         SetTargetFramework="TargetFramework=net10.0"
                         GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset;RuntimeIdentifier;SelfContained;PublishSelfContained"

@@ -872,7 +872,7 @@ function(CPMAddPackage)
     list(SORT origin_parameters)
     if(CPM_ARGS_CUSTOM_CACHE_KEY)
       # Application set a custom unique directory name
-      set(download_directory ${CPM_SOURCE_CACHE}/${lower_case_name}/${CPM_ARGS_CUSTOM_CACHE_KEY})
+      set(download_directory ${CPM_SOURCE_CACHE}/${CPM_ARGS_NAME}/${CPM_ARGS_CUSTOM_CACHE_KEY})
     elseif(CPM_USE_NAMED_CACHE_DIRECTORIES)
       string(SHA1 origin_hash "${origin_parameters};NEW_CACHE_STRUCTURE_TAG")
       cpm_get_shortest_hash(
