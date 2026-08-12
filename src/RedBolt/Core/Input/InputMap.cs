@@ -114,10 +114,19 @@ public partial class InputMap : SimpleResource
             for (var i = 0; i < actionsBlock.SizeHint; ++i)
             {
                 using var actionBlock = archive.OpenUnorderedBlock("action");
-                var name = string.Empty;
-                ArchiveSerialization.SerializeValue(archive, "name", ref name);
                 var mapping = new ActionMapping();
-                mapping.SerializeInBlock(archive);
+                var name = string.Empty;
+                if (archive.IsUnorderedAccessSupportedInCurrentBlock && archive.HasElementOrBlock("key"))
+                {
+                    ArchiveSerialization.SerializeValue(archive, "key", ref name);
+                    using var valueBlock = archive.OpenUnorderedBlock("value");
+                    mapping.SerializeInBlock(archive);
+                }
+                else
+                {
+                    ArchiveSerialization.SerializeValue(archive, "name", ref name);
+                    mapping.SerializeInBlock(archive);
+                }
                 _actions[name] = mapping;
             }
         }
