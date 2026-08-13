@@ -112,7 +112,23 @@ STEP 3 - Match every member, one by one (initial direct port)
        operation using the language-semantics rules in section 5A.
     g. Implement copy-constructors as `ICloneable.Clone()` and port every call
        site that invokes C++ copy construction with an actual independent clone.
-    h. Match member access (do not use `internal` for ported functions ever).
+    h. Match member access exactly. C++ `friend` grants access to the friend; it
+       does not change the declared access of the member:
+       - Keep every ported `public`, `protected`, and `private` member `public`,
+         `protected`, and `private`, respectively.
+       - NEVER change a ported member to `internal` or `protected internal` to
+         emulate friendship. This includes fields and virtual functions.
+       - If a mapped friend caller needs otherwise-inaccessible access, add the
+         smallest C#-only `internal` forwarding method or accessor on the
+         declaring type. Name it explicitly as a friend bridge, keep the ported
+         member unchanged, and use the bridge only from mapped friend callers.
+       - A friend bridge to a virtual member must invoke the unchanged virtual
+         member so normal override dispatch is preserved.
+       - Do not expose a field itself through `internal`; prefer a narrow
+         operation, or an accessor only when the friend must read or write the
+         field directly.
+       `internal` remains allowed for genuinely C#-only implementation types
+       and helpers that do not represent C++ members.
 
 STEP 3A - Fixes discovered while building or testing
   If a build, test, sample, debugger, or trace reveals a problem:
