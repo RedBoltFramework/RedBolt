@@ -10,6 +10,9 @@ using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Math;
+using RedBolt.Particles;
+using RedBolt.Particles.ParticleGraphNodes;
+using RedBolt.Resource;
 using RedBolt.Scene;
 
 internal static class ParticlesProgram
@@ -34,6 +37,7 @@ sealed class ParticlesApplication : Application
     private Node? _cameraNode;
     private Node? _burstRing;
     private Node? _discoRing;
+    private ParticleGraphEffect? _graphEffect;
     private Viewport? _viewport;
 
     protected override void Setup(EngineParameters parameters)
@@ -54,6 +58,8 @@ sealed class ParticlesApplication : Application
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
+        if (Context.GetSubsystem<ParticleGraphSystem>() is null)
+            Context.RegisterSubsystem(new ParticleGraphSystem());
         SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
             (ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
 
@@ -96,6 +102,11 @@ sealed class ParticlesApplication : Application
 
         CreateEmitter(_scene, "Fire", new Vector3f(0.0f, 1.0f, 0.0f), 5.0f, fire);
         CreateEmitter(_scene, "Smoke", new Vector3f(0.0f, 1.0f, 0.0f), 2.5f, smoke);
+
+        _graphEffect = CreateGraphEffect();
+        var graphEmitterNode = _scene.CreateChild("ParticleGraphRing");
+        graphEmitterNode.SetPosition(new Vector3f(0.0f, 5.0f, 0.0f));
+        graphEmitterNode.CreateComponent<ParticleGraphEmitter>().SetEffect(_graphEffect);
 
         _burstRing = _scene.CreateChild("BurstRing");
         for (var i = 0; i < 8; ++i)
@@ -142,6 +153,97 @@ sealed class ParticlesApplication : Application
         node.SetPosition(position);
         node.SetScale(scale);
         node.CreateComponent<ParticleEmitter>().SetEffect(effect);
+    }
+
+    private static ParticleGraphEffect CreateGraphEffect()
+    {
+        const int numParticles = 12;
+        var effect = new ParticleGraphEffect();
+        effect.SetNumLayers(numParticles);
+        for (var i = 0; i < numParticles; ++i)
+        {
+            var layer = effect.GetLayer(i);
+            layer.Capacity = 1;
+
+            var emitCount = AddConstant(layer.EmitGraph, 1.0f);
+            var emit = new Emit();
+            emit.SetPinSource(0, emitCount);
+            layer.EmitGraph.Add(emit);
+
+            var angle = 360.0f * i / numParticles;
+            var position = new Vector3f(MathDefs.Sin(angle) * 3.4f, MathDefs.Cos(angle) * 3.4f, 0.0f);
+            AddSetAttribute(layer.InitGraph, "position", VariantType.Vector3,
+                AddConstant(layer.InitGraph, position));
+
+            var getPosition = new GetAttribute();
+            getPosition.SetAttributeName("position");
+            getPosition.SetAttributeType(VariantType.Vector3);
+            var positionIndex = layer.UpdateGraph.Add(getPosition);
+            var sizeIndex = AddConstant(layer.UpdateGraph, new Vector2f(0.8f, 0.8f));
+            var frameIndex = AddConstant(layer.UpdateGraph, 0.0f);
+            var colorIndex = AddConstant(layer.UpdateGraph, (i % 3) switch
+            {
+                0 => new Color(0.05f, 0.8f, 1.0f),
+                1 => new Color(1.0f, 0.1f, 0.65f),
+                _ => new Color(1.0f, 0.75f, 0.05f)
+            });
+            var rotationIndex = AddConstant(layer.UpdateGraph, 0.0f);
+            var directionIndex = AddConstant(layer.UpdateGraph, Vector3f.Up);
+            var render = new RenderBillboard
+            {
+                Material = new ResourceRef(typeof(Material).GetTypeId(), "Materials/Particle.xml"),
+                Rows = 1,
+                Columns = 1
+            };
+            render.SetPinSource(0, positionIndex);
+            render.SetPinSource(1, sizeIndex);
+            render.SetPinSource(2, frameIndex);
+            render.SetPinSource(3, colorIndex);
+            render.SetPinSource(4, rotationIndex);
+            render.SetPinSource(5, directionIndex);
+            layer.UpdateGraph.Add(render);
+        }
+        return effect;
+    }
+
+    private static int AddConstant(ParticleGraph graph, float value)
+    {
+        using var variant = new Variant(value);
+        return AddConstant(graph, variant);
+    }
+
+    private static int AddConstant(ParticleGraph graph, Vector2f value)
+    {
+        using var variant = new Variant(value);
+        return AddConstant(graph, variant);
+    }
+
+    private static int AddConstant(ParticleGraph graph, Vector3f value)
+    {
+        using var variant = new Variant(value);
+        return AddConstant(graph, variant);
+    }
+
+    private static int AddConstant(ParticleGraph graph, Color value)
+    {
+        using var variant = new Variant(value);
+        return AddConstant(graph, variant);
+    }
+
+    private static int AddConstant(ParticleGraph graph, in Variant value)
+    {
+        var constant = new Constant();
+        constant.SetValue(value);
+        return graph.Add(constant);
+    }
+
+    private static void AddSetAttribute(ParticleGraph graph, string name, VariantType type, int sourceNode)
+    {
+        var setAttribute = new SetAttribute();
+        setAttribute.SetAttributeName(name);
+        setAttribute.SetAttributeType(type);
+        setAttribute.SetPinSource(1, sourceNode);
+        graph.Add(setAttribute);
     }
 
     private void SetupViewport()
@@ -197,5 +299,7 @@ sealed class ParticlesApplication : Application
         _cameraNode = null;
         _scene?.Dispose();
         _scene = null;
+        _graphEffect?.Dispose();
+        _graphEffect = null;
     }
 }

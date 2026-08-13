@@ -594,16 +594,16 @@ Accepted deviations:
 - [x] `Emitter.h`
   - [x] `EmitFrom`
   - [x] `GetEmitFromNames`
-- [ ] `Helpers.h`
-  - [ ] particle helper free functions
+- [x] `Helpers.h`
+  - [x] particle helper free functions
 - [x] `Span.h`
   - [x] `Span` view type
 - [x] `SpanVariants.h`
   - [x] dormant span variant implementation comment
-- [ ] `UpdateContext.h`
-  - [ ] `UpdateContext`
-- [ ] `ParticleGraphMemory.h`
-  - [ ] `ParticleGraphSpan` (managed-reference value support pending)
+- [x] `UpdateContext.h`
+  - [x] `UpdateContext`
+- [x] `ParticleGraphMemory.h`
+  - [x] `ParticleGraphSpan` (including managed-reference values)
   - [x] `ParticleGraphAttributeLayout`
   - [x] `ParticleGraphBufferLayout`
 - [x] `ParticleGraphPin.h`
@@ -611,39 +611,40 @@ Accepted deviations:
   - [x] `ParticleGraphPinRef`
   - [x] `ParticleGraphPin`
   - [x] `ParticleGraphTypedPin<T>`
-- [ ] `Attribute.h`
-  - [ ] particle attribute descriptors
-- [ ] `ParticleGraphNode.h`
-  - [ ] `ParticleGraphNode : Serializable`
-- [ ] `ParticleGraphNodeInstance.h`
-  - [ ] `ParticleGraphNodeInstance : NonCopyable`
-- [ ] `ParticleGraphSystem.h`
-  - [ ] `ParticleGraphSystem : Object, ObjectReflectionRegistry`
-- [ ] `ParticleGraph.h`
-  - [ ] `ParticleGraph : Object`
-- [ ] `ParticleGraphLayer.h`
-  - [ ] `ParticleGraphLayer : Serializable`
-- [ ] `ParticleGraphLayerInstance.h`
-  - [ ] `ParicleGraphUniform`
-  - [ ] `ParticleGraphLayerInstance`
-- [ ] `TemplateNode.h`
-  - [ ] `TemplateNode<TInstance, ...>`
-- [ ] `PatternMatchingNode.h`
-  - [ ] `PatternMatchingNode : ParticleGraphNode`
-- [ ] `ParticleGraphEffect.h`
-  - [ ] `ParticleGraphEffect : Resource`
-- [ ] `ParticleGraphEmitter.h`
-  - [ ] `ParticleGraphEmitter : Component`
-- [ ] `Nodes/` (graph node library — each `: TemplateNode<...>`, `: PatternMatchingNode`, or `: ParticleGraphNode`)
-  - [ ] arithmetic: `Add`, `Subtract`, `Multiply`, `Divide`, `Negate`, `Clamp`, `Lerp`, `Slerp`, `Normalized`, `Make`, `Break`, `Cast`, `Length`
-  - [ ] sources: `Constant`, `Curve`, `Random`, `Uniform` (`GetUniform`/`SetUniform`), `Attribute` (`GetAttribute`/`SetAttribute`), `Print`
-  - [ ] lifecycle: `Emit`, `Expire`, `Destroy`
-  - [ ] motion: `Move`, `ApplyForce`, `LimitVelocity`
-  - [ ] time: `TimeStep`, `TimeStepScale`, `EffectTime`, `NormalizedEffectTime`
-  - [ ] shapes: `Box`, `Circle`, `Cone`, `Sphere`, `Hemisphere`
-  - [ ] noise: `Noise3D`, `CurlNoise3D`
-  - [ ] emitter: `BurstTimer`, `EmitterPosition`, `EmitterRotation`, `EmitterScale`, `LocalToWorld`, `WorldToLocal`
-  - [ ] render: `RenderBillboard`, `RenderMesh`
+- [x] `Attribute.h`
+  - [x] particle attribute descriptors
+- [x] `ParticleGraphNode.h`
+  - [x] `ParticleGraphNode : Serializable`
+- [x] `ParticleGraphNodeInstance.h`
+  - [x] `ParticleGraphNodeInstance : NonCopyable`
+- [x] `ParticleGraphSystem.h`
+  - [x] `ParticleGraphSystem : Object, ObjectReflectionRegistry`
+- [x] `ParticleGraph.h`
+  - [x] `ParticleGraph : Object`
+- [x] `ParticleGraphLayer.h`
+  - [x] `ParticleGraphLayer : Serializable`
+- [x] `ParticleGraphLayerInstance.h`
+  - [x] `ParticleGraphUniform`
+  - [x] `ParticleGraphLayerInstance`
+- [x] `TemplateNode.h`
+  - [x] `TemplateNode<TInstance, ...>`
+- [x] `PatternMatchingNode.h`
+  - [x] `PatternMatchingNode : ParticleGraphNode`
+- [x] `ParticleGraphEffect.h`
+  - [x] `ParticleGraphEffect : Resource`
+- [x] `ParticleGraphEmitter.h`
+  - [x] `ParticleGraphEmitter : Component`
+- [x] `Nodes/` (graph node library — each `: TemplateNode<...>`, `: PatternMatchingNode`, or `: ParticleGraphNode`)
+  - [x] arithmetic: `Add`, `Subtract`, `Multiply`, `Divide`, `Negate`, `Clamp`, `Lerp`, `Slerp`, `Normalized`, `Make`, `Break`, `Cast`, `Length`
+  - [x] sources: `Constant`, `Curve`, `Random`, `Uniform` (`GetUniform`/`SetUniform`), `Attribute` (`GetAttribute`/`SetAttribute`), `Print`
+  - [x] lifecycle: `Emit`, `Expire`, `Destroy`
+  - [x] motion: `Move`, `ApplyForce`, `LimitVelocity`
+  - [x] physics: `Bounce`
+  - [x] time: `TimeStep`, `TimeStepScale`, `EffectTime`, `NormalizedEffectTime`
+  - [x] shapes: `Box`, `Circle`, `Cone`, `Sphere`, `Hemisphere`
+  - [x] noise: `Noise3D`, `CurlNoise3D`
+  - [x] emitter: `BurstTimer`, `EmitterPosition`, `EmitterRotation`, `EmitterScale`, `LocalToWorld`, `WorldToLocal`
+  - [x] render: `RenderBillboard`, `RenderMesh`
 
 ## B12. Glow `OPTIONAL` — lightmap baking (Embree); depends on Graphics, Scene
 

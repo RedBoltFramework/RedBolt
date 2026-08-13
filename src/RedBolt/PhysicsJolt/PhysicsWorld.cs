@@ -33,7 +33,7 @@ using RedBolt.Scene;
 
 /// <summary>Physics simulation world component.</summary>
 [Reflected(ObjectCategory.Category_Subsystem, InheritAttributes = false)]
-public partial class PhysicsWorld : Component, IFixedUpdateSource
+public partial class PhysicsWorld : Component, IFixedUpdateSource, IPhysicsQueryWorld
 {
     private const int DefaultFps = 60;
     private const uint MaxBodies = 65_536;
@@ -505,6 +505,19 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
         if (JoltPhysicsQuery.SphereCast(
             World, nativeRay, radius, _raycastBroadPhaseLayerFilter, filter, out var hit))
             result = GetQueryResult(hit, maxDistance);
+    }
+
+    void IPhysicsQueryWorld.SphereCast(ref PhysicsSphereCastResult result, Ray ray, float radius, float maxDistance)
+    {
+        var physicsResult = default(PhysicsRaycastResult);
+        SphereCast(ref physicsResult, ray, radius, maxDistance);
+        result = new PhysicsSphereCastResult
+        {
+            HasHit = physicsResult.Body is not null,
+            Position = physicsResult.Position,
+            Normal = physicsResult.Normal,
+            Distance = physicsResult.Distance
+        };
     }
 
     /// <summary>Sweep a collision shape through the world and return the closest hit.</summary>

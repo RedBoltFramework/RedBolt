@@ -39,7 +39,7 @@ public enum ParticleGraphPinFlag
     /// <summary>
     /// Output pin is the same as unset Input pin flag.
     /// </summary>
-    Output = 0x0,
+    Output = 0x0, //ParticleGraphPinFlag.None,
     /// <summary>
     /// Input pin.
     /// </summary>
@@ -232,6 +232,8 @@ public class ParticleGraphPin : ICloneable
         return true;
     }
 
+    internal bool SetNameFromParticleGraphNodeFriend(string name) => SetName(name);
+
     /// <summary>
     /// Set pin value type.
     /// </summary>
@@ -250,6 +252,48 @@ public class ParticleGraphPin : ICloneable
         return true;
     }
 
+    internal bool SetValueTypeFromParticleGraphNodeFriend(VariantType valueType) => SetValueType(valueType);
+
+    internal ParticleGraphAttributeBuilderFriendAccess GetParticleGraphAttributeBuilderFriendAccess() => new(this);
+
+    internal readonly struct ParticleGraphAttributeBuilderFriendAccess
+    {
+        public ParticleGraphAttributeBuilderFriendAccess(ParticleGraphPin pin)
+        {
+            _pin = pin;
+        }
+
+        public ParticleGraphContainerType ContainerType => _pin._containerType;
+
+        public VariantType ValueType
+        {
+            get => _pin._valueType;
+            set => _pin._valueType = value;
+        }
+
+        public string Name => _pin._name;
+
+        public int SourceNode => _pin._sourceNode;
+
+        public int SourcePin => _pin._sourcePin;
+
+        public VariantType RequestedValueType => _pin._requestedValueType;
+
+        public int AttributeIndex
+        {
+            get => _pin._attributeIndex;
+            set => _pin._attributeIndex = value;
+        }
+
+        public ParticleGraphPinRef Memory
+        {
+            get => _pin._memory;
+            set => _pin._memory = value;
+        }
+
+        private readonly ParticleGraphPin _pin;
+    }
+
     /// <summary>
     /// Get input pin flag.
     /// </summary>
@@ -264,17 +308,17 @@ public class ParticleGraphPin : ICloneable
     /// <summary>
     /// Container type: span, sparse or scalar.
     /// </summary>
-    internal ParticleGraphContainerType _containerType = ParticleGraphContainerType.Auto;
+    private ParticleGraphContainerType _containerType = ParticleGraphContainerType.Auto;
 
     /// <summary>
     /// Value type at runtime.
     /// </summary>
-    internal VariantType _valueType = VariantType.None;
+    private VariantType _valueType = VariantType.None;
 
     /// <summary>
     /// Name of the pin for visual editor.
     /// </summary>
-    internal string _name = string.Empty;
+    private string _name = string.Empty;
 
     /// <summary>
     /// Pin name hash.
@@ -284,12 +328,12 @@ public class ParticleGraphPin : ICloneable
     /// <summary>
     /// Source node.
     /// </summary>
-    internal int _sourceNode = unchecked((int)uint.MaxValue);
+    private int _sourceNode = unchecked((int)uint.MaxValue);
 
     /// <summary>
     /// Source node pin index.
     /// </summary>
-    internal int _sourcePin;
+    private int _sourcePin;
 
     /// <summary>
     /// Is input pin.
@@ -299,17 +343,17 @@ public class ParticleGraphPin : ICloneable
     /// <summary>
     /// Value type (float, vector3, etc).
     /// </summary>
-    internal VariantType _requestedValueType = VariantType.None;
+    private VariantType _requestedValueType = VariantType.None;
 
     /// <summary>
     /// Index of attribute. Only valid for sparse pins.
     /// </summary>
-    internal int _attributeIndex;
+    private int _attributeIndex;
 
     /// <summary>
     /// Reference to a memory block that corresponds to the pin value.
     /// </summary>
-    internal ParticleGraphPinRef _memory = new();
+    private ParticleGraphPinRef _memory = new();
 }
 
 public class ParticleGraphTypedPin<T> : ParticleGraphPin

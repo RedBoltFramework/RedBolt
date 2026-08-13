@@ -7,5 +7,6 @@
   <ItemGroup>
     <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
     <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
+    <ProjectReference Include="../../Particles/RedBolt.Particles.csproj" />
   </ItemGroup>
 </Project>
