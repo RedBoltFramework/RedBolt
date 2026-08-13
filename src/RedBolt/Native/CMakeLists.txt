@@ -169,11 +169,12 @@ redbolt_add_native_wrapper(
     LINK_LIBRARIES
         SDL2::SDL2
         Diligent-GraphicsEngine
+        redbolt-native-support
+        redbolt-diligent-support
+        Diligent-HLSL2GLSLConverterLib
         ${REDBOLT_DILIGENT_D3D11_TARGET}
         ${REDBOLT_DILIGENT_D3D12_TARGET}
         ${REDBOLT_DILIGENT_OPENGL_TARGET}
-        redbolt-native-support
-        redbolt-diligent-support
         ${REDBOLT_GLEW_TARGET}
         ${REDBOLT_DILIGENT_VULKAN_TARGET})
 

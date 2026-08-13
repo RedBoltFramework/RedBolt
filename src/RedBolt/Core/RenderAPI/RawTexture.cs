@@ -73,7 +73,7 @@ public class RawTexture : DeviceObject
 
         DestroyGPU();
 
-        using var desc = texture.GetDesc();
+        using var desc = ITexture_GetDesc(texture);
         var type = desc.Type switch
         {
             ResourceDimension.ResourceDimTex2d => TextureType.Texture2D,
@@ -114,7 +114,7 @@ public class RawTexture : DeviceObject
             MultiSample = SystemMath.Max(checked((int)desc.SampleCount), msaaLevel),
             NumLevelsRtv = checked((int)desc.MipLevels)
         };
-        _ = texture.AddRef();
+        _ = IObject_AddRef(texture);
         _handles.Texture = texture;
         return InitializeDefaultViews(desc.BindFlags);
     }
@@ -127,7 +127,7 @@ public class RawTexture : DeviceObject
         var nativeDevice = renderDevice?.GetRenderDevice();
         if (renderDevice?.GetBackend() == RenderBackend.D3D11 && nativeDevice is { IsNull: false })
         {
-            using var deviceD3D11 = IRenderDeviceD3D11.QueryManagedWrapper(nativeDevice)
+            using var deviceD3D11 = RedBoltQueryIRenderDeviceD3D11(nativeDevice)
                 ?? throw new InvalidOperationException("D3D11 render device interface is unavailable.");
             deviceD3D11.CreateTexture2DFromD3DResource(
                 d3d11Texture2D, ResourceState.ResourceStateUnknown, out var texture);
@@ -162,7 +162,7 @@ public class RawTexture : DeviceObject
         var nativeDevice = renderDevice?.GetRenderDevice();
         if (renderDevice?.GetBackend() == RenderBackend.D3D12 && nativeDevice is { IsNull: false })
         {
-            using var deviceD3D12 = IRenderDeviceD3D12.QueryManagedWrapper(nativeDevice)
+            using var deviceD3D12 = RedBoltQueryIRenderDeviceD3D12(nativeDevice)
                 ?? throw new InvalidOperationException("D3D12 render device interface is unavailable.");
             deviceD3D12.CreateTextureFromD3DResource(
                 d3d12Resource, ResourceState.ResourceStateUnknown, out var texture);
@@ -221,7 +221,7 @@ public class RawTexture : DeviceObject
             if ((parameters.Flags & TextureFlag.BindUnorderedAccess) == TextureFlag.BindUnorderedAccess)
                 textureDesc.BindFlags |= BindFlags.BindUnorderedAccess;
 
-            using var deviceVk = IRenderDeviceVk.QueryManagedWrapper(nativeDevice)
+            using var deviceVk = RedBoltQueryIRenderDeviceVk(nativeDevice)
                 ?? throw new InvalidOperationException("Vulkan render device interface is unavailable.");
             deviceVk.CreateTextureFromVulkanImage(
                 (nint)vkImage, textureDesc, ResourceState.ResourceStateUnknown, out var texture);
@@ -261,7 +261,7 @@ public class RawTexture : DeviceObject
             return false;
 #endif
 
-        using var glDevice = IRenderDeviceGL.QueryManagedWrapper(nativeDevice)
+        using var glDevice = RedBoltQueryIRenderDeviceGL(nativeDevice)
             ?? throw new InvalidOperationException("OpenGL render device interface is unavailable.");
         using var nativeName = new CString("Texture from external resource");
         using var desc = new TextureDesc
@@ -279,7 +279,8 @@ public class RawTexture : DeviceObject
         if ((flags & TextureFlag.BindUnorderedAccess) == TextureFlag.BindUnorderedAccess)
             desc.BindFlags |= BindFlags.BindUnorderedAccess;
 
-        glDevice.CreateTextureFromGLHandle(handle, 0u, desc, ResourceState.ResourceStateUnknown, out var texture);
+        IRenderDeviceGL_CreateTextureFromGLHandle(glDevice, handle, 0u, desc,
+            ResourceState.ResourceStateUnknown, out var texture);
         if (texture is null || texture.IsNull)
         {
             Log.GetLogger().LogError("Failed to create texture from existing GL texture handle");
@@ -316,7 +317,7 @@ public class RawTexture : DeviceObject
 
         if (GetUAV(effectiveKey) is { } normalizedView)
         {
-            _ = normalizedView.AddRef();
+            _ = IObject_AddRef(normalizedView);
             _handles.UnorderedAccessViews[key] = normalizedView;
             return normalizedView;
         }
@@ -328,7 +329,7 @@ public class RawTexture : DeviceObject
         _handles.UnorderedAccessViews[key] = createdView;
         if (key != effectiveKey)
         {
-            _ = createdView.AddRef();
+            _ = IObject_AddRef(createdView);
             _handles.UnorderedAccessViews[effectiveKey] = createdView;
         }
         return createdView;
@@ -353,18 +354,20 @@ public class RawTexture : DeviceObject
             if (_renderDevice!.GetBackend() == RenderBackend.Vulkan)
             {
                 var shaderTexture = _handles.ResolvedTexture ?? _handles.Texture!;
-                if (shaderTexture.GetState() == ResourceState.ResourceStateUndefined)
+                if (ITexture_GetState(shaderTexture) == ResourceState.ResourceStateUndefined)
                 {
-                    using var transition = new StateTransitionDesc(
-                        shaderTexture,
-                        ResourceState.ResourceStateUndefined,
-                        ResourceState.ResourceStateShaderResource,
-                        StateTransitionFlags.StateTransitionFlagUpdateState);
-                    _renderDevice.GetImmediateContext()!.TransitionResourceState(transition);
+                    using var transition = new StateTransitionDesc
+                    {
+                        PResource = shaderTexture,
+                        OldState = ResourceState.ResourceStateUndefined,
+                        NewState = ResourceState.ResourceStateShaderResource,
+                        Flags = StateTransitionFlags.StateTransitionFlagUpdateState
+                    };
+                    IDeviceContext_TransitionResourceStates(_renderDevice.GetImmediateContext()!, 1, transition);
                 }
             }
 
-            _renderDevice!.GetImmediateContext()!.GenerateMips(_handles.ShaderResourceView);
+            IDeviceContext_GenerateMips(_renderDevice!.GetImmediateContext()!, _handles.ShaderResourceView);
         }
         _levelsDirty = false;
     }
@@ -384,7 +387,8 @@ public class RawTexture : DeviceObject
             {
                 attributes.SrcSlice = checked((uint)slice);
                 attributes.DstSlice = checked((uint)slice);
-                context.ResolveTextureSubresource(_handles.Texture!, _handles.ResolvedTexture, attributes);
+                IDeviceContext_ResolveTextureSubresource(context, _handles.Texture!,
+                    _handles.ResolvedTexture, attributes);
             }
             MarkDirty();
         }
@@ -478,7 +482,8 @@ public class RawTexture : DeviceObject
                 _updateSubresource.PData = (nint)uploadData;
                 _updateSubresource.Stride = checked((nuint)rowStride);
                 _updateSubresource.DepthStride = checked((nuint)sliceStride);
-                context.UpdateTexture(_handles.Texture!, checked((uint)level), checked((uint)arraySlice), _updateBox, _updateSubresource,
+                IDeviceContext_UpdateTexture(context, _handles.Texture!, checked((uint)level),
+                    checked((uint)arraySlice), _updateBox, _updateSubresource,
                     ResourceStateTransitionMode.ResourceStateTransitionModeNone,
                     ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
                 _updateSubresource.PData = 0;
@@ -554,7 +559,7 @@ public class RawTexture : DeviceObject
             stagingDesc.Depth = checked((uint)levelSize.Z);
         else
             stagingDesc.ArraySize = 1u;
-        device.CreateTexture(stagingDesc, null!, out var stagingTexture);
+        IRenderDevice_CreateTexture(device, stagingDesc, null!, out var stagingTexture);
         if (stagingTexture is null || stagingTexture.IsNull)
         {
             Log.GetLogger().LogError("Failed to create staging texture for RawTexture::Read");
@@ -563,20 +568,21 @@ public class RawTexture : DeviceObject
 
         try
         {
-            using var copy = new CopyTextureAttribs(
-                _handles.ResolvedTexture ?? _handles.Texture!,
-                ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
-                stagingTexture,
-                ResourceStateTransitionMode.ResourceStateTransitionModeTransition)
+            using var copy = new CopyTextureAttribs
             {
+                PSrcTexture = _handles.ResolvedTexture ?? _handles.Texture!,
+                SrcTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
+                PDstTexture = stagingTexture,
+                DstTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
                 SrcMipLevel = checked((uint)level),
                 SrcSlice = checked((uint)slice)
             };
-            context.CopyTexture(copy);
-            context.WaitForIdle();
+            IDeviceContext_CopyTexture(context, copy);
+            IDeviceContext_WaitForIdle(context);
 
             using var mapped = new MappedTextureSubresource();
-            context.MapTextureSubresource(stagingTexture, 0u, 0u, MapType.MapRead, MapFlags.MapFlagNone, null!, mapped);
+            IDeviceContext_MapTextureSubresource(context, stagingTexture, 0u, 0u, MapType.MapRead,
+                MapFlags.MapFlagNone, null!, mapped);
             if (mapped.PData == IntPtr.Zero)
             {
                 Log.GetLogger().LogError("Failed to map staging texture for RawTexture::Read");
@@ -608,7 +614,7 @@ public class RawTexture : DeviceObject
             }
             finally
             {
-                context.UnmapTextureSubresource(stagingTexture, 0u, 0u);
+                IDeviceContext_UnmapTextureSubresource(context, stagingTexture, 0u, 0u);
             }
             return true;
         }
@@ -708,11 +714,11 @@ public class RawTexture : DeviceObject
             return false;
 
         var nativeFormat = _parameters.Format;
-        using (var formatInfo = DiligentNativeBindings.GetTextureFormatAttribs(nativeFormat))
+        using (var formatInfo = DiligentNativeBindings.RedBoltGetTextureFormatAttribs(nativeFormat))
         {
             _formatBlockWidth = checked((int)formatInfo.BlockWidth);
             _formatBlockHeight = checked((int)formatInfo.BlockHeight);
-            _formatElementSize = checked((int)formatInfo.GetElementSize());
+            _formatElementSize = checked((int)RenderAPIUtils.GetTextureFormatElementSize(formatInfo));
         }
         if (_renderDevice?.GetRenderDevice() is null)
             return true;
@@ -759,7 +765,7 @@ public class RawTexture : DeviceObject
 
         // Create main texture.
         // It is used as render target for auto-resolved multi-sampled texture.
-        device.CreateTexture(textureDesc, null!, out _handles.Texture);
+        IRenderDevice_CreateTexture(device, textureDesc, null!, out _handles.Texture);
         if (_handles.Texture is null || _handles.Texture.IsNull)
         {
             _handles.Texture = null;
@@ -780,7 +786,7 @@ public class RawTexture : DeviceObject
             textureDesc.SampleCount = 1u;
             if (_parameters.NumLevels != 1u)
                 textureDesc.MiscFlags |= MiscTextureFlags.MiscTextureFlagGenerateMips;
-            device.CreateTexture(textureDesc, null!, out _handles.ResolvedTexture);
+            IRenderDevice_CreateTexture(device, textureDesc, null!, out _handles.ResolvedTexture);
             if (_handles.ResolvedTexture is null || _handles.ResolvedTexture.IsNull)
             {
                 Log.GetLogger().LogError(
@@ -862,10 +868,10 @@ public class RawTexture : DeviceObject
                 return false;
             }
 
-            using var depthStencilDesc = _handles.DepthStencilView.GetDesc();
-            using var readOnlyDesc = depthStencilDesc.Clone();
+            using var depthStencilDesc = ITextureView_GetDesc(_handles.DepthStencilView);
+            using var readOnlyDesc = RenderAPIUtils.CloneTextureViewDesc(depthStencilDesc);
             readOnlyDesc.ViewType = TextureViewType.TextureViewReadOnlyDepthStencil;
-            _handles.Texture!.CreateView(readOnlyDesc, out _handles.ReadOnlyDepthStencilView);
+            ITexture_CreateView(_handles.Texture!, readOnlyDesc, out _handles.ReadOnlyDepthStencilView);
             if (_handles.ReadOnlyDepthStencilView is null || _handles.ReadOnlyDepthStencilView.IsNull)
             {
                 _handles.ReadOnlyDepthStencilView = null;
@@ -888,7 +894,7 @@ public class RawTexture : DeviceObject
                 Log.GetLogger().LogError("Failed to create unordered access view for texture");
                 return false;
             }
-            _ = _handles.UnorderedAccessView.AddRef();
+            _ = IObject_AddRef(_handles.UnorderedAccessView);
             _handles.UnorderedAccessViews[new RawTextureUAVKey()] = _handles.UnorderedAccessView;
         }
 
@@ -898,10 +904,10 @@ public class RawTexture : DeviceObject
 
     private ITextureView? GetDefaultView(ITexture texture, TextureViewType viewType)
     {
-        var view = texture.GetDefaultView(viewType);
+        var view = ITexture_GetDefaultView(texture, viewType);
         if (view is not null && !view.IsNull)
         {
-            _ = view.AddRef();
+            _ = IObject_AddRef(view);
             return view;
         }
 
@@ -917,7 +923,7 @@ public class RawTexture : DeviceObject
         };
         if (viewType == TextureViewType.TextureViewShaderResource)
         {
-            using var textureDesc = texture.GetDesc();
+            using var textureDesc = ITexture_GetDesc(texture);
             if ((textureDesc.MiscFlags & MiscTextureFlags.MiscTextureFlagGenerateMips) != 0)
                 viewDesc.Flags |= TextureViewFlags.TextureViewFlagAllowMipMapGeneration;
         }
@@ -929,7 +935,7 @@ public class RawTexture : DeviceObject
             viewDesc.FirstArraySlice = checked((uint)firstSlice);
             viewDesc.NumArraySlices = checked((uint)numSlices);
         }
-        texture.CreateView(viewDesc, out var view);
+        ITexture_CreateView(texture, viewDesc, out var view);
         return view is { IsNull: false } ? view : null;
     }
 
@@ -938,7 +944,7 @@ public class RawTexture : DeviceObject
     {
         if (_parameters.Type == TextureType.Texture2D)
         {
-            _ = defaultView.AddRef();
+            _ = IObject_AddRef(defaultView);
             renderSurfaces = [defaultView];
             return true;
         }
@@ -1012,7 +1018,7 @@ public class RawTexture : DeviceObject
             viewDesc.FirstArraySlice = checked((uint)key.FirstSlice);
             viewDesc.NumArraySlices = checked((uint)key.NumSlices);
         }
-        _handles.Texture.CreateView(viewDesc, out var view);
+        ITexture_CreateView(_handles.Texture, viewDesc, out var view);
         if (view is null || view.IsNull)
         {
             Log.GetLogger().LogError("Failed to create UAV for texture");
@@ -1042,7 +1048,7 @@ public class RawTexture : DeviceObject
     private static void Release(IObject? value)
     {
         if (value is { IsNull: false })
-            _ = value.Release();
+            _ = IObject_Release(value);
     }
 
     private static bool ValidateBindings(ref RawTextureParams parameters)
@@ -1111,7 +1117,7 @@ public class RawTexture : DeviceObject
 
         if (parameters.Format == TextureFormat.TexFormatD24UnormS8Uint)
         {
-            using var depth24Info = device.GetTextureFormatInfoExt(nativeFormat);
+            using var depth24Info = IRenderDevice_GetTextureFormatInfoExt(device, nativeFormat);
             if ((depth24Info.BindFlags & BindFlags.BindDepthStencil) == 0)
             {
                 parameters = parameters with { Format = TextureFormat.TexFormatD32FloatS8x24Uint };
@@ -1119,7 +1125,7 @@ public class RawTexture : DeviceObject
             }
         }
 
-        using var formatInfo = device.GetTextureFormatInfoExt(nativeFormat);
+        using var formatInfo = IRenderDevice_GetTextureFormatInfoExt(device, nativeFormat);
         var allowedFlags = formatInfo.BindFlags;
 
         if (parameters.MultiSample != 1 && ((int)formatInfo.SampleCounts & parameters.MultiSample) == 0)

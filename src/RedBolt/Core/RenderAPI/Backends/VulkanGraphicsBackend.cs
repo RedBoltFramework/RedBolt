@@ -37,7 +37,7 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
         if (deviceSettings.AdapterId.HasValue)
             createInfo.AdapterId = checked((uint)deviceSettings.AdapterId.Value);
 
-        var factory = DiligentNativeBindings.LoadAndGetEngineFactoryVk();
+        var factory = DiligentNativeBindings.DiligentLoadAndGetEngineFactoryVk();
         if (factory.IsNull)
             throw new InvalidOperationException("Vulkan engine factory could not be loaded.");
 
@@ -48,13 +48,14 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
             if (SharedRenderDevice is null || SharedRenderDevice.IsNull
                 || SharedImmediateContext is null || SharedImmediateContext.IsNull)
             {
-                factory.CreateDeviceAndContextsVk(createInfo, out device, out immediateContext);
+                IEngineFactoryVk_CreateDeviceAndContextsVk(factory, createInfo, out device,
+                    out immediateContext);
                 if (device.IsNull || immediateContext.IsNull)
                 {
                     if (!device.IsNull)
-                        _ = device.Release();
+                        _ = IObject_Release(device);
                     if (!immediateContext.IsNull)
-                        _ = immediateContext.Release();
+                        _ = IObject_Release(immediateContext);
                     throw new InvalidOperationException(
                         "Generated CreateDeviceAndContextsVk binding returned a null device or context.");
                 }
@@ -71,8 +72,8 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
                 immediateContext = SharedImmediateContext;
             }
 
-            _ = device.AddRef();
-            _ = immediateContext.AddRef();
+            _ = IObject_AddRef(device);
+            _ = IObject_AddRef(immediateContext);
         }
 
         ISwapChain? nativeSwapChain = null;
@@ -100,17 +101,18 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
                 HWnd = nativeWindowInfo.Window
             };
 #endif
-            factory.CreateSwapChainVk(device, immediateContext, swapChainDesc, nativeWindow,
+            IEngineFactoryVk_CreateSwapChainVk(factory, device, immediateContext, swapChainDesc, nativeWindow,
                 out nativeSwapChain);
             if (nativeSwapChain.IsNull)
                 throw new InvalidOperationException("Generated CreateSwapChainVk binding returned a null swap chain.");
 
-            swapChainVulkan = ISwapChainVk.QueryManagedWrapper(nativeSwapChain)
+            swapChainVulkan = RedBoltQueryISwapChainVk(nativeSwapChain)
                 ?? throw new InvalidOperationException("Vulkan swap chain interface is unavailable.");
             var depthFormat = RenderDevice.SelectDefaultDepthFormat(device, true);
             var multiSample = (int)MathDefs.NextPowerOfTwo(
                 (uint)System.Math.Clamp(parameters.MultiSample, 1, 16));
-            using (var formatInfo = device.GetTextureFormatInfoExt(swapChainDesc.ColorBufferFormat))
+            using (var formatInfo = IRenderDevice_GetTextureFormatInfoExt(device,
+                       swapChainDesc.ColorBufferFormat))
             {
                 while (multiSample > 1 && ((int)formatInfo.SampleCounts & multiSample) == 0)
                     multiSample >>= 1;
@@ -119,7 +121,7 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
 
             swapChain = DiligentNativeBindings.CreateProxySwapChainMS(
                 device, immediateContext, nativeSwapChain, (uint)depthFormat, (uint)multiSample);
-            _ = nativeSwapChain.Release();
+            _ = IObject_Release(nativeSwapChain);
             nativeSwapChain = null;
             if (swapChain.IsNull)
                 throw new InvalidOperationException("Generated CreateProxySwapChainMS binding returned a null swap chain.");
@@ -139,13 +141,13 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
         catch
         {
             if (nativeSwapChain is { IsNull: false })
-                _ = nativeSwapChain.Release();
+                _ = IObject_Release(nativeSwapChain);
             if (swapChain is { IsNull: false })
-                _ = swapChain.Release();
+                _ = IObject_Release(swapChain);
             if (swapChainVulkan is { IsNull: false })
                 swapChainVulkan.Dispose();
-            _ = immediateContext.Release();
-            _ = device.Release();
+            _ = IObject_Release(immediateContext);
+            _ = IObject_Release(device);
             throw;
         }
     }
@@ -269,7 +271,8 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
         public void Resize(IRenderDevice renderDevice, ISwapChain swapChain)
         {
             SdlNativeBindings.SdlGetWindowSize(window, out var width, out var height);
-            swapChain.Resize((uint)System.Math.Max(width, 0), (uint)System.Math.Max(height, 0));
+            ISwapChain_Resize(swapChain, (uint)System.Math.Max(width, 0),
+                (uint)System.Math.Max(height, 0), SurfaceTransform.SurfaceTransformOptimal);
         }
 
         public void ReleaseBeforeCommonResources()

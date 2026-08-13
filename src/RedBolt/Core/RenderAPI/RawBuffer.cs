@@ -155,11 +155,12 @@ public class RawBuffer : DeviceObject
                 if (_internalUsage == Usage.UsageDynamic)
                 {
                     var gpuBuffer = IntPtr.Zero;
-                    immediateContext.MapBuffer(_handle!, MapType.MapWrite, MapFlags.MapFlagDiscard, ref gpuBuffer);
+                    IDeviceContext_MapBuffer(immediateContext, _handle!, MapType.MapWrite,
+                        MapFlags.MapFlagDiscard, ref gpuBuffer);
                     if (gpuBuffer != IntPtr.Zero)
                     {
                         Buffer.MemoryCopy(dataPointer, (void*)gpuBuffer, size, size);
-                        immediateContext.UnmapBuffer(_handle!, MapType.MapWrite);
+                        IDeviceContext_UnmapBuffer(immediateContext, _handle!, MapType.MapWrite);
                     }
                 }
                 else if (_internalUsage == Usage.UsageImmutable)
@@ -168,7 +169,7 @@ public class RawBuffer : DeviceObject
                 }
                 else
                 {
-                    immediateContext.UpdateBuffer(_handle!, checked((nuint)offset), checked((nuint)size),
+                    IDeviceContext_UpdateBuffer(immediateContext, _handle!, checked((nuint)offset), checked((nuint)size),
                         (IntPtr)dataPointer, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
                 }
             }
@@ -205,7 +206,8 @@ public class RawBuffer : DeviceObject
             Debug.Assert(immediateContext is not null);
 
             var gpuBuffer = IntPtr.Zero;
-            immediateContext!.MapBuffer(_handle!, MapType.MapWrite, MapFlags.MapFlagDiscard, ref gpuBuffer);
+            IDeviceContext_MapBuffer(immediateContext!, _handle!, MapType.MapWrite,
+                MapFlags.MapFlagDiscard, ref gpuBuffer);
             if (gpuBuffer == IntPtr.Zero)
                 return Span<byte>.Empty;
 
@@ -234,7 +236,8 @@ public class RawBuffer : DeviceObject
                 Update(_shadowData);
                 break;
             case MapKind.Dynamic:
-                GetSubsystem<Graphics>()!.GetImmediateContext()!.UnmapBuffer(_handle!, MapType.MapWrite);
+                IDeviceContext_UnmapBuffer(GetSubsystem<Graphics>()!.GetImmediateContext()!, _handle!,
+                    MapType.MapWrite);
                 break;
             case MapKind.Scratch:
             {
@@ -402,14 +405,19 @@ public class RawBuffer : DeviceObject
         _handle = null;
         if (data.IsEmpty)
         {
-            device.CreateBuffer(bufferDesc, null!, out _handle);
+            IRenderDevice_CreateBuffer(device, bufferDesc, null!, out _handle);
         }
         else
         {
             fixed (byte* dataPointer = data)
             {
-                using var bufferData = new BufferData((IntPtr)dataPointer, checked((nuint)_parameters.Size), immediateContext);
-                device.CreateBuffer(bufferDesc, bufferData, out _handle);
+                using var bufferData = new BufferData
+                {
+                    PData = (IntPtr)dataPointer,
+                    DataSize = checked((ulong)_parameters.Size),
+                    PContext = immediateContext!
+                };
+                IRenderDevice_CreateBuffer(device, bufferDesc, bufferData, out _handle);
             }
         }
 
@@ -443,6 +451,6 @@ public class RawBuffer : DeviceObject
     private static void ReleaseIfNotNull(IObject? value)
     {
         if (value is not null && !value.IsNull)
-            _ = value.Release();
+            _ = IObject_Release(value);
     }
 }

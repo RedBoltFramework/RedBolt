@@ -9,6 +9,39 @@ using RedBolt.IO;
 /// </summary>
 public static class RenderAPIUtils
 {
+    public static uint GetTextureFormatElementSize(
+        global::RedBolt.Bindings.Diligent.TextureFormatAttribs formatInfo)
+    {
+        return (uint)formatInfo.ComponentSize *
+            (formatInfo.ComponentType != global::RedBolt.Bindings.Diligent.ComponentType.ComponentTypeCompressed
+                ? (uint)formatInfo.NumComponents
+                : 1u);
+    }
+
+    public static global::RedBolt.Bindings.Diligent.TextureViewDesc CloneTextureViewDesc(
+        global::RedBolt.Bindings.Diligent.TextureViewDesc source)
+    {
+        return new global::RedBolt.Bindings.Diligent.TextureViewDesc
+        {
+            AccessFlags = source.AccessFlags,
+            FirstArraySlice = source.FirstArraySlice,
+            FirstDepthSlice = source.FirstDepthSlice,
+            Flags = source.Flags,
+            Format = source.Format,
+            MostDetailedMip = source.MostDetailedMip,
+            Name = source.Name,
+            NumArraySlices = source.NumArraySlices,
+            NumDepthSlices = source.NumDepthSlices,
+            NumMipLevels = source.NumMipLevels,
+            SwizzleA = source.SwizzleA,
+            SwizzleB = source.SwizzleB,
+            SwizzleG = source.SwizzleG,
+            SwizzleR = source.SwizzleR,
+            TextureDim = source.TextureDim,
+            ViewType = source.ViewType
+        };
+    }
+
     private static readonly string[] BackendNames =
     [
         "D3D11",
@@ -556,7 +589,7 @@ public static class RenderAPIUtils
         for (var i = 0; i < infos.Length; ++i)
         {
             var format = (global::RedBolt.Bindings.Diligent.TextureFormat)i;
-            using var info = global::RedBolt.Bindings.Diligent.DiligentNativeBindings.GetTextureFormatAttribs(format);
+            using var info = global::RedBolt.Bindings.Diligent.DiligentNativeBindings.RedBoltGetTextureFormatAttribs(format);
             infos[i] = new TextureFormatInfo(
                 global::System.Runtime.InteropServices.Marshal.PtrToStringUTF8(info.Name) ?? string.Empty,
                 info.Format, info.ComponentSize, info.NumComponents,

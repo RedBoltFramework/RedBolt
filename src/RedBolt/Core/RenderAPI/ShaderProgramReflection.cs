@@ -129,7 +129,7 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
                 AddUniformBuffer(group, internalName,
                     checked((int)DiligentNativeBindings.GetTemporaryGLProgramUniformBlockDataSize(temporaryGlProgram, (uint)uniformBlockIndex)));
 
-                var blockIndex = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockIndex(
+                var blockIndex = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockIndexByName(
                     temporaryGlProgram, internalName);
                 while (indexToGroup.Count <= blockIndex)
                     indexToGroup.Add((ShaderParameterGroup)RenderApiLimits.MaxShaderParameterGroups);
@@ -154,7 +154,7 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
                 if (!TrySanitizeGlUniformName(internalName, out var uniformName))
                     continue;
 
-                var blockIndex = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockIndex(
+                var blockIndex = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockIndexByIndex(
                     temporaryGlProgram, (uint)uniformIndex);
                 var blockOffset = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockOffset(
                     temporaryGlProgram, (uint)uniformIndex);
@@ -235,7 +235,8 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
                 ref var internalNameRef = ref Unsafe.AsRef<sbyte>((void*)uniformBuffer.InternalName.Pointer);
                 foreach (var shaderType in shaderTypes)
                 {
-                    var shaderVariable = binding.GetVariableByName(ToNativeShaderType(shaderType), in internalNameRef);
+                    var shaderVariable = IShaderResourceBinding_GetVariableByName(binding,
+                        ToNativeShaderType(shaderType), in internalNameRef);
                     if (shaderVariable is not null && !shaderVariable.IsNull)
                         uniformBuffer.AddVariable(shaderVariable);
                 }
@@ -249,7 +250,8 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
                 ref var internalNameRef = ref Unsafe.AsRef<sbyte>((void*)resource.InternalName.Pointer);
                 foreach (var shaderType in shaderTypes)
                 {
-                    var shaderVariable = binding.GetVariableByName(ToNativeShaderType(shaderType), in internalNameRef);
+                    var shaderVariable = IShaderResourceBinding_GetVariableByName(binding,
+                        ToNativeShaderType(shaderType), in internalNameRef);
                     if (shaderVariable is not null && !shaderVariable.IsNull)
                     {
                         resource.Variable = shaderVariable;
@@ -266,7 +268,8 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
                 ref var internalNameRef = ref Unsafe.AsRef<sbyte>((void*)resource.InternalName.Pointer);
                 foreach (var shaderType in shaderTypes)
                 {
-                    var shaderVariable = binding.GetVariableByName(ToNativeShaderType(shaderType), in internalNameRef);
+                    var shaderVariable = IShaderResourceBinding_GetVariableByName(binding,
+                        ToNativeShaderType(shaderType), in internalNameRef);
                     if (shaderVariable is not null && !shaderVariable.IsNull)
                     {
                         resource.Variable = shaderVariable;
@@ -279,17 +282,17 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
 
     private void ReflectNativeShader(IShader shader)
     {
-        var numResources = shader.GetResourceCount();
+        var numResources = IShader_GetResourceCount(shader);
         for (var resourceIndex = 0; resourceIndex < numResources; ++resourceIndex)
         {
             using var resourceDesc = new RedBolt.Bindings.Diligent.ShaderResourceDesc();
-            shader.GetResourceDesc((uint)resourceIndex, resourceDesc);
+            IShader_GetResourceDesc(shader, (uint)resourceIndex, resourceDesc);
 
             var internalName = Marshal.PtrToStringUTF8(resourceDesc.Name) ?? string.Empty;
             switch (resourceDesc.Type)
             {
                 case ShaderResourceType.ShaderResourceTypeConstantBuffer:
-                    using (var bufferDesc = shader.GetConstantBufferDesc((uint)resourceIndex))
+                    using (var bufferDesc = IShader_GetConstantBufferDesc(shader, (uint)resourceIndex))
                         ReflectUniformBuffer(internalName, bufferDesc);
                     break;
 

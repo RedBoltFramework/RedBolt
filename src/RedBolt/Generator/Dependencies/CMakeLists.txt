@@ -412,8 +412,44 @@ file(CONFIGURE OUTPUT "${REDBOLT_DILIGENT_PARSE_HEADER}" CONTENT [=[
 #undef UINTPTR_MAX
 #define UINTPTR_MAX UINT64_MAX
 #endif
+#define DILIGENT_C_INTERFACE 1
+#define REDBOLT_DILIGENT_CXX_DEFAULT_INITIALIZERS 1
+#if PLATFORM_WEB || PLATFORM_ANDROID
+#include <GLES3/gl3.h>
+#else
+#ifndef GLEW_STATIC
+#define GLEW_STATIC
+#endif
+#include <GL/glew.h>
+#endif
+#if VULKAN_SUPPORTED
+#define DILIGENT_USE_VOLK 1
+#define VK_NO_PROTOTYPES
+#include <vulkan/vulkan.h>
+#endif
 #include <EngineFactoryOpenGL.h>
-#include <GraphicsAccessories.hpp>
+#include <DeviceContextGL.h>
+#include <PipelineStateGL.h>
+#include <RenderDeviceGL.h>
+#include <ShaderGL.h>
+#include <SwapChainGL.h>
+#if GLES_SUPPORTED
+#include <RenderDeviceGLES.h>
+#endif
+#if D3D11_SUPPORTED
+#include <EngineFactoryD3D11.h>
+#include <RenderDeviceD3D11.h>
+#endif
+#if D3D12_SUPPORTED
+#include <EngineFactoryD3D12.h>
+#include <RenderDeviceD3D12.h>
+#endif
+#if VULKAN_SUPPORTED
+#include <DeviceContextVk.h>
+#include <EngineFactoryVk.h>
+#include <RenderDeviceVk.h>
+#include <SwapChainVk.h>
+#endif
 #include <RedBolt/DiligentSupport.hpp>
 ]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_IMGUI_PARSE_SOURCE}" CONTENT [=[
@@ -451,7 +487,10 @@ inline void DebugLog(ImStrv text) { DebugLog(REDBOLT_IMGUI_TEXT_ARGS(text)); }
 ]=] @ONLY)
 
 set(REDBOLT_SDL_OWNED_HEADERS "${REDBOLT_SDL_BUILD_INCLUDE_DIR};${REDBOLT_SDL_IMAGE_HEADER}" CACHE INTERNAL "SDL owned headers")
-set(REDBOLT_DILIGENT_OWNED_HEADERS "${REDBOLT_DILIGENT_INCLUDE_DIRS};${REDBOLT_DILIGENT_SUPPORT_INCLUDE_DIR};${REDBOLT_DILIGENT_SUPPORT_HEADER}" CACHE INTERNAL "Diligent owned headers" FORCE)
+set(_redbolt_diligent_owned_headers ${REDBOLT_DILIGENT_INCLUDE_DIRS})
+list(FILTER _redbolt_diligent_owned_headers EXCLUDE REGEX "/ThirdParty/")
+list(APPEND _redbolt_diligent_owned_headers "${REDBOLT_DILIGENT_SUPPORT_HEADER}")
+set(REDBOLT_DILIGENT_OWNED_HEADERS "${_redbolt_diligent_owned_headers}" CACHE INTERNAL "Diligent owned headers" FORCE)
 set(REDBOLT_IMGUI_OWNED_HEADERS "${REDBOLT_IMGUI_INCLUDE_DIR};${REDBOLT_IMGUI_SOURCE_ROOT}/backends;${REDBOLT_IMGUIZMO_SOURCE_ROOT};${REDBOLT_IMGUI_BACKEND_HEADER}" CACHE INTERNAL "Dear ImGui owned headers" FORCE)
 set(REDBOLT_BINDING_INCLUDE_DIRS
     "${REDBOLT_SHARPCPP_ROOT}/include"

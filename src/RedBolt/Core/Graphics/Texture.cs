@@ -341,7 +341,7 @@ public class Texture : ResourceWithMetadata
             for (var i = 0; i < sourceHandles.Length; ++i)
             {
                 renderSurfaceHandles[i] = sourceHandles[i];
-                _ = renderSurfaceHandles[i].AddRef();
+                _ = IObject_AddRef(renderSurfaceHandles[i]);
             }
 
             try
@@ -560,7 +560,7 @@ public class Texture : ResourceWithMetadata
     private static void Release(IObject? value)
     {
         if (value is { IsNull: false })
-            _ = value.Release();
+            _ = IObject_Release(value);
     }
 
     [InlineArray(MaxTextureQualityLevels)]

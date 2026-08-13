@@ -48,7 +48,7 @@ public sealed class RenderSurface : IDisposable
         _linkedRenderTarget = null;
         _viewports.Clear();
         if (_renderTargetView is { IsNull: false })
-            _ = _renderTargetView.Release();
+            _ = IObject_Release(_renderTargetView);
         _renderTargetView = null;
     }
 
@@ -59,9 +59,9 @@ public sealed class RenderSurface : IDisposable
             return;
 
         if (view is { IsNull: false })
-            _ = view.AddRef();
+            _ = IObject_AddRef(view);
         if (_renderTargetView is { IsNull: false })
-            _ = _renderTargetView.Release();
+            _ = IObject_Release(_renderTargetView);
         _renderTargetView = view;
     }
 
@@ -69,7 +69,7 @@ public sealed class RenderSurface : IDisposable
     public void Invalidate()
     {
         if (_renderTargetView is { IsNull: false })
-            _ = _renderTargetView.Release();
+            _ = IObject_Release(_renderTargetView);
         _renderTargetView = null;
     }
 

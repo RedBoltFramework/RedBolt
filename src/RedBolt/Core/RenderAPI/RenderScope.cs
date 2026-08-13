@@ -134,14 +134,14 @@ public class RenderScope : IDisposable
         ref var firstCharacter = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(nativeName));
         // TODO: port: renderContext_->GetHandle()->BeginDebugGroup(name.data());
         // Generated binding cannot express the optional null color pointer.
-        handle!.BeginDebugGroup(in firstCharacter, in color[0]);
+        IDeviceContext_BeginDebugGroup(handle!, in firstCharacter, in color[0]);
         ConsumeOpenGlError(_renderContext.GetRenderDevice());
     }
 
     private void EndGroup()
     {
         var handle = _renderContext!.GetHandle();
-        handle!.EndDebugGroup();
+        IDeviceContext_EndDebugGroup(handle!);
         ConsumeOpenGlError(_renderContext.GetRenderDevice());
     }
 

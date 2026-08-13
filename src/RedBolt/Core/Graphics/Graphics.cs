@@ -836,7 +836,7 @@ layout(std140) uniform Material
     internal SwapChainDesc ReleaseVulkanSwapChain()
     {
         System.Diagnostics.Debug.Assert(_swapChain is not null);
-        using var swapChainDesc = _swapChain!.GetDesc();
+        using var swapChainDesc = ISwapChain_GetDesc(_swapChain!);
         var oldNativeSwapChainDesc = swapChainDesc.Clone();
 
         _renderTargets[0] = null;
@@ -856,7 +856,7 @@ layout(std140) uniform Material
         global::RedBolt.Bindings.Diligent.TextureFormat depthFormat, int multiSample)
     {
         System.Diagnostics.Debug.Assert(_device is not null && _immediateContext is not null && _factory is not null);
-        using var factoryVulkan = IEngineFactoryVk.QueryManagedWrapper(_factory!)
+        using var factoryVulkan = RedBoltQueryIEngineFactoryVk(_factory!)
             ?? throw new InvalidOperationException("Vulkan engine factory interface is unavailable.");
 #if REDBOLT_PLATFORM_LINUX
         var nativeWindowInfo = GetSubsystem<Input>()!.GetNativeWindowInfo();
@@ -879,7 +879,7 @@ layout(std140) uniform Material
         if (nativeSwapChain.IsNull)
             return false;
 
-        _swapChainVulkan = ISwapChainVk.QueryManagedWrapper(nativeSwapChain)
+        _swapChainVulkan = RedBoltQueryISwapChainVk(nativeSwapChain)
             ?? throw new InvalidOperationException("Vulkan swap chain interface is unavailable.");
 
         _swapChain = DiligentNativeBindings.CreateProxySwapChainMS(
@@ -889,11 +889,11 @@ layout(std140) uniform Material
             return false;
 
         _configuredMultiSample = multiSample;
-        _swapChain.Resize(swapChainDesc.Width, swapChainDesc.Height, swapChainDesc.PreTransform);
-        using var resolvedSwapChainDesc = _swapChain.GetDesc();
+        ISwapChain_Resize(_swapChain, swapChainDesc.Width, swapChainDesc.Height, swapChainDesc.PreTransform);
+        using var resolvedSwapChainDesc = ISwapChain_GetDesc(_swapChain);
         _swapChainPreTransform = resolvedSwapChainDesc.PreTransform;
-        _renderTargetView = _swapChain.GetCurrentBackBufferRTV();
-        _depthStencilView = _swapChain.GetDepthBufferDSV();
+        _renderTargetView = ISwapChain_GetCurrentBackBufferRTV(_swapChain);
+        _depthStencilView = ISwapChain_GetDepthBufferDSV(_swapChain);
         _swapChainColorFormat = GetTextureViewFormat(_renderTargetView);
         _swapChainDepthFormat = GetTextureViewFormat(_depthStencilView);
         _renderTargets[0] = _renderTargetView;
@@ -1128,14 +1128,14 @@ layout(std140) uniform Material
             Height = backendResources.Height;
             _configuredMultiSample = backendResources.MultiSample;
 
-            using (var swapChainDescription = _swapChain.GetDesc())
+            using (var swapChainDescription = ISwapChain_GetDesc(_swapChain))
             {
                 _swapChainPreTransform = swapChainDescription.PreTransform;
                 _swapChainColorFormat = swapChainDescription.ColorBufferFormat;
                 _swapChainDepthFormat = swapChainDescription.DepthBufferFormat;
             }
-            _renderTargetView = _swapChain.GetCurrentBackBufferRTV();
-            _depthStencilView = _swapChain.GetDepthBufferDSV();
+            _renderTargetView = ISwapChain_GetCurrentBackBufferRTV(_swapChain);
+            _depthStencilView = ISwapChain_GetDepthBufferDSV(_swapChain);
             if (_renderTargetView.IsNull || _depthStencilView.IsNull)
                 throw new InvalidOperationException("Swap chain render target or depth view was null.");
             _renderTargets[0] = _renderTargetView;
@@ -1257,7 +1257,7 @@ layout(std140) uniform Material
         }
         MarkRenderTargetDirty(depthStencilTarget);
 
-        _immediateContext.SetRenderTargets((uint)_currentRenderTargetCount,
+        IDeviceContext_SetRenderTargets(_immediateContext, (uint)_currentRenderTargetCount,
             _renderTargets, _currentDepthStencilTarget!,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
         ApplyDiligentViewport(_immediateContext, viewportRect);
@@ -1322,7 +1322,8 @@ layout(std140) uniform Material
             {
                 if (_renderTargets[i] is { } target)
                 {
-                    _immediateContext.ClearRenderTarget(target, _clearColorHandle.AddrOfPinnedObject(),
+                    IDeviceContext_ClearRenderTarget(_immediateContext, target,
+                        _clearColorHandle.AddrOfPinnedObject(),
                         ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
                 }
             }
@@ -1335,7 +1336,7 @@ layout(std140) uniform Material
                 flags |= ClearDepthStencilFlags.ClearDepthFlag;
             if (clearStencil)
                 flags |= ClearDepthStencilFlags.ClearStencilFlag;
-            _immediateContext.ClearDepthStencil(_currentDepthStencilTarget, flags, depth, stencil,
+            IDeviceContext_ClearDepthStencil(_immediateContext, _currentDepthStencilTarget, flags, depth, stencil,
                 ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
         }
     }
@@ -1349,7 +1350,8 @@ layout(std140) uniform Material
         _clearColor[1] = color.G;
         _clearColor[2] = color.B;
         _clearColor[3] = color.A;
-        _immediateContext.ClearRenderTarget(ResolveRenderTargetView(renderTarget), _clearColorHandle.AddrOfPinnedObject(),
+        IDeviceContext_ClearRenderTarget(_immediateContext, ResolveRenderTargetView(renderTarget),
+            _clearColorHandle.AddrOfPinnedObject(),
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
     }
 
@@ -1469,7 +1471,8 @@ layout(std140) uniform Material
         if (!IsInitialized || _immediateContext is null)
             return;
 
-        _immediateContext.SetRenderTargets(0, global::System.ReadOnlySpan<ITextureView?>.Empty, null!,
+        IDeviceContext_SetRenderTargets(_immediateContext, 0,
+            global::System.ReadOnlySpan<ITextureView?>.Empty, null!,
             ResourceStateTransitionMode.ResourceStateTransitionModeNone);
         Array.Clear(_renderTargets);
         _currentRenderTargetCount = 0;
@@ -1525,17 +1528,19 @@ layout(std140) uniform Material
         if (sourceTexture is not Texture2D sourceTexture2D)
             return false;
 
-        var destinationTexture = _renderTargetView.GetTexture();
+        var destinationTexture = ITextureView_GetTexture(_renderTargetView);
         if (destinationTexture.IsNull)
             return false;
 
         var uploadedSource = GetCopySourceTexture(sourceTexture2D);
-        using var copyAttributes = new CopyTextureAttribs(
-            uploadedSource,
-            ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
-            destinationTexture,
-            ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
-        _immediateContext.CopyTexture(copyAttributes);
+        using var copyAttributes = new CopyTextureAttribs
+        {
+            PSrcTexture = uploadedSource,
+            SrcTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
+            PDstTexture = destinationTexture,
+            DstTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition
+        };
+        IDeviceContext_CopyTexture(_immediateContext, copyAttributes);
         return true;
     }
 
@@ -1603,7 +1608,7 @@ layout(std140) uniform Material
             return;
 
         if ((flags & ClearTarget.Stencil) == ClearTarget.Stencil)
-            _immediateContext.SetStencilRef(stencil);
+            IDeviceContext_SetStencilRef(_immediateContext, stencil);
 
         DrawFullscreenQuad(
             pipeline,
@@ -1628,7 +1633,7 @@ layout(std140) uniform Material
             return;
 
         if ((flags & ClearTarget.Stencil) == ClearTarget.Stencil)
-            _immediateContext.SetStencilRef(stencil);
+            IDeviceContext_SetStencilRef(_immediateContext, stencil);
 
         DrawFullscreenQuad(
             pipeline,
@@ -1673,12 +1678,12 @@ layout(std140) uniform Material
             return;
 
         _graphicsBackendLifetime!.Resize(_device!, _swapChain);
-        using var swapChainDesc = _swapChain.GetDesc();
+        using var swapChainDesc = ISwapChain_GetDesc(_swapChain);
         Width = (int)swapChainDesc.Width;
         Height = (int)swapChainDesc.Height;
         _swapChainPreTransform = swapChainDesc.PreTransform;
-        _renderTargetView = _swapChain.GetCurrentBackBufferRTV();
-        _depthStencilView = _swapChain.GetDepthBufferDSV();
+        _renderTargetView = ISwapChain_GetCurrentBackBufferRTV(_swapChain);
+        _depthStencilView = ISwapChain_GetDepthBufferDSV(_swapChain);
         if (_renderTargetView.IsNull || _depthStencilView.IsNull)
             throw new InvalidOperationException("Swap chain render target or depth view was null.");
 
@@ -2042,16 +2047,18 @@ layout(std140) uniform Material
             "Light", pipeline.LightBuffer, LightBufferSize);
         BindMaterialTextures(pipeline, material);
 
-        _immediateContext.SetPipelineState(pipeline.PipelineState);
-        _immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+        IDeviceContext_SetPipelineState(_immediateContext, pipeline.PipelineState);
+        IDeviceContext_CommitShaderResources(_immediateContext, pipeline.ShaderResources,
+            ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
 
         _singleVertexBuffer[0] = uploadedGeometry.VertexBuffer;
-        _immediateContext.SetVertexBuffers(0, 1, _singleVertexBuffer, _singleVertexBufferOffset,
+        IDeviceContext_SetVertexBuffers(_immediateContext, 0, 1, _singleVertexBuffer,
+            _singleVertexBufferOffset,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
             SetVertexBuffersFlags.SetVertexBuffersFlagReset);
-        _immediateContext.SetIndexBuffer(uploadedGeometry.IndexBuffer, 0,
+        IDeviceContext_SetIndexBuffer(_immediateContext, uploadedGeometry.IndexBuffer, 0,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
-        _immediateContext.DrawIndexed(uploadedGeometry.DrawIndexedAttribs);
+        IDeviceContext_DrawIndexed(_immediateContext, uploadedGeometry.DrawIndexedAttribs);
         return (1u, geometry.GetPrimitiveCount());
     }
 
@@ -2094,7 +2101,7 @@ layout(std140) uniform Material
         try
         {
             var isOpenGl = GetSubsystem<RenderDevice>()?.GetBackend() == RenderBackend.OpenGL;
-            var hasSeparableShaderPrograms = _device.GetDeviceInfo().FeaturesSeparablePrograms
+            var hasSeparableShaderPrograms = IRenderDevice_GetDeviceInfo(_device).FeaturesSeparablePrograms
                 != DeviceFeatureState.DeviceFeatureStateDisabled;
             var vertexAttributes = vertexVariation.GetBytecode().VertexAttributes;
             if (isOpenGl)
@@ -2138,17 +2145,14 @@ layout(std140) uniform Material
             using var samplers = new TemporaryImmutableSamplers(samplerOverrides, reflection,
                 GetSubsystem<RenderDevice>(), global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeAllGraphics);
             using var pipelineName = new CString($"{pass.VertexShader}:{pass.PixelShader}:{key.LayoutSignature}");
-            using var psoDesc = new global::RedBolt.Bindings.Diligent.PipelineStateDesc
-            {
-                Name = pipelineName.Pointer,
-                PipelineType = PipelineType.PipelineTypeGraphics,
-                ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic,
-                ResourceLayoutImmutableSamplers = samplers.First!,
-                ResourceLayoutNumImmutableSamplers = samplers.Count
-            };
             using var psoCreateInfo = new GraphicsPipelineStateCreateInfo
             {
-                PSODesc = psoDesc,
+                PSODescDeviceObjectAttribsName = pipelineName.Pointer,
+                PSODescPipelineType = PipelineType.PipelineTypeGraphics,
+                PSODescResourceLayoutDefaultVariableType =
+                    ShaderResourceVariableType.ShaderResourceVariableTypeDynamic,
+                PSODescResourceLayoutImmutableSamplers = samplers.First!,
+                PSODescResourceLayoutNumImmutableSamplers = samplers.Count,
                 PVS = vertexShader,
                 PPS = pixelShader,
                 GraphicsPipelineBlendDescAlphaToCoverageEnable = alphaToCoverage,
@@ -2168,7 +2172,7 @@ layout(std140) uniform Material
             psoCreateInfo.GraphicsPipelineRTVFormats[0] = colorFormat;
             psoCreateInfo.GraphicsPipelineDSVFormat = depthFormat;
 
-            _device.CreateGraphicsPipelineState(psoCreateInfo, out var pipelineState);
+            IRenderDevice_CreateGraphicsPipelineState(_device, psoCreateInfo, out var pipelineState);
             if (pipelineState.IsNull)
                 throw new InvalidOperationException($"Failed to create pipeline state for {pass.VertexShader}/{pass.PixelShader}.");
             if (isOpenGl &&
@@ -2181,7 +2185,7 @@ layout(std140) uniform Material
             var customBuffer = customLayout.Size > 0u ? CreateUniformBuffer(_device, "Custom", customLayout.Size) : null;
             var lightBuffer = CreateUniformBuffer(_device, "Light", LightBufferSize);
             var zoneBuffer = CreateUniformBuffer(_device, "Zone", ZoneBufferSize);
-            pipelineState.CreateShaderResourceBinding(out var shaderResources, true);
+            IPipelineState_CreateShaderResourceBinding(pipelineState, out var shaderResources, true);
             if (shaderResources.IsNull)
                 throw new InvalidOperationException($"Failed to create shader resources for {pass.VertexShader}/{pass.PixelShader}.");
 
@@ -2189,8 +2193,8 @@ layout(std140) uniform Material
                 vertexShader, pixelShader, pipelineState, shaderResources);
 
             // Keep variation GPU handles alive while the pipeline owns them.
-            _ = vertexShader.AddRef();
-            _ = pixelShader.AddRef();
+            _ = IObject_AddRef(vertexShader);
+            _ = IObject_AddRef(pixelShader);
             cached = new PipelineResources(pipelineState, vertexShader, pixelShader, cameraBuffer, objectBuffer, materialBuffer,
                 customBuffer, customLayout, lightBuffer, zoneBuffer, shaderResources,
                 BuildShaderVariableLookup(shaderResources, reflection), layoutArray);
@@ -2260,17 +2264,14 @@ layout(std140) uniform Material
             using var samplers = new TemporaryImmutableSamplers(samplerOverrides, reflection,
                 GetSubsystem<RenderDevice>(), global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeAllGraphics);
             using var pipelineName = new CString($"{shaderName}:{shaderDefines}:fullscreen");
-            using var psoDesc = new global::RedBolt.Bindings.Diligent.PipelineStateDesc
-            {
-                Name = pipelineName.Pointer,
-                PipelineType = PipelineType.PipelineTypeGraphics,
-                ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic,
-                ResourceLayoutImmutableSamplers = samplers.First!,
-                ResourceLayoutNumImmutableSamplers = samplers.Count
-            };
             using var psoCreateInfo = new GraphicsPipelineStateCreateInfo
             {
-                PSODesc = psoDesc,
+                PSODescDeviceObjectAttribsName = pipelineName.Pointer,
+                PSODescPipelineType = PipelineType.PipelineTypeGraphics,
+                PSODescResourceLayoutDefaultVariableType =
+                    ShaderResourceVariableType.ShaderResourceVariableTypeDynamic,
+                PSODescResourceLayoutImmutableSamplers = samplers.First!,
+                PSODescResourceLayoutNumImmutableSamplers = samplers.Count,
                 PVS = vertexShader,
                 PPS = pixelShader,
                 GraphicsPipelineNumRenderTargets = 1,
@@ -2290,7 +2291,7 @@ layout(std140) uniform Material
             psoCreateInfo.GraphicsPipelineDSVFormat = _currentDepthTargetFormat;
             ConfigureBlendState(psoCreateInfo, blendMode, colorWriteEnabled: true);
 
-            _device.CreateGraphicsPipelineState(psoCreateInfo, out var pipelineState);
+            IRenderDevice_CreateGraphicsPipelineState(_device, psoCreateInfo, out var pipelineState);
             if (pipelineState.IsNull)
                 throw new InvalidOperationException($"Failed to create fullscreen pipeline state for {shaderName}.");
 
@@ -2299,7 +2300,7 @@ layout(std140) uniform Material
             var objectBuffer = CreateUniformBuffer(_device, "Object", ObjectBufferSize);
             var customBuffer = customLayout.Size > 0u ? CreateUniformBuffer(_device, "Custom", customLayout.Size) : null;
 
-            pipelineState.CreateShaderResourceBinding(out var shaderResources, true);
+            IPipelineState_CreateShaderResourceBinding(pipelineState, out var shaderResources, true);
             if (shaderResources.IsNull)
                 throw new InvalidOperationException($"Failed to create fullscreen shader resources for {shaderName}.");
 
@@ -2315,8 +2316,8 @@ layout(std140) uniform Material
                 customBuffer,
                 customLayout,
                 layoutArray);
-            _ = vertexShader.AddRef();
-            _ = pixelShader.AddRef();
+            _ = IObject_AddRef(vertexShader);
+            _ = IObject_AddRef(pixelShader);
             layoutArray = null;
             _fullscreenPipelines[key] = cached;
             return cached;
@@ -2363,15 +2364,12 @@ layout(std140) uniform Material
             ApplyVertexAttributeLocations(layoutElements, vertexVariation.GetBytecode().VertexAttributes);
             layoutArray = new TemporaryLayoutArray(layoutElements);
             using var pipelineName = new CString($"{shaderName}:{flags}:clear");
-            using var psoDesc = new global::RedBolt.Bindings.Diligent.PipelineStateDesc
-            {
-                Name = pipelineName.Pointer,
-                PipelineType = PipelineType.PipelineTypeGraphics,
-                ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic
-            };
             using var psoCreateInfo = new GraphicsPipelineStateCreateInfo
             {
-                PSODesc = psoDesc,
+                PSODescDeviceObjectAttribsName = pipelineName.Pointer,
+                PSODescPipelineType = PipelineType.PipelineTypeGraphics,
+                PSODescResourceLayoutDefaultVariableType =
+                    ShaderResourceVariableType.ShaderResourceVariableTypeDynamic,
                 PVS = vertexShader,
                 PPS = pixelShader,
                 GraphicsPipelineNumRenderTargets = 1,
@@ -2402,7 +2400,7 @@ layout(std140) uniform Material
             psoCreateInfo.GraphicsPipelineDSVFormat = _currentDepthTargetFormat;
             ConfigureBlendState(psoCreateInfo, BlendMode.Replace, settings.ColorWriteEnabled);
 
-            _device.CreateGraphicsPipelineState(psoCreateInfo, out var pipelineState);
+            IRenderDevice_CreateGraphicsPipelineState(_device, psoCreateInfo, out var pipelineState);
             if (pipelineState.IsNull)
                 throw new InvalidOperationException($"Failed to create clear framebuffer pipeline state for {shaderName}.");
 
@@ -2411,12 +2409,12 @@ layout(std140) uniform Material
             var objectBuffer = CreateUniformBuffer(_device, "Object", ObjectBufferSize);
             var customBuffer = customLayout.Size > 0u ? CreateUniformBuffer(_device, "Custom", customLayout.Size) : null;
 
-            pipelineState.CreateShaderResourceBinding(out var shaderResources, true);
+            IPipelineState_CreateShaderResourceBinding(pipelineState, out var shaderResources, true);
             if (shaderResources.IsNull)
                 throw new InvalidOperationException($"Failed to create clear framebuffer shader resources for {shaderName}.");
 
-            _ = vertexShader.AddRef();
-            _ = pixelShader.AddRef();
+            _ = IObject_AddRef(vertexShader);
+            _ = IObject_AddRef(pixelShader);
             cached = new FullscreenPipelineResources(
                 pipelineState,
                 vertexShader,
@@ -2536,16 +2534,18 @@ layout(std140) uniform Material
         if (depthTexture?.GetHandles().ShaderResourceView is { } depthView)
             BindTextureToAvailableStages(pipeline, "sDepthBuffer", depthView);
 
-        _immediateContext.SetPipelineState(pipeline.PipelineState);
-        _immediateContext.CommitShaderResources(pipeline.ShaderResources, ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+        IDeviceContext_SetPipelineState(_immediateContext, pipeline.PipelineState);
+        IDeviceContext_CommitShaderResources(_immediateContext, pipeline.ShaderResources,
+            ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
 
         _singleVertexBuffer[0] = uploadedGeometry.VertexBuffer;
-        _immediateContext.SetVertexBuffers(0, 1, _singleVertexBuffer, _singleVertexBufferOffset,
+        IDeviceContext_SetVertexBuffers(_immediateContext, 0, 1, _singleVertexBuffer,
+            _singleVertexBufferOffset,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
             SetVertexBuffersFlags.SetVertexBuffersFlagReset);
-        _immediateContext.SetIndexBuffer(uploadedGeometry.IndexBuffer, 0,
+        IDeviceContext_SetIndexBuffer(_immediateContext, uploadedGeometry.IndexBuffer, 0,
             ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
-        _immediateContext.DrawIndexed(uploadedGeometry.DrawIndexedAttribs);
+        IDeviceContext_DrawIndexed(_immediateContext, uploadedGeometry.DrawIndexedAttribs);
     }
 
     private void UpdateFullscreenCustomBuffer(IBuffer buffer, CustomUniformLayout layout, byte[]? scratch,
@@ -2926,10 +2926,15 @@ layout(std140) uniform Material
 
         var gpuVertexBuffer = GetVertexBufferHandle(vertexBuffer);
         var gpuIndexBuffer = GetIndexBufferHandle(indexBuffer);
-        var drawIndexedAttribs = new DrawIndexedAttribs(geometry.GetIndexCount(),
-            indexBuffer.GetIndexSize() == 4 ? global::RedBolt.Bindings.Diligent.ValueType.VtUint32 : global::RedBolt.Bindings.Diligent.ValueType.VtUint16,
-            DrawFlags.DrawFlagVerifyAll,
-            _FirstIndexLocation: geometry.GetIndexStart());
+        var drawIndexedAttribs = new DrawIndexedAttribs
+        {
+            NumIndices = geometry.GetIndexCount(),
+            IndexType = indexBuffer.GetIndexSize() == 4
+                ? global::RedBolt.Bindings.Diligent.ValueType.VtUint32
+                : global::RedBolt.Bindings.Diligent.ValueType.VtUint16,
+            Flags = DrawFlags.DrawFlagVerifyAll,
+            FirstIndexLocation = geometry.GetIndexStart()
+        };
 
         uploaded = new UploadedGeometry(gpuVertexBuffer, gpuIndexBuffer, drawIndexedAttribs);
         _uploadedGeometries[geometry] = uploaded;
@@ -3097,7 +3102,7 @@ layout(std140) uniform Material
         if (bindUnorderedAccess)
             textureDesc.BindFlags |= BindFlags.BindUnorderedAccess;
         textureDesc.Usage = Usage.UsageDefault;
-        _device.CreateTexture(textureDesc, null!, out var gpuTexture);
+        IRenderDevice_CreateTexture(_device, textureDesc, null!, out var gpuTexture);
         if (gpuTexture.IsNull)
             throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
@@ -3154,7 +3159,7 @@ layout(std140) uniform Material
         if (bindUnorderedAccess)
             textureDesc.BindFlags |= BindFlags.BindUnorderedAccess;
         textureDesc.Usage = Usage.UsageDefault;
-        _device.CreateTexture(textureDesc, null!, out var gpuTexture);
+        IRenderDevice_CreateTexture(_device, textureDesc, null!, out var gpuTexture);
         if (gpuTexture.IsNull)
             throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
@@ -3206,7 +3211,7 @@ layout(std140) uniform Material
         if (bindUnorderedAccess)
             textureDesc.BindFlags |= BindFlags.BindUnorderedAccess;
         textureDesc.Usage = Usage.UsageDefault;
-        _device.CreateTexture(textureDesc, null!, out var gpuTexture);
+        IRenderDevice_CreateTexture(_device, textureDesc, null!, out var gpuTexture);
         if (gpuTexture.IsNull)
             throw new InvalidOperationException($"Failed to create GPU texture for {texture.Name}.");
 
@@ -3258,7 +3263,7 @@ layout(std140) uniform Material
         resolvedDesc.BindFlags = sourceDesc.BindFlags;
         resolvedDesc.Usage = Usage.UsageDefault;
         resolvedDesc.SampleCount = 1;
-        _device.CreateTexture(resolvedDesc, null!, out var resolvedTexture);
+        IRenderDevice_CreateTexture(_device, resolvedDesc, null!, out var resolvedTexture);
         if (resolvedTexture.IsNull)
             throw new InvalidOperationException($"Failed to create resolved GPU texture for {texture.Name}.");
 
@@ -3274,7 +3279,7 @@ layout(std140) uniform Material
         textureViewDesc.Format = format;
         if (viewType == TextureViewType.TextureViewShaderResource)
         {
-            using var textureDesc = texture.GetDesc();
+            using var textureDesc = ITexture_GetDesc(texture);
             if ((textureDesc.MiscFlags & MiscTextureFlags.MiscTextureFlagGenerateMips) != 0)
                 textureViewDesc.Flags |= TextureViewFlags.TextureViewFlagAllowMipMapGeneration;
         }
@@ -3283,7 +3288,7 @@ layout(std140) uniform Material
             textureViewDesc.AccessFlags |= UavAccessFlag.UavAccessFlagReadWrite;
         }
 
-        texture.CreateView(textureViewDesc, out var createdView);
+        ITexture_CreateView(texture, textureViewDesc, out var createdView);
         if (createdView.IsNull)
             throw new InvalidOperationException($"Failed to create {viewType} for texture.");
 
@@ -3292,14 +3297,14 @@ layout(std140) uniform Material
 
     private ITextureView GetReadOnlyDepthTextureView(ITexture texture, ITextureView depthView)
     {
-        var view = texture.GetDefaultView(TextureViewType.TextureViewReadOnlyDepthStencil);
+        var view = ITexture_GetDefaultView(texture, TextureViewType.TextureViewReadOnlyDepthStencil);
         if (view is not null && !view.IsNull)
             return RetainDefaultTextureView(view);
 
-        using var depthViewDesc = depthView.GetDesc();
-        using var textureViewDesc = depthViewDesc.Clone();
+        using var depthViewDesc = ITextureView_GetDesc(depthView);
+        using var textureViewDesc = RenderAPIUtils.CloneTextureViewDesc(depthViewDesc);
         textureViewDesc.ViewType = TextureViewType.TextureViewReadOnlyDepthStencil;
-        texture.CreateView(textureViewDesc, out var createdView);
+        ITexture_CreateView(texture, textureViewDesc, out var createdView);
         if (createdView.IsNull)
             throw new InvalidOperationException("Failed to create read-only depth-stencil view for texture.");
 
@@ -3308,7 +3313,7 @@ layout(std140) uniform Material
 
     private static ITextureView RetainDefaultTextureView(ITextureView view)
     {
-        _ = view.AddRef();
+        _ = IObject_AddRef(view);
         return view;
     }
 
@@ -3334,7 +3339,8 @@ layout(std140) uniform Material
         {
             resolveAttribs.SrcSlice = slice;
             resolveAttribs.DstSlice = slice;
-            _immediateContext.ResolveTextureSubresource(uploaded.Texture, uploaded.ResolvedTexture, resolveAttribs);
+            IDeviceContext_ResolveTextureSubresource(_immediateContext, uploaded.Texture,
+                uploaded.ResolvedTexture, resolveAttribs);
         }
 
         uploaded.ClearResolveDirty();
@@ -3359,9 +3365,13 @@ layout(std140) uniform Material
     {
         return view.Type switch
         {
-            RenderTargetViewType.SwapChainColor => _swapChain?.GetCurrentBackBufferRTV()
+            RenderTargetViewType.SwapChainColor => (_swapChain is null
+                ? null
+                : ISwapChain_GetCurrentBackBufferRTV(_swapChain))
                 ?? throw new InvalidOperationException("Swap chain color target is not available."),
-            RenderTargetViewType.SwapChainDepthStencil => _swapChain?.GetDepthBufferDSV()
+            RenderTargetViewType.SwapChainDepthStencil => (_swapChain is null
+                ? null
+                : ISwapChain_GetDepthBufferDSV(_swapChain))
                 ?? throw new InvalidOperationException("Swap chain depth target is not available."),
             RenderTargetViewType.Resource => ResolveTextureRenderTargetView(view),
             RenderTargetViewType.ResourceSlice => ResolveTextureRenderTargetView(view),
@@ -3449,7 +3459,7 @@ layout(std140) uniform Material
         textureViewDesc.NumMipLevels = 1;
         textureViewDesc.FirstArraySlice = checked((uint)slice);
         textureViewDesc.NumArraySlices = 1;
-        uploaded.Texture.CreateView(textureViewDesc, out var createdView);
+        ITexture_CreateView(uploaded.Texture, textureViewDesc, out var createdView);
         if (createdView.IsNull)
             throw new InvalidOperationException($"Failed to create slice view {viewType} for texture '{texture.Name}'.");
 
@@ -3496,14 +3506,14 @@ layout(std140) uniform Material
 
     private static global::RedBolt.Bindings.Diligent.TextureFormat GetTextureViewFormat(ITextureView textureView)
     {
-        var texture = textureView.GetTexture();
+        var texture = ITextureView_GetTexture(textureView);
         if (!texture.IsNull)
         {
-            using var textureDesc = texture.GetDesc();
+            using var textureDesc = ITexture_GetDesc(texture);
             return textureDesc.Format;
         }
 
-        using var viewDesc = textureView.GetDesc();
+        using var viewDesc = ITextureView_GetDesc(textureView);
         return viewDesc.Format;
     }
 
@@ -3514,7 +3524,7 @@ layout(std140) uniform Material
         if (_swapChain is null)
             return 0;
 
-        using var desc = _swapChain.GetDesc();
+        using var desc = ISwapChain_GetDesc(_swapChain);
         return desc.ColorBufferFormat;
     }
 
@@ -3525,7 +3535,7 @@ layout(std140) uniform Material
         if (_swapChain is null)
             return 0;
 
-        using var desc = _swapChain.GetDesc();
+        using var desc = ISwapChain_GetDesc(_swapChain);
         return desc.DepthBufferFormat;
     }
 
@@ -3581,7 +3591,7 @@ layout(std140) uniform Material
         viewport.Height = viewportRect.Height;
         viewport.MinDepth = 0.0f;
         viewport.MaxDepth = 1.0f;
-        immediateContext.SetViewports(1, viewport, 0, 0);
+        IDeviceContext_SetViewports(immediateContext, 1, viewport, 0, 0);
     }
 
     private static bool IsDepthTextureFormat(TextureFormat format)
@@ -3639,7 +3649,11 @@ layout(std140) uniform Material
         if (source.Type == ResourceDimension.ResourceDimTex3d)
             destination.Depth = source.Depth;
         else
-            destination.ArraySize = source.GetArraySize();
+            destination.ArraySize = source.Type is ResourceDimension.ResourceDimTex1dArray
+                or ResourceDimension.ResourceDimTex2dArray
+                or ResourceDimension.ResourceDimTexCubeArray
+                ? source.ArraySize
+                : 1u;
     }
 
     private static uint GetArraySizeOrDepth(Texture texture)
@@ -4322,7 +4336,7 @@ layout(std140) uniform Material
 
         if (pipeline.TryGetShaderVariable(shaderType, name, out var variable))
         {
-            variable.Set(textureView);
+            IShaderResourceVariable_Set(variable, textureView, SetShaderResourceFlags.SetShaderResourceFlagNone);
         }
         else if (logIfMissing && ShaderBindingDiagnosticsEnabled)
             Log.GetLogger().LogWarning("Shader binding diagnostics: texture '{Texture}' was not found for stage '{Stage}'.", name, shaderType);
@@ -4342,7 +4356,7 @@ layout(std140) uniform Material
 
         if (pipeline.TryGetShaderVariable(shaderType, name, out var variable))
         {
-            variable.Set(textureView);
+            IShaderResourceVariable_Set(variable, textureView, SetShaderResourceFlags.SetShaderResourceFlagNone);
         }
         else if (logIfMissing && ShaderBindingDiagnosticsEnabled)
             Log.GetLogger().LogWarning("Shader binding diagnostics: fullscreen texture '{Texture}' was not found for stage '{Stage}'.", name, shaderType);
@@ -4359,7 +4373,8 @@ layout(std140) uniform Material
     {
         if (pipeline.TryGetShaderVariable(shaderType, name, out var variable))
         {
-            variable.SetBufferRange(buffer, 0, size);
+            IShaderResourceVariable_SetBufferRange(variable, buffer, 0, size, 0,
+                SetShaderResourceFlags.SetShaderResourceFlagNone);
         }
         else if (ShaderBindingDiagnosticsEnabled)
             Log.GetLogger().LogWarning("Shader binding diagnostics: dynamic buffer '{Buffer}' was not found for stage '{Stage}'.", name, shaderType);
@@ -4370,7 +4385,8 @@ layout(std140) uniform Material
     {
         if (pipeline.TryGetShaderVariable(shaderType, name, out var variable))
         {
-            variable.SetBufferRange(buffer, 0, size);
+            IShaderResourceVariable_SetBufferRange(variable, buffer, 0, size, 0,
+                SetShaderResourceFlags.SetShaderResourceFlagNone);
         }
         else if (ShaderBindingDiagnosticsEnabled)
             Log.GetLogger().LogWarning("Shader binding diagnostics: fullscreen dynamic buffer '{Buffer}' was not found for stage '{Stage}'.", name, shaderType);
@@ -4382,22 +4398,18 @@ layout(std140) uniform Material
         using var shaderName = new CString(name);
         using var entryPoint = new CString("main");
         using var shaderSource = new CString(source);
-        using var shaderDesc = new ShaderDesc
-        {
-            Name = shaderName.Pointer,
-            ShaderType = shaderType,
-            UseCombinedTextureSamplers = true
-        };
         using var shaderCreateInfo = new ShaderCreateInfo
         {
-            Desc = shaderDesc,
+            DescDeviceObjectAttribsName = shaderName.Pointer,
+            DescShaderType = shaderType,
+            DescUseCombinedTextureSamplers = true,
             EntryPoint = entryPoint.Pointer,
             Source = shaderSource.Pointer,
             SourceLanguage = global::RedBolt.Bindings.Diligent.ShaderSourceLanguage.ShaderSourceLanguageGlslVerbatim,
             LoadConstantBufferReflection = true
         };
 
-        device.CreateShader(shaderCreateInfo, out var shader, out var compilerOutput);
+        IRenderDevice_CreateShader(device, shaderCreateInfo, out var shader, out var compilerOutput);
         ReleaseIfNotNull(compilerOutput);
 
         if (shader.IsNull)
@@ -4415,7 +4427,7 @@ layout(std140) uniform Material
         bufferDesc.BindFlags = BindFlags.BindUniformBuffer;
         bufferDesc.Usage = Usage.UsageDefault;
         bufferDesc.CPUAccessFlags = CpuAccessFlags.CpuAccessNone;
-        device.CreateBuffer(bufferDesc, null!, out var buffer);
+        IRenderDevice_CreateBuffer(device, bufferDesc, null!, out var buffer);
         if (buffer.IsNull)
             throw new InvalidOperationException($"CreateBuffer returned null for uniform buffer {name}.");
         return buffer;
@@ -4432,8 +4444,13 @@ layout(std140) uniform Material
         bufferDesc.Usage = Usage.UsageImmutable;
         bufferDesc.ElementByteStride = elementStride;
         using var dataHandle = new PinnedBuffer(data);
-        using var bufferData = new BufferData(dataHandle.Pointer, (nuint)size, immediateContext);
-        device.CreateBuffer(bufferDesc, bufferData, out var buffer);
+        using var bufferData = new BufferData
+        {
+            PData = dataHandle.Pointer,
+            DataSize = checked((ulong)size),
+            PContext = immediateContext
+        };
+        IRenderDevice_CreateBuffer(device, bufferDesc, bufferData, out var buffer);
         if (buffer.IsNull)
             throw new InvalidOperationException($"CreateBuffer returned null for {name}.");
         return buffer;
@@ -4467,22 +4484,23 @@ layout(std140) uniform Material
 
         fixed (byte* dataPointer = data)
         {
-            _immediateContext.UpdateBuffer(buffer, 0, (nuint)data.Length, (nint)dataPointer,
+            IDeviceContext_UpdateBuffer(_immediateContext, buffer, 0, (nuint)data.Length,
+                (nint)dataPointer,
                 ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
         }
     }
 
     private static TextureDescOwner CreateTextureDesc()
     {
-        var factory = DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL();
-        var apiInfo = factory.GetAPIInfo();
+        var factory = DiligentNativeBindings.DiligentLoadAndGetEngineFactoryOpenGL();
+        var apiInfo = IEngineFactory_GetAPIInfo(factory);
         return new TextureDescOwner((int)apiInfo.TextureDescSize);
     }
 
     private static TextureViewDescOwner CreateTextureViewDesc()
     {
-        var factory = DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL();
-        var apiInfo = factory.GetAPIInfo();
+        var factory = DiligentNativeBindings.DiligentLoadAndGetEngineFactoryOpenGL();
+        var apiInfo = IEngineFactory_GetAPIInfo(factory);
         return new TextureViewDescOwner((int)apiInfo.TextureViewDescSize);
     }
 
@@ -4540,7 +4558,7 @@ layout(std140) uniform Material
     private static void ReleaseIfNotNull(IObject? value)
     {
         if (value is not null && !value.IsNull)
-            _ = value.Release();
+            _ = IObject_Release(value);
     }
 
     private static bool IsRenderDiagnosticsEnabled()
@@ -4600,18 +4618,18 @@ layout(std140) uniform Material
 
     private static void DumpShaderResources(string label, IShader shader)
     {
-        var resourceCount = shader.GetResourceCount();
+        var resourceCount = IShader_GetResourceCount(shader);
         Log.GetLogger().LogDebug("Shader reflection diagnostics: {Label} resourceCount={ResourceCount}.", label, resourceCount);
         for (uint resourceIndex = 0; resourceIndex < resourceCount; ++resourceIndex)
         {
             using var resourceDesc = new global::RedBolt.Bindings.Diligent.ShaderResourceDesc();
-            shader.GetResourceDesc(resourceIndex, resourceDesc);
+            IShader_GetResourceDesc(shader, resourceIndex, resourceDesc);
             var resourceName = PtrToUtf8String(resourceDesc.Name);
             var line =
                 $"Shader reflection diagnostics: {label} resource[{resourceIndex}] name='{resourceName}', type={resourceDesc.Type}, arraySize={resourceDesc.ArraySize}";
             if (resourceDesc.Type == ShaderResourceType.ShaderResourceTypeConstantBuffer)
             {
-                var bufferDesc = shader.GetConstantBufferDesc(resourceIndex);
+                var bufferDesc = IShader_GetConstantBufferDesc(shader, resourceIndex);
                 line += $", size={bufferDesc.Size}, variableCount={bufferDesc.NumVariables}";
             }
 
@@ -4621,25 +4639,33 @@ layout(std140) uniform Material
 
     private static void DumpPipelineVariables(string label, IPipelineState pipelineState, IShaderResourceBinding shaderResources)
     {
-        using var pipelineDesc = pipelineState.GetDesc();
+        using var pipelineDesc = IPipelineState_GetDesc(pipelineState);
         Log.GetLogger().LogDebug(
             "Shader reflection diagnostics: {Label} defaultVariableType={DefaultVariableType}, staticSignatures={StaticSignatures}.",
             label,
             pipelineDesc.ResourceLayoutDefaultVariableType,
-            pipelineState.GetResourceSignatureCount());
+            IPipelineState_GetResourceSignatureCount(pipelineState));
 
         DumpVariableList(label, "static", global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
-            pipelineState.GetStaticVariableCount(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex),
-            index => pipelineState.GetStaticVariableByIndex(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, index));
+            IPipelineState_GetStaticVariableCount(pipelineState,
+                global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex),
+            index => IPipelineState_GetStaticVariableByIndex(pipelineState,
+                global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, index));
         DumpVariableList(label, "static", global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
-            pipelineState.GetStaticVariableCount(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel),
-            index => pipelineState.GetStaticVariableByIndex(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, index));
+            IPipelineState_GetStaticVariableCount(pipelineState,
+                global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel),
+            index => IPipelineState_GetStaticVariableByIndex(pipelineState,
+                global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, index));
         DumpVariableList(label, "srb", global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex,
-            shaderResources.GetVariableCount(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex),
-            index => shaderResources.GetVariableByIndex(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, index));
+            IShaderResourceBinding_GetVariableCount(shaderResources,
+                global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex),
+            index => IShaderResourceBinding_GetVariableByIndex(shaderResources,
+                global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, index));
         DumpVariableList(label, "srb", global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel,
-            shaderResources.GetVariableCount(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel),
-            index => shaderResources.GetVariableByIndex(global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, index));
+            IShaderResourceBinding_GetVariableCount(shaderResources,
+                global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel),
+            index => IShaderResourceBinding_GetVariableByIndex(shaderResources,
+                global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, index));
     }
 
     private static void DumpVariableList(string label, string scope, global::RedBolt.Bindings.Diligent.ShaderType shaderType,
@@ -4652,7 +4678,7 @@ layout(std140) uniform Material
         {
             var variable = getVariable(variableIndex);
             using var resourceDesc = new global::RedBolt.Bindings.Diligent.ShaderResourceDesc();
-            variable.GetResourceDesc(resourceDesc);
+            IShaderResourceVariable_GetResourceDesc(variable, resourceDesc);
             Log.GetLogger().LogDebug(
                 "Shader reflection diagnostics: {Label} {Scope} {ShaderType} variable[{VariableIndex}] name='{Name}', type={Type}, arraySize={ArraySize}, variableType={VariableType}.",
                 label,
@@ -4716,7 +4742,8 @@ layout(std140) uniform Material
         unsafe
         {
             ref var internalNameRef = ref System.Runtime.CompilerServices.Unsafe.AsRef<sbyte>((void*)name.Pointer);
-            var variable = shaderResources.GetVariableByName(shaderType, in internalNameRef);
+            var variable = IShaderResourceBinding_GetVariableByName(shaderResources, shaderType,
+                in internalNameRef);
             if (variable is not null && !variable.IsNull)
                 result[new PipelineVariableKey(shaderType, name.ConvertToString())] = variable;
         }
@@ -4990,7 +5017,7 @@ layout(std140) uniform Material
             if (Count == 0)
                 throw new InvalidOperationException("Graphics pipeline layout may not be empty.");
 
-            var layoutElementSize = (int)DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL().GetAPIInfo().LayoutElementSize;
+            var layoutElementSize = (int)IEngineFactory_GetAPIInfo(DiligentNativeBindings.DiligentLoadAndGetEngineFactoryOpenGL()).LayoutElementSize;
             _memory = Marshal.AllocHGlobal(Count * layoutElementSize);
             for (var i = 0; i < Count; ++i)
             {
@@ -5148,7 +5175,7 @@ layout(std140) uniform Material
             if (resources.Length == 0)
                 return;
 
-            var immutableSamplerDescSize = (int)DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL().GetAPIInfo().ImmutableSamplerDescSize;
+            var immutableSamplerDescSize = (int)IEngineFactory_GetAPIInfo(DiligentNativeBindings.DiligentLoadAndGetEngineFactoryOpenGL()).ImmutableSamplerDescSize;
             _memory = Marshal.AllocHGlobal(checked(immutableSamplerDescSize * resources.Length));
             for (var i = 0; i < resources.Length; ++i)
             {
@@ -5159,7 +5186,7 @@ layout(std140) uniform Material
                     IntPtr.Add(_memory, immutableSamplerDescSize * i), false);
                 _samplers[i].ShaderStages = stages;
                 _samplers[i].SamplerOrTextureName = pair.Value.InternalName.Pointer;
-                _samplers[i].Desc = _descriptions[i];
+                CopyDescription(_samplers[i], _descriptions[i]);
             }
             First = _samplers[0];
         }
@@ -5233,6 +5260,26 @@ layout(std140) uniform Material
                 MinLOD = source.MinLod,
                 MaxLOD = source.MaxLod
             };
+        }
+
+        private static void CopyDescription(ImmutableSamplerDesc destination, SamplerDesc source)
+        {
+            destination.DescAddressU = source.AddressU;
+            destination.DescAddressV = source.AddressV;
+            destination.DescAddressW = source.AddressW;
+            for (var i = 0; i < 4; ++i)
+                destination.DescBorderColor[i] = source.BorderColor[i];
+            destination.DescComparisonFunc = source.ComparisonFunc;
+            destination.DescDeviceObjectAttribsName = source.Name;
+            destination.DescFlags = source.Flags;
+            destination.DescMagFilter = source.MagFilter;
+            destination.DescMaxAnisotropy = source.MaxAnisotropy;
+            destination.DescMaxLOD = source.MaxLOD;
+            destination.DescMinFilter = source.MinFilter;
+            destination.DescMinLOD = source.MinLOD;
+            destination.DescMipFilter = source.MipFilter;
+            destination.DescMipLODBias = source.MipLODBias;
+            destination.DescUnnormalizedCoords = source.UnnormalizedCoords;
         }
 
         private static global::RedBolt.Bindings.Diligent.TextureAddressMode ToNative(TextureAddressMode value) => value switch

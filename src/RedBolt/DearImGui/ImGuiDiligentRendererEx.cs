@@ -20,7 +20,7 @@ public class ImGuiDiligentRendererEx : IDisposable
     public ImGuiDiligentRendererEx(RenderDevice renderDevice)
     {
         var swapChain = renderDevice.GetSwapChain()!;
-        using var swapChainDesc = swapChain.GetDesc();
+        using var swapChainDesc = ISwapChain_GetDesc(swapChain);
         _nativeRenderer = ImGui.ImGuiBackendCreateRenderer(
             renderDevice.GetRenderDevice()!.Handle,
             (uint)swapChainDesc.ColorBufferFormat,
@@ -44,9 +44,9 @@ public class ImGuiDiligentRendererEx : IDisposable
             // platformIO.Renderer_RenderWindow = [](ImGuiViewport* viewport, void* renderArg) { GetBackendData()->RenderWindow(viewport, renderArg); };
             // platformIO.Renderer_SwapBuffers = [](ImGuiViewport* viewport, void* renderArg) { GetBackendData()->SwapBuffers(viewport, renderArg); };
 
-            using var renderTarget = swapChain.GetCurrentBackBufferRTV()!;
-            using var backBuffer = renderTarget.GetTexture();
-            using var backBufferDesc = backBuffer.GetDesc();
+            using var renderTarget = ISwapChain_GetCurrentBackBufferRTV(swapChain)!;
+            using var backBuffer = ITextureView_GetTexture(renderTarget);
+            using var backBufferDesc = ITexture_GetDesc(backBuffer);
             var multiSample = checked((int)backBufferDesc.SampleCount);
             var colorBufferFormat = swapChainDesc.ColorBufferFormat;
             var depthBufferFormat = swapChainDesc.DepthBufferFormat;
@@ -151,13 +151,13 @@ public class ImGuiDiligentRendererEx : IDisposable
                     ref var cameraNameRef = ref Unsafe.As<byte, sbyte>(ref *cameraName);
                     ref var harfBuzzAtlasNameRef = ref Unsafe.As<byte, sbyte>(ref *harfBuzzAtlasName);
                     ref var customNameRef = ref Unsafe.As<byte, sbyte>(ref *customName);
-                    textureVar = srb.GetVariableByName(
+                    textureVar = IShaderResourceBinding_GetVariableByName(srb,
                         global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, in textureNameRef);
-                    constantsVar = srb.GetVariableByName(
+                    constantsVar = IShaderResourceBinding_GetVariableByName(srb,
                         global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypeVertex, in cameraNameRef);
-                    harfBuzzAtlasVar = srb.GetVariableByName(
+                    harfBuzzAtlasVar = IShaderResourceBinding_GetVariableByName(srb,
                         global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, in harfBuzzAtlasNameRef);
-                    pixelConstantsVar = srb.GetVariableByName(
+                    pixelConstantsVar = IShaderResourceBinding_GetVariableByName(srb,
                         global::RedBolt.Bindings.Diligent.ShaderType.ShaderTypePixel, in customNameRef);
                 }
             }

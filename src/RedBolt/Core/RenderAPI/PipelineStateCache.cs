@@ -30,7 +30,7 @@ public class PipelineStateCache : DeviceObject
         _states.Clear();
 
         if (_handle is { IsNull: false })
-            _ = _handle.Release();
+            _ = IObject_Release(_handle);
         _handle = null;
         _cachedData = [];
         base.Dispose();
@@ -49,10 +49,9 @@ public class PipelineStateCache : DeviceObject
             return;
 
         using var name = new CString("PipelineStateCache");
-        using var cacheDesc = new PipelineStateCacheDesc { Name = name.Pointer };
         using var createInfo = new PipelineStateCacheCreateInfo
         {
-            Desc = cacheDesc,
+            DescDeviceObjectAttribsName = name.Pointer,
             CacheDataSize = (uint)_cachedData.Length
         };
         IPipelineStateCache? newHandle;
@@ -62,7 +61,8 @@ public class PipelineStateCache : DeviceObject
             try
             {
                 createInfo.PCacheData = pinnedData.AddrOfPinnedObject();
-                _renderDevice.GetRenderDevice()!.CreatePipelineStateCache(createInfo, out newHandle!);
+                IRenderDevice_CreatePipelineStateCache(_renderDevice.GetRenderDevice()!, createInfo,
+                    out newHandle!);
             }
             finally
             {
@@ -70,12 +70,13 @@ public class PipelineStateCache : DeviceObject
             }
         }
         else
-            _renderDevice.GetRenderDevice()!.CreatePipelineStateCache(createInfo, out newHandle!);
+            IRenderDevice_CreatePipelineStateCache(_renderDevice.GetRenderDevice()!, createInfo,
+                out newHandle!);
 
         if (newHandle is { IsNull: false })
         {
             if (_handle is { IsNull: false })
-                _ = _handle.Release();
+                _ = IObject_Release(_handle);
             _handle = newHandle;
         }
         else
@@ -143,16 +144,17 @@ public class PipelineStateCache : DeviceObject
         if (_handle is null || _handle.IsNull)
             return;
 
-        _handle.GetData(out var blob);
+        IPipelineStateCache_GetData(_handle, out var blob);
         if (blob is null || blob.IsNull)
             return;
 
         using (blob)
         {
-            var size = checked((int)blob.GetSize());
+            var size = checked((int)IDataBlob_GetSize(blob));
             _cachedData = new byte[size];
             if (size != 0)
-                System.Runtime.InteropServices.Marshal.Copy(blob.GetDataPtr(), _cachedData, 0, size);
+                System.Runtime.InteropServices.Marshal.Copy(IDataBlob_GetDataPtr(blob, 0),
+                    _cachedData, 0, size);
         }
     }
 }

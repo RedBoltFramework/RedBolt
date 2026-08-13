@@ -203,7 +203,7 @@ public class DearImGui : RedObject
     public void ReferenceTexture(Texture2D texture)
     {
         var textureView = texture.GetRawTexture()!.GetHandles().ShaderResourceView!;
-        _ = textureView.AddRef();
+        _ = IObject_AddRef(textureView);
         _referencedTextures.Add(textureView);
     }
 
@@ -446,7 +446,7 @@ public class DearImGui : RedObject
     private void ClearReferencedTextures()
     {
         for (var i = _referencedTextures.Count - 1; i >= 0; --i)
-            _ = _referencedTextures[i].Release();
+            _ = IObject_Release(_referencedTextures[i]);
         _referencedTextures.Clear();
     }
 

@@ -6,6 +6,7 @@
 #include <DefaultRawMemoryAllocator.hpp>
 #include <ObjectBase.hpp>
 #include <DebugOutput.h>
+#include <GraphicsAccessories.hpp>
 #include <SDL.h>
 
 #include <cstring>
@@ -607,3 +608,230 @@ bool GetVulkanSurfaceExtent(IRenderDeviceVk* device, ISwapChainVk* swapChain, Ui
 #endif
 
 } // namespace Diligent
+
+extern "C"
+{
+
+void InstallDebugMessageCallback()
+{
+    Diligent::InstallDebugMessageCallback();
+}
+
+void* CreateTemporaryGLProgram(Diligent::IShader* vertexShader, Diligent::IShader* pixelShader,
+    Diligent::IShader* domainShader, Diligent::IShader* hullShader, Diligent::IShader* geometryShader,
+    bool separablePrograms)
+{
+    return Diligent::CreateTemporaryGLProgram(
+        vertexShader, pixelShader, domainShader, hullShader, geometryShader, separablePrograms);
+}
+
+void ReleaseTemporaryGLProgramHandle(void* program)
+{
+    Diligent::ReleaseTemporaryGLProgramHandle(program);
+}
+
+void DeleteTemporaryGLProgram(void* program)
+{
+    Diligent::DeleteTemporaryGLProgram(program);
+}
+
+Diligent::Uint32 GetTemporaryGLProgramVertexAttributeCount(const void* program)
+{
+    return Diligent::GetTemporaryGLProgramVertexAttributeCount(program);
+}
+
+const char* GetTemporaryGLProgramVertexAttributeName(const void* program, Diligent::Uint32 index)
+{
+    return Diligent::GetTemporaryGLProgramVertexAttributeName(program, index);
+}
+
+Diligent::Uint32 GetTemporaryGLProgramVertexAttributeLocation(const void* program, Diligent::Uint32 index)
+{
+    return Diligent::GetTemporaryGLProgramVertexAttributeLocation(program, index);
+}
+
+bool BindTemporaryGLProgramVertexAttributes(const void* program, Diligent::IPipelineState* pipelineState)
+{
+    return Diligent::BindTemporaryGLProgramVertexAttributes(program, pipelineState);
+}
+
+Diligent::Uint32 GetTemporaryGLProgramUniformBlockCount(const void* program)
+{
+    return Diligent::GetTemporaryGLProgramUniformBlockCount(program);
+}
+
+const char* GetTemporaryGLProgramUniformBlockName(void* program, Diligent::Uint32 index)
+{
+    return Diligent::GetTemporaryGLProgramUniformBlockName(program, index);
+}
+
+Diligent::Uint32 GetTemporaryGLProgramUniformBlockDataSize(const void* program, Diligent::Uint32 index)
+{
+    return Diligent::GetTemporaryGLProgramUniformBlockDataSize(program, index);
+}
+
+Diligent::Uint32 GetTemporaryGLProgramUniformBlockIndexByName(const void* program, const char* name)
+{
+    return Diligent::GetTemporaryGLProgramUniformBlockIndex(program, name);
+}
+
+Diligent::Uint32 GetTemporaryGLProgramUniformCount(const void* program)
+{
+    return Diligent::GetTemporaryGLProgramUniformCount(program);
+}
+
+const char* GetTemporaryGLProgramUniformName(void* program, Diligent::Uint32 index)
+{
+    return Diligent::GetTemporaryGLProgramUniformName(program, index);
+}
+
+Diligent::Int32 GetTemporaryGLProgramUniformBlockIndexByIndex(const void* program, Diligent::Uint32 index)
+{
+    return Diligent::GetTemporaryGLProgramUniformBlockIndex(program, index);
+}
+
+Diligent::Int32 GetTemporaryGLProgramUniformBlockOffset(const void* program, Diligent::Uint32 index)
+{
+    return Diligent::GetTemporaryGLProgramUniformBlockOffset(program, index);
+}
+
+Diligent::Uint32 GetTemporaryGLProgramUniformSize(const void* program, Diligent::Uint32 index)
+{
+    return Diligent::GetTemporaryGLProgramUniformSize(program, index);
+}
+
+Diligent::ISwapChainGL* CreateProxySwapChainGL(Diligent::IRenderDevice* device,
+    Diligent::IDeviceContext* deviceContext, const Diligent::SwapChainDesc* swapChainDesc, void* window)
+{
+    return Diligent::CreateProxySwapChainGL(device, deviceContext, *swapChainDesc, window);
+}
+
+Diligent::ISwapChainGL* CreateSecondaryProxySwapChainGL(Diligent::IRenderDevice* device,
+    Diligent::IDeviceContext* deviceContext, const Diligent::SwapChainDesc* swapChainDesc, void* window)
+{
+    return Diligent::CreateSecondaryProxySwapChainGL(device, deviceContext, *swapChainDesc, window);
+}
+
+Diligent::ISwapChain* CreateProxySwapChainMS(Diligent::IRenderDevice* device,
+    Diligent::IDeviceContext* deviceContext, Diligent::ISwapChain* nativeSwapChain,
+    Diligent::Uint32 depthFormat, Diligent::Uint32 multiSample)
+{
+    return Diligent::CreateProxySwapChainMS(
+        device, deviceContext, nativeSwapChain, depthFormat, multiSample);
+}
+
+Diligent::TextureFormatAttribs RedBoltGetTextureFormatAttribs(Diligent::TEXTURE_FORMAT format)
+{
+    return Diligent::GetTextureFormatAttribs(format);
+}
+
+Diligent::IDeviceContextGL* RedBoltQueryIDeviceContextGL(Diligent::IObject* object)
+{
+    Diligent::RefCntAutoPtr<Diligent::IDeviceContextGL> result{object, Diligent::IID_DeviceContextGL};
+    return result.Detach();
+}
+
+Diligent::IRenderDeviceGL* RedBoltQueryIRenderDeviceGL(Diligent::IObject* object)
+{
+    Diligent::RefCntAutoPtr<Diligent::IRenderDeviceGL> result{object, Diligent::IID_RenderDeviceGL};
+    return result.Detach();
+}
+
+#if GLES_SUPPORTED
+Diligent::IRenderDeviceGLES* RedBoltQueryIRenderDeviceGLES(Diligent::IObject* object)
+{
+    Diligent::RefCntAutoPtr<Diligent::IRenderDeviceGLES> result{object, Diligent::IID_RenderDeviceGLES};
+    return result.Detach();
+}
+#endif
+
+#if D3D11_SUPPORTED
+Diligent::IRenderDeviceD3D11* RedBoltQueryIRenderDeviceD3D11(Diligent::IObject* object)
+{
+    Diligent::RefCntAutoPtr<Diligent::IRenderDeviceD3D11> result{object, Diligent::IID_RenderDeviceD3D11};
+    return result.Detach();
+}
+#endif
+
+#if D3D12_SUPPORTED
+Diligent::IRenderDeviceD3D12* RedBoltQueryIRenderDeviceD3D12(Diligent::IObject* object)
+{
+    Diligent::RefCntAutoPtr<Diligent::IRenderDeviceD3D12> result{object, Diligent::IID_RenderDeviceD3D12};
+    return result.Detach();
+}
+#endif
+
+#if VULKAN_SUPPORTED
+Diligent::IEngineFactoryVk* RedBoltQueryIEngineFactoryVk(Diligent::IObject* object)
+{
+    Diligent::RefCntAutoPtr<Diligent::IEngineFactoryVk> result{object, Diligent::IID_EngineFactoryVk};
+    return result.Detach();
+}
+
+Diligent::IRenderDeviceVk* RedBoltQueryIRenderDeviceVk(Diligent::IObject* object)
+{
+    Diligent::RefCntAutoPtr<Diligent::IRenderDeviceVk> result{object, Diligent::IID_RenderDeviceVk};
+    return result.Detach();
+}
+
+Diligent::ISwapChainVk* RedBoltQueryISwapChainVk(Diligent::IObject* object)
+{
+    Diligent::RefCntAutoPtr<Diligent::ISwapChainVk> result{object, Diligent::IID_SwapChainVk};
+    return result.Detach();
+}
+
+bool GetVulkanSurfaceExtent(Diligent::IRenderDeviceVk* device, Diligent::ISwapChainVk* swapChain,
+    Diligent::Uint32* width, Diligent::Uint32* height)
+{
+    return Diligent::GetVulkanSurfaceExtent(device, swapChain, *width, *height);
+}
+#endif
+
+}
+
+// DILIGENT_C_INTERFACE removes the Diligent namespace from these declarations,
+// but the C++ translation unit generated by SharpCpp still gives them C++
+// linkage. Bridge those declarations to the actual namespaced implementations.
+Diligent::IEngineFactoryOpenGL* Diligent_GetEngineFactoryOpenGL()
+{
+    return Diligent::GetEngineFactoryOpenGL();
+}
+
+#if D3D11_SUPPORTED
+Diligent::IEngineFactoryD3D11* Diligent_GetEngineFactoryD3D11()
+{
+    return Diligent::GetEngineFactoryD3D11();
+}
+#endif
+
+#if D3D12_SUPPORTED
+Diligent::IEngineFactoryD3D12* Diligent_GetEngineFactoryD3D12()
+{
+    return Diligent::GetEngineFactoryD3D12();
+}
+#endif
+
+#if VULKAN_SUPPORTED
+Diligent::IEngineFactoryVk* Diligent_GetEngineFactoryVk()
+{
+    return Diligent::GetEngineFactoryVk();
+}
+#endif
+
+struct IHLSL2GLSLConverter;
+
+void Diligent_CreateHLSL2GLSLConverter(IHLSL2GLSLConverter** converter)
+{
+    Diligent::CreateHLSL2GLSLConverter(
+        reinterpret_cast<Diligent::IHLSL2GLSLConverter**>(converter));
+}
+
+enum DEBUG_MESSAGE_SEVERITY : int;
+using RedBoltCDebugMessageCallback = void (*)(
+    DEBUG_MESSAGE_SEVERITY, const char*, const char*, const char*, int);
+
+void SetDebugMessageCallback(RedBoltCDebugMessageCallback callback)
+{
+    Diligent::SetDebugMessageCallback(
+        reinterpret_cast<Diligent::DebugMessageCallbackType>(callback));
+}

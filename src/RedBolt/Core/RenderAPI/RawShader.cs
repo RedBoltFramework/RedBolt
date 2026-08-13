@@ -74,15 +74,11 @@ public class RawShader : DeviceObject
 
         using var shaderName = new CString(GetDebugName());
         using var entryPoint = new CString("main");
-        using var shaderDesc = new ShaderDesc
-        {
-            Name = shaderName.Pointer,
-            ShaderType = ToNativeShaderType(_bytecode.Type),
-            UseCombinedTextureSamplers = true
-        };
         using var shaderCreateInfo = new ShaderCreateInfo
         {
-            Desc = shaderDesc,
+            DescDeviceObjectAttribsName = shaderName.Pointer,
+            DescShaderType = ToNativeShaderType(_bytecode.Type),
+            DescUseCombinedTextureSamplers = true,
             EntryPoint = entryPoint.Pointer,
             LoadConstantBufferReflection = true
         };
@@ -111,7 +107,8 @@ public class RawShader : DeviceObject
                     return;
             }
 
-            _renderDevice.GetRenderDevice()!.CreateShader(shaderCreateInfo, out _handle, out var compilerOutput);
+            IRenderDevice_CreateShader(_renderDevice.GetRenderDevice()!, shaderCreateInfo, out _handle,
+                out var compilerOutput);
             ReleaseIfNotNull(compilerOutput);
         }
         finally
@@ -147,7 +144,7 @@ public class RawShader : DeviceObject
     private static void ReleaseIfNotNull(IObject? value)
     {
         if (value is not null && !value.IsNull)
-            _ = value.Release();
+            _ = IObject_Release(value);
     }
 
     private ShaderBytecode _bytecode;

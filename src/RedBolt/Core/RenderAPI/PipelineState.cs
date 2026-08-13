@@ -158,7 +158,7 @@ public class PipelineState : DeviceObject
         var device = _renderDevice!.GetRenderDevice()!;
         var isOpenGl = _renderDevice.GetBackend() == RenderBackend.OpenGL;
         var hasSeparableShaderPrograms =
-            device.GetDeviceInfo().FeaturesSeparablePrograms != DeviceFeatureState.DeviceFeatureStateDisabled;
+            IRenderDevice_GetDeviceInfo(device).FeaturesSeparablePrograms != DeviceFeatureState.DeviceFeatureStateDisabled;
         System.Diagnostics.Debug.Assert(isOpenGl || hasSeparableShaderPrograms);
         var shader = desc.ComputeShader!.GetHandle()!;
 
@@ -181,19 +181,20 @@ public class PipelineState : DeviceObject
             using var samplers = new TemporaryImmutableSamplers(desc.Samplers, reflection, _renderDevice,
                 RedBolt.Bindings.Diligent.ShaderType.ShaderTypeCompute);
             using var name = new CString(GetDebugName());
-            using var nativeDesc = new RedBolt.Bindings.Diligent.PipelineStateDesc
+            using var createInfo = new ComputePipelineStateCreateInfo
             {
-                Name = name.Pointer,
-                PipelineType = RedBolt.Bindings.Diligent.PipelineType.PipelineTypeCompute,
-                ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic,
-                ResourceLayoutImmutableSamplers = samplers.First!,
-                ResourceLayoutNumImmutableSamplers = (uint)samplers.Count
+                PSODescDeviceObjectAttribsName = name.Pointer,
+                PSODescPipelineType = RedBolt.Bindings.Diligent.PipelineType.PipelineTypeCompute,
+                PSODescResourceLayoutDefaultVariableType =
+                    ShaderResourceVariableType.ShaderResourceVariableTypeDynamic,
+                PSODescResourceLayoutImmutableSamplers = samplers.First!,
+                PSODescResourceLayoutNumImmutableSamplers = (uint)samplers.Count,
+                PCS = shader
             };
-            using var createInfo = new ComputePipelineStateCreateInfo { PSODesc = nativeDesc, PCS = shader };
             var pipelineStateCache = GetSubsystem<PipelineStateCache>()!.GetHandle();
             if (pipelineStateCache is { IsNull: false })
                 createInfo.PPSOCache = pipelineStateCache;
-            device.CreateComputePipelineState(createInfo, out _handle);
+            IRenderDevice_CreateComputePipelineState(device, createInfo, out _handle);
             if (_handle is null || _handle.IsNull)
             {
                 DestroyGPU();
@@ -235,7 +236,8 @@ public class PipelineState : DeviceObject
         try
         {
             var isOpenGl = _renderDevice.GetBackend() == RenderBackend.OpenGL;
-            var hasSeparableShaderPrograms = device.GetDeviceInfo().FeaturesSeparablePrograms != DeviceFeatureState.DeviceFeatureStateDisabled;
+            var hasSeparableShaderPrograms = IRenderDevice_GetDeviceInfo(device).FeaturesSeparablePrograms !=
+                DeviceFeatureState.DeviceFeatureStateDisabled;
             System.Diagnostics.Debug.Assert(isOpenGl || hasSeparableShaderPrograms);
             var vertexAttributes = desc.VertexShader!.GetBytecode().VertexAttributes;
             if (isOpenGl)
@@ -279,20 +281,17 @@ public class PipelineState : DeviceObject
             using var samplers = new TemporaryImmutableSamplers(desc.Samplers, reflection, _renderDevice!,
                 RedBolt.Bindings.Diligent.ShaderType.ShaderTypeAllGraphics);
             using var name = new CString(GetDebugName());
-            using var nativeDesc = new RedBolt.Bindings.Diligent.PipelineStateDesc
-            {
-                Name = name.Pointer,
-                PipelineType = RedBolt.Bindings.Diligent.PipelineType.PipelineTypeGraphics,
-                ResourceLayoutDefaultVariableType = ShaderResourceVariableType.ShaderResourceVariableTypeDynamic,
-                ResourceLayoutImmutableSamplers = samplers.First!,
-                ResourceLayoutNumImmutableSamplers = (uint)samplers.Count
-            };
             var depthBits = desc.Output.DepthStencilFormat ==
                 RedBolt.Bindings.Diligent.TextureFormat.TexFormatD16Unorm ? 16 : 24;
             var scaledDepthBias = isOpenGl ? 0 : (int)(desc.ConstantDepthBias * (1 << depthBits));
             using var createInfo = new GraphicsPipelineStateCreateInfo
             {
-                PSODesc = nativeDesc,
+                PSODescDeviceObjectAttribsName = name.Pointer,
+                PSODescPipelineType = RedBolt.Bindings.Diligent.PipelineType.PipelineTypeGraphics,
+                PSODescResourceLayoutDefaultVariableType =
+                    ShaderResourceVariableType.ShaderResourceVariableTypeDynamic,
+                PSODescResourceLayoutImmutableSamplers = samplers.First!,
+                PSODescResourceLayoutNumImmutableSamplers = (uint)samplers.Count,
                 PVS = vertexShader!,
                 PPS = pixelShader!,
                 PDS = desc.DomainShader?.GetHandle()!,
@@ -333,7 +332,7 @@ public class PipelineState : DeviceObject
             var pipelineStateCache = GetSubsystem<PipelineStateCache>()!.GetHandle();
             if (pipelineStateCache is { IsNull: false })
                 createInfo.PPSOCache = pipelineStateCache;
-            device.CreateGraphicsPipelineState(createInfo, out _handle);
+            IRenderDevice_CreateGraphicsPipelineState(device, createInfo, out _handle);
             if (_handle is null || _handle.IsNull)
             {
                 DestroyGPU();
@@ -361,7 +360,7 @@ public class PipelineState : DeviceObject
 
     private void FinishCreation()
     {
-        _handle!.CreateShaderResourceBinding(out _shaderResourceBinding, true);
+        IPipelineState_CreateShaderResourceBinding(_handle!, out _shaderResourceBinding, true);
         _reflection!.ConnectToShaderVariables(GetPipelineType(), _shaderResourceBinding!);
     }
 
@@ -485,7 +484,7 @@ public class PipelineState : DeviceObject
                 if (inputIndex != -1)
                     ++Count;
             }
-            var elementSize = (int)DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL().GetAPIInfo().LayoutElementSize;
+            var elementSize = (int)IEngineFactory_GetAPIInfo(DiligentNativeBindings.DiligentLoadAndGetEngineFactoryOpenGL()).LayoutElementSize;
             _memory = Marshal.AllocHGlobal((int)Count * elementSize);
             var destinationIndex = 0;
             for (var i = 0; i < elements.Length; ++i)
@@ -530,7 +529,7 @@ public class PipelineState : DeviceObject
             if (resources.Length == 0)
                 return;
 
-            var immutableSamplerDescSize = (int)DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL().GetAPIInfo().ImmutableSamplerDescSize;
+            var immutableSamplerDescSize = (int)IEngineFactory_GetAPIInfo(DiligentNativeBindings.DiligentLoadAndGetEngineFactoryOpenGL()).ImmutableSamplerDescSize;
             _memory = Marshal.AllocHGlobal(checked(immutableSamplerDescSize * resources.Length));
             for (var i = 0; i < resources.Length; ++i)
             {
@@ -547,7 +546,7 @@ public class PipelineState : DeviceObject
                     IntPtr.Add(_memory, immutableSamplerDescSize * i), false);
                 _samplers[i].ShaderStages = stages;
                 _samplers[i].SamplerOrTextureName = pair.Value.InternalName.Pointer;
-                _samplers[i].Desc = _descriptions[i];
+                CopyDescription(_samplers[i], _descriptions[i]);
             }
             First = _samplers[0];
         }
@@ -626,6 +625,26 @@ public class PipelineState : DeviceObject
             };
         }
 
+        private static void CopyDescription(ImmutableSamplerDesc destination, SamplerDesc source)
+        {
+            destination.DescAddressU = source.AddressU;
+            destination.DescAddressV = source.AddressV;
+            destination.DescAddressW = source.AddressW;
+            for (var i = 0; i < 4; ++i)
+                destination.DescBorderColor[i] = source.BorderColor[i];
+            destination.DescComparisonFunc = source.ComparisonFunc;
+            destination.DescDeviceObjectAttribsName = source.Name;
+            destination.DescFlags = source.Flags;
+            destination.DescMagFilter = source.MagFilter;
+            destination.DescMaxAnisotropy = source.MaxAnisotropy;
+            destination.DescMaxLOD = source.MaxLOD;
+            destination.DescMinFilter = source.MinFilter;
+            destination.DescMinLOD = source.MinLOD;
+            destination.DescMipFilter = source.MipFilter;
+            destination.DescMipLODBias = source.MipLODBias;
+            destination.DescUnnormalizedCoords = source.UnnormalizedCoords;
+        }
+
         private static RedBolt.Bindings.Diligent.TextureAddressMode ToNative(TextureAddressMode value) => value switch
         {
             TextureAddressMode.Wrap => RedBolt.Bindings.Diligent.TextureAddressMode.TextureAddressWrap,
@@ -635,5 +654,5 @@ public class PipelineState : DeviceObject
         };
     }
 
-    private static void ReleaseIfNotNull(IObject? value) { if (value is { IsNull: false }) _ = value.Release(); }
+    private static void ReleaseIfNotNull(IObject? value) { if (value is { IsNull: false }) _ = IObject_Release(value); }
 }

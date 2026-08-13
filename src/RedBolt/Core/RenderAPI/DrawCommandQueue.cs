@@ -490,7 +490,7 @@ public class DrawCommandQueue
 
         // Set common state
         var blendFactors = BlendFactors.One;
-        deviceContext.SetBlendFactors(in blendFactors);
+        IDeviceContext_SetBlendFactors(deviceContext, in blendFactors);
         renderContext.SetClipPlaneMask(_clipPlaneMask);
 
         foreach (var cmd in _drawCommands)
@@ -510,7 +510,7 @@ public class DrawCommandQueue
                     continue; // We shouldn't get here
 
                 // Skip this pipeline if something goes wrong.
-                deviceContext.SetPipelineState(pipelineHandle);
+                IDeviceContext_SetPipelineState(deviceContext, pipelineHandle);
                 currentPipelineState = pipelineState;
                 currentShaderResourceBinding = pipelineState.GetShaderResourceBinding();
                 currentShaderReflection = pipelineState.GetReflection();
@@ -530,14 +530,14 @@ public class DrawCommandQueue
                 internalRect.Right = scissorRect.Right;
                 internalRect.Bottom = scissorRect.Bottom;
 
-                deviceContext.SetScissorRects(1u, internalRect, 0u, 0u);
+                IDeviceContext_SetScissorRects(deviceContext, 1u, internalRect, 0u, 0u);
                 currentScissorRect = cmd.ScissorRect;
             }
 
             // Set stencil ref
             if (cmd.StencilRef != currentStencilRef)
             {
-                deviceContext.SetStencilRef(cmd.StencilRef);
+                IDeviceContext_SetStencilRef(deviceContext, cmd.StencilRef);
                 currentStencilRef = cmd.StencilRef;
             }
 
@@ -548,7 +548,7 @@ public class DrawCommandQueue
                     cmd.IndexBuffer.Resolve();
 
                 var indexBufferHandle = cmd.IndexBuffer?.GetHandle();
-                deviceContext.SetIndexBuffer(indexBufferHandle!, 0u,
+                IDeviceContext_SetIndexBuffer(deviceContext, indexBufferHandle!, 0u,
                     ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
 
                 currentIndexBuffer = cmd.IndexBuffer;
@@ -579,7 +579,8 @@ public class DrawCommandQueue
                         : 0;
                 }
 
-                deviceContext.SetVertexBuffers(0u, RenderApiLimits.MaxVertexStreams, _temp.VertexBufferHandles,
+                IDeviceContext_SetVertexBuffers(deviceContext, 0u, RenderApiLimits.MaxVertexStreams,
+                    _temp.VertexBufferHandles,
                     _temp.VertexBufferOffsets, ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
                     (SetVertexBuffersFlags)0);
 
@@ -592,7 +593,8 @@ public class DrawCommandQueue
             if (currentShaderResources != cmd.ShaderResources)
             {
                 for (var i = cmd.ShaderResources.First; i < cmd.ShaderResources.Second; ++i)
-                    _shaderResources[i].Variable!.Set(_temp.ShaderResourceViews[i]!);
+                    IShaderResourceVariable_Set(_shaderResources[i].Variable!,
+                        _temp.ShaderResourceViews[i]!, SetShaderResourceFlags.SetShaderResourceFlagNone);
 
                 currentShaderResources = cmd.ShaderResources;
             }
@@ -609,7 +611,8 @@ public class DrawCommandQueue
                     if (texture.GetLevelsDirty())
                         texture.GenerateLevels();
 
-                    data.Variable!.Set(data.View!);
+                    IShaderResourceVariable_Set(data.Variable!, data.View!,
+                        SetShaderResourceFlags.SetShaderResourceFlagNone);
                 }
 
                 currentUnorderedAccessViews = cmd.UnorderedAccessViews;
@@ -626,12 +629,14 @@ public class DrawCommandQueue
                 var variables = uniformBufferReflection.Variables;
                 for (var variableIndex = 0; variableIndex < variables.Count; ++variableIndex)
                 {
-                    variables[variableIndex].SetBufferRange(uniformBuffer, checked((nuint)cmd.ConstantBuffers[i].Offset),
-                        checked((nuint)cmd.ConstantBuffers[i].Size));
+                    IShaderResourceVariable_SetBufferRange(variables[variableIndex], uniformBuffer,
+                        checked((nuint)cmd.ConstantBuffers[i].Offset),
+                        checked((nuint)cmd.ConstantBuffers[i].Size), 0,
+                        SetShaderResourceFlags.SetShaderResourceFlagNone);
                 }
             }
 
-            deviceContext.CommitShaderResources(currentShaderResourceBinding!,
+            IDeviceContext_CommitShaderResources(deviceContext, currentShaderResourceBinding!,
                 ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
 
             if (currentPipelineState!.GetPipelineType() == PipelineStateType.Graphics)
@@ -649,7 +654,7 @@ public class DrawCommandQueue
                         ? RedBolt.Bindings.Diligent.ValueType.VtUint16
                         : RedBolt.Bindings.Diligent.ValueType.VtUint32;
 
-                    deviceContext.DrawIndexed(drawAttrs);
+                    IDeviceContext_DrawIndexed(deviceContext, drawAttrs);
 
                     stats.NumDraws += 1;
                     stats.NumPrimitives += checked((int)(drawAttrs.NumIndices * drawAttrs.NumInstances));
@@ -663,7 +668,7 @@ public class DrawCommandQueue
                     drawAttrs.FirstInstanceLocation = caps.DrawBaseInstance ? checked((uint)cmd.InstanceStart) : 0u;
                     drawAttrs.Flags = DrawFlags.DrawFlagVerifyAll;
 
-                    deviceContext.Draw(drawAttrs);
+                    IDeviceContext_Draw(deviceContext, drawAttrs);
 
                     stats.NumDraws += 1;
                     stats.NumPrimitives += checked((int)(drawAttrs.NumVertices * drawAttrs.NumInstances));
@@ -675,7 +680,7 @@ public class DrawCommandQueue
                 dispatchAttrs.ThreadGroupCountX = (uint)cmd.NumGroups.X;
                 dispatchAttrs.ThreadGroupCountY = (uint)cmd.NumGroups.Y;
                 dispatchAttrs.ThreadGroupCountZ = (uint)cmd.NumGroups.Z;
-                deviceContext.DispatchCompute(dispatchAttrs);
+                IDeviceContext_DispatchCompute(deviceContext, dispatchAttrs);
 
                 stats.NumDispatches += 1;
             }

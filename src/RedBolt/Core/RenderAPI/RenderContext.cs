@@ -147,7 +147,7 @@ public class RenderContext : RedObject
 
         UpdateCurrentRenderTargetInfo();
 
-        handle.SetRenderTargets(
+        IDeviceContext_SetRenderTargets(handle,
             (uint)_numCurrentRenderTargets,
             _currentRenderTargetHandles.AsSpan(0, _numCurrentRenderTargets),
             _currentDepthStencilHandle!,
@@ -191,7 +191,7 @@ public class RenderContext : RedObject
         diligentViewport.Height = _currentViewport.Height;
         diligentViewport.MinDepth = 0.0f;
         diligentViewport.MaxDepth = 1.0f;
-        handle.SetViewports(1, diligentViewport, 0, 0);
+        IDeviceContext_SetViewports(handle, 1, diligentViewport, 0, 0);
     }
 
     /// <summary>
@@ -221,7 +221,7 @@ public class RenderContext : RedObject
         if ((flags & ClearTarget.Stencil) != 0 && IsBoundDepthStencilFormat(_currentOutputDesc.DepthStencilFormat))
             internalFlags |= ClearDepthStencilFlags.ClearStencilFlag;
 
-        handle.ClearDepthStencil(
+        IDeviceContext_ClearDepthStencil(handle,
             _currentDepthStencilHandle,
             internalFlags,
             depth,
@@ -260,7 +260,7 @@ public class RenderContext : RedObject
         {
             fixed (float* pRgba = rgba)
             {
-                handle.ClearRenderTarget(
+                IDeviceContext_ClearRenderTarget(handle,
                     rtHandle,
                     (nint)pRgba,
                     ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
@@ -315,7 +315,7 @@ public class RenderContext : RedObject
         var handle = texture.GetHandles().Texture;
         for (var i = 0; i < _numCurrentRenderTargets; ++i)
         {
-            if (_currentRenderTargetHandles[i]?.GetTexture() == handle)
+            if (_currentRenderTargetHandles[i] is { } view && ITextureView_GetTexture(view) == handle)
                 return true;
         }
 

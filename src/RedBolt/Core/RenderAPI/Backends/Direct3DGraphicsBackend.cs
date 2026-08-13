@@ -50,7 +50,8 @@ public abstract class Direct3DGraphicsBackend : IGraphicsBackend
             var depthFormat = RenderDevice.SelectDefaultDepthFormat(resources.Device, true);
             var multiSample = (int)MathDefs.NextPowerOfTwo(
                 (uint)System.Math.Clamp(parameters.MultiSample, 1, 16));
-            using (var formatInfo = resources.Device.GetTextureFormatInfoExt(swapChainDesc.ColorBufferFormat))
+            using (var formatInfo = IRenderDevice_GetTextureFormatInfoExt(resources.Device,
+                       swapChainDesc.ColorBufferFormat))
             {
                 while (multiSample > 1 && ((int)formatInfo.SampleCounts & multiSample) == 0)
                     multiSample >>= 1;
@@ -59,7 +60,7 @@ public abstract class Direct3DGraphicsBackend : IGraphicsBackend
 
             swapChain = DiligentNativeBindings.CreateProxySwapChainMS(resources.Device,
                 resources.ImmediateContext, resources.NativeSwapChain, (uint)depthFormat, (uint)multiSample);
-            _ = resources.NativeSwapChain.Release();
+            _ = IObject_Release(resources.NativeSwapChain);
             resources.NativeSwapChain = null!;
             if (swapChain.IsNull)
                 throw new InvalidOperationException("Generated CreateProxySwapChainMS binding returned a null swap chain.");
@@ -79,11 +80,11 @@ public abstract class Direct3DGraphicsBackend : IGraphicsBackend
         catch
         {
             if (resources.NativeSwapChain is { IsNull: false })
-                _ = resources.NativeSwapChain.Release();
+                _ = IObject_Release(resources.NativeSwapChain);
             if (swapChain is { IsNull: false })
-                _ = swapChain.Release();
-            _ = resources.ImmediateContext.Release();
-            _ = resources.Device.Release();
+                _ = IObject_Release(swapChain);
+            _ = IObject_Release(resources.ImmediateContext);
+            _ = IObject_Release(resources.Device);
             throw;
         }
     }
@@ -134,7 +135,8 @@ public abstract class Direct3DGraphicsBackend : IGraphicsBackend
         public void Resize(IRenderDevice renderDevice, ISwapChain swapChain)
         {
             SdlNativeBindings.SdlGetWindowSize(window, out var width, out var height);
-            swapChain.Resize((uint)System.Math.Max(width, 0), (uint)System.Math.Max(height, 0));
+            ISwapChain_Resize(swapChain, (uint)System.Math.Max(width, 0),
+                (uint)System.Math.Max(height, 0), SurfaceTransform.SurfaceTransformOptimal);
         }
 
         public void ReleaseBeforeCommonResources()
@@ -156,24 +158,26 @@ public sealed class D3D11GraphicsBackend : Direct3DGraphicsBackend
     {
         using var createInfo = new EngineD3D11CreateInfo();
         ConfigureCreateInfo(createInfo, deviceSettings);
-        var factory = DiligentNativeBindings.LoadAndGetEngineFactoryD3D11();
+        var factory = DiligentNativeBindings.DiligentLoadAndGetEngineFactoryD3D11();
         if (factory.IsNull)
             throw new InvalidOperationException("D3D11 engine factory could not be loaded.");
 
-        factory.CreateDeviceAndContextsD3D11(createInfo, out var device, out var immediateContext);
+        IEngineFactoryD3D11_CreateDeviceAndContextsD3D11(factory, createInfo, out var device,
+            out var immediateContext);
         if (device.IsNull || immediateContext.IsNull)
         {
             if (!device.IsNull)
-                _ = device.Release();
+                _ = IObject_Release(device);
             if (!immediateContext.IsNull)
-                _ = immediateContext.Release();
+                _ = IObject_Release(immediateContext);
             throw new InvalidOperationException(
                 "Generated CreateDeviceAndContextsD3D11 binding returned a null device or context.");
         }
 
         try
         {
-            factory.CreateSwapChainD3D11(device, immediateContext, swapChainDesc, fullScreenDesc,
+            IEngineFactoryD3D11_CreateSwapChainD3D11(factory, device, immediateContext, swapChainDesc,
+                fullScreenDesc,
                 nativeWindow, out var swapChain);
             if (swapChain.IsNull)
                 throw new InvalidOperationException("Generated CreateSwapChainD3D11 binding returned a null swap chain.");
@@ -187,8 +191,8 @@ public sealed class D3D11GraphicsBackend : Direct3DGraphicsBackend
         }
         catch
         {
-            _ = immediateContext.Release();
-            _ = device.Release();
+            _ = IObject_Release(immediateContext);
+            _ = IObject_Release(device);
             throw;
         }
     }
@@ -204,24 +208,26 @@ public sealed class D3D12GraphicsBackend : Direct3DGraphicsBackend
         using var createInfo = new EngineD3D12CreateInfo();
         ConfigureCreateInfo(createInfo, deviceSettings);
         CopyBackendDeviceSettings(createInfo, deviceSettings.D3D12);
-        var factory = DiligentNativeBindings.LoadAndGetEngineFactoryD3D12();
+        var factory = DiligentNativeBindings.DiligentLoadAndGetEngineFactoryD3D12();
         if (factory.IsNull)
             throw new InvalidOperationException("D3D12 engine factory could not be loaded.");
 
-        factory.CreateDeviceAndContextsD3D12(createInfo, out var device, out var immediateContext);
+        IEngineFactoryD3D12_CreateDeviceAndContextsD3D12(factory, createInfo, out var device,
+            out var immediateContext);
         if (device.IsNull || immediateContext.IsNull)
         {
             if (!device.IsNull)
-                _ = device.Release();
+                _ = IObject_Release(device);
             if (!immediateContext.IsNull)
-                _ = immediateContext.Release();
+                _ = IObject_Release(immediateContext);
             throw new InvalidOperationException(
                 "Generated CreateDeviceAndContextsD3D12 binding returned a null device or context.");
         }
 
         try
         {
-            factory.CreateSwapChainD3D12(device, immediateContext, swapChainDesc, fullScreenDesc,
+            IEngineFactoryD3D12_CreateSwapChainD3D12(factory, device, immediateContext, swapChainDesc,
+                fullScreenDesc,
                 nativeWindow, out var swapChain);
             if (swapChain.IsNull)
                 throw new InvalidOperationException("Generated CreateSwapChainD3D12 binding returned a null swap chain.");
@@ -235,8 +241,8 @@ public sealed class D3D12GraphicsBackend : Direct3DGraphicsBackend
         }
         catch
         {
-            _ = immediateContext.Release();
-            _ = device.Release();
+            _ = IObject_Release(immediateContext);
+            _ = IObject_Release(device);
             throw;
         }
     }

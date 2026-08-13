@@ -577,3 +577,34 @@ index 000000000..3edbaa3fa
 +}
 +
 +} // namespace Diligent
+diff --git a/Primitives/interface/CommonDefinitions.h b/Primitives/interface/CommonDefinitions.h
+index 230ab6709..afe1f9d2a 100644
+--- a/Primitives/interface/CommonDefinitions.h
++++ b/Primitives/interface/CommonDefinitions.h
+@@ -71 +71,5 @@
+-#    define DEFAULT_INITIALIZER(...)
++#    if defined(REDBOLT_DILIGENT_CXX_DEFAULT_INITIALIZERS) && defined(__cplusplus)
++#        define DEFAULT_INITIALIZER(...) = __VA_ARGS__
++#    else
++#        define DEFAULT_INITIALIZER(...)
++#    endif
+diff --git a/Primitives/interface/DefineInterfaceHelperMacros.h b/Primitives/interface/DefineInterfaceHelperMacros.h
+index da2f09a88..7e1fcf8b1 100644
+--- a/Primitives/interface/DefineInterfaceHelperMacros.h
++++ b/Primitives/interface/DefineInterfaceHelperMacros.h
+@@ -30,0 +31,6 @@
++#if DILIGENT_C_INTERFACE && defined(REDBOLT_DILIGENT_CXX_DEFAULT_INITIALIZERS) && defined(__cplusplus)
++#    pragma push_macro("DEFAULT_INITIALIZER")
++#    undef DEFAULT_INITIALIZER
++#    define DEFAULT_INITIALIZER(...)
++#endif
++
+diff --git a/Primitives/interface/UndefInterfaceHelperMacros.h b/Primitives/interface/UndefInterfaceHelperMacros.h
+index 67c466733..46331d1e5 100644
+--- a/Primitives/interface/UndefInterfaceHelperMacros.h
++++ b/Primitives/interface/UndefInterfaceHelperMacros.h
+@@ -36,0 +37,4 @@
++#if DILIGENT_C_INTERFACE && defined(REDBOLT_DILIGENT_CXX_DEFAULT_INITIALIZERS) && defined(__cplusplus)
++#    pragma pop_macro("DEFAULT_INITIALIZER")
++#endif
++

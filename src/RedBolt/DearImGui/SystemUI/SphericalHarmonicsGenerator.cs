@@ -114,7 +114,7 @@ public class SphericalHarmonicsGenerator : RedObject
             foreach (var view in faceViews)
             {
                 if (view is { IsNull: false })
-                    _ = view.Release();
+                    _ = IObject_Release(view);
             }
         }
 
@@ -185,7 +185,7 @@ public class SphericalHarmonicsGenerator : RedObject
             NumArraySlices = 1
         };
 
-        texture.GetRawTexture().GetHandles().Texture!.CreateView(viewDesc, out var view);
+        ITexture_CreateView(texture.GetRawTexture().GetHandles().Texture!, viewDesc, out var view);
         if (view is null || view.IsNull)
         {
             Log.GetLogger().LogError("Failed to create UAV for texture");

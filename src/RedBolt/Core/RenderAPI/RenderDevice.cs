@@ -93,12 +93,16 @@ public sealed class RenderDevice : RedObject
     public override void Dispose()
     {
         SendDeviceObjectEvent(DeviceObjectEvent.Destroy);
-        _deviceContext?.WaitForIdle();
+        if (_deviceContext is not null)
+            IDeviceContext_WaitForIdle(_deviceContext);
         // Vulkan keeps the immediate context alive across test fixtures. Clear its
         // cached bindings before releasing the fixture-owned resources so the next
         // swap chain/device wrapper cannot inherit stale native state.
         if (GetDeviceSettings().Backend == RenderBackend.Vulkan)
-            _deviceContext?.InvalidateState();
+        {
+            if (_deviceContext is not null)
+                IDeviceContext_InvalidateState(_deviceContext);
+        }
         ReleaseLastPresentedBackBuffer();
 
 #if REDBOLT_VULKAN_SUPPORTED
@@ -137,7 +141,10 @@ public sealed class RenderDevice : RedObject
         // shared device. Wait again before releasing the shared immediate
         // context so the next fixture cannot observe recycled native resources.
         if (GetDeviceSettings().Backend == RenderBackend.Vulkan)
-            _deviceContext?.WaitForIdle();
+        {
+            if (_deviceContext is not null)
+                IDeviceContext_WaitForIdle(_deviceContext);
+        }
 
         ReleaseIfNotNull(_deviceContext);
         _deviceContext = null;
@@ -157,7 +164,7 @@ public sealed class RenderDevice : RedObject
 
     public ISwapChain? CreateSecondarySwapChain(SdlWindow sdlWindow, bool hasDepthBuffer)
     {
-        using var currentSwapChainDesc = _swapChain!.GetDesc();
+        using var currentSwapChainDesc = ISwapChain_GetDesc(_swapChain!);
         using var swapChainDesc = new SwapChainDesc
         {
             IsPrimary = false,
@@ -370,7 +377,7 @@ public sealed class RenderDevice : RedObject
         }
 
         var stagingTexture = ReadTextureToStaging(resolvedBackBuffer);
-        _ = resolvedBackBuffer.Release();
+        _ = IObject_Release(resolvedBackBuffer);
         if (stagingTexture is null)
         {
             Log.GetLogger().LogError("Failed to create staging texture for RenderDevice.TakeScreenShot");
@@ -379,28 +386,29 @@ public sealed class RenderDevice : RedObject
 
         var deviceContext = GetImmediateContext()!;
         using var mappedData = new MappedTextureSubresource();
-        deviceContext.MapTextureSubresource(
+        IDeviceContext_MapTextureSubresource(deviceContext,
             stagingTexture, 0, 0, MapType.MapRead, MapFlags.MapFlagNone, null!, mappedData);
 
         if (mappedData.PData == IntPtr.Zero)
         {
             Log.GetLogger().LogError("Failed to map staging texture for RenderDevice.TakeScreenShot");
-            _ = stagingTexture.Release();
+            _ = IObject_Release(stagingTexture);
             return false;
         }
 
-        using var desc = stagingTexture.GetDesc();
-        using var formatInfo = DiligentNativeBindings.GetTextureFormatAttribs(desc.Format);
-        if (formatInfo.GetElementSize() != 4 || formatInfo.ComponentType == ComponentType.ComponentTypeCompressed)
+        using var desc = ITexture_GetDesc(stagingTexture);
+        using var formatInfo = DiligentNativeBindings.RedBoltGetTextureFormatAttribs(desc.Format);
+        if (RenderAPIUtils.GetTextureFormatElementSize(formatInfo) != 4 ||
+            formatInfo.ComponentType == ComponentType.ComponentTypeCompressed)
         {
             Log.GetLogger().LogError("Unexpected backbuffer for RenderDevice.TakeScreenShot");
-            _ = stagingTexture.Release();
+            _ = IObject_Release(stagingTexture);
             return false;
         }
 
         size = new Vector2i(checked((int)desc.Width), checked((int)desc.Height));
 
-        var elementSize = checked((int)formatInfo.GetElementSize());
+        var elementSize = checked((int)RenderAPIUtils.GetTextureFormatElementSize(formatInfo));
         var rowSize = checked(size.X * elementSize);
         var isBgra = desc.Format is TextureFormat.TexFormatBgra8Unorm
             or TextureFormat.TexFormatBgra8UnormSrgb;
@@ -424,8 +432,8 @@ public sealed class RenderDevice : RedObject
             }
         }
 
-        deviceContext.UnmapTextureSubresource(stagingTexture, 0, 0);
-        _ = stagingTexture.Release();
+        IDeviceContext_UnmapTextureSubresource(deviceContext, stagingTexture, 0, 0);
+        _ = IObject_Release(stagingTexture);
         return true;
     }
 
@@ -434,12 +442,12 @@ public sealed class RenderDevice : RedObject
         var swapChain = GetSwapChain()!;
         var backBuffer = GetBackend() == RenderBackend.Vulkan && _lastPresentedBackBuffer is { IsNull: false }
             ? _lastPresentedBackBuffer
-            : swapChain.GetCurrentBackBufferRTV().GetTexture();
-        using var backBufferDesc = backBuffer.GetDesc();
+            : ITextureView_GetTexture(ISwapChain_GetCurrentBackBufferRTV(swapChain));
+        using var backBufferDesc = ITexture_GetDesc(backBuffer);
 
         if (backBufferDesc.SampleCount == 1)
         {
-            _ = backBuffer.AddRef();
+            _ = IObject_AddRef(backBuffer);
             return backBuffer;
         }
 
@@ -451,25 +459,26 @@ public sealed class RenderDevice : RedObject
         textureDesc.Height = backBufferDesc.Height;
         textureDesc.BindFlags = BindFlags.BindRenderTarget;
 
-        GetRenderDevice()!.CreateTexture(textureDesc, null!, out var resolvedBackBuffer);
+        IRenderDevice_CreateTexture(GetRenderDevice()!, textureDesc, null!, out var resolvedBackBuffer);
         if (resolvedBackBuffer is null || resolvedBackBuffer.IsNull)
             return null;
 
         using var attribs = new ResolveTextureSubresourceAttribs();
         attribs.SrcTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition;
         attribs.DstTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition;
-        GetImmediateContext()!.ResolveTextureSubresource(backBuffer, resolvedBackBuffer, attribs);
+        IDeviceContext_ResolveTextureSubresource(GetImmediateContext()!, backBuffer,
+            resolvedBackBuffer, attribs);
 
         return resolvedBackBuffer;
     }
 
     private void RememberCurrentBackBuffer(ISwapChain swapChain)
     {
-        var backBuffer = swapChain.GetCurrentBackBufferRTV().GetTexture();
+        var backBuffer = ITextureView_GetTexture(ISwapChain_GetCurrentBackBufferRTV(swapChain));
         if (backBuffer.IsNull)
             return;
 
-        _ = backBuffer.AddRef();
+        _ = IObject_AddRef(backBuffer);
         ReleaseLastPresentedBackBuffer();
         _lastPresentedBackBuffer = backBuffer;
     }
@@ -477,13 +486,13 @@ public sealed class RenderDevice : RedObject
     private void ReleaseLastPresentedBackBuffer()
     {
         if (_lastPresentedBackBuffer is { IsNull: false } backBuffer)
-            _ = backBuffer.Release();
+            _ = IObject_Release(backBuffer);
         _lastPresentedBackBuffer = null;
     }
 
     private ITexture? ReadTextureToStaging(ITexture sourceTexture)
     {
-        using var sourceTextureDesc = sourceTexture.GetDesc();
+        using var sourceTextureDesc = ITexture_GetDesc(sourceTexture);
 
         using var textureDesc = new TextureDesc();
         textureDesc.Type = ResourceDimension.ResourceDimTex2d;
@@ -493,18 +502,20 @@ public sealed class RenderDevice : RedObject
         textureDesc.Width = sourceTextureDesc.Width;
         textureDesc.Height = sourceTextureDesc.Height;
 
-        GetRenderDevice()!.CreateTexture(textureDesc, null!, out var stagingTexture);
+        IRenderDevice_CreateTexture(GetRenderDevice()!, textureDesc, null!, out var stagingTexture);
         if (stagingTexture is null || stagingTexture.IsNull)
             return null;
 
-        using var attribs = new CopyTextureAttribs(
-            sourceTexture,
-            ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
-            stagingTexture,
-            ResourceStateTransitionMode.ResourceStateTransitionModeTransition);
+        using var attribs = new CopyTextureAttribs
+        {
+            PSrcTexture = sourceTexture,
+            SrcTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition,
+            PDstTexture = stagingTexture,
+            DstTextureTransitionMode = ResourceStateTransitionMode.ResourceStateTransitionModeTransition
+        };
         var deviceContext = GetImmediateContext()!;
-        deviceContext.CopyTexture(attribs);
-        deviceContext.WaitForIdle();
+        IDeviceContext_CopyTexture(deviceContext, attribs);
+        IDeviceContext_WaitForIdle(deviceContext);
 
         return stagingTexture;
     }
@@ -519,7 +530,7 @@ public sealed class RenderDevice : RedObject
         {
             if (GetBackend() == RenderBackend.Vulkan)
                 RememberCurrentBackBuffer(swapChain);
-            swapChain.Present(GetWindowSettings().VSync ? 1u : 0u);
+            ISwapChain_Present(swapChain, GetWindowSettings().VSync ? 1u : 0u);
         }
 
         if (_deviceSettings.ExternalWindowHandle != IntPtr.Zero && _window is not null && !_window.IsNull)
@@ -580,7 +591,7 @@ public sealed class RenderDevice : RedObject
     /// </summary>
     public bool IsTextureFormatSupported(TextureFormat format)
     {
-        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(format);
+        using var formatInfo = IRenderDevice_GetTextureFormatInfoExt(GetRenderDevice()!, format);
         return formatInfo.BindFlags != BindFlags.BindNone;
     }
 
@@ -589,7 +600,7 @@ public sealed class RenderDevice : RedObject
     /// </summary>
     public bool IsRenderTargetFormatSupported(TextureFormat format)
     {
-        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(format);
+        using var formatInfo = IRenderDevice_GetTextureFormatInfoExt(GetRenderDevice()!, format);
         return (formatInfo.BindFlags & (BindFlags.BindRenderTarget | BindFlags.BindDepthStencil)) != BindFlags.BindNone;
     }
 
@@ -598,7 +609,7 @@ public sealed class RenderDevice : RedObject
     /// </summary>
     public bool IsUnorderedAccessFormatSupported(TextureFormat format)
     {
-        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(format);
+        using var formatInfo = IRenderDevice_GetTextureFormatInfoExt(GetRenderDevice()!, format);
         return (formatInfo.BindFlags & BindFlags.BindUnorderedAccess) != BindFlags.BindNone;
     }
 
@@ -607,7 +618,7 @@ public sealed class RenderDevice : RedObject
     /// </summary>
     public bool IsMultiSampleSupported(TextureFormat format, int multiSample)
     {
-        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(format);
+        using var formatInfo = IRenderDevice_GetTextureFormatInfoExt(GetRenderDevice()!, format);
         return ((int)formatInfo.SampleCounts & multiSample) != 0;
     }
 
@@ -617,7 +628,7 @@ public sealed class RenderDevice : RedObject
     public int GetSupportedMultiSample(TextureFormat format, int multiSample)
     {
         multiSample = (int)MathDefs.NextPowerOfTwo((uint)SystemMath.Clamp(multiSample, 1, 16));
-        using var formatInfo = GetRenderDevice()!.GetTextureFormatInfoExt(format);
+        using var formatInfo = IRenderDevice_GetTextureFormatInfoExt(GetRenderDevice()!, format);
         while (multiSample > 1 && ((int)formatInfo.SampleCounts & multiSample) == 0)
             multiSample >>= 1;
         return SystemMath.Max(1, multiSample);
@@ -631,7 +642,7 @@ public sealed class RenderDevice : RedObject
 
     private void InitializeCaps()
     {
-        using var adapterInfo = _renderDevice!.GetAdapterInfo();
+        using var adapterInfo = IRenderDevice_GetAdapterInfo(_renderDevice!);
         _caps = new RenderDeviceCaps
         {
             ComputeShaders = adapterInfo.FeaturesComputeShaders == DeviceFeatureState.DeviceFeatureStateEnabled,
@@ -851,7 +862,7 @@ public sealed class RenderDevice : RedObject
         void CreateDefaultTexture(TextureType type, ResourceDimensionSupport flag)
         {
             const TextureFormat format = TextureFormat.TexFormatRgba8Unorm;
-            using var formatInfo = _renderDevice!.GetTextureFormatInfoExt(format);
+            using var formatInfo = IRenderDevice_GetTextureFormatInfoExt(_renderDevice!, format);
             if ((formatInfo.Dimensions & flag) == 0)
                 return;
 
@@ -903,13 +914,13 @@ public sealed class RenderDevice : RedObject
         Log.GetLogger().LogInformation("OpenGL context is lost");
         InvalidateDeviceState();
 
-        using var deviceContextGL = IDeviceContextGL.QueryManagedWrapper(GetImmediateContext()!)
+        using var deviceContextGL = RedBoltQueryIDeviceContextGL(GetImmediateContext()!)
             ?? throw new InvalidOperationException("OpenGL device context interface is unavailable.");
-        deviceContextGL.InvalidateState();
+        IDeviceContext_InvalidateState(deviceContextGL);
 
-        using var renderDeviceGLES = IRenderDeviceGLES.QueryManagedWrapper(GetRenderDevice()!)
+        using var renderDeviceGLES = RedBoltQueryIRenderDeviceGLES(GetRenderDevice()!)
             ?? throw new InvalidOperationException("OpenGL ES render device interface is unavailable.");
-        renderDeviceGLES.Invalidate();
+        IRenderDeviceGLES_Invalidate(renderDeviceGLES);
 
         GetSubsystem<Graphics>()!.ReleaseGLContext();
         _glContext = IntPtr.Zero;
@@ -930,9 +941,9 @@ public sealed class RenderDevice : RedObject
         }
         _glContext = graphics.GetGLContext();
 
-        using var renderDeviceGLES = IRenderDeviceGLES.QueryManagedWrapper(GetRenderDevice()!)
+        using var renderDeviceGLES = RedBoltQueryIRenderDeviceGLES(GetRenderDevice()!)
             ?? throw new InvalidOperationException("OpenGL ES render device interface is unavailable.");
-        renderDeviceGLES.Resume(IntPtr.Zero);
+        IRenderDeviceGLES_Resume(renderDeviceGLES, IntPtr.Zero);
         RestoreDeviceState();
         Log.GetLogger().LogInformation("OpenGL context is restored");
         return true;
@@ -1020,7 +1031,7 @@ public sealed class RenderDevice : RedObject
 
         foreach (var format in needStencil ? depthStencilFormats : depthOnlyFormats)
         {
-            using var formatInfo = device.GetTextureFormatInfoExt(format);
+            using var formatInfo = IRenderDevice_GetTextureFormatInfoExt(device, format);
             if ((formatInfo.BindFlags & BindFlags.BindDepthStencil) != BindFlags.BindNone)
                 return format;
         }
@@ -1058,7 +1069,7 @@ public sealed class RenderDevice : RedObject
     private static void ReleaseIfNotNull(IObject? value)
     {
         if (value is not null && !value.IsNull)
-            _ = value.Release();
+            _ = IObject_Release(value);
     }
 
     private static void ValidateWindowSettings(ref WindowSettings settings)

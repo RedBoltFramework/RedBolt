@@ -68,6 +68,10 @@ internal abstract class BindingTargetGenerator(
 
     protected string ManagedNamespace => managedNamespace;
 
+    protected string NativeLibraryName => nativeLibraryName;
+
+    protected GeneratorOptions Options { get; private set; } = null!;
+
     protected virtual IReadOnlyDictionary<string, string> NamespaceMappings { get; } =
         new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -81,6 +85,7 @@ internal abstract class BindingTargetGenerator(
 
     public string Generate(GeneratorOptions options)
     {
+        Options = options;
         var clangArguments = BuildClangArguments(options);
         var marshallerClangArguments = BuildMarshallerClangArguments(clangArguments);
         var marshallerHeaders = BuildMarshallerHeaders(options);

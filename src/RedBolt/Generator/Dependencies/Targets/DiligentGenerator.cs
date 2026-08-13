@@ -2,7 +2,9 @@ namespace RedBolt.Generator.Dependencies;
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 using SharpCpp.Model.Ast;
 using SharpCpp.Rendering;
@@ -60,46 +62,28 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
     private static readonly IReadOnlyDictionary<string, FixedWidthAliasProjection> FixedWidthAliases =
         new Dictionary<string, FixedWidthAliasProjection>(StringComparer.Ordinal)
         {
-            ["Diligent::Uint64"] = new(BindingPrimitiveKind.UInt64, "ulong"),
-            ["Diligent::Int64"] = new(BindingPrimitiveKind.Int64, "long")
-        };
-
-    private static readonly IReadOnlyDictionary<string, string> QueryableInterfaces =
-        new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["Diligent::IEngineFactoryVk"] = "Diligent::IID_EngineFactoryVk",
-            ["Diligent::IDeviceContextGL"] = "Diligent::IID_DeviceContextGL",
-            ["Diligent::ISwapChainVk"] = "Diligent::IID_SwapChainVk",
-            ["Diligent::IRenderDeviceVk"] = "Diligent::IID_RenderDeviceVk",
-            ["Diligent::IRenderDeviceD3D11"] = "Diligent::IID_RenderDeviceD3D11",
-            ["Diligent::IRenderDeviceD3D12"] = "Diligent::IID_RenderDeviceD3D12",
-            ["Diligent::IRenderDeviceGL"] = "Diligent::IID_RenderDeviceGL",
-            ["Diligent::IRenderDeviceGLES"] = "Diligent::IID_RenderDeviceGLES"
+            ["Uint64"] = new(BindingPrimitiveKind.UInt64, "ulong"),
+            ["Int64"] = new(BindingPrimitiveKind.Int64, "long")
         };
 
     protected override IReadOnlyDictionary<string, string> NamespaceMappings { get; } =
-        new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["Diligent"] = "RedBolt.Bindings.Diligent"
-        };
+        new Dictionary<string, string>(StringComparer.Ordinal);
 
     protected override void ConfigureCompilation(BindingCompilation compilation)
     {
         foreach (var record in compilation.Records)
         {
-            if (!IsInterfaceRecord(record))
+            if (!IsCInterfaceRecord(record))
                 continue;
 
             record.SetMetadata(MetadataKeys.NativeInterfaceWrapper, true);
-            if (record.CppQualifiedName is not ("Diligent::IMemoryAllocator" or "Diligent::IReferenceCounters"))
-                record.SetMetadata(MetadataKeys.NativeInterfaceReleaseMethod, "Release");
-            if (QueryableInterfaces.TryGetValue(record.CppQualifiedName, out var interfaceIdExpression))
-            {
-                record.SetMetadata(
-                    MetadataKeys.NativeInterfaceQuery,
-                    new NativeInterfaceQueryAnnotation("Diligent::IObject", interfaceIdExpression));
-            }
+            record.EmitDefaultNativeReleaseOverride = false;
         }
+
+        ConfigureCInterfaceManagedBases(compilation);
+        AddCInterfaceMacroFunctions(compilation);
+        ConfigureSupportFunctionOwnership(compilation);
+        compilation.InvalidateCaches();
     }
 
     protected override void ConfigureBeforeValidation(BindingCompilation compilation)
@@ -108,10 +92,10 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
         {
             @enum.UnderlyingPrimitiveKind = @enum.UnderlyingTypeName switch
             {
-                "Diligent::Int8" or "Int8" => BindingPrimitiveKind.Int8,
-                "Diligent::Uint8" or "Uint8" => BindingPrimitiveKind.UInt8,
-                "Diligent::Uint16" or "Uint16" => BindingPrimitiveKind.UInt16,
-                "Diligent::Uint32" or "Uint32" => BindingPrimitiveKind.UInt32,
+                "Int8" => BindingPrimitiveKind.Int8,
+                "Uint8" => BindingPrimitiveKind.UInt8,
+                "Uint16" => BindingPrimitiveKind.UInt16,
+                "Uint32" => BindingPrimitiveKind.UInt32,
                 _ => @enum.UnderlyingPrimitiveKind
             };
             if (@enum.UnderlyingPrimitiveKind is BindingPrimitiveKind.UInt8
@@ -143,9 +127,39 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
     protected override GeneratedBindingSet TransformBindings(GeneratedBindingSet bindings)
     {
         return new(bindings.Files.Select(file => file.RelativePath.EndsWith(".g.cs", StringComparison.Ordinal)
-            ? file with { Content = CorrectByteEnumUnderlyingTypes(file.Content) }
+            ? file with
+            {
+                Content = CorrectByteEnumUnderlyingTypes(file.Content) +
+                    (file.RelativePath.EndsWith(".Bindings.g.cs", StringComparison.Ordinal)
+                        ? RenderCInterfaceReleaseOverride()
+                        : string.Empty)
+            }
             : file).ToArray());
     }
+
+    private string RenderCInterfaceReleaseOverride() =>
+        $$"""
+
+        namespace RedBolt.Bindings.Diligent
+        {
+            public static partial class DiligentNativeBindings
+            {
+                [global::System.Runtime.InteropServices.LibraryImport(
+                    "{{NativeLibraryName}}", EntryPoint = "redbolt_diligent_IObject_Release")]
+                internal static partial int IObject_ReleaseRaw(nint instance);
+            }
+
+            public partial class IObject
+            {
+                protected override bool ReleaseNativeHandle(nint handle)
+                {
+                    if (OwnsNativeHandle && handle != 0)
+                        _ = DiligentNativeBindings.IObject_ReleaseRaw(handle);
+                    return true;
+                }
+            }
+        }
+        """;
 
     private string CorrectByteEnumUnderlyingTypes(string content)
     {
@@ -158,31 +172,49 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
 
     protected override void PostProcessCompilation(BindingCompilation compilation)
     {
+        ConfigureCInterfaceManagedBases(compilation);
+        RestoreCDerivedFieldNames(compilation);
         ConfigureBlendFactors(compilation);
+        compilation.InvalidateCaches();
     }
 
-    protected override int PruneCompilation(BindingCompilation compilation)
-    {
-        var prunedCount = PruneTopLevelFunctions(compilation.Members);
-        foreach (var record in compilation.Records.ToArray())
-        {
-            if (record.HasMetadata(MetadataKeys.NativeInterfaceWrapper))
-                prunedCount += PruneInterfaceMethods(record);
-        }
+    protected override int PruneCompilation(BindingCompilation compilation) => 0;
 
-        prunedCount += PruneAccessoryRecords(compilation);
-        compilation.InvalidateCaches();
-        return prunedCount;
+    private static void RestoreCDerivedFieldNames(BindingCompilation compilation)
+    {
+        foreach (var field in compilation.Records.SelectMany(static record => record.Members.OfType<FieldBinding>()))
+        {
+            var accessPath = field.GetMetadata<string>(MetadataKeys.NativeFieldAccessExpression);
+            if (accessPath is null || !accessPath.StartsWith('_'))
+                continue;
+
+            var separator = field.NativeName.IndexOf('_');
+            if (separator <= 0)
+                continue;
+
+            var prefix = field.NativeName[..separator];
+            if (field.ManagedName.StartsWith(prefix, StringComparison.Ordinal) &&
+                field.ManagedName.Length > prefix.Length)
+            {
+                field.ManagedName = field.ManagedName[prefix.Length..];
+            }
+        }
+    }
+
+    private static void ConfigureSupportFunctionOwnership(BindingCompilation compilation)
+    {
+        foreach (var function in compilation.Functions.Where(static function =>
+                     function.NativeName.StartsWith("RedBoltQueryI", StringComparison.Ordinal)))
+        {
+            function.ReturnsOwnedHandle = true;
+        }
     }
 
     private static void ConfigureBlendFactors(BindingCompilation compilation)
     {
-        var deviceContext = compilation.Records.FirstOrDefault(static record =>
-            record.CppQualifiedName == "Diligent::IDeviceContext");
-        var setBlendFactors = deviceContext?.Members.OfType<FunctionBinding>().FirstOrDefault(static method =>
-            method.NativeName == "SetBlendFactors");
-        var blendFactors = setBlendFactors?.Parameters.FirstOrDefault(static parameter =>
-            parameter.NativeName == "pBlendFactors");
+        var setBlendFactors = compilation.Functions.FirstOrDefault(static function =>
+            function.NativeName == "IDeviceContext_SetBlendFactors");
+        var blendFactors = setBlendFactors?.Parameters.ElementAtOrDefault(1);
         if (blendFactors is null)
             return;
 
@@ -193,35 +225,23 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
 
     private static void ConfigureSetVertexBuffersOffsets(BindingCompilation compilation)
     {
-        var deviceContext = compilation.Records.FirstOrDefault(static record =>
-            record.CppQualifiedName == "Diligent::IDeviceContext");
-        var setVertexBuffers = deviceContext?.Members.OfType<FunctionBinding>().FirstOrDefault(static method =>
-            method.NativeName == "SetVertexBuffers");
-        var offsets = setVertexBuffers?.Parameters.FirstOrDefault(static parameter =>
-            parameter.NativeName == "pOffsets" && parameter.CppTypeName == "const Diligent::Uint64*");
-        if (offsets is null || offsets.Type is not
-            {
-                Kind: BindingTypeKind.Primitive,
-                PrimitiveKind: BindingPrimitiveKind.NativeUInt,
-                CppTypeName: "unsigned long"
-            })
-        {
+        var setVertexBuffers = compilation.Functions.FirstOrDefault(static function =>
+            function.NativeName == "IDeviceContext_SetVertexBuffers");
+        var offsets = setVertexBuffers?.Parameters.ElementAtOrDefault(4);
+        if (offsets is null)
             return;
-        }
 
-        offsets.Type = FixedWidthAliasNormalizer.ProjectType(
-            offsets.Type,
-            new FixedWidthAliasProjection(BindingPrimitiveKind.UInt64, "ulong"));
+        offsets.Type = BindingType.UInt64;
+        offsets.Direction = BindingParameterDirection.In;
+        offsets.AbiKind = BindingParameterAbiKind.Pointer;
+        offsets.SetMetadata(MetadataKeys.InputPointerArray, true);
     }
 
     private static void ConfigureAndroidResume(BindingCompilation compilation)
     {
-        var renderDevice = compilation.Records.FirstOrDefault(static record =>
-            record.CppQualifiedName == "Diligent::IRenderDeviceGLES");
-        var resume = renderDevice?.Members.OfType<FunctionBinding>().FirstOrDefault(static method =>
-            method.NativeName == "Resume");
-        var window = resume?.Parameters.FirstOrDefault(static parameter =>
-            parameter.NativeName == "window" && parameter.CppTypeName == "ANativeWindow*");
+        var resume = compilation.Functions.FirstOrDefault(static function =>
+            function.NativeName == "IRenderDeviceGLES_Resume");
+        var window = resume?.Parameters.ElementAtOrDefault(1);
         if (window is null)
             return;
 
@@ -304,22 +324,178 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
         return prunedCount;
     }
 
-    private static bool IsInterfaceRecord(RecordBinding record)
+    private static void ConfigureCInterfaceManagedBases(BindingCompilation compilation)
     {
-        if (!record.CppQualifiedName.StartsWith("Diligent::", StringComparison.Ordinal) ||
-            record.NativeName == "INTERFACE_ID" ||
-            record.Members.OfType<FieldBinding>().Any())
+        var recordsByName = compilation.Records.ToDictionary(static record => record.NativeName, StringComparer.Ordinal);
+        foreach (var interfaceRecord in compilation.Records.Where(IsCInterfaceRecord))
         {
-            return false;
+            if (!recordsByName.TryGetValue(interfaceRecord.NativeName + "Vtbl", out var vtableRecord))
+                continue;
+
+            var methodGroups = vtableRecord.Members
+                .OfType<FieldBinding>()
+                .Select(static field =>
+                {
+                    var path = field.GetMetadata<string>(MetadataKeys.NativeFieldAccessExpression);
+                    return !string.IsNullOrWhiteSpace(path) && path!.Contains('.', StringComparison.Ordinal)
+                        ? path[..path.IndexOf('.', StringComparison.Ordinal)]
+                        : field.NativeName;
+                })
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            var ownGroup = interfaceRecord.NativeName[1..];
+            var ownGroupIndex = Array.IndexOf(methodGroups, ownGroup);
+            if (ownGroupIndex <= 0)
+                continue;
+
+            var baseInterfaceName = "I" + methodGroups[ownGroupIndex - 1];
+            if (recordsByName.ContainsKey(baseInterfaceName))
+                interfaceRecord.ManagedBaseTypeName = baseInterfaceName;
+        }
+    }
+
+    private void AddCInterfaceMacroFunctions(BindingCompilation compilation)
+    {
+        var interfaceNames = compilation.Records
+            .Where(IsCInterfaceRecord)
+            .Select(static record => record.NativeName)
+            .ToHashSet(StringComparer.Ordinal);
+        var macros = LoadCInterfaceMacros();
+        var functions = new List<FunctionBinding>();
+        foreach (var methodsRecord in compilation.Records.Where(static record =>
+                     record.NativeName.StartsWith('I') &&
+                     record.NativeName.EndsWith("Methods", StringComparison.Ordinal)))
+        {
+            var interfaceName = methodsRecord.NativeName[..^"Methods".Length];
+            if (!interfaceNames.Contains(interfaceName))
+                continue;
+
+            foreach (var field in methodsRecord.Members.OfType<FieldBinding>())
+            {
+                if (field.FunctionPointerSignature is not { } signature)
+                    continue;
+
+                var macroName = $"{interfaceName}_{field.NativeName}";
+                if (!macros.ContainsKey(macroName))
+                    continue;
+                var function = new FunctionBinding(
+                    $"c-interface-macro:{macroName}",
+                    macroName,
+                    macroName,
+                    signature.ReturnType,
+                    entryPointName: $"redbolt_diligent_{macroName}",
+                    cppReturnTypeName: signature.CppReturnTypeName,
+                    cppQualifiedName: macroName)
+                {
+                    ReturnPointerDepth = signature.ReturnPointerDepth,
+                    ReturnsOwnedHandle = signature.ReturnsOwnedHandle
+                };
+                function.SetMetadata(MetadataKeys.NativeDefaultArgumentAdapter, true);
+
+                for (var parameterIndex = 0; parameterIndex < signature.Parameters.Count; ++parameterIndex)
+                {
+                    var source = signature.Parameters[parameterIndex];
+                    var parameterName = parameterIndex == 0 ? "This" : source.NativeName;
+                    function.Parameters.Add(new ParameterBinding(
+                        $"parameter:{macroName}:{parameterName}",
+                        parameterName,
+                        parameterName,
+                        source.Type,
+                        source.Direction,
+                        source.AbiKind,
+                        source.CppTypeName));
+                }
+
+                if (signature.IsIgnored())
+                    function.SetIgnoreReason(signature.GetIgnoreReason()!);
+                functions.Add(function);
+            }
         }
 
-        return record.IsAbstract &&
-            record.Members.OfType<FunctionBinding>().Any(static method => method is
+        foreach (var function in functions)
+            compilation.Members.Add(function);
+
+        AddCInterfaceForwardingMacros(compilation, macros, functions);
+    }
+
+    private static void AddCInterfaceForwardingMacros(
+        BindingCompilation compilation,
+        IReadOnlyDictionary<string, string> macros,
+        ICollection<FunctionBinding> functions)
+    {
+        var existingNames = functions.Select(static function => function.NativeName).ToHashSet(StringComparer.Ordinal);
+        var recordsByName = compilation.Records.ToDictionary(static record => record.NativeName, StringComparer.Ordinal);
+        foreach (var (macroName, replacement) in macros)
+        {
+            var match = Regex.Match(
+                replacement,
+                @"^\s*\(const\s+struct\s+(?<record>[A-Za-z0-9_]+)\s*\*\)\s*I[A-Za-z0-9]+_GetDesc\s*\(\s*This\s*\)\s*$",
+                RegexOptions.CultureInvariant);
+            if (!match.Success || existingNames.Contains(macroName))
+                continue;
+
+            var separator = macroName.IndexOf('_');
+            var interfaceName = separator > 0 ? macroName[..separator] : string.Empty;
+            var descriptorName = match.Groups["record"].Value;
+            if (!recordsByName.TryGetValue(interfaceName, out var interfaceRecord) ||
+                !recordsByName.TryGetValue(descriptorName, out var descriptorRecord))
             {
-                IsVirtual: true,
-                IsPureVirtual: true,
-                AccessModifier: BindingAccessModifier.Public
-            });
+                continue;
+            }
+
+            var cppReturnTypeName = $"const struct {descriptorName}*";
+            var function = new FunctionBinding(
+                $"c-interface-macro:{macroName}",
+                macroName,
+                macroName,
+                descriptorRecord.HandleType.WithCppTypeName(cppReturnTypeName),
+                entryPointName: $"redbolt_diligent_{macroName}",
+                cppReturnTypeName: cppReturnTypeName,
+                cppQualifiedName: macroName)
+            {
+                ReturnPointerDepth = 1
+            };
+            function.SetMetadata(MetadataKeys.NativeDefaultArgumentAdapter, true);
+            function.Parameters.Add(new ParameterBinding(
+                $"parameter:{macroName}:This",
+                "This",
+                "This",
+                interfaceRecord.HandleType,
+                BindingParameterDirection.In,
+                BindingParameterAbiKind.Value,
+                interfaceRecord.HandleType.CppTypeName));
+            compilation.Members.Add(function);
+            existingNames.Add(macroName);
+        }
+    }
+
+    private Dictionary<string, string> LoadCInterfaceMacros()
+    {
+        var macros = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var ownedRoot in Options.OwnedHeaders.Where(static root =>
+                     Directory.Exists(root) &&
+                     !root.Contains($"{Path.DirectorySeparatorChar}ThirdParty{Path.DirectorySeparatorChar}", StringComparison.Ordinal)))
+        {
+            foreach (var headerPath in Directory.EnumerateFiles(ownedRoot, "*.h", SearchOption.AllDirectories))
+            {
+                foreach (Match match in Regex.Matches(
+                             File.ReadAllText(headerPath),
+                             @"^\s*#\s*define\s+(I[A-Za-z0-9]+_[A-Za-z0-9_]+)\s*\([^\r\n]*?\)\s*([^\r\n]*)$",
+                             RegexOptions.Multiline | RegexOptions.CultureInvariant))
+                {
+                    macros.TryAdd(match.Groups[1].Value, match.Groups[2].Value);
+                }
+            }
+        }
+        return macros;
+    }
+
+    private static bool IsCInterfaceRecord(RecordBinding record)
+    {
+        return record.NativeName.StartsWith('I') &&
+            record.NativeName != "INTERFACE_ID" &&
+            record.Members.OfType<FieldBinding>().Count() == 1 &&
+            record.Members.OfType<FieldBinding>().Single().NativeName == "pVtbl";
     }
 
     private static bool IsRetainedFunction(FunctionBinding function)

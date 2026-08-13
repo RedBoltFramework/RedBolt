@@ -64,11 +64,12 @@ public sealed class OpenGLESGraphicsBackend : IGraphicsBackend
                 DepthBufferFormat = TextureFormat.TexFormatUnknown
             };
 
-            var factory = DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL();
+            var factory = DiligentNativeBindings.DiligentLoadAndGetEngineFactoryOpenGL();
             if (factory.IsNull)
                 throw new InvalidOperationException("OpenGL engine factory could not be loaded.");
 
-            factory.AttachToActiveGLContext(engineCreateInfo, out var device, out var immediateContext);
+            IEngineFactoryOpenGL_AttachToActiveGLContext(factory, engineCreateInfo, out var device,
+                out var immediateContext);
             if (device.IsNull || immediateContext.IsNull)
                 throw new InvalidOperationException("Generated AttachToActiveGLContext binding returned a null device or context.");
 
@@ -77,9 +78,9 @@ public sealed class OpenGLESGraphicsBackend : IGraphicsBackend
             if (swapChain.IsNull)
                 throw new InvalidOperationException("Generated CreateProxySwapChainGL binding returned a null swap chain.");
 
-            using var deviceContextGL = IDeviceContextGL.QueryManagedWrapper(immediateContext)
+            using var deviceContextGL = RedBoltQueryIDeviceContextGL(immediateContext)
                 ?? throw new InvalidOperationException("OpenGL device context interface is unavailable.");
-            deviceContextGL.SetSwapChain(swapChain);
+            IDeviceContextGL_SetSwapChain(deviceContextGL, swapChain);
 
             return new GraphicsBackendResources
             {
@@ -120,7 +121,8 @@ public sealed class OpenGLESGraphicsBackend : IGraphicsBackend
         public void Resize(IRenderDevice renderDevice, ISwapChain swapChain)
         {
             SdlNativeBindings.SdlGlGetDrawableSize(window, out var width, out var height);
-            swapChain.Resize((uint)System.Math.Max(width, 0), (uint)System.Math.Max(height, 0));
+            ISwapChain_Resize(swapChain, (uint)System.Math.Max(width, 0),
+                (uint)System.Math.Max(height, 0), SurfaceTransform.SurfaceTransformOptimal);
         }
 
         public void ReleaseBeforeCommonResources()
