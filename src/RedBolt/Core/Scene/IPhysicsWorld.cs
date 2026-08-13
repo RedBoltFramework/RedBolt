@@ -24,11 +24,17 @@ namespace RedBolt.Scene;
 
 using RedBolt.Math;
 
-/// <summary>Physics queries exposed to optional engine modules without coupling them to a physics backend.</summary>
-public interface IPhysicsQueryWorld
+/// <summary>Backend-independent physics simulation world.</summary>
+public interface IPhysicsWorld : IFixedUpdateSource
 {
-    /// <summary>Return world gravity.</summary>
-    Vector3f Gravity { get; }
+    /// <summary>Return or set world gravity.</summary>
+    Vector3f Gravity { get; set; }
+
+    /// <summary>Return or set whether automatic physics updates are enabled.</summary>
+    bool UpdateEnabled { get; set; }
+
+    /// <summary>Step the simulation forward.</summary>
+    void Update(float timeStep);
 
     /// <summary>Sweep a sphere through the world and return the closest hit.</summary>
     void SphereCast(ref PhysicsSphereCastResult result, Ray ray, float radius, float maxDistance);

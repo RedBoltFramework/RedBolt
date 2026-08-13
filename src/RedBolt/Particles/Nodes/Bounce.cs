@@ -50,7 +50,7 @@ public sealed class BounceInstance : Bounce.InstanceBase
         SparseSpan<Vector3f> velocity, SparseSpan<Vector3f> newPosition, SparseSpan<Vector3f> newVelocity)
     {
         var node = GetNode();
-        var physics = GetPhysicsQueryWorld(GetScene());
+        var physics = GetPhysicsWorld(GetScene());
 
         for (var i = 0; i < numParticles; ++i)
         {
@@ -64,7 +64,7 @@ public sealed class BounceInstance : Bounce.InstanceBase
         }
     }
 
-    public void RayCastAndBounce(in UpdateContext context, Node? node, IPhysicsQueryWorld? physics,
+    public void RayCastAndBounce(in UpdateContext context, Node? node, IPhysicsWorld? physics,
         ref Vector3f position, ref Vector3f velocity)
     {
         if (physics is not null)
@@ -97,14 +97,14 @@ public sealed class BounceInstance : Bounce.InstanceBase
         position += velocity * context.TimeStep;
     }
 
-    private static IPhysicsQueryWorld? GetPhysicsQueryWorld(Scene? scene)
+    private static IPhysicsWorld? GetPhysicsWorld(Scene? scene)
     {
         if (scene is null)
             return null;
 
         foreach (var component in scene.Components)
         {
-            if (component is IPhysicsQueryWorld physics)
+            if (component is IPhysicsWorld physics)
                 return physics;
         }
         return null;
