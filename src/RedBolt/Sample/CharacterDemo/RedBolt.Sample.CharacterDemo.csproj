@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>RedBolt.Sample.CharacterDemo</AssemblyName>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
+    <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
+    <ProjectReference Include="../../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset" />
+    <ProjectReference Include="../../PhysicsJolt/RedBolt.PhysicsJolt.csproj" />
+  </ItemGroup>
+</Project>

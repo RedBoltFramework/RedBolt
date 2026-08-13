@@ -71,6 +71,8 @@ public partial class RigidBody : Component
     private Vector3f _currentPosition;
     private Quaternion _previousRotation = Quaternion.IDENTITY;
     private Quaternion _currentRotation = Quaternion.IDENTITY;
+    private Vector3f _lastPosition;
+    private Quaternion _lastRotation = Quaternion.IDENTITY;
     private Vector3f _kinematicTargetPosition;
     private Quaternion _kinematicTargetRotation = Quaternion.IDENTITY;
     private bool _kinematicTargetDirty;
@@ -650,7 +652,19 @@ public partial class RigidBody : Component
             scene.DelayedMarkedDirty(this);
             return;
         }
-        SetTransform(node.WorldPosition, node.WorldRotation);
+
+        var newPosition = node.WorldPosition;
+        var newRotation = node.WorldRotation;
+        if (!newRotation.ApproximatelyEquivalent(_lastRotation))
+        {
+            _lastRotation = newRotation;
+            SetTransform(Position, newRotation);
+        }
+        if (!newPosition.ApproximatelyEquivalent(_lastPosition))
+        {
+            _lastPosition = newPosition;
+            SetTransform(newPosition, Rotation);
+        }
     }
 
     internal void NotifyShapeChanged(CollisionShape shape)
@@ -746,6 +760,8 @@ public partial class RigidBody : Component
         world.IsApplyingTransforms = true;
         _node.SetWorldPosition(position);
         _node.SetWorldRotation(rotation);
+        _lastPosition = _node.WorldPosition;
+        _lastRotation = _node.WorldRotation;
         world.IsApplyingTransforms = false;
     }
 
@@ -813,6 +829,8 @@ public partial class RigidBody : Component
         world.RegisterBody(_bodyId, this);
         _previousPosition = _currentPosition = position;
         _previousRotation = _currentRotation = rotation;
+        _lastPosition = position;
+        _lastRotation = rotation;
         _kinematicTargetPosition = position;
         _kinematicTargetRotation = rotation;
         _kinematicTargetDirty = false;

@@ -880,7 +880,8 @@ public partial class PhysicsWorld : Component, IFixedUpdateSource
             settings.MInvMassScale1 = 0.0f;
             settings.MInvInertiaScale1 = 0.0f;
         }
-        var normal = manifold.MWorldSpaceNormal;
+        // Match rbfx: contact normals point from body 2 toward body 1.
+        var normal = -manifold.MWorldSpaceNormal;
         if (pair.Body1 != id1)
             normal = -normal;
 

@@ -50,6 +50,8 @@ public partial class Constraint : Component
     private RigidBody? _ownBody;
     private RigidBody? _otherBody;
     private JoltConstraint? _constraint;
+    [Serialized("Constraint Type", EnumNames = ["Point", "Hinge", "Slider", "ConeTwist"],
+        Setter = nameof(SetConstraintTypeAttribute))]
     private ConstraintType _constraintType;
     private Vector3f _position;
     private Quaternion _rotation = Quaternion.IDENTITY;
@@ -66,7 +68,7 @@ public partial class Constraint : Component
     private bool _disableCollision;
     private bool _recreateConstraint = true;
     private bool _framesDirty;
-    private bool _retryCreation;
+    private bool _retryCreation = true;
     private (uint Body1, uint Body2)? _disabledCollisionPair;
 
     /// <summary>Construct.</summary>
@@ -127,7 +129,6 @@ public partial class Constraint : Component
     }
 
     /// <summary>Return or set constraint type and recreate the constraint.</summary>
-    [Serialized("Constraint Type", EnumNames = ["Point", "Hinge", "Slider", "ConeTwist"])]
     public ConstraintType ConstraintType
     {
         get => _constraintType;
@@ -423,8 +424,8 @@ public partial class Constraint : Component
             _physicsWorld = new WeakReference<PhysicsWorld>(physicsWorld);
             physicsWorld.AddConstraint(this);
 
-            if (_retryCreation || _recreateConstraint)
-                ApplyAttributes();
+            if (_retryCreation)
+                CreateConstraint();
         }
         else
         {
@@ -498,7 +499,7 @@ public partial class Constraint : Component
         switch (_constraintType)
         {
             case ConstraintType.Hinge:
-                return new HingeConstraintSettings
+                var hinge = new HingeConstraintSettings
                 {
                     MSpace = EConstraintSpace.WorldSpace,
                     MPoint1 = point1,
@@ -506,10 +507,15 @@ public partial class Constraint : Component
                     MNormalAxis1 = frame1 * Vector3f.Right,
                     MPoint2 = point2,
                     MHingeAxis2 = frame2 * Vector3f.Forward,
-                    MNormalAxis2 = frame2 * Vector3f.Right,
-                    MLimitsMin = _lowLimit.X * MathDefs.DegToRad,
-                    MLimitsMax = _highLimit.X * MathDefs.DegToRad
+                    MNormalAxis2 = frame2 * Vector3f.Right
                 };
+                // Jolt rejects equal hinge limits. Keep its unrestricted defaults while attributes are loading.
+                if (_lowLimit.X != _highLimit.X)
+                {
+                    hinge.MLimitsMin = _lowLimit.X * MathDefs.DegToRad;
+                    hinge.MLimitsMax = _highLimit.X * MathDefs.DegToRad;
+                }
+                return hinge;
 
             case ConstraintType.Slider:
                 var slider = new SixDOFConstraintSettings
@@ -583,6 +589,12 @@ public partial class Constraint : Component
     private void SetOtherBodyNodeId(uint value)
     {
         _otherBodyNodeId = value;
+        MarkConstraintDirty();
+    }
+
+    private void SetConstraintTypeAttribute(ConstraintType value)
+    {
+        _constraintType = value;
         MarkConstraintDirty();
     }
 
