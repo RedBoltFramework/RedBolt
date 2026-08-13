@@ -55,6 +55,9 @@
     <RedBoltAudioEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',audio,'))">true</RedBoltAudioEnabled>
     <RedBoltAudioEnabled Condition="'$(RedBoltAudioEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',audio,'))">true</RedBoltAudioEnabled>
     <RedBoltAudioEnabled Condition="'$(RedBoltAudioEnabled)' == ''">false</RedBoltAudioEnabled>
+    <RedBoltCSGEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',csg,'))">true</RedBoltCSGEnabled>
+    <RedBoltCSGEnabled Condition="'$(RedBoltCSGEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',csg,'))">true</RedBoltCSGEnabled>
+    <RedBoltCSGEnabled Condition="'$(RedBoltCSGEnabled)' == ''">false</RedBoltCSGEnabled>
     <RedBoltDearImGuiEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',dear-imgui,'))">true</RedBoltDearImGuiEnabled>
     <RedBoltDearImGuiEnabled Condition="'$(RedBoltDearImGuiEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',dear-imgui,'))">true</RedBoltDearImGuiEnabled>
     <RedBoltDearImGuiEnabled Condition="'$(RedBoltDearImGuiEnabled)' == ''">false</RedBoltDearImGuiEnabled>

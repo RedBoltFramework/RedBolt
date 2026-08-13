@@ -9,6 +9,7 @@
     <Project Path="src/RedBolt/Audio/RedBolt.Audio.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Editor/RedBolt.Editor.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Core/RedBolt.Core.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/CSG/RedBolt.CSG.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/DearImGui/RedBolt.DearImGui.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Glow/RedBolt.Glow.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/IK/RedBolt.IK.csproj"><Build Project="false" /></Project>
@@ -57,6 +58,7 @@
     <Project Path="src/RedBolt/Sample/BakedLighting/RedBolt.Sample.BakedLighting.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/Chat/RedBolt.Sample.Chat.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/CharacterDemo/RedBolt.Sample.CharacterDemo.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Sample/CSG/RedBolt.Sample.CSG.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/SceneReplication/RedBolt.Sample.SceneReplication.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/AdvancedNetworking/RedBolt.Sample.AdvancedNetworking.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/CrowdNavigation/RedBolt.Sample.CrowdNavigation.csproj"><Build Project="false" /></Project>

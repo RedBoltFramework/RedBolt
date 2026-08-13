@@ -11,6 +11,7 @@
     <_RedBoltProjectModuleEnabled>true</_RedBoltProjectModuleEnabled>
     <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Actions'">$(RedBoltActionsEnabled)</_RedBoltProjectModuleEnabled>
     <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Audio'">$(RedBoltAudioEnabled)</_RedBoltProjectModuleEnabled>
+    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.CSG'">$(RedBoltCSGEnabled)</_RedBoltProjectModuleEnabled>
     <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.DearImGui' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.DearImGui'">$(RedBoltDearImGuiEnabled)</_RedBoltProjectModuleEnabled>
     <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Glow' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.XAtlas' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.Embree'">$(RedBoltGlowEnabled)</_RedBoltProjectModuleEnabled>
     <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.IK'">$(RedBoltIKEnabled)</_RedBoltProjectModuleEnabled>

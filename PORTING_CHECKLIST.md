@@ -23,6 +23,7 @@
 - [x] `11_Physics` — intentional Jolt implementation with a static floor, dynamic box pyramid, 20-unit free-fly camera, left-click pyramid-matching box spawning, Jolt collision and raycast coverage, deterministic teardown, and reviewed screenshot capture
 - [x] `46_RaycastVehicle` — Jolt raycast vehicle, terrain heightfield, four-wheel chassis, WASD/F input map, skid dust, collision-aware chase camera, 1000 mushroom prefabs, physics debug rendering, Dear ImGui instructions, desktop/Web/Android wiring, deterministic teardown, and screenshot capture are ported and runtime-verified; wheel basis, engine/brake units, suspension response, terrain contact stability, combined throttle/steering, and airborne wheel interpolation are covered by direction, settling, and visual-pose regressions
 - [x] `34_DynamicGeometry` — extensible sample class shape, native method/field order, deep model clones, retained animating-buffer aliases, POD vertex/index copies, guarded buffer mapping, strong scene/camera/viewport ownership, reverse deterministic teardown, from-scratch pyramid geometry, animation, camera, zone lighting, automatic render pipeline, and Dear ImGui instructions reconciled to rbfx
+- [x] `Plugin.CSG` showcase — union, difference, and intersection component trees, asynchronous work-queue rebuilds, source-material preservation, camera controls, Dear ImGui labels, clean teardown, and reviewed llvmpipe screenshot capture are runtime-verified
 - [x] `10_RenderToTexture` — extensible native class/method/field order, explicit construction and base startup, generated `[Reflected]` `Rotator` factory metadata matching rbfx `SamplesManager`, two-scene render-to-texture composition, queued RenderSurface viewport, strong scene/camera/texture/material ownership, reverse deterministic teardown, POD value copies and `int` indices/sizes, Dear ImGui instructions, native texture-descriptor defaults, copied texture-view descriptors, render-surface scheduling, resolved shader-resource sampling, and shared `Rotator` semantics are reconciled and runtime-verified
 - [x] `14_SoundEffects` — hidden scene and music-source ownership, three sound-effect resources, looping music playback and stop, scene pause/resume and time scale, sound/music master gains, pan, reach, LFE, no-device microphone handling, seeded recorded-stream playback, Dear ImGui controls, baseline/audit screenshots, and deterministic teardown are runtime-verified
 - [x] `15_Navigation` — static navigation-mesh building and queries, partial rebuilds, path following, obstacle editing, tile streaming, debug rendering, camera, and Dear ImGui instructions are ported and runtime-verified
@@ -684,6 +685,35 @@ Accepted deviations:
   - [x] `IncrementalLightBaker`
 - [x] `Graphics/LightBaker.h`
   - [x] `LightBaker : Component` with callable asynchronous bake action
+
+## B12a. CSG `OPTIONAL` — constructive solid geometry; depends on Graphics, Scene
+
+- [x] `CsgCommon.h`
+  - [x] geometry interpolation and quantization helpers
+- [x] `CsgBsp.h`
+  - [x] `CsgClipMode`
+  - [x] `CsgPolygon`
+  - [x] `BspNode`
+  - [x] `CsgBsp`
+- [x] `CsgOptimization.h`
+  - [x] polygon simplification, coplanar merging, self-intersection repair, and T-junction resolution
+- [x] `CsgTriangulation.h`
+  - [x] `CsgTriangulatedModel`
+  - [x] triangulation helpers
+- [x] `Csg.h`
+  - [x] `CsgOperation`, model extraction/build, boolean operations, and assembly registration
+- [x] `CsgComponent.h`
+  - [x] `CsgComponent : Component`
+- [x] `CsgBrush.h`
+  - [x] `CsgBrush : CsgComponent`
+- [x] `CsgRoot.h`
+  - [x] `CsgRoot : CsgComponent`
+
+Accepted deviations:
+- `RefCounted` and `SharedPtr` ownership are dropped; `WeakPtr` members use `WeakReference`.
+- Object factories and serialized attributes use generated reflection metadata.
+- The unavailable `PluginApplication` registration overload is preserved as a `TODO: port` comment.
+- Compile-gated Actions integration is excluded from the current completion scope.
 
 ## B13. RmlUI `OPTIONAL` — RmlUi HTML/CSS UI; depends on UI, Graphics
 

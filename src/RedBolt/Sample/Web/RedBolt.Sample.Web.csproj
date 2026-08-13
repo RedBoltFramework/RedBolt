@@ -28,6 +28,7 @@
     <TrimmerRootAssembly Include="$(AssemblyName)" />
     <NativeFileReference Include="$(RedBoltWebEngineArchive)" />
     <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
+    <ProjectReference Include="../../CSG/RedBolt.CSG.csproj" />
     <ProjectReference Include="../../Actions/RedBolt.Actions.csproj" />
     <ProjectReference Include="../../Audio/RedBolt.Audio.csproj" />
     <ProjectReference Include="../../IK/RedBolt.IK.csproj" />
