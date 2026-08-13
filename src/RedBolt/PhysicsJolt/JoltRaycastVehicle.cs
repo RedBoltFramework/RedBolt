@@ -143,7 +143,7 @@ internal sealed class JoltRaycastVehicle : IDisposable
         ConfigureSuspension();
         ConfigureDifferentials();
         using var bodyLock = _physicsSystem.GetBodyLockInterface();
-        using var mutex = bodyLock.LockRead(in _bodyId);
+        var mutex = bodyLock.LockRead(in _bodyId);
         try
         {
             using var body = bodyLock.TryGetBody(in _bodyId);

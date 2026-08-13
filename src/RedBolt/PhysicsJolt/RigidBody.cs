@@ -528,7 +528,7 @@ public partial class RigidBody : Component
         if (_bodyId != InvalidBodyId && _physicsWorld is not null && _physicsWorld.TryGetTarget(out var world))
         {
             using var bodyLock = world.World.GetBodyLockInterface();
-            using var mutex = bodyLock.LockWrite(in _bodyId);
+            var mutex = bodyLock.LockWrite(in _bodyId);
             try
             {
                 using var body = bodyLock.TryGetBody(in _bodyId);
