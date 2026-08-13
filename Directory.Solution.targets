@@ -123,6 +123,14 @@
              Properties="Configuration=$(Configuration)" />
   </Target>
 
+  <!-- C# Dev Kit addresses an IDE-selected project through its solution target,
+       even when that project is intentionally excluded from solution-wide builds. -->
+  <Target Name="src\RedBolt\Sample\RedBolt_Sample_Web">
+    <MSBuild Projects="$(MSBuildThisFileDirectory)src/RedBolt/Sample/Web/RedBolt.Sample.Web.csproj"
+             Targets="Build"
+             Properties="Configuration=$(Configuration);Platform=$(Platform)" />
+  </Target>
+
   <Target Name="RedBoltPersistBuildConfiguration" AfterTargets="Build;Rebuild">
     <RedBoltSaveBuildConfig ConfigFile="$(RedBoltBuildConfigPath)"
                             EnablePlatforms="$(RedBoltEnablePlatforms)"
