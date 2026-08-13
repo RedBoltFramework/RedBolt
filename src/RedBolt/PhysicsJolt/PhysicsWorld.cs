@@ -33,7 +33,7 @@ using RedBolt.Scene;
 
 /// <summary>Physics simulation world component.</summary>
 [Reflected(ObjectCategory.Category_Subsystem, InheritAttributes = false)]
-public partial class PhysicsWorld : Component, IPhysicsWorld
+public partial class PhysicsWorld : Component, IPhysicsWorld3D
 {
     private const int DefaultFps = 60;
     private const uint MaxBodies = 65_536;
@@ -507,7 +507,7 @@ public partial class PhysicsWorld : Component, IPhysicsWorld
             result = GetQueryResult(hit, maxDistance);
     }
 
-    void IPhysicsWorld.SphereCast(ref PhysicsSphereCastResult result, Ray ray, float radius, float maxDistance)
+    void IPhysicsWorld3D.SphereCast(ref PhysicsSphereCastResult result, Ray ray, float radius, float maxDistance)
     {
         var physicsResult = default(PhysicsRaycastResult);
         SphereCast(ref physicsResult, ray, radius, maxDistance);

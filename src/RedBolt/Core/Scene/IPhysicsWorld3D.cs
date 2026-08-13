@@ -25,7 +25,7 @@ namespace RedBolt.Scene;
 using RedBolt.Math;
 
 /// <summary>Backend-independent physics simulation world.</summary>
-public interface IPhysicsWorld : IFixedUpdateSource
+public interface IPhysicsWorld3D : IFixedUpdateSource
 {
     /// <summary>Return or set world gravity.</summary>
     Vector3f Gravity { get; set; }
