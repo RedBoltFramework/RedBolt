@@ -14,7 +14,7 @@
     <RedBoltTargetFramework Condition="'$(RedBoltTargetFramework)' == ''">net10.0</RedBoltTargetFramework>
     <RedBoltAndroidRoot Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(RedBoltAndroidRoot)' == ''">$(LocalAppData)/redbolt-android</RedBoltAndroidRoot>
     <AndroidSdkDirectory Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(AndroidSdkDirectory)' == ''">$(RedBoltAndroidRoot)/sdk</AndroidSdkDirectory>
-    <JavaSdkDirectory Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(JavaSdkDirectory)' == ''">$(RedBoltAndroidRoot)/jdk</JavaSdkDirectory>
+    <JavaSdkDirectory Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">$(RedBoltAndroidRoot)/jdk</JavaSdkDirectory>
     <AndroidNdkDirectory Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(AndroidNdkDirectory)' == ''">$(AndroidSdkDirectory)/ndk/27.2.12479018</AndroidNdkDirectory>
     <EnableDefaultAndroidItems Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(MSBuildProjectName)' != 'RedBolt.Sample.Android'">false</EnableDefaultAndroidItems>
     <AndroidGenerateResourceDesigner Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(MSBuildProjectName)' != 'RedBolt.Sample.Android'">false</AndroidGenerateResourceDesigner>
