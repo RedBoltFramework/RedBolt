@@ -4427,6 +4427,7 @@ layout(std140) uniform Material
         bufferDesc.BindFlags = BindFlags.BindUniformBuffer;
         bufferDesc.Usage = Usage.UsageDefault;
         bufferDesc.CPUAccessFlags = CpuAccessFlags.CpuAccessNone;
+        bufferDesc.ImmediateContextMask = 1;
         IRenderDevice_CreateBuffer(device, bufferDesc, null!, out var buffer);
         if (buffer.IsNull)
             throw new InvalidOperationException($"CreateBuffer returned null for uniform buffer {name}.");
@@ -4443,6 +4444,7 @@ layout(std140) uniform Material
         bufferDesc.BindFlags = bindFlags;
         bufferDesc.Usage = Usage.UsageImmutable;
         bufferDesc.ElementByteStride = elementStride;
+        bufferDesc.ImmediateContextMask = 1;
         using var dataHandle = new PinnedBuffer(data);
         using var bufferData = new BufferData
         {

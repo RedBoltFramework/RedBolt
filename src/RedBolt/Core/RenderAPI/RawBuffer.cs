@@ -387,7 +387,8 @@ public class RawBuffer : DeviceObject
             CPUAccessFlags = CpuAccessFlags.CpuAccessNone,
             Mode = BufferMode.BufferModeUndefined,
             Size = checked((nuint)_parameters.Size),
-            ElementByteStride = checked((uint)_parameters.Stride)
+            ElementByteStride = checked((uint)_parameters.Stride),
+            ImmediateContextMask = 1
         };
 
         if (GetRenderDevice()!.GetBackend() != RenderBackend.OpenGL && (_parameters.Flags & BufferFlag.Dynamic) != 0)
