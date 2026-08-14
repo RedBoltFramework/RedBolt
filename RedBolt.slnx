@@ -13,6 +13,9 @@
     <Project Path="src/RedBolt/DearImGui/RedBolt.DearImGui.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Glow/RedBolt.Glow.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/IK/RedBolt.IK.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Graphics2D/RedBolt.Graphics2D.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Scene2D/RedBolt.Scene2D.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/PhysicsBox2D/RedBolt.PhysicsBox2D.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Utility/RedBolt.Utility.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/UserCode/Desktop/RedBolt.UserCode.Desktop.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/PhysicsJolt/RedBolt.PhysicsJolt.csproj"><Build Project="false" /></Project>
@@ -25,6 +28,7 @@
     <Project Path="src/RedBolt/Bindings/Embree/RedBolt.Bindings.Embree.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Bindings/DearImGui/RedBolt.Bindings.DearImGui.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Bindings/Diligent/RedBolt.Bindings.Diligent.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Bindings/Box2D/RedBolt.Bindings.Box2D.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Bindings/Glslang/RedBolt.Bindings.Glslang.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Bindings/HarfBuzz/RedBolt.Bindings.HarfBuzz.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Bindings/Jolt/RedBolt.Bindings.Jolt.csproj"><Build Project="false" /></Project>
@@ -53,6 +57,16 @@
     <Project Path="src/RedBolt/Native/RedBolt.Native.Web.csproj"><Build Project="false" /></Project>
   </Folder>
   <Folder Name="/src/RedBolt/Sample/">
+    <Project Path="src/RedBolt/Sample/Urho2DSprite/RedBolt.Sample.Urho2DSprite.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Sample/Urho2DParticle/RedBolt.Sample.Urho2DParticle.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Sample/Physics2D/RedBolt.Sample.Physics2D.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Sample/Physics2DRope/RedBolt.Sample.Physics2DRope.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Sample/Physics2DConstraints/RedBolt.Sample.Physics2DConstraints.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Sample/Urho2DSpriterAnimation/RedBolt.Sample.Urho2DSpriterAnimation.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Sample/Urho2DTileMap/RedBolt.Sample.Urho2DTileMap.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Sample/Urho2DIsometricDemo/RedBolt.Sample.Urho2DIsometricDemo.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Sample/Urho2DPlatformer/RedBolt.Sample.Urho2DPlatformer.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Sample/Urho2DStretchableSprite/RedBolt.Sample.Urho2DStretchableSprite.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/Actions/RedBolt.Sample.Actions.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/BakedLighting/RedBolt.Sample.BakedLighting.csproj"><Build Project="false" /></Project>

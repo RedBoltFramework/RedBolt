@@ -74,12 +74,6 @@ internal static class AndroidEmulator
         }
         apk = ResolvePath(repository, apk);
 
-        var screenshotName = sample is not null && screenshot is not null
-            ? $"redbolt-screenshot-{Environment.ProcessId}.png"
-            : null;
-        var deviceScreenshot = screenshotName is null
-            ? null
-            : $"/sdcard/Android/data/{ApplicationId}/files/{screenshotName}";
         var adb = Path.Combine(sdkRoot, "platform-tools", Executable("adb"));
         var configuredEmulator = Environment.GetEnvironmentVariable("REDBOLT_ANDROID_EMULATOR");
         var emulator = configuredEmulator is null
@@ -183,11 +177,7 @@ internal static class AndroidEmulator
 
         var launchArguments = new List<string> { "shell", "am", "start", "-W", "-n", activity };
         if (sample is not null)
-        {
             launchArguments.AddRange(["--es", "sample", sample]);
-            if (screenshotName is not null)
-                launchArguments.AddRange(["--es", "screenshot", screenshotName]);
-        }
         await AdbAsync(adb, serial, launchArguments, echo: true);
 
         var pidResult = await AdbAsync(adb, serial, ["shell", "pidof", ApplicationId], allowFailure: true, timeoutSeconds: 10);
@@ -202,6 +192,9 @@ internal static class AndroidEmulator
 
         if (sample is not null)
         {
+            var waitForDearImGui = !sample.StartsWith("urho2d-", StringComparison.Ordinal)
+                                   && !sample.StartsWith("physics2d", StringComparison.Ordinal);
+            DateTime? runningSince = null;
             var deadline = DateTime.UtcNow.AddSeconds(runtimeTimeout);
             var logs = "";
             while (DateTime.UtcNow < deadline)
@@ -209,9 +202,13 @@ internal static class AndroidEmulator
                 logs = (await AdbAsync(adb, serial, logcatArguments, allowFailure: true, timeoutSeconds: 10)).Output;
                 if (Regex.IsMatch(logs, "FATAL EXCEPTION|Unhandled Exception|Debug assertion failed|Sample .* exited with code [^0]"))
                     throw new InvalidOperationException($"Android sample failed during startup.{Environment.NewLine}{logs}");
-                if (logs.Contains("Verified packaged CoreData asset", StringComparison.Ordinal)
-                    && logs.Contains("Dear ImGui UI ready:", StringComparison.Ordinal))
-                    break;
+                if (logs.Contains("Verified packaged CoreData asset", StringComparison.Ordinal))
+                {
+                    runningSince ??= DateTime.UtcNow;
+                    if (logs.Contains("Dear ImGui UI ready:", StringComparison.Ordinal)
+                        || !waitForDearImGui && DateTime.UtcNow - runningSince >= TimeSpan.FromSeconds(5))
+                        break;
+                }
                 var running = await AdbAsync(adb, serial, ["shell", "pidof", ApplicationId], allowFailure: true, timeoutSeconds: 10);
                 if (running.ExitCode != 0 || string.IsNullOrWhiteSpace(running.Output))
                     throw new InvalidOperationException(
@@ -228,26 +225,7 @@ internal static class AndroidEmulator
         {
             screenshot = ResolvePath(repository, screenshot);
             Directory.CreateDirectory(Path.GetDirectoryName(screenshot)!);
-            if (sample is not null)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(3));
-                await AdbAsync(adb, serial, ["shell", "input", "keyevent", "111"]);
-                for (var attempt = 0; attempt < 60; attempt++)
-                {
-                    if ((await AdbAsync(adb, serial, ["shell", "test", "-f", deviceScreenshot!], allowFailure: true)).ExitCode == 0)
-                        break;
-                    await Task.Delay(TimeSpan.FromSeconds(1));
-                }
-                if ((await AdbAsync(adb, serial,
-                        ["shell", "test", "-f", deviceScreenshot!], allowFailure: true)).ExitCode != 0)
-                    throw new InvalidOperationException("RedBolt did not produce the requested in-engine screenshot.");
-                await AdbAsync(adb, serial, ["pull", deviceScreenshot!, screenshot]);
-                await AdbAsync(adb, serial, ["shell", "rm", "-f", deviceScreenshot!]);
-            }
-            else
-            {
-                await AdbToFileAsync(adb, serial, ["exec-out", "screencap", "-p"], screenshot);
-            }
+            await AdbToFileAsync(adb, serial, ["exec-out", "screencap", "-p"], screenshot);
             Console.WriteLine($"Screenshot: {screenshot}");
         }
 

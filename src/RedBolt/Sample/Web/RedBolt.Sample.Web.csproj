@@ -32,6 +32,9 @@
     <ProjectReference Include="../../Actions/RedBolt.Actions.csproj" />
     <ProjectReference Include="../../Audio/RedBolt.Audio.csproj" />
     <ProjectReference Include="../../IK/RedBolt.IK.csproj" />
+    <ProjectReference Include="../../Graphics2D/RedBolt.Graphics2D.csproj" />
+    <ProjectReference Include="../../Scene2D/RedBolt.Scene2D.csproj" />
+    <ProjectReference Include="../../PhysicsBox2D/RedBolt.PhysicsBox2D.csproj" />
     <ProjectReference Include="../../Particles/RedBolt.Particles.csproj" />
     <ProjectReference Include="../../PhysicsJolt/RedBolt.PhysicsJolt.csproj" />
     <ProjectReference Include="../../Navigation/RedBolt.Navigation.csproj" />
@@ -87,7 +90,7 @@
 
   <Target Name="RedBoltConfigureWebPInvokeModules" BeforeTargets="_GenerateManagedToNative">
     <ItemGroup>
-      <_WasmPInvokeModules Include="RedBolt.Native.Sdl;RedBolt.Native.Diligent;RedBolt.Native.DearImGui;RedBolt.Native.Stb;RedBolt.Native.TinyGltf;RedBolt.Native.Lz4;RedBolt.Native.HarfBuzz;RedBolt.Native.RmlUi;RedBolt.Native.WebP;RedBolt.Native.Glslang;RedBolt.Native.SpirVCross;RedBolt.Native.SpirVTools;RedBolt.Native.ShaderCompiler;RedBolt.Native.Jolt" />
+      <_WasmPInvokeModules Include="RedBolt.Native.Sdl;RedBolt.Native.Diligent;RedBolt.Native.DearImGui;RedBolt.Native.Stb;RedBolt.Native.TinyGltf;RedBolt.Native.Lz4;RedBolt.Native.HarfBuzz;RedBolt.Native.RmlUi;RedBolt.Native.WebP;RedBolt.Native.Glslang;RedBolt.Native.SpirVCross;RedBolt.Native.SpirVTools;RedBolt.Native.ShaderCompiler;RedBolt.Native.Box2D;RedBolt.Native.Jolt" />
     </ItemGroup>
   </Target>
 

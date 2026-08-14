@@ -58,7 +58,7 @@ Use these case-insensitive, comma- or semicolon-separated MSBuild properties:
 | --- | --- |
 | `RedBoltEnablePlatforms`, `RedBoltDisablePlatforms` | `linux`, `windows`, `android`, `web`, `all` |
 | `RedBoltEnableArchitectures`, `RedBoltDisableArchitectures` | `x64`, `arm64`, `all` |
-| `RedBoltEnableModules`, `RedBoltDisableModules` | `actions`, `audio`, `dear-imgui`, `glow`, `ik`, `navigation`, `network`, `particles`, `physics-jolt`, `rml-ui`, `utility`, `editor`, `samples`, `tests`, `all` |
+| `RedBoltEnableModules`, `RedBoltDisableModules` | `actions`, `audio`, `dear-imgui`, `glow`, `graphics-2d`, `ik`, `navigation`, `network`, `particles`, `physics-2d`, `physics-jolt`, `rml-ui`, `scene-2d`, `utility`, `editor`, `samples`, `tests`, `all` |
 
 Use `-p:RedBoltFull` to enable all platforms, architectures, and modules:
 
@@ -102,12 +102,12 @@ Delete `build/BuildConfig.props` to return to fresh defaults. Passing an empty
 property value clears just that saved list. Unknown keys are errors and leave
 the previous saved configuration intact.
 
-Modules with managed dependencies must include them: `network` requires
-`physics-jolt`, `rml-ui` requires `audio`, and `editor` requires `dear-imgui`,
-`glow`, `rml-ui`, and `utility`. The `samples` and `tests` sets require every
-engine module. Disabled projects report that they were skipped and do not
-compile their C# sources. Native builds likewise compile only the core wrappers
-and wrappers needed by enabled modules.
+Modules with managed dependencies must include them: `scene-2d` requires
+`graphics-2d`, `network` requires `physics-jolt`, `rml-ui` requires `audio`, and
+`editor` requires `dear-imgui`, `glow`, `rml-ui`, and `utility`. The `samples`
+and `tests` sets require every engine module. Disabled projects report that
+they were skipped and do not compile their C# sources. Native builds likewise
+compile only the core wrappers and wrappers needed by enabled modules.
 
 ## Windows x64 cross-build
 

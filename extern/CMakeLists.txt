@@ -36,10 +36,11 @@ include(TinyGLTF.cmake)
 include(LZ4.cmake)
 include(WebP.cmake)
 include(XAtlas.cmake)
+include(Box2D.cmake)
 include(Jolt.cmake)
 include(Embree.cmake)
 include(OpenSSL.cmake)
 include(LibDataChannel.cmake)
 add_custom_target(redbolt-native-dependency-batch
-    DEPENDS SDL2 redbolt-diligent-build ImGui harfbuzz harfbuzz-raster harfbuzz-gpu rmlui_core rmlui_debugger Jolt embree datachannel-static
+    DEPENDS SDL2 redbolt-diligent-build ImGui harfbuzz harfbuzz-raster harfbuzz-gpu rmlui_core rmlui_debugger box2d Jolt embree datachannel-static
     COMMENT "Building RedBolt native dependency batch")

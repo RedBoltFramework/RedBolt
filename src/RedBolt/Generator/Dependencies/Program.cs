@@ -58,6 +58,7 @@ internal static class Program
             "spirvcross" => new SpirVCrossGenerator(nativeLibraryName),
             "spirvtools" => new SpirVToolsGenerator(nativeLibraryName),
             "shadercompiler" => new ShaderCompilerGenerator(nativeLibraryName),
+            "box2d" => new Box2DGenerator(nativeLibraryName),
             "jolt" => new JoltGenerator(nativeLibraryName),
             "libdatachannel" => new LibDataChannelGenerator(nativeLibraryName),
             _ => throw new ArgumentException($"Unknown binding surface '{surface}'.", nameof(surface))
@@ -67,6 +68,6 @@ internal static class Program
     private static void PrintUsage()
     {
         Console.Error.WriteLine(
-            "Usage: RedBolt.Generator.Dependencies --surface <sdl|diligent|dearimgui|stb|tinygltf|lz4|harfbuzz|rmlui|webp|xatlas|embree|glslang|spirvcross|spirvtools|shadercompiler|jolt|libdatachannel> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --redbolt-root <path> --native-library-name <name> --compiler <path> [--compiler-target <triple>] [--compiler-sysroot <path>] [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
+            "Usage: RedBolt.Generator.Dependencies --surface <sdl|diligent|dearimgui|stb|tinygltf|lz4|harfbuzz|rmlui|webp|xatlas|embree|glslang|spirvcross|spirvtools|shadercompiler|box2d|jolt|libdatachannel> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --redbolt-root <path> --native-library-name <name> --compiler <path> [--compiler-target <triple>] [--compiler-sysroot <path>] [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
     }
 }

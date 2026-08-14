@@ -47,6 +47,7 @@ set(REDBOLT_GLSLANG_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/glslang" CACH
 set(REDBOLT_SPIRV_CROSS_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/spirv-cross" CACHE INTERNAL "SPIRV-Cross binding output")
 set(REDBOLT_SPIRV_TOOLS_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/spirv-tools" CACHE INTERNAL "SPIRV-Tools binding output")
 set(REDBOLT_SHADER_COMPILER_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/shader-compiler" CACHE INTERNAL "Shader compiler binding output")
+set(REDBOLT_BOX2D_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/box2d" CACHE INTERNAL "Box2D binding output")
 set(REDBOLT_JOLT_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/jolt" CACHE INTERNAL "Jolt binding output")
 set(REDBOLT_LIBDATACHANNEL_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/libdatachannel" CACHE INTERNAL "libdatachannel binding output")
 
@@ -65,10 +66,11 @@ set(REDBOLT_GLSLANG_BINDINGS_STEM "RedBolt.Bindings.Glslang" CACHE INTERNAL "gls
 set(REDBOLT_SPIRV_CROSS_BINDINGS_STEM "RedBolt.Bindings.SpirVCross" CACHE INTERNAL "SPIRV-Cross binding stem")
 set(REDBOLT_SPIRV_TOOLS_BINDINGS_STEM "RedBolt.Bindings.SpirVTools" CACHE INTERNAL "SPIRV-Tools binding stem")
 set(REDBOLT_SHADER_COMPILER_BINDINGS_STEM "RedBolt.Bindings.ShaderCompiler" CACHE INTERNAL "Shader compiler binding stem")
+set(REDBOLT_BOX2D_BINDINGS_STEM "RedBolt.Bindings.Box2D" CACHE INTERNAL "Box2D binding stem")
 set(REDBOLT_JOLT_BINDINGS_STEM "RedBolt.Bindings.Jolt" CACHE INTERNAL "Jolt binding stem")
 set(REDBOLT_LIBDATACHANNEL_BINDINGS_STEM "RedBolt.Bindings.LibDataChannel" CACHE INTERNAL "libdatachannel binding stem")
 
-foreach(binding SDL DILIGENT IMGUI STB TINYGLTF LZ4 HARFBUZZ RMLUI WEBP XATLAS EMBREE GLSLANG SPIRV_CROSS SPIRV_TOOLS SHADER_COMPILER JOLT LIBDATACHANNEL)
+foreach(binding SDL DILIGENT IMGUI STB TINYGLTF LZ4 HARFBUZZ RMLUI WEBP XATLAS EMBREE GLSLANG SPIRV_CROSS SPIRV_TOOLS SHADER_COMPILER BOX2D JOLT LIBDATACHANNEL)
     set(REDBOLT_${binding}_BINDINGS_CS
         "${REDBOLT_${binding}_GENERATED_DIR}/${REDBOLT_${binding}_BINDINGS_STEM}.Bindings.g.cs"
         CACHE INTERNAL "${binding} generated C# binding")
@@ -94,6 +96,7 @@ set(REDBOLT_WEBP_PARSE_HEADER "${REDBOLT_WEBP_GENERATED_DIR}/WebPAll.hpp" CACHE 
 set(REDBOLT_XATLAS_PARSE_HEADER "${REDBOLT_XATLAS_GENERATED_DIR}/XAtlasAll.hpp" CACHE INTERNAL "xatlas parse header")
 set(REDBOLT_EMBREE_PARSE_HEADER "${REDBOLT_EMBREE_GENERATED_DIR}/EmbreeAll.hpp" CACHE INTERNAL "Embree parse header")
 set(REDBOLT_SHADER_COMPILER_PARSE_HEADER "${REDBOLT_SHADER_COMPILER_GENERATED_DIR}/ShaderCompilerAll.hpp" CACHE INTERNAL "Shader compiler parse header")
+set(REDBOLT_BOX2D_PARSE_HEADER "${REDBOLT_BOX2D_GENERATED_DIR}/Box2DAll.h" CACHE INTERNAL "Box2D parse header")
 set(REDBOLT_JOLT_PARSE_HEADER "${REDBOLT_JOLT_GENERATED_DIR}/JoltAll.hpp" CACHE INTERNAL "Jolt parse header")
 set(REDBOLT_LIBDATACHANNEL_PARSE_HEADER "${REDBOLT_LIBDATACHANNEL_GENERATED_DIR}/LibDataChannelAll.h" CACHE INTERNAL "libdatachannel parse header")
 set(REDBOLT_JOLT_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/include" CACHE INTERNAL "RedBolt Jolt support include directory")
@@ -132,6 +135,7 @@ file(MAKE_DIRECTORY
     "${REDBOLT_SPIRV_CROSS_GENERATED_DIR}"
     "${REDBOLT_SPIRV_TOOLS_GENERATED_DIR}"
     "${REDBOLT_SHADER_COMPILER_GENERATED_DIR}"
+    "${REDBOLT_BOX2D_GENERATED_DIR}"
     "${REDBOLT_JOLT_GENERATED_DIR}"
     "${REDBOLT_LIBDATACHANNEL_GENERATED_DIR}")
 
@@ -205,6 +209,127 @@ file(CONFIGURE OUTPUT "${REDBOLT_EMBREE_PARSE_HEADER}" CONTENT [=[
 file(CONFIGURE OUTPUT "${REDBOLT_SHADER_COMPILER_PARSE_HEADER}" CONTENT [=[
 #pragma once
 #include <RedBolt/ShaderCompilerSupport.hpp>
+]=] @ONLY)
+file(CONFIGURE OUTPUT "${REDBOLT_BOX2D_PARSE_HEADER}" CONTENT [=[
+#pragma once
+#include <stdlib.h>
+#include <box2d/box2d.h>
+
+typedef struct redbolt_b2RayCastContext
+{
+    int targetIndex;
+    int currentIndex;
+    b2RayResult result;
+} redbolt_b2RayCastContext;
+
+static float redbolt_b2RayCastCallback(
+    b2ShapeId shapeId, b2Vec2 point, b2Vec2 normal, float fraction, void* context)
+{
+    redbolt_b2RayCastContext* data = (redbolt_b2RayCastContext*)context;
+    if (data->currentIndex == data->targetIndex)
+    {
+        data->result.shapeId = shapeId;
+        data->result.point = point;
+        data->result.normal = normal;
+        data->result.fraction = fraction;
+        data->result.hit = true;
+    }
+    data->currentIndex += 1;
+    return 1.0f;
+}
+
+static inline int redbolt_b2WorldCastRayCount(
+    b2WorldId worldId, b2Vec2 origin, b2Vec2 translation, b2QueryFilter filter)
+{
+    redbolt_b2RayCastContext context = {-1, 0, {0}};
+    b2World_CastRay(worldId, origin, translation, filter, redbolt_b2RayCastCallback, &context);
+    return context.currentIndex;
+}
+
+static inline b2RayResult redbolt_b2WorldCastRayAt(
+    b2WorldId worldId, b2Vec2 origin, b2Vec2 translation, b2QueryFilter filter, int index)
+{
+    redbolt_b2RayCastContext context = {index, 0, {0}};
+    b2World_CastRay(worldId, origin, translation, filter, redbolt_b2RayCastCallback, &context);
+    return context.result;
+}
+
+static inline b2ContactBeginTouchEvent redbolt_b2ContactBeginEventAt(b2WorldId worldId, int index)
+{
+    b2ContactEvents events = b2World_GetContactEvents(worldId);
+    b2ContactBeginTouchEvent empty = {0};
+    return index >= 0 && index < events.beginCount ? events.beginEvents[index] : empty;
+}
+
+static inline b2ContactEndTouchEvent redbolt_b2ContactEndEventAt(b2WorldId worldId, int index)
+{
+    b2ContactEvents events = b2World_GetContactEvents(worldId);
+    b2ContactEndTouchEvent empty = {0};
+    return index >= 0 && index < events.endCount ? events.endEvents[index] : empty;
+}
+
+static inline b2SensorBeginTouchEvent redbolt_b2SensorBeginEventAt(b2WorldId worldId, int index)
+{
+    b2SensorEvents events = b2World_GetSensorEvents(worldId);
+    b2SensorBeginTouchEvent empty = {0};
+    return index >= 0 && index < events.beginCount ? events.beginEvents[index] : empty;
+}
+
+static inline b2SensorEndTouchEvent redbolt_b2SensorEndEventAt(b2WorldId worldId, int index)
+{
+    b2SensorEvents events = b2World_GetSensorEvents(worldId);
+    b2SensorEndTouchEvent empty = {0};
+    return index >= 0 && index < events.endCount ? events.endEvents[index] : empty;
+}
+
+typedef int (*redbolt_b2PreSolveCallback)(
+    int shapeAIndex, unsigned short shapeAWorld, unsigned short shapeAGeneration,
+    int shapeBIndex, unsigned short shapeBWorld, unsigned short shapeBGeneration,
+    float normalX, float normalY, int pointCount,
+    float point0X, float point0Y, float separation0,
+    float point1X, float point1Y, float separation1, void* context);
+
+typedef struct redbolt_b2PreSolveContext
+{
+    redbolt_b2PreSolveCallback callback;
+    void* context;
+} redbolt_b2PreSolveContext;
+
+static bool redbolt_b2PreSolveThunk(
+    b2ShapeId shapeA, b2ShapeId shapeB, b2Manifold* manifold, void* context)
+{
+    redbolt_b2PreSolveContext* data = (redbolt_b2PreSolveContext*)context;
+    const int pointCount = manifold != NULL ? manifold->pointCount : 0;
+    const b2Vec2 normal = manifold != NULL ? manifold->normal : (b2Vec2){0};
+    const b2Vec2 point0 = pointCount > 0 ? manifold->points[0].point : (b2Vec2){0};
+    const b2Vec2 point1 = pointCount > 1 ? manifold->points[1].point : (b2Vec2){0};
+    const float separation0 = pointCount > 0 ? manifold->points[0].separation : 0.0f;
+    const float separation1 = pointCount > 1 ? manifold->points[1].separation : 0.0f;
+    return data->callback(
+        shapeA.index1, shapeA.world0, shapeA.generation,
+        shapeB.index1, shapeB.world0, shapeB.generation,
+        normal.x, normal.y, pointCount,
+        point0.x, point0.y, separation0,
+        point1.x, point1.y, separation1, data->context) != 0;
+}
+
+static inline void* redbolt_b2WorldSetManagedPreSolveCallback(
+    b2WorldId worldId, void* callback, void* context)
+{
+    redbolt_b2PreSolveContext* data = (redbolt_b2PreSolveContext*)malloc(sizeof(redbolt_b2PreSolveContext));
+    if (data == NULL)
+        return NULL;
+    data->callback = (redbolt_b2PreSolveCallback)callback;
+    data->context = context;
+    b2World_SetPreSolveCallback(worldId, redbolt_b2PreSolveThunk, data);
+    return data;
+}
+
+static inline void redbolt_b2WorldClearManagedPreSolveCallback(b2WorldId worldId, void* callbackContext)
+{
+    b2World_SetPreSolveCallback(worldId, NULL, NULL);
+    free(callbackContext);
+}
 ]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_JOLT_PARSE_HEADER}" CONTENT [=[
 #pragma once

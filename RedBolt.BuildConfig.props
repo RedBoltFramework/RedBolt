@@ -67,6 +67,16 @@
     <RedBoltIKEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',ik,'))">true</RedBoltIKEnabled>
     <RedBoltIKEnabled Condition="'$(RedBoltIKEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',ik,'))">true</RedBoltIKEnabled>
     <RedBoltIKEnabled Condition="'$(RedBoltIKEnabled)' == ''">false</RedBoltIKEnabled>
+    <RedBoltGraphics2DEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',graphics-2d,'))">true</RedBoltGraphics2DEnabled>
+    <RedBoltGraphics2DEnabled Condition="'$(RedBoltGraphics2DEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',graphics-2d,'))">true</RedBoltGraphics2DEnabled>
+    <RedBoltGraphics2DEnabled Condition="'$(RedBoltGraphics2DEnabled)' == ''">false</RedBoltGraphics2DEnabled>
+    <RedBoltScene2DEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',scene-2d,'))">true</RedBoltScene2DEnabled>
+    <RedBoltScene2DEnabled Condition="'$(RedBoltScene2DEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',scene-2d,'))">true</RedBoltScene2DEnabled>
+    <RedBoltScene2DEnabled Condition="'$(RedBoltScene2DEnabled)' == ''">false</RedBoltScene2DEnabled>
+    <RedBoltPhysics2DEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',physics-2d,'))">true</RedBoltPhysics2DEnabled>
+    <RedBoltPhysics2DEnabled Condition="'$(RedBoltPhysics2DEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',physics-2d,'))">true</RedBoltPhysics2DEnabled>
+    <RedBoltPhysics2DEnabled Condition="'$(RedBoltPhysics2DEnabled)' == ''">false</RedBoltPhysics2DEnabled>
+    <RedBoltPhysicsBox2DEnabled>$(RedBoltPhysics2DEnabled)</RedBoltPhysicsBox2DEnabled>
     <RedBoltNavigationEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',navigation,'))">true</RedBoltNavigationEnabled>
     <RedBoltNavigationEnabled Condition="'$(RedBoltNavigationEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',navigation,'))">true</RedBoltNavigationEnabled>
     <RedBoltNavigationEnabled Condition="'$(RedBoltNavigationEnabled)' == ''">false</RedBoltNavigationEnabled>
@@ -98,6 +108,7 @@
     <RedBoltEnabledNativeModules Condition="'$(RedBoltDearImGuiEnabled)' == 'true'">$(RedBoltEnabledNativeModules),IMGUI</RedBoltEnabledNativeModules>
     <RedBoltEnabledNativeModules Condition="'$(RedBoltGlowEnabled)' == 'true'">$(RedBoltEnabledNativeModules),XATLAS,EMBREE</RedBoltEnabledNativeModules>
     <RedBoltEnabledNativeModules Condition="'$(RedBoltPhysicsJoltEnabled)' == 'true'">$(RedBoltEnabledNativeModules),JOLT</RedBoltEnabledNativeModules>
+    <RedBoltEnabledNativeModules Condition="'$(RedBoltPhysics2DEnabled)' == 'true'">$(RedBoltEnabledNativeModules),BOX2D</RedBoltEnabledNativeModules>
     <RedBoltEnabledNativeModules Condition="'$(RedBoltRmlUIEnabled)' == 'true'">$(RedBoltEnabledNativeModules),RMLUI</RedBoltEnabledNativeModules>
     <RedBoltEnabledNativeModules Condition="'$(RedBoltUtilityEnabled)' == 'true'">$(RedBoltEnabledNativeModules),TINYGLTF</RedBoltEnabledNativeModules>
     <RedBoltEnabledNativeModules Condition="'$(RedBoltNetworkEnabled)' == 'true'">$(RedBoltEnabledNativeModules),LIBDATACHANNEL</RedBoltEnabledNativeModules>

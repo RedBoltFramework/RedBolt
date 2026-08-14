@@ -80,6 +80,7 @@ set(_redbolt_native_common_include_dirs
     "${REDBOLT_GLSLANG_SOURCE_ROOT}"
     "${REDBOLT_SPIRV_CROSS_SOURCE_ROOT}"
     "${REDBOLT_SPIRV_TOOLS_SOURCE_ROOT}/include"
+    "${REDBOLT_BOX2D_INCLUDE_DIR}"
     "${REDBOLT_JOLT_INCLUDE_DIR}"
     "${REDBOLT_LIBDATACHANNEL_INCLUDE_DIR}")
 
@@ -99,6 +100,7 @@ set(_redbolt_generated_binding_sources
     "${REDBOLT_SPIRV_CROSS_BINDINGS_CPP}"
     "${REDBOLT_SPIRV_TOOLS_BINDINGS_CPP}"
     "${REDBOLT_SHADER_COMPILER_BINDINGS_CPP}"
+    "${REDBOLT_BOX2D_BINDINGS_CPP}"
     "${REDBOLT_JOLT_BINDINGS_CPP}"
     "${REDBOLT_LIBDATACHANNEL_BINDINGS_CPP}")
 set_source_files_properties(${_redbolt_generated_binding_sources}
@@ -292,6 +294,14 @@ redbolt_add_native_wrapper(
     OUTPUT_NAME "${REDBOLT_SHADER_COMPILER_NATIVE_LIBRARY_NAME}"
     GENERATION_TARGET redbolt-generate-shader-compiler-bindings
     SOURCES "${REDBOLT_SHADER_COMPILER_BINDINGS_CPP}" src/ShaderCompilerSupport.cpp)
+
+redbolt_add_native_wrapper(
+    MODULE BOX2D
+    TARGET "${REDBOLT_BOX2D_NATIVE_TARGET}"
+    OUTPUT_NAME "${REDBOLT_BOX2D_NATIVE_LIBRARY_NAME}"
+    GENERATION_TARGET redbolt-generate-box2d-bindings
+    SOURCES "${REDBOLT_BOX2D_BINDINGS_CPP}"
+    LINK_LIBRARIES ${REDBOLT_BOX2D_LIBRARY})
 
 redbolt_add_native_wrapper(
     MODULE JOLT
