@@ -1,4 +1,4 @@
-#include <RedBolt/RmlHarfBuzzFontEngine.hpp>
+#include "RmlHarfBuzzFontEngine.hpp"
 
 #include <algorithm>
 #include <array>
@@ -16,7 +16,7 @@
 #include <hb-ot.h>
 #include <hb-gpu.h>
 
-#include <RedBolt/HarfBuzzGpuAtlas.hpp>
+#include <HarfBuzzGpuAtlas.hpp>
 
 #include <RmlUi/Core/CallbackTexture.h>
 #include <RmlUi/Core/Core.h>

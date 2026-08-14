@@ -7,15 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Bindings/Sdl/RedBolt.Bindings.Sdl.csproj" />
-    <ProjectReference Include="../Bindings/Stb/RedBolt.Bindings.Stb.csproj" />
+    <ProjectReference Include="../Native/Sdl/RedBolt.Bindings.Sdl.csproj" />
+    <ProjectReference Include="../Native/Stb/RedBolt.Bindings.Stb.csproj" />
     <ProjectReference Include="../Core/RedBolt.Core.csproj" />
-    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
-                      PrivateAssets="all"
-                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
-    <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false"
-                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj" PrivateAssets="all" AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
+    <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset" />
   </ItemGroup>
 </Project>

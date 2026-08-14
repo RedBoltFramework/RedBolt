@@ -28,7 +28,7 @@
 #include "ImGuiDiligentRenderer.hpp"
 #include "ImGuiHarfBuzzGpu.hpp"
 
-#include <RedBolt/HarfBuzzGpuAtlas.hpp>
+#include <HarfBuzzGpuAtlas.hpp>
 
 #include <DeviceContext.h>
 #include <MapHelper.hpp>

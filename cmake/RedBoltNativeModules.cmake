@@ -78,8 +78,8 @@ set(REDBOLT_JOLT_NATIVE_MANAGED_SELECTOR "RedBolt.Bindings.Jolt")
 set(REDBOLT_LIBDATACHANNEL_NATIVE_MANAGED_SELECTOR "RedBolt.Bindings.LibDataChannel")
 
 set(REDBOLT_SDL_NATIVE_REQUIRES "")
-set(REDBOLT_DILIGENT_NATIVE_REQUIRES "SDL")
-set(REDBOLT_IMGUI_NATIVE_REQUIRES "DILIGENT;SDL")
+set(REDBOLT_DILIGENT_NATIVE_REQUIRES "SDL;GLSLANG;SPIRV_CROSS;SPIRV_TOOLS")
+set(REDBOLT_IMGUI_NATIVE_REQUIRES "SDL;DILIGENT;HARFBUZZ")
 set(REDBOLT_STB_NATIVE_REQUIRES "")
 set(REDBOLT_TINYGLTF_NATIVE_REQUIRES "")
 set(REDBOLT_LZ4_NATIVE_REQUIRES "")
@@ -88,13 +88,22 @@ set(REDBOLT_RMLUI_NATIVE_REQUIRES "HARFBUZZ")
 set(REDBOLT_WEBP_NATIVE_REQUIRES "")
 set(REDBOLT_XATLAS_NATIVE_REQUIRES "")
 set(REDBOLT_EMBREE_NATIVE_REQUIRES "")
-set(REDBOLT_GLSLANG_NATIVE_REQUIRES "")
+set(REDBOLT_GLSLANG_NATIVE_REQUIRES "SPIRV_TOOLS")
 set(REDBOLT_SPIRV_CROSS_NATIVE_REQUIRES "")
 set(REDBOLT_SPIRV_TOOLS_NATIVE_REQUIRES "")
 set(REDBOLT_SHADER_COMPILER_NATIVE_REQUIRES "")
 set(REDBOLT_BOX2D_NATIVE_REQUIRES "")
 set(REDBOLT_JOLT_NATIVE_REQUIRES "")
 set(REDBOLT_LIBDATACHANNEL_NATIVE_REQUIRES "")
+
+# These owners expose their static library APIs to dependent Native wrappers.
+# Diligent uses interface-only calls from DearImGui and does not need archive exports.
+set(REDBOLT_ARCHIVE_EXPORT_MODULES
+    SDL
+    HARFBUZZ
+    GLSLANG
+    SPIRV_CROSS
+    SPIRV_TOOLS)
 
 function(redbolt_native_module_value module field output_variable)
     string(TOUPPER "${module}" module_upper)
@@ -103,6 +112,20 @@ function(redbolt_native_module_value module field output_variable)
         message(FATAL_ERROR "Unknown native module field '${module}.${field}'")
     endif()
     set("${output_variable}" "${value}" PARENT_SCOPE)
+endfunction()
+
+function(redbolt_native_module_requirement_closure module output_variable)
+    set(_redbolt_requirement_closure)
+    set(_redbolt_pending_requirements ${REDBOLT_${module}_NATIVE_REQUIRES})
+    while(_redbolt_pending_requirements)
+        list(POP_FRONT _redbolt_pending_requirements _redbolt_requirement)
+        if(NOT _redbolt_requirement IN_LIST _redbolt_requirement_closure)
+            list(APPEND _redbolt_requirement_closure "${_redbolt_requirement}")
+            list(APPEND _redbolt_pending_requirements
+                ${REDBOLT_${_redbolt_requirement}_NATIVE_REQUIRES})
+        endif()
+    endwhile()
+    set("${output_variable}" "${_redbolt_requirement_closure}" PARENT_SCOPE)
 endfunction()
 
 foreach(_redbolt_native_module IN LISTS REDBOLT_NATIVE_MODULES)
@@ -145,3 +168,34 @@ if(ANDROID)
 elseif(EMSCRIPTEN)
     list(REMOVE_ITEM REDBOLT_SELECTED_NATIVE_MODULES XATLAS EMBREE LIBDATACHANNEL)
 endif()
+
+set(_redbolt_available_native_modules ${REDBOLT_NATIVE_MODULES})
+if(ANDROID)
+    list(REMOVE_ITEM _redbolt_available_native_modules XATLAS EMBREE)
+elseif(EMSCRIPTEN)
+    list(REMOVE_ITEM _redbolt_available_native_modules XATLAS EMBREE LIBDATACHANNEL)
+endif()
+
+set(_redbolt_required_native_modules ${REDBOLT_SELECTED_NATIVE_MODULES})
+while(_redbolt_required_native_modules)
+    list(POP_FRONT _redbolt_required_native_modules _redbolt_required_native_module)
+    foreach(_redbolt_native_requirement IN LISTS
+            REDBOLT_${_redbolt_required_native_module}_NATIVE_REQUIRES)
+        if(NOT _redbolt_native_requirement IN_LIST _redbolt_available_native_modules)
+            message(FATAL_ERROR
+                "Native module '${_redbolt_required_native_module}' requires unavailable module '${_redbolt_native_requirement}'")
+        endif()
+        if(NOT _redbolt_native_requirement IN_LIST REDBOLT_SELECTED_NATIVE_MODULES)
+            list(APPEND REDBOLT_SELECTED_NATIVE_MODULES "${_redbolt_native_requirement}")
+            list(APPEND _redbolt_required_native_modules "${_redbolt_native_requirement}")
+        endif()
+    endforeach()
+endwhile()
+
+set(_redbolt_ordered_native_modules)
+foreach(_redbolt_native_module IN LISTS REDBOLT_NATIVE_MODULES)
+    if(_redbolt_native_module IN_LIST REDBOLT_SELECTED_NATIVE_MODULES)
+        list(APPEND _redbolt_ordered_native_modules "${_redbolt_native_module}")
+    endif()
+endforeach()
+set(REDBOLT_SELECTED_NATIVE_MODULES ${_redbolt_ordered_native_modules})

@@ -13,4 +13,4 @@ redbolt_add_native_binding_generation(
     DEFINES "USING_GENERATED_CONFIG_H=1"
     OWNED_HEADERS ${REDBOLT_SDL_OWNED_HEADERS})
 
-add_dependencies(redbolt-generate-sdl-bindings SDL2)
+add_dependencies(redbolt-generate-sdl-bindings "${REDBOLT_SDL_LIBRARY}")

@@ -1,6 +1,6 @@
 #include "ImGuiHarfBuzzGpu.hpp"
 
-#include <RedBolt/HarfBuzzGpuAtlas.hpp>
+#include <HarfBuzzGpuAtlas.hpp>
 
 #include <hb-gpu.h>
 #include <hb-ot.h>

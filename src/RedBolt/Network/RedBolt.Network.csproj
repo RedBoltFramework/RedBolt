@@ -6,7 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="../Core/RedBolt.Core.csproj" />
     <ProjectReference Include="../PhysicsJolt/RedBolt.PhysicsJolt.csproj" />
-    <ProjectReference Include="../Bindings/LibDataChannel/RedBolt.Bindings.LibDataChannel.csproj"
+    <ProjectReference Include="../Native/LibDataChannel/RedBolt.Bindings.LibDataChannel.csproj"
                       Condition="'$(RedBoltPlatform)' != 'browser-wasm'" />
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"

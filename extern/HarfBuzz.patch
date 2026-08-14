@@ -1,0 +1,12 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 6ba428bd..4040c37c 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -286,1 +286,7 @@
++if (NOT BUILD_SHARED_LIBS)
++  list(REMOVE_ITEM raster_project_sources ${PROJECT_SOURCE_DIR}/src/hb-static.cc)
++  list(REMOVE_ITEM gpu_project_sources ${PROJECT_SOURCE_DIR}/src/hb-static.cc)
++endif ()
++
++
+ ## Find and include needed header folders and libraries

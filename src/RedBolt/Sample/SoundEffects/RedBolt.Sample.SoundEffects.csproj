@@ -6,8 +6,8 @@
 
   <ItemGroup>
     <ProjectReference Include="../../Audio/RedBolt.Audio.csproj" />
-    <ProjectReference Include="../../Bindings/Diligent/RedBolt.Bindings.Diligent.csproj" />
-    <ProjectReference Include="../../Bindings/DearImGui/RedBolt.Bindings.DearImGui.csproj" />
+    <ProjectReference Include="../../Native/Diligent/RedBolt.Bindings.Diligent.csproj" />
+    <ProjectReference Include="../../Native/DearImGui/RedBolt.Bindings.DearImGui.csproj" />
     <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
     <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
   </ItemGroup>

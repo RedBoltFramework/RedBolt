@@ -78,8 +78,7 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
             "src",
             "RedBolt",
             "Native",
-            "include",
-            "RedBolt",
+            "RmlUi",
             "RmlUiValueMarshallers.hpp");
     }
 

@@ -51,7 +51,7 @@ internal sealed class JoltGenerator(string nativeLibraryName)
     protected override IEnumerable<string> GetAdditionalMarshallerHeaders(GeneratorOptions options)
     {
         yield return System.IO.Path.Combine(
-            options.RedBoltRoot, "src", "RedBolt", "Native", "include", "RedBolt", "JoltMarshallers.hpp");
+            options.RedBoltRoot, "src", "RedBolt", "Native", "JoltPhysics", "JoltMarshallers.hpp");
     }
 
 }

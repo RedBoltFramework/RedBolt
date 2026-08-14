@@ -16,14 +16,14 @@ index 588768df5..786d05767 100644
 --- a/Graphics/GraphicsEngineD3D11/include/ShaderVariableManagerD3D11.hpp
 +++ b/Graphics/GraphicsEngineD3D11/include/ShaderVariableManagerD3D11.hpp
 @@ -27,6 +27,8 @@
- 
+
  #pragma once
- 
+
 +#include <type_traits>
 +
  /// \file
  /// Declaration of Diligent::ShaderVariableManagerD3D11 class
- 
+
 @@ -219,16 +221,27 @@ public:
      Uint32 GetNumBufSRVs()  const { return (m_BuffUAVsOffset - m_BuffSRVsOffset) / sizeof(BuffSRVBindInfo);  }
      Uint32 GetNumBufUAVs()  const { return (m_SamplerOffset  - m_BuffUAVsOffset) / sizeof(BuffUAVBindInfo);  }
@@ -37,7 +37,7 @@ index 588768df5..786d05767 100644
 -    template<> Uint32 GetNumResources<BuffUAVBindInfo>  () const { return GetNumBufUAVs();  }
 -    template<> Uint32 GetNumResources<SamplerBindInfo>  () const { return GetNumSamplers(); }
      // clang-format on
- 
+
 +    template <typename ResourceType>
 +    Uint32 GetNumResources() const
 +    {
@@ -577,3 +577,59 @@ index 000000000..3edbaa3fa
 +}
 +
 +} // namespace Diligent
+diff --git a/ThirdParty/CMakeLists.txt b/ThirdParty/CMakeLists.txt
+index 20415a970..043f600db 100644
+--- a/ThirdParty/CMakeLists.txt
++++ b/ThirdParty/CMakeLists.txt
+@@ -63,3 +63,3 @@ if (VULKAN_SUPPORTED OR METAL_SUPPORTED OR WEBGPU_SUPPORTED OR (ARCHIVER_SUPPORT
+         # Exclude all other targets from the build to save build time
+-        set(SPIRV_TOOLS_EXCLUDE_TARGETS SPIRV-Tools-link SPIRV-Tools-lint SPIRV-Tools-reduce SPIRV-Tools-shared)
++        set(SPIRV_TOOLS_EXCLUDE_TARGETS SPIRV-Tools-link SPIRV-Tools-lint SPIRV-Tools-reduce)
+         set_target_properties(${SPIRV_TOOLS_EXCLUDE_TARGETS} PROPERTIES EXCLUDE_FROM_ALL 1 EXCLUDE_FROM_DEFAULT_BUILD 1)
+diff --git a/ThirdParty/SPIRV-Tools/source/CMakeLists.txt b/ThirdParty/SPIRV-Tools/source/CMakeLists.txt
+index 8e918de0..08698551 100644
+--- a/ThirdParty/SPIRV-Tools/source/CMakeLists.txt
++++ b/ThirdParty/SPIRV-Tools/source/CMakeLists.txt
+@@ -340,12 +340,12 @@ function(spirv_tools_default_target_options target)
+-# Always build ${SPIRV_TOOLS}-shared. This is expected distro packages, and
+-# unlike the other SPIRV_TOOLS target, defaults to hidden symbol visibility.
+-add_library(${SPIRV_TOOLS}-shared SHARED ${SPIRV_SOURCES})
+-if (SPIRV_TOOLS_USE_MIMALLOC)
+-  target_link_libraries(${SPIRV_TOOLS}-shared PRIVATE mimalloc-static)
++if(NOT SPIRV_TOOLS_BUILD_STATIC)
++  add_library(${SPIRV_TOOLS}-shared SHARED ${SPIRV_SOURCES})
++  if (SPIRV_TOOLS_USE_MIMALLOC)
++    target_link_libraries(${SPIRV_TOOLS}-shared PRIVATE mimalloc-static)
++  endif()
++  spirv_tools_default_target_options(${SPIRV_TOOLS}-shared)
++  set_target_properties(${SPIRV_TOOLS}-shared PROPERTIES CXX_VISIBILITY_PRESET hidden)
++  target_compile_definitions(${SPIRV_TOOLS}-shared
++    PRIVATE SPIRV_TOOLS_IMPLEMENTATION
++    PUBLIC SPIRV_TOOLS_SHAREDLIB
++  )
+ endif()
+-spirv_tools_default_target_options(${SPIRV_TOOLS}-shared)
+-set_target_properties(${SPIRV_TOOLS}-shared PROPERTIES CXX_VISIBILITY_PRESET hidden)
+-target_compile_definitions(${SPIRV_TOOLS}-shared
+-  PRIVATE SPIRV_TOOLS_IMPLEMENTATION
+-  PUBLIC SPIRV_TOOLS_SHAREDLIB
+-)
+@@ -355,3 +355,3 @@ if(SPIRV_TOOLS_BUILD_STATIC)
+   if (SPIRV_TOOLS_USE_MIMALLOC AND SPIRV_TOOLS_USE_MIMALLOC_IN_STATIC_BUILD)
+-    target_link_libraries(${SPIRV_TOOLS}-shared PRIVATE mimalloc-static)
++    target_link_libraries(${SPIRV_TOOLS}-static PRIVATE mimalloc-static)
+   endif()
+@@ -362,10 +362,4 @@ if(SPIRV_TOOLS_BUILD_STATIC)
+-  # Create the "${SPIRV_TOOLS}" target as an alias to either "${SPIRV_TOOLS}-static"
+-  # or "${SPIRV_TOOLS}-shared" depending on the value of BUILD_SHARED_LIBS.
+-  if(BUILD_SHARED_LIBS)
+-    add_library(${SPIRV_TOOLS} ALIAS ${SPIRV_TOOLS}-shared)
+-  else()
+-    add_library(${SPIRV_TOOLS} ALIAS ${SPIRV_TOOLS}-static)
+-  endif()
++  add_library(${SPIRV_TOOLS} ALIAS ${SPIRV_TOOLS}-static)
+-
+-  set(SPIRV_TOOLS_TARGETS ${SPIRV_TOOLS}-static ${SPIRV_TOOLS}-shared)
++
++  set(SPIRV_TOOLS_TARGETS ${SPIRV_TOOLS}-static)
+ else()

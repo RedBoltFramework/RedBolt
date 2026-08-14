@@ -10,6 +10,7 @@ CPMAddPackage(
     GIT_REPOSITORY https://github.com/harfbuzz/harfbuzz.git
     GIT_TAG 14.2.1
     CUSTOM_CACHE_KEY "."
+    PATCHES "${CMAKE_CURRENT_LIST_DIR}/HarfBuzz.patch"
     EXCLUDE_FROM_ALL YES)
 set(REDBOLT_HARFBUZZ_SOURCE_ROOT "${harfbuzz_SOURCE_DIR}" CACHE INTERNAL "HarfBuzz source root")
 redbolt_require_path("${REDBOLT_HARFBUZZ_SOURCE_ROOT}/src/hb-raster.h" "HarfBuzz raster headers")

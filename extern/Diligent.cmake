@@ -30,7 +30,7 @@ set(DILIGENT_NO_WEBGPU ON CACHE BOOL "" FORCE)
 set(DILIGENT_NO_GLSLANG OFF CACHE BOOL "" FORCE)
 set(SPIRV_CROSS_ENABLE_C_API ON CACHE BOOL "Enable SPIRV-Cross C API" FORCE)
 set(SPIRV_CROSS_ENABLE_HLSL ON CACHE BOOL "Enable SPIRV-Cross HLSL target support" FORCE)
-set(SPIRV_CROSS_SHARED ${BUILD_SHARED_LIBS} CACHE BOOL "Build SPIRV-Cross C shared library" FORCE)
+set(SPIRV_CROSS_SHARED OFF CACHE BOOL "Build SPIRV-Cross C shared library" FORCE)
 set(SPIRV_TOOLS_BUILD_STATIC ON CACHE BOOL "" FORCE)
 if(EMSCRIPTEN OR ANDROID)
     set(DILIGENT_NO_VULKAN ON CACHE BOOL "" FORCE)
@@ -55,7 +55,7 @@ if(_redbolt_diligent_compile_shaders_with_wine)
         VERBATIM)
     add_custom_target(redbolt-diligent-wine-prefix DEPENDS "${_redbolt_diligent_wine_stamp}")
     add_executable(redbolt-diligent-shader-compiler
-        "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/src/DiligentShaderCompiler.c")
+        "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/Diligent/DiligentShaderCompiler.c")
     target_link_libraries(redbolt-diligent-shader-compiler PRIVATE d3dcompiler)
     set(DILIGENT_D3D12_SHADER_COMPILER_RUNNER "${REDBOLT_WINE_EXECUTABLE}")
     set(DILIGENT_D3D12_SHADER_COMPILER_WINE_PREFIX "${_redbolt_diligent_wine_prefix}")
@@ -91,30 +91,11 @@ if(MINGW AND (D3D11_SUPPORTED OR D3D12_SUPPORTED))
         "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/DirectXShaderCompiler")
 endif()
 
-if(NOT EMSCRIPTEN AND NOT ANDROID)
+if(TARGET glew-static)
     set_target_properties(glew-static PROPERTIES
         C_VISIBILITY_PRESET default
         CXX_VISIBILITY_PRESET default
         VISIBILITY_INLINES_HIDDEN OFF)
-    set(_redbolt_diligent_shared_targets
-        Diligent-GraphicsEngineOpenGL-shared
-        Diligent-GraphicsEngineVk-shared)
-    if(WIN32)
-        if(D3D11_SUPPORTED)
-            list(APPEND _redbolt_diligent_shared_targets Diligent-GraphicsEngineD3D11-shared)
-        endif()
-        if(D3D12_SUPPORTED)
-            list(APPEND _redbolt_diligent_shared_targets Diligent-GraphicsEngineD3D12-shared)
-        endif()
-    endif()
-    if(WIN32)
-        set_target_properties(${_redbolt_diligent_shared_targets} PROPERTIES PREFIX "")
-    else()
-        set_target_properties(${_redbolt_diligent_shared_targets}
-            PROPERTIES PREFIX "${CMAKE_SHARED_LIBRARY_PREFIX}")
-    endif()
-    set_property(TARGET spirv-cross-c-shared PROPERTY VERSION)
-    set_property(TARGET spirv-cross-c-shared PROPERTY SOVERSION)
 endif()
 
 if(MINGW)
@@ -182,6 +163,7 @@ set(REDBOLT_DILIGENT_INCLUDE_DIRS
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Common/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsAccessories/interface"
+    "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsTools/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngineOpenGL/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/HLSL2GLSLConverterLib/interface"
     "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/glew/include")
@@ -262,65 +244,36 @@ elseif(APPLE)
 else()
     message(FATAL_ERROR "RedBolt has not mapped Diligent platform macros for ${CMAKE_SYSTEM_NAME}")
 endif()
-target_link_libraries(redbolt-diligent-headers INTERFACE
-    Diligent-GraphicsEngineInterface
-    Diligent-GraphicsEngineOpenGLInterface
-    Diligent-TargetPlatform)
-if(NOT EMSCRIPTEN AND NOT ANDROID)
-    target_link_libraries(redbolt-diligent-headers INTERFACE Diligent-GraphicsEngineVkInterface)
-endif()
-if(WIN32)
-    if(D3D11_SUPPORTED)
-        target_link_libraries(redbolt-diligent-headers INTERFACE Diligent-GraphicsEngineD3D11Interface)
-    endif()
-    if(D3D12_SUPPORTED)
-        target_link_libraries(redbolt-diligent-headers INTERFACE Diligent-GraphicsEngineD3D12Interface)
-    endif()
-endif()
 
-if(EMSCRIPTEN)
-    set(REDBOLT_DILIGENT_OPENGL_TARGET Diligent-GraphicsEngineOpenGL-static)
-    set(REDBOLT_DILIGENT_VULKAN_TARGET "")
-    set(REDBOLT_GLEW_TARGET "")
-    set(REDBOLT_SPIRV_CROSS_TARGET spirv-cross-c)
-    set(REDBOLT_SPIRV_TOOLS_TARGET SPIRV-Tools)
-elseif(ANDROID)
-    set(REDBOLT_DILIGENT_OPENGL_TARGET Diligent-GraphicsEngineOpenGL-shared)
+set(REDBOLT_DILIGENT_OPENGL_TARGET Diligent-GraphicsEngineOpenGL-static)
+set(REDBOLT_SPIRV_CROSS_TARGET spirv-cross-c)
+set(REDBOLT_SPIRV_TOOLS_TARGET SPIRV-Tools-static)
+if(EMSCRIPTEN OR ANDROID)
     set(REDBOLT_DILIGENT_VULKAN_TARGET "")
     set(REDBOLT_DILIGENT_D3D11_TARGET "")
     set(REDBOLT_DILIGENT_D3D12_TARGET "")
-    set(REDBOLT_GLEW_TARGET "")
-    set(REDBOLT_SPIRV_CROSS_TARGET spirv-cross-c-shared)
-    set(REDBOLT_SPIRV_TOOLS_TARGET SPIRV-Tools-shared)
 else()
-    set(REDBOLT_DILIGENT_OPENGL_TARGET Diligent-GraphicsEngineOpenGL-shared)
-    set(REDBOLT_DILIGENT_VULKAN_TARGET Diligent-GraphicsEngineVk-shared)
+    set(REDBOLT_DILIGENT_VULKAN_TARGET Diligent-GraphicsEngineVk-static)
     if(WIN32)
         if(D3D11_SUPPORTED)
-            set(REDBOLT_DILIGENT_D3D11_TARGET Diligent-GraphicsEngineD3D11-shared)
+            set(REDBOLT_DILIGENT_D3D11_TARGET Diligent-GraphicsEngineD3D11-static)
         else()
             set(REDBOLT_DILIGENT_D3D11_TARGET "")
         endif()
         if(D3D12_SUPPORTED)
-            set(REDBOLT_DILIGENT_D3D12_TARGET Diligent-GraphicsEngineD3D12-shared)
+            set(REDBOLT_DILIGENT_D3D12_TARGET Diligent-GraphicsEngineD3D12-static)
         else()
             set(REDBOLT_DILIGENT_D3D12_TARGET "")
         endif()
-        set(REDBOLT_GLEW_TARGET glew-static opengl32)
-        set(REDBOLT_SPIRV_TOOLS_TARGET SPIRV-Tools)
     else()
         set(REDBOLT_DILIGENT_D3D11_TARGET "")
         set(REDBOLT_DILIGENT_D3D12_TARGET "")
-        set(REDBOLT_GLEW_TARGET "")
-        set(REDBOLT_SPIRV_TOOLS_TARGET SPIRV-Tools-shared)
     endif()
-    set(REDBOLT_SPIRV_CROSS_TARGET spirv-cross-c-shared)
 endif()
 set(REDBOLT_DILIGENT_OPENGL_TARGET "${REDBOLT_DILIGENT_OPENGL_TARGET}" CACHE INTERNAL "" FORCE)
 set(REDBOLT_DILIGENT_VULKAN_TARGET "${REDBOLT_DILIGENT_VULKAN_TARGET}" CACHE INTERNAL "" FORCE)
 set(REDBOLT_DILIGENT_D3D11_TARGET "${REDBOLT_DILIGENT_D3D11_TARGET}" CACHE INTERNAL "" FORCE)
 set(REDBOLT_DILIGENT_D3D12_TARGET "${REDBOLT_DILIGENT_D3D12_TARGET}" CACHE INTERNAL "" FORCE)
-set(REDBOLT_GLEW_TARGET "${REDBOLT_GLEW_TARGET}" CACHE INTERNAL "" FORCE)
 set(REDBOLT_SPIRV_CROSS_TARGET "${REDBOLT_SPIRV_CROSS_TARGET}" CACHE INTERNAL "" FORCE)
 set(REDBOLT_SPIRV_TOOLS_TARGET "${REDBOLT_SPIRV_TOOLS_TARGET}" CACHE INTERNAL "" FORCE)
 set(REDBOLT_DILIGENT_ENGINE_TARGETS
@@ -328,7 +281,8 @@ set(REDBOLT_DILIGENT_ENGINE_TARGETS
     ${REDBOLT_DILIGENT_D3D11_TARGET}
     ${REDBOLT_DILIGENT_D3D12_TARGET}
     ${REDBOLT_DILIGENT_OPENGL_TARGET}
-    ${REDBOLT_DILIGENT_VULKAN_TARGET})
+    ${REDBOLT_DILIGENT_VULKAN_TARGET}
+    Diligent-GraphicsTools)
 add_custom_target(redbolt-diligent-build
     DEPENDS ${REDBOLT_DILIGENT_ENGINE_TARGETS}
     COMMENT "Building RedBolt Diligent dependency targets")

@@ -23,26 +23,6 @@
     <Project Path="src/RedBolt/RmlUI/RedBolt.RmlUI.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Particles/RedBolt.Particles.csproj"><Build Project="false" /></Project>
   </Folder>
-  <Folder Name="/src/RedBolt/Bindings/">
-    <Project Path="src/RedBolt/Bindings/Embree/RedBolt.Bindings.Embree.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Bindings/DearImGui/RedBolt.Bindings.DearImGui.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Bindings/Diligent/RedBolt.Bindings.Diligent.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Bindings/Box2D/RedBolt.Bindings.Box2D.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Bindings/Glslang/RedBolt.Bindings.Glslang.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Bindings/HarfBuzz/RedBolt.Bindings.HarfBuzz.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Bindings/Jolt/RedBolt.Bindings.Jolt.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Bindings/LibDataChannel/RedBolt.Bindings.LibDataChannel.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Bindings/Lz4/RedBolt.Bindings.Lz4.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Bindings/RmlUi/RedBolt.Bindings.RmlUi.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Bindings/Sdl/RedBolt.Bindings.Sdl.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Bindings/ShaderCompiler/RedBolt.Bindings.ShaderCompiler.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Bindings/SpirVCross/RedBolt.Bindings.SpirVCross.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Bindings/SpirVTools/RedBolt.Bindings.SpirVTools.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Bindings/Stb/RedBolt.Bindings.Stb.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Bindings/TinyGltf/RedBolt.Bindings.TinyGltf.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Bindings/WebP/RedBolt.Bindings.WebP.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Bindings/XAtlas/RedBolt.Bindings.XAtlas.csproj"><Build Project="false" /></Project>
-  </Folder>
   <Folder Name="/src/RedBolt/Generator/">
     <Project Path="src/RedBolt/Generator/Dependencies/RedBolt.Generator.Dependencies.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Generator/Reflection/RedBolt.Generator.Reflection.csproj"><Build Project="false" /></Project>
@@ -51,6 +31,24 @@
     <Project Path="src/RedBolt/Tools/PackageTool/RedBolt.PackageTool.csproj"><Build Project="false" /></Project>
   </Folder>
   <Folder Name="/src/RedBolt/Native/">
+    <Project Path="src/RedBolt/Native/Box2D/RedBolt.Bindings.Box2D.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Native/DearImGui/RedBolt.Bindings.DearImGui.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Native/Diligent/RedBolt.Bindings.Diligent.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Native/Embree/RedBolt.Bindings.Embree.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Native/Glslang/RedBolt.Bindings.Glslang.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Native/HarfBuzz/RedBolt.Bindings.HarfBuzz.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Native/JoltPhysics/RedBolt.Bindings.Jolt.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Native/LibDataChannel/RedBolt.Bindings.LibDataChannel.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Native/Lz4/RedBolt.Bindings.Lz4.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Native/RmlUi/RedBolt.Bindings.RmlUi.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Native/Sdl/RedBolt.Bindings.Sdl.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Native/ShaderCompiler/RedBolt.Bindings.ShaderCompiler.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Native/SpirVCross/RedBolt.Bindings.SpirVCross.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Native/SpirVTools/RedBolt.Bindings.SpirVTools.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Native/Stb/RedBolt.Bindings.Stb.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Native/TinyGltf/RedBolt.Bindings.TinyGltf.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Native/WebP/RedBolt.Bindings.WebP.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/Native/XAtlas/RedBolt.Bindings.XAtlas.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Native/RedBolt.Native.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Native/RedBolt.Native.Android.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Native/RedBolt.Native.Web.csproj"><Build Project="false" /></Project>

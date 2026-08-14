@@ -1,4 +1,4 @@
-#include <RedBolt/ShaderCompilerSupport.hpp>
+#include "ShaderCompilerSupport.hpp"
 
 #include <cassert>
 #include <cstring>

@@ -1,4 +1,4 @@
-#include "RedBolt/ImGuiBackend.hpp"
+#include "ImGuiBackend.hpp"
 
 #include <imgui.h>
 #include <imgui_internal.h>

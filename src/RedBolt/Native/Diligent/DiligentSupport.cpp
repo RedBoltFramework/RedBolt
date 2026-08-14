@@ -1,4 +1,4 @@
-#include <RedBolt/DiligentSupport.hpp>
+#include "DiligentSupport.hpp"
 
 #include <RenderDeviceGL.h>
 #include <SwapChainGL.h>

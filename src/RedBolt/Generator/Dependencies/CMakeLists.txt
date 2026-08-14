@@ -25,9 +25,9 @@ file(GLOB_RECURSE REDBOLT_DEPENDENCIES_GENERATOR_INPUTS CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cs"
     "${CMAKE_CURRENT_SOURCE_DIR}/*.csproj")
 list(APPEND REDBOLT_DEPENDENCIES_GENERATOR_INPUTS
-    "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/include/RedBolt/ImGuiValueMarshallers.hpp"
-    "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/include/RedBolt/RmlHarfBuzzFontEngine.hpp"
-    "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/include/RedBolt/RmlUiValueMarshallers.hpp")
+    "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/DearImGui/ImGuiValueMarshallers.hpp"
+    "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/RmlUi/RmlHarfBuzzFontEngine.hpp"
+    "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/RmlUi/RmlUiValueMarshallers.hpp")
 
 set(REDBOLT_SHARPCPP_GENERATOR_INPUTS "${REDBOLT_SHARPCPP_GENERATOR_INPUTS}" CACHE INTERNAL "SharpCpp generator inputs")
 set(REDBOLT_DEPENDENCIES_GENERATOR_INPUTS "${REDBOLT_DEPENDENCIES_GENERATOR_INPUTS}" CACHE INTERNAL "RedBolt generator inputs")
@@ -99,14 +99,16 @@ set(REDBOLT_SHADER_COMPILER_PARSE_HEADER "${REDBOLT_SHADER_COMPILER_GENERATED_DI
 set(REDBOLT_BOX2D_PARSE_HEADER "${REDBOLT_BOX2D_GENERATED_DIR}/Box2DAll.h" CACHE INTERNAL "Box2D parse header")
 set(REDBOLT_JOLT_PARSE_HEADER "${REDBOLT_JOLT_GENERATED_DIR}/JoltAll.hpp" CACHE INTERNAL "Jolt parse header")
 set(REDBOLT_LIBDATACHANNEL_PARSE_HEADER "${REDBOLT_LIBDATACHANNEL_GENERATED_DIR}/LibDataChannelAll.h" CACHE INTERNAL "libdatachannel parse header")
-set(REDBOLT_JOLT_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/include" CACHE INTERNAL "RedBolt Jolt support include directory")
-set(REDBOLT_JOLT_SUPPORT_HEADER "${REDBOLT_JOLT_SUPPORT_INCLUDE_DIR}/RedBolt/JoltMarshallers.hpp" CACHE INTERNAL "RedBolt Jolt marshaller header")
-
-set(REDBOLT_DILIGENT_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/include" CACHE INTERNAL "RedBolt native support include directory" FORCE)
-set(REDBOLT_DILIGENT_SUPPORT_HEADER "${REDBOLT_DILIGENT_SUPPORT_INCLUDE_DIR}/RedBolt/DiligentSupport.hpp" CACHE INTERNAL "RedBolt Diligent support header")
+set(REDBOLT_DILIGENT_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/Diligent" CACHE INTERNAL "RedBolt Diligent support include directory" FORCE)
+set(REDBOLT_DILIGENT_SUPPORT_HEADER "${REDBOLT_DILIGENT_SUPPORT_INCLUDE_DIR}/DiligentSupport.hpp" CACHE INTERNAL "RedBolt Diligent support header")
+set(REDBOLT_HARFBUZZ_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/HarfBuzz" CACHE INTERNAL "RedBolt HarfBuzz support include directory" FORCE)
+set(REDBOLT_IMGUI_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/DearImGui" CACHE INTERNAL "RedBolt Dear ImGui support include directory" FORCE)
+set(REDBOLT_JOLT_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/JoltPhysics" CACHE INTERNAL "RedBolt Jolt support include directory" FORCE)
+set(REDBOLT_JOLT_SUPPORT_HEADER "${REDBOLT_JOLT_SUPPORT_INCLUDE_DIR}/JoltMarshallers.hpp" CACHE INTERNAL "RedBolt Jolt marshaller header")
+set(REDBOLT_RMLUI_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/RmlUi" CACHE INTERNAL "RedBolt RmlUi support include directory" FORCE)
+set(REDBOLT_SHADER_COMPILER_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/ShaderCompiler" CACHE INTERNAL "RedBolt shader compiler support include directory" FORCE)
 set(REDBOLT_IMGUI_INCLUDE_DIR "${REDBOLT_IMGUI_SOURCE_ROOT}" CACHE INTERNAL "Dear ImGui include directory")
-set(REDBOLT_IMGUIZMO_SOURCE_ROOT "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/thirdparty/ImGuizmo" CACHE INTERNAL "ImGuizmo source directory")
-set(REDBOLT_IMGUI_BACKEND_HEADER "${REDBOLT_DILIGENT_SUPPORT_INCLUDE_DIR}/RedBolt/ImGuiBackend.hpp" CACHE INTERNAL "Dear ImGui backend header")
+set(REDBOLT_IMGUI_BACKEND_HEADER "${REDBOLT_IMGUI_SUPPORT_INCLUDE_DIR}/ImGuiBackend.hpp" CACHE INTERNAL "Dear ImGui backend header")
 
 set(REDBOLT_GLSLANG_SOURCE_ROOT "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/glslang" CACHE INTERNAL "glslang source root")
 set(REDBOLT_SPIRV_CROSS_SOURCE_ROOT "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/SPIRV-Cross" CACHE INTERNAL "SPIRV-Cross source root")
@@ -189,7 +191,7 @@ file(CONFIGURE OUTPUT "${REDBOLT_RMLUI_PARSE_HEADER}" CONTENT [=[
 #include <RmlUi/Core/RenderInterfaceCompatibility.h>
 #include <RmlUi/Core/SystemInterface.h>
 #include <RmlUi/Core/Variant.h>
-#include <RedBolt/RmlHarfBuzzFontEngine.hpp>
+#include <RmlHarfBuzzFontEngine.hpp>
 ]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_WEBP_PARSE_HEADER}" CONTENT [=[
 #pragma once
@@ -208,7 +210,7 @@ file(CONFIGURE OUTPUT "${REDBOLT_EMBREE_PARSE_HEADER}" CONTENT [=[
 ]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_SHADER_COMPILER_PARSE_HEADER}" CONTENT [=[
 #pragma once
-#include <RedBolt/ShaderCompilerSupport.hpp>
+#include <ShaderCompilerSupport.hpp>
 ]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_BOX2D_PARSE_HEADER}" CONTENT [=[
 #pragma once
@@ -348,7 +350,7 @@ static inline void redbolt_b2WorldClearManagedPreSolveCallback(b2WorldId worldId
 ]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_JOLT_PARSE_HEADER}" CONTENT [=[
 #pragma once
-#include <RedBolt/JoltMarshallers.hpp>
+#include <JoltMarshallers.hpp>
 #include <Jolt/RegisterTypes.h>
 #include <Jolt/Core/Factory.h>
 #include <Jolt/Core/JobSystemThreadPool.h>
@@ -429,7 +431,7 @@ file(CONFIGURE OUTPUT "${REDBOLT_DILIGENT_PARSE_HEADER}" CONTENT [=[
 #endif
 #include <EngineFactoryOpenGL.h>
 #include <GraphicsAccessories.hpp>
-#include <RedBolt/DiligentSupport.hpp>
+#include <DiligentSupport.hpp>
 ]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_IMGUI_PARSE_SOURCE}" CONTENT [=[
 #include <SDL.h>
@@ -438,7 +440,7 @@ file(CONFIGURE OUTPUT "${REDBOLT_IMGUI_PARSE_SOURCE}" CONTENT [=[
 #include <ImGuizmo.h>
 #define IMGUI_IMPL_API IMGUI_API
 #include <imgui_impl_sdl2.h>
-#include <RedBolt/ImGuiBackend.hpp>
+#include <ImGuiBackend.hpp>
 
 IMGUI_IMPL_API ImGuiKey ImGui_ImplSDL2_KeyEventToImGuiKey(SDL_Keycode keycode, SDL_Scancode scancode);
 

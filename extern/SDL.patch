@@ -16,10 +16,10 @@
 -set(SDL_SHARED OFF)
 -set(SDL_STATIC ON)
 -set(SDL_STATIC_PIC ON)
-+set(SDL_SHARED ON)
-+set(SDL_STATIC OFF)
-+set(SDL_RPATH ON)
-+set(SDL_STATIC_PIC OFF)
++set(SDL_SHARED OFF)
++set(SDL_STATIC ON)
++set(SDL_RPATH OFF)
++set(SDL_STATIC_PIC ON)
  set(SDL_VULKAN OFF)
  if (APPLE)
    set (SDL_METAL ON)
@@ -106,10 +106,20 @@
  group_sources()
 --- a/android-project/app/src/main/java/org/libsdl/app/SDLActivity.java
 +++ b/android-project/app/src/main/java/org/libsdl/app/SDLActivity.java
-@@ -63,2 +62,0 @@
+@@ -60,9 +60,6 @@ import java.util.Hashtable;
+ import java.util.Locale;
+ import java.util.List;
+
 -import io.urho3d.UrhoActivity;
 -
-@@ -309,0 +308,10 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
+-
+ /**
+     SDL Activity
+ */
+@@ -307,6 +304,16 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
+         mMainSharedLib = "lib" + libraryNames.get(libraryNames.size() - 1) + ".so";
+     }
+
 +    /** Run the application on SDL's display thread. */
 +    protected void runMain() {
 +        nativeRunMain(getMainSharedObject(), getMainFunction(), getArguments());
@@ -117,16 +127,31 @@
 +
 +    /** Return the native libraries required before the managed application starts. */
 +    protected List<String> getLibraries() {
-+        return java.util.Collections.singletonList("SDL2");
++        return java.util.Collections.singletonList("RedBolt.Native.Sdl");
 +    }
 +
-@@ -355,2 +363 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
+     /**
+      * This method is called by SDL before starting the native application thread.
+      * It can be overridden to provide the arguments after the application name.
+@@ -352,8 +359,7 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
+         // Urho3D - auto load all the shared libraries available in the library path
+         String errorMsgBrokenLib = "";
+         try {
 -            //loadLibraries();
 -            onLoadLibrary(UrhoActivity.getLibraryNames(this));
 +            onLoadLibrary(getLibraries());
-@@ -1821 +1828 @@ class SDLMain implements Runnable {
+             mBrokenLibraries = false; /* success */
+         } catch(UnsatisfiedLinkError e) {
+             System.err.println(e.getMessage());
+@@ -1818,7 +1824,7 @@ class SDLMain implements Runnable {
+
+         Log.v("SDL", "Running main function " + function + " from library " + library);
+
 -        SDLActivity.nativeRunMain(library, function, arguments);
 +        SDLActivity.mSingleton.runMain();
+
+         Log.v("SDL", "Finished main function");
+
 --- a/src/audio/emscripten/SDL_emscriptenaudio.c
 +++ b/src/audio/emscripten/SDL_emscriptenaudio.c
 @@ -263,7 +263,7 @@

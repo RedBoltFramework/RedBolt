@@ -13,13 +13,8 @@ add_custom_target(redbolt-msbuild-build-guard ALL
 option(REDBOLT_WEB_BUILD "Build the framework-free WebAssembly target only" OFF)
 option(REDBOLT_ANDROID_BUILD "Build the Android runtime and sample support" OFF)
 
-if(REDBOLT_WEB_BUILD OR EMSCRIPTEN)
-    set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries" FORCE)
-    set(REDBOLT_EXTERNAL_LIBRARY_TYPE STATIC)
-else()
-    set(BUILD_SHARED_LIBS ON CACHE BOOL "Build shared libraries" FORCE)
-    set(REDBOLT_EXTERNAL_LIBRARY_TYPE SHARED)
-endif()
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries" FORCE)
+set(REDBOLT_EXTERNAL_LIBRARY_TYPE STATIC)
 
 if(MSVC)
     add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:/std:c++20>")

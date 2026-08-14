@@ -15,6 +15,36 @@ file(MAKE_DIRECTORY "${_redbolt_manifest_directory}")
 
 set(_redbolt_resolved_dependencies)
 set(_redbolt_unresolved_dependencies)
+set(_redbolt_requires)
+if(DEFINED REDBOLT_REQUIRES AND NOT REDBOLT_REQUIRES STREQUAL "")
+    string(REPLACE "," ";" _redbolt_requires "${REDBOLT_REQUIRES}")
+endif()
+set(_redbolt_requirement_closure)
+if(DEFINED REDBOLT_REQUIREMENT_CLOSURE
+        AND NOT REDBOLT_REQUIREMENT_CLOSURE STREQUAL "")
+    string(REPLACE "," ";" _redbolt_requirement_closure
+        "${REDBOLT_REQUIREMENT_CLOSURE}")
+endif()
+set(_redbolt_native_wrapper_modules)
+set(_redbolt_native_wrapper_filenames)
+if(DEFINED REDBOLT_NATIVE_WRAPPERS AND NOT REDBOLT_NATIVE_WRAPPERS STREQUAL "")
+    string(REPLACE "," ";" _redbolt_native_wrapper_entries
+        "${REDBOLT_NATIVE_WRAPPERS}")
+    foreach(_redbolt_native_wrapper_entry IN LISTS _redbolt_native_wrapper_entries)
+        if(NOT _redbolt_native_wrapper_entry MATCHES "^([^=]+)=(.+)$")
+            message(FATAL_ERROR
+                "Invalid Native wrapper manifest entry '${_redbolt_native_wrapper_entry}'")
+        endif()
+        list(APPEND _redbolt_native_wrapper_modules "${CMAKE_MATCH_1}")
+        list(APPEND _redbolt_native_wrapper_filenames "${CMAKE_MATCH_2}")
+    endforeach()
+endif()
+set(_redbolt_toolchain_runtime_files)
+if(DEFINED REDBOLT_TOOLCHAIN_RUNTIME_FILES
+        AND NOT REDBOLT_TOOLCHAIN_RUNTIME_FILES STREQUAL "")
+    string(REPLACE "," ";" _redbolt_toolchain_runtime_files
+        "${REDBOLT_TOOLCHAIN_RUNTIME_FILES}")
+endif()
 if(CMAKE_GET_RUNTIME_DEPENDENCIES_PLATFORM STREQUAL "windows+pe"
         AND CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL STREQUAL "objdump")
     file(GLOB _redbolt_runtime_candidates
@@ -76,18 +106,53 @@ else()
 endif()
 
 set(_redbolt_artifacts "${_redbolt_native_filename}")
-if(DEFINED REDBOLT_EXTRA_ARTIFACTS AND NOT REDBOLT_EXTRA_ARTIFACTS STREQUAL "")
-    string(REPLACE "," ";" _redbolt_extra_artifacts
-        "${REDBOLT_EXTRA_ARTIFACTS}")
-    list(APPEND _redbolt_artifacts ${_redbolt_extra_artifacts})
-endif()
 foreach(_redbolt_dependency IN LISTS _redbolt_resolved_dependencies)
     get_filename_component(_redbolt_dependency_filename
         "${_redbolt_dependency}" NAME)
     get_filename_component(_redbolt_dependency_directory
         "${_redbolt_dependency}" DIRECTORY)
-    if(_redbolt_dependency_directory STREQUAL "${_redbolt_native_directory}"
+    set(_redbolt_dependency_wrapper_module)
+    string(TOLOWER "${_redbolt_dependency_filename}"
+        _redbolt_dependency_filename_lower)
+    list(LENGTH _redbolt_native_wrapper_filenames _redbolt_wrapper_count)
+    if(_redbolt_wrapper_count GREATER 0)
+        math(EXPR _redbolt_last_wrapper_index "${_redbolt_wrapper_count} - 1")
+        foreach(_redbolt_wrapper_index RANGE 0 ${_redbolt_last_wrapper_index})
+            list(GET _redbolt_native_wrapper_filenames ${_redbolt_wrapper_index}
+                _redbolt_wrapper_filename)
+            string(TOLOWER "${_redbolt_wrapper_filename}"
+                _redbolt_wrapper_filename_lower)
+            if(_redbolt_dependency_filename_lower STREQUAL
+                    _redbolt_wrapper_filename_lower)
+                list(GET _redbolt_native_wrapper_modules ${_redbolt_wrapper_index}
+                    _redbolt_dependency_wrapper_module)
+                break()
+            endif()
+        endforeach()
+    endif()
+    if(_redbolt_dependency_wrapper_module)
+        if(NOT _redbolt_dependency_wrapper_module IN_LIST
+                _redbolt_requirement_closure)
+            message(FATAL_ERROR
+                "${REDBOLT_MODULE} resolves Native wrapper '${_redbolt_dependency_wrapper_module}' outside its requires closure")
+        endif()
+    elseif(_redbolt_dependency_directory STREQUAL "${_redbolt_native_directory}"
             AND NOT _redbolt_dependency_filename STREQUAL "${_redbolt_native_filename}")
+        set(_redbolt_allowed_toolchain_runtime FALSE)
+        foreach(_redbolt_toolchain_runtime_file IN LISTS
+                _redbolt_toolchain_runtime_files)
+            string(TOLOWER "${_redbolt_toolchain_runtime_file}"
+                _redbolt_toolchain_runtime_file_lower)
+            if(_redbolt_dependency_filename_lower STREQUAL
+                    _redbolt_toolchain_runtime_file_lower)
+                set(_redbolt_allowed_toolchain_runtime TRUE)
+                break()
+            endif()
+        endforeach()
+        if(NOT _redbolt_allowed_toolchain_runtime)
+            message(FATAL_ERROR
+                "${REDBOLT_MODULE} imports undeclared local library '${_redbolt_dependency_filename}'")
+        endif()
         list(APPEND _redbolt_artifacts "${_redbolt_dependency_filename}")
     endif()
 endforeach()
@@ -95,8 +160,7 @@ list(REMOVE_DUPLICATES _redbolt_artifacts)
 list(SORT _redbolt_artifacts)
 
 set(_redbolt_requires_json "")
-if(DEFINED REDBOLT_REQUIRES AND NOT REDBOLT_REQUIRES STREQUAL "")
-    string(REPLACE "," ";" _redbolt_requires "${REDBOLT_REQUIRES}")
+if(_redbolt_requires)
     foreach(_redbolt_require IN LISTS _redbolt_requires)
         if(NOT _redbolt_requires_json STREQUAL "")
             string(APPEND _redbolt_requires_json ",")

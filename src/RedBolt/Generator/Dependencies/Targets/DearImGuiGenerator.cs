@@ -28,8 +28,7 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
             "src",
             "RedBolt",
             "Native",
-            "include",
-            "RedBolt",
+            "DearImGui",
             "ImGuiValueMarshallers.hpp");
     }
 
@@ -71,6 +70,12 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
         var overloadsByName = compilation.Functions.ToLookup(static function => function.CppQualifiedName);
         foreach (var function in compilation.Functions)
         {
+            if (function.CppQualifiedName is "ImGuizmo::PushID" or "ImGuizmo::PopID" or "ImGuizmo::GetID")
+            {
+                function.SetSilentExclusionReason("ImGuizmo ID helpers duplicate the existing ImGui managed API");
+                continue;
+            }
+
             if (function.NativeName == "RenderTextEllipsis")
             {
                 var textSize = function.Parameters.First(static parameter => parameter.NativeName == "text_size_if_known");

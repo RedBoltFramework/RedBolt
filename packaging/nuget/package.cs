@@ -41,24 +41,24 @@ internal sealed class Packager
 
     private static readonly Dictionary<string, string[]> NativeFallbackPatterns = new(StringComparer.Ordinal)
     {
-        ["SDL"] = ["*RedBolt.Native.Sdl*", "*SDL2*"],
-        ["DILIGENT"] = ["*RedBolt.Native.Diligent*", "*GraphicsEngine*"],
-        ["IMGUI"] = ["*RedBolt.Native.DearImGui*", "*ImGui*"],
+        ["SDL"] = ["*RedBolt.Native.Sdl*"],
+        ["DILIGENT"] = ["*RedBolt.Native.Diligent*"],
+        ["IMGUI"] = ["*RedBolt.Native.DearImGui*"],
         ["STB"] = ["*RedBolt.Native.Stb*"],
         ["TINYGLTF"] = ["*RedBolt.Native.TinyGltf*"],
-        ["LZ4"] = ["*RedBolt.Native.Lz4*", "*lz4*"],
-        ["HARFBUZZ"] = ["*RedBolt.Native.HarfBuzz*", "*harfbuzz*"],
-        ["RMLUI"] = ["*RedBolt.Native.RmlUi*", "*rmlui*"],
-        ["WEBP"] = ["*RedBolt.Native.WebP*", "*webp*", "*sharpyuv*"],
+        ["LZ4"] = ["*RedBolt.Native.Lz4*"],
+        ["HARFBUZZ"] = ["*RedBolt.Native.HarfBuzz*"],
+        ["RMLUI"] = ["*RedBolt.Native.RmlUi*"],
+        ["WEBP"] = ["*RedBolt.Native.WebP*"],
         ["XATLAS"] = ["*RedBolt.Native.XAtlas*"],
         ["EMBREE"] = ["*RedBolt.Native.Embree*"],
         ["GLSLANG"] = ["*RedBolt.Native.Glslang*"],
-        ["SPIRV_CROSS"] = ["*RedBolt.Native.SpirVCross*", "*spirv-cross-c*"],
-        ["SPIRV_TOOLS"] = ["*RedBolt.Native.SpirVTools*", "*SPIRV-Tools*"],
+        ["SPIRV_CROSS"] = ["*RedBolt.Native.SpirVCross*"],
+        ["SPIRV_TOOLS"] = ["*RedBolt.Native.SpirVTools*"],
         ["SHADER_COMPILER"] = ["*RedBolt.Native.ShaderCompiler*"],
-        ["BOX2D"] = ["*RedBolt.Native.Box2D*", "*box2d*"],
+        ["BOX2D"] = ["*RedBolt.Native.Box2D*"],
         ["JOLT"] = ["*RedBolt.Native.Jolt*"],
-        ["LIBDATACHANNEL"] = ["*RedBolt.Native.LibDataChannel*", "*datachannel*", "*juice*", "*sctp*", "*ssl*", "*crypto*"]
+        ["LIBDATACHANNEL"] = ["*RedBolt.Native.LibDataChannel*"]
     };
 
     private static readonly string ConsumerProgram = """
@@ -96,7 +96,6 @@ internal sealed class Packager
     private readonly string _stageRoot;
     private readonly string _outputRoot;
     private readonly Dictionary<string, ProjectMetadata> _metadata = new(PathComparer);
-    private readonly Dictionary<string, string> _bindingOwners = new(StringComparer.Ordinal);
     private readonly List<string> _rids = [];
     private readonly List<string> _modules = [];
     private Dictionary<string, string> _selection = new(StringComparer.Ordinal);
@@ -156,14 +155,14 @@ internal sealed class Packager
         Directory.CreateDirectory(_packageRoot);
         File.WriteAllText(Path.Combine(_packageRoot, "version.txt"), _packageVersion + Environment.NewLine);
 
-        FindBindingOwners();
         CreateSharpCppPackages();
         foreach (var module in _modules)
             StageManagedPackage(module);
         foreach (var name in new[] { "CoreData", "Data", "EditorData" })
             StageResourcePackage(name);
         foreach (var rid in _rids)
-        foreach (var module in _modules.Where(module => SupportedOnRid(module, rid)))
+        foreach (var module in _modules.Where(module =>
+                     SupportedOnRid(module, rid) && HasRuntimePackage(module, rid)))
             StageRuntimePackage(module, rid);
         foreach (var rid in _rids.Where(IsDesktopRid))
         {
@@ -274,10 +273,12 @@ internal sealed class Packager
         File.Copy(Path.Combine(_repositoryRoot, "LICENSE"), Path.Combine(stage, "LICENSE.txt"), true);
     }
 
-    private ProjectMetadata Metadata(string project)
+    private ProjectMetadata Metadata(string project, string? rid = null)
     {
         project = Path.GetFullPath(project);
-        if (_metadata.TryGetValue(project, out var cached))
+        rid ??= _rids[0];
+        var cacheKey = project + "\n" + rid;
+        if (_metadata.TryGetValue(cacheKey, out var cached))
             return cached;
         var json = Capture("dotnet",
         [
@@ -285,7 +286,7 @@ internal sealed class Packager
             "-getItem:ProjectReference,PackageReference,Compile",
             "-getProperty:ImplicitUsings,Nullable,AllowUnsafeBlocks",
             $"-p:Configuration={Configuration}",
-            $"-p:RedBoltPlatform={_rids[0]}",
+            $"-p:RedBoltPlatform={rid}",
             "-p:RedBoltIgnoreBuildSelection=true",
             "--nologo"
         ]).Output;
@@ -313,7 +314,7 @@ internal sealed class Packager
                 property => property.Name, property => property.Value.GetString() ?? "", StringComparer.Ordinal)
             : new Dictionary<string, string>(StringComparer.Ordinal);
         cached = new ProjectMetadata(projectReferences, packageReferences, compileFiles, properties);
-        _metadata.Add(project, cached);
+        _metadata.Add(cacheKey, cached);
         return cached;
     }
 
@@ -323,9 +324,9 @@ internal sealed class Packager
     private static string String(JsonElement element, string name) =>
         element.TryGetProperty(name, out var value) ? value.GetString() ?? "" : "";
 
-    private IEnumerable<Dependency> PackageDependencies(string project)
+    private IEnumerable<Dependency> PackageDependencies(string project, string? rid = null)
     {
-        var metadata = Metadata(project);
+        var metadata = Metadata(project, rid);
         foreach (var reference in metadata.ProjectReferences.Where(reference => reference.ReferenceOutputAssembly))
         {
             if (reference.Name.StartsWith("RedBolt.", StringComparison.Ordinal)
@@ -375,17 +376,6 @@ internal sealed class Packager
         ]);
     }
 
-    private void FindBindingOwners()
-    {
-        foreach (var module in _modules)
-        {
-            var project = Path.Combine(_repositoryRoot, "src", "RedBolt", module, $"RedBolt.{module}.csproj");
-            foreach (var reference in Metadata(project).ProjectReferences
-                         .Where(reference => reference.Name.StartsWith("RedBolt.Bindings.", StringComparison.Ordinal)))
-                _bindingOwners.TryAdd(reference.Name, module);
-        }
-    }
-
     private void CreateSharpCppPackages()
     {
         StageSharpCppPackage("SharpCpp.Support", "Managed and native support contracts for generated SharpCpp bindings.");
@@ -396,7 +386,7 @@ internal sealed class Packager
         StageSharpCppPackage("SharpCpp.Pipeline", "Reusable SharpCpp binding transformation pipeline.");
         StageSharpCppPackage("SharpCpp.Rendering", "Managed and native binding rendering for SharpCpp.");
 
-        var parsingProject = Path.Combine(_repositoryRoot, "extern", "sharpcpp", "src", "SharpCpp.Parsing", "SharpCpp.Parsing.csproj");
+        var parsingProject = Path.Combine(_repositoryRoot, "extern", "SharpCpp", "src", "SharpCpp.Parsing", "SharpCpp.Parsing.csproj");
         var runtimeReferences = Metadata(parsingProject).PackageReferences
             .Where(reference => Regex.IsMatch(reference.Id, "^libClang(Sharp)?\\.runtime\\."))
             .ToArray();
@@ -425,7 +415,7 @@ internal sealed class Packager
         if (package == "SharpCpp.Support")
         {
             CopyDirectory(
-                Path.Combine(_repositoryRoot, "extern", "sharpcpp", "include", "SharpCpp"),
+                Path.Combine(_repositoryRoot, "extern", "SharpCpp", "include", "SharpCpp"),
                 Path.Combine(stage, "content", "include", "SharpCpp"));
             WriteXml(Path.Combine(stage, "buildTransitive", "SharpCpp.Support.props"),
                 new XElement("Project",
@@ -433,13 +423,14 @@ internal sealed class Packager
                         new XElement("SharpCppIncludeRoot",
                             "$([System.IO.Path]::GetFullPath(`$(MSBuildThisFileDirectory)../content/include`))"))));
         }
-        var project = Path.Combine(_repositoryRoot, "extern", "sharpcpp", "src", package, package + ".csproj");
+        var project = Path.Combine(_repositoryRoot, "extern", "SharpCpp", "src", package, package + ".csproj");
         MakePackage(package, description, stage, PackageDependencies(project));
     }
 
     private void StageManagedPackage(string module)
     {
         var package = $"RedBolt.{module}";
+        var project = Path.Combine(_repositoryRoot, "src", "RedBolt", module, package + ".csproj");
         var stage = Path.Combine(_stageRoot, package);
         StageCommon(stage);
         Directory.CreateDirectory(Path.Combine(stage, "lib", "net10.0"));
@@ -451,7 +442,10 @@ internal sealed class Packager
             var library = Path.Combine(stage, "redbolt", rid, "lib");
             Directory.CreateDirectory(library);
             File.Copy(source, Path.Combine(library, Path.GetFileName(source)), true);
-            foreach (var binding in _bindingOwners.Where(pair => pair.Value == module).Select(pair => pair.Key).Order())
+            foreach (var binding in Metadata(project, rid).ProjectReferences
+                         .Where(reference => reference.Name.StartsWith("RedBolt.Bindings.", StringComparison.Ordinal))
+                         .Select(reference => reference.Name)
+                         .Order())
             {
                 var bindingSource = ManagedFile(rid, binding);
                 RequireFile(bindingSource, "binding assembly");
@@ -509,16 +503,45 @@ internal sealed class Packager
                         new XAttribute("Condition", $"'$(RuntimeIdentifier)' != '' and !Exists('$({assetRoot})/RedBolt.{module}.dll')"),
                         new XAttribute("Text", $"{package} does not support RuntimeIdentifier '$(RuntimeIdentifier)'.")))));
 
-        var project = Path.Combine(_repositoryRoot, "src", "RedBolt", module, package + ".csproj");
         MakePackage(package, $"{module} module for the RedBolt engine.", stage, PackageDependencies(project));
     }
 
-    private IEnumerable<Dependency> RuntimeDependencies(string module, string rid)
+    private IEnumerable<Dependency> RequiredRuntimePackages(string module, string rid) =>
+        RequiredRuntimePackages(module, rid, new HashSet<string>(StringComparer.Ordinal));
+
+    private IEnumerable<Dependency> RequiredRuntimePackages(string module, string rid, HashSet<string> visited)
     {
+        if (!visited.Add(module))
+            yield break;
+
         var project = Path.Combine(_repositoryRoot, "src", "RedBolt", module, $"RedBolt.{module}.csproj");
-        return PackageDependencies(project)
-            .Where(dependency => dependency.Id.StartsWith("RedBolt.", StringComparison.Ordinal))
-            .Select(dependency => new Dependency($"{dependency.Id}.Runtime.{rid}", _packageVersion));
+        foreach (var reference in Metadata(project, rid).ProjectReferences
+                     .Where(reference => reference.ReferenceOutputAssembly
+                                         && reference.Name.StartsWith("RedBolt.", StringComparison.Ordinal)))
+        {
+            var referencedModule = reference.Name["RedBolt.".Length..];
+            if (!_modules.Contains(referencedModule, StringComparer.Ordinal)
+                || !SupportedOnRid(referencedModule, rid))
+                continue;
+            if (HasRuntimePackage(referencedModule, rid))
+                yield return new Dependency($"{reference.Name}.Runtime.{rid}", _packageVersion);
+            else
+                foreach (var dependency in RequiredRuntimePackages(referencedModule, rid, visited))
+                    yield return dependency;
+        }
+    }
+
+    private IEnumerable<Dependency> ModulePackages(string module, string rid)
+    {
+        if (HasRuntimePackage(module, rid))
+        {
+            yield return new Dependency($"RedBolt.{module}.Runtime.{rid}", _packageVersion);
+            yield break;
+        }
+
+        yield return new Dependency($"RedBolt.{module}", _packageVersion);
+        foreach (var dependency in RequiredRuntimePackages(module, rid))
+            yield return dependency;
     }
 
     private void StageRuntimePackage(string module, string rid)
@@ -569,10 +592,13 @@ internal sealed class Packager
             }
         }
 
-        var dependencies = RuntimeDependencies(module, rid)
+        var dependencies = RequiredRuntimePackages(module, rid)
             .Prepend(new Dependency($"RedBolt.{module}", _packageVersion));
         MakePackage(package, $"Runtime assets for RedBolt {module} on {rid}.", stage, dependencies);
     }
+
+    private static bool HasRuntimePackage(string module, string rid) =>
+        rid == "browser-wasm" ? module == "Core" : NativeModulesFor(module, rid).Any();
 
     private static IEnumerable<string> NativeModulesFor(string module, string rid)
     {
@@ -617,7 +643,7 @@ internal sealed class Packager
         var stage = Path.Combine(_stageRoot, package);
         var sourceRoot = tool == "Editor"
             ? Path.Combine(_repositoryRoot, "build", "bin", Configuration, rid, "tools")
-            : Path.Combine(_repositoryRoot, "build", "bin", Configuration, "host", "tools");
+            : Path.Combine(_repositoryRoot, "build", "bin", Configuration, "host", "tools", rid);
         StageCommon(stage);
         var destination = Path.Combine(stage, "tools", rid);
         Directory.CreateDirectory(destination);
@@ -657,14 +683,15 @@ internal sealed class Packager
 
     private IEnumerable<Dependency> ToolDependencies(string project, string rid)
     {
-        var metadata = Metadata(project);
+        var metadata = Metadata(project, rid);
         foreach (var reference in metadata.ProjectReferences.Where(reference => reference.ReferenceOutputAssembly))
         {
             if (reference.Name.StartsWith("RedBolt.", StringComparison.Ordinal))
             {
                 var module = reference.Name["RedBolt.".Length..];
                 if (_modules.Contains(module, StringComparer.Ordinal) && SupportedOnRid(module, rid))
-                    yield return new Dependency($"{reference.Name}.Runtime.{rid}", _packageVersion);
+                    foreach (var dependency in ModulePackages(module, rid))
+                        yield return dependency;
             }
             else if (reference.Name.StartsWith("SharpCpp.", StringComparison.Ordinal))
                 yield return new Dependency(reference.Name, _packageVersion);
@@ -695,6 +722,13 @@ internal sealed class Packager
         {
             if (!packages.Any(package => Path.GetFileName(package).StartsWith(expected + ".", StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException($"Expected package was not created: {expected}");
+        }
+        foreach (var validationRid in _rids)
+        foreach (var module in _modules.Where(module => SupportedOnRid(module, validationRid)))
+        {
+            var runtimePackage = $"RedBolt.{module}.Runtime.{validationRid}";
+            if (HasPackage(packages, runtimePackage) != HasRuntimePackage(module, validationRid))
+                throw new InvalidOperationException($"Unexpected runtime package state: {runtimePackage}");
         }
 
         var rid = _rids[0];
@@ -795,7 +829,7 @@ internal sealed class Packager
             var name = Path.GetFileName(Path.GetDirectoryName(project))!;
             if (name is "Android" or "Web")
                 continue;
-            var metadata = Metadata(project);
+            var metadata = Metadata(project, rid);
             var missing = MissingSampleModules(metadata, rid).Distinct().Order().ToArray();
             if (missing.Length != 0)
             {
@@ -863,7 +897,8 @@ internal sealed class Packager
             {
                 var module = reference.Name["RedBolt.".Length..];
                 if (_modules.Contains(module, StringComparer.Ordinal) && SupportedOnRid(module, rid))
-                    yield return new Dependency($"{reference.Name}.Runtime.{rid}", _packageVersion);
+                    foreach (var dependency in ModulePackages(module, rid))
+                        yield return dependency;
             }
             else if (reference.Name.StartsWith("SharpCpp.", StringComparison.Ordinal))
                 yield return new Dependency(reference.Name, _packageVersion);

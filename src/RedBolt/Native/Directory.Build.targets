@@ -1,7 +1,7 @@
 <Project>
   <Import Project="$(MSBuildThisFileDirectory)../../Directory.Build.targets" />
 
-  <ItemGroup>
+  <ItemGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Bindings.'))">
     <!-- Shared standard-library wrappers live outside generated modules. Every
          binding module gets the contracts/types so generated provider glue can
          register against the process-wide registry. -->

@@ -7,8 +7,8 @@
   <ItemGroup>
     <Compile Include="../Core/Graphics/LightBaker.cs" Link="Graphics/LightBaker.cs" />
 
-    <ProjectReference Include="../Bindings/XAtlas/RedBolt.Bindings.XAtlas.csproj" />
-    <ProjectReference Include="../Bindings/Embree/RedBolt.Bindings.Embree.csproj" />
+    <ProjectReference Include="../Native/XAtlas/RedBolt.Bindings.XAtlas.csproj" />
+    <ProjectReference Include="../Native/Embree/RedBolt.Bindings.Embree.csproj" />
     <ProjectReference Include="../Core/RedBolt.Core.csproj" />
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"

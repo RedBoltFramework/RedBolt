@@ -12,16 +12,16 @@
 
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
-    <ProjectReference Include="../Bindings/Diligent/RedBolt.Bindings.Diligent.csproj" />
-    <ProjectReference Include="../Bindings/Glslang/RedBolt.Bindings.Glslang.csproj" />
-    <ProjectReference Include="../Bindings/HarfBuzz/RedBolt.Bindings.HarfBuzz.csproj" />
-    <ProjectReference Include="../Bindings/ShaderCompiler/RedBolt.Bindings.ShaderCompiler.csproj" />
-    <ProjectReference Include="../Bindings/Sdl/RedBolt.Bindings.Sdl.csproj" />
-    <ProjectReference Include="../Bindings/SpirVCross/RedBolt.Bindings.SpirVCross.csproj" />
-    <ProjectReference Include="../Bindings/SpirVTools/RedBolt.Bindings.SpirVTools.csproj" />
-    <ProjectReference Include="../Bindings/Stb/RedBolt.Bindings.Stb.csproj" />
-    <ProjectReference Include="../Bindings/Lz4/RedBolt.Bindings.Lz4.csproj" />
-    <ProjectReference Include="../Bindings/WebP/RedBolt.Bindings.WebP.csproj" />
+    <ProjectReference Include="../Native/Diligent/RedBolt.Bindings.Diligent.csproj" />
+    <ProjectReference Include="../Native/Glslang/RedBolt.Bindings.Glslang.csproj" />
+    <ProjectReference Include="../Native/HarfBuzz/RedBolt.Bindings.HarfBuzz.csproj" />
+    <ProjectReference Include="../Native/ShaderCompiler/RedBolt.Bindings.ShaderCompiler.csproj" />
+    <ProjectReference Include="../Native/Sdl/RedBolt.Bindings.Sdl.csproj" />
+    <ProjectReference Include="../Native/SpirVCross/RedBolt.Bindings.SpirVCross.csproj" />
+    <ProjectReference Include="../Native/SpirVTools/RedBolt.Bindings.SpirVTools.csproj" />
+    <ProjectReference Include="../Native/Stb/RedBolt.Bindings.Stb.csproj" />
+    <ProjectReference Include="../Native/Lz4/RedBolt.Bindings.Lz4.csproj" />
+    <ProjectReference Include="../Native/WebP/RedBolt.Bindings.WebP.csproj" />
     <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"

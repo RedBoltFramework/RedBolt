@@ -8,14 +8,10 @@
 
   <ItemGroup>
     <ProjectReference Include="../Core/RedBolt.Core.csproj" />
-    <ProjectReference Include="../Bindings/DearImGui/RedBolt.Bindings.DearImGui.csproj" />
-    <ProjectReference Include="../Bindings/Sdl/RedBolt.Bindings.Sdl.csproj" />
-    <ProjectReference Include="../Utility/RedBolt.Utility.csproj"
-                      Condition="'$(RedBoltPlatform)' != 'browser-wasm' and !$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))" />
-    <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
-                      OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false"
-                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset" />
+    <ProjectReference Include="../Native/DearImGui/RedBolt.Bindings.DearImGui.csproj" />
+    <ProjectReference Include="../Native/Sdl/RedBolt.Bindings.Sdl.csproj" />
+    <ProjectReference Include="../Utility/RedBolt.Utility.csproj" Condition="'$(RedBoltPlatform)' != 'browser-wasm' and !$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))" />
+    <ProjectReference Include="../Generator/Reflection/RedBolt.Generator.Reflection.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(RedBoltPlatform)' == 'browser-wasm' or $([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
@@ -23,8 +19,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
-                      PrivateAssets="all"
-                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj" PrivateAssets="all" AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
   </ItemGroup>
 </Project>
