@@ -62,9 +62,9 @@ public partial class RigidBody2D : Component
         if (!IsBodyValid)
             return;
         if (IsEnabledEffective)
-            Box2DNativeBindings.B2BodyEnable(_bodyId!);
+            Box2D.B2BodyEnable(_bodyId!);
         else
-            Box2DNativeBindings.B2BodyDisable(_bodyId!);
+            Box2D.B2BodyDisable(_bodyId!);
     }
 
     /// <summary>Visualize collision geometry.</summary>
@@ -80,13 +80,13 @@ public partial class RigidBody2D : Component
     [Serialized("Body Type")]
     public BodyType2D BodyType
     {
-        get => IsBodyValid ? (BodyType2D)Box2DNativeBindings.B2BodyGetType(_bodyId!) : _bodyType;
+        get => IsBodyValid ? (BodyType2D)Box2D.B2BodyGetType(_bodyId!) : _bodyType;
         set
         {
             _bodyType = value;
             if (IsBodyValid)
             {
-                Box2DNativeBindings.B2BodySetType(_bodyId!, (B2BodyType)value);
+                Box2D.B2BodySetType(_bodyId!, (B2BodyType)value);
                 if (_useFixtureMass)
                     ApplyFixtureMass();
                 else
@@ -99,7 +99,7 @@ public partial class RigidBody2D : Component
     [Serialized("Mass")]
     public float Mass
     {
-        get => _useFixtureMass && IsBodyValid ? Box2DNativeBindings.B2BodyGetMass(_bodyId!) : _mass;
+        get => _useFixtureMass && IsBodyValid ? Box2D.B2BodyGetMass(_bodyId!) : _mass;
         set
         {
             _mass = MathF.Max(value, 0.0f);
@@ -111,7 +111,7 @@ public partial class RigidBody2D : Component
     [Serialized("Inertia")]
     public float Inertia
     {
-        get => _useFixtureMass && IsBodyValid ? Box2DNativeBindings.B2BodyGetRotationalInertia(_bodyId!) : _inertia;
+        get => _useFixtureMass && IsBodyValid ? Box2D.B2BodyGetRotationalInertia(_bodyId!) : _inertia;
         set
         {
             _inertia = MathF.Max(value, 0.0f);
@@ -127,7 +127,7 @@ public partial class RigidBody2D : Component
         {
             if (!_useFixtureMass || !IsBodyValid)
                 return _massCenter;
-            using var center = Box2DNativeBindings.B2BodyGetLocalCenterOfMass(_bodyId!);
+            using var center = Box2D.B2BodyGetLocalCenterOfMass(_bodyId!);
             return PhysicsUtils2D.ToVector2(center);
         }
         set
@@ -159,49 +159,49 @@ public partial class RigidBody2D : Component
     [Serialized("Linear Damping")]
     public float LinearDamping
     {
-        get => IsBodyValid ? Box2DNativeBindings.B2BodyGetLinearDamping(_bodyId!) : _linearDamping;
+        get => IsBodyValid ? Box2D.B2BodyGetLinearDamping(_bodyId!) : _linearDamping;
         set
         {
             _linearDamping = value;
             if (IsBodyValid)
-                Box2DNativeBindings.B2BodySetLinearDamping(_bodyId!, value);
+                Box2D.B2BodySetLinearDamping(_bodyId!, value);
         }
     }
 
     [Serialized("Angular Damping")]
     public float AngularDamping
     {
-        get => IsBodyValid ? Box2DNativeBindings.B2BodyGetAngularDamping(_bodyId!) : _angularDamping;
+        get => IsBodyValid ? Box2D.B2BodyGetAngularDamping(_bodyId!) : _angularDamping;
         set
         {
             _angularDamping = value;
             if (IsBodyValid)
-                Box2DNativeBindings.B2BodySetAngularDamping(_bodyId!, value);
+                Box2D.B2BodySetAngularDamping(_bodyId!, value);
         }
     }
 
     [Serialized("Allow Sleep")]
     public bool AllowSleep
     {
-        get => IsBodyValid ? Box2DNativeBindings.B2BodyIsSleepEnabled(_bodyId!) : _allowSleep;
+        get => IsBodyValid ? Box2D.B2BodyIsSleepEnabled(_bodyId!) : _allowSleep;
         set
         {
             _allowSleep = value;
             if (IsBodyValid)
-                Box2DNativeBindings.B2BodyEnableSleep(_bodyId!, value);
+                Box2D.B2BodyEnableSleep(_bodyId!, value);
         }
     }
 
     [Serialized("Fixed Rotation")]
     public bool FixedRotation
     {
-        get => IsBodyValid ? Box2DNativeBindings.B2BodyIsFixedRotation(_bodyId!) : _fixedRotation;
+        get => IsBodyValid ? Box2D.B2BodyIsFixedRotation(_bodyId!) : _fixedRotation;
         set
         {
             _fixedRotation = value;
             if (IsBodyValid)
             {
-                Box2DNativeBindings.B2BodySetFixedRotation(_bodyId!, value);
+                Box2D.B2BodySetFixedRotation(_bodyId!, value);
                 if (_useFixtureMass)
                     ApplyFixtureMass();
                 else
@@ -213,36 +213,36 @@ public partial class RigidBody2D : Component
     [Serialized("Bullet")]
     public bool Bullet
     {
-        get => IsBodyValid ? Box2DNativeBindings.B2BodyIsBullet(_bodyId!) : _bullet;
+        get => IsBodyValid ? Box2D.B2BodyIsBullet(_bodyId!) : _bullet;
         set
         {
             _bullet = value;
             if (IsBodyValid)
-                Box2DNativeBindings.B2BodySetBullet(_bodyId!, value);
+                Box2D.B2BodySetBullet(_bodyId!, value);
         }
     }
 
     [Serialized("Gravity Scale")]
     public float GravityScale
     {
-        get => IsBodyValid ? Box2DNativeBindings.B2BodyGetGravityScale(_bodyId!) : _gravityScale;
+        get => IsBodyValid ? Box2D.B2BodyGetGravityScale(_bodyId!) : _gravityScale;
         set
         {
             _gravityScale = value;
             if (IsBodyValid)
-                Box2DNativeBindings.B2BodySetGravityScale(_bodyId!, value);
+                Box2D.B2BodySetGravityScale(_bodyId!, value);
         }
     }
 
     [Serialized("Awake")]
     public bool Awake
     {
-        get => IsBodyValid ? Box2DNativeBindings.B2BodyIsAwake(_bodyId!) : _awake;
+        get => IsBodyValid ? Box2D.B2BodyIsAwake(_bodyId!) : _awake;
         set
         {
             _awake = value;
             if (IsBodyValid)
-                Box2DNativeBindings.B2BodySetAwake(_bodyId!, value);
+                Box2D.B2BodySetAwake(_bodyId!, value);
         }
     }
 
@@ -253,7 +253,7 @@ public partial class RigidBody2D : Component
         {
             if (!IsBodyValid)
                 return _linearVelocity;
-            using var value = Box2DNativeBindings.B2BodyGetLinearVelocity(_bodyId!);
+            using var value = Box2D.B2BodyGetLinearVelocity(_bodyId!);
             return PhysicsUtils2D.ToVector2(value);
         }
         set
@@ -262,19 +262,19 @@ public partial class RigidBody2D : Component
             if (!IsBodyValid)
                 return;
             using var native = PhysicsUtils2D.ToB2(value);
-            Box2DNativeBindings.B2BodySetLinearVelocity(_bodyId!, native);
+            Box2D.B2BodySetLinearVelocity(_bodyId!, native);
         }
     }
 
     [Serialized("Angular Velocity")]
     public float AngularVelocity
     {
-        get => IsBodyValid ? Box2DNativeBindings.B2BodyGetAngularVelocity(_bodyId!) : _angularVelocity;
+        get => IsBodyValid ? Box2D.B2BodyGetAngularVelocity(_bodyId!) : _angularVelocity;
         set
         {
             _angularVelocity = value;
             if (IsBodyValid)
-                Box2DNativeBindings.B2BodySetAngularVelocity(_bodyId!, value);
+                Box2D.B2BodySetAngularVelocity(_bodyId!, value);
         }
     }
 
@@ -287,7 +287,7 @@ public partial class RigidBody2D : Component
             return;
         using var nativeForce = PhysicsUtils2D.ToB2(force);
         using var nativePoint = PhysicsUtils2D.ToB2(point);
-        Box2DNativeBindings.B2BodyApplyForce(_bodyId!, nativeForce, nativePoint, wake);
+        Box2D.B2BodyApplyForce(_bodyId!, nativeForce, nativePoint, wake);
     }
 
     public void ApplyForceToCenter(Vector2f force, bool wake = true)
@@ -295,13 +295,13 @@ public partial class RigidBody2D : Component
         if (!IsBodyValid)
             return;
         using var nativeForce = PhysicsUtils2D.ToB2(force);
-        Box2DNativeBindings.B2BodyApplyForceToCenter(_bodyId!, nativeForce, wake);
+        Box2D.B2BodyApplyForceToCenter(_bodyId!, nativeForce, wake);
     }
 
     public void ApplyTorque(float torque, bool wake = true)
     {
         if (IsBodyValid)
-            Box2DNativeBindings.B2BodyApplyTorque(_bodyId!, torque, wake);
+            Box2D.B2BodyApplyTorque(_bodyId!, torque, wake);
     }
 
     public void ApplyLinearImpulse(Vector2f impulse, Vector2f point, bool wake = true)
@@ -310,7 +310,7 @@ public partial class RigidBody2D : Component
             return;
         using var nativeImpulse = PhysicsUtils2D.ToB2(impulse);
         using var nativePoint = PhysicsUtils2D.ToB2(point);
-        Box2DNativeBindings.B2BodyApplyLinearImpulse(_bodyId!, nativeImpulse, nativePoint, wake);
+        Box2D.B2BodyApplyLinearImpulse(_bodyId!, nativeImpulse, nativePoint, wake);
     }
 
     public void ApplyLinearImpulseToCenter(Vector2f impulse, bool wake = true)
@@ -318,13 +318,13 @@ public partial class RigidBody2D : Component
         if (!IsBodyValid)
             return;
         using var nativeImpulse = PhysicsUtils2D.ToB2(impulse);
-        Box2DNativeBindings.B2BodyApplyLinearImpulseToCenter(_bodyId!, nativeImpulse, wake);
+        Box2D.B2BodyApplyLinearImpulseToCenter(_bodyId!, nativeImpulse, wake);
     }
 
     public void ApplyAngularImpulse(float impulse, bool wake = true)
     {
         if (IsBodyValid)
-            Box2DNativeBindings.B2BodyApplyAngularImpulse(_bodyId!, impulse, wake);
+            Box2D.B2BodyApplyAngularImpulse(_bodyId!, impulse, wake);
     }
 
     /// <summary>Create native body.</summary>
@@ -333,7 +333,7 @@ public partial class RigidBody2D : Component
         if (IsBodyValid || _physicsWorld is null || !_physicsWorld.TryGetTarget(out var world) || _node is null)
             return;
 
-        using var def = Box2DNativeBindings.B2DefaultBodyDef();
+        using var def = Box2D.B2DefaultBodyDef();
         def.Type = (B2BodyType)_bodyType;
         def.PositionX = _node.WorldPosition.X;
         def.PositionY = _node.WorldPosition.Y;
@@ -351,7 +351,7 @@ public partial class RigidBody2D : Component
         def.FixedRotation = _fixedRotation;
         def.IsBullet = _bullet;
         def.IsEnabled = IsEnabledEffective;
-        _bodyId = Box2DNativeBindings.B2CreateBody(world.WorldId, def);
+        _bodyId = Box2D.B2CreateBody(world.WorldId, def);
 
         foreach (var shape in _collisionShapes)
             shape.CreateFixture();
@@ -372,7 +372,7 @@ public partial class RigidBody2D : Component
             constraint.ReleaseJoint();
         foreach (var shape in _collisionShapes.ToArray())
             shape.ReleaseFixture();
-        Box2DNativeBindings.B2DestroyBody(_bodyId!);
+        Box2D.B2DestroyBody(_bodyId!);
         _bodyId!.Dispose();
         _bodyId = null;
     }
@@ -384,14 +384,14 @@ public partial class RigidBody2D : Component
             return;
         var parentRigidBody = _node.Parent != Scene ? _node.Parent?.GetComponent<RigidBody2D>() : null;
         if (parentRigidBody is null &&
-            (!Box2DNativeBindings.B2BodyIsEnabled(_bodyId!) || _bodyType == BodyType2D.Static || !Awake))
+            (!Box2D.B2BodyIsEnabled(_bodyId!) || _bodyType == BodyType2D.Static || !Awake))
             return;
-        using var position = Box2DNativeBindings.B2BodyGetPosition(_bodyId!);
-        using var rotation = Box2DNativeBindings.B2BodyGetRotation(_bodyId!);
+        using var position = Box2D.B2BodyGetPosition(_bodyId!);
+        using var rotation = Box2D.B2BodyGetRotation(_bodyId!);
         var worldPosition = _node.WorldPosition;
         worldPosition.X = position.X;
         worldPosition.Y = position.Y;
-        var worldRotation = new Quaternion(Box2DNativeBindings.B2RotGetAngle(rotation) * PhysicsUtils2D.RadiansToDegrees);
+        var worldRotation = new Quaternion(Box2D.B2RotGetAngle(rotation) * PhysicsUtils2D.RadiansToDegrees);
         if (parentRigidBody is not null && PhysicsWorld is { } world)
         {
             world.AddDelayedWorldTransform(new DelayedWorldTransform2D
@@ -430,7 +430,7 @@ public partial class RigidBody2D : Component
     internal B2BodyId? BodyId => IsBodyValid ? _bodyId : null;
     internal IReadOnlyList<CollisionShape2D> CollisionShapes => _collisionShapes;
     internal IReadOnlyList<Constraint2D> Constraints => _constraints;
-    private bool IsBodyValid => _bodyId is not null && Box2DNativeBindings.B2BodyIsValid(_bodyId);
+    private bool IsBodyValid => _bodyId is not null && Box2D.B2BodyIsValid(_bodyId);
 
     public void AddCollisionShape2D(CollisionShape2D shape)
     {
@@ -486,22 +486,22 @@ public partial class RigidBody2D : Component
             return;
         }
         using var position = PhysicsUtils2D.ToB2(new Vector2f(node.WorldPosition.X, node.WorldPosition.Y));
-        using var rotation = Box2DNativeBindings.B2MakeRot(node.WorldRotation.RollAngle * PhysicsUtils2D.DegreesToRadians);
-        Box2DNativeBindings.B2BodySetTransform(_bodyId!, position, rotation);
+        using var rotation = Box2D.B2MakeRot(node.WorldRotation.RollAngle * PhysicsUtils2D.DegreesToRadians);
+        Box2D.B2BodySetTransform(_bodyId!, position, rotation);
     }
 
     internal void ApplyFixtureMass()
     {
         if (!_useFixtureMass || !IsBodyValid)
             return;
-        Box2DNativeBindings.B2BodyApplyMassFromShapes(_bodyId!);
-        if (BodyType != BodyType2D.Dynamic || Box2DNativeBindings.B2BodyGetMass(_bodyId!) > 0.0f)
+        Box2D.B2BodyApplyMassFromShapes(_bodyId!);
+        if (BodyType != BodyType2D.Dynamic || Box2D.B2BodyGetMass(_bodyId!) > 0.0f)
             return;
 
         // Box2D 2 forces zero-density dynamic bodies to have mass one.
-        using var data = Box2DNativeBindings.B2BodyGetMassData(_bodyId!);
+        using var data = Box2D.B2BodyGetMassData(_bodyId!);
         data.Mass = 1.0f;
-        Box2DNativeBindings.B2BodySetMassData(_bodyId!, data);
+        Box2D.B2BodySetMassData(_bodyId!, data);
     }
 
     private void ApplyCustomMass()
@@ -515,6 +515,6 @@ public partial class RigidBody2D : Component
             CenterX = _massCenter.X,
             CenterY = _massCenter.Y,
         };
-        Box2DNativeBindings.B2BodySetMassData(_bodyId!, data);
+        Box2D.B2BodySetMassData(_bodyId!, data);
     }
 }

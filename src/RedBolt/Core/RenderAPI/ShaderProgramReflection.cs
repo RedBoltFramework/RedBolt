@@ -114,11 +114,11 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
                 throw new InvalidOperationException("Forced temporary shader reflection failure.");
 
             var indexToGroup = new List<ShaderParameterGroup>();
-            var numUniformBlocks = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockCount(temporaryGlProgram);
+            var numUniformBlocks = Diligent.GetTemporaryGLProgramUniformBlockCount(temporaryGlProgram);
             for (var uniformBlockIndex = 0; uniformBlockIndex < numUniformBlocks; ++uniformBlockIndex)
             {
                 var internalName =
-                    DiligentNativeBindings.GetTemporaryGLProgramUniformBlockName(temporaryGlProgram, (uint)uniformBlockIndex);
+                    Diligent.GetTemporaryGLProgramUniformBlockName(temporaryGlProgram, (uint)uniformBlockIndex);
                 if (!TryParseConstantBufferName(internalName, out var group))
                 {
                     Log.GetLogger().Warning("Unknown constant buffer '{0}' is ignored",
@@ -127,20 +127,20 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
                 }
 
                 AddUniformBuffer(group, internalName,
-                    checked((int)DiligentNativeBindings.GetTemporaryGLProgramUniformBlockDataSize(temporaryGlProgram, (uint)uniformBlockIndex)));
+                    checked((int)Diligent.GetTemporaryGLProgramUniformBlockDataSize(temporaryGlProgram, (uint)uniformBlockIndex)));
 
-                var blockIndex = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockIndex(
+                var blockIndex = Diligent.GetTemporaryGLProgramUniformBlockIndex(
                     temporaryGlProgram, internalName);
                 while (indexToGroup.Count <= blockIndex)
                     indexToGroup.Add((ShaderParameterGroup)RenderApiLimits.MaxShaderParameterGroups);
                 indexToGroup[(int)blockIndex] = group;
             }
 
-            var numUniforms = DiligentNativeBindings.GetTemporaryGLProgramUniformCount(temporaryGlProgram);
+            var numUniforms = Diligent.GetTemporaryGLProgramUniformCount(temporaryGlProgram);
             for (var uniformIndex = 0; uniformIndex < numUniforms; ++uniformIndex)
             {
                 var internalName = System.Text.Encoding.UTF8.GetString(
-                    DiligentNativeBindings.GetTemporaryGLProgramUniformName(temporaryGlProgram, (uint)uniformIndex));
+                    Diligent.GetTemporaryGLProgramUniformName(temporaryGlProgram, (uint)uniformIndex));
                 if (TrySanitizeSrvName(internalName, out var resourceName))
                 {
                     AddShaderResource(resourceName, internalName);
@@ -154,9 +154,9 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
                 if (!TrySanitizeGlUniformName(internalName, out var uniformName))
                     continue;
 
-                var blockIndex = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockIndex(
+                var blockIndex = Diligent.GetTemporaryGLProgramUniformBlockIndex(
                     temporaryGlProgram, (uint)uniformIndex);
-                var blockOffset = DiligentNativeBindings.GetTemporaryGLProgramUniformBlockOffset(
+                var blockOffset = Diligent.GetTemporaryGLProgramUniformBlockOffset(
                     temporaryGlProgram, (uint)uniformIndex);
                 if (blockIndex >= 0 && blockIndex < indexToGroup.Count)
                 {
@@ -164,7 +164,7 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
                     if (group != (ShaderParameterGroup)RenderApiLimits.MaxShaderParameterGroups)
                     {
                         AddUniform(uniformName, group, blockOffset,
-                            checked((int)DiligentNativeBindings.GetTemporaryGLProgramUniformSize(temporaryGlProgram, (uint)uniformIndex)),
+                            checked((int)Diligent.GetTemporaryGLProgramUniformSize(temporaryGlProgram, (uint)uniformIndex)),
                             default, default, 0, 0, 0);
                     }
                 }

@@ -152,7 +152,7 @@ public class RenderScope : IDisposable
             if (_glGetError is null)
             {
                 using var functionName = new CString("glGetError");
-                var function = SdlNativeBindings.SdlGlGetProcAddress(functionName.Bytes);
+                var function = Sdl.SdlGlGetProcAddress(functionName.Bytes);
                 _glGetError = Marshal.GetDelegateForFunctionPointer<OpenGlGetErrorFunction>(function);
             }
 

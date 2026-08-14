@@ -5,7 +5,7 @@ internal sealed class LibDataChannelGenerator(string nativeLibraryName)
         "libdatachannel",
         "RedBolt.Bindings.LibDataChannel",
         "RedBolt.Bindings.LibDataChannel",
-        "LibDataChannelNativeBindings",
+        "LibDataChannel",
         nativeLibraryName,
         "redbolt_libdatachannel",
         "-xc",

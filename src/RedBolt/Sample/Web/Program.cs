@@ -13,9 +13,9 @@ internal static class WebProgram
 {
     private static void Main()
     {
-        var lz4Version = Lz4NativeBindings.Lz4VersionNumber();
-        var sdlRevision = Encoding.UTF8.GetString(SdlNativeBindings.SdlGetRevision());
-        var diligentFactory = DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL();
+        var lz4Version = Lz4.Lz4VersionNumber();
+        var sdlRevision = Encoding.UTF8.GetString(Sdl.SdlGetRevision());
+        var diligentFactory = Diligent.LoadAndGetEngineFactoryOpenGL();
         var resourcesReady = System.IO.File.Exists("CoreData.pak")
             && System.IO.File.Exists("Data.pak");
         var applicationTypeName = BrowserDom.GetSelectedApplicationType();

@@ -11,7 +11,7 @@ public static class Compression
     /// <summary>Estimate and return worst case LZ4 compressed output size in bytes for given input size.</summary>
     public static uint EstimateCompressBound(uint srcSize)
     {
-        return unchecked((uint)Lz4NativeBindings.Lz4CompressBound(unchecked((int)srcSize)));
+        return unchecked((uint)Lz4.Lz4CompressBound(unchecked((int)srcSize)));
     }
 
     /// <summary>Compress data using the LZ4 algorithm and return the compressed data size. The needed destination buffer worst-case size is given by EstimateCompressBound().</summary>
@@ -22,11 +22,11 @@ public static class Compression
         else
         {
             ref var srcReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(src));
-            return unchecked((uint)Lz4NativeBindings.Lz4CompressHc(
+            return unchecked((uint)Lz4.Lz4CompressHc(
                 in srcReference,
                 MemoryMarshal.Cast<byte, sbyte>(dest),
                 unchecked((int)srcSize),
-                Lz4NativeBindings.Lz4CompressBound(unchecked((int)srcSize)),
+                Lz4.Lz4CompressBound(unchecked((int)srcSize)),
                 0));
         }
     }
@@ -39,7 +39,7 @@ public static class Compression
         else
         {
             ref var srcReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(src));
-            return unchecked((uint)Lz4NativeBindings.Lz4DecompressFast(
+            return unchecked((uint)Lz4.Lz4DecompressFast(
                 in srcReference,
                 MemoryMarshal.Cast<byte, sbyte>(dest),
                 unchecked((int)destSize)));
@@ -66,11 +66,11 @@ public static class Compression
             return false;
 
         ref var srcReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(srcBuffer.AsSpan()));
-        var destSize = unchecked((uint)Lz4NativeBindings.Lz4CompressHc(
+        var destSize = unchecked((uint)Lz4.Lz4CompressHc(
             in srcReference,
             MemoryMarshal.Cast<byte, sbyte>(destBuffer.AsSpan()),
             srcBuffer.Length,
-            Lz4NativeBindings.Lz4CompressBound(srcBuffer.Length),
+            Lz4.Lz4CompressBound(srcBuffer.Length),
             unchecked((int)compressionLevel)));
         var success = true;
         success &= dest.WriteUInt(srcSize);
@@ -100,7 +100,7 @@ public static class Compression
             return false;
 
         ref var srcReference = ref Unsafe.As<byte, sbyte>(ref MemoryMarshal.GetReference(srcBuffer.AsSpan()));
-        Lz4NativeBindings.Lz4DecompressFast(
+        Lz4.Lz4DecompressFast(
             in srcReference,
             MemoryMarshal.Cast<byte, sbyte>(destBuffer.AsSpan()),
             destBuffer.Length);

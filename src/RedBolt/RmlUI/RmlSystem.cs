@@ -97,14 +97,14 @@ public class RmlSystem : SystemInterface
     public override void SetClipboardText(Std.String text)
     {
         using var clipboardText = new CString(text.ToString());
-        SdlNativeBindings.SdlSetClipboardText(clipboardText.Bytes);
+        Sdl.SdlSetClipboardText(clipboardText.Bytes);
     }
 
     /// <summary>Get clipboard text.</summary>
     /// <param name="text">Retrieved text from clipboard.</param>
     public override void GetClipboardText(Std.String text)
     {
-        text.Assign(Marshal.PtrToStringUTF8(SdlNativeBindings.SdlGetClipboardText()));
+        text.Assign(Marshal.PtrToStringUTF8(Sdl.SdlGetClipboardText()));
     }
 
     /// <summary>Activate keyboard (for touchscreen devices)</summary>

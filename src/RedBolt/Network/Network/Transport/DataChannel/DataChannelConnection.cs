@@ -11,7 +11,7 @@ using RedBolt.Bindings.LibDataChannel;
 using RedBolt.Core;
 using RedBolt.IO;
 
-using static RedBolt.Bindings.LibDataChannel.LibDataChannelNativeBindings;
+using static RedBolt.Bindings.LibDataChannel.LibDataChannel;
 
 [Reflected(ObjectCategory.Category_Network, Factory = false, InheritAttributes = false)]
 public partial class DataChannelConnection : NetworkConnection

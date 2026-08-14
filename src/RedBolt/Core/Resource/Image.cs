@@ -4,6 +4,9 @@ using Microsoft.Extensions.Logging;
 using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
 
+using RedBolt.Bindings.Sdl;
+using RedBolt.Bindings.Stb;
+using RedBolt.Bindings.WebP;
 using RedBolt.Core;
 using RedBolt.IO;
 using File = global::RedBolt.IO.File;
@@ -329,7 +332,7 @@ public partial class Image : Resource
 
             using var features = new RedBolt.Bindings.WebP.WebPBitstreamFeatures();
             const int webpDecoderAbiVersion = 0x0210;
-            if (RedBolt.Bindings.WebP.WebPNativeBindings.WebPGetFeaturesInternal(
+            if (WebP.WebPGetFeaturesInternal(
                     data, (nuint)data.Length, features, webpDecoderAbiVersion)
                 != RedBolt.Bindings.WebP.VP8StatusCode.Vp8StatusOk)
             {
@@ -342,9 +345,9 @@ public partial class Image : Resource
             var components = features.HasAlpha != 0 ? 4 : 3;
             var imageData = new byte[checked(width * height * components)];
             var decoded = components == 4
-                ? RedBolt.Bindings.WebP.WebPNativeBindings.WebPDecodeRGBAInto(
+                ? WebP.WebPDecodeRGBAInto(
                     data, (nuint)data.Length, imageData, (nuint)imageData.Length, 4 * width)
-                : RedBolt.Bindings.WebP.WebPNativeBindings.WebPDecodeRGBInto(
+                : WebP.WebPDecodeRGBInto(
                     data, (nuint)data.Length, imageData, (nuint)imageData.Length, 3 * width);
             if (decoded == IntPtr.Zero)
             {
@@ -394,7 +397,7 @@ public partial class Image : Resource
 
         fixed (byte* data = _data)
         {
-            var png = RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiWritePngToMem(
+            var png = Stb.StbiWritePngToMem(
                 (nint)data, 0, Width, Height, (int)Components, out var length);
             try
             {
@@ -759,7 +762,7 @@ public partial class Image : Resource
         var nativeFileName = System.Text.Encoding.UTF8.GetBytes(fileName + '\0');
         fixed (byte* data = _data)
         {
-            return RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiWriteBmp(
+            return Stb.StbiWriteBmp(
                 nativeFileName, Width, Height, (int)Components, (nint)data) != 0;
         }
     }
@@ -788,7 +791,7 @@ public partial class Image : Resource
         var nativeFileName = System.Text.Encoding.UTF8.GetBytes(fileName + '\0');
         fixed (byte* data = _data)
         {
-            return RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiWriteTga(
+            return Stb.StbiWriteTga(
                 nativeFileName, Width, Height, Components, (nint)data) != 0;
         }
     }
@@ -807,7 +810,7 @@ public partial class Image : Resource
         var nativeFileName = System.Text.Encoding.UTF8.GetBytes(fileName + '\0');
         fixed (byte* data = _data)
         {
-            return RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiWriteJpg(
+            return Stb.StbiWriteJpg(
                 nativeFileName, Width, Height, Components, (nint)data, quality) != 0;
         }
     }
@@ -899,9 +902,9 @@ public partial class Image : Resource
         using var config = new RedBolt.Bindings.WebP.WebPConfig();
         using var writer = new RedBolt.Bindings.WebP.WebPMemoryWriter();
         const int webpEncoderAbiVersion = 0x0210;
-        if (RedBolt.Bindings.WebP.WebPNativeBindings.WebPConfigInitInternal(
+        if (WebP.WebPConfigInitInternal(
                 config, RedBolt.Bindings.WebP.WebPPreset.WebpPresetDefault, compression, webpEncoderAbiVersion) == 0
-            || RedBolt.Bindings.WebP.WebPNativeBindings.WebPPictureInitInternal(picture, webpEncoderAbiVersion) == 0)
+            || WebP.WebPPictureInitInternal(picture, webpEncoderAbiVersion) == 0)
         {
             Log.GetLogger().LogError("WebP initialization failed; check installation");
             return false;
@@ -913,17 +916,17 @@ public partial class Image : Resource
         picture.UseArgb = 1;
         picture.Width = Width;
         picture.Height = Height;
-        picture.Writer = RedBolt.Bindings.WebP.WebPNativeBindings.WebPMemoryWriteFunctionPointer;
+        picture.Writer = WebP.WebPMemoryWriteFunctionPointer;
         picture.CustomPtr = writer.Handle;
-        RedBolt.Bindings.WebP.WebPNativeBindings.WebPMemoryWriterInit(writer);
+        WebP.WebPMemoryWriterInit(writer);
 
         var pictureInitialized = true;
         try
         {
             var importResult = Components == 4
-                ? RedBolt.Bindings.WebP.WebPNativeBindings.WebPPictureImportRGBA(
+                ? WebP.WebPPictureImportRGBA(
                     picture, in _data[0], checked(Components * Width))
-                : RedBolt.Bindings.WebP.WebPNativeBindings.WebPPictureImportRGB(
+                : WebP.WebPPictureImportRGB(
                     picture, in _data[0], checked(Components * Width));
             if (importResult == 0)
             {
@@ -931,13 +934,13 @@ public partial class Image : Resource
                 return false;
             }
 
-            if (RedBolt.Bindings.WebP.WebPNativeBindings.WebPEncode(config, picture) == 0)
+            if (WebP.WebPEncode(config, picture) == 0)
             {
                 Log.GetLogger().LogError("WebP encoding failed (memory error?). WebPEncodingError = {Error}", picture.ErrorCode);
                 return false;
             }
 
-            RedBolt.Bindings.WebP.WebPNativeBindings.WebPPictureFree(picture);
+            WebP.WebPPictureFree(picture);
             pictureInitialized = false;
             var encoded = new byte[checked((int)writer.Size)];
             Marshal.Copy(writer.Mem, encoded, 0, encoded.Length);
@@ -947,8 +950,8 @@ public partial class Image : Resource
         finally
         {
             if (pictureInitialized)
-                RedBolt.Bindings.WebP.WebPNativeBindings.WebPPictureFree(picture);
-            RedBolt.Bindings.WebP.WebPNativeBindings.WebPMemoryWriterClear(writer);
+                WebP.WebPPictureFree(picture);
+            WebP.WebPMemoryWriterClear(writer);
         }
     }
 
@@ -1451,7 +1454,7 @@ public partial class Image : Resource
 
         var width = imageRect.Width;
         var height = imageRect.Height;
-        var surface = RedBolt.Bindings.Sdl.SdlNativeBindings.SdlCreateRGBSurface(
+        var surface = Sdl.SdlCreateRGBSurface(
             0, width, height, Components * 8, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
         if (surface.IsNull)
         {
@@ -1459,14 +1462,14 @@ public partial class Image : Resource
             return null;
         }
 
-        RedBolt.Bindings.Sdl.SdlNativeBindings.SdlLockSurface(surface);
+        Sdl.SdlLockSurface(surface);
         var sourceOffset = Components * (Width * imageRect.Top + imageRect.Left);
         for (var i = 0; i < height; ++i)
         {
             Marshal.Copy(_data, sourceOffset, IntPtr.Add(surface.Pixels, i * surface.Pitch), Components * width);
             sourceOffset += Components * Width;
         }
-        RedBolt.Bindings.Sdl.SdlNativeBindings.SdlUnlockSurface(surface);
+        Sdl.SdlUnlockSurface(surface);
         return surface;
     }
 
@@ -1557,7 +1560,7 @@ public partial class Image : Resource
             return IntPtr.Zero;
         }
 
-        return RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiLoadFromMemory(
+        return Stb.StbiLoadFromMemory(
             in data[0], data.Length, out width, out height, out components, 0);
     }
 
@@ -1566,7 +1569,7 @@ public partial class Image : Resource
         if (pixelData == IntPtr.Zero)
             return;
 
-        RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiImageFree(pixelData);
+        Stb.StbiImageFree(pixelData);
     }
 
     internal void SetNextSibling(Image? sibling) => _nextSibling = sibling;
@@ -1619,7 +1622,7 @@ public partial class Image : Resource
 
     private static string GetStbiFailureReason()
     {
-        var reason = RedBolt.Bindings.Stb.StbVorbisNativeBindings.StbiFailureReason();
+        var reason = Stb.StbiFailureReason();
         var length = reason.IndexOf((byte)0);
         return System.Text.Encoding.UTF8.GetString(length >= 0 ? reason[..length] : reason);
     }

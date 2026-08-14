@@ -124,15 +124,15 @@ public sealed class RaytracerScene : IDisposable
         if (_disposed)
             return;
 
-        EmbreeNativeBindings.RtcReleaseScene(Scene);
-        EmbreeNativeBindings.RtcReleaseDevice(Device);
+        Embree.RtcReleaseScene(Scene);
+        Embree.RtcReleaseDevice(Device);
         _disposed = true;
     }
 
     internal static RTCIntersectArguments CreateIntersectArguments()
     {
         var result = new RTCIntersectArguments();
-        EmbreeNativeBindings.RtcInitIntersectArguments(result);
+        Embree.RtcInitIntersectArguments(result);
         result.Filter = GetFilterFunctionPointer();
         result.Flags = RTCRayQueryFlags.RtcRayQueryFlagInvokeArgumentFilter;
         return result;
@@ -144,7 +144,7 @@ public sealed class RaytracerScene : IDisposable
         _activeFilter = filter;
         try
         {
-            EmbreeNativeBindings.RtcIntersect1(Scene, rayHit, arguments);
+            Embree.RtcIntersect1(Scene, rayHit, arguments);
         }
         finally
         {
@@ -172,9 +172,9 @@ public sealed class RaytracerScene : IDisposable
         int lightmapUvChannel, IReadOnlyList<BakedSceneBackground> backgrounds)
     {
         var parsedModels = ParseModels(geometries, lightmapUvChannel);
-        var device = EmbreeNativeBindings.RtcNewDevice([]);
-        var scene = EmbreeNativeBindings.RtcNewScene(device);
-        EmbreeNativeBindings.RtcSetSceneFlags(scene, RTCSceneFlags.RtcSceneFlagFilterFunctionInArguments);
+        var device = Embree.RtcNewDevice([]);
+        var scene = Embree.RtcNewScene(device);
+        Embree.RtcSetSceneFlags(scene, RTCSceneFlags.RtcSceneFlagFilterFunctionInArguments);
 
         var raytracerGeometries = new List<RaytracerGeometry>();
         for (var objectIndex = 0; objectIndex < geometries.Count; ++objectIndex)
@@ -196,8 +196,8 @@ public sealed class RaytracerScene : IDisposable
         var diffuseImages = new Dictionary<string, Image?>();
         foreach (var raytracerGeometry in raytracerGeometries)
         {
-            var geometryId = checked((int)EmbreeNativeBindings.RtcAttachGeometry(scene, raytracerGeometry.EmbreeGeometry));
-            EmbreeNativeBindings.RtcReleaseGeometry(raytracerGeometry.EmbreeGeometry);
+            var geometryId = checked((int)Embree.RtcAttachGeometry(scene, raytracerGeometry.EmbreeGeometry));
+            Embree.RtcReleaseGeometry(raytracerGeometry.EmbreeGeometry);
 
             while (geometryIndex.Count <= geometryId)
                 geometryIndex.Add(null!);
@@ -206,7 +206,7 @@ public sealed class RaytracerScene : IDisposable
             diffuseImages.TryAdd(raytracerGeometry.Material.DiffuseImageName, null);
         }
 
-        EmbreeNativeBindings.RtcCommitScene(scene);
+        Embree.RtcCommitScene(scene);
 
         var cache = context.GetSubsystem<ResourceCache>()!;
         foreach (var name in diffuseImages.Keys.ToArray())
@@ -368,10 +368,10 @@ public sealed class RaytracerScene : IDisposable
         RaytracingGeometryMaterial material, bool directShadowsOnly, bool primaryLod,
         int lightmapUvChannel, Vector2f lightmapUvScale, Vector2f lightmapUvOffset)
     {
-        var result = EmbreeNativeBindings.RtcNewGeometry(device, RTCGeometryType.RtcGeometryTypeTriangle);
-        EmbreeNativeBindings.RtcSetGeometryVertexAttributeCount(result, MaxAttributes);
+        var result = Embree.RtcNewGeometry(device, RTCGeometryType.RtcGeometryTypeTriangle);
+        Embree.RtcSetGeometryVertexAttributeCount(result, MaxAttributes);
 
-        var vertices = new Span<float>((void*)EmbreeNativeBindings.RtcSetNewGeometryBuffer(result,
+        var vertices = new Span<float>((void*)Embree.RtcSetNewGeometryBuffer(result,
             RTCBufferType.RtcBufferTypeVertex, 0, RTCFormat.RtcFormatFloat3,
             (nuint)(sizeof(float) * 3), (nuint)geometry.Vertices.Count), geometry.Vertices.Count * 3);
 
@@ -379,10 +379,10 @@ public sealed class RaytracerScene : IDisposable
         Span<float> smoothNormals = default;
         if (!directShadowsOnly && primaryLod)
         {
-            lightmapUvs = new Span<float>((void*)EmbreeNativeBindings.RtcSetNewGeometryBuffer(result,
+            lightmapUvs = new Span<float>((void*)Embree.RtcSetNewGeometryBuffer(result,
                 RTCBufferType.RtcBufferTypeVertexAttribute, LightmapUvAttribute, RTCFormat.RtcFormatFloat2,
                 (nuint)(sizeof(float) * 2), (nuint)geometry.Vertices.Count), geometry.Vertices.Count * 2);
-            smoothNormals = new Span<float>((void*)EmbreeNativeBindings.RtcSetNewGeometryBuffer(result,
+            smoothNormals = new Span<float>((void*)Embree.RtcSetNewGeometryBuffer(result,
                 RTCBufferType.RtcBufferTypeVertexAttribute, NormalAttribute, RTCFormat.RtcFormatFloat3,
                 (nuint)(sizeof(float) * 3), (nuint)geometry.Vertices.Count), geometry.Vertices.Count * 3);
         }
@@ -390,7 +390,7 @@ public sealed class RaytracerScene : IDisposable
         Span<float> uvs = default;
         if (material.StoreUv)
         {
-            uvs = new Span<float>((void*)EmbreeNativeBindings.RtcSetNewGeometryBuffer(result,
+            uvs = new Span<float>((void*)Embree.RtcSetNewGeometryBuffer(result,
                 RTCBufferType.RtcBufferTypeVertexAttribute, UvAttribute, RTCFormat.RtcFormatFloat2,
                 (nuint)(sizeof(float) * 2), (nuint)geometry.Vertices.Count), geometry.Vertices.Count * 2);
         }
@@ -436,13 +436,13 @@ public sealed class RaytracerScene : IDisposable
             }
         }
 
-        var indices = new Span<uint>((void*)EmbreeNativeBindings.RtcSetNewGeometryBuffer(result,
+        var indices = new Span<uint>((void*)Embree.RtcSetNewGeometryBuffer(result,
             RTCBufferType.RtcBufferTypeIndex, 0, RTCFormat.RtcFormatUint3,
             (nuint)(sizeof(uint) * 3), (nuint)(geometry.Indices.Count / 3)), geometry.Indices.Count);
         geometry.Indices.CopyTo(indices);
 
-        EmbreeNativeBindings.RtcSetGeometryMask(result, GetGeometryMask(directShadowsOnly, primaryLod));
-        EmbreeNativeBindings.RtcCommitGeometry(result);
+        Embree.RtcSetGeometryMask(result, GetGeometryMask(directShadowsOnly, primaryLod));
+        Embree.RtcCommitGeometry(result);
         return result;
     }
 
@@ -457,9 +457,9 @@ public sealed class RaytracerScene : IDisposable
         var numVertices = terrainSize.X * terrainSize.Y;
         var numQuads = numPatches.X * numPatches.Y * patchSize * patchSize;
 
-        var result = EmbreeNativeBindings.RtcNewGeometry(device, RTCGeometryType.RtcGeometryTypeTriangle);
-        EmbreeNativeBindings.RtcSetGeometryVertexAttributeCount(result, MaxAttributes);
-        var vertices = new Span<float>((void*)EmbreeNativeBindings.RtcSetNewGeometryBuffer(result,
+        var result = Embree.RtcNewGeometry(device, RTCGeometryType.RtcGeometryTypeTriangle);
+        Embree.RtcSetGeometryVertexAttributeCount(result, MaxAttributes);
+        var vertices = new Span<float>((void*)Embree.RtcSetNewGeometryBuffer(result,
             RTCBufferType.RtcBufferTypeVertex, 0, RTCFormat.RtcFormatFloat3,
             (nuint)(sizeof(float) * 3), (nuint)numVertices), numVertices * 3);
 
@@ -467,10 +467,10 @@ public sealed class RaytracerScene : IDisposable
         Span<float> smoothNormals = default;
         if (!directShadowsOnly)
         {
-            lightmapUvs = new Span<float>((void*)EmbreeNativeBindings.RtcSetNewGeometryBuffer(result,
+            lightmapUvs = new Span<float>((void*)Embree.RtcSetNewGeometryBuffer(result,
                 RTCBufferType.RtcBufferTypeVertexAttribute, LightmapUvAttribute, RTCFormat.RtcFormatFloat2,
                 (nuint)(sizeof(float) * 2), (nuint)numVertices), numVertices * 2);
-            smoothNormals = new Span<float>((void*)EmbreeNativeBindings.RtcSetNewGeometryBuffer(result,
+            smoothNormals = new Span<float>((void*)Embree.RtcSetNewGeometryBuffer(result,
                 RTCBufferType.RtcBufferTypeVertexAttribute, NormalAttribute, RTCFormat.RtcFormatFloat3,
                 (nuint)(sizeof(float) * 3), (nuint)numVertices), numVertices * 3);
         }
@@ -478,7 +478,7 @@ public sealed class RaytracerScene : IDisposable
         Span<float> uvs = default;
         if (material.StoreUv)
         {
-            uvs = new Span<float>((void*)EmbreeNativeBindings.RtcSetNewGeometryBuffer(result,
+            uvs = new Span<float>((void*)Embree.RtcSetNewGeometryBuffer(result,
                 RTCBufferType.RtcBufferTypeVertexAttribute, UvAttribute, RTCFormat.RtcFormatFloat2,
                 (nuint)(sizeof(float) * 2), (nuint)numVertices), numVertices * 2);
         }
@@ -512,7 +512,7 @@ public sealed class RaytracerScene : IDisposable
             }
         }
 
-        var indices = new Span<uint>((void*)EmbreeNativeBindings.RtcSetNewGeometryBuffer(result,
+        var indices = new Span<uint>((void*)Embree.RtcSetNewGeometryBuffer(result,
             RTCBufferType.RtcBufferTypeIndex, 0, RTCFormat.RtcFormatUint3,
             (nuint)(sizeof(uint) * 3), (nuint)(numQuads * 2)), numQuads * 6);
         var index = 0;
@@ -530,8 +530,8 @@ public sealed class RaytracerScene : IDisposable
             }
         }
 
-        EmbreeNativeBindings.RtcSetGeometryMask(result, GetGeometryMask(directShadowsOnly, true));
-        EmbreeNativeBindings.RtcCommitGeometry(result);
+        Embree.RtcSetGeometryMask(result, GetGeometryMask(directShadowsOnly, true));
+        Embree.RtcCommitGeometry(result);
         return result;
     }
 

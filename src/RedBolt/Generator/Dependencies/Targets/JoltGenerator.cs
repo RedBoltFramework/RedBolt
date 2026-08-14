@@ -10,7 +10,7 @@ internal sealed class JoltGenerator(string nativeLibraryName)
         "jolt",
         "RedBolt.Bindings.Jolt",
         "RedBolt.Bindings.Jolt",
-        "JoltNativeBindings",
+        "Jolt",
         nativeLibraryName,
         "redbolt_jolt",
         "-xc++",

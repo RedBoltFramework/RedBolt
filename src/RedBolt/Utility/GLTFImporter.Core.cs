@@ -10,7 +10,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 
 using Tg = RedBolt.Bindings.TinyGltf;
-using TgNative = RedBolt.Bindings.TinyGltf.TinyGltfNativeBindings;
+using TgNative = RedBolt.Bindings.TinyGltf.TinyGltf;
 
 using RedBolt.Container;
 using RedBolt.Core;

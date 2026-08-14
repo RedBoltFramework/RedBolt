@@ -10,7 +10,7 @@ internal sealed class XAtlasGenerator(string nativeLibraryName)
         "xatlas",
         "RedBolt.Bindings.XAtlas",
         "RedBolt.Bindings.XAtlas",
-        "XAtlasNativeBindings",
+        "XAtlas",
         nativeLibraryName,
         "redbolt_xatlas",
         "-xc++",

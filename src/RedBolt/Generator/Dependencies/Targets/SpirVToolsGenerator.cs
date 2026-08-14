@@ -5,7 +5,7 @@ internal sealed class SpirVToolsGenerator(string nativeLibraryName)
         "spirvtools",
         "RedBolt.Bindings.SpirVTools",
         "RedBolt.Bindings.SpirVTools",
-        "SpirVToolsNativeBindings",
+        "SpirVTools",
         nativeLibraryName,
         "redbolt_spirvtools",
         "-xc",

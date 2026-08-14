@@ -30,10 +30,10 @@ public partial class CollisionBox2D : CollisionShape2D
     {
         var scale = WorldScale2D;
         using var center = PhysicsUtils2D.ToB2(_center * scale);
-        using var rotation = Box2DNativeBindings.B2MakeRot(_angle * PhysicsUtils2D.DegreesToRadians);
-        using var polygon = Box2DNativeBindings.B2MakeOffsetBox(
+        using var rotation = Box2D.B2MakeRot(_angle * PhysicsUtils2D.DegreesToRadians);
+        using var polygon = Box2D.B2MakeOffsetBox(
             MathF.Abs(_size.X * scale.X) * 0.5f, MathF.Abs(_size.Y * scale.Y) * 0.5f, center, rotation);
-        yield return Box2DNativeBindings.B2CreatePolygonShape(bodyId, def, polygon);
+        yield return Box2D.B2CreatePolygonShape(bodyId, def, polygon);
     }
 }
 
@@ -59,7 +59,7 @@ public partial class CollisionCircle2D : CollisionShape2D
             CenterY = _center.Y * scale,
             Radius = _radius * scale,
         };
-        yield return Box2DNativeBindings.B2CreateCircleShape(bodyId, def, circle);
+        yield return Box2D.B2CreateCircleShape(bodyId, def, circle);
     }
 }
 
@@ -91,7 +91,7 @@ public partial class CollisionEdge2D : CollisionShape2D
             Point2X = _vertex2.X * scale.X,
             Point2Y = _vertex2.Y * scale.Y,
         };
-        yield return Box2DNativeBindings.B2CreateSegmentShape(bodyId, def, segment);
+        yield return Box2D.B2CreateSegmentShape(bodyId, def, segment);
     }
 }
 
@@ -160,7 +160,7 @@ public partial class CollisionPolygon2D : CollisionShape2D
             polygon.Normals[i].X = normal.X;
             polygon.Normals[i].Y = normal.Y;
         }
-        yield return Box2DNativeBindings.B2CreatePolygonShape(bodyId, def, polygon);
+        yield return Box2D.B2CreatePolygonShape(bodyId, def, polygon);
     }
 
     private static float SignedArea(IReadOnlyList<Vector2f> vertices)
@@ -242,7 +242,7 @@ public partial class CollisionChain2D : CollisionShape2D
             var a = _vertices[i] * scale;
             var b = _vertices[(i + 1) % _vertices.Count] * scale;
             using var segment = new B2Segment { Point1X = a.X, Point1Y = a.Y, Point2X = b.X, Point2Y = b.Y };
-            yield return Box2DNativeBindings.B2CreateSegmentShape(bodyId, def, segment);
+            yield return Box2D.B2CreateSegmentShape(bodyId, def, segment);
         }
     }
 }

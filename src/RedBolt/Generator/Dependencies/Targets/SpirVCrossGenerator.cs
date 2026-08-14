@@ -5,7 +5,7 @@ internal sealed class SpirVCrossGenerator(string nativeLibraryName)
         "spirvcross",
         "RedBolt.Bindings.SpirVCross",
         "RedBolt.Bindings.SpirVCross",
-        "SpirVCrossNativeBindings",
+        "SpirVCross",
         nativeLibraryName,
         "redbolt_spirvcross",
         "-xc",

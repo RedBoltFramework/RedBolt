@@ -5,7 +5,7 @@ internal sealed class GlslangGenerator(string nativeLibraryName)
         "glslang",
         "RedBolt.Bindings.Glslang",
         "RedBolt.Bindings.Glslang",
-        "GlslangNativeBindings",
+        "Glslang",
         nativeLibraryName,
         "redbolt_glslang",
         "-xc",

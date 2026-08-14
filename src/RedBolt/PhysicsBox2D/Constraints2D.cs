@@ -30,7 +30,7 @@ public partial class ConstraintDistance2D : Constraint2D
 
     protected override B2JointId CreateNativeJoint(B2WorldId worldId, B2BodyId ownerBody, B2BodyId otherBody)
     {
-        using var def = Box2DNativeBindings.B2DefaultDistanceJointDef();
+        using var def = Box2D.B2DefaultDistanceJointDef();
         PhysicsUtils2D.SetBodyA(def, ownerBody);
         PhysicsUtils2D.SetBodyB(def, otherBody);
         var anchorA = ToLocalPoint(ownerBody, _ownerBodyAnchor);
@@ -46,7 +46,7 @@ public partial class ConstraintDistance2D : Constraint2D
         def.Hertz = _frequencyHz;
         def.DampingRatio = _dampingRatio;
         def.CollideConnected = ShouldCollideConnected;
-        return Box2DNativeBindings.B2CreateDistanceJoint(worldId, def);
+        return Box2D.B2CreateDistanceJoint(worldId, def);
     }
 }
 
@@ -68,14 +68,14 @@ public partial class ConstraintFriction2D : Constraint2D
 
     protected override B2JointId CreateNativeJoint(B2WorldId worldId, B2BodyId ownerBody, B2BodyId otherBody)
     {
-        using var def = Box2DNativeBindings.B2DefaultMotorJointDef();
+        using var def = Box2D.B2DefaultMotorJointDef();
         PhysicsUtils2D.SetBodyA(def, ownerBody);
         PhysicsUtils2D.SetBodyB(def, otherBody);
         def.MaxForce = _maxForce;
         def.MaxTorque = _maxTorque;
         def.CorrectionFactor = 0.0f;
         def.CollideConnected = ShouldCollideConnected;
-        return Box2DNativeBindings.B2CreateMotorJoint(worldId, def);
+        return Box2D.B2CreateMotorJoint(worldId, def);
     }
 }
 
@@ -102,7 +102,7 @@ public partial class ConstraintMotor2D : Constraint2D
 
     protected override B2JointId CreateNativeJoint(B2WorldId worldId, B2BodyId ownerBody, B2BodyId otherBody)
     {
-        using var def = Box2DNativeBindings.B2DefaultMotorJointDef();
+        using var def = Box2D.B2DefaultMotorJointDef();
         PhysicsUtils2D.SetBodyA(def, ownerBody);
         PhysicsUtils2D.SetBodyB(def, otherBody);
         def.LinearOffsetX = _linearOffset.X;
@@ -112,7 +112,7 @@ public partial class ConstraintMotor2D : Constraint2D
         def.MaxTorque = _maxTorque;
         def.CorrectionFactor = _correctionFactor;
         def.CollideConnected = ShouldCollideConnected;
-        return Box2DNativeBindings.B2CreateMotorJoint(worldId, def);
+        return Box2D.B2CreateMotorJoint(worldId, def);
     }
 }
 
@@ -136,7 +136,7 @@ public partial class ConstraintMouse2D : Constraint2D
 
     protected override B2JointId CreateNativeJoint(B2WorldId worldId, B2BodyId ownerBody, B2BodyId otherBody)
     {
-        using var def = Box2DNativeBindings.B2DefaultMouseJointDef();
+        using var def = Box2D.B2DefaultMouseJointDef();
         PhysicsUtils2D.SetBodyA(def, ownerBody);
         PhysicsUtils2D.SetBodyB(def, otherBody);
         def.TargetX = _target.X;
@@ -145,7 +145,7 @@ public partial class ConstraintMouse2D : Constraint2D
         def.Hertz = _frequencyHz;
         def.DampingRatio = _dampingRatio;
         def.CollideConnected = ShouldCollideConnected;
-        return Box2DNativeBindings.B2CreateMouseJoint(worldId, def);
+        return Box2D.B2CreateMouseJoint(worldId, def);
     }
 }
 
@@ -181,7 +181,7 @@ public partial class ConstraintPrismatic2D : Constraint2D
 
     protected override B2JointId CreateNativeJoint(B2WorldId worldId, B2BodyId ownerBody, B2BodyId otherBody)
     {
-        using var def = Box2DNativeBindings.B2DefaultPrismaticJointDef();
+        using var def = Box2D.B2DefaultPrismaticJointDef();
         PhysicsUtils2D.SetBodyA(def, ownerBody);
         PhysicsUtils2D.SetBodyB(def, otherBody);
         var anchorA = ToLocalPoint(ownerBody, _anchor);
@@ -201,7 +201,7 @@ public partial class ConstraintPrismatic2D : Constraint2D
         def.MaxMotorForce = _maxMotorForce;
         def.MotorSpeed = _motorSpeed;
         def.CollideConnected = ShouldCollideConnected;
-        return Box2DNativeBindings.B2CreatePrismaticJoint(worldId, def);
+        return Box2D.B2CreatePrismaticJoint(worldId, def);
     }
 }
 
@@ -234,7 +234,7 @@ public partial class ConstraintRevolute2D : Constraint2D
 
     protected override B2JointId CreateNativeJoint(B2WorldId worldId, B2BodyId ownerBody, B2BodyId otherBody)
     {
-        using var def = Box2DNativeBindings.B2DefaultRevoluteJointDef();
+        using var def = Box2D.B2DefaultRevoluteJointDef();
         PhysicsUtils2D.SetBodyA(def, ownerBody);
         PhysicsUtils2D.SetBodyB(def, otherBody);
         var anchorA = ToLocalPoint(ownerBody, _anchor);
@@ -251,7 +251,7 @@ public partial class ConstraintRevolute2D : Constraint2D
         def.MotorSpeed = _motorSpeed;
         def.MaxMotorTorque = _maxMotorTorque;
         def.CollideConnected = ShouldCollideConnected;
-        return Box2DNativeBindings.B2CreateRevoluteJoint(worldId, def);
+        return Box2D.B2CreateRevoluteJoint(worldId, def);
     }
 }
 
@@ -273,7 +273,7 @@ public partial class ConstraintRope2D : Constraint2D
 
     protected override B2JointId CreateNativeJoint(B2WorldId worldId, B2BodyId ownerBody, B2BodyId otherBody)
     {
-        using var def = Box2DNativeBindings.B2DefaultDistanceJointDef();
+        using var def = Box2D.B2DefaultDistanceJointDef();
         PhysicsUtils2D.SetBodyA(def, ownerBody);
         PhysicsUtils2D.SetBodyB(def, otherBody);
         var anchorA = ToLocalPoint(ownerBody, _ownerBodyAnchor);
@@ -287,7 +287,7 @@ public partial class ConstraintRope2D : Constraint2D
         def.MaxLength = MathF.Max(_maxLength, 0.005f);
         def.EnableLimit = true;
         def.CollideConnected = ShouldCollideConnected;
-        return Box2DNativeBindings.B2CreateDistanceJoint(worldId, def);
+        return Box2D.B2CreateDistanceJoint(worldId, def);
     }
 }
 
@@ -308,7 +308,7 @@ public partial class ConstraintWeld2D : Constraint2D
 
     protected override B2JointId CreateNativeJoint(B2WorldId worldId, B2BodyId ownerBody, B2BodyId otherBody)
     {
-        using var def = Box2DNativeBindings.B2DefaultWeldJointDef();
+        using var def = Box2D.B2DefaultWeldJointDef();
         PhysicsUtils2D.SetBodyA(def, ownerBody);
         PhysicsUtils2D.SetBodyB(def, otherBody);
         var anchorA = ToLocalPoint(ownerBody, _anchor);
@@ -323,7 +323,7 @@ public partial class ConstraintWeld2D : Constraint2D
         def.LinearDampingRatio = _dampingRatio;
         def.AngularDampingRatio = _dampingRatio;
         def.CollideConnected = ShouldCollideConnected;
-        return Box2DNativeBindings.B2CreateWeldJoint(worldId, def);
+        return Box2D.B2CreateWeldJoint(worldId, def);
     }
 }
 
@@ -356,7 +356,7 @@ public partial class ConstraintWheel2D : Constraint2D
 
     protected override B2JointId CreateNativeJoint(B2WorldId worldId, B2BodyId ownerBody, B2BodyId otherBody)
     {
-        using var def = Box2DNativeBindings.B2DefaultWheelJointDef();
+        using var def = Box2D.B2DefaultWheelJointDef();
         PhysicsUtils2D.SetBodyA(def, ownerBody);
         PhysicsUtils2D.SetBodyB(def, otherBody);
         var anchorA = ToLocalPoint(ownerBody, _anchor);
@@ -375,6 +375,6 @@ public partial class ConstraintWheel2D : Constraint2D
         def.Hertz = _frequencyHz;
         def.DampingRatio = _dampingRatio;
         def.CollideConnected = ShouldCollideConnected;
-        return Box2DNativeBindings.B2CreateWheelJoint(worldId, def);
+        return Box2D.B2CreateWheelJoint(worldId, def);
     }
 }

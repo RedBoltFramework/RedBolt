@@ -20,7 +20,7 @@ using RedBolt.IO;
 using RedBolt.Input;
 using RedBolt.Network;
 
-using static RedBolt.Bindings.LibDataChannel.LibDataChannelNativeBindings;
+using static RedBolt.Bindings.LibDataChannel.LibDataChannel;
 
 internal static class WebRTCSTUNProgram
 {

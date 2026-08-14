@@ -24,7 +24,7 @@ public class OggVorbisSoundStream : SoundStream, IDisposable
         _dataSize = (uint)_data.Length;
 
         _dataHandle = GCHandle.Alloc(_data, GCHandleType.Pinned);
-        _decoder = StbVorbisNativeBindings.StbVorbisOpenMemory(
+        _decoder = Stb.StbVorbisOpenMemory(
             _dataHandle.AddrOfPinnedObject(), checked((int)_dataSize), out _, null!);
     }
 
@@ -32,7 +32,7 @@ public class OggVorbisSoundStream : SoundStream, IDisposable
     {
         if (_decoder is { IsNull: false })
         {
-            StbVorbisNativeBindings.StbVorbisClose(_decoder);
+            Stb.StbVorbisClose(_decoder);
             _decoder = null;
         }
 
@@ -47,7 +47,7 @@ public class OggVorbisSoundStream : SoundStream, IDisposable
         if (_decoder is null || _decoder.IsNull)
             return false;
 
-        return StbVorbisNativeBindings.StbVorbisSeek(_decoder, sampleNumber) == 1;
+        return Stb.StbVorbisSeek(_decoder, sampleNumber) == 1;
     }
 
     public override uint GetData(sbyte[] dest, uint numBytes)
@@ -57,15 +57,15 @@ public class OggVorbisSoundStream : SoundStream, IDisposable
 
         var channels = Stereo ? 2u : 1u;
         var output = MemoryMarshal.Cast<sbyte, short>(dest.AsSpan());
-        var outSamples = (uint)StbVorbisNativeBindings.StbVorbisGetSamplesShortInterleaved(
+        var outSamples = (uint)Stb.StbVorbisGetSamplesShortInterleaved(
             _decoder, checked((int)channels), output, checked((int)(numBytes >> 1)));
         var outBytes = (outSamples * channels) << 1;
 
         if (outBytes < numBytes && !StopAtEnd)
         {
             numBytes -= outBytes;
-            StbVorbisNativeBindings.StbVorbisSeekStart(_decoder);
-            outSamples = (uint)StbVorbisNativeBindings.StbVorbisGetSamplesShortInterleaved(
+            Stb.StbVorbisSeekStart(_decoder);
+            outSamples = (uint)Stb.StbVorbisGetSamplesShortInterleaved(
                 _decoder, checked((int)channels), output[checked((int)(outBytes >> 1))..], checked((int)(numBytes >> 1)));
             outBytes += (outSamples * channels) << 1;
         }

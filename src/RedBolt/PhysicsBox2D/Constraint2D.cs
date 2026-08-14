@@ -78,7 +78,7 @@ public abstract partial class Constraint2D : Component
     {
         if (!IsJointValid)
             return;
-        Box2DNativeBindings.B2DestroyJoint(_jointId!);
+        Box2D.B2DestroyJoint(_jointId!);
         _jointId!.Dispose();
         _jointId = null;
     }
@@ -145,22 +145,22 @@ public abstract partial class Constraint2D : Component
     protected static Vector2f ToLocalPoint(B2BodyId body, Vector2f point)
     {
         using var nativePoint = PhysicsUtils2D.ToB2(point);
-        using var localPoint = Box2DNativeBindings.B2BodyGetLocalPoint(body, nativePoint);
+        using var localPoint = Box2D.B2BodyGetLocalPoint(body, nativePoint);
         return PhysicsUtils2D.ToVector2(localPoint);
     }
 
     protected static Vector2f ToLocalVector(B2BodyId body, Vector2f vector)
     {
         using var nativeVector = PhysicsUtils2D.ToB2(vector);
-        using var localVector = Box2DNativeBindings.B2BodyGetLocalVector(body, nativeVector);
+        using var localVector = Box2D.B2BodyGetLocalVector(body, nativeVector);
         return PhysicsUtils2D.ToVector2(localVector);
     }
 
     protected static float GetReferenceAngle(B2BodyId ownerBody, B2BodyId otherBody)
     {
-        using var ownerRotation = Box2DNativeBindings.B2BodyGetRotation(ownerBody);
-        using var otherRotation = Box2DNativeBindings.B2BodyGetRotation(otherBody);
-        return Box2DNativeBindings.B2RotGetAngle(otherRotation) - Box2DNativeBindings.B2RotGetAngle(ownerRotation);
+        using var ownerRotation = Box2D.B2BodyGetRotation(ownerBody);
+        using var otherRotation = Box2D.B2BodyGetRotation(otherBody);
+        return Box2D.B2RotGetAngle(otherRotation) - Box2D.B2RotGetAngle(ownerRotation);
     }
 
     protected override void OnNodeSet(Node? previousNode, Node? currentNode)
@@ -186,7 +186,7 @@ public abstract partial class Constraint2D : Component
         }
     }
 
-    private bool IsJointValid => _jointId is not null && Box2DNativeBindings.B2JointIsValid(_jointId);
+    private bool IsJointValid => _jointId is not null && Box2D.B2JointIsValid(_jointId);
     private void SetOtherBodyNodeId(uint value)
     {
         _otherBodyNodeId = value;

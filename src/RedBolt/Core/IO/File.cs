@@ -321,7 +321,7 @@ public class File : AbstractFile
     {
         if (_assetHandle is not null)
         {
-            SdlNativeBindings.SdlRWclose(_assetHandle);
+            Sdl.SdlRWclose(_assetHandle);
             _assetHandle = null;
         }
 
@@ -434,7 +434,7 @@ public class File : AbstractFile
 
             using var assetName = new CString(fileName[5..]);
             using var readMode = new CString("rb");
-            _assetHandle = SdlNativeBindings.SdlRWFromFile(assetName.Bytes, readMode.Bytes);
+            _assetHandle = Sdl.SdlRWFromFile(assetName.Bytes, readMode.Bytes);
             if (_assetHandle.IsNull)
             {
                 if (logErrors)
@@ -449,7 +449,7 @@ public class File : AbstractFile
             Position = 0;
             if (!fromPackage)
             {
-                Size = unchecked((uint)SdlNativeBindings.SdlRWsize(_assetHandle));
+                Size = unchecked((uint)Sdl.SdlRWsize(_assetHandle));
                 _offset = 0;
             }
             _checksum = 0;
@@ -516,7 +516,7 @@ public class File : AbstractFile
             {
                 fixed (byte* pointer = destination)
                 {
-                    return SdlNativeBindings.SdlRWread(_assetHandle, (IntPtr)pointer, 1, (nuint)destination.Length)
+                    return Sdl.SdlRWread(_assetHandle, (IntPtr)pointer, 1, (nuint)destination.Length)
                         == (nuint)destination.Length;
                 }
             }
@@ -533,7 +533,7 @@ public class File : AbstractFile
     {
         if (_assetHandle is not null)
         {
-            _ = SdlNativeBindings.SdlRWseek(_assetHandle, (nint)newPosition, 0);
+            _ = Sdl.SdlRWseek(_assetHandle, (nint)newPosition, 0);
             // Reset buffering after seek
             _readBufferOffset = 0;
             _readBufferSize = 0;

@@ -12,7 +12,7 @@ internal static class NativeWindow
     public static NativeWindowInfo GetInfo(SdlWindow window)
     {
         using var version = new SdlVersion();
-        SdlNativeBindings.SdlGetVersion(version);
+        Sdl.SdlGetVersion(version);
 
         using var wmInfo = new SdlSysWMinfo
         {
@@ -20,7 +20,7 @@ internal static class NativeWindow
             VersionMinor = version.Minor,
             VersionPatch = version.Patch
         };
-        var result = SdlNativeBindings.SdlGetWindowWMInfo(window, wmInfo);
+        var result = Sdl.SdlGetWindowWMInfo(window, wmInfo);
 #if REDBOLT_PLATFORM_LINUX
         return ValidateLinuxInfo(result, wmInfo);
 #elif REDBOLT_PLATFORM_WINDOWS

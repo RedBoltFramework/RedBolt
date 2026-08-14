@@ -56,12 +56,12 @@ public static class ShaderTranslator
     {
         public GlslangGuardian()
         {
-            GlslangNativeBindings.GlslangInitializeProcess();
+            Glslang.GlslangInitializeProcess();
         }
 
         public void Dispose()
         {
-            GlslangNativeBindings.GlslangFinalizeProcess();
+            Glslang.GlslangFinalizeProcess();
         }
     }
 
@@ -145,34 +145,34 @@ public static class ShaderTranslator
                 ForceDefaultVersionAndProfile = 0,
                 ForwardCompatible = 0,
                 Messages = GlslangMessagesT.GlslangMsgDefaultBit,
-                Resource = GlslangNativeBindings.GlslangDefaultResource()
+                Resource = Glslang.GlslangDefaultResource()
             };
 
-            shader = GlslangNativeBindings.GlslangShaderCreate(input);
-            GlslangNativeBindings.GlslangShaderSetOptions(shader,
+            shader = Glslang.GlslangShaderCreate(input);
+            Glslang.GlslangShaderSetOptions(shader,
                 (int)(GlslangShaderOptionsT.GlslangShaderAutoMapBindings
                     | GlslangShaderOptionsT.GlslangShaderAutoMapLocations));
-            if (GlslangNativeBindings.GlslangShaderPreprocess(shader, input) == 0)
+            if (Glslang.GlslangShaderPreprocess(shader, input) == 0)
             {
                 outputShader.CompilerOutput = Marshal.PtrToStringUTF8(
-                    GlslangNativeBindings.GlslangShaderGetInfoLog(shader)) ?? string.Empty;
+                    Glslang.GlslangShaderGetInfoLog(shader)) ?? string.Empty;
                 return;
             }
-            input.Code = GlslangNativeBindings.GlslangShaderGetPreprocessedCode(shader);
-            if (GlslangNativeBindings.GlslangShaderParse(shader, input) == 0)
+            input.Code = Glslang.GlslangShaderGetPreprocessedCode(shader);
+            if (Glslang.GlslangShaderParse(shader, input) == 0)
             {
                 outputShader.CompilerOutput = Marshal.PtrToStringUTF8(
-                    GlslangNativeBindings.GlslangShaderGetInfoLog(shader)) ?? string.Empty;
+                    Glslang.GlslangShaderGetInfoLog(shader)) ?? string.Empty;
                 return;
             }
 
-            program = GlslangNativeBindings.GlslangProgramCreate();
-            GlslangNativeBindings.GlslangProgramAddShader(program, shader);
-            if (GlslangNativeBindings.GlslangProgramLink(program, (int)GlslangMessagesT.GlslangMsgDefaultBit) == 0
-                || GlslangNativeBindings.GlslangProgramMapIo(program) == 0)
+            program = Glslang.GlslangProgramCreate();
+            Glslang.GlslangProgramAddShader(program, shader);
+            if (Glslang.GlslangProgramLink(program, (int)GlslangMessagesT.GlslangMsgDefaultBit) == 0
+                || Glslang.GlslangProgramMapIo(program) == 0)
             {
                 outputShader.CompilerOutput = Marshal.PtrToStringUTF8(
-                    GlslangNativeBindings.GlslangProgramGetInfoLog(program)) ?? string.Empty;
+                    Glslang.GlslangProgramGetInfoLog(program)) ?? string.Empty;
                 return;
             }
 
@@ -182,17 +182,17 @@ public static class ShaderTranslator
                 DisableOptimizer = true,
                 OptimizeSize = false
             };
-            GlslangNativeBindings.GlslangProgramSpirvGenerateWithOptions(program, stage, spvOptions);
+            Glslang.GlslangProgramSpirvGenerateWithOptions(program, stage, spvOptions);
             var spirvLog = Marshal.PtrToStringUTF8(
-                GlslangNativeBindings.GlslangProgramSpirvGetMessages(program)) ?? string.Empty;
+                Glslang.GlslangProgramSpirvGetMessages(program)) ?? string.Empty;
             if (!string.IsNullOrEmpty(spirvLog))
             {
                 outputShader.CompilerOutput = spirvLog;
                 return;
             }
 
-            var size = checked((int)GlslangNativeBindings.GlslangProgramSpirvGetSize(program));
-            var bytecode = GlslangNativeBindings.GlslangProgramSpirvGetPtr(program);
+            var size = checked((int)Glslang.GlslangProgramSpirvGetSize(program));
+            var bytecode = Glslang.GlslangProgramSpirvGetPtr(program);
             outputShader.Bytecode.Capacity = SystemMath.Max(outputShader.Bytecode.Capacity, size);
             for (var i = 0; i < size; ++i)
                 outputShader.Bytecode.Add(unchecked((uint)Marshal.ReadInt32(bytecode, i * sizeof(uint))));
@@ -200,9 +200,9 @@ public static class ShaderTranslator
         finally
         {
             if (program is not null)
-                GlslangNativeBindings.GlslangProgramDelete(program);
+                Glslang.GlslangProgramDelete(program);
             if (shader is not null)
-                GlslangNativeBindings.GlslangShaderDelete(shader);
+                Glslang.GlslangShaderDelete(shader);
             Marshal.FreeCoTaskMem(source);
         }
     }
@@ -245,11 +245,11 @@ public static class ShaderTranslator
             RemapHlslInputLayout(compiler, context);
             CollectHlslSamplers(compiler, context, samplers);
 
-            CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerCreateCompilerOptions(compiler, out var options), context);
+            CheckSpvc(SpirVCross.SpvcCompilerCreateCompilerOptions(compiler, out var options), context);
             SetCompilerOption(options, SpvcCompilerOption.SpvcCompilerOptionEmitLineDirectives, true);
             SetCompilerOption(options, SpvcCompilerOption.SpvcCompilerOptionHlslShaderModel, 50u);
             SetCompilerOption(options, SpvcCompilerOption.SpvcCompilerOptionHlslPointSizeCompat, true);
-            CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerInstallCompilerOptions(compiler, options), context);
+            CheckSpvc(SpirVCross.SpvcCompilerInstallCompilerOptions(compiler, options), context);
             output.SourceCode = CompileCompiler(compiler, context);
             ReplaceHlslSamplers(ref output.SourceCode, samplers);
             if (string.IsNullOrEmpty(output.SourceCode))
@@ -257,25 +257,25 @@ public static class ShaderTranslator
         }
         finally
         {
-            SpirVCrossNativeBindings.SpvcContextDestroy(context);
+            SpirVCross.SpvcContextDestroy(context);
         }
     }
 
     private static void RemapHlslInputLayout(SpvcCompilerS compiler, SpvcContextS context)
     {
-        if (SpirVCrossNativeBindings.SpvcCompilerGetExecutionModel(compiler)
+        if (SpirVCross.SpvcCompilerGetExecutionModel(compiler)
             != SpvExecutionModel.SpvExecutionModelVertex)
             return;
 
-        CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerCreateShaderResources(compiler, out var resources), context);
-        CheckSpvc(SpirVCrossNativeBindings.SpvcResourcesGetResourceListForType(resources,
+        CheckSpvc(SpirVCross.SpvcCompilerCreateShaderResources(compiler, out var resources), context);
+        CheckSpvc(SpirVCross.SpvcResourcesGetResourceListForType(resources,
             SpvcResourceType.SpvcResourceTypeStageInput, out var resourceList, out var resourceCount), context);
         for (nuint i = 0; i < resourceCount; ++i)
         {
             var input = resourceList.GetArrayElement(i);
-            System.Diagnostics.Debug.Assert(SpirVCrossNativeBindings.SpvcCompilerHasDecoration(compiler,
+            System.Diagnostics.Debug.Assert(SpirVCross.SpvcCompilerHasDecoration(compiler,
                 input.Id, SpvDecoration.SpvDecorationLocation) != 0);
-            var location = SpirVCrossNativeBindings.SpvcCompilerGetDecoration(compiler,
+            var location = SpirVCross.SpvcCompilerGetDecoration(compiler,
                 input.Id, SpvDecoration.SpvDecorationLocation);
             var semantic = Marshal.StringToCoTaskMemUTF8($"ATTRIB{location}");
             try
@@ -285,7 +285,7 @@ public static class ShaderTranslator
                     Location = location,
                     Semantic = semantic
                 };
-                CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerHlslAddVertexAttributeRemap(
+                CheckSpvc(SpirVCross.SpvcCompilerHlslAddVertexAttributeRemap(
                     compiler, remap, 1), context);
             }
             finally
@@ -297,15 +297,15 @@ public static class ShaderTranslator
 
     private static void CollectHlslSamplers(SpvcCompilerS compiler, SpvcContextS context, List<string> samplers)
     {
-        CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerCreateShaderResources(compiler, out var resources), context);
-        CheckSpvc(SpirVCrossNativeBindings.SpvcResourcesGetResourceListForType(resources,
+        CheckSpvc(SpirVCross.SpvcCompilerCreateShaderResources(compiler, out var resources), context);
+        CheckSpvc(SpirVCross.SpvcResourcesGetResourceListForType(resources,
             SpvcResourceType.SpvcResourceTypeSampledImage, out var resourceList, out var resourceCount), context);
         for (nuint i = 0; i < resourceCount; ++i)
         {
             var resource = resourceList.GetArrayElement(i);
-            var type = SpirVCrossNativeBindings.SpvcCompilerGetTypeHandle(compiler, resource.BaseTypeId);
-            if (SpirVCrossNativeBindings.SpvcTypeGetBasetype(type) == SpvcBasetype.SpvcBasetypeSampledImage
-                && SpirVCrossNativeBindings.SpvcTypeGetImageDimension(type) != SpvDim.SpvDimBuffer)
+            var type = SpirVCross.SpvcCompilerGetTypeHandle(compiler, resource.BaseTypeId);
+            if (SpirVCross.SpvcTypeGetBasetype(type) == SpvcBasetype.SpvcBasetypeSampledImage
+                && SpirVCross.SpvcTypeGetImageDimension(type) != SpvDim.SpvDimBuffer)
             {
                 var name = Marshal.PtrToStringUTF8(resource.Name) ?? string.Empty;
                 samplers.Add("_" + name + "_sampler");
@@ -343,10 +343,10 @@ public static class ShaderTranslator
         using var compiler = CreateCompiler(in shader, SpvcBackend.SpvcBackendGlsl, out var context);
         try
         {
-            CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerCreateCompilerOptions(compiler, out var options), context);
+            CheckSpvc(SpirVCross.SpvcCompilerCreateCompilerOptions(compiler, out var options), context);
             SetCompilerOption(options, SpvcCompilerOption.SpvcCompilerOptionGlslVersion, version);
             SetCompilerOption(options, SpvcCompilerOption.SpvcCompilerOptionGlslEs, es);
-            CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerInstallCompilerOptions(compiler, options), context);
+            CheckSpvc(SpirVCross.SpvcCompilerInstallCompilerOptions(compiler, options), context);
             output.SourceCode = CompileCompiler(compiler, context);
             if (string.IsNullOrEmpty(output.SourceCode))
             {
@@ -359,44 +359,44 @@ public static class ShaderTranslator
         }
         finally
         {
-            SpirVCrossNativeBindings.SpvcContextDestroy(context);
+            SpirVCross.SpvcContextDestroy(context);
         }
     }
 
     private static SpvcCompilerS CreateCompiler(in SpirVShader shader, SpvcBackend backend, out SpvcContextS context)
     {
-        CheckSpvc(SpirVCrossNativeBindings.SpvcContextCreate(out context), context: null);
+        CheckSpvc(SpirVCross.SpvcContextCreate(out context), context: null);
         try
         {
             var bytecode = CollectionsMarshal.AsSpan(shader.Bytecode);
             if (bytecode.IsEmpty)
                 throw new InvalidOperationException("SPIR-V shader is empty.");
-            CheckSpvc(SpirVCrossNativeBindings.SpvcContextParseSpirv(
+            CheckSpvc(SpirVCross.SpvcContextParseSpirv(
                 context, bytecode, checked((nuint)bytecode.Length), out var parsedIr), context);
-            CheckSpvc(SpirVCrossNativeBindings.SpvcContextCreateCompiler(context, backend, parsedIr,
+            CheckSpvc(SpirVCross.SpvcContextCreateCompiler(context, backend, parsedIr,
                 SpvcCaptureMode.SpvcCaptureModeTakeOwnership, out var compiler), context);
             return compiler;
         }
         catch
         {
-            SpirVCrossNativeBindings.SpvcContextDestroy(context);
+            SpirVCross.SpvcContextDestroy(context);
             throw;
         }
     }
 
     private static void SetCompilerOption(SpvcCompilerOptionsS options, SpvcCompilerOption option, uint value)
     {
-        CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerOptionsSetUint(options, option, value), null);
+        CheckSpvc(SpirVCross.SpvcCompilerOptionsSetUint(options, option, value), null);
     }
 
     private static void SetCompilerOption(SpvcCompilerOptionsS options, SpvcCompilerOption option, bool value)
     {
-        CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerOptionsSetBool(options, option, value ? (byte)1 : (byte)0), null);
+        CheckSpvc(SpirVCross.SpvcCompilerOptionsSetBool(options, option, value ? (byte)1 : (byte)0), null);
     }
 
     private static string CompileCompiler(SpvcCompilerS compiler, SpvcContextS context)
     {
-        CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerCompile(compiler, out var source), context);
+        CheckSpvc(SpirVCross.SpvcCompilerCompile(compiler, out var source), context);
         return Marshal.PtrToStringUTF8(source) ?? string.Empty;
     }
 
@@ -407,7 +407,7 @@ public static class ShaderTranslator
 
         var message = context is null
             ? result.ToString()
-            : Marshal.PtrToStringUTF8(SpirVCrossNativeBindings.SpvcContextGetLastErrorString(context)) ?? result.ToString();
+            : Marshal.PtrToStringUTF8(SpirVCross.SpvcContextGetLastErrorString(context)) ?? result.ToString();
         throw new InvalidOperationException(message);
     }
 
@@ -417,17 +417,17 @@ public static class ShaderTranslator
         using var compiler = CreateCompiler(in shader, SpvcBackend.SpvcBackendNone, out var context);
         try
         {
-            CheckSpvc(SpirVCrossNativeBindings.SpvcCompilerCreateShaderResources(compiler, out var resources), context);
-            CheckSpvc(SpirVCrossNativeBindings.SpvcResourcesGetResourceListForType(resources,
+            CheckSpvc(SpirVCross.SpvcCompilerCreateShaderResources(compiler, out var resources), context);
+            CheckSpvc(SpirVCross.SpvcResourcesGetResourceListForType(resources,
                 SpvcResourceType.SpvcResourceTypeStageInput, out var resourceList, out var resourceCount), context);
             for (nuint i = 0; i < resourceCount; ++i)
             {
                 var input = resourceList.GetArrayElement(i);
-                if (SpirVCrossNativeBindings.SpvcCompilerHasDecoration(compiler,
+                if (SpirVCross.SpvcCompilerHasDecoration(compiler,
                         input.Id, SpvDecoration.SpvDecorationLocation) == 0)
                     continue;
 
-                var location = SpirVCrossNativeBindings.SpvcCompilerGetDecoration(compiler,
+                var location = SpirVCross.SpvcCompilerGetDecoration(compiler,
                     input.Id, SpvDecoration.SpvDecorationLocation);
                 var name = Marshal.PtrToStringUTF8(input.Name) ?? string.Empty;
                 var vertexInput = RenderAPIUtils.ParseVertexAttribute(name);
@@ -438,7 +438,7 @@ public static class ShaderTranslator
         }
         finally
         {
-            SpirVCrossNativeBindings.SpvcContextDestroy(context);
+            SpirVCross.SpvcContextDestroy(context);
         }
     }
 }

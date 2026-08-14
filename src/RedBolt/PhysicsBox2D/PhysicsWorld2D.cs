@@ -94,18 +94,18 @@ public partial class PhysicsWorld2D : Component
     /// <summary>Construct.</summary>
     public PhysicsWorld2D()
     {
-        using var def = Box2DNativeBindings.B2DefaultWorldDef();
+        using var def = Box2D.B2DefaultWorldDef();
         def.GravityX = _gravity.X;
         def.GravityY = _gravity.Y;
         def.EnableSleep = _allowSleeping;
         def.EnableContinuous = _continuousPhysics;
-        _worldId = Box2DNativeBindings.B2CreateWorld(def);
+        _worldId = Box2D.B2CreateWorld(def);
         _preSolveGcHandle = GCHandle.Alloc(this);
         unsafe
         {
             System.Diagnostics.Debug.Assert(sizeof(PreSolveData) == 52);
             var callback = (nint)(delegate* unmanaged[Cdecl]<PreSolveData*, nint, int>)&HandlePreSolve;
-            _preSolveCallbackContext = Box2DNativeBindings.RedboltB2WorldSetManagedPreSolveCallback(
+            _preSolveCallbackContext = Box2D.RedboltB2WorldSetManagedPreSolveCallback(
                 _worldId, callback, GCHandle.ToIntPtr(_preSolveGcHandle));
         }
         if (_preSolveCallbackContext == 0)
@@ -119,12 +119,12 @@ public partial class PhysicsWorld2D : Component
     public override void Dispose()
     {
         if (IsWorldValid && _preSolveCallbackContext != 0)
-            Box2DNativeBindings.RedboltB2WorldClearManagedPreSolveCallback(_worldId!, _preSolveCallbackContext);
+            Box2D.RedboltB2WorldClearManagedPreSolveCallback(_worldId!, _preSolveCallbackContext);
         _preSolveCallbackContext = 0;
         if (_preSolveGcHandle.IsAllocated)
             _preSolveGcHandle.Free();
         if (IsWorldValid)
-            Box2DNativeBindings.B2DestroyWorld(_worldId!);
+            Box2D.B2DestroyWorld(_worldId!);
         _worldId?.Dispose();
         _worldId = null;
         base.Dispose();
@@ -179,7 +179,7 @@ public partial class PhysicsWorld2D : Component
 
         var preStep = new PhysicsEvents2D.PhysicsPreStep2DEvent { World = this, TimeStep = timeStep };
         SendEvent(ref preStep);
-        Box2DNativeBindings.B2WorldStep(_worldId!, timeStep, _subStepping ? System.Math.Max(_positionIterations, 1) : 1);
+        Box2D.B2WorldStep(_worldId!, timeStep, _subStepping ? System.Math.Max(_positionIterations, 1) : 1);
         ProcessContactEvents();
 
         ApplyingTransforms = true;
@@ -228,9 +228,9 @@ public partial class PhysicsWorld2D : Component
 
         using var origin = PhysicsUtils2D.ToB2(startPoint);
         using var delta = PhysicsUtils2D.ToB2(translation);
-        using var filter = Box2DNativeBindings.B2DefaultQueryFilter();
+        using var filter = Box2D.B2DefaultQueryFilter();
         filter.MaskBits = collisionMask;
-        using var hit = Box2DNativeBindings.B2WorldCastRayClosest(_worldId!, origin, delta, filter);
+        using var hit = Box2D.B2WorldCastRayClosest(_worldId!, origin, delta, filter);
         if (!hit.Hit)
             return;
 
@@ -257,12 +257,12 @@ public partial class PhysicsWorld2D : Component
             return;
         using var origin = PhysicsUtils2D.ToB2(startPoint);
         using var delta = PhysicsUtils2D.ToB2(translation);
-        using var filter = Box2DNativeBindings.B2DefaultQueryFilter();
+        using var filter = Box2D.B2DefaultQueryFilter();
         filter.MaskBits = collisionMask;
-        var count = Box2DNativeBindings.RedboltB2WorldCastRayCount(_worldId!, origin, delta, filter);
+        var count = Box2D.RedboltB2WorldCastRayCount(_worldId!, origin, delta, filter);
         for (var index = 0; index < count; ++index)
         {
-            using var hit = Box2DNativeBindings.RedboltB2WorldCastRayAt(_worldId!, origin, delta, filter, index);
+            using var hit = Box2D.RedboltB2WorldCastRayAt(_worldId!, origin, delta, filter, index);
             if (!hit.Hit || !TryGetShape(hit.ShapeIdWorld0, hit.ShapeIdGeneration, hit.ShapeIdIndex1, out var shape))
                 continue;
             results.Add(new PhysicsRaycastResult2D
@@ -287,7 +287,7 @@ public partial class PhysicsWorld2D : Component
                 if ((shape.CategoryBits & collisionMask) == 0 || shape.ShapeId is null)
                     continue;
                 using var nativePoint = PhysicsUtils2D.ToB2(point);
-                if (Box2DNativeBindings.B2ShapeTestPoint(shape.ShapeId, nativePoint))
+                if (Box2D.B2ShapeTestPoint(shape.ShapeId, nativePoint))
                     return body;
             }
         }
@@ -339,7 +339,7 @@ public partial class PhysicsWorld2D : Component
         {
             _allowSleeping = value;
             if (IsWorldValid)
-                Box2DNativeBindings.B2WorldEnableSleeping(_worldId!, value);
+                Box2D.B2WorldEnableSleeping(_worldId!, value);
         }
     }
 
@@ -351,7 +351,7 @@ public partial class PhysicsWorld2D : Component
         {
             _warmStarting = value;
             if (IsWorldValid)
-                Box2DNativeBindings.B2WorldEnableWarmStarting(_worldId!, value);
+                Box2D.B2WorldEnableWarmStarting(_worldId!, value);
         }
     }
 
@@ -363,7 +363,7 @@ public partial class PhysicsWorld2D : Component
         {
             _continuousPhysics = value;
             if (IsWorldValid)
-                Box2DNativeBindings.B2WorldEnableContinuous(_worldId!, value);
+                Box2D.B2WorldEnableContinuous(_worldId!, value);
         }
     }
 
@@ -380,7 +380,7 @@ public partial class PhysicsWorld2D : Component
             if (!IsWorldValid)
                 return;
             using var gravity = PhysicsUtils2D.ToB2(value);
-            Box2DNativeBindings.B2WorldSetGravity(_worldId!, gravity);
+            Box2D.B2WorldSetGravity(_worldId!, gravity);
         }
     }
 
@@ -396,7 +396,7 @@ public partial class PhysicsWorld2D : Component
 
     internal B2WorldId WorldId => _worldId!;
     public bool ApplyingTransforms { get; set; }
-    private bool IsWorldValid => _worldId is not null && Box2DNativeBindings.B2WorldIsValid(_worldId);
+    private bool IsWorldValid => _worldId is not null && Box2D.B2WorldIsValid(_worldId);
 
     public void AddRigidBody(RigidBody2D body)
     {
@@ -433,10 +433,10 @@ public partial class PhysicsWorld2D : Component
 
     private void ProcessContactEvents()
     {
-        using var contactEvents = Box2DNativeBindings.B2WorldGetContactEvents(_worldId!);
+        using var contactEvents = Box2D.B2WorldGetContactEvents(_worldId!);
         for (var index = 0; index < contactEvents.BeginCount; ++index)
         {
-            using var nativeEvent = Box2DNativeBindings.RedboltB2ContactBeginEventAt(_worldId!, index);
+            using var nativeEvent = Box2D.RedboltB2ContactBeginEventAt(_worldId!, index);
             if (!TryGetShape(nativeEvent.ShapeIdAWorld0, nativeEvent.ShapeIdAGeneration, nativeEvent.ShapeIdAIndex1, out var shapeA)
                 || !TryGetShape(nativeEvent.ShapeIdBWorld0, nativeEvent.ShapeIdBGeneration, nativeEvent.ShapeIdBIndex1, out var shapeB))
                 continue;
@@ -459,10 +459,10 @@ public partial class PhysicsWorld2D : Component
             _contacts[key] = state;
         }
 
-        using var sensorEvents = Box2DNativeBindings.B2WorldGetSensorEvents(_worldId!);
+        using var sensorEvents = Box2D.B2WorldGetSensorEvents(_worldId!);
         for (var index = 0; index < sensorEvents.BeginCount; ++index)
         {
-            using var nativeEvent = Box2DNativeBindings.RedboltB2SensorBeginEventAt(_worldId!, index);
+            using var nativeEvent = Box2D.RedboltB2SensorBeginEventAt(_worldId!, index);
             if (!TryGetShape(nativeEvent.SensorShapeIdWorld0, nativeEvent.SensorShapeIdGeneration, nativeEvent.SensorShapeIdIndex1, out var shapeA)
                 || !TryGetShape(nativeEvent.VisitorShapeIdWorld0, nativeEvent.VisitorShapeIdGeneration, nativeEvent.VisitorShapeIdIndex1, out var shapeB))
                 continue;
@@ -475,13 +475,13 @@ public partial class PhysicsWorld2D : Component
 
         for (var index = 0; index < contactEvents.EndCount; ++index)
         {
-            using var nativeEvent = Box2DNativeBindings.RedboltB2ContactEndEventAt(_worldId!, index);
+            using var nativeEvent = Box2D.RedboltB2ContactEndEventAt(_worldId!, index);
             EndContact(new ContactKey(ShapeKey(nativeEvent.ShapeIdAWorld0, nativeEvent.ShapeIdAGeneration, nativeEvent.ShapeIdAIndex1),
                 ShapeKey(nativeEvent.ShapeIdBWorld0, nativeEvent.ShapeIdBGeneration, nativeEvent.ShapeIdBIndex1)));
         }
         for (var index = 0; index < sensorEvents.EndCount; ++index)
         {
-            using var nativeEvent = Box2DNativeBindings.RedboltB2SensorEndEventAt(_worldId!, index);
+            using var nativeEvent = Box2D.RedboltB2SensorEndEventAt(_worldId!, index);
             EndContact(new ContactKey(ShapeKey(nativeEvent.SensorShapeIdWorld0, nativeEvent.SensorShapeIdGeneration, nativeEvent.SensorShapeIdIndex1),
                 ShapeKey(nativeEvent.VisitorShapeIdWorld0, nativeEvent.VisitorShapeIdGeneration, nativeEvent.VisitorShapeIdIndex1)));
         }

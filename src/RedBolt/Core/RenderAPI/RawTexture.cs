@@ -708,7 +708,7 @@ public class RawTexture : DeviceObject
             return false;
 
         var nativeFormat = _parameters.Format;
-        using (var formatInfo = DiligentNativeBindings.GetTextureFormatAttribs(nativeFormat))
+        using (var formatInfo = Diligent.GetTextureFormatAttribs(nativeFormat))
         {
             _formatBlockWidth = checked((int)formatInfo.BlockWidth);
             _formatBlockHeight = checked((int)formatInfo.BlockHeight);

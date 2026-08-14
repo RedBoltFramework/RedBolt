@@ -13,7 +13,7 @@ internal sealed class RmlUiGenerator(string nativeLibraryName)
         "rmlui",
         "RedBolt.Bindings.RmlUi",
         "RedBolt.Bindings.RmlUi",
-        "RmlUiNativeBindings",
+        "RmlUi",
         nativeLibraryName,
         "redbolt_rmlui",
         "-xc++",

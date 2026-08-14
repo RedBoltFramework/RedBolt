@@ -231,7 +231,7 @@ public class Context : ObjectReflectionRegistry
     {
         ++_sdlInitCounter;
 
-        var initResult = _sdlInitCounter == 1 ? SdlNativeBindings.SdlInit(0) : 0;
+        var initResult = _sdlInitCounter == 1 ? Sdl.SdlInit(0) : 0;
         return RequireSdlCore(sdlFlags, initResult);
     }
 
@@ -242,8 +242,8 @@ public class Context : ObjectReflectionRegistry
             return false;
         }
 
-        var remainingFlags = sdlFlags & ~SdlNativeBindings.SdlWasInit(0);
-        if (remainingFlags == 0 || SdlNativeBindings.SdlInitSubSystem(remainingFlags) == 0)
+        var remainingFlags = sdlFlags & ~Sdl.SdlWasInit(0);
+        if (remainingFlags == 0 || Sdl.SdlInitSubSystem(remainingFlags) == 0)
             return true;
 
         Log.GetLogger().LogError("Failed to initialise SDL subsystem: {SdlError}", DecodeSdlError());
@@ -256,8 +256,8 @@ public class Context : ObjectReflectionRegistry
 
         if (_sdlInitCounter == 0)
         {
-            SdlNativeBindings.SdlQuitSubSystem(uint.MaxValue);
-            SdlNativeBindings.SdlQuit();
+            Sdl.SdlQuitSubSystem(uint.MaxValue);
+            Sdl.SdlQuit();
         }
 
         if (_sdlInitCounter < 0)
@@ -266,7 +266,7 @@ public class Context : ObjectReflectionRegistry
 
     private static string DecodeSdlError()
     {
-        var error = SdlNativeBindings.SdlGetError();
+        var error = Sdl.SdlGetError();
         var length = error.IndexOf((byte)0);
         return System.Text.Encoding.UTF8.GetString(length < 0 ? error : error[..length]);
     }

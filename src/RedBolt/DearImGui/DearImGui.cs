@@ -82,12 +82,12 @@ public class DearImGui : RedObject
         if (!enabled || !ImGui.ImGuiBackendHasCurrentWindow())
         {
             _enableRelativeMouseMove = false;
-            SdlNativeBindings.SdlSetRelativeMouseMode(SdlBool.SdlFalse);
+            Sdl.SdlSetRelativeMouseMode(SdlBool.SdlFalse);
             return;
         }
 
         _enableRelativeMouseMove = true;
-        SdlNativeBindings.SdlSetRelativeMouseMode(SdlBool.SdlTrue);
+        Sdl.SdlSetRelativeMouseMode(SdlBool.SdlTrue);
 
         var io = ImGui.GetIO();
         _revertMousePositionOnDisable = revertMousePositionOnDisable;
@@ -222,7 +222,7 @@ public class DearImGui : RedObject
         switch (renderDevice.GetBackend())
         {
             case RenderBackend.OpenGL:
-                ImGui.ImGuiImplSDL2InitForOpenGL(sdlWindow.Handle, SdlNativeBindings.SdlGlGetCurrentContext());
+                ImGui.ImGuiImplSDL2InitForOpenGL(sdlWindow.Handle, Sdl.SdlGlGetCurrentContext());
                 break;
             case RenderBackend.Vulkan:
                 // Diligent manages Vulkan on its own.
@@ -308,9 +308,9 @@ public class DearImGui : RedObject
                 // TODO: is this condition actually relevant, looks not?
                 if ((io.ConfigFlags & ImGuiConfigFlags.ImGuiConfigFlagsViewportsEnable) != 0)
                 {
-                    var window = SdlNativeBindings.SdlGetWindowFromID(sdlEvent.TfingerWindowID);
-                    SdlNativeBindings.SdlGetWindowPosition(window, out var windowX, out var windowY);
-                    SdlNativeBindings.SdlGetWindowSize(window, out var sizeX, out var sizeY);
+                    var window = Sdl.SdlGetWindowFromID(sdlEvent.TfingerWindowID);
+                    Sdl.SdlGetWindowPosition(window, out var windowX, out var windowY);
+                    Sdl.SdlGetWindowSize(window, out var sizeX, out var sizeY);
                     mousePosition.X = mousePosition.X * sizeX + windowX;
                     mousePosition.Y = mousePosition.Y * sizeY + windowY;
                 }
@@ -324,9 +324,9 @@ public class DearImGui : RedObject
                 var mousePosition = new Vector2f(sdlEvent.TfingerX, sdlEvent.TfingerY);
                 if ((io.ConfigFlags & ImGuiConfigFlags.ImGuiConfigFlagsViewportsEnable) != 0)
                 {
-                    var window = SdlNativeBindings.SdlGetWindowFromID(sdlEvent.TfingerWindowID);
-                    SdlNativeBindings.SdlGetWindowPosition(window, out var windowX, out var windowY);
-                    SdlNativeBindings.SdlGetWindowSize(window, out var sizeX, out var sizeY);
+                    var window = Sdl.SdlGetWindowFromID(sdlEvent.TfingerWindowID);
+                    Sdl.SdlGetWindowPosition(window, out var windowX, out var windowY);
+                    Sdl.SdlGetWindowSize(window, out var sizeX, out var sizeY);
                     mousePosition.X = mousePosition.X * sizeX + windowX;
                     mousePosition.Y = mousePosition.Y * sizeY + windowY;
                 }
@@ -409,7 +409,7 @@ public class DearImGui : RedObject
         if (_enableRelativeMouseMove && !ImGui.IsAnyMouseDown())
         {
             _enableRelativeMouseMove = false;
-            SdlNativeBindings.SdlSetRelativeMouseMode(SdlBool.SdlFalse);
+            Sdl.SdlSetRelativeMouseMode(SdlBool.SdlFalse);
         }
 
         var io = ImGui.GetIO();

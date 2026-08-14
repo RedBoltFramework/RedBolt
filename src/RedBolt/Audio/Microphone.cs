@@ -31,7 +31,7 @@ public partial class Microphone : RedObject
     public override void Dispose()
     {
         if (_deviceId != 0)
-            SdlNativeBindings.SdlCloseAudioDevice(_deviceId);
+            Sdl.SdlCloseAudioDevice(_deviceId);
         _deviceId = 0;
         if (_callbackHandle.IsAllocated)
             _callbackHandle.Free();
@@ -114,7 +114,7 @@ public partial class Microphone : RedObject
                 SendEvent(ref eventData);
             }
 
-            SdlNativeBindings.SdlPauseAudioDevice(_deviceId, enabled ? 0 : 1);
+            Sdl.SdlPauseAudioDevice(_deviceId, enabled ? 0 : 1);
 
             if (!enabled)
             {

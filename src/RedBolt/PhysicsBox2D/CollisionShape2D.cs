@@ -97,7 +97,7 @@ public abstract partial class CollisionShape2D : Component
         {
             _density = MathF.Max(value, 0.0f);
             foreach (var id in _shapeIds)
-                Box2DNativeBindings.B2ShapeSetDensity(id, _density, RigidBody?.UseFixtureMass ?? true);
+                Box2D.B2ShapeSetDensity(id, _density, RigidBody?.UseFixtureMass ?? true);
             RigidBody?.ApplyFixtureMass();
         }
     }
@@ -110,7 +110,7 @@ public abstract partial class CollisionShape2D : Component
         {
             _friction = MathF.Max(value, 0.0f);
             foreach (var id in _shapeIds)
-                Box2DNativeBindings.B2ShapeSetFriction(id, _friction);
+                Box2D.B2ShapeSetFriction(id, _friction);
         }
     }
 
@@ -122,7 +122,7 @@ public abstract partial class CollisionShape2D : Component
         {
             _restitution = MathF.Max(value, 0.0f);
             foreach (var id in _shapeIds)
-                Box2DNativeBindings.B2ShapeSetRestitution(id, _restitution);
+                Box2D.B2ShapeSetRestitution(id, _restitution);
         }
     }
 
@@ -137,7 +137,7 @@ public abstract partial class CollisionShape2D : Component
         {
             if (_shapeIds.Count == 0)
                 return default;
-            using var data = Box2DNativeBindings.B2ShapeGetMassData(_shapeIds[0]);
+            using var data = Box2D.B2ShapeGetMassData(_shapeIds[0]);
             return new Vector2f(data.CenterX, data.CenterY);
         }
     }
@@ -153,7 +153,7 @@ public abstract partial class CollisionShape2D : Component
         _rigidBody = new WeakReference<RigidBody2D>(rigidBody);
         rigidBody.AddCollisionShape2D(this);
 
-        using var def = Box2DNativeBindings.B2DefaultShapeDef();
+        using var def = Box2D.B2DefaultShapeDef();
         def.IsSensor = _trigger;
         def.EnableContactEvents = true;
         def.EnablePreSolveEvents = true;
@@ -180,8 +180,8 @@ public abstract partial class CollisionShape2D : Component
         foreach (var id in _shapeIds)
         {
             rigidBody?.PhysicsWorld?.UnregisterShape(id);
-            if (Box2DNativeBindings.B2ShapeIsValid(id))
-                Box2DNativeBindings.B2DestroyShape(id, rigidBody?.UseFixtureMass ?? true);
+            if (Box2D.B2ShapeIsValid(id))
+                Box2D.B2DestroyShape(id, rigidBody?.UseFixtureMass ?? true);
             id.Dispose();
         }
         _shapeIds.Clear();
@@ -194,17 +194,17 @@ public abstract partial class CollisionShape2D : Component
             return;
         foreach (var id in _shapeIds)
         {
-            using var body = Box2DNativeBindings.B2ShapeGetBody(id);
+            using var body = Box2D.B2ShapeGetBody(id);
             var z = Node.WorldPosition.Z;
-            switch (Box2DNativeBindings.B2ShapeGetType(id))
+            switch (Box2D.B2ShapeGetType(id))
             {
                 case B2ShapeType.B2CircleShape:
-                    using (var circle = Box2DNativeBindings.B2ShapeGetCircle(id))
+                    using (var circle = Box2D.B2ShapeGetCircle(id))
                         debug.AddCircle(GetWorldPoint(body, circle.CenterX, circle.CenterY, z), Vector3f.Forward,
                             circle.Radius, Color.Green, 32, depthTest, false);
                     break;
                 case B2ShapeType.B2PolygonShape:
-                    using (var polygon = Box2DNativeBindings.B2ShapeGetPolygon(id))
+                    using (var polygon = Box2D.B2ShapeGetPolygon(id))
                     {
                         for (var index = 0; index < polygon.Count; ++index)
                         {
@@ -216,12 +216,12 @@ public abstract partial class CollisionShape2D : Component
                     }
                     break;
                 case B2ShapeType.B2SegmentShape:
-                    using (var segment = Box2DNativeBindings.B2ShapeGetSegment(id))
+                    using (var segment = Box2D.B2ShapeGetSegment(id))
                         debug.AddLine(GetWorldPoint(body, segment.Point1X, segment.Point1Y, z),
                             GetWorldPoint(body, segment.Point2X, segment.Point2Y, z), Color.Green, depthTest);
                     break;
                 case B2ShapeType.B2ChainSegmentShape:
-                    using (var segment = Box2DNativeBindings.B2ShapeGetChainSegment(id))
+                    using (var segment = Box2D.B2ShapeGetChainSegment(id))
                         debug.AddLine(GetWorldPoint(body, segment.SegmentPoint1X, segment.SegmentPoint1Y, z),
                             GetWorldPoint(body, segment.SegmentPoint2X, segment.SegmentPoint2Y, z), Color.Green, depthTest);
                     break;
@@ -233,7 +233,7 @@ public abstract partial class CollisionShape2D : Component
     {
         foreach (var id in _shapeIds)
         {
-            using var bounds = Box2DNativeBindings.B2ShapeGetAABB(id);
+            using var bounds = Box2D.B2ShapeGetAABB(id);
             debug.AddBoundingBox(new BoundingBox(
                 new Vector3f(bounds.LowerBoundX, bounds.LowerBoundY, Node.WorldPosition.Z),
                 new Vector3f(bounds.UpperBoundX, bounds.UpperBoundY, Node.WorldPosition.Z)), Color.Green, depthTest);
@@ -243,7 +243,7 @@ public abstract partial class CollisionShape2D : Component
     private static Vector3f GetWorldPoint(B2BodyId body, float x, float y, float z)
     {
         using var local = new B2Vec2 { X = x, Y = y };
-        using var world = Box2DNativeBindings.B2BodyGetWorldPoint(body, local);
+        using var world = Box2D.B2BodyGetWorldPoint(body, local);
         return new Vector3f(world.X, world.Y, z);
     }
 
@@ -257,7 +257,7 @@ public abstract partial class CollisionShape2D : Component
     {
         foreach (var id in _shapeIds)
         {
-            using var bounds = Box2DNativeBindings.B2ShapeGetAABB(id);
+            using var bounds = Box2D.B2ShapeGetAABB(id);
             if (bounds.LowerBoundX <= rect.Max.X && bounds.UpperBoundX >= rect.Min.X &&
                 bounds.LowerBoundY <= rect.Max.Y && bounds.UpperBoundY >= rect.Min.Y)
                 return true;
@@ -306,12 +306,12 @@ public abstract partial class CollisionShape2D : Component
     {
         if (_shapeIds.Count == 0)
             return;
-        using var filter = Box2DNativeBindings.B2DefaultFilter();
+        using var filter = Box2D.B2DefaultFilter();
         filter.CategoryBits = unchecked((uint)_categoryBits);
         filter.MaskBits = unchecked((uint)_maskBits);
         filter.GroupIndex = _groupIndex;
         foreach (var id in _shapeIds)
-            Box2DNativeBindings.B2ShapeSetFilter(id, filter);
+            Box2D.B2ShapeSetFilter(id, filter);
     }
 
     private float GetMassData(Func<B2MassData, float> selector)
@@ -319,7 +319,7 @@ public abstract partial class CollisionShape2D : Component
         var result = 0.0f;
         foreach (var id in _shapeIds)
         {
-            using var data = Box2DNativeBindings.B2ShapeGetMassData(id);
+            using var data = Box2D.B2ShapeGetMassData(id);
             result += selector(data);
         }
         return result;

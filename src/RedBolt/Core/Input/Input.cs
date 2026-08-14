@@ -95,7 +95,7 @@ public struct JoystickState : ICloneable
             Axes[i] = 0.0f;
             ValidAxis[i] = false;
             if (joystick is not null && !joystick.IsNull
-                && SdlNativeBindings.SdlJoystickGetAxisInitialState(joystick, i, out short state) == SdlBool.SdlTrue)
+                && Sdl.SdlJoystickGetAxisInitialState(joystick, i, out short state) == SdlBool.SdlTrue)
             {
                 Axes[i] = MathDefs.Clamp(state / 32767.0f, -1.0f, 1.0f);
                 ValidAxis[i] = true;
@@ -276,7 +276,7 @@ public class Input : RedObject
         if (!Context.Instance.RequireSdl(SdlInitVideo | SdlInitJoystick | SdlInitGameController))
         {
             Context.Instance.ReleaseSdl();
-            throw new InvalidOperationException($"Generated SDL initialization failed: {Encoding.UTF8.GetString(SdlNativeBindings.SdlGetError()).TrimEnd('\0')}");
+            throw new InvalidOperationException($"Generated SDL initialization failed: {Encoding.UTF8.GetString(Sdl.SdlGetError()).TrimEnd('\0')}");
         }
 
         IsInitialized = true;
@@ -284,7 +284,7 @@ public class Input : RedObject
         try
         {
             var monitor = parameters.Monitor;
-            var numMonitors = SdlNativeBindings.SdlGetNumVideoDisplays();
+            var numMonitors = Sdl.SdlGetNumVideoDisplays();
             if (monitor < 0 || monitor >= numMonitors)
                 monitor = 0;
 
@@ -293,7 +293,7 @@ public class Input : RedObject
                 if (parameters.FullScreen || parameters.Borderless)
                 {
                     using var desktopMode = new SdlDisplayMode();
-                    if (SdlNativeBindings.SdlGetDesktopDisplayMode(monitor, desktopMode) == 0)
+                    if (Sdl.SdlGetDesktopDisplayMode(monitor, desktopMode) == 0)
                     {
                         windowWidth = desktopMode.W;
                         windowHeight = desktopMode.H;
@@ -334,24 +334,24 @@ public class Input : RedObject
             {
                 foreach (var colorBits in new[] { 8, 1 })
                 {
-                    CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlRedSize, colorBits), "SDL_GL_SetAttribute red size");
-                    CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlGreenSize, colorBits), "SDL_GL_SetAttribute green size");
-                    CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlBlueSize, colorBits), "SDL_GL_SetAttribute blue size");
-                    CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlAlphaSize, 0), "SDL_GL_SetAttribute alpha size");
+                    CheckSdlGl(Sdl.SdlGlSetAttribute(SdlGLattr.SdlGlRedSize, colorBits), "SDL_GL_SetAttribute red size");
+                    CheckSdlGl(Sdl.SdlGlSetAttribute(SdlGLattr.SdlGlGreenSize, colorBits), "SDL_GL_SetAttribute green size");
+                    CheckSdlGl(Sdl.SdlGlSetAttribute(SdlGLattr.SdlGlBlueSize, colorBits), "SDL_GL_SetAttribute blue size");
+                    CheckSdlGl(Sdl.SdlGlSetAttribute(SdlGLattr.SdlGlAlphaSize, 0), "SDL_GL_SetAttribute alpha size");
                     foreach (var depthBits in new[] { 24, 16 })
                     {
-                        CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlDepthSize, depthBits), "SDL_GL_SetAttribute depth size");
+                        CheckSdlGl(Sdl.SdlGlSetAttribute(SdlGLattr.SdlGlDepthSize, depthBits), "SDL_GL_SetAttribute depth size");
                         foreach (var stencilBits in new[] { 8, 0 })
                         {
-                            CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlStencilSize, stencilBits), "SDL_GL_SetAttribute stencil size");
+                            CheckSdlGl(Sdl.SdlGlSetAttribute(SdlGLattr.SdlGlStencilSize, stencilBits), "SDL_GL_SetAttribute stencil size");
                             foreach (var srgb in new[] { 1, 0 })
                             {
-                                CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlFramebufferSrgbCapable, srgb), "SDL_GL_SetAttribute sRGB framebuffer");
+                                CheckSdlGl(Sdl.SdlGlSetAttribute(SdlGLattr.SdlGlFramebufferSrgbCapable, srgb), "SDL_GL_SetAttribute sRGB framebuffer");
                                 for (var multiSample = SystemMath.Max(parameters.MultiSample, 1); multiSample > 0; multiSample /= 2)
                                 {
-                                    CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplebuffers, multiSample > 1 ? 1 : 0), "SDL_GL_SetAttribute multisample buffers");
-                                    CheckSdlGl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplesamples, multiSample > 1 ? multiSample : 0), "SDL_GL_SetAttribute multisample samples");
-                                    window = SdlNativeBindings.SdlCreateWindow(title.Bytes, windowX, windowY, windowWidth, windowHeight, (uint)windowFlags);
+                                    CheckSdlGl(Sdl.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplebuffers, multiSample > 1 ? 1 : 0), "SDL_GL_SetAttribute multisample buffers");
+                                    CheckSdlGl(Sdl.SdlGlSetAttribute(SdlGLattr.SdlGlMultisamplesamples, multiSample > 1 ? multiSample : 0), "SDL_GL_SetAttribute multisample samples");
+                                    window = Sdl.SdlCreateWindow(title.Bytes, windowX, windowY, windowWidth, windowHeight, (uint)windowFlags);
                                     if (!window.IsNull)
                                         break;
                                 }
@@ -369,10 +369,10 @@ public class Input : RedObject
                 }
             }
             else
-                window = SdlNativeBindings.SdlCreateWindow(title.Bytes, windowX, windowY, windowWidth, windowHeight, (uint)windowFlags);
+                window = Sdl.SdlCreateWindow(title.Bytes, windowX, windowY, windowWidth, windowHeight, (uint)windowFlags);
 
             if (window is null || window.IsNull)
-                throw new InvalidOperationException($"Could not create window: {Encoding.UTF8.GetString(SdlNativeBindings.SdlGetError()).TrimEnd('\0')}");
+                throw new InvalidOperationException($"Could not create window: {Encoding.UTF8.GetString(Sdl.SdlGetError()).TrimEnd('\0')}");
             _window = window;
             _ownsWindow = true;
 
@@ -394,7 +394,7 @@ public class Input : RedObject
             return;
 
         using var pinnedTitle = new CString(title);
-        SdlNativeBindings.SdlSetWindowTitle(_window, pinnedTitle.Bytes);
+        Sdl.SdlSetWindowTitle(_window, pinnedTitle.Bytes);
     }
 
     public void SetExplicitWindowRect(IntRect rect) => _explicitWindowRect = rect;
@@ -438,7 +438,7 @@ public class Input : RedObject
         if (!IsInitialized || _nativeEvent is null)
             return;
 
-        while (SdlNativeBindings.SdlPollEvent(_nativeEvent) != 0)
+        while (Sdl.SdlPollEvent(_nativeEvent) != 0)
         {
             var eventType = (SdlEventType)_nativeEvent.Type;
             var rawEvent = new InputEvents.SDLRawInputEvent { SDLEvent = _nativeEvent.Handle };
@@ -555,9 +555,9 @@ public class Input : RedObject
             {
                 var joystickId = eventType == SdlEventType.SdlControllerdeviceremoved ? _nativeEvent.CdeviceWhich : _nativeEvent.JdeviceWhich;
                 if (_nativeControllers.Remove(joystickId, out var controller))
-                    SdlNativeBindings.SdlGameControllerClose(controller);
+                    Sdl.SdlGameControllerClose(controller);
                 if (_nativeJoysticks.Remove(joystickId, out var joystick))
-                    SdlNativeBindings.SdlJoystickClose(joystick);
+                    Sdl.SdlJoystickClose(joystick);
                 _joysticks.Remove(joystickId);
                 var disconnected = new InputEvents.JoystickDisconnectedEvent { JoystickID = joystickId };
                 SendEvent(ref disconnected);
@@ -580,7 +580,7 @@ public class Input : RedObject
                 finally
                 {
                     if (fileNamePointer != IntPtr.Zero)
-                        SdlNativeBindings.SdlFree(fileNamePointer);
+                        Sdl.SdlFree(fileNamePointer);
                 }
             }
             else if (eventType == SdlEventType.SdlWindowevent && _nativeEvent.WindowEvent == (byte)SdlWindowEventID.SdlWindoweventClose)
@@ -613,7 +613,7 @@ public class Input : RedObject
         if (!MouseVisible || MouseMode != MouseMode.Wrap || _window is null || _window.IsNull)
             return;
 
-        SdlNativeBindings.SdlGetGlobalMouseState(out var globalX, out var globalY);
+        Sdl.SdlGetGlobalMouseState(out var globalX, out var globalY);
         var windowPosition = GetGlobalWindowPosition();
         var backbufferPosition = SystemToBackbuffer(new Vector2i(globalX - windowPosition.X, globalY - windowPosition.Y));
         const int buffer = 5;
@@ -656,26 +656,26 @@ public class Input : RedObject
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         using var value = new CString(name);
-        return (Key)SdlNativeBindings.SdlGetKeyFromName(value.Bytes);
+        return (Key)Sdl.SdlGetKeyFromName(value.Bytes);
     }
 
     public static Key GetKeyFromScancode(Scancode scancode) =>
-        (Key)SdlNativeBindings.SdlGetKeyFromScancode((SdlScancode)scancode);
+        (Key)Sdl.SdlGetKeyFromScancode((SdlScancode)scancode);
 
-    public static string GetKeyName(Key key) => DecodeUtf8(SdlNativeBindings.SdlGetKeyName((int)key));
+    public static string GetKeyName(Key key) => DecodeUtf8(Sdl.SdlGetKeyName((int)key));
 
     public static Scancode GetScancodeFromKey(Key key) =>
-        (Scancode)SdlNativeBindings.SdlGetScancodeFromKey((int)key);
+        (Scancode)Sdl.SdlGetScancodeFromKey((int)key);
 
     public static Scancode GetScancodeFromName(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         using var value = new CString(name);
-        return (Scancode)SdlNativeBindings.SdlGetScancodeFromName(value.Bytes);
+        return (Scancode)Sdl.SdlGetScancodeFromName(value.Bytes);
     }
 
     public static string GetScancodeName(Scancode scancode) =>
-        DecodeUtf8(SdlNativeBindings.SdlGetScancodeName((SdlScancode)scancode));
+        DecodeUtf8(Sdl.SdlGetScancodeName((SdlScancode)scancode));
 
     public static string GetMouseButtonName(MouseButton button)
     {
@@ -774,11 +774,11 @@ public class Input : RedObject
 
         if (_explicitWindowRect is { } rect)
         {
-            SdlNativeBindings.SdlGetGlobalMouseState(out var x, out var y);
+            Sdl.SdlGetGlobalMouseState(out var x, out var y);
             return SystemToBackbuffer(new Vector2i(x - rect.Left, y - rect.Top));
         }
 
-        SdlNativeBindings.SdlGetMouseState(out var mouseX, out var mouseY);
+        Sdl.SdlGetMouseState(out var mouseX, out var mouseY);
         return SystemToBackbuffer(new Vector2i(mouseX, mouseY));
     }
 
@@ -847,7 +847,7 @@ public class Input : RedObject
     public int FindAccelerometerJoystickId()
     {
         using var hintName = new CString("SDL_ACCELEROMETER_AS_JOYSTICK");
-        var hint = SdlNativeBindings.SdlGetHint(hintName.Bytes);
+        var hint = Sdl.SdlGetHint(hintName.Bytes);
         if (hint.SequenceEqual("0"u8))
             return -1;
 
@@ -862,18 +862,18 @@ public class Input : RedObject
 
     public bool IsScreenJoystickVisible(int id) => false;
 
-    public bool GetScreenKeyboardSupport() => SdlNativeBindings.SdlHasScreenKeyboardSupport() == SdlBool.SdlTrue;
+    public bool GetScreenKeyboardSupport() => Sdl.SdlHasScreenKeyboardSupport() == SdlBool.SdlTrue;
 
-    public bool IsScreenKeyboardVisible() => SdlNativeBindings.SdlIsTextInputActive() == SdlBool.SdlTrue;
+    public bool IsScreenKeyboardVisible() => Sdl.SdlIsTextInputActive() == SdlBool.SdlTrue;
 
     public void SetScreenKeyboardVisible(bool enable)
     {
         if (enable == IsScreenKeyboardVisible())
             return;
         if (enable)
-            SdlNativeBindings.SdlStartTextInput();
+            Sdl.SdlStartTextInput();
         else
-            SdlNativeBindings.SdlStopTextInput();
+            Sdl.SdlStopTextInput();
     }
 
     public int AddScreenJoystick(XMLFile? layoutFile = null, XMLFile? styleFile = null)
@@ -889,22 +889,22 @@ public class Input : RedObject
 
     public bool RecordGesture()
     {
-        if (SdlNativeBindings.SdlGetNumTouchDevices() == 0)
+        if (Sdl.SdlGetNumTouchDevices() == 0)
         {
             Log.GetLogger().LogError("Can not record gesture: no touch devices");
             return false;
         }
-        return SdlNativeBindings.SdlRecordGesture(-1) != 0;
+        return Sdl.SdlRecordGesture(-1) != 0;
     }
 
     public bool SaveGestures(Serializer dest)
     {
         ArgumentNullException.ThrowIfNull(dest);
         var buffer = Marshal.AllocHGlobal(1024 * 1024);
-        var rwops = SdlNativeBindings.SdlRWFromMem(buffer, 1024 * 1024);
+        var rwops = Sdl.SdlRWFromMem(buffer, 1024 * 1024);
         try
         {
-            if (rwops.IsNull || SdlNativeBindings.SdlSaveAllDollarTemplates(rwops) == 0)
+            if (rwops.IsNull || Sdl.SdlSaveAllDollarTemplates(rwops) == 0)
                 return false;
 
             var size = (int)(rwops.HiddenMemHere - rwops.HiddenMemBase);
@@ -915,7 +915,7 @@ public class Input : RedObject
         finally
         {
             if (!rwops.IsNull)
-                SdlNativeBindings.SdlRWclose(rwops);
+                Sdl.SdlRWclose(rwops);
             Marshal.FreeHGlobal(buffer);
         }
     }
@@ -924,10 +924,10 @@ public class Input : RedObject
     {
         ArgumentNullException.ThrowIfNull(dest);
         var buffer = Marshal.AllocHGlobal(1024 * 1024);
-        var rwops = SdlNativeBindings.SdlRWFromMem(buffer, 1024 * 1024);
+        var rwops = Sdl.SdlRWFromMem(buffer, 1024 * 1024);
         try
         {
-            if (rwops.IsNull || SdlNativeBindings.SdlSaveDollarTemplate((nint)gestureId, rwops) == 0)
+            if (rwops.IsNull || Sdl.SdlSaveDollarTemplate((nint)gestureId, rwops) == 0)
                 return false;
 
             var size = (int)(rwops.HiddenMemHere - rwops.HiddenMemBase);
@@ -938,7 +938,7 @@ public class Input : RedObject
         finally
         {
             if (!rwops.IsNull)
-                SdlNativeBindings.SdlRWclose(rwops);
+                Sdl.SdlRWclose(rwops);
             Marshal.FreeHGlobal(buffer);
         }
     }
@@ -946,7 +946,7 @@ public class Input : RedObject
     public uint LoadGestures(Deserializer source)
     {
         ArgumentNullException.ThrowIfNull(source);
-        if (SdlNativeBindings.SdlGetNumTouchDevices() == 0)
+        if (Sdl.SdlGetNumTouchDevices() == 0)
         {
             Log.GetLogger().LogError("Can not load gestures: no touch devices");
             return 0;
@@ -967,15 +967,15 @@ public class Input : RedObject
         try
         {
             Marshal.Copy(data, 0, buffer, data.Length);
-            var rwops = SdlNativeBindings.SdlRWFromMem(buffer, data.Length);
+            var rwops = Sdl.SdlRWFromMem(buffer, data.Length);
             try
             {
-                return rwops.IsNull ? 0u : (uint)SystemMath.Max(0, SdlNativeBindings.SdlLoadDollarTemplates(-1, rwops));
+                return rwops.IsNull ? 0u : (uint)SystemMath.Max(0, Sdl.SdlLoadDollarTemplates(-1, rwops));
             }
             finally
             {
                 if (!rwops.IsNull)
-                    SdlNativeBindings.SdlRWclose(rwops);
+                    Sdl.SdlRWclose(rwops);
             }
         }
         finally
@@ -986,12 +986,12 @@ public class Input : RedObject
 
     public bool RemoveGesture(uint gestureId)
     {
-        return SdlNativeBindings.SdlRemoveDollarTemplate((nint)gestureId) != 0;
+        return Sdl.SdlRemoveDollarTemplate((nint)gestureId) != 0;
     }
 
     public void RemoveAllGestures()
     {
-        SdlNativeBindings.SdlRemoveAllDollarTemplates();
+        Sdl.SdlRemoveAllDollarTemplates();
     }
 
     public Vector2i SystemToBackbuffer(Vector2i value) => new(
@@ -1006,7 +1006,7 @@ public class Input : RedObject
     {
         if (!IsInitialized || _window is null || _window.IsNull)
             return Vector2i.Zero;
-        SdlNativeBindings.SdlGetWindowPosition(_window, out var x, out var y);
+        Sdl.SdlGetWindowPosition(_window, out var x, out var y);
         return new Vector2i(x, y);
     }
 
@@ -1014,7 +1014,7 @@ public class Input : RedObject
     {
         if (!IsInitialized || _window is null || _window.IsNull)
             return Vector2i.Zero;
-        SdlNativeBindings.SdlGetWindowSize(_window, out var width, out var height);
+        Sdl.SdlGetWindowSize(_window, out var width, out var height);
         return new Vector2i(width, height);
     }
 
@@ -1027,9 +1027,9 @@ public class Input : RedObject
 
         var localPosition = BackbufferToSystem(position);
         if (_explicitWindowRect is { } rect)
-            SdlNativeBindings.SdlWarpMouseGlobal(localPosition.X + rect.Left, localPosition.Y + rect.Top);
+            Sdl.SdlWarpMouseGlobal(localPosition.X + rect.Left, localPosition.Y + rect.Top);
         else
-            SdlNativeBindings.SdlWarpMouseInWindow(_window, localPosition.X, localPosition.Y);
+            Sdl.SdlWarpMouseInWindow(_window, localPosition.X, localPosition.Y);
     }
 
     public void SetKey(Key key, bool newState)
@@ -1222,16 +1222,16 @@ public class Input : RedObject
             MouseMode = mode;
 
             if (previousMode == MouseMode.Absolute && !MouseVisible)
-                SdlNativeBindings.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
+                Sdl.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
             else if (previousMode == MouseMode.Relative)
             {
-                var result = SdlNativeBindings.SdlSetRelativeMouseMode(SdlBool.SdlFalse);
+                var result = Sdl.SdlSetRelativeMouseMode(SdlBool.SdlFalse);
                 if (result == -1)
-                    SdlNativeBindings.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
+                    Sdl.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
                 SetMouseVisible(_lastMouseVisible, suppressEvent: true);
             }
             else if (previousMode == MouseMode.Wrap)
-                SdlNativeBindings.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
+                Sdl.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
         }
 
         if (IsInitialized)
@@ -1239,9 +1239,9 @@ public class Input : RedObject
             if (mode == MouseMode.Relative)
             {
                 SetMouseVisible(false, suppressEvent: true);
-                var result = SdlNativeBindings.SdlSetRelativeMouseMode(SdlBool.SdlTrue);
+                var result = Sdl.SdlSetRelativeMouseMode(SdlBool.SdlTrue);
                 if (result == -1)
-                    SdlNativeBindings.SdlSetWindowGrab(Window, SdlBool.SdlTrue);
+                    Sdl.SdlSetWindowGrab(Window, SdlBool.SdlTrue);
                 SetMouseGrabbed(true, suppressEvent: true);
             }
             else
@@ -1249,7 +1249,7 @@ public class Input : RedObject
                 if (mode == MouseMode.Wrap)
                 {
                     SetMouseGrabbed(true, suppressEvent: true);
-                    SdlNativeBindings.SdlSetWindowGrab(Window, SdlBool.SdlTrue);
+                    Sdl.SdlSetWindowGrab(Window, SdlBool.SdlTrue);
                 }
                 else
                     SetMouseGrabbed(!MouseVisible, suppressEvent: true);
@@ -1298,16 +1298,16 @@ public class Input : RedObject
                 if (!enable && HasFocus)
                 {
                     if (MouseMode == MouseMode.Absolute)
-                        SdlNativeBindings.SdlSetWindowGrab(Window, SdlBool.SdlTrue);
-                    SdlNativeBindings.SdlShowCursor(0);
+                        Sdl.SdlSetWindowGrab(Window, SdlBool.SdlTrue);
+                    Sdl.SdlShowCursor(0);
                     MouseVisible = false;
                 }
                 else if (MouseMode != MouseMode.Relative)
                 {
                     SetMouseGrabbed(false, suppressEvent);
                     if (MouseMode == MouseMode.Absolute)
-                        SdlNativeBindings.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
-                    SdlNativeBindings.SdlShowCursor(1);
+                        Sdl.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
+                    Sdl.SdlShowCursor(1);
                     MouseVisible = true;
                 }
             }
@@ -1376,7 +1376,7 @@ public class Input : RedObject
         _nativeEvent = null;
 
         if (_ownsWindow && _window is not null && !_window.IsNull)
-            SdlNativeBindings.SdlDestroyWindow(_window);
+            Sdl.SdlDestroyWindow(_window);
         _window = null;
         _ownsWindow = false;
 
@@ -1393,9 +1393,9 @@ public class Input : RedObject
         _screenButtonsDown.Clear();
         _touches.Clear();
         foreach (var controller in _nativeControllers.Values)
-            SdlNativeBindings.SdlGameControllerClose(controller);
+            Sdl.SdlGameControllerClose(controller);
         foreach (var joystick in _nativeJoysticks.Values)
-            SdlNativeBindings.SdlJoystickClose(joystick);
+            Sdl.SdlJoystickClose(joystick);
         _nativeControllers.Clear();
         _nativeJoysticks.Clear();
         _joysticks.Clear();
@@ -1499,7 +1499,7 @@ public class Input : RedObject
             touchEvent.TfingerDy = backbufferSize.Y != 0
                 ? @event.MotionYrel * _systemToBackbufferScale.Y / backbufferSize.Y
                 : 0.0f;
-            SdlNativeBindings.SdlPushEvent(touchEvent);
+            Sdl.SdlPushEvent(touchEvent);
         }
     }
 
@@ -1544,7 +1544,7 @@ public class Input : RedObject
         }
         SuppressNextMouseMove();
         if (!MouseVisible && IsInitialized)
-            SdlNativeBindings.SdlShowCursor(0);
+            Sdl.SdlShowCursor(0);
         SendInputFocusEvent();
     }
 
@@ -1557,7 +1557,7 @@ public class Input : RedObject
             var mode = MouseMode;
             SetMouseMode(MouseMode.Free, suppressEvent: true);
             MouseMode = mode;
-            SdlNativeBindings.SdlShowCursor(1);
+            Sdl.SdlShowCursor(1);
         }
         SendInputFocusEvent();
     }
@@ -1674,35 +1674,35 @@ public class Input : RedObject
     private void ResetJoysticks()
     {
         foreach (var controller in _nativeControllers.Values)
-            SdlNativeBindings.SdlGameControllerClose(controller);
+            Sdl.SdlGameControllerClose(controller);
         foreach (var joystick in _nativeJoysticks.Values)
-            SdlNativeBindings.SdlJoystickClose(joystick);
+            Sdl.SdlJoystickClose(joystick);
         _nativeControllers.Clear();
         _nativeJoysticks.Clear();
         _joysticks.Clear();
 
-        var count = SdlNativeBindings.SdlNumJoysticks();
+        var count = Sdl.SdlNumJoysticks();
         for (var i = 0; i < count; i++)
             OpenJoystick(i);
     }
 
     private int OpenJoystick(int index)
     {
-        var joystick = SdlNativeBindings.SdlJoystickOpen(index);
+        var joystick = Sdl.SdlJoystickOpen(index);
         if (joystick.IsNull)
             return -1;
 
-        var joystickId = SdlNativeBindings.SdlJoystickInstanceID(joystick);
+        var joystickId = Sdl.SdlJoystickInstanceID(joystick);
         var state = new JoystickState
         {
             Joystick = joystick.Handle,
-            DeviceType = (JoystickDeviceType)SdlNativeBindings.SdlJoystickGetDeviceType(index),
+            DeviceType = (JoystickDeviceType)Sdl.SdlJoystickGetDeviceType(index),
             JoystickID = joystickId,
-            Name = DecodeUtf8(SdlNativeBindings.SdlJoystickName(joystick))
+            Name = DecodeUtf8(Sdl.SdlJoystickName(joystick))
         };
 
-        var controller = SdlNativeBindings.SdlIsGameController(index) == SdlBool.SdlTrue
-            ? SdlNativeBindings.SdlGameControllerOpen(index)
+        var controller = Sdl.SdlIsGameController(index) == SdlBool.SdlTrue
+            ? Sdl.SdlGameControllerOpen(index)
             : null;
         if (controller is { IsNull: false })
         {
@@ -1710,9 +1710,9 @@ public class Input : RedObject
             _nativeControllers[joystickId] = controller;
         }
 
-        var numButtons = SdlNativeBindings.SdlJoystickNumButtons(joystick);
-        var numAxes = SdlNativeBindings.SdlJoystickNumAxes(joystick);
-        var numHats = SdlNativeBindings.SdlJoystickNumHats(joystick);
+        var numButtons = Sdl.SdlJoystickNumButtons(joystick);
+        var numAxes = Sdl.SdlJoystickNumAxes(joystick);
+        var numHats = Sdl.SdlJoystickNumHats(joystick);
         if (controller is { IsNull: false })
         {
             numButtons = SystemMath.Max(numButtons, 15);

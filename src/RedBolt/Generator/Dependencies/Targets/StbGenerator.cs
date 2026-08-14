@@ -5,7 +5,7 @@ internal sealed class StbGenerator(string nativeLibraryName)
         "stb",
         "RedBolt.Bindings.Stb",
         "RedBolt.Bindings.Stb",
-        "StbVorbisNativeBindings",
+        "Stb",
         nativeLibraryName,
         "redbolt_stb",
         "-xc",

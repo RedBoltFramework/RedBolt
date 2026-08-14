@@ -63,7 +63,7 @@ public static class ProcessUtils
     {
         using var titleValue = new CString(title);
         using var messageValue = new CString(message);
-        _ = SdlNativeBindings.SdlShowSimpleMessageBox((uint)SdlMessageBoxFlags.SdlMessageboxError, titleValue.Bytes, messageValue.Bytes, null!);
+        _ = Sdl.SdlShowSimpleMessageBox((uint)SdlMessageBoxFlags.SdlMessageboxError, titleValue.Bytes, messageValue.Bytes, null!);
     }
 
     /// <summary>Parse arguments from a command line.</summary>

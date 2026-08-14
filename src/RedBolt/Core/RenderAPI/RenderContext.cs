@@ -370,7 +370,7 @@ public class RenderContext : RedObject
         where T : Delegate
     {
         using var pinnedName = new CString(name);
-        var procedure = SdlNativeBindings.SdlGlGetProcAddress(pinnedName.Bytes);
+        var procedure = Sdl.SdlGlGetProcAddress(pinnedName.Bytes);
         if (procedure == IntPtr.Zero)
             return null;
 

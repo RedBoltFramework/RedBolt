@@ -24,32 +24,32 @@ public sealed class OpenGLGraphicsBackend : IGraphicsBackend
 
     public void ConfigureWindow()
     {
-        CheckSdl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlDoublebuffer, 1), "SDL_GL_SetAttribute doublebuffer");
-        CheckSdl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMajorVersion, 4), "SDL_GL_SetAttribute major version");
-        CheckSdl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextMinorVersion, 1), "SDL_GL_SetAttribute minor version");
-        CheckSdl(SdlNativeBindings.SdlGlSetAttribute(SdlGLattr.SdlGlContextProfileMask,
+        CheckSdl(Sdl.SdlGlSetAttribute(SdlGLattr.SdlGlDoublebuffer, 1), "SDL_GL_SetAttribute doublebuffer");
+        CheckSdl(Sdl.SdlGlSetAttribute(SdlGLattr.SdlGlContextMajorVersion, 4), "SDL_GL_SetAttribute major version");
+        CheckSdl(Sdl.SdlGlSetAttribute(SdlGLattr.SdlGlContextMinorVersion, 1), "SDL_GL_SetAttribute minor version");
+        CheckSdl(Sdl.SdlGlSetAttribute(SdlGLattr.SdlGlContextProfileMask,
             (int)SdlGLprofile.SdlGlContextProfileCore), "SDL_GL_SetAttribute profile mask");
     }
 
     public GraphicsBackendResources Initialize(EngineParameters parameters, RenderDeviceSettings deviceSettings,
         WindowSettings windowSettings, SdlWindow window)
     {
-        var glContext = SdlNativeBindings.SdlGlCreateContext(window);
+        var glContext = Sdl.SdlGlCreateContext(window);
         if (glContext == IntPtr.Zero)
             throw new InvalidOperationException("Generated SDL_GL_CreateContext binding returned a null context.");
 
         try
         {
-            CheckSdl(SdlNativeBindings.SdlGlMakeCurrent(window, glContext), "SDL_GL_MakeCurrent");
-            _ = SdlNativeBindings.SdlGlSetSwapInterval(parameters.VSync ? 1 : 0);
-            SdlNativeBindings.SdlGlGetDrawableSize(window, out var width, out var height);
+            CheckSdl(Sdl.SdlGlMakeCurrent(window, glContext), "SDL_GL_MakeCurrent");
+            _ = Sdl.SdlGlSetSwapInterval(parameters.VSync ? 1 : 0);
+            Sdl.SdlGlGetDrawableSize(window, out var width, out var height);
 
             var multiSample = (int)System.Math.Clamp(
                 MathDefs.ClosestPowerOfTwo((uint)System.Math.Max(parameters.MultiSample, 1)), 1u, 16u);
-            if (SdlNativeBindings.SdlGlGetAttribute(SdlGLattr.SdlGlMultisamplesamples,
+            if (Sdl.SdlGlGetAttribute(SdlGLattr.SdlGlMultisamplesamples,
                     out var effectiveMultiSample) == 0)
                 multiSample = System.Math.Max(1, effectiveMultiSample);
-            _ = SdlNativeBindings.SdlGlGetAttribute(SdlGLattr.SdlGlFramebufferSrgbCapable,
+            _ = Sdl.SdlGlGetAttribute(SdlGLattr.SdlGlFramebufferSrgbCapable,
                 out var effectiveSrgb);
 
             var nativeWindowInfo = NativeWindow.GetInfo(window);
@@ -72,7 +72,7 @@ public sealed class OpenGLGraphicsBackend : IGraphicsBackend
                 DepthBufferFormat = TextureFormat.TexFormatUnknown
             };
 
-            var factory = DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL();
+            var factory = Diligent.LoadAndGetEngineFactoryOpenGL();
             if (factory.IsNull)
                 throw new InvalidOperationException("OpenGL engine factory could not be loaded.");
 
@@ -80,7 +80,7 @@ public sealed class OpenGLGraphicsBackend : IGraphicsBackend
             if (device.IsNull || immediateContext.IsNull)
                 throw new InvalidOperationException("Generated AttachToActiveGLContext binding returned a null device or context.");
 
-            var swapChain = DiligentNativeBindings.CreateProxySwapChainGL(
+            var swapChain = Diligent.CreateProxySwapChainGL(
                 device, immediateContext, swapChainDesc, window.Handle);
             if (swapChain.IsNull)
                 throw new InvalidOperationException("Generated CreateProxySwapChainGL binding returned a null swap chain.");
@@ -103,7 +103,7 @@ public sealed class OpenGLGraphicsBackend : IGraphicsBackend
         }
         catch
         {
-            SdlNativeBindings.SdlGlDeleteContext(glContext);
+            Sdl.SdlGlDeleteContext(glContext);
             throw;
         }
     }
@@ -123,12 +123,12 @@ public sealed class OpenGLGraphicsBackend : IGraphicsBackend
 
         public void SetVSync(bool enable)
         {
-            _ = SdlNativeBindings.SdlGlSetSwapInterval(enable ? 1 : 0);
+            _ = Sdl.SdlGlSetSwapInterval(enable ? 1 : 0);
         }
 
         public void Resize(IRenderDevice renderDevice, ISwapChain swapChain)
         {
-            SdlNativeBindings.SdlGlGetDrawableSize(window, out var width, out var height);
+            Sdl.SdlGlGetDrawableSize(window, out var width, out var height);
             swapChain.Resize((uint)System.Math.Max(width, 0), (uint)System.Math.Max(height, 0));
         }
 
@@ -139,8 +139,8 @@ public sealed class OpenGLGraphicsBackend : IGraphicsBackend
         public void ReleaseAfterCommonResources(SdlWindow? currentWindow)
         {
             if (currentWindow is not null && !currentWindow.IsNull)
-                _ = SdlNativeBindings.SdlGlMakeCurrent(currentWindow, IntPtr.Zero);
-            SdlNativeBindings.SdlGlDeleteContext(glContext);
+                _ = Sdl.SdlGlMakeCurrent(currentWindow, IntPtr.Zero);
+            Sdl.SdlGlDeleteContext(glContext);
         }
     }
 }

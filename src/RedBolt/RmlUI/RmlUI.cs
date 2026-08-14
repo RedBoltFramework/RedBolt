@@ -753,19 +753,19 @@ public partial class RmlUI : RedObject
             _system = new RmlSystem();
             _file = new RmlFile();
             _fontEngine = new RedBoltNative.RmlHarfBuzzFontEngine();
-            RmlUiNativeBindings.SetRenderInterface(_renderer.GetAdaptedInterface());
-            RmlUiNativeBindings.SetSystemInterface(_system);
-            RmlUiNativeBindings.SetFileInterface(_file);
-            RmlUiNativeBindings.SetFontEngineInterface(_fontEngine);
-            _ = RmlUiNativeBindings.Initialise();
+            RmlUi.SetRenderInterface(_renderer.GetAdaptedInterface());
+            RmlUi.SetSystemInterface(_system);
+            RmlUi.SetFileInterface(_file);
+            RmlUi.SetFontEngineInterface(_fontEngine);
+            _ = RmlUi.Initialise();
             Factory.RegisterEventListenerInstancer(EventListenerInstancerInstance);
             Factory.RegisterContextInstancer(ContextInstancerInstance);
-            RmlUiNativeBindings.RegisterPlugin(PluginInstance);
+            RmlUi.RegisterPlugin(PluginInstance);
         }
 
         using var nativeName = new Std.String();
         nativeName.Assign(name);
-        _rmlContext = (RmlContext)RmlUiNativeBindings.CreateContext(
+        _rmlContext = (RmlContext)RmlUi.CreateContext(
             nativeName, GetDesiredCanvasSize())!;
         _rmlContext.SetOwnerSubsystem(this);
 
@@ -814,7 +814,7 @@ public partial class RmlUI : RedObject
         {
             using var nativeName = new Std.String();
             nativeName.Assign(_name);
-            if (!RmlUiNativeBindings.RemoveContext(nativeName))
+            if (!RmlUi.RemoveContext(nativeName))
                 EngineLog.GetLogger().Error("Removal of RmlUI context {} failed.", _name);
         }
         _rmlContext = null;
@@ -827,8 +827,8 @@ public partial class RmlUI : RedObject
             var system = _system;
             var file = _file;
             var fontEngine = _fontEngine;
-            RmlUiNativeBindings.ReleaseTextures();
-            RmlUiNativeBindings.Shutdown();
+            RmlUi.ReleaseTextures();
+            RmlUi.Shutdown();
             renderer?.Dispose();
             system?.Dispose();
             file?.Dispose();
@@ -874,21 +874,21 @@ public partial class RmlUI : RedObject
     {
         if (!_debuggerInitialized)
         {
-            RmlUiNativeBindings.Initialise(_rmlContext!);
+            RmlUi.Initialise(_rmlContext!);
             _debuggerInitialized = true;
         }
-        RmlUiNativeBindings.SetVisible(visible);
+        RmlUi.SetVisible(visible);
     }
 
     /// <summary>Return whether RmlUi debugger is visible.</summary>
-    public bool IsDebuggerVisible() => RmlUiNativeBindings.IsVisible();
+    public bool IsDebuggerVisible() => RmlUi.IsVisible();
 
     /// <summary>Load a font resource for RmlUi to use.</summary>
     public bool LoadFont(string resourceName, bool fallback = false)
     {
         using var nativeName = new Std.String();
         nativeName.Assign(resourceName);
-        return RmlUiNativeBindings.LoadFontFace(nativeName, fallback);
+        return RmlUi.LoadFontFace(nativeName, fallback);
     }
 
     /// <summary>Reload fonts from resource cache.</summary>
@@ -1510,7 +1510,7 @@ public partial class RmlUI : RedObject
         {
             _file.ClearLoadedResources();
 
-            RmlUiNativeBindings.ReleaseTextures();
+            RmlUi.ReleaseTextures();
             Factory.ClearStyleSheetCache();
             Factory.ClearTemplateCache();
 

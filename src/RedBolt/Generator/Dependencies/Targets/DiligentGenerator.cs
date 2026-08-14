@@ -12,7 +12,7 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
         "diligent",
         "RedBolt.Bindings.Diligent",
         "RedBolt.Bindings.Diligent",
-        "DiligentNativeBindings",
+        "Diligent",
         nativeLibraryName,
         "redbolt_diligent",
         "-xc++",

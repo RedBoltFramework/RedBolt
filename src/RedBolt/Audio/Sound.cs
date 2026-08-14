@@ -123,7 +123,7 @@ public sealed partial class Sound : ResourceWithMetadata
         StbVorbis? decoder;
         try
         {
-            decoder = StbVorbisNativeBindings.StbVorbisOpenMemory(
+            decoder = Stb.StbVorbisOpenMemory(
                 handle.AddrOfPinnedObject(), checked((int)dataSize), out _, null!);
         }
         finally
@@ -136,14 +136,14 @@ public sealed partial class Sound : ResourceWithMetadata
 
         try
         {
-            var info = StbVorbisNativeBindings.StbVorbisGetInfo(decoder);
-            _compressedLength = StbVorbisNativeBindings.StbVorbisStreamLengthInSeconds(decoder);
+            var info = Stb.StbVorbisGetInfo(decoder);
+            _compressedLength = Stb.StbVorbisStreamLengthInSeconds(decoder);
             _frequency = info.SampleRate;
             _stereo = info.Channels > 1;
         }
         finally
         {
-            StbVorbisNativeBindings.StbVorbisClose(decoder);
+            Stb.StbVorbisClose(decoder);
         }
 
         _data = compressedData;

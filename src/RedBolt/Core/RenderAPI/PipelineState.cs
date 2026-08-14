@@ -171,10 +171,10 @@ public class PipelineState : DeviceObject
                 reflection = new ShaderProgramReflection([desc.ComputeShader]);
             else
             {
-                temporaryGlProgram = DiligentNativeBindings.CreateTemporaryGLProgram(
+                temporaryGlProgram = Diligent.CreateTemporaryGLProgram(
                     shader, null!, null!, null!, null!, false);
                 reflection = new ShaderProgramReflection(temporaryGlProgram);
-                DiligentNativeBindings.ReleaseTemporaryGLProgramHandle(temporaryGlProgram);
+                Diligent.ReleaseTemporaryGLProgramHandle(temporaryGlProgram);
             }
 
             _reflection = reflection;
@@ -206,7 +206,7 @@ public class PipelineState : DeviceObject
         finally
         {
             if (temporaryGlProgram != 0)
-                DiligentNativeBindings.DeleteTemporaryGLProgram(temporaryGlProgram);
+                Diligent.DeleteTemporaryGLProgram(temporaryGlProgram);
         }
     }
 
@@ -240,21 +240,21 @@ public class PipelineState : DeviceObject
             var vertexAttributes = desc.VertexShader!.GetBytecode().VertexAttributes;
             if (isOpenGl)
             {
-                temporaryGlProgram = DiligentNativeBindings.CreateTemporaryGLProgram(vertexShader!, pixelShader!,
+                temporaryGlProgram = Diligent.CreateTemporaryGLProgram(vertexShader!, pixelShader!,
                     desc.DomainShader?.GetHandle()!, desc.HullShader?.GetHandle()!, desc.GeometryShader?.GetHandle()!,
                     hasSeparableShaderPrograms);
                 vertexAttributes = [];
-                var numAttributes = DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeCount(temporaryGlProgram);
+                var numAttributes = Diligent.GetTemporaryGLProgramVertexAttributeCount(temporaryGlProgram);
                 for (var i = 0; i < (int)numAttributes; ++i)
                 {
                     var attributeName = System.Text.Encoding.UTF8.GetString(
-                        DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeName(temporaryGlProgram, (uint)i));
+                        Diligent.GetTemporaryGLProgramVertexAttributeName(temporaryGlProgram, (uint)i));
                     var attribute = RenderAPIUtils.ParseVertexAttribute(attributeName);
                     if (attribute is not null)
                     {
                         vertexAttributes.Add(attribute.Value with
                         {
-                            InputIndex = checked((int)DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeLocation(
+                            InputIndex = checked((int)Diligent.GetTemporaryGLProgramVertexAttributeLocation(
                                 temporaryGlProgram, (uint)i))
                         });
                     }
@@ -268,7 +268,7 @@ public class PipelineState : DeviceObject
                 : new ShaderProgramReflection(shaders);
             _reflection = reflection;
             if (temporaryGlProgram != 0)
-                DiligentNativeBindings.ReleaseTemporaryGLProgramHandle(temporaryGlProgram);
+                Diligent.ReleaseTemporaryGLProgramHandle(temporaryGlProgram);
             if (desc.InputLayout.Size != 0)
             {
                 Span<InputLayoutElementDesc> elements = stackalloc InputLayoutElementDesc[desc.InputLayout.Size];
@@ -341,7 +341,7 @@ public class PipelineState : DeviceObject
                 return;
             }
             if (isOpenGl &&
-                !DiligentNativeBindings.BindTemporaryGLProgramVertexAttributes(temporaryGlProgram, _handle))
+                !Diligent.BindTemporaryGLProgramVertexAttributes(temporaryGlProgram, _handle))
             {
                 DestroyGPU();
                 Log.GetLogger().LogError(
@@ -355,7 +355,7 @@ public class PipelineState : DeviceObject
         {
             layout?.Dispose();
             if (temporaryGlProgram != 0)
-                DiligentNativeBindings.DeleteTemporaryGLProgram(temporaryGlProgram);
+                Diligent.DeleteTemporaryGLProgram(temporaryGlProgram);
         }
     }
 
@@ -485,7 +485,7 @@ public class PipelineState : DeviceObject
                 if (inputIndex != -1)
                     ++Count;
             }
-            var elementSize = (int)DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL().GetAPIInfo().LayoutElementSize;
+            var elementSize = (int)Diligent.LoadAndGetEngineFactoryOpenGL().GetAPIInfo().LayoutElementSize;
             _memory = Marshal.AllocHGlobal((int)Count * elementSize);
             var destinationIndex = 0;
             for (var i = 0; i < elements.Length; ++i)
@@ -530,7 +530,7 @@ public class PipelineState : DeviceObject
             if (resources.Length == 0)
                 return;
 
-            var immutableSamplerDescSize = (int)DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL().GetAPIInfo().ImmutableSamplerDescSize;
+            var immutableSamplerDescSize = (int)Diligent.LoadAndGetEngineFactoryOpenGL().GetAPIInfo().ImmutableSamplerDescSize;
             _memory = Marshal.AllocHGlobal(checked(immutableSamplerDescSize * resources.Length));
             for (var i = 0; i < resources.Length; ++i)
             {

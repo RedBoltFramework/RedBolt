@@ -5,7 +5,7 @@ internal sealed class ShaderCompilerGenerator(string nativeLibraryName)
         "shadercompiler",
         "RedBolt.Bindings.ShaderCompiler",
         "RedBolt.Bindings.ShaderCompiler",
-        "ShaderCompilerNativeBindings",
+        "ShaderCompiler",
         nativeLibraryName,
         "redbolt_shadercompiler",
         "-xc++",

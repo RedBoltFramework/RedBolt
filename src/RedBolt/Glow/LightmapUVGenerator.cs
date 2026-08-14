@@ -69,7 +69,7 @@ public static class LightmapUVGenerator
         bool forceMeshAddFailure)
     {
         // Create atlas
-        var atlas = XAtlasNativeBindings.Create();
+        var atlas = XAtlas.Create();
         try
         {
             // Fill input mesh
@@ -133,9 +133,9 @@ public static class LightmapUVGenerator
             packOptions.Padding = 1;
             packOptions.TexelsPerUnit = settings.TexelPerUnit;
 
-            XAtlasNativeBindings.AddMeshJoin(atlas);
+            XAtlas.AddMeshJoin(atlas);
             using (var chartOptions = new ChartOptions())
-                XAtlasNativeBindings.Generate(atlas, chartOptions, nint.Zero, packOptions);
+                XAtlas.Generate(atlas, chartOptions, nint.Zero, packOptions);
 
             // Copy output
             var atlasSize = new Vector2i((int)atlas.Width, (int)atlas.Height);
@@ -197,7 +197,7 @@ public static class LightmapUVGenerator
         }
         finally
         {
-            XAtlasNativeBindings.Destroy(atlas);
+            XAtlas.Destroy(atlas);
             atlas.Dispose();
         }
     }
@@ -206,7 +206,7 @@ public static class LightmapUVGenerator
     {
         var error = forceFailure
             ? (AddMeshError)int.MaxValue
-            : XAtlasNativeBindings.AddMesh(atlas, meshDecl);
+            : XAtlas.AddMesh(atlas, meshDecl);
         return error == AddMeshError.Success;
     }
 }

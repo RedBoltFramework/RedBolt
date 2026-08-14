@@ -5,7 +5,7 @@ internal sealed class Box2DGenerator(string nativeLibraryName)
         "box2d",
         "RedBolt.Bindings.Box2D",
         "RedBolt.Bindings.Box2D",
-        "Box2DNativeBindings",
+        "Box2D",
         nativeLibraryName,
         "redbolt_box2d",
         "-xc",

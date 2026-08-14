@@ -5,7 +5,7 @@ internal sealed class EmbreeGenerator(string nativeLibraryName)
         "embree",
         "RedBolt.Bindings.Embree",
         "RedBolt.Bindings.Embree",
-        "EmbreeNativeBindings",
+        "Embree",
         nativeLibraryName,
         "redbolt_embree",
         "-xc",

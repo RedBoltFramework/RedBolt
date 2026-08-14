@@ -149,7 +149,7 @@ public sealed class RenderDevice : RedObject
         _glContext = IntPtr.Zero;
 
         if (_window is not null && !_window.IsNull)
-            SdlNativeBindings.SdlDestroyWindow(_window);
+            Sdl.SdlDestroyWindow(_window);
         _window = null;
 
         base.Dispose();
@@ -171,9 +171,9 @@ public sealed class RenderDevice : RedObject
         {
         case RenderBackend.OpenGL:
         {
-            var currentContext = SdlNativeBindings.SdlGlGetCurrentContext();
+            var currentContext = Sdl.SdlGlGetCurrentContext();
             System.Diagnostics.Debug.Assert(currentContext != IntPtr.Zero && currentContext != _glContext);
-            return DiligentNativeBindings.CreateSecondaryProxySwapChainGL(
+            return Diligent.CreateSecondaryProxySwapChainGL(
                 _renderDevice!, _deviceContext!, swapChainDesc, sdlWindow.Handle);
         }
         default:
@@ -194,7 +194,7 @@ public sealed class RenderDevice : RedObject
         var window = GetSDLWindow();
         if (window is not null && !window.IsNull)
         {
-            SdlNativeBindings.SdlGetWindowSize(window, out var width, out var height);
+            Sdl.SdlGetWindowSize(window, out var width, out var height);
             var windowSettings = GetWindowSettings();
             windowSettings.Size = new Vector2i(width, height);
             _windowSettings = windowSettings;
@@ -283,7 +283,7 @@ public sealed class RenderDevice : RedObject
 
         if (GetDeviceSettings().Backend == RenderBackend.OpenGL)
         {
-            if (SdlNativeBindings.SdlGlGetCurrentContext() == IntPtr.Zero)
+            if (Sdl.SdlGlGetCurrentContext() == IntPtr.Zero)
             {
                 InvalidateGLESContext();
                 return RestoreGLESContext();
@@ -320,7 +320,7 @@ public sealed class RenderDevice : RedObject
         {
             InvalidateVulkanContext();
             Log.GetLogger().LogInformation("Emulated context lost");
-            SdlNativeBindings.SdlDelay(delayMs);
+            Sdl.SdlDelay(delayMs);
             return RestoreVulkanContext();
         }
 #if REDBOLT_PLATFORM_ANDROID
@@ -330,7 +330,7 @@ public sealed class RenderDevice : RedObject
 
             InvalidateGLESContext();
             Log.GetLogger().LogInformation("Emulated context lost");
-            SdlNativeBindings.SdlDelay(delayMs);
+            Sdl.SdlDelay(delayMs);
             return RestoreGLESContext();
         }
 #else
@@ -390,7 +390,7 @@ public sealed class RenderDevice : RedObject
         }
 
         using var desc = stagingTexture.GetDesc();
-        using var formatInfo = DiligentNativeBindings.GetTextureFormatAttribs(desc.Format);
+        using var formatInfo = Diligent.GetTextureFormatAttribs(desc.Format);
         if (formatInfo.GetElementSize() != 4 || formatInfo.ComponentType == ComponentType.ComponentTypeCompressed)
         {
             Log.GetLogger().LogError("Unexpected backbuffer for RenderDevice.TakeScreenShot");
@@ -524,7 +524,7 @@ public sealed class RenderDevice : RedObject
 
         if (_deviceSettings.ExternalWindowHandle != IntPtr.Zero && _window is not null && !_window.IsNull)
         {
-            SdlNativeBindings.SdlGetWindowSize(_window, out var width, out var height);
+            Sdl.SdlGetWindowSize(_window, out var width, out var height);
             if (GetWindowSettings().Size != new Vector2i(width, height))
                 UpdateSwapChainSize();
         }
@@ -737,11 +737,11 @@ public sealed class RenderDevice : RedObject
         return [];
 #else
         var result = new List<FullscreenMode>();
-        var numModes = SdlNativeBindings.SdlGetNumDisplayModes(monitor);
+        var numModes = Sdl.SdlGetNumDisplayModes(monitor);
         for (var i = 0; i < numModes; ++i)
         {
             using var mode = new SdlDisplayMode();
-            SdlNativeBindings.SdlGetDisplayMode(monitor, i, mode);
+            Sdl.SdlGetDisplayMode(monitor, i, mode);
             result.Add(new FullscreenMode(new Vector2i(mode.W, mode.H), mode.RefreshRate));
         }
 
@@ -924,7 +924,7 @@ public sealed class RenderDevice : RedObject
         var graphics = GetSubsystem<Graphics>()!;
         if (!graphics.RestoreGLContext())
         {
-            var error = System.Text.Encoding.UTF8.GetString(SdlNativeBindings.SdlGetError()).TrimEnd('\0');
+            var error = System.Text.Encoding.UTF8.GetString(Sdl.SdlGetError()).TrimEnd('\0');
             Log.GetLogger().LogError("Could not restore OpenGL context: {Error}", error);
             return false;
         }
@@ -1068,7 +1068,7 @@ public sealed class RenderDevice : RedObject
             settings.Mode = WindowMode.Borderless;
 #endif
 
-        var numMonitors = SdlNativeBindings.SdlGetNumVideoDisplays();
+        var numMonitors = Sdl.SdlGetNumVideoDisplays();
         if (settings.Monitor < 0 || settings.Monitor >= numMonitors)
             settings.Monitor = 0;
 
@@ -1081,7 +1081,7 @@ public sealed class RenderDevice : RedObject
         const int defaultWindowWidth = 1024;
         const int defaultWindowHeight = 768;
         using var desktopMode = new SdlDisplayMode();
-        if (SdlNativeBindings.SdlGetDesktopDisplayMode(settings.Monitor, desktopMode) != 0)
+        if (Sdl.SdlGetDesktopDisplayMode(settings.Monitor, desktopMode) != 0)
         {
             settings.Mode = WindowMode.Windowed;
             settings.Size = new Vector2i(defaultWindowWidth, defaultWindowHeight);

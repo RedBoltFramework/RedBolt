@@ -253,7 +253,7 @@ layout(std140) uniform Material
         if (_window is null || _window.IsNull)
             return _windowTitle;
 
-        var title = SdlNativeBindings.SdlGetWindowTitle(_window);
+        var title = Sdl.SdlGetWindowTitle(_window);
         var length = title.IndexOf((byte)0);
         return Encoding.UTF8.GetString(length < 0 ? title : title[..length]);
     }
@@ -264,7 +264,7 @@ layout(std140) uniform Material
         if (_window is not null && !_window.IsNull)
         {
             using var title = new CString(windowTitle);
-            SdlNativeBindings.SdlSetWindowTitle(_window, title.Bytes);
+            Sdl.SdlSetWindowTitle(_window, title.Bytes);
         }
     }
 
@@ -272,7 +272,7 @@ layout(std140) uniform Material
     {
         if (_window is not null && !_window.IsNull)
         {
-            SdlNativeBindings.SdlGetWindowPosition(_window, out var x, out var y);
+            Sdl.SdlGetWindowPosition(_window, out var x, out var y);
             return new Vector2i(x, y);
         }
 
@@ -282,7 +282,7 @@ layout(std140) uniform Material
     public void SetWindowPosition(Vector2i position)
     {
         if (_window is not null && !_window.IsNull)
-            SdlNativeBindings.SdlSetWindowPosition(_window, position.X, position.Y);
+            Sdl.SdlSetWindowPosition(_window, position.X, position.Y);
         else
             _windowPosition = position;
     }
@@ -309,7 +309,7 @@ layout(std140) uniform Material
         var handle = GCHandle.Alloc(data, GCHandleType.Pinned);
         try
         {
-            var surface = SdlNativeBindings.SdlCreateRGBSurfaceWithFormatFrom(
+            var surface = Sdl.SdlCreateRGBSurfaceWithFormatFrom(
                 handle.AddrOfPinnedObject(), rgba.Width, rgba.Height, 32, rgba.Width * 4,
                 (uint)SdlPixelFormatEnum.SdlPixelformatRgba32);
             if (surface.IsNull)
@@ -317,11 +317,11 @@ layout(std140) uniform Material
 
             try
             {
-                SdlNativeBindings.SdlSetWindowIcon(_window!, surface);
+                Sdl.SdlSetWindowIcon(_window!, surface);
             }
             finally
             {
-                SdlNativeBindings.SdlFreeSurface(surface);
+                Sdl.SdlFreeSurface(surface);
             }
         }
         finally
@@ -524,7 +524,7 @@ layout(std140) uniform Material
 
         if (GetFullscreen() && _window is not null && !_window.IsNull)
         {
-            var flags = SdlNativeBindings.SdlGetWindowFlags(_window);
+            var flags = Sdl.SdlGetWindowFlags(_window);
             if ((flags & (uint)SdlWindowFlags.SdlWindowMinimized) != 0)
                 return false;
         }
@@ -655,11 +655,11 @@ layout(std140) uniform Material
     public IReadOnlyList<Vector3i> GetResolutions(int monitor)
     {
         var result = new List<Vector3i>();
-        var numModes = SdlNativeBindings.SdlGetNumDisplayModes(monitor);
+        var numModes = Sdl.SdlGetNumDisplayModes(monitor);
         for (var i = 0; i < numModes; ++i)
         {
             using var mode = new SdlDisplayMode();
-            SdlNativeBindings.SdlGetDisplayMode(monitor, i, mode);
+            Sdl.SdlGetDisplayMode(monitor, i, mode);
             var resolution = new Vector3i(mode.W, mode.H, mode.RefreshRate);
             var unique = true;
             for (var j = 0; j < result.Count; ++j)
@@ -707,47 +707,47 @@ layout(std140) uniform Material
         return new Vector2i(Width, Height);
 #else
         using var mode = new SdlDisplayMode();
-        SdlNativeBindings.SdlGetDesktopDisplayMode(monitor, mode);
+        Sdl.SdlGetDesktopDisplayMode(monitor, mode);
         return new Vector2i(mode.W, mode.H);
 #endif
     }
 
-    public int GetMonitorCount() => SdlNativeBindings.SdlGetNumVideoDisplays();
+    public int GetMonitorCount() => Sdl.SdlGetNumVideoDisplays();
 
     public int GetCurrentMonitor()
     {
         return _window is not null && !_window.IsNull
-            ? SdlNativeBindings.SdlGetWindowDisplayIndex(_window)
+            ? Sdl.SdlGetWindowDisplayIndex(_window)
             : 0;
     }
 
     public bool GetMaximized()
     {
         return _window is not null && !_window.IsNull
-            && (SdlNativeBindings.SdlGetWindowFlags(_window) & (uint)SdlWindowFlags.SdlWindowMaximized) != 0;
+            && (Sdl.SdlGetWindowFlags(_window) & (uint)SdlWindowFlags.SdlWindowMaximized) != 0;
     }
 
     public void Maximize()
     {
         if (_window is not null && !_window.IsNull)
-            SdlNativeBindings.SdlMaximizeWindow(_window);
+            Sdl.SdlMaximizeWindow(_window);
     }
 
     public void Minimize()
     {
         if (_window is not null && !_window.IsNull)
-            SdlNativeBindings.SdlMinimizeWindow(_window);
+            Sdl.SdlMinimizeWindow(_window);
     }
 
     public void Raise()
     {
         if (_window is not null && !_window.IsNull)
-            SdlNativeBindings.SdlRaiseWindow(_window);
+            Sdl.SdlRaiseWindow(_window);
     }
 
     public Vector3f GetDisplayDPI(int monitor = 0)
     {
-        SdlNativeBindings.SdlGetDisplayDPI(monitor, out var ddpi, out var hdpi, out var vdpi);
+        Sdl.SdlGetDisplayDPI(monitor, out var ddpi, out var hdpi, out var vdpi);
         return new Vector3f(hdpi, vdpi, ddpi);
     }
 
@@ -882,7 +882,7 @@ layout(std140) uniform Material
         _swapChainVulkan = ISwapChainVk.QueryManagedWrapper(nativeSwapChain)
             ?? throw new InvalidOperationException("Vulkan swap chain interface is unavailable.");
 
-        _swapChain = DiligentNativeBindings.CreateProxySwapChainMS(
+        _swapChain = Diligent.CreateProxySwapChainMS(
             _device!, _immediateContext!, nativeSwapChain, (uint)depthFormat, (uint)multiSample);
         ReleaseIfNotNull(nativeSwapChain);
         if (_swapChain is null || _swapChain.IsNull)
@@ -908,13 +908,13 @@ layout(std140) uniform Material
         if (_glContext == IntPtr.Zero)
             return;
 
-        SdlNativeBindings.SdlGlDeleteContext(_glContext);
+        Sdl.SdlGlDeleteContext(_glContext);
         _glContext = IntPtr.Zero;
     }
 
     internal bool RestoreGLContext()
     {
-        _glContext = SdlNativeBindings.SdlGlCreateContext(_window!);
+        _glContext = Sdl.SdlGlCreateContext(_window!);
         return _glContext != IntPtr.Zero;
     }
 
@@ -1109,7 +1109,7 @@ layout(std140) uniform Material
 
         // C++ RenderDevice ctor: Diligent::SetDebugMessageCallback(&DebugMessageCallback)
         // before factory/device creation (filters noisy shader compiler INFO logs).
-        DiligentNativeBindings.InstallDebugMessageCallback();
+        Diligent.InstallDebugMessageCallback();
 
         _window = input.Window;
         var backend = deviceSettings.Backend;
@@ -1694,7 +1694,7 @@ layout(std140) uniform Material
 
         var sizeChanged = oldSettings.Size != newSettings.Size;
         if (sizeChanged && newSettings.Mode == WindowMode.Windowed)
-            SdlNativeBindings.SdlSetWindowSize(_window, newSettings.Size.X, newSettings.Size.Y);
+            Sdl.SdlSetWindowSize(_window, newSettings.Size.X, newSettings.Size.Y);
 
         if (sizeChanged || oldSettings.Mode != newSettings.Mode || oldSettings.RefreshRate != newSettings.RefreshRate)
         {
@@ -1704,33 +1704,33 @@ layout(std140) uniform Material
                 displayMode.W = newSettings.Size.X;
                 displayMode.H = newSettings.Size.Y;
                 displayMode.RefreshRate = newSettings.RefreshRate;
-                _ = SdlNativeBindings.SdlSetWindowDisplayMode(_window, displayMode);
+                _ = Sdl.SdlSetWindowDisplayMode(_window, displayMode);
             }
 
-            _ = SdlNativeBindings.SdlSetWindowFullscreen(_window, 0u);
+            _ = Sdl.SdlSetWindowFullscreen(_window, 0u);
             var fullscreenFlags = newSettings.Mode switch
             {
                 WindowMode.Fullscreen => (uint)SdlWindowFlags.SdlWindowFullscreen,
                 WindowMode.Borderless => (uint)SdlWindowFlags.SdlWindowFullscreenDesktop,
                 _ => 0u
             };
-            _ = SdlNativeBindings.SdlSetWindowFullscreen(_window, fullscreenFlags);
+            _ = Sdl.SdlSetWindowFullscreen(_window, fullscreenFlags);
         }
 
         if (oldSettings.Monitor != newSettings.Monitor)
         {
             var position = unchecked((int)(0x1FFF0000u | (uint)newSettings.Monitor));
-            SdlNativeBindings.SdlSetWindowPosition(_window, position, position);
+            Sdl.SdlSetWindowPosition(_window, position, position);
         }
 
         if (oldSettings.Title != newSettings.Title)
         {
             using var title = new CString(newSettings.Title);
-            SdlNativeBindings.SdlSetWindowTitle(_window, title.Bytes);
+            Sdl.SdlSetWindowTitle(_window, title.Bytes);
         }
 
         if (oldSettings.Resizable != newSettings.Resizable)
-            SdlNativeBindings.SdlSetWindowResizable(_window, newSettings.Resizable ? SdlBool.SdlTrue : SdlBool.SdlFalse);
+            Sdl.SdlSetWindowResizable(_window, newSettings.Resizable ? SdlBool.SdlTrue : SdlBool.SdlFalse);
 
         if (oldSettings.VSync != newSettings.VSync)
             _graphicsBackendLifetime?.SetVSync(newSettings.VSync);
@@ -2099,20 +2099,20 @@ layout(std140) uniform Material
             var vertexAttributes = vertexVariation.GetBytecode().VertexAttributes;
             if (isOpenGl)
             {
-                temporaryGlProgram = DiligentNativeBindings.CreateTemporaryGLProgram(
+                temporaryGlProgram = Diligent.CreateTemporaryGLProgram(
                     vertexShader, pixelShader, null!, null!, null!, hasSeparableShaderPrograms);
                 vertexAttributes = [];
-                var numAttributes = DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeCount(temporaryGlProgram);
+                var numAttributes = Diligent.GetTemporaryGLProgramVertexAttributeCount(temporaryGlProgram);
                 for (var i = 0u; i < numAttributes; ++i)
                 {
                     var attributeName = System.Text.Encoding.UTF8.GetString(
-                        DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeName(temporaryGlProgram, i));
+                        Diligent.GetTemporaryGLProgramVertexAttributeName(temporaryGlProgram, i));
                     var attribute = RenderAPIUtils.ParseVertexAttribute(attributeName);
                     if (attribute is not null)
                     {
                         vertexAttributes.Add(attribute.Value with
                         {
-                            InputIndex = checked((int)DiligentNativeBindings.GetTemporaryGLProgramVertexAttributeLocation(
+                            InputIndex = checked((int)Diligent.GetTemporaryGLProgramVertexAttributeLocation(
                                 temporaryGlProgram, i))
                         });
                     }
@@ -2172,7 +2172,7 @@ layout(std140) uniform Material
             if (pipelineState.IsNull)
                 throw new InvalidOperationException($"Failed to create pipeline state for {pass.VertexShader}/{pass.PixelShader}.");
             if (isOpenGl &&
-                !DiligentNativeBindings.BindTemporaryGLProgramVertexAttributes(temporaryGlProgram, pipelineState))
+                !Diligent.BindTemporaryGLProgramVertexAttributes(temporaryGlProgram, pipelineState))
                 throw new InvalidOperationException($"Failed to bind OpenGL vertex attributes for {pass.VertexShader}/{pass.PixelShader}.");
 
             var cameraBuffer = CreateUniformBuffer(_device, "Camera", CameraBufferSize);
@@ -2202,7 +2202,7 @@ layout(std140) uniform Material
         {
             layoutArray?.Dispose();
             if (temporaryGlProgram != 0)
-                DiligentNativeBindings.DeleteTemporaryGLProgram(temporaryGlProgram);
+                Diligent.DeleteTemporaryGLProgram(temporaryGlProgram);
         }
     }
 
@@ -4474,14 +4474,14 @@ layout(std140) uniform Material
 
     private static TextureDescOwner CreateTextureDesc()
     {
-        var factory = DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL();
+        var factory = Diligent.LoadAndGetEngineFactoryOpenGL();
         var apiInfo = factory.GetAPIInfo();
         return new TextureDescOwner((int)apiInfo.TextureDescSize);
     }
 
     private static TextureViewDescOwner CreateTextureViewDesc()
     {
-        var factory = DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL();
+        var factory = Diligent.LoadAndGetEngineFactoryOpenGL();
         var apiInfo = factory.GetAPIInfo();
         return new TextureViewDescOwner((int)apiInfo.TextureViewDescSize);
     }
@@ -4990,7 +4990,7 @@ layout(std140) uniform Material
             if (Count == 0)
                 throw new InvalidOperationException("Graphics pipeline layout may not be empty.");
 
-            var layoutElementSize = (int)DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL().GetAPIInfo().LayoutElementSize;
+            var layoutElementSize = (int)Diligent.LoadAndGetEngineFactoryOpenGL().GetAPIInfo().LayoutElementSize;
             _memory = Marshal.AllocHGlobal(Count * layoutElementSize);
             for (var i = 0; i < Count; ++i)
             {
@@ -5148,7 +5148,7 @@ layout(std140) uniform Material
             if (resources.Length == 0)
                 return;
 
-            var immutableSamplerDescSize = (int)DiligentNativeBindings.LoadAndGetEngineFactoryOpenGL().GetAPIInfo().ImmutableSamplerDescSize;
+            var immutableSamplerDescSize = (int)Diligent.LoadAndGetEngineFactoryOpenGL().GetAPIInfo().ImmutableSamplerDescSize;
             _memory = Marshal.AllocHGlobal(checked(immutableSamplerDescSize * resources.Length));
             for (var i = 0; i < resources.Length; ++i)
             {

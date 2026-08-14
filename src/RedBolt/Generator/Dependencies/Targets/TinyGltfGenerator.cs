@@ -13,7 +13,7 @@ internal sealed class TinyGltfGenerator(string nativeLibraryName)
         "tinygltf",
         "RedBolt.Bindings.TinyGltf",
         "RedBolt.Bindings.TinyGltf",
-        "TinyGltfNativeBindings",
+        "TinyGltf",
         nativeLibraryName,
         "redbolt_tinygltf",
         "-xc++",

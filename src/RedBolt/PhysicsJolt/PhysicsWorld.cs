@@ -1146,10 +1146,10 @@ public partial class PhysicsWorld : Component, IPhysicsWorld3D
             if (_joltReferenceCount++ != 0)
                 return;
 
-            JoltNativeBindings.RegisterDefaultAllocator();
+            Jolt.RegisterDefaultAllocator();
             _joltFactory = new Factory();
             Factory.SInstance = _joltFactory;
-            JoltNativeBindings.RegisterTypes();
+            Jolt.RegisterTypes();
         }
     }
 
@@ -1160,7 +1160,7 @@ public partial class PhysicsWorld : Component, IPhysicsWorld3D
             if (_joltReferenceCount == 0 || --_joltReferenceCount != 0)
                 return;
 
-            JoltNativeBindings.UnregisterTypes();
+            Jolt.UnregisterTypes();
             Factory.SInstance = null!;
             _joltFactory!.Dispose();
             _joltFactory = null;

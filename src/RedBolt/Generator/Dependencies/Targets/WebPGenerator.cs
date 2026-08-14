@@ -11,7 +11,7 @@ internal sealed class WebPGenerator(string nativeLibraryName)
         "webp",
         "RedBolt.Bindings.WebP",
         "RedBolt.Bindings.WebP",
-        "WebPNativeBindings",
+        "WebP",
         nativeLibraryName,
         "redbolt_webp",
         "-xc++",

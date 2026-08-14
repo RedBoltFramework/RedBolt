@@ -9,7 +9,7 @@ internal sealed class HarfBuzzGenerator(string nativeLibraryName)
         "harfbuzz",
         "RedBolt.Bindings.HarfBuzz",
         "RedBolt.Bindings.HarfBuzz",
-        "HarfBuzzNativeBindings",
+        "HarfBuzz",
         nativeLibraryName,
         "redbolt_harfbuzz",
         "-xc",

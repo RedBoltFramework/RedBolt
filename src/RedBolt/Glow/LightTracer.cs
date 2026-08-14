@@ -137,7 +137,7 @@ public static class LightTracer
     private static Color GetHitDiffuseTextureColor(RaytracerGeometry hitGeometry, RTCHit hit)
     {
         Span<float> uv = stackalloc float[2];
-        EmbreeNativeBindings.RtcInterpolate0(hitGeometry.EmbreeGeometry, hit.PrimID, hit.U, hit.V,
+        Embree.RtcInterpolate0(hitGeometry.EmbreeGeometry, hit.PrimID, hit.U, hit.V,
             RTCBufferType.RtcBufferTypeVertexAttribute, RaytracerScene.UvAttribute, uv, 2);
         return hitGeometry.Material.SampleDiffuse(new Vector2f(uv[0], uv[1]));
     }
@@ -490,7 +490,7 @@ public static class LightTracer
                         if (rayDirection.DotProduct(hitNormal) > 0.0f)
                             break;
                         var hitGeometry = raytracerScene.Geometries[(int)rayHit.HitGeomID];
-                        EmbreeNativeBindings.RtcInterpolate0(hitGeometry.EmbreeGeometry,
+                        Embree.RtcInterpolate0(hitGeometry.EmbreeGeometry,
                             rayHit.HitPrimID, rayHit.HitU, rayHit.HitV,
                             RTCBufferType.RtcBufferTypeVertexAttribute, RaytracerScene.LightmapUvAttribute, uv, 2);
                         var direct = bakedDirect[hitGeometry.LightmapIndex]!;
@@ -509,7 +509,7 @@ public static class LightTracer
                         position.X += MathF.Sign(hitNormal.X) * bias + hitNormal.X * settings.ConstPositionBounceBias;
                         position.Y += MathF.Sign(hitNormal.Y) * bias + hitNormal.Y * settings.ConstPositionBounceBias;
                         position.Z += MathF.Sign(hitNormal.Z) * bias + hitNormal.Z * settings.ConstPositionBounceBias;
-                        EmbreeNativeBindings.RtcInterpolate0(hitGeometry.EmbreeGeometry,
+                        Embree.RtcInterpolate0(hitGeometry.EmbreeGeometry,
                             rayHit.HitPrimID, rayHit.HitU, rayHit.HitV,
                             RTCBufferType.RtcBufferTypeVertexAttribute, RaytracerScene.NormalAttribute, interpolated, 3);
                         smoothNormal = new Vector3f(interpolated[0], interpolated[1], interpolated[2]).Normalized;
@@ -570,7 +570,7 @@ public static class LightTracer
                         if (rayDirection.DotProduct(hitNormal) > 0.0f)
                             break;
                         var hitGeometry = raytracerScene.Geometries[(int)rayHit.HitGeomID];
-                        EmbreeNativeBindings.RtcInterpolate0(hitGeometry.EmbreeGeometry,
+                        Embree.RtcInterpolate0(hitGeometry.EmbreeGeometry,
                             rayHit.HitPrimID, rayHit.HitU, rayHit.HitV,
                             RTCBufferType.RtcBufferTypeVertexAttribute, RaytracerScene.LightmapUvAttribute, uv, 2);
                         var direct = bakedDirect[hitGeometry.LightmapIndex]!;
@@ -589,7 +589,7 @@ public static class LightTracer
                         position.X += MathF.Sign(hitNormal.X) * bias + hitNormal.X * settings.ConstPositionBounceBias;
                         position.Y += MathF.Sign(hitNormal.Y) * bias + hitNormal.Y * settings.ConstPositionBounceBias;
                         position.Z += MathF.Sign(hitNormal.Z) * bias + hitNormal.Z * settings.ConstPositionBounceBias;
-                        EmbreeNativeBindings.RtcInterpolate0(hitGeometry.EmbreeGeometry,
+                        Embree.RtcInterpolate0(hitGeometry.EmbreeGeometry,
                             rayHit.HitPrimID, rayHit.HitU, rayHit.HitV,
                             RTCBufferType.RtcBufferTypeVertexAttribute, RaytracerScene.NormalAttribute, interpolated, 3);
                         rayDirection = RandomHemisphereDirectionCos(hitNormal);

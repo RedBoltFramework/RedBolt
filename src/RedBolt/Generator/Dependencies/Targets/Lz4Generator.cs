@@ -10,7 +10,7 @@ internal sealed class Lz4Generator(string nativeLibraryName)
         "lz4",
         "RedBolt.Bindings.Lz4",
         "RedBolt.Bindings.Lz4",
-        "Lz4NativeBindings",
+        "Lz4",
         nativeLibraryName,
         "redbolt_lz4",
         "-xc++",

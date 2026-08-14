@@ -49,32 +49,32 @@ public static class ShaderOptimizer
         bool isVulkan, out List<uint> optimizedBytecode)
     {
         optimizedBytecode = [];
-        var optimizer = SpirVToolsNativeBindings.SpvOptimizerCreate(targetEnv);
-        var options = SpirVToolsNativeBindings.SpvOptimizerOptionsCreate();
+        var optimizer = SpirVTools.SpvOptimizerCreate(targetEnv);
+        var options = SpirVTools.SpvOptimizerOptionsCreate();
         SpvBinaryT? optimizedBinary = null;
 
         try
         {
-            SpirVToolsNativeBindings.SpvOptimizerSetMessageConsumer(
+            SpirVTools.SpvOptimizerSetMessageConsumer(
                 optimizer,
                 (nint)(delegate* unmanaged[Cdecl]<SpvMessageLevelT, nint, nint, nint, void>)&AppendOptimizerMessage);
 
             if (isVulkan)
-                SpirVToolsNativeBindings.SpvOptimizerRegisterLegalizationPasses(optimizer);
+                SpirVTools.SpvOptimizerRegisterLegalizationPasses(optimizer);
 
             ReadOnlySpan<byte> optimizationFlag = "-O\0"u8;
             fixed (byte* optimizationFlagPointer = optimizationFlag)
             {
                 ReadOnlySpan<nint> optimizationFlags = [(nint)optimizationFlagPointer];
-                if (!SpirVToolsNativeBindings.SpvOptimizerRegisterPassesFromFlagsWhilePreservingTheInterface(
+                if (!SpirVTools.SpvOptimizerRegisterPassesFromFlagsWhilePreservingTheInterface(
                         optimizer, optimizationFlags, (nuint)optimizationFlags.Length))
                 {
                     return false;
                 }
             }
 
-            SpirVToolsNativeBindings.SpvOptimizerOptionsSetRunValidator(options, !isVulkan);
-            if (SpirVToolsNativeBindings.SpvOptimizerRun(
+            SpirVTools.SpvOptimizerOptionsSetRunValidator(options, !isVulkan);
+            if (SpirVTools.SpvOptimizerRun(
                     optimizer, bytecode, (nuint)bytecode.Length, out optimizedBinary, options) !=
                 SpvResultT.SpvSuccess)
             {
@@ -96,20 +96,20 @@ public static class ShaderOptimizer
             if (optimizedBinary is not null)
             {
                 if (!optimizedBinary.IsNull)
-                    SpirVToolsNativeBindings.SpvBinaryDestroy(optimizedBinary);
+                    SpirVTools.SpvBinaryDestroy(optimizedBinary);
                 optimizedBinary.Dispose();
             }
 
-            SpirVToolsNativeBindings.SpvOptimizerOptionsDestroy(options);
+            SpirVTools.SpvOptimizerOptionsDestroy(options);
             options.Dispose();
-            SpirVToolsNativeBindings.SpvOptimizerDestroy(optimizer);
+            SpirVTools.SpvOptimizerDestroy(optimizer);
             optimizer.Dispose();
         }
     }
 
     private static bool ValidateSpirV(SpvBinaryT binary, SpvTargetEnv targetEnv)
     {
-        var context = SpirVToolsNativeBindings.SpvContextCreate(targetEnv);
+        var context = SpirVTools.SpvContextCreate(targetEnv);
         SpvDiagnosticT? diagnostic = null;
 
         try
@@ -117,7 +117,7 @@ public static class ShaderOptimizer
             unsafe
             {
                 var words = new ReadOnlySpan<uint>((void*)binary.Code, checked((int)binary.WordCount));
-                if (SpirVToolsNativeBindings.SpvValidateBinary(
+                if (SpirVTools.SpvValidateBinary(
                         context, words, (nuint)words.Length, out diagnostic) == SpvResultT.SpvSuccess)
                 {
                     return true;
@@ -133,11 +133,11 @@ public static class ShaderOptimizer
             if (diagnostic is not null)
             {
                 if (!diagnostic.IsNull)
-                    SpirVToolsNativeBindings.SpvDiagnosticDestroy(diagnostic);
+                    SpirVTools.SpvDiagnosticDestroy(diagnostic);
                 diagnostic.Dispose();
             }
 
-            SpirVToolsNativeBindings.SpvContextDestroy(context);
+            SpirVTools.SpvContextDestroy(context);
             context.Dispose();
         }
     }

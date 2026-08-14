@@ -7,7 +7,7 @@ internal sealed class SdlGenerator(string nativeLibraryName)
         "sdl",
         "RedBolt.Bindings.Sdl",
         "RedBolt.Bindings.Sdl",
-        "SdlNativeBindings",
+        "Sdl",
         nativeLibraryName,
         "redbolt_sdl",
         "-xc",

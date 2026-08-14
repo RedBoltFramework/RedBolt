@@ -78,7 +78,7 @@ public sealed partial class Font : ResourceType
             return true;
         }
 
-        _blob = HarfBuzzNativeBindings.HbBlobCreateFromFileOrFail(GetAbsoluteFileName());
+        _blob = HarfBuzz.HbBlobCreateFromFileOrFail(GetAbsoluteFileName());
         if (_blob.IsNull)
         {
             _blob.Dispose();
@@ -86,29 +86,29 @@ public sealed partial class Font : ResourceType
             return false;
         }
 
-        _face = HarfBuzzNativeBindings.HbFaceCreateOrFail(_blob, 0);
+        _face = HarfBuzz.HbFaceCreateOrFail(_blob, 0);
         if (_face.IsNull)
         {
             ReleaseFont();
             return false;
         }
-        UnitsPerEm = checked((int)HarfBuzzNativeBindings.HbFaceGetUpem(_face));
+        UnitsPerEm = checked((int)HarfBuzz.HbFaceGetUpem(_face));
         if (UnitsPerEm == 0)
         {
             ReleaseFont();
             return false;
         }
 
-        _gpuFont = HarfBuzzNativeBindings.HbFontCreate(_face);
+        _gpuFont = HarfBuzz.HbFontCreate(_face);
         if (_gpuFont.IsNull)
         {
             Log.GetLogger().LogError("HarfBuzz GPU font initialization failed for font {Font}", Name);
             ReleaseFont();
             return false;
         }
-        HarfBuzzNativeBindings.HbOtFontSetFuncs(_gpuFont);
-        HarfBuzzNativeBindings.HbFontSetScale(_gpuFont, UnitsPerEm, UnitsPerEm);
-        _gpuDraw = HarfBuzzNativeBindings.HbGpuDrawCreateOrFail();
+        HarfBuzz.HbOtFontSetFuncs(_gpuFont);
+        HarfBuzz.HbFontSetScale(_gpuFont, UnitsPerEm, UnitsPerEm);
+        _gpuDraw = HarfBuzz.HbGpuDrawCreateOrFail();
         if (_gpuDraw.IsNull)
         {
             Log.GetLogger().LogError("HarfBuzz GPU encoder initialization failed for font {Font}", Name);
@@ -165,14 +165,14 @@ public sealed partial class Font : ResourceType
         if (_gpuDraw is not null)
         {
             if (!_gpuDraw.IsNull)
-                HarfBuzzNativeBindings.HbGpuDrawDestroy(_gpuDraw);
+                HarfBuzz.HbGpuDrawDestroy(_gpuDraw);
             _gpuDraw.Dispose();
             _gpuDraw = null;
         }
         if (_gpuFont is not null)
         {
             if (!_gpuFont.IsNull)
-                HarfBuzzNativeBindings.HbFontDestroy(_gpuFont);
+                HarfBuzz.HbFontDestroy(_gpuFont);
             _gpuFont.Dispose();
             _gpuFont = null;
         }
@@ -180,7 +180,7 @@ public sealed partial class Font : ResourceType
         if (_face is not null)
         {
             if (!_face.IsNull)
-                HarfBuzzNativeBindings.HbFaceDestroy(_face);
+                HarfBuzz.HbFaceDestroy(_face);
             _face.Dispose();
             _face = null;
         }
@@ -188,7 +188,7 @@ public sealed partial class Font : ResourceType
         if (_blob is not null)
         {
             if (!_blob.IsNull)
-                HarfBuzzNativeBindings.HbBlobDestroy(_blob);
+                HarfBuzz.HbBlobDestroy(_blob);
             _blob.Dispose();
             _blob = null;
         }
@@ -214,13 +214,13 @@ public sealed partial class Font : ResourceType
         if (_gpuGlyphs.TryGetValue(codepoint, out var cached))
             return cached;
         if (_gpuDraw is null || _gpuFont is null || _gpuAtlas is null
-            || HarfBuzzNativeBindings.HbGpuDrawGlyphOrFail(_gpuDraw, _gpuFont, codepoint) == 0)
+            || HarfBuzz.HbGpuDrawGlyphOrFail(_gpuDraw, _gpuFont, codepoint) == 0)
         {
             return CacheGpuFailure(codepoint, "outline encoding failed");
         }
 
         using var extents = new HbGlyphExtentsT();
-        var blob = HarfBuzzNativeBindings.HbGpuDrawEncode(_gpuDraw, extents);
+        var blob = HarfBuzz.HbGpuDrawEncode(_gpuDraw, extents);
         if (blob.IsNull)
         {
             blob.Dispose();
@@ -229,11 +229,11 @@ public sealed partial class Font : ResourceType
 
         try
         {
-            var length = checked((int)HarfBuzzNativeBindings.HbBlobGetLength(blob));
+            var length = checked((int)HarfBuzz.HbBlobGetLength(blob));
             var offset = 0;
             if (length != 0)
             {
-                var data = HarfBuzzNativeBindings.HbBlobGetData(blob, out var dataLength);
+                var data = HarfBuzz.HbBlobGetData(blob, out var dataLength);
                 if (data == IntPtr.Zero || dataLength != (uint)length || length % HarfBuzzGpuAtlas.TexelSize != 0
                     || !_gpuAtlas.TryAppend(new ReadOnlySpan<byte>((void*)data, length), out offset))
                 {
@@ -248,7 +248,7 @@ public sealed partial class Font : ResourceType
         }
         finally
         {
-            HarfBuzzNativeBindings.HbGpuDrawRecycleBlob(_gpuDraw, blob);
+            HarfBuzz.HbGpuDrawRecycleBlob(_gpuDraw, blob);
             blob.Dispose();
         }
     }
@@ -310,9 +310,9 @@ internal sealed class HarfBuzzFontFace : TextFontFace
     public HarfBuzzFontFace(Font owner, HbFaceT face, int scale)
     {
         _owner = owner;
-        _font = HarfBuzzNativeBindings.HbFontCreate(face);
-        HarfBuzzNativeBindings.HbOtFontSetFuncs(_font);
-        HarfBuzzNativeBindings.HbFontSetScale(_font, scale, scale);
+        _font = HarfBuzz.HbFontCreate(face);
+        HarfBuzz.HbOtFontSetFuncs(_font);
+        HarfBuzz.HbFontSetScale(_font, scale, scale);
         PointSize = scale / (float)HarfBuzzScale;
     }
 
@@ -326,7 +326,7 @@ internal sealed class HarfBuzzFontFace : TextFontFace
 
     public override TextFontGlyph? GetGlyph(Rune rune)
     {
-        if (HarfBuzzNativeBindings.HbFontGetGlyph(_font, (uint)rune.Value, 0, out var codepoint) == 0)
+        if (HarfBuzz.HbFontGetGlyph(_font, (uint)rune.Value, 0, out var codepoint) == 0)
             return null;
 
         return GetGlyph(codepoint);
@@ -347,18 +347,18 @@ internal sealed class HarfBuzzFontFace : TextFontFace
     public List<TextShapedGlyph> Shape(string text)
     {
         var utf8 = Encoding.UTF8.GetBytes(text);
-        var buffer = HarfBuzzNativeBindings.HbBufferCreate();
+        var buffer = HarfBuzz.HbBufferCreate();
         HbGlyphInfoT? infos = null;
         HbGlyphPositionT? positions = null;
         try
         {
-            HarfBuzzNativeBindings.HbBufferAddUtf8(
+            HarfBuzz.HbBufferAddUtf8(
                 buffer, MemoryMarshal.Cast<byte, sbyte>(utf8), utf8.Length, 0, utf8.Length);
-            HarfBuzzNativeBindings.HbBufferGuessSegmentProperties(buffer);
-            HarfBuzzNativeBindings.HbShape(_font, buffer, null!, 0);
+            HarfBuzz.HbBufferGuessSegmentProperties(buffer);
+            HarfBuzz.HbShape(_font, buffer, null!, 0);
 
-            infos = HarfBuzzNativeBindings.HbBufferGetGlyphInfos(buffer, out var infoCount);
-            positions = HarfBuzzNativeBindings.HbBufferGetGlyphPositions(buffer, out var positionCount);
+            infos = HarfBuzz.HbBufferGetGlyphInfos(buffer, out var infoCount);
+            positions = HarfBuzz.HbBufferGetGlyphPositions(buffer, out var positionCount);
             var count = checked((int)SystemMath.Min(infoCount, positionCount));
             var result = new List<TextShapedGlyph>(count);
             for (var i = 0; i < count; ++i)
@@ -383,14 +383,14 @@ internal sealed class HarfBuzzFontFace : TextFontFace
             positions?.Dispose();
             infos?.Dispose();
             if (!buffer.IsNull)
-                HarfBuzzNativeBindings.HbBufferDestroy(buffer);
+                HarfBuzz.HbBufferDestroy(buffer);
             buffer.Dispose();
         }
     }
 
     public override float GetKerning(uint left, uint right)
     {
-        return HarfBuzzNativeBindings.HbFontGetGlyphHKerning(_font, left, right) / (float)HarfBuzzScale;
+        return HarfBuzz.HbFontGetGlyphHKerning(_font, left, right) / (float)HarfBuzzScale;
     }
 
     public override Texture2D? GetTexture(int index)
@@ -403,7 +403,7 @@ internal sealed class HarfBuzzFontFace : TextFontFace
     public override void Dispose()
     {
         if (!_font.IsNull)
-            HarfBuzzNativeBindings.HbFontDestroy(_font);
+            HarfBuzz.HbFontDestroy(_font);
         _font.Dispose();
         _glyphs.Clear();
     }
@@ -420,7 +420,7 @@ internal sealed class HarfBuzzFontFace : TextFontFace
         var glyph = new TextFontGlyph
         {
             Codepoint = codepoint,
-            Advance = HarfBuzzNativeBindings.HbFontGetGlyphHAdvance(_font, codepoint) / (float)HarfBuzzScale,
+            Advance = HarfBuzz.HbFontGetGlyphHAdvance(_font, codepoint) / (float)HarfBuzzScale,
             AtlasOffset = gpuGlyph.AtlasOffset,
             RenderBearingX = gpuGlyph.XBearing * outlineScale,
             RenderBearingY = gpuGlyph.YBearing * outlineScale,

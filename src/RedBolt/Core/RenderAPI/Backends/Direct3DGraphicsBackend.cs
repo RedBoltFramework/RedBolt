@@ -23,7 +23,7 @@ public abstract class Direct3DGraphicsBackend : IGraphicsBackend
     public GraphicsBackendResources Initialize(EngineParameters parameters, RenderDeviceSettings deviceSettings,
         WindowSettings windowSettings, SdlWindow window)
     {
-        SdlNativeBindings.SdlGetWindowSize(window, out var width, out var height);
+        Sdl.SdlGetWindowSize(window, out var width, out var height);
         // Wine's D3D11 sRGB render-target path omits the gamma encode. A linear
         // swap chain makes RedBolt's final-copy shader perform it explicitly.
         var useSrgbSwapChain = windowSettings.SRgb && !(Backend == RenderBackend.D3D11 && IsWine());
@@ -57,7 +57,7 @@ public abstract class Direct3DGraphicsBackend : IGraphicsBackend
             }
             multiSample = System.Math.Max(1, multiSample);
 
-            swapChain = DiligentNativeBindings.CreateProxySwapChainMS(resources.Device,
+            swapChain = Diligent.CreateProxySwapChainMS(resources.Device,
                 resources.ImmediateContext, resources.NativeSwapChain, (uint)depthFormat, (uint)multiSample);
             _ = resources.NativeSwapChain.Release();
             resources.NativeSwapChain = null!;
@@ -133,7 +133,7 @@ public abstract class Direct3DGraphicsBackend : IGraphicsBackend
 
         public void Resize(IRenderDevice renderDevice, ISwapChain swapChain)
         {
-            SdlNativeBindings.SdlGetWindowSize(window, out var width, out var height);
+            Sdl.SdlGetWindowSize(window, out var width, out var height);
             swapChain.Resize((uint)System.Math.Max(width, 0), (uint)System.Math.Max(height, 0));
         }
 
@@ -156,7 +156,7 @@ public sealed class D3D11GraphicsBackend : Direct3DGraphicsBackend
     {
         using var createInfo = new EngineD3D11CreateInfo();
         ConfigureCreateInfo(createInfo, deviceSettings);
-        var factory = DiligentNativeBindings.LoadAndGetEngineFactoryD3D11();
+        var factory = Diligent.LoadAndGetEngineFactoryD3D11();
         if (factory.IsNull)
             throw new InvalidOperationException("D3D11 engine factory could not be loaded.");
 
@@ -204,7 +204,7 @@ public sealed class D3D12GraphicsBackend : Direct3DGraphicsBackend
         using var createInfo = new EngineD3D12CreateInfo();
         ConfigureCreateInfo(createInfo, deviceSettings);
         CopyBackendDeviceSettings(createInfo, deviceSettings.D3D12);
-        var factory = DiligentNativeBindings.LoadAndGetEngineFactoryD3D12();
+        var factory = Diligent.LoadAndGetEngineFactoryD3D12();
         if (factory.IsNull)
             throw new InvalidOperationException("D3D12 engine factory could not be loaded.");
 

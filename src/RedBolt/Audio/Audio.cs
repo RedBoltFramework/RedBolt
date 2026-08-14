@@ -131,7 +131,7 @@ public class Audio : RedObject
             for (;;)
             {
                 desired.Channels = (byte)AudioNumChannels[(int)currentMode];
-                _deviceId = SdlNativeBindings.SdlOpenAudioDevice([], 0, desired, obtained, allowedChanges);
+                _deviceId = Sdl.SdlOpenAudioDevice([], 0, desired, obtained, allowedChanges);
 
                 if (_deviceId != 0) break;
 
@@ -143,7 +143,7 @@ public class Audio : RedObject
         else
         {
             desired.Channels = (byte)AudioNumChannels[(int)currentMode];
-            _deviceId = SdlNativeBindings.SdlOpenAudioDevice([], 0, desired, obtained, allowedChanges);
+            _deviceId = Sdl.SdlOpenAudioDevice([], 0, desired, obtained, allowedChanges);
         }
 
         if (_deviceId == 0)
@@ -158,7 +158,7 @@ public class Audio : RedObject
         if (obtained.Format != AudioS16Sys)
         {
             Log.GetLogger().LogError("Could not initialize audio output, 16-bit buffer format not supported.");
-            SdlNativeBindings.SdlCloseAudioDevice(_deviceId);
+            Sdl.SdlCloseAudioDevice(_deviceId);
             _deviceId = 0;
             return false;
         }
@@ -169,7 +169,7 @@ public class Audio : RedObject
         if (_speakerMode == SpeakerMode.Auto)
         {
             Log.GetLogger().LogError("Could not identify channel configuration for audio output.");
-            SdlNativeBindings.SdlCloseAudioDevice(_deviceId);
+            Sdl.SdlCloseAudioDevice(_deviceId);
             _deviceId = 0;
             return false;
         }
@@ -219,7 +219,7 @@ public class Audio : RedObject
             Log.GetLogger().LogError("No audio mode set, can not start playback");
             return false;
         }
-        SdlNativeBindings.SdlPauseAudioDevice(_deviceId, 0);
+        Sdl.SdlPauseAudioDevice(_deviceId, 0);
         UpdateInternal(0.0f);
         _playing = true;
         return true;
@@ -361,11 +361,11 @@ public class Audio : RedObject
 
     public IReadOnlyList<string> EnumerateMicrophones()
     {
-        var count = SdlNativeBindings.SdlGetNumAudioDevices(1);
+        var count = Sdl.SdlGetNumAudioDevices(1);
         var result = new string[count];
         for (var i = 0; i < count; i++)
         {
-            result[i] = DecodeUtf8(SdlNativeBindings.SdlGetAudioDeviceName(i, 1));
+            result[i] = DecodeUtf8(Sdl.SdlGetAudioDeviceName(i, 1));
             foreach (var weakMicrophone in _microphones)
             {
                 if (weakMicrophone.TryGetTarget(out var microphone)
@@ -380,11 +380,11 @@ public class Audio : RedObject
 
     public Microphone? CreateMicrophone(string name, bool forSpeechRecog, uint wantedFreq, uint silenceLevelLimit = 0)
     {
-        var deviceCount = SdlNativeBindings.SdlGetNumAudioDevices(1);
+        var deviceCount = Sdl.SdlGetNumAudioDevices(1);
 
         for (var deviceIndex = 0; deviceIndex < deviceCount; ++deviceIndex)
         {
-            var deviceName = DecodeUtf8(SdlNativeBindings.SdlGetAudioDeviceName(deviceIndex, 1));
+            var deviceName = DecodeUtf8(Sdl.SdlGetAudioDeviceName(deviceIndex, 1));
             foreach (var weakMicrophone in _microphones)
             {
                 if (weakMicrophone.TryGetTarget(out var microphone)
@@ -397,7 +397,7 @@ public class Audio : RedObject
 
         for (var deviceIndex = 0; deviceIndex < deviceCount; deviceIndex++)
         {
-            var deviceName = DecodeUtf8(SdlNativeBindings.SdlGetAudioDeviceName(deviceIndex, 1));
+            var deviceName = DecodeUtf8(Sdl.SdlGetAudioDeviceName(deviceIndex, 1));
             if (!string.Equals(name, deviceName, StringComparison.OrdinalIgnoreCase))
                 continue;
 
@@ -419,7 +419,7 @@ public class Audio : RedObject
                 };
                 using var obtained = new SdlAudioSpec();
                 using var deviceNameValue = new CString(deviceName);
-                var deviceId = SdlNativeBindings.SdlOpenAudioDevice(deviceNameValue.Bytes, 1, desired, obtained, 0);
+                var deviceId = Sdl.SdlOpenAudioDevice(deviceNameValue.Bytes, 1, desired, obtained, 0);
                 if (deviceId == 0)
                     continue;
 
@@ -442,7 +442,7 @@ public class Audio : RedObject
         {
             if (weakMicrophone.TryGetTarget(out var microphone) && microphone._which == which)
             {
-                SdlNativeBindings.SdlCloseAudioDevice(microphone._deviceId);
+                Sdl.SdlCloseAudioDevice(microphone._deviceId);
                 microphone._which = uint.MaxValue;
                 microphone._deviceId = 0;
             }
@@ -492,7 +492,7 @@ public class Audio : RedObject
         Stop();
         if (_deviceId != 0)
         {
-            SdlNativeBindings.SdlCloseAudioDevice(_deviceId);
+            Sdl.SdlCloseAudioDevice(_deviceId);
             _deviceId = 0;
             _clipBuffer = [];
         }

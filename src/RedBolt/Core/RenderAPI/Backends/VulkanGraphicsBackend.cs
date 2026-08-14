@@ -29,7 +29,7 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
     public GraphicsBackendResources Initialize(EngineParameters parameters, RenderDeviceSettings deviceSettings,
         WindowSettings windowSettings, SdlWindow window)
     {
-        SdlNativeBindings.SdlGetWindowSize(window, out var width, out var height);
+        Sdl.SdlGetWindowSize(window, out var width, out var height);
 
         using var createInfo = new EngineVkCreateInfo();
         CopyBackendDeviceSettings(createInfo, deviceSettings.Vulkan);
@@ -37,7 +37,7 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
         if (deviceSettings.AdapterId.HasValue)
             createInfo.AdapterId = checked((uint)deviceSettings.AdapterId.Value);
 
-        var factory = DiligentNativeBindings.LoadAndGetEngineFactoryVk();
+        var factory = Diligent.LoadAndGetEngineFactoryVk();
         if (factory.IsNull)
             throw new InvalidOperationException("Vulkan engine factory could not be loaded.");
 
@@ -117,7 +117,7 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
             }
             multiSample = System.Math.Max(1, multiSample);
 
-            swapChain = DiligentNativeBindings.CreateProxySwapChainMS(
+            swapChain = Diligent.CreateProxySwapChainMS(
                 device, immediateContext, nativeSwapChain, (uint)depthFormat, (uint)multiSample);
             _ = nativeSwapChain.Release();
             nativeSwapChain = null;
@@ -268,7 +268,7 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
 
         public void Resize(IRenderDevice renderDevice, ISwapChain swapChain)
         {
-            SdlNativeBindings.SdlGetWindowSize(window, out var width, out var height);
+            Sdl.SdlGetWindowSize(window, out var width, out var height);
             swapChain.Resize((uint)System.Math.Max(width, 0), (uint)System.Math.Max(height, 0));
         }
 
