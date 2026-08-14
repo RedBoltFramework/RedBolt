@@ -15,7 +15,6 @@ add_subdirectory(RedBolt/Native/Glslang)
 add_subdirectory(RedBolt/Native/SpirVCross)
 add_subdirectory(RedBolt/Native/SpirVTools)
 add_subdirectory(RedBolt/Native/ShaderCompiler)
-add_subdirectory(RedBolt/Native/Box2D)
 add_subdirectory(RedBolt/Native/JoltPhysics)
 add_subdirectory(RedBolt/Native/LibDataChannel)
 
@@ -36,7 +35,6 @@ add_custom_target(redbolt-generate-native-bindings
         redbolt-generate-spirv-cross-bindings
         redbolt-generate-spirv-tools-bindings
         redbolt-generate-shader-compiler-bindings
-        redbolt-generate-box2d-bindings
         redbolt-generate-jolt-bindings)
 add_dependencies(redbolt-generate-native-bindings
     redbolt-generate-libdatachannel-bindings)

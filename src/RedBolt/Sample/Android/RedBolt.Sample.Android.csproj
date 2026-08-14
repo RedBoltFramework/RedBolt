@@ -29,8 +29,6 @@
     <ProjectReference Include="../../Actions/RedBolt.Actions.csproj" />
     <ProjectReference Include="../../Audio/RedBolt.Audio.csproj" />
     <ProjectReference Include="../../IK/RedBolt.IK.csproj" />
-    <ProjectReference Include="../../2D/RedBolt.2D.csproj" />
-    <ProjectReference Include="../../PhysicsBox2D/RedBolt.PhysicsBox2D.csproj" />
     <ProjectReference Include="../../Particles/RedBolt.Particles.csproj" />
     <ProjectReference Include="../../PhysicsJolt/RedBolt.PhysicsJolt.csproj" />
     <ProjectReference Include="../../Navigation/RedBolt.Navigation.csproj" />

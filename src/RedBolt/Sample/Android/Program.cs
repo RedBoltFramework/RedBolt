@@ -132,16 +132,6 @@ internal static class SampleCatalog
         new("sound-synthesis", "Sound Synthesis", "RedBolt.Sample.SoundSynthesis.SoundSynthesis"),
         new("static-scene", "Static Scene", "RedBolt.Sample.StaticScene.StaticScene"),
         new("texture-formats", "Texture Formats", "RedBolt.Sample.TextureFormats.TextureFormatsSample"),
-        new("urho2d-sprite", "Urho2D Sprite", "RedBolt.Sample.Urho2DSprite.Urho2DSprite"),
-        new("urho2d-particle", "Urho2D Particle", "RedBolt.Sample.Urho2DParticle.Urho2DParticle"),
-        new("physics2d", "Physics2D", "RedBolt.Sample.Physics2D.Physics2D"),
-        new("physics2d-rope", "Physics2D Rope", "RedBolt.Sample.Physics2DRope.Physics2DRope"),
-        new("physics2d-constraints", "Physics2D Constraints", "RedBolt.Sample.Physics2DConstraints.Physics2DConstraints"),
-        new("urho2d-spriter-animation", "Urho2D Spriter Animation", "RedBolt.Sample.Urho2DSpriterAnimation.Urho2DSpriterAnimation"),
-        new("urho2d-tile-map", "Urho2D Tile Map", "RedBolt.Sample.Urho2DTileMap.Urho2DTileMap"),
-        new("urho2d-isometric-demo", "Urho2D Isometric Demo", "RedBolt.Sample.Urho2DIsometricDemo.Urho2DIsometricDemo"),
-        new("urho2d-platformer", "Urho2D Platformer", "RedBolt.Sample.Urho2DPlatformer.Urho2DPlatformer"),
-        new("urho2d-stretchable-sprite", "Urho2D Stretchable Sprite", "RedBolt.Sample.Urho2DStretchableSprite.Urho2DStretchableSprite"),
         new("virtual-file-system", "Virtual File System", "RedBolt.Sample.VirtualFileSystem.VirtualFileSystemApplication")
     ];
 }

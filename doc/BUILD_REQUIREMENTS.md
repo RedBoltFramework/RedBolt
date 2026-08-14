@@ -58,7 +58,7 @@ Use these case-insensitive, comma- or semicolon-separated MSBuild properties:
 | --- | --- |
 | `RedBoltEnablePlatforms`, `RedBoltDisablePlatforms` | `linux`, `windows`, `android`, `web`, `all` |
 | `RedBoltEnableArchitectures`, `RedBoltDisableArchitectures` | `x64`, `arm64`, `all` |
-| `RedBoltEnableModules`, `RedBoltDisableModules` | `2d`, `actions`, `audio`, `dear-imgui`, `glow`, `ik`, `navigation`, `network`, `particles`, `physics-2d`, `physics-jolt`, `rml-ui`, `utility`, `editor`, `samples`, `tests`, `all` |
+| `RedBoltEnableModules`, `RedBoltDisableModules` | `actions`, `audio`, `dear-imgui`, `glow`, `ik`, `navigation`, `network`, `particles`, `physics-jolt`, `rml-ui`, `utility`, `editor`, `samples`, `tests`, `all` |
 
 Use `-p:RedBoltFull` to enable all platforms, architectures, and modules:
 

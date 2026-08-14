@@ -23,7 +23,7 @@ internal sealed class Packager
 
     private static readonly string[] ModuleOrder =
     [
-        "Core", "Actions", "Audio", "IK", "2D", "PhysicsBox2D", "Navigation", "Particles", "PhysicsJolt",
+        "Core", "Actions", "Audio", "IK", "Navigation", "Particles", "PhysicsJolt",
         "Utility", "DearImGui", "Glow", "Network", "RmlUI"
     ];
 
@@ -33,7 +33,6 @@ internal sealed class Packager
         ["DearImGui"] = ["IMGUI"],
         ["Glow"] = ["XATLAS", "EMBREE"],
         ["Network"] = ["LIBDATACHANNEL"],
-        ["PhysicsBox2D"] = ["BOX2D"],
         ["PhysicsJolt"] = ["JOLT"],
         ["RmlUI"] = ["RMLUI"],
         ["Utility"] = ["TINYGLTF"]
@@ -56,7 +55,6 @@ internal sealed class Packager
         ["SPIRV_CROSS"] = ["*RedBolt.Native.SpirVCross*"],
         ["SPIRV_TOOLS"] = ["*RedBolt.Native.SpirVTools*"],
         ["SHADER_COMPILER"] = ["*RedBolt.Native.ShaderCompiler*"],
-        ["BOX2D"] = ["*RedBolt.Native.Box2D*"],
         ["JOLT"] = ["*RedBolt.Native.Jolt*"],
         ["LIBDATACHANNEL"] = ["*RedBolt.Native.LibDataChannel*"]
     };
@@ -223,7 +221,7 @@ internal sealed class Packager
 
     private void ReadSelection()
     {
-        const string properties = "RedBoltLinuxEnabled,RedBoltWindowsEnabled,RedBoltAndroidEnabled,RedBoltWebEnabled,RedBoltX64Enabled,RedBoltArm64Enabled,RedBolt2DEnabled,RedBoltActionsEnabled,RedBoltAudioEnabled,RedBoltDearImGuiEnabled,RedBoltGlowEnabled,RedBoltIKEnabled,RedBoltPhysicsBox2DEnabled,RedBoltNavigationEnabled,RedBoltNetworkEnabled,RedBoltParticlesEnabled,RedBoltPhysicsJoltEnabled,RedBoltRmlUIEnabled,RedBoltUtilityEnabled,RedBoltEditorEnabled";
+        const string properties = "RedBoltLinuxEnabled,RedBoltWindowsEnabled,RedBoltAndroidEnabled,RedBoltWebEnabled,RedBoltX64Enabled,RedBoltArm64Enabled,RedBoltActionsEnabled,RedBoltAudioEnabled,RedBoltDearImGuiEnabled,RedBoltGlowEnabled,RedBoltIKEnabled,RedBoltNavigationEnabled,RedBoltNetworkEnabled,RedBoltParticlesEnabled,RedBoltPhysicsJoltEnabled,RedBoltRmlUIEnabled,RedBoltUtilityEnabled,RedBoltEditorEnabled";
         var json = Capture("dotnet",
         [
             "msbuild", Path.Combine(_repositoryRoot, "src", "RedBolt", "Build", "RedBolt.Build.csproj"),

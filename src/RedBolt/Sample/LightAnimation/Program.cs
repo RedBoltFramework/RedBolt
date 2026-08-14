@@ -28,6 +28,15 @@ internal static class LightAnimationProgram
 /// </summary>
 sealed class LightAnimationApplication : Application
 {
+    private static readonly string[] SpriteTextureNames =
+    [
+        "Textures/Logo.png",
+        "Textures/FishBoneLogo.png",
+        "Textures/UrhoIcon.png",
+        "Textures/TouchInput.png",
+        "Textures/CheckboardProperties.png",
+    ];
+
     private Scene? _scene;
     private Node? _cameraNode;
     private DearImGui? _dearImGui;
@@ -106,7 +115,7 @@ sealed class LightAnimationApplication : Application
         // (note: a spritesheet and "Image Rect" attribute should be used in real use cases for better performance)
         for (var i = 0; i < _spriteTextures.Length; ++i)
         {
-            var texture = cache.Get<Texture2D>($"Urho2D/GoldIcon/{i + 1}.png");
+            var texture = cache.Get<Texture2D>(SpriteTextureNames[i]);
             _spriteTextures[i] = texture;
             var textureView = texture.GetRawTexture()!.GetHandles().ShaderResourceView!;
             _spriteTextureReferences[i] = new ImTextureRef((ulong)(nuint)textureView.Handle);
