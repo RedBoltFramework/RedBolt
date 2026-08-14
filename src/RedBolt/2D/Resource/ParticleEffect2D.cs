@@ -2,22 +2,19 @@
 // Copyright (c) 2022-2026 the rbfx project.
 // This work is licensed under the terms of the MIT license.
 
-namespace RedBolt.Scene2D;
+namespace RedBolt.Resource;
 
 using RedBolt.Core;
 using RedBolt.Graphics;
-using RedBolt.Graphics2D;
 using RedBolt.IO;
 using RedBolt.Math;
-using RedBolt.Resource;
-using ResourceType = RedBolt.Resource.Resource;
 
 /// <summary>2D particle emitter types.</summary>
 public enum EmitterType2D { Gravity, Radial }
 
 /// <summary>2D particle effect resource in Particle Designer PEX format.</summary>
 [Reflected]
-public partial class ParticleEffect2D : ResourceType
+public partial class ParticleEffect2D : Resource
 {
     private static readonly int[] SourceBlendFunctions =
         [1, 1, 0x0306, 0x0302, 0x0302, 1, 0x0305, 1, 0x0302, 0x0302];

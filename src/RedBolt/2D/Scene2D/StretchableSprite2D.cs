@@ -7,6 +7,7 @@ namespace RedBolt.Scene2D;
 using RedBolt.Core;
 using RedBolt.Graphics2D;
 using RedBolt.Math;
+using RedBolt.Resource;
 
 /// <summary>Nine-slice stretchable sprite component.</summary>
 [Reflected(ObjectCategory.Category_Urho2D, InheritAttributesOrder = 1)]

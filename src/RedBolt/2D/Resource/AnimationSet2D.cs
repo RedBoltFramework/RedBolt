@@ -2,14 +2,12 @@
 // Copyright (c) 2022-2026 the rbfx project.
 // This work is licensed under the terms of the MIT license.
 
-namespace RedBolt.Scene2D;
+namespace RedBolt.Resource;
 
 using RedBolt.Core;
 using RedBolt.Graphics;
-using RedBolt.Graphics2D;
 using RedBolt.IO;
 using RedBolt.Math;
-using RedBolt.Resource;
 using RedBolt.Scene2D.Spriter;
 
 /// <summary>Spriter animation set.</summary>

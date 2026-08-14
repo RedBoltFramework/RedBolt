@@ -2,18 +2,16 @@
 // Copyright (c) 2022-2026 the rbfx project.
 // This work is licensed under the terms of the MIT license.
 
-namespace RedBolt.Scene2D;
+namespace RedBolt.Resource;
 
 using System.Buffers.Binary;
 using System.Globalization;
 using System.Xml.Linq;
 using RedBolt.Core;
 using RedBolt.Graphics;
-using RedBolt.Graphics2D;
 using RedBolt.IO;
 using RedBolt.Math;
-using RedBolt.Resource;
-using ResourceType = RedBolt.Resource.Resource;
+using RedBolt.Scene2D;
 
 /// <summary>Base class for layers loaded from a TMX file.</summary>
 public class TmxLayer2D
@@ -239,7 +237,7 @@ public class TmxImageLayer2D : TmxLayer2D
 
 /// <summary>Tiled TMX resource.</summary>
 [Reflected]
-public partial class TmxFile2D : ResourceType
+public partial class TmxFile2D : Resource
 {
     private XMLFile? _loadXml;
     private readonly Dictionary<uint, Sprite2D> _sprites = [];

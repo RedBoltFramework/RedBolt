@@ -2,13 +2,12 @@
 // Copyright (c) 2022-2026 the rbfx project.
 // This work is licensed under the terms of the MIT license.
 
-namespace RedBolt.Graphics2D;
+namespace RedBolt.Resource;
 
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Math;
-using RedBolt.Resource;
 
 /// <summary>Sprite sheet resource.</summary>
 [Reflected]

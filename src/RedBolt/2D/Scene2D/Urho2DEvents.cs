@@ -3,6 +3,7 @@
 
 namespace RedBolt.Scene2D;
 
+using RedBolt.Resource;
 using RedBolt.Scene;
 
 public static class Urho2DEvents

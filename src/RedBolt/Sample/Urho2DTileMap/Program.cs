@@ -10,6 +10,7 @@ using RedBolt.Graphics;
 using RedBolt.Graphics2D;
 using RedBolt.Input;
 using RedBolt.Math;
+using RedBolt.Resource;
 using RedBolt.Scene;
 using RedBolt.Scene2D;
 

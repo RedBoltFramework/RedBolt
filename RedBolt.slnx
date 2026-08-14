@@ -13,8 +13,7 @@
     <Project Path="src/RedBolt/DearImGui/RedBolt.DearImGui.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Glow/RedBolt.Glow.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/IK/RedBolt.IK.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Graphics2D/RedBolt.Graphics2D.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Scene2D/RedBolt.Scene2D.csproj"><Build Project="false" /></Project>
+    <Project Path="src/RedBolt/2D/RedBolt.2D.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/PhysicsBox2D/RedBolt.PhysicsBox2D.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Utility/RedBolt.Utility.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/UserCode/Desktop/RedBolt.UserCode.Desktop.csproj"><Build Project="false" /></Project>

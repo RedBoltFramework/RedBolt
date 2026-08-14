@@ -7,6 +7,7 @@ namespace RedBolt.Scene2D;
 using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
+using RedBolt.Resource;
 using RedBolt.Scene;
 
 /// <summary>Runtime component for one TMX layer.</summary>

@@ -15,8 +15,7 @@
     <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.DearImGui' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.DearImGui'">$(RedBoltDearImGuiEnabled)</_RedBoltProjectModuleEnabled>
     <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Glow' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.XAtlas' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.Embree'">$(RedBoltGlowEnabled)</_RedBoltProjectModuleEnabled>
     <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.IK'">$(RedBoltIKEnabled)</_RedBoltProjectModuleEnabled>
-    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Graphics2D'">$(RedBoltGraphics2DEnabled)</_RedBoltProjectModuleEnabled>
-    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Scene2D'">$(RedBoltScene2DEnabled)</_RedBoltProjectModuleEnabled>
+    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.2D'">$(RedBolt2DEnabled)</_RedBoltProjectModuleEnabled>
     <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.PhysicsBox2D' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.Box2D'">$(RedBoltPhysics2DEnabled)</_RedBoltProjectModuleEnabled>
     <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Navigation'">$(RedBoltNavigationEnabled)</_RedBoltProjectModuleEnabled>
     <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Network' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.LibDataChannel'">$(RedBoltNetworkEnabled)</_RedBoltProjectModuleEnabled>

@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <AssemblyName>RedBolt.Graphics2D</AssemblyName>
+    <AssemblyName>RedBolt.2D</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
