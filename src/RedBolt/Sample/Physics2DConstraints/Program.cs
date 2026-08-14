@@ -35,6 +35,8 @@ public sealed class Physics2DConstraints : Application
     protected override void Setup(EngineParameters parameters)
     {
         parameters.ApplicationName = "RedBolt.Sample.Physics2DConstraints";
+        parameters.Borderless = false;
+        parameters.FullScreen = false;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowMaximize = false;
@@ -102,6 +104,7 @@ public sealed class Physics2DConstraints : Application
 
     private void CreateDistance(Vector2f origin)
     {
+        CreateLabel(nameof(ConstraintDistance2D), origin);
         var a = CreateBody("Distance anchor", origin, false, BodyType2D.Static);
         var b = CreateBody("Distance body", origin + new Vector2f(1.4f, 0.0f), true, BodyType2D.Dynamic);
         var joint = a.Node.CreateComponent<ConstraintDistance2D>();
@@ -111,6 +114,7 @@ public sealed class Physics2DConstraints : Application
 
     private void CreateFriction(Vector2f origin)
     {
+        CreateLabel(nameof(ConstraintFriction2D), origin);
         var a = CreateBody("Friction anchor", origin, false, BodyType2D.Static);
         var b = CreateBody("Friction body", origin + new Vector2f(1.0f, 0.0f), true, BodyType2D.Dynamic);
         var joint = a.Node.CreateComponent<ConstraintFriction2D>();
@@ -119,6 +123,7 @@ public sealed class Physics2DConstraints : Application
 
     private void CreateMotor(Vector2f origin)
     {
+        CreateLabel(nameof(ConstraintMotor2D), origin);
         var a = CreateBody("Motor anchor", origin, false, BodyType2D.Static);
         var b = CreateBody("Motor body", origin + new Vector2f(0.0f, 1.0f), true, BodyType2D.Dynamic);
         var joint = a.Node.CreateComponent<ConstraintMotor2D>();
@@ -128,6 +133,7 @@ public sealed class Physics2DConstraints : Application
 
     private void CreateMouse(Vector2f origin)
     {
+        CreateLabel(nameof(ConstraintMouse2D), origin);
         var a = CreateBody("Mouse anchor", origin, false, BodyType2D.Static);
         var b = CreateBody("Mouse body", origin + new Vector2f(0.0f, -1.0f), true, BodyType2D.Dynamic);
         var joint = a.Node.CreateComponent<ConstraintMouse2D>();
@@ -137,6 +143,7 @@ public sealed class Physics2DConstraints : Application
 
     private void CreatePrismatic(Vector2f origin)
     {
+        CreateLabel(nameof(ConstraintPrismatic2D), origin);
         var a = CreateBody("Prismatic anchor", origin, false, BodyType2D.Static);
         var b = CreateBody("Prismatic body", origin + new Vector2f(0.8f, 0.8f), true, BodyType2D.Dynamic);
         var joint = a.Node.CreateComponent<ConstraintPrismatic2D>();
@@ -146,6 +153,7 @@ public sealed class Physics2DConstraints : Application
 
     private void CreateRevolute(Vector2f origin)
     {
+        CreateLabel(nameof(ConstraintRevolute2D), origin);
         var a = CreateBody("Revolute anchor", origin, false, BodyType2D.Static);
         var b = CreateBody("Revolute body", origin + new Vector2f(1.0f, 0.5f), true, BodyType2D.Dynamic);
         var joint = a.Node.CreateComponent<ConstraintRevolute2D>();
@@ -156,6 +164,7 @@ public sealed class Physics2DConstraints : Application
 
     private void CreateRope(Vector2f origin)
     {
+        CreateLabel(nameof(ConstraintRope2D), origin);
         var a = CreateBody("Rope anchor", origin, false, BodyType2D.Static);
         var b = CreateBody("Rope body", origin + new Vector2f(0.0f, -1.5f), true, BodyType2D.Dynamic);
         var joint = a.Node.CreateComponent<ConstraintRope2D>();
@@ -165,6 +174,7 @@ public sealed class Physics2DConstraints : Application
 
     private void CreateWeld(Vector2f origin)
     {
+        CreateLabel(nameof(ConstraintWeld2D), origin);
         var a = CreateBody("Weld body A", origin, false, BodyType2D.Dynamic);
         var b = CreateBody("Weld body B", origin + new Vector2f(1.0f, 0.0f), true, BodyType2D.Dynamic);
         var joint = a.Node.CreateComponent<ConstraintWeld2D>();
@@ -174,6 +184,7 @@ public sealed class Physics2DConstraints : Application
 
     private void CreateWheel(Vector2f origin)
     {
+        CreateLabel(nameof(ConstraintWheel2D), origin);
         var a = CreateBody("Wheel chassis", origin, false, BodyType2D.Dynamic);
         a.Node.SetScale2D(3.0f, 1.0f);
         var b = CreateBody("Wheel", origin + new Vector2f(1.0f, -0.6f), true, BodyType2D.Dynamic);
@@ -181,6 +192,16 @@ public sealed class Physics2DConstraints : Application
         joint.OtherBody = b.Body; joint.Anchor = b.Node.GetPosition2D(); joint.Axis = Vector2f.Up;
         joint.EnableMotor = true; joint.MaxMotorTorque = 10.0f; joint.MotorSpeed = 1.0f;
         joint.FrequencyHz = 4.0f; joint.DampingRatio = 0.5f;
+    }
+
+    private void CreateLabel(string text, Vector2f origin)
+    {
+        var node = _scene!.CreateChild($"{text} label");
+        node.SetPosition(new Vector3f(origin.X + 0.5f, origin.Y + 1.3f, 0.0f));
+        var label = node.CreateComponent<Text3D>();
+        label.SetText(text);
+        label.SetFont(Resources.Get<Font>("Fonts/Anonymous Pro.sdf"), 15.0f);
+        label.SetAlignment(HorizontalAlignment.Center, VerticalAlignment.Center);
     }
 
     protected override void Update(float timeStep)

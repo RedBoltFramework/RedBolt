@@ -33,6 +33,8 @@ public sealed class Urho2DStretchableSprite : Application
     protected override void Setup(EngineParameters parameters)
     {
         parameters.ApplicationName = "RedBolt.Sample.Urho2DStretchableSprite";
+        parameters.Borderless = false;
+        parameters.FullScreen = false;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowMaximize = false;

@@ -282,12 +282,26 @@ static inline b2SensorEndTouchEvent redbolt_b2SensorEndEventAt(b2WorldId worldId
     return index >= 0 && index < events.endCount ? events.endEvents[index] : empty;
 }
 
-typedef int (*redbolt_b2PreSolveCallback)(
-    int shapeAIndex, unsigned short shapeAWorld, unsigned short shapeAGeneration,
-    int shapeBIndex, unsigned short shapeBWorld, unsigned short shapeBGeneration,
-    float normalX, float normalY, int pointCount,
-    float point0X, float point0Y, float separation0,
-    float point1X, float point1Y, float separation1, void* context);
+typedef struct redbolt_b2PreSolveData
+{
+    int shapeAIndex;
+    unsigned short shapeAWorld;
+    unsigned short shapeAGeneration;
+    int shapeBIndex;
+    unsigned short shapeBWorld;
+    unsigned short shapeBGeneration;
+    float normalX;
+    float normalY;
+    int pointCount;
+    float point0X;
+    float point0Y;
+    float separation0;
+    float point1X;
+    float point1Y;
+    float separation1;
+} redbolt_b2PreSolveData;
+
+typedef int (*redbolt_b2PreSolveCallback)(const redbolt_b2PreSolveData* contact, void* context);
 
 typedef struct redbolt_b2PreSolveContext
 {
@@ -305,12 +319,13 @@ static bool redbolt_b2PreSolveThunk(
     const b2Vec2 point1 = pointCount > 1 ? manifold->points[1].point : (b2Vec2){0};
     const float separation0 = pointCount > 0 ? manifold->points[0].separation : 0.0f;
     const float separation1 = pointCount > 1 ? manifold->points[1].separation : 0.0f;
-    return data->callback(
+    const redbolt_b2PreSolveData contact = {
         shapeA.index1, shapeA.world0, shapeA.generation,
         shapeB.index1, shapeB.world0, shapeB.generation,
         normal.x, normal.y, pointCount,
         point0.x, point0.y, separation0,
-        point1.x, point1.y, separation1, data->context) != 0;
+        point1.x, point1.y, separation1};
+    return data->callback(&contact, data->context) != 0;
 }
 
 static inline void* redbolt_b2WorldSetManagedPreSolveCallback(

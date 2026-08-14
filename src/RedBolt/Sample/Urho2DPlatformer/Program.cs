@@ -39,6 +39,8 @@ public sealed class Urho2DPlatformer : Application
     protected override void Setup(EngineParameters parameters)
     {
         parameters.ApplicationName = "RedBolt.Sample.Urho2DPlatformer";
+        parameters.Borderless = false;
+        parameters.FullScreen = false;
         parameters.ResourcePaths = "CoreData;Data";
         parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowMaximize = false;
@@ -102,7 +104,7 @@ public sealed class Urho2DPlatformer : Application
         _characterBody.LinearVelocity = velocity;
         if (_character.GetComponent<AnimatedSprite2D>() is { } sprite)
         {
-            if (velocity.X != 0.0f) sprite.FlipX = velocity.X < 0.0f;
+            if (velocity.X != 0.0f) sprite.FlipX = velocity.X > 0.0f;
             sprite.SetAnimation(_groundContacts == 0 ? "jump" : velocity.X == 0.0f ? "idle" : "run");
         }
         _cameraNode.SetPosition(_character.GetWorldPosition() + new Vector3f(0.0f, 1.5f, -10.0f));

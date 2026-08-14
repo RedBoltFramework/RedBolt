@@ -49,6 +49,26 @@ public struct DelayedWorldTransform2D
 [Reflected(ObjectCategory.Category_Physics2D, InheritAttributes = false)]
 public partial class PhysicsWorld2D : Component
 {
+    [StructLayout(LayoutKind.Sequential)]
+    private struct PreSolveData
+    {
+        public int ShapeAIndex;
+        public ushort ShapeAWorld;
+        public ushort ShapeAGeneration;
+        public int ShapeBIndex;
+        public ushort ShapeBWorld;
+        public ushort ShapeBGeneration;
+        public float NormalX;
+        public float NormalY;
+        public int PointCount;
+        public float Point0X;
+        public float Point0Y;
+        public float Separation0;
+        public float Point1X;
+        public float Point1Y;
+        public float Separation1;
+    }
+
     private readonly List<WeakReference<RigidBody2D>> _rigidBodies = [];
     private readonly Dictionary<long, WeakReference<CollisionShape2D>> _shapes = [];
     private readonly Dictionary<ContactKey, ContactState> _contacts = [];
@@ -83,9 +103,8 @@ public partial class PhysicsWorld2D : Component
         _preSolveGcHandle = GCHandle.Alloc(this);
         unsafe
         {
-            var callback = (nint)(delegate* unmanaged[Cdecl]<
-                int, ushort, ushort, int, ushort, ushort, float, float, int,
-                float, float, float, float, float, float, nint, int>)&HandlePreSolve;
+            System.Diagnostics.Debug.Assert(sizeof(PreSolveData) == 52);
+            var callback = (nint)(delegate* unmanaged[Cdecl]<PreSolveData*, nint, int>)&HandlePreSolve;
             _preSolveCallbackContext = Box2DNativeBindings.RedboltB2WorldSetManagedPreSolveCallback(
                 _worldId, callback, GCHandle.ToIntPtr(_preSolveGcHandle));
         }
@@ -518,21 +537,16 @@ public partial class PhysicsWorld2D : Component
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    private static int HandlePreSolve(
-        int shapeAIndex, ushort shapeAWorld, ushort shapeAGeneration,
-        int shapeBIndex, ushort shapeBWorld, ushort shapeBGeneration,
-        float normalX, float normalY, int pointCount,
-        float point0X, float point0Y, float separation0,
-        float point1X, float point1Y, float separation1, nint context)
+    private static unsafe int HandlePreSolve(PreSolveData* data, nint context)
     {
         try
         {
             return GCHandle.FromIntPtr(context).Target is PhysicsWorld2D world && world.PreSolve(
-                shapeAIndex, shapeAWorld, shapeAGeneration,
-                shapeBIndex, shapeBWorld, shapeBGeneration,
-                normalX, normalY, pointCount,
-                point0X, point0Y, separation0,
-                point1X, point1Y, separation1) ? 1 : 0;
+                data->ShapeAIndex, data->ShapeAWorld, data->ShapeAGeneration,
+                data->ShapeBIndex, data->ShapeBWorld, data->ShapeBGeneration,
+                data->NormalX, data->NormalY, data->PointCount,
+                data->Point0X, data->Point0Y, data->Separation0,
+                data->Point1X, data->Point1Y, data->Separation1) ? 1 : 0;
         }
         catch
         {

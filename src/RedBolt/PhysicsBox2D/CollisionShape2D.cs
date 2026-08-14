@@ -98,6 +98,7 @@ public abstract partial class CollisionShape2D : Component
             _density = MathF.Max(value, 0.0f);
             foreach (var id in _shapeIds)
                 Box2DNativeBindings.B2ShapeSetDensity(id, _density, RigidBody?.UseFixtureMass ?? true);
+            RigidBody?.ApplyFixtureMass();
         }
     }
 
@@ -169,7 +170,7 @@ public abstract partial class CollisionShape2D : Component
             rigidBody.PhysicsWorld?.RegisterShape(this, id);
         }
         if (rigidBody.UseFixtureMass)
-            Box2DNativeBindings.B2BodyApplyMassFromShapes(rigidBody.BodyId);
+            rigidBody.ApplyFixtureMass();
     }
 
     /// <summary>Release native shape fixture.</summary>
@@ -184,6 +185,7 @@ public abstract partial class CollisionShape2D : Component
             id.Dispose();
         }
         _shapeIds.Clear();
+        rigidBody?.ApplyFixtureMass();
     }
 
     public override void DrawDebugGeometry(DebugRenderer? debug, bool depthTest)

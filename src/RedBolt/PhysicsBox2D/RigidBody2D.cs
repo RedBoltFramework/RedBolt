@@ -87,7 +87,9 @@ public partial class RigidBody2D : Component
             if (IsBodyValid)
             {
                 Box2DNativeBindings.B2BodySetType(_bodyId!, (B2BodyType)value);
-                if (!_useFixtureMass)
+                if (_useFixtureMass)
+                    ApplyFixtureMass();
+                else
                     ApplyCustomMass();
             }
         }
@@ -148,7 +150,7 @@ public partial class RigidBody2D : Component
             if (!IsBodyValid)
                 return;
             if (value)
-                Box2DNativeBindings.B2BodyApplyMassFromShapes(_bodyId!);
+                ApplyFixtureMass();
             else
                 ApplyCustomMass();
         }
@@ -198,7 +200,13 @@ public partial class RigidBody2D : Component
         {
             _fixedRotation = value;
             if (IsBodyValid)
+            {
                 Box2DNativeBindings.B2BodySetFixedRotation(_bodyId!, value);
+                if (_useFixtureMass)
+                    ApplyFixtureMass();
+                else
+                    ApplyCustomMass();
+            }
         }
     }
 
@@ -347,7 +355,9 @@ public partial class RigidBody2D : Component
 
         foreach (var shape in _collisionShapes)
             shape.CreateFixture();
-        if (!_useFixtureMass)
+        if (_useFixtureMass)
+            ApplyFixtureMass();
+        else
             ApplyCustomMass();
         foreach (var constraint in _constraints.ToArray())
             constraint.CreateJoint();
@@ -478,6 +488,20 @@ public partial class RigidBody2D : Component
         using var position = PhysicsUtils2D.ToB2(new Vector2f(node.WorldPosition.X, node.WorldPosition.Y));
         using var rotation = Box2DNativeBindings.B2MakeRot(node.WorldRotation.RollAngle * PhysicsUtils2D.DegreesToRadians);
         Box2DNativeBindings.B2BodySetTransform(_bodyId!, position, rotation);
+    }
+
+    internal void ApplyFixtureMass()
+    {
+        if (!_useFixtureMass || !IsBodyValid)
+            return;
+        Box2DNativeBindings.B2BodyApplyMassFromShapes(_bodyId!);
+        if (BodyType != BodyType2D.Dynamic || Box2DNativeBindings.B2BodyGetMass(_bodyId!) > 0.0f)
+            return;
+
+        // Box2D 2 forces zero-density dynamic bodies to have mass one.
+        using var data = Box2DNativeBindings.B2BodyGetMassData(_bodyId!);
+        data.Mass = 1.0f;
+        Box2DNativeBindings.B2BodySetMassData(_bodyId!, data);
     }
 
     private void ApplyCustomMass()
