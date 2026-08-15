@@ -4,11 +4,12 @@
     <EnableDefaultItems>false</EnableDefaultItems>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     <RedBoltTestsProject>$([System.IO.Path]::GetFullPath('$(RedBoltRoot)/../RedBolt.Tests/RedBolt.Tests.csproj'))</RedBoltTestsProject>
-    <_RedBoltLinuxProperties>Configuration=$(Configuration);BuildProjectReferences=true;RedBoltPlatform=linux-x64;RedBoltNativePreset=linux-x64</_RedBoltLinuxProperties>
-    <_RedBoltWindowsProperties>Configuration=$(Configuration);BuildProjectReferences=true;RedBoltPlatform=win-x64;RedBoltNativePreset=win-x64</_RedBoltWindowsProperties>
-    <_RedBoltAndroidX64Properties>Configuration=$(Configuration);BuildProjectReferences=true;RedBoltPlatform=android-x64;RedBoltNativePreset=android-x64;RedBoltTargetFramework=net10.0-android;RedBoltBuildAllAndroidPackages=false</_RedBoltAndroidX64Properties>
-    <_RedBoltAndroidArm64Properties>Configuration=$(Configuration);BuildProjectReferences=true;RedBoltPlatform=android-arm64;RedBoltNativePreset=android-arm64;RedBoltTargetFramework=net10.0-android;RedBoltBuildAllAndroidPackages=false</_RedBoltAndroidArm64Properties>
-    <_RedBoltWebProperties>Configuration=$(Configuration);BuildProjectReferences=true;RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm</_RedBoltWebProperties>
+    <_RedBoltModuleProperties>RedBoltActionsEnabled=$(RedBoltActionsEnabled);RedBoltAudioEnabled=$(RedBoltAudioEnabled);RedBoltDearImGuiEnabled=$(RedBoltDearImGuiEnabled);RedBoltGlowEnabled=$(RedBoltGlowEnabled);RedBoltIKEnabled=$(RedBoltIKEnabled);RedBoltNavigationEnabled=$(RedBoltNavigationEnabled);RedBoltNetworkEnabled=$(RedBoltNetworkEnabled);RedBoltParticlesEnabled=$(RedBoltParticlesEnabled);RedBoltRmlUIEnabled=$(RedBoltRmlUIEnabled);RedBoltUtilityEnabled=$(RedBoltUtilityEnabled);RedBoltEditorEnabled=$(RedBoltEditorEnabled);RedBoltSamplesEnabled=$(RedBoltSamplesEnabled);RedBoltTestsEnabled=$(RedBoltTestsEnabled)</_RedBoltModuleProperties>
+    <_RedBoltLinuxProperties>Configuration=$(Configuration);BuildProjectReferences=true;RedBoltPlatform=linux-x64;RedBoltNativePreset=linux-x64;$(_RedBoltModuleProperties)</_RedBoltLinuxProperties>
+    <_RedBoltWindowsProperties>Configuration=$(Configuration);BuildProjectReferences=true;RedBoltPlatform=win-x64;RedBoltNativePreset=win-x64;$(_RedBoltModuleProperties)</_RedBoltWindowsProperties>
+    <_RedBoltAndroidX64Properties>Configuration=$(Configuration);BuildProjectReferences=true;RedBoltPlatform=android-x64;RedBoltNativePreset=android-x64;RedBoltTargetFramework=net10.0-android;RedBoltBuildAllAndroidPackages=false;$(_RedBoltModuleProperties)</_RedBoltAndroidX64Properties>
+    <_RedBoltAndroidArm64Properties>Configuration=$(Configuration);BuildProjectReferences=true;RedBoltPlatform=android-arm64;RedBoltNativePreset=android-arm64;RedBoltTargetFramework=net10.0-android;RedBoltBuildAllAndroidPackages=false;$(_RedBoltModuleProperties)</_RedBoltAndroidArm64Properties>
+    <_RedBoltWebProperties>Configuration=$(Configuration);BuildProjectReferences=true;RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm;$(_RedBoltModuleProperties)</_RedBoltWebProperties>
   </PropertyGroup>
 
   <ItemGroup>

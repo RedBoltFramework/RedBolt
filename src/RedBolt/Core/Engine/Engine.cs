@@ -507,12 +507,14 @@ public class Engine : RedObject
         }
         else
         {
-            foreach (var prefixPath in prefixPaths)
-                absolutePrefixPaths.Add(NormalizeConfiguredResourcePath(prefixPath) + Path.DirectorySeparatorChar);
-
             var programDirectory = NormalizeConfiguredResourcePath(ExecutableDirectory) + Path.DirectorySeparatorChar;
-            if (!absolutePrefixPaths.Contains(programDirectory, StringComparer.Ordinal))
-                absolutePrefixPaths.Add(programDirectory);
+            absolutePrefixPaths.Add(programDirectory);
+            foreach (var prefixPath in prefixPaths)
+            {
+                var absolutePrefixPath = NormalizeConfiguredResourcePath(prefixPath) + Path.DirectorySeparatorChar;
+                if (!absolutePrefixPaths.Contains(absolutePrefixPath, StringComparer.Ordinal))
+                    absolutePrefixPaths.Add(absolutePrefixPath);
+            }
 
             virtualFileSystem.MountExistingDirectoriesOrPackages(absolutePrefixPaths, resourcePaths);
             virtualFileSystem.MountExistingPackages(absolutePrefixPaths, resourcePackages);
@@ -642,7 +644,6 @@ public class Engine : RedObject
         _previousContext = RedBolt.Core.Context.Instance;
         _context.Reset();
         RedBolt.Core.Context.SetInstance(_context);
-        WorkQueue.SetMainThread();
         _context.InitializeEngineSubsystems(this);
 
         Input.RegisterInputLibrary(_context);

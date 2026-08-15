@@ -308,10 +308,7 @@ public class RawBuffer : DeviceObject
             _parameters = _parameters with { Flags = _parameters.Flags | BufferFlag.Immutable };
 
         if ((_parameters.Flags & BufferFlag.Dynamic) != 0 && (_parameters.Flags & BufferFlag.Immutable) != 0)
-        {
-            Debug.Assert(false, "Dynamic buffer cannot be immutable");
-            return false;
-        }
+            throw new ArgumentException("Dynamic buffer cannot be immutable.", nameof(parameters));
 
         var renderDevice = _renderDevice?.GetRenderDevice();
         if (renderDevice is null)
@@ -338,17 +335,11 @@ public class RawBuffer : DeviceObject
 
         // Dynamic buffer cannot be bound as UAV
         if ((_parameters.Flags & BufferFlag.BindUnorderedAccess) != 0 && (_parameters.Flags & BufferFlag.Dynamic) != 0)
-        {
-            Debug.Assert(false, "Dynamic buffer cannot be bound as UAV and is demoted");
-            return false;
-        }
+            throw new ArgumentException("Dynamic buffer cannot be bound as UAV.", nameof(parameters));
 
         // Dynamic buffer cannot have initial data
         if ((_parameters.Flags & BufferFlag.Dynamic) != 0 && data is not null)
-        {
-            Debug.Assert(false, "Dynamic buffer cannot have initial data");
-            return false;
-        }
+            throw new ArgumentException("Dynamic buffer cannot have initial data.", nameof(data));
 
         // Dynamic buffers on OpenGL are weird, don't use them
         if (renderDevice is not null && GetRenderDevice()!.GetBackend() == RenderBackend.OpenGL)

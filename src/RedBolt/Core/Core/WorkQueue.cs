@@ -152,6 +152,11 @@ public sealed class WorkQueue : RedObject
 
     private static int _threadIndexCount = 1;
     private static WorkQueue? _workQueue;
+    private static readonly object _activeQueuesLock = new();
+    private static readonly List<WorkQueue> _activeQueues = [];
+
+    private int _mainThreadId;
+    private int _isDisposed;
 
     private int _numProcessingThreads;
 
@@ -169,23 +174,27 @@ public sealed class WorkQueue : RedObject
 
     public WorkQueue()
     {
-        if (_workQueue == null)
+        _mainThreadId = Thread.CurrentThread.ManagedThreadId;
+        lock (_activeQueuesLock)
         {
-            SetMainThread();
-            _threadIndexCount = 1;
-            _workQueue = this;
+            _activeQueues.Add(this);
+            Activate(this);
         }
     }
 
     public override void Dispose()
     {
+        if (Interlocked.Exchange(ref _isDisposed, 1) != 0)
+            return;
+
         while (Interlocked.CompareExchange(ref _pendingTaskCount, 0, 0) > 0)
             Thread.Sleep(0);
 
-        if (ReferenceEquals(_workQueue, this))
+        lock (_activeQueuesLock)
         {
-            _threadIndexCount = 0;
-            _workQueue = null;
+            _activeQueues.Remove(this);
+            if (ReferenceEquals(_workQueue, this))
+                Activate(_activeQueues.Count > 0 ? _activeQueues[^1] : null);
         }
 
         for (var i = _pendingImmediateTasks.Count - 1; i >= 0; --i)
@@ -207,7 +216,7 @@ public sealed class WorkQueue : RedObject
             return;
 
         _numProcessingThreads = numThreads + 1;
-        _threadIndexCount = 1;
+        SetActiveThreadIndexCount(1);
 
         if (numThreads > 0)
         {
@@ -220,7 +229,7 @@ public sealed class WorkQueue : RedObject
 
             CompleteAll();
 
-            _threadIndexCount = _numProcessingThreads;
+            SetActiveThreadIndexCount(_numProcessingThreads);
         }
     }
 
@@ -681,12 +690,34 @@ public sealed class WorkQueue : RedObject
             : (TaskPriority)((uint)TaskPriority.Low - SystemMath.Min(priority, 2u));
     }
 
-    private static int _mainThreadId = -1;
+    private static int _activeMainThreadId = -1;
 
     internal static void SetMainThread()
     {
-        _mainThreadId = Thread.CurrentThread.ManagedThreadId;
+        var mainThreadId = Thread.CurrentThread.ManagedThreadId;
+        lock (_activeQueuesLock)
+        {
+            _activeMainThreadId = mainThreadId;
+            if (_workQueue is not null)
+                _workQueue._mainThreadId = mainThreadId;
+        }
     }
 
-    internal static int GetMainThreadId() => _mainThreadId;
+    internal static int GetMainThreadId() => Volatile.Read(ref _activeMainThreadId);
+
+    private static void Activate(WorkQueue? workQueue)
+    {
+        _workQueue = workQueue;
+        _threadIndexCount = SystemMath.Max(1, workQueue?._numProcessingThreads ?? 1);
+        _activeMainThreadId = workQueue?._mainThreadId ?? -1;
+    }
+
+    private void SetActiveThreadIndexCount(int threadIndexCount)
+    {
+        lock (_activeQueuesLock)
+        {
+            if (ReferenceEquals(_workQueue, this))
+                _threadIndexCount = threadIndexCount;
+        }
+    }
 }

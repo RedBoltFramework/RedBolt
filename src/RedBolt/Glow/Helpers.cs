@@ -97,7 +97,7 @@ public static class Helpers
         else if (component is Terrain terrain)
             terrain.SetLightmapIndex((uint)lightmapIndex);
         else
-            Debug.Assert(false);
+            throw UnsupportedLightmapComponent(component);
     }
 
     /// <summary>Return lightmap index for component.</summary>
@@ -108,8 +108,7 @@ public static class Helpers
         if (component is Terrain terrain)
             return (int)terrain.GetLightmapIndex();
 
-        Debug.Assert(false);
-        return 0;
+        throw UnsupportedLightmapComponent(component);
     }
 
     /// <summary>Set lightmap scale and offset for component.</summary>
@@ -120,7 +119,7 @@ public static class Helpers
         else if (component is Terrain terrain)
             terrain.SetLightmapScaleOffset(scaleOffset);
         else
-            Debug.Assert(false);
+            throw UnsupportedLightmapComponent(component);
     }
 
     /// <summary>Return lightmap scale and offset for component.</summary>
@@ -131,9 +130,11 @@ public static class Helpers
         if (component is Terrain terrain)
             return terrain.GetLightmapScaleOffset();
 
-        Debug.Assert(false);
-        return Vector4f.Zero;
+        throw UnsupportedLightmapComponent(component);
     }
+
+    private static ArgumentException UnsupportedLightmapComponent(Component component) =>
+        new($"Component type '{component.GetType().FullName}' does not support lightmaps.", nameof(component));
 
     /// <summary>Create material for geometry buffer baking.</summary>
     public static Material CreateBakingMaterial(Material bakingMaterial, Material? sourceMaterial,

@@ -197,53 +197,72 @@
                 if (libraryIndex < 0)
                     throw new InvalidOperationException(
                         "Managed selector '" + selector + "' was not found in '" + DependencyFile + "'.");
-                var objectStart = transformed.IndexOf('{', libraryIndex);
-                var objectEnd = -1;
-                var depth = 0;
-                var inString = false;
-                var escaped = false;
-                for (var index = objectStart; index < transformed.Length; ++index)
+                int FindObjectEnd(int objectStart)
                 {
-                    var character = transformed[index];
-                    if (inString)
+                    var depth = 0;
+                    var inString = false;
+                    var escaped = false;
+                    for (var index = objectStart; index < transformed.Length; ++index)
                     {
-                        if (escaped)
-                            escaped = false;
-                        else if (character == '\\')
-                            escaped = true;
+                        var character = transformed[index];
+                        if (inString)
+                        {
+                            if (escaped)
+                                escaped = false;
+                            else if (character == '\\')
+                                escaped = true;
+                            else if (character == '"')
+                                inString = false;
+                        }
                         else if (character == '"')
-                            inString = false;
+                        {
+                            inString = true;
+                        }
+                        else if (character == '{')
+                        {
+                            ++depth;
+                        }
+                        else if (character == '}' && --depth == 0)
+                        {
+                            return index;
+                        }
                     }
-                    else if (character == '"')
-                    {
-                        inString = true;
-                    }
-                    else if (character == '{')
-                    {
-                        ++depth;
-                    }
-                    else if (character == '}' && --depth == 0)
-                    {
-                        objectEnd = index;
-                        break;
-                    }
+                    return -1;
                 }
 
+                var objectStart = transformed.IndexOf('{', libraryIndex);
+                var objectEnd = FindObjectEnd(objectStart);
                 if (objectEnd < 0)
                     throw new InvalidOperationException(
                         "Managed selector '" + selector + "' has an invalid dependency entry.");
-                if (transformed.IndexOf("\"native\": {", objectStart, objectEnd - objectStart) >= 0)
-                    return;
 
-                var closingLineStart = transformed.LastIndexOf('\n', objectEnd) + 1;
-                transformed = transformed.Insert(closingLineStart - 1, ",");
-                ++closingLineStart;
                 var nativeEntries = string.Join(
                     "," + Environment.NewLine,
                     files
                         .OrderBy(path => path)
                         .Select(path => "        \"runtimes/" + RuntimeIdentifier + "/native/"
                             + path + "\": {}"));
+                var nativePropertyIndex = transformed.IndexOf(
+                    "\"native\": {", objectStart, objectEnd - objectStart);
+                if (nativePropertyIndex >= 0)
+                {
+                    var nativeObjectStart = transformed.IndexOf('{', nativePropertyIndex);
+                    var nativeObjectEnd = FindObjectEnd(nativeObjectStart);
+                    if (nativeObjectEnd < 0 || nativeObjectEnd > objectEnd)
+                        throw new InvalidOperationException(
+                            "Managed selector '" + selector + "' has an invalid native dependency entry.");
+                    transformed = transformed.Remove(
+                        nativeObjectStart + 1,
+                        nativeObjectEnd - nativeObjectStart - 1);
+                    transformed = transformed.Insert(
+                        nativeObjectStart + 1,
+                        Environment.NewLine + nativeEntries + Environment.NewLine + "      ");
+                    return;
+                }
+
+                var closingLineStart = transformed.LastIndexOf('\n', objectEnd) + 1;
+                transformed = transformed.Insert(closingLineStart - 1, ",");
+                ++closingLineStart;
                 transformed = transformed.Insert(
                     closingLineStart,
                     "      \"native\": {" + Environment.NewLine

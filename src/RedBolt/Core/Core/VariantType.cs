@@ -2014,8 +2014,7 @@ public static class VariantTypeUtility
             case VariantType.StringVariantMap:
                 return IntPtr.Size == 8 ? 48 : 32;
             default:
-                Debug.Assert(false, "Unsupported value type");
-                return 0;
+                throw new ArgumentOutOfRangeException(nameof(variant), variant, "Unsupported value type");
         }
     }
 

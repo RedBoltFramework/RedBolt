@@ -82,9 +82,11 @@ public sealed class ResourceCacheGuard : IDisposable
             if (mountPoint is MountedDirectory directory)
             {
                 var resourceDir = directory.GetDirectory();
-                if (CoreData.Length == 0 && resourceDir.EndsWith("/CoreData/", StringComparison.Ordinal))
+                // VirtualFileSystem resolves later mounts first, so retain the last
+                // matching directory rather than the first fallback mount.
+                if (resourceDir.EndsWith("/CoreData/", StringComparison.Ordinal))
                     CoreData = resourceDir;
-                if (EditorData.Length == 0 && resourceDir.EndsWith("/EditorData/", StringComparison.Ordinal))
+                if (resourceDir.EndsWith("/EditorData/", StringComparison.Ordinal))
                     EditorData = resourceDir;
             }
         }
@@ -1023,12 +1025,16 @@ public class Project : RedObject
         virtualFileSystem.UnmountAll(false);
         virtualFileSystem.MountAliasRoot();
         virtualFileSystem.MountRoot();
-        virtualFileSystem.MountDir(_oldCacheState.EditorData);
+        if (!string.IsNullOrEmpty(_oldCacheState.EditorData))
+            virtualFileSystem.MountDir(_oldCacheState.EditorData);
 
-        var coreDataMountPoint = virtualFileSystem.MountDir(_oldCacheState.CoreData);
+        MountPoint? coreDataMountPoint = null;
+        if (!string.IsNullOrEmpty(_oldCacheState.CoreData))
+            coreDataMountPoint = virtualFileSystem.MountDir(_oldCacheState.CoreData);
         var cacheMountPoint = virtualFileSystem.MountDir(_cachePath);
         var dataMountPoint = virtualFileSystem.MountDir(_dataPath);
-        virtualFileSystem.MountAlias("res:CoreData", coreDataMountPoint);
+        if (coreDataMountPoint is not null)
+            virtualFileSystem.MountAlias("res:CoreData", coreDataMountPoint);
         virtualFileSystem.MountAlias("res:Cache", cacheMountPoint);
         virtualFileSystem.MountAlias("res:Data", dataMountPoint);
 

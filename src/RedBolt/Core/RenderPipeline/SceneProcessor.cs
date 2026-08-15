@@ -182,7 +182,6 @@ public class SceneProcessor : RedObject, LightProcessorCallback
 
     public void SetSettings(ShaderProgramCompositorSettings settings)
     {
-        ArgumentNullException.ThrowIfNull(settings);
         PipelineStateBuilder.SetSettings(settings);
 
         if (!Settings.Equals(settings.SceneProcessor))
