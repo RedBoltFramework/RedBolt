@@ -11,7 +11,6 @@
   <ItemGroup>
     <ProjectReference Include="../Audio/RedBolt.Audio.csproj" />
     <ProjectReference Include="../DearImGui/RedBolt.DearImGui.csproj" />
-    <ProjectReference Include="../Glow/RedBolt.Glow.csproj" />
     <ProjectReference Include="../Core/RedBolt.Core.csproj" />
     <ProjectReference Include="../Utility/RedBolt.Utility.csproj" />
     <ProjectReference Include="../UserCode/Desktop/RedBolt.UserCode.Desktop.csproj" />

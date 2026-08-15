@@ -9,7 +9,6 @@
     <Project Path="src/RedBolt/Editor/RedBolt.Editor.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Core/RedBolt.Core.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/DearImGui/RedBolt.DearImGui.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Glow/RedBolt.Glow.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Utility/RedBolt.Utility.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/UserCode/Desktop/RedBolt.UserCode.Desktop.csproj"><Build Project="false" /></Project>
   </Folder>
@@ -23,7 +22,6 @@
   <Folder Name="/src/RedBolt/Native/">
     <Project Path="src/RedBolt/Native/DearImGui/RedBolt.Bindings.DearImGui.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Native/Diligent/RedBolt.Bindings.Diligent.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Native/Embree/RedBolt.Bindings.Embree.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Native/Glslang/RedBolt.Bindings.Glslang.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Native/HarfBuzz/RedBolt.Bindings.HarfBuzz.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Native/Lz4/RedBolt.Bindings.Lz4.csproj"><Build Project="false" /></Project>
@@ -34,14 +32,12 @@
     <Project Path="src/RedBolt/Native/Stb/RedBolt.Bindings.Stb.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Native/TinyGltf/RedBolt.Bindings.TinyGltf.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Native/WebP/RedBolt.Bindings.WebP.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Native/XAtlas/RedBolt.Bindings.XAtlas.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Native/RedBolt.Native.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Native/RedBolt.Native.Android.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Native/RedBolt.Native.Web.csproj"><Build Project="false" /></Project>
   </Folder>
   <Folder Name="/src/RedBolt/Sample/">
     <Project Path="src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Sample/BakedLighting/RedBolt.Sample.BakedLighting.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/HelloGUI/RedBolt.Sample.HelloGUI.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/MultipleViewports/RedBolt.Sample.MultipleViewports.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/HelloWorld/RedBolt.Sample.HelloWorld.csproj"><Build Project="false" /></Project>

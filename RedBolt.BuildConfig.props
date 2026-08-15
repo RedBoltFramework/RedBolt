@@ -55,9 +55,6 @@
     <RedBoltDearImGuiEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',dear-imgui,'))">true</RedBoltDearImGuiEnabled>
     <RedBoltDearImGuiEnabled Condition="'$(RedBoltDearImGuiEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',dear-imgui,'))">true</RedBoltDearImGuiEnabled>
     <RedBoltDearImGuiEnabled Condition="'$(RedBoltDearImGuiEnabled)' == ''">false</RedBoltDearImGuiEnabled>
-    <RedBoltGlowEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',glow,'))">true</RedBoltGlowEnabled>
-    <RedBoltGlowEnabled Condition="'$(RedBoltGlowEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',glow,'))">true</RedBoltGlowEnabled>
-    <RedBoltGlowEnabled Condition="'$(RedBoltGlowEnabled)' == ''">false</RedBoltGlowEnabled>
     <RedBoltUtilityEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',utility,'))">true</RedBoltUtilityEnabled>
     <RedBoltUtilityEnabled Condition="'$(RedBoltUtilityEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',utility,'))">true</RedBoltUtilityEnabled>
     <RedBoltUtilityEnabled Condition="'$(RedBoltUtilityEnabled)' == ''">false</RedBoltUtilityEnabled>
@@ -72,7 +69,6 @@
 
     <RedBoltEnabledNativeModules>SDL,DILIGENT,STB,LZ4,HARFBUZZ,WEBP,GLSLANG,SPIRV_CROSS,SPIRV_TOOLS,SHADER_COMPILER</RedBoltEnabledNativeModules>
     <RedBoltEnabledNativeModules Condition="'$(RedBoltDearImGuiEnabled)' == 'true'">$(RedBoltEnabledNativeModules),IMGUI</RedBoltEnabledNativeModules>
-    <RedBoltEnabledNativeModules Condition="'$(RedBoltGlowEnabled)' == 'true'">$(RedBoltEnabledNativeModules),XATLAS,EMBREE</RedBoltEnabledNativeModules>
     <RedBoltEnabledNativeModules Condition="'$(RedBoltUtilityEnabled)' == 'true'">$(RedBoltEnabledNativeModules),TINYGLTF</RedBoltEnabledNativeModules>
   </PropertyGroup>
 </Project>

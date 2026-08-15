@@ -12,7 +12,6 @@ using Microsoft.Extensions.Logging;
 
 using RedBolt.Core;
 using RedBolt.Editor.Project;
-using RedBolt.Glow;
 using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Logging;
@@ -278,16 +277,8 @@ public partial class ModelImporter : AssetTransformer
     /// <remarks>C# uses a forwarding callback because it doesn't support the native secondary base class.</remarks>
     protected virtual void OnModelLoaded(ModelView modelView)
     {
-        if (_currentParams!.LightmapUVGenerate)
-        {
-            var settings = new LightmapUVGenerationSettings
-            {
-                TexelPerUnit = _currentParams.LightmapUVTexelsPerUnit,
-                UvChannel = checked((int)_currentParams.LightmapUVChannel),
-            };
-            if (!LightmapUVGenerator.GenerateLightmapUV(modelView, settings))
-                throw new InvalidOperationException("Failed to generate lightmap UVs");
-        }
+        // Lightmap UV generation is contributed by the optional RedBolt.Glow tools assembly.
+        // Legacy fields stay serialized here so pipelines and ModelImporter.json files remain loadable.
     }
 
     protected virtual void OnAnimationLoaded(Animation animation)
@@ -911,6 +902,7 @@ public partial class ModelImporter : AssetTransformer
 
     private static object? GetLightmapUVGenerateDefault() => new TransformerParams().LightmapUVGenerate;
 
+    // Compatibility shim for asset pipelines created before Glow became an external module.
     [Serialized("LightMap UV: Generate", DefaultSource = nameof(GetLightmapUVGenerateDefault))]
     private bool LightmapUVGenerate
     {
@@ -921,6 +913,7 @@ public partial class ModelImporter : AssetTransformer
     private static object? GetLightmapUVTexelsPerUnitDefault() =>
         new TransformerParams().LightmapUVTexelsPerUnit;
 
+    // Compatibility shim for asset pipelines created before Glow became an external module.
     [Serialized("LightMap UV: Texels per Unit", DefaultSource = nameof(GetLightmapUVTexelsPerUnitDefault))]
     private float LightmapUVTexelsPerUnit
     {
@@ -930,6 +923,7 @@ public partial class ModelImporter : AssetTransformer
 
     private static object? GetLightmapUVChannelDefault() => new TransformerParams().LightmapUVChannel;
 
+    // Compatibility shim for asset pipelines created before Glow became an external module.
     [Serialized("LightMap UV: Channel", DefaultSource = nameof(GetLightmapUVChannelDefault))]
     private uint LightmapUVChannel
     {

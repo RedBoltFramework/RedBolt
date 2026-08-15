@@ -82,7 +82,7 @@ used to combine unrelated cases.
 | --- | --- | --- |
 | Frame and views | `Graphics`, `Renderer`, `Camera`, `Viewport`, `RenderSurface` | Swap chain, clear, projection, view rectangles, stereo, off-screen targets, screenshots |
 | Scene state | `Octree`, `Drawable`, `Zone`, `GlobalIllumination` | Visibility, masks, zones, ambient/fog/background, GI inputs |
-| Lighting | `Light`, `LightProbeGroup`, `ReflectionProbe`, `CubemapRenderer`, `LightBaker` | Direct lighting, shadows, probes, cubemaps, baked lighting |
+| Lighting | `Light`, `LightProbeGroup`, `ReflectionProbe`, `CubemapRenderer` | Direct lighting, shadows, probes, cubemaps, baked-lighting playback; `LightBaker` coverage is in RedBolt.Glow |
 | Materials | `Material`, `Technique`, `Pass`, `Shader`, `ShaderVariation` | Shader selection, textures, parameters, blend/depth/cull/fill state |
 | Meshes and buffers | `Model`, `ModelView`, `Geometry`, `VertexBuffer`, `IndexBuffer`, `CustomGeometry` | Vertex formats, indices, primitive topology, LOD, dynamic updates |
 | Model components | `StaticModel`, `StaticModelGroup`, `AnimatedModel`, `Skybox` | Static, instanced, skinned, morphed, and sky geometry |

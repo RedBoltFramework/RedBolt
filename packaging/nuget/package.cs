@@ -23,14 +23,13 @@ internal sealed class Packager
 
     private static readonly string[] ModuleOrder =
     [
-        "Core", "Audio", "Utility", "DearImGui", "Glow"
+        "Core", "Audio", "Utility", "DearImGui"
     ];
 
     private static readonly Dictionary<string, string[]> NativeModules = new(StringComparer.Ordinal)
     {
         ["Core"] = ["SDL", "DILIGENT", "STB", "LZ4", "HARFBUZZ", "WEBP", "GLSLANG", "SPIRV_CROSS", "SPIRV_TOOLS", "SHADER_COMPILER"],
         ["DearImGui"] = ["IMGUI"],
-        ["Glow"] = ["XATLAS", "EMBREE"],
         ["Utility"] = ["TINYGLTF"]
     };
 
@@ -44,8 +43,6 @@ internal sealed class Packager
         ["LZ4"] = ["*RedBolt.Native.Lz4*"],
         ["HARFBUZZ"] = ["*RedBolt.Native.HarfBuzz*"],
         ["WEBP"] = ["*RedBolt.Native.WebP*"],
-        ["XATLAS"] = ["*RedBolt.Native.XAtlas*"],
-        ["EMBREE"] = ["*RedBolt.Native.Embree*"],
         ["GLSLANG"] = ["*RedBolt.Native.Glslang*"],
         ["SPIRV_CROSS"] = ["*RedBolt.Native.SpirVCross*"],
         ["SPIRV_TOOLS"] = ["*RedBolt.Native.SpirVTools*"],
@@ -169,7 +166,7 @@ internal sealed class Packager
                 ]);
             }
             StageToolPackage("PackageTool", rid);
-            if (IsEnabled("RedBoltEditorEnabled") && SupportedOnRid("Glow", rid))
+            if (IsEnabled("RedBoltEditorEnabled"))
                 StageToolPackage("Editor", rid);
         }
 
@@ -214,7 +211,7 @@ internal sealed class Packager
 
     private void ReadSelection()
     {
-        const string properties = "RedBoltLinuxEnabled,RedBoltWindowsEnabled,RedBoltAndroidEnabled,RedBoltWebEnabled,RedBoltX64Enabled,RedBoltArm64Enabled,RedBoltAudioEnabled,RedBoltDearImGuiEnabled,RedBoltGlowEnabled,RedBoltUtilityEnabled,RedBoltEditorEnabled";
+        const string properties = "RedBoltLinuxEnabled,RedBoltWindowsEnabled,RedBoltAndroidEnabled,RedBoltWebEnabled,RedBoltX64Enabled,RedBoltArm64Enabled,RedBoltAudioEnabled,RedBoltDearImGuiEnabled,RedBoltUtilityEnabled,RedBoltEditorEnabled";
         var json = Capture("dotnet",
         [
             "msbuild", Path.Combine(_repositoryRoot, "src", "RedBolt", "Build", "RedBolt.Build.csproj"),
@@ -243,8 +240,7 @@ internal sealed class Packager
                                                      || rid.StartsWith("win-", StringComparison.Ordinal);
 
     private static bool SupportedOnRid(string module, string rid) =>
-        !((module == "Glow" && (rid.StartsWith("android-", StringComparison.Ordinal) || rid == "browser-wasm"))
-          || (module == "Utility" && rid == "browser-wasm"));
+        module != "Utility" || rid != "browser-wasm";
 
     private string ManagedFile(string rid, string project, string? assembly = null)
     {

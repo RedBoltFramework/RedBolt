@@ -98,7 +98,6 @@ internal static class SampleCatalog
     [
         new("aggregated-input", "Aggregated Input", "RedBolt.Sample.AggregatedInput.AggregatedInputApplication"),
         new("animating-scene", "Animating Scene", "RedBolt.Sample.AnimatingScene.AnimatingScene"),
-        new("baked-lighting", "Baked Lighting", "RedBolt.Sample.BakedLighting.BakedLighting"),
         new("billboards", "Billboards", "RedBolt.Sample.Billboards.BillboardsApplication"),
         new("camera-operator", "Camera Operator", "RedBolt.Sample.CameraOperator.CameraOperatorSampleApplication"),
         new("camera-shake", "Camera Shake", "RedBolt.Sample.CameraShake.CameraShakeApplication"),

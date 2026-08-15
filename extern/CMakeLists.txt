@@ -33,8 +33,6 @@ include(STB.cmake)
 include(TinyGLTF.cmake)
 include(LZ4.cmake)
 include(WebP.cmake)
-include(XAtlas.cmake)
-include(Embree.cmake)
 add_custom_target(redbolt-native-dependency-batch
-    DEPENDS ${REDBOLT_SDL_LIBRARY} redbolt-diligent-build ImGui harfbuzz harfbuzz-raster harfbuzz-gpu embree
+    DEPENDS ${REDBOLT_SDL_LIBRARY} redbolt-diligent-build ImGui harfbuzz harfbuzz-raster harfbuzz-gpu
     COMMENT "Building RedBolt native dependency batch")

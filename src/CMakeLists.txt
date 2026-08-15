@@ -8,8 +8,6 @@ add_subdirectory(RedBolt/Native/TinyGltf)
 add_subdirectory(RedBolt/Native/Lz4)
 add_subdirectory(RedBolt/Native/HarfBuzz)
 add_subdirectory(RedBolt/Native/WebP)
-add_subdirectory(RedBolt/Native/XAtlas)
-add_subdirectory(RedBolt/Native/Embree)
 add_subdirectory(RedBolt/Native/Glslang)
 add_subdirectory(RedBolt/Native/SpirVCross)
 add_subdirectory(RedBolt/Native/SpirVTools)
@@ -25,8 +23,6 @@ add_custom_target(redbolt-generate-native-bindings
         redbolt-generate-lz4-bindings
         redbolt-generate-harfbuzz-bindings
         redbolt-generate-webp-bindings
-        redbolt-generate-xatlas-bindings
-        redbolt-generate-embree-bindings
         redbolt-generate-glslang-bindings
         redbolt-generate-spirv-cross-bindings
         redbolt-generate-spirv-tools-bindings

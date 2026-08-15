@@ -8,8 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Graphics/LightBaker.cs" />
-
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
     <ProjectReference Include="../Native/Diligent/RedBolt.Bindings.Diligent.csproj" />
