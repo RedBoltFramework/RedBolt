@@ -12,6 +12,7 @@ using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Input;
 using RedBolt.Logging;
+using RedBolt.Plugins;
 using RedBolt.RenderAPI;
 using RedBolt.Resource;
 
@@ -176,6 +177,7 @@ public class Context : ObjectReflectionRegistry
         RegisterSubsystem(new Graphics());
         RegisterSubsystem(new Renderer());
         RegisterSubsystem(new StateManager());
+        RegisterSubsystem(new PluginManager());
     }
 
     public void RegisterSubsystem(object subsystem)

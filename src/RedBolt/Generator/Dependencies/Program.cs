@@ -50,7 +50,6 @@ internal static class Program
             "tinygltf" => new TinyGltfGenerator(nativeLibraryName),
             "lz4" => new Lz4Generator(nativeLibraryName),
             "harfbuzz" => new HarfBuzzGenerator(nativeLibraryName),
-            "rmlui" => new RmlUiGenerator(nativeLibraryName),
             "webp" => new WebPGenerator(nativeLibraryName),
             "xatlas" => new XAtlasGenerator(nativeLibraryName),
             "embree" => new EmbreeGenerator(nativeLibraryName),
@@ -58,7 +57,6 @@ internal static class Program
             "spirvcross" => new SpirVCrossGenerator(nativeLibraryName),
             "spirvtools" => new SpirVToolsGenerator(nativeLibraryName),
             "shadercompiler" => new ShaderCompilerGenerator(nativeLibraryName),
-            "libdatachannel" => new LibDataChannelGenerator(nativeLibraryName),
             _ => throw new ArgumentException($"Unknown binding surface '{surface}'.", nameof(surface))
         };
     }
@@ -66,6 +64,6 @@ internal static class Program
     private static void PrintUsage()
     {
         Console.Error.WriteLine(
-            "Usage: RedBolt.Generator.Dependencies --surface <sdl|diligent|dearimgui|stb|tinygltf|lz4|harfbuzz|rmlui|webp|xatlas|embree|glslang|spirvcross|spirvtools|shadercompiler|libdatachannel> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --redbolt-root <path> --native-library-name <name> --compiler <path> [--compiler-target <triple>] [--compiler-sysroot <path>] [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
+            "Usage: RedBolt.Generator.Dependencies --surface <sdl|diligent|dearimgui|stb|tinygltf|lz4|harfbuzz|webp|xatlas|embree|glslang|spirvcross|spirvtools|shadercompiler> --header <path> --include-name <include> --output-dir <dir> --file-stem <stem> --metadata <path> --log <path> --sharpcpp-root <path> --redbolt-root <path> --native-library-name <name> --compiler <path> [--compiler-target <triple>] [--compiler-sysroot <path>] [--include <dir>]... [--define <name[=value]>]... [--owned-header <path>]...");
     }
 }

@@ -30,6 +30,7 @@ using RedBolt.Container;
 using RedBolt.Editor.Core;
 using RedBolt.Editor.Project;
 using RedBolt.IO;
+using RedBolt.Plugins;
 using RedBolt.SystemUI;
 
 /// <summary>Tab that displays project settings.</summary>
@@ -168,17 +169,17 @@ public class LaunchPage : SettingsPage
         if (ImGui.Selectable(_mainPlugin.ContentBytes, mainPlugin.Length == 0))
             mainPlugin = string.Empty;
 
-        // TODO: port plugin choices when PluginManager is ported.
-        // auto pluginManager = GetSubsystem<PluginManager>();
-        // for (const ea::string& plugin : pluginManager->GetLoadedPlugins())
-        // {
-        //     const auto pluginApplication = pluginManager->GetPluginApplication(plugin, true);
-        //     if (!pluginApplication || !pluginApplication->IsMain())
-        //         continue;
-        //
-        //     if (ui::Selectable(plugin.c_str(), plugin == mainPlugin))
-        //         mainPlugin = plugin;
-        // }
+        var pluginManager = GetSubsystem<PluginManager>();
+        foreach (var plugin in pluginManager.LoadedPlugins)
+        {
+            var pluginApplication = pluginManager.GetPluginApplication(plugin, true);
+            if (pluginApplication?.IsMain != true)
+                continue;
+
+            _mainPlugin.Set(plugin);
+            if (ImGui.Selectable(_mainPlugin.ContentBytes, plugin == mainPlugin))
+                mainPlugin = plugin;
+        }
         ImGui.EndCombo();
     }
 

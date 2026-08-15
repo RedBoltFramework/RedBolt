@@ -167,7 +167,7 @@ public static class GeneratedReflectionRegistration
             if (!AssemblyTypes.TryGetValue(assembly, out var registeredTypes))
                 RuntimeHelpers.RunModuleConstructor(assembly.ManifestModule.ModuleHandle);
             if (!AssemblyTypes.TryGetValue(assembly, out registeredTypes))
-                throw new InvalidOperationException($"Assembly {assembly.FullName} has no generated RedBolt reflection registrar.");
+                return new AssemblyRegistration(context, assembly, []);
             types = registeredTypes.ToArray();
         }
 

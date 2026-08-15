@@ -42,8 +42,10 @@ using RedBolt.Engine;
 using RedBolt.IO;
 using RedBolt.Logging;
 using RedBolt.Math;
+using RedBolt.Plugins;
 using RedBolt.Resource;
 using RedBolt.SystemUI;
+using RedBolt.UserCode.Desktop;
 using RedBolt.Utility;
 
 using EngineSubsystem = global::RedBolt.Engine.Engine;
@@ -205,8 +207,9 @@ public class Project : RedObject
         _hotkeyManager = new HotkeyManager();
         _undoManager = new UndoManager();
         _settingsManager = new SettingsManager();
-        // TODO: port reloadable user plugins.
-        // pluginManager_(MakeShared<PluginManager>(context_))
+        _defaultPluginManager = GetSubsystem<PluginManager>();
+        _pluginManager = new PluginManager();
+        ManagedPluginCatalog.FromParameters(engine.Parameters).Populate(_pluginManager);
         _launchManager = new LaunchManager();
         _toolManager = new ToolManager();
         _closeDialog = new CloseDialog();
@@ -217,10 +220,10 @@ public class Project : RedObject
         Context.RegisterSubsystem<Project>(this);
         ++_numActiveProjects;
 
-        // TODO: port reloadable user plugins.
-        // context_->RemoveSubsystem<PluginManager>();
-        // context_->RegisterSubsystem(pluginManager_);
-        // pluginManager_->SetQuitApplicationCallback([] {});
+        Context.RemoveSubsystem<PluginManager>();
+        Context.RegisterSubsystem(_pluginManager);
+        _pluginManager.QuitApplicationCallback = static () => { };
+        _pluginManager.Configure(engine.Parameters);
 
         SubscribeToEvent<EngineEvents.EndPluginReloadEvent>(
             (ref EngineEvents.EndPluginReloadEvent _) => _pluginReloadEndTime = DateTime.UtcNow);
@@ -239,8 +242,6 @@ public class Project : RedObject
         IgnoreFileNamePattern("*.user.json");
         IgnoreFileNamePattern("*.blend1");
 
-        ApplyPlugins();
-
         _settingsManager.AddPage(_toolManager);
 
         _settingsManager.LoadFile(_settingsJsonPath);
@@ -251,6 +252,9 @@ public class Project : RedObject
             projectJsonFile.LoadFile(new FileIdentifier(_projectJsonPath));
             projectJsonFile.LoadObjectCallback(SerializeProject);
         }
+
+        _pluginManager.Commit();
+        ApplyPlugins();
 
         if (_firstInitialization)
             InitializeDefaultProject();
@@ -284,7 +288,7 @@ public class Project : RedObject
         _closeDialog.Dispose();
         _toolManager.Dispose();
         _launchManager.Dispose();
-        // TODO: port pluginManager_ destruction.
+        _pluginManager.Dispose();
         _undoManager.Dispose();
         _settingsManager.Dispose();
         _hotkeyManager.Dispose();
@@ -298,8 +302,11 @@ public class Project : RedObject
 
     public override void SerializeInBlock(Archive archive)
     {
-        // TODO: port reloadable user plugins.
-        // SerializeOptionalValue(archive, "PluginManager", *pluginManager_, AlwaysSerialize{});
+        if (!archive.IsInput || archive.HasElementOrBlock("PluginManager"))
+        {
+            using var pluginBlock = archive.OpenUnorderedBlock("PluginManager");
+            _pluginManager.SerializeInBlock(archive);
+        }
         if (archive.IsInput && !archive.HasElementOrBlock("LaunchManager"))
             return;
 
@@ -390,9 +397,8 @@ public class Project : RedObject
         _tabs.Clear();
         _sortedTabs.Clear();
 
-        // TODO: port reloadable user plugins.
-        // context_->RemoveSubsystem<PluginManager>();
-        // context_->RegisterSubsystem<PluginManager>();
+        Context.RemoveSubsystem<PluginManager>();
+        Context.RegisterSubsystem(_defaultPluginManager);
     }
 
     /// <summary>Request graceful close of the project. Called multiple times during close sequence.</summary>
@@ -534,9 +540,7 @@ public class Project : RedObject
                     ResetLayout();
             }
 
-            // TODO: port plugin reload gate.
-            // if (!assetManagerInitialized_ && !pluginManager_->IsReloadPending())
-            if (!_assetManagerInitialized)
+            if (!_assetManagerInitialized && !_pluginManager.IsReloadPending)
             {
                 _assetManagerInitialized = true;
                 _toolManager.Update();
@@ -552,8 +556,6 @@ public class Project : RedObject
                 initialFocusPending = true;
 
                 _pluginReloadEndTime = null;
-
-                GetSubsystem<RedBolt.RmlUI.RmlUI>().ReloadFonts();
 
                 OnInitialized?.Invoke(this);
 
@@ -836,7 +838,7 @@ public class Project : RedObject
     public HotkeyManager HotkeyManager => _hotkeyManager;
     public SettingsManager SettingsManager => _settingsManager;
     public UndoManager UndoManager => _undoManager;
-    // TODO: port public PluginManager getter.
+    public PluginManager PluginManager => _pluginManager;
     public LaunchManager LaunchManager => _launchManager;
     public ToolManager ToolManager => _toolManager;
 
@@ -1252,8 +1254,18 @@ public class Project : RedObject
 
     private void RenderPluginReloadToolbar()
     {
-        // TODO: port reloadable user plugins.
-        // Preserve Project::RenderPluginReloadToolbar after PluginManager is available.
+        if (!_pluginManager.IsReloadPending && !_pluginManager.EnumerateAvailablePlugins().Any())
+            return;
+
+        Widgets.ToolbarSeparator();
+        if (Widgets.ToolbarButton("\uf021"u8, "Reload plugins"u8))
+            _pluginManager.Reload();
+        if (_pluginManager.GetReloadBlockedReason() is { } reason)
+        {
+            ImGui.SameLine();
+            _assetsProgressText.Set(reason);
+            ImGui.TextUnformatted(_assetsProgressText.ContentBytes);
+        }
     }
 
     private void RenderSavePendingToolbar()
@@ -1358,7 +1370,8 @@ public class Project : RedObject
     private readonly HotkeyManager _hotkeyManager;
     private readonly SettingsManager _settingsManager;
     private readonly UndoManager _undoManager;
-    // TODO: port SharedPtr<PluginManager> pluginManager_;
+    private readonly PluginManager _pluginManager;
+    private readonly PluginManager _defaultPluginManager;
     private readonly LaunchManager _launchManager;
     private readonly ToolManager _toolManager;
 

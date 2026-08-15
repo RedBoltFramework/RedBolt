@@ -9,6 +9,7 @@ using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.Input;
 using RedBolt.Logging;
+using RedBolt.Plugins;
 using RedBolt.RenderAPI;
 using RedBolt.RenderPipeline;
 using RedBolt.Resource;
@@ -134,6 +135,7 @@ public class Engine : RedObject
 
         resources.RegisterDefaultResources();
         ApplyInitializationParameters();
+        GetSubsystem<PluginManager>()!.Configure(Parameters);
 
         if (!IsHeadless)
         {

@@ -36,7 +36,6 @@ using EditorProject = RedBolt.Editor.Project.Project;
 using EngineLogLevel = RedBolt.Logging.LogLevel;
 using File = global::System.IO.File;
 using ImageResource = RedBolt.Resource.Image;
-using RmlUISubsystem = RedBolt.RmlUI.RmlUI;
 
 public unsafe class EditorApplication : Application
 {
@@ -87,7 +86,8 @@ public unsafe class EditorApplication : Application
             settingsTab.GetProject().SettingsManager.AddPage(new KeyBindingsPage()));
         _editorPluginManager.AddPlugin<SettingsTab>("Foundation.Settings.Launch", static settingsTab =>
             settingsTab.GetProject().SettingsManager.AddPage(new LaunchPage()));
-        // TODO: port Foundation_PluginsPage with reloadable user plugins.
+        _editorPluginManager.AddPlugin<SettingsTab>("Foundation.Settings.Plugins", static settingsTab =>
+            settingsTab.GetProject().SettingsManager.AddPage(new PluginsPage()));
 
         _editorPluginManager.AddPlugin<SceneViewTab>(
             "Foundation.SceneView.CreatePrefabFromNode", static sceneViewTab =>
@@ -265,8 +265,7 @@ public unsafe class EditorApplication : Application
         parameters.ResourceRootFile = string.Empty;
         parameters.WindowMaximize = true;
         parameters.EngineAutoLoadScripts = false;
-        // TODO: port user plugin reload: engineParameters_[EP_RELOAD_PLUGINS] = true;
-        parameters.ReloadPlugins = false;
+        parameters.ReloadPlugins = true;
         parameters.Profile = true;
 
         // Use detected prefix path as default. Could be overridden with command line.
@@ -344,9 +343,6 @@ public unsafe class EditorApplication : Application
             Context.RegisterSubsystem(debugHud);
         }
         debugHud.SetMode(DebugHudMode.None);
-
-        if (Context.GetSubsystem<RmlUISubsystem>() is null)
-            Context.RegisterSubsystem(new RmlUISubsystem());
 
         SubscribeToEvent<CoreEvents.UpdateEvent>((ref CoreEvents.UpdateEvent _) => Render());
         SubscribeToEvent<CoreEvents.EndFrameEvent>((ref CoreEvents.EndFrameEvent _) => UpdateProjectStatus());

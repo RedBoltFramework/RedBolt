@@ -71,6 +71,7 @@ internal static class EngineCommandLine
         parser.AddFlag(["--touch"], "Enable touch emulation", () => parameters.TouchEmulation = true);
         parser.AddOption(["--timeout"], "seconds", "Exit after the specified timeout", value => parameters.TimeOut = ParseInt(value));
         parser.AddOption(["--plugins"], "plugins", "Set plugin list", value => parameters.Plugins = value);
+        parser.AddOption(["--plugin-paths"], "paths", "Set managed plugin search paths", value => parameters.PluginPaths = value);
         parser.AddOption(["--main"], "plugin", "Set the main plugin", value => parameters.MainPlugin = value);
         parser.AddFlag(["--log-shader-sources"], "Log shader sources to the shader cache directory", () => parameters.ShaderLogSources = true);
         parser.AddFlag(["--discard-shader-cache"], "Discard cached shader bytecode", () => parameters.DiscardShaderCache = true);

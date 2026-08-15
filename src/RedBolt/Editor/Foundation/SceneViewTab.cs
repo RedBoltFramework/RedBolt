@@ -35,6 +35,7 @@ using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Editor.Core;
 using RedBolt.Editor.Project;
+using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.IO;
@@ -336,9 +337,10 @@ public class SceneViewTab : ResourceEditorTab
         BindHotkey(HotkeyCreateSiblingNode, CreateNodeNextToSelection);
         BindHotkey(HotkeyCreateChildNode, CreateNodeInSelection);
 
-        // TODO: port plugin reload event subscriptions when user-code reloading is ported.
-        // SubscribeToEvent(E_BEGINPLUGINRELOAD, &SceneViewTab::BeginPluginReload);
-        // SubscribeToEvent(E_ENDPLUGINRELOAD, &SceneViewTab::EndPluginReload);
+        SubscribeToEvent<EngineEvents.BeginPluginReloadEvent>(
+            (ref EngineEvents.BeginPluginReloadEvent _) => BeginPluginReload());
+        SubscribeToEvent<EngineEvents.EndPluginReloadEvent>(
+            (ref EngineEvents.EndPluginReloadEvent _) => EndPluginReload());
     }
 
     public override void Dispose()
@@ -1509,24 +1511,22 @@ public class SceneViewTab : ResourceEditorTab
 
     private void BeginPluginReload()
     {
-        // TODO: port user-code/plugin reload.
-        // for (const auto& [_, page] : scenes_)
-        // {
-        //     page->archivedScene_ = PackedSceneData::FromScene(page->scene_);
-        //     page->archivedSelection_ = page->selection_.Pack();
-        //     page->scene_->Clear();
-        // }
+        foreach (var page in _scenes.Values)
+        {
+            page.ArchivedScene = PackedSceneData.FromScene(page.Scene);
+            page.ArchivedSelection = page.Selection.Pack();
+            page.Scene.Clear();
+        }
     }
 
     private void EndPluginReload()
     {
-        // TODO: port user-code/plugin reload.
-        // for (const auto& [_, page] : scenes_)
-        // {
-        //     page->scene_->Clear();
-        //     page->archivedScene_.ToScene(page->scene_);
-        //     page->selection_.Load(page->scene_, page->archivedSelection_);
-        // }
+        foreach (var page in _scenes.Values)
+        {
+            page.Scene.Clear();
+            page.ArchivedScene.ToScene(page.Scene);
+            page.Selection.Load(page.Scene, page.ArchivedSelection);
+        }
     }
 
     private static void SerializePage(

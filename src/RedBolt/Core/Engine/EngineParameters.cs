@@ -62,6 +62,8 @@ public sealed class EngineParameters
 
     public string Plugins { get; set; } = string.Empty;
 
+    public string PluginPaths { get; set; } = string.Empty;
+
     public bool Profile { get; set; }
 
     public string PsoCache { get; set; } = "conf://psocache.bin";

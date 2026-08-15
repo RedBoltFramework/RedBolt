@@ -23,6 +23,8 @@
 namespace RedBolt.Editor.Core;
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 using RedBolt.Core;
 
@@ -57,4 +59,39 @@ public sealed class EditorPlugin<T> : EditorPlugin
 
     private readonly string _name;
     private readonly Action<T> _function;
+}
+
+public sealed class ScopedEditorPlugin<T> : EditorPlugin
+    where T : RedObject
+{
+    public ScopedEditorPlugin(string name, Func<T, IDisposable?> function)
+    {
+        _name = name;
+        _function = function;
+    }
+
+    public override string Name => _name;
+
+    public override bool Apply(RedObject target)
+    {
+        if (target is not T derivedTarget || _targets.Any(item => item.Target.TryGetTarget(out var existing)
+            && ReferenceEquals(existing, target)))
+        {
+            return false;
+        }
+        _targets.Add((new WeakReference<RedObject>(target), _function(derivedTarget)));
+        return true;
+    }
+
+    public override void Dispose()
+    {
+        for (var index = _targets.Count - 1; index >= 0; --index)
+            _targets[index].Lease?.Dispose();
+        _targets.Clear();
+        base.Dispose();
+    }
+
+    private readonly string _name;
+    private readonly Func<T, IDisposable?> _function;
+    private readonly List<(WeakReference<RedObject> Target, IDisposable? Lease)> _targets = [];
 }

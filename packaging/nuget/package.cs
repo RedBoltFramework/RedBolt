@@ -23,8 +23,7 @@ internal sealed class Packager
 
     private static readonly string[] ModuleOrder =
     [
-        "Core", "Actions", "Audio", "IK", "Navigation", "Particles",
-        "Utility", "DearImGui", "Glow", "Network", "RmlUI"
+        "Core", "Audio", "IK", "Utility", "DearImGui", "Glow"
     ];
 
     private static readonly Dictionary<string, string[]> NativeModules = new(StringComparer.Ordinal)
@@ -32,8 +31,6 @@ internal sealed class Packager
         ["Core"] = ["SDL", "DILIGENT", "STB", "LZ4", "HARFBUZZ", "WEBP", "GLSLANG", "SPIRV_CROSS", "SPIRV_TOOLS", "SHADER_COMPILER"],
         ["DearImGui"] = ["IMGUI"],
         ["Glow"] = ["XATLAS", "EMBREE"],
-        ["Network"] = ["LIBDATACHANNEL"],
-        ["RmlUI"] = ["RMLUI"],
         ["Utility"] = ["TINYGLTF"]
     };
 
@@ -46,15 +43,13 @@ internal sealed class Packager
         ["TINYGLTF"] = ["*RedBolt.Native.TinyGltf*"],
         ["LZ4"] = ["*RedBolt.Native.Lz4*"],
         ["HARFBUZZ"] = ["*RedBolt.Native.HarfBuzz*"],
-        ["RMLUI"] = ["*RedBolt.Native.RmlUi*"],
         ["WEBP"] = ["*RedBolt.Native.WebP*"],
         ["XATLAS"] = ["*RedBolt.Native.XAtlas*"],
         ["EMBREE"] = ["*RedBolt.Native.Embree*"],
         ["GLSLANG"] = ["*RedBolt.Native.Glslang*"],
         ["SPIRV_CROSS"] = ["*RedBolt.Native.SpirVCross*"],
         ["SPIRV_TOOLS"] = ["*RedBolt.Native.SpirVTools*"],
-        ["SHADER_COMPILER"] = ["*RedBolt.Native.ShaderCompiler*"],
-        ["LIBDATACHANNEL"] = ["*RedBolt.Native.LibDataChannel*"]
+        ["SHADER_COMPILER"] = ["*RedBolt.Native.ShaderCompiler*"]
     };
 
     private static readonly string ConsumerProgram = """
@@ -219,7 +214,7 @@ internal sealed class Packager
 
     private void ReadSelection()
     {
-        const string properties = "RedBoltLinuxEnabled,RedBoltWindowsEnabled,RedBoltAndroidEnabled,RedBoltWebEnabled,RedBoltX64Enabled,RedBoltArm64Enabled,RedBoltActionsEnabled,RedBoltAudioEnabled,RedBoltDearImGuiEnabled,RedBoltGlowEnabled,RedBoltIKEnabled,RedBoltNavigationEnabled,RedBoltNetworkEnabled,RedBoltParticlesEnabled,RedBoltRmlUIEnabled,RedBoltUtilityEnabled,RedBoltEditorEnabled";
+        const string properties = "RedBoltLinuxEnabled,RedBoltWindowsEnabled,RedBoltAndroidEnabled,RedBoltWebEnabled,RedBoltX64Enabled,RedBoltArm64Enabled,RedBoltAudioEnabled,RedBoltDearImGuiEnabled,RedBoltGlowEnabled,RedBoltIKEnabled,RedBoltUtilityEnabled,RedBoltEditorEnabled";
         var json = Capture("dotnet",
         [
             "msbuild", Path.Combine(_repositoryRoot, "src", "RedBolt", "Build", "RedBolt.Build.csproj"),
@@ -447,15 +442,6 @@ internal sealed class Packager
                 RequireFile(bindingSource, "binding assembly");
                 File.Copy(bindingSource, Path.Combine(library, Path.GetFileName(bindingSource)), true);
             }
-            if (module == "Navigation")
-            {
-                foreach (var assembly in new[] { "Core", "Detour", "Detour.Crowd", "Detour.TileCache", "Recast" })
-                {
-                    var navigationSource = Path.Combine(_repositoryRoot, "build", "bin", Configuration, "host", "extern", $"DotRecast.{assembly}.dll");
-                    RequireFile(navigationSource, "navigation dependency");
-                    File.Copy(navigationSource, Path.Combine(library, Path.GetFileName(navigationSource)), true);
-                }
-            }
         }
 
         var buildTransitive = Path.Combine(stage, "buildTransitive");
@@ -600,7 +586,7 @@ internal sealed class Packager
     {
         if (!NativeModules.TryGetValue(module, out var modules))
             return [];
-        return module == "Network" && rid == "browser-wasm" ? [] : modules;
+        return modules;
     }
 
     private static void CopyNativeFallback(string nativeModule, string sourceRoot, string destination)

@@ -35,13 +35,13 @@ using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Logging;
 using RedBolt.Math;
+using RedBolt.Plugins;
 using RedBolt.RenderAPI;
 using RedBolt.SystemUI;
 using RedBolt.Utility;
 using DearImGuiSubsystem = RedBolt.DearImGui.DearImGui;
 using EngineSubsystem = RedBolt.Engine.Engine;
 using ProjectSubsystem = RedBolt.Editor.Project.Project;
-using RmlUISubsystem = RedBolt.RmlUI.RmlUI;
 
 /// <summary>Tab that renders Scene and enables Scene manipulation.</summary>
 public class GameViewTab : EditorTab
@@ -51,6 +51,9 @@ public class GameViewTab : EditorTab
 
     public event Action? OnSimulationStarted;
     public event Action? OnSimulationStopped;
+    public event Action<GameViewTab, RenderSurface?>? RenderTargetChanged;
+
+    public RenderSurface? RenderTarget { get; private set; }
 
     public GameViewTab()
         : base("Game", "212a6577-8a2a-42d6-aaed-042d226c724c",
@@ -61,16 +64,12 @@ public class GameViewTab : EditorTab
 
         BindHotkey(HotkeyReleaseInput, ReleaseInput);
 
-        // TODO: port reloadable user plugins.
-        // auto pluginManager = GetSubsystem<PluginManager>();
-        // pluginManager->SetQuitApplicationCallback([this] { QuitApplication(); });
+        GetSubsystem<PluginManager>().QuitApplicationCallback = QuitApplication;
     }
 
     public override void Dispose()
     {
-        // TODO: port reloadable user plugins.
-        // auto pluginManager = GetSubsystem<PluginManager>();
-        // pluginManager->SetQuitApplicationCallback([] {});
+        GetSubsystem<PluginManager>().QuitApplicationCallback = static () => { };
 
         _state?.Dispose();
         _state = null;
@@ -78,6 +77,7 @@ public class GameViewTab : EditorTab
         _backbuffer.Dispose();
         OnSimulationStopped = null;
         OnSimulationStarted = null;
+        RenderTargetChanged = null;
         base.Dispose();
     }
 
@@ -86,7 +86,7 @@ public class GameViewTab : EditorTab
         if (_state is not null)
             Stop();
 
-        _state = new PlayState(_backbuffer);
+        _state = new PlayState(this, _backbuffer);
         OnSimulationStarted?.Invoke();
     }
 
@@ -213,19 +213,26 @@ public class GameViewTab : EditorTab
             || ImGui.IsMouseClicked((ImGuiMouseButton)4);
     }
 
+    private void SetRenderTarget(RenderSurface? target)
+    {
+        if (ReferenceEquals(RenderTarget, target))
+            return;
+        RenderTarget = target;
+        RenderTargetChanged?.Invoke(this, target);
+    }
+
     private sealed class PlayState : RedObject
     {
-        public PlayState(CustomBackbufferTexture backbuffer)
+        public PlayState(GameViewTab owner, CustomBackbufferTexture backbuffer)
         {
+            _owner = owner;
             _engine = GetSubsystem<EngineSubsystem>();
             _renderer = GetSubsystem<Renderer>();
-            // TODO: port reloadable user plugins.
-            // pluginManager_(GetSubsystem<PluginManager>())
+            _pluginManager = GetSubsystem<PluginManager>();
             _input = GetSubsystem<Input>();
             // TODO: built-in UI is excluded from the managed port.
             // legacyUI_(GetSubsystem<UI>())
             _systemUI = GetSubsystem<DearImGuiSubsystem>();
-            _rmlUI = GetSubsystem<RmlUISubsystem>();
             _stateManager = GetSubsystem<StateManager>();
             _project = GetSubsystem<ProjectSubsystem>();
             _backbuffer = backbuffer;
@@ -242,8 +249,7 @@ public class GameViewTab : EditorTab
             _backbuffer.SetActive(true);
             GrabInput();
 
-            // TODO: port reloadable user plugins.
-            // pluginManager_->StartApplication();
+            _pluginManager.StartApplication();
             UpdatePreferredMouseSetup();
 
             SubscribeToEvent<GraphicsEvents.BeginRenderingEvent>((ref GraphicsEvents.BeginRenderingEvent _) =>
@@ -302,8 +308,7 @@ public class GameViewTab : EditorTab
         {
             ReleaseInput();
 
-            // TODO: port reloadable user plugins.
-            // pluginManager_->StopApplication();
+            _pluginManager.StopApplication();
             _backbuffer.SetActive(false);
 
             // TODO: built-in UI is excluded from the managed port.
@@ -312,7 +317,7 @@ public class GameViewTab : EditorTab
             // legacyUI_->GetRoot()->RemoveAllChildren();
             // legacyUI_->GetRootModalElement()->RemoveAllChildren();
 
-            _rmlUI.SetRenderTarget();
+            _owner.SetRenderTarget(null);
 
             _input.ResetExplicitWindowRect();
 
@@ -345,18 +350,18 @@ public class GameViewTab : EditorTab
                 _renderer.SetBackbufferRenderSurface(backbufferSurface);
                 // TODO: built-in UI is excluded from the managed port.
                 // legacyUI_->SetCustomSize(backbufferSurface->GetSize());
-                _rmlUI.SetRenderTarget(backbufferSurface);
+                _owner.SetRenderTarget(backbufferSurface);
             }
         }
 
         private readonly EngineSubsystem _engine;
         private readonly Renderer _renderer;
-        // TODO: port PluginManager* pluginManager_ with reloadable user plugins.
+        private readonly PluginManager _pluginManager;
         private readonly Input _input;
         // TODO: built-in UI is excluded from the managed port.
         // UI* legacyUI_{};
         private readonly DearImGuiSubsystem _systemUI;
-        private readonly RmlUISubsystem _rmlUI;
+        private readonly GameViewTab _owner;
         private readonly StateManager _stateManager;
         private readonly ProjectSubsystem _project;
 

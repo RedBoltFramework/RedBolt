@@ -23,22 +23,18 @@ if(NOT COMMAND group_sources)
     endfunction()
 endif()
 
-include(DotRecast.cmake)
 include(SharpCpp.cmake)
 include(SDL.cmake)
 include(SDL_image.cmake)
 include(Diligent.cmake)
 include(DearImGui.cmake)
 include(HarfBuzz.cmake)
-include(RmlUi.cmake)
 include(STB.cmake)
 include(TinyGLTF.cmake)
 include(LZ4.cmake)
 include(WebP.cmake)
 include(XAtlas.cmake)
 include(Embree.cmake)
-include(OpenSSL.cmake)
-include(LibDataChannel.cmake)
 add_custom_target(redbolt-native-dependency-batch
-    DEPENDS ${REDBOLT_SDL_LIBRARY} redbolt-diligent-build ImGui harfbuzz harfbuzz-raster harfbuzz-gpu rmlui_core rmlui_debugger embree datachannel-static
+    DEPENDS ${REDBOLT_SDL_LIBRARY} redbolt-diligent-build ImGui harfbuzz harfbuzz-raster harfbuzz-gpu embree
     COMMENT "Building RedBolt native dependency batch")

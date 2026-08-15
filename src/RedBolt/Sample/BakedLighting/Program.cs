@@ -32,7 +32,6 @@ using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Math;
-using RedBolt.Navigation;
 using RedBolt.Resource;
 using RedBolt.Scene;
 
@@ -69,6 +68,7 @@ public class BakedLighting : Application
     {
         // Execute base class startup
         base.Start();
+        Context.RegisterAssembly(typeof(LightBaker).Assembly);
 
         // Create scene content
         CreateScene();
@@ -102,18 +102,10 @@ public class BakedLighting : Application
         _viewport = new Viewport(_scene, camera);
         Renderer.SetViewport(0, _viewport);
 
-        var navMesh = _scene.FindComponent<NavigationMesh>()!;
-        navMesh.Rebuild();
+        _actorNode = _scene.FindChild("Actor")!;
 
-        _agent = _scene.FindComponent<CrowdAgent>()!;
-
-        var animController = _agent.Node.FindComponent<AnimationController>()!;
+        var animController = _actorNode.FindComponent<AnimationController>()!;
         animController.PlayNewExclusive(new AnimationParameters(cache.Get<Animation>("Models/Mutant/Mutant_Idle0.ani")).Looped());
-
-        var crowdManager = _scene.GetComponent<CrowdManager>()!;
-        var parameters = crowdManager.GetObstacleAvoidanceParams(0);
-        parameters.WeightToi = 0.0001f;
-        crowdManager.SetObstacleAvoidanceParams(0, parameters);
 
         // Initialize yaw and pitch angles
         _cameraRotationPitch = _cameraNode.Parent!;
@@ -175,15 +167,16 @@ public class BakedLighting : Application
 
         var movementDirection = rotation * controlDirection;
         var movementSpeed = Input.GetKeyDown(Key.Shift) ? 5.0f : 2.0f;
-        _agent!.TargetVelocity = movementSpeed * movementDirection;
+        var velocity = movementSpeed * movementDirection;
+        _actorNode!.Translate(velocity * timeStep, TransformSpace.World);
 
         // Animate model
         var runAnimation = cache.Get<Animation>("Models/Mutant/Mutant_Run.ani");
         var idleAnimation = cache.Get<Animation>("Models/Mutant/Mutant_Idle0.ani");
 
-        var animController = _agent.Node.FindComponent<AnimationController>()!;
+        var animController = _actorNode.FindComponent<AnimationController>()!;
         var rotationNode = animController.Node.Parent!;
-        var actualVelocityFlat = _agent.ActualVelocity * new Vector3f(1.0f, 0.0f, 1.0f);
+        var actualVelocityFlat = velocity * new Vector3f(1.0f, 0.0f, 1.0f);
         if (actualVelocityFlat.Length > MathDefs.LargeEpsilon)
         {
             var animationSpeed = actualVelocityFlat.Length * 0.3f;
@@ -210,6 +203,7 @@ public class BakedLighting : Application
         _viewport?.Dispose();
         _viewport = null;
         _cameraNode = null;
+        _actorNode = null;
         _scene?.Dispose();
         _scene = null;
         base.Stop();
@@ -221,7 +215,7 @@ public class BakedLighting : Application
         if (ImGui.Begin("Baked Lighting"u8, ref windowOpen,
             ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            ImGui.TextUnformatted("Use WASD keys and the right mouse button to move"u8);
+            ImGui.TextUnformatted("Use WASD keys and the mouse to move"u8);
             ImGui.TextUnformatted("Shift to sprint"u8);
         }
         ImGui.End();
@@ -249,6 +243,7 @@ public class BakedLighting : Application
         _viewport?.Dispose();
         _viewport = null;
         _cameraNode = null;
+        _actorNode = null;
         _scene?.Dispose();
         _scene = null;
         base.Dispose();
@@ -256,10 +251,10 @@ public class BakedLighting : Application
 
     private Scene? _scene;
     private Node? _cameraNode;
+    private Node? _actorNode;
     private Node? _cameraRotationPitch;
     private Node? _cameraRotationYaw;
     private Viewport? _viewport;
-    private CrowdAgent? _agent;
     private float _yaw;
     private float _pitch;
     private bool _texturesEnabled = true;

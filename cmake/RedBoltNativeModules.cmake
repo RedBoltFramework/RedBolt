@@ -8,15 +8,13 @@ set(REDBOLT_NATIVE_MODULES
     TINYGLTF
     LZ4
     HARFBUZZ
-    RMLUI
     WEBP
     XATLAS
     EMBREE
     GLSLANG
     SPIRV_CROSS
     SPIRV_TOOLS
-    SHADER_COMPILER
-    LIBDATACHANNEL)
+    SHADER_COMPILER)
 
 set(REDBOLT_SDL_NATIVE_LIBRARY_NAME "RedBolt.Native.Sdl")
 set(REDBOLT_DILIGENT_NATIVE_LIBRARY_NAME "RedBolt.Native.Diligent")
@@ -25,7 +23,6 @@ set(REDBOLT_STB_NATIVE_LIBRARY_NAME "RedBolt.Native.Stb")
 set(REDBOLT_TINYGLTF_NATIVE_LIBRARY_NAME "RedBolt.Native.TinyGltf")
 set(REDBOLT_LZ4_NATIVE_LIBRARY_NAME "RedBolt.Native.Lz4")
 set(REDBOLT_HARFBUZZ_NATIVE_LIBRARY_NAME "RedBolt.Native.HarfBuzz")
-set(REDBOLT_RMLUI_NATIVE_LIBRARY_NAME "RedBolt.Native.RmlUi")
 set(REDBOLT_WEBP_NATIVE_LIBRARY_NAME "RedBolt.Native.WebP")
 set(REDBOLT_XATLAS_NATIVE_LIBRARY_NAME "RedBolt.Native.XAtlas")
 set(REDBOLT_EMBREE_NATIVE_LIBRARY_NAME "RedBolt.Native.Embree")
@@ -33,7 +30,6 @@ set(REDBOLT_GLSLANG_NATIVE_LIBRARY_NAME "RedBolt.Native.Glslang")
 set(REDBOLT_SPIRV_CROSS_NATIVE_LIBRARY_NAME "RedBolt.Native.SpirVCross")
 set(REDBOLT_SPIRV_TOOLS_NATIVE_LIBRARY_NAME "RedBolt.Native.SpirVTools")
 set(REDBOLT_SHADER_COMPILER_NATIVE_LIBRARY_NAME "RedBolt.Native.ShaderCompiler")
-set(REDBOLT_LIBDATACHANNEL_NATIVE_LIBRARY_NAME "RedBolt.Native.LibDataChannel")
 
 set(REDBOLT_SDL_NATIVE_TARGET redbolt-native-sdl)
 set(REDBOLT_DILIGENT_NATIVE_TARGET redbolt-native-diligent)
@@ -42,7 +38,6 @@ set(REDBOLT_STB_NATIVE_TARGET redbolt-native-stb)
 set(REDBOLT_TINYGLTF_NATIVE_TARGET redbolt-native-tinygltf)
 set(REDBOLT_LZ4_NATIVE_TARGET redbolt-native-lz4)
 set(REDBOLT_HARFBUZZ_NATIVE_TARGET redbolt-native-harfbuzz)
-set(REDBOLT_RMLUI_NATIVE_TARGET redbolt-native-rmlui)
 set(REDBOLT_WEBP_NATIVE_TARGET redbolt-native-webp)
 set(REDBOLT_XATLAS_NATIVE_TARGET redbolt-native-xatlas)
 set(REDBOLT_EMBREE_NATIVE_TARGET redbolt-native-embree)
@@ -50,7 +45,6 @@ set(REDBOLT_GLSLANG_NATIVE_TARGET redbolt-native-glslang)
 set(REDBOLT_SPIRV_CROSS_NATIVE_TARGET redbolt-native-spirv-cross)
 set(REDBOLT_SPIRV_TOOLS_NATIVE_TARGET redbolt-native-spirv-tools)
 set(REDBOLT_SHADER_COMPILER_NATIVE_TARGET redbolt-native-shader-compiler)
-set(REDBOLT_LIBDATACHANNEL_NATIVE_TARGET redbolt-native-libdatachannel)
 
 set(REDBOLT_SDL_NATIVE_MANAGED_SELECTOR "RedBolt.Bindings.Sdl")
 set(REDBOLT_DILIGENT_NATIVE_MANAGED_SELECTOR "RedBolt.Bindings.Diligent")
@@ -59,7 +53,6 @@ set(REDBOLT_STB_NATIVE_MANAGED_SELECTOR "RedBolt.Bindings.Stb")
 set(REDBOLT_TINYGLTF_NATIVE_MANAGED_SELECTOR "RedBolt.Bindings.TinyGltf")
 set(REDBOLT_LZ4_NATIVE_MANAGED_SELECTOR "RedBolt.Bindings.Lz4")
 set(REDBOLT_HARFBUZZ_NATIVE_MANAGED_SELECTOR "RedBolt.Bindings.HarfBuzz")
-set(REDBOLT_RMLUI_NATIVE_MANAGED_SELECTOR "RedBolt.Bindings.RmlUi")
 set(REDBOLT_WEBP_NATIVE_MANAGED_SELECTOR "RedBolt.Bindings.WebP")
 set(REDBOLT_XATLAS_NATIVE_MANAGED_SELECTOR "RedBolt.Bindings.XAtlas")
 set(REDBOLT_EMBREE_NATIVE_MANAGED_SELECTOR "RedBolt.Bindings.Embree")
@@ -67,7 +60,6 @@ set(REDBOLT_GLSLANG_NATIVE_MANAGED_SELECTOR "RedBolt.Bindings.Glslang")
 set(REDBOLT_SPIRV_CROSS_NATIVE_MANAGED_SELECTOR "RedBolt.Bindings.SpirVCross")
 set(REDBOLT_SPIRV_TOOLS_NATIVE_MANAGED_SELECTOR "RedBolt.Bindings.SpirVTools")
 set(REDBOLT_SHADER_COMPILER_NATIVE_MANAGED_SELECTOR "RedBolt.Bindings.ShaderCompiler")
-set(REDBOLT_LIBDATACHANNEL_NATIVE_MANAGED_SELECTOR "RedBolt.Bindings.LibDataChannel")
 
 set(REDBOLT_SDL_NATIVE_REQUIRES "")
 set(REDBOLT_DILIGENT_NATIVE_REQUIRES "SDL;GLSLANG;SPIRV_CROSS;SPIRV_TOOLS")
@@ -76,7 +68,6 @@ set(REDBOLT_STB_NATIVE_REQUIRES "")
 set(REDBOLT_TINYGLTF_NATIVE_REQUIRES "")
 set(REDBOLT_LZ4_NATIVE_REQUIRES "")
 set(REDBOLT_HARFBUZZ_NATIVE_REQUIRES "")
-set(REDBOLT_RMLUI_NATIVE_REQUIRES "HARFBUZZ")
 set(REDBOLT_WEBP_NATIVE_REQUIRES "")
 set(REDBOLT_XATLAS_NATIVE_REQUIRES "")
 set(REDBOLT_EMBREE_NATIVE_REQUIRES "")
@@ -84,7 +75,6 @@ set(REDBOLT_GLSLANG_NATIVE_REQUIRES "SPIRV_TOOLS")
 set(REDBOLT_SPIRV_CROSS_NATIVE_REQUIRES "")
 set(REDBOLT_SPIRV_TOOLS_NATIVE_REQUIRES "")
 set(REDBOLT_SHADER_COMPILER_NATIVE_REQUIRES "")
-set(REDBOLT_LIBDATACHANNEL_NATIVE_REQUIRES "")
 
 # These owners expose their static library APIs to dependent Native wrappers.
 # Diligent uses interface-only calls from DearImGui and does not need archive exports.
@@ -141,6 +131,9 @@ else()
         "${REDBOLT_ENABLED_NATIVE_MODULES}")
     list(TRANSFORM REDBOLT_SELECTED_NATIVE_MODULES TOUPPER)
     list(REMOVE_DUPLICATES REDBOLT_SELECTED_NATIVE_MODULES)
+    # Migrate existing build directories after these wrappers moved to their
+    # external module repositories. Fresh configurations never select them.
+    list(REMOVE_ITEM REDBOLT_SELECTED_NATIVE_MODULES RMLUI LIBDATACHANNEL)
     foreach(_redbolt_selected_native_module IN LISTS REDBOLT_SELECTED_NATIVE_MODULES)
         list(FIND REDBOLT_NATIVE_MODULES
             "${_redbolt_selected_native_module}" _redbolt_selected_native_index)
@@ -156,14 +149,14 @@ endif()
 if(ANDROID)
     list(REMOVE_ITEM REDBOLT_SELECTED_NATIVE_MODULES XATLAS EMBREE)
 elseif(EMSCRIPTEN)
-    list(REMOVE_ITEM REDBOLT_SELECTED_NATIVE_MODULES XATLAS EMBREE LIBDATACHANNEL)
+    list(REMOVE_ITEM REDBOLT_SELECTED_NATIVE_MODULES XATLAS EMBREE)
 endif()
 
 set(_redbolt_available_native_modules ${REDBOLT_NATIVE_MODULES})
 if(ANDROID)
     list(REMOVE_ITEM _redbolt_available_native_modules XATLAS EMBREE)
 elseif(EMSCRIPTEN)
-    list(REMOVE_ITEM _redbolt_available_native_modules XATLAS EMBREE LIBDATACHANNEL)
+    list(REMOVE_ITEM _redbolt_available_native_modules XATLAS EMBREE)
 endif()
 
 set(_redbolt_required_native_modules ${REDBOLT_SELECTED_NATIVE_MODULES})

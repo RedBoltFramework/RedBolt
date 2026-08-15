@@ -7,7 +7,6 @@
   <ItemGroup>
     <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
     <ProjectReference Include="../../Glow/RedBolt.Glow.csproj" />
-    <ProjectReference Include="../../Navigation/RedBolt.Navigation.csproj" />
     <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
   </ItemGroup>
 </Project>

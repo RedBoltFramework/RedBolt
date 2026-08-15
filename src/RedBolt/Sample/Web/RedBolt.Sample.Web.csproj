@@ -29,14 +29,9 @@
     <TrimmerRootAssembly Include="SharpCpp.Std" />
     <NativeFileReference Include="$(RedBoltWebEngineArchive)" />
     <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
-    <ProjectReference Include="../../Actions/RedBolt.Actions.csproj" />
     <ProjectReference Include="../../Audio/RedBolt.Audio.csproj" />
     <ProjectReference Include="../../IK/RedBolt.IK.csproj" />
-    <ProjectReference Include="../../Particles/RedBolt.Particles.csproj" />
-    <ProjectReference Include="../../Navigation/RedBolt.Navigation.csproj" />
-    <ProjectReference Include="../../Network/RedBolt.Network.csproj" />
     <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
-    <ProjectReference Include="../../RmlUI/RedBolt.RmlUI.csproj" />
     <ProjectReference Include="../../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
@@ -89,7 +84,7 @@
 
   <Target Name="RedBoltConfigureWebPInvokeModules" BeforeTargets="_GenerateManagedToNative">
     <ItemGroup>
-      <_WasmPInvokeModules Include="RedBolt.Native.Sdl;RedBolt.Native.Diligent;RedBolt.Native.DearImGui;RedBolt.Native.Stb;RedBolt.Native.TinyGltf;RedBolt.Native.Lz4;RedBolt.Native.HarfBuzz;RedBolt.Native.RmlUi;RedBolt.Native.WebP;RedBolt.Native.Glslang;RedBolt.Native.SpirVCross;RedBolt.Native.SpirVTools;RedBolt.Native.ShaderCompiler" />
+      <_WasmPInvokeModules Include="RedBolt.Native.Sdl;RedBolt.Native.Diligent;RedBolt.Native.DearImGui;RedBolt.Native.Stb;RedBolt.Native.TinyGltf;RedBolt.Native.Lz4;RedBolt.Native.HarfBuzz;RedBolt.Native.WebP;RedBolt.Native.Glslang;RedBolt.Native.SpirVCross;RedBolt.Native.SpirVTools;RedBolt.Native.ShaderCompiler" />
     </ItemGroup>
   </Target>
 

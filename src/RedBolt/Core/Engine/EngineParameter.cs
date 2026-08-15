@@ -35,6 +35,8 @@ public static class EngineParameter
     public const string Orientations = "Orientations";
     public const string PackageCacheDir = "PackageCacheDir";
     public const string Plugins = "Plugins";
+
+    public const string PluginPaths = "PluginPaths";
     public const string Profile = "Profile";
     public const string PsoCache = "PsoCacheDir";
     public const string RefreshRate = "RefreshRate";

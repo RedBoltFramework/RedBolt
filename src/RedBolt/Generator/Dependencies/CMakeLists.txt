@@ -25,9 +25,7 @@ file(GLOB_RECURSE REDBOLT_DEPENDENCIES_GENERATOR_INPUTS CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cs"
     "${CMAKE_CURRENT_SOURCE_DIR}/*.csproj")
 list(APPEND REDBOLT_DEPENDENCIES_GENERATOR_INPUTS
-    "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/DearImGui/ImGuiValueMarshallers.hpp"
-    "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/RmlUi/RmlHarfBuzzFontEngine.hpp"
-    "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/RmlUi/RmlUiValueMarshallers.hpp")
+    "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/DearImGui/ImGuiValueMarshallers.hpp")
 
 set(REDBOLT_SHARPCPP_GENERATOR_INPUTS "${REDBOLT_SHARPCPP_GENERATOR_INPUTS}" CACHE INTERNAL "SharpCpp generator inputs")
 set(REDBOLT_DEPENDENCIES_GENERATOR_INPUTS "${REDBOLT_DEPENDENCIES_GENERATOR_INPUTS}" CACHE INTERNAL "RedBolt generator inputs")
@@ -39,7 +37,6 @@ set(REDBOLT_STB_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/stb" CACHE INTERN
 set(REDBOLT_TINYGLTF_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/tinygltf" CACHE INTERNAL "TinyGLTF binding output")
 set(REDBOLT_LZ4_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/lz4" CACHE INTERNAL "LZ4 binding output")
 set(REDBOLT_HARFBUZZ_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/harfbuzz" CACHE INTERNAL "HarfBuzz binding output")
-set(REDBOLT_RMLUI_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/rmlui" CACHE INTERNAL "RmlUi binding output")
 set(REDBOLT_WEBP_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/webp" CACHE INTERNAL "WebP binding output")
 set(REDBOLT_XATLAS_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/xatlas" CACHE INTERNAL "xatlas binding output")
 set(REDBOLT_EMBREE_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/embree" CACHE INTERNAL "Embree binding output")
@@ -47,7 +44,6 @@ set(REDBOLT_GLSLANG_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/glslang" CACH
 set(REDBOLT_SPIRV_CROSS_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/spirv-cross" CACHE INTERNAL "SPIRV-Cross binding output")
 set(REDBOLT_SPIRV_TOOLS_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/spirv-tools" CACHE INTERNAL "SPIRV-Tools binding output")
 set(REDBOLT_SHADER_COMPILER_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/shader-compiler" CACHE INTERNAL "Shader compiler binding output")
-set(REDBOLT_LIBDATACHANNEL_GENERATED_DIR "${REDBOLT_NATIVE_GENERATED_DIR}/libdatachannel" CACHE INTERNAL "libdatachannel binding output")
 
 set(REDBOLT_SDL_BINDINGS_STEM "RedBolt.Bindings.Sdl" CACHE INTERNAL "SDL binding stem")
 set(REDBOLT_DILIGENT_BINDINGS_STEM "RedBolt.Bindings.Diligent" CACHE INTERNAL "Diligent binding stem")
@@ -56,7 +52,6 @@ set(REDBOLT_STB_BINDINGS_STEM "RedBolt.Bindings.Stb" CACHE INTERNAL "STB binding
 set(REDBOLT_TINYGLTF_BINDINGS_STEM "RedBolt.Bindings.TinyGltf" CACHE INTERNAL "TinyGLTF binding stem")
 set(REDBOLT_LZ4_BINDINGS_STEM "RedBolt.Bindings.Lz4" CACHE INTERNAL "LZ4 binding stem")
 set(REDBOLT_HARFBUZZ_BINDINGS_STEM "RedBolt.Bindings.HarfBuzz" CACHE INTERNAL "HarfBuzz binding stem")
-set(REDBOLT_RMLUI_BINDINGS_STEM "RedBolt.Bindings.RmlUi" CACHE INTERNAL "RmlUi binding stem")
 set(REDBOLT_WEBP_BINDINGS_STEM "RedBolt.Bindings.WebP" CACHE INTERNAL "WebP binding stem")
 set(REDBOLT_XATLAS_BINDINGS_STEM "RedBolt.Bindings.XAtlas" CACHE INTERNAL "xatlas binding stem")
 set(REDBOLT_EMBREE_BINDINGS_STEM "RedBolt.Bindings.Embree" CACHE INTERNAL "Embree binding stem")
@@ -64,9 +59,8 @@ set(REDBOLT_GLSLANG_BINDINGS_STEM "RedBolt.Bindings.Glslang" CACHE INTERNAL "gls
 set(REDBOLT_SPIRV_CROSS_BINDINGS_STEM "RedBolt.Bindings.SpirVCross" CACHE INTERNAL "SPIRV-Cross binding stem")
 set(REDBOLT_SPIRV_TOOLS_BINDINGS_STEM "RedBolt.Bindings.SpirVTools" CACHE INTERNAL "SPIRV-Tools binding stem")
 set(REDBOLT_SHADER_COMPILER_BINDINGS_STEM "RedBolt.Bindings.ShaderCompiler" CACHE INTERNAL "Shader compiler binding stem")
-set(REDBOLT_LIBDATACHANNEL_BINDINGS_STEM "RedBolt.Bindings.LibDataChannel" CACHE INTERNAL "libdatachannel binding stem")
 
-foreach(binding SDL DILIGENT IMGUI STB TINYGLTF LZ4 HARFBUZZ RMLUI WEBP XATLAS EMBREE GLSLANG SPIRV_CROSS SPIRV_TOOLS SHADER_COMPILER LIBDATACHANNEL)
+foreach(binding SDL DILIGENT IMGUI STB TINYGLTF LZ4 HARFBUZZ WEBP XATLAS EMBREE GLSLANG SPIRV_CROSS SPIRV_TOOLS SHADER_COMPILER)
     set(REDBOLT_${binding}_BINDINGS_CS
         "${REDBOLT_${binding}_GENERATED_DIR}/${REDBOLT_${binding}_BINDINGS_STEM}.Bindings.g.cs"
         CACHE INTERNAL "${binding} generated C# binding")
@@ -87,17 +81,14 @@ set(REDBOLT_STB_PARSE_HEADER "${REDBOLT_STB_GENERATED_DIR}/StbVorbisAll.hpp" CAC
 set(REDBOLT_TINYGLTF_PARSE_HEADER "${REDBOLT_TINYGLTF_GENERATED_DIR}/TinyGltfAll.hpp" CACHE INTERNAL "TinyGLTF parse header")
 set(REDBOLT_LZ4_PARSE_HEADER "${REDBOLT_LZ4_GENERATED_DIR}/Lz4All.hpp" CACHE INTERNAL "LZ4 parse header")
 set(REDBOLT_HARFBUZZ_PARSE_HEADER "${REDBOLT_HARFBUZZ_GENERATED_DIR}/HarfBuzzAll.h" CACHE INTERNAL "HarfBuzz parse header")
-set(REDBOLT_RMLUI_PARSE_HEADER "${REDBOLT_RMLUI_GENERATED_DIR}/RmlUiAll.hpp" CACHE INTERNAL "RmlUi parse header")
 set(REDBOLT_WEBP_PARSE_HEADER "${REDBOLT_WEBP_GENERATED_DIR}/WebPAll.hpp" CACHE INTERNAL "WebP parse header")
 set(REDBOLT_XATLAS_PARSE_HEADER "${REDBOLT_XATLAS_GENERATED_DIR}/XAtlasAll.hpp" CACHE INTERNAL "xatlas parse header")
 set(REDBOLT_EMBREE_PARSE_HEADER "${REDBOLT_EMBREE_GENERATED_DIR}/EmbreeAll.hpp" CACHE INTERNAL "Embree parse header")
 set(REDBOLT_SHADER_COMPILER_PARSE_HEADER "${REDBOLT_SHADER_COMPILER_GENERATED_DIR}/ShaderCompilerAll.hpp" CACHE INTERNAL "Shader compiler parse header")
-set(REDBOLT_LIBDATACHANNEL_PARSE_HEADER "${REDBOLT_LIBDATACHANNEL_GENERATED_DIR}/LibDataChannelAll.h" CACHE INTERNAL "libdatachannel parse header")
 set(REDBOLT_DILIGENT_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/Diligent" CACHE INTERNAL "RedBolt Diligent support include directory" FORCE)
 set(REDBOLT_DILIGENT_SUPPORT_HEADER "${REDBOLT_DILIGENT_SUPPORT_INCLUDE_DIR}/DiligentSupport.hpp" CACHE INTERNAL "RedBolt Diligent support header")
 set(REDBOLT_HARFBUZZ_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/HarfBuzz" CACHE INTERNAL "RedBolt HarfBuzz support include directory" FORCE)
 set(REDBOLT_IMGUI_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/DearImGui" CACHE INTERNAL "RedBolt Dear ImGui support include directory" FORCE)
-set(REDBOLT_RMLUI_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/RmlUi" CACHE INTERNAL "RedBolt RmlUi support include directory" FORCE)
 set(REDBOLT_SHADER_COMPILER_SUPPORT_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/src/RedBolt/Native/ShaderCompiler" CACHE INTERNAL "RedBolt shader compiler support include directory" FORCE)
 set(REDBOLT_IMGUI_INCLUDE_DIR "${REDBOLT_IMGUI_SOURCE_ROOT}" CACHE INTERNAL "Dear ImGui include directory")
 set(REDBOLT_IMGUI_BACKEND_HEADER "${REDBOLT_IMGUI_SUPPORT_INCLUDE_DIR}/ImGuiBackend.hpp" CACHE INTERNAL "Dear ImGui backend header")
@@ -121,15 +112,13 @@ file(MAKE_DIRECTORY
     "${REDBOLT_TINYGLTF_GENERATED_DIR}"
     "${REDBOLT_LZ4_GENERATED_DIR}"
     "${REDBOLT_HARFBUZZ_GENERATED_DIR}"
-    "${REDBOLT_RMLUI_GENERATED_DIR}"
     "${REDBOLT_WEBP_GENERATED_DIR}"
     "${REDBOLT_XATLAS_GENERATED_DIR}"
     "${REDBOLT_EMBREE_GENERATED_DIR}"
     "${REDBOLT_GLSLANG_GENERATED_DIR}"
     "${REDBOLT_SPIRV_CROSS_GENERATED_DIR}"
     "${REDBOLT_SPIRV_TOOLS_GENERATED_DIR}"
-    "${REDBOLT_SHADER_COMPILER_GENERATED_DIR}"
-    "${REDBOLT_LIBDATACHANNEL_GENERATED_DIR}")
+    "${REDBOLT_SHADER_COMPILER_GENERATED_DIR}")
 
 file(CONFIGURE OUTPUT "${REDBOLT_STB_PARSE_HEADER}" CONTENT [=[
 #pragma once
@@ -150,38 +139,12 @@ file(CONFIGURE OUTPUT "${REDBOLT_LZ4_PARSE_HEADER}" CONTENT [=[
 #include <lz4.h>
 #include <lz4hc.h>
 ]=] @ONLY)
-file(CONFIGURE OUTPUT "${REDBOLT_LIBDATACHANNEL_PARSE_HEADER}" CONTENT [=[
-#pragma once
-#include <rtc/rtc.h>
-]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_HARFBUZZ_PARSE_HEADER}" CONTENT [=[
 #pragma once
 #include <hb.h>
 #include <hb-ot.h>
 #include <hb-raster.h>
 #include <hb-gpu.h>
-]=] @ONLY)
-file(CONFIGURE OUTPUT "${REDBOLT_RMLUI_PARSE_HEADER}" CONTENT [=[
-#pragma once
-#include <RmlUi/Debugger.h>
-#include <RmlUi/Core/Core.h>
-#include <RmlUi/Core/Context.h>
-#include <RmlUi/Core/ContextInstancer.h>
-#include <RmlUi/Core/ComputedValues.h>
-#include <RmlUi/Core/DataModelHandle.h>
-#include <RmlUi/Core/Element.h>
-#include <RmlUi/Core/ElementDocument.h>
-#include <RmlUi/Core/Event.h>
-#include <RmlUi/Core/EventListener.h>
-#include <RmlUi/Core/EventListenerInstancer.h>
-#include <RmlUi/Core/Factory.h>
-#include <RmlUi/Core/FileInterface.h>
-#include <RmlUi/Core/FontEngineInterface.h>
-#include <RmlUi/Core/Plugin.h>
-#include <RmlUi/Core/RenderInterfaceCompatibility.h>
-#include <RmlUi/Core/SystemInterface.h>
-#include <RmlUi/Core/Variant.h>
-#include <RmlHarfBuzzFontEngine.hpp>
 ]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_WEBP_PARSE_HEADER}" CONTENT [=[
 #pragma once

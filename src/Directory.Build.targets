@@ -355,19 +355,6 @@
                                           RuntimeIdentifier="$(RuntimeIdentifier)" />
   </Target>
 
-  <Target Name="RedBoltConfigureDotRecastProjectReferences"
-          BeforeTargets="AssignProjectConfiguration"
-          DependsOnTargets="IncludeTransitiveProjectReferences">
-    <ItemGroup>
-      <ProjectReference Update="@(ProjectReference)"
-                        Condition="$([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/extern/DotRecast/'))"
-                        AdditionalProperties="$(RedBoltExternalManagedProperties)"
-                        SetTargetFramework="TargetFramework=net10.0"
-                        GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset;RuntimeIdentifier;SelfContained;PublishSelfContained"
-                        SkipGetTargetFrameworkProperties="true" />
-    </ItemGroup>
-  </Target>
-
   <Target Name="RedBoltConfigureBrowserProjectReferences"
           BeforeTargets="AssignProjectConfiguration"
           DependsOnTargets="IncludeTransitiveProjectReferences"
@@ -375,8 +362,7 @@
     <ItemGroup>
       <ProjectReference Remove="@(ProjectReference)"
                         Condition="'%(ProjectReference.Filename)' == 'RedBolt.Utility'
-                          or '%(ProjectReference.Filename)' == 'RedBolt.Bindings.TinyGltf'
-                          or '%(ProjectReference.Filename)' == 'RedBolt.Bindings.LibDataChannel'" />
+                          or '%(ProjectReference.Filename)' == 'RedBolt.Bindings.TinyGltf'" />
       <ProjectReference Update="@(ProjectReference)"
                         Condition="'%(ProjectReference.AdditionalProperties)' == ''
                           and $([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/'))

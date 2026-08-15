@@ -56,10 +56,6 @@
                Exclude="@(Compile)"
                LinkBase="Generated"
                Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.HarfBuzz'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/rmlui/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.RmlUi'" />
       <Compile Include="$(RedBoltGeneratedBindingsDir)/webp/**/*.g.cs"
                Exclude="@(Compile)"
                LinkBase="Generated"
@@ -88,10 +84,6 @@
                Exclude="@(Compile)"
                LinkBase="Generated"
                Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.ShaderCompiler'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/libdatachannel/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.LibDataChannel'" />
     </ItemGroup>
   </Target>
 </Project>
