@@ -87,9 +87,9 @@ public sealed class ManagedPluginCatalog
                 _ = blob.ReadSerializedString(); // Serialized System.Type application entry point.
                 if (string.IsNullOrWhiteSpace(name))
                     return null;
-                var policy = ReadReloadPolicy(ref blob);
+                var options = ReadPluginOptions(ref blob);
                 var info = new FileInfo(path);
-                return new ManagedPluginDescriptor(name, Path.GetFullPath(path), policy,
+                return new ManagedPluginDescriptor(name, Path.GetFullPath(path), options.ReloadPolicy, options.AutoLoad,
                     info.LastWriteTimeUtc, info.Length);
             }
         }
@@ -125,10 +125,12 @@ public sealed class ManagedPluginCatalog
         reader.StringComparer.Equals(namespaceHandle, "RedBolt.Plugins")
         && reader.StringComparer.Equals(nameHandle, nameof(PluginModuleAttribute));
 
-    private static PluginReloadPolicy ReadReloadPolicy(ref BlobReader blob)
+    private static (PluginReloadPolicy ReloadPolicy, bool AutoLoad) ReadPluginOptions(ref BlobReader blob)
     {
+        var reloadPolicy = PluginReloadPolicy.Collectible;
+        var autoLoad = false;
         if (blob.RemainingBytes < 2)
-            return PluginReloadPolicy.Collectible;
+            return (reloadPolicy, autoLoad);
         var count = blob.ReadUInt16();
         for (var index = 0; index < count && blob.RemainingBytes > 0; ++index)
         {
@@ -141,12 +143,18 @@ public sealed class ManagedPluginCatalog
             {
                 var value = blob.ReadInt32();
                 if (name == nameof(PluginModuleAttribute.ReloadPolicy))
-                    return (PluginReloadPolicy)value;
+                    reloadPolicy = (PluginReloadPolicy)value;
+            }
+            else if (type == 0x02 && blob.RemainingBytes >= sizeof(byte))
+            {
+                var value = blob.ReadByte() != 0;
+                if (name == nameof(PluginModuleAttribute.AutoLoad))
+                    autoLoad = value;
             }
             else
-                return PluginReloadPolicy.Collectible;
+                break;
         }
-        return PluginReloadPolicy.Collectible;
+        return (reloadPolicy, autoLoad);
     }
 
     private readonly IReadOnlyList<string> _paths;
@@ -156,13 +164,14 @@ public sealed record ManagedPluginDescriptor(
     string Name,
     string AssemblyPath,
     PluginReloadPolicy ReloadPolicy,
+    bool AutoLoad,
     DateTime LastWriteTimeUtc,
     long Length);
 
 internal sealed class ManagedAssemblyPlugin : Plugin
 {
     public ManagedAssemblyPlugin(ManagedPluginDescriptor descriptor)
-        : base(descriptor.Name, descriptor.ReloadPolicy)
+        : base(descriptor.Name, descriptor.ReloadPolicy, descriptor.AutoLoad)
     {
         _descriptor = descriptor;
     }

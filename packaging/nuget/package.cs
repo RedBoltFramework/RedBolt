@@ -23,7 +23,7 @@ internal sealed class Packager
 
     private static readonly string[] ModuleOrder =
     [
-        "Core", "Audio", "IK", "Utility", "DearImGui", "Glow"
+        "Core", "Audio", "Utility", "DearImGui", "Glow"
     ];
 
     private static readonly Dictionary<string, string[]> NativeModules = new(StringComparer.Ordinal)
@@ -214,7 +214,7 @@ internal sealed class Packager
 
     private void ReadSelection()
     {
-        const string properties = "RedBoltLinuxEnabled,RedBoltWindowsEnabled,RedBoltAndroidEnabled,RedBoltWebEnabled,RedBoltX64Enabled,RedBoltArm64Enabled,RedBoltAudioEnabled,RedBoltDearImGuiEnabled,RedBoltGlowEnabled,RedBoltIKEnabled,RedBoltUtilityEnabled,RedBoltEditorEnabled";
+        const string properties = "RedBoltLinuxEnabled,RedBoltWindowsEnabled,RedBoltAndroidEnabled,RedBoltWebEnabled,RedBoltX64Enabled,RedBoltArm64Enabled,RedBoltAudioEnabled,RedBoltDearImGuiEnabled,RedBoltGlowEnabled,RedBoltUtilityEnabled,RedBoltEditorEnabled";
         var json = Capture("dotnet",
         [
             "msbuild", Path.Combine(_repositoryRoot, "src", "RedBolt", "Build", "RedBolt.Build.csproj"),

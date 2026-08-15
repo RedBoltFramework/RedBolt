@@ -42,6 +42,8 @@ public sealed class PluginManager : RedObject
         ArgumentNullException.ThrowIfNull(plugin);
         if (!_available.TryAdd(plugin.Name, plugin))
             return false;
+        if (plugin.AutoLoad)
+            _reloadPending = true;
         return true;
     }
 
@@ -59,6 +61,9 @@ public sealed class PluginManager : RedObject
 
     public IReadOnlyList<string> EnumerateAvailablePlugins() =>
         _available.Keys.Order(StringComparer.Ordinal).ToArray();
+
+    public bool IsPluginAutoLoaded(string name) =>
+        _available.TryGetValue(name, out var plugin) && plugin.AutoLoad;
 
     public void SetPluginsLoaded(IEnumerable<string> plugins)
     {
@@ -193,7 +198,13 @@ public sealed class PluginManager : RedObject
     private PluginStack CreateStack()
     {
         var modules = new List<Plugin>();
-        foreach (var name in _loadedPlugins)
+        var names = _available.Values
+            .Where(static plugin => plugin.AutoLoad)
+            .OrderBy(static plugin => plugin.Name, StringComparer.Ordinal)
+            .Select(static plugin => plugin.Name)
+            .Concat(_loadedPlugins)
+            .Distinct(StringComparer.Ordinal);
+        foreach (var name in names)
         {
             if (!_available.TryGetValue(name, out var plugin))
             {

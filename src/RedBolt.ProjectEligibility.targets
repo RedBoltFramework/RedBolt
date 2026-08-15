@@ -12,7 +12,6 @@
     <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Audio'">$(RedBoltAudioEnabled)</_RedBoltProjectModuleEnabled>
     <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.DearImGui' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.DearImGui'">$(RedBoltDearImGuiEnabled)</_RedBoltProjectModuleEnabled>
     <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Glow' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.XAtlas' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.Embree'">$(RedBoltGlowEnabled)</_RedBoltProjectModuleEnabled>
-    <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.IK'">$(RedBoltIKEnabled)</_RedBoltProjectModuleEnabled>
     <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Utility' or '$(MSBuildProjectName)' == 'RedBolt.Bindings.TinyGltf'">$(RedBoltUtilityEnabled)</_RedBoltProjectModuleEnabled>
     <_RedBoltProjectModuleEnabled Condition="'$(MSBuildProjectName)' == 'RedBolt.Editor'">$(RedBoltEditorEnabled)</_RedBoltProjectModuleEnabled>
     <_RedBoltProjectModuleEnabled Condition="$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Sample.'))">$(RedBoltSamplesEnabled)</_RedBoltProjectModuleEnabled>

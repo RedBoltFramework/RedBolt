@@ -4,7 +4,7 @@
     <EnableDefaultItems>false</EnableDefaultItems>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     <RedBoltTestsProject>$([System.IO.Path]::GetFullPath('$(RedBoltRoot)/../RedBolt.Tests/RedBolt.Tests.csproj'))</RedBoltTestsProject>
-    <_RedBoltModuleProperties>RedBoltAudioEnabled=$(RedBoltAudioEnabled);RedBoltDearImGuiEnabled=$(RedBoltDearImGuiEnabled);RedBoltGlowEnabled=$(RedBoltGlowEnabled);RedBoltIKEnabled=$(RedBoltIKEnabled);RedBoltUtilityEnabled=$(RedBoltUtilityEnabled);RedBoltEditorEnabled=$(RedBoltEditorEnabled);RedBoltSamplesEnabled=$(RedBoltSamplesEnabled);RedBoltTestsEnabled=$(RedBoltTestsEnabled)</_RedBoltModuleProperties>
+    <_RedBoltModuleProperties>RedBoltAudioEnabled=$(RedBoltAudioEnabled);RedBoltDearImGuiEnabled=$(RedBoltDearImGuiEnabled);RedBoltGlowEnabled=$(RedBoltGlowEnabled);RedBoltUtilityEnabled=$(RedBoltUtilityEnabled);RedBoltEditorEnabled=$(RedBoltEditorEnabled);RedBoltSamplesEnabled=$(RedBoltSamplesEnabled);RedBoltTestsEnabled=$(RedBoltTestsEnabled)</_RedBoltModuleProperties>
     <_RedBoltLinuxProperties>Configuration=$(Configuration);BuildProjectReferences=true;RedBoltPlatform=linux-x64;RedBoltNativePreset=linux-x64;$(_RedBoltModuleProperties)</_RedBoltLinuxProperties>
     <_RedBoltWindowsProperties>Configuration=$(Configuration);BuildProjectReferences=true;RedBoltPlatform=win-x64;RedBoltNativePreset=win-x64;$(_RedBoltModuleProperties)</_RedBoltWindowsProperties>
     <_RedBoltAndroidX64Properties>Configuration=$(Configuration);BuildProjectReferences=true;RedBoltPlatform=android-x64;RedBoltNativePreset=android-x64;RedBoltTargetFramework=net10.0-android;RedBoltBuildAllAndroidPackages=false;$(_RedBoltModuleProperties)</_RedBoltAndroidX64Properties>
@@ -16,7 +16,6 @@
     <_RedBoltCommonProject Include="../Core/RedBolt.Core.csproj" />
     <_RedBoltCommonProject Include="../Audio/RedBolt.Audio.csproj" Condition="'$(RedBoltAudioEnabled)' == 'true'" />
     <_RedBoltCommonProject Include="../DearImGui/RedBolt.DearImGui.csproj" Condition="'$(RedBoltDearImGuiEnabled)' == 'true'" />
-    <_RedBoltCommonProject Include="../IK/RedBolt.IK.csproj" Condition="'$(RedBoltIKEnabled)' == 'true'" />
 
     <_RedBoltDesktopProject Include="@(_RedBoltCommonProject)" />
     <_RedBoltDesktopProject Include="../Glow/RedBolt.Glow.csproj" Condition="'$(RedBoltGlowEnabled)' == 'true'" />
@@ -44,11 +43,11 @@
            Text="Unknown RedBolt platform key '%(_RedBoltConfiguredPlatform.Identity)'." />
     <Error Condition="'%(_RedBoltConfiguredArchitecture.Identity)' != '' and '%(_RedBoltConfiguredArchitecture.Identity)' != 'all' and '%(_RedBoltConfiguredArchitecture.Identity)' != 'x64' and '%(_RedBoltConfiguredArchitecture.Identity)' != 'arm64'"
            Text="Unknown RedBolt architecture key '%(_RedBoltConfiguredArchitecture.Identity)'." />
-    <Error Condition="'%(_RedBoltConfiguredModule.Identity)' != '' and '%(_RedBoltConfiguredModule.Identity)' != 'all' and '%(_RedBoltConfiguredModule.Identity)' != 'audio' and '%(_RedBoltConfiguredModule.Identity)' != 'dear-imgui' and '%(_RedBoltConfiguredModule.Identity)' != 'glow' and '%(_RedBoltConfiguredModule.Identity)' != 'ik' and '%(_RedBoltConfiguredModule.Identity)' != 'utility' and '%(_RedBoltConfiguredModule.Identity)' != 'editor' and '%(_RedBoltConfiguredModule.Identity)' != 'samples' and '%(_RedBoltConfiguredModule.Identity)' != 'tests'"
+    <Error Condition="'%(_RedBoltConfiguredModule.Identity)' != '' and '%(_RedBoltConfiguredModule.Identity)' != 'all' and '%(_RedBoltConfiguredModule.Identity)' != 'audio' and '%(_RedBoltConfiguredModule.Identity)' != 'dear-imgui' and '%(_RedBoltConfiguredModule.Identity)' != 'glow' and '%(_RedBoltConfiguredModule.Identity)' != 'utility' and '%(_RedBoltConfiguredModule.Identity)' != 'editor' and '%(_RedBoltConfiguredModule.Identity)' != 'samples' and '%(_RedBoltConfiguredModule.Identity)' != 'tests'"
            Text="Unknown RedBolt module key '%(_RedBoltConfiguredModule.Identity)'." />
     <Error Condition="'$(RedBoltEditorEnabled)' == 'true' and ('$(RedBoltDearImGuiEnabled)' != 'true' or '$(RedBoltGlowEnabled)' != 'true' or '$(RedBoltUtilityEnabled)' != 'true')"
            Text="The 'editor' module requires 'dear-imgui', 'glow', and 'utility'." />
-    <Error Condition="('$(RedBoltSamplesEnabled)' == 'true' or '$(RedBoltTestsEnabled)' == 'true') and ('$(RedBoltAudioEnabled)' != 'true' or '$(RedBoltDearImGuiEnabled)' != 'true' or '$(RedBoltGlowEnabled)' != 'true' or '$(RedBoltIKEnabled)' != 'true' or '$(RedBoltUtilityEnabled)' != 'true')"
+    <Error Condition="('$(RedBoltSamplesEnabled)' == 'true' or '$(RedBoltTestsEnabled)' == 'true') and ('$(RedBoltAudioEnabled)' != 'true' or '$(RedBoltDearImGuiEnabled)' != 'true' or '$(RedBoltGlowEnabled)' != 'true' or '$(RedBoltUtilityEnabled)' != 'true')"
            Text="The 'samples' and 'tests' module sets require every core-repository module." />
     <Error Condition="'$(RedBoltTestsEnabled)' == 'true' and (('$(RedBoltLinuxEnabled)' == 'true' or '$(RedBoltWindowsEnabled)' == 'true') and '$(RedBoltX64Enabled)' == 'true') and !Exists('$(RedBoltTestsProject)')"
            Text="The 'tests' module is enabled, but '$(RedBoltTestsProject)' does not exist." />

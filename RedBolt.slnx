@@ -10,7 +10,6 @@
     <Project Path="src/RedBolt/Core/RedBolt.Core.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/DearImGui/RedBolt.DearImGui.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Glow/RedBolt.Glow.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/IK/RedBolt.IK.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Utility/RedBolt.Utility.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/UserCode/Desktop/RedBolt.UserCode.Desktop.csproj"><Build Project="false" /></Project>
   </Folder>
@@ -44,7 +43,6 @@
     <Project Path="src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/BakedLighting/RedBolt.Sample.BakedLighting.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/HelloGUI/RedBolt.Sample.HelloGUI.csproj"><Build Project="false" /></Project>
-    <Project Path="src/RedBolt/Sample/InverseKinematics/RedBolt.Sample.InverseKinematics.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/MultipleViewports/RedBolt.Sample.MultipleViewports.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/HelloWorld/RedBolt.Sample.HelloWorld.csproj"><Build Project="false" /></Project>
     <Project Path="src/RedBolt/Sample/AnimatingScene/RedBolt.Sample.AnimatingScene.csproj"><Build Project="false" /></Project>

@@ -16,6 +16,9 @@ public sealed class PluginModuleAttribute : Attribute
     public Type ApplicationType { get; }
 
     public PluginReloadPolicy ReloadPolicy { get; set; } = PluginReloadPolicy.Collectible;
+
+    /// <summary>Load the plugin whenever its assembly is present, without adding it to project settings.</summary>
+    public bool AutoLoad { get; set; }
 }
 
 public enum PluginReloadPolicy

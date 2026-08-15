@@ -842,6 +842,18 @@ public class Project : RedObject
     public LaunchManager LaunchManager => _launchManager;
     public ToolManager ToolManager => _toolManager;
 
+    /// <summary>Contribute an optional transformer to newly created and existing default asset pipelines.</summary>
+    public IDisposable RegisterDefaultAssetTransformer<T>()
+        where T : AssetTransformer
+    {
+        var className = typeof(T).GetClassName();
+        _defaultAssetTransformerRegistrations.TryGetValue(className, out var count);
+        _defaultAssetTransformerRegistrations[className] = count + 1;
+        if (count == 0 && (_flags & ProjectFlag.ReadOnly) == 0 && File.Exists(_defaultAssetPipeline))
+            UpdateDefaultAssetPipeline();
+        return new DefaultAssetTransformerRegistration(this, className);
+    }
+
     public void SetFocusedTab(EditorTab? tab)
     {
         if (!ReferenceEquals(FocusedTab, tab))
@@ -899,12 +911,12 @@ public class Project : RedObject
         if (!assetPipeline.LoadFile(new FileIdentifier(_defaultAssetPipeline)))
             return;
 
-        string[] defaultTransformers =
+        IEnumerable<string> defaultTransformers =
         [
             typeof(ModelImporter).GetClassName(),
             typeof(CalculateAnimationVelocityTransformer).GetClassName(),
             typeof(GenerateWorldSpaceTracksTransformer).GetClassName(),
-            typeof(RetargetAnimationsTransformer).GetClassName(),
+            .. _defaultAssetTransformerRegistrations.Keys.Order(StringComparer.Ordinal),
         ];
 
         var isUpdated = false;
@@ -1342,6 +1354,25 @@ public class Project : RedObject
         public Task<(bool Success, string Output)> Result = null!;
     }
 
+    private sealed class DefaultAssetTransformerRegistration(Project owner, string className) : IDisposable
+    {
+        private Project? _owner = owner;
+
+        public void Dispose()
+        {
+            if (_owner is not { } project)
+                return;
+            if (project._defaultAssetTransformerRegistrations.TryGetValue(className, out var count))
+            {
+                if (count > 1)
+                    project._defaultAssetTransformerRegistrations[className] = count - 1;
+                else
+                    project._defaultAssetTransformerRegistrations.Remove(className);
+            }
+            _owner = null;
+        }
+    }
+
     private readonly bool _isHeadless;
     private readonly ProjectFlag _flags;
     private readonly bool _isXR;
@@ -1385,6 +1416,7 @@ public class Project : RedObject
     private readonly SortedSet<string> _ignoredFileNames = new(StringComparer.Ordinal);
     private readonly List<Regex> _ignoredFileNameRegexes = [];
     private readonly List<AnalyzeFileCallback> _analyzeFileCallbacks = [];
+    private readonly Dictionary<string, int> _defaultAssetTransformerRegistrations = new(StringComparer.Ordinal);
 
     /// <summary>Commands to be executed after initialization.</summary>
     private readonly List<(string Command, bool ExitOnCompletion)> _pendingCommands = [];

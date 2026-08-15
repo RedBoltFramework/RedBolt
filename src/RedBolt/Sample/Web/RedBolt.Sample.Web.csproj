@@ -30,7 +30,6 @@
     <NativeFileReference Include="$(RedBoltWebEngineArchive)" />
     <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
     <ProjectReference Include="../../Audio/RedBolt.Audio.csproj" />
-    <ProjectReference Include="../../IK/RedBolt.IK.csproj" />
     <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
     <ProjectReference Include="../../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"

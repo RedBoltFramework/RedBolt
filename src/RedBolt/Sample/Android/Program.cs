@@ -108,7 +108,6 @@ internal static class SampleCatalog
         new("hello-world", "Hello World", "RedBolt.Sample.HelloWorld.HelloWorld"),
         new("huge-object-count", "Huge Object Count", "RedBolt.Sample.HugeObjectCount.HugeObjectCountApplication"),
         new("input-logger", "Input Logger", "RedBolt.Sample.InputLogger.InputLoggerApplication"),
-        new("inverse-kinematics", "Inverse Kinematics", "RedBolt.Sample.InverseKinematics.InverseKinematicsApplication"),
         new("light-animation", "Light Animation", "RedBolt.Sample.LightAnimation.LightAnimationApplication"),
         new("material-animation", "Material Animation", "RedBolt.Sample.MaterialAnimation.MaterialAnimationApplication"),
         new("multiple-viewports", "Multiple Viewports", "RedBolt.Sample.MultipleViewports.MultipleViewports"),

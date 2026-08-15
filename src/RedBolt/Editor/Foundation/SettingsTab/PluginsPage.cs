@@ -45,8 +45,10 @@ public sealed class PluginsPage : SettingsPage
         ImGui.Separator();
         foreach (var plugin in manager.EnumerateAvailablePlugins())
         {
-            var enabled = _loadedPlugins.Contains(plugin);
-            _label.Set(plugin);
+            var automatic = manager.IsPluginAutoLoaded(plugin);
+            var enabled = automatic || _loadedPlugins.Contains(plugin);
+            _label.Set(automatic ? $"{plugin} (automatic)" : plugin);
+            ImGui.BeginDisabled(automatic);
             if (ImGui.Checkbox(_label.ContentBytes, ref enabled))
             {
                 if (enabled)
@@ -56,6 +58,7 @@ public sealed class PluginsPage : SettingsPage
                 _hasChanges = true;
                 project.MarkUnsaved();
             }
+            ImGui.EndDisabled();
         }
 
         ImGui.BeginDisabled(!_hasChanges);

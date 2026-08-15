@@ -5,16 +5,19 @@ using RedBolt.Core;
 /// <summary>Loadable module that owns one plugin application.</summary>
 public abstract class Plugin : RedObject
 {
-    protected Plugin(string name, PluginReloadPolicy reloadPolicy)
+    protected Plugin(string name, PluginReloadPolicy reloadPolicy, bool autoLoad = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         Name = name;
         ReloadPolicy = reloadPolicy;
+        AutoLoad = autoLoad;
     }
 
     public string Name { get; }
 
     public PluginReloadPolicy ReloadPolicy { get; }
+
+    public bool AutoLoad { get; }
 
     public PluginApplication? Application { get; protected set; }
 
