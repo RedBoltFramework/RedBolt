@@ -99,8 +99,14 @@ if(_redbolt_configure_native)
         COMMAND_ERROR_IS_FATAL ANY)
 endif()
 
+set(_redbolt_native_environment)
+if(REDBOLT_NATIVE_PRESET STREQUAL "browser-wasm"
+        AND EXISTS "${REDBOLT_NATIVE_BUILD_DIR}/redbolt-dotnet-emscripten-env")
+    set(_redbolt_native_environment "${REDBOLT_NATIVE_BUILD_DIR}/redbolt-dotnet-emscripten-env")
+endif()
 set(_redbolt_build_command
     "${CMAKE_COMMAND}" -E env "REDBOLT_MSBUILD_BUILD=1"
+    ${_redbolt_native_environment}
     "${CMAKE_COMMAND}"
     --build "${REDBOLT_NATIVE_BUILD_DIR}")
 if(DEFINED REDBOLT_CONFIGURATION AND NOT REDBOLT_CONFIGURATION STREQUAL "")

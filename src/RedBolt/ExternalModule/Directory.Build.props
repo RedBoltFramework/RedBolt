@@ -1,0 +1,63 @@
+<Project>
+  <Import Project="$(RedBoltRoot)/src/Directory.Build.props" />
+
+  <PropertyGroup>
+    <RedBoltPlatform Condition="'$(MSBuildProjectName)' == '$(RedBoltExternalBuildProjectName)' or ('$(RedBoltExternalGeneratorProjectName)' != '' and '$(MSBuildProjectName)' == '$(RedBoltExternalGeneratorProjectName)')">tools</RedBoltPlatform>
+    <RedBoltPlatform Condition="'$(RedBoltExternalNativeWebProjectName)' != '' and '$(MSBuildProjectName)' == '$(RedBoltExternalNativeWebProjectName)'">browser-wasm</RedBoltPlatform>
+    <RedBoltPlatform Condition="'$(RedBoltExternalNativeAndroidProjectName)' != '' and '$(MSBuildProjectName)' == '$(RedBoltExternalNativeAndroidProjectName)' and !$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">android-x64</RedBoltPlatform>
+    <RedBoltTargetFramework Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">net10.0-android</RedBoltTargetFramework>
+    <RedBoltTargetFramework Condition="'$(RedBoltPlatform)' == 'browser-wasm'">net10.0</RedBoltTargetFramework>
+    <RedBoltAndroidRoot Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(RedBoltAndroidRoot)' == ''">$(LocalAppData)/redbolt-android</RedBoltAndroidRoot>
+    <AndroidSdkDirectory Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(AndroidSdkDirectory)' == ''">$(RedBoltAndroidRoot)/sdk</AndroidSdkDirectory>
+    <JavaSdkDirectory Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(JavaSdkDirectory)' == ''">$(RedBoltAndroidRoot)/jdk</JavaSdkDirectory>
+    <AndroidNdkDirectory Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(AndroidNdkDirectory)' == ''">$(AndroidSdkDirectory)/ndk/27.2.12479018</AndroidNdkDirectory>
+    <EnableDefaultAndroidItems Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(MSBuildProjectName)' != 'RedBolt.Sample.Android'">false</EnableDefaultAndroidItems>
+    <AndroidGenerateResourceDesigner Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(MSBuildProjectName)' != 'RedBolt.Sample.Android'">false</AndroidGenerateResourceDesigner>
+    <DefineConstants>$([System.Text.RegularExpressions.Regex]::Replace('$(DefineConstants)', '(^|;)(REDBOLT_PLATFORM_LINUX|REDBOLT_PLATFORM_WINDOWS|REDBOLT_PLATFORM_BROWSER|REDBOLT_PLATFORM_ANDROID|REDBOLT_GLES_SUPPORTED)(?=;|$)', '').Trim(';'))</DefineConstants>
+    <DefineConstants Condition="'$(RedBoltPlatform)' == 'linux-x64'">$(DefineConstants);REDBOLT_PLATFORM_LINUX</DefineConstants>
+    <DefineConstants Condition="'$(RedBoltPlatform)' == 'win-x64'">$(DefineConstants);REDBOLT_PLATFORM_WINDOWS</DefineConstants>
+    <DefineConstants Condition="'$(RedBoltPlatform)' == 'browser-wasm'">$(DefineConstants);REDBOLT_PLATFORM_BROWSER</DefineConstants>
+    <DefineConstants Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">$(DefineConstants);REDBOLT_PLATFORM_ANDROID;REDBOLT_GLES_SUPPORTED</DefineConstants>
+    <WasmEnableThreads Condition="'$(RedBoltPlatform)' == 'browser-wasm'">false</WasmEnableThreads>
+    <RedBoltNativePreset Condition="'$(RedBoltExternalHasNative)' == 'true' and '$(RedBoltPlatform)' == 'tools'"></RedBoltNativePreset>
+    <RedBoltNativePreset Condition="'$(RedBoltExternalHasNative)' == 'true' and '$(RedBoltPlatform)' != 'tools'">$(RedBoltPlatform)</RedBoltNativePreset>
+    <RedBoltBuildRoot>$(RedBoltExternalModuleRoot)/build</RedBoltBuildRoot>
+    <RedBoltTestsProject>$([System.IO.Path]::GetFullPath('$(RedBoltExternalModuleRoot)/../RedBolt.Tests/RedBolt.Tests.csproj'))</RedBoltTestsProject>
+    <RedBoltSharpCppRoot>$(RedBoltRoot)/extern/SharpCpp</RedBoltSharpCppRoot>
+    <RedBoltNativeBuildDir Condition="'$(RedBoltExternalHasNative)' == 'true' and '$(RedBoltNativePreset)' != ''">$(RedBoltBuildRoot)/native/$(RedBoltNativePreset)</RedBoltNativeBuildDir>
+    <RedBoltConfigureNative Condition="'$(RedBoltNativeBuildDir)' != '' and !Exists('$(RedBoltNativeBuildDir)/CMakeCache.txt')">true</RedBoltConfigureNative>
+    <RedBoltConfigureNative Condition="'$(RedBoltConfigureNative)' == ''">false</RedBoltConfigureNative>
+    <RedBoltGeneratedBindingsDir Condition="'$(RedBoltNativeBuildDir)' != ''">$(RedBoltNativeBuildDir)/generated/$(RedBoltExternalGeneratedBindingsDirectory)</RedBoltGeneratedBindingsDir>
+    <RedBoltNativeModuleManifestDirectory Condition="'$(RedBoltNativeBuildDir)' != ''">$(RedBoltNativeBuildDir)/generated/native-modules/$(Configuration)</RedBoltNativeModuleManifestDirectory>
+    <RedBoltArtifactsRoot>$(RedBoltBuildRoot)/bin/$(Configuration)</RedBoltArtifactsRoot>
+    <RedBoltOutputRoot>$(RedBoltArtifactsRoot)/$(RedBoltPlatform)</RedBoltOutputRoot>
+    <RedBoltHostOutputRoot>$(RedBoltArtifactsRoot)/host</RedBoltHostOutputRoot>
+    <RedBoltCoreOutputDir>$(RedBoltOutputRoot)/core</RedBoltCoreOutputDir>
+    <RedBoltExternOutputDir>$(RedBoltOutputRoot)/extern</RedBoltExternOutputDir>
+    <RedBoltToolsOutputDir>$(RedBoltOutputRoot)/tools</RedBoltToolsOutputDir>
+    <RedBoltHostExternOutputDir>$(RedBoltHostOutputRoot)/extern</RedBoltHostExternOutputDir>
+    <RedBoltHostToolsOutputDir>$(RedBoltHostOutputRoot)/tools</RedBoltHostToolsOutputDir>
+    <RedBoltIntermediateRoot>$(RedBoltBuildRoot)/obj/managed/$(RedBoltPlatform)</RedBoltIntermediateRoot>
+    <RedBoltRestorePlatform>$(RedBoltPlatform)</RedBoltRestorePlatform>
+    <RedBoltRestorePlatform Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">android</RedBoltRestorePlatform>
+    <RedBoltRestorePlatform Condition="'$(RedBoltExternalGeneratorProjectName)' != '' and '$(MSBuildProjectName)' == '$(RedBoltExternalGeneratorProjectName)'">tools</RedBoltRestorePlatform>
+    <RedBoltOutputDir></RedBoltOutputDir>
+    <RedBoltOutputDir Condition="'$(RedBoltPlatform)' == 'browser-wasm' or $([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">$(RedBoltIntermediateRoot)/staging/$(MSBuildProjectName)/$(Configuration)</RedBoltOutputDir>
+    <RedBoltOutputDir Condition="'$(RedBoltOutputDir)' == '' and '$(RedBoltExternalHasNative)' == 'true' and $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Bindings.'))">$(RedBoltExternOutputDir)</RedBoltOutputDir>
+    <RedBoltOutputDir Condition="'$(RedBoltOutputDir)' == '' and '$(RedBoltExternalGeneratorProjectPrefix)' != '' and $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('$(RedBoltExternalGeneratorProjectPrefix)'))">$(RedBoltHostToolsOutputDir)</RedBoltOutputDir>
+    <RedBoltOutputDir Condition="'$(RedBoltOutputDir)' == ''">$(RedBoltCoreOutputDir)</RedBoltOutputDir>
+    <RedBoltNativeOutputRoot Condition="'$(RedBoltExternalHasNative)' == 'true'">$(RedBoltExternOutputDir)/runtimes/$(RedBoltPlatform)/native</RedBoltNativeOutputRoot>
+    <RedBoltNativePdbOutputRoot Condition="'$(RedBoltExternalHasNative)' == 'true'">$(RedBoltExternOutputDir)/pdb</RedBoltNativePdbOutputRoot>
+    <RedBoltExternalManagedProperties>Configuration=$(Configuration);TargetFramework=net10.0;TargetFrameworks=net10.0;OutputPath=$(RedBoltHostExternOutputDir)/;AppendTargetFrameworkToOutputPath=false;AppendRuntimeIdentifierToOutputPath=false;RedBoltPdbOutputDir=$(RedBoltHostExternOutputDir)/pdb;CustomBeforeMicrosoftCommonTargets=$(RedBoltManagedOutputTargets)</RedBoltExternalManagedProperties>
+    <SharpCppOutputDir>$(RedBoltHostExternOutputDir)</SharpCppOutputDir>
+    <SharpCppIntermediateRoot>$(RedBoltBuildRoot)/obj/managed/tools</SharpCppIntermediateRoot>
+    <RedBoltSharpCppManagedProperties>Configuration=$(Configuration);RedBoltPlatform=tools;RedBoltNativePreset=;SharpCppManagedOutputRoot=$(RedBoltHostExternOutputDir);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot);RedBoltPdbOutputDir=$(RedBoltHostExternOutputDir)/pdb;CustomBeforeMicrosoftCommonTargets=$(RedBoltManagedOutputTargets)</RedBoltSharpCppManagedProperties>
+    <RedBoltSharpCppNativeProperties Condition="'$(RedBoltExternalHasNative)' == 'true'">Configuration=$(Configuration);SharpCppCMakeSourceDir=$(RedBoltExternalModuleRoot);SharpCppNativePreset=$(RedBoltNativePreset);SharpCppNativeBuildDir=$(RedBoltNativeBuildDir);SharpCppNativeTarget=sharpcpp-native;SharpCppConfigureNative=$(RedBoltConfigureNative);SharpCppBuildE2E=false;SharpCppBuildRbfx=false;SharpCppManagedOutputRoot=$(RedBoltHostExternOutputDir);SharpCppNativeOutputRoot=$(RedBoltNativeOutputRoot);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(RedBoltIntermediateRoot)/native-tools;RedBoltPdbOutputDir=$(RedBoltHostExternOutputDir)/pdb;CustomBeforeMicrosoftCommonTargets=$(RedBoltManagedOutputTargets)</RedBoltSharpCppNativeProperties>
+    <OutputPath>$(RedBoltOutputDir)/</OutputPath>
+    <BaseIntermediateOutputPath>$(RedBoltIntermediateRoot)/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath>$(RedBoltBuildRoot)/obj/restore/$(RedBoltRestorePlatform)/$(MSBuildProjectName)/</MSBuildProjectExtensionsPath>
+    <CustomAfterMicrosoftCommonTargets>$(RedBoltExternalModuleRoot)/src/$(RedBoltExternalModuleName).ProjectEligibility.targets</CustomAfterMicrosoftCommonTargets>
+  </PropertyGroup>
+
+  <Import Project="$(RedBoltExternalModuleRoot)/$(RedBoltExternalModuleName).BuildConfig.props" />
+</Project>

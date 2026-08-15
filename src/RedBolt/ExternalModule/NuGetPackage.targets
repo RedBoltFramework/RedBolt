@@ -1,0 +1,35 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <IsPackable>true</IsPackable>
+    <PackageId>$(RedBoltPackageId)</PackageId>
+    <Title>$(RedBoltPackageId)</Title>
+    <Version>$(RedBoltPackageVersion)</Version>
+    <Authors>RedBolt contributors</Authors>
+    <Description>$(RedBoltPackageDescription)</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>$(RedBoltExternalPackageProjectUrl)</PackageProjectUrl>
+    <RepositoryUrl>$(RedBoltExternalPackageRepositoryUrl)</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryCommit>$(RedBoltRepositoryCommit)</RepositoryCommit>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>$(RedBoltExternalPackageTags)</PackageTags>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);NU5100;NU5119;NU5128</NoWarn>
+    <BaseIntermediateOutputPath>$(RedBoltPackageStage)/obj/</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath>$(RedBoltPackageStage)/obj/</MSBuildProjectExtensionsPath>
+  </PropertyGroup>
+  <Import Project="$(RedBoltPackageSpec)" Condition="Exists('$(RedBoltPackageSpec)')" />
+  <ItemGroup Condition="'$(RedBoltPackageStage)' != ''">
+    <None Include="$(RedBoltPackageStage)/**/*" Exclude="$(RedBoltPackageStage)/obj/**/*;$(RedBoltPackageSpec)"
+          Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+  <Target Name="ValidateRedBoltPackage" BeforeTargets="Pack">
+    <Error Condition="'$(RedBoltPackageId)' == ''" Text="RedBoltPackageId must be set." />
+    <Error Condition="'$(RedBoltPackageVersion)' == ''" Text="RedBoltPackageVersion must be set." />
+    <Error Condition="'$(RedBoltPackageStage)' == '' or !Exists('$(RedBoltPackageStage)')" Text="RedBoltPackageStage must point to staged package files." />
+    <Error Condition="!Exists('$(RedBoltPackageStage)/README.md')" Text="The package README is missing." />
+  </Target>
+</Project>

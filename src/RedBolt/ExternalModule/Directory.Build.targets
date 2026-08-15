@@ -1,0 +1,33 @@
+<Project>
+  <Import Project="$(RedBoltRoot)/src/Directory.Build.targets" />
+
+  <ItemGroup Condition="('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">
+    <AdditionalProbingPath Include="$(RedBoltRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)/core" />
+    <AdditionalProbingPath Include="$(RedBoltRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)/extern" />
+    <AdditionalProbingPath Include="$(RedBoltRoot)/build/bin/$(Configuration)/host/extern" />
+    <AdditionalProbingPath Include="$(RedBoltRoot)/build/bin/$(Configuration)/host/tools" />
+    <AdditionalProbingPath Include="$(RedBoltExternalAdditionalProbingPaths)" Condition="'$(RedBoltExternalAdditionalProbingPaths)' != ''" />
+  </ItemGroup>
+
+  <Target Name="RedBoltExternalConfigureBaseRuntimeAssemblies"
+          BeforeTargets="RedBoltConfigureRuntimeAssemblies"
+          Condition="'$(RedBoltExternalHasNative)' == 'true' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true') and Exists('$(ProjectDepsFilePath)')">
+    <RedBoltUseParentRuntimeAssemblies
+        DependencyFile="$(ProjectDepsFilePath)"
+        MainProjectName="$(AssemblyName)"
+        NativeRuntimeDirectory="$(RedBoltRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)/extern/runtimes/$(RedBoltPlatform)/native"
+        NativeModuleManifestDirectory="$(RedBoltRoot)/build/native/$(RedBoltPlatform)/generated/native-modules/$(Configuration)"
+        RuntimeIdentifier="$(RuntimeIdentifier)">
+      <Output TaskParameter="NativeAssets" ItemName="_RedBoltNativeAssets" />
+    </RedBoltUseParentRuntimeAssemblies>
+  </Target>
+
+  <Target Name="RedBoltExternalStageDesktopResources"
+          AfterTargets="Build"
+          Condition="'$(RedBoltExternalDesktopResourceRoot)' != '' and '$(RedBoltPlatform)' == 'linux-x64' and '$(OutputType)' == 'Exe' and '$(RedBoltProjectBuildEnabled)' == 'true'">
+    <MakeDir Directories="$(RedBoltOutputRoot)" />
+    <Exec Condition="!Exists('$(RedBoltOutputRoot)/CoreData')" Command="cmake -E create_symlink &quot;$(RedBoltExternalDesktopResourceRoot)/bin/CoreData&quot; &quot;$(RedBoltOutputRoot)/CoreData&quot;" />
+    <Exec Condition="!Exists('$(RedBoltOutputRoot)/Data')" Command="cmake -E create_symlink &quot;$(RedBoltExternalDesktopResourceRoot)/bin/Data&quot; &quot;$(RedBoltOutputRoot)/Data&quot;" />
+    <Exec Condition="!Exists('$(RedBoltOutputRoot)/Base')" Command="cmake -E create_symlink &quot;$(RedBoltRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)&quot; &quot;$(RedBoltOutputRoot)/Base&quot;" />
+  </Target>
+</Project>

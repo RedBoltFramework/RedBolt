@@ -1,0 +1,73 @@
+<Project>
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <StartupObject>RedBolt.Sample.Web.WebProgram</StartupObject>
+    <CompressionEnabled>false</CompressionEnabled>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    <EmccExtraLDFlags>-sFULL_ES3 -sDEFAULT_LIBRARY_FUNCS_TO_INCLUDE=$dynCall -lidbfs.js -sEXPORTED_RUNTIME_METHODS+=FS -sEXPORTED_RUNTIME_METHODS+=addRunDependency -sEXPORTED_RUNTIME_METHODS+=removeRunDependency</EmccExtraLDFlags>
+    <EmccLinkOptimizationFlag>-O0</EmccLinkOptimizationFlag>
+    <PublishTrimmed>true</PublishTrimmed>
+    <RunAOTCompilation Condition="'$(Configuration)' == 'Release'">true</RunAOTCompilation>
+    <RunAOTCompilation Condition="'$(Configuration)' != 'Release'">false</RunAOTCompilation>
+    <WasmBuildNative>true</WasmBuildNative>
+    <WasmNativeStrip>false</WasmNativeStrip>
+    <WasmRunWasmOpt>false</WasmRunWasmOpt>
+    <WasmStripILAfterAOT Condition="'$(Configuration)' == 'Release'">true</WasmStripILAfterAOT>
+    <PublishDir>$(RedBoltWebOutputDir)/</PublishDir>
+    <RedBoltWebEngineArchive>$(RedBoltRoot)/build/native/browser-wasm/lib/Release/wasm/RedBolt.Native.Web.a</RedBoltWebEngineArchive>
+    <RedBoltWebResourcesManifest>$(RedBoltRoot)/build/native/browser-wasm/generated/web/resources.manifest.json</RedBoltWebResourcesManifest>
+    <RedBoltWebPackageDirectory>$(RedBoltIntermediateRoot)/packages</RedBoltWebPackageDirectory>
+    <RedBoltWebMergedResourceDirectory>$(RedBoltIntermediateRoot)/merged-resources</RedBoltWebMergedResourceDirectory>
+    <RedBoltWebCoreDataPackage>$(RedBoltWebPackageDirectory)/CoreData.pak</RedBoltWebCoreDataPackage>
+    <RedBoltWebDataPackage>$(RedBoltWebPackageDirectory)/Data.pak</RedBoltWebDataPackage>
+    <RedBoltPackageToolProject>$(RedBoltRoot)/src/RedBolt/Tools/PackageTool/RedBolt.PackageTool.csproj</RedBoltPackageToolProject>
+    <RedBoltPackageToolAssembly>$(RedBoltRoot)/build/bin/$(Configuration)/host/tools/linux-x64/RedBolt.PackageTool.dll</RedBoltPackageToolAssembly>
+    <RedBoltPackageToolNativeOutput>$(RedBoltRoot)/build/bin/$(Configuration)/linux-x64/extern/runtimes/linux-x64/native</RedBoltPackageToolNativeOutput>
+  </PropertyGroup>
+  <ItemGroup>
+    <TrimmerRootAssembly Include="$(AssemblyName);SharpCpp.Std" />
+    <NativeFileReference Include="$(RedBoltWebEngineArchive)" />
+    <NativeFileReference Include="$(RedBoltExternalWebArchive)" Condition="'$(RedBoltExternalWebArchive)' != ''" />
+    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Core/RedBolt.Core.csproj" />
+    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Generator/Reflection/RedBolt.Generator.Reflection.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"
+                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset" />
+    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Web.csproj"
+                      ReferenceOutputAssembly="false" Private="false" PrivateAssets="all" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      PrivateAssets="all" AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Std/SharpCpp.Std.csproj"
+                      PrivateAssets="all" AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
+    <Compile Include="$(RedBoltRoot)/src/RedBolt/ExternalModule/WebSampleProgram.cs" Link="WebSampleProgram.cs" />
+    <Content Include="$(RedBoltRoot)/src/RedBolt/Sample/Web/wwwroot/main.js" Link="wwwroot/main.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <RedBoltWebCoreDataResource Include="$(RedBoltRoot)/bin/CoreData/**/*" />
+    <RedBoltWebDataResource Include="$(RedBoltRoot)/bin/Data/**/*" />
+    <Content Include="$(RedBoltWebCoreDataPackage)" Link="wwwroot/resources/CoreData.pak" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(RedBoltWebDataPackage)" Link="wwwroot/resources/Data.pak" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(RedBoltWebResourcesManifest)" Link="wwwroot/resources.manifest.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="RedBoltCreateWebPackages" BeforeTargets="ResolveProjectStaticWebAssets;GetCopyToOutputDirectoryItems"
+          Inputs="@(RedBoltWebCoreDataResource);@(RedBoltWebDataResource);$(RedBoltPackageToolAssembly)"
+          Outputs="$(RedBoltWebCoreDataPackage);$(RedBoltWebDataPackage)">
+    <MSBuild Projects="$(RedBoltPackageToolProject)" Targets="Build" BuildInParallel="false"
+             Properties="Configuration=$(Configuration);RedBoltPlatform=linux-x64;RedBoltNativePreset=linux-x64;RedBoltIgnoreBuildSelection=true"
+             RemoveProperties="RuntimeIdentifier;SelfContained;PublishSelfContained" />
+    <RemoveDir Directories="$(RedBoltWebMergedResourceDirectory)" />
+    <MakeDir Directories="$(RedBoltWebMergedResourceDirectory)/CoreData;$(RedBoltWebMergedResourceDirectory)/Data;$(RedBoltWebPackageDirectory)" />
+    <Copy SourceFiles="@(RedBoltWebCoreDataResource)" DestinationFiles="@(RedBoltWebCoreDataResource->'$(RedBoltWebMergedResourceDirectory)/CoreData/%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(RedBoltWebDataResource)" DestinationFiles="@(RedBoltWebDataResource->'$(RedBoltWebMergedResourceDirectory)/Data/%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Exec Command="dotnet &quot;$(RedBoltPackageToolAssembly)&quot; &quot;$(RedBoltWebMergedResourceDirectory)/CoreData&quot; &quot;$(RedBoltWebCoreDataPackage)&quot; -q -c" EnvironmentVariables="LD_LIBRARY_PATH=$(RedBoltPackageToolNativeOutput)" />
+    <Exec Command="dotnet &quot;$(RedBoltPackageToolAssembly)&quot; &quot;$(RedBoltWebMergedResourceDirectory)/Data&quot; &quot;$(RedBoltWebDataPackage)&quot; -q -c" EnvironmentVariables="LD_LIBRARY_PATH=$(RedBoltPackageToolNativeOutput)" />
+  </Target>
+  <Target Name="RedBoltConfigureWebPInvokeModules" BeforeTargets="_GenerateManagedToNative">
+    <ItemGroup>
+      <_WasmPInvokeModules Include="RedBolt.Native.Sdl;RedBolt.Native.Diligent;RedBolt.Native.Stb;RedBolt.Native.Lz4;RedBolt.Native.HarfBuzz;RedBolt.Native.WebP;RedBolt.Native.Glslang;RedBolt.Native.SpirVCross;RedBolt.Native.SpirVTools;RedBolt.Native.ShaderCompiler;$(RedBoltExternalWebPInvokeModules)" />
+    </ItemGroup>
+  </Target>
+  <Target Name="RedBoltPublishWebAfterBuild" AfterTargets="Build"
+          Condition="'$(RedBoltProjectBuildEnabled)' == 'true' and '$(RedBoltPublishWebAfterBuild)' != 'false' and '$(RedBoltPublishWebInProgress)' != 'true'">
+    <RemoveDir Directories="$(RedBoltWebOutputDir)" />
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Publish" BuildInParallel="false"
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=browser-wasm;RedBoltPublishWebInProgress=true;BuildProjectReferences=false" />
+  </Target>
+</Project>

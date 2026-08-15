@@ -1,0 +1,11 @@
+<Project>
+  <Import Project="$(RedBoltRoot)/src/RedBolt.ProjectEligibility.targets" />
+  <PropertyGroup>
+    <_RedBoltProjectModuleEnabled Condition="$([System.String]::Copy(';$(RedBoltExternalModuleProjectNames);').Contains(';$(MSBuildProjectName);'))">$(RedBoltExternalModuleEnabled)</_RedBoltProjectModuleEnabled>
+    <RedBoltProjectBuildEnabled Condition="'$(_RedBoltProjectPlatformEnabled)' == 'true' and '$(_RedBoltProjectPlatformSupported)' == 'true' and '$(_RedBoltProjectModuleEnabled)' == 'true'">true</RedBoltProjectBuildEnabled>
+    <RedBoltProjectBuildEnabled Condition="'$(RedBoltIgnoreBuildSelection)' == 'true'">true</RedBoltProjectBuildEnabled>
+    <BuildDependsOn Condition="'$(MSBuildProjectName)' == '$(RedBoltExternalBuildProjectName)'">RedBoltBuildSelectedProjects</BuildDependsOn>
+    <RebuildDependsOn Condition="'$(MSBuildProjectName)' == '$(RedBoltExternalBuildProjectName)'">RedBoltBuildSelectedProjects</RebuildDependsOn>
+    <CleanDependsOn Condition="'$(MSBuildProjectName)' == '$(RedBoltExternalBuildProjectName)'">RedBoltCleanSelectedProjects</CleanDependsOn>
+  </PropertyGroup>
+</Project>

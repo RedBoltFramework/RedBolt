@@ -1,0 +1,30 @@
+<Project>
+  <PropertyGroup>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <AssemblyName>$(MSBuildProjectName).Build</AssemblyName>
+    <CopyBuildOutputToOutputDirectory>false</CopyBuildOutputToOutputDirectory>
+    <CopyOutputSymbolsToOutputDirectory>false</CopyOutputSymbolsToOutputDirectory>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <RedBoltExternalCMakeTarget Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'">$(RedBoltExternalNativeTargetPrefix)-native-all</RedBoltExternalCMakeTarget>
+    <RedBoltExternalCMakeTarget Condition="'$(RedBoltPlatform)' == 'browser-wasm'">$(RedBoltExternalNativeTargetPrefix)-wasm-native</RedBoltExternalCMakeTarget>
+    <RedBoltExternalCMakeTarget Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">$(RedBoltExternalNativeTargetPrefix)-android-native</RedBoltExternalCMakeTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/native/SharpCpp.Native/SharpCpp.Native.csproj"
+                      ReferenceOutputAssembly="false" Private="false" PrivateAssets="all"
+                      AdditionalProperties="$(RedBoltSharpCppNativeProperties)" />
+    <ProjectReference Include="$(RedBoltExternalModuleRoot)/src/RedBolt/Generator/Dependencies/$(RedBoltExternalGeneratorProjectName).csproj"
+                      ReferenceOutputAssembly="false" Private="false" PrivateAssets="all"
+                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset" />
+  </ItemGroup>
+  <Target Name="RedBoltExternalBuildNative" AfterTargets="Build" Condition="'$(RedBoltProjectBuildEnabled)' == 'true'">
+    <Error Condition="'$(RedBoltNativePreset)' == ''" Text="No native preset is configured for '$(RedBoltPlatform)'." />
+    <Error Condition="!Exists('$(RedBoltHostToolsOutputDir)/$(RedBoltExternalGeneratorProjectName).dll')" Text="The $(RedBoltExternalModuleName) dependency generator is missing." />
+    <MakeDir Directories="$(RedBoltBuildRoot);$(RedBoltOutputDir);$(RedBoltIntermediateRoot);$(RedBoltNativeOutputRoot)" />
+    <Exec WorkingDirectory="$(RedBoltExternalModuleRoot)" IgnoreStandardErrorWarningFormat="true"
+          Command="cmake -E env ANDROID_NDK_ROOT=&quot;$(AndroidNdkDirectory)&quot; cmake -DREDBOLT_SOURCE_DIR=&quot;$(RedBoltExternalModuleRoot)&quot; -DREDBOLT_NATIVE_PRESET=&quot;$(RedBoltNativePreset)&quot; -DREDBOLT_NATIVE_BUILD_DIR=&quot;$(RedBoltNativeBuildDir)&quot; -DREDBOLT_NATIVE_TARGET=&quot;$(RedBoltExternalCMakeTarget)&quot; -DREDBOLT_CONFIGURATION=&quot;$(Configuration)&quot; -DREDBOLT_ENABLED_NATIVE_MODULES=$(RedBoltExternalEnabledNativeModules) -DREDBOLT_SHARPCPP_ROOT=&quot;$(RedBoltSharpCppRoot)&quot; -DREDBOLT_GENERATOR_DLL=&quot;$(RedBoltHostToolsOutputDir)/$(RedBoltExternalGeneratorProjectName).dll&quot; -DREDBOLT_RUNTIME_OUTPUT_DIR=&quot;$(RedBoltNativeOutputRoot)&quot; -DREDBOLT_PDB_OUTPUT_DIR=&quot;$(RedBoltNativePdbOutputRoot)&quot; -P &quot;$(RedBoltRoot)/src/RedBolt/Native/BuildNative.cmake&quot;" />
+    <Exec Condition="'$(RedBoltPlatform)' == 'linux-x64' and !Exists('$(RedBoltOutputRoot)/CoreData')" Command="cmake -E create_symlink &quot;$(RedBoltExternalDesktopResourceRoot)/bin/CoreData&quot; &quot;$(RedBoltOutputRoot)/CoreData&quot;" />
+    <Exec Condition="'$(RedBoltPlatform)' == 'linux-x64' and !Exists('$(RedBoltOutputRoot)/Data')" Command="cmake -E create_symlink &quot;$(RedBoltExternalDesktopResourceRoot)/bin/Data&quot; &quot;$(RedBoltOutputRoot)/Data&quot;" />
+    <Exec Condition="'$(RedBoltPlatform)' == 'linux-x64' and !Exists('$(RedBoltOutputRoot)/Base')" Command="cmake -E create_symlink &quot;$(RedBoltRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)&quot; &quot;$(RedBoltOutputRoot)/Base&quot;" />
+  </Target>
+</Project>

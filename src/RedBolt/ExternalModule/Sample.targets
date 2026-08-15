@@ -1,0 +1,29 @@
+<Project>
+  <Import Project="$(RedBoltExternalModuleRoot)/src/Directory.Build.targets" />
+
+  <Target Name="RedBoltAddNativeFilesToPublish"
+          AfterTargets="ComputeFilesToPublish"
+          DependsOnTargets="RedBoltConfigureRuntimeAssemblies"
+          Condition="'$(RuntimeIdentifier)' == 'linux-x64' or '$(RuntimeIdentifier)' == 'win-x64'">
+    <ItemGroup>
+      <ResolvedFileToPublish Include="@(_RedBoltNativeAssets)">
+        <RelativePath>runtimes/$(RuntimeIdentifier)/native/%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <Compile Include="$(RedBoltRoot)/src/RedBolt/Core/GlobalAliases.cs"
+             Link="GlobalAliases.cs"
+             Visible="false" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Std/SharpCpp.Std.csproj"
+                      PrivateAssets="all"
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)"
+                      Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      PrivateAssets="all"
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)"
+                      Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'" />
+  </ItemGroup>
+</Project>

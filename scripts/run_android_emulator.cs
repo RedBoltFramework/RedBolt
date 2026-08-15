@@ -1,13 +1,10 @@
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 return await AndroidEmulator.RunAsync(args);
 
 internal static class AndroidEmulator
 {
-    private const string ApplicationId = "org.redbolt.samples";
-
     public static async Task<int> RunAsync(string[] args)
     {
         try
@@ -23,7 +20,7 @@ internal static class AndroidEmulator
 
     private static async Task<int> ExecuteAsync(string[] args)
     {
-        var repository = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(SourcePath())!, ".."));
+        var repository = Path.GetFullPath(EnvironmentValue("REDBOLT_REPOSITORY_ROOT", Environment.CurrentDirectory));
         var dataDirectory = Environment.GetEnvironmentVariable("XDG_DATA_HOME")
                             ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share");
         var androidRoot = ResolvePath(repository,
@@ -36,6 +33,7 @@ internal static class AndroidEmulator
         var emulatorGpu = EnvironmentValue("REDBOLT_ANDROID_GPU", "swangle");
         var apk = EnvironmentValue("REDBOLT_ANDROID_APK",
             Path.Combine(repository, "build", "bin", "Debug", "android-x64", "app", "RedBolt.Sample.Android.apk"));
+        var applicationId = EnvironmentValue("REDBOLT_ANDROID_APPLICATION_ID", "org.redbolt.samples");
         string? sample = null;
         string? screenshot = null;
         var emulatorWindow = false;
@@ -47,6 +45,9 @@ internal static class AndroidEmulator
             {
                 case "--apk" when index + 1 < args.Length:
                     apk = args[++index];
+                    break;
+                case "--application-id" when index + 1 < args.Length:
+                    applicationId = args[++index];
                     break;
                 case "--sample" when index + 1 < args.Length:
                     sample = args[++index];
@@ -159,17 +160,17 @@ internal static class AndroidEmulator
         if (serial is null || !await AndroidReadyAsync(adb, serial))
             throw new InvalidOperationException("Android emulator did not finish booting.");
 
-        await AdbAsync(adb, serial, ["shell", "am", "force-stop", ApplicationId], allowFailure: true);
+        await AdbAsync(adb, serial, ["shell", "am", "force-stop", applicationId], allowFailure: true);
         await AdbAsync(adb, serial, ["install", "--no-incremental", "-r", apk], echo: true);
         await AdbAsync(adb, serial, ["logcat", "-c"]);
-        await AdbAsync(adb, serial, ["shell", "am", "force-stop", ApplicationId]);
+        await AdbAsync(adb, serial, ["shell", "am", "force-stop", applicationId]);
         await AdbAsync(adb, serial,
             ["shell", "settings", "put", "secure", "immersive_mode_confirmations", "confirmed"], allowFailure: true);
 
         var resolved = await AdbAsync(adb, serial,
         [
             "shell", "cmd", "package", "resolve-activity", "--brief",
-            "-a", "android.intent.action.MAIN", "-c", "android.intent.category.LAUNCHER", ApplicationId
+            "-a", "android.intent.action.MAIN", "-c", "android.intent.category.LAUNCHER", applicationId
         ]);
         var activity = resolved.Output.Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
         if (activity is null || !activity.Contains('/'))
@@ -180,7 +181,7 @@ internal static class AndroidEmulator
             launchArguments.AddRange(["--es", "sample", sample]);
         await AdbAsync(adb, serial, launchArguments, echo: true);
 
-        var pidResult = await AdbAsync(adb, serial, ["shell", "pidof", ApplicationId], allowFailure: true, timeoutSeconds: 10);
+        var pidResult = await AdbAsync(adb, serial, ["shell", "pidof", applicationId], allowFailure: true, timeoutSeconds: 10);
         var applicationPid = pidResult.Output.Replace("\r", "").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
         if (applicationPid is null)
             throw new InvalidOperationException("Android sample process exited during launch.");
@@ -209,7 +210,7 @@ internal static class AndroidEmulator
                         || !waitForDearImGui && DateTime.UtcNow - runningSince >= TimeSpan.FromSeconds(5))
                         break;
                 }
-                var running = await AdbAsync(adb, serial, ["shell", "pidof", ApplicationId], allowFailure: true, timeoutSeconds: 10);
+                var running = await AdbAsync(adb, serial, ["shell", "pidof", applicationId], allowFailure: true, timeoutSeconds: 10);
                 if (running.ExitCode != 0 || string.IsNullOrWhiteSpace(running.Output))
                     throw new InvalidOperationException(
                         $"Android sample process exited before reaching the runtime gate.{Environment.NewLine}{logs}");
@@ -236,12 +237,10 @@ internal static class AndroidEmulator
         return 0;
     }
 
-    private static string SourcePath([CallerFilePath] string path = "") => path;
-
     private static int Usage(bool error = false)
     {
         var output = error ? Console.Error : Console.Out;
-        output.WriteLine("Usage: dotnet run --file scripts/run_android_emulator.cs -- [--apk PATH] [--sample ID] [--screenshot PATH] [--window] [--shutdown]");
+        output.WriteLine("Usage: dotnet run --file scripts/run_android_emulator.cs -- [--apk PATH] [--application-id ID] [--sample ID] [--screenshot PATH] [--window] [--shutdown]");
         return error ? 2 : 0;
     }
 

@@ -1,7 +1,6 @@
 #:sdk Microsoft.NET.Sdk.Web
 
 using Microsoft.Extensions.FileProviders;
-using System.Runtime.CompilerServices;
 
 var directory = "";
 var port = 8000;
@@ -30,7 +29,7 @@ if (directory.Length == 0)
     Environment.ExitCode = 2;
     return;
 }
-var repository = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(SourcePath())!, ".."));
+var repository = Path.GetFullPath(Environment.GetEnvironmentVariable("REDBOLT_REPOSITORY_ROOT") ?? Environment.CurrentDirectory);
 directory = Path.GetFullPath(directory, repository);
 if (!Directory.Exists(directory) || port is < 1 or > 65535)
 {
@@ -61,5 +60,3 @@ files.StaticFileOptions.ServeUnknownFileTypes = true;
 app.UseFileServer(files);
 Console.WriteLine($"Serving RedBolt WebAssembly at http://127.0.0.1:{port}");
 await app.RunAsync();
-
-static string SourcePath([CallerFilePath] string path = "") => path;

@@ -1,0 +1,55 @@
+namespace RedBolt.Sample.Web;
+
+using System;
+using System.Runtime.InteropServices.JavaScript;
+using System.Text;
+
+using RedBolt.Bindings.Diligent;
+using RedBolt.Bindings.Lz4;
+using RedBolt.Bindings.Sdl;
+using RedBolt.Engine;
+
+internal static class WebProgram
+{
+    private static void Main()
+    {
+        var lz4Version = Lz4.Lz4VersionNumber();
+        var sdlRevision = Encoding.UTF8.GetString(Sdl.SdlGetRevision());
+        var diligentFactory = Diligent.LoadAndGetEngineFactoryOpenGL();
+        var resourcesReady = System.IO.File.Exists("CoreData.pak") && System.IO.File.Exists("Data.pak");
+        using var application = SampleCatalog.Create(BrowserDom.GetSelectedApplicationType());
+
+        int exitCode;
+        try
+        {
+            exitCode = application.Run();
+        }
+        catch (Exception exception)
+        {
+            var failureMessage = $"RedBolt WebAssembly sample failed with {exception.GetType().FullName}: {exception.Message}";
+            Console.Error.WriteLine(exception);
+            BrowserDom.SetResult(failureMessage, false);
+            throw;
+        }
+
+        var success = exitCode == 0 && lz4Version > 0 && !string.IsNullOrEmpty(sdlRevision)
+            && !diligentFactory.IsNull && resourcesReady;
+        var message = exitCode == 0
+            ? $"RedBolt WebAssembly engine initialized: LZ4 {lz4Version}, SDL {sdlRevision}, Diligent OpenGL factory {(!diligentFactory.IsNull ? "ready" : "missing")}, resources {(resourcesReady ? "ready" : "missing")}"
+            : $"RedBolt WebAssembly engine failed: {application.ErrorMessage}";
+
+        Console.WriteLine(message);
+        BrowserDom.SetResult(message, success);
+        if (!success)
+            throw new InvalidOperationException(message);
+    }
+}
+
+internal static partial class BrowserDom
+{
+    [JSImport("dom.getSelectedApplicationType", "main.js")]
+    internal static partial string GetSelectedApplicationType();
+
+    [JSImport("dom.setResult", "main.js")]
+    internal static partial void SetResult(string message, bool success);
+}

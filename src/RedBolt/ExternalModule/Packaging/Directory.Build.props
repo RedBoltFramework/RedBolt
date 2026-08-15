@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <RedBoltRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../../..'))</RedBoltRoot>
+    <BaseOutputPath>$(RedBoltRoot)/build/bin/tools/external-module-packaging/</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(RedBoltRoot)/build/obj/tools/external-module-packaging/</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)restore/</MSBuildProjectExtensionsPath>
+  </PropertyGroup>
+</Project>
