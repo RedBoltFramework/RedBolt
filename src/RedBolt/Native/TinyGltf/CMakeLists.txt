@@ -1,5 +1,5 @@
 set(REDBOLT_TINYGLTF_BINDING_CXX_COMPILER "${REDBOLT_BINDING_CXX_COMPILER}" CACHE FILEPATH
-    "C++ compiler used to discover headers for TinyGLTF binding generation" FORCE)
+    "C++ compiler used to discover headers for TinyGLTF binding generation")
 
 redbolt_add_native_binding_generation(
     TARGET redbolt-generate-tinygltf-bindings

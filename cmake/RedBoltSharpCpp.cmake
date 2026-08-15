@@ -17,7 +17,7 @@ else()
     set(_redbolt_binding_sysroot "")
 endif()
 set(REDBOLT_BINDING_CXX_COMPILER "${_redbolt_binding_cxx_compiler}" CACHE FILEPATH
-    "C++ compiler used to discover headers for native binding generation" FORCE)
+    "C++ compiler used to discover headers for native binding generation")
 set(REDBOLT_BINDING_TARGET_TRIPLE "${_redbolt_binding_target_triple}" CACHE INTERNAL
     "Target triple used for native binding generation" FORCE)
 set(REDBOLT_BINDING_SYSROOT "${_redbolt_binding_sysroot}" CACHE INTERNAL

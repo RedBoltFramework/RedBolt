@@ -2,7 +2,7 @@
 
 RedBolt is a C# port of rbfx. Its C#-centric build drives managed compilation, native dependencies, generated SharpCpp bindings, desktop samples, tests, and the Android and WebAssembly sample hosts.
 
-Optional 2D rendering is maintained in [RedBolt.2D](https://github.com/RedBoltFramework/RedBolt.2D), while Box2D physics is maintained separately in [RedBolt.PhysicsBox2D](https://github.com/RedBoltFramework/RedBolt.PhysicsBox2D).
+Optional 2D rendering is maintained in [RedBolt.2D](https://github.com/RedBoltFramework/RedBolt.2D), Box2D physics in [RedBolt.PhysicsBox2D](https://github.com/RedBoltFramework/RedBolt.PhysicsBox2D), constructive solid geometry in [RedBolt.CSG](https://github.com/RedBoltFramework/RedBolt.CSG), and Jolt 3D physics in [RedBolt.PhysicsJolt](https://github.com/RedBoltFramework/RedBolt.PhysicsJolt).
 
 Contributor and coding-session rules now live in `AGENTS.md`.
 

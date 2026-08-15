@@ -1,11 +1,10 @@
-// Copyright (c) 2017-2025 the rbfx project.
+// Copyright (c) 2017-2026 the rbfx project.
 // This work is licensed under the terms of the MIT license.
 // For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
 namespace RedBolt.Replica;
 
 using RedBolt.Core;
-using RedBolt.PhysicsJolt;
 using RedBolt.Scene;
 
 /// <summary>
@@ -111,7 +110,7 @@ public class TickSynchronizer
 public readonly record struct SceneUpdateSynchronizerParams(
     bool IsServer, uint NetworkFrequency, bool AllowZeroUpdatesOnServer = false);
 
-/// <summary>Synchronizes Scene updates with the network clock.</summary>
+/// <summary>Synchronizes Scene updates and an optional 3D physics backend with the network clock.</summary>
 public sealed class SceneUpdateSynchronizer : RedObject
 {
     public SceneUpdateSynchronizer(Scene scene, SceneUpdateSynchronizerParams parameters)
@@ -121,7 +120,7 @@ public sealed class SceneUpdateSynchronizer : RedObject
         _synchronizer = new TickSynchronizer(parameters.NetworkFrequency, parameters.IsServer);
         _synchronizer.SetFollowerFrequency(parameters.NetworkFrequency);
 
-        _physicsWorld = scene.GetComponent<PhysicsWorld>();
+        _physicsWorld = FindPhysicsWorld(scene);
 
         if (parameters.IsServer)
         {
@@ -167,6 +166,16 @@ public sealed class SceneUpdateSynchronizer : RedObject
         base.Dispose();
     }
 
+    private static IPhysicsWorld3D? FindPhysicsWorld(Scene scene)
+    {
+        foreach (var component in scene.Components)
+        {
+            if (component is IPhysicsWorld3D physicsWorld)
+                return physicsWorld;
+        }
+        return null;
+    }
+
     private void UpdateFollowerFrequency()
     {
         if (_physicsWorld is not null)
@@ -199,7 +208,7 @@ public sealed class SceneUpdateSynchronizer : RedObject
     private readonly SceneUpdateSynchronizerParams _parameters;
     private readonly Scene _scene;
     private readonly TickSynchronizer _synchronizer;
-    private readonly PhysicsWorld? _physicsWorld;
+    private readonly IPhysicsWorld3D? _physicsWorld;
     private readonly bool _wasInterpolated;
     private NetworkFrameSync? _synchronizedNetworkFrame;
 }

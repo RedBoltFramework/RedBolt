@@ -29,7 +29,7 @@ facade for each top-level module they use. For example:
   <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
 </PropertyGroup>
 <ItemGroup>
-  <PackageReference Include="RedBolt.PhysicsJolt.Runtime.linux-x64" Version="VERSION" />
+  <PackageReference Include="RedBolt.Core.Runtime.linux-x64" Version="VERSION" />
 </ItemGroup>
 ```
 

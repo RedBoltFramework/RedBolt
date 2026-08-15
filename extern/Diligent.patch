@@ -505,7 +505,7 @@ index c127612b4..f6a49ba64 100644
 +++ b/Graphics/GraphicsEngineOpenGL/CMakeLists.txt
 @@ -176,0 +177,5 @@ add_library(Diligent-GraphicsEngineOpenGL-shared SHARED
 +if(PLATFORM_ANDROID)
-+    target_sources(Diligent-GraphicsEngineOpenGL-shared PRIVATE
++    target_sources(Diligent-GraphicsEngineOpenGL-static PRIVATE
 +        src/AndroidRefCounters.cpp)
 +endif()
 +

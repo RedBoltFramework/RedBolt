@@ -25,7 +25,9 @@ internal static class CompilerToolchainDiscovery
             ? DiscoverTargetTriple(compilerPath)
             : targetTripleOverride;
         var useRequestedCompilerIncludes =
-            targetTriple?.StartsWith("wasm", StringComparison.OrdinalIgnoreCase) == true;
+            targetTriple?.StartsWith("wasm", StringComparison.OrdinalIgnoreCase) == true ||
+            targetTriple?.Contains("windows", StringComparison.OrdinalIgnoreCase) == true ||
+            targetTriple?.Contains("mingw", StringComparison.OrdinalIgnoreCase) == true;
         var includeCompilerPath = useRequestedCompilerIncludes
             ? compilerPath
             : toolchainClangCompilerPath;

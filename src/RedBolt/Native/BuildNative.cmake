@@ -108,7 +108,7 @@ if(DEFINED REDBOLT_CONFIGURATION AND NOT REDBOLT_CONFIGURATION STREQUAL "")
 endif()
 list(APPEND _redbolt_build_command
     --target "${REDBOLT_NATIVE_TARGET}"
-    --parallel 16)
+    --parallel 4)
 execute_process(
     COMMAND ${_redbolt_build_command}
     WORKING_DIRECTORY "${REDBOLT_SOURCE_DIR}"

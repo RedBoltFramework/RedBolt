@@ -88,10 +88,6 @@
                Exclude="@(Compile)"
                LinkBase="Generated"
                Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.ShaderCompiler'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/jolt/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Jolt'" />
       <Compile Include="$(RedBoltGeneratedBindingsDir)/libdatachannel/**/*.g.cs"
                Exclude="@(Compile)"
                LinkBase="Generated"

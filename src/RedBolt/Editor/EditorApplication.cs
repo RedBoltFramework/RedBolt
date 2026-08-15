@@ -13,6 +13,7 @@ using System.Runtime.InteropServices;
 
 using Microsoft.Extensions.Logging;
 
+using RedBolt.Audio;
 using RedBolt.Bindings.DearImGui;
 using RedBolt.Container;
 using RedBolt.Core;
@@ -244,6 +245,7 @@ public unsafe class EditorApplication : Application
     protected override void Setup(EngineParameters parameters)
     {
         Context.RegisterSubsystem(_editorPluginManager);
+        Audio.RegisterAudioSubsystem(Context);
 
         // Required until SDL supports hdpi on Windows.
         // The managed SDL backend configures process DPI awareness during platform initialization.

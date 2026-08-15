@@ -6,6 +6,8 @@
     <RedBoltCMakeTarget Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">redbolt-android-native</RedBoltCMakeTarget>
     <RedBoltCMakeConfigurationArguments Condition="'$(RedBoltPlatform)' == 'linux-x64'">--config &quot;$(Configuration)&quot;</RedBoltCMakeConfigurationArguments>
     <RedBoltCMakeConfigurationArguments Condition="'$(RedBoltPlatform)' == 'win-x64'">--config &quot;$(Configuration)&quot;</RedBoltCMakeConfigurationArguments>
+    <RedBoltAndroidNdkTriple Condition="'$(RedBoltPlatform)' == 'android-arm64'">aarch64-linux-android</RedBoltAndroidNdkTriple>
+    <RedBoltAndroidNdkTriple Condition="'$(RedBoltPlatform)' == 'android-x64'">x86_64-linux-android</RedBoltAndroidNdkTriple>
   </PropertyGroup>
 
   <Target Name="RedBoltBuildNative" AfterTargets="Build" Condition="'$(RedBoltProjectBuildEnabled)' == 'true'">
@@ -20,6 +22,12 @@
     <MakeDir Directories="$(RedBoltBuildRoot);$(RedBoltOutputDir);$(RedBoltIntermediateRoot)" />
     <MakeDir Condition="'$(RedBoltPlatform)' != 'browser-wasm'"
              Directories="$(RedBoltNativeOutputRoot)" />
+    <Error Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(RedBoltAndroidNdkTriple)' == ''"
+           Text="Unsupported Android platform '$(RedBoltPlatform)'." />
+    <Copy Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))"
+          SourceFiles="$(AndroidNdkDirectory)/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/$(RedBoltAndroidNdkTriple)/libc++_shared.so"
+          DestinationFiles="$(RedBoltNativeOutputRoot)/libc++_shared.so"
+          SkipUnchangedFiles="true" />
     <Exec WorkingDirectory="$(RedBoltRoot)"
           IgnoreStandardErrorWarningFormat="true"
           Command="cmake -E env ANDROID_NDK_ROOT=&quot;$(AndroidNdkDirectory)&quot; cmake -DREDBOLT_SOURCE_DIR=&quot;$(RedBoltRoot)&quot; -DREDBOLT_NATIVE_PRESET=&quot;$(RedBoltNativePreset)&quot; -DREDBOLT_NATIVE_BUILD_DIR=&quot;$(RedBoltNativeBuildDir)&quot; -DREDBOLT_NATIVE_TARGET=&quot;$(RedBoltCMakeTarget)&quot; -DREDBOLT_CONFIGURATION=&quot;$(Configuration)&quot; -DREDBOLT_ENABLED_NATIVE_MODULES=&quot;$(RedBoltEnabledNativeModules)&quot; -DREDBOLT_SHARPCPP_ROOT=&quot;$(RedBoltSharpCppRoot)&quot; -DREDBOLT_GENERATOR_DLL=&quot;$(RedBoltHostToolsOutputDir)/RedBolt.Generator.Dependencies.dll&quot; -DREDBOLT_RUNTIME_OUTPUT_DIR=&quot;$(RedBoltNativeOutputRoot)&quot; -DREDBOLT_PDB_OUTPUT_DIR=&quot;$(RedBoltNativePdbOutputRoot)&quot; -P &quot;$(MSBuildThisFileDirectory)BuildNative.cmake&quot;" />

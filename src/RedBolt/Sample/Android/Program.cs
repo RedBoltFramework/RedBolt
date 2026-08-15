@@ -96,7 +96,6 @@ internal static class SampleCatalog
 {
     internal static readonly SampleEntry[] Entries =
     [
-        new("advanced-networking", "Advanced Networking", "RedBolt.Sample.AdvancedNetworking.AdvancedNetworking"),
         new("advanced-ui", "Advanced UI", "RedBolt.Sample.AdvancedUI.AdvancedUIApplication"),
         new("aggregated-input", "Aggregated Input", "RedBolt.Sample.AggregatedInput.AggregatedInputApplication"),
         new("actions", "Actions", "RedBolt.Sample.Actions.ActionsApplication"),
@@ -105,7 +104,6 @@ internal static class SampleCatalog
         new("billboards", "Billboards", "RedBolt.Sample.Billboards.BillboardsApplication"),
         new("camera-operator", "Camera Operator", "RedBolt.Sample.CameraOperator.CameraOperatorSampleApplication"),
         new("camera-shake", "Camera Shake", "RedBolt.Sample.CameraShake.CameraShakeApplication"),
-        new("character-demo", "Character Demo", "RedBolt.Sample.CharacterDemo.CharacterDemo"),
         new("chat", "Chat", "RedBolt.Sample.Chat.Chat"),
         new("crowd-navigation", "Crowd Navigation", "RedBolt.Sample.CrowdNavigation.CrowdNavigationSample"),
         new("decals", "Decals", "RedBolt.Sample.Decals.DecalsApplication"),
@@ -116,17 +114,13 @@ internal static class SampleCatalog
         new("huge-object-count", "Huge Object Count", "RedBolt.Sample.HugeObjectCount.HugeObjectCountApplication"),
         new("input-logger", "Input Logger", "RedBolt.Sample.InputLogger.InputLoggerApplication"),
         new("inverse-kinematics", "Inverse Kinematics", "RedBolt.Sample.InverseKinematics.InverseKinematicsApplication"),
-        new("kinematic-character", "Kinematic Character", "RedBolt.Sample.KinematicCharacter.KinematicCharacterDemo"),
         new("light-animation", "Light Animation", "RedBolt.Sample.LightAnimation.LightAnimationApplication"),
         new("material-animation", "Material Animation", "RedBolt.Sample.MaterialAnimation.MaterialAnimationApplication"),
         new("multiple-viewports", "Multiple Viewports", "RedBolt.Sample.MultipleViewports.MultipleViewports"),
         new("navigation", "Navigation", "RedBolt.Sample.Navigation.NavigationSample"),
         new("particles", "Particles", "RedBolt.Sample.Particles.ParticlesApplication"),
-        new("physics", "Physics", "RedBolt.Sample.Physics.PhysicsSample"),
-        new("raycast-vehicle", "Raycast Vehicle", "RedBolt.Sample.RaycastVehicle.RaycastVehicleDemo"),
         new("pointer-adapter", "Pointer Adapter", "RedBolt.Sample.PointerAdapter.PointerAdapterApplication"),
         new("render-to-texture", "Render to Texture", "RedBolt.Sample.RenderToTexture.RenderToTexture"),
-        new("scene-replication", "Scene Replication", "RedBolt.Sample.SceneReplication.SceneReplication"),
         new("skeletal-animation", "Skeletal Animation", "RedBolt.Sample.SkeletalAnimation.SkeletalAnimationApplication"),
         new("sound-effects", "Sound Effects", "RedBolt.Sample.SoundEffects.SoundEffects"),
         new("sound-synthesis", "Sound Synthesis", "RedBolt.Sample.SoundSynthesis.SoundSynthesis"),

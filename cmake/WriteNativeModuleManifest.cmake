@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.28)
+
 if(NOT DEFINED REDBOLT_NATIVE_LIBRARY_FILE
         OR NOT DEFINED REDBOLT_MANIFEST_FILE
         OR NOT DEFINED REDBOLT_MANAGED_SELECTOR
@@ -45,8 +47,26 @@ if(DEFINED REDBOLT_TOOLCHAIN_RUNTIME_FILES
     string(REPLACE "," ";" _redbolt_toolchain_runtime_files
         "${REDBOLT_TOOLCHAIN_RUNTIME_FILES}")
 endif()
-if(CMAKE_GET_RUNTIME_DEPENDENCIES_PLATFORM STREQUAL "windows+pe"
-        AND CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL STREQUAL "objdump")
+set(_redbolt_system_runtime_files)
+if(DEFINED REDBOLT_SYSTEM_RUNTIME_FILES
+        AND NOT REDBOLT_SYSTEM_RUNTIME_FILES STREQUAL "")
+    string(REPLACE "," ";" _redbolt_system_runtime_files
+        "${REDBOLT_SYSTEM_RUNTIME_FILES}")
+endif()
+if(CMAKE_GET_RUNTIME_DEPENDENCIES_TOOL STREQUAL "objdump"
+        AND (CMAKE_GET_RUNTIME_DEPENDENCIES_PLATFORM STREQUAL "windows+pe"
+            OR CMAKE_GET_RUNTIME_DEPENDENCIES_PLATFORM STREQUAL "linux+elf"))
+    if(CMAKE_GET_RUNTIME_DEPENDENCIES_PLATFORM STREQUAL "windows+pe")
+        set(_redbolt_objdump_dependency_pattern
+            "[ \t]DLL Name:[ \t]*[^\r\n]+")
+        set(_redbolt_objdump_dependency_prefix
+            "^[ \t]*DLL Name:[ \t]*")
+    else()
+        set(_redbolt_objdump_dependency_pattern
+            "[ \t]NEEDED[ \t]+[^\r\n]+")
+        set(_redbolt_objdump_dependency_prefix
+            "^[ \t]*NEEDED[ \t]+")
+    endif()
     file(GLOB _redbolt_runtime_candidates
         LIST_DIRECTORIES FALSE "${_redbolt_native_directory}/*")
     set(_redbolt_dependency_queue "${REDBOLT_NATIVE_LIBRARY_FILE}")
@@ -64,11 +84,11 @@ if(CMAKE_GET_RUNTIME_DEPENDENCIES_PLATFORM STREQUAL "windows+pe"
         endif()
 
         string(REGEX MATCHALL
-            "[ \t]DLL Name:[ \t]*[^\r\n]+"
+            "${_redbolt_objdump_dependency_pattern}"
             _redbolt_dependency_names "${_redbolt_objdump_output}")
         foreach(_redbolt_dependency_name IN LISTS _redbolt_dependency_names)
             string(REGEX REPLACE
-                "^[ \t]*DLL Name:[ \t]*" ""
+                "${_redbolt_objdump_dependency_prefix}" ""
                 _redbolt_dependency_name "${_redbolt_dependency_name}")
             string(TOLOWER "${_redbolt_dependency_name}" _redbolt_dependency_name_lower)
             set(_redbolt_resolved_dependency "")
@@ -104,6 +124,25 @@ else()
         UNRESOLVED_DEPENDENCIES_VAR _redbolt_unresolved_dependencies
         DIRECTORIES "${_redbolt_native_directory}")
 endif()
+
+set(_redbolt_expected_unresolved_files
+    ${_redbolt_toolchain_runtime_files}
+    ${_redbolt_system_runtime_files})
+foreach(_redbolt_unresolved_dependency IN LISTS _redbolt_unresolved_dependencies)
+    string(TOLOWER "${_redbolt_unresolved_dependency}"
+        _redbolt_unresolved_dependency_lower)
+    foreach(_redbolt_expected_unresolved_file IN LISTS
+            _redbolt_expected_unresolved_files)
+        string(TOLOWER "${_redbolt_expected_unresolved_file}"
+            _redbolt_expected_unresolved_file_lower)
+        if(_redbolt_unresolved_dependency_lower STREQUAL
+                _redbolt_expected_unresolved_file_lower)
+            list(REMOVE_ITEM _redbolt_unresolved_dependencies
+                "${_redbolt_unresolved_dependency}")
+            break()
+        endif()
+    endforeach()
+endforeach()
 
 set(_redbolt_artifacts "${_redbolt_native_filename}")
 foreach(_redbolt_dependency IN LISTS _redbolt_resolved_dependencies)

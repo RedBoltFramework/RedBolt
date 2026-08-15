@@ -100,10 +100,34 @@
                     .ToList();
             }
 
-            foreach (var manifestFile in Directory.GetFiles(NativeModuleManifestDirectory, "*.json"))
+            var indexFile = Path.Combine(NativeModuleManifestDirectory, "index.json");
+            IEnumerable<string> manifestFiles;
+            if (File.Exists(indexFile))
             {
-                if (Path.GetFileName(manifestFile).Equals("index.json", StringComparison.OrdinalIgnoreCase))
-                    continue;
+                var index = File.ReadAllText(indexFile);
+                manifestFiles = Regex.Matches(
+                        index,
+                        "^    \\\"(?<module>[^\\\"]+)\\\": \\{",
+                        RegexOptions.Multiline)
+                    .Cast<Match>()
+                    .Select(match => Path.Combine(
+                        NativeModuleManifestDirectory,
+                        match.Groups["module"].Value + ".json"));
+            }
+            else
+            {
+                manifestFiles = Directory.GetFiles(NativeModuleManifestDirectory, "*.json")
+                    .Where(path => !Path.GetFileName(path).Equals(
+                        "index.json",
+                        StringComparison.OrdinalIgnoreCase));
+            }
+
+            foreach (var manifestFile in manifestFiles)
+            {
+                if (!File.Exists(manifestFile))
+                    throw new InvalidOperationException(
+                        "Indexed RedBolt native module manifest was not generated at '"
+                        + manifestFile + "'.");
                 var manifest = File.ReadAllText(manifestFile);
                 var module = ReadProperty(manifest, "module");
                 var selector = ReadProperty(manifest, "managedSelector");

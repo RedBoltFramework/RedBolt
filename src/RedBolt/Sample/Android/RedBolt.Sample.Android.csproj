@@ -5,6 +5,8 @@
     <ApplicationDisplayVersion>0.1.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
     <AndroidPackageFormat>apk</AndroidPackageFormat>
+    <!-- The .NET Android compression task caches one ABI per MSBuild process; this sample builds x64 and arm64 in one traversal. -->
+    <AndroidEnableAssemblyCompression>false</AndroidEnableAssemblyCompression>
     <AndroidStripNativeLibraries>true</AndroidStripNativeLibraries>
     <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
     <OutputType>Exe</OutputType>
@@ -25,12 +27,10 @@
 
   <ItemGroup>
     <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
-    <ProjectReference Include="../../CSG/RedBolt.CSG.csproj" />
     <ProjectReference Include="../../Actions/RedBolt.Actions.csproj" />
     <ProjectReference Include="../../Audio/RedBolt.Audio.csproj" />
     <ProjectReference Include="../../IK/RedBolt.IK.csproj" />
     <ProjectReference Include="../../Particles/RedBolt.Particles.csproj" />
-    <ProjectReference Include="../../PhysicsJolt/RedBolt.PhysicsJolt.csproj" />
     <ProjectReference Include="../../Navigation/RedBolt.Navigation.csproj" />
     <ProjectReference Include="../../Network/RedBolt.Network.csproj" />
     <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
@@ -76,7 +76,8 @@
           BeforeTargets="_BuildApkEmbed;_BuildApkFastDev"
           DependsOnTargets="RedBoltPrepareAndroidRuntime">
     <ItemGroup>
-      <AndroidNativeLibrary Include="$(RedBoltAndroidNativeOutput)/*.so" />
+      <AndroidNativeLibrary Include="$(RedBoltAndroidNativeOutput)/libRedBolt.Native.*.so" />
+      <AndroidNativeLibrary Include="$(RedBoltAndroidNativeOutput)/libc++_shared.so" />
     </ItemGroup>
   </Target>
 

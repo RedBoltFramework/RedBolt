@@ -26,14 +26,13 @@
 
   <ItemGroup>
     <TrimmerRootAssembly Include="$(AssemblyName)" />
+    <TrimmerRootAssembly Include="SharpCpp.Std" />
     <NativeFileReference Include="$(RedBoltWebEngineArchive)" />
     <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
-    <ProjectReference Include="../../CSG/RedBolt.CSG.csproj" />
     <ProjectReference Include="../../Actions/RedBolt.Actions.csproj" />
     <ProjectReference Include="../../Audio/RedBolt.Audio.csproj" />
     <ProjectReference Include="../../IK/RedBolt.IK.csproj" />
     <ProjectReference Include="../../Particles/RedBolt.Particles.csproj" />
-    <ProjectReference Include="../../PhysicsJolt/RedBolt.PhysicsJolt.csproj" />
     <ProjectReference Include="../../Navigation/RedBolt.Navigation.csproj" />
     <ProjectReference Include="../../Network/RedBolt.Network.csproj" />
     <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
@@ -50,6 +49,9 @@
              Exclude="../Android/**/*.cs;../Web/**/*.cs;../WebRTCSTUN/**/*.cs"
              Link="Samples/%(RecursiveDir)%(Filename)%(Extension)" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      PrivateAssets="all"
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Std/SharpCpp.Std.csproj"
                       PrivateAssets="all"
                       AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
   </ItemGroup>
@@ -87,7 +89,7 @@
 
   <Target Name="RedBoltConfigureWebPInvokeModules" BeforeTargets="_GenerateManagedToNative">
     <ItemGroup>
-      <_WasmPInvokeModules Include="RedBolt.Native.Sdl;RedBolt.Native.Diligent;RedBolt.Native.DearImGui;RedBolt.Native.Stb;RedBolt.Native.TinyGltf;RedBolt.Native.Lz4;RedBolt.Native.HarfBuzz;RedBolt.Native.RmlUi;RedBolt.Native.WebP;RedBolt.Native.Glslang;RedBolt.Native.SpirVCross;RedBolt.Native.SpirVTools;RedBolt.Native.ShaderCompiler;RedBolt.Native.Jolt" />
+      <_WasmPInvokeModules Include="RedBolt.Native.Sdl;RedBolt.Native.Diligent;RedBolt.Native.DearImGui;RedBolt.Native.Stb;RedBolt.Native.TinyGltf;RedBolt.Native.Lz4;RedBolt.Native.HarfBuzz;RedBolt.Native.RmlUi;RedBolt.Native.WebP;RedBolt.Native.Glslang;RedBolt.Native.SpirVCross;RedBolt.Native.SpirVTools;RedBolt.Native.ShaderCompiler" />
     </ItemGroup>
   </Target>
 

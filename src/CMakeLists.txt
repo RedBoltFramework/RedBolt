@@ -15,7 +15,6 @@ add_subdirectory(RedBolt/Native/Glslang)
 add_subdirectory(RedBolt/Native/SpirVCross)
 add_subdirectory(RedBolt/Native/SpirVTools)
 add_subdirectory(RedBolt/Native/ShaderCompiler)
-add_subdirectory(RedBolt/Native/JoltPhysics)
 add_subdirectory(RedBolt/Native/LibDataChannel)
 
 add_custom_target(redbolt-generate-native-bindings

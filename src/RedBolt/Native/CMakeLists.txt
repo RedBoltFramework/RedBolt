@@ -4,6 +4,17 @@ else()
     set(_redbolt_native_library_type SHARED)
 endif()
 
+# CMake's built-in MinGW WHOLE_ARCHIVE feature wraps archives with
+# --push-state/--pop-state. LLVM-MinGW's COFF linker does not implement those
+# GNU ld state options, but it does support the underlying whole-archive pair.
+if(MINGW)
+    set(CMAKE_CXX_LINK_LIBRARY_USING_WHOLE_ARCHIVE
+        "LINKER:--whole-archive"
+        "<LINK_ITEM>"
+        "LINKER:--no-whole-archive")
+    set(CMAKE_CXX_LINK_LIBRARY_USING_WHOLE_ARCHIVE_SUPPORTED TRUE)
+endif()
+
 set(_redbolt_native_common_include_dirs
     "${REDBOLT_STB_INCLUDE_DIR}"
     "${REDBOLT_TINYGLTF_INCLUDE_DIR}"
@@ -18,7 +29,6 @@ set(_redbolt_native_common_include_dirs
     "${REDBOLT_GLSLANG_SOURCE_ROOT}"
     "${REDBOLT_SPIRV_CROSS_SOURCE_ROOT}"
     "${REDBOLT_SPIRV_TOOLS_SOURCE_ROOT}/include"
-    "${REDBOLT_JOLT_INCLUDE_DIR}"
     "${REDBOLT_LIBDATACHANNEL_INCLUDE_DIR}")
 
 set(_redbolt_generated_binding_sources
@@ -37,7 +47,6 @@ set(_redbolt_generated_binding_sources
     "${REDBOLT_SPIRV_CROSS_BINDINGS_CPP}"
     "${REDBOLT_SPIRV_TOOLS_BINDINGS_CPP}"
     "${REDBOLT_SHADER_COMPILER_BINDINGS_CPP}"
-    "${REDBOLT_JOLT_BINDINGS_CPP}"
     "${REDBOLT_LIBDATACHANNEL_BINDINGS_CPP}")
 set_source_files_properties(${_redbolt_generated_binding_sources}
     PROPERTIES GENERATED TRUE)
@@ -150,13 +159,25 @@ function(redbolt_add_native_wrapper)
         SharpCpp::NativeSupport
         ${ARG_WRAPPER_DEPENDENCIES}
         ${ARG_LINK_LIBRARIES})
-    if(_redbolt_owned_static_targets)
-        string(JOIN "," _redbolt_owned_static_targets_csv
-            ${_redbolt_owned_static_targets})
+    if(_redbolt_owned_static_targets AND EMSCRIPTEN)
+        # The final Web archive is assembled from every owned static target
+        # by Sample/Web/CMakeLists.txt, so wrapper targets only need the usage
+        # requirements here. Emscripten does not advertise CMake's
+        # WHOLE_ARCHIVE feature for static-library targets.
         target_link_libraries(${ARG_TARGET} PRIVATE
-            "$<LINK_LIBRARY:WHOLE_ARCHIVE,${_redbolt_owned_static_targets_csv}>")
-        set_property(TARGET ${ARG_TARGET} PROPERTY LINK_LIBRARY_OVERRIDE
-            "WHOLE_ARCHIVE,${_redbolt_owned_static_targets_csv}")
+            ${ARG_OWNED_LIBRARIES})
+    elseif(_redbolt_owned_static_targets)
+        set(_redbolt_owned_static_files)
+        foreach(_redbolt_owned_static_target IN LISTS
+                _redbolt_owned_static_targets)
+            list(APPEND _redbolt_owned_static_files
+                "$<TARGET_FILE:${_redbolt_owned_static_target}>")
+        endforeach()
+        string(JOIN "," _redbolt_owned_static_files_csv
+            ${_redbolt_owned_static_files})
+        target_link_libraries(${ARG_TARGET} PRIVATE
+            "$<LINK_LIBRARY:WHOLE_ARCHIVE,${_redbolt_owned_static_files_csv}>"
+            ${ARG_OWNED_LIBRARIES})
     endif()
     set_target_properties(${ARG_TARGET} PROPERTIES
         OUTPUT_NAME "${ARG_OUTPUT_NAME}"
@@ -508,15 +529,6 @@ redbolt_add_native_wrapper(
     INCLUDE_DIRS ShaderCompiler)
 
 redbolt_add_native_wrapper(
-    MODULE JOLT
-    TARGET "${REDBOLT_JOLT_NATIVE_TARGET}"
-    OUTPUT_NAME "${REDBOLT_JOLT_NATIVE_LIBRARY_NAME}"
-    GENERATION_TARGET redbolt-generate-jolt-bindings
-    SOURCES "${REDBOLT_JOLT_BINDINGS_CPP}"
-    INCLUDE_DIRS JoltPhysics
-    OWNED_LIBRARIES ${REDBOLT_JOLT_LIBRARY})
-
-redbolt_add_native_wrapper(
     MODULE LIBDATACHANNEL
     TARGET "${REDBOLT_LIBDATACHANNEL_NATIVE_TARGET}"
     OUTPUT_NAME "${REDBOLT_LIBDATACHANNEL_NATIVE_LIBRARY_NAME}"
@@ -584,6 +596,23 @@ if(MINGW)
         VERBATIM)
 endif()
 
+set(_redbolt_toolchain_runtime_names ${_redbolt_mingw_runtime_names})
+set(_redbolt_system_runtime_names)
+if(ANDROID)
+    list(APPEND _redbolt_toolchain_runtime_names libc++_shared.so)
+    set(_redbolt_system_runtime_names
+        libc.so
+        libdl.so
+        libm.so
+        liblog.so
+        libandroid.so
+        libEGL.so
+        libGLESv1_CM.so
+        libGLESv2.so
+        libGLESv3.so
+        libOpenSLES.so)
+endif()
+
 if(NOT EMSCRIPTEN)
     set(_redbolt_native_manifest_directory
         "${REDBOLT_GENERATED_ROOT}/native-modules/$<CONFIG>")
@@ -611,7 +640,9 @@ if(NOT EMSCRIPTEN)
     string(REPLACE ";" "," _redbolt_native_wrapper_entries_csv
         "${_redbolt_native_wrapper_entries}")
     string(REPLACE ";" "," _redbolt_toolchain_runtime_files_csv
-        "${_redbolt_mingw_runtime_names}")
+        "${_redbolt_toolchain_runtime_names}")
+    string(REPLACE ";" "," _redbolt_system_runtime_files_csv
+        "${_redbolt_system_runtime_names}")
     foreach(_redbolt_native_module IN LISTS REDBOLT_SELECTED_NATIVE_MODULES)
         redbolt_native_module_value(
             "${_redbolt_native_module}" TARGET _redbolt_manifest_target)
@@ -648,6 +679,7 @@ if(NOT EMSCRIPTEN)
                 "-DREDBOLT_REQUIREMENT_CLOSURE=${_redbolt_manifest_requirement_closure_csv}"
                 "-DREDBOLT_NATIVE_WRAPPERS=${_redbolt_native_wrapper_entries_csv}"
                 "-DREDBOLT_TOOLCHAIN_RUNTIME_FILES=${_redbolt_toolchain_runtime_files_csv}"
+                "-DREDBOLT_SYSTEM_RUNTIME_FILES=${_redbolt_system_runtime_files_csv}"
                 ${_redbolt_runtime_dependency_arguments}
                 -P "${CMAKE_SOURCE_DIR}/cmake/WriteNativeModuleManifest.cmake"
             DEPENDS ${_redbolt_manifest_depends}
@@ -664,6 +696,7 @@ if(NOT EMSCRIPTEN)
         COMMAND "${CMAKE_COMMAND}"
             "-DREDBOLT_MANIFEST_DIRECTORY=${_redbolt_native_manifest_directory}"
             "-DREDBOLT_INDEX_FILE=${_redbolt_native_manifest_index}"
+            "-DREDBOLT_RUNTIME_OUTPUT_DIRECTORY=${REDBOLT_RUNTIME_OUTPUT_DIR}"
             "-DREDBOLT_MODULES=${REDBOLT_SELECTED_NATIVE_MODULES}"
             -P "${CMAKE_SOURCE_DIR}/cmake/WriteNativeModuleIndex.cmake"
         DEPENDS
