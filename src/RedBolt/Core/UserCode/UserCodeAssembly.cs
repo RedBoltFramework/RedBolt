@@ -74,13 +74,21 @@ public sealed class AssemblyPreparation : IDisposable
 /// <summary>A prepared or active user-code assembly generation.</summary>
 public abstract class UserCodeAssembly : IDisposable
 {
-    private AssemblyRegistration? _registration;
+    private readonly IReadOnlyList<Assembly> _assemblies;
+    private List<AssemblyRegistration>? _registrations;
     private bool _disposed;
 
-    protected UserCodeAssembly(Assembly assembly, bool isCollectible)
+    protected UserCodeAssembly(
+        Assembly assembly, bool isCollectible, IReadOnlyList<Assembly>? dependencyClosure = null)
     {
         Assembly = assembly ?? throw new ArgumentNullException(nameof(assembly));
         IsCollectible = isCollectible;
+        _assemblies = dependencyClosure ?? [assembly];
+        if (_assemblies.Count == 0 || !ReferenceEquals(_assemblies[^1], assembly))
+        {
+            throw new ArgumentException(
+                "The dependency closure must end with the user-code assembly.", nameof(dependencyClosure));
+        }
     }
 
     public Assembly Assembly { get; }
@@ -90,21 +98,37 @@ public abstract class UserCodeAssembly : IDisposable
     /// <summary>A weak reference used to verify eventual collectible-context reclamation.</summary>
     public virtual WeakReference? CollectionReference => null;
 
-    /// <summary>Register generated RedBolt reflection owned by this generation.</summary>
+    /// <summary>Register generated RedBolt reflection from this generation and its dependency closure.</summary>
     public void Register(Context context)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(context);
-        if (_registration is not null)
+        if (_registrations is not null)
             throw new InvalidOperationException("The user-code assembly is already registered.");
-        _registration = context.RegisterAssemblyScoped(Assembly);
+
+        var registrations = new List<AssemblyRegistration>(_assemblies.Count);
+        try
+        {
+            foreach (var assembly in _assemblies)
+                registrations.Add(context.RegisterAssemblyScoped(assembly));
+            _registrations = registrations;
+        }
+        catch
+        {
+            for (var index = registrations.Count - 1; index >= 0; --index)
+                registrations[index].Dispose();
+            throw;
+        }
     }
 
     /// <summary>Remove generated RedBolt reflection while keeping the generation available for rollback.</summary>
     public void Unregister()
     {
-        _registration?.Dispose();
-        _registration = null;
+        if (_registrations is not { } registrations)
+            return;
+        for (var index = registrations.Count - 1; index >= 0; --index)
+            registrations[index].Dispose();
+        _registrations = null;
     }
 
     public void Dispose()
@@ -113,7 +137,8 @@ public abstract class UserCodeAssembly : IDisposable
             return;
         _disposed = true;
         Unregister();
-        GeneratedReflectionRegistration.ForgetCollectibleAssembly(Assembly);
+        foreach (var assembly in _assemblies)
+            GeneratedReflectionRegistration.ForgetCollectibleAssembly(assembly);
         DisposeCore();
         GC.SuppressFinalize(this);
     }

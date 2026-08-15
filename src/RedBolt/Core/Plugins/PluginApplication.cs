@@ -1,5 +1,8 @@
 namespace RedBolt.Plugins;
 
+using System;
+using System.IO;
+
 using RedBolt.Core;
 using RedBolt.IO;
 
@@ -7,6 +10,18 @@ using RedBolt.IO;
 public abstract class PluginApplication : RedObject
 {
     public string PluginName { get; internal set; } = string.Empty;
+
+    /// <summary>Directory containing this plugin's managed entry assembly.</summary>
+    public string PluginDirectory { get; internal set; } = AppContext.BaseDirectory;
+
+    /// <summary>Resolve a path relative to <see cref="PluginDirectory"/>.</summary>
+    public string GetPluginPath(string relativePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(relativePath);
+        if (Path.IsPathRooted(relativePath))
+            throw new ArgumentException("Plugin-relative path must not be rooted.", nameof(relativePath));
+        return Path.GetFullPath(Path.Combine(PluginDirectory, relativePath));
+    }
 
     public virtual bool IsMain => false;
 

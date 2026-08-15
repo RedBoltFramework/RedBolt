@@ -48,9 +48,18 @@ public class EditorPluginManager : RedObject
     {
         ArgumentNullException.ThrowIfNull(plugin);
         _plugins.Add(plugin);
-        foreach (var target in EnumerateTargets())
-            plugin.Apply(target);
-        return new Registration(this, plugin);
+        try
+        {
+            foreach (var target in EnumerateTargets())
+                plugin.Apply(target);
+            return new Registration(this, plugin);
+        }
+        catch
+        {
+            _plugins.Remove(plugin);
+            plugin.Dispose();
+            throw;
+        }
     }
 
     public IDisposable AddPlugin<T>(string name, Action<T> function)

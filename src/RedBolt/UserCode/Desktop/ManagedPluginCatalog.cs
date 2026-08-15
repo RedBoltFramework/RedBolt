@@ -316,6 +316,7 @@ internal sealed class ManagedAssemblyPlugin : Plugin
             var application = (PluginApplication?)Activator.CreateInstance(metadata.ApplicationType)
                 ?? throw new InvalidOperationException("Plugin application could not be constructed.");
             application.PluginName = Name;
+            application.PluginDirectory = Path.GetDirectoryName(_descriptor.AssemblyPath)!;
             var info = new FileInfo(_descriptor.AssemblyPath);
             return new Generation(backend, application, Version + 1, info.LastWriteTimeUtc, info.Length);
         }

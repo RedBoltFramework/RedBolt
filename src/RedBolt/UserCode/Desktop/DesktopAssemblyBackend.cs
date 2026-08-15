@@ -140,7 +140,8 @@ public abstract class DesktopAssemblyBackend : IAssemblyBackend
             }
             else
                 assembly = context.LoadFromStream(assemblyStream);
-            return new DesktopUserCodeAssembly(assembly, context, _collectible);
+            var dependencyClosure = context.LoadDependencyClosure(assembly);
+            return new DesktopUserCodeAssembly(assembly, context, _collectible, dependencyClosure);
         }
         catch
         {
@@ -165,7 +166,8 @@ public abstract class DesktopAssemblyBackend : IAssemblyBackend
             }
             else
                 assembly = context.LoadFromStream(peStream);
-            return new DesktopUserCodeAssembly(assembly, context, _collectible);
+            var dependencyClosure = context.LoadDependencyClosure(assembly);
+            return new DesktopUserCodeAssembly(assembly, context, _collectible, dependencyClosure);
         }
         catch
         {
@@ -212,8 +214,12 @@ public abstract class DesktopAssemblyBackend : IAssemblyBackend
         private UserCodeLoadContext? _context;
         private readonly WeakReference _collectionReference;
 
-        public DesktopUserCodeAssembly(Assembly assembly, UserCodeLoadContext context, bool collectible)
-            : base(assembly, collectible)
+        public DesktopUserCodeAssembly(
+            Assembly assembly,
+            UserCodeLoadContext context,
+            bool collectible,
+            IReadOnlyList<Assembly> dependencyClosure)
+            : base(assembly, collectible, dependencyClosure)
         {
             _context = context;
             _collectionReference = new WeakReference(context);
@@ -293,6 +299,44 @@ public abstract class DesktopAssemblyBackend : IAssemblyBackend
             if (path is null)
                 _nativeDependencyPaths.TryGetValue(unmanagedDllName, out path);
             return path is null ? 0 : LoadUnmanagedDllFromPath(path);
+        }
+
+        public IReadOnlyList<Assembly> LoadDependencyClosure(Assembly root)
+        {
+            ArgumentNullException.ThrowIfNull(root);
+            var result = new List<Assembly>();
+            var visited = new HashSet<Assembly>();
+
+            Visit(root);
+            return result;
+
+            void Visit(Assembly assembly)
+            {
+                if (!visited.Add(assembly))
+                    return;
+
+                foreach (var reference in assembly.GetReferencedAssemblies())
+                {
+                    Assembly dependency;
+                    try
+                    {
+                        dependency = LoadFromAssemblyName(reference);
+                    }
+                    catch (Exception exception) when (exception is FileNotFoundException
+                        or FileLoadException or BadImageFormatException)
+                    {
+                        // Preserve lazy-loading behavior for optional references. If code eventually uses one,
+                        // normal assembly resolution will report the original error at that point.
+                        continue;
+                    }
+
+                    if (GetLoadContext(dependency) == this)
+                        Visit(dependency);
+                    else if (visited.Add(dependency))
+                        result.Add(dependency);
+                }
+                result.Add(assembly);
+            }
         }
 
         private static IReadOnlyDictionary<string, string> CreateNativeDependencyMap(IEnumerable<string> paths)
