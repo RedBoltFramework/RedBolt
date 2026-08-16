@@ -1,3 +1,7 @@
+// Copyright (c) 2026 RedBolt and contributors.
+// This work is licensed under the terms of the MIT license.
+// For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+
 /// _GammaCorrection.glsl
 /// Utilities used to convert from light to gamma color space and vice versa.
 /// Utilities to convert from/to light space configured by URHO3D_GAMMA_CORRECTION.

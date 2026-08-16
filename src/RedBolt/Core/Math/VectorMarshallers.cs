@@ -1,3 +1,7 @@
+// Copyright (c) 2026 RedBolt and contributors.
+// This work is licensed under the terms of the MIT license.
+// For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+
 // C#-only interop marshallers needed for P/Invoke with native Diligent / SDL / rbfx shared libraries.
 
 namespace RedBolt.Math;

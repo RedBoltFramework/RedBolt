@@ -1,3 +1,7 @@
+# Copyright (c) 2026 RedBolt and contributors.
+# This work is licensed under the terms of the MIT license.
+# For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+
 if(REDBOLT_ANDROID_BUILD OR ANDROID)
     find_program(_redbolt_binding_cxx_compiler NAMES clang++-20 clang++ REQUIRED)
     string(REGEX REPLACE "^android-" "" _redbolt_android_api "${ANDROID_PLATFORM}")

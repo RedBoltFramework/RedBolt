@@ -1,3 +1,7 @@
+# Copyright (c) 2026 RedBolt and contributors.
+# This work is licensed under the terms of the MIT license.
+# For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+
 if(NOT DEFINED REDBOLT_ARCHIVER OR NOT DEFINED REDBOLT_MRI_FILE OR NOT DEFINED REDBOLT_OUTPUT_ARCHIVE)
     message(FATAL_ERROR "REDBOLT_ARCHIVER, REDBOLT_MRI_FILE and REDBOLT_OUTPUT_ARCHIVE are required")
 endif()

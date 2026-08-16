@@ -1,3 +1,7 @@
+// Copyright (c) 2026 RedBolt and contributors.
+// This work is licensed under the terms of the MIT license.
+// For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+
 // C++ defines engine command-line parameters in Engine::DefineParameters(CLI::App&, StringVariantMap&) in Engine.cpp.
 
 namespace RedBolt.Engine;

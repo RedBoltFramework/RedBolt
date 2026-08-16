@@ -1,3 +1,7 @@
+# Copyright (c) 2026 RedBolt and contributors.
+# This work is licensed under the terms of the MIT license.
+# For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+
 # Native wrapper module registry.  The same names are used by the binding
 # generator, the CMake targets, and the managed packaging resolver.
 set(REDBOLT_NATIVE_MODULES

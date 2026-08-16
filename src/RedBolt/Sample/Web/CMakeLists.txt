@@ -1,3 +1,7 @@
+# Copyright (c) 2026 RedBolt and contributors.
+# This work is licensed under the terms of the MIT license.
+# For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+
 set(redbolt_wasm_static_targets)
 foreach(redbolt_wasm_native_module IN LISTS REDBOLT_SELECTED_NATIVE_MODULES)
     redbolt_native_module_value(

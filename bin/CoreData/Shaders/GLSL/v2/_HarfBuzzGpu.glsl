@@ -1,3 +1,7 @@
+// Copyright (c) 2026 RedBolt and contributors.
+// This work is licensed under the terms of the MIT license.
+// For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+
 // RedBolt adapter for HarfBuzz 14.2.1's monochrome GPU draw shader.
 SAMPLER_HIGHP(11, isampler2D sHarfBuzzAtlas)
 #define HB_GPU_ATLAS_DECLARED
