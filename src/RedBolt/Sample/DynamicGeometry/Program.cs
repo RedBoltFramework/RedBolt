@@ -318,7 +318,7 @@ public class DynamicGeometry : Application
     /// </summary>
     private void AnimateObjects(float timeStep)
     {
-        // TODO: port URHO3D_PROFILE("AnimateObjects") when managed profiling zones are available.
+        using var profile = GetSubsystem<Profiler>().Profile("AnimateObjects");
 
         _time += timeStep * 100.0f;
 

@@ -156,6 +156,8 @@ sealed class HugeObjectCountApplication : Application
     /// <summary>Animate the scene.</summary>
     private void AnimateObjects(float timeStep)
     {
+        using var profile = GetSubsystem<Profiler>().Profile("AnimateObjects");
+
         const float rotateSpeed = 15.0f;
         // Rotate about the Z axis (roll)
         var rotateQuaternion = new Quaternion(rotateSpeed * timeStep, Vector3f.Forward);
