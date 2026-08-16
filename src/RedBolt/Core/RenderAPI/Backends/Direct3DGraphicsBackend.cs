@@ -47,7 +47,7 @@ public abstract class Direct3DGraphicsBackend : IGraphicsBackend
         var nativeWindowInfo = NativeWindow.GetInfo(window);
         using var nativeWindow = new Win32NativeWindow { HWnd = nativeWindowInfo.Window };
 
-        var resources = CreateNativeResources(deviceSettings, swapChainDesc, fullScreenDesc, nativeWindow);
+        var resources = CreateNativeResources(parameters, deviceSettings, swapChainDesc, fullScreenDesc, nativeWindow);
         ISwapChain? swapChain = null;
         try
         {
@@ -92,8 +92,9 @@ public abstract class Direct3DGraphicsBackend : IGraphicsBackend
         }
     }
 
-    protected abstract NativeResources CreateNativeResources(RenderDeviceSettings deviceSettings,
-        SwapChainDesc swapChainDesc, FullScreenModeDesc fullScreenDesc, Win32NativeWindow nativeWindow);
+    protected abstract NativeResources CreateNativeResources(EngineParameters parameters,
+        RenderDeviceSettings deviceSettings, SwapChainDesc swapChainDesc,
+        FullScreenModeDesc fullScreenDesc, Win32NativeWindow nativeWindow);
 
     protected static void ConfigureCreateInfo(EngineCreateInfo createInfo, RenderDeviceSettings settings)
     {
@@ -155,11 +156,13 @@ public sealed class D3D11GraphicsBackend : Direct3DGraphicsBackend
 {
     public override RenderBackend Backend => RenderBackend.D3D11;
 
-    protected override NativeResources CreateNativeResources(RenderDeviceSettings deviceSettings,
-        SwapChainDesc swapChainDesc, FullScreenModeDesc fullScreenDesc, Win32NativeWindow nativeWindow)
+    protected override NativeResources CreateNativeResources(EngineParameters parameters,
+        RenderDeviceSettings deviceSettings, SwapChainDesc swapChainDesc,
+        FullScreenModeDesc fullScreenDesc, Win32NativeWindow nativeWindow)
     {
         using var createInfo = new EngineD3D11CreateInfo();
         ConfigureCreateInfo(createInfo, deviceSettings);
+        GraphicsInitializationExtensions.ConfigureCreateInfo(parameters, Backend, createInfo);
         var factory = Diligent.LoadAndGetEngineFactoryD3D11();
         if (factory.IsNull)
             throw new InvalidOperationException("D3D11 engine factory could not be loaded.");
@@ -202,12 +205,14 @@ public sealed class D3D12GraphicsBackend : Direct3DGraphicsBackend
 {
     public override RenderBackend Backend => RenderBackend.D3D12;
 
-    protected override NativeResources CreateNativeResources(RenderDeviceSettings deviceSettings,
-        SwapChainDesc swapChainDesc, FullScreenModeDesc fullScreenDesc, Win32NativeWindow nativeWindow)
+    protected override NativeResources CreateNativeResources(EngineParameters parameters,
+        RenderDeviceSettings deviceSettings, SwapChainDesc swapChainDesc,
+        FullScreenModeDesc fullScreenDesc, Win32NativeWindow nativeWindow)
     {
         using var createInfo = new EngineD3D12CreateInfo();
         ConfigureCreateInfo(createInfo, deviceSettings);
         CopyBackendDeviceSettings(createInfo, deviceSettings.D3D12);
+        GraphicsInitializationExtensions.ConfigureCreateInfo(parameters, Backend, createInfo);
         var factory = Diligent.LoadAndGetEngineFactoryD3D12();
         if (factory.IsNull)
             throw new InvalidOperationException("D3D12 engine factory could not be loaded.");

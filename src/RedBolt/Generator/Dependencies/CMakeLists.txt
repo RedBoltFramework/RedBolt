@@ -168,6 +168,10 @@ file(CONFIGURE OUTPUT "${REDBOLT_SDL_PARSE_SOURCE}" CONTENT [=[
 #include <SDL_test.h>
 #endif
 ]=] @ONLY)
+set(REDBOLT_DILIGENT_OPENXR_INCLUDE)
+if(REDBOLT_ENABLE_OPENXR AND NOT EMSCRIPTEN)
+    set(REDBOLT_DILIGENT_OPENXR_INCLUDE "#include <OpenXRUtilities.h>")
+endif()
 file(CONFIGURE OUTPUT "${REDBOLT_DILIGENT_PARSE_HEADER}" CONTENT [=[
 #pragma once
 #include <cstdint>
@@ -178,6 +182,7 @@ file(CONFIGURE OUTPUT "${REDBOLT_DILIGENT_PARSE_HEADER}" CONTENT [=[
 #include <EngineFactoryOpenGL.h>
 #include <GraphicsAccessories.hpp>
 #include <DiligentSupport.hpp>
+@REDBOLT_DILIGENT_OPENXR_INCLUDE@
 ]=] @ONLY)
 file(CONFIGURE OUTPUT "${REDBOLT_IMGUI_PARSE_SOURCE}" CONTENT [=[
 #include <SDL.h>

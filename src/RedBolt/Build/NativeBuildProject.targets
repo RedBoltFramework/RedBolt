@@ -21,7 +21,9 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
                       AdditionalProperties="$(RedBoltSharpCppNativeProperties)" />
     <ProjectReference Include="$(RedBoltExternalModuleRoot)/src/RedBolt/Generator/Dependencies/$(RedBoltExternalGeneratorProjectName).csproj"
                       ReferenceOutputAssembly="false" Private="false" PrivateAssets="all"
-                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset" />
+                      SetTargetFramework="TargetFramework=net10.0"
+                      SkipGetTargetFrameworkProperties="true"
+                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset;RedBoltTargetFramework;TargetFramework;TargetFrameworks;RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishSelfContained" />
   </ItemGroup>
   <Target Name="RedBoltExternalBuildNative" AfterTargets="Build" Condition="'$(RedBoltProjectBuildEnabled)' == 'true'">
     <Error Condition="'$(RedBoltNativePreset)' == ''" Text="No native preset is configured for '$(RedBoltPlatform)'." />

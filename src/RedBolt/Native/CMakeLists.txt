@@ -52,6 +52,7 @@ function(redbolt_add_native_wrapper)
         SOURCES
         OWNED_LIBRARIES
         WRAPPER_DEPENDENCIES
+        RUNTIME_DEPENDENCIES
         LINK_LIBRARIES
         COMPILE_DEFINITIONS
         INCLUDE_DIRS)
@@ -63,7 +64,7 @@ function(redbolt_add_native_wrapper)
         endif()
     endforeach()
 
-    foreach(_redbolt_unique_argument IN ITEMS OWNED_LIBRARIES WRAPPER_DEPENDENCIES)
+    foreach(_redbolt_unique_argument IN ITEMS OWNED_LIBRARIES WRAPPER_DEPENDENCIES RUNTIME_DEPENDENCIES)
         set(_redbolt_argument_values ${ARG_${_redbolt_unique_argument}})
         list(LENGTH _redbolt_argument_values _redbolt_argument_length)
         list(REMOVE_DUPLICATES _redbolt_argument_values)
@@ -71,6 +72,13 @@ function(redbolt_add_native_wrapper)
         if(NOT _redbolt_argument_length EQUAL _redbolt_unique_argument_length)
             message(FATAL_ERROR
                 "${ARG_MODULE} has duplicate ${_redbolt_unique_argument} entries")
+        endif()
+    endforeach()
+
+    foreach(_redbolt_runtime_dependency IN LISTS ARG_RUNTIME_DEPENDENCIES)
+        if(NOT TARGET "${_redbolt_runtime_dependency}")
+            message(FATAL_ERROR
+                "${ARG_MODULE} runtime dependency '${_redbolt_runtime_dependency}' does not exist")
         endif()
     endforeach()
 
@@ -127,6 +135,7 @@ function(redbolt_add_native_wrapper)
         REDBOLT_NATIVE_WRAPPER TRUE
         REDBOLT_NATIVE_MODULE "${ARG_MODULE}"
         REDBOLT_OWNED_STATIC_TARGETS "${_redbolt_owned_static_targets}"
+        REDBOLT_RUNTIME_DEPENDENCY_TARGETS "${ARG_RUNTIME_DEPENDENCIES}"
         REDBOLT_WRAPPER_DEPENDENCY_MODULES "${_redbolt_wrapper_dependency_modules}")
     add_dependencies(${ARG_TARGET}
         redbolt-msbuild-build-guard
@@ -152,6 +161,7 @@ function(redbolt_add_native_wrapper)
     target_link_libraries(${ARG_TARGET} PRIVATE
         SharpCpp::NativeSupport
         ${ARG_WRAPPER_DEPENDENCIES}
+        ${ARG_RUNTIME_DEPENDENCIES}
         ${ARG_LINK_LIBRARIES})
     if(_redbolt_owned_static_targets AND EMSCRIPTEN)
         # The final Web archive is assembled from every owned static target
@@ -294,6 +304,16 @@ function(redbolt_preserve_target_usage_requirements consumer)
     endforeach()
 endfunction()
 
+set(_redbolt_diligent_runtime_dependencies)
+set(_redbolt_diligent_link_dependencies)
+if(REDBOLT_ENABLE_OPENXR)
+    if(WIN32)
+        list(APPEND _redbolt_diligent_link_dependencies openxr_loader)
+    else()
+        list(APPEND _redbolt_diligent_runtime_dependencies openxr_loader)
+    endif()
+endif()
+
 redbolt_add_native_wrapper(
     MODULE SDL
     TARGET "${REDBOLT_SDL_NATIVE_TARGET}"
@@ -399,6 +419,7 @@ redbolt_add_native_wrapper(
         Diligent
         "${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine/include"
         "${REDBOLT_DILIGENT_SOURCE_ROOT}/ThirdParty/glew/include"
+        ${REDBOLT_DILIGENT_OPENXR_INCLUDE_DIRS}
         "$<TARGET_PROPERTY:${REDBOLT_SDL_LIBRARY},INTERFACE_INCLUDE_DIRECTORIES>"
     COMPILE_DEFINITIONS
         GLEW_NO_GLU
@@ -415,8 +436,11 @@ redbolt_add_native_wrapper(
         "${REDBOLT_GLSLANG_NATIVE_TARGET}"
         "${REDBOLT_SPIRV_CROSS_NATIVE_TARGET}"
         "${REDBOLT_SPIRV_TOOLS_NATIVE_TARGET}"
+    RUNTIME_DEPENDENCIES
+        ${_redbolt_diligent_runtime_dependencies}
     LINK_LIBRARIES
         redbolt-diligent-headers
+        ${_redbolt_diligent_link_dependencies}
         $<$<BOOL:${ANDROID}>:GLESv3>
         $<$<BOOL:${ANDROID}>:EGL>)
 
@@ -546,7 +570,7 @@ if(MINGW)
         endif()
         list(APPEND _redbolt_mingw_runtime_files "${_redbolt_mingw_runtime_file}")
     endforeach()
-    add_custom_command(TARGET ${REDBOLT_SDL_NATIVE_TARGET} POST_BUILD
+    add_custom_target(redbolt-mingw-runtime
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
             ${_redbolt_mingw_runtime_files}
             "$<TARGET_FILE_DIR:${REDBOLT_SDL_NATIVE_TARGET}>"
@@ -589,14 +613,24 @@ if(NOT EMSCRIPTEN)
     set(_redbolt_native_manifest_files)
     set(_redbolt_previous_native_manifest_file)
     set(_redbolt_native_wrapper_entries)
+    set(_redbolt_native_runtime_entries)
     foreach(_redbolt_native_module IN LISTS REDBOLT_SELECTED_NATIVE_MODULES)
         redbolt_native_module_value(
             "${_redbolt_native_module}" TARGET _redbolt_wrapper_entry_target)
         list(APPEND _redbolt_native_wrapper_entries
             "${_redbolt_native_module}=$<TARGET_FILE_NAME:${_redbolt_wrapper_entry_target}>")
+        get_target_property(_redbolt_runtime_entry_targets
+            "${_redbolt_wrapper_entry_target}" REDBOLT_RUNTIME_DEPENDENCY_TARGETS)
+        foreach(_redbolt_runtime_entry_target IN LISTS
+                _redbolt_runtime_entry_targets)
+            list(APPEND _redbolt_native_runtime_entries
+                "${_redbolt_native_module}=$<TARGET_FILE_NAME:${_redbolt_runtime_entry_target}>")
+        endforeach()
     endforeach()
     string(REPLACE ";" "," _redbolt_native_wrapper_entries_csv
         "${_redbolt_native_wrapper_entries}")
+    string(REPLACE ";" "," _redbolt_native_runtime_entries_csv
+        "${_redbolt_native_runtime_entries}")
     string(REPLACE ";" "," _redbolt_toolchain_runtime_files_csv
         "${_redbolt_toolchain_runtime_names}")
     string(REPLACE ";" "," _redbolt_system_runtime_files_csv
@@ -636,6 +670,7 @@ if(NOT EMSCRIPTEN)
                 "-DREDBOLT_REQUIRES=${_redbolt_manifest_requires_csv}"
                 "-DREDBOLT_REQUIREMENT_CLOSURE=${_redbolt_manifest_requirement_closure_csv}"
                 "-DREDBOLT_NATIVE_WRAPPERS=${_redbolt_native_wrapper_entries_csv}"
+                "-DREDBOLT_NATIVE_RUNTIME_ARTIFACTS=${_redbolt_native_runtime_entries_csv}"
                 "-DREDBOLT_TOOLCHAIN_RUNTIME_FILES=${_redbolt_toolchain_runtime_files_csv}"
                 "-DREDBOLT_SYSTEM_RUNTIME_FILES=${_redbolt_system_runtime_files_csv}"
                 ${_redbolt_runtime_dependency_arguments}
@@ -676,6 +711,10 @@ endforeach()
 add_custom_target(redbolt-native-all DEPENDS ${_redbolt_selected_native_targets})
 if(NOT EMSCRIPTEN)
     add_dependencies(redbolt-native-all redbolt-native-manifests)
+endif()
+if(TARGET redbolt-mingw-runtime)
+    add_dependencies(redbolt-mingw-runtime redbolt-native-manifests)
+    add_dependencies(redbolt-native-all redbolt-mingw-runtime)
 endif()
 
 if(ANDROID)

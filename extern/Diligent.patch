@@ -633,3 +633,13 @@ index 8e918de0..08698551 100644
 +
 +  set(SPIRV_TOOLS_TARGETS ${SPIRV_TOOLS}-static)
  else()
+diff --git a/Graphics/GraphicsTools/src/OpenXRUtilitiesGL.cpp b/Graphics/GraphicsTools/src/OpenXRUtilitiesGL.cpp
+index 885ff7750..7fef2d9a5 100644
+--- a/Graphics/GraphicsTools/src/OpenXRUtilitiesGL.cpp
++++ b/Graphics/GraphicsTools/src/OpenXRUtilitiesGL.cpp
+@@ -38 +38 @@
+-#        include <Unknwn.h>
++#        include <unknwn.h>
+@@ -88 +88 @@ void GetOpenXRGraphicsBindingGL(IRenderDevice*  pDevice,
+-    Binding.type  = XR_TYPE_GRAPHICS_BINDING_D3D11_KHR;
++    Binding.type  = XR_TYPE_GRAPHICS_BINDING_OPENGL_WIN32_KHR;

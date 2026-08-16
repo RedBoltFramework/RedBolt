@@ -30,7 +30,7 @@ set(REDBOLT_BINDING_SYSROOT "${_redbolt_binding_sysroot}" CACHE INTERNAL
 function(redbolt_add_native_binding_generation)
     set(options)
     set(oneValueArgs TARGET SURFACE HEADER HEADER_INCLUDE_PATH FILE_STEM OUTPUT_DIR OUTPUT_CS OUTPUT_CPP OUTPUT_METADATA NATIVE_LIBRARY_NAME COMPILER)
-    set(multiValueArgs INCLUDE_DIRS DEFINES OWNED_HEADERS)
+    set(multiValueArgs INCLUDE_DIRS DEFINES OWNED_HEADERS DEPENDS)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     foreach(required TARGET SURFACE HEADER HEADER_INCLUDE_PATH FILE_STEM OUTPUT_DIR OUTPUT_CS OUTPUT_CPP OUTPUT_METADATA NATIVE_LIBRARY_NAME)
@@ -163,6 +163,7 @@ function(redbolt_add_native_binding_generation)
             "${REDBOLT_DEPENDENCIES_GENERATOR_DLL}"
             ${REDBOLT_DEPENDENCIES_GENERATOR_INPUTS}
             ${REDBOLT_SHARPCPP_GENERATOR_INPUTS}
+            ${ARG_DEPENDS}
         WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
         COMMENT "Generating ${ARG_SURFACE} bindings"
         VERBATIM)

@@ -52,7 +52,10 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
         "GetTemporaryGLProgramUniformName",
         "GetTemporaryGLProgramUniformBlockOffset",
         "GetTemporaryGLProgramUniformSize",
-        "GetTextureFormatAttribs"
+        "GetTextureFormatAttribs",
+        "GetOpenXRGraphicsBinding",
+        "AllocateOpenXRSwapchainImageData",
+        "GetOpenXRSwapchainImage"
     };
 
     private static readonly HashSet<string> RetainedBaseInterfaceMethods = new(StringComparer.Ordinal)
@@ -142,6 +145,7 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
         FixedWidthAliasNormalizer.Normalize(compilation, FixedWidthAliases);
         ConfigureSetVertexBuffersOffsets(compilation);
         ConfigureAndroidResume(compilation);
+        ConfigureOpenXRSwapchainImage(compilation);
     }
 
     protected override GeneratedBindingSet TransformBindings(GeneratedBindingSet bindings)
@@ -232,6 +236,20 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
         window.Type = BindingType.IntPtr;
         window.Direction = BindingParameterDirection.In;
         window.AbiKind = BindingParameterAbiKind.Value;
+    }
+
+    private static void ConfigureOpenXRSwapchainImage(BindingCompilation compilation)
+    {
+        var function = compilation.Members.OfType<FunctionBinding>().FirstOrDefault(static candidate =>
+            candidate.NativeName == "GetOpenXRSwapchainImage");
+        var imageData = function?.Parameters.FirstOrDefault(static parameter =>
+            parameter.NativeName == "ImageData");
+        if (imageData is null)
+            return;
+
+        imageData.Type = BindingType.IntPtr;
+        imageData.Direction = BindingParameterDirection.In;
+        imageData.AbiKind = BindingParameterAbiKind.Value;
     }
 
     private static int PruneTopLevelFunctions(IList<BindingNode> members)

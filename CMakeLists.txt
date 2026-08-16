@@ -16,6 +16,7 @@ add_custom_target(redbolt-msbuild-build-guard ALL
 
 option(REDBOLT_WEB_BUILD "Build the framework-free WebAssembly target only" OFF)
 option(REDBOLT_ANDROID_BUILD "Build the Android runtime and sample support" OFF)
+option(REDBOLT_ENABLE_OPENXR "Build shared graphics support for external OpenXR modules" OFF)
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries" FORCE)
 set(REDBOLT_EXTERNAL_LIBRARY_TYPE STATIC)

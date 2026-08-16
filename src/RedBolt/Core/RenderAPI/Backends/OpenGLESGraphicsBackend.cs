@@ -60,6 +60,7 @@ public sealed class OpenGLESGraphicsBackend : IGraphicsBackend
                 FeaturesSeparablePrograms = DeviceFeatureState.DeviceFeatureStateOptional,
                 FeaturesShaderResourceQueries = DeviceFeatureState.DeviceFeatureStateOptional
             };
+            GraphicsInitializationExtensions.ConfigureCreateInfo(parameters, Backend, engineCreateInfo);
             using var swapChainDesc = new SwapChainDesc
             {
                 ColorBufferFormat = effectiveSrgb != 0

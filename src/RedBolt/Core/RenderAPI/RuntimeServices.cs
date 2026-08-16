@@ -6,6 +6,7 @@ namespace RedBolt.RenderAPI;
 
 using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
+using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.RenderAPI.Backends;
@@ -21,6 +22,29 @@ public interface IGraphicsBackend
 
     GraphicsBackendResources Initialize(EngineParameters parameters, RenderDeviceSettings deviceSettings,
         WindowSettings windowSettings, SdlWindow window);
+}
+
+/// <summary>External subsystem that prepares and configures graphics initialization.</summary>
+public interface IGraphicsInitializationExtension
+{
+    /// <summary>Initialize extension state before the graphics device is created.</summary>
+    bool InitializeGraphics(EngineParameters parameters, RenderBackend backend);
+
+    /// <summary>Attach extension data to a backend create-info object.</summary>
+    void ConfigureGraphicsCreateInfo(RenderBackend backend, EngineCreateInfo createInfo);
+}
+
+internal static class GraphicsInitializationExtensions
+{
+    public static void ConfigureCreateInfo(EngineParameters parameters, RenderBackend backend,
+        EngineCreateInfo createInfo)
+    {
+        if (!parameters.XR)
+            return;
+
+        Context.Instance.GetSubsystem<IGraphicsInitializationExtension>()?
+            .ConfigureGraphicsCreateInfo(backend, createInfo);
+    }
 }
 
 /// <summary>Native graphics resources returned to the shared graphics subsystem.</summary>

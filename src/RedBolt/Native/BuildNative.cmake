@@ -17,6 +17,10 @@ foreach(required_variable
     endif()
 endforeach()
 
+if(NOT DEFINED REDBOLT_ENABLE_OPENXR OR REDBOLT_ENABLE_OPENXR STREQUAL "")
+    set(REDBOLT_ENABLE_OPENXR OFF)
+endif()
+
 get_filename_component(_redbolt_native_build_parent "${REDBOLT_NATIVE_BUILD_DIR}" DIRECTORY)
 file(MAKE_DIRECTORY "${_redbolt_native_build_parent}")
 file(LOCK "${REDBOLT_NATIVE_BUILD_DIR}.lock"
@@ -56,6 +60,11 @@ if(EXISTS "${_redbolt_native_cache}")
         LIMIT_COUNT 1)
     string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_enabled_modules "${_redbolt_cached_enabled_modules}")
     file(STRINGS "${_redbolt_native_cache}"
+        _redbolt_cached_enable_openxr
+        REGEX "^REDBOLT_ENABLE_OPENXR:[^=]*="
+        LIMIT_COUNT 1)
+    string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_enable_openxr "${_redbolt_cached_enable_openxr}")
+    file(STRINGS "${_redbolt_native_cache}"
         _redbolt_cached_cmake_command
         REGEX "^CMAKE_COMMAND:[^=]*="
         LIMIT_COUNT 1)
@@ -76,6 +85,7 @@ if(EXISTS "${_redbolt_native_cache}")
             AND _redbolt_cached_pdb_output STREQUAL REDBOLT_PDB_OUTPUT_DIR
             AND _redbolt_cached_configuration STREQUAL REDBOLT_CONFIGURATION
             AND _redbolt_cached_enabled_modules STREQUAL REDBOLT_ENABLED_NATIVE_MODULES
+            AND _redbolt_cached_enable_openxr STREQUAL REDBOLT_ENABLE_OPENXR
             AND _redbolt_cached_cmake_command STREQUAL CMAKE_COMMAND
             AND _redbolt_cached_build_type_matches)
         set(_redbolt_configure_native FALSE)
@@ -96,6 +106,7 @@ if(_redbolt_configure_native)
             "-DREDBOLT_DEPENDENCIES_GENERATOR_DLL=${REDBOLT_GENERATOR_DLL}"
             "-DREDBOLT_CONFIGURATION=${REDBOLT_CONFIGURATION}"
             "-DREDBOLT_ENABLED_NATIVE_MODULES=${REDBOLT_ENABLED_NATIVE_MODULES}"
+            "-DREDBOLT_ENABLE_OPENXR=${REDBOLT_ENABLE_OPENXR}"
             "-DREDBOLT_RUNTIME_OUTPUT_DIR=${REDBOLT_RUNTIME_OUTPUT_DIR}"
             "-DREDBOLT_PDB_OUTPUT_DIR=${REDBOLT_PDB_OUTPUT_DIR}"
             ${_redbolt_configure_arguments}

@@ -62,6 +62,7 @@ public sealed class OpenGLGraphicsBackend : IGraphicsBackend
                 FeaturesSeparablePrograms = DeviceFeatureState.DeviceFeatureStateOptional,
                 FeaturesShaderResourceQueries = DeviceFeatureState.DeviceFeatureStateOptional
             };
+            GraphicsInitializationExtensions.ConfigureCreateInfo(parameters, Backend, engineCreateInfo);
 #if REDBOLT_PLATFORM_LINUX
             engineCreateInfo.WindowPDisplay = nativeWindowInfo.Display;
             engineCreateInfo.WindowWindowId = checked((uint)nativeWindowInfo.Window);

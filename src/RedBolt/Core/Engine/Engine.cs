@@ -185,6 +185,14 @@ public class Engine : RedObject
                 Vulkan = vulkanSettings,
                 D3D12 = d3D12Settings
             };
+            if (Parameters.XR)
+            {
+                var graphicsExtension = GetSubsystem<IGraphicsInitializationExtension>()
+                    ?? throw new InvalidOperationException(
+                        "XR was requested, but no graphics initialization extension is registered.");
+                if (!graphicsExtension.InitializeGraphics(Parameters, deviceSettings.Backend))
+                    throw new InvalidOperationException("XR graphics initialization failed.");
+            }
             var requestedShaderPolicy = Parameters.ShaderPolicy switch
             {
                 nameof(ShaderTranslationPolicy.Translate) => ShaderTranslationPolicy.Translate,

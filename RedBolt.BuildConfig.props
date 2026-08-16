@@ -72,6 +72,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltSamplesEnabled Condition="'$(RedBoltSamplesEnabled)' == ''">false</RedBoltSamplesEnabled>
     <RedBoltTestsEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',tests,'))">true</RedBoltTestsEnabled>
     <RedBoltTestsEnabled Condition="'$(RedBoltTestsEnabled)' == ''">false</RedBoltTestsEnabled>
+    <RedBoltOpenXREnabled Condition="'$(RedBoltXREnabled)' == 'true' or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',xr,'))">true</RedBoltOpenXREnabled>
+    <RedBoltOpenXREnabled Condition="'$(RedBoltOpenXREnabled)' == ''">false</RedBoltOpenXREnabled>
 
     <RedBoltEnabledNativeModules>SDL,DILIGENT,STB,LZ4,HARFBUZZ,WEBP,GLSLANG,SPIRV_CROSS,SPIRV_TOOLS,SHADER_COMPILER</RedBoltEnabledNativeModules>
     <RedBoltEnabledNativeModules Condition="'$(RedBoltDearImGuiEnabled)' == 'true'">$(RedBoltEnabledNativeModules),IMGUI</RedBoltEnabledNativeModules>

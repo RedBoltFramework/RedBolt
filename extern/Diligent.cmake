@@ -5,6 +5,7 @@ set(DILIGENT_NO_FORMAT_VALIDATION ON CACHE BOOL "" FORCE)
 set(DILIGENT_NO_HLSL ON CACHE BOOL "" FORCE)
 set(DILIGENT_NO_ARCHIVER OFF CACHE BOOL "" FORCE)
 set(DILIGENT_NO_SUPER_RESOLUTION ON CACHE BOOL "" FORCE)
+set(DILIGENT_USE_OPENXR ${REDBOLT_ENABLE_OPENXR} CACHE BOOL "Build Diligent OpenXR integration" FORCE)
 set(_redbolt_diligent_compile_shaders_with_wine OFF)
 if(WIN32)
     set(DILIGENT_NO_DIRECT3D11 OFF CACHE BOOL "" FORCE)
@@ -84,6 +85,19 @@ CPMAddPackage(
 set(BUILD_SHARED_LIBS "${_redbolt_saved_build_shared_libs}")
 set(REDBOLT_DILIGENT_SOURCE_ROOT "${Diligent_SOURCE_DIR}" CACHE INTERNAL "Diligent source root")
 redbolt_require_path("${REDBOLT_DILIGENT_SOURCE_ROOT}/Graphics/GraphicsEngine/interface/GraphicsTypes.h" "Diligent headers")
+
+if(REDBOLT_ENABLE_OPENXR AND TARGET generate_openxr_header)
+    foreach(_redbolt_diligent_openxr_target IN ITEMS
+            Diligent-GraphicsEngineOpenGL-static
+            Diligent-GraphicsEngineVk-static
+            Diligent-GraphicsEngineD3D11-static
+            Diligent-GraphicsEngineD3D12-static
+            Diligent-GraphicsTools)
+        if(TARGET ${_redbolt_diligent_openxr_target})
+            add_dependencies(${_redbolt_diligent_openxr_target} generate_openxr_header)
+        endif()
+    endforeach()
+endif()
 
 if(MINGW AND (D3D11_SUPPORTED OR D3D12_SUPPORTED))
     target_compile_definitions(Diligent-BuildSettings INTERFACE _Maybenull_=)
@@ -198,6 +212,15 @@ else()
 endif()
 set(REDBOLT_DILIGENT_INCLUDE_DIRS ${REDBOLT_DILIGENT_INCLUDE_DIRS}
     CACHE INTERNAL "Diligent include directories used by RedBolt")
+if(REDBOLT_ENABLE_OPENXR)
+    set(REDBOLT_DILIGENT_OPENXR_INCLUDE_DIRS
+        "${CPM_PACKAGE_OpenXR_SOURCE_DIR}/include"
+        "${CPM_PACKAGE_OpenXR_BINARY_DIR}/include"
+        CACHE INTERNAL "OpenXR dependency headers needed to parse Diligent utilities" FORCE)
+else()
+    set(REDBOLT_DILIGENT_OPENXR_INCLUDE_DIRS ""
+        CACHE INTERNAL "OpenXR dependency headers needed to parse Diligent utilities" FORCE)
+endif()
 
 if(EMSCRIPTEN)
     set(_redbolt_platform_defines "PLATFORM_WEB=1" "PLATFORM_EMSCRIPTEN=1" "PLATFORM_LINUX=0")

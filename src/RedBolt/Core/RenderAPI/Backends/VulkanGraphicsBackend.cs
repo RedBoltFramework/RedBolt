@@ -38,6 +38,7 @@ public sealed class VulkanGraphicsBackend : IGraphicsBackend
         using var createInfo = new EngineVkCreateInfo();
         CopyBackendDeviceSettings(createInfo, deviceSettings.Vulkan);
         EnableOptionalFeatures(createInfo);
+        GraphicsInitializationExtensions.ConfigureCreateInfo(parameters, Backend, createInfo);
         if (deviceSettings.AdapterId.HasValue)
             createInfo.AdapterId = checked((uint)deviceSettings.AdapterId.Value);
 
