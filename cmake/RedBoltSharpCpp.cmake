@@ -160,7 +160,6 @@ function(redbolt_add_native_binding_generation)
         DEPENDS
             "${ARG_HEADER}"
             ${owned_header_inputs}
-            "${REDBOLT_DEPENDENCIES_GENERATOR_DLL}"
             ${REDBOLT_DEPENDENCIES_GENERATOR_INPUTS}
             ${REDBOLT_SHARPCPP_GENERATOR_INPUTS}
             ${ARG_DEPENDS}

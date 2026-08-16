@@ -201,6 +201,12 @@ internal abstract class BindingTargetGenerator(
             options.CompilerTarget,
             options.CompilerSysroot);
         var targetTriple = toolchainInfo.TargetTriple;
+        var isMinGwTarget = targetTriple?.Contains("windows", StringComparison.OrdinalIgnoreCase) == true ||
+            targetTriple?.Contains("mingw", StringComparison.OrdinalIgnoreCase) == true;
+        // Bundled libclang otherwise auto-detects incompatible GCC intrinsic headers.
+        if (isMinGwTarget)
+            clangArguments.Add("-nostdinc");
+
         var isX86Target = string.IsNullOrWhiteSpace(targetTriple) ||
             targetTriple.StartsWith("x86", StringComparison.OrdinalIgnoreCase) ||
             targetTriple.StartsWith("i386", StringComparison.OrdinalIgnoreCase) ||
@@ -230,6 +236,8 @@ internal abstract class BindingTargetGenerator(
                 argument.StartsWith("-resource-dir=", StringComparison.Ordinal) || argument == "-resource-dir"))
         {
             clangArguments.Add($"-resource-dir={toolchainInfo.ClangResourceDirectory}");
+            if (isMinGwTarget)
+                clangArguments.Add($"-isystem{Path.Combine(toolchainInfo.ClangResourceDirectory, "include")}");
         }
 
         foreach (var systemIncludeDirectory in toolchainInfo.IncludeDirectories)

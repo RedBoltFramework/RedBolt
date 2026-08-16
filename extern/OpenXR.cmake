@@ -2,6 +2,7 @@ set(BUILD_API_LAYERS OFF CACHE BOOL "Build OpenXR API layers" FORCE)
 set(BUILD_CONFORMANCE_TESTS OFF CACHE BOOL "Build OpenXR conformance tests" FORCE)
 set(BUILD_TESTS OFF CACHE BOOL "Build OpenXR tests" FORCE)
 set(BUILD_ALL_EXTENSIONS OFF CACHE BOOL "Build all OpenXR extensions" FORCE)
+set(BUILD_WITH_SYSTEM_JSONCPP OFF CACHE BOOL "Use vendored OpenXR JsonCpp" FORCE)
 
 # The SDK's legacy sample graphics wrapper is created even when all samples and
 # tests are disabled. Suppress graphics package discovery only while adding the

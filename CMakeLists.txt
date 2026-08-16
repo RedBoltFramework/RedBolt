@@ -4,6 +4,8 @@
 
 cmake_minimum_required(VERSION 3.28)
 
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5 CACHE STRING "Minimum CMake policy version accepted by dependencies")
+
 project(RedBoltFramework VERSION 0.1.0 LANGUAGES C CXX)
 
 if(MINGW)
@@ -17,6 +19,9 @@ add_custom_target(redbolt-msbuild-build-guard ALL
 option(REDBOLT_WEB_BUILD "Build the framework-free WebAssembly target only" OFF)
 option(REDBOLT_ANDROID_BUILD "Build the Android runtime and sample support" OFF)
 option(REDBOLT_ENABLE_OPENXR "Build shared graphics support for external OpenXR modules" OFF)
+if(EMSCRIPTEN)
+    set(REDBOLT_ENABLE_OPENXR OFF)
+endif()
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build shared libraries" FORCE)
 set(REDBOLT_EXTERNAL_LIBRARY_TYPE STATIC)

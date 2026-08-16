@@ -69,7 +69,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
           Inputs="@(RedBoltWebCoreDataResource);@(RedBoltWebDataResource);$(RedBoltPackageToolAssembly)"
           Outputs="$(RedBoltWebCoreDataPackage);$(RedBoltWebDataPackage)">
     <MSBuild Projects="$(RedBoltPackageToolProject)"
-             Targets="Build"
+             Targets="Restore;Build"
              BuildInParallel="false"
              Properties="Configuration=$(Configuration);RedBoltPlatform=linux-x64;RedBoltNativePreset=linux-x64;RedBoltIgnoreBuildSelection=true"
              RemoveProperties="RuntimeIdentifier;SelfContained;PublishSelfContained" />

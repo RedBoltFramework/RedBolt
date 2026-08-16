@@ -9,7 +9,6 @@ if(NOT REDBOLT_DEPENDENCIES_GENERATOR_DLL)
         "${PROJECT_SOURCE_DIR}/build/bin/$<CONFIG>/host/tools/RedBolt.Generator.Dependencies.dll"
         CACHE FILEPATH "RedBolt dependency generator assembly")
 endif()
-
 file(GLOB_RECURSE REDBOLT_SHARPCPP_GENERATOR_INPUTS CONFIGURE_DEPENDS
     "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Model/*.cs"
     "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Metadata/*.cs"

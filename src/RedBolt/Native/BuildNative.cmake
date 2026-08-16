@@ -20,6 +20,11 @@ endforeach()
 if(NOT DEFINED REDBOLT_ENABLE_OPENXR OR REDBOLT_ENABLE_OPENXR STREQUAL "")
     set(REDBOLT_ENABLE_OPENXR OFF)
 endif()
+if(NOT DEFINED REDBOLT_PARALLELIZATION OR REDBOLT_PARALLELIZATION STREQUAL "")
+    set(REDBOLT_PARALLELIZATION 4)
+elseif(NOT REDBOLT_PARALLELIZATION MATCHES "^[1-9][0-9]*$")
+    message(FATAL_ERROR "REDBOLT_PARALLELIZATION must be a positive integer")
+endif()
 
 get_filename_component(_redbolt_native_build_parent "${REDBOLT_NATIVE_BUILD_DIR}" DIRECTORY)
 file(MAKE_DIRECTORY "${_redbolt_native_build_parent}")
@@ -101,6 +106,7 @@ if(_redbolt_configure_native)
     execute_process(
         COMMAND "${CMAKE_COMMAND}"
             --preset "${REDBOLT_NATIVE_PRESET}"
+            -B "${REDBOLT_NATIVE_BUILD_DIR}"
             -U "MAKECOMMAND"
             "-DREDBOLT_SHARPCPP_ROOT=${REDBOLT_SHARPCPP_ROOT}"
             "-DREDBOLT_DEPENDENCIES_GENERATOR_DLL=${REDBOLT_GENERATOR_DLL}"
@@ -129,7 +135,7 @@ if(DEFINED REDBOLT_CONFIGURATION AND NOT REDBOLT_CONFIGURATION STREQUAL "")
 endif()
 list(APPEND _redbolt_build_command
     --target "${REDBOLT_NATIVE_TARGET}"
-    --parallel 4)
+    --parallel "${REDBOLT_PARALLELIZATION}")
 execute_process(
     COMMAND ${_redbolt_build_command}
     WORKING_DIRECTORY "${REDBOLT_SOURCE_DIR}"

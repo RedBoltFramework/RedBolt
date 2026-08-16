@@ -106,7 +106,15 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     </Task>
   </UsingTask>
 
+  <Target Name="RedBoltEnsureDependencies"
+          Condition="!Exists('$(MSBuildThisFileDirectory)extern/SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj')">
+    <Exec Command="cmake --preset linux-x64" WorkingDirectory="$(MSBuildThisFileDirectory)" />
+    <Error Condition="!Exists('$(MSBuildThisFileDirectory)extern/SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj')"
+           Text="CPM did not populate SharpCpp below '$(MSBuildThisFileDirectory)extern/SharpCpp'." />
+  </Target>
+
   <Target Name="RedBoltConfigureSolutionRestore"
+          DependsOnTargets="RedBoltEnsureDependencies"
           BeforeTargets="_FilterRestoreGraphProjectInputItems">
     <PropertyGroup>
       <_GenerateRestoreGraphProjectEntryInputProperties>

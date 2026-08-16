@@ -161,8 +161,7 @@ function(redbolt_add_native_wrapper)
     target_link_libraries(${ARG_TARGET} PRIVATE
         SharpCpp::NativeSupport
         ${ARG_WRAPPER_DEPENDENCIES}
-        ${ARG_RUNTIME_DEPENDENCIES}
-        ${ARG_LINK_LIBRARIES})
+        ${ARG_RUNTIME_DEPENDENCIES})
     if(_redbolt_owned_static_targets AND EMSCRIPTEN)
         # The final Web archive is assembled from every owned static target
         # by Sample/Web/CMakeLists.txt, so wrapper targets only need the usage
@@ -183,6 +182,7 @@ function(redbolt_add_native_wrapper)
             "$<LINK_LIBRARY:WHOLE_ARCHIVE,${_redbolt_owned_static_files_csv}>"
             ${ARG_OWNED_LIBRARIES})
     endif()
+    target_link_libraries(${ARG_TARGET} PRIVATE ${ARG_LINK_LIBRARIES})
     set_target_properties(${ARG_TARGET} PROPERTIES
         OUTPUT_NAME "${ARG_OUTPUT_NAME}"
         ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib/$<CONFIG>"
@@ -624,7 +624,7 @@ if(NOT EMSCRIPTEN)
         foreach(_redbolt_runtime_entry_target IN LISTS
                 _redbolt_runtime_entry_targets)
             list(APPEND _redbolt_native_runtime_entries
-                "${_redbolt_native_module}=$<TARGET_FILE_NAME:${_redbolt_runtime_entry_target}>")
+                "${_redbolt_native_module}=$<TARGET_SONAME_FILE_NAME:${_redbolt_runtime_entry_target}>")
         endforeach()
     endforeach()
     string(REPLACE ";" "," _redbolt_native_wrapper_entries_csv

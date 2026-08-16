@@ -27,7 +27,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltAndroidNativeOutput>$(RedBoltNativeOutputRoot)</RedBoltAndroidNativeOutput>
     <RedBoltAndroidNdkTriple Condition="'$(RedBoltPlatform)' == 'android-arm64'">aarch64-linux-android</RedBoltAndroidNdkTriple>
     <RedBoltAndroidNdkTriple Condition="'$(RedBoltPlatform)' == 'android-x64'">x86_64-linux-android</RedBoltAndroidNdkTriple>
-    <RedBoltAndroidJavaDirectory>$(RedBoltBuildRoot)/native/$(RedBoltPlatform)/generated/android/java</RedBoltAndroidJavaDirectory>
+    <RedBoltAndroidJavaDirectory>$(RedBoltNativeBuildDir)/generated/android/java</RedBoltAndroidJavaDirectory>
     <RedBoltAndroidPackageOutputDirectory>$(RedBoltOutputRoot)/app</RedBoltAndroidPackageOutputDirectory>
   </PropertyGroup>
 
