@@ -7,18 +7,16 @@ namespace RedBolt.Core;
 /// <summary>Automatically ends a profiling block when disposed.</summary>
 public readonly struct AutoProfileBlock : IDisposable
 {
-    private readonly Profiler? _profiler;
     private readonly ProfilerBlock? _block;
 
-    internal AutoProfileBlock(Profiler profiler, string name)
+    internal AutoProfileBlock(string name)
     {
-        _block = profiler.BeginBlockInternal(name);
-        _profiler = _block is not null ? profiler : null;
+        _block = Profiler.BeginProfileBlock(name);
     }
 
     public void Dispose()
     {
-        if (_profiler is not null && _block is not null)
-            _profiler.EndBlock(_block);
+        if (_block is not null)
+            Profiler.EndBlock(_block);
     }
 }

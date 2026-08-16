@@ -156,7 +156,7 @@ sealed class HugeObjectCountApplication : Application
     /// <summary>Animate the scene.</summary>
     private void AnimateObjects(float timeStep)
     {
-        using var profile = GetSubsystem<Profiler>().Profile("AnimateObjects");
+        using var profile = Profiler.Profile("AnimateObjects");
 
         const float rotateSpeed = 15.0f;
         // Rotate about the Z axis (roll)

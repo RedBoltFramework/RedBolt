@@ -18,6 +18,8 @@ public sealed class Profiler : RedObject
     public const uint ColorEvents = 0xb26d19;
     public const uint ColorResources = 0x006b82;
 
+    private static Profiler? _instance;
+
     private readonly int _mainThreadId = Environment.CurrentManagedThreadId;
     private readonly ProfilerBlock _root = new(null, "RunFrame");
     private ProfilerBlock _current;
@@ -26,6 +28,14 @@ public sealed class Profiler : RedObject
     public Profiler()
     {
         _current = _root;
+        _instance = this;
+    }
+
+    public override void Dispose()
+    {
+        if (ReferenceEquals(_instance, this))
+            _instance = null;
+        base.Dispose();
     }
 
     public bool Enabled { get; set; }
@@ -38,16 +48,16 @@ public sealed class Profiler : RedObject
 
     public ProfilerFrameSample LastFrame { get; private set; }
 
-    public AutoProfileBlock Profile(string name)
+    public static AutoProfileBlock Profile(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        return new AutoProfileBlock(this, name);
+        return new AutoProfileBlock(name);
     }
 
-    public void BeginBlock(string name)
+    public static void BeginBlock(string name)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        BeginBlockInternal(name);
+        _instance?.BeginBlockInternal(name);
     }
 
     internal ProfilerBlock? BeginBlockInternal(string name)
@@ -63,7 +73,14 @@ public sealed class Profiler : RedObject
         return _current;
     }
 
-    public void EndBlock()
+    internal static ProfilerBlock? BeginProfileBlock(string name) => _instance?.BeginBlockInternal(name);
+
+    public static void EndBlock()
+    {
+        _instance?.EndBlockInternal();
+    }
+
+    private void EndBlockInternal()
     {
         if (!Enabled || Environment.CurrentManagedThreadId != _mainThreadId)
             return;
@@ -72,10 +89,11 @@ public sealed class Profiler : RedObject
         _current = _current.Parent ?? _root;
     }
 
-    internal void EndBlock(ProfilerBlock block)
+    internal static void EndBlock(ProfilerBlock block)
     {
-        if (ReferenceEquals(_current, block))
-            EndBlock();
+        var instance = _instance;
+        if (instance is not null && ReferenceEquals(instance._current, block))
+            instance.EndBlockInternal();
     }
 
     public void BeginFrame()
@@ -97,7 +115,7 @@ public sealed class Profiler : RedObject
             return;
 
         while (_current.Parent is not null)
-            EndBlock();
+            EndBlockInternal();
         _root.End();
         _root.EndFrame();
         _current = _root;

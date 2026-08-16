@@ -292,7 +292,7 @@ public class Engine : RedObject
             var time = GetSubsystem<Time>()!;
             var input = GetSubsystem<Input>()!;
             var graphics = GetSubsystem<Graphics>()!;
-            using (profiler.Profile("WorkQueue"))
+            using (Profiler.Profile("WorkQueue"))
                 GetSubsystem<WorkQueue>()!.Update();
 
             if (!IsHeadless && !graphics.IsInitialized)
@@ -305,13 +305,13 @@ public class Engine : RedObject
             if (timeStep < 0.0f)
                 timeStep = 0.0f;
 
-            using (profiler.Profile("BeginFrame"))
+            using (Profiler.Profile("BeginFrame"))
                 time.BeginFrame(timeStep);
 
             var isPaused = PauseMinimized && input.IsMinimized;
             if (!IsHeadless)
             {
-                using (profiler.Profile("Input"))
+                using (Profiler.Profile("Input"))
                 {
                     input.BeginFrame();
                     input.PollEvents();
@@ -324,20 +324,20 @@ public class Engine : RedObject
             {
                 if (!isPaused)
                 {
-                    using (profiler.Profile("Update"))
+                    using (Profiler.Profile("Update"))
                         SendCoreEvents(timeStep, update);
                 }
 
                 if (!IsHeadless)
                 {
-                    using (profiler.Profile("Render"))
+                    using (Profiler.Profile("Render"))
                         Render();
                 }
             }
 
-            using (profiler.Profile("ApplyFrameLimit"))
+            using (Profiler.Profile("ApplyFrameLimit"))
                 ApplyFrameLimit();
-            using (profiler.Profile("EndFrame"))
+            using (Profiler.Profile("EndFrame"))
             {
                 time.EndFrame();
                 HandleEndFrame();
@@ -847,33 +847,32 @@ public class Engine : RedObject
 
     private void SendCoreEvents(float timeStep, Action<float>? update = null)
     {
-        var profiler = GetSubsystem<Profiler>()!;
-        using (profiler.Profile("InputReady"))
+        using (Profiler.Profile("InputReady"))
         {
             var inputReadyEventData = new CoreEvents.InputReadyEvent { TimeStep = timeStep };
             SendEvent(ref inputReadyEventData);
         }
 
-        using (profiler.Profile("LogicUpdate"))
+        using (Profiler.Profile("LogicUpdate"))
         {
             var updateEventData = new CoreEvents.UpdateEvent { TimeStep = timeStep };
             SendEvent(ref updateEventData);
             update?.Invoke(timeStep);
         }
 
-        using (profiler.Profile("PostUpdate"))
+        using (Profiler.Profile("PostUpdate"))
         {
             var postUpdateEventData = new CoreEvents.PostUpdateEvent { TimeStep = timeStep };
             SendEvent(ref postUpdateEventData);
         }
 
-        using (profiler.Profile("RenderUpdate"))
+        using (Profiler.Profile("RenderUpdate"))
         {
             var renderUpdateEventData = new CoreEvents.RenderUpdateEvent { TimeStep = timeStep };
             SendEvent(ref renderUpdateEventData);
         }
 
-        using (profiler.Profile("PostRenderUpdate"))
+        using (Profiler.Profile("PostRenderUpdate"))
         {
             var postRenderUpdateEventData = new CoreEvents.PostRenderUpdateEvent { TimeStep = timeStep };
             SendEvent(ref postRenderUpdateEventData);

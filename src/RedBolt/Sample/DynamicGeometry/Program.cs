@@ -318,7 +318,7 @@ public class DynamicGeometry : Application
     /// </summary>
     private void AnimateObjects(float timeStep)
     {
-        using var profile = GetSubsystem<Profiler>().Profile("AnimateObjects");
+        using var profile = Profiler.Profile("AnimateObjects");
 
         _time += timeStep * 100.0f;
 
