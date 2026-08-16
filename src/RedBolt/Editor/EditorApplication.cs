@@ -74,6 +74,8 @@ public unsafe class EditorApplication : Application
         _editorPluginManager.AddPlugin<EditorProject>(
             "Foundation.Console", static project => project.AddTab(new ConsoleTab()));
         _editorPluginManager.AddPlugin<EditorProject>(
+            "Foundation.Profiler", static project => project.AddTab(new ProfilerTab()));
+        _editorPluginManager.AddPlugin<EditorProject>(
             "Foundation.ResourceBrowser", static project => project.AddTab(new ResourceBrowserTab()));
         _editorPluginManager.AddPlugin<EditorProject>(
             "Foundation.HierarchyBrowser", static project => project.AddTab(new HierarchyBrowserTab()));
@@ -815,8 +817,8 @@ public unsafe class EditorApplication : Application
 
         if (ImGui.BeginMenu("Tools"u8))
         {
-            if (ImGui.MenuItem("Profiler"u8))
-                OpenProfilerApplication();
+            if (ImGui.MenuItem("Profiler"u8, default, false, _project is not null))
+                _project?.FindTab<ProfilerTab>()?.Focus();
             ImGui.EndMenu();
         }
 
@@ -961,25 +963,6 @@ public unsafe class EditorApplication : Application
             Reveal(args.Address);
         else
             SystemOpen(args.Address);
-    }
-
-    protected void OpenProfilerApplication()
-    {
-        var programDirectory = Path.GetDirectoryName(Environment.ProcessPath) ?? string.Empty;
-#if REDBOLT_PLATFORM_WINDOWS
-        var profilerPath = Path.Combine(programDirectory, "Profiler.exe");
-#else
-        var profilerPath = Path.Combine(programDirectory, "Profiler");
-#endif
-        try
-        {
-            Process.Start(new ProcessStartInfo(profilerPath) { UseShellExecute = false })?.Dispose();
-        }
-        catch (Exception exception) when (exception is System.ComponentModel.Win32Exception
-            or InvalidOperationException or NotSupportedException or FileNotFoundException)
-        {
-            Log.GetLogger().LogError(exception, "Failed to start profiler application at {Path}.", profilerPath);
-        }
     }
 
     protected void OpenOrCreateProject()

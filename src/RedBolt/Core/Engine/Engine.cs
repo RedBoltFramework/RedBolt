@@ -139,6 +139,7 @@ public class Engine : RedObject
 
         resources.RegisterDefaultResources();
         ApplyInitializationParameters();
+        GetSubsystem<Profiler>()!.Enabled = Parameters.Profile;
         GetSubsystem<PluginManager>()!.Configure(Parameters);
 
         if (!IsHeadless)
@@ -276,49 +277,68 @@ public class Engine : RedObject
         if (IsExiting)
             return;
 
-        var time = GetSubsystem<Time>()!;
-        var input = GetSubsystem<Input>()!;
-        var graphics = GetSubsystem<Graphics>()!;
-        GetSubsystem<WorkQueue>()!.Update();
-
-        if (!IsHeadless && !graphics.IsInitialized)
+        var profiler = GetSubsystem<Profiler>()!;
+        profiler.BeginFrame();
+        try
         {
-            IsExiting = true;
-            return;
-        }
+            var time = GetSubsystem<Time>()!;
+            var input = GetSubsystem<Input>()!;
+            var graphics = GetSubsystem<Graphics>()!;
+            using (profiler.Profile("WorkQueue"))
+                GetSubsystem<WorkQueue>()!.Update();
 
-        var timeStep = _timeStep;
-        if (timeStep < 0.0f)
-            timeStep = 0.0f;
-
-        time.BeginFrame(timeStep);
-
-        var isPaused = PauseMinimized && input.IsMinimized;
-        if (!IsHeadless)
-        {
-            input.BeginFrame();
-            input.PollEvents();
-            if (input.ExitRequested && AutoExit)
-                HandleExitRequested();
-        }
-
-        if (!IsExiting)
-        {
-            var shouldUpdate = !isPaused;
-            if (shouldUpdate)
+            if (!IsHeadless && !graphics.IsInitialized)
             {
-                SendCoreEvents(timeStep, update);
+                IsExiting = true;
+                return;
             }
 
+            var timeStep = _timeStep;
+            if (timeStep < 0.0f)
+                timeStep = 0.0f;
+
+            using (profiler.Profile("BeginFrame"))
+                time.BeginFrame(timeStep);
+
+            var isPaused = PauseMinimized && input.IsMinimized;
             if (!IsHeadless)
             {
-                Render();
+                using (profiler.Profile("Input"))
+                {
+                    input.BeginFrame();
+                    input.PollEvents();
+                    if (input.ExitRequested && AutoExit)
+                        HandleExitRequested();
+                }
+            }
+
+            if (!IsExiting)
+            {
+                if (!isPaused)
+                {
+                    using (profiler.Profile("Update"))
+                        SendCoreEvents(timeStep, update);
+                }
+
+                if (!IsHeadless)
+                {
+                    using (profiler.Profile("Render"))
+                        Render();
+                }
+            }
+
+            using (profiler.Profile("ApplyFrameLimit"))
+                ApplyFrameLimit();
+            using (profiler.Profile("EndFrame"))
+            {
+                time.EndFrame();
+                HandleEndFrame();
             }
         }
-
-        ApplyFrameLimit();
-        time.EndFrame();
-        HandleEndFrame();
+        finally
+        {
+            profiler.EndFrame();
+        }
     }
 
     /// <summary>
@@ -426,13 +446,6 @@ public class Engine : RedObject
             return value;
 
         return EngineParameterBinding.TryGetValue(Parameters, name, out value) ? value : null;
-    }
-
-    public void DumpProfiler()
-    {
-        if (!IsInitialized)
-            return;
-        Log.GetLogger().LogInformation("Profiler data is not available in the managed runtime.");
     }
 
     public void DumpResources(bool dumpFileName = false)
@@ -826,36 +839,37 @@ public class Engine : RedObject
 
     private void SendCoreEvents(float timeStep, Action<float>? update = null)
     {
-        var inputReadyEventData = new CoreEvents.InputReadyEvent
+        var profiler = GetSubsystem<Profiler>()!;
+        using (profiler.Profile("InputReady"))
         {
-            TimeStep = timeStep
-        };
-        SendEvent(ref inputReadyEventData);
+            var inputReadyEventData = new CoreEvents.InputReadyEvent { TimeStep = timeStep };
+            SendEvent(ref inputReadyEventData);
+        }
 
-        var updateEventData = new CoreEvents.UpdateEvent
+        using (profiler.Profile("LogicUpdate"))
         {
-            TimeStep = timeStep
-        };
-        SendEvent(ref updateEventData);
-        update?.Invoke(timeStep);
+            var updateEventData = new CoreEvents.UpdateEvent { TimeStep = timeStep };
+            SendEvent(ref updateEventData);
+            update?.Invoke(timeStep);
+        }
 
-        var postUpdateEventData = new CoreEvents.PostUpdateEvent
+        using (profiler.Profile("PostUpdate"))
         {
-            TimeStep = timeStep
-        };
-        SendEvent(ref postUpdateEventData);
+            var postUpdateEventData = new CoreEvents.PostUpdateEvent { TimeStep = timeStep };
+            SendEvent(ref postUpdateEventData);
+        }
 
-        var renderUpdateEventData = new CoreEvents.RenderUpdateEvent
+        using (profiler.Profile("RenderUpdate"))
         {
-            TimeStep = timeStep
-        };
-        SendEvent(ref renderUpdateEventData);
+            var renderUpdateEventData = new CoreEvents.RenderUpdateEvent { TimeStep = timeStep };
+            SendEvent(ref renderUpdateEventData);
+        }
 
-        var postRenderUpdateEventData = new CoreEvents.PostRenderUpdateEvent
+        using (profiler.Profile("PostRenderUpdate"))
         {
-            TimeStep = timeStep
-        };
-        SendEvent(ref postRenderUpdateEventData);
+            var postRenderUpdateEventData = new CoreEvents.PostRenderUpdateEvent { TimeStep = timeStep };
+            SendEvent(ref postRenderUpdateEventData);
+        }
     }
 
     private void HandleExitRequested()

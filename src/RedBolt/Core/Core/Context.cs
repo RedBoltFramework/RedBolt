@@ -173,6 +173,7 @@ public class Context : ObjectReflectionRegistry
         RegisterSubsystem(engine);
         RegisterSubsystem(new Time());
         RegisterSubsystem(new WorkQueue());
+        RegisterSubsystem(new Profiler());
         RegisterSubsystem(new VirtualFileSystem());
         RegisterSubsystem(new Log());
         RegisterSubsystem(new ResourceCache());
