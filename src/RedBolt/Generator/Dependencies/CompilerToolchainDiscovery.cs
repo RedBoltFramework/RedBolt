@@ -28,21 +28,25 @@ internal static class CompilerToolchainDiscovery
         var targetTriple = string.IsNullOrWhiteSpace(targetTripleOverride)
             ? DiscoverTargetTriple(compilerPath)
             : targetTripleOverride;
+        var requiresTargetToolchainResourceDirectory =
+            targetTriple?.Contains("android", StringComparison.OrdinalIgnoreCase) == true;
         var useRequestedCompilerIncludes =
             targetTriple?.StartsWith("wasm", StringComparison.OrdinalIgnoreCase) == true ||
             targetTriple?.Contains("windows", StringComparison.OrdinalIgnoreCase) == true ||
-            targetTriple?.Contains("mingw", StringComparison.OrdinalIgnoreCase) == true;
+            targetTriple?.Contains("mingw", StringComparison.OrdinalIgnoreCase) == true ||
+            requiresTargetToolchainResourceDirectory;
         var includeCompilerPath = useRequestedCompilerIncludes
             ? compilerPath
             : toolchainClangCompilerPath;
         var includeDirectories = DiscoverVerboseSearchPaths(includeCompilerPath, targetTriple, sysroot);
         var clangResourceDirectory = DiscoverClangResourceDirectoryOverride();
         var usesResourceDirectoryOverride = clangResourceDirectory is not null;
-        var requiresTargetToolchainResourceDirectory =
-            targetTriple?.Contains("android", StringComparison.OrdinalIgnoreCase) == true;
+        var resourceCompilerPath = requiresTargetToolchainResourceDirectory
+            ? compilerPath
+            : toolchainClangCompilerPath;
 
-        if (clangResourceDirectory is null && LooksLikeClangCompiler(toolchainClangCompilerPath))
-            clangResourceDirectory = DiscoverClangResourceDirectory(toolchainClangCompilerPath);
+        if (clangResourceDirectory is null && LooksLikeClangCompiler(resourceCompilerPath))
+            clangResourceDirectory = DiscoverClangResourceDirectory(resourceCompilerPath);
 
         string? ignoredClangResourceDirectory = null;
         if (!usesResourceDirectoryOverride &&
@@ -78,7 +82,18 @@ internal static class CompilerToolchainDiscovery
     private static string ResolveToolchainCompiler(string compilerPath, int? parserClangMajorVersion)
     {
         if (LooksLikeClangCompiler(compilerPath))
-            return compilerPath;
+        {
+            if (parserClangMajorVersion is not int parserClangMajor)
+                return compilerPath;
+
+            var resourceDirectory = DiscoverClangResourceDirectory(compilerPath);
+            if (resourceDirectory is not null &&
+                TryGetClangMajorVersionFromResourceDirectory(resourceDirectory, out var compilerClangMajor) &&
+                compilerClangMajor == parserClangMajor)
+            {
+                return compilerPath;
+            }
+        }
 
         var candidates = new List<string>();
         if (parserClangMajorVersion is int majorVersion)
@@ -287,6 +302,9 @@ internal static class CompilerToolchainDiscovery
                 continue;
             }
 
+            if (LooksLikeGccBuiltinIncludeDirectory(includeDirectory))
+                continue;
+
             if (!LooksLikeClangBuiltinIncludeDirectory(includeDirectory))
             {
                 keptIncludeDirectories.Add(includeDirectory);
@@ -308,6 +326,20 @@ internal static class CompilerToolchainDiscovery
         var normalizedPath = NormalizePath(path).Replace('\\', '/');
         return normalizedPath.Contains("/lib/clang/", StringComparison.Ordinal) ||
                normalizedPath.Contains("/lib64/clang/", StringComparison.Ordinal);
+    }
+
+    private static bool LooksLikeGccBuiltinIncludeDirectory(string path)
+    {
+        var normalizedPath = NormalizePath(path).Replace('\\', '/');
+        var marker = normalizedPath.Contains("/lib/gcc/", StringComparison.Ordinal)
+            ? "/lib/gcc/"
+            : "/lib64/gcc/";
+        var markerIndex = normalizedPath.IndexOf(marker, StringComparison.Ordinal);
+        if (markerIndex < 0)
+            return false;
+
+        var segments = normalizedPath[(markerIndex + marker.Length)..].Split('/');
+        return segments.Length >= 3 && segments[2] is "include" or "include-fixed";
     }
 
     private static bool IsPathUnderDirectory(string path, string candidateRoot)
