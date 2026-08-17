@@ -7,6 +7,21 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 <Project>
   <Import Project="$(MSBuildThisFileDirectory)../../Directory.Build.targets" />
 
+  <PropertyGroup>
+    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Sdl'">RedBoltBuildNativeSdl</RedBoltNativeBuildTarget>
+    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Diligent'">RedBoltBuildNativeDiligent</RedBoltNativeBuildTarget>
+    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.DearImGui'">RedBoltBuildNativeDearImGui</RedBoltNativeBuildTarget>
+    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Stb'">RedBoltBuildNativeStb</RedBoltNativeBuildTarget>
+    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.TinyGltf'">RedBoltBuildNativeTinyGltf</RedBoltNativeBuildTarget>
+    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Lz4'">RedBoltBuildNativeLz4</RedBoltNativeBuildTarget>
+    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.HarfBuzz'">RedBoltBuildNativeHarfBuzz</RedBoltNativeBuildTarget>
+    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.WebP'">RedBoltBuildNativeWebP</RedBoltNativeBuildTarget>
+    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Glslang'">RedBoltBuildNativeGlslang</RedBoltNativeBuildTarget>
+    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVCross'">RedBoltBuildNativeSpirVCross</RedBoltNativeBuildTarget>
+    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVTools'">RedBoltBuildNativeSpirVTools</RedBoltNativeBuildTarget>
+    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.ShaderCompiler'">RedBoltBuildNativeShaderCompiler</RedBoltNativeBuildTarget>
+  </PropertyGroup>
+
   <ItemGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Bindings.'))">
     <!-- Shared standard-library wrappers live outside generated modules. Every
          binding module gets the contracts/types so generated provider glue can
@@ -20,15 +35,18 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.csproj"
                       Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'"
                       ReferenceOutputAssembly="false"
-                      PrivateAssets="all" />
+                      PrivateAssets="all"
+                      Targets="$(RedBoltNativeBuildTarget)" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Web.csproj"
                       Condition="'$(RedBoltPlatform)' == 'browser-wasm'"
                       ReferenceOutputAssembly="false"
-                      PrivateAssets="all" />
+                      PrivateAssets="all"
+                      Targets="$(RedBoltNativeBuildTarget)" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Android.csproj"
                       Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all"
+                      Targets="$(RedBoltNativeBuildTarget)"
                       AdditionalProperties="RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltNativePreset);RedBoltTargetFramework=$(RedBoltTargetFramework);AndroidSdkDirectory=$(AndroidSdkDirectory);AndroidNdkDirectory=$(AndroidNdkDirectory);JavaSdkDirectory=$(JavaSdkDirectory)" />
   </ItemGroup>
 

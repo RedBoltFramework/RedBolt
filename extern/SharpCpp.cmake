@@ -4,7 +4,8 @@ set(SHARPCPP_BUILD_RBFX OFF CACHE BOOL "Build SharpCpp rbfx bindings" FORCE)
 CPMAddPackage(
     NAME SharpCpp
     GIT_REPOSITORY git@github.com:RedBoltFramework/SharpCpp.git
-    GIT_TAG 9a360086a603cec45508d678b2f8a6bca90f5412
+    # Keep this pin synchronized with SharpCpp master after every SharpCpp fix.
+    GIT_TAG f0a8c0db29fee71b2d269a6240964eaa2b7827c5
     CUSTOM_CACHE_KEY "."
     EXCLUDE_FROM_ALL YES)
 set(REDBOLT_SHARPCPP_ROOT "${SharpCpp_SOURCE_DIR}" CACHE PATH "Path to the SharpCpp source tree" FORCE)

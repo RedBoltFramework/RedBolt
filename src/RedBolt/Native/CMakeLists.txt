@@ -611,7 +611,6 @@ if(NOT EMSCRIPTEN)
             "-DCMAKE_GET_RUNTIME_DEPENDENCIES_COMMAND=${CMAKE_OBJDUMP}")
     endif()
     set(_redbolt_native_manifest_files)
-    set(_redbolt_previous_native_manifest_file)
     set(_redbolt_native_wrapper_entries)
     set(_redbolt_native_runtime_entries)
     foreach(_redbolt_native_module IN LISTS REDBOLT_SELECTED_NATIVE_MODULES)
@@ -655,9 +654,13 @@ if(NOT EMSCRIPTEN)
         set(_redbolt_manifest_depends
             "${_redbolt_manifest_target}"
             "${CMAKE_SOURCE_DIR}/cmake/WriteNativeModuleManifest.cmake")
-        if(_redbolt_previous_native_manifest_file)
+        foreach(_redbolt_manifest_requirement IN LISTS
+                _redbolt_manifest_requirement_closure)
             list(APPEND _redbolt_manifest_depends
-                "${_redbolt_previous_native_manifest_file}")
+                "${_redbolt_native_manifest_directory}/${_redbolt_manifest_requirement}.json")
+        endforeach()
+        if(TARGET redbolt-mingw-runtime)
+            list(APPEND _redbolt_manifest_depends redbolt-mingw-runtime)
         endif()
         add_custom_command(
             OUTPUT "${_redbolt_manifest_file}"
@@ -678,8 +681,9 @@ if(NOT EMSCRIPTEN)
             DEPENDS ${_redbolt_manifest_depends}
             COMMENT "Writing ${_redbolt_native_module} native module manifest"
             VERBATIM)
+        add_custom_target(${_redbolt_manifest_target}-module
+            DEPENDS "${_redbolt_manifest_file}")
         list(APPEND _redbolt_native_manifest_files "${_redbolt_manifest_file}")
-        set(_redbolt_previous_native_manifest_file "${_redbolt_manifest_file}")
     endforeach()
 
     set(_redbolt_native_manifest_index
@@ -713,7 +717,6 @@ if(NOT EMSCRIPTEN)
     add_dependencies(redbolt-native-all redbolt-native-manifests)
 endif()
 if(TARGET redbolt-mingw-runtime)
-    add_dependencies(redbolt-mingw-runtime redbolt-native-manifests)
     add_dependencies(redbolt-native-all redbolt-mingw-runtime)
 endif()
 

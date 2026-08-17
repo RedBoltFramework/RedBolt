@@ -6,43 +6,94 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
 <Project>
   <PropertyGroup>
-    <RedBoltCMakeTarget Condition="'$(RedBoltPlatform)' == 'linux-x64'">redbolt-native-all</RedBoltCMakeTarget>
-    <RedBoltCMakeTarget Condition="'$(RedBoltPlatform)' == 'win-x64'">redbolt-native-all</RedBoltCMakeTarget>
-    <RedBoltCMakeTarget Condition="'$(RedBoltPlatform)' == 'browser-wasm'">redbolt-wasm-native</RedBoltCMakeTarget>
-    <RedBoltCMakeTarget Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">redbolt-android-native</RedBoltCMakeTarget>
-    <RedBoltCMakeConfigurationArguments Condition="'$(RedBoltPlatform)' == 'linux-x64'">--config &quot;$(Configuration)&quot;</RedBoltCMakeConfigurationArguments>
-    <RedBoltCMakeConfigurationArguments Condition="'$(RedBoltPlatform)' == 'win-x64'">--config &quot;$(Configuration)&quot;</RedBoltCMakeConfigurationArguments>
+    <RedBoltCMakeConfigurationArguments Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'">--config &quot;$(Configuration)&quot;</RedBoltCMakeConfigurationArguments>
     <RedBoltAndroidNdkTriple Condition="'$(RedBoltPlatform)' == 'android-arm64'">aarch64-linux-android</RedBoltAndroidNdkTriple>
     <RedBoltAndroidNdkTriple Condition="'$(RedBoltPlatform)' == 'android-x64'">x86_64-linux-android</RedBoltAndroidNdkTriple>
+    <RedBoltNativeModuleTargetSuffix Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'">-module</RedBoltNativeModuleTargetSuffix>
+    <RedBoltSdlCMakeTarget>redbolt-native-sdl$(RedBoltNativeModuleTargetSuffix)</RedBoltSdlCMakeTarget>
+    <RedBoltDiligentCMakeTarget>redbolt-native-diligent$(RedBoltNativeModuleTargetSuffix)</RedBoltDiligentCMakeTarget>
+    <RedBoltDearImGuiCMakeTarget>redbolt-native-dearimgui$(RedBoltNativeModuleTargetSuffix)</RedBoltDearImGuiCMakeTarget>
+    <RedBoltStbCMakeTarget>redbolt-native-stb$(RedBoltNativeModuleTargetSuffix)</RedBoltStbCMakeTarget>
+    <RedBoltTinyGltfCMakeTarget>redbolt-native-tinygltf$(RedBoltNativeModuleTargetSuffix)</RedBoltTinyGltfCMakeTarget>
+    <RedBoltLz4CMakeTarget>redbolt-native-lz4$(RedBoltNativeModuleTargetSuffix)</RedBoltLz4CMakeTarget>
+    <RedBoltHarfBuzzCMakeTarget>redbolt-native-harfbuzz$(RedBoltNativeModuleTargetSuffix)</RedBoltHarfBuzzCMakeTarget>
+    <RedBoltWebPCMakeTarget>redbolt-native-webp$(RedBoltNativeModuleTargetSuffix)</RedBoltWebPCMakeTarget>
+    <RedBoltGlslangCMakeTarget>redbolt-native-glslang$(RedBoltNativeModuleTargetSuffix)</RedBoltGlslangCMakeTarget>
+    <RedBoltSpirVCrossCMakeTarget>redbolt-native-spirv-cross$(RedBoltNativeModuleTargetSuffix)</RedBoltSpirVCrossCMakeTarget>
+    <RedBoltSpirVToolsCMakeTarget>redbolt-native-spirv-tools$(RedBoltNativeModuleTargetSuffix)</RedBoltSpirVToolsCMakeTarget>
+    <RedBoltShaderCompilerCMakeTarget>redbolt-native-shader-compiler$(RedBoltNativeModuleTargetSuffix)</RedBoltShaderCompilerCMakeTarget>
   </PropertyGroup>
 
-  <Target Name="RedBoltBuildNative" AfterTargets="Build" Condition="'$(RedBoltProjectBuildEnabled)' == 'true'">
-    <Error Condition="'$(RedBoltNativePreset)' == ''"
-           Text="No native preset is configured for '$(RedBoltPlatform)'." />
-    <Error Condition="'$(RedBoltCMakeTarget)' == ''"
-           Text="No CMake target is configured for '$(RedBoltPlatform)'." />
-    <Error Condition="!Exists('$(RedBoltSharpCppRoot)')"
-           Text="SharpCpp was not found at '$(RedBoltSharpCppRoot)'." />
-    <Error Condition="!Exists('$(RedBoltHostToolsOutputDir)/RedBolt.Generator.Dependencies.dll')"
-           Text="The RedBolt dependency generator was not built at '$(RedBoltHostToolsOutputDir)/RedBolt.Generator.Dependencies.dll'." />
-    <MakeDir Directories="$(RedBoltBuildRoot);$(RedBoltOutputDir);$(RedBoltIntermediateRoot)" />
-    <MakeDir Condition="'$(RedBoltPlatform)' != 'browser-wasm'"
-             Directories="$(RedBoltNativeOutputRoot)" />
-    <Error Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(RedBoltAndroidNdkTriple)' == ''"
-           Text="Unsupported Android platform '$(RedBoltPlatform)'." />
+  <Target Name="RedBoltConfigureNative" DependsOnTargets="Build" Condition="'$(RedBoltProjectBuildEnabled)' == 'true'">
+    <Error Condition="'$(RedBoltNativePreset)' == ''" Text="No native preset is configured for '$(RedBoltPlatform)'." />
+    <Error Condition="!Exists('$(RedBoltSharpCppRoot)')" Text="SharpCpp was not found at '$(RedBoltSharpCppRoot)'." />
+    <Error Condition="!Exists('$(RedBoltHostToolsOutputDir)/RedBolt.Generator.Dependencies.dll')" Text="The RedBolt dependency generator was not built at '$(RedBoltHostToolsOutputDir)/RedBolt.Generator.Dependencies.dll'." />
+    <MakeDir Directories="$(RedBoltBuildRoot);$(RedBoltOutputDir);$(RedBoltIntermediateRoot);$(RedBoltNativeOutputRoot)" />
+    <Error Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(RedBoltAndroidNdkTriple)' == ''" Text="Unsupported Android platform '$(RedBoltPlatform)'." />
     <Copy Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))"
           SourceFiles="$(AndroidNdkDirectory)/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/$(RedBoltAndroidNdkTriple)/libc++_shared.so"
           DestinationFiles="$(RedBoltNativeOutputRoot)/libc++_shared.so"
           SkipUnchangedFiles="true" />
     <Exec WorkingDirectory="$(RedBoltRoot)"
           IgnoreStandardErrorWarningFormat="true"
-          Command="cmake -E env ANDROID_NDK_ROOT=&quot;$(AndroidNdkDirectory)&quot; cmake -DREDBOLT_SOURCE_DIR=&quot;$(RedBoltRoot)&quot; -DREDBOLT_NATIVE_PRESET=&quot;$(RedBoltNativePreset)&quot; -DREDBOLT_NATIVE_BUILD_DIR=&quot;$(RedBoltNativeBuildDir)&quot; -DREDBOLT_NATIVE_TARGET=&quot;$(RedBoltCMakeTarget)&quot; -DREDBOLT_CONFIGURATION=&quot;$(Configuration)&quot; -DREDBOLT_ENABLED_NATIVE_MODULES=&quot;$(RedBoltEnabledNativeModules)&quot; -DREDBOLT_ENABLE_OPENXR=&quot;$(RedBoltOpenXREnabled)&quot; -DREDBOLT_PARALLELIZATION=&quot;$(RedBoltParallelization)&quot; -DREDBOLT_SHARPCPP_ROOT=&quot;$(RedBoltSharpCppRoot)&quot; -DREDBOLT_GENERATOR_DLL=&quot;$(RedBoltHostToolsOutputDir)/RedBolt.Generator.Dependencies.dll&quot; -DREDBOLT_RUNTIME_OUTPUT_DIR=&quot;$(RedBoltNativeOutputRoot)&quot; -DREDBOLT_PDB_OUTPUT_DIR=&quot;$(RedBoltNativePdbOutputRoot)&quot; -P &quot;$(MSBuildThisFileDirectory)BuildNative.cmake&quot;" />
-    <Exec Condition="'$(RedBoltPlatform)' == 'linux-x64' and !Exists('$(RedBoltOutputRoot)/CoreData')"
-          Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/CoreData&quot; &quot;$(RedBoltOutputRoot)/CoreData&quot;" />
-    <Exec Condition="'$(RedBoltPlatform)' == 'linux-x64' and !Exists('$(RedBoltOutputRoot)/Data')"
-          Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/Data&quot; &quot;$(RedBoltOutputRoot)/Data&quot;" />
-    <Exec Condition="'$(RedBoltPlatform)' == 'linux-x64' and !Exists('$(RedBoltOutputRoot)/EditorData')"
-          Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/EditorData&quot; &quot;$(RedBoltOutputRoot)/EditorData&quot;" />
+          Command="cmake -E env ANDROID_NDK_ROOT=&quot;$(AndroidNdkDirectory)&quot; cmake -DREDBOLT_SOURCE_DIR=&quot;$(RedBoltRoot)&quot; -DREDBOLT_NATIVE_PRESET=&quot;$(RedBoltNativePreset)&quot; -DREDBOLT_NATIVE_BUILD_DIR=&quot;$(RedBoltNativeBuildDir)&quot; -DREDBOLT_CONFIGURATION=&quot;$(Configuration)&quot; -DREDBOLT_ENABLED_NATIVE_MODULES=&quot;$(RedBoltEnabledNativeModules)&quot; -DREDBOLT_ENABLE_OPENXR=&quot;$(RedBoltOpenXREnabled)&quot; -DREDBOLT_SHARPCPP_ROOT=&quot;$(RedBoltSharpCppRoot)&quot; -DREDBOLT_GENERATOR_DLL=&quot;$(RedBoltHostToolsOutputDir)/RedBolt.Generator.Dependencies.dll&quot; -DREDBOLT_RUNTIME_OUTPUT_DIR=&quot;$(RedBoltNativeOutputRoot)&quot; -DREDBOLT_PDB_OUTPUT_DIR=&quot;$(RedBoltNativePdbOutputRoot)&quot; -P &quot;$(MSBuildThisFileDirectory)ConfigureNative.cmake&quot;" />
+  </Target>
+
+  <Target Name="RedBoltBuildCMakeTarget">
+    <Error Condition="'$(RedBoltCMakeTarget)' == ''" Text="No CMake target was provided for '$(RedBoltPlatform)'." />
+    <Error Condition="!Exists('$(RedBoltNativeBuildDir)/CMakeCache.txt')" Text="The native build directory was not configured at '$(RedBoltNativeBuildDir)'." />
+    <Exec WorkingDirectory="$(RedBoltRoot)"
+          IgnoreStandardErrorWarningFormat="true"
+          Command="cmake -E env ANDROID_NDK_ROOT=&quot;$(AndroidNdkDirectory)&quot; cmake -DREDBOLT_SOURCE_DIR=&quot;$(RedBoltRoot)&quot; -DREDBOLT_NATIVE_PRESET=&quot;$(RedBoltNativePreset)&quot; -DREDBOLT_NATIVE_BUILD_DIR=&quot;$(RedBoltNativeBuildDir)&quot; -DREDBOLT_NATIVE_TARGET=&quot;$(RedBoltCMakeTarget)&quot; -DREDBOLT_CONFIGURATION=&quot;$(Configuration)&quot; -DREDBOLT_PARALLELIZATION=&quot;$(RedBoltParallelization)&quot; -P &quot;$(MSBuildThisFileDirectory)BuildNative.cmake&quot;" />
+  </Target>
+
+  <Target Name="RedBoltStageNativeResources">
+    <Exec Condition="'$(RedBoltPlatform)' == 'linux-x64' and !Exists('$(RedBoltOutputRoot)/CoreData')" Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/CoreData&quot; &quot;$(RedBoltOutputRoot)/CoreData&quot;" />
+    <Exec Condition="'$(RedBoltPlatform)' == 'linux-x64' and !Exists('$(RedBoltOutputRoot)/Data')" Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/Data&quot; &quot;$(RedBoltOutputRoot)/Data&quot;" />
+    <Exec Condition="'$(RedBoltPlatform)' == 'linux-x64' and !Exists('$(RedBoltOutputRoot)/EditorData')" Command="cmake -E create_symlink &quot;$(RedBoltRoot)/bin/EditorData&quot; &quot;$(RedBoltOutputRoot)/EditorData&quot;" />
+  </Target>
+
+  <Target Name="RedBoltBuildNativeSdl" DependsOnTargets="RedBoltConfigureNative;RedBoltStageNativeResources">
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RedBoltBuildCMakeTarget" Properties="RedBoltCMakeTarget=$(RedBoltSdlCMakeTarget)" />
+  </Target>
+  <Target Name="RedBoltBuildNativeDiligent" DependsOnTargets="RedBoltConfigureNative;RedBoltStageNativeResources">
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RedBoltBuildCMakeTarget" Properties="RedBoltCMakeTarget=$(RedBoltDiligentCMakeTarget)" />
+  </Target>
+  <Target Name="RedBoltBuildNativeDearImGui" DependsOnTargets="RedBoltConfigureNative;RedBoltStageNativeResources">
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RedBoltBuildCMakeTarget" Properties="RedBoltCMakeTarget=$(RedBoltDearImGuiCMakeTarget)" />
+  </Target>
+  <Target Name="RedBoltBuildNativeStb" DependsOnTargets="RedBoltConfigureNative;RedBoltStageNativeResources">
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RedBoltBuildCMakeTarget" Properties="RedBoltCMakeTarget=$(RedBoltStbCMakeTarget)" />
+  </Target>
+  <Target Name="RedBoltBuildNativeTinyGltf" DependsOnTargets="RedBoltConfigureNative;RedBoltStageNativeResources">
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RedBoltBuildCMakeTarget" Properties="RedBoltCMakeTarget=$(RedBoltTinyGltfCMakeTarget)" />
+  </Target>
+  <Target Name="RedBoltBuildNativeLz4" DependsOnTargets="RedBoltConfigureNative;RedBoltStageNativeResources">
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RedBoltBuildCMakeTarget" Properties="RedBoltCMakeTarget=$(RedBoltLz4CMakeTarget)" />
+  </Target>
+  <Target Name="RedBoltBuildNativeHarfBuzz" DependsOnTargets="RedBoltConfigureNative;RedBoltStageNativeResources">
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RedBoltBuildCMakeTarget" Properties="RedBoltCMakeTarget=$(RedBoltHarfBuzzCMakeTarget)" />
+  </Target>
+  <Target Name="RedBoltBuildNativeWebP" DependsOnTargets="RedBoltConfigureNative;RedBoltStageNativeResources">
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RedBoltBuildCMakeTarget" Properties="RedBoltCMakeTarget=$(RedBoltWebPCMakeTarget)" />
+  </Target>
+  <Target Name="RedBoltBuildNativeGlslang" DependsOnTargets="RedBoltConfigureNative;RedBoltStageNativeResources">
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RedBoltBuildCMakeTarget" Properties="RedBoltCMakeTarget=$(RedBoltGlslangCMakeTarget)" />
+  </Target>
+  <Target Name="RedBoltBuildNativeSpirVCross" DependsOnTargets="RedBoltConfigureNative;RedBoltStageNativeResources">
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RedBoltBuildCMakeTarget" Properties="RedBoltCMakeTarget=$(RedBoltSpirVCrossCMakeTarget)" />
+  </Target>
+  <Target Name="RedBoltBuildNativeSpirVTools" DependsOnTargets="RedBoltConfigureNative;RedBoltStageNativeResources">
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RedBoltBuildCMakeTarget" Properties="RedBoltCMakeTarget=$(RedBoltSpirVToolsCMakeTarget)" />
+  </Target>
+  <Target Name="RedBoltBuildNativeShaderCompiler" DependsOnTargets="RedBoltConfigureNative;RedBoltStageNativeResources">
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RedBoltBuildCMakeTarget" Properties="RedBoltCMakeTarget=$(RedBoltShaderCompilerCMakeTarget)" />
+  </Target>
+  <Target Name="RedBoltBuildNativeWebArchive" DependsOnTargets="RedBoltConfigureNative">
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RedBoltBuildCMakeTarget" Properties="RedBoltCMakeTarget=redbolt-wasm-native" />
+  </Target>
+  <Target Name="RedBoltBuildNativeAndroidRuntime" DependsOnTargets="RedBoltConfigureNative">
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RedBoltBuildCMakeTarget" Properties="RedBoltCMakeTarget=redbolt-android-native" />
   </Target>
 
   <Target Name="RedBoltCleanNative" AfterTargets="Clean">

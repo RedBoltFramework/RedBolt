@@ -36,6 +36,3 @@ include(STB.cmake)
 include(TinyGLTF.cmake)
 include(LZ4.cmake)
 include(WebP.cmake)
-add_custom_target(redbolt-native-dependency-batch
-    DEPENDS ${REDBOLT_SDL_LIBRARY} redbolt-diligent-build ImGui harfbuzz harfbuzz-raster harfbuzz-gpu
-    COMMENT "Building RedBolt native dependency batch")

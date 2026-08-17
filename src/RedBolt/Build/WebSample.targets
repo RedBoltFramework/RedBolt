@@ -40,7 +40,12 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false"
                       GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Web.csproj"
-                      ReferenceOutputAssembly="false" Private="false" PrivateAssets="all" />
+                      ReferenceOutputAssembly="false" Private="false" PrivateAssets="all"
+                      Targets="RedBoltBuildNativeWebArchive" />
+    <ProjectReference Include="$(RedBoltExternalModuleRoot)/src/RedBolt/Native/$(RedBoltExternalModuleName).Native.Web.csproj"
+                      Condition="'$(RedBoltExternalHasNative)' == 'true' and Exists('$(RedBoltExternalModuleRoot)/src/RedBolt/Native/$(RedBoltExternalModuleName).Native.Web.csproj')"
+                      ReferenceOutputAssembly="false" Private="false" PrivateAssets="all"
+                      Targets="RedBoltBuildExternalWebArchive" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all" AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Std/SharpCpp.Std.csproj"

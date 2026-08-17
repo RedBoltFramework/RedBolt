@@ -9,13 +9,16 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Std/SharpCpp.Std.csproj" PrivateAssets="all" AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj" PrivateAssets="all" AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
     <ProjectReference Include="$(RedBoltExternalModuleRoot)/src/RedBolt/Native/$(RedBoltExternalModuleName).Native.csproj"
-                      Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'" ReferenceOutputAssembly="false" PrivateAssets="all" />
+                      Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'" ReferenceOutputAssembly="false" PrivateAssets="all"
+                      Targets="RedBoltBuildExternalNativeDependency" AdditionalProperties="RedBoltExternalCMakeTarget=$(RedBoltExternalCMakeTarget)" />
     <ProjectReference Include="$(RedBoltExternalModuleRoot)/src/RedBolt/Native/$(RedBoltExternalModuleName).Native.Web.csproj"
-                      Condition="'$(RedBoltPlatform)' == 'browser-wasm'" ReferenceOutputAssembly="false" PrivateAssets="all" />
+                      Condition="'$(RedBoltPlatform)' == 'browser-wasm'" ReferenceOutputAssembly="false" PrivateAssets="all"
+                      Targets="RedBoltBuildExternalNativeDependency" AdditionalProperties="RedBoltExternalCMakeTarget=$(RedBoltExternalCMakeTarget)" />
     <ProjectReference Include="$(RedBoltExternalModuleRoot)/src/RedBolt/Native/$(RedBoltExternalModuleName).Native.Android.csproj"
                       Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))"
                       ReferenceOutputAssembly="false" PrivateAssets="all"
-                      AdditionalProperties="RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltNativePreset);RedBoltTargetFramework=$(RedBoltTargetFramework);AndroidSdkDirectory=$(AndroidSdkDirectory);AndroidNdkDirectory=$(AndroidNdkDirectory);JavaSdkDirectory=$(JavaSdkDirectory)" />
+                      Targets="RedBoltBuildExternalNativeDependency"
+                      AdditionalProperties="RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltNativePreset);RedBoltTargetFramework=$(RedBoltTargetFramework);AndroidSdkDirectory=$(AndroidSdkDirectory);AndroidNdkDirectory=$(AndroidNdkDirectory);JavaSdkDirectory=$(JavaSdkDirectory);RedBoltExternalCMakeTarget=$(RedBoltExternalCMakeTarget)" />
   </ItemGroup>
   <Target Name="RedBoltExternalIncludeGeneratedBindings" BeforeTargets="CoreCompile">
     <ItemGroup>
