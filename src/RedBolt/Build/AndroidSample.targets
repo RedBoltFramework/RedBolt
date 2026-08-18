@@ -44,7 +44,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <AndroidAsset Include="$(RedBoltRoot)/bin/CoreData/**/*" Link="CoreData/%(RecursiveDir)%(Filename)%(Extension)" />
     <AndroidAsset Include="$(RedBoltRoot)/bin/Data/**/*" Link="Data/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
-  <Target Name="RedBoltConfigureAndroidRuntimeRestore" BeforeTargets="_FilterRestoreGraphProjectInputItems;_GenerateRestoreProjectPathItemsPerFramework;_GenerateRestoreProjectRestoreGraphPerFramework;_GenerateRestoreProjectPathItemsPerFramework">
+  <Target Name="RedBoltConfigureAndroidRuntimeRestore" BeforeTargets="_FilterRestoreGraphProjectInputItems;_GenerateRestoreProjectPathItemsPerFramework;_GenerateRestoreProjectRestoreGraphPerFramework">
     <PropertyGroup>
       <RuntimeIdentifiers>$(RedBoltAndroidRuntimeIdentifiers)</RuntimeIdentifiers>
     </PropertyGroup>

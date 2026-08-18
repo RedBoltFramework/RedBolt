@@ -7,6 +7,22 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 <Project>
   <Import Project="$(RedBoltRoot)/src/Directory.Build.targets" />
 
+  <Target Name="RedBoltConfigureExternalProjectReferences"
+          BeforeTargets="AssignProjectConfiguration"
+          DependsOnTargets="IncludeTransitiveProjectReferences"
+          Condition="'$(RedBoltExternalModuleRoot)' != ''">
+    <ItemGroup>
+      <ProjectReference Update="@(ProjectReference)"
+                        Condition="'$(RedBoltBuildPlatform)' == '' and '$(RedBoltPlatform)' == 'browser-wasm' and '%(ProjectReference.AdditionalProperties)' == '' and $([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltExternalModuleRoot)/src/RedBolt/')) and '%(ProjectReference.Filename)' != '$(RedBoltExternalGeneratorProjectName)' and '%(ProjectReference.Filename)' != '$(RedBoltExternalNativeWebProjectName)'">
+        <AdditionalProperties>RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm</AdditionalProperties>
+      </ProjectReference>
+      <ProjectReference Update="@(ProjectReference)"
+                        Condition="'$(RedBoltBuildPlatform)' == '' and $([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '%(ProjectReference.AdditionalProperties)' == '' and $([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltExternalModuleRoot)/src/RedBolt/')) and '%(ProjectReference.Filename)' != '$(RedBoltExternalGeneratorProjectName)' and '%(ProjectReference.Filename)' != '$(RedBoltExternalNativeAndroidProjectName)'">
+        <AdditionalProperties>RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltNativePreset);RedBoltTargetFramework=$(RedBoltTargetFramework)</AdditionalProperties>
+      </ProjectReference>
+    </ItemGroup>
+  </Target>
+
   <Target Name="RedBoltReusePreviouslyBuiltProjectReferences"
           BeforeTargets="AssignProjectConfiguration"
           DependsOnTargets="IncludeTransitiveProjectReferences"
@@ -86,12 +102,16 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     </RedBoltUseParentRuntimeAssemblies>
   </Target>
 
-  <Target Name="RedBoltExternalStageDesktopResources"
-          AfterTargets="Build"
-          Condition="'$(RedBoltExternalDesktopResourceRoot)' != '' and '$(RedBoltPlatform)' == 'linux-x64' and '$(OutputType)' == 'Exe' and '$(RedBoltProjectBuildEnabled)' == 'true'">
+  <Target Name="RedBoltStageExternalNativeResources"
+          Condition="'$(RedBoltExternalDesktopResourceRoot)' != '' and '$(RedBoltPlatform)' == 'linux-x64'">
     <MakeDir Directories="$(RedBoltOutputRoot)" />
     <Exec Condition="!Exists('$(RedBoltOutputRoot)/CoreData')" Command="cmake -E create_symlink &quot;$(RedBoltExternalDesktopResourceRoot)/bin/CoreData&quot; &quot;$(RedBoltOutputRoot)/CoreData&quot;" />
     <Exec Condition="!Exists('$(RedBoltOutputRoot)/Data')" Command="cmake -E create_symlink &quot;$(RedBoltExternalDesktopResourceRoot)/bin/Data&quot; &quot;$(RedBoltOutputRoot)/Data&quot;" />
     <Exec Condition="!Exists('$(RedBoltOutputRoot)/Base')" Command="cmake -E create_symlink &quot;$(RedBoltRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)&quot; &quot;$(RedBoltOutputRoot)/Base&quot;" />
   </Target>
+
+  <Target Name="RedBoltExternalStageDesktopResources"
+          AfterTargets="Build"
+          DependsOnTargets="RedBoltStageExternalNativeResources"
+      Condition="'$(RedBoltExternalDesktopResourceRoot)' != '' and '$(RedBoltPlatform)' == 'linux-x64' and '$(OutputType)' == 'Exe' and '$(RedBoltProjectBuildEnabled)' == 'true'" />
 </Project>

@@ -103,21 +103,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     </ItemGroup>
   </Target>
 
-  <Target Name="RedBoltPublishWebAfterBuild"
-          AfterTargets="Build"
-          Inputs="$(TargetPath);$(RedBoltWebEngineArchive);@(ReferenceCopyLocalPaths);@(Content);$(RedBoltWebCoreDataPackage);$(RedBoltWebDataPackage)"
-          Outputs="$(RedBoltWebOutputDir)/wwwroot/index.html"
-          Condition="'$(RedBoltProjectBuildEnabled)' == 'true' and '$(RedBoltPublishWebAfterBuild)' != 'false' and '$(RedBoltPublishWebInProgress)' != 'true'">
-    <RemoveDir Directories="$(RedBoltWebOutputDir)" />
-    <MSBuild Projects="$(MSBuildProjectFullPath)"
-             Targets="Publish"
-             BuildInParallel="false"
-             Properties="Configuration=$(Configuration);RuntimeIdentifier=browser-wasm;RedBoltPublishWebInProgress=true;BuildProjectReferences=false" />
-    <Touch Files="$(RedBoltWebOutputDir)/wwwroot/index.html" />
-  </Target>
-
   <Target Name="RedBoltPrepareWebOutputDirectories"
-          AfterTargets="RedBoltPublishWebAfterBuild">
+        AfterTargets="Publish">
     <MakeDir Directories="$(RedBoltWebOutputDir)/pdb;$(RedBoltWebOutputDir)/runtimes" />
   </Target>
 </Project>

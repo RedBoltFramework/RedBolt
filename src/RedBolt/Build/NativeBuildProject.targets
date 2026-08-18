@@ -54,9 +54,4 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
           Command="cmake -E env ANDROID_NDK_ROOT=&quot;$(AndroidNdkDirectory)&quot; cmake -DREDBOLT_SOURCE_DIR=&quot;$(RedBoltExternalModuleRoot)&quot; -DREDBOLT_NATIVE_PRESET=&quot;$(RedBoltNativePreset)&quot; -DREDBOLT_NATIVE_BUILD_DIR=&quot;$(RedBoltNativeBuildDir)&quot; -DREDBOLT_NATIVE_TARGET=&quot;$(RedBoltExternalCMakeTarget)&quot; -DREDBOLT_CONFIGURATION=&quot;$(Configuration)&quot; -DREDBOLT_PARALLELIZATION=&quot;$(RedBoltParallelization)&quot; -P &quot;$(RedBoltRoot)/src/RedBolt/Native/BuildNative.cmake&quot;" />
   </Target>
 
-  <Target Name="RedBoltStageExternalNativeResources">
-    <Exec Condition="'$(RedBoltPlatform)' == 'linux-x64' and !Exists('$(RedBoltOutputRoot)/CoreData')" Command="cmake -E create_symlink &quot;$(RedBoltExternalDesktopResourceRoot)/bin/CoreData&quot; &quot;$(RedBoltOutputRoot)/CoreData&quot;" />
-    <Exec Condition="'$(RedBoltPlatform)' == 'linux-x64' and !Exists('$(RedBoltOutputRoot)/Data')" Command="cmake -E create_symlink &quot;$(RedBoltExternalDesktopResourceRoot)/bin/Data&quot; &quot;$(RedBoltOutputRoot)/Data&quot;" />
-    <Exec Condition="'$(RedBoltPlatform)' == 'linux-x64' and !Exists('$(RedBoltOutputRoot)/Base')" Command="cmake -E create_symlink &quot;$(RedBoltRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)&quot; &quot;$(RedBoltOutputRoot)/Base&quot;" />
-  </Target>
 </Project>

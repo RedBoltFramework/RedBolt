@@ -87,10 +87,4 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <_WasmPInvokeModules Include="RedBolt.Native.Sdl;RedBolt.Native.Diligent;RedBolt.Native.Stb;RedBolt.Native.Lz4;RedBolt.Native.HarfBuzz;RedBolt.Native.WebP;RedBolt.Native.Glslang;RedBolt.Native.SpirVCross;RedBolt.Native.SpirVTools;RedBolt.Native.ShaderCompiler;$(RedBoltExternalWebPInvokeModules)" />
     </ItemGroup>
   </Target>
-  <Target Name="RedBoltPublishWebAfterBuild" AfterTargets="Build"
-          Condition="'$(RedBoltProjectBuildEnabled)' == 'true' and '$(RedBoltPublishWebAfterBuild)' != 'false' and '$(RedBoltPublishWebInProgress)' != 'true'">
-    <RemoveDir Directories="$(RedBoltWebOutputDir)" />
-    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Publish" BuildInParallel="false"
-             Properties="Configuration=$(Configuration);RuntimeIdentifier=browser-wasm;RedBoltPublishWebInProgress=true;BuildProjectReferences=false" />
-  </Target>
 </Project>

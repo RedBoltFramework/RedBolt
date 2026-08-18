@@ -6,7 +6,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
 <Project>
   <PropertyGroup>
-    <RedBoltSolutionBuildRoot Condition="'$(RedBoltSolutionBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)build'))</RedBoltSolutionBuildRoot>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
   </PropertyGroup>
 
