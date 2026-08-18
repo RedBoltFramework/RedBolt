@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(RedBoltProjectBuildEnabled)' != 'true'">
+    <BuildDependsOn>RedBoltReportSkippedProject</BuildDependsOn>
+    <RebuildDependsOn>RedBoltReportSkippedProject</RebuildDependsOn>
+  </PropertyGroup>
+</Project>

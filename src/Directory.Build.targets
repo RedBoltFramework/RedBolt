@@ -5,11 +5,39 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 -->
 
 <Project>
+  <Import Project="$(RedBoltRoot)/Directory.Solution.targets"
+          Condition="'$(BuildingSolutionFile)' == 'true'" />
+
+  <Target Name="RedBoltValidateBuildMode" BeforeTargets="Restore;Build">
+    <Error Condition="'$(RedBoltBuildMode)' != 'Module' and '$(RedBoltBuildMode)' != 'Monorepo'"
+      Text="RedBoltBuildMode must be Module or Monorepo, but was '$(RedBoltBuildMode)'." />
+    <Error Condition="'$(RedBoltBuildMode)' == 'Monorepo' and '$(RedBoltMonorepoRoot)' == ''"
+      Text="RedBoltBuildMode=Monorepo requires RedBoltMonorepoRoot." />
+    <Error Condition="'$(RedBoltBuildMode)' == 'Module' and '$(RedBoltMonorepoRoot)' != ''"
+      Text="RedBoltBuildMode=Module cannot use RedBoltMonorepoRoot." />
+    <Error Condition="'$(RedBoltBuildRootFullPath)' != '$(RedBoltExpectedBuildRoot)'"
+      Text="RedBoltBuildRoot must be the module build directory '$(RedBoltExpectedBuildRoot)', but was '$(RedBoltBuildRootFullPath)'." />
+  </Target>
+
   <ItemGroup>
     <ProjectReference Update="@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.Generator.Dependencies'));@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.Generator.Reflection'))"
                       SetTargetFramework="TargetFramework=net10.0"
                       SkipGetTargetFrameworkProperties="true"
-                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset;RedBoltTargetFramework;TargetFramework;TargetFrameworks;RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishSelfContained" />
+                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset;RedBoltTargetFramework;TargetFramework;TargetFrameworks;RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishSelfContained;RedBoltBuildMode;RedBoltMonorepoRoot;RedBoltBuildRoot;RedBoltBuildConfigPath;RedBoltExternalModuleRoot;RedBoltExternalModuleName" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RedBoltExternalModuleRoot)' != '' and '$(RedBoltBuildMode)' == 'Module'">
+    <ProjectReference Update="@(ProjectReference)"
+                      Condition="$([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/')) or $([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltExternalModuleRoot)/src/'))">
+      <AdditionalProperties>%(ProjectReference.AdditionalProperties);RedBoltBuildMode=$(RedBoltBuildMode);RedBoltMonorepoRoot=$(RedBoltMonorepoRoot);RedBoltBuildRoot=$(RedBoltBuildRoot);RedBoltBuildConfigPath=$(RedBoltBuildConfigPath);RedBoltExternalModuleRoot=$(RedBoltExternalModuleRoot);RedBoltExternalModuleName=$(RedBoltExternalModuleName)</AdditionalProperties>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RedBoltBuildMode)' == 'Monorepo' and '$(RedBoltMonorepoRoot)' != ''">
+    <ProjectReference Update="@(ProjectReference)"
+                      Condition="$([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/'))">
+      <AdditionalProperties>%(ProjectReference.AdditionalProperties);RedBoltBuildMode=$(RedBoltBuildMode);RedBoltMonorepoRoot=$(RedBoltMonorepoRoot);RedBoltBuildRoot=$(RedBoltBuildRoot);RedBoltBuildConfigPath=$(RedBoltBuildConfigPath)</AdditionalProperties>
+    </ProjectReference>
   </ItemGroup>
 
   <UsingTask TaskName="RedBoltInvalidateStaleDependencyFile"
@@ -344,7 +372,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
   <Target Name="RedBoltConfigureRuntimeAssemblies"
           AfterTargets="GenerateBuildDependencyFile"
-          Condition="('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true') and Exists('$(ProjectDepsFilePath)')">
+      Condition="'$(RedBoltExternalModuleRoot)' == '' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true') and Exists('$(ProjectDepsFilePath)')">
     <RedBoltUseParentRuntimeAssemblies DependencyFile="$(ProjectDepsFilePath)"
                                        MainProjectName="$(AssemblyName)"
                                        NativeRuntimeDirectory="$(RedBoltNativeOutputRoot)"
@@ -370,7 +398,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
                         Condition="'%(ProjectReference.Filename)' == 'RedBolt.Utility'
                           or '%(ProjectReference.Filename)' == 'RedBolt.Bindings.TinyGltf'" />
       <ProjectReference Update="@(ProjectReference)"
-                        Condition="'%(ProjectReference.AdditionalProperties)' == ''
+                        Condition="'$(RedBoltBuildPlatform)' == ''
+                          and '%(ProjectReference.AdditionalProperties)' == ''
                           and $([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/'))
                           and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Dependencies'
                           and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Reflection'
@@ -386,7 +415,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
           Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
     <ItemGroup>
       <ProjectReference Update="@(ProjectReference)"
-                        Condition="'%(ProjectReference.AdditionalProperties)' == ''
+                        Condition="'$(RedBoltBuildPlatform)' == ''
+                          and '%(ProjectReference.AdditionalProperties)' == ''
                           and $([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/'))
                           and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Dependencies'
                           and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Reflection'
@@ -403,6 +433,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
         $(_GenerateRestoreGraphProjectEntryInputProperties);
         RedBoltPlatform=$(RedBoltPlatform);
         RedBoltNativePreset=$(RedBoltNativePreset);
+        SharpCppBuildRoot=$(RedBoltSharpCppBuildRoot);
         SharpCppOutputDir=$(SharpCppOutputDir);
         SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)
       </_GenerateRestoreGraphProjectEntryInputProperties>

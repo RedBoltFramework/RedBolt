@@ -6,8 +6,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
 <Project>
   <PropertyGroup>
-    <RedBoltSolutionBuildRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)build'))</RedBoltSolutionBuildRoot>
-    <RedBoltTraversalProject>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)src/RedBolt/Build/RedBolt.Build.csproj'))</RedBoltTraversalProject>
+    <RedBoltSolutionBuildRoot Condition="'$(RedBoltSolutionBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)build'))</RedBoltSolutionBuildRoot>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
   </PropertyGroup>
 
@@ -107,34 +106,11 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   </UsingTask>
 
   <Target Name="RedBoltEnsureDependencies"
+          BeforeTargets="Restore"
           Condition="!Exists('$(MSBuildThisFileDirectory)extern/SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj')">
     <Exec Command="cmake --preset linux-x64" WorkingDirectory="$(MSBuildThisFileDirectory)" />
     <Error Condition="!Exists('$(MSBuildThisFileDirectory)extern/SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj')"
            Text="CPM did not populate SharpCpp below '$(MSBuildThisFileDirectory)extern/SharpCpp'." />
-  </Target>
-
-  <Target Name="RedBoltConfigureSolutionRestore"
-          DependsOnTargets="RedBoltEnsureDependencies"
-          BeforeTargets="_FilterRestoreGraphProjectInputItems">
-    <PropertyGroup>
-      <_GenerateRestoreGraphProjectEntryInputProperties>
-        $(_GenerateRestoreGraphProjectEntryInputProperties);
-        SharpCppBuildRoot=$(RedBoltSolutionBuildRoot);
-        SharpCppOutputDir=$(RedBoltSolutionBuildRoot)/bin/$(Configuration)/host/extern;
-        SharpCppIntermediateRoot=$(RedBoltSolutionBuildRoot)/obj/managed/tools
-      </_GenerateRestoreGraphProjectEntryInputProperties>
-    </PropertyGroup>
-    <ItemGroup>
-      <RestoreGraphProjectInputItems Remove="@(RestoreGraphProjectInputItems)" />
-      <RestoreGraphProjectInputItems Include="$(RedBoltTraversalProject)" />
-    </ItemGroup>
-  </Target>
-
-  <Target Name="RedBoltRestoreSelectedProjects" AfterTargets="Restore">
-    <MSBuild Projects="$(RedBoltTraversalProject)"
-             Targets="RedBoltRestoreSelectedProjects"
-             BuildInParallel="false"
-             Properties="Configuration=$(Configuration)" />
   </Target>
 
   <!-- C# Dev Kit addresses an IDE-selected project through its solution target,
@@ -145,7 +121,14 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
              Properties="Configuration=$(Configuration);Platform=$(Platform)" />
   </Target>
 
-  <Target Name="RedBoltPersistBuildConfiguration" AfterTargets="Build;Rebuild">
+  <Target Name="RedBoltPersistBuildConfiguration"
+          AfterTargets="Build;Rebuild"
+          Condition="'$(BuildingSolutionFile)' == 'true'
+                     and (('$(RedBoltBuildMode)' == 'Monorepo'
+                           and '$(RedBoltExternalModuleName)' == ''
+                           and '$(MSBuildProjectName)' == 'RedBolt.Core')
+                          or ('$(RedBoltBuildMode)' == 'Module'
+                              and '$(MSBuildProjectName)' == '$(RedBoltExternalModuleName)'))">
     <RedBoltSaveBuildConfig ConfigFile="$(RedBoltBuildConfigPath)"
                             EnablePlatforms="$(RedBoltEnablePlatforms)"
                             DisablePlatforms="$(RedBoltDisablePlatforms)"

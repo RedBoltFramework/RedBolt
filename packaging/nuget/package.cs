@@ -218,7 +218,7 @@ internal sealed class Packager
         const string properties = "RedBoltLinuxEnabled,RedBoltWindowsEnabled,RedBoltAndroidEnabled,RedBoltWebEnabled,RedBoltX64Enabled,RedBoltArm64Enabled,RedBoltAudioEnabled,RedBoltDearImGuiEnabled,RedBoltUtilityEnabled,RedBoltEditorEnabled";
         var json = Capture("dotnet",
         [
-            "msbuild", Path.Combine(_repositoryRoot, "src", "RedBolt", "Build", "RedBolt.Build.csproj"),
+            "msbuild", Path.Combine(_repositoryRoot, "src", "RedBolt", "Core", "RedBolt.Core.csproj"),
             $"-getProperty:{properties}"
         ]).Output;
         using var document = JsonDocument.Parse(json);

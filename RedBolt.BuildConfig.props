@@ -6,7 +6,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
 <Project>
   <PropertyGroup>
-    <RedBoltBuildConfigPath Condition="'$(RedBoltBuildConfigPath)' == ''">$(RedBoltRoot)/build/BuildConfig.props</RedBoltBuildConfigPath>
+    <RedBoltBuildConfigPath Condition="'$(RedBoltBuildConfigPath)' == ''">$(RedBoltBuildRoot)/BuildConfig.props</RedBoltBuildConfigPath>
     <RedBoltFull Condition="'$(RedBoltFull)' == ''">false</RedBoltFull>
     <RedBoltParallelization Condition="'$(RedBoltParallelization)' == ''">4</RedBoltParallelization>
   </PropertyGroup>

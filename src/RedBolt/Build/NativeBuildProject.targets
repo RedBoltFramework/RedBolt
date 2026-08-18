@@ -15,6 +15,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <ItemGroup>
     <ProjectReference Include="$(RedBoltSharpCppRoot)/native/SharpCpp.Native/SharpCpp.Native.csproj"
                       ReferenceOutputAssembly="false" Private="false" PrivateAssets="all"
+                      Condition="'$(RedBoltExternalModuleRoot)' == ''"
                       AdditionalProperties="$(RedBoltSharpCppNativeProperties)" />
     <ProjectReference Include="$(RedBoltExternalModuleRoot)/src/RedBolt/Generator/Dependencies/$(RedBoltExternalGeneratorProjectName).csproj"
                       ReferenceOutputAssembly="false" Private="false" PrivateAssets="all"

@@ -2,6 +2,23 @@
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
+get_filename_component(_redbolt_sharpcpp_core_root "${CMAKE_CURRENT_LIST_DIR}/.." REALPATH)
+if(NOT CMAKE_SOURCE_DIR STREQUAL _redbolt_sharpcpp_core_root
+    AND NOT TARGET sharpcpp-native-support
+    AND NOT TARGET SharpCpp::NativeSupport)
+    add_library(sharpcpp-native-support INTERFACE)
+    add_library(SharpCpp::NativeSupport ALIAS sharpcpp-native-support)
+    target_compile_features(sharpcpp-native-support INTERFACE cxx_std_20)
+    target_include_directories(
+        sharpcpp-native-support
+        INTERFACE
+            "$<BUILD_INTERFACE:${REDBOLT_SHARPCPP_ROOT}/include>")
+    set_target_properties(
+        sharpcpp-native-support
+        PROPERTIES INTERFACE_CXX_SCAN_FOR_MODULES OFF)
+endif()
+unset(_redbolt_sharpcpp_core_root)
+
 if(REDBOLT_ANDROID_BUILD OR ANDROID)
     find_program(_redbolt_binding_cxx_compiler NAMES clang++-20 clang++ REQUIRED)
     string(REGEX REPLACE "^android-" "" _redbolt_android_api "${ANDROID_PLATFORM}")

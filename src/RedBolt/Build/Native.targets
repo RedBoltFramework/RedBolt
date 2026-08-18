@@ -12,10 +12,11 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
                       Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'" ReferenceOutputAssembly="false" PrivateAssets="all"
                       Targets="RedBoltBuildExternalNativeDependency" AdditionalProperties="RedBoltExternalCMakeTarget=$(RedBoltExternalCMakeTarget)" />
     <ProjectReference Include="$(RedBoltExternalModuleRoot)/src/RedBolt/Native/$(RedBoltExternalModuleName).Native.Web.csproj"
-                      Condition="'$(RedBoltPlatform)' == 'browser-wasm'" ReferenceOutputAssembly="false" PrivateAssets="all"
+                      Condition="'$(RedBoltPlatform)' == 'browser-wasm' and '$(RedBoltExternalNativeWebProjectName)' != '' and Exists('$(RedBoltExternalModuleRoot)/src/RedBolt/Native/$(RedBoltExternalModuleName).Native.Web.csproj')"
+                      ReferenceOutputAssembly="false" PrivateAssets="all"
                       Targets="RedBoltBuildExternalNativeDependency" AdditionalProperties="RedBoltExternalCMakeTarget=$(RedBoltExternalCMakeTarget)" />
     <ProjectReference Include="$(RedBoltExternalModuleRoot)/src/RedBolt/Native/$(RedBoltExternalModuleName).Native.Android.csproj"
-                      Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))"
+                      Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(RedBoltExternalNativeAndroidProjectName)' != '' and Exists('$(RedBoltExternalModuleRoot)/src/RedBolt/Native/$(RedBoltExternalModuleName).Native.Android.csproj')"
                       ReferenceOutputAssembly="false" PrivateAssets="all"
                       Targets="RedBoltBuildExternalNativeDependency"
                       AdditionalProperties="RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltNativePreset);RedBoltTargetFramework=$(RedBoltTargetFramework);AndroidSdkDirectory=$(AndroidSdkDirectory);AndroidNdkDirectory=$(AndroidNdkDirectory);JavaSdkDirectory=$(JavaSdkDirectory);RedBoltExternalCMakeTarget=$(RedBoltExternalCMakeTarget)" />

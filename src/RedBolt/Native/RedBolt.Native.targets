@@ -34,7 +34,12 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
           SourceFiles="$(AndroidNdkDirectory)/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/$(RedBoltAndroidNdkTriple)/libc++_shared.so"
           DestinationFiles="$(RedBoltNativeOutputRoot)/libc++_shared.so"
           SkipUnchangedFiles="true" />
-    <Exec WorkingDirectory="$(RedBoltRoot)"
+        <Exec Condition="'$([MSBuild]::IsOSPlatform(`Linux`))' == 'true'"
+          WorkingDirectory="$(RedBoltRoot)"
+          IgnoreStandardErrorWarningFormat="true"
+          Command="flock &quot;$(RedBoltBuildRoot)/.redbolt-native-build.lock&quot; cmake -E env ANDROID_NDK_ROOT=&quot;$(AndroidNdkDirectory)&quot; cmake -DREDBOLT_SOURCE_DIR=&quot;$(RedBoltRoot)&quot; -DREDBOLT_NATIVE_PRESET=&quot;$(RedBoltNativePreset)&quot; -DREDBOLT_NATIVE_BUILD_DIR=&quot;$(RedBoltNativeBuildDir)&quot; -DREDBOLT_CONFIGURATION=&quot;$(Configuration)&quot; -DREDBOLT_ENABLED_NATIVE_MODULES=&quot;$(RedBoltEnabledNativeModules)&quot; -DREDBOLT_ENABLE_OPENXR=&quot;$(RedBoltOpenXREnabled)&quot; -DREDBOLT_SHARPCPP_ROOT=&quot;$(RedBoltSharpCppRoot)&quot; -DREDBOLT_GENERATOR_DLL=&quot;$(RedBoltHostToolsOutputDir)/RedBolt.Generator.Dependencies.dll&quot; -DREDBOLT_RUNTIME_OUTPUT_DIR=&quot;$(RedBoltNativeOutputRoot)&quot; -DREDBOLT_PDB_OUTPUT_DIR=&quot;$(RedBoltNativePdbOutputRoot)&quot; -P &quot;$(MSBuildThisFileDirectory)ConfigureNative.cmake&quot;" />
+        <Exec Condition="'$([MSBuild]::IsOSPlatform(`Linux`))' != 'true'"
+          WorkingDirectory="$(RedBoltRoot)"
           IgnoreStandardErrorWarningFormat="true"
           Command="cmake -E env ANDROID_NDK_ROOT=&quot;$(AndroidNdkDirectory)&quot; cmake -DREDBOLT_SOURCE_DIR=&quot;$(RedBoltRoot)&quot; -DREDBOLT_NATIVE_PRESET=&quot;$(RedBoltNativePreset)&quot; -DREDBOLT_NATIVE_BUILD_DIR=&quot;$(RedBoltNativeBuildDir)&quot; -DREDBOLT_CONFIGURATION=&quot;$(Configuration)&quot; -DREDBOLT_ENABLED_NATIVE_MODULES=&quot;$(RedBoltEnabledNativeModules)&quot; -DREDBOLT_ENABLE_OPENXR=&quot;$(RedBoltOpenXREnabled)&quot; -DREDBOLT_SHARPCPP_ROOT=&quot;$(RedBoltSharpCppRoot)&quot; -DREDBOLT_GENERATOR_DLL=&quot;$(RedBoltHostToolsOutputDir)/RedBolt.Generator.Dependencies.dll&quot; -DREDBOLT_RUNTIME_OUTPUT_DIR=&quot;$(RedBoltNativeOutputRoot)&quot; -DREDBOLT_PDB_OUTPUT_DIR=&quot;$(RedBoltNativePdbOutputRoot)&quot; -P &quot;$(MSBuildThisFileDirectory)ConfigureNative.cmake&quot;" />
   </Target>
@@ -42,9 +47,14 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <Target Name="RedBoltBuildCMakeTarget">
     <Error Condition="'$(RedBoltCMakeTarget)' == ''" Text="No CMake target was provided for '$(RedBoltPlatform)'." />
     <Error Condition="!Exists('$(RedBoltNativeBuildDir)/CMakeCache.txt')" Text="The native build directory was not configured at '$(RedBoltNativeBuildDir)'." />
-    <Exec WorkingDirectory="$(RedBoltRoot)"
-          IgnoreStandardErrorWarningFormat="true"
-          Command="cmake -E env ANDROID_NDK_ROOT=&quot;$(AndroidNdkDirectory)&quot; cmake -DREDBOLT_SOURCE_DIR=&quot;$(RedBoltRoot)&quot; -DREDBOLT_NATIVE_PRESET=&quot;$(RedBoltNativePreset)&quot; -DREDBOLT_NATIVE_BUILD_DIR=&quot;$(RedBoltNativeBuildDir)&quot; -DREDBOLT_NATIVE_TARGET=&quot;$(RedBoltCMakeTarget)&quot; -DREDBOLT_CONFIGURATION=&quot;$(Configuration)&quot; -DREDBOLT_PARALLELIZATION=&quot;$(RedBoltParallelization)&quot; -P &quot;$(MSBuildThisFileDirectory)BuildNative.cmake&quot;" />
+      <Exec Condition="'$([MSBuild]::IsOSPlatform(`Linux`))' == 'true'"
+        WorkingDirectory="$(RedBoltRoot)"
+        IgnoreStandardErrorWarningFormat="true"
+        Command="flock &quot;$(RedBoltBuildRoot)/.redbolt-native-build.lock&quot; cmake -E env ANDROID_NDK_ROOT=&quot;$(AndroidNdkDirectory)&quot; cmake -DREDBOLT_SOURCE_DIR=&quot;$(RedBoltRoot)&quot; -DREDBOLT_NATIVE_PRESET=&quot;$(RedBoltNativePreset)&quot; -DREDBOLT_NATIVE_BUILD_DIR=&quot;$(RedBoltNativeBuildDir)&quot; -DREDBOLT_NATIVE_TARGET=&quot;$(RedBoltCMakeTarget)&quot; -DREDBOLT_CONFIGURATION=&quot;$(Configuration)&quot; -DREDBOLT_PARALLELIZATION=&quot;$(RedBoltParallelization)&quot; -P &quot;$(MSBuildThisFileDirectory)BuildNative.cmake&quot;" />
+      <Exec Condition="'$([MSBuild]::IsOSPlatform(`Linux`))' != 'true'"
+        WorkingDirectory="$(RedBoltRoot)"
+        IgnoreStandardErrorWarningFormat="true"
+        Command="cmake -E env ANDROID_NDK_ROOT=&quot;$(AndroidNdkDirectory)&quot; cmake -DREDBOLT_SOURCE_DIR=&quot;$(RedBoltRoot)&quot; -DREDBOLT_NATIVE_PRESET=&quot;$(RedBoltNativePreset)&quot; -DREDBOLT_NATIVE_BUILD_DIR=&quot;$(RedBoltNativeBuildDir)&quot; -DREDBOLT_NATIVE_TARGET=&quot;$(RedBoltCMakeTarget)&quot; -DREDBOLT_CONFIGURATION=&quot;$(Configuration)&quot; -DREDBOLT_PARALLELIZATION=&quot;$(RedBoltParallelization)&quot; -P &quot;$(MSBuildThisFileDirectory)BuildNative.cmake&quot;" />
   </Target>
 
   <Target Name="RedBoltStageNativeResources">
@@ -92,7 +102,9 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <Target Name="RedBoltBuildNativeWebArchive" DependsOnTargets="RedBoltConfigureNative">
     <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RedBoltBuildCMakeTarget" Properties="RedBoltCMakeTarget=redbolt-wasm-native" />
   </Target>
-  <Target Name="RedBoltBuildNativeAndroidRuntime" DependsOnTargets="RedBoltConfigureNative">
+    <Target Name="RedBoltBuildNativeAndroidRuntime"
+      DependsOnTargets="RedBoltConfigureNative"
+      Condition="'$(RedBoltProjectBuildEnabled)' == 'true'">
     <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="RedBoltBuildCMakeTarget" Properties="RedBoltCMakeTarget=redbolt-android-native" />
   </Target>
 

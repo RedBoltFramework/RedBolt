@@ -49,8 +49,9 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <RuntimeIdentifiers>$(RedBoltAndroidRuntimeIdentifiers)</RuntimeIdentifiers>
     </PropertyGroup>
   </Target>
-  <Target Name="RedBoltPrepareAndroidRuntime" BeforeTargets="_CollectJavaSourceForBinding">
-    <MSBuild Projects="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Android.csproj" Targets="RedBoltBuildNativeAndroidRuntime" BuildInParallel="false"
+    <Target Name="RedBoltPrepareAndroidRuntime" BeforeTargets="_CollectJavaSourceForBinding"
+      Condition="'$(RedBoltProjectBuildEnabled)' == 'true'">
+      <MSBuild Projects="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Android.csproj" Targets="RedBoltBuildNativeAndroidRuntime" BuildInParallel="false"
              Properties="Configuration=$(Configuration);RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltPlatform);RedBoltTargetFramework=$(RedBoltTargetFramework);AndroidSdkDirectory=$(AndroidSdkDirectory);AndroidNdkDirectory=$(AndroidNdkDirectory);JavaSdkDirectory=$(JavaSdkDirectory)" />
     <MSBuild Projects="$(RedBoltExternalAndroidNativeProject)" Targets="RedBoltBuildExternalAndroidRuntime" BuildInParallel="false" Condition="'$(RedBoltExternalAndroidNativeProject)' != ''"
              Properties="Configuration=$(Configuration);RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltPlatform);RedBoltTargetFramework=$(RedBoltTargetFramework);AndroidSdkDirectory=$(AndroidSdkDirectory);AndroidNdkDirectory=$(AndroidNdkDirectory);JavaSdkDirectory=$(JavaSdkDirectory)" />

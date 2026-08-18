@@ -7,8 +7,10 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 <Project>
   <Import Project="$(RedBoltRoot)/Directory.Solution.props" />
   <PropertyGroup>
-    <RedBoltTraversalProject>$(RedBoltExternalModuleRoot)/src/RedBolt/Build/$(RedBoltExternalModuleName).Build.csproj</RedBoltTraversalProject>
-    <RedBoltSolutionBuildRoot>$(RedBoltExternalModuleRoot)/build</RedBoltSolutionBuildRoot>
-    <RedBoltBuildConfigPath>$(RedBoltExternalModuleRoot)/build/BuildConfig.props</RedBoltBuildConfigPath>
+    <RedBoltBuildMode Condition="'$(RedBoltBuildMode)' == ''">Module</RedBoltBuildMode>
+    <RedBoltBuildModuleRoot Condition="'$(RedBoltExternalModuleRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltExternalModuleRoot)'))</RedBoltBuildModuleRoot>
+    <RedBoltBuildModuleRoot Condition="'$(RedBoltExternalModuleRoot)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltRoot)'))</RedBoltBuildModuleRoot>
+    <RedBoltSolutionBuildRoot>$([System.IO.Path]::GetFullPath('$(RedBoltBuildModuleRoot)/build'))</RedBoltSolutionBuildRoot>
+    <RedBoltBuildConfigPath Condition="'$(RedBoltMonorepoRoot)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltBuildModuleRoot)/build/BuildConfig.props'))</RedBoltBuildConfigPath>
   </PropertyGroup>
 </Project>

@@ -75,12 +75,12 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
   <Target Name="RedBoltExternalConfigureBaseRuntimeAssemblies"
           BeforeTargets="RedBoltConfigureRuntimeAssemblies"
-          Condition="'$(RedBoltExternalHasNative)' == 'true' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true') and Exists('$(ProjectDepsFilePath)')">
+      Condition="'$(RedBoltExternalModuleRoot)' != '' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true') and Exists('$(ProjectDepsFilePath)')">
     <RedBoltUseParentRuntimeAssemblies
         DependencyFile="$(ProjectDepsFilePath)"
         MainProjectName="$(AssemblyName)"
-        NativeRuntimeDirectory="$(RedBoltRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)/extern/runtimes/$(RedBoltPlatform)/native"
-        NativeModuleManifestDirectory="$(RedBoltRoot)/build/native/$(RedBoltPlatform)/generated/native-modules/$(Configuration)"
+        NativeRuntimeDirectory="$(RedBoltRuntimeNativeOutputRoot)"
+        NativeModuleManifestDirectory="$(RedBoltRuntimeNativeModuleManifestDirectory)"
         RuntimeIdentifier="$(RuntimeIdentifier)">
       <Output TaskParameter="NativeAssets" ItemName="_RedBoltNativeAssets" />
     </RedBoltUseParentRuntimeAssemblies>

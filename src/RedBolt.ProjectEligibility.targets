@@ -33,17 +33,13 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltProjectBuildEnabled Condition="'$(_RedBoltProjectPlatformEnabled)' == 'true' and '$(_RedBoltProjectPlatformSupported)' == 'true' and '$(_RedBoltProjectModuleEnabled)' == 'true'">true</RedBoltProjectBuildEnabled>
     <RedBoltProjectBuildEnabled Condition="'$(RedBoltIgnoreBuildSelection)' == 'true'">true</RedBoltProjectBuildEnabled>
     <RedBoltProjectBuildEnabled Condition="'$(RedBoltProjectBuildEnabled)' == ''">false</RedBoltProjectBuildEnabled>
+    <WasmBuildOnlyAfterPublish Condition="'$(RedBoltProjectBuildEnabled)' != 'true' and '$(RedBoltPlatform)' == 'browser-wasm'">true</WasmBuildOnlyAfterPublish>
+    <AfterMicrosoftNETSdkTargets>$(AfterMicrosoftNETSdkTargets);$(MSBuildThisFileDirectory)RedBolt.AndroidProjectEligibility.targets</AfterMicrosoftNETSdkTargets>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(RedBoltProjectBuildEnabled)' != 'true'">
     <BuildDependsOn>RedBoltReportSkippedProject</BuildDependsOn>
     <RebuildDependsOn>RedBoltReportSkippedProject</RebuildDependsOn>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'RedBolt.Build'">
-    <BuildDependsOn>RedBoltBuildSelectedProjects</BuildDependsOn>
-    <RebuildDependsOn>RedBoltBuildSelectedProjects</RebuildDependsOn>
-    <CleanDependsOn>RedBoltCleanSelectedProjects</CleanDependsOn>
   </PropertyGroup>
 
   <Target Name="RedBoltReportSkippedProject">
