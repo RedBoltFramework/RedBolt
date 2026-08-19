@@ -7,13 +7,10 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>RedBolt.Bindings.Diligent</AssemblyName>
+    <RedBoltNativeModuleName>diligent</RedBoltNativeModuleName>
     <EnableLibraryImportGenerator>true</EnableLibraryImportGenerator>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DisableRuntimeMarshalling>true</DisableRuntimeMarshalling>
   </PropertyGroup>
-
-  <ItemGroup Condition="'$(RedBoltGeneratedBindingsDir)' != '' and Exists('$(RedBoltGeneratedBindingsDir)/diligent')">
-    <Compile Include="$(RedBoltGeneratedBindingsDir)/diligent/**/*.g.cs" LinkBase="Generated" />
-  </ItemGroup>
 
 </Project>

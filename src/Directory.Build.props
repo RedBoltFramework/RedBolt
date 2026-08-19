@@ -7,16 +7,12 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 <Project>
   <PropertyGroup>
     <RedBoltRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</RedBoltRoot>
-    <RedBoltMonorepoRoot Condition="'$(RedBoltMonorepoRoot)' == '' and '$(BuildingSolutionFile)' == 'true' and '$(SolutionDir)' != '' and Exists('$(SolutionDir)monorepo.cs')">$([System.IO.Path]::GetFullPath('$(SolutionDir)'))</RedBoltMonorepoRoot>
-    <RedBoltBuildMode Condition="'$(RedBoltBuildMode)' == '' and '$(RedBoltMonorepoRoot)' != ''">Monorepo</RedBoltBuildMode>
-    <RedBoltBuildMode Condition="'$(RedBoltBuildMode)' == ''">Module</RedBoltBuildMode>
-    <RedBoltBuildModuleRoot Condition="'$(RedBoltExternalModuleRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltExternalModuleRoot)'))</RedBoltBuildModuleRoot>
-    <RedBoltBuildModuleRoot Condition="'$(RedBoltExternalModuleRoot)' == ''">$(RedBoltRoot)</RedBoltBuildModuleRoot>
-    <RedBoltExpectedBuildRoot>$([System.IO.Path]::GetFullPath('$(RedBoltBuildModuleRoot)/build'))</RedBoltExpectedBuildRoot>
+    <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(SolutionDir)' != ''">$([System.IO.Path]::GetFullPath('$(SolutionDir)/build'))</RedBoltExpectedBuildRoot>
+    <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(RedBoltExternalModuleRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltExternalModuleRoot)/build'))</RedBoltExpectedBuildRoot>
+    <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltRoot)/build'))</RedBoltExpectedBuildRoot>
     <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == ''">$(RedBoltExpectedBuildRoot)</RedBoltBuildRoot>
-    <RedBoltBuildRootFullPath>$([System.IO.Path]::GetFullPath('$(RedBoltBuildRoot)'))</RedBoltBuildRootFullPath>
     <RedBoltSharpCppRoot>$(RedBoltRoot)/extern/SharpCpp</RedBoltSharpCppRoot>
-    <RedBoltSharpCppBuildRoot>$([System.IO.Path]::GetFullPath('$(RedBoltRoot)/build'))</RedBoltSharpCppBuildRoot>
+    <RedBoltSharpCppBuildRoot Condition="'$(RedBoltSharpCppBuildRoot)' == ''">$(RedBoltBuildRoot)</RedBoltSharpCppBuildRoot>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and ('$(MSBuildProjectName)' == 'RedBolt.Generator.Dependencies' or '$(MSBuildProjectName)' == 'RedBolt.Generator.Reflection')">tools</RedBoltPlatform>
     <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and ('$(MSBuildProjectName)' == 'RedBolt.Native.Web' or '$(MSBuildProjectName)' == 'RedBolt.Sample.Web')">browser-wasm</RedBoltPlatform>
@@ -39,16 +35,19 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <DefineConstants Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">$(DefineConstants);REDBOLT_PLATFORM_ANDROID;REDBOLT_GLES_SUPPORTED</DefineConstants>
     <WasmEnableThreads Condition="'$(RedBoltPlatform)' == 'browser-wasm'">false</WasmEnableThreads>
     <RedBoltNativePreset Condition="'$(RedBoltPlatform)' != 'tools'">$(RedBoltPlatform)</RedBoltNativePreset>
-    <RedBoltNativeBuildDir Condition="'$(RedBoltNativePreset)' != ''">$(RedBoltBuildRoot)/native/$(RedBoltNativePreset)</RedBoltNativeBuildDir>
-    <RedBoltNativeBuildDir Condition="$([System.String]::Copy('$(RedBoltNativePreset)').StartsWith('android-'))">$(RedBoltBuildRoot)/native/$(RedBoltNativePreset)/$(Configuration)</RedBoltNativeBuildDir>
-    <RedBoltSharpCppNativeBuildDir Condition="'$(RedBoltNativePreset)' != ''">$(RedBoltSharpCppBuildRoot)/native/$(RedBoltNativePreset)</RedBoltSharpCppNativeBuildDir>
-    <RedBoltSharpCppNativeBuildDir Condition="$([System.String]::Copy('$(RedBoltNativePreset)').StartsWith('android-'))">$(RedBoltSharpCppBuildRoot)/native/$(RedBoltNativePreset)/$(Configuration)</RedBoltSharpCppNativeBuildDir>
+    <RedBoltBaseNativeBuildDir Condition="'$(RedBoltNativePreset)' != ''">$(RedBoltBuildRoot)/native/redbolt/$(RedBoltNativePreset)</RedBoltBaseNativeBuildDir>
+    <RedBoltBaseNativeBuildDir Condition="$([System.String]::Copy('$(RedBoltNativePreset)').StartsWith('android-'))">$(RedBoltBuildRoot)/native/redbolt/$(RedBoltNativePreset)/$(Configuration)</RedBoltBaseNativeBuildDir>
+    <RedBoltNativeBuildDir Condition="'$(RedBoltNativePreset)' != ''">$(RedBoltBaseNativeBuildDir)</RedBoltNativeBuildDir>
+    <RedBoltSharpCppNativeBuildDir Condition="'$(RedBoltNativePreset)' != ''">$(RedBoltSharpCppBuildRoot)/native/sharpcpp/$(RedBoltNativePreset)</RedBoltSharpCppNativeBuildDir>
+    <RedBoltSharpCppNativeBuildDir Condition="$([System.String]::Copy('$(RedBoltNativePreset)').StartsWith('android-'))">$(RedBoltSharpCppBuildRoot)/native/sharpcpp/$(RedBoltNativePreset)/$(Configuration)</RedBoltSharpCppNativeBuildDir>
     <RedBoltSharpCppConfigureNative Condition="'$(RedBoltSharpCppNativeBuildDir)' != '' and !Exists('$(RedBoltSharpCppNativeBuildDir)/CMakeCache.txt')">true</RedBoltSharpCppConfigureNative>
     <RedBoltSharpCppConfigureNative Condition="'$(RedBoltSharpCppConfigureNative)' == ''">false</RedBoltSharpCppConfigureNative>
     <RedBoltConfigureNative Condition="'$(RedBoltNativeBuildDir)' != '' and !Exists('$(RedBoltNativeBuildDir)/CMakeCache.txt')">true</RedBoltConfigureNative>
     <RedBoltConfigureNative Condition="'$(RedBoltConfigureNative)' == ''">false</RedBoltConfigureNative>
     <RedBoltGeneratedBindingsDir Condition="'$(RedBoltNativeBuildDir)' != ''">$(RedBoltNativeBuildDir)/generated/redbolt-native</RedBoltGeneratedBindingsDir>
     <RedBoltNativeModuleManifestDirectory Condition="'$(RedBoltNativeBuildDir)' != ''">$(RedBoltNativeBuildDir)/generated/native-modules/$(Configuration)</RedBoltNativeModuleManifestDirectory>
+    <RedBoltRestoreProjectName Condition="'$(RedBoltExternalModuleName)' != ''">$(RedBoltExternalModuleName)/$(MSBuildProjectName)</RedBoltRestoreProjectName>
+    <RedBoltRestoreProjectName Condition="'$(RedBoltRestoreProjectName)' == ''">$(MSBuildProjectName)</RedBoltRestoreProjectName>
 
     <RedBoltArtifactsRoot>$(RedBoltBuildRoot)/bin/$(Configuration)</RedBoltArtifactsRoot>
     <RedBoltOutputRoot>$(RedBoltArtifactsRoot)/$(RedBoltPlatform)</RedBoltOutputRoot>
@@ -63,7 +62,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltSharpCppNativeOutputRoot>$(RedBoltSharpCppBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/extern/runtimes/$(RedBoltPlatform)/native</RedBoltSharpCppNativeOutputRoot>
     <RedBoltSharpCppManagedIntermediateRoot>$(RedBoltSharpCppBuildRoot)/obj/managed/tools</RedBoltSharpCppManagedIntermediateRoot>
     <RedBoltSharpCppNativeIntermediateRoot>$(RedBoltSharpCppBuildRoot)/obj/managed/$(RedBoltPlatform)/native-tools</RedBoltSharpCppNativeIntermediateRoot>
-    <RedBoltOutputDir Condition="'$(RedBoltPlatform)' == 'browser-wasm' or $([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">$(RedBoltIntermediateRoot)/staging/$(MSBuildProjectName)/$(Configuration)</RedBoltOutputDir>
+    <RedBoltOutputDir Condition="'$(RedBoltPlatform)' == 'browser-wasm' or $([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">$(RedBoltIntermediateRoot)/staging/$(RedBoltRestoreProjectName)/$(Configuration)</RedBoltOutputDir>
     <RedBoltOutputDir Condition="'$(RedBoltOutputDir)' == '' and $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Bindings.'))">$(RedBoltExternOutputDir)</RedBoltOutputDir>
     <RedBoltOutputDir Condition="'$(RedBoltOutputDir)' == '' and ('$(MSBuildProjectName)' == 'RedBolt.PackageTool' or $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Generator.')))">$(RedBoltHostToolsOutputDir)</RedBoltOutputDir>
     <RedBoltOutputDir Condition="'$(RedBoltOutputDir)' == '' and '$(MSBuildProjectName)' == 'RedBolt.Editor'">$(RedBoltToolsOutputDir)</RedBoltOutputDir>
@@ -78,8 +77,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <SharpCppBuildRoot>$(RedBoltSharpCppBuildRoot)</SharpCppBuildRoot>
     <SharpCppOutputDir>$(RedBoltSharpCppManagedOutputRoot)</SharpCppOutputDir>
     <SharpCppIntermediateRoot>$(RedBoltSharpCppManagedIntermediateRoot)</SharpCppIntermediateRoot>
-    <RedBoltSharpCppManagedProperties>Configuration=$(Configuration)</RedBoltSharpCppManagedProperties>
-    <RedBoltSharpCppManagedProperties Condition="'$(RedBoltExternalModuleRoot)' != ''">Configuration=$(Configuration);RedBoltBuildMode=$(RedBoltBuildMode);RedBoltMonorepoRoot=$(RedBoltMonorepoRoot)</RedBoltSharpCppManagedProperties>
+    <RedBoltSharpCppManagedProperties>Configuration=$(Configuration);SharpCppBuildRoot=$(RedBoltSharpCppBuildRoot);SharpCppOutputDir=$(RedBoltSharpCppManagedOutputRoot);SharpCppIntermediateRoot=$(RedBoltSharpCppManagedIntermediateRoot)</RedBoltSharpCppManagedProperties>
     <RedBoltAndroidNativeConfigureArguments Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))"> -DCMAKE_TOOLCHAIN_FILE=$(AndroidNdkDirectory)/build/cmake/android.toolchain.cmake</RedBoltAndroidNativeConfigureArguments>
     <RedBoltSharpCppNativeProperties>Configuration=$(Configuration);SharpCppCMakeSourceDir=$(RedBoltRoot);SharpCppNativePreset=$(RedBoltNativePreset);SharpCppNativeBuildDir=$(RedBoltSharpCppNativeBuildDir);SharpCppNativeTarget=sharpcpp-native;SharpCppConfigureNative=$(RedBoltSharpCppConfigureNative);SharpCppBuildRoot=$(RedBoltSharpCppBuildRoot);SharpCppBuildE2E=false;SharpCppBuildRbfx=false;SharpCppParallelization=$(RedBoltParallelization);SharpCppManagedOutputRoot=$(RedBoltSharpCppManagedOutputRoot);SharpCppNativeOutputRoot=$(RedBoltSharpCppNativeOutputRoot);SharpCppOutputDir=$(RedBoltSharpCppManagedOutputRoot);SharpCppIntermediateRoot=$(RedBoltSharpCppNativeIntermediateRoot);SharpCppNativeConfigureArguments=-DREDBOLT_SHARPCPP_ROOT=$(RedBoltSharpCppRoot)$(RedBoltAndroidNativeConfigureArguments);RedBoltPdbOutputDir=$(RedBoltSharpCppManagedOutputRoot)/pdb;CustomBeforeMicrosoftCommonTargets=$(RedBoltManagedOutputTargets)</RedBoltSharpCppNativeProperties>
 
@@ -87,14 +85,20 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <OutputPath>$(RedBoltOutputDir)/</OutputPath>
-    <BaseIntermediateOutputPath>$(RedBoltIntermediateRoot)/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
-    <MSBuildProjectExtensionsPath>$(RedBoltBuildRoot)/obj/restore/$(RedBoltRestorePlatform)/$(MSBuildProjectName)/</MSBuildProjectExtensionsPath>
+    <BaseIntermediateOutputPath>$(RedBoltIntermediateRoot)/$(RedBoltRestoreProjectName)/</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath>$(RedBoltBuildRoot)/obj/restore/$(RedBoltRestorePlatform)/$(RedBoltRestoreProjectName)/</MSBuildProjectExtensionsPath>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <IsPackable>false</IsPackable>
     <CustomAfterMicrosoftCommonTargets Condition="'$(CustomAfterMicrosoftCommonTargets)' == ''">$(RedBoltRoot)/src/RedBolt.ProjectEligibility.targets</CustomAfterMicrosoftCommonTargets>
-    <RedBoltBuildConfigPath Condition="'$(RedBoltMonorepoRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltMonorepoRoot)/build/BuildConfig.props'))</RedBoltBuildConfigPath>
   </PropertyGroup>
+
+  <ItemDefinitionGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.Generator.Dependencies'))">
+    <ProjectReference>
+      <Private>false</Private>
+      <IncludeRuntimeDependency>true</IncludeRuntimeDependency>
+    </ProjectReference>
+  </ItemDefinitionGroup>
 
   <Import Project="$(RedBoltRoot)/RedBolt.BuildConfig.props" />
 </Project>

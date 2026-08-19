@@ -35,22 +35,22 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <_RedBoltCoreBindingProject Include="@(ProjectReference)"
                                   Condition="$([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/src/')) and $([System.String]::Copy('%(ProjectReference.FullPath)').Replace('\', '/').Contains('/Native/')) and $([System.String]::Copy('%(ProjectReference.Filename)').StartsWith('RedBolt.Bindings.'))" />
       <ProjectReference Remove="@(_RedBoltCoreManagedProject);@(_RedBoltCoreEditorProject);@(_RedBoltCoreBindingProject)" />
-      <Reference Include="@(_RedBoltCoreManagedProject->'$(RedBoltRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)/core/%(Filename).dll')"
+      <Reference Include="@(_RedBoltCoreManagedProject->'$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/core/%(Filename).dll')"
                  Condition="'$(RedBoltPlatform)' != 'browser-wasm' and !$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
         <ReferenceSourceTarget>ResolveAssemblyReference</ReferenceSourceTarget>
       </Reference>
-      <Reference Include="@(_RedBoltCoreManagedProject->'$(RedBoltRoot)/build/obj/managed/$(RedBoltPlatform)/staging/%(Filename)/$(Configuration)/%(Filename).dll')"
+      <Reference Include="@(_RedBoltCoreManagedProject->'$(RedBoltBuildRoot)/obj/managed/$(RedBoltPlatform)/staging/%(Filename)/$(Configuration)/%(Filename).dll')"
                  Condition="'$(RedBoltPlatform)' == 'browser-wasm' or $([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
         <ReferenceSourceTarget>ResolveAssemblyReference</ReferenceSourceTarget>
       </Reference>
-      <Reference Include="@(_RedBoltCoreEditorProject->'$(RedBoltRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)/tools/%(Filename).dll')">
+      <Reference Include="@(_RedBoltCoreEditorProject->'$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/tools/%(Filename).dll')">
         <ReferenceSourceTarget>ResolveAssemblyReference</ReferenceSourceTarget>
       </Reference>
-      <Reference Include="@(_RedBoltCoreBindingProject->'$(RedBoltRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)/extern/%(Filename).dll')"
+      <Reference Include="@(_RedBoltCoreBindingProject->'$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/extern/%(Filename).dll')"
                  Condition="'$(RedBoltPlatform)' != 'browser-wasm' and !$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
         <ReferenceSourceTarget>ResolveAssemblyReference</ReferenceSourceTarget>
       </Reference>
-      <Reference Include="@(_RedBoltCoreBindingProject->'$(RedBoltRoot)/build/obj/managed/$(RedBoltPlatform)/staging/%(Filename)/$(Configuration)/%(Filename).dll')"
+      <Reference Include="@(_RedBoltCoreBindingProject->'$(RedBoltBuildRoot)/obj/managed/$(RedBoltPlatform)/staging/%(Filename)/$(Configuration)/%(Filename).dll')"
                  Condition="'$(RedBoltPlatform)' == 'browser-wasm' or $([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
         <ReferenceSourceTarget>ResolveAssemblyReference</ReferenceSourceTarget>
       </Reference>
@@ -62,19 +62,19 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <_RedBoltNetworkBindingProject Include="@(ProjectReference)"
                                      Condition="$([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltNetworkRoot)/src/')) and $([System.String]::Copy('%(ProjectReference.Filename)').StartsWith('RedBolt.Bindings.'))" />
       <ProjectReference Remove="@(_RedBoltNetworkManagedProject);@(_RedBoltNetworkBindingProject)" />
-      <Reference Include="@(_RedBoltNetworkManagedProject->'$(RedBoltNetworkRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)/core/%(Filename).dll')"
+      <Reference Include="@(_RedBoltNetworkManagedProject->'$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/core/%(Filename).dll')"
                  Condition="'$(RedBoltPlatform)' != 'browser-wasm' and !$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
         <ReferenceSourceTarget>ResolveAssemblyReference</ReferenceSourceTarget>
       </Reference>
-      <Reference Include="@(_RedBoltNetworkManagedProject->'$(RedBoltNetworkRoot)/build/obj/managed/$(RedBoltPlatform)/staging/%(Filename)/$(Configuration)/%(Filename).dll')"
+      <Reference Include="@(_RedBoltNetworkManagedProject->'$(RedBoltBuildRoot)/obj/managed/$(RedBoltPlatform)/staging/%(Filename)/$(Configuration)/%(Filename).dll')"
                  Condition="'$(RedBoltPlatform)' == 'browser-wasm' or $([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
         <ReferenceSourceTarget>ResolveAssemblyReference</ReferenceSourceTarget>
       </Reference>
-      <Reference Include="@(_RedBoltNetworkBindingProject->'$(RedBoltNetworkRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)/extern/%(Filename).dll')"
+      <Reference Include="@(_RedBoltNetworkBindingProject->'$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/extern/%(Filename).dll')"
                  Condition="'$(RedBoltPlatform)' != 'browser-wasm' and !$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
         <ReferenceSourceTarget>ResolveAssemblyReference</ReferenceSourceTarget>
       </Reference>
-      <Reference Include="@(_RedBoltNetworkBindingProject->'$(RedBoltNetworkRoot)/build/obj/managed/$(RedBoltPlatform)/staging/%(Filename)/$(Configuration)/%(Filename).dll')"
+      <Reference Include="@(_RedBoltNetworkBindingProject->'$(RedBoltBuildRoot)/obj/managed/$(RedBoltPlatform)/staging/%(Filename)/$(Configuration)/%(Filename).dll')"
                  Condition="'$(RedBoltPlatform)' == 'browser-wasm' or $([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
         <ReferenceSourceTarget>ResolveAssemblyReference</ReferenceSourceTarget>
       </Reference>
@@ -82,10 +82,10 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   </Target>
 
   <ItemGroup Condition="'$(RedBoltExternalModuleRoot)' != '' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">
-    <AdditionalProbingPath Include="$(RedBoltRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)/core" />
-    <AdditionalProbingPath Include="$(RedBoltRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)/extern" />
-    <AdditionalProbingPath Include="$(RedBoltRoot)/build/bin/$(Configuration)/host/extern" />
-    <AdditionalProbingPath Include="$(RedBoltRoot)/build/bin/$(Configuration)/host/tools" />
+    <AdditionalProbingPath Include="$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/core" />
+    <AdditionalProbingPath Include="$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/extern" />
+    <AdditionalProbingPath Include="$(RedBoltBuildRoot)/bin/$(Configuration)/host/extern" />
+    <AdditionalProbingPath Include="$(RedBoltBuildRoot)/bin/$(Configuration)/host/tools" />
     <AdditionalProbingPath Include="$(RedBoltExternalAdditionalProbingPaths)" Condition="'$(RedBoltExternalAdditionalProbingPaths)' != ''" />
   </ItemGroup>
 
@@ -107,7 +107,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <MakeDir Directories="$(RedBoltOutputRoot)" />
     <Exec Condition="!Exists('$(RedBoltOutputRoot)/CoreData')" Command="cmake -E create_symlink &quot;$(RedBoltExternalDesktopResourceRoot)/bin/CoreData&quot; &quot;$(RedBoltOutputRoot)/CoreData&quot;" />
     <Exec Condition="!Exists('$(RedBoltOutputRoot)/Data')" Command="cmake -E create_symlink &quot;$(RedBoltExternalDesktopResourceRoot)/bin/Data&quot; &quot;$(RedBoltOutputRoot)/Data&quot;" />
-    <Exec Condition="!Exists('$(RedBoltOutputRoot)/Base')" Command="cmake -E create_symlink &quot;$(RedBoltRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)&quot; &quot;$(RedBoltOutputRoot)/Base&quot;" />
+    <Exec Condition="!Exists('$(RedBoltOutputRoot)/Base')" Command="cmake -E create_symlink &quot;$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)&quot; &quot;$(RedBoltOutputRoot)/Base&quot;" />
   </Target>
 
   <Target Name="RedBoltExternalStageDesktopResources"

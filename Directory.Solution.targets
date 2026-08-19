@@ -123,10 +123,9 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <Target Name="RedBoltPersistBuildConfiguration"
           AfterTargets="Build;Rebuild"
           Condition="'$(BuildingSolutionFile)' == 'true'
-                     and (('$(RedBoltBuildMode)' == 'Monorepo'
-                           and '$(RedBoltExternalModuleName)' == ''
+                     and (('$(RedBoltExternalModuleName)' == ''
                            and '$(MSBuildProjectName)' == 'RedBolt.Core')
-                          or ('$(RedBoltBuildMode)' == 'Module'
+                          or ('$(RedBoltExternalModuleName)' != ''
                               and '$(MSBuildProjectName)' == '$(RedBoltExternalModuleName)'))">
     <RedBoltSaveBuildConfig ConfigFile="$(RedBoltBuildConfigPath)"
                             EnablePlatforms="$(RedBoltEnablePlatforms)"

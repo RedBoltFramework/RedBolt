@@ -6,21 +6,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
 <Project>
   <Import Project="$(MSBuildThisFileDirectory)../../Directory.Build.targets" />
-
-  <PropertyGroup>
-    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Sdl'">RedBoltBuildNativeSdl</RedBoltNativeBuildTarget>
-    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Diligent'">RedBoltBuildNativeDiligent</RedBoltNativeBuildTarget>
-    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.DearImGui'">RedBoltBuildNativeDearImGui</RedBoltNativeBuildTarget>
-    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Stb'">RedBoltBuildNativeStb</RedBoltNativeBuildTarget>
-    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.TinyGltf'">RedBoltBuildNativeTinyGltf</RedBoltNativeBuildTarget>
-    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Lz4'">RedBoltBuildNativeLz4</RedBoltNativeBuildTarget>
-    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.HarfBuzz'">RedBoltBuildNativeHarfBuzz</RedBoltNativeBuildTarget>
-    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.WebP'">RedBoltBuildNativeWebP</RedBoltNativeBuildTarget>
-    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Glslang'">RedBoltBuildNativeGlslang</RedBoltNativeBuildTarget>
-    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVCross'">RedBoltBuildNativeSpirVCross</RedBoltNativeBuildTarget>
-    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVTools'">RedBoltBuildNativeSpirVTools</RedBoltNativeBuildTarget>
-    <RedBoltNativeBuildTarget Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.ShaderCompiler'">RedBoltBuildNativeShaderCompiler</RedBoltNativeBuildTarget>
-  </PropertyGroup>
+  <Import Project="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.targets" />
 
   <ItemGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Bindings.'))">
     <!-- Shared standard-library wrappers live outside generated modules. Every
@@ -35,71 +21,79 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.csproj"
                       Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'"
                       ReferenceOutputAssembly="false"
-                      PrivateAssets="all"
-                      Targets="$(RedBoltNativeBuildTarget)" />
+                      PrivateAssets="all" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Web.csproj"
                       Condition="'$(RedBoltPlatform)' == 'browser-wasm'"
                       ReferenceOutputAssembly="false"
-                      PrivateAssets="all"
-                      Targets="$(RedBoltNativeBuildTarget)" />
+                      PrivateAssets="all" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Android.csproj"
                       Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all"
-                      Targets="$(RedBoltNativeBuildTarget)"
                       AdditionalProperties="RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltNativePreset);RedBoltTargetFramework=$(RedBoltTargetFramework);AndroidSdkDirectory=$(AndroidSdkDirectory);AndroidNdkDirectory=$(AndroidNdkDirectory);JavaSdkDirectory=$(JavaSdkDirectory)" />
   </ItemGroup>
 
-  <Target Name="RedBoltIncludeGeneratedBindings" BeforeTargets="CoreCompile">
+  <Target Name="RedBoltBuildNativeLibrary"
+          DependsOnTargets="ResolveReferences;RedBoltStageNativeResources;RedBoltBuildCMakeTarget"
+          Condition="'$(RedBoltProjectBuildEnabled)' == 'true'
+                     and '$(RedBoltCMakeTarget)' != ''" />
+  <Target Name="RedBoltBuildNativeSdl"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="RedBoltBuildNativeLibrary"
+          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Sdl'" />
+  <Target Name="RedBoltBuildNativeDiligent"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="RedBoltBuildNativeLibrary"
+          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Diligent'" />
+  <Target Name="RedBoltBuildNativeDearImGui"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="RedBoltBuildNativeLibrary"
+          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.DearImGui'" />
+  <Target Name="RedBoltBuildNativeStb"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="RedBoltBuildNativeLibrary"
+          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Stb'" />
+  <Target Name="RedBoltBuildNativeTinyGltf"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="RedBoltBuildNativeLibrary"
+          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.TinyGltf'" />
+  <Target Name="RedBoltBuildNativeLz4"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="RedBoltBuildNativeLibrary"
+          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Lz4'" />
+  <Target Name="RedBoltBuildNativeHarfBuzz"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="RedBoltBuildNativeLibrary"
+          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.HarfBuzz'" />
+  <Target Name="RedBoltBuildNativeWebP"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="RedBoltBuildNativeLibrary"
+          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.WebP'" />
+  <Target Name="RedBoltBuildNativeGlslang"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="RedBoltBuildNativeLibrary"
+          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Glslang'" />
+  <Target Name="RedBoltBuildNativeSpirVCross"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="RedBoltBuildNativeLibrary"
+          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVCross'" />
+  <Target Name="RedBoltBuildNativeSpirVTools"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="RedBoltBuildNativeLibrary"
+          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVTools'" />
+  <Target Name="RedBoltBuildNativeShaderCompiler"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="RedBoltBuildNativeLibrary"
+          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.ShaderCompiler'" />
+
+        <Target Name="RedBoltIncludeGeneratedBindings"
+                                        BeforeTargets="CoreCompile"
+                                        DependsOnTargets="RedBoltBuildNativeLibrary"
+                                        Condition="'$(RedBoltNativeModuleName)' != ''">
     <ItemGroup>
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/sdl/**/*.g.cs"
+                        <Compile Include="$(RedBoltGeneratedBindingsDir)/$(RedBoltNativeModuleName)/**/*.g.cs"
                Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Sdl'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/diligent/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Diligent'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/dearimgui/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.DearImGui'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/stb/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Stb'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/tinygltf/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.TinyGltf'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/lz4/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Lz4'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/harfbuzz/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.HarfBuzz'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/webp/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.WebP'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/glslang/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Glslang'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/spirv-cross/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVCross'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/spirv-tools/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVTools'" />
-      <Compile Include="$(RedBoltGeneratedBindingsDir)/shader-compiler/**/*.g.cs"
-               Exclude="@(Compile)"
-               LinkBase="Generated"
-               Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.ShaderCompiler'" />
+                                                         LinkBase="Generated" />
     </ItemGroup>
   </Target>
 </Project>

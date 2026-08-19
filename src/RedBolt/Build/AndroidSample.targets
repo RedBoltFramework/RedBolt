@@ -24,12 +24,12 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <TrimMode>partial</TrimMode>
     <!-- Xamarin.Android resolves AndroidManifest relative to the project even when given an absolute path. -->
     <AndroidManifest>$([MSBuild]::MakeRelative('$(MSBuildProjectDirectory)', '$(RedBoltRoot)/src/RedBolt/Sample/Android/AndroidManifest.xml'))</AndroidManifest>
-    <RedBoltBaseAndroidNativeOutput>$(RedBoltRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)/extern/runtimes/$(RedBoltPlatform)/native</RedBoltBaseAndroidNativeOutput>
+    <RedBoltBaseAndroidNativeOutput>$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/extern/runtimes/$(RedBoltPlatform)/native</RedBoltBaseAndroidNativeOutput>
     <RedBoltAndroidCppOutput Condition="'$(RedBoltExternalAndroidNativeOutput)' != ''">$(RedBoltExternalAndroidNativeOutput)</RedBoltAndroidCppOutput>
     <RedBoltAndroidCppOutput Condition="'$(RedBoltAndroidCppOutput)' == ''">$(RedBoltBaseAndroidNativeOutput)</RedBoltAndroidCppOutput>
     <RedBoltAndroidNdkTriple Condition="'$(RedBoltPlatform)' == 'android-arm64'">aarch64-linux-android</RedBoltAndroidNdkTriple>
     <RedBoltAndroidNdkTriple Condition="'$(RedBoltPlatform)' == 'android-x64'">x86_64-linux-android</RedBoltAndroidNdkTriple>
-    <RedBoltAndroidJavaDirectory>$(RedBoltRoot)/build/native/$(RedBoltPlatform)/$(Configuration)/generated/android/java</RedBoltAndroidJavaDirectory>
+    <RedBoltAndroidJavaDirectory>$(RedBoltBaseNativeBuildDir)/generated/android/java</RedBoltAndroidJavaDirectory>
     <RedBoltAndroidPackageOutputDirectory>$(RedBoltOutputRoot)/app</RedBoltAndroidPackageOutputDirectory>
   </PropertyGroup>
   <ItemGroup>

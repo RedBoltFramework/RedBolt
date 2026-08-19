@@ -7,8 +7,10 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 <Project>
   <PropertyGroup>
     <RedBoltRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../../..'))</RedBoltRoot>
-    <BaseOutputPath>$(RedBoltRoot)/build/bin/tools/external-module-packaging/</BaseOutputPath>
-    <BaseIntermediateOutputPath>$(RedBoltRoot)/build/obj/tools/external-module-packaging/</BaseIntermediateOutputPath>
+    <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == '' and '$(SolutionDir)' != ''">$([System.IO.Path]::GetFullPath('$(SolutionDir)/build'))</RedBoltBuildRoot>
+    <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == ''">$(RedBoltRoot)/build</RedBoltBuildRoot>
+    <BaseOutputPath>$(RedBoltBuildRoot)/bin/tools/external-module-packaging/</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(RedBoltBuildRoot)/obj/tools/external-module-packaging/</BaseIntermediateOutputPath>
     <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)restore/</MSBuildProjectExtensionsPath>
   </PropertyGroup>
 </Project>

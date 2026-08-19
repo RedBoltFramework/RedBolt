@@ -12,10 +12,10 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
           BeforeTargets="RedBoltConfigureRuntimeAssemblies"
           Condition="('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and '$(IsTestProject)' == 'true'">
     <ItemGroup>
-      <AdditionalProbingPath Include="@(RedBoltExternalTestModule->'%(Identity)/build/bin/$(Configuration)/$(RedBoltPlatform)/core')" />
-      <AdditionalProbingPath Include="@(RedBoltExternalTestModule->'%(Identity)/build/bin/$(Configuration)/$(RedBoltPlatform)/extern')" Condition="'%(RedBoltExternalTestModule.HasNative)' == 'true'" />
-      <AdditionalProbingPath Include="@(RedBoltExternalTestModule->'%(Identity)/build/bin/$(Configuration)/host/extern')" Condition="'%(RedBoltExternalTestModule.HasNative)' == 'true'" />
-      <AdditionalProbingPath Include="@(RedBoltExternalTestModule->'%(Identity)/build/bin/$(Configuration)/host/tools')" Condition="'%(RedBoltExternalTestModule.HasNative)' == 'true'" />
+      <AdditionalProbingPath Include="$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/core" />
+      <AdditionalProbingPath Include="$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/extern" Condition="'%(RedBoltExternalTestModule.HasNative)' == 'true'" />
+      <AdditionalProbingPath Include="$(RedBoltBuildRoot)/bin/$(Configuration)/host/extern" Condition="'%(RedBoltExternalTestModule.HasNative)' == 'true'" />
+      <AdditionalProbingPath Include="$(RedBoltBuildRoot)/bin/$(Configuration)/host/tools" Condition="'%(RedBoltExternalTestModule.HasNative)' == 'true'" />
     </ItemGroup>
   </Target>
   <Target Name="RedBoltExternalConfigureTestRuntimeAssemblies"
@@ -24,8 +24,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltUseParentRuntimeAssemblies
         DependencyFile="$(ProjectDepsFilePath)"
         MainProjectName="$(AssemblyName)"
-        NativeRuntimeDirectory="%(RedBoltExternalTestModule.Identity)/build/bin/$(Configuration)/$(RedBoltPlatform)/extern/runtimes/$(RedBoltPlatform)/native"
-        NativeModuleManifestDirectory="%(RedBoltExternalTestModule.Identity)/build/native/$(RedBoltPlatform)/generated/native-modules/$(Configuration)"
+        NativeRuntimeDirectory="$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/extern/runtimes/$(RedBoltPlatform)/native"
+        NativeModuleManifestDirectory="$(RedBoltBuildRoot)/native/%(RedBoltExternalTestModule.Filename)%(RedBoltExternalTestModule.Extension)/$(RedBoltPlatform)/generated/native-modules/$(Configuration)"
         RuntimeIdentifier="$(RuntimeIdentifier)"
         Condition="'%(RedBoltExternalTestModule.HasNative)' == 'true'">
       <Output TaskParameter="NativeAssets" ItemName="_RedBoltNativeAssets" />

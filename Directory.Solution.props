@@ -6,12 +6,10 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
 <Project>
   <PropertyGroup>
-    <RedBoltRoot>$(MSBuildThisFileDirectory)</RedBoltRoot>
-    <RedBoltMonorepoRoot Condition="'$(RedBoltMonorepoRoot)' == '' and '$(BuildingSolutionFile)' == 'true' and '$(SolutionDir)' != '' and Exists('$(SolutionDir)monorepo.cs')">$([System.IO.Path]::GetFullPath('$(SolutionDir)'))</RedBoltMonorepoRoot>
-    <RedBoltBuildMode Condition="'$(RedBoltBuildMode)' == '' and '$(RedBoltMonorepoRoot)' != ''">Monorepo</RedBoltBuildMode>
-    <SharpCppBuildRoot Condition="'$(SharpCppBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltRoot)/build'))</SharpCppBuildRoot>
-    <RedBoltBuildConfigPath Condition="'$(RedBoltMonorepoRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltMonorepoRoot)/build/BuildConfig.props'))</RedBoltBuildConfigPath>
+    <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == '' and '$(SolutionDir)' != ''">$([System.IO.Path]::GetFullPath('$(SolutionDir)/build'))</RedBoltBuildRoot>
+    <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)build'))</RedBoltBuildRoot>
+    <RedBoltBuildConfigPath Condition="'$(RedBoltBuildConfigPath)' == ''">$(RedBoltBuildRoot)/BuildConfig.props</RedBoltBuildConfigPath>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
   </PropertyGroup>
-  <Import Project="$(RedBoltRoot)/RedBolt.BuildConfig.props" />
+  <Import Project="$(MSBuildThisFileDirectory)RedBolt.BuildConfig.props" />
 </Project>

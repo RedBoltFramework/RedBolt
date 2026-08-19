@@ -6,10 +6,4 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
 <Project>
   <Import Project="$(RedBoltRoot)/Directory.Solution.targets" />
-  <PropertyGroup>
-    <RedBoltBuildMode Condition="'$(RedBoltBuildMode)' == ''">Module</RedBoltBuildMode>
-    <RedBoltBuildModuleRoot Condition="'$(RedBoltExternalModuleRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltExternalModuleRoot)'))</RedBoltBuildModuleRoot>
-    <RedBoltBuildModuleRoot Condition="'$(RedBoltExternalModuleRoot)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltRoot)'))</RedBoltBuildModuleRoot>
-    <RedBoltBuildConfigPath Condition="'$(RedBoltMonorepoRoot)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltBuildModuleRoot)/build/BuildConfig.props'))</RedBoltBuildConfigPath>
-  </PropertyGroup>
 </Project>

@@ -8,6 +8,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <PropertyGroup>
     <RedBoltBuildConfigPath Condition="'$(RedBoltBuildConfigPath)' == ''">$(RedBoltBuildRoot)/BuildConfig.props</RedBoltBuildConfigPath>
     <RedBoltFull Condition="'$(RedBoltFull)' == ''">false</RedBoltFull>
+    <RestoreUseStaticGraphEvaluation Condition="'$(RedBoltFull)' == 'true' and '$(RestoreUseStaticGraphEvaluation)' == ''">false</RestoreUseStaticGraphEvaluation>
     <RedBoltParallelization Condition="'$(RedBoltParallelization)' == ''">4</RedBoltParallelization>
   </PropertyGroup>
 
@@ -79,5 +80,10 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltEnabledNativeModules>SDL,DILIGENT,STB,LZ4,HARFBUZZ,WEBP,GLSLANG,SPIRV_CROSS,SPIRV_TOOLS,SHADER_COMPILER</RedBoltEnabledNativeModules>
     <RedBoltEnabledNativeModules Condition="'$(RedBoltDearImGuiEnabled)' == 'true'">$(RedBoltEnabledNativeModules),IMGUI</RedBoltEnabledNativeModules>
     <RedBoltEnabledNativeModules Condition="'$(RedBoltUtilityEnabled)' == 'true'">$(RedBoltEnabledNativeModules),TINYGLTF</RedBoltEnabledNativeModules>
+  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)../RedBolt.XR/RedBolt.XR.BuildConfig.props"
+      Condition="'$(RedBoltExternalModuleRoot)' == '' and Exists('$(MSBuildThisFileDirectory)../RedBolt.XR/RedBolt.XR.BuildConfig.props')" />
+  <PropertyGroup>
+    <RedBoltOpenXREnabled Condition="'$(RedBoltXREnabled)' == 'true'">true</RedBoltOpenXREnabled>
   </PropertyGroup>
 </Project>

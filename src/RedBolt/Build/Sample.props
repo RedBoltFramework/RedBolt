@@ -11,8 +11,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RuntimeIdentifier Condition="'$(RedBoltPlatform)' == 'win-x64'">win-x64</RuntimeIdentifier>
     <RedBoltOutputDir Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'">$(RedBoltOutputRoot)/samples</RedBoltOutputDir>
     <RedBoltWebOutputDir>$(RedBoltOutputRoot)/web</RedBoltWebOutputDir>
-    <RedBoltBaseDearImGuiBindingAssembly Condition="'$(RedBoltExternalUsesDearImGui)' == 'true' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64')">$(RedBoltRoot)/build/bin/$(Configuration)/$(RedBoltPlatform)/extern/RedBolt.Bindings.DearImGui.dll</RedBoltBaseDearImGuiBindingAssembly>
-    <RedBoltBaseDearImGuiBindingAssembly Condition="'$(RedBoltExternalUsesDearImGui)' == 'true' and ('$(RedBoltPlatform)' == 'browser-wasm' or $([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')))">$(RedBoltRoot)/build/obj/managed/$(RedBoltPlatform)/staging/RedBolt.Bindings.DearImGui/$(Configuration)/RedBolt.Bindings.DearImGui.dll</RedBoltBaseDearImGuiBindingAssembly>
+    <RedBoltBaseDearImGuiBindingAssembly Condition="'$(RedBoltExternalUsesDearImGui)' == 'true' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64')">$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/extern/RedBolt.Bindings.DearImGui.dll</RedBoltBaseDearImGuiBindingAssembly>
+    <RedBoltBaseDearImGuiBindingAssembly Condition="'$(RedBoltExternalUsesDearImGui)' == 'true' and ('$(RedBoltPlatform)' == 'browser-wasm' or $([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))) ">$(RedBoltBuildRoot)/obj/managed/$(RedBoltPlatform)/staging/RedBolt.Bindings.DearImGui/$(Configuration)/RedBolt.Bindings.DearImGui.dll</RedBoltBaseDearImGuiBindingAssembly>
     <OutputPath>$(RedBoltOutputDir)/</OutputPath>
   </PropertyGroup>
 </Project>

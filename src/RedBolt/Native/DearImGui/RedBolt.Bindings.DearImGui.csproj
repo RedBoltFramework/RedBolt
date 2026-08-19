@@ -7,14 +7,11 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyName>RedBolt.Bindings.DearImGui</AssemblyName>
+    <RedBoltNativeModuleName>dearimgui</RedBoltNativeModuleName>
     <EnableLibraryImportGenerator>true</EnableLibraryImportGenerator>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DisableRuntimeMarshalling>true</DisableRuntimeMarshalling>
   </PropertyGroup>
-
-  <ItemGroup Condition="'$(RedBoltGeneratedBindingsDir)' != '' and Exists('$(RedBoltGeneratedBindingsDir)/dearimgui')">
-    <Compile Include="$(RedBoltGeneratedBindingsDir)/dearimgui/**/*.g.cs" LinkBase="Generated" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
