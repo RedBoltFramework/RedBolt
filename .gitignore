@@ -32,3 +32,4 @@ obj/
 *.user
 *.swp
 *~
+*.user.json
