@@ -7,6 +7,11 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 <Project>
   <Import Project="$(RedBoltExternalModuleRoot)/src/Directory.Build.targets" />
 
+  <!--
+    Desktop samples must publish the native runtime assets that were resolved into
+    _RedBoltNativeAssets by the deps.json rewriting target. This target adds those files to the
+    publish set under runtimes/<rid>/native/.
+  -->
   <Target Name="RedBoltAddNativeFilesToPublish"
           AfterTargets="ComputeFilesToPublish"
           DependsOnTargets="RedBoltConfigureRuntimeAssemblies"
@@ -19,6 +24,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     </ItemGroup>
   </Target>
 
+  <!-- Samples always compile against the engine's global aliases and the SharpCpp runtime contracts. -->
   <ItemGroup>
     <Compile Include="$(RedBoltRoot)/src/RedBolt/Core/GlobalAliases.cs"
              Link="GlobalAliases.cs"
@@ -26,10 +32,12 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Std/SharpCpp.Std.csproj"
                       PrivateAssets="all"
                       AdditionalProperties="$(RedBoltSharpCppManagedProperties)"
+                      GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)"
                       Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all"
                       AdditionalProperties="$(RedBoltSharpCppManagedProperties)"
+                      GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)"
                       Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'" />
   </ItemGroup>
 </Project>

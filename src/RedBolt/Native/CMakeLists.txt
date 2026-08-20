@@ -721,17 +721,8 @@ if(TARGET redbolt-mingw-runtime)
 endif()
 
 if(ANDROID)
-    set(_redbolt_android_java_directory "${REDBOLT_GENERATED_ROOT}/android/java")
-    add_custom_target(redbolt-android-java
-        COMMAND "${CMAKE_COMMAND}" -E rm -rf "${_redbolt_android_java_directory}"
-        COMMAND "${CMAKE_COMMAND}" -E copy_directory
-            "${REDBOLT_SDL_SOURCE_ROOT}/android-project/app/src/main/java"
-            "${_redbolt_android_java_directory}"
-        COMMENT "Staging SDL Android Java sources"
-        VERBATIM)
     add_custom_target(redbolt-android-native
         DEPENDS
-            redbolt-android-java
             redbolt-native-manifests
             ${_redbolt_selected_native_targets})
 endif()

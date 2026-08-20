@@ -5,9 +5,16 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 -->
 
 <Project>
+  <!--
+    Build configuration defaults.
+    Sets tuning knobs that do not depend on the persisted selection, then imports the persisted
+    BuildConfig.props (if present) before computing the per-platform/architecture/module flags.
+  -->
   <PropertyGroup>
     <RedBoltBuildConfigPath Condition="'$(RedBoltBuildConfigPath)' == ''">$(RedBoltBuildRoot)/BuildConfig.props</RedBoltBuildConfigPath>
     <RedBoltFull Condition="'$(RedBoltFull)' == ''">false</RedBoltFull>
+    <!-- Static graph restore is disabled for full builds; the solution graph is large and the
+         persisted-config save step needs ordinary project evaluation to run. -->
     <RestoreUseStaticGraphEvaluation Condition="'$(RedBoltFull)' == 'true' and '$(RestoreUseStaticGraphEvaluation)' == ''">false</RestoreUseStaticGraphEvaluation>
     <RedBoltParallelization Condition="'$(RedBoltParallelization)' == ''">4</RedBoltParallelization>
   </PropertyGroup>
@@ -15,31 +22,41 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <Import Project="$(RedBoltBuildConfigPath)" Condition="Exists('$(RedBoltBuildConfigPath)')" />
 
   <PropertyGroup>
+    <!--
+      Normalize the user-supplied enable/disable lists into a canonical comma-joined, lowercase form
+      so the Contains(',name,') checks below match regardless of whitespace, case, or separator.
+      RedBoltFull=true is shorthand for enabling all platforms and architectures.
+    -->
     <RedBoltEnablePlatforms Condition="'$(RedBoltFull)' != 'false'">all</RedBoltEnablePlatforms>
     <RedBoltEnableArchitectures Condition="'$(RedBoltFull)' != 'false'">all</RedBoltEnableArchitectures>
-    <RedBoltEnableModules Condition="'$(RedBoltFull)' != 'false'">all</RedBoltEnableModules>
 
     <_RedBoltSavedEnablePlatforms Condition="'$(_RedBoltSavedEnablePlatforms)' == ''"></_RedBoltSavedEnablePlatforms>
     <_RedBoltSavedDisablePlatforms Condition="'$(_RedBoltSavedDisablePlatforms)' == ''"></_RedBoltSavedDisablePlatforms>
     <_RedBoltSavedEnableArchitectures Condition="'$(_RedBoltSavedEnableArchitectures)' == ''"></_RedBoltSavedEnableArchitectures>
     <_RedBoltSavedDisableArchitectures Condition="'$(_RedBoltSavedDisableArchitectures)' == ''"></_RedBoltSavedDisableArchitectures>
-    <_RedBoltSavedEnableModules Condition="'$(_RedBoltSavedEnableModules)' == ''"></_RedBoltSavedEnableModules>
-    <_RedBoltSavedDisableModules Condition="'$(_RedBoltSavedDisableModules)' == ''"></_RedBoltSavedDisableModules>
 
     <_RedBoltEnablePlatforms>$([System.Text.RegularExpressions.Regex]::Replace(`$(RedBoltEnablePlatforms)`, `\s+`, ``).ToLowerInvariant().Replace(`;`, `,`))</_RedBoltEnablePlatforms>
     <_RedBoltDisablePlatforms>$([System.Text.RegularExpressions.Regex]::Replace(`$(RedBoltDisablePlatforms)`, `\s+`, ``).ToLowerInvariant().Replace(`;`, `,`))</_RedBoltDisablePlatforms>
     <_RedBoltEnableArchitectures>$([System.Text.RegularExpressions.Regex]::Replace(`$(RedBoltEnableArchitectures)`, `\s+`, ``).ToLowerInvariant().Replace(`;`, `,`))</_RedBoltEnableArchitectures>
     <_RedBoltDisableArchitectures>$([System.Text.RegularExpressions.Regex]::Replace(`$(RedBoltDisableArchitectures)`, `\s+`, ``).ToLowerInvariant().Replace(`;`, `,`))</_RedBoltDisableArchitectures>
-    <_RedBoltEnableModules>$([System.Text.RegularExpressions.Regex]::Replace(`$(RedBoltEnableModules)`, `\s+`, ``).ToLowerInvariant().Replace(`;`, `,`))</_RedBoltEnableModules>
-    <_RedBoltDisableModules>$([System.Text.RegularExpressions.Regex]::Replace(`$(RedBoltDisableModules)`, `\s+`, ``).ToLowerInvariant().Replace(`;`, `,`))</_RedBoltDisableModules>
 
+    <!--
+      Wrap each normalized list in leading/trailing commas so membership can be tested with a plain
+      Contains(',name,') without false positives from prefix/suffix overlaps.
+    -->
     <_RedBoltEnablePlatformsList>,$(_RedBoltEnablePlatforms),</_RedBoltEnablePlatformsList>
     <_RedBoltDisablePlatformsList>,$(_RedBoltDisablePlatforms),</_RedBoltDisablePlatformsList>
     <_RedBoltEnableArchitecturesList>,$(_RedBoltEnableArchitectures),</_RedBoltEnableArchitecturesList>
     <_RedBoltDisableArchitecturesList>,$(_RedBoltDisableArchitectures),</_RedBoltDisableArchitecturesList>
-    <_RedBoltEnableModulesList>,$(_RedBoltEnableModules),</_RedBoltEnableModulesList>
-    <_RedBoltDisableModulesList>,$(_RedBoltDisableModules),</_RedBoltDisableModulesList>
 
+    <!--
+      Platform flags. Each follows the same three-step resolution:
+        1. true if explicitly enabled (or 'all');
+        2. otherwise true if not explicitly disabled (Linux/x64 default on, others default off);
+        3. otherwise false.
+      Windows is special-cased: it also requires RedBoltBuildWindows=true because cross-building
+      Windows from a Linux host is not supported.
+    -->
     <RedBoltLinuxEnabled Condition="$([System.String]::Copy('$(_RedBoltEnablePlatformsList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnablePlatformsList)').Contains(',linux,'))">true</RedBoltLinuxEnabled>
     <RedBoltLinuxEnabled Condition="'$(RedBoltLinuxEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisablePlatformsList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisablePlatformsList)').Contains(',linux,'))">true</RedBoltLinuxEnabled>
     <RedBoltLinuxEnabled Condition="'$(RedBoltLinuxEnabled)' == ''">false</RedBoltLinuxEnabled>
@@ -51,39 +68,14 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltWebEnabled Condition="$([System.String]::Copy('$(_RedBoltEnablePlatformsList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnablePlatformsList)').Contains(',web,'))">true</RedBoltWebEnabled>
     <RedBoltWebEnabled Condition="'$(RedBoltWebEnabled)' == ''">false</RedBoltWebEnabled>
 
+    <!-- Architecture flags, same three-step resolution as platforms. -->
     <RedBoltX64Enabled Condition="$([System.String]::Copy('$(_RedBoltEnableArchitecturesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableArchitecturesList)').Contains(',x64,'))">true</RedBoltX64Enabled>
     <RedBoltX64Enabled Condition="'$(RedBoltX64Enabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableArchitecturesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableArchitecturesList)').Contains(',x64,'))">true</RedBoltX64Enabled>
     <RedBoltX64Enabled Condition="'$(RedBoltX64Enabled)' == ''">false</RedBoltX64Enabled>
     <RedBoltArm64Enabled Condition="$([System.String]::Copy('$(_RedBoltEnableArchitecturesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableArchitecturesList)').Contains(',arm64,'))">true</RedBoltArm64Enabled>
     <RedBoltArm64Enabled Condition="'$(RedBoltArm64Enabled)' == ''">false</RedBoltArm64Enabled>
 
-    <RedBoltAudioEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',audio,'))">true</RedBoltAudioEnabled>
-    <RedBoltAudioEnabled Condition="'$(RedBoltAudioEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',audio,'))">true</RedBoltAudioEnabled>
-    <RedBoltAudioEnabled Condition="'$(RedBoltAudioEnabled)' == ''">false</RedBoltAudioEnabled>
-    <RedBoltDearImGuiEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',dear-imgui,'))">true</RedBoltDearImGuiEnabled>
-    <RedBoltDearImGuiEnabled Condition="'$(RedBoltDearImGuiEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',dear-imgui,'))">true</RedBoltDearImGuiEnabled>
-    <RedBoltDearImGuiEnabled Condition="'$(RedBoltDearImGuiEnabled)' == ''">false</RedBoltDearImGuiEnabled>
-    <RedBoltUtilityEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',utility,'))">true</RedBoltUtilityEnabled>
-    <RedBoltUtilityEnabled Condition="'$(RedBoltUtilityEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',utility,'))">true</RedBoltUtilityEnabled>
-    <RedBoltUtilityEnabled Condition="'$(RedBoltUtilityEnabled)' == ''">false</RedBoltUtilityEnabled>
-    <RedBoltEditorEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',editor,'))">true</RedBoltEditorEnabled>
-    <RedBoltEditorEnabled Condition="'$(RedBoltEditorEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',editor,'))">true</RedBoltEditorEnabled>
-    <RedBoltEditorEnabled Condition="'$(RedBoltEditorEnabled)' == ''">false</RedBoltEditorEnabled>
-    <RedBoltSamplesEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',samples,'))">true</RedBoltSamplesEnabled>
-    <RedBoltSamplesEnabled Condition="'$(RedBoltSamplesEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableModulesList)').Contains(',samples,'))">true</RedBoltSamplesEnabled>
-    <RedBoltSamplesEnabled Condition="'$(RedBoltSamplesEnabled)' == ''">false</RedBoltSamplesEnabled>
-    <RedBoltTestsEnabled Condition="$([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',tests,'))">true</RedBoltTestsEnabled>
-    <RedBoltTestsEnabled Condition="'$(RedBoltTestsEnabled)' == ''">false</RedBoltTestsEnabled>
-    <RedBoltOpenXREnabled Condition="'$(RedBoltXREnabled)' == 'true' or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableModulesList)').Contains(',xr,'))">true</RedBoltOpenXREnabled>
-    <RedBoltOpenXREnabled Condition="'$(RedBoltOpenXREnabled)' == ''">false</RedBoltOpenXREnabled>
-
-    <RedBoltEnabledNativeModules>SDL,DILIGENT,STB,LZ4,HARFBUZZ,WEBP,GLSLANG,SPIRV_CROSS,SPIRV_TOOLS,SHADER_COMPILER</RedBoltEnabledNativeModules>
-    <RedBoltEnabledNativeModules Condition="'$(RedBoltDearImGuiEnabled)' == 'true'">$(RedBoltEnabledNativeModules),IMGUI</RedBoltEnabledNativeModules>
-    <RedBoltEnabledNativeModules Condition="'$(RedBoltUtilityEnabled)' == 'true'">$(RedBoltEnabledNativeModules),TINYGLTF</RedBoltEnabledNativeModules>
-  </PropertyGroup>
-  <Import Project="$(MSBuildThisFileDirectory)../RedBolt.XR/RedBolt.XR.BuildConfig.props"
-      Condition="'$(RedBoltExternalModuleRoot)' == '' and Exists('$(MSBuildThisFileDirectory)../RedBolt.XR/RedBolt.XR.BuildConfig.props')" />
-  <PropertyGroup>
-    <RedBoltOpenXREnabled Condition="'$(RedBoltXREnabled)' == 'true'">true</RedBoltOpenXREnabled>
+    <!-- Native modules enabled for the core engine build. DearImGui and TinyGltf are always included. -->
+    <RedBoltEnabledNativeModules>SDL,DILIGENT,STB,LZ4,HARFBUZZ,WEBP,GLSLANG,SPIRV_CROSS,SPIRV_TOOLS,SHADER_COMPILER,IMGUI,TINYGLTF</RedBoltEnabledNativeModules>
   </PropertyGroup>
 </Project>

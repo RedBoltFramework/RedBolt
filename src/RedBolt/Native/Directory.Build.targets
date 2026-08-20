@@ -6,94 +6,45 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
 <Project>
   <Import Project="$(MSBuildThisFileDirectory)../../Directory.Build.targets" />
-  <Import Project="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.targets" />
+  <Import Project="$(RedBoltRoot)/src/RedBolt/Native/NativeBuild.targets" />
 
+  <!--
+    Binding projects reference the SharpCpp runtime contracts (needed by all generated binding code)
+    and the engine native project for their platform, so the native library is built before the
+    binding compiles.
+  -->
   <ItemGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').StartsWith('RedBolt.Bindings.'))">
     <!-- Shared standard-library wrappers live outside generated modules. Every
          binding module gets the contracts/types so generated provider glue can
          register against the process-wide registry. -->
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Std/SharpCpp.Std.csproj"
                       PrivateAssets="all"
-                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)"
+                      GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all"
-                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
-    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.csproj"
-                      Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'"
-                      ReferenceOutputAssembly="false"
-                      PrivateAssets="all" />
-    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Web.csproj"
-                      Condition="'$(RedBoltPlatform)' == 'browser-wasm'"
-                      ReferenceOutputAssembly="false"
-                      PrivateAssets="all" />
-    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Android.csproj"
-                      Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))"
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)"
+                      GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
+    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Generator/Dependencies/RedBolt.Generator.Dependencies.csproj"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all"
-                      AdditionalProperties="RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltNativePreset);RedBoltTargetFramework=$(RedBoltTargetFramework);AndroidSdkDirectory=$(AndroidSdkDirectory);AndroidNdkDirectory=$(AndroidNdkDirectory);JavaSdkDirectory=$(JavaSdkDirectory)" />
+                      GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
   </ItemGroup>
 
-  <Target Name="RedBoltBuildNativeLibrary"
-          DependsOnTargets="ResolveReferences;RedBoltStageNativeResources;RedBoltBuildCMakeTarget"
-          Condition="'$(RedBoltProjectBuildEnabled)' == 'true'
-                     and '$(RedBoltCMakeTarget)' != ''" />
-  <Target Name="RedBoltBuildNativeSdl"
+  <Target Name="RedBoltBuildNativeModule"
           BeforeTargets="CoreCompile"
-          DependsOnTargets="RedBoltBuildNativeLibrary"
-          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Sdl'" />
-  <Target Name="RedBoltBuildNativeDiligent"
-          BeforeTargets="CoreCompile"
-          DependsOnTargets="RedBoltBuildNativeLibrary"
-          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Diligent'" />
-  <Target Name="RedBoltBuildNativeDearImGui"
-          BeforeTargets="CoreCompile"
-          DependsOnTargets="RedBoltBuildNativeLibrary"
-          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.DearImGui'" />
-  <Target Name="RedBoltBuildNativeStb"
-          BeforeTargets="CoreCompile"
-          DependsOnTargets="RedBoltBuildNativeLibrary"
-          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Stb'" />
-  <Target Name="RedBoltBuildNativeTinyGltf"
-          BeforeTargets="CoreCompile"
-          DependsOnTargets="RedBoltBuildNativeLibrary"
-          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.TinyGltf'" />
-  <Target Name="RedBoltBuildNativeLz4"
-          BeforeTargets="CoreCompile"
-          DependsOnTargets="RedBoltBuildNativeLibrary"
-          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Lz4'" />
-  <Target Name="RedBoltBuildNativeHarfBuzz"
-          BeforeTargets="CoreCompile"
-          DependsOnTargets="RedBoltBuildNativeLibrary"
-          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.HarfBuzz'" />
-  <Target Name="RedBoltBuildNativeWebP"
-          BeforeTargets="CoreCompile"
-          DependsOnTargets="RedBoltBuildNativeLibrary"
-          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.WebP'" />
-  <Target Name="RedBoltBuildNativeGlslang"
-          BeforeTargets="CoreCompile"
-          DependsOnTargets="RedBoltBuildNativeLibrary"
-          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.Glslang'" />
-  <Target Name="RedBoltBuildNativeSpirVCross"
-          BeforeTargets="CoreCompile"
-          DependsOnTargets="RedBoltBuildNativeLibrary"
-          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVCross'" />
-  <Target Name="RedBoltBuildNativeSpirVTools"
-          BeforeTargets="CoreCompile"
-          DependsOnTargets="RedBoltBuildNativeLibrary"
-          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.SpirVTools'" />
-  <Target Name="RedBoltBuildNativeShaderCompiler"
-          BeforeTargets="CoreCompile"
-          DependsOnTargets="RedBoltBuildNativeLibrary"
-          Condition="'$(MSBuildProjectName)' == 'RedBolt.Bindings.ShaderCompiler'" />
+          DependsOnTargets="ResolveReferences;RedBoltConfigureNative;RedBoltBuildCMakeTarget"
+          Condition="'$(RedBoltProjectBuildEnabled)' == 'true' and '$(RedBoltNativeModuleName)' != ''" />
 
-        <Target Name="RedBoltIncludeGeneratedBindings"
-                                        BeforeTargets="CoreCompile"
-                                        DependsOnTargets="RedBoltBuildNativeLibrary"
-                                        Condition="'$(RedBoltNativeModuleName)' != ''">
+  <!-- Adds the generated bindings produced by the module's exact CMake target. -->
+  <Target Name="RedBoltIncludeGeneratedBindings"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="RedBoltBuildNativeModule"
+          Condition="'$(RedBoltNativeModuleName)' != ''">
     <ItemGroup>
-                        <Compile Include="$(RedBoltGeneratedBindingsDir)/$(RedBoltNativeModuleName)/**/*.g.cs"
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/$(RedBoltNativeModuleName)/**/*.g.cs"
                Exclude="@(Compile)"
-                                                         LinkBase="Generated" />
+               LinkBase="Generated" />
     </ItemGroup>
   </Target>
 </Project>

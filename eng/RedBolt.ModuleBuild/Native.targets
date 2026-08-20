@@ -1,0 +1,37 @@
+<!--
+Copyright (c) 2026 RedBolt and contributors.
+This work is licensed under the terms of the MIT license.
+For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+-->
+
+<Project>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == '$(RedBoltExternalBindingsProjectName)'">
+    <RedBoltCMakeTarget Condition="'$(RedBoltExternalCMakeTarget)' != ''">$(RedBoltExternalCMakeTarget)</RedBoltCMakeTarget>
+    <RedBoltCMakeTarget Condition="'$(RedBoltCMakeTarget)' == '' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64')">$(RedBoltExternalNativeTargetPrefix)-native-all</RedBoltCMakeTarget>
+    <RedBoltCMakeTarget Condition="'$(RedBoltCMakeTarget)' == '' and '$(RedBoltPlatform)' == 'browser-wasm' and '$(RedBoltExternalWebNativeEnabled)' == 'true'">$(RedBoltExternalNativeTargetPrefix)-wasm-native</RedBoltCMakeTarget>
+    <RedBoltCMakeTarget Condition="'$(RedBoltCMakeTarget)' == '' and $([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">$(RedBoltExternalNativeTargetPrefix)-android-native</RedBoltCMakeTarget>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(MSBuildProjectName)' == '$(RedBoltExternalBindingsProjectName)'">
+    <ProjectReference Include="$(RedBoltExternalModuleRoot)/src/RedBolt/Generator/Dependencies/$(RedBoltExternalGeneratorProjectName).csproj"
+                      ReferenceOutputAssembly="false" PrivateAssets="all"
+                      GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Std/SharpCpp.Std.csproj"
+                      PrivateAssets="all" AdditionalProperties="$(RedBoltSharpCppManagedProperties)"
+                      GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
+                      PrivateAssets="all" AdditionalProperties="$(RedBoltSharpCppManagedProperties)"
+                      GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
+  </ItemGroup>
+
+  <Target Name="RedBoltExternalIncludeGeneratedBindings"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="ResolveReferences;RedBoltConfigureNative;RedBoltBuildCMakeTarget"
+          Condition="'$(MSBuildProjectName)' == '$(RedBoltExternalBindingsProjectName)'">
+    <ItemGroup>
+      <Compile Include="$(RedBoltGeneratedBindingsDir)/$(RedBoltExternalBindingsSubdirectory)/**/*.g.cs"
+               Exclude="@(Compile)" LinkBase="Generated" />
+    </ItemGroup>
+  </Target>
+  <Import Project="$(RedBoltRoot)/src/RedBolt/Native/NativeBuild.targets" />
+</Project>

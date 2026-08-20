@@ -1,4 +1,9 @@
 <Project>
+  <!--
+    Android re-application of project eligibility. The .NET Android SDK replaces BuildDependsOn after
+    the common targets, so disabled Android projects need the short-circuit applied again here
+    (chained from RedBolt.ProjectEligibility.targets via AfterMicrosoftNETSdkTargets).
+  -->
   <PropertyGroup Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-')) and '$(RedBoltProjectBuildEnabled)' != 'true'">
     <BuildDependsOn>RedBoltReportSkippedProject</BuildDependsOn>
     <RebuildDependsOn>RedBoltReportSkippedProject</RebuildDependsOn>

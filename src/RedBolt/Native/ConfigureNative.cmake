@@ -4,7 +4,7 @@
 
 foreach(required_variable
         REDBOLT_SOURCE_DIR
-        REDBOLT_NATIVE_PRESET
+        REDBOLT_PLATFORM
         REDBOLT_NATIVE_BUILD_DIR
         REDBOLT_ENABLED_NATIVE_MODULES
         REDBOLT_SHARPCPP_ROOT
@@ -15,10 +15,6 @@ foreach(required_variable
         message(FATAL_ERROR "${required_variable} is required")
     endif()
 endforeach()
-
-if(NOT DEFINED REDBOLT_ENABLE_OPENXR OR REDBOLT_ENABLE_OPENXR STREQUAL "")
-    set(REDBOLT_ENABLE_OPENXR OFF)
-endif()
 
 get_filename_component(_redbolt_native_build_parent "${REDBOLT_NATIVE_BUILD_DIR}" DIRECTORY)
 file(MAKE_DIRECTORY "${_redbolt_native_build_parent}")
@@ -32,6 +28,18 @@ endif()
 
 set(_redbolt_configure_native TRUE)
 set(_redbolt_native_cache "${REDBOLT_NATIVE_BUILD_DIR}/CMakeCache.txt")
+if(EXISTS "${_redbolt_native_cache}")
+    file(STRINGS "${_redbolt_native_cache}"
+        _redbolt_cached_source_dir
+        REGEX "^CMAKE_HOME_DIRECTORY:[^=]*="
+        LIMIT_COUNT 1)
+    string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_source_dir "${_redbolt_cached_source_dir}")
+    get_filename_component(_redbolt_expected_source_dir "${REDBOLT_SOURCE_DIR}" REALPATH)
+    get_filename_component(_redbolt_cached_source_dir "${_redbolt_cached_source_dir}" REALPATH)
+    if(NOT _redbolt_cached_source_dir STREQUAL _redbolt_expected_source_dir)
+        file(REMOVE_RECURSE "${REDBOLT_NATIVE_BUILD_DIR}")
+    endif()
+endif()
 if(EXISTS "${_redbolt_native_cache}")
     file(STRINGS "${_redbolt_native_cache}"
         _redbolt_cached_generator
@@ -59,17 +67,12 @@ if(EXISTS "${_redbolt_native_cache}")
         LIMIT_COUNT 1)
     string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_enabled_modules "${_redbolt_cached_enabled_modules}")
     file(STRINGS "${_redbolt_native_cache}"
-        _redbolt_cached_enable_openxr
-        REGEX "^REDBOLT_ENABLE_OPENXR:[^=]*="
-        LIMIT_COUNT 1)
-    string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_enable_openxr "${_redbolt_cached_enable_openxr}")
-    file(STRINGS "${_redbolt_native_cache}"
         _redbolt_cached_cmake_command
         REGEX "^CMAKE_COMMAND:[^=]*="
         LIMIT_COUNT 1)
     string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_cmake_command "${_redbolt_cached_cmake_command}")
     set(_redbolt_cached_build_type_matches TRUE)
-    if(REDBOLT_NATIVE_PRESET MATCHES "^android-")
+    if(REDBOLT_PLATFORM MATCHES "^android-")
         file(STRINGS "${_redbolt_native_cache}"
             _redbolt_cached_build_type
             REGEX "^CMAKE_BUILD_TYPE:[^=]*="
@@ -84,7 +87,6 @@ if(EXISTS "${_redbolt_native_cache}")
             AND _redbolt_cached_pdb_output STREQUAL REDBOLT_PDB_OUTPUT_DIR
             AND _redbolt_cached_configuration STREQUAL REDBOLT_CONFIGURATION
             AND _redbolt_cached_enabled_modules STREQUAL REDBOLT_ENABLED_NATIVE_MODULES
-            AND _redbolt_cached_enable_openxr STREQUAL REDBOLT_ENABLE_OPENXR
             AND _redbolt_cached_cmake_command STREQUAL CMAKE_COMMAND
             AND _redbolt_cached_build_type_matches)
         set(_redbolt_configure_native FALSE)
@@ -93,20 +95,19 @@ endif()
 
 if(_redbolt_configure_native)
     set(_redbolt_configure_arguments)
-    if(REDBOLT_NATIVE_PRESET MATCHES "^android-")
+    if(REDBOLT_PLATFORM MATCHES "^android-")
         list(APPEND _redbolt_configure_arguments
             "-DCMAKE_BUILD_TYPE=${REDBOLT_CONFIGURATION}")
     endif()
     execute_process(
         COMMAND "${CMAKE_COMMAND}"
-            --preset "${REDBOLT_NATIVE_PRESET}"
+            --preset "${REDBOLT_PLATFORM}"
             -B "${REDBOLT_NATIVE_BUILD_DIR}"
             -U "MAKECOMMAND"
             "-DREDBOLT_SHARPCPP_ROOT=${REDBOLT_SHARPCPP_ROOT}"
             "-DREDBOLT_DEPENDENCIES_GENERATOR_DLL=${REDBOLT_GENERATOR_DLL}"
             "-DREDBOLT_CONFIGURATION=${REDBOLT_CONFIGURATION}"
             "-DREDBOLT_ENABLED_NATIVE_MODULES=${REDBOLT_ENABLED_NATIVE_MODULES}"
-            "-DREDBOLT_ENABLE_OPENXR=${REDBOLT_ENABLE_OPENXR}"
             "-DREDBOLT_RUNTIME_OUTPUT_DIR=${REDBOLT_RUNTIME_OUTPUT_DIR}"
             "-DREDBOLT_PDB_OUTPUT_DIR=${REDBOLT_PDB_OUTPUT_DIR}"
             ${_redbolt_configure_arguments}

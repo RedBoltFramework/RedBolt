@@ -5,56 +5,88 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 -->
 
 <Project>
+  <!-- Import solution-level targets (config persistence, dependency bootstrap) when this build is a
+       solution traversal rather than a single project. -->
   <Import Project="$(RedBoltRoot)/Directory.Solution.targets"
           Condition="'$(BuildingSolutionFile)' == 'true'" />
 
+  <PropertyGroup>
+    <RedBoltHostProjectGlobalPropertiesToRemove Condition="'$(DesignTimeBuild)' == 'false'">$(RedBoltHostProjectGlobalPropertiesToRemove);DesignTimeBuild</RedBoltHostProjectGlobalPropertiesToRemove>
+  </PropertyGroup>
+
+  <!-- Fail early if the build root does not match what the solution graph expected; mixing build
+       roots would scatter outputs and break the shared probing paths. -->
   <Target Name="RedBoltValidateBuildRoot" BeforeTargets="Restore;Build">
     <Error Condition="$([System.IO.Path]::GetFullPath('$(RedBoltBuildRoot)')) != '$(RedBoltExpectedBuildRoot)'"
       Text="RedBoltBuildRoot must be '$(RedBoltExpectedBuildRoot)', but was '$(RedBoltBuildRoot)'." />
   </Target>
 
+  <!--
+    Generator projects always build as host net10.0 tools. Force that target framework and strip
+    platform/restore global properties that would otherwise leak from the parent project and make
+    the generator restore against the wrong TFM.
+  -->
   <ItemGroup>
-    <ProjectReference Update="@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.Generator.Dependencies'));@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.Generator.Reflection'))"
+    <ProjectReference Update="@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.Generator.Dependencies'));@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.Generator.Reflection'))">
+      <GlobalPropertiesToRemove>%(ProjectReference.GlobalPropertiesToRemove);$(RedBoltHostProjectGlobalPropertiesToRemove)</GlobalPropertiesToRemove>
+    </ProjectReference>
+    <ProjectReference Update="@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.PackageTool'))"
                       SetTargetFramework="TargetFramework=net10.0"
                       SkipGetTargetFrameworkProperties="true"
-                      GlobalPropertiesToRemove="RedBoltTargetFramework;TargetFramework;TargetFrameworks;RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishSelfContained;RedBoltBuildRoot;RedBoltBuildConfigPath;RedBoltExternalModuleRoot;RedBoltExternalModuleName" />
+                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltTargetFramework;TargetFramework;TargetFrameworks;RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishSelfContained" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(RedBoltExternalModuleRoot)' != ''">
-    <ProjectReference Update="@(ProjectReference)"
-                      Condition="$([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/')) or $([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltExternalModuleRoot)/src/'))">
-      <AdditionalProperties>%(ProjectReference.AdditionalProperties);RedBoltBuildRoot=$(RedBoltBuildRoot);RedBoltBuildConfigPath=$(RedBoltBuildConfigPath);RedBoltExternalModuleRoot=$(RedBoltExternalModuleRoot);RedBoltExternalModuleName=$(RedBoltExternalModuleName)</AdditionalProperties>
-    </ProjectReference>
-  </ItemGroup>
-
-  <PropertyGroup>
-    <RedBoltManagedProjectReferencePropertiesToRemove>TargetFramework;TargetFrameworks;RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishSelfContained;RedBoltTargetFramework;RedBoltPlatform;RedBoltNativePreset;RedBoltBuildRoot;RedBoltBuildConfigPath;RedBoltExternalModuleRoot;RedBoltExternalModuleName;RedBoltExternalModuleEnabled;RedBoltExternalModuleProjectNames;RedBoltExternalGeneratorProjectName;RedBoltExternalGeneratorProjectPrefix;RedBoltExternalGeneratedBindingsDirectory;RedBoltExternalHasNative;RedBoltExternalUsesDearImGui;RedBoltExternalNativeTargetPrefix;RedBoltExternalEnabledNativeModules;RedBoltExternalDesktopResourceRoot;RedBoltExternalBindingsSubdirectory;RedBoltExternalBindingsProjectName;RedBoltExternalNativeAndroidProjectName;RedBoltExternalNativeWebProjectName;RedBoltExternalAndroidNativeProject;RedBoltExternalAndroidNativeOutput;RedBoltExternalAdditionalProbingPaths;RedBoltExternalWebArchive;RedBoltExternalWebPInvokeModules;RedBoltEnabledNativeModules;RedBoltLinuxEnabled;RedBoltWindowsEnabled;RedBoltAndroidEnabled;RedBoltWebEnabled;RedBoltX64Enabled;RedBoltArm64Enabled;RedBoltAudioEnabled;RedBoltDearImGuiEnabled;RedBoltUtilityEnabled;RedBoltEditorEnabled;RedBoltSamplesEnabled;RedBoltOpenXREnabled;RedBolt2DEnabled;RedBoltActionsEnabled;RedBoltCSGEnabled;RedBoltGlowEnabled;RedBoltIKEnabled;RedBoltNavigationEnabled;RedBoltNetworkEnabled;RedBoltParticlesEnabled;RedBoltPhysicsBox2DEnabled;RedBoltPhysicsJoltEnabled;RedBoltRmlUIEnabled;RedBoltXREnabled;RedBoltExternalCMakeTarget</RedBoltManagedProjectReferencePropertiesToRemove>
-  </PropertyGroup>
-
-  <Target Name="RedBoltNormalizeManagedProjectReferences"
+  <!-- The SDK adds transitive project references after evaluation. Normalize only SharpCpp edges at
+       that point so platform and Android outer-build globals cannot create duplicate host builds. -->
+  <Target Name="RedBoltNormalizeSharpCppProjectReferences"
           AfterTargets="_SplitProjectReferencesByFileExistence"
           BeforeTargets="_GetProjectReferenceTargetFrameworkProperties;ResolveProjectReferences">
     <ItemGroup>
       <_MSBuildProjectReferenceExistent Update="@(_MSBuildProjectReferenceExistent)"
-                                        Condition="$([System.String]::Copy('%(_MSBuildProjectReferenceExistent.FullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/'))">
-        <SetConfiguration>%(_MSBuildProjectReferenceExistent.SetConfiguration);Configuration=$(Configuration)</SetConfiguration>
-        <SetTargetFramework>TargetFramework=net10.0</SetTargetFramework>
-        <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
-        <GlobalPropertiesToRemove>$([System.Text.RegularExpressions.Regex]::Replace('$(RedBoltManagedProjectReferencePropertiesToRemove)', 'RedBoltPlatform;|RedBoltNativePreset;', ''))</GlobalPropertiesToRemove>
-      </_MSBuildProjectReferenceExistent>
-      <_MSBuildProjectReferenceExistent Update="@(_MSBuildProjectReferenceExistent)"
-                                        Condition="(Exists('$(RedBoltSharpCppRoot)')
-                          and $([System.String]::Copy('%(_MSBuildProjectReferenceExistent.FullPath)').StartsWith('$(RedBoltSharpCppRoot)/src/')))
-                          or $([System.String]::Copy('%(_MSBuildProjectReferenceExistent.Filename)').EndsWith('.Generator.Dependencies'))
-                          or '%(_MSBuildProjectReferenceExistent.Filename)' == 'RedBolt.Generator.Reflection'">
-        <SetConfiguration>%(_MSBuildProjectReferenceExistent.SetConfiguration);Configuration=$(Configuration)</SetConfiguration>
-        <SetTargetFramework>TargetFramework=net10.0</SetTargetFramework>
-        <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
-        <GlobalPropertiesToRemove>$(RedBoltManagedProjectReferencePropertiesToRemove)</GlobalPropertiesToRemove>
+          Condition="$([System.String]::Copy('%(_MSBuildProjectReferenceExistent.FullPath)').StartsWith('$(RedBoltSharpCppRoot)/src/'))">
+        <GlobalPropertiesToRemove>%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove);$(RedBoltHostProjectGlobalPropertiesToRemove)</GlobalPropertiesToRemove>
       </_MSBuildProjectReferenceExistent>
     </ItemGroup>
   </Target>
 
+  <ItemGroup Condition="'$(RedBoltPlatform)' == 'browser-wasm'">
+    <ProjectReference Remove="$(RedBoltRoot)/src/RedBolt/Utility/RedBolt.Utility.csproj;$(RedBoltRoot)/src/RedBolt/Native/TinyGltf/RedBolt.Bindings.TinyGltf.csproj" />
+    <ProjectReference Update="$(RedBoltRoot)/src/RedBolt/**/*.csproj">
+      <AdditionalProperties>%(ProjectReference.AdditionalProperties);RedBoltPlatform=browser-wasm</AdditionalProperties>
+      <SetTargetFramework>TargetFramework=net10.0;RedBoltPlatform=browser-wasm</SetTargetFramework>
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+      <GlobalPropertiesToRemove>%(ProjectReference.GlobalPropertiesToRemove);RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishSelfContained</GlobalPropertiesToRemove>
+    </ProjectReference>
+    <ProjectReference Update="@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.Generator.Dependencies'));@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.Generator.Reflection'))">
+      <AdditionalProperties></AdditionalProperties>
+      <SetTargetFramework></SetTargetFramework>
+      <SkipGetTargetFrameworkProperties>false</SkipGetTargetFrameworkProperties>
+    </ProjectReference>
+    <ProjectReference Update="@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.PackageTool'))">
+      <AdditionalProperties Condition="'$(RedBoltFull)' != 'true'">RedBoltIgnoreBuildSelection=true</AdditionalProperties>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
+    <ProjectReference Update="$(RedBoltRoot)/src/RedBolt/**/*.csproj">
+      <GlobalPropertiesToRemove>%(ProjectReference.GlobalPropertiesToRemove);$(RedBoltInnerBuildGlobalPropertiesToRemove)</GlobalPropertiesToRemove>
+    </ProjectReference>
+  </ItemGroup>
+
+  <!-- NuGet walks project paths without ProjectReference metadata. Preserve the entry project's
+       platform so each restore graph writes to the asset directory used by its build graph. -->
+  <Target Name="RedBoltConfigureRestoreGraph"
+          BeforeTargets="_FilterRestoreGraphProjectInputItems;_GenerateRestoreProjectPathItemsPerFramework;_GenerateProjectRestoreGraphPerFramework">
+    <PropertyGroup>
+      <_GenerateRestoreGraphProjectEntryInputProperties>$(_GenerateRestoreGraphProjectEntryInputProperties);RedBoltPlatform=$(RedBoltPlatform);RedBoltTargetFramework=$(RedBoltTargetFramework);SharpCppBuildRoot=$(RedBoltSharpCppBuildRoot);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)</_GenerateRestoreGraphProjectEntryInputProperties>
+    </PropertyGroup>
+  </Target>
+
+  <!--
+    Inline task that deletes a project's generated deps.json when it was produced for a different
+    runtime identifier. deps.json files are keyed by RID; a stale file would keep the app resolving
+    assemblies for the wrong platform.
+  -->
   <UsingTask TaskName="RedBoltInvalidateStaleDependencyFile"
              TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
@@ -73,6 +105,15 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     </Task>
   </UsingTask>
 
+  <!--
+    Inline task that rewrites an application's deps.json so it consumes assemblies/native assets from
+    the shared parent build output instead of building its own copy of every referenced project.
+    For each referenced project (other than the main project itself) its project/reference/package
+    entry is downgraded to a plain package entry pointing at the parent directory, and the native
+    runtime assets for the modules selected by that dependency graph are injected into the
+    "native" section of the appropriate runtime target. This is what makes executable/test projects
+    work against the already-built core/extern buckets without re-linking them.
+  -->
   <UsingTask TaskName="RedBoltUseParentRuntimeAssemblies"
              TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
@@ -328,10 +369,13 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     </Task>
   </UsingTask>
 
+  <!-- Libraries are consumed via the parent deps.json, so they do not generate their own. -->
   <PropertyGroup Condition="'$(OutputType)' == 'Library'">
     <GenerateDependencyFile>false</GenerateDependencyFile>
   </PropertyGroup>
 
+  <!-- PDBs are collected into a per-output bucket; dev .runtimeconfig.json files are only emitted
+       for host executables and test projects. -->
   <PropertyGroup>
     <RedBoltGlobalAliasesFile>$(RedBoltRoot)/src/RedBolt/Core/GlobalAliases.cs</RedBoltGlobalAliasesFile>
     <RedBoltPdbOutputDir>$(RedBoltOutputDir)/pdb</RedBoltPdbOutputDir>
@@ -340,6 +384,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <GenerateRuntimeConfigDevFile Condition="('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">true</GenerateRuntimeConfigDevFile>
   </PropertyGroup>
 
+  <!-- Host executables and tests probe the shared output buckets at runtime so they resolve the
+       parent-built assemblies and native modules without copying them locally. -->
   <ItemGroup Condition="('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">
     <AdditionalProbingPath Include="$(RedBoltCoreOutputDir)" />
     <AdditionalProbingPath Include="$(RedBoltExternOutputDir)" />
@@ -348,6 +394,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <AdditionalProbingPath Include="$(RedBoltHostToolsOutputDir)" />
   </ItemGroup>
 
+  <!-- Guard against an unsupported platform being requested. -->
   <Target Name="RedBoltValidatePlatform" BeforeTargets="PrepareForBuild">
     <Error Condition="'$(RedBoltPlatform)' != 'tools'
                       and '$(RedBoltPlatform)' != 'linux-x64'
@@ -362,6 +409,11 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <MakeDir Directories="$(RedBoltOutputDir);$(RedBoltPdbOutputDir);$(RedBoltOutputDir)/runtimes" />
   </Target>
 
+  <!--
+    On host builds, copy NuGet package runtime assets into the shared extern/ bucket (flattening
+    lib/ entries to their filename) and remove them from the local copy-local set. Centralizing
+    these lets every executable resolve them via probing paths instead of duplicating per-project.
+  -->
   <Target Name="RedBoltStageExternalRuntimeAssets"
           BeforeTargets="_CopyFilesMarkedCopyLocal"
           Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'">
@@ -385,9 +437,11 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     </ItemGroup>
   </Target>
 
+  <!-- Rewrite the generated deps.json (core solution, host executables/tests) to point at parent
+       outputs and inject the selected native module assets. -->
   <Target Name="RedBoltConfigureRuntimeAssemblies"
           AfterTargets="GenerateBuildDependencyFile"
-      Condition="'$(RedBoltExternalModuleRoot)' == '' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true') and Exists('$(ProjectDepsFilePath)')">
+      Condition="$([System.String]::Copy('$(MSBuildProjectFullPath)').StartsWith('$(RedBoltRoot)/src/')) and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true') and Exists('$(ProjectDepsFilePath)')">
     <RedBoltUseParentRuntimeAssemblies DependencyFile="$(ProjectDepsFilePath)"
                                        MainProjectName="$(AssemblyName)"
                                        NativeRuntimeDirectory="$(RedBoltNativeOutputRoot)"
@@ -404,83 +458,11 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
                                           RuntimeIdentifier="$(RuntimeIdentifier)" />
   </Target>
 
-  <Target Name="RedBoltConfigureBrowserProjectReferences"
-          BeforeTargets="AssignProjectConfiguration"
-          DependsOnTargets="IncludeTransitiveProjectReferences"
-          Condition="'$(RedBoltPlatform)' == 'browser-wasm'">
-    <ItemGroup>
-      <ProjectReference Remove="@(ProjectReference)"
-                        Condition="'%(ProjectReference.Filename)' == 'RedBolt.Utility'
-                          or '%(ProjectReference.Filename)' == 'RedBolt.Bindings.TinyGltf'" />
-      <ProjectReference Update="@(ProjectReference)"
-                        Condition="'$(RedBoltBuildPlatform)' == ''
-                          and '%(ProjectReference.AdditionalProperties)' == ''
-                          and $([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/'))
-                          and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Dependencies'
-                          and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Reflection'
-                          and '%(ProjectReference.Filename)' != 'RedBolt.Native.Web'">
-        <AdditionalProperties>RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm</AdditionalProperties>
-      </ProjectReference>
-    </ItemGroup>
-  </Target>
-
-  <Target Name="RedBoltConfigureAndroidProjectReferences"
-          BeforeTargets="AssignProjectConfiguration"
-          DependsOnTargets="IncludeTransitiveProjectReferences"
-          Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
-    <ItemGroup>
-      <ProjectReference Update="@(ProjectReference)"
-                        Condition="'$(RedBoltBuildPlatform)' == ''
-                          and '%(ProjectReference.AdditionalProperties)' == ''
-                          and $([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/'))
-                          and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Dependencies'
-                          and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Reflection'
-                          and '%(ProjectReference.Filename)' != 'RedBolt.Native.Android'">
-        <AdditionalProperties>RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltNativePreset);RedBoltTargetFramework=$(RedBoltTargetFramework)</AdditionalProperties>
-      </ProjectReference>
-    </ItemGroup>
-  </Target>
-
-  <Target Name="RedBoltConfigureRestoreGraph"
-          BeforeTargets="_FilterRestoreGraphProjectInputItems;_GenerateRestoreProjectPathItemsPerFramework;_GenerateProjectRestoreGraphPerFramework">
-    <ItemGroup Condition="'$(RedBoltPlatform)' == 'browser-wasm'">
-      <ProjectReference Remove="@(ProjectReference)"
-                        Condition="'%(ProjectReference.Filename)' == 'RedBolt.Utility'
-                          or '%(ProjectReference.Filename)' == 'RedBolt.Bindings.TinyGltf'" />
-      <ProjectReference Update="@(ProjectReference)"
-                        Condition="'$(RedBoltBuildPlatform)' == ''
-                          and '%(ProjectReference.AdditionalProperties)' == ''
-                          and $([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/'))
-                          and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Dependencies'
-                          and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Reflection'
-                          and '%(ProjectReference.Filename)' != 'RedBolt.Native.Web'">
-        <AdditionalProperties>RedBoltPlatform=browser-wasm;RedBoltNativePreset=browser-wasm</AdditionalProperties>
-      </ProjectReference>
-    </ItemGroup>
-    <ItemGroup Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
-      <ProjectReference Update="@(ProjectReference)"
-                        Condition="'$(RedBoltBuildPlatform)' == ''
-                          and '%(ProjectReference.AdditionalProperties)' == ''
-                          and $([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/'))
-                          and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Dependencies'
-                          and '%(ProjectReference.Filename)' != 'RedBolt.Generator.Reflection'
-                          and '%(ProjectReference.Filename)' != 'RedBolt.Native.Android'">
-        <AdditionalProperties>RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltNativePreset);RedBoltTargetFramework=$(RedBoltTargetFramework)</AdditionalProperties>
-      </ProjectReference>
-    </ItemGroup>
-    <PropertyGroup>
-      <_GenerateRestoreGraphProjectEntryInputProperties>
-        $(_GenerateRestoreGraphProjectEntryInputProperties);
-        RedBoltPlatform=$(RedBoltPlatform);
-        RedBoltNativePreset=$(RedBoltNativePreset);
-        SharpCppBuildRoot=$(RedBoltSharpCppBuildRoot);
-        SharpCppOutputDir=$(SharpCppOutputDir);
-        SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)
-      </_GenerateRestoreGraphProjectEntryInputProperties>
-    </PropertyGroup>
-  </Target>
-
-
+  <!--
+    Makes the engine-wide GlobalAliases.cs available to any project that references RedBolt.Core
+    (directly or via its resolved references). The file is injected as a hidden linked source so
+    projects get the engine's type aliases without a shared source dependency.
+  -->
   <Target Name="RedBoltIncludeGlobalAliases"
           BeforeTargets="CoreCompile"
           Condition="Exists('$(RedBoltGlobalAliasesFile)') and ('@(ProjectReference->WithMetadataValue(&quot;Filename&quot;, &quot;RedBolt.Core&quot;))' != '' or '@(ReferencePath->WithMetadataValue(&quot;Filename&quot;, &quot;RedBolt.Core&quot;))' != '')">

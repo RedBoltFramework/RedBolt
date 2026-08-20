@@ -5,14 +5,17 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 -->
 
 <Project>
+  <!--
+    Shared sample-project properties (both core and external-module samples). Marks the project as a
+    sample, sets the runtime identifier from RedBoltPlatform, and routes output to the samples/ bucket
+    (or the web bucket for wasm).
+  -->
   <PropertyGroup>
     <RedBoltIsSampleProject>true</RedBoltIsSampleProject>
     <RuntimeIdentifier Condition="'$(RedBoltPlatform)' == 'linux-x64'">linux-x64</RuntimeIdentifier>
     <RuntimeIdentifier Condition="'$(RedBoltPlatform)' == 'win-x64'">win-x64</RuntimeIdentifier>
     <RedBoltOutputDir Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'">$(RedBoltOutputRoot)/samples</RedBoltOutputDir>
     <RedBoltWebOutputDir>$(RedBoltOutputRoot)/web</RedBoltWebOutputDir>
-    <RedBoltBaseDearImGuiBindingAssembly Condition="'$(RedBoltExternalUsesDearImGui)' == 'true' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64')">$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/extern/RedBolt.Bindings.DearImGui.dll</RedBoltBaseDearImGuiBindingAssembly>
-    <RedBoltBaseDearImGuiBindingAssembly Condition="'$(RedBoltExternalUsesDearImGui)' == 'true' and ('$(RedBoltPlatform)' == 'browser-wasm' or $([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))) ">$(RedBoltBuildRoot)/obj/managed/$(RedBoltPlatform)/staging/RedBolt.Bindings.DearImGui/$(Configuration)/RedBolt.Bindings.DearImGui.dll</RedBoltBaseDearImGuiBindingAssembly>
     <OutputPath>$(RedBoltOutputDir)/</OutputPath>
   </PropertyGroup>
 </Project>

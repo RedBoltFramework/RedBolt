@@ -5,9 +5,16 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 -->
 
 <Project>
+  <!--
+    Test integration for external modules. Imported once per test project (guarded by
+    RedBoltExternalTestIntegrationImported because RedBolt.Tests imports every module's version).
+    It adds the probing paths and deps.json rewriting needed for a test project to run against the
+    module's built outputs and native assets.
+  -->
   <PropertyGroup>
     <RedBoltExternalTestIntegrationImported>true</RedBoltExternalTestIntegrationImported>
   </PropertyGroup>
+  <!-- Test projects probe the core and (for native modules) host/extern buckets at runtime. -->
   <Target Name="RedBoltExternalConfigureTestProbingPaths"
           BeforeTargets="RedBoltConfigureRuntimeAssemblies"
           Condition="('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and '$(IsTestProject)' == 'true'">
@@ -18,6 +25,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <AdditionalProbingPath Include="$(RedBoltBuildRoot)/bin/$(Configuration)/host/tools" Condition="'%(RedBoltExternalTestModule.HasNative)' == 'true'" />
     </ItemGroup>
   </Target>
+  <!-- Rewrite the test project's deps.json for each registered module, injecting that module's native
+       assets so tests can P/Invoke them. -->
   <Target Name="RedBoltExternalConfigureTestRuntimeAssemblies"
           AfterTargets="RedBoltConfigureRuntimeAssemblies"
           Condition="('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and '$(IsTestProject)' == 'true' and Exists('$(ProjectDepsFilePath)')">

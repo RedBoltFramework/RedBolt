@@ -1,0 +1,26 @@
+<!--
+Copyright (c) 2026 RedBolt and contributors.
+This work is licensed under the terms of the MIT license.
+For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+-->
+
+<Project>
+  <Import Project="$(RedBoltRoot)/Directory.Solution.targets" />
+
+  <Target Name="RedBoltPersistModuleBuildConfiguration"
+          AfterTargets="Build;Rebuild"
+          Condition="'$(BuildingSolutionFile)' == 'true'
+                     and '$(RedBoltPlatform)' == 'linux-x64'
+                     and '$(SolutionName)' == '$(RedBoltExternalModuleName)'
+                     and '$(MSBuildProjectName)' == '$(RedBoltExternalModuleName)'">
+    <RedBoltSaveBuildConfig ConfigFile="$(RedBoltBuildConfigPath)"
+                            EnablePlatforms="$(RedBoltEnablePlatforms)"
+                            DisablePlatforms="$(RedBoltDisablePlatforms)"
+                            EnableArchitectures="$(RedBoltEnableArchitectures)"
+                            DisableArchitectures="$(RedBoltDisableArchitectures)"
+                            SavedEnablePlatforms="$(_RedBoltSavedEnablePlatforms)"
+                            SavedDisablePlatforms="$(_RedBoltSavedDisablePlatforms)"
+                            SavedEnableArchitectures="$(_RedBoltSavedEnableArchitectures)"
+                            SavedDisableArchitectures="$(_RedBoltSavedDisableArchitectures)" />
+  </Target>
+</Project>

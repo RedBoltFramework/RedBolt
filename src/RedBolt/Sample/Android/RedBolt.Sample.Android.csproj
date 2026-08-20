@@ -27,8 +27,9 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltAndroidNativeOutput>$(RedBoltNativeOutputRoot)</RedBoltAndroidNativeOutput>
     <RedBoltAndroidNdkTriple Condition="'$(RedBoltPlatform)' == 'android-arm64'">aarch64-linux-android</RedBoltAndroidNdkTriple>
     <RedBoltAndroidNdkTriple Condition="'$(RedBoltPlatform)' == 'android-x64'">x86_64-linux-android</RedBoltAndroidNdkTriple>
-    <RedBoltAndroidJavaDirectory>$(RedBoltNativeBuildDir)/generated/android/java</RedBoltAndroidJavaDirectory>
+    <RedBoltAndroidJavaDirectory>$(RedBoltRoot)/extern/SDL/android-project/app/src/main/java</RedBoltAndroidJavaDirectory>
     <RedBoltAndroidPackageOutputDirectory>$(RedBoltOutputRoot)/app</RedBoltAndroidPackageOutputDirectory>
+    <RedBoltCMakeTarget>redbolt-android-native</RedBoltCMakeTarget>
   </PropertyGroup>
 
   <ItemGroup>
@@ -38,7 +39,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <ProjectReference Include="../../Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
-                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltNativePreset;RedBoltTargetFramework" />
+                      GlobalPropertiesToRemove="RedBoltPlatform;RedBoltTargetFramework" />
     <Compile Include="../**/*.cs"
              Exclude="../Android/**/*.cs;../Web/**/*.cs;../WebRTCSTUN/**/*.cs;../WindowSettings/**/*.cs"
              Link="Samples/%(RecursiveDir)%(Filename)%(Extension)" />
@@ -56,12 +57,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
   <Target Name="RedBoltPrepareAndroidRuntime"
       BeforeTargets="_CollectJavaSourceForBinding"
+      DependsOnTargets="ResolveReferences;RedBoltConfigureNative;RedBoltBuildCMakeTarget"
       Condition="'$(RedBoltProjectBuildEnabled)' == 'true'">
-    <MSBuild Projects="$(RedBoltRoot)/src/RedBolt/Native/RedBolt.Native.Android.csproj"
-             Targets="RedBoltBuildNativeAndroidRuntime"
-             BuildInParallel="false"
-             Condition="'$(RedBoltBuildAndroidNative)' != 'false'"
-             Properties="Configuration=$(Configuration);RedBoltPlatform=$(RedBoltPlatform);RedBoltNativePreset=$(RedBoltPlatform);RedBoltTargetFramework=$(RedBoltTargetFramework);AndroidSdkDirectory=$(AndroidSdkDirectory);AndroidNdkDirectory=$(AndroidNdkDirectory);JavaSdkDirectory=$(JavaSdkDirectory)" />
     <Error Condition="'$(RedBoltAndroidNdkTriple)' == ''"
            Text="Unsupported Android platform '$(RedBoltPlatform)'." />
     <Copy SourceFiles="$(AndroidNdkDirectory)/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/$(RedBoltAndroidNdkTriple)/libc++_shared.so"
@@ -77,6 +74,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
           BeforeTargets="_BuildApkEmbed;_BuildApkFastDev"
           DependsOnTargets="RedBoltPrepareAndroidRuntime">
     <ItemGroup>
+      <AndroidNativeLibrary Remove="$(RedBoltAndroidNativeOutput)/libRedBolt.Native.*.so;$(RedBoltAndroidNativeOutput)/libc++_shared.so" />
       <AndroidNativeLibrary Include="$(RedBoltAndroidNativeOutput)/libRedBolt.Native.*.so" />
       <AndroidNativeLibrary Include="$(RedBoltAndroidNativeOutput)/libc++_shared.so" />
     </ItemGroup>
@@ -98,7 +96,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
              Targets="Build"
              BuildInParallel="false"
              Condition="'$(BuildingSolutionFile)' != 'true' and '$(RedBoltPlatform)' == 'android-x64' and '$(RedBoltBuildAllAndroidPackages)' == 'true' and '$(RedBoltAndroidPackageInnerBuild)' != 'true'"
-             Properties="Configuration=$(Configuration);RedBoltPlatform=android-arm64;RedBoltNativePreset=android-arm64;RedBoltBuildAllAndroidPackages=false;RedBoltAndroidPackageInnerBuild=true" />
+             Properties="Configuration=$(Configuration);RedBoltPlatform=android-arm64;RedBoltBuildAllAndroidPackages=false;RedBoltAndroidPackageInnerBuild=true" />
   </Target>
 
   <ItemGroup>
@@ -107,4 +105,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <AndroidAsset Include="../../../../bin/Data/**/*"
                   Link="Data/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
+
+  <Import Project="../../Native/NativeBuild.targets" />
 </Project>

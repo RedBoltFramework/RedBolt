@@ -4,7 +4,7 @@
 
 foreach(required_variable
         REDBOLT_SOURCE_DIR
-        REDBOLT_NATIVE_PRESET
+        REDBOLT_PLATFORM
         REDBOLT_NATIVE_BUILD_DIR
         REDBOLT_NATIVE_TARGET)
     if(NOT DEFINED ${required_variable} OR "${${required_variable}}" STREQUAL "")
@@ -29,7 +29,7 @@ if(NOT _redbolt_lock_result STREQUAL "0")
 endif()
 
 set(_redbolt_native_environment)
-if(REDBOLT_NATIVE_PRESET STREQUAL "browser-wasm"
+if(REDBOLT_PLATFORM STREQUAL "browser-wasm"
         AND EXISTS "${REDBOLT_NATIVE_BUILD_DIR}/redbolt-dotnet-emscripten-env")
     set(_redbolt_native_environment "${REDBOLT_NATIVE_BUILD_DIR}/redbolt-dotnet-emscripten-env")
 endif()

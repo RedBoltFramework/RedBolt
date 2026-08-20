@@ -44,9 +44,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <Project Path="src/RedBolt/Native/Stb/RedBolt.Bindings.Stb.csproj" />
     <Project Path="src/RedBolt/Native/TinyGltf/RedBolt.Bindings.TinyGltf.csproj" />
     <Project Path="src/RedBolt/Native/WebP/RedBolt.Bindings.WebP.csproj" />
-    <Project Path="src/RedBolt/Native/RedBolt.Native.csproj" />
-    <Project Path="src/RedBolt/Native/RedBolt.Native.Android.csproj" />
-    <Project Path="src/RedBolt/Native/RedBolt.Native.Web.csproj" />
   </Folder>
   <Folder Name="/src/RedBolt/Samples/">
     <Project Path="src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj" />

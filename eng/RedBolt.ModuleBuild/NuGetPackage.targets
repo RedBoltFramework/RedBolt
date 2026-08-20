@@ -5,6 +5,11 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 -->
 
 <Project>
+  <!--
+    Packaging targets for an external module's NuGet package. A package project is a thin wrapper:
+    it disables default item collection, pulls its metadata from RedBoltPackage* properties, packs
+    the staged files from RedBoltPackageStage, and validates required inputs before packing.
+  -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <EnableDefaultItems>false</EnableDefaultItems>
@@ -23,11 +28,15 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>$(RedBoltExternalPackageTags)</PackageTags>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <!-- These NU warnings fire because the package is assembled from pre-staged files rather than a
+         normal SDK-style project build, which is intentional. -->
     <NoWarn>$(NoWarn);NU5100;NU5119;NU5128</NoWarn>
     <BaseIntermediateOutputPath>$(RedBoltPackageStage)/obj/</BaseIntermediateOutputPath>
     <MSBuildProjectExtensionsPath>$(RedBoltPackageStage)/obj/</MSBuildProjectExtensionsPath>
   </PropertyGroup>
   <Import Project="$(RedBoltPackageSpec)" Condition="Exists('$(RedBoltPackageSpec)')" />
+  <!-- Everything staged under RedBoltPackageStage becomes package content (except the stage's own
+       obj/ and the spec file). -->
   <ItemGroup Condition="'$(RedBoltPackageStage)' != ''">
     <None Include="$(RedBoltPackageStage)/**/*" Exclude="$(RedBoltPackageStage)/obj/**/*;$(RedBoltPackageSpec)"
           Pack="true" PackagePath="%(RecursiveDir)%(Filename)%(Extension)" />

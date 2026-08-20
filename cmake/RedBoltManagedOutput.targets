@@ -5,6 +5,12 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 -->
 
 <Project>
+  <!--
+    Injected (via CustomBeforeMicrosoftCommonTargets) into externally-built SharpCpp projects so
+    their PDB output lands in the shared layout and their copy-local behavior matches the parent
+    build: output dirs are created before compile, and copy-local references are stripped so the
+    parent build stays the single owner of runtime assets.
+  -->
   <PropertyGroup Condition="'$(RedBoltPdbOutputDir)' != ''">
     <PdbFile>$(RedBoltPdbOutputDir)/$(AssemblyName).pdb</PdbFile>
     <CopyOutputSymbolsToOutputDirectory>false</CopyOutputSymbolsToOutputDirectory>
@@ -14,6 +20,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <MakeDir Directories="$(OutputPath);$(RedBoltPdbOutputDir)" />
   </Target>
 
+  <!-- Do not copy dependencies locally; the parent build stages them centrally. -->
   <Target Name="RedBoltKeepExternalDependenciesExternal"
           BeforeTargets="_CopyFilesMarkedCopyLocal">
     <ItemGroup>

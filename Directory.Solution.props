@@ -5,11 +5,26 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 -->
 
 <Project>
+  <!--
+    Solution-scoped roots.
+    Resolves the single shared build output root (RedBoltBuildRoot) and the path to the persisted
+    build configuration, then imports the platform/module selection logic.
+
+    RedBoltBuildRoot is the one directory every project in the solution writes into, so managed
+    assemblies, native libraries, and intermediate artifacts stay co-located and discoverable
+    across the solution graph (probed via AdditionalProbingPath). When the build is launched
+    through a .slnx, $(SolutionDir) is defined and the build root is the solution's own build/
+    subfolder; otherwise it falls back to this repository's build/.
+  -->
   <PropertyGroup>
     <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == '' and '$(SolutionDir)' != ''">$([System.IO.Path]::GetFullPath('$(SolutionDir)/build'))</RedBoltBuildRoot>
     <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)build'))</RedBoltBuildRoot>
     <RedBoltBuildConfigPath Condition="'$(RedBoltBuildConfigPath)' == ''">$(RedBoltBuildRoot)/BuildConfig.props</RedBoltBuildConfigPath>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    <SharpCppBuildRoot Condition="'$(SharpCppBuildRoot)' == ''">$(RedBoltBuildRoot)</SharpCppBuildRoot>
+    <SharpCppOutputDir Condition="'$(SharpCppOutputDir)' == ''">$(RedBoltBuildRoot)/bin/$(Configuration)/host/extern</SharpCppOutputDir>
+    <SharpCppIntermediateRoot Condition="'$(SharpCppIntermediateRoot)' == ''">$(RedBoltBuildRoot)/obj/managed/tools</SharpCppIntermediateRoot>
+    <AddSyntheticProjectReferencesForSolutionDependencies>false</AddSyntheticProjectReferencesForSolutionDependencies>
   </PropertyGroup>
   <Import Project="$(MSBuildThisFileDirectory)RedBolt.BuildConfig.props" />
 </Project>

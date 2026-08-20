@@ -165,7 +165,6 @@ internal sealed class Packager
                     "build", Path.Combine(_repositoryRoot, "src", "RedBolt", "Tools", "PackageTool", "RedBolt.PackageTool.csproj"),
                     "--configuration", Configuration,
                     $"-p:RedBoltPlatform={rid}",
-                    $"-p:RedBoltNativePreset={rid}",
                     "-p:RedBoltIgnoreBuildSelection=true"
                 ]);
             }

@@ -176,9 +176,9 @@ function(redbolt_add_native_binding_generation)
             ${owned_header_args}
         DEPENDS
             "${ARG_HEADER}"
+            "${REDBOLT_DEPENDENCIES_GENERATOR_DLL}"
             ${owned_header_inputs}
             ${REDBOLT_DEPENDENCIES_GENERATOR_INPUTS}
-            ${REDBOLT_SHARPCPP_GENERATOR_INPUTS}
             ${ARG_DEPENDS}
         WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
         COMMENT "Generating ${ARG_SURFACE} bindings"

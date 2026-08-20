@@ -1,0 +1,81 @@
+<!--
+Copyright (c) 2026 RedBolt and contributors.
+This work is licensed under the terms of the MIT license.
+For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+-->
+
+<Project>
+  <Import Project="$(RedBoltRoot)/src/Directory.Build.targets" />
+
+  <ItemGroup>
+    <ProjectReference Update="@(ProjectReference->WithMetadataValue('Filename', '$(RedBoltExternalGeneratorProjectName)'))">
+      <GlobalPropertiesToRemove>%(ProjectReference.GlobalPropertiesToRemove);$(RedBoltHostProjectGlobalPropertiesToRemove)</GlobalPropertiesToRemove>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RedBoltPlatform)' == 'browser-wasm'">
+    <ProjectReference Update="$(RedBoltExternalModuleRoot)/../RedBolt.*/src/RedBolt/**/*.csproj">
+      <AdditionalProperties>%(ProjectReference.AdditionalProperties);RedBoltPlatform=browser-wasm</AdditionalProperties>
+      <SetTargetFramework>TargetFramework=net10.0;RedBoltPlatform=browser-wasm</SetTargetFramework>
+      <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+      <GlobalPropertiesToRemove>%(ProjectReference.GlobalPropertiesToRemove);RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishSelfContained</GlobalPropertiesToRemove>
+    </ProjectReference>
+    <ProjectReference Update="@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.Generator.Dependencies'));@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.Generator.Reflection'));@(ProjectReference->WithMetadataValue('Filename', '$(RedBoltExternalGeneratorProjectName)'))">
+      <AdditionalProperties></AdditionalProperties>
+      <SetTargetFramework></SetTargetFramework>
+      <SkipGetTargetFrameworkProperties>false</SkipGetTargetFrameworkProperties>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
+    <ProjectReference Update="$(RedBoltExternalModuleRoot)/../RedBolt.*/src/RedBolt/**/*.csproj">
+      <GlobalPropertiesToRemove>%(ProjectReference.GlobalPropertiesToRemove);$(RedBoltInnerBuildGlobalPropertiesToRemove)</GlobalPropertiesToRemove>
+    </ProjectReference>
+  </ItemGroup>
+
+  <!-- Module executables/tests probe the core's shared output buckets (plus module-specific paths)
+       so they resolve the parent-built assemblies at runtime. -->
+  <ItemGroup Condition="'$(RedBoltExternalModuleRoot)' != '' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">
+    <AdditionalProbingPath Include="$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/core" />
+    <AdditionalProbingPath Include="$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/extern" />
+    <AdditionalProbingPath Include="$(RedBoltBuildRoot)/bin/$(Configuration)/host/extern" />
+    <AdditionalProbingPath Include="$(RedBoltBuildRoot)/bin/$(Configuration)/host/tools" />
+    <AdditionalProbingPath Include="$(RedBoltExternalAdditionalProbingPaths)" Condition="'$(RedBoltExternalAdditionalProbingPaths)' != ''" />
+  </ItemGroup>
+
+  <!--
+    Module counterpart of RedBoltConfigureRuntimeAssemblies: rewrite the deps.json for module
+    executables/tests to consume parent-built assemblies and the module's own native assets.
+    Runs just before the core target so the core's post-processing still applies.
+  -->
+  <Target Name="RedBoltExternalConfigureBaseRuntimeAssemblies"
+          BeforeTargets="RedBoltConfigureRuntimeAssemblies"
+      Condition="'$(RedBoltExternalModuleRoot)' != '' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true') and Exists('$(ProjectDepsFilePath)')">
+    <RedBoltUseParentRuntimeAssemblies
+        DependencyFile="$(ProjectDepsFilePath)"
+        MainProjectName="$(AssemblyName)"
+        NativeRuntimeDirectory="$(RedBoltRuntimeNativeOutputRoot)"
+        NativeModuleManifestDirectory="$(RedBoltRuntimeNativeModuleManifestDirectory)"
+        RuntimeIdentifier="$(RuntimeIdentifier)">
+      <Output TaskParameter="NativeAssets" ItemName="_RedBoltNativeAssets" />
+    </RedBoltUseParentRuntimeAssemblies>
+  </Target>
+
+  <!--
+    Desktop samples/executables need the engine data folders present next to their output. Instead
+    of copying them, create symlinks to the module's bin resources so the data is shared and stays
+    in sync with the source of truth.
+  -->
+  <Target Name="RedBoltStageExternalNativeResources"
+          Condition="'$(RedBoltExternalDesktopResourceRoot)' != '' and '$(RedBoltPlatform)' == 'linux-x64'">
+    <MakeDir Directories="$(RedBoltOutputRoot)" />
+    <Exec Condition="!Exists('$(RedBoltOutputRoot)/CoreData')" Command="cmake -E create_symlink &quot;$(RedBoltExternalDesktopResourceRoot)/bin/CoreData&quot; &quot;$(RedBoltOutputRoot)/CoreData&quot;" />
+    <Exec Condition="!Exists('$(RedBoltOutputRoot)/Data')" Command="cmake -E create_symlink &quot;$(RedBoltExternalDesktopResourceRoot)/bin/Data&quot; &quot;$(RedBoltOutputRoot)/Data&quot;" />
+    <Exec Condition="!Exists('$(RedBoltOutputRoot)/Base')" Command="cmake -E create_symlink &quot;$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)&quot; &quot;$(RedBoltOutputRoot)/Base&quot;" />
+  </Target>
+
+  <Target Name="RedBoltExternalStageDesktopResources"
+          AfterTargets="Build"
+          DependsOnTargets="RedBoltStageExternalNativeResources"
+      Condition="'$(RedBoltExternalDesktopResourceRoot)' != '' and '$(RedBoltPlatform)' == 'linux-x64' and '$(OutputType)' == 'Exe' and '$(RedBoltProjectBuildEnabled)' == 'true'" />
+</Project>

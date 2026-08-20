@@ -5,10 +5,21 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 -->
 
 <Project>
+  <!--
+    Solution-scoped targets.
+    Defines the RedBoltSaveBuildConfig inline task and the targets that bootstrap dependencies,
+    expose the IDE-only web sample entry point, and persist the effective platform selection
+    after a solution build.
+  -->
   <PropertyGroup>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
   </PropertyGroup>
 
+  <!--
+    Inline C# task that writes the effective platform and architecture lists back to
+    BuildConfig.props. It only rewrites the file when the computed values differ from the
+    saved ones, so an unchanged incremental build does not dirty the config file.
+  -->
   <UsingTask TaskName="RedBoltSaveBuildConfig"
              TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
@@ -18,14 +29,10 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <DisablePlatforms ParameterType="System.String" />
       <EnableArchitectures ParameterType="System.String" />
       <DisableArchitectures ParameterType="System.String" />
-      <EnableModules ParameterType="System.String" />
-      <DisableModules ParameterType="System.String" />
       <SavedEnablePlatforms ParameterType="System.String" />
       <SavedDisablePlatforms ParameterType="System.String" />
       <SavedEnableArchitectures ParameterType="System.String" />
       <SavedDisableArchitectures ParameterType="System.String" />
-      <SavedEnableModules ParameterType="System.String" />
-      <SavedDisableModules ParameterType="System.String" />
     </ParameterGroup>
     <Task>
       <Using Namespace="System" />
@@ -46,19 +53,16 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
         {
             "EnablePlatforms", "DisablePlatforms",
             "EnableArchitectures", "DisableArchitectures",
-            "EnableModules", "DisableModules"
         };
         var values = new[]
         {
             Canonical(EnablePlatforms), Canonical(DisablePlatforms),
-            Canonical(EnableArchitectures), Canonical(DisableArchitectures),
-            Canonical(EnableModules), Canonical(DisableModules)
+            Canonical(EnableArchitectures), Canonical(DisableArchitectures)
         };
         var saved = new[]
         {
             Canonical(SavedEnablePlatforms), Canonical(SavedDisablePlatforms),
-            Canonical(SavedEnableArchitectures), Canonical(SavedDisableArchitectures),
-            Canonical(SavedEnableModules), Canonical(SavedDisableModules)
+            Canonical(SavedEnableArchitectures), Canonical(SavedDisableArchitectures)
         };
 
         if (values.SequenceEqual(saved, StringComparer.Ordinal))
@@ -104,6 +108,12 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     </Task>
   </UsingTask>
 
+  <!--
+    Bootstraps missing third-party source dependencies (SharpCpp) before the first restore.
+    SharpCpp is pulled in by CMake/CPM; if it has not been populated yet, the generated
+    SharpCpp.Support.csproj will not exist and this target runs the CMake configure preset that
+    fetches it. If the file is still missing afterwards, the build fails with a clear error.
+  -->
   <Target Name="RedBoltEnsureDependencies"
           BeforeTargets="Restore"
           Condition="!Exists('$(MSBuildThisFileDirectory)extern/SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj')">
@@ -120,25 +130,26 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
              Properties="Configuration=$(Configuration);Platform=$(Platform)" />
   </Target>
 
+  <!--
+    Persists the effective platform selection after a successful solution build.
+    The save is gated to a single representative project per solution (RedBolt.Core for the core
+    solution, or the external module project itself for module solutions) so the file is written
+    exactly once per build even though the target is imported by every project.
+  -->
   <Target Name="RedBoltPersistBuildConfiguration"
           AfterTargets="Build;Rebuild"
           Condition="'$(BuildingSolutionFile)' == 'true'
-                     and (('$(RedBoltExternalModuleName)' == ''
-                           and '$(MSBuildProjectName)' == 'RedBolt.Core')
-                          or ('$(RedBoltExternalModuleName)' != ''
-                              and '$(MSBuildProjectName)' == '$(RedBoltExternalModuleName)'))">
+                     and '$(RedBoltPlatform)' == 'linux-x64'
+                     and '$(SolutionName)' == 'RedBolt'
+                     and '$(MSBuildProjectName)' == 'RedBolt.Core'">
     <RedBoltSaveBuildConfig ConfigFile="$(RedBoltBuildConfigPath)"
                             EnablePlatforms="$(RedBoltEnablePlatforms)"
                             DisablePlatforms="$(RedBoltDisablePlatforms)"
                             EnableArchitectures="$(RedBoltEnableArchitectures)"
                             DisableArchitectures="$(RedBoltDisableArchitectures)"
-                            EnableModules="$(RedBoltEnableModules)"
-                            DisableModules="$(RedBoltDisableModules)"
                             SavedEnablePlatforms="$(_RedBoltSavedEnablePlatforms)"
                             SavedDisablePlatforms="$(_RedBoltSavedDisablePlatforms)"
                             SavedEnableArchitectures="$(_RedBoltSavedEnableArchitectures)"
-                            SavedDisableArchitectures="$(_RedBoltSavedDisableArchitectures)"
-                            SavedEnableModules="$(_RedBoltSavedEnableModules)"
-                            SavedDisableModules="$(_RedBoltSavedDisableModules)" />
+                            SavedDisableArchitectures="$(_RedBoltSavedDisableArchitectures)" />
   </Target>
 </Project>

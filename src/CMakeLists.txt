@@ -2,7 +2,7 @@
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
-add_subdirectory(RedBolt/Generator/Dependencies)
+include(RedBolt/Generator/Dependencies/CMakeLists.txt)
 
 add_subdirectory(RedBolt/Native/Sdl)
 add_subdirectory(RedBolt/Native/Diligent)
