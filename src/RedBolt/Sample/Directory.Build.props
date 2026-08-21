@@ -6,14 +6,5 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
 <Project>
   <Import Project="$(MSBuildThisFileDirectory)../../Directory.Build.props" />
-
-  <!-- Core sample projects: mark as samples, derive the RID, and route output to the samples/ bucket. -->
-  <PropertyGroup>
-    <RedBoltIsSampleProject>true</RedBoltIsSampleProject>
-    <RuntimeIdentifier Condition="'$(RedBoltPlatform)' == 'linux-x64'">linux-x64</RuntimeIdentifier>
-    <RuntimeIdentifier Condition="'$(RedBoltPlatform)' == 'win-x64'">win-x64</RuntimeIdentifier>
-    <RedBoltOutputDir Condition="'$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64'">$(RedBoltOutputRoot)/samples</RedBoltOutputDir>
-    <RedBoltWebOutputDir>$(RedBoltOutputRoot)/web</RedBoltWebOutputDir>
-    <OutputPath>$(RedBoltOutputDir)/</OutputPath>
-  </PropertyGroup>
+  <Import Project="$(RedBoltRoot)/eng/RedBolt.ModuleBuild/Sample.props" />
 </Project>

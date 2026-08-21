@@ -24,7 +24,7 @@ public partial class SoundSource : Component
 {
     private static readonly string[] AutoRemoveModeNames = ["Disabled", "Component", "Node"];
 
-    protected Audio Audio = null!;
+    protected Audio? Audio;
     [Serialized("Type", Setter = nameof(SetSoundType))]
     protected string SoundType = AudioDefs.SoundEffect;
     internal StringHash SoundTypeHash = new(AudioDefs.SoundEffect);
@@ -59,15 +59,15 @@ public partial class SoundSource : Component
 
     public SoundSource()
     {
-        Audio = GetSubsystem<Audio>()!;
-        Audio.AddSoundSource(this);
+        Audio = GetSubsystem<Audio>();
+        Audio?.AddSoundSource(this);
         UpdateMasterGain();
     }
 
 
     public override void Dispose()
     {
-        Audio.RemoveSoundSource(this);
+        Audio?.RemoveSoundSource(this);
         base.Dispose();
         GC.SuppressFinalize(this);
     }
@@ -75,6 +75,9 @@ public partial class SoundSource : Component
     /// <summary>Play a sound.</summary>
     public void Play(Sound? sound)
     {
+        if (Audio is null)
+            return;
+
         if (Frequency == 0.0f && sound != null)
             Frequency = sound.GetFrequency();
         PlayCore(sound);
@@ -84,7 +87,7 @@ public partial class SoundSource : Component
     public void Play(Sound? sound, float frequency)
     {
         SetFrequency(frequency);
-        PlayCore(sound);
+        Play(sound);
     }
 
     /// <summary>Play a sound with specified frequency and gain.</summary>
@@ -92,7 +95,7 @@ public partial class SoundSource : Component
     {
         SetFrequency(frequency);
         SetGain(gain);
-        PlayCore(sound);
+        Play(sound);
     }
 
     /// <summary>Play a sound with specified frequency, gain and panning.</summary>
@@ -101,7 +104,7 @@ public partial class SoundSource : Component
         SetFrequency(frequency);
         SetGain(gain);
         SetPanning(panning);
-        PlayCore(sound);
+        Play(sound);
     }
 
     private void PlayCore(Sound? sound)
@@ -113,7 +116,9 @@ public partial class SoundSource : Component
     /// <summary>Start playing a sound stream.</summary>
     public void Play(SoundStream? stream)
     {
-        if (stream == null) return;
+        if (Audio is null || stream is null)
+            return;
+
         lock (_playLock)
         {
             _sound = null;
@@ -126,13 +131,16 @@ public partial class SoundSource : Component
     /// <summary>Stop playback.</summary>
     public void Stop()
     {
+        if (Audio is null)
+            return;
+
         lock (_playLock)
             StopLockless();
     }
 
     public void Seek(float seekTime)
     {
-        if (_sound == null || (_soundStream != null && !_sound.IsCompressed()))
+        if (Audio is null || _sound == null || (_soundStream != null && !_sound.IsCompressed()))
             return;
 
         seekTime = MathDefs.Clamp(seekTime, 0.0f, _sound.GetLength());
@@ -201,12 +209,18 @@ public partial class SoundSource : Component
 
     public void SetPlayPosition(int position)
     {
+        if (Audio is null || _sound is null || _soundStream is not null)
+            return;
+
         lock (_playLock)
             SetPlayPositionLockless(position);
     }
 
     public virtual void Update(float timeStep)
     {
+        if (Audio is null)
+            return;
+
         var effectiveTimeScale = GetEffectiveTimeScale();
         if (effectiveTimeScale == 0.0f)
             return;
@@ -297,7 +311,8 @@ public partial class SoundSource : Component
 
     public void UpdateMasterGain()
     {
-        MasterGain = Audio.GetSoundSourceMasterGain(SoundTypeHash);
+        if (Audio is not null)
+            MasterGain = Audio.GetSoundSourceMasterGain(SoundTypeHash);
     }
 
     /// <summary>Set sound attribute for serialization.</summary>

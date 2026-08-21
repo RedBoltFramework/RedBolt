@@ -1,0 +1,41 @@
+{
+  "name": "RedBolt",
+  "applicationId": "org.redbolt.samples",
+  "web": true,
+  "android": true,
+  "projectReferences": [
+    "src/RedBolt/Audio/RedBolt.Audio.csproj",
+    "src/RedBolt/DearImGui/RedBolt.DearImGui.csproj"
+  ],
+  "additionalSources": [
+    "Rotator.cs"
+  ],
+  "webPInvokeModules": [
+    "RedBolt.Native.DearImGui",
+    "RedBolt.Native.TinyGltf"
+  ],
+  "samples": [
+    { "id": "aggregated-input", "name": "Aggregated Input", "applicationType": "RedBolt.Sample.AggregatedInput.AggregatedInputApplication", "source": "AggregatedInput" },
+    { "id": "animating-scene", "name": "Animating Scene", "applicationType": "RedBolt.Sample.AnimatingScene.AnimatingScene", "source": "AnimatingScene" },
+    { "id": "billboards", "name": "Billboards", "applicationType": "RedBolt.Sample.Billboards.BillboardsApplication", "source": "Billboards" },
+    { "id": "camera-operator", "name": "Camera Operator", "applicationType": "RedBolt.Sample.CameraOperator.CameraOperatorSampleApplication", "source": "CameraOperator" },
+    { "id": "camera-shake", "name": "Camera Shake", "applicationType": "RedBolt.Sample.CameraShake.CameraShakeApplication", "source": "CameraShake" },
+    { "id": "decals", "name": "Decals", "applicationType": "RedBolt.Sample.Decals.DecalsApplication", "source": "Decals" },
+    { "id": "dynamic-geometry", "name": "Dynamic Geometry", "applicationType": "RedBolt.Sample.DynamicGeometry.DynamicGeometry", "source": "DynamicGeometry" },
+    { "id": "hello-gui", "name": "Hello GUI", "applicationType": "RedBolt.Sample.HelloGUI.HelloGUI", "source": "HelloGUI" },
+    { "id": "hello-world", "name": "Hello World", "applicationType": "RedBolt.Sample.HelloWorld.HelloWorld", "source": "HelloWorld" },
+    { "id": "huge-object-count", "name": "Huge Object Count", "applicationType": "RedBolt.Sample.HugeObjectCount.HugeObjectCountApplication", "source": "HugeObjectCount" },
+    { "id": "input-logger", "name": "Input Logger", "applicationType": "RedBolt.Sample.InputLogger.InputLoggerApplication", "source": "InputLogger" },
+    { "id": "light-animation", "name": "Light Animation", "applicationType": "RedBolt.Sample.LightAnimation.LightAnimationApplication", "source": "LightAnimation" },
+    { "id": "material-animation", "name": "Material Animation", "applicationType": "RedBolt.Sample.MaterialAnimation.MaterialAnimationApplication", "source": "MaterialAnimation" },
+    { "id": "multiple-viewports", "name": "Multiple Viewports", "applicationType": "RedBolt.Sample.MultipleViewports.MultipleViewports", "source": "MultipleViewports" },
+    { "id": "pointer-adapter", "name": "Pointer Adapter", "applicationType": "RedBolt.Sample.PointerAdapter.PointerAdapterApplication", "source": "PointerAdapter" },
+    { "id": "render-to-texture", "name": "Render to Texture", "applicationType": "RedBolt.Sample.RenderToTexture.RenderToTexture", "source": "RenderToTexture" },
+    { "id": "skeletal-animation", "name": "Skeletal Animation", "applicationType": "RedBolt.Sample.SkeletalAnimation.SkeletalAnimationApplication", "source": "SkeletalAnimation" },
+    { "id": "sound-effects", "name": "Sound Effects", "applicationType": "RedBolt.Sample.SoundEffects.SoundEffects", "source": "SoundEffects" },
+    { "id": "sound-synthesis", "name": "Sound Synthesis", "applicationType": "RedBolt.Sample.SoundSynthesis.SoundSynthesis", "source": "SoundSynthesis" },
+    { "id": "static-scene", "name": "Static Scene", "applicationType": "RedBolt.Sample.StaticScene.StaticScene", "source": "StaticScene" },
+    { "id": "texture-formats", "name": "Texture Formats", "applicationType": "RedBolt.Sample.TextureFormats.TextureFormatsSample", "source": "TextureFormats" },
+    { "id": "virtual-file-system", "name": "Virtual File System", "applicationType": "RedBolt.Sample.VirtualFileSystem.VirtualFileSystemApplication", "source": "VirtualFileSystem" }
+  ]
+}

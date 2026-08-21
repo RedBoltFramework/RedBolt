@@ -29,6 +29,69 @@ public static class Vector2iMarshaller
     public static BaseIntegerVector2<int> ConvertToManaged(BaseIntegerVector2<int> unmanaged) => unmanaged;
 }
 
+[CustomMarshaller(typeof(BaseIntegerVector2<int>), MarshalMode.Default, typeof(Vector2iIndirectMarshaller))]
+public static class Vector2iIndirectMarshaller
+{
+    public static nint ConvertToUnmanaged(BaseIntegerVector2<int> managed) =>
+        SharpCpp.Support.IndirectValueMarshaller<BaseIntegerVector2<int>>.ConvertToUnmanaged(managed);
+
+    public static BaseIntegerVector2<int> ConvertToManaged(nint unmanaged) =>
+        SharpCpp.Support.IndirectValueMarshaller<BaseIntegerVector2<int>>.ConvertToManaged(unmanaged);
+
+    public static void Free(nint unmanaged) =>
+        SharpCpp.Support.IndirectValueMarshaller<BaseIntegerVector2<int>>.Free(unmanaged);
+}
+
+[CustomMarshaller(typeof(BaseRealVector2<float>), MarshalMode.Default, typeof(Vector2fIndirectMarshaller))]
+public static class Vector2fIndirectMarshaller
+{
+    public static nint ConvertToUnmanaged(BaseRealVector2<float> managed) =>
+        SharpCpp.Support.IndirectValueMarshaller<BaseRealVector2<float>>.ConvertToUnmanaged(managed);
+
+    public static BaseRealVector2<float> ConvertToManaged(nint unmanaged) =>
+        SharpCpp.Support.IndirectValueMarshaller<BaseRealVector2<float>>.ConvertToManaged(unmanaged);
+
+    public static void Free(nint unmanaged) =>
+        SharpCpp.Support.IndirectValueMarshaller<BaseRealVector2<float>>.Free(unmanaged);
+}
+
+[CustomMarshaller(typeof(BaseRealVector3<float>), MarshalMode.Default, typeof(Vector3fIndirectMarshaller))]
+public static class Vector3fIndirectMarshaller
+{
+    public static nint ConvertToUnmanaged(BaseRealVector3<float> managed) =>
+        SharpCpp.Support.IndirectValueMarshaller<BaseRealVector3<float>>.ConvertToUnmanaged(managed);
+
+    public static BaseRealVector3<float> ConvertToManaged(nint unmanaged) =>
+        SharpCpp.Support.IndirectValueMarshaller<BaseRealVector3<float>>.ConvertToManaged(unmanaged);
+
+    public static void Free(nint unmanaged) =>
+        SharpCpp.Support.IndirectValueMarshaller<BaseRealVector3<float>>.Free(unmanaged);
+}
+
+[CustomMarshaller(typeof(Vector4f), MarshalMode.Default, typeof(Vector4fIndirectMarshaller))]
+public static class Vector4fIndirectMarshaller
+{
+    public static nint ConvertToUnmanaged(Vector4f managed) =>
+        SharpCpp.Support.IndirectValueMarshaller<Vector4f>.ConvertToUnmanaged(managed);
+
+    public static Vector4f ConvertToManaged(nint unmanaged) =>
+        SharpCpp.Support.IndirectValueMarshaller<Vector4f>.ConvertToManaged(unmanaged);
+
+    public static void Free(nint unmanaged) => SharpCpp.Support.IndirectValueMarshaller<Vector4f>.Free(unmanaged);
+}
+
+[CustomMarshaller(typeof(Color), MarshalMode.Default, typeof(ColorIndirectMarshaller))]
+public static class ColorIndirectMarshaller
+{
+    public static nint ConvertToUnmanaged(Color managed) =>
+        SharpCpp.Support.IndirectValueMarshaller<Color>.ConvertToUnmanaged(managed);
+
+    public static Color ConvertToManaged(nint unmanaged) =>
+        SharpCpp.Support.IndirectValueMarshaller<Color>.ConvertToManaged(unmanaged);
+
+    public static void Free(nint unmanaged) => SharpCpp.Support.IndirectValueMarshaller<Color>.Free(unmanaged);
+}
+
 [CustomMarshaller(typeof(BaseRealVector3<float>), MarshalMode.Default, typeof(Vector3fMarshaller))]
 public static class Vector3fMarshaller
 {

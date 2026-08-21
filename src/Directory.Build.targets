@@ -381,12 +381,12 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltPdbOutputDir>$(RedBoltOutputDir)/pdb</RedBoltPdbOutputDir>
     <PdbFile>$(RedBoltPdbOutputDir)/$(AssemblyName).pdb</PdbFile>
     <CopyOutputSymbolsToOutputDirectory>false</CopyOutputSymbolsToOutputDirectory>
-    <GenerateRuntimeConfigDevFile Condition="('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">true</GenerateRuntimeConfigDevFile>
+    <GenerateRuntimeConfigDevFile Condition="('$(RedBoltPlatform)' == 'tools' or '$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">true</GenerateRuntimeConfigDevFile>
   </PropertyGroup>
 
   <!-- Host executables and tests probe the shared output buckets at runtime so they resolve the
        parent-built assemblies and native modules without copying them locally. -->
-  <ItemGroup Condition="('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">
+  <ItemGroup Condition="('$(RedBoltPlatform)' == 'tools' or '$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">
     <AdditionalProbingPath Include="$(RedBoltCoreOutputDir)" />
     <AdditionalProbingPath Include="$(RedBoltExternOutputDir)" />
     <AdditionalProbingPath Include="$(RedBoltToolsOutputDir)" />
@@ -441,7 +441,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
        outputs and inject the selected native module assets. -->
   <Target Name="RedBoltConfigureRuntimeAssemblies"
           AfterTargets="GenerateBuildDependencyFile"
-      Condition="$([System.String]::Copy('$(MSBuildProjectFullPath)').StartsWith('$(RedBoltRoot)/src/')) and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true') and Exists('$(ProjectDepsFilePath)')">
+      Condition="$([System.String]::Copy('$(MSBuildProjectFullPath)').StartsWith('$(RedBoltRoot)/src/')) and ('$(RedBoltPlatform)' == 'tools' or '$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true') and Exists('$(ProjectDepsFilePath)')">
     <RedBoltUseParentRuntimeAssemblies DependencyFile="$(ProjectDepsFilePath)"
                                        MainProjectName="$(AssemblyName)"
                                        NativeRuntimeDirectory="$(RedBoltNativeOutputRoot)"

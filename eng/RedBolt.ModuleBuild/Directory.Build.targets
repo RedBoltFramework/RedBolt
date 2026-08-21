@@ -33,9 +33,9 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     </ProjectReference>
   </ItemGroup>
 
-  <!-- Module executables/tests probe the core's shared output buckets (plus module-specific paths)
+  <!-- Module host tools, executables, and tests probe the core's shared output buckets (plus module-specific paths)
        so they resolve the parent-built assemblies at runtime. -->
-  <ItemGroup Condition="'$(RedBoltExternalModuleRoot)' != '' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">
+  <ItemGroup Condition="'$(RedBoltExternalModuleRoot)' != '' and ('$(RedBoltPlatform)' == 'tools' or '$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true')">
     <AdditionalProbingPath Include="$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/core" />
     <AdditionalProbingPath Include="$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/extern" />
     <AdditionalProbingPath Include="$(RedBoltBuildRoot)/bin/$(Configuration)/host/extern" />
@@ -50,7 +50,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   -->
   <Target Name="RedBoltExternalConfigureBaseRuntimeAssemblies"
           BeforeTargets="RedBoltConfigureRuntimeAssemblies"
-      Condition="'$(RedBoltExternalModuleRoot)' != '' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true') and Exists('$(ProjectDepsFilePath)')">
+      Condition="'$(RedBoltExternalModuleRoot)' != '' and ('$(RedBoltPlatform)' == 'tools' or '$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and ('$(OutputType)' == 'Exe' or '$(IsTestProject)' == 'true') and Exists('$(ProjectDepsFilePath)')">
     <RedBoltUseParentRuntimeAssemblies
         DependencyFile="$(ProjectDepsFilePath)"
         MainProjectName="$(AssemblyName)"

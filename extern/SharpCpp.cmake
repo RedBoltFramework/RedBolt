@@ -5,7 +5,7 @@ CPMAddPackage(
     NAME SharpCpp
     GIT_REPOSITORY git@github.com:RedBoltFramework/SharpCpp.git
     # Keep this pin synchronized with SharpCpp master after every SharpCpp fix.
-    GIT_TAG 4829a4d517eaa7f152f283ab7ce2ceae4ce9c5b8
+    GIT_TAG 632737472e4ba44ff0a947abad5714c59bdb7c29
     CUSTOM_CACHE_KEY "."
     EXCLUDE_FROM_ALL YES)
 set(REDBOLT_SHARPCPP_ROOT "${SharpCpp_SOURCE_DIR}" CACHE PATH "Path to the SharpCpp source tree" FORCE)

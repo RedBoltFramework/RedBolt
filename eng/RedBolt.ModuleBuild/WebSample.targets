@@ -34,11 +34,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <WasmStripILAfterAOT Condition="'$(Configuration)' == 'Release'">true</WasmStripILAfterAOT>
     <PublishDir>$(RedBoltWebOutputDir)/</PublishDir>
     <RedBoltWebEngineArchive>$(RedBoltBaseNativeBuildDir)/lib/Release/wasm/RedBolt.Native.Web.a</RedBoltWebEngineArchive>
-    <RedBoltWebResourcesManifest>$(RedBoltBaseNativeBuildDir)/generated/web/resources.manifest.json</RedBoltWebResourcesManifest>
+    <RedBoltWebResourcesManifest>$(BaseIntermediateOutputPath)resources.manifest.json</RedBoltWebResourcesManifest>
     <RedBoltWebPackageDirectory>$(BaseIntermediateOutputPath)packages</RedBoltWebPackageDirectory>
-    <RedBoltWebMergedResourceDirectory>$(BaseIntermediateOutputPath)merged-resources</RedBoltWebMergedResourceDirectory>
-    <RedBoltWebCoreDataPackage>$(RedBoltWebPackageDirectory)/CoreData.pak</RedBoltWebCoreDataPackage>
-    <RedBoltWebDataPackage>$(RedBoltWebPackageDirectory)/Data.pak</RedBoltWebDataPackage>
     <RedBoltPackageToolAssembly>$(RedBoltBuildRoot)/bin/$(Configuration)/host/tools/linux-x64/RedBolt.PackageTool.dll</RedBoltPackageToolAssembly>
     <RedBoltPackageToolNativeOutput>$(RedBoltBuildRoot)/bin/$(Configuration)/linux-x64/extern/runtimes/linux-x64/native</RedBoltPackageToolNativeOutput>
     <RedBoltWebExtensionScript Condition="'$(RedBoltWebExtensionScript)' == ''">$(RedBoltRoot)/src/RedBolt/Sample/Web/wwwroot/extension.js</RedBoltWebExtensionScript>
@@ -56,10 +53,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <NativeFileReference Include="$(RedBoltWebEngineArchive)" />
     <NativeFileReference Include="$(RedBoltExternalWebArchive)" Condition="'$(RedBoltExternalWebArchive)' != ''" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Core/RedBolt.Core.csproj" />
-    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/DearImGui/RedBolt.Bindings.DearImGui.csproj" />
-    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/Diligent/RedBolt.Bindings.Diligent.csproj" />
-    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/Lz4/RedBolt.Bindings.Lz4.csproj" />
-    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/Sdl/RedBolt.Bindings.Sdl.csproj" />
+    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/**/*.csproj" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Generator/Reflection/RedBolt.Generator.Reflection.csproj"
                       OutputItemType="Analyzer" ReferenceOutputAssembly="false"
                       GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
@@ -76,26 +70,29 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <ProjectReference Include="$(RedBoltExternalModuleRoot)/src/RedBolt/Native/**/$(RedBoltExternalBindingsProjectName).csproj"
                       Condition="'$(RedBoltExternalWebNativeEnabled)' == 'true'" />
     <Compile Include="$(RedBoltWebProgram)" Link="WebSampleProgram.cs" />
+    <Content Remove="$(RedBoltRoot)/src/RedBolt/Sample/Web/wwwroot/main.js" />
     <Content Include="$(RedBoltRoot)/src/RedBolt/Sample/Web/wwwroot/main.js" Link="wwwroot/main.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Remove="$(RedBoltWebExtensionScript)" />
     <Content Include="$(RedBoltWebExtensionScript)" Link="wwwroot/extension.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <RedBoltWebCoreDataResource Include="$(RedBoltRoot)/bin/CoreData/**/*" />
-    <RedBoltWebDataResource Include="$(RedBoltRoot)/bin/Data/**/*" />
-    <Content Include="$(RedBoltWebCoreDataPackage)" Link="wwwroot/resources/CoreData.pak" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="$(RedBoltWebDataPackage)" Link="wwwroot/resources/Data.pak" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <RedBoltWebResourcePackage Include="RedBolt.CoreData" SourceDirectory="$(RedBoltRoot)/bin/CoreData" />
+    <RedBoltWebResourcePackage Include="RedBolt.Data" SourceDirectory="$(RedBoltRoot)/bin/Data" />
+    <RedBoltWebResourceFile Include="@(RedBoltWebResourcePackage->'%(SourceDirectory)/**/*')" />
+    <Content Include="@(RedBoltWebResourcePackage->'$(RedBoltWebPackageDirectory)/%(Identity).pak')" Link="wwwroot/resources/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="$(RedBoltWebResourcesManifest)" Link="wwwroot/resources.manifest.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
-  <!-- Builds the .pak resource packages from the engine data folders using the PackageTool, before
-       static web assets are resolved so the packages can be served. -->
+  <!-- Builds one .pak for each module data folder before static web assets are resolved. -->
   <Target Name="RedBoltCreateWebPackages" BeforeTargets="ResolveProjectStaticWebAssets;GetCopyToOutputDirectoryItems"
-          Inputs="@(RedBoltWebCoreDataResource);@(RedBoltWebDataResource);$(RedBoltPackageToolAssembly)"
-          Outputs="$(RedBoltWebCoreDataPackage);$(RedBoltWebDataPackage)">
-    <RemoveDir Directories="$(RedBoltWebMergedResourceDirectory)" />
-    <MakeDir Directories="$(RedBoltWebMergedResourceDirectory)/CoreData;$(RedBoltWebMergedResourceDirectory)/Data;$(RedBoltWebPackageDirectory)" />
-    <Copy SourceFiles="@(RedBoltWebCoreDataResource)" DestinationFiles="@(RedBoltWebCoreDataResource->'$(RedBoltWebMergedResourceDirectory)/CoreData/%(RecursiveDir)%(Filename)%(Extension)')" />
-    <Copy SourceFiles="@(RedBoltWebDataResource)" DestinationFiles="@(RedBoltWebDataResource->'$(RedBoltWebMergedResourceDirectory)/Data/%(RecursiveDir)%(Filename)%(Extension)')" />
-    <Exec Command="dotnet &quot;$(RedBoltPackageToolAssembly)&quot; &quot;$(RedBoltWebMergedResourceDirectory)/CoreData&quot; &quot;$(RedBoltWebCoreDataPackage)&quot; -q -c" EnvironmentVariables="LD_LIBRARY_PATH=$(RedBoltPackageToolNativeOutput)" />
-    <Exec Command="dotnet &quot;$(RedBoltPackageToolAssembly)&quot; &quot;$(RedBoltWebMergedResourceDirectory)/Data&quot; &quot;$(RedBoltWebDataPackage)&quot; -q -c" EnvironmentVariables="LD_LIBRARY_PATH=$(RedBoltPackageToolNativeOutput)" />
+          Inputs="@(RedBoltWebResourceFile);$(RedBoltPackageToolAssembly);$(MSBuildProjectFullPath)"
+          Outputs="@(RedBoltWebResourcePackage->'$(RedBoltWebPackageDirectory)/%(Identity).pak');$(RedBoltWebResourcesManifest)">
+    <RemoveDir Directories="$(RedBoltWebPackageDirectory)" />
+    <MakeDir Directories="$(RedBoltWebPackageDirectory)" />
+    <Exec Command="dotnet &quot;$(RedBoltPackageToolAssembly)&quot; &quot;%(RedBoltWebResourcePackage.SourceDirectory)&quot; &quot;$(RedBoltWebPackageDirectory)/%(RedBoltWebResourcePackage.Identity).pak&quot; -q -c" EnvironmentVariables="LD_LIBRARY_PATH=$(RedBoltPackageToolNativeOutput)" />
+    <PropertyGroup>
+      <RedBoltWebResourcesManifestContent>[@(RedBoltWebResourcePackage->'{&quot;name&quot;:&quot;../resources/%(Identity).pak&quot;,&quot;virtualPath&quot;:&quot;%(Identity).pak&quot;}', ',')]</RedBoltWebResourcesManifestContent>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(RedBoltWebResourcesManifest)"
+                      Lines="$(RedBoltWebResourcesManifestContent)"
+                      Overwrite="true" />
   </Target>
   <Target Name="RedBoltBuildWebNativeArchive"
           BeforeTargets="CoreCompile"

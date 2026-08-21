@@ -5,6 +5,7 @@
 namespace RedBolt.Sample.Web;
 
 using System;
+using System.IO;
 using System.Runtime.InteropServices.JavaScript;
 using System.Text;
 
@@ -20,16 +21,18 @@ internal static class WebProgram
         var lz4Version = Lz4.Lz4VersionNumber();
         var sdlRevision = Encoding.UTF8.GetString(Sdl.SdlGetRevision());
         var diligentFactory = Diligent.LoadAndGetEngineFactoryOpenGL();
-        var resourcesReady = System.IO.File.Exists("CoreData.pak") && System.IO.File.Exists("Data.pak");
-        using var application = SampleCatalog.Create(BrowserDom.GetSelectedApplicationType());
+        var resourcesReady = ResourcesExist();
+        // The browser frame loop continues after Run returns, so the page owns this application.
+        var application = SampleCatalog.Create(BrowserDom.GetSelectedApplicationType());
 
         int exitCode;
         try
         {
-            exitCode = application.Run();
+            exitCode = application.Run(["--resource-paths", SampleCatalog.ResourcePaths]);
         }
         catch (Exception exception)
         {
+            application.Dispose();
             var failureMessage = $"RedBolt WebAssembly sample failed with {exception.GetType().FullName}: {exception.Message}";
             Console.Error.WriteLine(exception);
             BrowserDom.SetResult(failureMessage, false);
@@ -46,6 +49,17 @@ internal static class WebProgram
         BrowserDom.SetResult(message, success);
         if (!success)
             throw new InvalidOperationException(message);
+    }
+
+    private static bool ResourcesExist()
+    {
+        foreach (var resourcePath in SampleCatalog.ResourcePaths.Split(';'))
+        {
+            if (!File.Exists($"{resourcePath}.pak"))
+                return false;
+        }
+
+        return true;
     }
 }
 
