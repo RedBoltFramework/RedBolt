@@ -7,6 +7,18 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 <Project>
   <Import Project="$(RedBoltRoot)/src/Directory.Build.targets" />
 
+  <PropertyGroup>
+    <RedBoltModuleBuildTasksProject>$(RedBoltRoot)/eng/RedBolt.ModuleBuild/Tasks/RedBolt.ModuleBuild.Tasks.csproj</RedBoltModuleBuildTasksProject>
+    <RedBoltModuleBuildTasksAssembly>$(RedBoltRoot)/eng/RedBolt.ModuleBuild/Tasks/bin/$(Configuration)/net10.0/RedBolt.ModuleBuild.Tasks.dll</RedBoltModuleBuildTasksAssembly>
+  </PropertyGroup>
+
+  <UsingTask TaskName="RedBolt.ModuleBuild.Tasks.EnsureDirectoryLink"
+             AssemblyFile="$(RedBoltModuleBuildTasksAssembly)" />
+
+  <Target Name="RedBoltBuildModuleBuildTasks" Condition="!Exists('$(RedBoltModuleBuildTasksAssembly)')">
+    <MSBuild Projects="$(RedBoltModuleBuildTasksProject)" Targets="Restore;Build" Properties="Configuration=$(Configuration)" />
+  </Target>
+
   <ItemGroup>
     <ProjectReference Update="@(ProjectReference->WithMetadataValue('Filename', '$(RedBoltExternalGeneratorProjectName)'))">
       <GlobalPropertiesToRemove>%(ProjectReference.GlobalPropertiesToRemove);$(RedBoltHostProjectGlobalPropertiesToRemove)</GlobalPropertiesToRemove>
@@ -61,21 +73,23 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     </RedBoltUseParentRuntimeAssemblies>
   </Target>
 
-  <!--
-    Desktop samples/executables need the engine data folders present next to their output. Instead
-    of copying them, create symlinks to the module's bin resources so the data is shared and stays
-    in sync with the source of truth.
-  -->
+  <!-- Desktop samples use identity-qualified module resources from the common output root. -->
   <Target Name="RedBoltStageExternalNativeResources"
-          Condition="'$(RedBoltExternalDesktopResourceRoot)' != '' and '$(RedBoltPlatform)' == 'linux-x64'">
+          DependsOnTargets="RedBoltBuildModuleBuildTasks"
+          Condition="'$(RedBoltExternalDesktopResourceRoot)' != '' and '$(RedBoltExternalDesktopResourceName)' != '' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64')">
     <MakeDir Directories="$(RedBoltOutputRoot)" />
-    <Exec Condition="!Exists('$(RedBoltOutputRoot)/CoreData')" Command="cmake -E create_symlink &quot;$(RedBoltExternalDesktopResourceRoot)/bin/CoreData&quot; &quot;$(RedBoltOutputRoot)/CoreData&quot;" />
-    <Exec Condition="!Exists('$(RedBoltOutputRoot)/Data')" Command="cmake -E create_symlink &quot;$(RedBoltExternalDesktopResourceRoot)/bin/Data&quot; &quot;$(RedBoltOutputRoot)/Data&quot;" />
-    <Exec Condition="!Exists('$(RedBoltOutputRoot)/Base')" Command="cmake -E create_symlink &quot;$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)&quot; &quot;$(RedBoltOutputRoot)/Base&quot;" />
+    <EnsureDirectoryLink Source="$(RedBoltRoot)/bin/CoreData" Link="$(RedBoltOutputRoot)/CoreData" />
+    <EnsureDirectoryLink Source="$(RedBoltRoot)/bin/Data" Link="$(RedBoltOutputRoot)/Data" />
+    <EnsureDirectoryLink Source="$(RedBoltExternalDesktopResourceRoot)/bin/CoreData.$(RedBoltExternalDesktopResourceName)"
+                         Link="$(RedBoltOutputRoot)/CoreData.$(RedBoltExternalDesktopResourceName)"
+                         Condition="Exists('$(RedBoltExternalDesktopResourceRoot)/bin/CoreData.$(RedBoltExternalDesktopResourceName)')" />
+    <EnsureDirectoryLink Source="$(RedBoltExternalDesktopResourceRoot)/bin/Data.$(RedBoltExternalDesktopResourceName)"
+                         Link="$(RedBoltOutputRoot)/Data.$(RedBoltExternalDesktopResourceName)"
+                         Condition="Exists('$(RedBoltExternalDesktopResourceRoot)/bin/Data.$(RedBoltExternalDesktopResourceName)')" />
   </Target>
 
   <Target Name="RedBoltExternalStageDesktopResources"
           AfterTargets="Build"
           DependsOnTargets="RedBoltStageExternalNativeResources"
-      Condition="'$(RedBoltExternalDesktopResourceRoot)' != '' and '$(RedBoltPlatform)' == 'linux-x64' and '$(OutputType)' == 'Exe' and '$(RedBoltProjectBuildEnabled)' == 'true'" />
+      Condition="'$(RedBoltExternalDesktopResourceRoot)' != '' and '$(RedBoltExternalDesktopResourceName)' != '' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and '$(RedBoltProjectBuildEnabled)' == 'true'" />
 </Project>
