@@ -48,7 +48,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all" AdditionalProperties="$(RedBoltSharpCppManagedProperties)"
                       GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
-    <Compile Include="$(MSBuildThisFileDirectory)AndroidSampleProgram.cs" Link="AndroidSampleProgram.cs" />
     <TransformFile Include="$(RedBoltRoot)/src/RedBolt/Sample/Android/Transforms/Metadata.xml" />
     <!-- Engine data shipped as Android assets. -->
     <AndroidAsset Include="$(RedBoltRoot)/bin/CoreData/**/*" Link="CoreData/%(RecursiveDir)%(Filename)%(Extension)" />
