@@ -126,9 +126,12 @@ public sealed class EngineParameters
 
     public bool TouchEmulation { get; set; }
 
-    public string TweakD3D12 { get; set; } = "{\"gpuDescriptorHeapSize_cvb_srv_uav\":32768,\"gpuDescriptorHeapDynamicSize_cvb_srv_uav\":24576}";
+    public string TweakD3D12 { get; set; } = @"{
+            ""gpuDescriptorHeapSize_cvb_srv_uav"":32768,
+            ""gpuDescriptorHeapDynamicSize_cvb_srv_uav"":24576
+        }";
 
-    public string TweakVulkan { get; set; } = "{\"dynamicHeapSize\":33554432}";
+    public string TweakVulkan { get; set; } = @"{""dynamicHeapSize"":33554432}";
 
     public bool ValidateShaders { get; set; }
 
