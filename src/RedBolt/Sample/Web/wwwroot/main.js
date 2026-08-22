@@ -21,6 +21,10 @@ let fullscreenResizeHandler;
 let resizeTimeout = false;
 let totalDependencies = 0;
 let moduleConfig;
+let pointerLockChangeHandler;
+let pointerLockRequested = false;
+let pointerLockRequestInFlight = false;
+let pointerLockReported = false;
 
 function calculateCanvasSize() {
     const style = window.getComputedStyle(canvasElement);
@@ -52,8 +56,37 @@ function visibilityChanged() {
         setTimeout(viewportResizeHandler, 100);
 }
 
-function handleMouseDown() {
+function requestPendingPointerLock(event) {
+    const isRelativeMouseGesture = event?.type === 'mousedown' && event.button === 2;
+    if ((!pointerLockRequested && !isRelativeMouseGesture) || pointerLockRequestInFlight
+        || document.pointerLockElement === canvasElement)
+        return;
+
+    pointerLockRequestInFlight = true;
+    const request = canvasElement.requestPointerLock();
+    if (request instanceof Promise)
+        request.catch(error => console.warn('Pointer lock request failed:', error)).finally(() => {
+            pointerLockRequestInFlight = false;
+        });
+    else
+        pointerLockRequestInFlight = false;
+}
+
+function handleMouseDown(event) {
     window.focus();
+    requestPendingPointerLock(event);
+}
+
+async function handlePointerLockChange() {
+    const active = document.pointerLockElement === canvasElement;
+    if (active && !pointerLockRequested)
+        return;
+
+    pointerLockRequested = false;
+    if (pointerLockChangeHandler && active !== pointerLockReported) {
+        pointerLockReported = active;
+        await pointerLockChangeHandler(active);
+    }
 }
 
 function enterFullscreen(show) {
@@ -132,6 +165,8 @@ document.addEventListener('visibilitychange', visibilityChanged, false);
 document.addEventListener('msvisibilitychange', visibilityChanged, false);
 document.addEventListener('webkitvisibilitychange', visibilityChanged, false);
 document.addEventListener('mousedown', handleMouseDown, false);
+document.addEventListener('mouseup', requestPendingPointerLock, false);
+document.addEventListener('pointerlockchange', handlePointerLockChange, false);
 canvasElement.addEventListener('contextmenu', event => event.preventDefault());
 window.addEventListener('resize', event => {
     if (resizeTimeout)
@@ -170,6 +205,7 @@ const { getAssemblyExports, setModuleImports, runMain } = await dotnet
     .create();
 const coreExports = await getAssemblyExports('RedBolt.Core.dll');
 const applicationExports = coreExports.RedBolt.Engine.Application;
+const inputExports = coreExports.RedBolt.Input.Input;
 const extensionImports = await createModuleImports({ getAssemblyExports });
 
 setModuleImports('main.js', {
@@ -214,6 +250,21 @@ setModuleImports('main.js', {
                 requestAnimationFrame(runFrame);
             };
             requestAnimationFrame(runFrame);
+        }
+    },
+    pointerLock: {
+        initialize: () => {
+            pointerLockChangeHandler = active => inputExports.HandlePointerLockChangeAsync(active);
+        },
+        request: () => {
+            pointerLockRequested = true;
+            if (document.pointerLockElement === canvasElement)
+                handlePointerLockChange().catch(error => console.error(error));
+        },
+        exit: () => {
+            pointerLockRequested = false;
+            if (document.pointerLockElement === canvasElement)
+                document.exitPointerLock();
         }
     },
     ...extensionImports

@@ -8,6 +8,10 @@ using Microsoft.Extensions.Logging;
 using System.Linq;
 using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
+#if REDBOLT_PLATFORM_BROWSER
+using System.Runtime.InteropServices.JavaScript;
+using System.Runtime.Versioning;
+#endif
 using System.Text;
 
 using RedBolt.Bindings.Sdl;
@@ -171,8 +175,12 @@ public struct JoystickState : ICloneable
     public int[] Hats = [];
 }
 
-public class Input : RedObject
+public partial class Input : RedObject
 {
+#if !REDBOLT_PLATFORM_BROWSER
+    private static readonly Vector2i MousePositionOffscreen = new(int.MinValue, int.MinValue);
+#endif
+
     public static void RegisterInputLibrary(Context context)
     {
         context.RegisterAssembly(typeof(Input).Assembly);
@@ -213,6 +221,20 @@ public class Input : RedObject
     private MouseMode _lastMouseMode = MouseMode.Absolute;
     private bool _suppressNextMouseMove;
     private bool _mouseMoveScaled;
+#if !REDBOLT_PLATFORM_BROWSER
+    private bool _mouseMovedLastFrame;
+    private bool _sdlMouseRelative;
+    private Vector2i _lastVisibleMousePosition = MousePositionOffscreen;
+#endif
+    private Vector2i _lastMousePosition;
+#if REDBOLT_PLATFORM_BROWSER
+    private bool _browserPointerLock;
+    private bool _browserExitingPointerLock;
+    private MouseMode _requestedBrowserMouseMode = MouseMode.Invalid;
+    private bool _suppressBrowserMouseModeEvent;
+    private MouseMode _invalidatedBrowserMouseMode = MouseMode.Invalid;
+    private bool _invalidatedSuppressBrowserMouseModeEvent;
+#endif
 
     public bool Enabled { get; set; } = true;
 
@@ -277,11 +299,18 @@ public class Input : RedObject
         _systemToBackbufferScale = Vector2f.One;
         TouchEmulation = parameters.TouchEmulation;
 
+        using var mouseTouchHint = new CString("SDL_MOUSE_TOUCH_EVENTS");
+        using var touchMouseHint = new CString("SDL_TOUCH_MOUSE_EVENTS");
+        using var disabledHint = new CString("0");
+        Sdl.SdlSetHint(mouseTouchHint.Bytes, disabledHint.Bytes);
+        Sdl.SdlSetHint(touchMouseHint.Bytes, disabledHint.Bytes);
+
         if (!Context.Instance.RequireSdl(SdlInitVideo | SdlInitJoystick | SdlInitGameController))
         {
             Context.Instance.ReleaseSdl();
             throw new InvalidOperationException($"Generated SDL initialization failed: {Encoding.UTF8.GetString(Sdl.SdlGetError()).TrimEnd('\0')}");
         }
+        Log.GetLogger().LogInformation("SDL video backend: {VideoBackend}", DecodeUtf8(Sdl.SdlGetCurrentVideoDriver()));
 
         IsInitialized = true;
 
@@ -383,6 +412,9 @@ public class Input : RedObject
             _nativeEvent = new SdlEvent();
             ResetJoysticks();
             IsInitialized = true;
+#if REDBOLT_PLATFORM_BROWSER
+            InitializePointerLock();
+#endif
         }
         catch
         {
@@ -409,6 +441,9 @@ public class Input : RedObject
     {
         SendEvent<InputEvents.InputBeginEvent>();
 
+#if !REDBOLT_PLATFORM_BROWSER
+        _mouseMovedLastFrame = MouseMove != Vector2i.Zero;
+#endif
         ExitRequested = false;
         _keyPress.Clear();
         _scancodePress.Clear();
@@ -604,10 +639,41 @@ public class Input : RedObject
             return;
         }
 
+#if !REDBOLT_PLATFORM_BROWSER
+        if (_suppressNextMouseMove && (MouseMove != Vector2i.Zero || _mouseMovedLastFrame))
+            UnsuppressMouseMove();
+#endif
+
         HandleWrappedMouse();
 
+#if !REDBOLT_PLATFORM_BROWSER
+        var windowFlags = (SdlWindowFlags)Sdl.SdlGetWindowFlags(Window);
+        var hasMouseFocus = (windowFlags & SdlWindowFlags.SdlWindowMouseFocus) != 0;
+        if (!TouchEmulation && !_sdlMouseRelative && !MouseVisible && MouseMode != MouseMode.Free
+            && HasFocus && hasMouseFocus)
+        {
+            var mousePosition = GetMousePosition();
+            MouseMove = mousePosition - _lastMousePosition;
+            _mouseMoveScaled = true;
+            CenterMousePosition();
+            if (MouseMove != Vector2i.Zero && !_suppressNextMouseMove)
+            {
+                var eventData = new InputEvents.MouseMoveEvent
+                {
+                    X = mousePosition.X, Y = mousePosition.Y, DX = MouseMove.X, DY = MouseMove.Y,
+                    Buttons = _mouseButtonDown, Qualifiers = Qualifiers
+                };
+                SendEvent(ref eventData);
+            }
+        }
+        else if (!TouchEmulation && !MouseVisible && _sdlMouseRelative && HasFocus && hasMouseFocus)
+            CenterMousePosition();
+#endif
+
+#if REDBOLT_PLATFORM_BROWSER
         if (_suppressNextMouseMove && MouseMove != Vector2i.Zero)
             UnsuppressMouseMove();
+#endif
 
         SendEvent<InputEvents.InputEndEvent>();
     }
@@ -620,9 +686,10 @@ public class Input : RedObject
         Sdl.SdlGetGlobalMouseState(out var globalX, out var globalY);
         var windowPosition = GetGlobalWindowPosition();
         var backbufferPosition = SystemToBackbuffer(new Vector2i(globalX - windowPosition.X, globalY - windowPosition.Y));
+        var backbufferSize = GetBackbufferSize();
         const int buffer = 5;
-        var width = _backbufferSize.X - buffer * 2;
-        var height = _backbufferSize.Y - buffer * 2;
+        var width = backbufferSize.X - buffer * 2;
+        var height = backbufferSize.Y - buffer * 2;
         if (width <= 0 || height <= 0)
             return;
 
@@ -1010,6 +1077,8 @@ public class Input : RedObject
     {
         if (!IsInitialized || _window is null || _window.IsNull)
             return Vector2i.Zero;
+        if (_explicitWindowRect is { } rect)
+            return new Vector2i(rect.Left, rect.Top);
         Sdl.SdlGetWindowPosition(_window, out var x, out var y);
         return new Vector2i(x, y);
     }
@@ -1018,11 +1087,15 @@ public class Input : RedObject
     {
         if (!IsInitialized || _window is null || _window.IsNull)
             return Vector2i.Zero;
+        if (_explicitWindowRect is { } rect)
+            return new Vector2i(rect.Width, rect.Height);
         Sdl.SdlGetWindowSize(_window, out var width, out var height);
         return new Vector2i(width, height);
     }
 
-    public Vector2i GetBackbufferSize() => _backbufferSize;
+    public Vector2i GetBackbufferSize() => _explicitWindowRect is { } rect
+        ? SystemToBackbuffer(new Vector2i(rect.Width, rect.Height))
+        : _backbufferSize;
 
     public void SetMousePosition(Vector2i position)
     {
@@ -1187,7 +1260,12 @@ public class Input : RedObject
 
     public void CenterMousePosition()
     {
-        SetMousePosition(new Vector2i(_backbufferSize.X / 2, _backbufferSize.Y / 2));
+        var center = new Vector2i(_backbufferSize.X / 2, _backbufferSize.Y / 2);
+        if (GetMousePosition() != center)
+        {
+            SetMousePosition(center);
+            _lastMousePosition = center;
+        }
     }
 
     public bool GetQualifierDown(Qualifier qualifier)
@@ -1211,71 +1289,259 @@ public class Input : RedObject
 
     public void SetMouseMode(MouseMode mode, bool suppressEvent = false)
     {
+#if REDBOLT_PLATFORM_BROWSER
+        SetMouseModeBrowser(mode, suppressEvent);
+        return;
+#else
         var previousMode = MouseMode;
-        var changed = previousMode != mode;
-        if (!changed)
+        if (mode != MouseMode)
         {
-            if (!suppressEvent)
-                _lastMouseMode = mode;
-            return;
-        }
-
-        if (IsInitialized)
-        {
-            SuppressNextMouseMove();
-            MouseMode = mode;
-
-            if (previousMode == MouseMode.Absolute && !MouseVisible)
-                Sdl.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
-            else if (previousMode == MouseMode.Relative)
+            if (IsInitialized)
             {
-                var result = Sdl.SdlSetRelativeMouseMode(SdlBool.SdlFalse);
-                if (result == -1)
+                SuppressNextMouseMove();
+                MouseMode = mode;
+
+                if (previousMode == MouseMode.Absolute && !MouseVisible)
                     Sdl.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
-                SetMouseVisible(_lastMouseVisible, suppressEvent: true);
-            }
-            else if (previousMode == MouseMode.Wrap)
-                Sdl.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
-        }
-
-        if (IsInitialized)
-        {
-            if (mode == MouseMode.Relative)
-            {
-                SetMouseVisible(false, suppressEvent: true);
-                var result = Sdl.SdlSetRelativeMouseMode(SdlBool.SdlTrue);
-                if (result == -1)
-                    Sdl.SdlSetWindowGrab(Window, SdlBool.SdlTrue);
-                SetMouseGrabbed(true, suppressEvent: true);
-            }
-            else
-            {
-                if (mode == MouseMode.Wrap)
+                if (previousMode == MouseMode.Relative)
                 {
-                    SetMouseGrabbed(true, suppressEvent: true);
+                    var result = Sdl.SdlSetRelativeMouseMode(SdlBool.SdlFalse);
+                    _sdlMouseRelative = false;
+                    if (result == -1)
+                        Sdl.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
+                    ResetMouseVisible();
+                }
+                else if (previousMode == MouseMode.Wrap)
+                    Sdl.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
+
+                if (mode == MouseMode.Absolute)
+                {
+                    if (!MouseVisible)
+                        Sdl.SdlSetWindowGrab(Window, SdlBool.SdlTrue);
+                }
+                else if (mode == MouseMode.Relative)
+                {
+                    SetMouseVisible(false, suppressEvent: true);
+                    var result = Sdl.SdlSetRelativeMouseMode(SdlBool.SdlTrue);
+                    _sdlMouseRelative = result == 0;
+                    if (result == -1)
+                        Sdl.SdlSetWindowGrab(Window, SdlBool.SdlTrue);
+                }
+                else if (mode == MouseMode.Wrap)
+                {
+                    SetMouseGrabbed(true, suppressEvent);
                     Sdl.SdlSetWindowGrab(Window, SdlBool.SdlTrue);
                 }
-                else
-                    SetMouseGrabbed(!MouseVisible, suppressEvent: true);
+
+                if (mode != MouseMode.Wrap)
+                    SetMouseGrabbed(!MouseVisible, suppressEvent);
             }
-        }
-        else
-        {
-            MouseMode = mode;
-            if (previousMode == MouseMode.Relative)
-                SetMouseVisible(_lastMouseVisible, suppressEvent: true);
-            else if (mode == MouseMode.Relative)
-                SetMouseVisible(false, suppressEvent: true);
+            else
+                MouseMode = mode;
         }
 
         if (!suppressEvent)
+        {
             _lastMouseMode = mode;
+
+            if (MouseMode != previousMode)
+            {
+                var eventData = new InputEvents.MouseModeChangedEvent { Mode = mode, MouseLocked = IsMouseLocked() };
+                SendEvent(ref eventData);
+            }
+        }
+#endif
+    }
+
+#if REDBOLT_PLATFORM_BROWSER
+    private void SetMouseVisibleBrowser(bool enable, bool suppressEvent)
+    {
+        if (enable != MouseVisible)
+        {
+            if (MouseMode == MouseMode.Absolute)
+            {
+                if (enable)
+                {
+                    MouseVisible = true;
+                    Sdl.SdlShowCursor(1);
+                    ExitPointerLock(suppressEvent);
+                }
+                else if (_browserPointerLock)
+                {
+                    MouseVisible = false;
+                    Sdl.SdlShowCursor(0);
+                }
+                else
+                    RequestPointerLock(MouseMode.Absolute, suppressEvent);
+            }
+            else
+            {
+                MouseVisible = enable;
+                Sdl.SdlShowCursor(enable ? 1 : 0);
+            }
+        }
+
+        if (!suppressEvent)
+            _lastMouseVisible = MouseVisible;
+    }
+
+    private void SetMouseModeBrowser(MouseMode mode, bool suppressEvent)
+    {
+        if (mode != MouseMode)
+            SuppressNextMouseMove();
+
+        var previousMode = MouseMode;
+        MouseMode = mode;
+
+        if (previousMode == MouseMode.Relative)
+            ResetMouseVisible();
+
+        if (mode == MouseMode.Free)
+        {
+            ExitPointerLock(suppressEvent);
+            SetMouseGrabbed(!MouseVisible, suppressEvent);
+        }
+        else if (mode == MouseMode.Absolute)
+        {
+            if (!MouseVisible)
+            {
+                if (_browserPointerLock)
+                    SetMouseVisible(false, suppressEvent);
+                else
+                {
+                    SetMouseVisible(true, suppressEvent);
+                    MouseMode = previousMode;
+                    RequestPointerLock(MouseMode.Absolute, suppressEvent);
+                }
+                SetMouseGrabbed(!MouseVisible, suppressEvent);
+            }
+        }
+        else if (mode == MouseMode.Relative)
+        {
+            if (_browserPointerLock)
+            {
+                SetMouseVisible(false, suppressEvent: true);
+                SetMouseGrabbed(true, suppressEvent);
+            }
+            else
+            {
+                SetMouseGrabbed(false, suppressEvent: true);
+                MouseMode = previousMode;
+                RequestPointerLock(MouseMode.Relative, suppressEvent);
+            }
+        }
+    }
+
+    private void SetMouseModeBrowserFinal(MouseMode mode, bool suppressEvent)
+    {
+        if (!suppressEvent)
+            _lastMouseMode = mode;
+
+        MouseMode = mode;
+        if (mode == MouseMode.Absolute)
+        {
+            SetMouseVisible(!_browserPointerLock, suppressEvent);
+            SetMouseGrabbed(!MouseVisible, suppressEvent);
+        }
+        else if (mode == MouseMode.Relative && _browserPointerLock)
+        {
+            SetMouseGrabbed(true, suppressEvent);
+            SetMouseVisible(false, suppressEvent);
+        }
+        else
+            SetMouseGrabbed(false, suppressEvent);
+
+        SuppressNextMouseMove();
         if (!suppressEvent)
         {
             var eventData = new InputEvents.MouseModeChangedEvent { Mode = mode, MouseLocked = IsMouseLocked() };
             SendEvent(ref eventData);
         }
     }
+
+    private void RequestPointerLock(MouseMode mode, bool suppressEvent)
+    {
+        _requestedBrowserMouseMode = mode;
+        _suppressBrowserMouseModeEvent = suppressEvent;
+        BrowserRequestPointerLock();
+    }
+
+    private void ExitPointerLock(bool suppressEvent)
+    {
+        if (_requestedBrowserMouseMode != MouseMode.Invalid)
+        {
+            _invalidatedBrowserMouseMode = _requestedBrowserMouseMode;
+            _invalidatedSuppressBrowserMouseModeEvent = _suppressBrowserMouseModeEvent;
+        }
+        _requestedBrowserMouseMode = MouseMode.Invalid;
+        _suppressBrowserMouseModeEvent = suppressEvent;
+
+        if (IsMouseLocked())
+        {
+            _browserExitingPointerLock = true;
+            BrowserExitPointerLock();
+        }
+    }
+
+    [SupportedOSPlatform("browser")]
+    [JSExport]
+    internal static Task HandlePointerLockChangeAsync(bool active)
+    {
+        var input = Context.Instance.GetSubsystem<Input>()!;
+        input.HandlePointerLockChange(active);
+        return Task.CompletedTask;
+    }
+
+    private void HandlePointerLockChange(bool active)
+    {
+        var invalid = false;
+        var suppress = _suppressBrowserMouseModeEvent;
+        if (_requestedBrowserMouseMode == MouseMode.Invalid && _invalidatedBrowserMouseMode != MouseMode.Invalid)
+        {
+            invalid = true;
+            _requestedBrowserMouseMode = _invalidatedBrowserMouseMode;
+            _suppressBrowserMouseModeEvent = _invalidatedSuppressBrowserMouseModeEvent;
+            _invalidatedBrowserMouseMode = MouseMode.Invalid;
+            _invalidatedSuppressBrowserMouseModeEvent = false;
+        }
+
+        if (active)
+        {
+            _browserPointerLock = true;
+            SetMouseModeBrowserFinal(_requestedBrowserMouseMode, _suppressBrowserMouseModeEvent);
+        }
+        else
+        {
+            _browserPointerLock = false;
+            if (MouseMode == MouseMode.Relative)
+                SetMouseModeBrowserFinal(MouseMode.Free, _suppressBrowserMouseModeEvent);
+            else if (MouseMode == MouseMode.Absolute)
+                SetMouseModeBrowserFinal(MouseMode.Absolute, _suppressBrowserMouseModeEvent);
+            _browserExitingPointerLock = false;
+        }
+
+        if (invalid && active)
+        {
+            _invalidatedBrowserMouseMode = MouseMode.Invalid;
+            ExitPointerLock(suppress);
+            return;
+        }
+
+        _requestedBrowserMouseMode = MouseMode.Invalid;
+        _suppressBrowserMouseModeEvent = false;
+        _invalidatedBrowserMouseMode = MouseMode.Invalid;
+        _invalidatedSuppressBrowserMouseModeEvent = false;
+    }
+
+    [JSImport("pointerLock.initialize", "main.js")]
+    private static partial void InitializePointerLock();
+
+    [JSImport("pointerLock.request", "main.js")]
+    private static partial void BrowserRequestPointerLock();
+
+    [JSImport("pointerLock.exit", "main.js")]
+    private static partial void BrowserExitPointerLock();
+#endif
 
     public void ResetMouseMode() => SetMouseMode(_lastMouseMode);
 
@@ -1285,6 +1551,10 @@ public class Input : RedObject
 
     public void SetMouseVisible(bool enable, bool suppressEvent = false)
     {
+#if REDBOLT_PLATFORM_BROWSER
+        SetMouseVisibleBrowser(enable, suppressEvent);
+        return;
+#else
         var startMouseVisible = MouseVisible;
         if (TouchEmulation)
             enable = true;
@@ -1301,6 +1571,10 @@ public class Input : RedObject
             {
                 if (!enable && HasFocus)
                 {
+#if !REDBOLT_PLATFORM_BROWSER
+                    if (MouseVisible)
+                        _lastVisibleMousePosition = GetMousePosition();
+#endif
                     if (MouseMode == MouseMode.Absolute)
                         Sdl.SdlSetWindowGrab(Window, SdlBool.SdlTrue);
                     Sdl.SdlShowCursor(0);
@@ -1311,6 +1585,13 @@ public class Input : RedObject
                     SetMouseGrabbed(false, suppressEvent);
                     if (MouseMode == MouseMode.Absolute)
                         Sdl.SdlSetWindowGrab(Window, SdlBool.SdlFalse);
+#if !REDBOLT_PLATFORM_BROWSER
+                    if (_lastVisibleMousePosition != MousePositionOffscreen)
+                    {
+                        SetMousePosition(_lastVisibleMousePosition);
+                        _lastMousePosition = _lastVisibleMousePosition;
+                    }
+#endif
                     Sdl.SdlShowCursor(1);
                     MouseVisible = true;
                 }
@@ -1329,6 +1610,7 @@ public class Input : RedObject
                 }
             }
         }
+#endif
     }
 
     public void ResetMouseVisible() => SetMouseVisible(_lastMouseVisible);
@@ -1363,7 +1645,14 @@ public class Input : RedObject
 
     public bool IsMouseGrabbed() => MouseGrabbed;
 
-    public bool IsMouseLocked() => !((MouseMode == MouseMode.Absolute && MouseVisible) || MouseMode == MouseMode.Free);
+    public bool IsMouseLocked()
+    {
+#if REDBOLT_PLATFORM_BROWSER
+        return _browserPointerLock;
+#else
+        return !((MouseMode == MouseMode.Absolute && MouseVisible) || MouseMode == MouseMode.Free);
+#endif
+    }
 
     public bool GetFocus() => HasFocus;
 
@@ -1413,6 +1702,18 @@ public class Input : RedObject
         MouseMove = Vector2i.Zero;
         _suppressNextMouseMove = false;
         _mouseMoveScaled = false;
+#if !REDBOLT_PLATFORM_BROWSER
+        _mouseMovedLastFrame = false;
+        _sdlMouseRelative = false;
+        _lastVisibleMousePosition = MousePositionOffscreen;
+#endif
+        _lastMousePosition = Vector2i.Zero;
+#if REDBOLT_PLATFORM_BROWSER
+        _browserPointerLock = false;
+        _browserExitingPointerLock = false;
+        _requestedBrowserMouseMode = MouseMode.Invalid;
+        _suppressBrowserMouseModeEvent = false;
+#endif
         MousePosition = Vector2i.Zero;
         Qualifiers = Qualifier.None;
         _backbufferSize = Vector2i.Zero;
@@ -1460,12 +1761,28 @@ public class Input : RedObject
 
     private void HandleMouseMotion(SdlEvent @event)
     {
-        if ((MouseMode == MouseMode.Relative || MouseVisible || MouseMode == MouseMode.Free) && !TouchEmulation)
+#if REDBOLT_PLATFORM_BROWSER
+        var acceptsMouseMotion = MouseVisible || _browserPointerLock || MouseMode == MouseMode.Free;
+#else
+        var acceptsMouseMotion = _sdlMouseRelative || MouseVisible || MouseMode == MouseMode.Free;
+#endif
+        if (acceptsMouseMotion && !TouchEmulation)
         {
-            var windowPosition = GetGlobalWindowPosition();
-            var globalWindowPosition = _explicitWindowRect is { } rect
-                ? new Vector2i(rect.Left, rect.Top)
-                : windowPosition;
+#if REDBOLT_PLATFORM_BROWSER
+            if (_browserExitingPointerLock)
+            {
+                SuppressNextMouseMove();
+                return;
+            }
+#endif
+            var currentWindow = Sdl.SdlGetWindowFromID(@event.MotionWindowID);
+            var windowPosition = Vector2i.Zero;
+            if (!currentWindow.IsNull)
+            {
+                Sdl.SdlGetWindowPosition(currentWindow, out var windowX, out var windowY);
+                windowPosition = new Vector2i(windowX, windowY);
+            }
+            var globalWindowPosition = GetGlobalWindowPosition();
             var localPosition = new Vector2i(
                 windowPosition.X + @event.MotionX - globalWindowPosition.X,
                 windowPosition.Y + @event.MotionY - globalWindowPosition.Y);
@@ -1595,10 +1912,12 @@ public class Input : RedObject
             SendEvent(ref eventData);
         }
         _touches.Clear();
-        _mouseButtonDown = MouseButton.None;
+        Qualifiers = Qualifier.None;
+        SetMouseButton(MouseButton.Left, false);
+        SetMouseButton(MouseButton.Right, false);
+        SetMouseButton(MouseButton.Middle, false);
         _mouseButtonPress = MouseButton.None;
         _mouseButtonClick = MouseButton.None;
-        Qualifiers = Qualifier.None;
         _hatPosition = HatPosition.Center;
         MouseMove = Vector2i.Zero;
         _mouseMoveWheel = 0;
@@ -1828,7 +2147,7 @@ public class Input : RedObject
     {
         _suppressNextMouseMove = false;
         MouseMove = Vector2i.Zero;
-        MousePosition = GetMousePosition();
+        _lastMousePosition = GetMousePosition();
     }
 
     private static MouseButton ToMouseButton(byte button)
