@@ -14,6 +14,7 @@ using RedBolt.Editor.Project;
 using RedBolt.Engine;
 using RedBolt.IO;
 using RedBolt.UserCode.Desktop;
+using RedBolt.Utility;
 
 /// <summary>Project plugin selection and reload controls.</summary>
 public sealed class PluginsPage : SettingsPage
@@ -30,6 +31,11 @@ public sealed class PluginsPage : SettingsPage
         base.Dispose();
     }
 
+    private static readonly CString _refreshLabel = new($"{Icons.ArrowsRotate} Refresh");
+    private static readonly CString _reloadLabel = new($"{Icons.Rotate} Reload");
+    private static readonly CString _applyLabel = new($"{Icons.Check} Apply");
+    private static readonly CString _discardLabel = new($"{Icons.Xmark} Discard");
+
     public override void RenderSettings()
     {
         var project = GetSubsystem<Project>();
@@ -37,13 +43,13 @@ public sealed class PluginsPage : SettingsPage
         if (_revision != manager.PluginListRevision && !_hasChanges)
             Synchronize(manager.LoadedPlugins, manager.PluginListRevision);
 
-        if (ImGui.Button("\uf021 Refresh"u8))
+        if (ImGui.Button(_refreshLabel))
         {
             var engine = GetSubsystem<Engine>();
             ManagedPluginCatalog.FromParameters(engine.Parameters).Populate(manager);
         }
         ImGui.SameLine();
-        if (ImGui.Button("\uf2f1 Reload"u8))
+        if (ImGui.Button(_reloadLabel))
             manager.Reload();
 
         ImGui.Separator();
@@ -66,14 +72,14 @@ public sealed class PluginsPage : SettingsPage
         }
 
         ImGui.BeginDisabled(!_hasChanges);
-        if (ImGui.Button("\uf00c Apply"u8))
+        if (ImGui.Button(_applyLabel))
         {
             manager.SetPluginsLoaded(_loadedPlugins);
             _revision = manager.PluginListRevision;
             _hasChanges = false;
         }
         ImGui.SameLine();
-        if (ImGui.Button("\uf00d Discard"u8))
+        if (ImGui.Button(_discardLabel))
             Synchronize(manager.LoadedPlugins, manager.PluginListRevision);
         ImGui.EndDisabled();
 

@@ -81,6 +81,8 @@ public abstract class BaseResourceFactory : ResourceFactory
         _selectFileNameInput = IsFileNameEditable;
     }
 
+    private static readonly CString _folderLabel = new($"{Icons.Folder} in folder:");
+
     public override unsafe void Render(FileNameChecker checker, ref bool canCommit, ref bool shouldCommit)
     {
         var (isFileNameValid, extraLine) = checker(_baseFilePath, _localFileName);
@@ -108,7 +110,7 @@ public abstract class BaseResourceFactory : ResourceFactory
 
         _newResourcePath = RemoveTrailingSlash(_baseResourcePath);
         _newResourcePathInput.Set(_newResourcePath);
-        ImGui.Text("\uf07b in folder:"u8);
+        ImGui.Text(_folderLabel);
         if (ImGui.InputText(
                 "##ResourcePath"u8,
                 _newResourcePathInput.Pointer,

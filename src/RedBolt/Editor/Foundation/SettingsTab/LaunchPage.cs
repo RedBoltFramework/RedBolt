@@ -14,6 +14,7 @@ using RedBolt.Editor.Project;
 using RedBolt.IO;
 using RedBolt.Plugins;
 using RedBolt.SystemUI;
+using RedBolt.Utility;
 
 /// <summary>Tab that displays project settings.</summary>
 public class LaunchPage : SettingsPage
@@ -39,6 +40,8 @@ public class LaunchPage : SettingsPage
     {
     }
 
+    private static readonly CString _addConfigurationLabel = new($"{Icons.SquarePlus} Add new launch configuration");
+
     public override void RenderSettings()
     {
         if (!_launchManager.TryGetTarget(out var launchManager))
@@ -56,7 +59,7 @@ public class LaunchPage : SettingsPage
             ++index;
         }
 
-        if (ImGui.Button("\uf0fe Add new launch configuration"u8))
+        if (ImGui.Button(_addConfigurationLabel))
         {
             using var config = new LaunchConfiguration();
             config.Name = GetUnusedConfigurationName();
@@ -120,7 +123,7 @@ public class LaunchPage : SettingsPage
     {
         using var guard = new IdScopeGuard(index);
 
-        if (ImGui.Button("\uf2ed"u8))
+        if (ImGui.Button(Icons.TrashCanU8))
             _pendingConfigurationsRemoved.Add(index);
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip("Remove this launch configuration"u8);
@@ -130,7 +133,7 @@ public class LaunchPage : SettingsPage
         _launchManager.TryGetTarget(out var launchManager);
         var isBadName = config.Name.Length == 0
             || !ReferenceEquals(launchManager!.FindConfiguration(config.Name), config);
-        _title.FormatInPlace($"{(isBadName ? "\uf071" : string.Empty)}{config.Name}");
+        _title.FormatInPlace($"{(isBadName ? Icons.TriangleExclamation : string.Empty)}{config.Name}");
         if (!ImGui.CollapsingHeader(
                 _title.ContentBytes, ImGuiTreeNodeFlags.ImGuiTreeNodeFlagsDefaultOpen))
         {

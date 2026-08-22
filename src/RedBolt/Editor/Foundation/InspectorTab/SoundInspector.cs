@@ -17,6 +17,7 @@ using RedBolt.Editor.Core;
 using RedBolt.Editor.Foundation.Shared;
 using RedBolt.Editor.Project;
 using RedBolt.Resource;
+using RedBolt.Utility;
 
 public class SoundInspector : RedObject, InspectorSource
 {
@@ -116,6 +117,9 @@ public class SoundInspector : RedObject, InspectorSource
         }
     }
 
+    private static readonly CString _playLabel = new($"{Icons.Play} Play");
+    private static readonly CString _stopLabel = new($"{Icons.Stop} Stop");
+
     private void RenderSound(Sound sound)
     {
         var info = FormattableString.Invariant(
@@ -128,11 +132,11 @@ public class SoundInspector : RedObject, InspectorSource
 
         ImGui.Text(Encoding.UTF8.GetBytes(info));
 
-        if (ImGui.Button("\uf04b Play"u8))
+        if (ImGui.Button(_playLabel))
             _soundSource.Play(sound);
 
         ImGui.SameLine();
-        if (ImGui.Button("\uf04d Stop"u8))
+        if (ImGui.Button(_stopLabel))
             _soundSource.Stop();
 
         if (_soundSource.IsPlaying() && ReferenceEquals(_soundSource.GetSound(), sound))

@@ -55,6 +55,9 @@ public class AssetPipelineInspector : RedObject, InspectorSource
 
     public bool IsUndoSupported() => true;
 
+    private static readonly CString _updateAssetsLabel = new($"{Icons.ArrowsRotate} Update Assets");
+    private static readonly CString _assetsCookingLabel = new($"{Icons.TriangleExclamation} Assets are cooking now");
+
     public void RenderContent()
     {
         if (_resource is null)
@@ -67,14 +70,14 @@ public class AssetPipelineInspector : RedObject, InspectorSource
         _textBuffer.Set(_resourceName);
         ImGui.TextUnformatted(_textBuffer.ContentBytes);
 
-        if (ImGui.Button("\uf021 Update Assets"u8))
+        if (ImGui.Button(_updateAssetsLabel))
             assetManager.MarkCacheDirty(GetPath(_resource.GetName()));
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip("Re-import all assets potentially affected by this pipeline"u8);
 
         ImGui.SameLine();
         if (assetManager.IsProcessing)
-            ImGui.TextUnformatted("\uf071 Assets are cooking now"u8);
+            ImGui.TextUnformatted(_assetsCookingLabel);
         else
             ImGui.TextUnformatted(ReadOnlySpan<byte>.Empty);
 
@@ -259,11 +262,13 @@ public class AssetPipelineInspector : RedObject, InspectorSource
         }
     }
 
+    private static readonly CString _removeTransformerLabel = new($"{Icons.TrashCan}##RemoveTransformer");
+
     private void RenderInspector(SerializableInspectorWidget inspector)
     {
         using var guard = new IdScopeGuard(RuntimeHelpers.GetHashCode(inspector));
 
-        if (ImGui.Button("\uf2ed##RemoveTransformer"u8))
+        if (ImGui.Button(_removeTransformerLabel))
         {
             foreach (var reference in inspector.GetObjects())
             {
@@ -288,9 +293,11 @@ public class AssetPipelineInspector : RedObject, InspectorSource
         }
     }
 
+    private static readonly CString _addTransformerLabel = new($"{Icons.SquarePlus} Add Transformer");
+
     private void RenderAddTransformer()
     {
-        if (ImGui.Button("\uf0fe Add Transformer"u8))
+        if (ImGui.Button(_addTransformerLabel))
             ImGui.OpenPopup("##AddTransformer"u8);
         if (ImGui.BeginPopup("##AddTransformer"u8))
         {
@@ -304,20 +311,24 @@ public class AssetPipelineInspector : RedObject, InspectorSource
         }
     }
 
+    private static readonly CString _applyLabel = new($"{Icons.SquareCheck} Apply");
+    private static readonly CString _discardLabel = new($"{Icons.SquareXmark} Discard");
+    private static readonly CString _pendingChangesLabel = new($"{Icons.TriangleExclamation} Some changes are not applied yet!");
+
     private void RenderFinalButtons()
     {
         var hasChanges = HasPendingChanges();
 
         ImGui.BeginDisabled(!hasChanges);
-        if (ImGui.Button("\uf14a Apply"u8))
+        if (ImGui.Button(_applyLabel))
             Apply();
         ImGui.SameLine();
-        if (ImGui.Button("\uf2d3 Discard"u8))
+        if (ImGui.Button(_discardLabel))
             Discard();
         ImGui.EndDisabled();
 
         if (hasChanges)
-            ImGui.TextUnformatted("\uf071 Some changes are not applied yet!"u8);
+            ImGui.TextUnformatted(_pendingChangesLabel);
         else
             ImGui.NewLine();
     }

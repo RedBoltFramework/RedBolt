@@ -16,6 +16,7 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Resource;
+using RedBolt.Utility;
 
 public static partial class Widgets
 {
@@ -167,7 +168,7 @@ public static partial class Widgets
 
         if (allowedTypes is { Count: > 0 })
         {
-            if (ImGui.Button("\uf03a"u8))
+            if (ImGui.Button(Icons.ListU8))
                 ImGui.OpenPopup("##SelectType"u8);
             if (ImGui.IsItemHovered())
             {
@@ -255,6 +256,8 @@ public static partial class Widgets
         return EditResourceRefList(ref type, (IList<string>)names, allowedTypes, resizable, elementNames);
     }
 
+    private static readonly CString _editResourceRefListAddLabel = new($"{Icons.SquarePlus} Add item");
+
     private static bool EditResourceRefList(
         ref StringHash type,
         IList<string> names,
@@ -270,7 +273,7 @@ public static partial class Widgets
             using var idGuard = new IdScopeGuard(index);
             if (resizable)
             {
-                if (ImGui.Button("\uf2ed"u8))
+                if (ImGui.Button(Icons.TrashCanU8))
                     pendingRemove = index;
                 ImGui.SameLine();
                 if (ImGui.IsItemHovered())
@@ -299,7 +302,7 @@ public static partial class Widgets
 
         if (resizable)
         {
-            if (ImGui.Button("\uf0fe Add item"u8))
+            if (ImGui.Button(_editResourceRefListAddLabel))
             {
                 names.Add(string.Empty);
                 modified = true;
@@ -328,7 +331,7 @@ public static partial class Widgets
             MathDefs.Round(ImGui.GetFontSize() * 0.5f + style.ItemSpacing.Y));
         var pointSize = ImGui.GetWindowDpiScale();
 
-        if (ImGui.Button("\uf142"u8))
+        if (ImGui.Button(Icons.EllipsisVerticalU8))
             ImGui.OpenPopup("##Action"u8);
         ImGui.SameLine();
 
@@ -400,7 +403,7 @@ public static partial class Widgets
 
     public static bool EditVariantType(ref VariantType value)
     {
-        return EditVariantType(ref value, "\uf03a"u8);
+        return EditVariantType(ref value, Icons.ListU8);
     }
 
     public static bool EditVariantType(ref VariantType value, ReadOnlySpan<byte> button)
@@ -426,6 +429,8 @@ public static partial class Widgets
         return modified;
     }
 
+    private static readonly CString _editVariantVectorAddLabel = new($"{Icons.SquarePlus} Add item");
+
     public static bool EditVariantVector(
         VariantVector value, bool resizable, bool dynamicTypes, StringVector? elementNames = null)
     {
@@ -447,7 +452,7 @@ public static partial class Widgets
 
             if (resizable)
             {
-                if (ImGui.Button("\uf2ed"u8))
+                if (ImGui.Button(Icons.TrashCanU8))
                     pendingRemove = index;
                 ImGui.SameLine();
                 if (ImGui.IsItemHovered())
@@ -480,7 +485,7 @@ public static partial class Widgets
         {
             using var idGuard = new IdScopeGuard("##AddElement"u8);
             var newElementType = VariantType.None;
-            if (EditVariantType(ref newElementType, "\uf0fe Add item"u8))
+            if (EditVariantType(ref newElementType, _editVariantVectorAddLabel))
             {
                 using var newElement = new Variant(newElementType);
                 value.Add(newElement);
@@ -493,6 +498,8 @@ public static partial class Widgets
         return modified;
     }
 
+    private static readonly CString _editStringVectorAddLabel = new($"{Icons.SquarePlus} Add item");
+
     public static bool EditStringVector(StringVector value, bool resizable)
     {
         var modified = false;
@@ -503,7 +510,7 @@ public static partial class Widgets
             using var idGuard = new IdScopeGuard(index);
             if (resizable)
             {
-                if (ImGui.Button("\uf2ed"u8))
+                if (ImGui.Button(Icons.TrashCanU8))
                     pendingRemove = index;
                 ImGui.SameLine();
                 if (ImGui.IsItemHovered())
@@ -530,7 +537,7 @@ public static partial class Widgets
         if (resizable)
         {
             using var idGuard = new IdScopeGuard("##AddElement"u8);
-            var isButtonClicked = ImGui.Button("\uf0fe Add item"u8);
+            var isButtonClicked = ImGui.Button(_editStringVectorAddLabel);
             ImGui.SameLine();
             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
             var isTextCommitted = InputText(
@@ -552,6 +559,8 @@ public static partial class Widgets
         return modified;
     }
 
+    private static readonly CString _editStringVariantMapAddLabel = new();
+
     public static bool EditStringVariantMap(
         StringVariantMap value, bool resizable, bool dynamicTypes, bool dynamicMetadata)
     {
@@ -571,7 +580,7 @@ public static partial class Widgets
 
             if (resizable)
             {
-                if (ImGui.Button("\uf2ed"u8))
+                if (ImGui.Button(Icons.TrashCanU8))
                     pendingRemove = key;
                 ImGui.SameLine();
                 if (ImGui.IsItemHovered())
@@ -618,8 +627,9 @@ public static partial class Widgets
         if (resizable)
         {
             using var idGuard = new IdScopeGuard("##AddElement"u8);
-            TooltipBuffer.FormatInPlace($"\uf0fe Add new {Variant.GetTypeName(NewMapElementType)}");
-            var isButtonClicked = ImGui.Button(TooltipBuffer.ContentBytes);
+            _editStringVariantMapAddLabel.FormatInPlace(
+                $"{Icons.SquarePlus} Add new {Variant.GetTypeName(NewMapElementType)}");
+            var isButtonClicked = ImGui.Button(_editStringVariantMapAddLabel);
             if (ImGui.IsItemHovered())
                 ImGui.SetTooltip("Add new item to the map"u8);
             ImGui.SameLine();

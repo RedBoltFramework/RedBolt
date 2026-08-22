@@ -8,7 +8,7 @@ index 125cd38..236c576 100644
 +namespace RedBolt.Utility
 @@ -6 +7 @@ namespace IconFonts
 -    public class FontAwesome6
-+    public class Icons
++    public partial class Icons
 @@ -8,2 +9,2 @@ namespace IconFonts
 -        public const string FontIconFileName = "fa-regular-400.ttf";
 -        public const string FontIconFileName = "fa-solid-900.ttf";

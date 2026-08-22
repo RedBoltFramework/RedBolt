@@ -322,9 +322,11 @@ public class NodeComponentInspector : RedObject, InspectorSource
         }
     }
 
+    private static readonly CString _addComponentLabel = new($"{Icons.SquarePlus} Add Component");
+
     private void RenderAddComponent()
     {
-        if (ImGui.Button("\uf0fe Add Component"u8))
+        if (ImGui.Button(_addComponentLabel))
             ImGui.OpenPopup("##AddComponent"u8);
         if (ImGui.BeginPopup("##AddComponent"u8))
         {

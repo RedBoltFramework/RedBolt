@@ -12,6 +12,7 @@ using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Input;
 using RedBolt.Math;
+using RedBolt.Utility;
 
 /// <summary>Request to gracefully close resource(s) with prompt.</summary>
 public class CloseResourceRequest : ICloneable
@@ -65,6 +66,10 @@ public class CloseDialog : RedObject
     /// <summary>Return whether the dialog is currently open or will be open on this frame.</summary>
     public bool IsActive => _isOpen || _requests.Count != 0;
 
+    private static readonly CString _saveAndCloseLabel = new($"{Icons.FloppyDisk} Save & Close");
+    private static readonly CString _discardAndCloseLabel = new($"{Icons.TriangleExclamation} Discard & Close");
+    private static readonly CString _cancelLabel = new($"{Icons.Ban} Cancel");
+
     /// <summary>Update and render contents if necessary.</summary>
     public void Render()
     {
@@ -98,7 +103,7 @@ public class CloseDialog : RedObject
             ImGui.EndChild();
 
             ImGui.BeginDisabled(!_saveEnabled);
-            if (ImGui.Button("\uf0c7 Save & Close"u8))
+            if (ImGui.Button(_saveAndCloseLabel))
             {
                 System.Diagnostics.Debug.Assert(_saveEnabled);
 
@@ -109,7 +114,7 @@ public class CloseDialog : RedObject
 
             ImGui.SameLine();
 
-            if (ImGui.Button("\uf071 Discard & Close"u8))
+            if (ImGui.Button(_discardAndCloseLabel))
             {
                 CloseDialogDiscard();
                 ImGui.CloseCurrentPopup();
@@ -119,7 +124,7 @@ public class CloseDialog : RedObject
 
             var escapeKey = ImGui.ImGuiImplSDL2KeyEventToImGuiKey(
                 (int)Key.Escape, (int)Input.GetScancodeFromKey(Key.Escape));
-            if (ImGui.Button("\uf05e Cancel"u8) || ImGui.IsKeyPressed(escapeKey))
+            if (ImGui.Button(_cancelLabel) || ImGui.IsKeyPressed(escapeKey))
             {
                 CloseDialogCancel();
                 ImGui.CloseCurrentPopup();

@@ -5,6 +5,7 @@
 namespace RedBolt.Editor.Foundation;
 
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Container;
 using RedBolt.Editor.Core;
 using RedBolt.Editor.Foundation.Shared;
 using RedBolt.Editor.Project;
@@ -122,25 +123,29 @@ public class SceneHierarchy : SceneViewAddon, HierarchyBrowserSource
             ApplyHotkeys(hotkeyManager);
     }
 
+    private static readonly CString _showTemporaryLabel = new($"{Icons.Clock}##ShowTemporary");
+    private static readonly CString _showComponentsLabel = new($"{Icons.DiagramProject}##ShowComponents");
+    private static readonly CString _filterByNameLabel = new($"{Icons.MagnifyingGlass}##FilterByName");
+
     private void RenderToolbar(SceneViewPage page)
     {
         _ = page;
         var settings = _widget.GetSettings();
 
         if (Widgets.ToolbarButton(
-                "\uf017##ShowTemporary"u8, "Show Temporary Nodes & Components"u8,
+                _showTemporaryLabel, "Show Temporary Nodes & Components"u8,
                 settings.ShowTemporary))
         {
             settings.ShowTemporary = !settings.ShowTemporary;
         }
         if (Widgets.ToolbarButton(
-                "\uf542##ShowComponents"u8, "Show Components"u8, settings.ShowComponents))
+                _showComponentsLabel, "Show Components"u8, settings.ShowComponents))
         {
             settings.ShowComponents = !settings.ShowComponents;
         }
 
         ImGui.BeginDisabled();
-        Widgets.ToolbarButton("\uf002##FilterByName"u8);
+        Widgets.ToolbarButton(_filterByNameLabel);
         ImGui.EndDisabled();
 
         Widgets.InputText("##Rename"u8, ref settings.FilterByName);

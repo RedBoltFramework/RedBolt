@@ -9,6 +9,7 @@ using RedBolt.Container;
 using RedBolt.Editor.Core;
 using RedBolt.Editor.Project;
 using RedBolt.Math;
+using RedBolt.Utility;
 
 /// <summary>Tab that displays project settings.</summary>
 public class SettingsTab : EditorTab
@@ -158,6 +159,8 @@ public class SettingsTab : EditorTab
         }
     }
 
+    private static readonly CString _revertLabel = new($"{Icons.ClockRotateLeft}##Revert");
+
     private void RenderPage(string section, SettingsPage page)
     {
         _label.Set(page.UniqueName);
@@ -166,7 +169,7 @@ public class SettingsTab : EditorTab
         {
             if (page.CanResetToDefault)
             {
-                if (ImGui.Button("\uf1da##Revert"u8))
+                if (ImGui.Button(_revertLabel))
                     page.ResetToDefaults();
                 if (ImGui.IsItemHovered())
                     ImGui.SetTooltip("Revert settings to default values"u8);

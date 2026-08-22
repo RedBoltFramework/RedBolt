@@ -13,6 +13,7 @@ using RedBolt.Bindings.DearImGui;
 using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Scene;
+using RedBolt.Utility;
 
 /// <summary>SystemUI widget used to edit materials.</summary>
 public class NodeInspectorWidget : RedObject
@@ -82,6 +83,8 @@ public class NodeInspectorWidget : RedObject
         _nodeInspector.RenderTitle();
     }
 
+    private static readonly CString _removeComponentLabel = new($"{Icons.TrashCan}##RemoveComponent");
+
     public void RenderContent()
     {
         for (var index = _nodes.Count - 1; index >= 0; --index)
@@ -141,7 +144,7 @@ public class NodeInspectorWidget : RedObject
 
             using var guard = new IdScopeGuard(RuntimeHelpers.GetHashCode(firstComponent));
 
-            if (ImGui.Button("\uf2ed##RemoveComponent"u8))
+            if (ImGui.Button(_removeComponentLabel))
             {
                 foreach (var reference in componentInspector.GetObjects())
                 {

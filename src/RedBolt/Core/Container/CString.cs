@@ -228,6 +228,8 @@ public sealed class CString : IEquatable<CString>, IEquatable<string?>, ICloneab
 
     public static implicit operator CString(string value) => new(value);
 
+    public static implicit operator ReadOnlySpan<byte>(CString value) => value.ContentBytes;
+
     public static bool operator ==(CString? left, CString? right)
     {
         return ReferenceEquals(left, right) || (left is not null && right is not null && left.Equals(right));

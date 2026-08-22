@@ -1041,6 +1041,10 @@ public class SceneViewTab : ResourceEditorTab
         }
     }
 
+    private static readonly CString _rewindToolbarLabel = new($"{Icons.CircleChevronLeft}##RewindSceneSimulation");
+    private static readonly CString _pauseToolbarLabel = new($"{Icons.CirclePause}##ToggleSceneSimulation");
+    private static readonly CString _playToolbarLabel = new($"{Icons.CirclePlay}##ToggleSceneSimulation");
+
     public override void RenderToolbar()
     {
         var activePage = GetActivePage();
@@ -1048,7 +1052,7 @@ public class SceneViewTab : ResourceEditorTab
         {
             var canRewind = activePage is not null && activePage.IsSimulationActive();
             ImGui.BeginDisabled(!canRewind);
-            if (Widgets.ToolbarButton("\uf137##RewindSceneSimulation"u8, "Rewind Scene Simulation"u8))
+            if (Widgets.ToolbarButton(_rewindToolbarLabel, "Rewind Scene Simulation"u8))
                 RewindSimulation();
             ImGui.EndDisabled();
         }
@@ -1056,9 +1060,9 @@ public class SceneViewTab : ResourceEditorTab
         {
             var isStarted = activePage is not null && activePage.IsSimulationActive();
             var isUpdating = activePage is not null && activePage.Scene.IsUpdateEnabled();
-            ReadOnlySpan<byte> label = isUpdating
-                ? "\uf28b##ToggleSceneSimulation"u8
-                : "\uf144##ToggleSceneSimulation"u8;
+            var label = isUpdating
+                ? _pauseToolbarLabel
+                : _playToolbarLabel;
             ReadOnlySpan<byte> tooltip = isUpdating
                 ? "Pause Scene Simulation"u8
                 : isStarted ? "Resume Scene Simulation"u8 : "Start Scene Simulation"u8;
@@ -1087,6 +1091,11 @@ public class SceneViewTab : ResourceEditorTab
             addon.ApplyHotkeys(hotkeyManager);
     }
 
+    private static readonly CString _rewindMenuLabel = new($"{Icons.CircleChevronLeft} Rewind Scene Simulation");
+    private static readonly CString _resumeMenuLabel = new($"{Icons.CirclePlay} Resume Scene Simulation");
+    private static readonly CString _startMenuLabel = new($"{Icons.CirclePlay} Start Scene Simulation");
+    private static readonly CString _pauseMenuLabel = new($"{Icons.CirclePause} Pause Scene Simulation");
+
     public override void RenderContextMenuItems()
     {
         base.RenderContextMenuItems();
@@ -1097,7 +1106,7 @@ public class SceneViewTab : ResourceEditorTab
 
             SetHotkeyLabel(HotkeyRewindSimulation);
             if (ImGui.MenuItem(
-                    "\uf137 Rewind Scene Simulation"u8,
+                    _rewindMenuLabel,
                     _hotkeyLabel.ContentBytes,
                     false,
                     activePage.IsSimulationActive()))
@@ -1105,11 +1114,11 @@ public class SceneViewTab : ResourceEditorTab
                 RewindSimulation();
             }
 
-            ReadOnlySpan<byte> pauseTitle = !activePage.Scene.IsUpdateEnabled()
+            var pauseTitle = !activePage.Scene.IsUpdateEnabled()
                 ? activePage.IsSimulationActive()
-                    ? "\uf144 Resume Scene Simulation"u8
-                    : "\uf144 Start Scene Simulation"u8
-                : "\uf28b Pause Scene Simulation"u8;
+                    ? _resumeMenuLabel
+                    : _startMenuLabel
+                : _pauseMenuLabel;
             SetHotkeyLabel(HotkeyTogglePaused);
             if (ImGui.MenuItem(pauseTitle, _hotkeyLabel.ContentBytes))
                 ToggleSimulationPaused();

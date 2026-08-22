@@ -21,6 +21,7 @@ using RedBolt.RenderPipeline;
 using RedBolt.Resource;
 using RedBolt.Scene;
 using RedBolt.SystemUI;
+using RedBolt.Utility;
 
 /// <summary>Scene hierarchy provider for hierarchy browser tab.</summary>
 public class RenderPathInspector : RedObject, InspectorSource
@@ -246,11 +247,15 @@ public class RenderPathInspector : RedObject, InspectorSource
         }
     }
 
+    private static readonly CString _removePassLabel = new($"{Icons.TrashCan}##RemovePass");
+    private static readonly CString _movePassUpLabel = new($"{Icons.ArrowUp}##MovePassUp");
+    private static readonly CString _movePassDownLabel = new($"{Icons.ArrowDown}##MovePassDown");
+
     private void RenderInspector(int index, SerializableInspectorWidget inspector)
     {
         using var guard = new IdScopeGuard(RuntimeHelpers.GetHashCode(inspector));
 
-        if (ImGui.Button("\uf2ed##RemovePass"u8))
+        if (ImGui.Button(_removePassLabel))
         {
             foreach (var reference in inspector.GetObjects())
             {
@@ -267,7 +272,7 @@ public class RenderPathInspector : RedObject, InspectorSource
         ImGui.SameLine();
 
         ImGui.BeginDisabled(index == 0);
-        if (ImGui.Button("\uf062##MovePassUp"u8))
+        if (ImGui.Button(_movePassUpLabel))
         {
             foreach (var reference in inspector.GetObjects())
             {
@@ -285,7 +290,7 @@ public class RenderPathInspector : RedObject, InspectorSource
         ImGui.SameLine();
 
         ImGui.BeginDisabled(index + 1 == _inspectorWidgets.Count);
-        if (ImGui.Button("\uf063##MovePassDown"u8))
+        if (ImGui.Button(_movePassDownLabel))
         {
             foreach (var reference in inspector.GetObjects())
             {
@@ -314,9 +319,11 @@ public class RenderPathInspector : RedObject, InspectorSource
             inspector.RenderContent();
     }
 
+    private static readonly CString _addPassLabel = new($"{Icons.SquarePlus} Add Pass");
+
     private void RenderAddPass()
     {
-        if (ImGui.Button("\uf0fe Add Pass"u8))
+        if (ImGui.Button(_addPassLabel))
             ImGui.OpenPopup("##AddPass"u8);
         if (ImGui.BeginPopup("##AddPass"u8))
         {

@@ -7,10 +7,12 @@ namespace RedBolt.Editor.Foundation;
 using System;
 
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Container;
 using RedBolt.Editor.Core;
 using RedBolt.Graphics;
 using RedBolt.IO;
 using RedBolt.SystemUI;
+using RedBolt.Utility;
 
 /// <summary>Add-on to manage debug HUD in scene.</summary>
 public class SceneDebugInfo : SceneViewAddon
@@ -79,11 +81,14 @@ public class SceneDebugInfo : SceneViewAddon
 
     public override bool RenderTabContextMenu() => true;
 
+    private static readonly CString _debugHudLabel = new($"{Icons.Bug}##SceneViewDebugHud");
+    private static readonly CString _wireframeLabel = new($"{Icons.BorderAll}##ToggleWireframe");
+
     public override bool RenderToolbar()
     {
-        if (Widgets.ToolbarButton("\uf188##SceneViewDebugHud"u8, "Toggle Debug HUD"u8, _hudVisible))
+        if (Widgets.ToolbarButton(_debugHudLabel, "Toggle Debug HUD"u8, _hudVisible))
             ToggleHud();
-        if (Widgets.ToolbarButton("\uf84c##ToggleWireframe"u8, "Toggle Wireframe"u8, _drawWireframe))
+        if (Widgets.ToolbarButton(_wireframeLabel, "Toggle Wireframe"u8, _drawWireframe))
             _drawWireframe = !_drawWireframe;
 
         Widgets.ToolbarSeparator();

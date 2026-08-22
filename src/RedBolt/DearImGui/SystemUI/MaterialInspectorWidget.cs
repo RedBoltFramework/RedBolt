@@ -112,6 +112,8 @@ public class MaterialInspectorWidget : RedObject
         ImGui.TextUnformatted(_textBuffer.ContentBytes);
     }
 
+    private static readonly CString _forceSaveLabel = new($"{Icons.FloppyDisk} Force Save");
+
     public void RenderContent()
     {
         _pendingSetTechniques = false;
@@ -133,7 +135,7 @@ public class MaterialInspectorWidget : RedObject
         RenderShaderParameters();
 
         ImGui.Separator();
-        var forceSave = ImGui.Button("\uf0c7 Force Save"u8);
+        var forceSave = ImGui.Button(_forceSaveLabel);
         if (ImGui.IsItemHovered())
         {
             ImGui.SetTooltip(
@@ -481,6 +483,10 @@ public class MaterialInspectorWidget : RedObject
     // TODO: port UpdateCachedTechniques when its rbfx implementation exists.
     // void UpdateCachedTechniques();
 
+    private static readonly CString _toggleSkyboxLabel = new($"{Icons.Cloud}##ToggleSkybox");
+    private static readonly CString _toggleLightLabel = new($"{Icons.Lightbulb}##ToggleLight");
+    private static readonly CString _resetCameraLabel = new($"{Icons.ArrowsLeftRightToLine}##ResetCamera");
+
     private void RenderPreview()
     {
         if (_materials.Count != 1)
@@ -538,19 +544,19 @@ public class MaterialInspectorWidget : RedObject
         using (var style = ImGui.GetStyle())
             ImGui.SetCursorPos(imageBegin + style.FramePadding);
 
-        if (Widgets.ToolbarButton("\uf0c2##ToggleSkybox"u8, "Toggle Skybox"u8, _previewSkyboxEnabled))
+        if (Widgets.ToolbarButton(_toggleSkyboxLabel, "Toggle Skybox"u8, _previewSkyboxEnabled))
         {
             _previewSkyboxEnabled = !_previewSkyboxEnabled;
             previewSettingsDirty = true;
         }
 
-        if (Widgets.ToolbarButton("\uf0eb##ToggleLight"u8, "Toggle Light"u8, _previewLightEnabled))
+        if (Widgets.ToolbarButton(_toggleLightLabel, "Toggle Light"u8, _previewLightEnabled))
         {
             _previewLightEnabled = !_previewLightEnabled;
             previewSettingsDirty = true;
         }
 
-        if (Widgets.ToolbarButton("\ue4ba##ResetCamera"u8, "Reset Camera"u8))
+        if (Widgets.ToolbarButton(_resetCameraLabel, "Reset Camera"u8))
         {
             cameraNode.SetPosition(DefaultPreviewCameraPosition);
             moveAndOrbit.SetYaw(0.0f);
@@ -604,7 +610,7 @@ public class MaterialInspectorWidget : RedObject
         if (isUndefined)
         {
             ImGui.SameLine();
-            if (ImGui.Button("\uf387"u8))
+            if (ImGui.Button(Icons.CodeMergeU8))
                 _pendingSetTechniques = true;
             if (ImGui.IsItemHovered())
                 ImGui.SetTooltip("Override all materials' techniques and enable editing"u8);
@@ -628,7 +634,7 @@ public class MaterialInspectorWidget : RedObject
             if (EditTechniqueInEntry(ref entry, availableWidth))
                 modified = true;
 
-            if (ImGui.Button("\uf2ed"u8))
+            if (ImGui.Button(Icons.TrashCanU8))
                 pendingDelete = entryIndex;
             if (ImGui.IsItemHovered())
                 ImGui.SetTooltip("Remove technique from material(s)"u8);
@@ -653,7 +659,7 @@ public class MaterialInspectorWidget : RedObject
         }
 
         // Add new entry
-        if (_defaultTechnique is not null && ImGui.Button("\uf0fe"u8))
+        if (_defaultTechnique is not null && ImGui.Button(Icons.SquarePlusU8))
         {
             var entry = new TechniqueEntry(_defaultTechnique.Technique);
             _techniqueEntries.Add(entry);
@@ -1027,7 +1033,7 @@ public class MaterialInspectorWidget : RedObject
             ImGui.SetTooltip(_tooltipBuffer.ContentBytes);
         }
 
-        if (ImGui.Button("\uf2ed"u8))
+        if (ImGui.Button(Icons.TrashCanU8))
             _pendingSetTextures.Add((description.Name, null));
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip("Remove texture from this unit"u8);
@@ -1106,7 +1112,7 @@ public class MaterialInspectorWidget : RedObject
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip("Custom texture unit"u8);
 
-        if (ImGui.Button("\uf2ed"u8))
+        if (ImGui.Button(Icons.TrashCanU8))
             _pendingSetTextures.Add((unit, null));
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip("Remove texture and unit"u8);
@@ -1128,6 +1134,9 @@ public class MaterialInspectorWidget : RedObject
         }
     }
 
+    private static readonly CString _addTextureLabel = new($"{Icons.SquarePlus} Add new texture");
+    private static readonly CString _textureNameUsedLabel = new($"{Icons.TriangleExclamation} This texture unit name is already used");
+
     private void RenderAddCustomTextureUnit(IReadOnlyCollection<string> customTextureUnits)
     {
         using var guardAddElement = new IdScopeGuard("##AddElement"u8);
@@ -1135,7 +1144,7 @@ public class MaterialInspectorWidget : RedObject
         var cache = GetSubsystem<ResourceCache>();
         var defaultTexture = cache.Get<Texture2D>("Textures/Black.png");
 
-        var isButtonClicked = ImGui.Button("\uf0fe Add new texture"u8);
+        var isButtonClicked = ImGui.Button(_addTextureLabel);
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip("Add new item to the map"u8);
         ImGui.SameLine();
@@ -1156,7 +1165,7 @@ public class MaterialInspectorWidget : RedObject
             ImGui.SetTooltip("Item name"u8);
 
         if (!isNameAvailable)
-            ImGui.Text("\uf071 This texture unit name is already used"u8);
+            ImGui.Text(_textureNameUsedLabel);
     }
 
     private void RenderShaderParameters()
@@ -1230,13 +1239,13 @@ public class MaterialInspectorWidget : RedObject
                 _textBuffer.ContentBytes,
                 Widgets.GetItemLabelColor(isUndefined, IsDefaultValue(name, in value)));
 
-            if (ImGui.Button("\uf2ed"u8))
+            if (ImGui.Button(Icons.TrashCanU8))
                 _pendingSetShaderParameters.Add(new PendingSetShaderParameter(name, default));
             if (ImGui.IsItemHovered())
                 ImGui.SetTooltip("Remove this parameter"u8);
             ImGui.SameLine();
 
-            if (ImGui.Button("\uf03a"u8))
+            if (ImGui.Button(Icons.ListU8))
                 ImGui.OpenPopup("##ShaderParameterPopup"u8);
             if (ImGui.IsItemHovered())
             {
@@ -1331,7 +1340,7 @@ public class MaterialInspectorWidget : RedObject
         var canAddParameter = _newParameterName.Length != 0
             && !_shaderParameterNames.Contains(_newParameterName);
         ImGui.BeginDisabled(!canAddParameter);
-        if (ImGui.Button("\uf0fe"u8))
+        if (ImGui.Button(Icons.SquarePlusU8))
             addNewParameter = true;
         if (ImGui.IsItemHovered())
         {

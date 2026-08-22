@@ -596,10 +596,12 @@ public class Project : RedObject
         }
     }
 
+    private static readonly CString _saveToolbarLabel = new($"{Icons.FloppyDisk}##SaveProject");
+
     /// <summary>Update and render toolbar.</summary>
     public void RenderToolbar()
     {
-        if (Widgets.ToolbarButton("\uf0c7##SaveProject"u8, "Save Project"u8))
+        if (Widgets.ToolbarButton(_saveToolbarLabel, "Save Project"u8))
             Save();
         OnRenderProjectToolbar?.Invoke(this);
 
@@ -612,11 +614,13 @@ public class Project : RedObject
         RenderSavePendingToolbar();
     }
 
+    private static readonly CString _saveMenuLabel = new($"{Icons.FloppyDisk} Save Project");
+
     /// <summary>Update and render project menu.</summary>
     public void RenderProjectMenu()
     {
         _saveHotkeyLabel.Set(_hotkeyManager.GetHotkeyLabel(HotkeySaveProject));
-        if (ImGui.MenuItem("\uf0c7 Save Project"u8, _saveHotkeyLabel.ContentBytes))
+        if (ImGui.MenuItem(_saveMenuLabel, _saveHotkeyLabel))
             Save();
         OnRenderProjectMenu?.Invoke(this);
     }
@@ -1294,13 +1298,15 @@ public class Project : RedObject
         ImGui.ProgressBar(progress, new Vector2f(200.0f, 0.0f), _assetsProgressText.ContentBytes);
     }
 
+    private static readonly CString _reloadPluginsLabel = new($"{Icons.ArrowsRotate}##ReloadPlugins");
+
     private void RenderPluginReloadToolbar()
     {
         if (!_pluginManager.IsReloadPending && !_pluginManager.EnumerateAvailablePlugins().Any())
             return;
 
         Widgets.ToolbarSeparator();
-        if (Widgets.ToolbarButton("\uf021##ReloadPlugins"u8, "Reload plugins"u8))
+        if (Widgets.ToolbarButton(_reloadPluginsLabel, "Reload plugins"u8))
             _pluginManager.Reload();
         if (_pluginManager.GetReloadBlockedReason() is { } reason)
         {
@@ -1310,13 +1316,15 @@ public class Project : RedObject
         }
     }
 
+    private static readonly CString _saveInProgressLabel = new($"{Icons.FloppyDisk} Save in progress...");
+
     private void RenderSavePendingToolbar()
     {
         if (_delayedFileSaves.Count == 0)
             return;
 
         Widgets.ToolbarSeparator();
-        ImGui.Text("\uf0c7 Save in progress..."u8);
+        ImGui.Text(_saveInProgressLabel);
     }
 
     private static void EnsureDirectory(string path)

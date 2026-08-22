@@ -14,6 +14,7 @@ using RedBolt.Container;
 using RedBolt.Editor.Core;
 using RedBolt.Input;
 using RedBolt.SystemUI;
+using RedBolt.Utility;
 
 /// <summary>Base class for editor tab that represents engine resource.</summary>
 public abstract class ResourceEditorTab : EditorTab
@@ -91,7 +92,7 @@ public abstract class ResourceEditorTab : EditorTab
                 ImGui.PushID(data.ResourceName.ContentBytes);
 
                 var selected = string.Equals(resourceName, _activeResourceName, StringComparison.Ordinal);
-                if (ImGui.SmallButton("\uf00d"u8))
+                if (ImGui.SmallButton(Icons.XmarkU8))
                     closeResourcePending = resourceName;
                 ImGui.SameLine();
 

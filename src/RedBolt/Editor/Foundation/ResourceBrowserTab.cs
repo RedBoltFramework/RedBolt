@@ -467,7 +467,7 @@ public class ResourceBrowserTab : EditorTab
     private void InitializeDefaultFactories()
     {
         AddFactory(new SimpleResourceFactory(
-            int.MinValue, "\uf07b Folder", "New Folder",
+            int.MinValue, $"{Icons.Folder} Folder", "New Folder",
             static (fileName, _) => Directory.CreateDirectory(fileName)));
     }
 
@@ -629,6 +629,8 @@ public class ResourceBrowserTab : EditorTab
         }
     }
 
+    private static readonly CString _directoryUpLabel = new($"{Icons.FolderOpen} [..]");
+
     private void RenderDirectoryUp(FileSystemEntry entry)
     {
         using var guard = new IdScopeGuard(".."u8);
@@ -638,7 +640,7 @@ public class ResourceBrowserTab : EditorTab
             | ImGuiTreeNodeFlags.ImGuiTreeNodeFlagsSpanFullWidth
             | ImGuiTreeNodeFlags.ImGuiTreeNodeFlagsLeaf;
 
-        var isOpen = ImGui.TreeNodeEx("\uf07c [..]"u8, flags);
+        var isOpen = ImGui.TreeNodeEx(_directoryUpLabel, flags);
 
         if (ImGui.IsItemClicked(ImGuiMouseButton.ImGuiMouseButtonLeft)
             && ImGui.IsMouseDoubleClicked(ImGuiMouseButton.ImGuiMouseButtonLeft))
@@ -870,10 +872,12 @@ public class ResourceBrowserTab : EditorTab
         RenderEntryContextMenu(entry);
     }
 
+    private static readonly CString _createButtonLabel = new($"{Icons.SquarePlus} Create...");
+
     private void RenderCreateButton(FileSystemEntry entry)
     {
         ImGui.Indent();
-        if (ImGui.Button("\uf0fe Create..."u8))
+        if (ImGui.Button(_createButtonLabel))
             ImGui.OpenPopup("##CreateButtonPopup"u8);
         if (ImGui.IsItemHovered())
             ImGui.SetTooltip("Create new file or directory"u8);
@@ -1010,6 +1014,9 @@ public class ResourceBrowserTab : EditorTab
         return result;
     }
 
+    private static readonly CString _renameLabel = new($"{Icons.Check} Rename");
+    private static readonly CString _renameCancelLabel = new($"{Icons.Ban} Cancel");
+
     private void RenderRenameDialog()
     {
         var entry = GetEntry(_rename.EntryRef);
@@ -1042,7 +1049,7 @@ public class ResourceBrowserTab : EditorTab
                 | ImGuiInputTextFlags.ImGuiInputTextFlagsEnterReturnsTrue);
 
         ImGui.BeginDisabled(!isEnabled);
-        if (ImGui.Button("\uf00c Rename"u8) || (isEnabled && done))
+        if (ImGui.Button(_renameLabel) || (isEnabled && done))
         {
             if (_rename.InputBuffer != entry.LocalName)
                 RenameEntry(entry, _rename.InputBuffer);
@@ -1052,11 +1059,14 @@ public class ResourceBrowserTab : EditorTab
 
         ImGui.SameLine();
 
-        if (ImGui.Button("\uf05e Cancel"u8) || IsKeyPressed(Key.Escape))
+        if (ImGui.Button(_renameCancelLabel) || IsKeyPressed(Key.Escape))
             ImGui.CloseCurrentPopup();
 
         ImGui.EndPopup();
     }
+
+    private static readonly CString _deleteLabel = new($"{Icons.Check} Delete");
+    private static readonly CString _deleteCancelLabel = new($"{Icons.Ban} Cancel");
 
     private void RenderDeleteDialog()
     {
@@ -1101,11 +1111,12 @@ public class ResourceBrowserTab : EditorTab
             }
             _dialogBuilder.Append('\n');
         }
-        _dialogBuilder.Append("\uf071 This action cannot be undone!");
+        _dialogBuilder.Append(Icons.TriangleExclamation);
+        _dialogBuilder.Append(" This action cannot be undone!");
         _dialogText.Set(_dialogBuilder.ToString());
         ImGui.TextUnformatted(_dialogText.ContentBytes);
 
-        if (ImGui.Button("\uf00c Delete"u8) || IsKeyPressed(Key.Return))
+        if (ImGui.Button(_deleteLabel) || IsKeyPressed(Key.Return))
         {
             foreach (var entry in entries)
             {
@@ -1117,11 +1128,14 @@ public class ResourceBrowserTab : EditorTab
 
         ImGui.SameLine();
 
-        if (ImGui.Button("\uf05e Cancel"u8) || IsKeyPressed(Key.Escape))
+        if (ImGui.Button(_deleteCancelLabel) || IsKeyPressed(Key.Escape))
             ImGui.CloseCurrentPopup();
 
         ImGui.EndPopup();
     }
+
+    private static readonly CString _createLabel = new($"{Icons.Check} Create");
+    private static readonly CString _createCancelLabel = new($"{Icons.Ban} Cancel");
 
     private void RenderCreateDialog()
     {
@@ -1156,7 +1170,7 @@ public class ResourceBrowserTab : EditorTab
         _create.Factory.Render(_checkFileNameCallback, ref canCommit, ref shouldCommit);
 
         ImGui.BeginDisabled(!canCommit);
-        if (ImGui.Button("\uf00c Create"u8) || (canCommit && shouldCommit))
+        if (ImGui.Button(_createLabel) || (canCommit && shouldCommit))
         {
             _create.Factory.CommitAndClose();
             _create.Reset();
@@ -1166,7 +1180,7 @@ public class ResourceBrowserTab : EditorTab
 
         ImGui.SameLine();
 
-        if (ImGui.Button("\uf05e Cancel"u8) || IsKeyPressed(Key.Escape))
+        if (ImGui.Button(_createCancelLabel) || IsKeyPressed(Key.Escape))
         {
             _create.Factory.DiscardAndClose();
             _create.Reset();
@@ -1279,12 +1293,12 @@ public class ResourceBrowserTab : EditorTab
     private static string GetEntryIcon(FileSystemEntry entry, bool isCompositeFile)
     {
         if (isCompositeFile)
-            return "\uf1c6";
+            return Icons.FileZipper;
         if (!entry.IsFile)
-            return "\uf07b";
+            return Icons.Folder;
         if (!entry.IsDirectory)
-            return "\uf15b";
-        return "\uf059";
+            return Icons.File;
+        return Icons.CircleQuestion;
     }
 
     private int GetRootIndex(FileSystemEntry entry)
@@ -1333,10 +1347,10 @@ public class ResourceBrowserTab : EditorTab
         var isInvalidName = GetSanitizedName(name) != name;
 
         if (isInvalidName)
-            return (false, "\uf071 Name contains forbidden characters");
+            return (false, $"{Icons.TriangleExclamation} Name contains forbidden characters");
         if (isEmptyName)
-            return (false, "\uf071 Name must not be empty");
-        return (true, "\uf058 Name is OK");
+            return (false, $"{Icons.TriangleExclamation} Name must not be empty");
+        return (true, $"{Icons.CircleCheck} Name is OK");
     }
 
     private (bool IsValid, string ExtraLine) IsFileNameAvailable(
@@ -1344,7 +1358,7 @@ public class ResourceBrowserTab : EditorTab
     {
         var isUsedName = newName != oldName && parentEntry.FindChild(newName) is not null;
         if (isUsedName)
-            return (false, "\uf071 File or directory with this name already exists");
+            return (false, $"{Icons.TriangleExclamation} File or directory with this name already exists");
 
         return IsFileNameValid(newName);
     }
@@ -1426,7 +1440,7 @@ public class ResourceBrowserTab : EditorTab
         var fullFileName = AddTrailingSlash(filePath) + fileName;
         if (SystemFile.Exists(fullFileName) || Directory.Exists(fullFileName))
         {
-            return (false, "\uf071 File or directory with this name already exists");
+            return (false, $"{Icons.TriangleExclamation} File or directory with this name already exists");
         }
 
         return IsFileNameValid(fileName);

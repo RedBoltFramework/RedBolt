@@ -15,6 +15,7 @@ using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.Scene;
 using RedBolt.SystemUI;
+using RedBolt.Utility;
 
 /// <summary>Add-on to manage scene selection with mouse and render debug geometry.</summary>
 public class TransformManipulator : SceneViewAddon
@@ -270,15 +271,22 @@ public class TransformManipulator : SceneViewAddon
         return true;
     }
 
+    private static readonly CString _selectObjectsLabel = new($"{Icons.ArrowPointer}##SelectObjects");
+    private static readonly CString _moveObjectsLabel = new($"{Icons.ArrowsUpDownLeftRight}##MoveObjects");
+    private static readonly CString _rotateObjectsLabel = new($"{Icons.ArrowsRotate}##RotateObjects");
+    private static readonly CString _scaleObjectsLabel = new($"{Icons.ArrowsLeftRightToLine}##ScaleObjects");
+    private static readonly CString _transformSpaceLabel = new($"{Icons.Cube}##TransformSpace");
+    private static readonly CString _transformPivotLabel = new($"{Icons.ArrowsToDot}##TransformPivot");
+
     public override bool RenderToolbar()
     {
-        if (Widgets.ToolbarButton("\uf245##SelectObjects"u8, "Select Objects"u8, IsSelect()))
+        if (Widgets.ToolbarButton(_selectObjectsLabel, "Select Objects"u8, IsSelect()))
             _operation = TransformGizmoOperation.None;
-        if (Widgets.ToolbarButton("\uf047##MoveObjects"u8, "Move Objects"u8, IsTranslate()))
+        if (Widgets.ToolbarButton(_moveObjectsLabel, "Move Objects"u8, IsTranslate()))
             _operation = TransformGizmoOperation.Translate;
-        if (Widgets.ToolbarButton("\uf021##RotateObjects"u8, "Rotate Objects"u8, IsRotate()))
+        if (Widgets.ToolbarButton(_rotateObjectsLabel, "Rotate Objects"u8, IsRotate()))
             _operation = TransformGizmoOperation.Rotate;
-        if (Widgets.ToolbarButton("\ue4ba##ScaleObjects"u8, "Scale Objects"u8, IsScale()))
+        if (Widgets.ToolbarButton(_scaleObjectsLabel, "Scale Objects"u8, IsScale()))
             _operation = TransformGizmoOperation.Scale;
 
         Widgets.ToolbarSeparator();
@@ -286,13 +294,13 @@ public class TransformManipulator : SceneViewAddon
         ReadOnlySpan<byte> localTitle = _isLocal
             ? "Transform in local object space"u8
             : "Transform in world space"u8;
-        if (Widgets.ToolbarButton("\uf1b2##TransformSpace"u8, localTitle, _isLocal))
+        if (Widgets.ToolbarButton(_transformSpaceLabel, localTitle, _isLocal))
             _isLocal = !_isLocal;
 
         ReadOnlySpan<byte> pivotedTitle = _isPivoted
             ? "Transform around individual objects' pivots"u8
             : "Transform around the center of selection"u8;
-        if (Widgets.ToolbarButton("\ue4be##TransformPivot"u8, pivotedTitle, _isPivoted))
+        if (Widgets.ToolbarButton(_transformPivotLabel, pivotedTitle, _isPivoted))
             _isPivoted = !_isPivoted;
 
         Widgets.ToolbarSeparator();

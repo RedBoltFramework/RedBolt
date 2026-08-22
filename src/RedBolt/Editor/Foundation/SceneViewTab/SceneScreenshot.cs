@@ -315,6 +315,9 @@ public class SceneScreenshot : SceneViewAddon
             _useInSceneCamera = false;
     }
 
+    private static readonly CString _takeLabel = new($"{Icons.Camera} Take");
+    private static readonly CString _cancelLabel = new($"{Icons.Ban} Cancel");
+
     private void RenderPopup()
     {
         if (!_scene.TryGetTarget(out var scene)
@@ -383,7 +386,7 @@ public class SceneScreenshot : SceneViewAddon
 
         ImGui.Separator();
 
-        if (ImGui.Button("\uf030 Take"u8)
+        if (ImGui.Button(_takeLabel)
             || IsKeyPressed(Key.Return)
             || IsKeyPressed(Key.Return2))
         {
@@ -393,7 +396,7 @@ public class SceneScreenshot : SceneViewAddon
                 ImGui.CloseCurrentPopup();
         }
         ImGui.SameLine();
-        if (ImGui.Button("\uf05e Cancel"u8) || IsKeyPressed(Key.Escape))
+        if (ImGui.Button(_cancelLabel) || IsKeyPressed(Key.Escape))
             ImGui.CloseCurrentPopup();
     }
 

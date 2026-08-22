@@ -9,6 +9,7 @@ using System;
 using Microsoft.Extensions.Logging;
 
 using RedBolt.Bindings.DearImGui;
+using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Editor.Core;
 using RedBolt.Editor.Project;
@@ -104,10 +105,12 @@ public class GameViewTab : EditorTab
         _state?.ReleaseInput();
     }
 
+    private static readonly CString _debugHudLabel = new($"{Icons.Bug}##GameViewDebugHud");
+
     /// <summary>Implement EditorTab.</summary>
     public override void RenderToolbar()
     {
-        if (Widgets.ToolbarButton("\uf188##GameViewDebugHud"u8, "Toggle Debug HUD"u8, _hudVisible))
+        if (Widgets.ToolbarButton(_debugHudLabel, "Toggle Debug HUD"u8, _hudVisible))
             _hudVisible = !_hudVisible;
 
         Widgets.ToolbarSeparator();

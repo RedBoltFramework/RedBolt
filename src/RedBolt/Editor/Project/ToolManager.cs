@@ -16,6 +16,7 @@ using RedBolt.Editor.Core;
 using RedBolt.IO;
 using RedBolt.Math;
 using RedBolt.SystemUI;
+using RedBolt.Utility;
 
 /// <summary>Manages third-party tools. Make it SettingsPage for simplicity.</summary>
 public class ToolManager : SettingsPage
@@ -31,7 +32,6 @@ public class ToolManager : SettingsPage
     {
         _fbx2glTFPathHandle.Free();
         _blenderPathHandle.Free();
-        _notFoundPrompt.Dispose();
         _fbx2glTF.Dispose();
         _blender.Dispose();
         base.Dispose();
@@ -91,6 +91,8 @@ public class ToolManager : SettingsPage
         }
     }
 
+    private static readonly CString _refreshAllLabel = new($"{Icons.ArrowsRotate} Refresh All");
+
     public override unsafe void RenderSettings()
     {
         ImGui.Text("Path to Blender executable (use system PATH if empty):"u8);
@@ -107,7 +109,7 @@ public class ToolManager : SettingsPage
 
         ImGui.Separator();
 
-        if (ImGui.Button("\uf021 Refresh All"u8))
+        if (ImGui.Button(_refreshAllLabel))
         {
             ScanBlender();
             ScanFBX2glTF();
@@ -142,6 +144,10 @@ public class ToolManager : SettingsPage
         _fbx2glTF.FirstScan = false;
     }
 
+    private static readonly CString _toolFoundLabel = new($"{Icons.SquareCheck} Tool is found and available");
+    private static readonly CString _toolNotFoundLabel = new();
+    private static readonly CString _toolNotFoundInPathLabel = new($"{Icons.TriangleExclamation} Tool is not found in system PATH");
+
     private void RenderStatus(bool found, CString path, ReadOnlySpan<byte> hint)
     {
         if (found)
@@ -149,7 +155,7 @@ public class ToolManager : SettingsPage
             ImGui.PushStyleColor(ImGuiCol.ImGuiColText, new Vector4f(0.0f, 1.0f, 0.0f, 1.0f));
             try
             {
-                ImGui.Text("\uf14a Tool is found and available"u8);
+                ImGui.Text(_toolFoundLabel);
             }
             finally
             {
@@ -163,11 +169,11 @@ public class ToolManager : SettingsPage
             {
                 if (path.ByteLength != 0)
                 {
-                    _notFoundPrompt.FormatInPlace($"\uf071 Tool is not found by the path '{path}'");
-                    ImGui.TextUnformatted(_notFoundPrompt.ContentBytes);
+                    _toolNotFoundLabel.FormatInPlace($"{Icons.TriangleExclamation} Tool is not found by the path '{path}'");
+                    ImGui.TextUnformatted(_toolNotFoundLabel);
                 }
                 else
-                    ImGui.Text("\uf071 Tool is not found in system PATH"u8);
+                    ImGui.Text(_toolNotFoundInPathLabel);
             }
             finally
             {
@@ -237,7 +243,6 @@ public class ToolManager : SettingsPage
     private readonly BlenderState _blender = new();
     private readonly FBX2glTFState _fbx2glTF = new();
 
-    private readonly CString _notFoundPrompt = new();
     private GCHandle _blenderPathHandle;
     private GCHandle _fbx2glTFPathHandle;
 

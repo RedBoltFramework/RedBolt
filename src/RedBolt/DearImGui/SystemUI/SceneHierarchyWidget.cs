@@ -294,13 +294,13 @@ public class SceneHierarchyWidget : RedObject
         if (!reorderingThisObject)
             return null;
 
-        var reorderButtonWidth = ImGui.CalcTextSize("\uf338"u8).X;
+        var reorderButtonWidth = ImGui.CalcTextSize(Icons.UpDownU8).X;
 
         ImGui.SameLine();
         var maximumX = ImGui.GetContentRegionAvail().X
             + ImGui.GetCursorScreenPos().X - ImGui.GetWindowPos().X;
         ImGui.SetCursorPosX(maximumX - reorderButtonWidth * 2.0f);
-        ImGui.SmallButton("\uf338"u8);
+        ImGui.SmallButton(Icons.UpDownU8);
 
         if (ImGui.IsItemActive())
         {
@@ -607,7 +607,7 @@ public class SceneHierarchyWidget : RedObject
     private static string GetNodeTitle(Node node)
     {
         var isScene = node.Parent is null;
-        var title = isScene ? "\uf1b3 " : "\uf1b2 ";
+        var title = (isScene ? Icons.Cubes : Icons.Cube) + " ";
         if (node.Name.Length != 0)
             title += node.Name;
         else if (isScene)
