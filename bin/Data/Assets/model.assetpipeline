@@ -1,13 +1,16 @@
 {
-	"Transformers": [
-		{
-			"_Class": "ModelImporter"
-		},
-		{
-			"_Class": "CalculateAnimationVelocityTransformer"
-		},
-		{
-			"_Class": "GenerateWorldSpaceTracksTransformer"
-		}
-	]
+  "Transformers": [
+    {
+      "_Class": "ModelImporter"
+    },
+    {
+      "_Class": "GenerateLightmapUVTransformer"
+    },
+    {
+      "_Class": "CalculateAnimationVelocityTransformer"
+    },
+    {
+      "_Class": "GenerateWorldSpaceTracksTransformer"
+    }
+  ]
 }
