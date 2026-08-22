@@ -15,6 +15,15 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <UsingTask TaskName="RedBolt.ModuleBuild.Tasks.EnsureDirectoryLink"
              AssemblyFile="$(RedBoltModuleBuildTasksAssembly)" />
 
+  <Target Name="RedBoltPersistModuleBuildRoot"
+          AfterTargets="Build;Rebuild"
+          Condition="'$(BuildingSolutionFile)' == 'true'
+                     and '$(SolutionName)' == '$(RedBoltExternalModuleName)'
+                     and '$(MSBuildProjectName)' == '$(RedBoltExternalModuleName)'">
+    <RedBoltSaveBuildRoot ConfigFile="$(RedBoltExternalModuleRoot)/build/BuildRoot.props"
+                          BuildRoot="$(RedBoltBuildRoot)" />
+  </Target>
+
   <Target Name="RedBoltBuildModuleBuildTasks" Condition="!Exists('$(RedBoltModuleBuildTasksAssembly)')">
     <MSBuild Projects="$(RedBoltModuleBuildTasksProject)" Targets="Restore;Build" Properties="Configuration=$(Configuration)" />
   </Target>

@@ -20,9 +20,11 @@ saved in `build/BuildConfig.props`; see
 [Build requirements](doc/BUILD_REQUIREMENTS.md#saved-build-selection) for all
 platform, architecture, and module options.
 
-All generated files and binaries are written below `build/`. CMake remains
-available for native-only diagnosis, but the solution is the supported
-selective-build entry point.
+The module solution writes generated files and binaries below `build/` and
+records that root in `build/BuildRoot.props`. A monorepo solution records its
+shared root instead. Later direct project builds use the root selected by the
+last solution build. CMake remains available for native-only diagnosis, but the
+solution is the supported selective-build entry point.
 
 Cross-compile the Windows x64 build from Linux with MinGW-w64 on `PATH`:
 

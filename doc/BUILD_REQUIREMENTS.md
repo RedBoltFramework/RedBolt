@@ -98,6 +98,13 @@ Delete `build/BuildConfig.props` to return to fresh defaults. Passing an empty
 property value clears just that saved list. Unknown keys are errors and leave
 the previous saved configuration intact.
 
+Each solution `Build` or `Rebuild` also records its active build root in the
+module-local `build/BuildRoot.props`. A later direct `.csproj` build uses the
+root selected by that module's last solution build. A monorepo solution selects
+the monorepo `build/` directory, while a module solution selects its local
+`build/` directory. Direct project builds, `Restore`, and `Clean` do not rewrite
+this file. Delete it to restore the module-local default.
+
 Modules with managed dependencies must include them: `rml-ui` requires
 `audio`, and `editor` requires `dear-imgui`,
 `glow`, `rml-ui`, and `utility`. Disabled projects report that

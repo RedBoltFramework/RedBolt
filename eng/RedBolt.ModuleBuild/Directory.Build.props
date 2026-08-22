@@ -5,8 +5,13 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 -->
 
 <Project>
+  <Import Project="$(RedBoltExternalModuleRoot)/build/BuildRoot.props"
+          Condition="Exists('$(RedBoltExternalModuleRoot)/build/BuildRoot.props')" />
+
   <PropertyGroup>
     <RedBoltRoot Condition="'$(RedBoltRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../RedBolt'))</RedBoltRoot>
+    <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(RedBoltBuildRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltBuildRoot)'))</RedBoltExpectedBuildRoot>
+    <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(SolutionDir)' == '' and '$(RedBoltPersistedBuildRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltPersistedBuildRoot)'))</RedBoltExpectedBuildRoot>
     <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(SolutionDir)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltExternalModuleRoot)/build'))</RedBoltExpectedBuildRoot>
     <RedBoltRestoreProjectName Condition="'$(RedBoltExternalModuleName)' != '' and '$(RedBoltRestoreProjectName)' == ''">$(RedBoltExternalModuleName)/$(MSBuildProjectName)</RedBoltRestoreProjectName>
   </PropertyGroup>

@@ -7,8 +7,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 <Project>
   <!--
     Solution-scoped targets.
-    Defines the RedBoltSaveBuildConfig inline task and the targets that bootstrap dependencies,
-    expose the IDE-only web sample entry point, and persist the effective platform selection
+    Defines the inline persistence tasks and the targets that bootstrap dependencies, expose the
+    IDE-only web sample entry point, and persist the effective platform selection and build root
     after a solution build.
   -->
   <PropertyGroup>
@@ -108,6 +108,95 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     </Task>
   </UsingTask>
 
+  <UsingTask TaskName="RedBoltSaveBuildRoot"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <ConfigFile ParameterType="System.String" Required="true" />
+      <BuildRoot ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Linq" />
+      <Using Namespace="System.Text" />
+      <Using Namespace="System.Xml" />
+      <Using Namespace="System.Xml.Linq" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        if (string.IsNullOrWhiteSpace(ConfigFile) || string.IsNullOrWhiteSpace(BuildRoot))
+        {
+            Log.LogError("Build root persistence requires non-empty file and build-root paths.");
+            return false;
+        }
+
+        var configPath = Path.GetFullPath(ConfigFile);
+        var configDirectory = Path.GetDirectoryName(configPath);
+        if (string.IsNullOrEmpty(configDirectory))
+        {
+            Log.LogError("Build root configuration path has no parent directory: '{0}'.", configPath);
+            return false;
+        }
+
+        var fullBuildRoot = Path.GetFullPath(BuildRoot);
+        var configDirectoryUri = new Uri(configDirectory.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar);
+        var buildRootUri = new Uri(fullBuildRoot.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar);
+        var relativeBuildRootUri = configDirectoryUri.MakeRelativeUri(buildRootUri);
+        var relativeBuildRoot = relativeBuildRootUri.IsAbsoluteUri
+            ? fullBuildRoot
+            : Uri.UnescapeDataString(relativeBuildRootUri.ToString()).TrimEnd('/');
+        if (relativeBuildRoot.Length == 0)
+            relativeBuildRoot = ".";
+        var persistedBuildRoot = relativeBuildRootUri.IsAbsoluteUri
+            ? relativeBuildRoot
+            : "$" + "(MSBuildThisFileDirectory)" + relativeBuildRoot;
+        persistedBuildRoot = persistedBuildRoot
+            .Replace(Path.DirectorySeparatorChar, '/')
+            .Replace(Path.AltDirectorySeparatorChar, '/');
+
+        var document = new XDocument(
+            new XElement("Project",
+                new XElement("PropertyGroup",
+                    new XElement(
+                        "RedBoltPersistedBuildRoot",
+                        new XAttribute("Condition", "'" + "$" + "(RedBoltPersistedBuildRoot)' == ''"),
+                        persistedBuildRoot))));
+
+        Directory.CreateDirectory(configDirectory);
+        var temporaryFile = configPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            var settings = new XmlWriterSettings
+            {
+                Encoding = new UTF8Encoding(false),
+                Indent = true,
+                OmitXmlDeclaration = true,
+                NewLineChars = Environment.NewLine
+            };
+            using (var writer = XmlWriter.Create(temporaryFile, settings))
+                document.Save(writer);
+
+            if (File.Exists(configPath)
+                && File.ReadAllBytes(configPath).SequenceEqual(File.ReadAllBytes(temporaryFile)))
+            {
+                File.Delete(temporaryFile);
+                return true;
+            }
+
+            if (File.Exists(configPath))
+                File.Replace(temporaryFile, configPath, null);
+            else
+                File.Move(temporaryFile, configPath);
+        }
+        finally
+        {
+            if (File.Exists(temporaryFile))
+                File.Delete(temporaryFile);
+        }
+        Log.LogMessage(MessageImportance.High, "Saved RedBolt build root to '{0}'.", configPath);
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
   <!--
     Bootstraps missing third-party source dependencies (SharpCpp) before the first restore.
     SharpCpp is pulled in by CMake/CPM; if it has not been populated yet, the generated
@@ -151,5 +240,20 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
                             SavedDisablePlatforms="$(_RedBoltSavedDisablePlatforms)"
                             SavedEnableArchitectures="$(_RedBoltSavedEnableArchitectures)"
                             SavedDisableArchitectures="$(_RedBoltSavedDisableArchitectures)" />
+  </Target>
+
+  <Target Name="RedBoltPersistBuildRoot"
+          AfterTargets="Build;Rebuild"
+          Condition="'$(BuildingSolutionFile)' == 'true'
+                     and '$(SolutionName)' == 'RedBolt'
+                     and '$(MSBuildProjectName)' == 'RedBolt.Core'">
+    <ItemGroup>
+      <_RedBoltBuildRootConfig Include="$(RedBoltRoot)/build/BuildRoot.props" />
+      <!-- Include disabled sibling modules so their next direct build follows the monorepo root. -->
+      <_RedBoltModuleSolutionProps Include="$(SolutionDir)RedBolt.*/Directory.Solution.props" />
+      <_RedBoltBuildRootConfig Include="@(_RedBoltModuleSolutionProps->'%(RootDir)%(Directory)build/BuildRoot.props')" />
+    </ItemGroup>
+    <RedBoltSaveBuildRoot ConfigFile="%(_RedBoltBuildRootConfig.Identity)"
+                          BuildRoot="$(RedBoltBuildRoot)" />
   </Target>
 </Project>

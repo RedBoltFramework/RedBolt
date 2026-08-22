@@ -15,10 +15,17 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <PropertyGroup>
     <!-- Resolve the repository root once; external modules locate the core via a sibling ../RedBolt path. -->
     <RedBoltRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</RedBoltRoot>
-    <!-- The build root must match what the solution graph chose (validated at build time); it is
-         derived from the solution directory when building a .slnx, or from the external module's
-         own build/ directory when an external module build is driving the graph. -->
+  </PropertyGroup>
+
+  <Import Project="$(RedBoltRoot)/build/BuildRoot.props"
+          Condition="Exists('$(RedBoltRoot)/build/BuildRoot.props')" />
+
+  <PropertyGroup>
+    <!-- The build root must match the selected solution or direct-build context. Direct builds reuse
+         the last root persisted by a solution and fall back to this repository's build/ directory. -->
+    <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(RedBoltBuildRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltBuildRoot)'))</RedBoltExpectedBuildRoot>
     <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(SolutionDir)' != ''">$([System.IO.Path]::GetFullPath('$(SolutionDir)/build'))</RedBoltExpectedBuildRoot>
+    <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(RedBoltPersistedBuildRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltPersistedBuildRoot)'))</RedBoltExpectedBuildRoot>
     <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltRoot)/build'))</RedBoltExpectedBuildRoot>
     <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == ''">$(RedBoltExpectedBuildRoot)</RedBoltBuildRoot>
     <RedBoltSharpCppRoot>$(RedBoltRoot)/extern/SharpCpp</RedBoltSharpCppRoot>
