@@ -204,7 +204,8 @@ public sealed class PluginManager : RedObject
         var modules = new List<Plugin>();
         var names = _available.Values
             .Where(static plugin => plugin.AutoLoad)
-            .OrderBy(static plugin => plugin.Name, StringComparer.Ordinal)
+            .OrderBy(static plugin => plugin.LoadOrder)
+            .ThenBy(static plugin => plugin.Name, StringComparer.Ordinal)
             .Select(static plugin => plugin.Name)
             .Concat(_loadedPlugins)
             .Distinct(StringComparer.Ordinal);

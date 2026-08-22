@@ -32,4 +32,10 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
                       AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
   </ItemGroup>
 
+  <ItemGroup Condition="Exists('$(RedBoltRoot)/../bin/ResourceRoot.ini')">
+    <Content Include="$(RedBoltRoot)/../bin/ResourceRoot.ini"
+             Link="ResourceRoot.ini"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

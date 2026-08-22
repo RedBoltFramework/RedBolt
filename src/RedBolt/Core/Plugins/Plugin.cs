@@ -23,6 +23,8 @@ public abstract class Plugin : RedObject
 
     public bool AutoLoad { get; }
 
+    public virtual int LoadOrder => 0;
+
     public PluginApplication? Application { get; protected set; }
 
     public uint Version { get; protected set; }

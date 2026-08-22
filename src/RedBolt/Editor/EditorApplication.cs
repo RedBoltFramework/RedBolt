@@ -265,7 +265,7 @@ public unsafe class EditorApplication : Application
         parameters.AutoloadPaths = string.Empty;
         parameters.PluginPaths = "{exeDir}/../core";
         parameters.ResourcePaths = "CoreData;EditorData";
-        parameters.ResourceRootFile = string.Empty;
+        parameters.ResourceRootFile = "ResourceRoot.ini";
         parameters.WindowMaximize = true;
         parameters.EngineAutoLoadScripts = false;
         parameters.ReloadPlugins = true;

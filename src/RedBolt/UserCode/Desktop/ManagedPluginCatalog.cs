@@ -42,13 +42,20 @@ public sealed class ManagedPluginCatalog
     {
         var descriptors = new List<ManagedPluginDescriptor>();
         var names = new HashSet<string>(StringComparer.Ordinal);
+        var hostAssemblyPaths = AppDomain.CurrentDomain.GetAssemblies()
+            .Where(static assembly => AssemblyLoadContext.GetLoadContext(assembly) == AssemblyLoadContext.Default)
+            .Where(static assembly => !assembly.IsDynamic)
+            .Select(static assembly => assembly.Location)
+            .Where(static path => !string.IsNullOrEmpty(path))
+            .Select(Path.GetFullPath)
+            .ToHashSet(StringComparer.Ordinal);
         foreach (var directory in _paths)
         {
             if (!Directory.Exists(directory))
                 continue;
             foreach (var path in Directory.EnumerateFiles(directory, "*.dll", SearchOption.TopDirectoryOnly))
             {
-                var descriptor = TryReadDescriptor(path);
+                var descriptor = TryReadDescriptor(path, !hostAssemblyPaths.Contains(Path.GetFullPath(path)));
                 if (descriptor is null)
                     continue;
                 if (!names.Add(descriptor.Name))
@@ -71,7 +78,7 @@ public sealed class ManagedPluginCatalog
             manager.AddPlugin(new ManagedAssemblyPlugin(descriptor));
     }
 
-    internal static ManagedPluginDescriptor? TryReadDescriptor(string path)
+    internal static ManagedPluginDescriptor? TryReadDescriptor(string path, bool includeImplicitModules = true)
     {
         try
         {
@@ -96,8 +103,18 @@ public sealed class ManagedPluginCatalog
                 var options = ReadPluginOptions(ref blob);
                 var info = new FileInfo(path);
                 return new ManagedPluginDescriptor(name, Path.GetFullPath(path), options.ReloadPolicy, options.AutoLoad,
-                    info.LastWriteTimeUtc, info.Length);
+                    info.LastWriteTimeUtc, info.Length, false);
             }
+
+            if (!includeImplicitModules || !HasGeneratedReflection(reader))
+                return null;
+
+            var assemblyName = reader.GetString(reader.GetAssemblyDefinition().Name);
+            if (string.IsNullOrWhiteSpace(assemblyName))
+                return null;
+            var assemblyInfo = new FileInfo(path);
+            return new ManagedPluginDescriptor(assemblyName, Path.GetFullPath(path), PluginReloadPolicy.ProcessResident,
+                true, assemblyInfo.LastWriteTimeUtc, assemblyInfo.Length, true);
         }
         catch (Exception exception) when (exception is IOException or BadImageFormatException
             or UnauthorizedAccessException or InvalidOperationException)
@@ -105,6 +122,18 @@ public sealed class ManagedPluginCatalog
             Log.GetLogger().LogDebug(exception, "Skipping non-plugin assembly '{Path}'.", path);
         }
         return null;
+    }
+
+    private static bool HasGeneratedReflection(MetadataReader reader)
+    {
+        foreach (var handle in reader.TypeDefinitions)
+        {
+            var type = reader.GetTypeDefinition(handle);
+            if (reader.StringComparer.Equals(type.Namespace, "RedBolt.Generated")
+                && reader.StringComparer.Equals(type.Name, "ReflectionModuleInitializer"))
+                return true;
+        }
+        return false;
     }
 
     private static bool IsPluginAttribute(MetadataReader reader, EntityHandle constructor)
@@ -172,7 +201,8 @@ public sealed record ManagedPluginDescriptor(
     PluginReloadPolicy ReloadPolicy,
     bool AutoLoad,
     DateTime LastWriteTimeUtc,
-    long Length);
+    long Length,
+    bool IsImplicitModule);
 
 internal sealed class ManagedAssemblyPlugin : Plugin
 {
@@ -181,6 +211,8 @@ internal sealed class ManagedAssemblyPlugin : Plugin
     {
         _descriptor = descriptor;
     }
+
+    public override int LoadOrder => _descriptor.IsImplicitModule ? -1 : 0;
 
     public override bool IsOutOfDate
     {
@@ -264,7 +296,7 @@ internal sealed class ManagedAssemblyPlugin : Plugin
 
         var directory = Path.GetDirectoryName(_descriptor.AssemblyPath)!;
         var shared = AppDomain.CurrentDomain.GetAssemblies()
-            .Where(static assembly => AssemblyLoadContext.GetLoadContext(assembly) == AssemblyLoadContext.Default)
+            .Where(static assembly => AssemblyLoadContext.GetLoadContext(assembly)?.IsCollectible != true)
             .ToArray();
         var outputRoot = Directory.GetParent(directory)?.FullName;
         var dependencyDirectories = new[]
@@ -309,18 +341,28 @@ internal sealed class ManagedAssemblyPlugin : Plugin
         try
         {
             generation.Register(RedBolt.Core.Context.Instance);
-            var metadata = generation.Assembly.GetCustomAttribute<PluginModuleAttribute>()
-                ?? throw new InvalidOperationException("Plugin metadata disappeared after loading.");
-            if (!string.Equals(metadata.Name, Name, StringComparison.Ordinal))
-                throw new InvalidOperationException("Plugin identity changed between discovery and load.");
-            if (!typeof(PluginApplication).IsAssignableFrom(metadata.ApplicationType)
-                || metadata.ApplicationType.IsAbstract)
+            PluginApplication application;
+            if (_descriptor.IsImplicitModule)
             {
-                throw new InvalidOperationException(
-                    $"Plugin entry point '{metadata.ApplicationType}' is not a concrete PluginApplication.");
+                if (!string.Equals(generation.Assembly.GetName().Name, Name, StringComparison.Ordinal))
+                    throw new InvalidOperationException("Module identity changed between discovery and load.");
+                application = new ManagedModuleApplication();
             }
-            var application = (PluginApplication?)Activator.CreateInstance(metadata.ApplicationType)
-                ?? throw new InvalidOperationException("Plugin application could not be constructed.");
+            else
+            {
+                var metadata = generation.Assembly.GetCustomAttribute<PluginModuleAttribute>()
+                    ?? throw new InvalidOperationException("Plugin metadata disappeared after loading.");
+                if (!string.Equals(metadata.Name, Name, StringComparison.Ordinal))
+                    throw new InvalidOperationException("Plugin identity changed between discovery and load.");
+                if (!typeof(PluginApplication).IsAssignableFrom(metadata.ApplicationType)
+                    || metadata.ApplicationType.IsAbstract)
+                {
+                    throw new InvalidOperationException(
+                        $"Plugin entry point '{metadata.ApplicationType}' is not a concrete PluginApplication.");
+                }
+                application = (PluginApplication?)Activator.CreateInstance(metadata.ApplicationType)
+                    ?? throw new InvalidOperationException("Plugin application could not be constructed.");
+            }
             application.PluginName = Name;
             application.PluginDirectory = Path.GetDirectoryName(_descriptor.AssemblyPath)!;
             var info = new FileInfo(_descriptor.AssemblyPath);
@@ -353,6 +395,10 @@ internal sealed class ManagedAssemblyPlugin : Plugin
     private Generation? _previous;
     private DateTime _loadedWriteTimeUtc;
     private long _loadedLength;
+
+    private sealed class ManagedModuleApplication : PluginApplication
+    {
+    }
 
     private readonly record struct Generation(
         IAssemblyBackend Backend,
