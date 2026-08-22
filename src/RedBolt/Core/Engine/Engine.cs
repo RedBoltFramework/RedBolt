@@ -522,17 +522,7 @@ public class Engine : RedObject
 
         if (resourceRootEntries.Count > 0 && enableResourceRootFile)
         {
-            foreach (var entry in resourceRootEntries)
-            {
-                if (!virtualFileSystem.Exists(new FileIdentifier("file", entry.FullName)))
-                {
-                    Log.GetLogger().LogError("Resource directory is not found: {ResourceDirectory}.", entry.FullName);
-                    continue;
-                }
-
-                var mountPoint = virtualFileSystem.MountDir(entry.FullName);
-                virtualFileSystem.MountAlias($"res:{entry.ShortName}", mountPoint);
-            }
+            MountResourceRootEntries(virtualFileSystem, resourceRootEntries);
         }
         else
         {
@@ -570,6 +560,21 @@ public class Engine : RedObject
         if (!string.IsNullOrEmpty(GetAppPreferencesDir()))
             virtualFileSystem.MountDir("conf", GetAppPreferencesDir());
 #endif
+    }
+
+    /// <summary>Mount resources declared in a resource root file without resetting the virtual file system.</summary>
+    public bool MountResourceRootFile(string fileName)
+    {
+        var virtualFileSystem = GetSubsystem<VirtualFileSystem>()!;
+        var resourceRootFile = OpenResourceRootFile(virtualFileSystem, fileName);
+        var resourceRootEntries = ReadResourceRootFile(resourceRootFile);
+        if (resourceRootEntries.Count == 0)
+            return false;
+
+        Log.GetLogger().LogInformation(
+            "Project resource root file is found and used: {ResourceRootFile}.", resourceRootFile!.Value.FullName);
+        MountResourceRootEntries(virtualFileSystem, resourceRootEntries);
+        return true;
     }
 
     public string GetAppPreferencesDir() => _appPreferencesDir;
@@ -847,6 +852,22 @@ public class Engine : RedObject
         }
 
         return result;
+    }
+
+    private static void MountResourceRootEntries(
+        VirtualFileSystem virtualFileSystem, IReadOnlyList<ResourceRootEntry> entries)
+    {
+        foreach (var entry in entries)
+        {
+            if (!virtualFileSystem.Exists(new FileIdentifier("file", entry.FullName)))
+            {
+                Log.GetLogger().LogError("Resource directory is not found: {ResourceDirectory}.", entry.FullName);
+                continue;
+            }
+
+            var mountPoint = virtualFileSystem.MountDir(entry.FullName);
+            virtualFileSystem.MountAlias($"res:{entry.ShortName}", mountPoint);
+        }
     }
 
     private void SendCoreEvents(float timeStep, Action<float>? update = null)

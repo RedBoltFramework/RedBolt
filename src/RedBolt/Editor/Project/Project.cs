@@ -60,10 +60,22 @@ public sealed class ResourceCacheGuard : IDisposable
     {
         var virtualFileSystem = Context.Instance.GetSubsystem<VirtualFileSystem>()!;
         for (var i = 0u; i < virtualFileSystem.NumMountPoints(); ++i)
+            _oldResourceDirs.Add(virtualFileSystem.GetMountPoint(i)!);
+
+        MountPoint? dataMountPoint = null;
+        foreach (var mountPoint in _oldResourceDirs)
         {
-            var mountPoint = virtualFileSystem.GetMountPoint(i)!;
-            _oldResourceDirs.Add(mountPoint);
-            if (mountPoint is MountedDirectory directory)
+            if (mountPoint is MountedAliasRoot aliasRoot)
+                dataMountPoint ??= aliasRoot.FindMountPoint("res:Data:/").MountPoint;
+        }
+
+        foreach (var mountPoint in _oldResourceDirs)
+        {
+            // Upstream replaces the resource-root Data alias with project Data.
+            if (ReferenceEquals(mountPoint, dataMountPoint))
+                continue;
+
+            if (mountPoint is MountedDirectory directory && mountPoint.AcceptsScheme(string.Empty))
             {
                 var resourceDir = directory.GetDirectory();
                 _resourceDirectories.Add(resourceDir);
@@ -190,6 +202,7 @@ public class Project : RedObject
         _dataPath = _projectPath + "Data/";
         _uiIniPathCString = new CString(_uiIniPath);
         _oldCacheState = new ResourceCacheGuard();
+        _coreDataPath = _oldCacheState.CoreData;
         _hotkeyManager = new HotkeyManager();
         _undoManager = new UndoManager();
         _settingsManager = new SettingsManager();
@@ -814,11 +827,12 @@ public class Project : RedObject
 
     public ProjectFlag Flags => _flags;
     public string ProjectPath => _projectPath;
-    public string CoreDataPath => _oldCacheState.CoreData;
+    public string CoreDataPath => _coreDataPath;
     public string DataPath => _dataPath;
     public string CachePath => _cachePath;
     public string ArtifactsPath => _artifactsPath;
     public string PreviewPngPath => _previewPngPath;
+    public IReadOnlyList<string> ResourceDirectories => _resourceDirectories;
 
     public AssetManager AssetManager => _assetManager;
     public HotkeyManager HotkeyManager => _hotkeyManager;
@@ -1026,11 +1040,23 @@ public class Project : RedObject
         virtualFileSystem.MountAliasRoot();
         virtualFileSystem.MountRoot();
         MountPoint? coreDataMountPoint = null;
-        foreach (var resourceDirectory in _oldCacheState.ResourceDirectories)
+        if (engine.MountResourceRootFile(_projectPath + "ResourceRoot.ini"))
         {
-            var mountPoint = virtualFileSystem.MountDir(resourceDirectory);
-            if (string.Equals(resourceDirectory, _oldCacheState.CoreData, StringComparison.Ordinal))
-                coreDataMountPoint = mountPoint;
+            coreDataMountPoint = FindAliasMountPoint(virtualFileSystem, "res:CoreData");
+            if (FindAliasMountPoint(virtualFileSystem, "res:Data") is { } resourceRootDataMountPoint)
+            {
+                virtualFileSystem.Unmount(resourceRootDataMountPoint);
+                resourceRootDataMountPoint.Dispose();
+            }
+        }
+        else
+        {
+            foreach (var resourceDirectory in _oldCacheState.ResourceDirectories)
+            {
+                var mountPoint = virtualFileSystem.MountDir(resourceDirectory);
+                if (string.Equals(resourceDirectory, _oldCacheState.CoreData, StringComparison.Ordinal))
+                    coreDataMountPoint = mountPoint;
+            }
         }
         var cacheMountPoint = virtualFileSystem.MountDir(_cachePath);
         var dataMountPoint = virtualFileSystem.MountDir(_dataPath);
@@ -1040,6 +1066,23 @@ public class Project : RedObject
         virtualFileSystem.MountAlias("res:Data", dataMountPoint);
 
         virtualFileSystem.MountDir("conf", engine.GetAppPreferencesDir());
+
+        _coreDataPath = coreDataMountPoint is MountedDirectory coreDataDirectory
+            ? coreDataDirectory.GetDirectory()
+            : _oldCacheState.CoreData;
+        _resourceDirectories.Clear();
+        for (var i = 0u; i < virtualFileSystem.NumMountPoints(); ++i)
+        {
+            var mountPoint = virtualFileSystem.GetMountPoint(i)!;
+            if (ReferenceEquals(mountPoint, cacheMountPoint) || ReferenceEquals(mountPoint, dataMountPoint))
+                continue;
+            if (mountPoint is not MountedDirectory directory || !mountPoint.AcceptsScheme(string.Empty))
+                continue;
+
+            var resourceDirectory = directory.GetDirectory();
+            if (!_resourceDirectories.Contains(resourceDirectory, StringComparer.Ordinal))
+                _resourceDirectories.Add(resourceDirectory);
+        }
 
         virtualFileSystem.SetWatching(true);
     }
@@ -1292,6 +1335,16 @@ public class Project : RedObject
         return path + "/";
     }
 
+    private static MountPoint? FindAliasMountPoint(VirtualFileSystem virtualFileSystem, string alias)
+    {
+        for (var i = 0u; i < virtualFileSystem.NumMountPoints(); ++i)
+        {
+            if (virtualFileSystem.GetMountPoint(i) is MountedAliasRoot aliasRoot)
+                return aliasRoot.FindMountPoint(alias + ":/").MountPoint;
+        }
+        return null;
+    }
+
     private static T? GetWeakTarget<T>(WeakReference<T>? reference)
         where T : class
     {
@@ -1379,7 +1432,10 @@ public class Project : RedObject
     private readonly string _previewPngPath;
 
     private string _dataPath;
+    private string _coreDataPath;
     private string _defaultAssetPipeline = string.Empty;
+
+    private readonly List<string> _resourceDirectories = [];
 
     private readonly CString _uiIniPathCString;
     private readonly ResourceCacheGuard _oldCacheState;

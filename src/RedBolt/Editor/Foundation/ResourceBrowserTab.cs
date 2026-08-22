@@ -430,6 +430,30 @@ public class ResourceBrowserTab : EditorTab
             _roots.Add(root);
         }
 
+        var knownDirectories = new HashSet<string>(StringComparer.Ordinal)
+        {
+            project.CoreDataPath,
+            project.DataPath
+        };
+        foreach (var resourceDirectory in project.ResourceDirectories)
+        {
+            if (!knownDirectories.Add(resourceDirectory))
+                continue;
+
+            var displayName = Path.GetFileName(RemoveTrailingSlash(resourceDirectory));
+            if (displayName.Length == 0)
+                displayName = resourceDirectory;
+            var root = new ResourceRoot
+            {
+                // Equal leaf names need distinct ImGui identifiers.
+                Name = $"{displayName}###{resourceDirectory}",
+                ActiveDirectory = resourceDirectory
+            };
+            root.NameBytes.Set(root.Name);
+            root.WatchedDirectories.Add(resourceDirectory);
+            _roots.Add(root);
+        }
+
         _defaultRoot = 1;
 
         foreach (var root in _roots)
