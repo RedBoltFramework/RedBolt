@@ -538,19 +538,19 @@ public class MaterialInspectorWidget : RedObject
         using (var style = ImGui.GetStyle())
             ImGui.SetCursorPos(imageBegin + style.FramePadding);
 
-        if (Widgets.ToolbarButton("\uf0c2"u8, "Toggle Skybox"u8, _previewSkyboxEnabled))
+        if (Widgets.ToolbarButton("\uf0c2##ToggleSkybox"u8, "Toggle Skybox"u8, _previewSkyboxEnabled))
         {
             _previewSkyboxEnabled = !_previewSkyboxEnabled;
             previewSettingsDirty = true;
         }
 
-        if (Widgets.ToolbarButton("\uf0eb"u8, "Toggle Light"u8, _previewLightEnabled))
+        if (Widgets.ToolbarButton("\uf0eb##ToggleLight"u8, "Toggle Light"u8, _previewLightEnabled))
         {
             _previewLightEnabled = !_previewLightEnabled;
             previewSettingsDirty = true;
         }
 
-        if (Widgets.ToolbarButton("\ue4ba"u8, "Reset Camera"u8))
+        if (Widgets.ToolbarButton("\ue4ba##ResetCamera"u8, "Reset Camera"u8))
         {
             cameraNode.SetPosition(DefaultPreviewCameraPosition);
             moveAndOrbit.SetYaw(0.0f);

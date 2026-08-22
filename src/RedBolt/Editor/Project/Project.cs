@@ -599,7 +599,7 @@ public class Project : RedObject
     /// <summary>Update and render toolbar.</summary>
     public void RenderToolbar()
     {
-        if (Widgets.ToolbarButton("\uf0c7"u8, "Save Project"u8))
+        if (Widgets.ToolbarButton("\uf0c7##SaveProject"u8, "Save Project"u8))
             Save();
         OnRenderProjectToolbar?.Invoke(this);
 
@@ -1300,7 +1300,7 @@ public class Project : RedObject
             return;
 
         Widgets.ToolbarSeparator();
-        if (Widgets.ToolbarButton("\uf021"u8, "Reload plugins"u8))
+        if (Widgets.ToolbarButton("\uf021##ReloadPlugins"u8, "Reload plugins"u8))
             _pluginManager.Reload();
         if (_pluginManager.GetReloadBlockedReason() is { } reason)
         {

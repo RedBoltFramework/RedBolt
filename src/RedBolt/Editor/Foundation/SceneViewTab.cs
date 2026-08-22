@@ -1048,7 +1048,7 @@ public class SceneViewTab : ResourceEditorTab
         {
             var canRewind = activePage is not null && activePage.IsSimulationActive();
             ImGui.BeginDisabled(!canRewind);
-            if (Widgets.ToolbarButton("\uf137"u8, "Rewind Scene Simulation"u8))
+            if (Widgets.ToolbarButton("\uf137##RewindSceneSimulation"u8, "Rewind Scene Simulation"u8))
                 RewindSimulation();
             ImGui.EndDisabled();
         }
@@ -1056,7 +1056,9 @@ public class SceneViewTab : ResourceEditorTab
         {
             var isStarted = activePage is not null && activePage.IsSimulationActive();
             var isUpdating = activePage is not null && activePage.Scene.IsUpdateEnabled();
-            ReadOnlySpan<byte> label = isUpdating ? "\uf28b"u8 : "\uf144"u8;
+            ReadOnlySpan<byte> label = isUpdating
+                ? "\uf28b##ToggleSceneSimulation"u8
+                : "\uf144##ToggleSceneSimulation"u8;
             ReadOnlySpan<byte> tooltip = isUpdating
                 ? "Pause Scene Simulation"u8
                 : isStarted ? "Resume Scene Simulation"u8 : "Start Scene Simulation"u8;

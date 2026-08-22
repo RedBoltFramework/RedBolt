@@ -107,7 +107,7 @@ public class GameViewTab : EditorTab
     /// <summary>Implement EditorTab.</summary>
     public override void RenderToolbar()
     {
-        if (Widgets.ToolbarButton("\uf188"u8, "Toggle Debug HUD"u8, _hudVisible))
+        if (Widgets.ToolbarButton("\uf188##GameViewDebugHud"u8, "Toggle Debug HUD"u8, _hudVisible))
             _hudVisible = !_hudVisible;
 
         Widgets.ToolbarSeparator();

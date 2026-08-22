@@ -272,13 +272,13 @@ public class TransformManipulator : SceneViewAddon
 
     public override bool RenderToolbar()
     {
-        if (Widgets.ToolbarButton("\uf245"u8, "Select Objects"u8, IsSelect()))
+        if (Widgets.ToolbarButton("\uf245##SelectObjects"u8, "Select Objects"u8, IsSelect()))
             _operation = TransformGizmoOperation.None;
-        if (Widgets.ToolbarButton("\uf047"u8, "Move Objects"u8, IsTranslate()))
+        if (Widgets.ToolbarButton("\uf047##MoveObjects"u8, "Move Objects"u8, IsTranslate()))
             _operation = TransformGizmoOperation.Translate;
-        if (Widgets.ToolbarButton("\uf021"u8, "Rotate Objects"u8, IsRotate()))
+        if (Widgets.ToolbarButton("\uf021##RotateObjects"u8, "Rotate Objects"u8, IsRotate()))
             _operation = TransformGizmoOperation.Rotate;
-        if (Widgets.ToolbarButton("\ue4ba"u8, "Scale Objects"u8, IsScale()))
+        if (Widgets.ToolbarButton("\ue4ba##ScaleObjects"u8, "Scale Objects"u8, IsScale()))
             _operation = TransformGizmoOperation.Scale;
 
         Widgets.ToolbarSeparator();
@@ -286,13 +286,13 @@ public class TransformManipulator : SceneViewAddon
         ReadOnlySpan<byte> localTitle = _isLocal
             ? "Transform in local object space"u8
             : "Transform in world space"u8;
-        if (Widgets.ToolbarButton("\uf1b2"u8, localTitle, _isLocal))
+        if (Widgets.ToolbarButton("\uf1b2##TransformSpace"u8, localTitle, _isLocal))
             _isLocal = !_isLocal;
 
         ReadOnlySpan<byte> pivotedTitle = _isPivoted
             ? "Transform around individual objects' pivots"u8
             : "Transform around the center of selection"u8;
-        if (Widgets.ToolbarButton("\ue4be"u8, pivotedTitle, _isPivoted))
+        if (Widgets.ToolbarButton("\ue4be##TransformPivot"u8, pivotedTitle, _isPivoted))
             _isPivoted = !_isPivoted;
 
         Widgets.ToolbarSeparator();

@@ -128,19 +128,19 @@ public class SceneHierarchy : SceneViewAddon, HierarchyBrowserSource
         var settings = _widget.GetSettings();
 
         if (Widgets.ToolbarButton(
-                "\uf017"u8, "Show Temporary Nodes & Components"u8,
+                "\uf017##ShowTemporary"u8, "Show Temporary Nodes & Components"u8,
                 settings.ShowTemporary))
         {
             settings.ShowTemporary = !settings.ShowTemporary;
         }
         if (Widgets.ToolbarButton(
-                "\uf542"u8, "Show Components"u8, settings.ShowComponents))
+                "\uf542##ShowComponents"u8, "Show Components"u8, settings.ShowComponents))
         {
             settings.ShowComponents = !settings.ShowComponents;
         }
 
         ImGui.BeginDisabled();
-        Widgets.ToolbarButton("\uf002"u8);
+        Widgets.ToolbarButton("\uf002##FilterByName"u8);
         ImGui.EndDisabled();
 
         Widgets.InputText("##Rename"u8, ref settings.FilterByName);

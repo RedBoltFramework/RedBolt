@@ -81,9 +81,9 @@ public class SceneDebugInfo : SceneViewAddon
 
     public override bool RenderToolbar()
     {
-        if (Widgets.ToolbarButton("\uf188"u8, "Toggle Debug HUD"u8, _hudVisible))
+        if (Widgets.ToolbarButton("\uf188##SceneViewDebugHud"u8, "Toggle Debug HUD"u8, _hudVisible))
             ToggleHud();
-        if (Widgets.ToolbarButton("\uf84c"u8, "Toggle Wireframe"u8, _drawWireframe))
+        if (Widgets.ToolbarButton("\uf84c##ToggleWireframe"u8, "Toggle Wireframe"u8, _drawWireframe))
             _drawWireframe = !_drawWireframe;
 
         Widgets.ToolbarSeparator();
