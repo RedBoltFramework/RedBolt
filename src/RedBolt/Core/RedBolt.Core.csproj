@@ -33,6 +33,11 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="$(RedBoltRoot)/extern/IconFontCppHeaders/IconsFontAwesome6.cs"
+             Link="Utility/Icons.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all"
                       AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />

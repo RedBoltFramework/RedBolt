@@ -198,17 +198,19 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   </UsingTask>
 
   <!--
-    Bootstraps missing third-party source dependencies (SharpCpp) before the first restore.
-    SharpCpp is pulled in by CMake/CPM; if it has not been populated yet, the generated
-    SharpCpp.Support.csproj will not exist and this target runs the CMake configure preset that
-    fetches it. If the file is still missing afterwards, the build fails with a clear error.
+    Bootstraps missing third-party source dependencies before the first restore. These dependencies
+    are pulled in by CMake/CPM. If they have not been populated yet, this target runs the CMake
+    configure preset that fetches them and then reports a clear error for each missing dependency.
   -->
   <Target Name="RedBoltEnsureDependencies"
           BeforeTargets="Restore"
-          Condition="!Exists('$(MSBuildThisFileDirectory)extern/SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj')">
+          Condition="!Exists('$(MSBuildThisFileDirectory)extern/SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj')
+                     or !Exists('$(MSBuildThisFileDirectory)extern/IconFontCppHeaders/IconsFontAwesome6.cs')">
     <Exec Command="cmake --preset linux-x64" WorkingDirectory="$(MSBuildThisFileDirectory)" />
     <Error Condition="!Exists('$(MSBuildThisFileDirectory)extern/SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj')"
            Text="CPM did not populate SharpCpp below '$(MSBuildThisFileDirectory)extern/SharpCpp'." />
+    <Error Condition="!Exists('$(MSBuildThisFileDirectory)extern/IconFontCppHeaders/IconsFontAwesome6.cs')"
+           Text="CPM did not populate IconFontCppHeaders below '$(MSBuildThisFileDirectory)extern/IconFontCppHeaders'." />
   </Target>
 
   <!-- C# Dev Kit addresses an IDE-selected project through its solution target,

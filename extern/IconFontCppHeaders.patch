@@ -1,0 +1,22 @@
+diff --git a/IconsFontAwesome6.cs b/IconsFontAwesome6.cs
+index 125cd38..236c576 100644
+--- a/IconsFontAwesome6.cs
++++ b/IconsFontAwesome6.cs
+@@ -4 +4,2 @@
+-namespace IconFonts
++// Altered by RedBolt: expose the constants through RedBolt.Core and correct C# member conflicts.
++namespace RedBolt.Utility
+@@ -6 +7 @@ namespace IconFonts
+-    public class FontAwesome6
++    public class Icons
+@@ -8,2 +9,2 @@ namespace IconFonts
+-        public const string FontIconFileName = "fa-regular-400.ttf";
+-        public const string FontIconFileName = "fa-solid-900.ttf";
++        public const string FontIconFileNameFAR = "fa-regular-400.ttf";
++        public const string FontIconFileNameFAS = "fa-solid-900.ttf";
+@@ -455 +456 @@ namespace IconFonts
+-        public const string Equals = "\u003d";
++        public new const string Equals = "\u003d";
+@@ -722 +723 @@ namespace IconFonts
+-        public const string Icons = "\uf86d";
++        public const string IconsGlyph = "\uf86d";

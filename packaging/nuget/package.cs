@@ -61,6 +61,8 @@ internal sealed class Packager
         using SharpCpp.Pipeline;
         using SharpCpp.Rendering;
 
+        using RedBolt.Utility;
+
         var includeRoot = args[0];
         var workRoot = Path.Combine(AppContext.BaseDirectory, "generated");
         var header = Path.Combine(workRoot, "Fixture.hpp");
@@ -77,7 +79,7 @@ internal sealed class Packager
             || !File.Exists(Path.Combine(workRoot, "Fixture.Bindings.g.cpp")))
             throw new InvalidOperationException("SharpCpp did not generate both binding outputs.");
         Vector3f alias = default;
-        Console.WriteLine($"{RedBolt.Core.Context.Instance.GetType().FullName} {alias}");
+        Console.WriteLine($"{RedBolt.Core.Context.Instance.GetType().FullName} {Icons.Folder} {alias}");
         """;
 
     private readonly string[] _arguments;
@@ -447,6 +449,9 @@ internal sealed class Packager
         Directory.CreateDirectory(buildTransitive);
         if (module == "Core")
         {
+            File.Copy(
+                Path.Combine(_repositoryRoot, "extern", "IconFontCppHeaders", "licence.txt"),
+                Path.Combine(stage, "IconFontCppHeaders.LICENSE.txt"), true);
             var analyzer = Path.Combine(_repositoryRoot, "build", "bin", Configuration, "host", "tools", "RedBolt.Generator.Reflection.dll");
             RequireFile(analyzer, "reflection analyzer");
             var analyzers = Path.Combine(stage, "analyzers", "dotnet", "cs");
@@ -703,6 +708,15 @@ internal sealed class Packager
         {
             if (!packages.Any(package => Path.GetFileName(package).StartsWith(expected + ".", StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException($"Expected package was not created: {expected}");
+        }
+        var corePackage = packages.Single(package =>
+            Path.GetFileName(package).StartsWith("RedBolt.Core.", StringComparison.OrdinalIgnoreCase)
+            && !Path.GetFileName(package).StartsWith("RedBolt.Core.Runtime.", StringComparison.OrdinalIgnoreCase));
+        using (var archive = ZipFile.OpenRead(corePackage))
+        {
+            if (!archive.Entries.Any(entry => entry.FullName.Equals(
+                    "IconFontCppHeaders.LICENSE.txt", StringComparison.OrdinalIgnoreCase)))
+                throw new InvalidOperationException("RedBolt.Core does not contain the IconFontCppHeaders license.");
         }
         foreach (var validationRid in _rids)
         foreach (var module in _modules.Where(module => SupportedOnRid(module, validationRid)))

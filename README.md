@@ -46,6 +46,12 @@ does not build tests.
 
 For architecture notes, porting strategy, and binding details, see `doc/`.
 
+## Font Awesome icons
+
+`RedBolt.Core` exposes Font Awesome 6.1.1 glyph constants through
+`RedBolt.Utility.Icons`, for example `Icons.Folder`. RedBolt provides the
+constants only. Applications must load the matching Font Awesome font files.
+
 ## NuGet packages
 
 Create managed module, RID-specific native runtime, tool, resource, and
