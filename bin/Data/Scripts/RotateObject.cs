@@ -3,16 +3,15 @@
 // For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
 using System;
-
-using Urho3DNet;
+using RedBolt.Core;
+using RedBolt.Scene;
 
 namespace DemoApplication
 {
-
-    [ObjectFactory(Category = "Script Components")]
+    [Reflected(ObjectCategory.Category_Logic)]
     class ScriptRotateObject : LogicComponent
     {
-        public ScriptRotateObject(Context context) : base(context)
+        public ScriptRotateObject()
         {
             UpdateEventMask = UpdateEvent.UseUpdate;
         }
