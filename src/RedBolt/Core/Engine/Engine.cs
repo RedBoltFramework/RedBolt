@@ -513,9 +513,11 @@ public class Engine : RedObject
             Log.GetLogger().LogInformation("Resource root file is found and used: {ResourceRootFile}.", resourceRootFile!.Value.FullName);
 
         var prefixPaths = SplitPathList(Parameters.ResourcePrefixPaths);
-        var resourcePaths = new StringVector(SplitPathList(Parameters.ResourcePaths));
-        var resourcePackages = new StringVector(SplitPathList(Parameters.ResourcePackages));
-        var autoLoadPaths = SplitPathList(Parameters.AutoloadPaths);
+        var resourcePaths = new StringVector(
+            SplitPathList(Parameters.ResourcePaths).Select(ConfiguredPath.ExpandVariables));
+        var resourcePackages = new StringVector(
+            SplitPathList(Parameters.ResourcePackages).Select(ConfiguredPath.ExpandVariables));
+        var autoLoadPaths = SplitPathList(Parameters.AutoloadPaths).Select(ConfiguredPath.ExpandVariables);
         var absolutePrefixPaths = new StringVector();
 
         if (resourceRootEntries.Count > 0 && enableResourceRootFile)
@@ -764,8 +766,9 @@ public class Engine : RedObject
 
     private void ApplyConfiguredResourcePaths()
     {
-        var resourcePaths = SplitPathList(Parameters.ResourcePaths);
-        if (resourcePaths.Count == 0)
+        var resourcePaths = SplitPathList(Parameters.ResourcePaths)
+            .Select(ConfiguredPath.ExpandVariables).ToArray();
+        if (resourcePaths.Length == 0)
             return;
 
         var prefixPaths = SplitPathList(Parameters.ResourcePrefixPaths);
@@ -795,6 +798,7 @@ public class Engine : RedObject
         if (string.IsNullOrEmpty(fileName))
             return null;
 
+        fileName = ConfiguredPath.ExpandVariables(fileName);
         var programDirectory = NormalizeConfiguredResourcePath(ExecutableDirectory);
         while (!string.IsNullOrEmpty(programDirectory))
         {
@@ -836,7 +840,7 @@ public class Engine : RedObject
             }
 
             var shortName = parts[0].Trim();
-            var fullDirectoryName = Path.Combine(path, parts[1].Trim());
+            var fullDirectoryName = Path.Combine(path, ConfiguredPath.ExpandVariables(parts[1].Trim()));
             if (!fullDirectoryName.EndsWith(Path.DirectorySeparatorChar))
                 fullDirectoryName += Path.DirectorySeparatorChar;
             result.Add(new ResourceRootEntry(fullDirectoryName, shortName));
@@ -937,6 +941,7 @@ public class Engine : RedObject
 
     private static string NormalizeConfiguredResourcePath(string path)
     {
+        path = ConfiguredPath.ExpandVariables(path);
         return Path.IsPathRooted(path)
             ? Path.GetFullPath(path)
             : Path.GetFullPath(Path.Combine(ExecutableDirectory, path));

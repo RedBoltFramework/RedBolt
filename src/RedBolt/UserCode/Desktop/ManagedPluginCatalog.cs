@@ -15,6 +15,7 @@ using System.Runtime.Loader;
 
 using Microsoft.Extensions.Logging;
 
+using ConfiguredPath = RedBolt.IO.ConfiguredPath;
 using RedBolt.Logging;
 using RedBolt.Plugins;
 
@@ -24,7 +25,8 @@ public sealed class ManagedPluginCatalog
     public ManagedPluginCatalog(IEnumerable<string> paths)
     {
         ArgumentNullException.ThrowIfNull(paths);
-        _paths = paths.Select(Path.GetFullPath).Distinct(StringComparer.Ordinal).ToArray();
+        _paths = paths.Select(ConfiguredPath.ExpandVariables).Select(Path.GetFullPath)
+            .Distinct(StringComparer.Ordinal).ToArray();
     }
 
     public static ManagedPluginCatalog FromParameters(Engine.EngineParameters parameters)

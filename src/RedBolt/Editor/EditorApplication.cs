@@ -263,6 +263,7 @@ public unsafe class EditorApplication : Application
         parameters.LogLevel = EngineLogLevel.Debug;
         parameters.WindowResizable = true;
         parameters.AutoloadPaths = string.Empty;
+        parameters.PluginPaths = "{exeDir}/../core";
         parameters.ResourcePaths = "CoreData;EditorData";
         parameters.ResourceRootFile = string.Empty;
         parameters.WindowMaximize = true;
