@@ -16,7 +16,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <!-- Static graph restore is disabled for full builds; the solution graph is large and the
          persisted-config save step needs ordinary project evaluation to run. -->
     <RestoreUseStaticGraphEvaluation Condition="'$(RedBoltFull)' == 'true' and '$(RestoreUseStaticGraphEvaluation)' == ''">false</RestoreUseStaticGraphEvaluation>
-    <RedBoltParallelization Condition="'$(RedBoltParallelization)' == ''">4</RedBoltParallelization>
   </PropertyGroup>
 
   <Import Project="$(RedBoltBuildConfigPath)" Condition="Exists('$(RedBoltBuildConfigPath)')" />

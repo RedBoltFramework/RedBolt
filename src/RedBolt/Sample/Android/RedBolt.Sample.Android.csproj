@@ -48,7 +48,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <!-- <redbolt-generated name="android-project-targets"> -->
   <Target Name="RedBoltBuildAggregateAndroidNativeModules" BeforeTargets="RedBoltPrepareAndroidRuntime" Condition="'@(RedBoltAggregateAndroidNativeProject)' != ''">
     <MSBuild Projects="@(RedBoltAggregateAndroidNativeProject)" Targets="Restore;RedBoltPrepareAndroidRuntime" BuildInParallel="false"
-             Properties="Configuration=$(Configuration);RedBoltBuildRoot=$(RedBoltBuildRoot);RedBoltExpectedBuildRoot=$(RedBoltExpectedBuildRoot);RedBoltParallelization=$(RedBoltParallelization);RedBoltPlatform=$(RedBoltPlatform);RuntimeIdentifier=$(RuntimeIdentifier);RedBoltBuildAllAndroidPackages=false;MSBuildEnableWorkloadResolver=false" />
+             Properties="Configuration=$(Configuration);RedBoltBuildRoot=$(RedBoltBuildRoot);RedBoltExpectedBuildRoot=$(RedBoltExpectedBuildRoot);RedBoltPlatform=$(RedBoltPlatform);RuntimeIdentifier=$(RuntimeIdentifier);RedBoltBuildAllAndroidPackages=false;MSBuildEnableWorkloadResolver=false" />
   </Target>
   <!-- </redbolt-generated name="android-project-targets"> -->
 </Project>
