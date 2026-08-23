@@ -6,7 +6,7 @@ set(TINYGLTF_HEADER_ONLY ON)
 set(TINYGLTF_INSTALL OFF)
 set(TINYGLTF_INSTALL_VENDOR OFF)
 
-CPMAddPackage(
+redbolt_cpm_add_package(
     NAME tinygltf
     GIT_REPOSITORY https://github.com/syoyo/tinygltf.git
     GIT_TAG v2.9.7

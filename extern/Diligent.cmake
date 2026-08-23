@@ -75,7 +75,7 @@ if(EMSCRIPTEN OR MINGW)
     set(CMAKE_CXX_LINK_LIBRARY_USING_WHOLE_ARCHIVE_SUPPORTED TRUE)
 endif()
 
-CPMAddPackage(
+redbolt_cpm_add_package(
     NAME Diligent
     GIT_REPOSITORY https://github.com/DiligentGraphics/DiligentCore.git
     GIT_TAG d4fe9c85a2011b4fd030a3cd107f5c46c94fbe8b

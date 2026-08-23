@@ -7,7 +7,7 @@ else()
     set(BUILD_STATIC_LIBS ON)
 endif()
 
-CPMAddPackage(
+redbolt_cpm_add_package(
     NAME LZ4
     GIT_REPOSITORY https://github.com/lz4/lz4.git
     GIT_TAG 0774d05537f9762f838f7ab541b7765f1a729cb5

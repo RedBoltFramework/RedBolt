@@ -11,7 +11,7 @@ set(WEBP_BUILD_LIBWEBPMUX OFF CACHE BOOL "" FORCE)
 set(WEBP_BUILD_WEBP_JS OFF CACHE BOOL "" FORCE)
 set(WEBP_BUILD_FUZZTEST OFF CACHE BOOL "" FORCE)
 
-CPMAddPackage(
+redbolt_cpm_add_package(
     NAME WebP
     GIT_REPOSITORY https://chromium.googlesource.com/webm/libwebp
     GIT_TAG 733c91e461c18cf1127c9ed0a80dccbcfed599d3

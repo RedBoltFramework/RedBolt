@@ -1,11 +1,11 @@
-CPMAddPackage(
+redbolt_cpm_add_package(
     NAME imgui
     GIT_REPOSITORY https://github.com/RedBoltFramework/imgui.git
     GIT_TAG docking-string-view
     CUSTOM_CACHE_KEY "."
     PATCHES "${CMAKE_CURRENT_LIST_DIR}/DearImGui.patch"
     DOWNLOAD_ONLY YES)
-CPMAddPackage(
+redbolt_cpm_add_package(
     NAME ImGuizmo
     GIT_REPOSITORY https://github.com/cedricguillemet/imguizmo.git
     GIT_TAG 18cef5e031d8c6973d80284c67f60549fafd78c1

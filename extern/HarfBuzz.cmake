@@ -5,7 +5,7 @@ set(HB_BUILD_RASTER ON CACHE BOOL "Build HarfBuzz raster library" FORCE)
 set(HB_BUILD_VECTOR OFF CACHE BOOL "Build HarfBuzz vector library" FORCE)
 set(HB_BUILD_GPU ON CACHE BOOL "Build HarfBuzz GPU library" FORCE)
 
-CPMAddPackage(
+redbolt_cpm_add_package(
     NAME harfbuzz
     GIT_REPOSITORY https://github.com/harfbuzz/harfbuzz.git
     GIT_TAG 14.2.1

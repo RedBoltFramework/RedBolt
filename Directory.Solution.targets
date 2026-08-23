@@ -198,14 +198,13 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   </UsingTask>
 
   <!--
-    Bootstraps missing third-party source dependencies before the first restore. These dependencies
-    are pulled in by CMake/CPM. If they have not been populated yet, this target runs the CMake
-    configure preset that fetches them and then reports a clear error for each missing dependency.
+    Refreshes third-party source dependencies before every restore. These dependencies are pulled
+    in by CMake/CPM, so the configure preset must run even when the source trees already exist: CPM
+    declarations and pinned revisions can change between builds. The checks below keep failures
+    explicit when the configure step cannot populate a required dependency.
   -->
   <Target Name="RedBoltEnsureDependencies"
-          BeforeTargets="Restore"
-          Condition="!Exists('$(MSBuildThisFileDirectory)extern/SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj')
-                     or !Exists('$(MSBuildThisFileDirectory)extern/IconFontCppHeaders/IconsFontAwesome6.cs')">
+          BeforeTargets="Restore">
     <Exec Command="cmake --preset linux-x64" WorkingDirectory="$(MSBuildThisFileDirectory)" />
     <Error Condition="!Exists('$(MSBuildThisFileDirectory)extern/SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj')"
            Text="CPM did not populate SharpCpp below '$(MSBuildThisFileDirectory)extern/SharpCpp'." />

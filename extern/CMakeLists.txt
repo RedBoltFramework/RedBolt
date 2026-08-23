@@ -9,6 +9,7 @@ set(CPM_DONT_UPDATE_MODULE_PATH ON CACHE BOOL "Use RedBolt's checked-in CMake mo
 set(CPM_SOURCE_CACHE "${REDBOLT_DEPENDENCY_ROOT}" CACHE PATH "CPM dependency source cache" FORCE)
 unset(CPM_DIRECTORY CACHE)
 include("${CMAKE_SOURCE_DIR}/cmake/CPM.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/RedBoltCPM.cmake")
 set(FETCHCONTENT_BASE_DIR "${CMAKE_BINARY_DIR}/deps")
 
 redbolt_require_path("${REDBOLT_DEPENDENCY_ROOT}" "REDBOLT_DEPENDENCY_ROOT")

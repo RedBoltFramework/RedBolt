@@ -1,4 +1,4 @@
-CPMAddPackage(
+redbolt_cpm_add_package(
     NAME IconFontCppHeaders
     GIT_REPOSITORY https://github.com/juliettef/IconFontCppHeaders.git
     GIT_TAG 7d6ff1f4ba51e7a2b142be39457768abece1549c

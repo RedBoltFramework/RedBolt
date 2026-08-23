@@ -1,7 +1,7 @@
 set(SHARPCPP_BUILD_E2E OFF CACHE BOOL "Build SharpCpp synthetic E2E fixtures" FORCE)
 set(SHARPCPP_BUILD_RBFX OFF CACHE BOOL "Build SharpCpp rbfx bindings" FORCE)
 
-CPMAddPackage(
+redbolt_cpm_add_package(
     NAME SharpCpp
     GIT_REPOSITORY git@github.com:RedBoltFramework/SharpCpp.git
     # Keep this pin synchronized with SharpCpp master after every SharpCpp fix.

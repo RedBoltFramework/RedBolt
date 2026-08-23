@@ -20,7 +20,7 @@ set(SDL2IMAGE_WEBP OFF CACHE BOOL "" FORCE)
 set(_redbolt_saved_build_shared_libs "${BUILD_SHARED_LIBS}")
 set(BUILD_SHARED_LIBS OFF)
 
-CPMAddPackage(
+redbolt_cpm_add_package(
     NAME SDL_image
     GIT_REPOSITORY https://github.com/libsdl-org/SDL_image.git
     GIT_TAG 1fe71e1086e00b73999a8b63ad6afabb8ce43b23

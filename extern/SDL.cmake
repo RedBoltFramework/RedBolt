@@ -33,7 +33,7 @@ set(SDL_JOYSTICK ON CACHE BOOL "" FORCE)
 set(SDL_HAPTIC ${ANDROID} CACHE BOOL "" FORCE)
 set(SDL_SENSOR ${ANDROID} CACHE BOOL "" FORCE)
 
-CPMAddPackage(
+redbolt_cpm_add_package(
     NAME SDL
     GIT_REPOSITORY https://github.com/rbfx/SDL.git
     GIT_TAG c8fd4182879d045070e6ffc98a4fcf861310c323
