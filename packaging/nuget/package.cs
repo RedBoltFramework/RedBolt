@@ -152,7 +152,7 @@ internal sealed class Packager
         CreateSharpCppPackages();
         foreach (var module in _modules)
             StageManagedPackage(module);
-        foreach (var name in new[] { "CoreData", "Data", "EditorData" })
+        foreach (var name in new[] { "CoreData", "SampleData", "EditorData" })
             StageResourcePackage(name);
         foreach (var rid in _rids)
         foreach (var module in _modules.Where(module =>
@@ -704,7 +704,7 @@ internal sealed class Packager
         }
         if (packages.Any(package => Path.GetFileName(package).Contains("Sample", StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException("Sample packages must not be created.");
-        foreach (var expected in new[] { "RedBolt.CoreData", "RedBolt.Data", "RedBolt.EditorData", "SharpCpp.Support", "RedBolt.Core" })
+        foreach (var expected in new[] { "RedBolt.CoreData", "RedBolt.SampleData", "RedBolt.EditorData", "SharpCpp.Support", "RedBolt.Core" })
         {
             if (!packages.Any(package => Path.GetFileName(package).StartsWith(expected + ".", StringComparison.OrdinalIgnoreCase)))
                 throw new InvalidOperationException($"Expected package was not created: {expected}");
@@ -765,8 +765,8 @@ internal sealed class Packager
             RequireFile(Path.Combine(consumerOutput, "RedBolt.Editor.dll"), "packaged Editor");
             RequireDirectory(Path.Combine(consumerOutput, "CoreData"), "CoreData output");
             RequireDirectory(Path.Combine(consumerOutput, "EditorData"), "EditorData output");
-            if (Directory.Exists(Path.Combine(consumerOutput, "Data")))
-                throw new InvalidOperationException("Editor must not depend on RedBolt.Data.");
+            if (Directory.Exists(Path.Combine(consumerOutput, "SampleData")))
+                throw new InvalidOperationException("Editor must not depend on RedBolt.SampleData.");
         }
         if (hasPackageTool)
         {
@@ -901,7 +901,7 @@ internal sealed class Packager
         foreach (var reference in metadata.PackageReferences.Where(reference => !reference.PrivateAssets.Equals("all", StringComparison.OrdinalIgnoreCase)))
             yield return new Dependency(reference.Id, reference.Version);
         yield return new Dependency("RedBolt.CoreData", _packageVersion);
-        yield return new Dependency("RedBolt.Data", _packageVersion);
+        yield return new Dependency("RedBolt.SampleData", _packageVersion);
     }
 
     private IEnumerable<string> MissingSampleModules(ProjectMetadata metadata, string rid)

@@ -51,7 +51,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <TransformFile Include="$(RedBoltRoot)/src/RedBolt/Sample/Android/Transforms/Metadata.xml" />
     <!-- Engine data shipped as Android assets. -->
     <AndroidAsset Include="$(RedBoltRoot)/bin/CoreData/**/*" Link="CoreData/%(RecursiveDir)%(Filename)%(Extension)" />
-    <AndroidAsset Include="$(RedBoltRoot)/bin/Data/**/*" Link="Data/%(RecursiveDir)%(Filename)%(Extension)" />
+    <AndroidAsset Include="$(RedBoltRoot)/bin/SampleData/**/*" Link="SampleData/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
   <!-- Restore uses the full set of Android RIDs (arm64 + x64) even though a single build pass targets
        one at a time, so packages are restored once for both. -->

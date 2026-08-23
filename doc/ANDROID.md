@@ -38,7 +38,7 @@ dotnet build src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj \
   -p:RedBoltEnableModules=all
 ```
 
-The build configures and builds both native ABIs, generates the C# and SDL Java bindings, packages `bin/CoreData` and `bin/Data`, and applies the standard Android debug signature. It produces one APK per ABI:
+The build configures and builds both native ABIs, generates the C# and SDL Java bindings, packages `bin/CoreData` and `bin/SampleData`, and applies the standard Android debug signature. It produces one APK per ABI:
 
 ```text
 build/bin/Debug/android-x64/app/RedBolt.Sample.Android.apk

@@ -334,7 +334,7 @@ probe the target `core`, `extern`, and `tools` categories and the shared host
 categories instead of copying libraries.
 
 The engine sets the process working directory to the managed executable directory.
-Samples and tests that consume the staged resource directories use `CoreData;Data`
+Samples and tests that consume the staged resource directories use `CoreData;SampleData`
 with resource prefix paths `.;..`.
 
 ## 7. THINGS YOU MUST ALWAYS DO

@@ -37,7 +37,7 @@ sealed class PointerAdapterApplication : Application
     protected override void Setup(EngineParameters parameters)
     {
         parameters.ApplicationName = "RedBolt.Sample.PointerAdapter"; parameters.Borderless = false; parameters.FullScreen = false;
-        parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = ".;..";
+        parameters.ResourcePaths = "CoreData;SampleData"; parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowMaximize = false;
 #if !REDBOLT_PLATFORM_BROWSER
             parameters.WindowWidth = 1280; parameters.WindowHeight = 720;

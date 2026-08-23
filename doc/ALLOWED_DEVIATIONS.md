@@ -11,8 +11,8 @@ These are the ONLY places C# is allowed to differ from C++:
 - Native shared-library filenames use conventional platform-neutral names.
 - Minor API tweaks are allowed ONLY to avoid GC churn.
 - Managed tests may request hidden SDL windows through `EngineParameters.WindowHidden`; normal engine behavior remains visible by default.
-- Managed Web builds create and preload compressed `CoreData.pak` and `Data.pak` through the managed `PackageTool` instead of CMake's native tool discovery.
-- The managed Android host packages the Web-compatible sample catalog, raw `CoreData` and `Data` assets, and both `arm64-v8a` and `x86_64` native libraries in one debug APK. It uses the SDL Android activity and OpenGL ES 3. Android finalizes mobile window and `/apk` resource parameters after sample `Setup()` and does not expose desktop command-line or window controls.
+- Managed Web builds create and preload compressed `CoreData.pak` and `SampleData.pak` through the managed `PackageTool` instead of CMake's native tool discovery.
+- The managed Android host packages the Web-compatible sample catalog, raw `CoreData` and `SampleData` assets, and both `arm64-v8a` and `x86_64` native libraries in one debug APK. It uses the SDL Android activity and OpenGL ES 3. Android finalizes mobile window and `/apk` resource parameters after sample `Setup()` and does not expose desktop command-line or window controls.
 - C# indices and sizes use `int`, including when the corresponding C++ type is unsigned.
 - Prefer property syntax alone when it can faithfully represent a C++ member and its public accessors; do not add a private backing field only to wrap it in a public property. Private fields remain allowed when required by behavior or storage semantics.
 - `IApproximateEquatable<T>` is a managed addition used to expose strongly typed epsilon-based equality across math value types and is to be kept.

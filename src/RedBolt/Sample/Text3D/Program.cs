@@ -43,7 +43,7 @@ public sealed class Text3DApplication : Application
         parameters.ApplicationName = "RedBolt.Sample.Text3D";
         parameters.Borderless = false;
         parameters.FullScreen = false;
-        parameters.ResourcePaths = "CoreData;Data";
+        parameters.ResourcePaths = "CoreData;SampleData";
         parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowMaximize = false;
 #if !REDBOLT_PLATFORM_BROWSER

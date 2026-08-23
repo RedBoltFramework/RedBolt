@@ -64,7 +64,7 @@ sealed class InputLoggerApplication : Application
         parameters.ApplicationName = "RedBolt.Sample.InputLogger";
         parameters.Borderless = false;
         parameters.FullScreen = false;
-        parameters.ResourcePaths = "CoreData;Data";
+        parameters.ResourcePaths = "CoreData;SampleData";
         parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowMaximize = false;
 #if !REDBOLT_PLATFORM_BROWSER

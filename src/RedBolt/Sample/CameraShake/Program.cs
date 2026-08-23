@@ -52,7 +52,7 @@ sealed class CameraShakeApplication : Application
         parameters.ApplicationName = "RedBolt.Sample.CameraShake";
         parameters.Borderless = false;
         parameters.FullScreen = false;
-        parameters.ResourcePaths = "CoreData;Data";
+        parameters.ResourcePaths = "CoreData;SampleData";
         parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowMaximize = false;
 #if !REDBOLT_PLATFORM_BROWSER

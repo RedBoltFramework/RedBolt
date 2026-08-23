@@ -59,7 +59,7 @@ The initial deterministic fixture should expose:
 - fixed `Renderer` texture quality/filter/anisotropy and skinning mode;
 - explicit `Scene`, `Octree`, `Zone`, `Camera`, `Viewport`, and frame stepping;
 - reference path, shot path, diff path, and optional per-case tolerance;
-- a stable resource fixture using `RbfxTestData` and tracked CoreData/Data
+- a stable resource fixture using `RbfxTestData` and tracked CoreData/SampleData
   assets.
 
 When one test produces several related images, it should pass independent

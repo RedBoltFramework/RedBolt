@@ -1,0 +1,9 @@
+This fire effect is created by Alexander Prudko (https://www.artstation.com/rdr) and is distributed under CC0-1.0 License.
+
+List of files:
+
+bin/SampleData/Textures/RealFire/Circle.png
+bin/SampleData/Textures/RealFire/Distort.png
+bin/SampleData/Textures/RealFire/Fire.png
+bin/SampleData/Textures/RealFire/Smoke.png
+bin/SampleData/Particle/RealFire.xml

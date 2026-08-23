@@ -32,7 +32,7 @@ sealed class DecalsApplication : Application
     protected override void Setup(EngineParameters parameters)
     {
         parameters.ApplicationName = "RedBolt.Sample.Decals"; parameters.Borderless = false; parameters.FullScreen = false;
-        parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = ".;.."; parameters.WindowMaximize = false;
+        parameters.ResourcePaths = "CoreData;SampleData"; parameters.ResourcePrefixPaths = ".;.."; parameters.WindowMaximize = false;
 #if !REDBOLT_PLATFORM_BROWSER
             parameters.WindowWidth = 1280; parameters.WindowHeight = 720;
 #endif

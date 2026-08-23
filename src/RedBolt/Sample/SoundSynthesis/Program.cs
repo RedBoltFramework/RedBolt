@@ -177,7 +177,7 @@ public class SoundSynthesis : Application
         parameters.Borderless = false;
         parameters.FullScreen = false;
         parameters.WindowMaximize = false;
-        parameters.ResourcePaths = "CoreData;Data";
+        parameters.ResourcePaths = "CoreData;SampleData";
         parameters.ResourcePrefixPaths = ".;..";
 #if !REDBOLT_PLATFORM_BROWSER
             parameters.WindowHeight = 540;

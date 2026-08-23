@@ -47,7 +47,7 @@ sealed class CameraOperatorSampleApplication : Application
     {
         parameters.ApplicationName = "RedBolt.Sample.CameraOperator";
         parameters.Borderless = false; parameters.FullScreen = false;
-        parameters.ResourcePaths = "CoreData;Data"; parameters.ResourcePrefixPaths = ".;..";
+        parameters.ResourcePaths = "CoreData;SampleData"; parameters.ResourcePrefixPaths = ".;..";
         parameters.WindowMaximize = false;
 #if !REDBOLT_PLATFORM_BROWSER
             parameters.WindowHeight = 720; parameters.WindowWidth = 1280;

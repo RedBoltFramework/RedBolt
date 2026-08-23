@@ -75,7 +75,7 @@ internal static partial class BrowserDom
 internal static class SampleCatalog
 {
     // <redbolt-generated name="web-resource-paths">
-    internal const string ResourcePaths = "RedBolt.CoreData;RedBolt.Data";
+    internal const string ResourcePaths = "RedBolt.CoreData;RedBolt.SampleData";
     // </redbolt-generated name="web-resource-paths">
 
     internal static Application Create(string applicationTypeName) => applicationTypeName switch

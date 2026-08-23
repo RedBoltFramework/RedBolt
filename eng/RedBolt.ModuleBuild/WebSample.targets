@@ -73,7 +73,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <Content Remove="$(RedBoltWebExtensionScript)" />
     <Content Include="$(RedBoltWebExtensionScript)" Link="wwwroot/extension.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <RedBoltWebResourcePackage Include="RedBolt.CoreData" SourceDirectory="$(RedBoltRoot)/bin/CoreData" />
-    <RedBoltWebResourcePackage Include="RedBolt.Data" SourceDirectory="$(RedBoltRoot)/bin/Data" />
+    <RedBoltWebResourcePackage Include="RedBolt.SampleData" SourceDirectory="$(RedBoltRoot)/bin/SampleData" />
     <RedBoltWebResourceFile Include="@(RedBoltWebResourcePackage->'%(SourceDirectory)/**/*')" />
     <Content Include="@(RedBoltWebResourcePackage->'$(RedBoltWebPackageDirectory)/%(Identity).pak')" Link="wwwroot/resources/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="$(RedBoltWebResourcesManifest)" Link="wwwroot/resources.manifest.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

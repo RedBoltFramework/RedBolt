@@ -36,7 +36,7 @@ file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/generated/web")
 file(WRITE "${REDBOLT_WASM_RESOURCE_MANIFEST}"
     "[\n"
     "  {\"name\":\"../resources/CoreData.pak\",\"virtualPath\":\"CoreData.pak\"},\n"
-    "  {\"name\":\"../resources/Data.pak\",\"virtualPath\":\"Data.pak\"}\n"
+    "  {\"name\":\"../resources/SampleData.pak\",\"virtualPath\":\"SampleData.pak\"}\n"
     "]\n")
 
 add_custom_command(

@@ -88,13 +88,13 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
           Condition="'$(RedBoltExternalDesktopResourceRoot)' != '' and '$(RedBoltExternalDesktopResourceName)' != '' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64')">
     <MakeDir Directories="$(RedBoltOutputRoot)" />
     <EnsureDirectoryLink Source="$(RedBoltRoot)/bin/CoreData" Link="$(RedBoltOutputRoot)/CoreData" />
-    <EnsureDirectoryLink Source="$(RedBoltRoot)/bin/Data" Link="$(RedBoltOutputRoot)/Data" />
+    <EnsureDirectoryLink Source="$(RedBoltRoot)/bin/SampleData" Link="$(RedBoltOutputRoot)/SampleData" />
     <EnsureDirectoryLink Source="$(RedBoltExternalDesktopResourceRoot)/bin/CoreData.$(RedBoltExternalDesktopResourceName)"
                          Link="$(RedBoltOutputRoot)/CoreData.$(RedBoltExternalDesktopResourceName)"
                          Condition="Exists('$(RedBoltExternalDesktopResourceRoot)/bin/CoreData.$(RedBoltExternalDesktopResourceName)')" />
-    <EnsureDirectoryLink Source="$(RedBoltExternalDesktopResourceRoot)/bin/Data.$(RedBoltExternalDesktopResourceName)"
-                         Link="$(RedBoltOutputRoot)/Data.$(RedBoltExternalDesktopResourceName)"
-                         Condition="Exists('$(RedBoltExternalDesktopResourceRoot)/bin/Data.$(RedBoltExternalDesktopResourceName)')" />
+    <EnsureDirectoryLink Source="$(RedBoltExternalDesktopResourceRoot)/bin/SampleData.$(RedBoltExternalDesktopResourceName)"
+                         Link="$(RedBoltOutputRoot)/SampleData.$(RedBoltExternalDesktopResourceName)"
+                         Condition="Exists('$(RedBoltExternalDesktopResourceRoot)/bin/SampleData.$(RedBoltExternalDesktopResourceName)')" />
   </Target>
 
   <Target Name="RedBoltExternalStageDesktopResources"

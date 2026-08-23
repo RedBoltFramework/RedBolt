@@ -37,7 +37,7 @@ The runtime facade brings in the matching managed module and its native and
 module-runtime dependencies. Managed package build targets select the assembly
 compiled for the requested RID.
 
-`RedBolt.CoreData`, `RedBolt.Data`, and `RedBolt.EditorData` copy their resource
+`RedBolt.CoreData`, `RedBolt.SampleData`, and `RedBolt.EditorData` copy their resource
 directories to build output. The Editor package depends on CoreData and
 EditorData only.
 
