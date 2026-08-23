@@ -53,9 +53,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <NativeFileReference Include="$(RedBoltExternalWebArchive)" Condition="'$(RedBoltExternalWebArchive)' != ''" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Core/RedBolt.Core.csproj" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/**/*.csproj" />
-    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Generator/Reflection/RedBolt.Generator.Reflection.csproj"
-                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"
-                      GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Tools/PackageTool/RedBolt.PackageTool.csproj"
                       ReferenceOutputAssembly="false" Private="false" PrivateAssets="all">
       <AdditionalProperties Condition="'$(RedBoltFull)' != 'true'">RedBoltIgnoreBuildSelection=true</AdditionalProperties>

@@ -42,9 +42,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Core/RedBolt.Core.csproj" />
-    <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Generator/Reflection/RedBolt.Generator.Reflection.csproj"
-                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"
-                      GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all" AdditionalProperties="$(RedBoltSharpCppManagedProperties)"
                       GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
