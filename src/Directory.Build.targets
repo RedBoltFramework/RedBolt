@@ -410,9 +410,10 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   </Target>
 
   <!--
-    On host builds, copy NuGet package runtime assets into the shared extern/ bucket (flattening
-    lib/ entries to their filename) and remove them from the local copy-local set. Centralizing
-    these lets every executable resolve them via probing paths instead of duplicating per-project.
+    On host builds, copy NuGet package runtime assets and external project outputs into the shared
+    extern/ bucket (flattening managed libraries to their filename), then remove them from the local
+    copy-local set. Centralizing these lets every executable resolve them via probing paths instead
+    of duplicating per-project.
   -->
   <Target Name="RedBoltStageExternalRuntimeAssets"
           BeforeTargets="_CopyFilesMarkedCopyLocal"
@@ -425,6 +426,11 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       </_RedBoltExternalRuntimeAsset>
       <_RedBoltExternalRuntimeAsset Condition="'%(_RedBoltExternalRuntimeAsset.Extension)' == '.dll' and !$([System.String]::Copy('%(_RedBoltExternalRuntimeAsset.Filename)').EndsWith('.resources')) and ($([System.String]::Copy('%(_RedBoltExternalRuntimeAsset.PathInPackage)').StartsWith('lib/')) or $([System.String]::Copy('%(_RedBoltExternalRuntimeAsset.PathInPackage)').Contains('/lib/')))">
         <DestinationPath>$(RedBoltExternOutputDir)/%(_RedBoltExternalRuntimeAsset.Filename)%(_RedBoltExternalRuntimeAsset.Extension)</DestinationPath>
+        <DestinationDirectory>$(RedBoltExternOutputDir)</DestinationDirectory>
+      </_RedBoltExternalRuntimeAsset>
+      <_RedBoltExternalRuntimeAsset Include="@(ReferenceCopyLocalPaths)"
+                                    Condition="'%(ReferenceCopyLocalPaths.ReferenceSourceTarget)' == 'ProjectReference' and !$([System.String]::Copy('%(ReferenceCopyLocalPaths.FullPath)').StartsWith('$(RedBoltBuildRoot)/'))">
+        <DestinationPath>$(RedBoltExternOutputDir)/%(ReferenceCopyLocalPaths.Filename)%(ReferenceCopyLocalPaths.Extension)</DestinationPath>
         <DestinationDirectory>$(RedBoltExternOutputDir)</DestinationDirectory>
       </_RedBoltExternalRuntimeAsset>
     </ItemGroup>
