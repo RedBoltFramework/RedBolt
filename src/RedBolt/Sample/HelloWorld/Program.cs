@@ -7,13 +7,11 @@ namespace RedBolt.Sample.HelloWorld;
 using System;
 
 using RedBolt;
-using RedBolt.Bindings.DearImGui;
-using RedBolt.DearImGui;
-using RedBolt.Container;
-using RedBolt.Core;
 using RedBolt.Engine;
+using RedBolt.Graphics;
 using RedBolt.Input;
-
+using RedBolt.Math;
+using RedBolt.Scene;
 internal static class HelloWorldProgram
 {
     private static int Main()
@@ -34,82 +32,36 @@ internal static class HelloWorldProgram
     }
 }
 
-/// <summary>
-/// This first example, maintaining tradition, prints a "Hello World" message.
-/// Furthermore it shows:
-///     - Using the Sample / Application classes, which initialize the Urho3D engine and run the main loop
-///     - Adding a Text element to the graphical user interface
-///     - Subscribing to and handling of update events
-/// </summary>
+/// <summary>Displays a centered 3D "Hello, World!" message.</summary>
 public class HelloWorld : Application
 {
-    /// <summary>
-    /// Construct.
-    /// </summary>
-    public HelloWorld()
-    {
-    }
-
-    /// <summary>
-    /// Setup after engine initialization and before running the main loop.
-    /// </summary>
     protected override void Start()
     {
-        // Set the mouse mode to use in the sample
-        Input.SetMouseMode(MouseMode.Free);
-        Input.SetMouseVisible(true);
-
-        // Execute base class startup
         base.Start();
 
-        Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
+        _scene = new Scene();
+        _scene.CreateComponent<Octree>();
 
-        // Create "Hello World" Text
-        CreateText();
+        var text = _scene.CreateChild("Text").CreateComponent<Text3D>();
+        text.SetFont(Resources.Get<Font>("Fonts/Anonymous Pro.ttf"), 64.0f);
+        text.SetText("Hello, World!");
+        text.SetColor(new Color(0.35f, 0.85f, 1.0f));
+        text.SetAlignment(HorizontalAlignment.Center, VerticalAlignment.Center);
 
-        // Finally subscribe to the update event. Note that by subscribing events at this point we have already missed some events
-        // like the ScreenMode event sent by the Graphics subsystem when opening the application window. To catch those as well we
-        // could subscribe in the constructor instead.
-        SubscribeToEvents();
+        var cameraNode = _scene.CreateChild("Camera");
+        cameraNode.SetPosition(new Vector3f(0.0f, 0.0f, -5.0f));
+        var camera = cameraNode.CreateComponent<Camera>();
+        camera.SetOrthographic(true);
+        camera.SetOrthoSize(3.0f);
+
+        _viewport = new Viewport(_scene, camera);
+        Renderer.SetViewport(0, _viewport);
     }
 
-    /// <summary>
-    /// Construct a new Text instance, containing the 'Hello World' String, and add it to the UI root element.
-    /// </summary>
-    private void CreateText()
-    {
-        // Construct new Text object
-        // Set String to display
-        _helloText.FormatInPlace("Hello World from Urho3D!");
-
-        // Set font and text color
-        // Align Text center-screen
-        // Add Text instance to the UI root element
-        // The rbfx Text control is replaced by the allowed Dear ImGui sample UI surface.
-    }
-
-    /// <summary>
-    /// Subscribe to application-wide logic update events.
-    /// </summary>
-    private void SubscribeToEvents()
-    {
-        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawText());
-    }
-
-    /// <summary>
-    /// Handle the logic update event.
-    /// </summary>
     protected override void Update(float timeStep)
     {
-        // Do nothing for now, could be extended to eg. animate the display
-    }
-
-    private void DrawText()
-    {
-        var windowOpen = true;
-        if (ImGui.Begin("Hello World"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
-            ImGui.TextUnformatted(_helloText.ContentBytes);
-        ImGui.End();
+        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+            Exit();
     }
 
     protected override void Setup(EngineParameters parameters)
@@ -121,23 +73,33 @@ public class HelloWorld : Application
         parameters.ResourcePaths = "CoreData;SampleData";
         parameters.ResourcePrefixPaths = ".;..";
 #if !REDBOLT_PLATFORM_BROWSER
-            parameters.WindowHeight = 720;
-            parameters.WindowWidth = 1280;
+        parameters.WindowHeight = 720;
+        parameters.WindowWidth = 1280;
 #endif
         parameters.WindowTitle = "RedBolt Hello World";
     }
 
     protected override void Stop()
     {
-        _helloText.Dispose();
+        Renderer.SetNumViewports(0);
+        _viewport?.Dispose();
+        _viewport = null;
+        _scene?.Dispose();
+        _scene = null;
         base.Stop();
     }
 
     public override void Dispose()
     {
-        _helloText.Dispose();
+        if (_scene is not null)
+            Renderer.SetNumViewports(0);
+        _viewport?.Dispose();
+        _viewport = null;
+        _scene?.Dispose();
+        _scene = null;
         base.Dispose();
     }
 
-    private readonly CString _helloText = new();
+    private Scene? _scene;
+    private Viewport? _viewport;
 }

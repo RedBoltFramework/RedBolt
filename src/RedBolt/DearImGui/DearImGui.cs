@@ -10,7 +10,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 using RedBolt.Bindings.DearImGui;
-using RedBolt.Bindings.Diligent;
 using RedBolt.Bindings.Sdl;
 using RedBolt.Core;
 using RedBolt.Graphics;
@@ -67,6 +66,7 @@ public class DearImGui : RedObject
 
         SetCurrentContext();
         PlatformShutdown();
+        ImGui.ImGuiBackendShutdownTextureOverloads();
         ImGui.DestroyContext(_imContext);
         _imContext = 0;
         for (var i = _fontMemoryHandles.Count - 1; i >= 0; --i)
@@ -204,12 +204,7 @@ public class DearImGui : RedObject
     }
 
     /// <summary>Hold a reference to this texture until end of frame.</summary>
-    public void ReferenceTexture(Texture2D texture)
-    {
-        var textureView = texture.GetRawTexture()!.GetHandles().ShaderResourceView!;
-        _ = textureView.AddRef();
-        _referencedTextures.Add(textureView);
-    }
+    public void ReferenceTexture(Texture2D texture) => _ = ImGui.ImGuiBackendReferenceTexture(texture);
 
     /// <summary>When set to true, DearImGui will not consume SDL events and they will be passed to Input and other subsystems.</summary>
     public bool PassThroughEvents { get; set; }
@@ -447,12 +442,7 @@ public class DearImGui : RedObject
         ImGui.SetMouseCursor(args.Visible ? ImGuiMouseCursor.ImGuiMouseCursorArrow : ImGuiMouseCursor.ImGuiMouseCursorNone);
     }
 
-    private void ClearReferencedTextures()
-    {
-        for (var i = _referencedTextures.Count - 1; i >= 0; --i)
-            _ = _referencedTextures[i].Release();
-        _referencedTextures.Clear();
-    }
+    private static void ClearReferencedTextures() => ImGui.ImGuiBackendClearReferencedTextures();
 
     private void SetCurrentContext()
     {
@@ -474,7 +464,6 @@ public class DearImGui : RedObject
     private readonly List<float> _fontSizes = [];
     private readonly List<GCHandle> _fontMemoryHandles = [];
     private nint _imContext;
-    private readonly List<ITextureView> _referencedTextures = [];
     private bool _enableRelativeMouseMove;
     private Vector2f _relativeMouseMove;
     private bool _revertMousePositionOnDisable;

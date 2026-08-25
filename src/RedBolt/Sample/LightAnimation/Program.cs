@@ -36,16 +36,14 @@ sealed class LightAnimationApplication : Application
     [
         "Textures/Logo.png",
         "Textures/FishBoneLogo.png",
-        "Textures/UrhoIcon.png",
+        "Textures/Icon.png",
         "Textures/TouchInput.png",
         "Textures/CheckboardProperties.png",
     ];
 
     private Scene? _scene;
     private Node? _cameraNode;
-    private DearImGui? _dearImGui;
     private readonly Texture2D?[] _spriteTextures = new Texture2D[5];
-    private readonly ImTextureRef?[] _spriteTextureReferences = new ImTextureRef[5];
     private float _uiTime;
 
     protected override void Setup(EngineParameters parameters)
@@ -66,8 +64,7 @@ sealed class LightAnimationApplication : Application
     /// <summary>Setup after engine initialization and before running the main loop.</summary>
     protected override void Start()
     {
-        _dearImGui = new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags);
-        Context.RegisterSubsystem(_dearImGui);
+        Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
 
         // Create the UI content
         CreateInstructions();
@@ -119,10 +116,7 @@ sealed class LightAnimationApplication : Application
         // (note: a spritesheet and "Image Rect" attribute should be used in real use cases for better performance)
         for (var i = 0; i < _spriteTextures.Length; ++i)
         {
-            var texture = cache.Get<Texture2D>(SpriteTextureNames[i]);
-            _spriteTextures[i] = texture;
-            var textureView = texture.GetRawTexture()!.GetHandles().ShaderResourceView!;
-            _spriteTextureReferences[i] = new ImTextureRef((ulong)(nuint)textureView.Handle);
+            _spriteTextures[i] = cache.Get<Texture2D>(SpriteTextureNames[i]);
         }
 
         // Create more StaticModel objects to the scene, randomly positioned, rotated and scaled. For rotation, we construct a
@@ -173,12 +167,6 @@ sealed class LightAnimationApplication : Application
         _uiTime = (_uiTime + timeStep) % 4.0f;
     }
 
-    protected override void Stop()
-    {
-        for (var i = _spriteTextureReferences.Length - 1; i >= 0; --i)
-            _spriteTextureReferences[i]?.Dispose();
-    }
-
     private void DrawInstructions()
     {
         var windowOpen = true;
@@ -195,9 +183,10 @@ sealed class LightAnimationApplication : Application
                 ImGui.TextUnformatted("GREEN"u8);
 
             var spriteFrame = (int)(_uiTime * 10.0f) % _spriteTextures.Length;
-            _dearImGui!.ReferenceTexture(_spriteTextures[spriteFrame]!);
-            var spriteSize = new Vector2f(64.0f, 64.0f);
-            ImGui.Image(_spriteTextureReferences[spriteFrame]!, spriteSize);
+            var spriteTexture = _spriteTextures[spriteFrame]!;
+            var spriteScale = Math.Min(128.0f / spriteTexture.Width, 64.0f / spriteTexture.Height);
+            var spriteSize = new Vector2f(spriteTexture.Width * spriteScale, spriteTexture.Height * spriteScale);
+            ImGui.Image(spriteTexture, spriteSize);
         }
         ImGui.End();
     }
