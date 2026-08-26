@@ -98,7 +98,7 @@ public class MultipleViewports : Application
         planeNode.SetScale(new Vector3f(100.0f, 1.0f, 100.0f));
         var planeObject = planeNode.CreateComponent<StaticModel>();
         planeObject.SetModel(cache.Get<Model>("Models/Plane.mdl"));
-        planeObject.SetMaterial(cache.Get<Material>("Materials/Terrain.xml"));
+        planeObject.SetMaterial(cache.Get<Material>("ThirdParty/KenneyNature/grass.glb.d/Materials/grass_Lit.xml"));
 
         // Create a Zone component for ambient lighting and fog control
         var zoneNode = _scene.CreateChild("Zone");
@@ -137,20 +137,25 @@ public class MultipleViewports : Application
             treeObject.SetCastShadows(true);
         }
 
-        // Create randomly sized boxes. If boxes are big enough, make them occluders
-        const int NumBoxes = 20;
-        for (var i = 0; i < NumBoxes; ++i)
+        // Add rocks from the nature kit as occluders.
+        const int NumRocks = 20;
+        var rockModel = cache.Get<Model>("ThirdParty/KenneyNature/rock_largeA.glb.d/Models/Mesh rock_largeA.mdl");
+        var dirtMaterial = cache.Get<Material>("ThirdParty/KenneyNature/rock_largeA.glb.d/Materials/dirt_Lit.xml");
+        var rockGrassMaterial = cache.Get<Material>("ThirdParty/KenneyNature/rock_largeA.glb.d/Materials/grass_Lit.xml");
+        for (var i = 0; i < NumRocks; ++i)
         {
-            var boxNode = _scene.CreateChild("Box");
-            var size = 1.0f + MathDefs.Random(10.0f);
-            boxNode.SetPosition(new Vector3f(MathDefs.Random(80.0f) - 40.0f, size * 0.5f, MathDefs.Random(80.0f) - 40.0f));
-            boxNode.SetScale(size);
-            var boxObject = boxNode.CreateComponent<StaticModel>();
-            boxObject.SetModel(cache.Get<Model>("Models/Box.mdl"));
-            boxObject.SetMaterial(cache.Get<Material>("Materials/Stone.xml"));
-            boxObject.SetCastShadows(true);
+            var rockNode = _scene.CreateChild("Rock");
+            var size = 1.0f + MathDefs.Random(3.0f);
+            rockNode.SetPosition(new Vector3f(MathDefs.Random(80.0f) - 40.0f, 0.0f, MathDefs.Random(80.0f) - 40.0f));
+            rockNode.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f));
+            rockNode.SetScale(size);
+            var rockObject = rockNode.CreateComponent<StaticModel>();
+            rockObject.SetModel(rockModel);
+            rockObject.SetMaterial(0, dirtMaterial);
+            rockObject.SetMaterial(1, rockGrassMaterial);
+            rockObject.SetCastShadows(true);
             if (size >= 3.0f)
-                boxObject.SetOccluder(true);
+                rockObject.SetOccluder(true);
         }
 
         // Create the cameras. Limit far clip distance to match the fog

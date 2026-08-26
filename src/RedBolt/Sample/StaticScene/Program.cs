@@ -94,7 +94,7 @@ public class StaticScene : Application
         planeNode.SetScale(new Vector3f(100.0f, 1.0f, 100.0f));
         var planeObject = planeNode.CreateComponent<StaticModel>();
         planeObject.SetModel(cache.Get<Model>("Models/Plane.mdl"));
-        planeObject.SetMaterial(cache.Get<Material>("Materials/Terrain.xml"));
+        planeObject.SetMaterial(cache.Get<Material>("ThirdParty/KenneyNature/grass.glb.d/Materials/grass_Lit.xml"));
 
         var zone = _scene.CreateChild("Zone").CreateComponent<Zone>();
         zone.SetBoundingBox(new BoundingBox(-1000.0f, 1000.0f));
@@ -131,19 +131,22 @@ public class StaticScene : Application
             treeObject.SetCastShadows(true);
         }
 
-        // Keep the legacy LOD model to demonstrate automatic LOD selection.
-        const int NumLodObjects = 40;
-        for (var i = 0; i < NumLodObjects; ++i)
+        // Add low-poly flowers from the same nature kit as the trees.
+        const int NumFlowers = 80;
+        var flowerModel = cache.Get<Model>("ThirdParty/KenneyNature/flower_redA.glb.d/Models/Mesh flower_redA.mdl");
+        var grassMaterial = cache.Get<Material>("ThirdParty/KenneyNature/flower_redA.glb.d/Materials/grass_Lit.xml");
+        var flowerMaterial = cache.Get<Material>("ThirdParty/KenneyNature/flower_redA.glb.d/Materials/colorRed_Lit.xml");
+        for (var i = 0; i < NumFlowers; ++i)
         {
-            var mushroomNode = _scene.CreateChild("Mushroom");
-            mushroomNode.SetPosition(new Vector3f(MathDefs.Random(90.0f) - 45.0f, 0.0f, MathDefs.Random(90.0f) - 45.0f));
-            mushroomNode.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f));
-            mushroomNode.SetScale(0.5f + MathDefs.Random(2.0f));
-            var mushroomObject = mushroomNode.CreateComponent<StaticModel>();
-            mushroomObject.SetModel(cache.Get<Model>("Models/Mushroom.mdl"));
-            mushroomObject.SetMaterial(cache.Get<Material>("Materials/Mushroom.xml"));
+            var flowerNode = _scene.CreateChild("Flower");
+            flowerNode.SetPosition(new Vector3f(MathDefs.Random(90.0f) - 45.0f, 0.0f, MathDefs.Random(90.0f) - 45.0f));
+            flowerNode.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f));
+            flowerNode.SetScale(0.8f + MathDefs.Random(0.8f));
+            var flowerObject = flowerNode.CreateComponent<StaticModel>();
+            flowerObject.SetModel(flowerModel);
+            flowerObject.SetMaterial(0, grassMaterial);
+            flowerObject.SetMaterial(1, flowerMaterial);
         }
-
         // Create a scene node for the camera, which we will move around.
         _cameraNode = _scene.CreateChild("Camera");
         _cameraNode.CreateComponent<Camera>().SetFarClip(180.0f);
