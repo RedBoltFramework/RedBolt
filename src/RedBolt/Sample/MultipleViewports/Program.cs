@@ -98,39 +98,43 @@ public class MultipleViewports : Application
         planeNode.SetScale(new Vector3f(100.0f, 1.0f, 100.0f));
         var planeObject = planeNode.CreateComponent<StaticModel>();
         planeObject.SetModel(cache.Get<Model>("Models/Plane.mdl"));
-        planeObject.SetMaterial(cache.Get<Material>("Materials/StoneTiled.xml"));
+        planeObject.SetMaterial(cache.Get<Material>("Materials/Terrain.xml"));
 
-        // Create a Zone component for ambient lighting & fog control
+        // Create a Zone component for ambient lighting and fog control
         var zoneNode = _scene.CreateChild("Zone");
         var zone = zoneNode.CreateComponent<Zone>();
         zone.SetBoundingBox(new BoundingBox(-1000.0f, 1000.0f));
-        zone.SetAmbientColor(new Color(0.15f, 0.15f, 0.15f));
-        zone.SetFogColor(new Color(0.5f, 0.5f, 0.7f));
-        zone.SetFogStart(100.0f);
-        zone.SetFogEnd(300.0f);
+        zone.SetAmbientColor(new Color(0.28f, 0.30f, 0.26f));
+        zone.SetFogColor(new Color(0.62f, 0.72f, 0.82f));
+        zone.SetFogStart(75.0f);
+        zone.SetFogEnd(180.0f);
 
-        // Create a directional light to the world. Enable cascaded shadows on it
+        // Create a warm directional light with cascaded shadows
         var lightNode = _scene.CreateChild("DirectionalLight");
         lightNode.SetDirection(new Vector3f(0.6f, -1.0f, 0.8f));
         var light = lightNode.CreateComponent<Light>();
         light.SetLightType(LightType.Directional);
+        light.SetColor(new Color(1.0f, 0.84f, 0.68f));
         light.SetCastShadows(true);
         light.SetShadowBias(new BiasParameters(0.00025f, 0.5f));
-        // Set cascade splits at 10, 50 and 200 world units, fade shadows out at 80% of maximum shadow distance
-        light.SetShadowCascade(new CascadeParameters(10.0f, 50.0f, 200.0f, 0.0f, 0.8f));
+        light.SetShadowCascade(new CascadeParameters(10.0f, 50.0f, 150.0f, 0.0f, 0.8f));
 
-        // Create some mushrooms
-        const int NumMushrooms = 240;
-        for (var i = 0; i < NumMushrooms; ++i)
+        // Create a forest from repeated imported models
+        const int NumTrees = 180;
+        var treeModel = cache.Get<Model>("ThirdParty/KenneyNature/tree_fat.glb.d/Models/Mesh tree_fat.mdl");
+        var barkMaterial = cache.Get<Material>("ThirdParty/KenneyNature/tree_fat.glb.d/Materials/woodBark_Lit.xml");
+        var leavesMaterial = cache.Get<Material>("ThirdParty/KenneyNature/tree_fat.glb.d/Materials/leafsGreen_Lit.xml");
+        for (var i = 0; i < NumTrees; ++i)
         {
-            var mushroomNode = _scene.CreateChild("Mushroom");
-            mushroomNode.SetPosition(new Vector3f(MathDefs.Random(90.0f) - 45.0f, 0.0f, MathDefs.Random(90.0f) - 45.0f));
-            mushroomNode.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f));
-            mushroomNode.SetScale(0.5f + MathDefs.Random(2.0f));
-            var mushroomObject = mushroomNode.CreateComponent<StaticModel>();
-            mushroomObject.SetModel(cache.Get<Model>("Models/Mushroom.mdl"));
-            mushroomObject.SetMaterial(cache.Get<Material>("Materials/Mushroom.xml"));
-            mushroomObject.SetCastShadows(true);
+            var treeNode = _scene.CreateChild("Tree");
+            treeNode.SetPosition(new Vector3f(MathDefs.Random(90.0f) - 45.0f, 0.0f, MathDefs.Random(90.0f) - 45.0f));
+            treeNode.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f));
+            treeNode.SetScale(1.5f + MathDefs.Random(2.5f));
+            var treeObject = treeNode.CreateComponent<StaticModel>();
+            treeObject.SetModel(treeModel);
+            treeObject.SetMaterial(0, leavesMaterial);
+            treeObject.SetMaterial(1, barkMaterial);
+            treeObject.SetCastShadows(true);
         }
 
         // Create randomly sized boxes. If boxes are big enough, make them occluders

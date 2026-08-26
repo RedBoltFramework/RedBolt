@@ -89,31 +89,51 @@ public class StaticScene : Application
         // optimizing manner
         _scene.CreateComponent<Octree>();
 
-        // Create a child scene node (at world origin) and a StaticModel component into it. Set the StaticModel to show a simple
-        // plane mesh with a "stone" material. Note that naming the scene nodes is optional. Scale the scene node larger
-        // (100 x 100 world units)
+        // Create a child scene node (at world origin) and a StaticModel component into it. Scale the plane to 100 x 100 world units.
         var planeNode = _scene.CreateChild("Plane");
         planeNode.SetScale(new Vector3f(100.0f, 1.0f, 100.0f));
         var planeObject = planeNode.CreateComponent<StaticModel>();
         planeObject.SetModel(cache.Get<Model>("Models/Plane.mdl"));
-        planeObject.SetMaterial(cache.Get<Material>("Materials/StoneTiled.xml"));
+        planeObject.SetMaterial(cache.Get<Material>("Materials/Terrain.xml"));
 
-        // Create a directional light to the world so that we can see something. The light scene node's orientation controls the
-        // light direction; we will use the SetDirection() function which calculates the orientation from a forward direction vector.
-        // The light will use default settings (white light, no shadows)
+        var zone = _scene.CreateChild("Zone").CreateComponent<Zone>();
+        zone.SetBoundingBox(new BoundingBox(-1000.0f, 1000.0f));
+        zone.SetAmbientColor(new Color(0.28f, 0.30f, 0.26f));
+        zone.SetFogColor(new Color(0.62f, 0.72f, 0.82f));
+        zone.SetFogStart(75.0f);
+        zone.SetFogEnd(180.0f);
+
+        // Create a warm directional light with cascaded shadows.
         var lightNode = _scene.CreateChild("DirectionalLight");
-        lightNode.SetDirection(new Vector3f(0.6f, -1.0f, 0.8f)); // The direction vector does not need to be normalized
+        lightNode.SetDirection(new Vector3f(0.6f, -1.0f, 0.8f));
         var light = lightNode.CreateComponent<Light>();
         light.SetLightType(LightType.Directional);
+        light.SetColor(new Color(1.0f, 0.84f, 0.68f));
+        light.SetCastShadows(true);
+        light.SetShadowBias(new BiasParameters(0.00025f, 0.5f));
+        light.SetShadowCascade(new CascadeParameters(10.0f, 50.0f, 150.0f, 0.0f, 0.8f));
 
-        // Create more StaticModel objects to the scene, randomly positioned, rotated and scaled. For rotation, we construct a
-        // quaternion from Euler angles where the Y angle (rotation about the Y axis) is randomized. The mushroom model contains
-        // LOD levels, so the StaticModel component will automatically select the LOD level according to the view distance (you'll
-        // see the model get simpler as it moves further away). Finally, rendering a large number of the same object with the
-        // same material allows instancing to be used, if the GPU supports it. This reduces the amount of CPU work in rendering the
-        // scene.
-        const int NumObjects = 200;
-        for (var i = 0; i < NumObjects; ++i)
+        // Repeated trees use instancing when the GPU supports it.
+        const int NumTrees = 160;
+        var treeModel = cache.Get<Model>("ThirdParty/KenneyNature/tree_default.glb.d/Models/Mesh tree_default.mdl");
+        var barkMaterial = cache.Get<Material>("ThirdParty/KenneyNature/tree_default.glb.d/Materials/woodBark_Lit.xml");
+        var leavesMaterial = cache.Get<Material>("ThirdParty/KenneyNature/tree_default.glb.d/Materials/leafsGreen_Lit.xml");
+        for (var i = 0; i < NumTrees; ++i)
+        {
+            var treeNode = _scene.CreateChild("Tree");
+            treeNode.SetPosition(new Vector3f(MathDefs.Random(90.0f) - 45.0f, 0.0f, MathDefs.Random(90.0f) - 45.0f));
+            treeNode.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f));
+            treeNode.SetScale(1.5f + MathDefs.Random(2.5f));
+            var treeObject = treeNode.CreateComponent<StaticModel>();
+            treeObject.SetModel(treeModel);
+            treeObject.SetMaterial(0, barkMaterial);
+            treeObject.SetMaterial(1, leavesMaterial);
+            treeObject.SetCastShadows(true);
+        }
+
+        // Keep the legacy LOD model to demonstrate automatic LOD selection.
+        const int NumLodObjects = 40;
+        for (var i = 0; i < NumLodObjects; ++i)
         {
             var mushroomNode = _scene.CreateChild("Mushroom");
             mushroomNode.SetPosition(new Vector3f(MathDefs.Random(90.0f) - 45.0f, 0.0f, MathDefs.Random(90.0f) - 45.0f));
@@ -124,14 +144,11 @@ public class StaticScene : Application
             mushroomObject.SetMaterial(cache.Get<Material>("Materials/Mushroom.xml"));
         }
 
-        // Create a scene node for the camera, which we will move around
-        // The camera will use default settings (1000 far clip distance, 45 degrees FOV, set aspect ratio automatically)
+        // Create a scene node for the camera, which we will move around.
         _cameraNode = _scene.CreateChild("Camera");
-        _cameraNode.CreateComponent<Camera>();
+        _cameraNode.CreateComponent<Camera>().SetFarClip(180.0f);
         _cameraNode.CreateComponent<FreeFlyController>();
-
-        // Set an initial position for the camera scene node above the plane
-        _cameraNode.SetPosition(new Vector3f(0.0f, 5.0f, 0.0f));
+        _cameraNode.SetPosition(new Vector3f(0.0f, 7.0f, -18.0f));
     }
 
     /// <summary>
