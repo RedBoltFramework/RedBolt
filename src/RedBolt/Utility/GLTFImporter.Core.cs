@@ -7,6 +7,7 @@ namespace RedBolt.Utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 using Tg = RedBolt.Bindings.TinyGltf;
@@ -446,12 +447,12 @@ internal sealed class GLTFBufferReader
         var offset = checked((int)bufferView.ByteOffset) + byteOffset;
         var stride = GetByteStride(bufferView, componentType, type);
         var numComponents = checked((int)TgNative.GetNumComponentsInType((uint)type));
-        Span<byte> source = stackalloc byte[Marshal.SizeOf<T>()];
+        Span<byte> source = stackalloc byte[Unsafe.SizeOf<T>()];
         for (var i = 0; i < count; ++i)
         {
             for (var j = 0; j < numComponents; ++j)
             {
-                var componentOffset = offset + Marshal.SizeOf<T>() * j;
+                var componentOffset = offset + Unsafe.SizeOf<T>() * j;
                 for (var byteIndex = 0; byteIndex < source.Length; ++byteIndex)
                     source[byteIndex] = bufferData[componentOffset + byteIndex];
                 var elementValue = MemoryMarshal.Read<T>(source);
@@ -463,7 +464,7 @@ internal sealed class GLTFBufferReader
 
     private static List<T> RepackFloats<T>(List<float> source) where T : unmanaged
     {
-        var numComponents = Marshal.SizeOf<T>() / sizeof(float);
+        var numComponents = Unsafe.SizeOf<T>() / sizeof(float);
         if (source.Count % numComponents != 0)
             throw new InvalidOperationException("Unexpected number of components in array");
         return MemoryMarshal.Cast<float, T>(CollectionsMarshal.AsSpan(source)).ToArray().ToList();

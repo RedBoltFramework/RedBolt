@@ -1,0 +1,10 @@
+{
+  "Transformers": [
+    {
+      "_Class": "ModelImporter"
+    },
+    {
+      "_Class": "GenerateLightmapUVTransformer"
+    }
+  ]
+}

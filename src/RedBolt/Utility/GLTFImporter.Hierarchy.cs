@@ -530,7 +530,7 @@ internal sealed partial class GLTFHierarchyAnalyzer
         if (sourceSkin.InverseBindMatrices >= 0)
         {
             _base.CheckAccessor(sourceSkin.InverseBindMatrices);
-            var sourceBindMatrices = _bufferReader.ReadAccessorChecked<Matrix4>(_model.Accessors[sourceSkin.InverseBindMatrices]);
+            var sourceBindMatrices = _bufferReader.ReadMatrix4Accessor(_model.Accessors[sourceSkin.InverseBindMatrices]);
             if (sourceSkin.Joints.Count > sourceBindMatrices.Count)
                 throw new InvalidOperationException("Unexpected size of bind matrices array");
             for (var i = 0; i < sourceSkin.Joints.Count; ++i)

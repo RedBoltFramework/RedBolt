@@ -1,0 +1,2654 @@
+{
+	"components": [
+		{
+			"_typeName": "Octree"
+		},
+		{
+			"_typeName": "RenderPipeline",
+			"attributes": [
+				{
+					"name": "Render Passes",
+					"type": "VariantVector",
+					"value": [
+						{
+							"type": "String",
+							"value": "Postprocess: Exposure"
+						},
+						{
+							"type": "Bool",
+							"value": true
+						},
+						{
+							"type": "String",
+							"value": "Postprocess: SSAO"
+						},
+						{
+							"type": "Bool",
+							"value": false
+						},
+						{
+							"type": "String",
+							"value": "Postprocess: Bloom"
+						},
+						{
+							"type": "Bool",
+							"value": false
+						},
+						{
+							"type": "String",
+							"value": "Postprocess: Draw Outlines"
+						},
+						{
+							"type": "Bool",
+							"value": true
+						},
+						{
+							"type": "String",
+							"value": "Postprocess: Tone Mapping"
+						},
+						{
+							"type": "Bool",
+							"value": true
+						},
+						{
+							"type": "String",
+							"value": "Postprocess: Adjust Color"
+						},
+						{
+							"type": "Bool",
+							"value": true
+						},
+						{
+							"type": "String",
+							"value": "Postprocess: FXAA v2"
+						},
+						{
+							"type": "Bool",
+							"value": false
+						},
+						{
+							"type": "String",
+							"value": "Postprocess: FXAA v3"
+						},
+						{
+							"type": "Bool",
+							"value": true
+						},
+						{
+							"type": "String",
+							"value": "Postprocess: Chromatic Aberration"
+						},
+						{
+							"type": "Bool",
+							"value": false
+						},
+						{
+							"type": "String",
+							"value": "Postprocess: Vignette"
+						},
+						{
+							"type": "Bool",
+							"value": false
+						}
+					]
+				},
+				{
+					"name": "Render Path Parameters",
+					"type": "StringVariantMap",
+					"value": [
+						{
+							"key": "Exposure: Automatic",
+							"type": "Bool",
+							"value": false
+						},
+						{
+							"key": "Exposure: Min",
+							"type": "Float",
+							"value": 1
+						},
+						{
+							"key": "Exposure: Max",
+							"type": "Float",
+							"value": 3
+						},
+						{
+							"key": "Exposure: Adapt Rate",
+							"type": "Float",
+							"value": 0.6000000238418579
+						},
+						{
+							"key": "SSAO: Downscale",
+							"type": "Int",
+							"value": 0
+						},
+						{
+							"key": "SSAO: Strength",
+							"type": "Float",
+							"value": 0.699999988079071
+						},
+						{
+							"key": "SSAO: Exponent",
+							"type": "Float",
+							"value": 1.5
+						},
+						{
+							"key": "SSAO: Near Radius",
+							"type": "Float",
+							"value": 0.05000000074505806
+						},
+						{
+							"key": "SSAO: Near Distance",
+							"type": "Float",
+							"value": 1
+						},
+						{
+							"key": "SSAO: Far Radius",
+							"type": "Float",
+							"value": 1
+						},
+						{
+							"key": "SSAO: Far Distance",
+							"type": "Float",
+							"value": 100
+						},
+						{
+							"key": "SSAO: Begin Fade Distance",
+							"type": "Float",
+							"value": 100
+						},
+						{
+							"key": "SSAO: End Fade Distance",
+							"type": "Float",
+							"value": 200
+						},
+						{
+							"key": "SSAO: Depth Threshold",
+							"type": "Float",
+							"value": 0.10000000149011612
+						},
+						{
+							"key": "SSAO: Normal Threshold",
+							"type": "Float",
+							"value": 0.20000000298023224
+						},
+						{
+							"key": "Bloom: Num Iterations",
+							"type": "Int",
+							"value": 5
+						},
+						{
+							"key": "Bloom: Min Brightness",
+							"type": "Float",
+							"value": 0.800000011920929
+						},
+						{
+							"key": "Bloom: Max Brightness",
+							"type": "Float",
+							"value": 1
+						},
+						{
+							"key": "Bloom: Base Intensity",
+							"type": "Float",
+							"value": 1
+						},
+						{
+							"key": "Bloom: Iteration Intensity Factor",
+							"type": "Float",
+							"value": 1
+						},
+						{
+							"key": "Tone Mapping: Mode",
+							"type": "Int",
+							"value": 0
+						},
+						{
+							"key": "Tone Mapping: Mode@",
+							"type": "StringVector",
+							"value": [
+								"None",
+								"Reinhard",
+								"ReinhardWhite",
+								"Uncharted2"
+							]
+						},
+						{
+							"key": "Adjust Color: ColorFilter",
+							"type": "Vector4",
+							"value": "1 1 1 1"
+						},
+						{
+							"key": "Adjust Color: ColorOffset",
+							"type": "Vector4",
+							"value": "0 0 0 0"
+						},
+						{
+							"key": "Adjust Color: HSVParams",
+							"type": "Vector4",
+							"value": "1 1 1 1"
+						},
+						{
+							"key": "FXAA: FXAAParams",
+							"type": "Vector3",
+							"value": "0.4 0.5 0.75"
+						},
+						{
+							"key": "Chromatic Aberration: Amount",
+							"type": "Float",
+							"value": 0.4000000059604645
+						},
+						{
+							"key": "Vignette: Intensity",
+							"type": "Float",
+							"value": 0.4000000059604645
+						},
+						{
+							"key": "Vignette: Radius",
+							"type": "Float",
+							"value": 0.5
+						},
+						{
+							"key": "Vignette: Color",
+							"type": "Color",
+							"value": "0 0 0 0.4"
+						}
+					]
+				},
+				{
+					"name": "Color Space",
+					"type": "String",
+					"value": "LDR Linear"
+				},
+				{
+					"name": "PCF Kernel Size",
+					"type": "Int",
+					"value": 5
+				}
+			]
+		}
+	],
+	"nodes": [
+		{
+			"attributes": [
+				{
+					"name": "Name",
+					"type": "String",
+					"value": "UniversalCharacter.glb"
+				}
+			],
+			"components": [
+				{
+					"_typeName": "AnimatedModel",
+					"attributes": [
+						{
+							"name": "Model",
+							"type": "ResourceRef",
+							"value": "Model;ThirdParty/Quaternius/UniversalCharacter.glb.d/Models/Face.mdl"
+						},
+						{
+							"name": "Material",
+							"type": "ResourceRefList",
+							"value": "Material;ThirdParty/Quaternius/UniversalCharacter.glb.d/Materials/MI_Hair_1_LitNormalMap.xml"
+						},
+						{
+							"name": "Cast Shadows",
+							"type": "Bool",
+							"value": true
+						},
+						{
+							"name": "Bone Animation Enabled",
+							"type": "VariantVector",
+							"value": [
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								}
+							]
+						}
+					]
+				},
+				{
+					"_typeName": "AnimatedModel",
+					"attributes": [
+						{
+							"name": "Model",
+							"type": "ResourceRef",
+							"value": "Model;ThirdParty/Quaternius/UniversalCharacter.glb.d/Models/Face.001.mdl"
+						},
+						{
+							"name": "Material",
+							"type": "ResourceRefList",
+							"value": "Material;ThirdParty/Quaternius/UniversalCharacter.glb.d/Materials/MI_Eyes_LitNormalMap.xml"
+						},
+						{
+							"name": "Cast Shadows",
+							"type": "Bool",
+							"value": true
+						},
+						{
+							"name": "Bone Animation Enabled",
+							"type": "VariantVector",
+							"value": [
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								}
+							]
+						}
+					]
+				},
+				{
+					"_typeName": "AnimatedModel",
+					"attributes": [
+						{
+							"name": "Model",
+							"type": "ResourceRef",
+							"value": "Model;ThirdParty/Quaternius/UniversalCharacter.glb.d/Models/Sphere.005_Retopology.004.mdl"
+						},
+						{
+							"name": "Material",
+							"type": "ResourceRefList",
+							"value": "Material;ThirdParty/Quaternius/UniversalCharacter.glb.d/Materials/MI_Superhero_Male_LitNormalMap.xml"
+						},
+						{
+							"name": "Cast Shadows",
+							"type": "Bool",
+							"value": true
+						},
+						{
+							"name": "Bone Animation Enabled",
+							"type": "VariantVector",
+							"value": [
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								}
+							]
+						}
+					]
+				},
+				{
+					"_typeName": "AnimationController",
+					"attributes": [
+						{
+							"name": "Animations",
+							"type": "VariantVector",
+							"value": [
+								{
+									"type": "Int",
+									"value": 1
+								},
+								{
+									"type": "ResourceRef",
+									"value": "Animation;ThirdParty/Quaternius/UniversalCharacter.glb.d/Animations/Idle_Loop.ani"
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Int",
+									"value": 0
+								},
+								{
+									"type": "Int",
+									"value": 0
+								},
+								{
+									"type": "String",
+									"value": ""
+								},
+								{
+									"type": "Float",
+									"value": 0
+								},
+								{
+									"type": "Float",
+									"value": 0
+								},
+								{
+									"type": "Float",
+									"value": 0
+								},
+								{
+									"type": "Float",
+									"value": 2.5
+								},
+								{
+									"type": "Float",
+									"value": 1
+								},
+								{
+									"type": "Bool",
+									"value": true
+								},
+								{
+									"type": "Float",
+									"value": 1
+								},
+								{
+									"type": "Float",
+									"value": 1
+								},
+								{
+									"type": "Float",
+									"value": 0
+								}
+							]
+						}
+					]
+				}
+			],
+			"nodes": [
+				{
+					"attributes": [
+						{
+							"name": "Name",
+							"type": "String",
+							"value": "root"
+						},
+						{
+							"name": "Rotation",
+							"type": "Quaternion",
+							"value": "0.707107 -0.707107 -0 -0"
+						}
+					],
+					"nodes": [
+						{
+							"attributes": [
+								{
+									"name": "Name",
+									"type": "String",
+									"value": "pelvis"
+								},
+								{
+									"name": "Position",
+									"type": "Vector3",
+									"value": "-0 0.043 0.9491"
+								},
+								{
+									"name": "Rotation",
+									"type": "Quaternion",
+									"value": "0.599238 0.800571 -1.78587e-08 -2.38589e-08"
+								}
+							],
+							"nodes": [
+								{
+									"attributes": [
+										{
+											"name": "Name",
+											"type": "String",
+											"value": "spine_01"
+										},
+										{
+											"name": "Position",
+											"type": "Vector3",
+											"value": "-2.77556e-15 0.128092 -4.65661e-08"
+										},
+										{
+											"name": "Rotation",
+											"type": "Quaternion",
+											"value": "0.995772 -0.0918562 -3.70954e-09 5.81725e-09"
+										}
+									],
+									"nodes": [
+										{
+											"attributes": [
+												{
+													"name": "Name",
+													"type": "String",
+													"value": "spine_02"
+												},
+												{
+													"name": "Position",
+													"type": "Vector3",
+													"value": "-1.30451e-15 0.10635 -1.74623e-08"
+												},
+												{
+													"name": "Rotation",
+													"type": "Quaternion",
+													"value": "0.999216 -0.0395854 -6.0668e-08 5.05786e-09"
+												}
+											],
+											"nodes": [
+												{
+													"attributes": [
+														{
+															"name": "Name",
+															"type": "String",
+															"value": "spine_03"
+														},
+														{
+															"name": "Position",
+															"type": "Vector3",
+															"value": "-6.82426e-15 0.133134 -3.58559e-08"
+														},
+														{
+															"name": "Rotation",
+															"type": "Quaternion",
+															"value": "0.992259 -0.124189 6.3942e-08 1.54051e-08"
+														}
+													],
+													"nodes": [
+														{
+															"attributes": [
+																{
+																	"name": "Name",
+																	"type": "String",
+																	"value": "clavicle_l"
+																},
+																{
+																	"name": "Position",
+																	"type": "Vector3",
+																	"value": "-0.0314 0.173718 0.0673285"
+																},
+																{
+																	"name": "Rotation",
+																	"type": "Quaternion",
+																	"value": "0.663997 -0.528737 0.329102 0.413808"
+																}
+															],
+															"nodes": [
+																{
+																	"attributes": [
+																		{
+																			"name": "Name",
+																			"type": "String",
+																			"value": "upperarm_l"
+																		},
+																		{
+																			"name": "Position",
+																			"type": "Vector3",
+																			"value": "0.00913575 0.205739 -0.0396713"
+																		},
+																		{
+																			"name": "Rotation",
+																			"type": "Quaternion",
+																			"value": "0.691072 0.149803 -0.691131 0.149388"
+																		}
+																	],
+																	"nodes": [
+																		{
+																			"attributes": [
+																				{
+																					"name": "Name",
+																					"type": "String",
+																					"value": "lowerarm_l"
+																				},
+																				{
+																					"name": "Position",
+																					"type": "Vector3",
+																					"value": "-1.44074e-07 0.251115 -2.79033e-08"
+																				},
+																				{
+																					"name": "Rotation",
+																					"type": "Quaternion",
+																					"value": "0.999528 0.0307322 -4.15988e-05 1.47905e-06"
+																				}
+																			],
+																			"nodes": [
+																				{
+																					"attributes": [
+																						{
+																							"name": "Name",
+																							"type": "String",
+																							"value": "hand_l"
+																						},
+																						{
+																							"name": "Position",
+																							"type": "Vector3",
+																							"value": "1.40819e-07 0.243594 2.8557e-09"
+																						},
+																						{
+																							"name": "Rotation",
+																							"type": "Quaternion",
+																							"value": "0.999878 -0.0156016 4.17168e-07 1.0911e-08"
+																						}
+																					],
+																					"nodes": [
+																						{
+																							"attributes": [
+																								{
+																									"name": "Name",
+																									"type": "String",
+																									"value": "index_01_l"
+																								},
+																								{
+																									"name": "Position",
+																									"type": "Vector3",
+																									"value": "-0.0071596 0.117403 0.0406433"
+																								},
+																								{
+																									"name": "Rotation",
+																									"type": "Quaternion",
+																									"value": "0.707108 0.00850505 -0.706812 0.0185241"
+																								}
+																							],
+																							"nodes": [
+																								{
+																									"attributes": [
+																										{
+																											"name": "Name",
+																											"type": "String",
+																											"value": "index_02_l"
+																										},
+																										{
+																											"name": "Position",
+																											"type": "Vector3",
+																											"value": "1.80444e-09 0.0326126 -9.76652e-08"
+																										},
+																										{
+																											"name": "Rotation",
+																											"type": "Quaternion",
+																											"value": "1 4.78253e-07 -4.95105e-05 0.000533078"
+																										}
+																									],
+																									"nodes": [
+																										{
+																											"attributes": [
+																												{
+																													"name": "Name",
+																													"type": "String",
+																													"value": "index_03_l"
+																												},
+																												{
+																													"name": "Position",
+																													"type": "Vector3",
+																													"value": "1.40608e-09 0.0279114 -8.0011e-08"
+																												},
+																												{
+																													"name": "Rotation",
+																													"type": "Quaternion",
+																													"value": "1 1.98966e-06 7.07245e-06 0.000185674"
+																												}
+																											],
+																											"nodes": [
+																												{
+																													"attributes": [
+																														{
+																															"name": "Name",
+																															"type": "String",
+																															"value": "index_04_leaf_l"
+																														},
+																														{
+																															"name": "Position",
+																															"type": "Vector3",
+																															"value": "6.05814e-09 0.0241101 -1.16768e-07"
+																														},
+																														{
+																															"name": "Rotation",
+																															"type": "Quaternion",
+																															"value": "0.018816 -3.79579e-08 -0.999823 1.97805e-09"
+																														}
+																													]
+																												}
+																											]
+																										}
+																									]
+																								}
+																							]
+																						},
+																						{
+																							"attributes": [
+																								{
+																									"name": "Name",
+																									"type": "String",
+																									"value": "middle_01_l"
+																								},
+																								{
+																									"name": "Position",
+																									"type": "Vector3",
+																									"value": "-0.00468279 0.115439 0.0151134"
+																								},
+																								{
+																									"name": "Rotation",
+																									"type": "Quaternion",
+																									"value": "0.707092 0.00506733 -0.706763 0.0219582"
+																								}
+																							],
+																							"nodes": [
+																								{
+																									"attributes": [
+																										{
+																											"name": "Name",
+																											"type": "String",
+																											"value": "middle_02_l"
+																										},
+																										{
+																											"name": "Position",
+																											"type": "Vector3",
+																											"value": "-1.04919e-08 0.0375261 -1.48229e-07"
+																										},
+																										{
+																											"name": "Rotation",
+																											"type": "Quaternion",
+																											"value": "0.999998 5.93097e-07 -7.84007e-05 -0.00205279"
+																										}
+																									],
+																									"nodes": [
+																										{
+																											"attributes": [
+																												{
+																													"name": "Name",
+																													"type": "String",
+																													"value": "middle_03_l"
+																												},
+																												{
+																													"name": "Position",
+																													"type": "Vector3",
+																													"value": "9.91349e-11 0.0301167 -4.86085e-07"
+																												},
+																												{
+																													"name": "Rotation",
+																													"type": "Quaternion",
+																													"value": "0.999999 -3.53824e-07 5.43175e-05 0.00141977"
+																												}
+																											],
+																											"nodes": [
+																												{
+																													"attributes": [
+																														{
+																															"name": "Name",
+																															"type": "String",
+																															"value": "middle_04_leaf_l"
+																														},
+																														{
+																															"name": "Position",
+																															"type": "Vector3",
+																															"value": "-9.86802e-10 0.0305197 1.61959e-07"
+																														},
+																														{
+																															"name": "Rotation",
+																															"type": "Quaternion",
+																															"value": "0.0186798 1.09669e-09 -0.999826 1.28079e-09"
+																														}
+																													]
+																												}
+																											]
+																										}
+																									]
+																								}
+																							]
+																						},
+																						{
+																							"attributes": [
+																								{
+																									"name": "Name",
+																									"type": "String",
+																									"value": "pinky_01_l"
+																								},
+																								{
+																									"name": "Position",
+																									"type": "Vector3",
+																									"value": "-0.00603786 0.0985413 -0.0346174"
+																								},
+																								{
+																									"name": "Rotation",
+																									"type": "Quaternion",
+																									"value": "0.707105 0.00260101 -0.706682 0.0244147"
+																								}
+																							],
+																							"nodes": [
+																								{
+																									"attributes": [
+																										{
+																											"name": "Name",
+																											"type": "String",
+																											"value": "pinky_02_l"
+																										},
+																										{
+																											"name": "Position",
+																											"type": "Vector3",
+																											"value": "7.80437e-09 0.0316311 6.03395e-08"
+																										},
+																										{
+																											"name": "Rotation",
+																											"type": "Quaternion",
+																											"value": "0.999999 4.38e-07 -9.5339e-05 0.00156744"
+																										}
+																									],
+																									"nodes": [
+																										{
+																											"attributes": [
+																												{
+																													"name": "Name",
+																													"type": "String",
+																													"value": "pinky_03_l"
+																												},
+																												{
+																													"name": "Position",
+																													"type": "Vector3",
+																													"value": "2.99769e-09 0.0274308 9.99207e-08"
+																												},
+																												{
+																													"name": "Rotation",
+																													"type": "Quaternion",
+																													"value": "1 3.26299e-06 0.000137349 -0.000466092"
+																												}
+																											],
+																											"nodes": [
+																												{
+																													"attributes": [
+																														{
+																															"name": "Name",
+																															"type": "String",
+																															"value": "pinky_04_leaf_l"
+																														},
+																														{
+																															"name": "Position",
+																															"type": "Vector3",
+																															"value": "-3.08228e-09 0.0215234 1.66576e-07"
+																														},
+																														{
+																															"name": "Rotation",
+																															"type": "Quaternion",
+																															"value": "0.0184837 -3.71628e-10 -0.999829 3.38026e-09"
+																														}
+																													]
+																												}
+																											]
+																										}
+																									]
+																								}
+																							]
+																						},
+																						{
+																							"attributes": [
+																								{
+																									"name": "Name",
+																									"type": "String",
+																									"value": "ring_01_l"
+																								},
+																								{
+																									"name": "Position",
+																									"type": "Vector3",
+																									"value": "-0.00475206 0.109401 -0.0123702"
+																								},
+																								{
+																									"name": "Rotation",
+																									"type": "Quaternion",
+																									"value": "0.707033 0.0153238 -0.706917 0.0117133"
+																								}
+																							],
+																							"nodes": [
+																								{
+																									"attributes": [
+																										{
+																											"name": "Name",
+																											"type": "String",
+																											"value": "ring_02_l"
+																										},
+																										{
+																											"name": "Position",
+																											"type": "Vector3",
+																											"value": "3.75439e-09 0.0360011 1.13278e-08"
+																										},
+																										{
+																											"name": "Rotation",
+																											"type": "Quaternion",
+																											"value": "0.999997 -4.78681e-06 -0.000218571 -0.00239977"
+																										}
+																									],
+																									"nodes": [
+																										{
+																											"attributes": [
+																												{
+																													"name": "Name",
+																													"type": "String",
+																													"value": "ring_03_l"
+																												},
+																												{
+																													"name": "Position",
+																													"type": "Vector3",
+																													"value": "1.38907e-08 0.0283001 -1.20239e-07"
+																												},
+																												{
+																													"name": "Rotation",
+																													"type": "Quaternion",
+																													"value": "0.999994 3.6106e-06 0.00025298 0.00338758"
+																												}
+																											],
+																											"nodes": [
+																												{
+																													"attributes": [
+																														{
+																															"name": "Name",
+																															"type": "String",
+																															"value": "ring_04_leaf_l"
+																														},
+																														{
+																															"name": "Position",
+																															"type": "Vector3",
+																															"value": "-1.44646e-08 0.0291017 1.02027e-08"
+																														},
+																														{
+																															"name": "Rotation",
+																															"type": "Quaternion",
+																															"value": "0.0190498 -2.25687e-09 -0.999819 -3.61226e-08"
+																														}
+																													]
+																												}
+																											]
+																										}
+																									]
+																								}
+																							]
+																						},
+																						{
+																							"attributes": [
+																								{
+																									"name": "Name",
+																									"type": "String",
+																									"value": "thumb_01_l"
+																								},
+																								{
+																									"name": "Position",
+																									"type": "Vector3",
+																									"value": "-0.0274813 0.0338136 0.0410632"
+																								},
+																								{
+																									"name": "Rotation",
+																									"type": "Quaternion",
+																									"value": "0.05688 -0.244463 0.943568 0.216061"
+																								}
+																							],
+																							"nodes": [
+																								{
+																									"attributes": [
+																										{
+																											"name": "Name",
+																											"type": "String",
+																											"value": "thumb_02_l"
+																										},
+																										{
+																											"name": "Position",
+																											"type": "Vector3",
+																											"value": "6.35628e-08 0.0395199 2.8871e-08"
+																										},
+																										{
+																											"name": "Rotation",
+																											"type": "Quaternion",
+																											"value": "1 7.4644e-07 -4.73161e-06 4.01959e-06"
+																										}
+																									],
+																									"nodes": [
+																										{
+																											"attributes": [
+																												{
+																													"name": "Name",
+																													"type": "String",
+																													"value": "thumb_03_l"
+																												},
+																												{
+																													"name": "Position",
+																													"type": "Vector3",
+																													"value": "1.15426e-07 0.0354908 -5.14556e-08"
+																												},
+																												{
+																													"name": "Rotation",
+																													"type": "Quaternion",
+																													"value": "1 -8.76316e-08 2.97279e-05 -1.66148e-06"
+																												}
+																											],
+																											"nodes": [
+																												{
+																													"attributes": [
+																														{
+																															"name": "Name",
+																															"type": "String",
+																															"value": "thumb_04_leaf_l"
+																														},
+																														{
+																															"name": "Position",
+																															"type": "Vector3",
+																															"value": "-3.07336e-08 0.0345582 1.16415e-08"
+																														},
+																														{
+																															"name": "Rotation",
+																															"type": "Quaternion",
+																															"value": "0.923869 -3.49201e-08 -0.382709 3.63692e-08"
+																														}
+																													]
+																												}
+																											]
+																										}
+																									]
+																								}
+																							]
+																						}
+																					]
+																				}
+																			]
+																		}
+																	]
+																}
+															]
+														},
+														{
+															"attributes": [
+																{
+																	"name": "Name",
+																	"type": "String",
+																	"value": "clavicle_r"
+																},
+																{
+																	"name": "Position",
+																	"type": "Vector3",
+																	"value": "0.0314 0.173718 0.0673285"
+																},
+																{
+																	"name": "Rotation",
+																	"type": "Quaternion",
+																	"value": "0.663997 -0.528737 -0.329102 -0.413808"
+																}
+															],
+															"nodes": [
+																{
+																	"attributes": [
+																		{
+																			"name": "Name",
+																			"type": "String",
+																			"value": "upperarm_r"
+																		},
+																		{
+																			"name": "Position",
+																			"type": "Vector3",
+																			"value": "-0.00913575 0.205739 -0.0396714"
+																		},
+																		{
+																			"name": "Rotation",
+																			"type": "Quaternion",
+																			"value": "0.691072 0.149803 0.691131 -0.149388"
+																		}
+																	],
+																	"nodes": [
+																		{
+																			"attributes": [
+																				{
+																					"name": "Name",
+																					"type": "String",
+																					"value": "lowerarm_r"
+																				},
+																				{
+																					"name": "Position",
+																					"type": "Vector3",
+																					"value": "1.63594e-07 0.251115 -3.50701e-08"
+																				},
+																				{
+																					"name": "Rotation",
+																					"type": "Quaternion",
+																					"value": "0.999528 0.0307322 4.16608e-05 -1.48743e-06"
+																				}
+																			],
+																			"nodes": [
+																				{
+																					"attributes": [
+																						{
+																							"name": "Name",
+																							"type": "String",
+																							"value": "hand_r"
+																						},
+																						{
+																							"name": "Position",
+																							"type": "Vector3",
+																							"value": "-7.68658e-10 0.243594 2.12943e-08"
+																						},
+																						{
+																							"name": "Rotation",
+																							"type": "Quaternion",
+																							"value": "0.999878 -0.0156016 -5.36363e-07 -1.27715e-08"
+																						}
+																					],
+																					"nodes": [
+																						{
+																							"attributes": [
+																								{
+																									"name": "Name",
+																									"type": "String",
+																									"value": "index_01_r"
+																								},
+																								{
+																									"name": "Position",
+																									"type": "Vector3",
+																									"value": "0.00715936 0.117403 0.0406433"
+																								},
+																								{
+																									"name": "Rotation",
+																									"type": "Quaternion",
+																									"value": "0.707108 0.00850504 0.706812 -0.0185242"
+																								}
+																							],
+																							"nodes": [
+																								{
+																									"attributes": [
+																										{
+																											"name": "Name",
+																											"type": "String",
+																											"value": "index_02_r"
+																										},
+																										{
+																											"name": "Position",
+																											"type": "Vector3",
+																											"value": "-4.22006e-10 0.0326125 2.89674e-08"
+																										},
+																										{
+																											"name": "Rotation",
+																											"type": "Quaternion",
+																											"value": "1 4.10745e-07 4.93957e-05 -0.000533064"
+																										}
+																									],
+																									"nodes": [
+																										{
+																											"attributes": [
+																												{
+																													"name": "Name",
+																													"type": "String",
+																													"value": "index_03_r"
+																												},
+																												{
+																													"name": "Position",
+																													"type": "Vector3",
+																													"value": "-2.46564e-09 0.0279114 4.10319e-08"
+																												},
+																												{
+																													"name": "Rotation",
+																													"type": "Quaternion",
+																													"value": "1 1.98739e-06 -7.07257e-06 -0.000185646"
+																												}
+																											],
+																											"nodes": [
+																												{
+																													"attributes": [
+																														{
+																															"name": "Name",
+																															"type": "String",
+																															"value": "index_04_leaf_r"
+																														},
+																														{
+																															"name": "Position",
+																															"type": "Vector3",
+																															"value": "-6.9831e-09 0.0241101 -1.1108e-07"
+																														},
+																														{
+																															"name": "Rotation",
+																															"type": "Quaternion",
+																															"value": "0.018816 8.69276e-10 0.999823 -1.69196e-10"
+																														}
+																													]
+																												}
+																											]
+																										}
+																									]
+																								}
+																							]
+																						},
+																						{
+																							"attributes": [
+																								{
+																									"name": "Name",
+																									"type": "String",
+																									"value": "middle_01_r"
+																								},
+																								{
+																									"name": "Position",
+																									"type": "Vector3",
+																									"value": "0.00468255 0.115439 0.0151134"
+																								},
+																								{
+																									"name": "Rotation",
+																									"type": "Quaternion",
+																									"value": "0.707092 0.00506735 0.706763 -0.0219582"
+																								}
+																							],
+																							"nodes": [
+																								{
+																									"attributes": [
+																										{
+																											"name": "Name",
+																											"type": "String",
+																											"value": "middle_02_r"
+																										},
+																										{
+																											"name": "Position",
+																											"type": "Vector3",
+																											"value": "4.8658e-09 0.0375261 -2.1543e-07"
+																										},
+																										{
+																											"name": "Rotation",
+																											"type": "Quaternion",
+																											"value": "0.999998 5.93534e-07 7.84287e-05 0.00205283"
+																										}
+																									],
+																									"nodes": [
+																										{
+																											"attributes": [
+																												{
+																													"name": "Name",
+																													"type": "String",
+																													"value": "middle_03_r"
+																												},
+																												{
+																													"name": "Position",
+																													"type": "Vector3",
+																													"value": "5.09499e-09 0.0301166 -1.96487e-07"
+																												},
+																												{
+																													"name": "Rotation",
+																													"type": "Quaternion",
+																													"value": "0.999999 -4.30966e-07 -5.43658e-05 -0.00141985"
+																												}
+																											],
+																											"nodes": [
+																												{
+																													"attributes": [
+																														{
+																															"name": "Name",
+																															"type": "String",
+																															"value": "middle_04_leaf_r"
+																														},
+																														{
+																															"name": "Position",
+																															"type": "Vector3",
+																															"value": "-1.77897e-09 0.0305197 1.03963e-07"
+																														},
+																														{
+																															"name": "Rotation",
+																															"type": "Quaternion",
+																															"value": "0.0186797 -6.27263e-08 0.999826 1.30763e-09"
+																														}
+																													]
+																												}
+																											]
+																										}
+																									]
+																								}
+																							]
+																						},
+																						{
+																							"attributes": [
+																								{
+																									"name": "Name",
+																									"type": "String",
+																									"value": "pinky_01_r"
+																								},
+																								{
+																									"name": "Position",
+																									"type": "Vector3",
+																									"value": "0.0060375 0.0985414 -0.0346174"
+																								},
+																								{
+																									"name": "Rotation",
+																									"type": "Quaternion",
+																									"value": "0.707105 0.0026011 0.706682 -0.0244147"
+																								}
+																							],
+																							"nodes": [
+																								{
+																									"attributes": [
+																										{
+																											"name": "Name",
+																											"type": "String",
+																											"value": "pinky_02_r"
+																										},
+																										{
+																											"name": "Position",
+																											"type": "Vector3",
+																											"value": "7.4233e-09 0.031631 -6.81539e-08"
+																										},
+																										{
+																											"name": "Rotation",
+																											"type": "Quaternion",
+																											"value": "0.999999 4.24268e-07 9.53994e-05 -0.00156743"
+																										}
+																									],
+																									"nodes": [
+																										{
+																											"attributes": [
+																												{
+																													"name": "Name",
+																													"type": "String",
+																													"value": "pinky_03_r"
+																												},
+																												{
+																													"name": "Position",
+																													"type": "Vector3",
+																													"value": "4.83124e-09 0.0274308 1.01209e-08"
+																												},
+																												{
+																													"name": "Rotation",
+																													"type": "Quaternion",
+																													"value": "1 3.21096e-06 -0.000137414 0.000466"
+																												}
+																											],
+																											"nodes": [
+																												{
+																													"attributes": [
+																														{
+																															"name": "Name",
+																															"type": "String",
+																															"value": "pinky_04_leaf_r"
+																														},
+																														{
+																															"name": "Position",
+																															"type": "Vector3",
+																															"value": "-4.73119e-09 0.0215233 3.42698e-08"
+																														},
+																														{
+																															"name": "Rotation",
+																															"type": "Quaternion",
+																															"value": "0.0184837 -2.9794e-09 0.999829 -1.52366e-09"
+																														}
+																													]
+																												}
+																											]
+																										}
+																									]
+																								}
+																							]
+																						},
+																						{
+																							"attributes": [
+																								{
+																									"name": "Name",
+																									"type": "String",
+																									"value": "ring_01_r"
+																								},
+																								{
+																									"name": "Position",
+																									"type": "Vector3",
+																									"value": "0.00475182 0.109401 -0.0123702"
+																								},
+																								{
+																									"name": "Rotation",
+																									"type": "Quaternion",
+																									"value": "0.707033 0.0153239 0.706917 -0.0117133"
+																								}
+																							],
+																							"nodes": [
+																								{
+																									"attributes": [
+																										{
+																											"name": "Name",
+																											"type": "String",
+																											"value": "ring_02_r"
+																										},
+																										{
+																											"name": "Position",
+																											"type": "Vector3",
+																											"value": "-5.90808e-09 0.0360009 -2.17951e-07"
+																										},
+																										{
+																											"name": "Rotation",
+																											"type": "Quaternion",
+																											"value": "0.999997 -4.89627e-06 0.000218496 0.00239973"
+																										}
+																									],
+																									"nodes": [
+																										{
+																											"attributes": [
+																												{
+																													"name": "Name",
+																													"type": "String",
+																													"value": "ring_03_r"
+																												},
+																												{
+																													"name": "Position",
+																													"type": "Vector3",
+																													"value": "7.00766e-09 0.0283002 -6.31844e-08"
+																												},
+																												{
+																													"name": "Rotation",
+																													"type": "Quaternion",
+																													"value": "0.999994 3.68925e-06 -0.000252824 -0.00338756"
+																												}
+																											],
+																											"nodes": [
+																												{
+																													"attributes": [
+																														{
+																															"name": "Name",
+																															"type": "String",
+																															"value": "ring_04_leaf_r"
+																														},
+																														{
+																															"name": "Position",
+																															"type": "Vector3",
+																															"value": "-1.74623e-09 0.0291018 -3.89555e-08"
+																														},
+																														{
+																															"name": "Rotation",
+																															"type": "Quaternion",
+																															"value": "0.0190498 2.97914e-10 0.999819 3.1173e-09"
+																														}
+																													]
+																												}
+																											]
+																										}
+																									]
+																								}
+																							]
+																						},
+																						{
+																							"attributes": [
+																								{
+																									"name": "Name",
+																									"type": "String",
+																									"value": "thumb_01_r"
+																								},
+																								{
+																									"name": "Position",
+																									"type": "Vector3",
+																									"value": "0.0274811 0.0338136 0.0410631"
+																								},
+																								{
+																									"name": "Rotation",
+																									"type": "Quaternion",
+																									"value": "0.0568799 -0.244463 -0.943568 -0.216061"
+																								}
+																							],
+																							"nodes": [
+																								{
+																									"attributes": [
+																										{
+																											"name": "Name",
+																											"type": "String",
+																											"value": "thumb_02_r"
+																										},
+																										{
+																											"name": "Position",
+																											"type": "Vector3",
+																											"value": "2.84286e-07 0.0395199 2.07219e-08"
+																										},
+																										{
+																											"name": "Rotation",
+																											"type": "Quaternion",
+																											"value": "1 6.81233e-07 4.77833e-06 -3.17767e-06"
+																										}
+																									],
+																									"nodes": [
+																										{
+																											"attributes": [
+																												{
+																													"name": "Name",
+																													"type": "String",
+																													"value": "thumb_03_r"
+																												},
+																												{
+																													"name": "Position",
+																													"type": "Vector3",
+																													"value": "8.56235e-08 0.0354908 -4.42378e-09"
+																												},
+																												{
+																													"name": "Rotation",
+																													"type": "Quaternion",
+																													"value": "1 -2.17173e-07 -2.96399e-05 2.07126e-06"
+																												}
+																											],
+																											"nodes": [
+																												{
+																													"attributes": [
+																														{
+																															"name": "Name",
+																															"type": "String",
+																															"value": "thumb_04_leaf_r"
+																														},
+																														{
+																															"name": "Position",
+																															"type": "Vector3",
+																															"value": "-2.36789e-07 0.0345582 -1.32713e-08"
+																														},
+																														{
+																															"name": "Rotation",
+																															"type": "Quaternion",
+																															"value": "0.923869 -2.27288e-08 0.382709 -3.54084e-08"
+																														}
+																													]
+																												}
+																											]
+																										}
+																									]
+																								}
+																							]
+																						}
+																					]
+																				}
+																			]
+																		}
+																	]
+																}
+															]
+														},
+														{
+															"attributes": [
+																{
+																	"name": "Name",
+																	"type": "String",
+																	"value": "neck_01"
+																},
+																{
+																	"name": "Position",
+																	"type": "Vector3",
+																	"value": "-2.62018e-15 0.215093 -3.35276e-08"
+																},
+																{
+																	"name": "Rotation",
+																	"type": "Quaternion",
+																	"value": "0.966342 0.257259 -3.39929e-09 -1.62388e-08"
+																}
+															],
+															"nodes": [
+																{
+																	"attributes": [
+																		{
+																			"name": "Name",
+																			"type": "String",
+																			"value": "Head"
+																		},
+																		{
+																			"name": "Position",
+																			"type": "Vector3",
+																			"value": "2.66405e-16 0.0828523 -3.72529e-09"
+																		},
+																		{
+																			"name": "Rotation",
+																			"type": "Quaternion",
+																			"value": "0.99124 -0.13207 2.28733e-08 5.75357e-09"
+																		}
+																	]
+																}
+															]
+														}
+													]
+												}
+											]
+										}
+									]
+								},
+								{
+									"attributes": [
+										{
+											"name": "Name",
+											"type": "String",
+											"value": "thigh_l"
+										},
+										{
+											"name": "Position",
+											"type": "Vector3",
+											"value": "-0.114305 0.0231769 0.000487845"
+										},
+										{
+											"name": "Rotation",
+											"type": "Quaternion",
+											"value": "0.142248 0.989831 2.38087e-09 -4.4507e-08"
+										}
+									],
+									"nodes": [
+										{
+											"attributes": [
+												{
+													"name": "Name",
+													"type": "String",
+													"value": "calf_l"
+												},
+												{
+													"name": "Position",
+													"type": "Vector3",
+													"value": "1.63169e-08 0.4288 -1.75312e-09"
+												},
+												{
+													"name": "Rotation",
+													"type": "Quaternion",
+													"value": "0.998431 0.0559889 1.13928e-08 -7.60302e-10"
+												}
+											],
+											"nodes": [
+												{
+													"attributes": [
+														{
+															"name": "Name",
+															"type": "String",
+															"value": "foot_l"
+														},
+														{
+															"name": "Position",
+															"type": "Vector3",
+															"value": "7.20029e-10 0.458788 -5.66761e-09"
+														},
+														{
+															"name": "Rotation",
+															"type": "Quaternion",
+															"value": "0.820136 -0.572168 -3.09238e-07 2.20003e-07"
+														}
+													],
+													"nodes": [
+														{
+															"attributes": [
+																{
+																	"name": "Name",
+																	"type": "String",
+																	"value": "ball_l"
+																},
+																{
+																	"name": "Position",
+																	"type": "Vector3",
+																	"value": "1.56843e-08 0.159074 -1.44635e-08"
+																},
+																{
+																	"name": "Rotation",
+																	"type": "Quaternion",
+																	"value": "3.05478e-07 1.03093e-07 -0.97312 0.230301"
+																}
+															],
+															"nodes": [
+																{
+																	"attributes": [
+																		{
+																			"name": "Name",
+																			"type": "String",
+																			"value": "ball_leaf_l"
+																		},
+																		{
+																			"name": "Position",
+																			"type": "Vector3",
+																			"value": "2.03266e-09 0.0788998 -8.0369e-10"
+																		},
+																		{
+																			"name": "Rotation",
+																			"type": "Quaternion",
+																			"value": "1 2.98023e-08 6.68653e-08 4.06398e-14"
+																		}
+																	]
+																}
+															]
+														}
+													]
+												}
+											]
+										}
+									]
+								},
+								{
+									"attributes": [
+										{
+											"name": "Name",
+											"type": "String",
+											"value": "thigh_r"
+										},
+										{
+											"name": "Position",
+											"type": "Vector3",
+											"value": "0.114305 0.0231769 0.000487831"
+										},
+										{
+											"name": "Rotation",
+											"type": "Quaternion",
+											"value": "0.142248 0.989831 2.38087e-09 -4.4507e-08"
+										}
+									],
+									"nodes": [
+										{
+											"attributes": [
+												{
+													"name": "Name",
+													"type": "String",
+													"value": "calf_r"
+												},
+												{
+													"name": "Position",
+													"type": "Vector3",
+													"value": "-1.34854e-08 0.4288 -1.21547e-09"
+												},
+												{
+													"name": "Rotation",
+													"type": "Quaternion",
+													"value": "0.998431 0.0559889 1.13928e-08 -7.60302e-10"
+												}
+											],
+											"nodes": [
+												{
+													"attributes": [
+														{
+															"name": "Name",
+															"type": "String",
+															"value": "foot_r"
+														},
+														{
+															"name": "Position",
+															"type": "Vector3",
+															"value": "7.20029e-10 0.458788 -7.37091e-09"
+														},
+														{
+															"name": "Rotation",
+															"type": "Quaternion",
+															"value": "0.820136 -0.572168 3.15348e-07 -2.1574e-07"
+														}
+													],
+													"nodes": [
+														{
+															"attributes": [
+																{
+																	"name": "Name",
+																	"type": "String",
+																	"value": "ball_r"
+																},
+																{
+																	"name": "Position",
+																	"type": "Vector3",
+																	"value": "-1.56843e-08 0.159074 -1.44635e-08"
+																},
+																{
+																	"name": "Rotation",
+																	"type": "Quaternion",
+																	"value": "3.05478e-07 1.03093e-07 0.97312 -0.230301"
+																}
+															],
+															"nodes": [
+																{
+																	"attributes": [
+																		{
+																			"name": "Name",
+																			"type": "String",
+																			"value": "ball_leaf_r"
+																		},
+																		{
+																			"name": "Position",
+																			"type": "Vector3",
+																			"value": "-2.03266e-09 0.0788998 -8.0369e-10"
+																		},
+																		{
+																			"name": "Rotation",
+																			"type": "Quaternion",
+																			"value": "1 2.98023e-08 -6.68653e-08 -4.06398e-14"
+																		}
+																	]
+																}
+															]
+														}
+													]
+												}
+											]
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"attributes": [
+				{
+					"name": "Name",
+					"type": "String",
+					"value": "Default Light"
+				},
+				{
+					"name": "Position",
+					"type": "Vector3",
+					"value": "-1 2 1"
+				},
+				{
+					"name": "Rotation",
+					"type": "Quaternion",
+					"value": "0.543945 0.750533 0.375266 -0"
+				}
+			],
+			"components": [
+				{
+					"_typeName": "Light",
+					"attributes": [
+						{
+							"name": "Light Type",
+							"type": "String",
+							"value": "Directional"
+						},
+						{
+							"name": "Cast Shadows",
+							"type": "Bool",
+							"value": true
+						}
+					]
+				}
+			]
+		},
+		{
+			"attributes": [
+				{
+					"name": "Name",
+					"type": "String",
+					"value": "Default Skybox"
+				},
+				{
+					"name": "Position",
+					"type": "Vector3",
+					"value": "-1 2 1"
+				}
+			],
+			"components": [
+				{
+					"_typeName": "Skybox",
+					"attributes": [
+						{
+							"name": "Model",
+							"type": "ResourceRef",
+							"value": "Model;Models/Box.mdl"
+						},
+						{
+							"name": "Material",
+							"type": "ResourceRefList",
+							"value": "Material;Materials/DefaultSkybox.xml"
+						},
+						{
+							"name": "Reflection Mode",
+							"type": "String",
+							"value": "Zone"
+						}
+					]
+				}
+			]
+		},
+		{
+			"attributes": [
+				{
+					"name": "Name",
+					"type": "String",
+					"value": "Default Zone"
+				},
+				{
+					"name": "Position",
+					"type": "Vector3",
+					"value": "-1 2 1"
+				}
+			],
+			"components": [
+				{
+					"_typeName": "Zone",
+					"attributes": [
+						{
+							"name": "Background Brightness",
+							"type": "Float",
+							"value": 0.5
+						},
+						{
+							"name": "Zone Texture",
+							"type": "ResourceRef",
+							"value": "TextureCube;Textures/DefaultSkybox.xml"
+						}
+					]
+				}
+			]
+		}
+	]
+}
