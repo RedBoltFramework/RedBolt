@@ -130,10 +130,12 @@ sealed class SkeletalAnimationApplication : Application
             modelNode.SetPosition(new Vector3f(MathDefs.Random(40.0f) - 20.0f, 0.0f, MathDefs.Random(40.0f) - 20.0f));
             modelNode.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f));
             var modelObject = modelNode.CreateComponent<AnimatedModel>();
-            modelObject.SetModel(cache.Get<Model>("Models/Kachujin/Kachujin.mdl"));
-            modelObject.SetMaterial(cache.Get<Material>("Models/Kachujin/Materials/Kachujin.xml"));
+            modelObject.SetModel(cache.Get<Model>("ThirdParty/Quaternius/UniversalCharacter.glb.d/Models/Sphere.005_Retopology.004.mdl"));
+            modelObject.SetMaterial(0, cache.Get<Material>("ThirdParty/Quaternius/UniversalCharacter.glb.d/Materials/MI_Superhero_Male_LitNormalMap.xml"));
+            modelObject.SetMaterial(1, cache.Get<Material>("ThirdParty/Quaternius/UniversalCharacter.glb.d/Materials/MI_Hair_1_LitNormalMap.xml"));
+            modelObject.SetMaterial(2, cache.Get<Material>("ThirdParty/Quaternius/UniversalCharacter.glb.d/Materials/MI_Eyes_LitNormalMap.xml"));
             modelObject.SetCastShadows(true);
-            var walkAnimation = cache.Get<Animation>("Models/Kachujin/Kachujin_Walk.ani");
+            var walkAnimation = cache.Get<Animation>("ThirdParty/Quaternius/UniversalCharacter.glb.d/Animations/Jog_Fwd_Loop.ani");
             var startTime = MathDefs.Random(walkAnimation.Length);
             modelNode.CreateComponent<AnimationController>().PlayNewExclusive(new AnimationParameters(walkAnimation).Looped().Time(startTime));
             modelNode.CreateComponent<Mover3D>().SetParameters(modelMoveSpeed, modelRotateSpeed, bounds);

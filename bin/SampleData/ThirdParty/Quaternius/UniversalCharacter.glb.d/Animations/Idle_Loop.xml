@@ -70,5 +70,5 @@
 	<metadata name="Looped" type="Bool" value="false" />
 	<metadata name="FrameStep" type="Float" value="0.041666746" />
 	<metadata name="FrameRate" type="Int" value="24" />
-	<metadata name="Model" type="String" value="ThirdParty/Quaternius/UniversalCharacter.glb.d/Models/Face.mdl" />
+	<metadata name="Model" type="String" value="ThirdParty/Quaternius/UniversalCharacter.glb.d/Models/Sphere.005_Retopology.004.mdl" />
 </animation>
