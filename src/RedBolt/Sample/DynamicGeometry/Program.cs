@@ -12,7 +12,6 @@ using System.Runtime.InteropServices;
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
 using RedBolt.DearImGui;
-using RedBolt.Container;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
@@ -21,6 +20,7 @@ using RedBolt.Logging;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
 using RedBolt.Scene;
+using Widgets = RedBolt.SystemUI.Widgets;
 
 internal static class DynamicGeometryProgram
 {
@@ -299,6 +299,16 @@ public class DynamicGeometry : Application
     private void CreateInstructions()
     {
         SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+
+        _controlPrompts =
+        [
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_w.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_a.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_s.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_d.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/mouse_right.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_space.png")
+        ];
     }
 
     /// <summary>
@@ -388,14 +398,12 @@ public class DynamicGeometry : Application
 
     protected override void Stop()
     {
-        _instructionLine.Dispose();
         Renderer.SetNumViewports(0);
         base.Stop();
     }
 
     public override void Dispose()
     {
-        _instructionLine.Dispose();
         if (_viewport is not null)
             Renderer.SetNumViewports(0);
         _cameraNode = null;
@@ -408,14 +416,28 @@ public class DynamicGeometry : Application
 
     private void DrawInstructions()
     {
-        _instructionLine.FormatInPlace("Use WASD keys and mouse/touch to move");
         var windowOpen = true;
+        ImGui.SetNextWindowPos(new Vector2f(10.0f, 10.0f), ImGuiCond.ImGuiCondAlways);
         if (ImGui.Begin("Dynamic Geometry"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            ImGui.TextUnformatted(_instructionLine.ContentBytes);
-            ImGui.TextUnformatted("Space to toggle animation"u8);
+            for (var i = 0; i < 3; ++i)
+            {
+                ImGui.Image(_controlPrompts![i], PromptIconSize);
+                ImGui.SameLine();
+            }
+            DrawPrompt(_controlPrompts![3], "Move"u8);
+            DrawPrompt(_controlPrompts[4], "Look / drag touch"u8);
+            DrawPrompt(_controlPrompts[5], _animate ? "Pause animation"u8 : "Resume animation"u8);
         }
         ImGui.End();
+    }
+
+    private static void DrawPrompt(Texture2D texture, ReadOnlySpan<byte> label)
+    {
+        ImGui.Image(texture, PromptIconSize);
+        ImGui.SameLine();
+        Widgets.AlignTextToLastItem();
+        ImGui.TextUnformatted(label);
     }
 
     private Viewport? _viewport;
@@ -441,5 +463,6 @@ public class DynamicGeometry : Application
     /// Animation's elapsed time.
     /// </summary>
     private float _time;
-    private readonly CString _instructionLine = new();
+    private Texture2D[]? _controlPrompts;
+    private static readonly Vector2f PromptIconSize = new(24.0f, 24.0f);
 }

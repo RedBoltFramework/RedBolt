@@ -22,6 +22,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
   <ItemGroup Condition="'$(RedBoltPlatform)' == 'browser-wasm' or $([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
     <Compile Remove="SystemUI/**/*.cs" />
+    <Compile Include="SystemUI/ImGui.cs" />
+    <Compile Include="SystemUI/Widgets.cs" />
   </ItemGroup>
 
   <ItemGroup>

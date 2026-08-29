@@ -13,7 +13,7 @@ const canvasElement = document.getElementById('canvas');
 const statusElement = document.getElementById('status');
 const progressElement = document.getElementById('progress');
 const fullscreenButton = document.getElementById('fullscreen-button');
-const devicePixelRatio = window.devicePixelRatio || 1;
+let devicePixelRatio = window.devicePixelRatio || 1;
 let canvasWidth = 0;
 let canvasHeight = 0;
 let resizeHandler;
@@ -27,6 +27,7 @@ let pointerLockRequestInFlight = false;
 let pointerLockReported = false;
 
 function calculateCanvasSize() {
+    devicePixelRatio = window.devicePixelRatio || 1;
     const style = window.getComputedStyle(canvasElement);
     canvasWidth = Math.max(1, Math.round(Number.parseFloat(style.getPropertyValue('width')) * devicePixelRatio));
     canvasHeight = Math.max(1, Math.round(Number.parseFloat(style.getPropertyValue('height')) * devicePixelRatio));

@@ -363,6 +363,7 @@ public class Engine : RedObject
         var mouseVisible = input?.MouseVisible ?? false;
         var mouseMode = input?.GetMouseMode() ?? MouseMode.Absolute;
 
+        graphics?.SetCanvasDpiScale(dpiScale);
         graphics?.SetMode(width, height);
 
         if (input is not null)

@@ -199,6 +199,11 @@ public partial class Input : RedObject
     private readonly Dictionary<uint, float> _joystickAxisPositions = new();
     private readonly HashSet<string> _screenButtonsDown = new(StringComparer.Ordinal);
     private readonly Dictionary<int, TouchState> _touches = [];
+    private int? _primaryTouchId;
+    private int? _movementTouchId;
+    private Vector2i _movementTouchOrigin;
+    private Vector2f _touchMovement;
+    private bool _touchPress;
     private readonly Dictionary<int, JoystickState> _joysticks = [];
     private readonly Dictionary<int, SdlJoystick> _nativeJoysticks = [];
     private readonly Dictionary<int, SdlGameController> _nativeControllers = [];
@@ -449,6 +454,7 @@ public partial class Input : RedObject
         _scancodePress.Clear();
         _mouseButtonClick = MouseButton.None;
         _mouseButtonPress = MouseButton.None;
+        _touchPress = false;
         _mouseMoveWheel = 0;
         MouseMove = Vector2i.Zero;
         foreach (var joystickId in _joysticks.Keys.ToArray())
@@ -763,7 +769,7 @@ public partial class Input : RedObject
 
     public bool GetKeyDown(Key key)
     {
-        return _keyDown.Contains(key);
+        return _keyDown.Contains(key) || IsTouchMovementKeyDown(key);
     }
 
     public bool GetKeyPress(Key key)
@@ -773,7 +779,7 @@ public partial class Input : RedObject
 
     public bool GetScancodeDown(Scancode scancode)
     {
-        return _scancodeDown.Contains(scancode);
+        return _scancodeDown.Contains(scancode) || IsTouchMovementScancodeDown(scancode);
     }
 
     public bool GetScancodePress(Scancode scancode)
@@ -783,12 +789,12 @@ public partial class Input : RedObject
 
     public bool GetMouseButtonDown(MouseButton button)
     {
-        return (_mouseButtonDown & button) != 0;
+        return (_mouseButtonDown & button) != 0 || button == MouseButton.Left && _primaryTouchId.HasValue;
     }
 
     public bool GetMouseButtonPress(MouseButton button)
     {
-        return (_mouseButtonPress & button) != 0;
+        return (_mouseButtonPress & button) != 0 || button == MouseButton.Left && _touchPress;
     }
 
     public bool GetMouseButtonClick(MouseButton button)
@@ -840,6 +846,9 @@ public partial class Input : RedObject
 
     public Vector2i GetMousePosition()
     {
+        if (_primaryTouchId is { } touchId && _touches.TryGetValue(touchId, out var touch))
+            return touch.Position;
+
         if (!IsInitialized || _window is null || _window.IsNull)
             return Vector2i.Zero;
 
@@ -857,6 +866,24 @@ public partial class Input : RedObject
         ? Vector2i.Zero
         : _mouseMoveScaled ? MouseMove : SystemToBackbuffer(MouseMove);
 
+    private bool IsTouchMovementKeyDown(Key key) => key switch
+    {
+        Key.W or Key.Up => _touchMovement.Y < -0.2f,
+        Key.S or Key.Down => _touchMovement.Y > 0.2f,
+        Key.A or Key.Left => _touchMovement.X < -0.2f,
+        Key.D or Key.Right => _touchMovement.X > 0.2f,
+        _ => false
+    };
+
+    private bool IsTouchMovementScancodeDown(Scancode scancode) => scancode switch
+    {
+        Scancode.W or Scancode.Up => _touchMovement.Y < -0.2f,
+        Scancode.S or Scancode.Down => _touchMovement.Y > 0.2f,
+        Scancode.A or Scancode.Left => _touchMovement.X < -0.2f,
+        Scancode.D or Scancode.Right => _touchMovement.X > 0.2f,
+        _ => false
+    };
+
     public int GetMouseMoveX() => GetMouseMove().X;
 
     public int GetMouseMoveY() => GetMouseMove().Y;
@@ -866,6 +893,9 @@ public partial class Input : RedObject
     public Vector2f GetSystemToBackbufferScale() => _systemToBackbufferScale;
 
     public uint GetNumTouches() => (uint)_touches.Count;
+
+    /// <summary>Return whether the built-in touch movement pad is active.</summary>
+    public bool HasTouchMovement() => _movementTouchId.HasValue;
 
     public TouchState? GetTouch(uint index)
     {
@@ -1685,6 +1715,10 @@ public partial class Input : RedObject
         _joystickAxisPositions.Clear();
         _screenButtonsDown.Clear();
         _touches.Clear();
+        _primaryTouchId = null;
+        _movementTouchId = null;
+        _touchMovement = Vector2f.Zero;
+        _touchPress = false;
         foreach (var controller in _nativeControllers.Values)
             Sdl.SdlGameControllerClose(controller);
         foreach (var joystick in _nativeJoysticks.Values)
@@ -1697,6 +1731,7 @@ public partial class Input : RedObject
         _mouseButtonClick = MouseButton.None;
         _mouseButtonDown = MouseButton.None;
         _mouseButtonPress = MouseButton.None;
+        _touchPress = false;
         _mouseMoveWheel = 0;
         _hatPosition = HatPosition.Center;
         MouseMove = Vector2i.Zero;
@@ -1912,6 +1947,10 @@ public partial class Input : RedObject
             SendEvent(ref eventData);
         }
         _touches.Clear();
+        _primaryTouchId = null;
+        _movementTouchId = null;
+        _touchMovement = Vector2f.Zero;
+        _touchPress = false;
         Qualifiers = Qualifier.None;
         SetMouseButton(MouseButton.Left, false);
         SetMouseButton(MouseButton.Right, false);
@@ -1964,6 +2003,14 @@ public partial class Input : RedObject
                 Delta = Vector2i.Zero,
                 Pressure = @event.TfingerPressure
             };
+            _primaryTouchId ??= touchId;
+            _touchPress = true;
+            if (!_movementTouchId.HasValue && x < _backbufferSize.X / 2)
+            {
+                _movementTouchId = touchId;
+                _movementTouchOrigin = new Vector2i(x, y);
+                _touchMovement = Vector2f.Zero;
+            }
             var value = new InputEvents.TouchBeginEvent { TouchID = touchId, X = x, Y = y, Pressure = @event.TfingerPressure };
             SendEvent(ref value);
         }
@@ -1978,6 +2025,14 @@ public partial class Input : RedObject
                 (int)MathF.Round(@event.TfingerDy * _backbufferSize.Y));
             touch.Pressure = @event.TfingerPressure;
             _touches[touchId] = touch;
+            if (_movementTouchId == touchId)
+            {
+                var dpi = GetSubsystem<Graphics>()?.GetDisplayDPI().X ?? 96.0f;
+                var fullMotion = dpi > 0.0f ? dpi * 0.5f : 48.0f;
+                _touchMovement = new Vector2f(
+                    MathDefs.Clamp((x - _movementTouchOrigin.X) / fullMotion, -1.0f, 1.0f),
+                    MathDefs.Clamp((y - _movementTouchOrigin.Y) / fullMotion, -1.0f, 1.0f));
+            }
             var value = new InputEvents.TouchMoveEvent
             {
                 TouchID = touchId, X = x, Y = y,
@@ -1991,6 +2046,13 @@ public partial class Input : RedObject
             var value = new InputEvents.TouchEndEvent { TouchID = touchId, X = x, Y = y };
             SendEvent(ref value);
             _touches.Remove(touchId);
+            if (_primaryTouchId == touchId)
+                _primaryTouchId = _touches.Count != 0 ? _touches.Keys.First() : null;
+            if (_movementTouchId == touchId)
+            {
+                _movementTouchId = null;
+                _touchMovement = Vector2f.Zero;
+            }
         }
     }
 

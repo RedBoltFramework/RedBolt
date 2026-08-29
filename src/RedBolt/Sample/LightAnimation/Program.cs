@@ -14,7 +14,9 @@ using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Math;
+using RedBolt.RenderPipeline;
 using RedBolt.Scene;
+using Widgets = RedBolt.SystemUI.Widgets;
 
 internal static class LightAnimationProgram
 {
@@ -32,19 +34,26 @@ internal static class LightAnimationProgram
 /// </summary>
 sealed class LightAnimationApplication : Application
 {
-    private static readonly string[] SpriteTextureNames =
+    private const string NaturePath = "ThirdParty/Quaternius/StylizedNatureShowcase.glb.d/";
+    private static readonly Color[] LightColors =
     [
-        "Textures/Logo.png",
-        "Textures/FishBoneLogo.png",
-        "Textures/Icon.png",
-        "Textures/TouchInput.png",
-        "Textures/CheckboardProperties.png",
+        new Color(0.3f, 0.85f, 1.0f),
+        new Color(1.0f, 0.2f, 0.45f),
+        new Color(1.0f, 0.65f, 0.12f),
+        new Color(0.25f, 1.0f, 0.48f),
+        new Color(0.68f, 0.3f, 1.0f),
+        new Color(1.0f, 0.34f, 0.16f),
     ];
 
     private Scene? _scene;
     private Node? _cameraNode;
-    private readonly Texture2D?[] _spriteTextures = new Texture2D[5];
-    private float _uiTime;
+    private Node? _attributeRouteNode;
+    private readonly Node?[] _movingLightNodes = new Node[LightColors.Length];
+    private readonly Node?[] _lightVisualNodes = new Node[LightColors.Length];
+    private readonly Light?[] _movingLights = new Light[LightColors.Length];
+    private readonly float[] _verticalPhases = new float[LightColors.Length];
+    private readonly float[] _verticalAmplitudes = new float[LightColors.Length];
+    private float _sceneTime;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -86,65 +95,101 @@ sealed class LightAnimationApplication : Application
         var cache = Resources;
 
         _scene = new Scene();
+        if (!_scene.LoadFile("Scenes/StaticScene.scene"))
+            throw new InvalidOperationException("Could not load the forest scene.");
 
-        // Create the Octree component to the scene. This is required before adding any drawable components, or else nothing will
-        // show up. The default octree volume will be from (-1000, -1000, -1000) to (1000, 1000, 1000) in world coordinates; it
-        // is also legal to place objects outside the volume but their visibility can then not be checked in a hierarchically
-        // optimizing manner
-        _scene.CreateComponent<Octree>();
+        var renderPipeline = _scene.CreateComponent<RenderPipeline>();
+        renderPipeline.SetRenderPassEnabled("Postprocess: Bloom", true);
+        renderPipeline.SetRenderPassEnabled("Postprocess: FXAA v3", true);
 
-        // Create a child scene node (at world origin) and a StaticModel component into it. Set the StaticModel to show a simple
-        // plane mesh with a "stone" material. Note that naming the scene nodes is optional. Scale the scene node larger
-        // (100 x 100 world units)
-        var planeNode = _scene.CreateChild("Plane");
-        planeNode.SetScale(new Vector3f(100.0f, 1.0f, 100.0f));
-        var plane = planeNode.CreateComponent<StaticModel>();
-        plane.SetModel(cache.Get<Model>("Models/Plane.mdl"));
-        plane.SetMaterial(cache.Get<Material>("Materials/StoneTiled.xml"));
+        // Turn the shared forest into a cool dusk stage. The animated light is the only strong
+        // illumination, so its route is immediately readable across the trees and path.
+        var zone = _scene.FindChild("Zone")!.GetComponent<Zone>()!;
+        zone.SetAmbientColor(new Color(0.055f, 0.075f, 0.12f));
+        zone.SetFogColor(new Color(0.035f, 0.06f, 0.12f));
+        zone.SetFogStart(42.0f);
+        zone.SetFogEnd(115.0f);
 
-        // Create a point light to the world so that we can see something.
-        var lightContainer = _scene.CreateChild("PointLightContainer");
-        var lightNode = lightContainer.CreateChild("PointLight");
-        var light = lightNode.CreateComponent<Light>();
-        light.SetLightType(LightType.Point);
-        light.SetRange(10.0f);
+        var moon = _scene.FindChild("DirectionalLight")!.GetComponent<Light>()!;
+        moon.SetColor(new Color(0.2f, 0.32f, 0.55f));
+        moon.SetBrightness(0.5f);
 
-        // Apply light animation to light node
-        lightNode.CreateComponent<AnimationController>().PlayNew(new AnimationParameters("Animations/LightAnimation.xml").Looped());
+        // Keep the original attribute-animation route as one of several distinct movements.
+        var lightContainer = _scene.CreateChild("LightRoute");
+        _attributeRouteNode = lightContainer;
+        lightContainer.SetScale(new Vector3f(0.48f, 1.45f, 0.48f));
+        _movingLightNodes[0] = lightContainer.CreateChild("AnimatedForestLight");
+        _movingLightNodes[0]!.CreateComponent<AnimationController>()
+            .PlayNew(new AnimationParameters("Animations/LightAnimation.xml").Looped());
+        CreateLightVisual(0);
 
-        // Create UI element animation
-        // (note: a spritesheet and "Image Rect" attribute should be used in real use cases for better performance)
-        for (var i = 0; i < _spriteTextures.Length; ++i)
+        // The remaining lights follow ellipses, figure-eights, crossing orbits, and a breathing
+        // spiral. Each receives an independent random vertical phase and amplitude.
+        for (var i = 1; i < _movingLightNodes.Length; ++i)
         {
-            _spriteTextures[i] = cache.Get<Texture2D>(SpriteTextureNames[i]);
+            _movingLightNodes[i] = _scene.CreateChild($"Moving Light {i + 1}");
+            CreateLightVisual(i);
         }
-
-        // Create more StaticModel objects to the scene, randomly positioned, rotated and scaled. For rotation, we construct a
-        // quaternion from Euler angles where the Y angle (rotation about the Y axis) is randomized. The mushroom model contains
-        // LOD levels, so the StaticModel component will automatically select the LOD level according to the view distance (you'll
-        // see the model get simpler as it moves further away). Finally, rendering a large number of the same object with the
-        // same material allows instancing to be used, if the GPU supports it. This reduces the amount of CPU work in rendering the
-        // scene.
-        const int numObjects = 200;
-        for (var i = 0; i < numObjects; ++i)
+        for (var i = 0; i < _movingLightNodes.Length; ++i)
         {
-            var node = _scene.CreateChild("Mushroom");
-            node.SetPosition(new Vector3f(MathDefs.Random(90.0f) - 45.0f, 0.0f, MathDefs.Random(90.0f) - 45.0f));
-            node.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f));
-            node.SetScale(0.5f + MathDefs.Random(2.0f));
+            _verticalPhases[i] = MathDefs.Random(MathF.Tau);
+            _verticalAmplitudes[i] = 1.4f + MathDefs.Random(3.2f);
+        }
+        AnimateLights();
+
+        // Stone waypoints trace the same square route through the forest. Their silhouettes give
+        // each color keyframe a landmark without competing with the moving light.
+        var waypointPositions = new[]
+        {
+            new Vector3f(-16.5f, 0.0f, -16.5f), new Vector3f(16.5f, 0.0f, -16.5f),
+            new Vector3f(16.5f, 0.0f, 16.5f), new Vector3f(-16.5f, 0.0f, 16.5f)
+        };
+        for (var i = 0; i < waypointPositions.Length; ++i)
+        {
+            var node = _scene.CreateChild("Light Waypoint");
+            node.SetPosition(waypointPositions[i]);
+            node.SetRotation(new Quaternion(0.0f, i * 71.0f, 0.0f));
+            node.SetScale(2.1f);
             var model = node.CreateComponent<StaticModel>();
-            model.SetModel(cache.Get<Model>("Models/Mushroom.mdl"));
-            model.SetMaterial(cache.Get<Material>("Materials/Mushroom.xml"));
+            model.SetModel(cache.Get<Model>($"{NaturePath}Models/Rock_Medium_{i % 3 + 1}.mdl"));
+            model.SetMaterial(cache.Get<Material>($"{NaturePath}Materials/Rocks_Lit.xml"));
+            model.SetCastShadows(true);
         }
 
-        // Create a scene node for the camera, which we will move around
-        // The camera will use default settings (1000 far clip distance, 45 degrees FOV, set aspect ratio automatically)
-        _cameraNode = _scene.CreateChild("Camera");
-        _cameraNode.CreateComponent<FreeFlyController>();
-        _cameraNode.CreateComponent<Camera>();
+        _cameraNode = _scene.FindChild("Camera")!;
+        _cameraNode.SetPosition(new Vector3f(0.0f, 11.0f, -42.0f));
+        _cameraNode.LookAt(new Vector3f(0.0f, 3.0f, 2.0f));
+    }
 
-        // Set an initial position for the camera scene node above the plane
-        _cameraNode.SetPosition(new Vector3f(0.0f, 5.0f, 0.0f));
+    private void CreateLightVisual(int index)
+    {
+        var visualNode = _movingLightNodes[index]!.CreateChild("Light Visual");
+        _lightVisualNodes[index] = visualNode;
+
+        var light = index == 0
+            ? _movingLightNodes[index]!.CreateComponent<Light>()
+            : visualNode.CreateComponent<Light>();
+        _movingLights[index] = light;
+        light.SetLightType(LightType.Point);
+        light.SetRange(index == 0 ? 27.0f : 19.0f);
+        light.SetBrightness(index == 0 ? 2.8f : 2.1f);
+        light.SetColor(LightColors[index]);
+
+        var halo = visualNode.CreateComponent<BillboardSet>();
+        halo.SetNumBillboards(2);
+        halo.SetMaterial(Resources.Get<Material>("Materials/ThirdParty/KenneyParticles/star_01.xml"));
+        halo.SetFaceCameraMode(FaceCameraMode.RotateXyz);
+        for (var i = 0u; i < 2; ++i)
+        {
+            ref var billboard = ref halo.GetBillboard(i);
+            billboard.Position = Vector3f.Zero;
+            billboard.Size = new Vector2f(1.25f + i * 1.35f, 1.25f + i * 1.35f);
+            billboard.Color = new Color(LightColors[index].R, LightColors[index].G, LightColors[index].B,
+                0.72f - i * 0.36f);
+            billboard.Rotation = index * 29.0f + i * 53.0f;
+            billboard.Enabled = true;
+        }
+        halo.Commit();
     }
 
     /// <summary>Construct an instruction text to the UI.</summary>
@@ -152,6 +197,15 @@ sealed class LightAnimationApplication : Application
     {
         SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
             (ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+
+        _controlPrompts =
+        [
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_w.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_a.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_s.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_d.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/mouse_right.png")
+        ];
     }
 
     /// <summary>Set up a viewport for displaying the scene.</summary>
@@ -164,30 +218,72 @@ sealed class LightAnimationApplication : Application
     {
         if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
             Exit();
-        _uiTime = (_uiTime + timeStep) % 4.0f;
+
+        _sceneTime += timeStep;
+        AnimateLights();
+    }
+
+    private void AnimateLights()
+    {
+        for (var i = 0; i < _movingLightNodes.Length; ++i)
+        {
+            var verticalOffset = MathF.Sin(_sceneTime * (0.75f + i * 0.11f) + _verticalPhases[i])
+                * _verticalAmplitudes[i]
+                + MathF.Sin(_sceneTime * 1.73f + _verticalPhases[i] * 0.61f) * 0.65f;
+            if (i == 0)
+                _attributeRouteNode!.SetPosition(new Vector3f(0.0f, verticalOffset, 0.0f));
+            else
+                _movingLightNodes[i]!.SetPosition(GetLightPosition(i, verticalOffset));
+
+            _movingLights[i]!.SetBrightness(1.85f + MathF.Sin(_sceneTime * 2.1f + i * 0.83f) * 0.45f);
+        }
+    }
+
+    private Vector3f GetLightPosition(int index, float verticalOffset)
+    {
+        var time = _sceneTime;
+        return index switch
+        {
+            1 => new Vector3f(MathF.Cos(time * 0.62f) * 24.0f, 7.0f + verticalOffset,
+                MathF.Sin(time * 0.62f) * 13.0f),
+            2 => new Vector3f(MathF.Sin(time * 0.74f) * 22.0f, 8.5f + verticalOffset,
+                MathF.Sin(time * 1.48f) * 11.0f),
+            3 => new Vector3f(MathF.Cos(time * 0.91f + 1.2f) * 15.0f, 6.0f + verticalOffset,
+                MathF.Sin(time * 0.47f) * 25.0f),
+            4 => new Vector3f(MathF.Sin(time * 0.54f + 2.4f) * 27.0f, 9.0f + verticalOffset,
+                MathF.Cos(time * 0.81f) * 9.0f),
+            5 => new Vector3f(MathF.Cos(time * 0.68f) * (12.0f + MathF.Sin(time * 0.31f) * 8.0f),
+                7.5f + verticalOffset,
+                MathF.Sin(time * 0.68f) * (12.0f + MathF.Sin(time * 0.31f) * 8.0f)),
+            _ => Vector3f.Zero
+        };
     }
 
     private void DrawInstructions()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Light Animation"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        ImGui.SetNextWindowPos(new Vector2f(10.0f, 10.0f), ImGuiCond.ImGuiCondAlways);
+        if (ImGui.Begin("Light Animation"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            ImGui.TextUnformatted("Use WASD keys and right mouse button to move"u8);
-            if (_uiTime < 1.0f)
-                ImGui.TextUnformatted("WHITE"u8);
-            else if (_uiTime < 2.0f)
-                ImGui.TextUnformatted("RED"u8);
-            else if (_uiTime < 3.0f)
-                ImGui.TextUnformatted("YELLOW"u8);
-            else
-                ImGui.TextUnformatted("GREEN"u8);
-
-            var spriteFrame = (int)(_uiTime * 10.0f) % _spriteTextures.Length;
-            var spriteTexture = _spriteTextures[spriteFrame]!;
-            var spriteScale = Math.Min(128.0f / spriteTexture.Width, 64.0f / spriteTexture.Height);
-            var spriteSize = new Vector2f(spriteTexture.Width * spriteScale, spriteTexture.Height * spriteScale);
-            ImGui.Image(spriteTexture, spriteSize);
+            for (var i = 0; i < 3; ++i)
+            {
+                ImGui.Image(_controlPrompts![i], PromptIconSize);
+                ImGui.SameLine();
+            }
+            DrawPrompt(_controlPrompts![3], "Move"u8);
+            DrawPrompt(_controlPrompts[4], "Look / drag touch"u8);
         }
         ImGui.End();
     }
+
+    private static void DrawPrompt(Texture2D texture, ReadOnlySpan<byte> label)
+    {
+        ImGui.Image(texture, PromptIconSize);
+        ImGui.SameLine();
+        Widgets.AlignTextToLastItem();
+        ImGui.TextUnformatted(label);
+    }
+
+    private Texture2D[]? _controlPrompts;
+    private static readonly Vector2f PromptIconSize = new(24.0f, 24.0f);
 }

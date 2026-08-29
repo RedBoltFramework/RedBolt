@@ -6,80 +6,206 @@ namespace RedBolt.Sample.Decals;
 
 using System;
 
-using RedBolt;
 using RedBolt.Bindings.DearImGui;
-using RedBolt.DearImGui;
 using RedBolt.Core;
+using RedBolt.DearImGui;
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Scene;
+using Widgets = RedBolt.SystemUI.Widgets;
 
 internal static class DecalsProgram
 {
     private static int Main()
     {
-        try { return new DecalsApplication().Run(); }
-        catch (Exception ex) { Console.Error.WriteLine(ex); return 1; }
+        try
+        {
+            return new DecalsApplication().Run();
+        }
+        catch (Exception exception)
+        {
+            Console.Error.WriteLine(exception);
+            return 1;
+        }
     }
 }
 
 /// <summary>Decals example.</summary>
 sealed class DecalsApplication : Application
 {
-    private Scene? _scene; private Node? _cameraNode; private Octree? _octree; private bool _drawDebug;
     protected override void Setup(EngineParameters parameters)
     {
-        parameters.ApplicationName = "RedBolt.Sample.Decals"; parameters.Borderless = false; parameters.FullScreen = false;
-        parameters.ResourcePaths = "CoreData;SampleData"; parameters.ResourcePrefixPaths = ".;.."; parameters.WindowMaximize = false;
+        parameters.ApplicationName = "RedBolt.Sample.Decals";
+        parameters.Borderless = false;
+        parameters.FullScreen = false;
+        parameters.ResourcePaths = "CoreData;SampleData";
+        parameters.ResourcePrefixPaths = ".;..";
+        parameters.WindowMaximize = false;
 #if !REDBOLT_PLATFORM_BROWSER
-            parameters.WindowWidth = 1280; parameters.WindowHeight = 720;
+        parameters.WindowWidth = 1280;
+        parameters.WindowHeight = 720;
 #endif
         parameters.WindowTitle = "RedBolt Decals";
     }
+
     protected override void Start()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
-        CreateScene(); Renderer.SetViewport(0, new Viewport(_scene!, _cameraNode!.GetComponent<Camera>()!)); SubscribeToEvent<CoreEvents.PostRenderUpdateEvent>((ref CoreEvents.PostRenderUpdateEvent _) => HandlePostRenderUpdate()); Input.SetMouseMode(MouseMode.Free); Input.SetMouseVisible(true);
+        _fireIcon = Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/mouse_left.png");
+        _clearIcon = Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_m.png");
+        _debugIcon = Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_space.png");
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
+            (ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+
+        if (!CreateScene())
+        {
+            Console.Error.WriteLine("Could not load the decals shooting range.");
+            Exit();
+            return;
+        }
+        Renderer.SetViewport(0, new Viewport(_scene!, _cameraNode!.GetComponent<Camera>()!));
+        SubscribeToEvent<CoreEvents.PostRenderUpdateEvent>(
+            (ref CoreEvents.PostRenderUpdateEvent _) => HandlePostRenderUpdate());
+        Input.SetMouseMode(MouseMode.Free);
+        Input.SetMouseVisible(false);
     }
-    private void CreateScene()
+
+    private bool CreateScene()
     {
-        var cache = Resources; _scene = new Scene(); _octree = _scene.CreateComponent<Octree>(); _scene.CreateComponent<DebugRenderer>();
-        var planeNode = _scene.CreateChild("Plane"); planeNode.SetScale(new Vector3f(100.0f, 1.0f, 100.0f)); var plane = planeNode.CreateComponent<StaticModel>(); plane.SetModel(cache.Get<Model>("Models/Plane.mdl")); plane.SetMaterial(cache.Get<Material>("ThirdParty/KenneyNature/grass.glb.d/Materials/grass_Lit.xml"));
-        var zoneNode = _scene.CreateChild("Zone"); var zone = zoneNode.CreateComponent<Zone>(); zone.SetBoundingBox(new BoundingBox(-1000.0f, 1000.0f)); zone.SetAmbientColor(new Color(0.28f, 0.30f, 0.26f)); zone.SetFogColor(new Color(0.62f, 0.72f, 0.82f)); zone.SetFogStart(75.0f); zone.SetFogEnd(180.0f);
-        var lightNode = _scene.CreateChild("DirectionalLight"); lightNode.SetDirection(new Vector3f(0.6f, -1.0f, 0.8f)); var light = lightNode.CreateComponent<Light>(); light.SetLightType(LightType.Directional); light.SetColor(new Color(1.0f, 0.84f, 0.68f)); light.SetCastShadows(true); light.SetShadowBias(new BiasParameters(0.00025f, 0.5f)); light.SetShadowCascade(new CascadeParameters(10.0f, 50.0f, 150.0f, 0.0f, 0.8f));
-        var treeModel = cache.Get<Model>("ThirdParty/KenneyNature/tree_cone.glb.d/Models/Mesh tree_cone.mdl"); var bark = cache.Get<Material>("ThirdParty/KenneyNature/tree_cone.glb.d/Materials/woodBark_Lit.xml"); var leaves = cache.Get<Material>("ThirdParty/KenneyNature/tree_cone.glb.d/Materials/leafsGreen_Lit.xml");
-        for (var i = 0; i < 140; ++i) { var node = _scene.CreateChild("Tree"); node.SetPosition(new Vector3f(MathDefs.Random(90.0f) - 45.0f, 0.0f, MathDefs.Random(90.0f) - 45.0f)); node.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f)); node.SetScale(1.5f + MathDefs.Random(2.5f)); var model = node.CreateComponent<StaticModel>(); model.SetModel(treeModel); model.SetMaterial(0, bark); model.SetMaterial(1, leaves); model.SetCastShadows(true); }
-        var rockModel = cache.Get<Model>("ThirdParty/KenneyNature/rock_largeA.glb.d/Models/Mesh rock_largeA.mdl"); var dirt = cache.Get<Material>("ThirdParty/KenneyNature/rock_largeA.glb.d/Materials/dirt_Lit.xml"); var rockGrass = cache.Get<Material>("ThirdParty/KenneyNature/rock_largeA.glb.d/Materials/grass_Lit.xml");
-        for (var i = 0; i < 20; ++i) { var size = 1.0f + MathDefs.Random(3.0f); var node = _scene.CreateChild("Rock"); node.SetPosition(new Vector3f(MathDefs.Random(80.0f) - 40.0f, 0.0f, MathDefs.Random(80.0f) - 40.0f)); node.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f)); node.SetScale(size); var model = node.CreateComponent<StaticModel>(); model.SetModel(rockModel); model.SetMaterial(0, dirt); model.SetMaterial(1, rockGrass); model.SetCastShadows(true); if (size >= 3.0f) model.SetOccluder(true); }
-        _cameraNode = _scene.CreateChild("Camera"); _cameraNode.CreateComponent<FreeFlyController>(); _cameraNode.CreateComponent<Camera>().SetFarClip(300.0f); _cameraNode.SetPosition(new Vector3f(0.0f, 5.0f, 0.0f));
+        _scene = new Scene();
+        if (!_scene.LoadFile("Scenes/Decals.scene"))
+            return false;
+        _octree = _scene.GetComponent<Octree>();
+        _cameraNode = _scene.FindChild("Camera");
+        _gunNode = _cameraNode?.FindChild("BoxGun");
+        return _octree is not null && _cameraNode is not null && _gunNode is not null;
     }
+
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape)) Exit();
-        if (Input.GetKeyPress(Key.Space)) _drawDebug = !_drawDebug;
-        if (!Input.GetMouseButtonDown(MouseButton.Right) && Input.GetMouseButtonPress(MouseButton.Left)) PaintDecal();
+        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        {
+            Exit();
+            return;
+        }
+
+        if (Input.GetKeyPress(Key.Space))
+            _drawDebug = !_drawDebug;
+        if (Input.GetKeyPress(Key.M))
+            ClearDecals();
+        if (Input.GetMouseButtonPress(MouseButton.Left))
+            Shoot();
+
+        var pointer = Input.GetMousePosition();
+        var aimX = Math.Clamp(pointer.X / (float)Graphics.Width - 0.5f, -0.5f, 0.5f);
+        var aimY = Math.Clamp(pointer.Y / (float)Graphics.Height - 0.5f, -0.5f, 0.5f);
+        _gunNode!.SetRotation(new Quaternion(aimY * 12.0f, aimX * 18.0f, 0.0f));
+        _recoil = MathF.Max(0.0f, _recoil - timeStep * 5.0f);
+        _gunNode.SetPosition(new Vector3f(0.0f, 0.0f, -0.12f * _recoil));
     }
+
     private void HandlePostRenderUpdate()
     {
-        // If draw debug mode is enabled, draw viewport debug geometry. Disable depth test so that we can see the effect of occlusion
         if (_drawDebug)
             Renderer.DrawDebugGeometry(false);
     }
-    private void PaintDecal()
+
+    private void Shoot()
     {
-        var ray = _cameraNode!.GetComponent<Camera>()!.GetScreenRayFromMouse();
-        using var query = new RayOctreeQuery(ray, RayQueryLevel.RayTriangle, 250.0f, DrawableFlags.Geometry);
-        _octree!.RaycastSingle(query);
-        if (query.Result.Count == 0) return;
-        var result = query.Result[0];
-        var hitDrawable = result.Drawable!;
-        var targetNode = hitDrawable.Node!;
+        var ray = GetAimRay();
+        using var query = new RayOctreeQuery(ray, RayQueryLevel.RayTriangle, 100.0f, DrawableFlags.Geometry);
+        _octree!.Raycast(query);
+        _recoil = 1.0f;
+
+        RayQueryResult? surfaceHit = null;
+        foreach (var hit in query.Result)
+        {
+            if (hit.Drawable is StaticModel && hit.Node is not null && !hit.Node.IsChildOf(_gunNode))
+            {
+                surfaceHit = hit;
+                break;
+            }
+        }
+
+        if (!surfaceHit.HasValue)
+            return;
+
+        var result = surfaceHit.Value;
+        var targetNode = result.Node!;
         var decal = targetNode.GetComponent<DecalSet>();
-        if (decal is null) { decal = targetNode.CreateComponent<DecalSet>(); decal.SetMaterial(Resources.Get<Material>("Materials/UrhoDecal.xml")); }
-        decal.AddDecal(hitDrawable, result.Position, _cameraNode.Rotation, 0.5f, 1.0f, 1.0f, Vector2f.Zero, Vector2f.One);
+        if (decal is null)
+        {
+            decal = targetNode.CreateComponent<DecalSet>();
+            decal.SetMaterial(Resources.Get<Material>("Materials/TechnicalDemo/BulletHole.xml"));
+        }
+
+        var decalDirection = -result.Normal;
+        var decalUp = MathF.Abs(decalDirection.DotProduct(Vector3f.Up)) > 0.99f
+            ? Vector3f.Forward
+            : Vector3f.Up;
+        var decalRotation = new Quaternion();
+        decalRotation.FromLookRotation(decalDirection, decalUp);
+        decal.AddDecal(result.Drawable, result.Position, decalRotation, 0.42f, 1.0f, 0.35f,
+            Vector2f.Zero, Vector2f.One);
     }
-    private void DrawInstructions() { var windowOpen = true; if (ImGui.Begin("Decals"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings)) { ImGui.TextUnformatted("Use WASD keys to move"u8); ImGui.TextUnformatted("LMB to paint decals, RMB to rotate view"u8); ImGui.TextUnformatted(_drawDebug ? "Debug geometry requested"u8 : "Space to toggle debug geometry"u8); } ImGui.End(); }
+
+    private Ray GetAimRay()
+    {
+        var pointer = Input.GetMousePosition();
+        return _cameraNode!.GetComponent<Camera>()!.GetScreenRay(
+            pointer.X / (float)Graphics.Width,
+            pointer.Y / (float)Graphics.Height);
+    }
+
+    private void ClearDecals()
+    {
+        foreach (var node in _scene!.GetChildren(true))
+            node.GetComponent<DecalSet>()?.RemoveAllDecals();
+    }
+
+    private void DrawInstructions()
+    {
+        var windowOpen = true;
+        ImGui.SetNextWindowPos(new Vector2f(10.0f, 10.0f), ImGuiCond.ImGuiCondAlways);
+        if (ImGui.Begin("Decals"u8, ref windowOpen,
+            ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        {
+            DrawPrompt(_fireIcon!, "Fire"u8);
+            DrawPrompt(_clearIcon!, "Clear impacts"u8);
+            DrawPrompt(_debugIcon!, _drawDebug ? "Hide debug geometry"u8 : "Show debug geometry"u8);
+        }
+        ImGui.End();
+
+        using var viewport = ImGui.GetMainViewport();
+        using var drawList = ImGui.GetForegroundDrawList(viewport);
+        var center = ImGui.GetMousePos();
+        const float gap = 4.0f;
+        const float length = 10.0f;
+        var color = Color.White.ToUInt();
+        drawList.AddLine(center - new Vector2f(length, 0.0f), center - new Vector2f(gap, 0.0f), color, 2.0f);
+        drawList.AddLine(center + new Vector2f(gap, 0.0f), center + new Vector2f(length, 0.0f), color, 2.0f);
+        drawList.AddLine(center - new Vector2f(0.0f, length), center - new Vector2f(0.0f, gap), color, 2.0f);
+        drawList.AddLine(center + new Vector2f(0.0f, gap), center + new Vector2f(0.0f, length), color, 2.0f);
+    }
+
+    private static void DrawPrompt(Texture2D texture, ReadOnlySpan<byte> label)
+    {
+        ImGui.Image(texture, IconSize);
+        ImGui.SameLine();
+        Widgets.AlignTextToLastItem();
+        ImGui.TextUnformatted(label);
+    }
+
+    private static readonly Vector2f IconSize = new(24.0f, 24.0f);
+    private Scene? _scene;
+    private Node? _cameraNode;
+    private Node? _gunNode;
+    private Octree? _octree;
+    private bool _drawDebug;
+    private float _recoil;
+    private Texture2D? _fireIcon;
+    private Texture2D? _clearIcon;
+    private Texture2D? _debugIcon;
 }

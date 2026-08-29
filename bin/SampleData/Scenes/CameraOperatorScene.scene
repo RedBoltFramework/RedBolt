@@ -1,8 +1,8 @@
-<?xml version="1.0"?>
+<?xml version='1.0' encoding='utf-8'?>
 <resource _id="1">
 	<attributes>
-		<attribute name="Next Node ID" type="Int" value="11" />
-		<attribute name="Next Component ID" type="Int" value="17" />
+		<attribute name="Next Node ID" type="Int" value="22" />
+		<attribute name="Next Component ID" type="Int" value="22" />
 	</attributes>
 	<components>
 		<component _id="1" _typeName="Octree" />
@@ -13,7 +13,7 @@
 				<attribute name="Post Process Antialiasing" type="String" value="FXAA3" />
 			</attributes>
 		</component>
-		<component _id="11" _typeName="ReflectionProbeManager" />
+		<component _id="3" _typeName="ReflectionProbeManager" />
 	</components>
 	<nodes>
 		<node _id="2">
@@ -21,7 +21,7 @@
 				<attribute name="Name" type="String" value="Skybox" />
 			</attributes>
 			<components>
-				<component _id="3" _typeName="Skybox">
+				<component _id="4" _typeName="Skybox">
 					<attributes>
 						<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
 						<attribute name="Material" type="ResourceRefList" value="Material;Materials/DefaultSkybox.xml" />
@@ -31,15 +31,15 @@
 		</node>
 		<node _id="3">
 			<attributes>
-				<attribute name="Name" type="String" value="Global Zone" />
+				<attribute name="Name" type="String" value="Technical Zone" />
 			</attributes>
 			<components>
-				<component _id="4" _typeName="Zone">
+				<component _id="5" _typeName="Zone">
 					<attributes>
 						<attribute name="Bounding Box Min" type="Vector3" value="-1000 -1000 -1000" />
 						<attribute name="Bounding Box Max" type="Vector3" value="1000 1000 1000" />
-						<attribute name="Ambient Color" type="Color" value="0 0 0 1" />
-						<attribute name="Background Brightness" type="Float" value="0.500000" />
+						<attribute name="Ambient Color" type="Color" value="0.30 0.34 0.42 1" />
+						<attribute name="Background Brightness" type="Float" value="0.65" />
 						<attribute name="Zone Texture" type="ResourceRef" value="TextureCube;Textures/DefaultSkybox.xml" />
 					</attributes>
 				</component>
@@ -47,14 +47,15 @@
 		</node>
 		<node _id="4">
 			<attributes>
-				<attribute name="Name" type="String" value="Global Light" />
-				<attribute name="Rotation" type="Quaternion" value="0.888074 0.325058 0.325058 -0" />
+				<attribute name="Name" type="String" value="Sun" />
+				<attribute name="Rotation" type="Quaternion" value="0.888074 0.325058 0.325058 0" />
 			</attributes>
 			<components>
-				<component _id="5" _typeName="Light">
+				<component _id="6" _typeName="Light">
 					<attributes>
 						<attribute name="Light Type" type="String" value="Directional" />
-						<attribute name="Brightness Multiplier" type="Float" value="0.500000" />
+						<attribute name="Color" type="Color" value="0.92 0.96 1 1" />
+						<attribute name="Brightness Multiplier" type="Float" value="1.0" />
 						<attribute name="Cast Shadows" type="Bool" value="true" />
 					</attributes>
 				</component>
@@ -62,64 +63,140 @@
 		</node>
 		<node _id="5">
 			<attributes>
-				<attribute name="Name" type="String" value="Sample Cube" />
+				<attribute name="Name" type="String" value="Ground" />
+				<attribute name="Position" type="Vector3" value="0 -0.08 0" />
+				<attribute name="Scale" type="Vector3" value="40 0.15 30" />
 			</attributes>
 			<components>
-				<component _id="6" _typeName="StaticModel">
+				<component _id="7" _typeName="StaticModel">
 					<attributes>
 						<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
-						<attribute name="Material" type="ResourceRefList" value="Material;Materials/DefaultWhite.xml" />
+						<attribute name="Material" type="ResourceRefList" value="Material;Materials/TechnicalDemo/SquareFloorGrid.xml" />
 						<attribute name="Cast Shadows" type="Bool" value="true" />
 					</attributes>
 				</component>
 			</components>
 		</node>
-		<node _id="8">
+		<node _id="6">
 			<attributes>
 				<attribute name="Name" type="String" value="MainCamera" />
-				<attribute name="Position" type="Vector3" value="0.714699 0.237239 -1.691795" />
-				<attribute name="Rotation" type="Quaternion" value="0.971089 0.083266 -0.222907 0.019113" />
+				<attribute name="Position" type="Vector3" value="0 2.8 -10.5" />
+				<attribute name="Rotation" type="Quaternion" value="0.992546 0.121869 0 0" />
 			</attributes>
 			<components>
-				<component _id="13" _typeName="Camera" />
-				<component _id="14" _typeName="CameraOperator">
+				<component _id="8" _typeName="Camera">
 					<attributes>
-						<attribute name="Track Bounding Box" type="Bool" value="true" />
-						<attribute name="Bounding Box Min" type="Vector3" value="-0.5 -0.5 -0.5" />
-						<attribute name="Bounding Box Max" type="Vector3" value="0.5 0.5 0.5" />
+						<attribute name="Far Clip" type="Float" value="80" />
+					</attributes>
+				</component>
+				<component _id="9" _typeName="CameraOperator">
+					<attributes>
+						<attribute name="Padding" type="Rect" value="3.5 2.7 3.5 1.8" />
+						<attribute name="Track Bounding Box" type="Bool" value="false" />
+						<attribute name="Bounding Box Min" type="Vector3" value="-0.8 0 -0.8" />
+						<attribute name="Bounding Box Max" type="Vector3" value="0.8 1.2 0.8" />
 					</attributes>
 				</component>
 			</components>
 		</node>
-		<node _id="9">
+		<node _id="7">
 			<attributes>
-				<attribute name="Name" type="String" value="CubeA" />
-				<attribute name="Scale" type="Vector3" value="0.1 0.1 0.1" />
+				<attribute name="Name" type="String" value="CarA" />
+				<attribute name="Position" type="Vector3" value="0 0.28 0" />
 			</attributes>
-			<components>
-				<component _id="15" _typeName="StaticModel">
+			<nodes>
+				<node _id="8">
 					<attributes>
-						<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
-						<attribute name="Material" type="ResourceRefList" value="Material;Materials/DefaultWhite.xml" />
-						<attribute name="Cast Shadows" type="Bool" value="true" />
+						<attribute name="Name" type="String" value="Police Body" />
+						<attribute name="Rotation" type="Quaternion" value="1 0 0 0" />
+						<attribute name="Scale" type="Vector3" value="1.35 1.35 1.35" />
+						<attribute name="Position" type="Vector3" value="0 0.65 0" />
 					</attributes>
-				</component>
-			</components>
+					<components>
+						<component _id="10" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;ThirdParty/Quaternius/PoliceCar.glb.d/Models/PoliceBody.mdl" />
+								<attribute name="Material" type="ResourceRefList" value="Material;ThirdParty/Quaternius/PoliceCar.glb.d/Materials/White_Lit.xml;ThirdParty/Quaternius/PoliceCar.glb.d/Materials/Windows_Lit.xml;ThirdParty/Quaternius/PoliceCar.glb.d/Materials/Grey_Lit.xml;ThirdParty/Quaternius/PoliceCar.glb.d/Materials/Headlights_Lit.xml;ThirdParty/Quaternius/PoliceCar.glb.d/Materials/Black_Lit.xml;ThirdParty/Quaternius/PoliceCar.glb.d/Materials/TailLights_Lit.xml;ThirdParty/Quaternius/PoliceCar.glb.d/Materials/WhiteLights_Lit.xml;ThirdParty/Quaternius/PoliceCar.glb.d/Materials/BlueLights_Lit.xml" />
+								<attribute name="Cast Shadows" type="Bool" value="true" />
+							</attributes>
+						</component>
+					</components>
+				</node>
+				<node _id="9">
+					<attributes>
+						<attribute name="Position" type="Vector3" value="-1.0 0.52 1.55" />
+						<attribute name="Name" type="String" value="Police Wheel 1" />
+						<attribute name="Rotation" type="Quaternion" value="0 0 0.707107 0.707107" />
+						<attribute name="Scale" type="Vector3" value="1.82 1.82 1.82" />
+					</attributes>
+					<components>
+						<component _id="11" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;ThirdParty/Quaternius/PoliceCar.glb.d/Models/PoliceWheel.mdl" />
+								<attribute name="Material" type="ResourceRefList" value="Material;ThirdParty/Quaternius/PoliceCar.glb.d/Materials/Black_Lit.xml;ThirdParty/Quaternius/PoliceCar.glb.d/Materials/Grey_Lit.xml" />
+								<attribute name="Cast Shadows" type="Bool" value="true" />
+							</attributes>
+						</component>
+					</components>
+				</node>
+				<node _id="10">
+					<attributes>
+						<attribute name="Position" type="Vector3" value="1.0 0.52 1.55" />
+						<attribute name="Name" type="String" value="Police Wheel 2" />
+						<attribute name="Rotation" type="Quaternion" value="0 0 -0.707107 0.707107" />
+						<attribute name="Scale" type="Vector3" value="1.82 1.82 1.82" />
+					</attributes>
+					<components>
+						<component _id="12" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;ThirdParty/Quaternius/PoliceCar.glb.d/Models/PoliceWheel.mdl" />
+								<attribute name="Material" type="ResourceRefList" value="Material;ThirdParty/Quaternius/PoliceCar.glb.d/Materials/Black_Lit.xml;ThirdParty/Quaternius/PoliceCar.glb.d/Materials/Grey_Lit.xml" />
+								<attribute name="Cast Shadows" type="Bool" value="true" />
+							</attributes>
+						</component>
+					</components>
+				</node>
+				<node _id="11">
+					<attributes>
+						<attribute name="Position" type="Vector3" value="-1.0 0.52 -1.55" />
+						<attribute name="Name" type="String" value="Police Wheel 3" />
+						<attribute name="Rotation" type="Quaternion" value="0 0 0.707107 0.707107" />
+						<attribute name="Scale" type="Vector3" value="1.82 1.82 1.82" />
+					</attributes>
+					<components>
+						<component _id="13" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;ThirdParty/Quaternius/PoliceCar.glb.d/Models/PoliceWheel.mdl" />
+								<attribute name="Material" type="ResourceRefList" value="Material;ThirdParty/Quaternius/PoliceCar.glb.d/Materials/Black_Lit.xml;ThirdParty/Quaternius/PoliceCar.glb.d/Materials/Grey_Lit.xml" />
+								<attribute name="Cast Shadows" type="Bool" value="true" />
+							</attributes>
+						</component>
+					</components>
+				</node>
+				<node _id="12">
+					<attributes>
+						<attribute name="Position" type="Vector3" value="1.0 0.52 -1.55" />
+						<attribute name="Name" type="String" value="Police Wheel 4" />
+						<attribute name="Rotation" type="Quaternion" value="0 0 -0.707107 0.707107" />
+						<attribute name="Scale" type="Vector3" value="1.82 1.82 1.82" />
+					</attributes>
+					<components>
+						<component _id="14" _typeName="StaticModel">
+							<attributes>
+								<attribute name="Model" type="ResourceRef" value="Model;ThirdParty/Quaternius/PoliceCar.glb.d/Models/PoliceWheel.mdl" />
+								<attribute name="Material" type="ResourceRefList" value="Material;ThirdParty/Quaternius/PoliceCar.glb.d/Materials/Black_Lit.xml;ThirdParty/Quaternius/PoliceCar.glb.d/Materials/Grey_Lit.xml" />
+								<attribute name="Cast Shadows" type="Bool" value="true" />
+							</attributes>
+						</component>
+					</components>
+				</node>
+			</nodes>
 		</node>
-		<node _id="10">
+		<node _id="21">
 			<attributes>
-				<attribute name="Name" type="String" value="CubeB" />
-				<attribute name="Scale" type="Vector3" value="0.1 0.1 0.1" />
+				<attribute name="Name" type="String" value="IncomingTarget" />
+				<attribute name="Position" type="Vector3" value="-7 0.8 0.8" />
 			</attributes>
-			<components>
-				<component _id="16" _typeName="StaticModel">
-					<attributes>
-						<attribute name="Model" type="ResourceRef" value="Model;Models/Box.mdl" />
-						<attribute name="Material" type="ResourceRefList" value="Material;Materials/DefaultWhite.xml" />
-						<attribute name="Cast Shadows" type="Bool" value="true" />
-					</attributes>
-				</component>
-			</components>
 		</node>
 	</nodes>
 	<auxiliary />

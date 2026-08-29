@@ -151,18 +151,18 @@ public partial class StaticModel : Drawable
         }
     }
 
-    public virtual bool SetMaterial(uint index, Material? material)
+    public virtual bool SetMaterial(int index, Material? material)
     {
-        if (index >= _batches.Count)
+        if (index < 0 || index >= _batches.Count)
         {
             Microsoft.Extensions.Logging.LoggerExtensions.LogError(
                 Log.GetLogger(), "Material index {Index} is out of bounds", index);
             return false;
         }
 
-        var batch = _batches[(int)index];
+        var batch = _batches[index];
         batch.Material = material;
-        _batches[(int)index] = batch;
+        _batches[index] = batch;
         return true;
     }
 

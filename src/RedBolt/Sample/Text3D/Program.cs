@@ -63,26 +63,35 @@ public sealed class Text3DApplication : Application
         var zoneNode = _scene.CreateChild("Zone");
         var zone = zoneNode.CreateComponent<Zone>();
         zone.SetBoundingBox(new BoundingBox(-1000.0f, 1000.0f));
-        zone.SetAmbientColor(new Color(0.25f, 0.25f, 0.3f));
-        zone.SetFogColor(new Color(0.08f, 0.12f, 0.2f));
+        zone.SetAmbientColor(new Color(0.3f, 0.34f, 0.42f));
+        zone.SetFogColor(new Color(0.045f, 0.06f, 0.1f));
         zone.SetFogStart(35.0f);
         zone.SetFogEnd(60.0f);
 
         var skyNode = _scene.CreateChild("Sky");
         var sky = skyNode.CreateComponent<Skybox>();
         sky.SetModel(Resources.Get<Model>("Models/Box.mdl"));
-        sky.SetMaterial(Resources.Get<Material>("Materials/Skybox.xml"));
+        sky.SetMaterial(Resources.Get<Material>("Materials/DefaultSkybox.xml"));
 
         var groundNode = _scene.CreateChild("Ground");
-        groundNode.SetScale(new Vector3f(40.0f, 1.0f, 40.0f));
+        groundNode.SetPosition(new Vector3f(0.0f, -0.12f, 4.0f));
+        groundNode.SetScale(new Vector3f(40.0f, 0.2f, 40.0f));
         var ground = groundNode.CreateComponent<StaticModel>();
-        ground.SetModel(Resources.Get<Model>("Models/Plane.mdl"));
-        ground.SetMaterial(Resources.Get<Material>("Materials/StoneTiled.xml"));
+        ground.SetModel(Resources.Get<Model>("Models/Box.mdl"));
+        ground.SetMaterial(Resources.Get<Material>("Materials/TechnicalDemo/SquareFloorGrid.xml"));
+
+        CreateTechnicalBox("BackGrid", new Vector3f(0.0f, 3.5f, 12.0f),
+            new Vector3f(18.0f, 7.0f, 0.2f), "Materials/TechnicalDemo/BackWallGrid.xml");
+        CreateTechnicalBox("LeftGrid", new Vector3f(-8.5f, 2.5f, 5.0f),
+            new Vector3f(0.2f, 5.0f, 14.0f), "Materials/TechnicalDemo/SideWallGrid.xml");
+        CreateTechnicalBox("RightGrid", new Vector3f(8.5f, 2.5f, 5.0f),
+            new Vector3f(0.2f, 5.0f, 14.0f), "Materials/TechnicalDemo/SideWallGrid.xml");
 
         var lightNode = _scene.CreateChild("DirectionalLight");
         lightNode.SetDirection(new Vector3f(0.5f, -1.0f, 0.7f));
         var light = lightNode.CreateComponent<Light>();
         light.SetLightType(LightType.Directional);
+        light.SetColor(new Color(0.92f, 0.96f, 1.0f));
         light.SetCastShadows(true);
 
         var font = Resources.Get<Font>("Fonts/Anonymous Pro.ttf");
@@ -94,7 +103,7 @@ public sealed class Text3DApplication : Application
         titleNode.SetScale(1.5f);
         var title = titleNode.CreateComponent<Text3DComponent>();
         title.SetFont(font, 64.0f);
-        title.SetText("RedBolt Text3D");
+        title.SetText("TEXT / WORLD SPACE");
         title.SetColor(new Color(1.0f, 0.75f, 0.2f));
         title.SetAlignment(HorizontalAlignment.Center, VerticalAlignment.Center);
 
@@ -109,7 +118,7 @@ public sealed class Text3DApplication : Application
         body.SetAlignment(HorizontalAlignment.Center, VerticalAlignment.Center);
 
         var sdfNode = _scene.CreateChild("SDF");
-        sdfNode.SetPosition(new Vector3f(3.2f, 1.5f, 7.5f));
+        sdfNode.SetPosition(new Vector3f(3.2f, 1.8f, 7.5f));
         sdfNode.SetRotation(new Quaternion(0.0f, -25.0f, 0.0f));
         sdfNode.SetScale(1.6f);
         var sdf = sdfNode.CreateComponent<Text3DComponent>();
@@ -124,7 +133,7 @@ public sealed class Text3DApplication : Application
         leftPedestalNode.SetScale(new Vector3f(4.5f, 1.2f, 0.7f));
         var leftPedestal = leftPedestalNode.CreateComponent<StaticModel>();
         leftPedestal.SetModel(Resources.Get<Model>("Models/Box.mdl"));
-        leftPedestal.SetMaterial(Resources.Get<Material>("Materials/Stone.xml"));
+        leftPedestal.SetMaterial(Resources.Get<Material>("Materials/TechnicalDemo/Dark.xml"));
         leftPedestal.SetCastShadows(true);
 
         var rightPedestalNode = _scene.CreateChild("RightPedestal");
@@ -133,8 +142,21 @@ public sealed class Text3DApplication : Application
         rightPedestalNode.SetScale(new Vector3f(4.5f, 1.2f, 0.7f));
         var rightPedestal = rightPedestalNode.CreateComponent<StaticModel>();
         rightPedestal.SetModel(Resources.Get<Model>("Models/Box.mdl"));
-        rightPedestal.SetMaterial(Resources.Get<Material>("Materials/Stone.xml"));
+        rightPedestal.SetMaterial(Resources.Get<Material>("Materials/TechnicalDemo/Dark.xml"));
         rightPedestal.SetCastShadows(true);
+
+        CreateTechnicalBox("LeftAccent", new Vector3f(-3.2f, 1.28f, 6.3f),
+            new Vector3f(4.7f, 0.12f, 0.9f), "Materials/TechnicalDemo/Accent.xml",
+            new Quaternion(0.0f, 20.0f, 0.0f));
+        CreateTechnicalBox("RightAccent", new Vector3f(3.2f, 1.28f, 7.8f),
+            new Vector3f(4.7f, 0.12f, 0.9f), "Materials/TechnicalDemo/Accent.xml",
+            new Quaternion(0.0f, -25.0f, 0.0f));
+
+        for (var i = -1; i <= 1; i += 2)
+        {
+            CreateTechnicalBox($"Marker{i}", new Vector3f(i * 7.2f, 1.2f, 1.0f),
+                new Vector3f(0.22f, 2.4f, 0.22f), "Materials/TechnicalDemo/Accent.xml");
+        }
 
         var controlsNode = _scene.CreateChild("Controls");
         controlsNode.SetPosition(new Vector3f(0.0f, 0.25f, -4.0f));
@@ -158,6 +180,20 @@ public sealed class Text3DApplication : Application
 
         Input.SetMouseMode(MouseMode.Free);
         Input.SetMouseVisible(true);
+    }
+
+    private void CreateTechnicalBox(string name, Vector3f position, Vector3f scale,
+        string material, Quaternion? rotation = null)
+    {
+        var node = _scene!.CreateChild(name);
+        node.SetPosition(position);
+        node.SetScale(scale);
+        if (rotation is not null)
+            node.SetRotation(rotation.Value);
+        var model = node.CreateComponent<StaticModel>();
+        model.SetModel(Resources.Get<Model>("Models/Box.mdl"));
+        model.SetMaterial(Resources.Get<Material>(material));
+        model.SetCastShadows(true);
     }
 
     protected override void Update(float timeStep)

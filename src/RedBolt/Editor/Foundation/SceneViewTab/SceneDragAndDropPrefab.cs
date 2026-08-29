@@ -170,9 +170,10 @@ public class SceneDragAndDropPrefab : SceneViewAddon
 
         if (defaultMaterial is not null)
         {
-            for (var i = 0u; i < staticModel.GetNumGeometries(); ++i)
+            var numGeometries = checked((int)staticModel.GetNumGeometries());
+            for (var i = 0; i < numGeometries; ++i)
             {
-                if (staticModel.GetMaterial(i) is null)
+                if (staticModel.GetMaterial((uint)i) is null)
                     staticModel.SetMaterial(i, defaultMaterial);
             }
         }

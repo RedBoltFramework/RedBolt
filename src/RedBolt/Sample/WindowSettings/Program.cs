@@ -5,6 +5,7 @@
 namespace RedBolt.Sample.WindowSettings;
 
 using System;
+using System.Collections.Generic;
 
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
@@ -126,6 +127,7 @@ public class WindowSettingsDemo : Application
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
         SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
             (ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawUI());
+        RefreshMonitorLabels();
 
         // Create the Window and add it to the UI's root node
         // Set Window size and layout settings
@@ -154,12 +156,13 @@ public class WindowSettingsDemo : Application
         _monitor = windowSettings.Monitor;
 
         // Synchronize resolution list
-        var fullscreenModes = RenderDevice.GetFullscreenModes(windowSettings.Monitor);
+        _fullscreenModes = RenderDevice.GetFullscreenModes(windowSettings.Monitor);
 
         // Synchronize selected resolution
         var currentSwapChainSize = renderDevice.GetSwapChainSize();
         var currentMode = new FullscreenMode(currentSwapChainSize, windowSettings.RefreshRate);
-        _mode = RenderDevice.GetClosestFullscreenModeIndex(fullscreenModes, currentMode);
+        _mode = RenderDevice.GetClosestFullscreenModeIndex(_fullscreenModes, currentMode);
+        RefreshModeLabels();
         _resolutionLabel.FormatInPlace(
             $"Current: {currentMode.Size.X}x{currentMode.Size.Y}, {currentMode.RefreshRate} Hz");
 
@@ -182,8 +185,7 @@ public class WindowSettingsDemo : Application
         if (_monitor < 0)
             return;
 
-        var fullscreenModes = RenderDevice.GetFullscreenModes(_monitor);
-        if (_mode < 0 || _mode >= fullscreenModes.Count)
+        if (_mode < 0 || _mode >= _fullscreenModes.Count)
             return;
 
         var windowSettings = new WindowSettings();
@@ -199,11 +201,11 @@ public class WindowSettingsDemo : Application
 
         var renderDevice = GetSubsystem<RenderDevice>()!;
         var dpiScale = windowSettings.Mode == WindowMode.Fullscreen ? 1.0f : renderDevice.GetDpiScale();
-        var width = MathDefs.RoundToInt(fullscreenModes[_mode].Size.X / dpiScale);
-        var height = MathDefs.RoundToInt(fullscreenModes[_mode].Size.Y / dpiScale);
+        var width = MathDefs.RoundToInt(_fullscreenModes[_mode].Size.X / dpiScale);
+        var height = MathDefs.RoundToInt(_fullscreenModes[_mode].Size.Y / dpiScale);
         windowSettings.Size = new Vector2i(width, height);
 
-        windowSettings.RefreshRate = fullscreenModes[_mode].RefreshRate;
+        windowSettings.RefreshRate = _fullscreenModes[_mode].RefreshRate;
 
         Graphics.SetDefaultWindowModes(windowSettings);
     }
@@ -211,24 +213,154 @@ public class WindowSettingsDemo : Application
     private void DrawUI()
     {
         var windowOpen = true;
+        ImGui.SetNextWindowPos(new Vector2f(24.0f, 24.0f), ImGuiCond.ImGuiCondFirstUseEver);
+        ImGui.SetNextWindowSize(new Vector2f(430.0f, 610.0f), ImGuiCond.ImGuiCondFirstUseEver);
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColWindowBg, PanelBackground);
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColBorder, PanelBorder);
+        ImGui.PushStyleVar(ImGuiStyleVar.ImGuiStyleVarWindowRounding, 14.0f);
+        ImGui.PushStyleVar(ImGuiStyleVar.ImGuiStyleVarWindowPadding, new Vector2f(20.0f, 18.0f));
         if (!ImGui.Begin("Window Settings"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
             ImGui.End();
+            ImGui.PopStyleVar(2);
+            ImGui.PopStyleColor(2);
             return;
         }
 
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColText, AccentCyan);
+        ImGui.TextUnformatted("DISPLAY CONFIGURATOR"u8);
+        ImGui.PopStyleColor();
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColText, MutedText);
+        ImGui.TextUnformatted("Preview window modes on the live 3D scene."u8);
+        ImGui.PopStyleColor();
+        ImGui.Separator();
+
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColText, AccentAmber);
+        ImGui.TextUnformatted("CURRENT OUTPUT"u8);
+        ImGui.PopStyleColor();
         ImGui.TextUnformatted(_resolutionLabel.ContentBytes);
-        ImGui.InputInt("Monitor"u8, ref _monitor);
-        ImGui.InputInt("Mode index"u8, ref _mode);
-        ImGui.Checkbox("Fullscreen"u8, ref _fullscreen);
-        ImGui.Checkbox("Borderless"u8, ref _borderless);
+        ImGui.Spacing();
+
+        ImGui.TextUnformatted("DISPLAY"u8);
+        ImGui.SetNextItemWidth(-1.0f);
+        var monitorLabel = _monitor >= 0 && _monitor < _monitorLabels.Count
+            ? _monitorLabels[_monitor].ContentBytes
+            : "No displays"u8;
+        if (ImGui.BeginCombo("##Monitor"u8, monitorLabel))
+        {
+            for (var i = 0; i < _monitorLabels.Count; ++i)
+            {
+                if (ImGui.Selectable(_monitorLabels[i].ContentBytes, i == _monitor))
+                {
+                    _monitor = i;
+                    _mode = 0;
+                    _fullscreenModes = RenderDevice.GetFullscreenModes(_monitor);
+                    RefreshModeLabels();
+                }
+            }
+            ImGui.EndCombo();
+        }
+
+        ImGui.TextUnformatted("RESOLUTION"u8);
+        ImGui.SetNextItemWidth(-1.0f);
+        var modeLabel = _mode >= 0 && _mode < _modeLabels.Count
+            ? _modeLabels[_mode].ContentBytes
+            : "No display modes"u8;
+        if (ImGui.BeginCombo("##Resolution"u8, modeLabel))
+        {
+            for (var i = 0; i < _modeLabels.Count; ++i)
+            {
+                if (ImGui.Selectable(_modeLabels[i].ContentBytes, i == _mode))
+                    _mode = i;
+            }
+            ImGui.EndCombo();
+        }
+
+        ImGui.Spacing();
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColText, AccentViolet);
+        ImGui.TextUnformatted("WINDOW MODE"u8);
+        ImGui.PopStyleColor();
+        var windowMode = _fullscreen ? 2 : _borderless ? 1 : 0;
+        ImGui.RadioButton("Windowed"u8, ref windowMode, 0);
+        ImGui.SameLine();
+        ImGui.RadioButton("Borderless"u8, ref windowMode, 1);
+        ImGui.SameLine();
+        ImGui.RadioButton("Fullscreen"u8, ref windowMode, 2);
+        _fullscreen = windowMode == 2;
+        _borderless = windowMode == 1;
+
+        ImGui.Spacing();
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColText, AccentViolet);
+        ImGui.TextUnformatted("PRESENTATION"u8);
+        ImGui.PopStyleColor();
         ImGui.Checkbox("Resizable"u8, ref _resizable);
+        ImGui.SameLine();
         ImGui.Checkbox("V-Sync"u8, ref _vSync);
-        ImGui.InputInt("MSAA index"u8, ref _multiSample);
-        if (ImGui.Button("Apply"u8))
+
+        ImGui.TextUnformatted("ANTI-ALIASING"u8);
+        ImGui.SetNextItemWidth(-1.0f);
+        if (ImGui.BeginCombo("##MSAA"u8, GetMultiSampleLabel(_multiSample)))
+        {
+            for (var i = 0; i <= 4; ++i)
+            {
+                if (ImGui.Selectable(GetMultiSampleLabel(i), i == _multiSample))
+                    _multiSample = i;
+            }
+            ImGui.EndCombo();
+        }
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColButton, ApplyButton);
+        if (ImGui.Button("APPLY DISPLAY SETTINGS"u8, new Vector2f(-1.0f, 42.0f)))
             ApplySettings();
+        ImGui.PopStyleColor();
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColText, MutedText);
+        ImGui.TextUnformatted("The scene keeps rendering while settings are applied."u8);
+        ImGui.PopStyleColor();
         ImGui.End();
+        ImGui.PopStyleVar(2);
+        ImGui.PopStyleColor(2);
     }
+
+    private void RefreshMonitorLabels()
+    {
+        DisposeLabels(_monitorLabels);
+        var monitorCount = Math.Max(1, Graphics.GetMonitorCount());
+        for (var i = 0; i < monitorCount; ++i)
+        {
+            var label = new CString();
+            label.FormatInPlace($"Monitor {i + 1}");
+            _monitorLabels.Add(label);
+        }
+    }
+
+    private void RefreshModeLabels()
+    {
+        DisposeLabels(_modeLabels);
+        foreach (var mode in _fullscreenModes)
+        {
+            var label = new CString();
+            label.FormatInPlace($"{mode.Size.X} x {mode.Size.Y} @ {mode.RefreshRate} Hz");
+            _modeLabels.Add(label);
+        }
+    }
+
+    private static void DisposeLabels(List<CString> labels)
+    {
+        foreach (var label in labels)
+            label.Dispose();
+        labels.Clear();
+    }
+
+    private static ReadOnlySpan<byte> GetMultiSampleLabel(int index) => index switch
+    {
+        1 => "2x MSAA"u8,
+        2 => "4x MSAA"u8,
+        3 => "8x MSAA"u8,
+        4 => "16x MSAA"u8,
+        _ => "Off"u8
+    };
 
     protected override void Update(float timeStep)
     {
@@ -254,6 +386,8 @@ public class WindowSettingsDemo : Application
     protected override void Stop()
     {
         _resolutionLabel.Dispose();
+        DisposeLabels(_monitorLabels);
+        DisposeLabels(_modeLabels);
         Renderer.SetNumViewports(0);
         _cameraNode = null;
         _scene?.Dispose();
@@ -264,6 +398,8 @@ public class WindowSettingsDemo : Application
     public override void Dispose()
     {
         _resolutionLabel.Dispose();
+        DisposeLabels(_monitorLabels);
+        DisposeLabels(_modeLabels);
         if (_scene is not null)
             Renderer.SetNumViewports(0);
         _cameraNode = null;
@@ -277,9 +413,19 @@ public class WindowSettingsDemo : Application
     private int _monitor;
     private readonly CString _resolutionLabel = new();
     private int _mode;
+    private List<FullscreenMode> _fullscreenModes = [];
+    private readonly List<CString> _monitorLabels = [];
+    private readonly List<CString> _modeLabels = [];
     private bool _fullscreen;
     private bool _borderless;
     private bool _resizable;
     private bool _vSync;
     private int _multiSample;
+    private static readonly Vector4f PanelBackground = new(0.028f, 0.038f, 0.07f, 0.96f);
+    private static readonly Vector4f PanelBorder = new(0.19f, 0.25f, 0.43f, 0.9f);
+    private static readonly Vector4f MutedText = new(0.56f, 0.62f, 0.74f, 1.0f);
+    private static readonly Vector4f AccentCyan = new(0.18f, 0.92f, 1.0f, 1.0f);
+    private static readonly Vector4f AccentViolet = new(0.68f, 0.47f, 1.0f, 1.0f);
+    private static readonly Vector4f AccentAmber = new(1.0f, 0.68f, 0.26f, 1.0f);
+    private static readonly Vector4f ApplyButton = new(0.12f, 0.45f, 0.52f, 1.0f);
 }

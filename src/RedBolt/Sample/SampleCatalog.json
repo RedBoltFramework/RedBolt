@@ -5,7 +5,8 @@
   "android": true,
   "projectReferences": [
     "src/RedBolt/Audio/RedBolt.Audio.csproj",
-    "src/RedBolt/DearImGui/RedBolt.DearImGui.csproj"
+    "src/RedBolt/DearImGui/RedBolt.DearImGui.csproj",
+    "src/RedBolt/Utility/RedBolt.Utility.csproj"
   ],
   "additionalSources": [
     "Rotator.cs"

@@ -17,6 +17,7 @@ using RedBolt.Math;
 using RedBolt.RenderPipeline;
 using RedBolt.Resource;
 using RedBolt.Scene;
+using Widgets = RedBolt.SystemUI.Widgets;
 
 internal static class TextureFormatsProgram
 {
@@ -178,6 +179,15 @@ public class TextureFormatsSample : Application
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
         SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
             (ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+
+        _controlPrompts =
+        [
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_w.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_a.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_s.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_d.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/mouse_right.png")
+        ];
     }
 
     /// <summary>
@@ -189,16 +199,32 @@ public class TextureFormatsSample : Application
         Renderer.SetViewport(0, viewport);
     }
 
-    private static void DrawInstructions()
+    private void DrawInstructions()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Texture Formats"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        ImGui.SetNextWindowPos(new Vector2f(10.0f, 10.0f), ImGuiCond.ImGuiCondAlways);
+        if (ImGui.Begin("Texture Formats"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            ImGui.TextUnformatted("Supported on Software: left"u8);
-            ImGui.TextUnformatted("Supported on Hardware: right"u8);
-            ImGui.TextUnformatted("Use WASD keys and right mouse button to move"u8);
+            ImGui.TextUnformatted("Left: software-decoded"u8);
+            ImGui.TextUnformatted("Right: hardware-native"u8);
+            ImGui.Separator();
+            for (var i = 0; i < 3; ++i)
+            {
+                ImGui.Image(_controlPrompts![i], PromptIconSize);
+                ImGui.SameLine();
+            }
+            DrawPrompt(_controlPrompts![3], "Move"u8);
+            DrawPrompt(_controlPrompts[4], "Look / drag touch"u8);
         }
         ImGui.End();
+    }
+
+    private static void DrawPrompt(Texture2D texture, ReadOnlySpan<byte> label)
+    {
+        ImGui.Image(texture, PromptIconSize);
+        ImGui.SameLine();
+        Widgets.AlignTextToLastItem();
+        ImGui.TextUnformatted(label);
     }
 
     protected override void Update(float timeStep)
@@ -263,4 +289,6 @@ public class TextureFormatsSample : Application
 
     private Scene? _scene;
     private Node? _cameraNode;
+    private Texture2D[]? _controlPrompts;
+    private static readonly Vector2f PromptIconSize = new(24.0f, 24.0f);
 }

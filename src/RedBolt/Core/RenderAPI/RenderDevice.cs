@@ -714,6 +714,10 @@ public sealed class RenderDevice : RedObject
 
     public float GetDpiScale()
     {
+        var graphics = GetSubsystem<Graphics>();
+        if (graphics is not null && graphics.CanvasDpiScale > 0.0f)
+            return graphics.CanvasDpiScale;
+
         var swapChainSize = GetSwapChainSize();
         var windowSize = GetWindowSize();
         var ratioX = (float)swapChainSize.X / windowSize.X;

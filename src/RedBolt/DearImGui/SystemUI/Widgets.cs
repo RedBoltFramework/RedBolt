@@ -15,6 +15,16 @@ using RedBolt.Math;
 
 public static partial class Widgets
 {
+    /// <summary>Align text vertically to the center of the previously rendered item.</summary>
+    public static void AlignTextToLastItem()
+    {
+        var itemMinimum = ImGui.GetItemRectMin();
+        var itemMaximum = ImGui.GetItemRectMax();
+        var cursor = ImGui.GetCursorScreenPos();
+        cursor.Y = (itemMinimum.Y + itemMaximum.Y - ImGui.GetFontSize()) * 0.5f;
+        ImGui.SetCursorScreenPos(cursor);
+    }
+
     /// <summary>Return best size of small square button with one icon.</summary>
     public static float GetSmallButtonSize()
     {

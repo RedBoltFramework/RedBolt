@@ -678,7 +678,7 @@ public sealed partial class Text3D : CustomGeometry
             material.SetTechnique(0, isGpu ? _gpuTextTechnique : _textTechnique);
             material.SetTexture("Albedo", isGpu ? null : face?.GetTexture(i));
             material.SetTexture("HarfBuzzAtlas", isGpu ? gpuTexture : null);
-            base.SetMaterial((uint)i, material);
+            base.SetMaterial(i, material);
         }
     }
 

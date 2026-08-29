@@ -7,8 +7,6 @@ namespace RedBolt.Sample.CameraOperator;
 using System;
 
 using RedBolt;
-using RedBolt.Bindings.DearImGui;
-using RedBolt.DearImGui;
 using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
@@ -33,15 +31,27 @@ internal static class CameraOperatorProgram
 /// </summary>
 sealed class CameraOperatorSampleApplication : Application
 {
+    private static readonly Vector3f[] _trackPoints =
+    [
+        new(-8.0f, 0.08f, -1.0f),
+        new(-4.5f, 0.08f, -5.0f),
+        new(4.0f, 0.08f, -5.0f),
+        new(8.0f, 0.08f, -1.5f),
+        new(6.5f, 0.08f, 5.0f),
+        new(1.5f, 0.08f, 7.0f),
+        new(-5.5f, 0.08f, 5.5f),
+        new(-8.5f, 0.08f, 2.5f)
+    ];
+
     private Scene? _scene;
     private Node? _cameraNode;
     private CameraOperator? _cameraOperator;
-    private Node? _cubeA;
-    private Node? _cubeB;
-    private float _angle;
-    private bool _trackCubeA;
-    private bool _trackCubeB;
-    private bool _orthographic;
+    private Node? _carA;
+    private Node? _incomingTarget;
+    private Node? _focusedNode;
+    private Vector3f _observerPosition;
+    private Vector3f _lookTarget;
+    private float _raceTime;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -58,33 +68,162 @@ sealed class CameraOperatorSampleApplication : Application
     /// <summary>Setup after engine initialization and before running the main loop.</summary>
     protected override void Start()
     {
-        Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
         // Execute base class startup
         // Create the scene content
         CreateScene();
-        // Create the UI content
-        CreateInstructions();
         // Setup the viewport for displaying the scene
         SetupViewport();
-        // Set the mouse mode to use in the sample
-        Input.SetMouseMode(MouseMode.Free); Input.SetMouseVisible(true);
     }
 
     /// <summary>Construct the scene content.</summary>
     private void CreateScene()
     {
-        var cache = Resources;
         _scene = new Scene(); _scene.LoadFile("Scenes/CameraOperatorScene.scene");
         _cameraNode = _scene.FindChild("MainCamera");
         _cameraOperator = _cameraNode!.FindComponent<CameraOperator>();
-        _cameraNode.CreateComponent<FreeFlyController>();
-        _cubeA = _scene.FindChild("CubeA", true);
-        _cubeB = _scene.FindChild("CubeB", true);
+        _cameraOperator!.SetEnabled(false);
+        _carA = _scene.FindChild("CarA", true);
+        _incomingTarget = _scene.FindChild("IncomingTarget", true);
+        var incomingPosition = GetTrackPosition(0.08f);
+        incomingPosition.Y = 0.8f;
+        _incomingTarget!.SetPosition(incomingPosition);
+        _observerPosition = _cameraNode.WorldPosition;
+        _lookTarget = _incomingTarget.WorldPosition;
+        _cameraNode.LookAt(_lookTarget, Vector3f.Up);
+        CreateTechnicalTrack();
+        SetFocusedNode(_incomingTarget);
     }
 
-    /// <summary>Construct an instruction text to the UI.</summary>
-    private static void CreateInstructions() {}
+    private void CreateTechnicalTrack()
+    {
+        var scene = _scene!;
+        var roadMaterial = Resources.Get<Material>("Materials/TechnicalDemo/Grid.xml");
+        var roadNode = scene.CreateChild("Track Surface");
+        var road = roadNode.CreateComponent<CustomGeometry>();
+        road.BeginGeometry(0, PrimitiveType.TriangleList);
+        const int numRoadSegments = 64;
+        for (var i = 0; i < numRoadSegments; ++i)
+        {
+            var progress = (float)i / numRoadSegments;
+            var nextProgress = (float)(i + 1) / numRoadSegments;
+            GetRoadEdges(progress, out var left, out var right);
+            GetRoadEdges(nextProgress, out var nextLeft, out var nextRight);
+            DefineRoadVertex(road, left, new Vector2f(0.0f, progress * 12.0f));
+            DefineRoadVertex(road, nextLeft, new Vector2f(0.0f, nextProgress * 12.0f));
+            DefineRoadVertex(road, right, new Vector2f(1.0f, progress * 12.0f));
+            DefineRoadVertex(road, right, new Vector2f(1.0f, progress * 12.0f));
+            DefineRoadVertex(road, nextLeft, new Vector2f(0.0f, nextProgress * 12.0f));
+            DefineRoadVertex(road, nextRight, new Vector2f(1.0f, nextProgress * 12.0f));
+        }
+        road.Commit();
+        road.SetMaterial(roadMaterial);
+        road.SetCastShadows(true);
+
+        for (var i = 0; i < 24; ++i)
+        {
+            var progress = (i + 0.5f) / 24.0f;
+            GetRoadEdges(progress, out var left, out var right);
+            var material = i % 3 == 0
+                ? "Materials/TechnicalDemo/Accent.xml"
+                : "Materials/TechnicalDemo/Dark.xml";
+            CreateTrackMarker(left, progress, material);
+            CreateTrackMarker(right, progress, material);
+        }
+
+        float[] gateProgress = [0.02f, 0.27f, 0.52f, 0.77f];
+        foreach (var progress in gateProgress)
+        {
+            GetRoadEdges(progress, out var left, out var right);
+            CreateTrackBox("Gate Post", left + Vector3f.Up * 1.5f, new Vector3f(0.35f, 3.0f, 0.35f),
+                "Materials/TechnicalDemo/Accent.xml");
+            CreateTrackBox("Gate Post", right + Vector3f.Up * 1.5f, new Vector3f(0.35f, 3.0f, 0.35f),
+                "Materials/TechnicalDemo/Accent.xml");
+            var beamPosition = (left + right) * 0.5f + Vector3f.Up * 3.0f;
+            var beam = CreateTrackBox("Gate Beam", beamPosition,
+                new Vector3f(0.35f, 0.35f, (right - left).Length + 0.35f),
+                "Materials/TechnicalDemo/Dark.xml");
+            beam.LookAt(right + Vector3f.Up * 3.0f, Vector3f.Up);
+        }
+    }
+
+    private void CreateTrackMarker(Vector3f position, float progress, string material)
+    {
+        var marker = CreateTrackBox("Track Marker", position + Vector3f.Up * 0.22f,
+            new Vector3f(0.28f, 0.44f, 0.8f), material);
+        marker.LookAt(GetTrackPosition(progress + 0.01f), Vector3f.Up);
+    }
+
+    private Node CreateTrackBox(string name, Vector3f position, Vector3f scale, string material)
+    {
+        var node = _scene!.CreateChild(name);
+        node.SetPosition(position);
+        node.SetScale(scale);
+        var model = node.CreateComponent<StaticModel>();
+        model.SetModel(Resources.Get<Model>("Models/Box.mdl"));
+        model.SetMaterial(Resources.Get<Material>(material));
+        model.SetCastShadows(true);
+        return node;
+    }
+
+    private static Vector3f GetTrackPosition(float progress) => new(
+        CatmullRom(progress, static point => point.X),
+        0.08f,
+        CatmullRom(progress, static point => point.Z));
+
+    private static float CatmullRom(float progress, Func<Vector3f, float> getCoordinate)
+    {
+        var scaledProgress = WrapProgress(progress) * _trackPoints.Length;
+        var index = (int)MathF.Floor(scaledProgress);
+        var factor = scaledProgress - index;
+        var p0 = getCoordinate(_trackPoints[(index - 1 + _trackPoints.Length) % _trackPoints.Length]);
+        var p1 = getCoordinate(_trackPoints[index]);
+        var p2 = getCoordinate(_trackPoints[(index + 1) % _trackPoints.Length]);
+        var p3 = getCoordinate(_trackPoints[(index + 2) % _trackPoints.Length]);
+        var factor2 = factor * factor;
+        var factor3 = factor2 * factor;
+        return 0.5f * (2.0f * p1 + (-p0 + p2) * factor
+            + (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * factor2
+            + (-p0 + 3.0f * p1 - 3.0f * p2 + p3) * factor3);
+    }
+
+    private static void GetRoadEdges(float progress, out Vector3f left, out Vector3f right)
+    {
+        var position = GetTrackPosition(progress);
+        position.Y = 0.04f;
+        var previous = GetTrackPosition(WrapProgress(progress - 0.01f));
+        var next = GetTrackPosition(WrapProgress(progress + 0.01f));
+        var direction = (next - previous).Normalized;
+        var side = new Vector3f(-direction.Z, 0.0f, direction.X) * 3.2f;
+        left = position + side;
+        right = position - side;
+    }
+
+    private static float WrapProgress(float progress) => progress - MathF.Floor(progress);
+
+    private static void DefineRoadVertex(CustomGeometry road, Vector3f position, Vector2f texCoord)
+    {
+        road.DefineVertex(position);
+        road.DefineNormal(Vector3f.Up);
+        road.DefineTexCoord(texCoord);
+    }
+
+    private static float UpdateCar(Node car, float raceTime)
+    {
+        const float lapTime = 12.0f;
+        var progress = raceTime / lapTime;
+        car.SetPosition(GetTrackPosition(progress));
+        car.LookAt(GetTrackPosition(WrapProgress(progress + 0.01f)), Vector3f.Up);
+        return progress;
+    }
+
+    private void SetFocusedNode(Node node)
+    {
+        if (ReferenceEquals(_focusedNode, node))
+            return;
+        _cameraOperator!.RemoveAllTrackedNodes();
+        _cameraOperator.TrackNode(node);
+        _focusedNode = node;
+    }
 
     /// <summary>Set up a viewport for displaying the scene.</summary>
     private void SetupViewport()
@@ -99,41 +238,16 @@ sealed class CameraOperatorSampleApplication : Application
     protected override void Update(float timeStep)
     {
         if (Input.ExitRequested || Input.GetKeyPress(Key.Escape)) { Exit(); return; }
-        _angle += timeStep * 45.0f;
-        _cubeA!.SetPosition(new Vector3f(0, 4 * MathDefs.Cos(_angle), 0));
-        _cubeB!.SetPosition(new Vector3f(0, 0, 4 * MathDefs.Cos(_angle + 90)));
+        _raceTime = (_raceTime + timeStep) % 12.0f;
+        var carAProgress = UpdateCar(_carA!, _raceTime);
+        var observerDistance = MathF.Abs(carAProgress - 0.22f);
+        if (observerDistance > 0.17f)
+            SetFocusedNode(_incomingTarget!);
+        else
+            SetFocusedNode(_carA!);
+        _lookTarget = _lookTarget.Lerp(_focusedNode!.WorldPosition, Math.Min(1.0f, timeStep * 2.5f));
+        _cameraNode!.SetWorldPosition(_observerPosition);
+        _cameraNode.LookAt(_lookTarget, Vector3f.Up);
     }
 
-    private void TrackCubeAToggled(bool state)
-    {
-        if (state) _cameraOperator!.TrackNode(_cubeA);
-        else _cameraOperator!.RemoveTrackedNode(_cubeA);
-    }
-
-    private void TrackCubeBToggled(bool state)
-    {
-        if (state) _cameraOperator!.TrackNode(_cubeB);
-        else _cameraOperator!.RemoveTrackedNode(_cubeB);
-    }
-
-    private void OrthographicToggled(bool state)
-    {
-        _cameraNode!.FindComponent<Camera>()!.SetOrthographic(state);
-    }
-
-    private void DrawInstructions()
-    {
-        var windowOpen = true;
-        if (ImGui.Begin("Camera Operator"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
-        {
-            ImGui.TextUnformatted("Right click to rotate camera"u8);
-            if (ImGui.Checkbox("Track Cube A"u8, ref _trackCubeA))
-                TrackCubeAToggled(_trackCubeA);
-            if (ImGui.Checkbox("Track Cube B"u8, ref _trackCubeB))
-                TrackCubeBToggled(_trackCubeB);
-            if (ImGui.Checkbox("Orthographic"u8, ref _orthographic))
-                OrthographicToggled(_orthographic);
-        }
-        ImGui.End();
-    }
 }

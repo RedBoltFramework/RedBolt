@@ -76,6 +76,14 @@ public class Graphics : RedObject
     private readonly Context _ownerContext;
     private static uint _maxBonesHWSkinned;
 
+    /// <summary>DPI scale supplied by the browser for the current canvas.</summary>
+    public float CanvasDpiScale { get; private set; }
+
+    internal void SetCanvasDpiScale(float scale)
+    {
+        CanvasDpiScale = scale > 0.0f ? scale : 1.0f;
+    }
+
     private const int CameraBufferSize = 368;
     private const int FrameBufferSize = 16;
     private const int ObjectBufferSize = 80;
@@ -751,6 +759,11 @@ layout(std140) uniform Material
 
     public Vector3f GetDisplayDPI(int monitor = 0)
     {
+        if (CanvasDpiScale > 0.0f)
+        {
+            var dpi = 96.0f * CanvasDpiScale;
+            return new Vector3f(dpi, dpi, dpi);
+        }
         Sdl.SdlGetDisplayDPI(monitor, out var ddpi, out var hdpi, out var vdpi);
         return new Vector3f(hdpi, vdpi, ddpi);
     }

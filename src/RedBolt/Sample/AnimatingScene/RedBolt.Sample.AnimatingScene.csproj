@@ -13,6 +13,5 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <ItemGroup>
     <Compile Include="../Rotator.cs" Link="Rotator.cs" />
     <ProjectReference Include="../../Core/RedBolt.Core.csproj" />
-    <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
   </ItemGroup>
 </Project>

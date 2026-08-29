@@ -15,6 +15,7 @@ using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.Scene;
+using Widgets = RedBolt.SystemUI.Widgets;
 
 internal static class MultipleViewportsProgram
 {
@@ -40,7 +41,6 @@ internal static class MultipleViewportsProgram
 /// Multiple viewports example.
 /// This sample demonstrates:
 ///     - Setting up two viewports with two separate cameras
-///     - Adding post processing effects to a viewport's render path and toggling them
 /// </summary>
 public class MultipleViewports : Application
 {
@@ -63,7 +63,12 @@ public class MultipleViewports : Application
         base.Start();
 
         // Create the scene content
-        CreateScene();
+        if (!CreateScene())
+        {
+            Console.Error.WriteLine("Could not load the static showcase scene.");
+            Exit();
+            return;
+        }
 
         // Create the UI content
         CreateInstructions();
@@ -82,101 +87,27 @@ public class MultipleViewports : Application
     /// <summary>
     /// Construct the scene content.
     /// </summary>
-    private void CreateScene()
+    private bool CreateScene()
     {
-        var cache = Resources;
-
         _scene = new Scene();
-
-        // Create octree, use default volume (-1000, -1000, -1000) to (1000, 1000, 1000)
-        // Also create a DebugRenderer component so that we can draw debug geometry
-        _scene.CreateComponent<Octree>();
+        if (!_scene.LoadFile("Scenes/StaticScene.scene"))
+            return false;
         _scene.CreateComponent<DebugRenderer>();
-
-        // Create scene node & StaticModel component for showing a static plane
-        var planeNode = _scene.CreateChild("Plane");
-        planeNode.SetScale(new Vector3f(100.0f, 1.0f, 100.0f));
-        var planeObject = planeNode.CreateComponent<StaticModel>();
-        planeObject.SetModel(cache.Get<Model>("Models/Plane.mdl"));
-        planeObject.SetMaterial(cache.Get<Material>("ThirdParty/KenneyNature/grass.glb.d/Materials/grass_Lit.xml"));
-
-        // Create a Zone component for ambient lighting and fog control
-        var zoneNode = _scene.CreateChild("Zone");
-        var zone = zoneNode.CreateComponent<Zone>();
-        zone.SetBoundingBox(new BoundingBox(-1000.0f, 1000.0f));
-        zone.SetAmbientColor(new Color(0.28f, 0.30f, 0.26f));
-        zone.SetFogColor(new Color(0.62f, 0.72f, 0.82f));
-        zone.SetFogStart(75.0f);
-        zone.SetFogEnd(180.0f);
-
-        // Create a warm directional light with cascaded shadows
-        var lightNode = _scene.CreateChild("DirectionalLight");
-        lightNode.SetDirection(new Vector3f(0.6f, -1.0f, 0.8f));
-        var light = lightNode.CreateComponent<Light>();
-        light.SetLightType(LightType.Directional);
-        light.SetColor(new Color(1.0f, 0.84f, 0.68f));
-        light.SetCastShadows(true);
-        light.SetShadowBias(new BiasParameters(0.00025f, 0.5f));
-        light.SetShadowCascade(new CascadeParameters(10.0f, 50.0f, 150.0f, 0.0f, 0.8f));
-
-        // Create a forest from repeated imported models
-        const int NumTrees = 180;
-        var treeModel = cache.Get<Model>("ThirdParty/KenneyNature/tree_fat.glb.d/Models/Mesh tree_fat.mdl");
-        var barkMaterial = cache.Get<Material>("ThirdParty/KenneyNature/tree_fat.glb.d/Materials/woodBark_Lit.xml");
-        var leavesMaterial = cache.Get<Material>("ThirdParty/KenneyNature/tree_fat.glb.d/Materials/leafsGreen_Lit.xml");
-        for (var i = 0; i < NumTrees; ++i)
-        {
-            var treeNode = _scene.CreateChild("Tree");
-            treeNode.SetPosition(new Vector3f(MathDefs.Random(90.0f) - 45.0f, 0.0f, MathDefs.Random(90.0f) - 45.0f));
-            treeNode.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f));
-            treeNode.SetScale(1.5f + MathDefs.Random(2.5f));
-            var treeObject = treeNode.CreateComponent<StaticModel>();
-            treeObject.SetModel(treeModel);
-            treeObject.SetMaterial(0, leavesMaterial);
-            treeObject.SetMaterial(1, barkMaterial);
-            treeObject.SetCastShadows(true);
-        }
-
-        // Add rocks from the nature kit as occluders.
-        const int NumRocks = 20;
-        var rockModel = cache.Get<Model>("ThirdParty/KenneyNature/rock_largeA.glb.d/Models/Mesh rock_largeA.mdl");
-        var dirtMaterial = cache.Get<Material>("ThirdParty/KenneyNature/rock_largeA.glb.d/Materials/dirt_Lit.xml");
-        var rockGrassMaterial = cache.Get<Material>("ThirdParty/KenneyNature/rock_largeA.glb.d/Materials/grass_Lit.xml");
-        for (var i = 0; i < NumRocks; ++i)
-        {
-            var rockNode = _scene.CreateChild("Rock");
-            var size = 1.0f + MathDefs.Random(3.0f);
-            rockNode.SetPosition(new Vector3f(MathDefs.Random(80.0f) - 40.0f, 0.0f, MathDefs.Random(80.0f) - 40.0f));
-            rockNode.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f));
-            rockNode.SetScale(size);
-            var rockObject = rockNode.CreateComponent<StaticModel>();
-            rockObject.SetModel(rockModel);
-            rockObject.SetMaterial(0, dirtMaterial);
-            rockObject.SetMaterial(1, rockGrassMaterial);
-            rockObject.SetCastShadows(true);
-            if (size >= 3.0f)
-                rockObject.SetOccluder(true);
-        }
-
-        // Create the cameras. Limit far clip distance to match the fog
-        _cameraNode = _scene.CreateChild("Camera");
-        _cameraNode.CreateComponent<FreeFlyController>();
-        var camera = _cameraNode.CreateComponent<Camera>();
-        camera.SetFarClip(300.0f);
+        _cameraNode = _scene.FindChild("Camera");
+        if (_cameraNode is null)
+            return false;
 
         // Parent the rear camera node to the front camera node and turn it 180 degrees to face backward
         // Here, we use the angle-axis constructor for Quaternion instead of the usual Euler angles
         _rearCameraNode = _cameraNode.CreateChild("RearCamera");
         _rearCameraNode.Rotate(new Quaternion(180.0f, Vector3f.Up));
         var rearCamera = _rearCameraNode.CreateComponent<Camera>();
-        rearCamera.SetFarClip(300.0f);
+        rearCamera.SetFarClip(160.0f);
         // Because the rear viewport is rather small, disable occlusion culling from it. Use the camera's
         // "view override flags" for this. We could also disable eg. shadows or force low material quality
         // if we wanted
         rearCamera.SetViewOverrideFlags(ViewOverride.DisableOcclusion);
-
-        // Set an initial position for the front camera scene node above the plane
-        _cameraNode.SetPosition(new Vector3f(0.0f, 5.0f, 0.0f));
+        return true;
     }
 
     /// <summary>
@@ -190,6 +121,16 @@ public class MultipleViewports : Application
         };
         Context.RegisterSubsystem(dearImGui);
         SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+
+        _controlPrompts =
+        [
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_w.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_a.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_s.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_d.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/mouse_right.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_space.png")
+        ];
 
         // Construct new Text object, set string to display and font to use
         // The text has multiple rows. Center them in relation to each other
@@ -277,13 +218,27 @@ public class MultipleViewports : Application
     private void DrawInstructions()
     {
         var windowOpen = true;
+        ImGui.SetNextWindowPos(new Vector2f(10.0f, 10.0f), ImGuiCond.ImGuiCondAlways);
         if (ImGui.Begin("Multiple Viewports"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            ImGui.TextUnformatted("Use WASD keys and mouse/touch to move\nB to toggle bloom, F to toggle FXAA\nSpace to toggle debug geometry"u8);
-            if (ImGui.Button(_drawDebug ? "Debug geometry: On"u8 : "Debug geometry: Off"u8))
-                _drawDebug = !_drawDebug;
+            for (var i = 0; i < 3; ++i)
+            {
+                ImGui.Image(_controlPrompts![i], PromptIconSize);
+                ImGui.SameLine();
+            }
+            DrawPrompt(_controlPrompts![3], "Move"u8);
+            DrawPrompt(_controlPrompts[4], "Look / drag touch"u8);
+            DrawPrompt(_controlPrompts[5], _drawDebug ? "Hide debug geometry"u8 : "Show debug geometry"u8);
         }
         ImGui.End();
+    }
+
+    private static void DrawPrompt(Texture2D texture, ReadOnlySpan<byte> label)
+    {
+        ImGui.Image(texture, PromptIconSize);
+        ImGui.SameLine();
+        Widgets.AlignTextToLastItem();
+        ImGui.TextUnformatted(label);
     }
 
     protected override void Setup(EngineParameters parameters)
@@ -334,4 +289,6 @@ public class MultipleViewports : Application
     private bool _drawDebug;
     private readonly bool _animateCamera;
     private float _cameraAnimationDelay;
+    private Texture2D[]? _controlPrompts;
+    private static readonly Vector2f PromptIconSize = new(24.0f, 24.0f);
 }

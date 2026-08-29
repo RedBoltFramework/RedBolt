@@ -40,6 +40,7 @@ public class DearImGui : RedObject
         // TODO: port io.UserData = this when generated bindings can retain a managed Object pointer as native user data.
         // UI subsystem is responsible for managing cursors and that interferes with ImGui.
         io.ConfigFlags |= flags;
+        io.ConfigDpiScaleFonts = true;
 
         PlatformInitialize();
 #if !REDBOLT_PLATFORM_BROWSER && !REDBOLT_PLATFORM_ANDROID
@@ -386,6 +387,15 @@ public class DearImGui : RedObject
 
         _renderer!.NewFrame();
         ImGui.ImGuiImplSDL2NewFrame();
+
+        var graphics = GetSubsystem<Graphics>()!;
+        var io = ImGui.GetIO();
+        if (graphics.CanvasDpiScale > 0.0f)
+        {
+            var dpiScale = graphics.CanvasDpiScale;
+            io.DisplaySize = new Vector2f(graphics.Width / dpiScale, graphics.Height / dpiScale);
+            io.DisplayFramebufferScale = new Vector2f(dpiScale, dpiScale);
+        }
 
         ImGui.NewFrame();
 

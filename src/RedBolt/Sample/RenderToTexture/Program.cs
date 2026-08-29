@@ -5,17 +5,20 @@
 namespace RedBolt.Sample.RenderToTexture;
 
 using System;
+using System.Collections.Generic;
 
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
-using RedBolt.DearImGui;
 using RedBolt.Core;
+using RedBolt.DearImGui;
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
+using RedBolt.Resource;
 using RedBolt.Scene;
+using Widgets = RedBolt.SystemUI.Widgets;
 
 internal static class RenderToTextureProgram
 {
@@ -37,223 +40,291 @@ internal static class RenderToTextureProgram
     }
 }
 
-/// <summary>
-/// Render to texture example.
-/// This sample demonstrates:
-///     - Creating two 3D scenes and rendering the other into a texture
-///     - Creating rendertarget texture and material programmatically
-/// </summary>
 public class RenderToTexture : Application
 {
-    /// <summary>Construct.</summary>
-    public RenderToTexture()
-    {
-    }
-
-    /// <summary>Setup after engine initialization and before running the main loop.</summary>
     protected override void Start()
     {
-        // Execute base class startup
         base.Start();
-
-        // Create the scene content
         CreateScene();
-
-        // Create the UI content
         CreateInstructions();
-
-        // Setup the viewport for displaying the scene
         SetupViewport();
-
-        // Set the mouse mode to use in the sample
         Input.SetMouseMode(MouseMode.Free);
         Input.SetMouseVisible(true);
     }
 
-    /// <summary>Construct the scene content.</summary>
     private void CreateScene()
     {
         var cache = Resources;
+        _scene = new Scene();
+        _scene.CreateComponent<Octree>();
 
-        {
-            // Create the scene which will be rendered to a texture
-            _rttScene = new Scene();
+        var zone = _scene.CreateChild("Zone").CreateComponent<Zone>();
+        zone.SetBoundingBox(new BoundingBox(-1000.0f, 1000.0f));
+        zone.SetAmbientColor(new Color(0.32f, 0.35f, 0.42f));
+        zone.SetFogColor(new Color(0.08f, 0.1f, 0.14f));
+        zone.SetFogStart(45.0f);
+        zone.SetFogEnd(80.0f);
 
-            // Create octree, use default volume (-1000, -1000, -1000) to (1000, 1000, 1000)
-            _rttScene.CreateComponent<Octree>();
+        var lightNode = _scene.CreateChild("DirectionalLight");
+        lightNode.SetDirection(new Vector3f(0.45f, -1.0f, 0.35f));
+        var light = lightNode.CreateComponent<Light>();
+        light.SetLightType(LightType.Directional);
+        light.SetColor(new Color(0.8f, 0.84f, 0.92f));
+        light.SetCastShadows(true);
+        light.SetShadowBias(new BiasParameters(0.00025f, 0.5f));
+        light.SetShadowCascade(new CascadeParameters(10.0f, 30.0f, 60.0f, 0.0f, 0.8f));
 
-            // Create a Zone for ambient light & fog control
-            var renderZone = _rttScene.CreateChild("Zone").CreateComponent<Zone>();
-            // Set same volume as the Octree, set a close bluish fog and some ambient light
-            renderZone.SetBoundingBox(new BoundingBox(-1000.0f, 1000.0f));
-            renderZone.SetAmbientColor(new Color(0.05f, 0.1f, 0.15f));
-            renderZone.SetFogColor(new Color(0.1f, 0.2f, 0.3f));
-            renderZone.SetFogStart(10.0f);
-            renderZone.SetFogEnd(100.0f);
+        var fillNode = _scene.CreateChild("MirrorFillLight");
+        fillNode.SetPosition(new Vector3f(0.0f, 5.0f, 10.0f));
+        var fill = fillNode.CreateComponent<Light>();
+        fill.SetLightType(LightType.Point);
+        fill.SetColor(new Color(1.0f, 0.62f, 0.18f));
+        fill.SetRange(16.0f);
+        fill.SetBrightness(0.7f);
 
-            // Create randomly positioned and oriented box StaticModels in the scene
-            const int NumObjects = 2000;
-            for (var i = 0; i < NumObjects; ++i)
-            {
-                var boxNode = _rttScene.CreateChild("Box");
-                boxNode.SetPosition(new Vector3f(MathDefs.Random(200.0f) - 100.0f, MathDefs.Random(100.0f), MathDefs.Random(200.0f) - 100.0f));
-                // Orient using random pitch, yaw and roll Euler angles
-                boxNode.SetRotation(new Quaternion(MathDefs.Random(360.0f), MathDefs.Random(360.0f), MathDefs.Random(360.0f)));
-                var box = boxNode.CreateComponent<StaticModel>();
-                box.SetModel(cache.Get<Model>("Models/Box.mdl"));
-                box.SetMaterial(cache.Get<Material>("Materials/Stone.xml"));
+        var floorNode = _scene.CreateChild("Floor");
+        floorNode.SetScale(new Vector3f(30.0f, 1.0f, 28.0f));
+        var floor = floorNode.CreateComponent<StaticModel>();
+        floor.SetModel(cache.Get<Model>("Models/Plane.mdl"));
+        floor.SetMaterial(cache.Get<Material>("Materials/TechnicalDemo/SquareFloorGrid.xml"));
 
-                // Add our custom Rotator component which will rotate the scene node each frame, when the scene sends its update event.
-                // Simply set same rotation speed for all objects
-                boxNode.CreateComponent<Rotator>().SetRotationSpeed(new Vector3f(10.0f, 20.0f, 30.0f));
-            }
+        var backWallNode = _scene.CreateChild("BackWall");
+        backWallNode.SetPosition(new Vector3f(0.0f, 4.0f, MirrorPlaneZ + 0.08f));
+        backWallNode.SetRotation(new Quaternion(-90.0f, 0.0f, 0.0f));
+        backWallNode.SetScale(new Vector3f(30.0f, 1.0f, 8.0f));
+        var backWall = backWallNode.CreateComponent<StaticModel>();
+        backWall.SetModel(cache.Get<Model>("Models/Plane.mdl"));
+        backWall.SetMaterial(cache.Get<Material>("Materials/TechnicalDemo/BackWallGrid.xml"));
+        backWall.SetViewMask(MainViewMask);
 
-            // Create a camera for the render-to-texture scene. Simply leave it at the world origin and let it observe the scene
-            _rttCameraNode = _rttScene.CreateChild("Camera");
-            var renderCamera = _rttCameraNode.CreateComponent<Camera>();
-            renderCamera.SetFarClip(100.0f);
+        var sideWallMaterial = cache.Get<Material>("Materials/TechnicalDemo/SideWallGrid.xml");
+        CreateBox("LeftWall", new Vector3f(-15.0f, 4.0f, 0.0f), new Vector3f(0.3f, 8.0f, 28.0f), sideWallMaterial, true);
+        CreateBox("RightWall", new Vector3f(15.0f, 4.0f, 0.0f), new Vector3f(0.3f, 8.0f, 28.0f), sideWallMaterial, true);
+        CreateBox("FrontWall", new Vector3f(0.0f, 4.0f, -14.0f), new Vector3f(30.0f, 8.0f, 0.3f), sideWallMaterial, true);
+        _collisionBoxes.Add(new CollisionBox(0.0f, MirrorPlaneZ, 30.0f, 0.3f));
 
-            // Create a point light to the camera scene node
-            var renderLight = _rttCameraNode.CreateComponent<Light>();
-            renderLight.SetLightType(LightType.Point);
-            renderLight.SetRange(30.0f);
-        }
+        var darkMaterial = cache.Get<Material>("Materials/TechnicalDemo/Dark.xml");
+        var accentMaterial = cache.Get<Material>("Materials/TechnicalDemo/Accent.xml");
+        CreateBox("MirrorFrameLeft", new Vector3f(-5.05f, 4.0f, MirrorPlaneZ - 0.15f), new Vector3f(0.45f, 6.4f, 0.35f), darkMaterial).SetViewMask(MainViewMask);
+        CreateBox("MirrorFrameRight", new Vector3f(5.05f, 4.0f, MirrorPlaneZ - 0.15f), new Vector3f(0.45f, 6.4f, 0.35f), darkMaterial).SetViewMask(MainViewMask);
+        CreateBox("MirrorFrameTop", new Vector3f(0.0f, 7.0f, MirrorPlaneZ - 0.15f), new Vector3f(10.55f, 0.45f, 0.35f), darkMaterial).SetViewMask(MainViewMask);
+        CreateBox("MirrorFrameBottom", new Vector3f(0.0f, 1.0f, MirrorPlaneZ - 0.15f), new Vector3f(10.55f, 0.45f, 0.35f), darkMaterial).SetViewMask(MainViewMask);
+        CreateBox("MirrorAccent", new Vector3f(0.0f, 7.28f, MirrorPlaneZ - 0.34f), new Vector3f(5.2f, 0.08f, 0.12f), accentMaterial).SetViewMask(MainViewMask);
 
-        {
-            // Create the scene in which we move around
-            _scene = new Scene();
+        CreateBox("TestBlockLeft", new Vector3f(-9.0f, 0.75f, 4.0f), new Vector3f(2.4f, 1.5f, 2.4f), darkMaterial, true);
+        CreateBox("TestBlockRight", new Vector3f(8.0f, 1.4f, 7.0f), new Vector3f(3.0f, 2.8f, 3.0f), accentMaterial, true);
+        CreateBox("TestColumn", new Vector3f(-10.5f, 2.25f, 10.0f), new Vector3f(1.2f, 4.5f, 1.2f), accentMaterial, true);
 
-            // Create octree, use also default volume (-1000, -1000, -1000) to (1000, 1000, 1000)
-            _scene.CreateComponent<Octree>();
+        CreateCharacter(cache);
 
-            // Create a Zone component for ambient lighting & fog control
-            var zone = _scene.CreateChild("Zone").CreateComponent<Zone>();
-            zone.SetBoundingBox(new BoundingBox(-1000.0f, 1000.0f));
-            zone.SetAmbientColor(new Color(0.1f, 0.1f, 0.1f));
-            zone.SetFogStart(100.0f);
-            zone.SetFogEnd(300.0f);
+        _cameraNode = _scene.CreateChild("Camera");
+        var camera = _cameraNode.CreateComponent<Camera>();
+        camera.SetFarClip(80.0f);
 
-            // Create a directional light without shadows
-            var lightNode = _scene.CreateChild("DirectionalLight");
-            lightNode.SetDirection(new Vector3f(0.5f, -1.0f, 0.5f));
-            var light = lightNode.CreateComponent<Light>();
-            light.SetLightType(LightType.Directional);
-            light.SetColor(new Color(0.2f, 0.2f, 0.2f));
-            light.SetSpecularIntensity(1.0f);
+        _reflectionCameraNode = _scene.CreateChild("ReflectionCamera");
+        var reflectionCamera = _reflectionCameraNode.CreateComponent<Camera>();
+        reflectionCamera.SetFarClip(80.0f);
+        reflectionCamera.SetFov(2.0f * MathF.Atan(MirrorHeight * 0.5f / MirrorCameraDistance) / MathDefs.DegToRad);
+        reflectionCamera.SetViewMask(ReflectionViewMask);
+        reflectionCamera.SetAutoAspectRatio(false);
+        reflectionCamera.SetAspectRatio(MirrorWidth / MirrorHeight);
+        _reflectionCameraNode.SetPosition(new Vector3f(0.0f, MirrorCenterY, MirrorPlaneZ + MirrorCameraDistance));
+        _reflectionCameraNode.LookAt(new Vector3f(0.0f, MirrorCenterY, MirrorPlaneZ), Vector3f.Up);
 
-            // Create a "floor" consisting of several tiles
-            for (var y = -5; y <= 5; ++y)
-            {
-                for (var x = -5; x <= 5; ++x)
-                {
-                    var floorNode = _scene.CreateChild("FloorTile");
-                    floorNode.SetPosition(new Vector3f(x * 20.5f, -0.5f, y * 20.5f));
-                    floorNode.SetScale(new Vector3f(20.0f, 1.0f, 20.0f));
-                    var floor = floorNode.CreateComponent<StaticModel>();
-                    floor.SetModel(cache.Get<Model>("Models/Box.mdl"));
-                    floor.SetMaterial(cache.Get<Material>("Materials/Stone.xml"));
-                }
-            }
-
-            // Create a "screen" like object for viewing the second scene. Construct it from two StaticModels, a box for the frame
-            // and a plane for the actual view
-            {
-                var screenFrameNode = _scene.CreateChild("ScreenBox");
-                screenFrameNode.SetPosition(new Vector3f(0.0f, 10.0f, 0.0f));
-                screenFrameNode.SetScale(new Vector3f(21.0f, 16.0f, 0.5f));
-                var screenFrame = screenFrameNode.CreateComponent<StaticModel>();
-                screenFrame.SetModel(cache.Get<Model>("Models/Box.mdl"));
-                screenFrame.SetMaterial(cache.Get<Material>("Materials/Stone.xml"));
-
-                var screenNode = _scene.CreateChild("Screen");
-                screenNode.SetPosition(new Vector3f(0.0f, 10.0f, -0.27f));
-                screenNode.SetRotation(new Quaternion(-90.0f, 0.0f, 0.0f));
-                screenNode.SetScale(new Vector3f(20.0f, 0.0f, 15.0f));
-                var screen = screenNode.CreateComponent<StaticModel>();
-                screen.SetModel(cache.Get<Model>("Models/Plane.mdl"));
-
-                // Create a renderable texture (1024x768, RGB format), enable bilinear filtering on it
-                _renderTexture = new Texture2D();
-                _renderTexture.SetSize(1024, 768, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget, 4);
-                _renderTexture.SetFilterMode(TextureFilterMode.Bilinear);
-
-                // Create a new material from scratch, use the diffuse unlit technique, assign the render texture
-                // as its diffuse texture, then assign the material to the screen plane object
-                _renderMaterial = new Material();
-                _renderMaterial.SetTechnique(0, cache.Get<Technique>("Techniques/DiffUnlit.xml"));
-                _renderMaterial.SetTexture("Albedo", _renderTexture);
-                // Since the screen material is on top of the box model and may Z-fight, use negative depth bias
-                // to push it forward (particularly necessary on mobiles with possibly less Z resolution)
-                _renderMaterial.SetDepthBias(new BiasParameters(-0.001f, 0.0f));
-                screen.SetMaterial(_renderMaterial);
-
-                // Get the texture's RenderSurface object (exists when the texture has been created in rendertarget mode)
-                // and define the viewport for rendering the second scene, similarly as how backbuffer viewports are defined
-                // to the Renderer subsystem. By default the texture viewport will be updated when the texture is visible
-                // in the main view
-                var renderSurface = _renderTexture.GetRenderSurface();
-                var renderToTextureViewport = new Viewport(_rttScene, _rttCameraNode.GetComponent<Camera>()!);
-                renderSurface!.SetViewport(0, renderToTextureViewport);
-            }
-
-            // Create the camera which we will move around. Limit far clip distance to match the fog
-            _cameraNode = _scene.CreateChild("Camera");
-            _cameraNode.CreateComponent<FreeFlyController>();
-            var camera = _cameraNode.CreateComponent<Camera>();
-            camera.SetFarClip(300.0f);
-            // Set an initial position for the camera scene node above the plane
-            _cameraNode.SetPosition(new Vector3f(0.0f, 7.0f, -30.0f));
-        }
+        CreateMirror(cache);
+        UpdateCameras();
     }
 
-    /// <summary>Construct an instruction text to the UI.</summary>
+    private void CreateCharacter(ResourceCache cache)
+    {
+        _characterNode = _scene!.CreateChild("TechnicalDummy");
+        _characterNode.SetPosition(new Vector3f(0.0f, 0.0f, -2.0f));
+        var model = _characterNode.CreateComponent<AnimatedModel>();
+        model.SetModel(cache.Get<Model>("ThirdParty/Quaternius/TechnicalDummy.glb.d/Models/Mannequin.mdl"));
+        var material = cache.Get<Material>("Materials/TechnicalDemo/Yellow.xml");
+        model.SetMaterial(0, material);
+        model.SetMaterial(1, material);
+        model.SetCastShadows(true);
+
+        _walkAnimation = cache.Get<Animation>("ThirdParty/Quaternius/TechnicalDummy.glb.d/Animations/Walk_Loop.ani");
+        _animationController = _characterNode.CreateComponent<AnimationController>();
+        _animationController.PlayNewExclusive(new AnimationParameters(_walkAnimation).Looped());
+        _animationController.SetSpeed(_walkAnimation.Name, 0.0f);
+    }
+
+    private void CreateMirror(ResourceCache cache)
+    {
+        var mirrorNode = _scene!.CreateChild("MirrorSurface");
+        mirrorNode.SetPosition(new Vector3f(0.0f, MirrorCenterY, MirrorPlaneZ - 0.04f));
+        mirrorNode.SetRotation(new Quaternion(-90.0f, 0.0f, 0.0f));
+        mirrorNode.SetScale(new Vector3f(MirrorWidth, 1.0f, MirrorHeight));
+        var mirror = mirrorNode.CreateComponent<StaticModel>();
+        mirror.SetModel(cache.Get<Model>("Models/Plane.mdl"));
+        mirror.SetViewMask(MainViewMask);
+
+        _renderTexture = new Texture2D();
+        _renderTexture.SetSize(1024, 576, TextureFormat.TexFormatRgba8Unorm, TextureFlag.BindRenderTarget, 4);
+        _renderTexture.SetFilterMode(TextureFilterMode.Bilinear);
+
+        _renderMaterial = new Material();
+        _renderMaterial.SetTechnique(0, cache.Get<Technique>("Techniques/DiffUnlit.xml"));
+        _renderMaterial.SetTexture("Albedo", _renderTexture);
+        _renderMaterial.SetShaderParameter("UOffset", new Vector4f(-1.0f, 0.0f, 0.0f, 1.0f));
+        _renderMaterial.SetDepthBias(new BiasParameters(-0.001f, 0.0f));
+        mirror.SetMaterial(_renderMaterial);
+
+        var surface = _renderTexture.GetRenderSurface();
+        surface!.SetViewport(0, new Viewport(_scene, _reflectionCameraNode!.GetComponent<Camera>()!));
+    }
+
+    private StaticModel CreateBox(string name, Vector3f position, Vector3f scale, Material material, bool collidable = false)
+    {
+        var node = _scene!.CreateChild(name);
+        node.SetPosition(position);
+        node.SetScale(scale);
+        var model = node.CreateComponent<StaticModel>();
+        model.SetModel(Resources.Get<Model>("Models/Box.mdl"));
+        model.SetMaterial(material);
+        model.SetCastShadows(true);
+        if (collidable)
+            _collisionBoxes.Add(new CollisionBox(position.X, position.Z, scale.X, scale.Z));
+        return model;
+    }
+
     private void CreateInstructions()
     {
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
         SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
-
-        // Construct new Text object, set string to display and font to use
-        // Position the text relative to the screen center
-        // The rbfx Text control is replaced by the allowed Dear ImGui sample UI surface.
+        _controlPrompts =
+        [
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_w.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_a.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_s.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_d.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/mouse_right.png")
+        ];
     }
 
-    /// <summary>Set up a viewport for displaying the scene.</summary>
     private void SetupViewport()
     {
-        // Set up a viewport to the Renderer subsystem so that the 3D scene can be seen
-        var viewport = new Viewport(_scene!, _cameraNode!.GetComponent<Camera>()!);
-        Renderer.SetViewport(0, viewport);
+        Renderer.SetViewport(0, new Viewport(_scene!, _cameraNode!.GetComponent<Camera>()!));
     }
 
     protected override void Update(float timeStep)
     {
         if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        {
             Exit();
+            return;
+        }
+
+        if (Input.GetMouseButtonDown(MouseButton.Right))
+        {
+            var mouseMove = Input.GetMouseMove();
+            _cameraYaw += mouseMove.X * 0.12f;
+            _cameraPitch = MathDefs.Clamp(_cameraPitch + mouseMove.Y * 0.12f, -10.0f, 42.0f);
+        }
+
+        var yawRadians = _cameraYaw * MathDefs.DegToRad;
+        var forward = new Vector3f(MathF.Sin(yawRadians), 0.0f, MathF.Cos(yawRadians));
+        var right = new Vector3f(forward.Z, 0.0f, -forward.X);
+        var move = Vector3f.Zero;
+        if (Input.GetScancodeDown(Scancode.W))
+            move += forward;
+        if (Input.GetScancodeDown(Scancode.S))
+            move -= forward;
+        if (Input.GetScancodeDown(Scancode.A))
+            move -= right;
+        if (Input.GetScancodeDown(Scancode.D))
+            move += right;
+
+        if (move.LengthSquared > 0.0f)
+        {
+            move.Normalize();
+            var previousPosition = _characterNode!.Position;
+            var position = MoveCharacter(previousPosition, move * (CharacterSpeed * timeStep));
+            _characterNode.SetPosition(position);
+            var actualMove = position - previousPosition;
+            if (actualMove.LengthSquared > 0.0f)
+            {
+                _characterNode.LookAt(position + actualMove, Vector3f.Up);
+                _animationController!.SetSpeed(_walkAnimation!.Name, 1.4f);
+            }
+            else
+                _animationController!.SetSpeed(_walkAnimation!.Name, 0.0f);
+        }
+        else
+            _animationController!.SetSpeed(_walkAnimation!.Name, 0.0f);
+
+        UpdateCameras();
     }
 
-    protected override void Stop()
+    private Vector3f MoveCharacter(Vector3f position, Vector3f movement)
     {
-        _rttCameraNode = null;
-        _rttScene?.Dispose();
-        _rttScene = null;
-        if (_scene is not null)
-            Renderer.SetNumViewports(0);
-        _cameraNode = null;
-        _scene?.Dispose();
-        _scene = null;
-        _renderMaterial?.Dispose();
-        _renderMaterial = null;
-        _renderTexture?.Dispose();
-        _renderTexture = null;
-        base.Stop();
+        var candidate = new Vector3f(position.X + movement.X, position.Y, position.Z);
+        if (!Collides(candidate))
+            position.X = candidate.X;
+        candidate = new Vector3f(position.X, position.Y, position.Z + movement.Z);
+        if (!Collides(candidate))
+            position.Z = candidate.Z;
+        return position;
+    }
+
+    private bool Collides(Vector3f position)
+    {
+        for (var i = 0; i < _collisionBoxes.Count; ++i)
+        {
+            var box = _collisionBoxes[i];
+            if (position.X > box.MinX - CharacterRadius && position.X < box.MaxX + CharacterRadius
+                && position.Z > box.MinZ - CharacterRadius && position.Z < box.MaxZ + CharacterRadius)
+                return true;
+        }
+        return false;
+    }
+
+    private void UpdateCameras()
+    {
+        var target = _characterNode!.Position + new Vector3f(0.0f, 1.45f, 0.0f);
+        var yaw = _cameraYaw * MathDefs.DegToRad;
+        var pitch = _cameraPitch * MathDefs.DegToRad;
+        var direction = new Vector3f(MathF.Sin(yaw) * MathF.Cos(pitch), -MathF.Sin(pitch), MathF.Cos(yaw) * MathF.Cos(pitch));
+        var cameraPosition = target - direction * CameraDistance;
+        _cameraNode!.SetPosition(cameraPosition);
+        _cameraNode.LookAt(target, Vector3f.Up);
     }
 
     private void DrawInstructions()
     {
         var windowOpen = true;
-        if (ImGui.Begin("Render To Texture"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
-            ImGui.TextUnformatted("Use WASD keys and mouse/touch to move"u8);
+        ImGui.SetNextWindowPos(new Vector2f(10.0f, 10.0f), ImGuiCond.ImGuiCondAlways);
+        if (ImGui.Begin("Render To Texture"u8, ref windowOpen,
+            ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        {
+            for (var i = 0; i < 3; ++i)
+            {
+                ImGui.Image(_controlPrompts![i], PromptIconSize);
+                ImGui.SameLine();
+            }
+            DrawPrompt(_controlPrompts![3], "Move dummy"u8);
+            DrawPrompt(_controlPrompts[4], "Orbit camera"u8);
+            ImGui.Separator();
+            ImGui.TextUnformatted("The wall mirror is rendered to a texture."u8);
+        }
         ImGui.End();
+    }
+
+    private static void DrawPrompt(Texture2D texture, ReadOnlySpan<byte> label)
+    {
+        ImGui.Image(texture, PromptIconSize);
+        ImGui.SameLine();
+        Widgets.AlignTextToLastItem();
+        ImGui.TextUnformatted(label);
+    }
+
+    protected override void Stop()
+    {
+        ReleaseScene();
+        base.Stop();
     }
 
     protected override void Setup(EngineParameters parameters)
@@ -265,35 +336,73 @@ public class RenderToTexture : Application
         parameters.ResourcePaths = "CoreData;SampleData";
         parameters.ResourcePrefixPaths = ".;..";
 #if !REDBOLT_PLATFORM_BROWSER
-            parameters.WindowHeight = 720;
-            parameters.WindowWidth = 1280;
+        parameters.WindowHeight = 720;
+        parameters.WindowWidth = 1280;
 #endif
         parameters.WindowTitle = "RedBolt Render To Texture";
     }
 
     public override void Dispose()
     {
-        _rttCameraNode = null;
-        _rttScene?.Dispose();
-        _rttScene = null;
+        ReleaseScene();
+        base.Dispose();
+    }
+
+    private void ReleaseScene()
+    {
         if (_scene is not null)
             Renderer.SetNumViewports(0);
+        _reflectionCameraNode = null;
         _cameraNode = null;
+        _characterNode = null;
+        _animationController = null;
+        _walkAnimation = null;
         _scene?.Dispose();
         _scene = null;
         _renderMaterial?.Dispose();
         _renderMaterial = null;
         _renderTexture?.Dispose();
         _renderTexture = null;
-        base.Dispose();
     }
 
-    /// <summary>Scene that is rendered to a texture.</summary>
-    private Scene? _rttScene;
-    /// <summary>Camera scene node in the render-to-texture scene.</summary>
-    private Node? _rttCameraNode;
+    private const uint ReflectionViewMask = 1;
+    private const uint MainViewMask = 2;
+    private const float MirrorPlaneZ = 13.7f;
+    private const float MirrorCenterY = 4.0f;
+    private const float MirrorWidth = 9.6f;
+    private const float MirrorHeight = 5.4f;
+    private const float MirrorCameraDistance = 12.0f;
+    private const float CharacterSpeed = 4.5f;
+    private const float CharacterRadius = 0.45f;
+    private const float CameraDistance = 8.0f;
+    private static readonly Vector2f PromptIconSize = new(24.0f, 24.0f);
+
     private Scene? _scene;
     private Node? _cameraNode;
+    private Node? _reflectionCameraNode;
+    private Node? _characterNode;
+    private Animation? _walkAnimation;
+    private AnimationController? _animationController;
     private Texture2D? _renderTexture;
     private Material? _renderMaterial;
+    private Texture2D[]? _controlPrompts;
+    private float _cameraYaw;
+    private float _cameraPitch = 14.0f;
+    private readonly List<CollisionBox> _collisionBoxes = [];
+
+    private readonly struct CollisionBox
+    {
+        public CollisionBox(float centerX, float centerZ, float sizeX, float sizeZ)
+        {
+            MinX = centerX - sizeX * 0.5f;
+            MaxX = centerX + sizeX * 0.5f;
+            MinZ = centerZ - sizeZ * 0.5f;
+            MaxZ = centerZ + sizeZ * 0.5f;
+        }
+
+        public float MinX { get; }
+        public float MaxX { get; }
+        public float MinZ { get; }
+        public float MaxZ { get; }
+    }
 }

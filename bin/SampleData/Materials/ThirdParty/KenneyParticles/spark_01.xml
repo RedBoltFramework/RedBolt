@@ -1,4 +1,0 @@
-<material>
-    <technique name="Techniques/DiffUnlitParticleAdd.xml" />
-    <texture slot="Albedo" name="ThirdParty/KenneyParticles/spark_01.png" />
-</material>

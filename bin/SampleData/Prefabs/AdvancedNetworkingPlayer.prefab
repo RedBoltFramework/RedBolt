@@ -37,13 +37,12 @@
 				<node>
 					<attributes>
 						<attribute name="Name" type="String" value="Model" />
-						<attribute name="Rotation" type="Quaternion" value="0 0 1 0" />
 					</attributes>
 					<components>
 						<component _typeName="AnimatedModel">
 							<attributes>
-								<attribute name="Model" type="ResourceRef" value="Model;ThirdParty/Quaternius/UniversalCharacter.glb.d/Models/Sphere.005_Retopology.004.mdl" />
-								<attribute name="Material" type="ResourceRefList" value="Material;ThirdParty/Quaternius/UniversalCharacter.glb.d/Materials/MI_Superhero_Male_LitNormalMap.xml;ThirdParty/Quaternius/UniversalCharacter.glb.d/Materials/MI_Hair_1_LitNormalMap.xml;ThirdParty/Quaternius/UniversalCharacter.glb.d/Materials/MI_Eyes_LitNormalMap.xml" />
+								<attribute name="Model" type="ResourceRef" value="Model;ThirdParty/Quaternius/TechnicalDummy.glb.d/Models/Mannequin.mdl" />
+								<attribute name="Material" type="ResourceRefList" value="Material;Materials/TechnicalDemo/Yellow.xml;Materials/TechnicalDemo/Yellow.xml" />
 								<attribute name="Cast Shadows" type="Bool" value="true" />
 							</attributes>
 						</component>

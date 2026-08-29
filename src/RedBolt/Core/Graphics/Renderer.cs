@@ -589,7 +589,7 @@ public sealed class Renderer : RedObject
                 continue;
 
             var rect = viewport.GetEffectiveRect(_backbufferSurface, false);
-            var mousePosition = input.MousePosition;
+            var mousePosition = input.GetMousePosition();
             var rectSizeMinusOne = rect.Size - Vector2i.One;
             var mousePositionNormalized = new Vector2f(
                 (float)(mousePosition.X - rect.Left) / rectSizeMinusOne.X,

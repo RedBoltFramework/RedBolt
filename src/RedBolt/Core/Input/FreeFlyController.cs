@@ -121,8 +121,8 @@ public partial class FreeFlyController : Component
             else if (_isActive && !input.GetMouseButtonDown(MouseButton.Right))
             {
                 _isActive = false;
-                input.SetMouseVisible(_oldMouseVisible);
                 input.SetMouseMode(_oldMouseMode);
+                input.SetMouseVisible(_oldMouseVisible);
             }
 
             if (_isActive)
@@ -419,7 +419,7 @@ public partial class FreeFlyController : Component
             var numFingers = eventData.NumFingers;
             var dx = eventData.DX;
             var dy = eventData.DY;
-            if (numFingers == 1)
+            if (numFingers == 1 && !GetSubsystem<Input>()!.HasTouchMovement())
             {
                 UpdateCameraAngles();
                 var eulerAngles = _lastKnownEulerAngles;

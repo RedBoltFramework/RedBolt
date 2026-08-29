@@ -15,7 +15,8 @@
 				<component _typeName="StaticModel">
 					<attributes>
 						<attribute name="Model" type="ResourceRef" value="Model;Models/Sphere.mdl" />
-						<attribute name="Material" type="ResourceRefList" value="Material;Materials/StoneSmall.xml" />
+						<attribute name="Material" type="ResourceRefList" value="Material;Materials/TechnicalDemo/Accent.xml" />
+						<attribute name="Cast Shadows" type="Bool" value="true" />
 					</attributes>
 				</component>
 				<component _typeName="Light">

@@ -266,14 +266,14 @@ public partial class CustomGeometry : Drawable
         }
     }
 
-    public bool SetMaterial(uint index, Material? material)
+    public bool SetMaterial(int index, Material? material)
     {
-        if (index >= _batches.Count)
+        if (index < 0 || index >= _batches.Count)
             return false;
 
-        var batch = _batches[(int)index];
+        var batch = _batches[index];
         batch.Material = material;
-        _batches[(int)index] = batch;
+        _batches[index] = batch;
         return true;
     }
 
@@ -393,7 +393,7 @@ public partial class CustomGeometry : Drawable
     {
         var cache = GetSubsystem<ResourceCache>()!;
         for (var i = 0; i < value.Names.Count; ++i)
-            SetMaterial((uint)i, cache.GetResourceOrNull<Material>(value.Names[i]));
+            SetMaterial(i, cache.GetResourceOrNull<Material>(value.Names[i]));
     }
 
     public ResourceRefList GetMaterialsAttr()

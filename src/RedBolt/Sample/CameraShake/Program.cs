@@ -13,7 +13,9 @@ using RedBolt.Core;
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
+using RedBolt.Math;
 using RedBolt.Scene;
+using Widgets = RedBolt.SystemUI.Widgets;
 
 internal static class CameraShakeProgram
 {
@@ -46,6 +48,8 @@ sealed class CameraShakeApplication : Application
     private Scene? _scene;
     private Node? _cameraNode;
     private ShakeComponent? _shakeComponent;
+    private Texture2D[]? _controlPrompts;
+    private static readonly Vector2f PromptIconSize = new(24.0f, 24.0f);
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -65,9 +69,6 @@ sealed class CameraShakeApplication : Application
     /// <summary>Setup after engine initialization and before running the main loop.</summary>
     protected override void Start()
     {
-        Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
-        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
-
         // Execute base class startup
 
         // Create the scene content
@@ -97,8 +98,20 @@ sealed class CameraShakeApplication : Application
     }
 
     /// <summary>Construct an instruction text to the UI.</summary>
-    private static void CreateInstructions()
+    private void CreateInstructions()
     {
+        Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
+        SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
+
+        _controlPrompts =
+        [
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_w.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_a.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_s.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_d.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/mouse_right.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_space.png")
+        ];
     }
 
     /// <summary>Set up a viewport for displaying the scene.</summary>
@@ -128,11 +141,29 @@ sealed class CameraShakeApplication : Application
     {
     }
 
-    private static void DrawInstructions()
+    private void DrawInstructions()
     {
         var windowOpen = true;
+        ImGui.SetNextWindowPos(new Vector2f(10.0f, 10.0f), ImGuiCond.ImGuiCondAlways);
         if (ImGui.Begin("Camera Shake"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
-            ImGui.TextUnformatted("Press SPACE to shake camera"u8);
+        {
+            for (var i = 0; i < 3; ++i)
+            {
+                ImGui.Image(_controlPrompts![i], PromptIconSize);
+                ImGui.SameLine();
+            }
+            DrawPrompt(_controlPrompts![3], "Move"u8);
+            DrawPrompt(_controlPrompts[4], "Look / drag touch"u8);
+            DrawPrompt(_controlPrompts[5], "Shake camera"u8);
+        }
         ImGui.End();
+    }
+
+    private static void DrawPrompt(Texture2D texture, ReadOnlySpan<byte> label)
+    {
+        ImGui.Image(texture, PromptIconSize);
+        ImGui.SameLine();
+        Widgets.AlignTextToLastItem();
+        ImGui.TextUnformatted(label);
     }
 }

@@ -189,7 +189,7 @@ internal sealed class GLTFSceneImporter
             return;
         var cache = Context.Instance.GetSubsystem<ResourceCache>()!;
         for (var i = 0; i < materialList.Names.Count; ++i)
-            staticModel.SetMaterial((uint)i, cache.GetResource<Material>(materialList.Names[i]));
+            staticModel.SetMaterial(i, cache.GetResource<Material>(materialList.Names[i]));
     }
 
     private void InitializeAnimationController(Node node, int? groupIndex)

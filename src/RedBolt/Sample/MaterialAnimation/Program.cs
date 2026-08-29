@@ -5,6 +5,7 @@
 namespace RedBolt.Sample.MaterialAnimation;
 
 using System;
+using System.Collections.Generic;
 
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
@@ -14,7 +15,9 @@ using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Math;
+using RedBolt.RenderPipeline;
 using RedBolt.Scene;
+using Widgets = RedBolt.SystemUI.Widgets;
 
 internal static class MaterialAnimationProgram
 {
@@ -39,8 +42,13 @@ internal static class MaterialAnimationProgram
 /// </summary>
 sealed class MaterialAnimationApplication : Application
 {
+    private readonly record struct PulsingNode(Node Node, Vector3f BaseScale, float Phase, float Amount, float Speed);
+
     private Scene? _scene;
     private Node? _cameraNode;
+    private readonly List<PulsingNode> _pulsingTrees = [];
+    private readonly List<PulsingNode> _pulsingStones = [];
+    private float _sceneTime;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -84,72 +92,108 @@ sealed class MaterialAnimationApplication : Application
     {
         var cache = Resources;
         _scene = new Scene();
+        if (!_scene.LoadFile("Scenes/StaticScene.scene"))
+            throw new InvalidOperationException("Could not load the forest scene.");
 
-        // Create the Octree component to the scene. This is required before adding any drawable components, or else nothing will
-        // show up. The default octree volume will be from (-1000, -1000, -1000) to (1000, 1000, 1000) in world coordinates; it
-        // is also legal to place objects outside the volume but their visibility can then not be checked in a hierarchically
-        // optimizing manner
-        _scene.CreateComponent<Octree>();
+        var renderPipeline = _scene.CreateComponent<RenderPipeline>();
+        renderPipeline.SetRenderPassEnabled("Postprocess: Bloom", true);
+        renderPipeline.SetRenderPassEnabled("Postprocess: FXAA v3", true);
 
-        // Create a child scene node (at world origin) and a StaticModel component into it. Set the StaticModel to show a simple
-        // plane mesh with a "stone" material. Note that naming the scene nodes is optional. Scale the scene node larger
-        // (100 x 100 world units)
-        var planeNode = _scene.CreateChild("Plane");
-        planeNode.SetScale(new Vector3f(100.0f, 1.0f, 100.0f));
-        var planeObject = planeNode.CreateComponent<StaticModel>();
-        planeObject.SetModel(cache.Get<Model>("Models/Plane.mdl"));
-        planeObject.SetMaterial(cache.Get<Material>("Materials/StoneTiled.xml"));
+        var zone = _scene.FindChild("Zone")!.GetComponent<Zone>()!;
+        zone.SetAmbientColor(new Color(0.12f, 0.1f, 0.16f));
+        zone.SetFogColor(new Color(0.12f, 0.08f, 0.16f));
+        zone.SetFogStart(45.0f);
+        zone.SetFogEnd(120.0f);
 
-        // Create a directional light to the world so that we can see something. The light scene node's orientation controls the
-        // light direction; we will use the SetDirection() function which calculates the orientation from a forward direction vector.
-        // The light will use default settings (white light, no shadows)
-        var lightNode = _scene.CreateChild("DirectionalLight");
-        lightNode.SetDirection(new Vector3f(0.6f, -1.0f, 0.8f)); // The direction vector does not need to be normalized
-        var light = lightNode.CreateComponent<Light>();
-        light.SetLightType(LightType.Directional);
+        var light = _scene.FindChild("DirectionalLight")!.GetComponent<Light>()!;
+        light.SetColor(new Color(0.56f, 0.64f, 1.0f));
+        light.SetBrightness(0.65f);
 
-        // Create more StaticModel objects to the scene, randomly positioned, rotated and scaled. For rotation, we construct a
-        // quaternion from Euler angles where the Y angle (rotation about the Y axis) is randomized. The mushroom model contains
-        // LOD levels, so the StaticModel component will automatically select the LOD level according to the view distance (you'll
-        // see the model get simpler as it moves further away). Finally, rendering a large number of the same object with the
-        // same material allows instancing to be used, if the GPU supports it. This reduces the amount of CPU work in rendering the
-        // scene.
-        var mushroomMaterial = cache.Get<Material>("Materials/Mushroom.xml");
-        // Apply shader parameter animation to material
-        var specColorAnimation = new ValueAnimation();
-        specColorAnimation.SetKeyFrame(0.0f, new Color(0.1f, 0.1f, 0.1f, 16.0f));
-        specColorAnimation.SetKeyFrame(1.0f, new Color(1.0f, 0.0f, 0.0f, 2.0f));
-        specColorAnimation.SetKeyFrame(2.0f, new Color(1.0f, 1.0f, 0.0f, 2.0f));
-        specColorAnimation.SetKeyFrame(3.0f, new Color(0.1f, 0.1f, 0.1f, 16.0f));
-        // Optionally associate material with scene to make sure shader parameter animation respects scene time scale
-        mushroomMaterial.SetScene(_scene);
-        mushroomMaterial.SetShaderParameterAnimation("MatSpecColor", specColorAnimation);
+        CreateAccentLight("Warm Rim", new Vector3f(-9.0f, 4.5f, -2.0f), new Color(1.0f, 0.24f, 0.08f));
+        CreateAccentLight("Cool Rim", new Vector3f(10.0f, 5.0f, 6.0f), new Color(0.22f, 0.48f, 1.0f));
 
-        const uint numObjects = 200;
-        for (var i = 0u; i < numObjects; ++i)
+        ConfigureMaterialAnimations();
+        CollectPulsingNodes();
+
+        // Frame the animated caps through foreground foliage and into the forest depth.
+        _cameraNode = _scene.FindChild("Camera")!;
+        _cameraNode.SetPosition(new Vector3f(0.0f, 6.5f, -24.0f));
+        _cameraNode.LookAt(new Vector3f(0.0f, 2.0f, 2.5f));
+    }
+
+    private void ConfigureMaterialAnimations()
+    {
+        var stoneColor = new ValueAnimation();
+        stoneColor.SetKeyFrame(0.0f, new Color(0.7f, 0.82f, 1.15f));
+        stoneColor.SetKeyFrame(1.2f, new Color(1.35f, 0.48f, 0.9f));
+        stoneColor.SetKeyFrame(2.4f, new Color(0.48f, 1.25f, 1.1f));
+        stoneColor.SetKeyFrame(3.6f, new Color(0.7f, 0.82f, 1.15f));
+        AnimateMaterial("Rocks_Lit.xml", stoneColor);
+        AnimateMaterial("PathRocks_Lit.xml", stoneColor);
+
+        var treeColor = new ValueAnimation();
+        treeColor.SetKeyFrame(0.0f, new Color(0.5f, 1.1f, 1.25f));
+        treeColor.SetKeyFrame(1.5f, new Color(1.25f, 0.62f, 0.85f));
+        treeColor.SetKeyFrame(3.0f, new Color(0.5f, 1.1f, 1.25f));
+        AnimateMaterial("Bark_NormalTree_LitNormalMap.xml", treeColor, 0.82f);
+        AnimateMaterial("Leaves_NormalTree_Lit.xml", treeColor, 1.0f);
+        AnimateMaterial("Bark_TwistedTree_LitNormalMap.xml", treeColor, 0.7f);
+        AnimateMaterial("Leaves_TwistedTree_Lit.xml", treeColor, 0.88f);
+        AnimateMaterial("Leaves_Pine_Lit.xml", treeColor, 1.13f);
+    }
+
+    private void AnimateMaterial(string materialName, ValueAnimation animation, float speed = 1.0f)
+    {
+        var material = Resources.Get<Material>(
+            $"ThirdParty/Quaternius/StylizedNatureShowcase.glb.d/Materials/{materialName}");
+        material.SetScene(_scene);
+        material.SetShaderParameterAnimation("MatDiffColor", animation);
+        material.SetShaderParameterAnimationSpeed("MatDiffColor", speed);
+    }
+
+    private void CollectPulsingNodes()
+    {
+        var treeIndex = 0;
+        var stoneIndex = 0;
+        foreach (var node in _scene!.GetChildren(true))
         {
-            var mushroomNode = _scene.CreateChild("Mushroom");
-            mushroomNode.SetPosition(new Vector3f(MathDefs.Random(90.0f) - 45.0f, 0.0f, MathDefs.Random(90.0f) - 45.0f));
-            mushroomNode.SetRotation(new Quaternion(0.0f, MathDefs.Random(360.0f), 0.0f));
-            mushroomNode.SetScale(0.5f + MathDefs.Random(2.0f));
-            var mushroomObject = mushroomNode.CreateComponent<StaticModel>();
-            mushroomObject.SetModel(cache.Get<Model>("Models/Mushroom.mdl"));
-            mushroomObject.SetMaterial(mushroomMaterial);
+            if (node.Name is "Tree" or "AccentTree" or "HeroTree")
+            {
+                _pulsingTrees.Add(new PulsingNode(node, node.Scale, treeIndex * 2.399963f,
+                    0.008f + treeIndex % 5 * 0.002f, 0.55f + treeIndex % 7 * 0.035f));
+                ++treeIndex;
+            }
+            else if (node.Name is "Rock" or "PathStone")
+            {
+                _pulsingStones.Add(new PulsingNode(node, node.Scale, stoneIndex * 1.618034f,
+                    0.045f + stoneIndex % 4 * 0.012f, 0.9f + stoneIndex % 5 * 0.08f));
+                ++stoneIndex;
+            }
         }
+    }
 
-        // Create a scene node for the camera, which we will move around
-        // The camera will use default settings (1000 far clip distance, 45 degrees FOV, set aspect ratio automatically)
-        _cameraNode = _scene.CreateChild("Camera");
-        _cameraNode.CreateComponent<FreeFlyController>();
-        _cameraNode.CreateComponent<Camera>();
-
-        // Set an initial position for the camera scene node above the plane
-        _cameraNode.SetPosition(new Vector3f(0.0f, 5.0f, 0.0f));
+    private void CreateAccentLight(string name, Vector3f position, Color color)
+    {
+        var node = _scene!.CreateChild(name);
+        node.SetPosition(position);
+        var light = node.CreateComponent<Light>();
+        light.SetLightType(LightType.Point);
+        light.SetRange(22.0f);
+        light.SetBrightness(1.8f);
+        light.SetColor(color);
     }
 
     /// <summary>Construct an instruction text to the UI.</summary>
-    private static void CreateInstructions()
+    private void CreateInstructions()
     {
+        _controlPrompts =
+        [
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_w.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_a.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_s.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_d.png"),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/mouse_right.png")
+        ];
     }
 
     /// <summary>Set up a viewport for displaying the scene.</summary>
@@ -165,17 +209,50 @@ sealed class MaterialAnimationApplication : Application
     {
         if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
             Exit();
+
+        _sceneTime += timeStep;
+        PulseNodes(_pulsingTrees);
+        PulseNodes(_pulsingStones);
+    }
+
+    private void PulseNodes(List<PulsingNode> nodes)
+    {
+        foreach (var pulsingNode in nodes)
+        {
+            var pulse = 1.0f + MathF.Sin(_sceneTime * pulsingNode.Speed + pulsingNode.Phase) * pulsingNode.Amount;
+            pulsingNode.Node.SetScale(pulsingNode.BaseScale * pulse);
+        }
     }
 
     protected override void Stop()
     {
     }
 
-    private static void DrawInstructions()
+    private void DrawInstructions()
     {
         var windowOpen = true;
+        ImGui.SetNextWindowPos(new Vector2f(10.0f, 10.0f), ImGuiCond.ImGuiCondAlways);
         if (ImGui.Begin("Material Animation"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
-            ImGui.TextUnformatted("Use WASD keys and mouse/touch to move"u8);
+        {
+            for (var i = 0; i < 3; ++i)
+            {
+                ImGui.Image(_controlPrompts![i], PromptIconSize);
+                ImGui.SameLine();
+            }
+            DrawPrompt(_controlPrompts![3], "Move"u8);
+            DrawPrompt(_controlPrompts[4], "Look / drag touch"u8);
+        }
         ImGui.End();
     }
+
+    private static void DrawPrompt(Texture2D texture, ReadOnlySpan<byte> label)
+    {
+        ImGui.Image(texture, PromptIconSize);
+        ImGui.SameLine();
+        Widgets.AlignTextToLastItem();
+        ImGui.TextUnformatted(label);
+    }
+
+    private Texture2D[]? _controlPrompts;
+    private static readonly Vector2f PromptIconSize = new(24.0f, 24.0f);
 }

@@ -59,6 +59,7 @@ sealed class VirtualFileSystemApplication : Application
     private byte[] _fileSizeLine = [];
     private byte[] _modificationTimeLine = [];
     private byte[] _reversedUriLine = [];
+    private ImFont? _headingFont;
 
     protected override void Setup(EngineParameters parameters)
     {
@@ -77,7 +78,9 @@ sealed class VirtualFileSystemApplication : Application
 
     protected override void Start()
     {
-        Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
+        var dearImGui = new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags);
+        Context.RegisterSubsystem(dearImGui);
+        _headingFont = dearImGui.AddFont("Fonts/Anonymous Pro.ttf", size: 28.0f);
         SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
             (ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => RenderUi());
         AllocateInputBuffers();
@@ -90,7 +93,6 @@ sealed class VirtualFileSystemApplication : Application
     {
         var vfs = Context.GetSubsystem<VirtualFileSystem>()!;
 
-        _mountPointLines.Add(ToUtf8("  MountPoints:"));
         for (var i = 0u; i < vfs.NumMountPoints(); ++i)
             _mountPointLines.Add(ToUtf8(vfs.GetMountPoint(i)!.GetName()));
     }
@@ -99,13 +101,67 @@ sealed class VirtualFileSystemApplication : Application
     {
         var vfs = Context.GetSubsystem<VirtualFileSystem>()!;
 
-        ImGui.SetNextWindowSize(new Vector2f(550.0f, 500.0f), ImGuiCond.ImGuiCondFirstUseEver);
-        ImGui.SetNextWindowPos(new Vector2f(350.0f, 50.0f), ImGuiCond.ImGuiCondFirstUseEver);
-        var queryWindowOpen = true;
-        if (ImGui.Begin("VFS Query Interface"u8, ref queryWindowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        Vector2f viewportPosition;
+        Vector2f viewportSize;
+        uint viewportId;
+        using (var viewport = ImGui.GetMainViewport())
         {
-            ImGui.TextUnformatted("URI: "u8);
-            ImGui.SameLine();
+            viewportPosition = viewport.Pos;
+            viewportSize = viewport.Size;
+            viewportId = viewport.Id;
+        }
+
+        ImGui.SetNextWindowPos(viewportPosition);
+        ImGui.SetNextWindowSize(viewportSize);
+        ImGui.SetNextWindowViewport(viewportId);
+        ImGui.PushStyleVar(ImGuiStyleVar.ImGuiStyleVarWindowRounding, 0.0f);
+        ImGui.PushStyleVar(ImGuiStyleVar.ImGuiStyleVarWindowBorderSize, 0.0f);
+        ImGui.PushStyleVar(ImGuiStyleVar.ImGuiStyleVarWindowPadding, Vector2f.Zero);
+        ImGui.PushStyleVar(ImGuiStyleVar.ImGuiStyleVarFrameRounding, 6.0f);
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColWindowBg, DashboardBackground);
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColFrameBg, ControlBackground);
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColFrameBgHovered, ControlHovered);
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColFrameBgActive, ControlActive);
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColHeader, ControlBackground);
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColHeaderHovered, ControlHovered);
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColHeaderActive, ControlActive);
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColCheckMark, AccentCyan);
+        var queryWindowOpen = true;
+        if (ImGui.Begin(
+                "Virtual File System"u8,
+                ref queryWindowOpen,
+                ImGuiWindowFlags.ImGuiWindowFlagsNoDecoration |
+                ImGuiWindowFlags.ImGuiWindowFlagsNoMove |
+                ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings |
+                ImGuiWindowFlags.ImGuiWindowFlagsNoBringToFrontOnFocus))
+        {
+            using (var drawList = ImGui.GetWindowDrawList())
+                drawList.AddRectFilledMultiColor(viewportPosition, viewportPosition + viewportSize,
+                    ImGui.GetColorU32(DashboardBackground),
+                    ImGui.GetColorU32(new Vector4f(0.025f, 0.115f, 0.15f, 1.0f)),
+                    ImGui.GetColorU32(new Vector4f(0.018f, 0.035f, 0.07f, 1.0f)),
+                    ImGui.GetColorU32(new Vector4f(0.035f, 0.025f, 0.105f, 1.0f)));
+
+            var compact = viewportSize.X < 900.0f;
+            var margin = compact ? 14.0f : 26.0f;
+            var headerHeight = compact ? 58.0f : 68.0f;
+            var contentWidth = Math.Max(1.0f, viewportSize.X - margin * 2.0f);
+            DrawHeader(viewportPosition + new Vector2f(margin, margin), contentWidth, compact);
+            BeginPanel(
+                "##Workspace"u8,
+                viewportPosition + new Vector2f(margin, margin + headerHeight),
+                new Vector2f(contentWidth, Math.Max(1.0f, viewportSize.Y - margin * 2.0f - headerHeight)));
+
+            ImGui.SeparatorText("Mount points"u8);
+            if (ImGui.BeginChild("##MountPoints"u8, new Vector2f(0.0f, 54.0f), ImGuiChildFlags.ImGuiChildFlagsBorders))
+            {
+                foreach (var mountPoint in _mountPointLines)
+                    ImGui.TextUnformatted(mountPoint);
+            }
+            ImGui.EndChild();
+
+            ImGui.SeparatorText("File query"u8);
+            ImGui.SetNextItemWidth(-1.0f);
             if (ImGui.InputText("##uri"u8, _uriBuffer, InputBufferSize) || ImGui.IsWindowAppearing())
             {
                 _uri = ReadInputBuffer(_uriBuffer);
@@ -120,45 +176,48 @@ sealed class VirtualFileSystemApplication : Application
                 UpdateQueryLines();
             }
 
-            RenderValue("scheme: "u8, _schemeLine);
-            RenderValue("path: "u8, _pathLine);
-            RenderValue("canonical: "u8, _canonicalLine);
-            RenderValue("exists: "u8, _exists ? "yes"u8 : "no"u8);
-            RenderOptionalValue(
-                "absolute path: "u8, _absoluteFileNameLine, _absoluteFileName.Length == 0, "[not found]"u8);
-            RenderOptionalValue("file size: "u8, _fileSizeLine, _readOnlyFile is null, "[not found]"u8);
-            RenderOptionalValue(
-                "modification time: "u8, _modificationTimeLine, _modificationTime == 0, "[unknown]"u8);
-            RenderOptionalValue(
-                "reversed URI: "u8, _reversedUriLine, _reversedUri.Length == 0, "[not found]"u8);
-
-            ImGui.Separator();
+            ImGui.PushStyleColor(ImGuiCol.ImGuiColChildBg, new Vector4f(0.055f, 0.065f, 0.085f, 1.0f));
+            if (ImGui.BeginChild("##QueryDetails"u8, new Vector2f(0.0f, 172.0f), ImGuiChildFlags.ImGuiChildFlagsBorders))
+            {
+                RenderValue("Scheme"u8, _schemeLine);
+                RenderValue("Path"u8, _pathLine);
+                RenderValue("Canonical URI"u8, _canonicalLine);
+                RenderStatusValue("Status"u8, _exists, "Available"u8, "Not found"u8);
+                RenderOptionalValue(
+                    "Absolute path"u8, _absoluteFileNameLine, _absoluteFileName.Length == 0, "Not available"u8);
+                RenderOptionalValue("File size"u8, _fileSizeLine, _readOnlyFile is null, "Not available"u8);
+                RenderOptionalValue(
+                    "Modified"u8, _modificationTimeLine, _modificationTime == 0, "Unknown"u8);
+                RenderOptionalValue(
+                    "Reverse lookup"u8, _reversedUriLine, _reversedUri.Length == 0, "Not available"u8);
+            }
+            ImGui.EndChild();
+            ImGui.PopStyleColor();
 
             var needScan = ImGui.IsWindowAppearing();
 
-            ImGui.TextUnformatted("scheme:"u8);
-            ImGui.SameLine();
+            ImGui.SeparatorText("Resource scan"u8);
+            ImGui.SetNextItemWidth(165.0f);
             if (ImGui.InputText("##scanscheme"u8, _scanSchemeBuffer, InputBufferSize))
             {
                 _scanPath.Scheme = ReadInputBuffer(_scanSchemeBuffer);
                 needScan = true;
             }
-
-            ImGui.TextUnformatted("path:"u8);
             ImGui.SameLine();
+            ImGui.SetNextItemWidth(285.0f);
             if (ImGui.InputText("##scanpath"u8, _scanPathBuffer, InputBufferSize))
             {
                 _scanPath.FileName = ReadInputBuffer(_scanPathBuffer);
                 needScan = true;
             }
-
-            ImGui.TextUnformatted("filter:"u8);
             ImGui.SameLine();
+            ImGui.SetNextItemWidth(-1.0f);
             if (ImGui.InputText("##scanfilter"u8, _scanFilterBuffer, InputBufferSize))
             {
                 _scanFilter = ReadInputBuffer(_scanFilterBuffer);
                 needScan = true;
             }
+            RenderInputCaptions();
 
             if (ImGui.Checkbox("Recursive"u8, ref _scanRecursive))
                 needScan = true;
@@ -182,26 +241,82 @@ sealed class VirtualFileSystemApplication : Application
                 UpdateScanResultLines();
             }
 
-            RenderYellowText("scan results:"u8);
-            if (ImGui.BeginListBox("##results"u8))
+            ImGui.SameLine();
+            if (_scanResultLines.Count == 0)
+                RenderColoredText(new Vector4f(1.0f, 0.65f, 0.3f, 1.0f), "No matches"u8);
+            else
+                RenderColoredText(
+                    new Vector4f(0.35f, 0.9f, 0.55f, 1.0f),
+                    ToUtf8($"{_scanResultLines.Count} result{(_scanResultLines.Count == 1 ? string.Empty : "s")}"));
+
+            if (ImGui.BeginChild("##ScanResults"u8, new Vector2f(0.0f, 0.0f), ImGuiChildFlags.ImGuiChildFlagsBorders))
             {
                 foreach (var result in _scanResultLines)
                     ImGui.Selectable(result, false);
-                ImGui.EndListBox();
             }
+            ImGui.EndChild();
+            EndPanel();
         }
         ImGui.End();
+        ImGui.PopStyleColor(8);
+        ImGui.PopStyleVar(4);
+    }
 
-        ImGui.SetNextWindowPos(new Vector2f(20.0f, 250.0f), ImGuiCond.ImGuiCondFirstUseEver);
-        var mountPointsWindowOpen = true;
-        if (ImGui.Begin("Mount Points"u8, ref mountPointsWindowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+    private void DrawHeader(Vector2f position, float width, bool compact)
+    {
+        ImGui.SetCursorScreenPos(position);
+        if (_headingFont is not null)
+            ImGui.PushFont(_headingFont, compact ? 24.0f : 30.0f);
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColText, PrimaryText);
+        ImGui.TextUnformatted("VIRTUAL FILE EXPLORER"u8);
+        ImGui.PopStyleColor();
+        if (_headingFont is not null)
+            ImGui.PopFont();
+        ImGui.SetCursorScreenPos(position + new Vector2f(0.0f, compact ? 29.0f : 35.0f));
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColText, MutedText);
+        ImGui.TextUnformatted("Resolve identifiers, inspect canonical paths, and scan every mounted source."u8);
+        ImGui.PopStyleColor();
+        if (!compact)
         {
-            ImGui.PushStyleColor(ImGuiCol.ImGuiColText, new Vector4f(0.0f, 1.0f, 0.0f, 1.0f));
-            foreach (var line in _mountPointLines)
-                ImGui.TextUnformatted(line);
+            var badge = position + new Vector2f(width - 168.0f, 4.0f);
+            using (var drawList = ImGui.GetWindowDrawList())
+            {
+                drawList.AddRectFilled(badge, badge + new Vector2f(168.0f, 34.0f),
+                    ImGui.GetColorU32(new Vector4f(0.035f, 0.18f, 0.18f, 0.9f)), 17.0f);
+                drawList.AddCircleFilled(badge + new Vector2f(17.0f, 17.0f), 4.0f, ImGui.GetColorU32(AccentCyan));
+            }
+            ImGui.SetCursorScreenPos(badge + new Vector2f(30.0f, 8.0f));
+            ImGui.PushStyleColor(ImGuiCol.ImGuiColText, AccentCyan);
+            ImGui.TextUnformatted("MOUNTS ONLINE"u8);
             ImGui.PopStyleColor();
         }
-        ImGui.End();
+    }
+
+    private static void BeginPanel(ReadOnlySpan<byte> id, Vector2f position, Vector2f size)
+    {
+        ImGui.SetCursorScreenPos(position);
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColChildBg, PanelBackground);
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColBorder, PanelBorder);
+        ImGui.PushStyleVar(ImGuiStyleVar.ImGuiStyleVarChildRounding, 12.0f);
+        ImGui.PushStyleVar(ImGuiStyleVar.ImGuiStyleVarChildBorderSize, 1.0f);
+        ImGui.PushStyleVar(ImGuiStyleVar.ImGuiStyleVarWindowPadding, new Vector2f(16.0f, 12.0f));
+        ImGui.BeginChild(id, size, ImGuiChildFlags.ImGuiChildFlagsBorders);
+    }
+
+    private static void EndPanel()
+    {
+        ImGui.EndChild();
+        ImGui.PopStyleVar(3);
+        ImGui.PopStyleColor(2);
+    }
+
+    private void RenderInputCaptions()
+    {
+        RenderColoredText(new Vector4f(0.55f, 0.6f, 0.68f, 1.0f), "Scheme"u8);
+        ImGui.SameLine(173.0f);
+        RenderColoredText(new Vector4f(0.55f, 0.6f, 0.68f, 1.0f), "Path"u8);
+        ImGui.SameLine(466.0f);
+        RenderColoredText(new Vector4f(0.55f, 0.6f, 0.68f, 1.0f), "Filter"u8);
     }
 
     protected override void Update(float timeStep)
@@ -258,7 +373,7 @@ sealed class VirtualFileSystemApplication : Application
 
     private static void RenderValue(ReadOnlySpan<byte> label, ReadOnlySpan<byte> value)
     {
-        RenderYellowText(label);
+        RenderLabel(label);
         ImGui.SameLine();
         ImGui.TextUnformatted(value);
     }
@@ -266,19 +381,41 @@ sealed class VirtualFileSystemApplication : Application
     private static void RenderOptionalValue(
         ReadOnlySpan<byte> label, ReadOnlySpan<byte> value, bool missing, ReadOnlySpan<byte> missingValue)
     {
-        ImGui.PushStyleColor(ImGuiCol.ImGuiColText, new Vector4f(1.0f, 1.0f, 0.0f, 1.0f));
-        ImGui.TextUnformatted(label);
+        RenderLabel(label);
         ImGui.SameLine();
         if (missing)
+        {
+            ImGui.PushStyleColor(ImGuiCol.ImGuiColText, new Vector4f(0.95f, 0.4f, 0.4f, 1.0f));
             ImGui.TextUnformatted(missingValue);
-        ImGui.PopStyleColor();
-        if (!missing)
+            ImGui.PopStyleColor();
+        }
+        else
             ImGui.TextUnformatted(value);
     }
 
-    private static void RenderYellowText(ReadOnlySpan<byte> text)
+    private static void RenderStatusValue(
+        ReadOnlySpan<byte> label,
+        bool success,
+        ReadOnlySpan<byte> successValue,
+        ReadOnlySpan<byte> failureValue)
     {
-        ImGui.PushStyleColor(ImGuiCol.ImGuiColText, new Vector4f(1.0f, 1.0f, 0.0f, 1.0f));
+        RenderLabel(label);
+        ImGui.SameLine();
+        RenderColoredText(
+            success ? new Vector4f(0.35f, 0.9f, 0.55f, 1.0f) : new Vector4f(0.95f, 0.4f, 0.4f, 1.0f),
+            success ? successValue : failureValue);
+    }
+
+    private static void RenderLabel(ReadOnlySpan<byte> text)
+    {
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColText, new Vector4f(0.4f, 0.75f, 1.0f, 1.0f));
+        ImGui.TextUnformatted(text);
+        ImGui.PopStyleColor();
+    }
+
+    private static void RenderColoredText(Vector4f color, ReadOnlySpan<byte> text)
+    {
+        ImGui.PushStyleColor(ImGuiCol.ImGuiColText, color);
         ImGui.TextUnformatted(text);
         ImGui.PopStyleColor();
     }
@@ -309,4 +446,14 @@ sealed class VirtualFileSystemApplication : Application
     {
         return Encoding.UTF8.GetBytes(value);
     }
+
+    private static readonly Vector4f DashboardBackground = new(0.014f, 0.025f, 0.055f, 1.0f);
+    private static readonly Vector4f PanelBackground = new(0.043f, 0.06f, 0.105f, 0.96f);
+    private static readonly Vector4f PanelBorder = new(0.16f, 0.27f, 0.4f, 0.85f);
+    private static readonly Vector4f ControlBackground = new(0.075f, 0.12f, 0.18f, 1.0f);
+    private static readonly Vector4f ControlHovered = new(0.095f, 0.22f, 0.28f, 1.0f);
+    private static readonly Vector4f ControlActive = new(0.08f, 0.34f, 0.4f, 1.0f);
+    private static readonly Vector4f PrimaryText = new(0.92f, 0.97f, 1.0f, 1.0f);
+    private static readonly Vector4f MutedText = new(0.52f, 0.62f, 0.72f, 1.0f);
+    private static readonly Vector4f AccentCyan = new(0.15f, 0.93f, 1.0f, 1.0f);
 }
