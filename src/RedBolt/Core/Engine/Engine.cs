@@ -258,6 +258,7 @@ public class Engine : RedObject
         renderer.SetTextureQuality(Parameters.TextureQuality);
         renderer.SetTextureFilterMode(Parameters.TextureFilterMode);
         renderer.SetTextureAnisotropy(Parameters.TextureAnisotropy);
+        input.SetMouseEmulation(Parameters.MouseEmulation);
         input.SetTouchEmulation(Parameters.TouchEmulation);
 
         IsInitialized = true;
@@ -762,6 +763,10 @@ public class Engine : RedObject
 
             case nameof(EngineParameters.TextureQuality):
                 renderer?.SetTextureQuality(Parameters.TextureQuality);
+                break;
+
+            case nameof(EngineParameters.MouseEmulation):
+                input?.SetMouseEmulation(Parameters.MouseEmulation);
                 break;
 
             case nameof(EngineParameters.TouchEmulation):

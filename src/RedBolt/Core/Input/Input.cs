@@ -270,6 +270,8 @@ public partial class Input : RedObject
 
     public bool TouchEmulation { get; private set; }
 
+    public bool MouseEmulation { get; private set; }
+
     public override void Dispose()
     {
         Shutdown();
@@ -297,13 +299,15 @@ public partial class Input : RedObject
         var windowWidth = explicitRect?.Width > 0 ? explicitRect.Value.Width : parameters.WindowWidth;
         var windowHeight = explicitRect?.Height > 0 ? explicitRect.Value.Height : parameters.WindowHeight;
         _systemToBackbufferScale = Vector2f.One;
-        TouchEmulation = parameters.TouchEmulation;
+        TouchEmulation = false;
+        MouseEmulation = parameters.MouseEmulation && !parameters.TouchEmulation;
 
         using var mouseTouchHint = new CString("SDL_MOUSE_TOUCH_EVENTS");
         using var touchMouseHint = new CString("SDL_TOUCH_MOUSE_EVENTS");
         using var disabledHint = new CString("0");
+        using var touchMouseHintValue = new CString(MouseEmulation ? "1" : "0");
         Sdl.SdlSetHint(mouseTouchHint.Bytes, disabledHint.Bytes);
-        Sdl.SdlSetHint(touchMouseHint.Bytes, disabledHint.Bytes);
+        Sdl.SdlSetHint(touchMouseHint.Bytes, touchMouseHintValue.Bytes);
 
         if (!Context.Instance.RequireSdl(SdlInitVideo | SdlInitJoystick | SdlInitGameController))
         {
@@ -1633,13 +1637,31 @@ public partial class Input : RedObject
         if (TouchEmulation == enable)
             return;
         if (enable)
+        {
+            SetMouseEmulation(false);
             SetMouseVisible(true);
+        }
         else
             _touches.Clear();
         TouchEmulation = enable;
     }
 
     public bool GetTouchEmulation() => TouchEmulation;
+
+    /// <summary>Enable mouse emulation by touch through SDL. Mouse and touch emulation are mutually exclusive.</summary>
+    public void SetMouseEmulation(bool enable)
+    {
+        if (MouseEmulation == enable)
+            return;
+        if (enable)
+            SetTouchEmulation(false);
+
+        MouseEmulation = enable;
+        Sdl.SdlSetHint("SDL_TOUCH_MOUSE_EVENTS"u8, enable ? "1"u8 : "0"u8);
+    }
+
+    /// <summary>Return whether mouse emulation by touch is enabled.</summary>
+    public bool GetMouseEmulation() => MouseEmulation;
 
     public bool IsMouseVisible() => MouseVisible;
 

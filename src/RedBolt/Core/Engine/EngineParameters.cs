@@ -56,6 +56,12 @@ public sealed class EngineParameters
 
     public int Monitor { get; set; }
 
+#if REDBOLT_PLATFORM_ANDROID || REDBOLT_PLATFORM_BROWSER
+    public bool MouseEmulation { get; set; } = true;
+#else
+    public bool MouseEmulation { get; set; }
+#endif
+
     public int MultiSample { get; set; } = 1;
 
     public string OrganizationName { get; set; } = "Urho3D Rebel Fork";

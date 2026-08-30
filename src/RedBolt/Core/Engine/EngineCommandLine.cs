@@ -72,6 +72,7 @@ internal static class EngineCommandLine
             parameters.TextureFilterMode = TextureFilterMode.Anisotropic;
             parameters.TextureAnisotropy = SystemMath.Max(ParseInt(value), 1);
         });
+        parser.AddFlag(["--mouse-emulation"], "Enable mouse emulation by touch", () => parameters.MouseEmulation = true);
         parser.AddFlag(["--touch"], "Enable touch emulation", () => parameters.TouchEmulation = true);
         parser.AddOption(["--timeout"], "seconds", "Exit after the specified timeout", value => parameters.TimeOut = ParseInt(value));
         parser.AddOption(["--plugins"], "plugins", "Set plugin list", value => parameters.Plugins = value);

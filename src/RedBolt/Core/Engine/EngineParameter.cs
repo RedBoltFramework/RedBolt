@@ -34,6 +34,7 @@ public static class EngineParameter
     public const string LogMaxSize = "LogMaxSize";
     public const string MainPlugin = "MainPlugin";
     public const string Monitor = "Monitor";
+    public const string MouseEmulation = "MouseEmulation";
     public const string MultiSample = "MultiSample";
     public const string OrganizationName = "OrganizationName";
     public const string Orientations = "Orientations";
