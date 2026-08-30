@@ -508,26 +508,14 @@ public partial class InputMap : SimpleResource
                     return 1.0f;
             }
 
+            foreach (var screenButton in ScreenButtons)
+            {
+                if (input.GetScreenButtonDown(screenButton.ElementName))
+                    return 1.0f;
+            }
+
             if (ControllerAxes.Count == 0 && ControllerButtons.Count == 0 && ControllerHats.Count == 0)
                 return 0.0f;
-
-            // TODO: port UI-backed screen button evaluation when built-in rbfx UI is ported.
-            // if (ui != nullptr && !screenButtons_.empty())
-            // {
-            //     const unsigned numTouches = input->GetNumTouches();
-            //     for (unsigned i = 0; i < numTouches; ++i)
-            //     {
-            //         const auto touch = input->GetTouch(i);
-            //         if (touch && touch->GetTouchedElement())
-            //         {
-            //             for (auto& screenButton : screenButtons_)
-            //             {
-            //                 if (screenButton.elementName_ == touch->GetTouchedElement()->GetName())
-            //                     return 1.0f;
-            //             }
-            //         }
-            //     }
-            // }
 
             var totalSum = 0.0f;
             for (uint joystickIndex = 0; joystickIndex < input.GetNumJoysticks(); ++joystickIndex)
