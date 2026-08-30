@@ -17,6 +17,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <Compile Include="Program.cs" />
     <ProjectReference Include="../../Audio/RedBolt.Audio.csproj" />
     <ProjectReference Include="../../DearImGui/RedBolt.DearImGui.csproj" />
+    <ProjectReference Include="../../Utility/RedBolt.Utility.csproj" />
     <Compile Include="../AggregatedInput/**/*.cs" Link="Samples/RedBolt/AggregatedInput/%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="../AnimatingScene/**/*.cs" Link="Samples/RedBolt/AnimatingScene/%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="../Billboards/**/*.cs" Link="Samples/RedBolt/Billboards/%(RecursiveDir)%(Filename)%(Extension)" />
