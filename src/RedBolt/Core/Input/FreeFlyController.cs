@@ -419,7 +419,7 @@ public partial class FreeFlyController : Component
             var numFingers = eventData.NumFingers;
             var dx = eventData.DX;
             var dy = eventData.DY;
-            if (numFingers == 1 && !GetSubsystem<Input>()!.HasTouchMovement())
+            if (numFingers == 1)
             {
                 UpdateCameraAngles();
                 var eulerAngles = _lastKnownEulerAngles;
