@@ -42,6 +42,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       background: rgb(17 21 28 / 80%);
     }
     #runner a { color: #9dc8ff; }
+    body.mobile #runner header #result { display: none; }
     #canvas {
       position: absolute;
       inset: 0;
@@ -80,6 +81,64 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       border: 0;
     }
     #fullscreen-button:hover { fill: #999; cursor: pointer; }
+    #mobile-controls {
+      position: fixed;
+      z-index: 3;
+      inset: 0;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #mobile-controls[hidden] { display: none; }
+    #mobile-help {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      max-width: min(22rem, calc(100vw - 7rem));
+      padding: 0.5rem 0.7rem;
+      border-radius: 0.5rem;
+      background: rgb(17 21 28 / 82%);
+      pointer-events: auto;
+    }
+    #mobile-help summary { cursor: pointer; font-weight: 600; }
+    #mobile-help p { margin: 0.45rem 0 0; font-size: 0.9rem; }
+    #mobile-dpad, #mobile-actions {
+      position: absolute;
+      bottom: max(0.75rem, env(safe-area-inset-bottom));
+      display: grid;
+      gap: 0.35rem;
+      pointer-events: auto;
+    }
+    #mobile-dpad {
+      left: max(0.75rem, env(safe-area-inset-left));
+      grid-template: repeat(3, 3.4rem) / repeat(3, 3.4rem);
+    }
+    #mobile-actions {
+      right: max(0.75rem, env(safe-area-inset-right));
+      grid-template-columns: repeat(2, minmax(4.2rem, auto));
+      align-content: end;
+    }
+    #mobile-controls button {
+      width: auto;
+      min-width: 3.4rem;
+      min-height: 3.4rem;
+      margin: 0;
+      padding: 0.45rem;
+      border: 1px solid rgb(255 255 255 / 45%);
+      border-radius: 0.65rem;
+      color: #fff;
+      background: rgb(17 21 28 / 68%);
+      touch-action: none;
+    }
+    #mobile-controls button.active { background: rgb(82 137 204 / 88%); }
+    #mobile-up { grid-column: 2; grid-row: 1; }
+    #mobile-left { grid-column: 1; grid-row: 2; }
+    #mobile-down { grid-column: 2; grid-row: 3; }
+    #mobile-right { grid-column: 3; grid-row: 2; }
+    @media (max-height: 480px) {
+      #mobile-dpad { grid-template: repeat(3, 3rem) / repeat(3, 3rem); }
+      #mobile-controls button { min-width: 3rem; min-height: 3rem; font-size: 0.8rem; }
+    }
   </style>
 </head>
 <body>
@@ -91,28 +150,28 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <p>Choose a sample to load in WebAssembly.</p>
       <select id="sample" aria-label="Sample">
         <!-- <redbolt-generated name="web-sample-options"> -->
-        <option value="aggregated-input" data-application="RedBolt.Sample.AggregatedInput.AggregatedInputApplication">Aggregated Input</option>
-        <option value="animating-scene" data-application="RedBolt.Sample.AnimatingScene.AnimatingScene">Animating Scene</option>
-        <option value="billboards" data-application="RedBolt.Sample.Billboards.BillboardsApplication">Billboards</option>
-        <option value="camera-operator" data-application="RedBolt.Sample.CameraOperator.CameraOperatorSampleApplication">Camera Operator</option>
-        <option value="camera-shake" data-application="RedBolt.Sample.CameraShake.CameraShakeApplication">Camera Shake</option>
-        <option value="decals" data-application="RedBolt.Sample.Decals.DecalsApplication">Decals</option>
-        <option value="dynamic-geometry" data-application="RedBolt.Sample.DynamicGeometry.DynamicGeometry">Dynamic Geometry</option>
-        <option value="hello-gui" data-application="RedBolt.Sample.HelloGUI.HelloGUI">Hello GUI</option>
-        <option value="hello-world" data-application="RedBolt.Sample.HelloWorld.HelloWorld">Hello World</option>
-        <option value="huge-object-count" data-application="RedBolt.Sample.HugeObjectCount.HugeObjectCountApplication">Huge Object Count</option>
-        <option value="input-logger" data-application="RedBolt.Sample.InputLogger.InputLoggerApplication">Input Logger</option>
-        <option value="light-animation" data-application="RedBolt.Sample.LightAnimation.LightAnimationApplication">Light Animation</option>
-        <option value="material-animation" data-application="RedBolt.Sample.MaterialAnimation.MaterialAnimationApplication">Material Animation</option>
-        <option value="multiple-viewports" data-application="RedBolt.Sample.MultipleViewports.MultipleViewports">Multiple Viewports</option>
-        <option value="pointer-adapter" data-application="RedBolt.Sample.PointerAdapter.PointerAdapterApplication">Pointer Adapter</option>
-        <option value="render-to-texture" data-application="RedBolt.Sample.RenderToTexture.RenderToTexture">Render to Texture</option>
-        <option value="skeletal-animation" data-application="RedBolt.Sample.SkeletalAnimation.SkeletalAnimationApplication">Skeletal Animation</option>
-        <option value="sound-effects" data-application="RedBolt.Sample.SoundEffects.SoundEffects">Sound Effects</option>
-        <option value="sound-synthesis" data-application="RedBolt.Sample.SoundSynthesis.SoundSynthesis">Sound Synthesis</option>
-        <option value="static-scene" data-application="RedBolt.Sample.StaticScene.StaticScene">Static Scene</option>
-        <option value="texture-formats" data-application="RedBolt.Sample.TextureFormats.TextureFormatsSample">Texture Formats</option>
-        <option value="virtual-file-system" data-application="RedBolt.Sample.VirtualFileSystem.VirtualFileSystemApplication">Virtual File System</option>
+        <option value="aggregated-input" data-application="RedBolt.Sample.AggregatedInput.AggregatedInputApplication" data-mobile-help="Use the direction pad to generate aggregated directional input." data-mobile-movement="arrows">Aggregated Input</option>
+        <option value="animating-scene" data-application="RedBolt.Sample.AnimatingScene.AnimatingScene" data-mobile-help="Tap or drag directly in the sample.">Animating Scene</option>
+        <option value="billboards" data-application="RedBolt.Sample.Billboards.BillboardsApplication" data-mobile-help="Drag to look. Use the direction pad to move." data-mobile-movement="wasd" data-mobile-controls="key|Space|Debug">Billboards</option>
+        <option value="camera-operator" data-application="RedBolt.Sample.CameraOperator.CameraOperatorSampleApplication" data-mobile-help="Tap or drag directly in the sample.">Camera Operator</option>
+        <option value="camera-shake" data-application="RedBolt.Sample.CameraShake.CameraShakeApplication" data-mobile-help="Drag to look. Use the direction pad to move." data-mobile-movement="wasd" data-mobile-controls="key|Space|Shake">Camera Shake</option>
+        <option value="decals" data-application="RedBolt.Sample.Decals.DecalsApplication" data-mobile-help="Aim by touching the scene, then use the action buttons." data-mobile-controls="mouse|Left|Paint;key|Space|Debug;key|M|Clear">Decals</option>
+        <option value="dynamic-geometry" data-application="RedBolt.Sample.DynamicGeometry.DynamicGeometry" data-mobile-help="Drag to look. Use the direction pad to move." data-mobile-movement="wasd" data-mobile-controls="key|Space|Animation">Dynamic Geometry</option>
+        <option value="hello-gui" data-application="RedBolt.Sample.HelloGUI.HelloGUI" data-mobile-help="Tap or drag directly in the sample.">Hello GUI</option>
+        <option value="hello-world" data-application="RedBolt.Sample.HelloWorld.HelloWorld" data-mobile-help="Tap or drag directly in the sample.">Hello World</option>
+        <option value="huge-object-count" data-application="RedBolt.Sample.HugeObjectCount.HugeObjectCountApplication" data-mobile-help="Drag to look. Use the direction pad to move." data-mobile-movement="wasd" data-mobile-controls="key|Space|Animate;key|G|Groups">Huge Object Count</option>
+        <option value="input-logger" data-application="RedBolt.Sample.InputLogger.InputLoggerApplication" data-mobile-help="Tap or drag directly in the sample.">Input Logger</option>
+        <option value="light-animation" data-application="RedBolt.Sample.LightAnimation.LightAnimationApplication" data-mobile-help="Tap or drag directly in the sample.">Light Animation</option>
+        <option value="material-animation" data-application="RedBolt.Sample.MaterialAnimation.MaterialAnimationApplication" data-mobile-help="Tap or drag directly in the sample.">Material Animation</option>
+        <option value="multiple-viewports" data-application="RedBolt.Sample.MultipleViewports.MultipleViewports" data-mobile-help="Drag the scene to orbit the camera." data-mobile-controls="key|Space|Debug">Multiple Viewports</option>
+        <option value="pointer-adapter" data-application="RedBolt.Sample.PointerAdapter.PointerAdapterApplication" data-mobile-help="Drag to look. Use the direction pad to move and tap scene objects to select them." data-mobile-movement="wasd">Pointer Adapter</option>
+        <option value="render-to-texture" data-application="RedBolt.Sample.RenderToTexture.RenderToTexture" data-mobile-help="Use the direction pad to move the dummy. Hold Orbit while dragging to rotate the camera." data-mobile-movement="wasd" data-mobile-controls="mouse|Right|Orbit">Render to Texture</option>
+        <option value="skeletal-animation" data-application="RedBolt.Sample.SkeletalAnimation.SkeletalAnimationApplication" data-mobile-help="Drag to look. Use the direction pad to move." data-mobile-movement="wasd" data-mobile-controls="key|Space|Debug">Skeletal Animation</option>
+        <option value="sound-effects" data-application="RedBolt.Sample.SoundEffects.SoundEffects" data-mobile-help="Tap or drag directly in the sample.">Sound Effects</option>
+        <option value="sound-synthesis" data-application="RedBolt.Sample.SoundSynthesis.SoundSynthesis" data-mobile-help="Use the action buttons to change the oscillator frequency." data-mobile-controls="key|Up|Higher;key|Down|Lower">Sound Synthesis</option>
+        <option value="static-scene" data-application="RedBolt.Sample.StaticScene.StaticScene" data-mobile-help="Tap or drag directly in the sample.">Static Scene</option>
+        <option value="texture-formats" data-application="RedBolt.Sample.TextureFormats.TextureFormatsSample" data-mobile-help="Drag to look. Use the direction pad to move." data-mobile-movement="wasd">Texture Formats</option>
+        <option value="virtual-file-system" data-application="RedBolt.Sample.VirtualFileSystem.VirtualFileSystemApplication" data-mobile-help="Tap or drag directly in the sample.">Virtual File System</option>
         <!-- </redbolt-generated name="web-sample-options"> -->
       </select>
       <button id="load" type="button">Load sample</button>
@@ -123,6 +182,14 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
         <span id="result" data-status="loading">Loading…</span>
       </header>
       <canvas id="canvas" tabindex="-1"></canvas>
+      <div id="mobile-controls" hidden>
+        <details id="mobile-help" open>
+          <summary>Touch controls</summary>
+          <p id="mobile-help-text"></p>
+        </details>
+        <div id="mobile-dpad" aria-label="Movement controls"></div>
+        <div id="mobile-actions" aria-label="Action controls"></div>
+      </div>
       <div id="loading">
         <div id="status">Downloading...</div>
         <progress hidden id="progress" max="100" value="10"></progress>

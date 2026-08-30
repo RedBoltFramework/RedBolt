@@ -1496,6 +1496,31 @@ public partial class Input : RedObject
         return Task.CompletedTask;
     }
 
+    [SupportedOSPlatform("browser")]
+    [JSExport]
+    internal static Task SetVirtualKeyAsync(string keyName, bool down)
+    {
+        if (!Enum.TryParse<Key>(keyName, true, out var key) || key == Key.Unknown)
+            throw new ArgumentException($"Unknown virtual key '{keyName}'.", nameof(keyName));
+
+        Context.Instance.GetSubsystem<Input>()!.SetKey(key, down);
+        return Task.CompletedTask;
+    }
+
+    [SupportedOSPlatform("browser")]
+    [JSExport]
+    internal static Task SetVirtualMouseButtonAsync(string buttonName, bool down)
+    {
+        if (!Enum.TryParse<MouseButton>(buttonName, true, out var button)
+            || button is MouseButton.None or MouseButton.Any)
+        {
+            throw new ArgumentException($"Unknown virtual mouse button '{buttonName}'.", nameof(buttonName));
+        }
+
+        Context.Instance.GetSubsystem<Input>()!.SetMouseButton(button, down);
+        return Task.CompletedTask;
+    }
+
     private void HandlePointerLockChange(bool active)
     {
         var invalid = false;
