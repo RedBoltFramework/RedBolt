@@ -16,6 +16,7 @@ using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Math;
 using RedBolt.RenderAPI;
+using RedBolt.RenderPipeline;
 using RedBolt.Resource;
 using RedBolt.Scene;
 using Widgets = RedBolt.SystemUI.Widgets;
@@ -72,7 +73,6 @@ public class RenderToTexture : Application
         light.SetColor(new Color(0.8f, 0.84f, 0.92f));
         light.SetCastShadows(true);
         light.SetShadowBias(new BiasParameters(0.00025f, 0.5f));
-        light.SetShadowCascade(new CascadeParameters(10.0f, 30.0f, 60.0f, 0.0f, 0.8f));
 
         var fillNode = _scene.CreateChild("MirrorFillLight");
         fillNode.SetPosition(new Vector3f(0.0f, 5.0f, 10.0f));
@@ -120,6 +120,12 @@ public class RenderToTexture : Application
         _cameraNode = _scene.CreateChild("Camera");
         var camera = _cameraNode.CreateComponent<Camera>();
         camera.SetFarClip(80.0f);
+        void UpdateShadowCascades() => light.SetShadowCascade(ShadowCascadeEstimator.Estimate(camera,
+            new Vector2i(Graphics.Width, Graphics.Height), new RenderPipelineSettings(),
+            new ShadowCascadeEstimateSettings(60.0f) { ShadowResolution = light.GetShadowResolution() }));
+        UpdateShadowCascades();
+        SubscribeToEvent<GraphicsEvents.ScreenModeEvent>(
+            (ref GraphicsEvents.ScreenModeEvent _) => UpdateShadowCascades());
 
         _reflectionCameraNode = _scene.CreateChild("ReflectionCamera");
         var reflectionCamera = _reflectionCameraNode.CreateComponent<Camera>();

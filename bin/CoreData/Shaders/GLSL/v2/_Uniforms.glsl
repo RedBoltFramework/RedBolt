@@ -152,6 +152,7 @@ UNIFORM_BUFFER_BEGIN(3, Light)
     /// z: Depth where 3rd split ends.
     /// w: Depth where 4th split ends.
     UNIFORM(half4 cShadowSplits)
+    UNIFORM(half4 cShadowSplitBlendStarts)
 #ifdef URHO3D_VARIANCE_SHADOW_MAP
     /// Variance shadow map parameters.
     UNIFORM_HIGHP(vec2 cVSMShadowParams)

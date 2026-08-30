@@ -210,6 +210,11 @@ const inputExports = coreExports.RedBolt.Input.Input;
 const extensionImports = await createModuleImports({ getAssemblyExports });
 
 setModuleImports('main.js', {
+    platform: {
+        isMobile: () => navigator.userAgentData?.mobile
+            ?? (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+                || navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    },
     dom: {
         getSelectedApplicationType: () => selectedEntry[2],
         setResult: (message, success) => {

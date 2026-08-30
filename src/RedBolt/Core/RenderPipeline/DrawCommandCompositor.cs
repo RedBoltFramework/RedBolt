@@ -671,6 +671,7 @@ internal ref struct DrawCommandCompositor
             drawQueue.AddShaderParameter(ShaderConsts.Light_ShadowIntensity, params_.ShadowIntensity);
             drawQueue.AddShaderParameter(ShaderConsts.Light_ShadowMapInvSize, params_.ShadowMapInvSize);
             drawQueue.AddShaderParameter(ShaderConsts.Light_ShadowSplits, params_.ShadowSplitDistances);
+            drawQueue.AddShaderParameter(ShaderConsts.Light_ShadowSplitBlendStarts, params_.ShadowSplitBlendStarts);
             drawQueue.AddShaderParameter(ShaderConsts.Light_ShadowCubeUVBias, params_.ShadowCubeUVBias);
             drawQueue.AddShaderParameter(ShaderConsts.Light_ShadowCubeAdjust, params_.ShadowCubeAdjust);
             drawQueue.AddShaderParameter(ShaderConsts.Light_VSMShadowParams, _settings.VarianceShadowMapParams);

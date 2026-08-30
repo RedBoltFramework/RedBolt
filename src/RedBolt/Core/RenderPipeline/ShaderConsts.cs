@@ -56,6 +56,7 @@ public static class ShaderConsts
     public static readonly ConstString Light_ShadowIntensity = new("ShadowIntensity");
     public static readonly ConstString Light_ShadowMapInvSize = new("ShadowMapInvSize");
     public static readonly ConstString Light_ShadowSplits = new("ShadowSplits");
+    public static readonly ConstString Light_ShadowSplitBlendStarts = new("ShadowSplitBlendStarts");
     public static readonly ConstString Light_VSMShadowParams = new("VSMShadowParams");
     public static readonly ConstString Light_LightRad = new("LightRad");
     public static readonly ConstString Light_LightLength = new("LightLength");

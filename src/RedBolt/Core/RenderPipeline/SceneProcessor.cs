@@ -601,11 +601,10 @@ public class SceneProcessor : RedObject, LightProcessorCallback
 
     public int GetShadowMapSize(Light light, int numActiveSplits)
     {
-        _ = numActiveSplits;
         var parameters = light.GetShadowFocus();
         var shadowResolutionScale = light.GetShadowResolution();
         var pageSize = ShadowMapAllocator!.Settings.ShadowAtlasPageSize;
-        var maxShadowSize = GetMaxShadowSplitSize(Settings, pageSize, light);
+        var maxShadowSize = GetMaxShadowSplitSize(Settings, pageSize, light, numActiveSplits);
 
         var lightSizeInPixels = GetLightSizeInPixels(light, FrameInfo);
         var baseShadowSize = parameters.AutoSize ? lightSizeInPixels : maxShadowSize;
@@ -664,11 +663,12 @@ public class SceneProcessor : RedObject, LightProcessorCallback
         return SystemMath.Max(projectionSize.X, projectionSize.Y);
     }
 
-    private static int GetMaxShadowSplitSize(SceneProcessorSettings settings, int pageSize, Light light) =>
+    private static int GetMaxShadowSplitSize(SceneProcessorSettings settings, int pageSize, Light light,
+        int numActiveSplits) =>
         light.GetLightType() switch
         {
             LightType.Directional => SystemMath.Min(settings.DirectionalShadowSize,
-                light.GetNumShadowSplits() == 1 ? pageSize : pageSize / 2),
+                numActiveSplits == 1 ? pageSize : pageSize / 2),
             LightType.Point => SystemMath.Min(settings.PointShadowSize, pageSize / 4),
             _ => SystemMath.Min(settings.SpotShadowSize, pageSize)
         };

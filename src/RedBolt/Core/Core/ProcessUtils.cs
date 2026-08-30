@@ -8,6 +8,9 @@ using System.Diagnostics;
 using System.Globalization;
 using SystemMath = global::System.Math;
 using System.Runtime.InteropServices;
+#if REDBOLT_PLATFORM_BROWSER
+using System.Runtime.InteropServices.JavaScript;
+#endif
 using System.Text;
 
 using RedBolt.Bindings.Sdl;
@@ -33,10 +36,13 @@ public enum PlatformId
     Unknown = Count
 }
 
-public static class ProcessUtils
+public static partial class ProcessUtils
 {
     private static string _miniDumpDir = string.Empty;
     private static readonly List<string> _arguments = [];
+#if REDBOLT_PLATFORM_BROWSER
+    private static bool? _isMobile;
+#endif
 
     public static string DynLibSuffix =>
 #if REDBOLT_PLATFORM_WINDOWS
@@ -153,6 +159,22 @@ public static class ProcessUtils
         return "(?)";
 #endif
     }
+
+    public static bool IsMobile()
+    {
+#if REDBOLT_PLATFORM_ANDROID
+        return true;
+#elif REDBOLT_PLATFORM_BROWSER
+        return _isMobile ??= GetBrowserIsMobile();
+#else
+        return false;
+#endif
+    }
+
+#if REDBOLT_PLATFORM_BROWSER
+    [JSImport("platform.isMobile", "main.js")]
+    private static partial bool GetBrowserIsMobile();
+#endif
 
     public static uint GetNumPhysicalCPUs()
     {

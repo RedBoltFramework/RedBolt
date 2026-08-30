@@ -8,12 +8,13 @@ using System;
 
 using RedBolt;
 using RedBolt.Bindings.DearImGui;
-using RedBolt.DearImGui;
 using RedBolt.Core;
+using RedBolt.DearImGui;
 using RedBolt.Engine;
 using RedBolt.Graphics;
 using RedBolt.Input;
 using RedBolt.Math;
+using RedBolt.RenderPipeline;
 using RedBolt.Scene;
 using Widgets = RedBolt.SystemUI.Widgets;
 
@@ -108,7 +109,6 @@ sealed class SkeletalAnimationApplication : Application
         light.SetLightType(LightType.Directional); light.SetCastShadows(true);
         light.SetColor(new Color(0.5f, 0.5f, 0.5f));
         light.SetShadowBias(new BiasParameters(0.00025f, 0.5f));
-        light.SetShadowCascade(new CascadeParameters(10.0f, 50.0f, 200.0f, 0.0f, 0.8f));
 
         const int numModels = 16;
         const float modelRotateSpeed = 100.0f;
@@ -134,6 +134,12 @@ sealed class SkeletalAnimationApplication : Application
         _cameraNode = _scene.CreateChild("Camera");
         _cameraNode.CreateComponent<FreeFlyController>();
         _cameraNode.CreateComponent<Camera>().SetFarClip(300.0f);
+        void UpdateShadowCascades() => light.SetShadowCascade(ShadowCascadeEstimator.Estimate(_cameraNode.GetComponent<Camera>()!,
+            new Vector2i(Graphics.Width, Graphics.Height), new RenderPipelineSettings(),
+            new ShadowCascadeEstimateSettings(200.0f) { ShadowResolution = light.GetShadowResolution() }));
+        UpdateShadowCascades();
+        SubscribeToEvent<GraphicsEvents.ScreenModeEvent>(
+            (ref GraphicsEvents.ScreenModeEvent _) => UpdateShadowCascades());
         _cameraNode.SetPosition(new Vector3f(0.0f, 4.0f, -14.0f));
         _cameraNode.LookAt(new Vector3f(0.0f, 1.5f, 1.0f));
     }

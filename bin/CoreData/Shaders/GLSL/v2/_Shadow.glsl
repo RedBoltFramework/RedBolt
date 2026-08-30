@@ -183,6 +183,66 @@ half SampleShadowFiltered(vec4 shadowPos)
     #endif
 }
 
+#if defined(URHO3D_LIGHT_DIRECTIONAL) && URHO3D_MAX_SHADOW_CASCADES == 4
+    half SampleDirectionalShadow(vec4 shadowPos[URHO3D_MAX_SHADOW_CASCADES], float depth)
+    {
+        if (depth < cShadowSplits.x)
+        {
+            half shadow = SampleShadowFiltered(shadowPos[0]);
+            if (depth > cShadowSplitBlendStarts.x)
+                shadow = mix(shadow, SampleShadowFiltered(shadowPos[1]),
+                    smoothstep(cShadowSplitBlendStarts.x, cShadowSplits.x, depth));
+            return shadow;
+        }
+        if (depth < cShadowSplits.y)
+        {
+            half shadow = SampleShadowFiltered(shadowPos[1]);
+            if (depth > cShadowSplitBlendStarts.y)
+                shadow = mix(shadow, SampleShadowFiltered(shadowPos[2]),
+                    smoothstep(cShadowSplitBlendStarts.y, cShadowSplits.y, depth));
+            return shadow;
+        }
+        if (depth < cShadowSplits.z)
+        {
+            half shadow = SampleShadowFiltered(shadowPos[2]);
+            if (depth > cShadowSplitBlendStarts.z)
+                shadow = mix(shadow, SampleShadowFiltered(shadowPos[3]),
+                    smoothstep(cShadowSplitBlendStarts.z, cShadowSplits.z, depth));
+            return shadow;
+        }
+        return SampleShadowFiltered(shadowPos[3]);
+    }
+
+    half SampleDirectionalShadow(vec4 worldPos, float depth)
+    {
+        if (depth < cShadowSplits.x)
+        {
+            half shadow = SampleShadowFiltered(worldPos * cLightMatrices[0]);
+            if (depth > cShadowSplitBlendStarts.x)
+                shadow = mix(shadow, SampleShadowFiltered(worldPos * cLightMatrices[1]),
+                    smoothstep(cShadowSplitBlendStarts.x, cShadowSplits.x, depth));
+            return shadow;
+        }
+        if (depth < cShadowSplits.y)
+        {
+            half shadow = SampleShadowFiltered(worldPos * cLightMatrices[1]);
+            if (depth > cShadowSplitBlendStarts.y)
+                shadow = mix(shadow, SampleShadowFiltered(worldPos * cLightMatrices[2]),
+                    smoothstep(cShadowSplitBlendStarts.y, cShadowSplits.y, depth));
+            return shadow;
+        }
+        if (depth < cShadowSplits.z)
+        {
+            half shadow = SampleShadowFiltered(worldPos * cLightMatrices[2]);
+            if (depth > cShadowSplitBlendStarts.z)
+                shadow = mix(shadow, SampleShadowFiltered(worldPos * cLightMatrices[3]),
+                    smoothstep(cShadowSplitBlendStarts.z, cShadowSplits.z, depth));
+            return shadow;
+        }
+        return SampleShadowFiltered(worldPos * cLightMatrices[3]);
+    }
+#endif
+
 /// Convert 4D-coordinate in shadow space to 4-UV used to sample shadow map
 #if URHO3D_MAX_SHADOW_CASCADES == 4
     vec4 ShadowCoordToUV(vec4 shadowPos[URHO3D_MAX_SHADOW_CASCADES], float depth)

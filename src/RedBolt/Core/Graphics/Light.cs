@@ -74,6 +74,7 @@ public struct CascadeParameters
         Splits = new Vector4f(split1, split2, split3, split4);
         FadeStart = fadeStart;
         BiasAutoAdjust = biasAutoAdjust;
+        BlendFactor = 0.0f;
     }
 
     /// <summary>Validate parameters.</summary>
@@ -82,6 +83,7 @@ public struct CascadeParameters
         Splits = new Vector4f(SystemMath.Max(Splits.X, 0.0f), SystemMath.Max(Splits.Y, 0.0f),
             SystemMath.Max(Splits.Z, 0.0f), SystemMath.Max(Splits.W, 0.0f));
         FadeStart = MathDefs.Clamp(FadeStart, MathDefs.Epsilon, 1.0f);
+        BlendFactor = MathDefs.Clamp(BlendFactor, 0.0f, 1.0f);
     }
 
     /// <summary>Return maximum shadow distance.</summary>
@@ -95,6 +97,9 @@ public struct CascadeParameters
 
     /// <summary>Automatic depth bias adjustment strength.</summary>
     public float BiasAutoAdjust;
+
+    /// <summary>Fraction of each cascade range used to blend into the next cascade.</summary>
+    public float BlendFactor;
 }
 
 /// <summary>Shadow map focusing parameters.</summary>
@@ -901,6 +906,24 @@ public partial class Light : Drawable
         var light = (Light)self;
         var parameters = light.GetShadowCascade();
         parameters.Splits = (Vector4f)value!;
+        light.SetShadowCascade(parameters);
+    }
+
+    private static object? GetCSMBlendFactorAttributeDefault() => 0.0f;
+
+    [Serialized("CSM Blend", typeof(float), DefaultSource = nameof(GetCSMBlendFactorAttributeDefault), Setter = nameof(SetSerializedCSMBlendFactor))]
+    private object? GetSerializedCSMBlendFactor()
+    {
+        Serializable self = this;
+        return ((Light)self).GetShadowCascade().BlendFactor;
+    }
+
+    private void SetSerializedCSMBlendFactor(object? value)
+    {
+        Serializable self = this;
+        var light = (Light)self;
+        var parameters = light.GetShadowCascade();
+        parameters.BlendFactor = (float)value!;
         light.SetShadowCascade(parameters);
     }
 

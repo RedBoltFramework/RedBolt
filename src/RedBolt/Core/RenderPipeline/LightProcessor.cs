@@ -61,6 +61,7 @@ public struct CookedLightParams
     public Vector2f ShadowMapInvSize;
     public Vector2f ShadowCubeUVBias;
     public Vector4f ShadowSplitDistances;
+    public Vector4f ShadowSplitBlendStarts;
 
     public ShadowParameterContainer ShadowNormalBias;
     public ShadowParameterContainer ShadowDepthBiasMultiplier;
@@ -571,13 +572,18 @@ public class LightProcessor : IDisposable
         }
 
         Span<float> splitDistances = stackalloc float[4];
+        Span<float> splitBlendStarts = stackalloc float[4];
         splitDistances.Fill(MathDefs.LargeValue);
+        splitBlendStarts.Fill(MathDefs.LargeValue);
         if (lightType == LightType.Directional)
         {
             for (var i = 0; i < _numActiveSplits; ++i)
                 splitDistances[i] = _splits[i].CascadeZRange.Second / cullCamera.GetFarClip();
+            for (var i = 0; i + 1 < _numActiveSplits; ++i)
+                splitBlendStarts[i] = _splits[i + 1].CascadeZRange.First / cullCamera.GetFarClip();
         }
         _cookedParams.ShadowSplitDistances = new Vector4f(splitDistances);
+        _cookedParams.ShadowSplitBlendStarts = new Vector4f(splitBlendStarts);
 
         for (var i = 0; i < Light.MaxLightSplits; ++i)
             _cookedParams.ShadowDepthBiasMultiplier[i] = 1.0f;
@@ -707,6 +713,7 @@ public class LightProcessor : IDisposable
         var result = new ActiveSplits();
 
         var nearSplit = nearClip;
+        var previousNearSplit = nearClip;
         for (var i = 0; i < numSplits; ++i)
         {
             // Stop if split is completely beyond camera far clip
@@ -717,7 +724,11 @@ public class LightProcessor : IDisposable
             if (farSplit <= nearSplit)
                 break;
 
-            result.Splits[result.Count++] = new FloatRange(nearSplit, farSplit);
+            var renderNearSplit = i == 0
+                ? nearSplit
+                : nearSplit - (nearSplit - previousNearSplit) * cascade.BlendFactor;
+            result.Splits[result.Count++] = new FloatRange(renderNearSplit, farSplit);
+            previousNearSplit = nearSplit;
             nearSplit = farSplit;
         }
 

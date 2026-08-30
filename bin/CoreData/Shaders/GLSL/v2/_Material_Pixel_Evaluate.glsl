@@ -62,8 +62,12 @@
         result.lightColor = GetLightColor(result.lightVec.xyz);
     #endif
     #ifdef URHO3D_HAS_SHADOW
-        vec4 shadowUV = ShadowCoordToUV(vShadowPos, vWorldDepth);
-        result.shadow = FadeShadow(SampleShadowFiltered(shadowUV), vWorldDepth);
+        #if defined(URHO3D_LIGHT_DIRECTIONAL) && URHO3D_MAX_SHADOW_CASCADES == 4
+            result.shadow = FadeShadow(SampleDirectionalShadow(vShadowPos, vWorldDepth), vWorldDepth);
+        #else
+            vec4 shadowUV = ShadowCoordToUV(vShadowPos, vWorldDepth);
+            result.shadow = FadeShadow(SampleShadowFiltered(shadowUV), vWorldDepth);
+        #endif
     #endif
         return result;
     }
