@@ -6,7 +6,7 @@ import { createModuleImports } from './extension.js';
 
 const sampleElement = document.getElementById('sample');
 const samples = Array.from(sampleElement.options,
-    option => [option.value, option.text, option.dataset.application, option.dataset]);
+    option => [option.value, option.text, option.dataset.application]);
 const selectedSample = new URLSearchParams(location.search).get('sample');
 const selectedEntry = samples.find(([id]) => id === selectedSample);
 const canvasElement = document.getElementById('canvas');
@@ -25,93 +25,6 @@ let pointerLockChangeHandler;
 let pointerLockRequested = false;
 let pointerLockRequestInFlight = false;
 let pointerLockReported = false;
-let mobileControlsReady = false;
-
-function isMobileDevice() {
-    return (navigator.userAgentData?.mobile
-            ?? (navigator.maxTouchPoints > 0 && matchMedia('(pointer: coarse)').matches))
-        || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
-        || navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
-}
-
-function bindVirtualControl(button, kind, name, inputExports) {
-    const pointers = new Set();
-    const setState = down => {
-        button.classList.toggle('active', down);
-        let promise;
-        if (kind === 'combo') {
-            const [key, mouseButton] = name.split('+');
-            promise = Promise.all([
-                inputExports.SetVirtualKeyAsync(key, down),
-                inputExports.SetVirtualMouseButtonAsync(mouseButton, down)
-            ]);
-        } else {
-            promise = kind === 'mouse'
-                ? inputExports.SetVirtualMouseButtonAsync(name, down)
-                : inputExports.SetVirtualKeyAsync(name, down);
-        }
-        promise.catch(error => console.error(`Virtual ${kind} input failed:`, error));
-    };
-    const release = event => {
-        if (!pointers.delete(event.pointerId))
-            return;
-        if (pointers.size === 0)
-            setState(false);
-    };
-    button.addEventListener('pointerdown', event => {
-        event.preventDefault();
-        if (pointers.size === 0)
-            setState(true);
-        pointers.add(event.pointerId);
-        try {
-            button.setPointerCapture(event.pointerId);
-        } catch (error) {
-            console.debug('Pointer capture is unavailable for virtual input:', error);
-        }
-    });
-    button.addEventListener('pointerup', release);
-    button.addEventListener('pointercancel', release);
-    button.addEventListener('lostpointercapture', release);
-}
-
-function addVirtualButton(parent, id, label, kind, name, inputExports) {
-    const button = document.createElement('button');
-    button.type = 'button';
-    if (id)
-        button.id = id;
-    button.textContent = label;
-    button.setAttribute('aria-label', label);
-    bindVirtualControl(button, kind, name, inputExports);
-    parent.append(button);
-}
-
-function initializeMobileControls(inputExports) {
-    if (!isMobileDevice())
-        return;
-
-    document.body.classList.add('mobile');
-    const profile = selectedEntry[3];
-    document.getElementById('mobile-help-text').textContent = profile.mobileHelp;
-    const dpad = document.getElementById('mobile-dpad');
-    if (profile.mobileMovement) {
-        const keys = profile.mobileMovement === 'arrows'
-            ? [['up', '▲', 'Up'], ['left', '◀', 'Left'], ['down', '▼', 'Down'], ['right', '▶', 'Right']]
-            : [['up', '▲', 'W'], ['left', '◀', 'A'], ['down', '▼', 'S'], ['right', '▶', 'D']];
-        for (const [id, label, key] of keys)
-            addVirtualButton(dpad, `mobile-${id}`, label, 'key', key, inputExports);
-    }
-
-    const actions = document.getElementById('mobile-actions');
-    for (const encodedControl of (profile.mobileControls ?? '').split(';')) {
-        if (!encodedControl)
-            continue;
-        const [kind, name, label] = encodedControl.split('|');
-        addVirtualButton(actions, '', label, kind, name, inputExports);
-    }
-
-    mobileControlsReady = true;
-    setTimeout(() => document.getElementById('mobile-help').removeAttribute('open'), 6000);
-}
 
 function calculateCanvasSize() {
     devicePixelRatio = window.devicePixelRatio || 1;
@@ -223,8 +136,6 @@ function ready() {
     document.getElementById('loading').hidden = true;
     if (!document.referrer.includes('itch.io'))
         fullscreenButton.hidden = false;
-    if (mobileControlsReady)
-        document.getElementById('mobile-controls').hidden = false;
     if (!document.hidden)
         setTimeout(viewportResizeHandler, 100);
 }
@@ -300,7 +211,9 @@ const extensionImports = await createModuleImports({ getAssemblyExports });
 
 setModuleImports('main.js', {
     platform: {
-        isMobile: isMobileDevice
+        isMobile: () => navigator.userAgentData?.mobile
+            ?? (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+                || navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
     },
     dom: {
         getSelectedApplicationType: () => selectedEntry[2],
@@ -363,7 +276,6 @@ setModuleImports('main.js', {
     ...extensionImports
 });
 
-initializeMobileControls(inputExports);
 await runMain();
 setStatus('Running...');
 ready();

@@ -36,6 +36,14 @@ public enum MouseMode
     Invalid
 }
 
+/// <summary>Type of input device that was used most recently.</summary>
+public enum InputDeviceType
+{
+    KeyboardMouse,
+    Joystick,
+    Touch
+}
+
 /// <summary>Input state for a finger touch.</summary>
 public struct TouchState
 {
@@ -189,6 +197,8 @@ public partial class Input : RedObject
     private const uint SdlInitVideo = 0x00000020u;
     private const uint SdlInitJoystick = 0x00000200u;
     private const uint SdlInitGameController = 0x00002000u;
+    private const uint SdlTouchMouseId = uint.MaxValue;
+    private const float InputDeviceAxisThreshold = 0.25f;
     private readonly HashSet<Key> _keyDown = [];
     private readonly HashSet<Key> _keyPress = [];
     private readonly HashSet<Scancode> _scancodeDown = [];
@@ -271,6 +281,9 @@ public partial class Input : RedObject
     public bool TouchEmulation { get; private set; }
 
     public bool MouseEmulation { get; private set; }
+
+    /// <summary>Return the type of input device that was used most recently.</summary>
+    public InputDeviceType ActiveInputDevice { get; private set; } = InputDeviceType.KeyboardMouse;
 
     public override void Dispose()
     {
@@ -484,6 +497,7 @@ public partial class Input : RedObject
         while (Sdl.SdlPollEvent(_nativeEvent) != 0)
         {
             var eventType = (SdlEventType)_nativeEvent.Type;
+            UpdateActiveInputDevice(_nativeEvent, eventType);
             var rawEvent = new InputEvents.SDLRawInputEvent { SDLEvent = _nativeEvent.Handle };
             SendEvent(ref rawEvent);
             if (rawEvent.Consumed)
@@ -541,7 +555,7 @@ public partial class Input : RedObject
             }
             else if (eventType == SdlEventType.SdlMousewheel)
             {
-                SetMouseWheel(_nativeEvent.WheelY);
+                SetMouseWheel(_nativeEvent.WheelY, updateActiveInputDevice: false);
             }
             else if (eventType == SdlEventType.SdlControlleraxismotion)
             {
@@ -1120,6 +1134,9 @@ public partial class Input : RedObject
 
     public void SetKey(Key key, Scancode scancode, bool newState)
     {
+        if (newState)
+            ActivateInputDevice(InputDeviceType.KeyboardMouse);
+
         var wasDown = _keyDown.Contains(key);
         if (newState)
         {
@@ -1158,8 +1175,14 @@ public partial class Input : RedObject
             GetSubsystem<Graphics>()?.ToggleFullscreen();
     }
 
-    public void SetMouseButton(MouseButton button, bool newState, int clicks = 0)
+    public void SetMouseButton(MouseButton button, bool newState, int clicks = 0) =>
+        SetMouseButton(button, newState, clicks, updateActiveInputDevice: true);
+
+    private void SetMouseButton(MouseButton button, bool newState, int clicks, bool updateActiveInputDevice)
     {
+        if (newState && updateActiveInputDevice)
+            ActivateInputDevice(InputDeviceType.KeyboardMouse);
+
         if (newState)
         {
             if ((_mouseButtonDown & button) == 0)
@@ -1196,11 +1219,15 @@ public partial class Input : RedObject
         }
     }
 
-    public void SetMouseWheel(int delta)
+    public void SetMouseWheel(int delta) => SetMouseWheel(delta, updateActiveInputDevice: true);
+
+    private void SetMouseWheel(int delta, bool updateActiveInputDevice)
     {
         if (delta == 0)
             return;
 
+        if (updateActiveInputDevice)
+            ActivateInputDevice(InputDeviceType.KeyboardMouse);
         _mouseMoveWheel += delta;
         var eventData = new InputEvents.MouseWheelEvent
         {
@@ -1212,6 +1239,9 @@ public partial class Input : RedObject
     public void SetControllerButton(ControllerButton button, bool newState)
     {
         if (newState)
+            ActivateInputDevice(InputDeviceType.Joystick);
+
+        if (newState)
             _controllerButtonsDown.Add(button);
         else
             _controllerButtonsDown.Remove(button);
@@ -1221,6 +1251,9 @@ public partial class Input : RedObject
 
     public void SetJoystickButton(uint buttonIndex, bool newState)
     {
+        if (newState)
+            ActivateInputDevice(InputDeviceType.Joystick);
+
         if (newState)
             _joystickButtonsDown.Add(buttonIndex);
         else
@@ -1232,6 +1265,8 @@ public partial class Input : RedObject
     public void SetControllerAxis(ControllerAxis axis, float position)
     {
         var clamped = MathDefs.Clamp(position, -1.0f, 1.0f);
+        if (MathF.Abs(clamped) > InputDeviceAxisThreshold)
+            ActivateInputDevice(InputDeviceType.Joystick);
         _controllerAxisPositions[axis] = clamped;
         SetJoystickAxisState(0, (uint)axis, clamped, controller: true);
         SendJoystickAxisEvent((int)axis, clamped);
@@ -1240,6 +1275,8 @@ public partial class Input : RedObject
     public void SetJoystickAxis(uint axis, float position)
     {
         var clamped = MathDefs.Clamp(position, -1.0f, 1.0f);
+        if (MathF.Abs(clamped) > InputDeviceAxisThreshold)
+            ActivateInputDevice(InputDeviceType.Joystick);
         _joystickAxisPositions[axis] = clamped;
         SetJoystickAxisState(0, axis, clamped, controller: false);
         SendJoystickAxisEvent(checked((int)axis), clamped);
@@ -1247,6 +1284,8 @@ public partial class Input : RedObject
 
     public void SetHatPosition(HatPosition position)
     {
+        if (position != HatPosition.Center)
+            ActivateInputDevice(InputDeviceType.Joystick);
         _hatPosition = position;
         SetJoystickHatState(0, 0, position);
         var eventData = new InputEvents.JoystickHatMoveEvent { JoystickID = 0, Hat = 0, Position = position };
@@ -1496,31 +1535,6 @@ public partial class Input : RedObject
         return Task.CompletedTask;
     }
 
-    [SupportedOSPlatform("browser")]
-    [JSExport]
-    internal static Task SetVirtualKeyAsync(string keyName, bool down)
-    {
-        if (!Enum.TryParse<Key>(keyName, true, out var key) || key == Key.Unknown)
-            throw new ArgumentException($"Unknown virtual key '{keyName}'.", nameof(keyName));
-
-        Context.Instance.GetSubsystem<Input>()!.SetKey(key, down);
-        return Task.CompletedTask;
-    }
-
-    [SupportedOSPlatform("browser")]
-    [JSExport]
-    internal static Task SetVirtualMouseButtonAsync(string buttonName, bool down)
-    {
-        if (!Enum.TryParse<MouseButton>(buttonName, true, out var button)
-            || button is MouseButton.None or MouseButton.Any)
-        {
-            throw new ArgumentException($"Unknown virtual mouse button '{buttonName}'.", nameof(buttonName));
-        }
-
-        Context.Instance.GetSubsystem<Input>()!.SetMouseButton(button, down);
-        return Task.CompletedTask;
-    }
-
     private void HandlePointerLockChange(bool active)
     {
         var invalid = false;
@@ -1732,6 +1746,7 @@ public partial class Input : RedObject
         _joystickAxisPositions.Clear();
         _screenButtonsDown.Clear();
         _touches.Clear();
+        ActiveInputDevice = InputDeviceType.KeyboardMouse;
         foreach (var controller in _nativeControllers.Values)
             Sdl.SdlGameControllerClose(controller);
         foreach (var joystick in _nativeJoysticks.Values)
@@ -1776,6 +1791,46 @@ public partial class Input : RedObject
         SetKey(key, scancode, true);
     }
 
+    private void ActivateInputDevice(InputDeviceType deviceType) => ActiveInputDevice = deviceType;
+
+    private void UpdateActiveInputDevice(SdlEvent @event, SdlEventType eventType)
+    {
+        if (eventType is SdlEventType.SdlFingerdown or SdlEventType.SdlFingermotion)
+        {
+            ActivateInputDevice(InputDeviceType.Touch);
+        }
+        else if (eventType == SdlEventType.SdlKeydown
+                 || (eventType == SdlEventType.SdlMousebuttondown && @event.ButtonWhich != SdlTouchMouseId)
+                 || (eventType == SdlEventType.SdlMousewheel
+                     && @event.WheelWhich != SdlTouchMouseId && @event.WheelY != 0)
+                 || (eventType == SdlEventType.SdlMousemotion
+                     && @event.MotionWhich != SdlTouchMouseId
+                     && (@event.MotionXrel != 0 || @event.MotionYrel != 0)))
+        {
+            ActivateInputDevice(InputDeviceType.KeyboardMouse);
+        }
+        else if (eventType == SdlEventType.SdlControllerbuttondown
+                 || (eventType == SdlEventType.SdlControlleraxismotion
+                     && MathF.Abs(NormalizeAxis(@event.CaxisValue)) > InputDeviceAxisThreshold)
+                 || (eventType == SdlEventType.SdlJoybuttondown
+                     && !IsAccelerometerJoystick(@event.JbuttonWhich))
+                 || (eventType == SdlEventType.SdlJoyaxismotion
+                     && !IsAccelerometerJoystick(@event.JaxisWhich)
+                     && MathF.Abs(NormalizeAxis(@event.JaxisValue)) > InputDeviceAxisThreshold)
+                 || (eventType == SdlEventType.SdlJoyhatmotion
+                     && !IsAccelerometerJoystick(@event.JhatWhich)
+                     && (HatPosition)(uint)@event.JhatValue != HatPosition.Center))
+        {
+            ActivateInputDevice(InputDeviceType.Joystick);
+        }
+    }
+
+    private bool IsAccelerometerJoystick(int joystickId)
+    {
+        return _joysticks.TryGetValue(joystickId, out var joystick)
+            && joystick.GetNumAxes() == 3 && joystick.GetNumButtons() == 0 && joystick.GetNumHats() == 0;
+    }
+
     private void HandleKeyUp(SdlEvent @event)
     {
         var scancode = (Scancode)(uint)@event.KeyKeysymScancode;
@@ -1797,13 +1852,13 @@ public partial class Input : RedObject
     private void HandleMouseButtonDown(SdlEvent @event)
     {
         var button = ToMouseButton(@event.ButtonButton);
-        SetMouseButton(button, true, @event.ButtonClicks);
+        SetMouseButton(button, true, @event.ButtonClicks, updateActiveInputDevice: false);
     }
 
     private void HandleMouseButtonUp(SdlEvent @event)
     {
         var button = ToMouseButton(@event.ButtonButton);
-        SetMouseButton(button, false, @event.ButtonClicks);
+        SetMouseButton(button, false, @event.ButtonClicks, updateActiveInputDevice: false);
     }
 
     private void HandleMouseMotion(SdlEvent @event)
@@ -1998,6 +2053,9 @@ public partial class Input : RedObject
 
     private void HandleFingerEvent(SdlEvent @event, SdlEventType eventType)
     {
+        if (eventType != SdlEventType.SdlFingerup)
+            ActivateInputDevice(InputDeviceType.Touch);
+
         var touchId = @event.TfingerFingerId.GetHashCode();
         var x = (int)MathF.Round(@event.TfingerX * _backbufferSize.X);
         var y = (int)MathF.Round(@event.TfingerY * _backbufferSize.Y);
