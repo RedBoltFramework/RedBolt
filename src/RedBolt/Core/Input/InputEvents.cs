@@ -184,6 +184,13 @@ public static class InputEvents
         public bool Minimized;         // bool
     }
 
+    /// <summary>Active input device changed.</summary>
+    public struct InputDeviceChangedEvent
+    {
+        public InputDeviceType PreviousDeviceType;
+        public InputDeviceType DeviceType;
+    }
+
     /// <summary>OS mouse cursor visibility changed.</summary>
     public struct MouseVisibleChangedEvent
     {

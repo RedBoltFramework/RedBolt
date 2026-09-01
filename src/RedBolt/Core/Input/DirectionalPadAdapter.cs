@@ -38,6 +38,7 @@ public partial class DirectionalPadAdapter : RedObject
         Keyboard = 1,
         JoystickAxis = 100,
         JoystickDPad = 200,
+        ControllerDPad = 300,
     }
 
     private class AggregatedState : ICloneable
@@ -275,12 +276,16 @@ public partial class DirectionalPadAdapter : RedObject
         {
             SubscribeToEvent<InputEvents.JoystickAxisMoveEvent>(_input, HandleJoystickAxisMove);
             SubscribeToEvent<InputEvents.JoystickHatMoveEvent>(_input, HandleJoystickHatMove);
+            SubscribeToEvent<InputEvents.JoystickButtonDownEvent>(_input, HandleJoystickButtonDown);
+            SubscribeToEvent<InputEvents.JoystickButtonUpEvent>(_input, HandleJoystickButtonUp);
             SubscribeToEvent<InputEvents.JoystickDisconnectedEvent>(_input, HandleJoystickDisconnected);
         }
         else if ((toUnsubscribe & DirectionalPadAdapterMask.Joystick) != 0)
         {
             UnsubscribeFromEvent<InputEvents.JoystickAxisMoveEvent>();
             UnsubscribeFromEvent<InputEvents.JoystickHatMoveEvent>();
+            UnsubscribeFromEvent<InputEvents.JoystickButtonDownEvent>();
+            UnsubscribeFromEvent<InputEvents.JoystickButtonUpEvent>();
             UnsubscribeFromEvent<InputEvents.JoystickDisconnectedEvent>();
 
             RemoveIf(_up, static input => input >= InputType.JoystickAxis);
@@ -452,6 +457,38 @@ public partial class DirectionalPadAdapter : RedObject
             + ((position & HatPosition.Up) != 0 ? -1.0f : 0.0f);
     }
 
+    private void HandleJoystickButtonDown(ref InputEvents.JoystickButtonDownEvent value)
+    {
+        HandleJoystickButton(value.JoystickID, value.Button, true);
+    }
+
+    private void HandleJoystickButtonUp(ref InputEvents.JoystickButtonUpEvent value)
+    {
+        HandleJoystickButton(value.JoystickID, value.Button, false);
+    }
+
+    private void HandleJoystickButton(int joystickId, int button, bool down)
+    {
+        var joystick = _input.GetJoystick(joystickId);
+        if (joystick is null || !joystick.Value.IsController())
+            return;
+        var eventId = (InputType)((int)InputType.ControllerDPad + joystickId);
+        var state = button switch
+        {
+            (int)ControllerButton.DPadUp => _up,
+            (int)ControllerButton.DPadDown => _down,
+            (int)ControllerButton.DPadLeft => _left,
+            (int)ControllerButton.DPadRight => _right,
+            _ => null
+        };
+        if (state is null)
+            return;
+        if (down)
+            Append(state, eventId);
+        else
+            Remove(state, eventId);
+    }
+
     private void HandleJoystickDisconnected(ref InputEvents.JoystickDisconnectedEvent value)
     {
         var joystickId = value.JoystickID;
@@ -469,6 +506,12 @@ public partial class DirectionalPadAdapter : RedObject
         Remove(_down, dpadEventId);
         Remove(_left, dpadEventId);
         Remove(_right, dpadEventId);
+
+        var controllerDpadEventId = (InputType)((int)InputType.ControllerDPad + joystickId);
+        Remove(_up, controllerDpadEventId);
+        Remove(_down, controllerDpadEventId);
+        Remove(_left, controllerDpadEventId);
+        Remove(_right, controllerDpadEventId);
     }
 
     // Append input to set.

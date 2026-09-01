@@ -208,6 +208,8 @@ public partial class Input : RedObject
     private readonly Dictionary<ControllerAxis, float> _controllerAxisPositions = new();
     private readonly Dictionary<uint, float> _joystickAxisPositions = new();
     private readonly HashSet<string> _screenButtonsDown = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _screenButtonPress = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, float> _screenAxisPositions = new(StringComparer.Ordinal);
     private readonly Dictionary<int, TouchState> _touches = [];
     private readonly Dictionary<int, JoystickState> _joysticks = [];
     private readonly Dictionary<int, SdlJoystick> _nativeJoysticks = [];
@@ -456,6 +458,8 @@ public partial class Input : RedObject
 
     public void BeginFrame()
     {
+        _screenButtonPress.Clear();
+        _screenAxisPositions.Clear();
         SendEvent<InputEvents.InputBeginEvent>();
 
 #if !REDBOLT_PLATFORM_BROWSER
@@ -847,6 +851,18 @@ public partial class Input : RedObject
         return _screenButtonsDown.Contains(elementName);
     }
 
+    public bool GetScreenButtonPress(string elementName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(elementName);
+        return _screenButtonPress.Contains(elementName);
+    }
+
+    public float GetScreenAxisPosition(string elementName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(elementName);
+        return _screenAxisPositions.GetValueOrDefault(elementName);
+    }
+
     public Vector2f GetRelativeMousePosition()
     {
         var backbufferSize = GetBackbufferSize();
@@ -974,6 +990,18 @@ public partial class Input : RedObject
 
     public void SetScreenJoystickVisible(int id, bool enable)
     {
+    }
+
+    public void SetScreenJoystickElementVisible(int id, string elementName, bool enable)
+    {
+    }
+
+    public void SetScreenJoystickHatPosition(HatPosition position)
+    {
+        _hatPosition = position;
+        SetJoystickHatState(0, 0, position);
+        var eventData = new InputEvents.JoystickHatMoveEvent { JoystickID = 0, Hat = 0, Position = position };
+        SendEvent(ref eventData);
     }
 
     public bool RecordGesture()
@@ -1296,9 +1324,24 @@ public partial class Input : RedObject
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(elementName);
         if (newState)
-            _screenButtonsDown.Add(elementName);
+        {
+            if (_screenButtonsDown.Add(elementName))
+                _screenButtonPress.Add(elementName);
+        }
         else
+        {
             _screenButtonsDown.Remove(elementName);
+        }
+    }
+
+    public void SetScreenAxis(string elementName, float position)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(elementName);
+        var clamped = MathDefs.Clamp(position, -1.0f, 1.0f);
+        if (clamped != 0.0f)
+            _screenAxisPositions[elementName] = clamped;
+        else
+            _screenAxisPositions.Remove(elementName);
     }
 
     public void CenterMousePosition()
@@ -1745,8 +1788,10 @@ public partial class Input : RedObject
         _controllerAxisPositions.Clear();
         _joystickAxisPositions.Clear();
         _screenButtonsDown.Clear();
+        _screenButtonPress.Clear();
+        _screenAxisPositions.Clear();
         _touches.Clear();
-        ActiveInputDevice = InputDeviceType.KeyboardMouse;
+        ActivateInputDevice(InputDeviceType.KeyboardMouse);
         foreach (var controller in _nativeControllers.Values)
             Sdl.SdlGameControllerClose(controller);
         foreach (var joystick in _nativeJoysticks.Values)
@@ -1791,7 +1836,26 @@ public partial class Input : RedObject
         SetKey(key, scancode, true);
     }
 
-    private void ActivateInputDevice(InputDeviceType deviceType) => ActiveInputDevice = deviceType;
+    private void ActivateInputDevice(InputDeviceType deviceType)
+    {
+        if (ActiveInputDevice == deviceType)
+            return;
+
+        var previousDeviceType = ActiveInputDevice;
+        ActiveInputDevice = deviceType;
+        if (deviceType != InputDeviceType.Touch)
+        {
+            _screenButtonsDown.Clear();
+            _screenButtonPress.Clear();
+            _screenAxisPositions.Clear();
+        }
+        var eventData = new InputEvents.InputDeviceChangedEvent
+        {
+            PreviousDeviceType = previousDeviceType,
+            DeviceType = deviceType
+        };
+        SendEvent(ref eventData);
+    }
 
     private void UpdateActiveInputDevice(SdlEvent @event, SdlEventType eventType)
     {
@@ -1995,6 +2059,9 @@ public partial class Input : RedObject
         _joystickButtonsDown.Clear();
         _controllerAxisPositions.Clear();
         _joystickAxisPositions.Clear();
+        _screenButtonsDown.Clear();
+        _screenButtonPress.Clear();
+        _screenAxisPositions.Clear();
 
         foreach (var joystickId in _joysticks.Keys.ToArray())
         {

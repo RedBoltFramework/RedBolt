@@ -12,6 +12,18 @@ using RedBolt.Scene;
 [Reflected]
 public partial class FreeFlyController : Component
 {
+    public const string ActionForward = "Forward";
+    public const string ActionBack = "Back";
+    public const string ActionLeft = "Left";
+    public const string ActionRight = "Right";
+    public const string ActionUp = "Up";
+    public const string ActionDown = "Down";
+    public const string ActionAccelerate = "Accelerate";
+    public const string ActionTurnLeft = "TurnLeft";
+    public const string ActionTurnRight = "TurnRight";
+    public const string ActionLookUp = "LookUp";
+    public const string ActionLookDown = "LookDown";
+
     private const float DefaultMouseSensitivity = 0.1f;
     // 90' motion per inch
     private const float DefaultTouchRotationSensitivity = 1.0f;
@@ -69,6 +81,8 @@ public partial class FreeFlyController : Component
     public void SetTouchSensitivity(float value) { _touchSensitivity = value; }
     public float GetAxisSensitivity() { return _axisSensitivity; }
     public void SetAxisSensitivity(float value) { _axisSensitivity = value; }
+    public void SetInputMap(InputMap? inputMap) { _inputMap = inputMap; }
+    public InputMap? GetInputMap() { return _inputMap; }
 
     /// <summary>Handle scene node being assigned at creation.</summary>
     protected override void OnNodeSet(Node? previousNode, Node? currentNode)
@@ -163,6 +177,20 @@ public partial class FreeFlyController : Component
         if (input.GetScancodeDown(Scancode.E))
             movement.Translation.Y += speed * timeStep;
 
+        return movement;
+    }
+
+    private Movement HandleInputMap(float timeStep)
+    {
+        var movement = new Movement();
+        if (_inputMap is null)
+            return movement;
+        var speed = _inputMap.Evaluate(ActionAccelerate) > 0.0f ? _acceleratedSpeed : _speed;
+        movement.Translation.Z += (_inputMap.Evaluate(ActionForward) - _inputMap.Evaluate(ActionBack)) * speed * timeStep;
+        movement.Translation.X += (_inputMap.Evaluate(ActionRight) - _inputMap.Evaluate(ActionLeft)) * speed * timeStep;
+        movement.Translation.Y += (_inputMap.Evaluate(ActionUp) - _inputMap.Evaluate(ActionDown)) * speed * timeStep;
+        movement.Rotation.Y += (_inputMap.Evaluate(ActionTurnRight) - _inputMap.Evaluate(ActionTurnLeft)) * _axisSensitivity * timeStep;
+        movement.Rotation.X += (_inputMap.Evaluate(ActionLookDown) - _inputMap.Evaluate(ActionLookUp)) * _axisSensitivity * timeStep;
         return movement;
     }
 
@@ -356,9 +384,9 @@ public partial class FreeFlyController : Component
         var localMovement = new Movement();
 
         worldMovement += HandleMouse();
-        worldMovement += HandleKeyboard(timeStep);
+        worldMovement += _inputMap is not null ? HandleInputMap(timeStep) : HandleKeyboard(timeStep);
 
-        var numJoysticks = input.GetNumJoysticks();
+        var numJoysticks = _inputMap is null ? input.GetNumJoysticks() : 0u;
         for (var joystickIndex = 0u; joystickIndex < numJoysticks; ++joystickIndex)
         {
             var state = input.GetJoystickByIndex(joystickIndex);
@@ -505,6 +533,7 @@ public partial class FreeFlyController : Component
     private Vector3f _lastKnownEulerAngles;
     /// <summary>Joystick to ignore (SDL gyroscope virtual joystick)</summary>
     private int _ignoreJoystickId = -1;
+    private InputMap? _inputMap;
 
     /// <summary>Whether the rotation is performing now.</summary>
     private bool _isActive;

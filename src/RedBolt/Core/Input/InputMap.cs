@@ -261,9 +261,9 @@ public partial class InputMap : SimpleResource
         foreach (var keyValue in _actions)
         {
             var mapping = keyValue.Value.Clone();
-            mapping.MouseButtons.RemoveAll(item => item.MouseButton == (uint)mouseButton);
+            mapping.MouseButtons.RemoveAll(item => item.MouseButton == value);
         }
-        GetOrAddMapping(action).MouseButtons.Add(new MouseButtonMapping((uint)mouseButton));
+        GetOrAddMapping(action).MouseButtons.Add(new MouseButtonMapping(value));
     }
 
     /// <summary>Map screen button to the action.</summary>
@@ -277,6 +277,31 @@ public partial class InputMap : SimpleResource
         }
 
         GetOrAddMapping(action).ScreenButtons.Add(new ScreenButtonMapping(elementName));
+    }
+
+    public void UnmapScreenButton(string action, string elementName)
+    {
+        if (_actions.TryGetValue(action, out var mapping))
+            mapping.ScreenButtons.RemoveAll(value => string.Equals(value.ElementName, elementName, StringComparison.Ordinal));
+    }
+
+    public void MapScreenAxis(string action, string elementName, float neutral, float pressed)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(action);
+        ArgumentException.ThrowIfNullOrWhiteSpace(elementName);
+        var mapping = new ScreenAxisMapping(elementName, neutral, pressed);
+        foreach (var keyValue in _actions)
+        {
+            var actionMapping = keyValue.Value.Clone();
+            actionMapping.ScreenAxes.RemoveAll(value => value.OverlapsWith(mapping));
+        }
+        GetOrAddMapping(action).ScreenAxes.Add(mapping);
+    }
+
+    public void UnmapScreenAxis(string action, string elementName)
+    {
+        if (_actions.TryGetValue(action, out var mapping))
+            mapping.ScreenAxes.RemoveAll(value => string.Equals(value.AxisName, elementName, StringComparison.Ordinal));
     }
 
     /// <summary>Get mapping for the action.</summary>
@@ -355,9 +380,25 @@ public partial class InputMap : SimpleResource
         foreach (var action in _actions)
         {
             if (new StringHash(action.Key) == actionHash)
-                return 0.0f;
+                return action.Value.Evaluate(this.GetSubsystem<Input>()!, _deadZone, _ignoreJoystickId);
         }
-        return GetMappingByHash(actionHash).Evaluate(this.GetSubsystem<Input>()!, _deadZone, _ignoreJoystickId);
+        return 0.0f;
+    }
+
+    public bool EvaluatePressed(string action)
+    {
+        return _actions.TryGetValue(action, out var mapping)
+            && mapping.EvaluatePressed(this.GetSubsystem<Input>()!, _ignoreJoystickId);
+    }
+
+    public bool EvaluatePressedByHash(StringHash actionHash)
+    {
+        foreach (var action in _actions)
+        {
+            if (new StringHash(action.Key) == actionHash)
+                return action.Value.EvaluatePressed(this.GetSubsystem<Input>()!, _ignoreJoystickId);
+        }
+        return false;
     }
 
     /// <summary>Get scancode names.</summary>
@@ -410,6 +451,7 @@ public partial class InputMap : SimpleResource
         public List<ControllerAxisMapping> ControllerAxes;
         public List<ControllerHatMapping> ControllerHats;
         public List<ScreenButtonMapping> ScreenButtons;
+        public List<ScreenAxisMapping> ScreenAxes;
 
         public ActionMapping()
         {
@@ -419,6 +461,7 @@ public partial class InputMap : SimpleResource
             ControllerAxes = [];
             ControllerHats = [];
             ScreenButtons = [];
+            ScreenAxes = [];
         }
 
         private ActionMapping(in ActionMapping source)
@@ -429,6 +472,7 @@ public partial class InputMap : SimpleResource
             ControllerAxes = new List<ControllerAxisMapping>(source.ControllerAxes);
             ControllerHats = new List<ControllerHatMapping>(source.ControllerHats);
             ScreenButtons = new List<ScreenButtonMapping>(source.ScreenButtons);
+            ScreenAxes = new List<ScreenAxisMapping>(source.ScreenAxes);
         }
 
         public readonly ActionMapping Clone() => new(in this);
@@ -450,6 +494,8 @@ public partial class InputMap : SimpleResource
                 static (Archive ar, ref MouseButtonMapping v) => v.SerializeInBlock(ar));
             SerializeOptionalStructList(archive, "screenButtons", "element", ScreenButtons,
                 static (Archive ar, ref ScreenButtonMapping v) => v.SerializeInBlock(ar));
+            SerializeOptionalStructList(archive, "screenAxes", "element", ScreenAxes,
+                static (Archive ar, ref ScreenAxisMapping v) => v.SerializeInBlock(ar));
         }
 
         private delegate void SerializeItem<T>(Archive archive, ref T value);
@@ -514,10 +560,13 @@ public partial class InputMap : SimpleResource
                     return 1.0f;
             }
 
-            if (ControllerAxes.Count == 0 && ControllerButtons.Count == 0 && ControllerHats.Count == 0)
-                return 0.0f;
-
             var totalSum = 0.0f;
+            foreach (var screenAxis in ScreenAxes)
+                totalSum += screenAxis.Translate(input.GetScreenAxisPosition(screenAxis.AxisName), deadZone);
+
+            if (ControllerAxes.Count == 0 && ControllerButtons.Count == 0 && ControllerHats.Count == 0)
+                return MathDefs.Clamp(totalSum, 0.0f, 1.0f);
+
             for (uint joystickIndex = 0; joystickIndex < input.GetNumJoysticks(); ++joystickIndex)
             {
                 var joystick = input.GetJoystickByIndex(joystickIndex);
@@ -559,6 +608,39 @@ public partial class InputMap : SimpleResource
             return MathDefs.Clamp(totalSum, 0.0f, 1.0f);
         }
 
+        public readonly bool EvaluatePressed(Input input, int ignoreJoystickId)
+        {
+            foreach (var key in KeyboardKeys)
+            {
+                if (IsModifierScancodePressed(key.Scancode, input) || input.GetScancodePress(key.Scancode))
+                    return true;
+            }
+            foreach (var mouseButton in MouseButtons)
+            {
+                if (input.GetMouseButtonPress(mouseButton.GetMask()))
+                    return true;
+            }
+            foreach (var screenButton in ScreenButtons)
+            {
+                if (input.GetScreenButtonPress(screenButton.ElementName))
+                    return true;
+            }
+            for (uint joystickIndex = 0; joystickIndex < input.GetNumJoysticks(); ++joystickIndex)
+            {
+                var joystick = input.GetJoystickByIndex(joystickIndex);
+                if (joystick is null || joystick.Value.JoystickID == ignoreJoystickId)
+                    continue;
+                var state = joystick.Value;
+                var isController = state.IsController();
+                foreach (var button in ControllerButtons)
+                {
+                    if (button.Controller == isController && state.GetButtonPress(button.Button))
+                        return true;
+                }
+            }
+            return false;
+        }
+
         private static bool IsModifierScancode(Scancode scancode, Input input)
         {
             return scancode switch
@@ -566,6 +648,17 @@ public partial class InputMap : SimpleResource
                 Scancode.Ctrl => input.GetKeyDown(Key.LeftCtrl) || input.GetKeyDown(Key.RightCtrl),
                 Scancode.Shift => input.GetKeyDown(Key.LeftShift) || input.GetKeyDown(Key.RightShift),
                 Scancode.Alt => input.GetKeyDown(Key.LeftAlt) || input.GetKeyDown(Key.RightAlt),
+                _ => false
+            };
+        }
+
+        private static bool IsModifierScancodePressed(Scancode scancode, Input input)
+        {
+            return scancode switch
+            {
+                Scancode.Ctrl => input.GetKeyPress(Key.LeftCtrl) || input.GetKeyPress(Key.RightCtrl),
+                Scancode.Shift => input.GetKeyPress(Key.LeftShift) || input.GetKeyPress(Key.RightShift),
+                Scancode.Alt => input.GetKeyPress(Key.LeftAlt) || input.GetKeyPress(Key.RightAlt),
                 _ => false
             };
         }
@@ -748,6 +841,15 @@ public struct ControllerHatMapping
 }
 
 /// <summary>Helper class to translate mouse button.</summary>
+internal enum MouseButtonMappingIndex : uint
+{
+    Left,
+    Middle,
+    Right,
+    X1,
+    X2
+}
+
 public struct MouseButtonMapping
 {
     /// <summary>Construct.</summary>
@@ -759,9 +861,9 @@ public struct MouseButtonMapping
     /// <summary>Serialize content from/to archive. May throw ArchiveException.</summary>
     public void SerializeInBlock(Archive archive)
     {
-        var button = (RedBolt.Input.MouseButton)MouseButton;
+        var button = (MouseButtonMappingIndex)MouseButton;
         ArchiveSerialization.SerializeOptionalValue(archive, "button", ref button, default,
-            static (Archive ar, string name, ref RedBolt.Input.MouseButton value) =>
+            static (Archive ar, string name, ref MouseButtonMappingIndex value) =>
                 ArchiveSerialization.SerializeEnum(ar, name, ref value, InputMap.GetMouseButtonNames()));
         MouseButton = (uint)button;
     }
@@ -793,4 +895,60 @@ public struct ScreenButtonMapping
 
     /// <summary>Element name.</summary>
     public string ElementName;
+}
+
+public struct ScreenAxisMapping
+{
+    public ScreenAxisMapping()
+    {
+        AxisName = string.Empty;
+        Neutral = 0.0f;
+        Pressed = 1.0f;
+    }
+
+    public ScreenAxisMapping(string axisName, float neutral = 0.0f, float pressed = 1.0f)
+    {
+        AxisName = axisName;
+        Neutral = neutral;
+        Pressed = pressed;
+    }
+
+    public void SerializeInBlock(Archive archive)
+    {
+        ArchiveSerialization.SerializeOptionalValue(archive, "axisName", ref AxisName, string.Empty,
+            ArchiveSerialization.SerializeValue);
+        ArchiveSerialization.SerializeOptionalValue(archive, "neutral", ref Neutral, 0.0f,
+            ArchiveSerialization.SerializeValue);
+        ArchiveSerialization.SerializeOptionalValue(archive, "pressed", ref Pressed, 1.0f,
+            ArchiveSerialization.SerializeValue);
+    }
+
+    public readonly bool OverlapsWith(ScreenAxisMapping mapping)
+    {
+        if (!string.Equals(mapping.AxisName, AxisName, StringComparison.Ordinal))
+            return false;
+        var min = SystemMath.Min(Neutral, Pressed);
+        var max = SystemMath.Max(Neutral, Pressed);
+        var otherMin = SystemMath.Min(mapping.Neutral, mapping.Pressed);
+        var otherMax = SystemMath.Max(mapping.Neutral, mapping.Pressed);
+        return !(max <= otherMin || otherMax <= min);
+    }
+
+    public readonly float Translate(float position, float deadZone)
+    {
+        if (MathDefs.Equals(position, Pressed))
+            return 1.0f;
+        var positive = Pressed >= Neutral;
+        var neutral = positive ? SystemMath.Min(Neutral + deadZone, Pressed) : SystemMath.Max(Neutral - deadZone, Pressed);
+        var min = SystemMath.Min(neutral, Pressed);
+        var max = SystemMath.Max(neutral, Pressed);
+        if (position < min || position > max)
+            return 0.0f;
+        var range = SystemMath.Max(max - min, MathDefs.Epsilon);
+        return positive ? (position - min) / range : (max - position) / range;
+    }
+
+    public string AxisName;
+    public float Neutral;
+    public float Pressed;
 }
