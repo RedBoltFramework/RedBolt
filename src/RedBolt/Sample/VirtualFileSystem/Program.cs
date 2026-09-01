@@ -78,6 +78,7 @@ sealed class VirtualFileSystemApplication : Application
 
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap();
         var dearImGui = new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags);
         Context.RegisterSubsystem(dearImGui);
         _headingFont = dearImGui.AddFont("Fonts/Anonymous Pro.ttf", size: 28.0f);
@@ -321,12 +322,14 @@ sealed class VirtualFileSystemApplication : Application
 
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
             Exit();
     }
 
     protected override void Stop()
     {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
         _readOnlyFile?.Close();
         FreeInputBuffer(ref _uriBuffer);
         FreeInputBuffer(ref _scanSchemeBuffer);
@@ -456,4 +459,5 @@ sealed class VirtualFileSystemApplication : Application
     private static readonly Vector4f PrimaryText = new(0.92f, 0.97f, 1.0f, 1.0f);
     private static readonly Vector4f MutedText = new(0.52f, 0.62f, 0.72f, 1.0f);
     private static readonly Vector4f AccentCyan = new(0.15f, 0.93f, 1.0f, 1.0f);
+    private SampleInputMap? _sampleInput;
 }

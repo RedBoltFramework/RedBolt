@@ -73,6 +73,7 @@ sealed class LightAnimationApplication : Application
     /// <summary>Setup after engine initialization and before running the main loop.</summary>
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap();
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
 
         // Create the UI content
@@ -216,7 +217,7 @@ sealed class LightAnimationApplication : Application
 
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
             Exit();
 
         _sceneTime += timeStep;
@@ -286,4 +287,12 @@ sealed class LightAnimationApplication : Application
 
     private Texture2D[]? _controlPrompts;
     private static readonly Vector2f PromptIconSize = new(24.0f, 24.0f);
+    protected override void Stop()
+    {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
+        base.Stop();
+    }
+
+    private SampleInputMap? _sampleInput;
 }

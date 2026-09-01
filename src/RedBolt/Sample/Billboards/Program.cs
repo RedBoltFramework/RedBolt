@@ -81,6 +81,8 @@ sealed class BillboardsApplication : Application
 
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap();
+        _sampleInput.AddButton("Debug", Scancode.Space, ControllerButton.Y, "DEBUG");
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
         SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(
             (ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
@@ -264,13 +266,13 @@ sealed class BillboardsApplication : Application
 
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
         {
             Exit();
             return;
         }
 
-        if (Input.GetKeyPress(Key.Space))
+        if (_sampleInput.Pressed("Debug"))
             _drawDebug = !_drawDebug;
 
         _sceneTime += timeStep;
@@ -431,4 +433,12 @@ sealed class BillboardsApplication : Application
         if (_drawDebug)
             Renderer.DrawDebugGeometry(true);
     }
+    protected override void Stop()
+    {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
+        base.Stop();
+    }
+
+    private SampleInputMap? _sampleInput;
 }

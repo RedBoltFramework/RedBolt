@@ -59,6 +59,9 @@ public class SoundSynthesis : Application
     /// <summary>Setup after engine initialization and before running the main loop.</summary>
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap();
+        _sampleInput.AddButton("IncreaseFilter", Scancode.Up, ControllerButton.RightShoulder, "+");
+        _sampleInput.AddButton("DecreaseFilter", Scancode.Down, ControllerButton.LeftShoulder, "-", 1);
         Audio.RegisterAudioSubsystem(Context);
 
         // Execute base class startup
@@ -152,16 +155,16 @@ public class SoundSynthesis : Application
     /// <summary>Handle the logic update event.</summary>
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
         {
             Exit();
             return;
         }
 
         // Use keys to control the filter constant
-        if (Input.GetKeyDown(Key.Up))
+        if (_sampleInput.Evaluate("IncreaseFilter") != 0.0f)
             _filter += timeStep * 0.5f;
-        if (Input.GetKeyDown(Key.Down))
+        if (_sampleInput.Evaluate("DecreaseFilter") != 0.0f)
             _filter -= timeStep * 0.5f;
         _filter = MathDefs.Clamp(_filter, 0.01f, 1.0f);
 
@@ -392,6 +395,8 @@ public class SoundSynthesis : Application
 
     protected override void Stop()
     {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
         _soundStream = null;
         _node?.Dispose();
         _node = null;
@@ -435,4 +440,5 @@ public class SoundSynthesis : Application
     private static readonly Vector4f AccentCyan = new(0.12f, 0.94f, 1.0f, 1.0f);
     private static readonly Vector4f AccentViolet = new(0.72f, 0.46f, 1.0f, 1.0f);
     private static readonly Vector4f AccentAmber = new(1.0f, 0.68f, 0.25f, 1.0f);
+    private SampleInputMap? _sampleInput;
 }

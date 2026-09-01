@@ -37,6 +37,7 @@ public class HelloWorld : Application
 {
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap();
         base.Start();
 
         _scene = new Scene();
@@ -60,7 +61,7 @@ public class HelloWorld : Application
 
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
             Exit();
     }
 
@@ -81,6 +82,8 @@ public class HelloWorld : Application
 
     protected override void Stop()
     {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
         Renderer.SetNumViewports(0);
         _viewport?.Dispose();
         _viewport = null;
@@ -102,4 +105,5 @@ public class HelloWorld : Application
 
     private Scene? _scene;
     private Viewport? _viewport;
+    private SampleInputMap? _sampleInput;
 }

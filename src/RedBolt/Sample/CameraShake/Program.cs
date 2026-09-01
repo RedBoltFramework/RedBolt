@@ -69,6 +69,8 @@ sealed class CameraShakeApplication : Application
     /// <summary>Setup after engine initialization and before running the main loop.</summary>
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap();
+        _sampleInput.AddButton("Shake", Scancode.Space, ControllerButton.A, "SHAKE");
         // Execute base class startup
 
         // Create the scene content
@@ -125,13 +127,13 @@ sealed class CameraShakeApplication : Application
 
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
         {
             Exit();
             return;
         }
 
-        if (Input.GetKeyPress(Key.Space))
+        if (_sampleInput.Pressed("Shake"))
         {
             _shakeComponent!.AddTrauma(1.0f);
         }
@@ -139,6 +141,8 @@ sealed class CameraShakeApplication : Application
 
     protected override void Stop()
     {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
     }
 
     private void DrawInstructions()
@@ -166,4 +170,5 @@ sealed class CameraShakeApplication : Application
         Widgets.AlignTextToLastItem();
         ImGui.TextUnformatted(label);
     }
+    private SampleInputMap? _sampleInput;
 }

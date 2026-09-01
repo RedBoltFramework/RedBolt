@@ -68,6 +68,7 @@ sealed class CameraOperatorSampleApplication : Application
     /// <summary>Setup after engine initialization and before running the main loop.</summary>
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap();
         // Execute base class startup
         // Create the scene content
         CreateScene();
@@ -237,7 +238,7 @@ sealed class CameraOperatorSampleApplication : Application
 
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape)) { Exit(); return; }
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit")) { Exit(); return; }
         _raceTime = (_raceTime + timeStep) % 12.0f;
         var carAProgress = UpdateCar(_carA!, _raceTime);
         var observerDistance = MathF.Abs(carAProgress - 0.22f);
@@ -250,4 +251,12 @@ sealed class CameraOperatorSampleApplication : Application
         _cameraNode.LookAt(_lookTarget, Vector3f.Up);
     }
 
+    protected override void Stop()
+    {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
+        base.Stop();
+    }
+
+    private SampleInputMap? _sampleInput;
 }

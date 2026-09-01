@@ -66,6 +66,9 @@ sealed class HugeObjectCountApplication : Application
     /// <summary>Setup after engine initialization and before running the main loop.</summary>
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap();
+        _sampleInput.AddButton("Animate", Scancode.Space, ControllerButton.A, "ANIMATE");
+        _sampleInput.AddButton("Grouping", Scancode.G, ControllerButton.X, "GROUP", 1);
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
         SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
         // Execute base class startup
@@ -235,11 +238,11 @@ sealed class HugeObjectCountApplication : Application
     /// <summary>Handle the logic update event.</summary>
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape)) { Exit(); return; }
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit")) { Exit(); return; }
         // Toggle animation with space
-        if (Input.GetKeyPress(Key.Space)) _animate = !_animate;
+        if (_sampleInput.Pressed("Animate")) _animate = !_animate;
         // Toggle grouped / ungrouped mode
-        if (Input.GetKeyPress(Key.G)) { _useGroups = !_useGroups; CreateScene(); }
+        if (_sampleInput.Pressed("Grouping")) { _useGroups = !_useGroups; CreateScene(); }
         // Animate scene if enabled
         if (_animate) AnimateObjects(timeStep);
     }
@@ -289,4 +292,12 @@ sealed class HugeObjectCountApplication : Application
         public float Speed { get; } = speed;
         public float Amplitude { get; } = amplitude;
     }
+    protected override void Stop()
+    {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
+        base.Stop();
+    }
+
+    private SampleInputMap? _sampleInput;
 }

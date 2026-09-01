@@ -62,6 +62,8 @@ sealed class SkeletalAnimationApplication : Application
     /// <summary>Setup after engine initialization and before running the main loop.</summary>
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap();
+        _sampleInput.AddButton("Debug", Scancode.Space, ControllerButton.Y, "DEBUG");
         // Execute base class startup
 
         // Create the scene content
@@ -173,8 +175,8 @@ sealed class SkeletalAnimationApplication : Application
         if (ImGui.GetIO().WantCaptureKeyboard)
             return;
 
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape)) Exit();
-        if (Input.GetKeyPress(Key.Space)) _drawDebug = !_drawDebug;
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit")) Exit();
+        if (_sampleInput!.Pressed("Debug")) _drawDebug = !_drawDebug;
     }
 
     /// <summary>Handle the post-render update event.</summary>
@@ -189,6 +191,8 @@ sealed class SkeletalAnimationApplication : Application
 
     protected override void Stop()
     {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
     }
 
     private void DrawInstructions()
@@ -223,4 +227,5 @@ sealed class SkeletalAnimationApplication : Application
     }
 
     private static readonly Vector2f PromptIconSize = new(24.0f, 24.0f);
+    private SampleInputMap? _sampleInput;
 }

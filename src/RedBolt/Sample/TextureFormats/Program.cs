@@ -52,6 +52,7 @@ public class TextureFormatsSample : Application
     /// </summary>
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap();
         base.Start();
 
         CreateScene();
@@ -229,7 +230,7 @@ public class TextureFormatsSample : Application
 
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
             Exit();
     }
 
@@ -250,6 +251,8 @@ public class TextureFormatsSample : Application
 
     protected override void Stop()
     {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
         Renderer.SetNumViewports(0);
         _cameraNode = null;
         _scene?.Dispose();
@@ -291,4 +294,5 @@ public class TextureFormatsSample : Application
     private Node? _cameraNode;
     private Texture2D[]? _controlPrompts;
     private static readonly Vector2f PromptIconSize = new(24.0f, 24.0f);
+    private SampleInputMap? _sampleInput;
 }

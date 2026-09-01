@@ -55,6 +55,7 @@ public sealed class Text3DApplication : Application
 
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap();
         base.Start();
 
         _scene = new Scene();
@@ -198,12 +199,14 @@ public sealed class Text3DApplication : Application
 
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
             Exit();
     }
 
     protected override void Stop()
     {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
         Renderer.SetNumViewports(0);
         _viewport?.Dispose();
         _viewport = null;
@@ -224,4 +227,5 @@ public sealed class Text3DApplication : Application
         _scene = null;
         base.Dispose();
     }
+    private SampleInputMap? _sampleInput;
 }

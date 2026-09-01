@@ -53,6 +53,7 @@ public class SoundEffects : Application
     /// <summary>Setup after engine initialization and before running the main loop.</summary>
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap();
         Audio.RegisterAudioSubsystem(Context);
 
         // Execute base class startup
@@ -504,12 +505,14 @@ public class SoundEffects : Application
 
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
             Exit();
     }
 
     protected override void Stop()
     {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
         _activeMic?.Dispose();
         _activeMic = null;
         _micStream = null;
@@ -566,4 +569,5 @@ public class SoundEffects : Application
     private static readonly Vector4f AccentViolet = new(0.68f, 0.48f, 1.0f, 1.0f);
     private static readonly Vector4f AccentAmber = new(1.0f, 0.68f, 0.25f, 1.0f);
     private static readonly Vector4f AccentRose = new(1.0f, 0.36f, 0.62f, 1.0f);
+    private SampleInputMap? _sampleInput;
 }

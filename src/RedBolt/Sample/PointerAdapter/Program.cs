@@ -56,6 +56,7 @@ sealed class PointerAdapterApplication : Application
 
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap(touchExit: false);
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
         SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
         _controlPrompts =
@@ -232,7 +233,7 @@ sealed class PointerAdapterApplication : Application
 
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
             Exit();
 
         if (_hoverDirty)
@@ -243,6 +244,8 @@ sealed class PointerAdapterApplication : Application
     }
     protected override void Stop()
     {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
         _pointerAdapter?.SetEnabled(false);
         _pointerAdapter?.Dispose();
     }
@@ -274,4 +277,5 @@ sealed class PointerAdapterApplication : Application
 
     private Texture2D[]? _controlPrompts;
     private static readonly Vector2f PromptIconSize = new(24.0f, 24.0f);
+    private SampleInputMap? _sampleInput;
 }

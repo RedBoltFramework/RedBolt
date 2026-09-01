@@ -71,6 +71,7 @@ sealed class AggregatedInputApplication : Application
     /// <summary>Setup after engine initialization and before running the main loop.</summary>
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap(touchExit: false);
         _aggregatedInput = new DirectionAggregator();
         _dpadInput = new DirectionalPadAdapter();
 
@@ -215,7 +216,7 @@ sealed class AggregatedInputApplication : Application
     /// <summary>Handle the logic update event.</summary>
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
             Exit();
 
         _direction = _aggregatedInput!.GetDirection();
@@ -438,6 +439,8 @@ sealed class AggregatedInputApplication : Application
 
     protected override void Stop()
     {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
         Deactivate();
         _dpadInput?.Dispose();
         _aggregatedInput?.Dispose();
@@ -450,4 +453,5 @@ sealed class AggregatedInputApplication : Application
     private static readonly Vector4f AccentCyan = new(0.18f, 0.92f, 1.0f, 1.0f);
     private static readonly Vector4f AccentViolet = new(0.68f, 0.47f, 1.0f, 1.0f);
     private static readonly Vector4f MutedText = new(0.56f, 0.62f, 0.74f, 1.0f);
+    private SampleInputMap? _sampleInput;
 }

@@ -56,6 +56,7 @@ public class WindowSettingsDemo : Application
     /// </summary>
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap();
         // Execute base class startup
         base.Start();
 
@@ -364,7 +365,7 @@ public class WindowSettingsDemo : Application
 
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
             Exit();
     }
 
@@ -385,6 +386,8 @@ public class WindowSettingsDemo : Application
 
     protected override void Stop()
     {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
         _resolutionLabel.Dispose();
         DisposeLabels(_monitorLabels);
         DisposeLabels(_modeLabels);
@@ -428,4 +431,5 @@ public class WindowSettingsDemo : Application
     private static readonly Vector4f AccentViolet = new(0.68f, 0.47f, 1.0f, 1.0f);
     private static readonly Vector4f AccentAmber = new(1.0f, 0.68f, 0.26f, 1.0f);
     private static readonly Vector4f ApplyButton = new(0.12f, 0.45f, 0.52f, 1.0f);
+    private SampleInputMap? _sampleInput;
 }

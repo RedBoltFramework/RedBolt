@@ -56,6 +56,7 @@ public class AnimatingScene : Application
     /// </summary>
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap();
         base.Start();
 
         CreateScene();
@@ -177,12 +178,14 @@ public class AnimatingScene : Application
 
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
             Exit();
     }
 
     protected override void Stop()
     {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
         Renderer.SetNumViewports(0);
         base.Stop();
     }
@@ -202,4 +205,5 @@ public class AnimatingScene : Application
     private Viewport? _viewport;
     private Scene? _scene;
     private Node? _cameraNode;
+    private SampleInputMap? _sampleInput;
 }

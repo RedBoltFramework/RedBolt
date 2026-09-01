@@ -45,6 +45,7 @@ public class HelloGUI : Application
 
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap();
         base.Start();
 
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
@@ -129,7 +130,7 @@ public class HelloGUI : Application
 
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
         {
             Exit();
             return;
@@ -270,6 +271,8 @@ public class HelloGUI : Application
 
     protected override void Stop()
     {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
         ReleaseResources();
         base.Stop();
     }
@@ -317,4 +320,5 @@ public class HelloGUI : Application
     private bool _autoRotate = true;
     private bool _windowOpen = true;
     private bool _resourcesReleased;
+    private SampleInputMap? _sampleInput;
 }

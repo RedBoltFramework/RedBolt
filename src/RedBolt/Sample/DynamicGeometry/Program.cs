@@ -65,6 +65,8 @@ public class DynamicGeometry : Application
     /// </summary>
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap();
+        _sampleInput.AddButton("Animate", Scancode.Space, ControllerButton.A, "ANIMATE");
         // Execute base class startup
         base.Start();
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
@@ -367,13 +369,13 @@ public class DynamicGeometry : Application
     /// </summary>
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
             Exit();
 
         // Toggle animation with space
         var input = Input;
 
-        if (input.GetKeyPress(Key.Space))
+        if (_sampleInput!.Pressed("Animate"))
             _animate = !_animate;
 
         // Animate objects' vertex data if enabled
@@ -398,6 +400,8 @@ public class DynamicGeometry : Application
 
     protected override void Stop()
     {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
         Renderer.SetNumViewports(0);
         base.Stop();
     }
@@ -465,4 +469,5 @@ public class DynamicGeometry : Application
     private float _time;
     private Texture2D[]? _controlPrompts;
     private static readonly Vector2f PromptIconSize = new(24.0f, 24.0f);
+    private SampleInputMap? _sampleInput;
 }

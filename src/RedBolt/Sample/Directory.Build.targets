@@ -22,9 +22,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
   <!-- Core samples compile against the engine's global aliases and the SharpCpp runtime contracts. -->
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)SampleInputMap.cs"
-             Link="SampleInputMap.cs"
-             Visible="false" />
     <Compile Include="$(RedBoltRoot)/src/RedBolt/Core/GlobalAliases.cs"
              Link="GlobalAliases.cs"
              Visible="false" />
