@@ -52,6 +52,10 @@ sealed class DecalsApplication : Application
 
     protected override void Start()
     {
+        _sampleInput = new SampleInputMap();
+        _sampleInput.AddMouseButton("Fire", MouseButton.Left, ControllerButton.A, "FIRE");
+        _sampleInput.AddButton("Clear", Scancode.M, ControllerButton.X, "CLEAR", 1);
+        _sampleInput.AddButton("Debug", Scancode.Space, ControllerButton.Y, "DEBUG", 2);
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
         _fireIcon = Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/mouse_left.png");
         _clearIcon = Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_m.png");
@@ -85,17 +89,17 @@ sealed class DecalsApplication : Application
 
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
         {
             Exit();
             return;
         }
 
-        if (Input.GetKeyPress(Key.Space))
+        if (_sampleInput.Pressed("Debug"))
             _drawDebug = !_drawDebug;
-        if (Input.GetKeyPress(Key.M))
+        if (_sampleInput.Pressed("Clear"))
             ClearDecals();
-        if (Input.GetMouseButtonPress(MouseButton.Left))
+        if (_sampleInput.Pressed("Fire"))
             Shoot();
 
         var pointer = Input.GetMousePosition();
@@ -153,7 +157,9 @@ sealed class DecalsApplication : Application
 
     private Ray GetAimRay()
     {
-        var pointer = Input.GetMousePosition();
+        var pointer = Input.ActiveInputDevice == InputDeviceType.Touch
+            ? new IntVector2(Graphics.Width / 2, Graphics.Height / 2)
+            : Input.GetMousePosition();
         return _cameraNode!.GetComponent<Camera>()!.GetScreenRay(
             pointer.X / (float)Graphics.Width,
             pointer.Y / (float)Graphics.Height);
@@ -199,6 +205,16 @@ sealed class DecalsApplication : Application
     }
 
     private static readonly Vector2f IconSize = new(24.0f, 24.0f);
+    protected override void Stop()
+    {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
+        Renderer.SetNumViewports(0);
+        _scene?.Dispose();
+        _scene = null;
+        base.Stop();
+    }
+
     private Scene? _scene;
     private Node? _cameraNode;
     private Node? _gunNode;
@@ -208,4 +224,5 @@ sealed class DecalsApplication : Application
     private Texture2D? _fireIcon;
     private Texture2D? _clearIcon;
     private Texture2D? _debugIcon;
+    private SampleInputMap? _sampleInput;
 }

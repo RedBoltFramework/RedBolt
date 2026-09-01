@@ -45,6 +45,7 @@ public class RenderToTexture : Application
     protected override void Start()
     {
         base.Start();
+        _sampleInput = new SampleInputMap(movement: true);
         CreateScene();
         CreateInstructions();
         SetupViewport();
@@ -212,7 +213,7 @@ public class RenderToTexture : Application
 
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
         {
             Exit();
             return;
@@ -229,13 +230,13 @@ public class RenderToTexture : Application
         var forward = new Vector3f(MathF.Sin(yawRadians), 0.0f, MathF.Cos(yawRadians));
         var right = new Vector3f(forward.Z, 0.0f, -forward.X);
         var move = Vector3f.Zero;
-        if (Input.GetScancodeDown(Scancode.W))
+        if (_sampleInput.Evaluate("Forward") != 0.0f)
             move += forward;
-        if (Input.GetScancodeDown(Scancode.S))
+        if (_sampleInput.Evaluate("Back") != 0.0f)
             move -= forward;
-        if (Input.GetScancodeDown(Scancode.A))
+        if (_sampleInput.Evaluate("Left") != 0.0f)
             move -= right;
-        if (Input.GetScancodeDown(Scancode.D))
+        if (_sampleInput.Evaluate("Right") != 0.0f)
             move += right;
 
         if (move.LengthSquared > 0.0f)
@@ -350,6 +351,8 @@ public class RenderToTexture : Application
 
     private void ReleaseScene()
     {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
         if (_scene is not null)
             Renderer.SetNumViewports(0);
         _reflectionCameraNode = null;
@@ -386,6 +389,7 @@ public class RenderToTexture : Application
     private Texture2D? _renderTexture;
     private Material? _renderMaterial;
     private Texture2D[]? _controlPrompts;
+    private SampleInputMap? _sampleInput;
     private float _cameraYaw;
     private float _cameraPitch = 14.0f;
     private readonly List<CollisionBox> _collisionBoxes = [];

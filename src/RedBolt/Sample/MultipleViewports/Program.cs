@@ -61,6 +61,8 @@ public class MultipleViewports : Application
     {
         // Execute base class startup
         base.Start();
+        _sampleInput = new SampleInputMap(movement: true);
+        _sampleInput.AddButton("Debug", Scancode.Space, ControllerButton.Y, "DEBUG");
 
         // Create the scene content
         if (!CreateScene())
@@ -96,6 +98,7 @@ public class MultipleViewports : Application
         _cameraNode = _scene.FindChild("Camera");
         if (_cameraNode is null)
             return false;
+        _cameraNode.GetComponent<FreeFlyController>()?.SetInputMap(_sampleInput!.Map);
 
         // Parent the rear camera node to the front camera node and turn it 180 degrees to face backward
         // Here, we use the angle-axis constructor for Quaternion instead of the usual Euler angles
@@ -178,7 +181,7 @@ public class MultipleViewports : Application
             return;
 
         // Toggle debug geometry with space
-        if (Input.GetKeyPress(Key.Space))
+        if (_sampleInput!.Pressed("Debug"))
             _drawDebug = !_drawDebug;
     }
 
@@ -187,7 +190,7 @@ public class MultipleViewports : Application
     /// </summary>
     protected override void Update(float timeStep)
     {
-        if (Input.ExitRequested || Input.GetKeyPress(Key.Escape))
+        if (Input.ExitRequested || _sampleInput!.Pressed("Exit"))
         {
             Exit();
             return;
@@ -258,6 +261,8 @@ public class MultipleViewports : Application
 
     protected override void Stop()
     {
+        _sampleInput?.Dispose();
+        _sampleInput = null;
         Renderer.SetNumViewports(0);
         _rearCameraNode = null;
         _cameraNode = null;
@@ -290,5 +295,6 @@ public class MultipleViewports : Application
     private readonly bool _animateCamera;
     private float _cameraAnimationDelay;
     private Texture2D[]? _controlPrompts;
+    private SampleInputMap? _sampleInput;
     private static readonly Vector2f PromptIconSize = new(24.0f, 24.0f);
 }
