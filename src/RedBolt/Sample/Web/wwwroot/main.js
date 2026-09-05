@@ -219,6 +219,9 @@ setModuleImports('main.js', {
         getSelectedApplicationType: () => selectedEntry[2],
         setResult: (message, success) => {
             const result = document.getElementById('result');
+            if (!result) {
+                return;
+            }
             result.innerText = message;
             result.dataset.status = success ? 'success' : 'failure';
         }

@@ -224,14 +224,10 @@ public class MultipleViewports : Application
         ImGui.SetNextWindowPos(new Vector2f(10.0f, 10.0f), ImGuiCond.ImGuiCondAlways);
         if (ImGui.Begin("Multiple Viewports"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            for (var i = 0; i < 3; ++i)
-            {
-                ImGui.Image(_controlPrompts![i], PromptIconSize);
-                ImGui.SameLine();
-            }
-            DrawPrompt(_controlPrompts![3], "Move"u8);
-            DrawPrompt(_controlPrompts[4], "Look / drag touch"u8);
-            DrawPrompt(_controlPrompts[5], _drawDebug ? "Hide debug geometry"u8 : "Show debug geometry"u8);
+            DrawPrompt(SampleInputMap.GetMovementPrompt(), "Move"u8);
+            DrawPrompt(SampleInputMap.GetLookPrompt(), "Look"u8);
+            DrawPrompt(SampleInputMap.GetActionPrompt(_controlPrompts![5], ControllerButton.Y),
+                _drawDebug ? "Hide debug geometry"u8 : "Show debug geometry"u8);
         }
         ImGui.End();
     }

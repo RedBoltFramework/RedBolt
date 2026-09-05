@@ -152,21 +152,16 @@ public class StaticScene : Application
     {
         var windowOpen = true;
         ImGui.SetNextWindowPos(new Vector2f(10.0f, 10.0f), ImGuiCond.ImGuiCondAlways);
-        if (ImGui.Begin("Static Scene"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        if (ImGui.Begin("Static Scene"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsAlwaysAutoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            for (var i = 0; i < 3; ++i)
-            {
-                ImGui.Image(_controlPrompts![i], PromptIconSize);
-                ImGui.SameLine();
-            }
-            ImGui.Image(_controlPrompts![3], PromptIconSize);
+            ImGui.Image(SampleInputMap.GetFreeFlyMovementPrompt(), PromptIconSize);
             ImGui.SameLine();
             Widgets.AlignTextToLastItem();
-            ImGui.TextUnformatted("Move"u8);
-            ImGui.Image(_controlPrompts[4], PromptIconSize);
+            ImGui.TextUnformatted(SampleInputMap.GetFreeFlyMovementLabel());
+            ImGui.Image(SampleInputMap.GetLookPrompt(), PromptIconSize);
             ImGui.SameLine();
             Widgets.AlignTextToLastItem();
-            ImGui.TextUnformatted("Look / drag touch"u8);
+            ImGui.TextUnformatted(SampleInputMap.GetFreeFlyLookLabel());
         }
         ImGui.End();
     }

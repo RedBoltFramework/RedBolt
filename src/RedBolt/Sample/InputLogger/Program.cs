@@ -100,7 +100,7 @@ sealed class InputLoggerApplication : Application
 
     protected override void Start()
     {
-        _sampleInput = new SampleInputMap(touchExit: false);
+        _sampleInput = new SampleInputMap();
         var dearImGui = new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags);
         Context.RegisterSubsystem(dearImGui);
         _headingFont = dearImGui.AddFont("Fonts/Anonymous Pro.ttf", size: 28.0f);

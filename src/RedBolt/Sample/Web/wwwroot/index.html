@@ -14,6 +14,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="preload" id="webassembly">
   <script type="importmap"></script>
+  <script src="error-log#[.{fingerprint}].js"></script>
   <script type="module" src="main#[.{fingerprint}].js"></script>
   <style>
     :root {
@@ -80,6 +81,50 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       border: 0;
     }
     #fullscreen-button:hover { fill: #999; cursor: pointer; }
+    #diagnostics {
+      position: fixed;
+      z-index: 100;
+      inset: 0;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      padding: 0.75rem;
+      background: rgb(10 12 17 / 96%);
+      color: #edf2f7;
+    }
+    #diagnostics[hidden] { display: none; }
+    #diagnostics.collapsed {
+      inset: auto 0 0;
+      padding: 0.5rem;
+    }
+    #diagnostics-toolbar {
+      display: flex;
+      flex: none;
+      gap: 0.5rem;
+    }
+    #diagnostics-toolbar button {
+      width: auto;
+      min-width: 0;
+      margin: 0;
+      padding: 0.65rem;
+    }
+    #diagnostics-log {
+      flex: 1;
+      min-height: 0;
+      margin: 0.75rem 0 0;
+      padding: 0.75rem;
+      overflow: auto;
+      overscroll-behavior: contain;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: #05070a;
+      border: 1px solid #3c4657;
+      color: #edf2f7;
+      font: 0.75rem/1.4 ui-monospace, SFMono-Regular, Consolas, monospace;
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    #diagnostics.collapsed #diagnostics-log { display: none; }
   </style>
 </head>
 <body>
@@ -118,10 +163,10 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <button id="load" type="button">Load sample</button>
     </section>
     <section id="runner">
-      <header>
+      <!--<header>
         <a href="./">All samples</a>
         <span id="result" data-status="loading">Loading…</span>
-      </header>
+      </header>-->
       <canvas id="canvas" tabindex="-1"></canvas>
       <div id="loading">
         <div id="status">Downloading...</div>
@@ -134,5 +179,13 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       </button>
     </section>
   </main>
+  <aside id="diagnostics" aria-label="Diagnostics" aria-live="assertive" hidden>
+    <div id="diagnostics-toolbar">
+      <button id="diagnostics-toggle" type="button">Hide</button>
+      <button id="diagnostics-copy-all" type="button">Copy all</button>
+      <button id="diagnostics-copy-errors" type="button">Copy errors</button>
+    </div>
+    <pre id="diagnostics-log" tabindex="0"></pre>
+  </aside>
 </body>
 </html>

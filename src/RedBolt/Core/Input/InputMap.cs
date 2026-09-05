@@ -562,7 +562,8 @@ public partial class InputMap : SimpleResource
 
             var totalSum = 0.0f;
             foreach (var screenAxis in ScreenAxes)
-                totalSum += screenAxis.Translate(input.GetScreenAxisPosition(screenAxis.AxisName), deadZone);
+                // Screen controls apply their own dead zone before publishing the axis.
+                totalSum += screenAxis.Translate(input.GetScreenAxisPosition(screenAxis.AxisName), 0.0f);
 
             if (ControllerAxes.Count == 0 && ControllerButtons.Count == 0 && ControllerHats.Count == 0)
                 return MathDefs.Clamp(totalSum, 0.0f, 1.0f);

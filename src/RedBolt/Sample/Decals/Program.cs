@@ -178,9 +178,10 @@ sealed class DecalsApplication : Application
         if (ImGui.Begin("Decals"u8, ref windowOpen,
             ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            DrawPrompt(_fireIcon!, "Fire"u8);
-            DrawPrompt(_clearIcon!, "Clear impacts"u8);
-            DrawPrompt(_debugIcon!, _drawDebug ? "Hide debug geometry"u8 : "Show debug geometry"u8);
+            DrawPrompt(SampleInputMap.GetActionPrompt(_fireIcon!, ControllerButton.A), "Fire"u8);
+            DrawPrompt(SampleInputMap.GetActionPrompt(_clearIcon!, ControllerButton.X), "Clear impacts"u8);
+            DrawPrompt(SampleInputMap.GetActionPrompt(_debugIcon!, ControllerButton.Y),
+                _drawDebug ? "Hide debug geometry"u8 : "Show debug geometry"u8);
         }
         ImGui.End();
 

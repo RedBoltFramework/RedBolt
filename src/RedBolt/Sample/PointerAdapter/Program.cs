@@ -56,7 +56,7 @@ sealed class PointerAdapterApplication : Application
 
     protected override void Start()
     {
-        _sampleInput = new SampleInputMap(touchExit: false);
+        _sampleInput = new SampleInputMap();
         Context.RegisterSubsystem(new DearImGui((ImGuiConfigFlags)Engine.Parameters.DearImGuiFlags));
         SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>((ref DearImGuiEvents.EndRenderingDearImGuiEvent _) => DrawInstructions());
         _controlPrompts =
@@ -64,11 +64,11 @@ sealed class PointerAdapterApplication : Application
             Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/mouse_move.png"),
             Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/touch_swipe_move.png"),
             Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_arrows.png"),
-            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/generic_joystick.png"),
+            SampleInputMap.GetControllerPrompt(ControllerButton.LeftStick),
             Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/mouse_left.png"),
             Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/touch_tap.png"),
             Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_enter.png"),
-            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/generic_button.png")
+            SampleInputMap.GetControllerPrompt(ControllerButton.A)
         ];
         CreateScene();
         Renderer.SetViewport(0, new Viewport(_scene!, _cameraNode!.GetComponent<Camera>()!));
@@ -264,12 +264,20 @@ sealed class PointerAdapterApplication : Application
 
     private void DrawPromptGroup(int firstPrompt, ReadOnlySpan<byte> label)
     {
-        for (var i = firstPrompt; i < firstPrompt + 3; ++i)
+        switch (Input.ActiveInputDevice)
         {
-            ImGui.Image(_controlPrompts![i], PromptIconSize);
-            ImGui.SameLine();
+            case InputDeviceType.Touch:
+                ImGui.Image(_controlPrompts![firstPrompt + 1], PromptIconSize);
+                break;
+            case InputDeviceType.Joystick:
+                ImGui.Image(_controlPrompts![firstPrompt + 3], PromptIconSize);
+                break;
+            default:
+                ImGui.Image(_controlPrompts![firstPrompt], PromptIconSize);
+                ImGui.SameLine();
+                ImGui.Image(_controlPrompts[firstPrompt + 2], PromptIconSize);
+                break;
         }
-        ImGui.Image(_controlPrompts![firstPrompt + 3], PromptIconSize);
         ImGui.SameLine();
         Widgets.AlignTextToLastItem();
         ImGui.TextUnformatted(label);

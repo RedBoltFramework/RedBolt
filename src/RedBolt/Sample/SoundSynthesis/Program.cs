@@ -323,13 +323,17 @@ public class SoundSynthesis : Application
         ImGui.PopStyleColor();
         ImGui.Separator();
 
-        ImGui.Image(_controlPrompts![0], PromptIconSize);
+        ImGui.Image(SampleInputMap.GetActionPrompt(_controlPrompts![0], ControllerButton.RightShoulder),
+            PromptIconSize);
         ImGui.SameLine();
-        ImGui.Image(_controlPrompts[1], PromptIconSize);
+        ImGui.Image(SampleInputMap.GetActionPrompt(_controlPrompts[1], ControllerButton.LeftShoulder),
+            PromptIconSize);
         ImGui.SameLine();
         Widgets.AlignTextToLastItem();
         ImGui.PushStyleColor(ImGuiCol.ImGuiColText, PrimaryText);
-        ImGui.TextUnformatted("Arrow keys"u8);
+        ImGui.TextUnformatted(Input.ActiveInputDevice == InputDeviceType.KeyboardMouse
+            ? "Arrow keys"u8
+            : "Increase / decrease cutoff"u8);
         ImGui.PopStyleColor();
         ImGui.Dummy(new Vector2f(1.0f, 8.0f));
         ImGui.SetNextItemWidth(Math.Max(90.0f, size.X - 32.0f));

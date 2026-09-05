@@ -46,7 +46,12 @@ public class RenderToTexture : Application
     {
         base.Start();
         _sampleInput = new SampleInputMap(movement: true);
+        _sampleInput.Map.MapControllerAxis("LookLeft", ControllerAxis.RightX, 0.0f, -1.0f);
+        _sampleInput.Map.MapControllerAxis("LookRight", ControllerAxis.RightX, 0.0f, 1.0f);
+        _sampleInput.Map.MapControllerAxis("LookUp", ControllerAxis.RightY, 0.0f, -1.0f);
+        _sampleInput.Map.MapControllerAxis("LookDown", ControllerAxis.RightY, 0.0f, 1.0f);
         CreateScene();
+        _sampleInput.AttachToScene(_scene!, MainViewMask);
         CreateInstructions();
         SetupViewport();
         Input.SetMouseMode(MouseMode.Free);
@@ -148,6 +153,10 @@ public class RenderToTexture : Application
         model.SetCastShadows(true);
 
         _walkAnimation = cache.Get<Animation>("ThirdParty/Quaternius/TechnicalDummy.glb.d/Animations/Walk_Loop.ani");
+        _rootMotionTrack = _walkAnimation.GetTrack(
+            _walkAnimation.GetMetadata(OriginalRootTrackMetadata).GetString());
+        var rootVelocity = _walkAnimation.GetMetadata(RootLinearVelocityMetadata).GetVector3();
+        _rootMotionSpeed = new Vector2f(rootVelocity.X, rootVelocity.Z).Length;
         _animationController = _characterNode.CreateComponent<AnimationController>();
         _animationController.PlayNewExclusive(new AnimationParameters(_walkAnimation).Looped());
         _animationController.SetSpeed(_walkAnimation.Name, 0.0f);
@@ -202,7 +211,10 @@ public class RenderToTexture : Application
             Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_a.png"),
             Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_s.png"),
             Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_d.png"),
-            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/mouse_right.png")
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/mouse_right.png"),
+            SampleInputMap.GetControllerPrompt(ControllerButton.LeftStick),
+            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/touch_swipe_move.png"),
+            SampleInputMap.GetControllerPrompt(ControllerButton.RightStick)
         ];
     }
 
@@ -225,34 +237,41 @@ public class RenderToTexture : Application
             _cameraYaw += mouseMove.X * 0.12f;
             _cameraPitch = MathDefs.Clamp(_cameraPitch + mouseMove.Y * 0.12f, -10.0f, 42.0f);
         }
+        var lookX = _sampleInput.Evaluate("LookRight") - _sampleInput.Evaluate("LookLeft");
+        var lookY = _sampleInput.Evaluate("LookDown") - _sampleInput.Evaluate("LookUp");
+        _cameraYaw += lookX * 90.0f * timeStep;
+        _cameraPitch = MathDefs.Clamp(_cameraPitch + lookY * 90.0f * timeStep, -10.0f, 42.0f);
+        if (Input.ActiveInputDevice == InputDeviceType.Touch)
+        {
+            var backbufferWidth = Input.GetBackbufferSize().X;
+            for (var i = 0u; i < Input.GetNumTouches(); ++i)
+            {
+                var touch = Input.GetTouch(i)!.Value;
+                if (touch.Position.X < backbufferWidth / 2
+                    || _sampleInput!.Overlay.IsTouchCaptured(touch.TouchID))
+                    continue;
+                _cameraYaw += touch.Delta.X * 0.12f;
+                _cameraPitch = MathDefs.Clamp(_cameraPitch + touch.Delta.Y * 0.12f, -10.0f, 42.0f);
+            }
+        }
 
         var yawRadians = _cameraYaw * MathDefs.DegToRad;
         var forward = new Vector3f(MathF.Sin(yawRadians), 0.0f, MathF.Cos(yawRadians));
         var right = new Vector3f(forward.Z, 0.0f, -forward.X);
-        var move = Vector3f.Zero;
-        if (_sampleInput.Evaluate("Forward") != 0.0f)
-            move += forward;
-        if (_sampleInput.Evaluate("Back") != 0.0f)
-            move -= forward;
-        if (_sampleInput.Evaluate("Left") != 0.0f)
-            move -= right;
-        if (_sampleInput.Evaluate("Right") != 0.0f)
-            move += right;
+        var forwardAmount = _sampleInput.Evaluate("Forward") - _sampleInput.Evaluate("Back");
+        var rightAmount = _sampleInput.Evaluate("Right") - _sampleInput.Evaluate("Left");
+        var move = forward * forwardAmount + right * rightAmount;
 
         if (move.LengthSquared > 0.0f)
         {
-            move.Normalize();
+            if (move.LengthSquared > 1.0f)
+                move.Normalize();
+            var movementSpeed = move.Length * CharacterSpeed;
             var previousPosition = _characterNode!.Position;
-            var position = MoveCharacter(previousPosition, move * (CharacterSpeed * timeStep));
+            _characterNode.LookAt(previousPosition + move, Vector3f.Up);
+            var rootMotion = AdvanceRootMotion(timeStep, movementSpeed);
+            var position = MoveCharacter(previousPosition, _characterNode.Rotation * rootMotion);
             _characterNode.SetPosition(position);
-            var actualMove = position - previousPosition;
-            if (actualMove.LengthSquared > 0.0f)
-            {
-                _characterNode.LookAt(position + actualMove, Vector3f.Up);
-                _animationController!.SetSpeed(_walkAnimation!.Name, 1.4f);
-            }
-            else
-                _animationController!.SetSpeed(_walkAnimation!.Name, 0.0f);
         }
         else
             _animationController!.SetSpeed(_walkAnimation!.Name, 0.0f);
@@ -269,6 +288,35 @@ public class RenderToTexture : Application
         if (!Collides(candidate))
             position.Z = candidate.Z;
         return position;
+    }
+
+    private Vector3f AdvanceRootMotion(float timeStep, float movementSpeed)
+    {
+        if (_rootMotionTrack is null || _walkAnimation is null || _walkAnimation.Length <= 0.0f)
+            return Vector3f.Zero;
+
+        var animationSpeed = _rootMotionSpeed > MathDefs.Epsilon ? movementSpeed / _rootMotionSpeed : 1.0f;
+        _animationController!.SetSpeed(_walkAnimation.Name, animationSpeed);
+
+        var nextTime = _rootMotionTime + timeStep * animationSpeed;
+        var rootMotion = Vector3f.Zero;
+        while (nextTime >= _walkAnimation.Length)
+        {
+            rootMotion += SampleRootPosition(_walkAnimation.Length) - SampleRootPosition(_rootMotionTime);
+            nextTime -= _walkAnimation.Length;
+            _rootMotionTime = 0.0f;
+        }
+        rootMotion += SampleRootPosition(nextTime) - SampleRootPosition(_rootMotionTime);
+        _rootMotionTime = nextTime;
+        return rootMotion;
+    }
+
+    private Vector3f SampleRootPosition(float time)
+    {
+        var frameIndex = 0u;
+        var transform = new Transform();
+        _rootMotionTrack!.Sample(time, _walkAnimation!.Length, false, ref frameIndex, ref transform);
+        return transform.Position;
     }
 
     private bool Collides(Vector3f position)
@@ -301,13 +349,26 @@ public class RenderToTexture : Application
         if (ImGui.Begin("Render To Texture"u8, ref windowOpen,
             ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            for (var i = 0; i < 3; ++i)
+            switch (Input.ActiveInputDevice)
             {
-                ImGui.Image(_controlPrompts![i], PromptIconSize);
-                ImGui.SameLine();
+                case InputDeviceType.Touch:
+                    DrawPrompt(SampleInputMap.GetMovementPrompt(), "Drag left side to move dummy"u8);
+                    DrawPrompt(_controlPrompts![6], "Swipe right side to orbit camera"u8);
+                    break;
+                case InputDeviceType.Joystick:
+                    DrawPrompt(_controlPrompts![5], "Left stick / D-pad: move dummy"u8);
+                    DrawPrompt(_controlPrompts[7], "Right stick: orbit camera"u8);
+                    break;
+                default:
+                    for (var i = 0; i < 3; ++i)
+                    {
+                        ImGui.Image(_controlPrompts![i], PromptIconSize);
+                        ImGui.SameLine();
+                    }
+                    DrawPrompt(_controlPrompts![3], "Move dummy"u8);
+                    DrawPrompt(_controlPrompts[4], "Orbit camera"u8);
+                    break;
             }
-            DrawPrompt(_controlPrompts![3], "Move dummy"u8);
-            DrawPrompt(_controlPrompts[4], "Orbit camera"u8);
             ImGui.Separator();
             ImGui.TextUnformatted("The wall mirror is rendered to a texture."u8);
         }
@@ -360,6 +421,9 @@ public class RenderToTexture : Application
         _characterNode = null;
         _animationController = null;
         _walkAnimation = null;
+        _rootMotionTrack = null;
+        _rootMotionSpeed = 0.0f;
+        _rootMotionTime = 0.0f;
         _scene?.Dispose();
         _scene = null;
         _renderMaterial?.Dispose();
@@ -370,6 +434,8 @@ public class RenderToTexture : Application
 
     private const uint ReflectionViewMask = 1;
     private const uint MainViewMask = 2;
+    private const string OriginalRootTrackMetadata = "OriginalRootTrack";
+    private const string RootLinearVelocityMetadata = "RootLinearVelocity";
     private const float MirrorPlaneZ = 13.7f;
     private const float MirrorCenterY = 4.0f;
     private const float MirrorWidth = 9.6f;
@@ -385,6 +451,7 @@ public class RenderToTexture : Application
     private Node? _reflectionCameraNode;
     private Node? _characterNode;
     private Animation? _walkAnimation;
+    private AnimationTrack? _rootMotionTrack;
     private AnimationController? _animationController;
     private Texture2D? _renderTexture;
     private Material? _renderMaterial;
@@ -392,6 +459,8 @@ public class RenderToTexture : Application
     private SampleInputMap? _sampleInput;
     private float _cameraYaw;
     private float _cameraPitch = 14.0f;
+    private float _rootMotionSpeed;
+    private float _rootMotionTime;
     private readonly List<CollisionBox> _collisionBoxes = [];
 
     private readonly struct CollisionBox

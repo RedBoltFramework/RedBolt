@@ -71,7 +71,7 @@ sealed class AggregatedInputApplication : Application
     /// <summary>Setup after engine initialization and before running the main loop.</summary>
     protected override void Start()
     {
-        _sampleInput = new SampleInputMap(touchExit: false);
+        _sampleInput = new SampleInputMap();
         _aggregatedInput = new DirectionAggregator();
         _dpadInput = new DirectionalPadAdapter();
 
@@ -102,7 +102,7 @@ sealed class AggregatedInputApplication : Application
         _sourcePrompts =
         [
             Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/keyboard_arrows.png"),
-            Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/generic_joystick.png"),
+            SampleInputMap.GetControllerPrompt(ControllerButton.LeftStick),
             Resources.Get<Texture2D>("ThirdParty/KenneyInputPrompts/touch_swipe_move.png")
         ];
         SubscribeToEvent<DearImGuiEvents.EndRenderingDearImGuiEvent>(

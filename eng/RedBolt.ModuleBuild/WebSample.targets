@@ -67,6 +67,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
                       Condition="'$(RedBoltExternalWebNativeEnabled)' == 'true'" />
     <Content Remove="$(RedBoltRoot)/src/RedBolt/Sample/Web/wwwroot/main.js" />
     <Content Include="$(RedBoltRoot)/src/RedBolt/Sample/Web/wwwroot/main.js" Link="wwwroot/main.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Remove="$(RedBoltRoot)/src/RedBolt/Sample/Web/wwwroot/error-log.js" />
+    <Content Include="$(RedBoltRoot)/src/RedBolt/Sample/Web/wwwroot/error-log.js" Link="wwwroot/error-log.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Remove="$(RedBoltWebExtensionScript)" />
     <Content Include="$(RedBoltWebExtensionScript)" Link="wwwroot/extension.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <RedBoltWebResourcePackage Include="RedBolt.CoreData" SourceDirectory="$(RedBoltRoot)/bin/CoreData" />

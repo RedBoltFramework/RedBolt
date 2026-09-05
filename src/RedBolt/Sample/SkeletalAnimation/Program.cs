@@ -113,6 +113,7 @@ sealed class SkeletalAnimationApplication : Application
         light.SetShadowCascade(new CascadeParameters(10.0f, 50.0f, 200.0f, 0.0f, 0.8f));
 
         const int numModels = 16;
+        const float modelMoveSpeed = 2.0f;
         const float modelRotateSpeed = 100.0f;
         var bounds = new BoundingBox(new Vector3f(-12.0f, 0.0f, -10.0f), new Vector3f(12.0f, 0.0f, 12.0f));
         var dummyModel = cache.Get<Model>("ThirdParty/Quaternius/TechnicalDummy.glb.d/Models/Mannequin.mdl");
@@ -130,7 +131,8 @@ sealed class SkeletalAnimationApplication : Application
             modelObject.SetCastShadows(true);
             var startTime = MathDefs.Random(walkAnimation.Length);
             modelNode.CreateComponent<AnimationController>().PlayNewExclusive(new AnimationParameters(walkAnimation).Looped().Time(startTime));
-            modelNode.CreateComponent<Mover3D>().SetParameters(walkAnimation, startTime, modelRotateSpeed, bounds);
+            modelNode.CreateComponent<Mover3D>().SetParameters(
+                walkAnimation, startTime, modelMoveSpeed, modelRotateSpeed, bounds);
         }
 
         _cameraNode = _scene.CreateChild("Camera");
@@ -200,20 +202,12 @@ sealed class SkeletalAnimationApplication : Application
         var windowOpen = true;
         ImGui.SetNextWindowPos(new Vector2f(10.0f, 10.0f), ImGuiCond.ImGuiCondAlways);
         if (ImGui.Begin("Skeletal Animation"u8, ref windowOpen,
-            ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+            ImGuiWindowFlags.ImGuiWindowFlagsAlwaysAutoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            for (var i = 0; i < 3; ++i)
-            {
-                ImGui.Image(_controlPrompts![i], PromptIconSize);
-                ImGui.SameLine();
-            }
-            ImGui.Image(_controlPrompts![3], PromptIconSize);
-            ImGui.SameLine();
-            Widgets.AlignTextToLastItem();
-            ImGui.TextUnformatted("Move"u8);
-
-            DrawPrompt(_controlPrompts[4], "Look"u8);
-            DrawPrompt(_controlPrompts[5], _drawDebug ? "Hide skeletons"u8 : "Show skeletons"u8);
+            DrawPrompt(SampleInputMap.GetFreeFlyMovementPrompt(), SampleInputMap.GetFreeFlyMovementLabel());
+            DrawPrompt(SampleInputMap.GetLookPrompt(), SampleInputMap.GetFreeFlyLookLabel());
+            DrawPrompt(SampleInputMap.GetActionPrompt(_controlPrompts![5], ControllerButton.Y),
+                _drawDebug ? "Hide skeletons"u8 : "Show skeletons"u8);
         }
         ImGui.End();
     }

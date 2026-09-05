@@ -15,9 +15,12 @@ using RedBolt.Scene;
 public sealed partial class Mover3D : LogicComponent
 {
     private const string OriginalRootTrackMetadata = "OriginalRootTrack";
+    private const string RootLinearVelocityMetadata = "RootLinearVelocity";
     private AnimationTrack? _rootMotionTrack;
     private float _animationLength;
     private float _animationTime;
+    private float _animationSpeed;
+    private float _moveSpeed;
     private float _rotationSpeed;
     private BoundingBox _bounds;
 
@@ -28,13 +31,16 @@ public sealed partial class Mover3D : LogicComponent
         SetUpdateEventMask(UpdateEvent.UseUpdate);
     }
 
-    /// <summary>Set motion parameters: source animation, initial time, rotation speed, and movement boundaries.</summary>
-    public void SetParameters(Animation animation, float startTime, float rotationSpeed, BoundingBox bounds)
+    /// <summary>Set motion parameters: source animation, initial time, movement speed, rotation speed, and movement boundaries.</summary>
+    public void SetParameters(Animation animation, float startTime, float moveSpeed, float rotationSpeed, BoundingBox bounds)
     {
         var rootTrackName = animation.GetMetadata(OriginalRootTrackMetadata).GetString();
         _rootMotionTrack = animation.GetTrack(rootTrackName);
         _animationLength = animation.Length;
         _animationTime = startTime;
+        _moveSpeed = moveSpeed;
+        _animationSpeed = GetAnimationSpeed(animation, moveSpeed);
+        Node!.GetComponent<AnimationController>()!.SetSpeed(animation.Name, _animationSpeed);
         _rotationSpeed = rotationSpeed;
         _bounds = bounds;
     }
@@ -50,6 +56,8 @@ public sealed partial class Mover3D : LogicComponent
             Node!.Yaw(_rotationSpeed * timeStep);
     }
 
+    /// <summary>Return forward movement speed.</summary>
+    public float MoveSpeed => _moveSpeed;
     /// <summary>Return rotation speed.</summary>
     public float RotationSpeed => _rotationSpeed;
     /// <summary>Return movement boundaries.</summary>
@@ -60,7 +68,7 @@ public sealed partial class Mover3D : LogicComponent
         if (_rootMotionTrack is null || _animationLength <= 0.0f)
             return;
 
-        var nextTime = _animationTime + timeStep;
+        var nextTime = _animationTime + timeStep * _animationSpeed;
         var rootMotion = Vector3f.Zero;
         while (nextTime >= _animationLength)
         {
@@ -80,5 +88,12 @@ public sealed partial class Mover3D : LogicComponent
         var transform = new Transform();
         _rootMotionTrack!.Sample(time, _animationLength, false, ref frameIndex, ref transform);
         return transform.Position;
+    }
+
+    private static float GetAnimationSpeed(Animation animation, float moveSpeed)
+    {
+        var rootVelocity = animation.GetMetadata(RootLinearVelocityMetadata).GetVector3();
+        var rootPlanarSpeed = new Vector2f(rootVelocity.X, rootVelocity.Z).Length;
+        return rootPlanarSpeed > MathDefs.Epsilon ? moveSpeed / rootPlanarSpeed : 1.0f;
     }
 }

@@ -8,6 +8,7 @@ using RedBolt.Core;
 using RedBolt.Graphics;
 using RedBolt.Math;
 using RedBolt.Resource;
+using RedBolt.Scene;
 using ResourceType = RedBolt.Resource.Resource;
 
 public enum InputOverlayAlignment
@@ -46,6 +47,7 @@ public sealed class InputOverlayButton
     public Vector2f Anchor { get; set; }
     public Vector2f Offset { get; set; }
     public InputOverlayAlignment Alignment { get; set; }
+    /// <summary>Control size in pixels at the 96 DPI reference scale.</summary>
     public Vector2f Size { get; set; }
     public bool Visible { get; set; } = true;
 }
@@ -62,14 +64,15 @@ public sealed class InputOverlayJoystick
     internal string RightAction = string.Empty;
     public string Name { get; internal set; } = string.Empty;
     public Vector4f ActivationRegion { get; set; } = new(0.0f, 0.0f, 0.5f, 1.0f);
-    public float Radius { get; set; } = 72.0f;
-    public float DeadZone { get; set; } = 0.1f;
+    /// <summary>Joystick radius in pixels at the 96 DPI reference scale.</summary>
+    public float Radius { get; set; } = 54.0f;
+    public float DeadZone { get; set; } = 0.025f;
     public bool Visible { get; set; } = true;
     public Vector2f Position { get; internal set; }
 }
 
 [Reflected(ObjectCategory.Category_Geometry)]
-public partial class InputOverlay : Drawable
+public partial class InputOverlay : CustomGeometry
 {
     private readonly Dictionary<string, InputOverlayHint> _hints = new(StringComparer.Ordinal);
     private readonly Dictionary<string, InputOverlayButton> _buttons = new(StringComparer.Ordinal);
@@ -77,11 +80,27 @@ public partial class InputOverlay : Drawable
     private readonly Input _input;
     private InputMap? _inputMap;
     private Font? _font;
+    private readonly Technique _technique;
+    private readonly Material _material;
+    private readonly Dictionary<Texture2D, Material> _textureMaterials = [];
 
     public InputOverlay()
-        : base(DrawableFlags.Geometry)
     {
         _input = GetSubsystem<Input>()!;
+        _technique = new Technique();
+        var pass = _technique.CreatePass("alpha");
+        pass.SetVertexShader("Unlit");
+        pass.SetPixelShader("Unlit");
+        pass.SetVertexShaderDefines("VERTEXCOLOR");
+        pass.SetPixelShaderDefines("VERTEXCOLOR");
+        pass.SetBlendMode(BlendMode.Alpha);
+        pass.SetDepthWrite(false);
+        pass.SetDepthTestMode(CompareMode.Always);
+        _material = new Material();
+        _material.SetTechnique(0, _technique);
+        _material.SetCullMode(CullMode.None);
+        SetMaterial(_material);
+        SetDynamic(true);
         SetCastShadows(false);
         SetOccluder(false);
         SetOccludee(false);
@@ -114,6 +133,29 @@ public partial class InputOverlay : Drawable
 
     public void SetFont(Font? font) => _font = font;
     public Font? GetFont() => _font;
+
+    /// <summary>Attach the overlay to a scene so it participates in rendering.</summary>
+    public void AttachToScene(Scene scene, uint viewMask = DefaultViewMask)
+    {
+        ArgumentNullException.ThrowIfNull(scene);
+        SetViewMask(viewMask);
+        if (ReferenceEquals(Scene, scene))
+            return;
+        Remove();
+        scene.CreateTemporaryChild("InputOverlay").AddComponent(this);
+    }
+
+    /// <summary>Attach the overlay to the scene rendered by the primary viewport, if one is available.</summary>
+    public bool AttachToPrimaryViewport(uint viewMask = DefaultViewMask)
+    {
+        if (TryGetNode() is not null)
+            return true;
+        var scene = GetSubsystem<Renderer>()?.GetViewport()?.GetScene();
+        if (scene is null)
+            return false;
+        AttachToScene(scene, viewMask);
+        return true;
+    }
 
     public void SetFontAttr(ResourceRef value)
     {
@@ -192,6 +234,7 @@ public partial class InputOverlay : Drawable
             Size = size ?? new Vector2f(ControlSize, ControlSize)
         };
         _buttons[name] = button;
+        UpdateGeometryCount();
         _inputMap?.MapScreenButton(action, channel);
         return button;
     }
@@ -202,6 +245,7 @@ public partial class InputOverlay : Drawable
             return false;
         _input.SetScreenButton(button.Channel, false);
         _inputMap?.UnmapScreenButton(button.Action, button.Channel);
+        UpdateGeometryCount();
         return true;
     }
 
@@ -213,6 +257,8 @@ public partial class InputOverlay : Drawable
             Release(button);
     }
     public bool IsButtonVisible(string name) => _buttons[name].Visible && _input.ActiveInputDevice == InputDeviceType.Touch;
+    public bool IsButtonDown(string name) => _input.GetScreenButtonDown(_buttons[name].Channel);
+    public bool IsButtonPressed(string name) => _input.GetScreenButtonPress(_buttons[name].Channel);
     public void UpdateButton(string name, Texture2D? texture, string text)
     {
         var button = _buttons[name];
@@ -221,8 +267,8 @@ public partial class InputOverlay : Drawable
     }
 
     public InputOverlayJoystick AddJoystick(string name, string upAction, string downAction,
-        string leftAction, string rightAction, Vector4f? activationRegion = null, float radius = 72.0f,
-        float deadZone = 0.1f)
+        string leftAction, string rightAction, Vector4f? activationRegion = null, float radius = 54.0f,
+        float deadZone = 0.025f)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
         RemoveJoystick(name);
@@ -237,6 +283,7 @@ public partial class InputOverlay : Drawable
             DeadZone = MathDefs.Clamp(deadZone, 0.0f, 1.0f)
         };
         _joysticks[name] = joystick;
+        UpdateGeometryCount();
         if (_inputMap is not null)
         {
             MapJoystick(_inputMap, joystick);
@@ -251,6 +298,7 @@ public partial class InputOverlay : Drawable
         Release(joystick);
         if (_inputMap is not null)
             UnmapJoystick(_inputMap, joystick);
+        UpdateGeometryCount();
         return true;
     }
 
@@ -262,6 +310,20 @@ public partial class InputOverlay : Drawable
             Release(joystick);
     }
     public bool IsJoystickVisible(string name) => _joysticks[name].Visible && _input.ActiveInputDevice == InputDeviceType.Touch;
+    public bool IsTouchCaptured(int touchId)
+    {
+        foreach (var button in _buttons.Values)
+        {
+            if (button.TouchId == touchId)
+                return true;
+        }
+        foreach (var joystick in _joysticks.Values)
+        {
+            if (joystick.TouchId == touchId)
+                return true;
+        }
+        return false;
+    }
     public void UpdateJoystick(string name, Vector4f activationRegion, float radius, float deadZone)
     {
         var joystick = _joysticks[name];
@@ -277,9 +339,36 @@ public partial class InputOverlay : Drawable
         _buttons.Clear();
         _joysticks.Clear();
         _hints.Clear();
+        Remove();
+        foreach (var material in _textureMaterials.Values)
+            material.Dispose();
+        _textureMaterials.Clear();
+        _material.Dispose();
+        _technique.Dispose();
         base.Dispose();
         GC.SuppressFinalize(this);
     }
+
+    public override void UpdateBatches(FrameInfo frame)
+    {
+        var camera = frame.Camera;
+        if (camera is null)
+            return;
+
+        var transform = camera.GetEffectiveWorldTransform();
+        for (var i = 0; i < _batches.Count; ++i)
+        {
+            var batch = _batches[i];
+            batch.Distance = camera.NearClip;
+            _worldTransform[0] = transform;
+            batch.WorldTransform = _worldTransform;
+            _batches[i] = batch;
+        }
+    }
+
+    public override void UpdateGeometry(FrameInfo frame) => RebuildGeometry(frame);
+
+    public override UpdateGeometryType GetUpdateGeometryType() => UpdateGeometryType.MainThread;
 
     protected override void OnWorldBoundingBoxUpdate()
     {
@@ -297,6 +386,7 @@ public partial class InputOverlay : Drawable
             if (button.Visible && button.TouchId < 0 && HitTest(button, point))
             {
                 button.TouchId = value.TouchID;
+                _input.SetTouchCapturedElement(value.TouchID, this);
                 _input.SetScreenButton(button.Channel, true);
                 return;
             }
@@ -312,6 +402,7 @@ public partial class InputOverlay : Drawable
                 && normalized.X <= region.Z && normalized.Y <= region.W)
             {
                 joystick.TouchId = value.TouchID;
+                _input.SetTouchCapturedElement(value.TouchID, this);
                 joystick.Origin = point;
                 joystick.Position = point;
                 return;
@@ -333,8 +424,9 @@ public partial class InputOverlay : Drawable
                 continue;
             var delta = point - joystick.Origin;
             var length = delta.Length;
-            if (length > joystick.Radius)
-                delta *= joystick.Radius / length;
+            var radius = GetJoystickRadius(joystick);
+            if (length > radius)
+                delta *= radius / length;
             joystick.Position = joystick.Origin + delta;
             ApplyJoystick(joystick);
         }
@@ -378,14 +470,169 @@ public partial class InputOverlay : Drawable
 
     private bool HitTest(InputOverlayButton button, Vector2f point)
     {
-        var scale = _input.SystemToBackbufferScale;
-        var size = new Vector2f(button.Size.X * scale.X, button.Size.Y * scale.Y);
+        GetButtonRectangle(button, out var origin, out var size);
+        return point.X >= origin.X && point.Y >= origin.Y && point.X <= origin.X + size.X && point.Y <= origin.Y + size.Y;
+    }
+
+    private void GetButtonRectangle(InputOverlayButton button, out Vector2f origin, out Vector2f size)
+    {
+        var scale = GetControlScale();
+        size = new Vector2f(button.Size.X * scale.X, button.Size.Y * scale.Y);
         var viewport = _input.GetBackbufferSize();
-        var origin = new Vector2f(button.Anchor.X * viewport.X + button.Offset.X * scale.X,
+        origin = new Vector2f(button.Anchor.X * viewport.X + button.Offset.X * scale.X,
             button.Anchor.Y * viewport.Y + button.Offset.Y * scale.Y);
         var alignment = GetAlignment(button.Alignment);
         origin -= new Vector2f(size.X * alignment.X, size.Y * alignment.Y);
-        return point.X >= origin.X && point.Y >= origin.Y && point.X <= origin.X + size.X && point.Y <= origin.Y + size.Y;
+    }
+
+    private void RebuildGeometry(FrameInfo frame)
+    {
+        UpdateGeometryCount();
+        for (var i = 0u; i < GetNumGeometries(); ++i)
+            BeginGeometry(i, PrimitiveType.TriangleList);
+        var geometryIndex = 0u;
+        if (_input.ActiveInputDevice == InputDeviceType.Touch && frame.ViewSize.X > 0 && frame.ViewSize.Y > 0)
+        {
+            var scale = GetControlScale();
+            var color = new Color(ControlColor, MathDefs.Clamp(ControlColor.A * Opacity, 0.0f, 1.0f));
+            var faint = new Color(color, color.A * 0.75f);
+            foreach (var joystick in _joysticks.Values)
+            {
+                BeginGeometry(geometryIndex, PrimitiveType.TriangleList);
+                if (joystick.Visible)
+                {
+                    var center = joystick.TouchId >= 0
+                        ? joystick.Origin
+                        : new Vector2f(frame.ViewSize.X * 0.25f, frame.ViewSize.Y * 0.75f);
+                    var radius = joystick.Radius * (scale.X + scale.Y) * 0.5f;
+                    var knob = joystick.TouchId >= 0 ? joystick.Position : center;
+                    AddRing(frame, center, radius, MathF.Max(3.0f, radius * 0.08f), faint);
+                    AddCircle(frame, knob, radius * 0.38f, color);
+                }
+                SetMaterial((int)geometryIndex, _material);
+                ++geometryIndex;
+            }
+            foreach (var button in _buttons.Values)
+            {
+                BeginGeometry(geometryIndex, PrimitiveType.TriangleList);
+                if (button.Visible)
+                {
+                    GetButtonRectangle(button, out var origin, out var size);
+                    var center = origin + size * 0.5f;
+                    if (button.Texture is not null)
+                    {
+                        AddTexturedQuad(frame, center, size, button.TouchId >= 0 ? color : faint);
+                        SetMaterial((int)geometryIndex, GetTextureMaterial(button.Texture));
+                    }
+                    else
+                    {
+                        var radius = MathF.Min(size.X, size.Y) * 0.5f;
+                        AddCircle(frame, center, radius, button.TouchId >= 0 ? color : faint);
+                        AddRing(frame, center, radius, MathF.Max(3.0f, radius * 0.1f), color);
+                        SetMaterial((int)geometryIndex, _material);
+                    }
+                }
+                ++geometryIndex;
+            }
+        }
+        Commit();
+        if (geometryIndex == 0)
+            SetMaterial(0, _material);
+    }
+
+    private void UpdateGeometryCount() =>
+        SetNumGeometries((uint)System.Math.Max(_buttons.Count + _joysticks.Count, 1));
+
+    private Material GetTextureMaterial(Texture2D texture)
+    {
+        if (_textureMaterials.TryGetValue(texture, out var material))
+            return material;
+        material = new Material();
+        material.SetTechnique(0, _technique);
+        material.SetTexture("Albedo", texture);
+        material.SetCullMode(CullMode.None);
+        _textureMaterials.Add(texture, material);
+        return material;
+    }
+
+    private void AddTexturedQuad(FrameInfo frame, Vector2f center, Vector2f size, Color color)
+    {
+        var halfSize = size * 0.5f;
+        var topLeft = center - halfSize;
+        var bottomRight = center + halfSize;
+        AddTexturedVertex(frame, topLeft, new Vector2f(0.0f, 0.0f), color);
+        AddTexturedVertex(frame, new Vector2f(bottomRight.X, topLeft.Y), new Vector2f(1.0f, 0.0f), color);
+        AddTexturedVertex(frame, bottomRight, new Vector2f(1.0f, 1.0f), color);
+        AddTexturedVertex(frame, topLeft, new Vector2f(0.0f, 0.0f), color);
+        AddTexturedVertex(frame, bottomRight, new Vector2f(1.0f, 1.0f), color);
+        AddTexturedVertex(frame, new Vector2f(topLeft.X, bottomRight.Y), new Vector2f(0.0f, 1.0f), color);
+    }
+
+    private void AddTexturedVertex(FrameInfo frame, Vector2f position, Vector2f texCoord, Color color)
+    {
+        AddVertex(frame, position, color);
+        DefineTexCoord(texCoord);
+    }
+
+    private void AddRing(FrameInfo frame, Vector2f center, float radius, float width, Color color)
+    {
+        const int segments = 32;
+        var inner = MathF.Max(0.0f, radius - width);
+        for (var i = 0; i < segments; ++i)
+        {
+            var a0 = i * (MathF.PI * 2.0f / segments);
+            var a1 = (i + 1) * (MathF.PI * 2.0f / segments);
+            var outer0 = center + new Vector2f(MathF.Cos(a0), MathF.Sin(a0)) * radius;
+            var outer1 = center + new Vector2f(MathF.Cos(a1), MathF.Sin(a1)) * radius;
+            var inner0 = center + new Vector2f(MathF.Cos(a0), MathF.Sin(a0)) * inner;
+            var inner1 = center + new Vector2f(MathF.Cos(a1), MathF.Sin(a1)) * inner;
+            AddTriangle(frame, outer0, outer1, inner1, color);
+            AddTriangle(frame, outer0, inner1, inner0, color);
+        }
+    }
+
+    private void AddCircle(FrameInfo frame, Vector2f center, float radius, Color color)
+    {
+        const int segments = 32;
+        for (var i = 0; i < segments; ++i)
+        {
+            var a0 = i * (MathF.PI * 2.0f / segments);
+            var a1 = (i + 1) * (MathF.PI * 2.0f / segments);
+            AddTriangle(frame, center,
+                center + new Vector2f(MathF.Cos(a0), MathF.Sin(a0)) * radius,
+                center + new Vector2f(MathF.Cos(a1), MathF.Sin(a1)) * radius, color);
+        }
+    }
+
+    private void AddLine(FrameInfo frame, Vector2f start, Vector2f end, float width, Color color)
+    {
+        var direction = end - start;
+        if (direction.LengthSquared <= MathDefs.Epsilon)
+            return;
+        direction.Normalize();
+        var offset = new Vector2f(-direction.Y, direction.X) * (width * 0.5f);
+        AddTriangle(frame, start - offset, end - offset, end + offset, color);
+        AddTriangle(frame, start - offset, end + offset, start + offset, color);
+    }
+
+    private void AddTriangle(FrameInfo frame, Vector2f a, Vector2f b, Vector2f c, Color color)
+    {
+        AddVertex(frame, a, color);
+        AddVertex(frame, b, color);
+        AddVertex(frame, c, color);
+    }
+
+    private void AddVertex(FrameInfo frame, Vector2f position, Color color)
+    {
+        var camera = frame.Camera!;
+        var distance = MathF.Max(camera.NearClip * 1.1f, 0.01f);
+        var halfHeight = camera.GetHalfViewSize() * (camera.Orthographic ? 1.0f : distance);
+        var halfWidth = halfHeight * frame.ViewSize.X / frame.ViewSize.Y;
+        DefineVertex(new Vector3f(
+            (position.X / frame.ViewSize.X * 2.0f - 1.0f) * halfWidth,
+            (1.0f - position.Y / frame.ViewSize.Y * 2.0f) * halfHeight,
+            distance));
+        DefineColor(color);
     }
 
     private static Vector2f GetAlignment(InputOverlayAlignment alignment) => alignment switch
@@ -425,11 +672,26 @@ public partial class InputOverlay : Drawable
 
     private void ApplyJoystick(InputOverlayJoystick joystick)
     {
-        var value = (joystick.Position - joystick.Origin) / joystick.Radius;
+        var value = (joystick.Position - joystick.Origin) / GetJoystickRadius(joystick);
         if (value.Length <= joystick.DeadZone)
             value = Vector2f.Zero;
         _input.SetScreenAxis(joystick.HorizontalChannel, value.X);
         _input.SetScreenAxis(joystick.VerticalChannel, value.Y);
+    }
+
+    private Vector2f GetControlScale()
+    {
+        const float referenceDpi = 96.0f;
+        var fallback = _input.SystemToBackbufferScale;
+        var dpi = GetSubsystem<Graphics>()?.GetDisplayDPI() ?? Vector3f.Zero;
+        return new Vector2f(dpi.X > 0.0f ? dpi.X / referenceDpi : fallback.X,
+            dpi.Y > 0.0f ? dpi.Y / referenceDpi : fallback.Y);
+    }
+
+    private float GetJoystickRadius(InputOverlayJoystick joystick)
+    {
+        var scale = GetControlScale();
+        return joystick.Radius * (scale.X + scale.Y) * 0.5f;
     }
 
     private static void MapJoystick(InputMap inputMap, InputOverlayJoystick joystick)

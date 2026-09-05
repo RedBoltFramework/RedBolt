@@ -422,16 +422,12 @@ public class DynamicGeometry : Application
     {
         var windowOpen = true;
         ImGui.SetNextWindowPos(new Vector2f(10.0f, 10.0f), ImGuiCond.ImGuiCondAlways);
-        if (ImGui.Begin("Dynamic Geometry"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsNoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
+        if (ImGui.Begin("Dynamic Geometry"u8, ref windowOpen, ImGuiWindowFlags.ImGuiWindowFlagsAlwaysAutoResize | ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings))
         {
-            for (var i = 0; i < 3; ++i)
-            {
-                ImGui.Image(_controlPrompts![i], PromptIconSize);
-                ImGui.SameLine();
-            }
-            DrawPrompt(_controlPrompts![3], "Move"u8);
-            DrawPrompt(_controlPrompts[4], "Look / drag touch"u8);
-            DrawPrompt(_controlPrompts[5], _animate ? "Pause animation"u8 : "Resume animation"u8);
+            DrawPrompt(SampleInputMap.GetFreeFlyMovementPrompt(), SampleInputMap.GetFreeFlyMovementLabel());
+            DrawPrompt(SampleInputMap.GetLookPrompt(), SampleInputMap.GetFreeFlyLookLabel());
+            DrawPrompt(SampleInputMap.GetActionPrompt(_controlPrompts![5], ControllerButton.A),
+                _animate ? "Pause animation"u8 : "Resume animation"u8);
         }
         ImGui.End();
     }

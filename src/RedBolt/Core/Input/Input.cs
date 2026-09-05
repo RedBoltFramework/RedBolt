@@ -918,6 +918,14 @@ public partial class Input : RedObject
 
     public TouchState? GetTouchById(int touchId) => _touches.GetValueOrDefault(touchId);
 
+    internal void SetTouchCapturedElement(int touchId, object element)
+    {
+        if (!_touches.TryGetValue(touchId, out var touch))
+            return;
+        touch.TouchedElement = element;
+        _touches[touchId] = touch;
+    }
+
     public uint GetNumJoysticks() => (uint)_joysticks.Count;
 
     public JoystickState? GetJoystick(int id) => _joysticks.GetValueOrDefault(id);
@@ -1864,12 +1872,13 @@ public partial class Input : RedObject
             ActivateInputDevice(InputDeviceType.Touch);
         }
         else if (eventType == SdlEventType.SdlKeydown
-                 || (eventType == SdlEventType.SdlMousebuttondown && @event.ButtonWhich != SdlTouchMouseId)
-                 || (eventType == SdlEventType.SdlMousewheel
-                     && @event.WheelWhich != SdlTouchMouseId && @event.WheelY != 0)
-                 || (eventType == SdlEventType.SdlMousemotion
-                     && @event.MotionWhich != SdlTouchMouseId
-                     && (@event.MotionXrel != 0 || @event.MotionYrel != 0)))
+                 || (!TouchEmulation
+                     && ((eventType == SdlEventType.SdlMousebuttondown && @event.ButtonWhich != SdlTouchMouseId)
+                         || (eventType == SdlEventType.SdlMousewheel
+                             && @event.WheelWhich != SdlTouchMouseId && @event.WheelY != 0)
+                         || (eventType == SdlEventType.SdlMousemotion
+                             && @event.MotionWhich != SdlTouchMouseId
+                             && (@event.MotionXrel != 0 || @event.MotionYrel != 0)))))
         {
             ActivateInputDevice(InputDeviceType.KeyboardMouse);
         }
@@ -1915,14 +1924,44 @@ public partial class Input : RedObject
 
     private void HandleMouseButtonDown(SdlEvent @event)
     {
-        var button = ToMouseButton(@event.ButtonButton);
-        SetMouseButton(button, true, @event.ButtonClicks, updateActiveInputDevice: false);
+        if (!TouchEmulation)
+        {
+            var button = ToMouseButton(@event.ButtonButton);
+            SetMouseButton(button, true, @event.ButtonClicks, updateActiveInputDevice: false);
+        }
+        else
+        {
+            var relativePosition = GetRelativeMousePosition();
+            using var touchEvent = new SdlEvent();
+            touchEvent.Type = (uint)SdlEventType.SdlFingerdown;
+            touchEvent.TfingerTouchId = 0;
+            touchEvent.TfingerFingerId = @event.ButtonButton - 1;
+            touchEvent.TfingerPressure = 1.0f;
+            touchEvent.TfingerX = relativePosition.X;
+            touchEvent.TfingerY = relativePosition.Y;
+            Sdl.SdlPushEvent(touchEvent);
+        }
     }
 
     private void HandleMouseButtonUp(SdlEvent @event)
     {
-        var button = ToMouseButton(@event.ButtonButton);
-        SetMouseButton(button, false, @event.ButtonClicks, updateActiveInputDevice: false);
+        if (!TouchEmulation)
+        {
+            var button = ToMouseButton(@event.ButtonButton);
+            SetMouseButton(button, false, @event.ButtonClicks, updateActiveInputDevice: false);
+        }
+        else
+        {
+            var relativePosition = GetRelativeMousePosition();
+            using var touchEvent = new SdlEvent();
+            touchEvent.Type = (uint)SdlEventType.SdlFingerup;
+            touchEvent.TfingerTouchId = 0;
+            touchEvent.TfingerFingerId = @event.ButtonButton - 1;
+            touchEvent.TfingerPressure = 0.0f;
+            touchEvent.TfingerX = relativePosition.X;
+            touchEvent.TfingerY = relativePosition.Y;
+            Sdl.SdlPushEvent(touchEvent);
+        }
     }
 
     private void HandleMouseMotion(SdlEvent @event)
