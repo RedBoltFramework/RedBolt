@@ -24,10 +24,10 @@ native engine, including the Vulkan loader, OpenGL, X11, audio, and threading
 libraries. Mesa's `llvmpipe` and Vulkan `lavapipe` drivers plus Xvfb are needed
 to run graphics tests without a physical display.
 
-Configure and build the default Linux development set:
+Build the default Linux development set through MSBuild, which configures its
+native prerequisites:
 
 ```sh
-cmake --preset linux-x64
 dotnet restore RedBolt.slnx
 dotnet build RedBolt.slnx --configuration Debug --no-restore
 ```
@@ -127,14 +127,19 @@ current build. Put LLVM-MinGW first on `PATH`, then provide both binding
 compiler paths when configuring. Starting from a fresh `win-x64` build
 directory avoids reusing compilers cached by an older configuration.
 
+Discover compilers with `command -v` after selecting the required toolchains on
+`PATH`; the LLVM and GCC scanners must be resolved separately before combining
+PATH entries. For this host, use the monorepo's `doc/LOCAL_TOOLCHAINS.md` fallback
+locations. Inspect `cmake --list-presets` and the active MSBuild native configuration
+before configuring: a standalone preset can use a different build root.
+
 ```sh
-llvm_mingw_root=/path/to/llvm-mingw
-gcc_mingw_cxx=/path/to/gcc-mingw/bin/x86_64-w64-mingw32-g++
-
-export PATH="$llvm_mingw_root/bin:$PATH"
-
+# With LLVM-MinGW selected on PATH:
+llvm_mingw_cxx=$(command -v x86_64-w64-mingw32-g++)
+# Set gcc_mingw_cxx to the GCC scanner resolved with its toolchain selected.
+# Verify both compiler versions before configuration.
 cmake --preset win-x64 \
-  -DREDBOLT_BINDING_CXX_COMPILER="$llvm_mingw_root/bin/x86_64-w64-mingw32-g++" \
+  -DREDBOLT_BINDING_CXX_COMPILER="$llvm_mingw_cxx" \
   -DREDBOLT_TINYGLTF_BINDING_CXX_COMPILER="$gcc_mingw_cxx"
 
 dotnet restore src/RedBolt/Editor/RedBolt.Editor.csproj \
@@ -158,62 +163,31 @@ not patch the Diligent checkout by hand.
 
 ## Direct3D smoke tests with Wine
 
-Wine 11 or newer is recommended for the D3D12 smoke test. Wine 9 was also
-tested: D3D11 renders successfully, but its built-in D3D12 implementation
-rejects the generated root signatures and produces a black frame. A 64-bit
-Wine installation is sufficient for the `win-x64` output.
+Use Wine 11 or newer from `PATH`; resolve `wine` and `winepath` with `command -v`
+and check `wine --version`. On the pinned development host, system Wine 9 has an
+unusable server-socket location and its D3D12 backend is not an adequate smoke
+test. See the monorepo's local toolchain reference when PATH needs adjustment.
 
-Publish the Text3D sample after the Windows build:
-
-```sh
-dotnet restore src/RedBolt/Sample/Text3D/RedBolt.Sample.Text3D.csproj \
-  --runtime win-x64 -p:RedBoltBuildWindows=true
-dotnet publish src/RedBolt/Sample/Text3D/RedBolt.Sample.Text3D.csproj \
-  --configuration Debug --no-restore --runtime win-x64 \
-  --self-contained true -p:RedBoltBuildWindows=true
-
-publish_dir=build/bin/Debug/win-x64/samples/win-x64/publish
-cp -a build/bin/Debug/win-x64/core/*.dll "$publish_dir/"
-cp -a build/bin/Debug/win-x64/extern/*.dll "$publish_dir/"
-cp -a build/bin/Debug/win-x64/extern/runtimes/win-x64/native/*.dll "$publish_dir/"
-cp -a build/bin/Debug/host/extern/*.dll "$publish_dir/"
-```
-
-The explicit staging keeps the repository's shared managed-output layout while
-also producing a standalone directory for Wine. Run each backend with a
-separate Wine prefix. The sample's `--timeout` option makes the smoke test exit
-without input and `--screenshot-on-exit` proves that a frame was rendered.
+Publish the relevant sample for `win-x64` with `dotnet publish --configuration
+Debug --runtime win-x64 --self-contained true` and the matching RedBolt platform
+properties. Select a temporary output using the publish command's `--output`
+option rather than assuming a binary directory. Preserve the existing shared
+managed/native staging requirements. When staging needs source directories,
+query the sample project with the same configuration and platform properties:
 
 ```sh
-repo_dir=$(pwd)
-publish_dir="$repo_dir/build/bin/Debug/win-x64/samples/win-x64/publish"
-wine_root=/path/to/wine-installation
-wine_executable="$wine_root/bin/wine"
-winepath_executable="$wine_root/bin/winepath"
-wine_prefix=/path/to/wine-prefix
-resource_path=$(WINEPREFIX="$wine_prefix" "$winepath_executable" -w "$repo_dir/bin")
-
-for backend in d3d11 d3d12; do
-  screenshot=$(WINEPREFIX="$wine_prefix" "$winepath_executable" -w \
-    "$publish_dir/$backend.png")
-  xvfb-run -a env \
-    WINEPREFIX="$wine_prefix" \
-    WINEDEBUG=-all \
-    LIBGL_ALWAYS_SOFTWARE=1 \
-    MESA_LOADER_DRIVER_OVERRIDE=llvmpipe \
-    VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json \
-    timeout 60 "$wine_executable" \
-      "$publish_dir/RedBolt.Sample.Text3D.exe" \
-      "--$backend" \
-      --pp "$resource_path" \
-      --timeout 5 \
-      --screenshot-on-exit "$screenshot"
-done
+dotnet msbuild src/RedBolt/Sample/Text3D/RedBolt.Sample.Text3D.csproj \
+  -p:Configuration=Debug -p:RedBoltPlatform=win-x64 \
+  -getProperty:RedBoltRoot,RedBoltCoreOutputDir,RedBoltExternOutputDir,RedBoltHostExternOutputDir,RedBoltNativeOutputRoot,TargetPath
 ```
 
-Use `/usr/bin/wine` for a distribution Wine install, or point
-`wine_executable` at a user-local Wine build. Keep prefixes separate when
-comparing Wine versions.
+Use the returned directories to stage core, external, host-external, and native
+DLLs into the selected publish output. Use `winepath -w` for paths passed to
+Windows code. Resolve resources from the built/staged sample and project inputs;
+do not substitute a guessed repository `bin` directory. Run each backend with a
+separate `WINEPREFIX` under the software-rendering harness, passing `--d3d11` or
+`--d3d12`, `--timeout 5`, and `--screenshot-on-exit <screenshot>`. Inspect the
+captured frame; process exit alone does not establish correct rendering.
 
 ## Tests
 
@@ -223,6 +197,7 @@ software-rendering harness:
 
 ```sh
 cd ../RedBolt.Tests
+export XDG_DATA_HOME=/home/rk/.local/share
 dotnet build RedBolt.Tests.csproj \
   --configuration Debug --no-restore \
   -p:RedBoltKeepParentRuntimeAssemblies=true \
@@ -234,5 +209,7 @@ dotnet build RedBolt.Tests.csproj \
   --logger 'console;verbosity=minimal'
 ```
 
-Build outputs, generated bindings, and downloaded native dependencies are kept
-under `build/`.
+Build outputs, generated bindings, and downloaded native dependencies use the
+selected build root. Query project properties or build output rather than
+assuming the module-local `build/` tree. For the full verification policy and
+coverage/sharding commands, use the monorepo `doc/VERIFICATION.md`.

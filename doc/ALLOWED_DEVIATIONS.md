@@ -1,6 +1,8 @@
 # Allowed Deviations
 
-These are the ONLY places C# is allowed to differ from C++:
+For initial ports and investigations of unmodified features, these are the accepted
+C++-to-C# mappings. Intentional RedBolt development follows the requested behavior
+and existing RedBolt design, as defined in `../AGENTS.md`.
 
 - RefCounted / SharedPtr / WeakPtr are dropped ON PURPOSE. They must NOT exist.
 - ResourceCache cannot observe external CLR references after the removal of intrusive reference counting. Its release methods therefore treat cached resources as releasable when `force` is false; managed references remain valid after cache eviction. `force` is retained for API parity and skips the native cross-type retry passes when true.
@@ -56,4 +58,14 @@ These are the ONLY places C# is allowed to differ from C++:
 - Calls to `GetSubsystem<T>()` in ported subsystem consumers assume that the requested subsystem is registered and return a non-null object. C# code may use a non-null field/reference and omit C++ null checks that only guard a missing subsystem.
 - The optional Actions subsystem and compile-gated Actions reflection/integration members are excluded from the current completion scope.
 
-Anything not on this list must match C++.
+For initial ports and unmodified-feature investigations, behavior not covered
+by an accepted deviation must match C++. This restriction does not replace the
+specification for intentional RedBolt development.
+
+- RmlUi container deviation: use upstream RmlUi standard-library
+types directly; do not project RmlUi types through EASTL or `Ea.*` marshallers.
+
+- For affected Web Release AOT struct-copy faults, map C++ references and in-place
+  construction to managed `ref` access and field-by-field initialization into
+  reserved storage. Preserve C++ copy semantics, ordering, and allocation behavior;
+  see `WEB_RUNTIME_CONSTRAINTS.md` for the affected runtime patterns.

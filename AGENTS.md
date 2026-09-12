@@ -1,478 +1,69 @@
-# ==========================================================================
-# RedBolt Port
-# ==========================================================================
-# Read this ENTIRE file before doing anything. Follow it literally.
-# Do exactly what is written. Do not invent steps. Do not skip steps.
-# ==========================================================================
-
-## 0. VOCABULARY AND STYLE
-
-Reasoning and response format defined by ASD-STE100 Simplified Technical English.
-Technical style is defined by `ponytail*` skills.
-
-## 1. WHAT YOU ARE DOING
-
-You are porting the rbfx C++ game engine to C#, one class at a time.
-The port must be 1:1 (as close as possible) to the original C++ code.
-
-- Original C++ source lives in: /home/rk/Desktop/src/rbfx/rbfx
-- Your C# target project is: /home/rk/Desktop/src/rbfx/RedBolt
-
-"1:1" means: same classes, same methods, same fields, same order, same logic.
-You may only change things that this document explicitly allows you to change.
-
-### C++ TO C# PORT SEQUENCE
-
-Use two separate passes for every initial direct port:
-
-1. Find and read all relevant C++ declarations, definitions, and call paths.
-   Then do a low-effort 1:1 syntax conversion to C#, preserving the C++
-   structure, order, logic, and comments. Apply the required mappings and any
-   obvious allowed deviations when they are easy and reduce work in pass 2.
-   Do not improvise or try to perfect the port in this pass. Defer uncertain
-   mappings, API mismatches, inconsistencies, and build errors to pass 2. Do not
-   stop this pass to build or repair the port.
-2. After the syntax-conversion pass is complete, build the port and fix build
-   errors, inconsistencies, API mismatches, missing mappings, and other
-   integration issues. Keep every fix faithful to C++ behavior and the allowed
-   deviations in `doc/ALLOWED_DEVIATIONS.md`.
-
-Do not commit the non-building pass-1 state. Complete pass 2 before making a
-coherent checkpoint commit.
-
-### SOURCE-OF-TRUTH AND DIVERGENCE RULE
-
-Before editing C# code, select exactly one of the following work modes. The
-selected mode determines the source of truth and the changes that are allowed.
-
-#### Initial direct port
-
-The rbfx C++ implementation is the source of truth. Establish the corresponding
-C++ declarations, complete method bodies, and relevant call paths; identify the
-C# deviation; then copy the C++ structure, ordering, control flow, state changes,
-and lifetime behavior using the required mappings and the allowed deviations in
-`doc/ALLOWED_DEVIATIONS.md`. If no corresponding C++ implementation can be found,
-stop and search the rbfx repository again before asking the user.
-
-#### Unmodified feature investigation
-
-The rbfx C++ implementation and call path are the source of truth. Diagnose the
-concrete RedBolt deviation and port that behavior. An issue is not permission to
-improve, redesign, simplify, harden, or work around the feature. If the C# code
-already matches C++, continue tracing the C++ call path until the actual missing
-or divergent port is found.
-
-#### Intentional RedBolt development
-
-The project requirements and existing RedBolt design are the source of truth.
-Define and preserve the desired RedBolt behavior. Consult C++ for context,
-compatibility, and regression analysis, but do not treat it as a replacement
-specification or overwrite RedBolt behavior merely to restore parity.
-
-Once RedBolt deliberately develops its own behavior in an area, that behavior
-becomes part of the RedBolt target. It must not later be treated as a porting
-bug or replaced with C++ code solely because the implementations differ.
-Existing C# deviations therefore require correction only when the area remains
-an initial direct port or is an unmodified feature being diagnosed.
-
-## 2. TOOLS YOU MUST USE
-
-- ast_search: use this to search BOTH rbfx and RedBolt C++ and C# code.
-- ast-grep: use this for AST-based structural searches in C++ and C# code.
-- dotnet-trace: (optional) use this to check for GC allocations in the running sample.
-- debug-mcp: use this to debug crashes and wrong behavior at runtime.
-  - Do NOT pass a `--timeout` argument to debug-mcp.
-- apitrace: use this to debug rendering / visual bugs.
-
-## 3. THE WORK LOOP (do this for EACH class)
-
-Do these steps IN ORDER. Finish one step fully before starting the next.
-
-STEP 0 - Preparation
-  - Re-read @AGENTS.md to refresh your memory.
-
-STEP 1 - Classify and investigate the work
-  - Select the applicable work mode in the SOURCE-OF-TRUTH AND DIVERGENCE RULE.
-  - Follow that mode's investigation requirements before editing C#.
-
-STEP 2 - Match the class shape
-  - Make sure the C# class has the SAME base classes / interfaces.
-  - Make sure the C# class exists in a matching namespace/file location.
-
-STEP 3 - Match every member, one by one (initial direct port)
-  For EACH method and field in the C++ outline:
-    a. Confirm the C# class has that same member.
-       - If it is missing: ADD it.
-       - If it is extra (not in C++ and not an allowed deviation): REMOVE it.
-    b. Put members in the SAME ORDER as the C++ file. Reorder if needed.
-    c. Rename to C# conventions (see section 4).
-    d. Match the C# type to the C++ type as closely as possible (see section 5).
-    e. Match the method body logic line-by-line to the C++ body.
-    f. Audit every construction, copy, assignment, temporary, and destruction
-       operation using the language-semantics rules in section 5A.
-    g. Implement copy-constructors as `ICloneable.Clone()` and port every call
-       site that invokes C++ copy construction with an actual independent clone.
-    h. Match member access exactly. C++ `friend` grants access to the friend; it
-       does not change the declared access of the member:
-       - Keep every ported `public`, `protected`, and `private` member `public`,
-         `protected`, and `private`, respectively.
-       - NEVER change a ported member to `internal` or `protected internal` to
-         emulate friendship. This includes fields and virtual functions.
-       - If a mapped friend caller needs otherwise-inaccessible access, add the
-         smallest C#-only `internal` forwarding method or accessor on the
-         declaring type. Name it explicitly as a friend bridge, keep the ported
-         member unchanged, and use the bridge only from mapped friend callers.
-       - A friend bridge to a virtual member must invoke the unchanged virtual
-         member so normal override dispatch is preserved.
-       - Do not expose a field itself through `internal`; prefer a narrow
-         operation, or an accessor only when the friend must read or write the
-         field directly.
-       `internal` remains allowed for genuinely C#-only implementation types
-       and helpers that do not represent C++ members.
-
-STEP 3A - Fixes discovered while building or testing
-  If a build, test, sample, debugger, or trace reveals a problem:
-    a. STOP editing the C# implementation and apply the rules of the selected
-       work mode.
-    b. Do not use a symptom as permission to change the source of truth or to
-       create an alternate execution path.
-
-STEP 4 - Build and run the focused tests (see section 6). Do not move on until
-it is GREEN.
-
-STEP 5 - Update status of ported items in `PORTING_CHECKLIST.md`. If completed,
-mark them as such. If incomplete, mark them as such and clarify what is missing.
-Make a note of any accepted deviations.
-
-STEP 6 - Commit the completed slice as a coherent checkpoint.
-
-## 4. NAMING RULES (follow exactly)
-
-- Classes: PascalCase          (e.g. RenderPipeline)
-- Methods: PascalCase          (e.g. GetRenderPath)
-- Properties: PascalCase       (e.g. IsEnabled)
-- Public fields: PascalCase    (e.g. FrameCount)
-- Private fields: _camelCase   with leading underscore (e.g. _frameCount)
-- Local variables: camelCase   (e.g. frameCount)
-- Method parameters: camelCase (e.g. renderPath)
-- Constants: PascalCase
-
-## 4A. C# FILE HEADERS (follow exactly)
-
-Keep leading copyright and license comments before the namespace declaration.
-Order namespace-bearing C# file headers as follows:
-
-1. File-scoped namespace declaration.
-2. `System.*` and `Microsoft.*` using directives.
-3. Package using directives, including NuGet and `extern/` dependencies such as SharpCpp.
-4. `RedBolt.*` using directives.
-
-All non-global using directives must be namespace-local. Alphabetize each group
-and separate adjacent groups with one empty line. Classify aliases by their
-target namespace. Separate the namespace declaration, using directives, and code
-with one empty line. Files containing only global using directives remain
-namespace-less because C# forbids global using directives inside a namespace.
-
-## 5. TYPE MAPPING RULES
-
-- Match the C++ type as closely as C# allows.
-- C++ getter/setter PAIRS may become a C# property, BUT the getter/setter
-  body logic must still match the C++ code exactly.
-- DO use nullable reference types (annotate with `?`); they are explicitly allowed and
-  are the required mapping for C++ pointers / optional references.
-- Prefer plain C# constructs over clever ones.
-- A single value that C++ exposes as a getter should be a C# property,
-  not a `GetX()` method, UNLESS matching C++ shape is clearer.
-
-## 5A. C++ / C# LANGUAGE SEMANTICS AND LIFETIME (NON-NEGOTIABLE)
-
-C++ syntax that looks like an ordinary assignment or return may invoke a
-constructor, copy constructor, move constructor, assignment operator, or
-destructor. C# reference assignment does not. These operations are part of the
-implementation and MUST be ported explicitly.
-
-- Before porting a constructor, copy/move operation, assignment, or destructor,
-  read its complete C++ declaration and definition, including base classes,
-  field declarations, default member initializers, delegated constructors, and
-  the relevant call sites.
-- Port every C++ constructor overload. Preserve base-constructor calls,
-  delegated-constructor behavior, default values, side effects, and observable
-  initialization ordering. C++ initializes bases first and fields in declaration
-  order, regardless of initializer-list order; the C# port must preserve the
-  resulting behavior.
-- A C++ value copy such as `T copy = source`, pass-by-value, return-by-value, or
-  copy construction MUST produce the same independent value in C#. Never replace
-  it with a C# reference alias.
-- Implement C++ copy constructors as `ICloneable.Clone()` and call `Clone()` at
-  every C# site corresponding to C++ copy construction. Port copy-assignment
-  operator behavior explicitly when C++ uses it.
-- Do NOT clone C++ pointers or references that intentionally alias the same
-  object. Preserve C++ aliasing, ownership, and nullability exactly.
-- Generated native binding wrappers require special care: a getter may return a
-  borrowed wrapper around native storage even when C++ returns a value or the C++
-  call site immediately copies it. If C++ creates a value copy, use the generated
-  copy constructor / `Clone()` before mutating, retaining, or disposing it.
-  Mutating a borrowed wrapper is not equivalent to mutating a C++ copy.
-- C# `struct` assignment is not automatically equivalent to C++ value semantics
-  when the struct contains managed references or native handles. Verify whether
-  the C++ operation is deep, shallow, borrowed, owned, copied, or moved and map
-  that behavior explicitly.
-- Web Release AOT can corrupt large managed structs that contain reference
-  fields when they cross struct return buffers, `Span.CopyTo`, or generic
-  by-value collection APIs. Desktop and Web Debug builds may not reproduce the
-  fault. For a C++ reference or in-place construction, use a managed `ref` and
-  initialize the reserved destination storage field by field. Do not add an
-  allocation. Verify the Release Web build.
-- Web Release AOT can lower an interior `ref` into a managed list or array to a
-  raw pointer. Do not keep this `ref` across a call that can allocate or trigger
-  garbage collection. Keep the index and reacquire the `ref` after the call.
-- Do not compile native Emscripten code with `-pthread` when the final .NET Web
-  module has WebAssembly threads disabled. The mismatched thread-local storage
-  model can corrupt native `thread_local` state without a crash. Use the same
-  thread model for all native objects and the final module.
-- Threaded Web builds require cross-origin isolation for `SharedArrayBuffer`.
-  Serve them with `dotnet run --file scripts/serve_webassembly.cs -- --directory <output>`,
-  or configure the deployment server to return
-  `Cross-Origin-Opener-Policy: same-origin` and
-  `Cross-Origin-Embedder-Policy: require-corp`.
-- Emscripten enables its internal stack-first layout at `-O0` when the user
-  does not set `GLOBAL_BASE`. This layout gives the threaded .NET runtime
-  incorrect main-thread stack bounds and triggers a Mono assertion before the
-  managed entry point. Keep an explicit nonzero `GLOBAL_BASE` when Web linking
-  uses `-O0`.
-- The threaded .NET Web runtime runs the managed entry point in a worker. SDL's
-  Emscripten EGL path does not initialize the thread-local state used by
-  `OFFSCREEN_FRAMEBUFFER` GL proxies. Create and bind the context through
-  `emscripten_webgl_*` so Emscripten records the context owner and proxies GL
-  calls to it.
-- Browser APIs and JavaScript module state such as Web Audio belong to the
-  browser thread. Access them from native worker code through
-  `MAIN_THREAD_EM_ASM`, not plain `EM_ASM`.
-- Threaded .NET rejects synchronous JavaScript-to-C# calls from the browser
-  thread. Browser-driven frame and event callbacks must call `[JSExport]`
-  methods that return `Task`, and JavaScript must await the resulting Promise.
-  Return `Task.CompletedTask` when the managed operation is synchronous.
-- Port every C++ destructor as `Dispose()`. Preserve destructor-body actions,
-  teardown ordering, callbacks, unregistering, resource release, and ownership
-  effects. Do not rely on garbage collection or a finalizer as a replacement for
-  deterministic C++ destruction.
-- Reproduce C++ RAII local-variable lifetime with `using`, `try/finally`, or an
-  equivalent deterministic scope. A temporary that dies at the end of a C++
-  statement or scope must not remain alive until a later C# garbage collection,
-  and an owned object must not be disposed while C++ would still keep it alive.
-- Distinguish borrowed wrappers from owned wrappers. Dispose the managed wrapper
-  at the matching C++ lifetime boundary without releasing a native object that
-  C++ does not own, and never mutate or dispose an alias when C++ operates on an
-  independent copy.
-
-## 6. BUILD AND VERIFY
-
-During development, build the smallest affected project and run the focused
-tests for the changed area. Use a test filter when a test project contains
-unrelated tests. Do not run unrelated solution-wide test suites as an iteration
-gate.
-
-Run focused RedBolt tests:
-  dotnet test ../RedBolt.Tests/RedBolt.Tests.csproj --configuration Debug --filter <FILTER>
-
-After any SharpCpp change, run the generated-binding SharpCpp E2E tests. No
-other SharpCpp test suite is required during development:
-  dotnet test extern/SharpCpp/tests/SharpCpp.Tests.E2E/SharpCpp.Tests.E2E.csproj --configuration Debug
-
-When the task is complete, if SharpCpp was modified, also run the SharpCpp rbfx
-wrapper E2E tests:
-  dotnet test extern/SharpCpp/rbfx/SharpCpp.Rbfx.Tests.E2E/SharpCpp.Rbfx.Tests.E2E.csproj --configuration Debug
-
-Both required SharpCpp E2E test projects must pass before the task is complete.
-SharpCpp test projects must not be added to `RedBolt.slnx`.
-
-At task completion, build:
-  cmake --preset linux-x64
-  dotnet build RedBolt.slnx --configuration Debug
-
-CMake is auxiliary and is invoked by C# build targets. Do not call CMake directly
-for normal build or verification; build through `dotnet`, `.slnx`, or `.csproj`.
-
-Run the most relevant rendering sample for the changed area and capture a screenshot.
-Use MultipleViewports when no more relevant sample exists:
-  rm -f /tmp/screenshot.png
-  build/bin/Debug/linux-x64/samples/RedBolt.Sample.MultipleViewports --timeout 2 --screenshot-on-exit /tmp/screenshot.png
-
-Run the relevant focused tests at task completion.
-
-Review the captured screenshot as a success gate. The relevant scene must render correctly and must not be black or otherwise visibly broken.
-
-Desktop engine libraries are in:
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/linux-x64/core
-
-Desktop bindings, external libraries, and native libraries are in:
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/linux-x64/extern
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/linux-x64/extern/runtimes/linux-x64/native
-
-Desktop tools and the editor are in:
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/linux-x64/tools
-
-Build-host tools and platform-neutral managed dependencies are in:
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/host/tools
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/host/extern
-
-Desktop sample executables and sample-specific files are in:
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/linux-x64/samples
-
-Test output binaries are in:
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/linux-x64/tests
-
-Web output is in:
-  /home/rk/Desktop/src/rbfx/RedBolt/build/bin/Debug/browser-wasm/web
-
-C# build targets symlink runtime resource directories into the desktop output
-root. Tests consume these directories from their parent output.
-
-Each desktop output category stores managed and native PDB files in its `pdb/`
-directory and native runtime files in its `runtimes/` directory. Executables
-probe the target `core`, `extern`, and `tools` categories and the shared host
-categories instead of copying libraries.
-
-The engine sets the process working directory to the managed executable directory.
-Samples and tests that consume the staged resource directories use `CoreData;SampleData`
-with resource prefix paths `.;..`.
-
-## 7. THINGS YOU MUST ALWAYS DO
-
-- Before changing implementation code for ANY reason, read the corresponding
-  C++ implementation and use it to determine the change.
-- For bug fixes, write down the exact C++-to-C# deviation being corrected. If
-  there is no identified deviation, you are not ready to edit the C# code.
-- Treat C++ lifecycle and ordering as required behavior, including frame
-  boundaries, exit gates, teardown order, ownership, callbacks, and platform
-  compile-time conditions.
-- Port EVERY function and method, even ones that look useless or redundant.
-- Port EVERY code comment if such exists.
-- Port EVERY doxygen documentation comment as C# xml documentation comment.
-- Port C++ code as is, no changes to the core logic.
-- Port C++ destructors as `IDisposable.Dispose()`.
-- Port C++ copy-constructors as `ICloneable.Clone()`.
-- Port C++ `WeakPtr<>` ownership as `WeakReference<>`.
-- Preserve C++ code layout.
-- Commit only code that builds and works. In case this is a larger rework - it must be completed before committing.
-- Add or update focused unit tests when you change behavior.
-  - *IMPORTANT*: Test the behavior, not shape!
-- After ANY implementation change: build the affected project and run the
-  relevant focused tests.
-- At task completion, run the most relevant rendering sample with screenshot
-  capture and review as a success gate. Use MultipleViewports when no more
-  relevant sample exists.
-- After finishing a slice: commit a coherent checkpoint.
-- If the current API cannot express a piece of C++ yet:
-    - Add the C++ version as a C# COMMENT with a `// TODO: port` note,
-      so it is ported later. Do not silently drop it.
-- Use the global Context pattern:
-    - Set it with Context.SetInstance(ctx).
-    - Read it with Context.Instance.
-    - Do NOT pass Context through constructors.
-- Add necessary dependencies under `extern/` and wire them into the build system.
-
-## 8. THINGS YOU MUST NEVER DO
-
-### In initial-port and unmodified-feature modes
-
-- NEVER diagnose a symptom or design a fix from first principles. Diagnose by
-  comparing against C++, then port the C++ behavior.
-- NEVER use the existing C# implementation as the specification.
-- NEVER add a helper, workaround, fallback, state flag, special case, or new
-  execution path unless the same thing exists in C++ or is an allowed deviation.
-- NEVER change implementation code before locating and reading its C++
-  counterpart. Build errors and test failures do not waive this requirement.
-- NEVER invent code to plug gaps or add defensive behavior; ALWAYS port the
-  corresponding C++ behavior.
-
-### In intentional RedBolt development mode
-
-- NEVER replace intentional RedBolt development with C++ code solely to restore
-  parity.
-
-### In all modes
-
-- NEVER update a test to bless behavior that differs from the intended target.
-  Tests for intentional RedBolt development verify RedBolt behavior; tests for
-  direct ports verify the faithfully ported C++ behavior.
-- NEVER introduce your own comments outside of allowed cases.
-- NEVER rework code or adjust execution flow.
-- NEVER write manual/hand-authored native bindings.
-- NEVER add hand-written C/C++ facade headers, C ABI forwarding functions,
-  P/Invoke declarations, or C# wrapper classes for native dependency APIs.
-- NEVER take shortcuts that make an initial direct port or unmodified feature diverge from C++ logic (except the allowed deviations in `doc/ALLOWED_DEVIATIONS.md`).
-- NEVER port things C# already provides (see `doc/ALLOWED_DEVIATIONS.md`).
-- NEVER allocate on the render hot path if the C++ code does not (avoid GC churn:
-  no per-frame `new`, no boxing, no LINQ, no `params` arrays, no `Enum.HasFlag`).
-- NEVER commit unless the build is green and tests pass.
-- NEVER delegate tasks to subagents.
-- NEVER insert absolute paths to code.
-- NEVER get subsystems through context in classes that have `this.GetSubsystem<>()` available.
-
-## 9. BINDINGS: HOW TO GET NATIVE ACCESS
-
-Native dependencies (SDL, Diligent, Dear ImGui) are accessed through generated bindings.
-
-- Use SharpCpp to AUTOMATICALLY generate the bindings.
-- Bind the complete native dependency surface by default. Never use symbol
-  whitelists or allowlists to prune generated bindings.
-- Base binding and type decisions only on SharpCpp AST/model facts. Never infer
-  type semantics from rendered C++ type-name strings.
-- Move behavior into SharpCpp only when it implements dependency-agnostic support
-  for a generic C++ or binding shape. Keep project-specific policy in the RedBolt
-  dependency generator, including rules keyed to particular types, methods,
-  parameters, fields, enum names, curated surfaces, or semantic mappings.
-  Dear ImGui enum normalization is explicitly project-specific and must remain
-  in the Dear ImGui generator.
-- If the generated bindings are not enough, in this priority order:
-    1. Fix our generator so it produces correct bindings. (PREFERRED)
-    2. Fix SharpCpp so it produces correct bindings.
-    3. Only as a LAST RESORT, add a small supporting C++ helper library that
-       links to the C++ dependency. Avoid this unless 1 and 2 are impossible.
-- Generated C# and C++ binding artifacts go in the CMake BUILD TREE,
-  never in the source tree.
-
-## 10. ALLOWED DEVIATIONS
-
-The exhaustive list of allowed deviations is maintained in
-`doc/ALLOWED_DEVIATIONS.md`. Anything not on that list must match C++.
-
-Agreed project-specific naming deviation: C# engine types use folder-matching namespaces.
-
-Agreed project-specific namespace resolution deviation: namespace/type collisions
-are resolved with namespace-local using directives.
-
-Agreed project-specific RmlUi container deviation: use upstream RmlUi standard-library
-types directly; do not project RmlUi types through EASTL or `Ea.*` marshallers.
-
-Agreed project-specific reflection deviation: reflected C# objects and serializable attributes must declare generated `[Reflected]`, `[Serialized]`, and `[RemoveSerialized]` metadata instead of hand-written `RegisterObject`, `RegisterAttribute`, or `AddFactoryReflection` registration. Apply `[Serialized]` only to the instance field, property, getter, or setter that it serializes, never to a class. Infer the value type and available accessors from that member: a getter declaration names only a separate setter when required, and a setter declaration names only a separate getter when required. Field, auto-property, and simple-property backing-field initializers are their serialization defaults without `DefaultSource`; use a private named default source only when the target member cannot declare the required default. Inherited serialized members are copied from their reflected attribute source without forwarding declarations; use a private forwarding property only for a new subtype-specific serialized property whose storage/accessors are otherwise inherited. Preserve factory categories, non-factory types (`Factory = false`), exact attribute order inferred from serialized member declaration order, explicit inheritance source and insertion point, removals, defaults, modes, scope hints, enum names, custom accessors, and metadata configuration in those declarations. Named source members and forwarding properties used only by generated reflection must remain private implementation details. Library registration entry points register the generated assembly metadata; only the generator and its runtime registration infrastructure may use the low-level reflection APIs that materialize those declarations.
-
-Agreed project-specific Web AOT deviation: when the Web Release AOT compiler
-corrupts a large managed struct copy, replace the affected C++ reference or
-in-place construction mapping with `ref` access and explicit field-by-field
-initialization into reserved destination storage. Preserve C++ copy semantics,
-ordering, and allocation behavior.
-
-## 11. SUCCESS CRITERIA (all must be true)
-
-- [ ] The project builds with no errors.
-- [ ] All required focused tests pass.
-- [ ] If SharpCpp was modified, its generated-binding and rbfx wrapper E2E tests
-      pass.
-- [ ] The C# class outline matches the C++ class outline as closely as possible.
-- [ ] The C# method bodies match the C++ method bodies as closely as possible.
-- [ ] The most relevant rendering sample for the changed area runs and its reviewed screenshot shows a correct scene; use MultipleViewports when no more relevant sample exists.
-- [ ] Optional: The relevant sample does not allocate GC memory continuously
-      (verify with dotnet-trace: steady-state allocations should be flat).
-- [ ] All tasks from the goal section are completed.
-
-## 12. IF YOU ARE UNSURE
-
-- Re-read the C++ source. The C++ code is the source of truth.
-- Match the C++ code. When in doubt, copy the C++ structure and logic.
-- If a proposed fix cannot be justified by pointing to corresponding C++ code,
-  do not implement it.
-- Do not guess at runtime behavior. Use debug-mcp or apitrace to confirm.
-- Prompt user to clarify deviations
-  - Record agreed deviations in AGENTS.md file
+# RedBolt engine
+
+## Source of truth
+
+Infer the work mode from the task and project history. Ask only when unresolved
+ambiguity materially changes the allowed implementation.
+
+- Initial direct ports and investigations of unmodified features use upstream
+  rbfx C++ behavior plus `doc/ALLOWED_DEVIATIONS.md` as the specification. Trace
+  relevant declarations, bodies, and call paths before correcting a divergence.
+  Matching local code does not prove a port is complete: investigate callers,
+  lifetime, and integration when the observed behavior still differs.
+- Intentional RedBolt development uses the requested behavior and existing
+  RedBolt design as the specification. C++ is context for compatibility and
+  regressions, not a reason to undo intentional behavior. Necessary changes to
+  control flow, helpers, and explanatory comments are permitted within scope.
+
+## Engineering constraints
+
+- Preserve ownership, deterministic disposal, initialization and teardown order,
+  frame boundaries, and callback behavior. Use [porting semantics](doc/PORTING_SEMANTICS.md)
+  for C++ mappings, copies, borrowed wrappers, and lifetime changes.
+- Preserve render hot-path allocation behavior: do not introduce per-frame
+  allocations, boxing, LINQ, or other GC churn where the target has none.
+- Use generated SharpCpp bindings. Do not hand-author native API wrappers,
+  P/Invoke, or C ABI forwarding facades. Fix the dependency generator or generic
+  SharpCpp support when bindings are insufficient. A supporting C++ helper is
+  a last resort only when neither generator can express the required operation;
+  document why and keep it narrowly scoped to that operation.
+- Bind the complete dependency surface by default. Do not prune it with symbol
+  allowlists. Derive binding semantics from AST/model facts, not rendered type
+  names. Generic binding behavior belongs in SharpCpp; dependency-specific
+  policy, including Dear ImGui enum normalization, belongs in its generator.
+- Generated binding artifacts belong in the configured build tree.
+- Use `Context.SetInstance`/`Context.Instance` rather than injecting Context via
+  constructors. Prefer `this.GetSubsystem<>()` where available.
+- Keep dependencies under `extern/` and integrated with the existing build.
+  Preserve the shared infrastructure ownership specified by the monorepo.
+
+## References by task
+
+- [C# conventions](doc/CSHARP_CONVENTIONS.md): editing C# declarations and headers.
+- [Allowed deviations](doc/ALLOWED_DEVIATIONS.md): port mappings, generated
+  reflection metadata, and accepted engine-specific behavior. Record new accepted
+  deviations there rather than appending them to this file.
+- [Web runtime constraints](doc/WEB_RUNTIME_CONSTRAINTS.md): Web threading,
+  linking, interop, or AOT value/lifetime bugs.
+- [Build requirements](doc/BUILD_REQUIREMENTS.md): platform setup and build selection.
+- [Workspace verification](../doc/VERIFICATION.md): selecting builds, tests,
+  sample inspection, package checks, and coverage.
+
+Use available search and debugging tools according to the question. Structural
+queries may benefit from ast-grep; crashes may need a debugger; rendering bugs
+may need apitrace; allocation investigations may need dotnet-trace. Missing
+optional tools do not block an equivalent investigation. If using debug-mcp,
+do not pass its unsupported `--timeout` option.
+
+## Completion
+
+Continue through implementation and applicable verification, fixing regressions
+caused by the change. Tests must verify intended behavior, not bless a bug.
+Port tasks must meet upstream fidelity and accepted mappings; intentional
+features must meet the requested RedBolt behavior. Build and inspect only the
+checks justified by the change, following workspace verification guidance.
+
+Coherent local checkpoint commits remain authorized after relevant checks pass.
+Do not commit an incomplete port, unrelated user changes, or an unresolved merge.
+Delegate only when allowed by the active session, with bounded independent work
+and one build owner; no mandatory specialist roles or repeated review stages.
