@@ -1,69 +1,78 @@
-# RedBolt engine
+# RedBolt core
 
 ## Source of truth
 
-Infer the work mode from the task and project history. Ask only when unresolved
-ambiguity materially changes the allowed implementation.
-
-- Initial direct ports and investigations of unmodified features use upstream
-  rbfx C++ behavior plus `doc/ALLOWED_DEVIATIONS.md` as the specification. Trace
-  relevant declarations, bodies, and call paths before correcting a divergence.
-  Matching local code does not prove a port is complete: investigate callers,
-  lifetime, and integration when the observed behavior still differs.
-- Intentional RedBolt development uses the requested behavior and existing
-  RedBolt design as the specification. C++ is context for compatibility and
-  regressions, not a reason to undo intentional behavior. Necessary changes to
-  control flow, helpers, and explanatory comments are permitted within scope.
+- Resolve ambiguous work modes from the task and project history. Ask only when
+  the ambiguity changes the allowed implementation.
+- For direct ports and unmodified features, read the monorepo
+  [C++ to C# porting skill](../.agent/skills/redbolt-porting/SKILL.md). Use
+  upstream rbfx C++ behavior and `doc/ALLOWED_DEVIATIONS.md` as the
+  specification.
+- For intentional RedBolt development, use the requested behavior and existing
+  RedBolt design. Treat C++ as compatibility and regression context; do not use
+  it to undo intentional behavior. Change control flow, helpers, and comments
+  within the task scope as needed.
 
 ## Engineering constraints
 
 - Preserve ownership, deterministic disposal, initialization and teardown order,
   frame boundaries, and callback behavior. Use [porting semantics](doc/PORTING_SEMANTICS.md)
   for C++ mappings, copies, borrowed wrappers, and lifetime changes.
-- Preserve render hot-path allocation behavior: do not introduce per-frame
+- Preserve render hot-path allocation behavior. Do not introduce per-frame
   allocations, boxing, LINQ, or other GC churn where the target has none.
-- Use generated SharpCpp bindings. Do not hand-author native API wrappers,
-  P/Invoke, or C ABI forwarding facades. Fix the dependency generator or generic
-  SharpCpp support when bindings are insufficient. A supporting C++ helper is
-  a last resort only when neither generator can express the required operation;
-  document why and keep it narrowly scoped to that operation.
-- Bind the complete dependency surface by default. Do not prune it with symbol
-  allowlists. Derive binding semantics from AST/model facts, not rendered type
-  names. Generic binding behavior belongs in SharpCpp; dependency-specific
-  policy, including Dear ImGui enum normalization, belongs in its generator.
-- Generated binding artifacts belong in the configured build tree.
-- Use `Context.SetInstance`/`Context.Instance` rather than injecting Context via
-  constructors. Prefer `this.GetSubsystem<>()` where available.
-- Keep dependencies under `extern/` and integrated with the existing build.
-  Preserve the shared infrastructure ownership specified by the monorepo.
+- Use generated SharpCpp bindings. Do not hand-author native wrappers, P/Invoke,
+  or C ABI forwarding facades. Fix the generator or generic SharpCpp support
+  when bindings are insufficient. Add a supporting C++ helper only when neither
+  generator can express the operation; document the reason and keep it narrow.
+- Bind the complete dependency surface by default; do not prune it with symbol
+  allowlists. Derive semantics from AST/model facts, not rendered type names.
+  Put generic behavior in SharpCpp and dependency-specific policy, including
+  Dear ImGui enum normalization, in its generator.
+- Put generated binding artifacts in the configured build tree.
+- Use `Context.SetInstance`/`Context.Instance` instead of constructor injection.
+  Prefer `this.GetSubsystem<>()` where available.
+- Keep dependencies under `extern/` and integrate them with the existing build.
+  Preserve the monorepo's shared infrastructure ownership.
 
-## References by task
+## References
 
-- [C# conventions](doc/CSHARP_CONVENTIONS.md): editing C# declarations and headers.
+- [C# conventions](doc/CSHARP_CONVENTIONS.md): C# declarations and headers.
 - [Allowed deviations](doc/ALLOWED_DEVIATIONS.md): port mappings, generated
-  reflection metadata, and accepted engine-specific behavior. Record new accepted
-  deviations there rather than appending them to this file.
+  reflection metadata, and accepted engine-specific behavior. Record new
+  accepted deviations there instead of in this file.
 - [Web runtime constraints](doc/WEB_RUNTIME_CONSTRAINTS.md): Web threading,
-  linking, interop, or AOT value/lifetime bugs.
-- [Build requirements](doc/BUILD_REQUIREMENTS.md): platform setup and build selection.
-- [Workspace verification](../doc/VERIFICATION.md): selecting builds, tests,
-  sample inspection, package checks, and coverage.
+  linking, interop, and AOT value/lifetime bugs.
+- [Build requirements](doc/BUILD_REQUIREMENTS.md): platform setup and build
+  selection.
+- [Workspace verification](../doc/VERIFICATION.md): builds, tests, samples,
+  package checks, and coverage.
+- Use ast-grep for structural queries, a debugger for crashes, apitrace for
+  rendering bugs, and dotnet-trace for allocation investigations.
+- Use equivalent tools when optional tools are unavailable.
+- Do not pass the unsupported `--timeout` option to debug-mcp.
 
-Use available search and debugging tools according to the question. Structural
-queries may benefit from ast-grep; crashes may need a debugger; rendering bugs
-may need apitrace; allocation investigations may need dotnet-trace. Missing
-optional tools do not block an equivalent investigation. If using debug-mcp,
-do not pass its unsupported `--timeout` option.
+## Core build
+
+- Use `RedBolt/RedBolt.slnx` for core-only iteration.
+- Select a focused Linux/x64 build with:
+
+  ```sh
+  dotnet build RedBolt/RedBolt.slnx --configuration Debug --no-restore -maxcpucount \
+    -p:RedBoltDisablePlatforms=all -p:RedBoltEnablePlatforms=linux \
+    -p:RedBoltDisableArchitectures=all -p:RedBoltEnableArchitectures=x64 \
+    -p:RedBoltTestsEnabled=false
+  ```
 
 ## Completion
 
-Continue through implementation and applicable verification, fixing regressions
-caused by the change. Tests must verify intended behavior, not bless a bug.
-Port tasks must meet upstream fidelity and accepted mappings; intentional
-features must meet the requested RedBolt behavior. Build and inspect only the
-checks justified by the change, following workspace verification guidance.
-
-Coherent local checkpoint commits remain authorized after relevant checks pass.
-Do not commit an incomplete port, unrelated user changes, or an unresolved merge.
-Delegate only when allowed by the active session, with bounded independent work
-and one build owner; no mandatory specialist roles or repeated review stages.
+- Complete implementation and applicable verification; fix regressions caused by
+  the change.
+- Make tests verify intended behavior rather than bless a bug.
+- Meet upstream fidelity and accepted mappings for port tasks. Meet requested
+  RedBolt behavior for intentional features.
+- Run only checks justified by the change, following workspace verification
+  guidance.
+- Create coherent local checkpoint commits after relevant checks pass. Do not
+  commit incomplete ports, unrelated user changes, or unresolved merges.
+- Delegate only within the active session's rules. Bound independent work and
+  keep one build owner; specialist roles and repeated review stages are optional.
