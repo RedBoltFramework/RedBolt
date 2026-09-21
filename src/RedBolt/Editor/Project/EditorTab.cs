@@ -249,7 +249,7 @@ public class EditorTab : EditorConfigurable
     /// <summary>Return size of the window content. Should be called only during content rendering.</summary>
     public Vector2i GetContentSize()
     {
-        using var window = ImGui.GetCurrentWindow();
+        var window = ImGui.GetCurrentWindow();
         var rect = window.ContentRegionRect;
         var min = new Vector2i(MathDefs.RoundToInt(rect.Min.X), MathDefs.RoundToInt(rect.Min.Y));
         var max = new Vector2i(MathDefs.RoundToInt(rect.Max.X), MathDefs.RoundToInt(rect.Max.Y));
@@ -259,7 +259,7 @@ public class EditorTab : EditorConfigurable
     /// <summary>Return position of the window content in absolute coordinates. Should be called only during content rendering.</summary>
     public Vector2i GetContentPosition()
     {
-        using var window = ImGui.GetCurrentWindow();
+        var window = ImGui.GetCurrentWindow();
         var rect = window.ContentRegionRect;
         return new Vector2i(MathDefs.RoundToInt(rect.Min.X), MathDefs.RoundToInt(rect.Min.Y));
     }

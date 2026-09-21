@@ -541,8 +541,8 @@ public class MaterialInspectorWidget : RedObject
         cameraNode.SetPosition(distance * (cameraNode.GetRotation() * Vector3f.Back));
 
         var previewSettingsDirty = false;
-        using (var style = ImGui.GetStyle())
-            ImGui.SetCursorPos(imageBegin + style.FramePadding);
+        var style = ImGui.GetStyle();
+        ImGui.SetCursorPos(imageBegin + style.FramePadding);
 
         if (Widgets.ToolbarButton(_toggleSkyboxLabel, "Toggle Skybox"u8, _previewSkyboxEnabled))
         {

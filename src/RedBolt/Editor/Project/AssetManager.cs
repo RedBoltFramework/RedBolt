@@ -506,33 +506,33 @@ public class AssetManager : RedObject
 
     private List<string> GetUpdatedPaths(bool updateAll)
     {
-        var allPathUpdates = new List<string>();
+        _allPathUpdates.Clear();
         var change = new FileChange();
         while (_dataWatcher.GetNextChange(ref change))
         {
-            allPathUpdates.Add(change.FileName);
+            _allPathUpdates.Add(change.FileName);
             if (change.OldFileName.Length != 0)
-                allPathUpdates.Add(change.OldFileName);
+                _allPathUpdates.Add(change.OldFileName);
         }
-        allPathUpdates.Sort(StringComparer.Ordinal);
+        _allPathUpdates.Sort(StringComparer.Ordinal);
 
-        var compressedPathUpdates = new List<string>();
+        _compressedPathUpdates.Clear();
         if (updateAll)
-            compressedPathUpdates.Add(string.Empty);
+            _compressedPathUpdates.Add(string.Empty);
         else
         {
-            foreach (var path in allPathUpdates)
+            foreach (var path in _allPathUpdates)
             {
-                if (compressedPathUpdates.Count != 0
-                    && path.StartsWith(compressedPathUpdates[^1], StringComparison.Ordinal))
+                if (_compressedPathUpdates.Count != 0
+                    && path.StartsWith(_compressedPathUpdates[^1], StringComparison.Ordinal))
                 {
                     continue;
                 }
-                compressedPathUpdates.Add(path);
+                _compressedPathUpdates.Add(path);
             }
         }
 
-        return compressedPathUpdates;
+        return _compressedPathUpdates;
     }
 
     private void InitializeAssetPipelines()
@@ -921,6 +921,8 @@ public class AssetManager : RedObject
     private readonly HashSet<string> _ignoredAssetUpdates = new(StringComparer.Ordinal);
 
     private readonly List<List<AssetTransformerInput>> _requestQueue = [];
+    private readonly List<string> _allPathUpdates = [];
+    private readonly List<string> _compressedPathUpdates = [];
     private int _numOngoingRequests;
 
     private ProgressInfo _progress;

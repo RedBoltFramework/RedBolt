@@ -323,7 +323,7 @@ public static partial class Widgets
         const int numberOfGroups = 2;
 
         var modified = false;
-        using var style = ImGui.GetStyle();
+        var style = ImGui.GetStyle();
         using var colors = style.Colors;
         var availableWidth = ImGui.CalcItemWidth();
         var buttonSize = new Vector2f(

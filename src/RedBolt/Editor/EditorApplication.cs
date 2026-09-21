@@ -401,6 +401,7 @@ public unsafe class EditorApplication : Application
         var project = _project;
         project.Destroy();
         _project = null;
+        _windowTitle = string.Empty;
         Context.RemoveSubsystem<EditorProject>();
         project.Dispose();
     }
@@ -463,7 +464,7 @@ public unsafe class EditorApplication : Application
 
     protected void InitializeImGuiStyle()
     {
-        using var style = ImGui.GetStyle();
+        var style = ImGui.GetStyle();
 
         // TODO: Make configurable.
         style.WindowRounding = 3.0f;
@@ -594,9 +595,14 @@ public unsafe class EditorApplication : Application
         var hasToolbar = _project is not null;
         var toolbarButtonHeight = Widgets.GetSmallButtonSize();
         float toolbarWindowPadding;
-        Vector2f itemInnerSpacing;
-        using (var style = ImGui.GetStyle())
+        Vector2f itemInnerSpacing = Vector2f.Zero;
+        if (hasToolbar)
         {
+            toolbarWindowPadding = ImGui.GetTextLineHeightWithSpacing() - ImGui.GetTextLineHeight();
+        }
+        else
+        {
+            var style = ImGui.GetStyle();
             toolbarWindowPadding = style.ItemSpacing.Y;
             itemInnerSpacing = style.ItemInnerSpacing;
         }
@@ -607,12 +613,10 @@ public unsafe class EditorApplication : Application
         Vector2f viewportPosition;
         Vector2f viewportSize;
         uint viewportId;
-        using (var viewport = ImGui.GetMainViewport())
-        {
-            viewportPosition = viewport.Pos;
-            viewportSize = viewport.Size;
-            viewportId = viewport.Id;
-        }
+        var viewport = ImGui.GetMainViewport();
+        viewportPosition = viewport.Pos;
+        viewportSize = viewport.Size;
+        viewportId = viewport.Id;
         ImGui.SetNextWindowPos(viewportPosition + new Vector2f(0.0f, toolbarEffectiveHeight));
         ImGui.SetNextWindowSize(viewportSize - new Vector2f(0.0f, toolbarEffectiveHeight));
         ImGui.SetNextWindowViewport(viewportId);
@@ -628,15 +632,13 @@ public unsafe class EditorApplication : Application
         RenderAboutDialog();
 
         if (_project is not null)
-        {
             _project.Render();
-        }
         else
         {
             // Render start page.
             Rect rect;
-            using (var window = ImGui.GetCurrentWindow())
-                rect = window.ContentRegionRect;
+            var window = ImGui.GetCurrentWindow();
+            rect = window.ContentRegionRect;
 
             var tileSize = new Vector2f(200.0f, 200.0f);
             ImGui.PushStyleVar(ImGuiStyleVar.ImGuiStyleVarItemSpacing, new Vector2f(10.0f, 10.0f));
@@ -683,9 +685,8 @@ public unsafe class EditorApplication : Application
             ImGui.PopStyleVar();
         }
 
-        float menuBarHeight;
-        using (var window = ImGui.GetCurrentWindow())
-            menuBarHeight = window.MenuBarHeight;
+        var dockSpaceWindow = ImGui.GetCurrentWindow();
+        var menuBarHeight = dockSpaceWindow.MenuBarHeight;
 
         ImGui.End(); // DockSpace
         ImGui.PopStyleVar();
@@ -750,9 +751,9 @@ public unsafe class EditorApplication : Application
         if (!_exiting)
             _numIncompleteTasks = null;
 
-        var title = GetWindowTitle();
-        if (!string.Equals(_windowTitle, title, StringComparison.Ordinal))
+        if (_windowTitle.Length == 0)
         {
+            var title = GetWindowTitle();
             GetSubsystem<Graphics>().SetWindowTitle(title);
             _windowTitle = title;
         }
@@ -778,7 +779,7 @@ public unsafe class EditorApplication : Application
             if (_recentProjects.Count == (_project is not null ? 1 : 0))
             {
                 Vector4f disabledTextColor;
-                using (var style = ImGui.GetStyle())
+                var style = ImGui.GetStyle();
                 using (var colors = style.Colors)
                     disabledTextColor = colors[(int)ImGuiCol.ImGuiColTextDisabled];
                 ImGui.PushStyleColor(ImGuiCol.ImGuiColText, disabledTextColor);
@@ -904,6 +905,7 @@ public unsafe class EditorApplication : Application
             if (_singleProcess)
                 projectFlags |= ProjectFlag.SingleProcess;
 
+            _windowTitle = string.Empty;
             _project = new EditorProject(_pendingOpenProject, _settingsJsonPath, projectFlags);
             _project.OnShallowSaved += _ => SaveTempJson();
 

@@ -67,7 +67,7 @@ public class InspectorWithPreview : RedObject, InspectorSource
         ImGui.Separator();
 
         var contentPosition = ImGui.GetCursorPos();
-        using var window = ImGui.GetCurrentWindow();
+        var window = ImGui.GetCurrentWindow();
         var rect = window.ContentRegionRect;
         rect.Min = new Vector2f(MathDefs.Round(rect.Min.X), MathDefs.Round(rect.Min.Y));
         rect.Max = new Vector2f(MathDefs.Round(rect.Max.X), MathDefs.Round(rect.Max.Y));

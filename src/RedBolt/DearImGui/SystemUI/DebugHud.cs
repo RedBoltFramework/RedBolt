@@ -188,7 +188,7 @@ public class DebugHud : RedObject
             var style = ImGui.GetStyle();
             ImGui.SetCursorPos(new Vector2f(
                 style.WindowPadding.X,
-                ImGui.GetWindowSize().Y - ImGui.GetStyle().WindowPadding.Y - ImGui.GetFontSize()));
+                ImGui.GetWindowSize().Y - style.WindowPadding.Y - ImGui.GetFontSize()));
             _textBuffer.FormatInPlace(
                 $"API:{graphics.GetApiName()} | Tex:{QualityTexts[(int)renderer.GetTextureQuality()]} | Filter:{FilterModeTexts[(int)renderer.GetTextureFilterMode()]}");
             ImGui.TextUnformatted(_textBuffer.ContentBytes);
@@ -198,6 +198,8 @@ public class DebugHud : RedObject
     /// <summary>Render debug hud on to entire viewport.</summary>
     private void OnRenderDebugUI(ref GraphicsEvents.EndAllViewsRenderEvent eventData)
     {
+        if (_mode == DebugHudMode.None)
+            return;
         if (!ImGui.ImGuiBackendIsWithinFrameScope())
             return;
 

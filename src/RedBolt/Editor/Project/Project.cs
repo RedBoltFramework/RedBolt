@@ -1097,8 +1097,8 @@ public class Project : RedObject
 
         ImGui.DockBuilderRemoveNode(_dockspaceId);
         ImGui.DockBuilderAddNode(_dockspaceId);
-        using (var viewport = ImGui.GetMainViewport())
-            ImGui.DockBuilderSetNodeSize(_dockspaceId, viewport.Size);
+        var viewport = ImGui.GetMainViewport();
+        ImGui.DockBuilderSetNodeSize(_dockspaceId, viewport.Size);
 
         var dockCenter = _dockspaceId;
         var dockLeft = ImGui.DockBuilderSplitNode(
@@ -1188,15 +1188,24 @@ public class Project : RedObject
 
     private void ProcessPendingRequests()
     {
-        var requests = new List<PendingRequest>(_pendingRequests);
-        _pendingRequests.Clear();
+        if (_pendingRequests.Count == 0)
+            return;
 
-        foreach (var pending in requests)
+        (_pendingRequests, _processingPendingRequests) =
+            (_processingPendingRequests, _pendingRequests);
+        try
         {
-            EditorTab? sender = null;
-            pending.Sender?.TryGetTarget(out sender);
-            OnRequest?.Invoke(sender, pending.Request);
-            pending.Request.InvokeProcessCallback();
+            foreach (var pending in _processingPendingRequests)
+            {
+                EditorTab? sender = null;
+                pending.Sender?.TryGetTarget(out sender);
+                OnRequest?.Invoke(sender, pending.Request);
+                pending.Request.InvokeProcessCallback();
+            }
+        }
+        finally
+        {
+            _processingPendingRequests.Clear();
         }
     }
 
@@ -1237,13 +1246,14 @@ public class Project : RedObject
             delayedSave.Clear();
         }
 
-        foreach (var resourceName in _delayedFileSaves
-                     .Where(static pair => pair.Value.IsEmpty)
-                     .Select(static pair => pair.Key)
-                     .ToArray())
+        _delayedSaveNamesToRemove.Clear();
+        foreach (var pair in _delayedFileSaves)
         {
-            _delayedFileSaves.Remove(resourceName);
+            if (pair.Value.IsEmpty)
+                _delayedSaveNamesToRemove.Add(pair.Key);
         }
+        foreach (var resourceName in _delayedSaveNamesToRemove)
+            _delayedFileSaves.Remove(resourceName);
     }
 
     private void ProcessCommand(string command, bool exitOnCompletion)
@@ -1473,10 +1483,12 @@ public class Project : RedObject
     private readonly List<(string Command, bool ExitOnCompletion)> _pendingCommands = [];
 
     /// <summary>Global requests to be processed.</summary>
-    private readonly List<PendingRequest> _pendingRequests = [];
+    private List<PendingRequest> _pendingRequests = [];
+    private List<PendingRequest> _processingPendingRequests = [];
 
     /// <summary>File save requests to be processed.</summary>
     private readonly Dictionary<string, PendingFileSave> _delayedFileSaves = new(StringComparer.Ordinal);
+    private readonly List<string> _delayedSaveNamesToRemove = [];
 
     /// <summary>Ongoing remote commands.</summary>
     private readonly List<PendingRemoteCommand> _pendingRemoteCommands = [];

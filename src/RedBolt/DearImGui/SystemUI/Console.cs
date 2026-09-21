@@ -157,8 +157,7 @@ public sealed class Console : RedObject
                 new Vector2f(region.X, region.Y - (showCommandInput ? 30.0f : 0.0f)),
                 window_flags: ImGuiWindowFlags.ImGuiWindowFlagsHorizontalScrollbar))
         {
-            var io = ImGui.GetIO();
-            var style = ImGui.GetStyle();
+            var itemSpacingY = ImGui.GetTextLineHeightWithSpacing() - ImGui.GetTextLineHeight();
             var textStart = 0;
             foreach (var row in _history)
             {
@@ -180,7 +179,7 @@ public sealed class Console : RedObject
                 var rowSize = ImGui.CalcTextSize(rowText);
                 var rowStartPos = ImGui.GetCursorScreenPos();
                 var rowRect = new Rect(rowStartPos, rowStartPos + rowSize);
-                rowRect.Max.Y += style.ItemSpacing.Y; // So clicking between rows still does a selection
+                rowRect.Max.Y += itemSpacingY; // So clicking between rows still does a selection
                 var mousePosition = ImGui.GetMousePos();
                 var isRowHovered = Contains(rowRect, mousePosition) && ImGui.IsWindowHovered();
 
@@ -233,7 +232,7 @@ public sealed class Console : RedObject
                     var selection = new Rect(
                         rowStartPos + new Vector2f(sizeUnselected.X, 0.0f),
                         rowStartPos + new Vector2f(sizeUnselected.X + sizeSelected.X, sizeSelected.Y));
-                    selection.Max.Y += style.ItemSpacing.Y; // Fill in spaces between lines
+                    selection.Max.Y += itemSpacingY; // Fill in spaces between lines
                     var drawList = ImGui.GetWindowDrawList();
                     drawList.AddRectFilled(
                         selection.Min, selection.Max, ImGui.GetColorU32(ImGuiCol.ImGuiColTextSelectedBg));

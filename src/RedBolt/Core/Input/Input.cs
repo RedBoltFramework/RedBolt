@@ -472,18 +472,16 @@ public partial class Input : RedObject
         _mouseButtonPress = MouseButton.None;
         _mouseMoveWheel = 0;
         MouseMove = Vector2i.Zero;
-        foreach (var joystickId in _joysticks.Keys.ToArray())
+        foreach (var joystickId in _joysticks.Keys)
         {
-            var joystick = _joysticks[joystickId];
+            ref var joystick = ref CollectionsMarshal.GetValueRefOrNullRef(_joysticks, joystickId);
             Array.Fill(joystick.ButtonPress, false);
-            _joysticks[joystickId] = joystick;
         }
-        foreach (var touchId in _touches.Keys.ToArray())
+        foreach (var touchId in _touches.Keys)
         {
-            var touch = _touches[touchId];
+            ref var touch = ref CollectionsMarshal.GetValueRefOrNullRef(_touches, touchId);
             touch.LastPosition = touch.Position;
             touch.Delta = Vector2i.Zero;
-            _touches[touchId] = touch;
         }
     }
 

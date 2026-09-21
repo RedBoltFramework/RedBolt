@@ -480,12 +480,11 @@ public class HotkeyManager : RedObject
 
     public void BindHotkey(RedObject owner, EditorHotkey hotkey, Action callback)
     {
-        var weakOwner = new OwnerReference(owner);
         var binding = new HotkeyBinding(owner, hotkey, callback);
-        if (!_hotkeyByOwner.TryGetValue(weakOwner, out var ownerBindings))
+        if (!_hotkeyByOwner.TryGetValue(owner, out var ownerBindings))
         {
             ownerBindings = [];
-            _hotkeyByOwner.Add(weakOwner, ownerBindings);
+            _hotkeyByOwner.Add(owner, ownerBindings);
         }
         ownerBindings.Add(binding);
 
@@ -535,26 +534,18 @@ public class HotkeyManager : RedObject
     /// <summary>Routine maintenance, no user logic is performed.</summary>
     public void RemoveExpired()
     {
-        HashSet<string> commandsToCheck = [];
-        foreach (var elem in _hotkeyByOwner)
+        List<string> commandsToCheck = [];
+        foreach (var elem in _hotkeyByCommand)
         {
-            var owner = elem.Key;
             var bindings = elem.Value;
-            if (!owner.TryGetTarget(out _) && bindings.Count != 0)
-            {
-                commandsToCheck.Add(bindings[0].Hotkey.Command);
-                _hotkeyByOwner.Remove(owner);
-            }
+            bindings.RemoveAll(IsBindingExpired);
+            if (bindings.Count == 0)
+                commandsToCheck.Add(elem.Key);
         }
 
         foreach (var command in commandsToCheck)
         {
-            if (!_hotkeyByCommand.TryGetValue(command, out var bindings))
-                continue;
-
-            bindings.RemoveAll(IsBindingExpired);
-            if (bindings.Count == 0)
-                _hotkeyByCommand.Remove(command);
+            _hotkeyByCommand.Remove(command);
         }
     }
 
@@ -574,8 +565,7 @@ public class HotkeyManager : RedObject
     /// <summary>Check and invoke all hotkeys corresponding to the owner.</summary>
     public void InvokeFor(RedObject owner)
     {
-        var weakOwner = new OwnerReference(owner);
-        if (!_hotkeyByOwner.TryGetValue(weakOwner, out var bindings))
+        if (!_hotkeyByOwner.TryGetValue(owner, out var bindings))
             return;
 
         foreach (var bindingPtr in bindings)
@@ -604,40 +594,12 @@ public class HotkeyManager : RedObject
         return null;
     }
 
-    private readonly struct OwnerReference : IEquatable<OwnerReference>
-    {
-        public OwnerReference(RedObject owner)
-        {
-            _reference = new WeakReference<RedObject>(owner);
-            _hashCode = RuntimeHelpers.GetHashCode(owner);
-        }
-
-        public bool TryGetTarget(out RedObject? target) => _reference.TryGetTarget(out target);
-
-        public bool Equals(OwnerReference other)
-        {
-            if (ReferenceEquals(_reference, other._reference))
-                return true;
-
-            return _reference.TryGetTarget(out var target)
-                && other._reference.TryGetTarget(out var otherTarget)
-                && ReferenceEquals(target, otherTarget);
-        }
-
-        public override bool Equals(object? obj) => obj is OwnerReference other && Equals(other);
-
-        public override int GetHashCode() => _hashCode;
-
-        private readonly WeakReference<RedObject> _reference;
-        private readonly int _hashCode;
-    }
-
     private static readonly EditorHotkey EmptyHotkey = new();
 
     private readonly uint _cleanupMs = 1000;
     private readonly Timer _cleanupTimer = new();
 
-    private readonly Dictionary<OwnerReference, List<HotkeyBinding>> _hotkeyByOwner = [];
+    private readonly ConditionalWeakTable<RedObject, List<HotkeyBinding>> _hotkeyByOwner = new();
     private readonly SortedDictionary<string, List<HotkeyBinding>> _hotkeyByCommand = new(StringComparer.Ordinal);
 
     private readonly HashSet<string> _invokedCommands = new(StringComparer.Ordinal);

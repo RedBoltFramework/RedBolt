@@ -28,19 +28,16 @@ public static partial class Widgets
     /// <summary>Return best size of small square button with one icon.</summary>
     public static float GetSmallButtonSize()
     {
-        using var style = ImGui.GetStyle();
-        return ImGui.GetFontSize() + style.FramePadding.Y * 2.0f;
+        return ImGui.GetFrameHeight();
     }
 
     /// <summary>Render toolbar button with optional tooltip. May be toggled on.</summary>
     public static bool ToolbarButton(ReadOnlySpan<byte> label, ReadOnlySpan<byte> tooltip = default, bool active = false)
     {
-        using var style = ImGui.GetStyle();
-        using var colors = style.Colors;
         var dimension = GetSmallButtonSize();
         using var colorGuard = new ColorScopeGuard(
             ImGuiCol.ImGuiColButton,
-            new Vector4f(colors[(int)ImGuiCol.ImGuiColButtonActive]),
+            ImGui.GetStyleColorVec4(ImGuiCol.ImGuiColButtonActive),
             active);
 
         ImGui.PushStyleVar(ImGuiStyleVar.ImGuiStyleVarFramePadding, new Vector2f());
@@ -63,7 +60,7 @@ public static partial class Widgets
     /// <summary>Render a bit of space in toolbar between buttons.</summary>
     public static void ToolbarSeparator()
     {
-        using var style = ImGui.GetStyle();
+        var style = ImGui.GetStyle();
         ImGui.Dummy(new Vector2f(style.FramePadding.X, 0.0f));
         ImGui.SameLine(0.0f, 0.0f);
     }
@@ -71,8 +68,8 @@ public static partial class Widgets
     /// <summary>Render a label for the next item, on either the left or the right.</summary>
     public static void ItemLabel(ReadOnlySpan<byte> title, Color? color = null, bool isLeft = true)
     {
-        using var window = ImGui.GetCurrentWindow();
-        using var style = ImGui.GetStyle();
+        var window = ImGui.GetCurrentWindow();
+        var style = ImGui.GetStyle();
 
         var lineStart = ImGui.GetCursorScreenPos();
         var fullWidth = ImGui.GetContentRegionAvail().X;
@@ -100,7 +97,7 @@ public static partial class Widgets
                 ImGuiCol.ImGuiColText,
                 color.GetValueOrDefault(Color.Black).ToUInt(),
                 color.HasValue);
-            using var drawList = ImGui.GetWindowDrawList();
+            var drawList = ImGui.GetWindowDrawList();
             ImGui.RenderTextEllipsis(
                 drawList,
                 textRect.Min,
@@ -139,7 +136,7 @@ public static partial class Widgets
     /// <summary>Return recommended color for item label.</summary>
     public static Color GetItemLabelColor(bool isUndefined, bool defaultValue)
     {
-        using var style = ImGui.GetStyle();
+        var style = ImGui.GetStyle();
         using var colors = style.Colors;
         if (isUndefined)
             return new Color(colors[(int)ImGuiCol.ImGuiColTextDisabled]);
@@ -152,7 +149,7 @@ public static partial class Widgets
     /// <summary>Return recommended color for item background.</summary>
     public static Color GetItemBackgroundColor(bool isUndefined)
     {
-        using var style = ImGui.GetStyle();
+        var style = ImGui.GetStyle();
         using var colors = style.Colors;
         if (isUndefined)
             return new Color(0.09f, 0.09f, 0.09f, 1.0f);
@@ -165,14 +162,14 @@ public static partial class Widgets
     {
         var minimum = ImGui.GetItemRectMin();
         var maximum = ImGui.GetItemRectMax();
-        using var drawList = ImGui.GetWindowDrawList();
+        var drawList = ImGui.GetWindowDrawList();
         drawList.AddLine(new Vector2f(minimum.X, maximum.Y), maximum, color.ToUInt(), 1.0f);
     }
 
     /// <summary>Render clickable URL text.</summary>
     public static void TextURL(ReadOnlySpan<byte> label, ReadOnlySpan<byte> url)
     {
-        using var style = ImGui.GetStyle();
+        var style = ImGui.GetStyle();
         using var colors = style.Colors;
 
         ImGui.TextUnformatted(label);
@@ -222,7 +219,7 @@ public static partial class Widgets
     /// <summary>Render Texture2D as ImGui item.</summary>
     public static void ImageItem(Texture2D texture, ImTextureRef textureReference, Vector2f size)
     {
-        using var window = ImGui.GetCurrentWindow();
+        var window = ImGui.GetCurrentWindow();
         var id = window.GetID(RuntimeHelpers.GetHashCode(texture));
         var cursorPosition = ImGui.GetCursorScreenPos();
         var boundingBox = new Rect(cursorPosition, cursorPosition + size);
@@ -246,7 +243,7 @@ public static partial class Widgets
         var textureView = texture.GetRawTexture().GetHandles().ShaderResourceView!;
         textureReference.TexID = (ulong)(nuint)textureView.Handle;
 
-        using var window = ImGui.GetCurrentWindow();
+        var window = ImGui.GetCurrentWindow();
         _ = framePadding;
 
         ImGui.PushID(RuntimeHelpers.GetHashCode(texture));

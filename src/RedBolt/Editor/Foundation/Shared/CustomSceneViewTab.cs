@@ -39,6 +39,7 @@ public abstract class CustomSceneViewTab : ResourceEditorTab
     public override void RenderContent()
     {
         var basePosition = ImGui.GetCursorPos();
+        var tabContentSize = ImGui.GetContentRegionAvail();
 
         RenderTitle();
 
@@ -46,7 +47,6 @@ public abstract class CustomSceneViewTab : ResourceEditorTab
         {
             var contentPosition = ImGui.GetCursorPos();
 
-            var tabContentSize = GetContentSize();
             var contentSize = new Vector2f(tabContentSize.X, tabContentSize.Y)
                 - new Vector2f(0.0f, contentPosition.Y - basePosition.Y);
             if (ImGui.BeginChild("scene_preview"u8, contentSize))
@@ -69,9 +69,10 @@ public abstract class CustomSceneViewTab : ResourceEditorTab
 
     protected virtual void RenderTitle()
     {
+        var contentWidth = ImGui.GetContentRegionAvail().X;
         _activeResourceText.Set(ActiveResourceName);
         ImGui.TextUnformatted(_activeResourceText.ContentBytes);
-        ImGui.SameLine(GetContentSize().X - 100.0f);
+        ImGui.SameLine(contentWidth - 100.0f);
         if (ImGui.Button("Reset camera"u8, new Vector2f(100.0f, 0.0f)))
             ResetCamera();
     }

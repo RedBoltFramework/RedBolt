@@ -68,7 +68,7 @@ public class SceneHierarchyWidget : RedObject
 
         BeginRangeSelection();
 
-        using var style = ImGui.GetStyle();
+        var style = ImGui.GetStyle();
         ImGui.PushStyleVar(
             ImGuiStyleVar.ImGuiStyleVarItemSpacing,
             new Vector2f(style.ItemSpacing.X, 0.0f));
