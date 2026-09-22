@@ -1468,13 +1468,13 @@ public class SceneViewTab : ResourceEditorTab
 
             if (_dragAndDropAddon is not null)
             {
-                using var acceptedPayload = ImGui.AcceptDragDropPayload(
+                var acceptedPayload = ImGui.AcceptDragDropPayload(
                     "DragDropPayload"u8,
                     ImGuiDragDropFlags.ImGuiDragDropFlagsAcceptBeforeDelivery);
                 if (!acceptedPayload.IsNull)
                 {
                     _dragAndDropAddon.UpdateDragDrop(payload);
-                    using var nativePayload = ImGui.GetDragDropPayload();
+                    var nativePayload = ImGui.GetDragDropPayload();
                     if (nativePayload.IsDelivery())
                     {
                         _dragAndDropAddon.CompleteDragDrop(payload);

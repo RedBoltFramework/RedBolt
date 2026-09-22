@@ -105,7 +105,7 @@ sealed class VirtualFileSystemApplication : Application
         Vector2f viewportPosition;
         Vector2f viewportSize;
         uint viewportId;
-        using (var viewport = ImGui.GetMainViewport())
+        var viewport = ImGui.GetMainViewport();
         {
             viewportPosition = viewport.Pos;
             viewportSize = viewport.Size;
@@ -136,7 +136,7 @@ sealed class VirtualFileSystemApplication : Application
                 ImGuiWindowFlags.ImGuiWindowFlagsNoSavedSettings |
                 ImGuiWindowFlags.ImGuiWindowFlagsNoBringToFrontOnFocus))
         {
-            using (var drawList = ImGui.GetWindowDrawList())
+            var drawList = ImGui.GetWindowDrawList();
                 drawList.AddRectFilledMultiColor(viewportPosition, viewportPosition + viewportSize,
                     ImGui.GetColorU32(DashboardBackground),
                     ImGui.GetColorU32(new Vector4f(0.025f, 0.115f, 0.15f, 1.0f)),
@@ -280,7 +280,7 @@ sealed class VirtualFileSystemApplication : Application
         if (!compact)
         {
             var badge = position + new Vector2f(width - 168.0f, 4.0f);
-            using (var drawList = ImGui.GetWindowDrawList())
+            var drawList = ImGui.GetWindowDrawList();
             {
                 drawList.AddRectFilled(badge, badge + new Vector2f(168.0f, 34.0f),
                     ImGui.GetColorU32(new Vector4f(0.035f, 0.18f, 0.18f, 0.9f)), 17.0f);

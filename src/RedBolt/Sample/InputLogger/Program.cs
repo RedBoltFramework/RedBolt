@@ -312,7 +312,7 @@ sealed class InputLoggerApplication : Application
         Vector2f viewportPosition;
         Vector2f viewportSize;
         uint viewportId;
-        using (var viewport = ImGui.GetMainViewport())
+        var viewport = ImGui.GetMainViewport();
         {
             viewportPosition = viewport.Pos;
             viewportSize = viewport.Size;
@@ -338,7 +338,7 @@ sealed class InputLoggerApplication : Application
 
     private void DrawDashboard(Vector2f position, Vector2f size)
     {
-        using var drawList = ImGui.GetWindowDrawList();
+        var drawList = ImGui.GetWindowDrawList();
         drawList.AddRectFilledMultiColor(position, position + size,
             ImGui.GetColorU32(DashboardBackground), ImGui.GetColorU32(new Vector4f(0.05f, 0.075f, 0.14f, 1.0f)),
             ImGui.GetColorU32(new Vector4f(0.018f, 0.025f, 0.055f, 1.0f)),
@@ -410,7 +410,7 @@ sealed class InputLoggerApplication : Application
         if (!compact)
         {
             var badge = position + new Vector2f(width - 166.0f, 5.0f);
-            using var drawList = ImGui.GetWindowDrawList();
+            var drawList = ImGui.GetWindowDrawList();
             drawList.AddRectFilled(badge, badge + new Vector2f(166.0f, 34.0f),
                 ImGui.GetColorU32(new Vector4f(0.04f, 0.18f, 0.19f, 0.9f)), 17.0f);
             drawList.AddCircleFilled(badge + new Vector2f(17.0f, 17.0f), 4.0f, ImGui.GetColorU32(AccentCyan));
@@ -424,7 +424,7 @@ sealed class InputLoggerApplication : Application
         ReadOnlySpan<byte> label, ReadOnlySpan<byte> value, Vector4f accent)
     {
         BeginPanel(id, position, size);
-        using (var drawList = ImGui.GetWindowDrawList())
+        var drawList = ImGui.GetWindowDrawList();
             drawList.AddRectFilled(position, position + new Vector2f(4.0f, size.Y), ImGui.GetColorU32(accent), 10.0f);
         ImGui.PushStyleColor(ImGuiCol.ImGuiColText, accent);
         ImGui.TextUnformatted(label);
@@ -471,7 +471,7 @@ sealed class InputLoggerApplication : Application
         var width = Math.Max(80.0f, ImGui.GetContentRegionAvail().X);
         var mapMin = origin + new Vector2f(0.0f, 22.0f);
         var mapMax = mapMin + new Vector2f(width, Math.Max(36.0f, height - 34.0f));
-        using (var drawList = ImGui.GetWindowDrawList())
+        var drawList = ImGui.GetWindowDrawList();
         {
             drawList.AddRectFilled(mapMin, mapMax, ImGui.GetColorU32(MapBackground), 9.0f);
             drawList.AddRect(mapMin, mapMax, ImGui.GetColorU32(isInside ? accent : PanelBorder), 9.0f, 1.5f);
@@ -543,7 +543,7 @@ sealed class InputLoggerApplication : Application
     {
         var origin = ImGui.GetCursorScreenPos();
         var center = origin + ImGui.GetContentRegionAvail() * 0.5f;
-        using (var drawList = ImGui.GetWindowDrawList())
+        var drawList = ImGui.GetWindowDrawList();
         {
             drawList.AddCircleFilled(center - new Vector2f(0.0f, 22.0f), 28.0f,
                 ImGui.GetColorU32(new Vector4f(0.14f, 0.11f, 0.27f, 0.75f)));
@@ -566,7 +566,7 @@ sealed class InputLoggerApplication : Application
         var origin = ImGui.GetCursorScreenPos();
         var width = Math.Max(120.0f, ImGui.GetContentRegionAvail().X);
         var accent = GetEventColor(inputEvent.EventType);
-        using (var drawList = ImGui.GetWindowDrawList())
+        var drawList = ImGui.GetWindowDrawList();
         {
             drawList.AddRectFilled(origin, origin + new Vector2f(width, rowHeight - 5.0f),
                 ImGui.GetColorU32(EventBackground), 7.0f);

@@ -586,7 +586,7 @@ public class SceneHierarchyWidget : RedObject
         var payload = DragDropPayload.Get() as NodeComponentDragDropPayload;
         if (payload is not null && CanBeDroppedTo(parentNode, payload))
         {
-            using var acceptedPayload = ImGui.AcceptDragDropPayload("DragDropPayload"u8);
+            var acceptedPayload = ImGui.AcceptDragDropPayload("DragDropPayload"u8);
             if (!acceptedPayload.IsNull)
             {
                 foreach (var childReference in payload.Nodes)

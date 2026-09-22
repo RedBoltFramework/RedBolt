@@ -229,7 +229,7 @@ public class SoundEffects : Application
         Vector2f viewportPosition;
         Vector2f viewportSize;
         uint viewportId;
-        using (var viewport = ImGui.GetMainViewport())
+        var viewport = ImGui.GetMainViewport();
         {
             viewportPosition = viewport.Pos;
             viewportSize = viewport.Size;
@@ -266,7 +266,7 @@ public class SoundEffects : Application
 
     private void DrawDashboard(Vector2f position, Vector2f size)
     {
-        using (var drawList = ImGui.GetWindowDrawList())
+        var drawList = ImGui.GetWindowDrawList();
             drawList.AddRectFilledMultiColor(position, position + size,
                 ImGui.GetColorU32(DashboardBackground), ImGui.GetColorU32(new Vector4f(0.035f, 0.11f, 0.15f, 1.0f)),
                 ImGui.GetColorU32(new Vector4f(0.02f, 0.035f, 0.075f, 1.0f)),
@@ -311,7 +311,7 @@ public class SoundEffects : Application
         if (!compact)
         {
             var badge = position + new Vector2f(width - 174.0f, 4.0f);
-            using (var drawList = ImGui.GetWindowDrawList())
+            var drawList = ImGui.GetWindowDrawList();
             {
                 drawList.AddRectFilled(badge, badge + new Vector2f(174.0f, 34.0f),
                     ImGui.GetColorU32(new Vector4f(0.035f, 0.17f, 0.19f, 0.92f)), 17.0f);

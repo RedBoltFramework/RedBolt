@@ -237,7 +237,7 @@ sealed class AggregatedInputApplication : Application
         Vector2f viewportPosition;
         Vector2f viewportSize;
         uint viewportId;
-        using (var viewport = ImGui.GetMainViewport())
+        var viewport = ImGui.GetMainViewport();
         {
             viewportPosition = viewport.Pos;
             viewportSize = viewport.Size;
@@ -266,7 +266,7 @@ sealed class AggregatedInputApplication : Application
 
     private void DrawDashboard(Vector2f viewportPosition, Vector2f viewportSize)
     {
-        using var drawList = ImGui.GetWindowDrawList();
+        var drawList = ImGui.GetWindowDrawList();
         drawList.AddRectFilledMultiColor(
             viewportPosition,
             viewportPosition + viewportSize,
@@ -343,7 +343,7 @@ sealed class AggregatedInputApplication : Application
 
     private static void DrawKey(Texture2D texture, Vector2f position, bool active)
     {
-        using var drawList = ImGui.GetWindowDrawList();
+        var drawList = ImGui.GetWindowDrawList();
         var keyMin = position - new Vector2f(3.0f, 3.0f);
         var keyMax = position + new Vector2f(35.0f, 35.0f);
         drawList.AddRectFilled(keyMin, keyMax,
@@ -368,7 +368,7 @@ sealed class AggregatedInputApplication : Application
         var arenaHeight = Math.Max(110.0f, size.Y - 118.0f);
         var radius = Math.Min(Math.Min(size.X * 0.24f, arenaHeight * 0.42f), 128.0f);
         var center = new Vector2f(position.X + size.X * 0.5f, contentStart.Y + arenaHeight * 0.5f);
-        using (var drawList = ImGui.GetWindowDrawList())
+        var drawList = ImGui.GetWindowDrawList();
         {
             drawList.AddCircleFilled(center, radius + 12.0f, ImGui.GetColorU32(new Vector4f(0.12f, 0.09f, 0.25f, 0.65f)));
             drawList.AddCircleFilled(center, radius, ImGui.GetColorU32(new Vector4f(0.035f, 0.055f, 0.105f, 1.0f)));

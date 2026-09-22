@@ -144,7 +144,7 @@ public class DearImGui : RedObject
         _fontMemoryHandles.Add(fontDataHandle);
         var fontRanges = PinFontRanges(ranges);
 
-        using var io = ImGui.GetIO();
+        var io = ImGui.GetIO();
         using var fonts = io.Fonts;
         var newFont = fonts.AddFontFromMemoryTTF(
             fontDataHandle.AddrOfPinnedObject(), fontData.Length, size, config, fontRanges);
@@ -176,7 +176,7 @@ public class DearImGui : RedObject
         _fontMemoryHandles.Add(fontDataHandle);
         var fontRanges = PinFontRanges(ranges);
 
-        using var io = ImGui.GetIO();
+        var io = ImGui.GetIO();
         using var fonts = io.Fonts;
         var newFont = fonts.AddFontFromMemoryCompressedTTF(
             fontDataHandle.AddrOfPinnedObject(), fontData.Length, size, config, fontRanges);

@@ -25,7 +25,7 @@ public class DragDropPayload : IDisposable
 
     public static DragDropPayload? Get()
     {
-        using var payload = ImGui.GetDragDropPayload();
+        var payload = ImGui.GetDragDropPayload();
         if (!payload.IsNull && payload.IsDataType(DragDropPayloadType))
         {
             using var variant = Context.Instance.GetGlobalVar(DragDropPayloadVariable).Clone();
@@ -39,7 +39,7 @@ public class DragDropPayload : IDisposable
     {
         ImGui.SetDragDropPayload(DragDropPayloadType, IntPtr.Zero, 0, ImGuiCond.ImGuiCondOnce);
 
-        using (var nativePayload = ImGui.GetDragDropPayload())
+        var nativePayload = ImGui.GetDragDropPayload();
         {
             if (nativePayload.Data == IntPtr.Zero)
             {

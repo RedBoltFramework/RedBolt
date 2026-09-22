@@ -1258,7 +1258,7 @@ public class ResourceBrowserTab : EditorTab
         var payload = DragDropPayload.Get() as ResourceDragDropPayload;
         if (payload is not null && IsPayloadMovable(payload))
         {
-            using var acceptedPayload = ImGui.AcceptDragDropPayload("DragDropPayload"u8);
+            var acceptedPayload = ImGui.AcceptDragDropPayload("DragDropPayload"u8);
             if (!acceptedPayload.IsNull)
             {
                 var separator = entry.ResourceName.Length == 0 ? string.Empty : "/";

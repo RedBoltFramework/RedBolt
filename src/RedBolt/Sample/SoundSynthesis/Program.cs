@@ -176,7 +176,7 @@ public class SoundSynthesis : Application
         Vector2f viewportPosition;
         Vector2f viewportSize;
         uint viewportId;
-        using (var viewport = ImGui.GetMainViewport())
+        var viewport = ImGui.GetMainViewport();
         {
             viewportPosition = viewport.Pos;
             viewportSize = viewport.Size;
@@ -210,7 +210,7 @@ public class SoundSynthesis : Application
 
     private void DrawDashboard(Vector2f position, Vector2f size)
     {
-        using (var drawList = ImGui.GetWindowDrawList())
+        var drawList = ImGui.GetWindowDrawList();
             drawList.AddRectFilledMultiColor(position, position + size,
                 ImGui.GetColorU32(DashboardBackground), ImGui.GetColorU32(new Vector4f(0.075f, 0.035f, 0.15f, 1.0f)),
                 ImGui.GetColorU32(new Vector4f(0.018f, 0.035f, 0.075f, 1.0f)),
@@ -254,7 +254,7 @@ public class SoundSynthesis : Application
         if (!compact)
         {
             var badge = position + new Vector2f(width - 152.0f, 4.0f);
-            using (var drawList = ImGui.GetWindowDrawList())
+            var drawList = ImGui.GetWindowDrawList();
             {
                 drawList.AddRectFilled(badge, badge + new Vector2f(152.0f, 34.0f),
                     ImGui.GetColorU32(new Vector4f(0.035f, 0.18f, 0.18f, 0.9f)), 17.0f);
@@ -280,7 +280,7 @@ public class SoundSynthesis : Application
         var scopeMin = ImGui.GetCursorScreenPos() + new Vector2f(0.0f, 12.0f);
         var scopeMax = position + size - new Vector2f(16.0f, 18.0f);
         var scopeSize = scopeMax - scopeMin;
-        using (var drawList = ImGui.GetWindowDrawList())
+        var drawList = ImGui.GetWindowDrawList();
         {
             drawList.AddRectFilled(scopeMin, scopeMax, ImGui.GetColorU32(ScopeBackground), 9.0f);
             for (var i = 1; i < 8; ++i)

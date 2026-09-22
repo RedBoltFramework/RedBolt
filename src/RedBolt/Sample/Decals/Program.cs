@@ -185,8 +185,8 @@ sealed class DecalsApplication : Application
         }
         ImGui.End();
 
-        using var viewport = ImGui.GetMainViewport();
-        using var drawList = ImGui.GetForegroundDrawList(viewport);
+        var viewport = ImGui.GetMainViewport();
+        var drawList = ImGui.GetForegroundDrawList(viewport);
         var center = ImGui.GetMousePos();
         const float gap = 4.0f;
         const float length = 10.0f;

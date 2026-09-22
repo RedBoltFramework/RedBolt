@@ -362,7 +362,7 @@ public unsafe class EditorApplication : Application
             // Avoid creating imgui.ini if project with its own imgui.ini is about to be opened.
             if (_pendingOpenProject.Length != 0)
             {
-                using var io = ImGui.GetIO();
+                var io = ImGui.GetIO();
                 io.IniFilename = 0;
             }
         }
@@ -441,7 +441,7 @@ public unsafe class EditorApplication : Application
         systemUI.AddFont("Fonts/fa-solid-900.ttf", fontAwesomeIconRanges, 14.0f, true);
         systemUI.AddFont("Fonts/fa-solid-900.ttf", fontAwesomeIconRanges, 12.0f, true);
 
-        using var io = ImGui.GetIO();
+        var io = ImGui.GetIO();
         io.FontDefault = defaultFont!;
         io.ConfigWindowsMoveFromTitleBarOnly = true;
 
@@ -452,7 +452,7 @@ public unsafe class EditorApplication : Application
     protected void InitializeImGuiConfig()
     {
         // Disable imgui saving UI settings on its own. These should be serialized to project file.
-        using var io = ImGui.GetIO();
+        var io = ImGui.GetIO();
         io.ConfigViewportsNoAutoMerge = true;
         io.ConfigDpiScaleFonts = true;
         io.IniFilename = 0;

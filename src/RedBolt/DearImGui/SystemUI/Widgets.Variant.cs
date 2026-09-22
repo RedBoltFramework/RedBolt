@@ -231,7 +231,7 @@ public static partial class Widgets
                 var matchingType = GetMatchingType(descriptor, type, allowedTypes);
                 if (matchingType.HasValue)
                 {
-                    using var acceptedPayload = ImGui.AcceptDragDropPayload("DragDropPayload"u8);
+                    var acceptedPayload = ImGui.AcceptDragDropPayload("DragDropPayload"u8);
                     if (!acceptedPayload.IsNull)
                     {
                         name = descriptor.ResourceName;
