@@ -128,6 +128,8 @@ function(redbolt_add_native_binding_generation)
     endforeach()
 
     set(binding_generator_command
+        "${CMAKE_COMMAND}" -E env
+        "REDBOLT_CLANG_RESOURCE_DIRECTORY=${SHARPCPP_CLANG_RESOURCE_DIRECTORY}"
         "${DOTNET_EXECUTABLE}" "${REDBOLT_DEPENDENCIES_GENERATOR_DLL}")
     if(EMSCRIPTEN)
         list(PREPEND binding_generator_command "${_redbolt_emscripten_environment}")
