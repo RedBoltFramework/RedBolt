@@ -34,7 +34,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
         DependencyFile="$(ProjectDepsFilePath)"
         MainProjectName="$(AssemblyName)"
         NativeRuntimeDirectory="$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/extern/runtimes/$(RedBoltPlatform)/native"
-        NativeModuleManifestDirectory="$(RedBoltBuildRoot)/native/%(RedBoltExternalTestModule.Filename)%(RedBoltExternalTestModule.Extension)/$(RedBoltPlatform)/generated/native-modules/$(Configuration)"
+        NativeModuleManifestDirectory="$(RedBoltBuildRoot)/native/%(RedBoltExternalTestModule.Filename)%(RedBoltExternalTestModule.Extension)/$(RedBoltPlatform)/$(Configuration)/generated/native-modules"
         RuntimeIdentifier="$(RuntimeIdentifier)"
         Condition="'%(RedBoltExternalTestModule.HasNative)' == 'true'">
       <Output TaskParameter="NativeAssets" ItemName="_RedBoltNativeAssets" />

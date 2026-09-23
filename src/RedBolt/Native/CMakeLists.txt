@@ -597,7 +597,7 @@ endif()
 
 if(NOT EMSCRIPTEN)
     set(_redbolt_native_manifest_directory
-        "${REDBOLT_GENERATED_ROOT}/native-modules/$<CONFIG>")
+        "${REDBOLT_GENERATED_ROOT}/native-modules")
     set(_redbolt_runtime_dependency_arguments)
     if(WIN32)
         list(APPEND _redbolt_runtime_dependency_arguments

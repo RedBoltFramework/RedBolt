@@ -33,7 +33,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <WasmRunWasmOpt Condition="'$(Configuration)' != 'Release'">false</WasmRunWasmOpt>
     <WasmStripILAfterAOT Condition="'$(Configuration)' == 'Release'">true</WasmStripILAfterAOT>
     <PublishDir>$(RedBoltWebOutputDir)/</PublishDir>
-    <RedBoltWebEngineArchive>$(RedBoltBaseNativeBuildDir)/lib/Release/wasm/RedBolt.Native.Web.a</RedBoltWebEngineArchive>
+    <RedBoltWebEngineArchive>$(RedBoltBaseNativeBuildDir)/lib/$(Configuration)/wasm/RedBolt.Native.Web.a</RedBoltWebEngineArchive>
     <RedBoltWebResourcesManifest>$(BaseIntermediateOutputPath)resources.manifest.json</RedBoltWebResourcesManifest>
     <RedBoltWebPackageDirectory>$(BaseIntermediateOutputPath)packages</RedBoltWebPackageDirectory>
     <RedBoltPackageToolAssembly>$(RedBoltBuildRoot)/bin/$(Configuration)/host/tools/linux-x64/RedBolt.PackageTool.dll</RedBoltPackageToolAssembly>

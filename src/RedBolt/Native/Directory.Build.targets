@@ -27,6 +27,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
                       GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Generator/Dependencies/RedBolt.Generator.Dependencies.csproj"
                       ReferenceOutputAssembly="false"
+                      Private="false"
                       PrivateAssets="all"
                       GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
   </ItemGroup>

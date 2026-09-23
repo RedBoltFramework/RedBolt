@@ -23,7 +23,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
              Link="SampleInputMap.cs"
              Visible="false" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Generator/Reflection/RedBolt.Generator.Reflection.csproj"
-                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" Private="false"
                       GlobalPropertiesToRemove="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
   </ItemGroup>
 </Project>

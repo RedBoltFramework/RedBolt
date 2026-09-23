@@ -13,7 +13,11 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   -->
   <PropertyGroup>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    <RedBoltDependencyConfigurePreset Condition="'$(Configuration)' == 'Release'">linux-x64-release</RedBoltDependencyConfigurePreset>
+    <RedBoltDependencyConfigurePreset Condition="'$(RedBoltDependencyConfigurePreset)' == ''">linux-x64</RedBoltDependencyConfigurePreset>
   </PropertyGroup>
+
+  <Import Project="$(MSBuildThisFileDirectory)Directory.Solution.SharpCpp.targets" />
 
   <!--
     Inline C# task that writes the effective platform and architecture lists back to
@@ -205,7 +209,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   -->
   <Target Name="RedBoltEnsureDependencies"
           BeforeTargets="Restore">
-    <Exec Command="cmake --preset linux-x64" WorkingDirectory="$(MSBuildThisFileDirectory)" />
+    <Exec Command="cmake --preset $(RedBoltDependencyConfigurePreset)" WorkingDirectory="$(MSBuildThisFileDirectory)" />
     <Error Condition="!Exists('$(MSBuildThisFileDirectory)extern/SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj')"
            Text="CPM did not populate SharpCpp below '$(MSBuildThisFileDirectory)extern/SharpCpp'." />
     <Error Condition="!Exists('$(MSBuildThisFileDirectory)extern/IconFontCppHeaders/IconsFontAwesome6.cs')"

@@ -16,6 +16,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == ''">$(RedBoltRoot)/build</RedBoltBuildRoot>
     <BaseOutputPath>$(RedBoltBuildRoot)/bin/tools/external-module-packaging/</BaseOutputPath>
     <BaseIntermediateOutputPath>$(RedBoltBuildRoot)/obj/tools/external-module-packaging/</BaseIntermediateOutputPath>
-    <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)restore/</MSBuildProjectExtensionsPath>
+    <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)restore/$(Configuration)/</MSBuildProjectExtensionsPath>
   </PropertyGroup>
 </Project>

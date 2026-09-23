@@ -22,7 +22,7 @@ list(LENGTH redbolt_wasm_unique_static_targets redbolt_wasm_unique_static_target
 if(NOT redbolt_wasm_static_target_count EQUAL redbolt_wasm_unique_static_target_count)
     message(FATAL_ERROR "Web archive ownership contains duplicate static targets")
 endif()
-set(REDBOLT_WASM_ENGINE_ARCHIVE "${CMAKE_BINARY_DIR}/lib/Release/wasm/RedBolt.Native.Web.a")
+set(REDBOLT_WASM_ENGINE_ARCHIVE "${CMAKE_BINARY_DIR}/lib/${CMAKE_BUILD_TYPE}/wasm/RedBolt.Native.Web.a")
 set(REDBOLT_WASM_MRI_FILE "${CMAKE_BINARY_DIR}/redbolt-wasm-archives.mri")
 set(redbolt_wasm_mri "create ${REDBOLT_WASM_ENGINE_ARCHIVE}\n")
 foreach(target IN LISTS redbolt_wasm_static_targets)

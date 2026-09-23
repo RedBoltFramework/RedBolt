@@ -255,7 +255,7 @@ internal sealed class Packager
             var directory = project.StartsWith("RedBolt.Bindings.", StringComparison.Ordinal) ? "extern" : "core";
             return Path.Combine(_repositoryRoot, "build", "bin", Configuration, rid, directory, assembly + ".dll");
         }
-        return Path.Combine(_repositoryRoot, "build", "obj", "managed", rid, "staging", project, Configuration, assembly + ".dll");
+        return Path.Combine(_repositoryRoot, "build", "obj", "managed", Configuration, rid, "staging", project, assembly + ".dll");
     }
 
     private void StageCommon(string stage)
@@ -539,7 +539,7 @@ internal sealed class Packager
         {
             if (module == "Core")
             {
-                var artifact = Path.Combine(_repositoryRoot, "build", "native", rid, "lib", Configuration, "wasm", "RedBolt.Native.Web.a");
+                var artifact = Path.Combine(_repositoryRoot, "build", "native", "redbolt", rid, Configuration, "lib", Configuration, "wasm", "RedBolt.Native.Web.a");
                 RequireFile(artifact, "WebAssembly runtime archive");
                 var native = Path.Combine(stage, "runtimes", rid, "native");
                 Directory.CreateDirectory(native);
@@ -561,7 +561,7 @@ internal sealed class Packager
             Directory.CreateDirectory(destination);
             foreach (var nativeModule in NativeModulesFor(module, rid))
             {
-                var manifest = Path.Combine(_repositoryRoot, "build", "native", rid, "generated", "native-modules", Configuration, nativeModule + ".json");
+                var manifest = Path.Combine(_repositoryRoot, "build", "native", "redbolt", rid, Configuration, "generated", "native-modules", nativeModule + ".json");
                 if (File.Exists(manifest))
                 {
                     using var document = JsonDocument.Parse(File.ReadAllText(manifest));

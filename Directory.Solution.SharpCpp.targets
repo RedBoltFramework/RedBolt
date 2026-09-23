@@ -1,0 +1,24 @@
+<!--
+Copyright (c) 2026 RedBolt and contributors.
+This work is licensed under the terms of the MIT license.
+For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+-->
+
+<Project>
+  <!-- SharpCpp is also listed directly in the solutions. Pass the same configuration-specific
+       paths that RedBolt project references use so MSBuild identifies one build instance. -->
+  <Target Name="RedBoltConfigureSolutionSharpCppReferences"
+          BeforeTargets="Build;_GetProjectReferenceTargetFrameworkProperties;ResolveProjectReferences;_FilterRestoreGraphProjectInputItems">
+    <ItemGroup>
+      <ProjectReference Update="@(ProjectReference)"
+                        Condition="$([System.String]::Copy('%(ProjectReference.Filename)').StartsWith('SharpCpp.'))">
+        <AdditionalProperties Condition="!$([System.String]::Copy('%(ProjectReference.AdditionalProperties)').Contains('CustomAfterDirectoryBuildProps='))">%(ProjectReference.AdditionalProperties);SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppOutputDir=$(RedBoltBuildRoot)/bin/$(Configuration)/host/extern;SharpCppIntermediateRoot=$(RedBoltBuildRoot)/obj/managed/$(Configuration)/tools;CustomAfterDirectoryBuildProps=$(RedBoltSharpCppRestoreProps)</AdditionalProperties>
+      </ProjectReference>
+    </ItemGroup>
+
+    <!-- Solution restore builds a project path graph without ProjectReference metadata. -->
+    <PropertyGroup>
+      <_GenerateRestoreGraphProjectEntryInputProperties Condition="!$([System.String]::Copy('$(_GenerateRestoreGraphProjectEntryInputProperties)').Contains('CustomAfterDirectoryBuildProps='))">$(_GenerateRestoreGraphProjectEntryInputProperties);SharpCppBuildRoot=$(RedBoltBuildRoot);SharpCppOutputDir=$(RedBoltBuildRoot)/bin/$(Configuration)/host/extern;SharpCppIntermediateRoot=$(RedBoltBuildRoot)/obj/managed/$(Configuration)/tools;CustomAfterDirectoryBuildProps=$(RedBoltSharpCppRestoreProps)</_GenerateRestoreGraphProjectEntryInputProperties>
+    </PropertyGroup>
+  </Target>
+</Project>

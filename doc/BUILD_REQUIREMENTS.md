@@ -11,7 +11,7 @@ Install these tools and make them available on `PATH`:
 - Git, including support for submodules;
 - .NET SDK 10.0 or newer (the projects target `net10.0`);
 - CMake 3.28 or newer;
-- Ninja with the `Ninja Multi-Config` generator;
+- Ninja (single-configuration generator; each configuration uses its own build tree);
 - a C++20 compiler and linker.
 
 The versions used for the current build are .NET SDK 10.0.110, CMake 3.28.3,

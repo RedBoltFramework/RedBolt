@@ -27,8 +27,15 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     the generator restore against the wrong TFM.
   -->
   <ItemGroup>
+    <!-- Editor extensions load RedBolt.Editor from the host process. Copying its exe and deps.json
+         into every extension's shared core output creates concurrent writes to the same files. -->
+    <ProjectReference Update="$(RedBoltRoot)/src/RedBolt/Editor/RedBolt.Editor.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+
     <ProjectReference Update="@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.Generator.Dependencies'));@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.Generator.Reflection'))">
       <GlobalPropertiesToRemove>%(ProjectReference.GlobalPropertiesToRemove);$(RedBoltHostProjectGlobalPropertiesToRemove)</GlobalPropertiesToRemove>
+      <Private>false</Private>
     </ProjectReference>
     <ProjectReference Update="@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.PackageTool'))"
                       SetTargetFramework="TargetFramework=net10.0"
@@ -45,6 +52,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <_MSBuildProjectReferenceExistent Update="@(_MSBuildProjectReferenceExistent)"
           Condition="$([System.String]::Copy('%(_MSBuildProjectReferenceExistent.FullPath)').StartsWith('$(RedBoltSharpCppRoot)/src/'))">
         <GlobalPropertiesToRemove>%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove);$(RedBoltHostProjectGlobalPropertiesToRemove)</GlobalPropertiesToRemove>
+        <AdditionalProperties Condition="!$([System.String]::Copy('%(_MSBuildProjectReferenceExistent.AdditionalProperties)').Contains('CustomAfterDirectoryBuildProps='))">%(_MSBuildProjectReferenceExistent.AdditionalProperties);$(RedBoltSharpCppManagedProperties)</AdditionalProperties>
       </_MSBuildProjectReferenceExistent>
     </ItemGroup>
   </Target>
@@ -78,7 +86,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <Target Name="RedBoltConfigureRestoreGraph"
           BeforeTargets="_FilterRestoreGraphProjectInputItems;_GenerateRestoreProjectPathItemsPerFramework;_GenerateProjectRestoreGraphPerFramework">
     <PropertyGroup>
-      <_GenerateRestoreGraphProjectEntryInputProperties>$(_GenerateRestoreGraphProjectEntryInputProperties);RedBoltPlatform=$(RedBoltPlatform);RedBoltTargetFramework=$(RedBoltTargetFramework);SharpCppBuildRoot=$(RedBoltSharpCppBuildRoot);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot)</_GenerateRestoreGraphProjectEntryInputProperties>
+      <_GenerateRestoreGraphProjectEntryInputProperties>$(_GenerateRestoreGraphProjectEntryInputProperties);RedBoltPlatform=$(RedBoltPlatform);RedBoltTargetFramework=$(RedBoltTargetFramework);SharpCppBuildRoot=$(RedBoltSharpCppBuildRoot);SharpCppOutputDir=$(SharpCppOutputDir);SharpCppIntermediateRoot=$(SharpCppIntermediateRoot);CustomAfterDirectoryBuildProps=$(RedBoltSharpCppRestoreProps)</_GenerateRestoreGraphProjectEntryInputProperties>
     </PropertyGroup>
   </Target>
 

@@ -1,0 +1,15 @@
+<!--
+Copyright (c) 2026 RedBolt and contributors.
+This work is licensed under the terms of the MIT license.
+For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+-->
+
+<Project>
+  <!-- CustomAfterDirectoryBuildProps is a global property during solution restore. Import the SDK
+       default it replaces so projects keep the same artifacts-path behavior. -->
+  <Import Project="$(MSBuildToolsPath)/Sdks/Microsoft.NET.Sdk/Sdk/UseArtifactsOutputPath.props"
+          Condition="Exists('$(MSBuildToolsPath)/Sdks/Microsoft.NET.Sdk/Sdk/UseArtifactsOutputPath.props')" />
+  <PropertyGroup Condition="'$(SharpCppBuildPropsImported)' == 'true'">
+    <MSBuildProjectExtensionsPath>$(SharpCppBuildRoot)/obj/restore/$(Configuration)/$(MSBuildProjectName)/</MSBuildProjectExtensionsPath>
+  </PropertyGroup>
+</Project>

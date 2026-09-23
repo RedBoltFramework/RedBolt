@@ -9,20 +9,38 @@
     {
       "name": "linux-x64",
       "displayName": "Linux GCC x64 DLL",
-      "generator": "Ninja Multi-Config",
+      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/native/${presetName}",
       "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "linux-x64-release",
+      "displayName": "Linux GCC x64 DLL Release",
+      "inherits": "linux-x64",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
       "name": "win-x64",
       "displayName": "Windows MinGW x64 DLL",
-      "generator": "Ninja Multi-Config",
+      "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/native/${presetName}",
       "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/Toolchains/MinGW-x86_64.cmake"
+      }
+    },
+    {
+      "name": "win-x64-release",
+      "displayName": "Windows MinGW x64 DLL Release",
+      "inherits": "win-x64",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
@@ -34,6 +52,14 @@
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/cmake/Toolchains/DotNetEmscripten.cmake"
+      }
+    },
+    {
+      "name": "browser-wasm-debug",
+      "displayName": "Web Emscripten WASM Debug",
+      "inherits": "browser-wasm",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
@@ -52,6 +78,14 @@
       }
     },
     {
+      "name": "android-arm64-release",
+      "displayName": "Android arm64-v8a GLES Release",
+      "inherits": "android-arm64",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
       "name": "android-x64",
       "displayName": "Android x86_64 GLES",
       "generator": "Ninja",
@@ -65,21 +99,27 @@
         "CMAKE_TOOLCHAIN_FILE": "$env{ANDROID_NDK_ROOT}/build/cmake/android.toolchain.cmake",
         "REDBOLT_ANDROID_BUILD": "ON"
       }
+    },
+    {
+      "name": "android-x64-release",
+      "displayName": "Android x86_64 GLES Release",
+      "inherits": "android-x64",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
     }
   ],
   "buildPresets": [
     {
       "name": "linux-x64-debug",
       "configurePreset": "linux-x64",
-      "configuration": "Debug",
       "targets": [
         "redbolt-native-all"
       ]
     },
     {
       "name": "linux-x64-release",
-      "configurePreset": "linux-x64",
-      "configuration": "Release",
+      "configurePreset": "linux-x64-release",
       "targets": [
         "redbolt-native-all"
       ]
@@ -87,15 +127,13 @@
     {
       "name": "win-x64-debug",
       "configurePreset": "win-x64",
-      "configuration": "Debug",
       "targets": [
         "redbolt-native-all"
       ]
     },
     {
       "name": "win-x64-release",
-      "configurePreset": "win-x64",
-      "configuration": "Release",
+      "configurePreset": "win-x64-release",
       "targets": [
         "redbolt-native-all"
       ]
@@ -108,6 +146,13 @@
       ]
     },
     {
+      "name": "browser-wasm-debug",
+      "configurePreset": "browser-wasm-debug",
+      "targets": [
+        "redbolt-wasm-native"
+      ]
+    },
+    {
       "name": "android-arm64-debug",
       "configurePreset": "android-arm64",
       "targets": [
@@ -115,8 +160,22 @@
       ]
     },
     {
+      "name": "android-arm64-release",
+      "configurePreset": "android-arm64-release",
+      "targets": [
+        "redbolt-android-native"
+      ]
+    },
+    {
       "name": "android-x64-debug",
       "configurePreset": "android-x64",
+      "targets": [
+        "redbolt-android-native"
+      ]
+    },
+    {
+      "name": "android-x64-release",
+      "configurePreset": "android-x64-release",
       "targets": [
         "redbolt-android-native"
       ]

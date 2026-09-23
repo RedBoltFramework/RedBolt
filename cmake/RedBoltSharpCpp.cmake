@@ -3,6 +3,9 @@
 # For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 
 get_filename_component(_redbolt_sharpcpp_core_root "${CMAKE_CURRENT_LIST_DIR}/.." REALPATH)
+if(NOT EXISTS "${SHARPCPP_CLANG_RESOURCE_DIRECTORY}/include/stddef.h")
+    include("${REDBOLT_SHARPCPP_ROOT}/cmake/SharpCppClang.cmake")
+endif()
 if(NOT CMAKE_SOURCE_DIR STREQUAL _redbolt_sharpcpp_core_root
     AND NOT TARGET sharpcpp-native-support
     AND NOT TARGET SharpCpp::NativeSupport)

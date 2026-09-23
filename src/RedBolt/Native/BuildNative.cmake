@@ -12,12 +12,6 @@ foreach(required_variable
     endif()
 endforeach()
 
-if(NOT DEFINED REDBOLT_PARALLELIZATION OR REDBOLT_PARALLELIZATION STREQUAL "")
-    set(REDBOLT_PARALLELIZATION 1)
-elseif(NOT REDBOLT_PARALLELIZATION MATCHES "^[1-9][0-9]*$")
-    message(FATAL_ERROR "REDBOLT_PARALLELIZATION must be a positive integer")
-endif()
-
 get_filename_component(_redbolt_native_build_parent "${REDBOLT_NATIVE_BUILD_DIR}" DIRECTORY)
 file(MAKE_DIRECTORY "${_redbolt_native_build_parent}")
 file(LOCK "${REDBOLT_NATIVE_BUILD_DIR}.lock"
@@ -38,12 +32,9 @@ set(_redbolt_build_command
     ${_redbolt_native_environment}
     "${CMAKE_COMMAND}"
     --build "${REDBOLT_NATIVE_BUILD_DIR}")
-if(DEFINED REDBOLT_CONFIGURATION AND NOT REDBOLT_CONFIGURATION STREQUAL "")
-    list(APPEND _redbolt_build_command --config "${REDBOLT_CONFIGURATION}")
-endif()
 list(APPEND _redbolt_build_command
     --target "${REDBOLT_NATIVE_TARGET}"
-    --parallel "${REDBOLT_PARALLELIZATION}")
+    --parallel)
 execute_process(
     COMMAND ${_redbolt_build_command}
     WORKING_DIRECTORY "${REDBOLT_SOURCE_DIR}"
