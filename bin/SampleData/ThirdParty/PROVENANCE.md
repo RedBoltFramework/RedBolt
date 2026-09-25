@@ -2,6 +2,8 @@
 
 Only the files listed below are included. The source archives are not included.
 
+Missing core sample resources were restored on 2026-09-24 from the published RedBolt packages in `RedBoltFramework.github.io/samples/resources/`: `RedBolt.CoreData.pak` (SHA-256 `51860989b5582e8c5ad84922e3cae8592b3c7f282cf25ef7a07c7e19b243c110`) and `RedBolt.SampleData.pak` (SHA-256 `74a90db9a81aa5d3a828b99a0cb7bfedcfe567389f89609e9d3a12640c185b1f`). Extracted entries retain their package checksums.
+
 ## Kenney Nature Kit
 
 - Source: https://kenney.nl/assets/nature-kit
@@ -50,7 +52,7 @@ Only the files listed below are included. The source archives are not included.
 - Downloaded: 2026-08-26
 - Source archive SHA-256: `ac2fcf599080b0f3ba2d174c9474db6df1a0e96ff0662580e2da79a122ab78a1`
 - License: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
-- Selected source files: `keyboard_w.png`, `keyboard_a.png`, `keyboard_s.png`, `keyboard_d.png`, `keyboard_space.png`, `keyboard_escape.png`, `keyboard_f.png`, `keyboard_g.png`, `keyboard_shift.png`, `keyboard_m.png`, `keyboard_tab.png`, `keyboard_arrow_up.png`, `keyboard_arrow_down.png`, `keyboard_arrows.png`, `keyboard_enter.png`, `mouse_left.png`, `mouse_right.png`, and `mouse_move.png` from `Keyboard & Mouse/Default/`; `generic_button.png` and `generic_joystick.png` from `Generic/Default/`; and `touch_swipe_move.png` and `touch_tap.png` from `Touch/Default/`.
+- Selected source files: `keyboard_w.png`, `keyboard_a.png`, `keyboard_s.png`, `keyboard_d.png`, `keyboard_space.png`, `keyboard_escape.png`, `keyboard_f.png`, `keyboard_g.png`, `keyboard_shift.png`, `keyboard_m.png`, `keyboard_tab.png`, `keyboard_arrow_up.png`, `keyboard_arrow_down.png`, `keyboard_arrows.png`, `keyboard_enter.png`, `mouse_left.png`, `mouse_right.png`, and `mouse_move.png` from `Keyboard & Mouse/Default/`; `generic_button.png` and `generic_joystick.png` from `Generic/Default/`; `touch_swipe_move.png`, `touch_swipe_two_move.png`, and `touch_tap.png` from `Touch/Default/`; and `xbox_button_color_a.png`, `xbox_button_color_b.png`, `xbox_button_color_x.png`, `xbox_button_color_y.png`, `xbox_button_back.png`, `xbox_button_start.png`, `xbox_lb.png`, `xbox_rb.png`, `xbox_stick_l.png`, and `xbox_stick_r.png` from `Xbox Series/Default/`. The pack's `License.txt` is included as `KenneyInputPrompts.LICENSE.txt`.
 
 ## Kenney Particle Pack
 

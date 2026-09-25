@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<material>
+    <technique name="Techniques/DiffNormal.xml" quality="1" />
+    <technique name="Techniques/Diff.xml" quality="0" />
+    <texture slot="Albedo" name="Textures/StoneDiffuse.dds" />
+    <texture slot="Normal" name="Textures/StoneNormal.dds" />
+    <shader psdefines="PACKEDNORMAL" />
+    <parameter name="MatDiffColor" value="0.72 0.76 0.82 1" />
+    <parameter name="MatSpecColor" value="0.035 0.04 0.05 8" />
+</material>

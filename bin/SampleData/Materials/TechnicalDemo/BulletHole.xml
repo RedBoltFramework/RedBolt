@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<material>
+    <technique name="Techniques/DiffAlpha.xml" />
+    <texture slot="Albedo" name="Textures/TechnicalDemo/BulletHole.png" />
+    <parameter name="MatDiffColor" value="1 1 1 1" />
+    <depthbias constant="-0.00002" slopescaled="0" />
+    <renderorder value="0" />
+</material>

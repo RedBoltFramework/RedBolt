@@ -1,0 +1,5 @@
+<texture>
+    <srgb enable="true" />
+    <address coord="u" mode="wrap" />
+    <address coord="v" mode="wrap" />
+</texture>

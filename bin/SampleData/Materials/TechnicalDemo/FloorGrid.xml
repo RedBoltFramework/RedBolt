@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<material>
+    <technique name="Techniques/LitOpaque.xml" />
+    <shader vsdefines="PBR" psdefines="PBR" />
+    <texture slot="Albedo" name="Textures/TechnicalDemo/Grid.png" />
+    <parameter name="UOffset" value="30 0 0 0" />
+    <parameter name="VOffset" value="0 14 0 0" />
+    <parameter name="MatDiffColor" value="0.82 0.84 0.88 1" />
+    <parameter name="Roughness" value="0.82" />
+    <parameter name="Metallic" value="0" />
+</material>

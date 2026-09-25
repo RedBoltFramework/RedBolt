@@ -102,9 +102,9 @@ sealed class DecalsApplication : Application
         if (_sampleInput.Pressed("Fire"))
             Shoot();
 
-        var pointer = Input.GetMousePosition();
-        var aimX = Math.Clamp(pointer.X / (float)Graphics.Width - 0.5f, -0.5f, 0.5f);
-        var aimY = Math.Clamp(pointer.Y / (float)Graphics.Height - 0.5f, -0.5f, 0.5f);
+        var aimPosition = GetAimPosition();
+        var aimX = Math.Clamp(aimPosition.X - 0.5f, -0.5f, 0.5f);
+        var aimY = Math.Clamp(aimPosition.Y - 0.5f, -0.5f, 0.5f);
         _gunNode!.SetRotation(new Quaternion(aimY * 12.0f, aimX * 18.0f, 0.0f));
         _recoil = MathF.Max(0.0f, _recoil - timeStep * 5.0f);
         _gunNode.SetPosition(new Vector3f(0.0f, 0.0f, -0.12f * _recoil));
@@ -157,12 +157,22 @@ sealed class DecalsApplication : Application
 
     private Ray GetAimRay()
     {
-        var pointer = Input.ActiveInputDevice == InputDeviceType.Touch
-            ? new IntVector2(Graphics.Width / 2, Graphics.Height / 2)
-            : Input.GetMousePosition();
-        return _cameraNode!.GetComponent<Camera>()!.GetScreenRay(
-            pointer.X / (float)Graphics.Width,
-            pointer.Y / (float)Graphics.Height);
+        var aimPosition = GetAimPosition();
+        return _cameraNode!.GetComponent<Camera>()!.GetScreenRay(aimPosition.X, aimPosition.Y);
+    }
+
+    private Vector2f GetAimPosition()
+    {
+        if (Input.ActiveInputDevice == InputDeviceType.Touch)
+        {
+            var position = Input.GetTouch(0)!.Value.Position;
+            var backbufferSize = Input.GetBackbufferSize();
+            return new Vector2f(
+                position.X / (float)backbufferSize.X,
+                position.Y / (float)backbufferSize.Y);
+        }
+
+        return Input.GetRelativeMousePosition();
     }
 
     private void ClearDecals()
@@ -187,7 +197,10 @@ sealed class DecalsApplication : Application
 
         var viewport = ImGui.GetMainViewport();
         var drawList = ImGui.GetForegroundDrawList(viewport);
-        var center = ImGui.GetMousePos();
+        // ImGui uses logical coordinates while input and camera picking use backbuffer pixels.
+        // Derive the crosshair from the same normalized aim as the shot, including the active touch.
+        var aimPosition = GetAimPosition();
+        var center = viewport.Pos + new Vector2f(aimPosition.X * viewport.Size.X, aimPosition.Y * viewport.Size.Y);
         const float gap = 4.0f;
         const float length = 10.0f;
         var color = Color.White.ToUInt();

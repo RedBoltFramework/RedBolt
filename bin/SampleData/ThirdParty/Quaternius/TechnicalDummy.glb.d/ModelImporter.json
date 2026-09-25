@@ -1,0 +1,8 @@
+{
+    "resetRootMotion": [
+        { "key": "Crouch_Fwd_Loop.ani", "value": {} },
+        { "key": "Jog_Fwd_Loop.ani", "value": {} },
+        { "key": "Jump_Loop.ani", "value": {} },
+        { "key": "Walk_Loop.ani", "value": {} }
+    ]
+}

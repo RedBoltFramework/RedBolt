@@ -1,0 +1,10 @@
+<material>
+    <technique name="Techniques/UnlitTransparentAdd.xml" />
+    <shader vsdefines="SOFTPARTICLES" psdefines="SOFTPARTICLES" />
+    <renderorder value="129" />
+    <cull value="none" />
+    <shadowcull value="none" />
+    <texture slot="Albedo" name="Textures/RealFire/Circle.png" />
+    <parameter name="MatDiffColor" value="1.2 0.85 0.55 1" />
+    <parameter name="FadeOffsetScale" value="0 0.5" />
+</material>
