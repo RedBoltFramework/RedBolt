@@ -528,11 +528,11 @@ public class Engine : RedObject
         }
         else
         {
-            var programDirectory = NormalizeConfiguredResourcePath(ExecutableDirectory) + Path.DirectorySeparatorChar;
+            var programDirectory = AddDirectorySeparator(NormalizeConfiguredResourcePath(ExecutableDirectory));
             absolutePrefixPaths.Add(programDirectory);
             foreach (var prefixPath in prefixPaths)
             {
-                var absolutePrefixPath = NormalizeConfiguredResourcePath(prefixPath) + Path.DirectorySeparatorChar;
+                var absolutePrefixPath = AddDirectorySeparator(NormalizeConfiguredResourcePath(prefixPath));
                 if (!absolutePrefixPaths.Contains(absolutePrefixPath, StringComparer.Ordinal))
                     absolutePrefixPaths.Add(absolutePrefixPath);
             }
@@ -972,6 +972,11 @@ public class Engine : RedObject
         return Path.IsPathRooted(path)
             ? Path.GetFullPath(path)
             : Path.GetFullPath(Path.Combine(ExecutableDirectory, path));
+    }
+
+    private static string AddDirectorySeparator(string path)
+    {
+        return Path.EndsInDirectorySeparator(path) ? path : path + Path.DirectorySeparatorChar;
     }
 
     public void ApplyFrameLimit()

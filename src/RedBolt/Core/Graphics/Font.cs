@@ -60,7 +60,16 @@ public sealed partial class Font : ResourceType
             return true;
         }
 
-        _blob = HarfBuzz.HbBlobCreateFromFileOrFail(GetAbsoluteFileName());
+        var fontData = new byte[checked((int)source.Size)];
+        if (source.Read(fontData) != source.Size)
+            return false;
+
+        _blob = HarfBuzz.HbBlobCreateOrFail(
+            MemoryMarshal.Cast<byte, sbyte>(fontData.AsSpan()),
+            source.Size,
+            HbMemoryModeT.HbMemoryModeDuplicate,
+            IntPtr.Zero,
+            IntPtr.Zero);
         if (_blob.IsNull)
         {
             _blob.Dispose();

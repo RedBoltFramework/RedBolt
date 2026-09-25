@@ -28,7 +28,10 @@ internal static class WebProgram
         int exitCode;
         try
         {
-            exitCode = application.Run(["--resource-paths", SampleCatalog.ResourcePaths]);
+            exitCode = application.Run([
+                "--resource-paths", SampleCatalog.ResourcePaths,
+                "--prefix-paths", "/",
+            ]);
         }
         catch (Exception exception)
         {
