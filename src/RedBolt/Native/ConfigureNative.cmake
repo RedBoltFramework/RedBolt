@@ -101,6 +101,13 @@ if(EXISTS "${_redbolt_native_cache}")
             REGEX "^CMAKE_BUILD_TYPE:[^=]*="
             LIMIT_COUNT 1)
         string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_build_type "${_redbolt_cached_build_type}")
+        file(STRINGS "${_redbolt_native_cache}"
+            _redbolt_cached_sharpcpp_root
+            REGEX "^REDBOLT_SHARPCPP_ROOT:[^=]*="
+            LIMIT_COUNT 1)
+        string(REGEX REPLACE "^[^=]*=" "" _redbolt_cached_sharpcpp_root "${_redbolt_cached_sharpcpp_root}")
+        cmake_path(COMPARE "${_redbolt_cached_sharpcpp_root}" EQUAL "${REDBOLT_SHARPCPP_ROOT}"
+            _redbolt_cached_sharpcpp_root_matches)
         set(_redbolt_cached_build_type_matches TRUE)
         if(NOT _redbolt_cached_build_type STREQUAL REDBOLT_CONFIGURATION)
             set(_redbolt_cached_build_type_matches FALSE)
@@ -111,6 +118,7 @@ if(EXISTS "${_redbolt_native_cache}")
                 AND _redbolt_cached_configuration STREQUAL REDBOLT_CONFIGURATION
                 AND _redbolt_cached_enabled_modules STREQUAL REDBOLT_ENABLED_NATIVE_MODULES
                 AND _redbolt_cached_cmake_command STREQUAL CMAKE_COMMAND
+                AND _redbolt_cached_sharpcpp_root_matches
                 AND _redbolt_cached_build_type_matches)
             set(_redbolt_configure_native FALSE)
         endif()

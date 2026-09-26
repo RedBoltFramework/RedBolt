@@ -208,8 +208,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     explicit when the configure step cannot populate a required dependency.
   -->
   <Target Name="RedBoltEnsureDependencies"
-          BeforeTargets="Restore">
-    <Exec Command="cmake --preset $(RedBoltDependencyConfigurePreset)" WorkingDirectory="$(MSBuildThisFileDirectory)" />
+          BeforeTargets="_LoadRestoreGraphEntryPoints;Restore">
+    <Exec Command="cmake --preset $(RedBoltDependencyConfigurePreset) &quot;-DREDBOLT_SHARPCPP_ROOT=$(MSBuildThisFileDirectory)extern/SharpCpp&quot;" WorkingDirectory="$(MSBuildThisFileDirectory)" />
     <Error Condition="!Exists('$(MSBuildThisFileDirectory)extern/SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj')"
            Text="CPM did not populate SharpCpp below '$(MSBuildThisFileDirectory)extern/SharpCpp'." />
     <Error Condition="!Exists('$(MSBuildThisFileDirectory)extern/IconFontCppHeaders/IconsFontAwesome6.cs')"

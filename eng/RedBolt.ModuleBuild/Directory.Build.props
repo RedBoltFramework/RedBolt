@@ -49,7 +49,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltSharpCppConfigureNative Condition="'$(RedBoltSharpCppNativeBuildDir)' != '' and !Exists('$(RedBoltSharpCppNativeBuildDir)/CMakeCache.txt')">true</RedBoltSharpCppConfigureNative>
     <RedBoltSharpCppConfigureNative Condition="'$(RedBoltSharpCppConfigureNative)' == ''">false</RedBoltSharpCppConfigureNative>
     <RedBoltTestsProject>$([System.IO.Path]::GetFullPath('$(RedBoltExternalModuleRoot)/../RedBolt.Tests/RedBolt.Tests.csproj'))</RedBoltTestsProject>
-    <RedBoltSharpCppRoot>$(RedBoltRoot)/extern/SharpCpp</RedBoltSharpCppRoot>
     <RedBoltExternalWebNativeEnabled Condition="'$(RedBoltExternalWebNativeEnabled)' == ''">$(RedBoltExternalHasNative)</RedBoltExternalWebNativeEnabled>
     <!-- Module native build directory is namespaced by the module name under the shared native/ root. -->
     <RedBoltNativeBuildDir Condition="'$(RedBoltPlatform)' != 'tools' and $([System.String]::Copy('$(MSBuildProjectFullPath)').StartsWith('$(RedBoltRoot)/src/RedBolt/'))">$(RedBoltBaseNativeBuildDir)</RedBoltNativeBuildDir>
