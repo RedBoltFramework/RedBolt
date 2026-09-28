@@ -22,6 +22,23 @@ if(NOT CMAKE_SOURCE_DIR STREQUAL _redbolt_sharpcpp_core_root
 endif()
 unset(_redbolt_sharpcpp_core_root)
 
+# SharpCpp sources consumed by the dependency generators. Binding outputs must
+# be regenerated when these change, even if the generator assembly does not.
+file(GLOB_RECURSE REDBOLT_SHARPCPP_GENERATOR_INPUTS CONFIGURE_DEPENDS
+    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Model/*.cs"
+    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Metadata/*.cs"
+    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Parsing/*.cs"
+    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Pipeline/*.cs"
+    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Rendering/*.cs"
+    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Support/*.cs"
+    "${REDBOLT_SHARPCPP_ROOT}/src/SharpCpp.Toolchain/*.cs"
+    "${REDBOLT_SHARPCPP_ROOT}/include/SharpCpp/*.h"
+    "${REDBOLT_SHARPCPP_ROOT}/include/SharpCpp/*.hpp")
+list(FILTER REDBOLT_SHARPCPP_GENERATOR_INPUTS EXCLUDE REGEX "/src/SharpCpp\\.[^/]+/(obj|bin)/")
+# Cache so the list is visible outside the including directory scope (the core
+# build includes this file from cmake/, not the top-level directory).
+set(REDBOLT_SHARPCPP_GENERATOR_INPUTS "${REDBOLT_SHARPCPP_GENERATOR_INPUTS}" CACHE INTERNAL "SharpCpp generator inputs")
+
 if(REDBOLT_ANDROID_BUILD OR ANDROID)
     find_program(_redbolt_binding_cxx_compiler NAMES clang++-20 clang++ REQUIRED)
     string(REGEX REPLACE "^android-" "" _redbolt_android_api "${ANDROID_PLATFORM}")
@@ -183,6 +200,7 @@ function(redbolt_add_native_binding_generation)
             "${ARG_HEADER}"
             "${REDBOLT_DEPENDENCIES_GENERATOR_DLL}"
             ${owned_header_inputs}
+            ${REDBOLT_SHARPCPP_GENERATOR_INPUTS}
             ${REDBOLT_DEPENDENCIES_GENERATOR_INPUTS}
             ${ARG_DEPENDS}
         WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
