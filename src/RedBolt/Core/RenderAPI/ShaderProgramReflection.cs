@@ -167,9 +167,13 @@ public ShaderProgramReflection(IEnumerable<RawShader?> shaders)
                     var group = indexToGroup[blockIndex];
                     if (group != (ShaderParameterGroup)RenderApiLimits.MaxShaderParameterGroups)
                     {
+                        uint variableClass = 0, basicType = 0, numRows = 0, numColumns = 0, arraySize = 0;
+                        Diligent.GetTemporaryGLProgramUniformType(temporaryGlProgram, (uint)uniformIndex,
+                            ref variableClass, ref basicType, ref numRows, ref numColumns, ref arraySize);
                         AddUniform(uniformName, group, blockOffset,
                             checked((int)Diligent.GetTemporaryGLProgramUniformSize(temporaryGlProgram, (uint)uniformIndex)),
-                            default, default, 0, 0, 0);
+                            (ShaderCodeVariableClass)variableClass, (ShaderCodeBasicType)basicType,
+                            checked((int)numRows), checked((int)numColumns), checked((int)arraySize));
                     }
                 }
             }

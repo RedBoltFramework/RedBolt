@@ -79,6 +79,8 @@ const char* GetTemporaryGLProgramUniformName(void* program, Uint32 index);
 Int32 GetTemporaryGLProgramUniformBlockIndex(const void* program, Uint32 index);
 Int32 GetTemporaryGLProgramUniformBlockOffset(const void* program, Uint32 index);
 Uint32 GetTemporaryGLProgramUniformSize(const void* program, Uint32 index);
+bool GetTemporaryGLProgramUniformType(const void* program, Uint32 index, Uint32& variableClass, Uint32& basicType,
+    Uint32& numRows, Uint32& numColumns, Uint32& arraySize);
 ISwapChainGL* CreateProxySwapChainGL(IRenderDevice* device, IDeviceContext* deviceContext,
     const SwapChainDesc& swapChainDesc, void* window);
 ISwapChainGL* CreateSecondaryProxySwapChainGL(IRenderDevice* device, IDeviceContext* deviceContext,

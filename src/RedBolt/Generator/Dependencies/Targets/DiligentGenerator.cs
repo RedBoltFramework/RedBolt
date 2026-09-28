@@ -52,6 +52,7 @@ internal sealed class DiligentGenerator(string nativeLibraryName)
         "GetTemporaryGLProgramUniformName",
         "GetTemporaryGLProgramUniformBlockOffset",
         "GetTemporaryGLProgramUniformSize",
+        "GetTemporaryGLProgramUniformType",
         "GetTextureFormatAttribs",
         "GetOpenXRGraphicsBinding",
         "AllocateOpenXRSwapchainImageData",

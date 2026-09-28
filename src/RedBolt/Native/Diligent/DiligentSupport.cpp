@@ -289,6 +289,79 @@ Uint32 GetTemporaryGLProgramUniformSize(const void* program, Uint32 index)
     return numElements * sizeof(float);
 }
 
+bool GetTemporaryGLProgramUniformType(const void* program, Uint32 index, Uint32& variableClass, Uint32& basicType,
+    Uint32& numRows, Uint32& numColumns, Uint32& arraySize)
+{
+    GLint elementCount = 0;
+    GLenum type = 0;
+    char name[256]{};
+    glGetActiveUniform(static_cast<const TemporaryGLProgram*>(program)->programObject_, index, sizeof(name), nullptr,
+        &elementCount, &type, name);
+
+    // Mirrors Diligent GLDataTypeToShaderCodeVariableDesc (GLTypeConversions.cpp) for the uniform types
+    // supported by GetTemporaryGLProgramUniformSize, so GL program reflection matches native shader reflection.
+    SHADER_CODE_VARIABLE_CLASS resultClass = SHADER_CODE_VARIABLE_CLASS_UNKNOWN;
+    SHADER_CODE_BASIC_TYPE resultBasicType = SHADER_CODE_BASIC_TYPE_UNKNOWN;
+    Uint32 resultRows = 0;
+    Uint32 resultColumns = 0;
+    switch (type)
+    {
+    case GL_BOOL:
+        resultClass = SHADER_CODE_VARIABLE_CLASS_SCALAR;
+        resultBasicType = SHADER_CODE_BASIC_TYPE_BOOL;
+        resultRows = 1;
+        resultColumns = 1;
+        break;
+    case GL_INT:
+        resultClass = SHADER_CODE_VARIABLE_CLASS_SCALAR;
+        resultBasicType = SHADER_CODE_BASIC_TYPE_INT;
+        resultRows = 1;
+        resultColumns = 1;
+        break;
+    case GL_FLOAT:
+        resultClass = SHADER_CODE_VARIABLE_CLASS_SCALAR;
+        resultBasicType = SHADER_CODE_BASIC_TYPE_FLOAT;
+        resultRows = 1;
+        resultColumns = 1;
+        break;
+    case GL_FLOAT_VEC2:
+    case GL_FLOAT_VEC3:
+    case GL_FLOAT_VEC4:
+        resultClass = SHADER_CODE_VARIABLE_CLASS_VECTOR;
+        resultBasicType = SHADER_CODE_BASIC_TYPE_FLOAT;
+        resultRows = type == GL_FLOAT_VEC2 ? 2u : type == GL_FLOAT_VEC3 ? 3u : 4u;
+        resultColumns = 1;
+        break;
+    case GL_FLOAT_MAT3:
+        resultClass = SHADER_CODE_VARIABLE_CLASS_MATRIX_COLUMNS;
+        resultBasicType = SHADER_CODE_BASIC_TYPE_FLOAT;
+        resultRows = 3;
+        resultColumns = 3;
+        break;
+    case GL_FLOAT_MAT3x4:
+        resultClass = SHADER_CODE_VARIABLE_CLASS_MATRIX_COLUMNS;
+        resultBasicType = SHADER_CODE_BASIC_TYPE_FLOAT;
+        resultRows = 4;
+        resultColumns = 3;
+        break;
+    case GL_FLOAT_MAT4:
+        resultClass = SHADER_CODE_VARIABLE_CLASS_MATRIX_COLUMNS;
+        resultBasicType = SHADER_CODE_BASIC_TYPE_FLOAT;
+        resultRows = 4;
+        resultColumns = 4;
+        break;
+    default: break;
+    }
+
+    variableClass = static_cast<Uint32>(resultClass);
+    basicType = static_cast<Uint32>(resultBasicType);
+    numRows = resultRows;
+    numColumns = resultColumns;
+    // Diligent reports non-array variables with ArraySize == 0.
+    arraySize = elementCount > 1 ? static_cast<Uint32>(elementCount) : 0u;
+    return resultClass != SHADER_CODE_VARIABLE_CLASS_UNKNOWN;
+}
+
 class ProxySwapChainGL : public SwapChainBase<ISwapChainGL>
 {
 public:
