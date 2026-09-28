@@ -14,6 +14,7 @@ using SharpCpp.Model.Ast;
 using SharpCpp.Parsing;
 using SharpCpp.Pipeline;
 using SharpCpp.Rendering;
+using SharpCpp.Toolchain;
 
 internal abstract class BindingTargetGenerator(
     string surface,
@@ -199,10 +200,10 @@ internal abstract class BindingTargetGenerator(
         var toolchainInfo = CompilerToolchainDiscovery.Discover(
             options.CompilerPath,
             options.CompilerTarget,
-            options.CompilerSysroot);
+            options.CompilerSysroot,
+            Environment.GetEnvironmentVariable("REDBOLT_CLANG_RESOURCE_DIRECTORY"));
         var targetTriple = toolchainInfo.TargetTriple;
-        var isMinGwTarget = targetTriple?.Contains("windows", StringComparison.OrdinalIgnoreCase) == true ||
-            targetTriple?.Contains("mingw", StringComparison.OrdinalIgnoreCase) == true;
+        var isMinGwTarget = toolchainInfo.IsMinGwTarget;
         // Bundled libclang otherwise auto-detects incompatible GCC intrinsic headers.
         if (isMinGwTarget)
             clangArguments.Add("-nostdinc");

@@ -29,5 +29,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
                       AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
+    <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Toolchain/SharpCpp.Toolchain.csproj"
+                      AdditionalProperties="$(RedBoltSharpCppManagedProperties)" />
   </ItemGroup>
 </Project>
