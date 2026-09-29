@@ -42,6 +42,13 @@ public struct Matrix4 : IEquatable<Matrix4>, IApproximateEquatable<Matrix4>
     {
     }
 
+    /// <summary>Construct from a rotation and a translation.</summary>
+    public Matrix4(Quaternion rotation, Vector3f translation)
+        : this(rotation.RotationMatrix)
+    {
+        SetTranslation(translation);
+    }
+
     /// <summary>Construct from values.</summary>
     public Matrix4(
         float v00, float v01, float v02, float v03,
@@ -188,6 +195,15 @@ public struct Matrix4 : IEquatable<Matrix4>, IApproximateEquatable<Matrix4>
         M03 = translation.X;
         M13 = translation.Y;
         M23 = translation.Z;
+    }
+
+    /// <summary>Return a copy with the translation offset in the matrix's own (pre-transform) frame,
+    /// i.e. result = this * Matrix4.Translation(translation).</summary>
+    public readonly Matrix4 PreTranslated(Vector3f translation)
+    {
+        var result = this;
+        result.SetTranslation(Translation + Matrix3 * translation);
+        return result;
     }
 
     /// <summary>Set rotation elements from a 3x3 matrix.</summary>
