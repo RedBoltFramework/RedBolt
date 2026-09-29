@@ -89,6 +89,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <MakeDir Directories="$(RedBoltOutputRoot)" />
     <EnsureDirectoryLink Source="$(RedBoltRoot)/bin/CoreData" Link="$(RedBoltOutputRoot)/CoreData" />
     <EnsureDirectoryLink Source="$(RedBoltRoot)/bin/SampleData" Link="$(RedBoltOutputRoot)/SampleData" />
+    <EnsureDirectoryLink Source="$(RedBoltRoot)/bin/EditorData" Link="$(RedBoltOutputRoot)/EditorData" />
     <EnsureDirectoryLink Source="$(RedBoltExternalDesktopResourceRoot)/bin/CoreData.$(RedBoltExternalDesktopResourceName)"
                          Link="$(RedBoltOutputRoot)/CoreData.$(RedBoltExternalDesktopResourceName)"
                          Condition="Exists('$(RedBoltExternalDesktopResourceRoot)/bin/CoreData.$(RedBoltExternalDesktopResourceName)')" />
