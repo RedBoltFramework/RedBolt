@@ -110,6 +110,27 @@ public struct Vector3fAbi(float x, float y, float z)
     public float Z = z;
 }
 
+[CustomMarshaller(typeof(BaseRealVector3<double>), MarshalMode.Default, typeof(Vector3dMarshaller))]
+public static class Vector3dMarshaller
+{
+    public static Vector3dAbi ConvertToUnmanaged(BaseRealVector3<double> managed) =>
+        new(managed.X, managed.Y, managed.Z);
+
+    public static BaseRealVector3<double> ConvertToManaged(Vector3dAbi unmanaged) =>
+        new(unmanaged.X, unmanaged.Y, unmanaged.Z);
+}
+
+[StructLayout(LayoutKind.Sequential)]
+public struct Vector3dAbi(double x, double y, double z)
+{
+    public double X = x;
+    public double Y = y;
+    public double Z = z;
+}
+
+// Vector4f is a blittable sequential struct, so it is its own ABI type. Default is included so
+// the marshaller can also be used for in/ref parameters (Jolt Vec4&/const Vec4&).
+[CustomMarshaller(typeof(Vector4f), MarshalMode.Default, typeof(Vector4fMarshaller))]
 [CustomMarshaller(typeof(Vector4f), MarshalMode.ManagedToUnmanagedIn, typeof(Vector4fMarshaller))]
 [CustomMarshaller(typeof(Vector4f), MarshalMode.ManagedToUnmanagedOut, typeof(Vector4fMarshaller))]
 [CustomMarshaller(typeof(Vector4f), MarshalMode.UnmanagedToManagedOut, typeof(Vector4fMarshaller))]
