@@ -39,6 +39,7 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
     protected override void ConfigureBeforeValidation(BindingCompilation compilation)
     {
         ConfigureFunctions(compilation);
+        ConfigureRemainingTextPointers(compilation);
         ExcludeUnconstrainedImVectorHelpers(compilation);
         foreach (var record in compilation.Records.Where(static record =>
                      record.NativeName is "ImFontAtlasBuilder" or "ImGuiContext" or "ImGuiDockContext"))
@@ -48,6 +49,40 @@ internal sealed class DearImGuiGenerator(string nativeLibraryName)
                      .SelectMany(static record => record.Members.OfType<FieldBinding>())
                      .Where(static field => field.NativeName is "Layers" or "DrawDataBuilder_Layers"))
             field.SetSilentExclusionReason("ImVector pointer arrays have no managed container projection");
+    }
+
+    // Optional `const char** remaining` outputs point into the input text; bind them as a raw
+    // pointer slot defaulting to null instead of SharpCpp's copied `out string?`.
+    // TODO: project an offset (`out int consumed` or a ReadOnlySpan<byte> slice).
+    private static void ConfigureRemainingTextPointers(BindingCompilation compilation)
+    {
+        foreach (var function in compilation.Functions)
+        {
+            var name = function.NativeName switch
+            {
+                "CalcTextSizeA" => "remaining",
+                "ImFontCalcTextSizeEx" => "out_remaining",
+                "ImTextStrFromUtf8" => "in_remaining",
+                _ => null
+            };
+            if (name is null)
+                continue;
+
+            foreach (var parameter in function.Parameters)
+            {
+                if (parameter.NativeName != name || parameter.PointerPointer != PointerPointerKind.Chars)
+                    continue;
+
+                // The resolver degrades a shape tag left on a non pointer-pointer parameter.
+                parameter.RemoveMetadata(MetadataKeys.PointerPointerShape);
+                parameter.RemoveMetadata(MetadataKeys.PointerPointerDefaultShape);
+                parameter.PointerPointer = PointerPointerKind.None;
+                parameter.Type = BindingType.IntPtr;
+                parameter.Direction = BindingParameterDirection.In;
+                parameter.AbiKind = BindingParameterAbiKind.Value;
+                parameter.ManagedDefaultValueExpression = "default";
+            }
+        }
     }
 
     private static void ExcludeUnconstrainedImVectorHelpers(BindingCompilation compilation)
