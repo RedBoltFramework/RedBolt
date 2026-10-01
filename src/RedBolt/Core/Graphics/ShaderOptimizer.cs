@@ -66,15 +66,11 @@ public static class ShaderOptimizer
             if (isVulkan)
                 SpirVTools.SpvOptimizerRegisterLegalizationPasses(optimizer);
 
-            ReadOnlySpan<byte> optimizationFlag = "-O\0"u8;
-            fixed (byte* optimizationFlagPointer = optimizationFlag)
+            ReadOnlySpan<string?> optimizationFlags = ["-O"];
+            if (!SpirVTools.SpvOptimizerRegisterPassesFromFlagsWhilePreservingTheInterface(
+                    optimizer, optimizationFlags, (nuint)optimizationFlags.Length))
             {
-                ReadOnlySpan<nint> optimizationFlags = [(nint)optimizationFlagPointer];
-                if (!SpirVTools.SpvOptimizerRegisterPassesFromFlagsWhilePreservingTheInterface(
-                        optimizer, optimizationFlags, (nuint)optimizationFlags.Length))
-                {
-                    return false;
-                }
+                return false;
             }
 
             SpirVTools.SpvOptimizerOptionsSetRunValidator(options, !isVulkan);
