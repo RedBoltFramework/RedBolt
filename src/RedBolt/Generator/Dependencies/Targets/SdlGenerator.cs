@@ -28,6 +28,19 @@ internal sealed class SdlGenerator(string nativeLibraryName)
     private static readonly HashSet<string> StringArrayFunctions =
         ["IMG_ReadXPMFromArray", "IMG_ReadXPMFromArrayToRGB888"];
 
+    // char* returns that SDL allocates and the caller must SDL_free.
+    private static readonly HashSet<string> OwnedStringReturnFunctions =
+    [
+        "SDL_GetClipboardText",
+        "SDL_GetBasePath",
+        "SDL_GetPrefPath",
+        "SDL_iconv_string",
+        "SDL_GameControllerMapping",
+        "SDL_GameControllerMappingForDeviceIndex",
+        "SDL_GameControllerMappingForGUID",
+        "SDL_GameControllerMappingForIndex",
+    ];
+
     private static readonly Dictionary<string, string> UnsupportedFunctions = new()
     {
         ["SDL_iconv"] = "inbuf/outbuf are in/out cursors into caller buffers; neither a string array nor an output string",
@@ -49,6 +62,19 @@ internal sealed class SdlGenerator(string nativeLibraryName)
                 continue;
             }
 
+            if (OwnedStringReturnFunctions.Contains(function.NativeName))
+                function.SetMetadata(MetadataKeys.FreedBy, "SDL_free");
+
+            if (function.NativeName == "SDL_GetDefaultAudioInfo")
+            {
+                // The name out string is SDL-allocated and the caller must SDL_free it.
+                foreach (var parameter in function.Parameters)
+                {
+                    if (parameter.NativeName == "name")
+                        parameter.SetMetadata(MetadataKeys.FreedBy, "SDL_free");
+                }
+            }
+
             if (!StringArrayFunctions.Contains(function.NativeName))
                 continue;
 
@@ -58,10 +84,6 @@ internal sealed class SdlGenerator(string nativeLibraryName)
                     parameter.SetMetadata(MetadataKeys.PointerPointerShape, PointerPointerShapes.Array);
             }
         }
-
-        // TODO: SDL_GetDefaultAudioInfo returns an SDL-allocated name the caller must SDL_free;
-        // it binds as a borrowed out string (leaks) until SharpCpp has an owned out-string
-        // variant (PROGRESS.md, pointer-to-pointer open item (b)).
     }
 
     protected override int PruneCompilation(BindingCompilation compilation)
