@@ -20,6 +20,26 @@ internal sealed class HarfBuzzGenerator(string nativeLibraryName)
         "-std=c17",
         false)
 {
+    private static readonly string[] NullTerminatedShaperListFunctions =
+    [
+        "hb_shape_full",
+        "hb_shape_plan_create",
+        "hb_shape_plan_create_cached",
+        "hb_shape_plan_create2",
+        "hb_shape_plan_create_cached2",
+    ];
+
+    // The wrapper appends the NULL terminator HarfBuzz requires after the shaper names.
+    protected override void ConfigureBeforeValidation(BindingCompilation compilation)
+    {
+        foreach (var name in NullTerminatedShaperListFunctions)
+        {
+            compilation.Functions.First(function => function.NativeName == name)
+                .Parameters.First(static parameter => parameter.NativeName == "shaper_list")
+                .SetMetadata(MetadataKeys.NullTerminatedStringArray, true);
+        }
+    }
+
     protected override void PostProcessCompilation(BindingCompilation compilation)
     {
         var createBlob = compilation.Functions.First(static function =>
