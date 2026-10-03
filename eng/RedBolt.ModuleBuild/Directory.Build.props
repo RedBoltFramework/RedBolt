@@ -6,7 +6,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
 <Project>
   <PropertyGroup>
-    <RedBoltRoot Condition="'$(RedBoltRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../RedBolt'))</RedBoltRoot>
+    <RedBoltRoot Condition="'$(RedBoltRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../..'))</RedBoltRoot>
     <!-- A module on its own builds into its build/. Inside the monorepo the root Directory.Build.props
          imported below overrides this default; a global RedBoltBuildRoot wins over both. -->
     <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(RedBoltBuildRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltBuildRoot)'))</RedBoltExpectedBuildRoot>
