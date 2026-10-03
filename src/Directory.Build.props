@@ -39,8 +39,11 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltSharpCppBuildRoot Condition="'$(RedBoltSharpCppBuildRoot)' == ''">$(RedBoltBuildRoot)</RedBoltSharpCppBuildRoot>
     <!-- Android outer-build properties and the marker of the sample host's arm64 pass are global and
          therefore form part of a referenced project's identity. References discard them so the passes
-         share one build instance of each referenced project per platform, and one of each host tool. -->
+         share one build instance of each referenced project per platform, and one of each host tool.
+         The Android SDK sets DesignTimeBuild=false on its per-RID inner builds; it is discarded only
+         then, so that a real design-time build still reaches the references. -->
     <RedBoltInnerBuildGlobalPropertiesToRemove>RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishSelfContained;_ComputeFilesToPublishForRuntimeIdentifiers;_OuterIntermediateAssembly;_OuterIntermediateSatelliteAssembliesWithTargetPath;_OuterOutputPath;_OuterIntermediateOutputPath;_OuterCustomViewMapFile;_AndroidNdkDirectory;SkipCompilerExecution;AppendRuntimeIdentifierToOutputPath;ResolveAssemblyReferencesFindRelatedSatellites;RedBoltAndroidPackageInnerBuild</RedBoltInnerBuildGlobalPropertiesToRemove>
+    <RedBoltInnerBuildGlobalPropertiesToRemove Condition="'$(DesignTimeBuild)' == 'false'">$(RedBoltInnerBuildGlobalPropertiesToRemove);DesignTimeBuild</RedBoltInnerBuildGlobalPropertiesToRemove>
     <RedBoltHostProjectGlobalPropertiesToRemove>RedBoltPlatform;RedBoltTargetFramework;TargetFramework;TargetFrameworks;RedBoltIgnoreBuildSelection;$(RedBoltInnerBuildGlobalPropertiesToRemove)</RedBoltHostProjectGlobalPropertiesToRemove>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
   </PropertyGroup>

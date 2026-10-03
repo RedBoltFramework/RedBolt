@@ -10,10 +10,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <Import Project="$(RedBoltRoot)/Directory.Solution.targets"
           Condition="'$(BuildingSolutionFile)' == 'true'" />
 
-  <PropertyGroup>
-    <RedBoltHostProjectGlobalPropertiesToRemove Condition="'$(DesignTimeBuild)' == 'false'">$(RedBoltHostProjectGlobalPropertiesToRemove);DesignTimeBuild</RedBoltHostProjectGlobalPropertiesToRemove>
-  </PropertyGroup>
-
   <!-- Fail early if the build root does not match what the solution graph expected; mixing build
        roots would scatter outputs and break the shared probing paths. -->
   <Target Name="RedBoltValidateBuildRoot" BeforeTargets="Restore;Build">
