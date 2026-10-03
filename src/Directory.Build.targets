@@ -90,9 +90,39 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <SkipGetTargetFrameworkProperties>false</SkipGetTargetFrameworkProperties>
     </ProjectReference>
     <ProjectReference Update="@(ProjectReference->WithMetadataValue('Filename', 'RedBolt.PackageTool'))">
-      <AdditionalProperties Condition="'$(RedBoltFull)' != 'true'">RedBoltIgnoreBuildSelection=true</AdditionalProperties>
+      <!-- The tool is a host project. Force it only when the host platform is not selected, or when
+           RedBoltBuildPlatform makes it build for another platform: the flag is
+           a global property of the tool and of everything below it, so with the host platform selected
+           it would build them a second time beside the solution's own instances. -->
+      <AdditionalProperties></AdditionalProperties>
+      <AdditionalProperties Condition="('$(RedBoltBuildWindows)' != 'true' and '$(RedBoltLinuxX64Enabled)' != 'true') or '$(RedBoltBuildPlatform)' != ''">RedBoltIgnoreBuildSelection=true</AdditionalProperties>
     </ProjectReference>
   </ItemGroup>
+
+  <!-- The item group above reaches only the references a project declares. The SDK adds the transitive
+       ones after evaluation, and those would build the same wasm projects a second time without the
+       TargetFramework global property. Give them the same edge. -->
+  <Target Name="RedBoltNormalizeWasmTransitiveProjectReferences"
+          Condition="'$(RedBoltPlatform)' == 'browser-wasm'"
+          AfterTargets="_SplitProjectReferencesByFileExistence"
+          BeforeTargets="_GetProjectReferenceTargetFrameworkProperties;ResolveProjectReferences">
+    <PropertyGroup>
+      <!-- This repository's projects, and for a module build the projects of the modules beside it. -->
+      <_RedBoltWasmReferencePattern>^$([System.Text.RegularExpressions.Regex]::Escape('$(RedBoltRoot)'))[\\/]src[\\/]RedBolt[\\/]</_RedBoltWasmReferencePattern>
+      <_RedBoltWasmReferencePattern Condition="'$(RedBoltExternalModuleRoot)' != ''">$(_RedBoltWasmReferencePattern)|^$([System.Text.RegularExpressions.Regex]::Escape('$([System.IO.Path]::GetFullPath('$(RedBoltExternalModuleRoot)/..'))'))[\\/]RedBolt\.[^\\/]+[\\/]src[\\/]RedBolt[\\/]</_RedBoltWasmReferencePattern>
+    </PropertyGroup>
+    <ItemGroup>
+      <_MSBuildProjectReferenceExistent Update="@(_MSBuildProjectReferenceExistent)"
+          Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('%(_MSBuildProjectReferenceExistent.FullPath)', '$(_RedBoltWasmReferencePattern)'))
+                     and '%(_MSBuildProjectReferenceExistent.SkipGetTargetFrameworkProperties)' != 'true'
+                     and !$([System.String]::Copy('%(_MSBuildProjectReferenceExistent.Filename)').Contains('.Generator.'))">
+        <AdditionalProperties>%(_MSBuildProjectReferenceExistent.AdditionalProperties);RedBoltPlatform=browser-wasm</AdditionalProperties>
+        <SetTargetFramework>TargetFramework=net10.0;RedBoltPlatform=browser-wasm</SetTargetFramework>
+        <SkipGetTargetFrameworkProperties>true</SkipGetTargetFrameworkProperties>
+        <GlobalPropertiesToRemove>%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove);RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishSelfContained</GlobalPropertiesToRemove>
+      </_MSBuildProjectReferenceExistent>
+    </ItemGroup>
+  </Target>
 
   <ItemGroup Condition="$([System.String]::Copy('$(RedBoltPlatform)').StartsWith('android-'))">
     <ProjectReference Update="$(RedBoltRoot)/src/RedBolt/**/*.csproj">

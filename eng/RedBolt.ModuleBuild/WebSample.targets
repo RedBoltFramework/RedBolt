@@ -55,7 +55,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Native/**/*.csproj" />
     <ProjectReference Include="$(RedBoltRoot)/src/RedBolt/Tools/PackageTool/RedBolt.PackageTool.csproj"
                       ReferenceOutputAssembly="false" Private="false" PrivateAssets="all">
-      <AdditionalProperties Condition="'$(RedBoltFull)' != 'true'">RedBoltIgnoreBuildSelection=true</AdditionalProperties>
+      <!-- Forced only when the host platform is not selected; see src/Directory.Build.targets. -->
+      <AdditionalProperties Condition="('$(RedBoltBuildWindows)' != 'true' and '$(RedBoltLinuxX64Enabled)' != 'true') or '$(RedBoltBuildPlatform)' != ''">RedBoltIgnoreBuildSelection=true</AdditionalProperties>
     </ProjectReference>
     <ProjectReference Include="$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj"
                       PrivateAssets="all" AdditionalProperties="$(RedBoltSharpCppManagedProperties)"
