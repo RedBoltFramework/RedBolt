@@ -59,7 +59,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <Target Name="RedBoltReportInvalidEnable"
           BeforeTargets="RedBoltReportSkippedProject;BeforeBuild;BeforeRebuild;_LoadRestoreGraphEntryPoints;Restore"
           Condition="'$(_RedBoltEnableUnknownItems)' != ''">
-    <Error Text="Invalid RedBoltEnable item(s) '$(_RedBoltEnableUnknownItems)' in '$(_RedBoltEnableInput)'. Valid items are 'all', '*', the RIDs linux-x64, win-x64, android-x64, android-arm64 and browser-wasm, and the tokens linux, win, android, browser, x64, arm64 and wasm, each optionally prefixed with '+' or '-'." />
+    <Error Text="$(_RedBoltEnableInvalidMessage)" />
   </Target>
 
   <Target Name="RedBoltReportSkippedProject">

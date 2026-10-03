@@ -87,6 +87,14 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     </Task>
   </UsingTask>
 
+  <!-- The projects report an unknown RedBoltEnable item themselves, but only after the solution has
+       restored. Fail the solution first, so that a bad selection does not run the dependency configure. -->
+  <Target Name="RedBoltValidateEnableSelection"
+          BeforeTargets="_LoadRestoreGraphEntryPoints;Restore;Build;Rebuild"
+          Condition="'$(_RedBoltEnableUnknownItems)' != ''">
+    <Error Text="$(_RedBoltEnableInvalidMessage)" />
+  </Target>
+
   <!--
     Refreshes third-party source dependencies before every restore. These dependencies are pulled
     in by CMake/CPM, so the configure preset must run even when the source trees already exist: CPM
@@ -96,6 +104,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     its output directories are redirected below the build root.
   -->
   <Target Name="RedBoltEnsureDependencies"
+          DependsOnTargets="RedBoltValidateEnableSelection"
           BeforeTargets="_LoadRestoreGraphEntryPoints;Restore">
     <Exec Command="cmake --preset $(RedBoltDependencyConfigurePreset) -B &quot;$(RedBoltBuildRoot)/native/$(RedBoltDependencyConfigurePreset)&quot; &quot;-DREDBOLT_SHARPCPP_ROOT=$(MSBuildThisFileDirectory)extern/SharpCpp&quot; &quot;-DREDBOLT_RUNTIME_OUTPUT_DIR=$(RedBoltBuildRoot)/bin/$&lt;CONFIG&gt;/linux-x64/extern/runtimes/linux-x64/native&quot; &quot;-DREDBOLT_PDB_OUTPUT_DIR=$(RedBoltBuildRoot)/bin/$&lt;CONFIG&gt;/linux-x64/extern/pdb&quot;" WorkingDirectory="$(MSBuildThisFileDirectory)" />
     <Error Condition="!Exists('$(MSBuildThisFileDirectory)extern/SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj')"

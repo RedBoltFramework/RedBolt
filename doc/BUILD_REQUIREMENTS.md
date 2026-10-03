@@ -73,6 +73,10 @@ Other items, such as `windows`, `web` or `android-*`, are errors. For example,
 `android,-x64` selects `android-arm64` only, and `-linux` selects every RID
 except `linux-x64`.
 
+`RedBoltBuildWindows=true` is a legacy alias that always enables `win-x64`. It
+overrides a `-win` or `-win-x64` item, and it also makes `win-x64` the default
+platform for direct project builds.
+
 Use `-p:RedBoltFull` as shorthand for `RedBoltEnable=all`:
 
 ```sh

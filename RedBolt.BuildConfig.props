@@ -52,8 +52,10 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <_RedBoltEnableList>$([System.Text.RegularExpressions.Regex]::Replace(`$(_RedBoltEnableList)`, `(?&lt;=,)(?=[^,+-])`, `+`))</_RedBoltEnableList>
     <_RedBoltEnableList>$([System.Text.RegularExpressions.Regex]::Replace(`$(_RedBoltEnableList)`, `(?&lt;=,[+-])\*(?=,)`, `all`))</_RedBoltEnableList>
 
-    <!-- Items that are neither 'all', a RID nor a known token. RedBoltReportInvalidEnable fails the build with them. -->
+    <!-- Items that are neither 'all', a RID nor a known token. RedBoltReportInvalidEnable (projects) and
+         RedBoltValidateEnableSelection (solutions) fail the build with them. -->
     <_RedBoltEnableUnknownItems>$([System.Text.RegularExpressions.Regex]::Replace(`$(_RedBoltEnableList)`, `,[+-](?:all|linux-x64|win-x64|android-x64|android-arm64|browser-wasm|linux|win|android|browser|x64|arm64|wasm)(?=,)`, ``).Replace(`,,`, `,`).Trim(','))</_RedBoltEnableUnknownItems>
+    <_RedBoltEnableInvalidMessage Condition="'$(_RedBoltEnableUnknownItems)' != ''">Invalid RedBoltEnable item(s) '$(_RedBoltEnableUnknownItems)' in '$(_RedBoltEnableInput)'. Valid items are 'all', '*', the RIDs linux-x64, win-x64, android-x64, android-arm64 and browser-wasm, and the tokens linux, win, android, browser, x64, arm64 and wasm, each optionally prefixed with '+' or '-'.</_RedBoltEnableInvalidMessage>
 
     <!-- Per-RID flags. Each RID is matched by 'all', its own name and each of its '-'-separated parts. -->
     <_RedBoltEnableLinuxX64>all|linux-x64|linux|x64</_RedBoltEnableLinuxX64>
