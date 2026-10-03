@@ -340,10 +340,14 @@ function(redbolt_cpm_update_checkout package_name repository git_tag checkout pa
   # equals HEAD), so ask the remote where the branch is now. Tags and commit hashes do not move
   # and are resolved locally. Without network access the existing checkout is used as is.
   # A pin is a commit hash only when it abbreviates the commit it resolves to: a branch may have
-  # a name that is all hex digits.
+  # a name that is all hex digits. A full-length id is always an object id: it may name an annotated
+  # tag object, which resolves to another commit.
   redbolt_cpm_get_git_commit("${checkout}" "refs/tags/${git_tag}" pinned_tag_commit)
   set(pinned_is_hash FALSE)
-  if(git_tag MATCHES "^[0-9a-fA-F]+$")
+  string(LENGTH "${git_tag}" git_tag_length)
+  if(git_tag MATCHES "^[0-9a-fA-F]+$" AND (git_tag_length EQUAL 40 OR git_tag_length EQUAL 64))
+    set(pinned_is_hash TRUE)
+  elseif(git_tag MATCHES "^[0-9a-fA-F]+$")
     string(TOLOWER "${git_tag}" git_tag_lower)
     string(FIND "${pinned_commit}" "${git_tag_lower}" hash_prefix)
     if(hash_prefix EQUAL 0)
