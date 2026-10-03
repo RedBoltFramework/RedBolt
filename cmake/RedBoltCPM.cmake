@@ -148,6 +148,35 @@ function(redbolt_cpm_apply_patches repository)
   endforeach()
 endfunction()
 
+function(redbolt_cpm_unapply_patches package_name repository)
+  find_program(PATCH_EXECUTABLE patch)
+  if(NOT PATCH_EXECUTABLE)
+    message(FATAL_ERROR "CPM: Could not find the patch executable.")
+  endif()
+
+  set(reversed_patches ${ARGN})
+  list(REVERSE reversed_patches)
+  foreach(patch_file IN LISTS reversed_patches)
+    get_filename_component(patch_file "${patch_file}" ABSOLUTE)
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} --force --reverse --no-backup-if-mismatch -p1
+              --input "${patch_file}"
+      RESULT_VARIABLE patch_result
+      OUTPUT_VARIABLE patch_output
+      ERROR_VARIABLE patch_error
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_STRIP_TRAILING_WHITESPACE
+      WORKING_DIRECTORY "${repository}"
+    )
+    if(patch_result)
+      message(
+        FATAL_ERROR
+          "CPM: Could not remove patch '${patch_file}' from ${package_name} at '${repository}' before updating it: ${patch_error}${patch_output}"
+      )
+    endif()
+  endforeach()
+endfunction()
+
 function(redbolt_cpm_get_git_path repository path output)
   execute_process(
     COMMAND ${GIT_EXECUTABLE} rev-parse --git-path "${path}"
@@ -170,82 +199,283 @@ function(redbolt_cpm_get_git_path repository path output)
   )
 endfunction()
 
+# Whether a text can be split into a list of lines without altering its entries.
+function(redbolt_cpm_is_list_safe text output)
+  set(safe TRUE)
+  foreach(unsafe_character ";" "[" "]")
+    string(FIND "${text}" "${unsafe_character}" unsafe_position)
+    if(NOT unsafe_position EQUAL -1)
+      set(safe FALSE)
+    endif()
+  endforeach()
+  set(${output}
+      ${safe}
+      PARENT_SCOPE
+  )
+endfunction()
+
+# Paths that differ from HEAD in the working tree of a repository, including its submodules (their
+# paths are prefixed). Only reads. ok is FALSE for a state a patched checkout cannot be in: staged
+# changes, renames, unmerged or quoted paths, a changed file mode or type, or a submodule at another
+# commit. It is also FALSE when git fails or the output has characters unsafe in a list.
+function(redbolt_cpm_list_changed_paths repository prefix output ok)
+  set(${output}
+      ""
+      PARENT_SCOPE
+  )
+  set(${ok}
+      FALSE
+      PARENT_SCOPE
+  )
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} --no-optional-locks status --porcelain=v2 --untracked-files=all
+            --ignore-submodules=none
+    RESULT_VARIABLE status_result
+    OUTPUT_VARIABLE status
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    WORKING_DIRECTORY "${repository}"
+  )
+  redbolt_cpm_is_list_safe("${status}" status_safe)
+  if(status_result)
+    message(WARNING "CPM: cannot validate '${repository}': git status failed")
+    return()
+  endif()
+  if(NOT status_safe)
+    message(WARNING "CPM: cannot validate '${repository}': git status output is not list safe")
+    return()
+  endif()
+
+  set(changed)
+  string(REPLACE "\n" ";" status_lines "${status}")
+  foreach(line IN LISTS status_lines)
+    if(line MATCHES "^# ")
+      continue()
+    endif()
+    if(line MATCHES "^\\? (.+)$")
+      set(path "${CMAKE_MATCH_1}")
+      set(submodule "")
+    elseif(line MATCHES "^1 (.)(.) (....) ([0-7]+) [0-7]+ ([0-7]+) [0-9a-f]+ [0-9a-f]+ (.+)$")
+      set(staged "${CMAKE_MATCH_1}")
+      set(unstaged "${CMAKE_MATCH_2}")
+      set(submodule "${CMAKE_MATCH_3}")
+      set(head_mode "${CMAKE_MATCH_4}")
+      set(worktree_mode "${CMAKE_MATCH_5}")
+      set(path "${CMAKE_MATCH_6}")
+      if(NOT staged STREQUAL ".")
+        return()
+      endif()
+      # Mode and type changes (chmod, symlinks, intent to add) are not what a patch leaves behind.
+      if(NOT unstaged STREQUAL "D" AND NOT head_mode STREQUAL worktree_mode)
+        return()
+      endif()
+    else()
+      return()
+    endif()
+    if(path MATCHES "^\"")
+      message(WARNING "CPM: cannot validate '${repository}': quoted path in git status")
+      return()
+    endif()
+
+    if(submodule MATCHES "^S(.)")
+      if(CMAKE_MATCH_1 STREQUAL "C" OR NOT EXISTS "${repository}/${path}/.git")
+        return()
+      endif()
+      redbolt_cpm_list_changed_paths(
+        "${repository}/${path}" "${prefix}${path}/" submodule_changed submodule_ok
+      )
+      if(NOT submodule_ok)
+        return()
+      endif()
+      list(APPEND changed ${submodule_changed})
+    else()
+      list(APPEND changed "${prefix}${path}")
+    endif()
+  endforeach()
+
+  set(${output}
+      "${changed}"
+      PARENT_SCOPE
+  )
+  set(${ok}
+      TRUE
+      PARENT_SCOPE
+  )
+endfunction()
+
+# Compares the checkout with its pinned commit plus patches without touching it: the patched files
+# are copied to work_dir, the patches are reversed there and the result must equal the committed
+# files. The working tree may only differ from the commit in files the patches touch. Patches that
+# rename files are not supported and never validate.
+function(redbolt_cpm_checkout_compare_patched repository patches work_dir output)
+  set(${output}
+      FALSE
+      PARENT_SCOPE
+  )
+
+  set(touched)
+  foreach(patch_file IN LISTS patches)
+    get_filename_component(patch_file "${patch_file}" ABSOLUTE)
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} apply --numstat "${patch_file}"
+      RESULT_VARIABLE numstat_result
+      OUTPUT_VARIABLE numstat
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_QUIET
+      WORKING_DIRECTORY "${repository}"
+    )
+    redbolt_cpm_is_list_safe("${numstat}" numstat_safe)
+    if(numstat_result)
+      message(WARNING "CPM: cannot validate '${repository}': git apply --numstat failed")
+      return()
+    endif()
+    if(NOT numstat_safe)
+      message(WARNING "CPM: cannot validate '${repository}': patch paths are not list safe")
+      return()
+    endif()
+    string(REPLACE "\n" ";" numstat_lines "${numstat}")
+    foreach(line IN LISTS numstat_lines)
+      if(NOT line MATCHES "^[0-9-]+\t[0-9-]+\t(.+)$")
+        return()
+      endif()
+      set(path "${CMAKE_MATCH_1}")
+      if(path MATCHES "^\"")
+        message(WARNING "CPM: cannot validate '${repository}': quoted path in patch")
+        return()
+      endif()
+      list(APPEND touched "${path}")
+    endforeach()
+  endforeach()
+  list(REMOVE_DUPLICATES touched)
+
+  redbolt_cpm_list_changed_paths("${repository}" "" changed changed_ok)
+  if(NOT changed_ok)
+    return()
+  endif()
+  foreach(path IN LISTS changed)
+    if(NOT path IN_LIST touched)
+      return()
+    endif()
+  endforeach()
+
+  foreach(path IN LISTS touched)
+    if(EXISTS "${repository}/${path}" AND NOT IS_DIRECTORY "${repository}/${path}")
+      get_filename_component(directory "${work_dir}/${path}" DIRECTORY)
+      file(MAKE_DIRECTORY "${directory}")
+      file(COPY_FILE "${repository}/${path}" "${work_dir}/${path}")
+    endif()
+  endforeach()
+
+  set(reversed_patches ${patches})
+  list(REVERSE reversed_patches)
+  foreach(patch_file IN LISTS reversed_patches)
+    get_filename_component(patch_file "${patch_file}" ABSOLUTE)
+    execute_process(
+      COMMAND ${PATCH_EXECUTABLE} --force --reverse --no-backup-if-mismatch -p1
+              --input "${patch_file}"
+      RESULT_VARIABLE patch_result
+      OUTPUT_QUIET
+      ERROR_QUIET
+      WORKING_DIRECTORY "${work_dir}"
+    )
+    if(patch_result)
+      return()
+    endif()
+  endforeach()
+
+  foreach(path IN LISTS touched)
+    # The repository that owns a file is the innermost one around it: ask git in its directory.
+    get_filename_component(directory "${repository}/${path}" DIRECTORY)
+    get_filename_component(owner_path "${path}" NAME)
+    while(NOT IS_DIRECTORY "${directory}")
+      get_filename_component(directory_name "${directory}" NAME)
+      set(owner_path "${directory_name}/${owner_path}")
+      get_filename_component(directory "${directory}" DIRECTORY)
+    endwhile()
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} rev-parse --show-toplevel
+      RESULT_VARIABLE owner_result
+      OUTPUT_VARIABLE owner
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_QUIET
+      WORKING_DIRECTORY "${directory}"
+    )
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} rev-parse --show-prefix
+      RESULT_VARIABLE prefix_result
+      OUTPUT_VARIABLE owner_prefix
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_QUIET
+      WORKING_DIRECTORY "${directory}"
+    )
+    if(owner_result OR prefix_result)
+      message(WARNING "CPM: cannot validate '${repository}': cannot find the git owner of '${path}'")
+      return()
+    endif()
+    set(owner_path "${owner_prefix}${owner_path}")
+
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} rev-parse --verify --quiet "HEAD:${owner_path}"
+      RESULT_VARIABLE pristine_result
+      OUTPUT_VARIABLE pristine_id
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_QUIET
+      WORKING_DIRECTORY "${owner}"
+    )
+    if(pristine_result EQUAL 0)
+      set(pristine TRUE)
+    elseif(pristine_result EQUAL 1)
+      set(pristine FALSE)
+    else()
+      message(WARNING "CPM: cannot validate '${repository}': git rev-parse failed for '${path}'")
+      return()
+    endif()
+
+    set(restored FALSE)
+    if(EXISTS "${work_dir}/${path}")
+      set(restored TRUE)
+      execute_process(
+        COMMAND ${GIT_EXECUTABLE} hash-object "--path=${owner_path}" "${work_dir}/${path}"
+        RESULT_VARIABLE hash_result
+        OUTPUT_VARIABLE restored_id
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+        WORKING_DIRECTORY "${owner}"
+      )
+      if(hash_result)
+        message(WARNING "CPM: cannot validate '${repository}': git hash-object failed for '${path}'")
+        return()
+      endif()
+    endif()
+
+    if(pristine AND restored)
+      if(NOT pristine_id STREQUAL restored_id)
+        return()
+      endif()
+    elseif(pristine OR restored)
+      return()
+    endif()
+  endforeach()
+
+  set(${output}
+      TRUE
+      PARENT_SCOPE
+  )
+endfunction()
+
+# Checks that a checkout equals its pinned commit plus the patches. Never writes below the
+# repository: another platform may be compiling from it at the same moment.
 function(redbolt_cpm_checkout_matches_patches repository patches output)
   find_program(PATCH_EXECUTABLE patch)
   if(NOT PATCH_EXECUTABLE)
     message(FATAL_ERROR "CPM: Could not find the patch executable.")
   endif()
 
-  set(reversed_patches ${patches})
-  list(REVERSE reversed_patches)
-  set(removed_patches)
-  set(matches TRUE)
-  foreach(patch_file IN LISTS reversed_patches)
-    get_filename_component(patch_file "${patch_file}" ABSOLUTE)
-    execute_process(
-      COMMAND ${PATCH_EXECUTABLE} --dry-run --force --reverse -p1 --input "${patch_file}"
-      RESULT_VARIABLE patch_result
-      OUTPUT_QUIET
-      ERROR_QUIET
-      WORKING_DIRECTORY "${repository}"
-    )
-    if(patch_result)
-      set(matches FALSE)
-      break()
-    endif()
-    execute_process(
-      COMMAND ${PATCH_EXECUTABLE} --force --reverse --no-backup-if-mismatch -p1
-              --input "${patch_file}"
-      RESULT_VARIABLE patch_result
-      OUTPUT_VARIABLE reverse_output
-      ERROR_VARIABLE reverse_error
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-      ERROR_STRIP_TRAILING_WHITESPACE
-      WORKING_DIRECTORY "${repository}"
-    )
-    if(patch_result)
-      message(FATAL_ERROR "CPM: Could not validate patched state at '${repository}': ${reverse_error}${reverse_output}")
-    endif()
-    list(APPEND removed_patches "${patch_file}")
-  endforeach()
-
-  if(matches)
-    execute_process(
-      COMMAND ${GIT_EXECUTABLE} status --porcelain --ignore-submodules=none
-      RESULT_VARIABLE status_result
-      OUTPUT_VARIABLE status
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-      ERROR_VARIABLE status_error
-      ERROR_STRIP_TRAILING_WHITESPACE
-      WORKING_DIRECTORY "${repository}"
-    )
-    if(status_result)
-      message(FATAL_ERROR "CPM: Could not compare patched state at '${repository}': ${status_error}")
-    endif()
-    if(status)
-      set(matches FALSE)
-    endif()
-  endif()
-
-  list(REVERSE removed_patches)
-  foreach(patch_file IN LISTS removed_patches)
-    execute_process(
-      COMMAND ${PATCH_EXECUTABLE} --force --no-backup-if-mismatch -p1
-              --input "${patch_file}"
-      RESULT_VARIABLE patch_result
-      OUTPUT_VARIABLE patch_output
-      ERROR_VARIABLE patch_error
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-      ERROR_STRIP_TRAILING_WHITESPACE
-      WORKING_DIRECTORY "${repository}"
-    )
-    if(patch_result)
-      message(
-        FATAL_ERROR
-          "CPM: Could not restore patched state at '${repository}' after validation: ${patch_error}${patch_output}"
-      )
-    endif()
-  endforeach()
+  string(RANDOM LENGTH 12 unique)
+  set(work_dir "${CMAKE_CURRENT_BINARY_DIR}/redbolt-cpm-validate/${unique}")
+  file(MAKE_DIRECTORY "${work_dir}")
+  redbolt_cpm_checkout_compare_patched("${repository}" "${patches}" "${work_dir}" matches)
+  file(REMOVE_RECURSE "${work_dir}")
 
   set(${output}
       ${matches}
@@ -334,9 +564,10 @@ function(redbolt_cpm_checkout_fingerprint repository patches output)
   )
 endfunction()
 
-# The patch validation reverses and reapplies every patch, which replaces the patched files while
-# another platform may be compiling them. A stamp of the validated state in the git directory
-# lets a configure of an unchanged checkout skip it.
+# The patch validation reverses every patch on copies of the patched files and compares the result
+# with the commit, so it does not write the working tree (the fingerprint's git status and git diff
+# may refresh .git/index). A stamp of the validated state in the git
+# directory lets a configure of an unchanged checkout skip it.
 function(redbolt_cpm_checkout_verify_patches repository patches output)
   redbolt_cpm_get_git_path("${repository}" "redbolt-cpm-patched.stamp" stamp)
   redbolt_cpm_checkout_fingerprint("${repository}" "${patches}" fingerprint)
@@ -523,8 +754,8 @@ function(redbolt_cpm_update_checkout package_name repository git_tag checkout pa
     return()
   endif()
 
+  set(patches_match FALSE)
   if(status)
-    set(patches_match FALSE)
     if(patches)
       redbolt_cpm_checkout_verify_patches("${checkout}" "${patches}" patches_match)
     endif()
@@ -557,6 +788,12 @@ function(redbolt_cpm_update_checkout package_name repository git_tag checkout pa
   endif()
   if(NOT pinned_commit)
     message(FATAL_ERROR "CPM: Fetched ${package_name}, but could not resolve ref '${git_tag}'.")
+  endif()
+
+  # Files the patches created are untracked and would survive the checkout: take the patches out
+  # first. The checkout rewrites the tree anyway.
+  if(patches AND patches_match)
+    redbolt_cpm_unapply_patches("${package_name}" "${checkout}" ${patches})
   endif()
 
   execute_process(
