@@ -34,5 +34,9 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <BaseOutputPath>$(RedBoltPackageBuildRoot)/bin/package/nuget/$(RedBoltPackageWorkName)/</BaseOutputPath>
     <BaseIntermediateOutputPath>$(RedBoltPackageBuildRoot)/obj/package/nuget/$(RedBoltPackageWorkName)/</BaseIntermediateOutputPath>
     <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)</MSBuildProjectExtensionsPath>
+    <!-- The project only packs staged files. Its package references exist to become nuspec dependencies,
+         so their build assets (such as the runtime identifier check in RedBolt.Core.targets) stay out. -->
+    <ImportProjectExtensionProps>false</ImportProjectExtensionProps>
+    <ImportProjectExtensionTargets>false</ImportProjectExtensionTargets>
   </PropertyGroup>
 </Project>
