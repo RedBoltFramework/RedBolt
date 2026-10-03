@@ -27,7 +27,18 @@ public sealed class EnsureDirectoryLink : Microsoft.Build.Utilities.Task
             return true;
 
         if (linkInfo.LinkTarget is not null)
-            linkInfo.Delete();
+        {
+            try
+            {
+                linkInfo.Delete();
+            }
+            catch (DirectoryNotFoundException)
+            {
+                // Unix reports a dangling link as a missing directory and leaves it in place. Removing
+                // it as a file works there, and passes when a project built in parallel removed it first.
+                File.Delete(Link);
+            }
+        }
 
         Directory.CreateDirectory(Path.GetDirectoryName(Link)!);
         try
