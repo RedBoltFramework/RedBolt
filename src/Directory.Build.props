@@ -37,9 +37,10 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
   <PropertyGroup>
     <RedBoltSharpCppBuildRoot Condition="'$(RedBoltSharpCppBuildRoot)' == ''">$(RedBoltBuildRoot)</RedBoltSharpCppBuildRoot>
-    <!-- Android outer-build properties are global and therefore form part of a referenced project's
-         identity. Host tools must discard them so all target platforms share one build instance. -->
-    <RedBoltInnerBuildGlobalPropertiesToRemove>RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishSelfContained;_ComputeFilesToPublishForRuntimeIdentifiers;_OuterIntermediateAssembly;_OuterIntermediateSatelliteAssembliesWithTargetPath;_OuterOutputPath;_OuterIntermediateOutputPath;_OuterCustomViewMapFile;_AndroidNdkDirectory;SkipCompilerExecution;AppendRuntimeIdentifierToOutputPath;ResolveAssemblyReferencesFindRelatedSatellites</RedBoltInnerBuildGlobalPropertiesToRemove>
+    <!-- Android outer-build properties and the marker of the sample host's arm64 pass are global and
+         therefore form part of a referenced project's identity. References discard them so the passes
+         share one build instance of each referenced project per platform, and one of each host tool. -->
+    <RedBoltInnerBuildGlobalPropertiesToRemove>RuntimeIdentifier;RuntimeIdentifiers;SelfContained;PublishSelfContained;_ComputeFilesToPublishForRuntimeIdentifiers;_OuterIntermediateAssembly;_OuterIntermediateSatelliteAssembliesWithTargetPath;_OuterOutputPath;_OuterIntermediateOutputPath;_OuterCustomViewMapFile;_AndroidNdkDirectory;SkipCompilerExecution;AppendRuntimeIdentifierToOutputPath;ResolveAssemblyReferencesFindRelatedSatellites;RedBoltAndroidPackageInnerBuild</RedBoltInnerBuildGlobalPropertiesToRemove>
     <RedBoltHostProjectGlobalPropertiesToRemove>RedBoltPlatform;RedBoltTargetFramework;TargetFramework;TargetFrameworks;RedBoltIgnoreBuildSelection;$(RedBoltInnerBuildGlobalPropertiesToRemove)</RedBoltHostProjectGlobalPropertiesToRemove>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
   </PropertyGroup>

@@ -131,7 +131,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <Message Importance="high" Text="Android package: $(_RedBoltPackagedApk)" />
     <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Build" BuildInParallel="false"
              Condition="'$(RedBoltPlatform)' == 'android-x64' and '$(RedBoltAndroidArm64Enabled)' == 'true' and '$(RedBoltBuildAllAndroidPackages)' == 'true' and '$(RedBoltAndroidPackageInnerBuild)' != 'true'"
-             Properties="Configuration=$(Configuration);RedBoltPlatform=android-arm64;RedBoltBuildAllAndroidPackages=false;RedBoltAndroidPackageInnerBuild=true" />
+             Properties="Configuration=$(Configuration);RedBoltPlatform=android-arm64;RedBoltAndroidPackageInnerBuild=true" />
   </Target>
   <Import Project="$(RedBoltRoot)/src/RedBolt/Native/NativeBuild.targets" />
 </Project>
