@@ -61,6 +61,21 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     </ItemGroup>
   </Target>
 
+  <!-- References that leave a solution lose Configuration (the SDK removes it); a Release solution
+       build then builds the referenced RedBolt projects as Debug. Keep it and pass it explicitly, as the
+       SharpCpp edges do. Platform stays removed. Edges where the SDK did not remove it are untouched. -->
+  <Target Name="RedBoltKeepConfigurationOnOutOfSolutionReferences"
+          AfterTargets="_SplitProjectReferencesByFileExistence;RedBoltNormalizeSharpCppProjectReferences"
+          BeforeTargets="_GetProjectReferenceTargetFrameworkProperties;ResolveProjectReferences">
+    <ItemGroup>
+      <_MSBuildProjectReferenceExistent Update="@(_MSBuildProjectReferenceExistent)"
+          Condition="$([System.String]::Copy(';%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove);').Contains(';Configuration;'))">
+        <GlobalPropertiesToRemove>$([System.String]::Copy(';%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove);').Replace(';Configuration;', ';'))</GlobalPropertiesToRemove>
+        <SetConfiguration Condition="!$([System.String]::Copy(';%(_MSBuildProjectReferenceExistent.SetConfiguration)').Contains(';Configuration='))">%(_MSBuildProjectReferenceExistent.SetConfiguration);Configuration=$(Configuration)</SetConfiguration>
+      </_MSBuildProjectReferenceExistent>
+    </ItemGroup>
+  </Target>
+
   <ItemGroup Condition="'$(RedBoltPlatform)' == 'browser-wasm'">
     <ProjectReference Remove="$(RedBoltRoot)/src/RedBolt/Utility/RedBolt.Utility.csproj;$(RedBoltRoot)/src/RedBolt/Native/TinyGltf/RedBolt.Bindings.TinyGltf.csproj" />
     <ProjectReference Update="$(RedBoltRoot)/src/RedBolt/**/*.csproj">
