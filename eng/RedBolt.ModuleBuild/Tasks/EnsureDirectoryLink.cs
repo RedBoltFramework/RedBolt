@@ -30,7 +30,15 @@ public sealed class EnsureDirectoryLink : Microsoft.Build.Utilities.Task
             linkInfo.Delete();
 
         Directory.CreateDirectory(Path.GetDirectoryName(Link)!);
-        Directory.CreateSymbolicLink(Link, Source);
+        try
+        {
+            Directory.CreateSymbolicLink(Link, Source);
+        }
+        catch (IOException) when (Directory.Exists(Link))
+        {
+            // A project built in parallel linked the same shared directory first.
+        }
+
         return true;
     }
 }
