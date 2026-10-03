@@ -43,7 +43,9 @@ internal abstract class BindingTargetGenerator(
         "SDL_DISABLE_MMINTRIN_H=1",
         "SDL_DISABLE_XMMINTRIN_H=1",
         "SDL_DISABLE_EMMINTRIN_H=1",
-        "SDL_DISABLE_PMMINTRIN_H=1"
+        "SDL_DISABLE_PMMINTRIN_H=1",
+        "SDL_DISABLE_ARM_NEON_H=1",
+        "DILIGENT_DISABLE_NEON=1"
     ];
 
     private static readonly string[] ParseSimdDisableArguments =

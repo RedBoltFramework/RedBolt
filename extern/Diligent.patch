@@ -643,3 +643,10 @@ index 885ff7750..7fef2d9a5 100644
 @@ -88 +88 @@ void GetOpenXRGraphicsBindingGL(IRenderDevice*  pDevice,
 -    Binding.type  = XR_TYPE_GRAPHICS_BINDING_D3D11_KHR;
 +    Binding.type  = XR_TYPE_GRAPHICS_BINDING_OPENGL_WIN32_KHR;
+diff --git i/Platforms/interface/Intrinsics.hpp w/Platforms/interface/Intrinsics.hpp
+index 7d551bd76..9bfd105c1 100644
+--- i/Platforms/interface/Intrinsics.hpp
++++ w/Platforms/interface/Intrinsics.hpp
+@@ -34 +34 @@
+-#if defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC)
++#if !defined(DILIGENT_DISABLE_NEON) && (defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC))
