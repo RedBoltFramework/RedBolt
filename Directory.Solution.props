@@ -21,6 +21,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
           Condition="'$(RedBoltMonorepoRoot)' == ''
                      and Exists('$(MSBuildThisFileDirectory)../Directory.Build.props')
                      and Exists('$(MSBuildThisFileDirectory)../RedBolt.slnx')" />
+  <Import Project="$(MSBuildThisFileDirectory)eng/RedBolt.SharpCppRoot.props" />
   <PropertyGroup>
     <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(RedBoltBuildRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltBuildRoot)'))</RedBoltExpectedBuildRoot>
     <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)build'))</RedBoltExpectedBuildRoot>

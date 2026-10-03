@@ -1,0 +1,15 @@
+<!--
+Copyright (c) 2026 RedBolt and contributors.
+This work is licensed under the terms of the MIT license.
+For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
+-->
+
+<Project>
+  <!-- One rule for the SharpCpp checkout, shared by project and solution evaluation: an explicit
+       RedBoltSharpCppRoot, else the monorepo's extern/SharpCpp when this repository is checked out
+       inside the monorepo, else the CPM checkout below this repository. -->
+  <PropertyGroup>
+    <RedBoltSharpCppRoot Condition="'$(RedBoltSharpCppRoot)' == '' and '$(RedBoltMonorepoRoot)' != '' and Exists('$(RedBoltMonorepoRoot)extern/SharpCpp/CMakeLists.txt')">$([System.IO.Path]::GetFullPath('$(RedBoltMonorepoRoot)extern/SharpCpp'))</RedBoltSharpCppRoot>
+    <RedBoltSharpCppRoot Condition="'$(RedBoltSharpCppRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../extern/SharpCpp'))</RedBoltSharpCppRoot>
+  </PropertyGroup>
+</Project>

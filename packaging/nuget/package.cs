@@ -85,6 +85,7 @@ internal sealed class Packager
     private readonly string[] _arguments;
     private readonly string _scriptDirectory;
     private readonly string _repositoryRoot;
+    private readonly string _sharpCppRoot;
     private readonly string _buildRoot;
     private readonly string _packageProject;
     private readonly string _packageRoot;
@@ -108,6 +109,7 @@ internal sealed class Packager
         _scriptDirectory = Path.GetDirectoryName(GetSourcePath())!;
         _repositoryRoot = Path.GetFullPath(Path.Combine(_scriptDirectory, "..", ".."));
         _buildRoot = ResolveBuildRoot(_repositoryRoot);
+        _sharpCppRoot = ResolveSharpCppRoot(_repositoryRoot);
         _packageProject = Path.Combine(_scriptDirectory, "RedBolt.Package.csproj");
         _packageRoot = ResolvePackageRoot(_repositoryRoot);
         _stageRoot = Path.Combine(_packageRoot, "stage");
@@ -195,6 +197,21 @@ internal sealed class Packager
         return File.Exists(Path.Combine(parent, "RedBolt.slnx"))
             ? Path.Combine(parent, "build")
             : Path.Combine(repositoryRoot, "build");
+    }
+
+    // Same rule as the MSBuild props: an explicit RedBoltSharpCppRoot, the monorepo's extern/SharpCpp when
+    // this repository sits inside the monorepo and that checkout exists, otherwise the CPM checkout below
+    // this repository.
+    private static string ResolveSharpCppRoot(string repositoryRoot)
+    {
+        var explicitRoot = Environment.GetEnvironmentVariable("RedBoltSharpCppRoot");
+        if (!string.IsNullOrEmpty(explicitRoot))
+            return Path.GetFullPath(explicitRoot);
+        var parent = Path.GetFullPath(Path.Combine(repositoryRoot, ".."));
+        var monorepoRoot = Path.Combine(parent, "extern", "SharpCpp");
+        return File.Exists(Path.Combine(parent, "RedBolt.slnx")) && File.Exists(Path.Combine(monorepoRoot, "CMakeLists.txt"))
+            ? monorepoRoot
+            : Path.Combine(repositoryRoot, "extern", "SharpCpp");
     }
 
     // Package outputs are namespaced per repository below the build root, because the monorepo shares one
@@ -404,7 +421,7 @@ internal sealed class Packager
         StageSharpCppPackage("SharpCpp.Pipeline", "Reusable SharpCpp binding transformation pipeline.");
         StageSharpCppPackage("SharpCpp.Rendering", "Managed and native binding rendering for SharpCpp.");
 
-        var parsingProject = Path.Combine(_repositoryRoot, "extern", "SharpCpp", "src", "SharpCpp.Parsing", "SharpCpp.Parsing.csproj");
+        var parsingProject = Path.Combine(_sharpCppRoot, "src", "SharpCpp.Parsing", "SharpCpp.Parsing.csproj");
         var runtimeReferences = Metadata(parsingProject).PackageReferences
             .Where(reference => Regex.IsMatch(reference.Id, "^libClang(Sharp)?\\.runtime\\."))
             .ToArray();
@@ -433,7 +450,7 @@ internal sealed class Packager
         if (package == "SharpCpp.Support")
         {
             CopyDirectory(
-                Path.Combine(_repositoryRoot, "extern", "SharpCpp", "include", "SharpCpp"),
+                Path.Combine(_sharpCppRoot, "include", "SharpCpp"),
                 Path.Combine(stage, "content", "include", "SharpCpp"));
             WriteXml(Path.Combine(stage, "buildTransitive", "SharpCpp.Support.props"),
                 new XElement("Project",
@@ -441,7 +458,7 @@ internal sealed class Packager
                         new XElement("SharpCppIncludeRoot",
                             "$([System.IO.Path]::GetFullPath(`$(MSBuildThisFileDirectory)../content/include`))"))));
         }
-        var project = Path.Combine(_repositoryRoot, "extern", "SharpCpp", "src", package, package + ".csproj");
+        var project = Path.Combine(_sharpCppRoot, "src", package, package + ".csproj");
         MakePackage(package, description, stage, PackageDependencies(project));
     }
 

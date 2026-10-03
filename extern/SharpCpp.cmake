@@ -1,7 +1,7 @@
 set(SHARPCPP_BUILD_E2E OFF CACHE BOOL "Build SharpCpp synthetic E2E fixtures" FORCE)
 set(SHARPCPP_BUILD_RBFX OFF CACHE BOOL "Build SharpCpp rbfx bindings" FORCE)
 
-# MSBuild selects the monorepo's SharpCpp checkout for monorepo builds; otherwise use CPM.
+# MSBuild passes the monorepo's SharpCpp checkout (RedBoltSharpCppRoot) when this repository is checked out inside the monorepo; otherwise use CPM.
 if(REDBOLT_SHARPCPP_ROOT PATH_EQUAL "${REDBOLT_DEPENDENCY_ROOT}/SharpCpp")
     redbolt_cpm_add_package(
         NAME SharpCpp

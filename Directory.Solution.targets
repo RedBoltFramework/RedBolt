@@ -106,9 +106,14 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <Target Name="RedBoltEnsureDependencies"
           DependsOnTargets="RedBoltValidateEnableSelection"
           BeforeTargets="_LoadRestoreGraphEntryPoints;Restore">
-    <Exec Command="cmake --preset $(RedBoltDependencyConfigurePreset) -B &quot;$(RedBoltBuildRoot)/native/$(RedBoltDependencyConfigurePreset)&quot; &quot;-DREDBOLT_SHARPCPP_ROOT=$(MSBuildThisFileDirectory)extern/SharpCpp&quot; &quot;-DREDBOLT_RUNTIME_OUTPUT_DIR=$(RedBoltBuildRoot)/bin/$&lt;CONFIG&gt;/linux-x64/extern/runtimes/linux-x64/native&quot; &quot;-DREDBOLT_PDB_OUTPUT_DIR=$(RedBoltBuildRoot)/bin/$&lt;CONFIG&gt;/linux-x64/extern/pdb&quot;" WorkingDirectory="$(MSBuildThisFileDirectory)" />
-    <Error Condition="!Exists('$(MSBuildThisFileDirectory)extern/SharpCpp/src/SharpCpp.Support/SharpCpp.Support.csproj')"
-           Text="CPM did not populate SharpCpp below '$(MSBuildThisFileDirectory)extern/SharpCpp'." />
+    <PropertyGroup>
+      <_RedBoltCpmSharpCppRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)extern/SharpCpp'))</_RedBoltCpmSharpCppRoot>
+    </PropertyGroup>
+    <Error Condition="'$(RedBoltMonorepoRoot)' != '' and '$(RedBoltSharpCppRoot)' == '$(_RedBoltCpmSharpCppRoot)'"
+           Text="Monorepo checkout '$(RedBoltMonorepoRoot)' has no extern/SharpCpp; check it out there." />
+    <Exec Command="cmake --preset $(RedBoltDependencyConfigurePreset) -B &quot;$(RedBoltBuildRoot)/native/$(RedBoltDependencyConfigurePreset)&quot; &quot;-DREDBOLT_SHARPCPP_ROOT=$(RedBoltSharpCppRoot)&quot; &quot;-DREDBOLT_RUNTIME_OUTPUT_DIR=$(RedBoltBuildRoot)/bin/$&lt;CONFIG&gt;/linux-x64/extern/runtimes/linux-x64/native&quot; &quot;-DREDBOLT_PDB_OUTPUT_DIR=$(RedBoltBuildRoot)/bin/$&lt;CONFIG&gt;/linux-x64/extern/pdb&quot;" WorkingDirectory="$(MSBuildThisFileDirectory)" />
+    <Error Condition="!Exists('$(RedBoltSharpCppRoot)/src/SharpCpp.Support/SharpCpp.Support.csproj')"
+           Text="SharpCpp is missing at '$(RedBoltSharpCppRoot)'." />
     <Error Condition="!Exists('$(MSBuildThisFileDirectory)extern/IconFontCppHeaders/IconsFontAwesome6.cs')"
            Text="CPM did not populate IconFontCppHeaders below '$(MSBuildThisFileDirectory)extern/IconFontCppHeaders'." />
   </Target>

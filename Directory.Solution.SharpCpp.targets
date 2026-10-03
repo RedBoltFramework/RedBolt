@@ -4,11 +4,28 @@ This work is licensed under the terms of the MIT license.
 For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENSE file.
 -->
 
-<Project>
+<Project InitialTargets="RedBoltConfigureSolutionSharpCppReferences">
   <!-- SharpCpp is also listed directly in the solutions. Pass the same configuration-specific
-       paths that RedBolt project references use so MSBuild identifies one build instance. -->
+       paths that RedBolt project references use so MSBuild identifies one build instance. It is an
+       initial target so that every solution entry point (test, publish, pack) sees the same items. -->
   <Target Name="RedBoltConfigureSolutionSharpCppReferences"
-          BeforeTargets="Build;_GetProjectReferenceTargetFrameworkProperties;ResolveProjectReferences;_FilterRestoreGraphProjectInputItems">
+          BeforeTargets="Build;Rebuild;Clean;_LoadRestoreGraphEntryPoints;_GetProjectReferenceTargetFrameworkProperties;ResolveProjectReferences;_FilterRestoreGraphProjectInputItems">
+    <!-- RedBolt.slnx lists the CPM checkout. Inside a monorepo checkout the projects reference the
+         monorepo's one, so build that one for the listed entries too: one copy per build root. -->
+    <PropertyGroup>
+      <_RedBoltCpmSharpCppRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)extern/SharpCpp'))</_RedBoltCpmSharpCppRoot>
+    </PropertyGroup>
+    <ItemGroup Condition="'$(RedBoltSharpCppRoot)' != '$(_RedBoltCpmSharpCppRoot)'">
+      <_RedBoltListedCpmSharpCpp Include="@(ProjectReference)"
+                                 Condition="'%(ProjectReference.Extension)' == '.csproj' and $([System.String]::Copy('%(ProjectReference.FullPath)').StartsWith('$(_RedBoltCpmSharpCppRoot)/'))" />
+      <ProjectReference Remove="@(_RedBoltListedCpmSharpCpp)" />
+      <!-- The solution configuration does not know the redirected paths, so references to them from
+           projects drop Platform. Drop it here as well, or each project builds as two instances. -->
+      <ProjectReference Include="@(_RedBoltListedCpmSharpCpp->'$(RedBoltSharpCppRoot)/src/%(Filename)/%(Filename)%(Extension)')"
+                        AdditionalProperties="Configuration=$(Configuration)" />
+    </ItemGroup>
+    <Message Importance="high" Condition="'@(_RedBoltListedCpmSharpCpp)' != ''"
+             Text="$(SolutionFileName) lists SharpCpp at '$(_RedBoltCpmSharpCppRoot)'; building the monorepo checkout '$(RedBoltSharpCppRoot)' instead." />
     <ItemGroup>
       <ProjectReference Update="@(ProjectReference)"
                         Condition="$([System.String]::Copy('%(ProjectReference.Filename)').StartsWith('SharpCpp.'))">

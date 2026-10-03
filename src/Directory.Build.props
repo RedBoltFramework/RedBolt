@@ -31,10 +31,11 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(RedBoltBuildRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltBuildRoot)'))</RedBoltExpectedBuildRoot>
     <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltRoot)/build'))</RedBoltExpectedBuildRoot>
     <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == ''">$(RedBoltExpectedBuildRoot)</RedBoltBuildRoot>
-    <!-- Each solution builds the SharpCpp checkout beside its build root: the monorepo's
-         extern/SharpCpp, or the CPM checkout for RedBolt's own solution and modules. -->
-    <RedBoltSharpCppRoot Condition="Exists('$(RedBoltBuildRoot)/../extern/SharpCpp/CMakeLists.txt')">$([System.IO.Path]::GetFullPath('$(RedBoltBuildRoot)/../extern/SharpCpp'))</RedBoltSharpCppRoot>
-    <RedBoltSharpCppRoot Condition="'$(RedBoltSharpCppRoot)' == ''">$(RedBoltRoot)/extern/SharpCpp</RedBoltSharpCppRoot>
+  </PropertyGroup>
+
+  <Import Project="$(RedBoltRoot)/eng/RedBolt.SharpCppRoot.props" />
+
+  <PropertyGroup>
     <RedBoltSharpCppBuildRoot Condition="'$(RedBoltSharpCppBuildRoot)' == ''">$(RedBoltBuildRoot)</RedBoltSharpCppBuildRoot>
     <!-- Android outer-build properties are global and therefore form part of a referenced project's
          identity. Host tools must discard them so all target platforms share one build instance. -->
