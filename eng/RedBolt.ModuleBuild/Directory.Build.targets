@@ -15,8 +15,18 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <UsingTask TaskName="RedBolt.ModuleBuild.Tasks.EnsureDirectoryLink"
              AssemblyFile="$(RedBoltModuleBuildTasksAssembly)" />
 
-  <Target Name="RedBoltBuildModuleBuildTasks" Condition="!Exists('$(RedBoltModuleBuildTasksAssembly)')">
-    <MSBuild Projects="$(RedBoltModuleBuildTasksProject)" Targets="Restore;Build" Properties="Configuration=$(Configuration);RedBoltBuildRoot=$(RedBoltBuildRoot)" />
+  <ItemGroup>
+    <RedBoltModuleBuildTasksInput Include="$(RedBoltRoot)/eng/RedBolt.ModuleBuild/Tasks/*.cs;$(RedBoltRoot)/eng/RedBolt.ModuleBuild/Tasks/*.csproj;$(RedBoltRoot)/eng/RedBolt.ModuleBuild/Tasks/Directory.Build.*" />
+  </ItemGroup>
+
+  <!-- Rebuilt when a task source is newer than the assembly. A node that already loaded the assembly
+       keeps the old one until it exits. The per-platform global properties are removed so that callers
+       of different platforms ask for the same instance of the tasks project. -->
+  <Target Name="RedBoltBuildModuleBuildTasks"
+          Inputs="@(RedBoltModuleBuildTasksInput)"
+          Outputs="$(RedBoltModuleBuildTasksAssembly)">
+    <MSBuild Projects="$(RedBoltModuleBuildTasksProject)" Targets="Restore;Build" Properties="Configuration=$(Configuration);RedBoltBuildRoot=$(RedBoltBuildRoot)"
+             RemoveProperties="$(RedBoltHostProjectGlobalPropertiesToRemove)" />
   </Target>
 
   <ItemGroup>
