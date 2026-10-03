@@ -44,15 +44,19 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   </ItemGroup>
 
   <!-- The SDK adds transitive project references after evaluation. Normalize only SharpCpp edges at
-       that point so platform and Android outer-build globals cannot create duplicate host builds. -->
+       that point so platform and Android outer-build globals cannot create duplicate host builds.
+       SharpCpp's own references pass Configuration as a global property. In a solution that does not
+       list the SharpCpp projects the SDK removes it on these edges instead, which builds the SharpCpp
+       projects reached both ways twice; keep it and pass it the same way. -->
   <Target Name="RedBoltNormalizeSharpCppProjectReferences"
           AfterTargets="_SplitProjectReferencesByFileExistence"
           BeforeTargets="_GetProjectReferenceTargetFrameworkProperties;ResolveProjectReferences">
     <ItemGroup>
       <_MSBuildProjectReferenceExistent Update="@(_MSBuildProjectReferenceExistent)"
           Condition="$([System.String]::Copy('%(_MSBuildProjectReferenceExistent.FullPath)').StartsWith('$(RedBoltSharpCppRoot)/src/'))">
-        <GlobalPropertiesToRemove>%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove);$(RedBoltHostProjectGlobalPropertiesToRemove)</GlobalPropertiesToRemove>
+        <GlobalPropertiesToRemove>$([System.String]::Copy(';%(_MSBuildProjectReferenceExistent.GlobalPropertiesToRemove);').Replace(';Configuration;', ';'));$(RedBoltHostProjectGlobalPropertiesToRemove)</GlobalPropertiesToRemove>
         <AdditionalProperties Condition="!$([System.String]::Copy('%(_MSBuildProjectReferenceExistent.AdditionalProperties)').Contains('CustomAfterDirectoryBuildProps='))">%(_MSBuildProjectReferenceExistent.AdditionalProperties);$(RedBoltSharpCppManagedProperties)</AdditionalProperties>
+        <SetConfiguration Condition="!$([System.String]::Copy(';%(_MSBuildProjectReferenceExistent.SetConfiguration)').Contains(';Configuration='))">%(_MSBuildProjectReferenceExistent.SetConfiguration);Configuration=$(Configuration)</SetConfiguration>
       </_MSBuildProjectReferenceExistent>
     </ItemGroup>
   </Target>
