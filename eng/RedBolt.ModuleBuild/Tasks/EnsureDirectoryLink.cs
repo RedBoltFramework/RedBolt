@@ -23,11 +23,17 @@ public sealed class EnsureDirectoryLink : Microsoft.Build.Utilities.Task
         }
 
         var linkInfo = new DirectoryInfo(Link);
-        if (linkInfo.Exists)
-            return true;
-
-        if (linkInfo.LinkTarget is not null)
+        if (linkInfo.LinkTarget is null)
         {
+            if (linkInfo.Exists)
+                return true;
+        }
+        else
+        {
+            // Windows reports a dangling directory link as existing, so test what the link resolves to.
+            if (LinkResolves(linkInfo))
+                return true;
+
             try
             {
                 linkInfo.Delete();
@@ -36,7 +42,16 @@ public sealed class EnsureDirectoryLink : Microsoft.Build.Utilities.Task
             {
                 // Unix reports a dangling link as a missing directory and leaves it in place. Removing
                 // it as a file works there, and passes when a project built in parallel removed it first.
-                File.Delete(Link);
+                // On Windows that leaves only a link a parallel project made meanwhile, which cannot be
+                // removed as a file and is kept.
+                try
+                {
+                    File.Delete(Link);
+                }
+                catch (UnauthorizedAccessException) when (Directory.Exists(Link))
+                {
+                    return true;
+                }
             }
         }
 
@@ -51,5 +66,22 @@ public sealed class EnsureDirectoryLink : Microsoft.Build.Utilities.Task
         }
 
         return true;
+    }
+
+    private static bool LinkResolves(DirectoryInfo linkInfo)
+    {
+        // Elsewhere the existence test follows the link, and resolves relative targets as the system does.
+        if (!OperatingSystem.IsWindows())
+            return linkInfo.Exists;
+
+        try
+        {
+            return linkInfo.ResolveLinkTarget(returnFinalTarget: true) is DirectoryInfo { Exists: true };
+        }
+        catch (IOException)
+        {
+            // A chain of links that cannot be followed is as good as a dangling one.
+            return false;
+        }
     }
 }
