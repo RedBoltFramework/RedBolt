@@ -7,21 +7,20 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 <Project>
   <!--
     Per-project build eligibility. Imported via CustomAfterMicrosoftCommonTargets so that projects
-    excluded by the current platform/architecture/module selection short-circuit their Build/Rebuild
+    excluded by the current RedBoltEnable/module selection short-circuit their Build/Rebuild
     with a message instead of compiling. The three inputs (_RedBoltProjectPlatformEnabled,
     _RedBoltProjectModuleEnabled, _RedBoltProjectPlatformSupported) are combined into
     RedBoltProjectBuildEnabled.
   -->
   <PropertyGroup>
-    <!-- A project is platform-enabled when its RedBoltPlatform is part of the enabled platform set
-         (e.g. linux-x64 requires both Linux and x64 to be enabled). -->
+    <!-- A project is platform-enabled when its RedBoltPlatform is one of the RIDs selected by RedBoltEnable. -->
     <_RedBoltProjectPlatformEnabled>false</_RedBoltProjectPlatformEnabled>
     <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'tools'">true</_RedBoltProjectPlatformEnabled>
-    <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'linux-x64' and '$(RedBoltLinuxEnabled)' == 'true' and '$(RedBoltX64Enabled)' == 'true'">true</_RedBoltProjectPlatformEnabled>
-    <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'win-x64' and '$(RedBoltWindowsEnabled)' == 'true' and '$(RedBoltX64Enabled)' == 'true'">true</_RedBoltProjectPlatformEnabled>
-    <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'android-x64' and '$(RedBoltAndroidEnabled)' == 'true' and '$(RedBoltX64Enabled)' == 'true'">true</_RedBoltProjectPlatformEnabled>
-    <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'android-arm64' and '$(RedBoltAndroidEnabled)' == 'true' and '$(RedBoltArm64Enabled)' == 'true'">true</_RedBoltProjectPlatformEnabled>
-    <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'browser-wasm' and '$(RedBoltWebEnabled)' == 'true'">true</_RedBoltProjectPlatformEnabled>
+    <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'linux-x64' and '$(RedBoltLinuxX64Enabled)' == 'true'">true</_RedBoltProjectPlatformEnabled>
+    <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'win-x64' and '$(RedBoltWinX64Enabled)' == 'true'">true</_RedBoltProjectPlatformEnabled>
+    <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'android-x64' and '$(RedBoltAndroidX64Enabled)' == 'true'">true</_RedBoltProjectPlatformEnabled>
+    <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'android-arm64' and '$(RedBoltAndroidArm64Enabled)' == 'true'">true</_RedBoltProjectPlatformEnabled>
+    <_RedBoltProjectPlatformEnabled Condition="'$(RedBoltPlatform)' == 'browser-wasm' and '$(RedBoltBrowserWasmEnabled)' == 'true'">true</_RedBoltProjectPlatformEnabled>
 
     <!-- Modules are always enabled in this setup; only platform rules can block a project build. -->
     <_RedBoltProjectModuleEnabled>true</_RedBoltProjectModuleEnabled>
@@ -54,6 +53,14 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <BuildDependsOn>RedBoltReportSkippedProject</BuildDependsOn>
     <RebuildDependsOn>RedBoltReportSkippedProject</RebuildDependsOn>
   </PropertyGroup>
+
+  <!-- An unknown RedBoltEnable item fails every project, enabled or skipped, before any real work
+       starts (the property is computed during evaluation, which must not throw). -->
+  <Target Name="RedBoltReportInvalidEnable"
+          BeforeTargets="RedBoltReportSkippedProject;BeforeBuild;BeforeRebuild;_LoadRestoreGraphEntryPoints;Restore"
+          Condition="'$(_RedBoltEnableUnknownItems)' != ''">
+    <Error Text="Invalid RedBoltEnable item(s) '$(_RedBoltEnableUnknownItems)' in '$(_RedBoltEnableInput)'. Valid items are 'all', '*', the RIDs linux-x64, win-x64, android-x64, android-arm64 and browser-wasm, and the tokens linux, win, android, browser, x64, arm64 and wasm, each optionally prefixed with '+' or '-'." />
+  </Target>
 
   <Target Name="RedBoltReportSkippedProject">
     <Message Importance="high"

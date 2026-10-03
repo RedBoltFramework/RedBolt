@@ -239,7 +239,7 @@ internal sealed class Packager
 
     private void ReadSelection()
     {
-        const string properties = "RedBoltLinuxEnabled,RedBoltWindowsEnabled,RedBoltAndroidEnabled,RedBoltWebEnabled,RedBoltX64Enabled,RedBoltArm64Enabled,RedBoltAudioEnabled,RedBoltDearImGuiEnabled,RedBoltUtilityEnabled,RedBoltEditorEnabled";
+        const string properties = "RedBoltLinuxX64Enabled,RedBoltWinX64Enabled,RedBoltAndroidX64Enabled,RedBoltAndroidArm64Enabled,RedBoltBrowserWasmEnabled,RedBoltAudioEnabled,RedBoltDearImGuiEnabled,RedBoltUtilityEnabled,RedBoltEditorEnabled";
         var json = Capture("dotnet",
         [
             "msbuild", Path.Combine(_repositoryRoot, "src", "RedBolt", "Core", "RedBolt.Core.csproj"),
@@ -250,11 +250,11 @@ internal sealed class Packager
         _selection = document.RootElement.GetProperty("Properties").EnumerateObject()
             .ToDictionary(property => property.Name, property => property.Value.GetString() ?? "", StringComparer.Ordinal);
 
-        if (IsEnabled("RedBoltLinuxEnabled") && IsEnabled("RedBoltX64Enabled")) _rids.Add("linux-x64");
-        if (IsEnabled("RedBoltWindowsEnabled") && IsEnabled("RedBoltX64Enabled")) _rids.Add("win-x64");
-        if (IsEnabled("RedBoltAndroidEnabled") && IsEnabled("RedBoltX64Enabled")) _rids.Add("android-x64");
-        if (IsEnabled("RedBoltAndroidEnabled") && IsEnabled("RedBoltArm64Enabled")) _rids.Add("android-arm64");
-        if (IsEnabled("RedBoltWebEnabled")) _rids.Add("browser-wasm");
+        if (IsEnabled("RedBoltLinuxX64Enabled")) _rids.Add("linux-x64");
+        if (IsEnabled("RedBoltWinX64Enabled")) _rids.Add("win-x64");
+        if (IsEnabled("RedBoltAndroidX64Enabled")) _rids.Add("android-x64");
+        if (IsEnabled("RedBoltAndroidArm64Enabled")) _rids.Add("android-arm64");
+        if (IsEnabled("RedBoltBrowserWasmEnabled")) _rids.Add("browser-wasm");
         if (_rids.Count == 0)
             throw new InvalidOperationException("No packageable RedBolt RIDs are enabled.");
 

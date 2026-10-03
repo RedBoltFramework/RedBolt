@@ -14,14 +14,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
                      and '$(SolutionName)' == '$(RedBoltExternalModuleName)'
                      and '$(MSBuildProjectName)' == '$(RedBoltExternalModuleName)'">
     <RedBoltSaveBuildConfig ConfigFile="$(RedBoltBuildConfigPath)"
-                            EnablePlatforms="$(RedBoltEnablePlatforms)"
-                            DisablePlatforms="$(RedBoltDisablePlatforms)"
-                            EnableArchitectures="$(RedBoltEnableArchitectures)"
-                            DisableArchitectures="$(RedBoltDisableArchitectures)"
-                            SavedEnablePlatforms="$(_RedBoltSavedEnablePlatforms)"
-                            SavedDisablePlatforms="$(_RedBoltSavedDisablePlatforms)"
-                            SavedEnableArchitectures="$(_RedBoltSavedEnableArchitectures)"
-                            SavedDisableArchitectures="$(_RedBoltSavedDisableArchitectures)" />
+                            Enable="$(_RedBoltEnableInput)"
+                            SavedEnable="$(_RedBoltSavedEnable)" />
   </Target>
 
   <!--

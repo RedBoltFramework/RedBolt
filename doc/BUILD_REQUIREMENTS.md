@@ -51,52 +51,63 @@ dotnet build src/RedBolt/Editor/RedBolt.Editor.csproj \
 ## Saved build selection
 
 `RedBolt.slnx` keeps every project visible, while its traversal project builds
-only projects that match the selected platforms and architectures.
-Use these case-insensitive, comma- or semicolon-separated MSBuild properties:
+only projects that match the selected runtime identifiers (RIDs): `linux-x64`,
+`win-x64`, `android-x64`, `android-arm64` and `browser-wasm`. Select them with
+one case-insensitive MSBuild property:
 
-| Property | Keys |
+| Property | Value |
 | --- | --- |
-| `RedBoltEnablePlatforms`, `RedBoltDisablePlatforms` | `linux`, `windows`, `android`, `web`, `all` |
-| `RedBoltEnableArchitectures`, `RedBoltDisableArchitectures` | `x64`, `arm64`, `all` |
+| `RedBoltEnable` | List of `+`/`-` items; unset means `all` |
 
-Use `-p:RedBoltFull` to enable all platforms and architectures:
+Items are separated by commas, semicolons or whitespace. Each item has a `+`
+(default) or `-` prefix and is applied left to right: `+` adds the matching RIDs
+and `-` removes them. If the first item is `+` or has no prefix, the selection
+starts empty; if it is `-`, it starts with every RID. An item is one of:
+
+- `all` or `*`: every RID.
+- An exact RID, such as `linux-x64`.
+- One `-`-separated part of a RID, matching every RID that has that part: `linux`, `win`,
+  `android`, `browser`, `x64`, `arm64` or `wasm`.
+
+Other items, such as `windows`, `web` or `android-*`, are errors. For example,
+`android,-x64` selects `android-arm64` only, and `-linux` selects every RID
+except `linux-x64`.
+
+Use `-p:RedBoltFull` as shorthand for `RedBoltEnable=all`:
 
 ```sh
 dotnet build RedBolt.slnx -p:RedBoltFull
 ```
 
 MSBuild itself treats commas and semicolons in a `-p:` switch as property
-separators. Escape a multi-key command-line value, for example
-`-p:RedBoltEnablePlatforms=linux%2cwindows`. Values in props files do not need
-that command-line escaping.
+separators. Escape a multi-item command-line value, for example
+`-p:RedBoltEnable=android%2c-x64`, quote it with embedded quotes
+(`'-p:RedBoltEnable="android,-x64"'`), or separate the items with spaces
+(`"-p:RedBoltEnable=android -x64"`). Values in props files do not need escaping.
 
-Selection starts from the saved defaults and then applies explicit values, so
-explicit values win. Web uses WebAssembly and does not depend on the architecture
-list. Platform/architecture pairs that no
+An explicit value replaces the saved selection. RID combinations that no
 project supports simply select no project; they are not configuration errors.
 
-On a fresh checkout, the defaults are Linux x64, all engine modules, the
-editor, and samples with tests disabled. For example, limit a build to Linux x64:
+On a fresh checkout, the default selection is `all`, with all engine modules,
+the editor, and samples with tests disabled. For example, limit a build to
+Linux x64:
 
 ```sh
 dotnet build RedBolt.slnx --configuration Debug \
-  -p:RedBoltDisablePlatforms=all \
-  -p:RedBoltEnablePlatforms=linux \
-  -p:RedBoltDisableArchitectures=all \
-  -p:RedBoltEnableArchitectures=x64
+  -p:RedBoltEnable=linux-x64
 ```
 
-Properties passed to a successful solution `Build` or `Rebuild` are
-canonicalized and saved atomically in `build/BuildConfig.props`. Later solution
-builds load that file automatically. A command-line property overrides its
-saved value and updates the file; properties not supplied retain their saved
-values. A build or rebuild with none of the selection properties leaves
-the file and its modification time unchanged. Direct project builds,
+The selection of a successful solution `Build` or `Rebuild` is canonicalized
+and saved atomically in `build/BuildConfig.props` as `RedBoltEnable`. Later
+solution builds load that file automatically. A command-line value overrides
+the saved one and updates the file. A build or rebuild without the property
+leaves the file and its modification time unchanged. Direct project builds,
 `Restore`, and `Clean` never save selection changes.
 
-Delete `build/BuildConfig.props` to return to fresh defaults. Passing an empty
-property value clears just that saved list. Unknown keys are errors and leave
-the previous saved configuration intact.
+Delete `build/BuildConfig.props` to return to fresh defaults. Unknown items
+are errors and leave the previous saved configuration intact. Saved files in
+the old four-property format are ignored: the selection falls back to `all`
+until a solution build is given `RedBoltEnable` explicitly.
 
 The build root is selected statically by `Directory.Build.props` and is not
 recorded by builds. A global `-p:RedBoltBuildRoot=<dir>` wins. Otherwise, when
@@ -146,17 +157,15 @@ cmake --preset win-x64 \
 
 dotnet restore src/RedBolt/Editor/RedBolt.Editor.csproj \
   -p:RedBoltPlatform=win-x64 \
-  -p:RedBoltDisablePlatforms=all -p:RedBoltEnablePlatforms=windows \
-  -p:RedBoltDisableArchitectures=all -p:RedBoltEnableArchitectures=x64
+  -p:RedBoltEnable=win-x64
 dotnet build src/RedBolt/Editor/RedBolt.Editor.csproj \
   --configuration Debug --no-restore \
   -p:RedBoltPlatform=win-x64 \
-  -p:RedBoltDisablePlatforms=all -p:RedBoltEnablePlatforms=windows \
-  -p:RedBoltDisableArchitectures=all -p:RedBoltEnableArchitectures=x64
+  -p:RedBoltEnable=win-x64
 ```
 
 `RedBoltBuildWindows=true` remains as a deprecated compatibility alias for a
-direct Windows build. Prefer the platform selectors and the low-level
+direct Windows build. Prefer `RedBoltEnable` and the low-level
 `RedBoltPlatform=win-x64` property shown above.
 
 `cmake --build --preset win-x64-debug` is the native-only equivalent. The

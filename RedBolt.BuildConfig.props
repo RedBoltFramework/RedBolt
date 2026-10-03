@@ -8,7 +8,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <!--
     Build configuration defaults.
     Sets tuning knobs that do not depend on the persisted selection, then imports the persisted
-    BuildConfig.props (if present) before computing the per-platform/architecture/module flags.
+    BuildConfig.props (if present) before computing the per-RID and module flags.
   -->
   <PropertyGroup>
     <RedBoltBuildConfigPath Condition="'$(RedBoltBuildConfigPath)' == ''">$(RedBoltBuildRoot)/BuildConfig.props</RedBoltBuildConfigPath>
@@ -22,57 +22,68 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
   <PropertyGroup>
     <!--
-      Normalize the user-supplied enable/disable lists into a canonical comma-joined, lowercase form
-      so the Contains(',name,') checks below match regardless of whitespace, case, or separator.
-      RedBoltFull=true is shorthand for enabling all platforms and architectures.
+      RedBoltEnable selects the runtime identifiers (RIDs) to build: linux-x64, win-x64, android-x64,
+      android-arm64 and browser-wasm. It is a list of items separated by ',', ';' or whitespace
+      (case-insensitive); empty means 'all'. Each item has a '+' (default) or '-' prefix and is applied
+      left to right: '+' adds the matching RIDs, '-' removes them. If the first item is '-' the list
+      starts out full, otherwise empty. An item is 'all' (or '*'), an exact RID, or one '-'-separated
+      part of a RID, matching every RID that has that part (linux, win, android, browser, x64, arm64, wasm);
+      no other use of '*' is accepted. For example 'android,-x64' selects android-arm64 and
+      '-linux' everything but linux-x64.
+
+      The selection is needed during evaluation (TargetFrameworks, BuildDependsOn), so it is resolved
+      with property functions only: a RID is enabled when the last item matching it has a '+' prefix,
+      or when no item matches it and the first item has a '-' prefix.
+      RedBoltFull=true is shorthand for RedBoltEnable=all.
     -->
-    <RedBoltEnablePlatforms Condition="'$(RedBoltFull)' != 'false'">all</RedBoltEnablePlatforms>
-    <RedBoltEnableArchitectures Condition="'$(RedBoltFull)' != 'false'">all</RedBoltEnableArchitectures>
+    <_RedBoltEnableInput>$(RedBoltEnable)</_RedBoltEnableInput>
+    <_RedBoltEnableInput Condition="'$(RedBoltFull)' != 'false'">all</_RedBoltEnableInput>
 
-    <_RedBoltSavedEnablePlatforms Condition="'$(_RedBoltSavedEnablePlatforms)' == ''"></_RedBoltSavedEnablePlatforms>
-    <_RedBoltSavedDisablePlatforms Condition="'$(_RedBoltSavedDisablePlatforms)' == ''"></_RedBoltSavedDisablePlatforms>
-    <_RedBoltSavedEnableArchitectures Condition="'$(_RedBoltSavedEnableArchitectures)' == ''"></_RedBoltSavedEnableArchitectures>
-    <_RedBoltSavedDisableArchitectures Condition="'$(_RedBoltSavedDisableArchitectures)' == ''"></_RedBoltSavedDisableArchitectures>
-
-    <_RedBoltEnablePlatforms>$([System.Text.RegularExpressions.Regex]::Replace(`$(RedBoltEnablePlatforms)`, `\s+`, ``).ToLowerInvariant().Replace(`;`, `,`))</_RedBoltEnablePlatforms>
-    <_RedBoltDisablePlatforms>$([System.Text.RegularExpressions.Regex]::Replace(`$(RedBoltDisablePlatforms)`, `\s+`, ``).ToLowerInvariant().Replace(`;`, `,`))</_RedBoltDisablePlatforms>
-    <_RedBoltEnableArchitectures>$([System.Text.RegularExpressions.Regex]::Replace(`$(RedBoltEnableArchitectures)`, `\s+`, ``).ToLowerInvariant().Replace(`;`, `,`))</_RedBoltEnableArchitectures>
-    <_RedBoltDisableArchitectures>$([System.Text.RegularExpressions.Regex]::Replace(`$(RedBoltDisableArchitectures)`, `\s+`, ``).ToLowerInvariant().Replace(`;`, `,`))</_RedBoltDisableArchitectures>
+    <_RedBoltSavedEnable Condition="'$(_RedBoltSavedEnable)' == ''"></_RedBoltSavedEnable>
 
     <!--
-      Wrap each normalized list in leading/trailing commas so membership can be tested with a plain
-      Contains(',name,') without false positives from prefix/suffix overlaps.
+      Normalize into ',+item,-item,' form: lowercase, single comma separators, an explicit sign on
+      every item, and '*' written as 'all'. The surrounding commas let items be matched as whole
+      words with plain regular expressions.
     -->
-    <_RedBoltEnablePlatformsList>,$(_RedBoltEnablePlatforms),</_RedBoltEnablePlatformsList>
-    <_RedBoltDisablePlatformsList>,$(_RedBoltDisablePlatforms),</_RedBoltDisablePlatformsList>
-    <_RedBoltEnableArchitecturesList>,$(_RedBoltEnableArchitectures),</_RedBoltEnableArchitecturesList>
-    <_RedBoltDisableArchitecturesList>,$(_RedBoltDisableArchitectures),</_RedBoltDisableArchitecturesList>
+    <_RedBoltEnableList>$([System.Text.RegularExpressions.Regex]::Replace(`$([System.String]::Copy('$(_RedBoltEnableInput)').ToLowerInvariant())`, `[\s;,]+`, `,`).Trim(','))</_RedBoltEnableList>
+    <_RedBoltEnableList Condition="'$(_RedBoltEnableList)' == ''">all</_RedBoltEnableList>
+    <_RedBoltEnableList>,$(_RedBoltEnableList),</_RedBoltEnableList>
+    <_RedBoltEnableList>$([System.Text.RegularExpressions.Regex]::Replace(`$(_RedBoltEnableList)`, `(?&lt;=,)(?=[^,+-])`, `+`))</_RedBoltEnableList>
+    <_RedBoltEnableList>$([System.Text.RegularExpressions.Regex]::Replace(`$(_RedBoltEnableList)`, `(?&lt;=,[+-])\*(?=,)`, `all`))</_RedBoltEnableList>
 
-    <!--
-      Platform flags. Each follows the same three-step resolution:
-        1. true if explicitly enabled (or 'all');
-        2. otherwise true if not explicitly disabled (Linux/x64 default on, others default off);
-        3. otherwise false.
-      Windows is special-cased: it also requires RedBoltBuildWindows=true because cross-building
-      Windows from a Linux host is not supported.
-    -->
-    <RedBoltLinuxEnabled Condition="$([System.String]::Copy('$(_RedBoltEnablePlatformsList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnablePlatformsList)').Contains(',linux,'))">true</RedBoltLinuxEnabled>
-    <RedBoltLinuxEnabled Condition="'$(RedBoltLinuxEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisablePlatformsList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisablePlatformsList)').Contains(',linux,'))">true</RedBoltLinuxEnabled>
-    <RedBoltLinuxEnabled Condition="'$(RedBoltLinuxEnabled)' == ''">false</RedBoltLinuxEnabled>
-    <RedBoltWindowsEnabled Condition="'$(RedBoltBuildWindows)' == 'true' or $([System.String]::Copy('$(_RedBoltEnablePlatformsList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnablePlatformsList)').Contains(',windows,'))">true</RedBoltWindowsEnabled>
-    <RedBoltWindowsEnabled Condition="'$(RedBoltWindowsEnabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisablePlatformsList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisablePlatformsList)').Contains(',windows,'))">false</RedBoltWindowsEnabled>
-    <RedBoltWindowsEnabled Condition="'$(RedBoltWindowsEnabled)' == ''">false</RedBoltWindowsEnabled>
-    <RedBoltAndroidEnabled Condition="$([System.String]::Copy('$(_RedBoltEnablePlatformsList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnablePlatformsList)').Contains(',android,'))">true</RedBoltAndroidEnabled>
-    <RedBoltAndroidEnabled Condition="'$(RedBoltAndroidEnabled)' == ''">false</RedBoltAndroidEnabled>
-    <RedBoltWebEnabled Condition="$([System.String]::Copy('$(_RedBoltEnablePlatformsList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnablePlatformsList)').Contains(',web,'))">true</RedBoltWebEnabled>
-    <RedBoltWebEnabled Condition="'$(RedBoltWebEnabled)' == ''">false</RedBoltWebEnabled>
+    <!-- Items that are neither 'all', a RID nor a known token. RedBoltReportInvalidEnable fails the build with them. -->
+    <_RedBoltEnableUnknownItems>$([System.Text.RegularExpressions.Regex]::Replace(`$(_RedBoltEnableList)`, `,[+-](?:all|linux-x64|win-x64|android-x64|android-arm64|browser-wasm|linux|win|android|browser|x64|arm64|wasm)(?=,)`, ``).Replace(`,,`, `,`).Trim(','))</_RedBoltEnableUnknownItems>
 
-    <!-- Architecture flags, same three-step resolution as platforms. -->
-    <RedBoltX64Enabled Condition="$([System.String]::Copy('$(_RedBoltEnableArchitecturesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableArchitecturesList)').Contains(',x64,'))">true</RedBoltX64Enabled>
-    <RedBoltX64Enabled Condition="'$(RedBoltX64Enabled)' == '' and !$([System.String]::Copy('$(_RedBoltDisableArchitecturesList)').Contains(',all,')) and !$([System.String]::Copy('$(_RedBoltDisableArchitecturesList)').Contains(',x64,'))">true</RedBoltX64Enabled>
-    <RedBoltX64Enabled Condition="'$(RedBoltX64Enabled)' == ''">false</RedBoltX64Enabled>
-    <RedBoltArm64Enabled Condition="$([System.String]::Copy('$(_RedBoltEnableArchitecturesList)').Contains(',all,')) or $([System.String]::Copy('$(_RedBoltEnableArchitecturesList)').Contains(',arm64,'))">true</RedBoltArm64Enabled>
-    <RedBoltArm64Enabled Condition="'$(RedBoltArm64Enabled)' == ''">false</RedBoltArm64Enabled>
+    <!-- Per-RID flags. Each RID is matched by 'all', its own name and each of its '-'-separated parts. -->
+    <_RedBoltEnableLinuxX64>all|linux-x64|linux|x64</_RedBoltEnableLinuxX64>
+    <_RedBoltEnableWinX64>all|win-x64|win|x64</_RedBoltEnableWinX64>
+    <_RedBoltEnableAndroidX64>all|android-x64|android|x64</_RedBoltEnableAndroidX64>
+    <_RedBoltEnableAndroidArm64>all|android-arm64|android|arm64</_RedBoltEnableAndroidArm64>
+    <_RedBoltEnableBrowserWasm>all|browser-wasm|browser|wasm</_RedBoltEnableBrowserWasm>
+
+    <RedBoltLinuxX64Enabled>false</RedBoltLinuxX64Enabled>
+    <RedBoltLinuxX64Enabled Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(`$(_RedBoltEnableList)`, `,\+(?:$(_RedBoltEnableLinuxX64))(?=,)(?!.*,[+-](?:$(_RedBoltEnableLinuxX64)),)`)) or ($([System.String]::Copy('$(_RedBoltEnableList)').StartsWith(`,-`)) and !$([System.Text.RegularExpressions.Regex]::IsMatch(`$(_RedBoltEnableList)`, `,[+-](?:$(_RedBoltEnableLinuxX64)),`)))">true</RedBoltLinuxX64Enabled>
+    <!-- RedBoltBuildWindows=true is a legacy alias that forces win-x64 on. -->
+    <RedBoltWinX64Enabled>false</RedBoltWinX64Enabled>
+    <RedBoltWinX64Enabled Condition="'$(RedBoltBuildWindows)' == 'true' or $([System.Text.RegularExpressions.Regex]::IsMatch(`$(_RedBoltEnableList)`, `,\+(?:$(_RedBoltEnableWinX64))(?=,)(?!.*,[+-](?:$(_RedBoltEnableWinX64)),)`)) or ($([System.String]::Copy('$(_RedBoltEnableList)').StartsWith(`,-`)) and !$([System.Text.RegularExpressions.Regex]::IsMatch(`$(_RedBoltEnableList)`, `,[+-](?:$(_RedBoltEnableWinX64)),`)))">true</RedBoltWinX64Enabled>
+    <RedBoltAndroidX64Enabled>false</RedBoltAndroidX64Enabled>
+    <RedBoltAndroidX64Enabled Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(`$(_RedBoltEnableList)`, `,\+(?:$(_RedBoltEnableAndroidX64))(?=,)(?!.*,[+-](?:$(_RedBoltEnableAndroidX64)),)`)) or ($([System.String]::Copy('$(_RedBoltEnableList)').StartsWith(`,-`)) and !$([System.Text.RegularExpressions.Regex]::IsMatch(`$(_RedBoltEnableList)`, `,[+-](?:$(_RedBoltEnableAndroidX64)),`)))">true</RedBoltAndroidX64Enabled>
+    <RedBoltAndroidArm64Enabled>false</RedBoltAndroidArm64Enabled>
+    <RedBoltAndroidArm64Enabled Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(`$(_RedBoltEnableList)`, `,\+(?:$(_RedBoltEnableAndroidArm64))(?=,)(?!.*,[+-](?:$(_RedBoltEnableAndroidArm64)),)`)) or ($([System.String]::Copy('$(_RedBoltEnableList)').StartsWith(`,-`)) and !$([System.Text.RegularExpressions.Regex]::IsMatch(`$(_RedBoltEnableList)`, `,[+-](?:$(_RedBoltEnableAndroidArm64)),`)))">true</RedBoltAndroidArm64Enabled>
+    <RedBoltBrowserWasmEnabled>false</RedBoltBrowserWasmEnabled>
+    <RedBoltBrowserWasmEnabled Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(`$(_RedBoltEnableList)`, `,\+(?:$(_RedBoltEnableBrowserWasm))(?=,)(?!.*,[+-](?:$(_RedBoltEnableBrowserWasm)),)`)) or ($([System.String]::Copy('$(_RedBoltEnableList)').StartsWith(`,-`)) and !$([System.Text.RegularExpressions.Regex]::IsMatch(`$(_RedBoltEnableList)`, `,[+-](?:$(_RedBoltEnableBrowserWasm)),`)))">true</RedBoltBrowserWasmEnabled>
+
+    <!-- Derived: any Android RID, and the ';'-joined list of enabled RIDs. -->
+    <RedBoltAndroidEnabled>false</RedBoltAndroidEnabled>
+    <RedBoltAndroidEnabled Condition="'$(RedBoltAndroidX64Enabled)' == 'true' or '$(RedBoltAndroidArm64Enabled)' == 'true'">true</RedBoltAndroidEnabled>
+    <RedBoltEnabledRuntimeIdentifiers></RedBoltEnabledRuntimeIdentifiers>
+    <RedBoltEnabledRuntimeIdentifiers Condition="'$(RedBoltLinuxX64Enabled)' == 'true'">$(RedBoltEnabledRuntimeIdentifiers);linux-x64</RedBoltEnabledRuntimeIdentifiers>
+    <RedBoltEnabledRuntimeIdentifiers Condition="'$(RedBoltWinX64Enabled)' == 'true'">$(RedBoltEnabledRuntimeIdentifiers);win-x64</RedBoltEnabledRuntimeIdentifiers>
+    <RedBoltEnabledRuntimeIdentifiers Condition="'$(RedBoltAndroidX64Enabled)' == 'true'">$(RedBoltEnabledRuntimeIdentifiers);android-x64</RedBoltEnabledRuntimeIdentifiers>
+    <RedBoltEnabledRuntimeIdentifiers Condition="'$(RedBoltAndroidArm64Enabled)' == 'true'">$(RedBoltEnabledRuntimeIdentifiers);android-arm64</RedBoltEnabledRuntimeIdentifiers>
+    <RedBoltEnabledRuntimeIdentifiers Condition="'$(RedBoltBrowserWasmEnabled)' == 'true'">$(RedBoltEnabledRuntimeIdentifiers);browser-wasm</RedBoltEnabledRuntimeIdentifiers>
+    <RedBoltEnabledRuntimeIdentifiers>$(RedBoltEnabledRuntimeIdentifiers.TrimStart(';'))</RedBoltEnabledRuntimeIdentifiers>
 
     <!-- Native modules enabled for the core engine build. DearImGui and TinyGltf are always included. -->
     <RedBoltEnabledNativeModules>SDL,DILIGENT,STB,LZ4,HARFBUZZ,WEBP,GLSLANG,SPIRV_CROSS,SPIRV_TOOLS,SHADER_COMPILER,IMGUI,TINYGLTF</RedBoltEnabledNativeModules>

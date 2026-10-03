@@ -32,10 +32,7 @@ Cross-compile the Windows x64 build from Linux with MinGW-w64 on `PATH`:
 ```bash
 cmake --preset win-x64
 dotnet build RedBolt.slnx --configuration Debug \
-  -p:RedBoltDisablePlatforms=all \
-  -p:RedBoltEnablePlatforms=windows \
-  -p:RedBoltDisableArchitectures=all \
-  -p:RedBoltEnableArchitectures=x64
+  -p:RedBoltEnable=win-x64
 ```
 
 Use the `win-x64-debug` or `win-x64-release` CMake build presets for a

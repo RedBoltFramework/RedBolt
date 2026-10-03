@@ -20,23 +20,17 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   <Import Project="$(MSBuildThisFileDirectory)Directory.Solution.SharpCpp.targets" />
 
   <!--
-    Inline C# task that writes the effective platform and architecture lists back to
-    BuildConfig.props. It only rewrites the file when the computed values differ from the
-    saved ones, so an unchanged incremental build does not dirty the config file.
+    Inline C# task that writes the effective RedBoltEnable expression back to BuildConfig.props.
+    It only rewrites the file when the computed value differs from the saved one, so an unchanged
+    incremental build does not dirty the config file.
   -->
   <UsingTask TaskName="RedBoltSaveBuildConfig"
              TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
     <ParameterGroup>
       <ConfigFile ParameterType="System.String" Required="true" />
-      <EnablePlatforms ParameterType="System.String" />
-      <DisablePlatforms ParameterType="System.String" />
-      <EnableArchitectures ParameterType="System.String" />
-      <DisableArchitectures ParameterType="System.String" />
-      <SavedEnablePlatforms ParameterType="System.String" />
-      <SavedDisablePlatforms ParameterType="System.String" />
-      <SavedEnableArchitectures ParameterType="System.String" />
-      <SavedDisableArchitectures ParameterType="System.String" />
+      <Enable ParameterType="System.String" />
+      <SavedEnable ParameterType="System.String" />
     </ParameterGroup>
     <Task>
       <Using Namespace="System" />
@@ -46,41 +40,22 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <Using Namespace="System.Xml" />
       <Using Namespace="System.Xml.Linq" />
       <Code Type="Fragment" Language="cs"><![CDATA[
+        // Order matters (the last matching item wins), so items are neither sorted nor deduplicated.
         string Canonical(string value) => string.Join(",",
             (value ?? "")
-                .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(key => key.Trim().ToLowerInvariant())
-                .Where(key => key.Length != 0)
-                .Distinct(StringComparer.OrdinalIgnoreCase));
+                .Split(new[] { ',', ';', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(item => item.ToLowerInvariant()));
 
-        var names = new[]
-        {
-            "EnablePlatforms", "DisablePlatforms",
-            "EnableArchitectures", "DisableArchitectures",
-        };
-        var values = new[]
-        {
-            Canonical(EnablePlatforms), Canonical(DisablePlatforms),
-            Canonical(EnableArchitectures), Canonical(DisableArchitectures)
-        };
-        var saved = new[]
-        {
-            Canonical(SavedEnablePlatforms), Canonical(SavedDisablePlatforms),
-            Canonical(SavedEnableArchitectures), Canonical(SavedDisableArchitectures)
-        };
-
-        if (values.SequenceEqual(saved, StringComparer.Ordinal))
+        var canonical = Canonical(Enable);
+        if (string.Equals(canonical, Canonical(SavedEnable), StringComparison.Ordinal))
             return true;
 
         var group = new XElement("PropertyGroup");
-        for (var index = 0; index < names.Length; ++index)
-        {
-            group.Add(new XElement("_RedBoltSaved" + names[index], values[index]));
-            group.Add(new XElement(
-                "RedBolt" + names[index],
-                new XAttribute("Condition", "'" + "$" + "(RedBolt" + names[index] + ")' == ''"),
-                values[index]));
-        }
+        group.Add(new XElement("_RedBoltSavedEnable", canonical));
+        group.Add(new XElement(
+            "RedBoltEnable",
+            new XAttribute("Condition", "'" + "$" + "(RedBoltEnable)' == ''"),
+            canonical));
         var document = new XDocument(new XElement("Project", group));
         var directory = Path.GetDirectoryName(ConfigFile);
         if (!string.IsNullOrEmpty(directory))
@@ -138,7 +113,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
   </Target>
 
   <!--
-    Persists the effective platform selection after a successful solution build.
+    Persists the effective RedBoltEnable selection after a successful solution build.
     The save is gated to a single representative project per solution (RedBolt.Core for the core
     solution, or the external module project itself for module solutions) so the file is written
     exactly once per build even though the target is imported by every project.
@@ -150,13 +125,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
                      and '$(SolutionName)' == 'RedBolt'
                      and '$(MSBuildProjectName)' == 'RedBolt.Core'">
     <RedBoltSaveBuildConfig ConfigFile="$(RedBoltBuildConfigPath)"
-                            EnablePlatforms="$(RedBoltEnablePlatforms)"
-                            DisablePlatforms="$(RedBoltDisablePlatforms)"
-                            EnableArchitectures="$(RedBoltEnableArchitectures)"
-                            DisableArchitectures="$(RedBoltDisableArchitectures)"
-                            SavedEnablePlatforms="$(_RedBoltSavedEnablePlatforms)"
-                            SavedDisablePlatforms="$(_RedBoltSavedDisablePlatforms)"
-                            SavedEnableArchitectures="$(_RedBoltSavedEnableArchitectures)"
-                            SavedDisableArchitectures="$(_RedBoltSavedDisableArchitectures)" />
+                            Enable="$(_RedBoltEnableInput)"
+                            SavedEnable="$(_RedBoltSavedEnable)" />
   </Target>
 </Project>

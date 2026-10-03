@@ -58,8 +58,7 @@
 
   ```sh
   dotnet build RedBolt/RedBolt.slnx --configuration Debug --no-restore -maxcpucount \
-    -p:RedBoltDisablePlatforms=all -p:RedBoltEnablePlatforms=linux \
-    -p:RedBoltDisableArchitectures=all -p:RedBoltEnableArchitectures=x64 \
+    -p:RedBoltEnable=linux-x64 \
     -p:RedBoltTestsEnabled=false
   ```
 

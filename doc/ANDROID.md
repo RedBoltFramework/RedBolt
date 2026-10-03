@@ -28,13 +28,11 @@ Restore and build the Android sample host:
 
 ```sh
 dotnet restore src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj \
-  -p:RedBoltDisablePlatforms=all -p:RedBoltEnablePlatforms=android \
-  -p:RedBoltDisableArchitectures=all -p:RedBoltEnableArchitectures=all \
+  -p:RedBoltEnable=android \
   -p:RedBoltEnableModules=all
 dotnet build src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj \
   --configuration Debug --no-restore \
-  -p:RedBoltDisablePlatforms=all -p:RedBoltEnablePlatforms=android \
-  -p:RedBoltDisableArchitectures=all -p:RedBoltEnableArchitectures=all \
+  -p:RedBoltEnable=android \
   -p:RedBoltEnableModules=all
 ```
 
@@ -52,8 +50,7 @@ Build both Release packages the same way:
 ```sh
 dotnet build src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj \
   --configuration Release --no-restore \
-  -p:RedBoltDisablePlatforms=all -p:RedBoltEnablePlatforms=android \
-  -p:RedBoltDisableArchitectures=all -p:RedBoltEnableArchitectures=all \
+  -p:RedBoltEnable=android \
   -p:RedBoltEnableModules=all
 ```
 
@@ -63,8 +60,7 @@ To build only one ABI, select its platform and disable the companion build:
 dotnet build src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj \
   --configuration Debug --no-restore \
   -p:RedBoltPlatform=android-x64 \
-  -p:RedBoltDisablePlatforms=all -p:RedBoltEnablePlatforms=android \
-  -p:RedBoltDisableArchitectures=all -p:RedBoltEnableArchitectures=x64 \
+  -p:RedBoltEnable=android-x64 \
   -p:RedBoltEnableModules=all \
   -p:RedBoltBuildAllAndroidPackages=false
 ```
