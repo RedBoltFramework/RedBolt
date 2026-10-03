@@ -24,17 +24,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <PackageTags>RedBolt game-engine csharp dotnet</PackageTags>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <NoWarn>$(NoWarn);NU5100;NU5119;NU5128</NoWarn>
-    <!-- The package project's own bin/ and obj/ live under the active build root: a global RedBoltBuildRoot
-         wins, then the monorepo root's build/ (RedBoltExpectedBuildRoot from the root Directory.Build.props),
-         then this repository's build/. -->
-    <RedBoltPackageBuildRoot>$(RedBoltBuildRoot)</RedBoltPackageBuildRoot>
-    <RedBoltPackageBuildRoot Condition="'$(RedBoltPackageBuildRoot)' == ''">$(RedBoltExpectedBuildRoot)</RedBoltPackageBuildRoot>
-    <RedBoltPackageBuildRoot Condition="'$(RedBoltPackageBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/../../build'))</RedBoltPackageBuildRoot>
-    <RedBoltPackageWorkName>$(RedBoltPackageId)</RedBoltPackageWorkName>
-    <RedBoltPackageWorkName Condition="'$(RedBoltPackageWorkName)' == ''">$(MSBuildProjectName)</RedBoltPackageWorkName>
-    <BaseOutputPath>$(RedBoltPackageBuildRoot)/bin/package/nuget/$(RedBoltPackageWorkName)/</BaseOutputPath>
-    <BaseIntermediateOutputPath>$(RedBoltPackageBuildRoot)/obj/package/nuget/$(RedBoltPackageWorkName)/</BaseIntermediateOutputPath>
-    <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)</MSBuildProjectExtensionsPath>
   </PropertyGroup>
 
   <Import Project="$(RedBoltPackageSpec)" Condition="Exists('$(RedBoltPackageSpec)')" />
