@@ -70,16 +70,51 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <AndroidJavaSource Update="$(RedBoltAndroidJavaDirectory)/org/libsdl/app/SDLActivity.java" Bind="true" />
     </ItemGroup>
   </Target>
-  <!-- Collects the built native .so files (engine, module, and the C++ runtime) into the APK. -->
+  <!-- Collects the native .so files this sample needs into the APK: the engine's own libraries plus those
+       of the modules listed in RedBoltAndroidSampleNativeModules. The shared output directory holds every
+       module's libraries, so the libraries are selected by name from the native build's manifests
+       (build/native/<module>/<platform>/<config>/generated/native-modules/*.json), not by wildcard. -->
   <Target Name="RedBoltCollectAndroidNativeLibraries" BeforeTargets="_BuildApkEmbed;_BuildApkFastDev" DependsOnTargets="RedBoltPrepareAndroidRuntime">
+    <ItemGroup>
+      <_RedBoltNativeManifestDirectory Include="$(RedBoltBaseNativeBuildDir)/generated/native-modules" />
+      <_RedBoltSampleNativeModule Include="$(RedBoltAndroidSampleNativeModules)" />
+      <_RedBoltNativeManifestDirectory Include="@(_RedBoltSampleNativeModule->'$(RedBoltBuildRoot)/native/%(Identity)/$(RedBoltPlatform)/$(Configuration)/generated/native-modules')" />
+    </ItemGroup>
+    <Error Condition="!Exists('%(_RedBoltNativeManifestDirectory.Identity)')"
+           Text="Native module manifests were not found at '%(_RedBoltNativeManifestDirectory.Identity)'; build the native modules of this sample first." />
+    <ItemGroup>
+      <_RedBoltNativeManifest Include="%(_RedBoltNativeManifestDirectory.Identity)/*.json" Condition="Exists('%(_RedBoltNativeManifestDirectory.Identity)')" />
+      <_RedBoltNativeManifest Remove="@(_RedBoltNativeManifest)" Condition="'%(Filename)%(Extension)' == 'index.json'" />
+    </ItemGroup>
+    <!-- Each manifest lists its runtime closure in "artifacts" (the module library plus the libraries it
+         links against at run time); every distinct file name is packaged exactly once. -->
+    <ItemGroup Condition="'@(_RedBoltNativeManifest)' != ''">
+      <_RedBoltNativeArtifactRaw Include="$([System.Text.RegularExpressions.Regex]::Replace($([System.Text.RegularExpressions.Regex]::Replace($([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('%(_RedBoltNativeManifest.FullPath)')), '&quot;artifacts&quot;\s*:\s*\[([^\]]*)\]').Groups[1].Value), '[\s&quot;]+', '')), ',', ';'))" />
+    </ItemGroup>
+    <!-- The comma list became one escaped item per manifest; unescaping splits it into one item per file. -->
+    <ItemGroup Condition="'@(_RedBoltNativeArtifactRaw)' != ''">
+      <_RedBoltNativeArtifactSplit Include="$([MSBuild]::Unescape('%(_RedBoltNativeArtifactRaw.Identity)'))" />
+    </ItemGroup>
+    <RemoveDuplicates Inputs="@(_RedBoltNativeArtifactSplit)" Condition="'@(_RedBoltNativeArtifactSplit)' != ''">
+      <Output TaskParameter="Filtered" ItemName="_RedBoltNativeArtifactName" />
+    </RemoveDuplicates>
+    <PropertyGroup>
+      <_RedBoltLibraryExternalDirectory>$(RedBoltExternalAndroidNativeOutput)</_RedBoltLibraryExternalDirectory>
+      <_RedBoltLibraryExternalDirectory Condition="'$(RedBoltExternalAndroidNativeOutput)' == '$(RedBoltBaseAndroidNativeOutput)'"></_RedBoltLibraryExternalDirectory>
+    </PropertyGroup>
+    <Error Condition="'@(_RedBoltNativeArtifactName)' != '' and !Exists('$(RedBoltBaseAndroidNativeOutput)/%(_RedBoltNativeArtifactName.Identity)') and ('$(_RedBoltLibraryExternalDirectory)' == '' or !Exists('$(_RedBoltLibraryExternalDirectory)/%(_RedBoltNativeArtifactName.Identity)'))"
+           Text="Native library '%(_RedBoltNativeArtifactName.Identity)' listed by a native module manifest was not found in '$(RedBoltBaseAndroidNativeOutput)' or '$(_RedBoltLibraryExternalDirectory)'." />
+    <!-- A library present in the module's own output directory wins over the shared one. -->
+    <ItemGroup Condition="'@(_RedBoltNativeArtifactName)' != ''">
+      <_RedBoltNativeLibrary Include="$(_RedBoltLibraryExternalDirectory)/%(_RedBoltNativeArtifactName.Identity)"
+                             Condition="'$(_RedBoltLibraryExternalDirectory)' != '' and Exists('$(_RedBoltLibraryExternalDirectory)/%(_RedBoltNativeArtifactName.Identity)')" />
+      <_RedBoltNativeLibrary Include="$(RedBoltBaseAndroidNativeOutput)/%(_RedBoltNativeArtifactName.Identity)"
+                             Condition="!('$(_RedBoltLibraryExternalDirectory)' != '' and Exists('$(_RedBoltLibraryExternalDirectory)/%(_RedBoltNativeArtifactName.Identity)')) and Exists('$(RedBoltBaseAndroidNativeOutput)/%(_RedBoltNativeArtifactName.Identity)')" />
+    </ItemGroup>
     <ItemGroup>
       <AndroidNativeLibrary Remove="$(RedBoltBaseAndroidNativeOutput)/libRedBolt.Native.*.so" />
       <AndroidNativeLibrary Remove="$(RedBoltExternalAndroidNativeOutput)/libRedBolt.Native.*.so" Condition="'$(RedBoltExternalAndroidNativeOutput)' != ''" />
-      <AndroidNativeLibrary Include="$(RedBoltBaseAndroidNativeOutput)/libRedBolt.Native.*.so" />
-      <AndroidNativeLibrary Include="$(RedBoltExternalAndroidNativeOutput)/libRedBolt.Native.*.so"
-                            Condition="'$(RedBoltExternalAndroidNativeOutput)' != '' and '$(RedBoltExternalAndroidNativeOutput)' != '$(RedBoltBaseAndroidNativeOutput)'" />
-      <AndroidNativeLibrary Include="$(RedBoltBaseAndroidNativeOutput)/libc++_shared.so" Condition="'$(RedBoltExternalAndroidNativeOutput)' == ''" />
-      <AndroidNativeLibrary Include="$(RedBoltExternalAndroidNativeOutput)/libc++_shared.so" Condition="'$(RedBoltExternalAndroidNativeOutput)' != ''" />
+      <AndroidNativeLibrary Include="@(_RedBoltNativeLibrary)" />
     </ItemGroup>
   </Target>
   <!-- Copies the signed APK to the app output bucket and, when building x64 first, kicks off the
