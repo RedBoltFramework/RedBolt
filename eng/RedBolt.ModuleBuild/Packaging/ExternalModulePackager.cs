@@ -100,6 +100,7 @@ public static class ExternalModulePackager
         private readonly string _scriptDirectory;
         private readonly string _repositoryRoot;
         private readonly string _redBoltRoot;
+        private readonly string _buildRoot;
         private readonly string _packageProject;
         private readonly string _packageRoot;
         private readonly string _stageRoot;
@@ -120,10 +121,11 @@ public static class ExternalModulePackager
             _repositoryRoot = Path.GetFullPath(Path.Combine(_scriptDirectory, "..", ".."));
             _redBoltRoot = Path.GetFullPath(Path.Combine(_repositoryRoot, "..", "RedBolt"));
             _packageProject = Path.Combine(_scriptDirectory, "RedBolt.Package.csproj");
-            _packageRoot = Path.Combine(_repositoryRoot, "build", "package", "nuget");
+            _buildRoot = ResolveBuildRoot(_repositoryRoot);
+            _packageRoot = ResolvePackageRoot(_repositoryRoot);
             _stageRoot = Path.Combine(_packageRoot, "stage");
             _outputRoot = Path.Combine(_packageRoot, "out");
-            _baseOutputRoot = Path.Combine(_redBoltRoot, "build", "package", "nuget", "out");
+            _baseOutputRoot = Path.Combine(ResolvePackageRoot(_redBoltRoot), "out");
         }
 
         public int Run()
@@ -228,7 +230,7 @@ public static class ExternalModulePackager
             foreach (var feed in _manifest.ExternalFeeds)
             {
                 var root = Path.GetFullPath(Path.Combine(_repositoryRoot, "..", feed.Repository));
-                _feedRoots[feed.Key] = Path.Combine(root, "build", "package", "nuget", "out");
+                _feedRoots[feed.Key] = Path.Combine(ResolvePackageRoot(root), "out");
                 if (!_versions.ContainsKey(feed.Key))
                 {
                     _versions[feed.Key] = ResolveRepositoryVersion(
@@ -240,7 +242,7 @@ public static class ExternalModulePackager
 
         private string ResolveRepositoryVersion(string root, string script)
         {
-            var versionFile = Path.Combine(root, "build", "package", "nuget", "version.txt");
+            var versionFile = Path.Combine(ResolvePackageRoot(root), "version.txt");
             var version = File.Exists(versionFile)
                 ? File.ReadAllText(versionFile).Trim()
                 : RunCapture("dotnet", ["run", "--file", script, "--", "version"]).Trim();
@@ -268,7 +270,7 @@ public static class ExternalModulePackager
 
         private void BuildSelectedOutputs()
         {
-            var baseCore = Path.Combine(_redBoltRoot, "build", "bin", Configuration, "linux-x64", "core", "RedBolt.Core.dll");
+            var baseCore = Path.Combine(ResolveBuildRoot(_redBoltRoot), "bin", Configuration, "linux-x64", "core", "RedBolt.Core.dll");
             if (!File.Exists(baseCore))
                 throw new InvalidOperationException($"Build the matching base RedBolt Release outputs first: {baseCore}");
 
@@ -282,6 +284,7 @@ public static class ExternalModulePackager
                 if (step.NoRestore)
                     arguments.Add("--no-restore");
                 arguments.Add($"-m:{jobs}");
+                arguments.Add(BuildRootProperty);
                 arguments.AddRange(step.Arguments);
                 RunCommand("dotnet", arguments);
             }
@@ -395,6 +398,7 @@ public static class ExternalModulePackager
                 $"-p:RedBoltRepositoryCommit={_repositoryCommit}",
                 $"-p:RedBoltPackageStage={stage}",
                 $"-p:RedBoltPackageSpec={spec}",
+                BuildRootProperty,
                 $"-p:RestorePackagesPath={Path.Combine(_packageRoot, "restore-packages")}",
                 $"-p:RestoreSources={string.Join(';', sources)}"
             };
@@ -512,7 +516,34 @@ public static class ExternalModulePackager
 
         private string Project(string path) => RepositoryPath(Path.Combine("src", "RedBolt", path));
 
-        private string RepositoryPath(string path) => Path.GetFullPath(Path.Combine(_repositoryRoot, path));
+        // Paths under "build/" (built outputs) follow the resolved build root; everything else is repository-relative.
+        private string RepositoryPath(string path)
+        {
+            var normalized = path.Replace('\\', '/');
+            return normalized.StartsWith("build/", StringComparison.Ordinal)
+                ? Path.GetFullPath(Path.Combine(_buildRoot, normalized["build/".Length..]))
+                : Path.GetFullPath(Path.Combine(_repositoryRoot, path));
+        }
+
+        private string BuildRootProperty => $"-p:RedBoltBuildRoot={_buildRoot}";
+
+        // Same rule as the MSBuild props: an explicit REDBOLT_BUILD_ROOT, the monorepo root's build/ when
+        // RedBolt.slnx sits beside the repository, otherwise the repository's own build/.
+        private static string ResolveBuildRoot(string repositoryRoot)
+        {
+            var explicitRoot = Environment.GetEnvironmentVariable("REDBOLT_BUILD_ROOT");
+            if (!string.IsNullOrEmpty(explicitRoot))
+                return Path.GetFullPath(explicitRoot);
+            var parent = Path.GetFullPath(Path.Combine(repositoryRoot, ".."));
+            return File.Exists(Path.Combine(parent, "RedBolt.slnx"))
+                ? Path.Combine(parent, "build")
+                : Path.Combine(repositoryRoot, "build");
+        }
+
+        // Package outputs are namespaced per repository below the build root, because the monorepo shares one
+        // build root: <build root>/package/nuget/<repository directory name>/{stage,out,version.txt,...}.
+        private static string ResolvePackageRoot(string repositoryRoot) =>
+            Path.Combine(ResolveBuildRoot(repositoryRoot), "package", "nuget", Path.GetFileName(repositoryRoot));
 
         private string Version(string source) => _versions.TryGetValue(source, out var version)
             ? version

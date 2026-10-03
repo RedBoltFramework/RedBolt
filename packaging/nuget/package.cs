@@ -85,6 +85,7 @@ internal sealed class Packager
     private readonly string[] _arguments;
     private readonly string _scriptDirectory;
     private readonly string _repositoryRoot;
+    private readonly string _buildRoot;
     private readonly string _packageProject;
     private readonly string _packageRoot;
     private readonly string _stageRoot;
@@ -106,8 +107,9 @@ internal sealed class Packager
         _arguments = arguments;
         _scriptDirectory = Path.GetDirectoryName(GetSourcePath())!;
         _repositoryRoot = Path.GetFullPath(Path.Combine(_scriptDirectory, "..", ".."));
+        _buildRoot = ResolveBuildRoot(_repositoryRoot);
         _packageProject = Path.Combine(_scriptDirectory, "RedBolt.Package.csproj");
-        _packageRoot = Path.Combine(_repositoryRoot, "build", "package", "nuget");
+        _packageRoot = ResolvePackageRoot(_repositoryRoot);
         _stageRoot = Path.Combine(_packageRoot, "stage");
         _outputRoot = Path.Combine(_packageRoot, "out");
     }
@@ -142,7 +144,7 @@ internal sealed class Packager
         }
 
         if (!_skipBuild)
-            RunCommand("dotnet", ["build", Path.Combine(_repositoryRoot, "RedBolt.slnx"), "--configuration", Configuration]);
+            RunCommand("dotnet", ["build", Path.Combine(_repositoryRoot, "RedBolt.slnx"), "--configuration", Configuration, BuildRootProperty]);
 
         RecreateDirectory(_stageRoot);
         RecreateDirectory(_outputRoot);
@@ -166,6 +168,7 @@ internal sealed class Packager
                 [
                     "build", Path.Combine(_repositoryRoot, "src", "RedBolt", "Tools", "PackageTool", "RedBolt.PackageTool.csproj"),
                     "--configuration", Configuration,
+                    BuildRootProperty,
                     $"-p:RedBoltPlatform={rid}",
                     "-p:RedBoltIgnoreBuildSelection=true"
                 ]);
@@ -180,6 +183,26 @@ internal sealed class Packager
     }
 
     private static string GetSourcePath([CallerFilePath] string path = "") => path;
+
+    // Same rule as the MSBuild props: an explicit REDBOLT_BUILD_ROOT, the monorepo root's build/ when
+    // RedBolt.slnx sits beside this repository, otherwise this repository's build/.
+    private static string ResolveBuildRoot(string repositoryRoot)
+    {
+        var explicitRoot = Environment.GetEnvironmentVariable("REDBOLT_BUILD_ROOT");
+        if (!string.IsNullOrEmpty(explicitRoot))
+            return Path.GetFullPath(explicitRoot);
+        var parent = Path.GetFullPath(Path.Combine(repositoryRoot, ".."));
+        return File.Exists(Path.Combine(parent, "RedBolt.slnx"))
+            ? Path.Combine(parent, "build")
+            : Path.Combine(repositoryRoot, "build");
+    }
+
+    // Package outputs are namespaced per repository below the build root, because the monorepo shares one
+    // build root: <build root>/package/nuget/<repository directory name>/{stage,out,version.txt,...}.
+    private static string ResolvePackageRoot(string repositoryRoot) =>
+        Path.Combine(ResolveBuildRoot(repositoryRoot), "package", "nuget", Path.GetFileName(repositoryRoot));
+
+    private string BuildRootProperty => $"-p:RedBoltBuildRoot={_buildRoot}";
 
     private static int Usage()
     {
@@ -220,6 +243,7 @@ internal sealed class Packager
         var json = Capture("dotnet",
         [
             "msbuild", Path.Combine(_repositoryRoot, "src", "RedBolt", "Core", "RedBolt.Core.csproj"),
+            BuildRootProperty,
             $"-getProperty:{properties}"
         ]).Output;
         using var document = JsonDocument.Parse(json);
@@ -253,9 +277,9 @@ internal sealed class Packager
         if (IsDesktopRid(rid))
         {
             var directory = project.StartsWith("RedBolt.Bindings.", StringComparison.Ordinal) ? "extern" : "core";
-            return Path.Combine(_repositoryRoot, "build", "bin", Configuration, rid, directory, assembly + ".dll");
+            return Path.Combine(_buildRoot, "bin", Configuration, rid, directory, assembly + ".dll");
         }
-        return Path.Combine(_repositoryRoot, "build", "obj", "managed", Configuration, rid, "staging", project, assembly + ".dll");
+        return Path.Combine(_buildRoot, "obj", "managed", Configuration, rid, "staging", project, assembly + ".dll");
     }
 
     private void StageCommon(string stage)
@@ -275,6 +299,7 @@ internal sealed class Packager
         var json = Capture("dotnet",
         [
             "msbuild", project,
+            BuildRootProperty,
             "-getItem:ProjectReference,PackageReference,Compile",
             "-getProperty:ImplicitUsings,Nullable,AllowUnsafeBlocks",
             $"-p:Configuration={Configuration}",
@@ -356,6 +381,7 @@ internal sealed class Packager
             $"-p:RedBoltPackageDescription={description}",
             $"-p:RedBoltPackageStage={stage}",
             $"-p:RedBoltPackageSpec={spec}",
+            BuildRootProperty,
             $"-p:RedBoltRepositoryCommit={_repositoryCommit}",
             $"-p:PackageOutputPath={_outputRoot}",
             $"-p:RestoreAdditionalProjectSources={_outputRoot}"
@@ -397,7 +423,7 @@ internal sealed class Packager
     private void StageSharpCppPackage(string package, string description)
     {
         var stage = Path.Combine(_stageRoot, package);
-        var source = Path.Combine(_repositoryRoot, "build", "bin", Configuration, "host", "extern", package + ".dll");
+        var source = Path.Combine(_buildRoot, "bin", Configuration, "host", "extern", package + ".dll");
         StageCommon(stage);
         File.Copy(Path.Combine(_scriptDirectory, "SharpCpp.LICENSE.txt"), Path.Combine(stage, "LICENSE.txt"), true);
         RequireFile(source, "SharpCpp assembly");
@@ -452,7 +478,7 @@ internal sealed class Packager
             File.Copy(
                 Path.Combine(_repositoryRoot, "extern", "IconFontCppHeaders", "licence.txt"),
                 Path.Combine(stage, "IconFontCppHeaders.LICENSE.txt"), true);
-            var analyzer = Path.Combine(_repositoryRoot, "build", "bin", Configuration, "host", "tools", "RedBolt.Generator.Reflection.dll");
+            var analyzer = Path.Combine(_buildRoot, "bin", Configuration, "host", "tools", "RedBolt.Generator.Reflection.dll");
             RequireFile(analyzer, "reflection analyzer");
             var analyzers = Path.Combine(stage, "analyzers", "dotnet", "cs");
             Directory.CreateDirectory(analyzers);
@@ -539,7 +565,7 @@ internal sealed class Packager
         {
             if (module == "Core")
             {
-                var artifact = Path.Combine(_repositoryRoot, "build", "native", "redbolt", rid, Configuration, "lib", Configuration, "wasm", "RedBolt.Native.Web.a");
+                var artifact = Path.Combine(_buildRoot, "native", "redbolt", rid, Configuration, "lib", Configuration, "wasm", "RedBolt.Native.Web.a");
                 RequireFile(artifact, "WebAssembly runtime archive");
                 var native = Path.Combine(stage, "runtimes", rid, "native");
                 Directory.CreateDirectory(native);
@@ -554,14 +580,14 @@ internal sealed class Packager
         }
         else
         {
-            var nativeRoot = Path.Combine(_repositoryRoot, "build", "bin", Configuration, rid, "extern", "runtimes", rid, "native");
+            var nativeRoot = Path.Combine(_buildRoot, "bin", Configuration, rid, "extern", "runtimes", rid, "native");
             if (!Directory.Exists(nativeRoot))
                 throw new InvalidOperationException($"Missing native runtime directory: {nativeRoot}");
             var destination = Path.Combine(stage, "runtimes", rid, "native");
             Directory.CreateDirectory(destination);
             foreach (var nativeModule in NativeModulesFor(module, rid))
             {
-                var manifest = Path.Combine(_repositoryRoot, "build", "native", "redbolt", rid, Configuration, "generated", "native-modules", nativeModule + ".json");
+                var manifest = Path.Combine(_buildRoot, "native", "redbolt", rid, Configuration, "generated", "native-modules", nativeModule + ".json");
                 if (File.Exists(manifest))
                 {
                     using var document = JsonDocument.Parse(File.ReadAllText(manifest));
@@ -628,8 +654,8 @@ internal sealed class Packager
         var package = $"RedBolt.{tool}.{rid}";
         var stage = Path.Combine(_stageRoot, package);
         var sourceRoot = tool == "Editor"
-            ? Path.Combine(_repositoryRoot, "build", "bin", Configuration, rid, "tools")
-            : Path.Combine(_repositoryRoot, "build", "bin", Configuration, "host", "tools", rid);
+            ? Path.Combine(_buildRoot, "bin", Configuration, rid, "tools")
+            : Path.Combine(_buildRoot, "bin", Configuration, "host", "tools", rid);
         StageCommon(stage);
         var destination = Path.Combine(stage, "tools", rid);
         Directory.CreateDirectory(destination);

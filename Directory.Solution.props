@@ -12,13 +12,19 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
     RedBoltBuildRoot is the one directory every project in the solution writes into, so managed
     assemblies, native libraries, and intermediate artifacts stay co-located and discoverable
-    across the solution graph (probed via AdditionalProbingPath). When the build is launched
-    through a .slnx, $(SolutionDir) is defined and the build root is the solution's own build/
-    subfolder; otherwise it falls back to this repository's build/.
+    across the solution graph (probed via AdditionalProbingPath). The selection is static and
+    mirrors the project-level Directory.Build.props: a global RedBoltBuildRoot, else the monorepo
+    root's build/ when this repository sits beside the monorepo's RedBolt.slnx, else this
+    repository's build/.
   -->
+  <Import Project="$(MSBuildThisFileDirectory)../Directory.Build.props"
+          Condition="'$(RedBoltMonorepoRoot)' == ''
+                     and Exists('$(MSBuildThisFileDirectory)../Directory.Build.props')
+                     and Exists('$(MSBuildThisFileDirectory)../RedBolt.slnx')" />
   <PropertyGroup>
-    <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == '' and '$(SolutionDir)' != ''">$([System.IO.Path]::GetFullPath('$(SolutionDir)/build'))</RedBoltBuildRoot>
-    <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)build'))</RedBoltBuildRoot>
+    <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(RedBoltBuildRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltBuildRoot)'))</RedBoltExpectedBuildRoot>
+    <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)build'))</RedBoltExpectedBuildRoot>
+    <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == ''">$(RedBoltExpectedBuildRoot)</RedBoltBuildRoot>
     <RedBoltBuildConfigPath Condition="'$(RedBoltBuildConfigPath)' == ''">$(RedBoltBuildRoot)/BuildConfig.props</RedBoltBuildConfigPath>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
     <SharpCppBuildRoot Condition="'$(SharpCppBuildRoot)' == ''">$(RedBoltBuildRoot)</SharpCppBuildRoot>

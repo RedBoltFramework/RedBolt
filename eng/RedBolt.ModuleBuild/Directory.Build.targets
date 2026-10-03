@@ -9,23 +9,14 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 
   <PropertyGroup>
     <RedBoltModuleBuildTasksProject>$(RedBoltRoot)/eng/RedBolt.ModuleBuild/Tasks/RedBolt.ModuleBuild.Tasks.csproj</RedBoltModuleBuildTasksProject>
-    <RedBoltModuleBuildTasksAssembly>$(RedBoltRoot)/eng/RedBolt.ModuleBuild/Tasks/bin/$(Configuration)/net10.0/RedBolt.ModuleBuild.Tasks.dll</RedBoltModuleBuildTasksAssembly>
+    <RedBoltModuleBuildTasksAssembly>$(RedBoltBuildRoot)/bin/tools/module-build-tasks/$(Configuration)/net10.0/RedBolt.ModuleBuild.Tasks.dll</RedBoltModuleBuildTasksAssembly>
   </PropertyGroup>
 
   <UsingTask TaskName="RedBolt.ModuleBuild.Tasks.EnsureDirectoryLink"
              AssemblyFile="$(RedBoltModuleBuildTasksAssembly)" />
 
-  <Target Name="RedBoltPersistModuleBuildRoot"
-          AfterTargets="Build;Rebuild"
-          Condition="'$(BuildingSolutionFile)' == 'true'
-                     and '$(SolutionName)' == '$(RedBoltExternalModuleName)'
-                     and '$(MSBuildProjectName)' == '$(RedBoltExternalModuleName)'">
-    <RedBoltSaveBuildRoot ConfigFile="$(RedBoltExternalModuleRoot)/build/BuildRoot.props"
-                          BuildRoot="$(RedBoltBuildRoot)" />
-  </Target>
-
   <Target Name="RedBoltBuildModuleBuildTasks" Condition="!Exists('$(RedBoltModuleBuildTasksAssembly)')">
-    <MSBuild Projects="$(RedBoltModuleBuildTasksProject)" Targets="Restore;Build" Properties="Configuration=$(Configuration)" />
+    <MSBuild Projects="$(RedBoltModuleBuildTasksProject)" Targets="Restore;Build" Properties="Configuration=$(Configuration);RedBoltBuildRoot=$(RedBoltBuildRoot)" />
   </Target>
 
   <ItemGroup>
@@ -102,4 +93,38 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
           AfterTargets="Build"
           DependsOnTargets="RedBoltStageExternalNativeResources"
       Condition="'$(RedBoltExternalDesktopResourceRoot)' != '' and '$(RedBoltExternalDesktopResourceName)' != '' and ('$(RedBoltPlatform)' == 'linux-x64' or '$(RedBoltPlatform)' == 'win-x64') and '$(RedBoltProjectBuildEnabled)' == 'true'" />
+
+  <!--
+    Standalone layout (no monorepo root): core projects referenced from a module project evaluate on their own and
+    would default to the core's build/. Pass this project's build root down every ProjectReference that leaves
+    this repository, in the resolved reference set, and in the restore graph, so the whole graph shares one
+    build root. References inside this repository already share the root; extra global properties would build
+    them a second time. The monorepo needs none of this: its root Directory.Build.props selects the same root
+    everywhere.
+  -->
+  <PropertyGroup Condition="'$(RedBoltMonorepoRoot)' == ''">
+    <_RedBoltStandaloneRepositoryPrefix>$([MSBuild]::EnsureTrailingSlash('$([System.IO.Path]::GetFullPath('$(RedBoltExternalModuleRoot)'))'))</_RedBoltStandaloneRepositoryPrefix>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(RedBoltMonorepoRoot)' == ''">
+    <ProjectReference Update="@(ProjectReference)">
+      <AdditionalProperties Condition="!$([System.String]::Copy('%(FullPath)').StartsWith('$(_RedBoltStandaloneRepositoryPrefix)'))">%(ProjectReference.AdditionalProperties);RedBoltBuildRoot=$(RedBoltBuildRoot);RedBoltExpectedBuildRoot=$(RedBoltExpectedBuildRoot)</AdditionalProperties>
+    </ProjectReference>
+  </ItemGroup>
+  <Target Name="RedBoltConfigureStandaloneProjectReferences"
+          AfterTargets="_SplitProjectReferencesByFileExistence"
+          BeforeTargets="_GetProjectReferenceTargetFrameworkProperties;ResolveProjectReferences"
+          Condition="'$(RedBoltMonorepoRoot)' == ''">
+    <ItemGroup>
+      <_MSBuildProjectReferenceExistent Update="@(_MSBuildProjectReferenceExistent)">
+        <SetConfiguration Condition="!$([System.String]::Copy('%(FullPath)').StartsWith('$(_RedBoltStandaloneRepositoryPrefix)'))">%(_MSBuildProjectReferenceExistent.SetConfiguration);RedBoltBuildRoot=$(RedBoltBuildRoot);RedBoltExpectedBuildRoot=$(RedBoltExpectedBuildRoot)</SetConfiguration>
+      </_MSBuildProjectReferenceExistent>
+    </ItemGroup>
+  </Target>
+  <Target Name="RedBoltConfigureStandaloneRestoreGraph"
+          BeforeTargets="_FilterRestoreGraphProjectInputItems;_GenerateRestoreProjectPathWalk;_GenerateRestoreProjectPathItemsPerFramework;_GenerateProjectRestoreGraphPerFramework"
+          Condition="'$(RedBoltMonorepoRoot)' == ''">
+    <PropertyGroup>
+      <_GenerateRestoreGraphProjectEntryInputProperties>$(_GenerateRestoreGraphProjectEntryInputProperties);RedBoltBuildRoot=$(RedBoltBuildRoot);RedBoltExpectedBuildRoot=$(RedBoltExpectedBuildRoot)</_GenerateRestoreGraphProjectEntryInputProperties>
+    </PropertyGroup>
+  </Target>
 </Project>

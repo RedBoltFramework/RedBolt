@@ -11,9 +11,21 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     normal managed output tree.
   -->
   <PropertyGroup>
-    <RedBoltRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../../RedBolt'))</RedBoltRoot>
-    <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == '' and '$(SolutionDir)' != ''">$([System.IO.Path]::GetFullPath('$(SolutionDir)/build'))</RedBoltBuildRoot>
-    <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == ''">$(RedBoltRoot)/build</RedBoltBuildRoot>
+    <RedBoltRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../..'))</RedBoltRoot>
+  </PropertyGroup>
+
+  <!-- Inside the monorepo (marked by RedBolt.slnx beside this repository) the root Directory.Build.props
+       selects the build root. Kept self-contained: only the root props are imported, not the core props. -->
+  <Import Project="$(RedBoltRoot)/../Directory.Build.props"
+          Condition="'$(RedBoltMonorepoRoot)' == ''
+                     and Exists('$(RedBoltRoot)/../Directory.Build.props')
+                     and Exists('$(RedBoltRoot)/../RedBolt.slnx')" />
+
+  <PropertyGroup>
+    <!-- A global RedBoltBuildRoot wins, then the monorepo root's build/, then this repository's build/. -->
+    <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(RedBoltBuildRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltBuildRoot)'))</RedBoltExpectedBuildRoot>
+    <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltRoot)/build'))</RedBoltExpectedBuildRoot>
+    <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == ''">$(RedBoltExpectedBuildRoot)</RedBoltBuildRoot>
     <BaseOutputPath>$(RedBoltBuildRoot)/bin/tools/external-module-packaging/</BaseOutputPath>
     <BaseIntermediateOutputPath>$(RedBoltBuildRoot)/obj/tools/external-module-packaging/</BaseIntermediateOutputPath>
     <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)restore/$(Configuration)/</MSBuildProjectExtensionsPath>

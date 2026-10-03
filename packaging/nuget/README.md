@@ -8,7 +8,9 @@ dotnet run --file packaging/nuget/package.cs -- create
 ```
 
 Use `--no-build` to package existing Release outputs. Packages and generated
-staging files are written below `build/package/nuget/`. The version is derived
+staging files are written below `<build root>/package/nuget/RedBolt/` (`<build root>` is the monorepo
+`build/` inside the monorepo and the repository's own `build/` standalone;
+`REDBOLT_BUILD_ROOT` overrides it). The version is derived
 from Git: an exact `vX.Y.Z` tag produces `X.Y.Z`; otherwise packaging produces
 the next patch development version, or `0.1.0-dev.<height>+<sha>` before the
 first tag.

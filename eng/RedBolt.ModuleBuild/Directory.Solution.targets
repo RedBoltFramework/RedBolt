@@ -23,4 +23,19 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
                             SavedEnableArchitectures="$(_RedBoltSavedEnableArchitectures)"
                             SavedDisableArchitectures="$(_RedBoltSavedDisableArchitectures)" />
   </Target>
+
+  <!--
+    Standalone layout (no monorepo root): solution restore walks every project, including the core
+    projects the module projects reference, with the solution's _GenerateRestoreGraphProjectEntryInputProperties.
+    Without RedBoltBuildRoot there the core projects evaluate on their own and restore into the core's
+    build/. SolutionDir used to carry this implicitly. The monorepo selects one root everywhere and needs none
+    of this (extra global properties there would evaluate the core projects a second time).
+  -->
+  <Target Name="RedBoltConfigureStandaloneSolutionRestoreGraph"
+          BeforeTargets="_LoadRestoreGraphEntryPoints;_FilterRestoreGraphProjectInputItems;_GetAllRestoreProjectPathItems;_GenerateRestoreGraph"
+          Condition="'$(RedBoltMonorepoRoot)' == ''">
+    <PropertyGroup>
+      <_GenerateRestoreGraphProjectEntryInputProperties>$(_GenerateRestoreGraphProjectEntryInputProperties);RedBoltBuildRoot=$(RedBoltBuildRoot);RedBoltExpectedBuildRoot=$(RedBoltExpectedBuildRoot)</_GenerateRestoreGraphProjectEntryInputProperties>
+    </PropertyGroup>
+  </Target>
 </Project>

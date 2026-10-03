@@ -17,15 +17,18 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</RedBoltRoot>
   </PropertyGroup>
 
-  <Import Project="$(RedBoltRoot)/build/BuildRoot.props"
-          Condition="Exists('$(RedBoltRoot)/build/BuildRoot.props')" />
+  <!-- Inside the monorepo (marked by RedBolt.slnx beside this repository) the root Directory.Build.props
+       selects the build root. Module projects have already imported it through the module props, which
+       RedBoltMonorepoRoot reports so it is not imported twice. -->
+  <Import Project="$(RedBoltRoot)/../Directory.Build.props"
+          Condition="'$(RedBoltMonorepoRoot)' == ''
+                     and Exists('$(RedBoltRoot)/../Directory.Build.props')
+                     and Exists('$(RedBoltRoot)/../RedBolt.slnx')" />
 
   <PropertyGroup>
-    <!-- The build root must match the selected solution or direct-build context. Direct builds reuse
-         the last root persisted by a solution and fall back to this repository's build/ directory. -->
+    <!-- The build root must match the one selected statically: a global RedBoltBuildRoot, the monorepo
+         root's build/, or this repository's build/ directory. -->
     <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(RedBoltBuildRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltBuildRoot)'))</RedBoltExpectedBuildRoot>
-    <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(SolutionDir)' != ''">$([System.IO.Path]::GetFullPath('$(SolutionDir)/build'))</RedBoltExpectedBuildRoot>
-    <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(RedBoltPersistedBuildRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltPersistedBuildRoot)'))</RedBoltExpectedBuildRoot>
     <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltRoot)/build'))</RedBoltExpectedBuildRoot>
     <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == ''">$(RedBoltExpectedBuildRoot)</RedBoltBuildRoot>
     <!-- Each solution builds the SharpCpp checkout beside its build root: the monorepo's

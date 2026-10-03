@@ -20,10 +20,11 @@ saved in `build/BuildConfig.props`; see
 [Build requirements](doc/BUILD_REQUIREMENTS.md#saved-build-selection) for all
 platform, architecture, and module options.
 
-The module solution writes generated files and binaries below `build/` and
-records that root in `build/BuildRoot.props`. A monorepo solution records its
-shared root instead. Later direct project builds use the root selected by the
-last solution build. CMake remains available for native-only diagnosis, but the
+Generated files and binaries are written below the build root: the monorepo
+`build/` when this repository sits beside the monorepo `RedBolt.slnx` (for the
+root solution, module solutions, and direct projects alike), otherwise this
+repository's own `build/`. `-p:RedBoltBuildRoot=<dir>` overrides the choice.
+CMake remains available for native-only diagnosis, but the
 solution is the supported selective-build entry point.
 
 Cross-compile the Windows x64 build from Linux with MinGW-w64 on `PATH`:
@@ -62,7 +63,9 @@ dotnet run --file packaging/nuget/package.cs -- create
 ```
 
 The command uses the normal saved platform/module selection and writes a
-validated local package set below `build/package/nuget/out/`. See the
+validated local package set below `<build root>/package/nuget/RedBolt/out/`
+(`<build root>` is the monorepo `build/` inside the monorepo and the
+repository's own `build/` standalone; `REDBOLT_BUILD_ROOT` overrides it). See the
 [NuGet packaging guide](packaging/nuget/README.md) for package names and
 consumer configuration.
 
