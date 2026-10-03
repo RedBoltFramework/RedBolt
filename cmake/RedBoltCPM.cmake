@@ -335,6 +335,40 @@ function(redbolt_cpm_update_checkout package_name repository git_tag checkout pa
 
   redbolt_cpm_get_git_commit("${checkout}" HEAD local_commit)
   redbolt_cpm_get_git_commit("${checkout}" "${git_tag}" pinned_commit)
+
+  # A branch pin moves. The local ref only records the last fetch (the checkout's own branch always
+  # equals HEAD), so ask the remote where the branch is now. Tags and commit hashes do not move
+  # and are resolved locally. Without network access the existing checkout is used as is.
+  redbolt_cpm_get_git_commit("${checkout}" "refs/tags/${git_tag}" pinned_tag_commit)
+  if(local_commit AND pinned_commit AND NOT pinned_tag_commit
+     AND NOT git_tag MATCHES "^[0-9a-fA-F]+$")
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} ls-remote --heads "${repository}" "refs/heads/${git_tag}"
+      RESULT_VARIABLE remote_result
+      OUTPUT_VARIABLE remote_heads
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_VARIABLE remote_error
+      ERROR_STRIP_TRAILING_WHITESPACE
+      TIMEOUT 30
+      WORKING_DIRECTORY "${checkout}"
+    )
+    if(remote_result)
+      message(
+        WARNING
+          "CPM: Could not query ${package_name} branch '${git_tag}' at '${repository}'; using the existing checkout at ${local_commit}: ${remote_error}"
+      )
+      set(pinned_commit "${local_commit}")
+    elseif(remote_heads MATCHES "^([0-9a-fA-F]+)[ \t]")
+      set(pinned_commit "${CMAKE_MATCH_1}")
+    else()
+      message(
+        WARNING
+          "CPM: ${package_name} branch '${git_tag}' was not found at '${repository}'; using the existing checkout at ${local_commit}."
+      )
+      set(pinned_commit "${local_commit}")
+    endif()
+  endif()
+
   if(local_commit AND pinned_commit AND local_commit STREQUAL pinned_commit)
     if(patches)
       if(status)
