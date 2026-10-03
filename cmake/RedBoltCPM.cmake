@@ -253,6 +253,117 @@ function(redbolt_cpm_checkout_matches_patches repository patches output)
   )
 endfunction()
 
+# Fingerprint of a checkout's state: HEAD, the patch files and every change in the working tree,
+# including submodules and untracked files. Only reads: it never modifies the working tree.
+function(redbolt_cpm_checkout_fingerprint repository patches output)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+    RESULT_VARIABLE head_result
+    OUTPUT_VARIABLE head
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_VARIABLE head_error
+    ERROR_STRIP_TRAILING_WHITESPACE
+    WORKING_DIRECTORY "${repository}"
+  )
+  if(head_result)
+    message(FATAL_ERROR "CPM: Could not resolve HEAD of '${repository}': ${head_error}")
+  endif()
+
+  set(patch_hashes)
+  foreach(patch_file IN LISTS patches)
+    get_filename_component(patch_file "${patch_file}" ABSOLUTE)
+    file(SHA256 "${patch_file}" patch_hash)
+    list(APPEND patch_hashes "${patch_hash}")
+  endforeach()
+
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} status --porcelain --ignore-submodules=none
+    RESULT_VARIABLE status_result
+    OUTPUT_VARIABLE status
+    ERROR_VARIABLE status_error
+    ERROR_STRIP_TRAILING_WHITESPACE
+    WORKING_DIRECTORY "${repository}"
+  )
+  if(status_result)
+    message(FATAL_ERROR "CPM: Could not fingerprint status of '${repository}': ${status_error}")
+  endif()
+
+  execute_process(
+    COMMAND
+      ${GIT_EXECUTABLE} -c diff.mnemonicPrefix=false -c diff.noprefix=false -c diff.algorithm=myers
+      diff HEAD --submodule=diff --ignore-submodules=none --no-color --no-ext-diff --no-textconv
+      --full-index
+    RESULT_VARIABLE diff_result
+    OUTPUT_VARIABLE diff
+    ERROR_VARIABLE diff_error
+    ERROR_STRIP_TRAILING_WHITESPACE
+    WORKING_DIRECTORY "${repository}"
+  )
+  if(diff_result)
+    message(FATAL_ERROR "CPM: Could not fingerprint changes of '${repository}': ${diff_error}")
+  endif()
+
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} ls-files --others --exclude-standard
+    RESULT_VARIABLE untracked_result
+    OUTPUT_VARIABLE untracked
+    ERROR_VARIABLE untracked_error
+    ERROR_STRIP_TRAILING_WHITESPACE
+    WORKING_DIRECTORY "${repository}"
+  )
+  if(untracked_result)
+    message(FATAL_ERROR "CPM: Could not list untracked files of '${repository}': ${untracked_error}")
+  endif()
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} ls-files --others --exclude-standard
+    COMMAND ${GIT_EXECUTABLE} hash-object --stdin-paths
+    RESULTS_VARIABLE untracked_results
+    OUTPUT_VARIABLE untracked_hashes
+    ERROR_VARIABLE untracked_hash_error
+    ERROR_STRIP_TRAILING_WHITESPACE
+    WORKING_DIRECTORY "${repository}"
+  )
+  # A failed pipeline (a nested repository or a dangling symlink) is hashed, not fatal: the stamp
+  # then mismatches and the patch validation reports the real problem.
+  set(state "${head}\n${patch_hashes}\n${status}\n${diff}\n${untracked}\n${untracked_hashes}")
+  string(APPEND state "\n${untracked_results}\n${untracked_hash_error}")
+  string(SHA256 fingerprint "${state}")
+  set(${output}
+      "${fingerprint}"
+      PARENT_SCOPE
+  )
+endfunction()
+
+# The patch validation reverses and reapplies every patch, which replaces the patched files while
+# another platform may be compiling them. A stamp of the validated state in the git directory
+# lets a configure of an unchanged checkout skip it.
+function(redbolt_cpm_checkout_verify_patches repository patches output)
+  redbolt_cpm_get_git_path("${repository}" "redbolt-cpm-patched.stamp" stamp)
+  redbolt_cpm_checkout_fingerprint("${repository}" "${patches}" fingerprint)
+  if(EXISTS "${stamp}")
+    file(READ "${stamp}" stamped_fingerprint)
+    if(stamped_fingerprint STREQUAL fingerprint)
+      set(${output}
+          TRUE
+          PARENT_SCOPE
+      )
+      return()
+    endif()
+  endif()
+
+  redbolt_cpm_checkout_matches_patches("${repository}" "${patches}" matches)
+  if(matches)
+    redbolt_cpm_checkout_fingerprint("${repository}" "${patches}" fingerprint)
+    file(WRITE "${stamp}" "${fingerprint}")
+  else()
+    file(REMOVE "${stamp}")
+  endif()
+  set(${output}
+      ${matches}
+      PARENT_SCOPE
+  )
+endfunction()
+
 function(redbolt_cpm_checkout_contains_patches repository patches output)
   find_program(PATCH_EXECUTABLE patch)
   if(NOT PATCH_EXECUTABLE)
@@ -385,7 +496,7 @@ function(redbolt_cpm_update_checkout package_name repository git_tag checkout pa
   if(local_commit AND pinned_commit AND local_commit STREQUAL pinned_commit)
     if(patches)
       if(status)
-        redbolt_cpm_checkout_matches_patches("${checkout}" "${patches}" patches_match)
+        redbolt_cpm_checkout_verify_patches("${checkout}" "${patches}" patches_match)
         if(NOT patches_match)
           message(
             FATAL_ERROR
@@ -399,7 +510,7 @@ function(redbolt_cpm_update_checkout package_name repository git_tag checkout pa
         return()
       endif()
       redbolt_cpm_apply_patches("${checkout}" ${patches})
-      redbolt_cpm_checkout_matches_patches("${checkout}" "${patches}" patches_match)
+      redbolt_cpm_checkout_verify_patches("${checkout}" "${patches}" patches_match)
       if(NOT patches_match)
         message(FATAL_ERROR "CPM: ${package_name} at '${checkout}' did not reach the expected patched state.")
       endif()
@@ -415,7 +526,7 @@ function(redbolt_cpm_update_checkout package_name repository git_tag checkout pa
   if(status)
     set(patches_match FALSE)
     if(patches)
-      redbolt_cpm_checkout_matches_patches("${checkout}" "${patches}" patches_match)
+      redbolt_cpm_checkout_verify_patches("${checkout}" "${patches}" patches_match)
     endif()
     if(NOT patches_match)
       message(
@@ -468,6 +579,10 @@ function(redbolt_cpm_update_checkout package_name repository git_tag checkout pa
     redbolt_cpm_checkout_contains_patches("${checkout}" "${patches}" patches_present)
     if(NOT patches_present)
       redbolt_cpm_apply_patches("${checkout}" ${patches})
+      redbolt_cpm_checkout_verify_patches("${checkout}" "${patches}" patches_match)
+      if(NOT patches_match)
+        message(FATAL_ERROR "CPM: ${package_name} at '${checkout}' did not reach the expected patched state.")
+      endif()
     endif()
   endif()
   message(STATUS "CPM: Updated ${package_name} from ${local_commit} to pinned ref ${git_tag}")
@@ -475,6 +590,22 @@ function(redbolt_cpm_update_checkout package_name repository git_tag checkout pa
       TRUE
       PARENT_SCOPE
   )
+endfunction()
+
+# CPMAddPackage clones and patches a missing checkout itself: stamp that state right away.
+function(redbolt_cpm_stamp_new_checkout package_name checkout patches)
+  redbolt_cpm_get_git_path("${checkout}" "redbolt-cpm-prepare.lock" prepare_lock)
+  file(LOCK "${prepare_lock}" GUARD FUNCTION TIMEOUT 300 RESULT_VARIABLE lock_result)
+  if(lock_result)
+    message(
+      FATAL_ERROR
+        "CPM: Could not lock ${package_name} checkout '${checkout}' for preparation: ${lock_result}"
+    )
+  endif()
+  redbolt_cpm_checkout_verify_patches("${checkout}" "${patches}" patches_match)
+  if(NOT patches_match)
+    message(FATAL_ERROR "CPM: ${package_name} at '${checkout}' did not reach the expected patched state.")
+  endif()
 endfunction()
 
 find_package(Git REQUIRED)
@@ -499,7 +630,10 @@ macro(redbolt_cpm_add_package)
     set(redbolt_cpm_repository "")
   endif()
 
+  set(redbolt_cpm_checkout "")
+  set(redbolt_cpm_tracked FALSE)
   if(REDBOLT_CPM_NAME AND REDBOLT_CPM_GIT_TAG AND redbolt_cpm_repository)
+    set(redbolt_cpm_tracked TRUE)
     redbolt_cpm_find_checkout("${REDBOLT_CPM_NAME}" "${redbolt_cpm_repository}" redbolt_cpm_checkout)
     redbolt_cpm_update_checkout(
       "${REDBOLT_CPM_NAME}"
@@ -512,4 +646,13 @@ macro(redbolt_cpm_add_package)
   endif()
 
   CPMAddPackage(${ARGN})
+
+  if(redbolt_cpm_tracked AND NOT redbolt_cpm_checkout AND REDBOLT_CPM_PATCHES)
+    redbolt_cpm_find_checkout("${REDBOLT_CPM_NAME}" "${redbolt_cpm_repository}" redbolt_cpm_checkout)
+    if(redbolt_cpm_checkout)
+      redbolt_cpm_stamp_new_checkout(
+        "${REDBOLT_CPM_NAME}" "${redbolt_cpm_checkout}" "${REDBOLT_CPM_PATCHES}"
+      )
+    endif()
+  endif()
 endmacro()
