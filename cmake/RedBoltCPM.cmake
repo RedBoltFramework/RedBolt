@@ -339,9 +339,18 @@ function(redbolt_cpm_update_checkout package_name repository git_tag checkout pa
   # A branch pin moves. The local ref only records the last fetch (the checkout's own branch always
   # equals HEAD), so ask the remote where the branch is now. Tags and commit hashes do not move
   # and are resolved locally. Without network access the existing checkout is used as is.
+  # A pin is a commit hash only when it abbreviates the commit it resolves to: a branch may have
+  # a name that is all hex digits.
   redbolt_cpm_get_git_commit("${checkout}" "refs/tags/${git_tag}" pinned_tag_commit)
-  if(local_commit AND pinned_commit AND NOT pinned_tag_commit
-     AND NOT git_tag MATCHES "^[0-9a-fA-F]+$")
+  set(pinned_is_hash FALSE)
+  if(git_tag MATCHES "^[0-9a-fA-F]+$")
+    string(TOLOWER "${git_tag}" git_tag_lower)
+    string(FIND "${pinned_commit}" "${git_tag_lower}" hash_prefix)
+    if(hash_prefix EQUAL 0)
+      set(pinned_is_hash TRUE)
+    endif()
+  endif()
+  if(local_commit AND pinned_commit AND NOT pinned_tag_commit AND NOT pinned_is_hash)
     execute_process(
       COMMAND ${GIT_EXECUTABLE} ls-remote --heads "${repository}" "refs/heads/${git_tag}"
       RESULT_VARIABLE remote_result

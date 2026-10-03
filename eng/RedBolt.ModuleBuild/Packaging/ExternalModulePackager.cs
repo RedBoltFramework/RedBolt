@@ -520,6 +520,8 @@ public static class ExternalModulePackager
         private string RepositoryPath(string path)
         {
             var normalized = path.Replace('\\', '/');
+            while (normalized.StartsWith("./", StringComparison.Ordinal))
+                normalized = normalized[2..];
             return normalized.StartsWith("build/", StringComparison.Ordinal)
                 ? Path.GetFullPath(Path.Combine(_buildRoot, normalized["build/".Length..]))
                 : Path.GetFullPath(Path.Combine(_repositoryRoot, path));
@@ -543,7 +545,8 @@ public static class ExternalModulePackager
         // Package outputs are namespaced per repository below the build root, because the monorepo shares one
         // build root: <build root>/package/nuget/<repository directory name>/{stage,out,version.txt,...}.
         private static string ResolvePackageRoot(string repositoryRoot) =>
-            Path.Combine(ResolveBuildRoot(repositoryRoot), "package", "nuget", Path.GetFileName(repositoryRoot));
+            Path.Combine(ResolveBuildRoot(repositoryRoot), "package", "nuget",
+                Path.GetFileName(Path.TrimEndingDirectorySeparator(repositoryRoot)));
 
         private string Version(string source) => _versions.TryGetValue(source, out var version)
             ? version
