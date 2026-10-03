@@ -229,10 +229,15 @@ internal abstract class BindingTargetGenerator(
         if (!string.IsNullOrWhiteSpace(options.CompilerSysroot))
             clangArguments.Add($"--sysroot={options.CompilerSysroot}");
 
-        // Android's arm64 and x86_64 defaults disagree on plain-char
-        // signedness. Use one projection so the managed API is ABI-invariant.
+        // Android's arm64 and x86_64 defaults disagree on plain-char and
+        // wchar_t signedness. Use one projection so the managed API is
+        // ABI-invariant.
         if (options.CompilerTarget?.Contains("android", StringComparison.OrdinalIgnoreCase) == true)
+        {
             clangArguments.Add("-fsigned-char");
+            clangArguments.Add("-Xclang");
+            clangArguments.Add("-fwchar-type=int");
+        }
 
         if (!string.IsNullOrWhiteSpace(toolchainInfo.ClangResourceDirectory) &&
             !clangArguments.Any(static argument =>
