@@ -848,12 +848,23 @@ endfunction()
 find_package(Git REQUIRED)
 
 macro(redbolt_cpm_add_package)
+  # The keyword lists of CPMAddPackage, so that PATCHES ends where CPM ends it.
   set(redbolt_cpm_one_value_args
-      NAME GIT_TAG GIT_REPOSITORY GITHUB_REPOSITORY GITLAB_REPOSITORY BITBUCKET_REPOSITORY
-      DOWNLOAD_ONLY EXCLUDE_FROM_ALL)
-  set(redbolt_cpm_multi_value_args PATCHES)
+      NAME FORCE VERSION GIT_TAG DOWNLOAD_ONLY GITHUB_REPOSITORY GITLAB_REPOSITORY
+      BITBUCKET_REPOSITORY GIT_REPOSITORY SOURCE_DIR FIND_PACKAGE_ARGUMENTS NO_CACHE SYSTEM
+      GIT_SHALLOW EXCLUDE_FROM_ALL SOURCE_SUBDIR CUSTOM_CACHE_KEY)
+  set(redbolt_cpm_multi_value_args URL OPTIONS DOWNLOAD_COMMAND PATCHES)
   cmake_parse_arguments(REDBOLT_CPM "" "${redbolt_cpm_one_value_args}"
                         "${redbolt_cpm_multi_value_args}" ${ARGN})
+
+  foreach(redbolt_cpm_patch IN LISTS REDBOLT_CPM_PATCHES)
+    get_filename_component(redbolt_cpm_patch_path "${redbolt_cpm_patch}" REALPATH)
+    if(NOT EXISTS "${redbolt_cpm_patch_path}" OR IS_DIRECTORY "${redbolt_cpm_patch_path}")
+      message(FATAL_ERROR
+        "CPM: ${REDBOLT_CPM_NAME} lists '${redbolt_cpm_patch}' under PATCHES, which is not a patch file. "
+        "An argument that follows PATCHES and is not a CPMAddPackage keyword is read as one.")
+    endif()
+  endforeach()
 
   if(REDBOLT_CPM_GIT_REPOSITORY)
     set(redbolt_cpm_repository "${REDBOLT_CPM_GIT_REPOSITORY}")
