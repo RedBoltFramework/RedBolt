@@ -24,6 +24,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltAndroidRuntimeIdentifiers Condition="'$(RedBoltAndroidRuntimeIdentifiers)' == ''">android-arm64;android-x64</RedBoltAndroidRuntimeIdentifiers>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">$(RedBoltPlatform)</RuntimeIdentifier>
     <RuntimeIdentifiers>$(RuntimeIdentifier)</RuntimeIdentifiers>
+    <!-- The x64 build also builds the arm64 package when android-arm64 is enabled. Set to false to build only the selected ABI. -->
     <RedBoltBuildAllAndroidPackages Condition="'$(RedBoltBuildAllAndroidPackages)' == ''">true</RedBoltBuildAllAndroidPackages>
     <SupportedOSPlatformVersion>24.0</SupportedOSPlatformVersion>
     <TrimMode>partial</TrimMode>
@@ -129,7 +130,7 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <Copy SourceFiles="$(_RedBoltSignedApk)" DestinationFiles="$(_RedBoltPackagedApk)" SkipUnchangedFiles="true" />
     <Message Importance="high" Text="Android package: $(_RedBoltPackagedApk)" />
     <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Build" BuildInParallel="false"
-             Condition="'$(BuildingSolutionFile)' != 'true' and '$(RedBoltPlatform)' == 'android-x64' and '$(RedBoltBuildAllAndroidPackages)' == 'true' and '$(RedBoltAndroidPackageInnerBuild)' != 'true'"
+             Condition="'$(RedBoltPlatform)' == 'android-x64' and '$(RedBoltAndroidArm64Enabled)' == 'true' and '$(RedBoltBuildAllAndroidPackages)' == 'true' and '$(RedBoltAndroidPackageInnerBuild)' != 'true'"
              Properties="Configuration=$(Configuration);RedBoltPlatform=android-arm64;RedBoltBuildAllAndroidPackages=false;RedBoltAndroidPackageInnerBuild=true" />
   </Target>
   <Import Project="$(RedBoltRoot)/src/RedBolt/Native/NativeBuild.targets" />

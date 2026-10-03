@@ -63,12 +63,15 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       The cascade matters because later properties (target framework and output directories)
       are all keyed off RedBoltPlatform.
     -->
+    <!-- Android projects default to the first enabled ABI; the sample host adds the arm64 pass itself when both are enabled. -->
+    <_RedBoltDefaultAndroidRid>android-x64</_RedBoltDefaultAndroidRid>
+    <_RedBoltDefaultAndroidRid Condition="'$(RedBoltAndroidX64Enabled)' != 'true' and '$(RedBoltAndroidArm64Enabled)' == 'true'">android-arm64</_RedBoltDefaultAndroidRid>
     <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and $([System.String]::Copy('$(TargetFramework)').StartsWith('net10.0-android')) and $([System.String]::Copy('$(RedBoltBuildPlatform)').StartsWith('android-'))">$(RedBoltBuildPlatform)</RedBoltPlatform>
-    <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and $([System.String]::Copy('$(TargetFramework)').StartsWith('net10.0-android'))">android-x64</RedBoltPlatform>
+    <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and $([System.String]::Copy('$(TargetFramework)').StartsWith('net10.0-android'))">$(_RedBoltDefaultAndroidRid)</RedBoltPlatform>
     <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and ('$(MSBuildProjectName)' == 'RedBolt.Generator.Dependencies' or '$(MSBuildProjectName)' == 'RedBolt.Generator.Reflection')">tools</RedBoltPlatform>
     <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and '$(MSBuildProjectName)' == 'RedBolt.Sample.Web'">browser-wasm</RedBoltPlatform>
     <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and '$(RedBoltBuildPlatform)' != '' and '$(MSBuildProjectName)' == 'RedBolt.Sample.Android' and $([System.String]::Copy('$(RedBoltBuildPlatform)').StartsWith('android-'))">$(RedBoltBuildPlatform)</RedBoltPlatform>
-    <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and '$(MSBuildProjectName)' == 'RedBolt.Sample.Android'">android-x64</RedBoltPlatform>
+    <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and '$(MSBuildProjectName)' == 'RedBolt.Sample.Android'">$(_RedBoltDefaultAndroidRid)</RedBoltPlatform>
     <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and '$(RedBoltBuildPlatform)' != ''">$(RedBoltBuildPlatform)</RedBoltPlatform>
     <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and '$(RedBoltBuildWindows)' == 'true'">win-x64</RedBoltPlatform>
     <RedBoltPlatform Condition="'$(RedBoltPlatform)' == '' and '$([MSBuild]::IsOSPlatform(`Linux`))' == 'true'">linux-x64</RedBoltPlatform>

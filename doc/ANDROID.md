@@ -54,13 +54,18 @@ dotnet build src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj \
   -p:RedBoltEnableModules=all
 ```
 
-To build only one ABI, select its platform and disable the companion build:
+A build with both ABIs enabled (`android` or `all`), from the project or from the solution, builds
+the x64 package and then the arm64 package. Enabling one ABI (`-p:RedBoltEnable=android-arm64` or
+`android-x64`) builds only that package.
+
+To build one ABI while both are enabled, select its platform and disable the companion build with
+`RedBoltBuildAllAndroidPackages=false`:
 
 ```sh
 dotnet build src/RedBolt/Sample/Android/RedBolt.Sample.Android.csproj \
   --configuration Debug --no-restore \
   -p:RedBoltPlatform=android-x64 \
-  -p:RedBoltEnable=android-x64 \
+  -p:RedBoltEnable=android \
   -p:RedBoltEnableModules=all \
   -p:RedBoltBuildAllAndroidPackages=false
 ```
