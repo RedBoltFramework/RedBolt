@@ -728,7 +728,8 @@ internal sealed class Packager
                 stream.CopyTo(Stream.Null);
             }
         }
-        if (packages.Any(package => Path.GetFileName(package).Contains("Sample", StringComparison.OrdinalIgnoreCase)))
+        if (packages.Any(package => Path.GetFileName(package).Contains("Sample", StringComparison.OrdinalIgnoreCase)
+                && !Path.GetFileName(package).StartsWith("RedBolt.SampleData.", StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException("Sample packages must not be created.");
         foreach (var expected in new[] { "RedBolt.CoreData", "RedBolt.SampleData", "RedBolt.EditorData", "SharpCpp.Support", "RedBolt.Core" })
         {
