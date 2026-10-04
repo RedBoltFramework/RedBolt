@@ -530,22 +530,17 @@ if(D3D11_SUPPORTED OR D3D12_SUPPORTED)
     target_link_libraries(${REDBOLT_SHADER_COMPILER_NATIVE_TARGET} PRIVATE d3dcompiler)
 endif()
 
+include("${CMAKE_SOURCE_DIR}/cmake/RedBoltNativeModuleManifest.cmake")
+set(_redbolt_toolchain_runtime_names ${REDBOLT_NATIVE_MODULE_TOOLCHAIN_RUNTIME_NAMES})
+set(_redbolt_system_runtime_names ${REDBOLT_NATIVE_MODULE_SYSTEM_RUNTIME_NAMES})
+
 if(MINGW)
     set(_redbolt_mingw_runtime_files)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         get_filename_component(_redbolt_mingw_root "${CMAKE_CXX_COMPILER}" DIRECTORY)
         get_filename_component(_redbolt_mingw_root "${_redbolt_mingw_root}" DIRECTORY)
-        set(_redbolt_mingw_runtime_names
-            libc++.dll
-            libunwind.dll
-            libwinpthread-1.dll)
-    else()
-        set(_redbolt_mingw_runtime_names
-            libgcc_s_seh-1.dll
-            libstdc++-6.dll
-            libwinpthread-1.dll)
     endif()
-    foreach(_redbolt_mingw_runtime IN LISTS _redbolt_mingw_runtime_names)
+    foreach(_redbolt_mingw_runtime IN LISTS _redbolt_toolchain_runtime_names)
         if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
             set(_redbolt_mingw_runtime_file
                 "${_redbolt_mingw_root}/${CMAKE_SYSTEM_PROCESSOR}-w64-mingw32/bin/${_redbolt_mingw_runtime}")
@@ -578,38 +573,11 @@ if(MINGW)
         VERBATIM)
 endif()
 
-set(_redbolt_toolchain_runtime_names ${_redbolt_mingw_runtime_names})
-set(_redbolt_system_runtime_names)
-if(ANDROID)
-    list(APPEND _redbolt_toolchain_runtime_names libc++_shared.so)
-    set(_redbolt_system_runtime_names
-        libc.so
-        libdl.so
-        libm.so
-        liblog.so
-        libandroid.so
-        libEGL.so
-        libGLESv1_CM.so
-        libGLESv2.so
-        libGLESv3.so
-        libOpenSLES.so)
-endif()
-
 if(NOT EMSCRIPTEN)
     set(_redbolt_native_manifest_directory
         "${REDBOLT_GENERATED_ROOT}/native-modules")
-    set(_redbolt_runtime_dependency_arguments)
-    if(WIN32)
-        list(APPEND _redbolt_runtime_dependency_arguments
-            "-DCMAKE_GET_RUNTIME_DEPENDENCIES_PLATFORM=windows+pe"
-            "-DCMAKE_GET_RUNTIME_DEPENDENCIES_TOOL=objdump"
-            "-DCMAKE_GET_RUNTIME_DEPENDENCIES_COMMAND=${CMAKE_OBJDUMP}")
-    elseif(ANDROID)
-        list(APPEND _redbolt_runtime_dependency_arguments
-            "-DCMAKE_GET_RUNTIME_DEPENDENCIES_PLATFORM=linux+elf"
-            "-DCMAKE_GET_RUNTIME_DEPENDENCIES_TOOL=objdump"
-            "-DCMAKE_GET_RUNTIME_DEPENDENCIES_COMMAND=${CMAKE_OBJDUMP}")
-    endif()
+    set(_redbolt_runtime_dependency_arguments
+        ${REDBOLT_NATIVE_MODULE_RUNTIME_DEPENDENCY_ARGUMENTS})
     set(_redbolt_native_manifest_files)
     set(_redbolt_native_wrapper_entries)
     set(_redbolt_native_runtime_entries)

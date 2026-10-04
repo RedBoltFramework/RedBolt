@@ -145,6 +145,9 @@ else()
         DIRECTORIES "${_redbolt_native_directory}")
 endif()
 
+# Toolchain runtime files are copied next to the module after this runs, so a
+# clean build leaves them unresolved; they still belong in the artifacts.
+set(_redbolt_unresolved_toolchain_artifacts)
 set(_redbolt_expected_unresolved_files
     ${_redbolt_toolchain_runtime_files}
     ${_redbolt_system_runtime_files})
@@ -159,12 +162,19 @@ foreach(_redbolt_unresolved_dependency IN LISTS _redbolt_unresolved_dependencies
                 _redbolt_expected_unresolved_file_lower)
             list(REMOVE_ITEM _redbolt_unresolved_dependencies
                 "${_redbolt_unresolved_dependency}")
+            if(_redbolt_expected_unresolved_file IN_LIST
+                    _redbolt_toolchain_runtime_files)
+                list(APPEND _redbolt_unresolved_toolchain_artifacts
+                    "${_redbolt_expected_unresolved_file}")
+            endif()
             break()
         endif()
     endforeach()
 endforeach()
 
-set(_redbolt_artifacts "${_redbolt_native_filename}")
+set(_redbolt_artifacts
+    "${_redbolt_native_filename}"
+    ${_redbolt_unresolved_toolchain_artifacts})
 foreach(_redbolt_dependency IN LISTS _redbolt_resolved_dependencies)
     get_filename_component(_redbolt_dependency_filename
         "${_redbolt_dependency}" NAME)

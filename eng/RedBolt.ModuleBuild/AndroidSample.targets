@@ -84,9 +84,21 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <Error Condition="!Exists('%(_RedBoltNativeManifestDirectory.Identity)')"
            Text="Native module manifests were not found at '%(_RedBoltNativeManifestDirectory.Identity)'; build the native modules of this sample first." />
     <ItemGroup>
-      <_RedBoltNativeManifest Include="%(_RedBoltNativeManifestDirectory.Identity)/*.json" Condition="Exists('%(_RedBoltNativeManifestDirectory.Identity)')" />
+      <_RedBoltNativeManifest Include="%(_RedBoltNativeManifestDirectory.Identity)/*.json" ManifestDirectory="%(_RedBoltNativeManifestDirectory.Identity)" Condition="Exists('%(_RedBoltNativeManifestDirectory.Identity)')" />
       <_RedBoltNativeManifest Remove="@(_RedBoltNativeManifest)" Condition="'%(Filename)%(Extension)' == 'index.json'" />
     </ItemGroup>
+    <!-- A directory without a module manifest, or a manifest without artifacts, would silently leave libraries out of the APK. -->
+    <ItemGroup>
+      <_RedBoltNativeManifestDirectoryWithManifest Include="@(_RedBoltNativeManifest->'%(ManifestDirectory)'->Distinct())" />
+      <_RedBoltNativeManifestDirectoryWithoutManifest Include="@(_RedBoltNativeManifestDirectory)" Exclude="@(_RedBoltNativeManifestDirectoryWithManifest)" />
+    </ItemGroup>
+    <Error Condition="'@(_RedBoltNativeManifestDirectoryWithoutManifest)' != ''"
+           Text="No native module manifest was found in '%(_RedBoltNativeManifestDirectoryWithoutManifest.Identity)'; build the native modules of this sample first." />
+    <ItemGroup Condition="'@(_RedBoltNativeManifest)' != ''">
+      <_RedBoltNativeManifestArtifacts Include="%(_RedBoltNativeManifest.FullPath)" Artifacts="$([System.Text.RegularExpressions.Regex]::Replace($([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('%(_RedBoltNativeManifest.FullPath)')), '&quot;artifacts&quot;\s*:\s*\[([^\]]*)\]').Groups[1].Value), '[\s&quot;]+', ''))" />
+    </ItemGroup>
+    <Error Condition="'@(_RedBoltNativeManifestArtifacts)' != '' and '%(_RedBoltNativeManifestArtifacts.Artifacts)' == ''"
+           Text="Native module manifest '%(_RedBoltNativeManifestArtifacts.Identity)' lists no artifacts." />
     <!-- Each manifest lists its runtime closure in "artifacts" (the module library plus the libraries it
          links against at run time); every distinct file name is packaged exactly once. -->
     <ItemGroup Condition="'@(_RedBoltNativeManifest)' != ''">
