@@ -566,10 +566,29 @@ if(MINGW)
         list(APPEND _redbolt_mingw_runtime_files "${_redbolt_mingw_runtime_file}")
     endforeach()
     add_custom_target(redbolt-mingw-runtime
+        COMMAND "${CMAKE_COMMAND}" -E make_directory
+            "$<TARGET_FILE_DIR:${REDBOLT_SDL_NATIVE_TARGET}>"
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
             ${_redbolt_mingw_runtime_files}
             "$<TARGET_FILE_DIR:${REDBOLT_SDL_NATIVE_TARGET}>"
         COMMENT "Copying MinGW runtime libraries"
+        VERBATIM)
+endif()
+
+if(ANDROID)
+    # The NDK C++ runtime is not linked into the module libraries but must ship next to them.
+    set(_redbolt_android_cpp_runtime
+        "${CMAKE_SYSROOT}/usr/lib/${CMAKE_LIBRARY_ARCHITECTURE}/libc++_shared.so")
+    if(NOT EXISTS "${_redbolt_android_cpp_runtime}")
+        message(FATAL_ERROR "Android C++ runtime was not found: ${_redbolt_android_cpp_runtime}")
+    endif()
+    add_custom_target(redbolt-android-runtime
+        COMMAND "${CMAKE_COMMAND}" -E make_directory
+            "$<TARGET_FILE_DIR:${REDBOLT_SDL_NATIVE_TARGET}>"
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+            "${_redbolt_android_cpp_runtime}"
+            "$<TARGET_FILE_DIR:${REDBOLT_SDL_NATIVE_TARGET}>/libc++_shared.so"
+        COMMENT "Copying Android C++ runtime library"
         VERBATIM)
 endif()
 
@@ -630,6 +649,9 @@ if(NOT EMSCRIPTEN)
         if(TARGET redbolt-mingw-runtime)
             list(APPEND _redbolt_manifest_depends redbolt-mingw-runtime)
         endif()
+        if(TARGET redbolt-android-runtime)
+            list(APPEND _redbolt_manifest_depends redbolt-android-runtime)
+        endif()
         add_custom_command(
             OUTPUT "${_redbolt_manifest_file}"
             COMMAND "${CMAKE_COMMAND}"
@@ -687,10 +709,14 @@ endif()
 if(TARGET redbolt-mingw-runtime)
     add_dependencies(redbolt-native-all redbolt-mingw-runtime)
 endif()
+if(TARGET redbolt-android-runtime)
+    add_dependencies(redbolt-native-all redbolt-android-runtime)
+endif()
 
 if(ANDROID)
     add_custom_target(redbolt-android-native
         DEPENDS
             redbolt-native-manifests
+            redbolt-android-runtime
             ${_redbolt_selected_native_targets})
 endif()

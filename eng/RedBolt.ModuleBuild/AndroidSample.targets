@@ -31,8 +31,6 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <!-- Xamarin.Android resolves AndroidManifest relative to the project even when given an absolute path. -->
     <AndroidManifest Condition="'$(AndroidManifest)' == ''">$([MSBuild]::MakeRelative('$(MSBuildProjectDirectory)', '$(RedBoltRoot)/src/RedBolt/Sample/Android/AndroidManifest.xml'))</AndroidManifest>
     <RedBoltBaseAndroidNativeOutput>$(RedBoltBuildRoot)/bin/$(Configuration)/$(RedBoltPlatform)/extern/runtimes/$(RedBoltPlatform)/native</RedBoltBaseAndroidNativeOutput>
-    <RedBoltAndroidCppOutput Condition="'$(RedBoltExternalAndroidNativeOutput)' != ''">$(RedBoltExternalAndroidNativeOutput)</RedBoltAndroidCppOutput>
-    <RedBoltAndroidCppOutput Condition="'$(RedBoltAndroidCppOutput)' == ''">$(RedBoltBaseAndroidNativeOutput)</RedBoltAndroidCppOutput>
     <RedBoltAndroidNdkTriple Condition="'$(RedBoltPlatform)' == 'android-arm64'">aarch64-linux-android</RedBoltAndroidNdkTriple>
     <RedBoltAndroidNdkTriple Condition="'$(RedBoltPlatform)' == 'android-x64'">x86_64-linux-android</RedBoltAndroidNdkTriple>
     <RedBoltAndroidJavaDirectory>$(RedBoltRoot)/extern/SDL/android-project/app/src/main/java</RedBoltAndroidJavaDirectory>
@@ -58,14 +56,12 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
       <RuntimeIdentifiers>$(RedBoltAndroidRuntimeIdentifiers)</RuntimeIdentifiers>
     </PropertyGroup>
   </Target>
-    <!-- Builds the engine (and module) Android native runtime, copies the shared C++ runtime, and
-         registers the generated Java sources before APK packaging. -->
+    <!-- Builds the engine (and module) Android native runtime (the native build also copies the
+         shared C++ runtime) and registers the generated Java sources before APK packaging. -->
     <Target Name="RedBoltPrepareAndroidRuntime" BeforeTargets="_CollectJavaSourceForBinding"
       DependsOnTargets="ResolveReferences;RedBoltConfigureNative;RedBoltBuildCMakeTarget"
       Condition="'$(RedBoltProjectBuildEnabled)' == 'true'">
     <Error Condition="'$(RedBoltAndroidNdkTriple)' == ''" Text="Unsupported Android platform '$(RedBoltPlatform)'." />
-    <Copy SourceFiles="$(AndroidNdkDirectory)/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/$(RedBoltAndroidNdkTriple)/libc++_shared.so"
-          DestinationFiles="$(RedBoltAndroidCppOutput)/libc++_shared.so" SkipUnchangedFiles="true" />
     <ItemGroup>
       <AndroidJavaSource Include="$(RedBoltAndroidJavaDirectory)/**/*.java" Bind="false" />
       <AndroidJavaSource Update="$(RedBoltAndroidJavaDirectory)/org/libsdl/app/SDLActivity.java" Bind="true" />
