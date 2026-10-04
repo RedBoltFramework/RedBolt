@@ -181,7 +181,9 @@ public abstract class DesktopAssemblyBackend : IAssemblyBackend
         }
     }
 
-    private static Dictionary<string, Assembly> CreateSharedAssemblyMap(IEnumerable<Assembly> assemblies)
+    // Shared assemblies are matched by simple name. The host's own copy (default context) always wins, so a
+    // private copy in another plugin's context cannot replace it; otherwise the first one seen wins.
+    internal static Dictionary<string, Assembly> CreateSharedAssemblyMap(IEnumerable<Assembly> assemblies)
     {
         var result = new Dictionary<string, Assembly>(StringComparer.OrdinalIgnoreCase);
         AddShared(typeof(Core.Context).Assembly);
@@ -192,10 +194,16 @@ public abstract class DesktopAssemblyBackend : IAssemblyBackend
         void AddShared(Assembly assembly)
         {
             var name = assembly.GetName().Name;
-            if (!string.IsNullOrEmpty(name))
+            if (string.IsNullOrEmpty(name))
+                return;
+            if (!result.TryGetValue(name, out var existing)
+                || (!IsDefaultContext(existing) && IsDefaultContext(assembly)))
                 result[name] = assembly;
         }
     }
+
+    private static bool IsDefaultContext(Assembly assembly) =>
+        AssemblyLoadContext.GetLoadContext(assembly) == AssemblyLoadContext.Default;
 
     private static FileStream OpenRead(string path) => new(
         path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
