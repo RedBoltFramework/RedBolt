@@ -295,8 +295,11 @@ internal sealed class ManagedAssemblyPlugin : Plugin
             : new DesktopLoadOnlyAssemblyBackend();
 
         var directory = Path.GetDirectoryName(_descriptor.AssemblyPath)!;
+        // Shared assemblies are matched by simple name and the last one wins, so the host's own copy goes
+        // last: a private copy of a host assembly in another plugin's context must not replace it.
         var shared = AppDomain.CurrentDomain.GetAssemblies()
             .Where(static assembly => AssemblyLoadContext.GetLoadContext(assembly)?.IsCollectible != true)
+            .OrderBy(static assembly => AssemblyLoadContext.GetLoadContext(assembly) == AssemblyLoadContext.Default)
             .ToArray();
         var outputRoot = Directory.GetParent(directory)?.FullName;
         var dependencyDirectories = new[]
