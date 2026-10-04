@@ -5,10 +5,16 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
 -->
 
 <Project>
+  <!-- Optional workspace file beside the module (RedBolt.Workspace.props). It supplies the shared build
+       root and SharpCpp root for IDE builds, which do not read Directory.Build.rsp; a global property
+       still wins. RedBoltWorkspaceRoot reports it so it is not imported twice. -->
+  <Import Project="$(RedBoltExternalModuleRoot)/../RedBolt.Workspace.props"
+          Condition="'$(RedBoltWorkspaceRoot)' == '' and Exists('$(RedBoltExternalModuleRoot)/../RedBolt.Workspace.props')" />
+
   <PropertyGroup>
     <RedBoltRoot Condition="'$(RedBoltRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../..'))</RedBoltRoot>
-    <!-- A module on its own builds into its build/. Inside the monorepo the root Directory.Build.props
-         imported below overrides this default; a global RedBoltBuildRoot wins over both. -->
+    <!-- A module on its own builds into its build/. The workspace file or, inside the monorepo, the root
+         Directory.Build.props imported below overrides this default; a global RedBoltBuildRoot wins over all. -->
     <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(RedBoltBuildRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltBuildRoot)'))</RedBoltExpectedBuildRoot>
     <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltExternalModuleRoot)/build'))</RedBoltExpectedBuildRoot>
     <RedBoltRestoreProjectName Condition="'$(RedBoltExternalModuleName)' != '' and '$(RedBoltRestoreProjectName)' == ''">$(RedBoltExternalModuleName)/$(MSBuildProjectName)</RedBoltRestoreProjectName>

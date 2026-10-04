@@ -17,6 +17,12 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     <RedBoltRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</RedBoltRoot>
   </PropertyGroup>
 
+  <!-- Optional workspace file beside this repository (RedBolt.Workspace.props). It supplies the shared
+       build root and SharpCpp root for IDE builds, which do not read Directory.Build.rsp; a global
+       property still wins. RedBoltWorkspaceRoot reports it so it is not imported twice. -->
+  <Import Project="$(RedBoltRoot)/../RedBolt.Workspace.props"
+          Condition="'$(RedBoltWorkspaceRoot)' == '' and Exists('$(RedBoltRoot)/../RedBolt.Workspace.props')" />
+
   <!-- Inside the monorepo (marked by RedBolt.slnx beside this repository) the root Directory.Build.props
        selects the build root. Module projects have already imported it through the module props, which
        RedBoltMonorepoRoot reports so it is not imported twice. -->
@@ -26,8 +32,8 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
                      and Exists('$(RedBoltRoot)/../RedBolt.slnx')" />
 
   <PropertyGroup>
-    <!-- The build root must match the one selected statically: a global RedBoltBuildRoot, the monorepo
-         root's build/, or this repository's build/ directory. -->
+    <!-- The build root must match the one selected statically: a global RedBoltBuildRoot, the workspace
+         file's build/, the monorepo root's build/, or this repository's build/ directory. -->
     <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == '' and '$(RedBoltBuildRoot)' != ''">$([System.IO.Path]::GetFullPath('$(RedBoltBuildRoot)'))</RedBoltExpectedBuildRoot>
     <RedBoltExpectedBuildRoot Condition="'$(RedBoltExpectedBuildRoot)' == ''">$([System.IO.Path]::GetFullPath('$(RedBoltRoot)/build'))</RedBoltExpectedBuildRoot>
     <RedBoltBuildRoot Condition="'$(RedBoltBuildRoot)' == ''">$(RedBoltExpectedBuildRoot)</RedBoltBuildRoot>

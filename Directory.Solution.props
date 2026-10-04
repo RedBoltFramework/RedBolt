@@ -13,10 +13,15 @@ For a copy, see <https://opensource.org/licenses/MIT> or the accompanying LICENS
     RedBoltBuildRoot is the one directory every project in the solution writes into, so managed
     assemblies, native libraries, and intermediate artifacts stay co-located and discoverable
     across the solution graph (probed via AdditionalProbingPath). The selection is static and
-    mirrors the project-level Directory.Build.props: a global RedBoltBuildRoot, else the monorepo
+    mirrors the project-level Directory.Build.props: a global RedBoltBuildRoot, else the optional
+    workspace file's build/ (RedBolt.Workspace.props beside this repository), else the monorepo
     root's build/ when this repository sits beside the monorepo's RedBolt.slnx, else this
     repository's build/.
   -->
+  <!-- Optional workspace file; a global property still wins. RedBoltWorkspaceRoot reports it so it is
+       not imported twice. -->
+  <Import Project="$(MSBuildThisFileDirectory)../RedBolt.Workspace.props"
+          Condition="'$(RedBoltWorkspaceRoot)' == '' and Exists('$(MSBuildThisFileDirectory)../RedBolt.Workspace.props')" />
   <Import Project="$(MSBuildThisFileDirectory)../Directory.Build.props"
           Condition="'$(RedBoltMonorepoRoot)' == ''
                      and Exists('$(MSBuildThisFileDirectory)../Directory.Build.props')
