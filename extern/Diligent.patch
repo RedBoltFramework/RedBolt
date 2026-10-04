@@ -1,8 +1,11 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index c5c74dc3b..919437e4f 100644
+index c5c74dc3b..01f9cf75c 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
-@@ -527,4 +527,6 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+@@ -524,9 +524,11 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+         message("Additional Clang compile options for debug configuration: " ${DILIGENT_CLANG_DEBUG_COMPILE_OPTIONS})
+     endif()
+ 
 -    if("${TARGET_CPU}" STREQUAL "x86_64")
 +    if("${TARGET_CPU}" STREQUAL "x86_64" AND NOT ANDROID)
          # Enable AVX2
@@ -10,20 +13,63 @@ index c5c74dc3b..919437e4f 100644
 +    elseif(ANDROID)
 +        set(DILIGENT_CLANG_RELEASE_COMPILE_OPTIONS "" CACHE STRING "Additional Clang compile options for release configurations" FORCE)
      endif()
-
+     set(DILIGENT_CLANG_RELEASE_COMPILE_OPTIONS ${DILIGENT_CLANG_RELEASE_COMPILE_OPTIONS} CACHE STRING "Additional Clang compile options for release configurations")
+     if (DILIGENT_CLANG_RELEASE_COMPILE_OPTIONS)
+diff --git a/Common/interface/RefCountedObjectImpl.hpp b/Common/interface/RefCountedObjectImpl.hpp
+index 715870dd4..2392f118a 100644
+--- a/Common/interface/RefCountedObjectImpl.hpp
++++ b/Common/interface/RefCountedObjectImpl.hpp
+@@ -51,7 +51,7 @@ class RefCntWeakPtr;
+ 
+ // This class controls the lifetime of a refcounted object
+ // NB: RefCountersImpl can't be final, see https://github.com/DiligentGraphics/DiligentCore/issues/704.
+-class RefCountersImpl : public IReferenceCounters
++class DILIGENT_REF_COUNTERS_API RefCountersImpl : public IReferenceCounters
+ {
+     struct ObjectRecord
+     {
+@@ -444,10 +444,11 @@ private:
+ 
+     // Make the method virtual to ensure that the object is destroyed in the same module
+     // where it was created, see https://github.com/DiligentGraphics/DiligentCore/issues/704.
+-    virtual void SelfDestroy()
+-    {
+-        delete this;
+-    }
++#if PLATFORM_ANDROID
++    virtual void SelfDestroy();
++#else
++    virtual void SelfDestroy() { delete this; }
++#endif
+ 
+     virtual ~RefCountersImpl()
+     {
+diff --git a/Graphics/Archiver/src/DLLMain.cpp b/Graphics/Archiver/src/DLLMain.cpp
+index 3774b0ff4..c125e2149 100644
+--- a/Graphics/Archiver/src/DLLMain.cpp
++++ b/Graphics/Archiver/src/DLLMain.cpp
+@@ -35,7 +35,7 @@ BOOL APIENTRY DllMain(HANDLE hModule,
+     switch (ul_reason_for_call)
+     {
+         case DLL_PROCESS_ATTACH:
+-#if defined(_DEBUG) || defined(DEBUG)
++#if (defined(_DEBUG) || defined(DEBUG)) && !defined(__MINGW32__)
+             _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+ #endif
+             break;
 diff --git a/Graphics/GraphicsEngineD3D11/include/ShaderVariableManagerD3D11.hpp b/Graphics/GraphicsEngineD3D11/include/ShaderVariableManagerD3D11.hpp
 index 588768df5..786d05767 100644
 --- a/Graphics/GraphicsEngineD3D11/include/ShaderVariableManagerD3D11.hpp
 +++ b/Graphics/GraphicsEngineD3D11/include/ShaderVariableManagerD3D11.hpp
 @@ -27,6 +27,8 @@
-
+ 
  #pragma once
-
+ 
 +#include <type_traits>
 +
  /// \file
  /// Declaration of Diligent::ShaderVariableManagerD3D11 class
-
+ 
 @@ -219,16 +221,27 @@ public:
      Uint32 GetNumBufSRVs()  const { return (m_BuffUAVsOffset - m_BuffSRVsOffset) / sizeof(BuffSRVBindInfo);  }
      Uint32 GetNumBufUAVs()  const { return (m_SamplerOffset  - m_BuffUAVsOffset) / sizeof(BuffUAVBindInfo);  }
@@ -37,7 +83,7 @@ index 588768df5..786d05767 100644
 -    template<> Uint32 GetNumResources<BuffUAVBindInfo>  () const { return GetNumBufUAVs();  }
 -    template<> Uint32 GetNumResources<SamplerBindInfo>  () const { return GetNumSamplers(); }
      // clang-format on
-
+ 
 +    template <typename ResourceType>
 +    Uint32 GetNumResources() const
 +    {
@@ -95,6 +141,19 @@ index 588768df5..786d05767 100644
  
      template <typename ResourceType>
      ResourceType& GetResource(Uint32 ResIndex) const
+diff --git a/Graphics/GraphicsEngineD3D11/src/DLLMain.cpp b/Graphics/GraphicsEngineD3D11/src/DLLMain.cpp
+index 3774b0ff4..c125e2149 100644
+--- a/Graphics/GraphicsEngineD3D11/src/DLLMain.cpp
++++ b/Graphics/GraphicsEngineD3D11/src/DLLMain.cpp
+@@ -35,7 +35,7 @@ BOOL APIENTRY DllMain(HANDLE hModule,
+     switch (ul_reason_for_call)
+     {
+         case DLL_PROCESS_ATTACH:
+-#if defined(_DEBUG) || defined(DEBUG)
++#if (defined(_DEBUG) || defined(DEBUG)) && !defined(__MINGW32__)
+             _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+ #endif
+             break;
 diff --git a/Graphics/GraphicsEngineD3D11/src/ShaderResourcesD3D11.cpp b/Graphics/GraphicsEngineD3D11/src/ShaderResourcesD3D11.cpp
 index bbfbf1b3a..abb639f61 100755
 --- a/Graphics/GraphicsEngineD3D11/src/ShaderResourcesD3D11.cpp
@@ -112,7 +171,7 @@ diff --git a/Graphics/GraphicsEngineD3D12/CMakeLists.txt b/Graphics/GraphicsEngi
 index 61e812cbb..d183377c2 100644
 --- a/Graphics/GraphicsEngineD3D12/CMakeLists.txt
 +++ b/Graphics/GraphicsEngineD3D12/CMakeLists.txt
-@@ -147,13 +147,28 @@ foreach(SRC_SHADER ${SHADERS})
+@@ -148,13 +148,28 @@ foreach(SRC_SHADER ${SHADERS})
      set(COMPILED_SHADER ${COMPILED_SHADERS_DIR}/${SHADER_NAME}.h)
      list(APPEND COMPILED_SHADERS ${COMPILED_SHADER})
  
@@ -148,17 +207,6 @@ index 61e812cbb..d183377c2 100644
  endforeach(SRC_SHADER)
  
  # NB: we must use the full path, otherwise the build system will not be able to properly detect
-diff --git a/Graphics/GraphicsEngineD3D12/shaders/GenerateMips/GenerateMipsCS.hlsli b/Graphics/GraphicsEngineD3D12/shaders/GenerateMips/GenerateMipsCS.hlsli
-index 31c29b424..be47c9a88 100644
---- a/Graphics/GraphicsEngineD3D12/shaders/GenerateMips/GenerateMipsCS.hlsli
-+++ b/Graphics/GraphicsEngineD3D12/shaders/GenerateMips/GenerateMipsCS.hlsli
-@@ -82,6 +82,5 @@
- }
- 
--[RootSignature(RootSig)]
- [numthreads( 8, 8, 1 )]
- void main( uint GI : SV_GroupIndex, uint3 DTid : SV_DispatchThreadID )
- {
 diff --git a/Graphics/GraphicsEngineD3D12/include/DescriptorHeap.hpp b/Graphics/GraphicsEngineD3D12/include/DescriptorHeap.hpp
 index ccdafa312..a4311f6b9 100644
 --- a/Graphics/GraphicsEngineD3D12/include/DescriptorHeap.hpp
@@ -195,7 +243,20 @@ index ccdafa312..a4311f6b9 100644
      }
  
  
+diff --git a/Graphics/GraphicsEngineD3D12/shaders/GenerateMips/GenerateMipsCS.hlsli b/Graphics/GraphicsEngineD3D12/shaders/GenerateMips/GenerateMipsCS.hlsli
+index 31c29b424..be47c9a88 100644
+--- a/Graphics/GraphicsEngineD3D12/shaders/GenerateMips/GenerateMipsCS.hlsli
++++ b/Graphics/GraphicsEngineD3D12/shaders/GenerateMips/GenerateMipsCS.hlsli
+@@ -81,7 +81,6 @@ float4 PackColor(float4 Linear)
+ #endif
+ }
+ 
+-[RootSignature(RootSig)]
+ [numthreads( 8, 8, 1 )]
+ void main( uint GI : SV_GroupIndex, uint3 DTid : SV_DispatchThreadID )
+ {
 diff --git a/Graphics/GraphicsEngineD3D12/src/CommandContext.cpp b/Graphics/GraphicsEngineD3D12/src/CommandContext.cpp
+index d572f5ef4..74fbac4d5 100644
 --- a/Graphics/GraphicsEngineD3D12/src/CommandContext.cpp
 +++ b/Graphics/GraphicsEngineD3D12/src/CommandContext.cpp
 @@ -171,8 +171,6 @@ public:
@@ -207,8 +268,21 @@ diff --git a/Graphics/GraphicsEngineD3D12/src/CommandContext.cpp b/Graphics/Grap
      void AddD3D12ResourceBarriers(TextureD3D12Impl& Tex, D3D12_RESOURCE_BARRIER& d3d12Barrier);
      void AddD3D12ResourceBarriers(BufferD3D12Impl& Buff, D3D12_RESOURCE_BARRIER& d3d12Barrier);
      void AddD3D12ResourceBarriers(TopLevelASD3D12Impl& TLAS, D3D12_RESOURCE_BARRIER& d3d12Barrier);
+diff --git a/Graphics/GraphicsEngineD3D12/src/DLLMain.cpp b/Graphics/GraphicsEngineD3D12/src/DLLMain.cpp
+index 3774b0ff4..c125e2149 100644
+--- a/Graphics/GraphicsEngineD3D12/src/DLLMain.cpp
++++ b/Graphics/GraphicsEngineD3D12/src/DLLMain.cpp
+@@ -35,7 +35,7 @@ BOOL APIENTRY DllMain(HANDLE hModule,
+     switch (ul_reason_for_call)
+     {
+         case DLL_PROCESS_ATTACH:
+-#if defined(_DEBUG) || defined(DEBUG)
++#if (defined(_DEBUG) || defined(DEBUG)) && !defined(__MINGW32__)
+             _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+ #endif
+             break;
 diff --git a/Graphics/GraphicsEngineD3D12/src/EngineFactoryD3D12.cpp b/Graphics/GraphicsEngineD3D12/src/EngineFactoryD3D12.cpp
-index 2736bc0f7..f5002e8a5 100644
+index 2736bc0f7..64c291386 100644
 --- a/Graphics/GraphicsEngineD3D12/src/EngineFactoryD3D12.cpp
 +++ b/Graphics/GraphicsEngineD3D12/src/EngineFactoryD3D12.cpp
 @@ -62,7 +62,7 @@ namespace Diligent
@@ -309,6 +383,34 @@ index 48b692c72..7c0388931 100644
      }
  };
  
+diff --git a/Graphics/GraphicsEngineOpenGL/CMakeLists.txt b/Graphics/GraphicsEngineOpenGL/CMakeLists.txt
+index c127612b4..472080a90 100644
+--- a/Graphics/GraphicsEngineOpenGL/CMakeLists.txt
++++ b/Graphics/GraphicsEngineOpenGL/CMakeLists.txt
+@@ -174,6 +174,11 @@ add_library(Diligent-GraphicsEngineOpenGL-shared SHARED
+     readme.md
+ )
+ 
++if(PLATFORM_ANDROID)
++    target_sources(Diligent-GraphicsEngineOpenGL-static PRIVATE
++        src/AndroidRefCounters.cpp)
++endif()
++
+ if((PLATFORM_WIN32 OR PLATFORM_UNIVERSAL_WINDOWS) AND NOT MINGW_BUILD)
+     target_sources(Diligent-GraphicsEngineOpenGL-shared PRIVATE ${DLL_SOURCE})
+ endif()
+diff --git a/Graphics/GraphicsEngineOpenGL/include/GLContextAndroid.hpp b/Graphics/GraphicsEngineOpenGL/include/GLContextAndroid.hpp
+index 8abdf9e74..c947313b4 100644
+--- a/Graphics/GraphicsEngineOpenGL/include/GLContextAndroid.hpp
++++ b/Graphics/GraphicsEngineOpenGL/include/GLContextAndroid.hpp
+@@ -99,6 +99,7 @@ private:
+     //Flags
+     bool gles_initialized_        = false;
+     bool egl_context_initialized_ = false;
++    bool owns_display_            = false;
+ 
+     void InitGLES();
+     void Terminate();
 diff --git a/Graphics/GraphicsEngineOpenGL/interface/EngineFactoryOpenGL.h b/Graphics/GraphicsEngineOpenGL/interface/EngineFactoryOpenGL.h
 index 8a1185bd5..4293e6d37 100644
 --- a/Graphics/GraphicsEngineOpenGL/interface/EngineFactoryOpenGL.h
@@ -322,214 +424,6 @@ index 8a1185bd5..4293e6d37 100644
  #    include "../../GraphicsEngine/interface/LoadEngineDll.h"
  #    define DILIGENT_OPENGL_EXPLICIT_LOAD 1
  #endif
-diff --git a/Graphics/GraphicsEngineVulkan/interface/EngineFactoryVk.h b/Graphics/GraphicsEngineVulkan/interface/EngineFactoryVk.h
-index 065565784..ae545bf5b 100644
---- a/Graphics/GraphicsEngineVulkan/interface/EngineFactoryVk.h
-+++ b/Graphics/GraphicsEngineVulkan/interface/EngineFactoryVk.h
-@@ -44,7 +44,7 @@
- #    error Unsupported platform
- #endif
- 
--#if DILIGENT_VK_SHARED && PLATFORM_WIN32 && defined(_MSC_VER)
-+#if DILIGENT_VK_SHARED && PLATFORM_WIN32
- #    include "../../GraphicsEngine/interface/LoadEngineDll.h"
- #    define DILIGENT_VK_EXPLICIT_LOAD 1
- #endif
-diff --git a/Graphics/ShaderTools/src/DXILUtilsStub.cpp b/Graphics/ShaderTools/src/DXILUtilsStub.cpp
-index 4751211d2..4874f2ab1 100644
---- a/Graphics/ShaderTools/src/DXILUtilsStub.cpp
-+++ b/Graphics/ShaderTools/src/DXILUtilsStub.cpp
-@@ -35,4 +35,15 @@ std::unique_ptr<IDXCompiler> CreateDXCompiler(DXCompilerTarget Target, Uint32 AP
-     return {};
- }
- 
-+bool IsDXILBytecode(const void*, size_t)
-+{
-+    return false;
-+}
-+
-+void CreateDxcBlobWrapper(IDataBlob*, IDxcBlob** ppDxcBlobWrapper)
-+{
-+    if (ppDxcBlobWrapper != nullptr)
-+        *ppDxcBlobWrapper = nullptr;
-+}
-+
- } // namespace Diligent
-diff --git a/Graphics/Archiver/src/DLLMain.cpp b/Graphics/Archiver/src/DLLMain.cpp
-index 3774b0ff4..c125e2149 100644
---- a/Graphics/Archiver/src/DLLMain.cpp
-+++ b/Graphics/Archiver/src/DLLMain.cpp
-@@ -35,7 +35,7 @@ BOOL APIENTRY DllMain(HANDLE hModule,
-     switch (ul_reason_for_call)
-     {
-         case DLL_PROCESS_ATTACH:
--#if defined(_DEBUG) || defined(DEBUG)
-+#if (defined(_DEBUG) || defined(DEBUG)) && !defined(__MINGW32__)
-             _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
- #endif
-             break;
-diff --git a/Graphics/GraphicsEngineD3D11/src/DLLMain.cpp b/Graphics/GraphicsEngineD3D11/src/DLLMain.cpp
-index 3774b0ff4..c125e2149 100644
---- a/Graphics/GraphicsEngineD3D11/src/DLLMain.cpp
-+++ b/Graphics/GraphicsEngineD3D11/src/DLLMain.cpp
-@@ -35,7 +35,7 @@ BOOL APIENTRY DllMain(HANDLE hModule,
-     switch (ul_reason_for_call)
-     {
-         case DLL_PROCESS_ATTACH:
--#if defined(_DEBUG) || defined(DEBUG)
-+#if (defined(_DEBUG) || defined(DEBUG)) && !defined(__MINGW32__)
-             _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
- #endif
-             break;
-diff --git a/Graphics/GraphicsEngineD3D12/src/DLLMain.cpp b/Graphics/GraphicsEngineD3D12/src/DLLMain.cpp
-index 3774b0ff4..c125e2149 100644
---- a/Graphics/GraphicsEngineD3D12/src/DLLMain.cpp
-+++ b/Graphics/GraphicsEngineD3D12/src/DLLMain.cpp
-@@ -35,7 +35,7 @@ BOOL APIENTRY DllMain(HANDLE hModule,
-     switch (ul_reason_for_call)
-     {
-         case DLL_PROCESS_ATTACH:
--#if defined(_DEBUG) || defined(DEBUG)
-+#if (defined(_DEBUG) || defined(DEBUG)) && !defined(__MINGW32__)
-             _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
- #endif
-             break;
-diff --git a/Graphics/GraphicsEngineOpenGL/src/DLLMain.cpp b/Graphics/GraphicsEngineOpenGL/src/DLLMain.cpp
-index 3774b0ff4..c125e2149 100644
---- a/Graphics/GraphicsEngineOpenGL/src/DLLMain.cpp
-+++ b/Graphics/GraphicsEngineOpenGL/src/DLLMain.cpp
-@@ -35,7 +35,7 @@ BOOL APIENTRY DllMain(HANDLE hModule,
-     switch (ul_reason_for_call)
-     {
-         case DLL_PROCESS_ATTACH:
--#if defined(_DEBUG) || defined(DEBUG)
-+#if (defined(_DEBUG) || defined(DEBUG)) && !defined(__MINGW32__)
-             _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
- #endif
-             break;
-diff --git a/Graphics/GraphicsEngineVulkan/src/DLLMain.cpp b/Graphics/GraphicsEngineVulkan/src/DLLMain.cpp
-index 3774b0ff4..c125e2149 100644
---- a/Graphics/GraphicsEngineVulkan/src/DLLMain.cpp
-+++ b/Graphics/GraphicsEngineVulkan/src/DLLMain.cpp
-@@ -35,7 +35,7 @@ BOOL APIENTRY DllMain(HANDLE hModule,
-     switch (ul_reason_for_call)
-     {
-         case DLL_PROCESS_ATTACH:
--#if defined(_DEBUG) || defined(DEBUG)
-+#if (defined(_DEBUG) || defined(DEBUG)) && !defined(__MINGW32__)
-             _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
- #endif
-             break;
-diff --git a/Graphics/GraphicsEngineWebGPU/src/DLLMain.cpp b/Graphics/GraphicsEngineWebGPU/src/DLLMain.cpp
-index ff9425fc5..1c960835a 100644
---- a/Graphics/GraphicsEngineWebGPU/src/DLLMain.cpp
-+++ b/Graphics/GraphicsEngineWebGPU/src/DLLMain.cpp
-@@ -34,7 +34,7 @@ BOOL APIENTRY DllMain(HANDLE hModule,
-     switch (ul_reason_for_call)
-     {
-         case DLL_PROCESS_ATTACH:
--#if defined(_DEBUG) || defined(DEBUG)
-+#if (defined(_DEBUG) || defined(DEBUG)) && !defined(__MINGW32__)
-             _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
- #endif
-             break;
-diff --git a/Graphics/SuperResolution/src/DLLMain.cpp b/Graphics/SuperResolution/src/DLLMain.cpp
-index bdf50328d..bf6e0affa 100644
---- a/Graphics/SuperResolution/src/DLLMain.cpp
-+++ b/Graphics/SuperResolution/src/DLLMain.cpp
-@@ -34,7 +34,7 @@ BOOL APIENTRY DllMain(HANDLE hModule,
-     switch (ul_reason_for_call)
-     {
-         case DLL_PROCESS_ATTACH:
--#if defined(_DEBUG) || defined(DEBUG)
-+#if (defined(_DEBUG) || defined(DEBUG)) && !defined(__MINGW32__)
-             _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
- #endif
-             break;
-diff --git a/Graphics/GraphicsEngineOpenGL/include/GLContextAndroid.hpp b/Graphics/GraphicsEngineOpenGL/include/GLContextAndroid.hpp
-index 8abdf9e74..c947313b4 100644
---- a/Graphics/GraphicsEngineOpenGL/include/GLContextAndroid.hpp
-+++ b/Graphics/GraphicsEngineOpenGL/include/GLContextAndroid.hpp
-@@ -100,2 +100,3 @@ private:
-     bool gles_initialized_        = false;
-     bool egl_context_initialized_ = false;
-+    bool owns_display_            = false;
-diff --git a/Graphics/GraphicsEngineOpenGL/src/GLContextAndroid.cpp b/Graphics/GraphicsEngineOpenGL/src/GLContextAndroid.cpp
-index 593d01772..7c33306b1 100644
---- a/Graphics/GraphicsEngineOpenGL/src/GLContextAndroid.cpp
-+++ b/Graphics/GraphicsEngineOpenGL/src/GLContextAndroid.cpp
-@@ -72 +72,2 @@ bool GLContext::InitEGLSurface()
-+    owns_display_ = true;
-     LOG_INFO_MESSAGE("Initialized EGL ", egl_major_version_, '.', egl_minor_version_);
-@@ -388,2 +389,8 @@ void GLContext::SwapBuffers(int SwapInterval)
- void GLContext::Terminate()
- {
-+    const bool owns_context_or_surface = context_ != EGL_NO_CONTEXT || surface_ != EGL_NO_SURFACE;
-+    if (owns_context_or_surface && display_ != EGL_NO_DISPLAY)
-+    {
-+        eglMakeCurrent(display_, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-+    }
-+
-@@ -400,4 +407,3 @@ void GLContext::Terminate()
--    if (display_ != EGL_NO_DISPLAY)
-+    if (owns_display_ && display_ != EGL_NO_DISPLAY)
-     {
--        eglMakeCurrent(display_, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-         eglTerminate(display_);
-@@ -406,4 +412,5 @@ void GLContext::Terminate()
-     display_ = EGL_NO_DISPLAY;
-     context_ = EGL_NO_CONTEXT;
-     surface_ = EGL_NO_SURFACE;
-+    owns_display_ = false;
- }
-diff --git a/Common/interface/RefCountedObjectImpl.hpp b/Common/interface/RefCountedObjectImpl.hpp
-index 715870dd4..2392f118a 100644
---- a/Common/interface/RefCountedObjectImpl.hpp
-+++ b/Common/interface/RefCountedObjectImpl.hpp
-@@ -54 +54 @@ class RefCntWeakPtr;
--class RefCountersImpl : public IReferenceCounters
-+class DILIGENT_REF_COUNTERS_API RefCountersImpl : public IReferenceCounters
-@@ -447,4 +447,5 @@ private:
--    virtual void SelfDestroy()
--    {
--        delete this;
--    }
-+#if PLATFORM_ANDROID
-+    virtual void SelfDestroy();
-+#else
-+    virtual void SelfDestroy() { delete this; }
-+#endif
-diff --git a/Graphics/GraphicsEngineOpenGL/CMakeLists.txt b/Graphics/GraphicsEngineOpenGL/CMakeLists.txt
-index c127612b4..f6a49ba64 100644
---- a/Graphics/GraphicsEngineOpenGL/CMakeLists.txt
-+++ b/Graphics/GraphicsEngineOpenGL/CMakeLists.txt
-@@ -176,0 +177,5 @@ add_library(Diligent-GraphicsEngineOpenGL-shared SHARED
-+if(PLATFORM_ANDROID)
-+    target_sources(Diligent-GraphicsEngineOpenGL-static PRIVATE
-+        src/AndroidRefCounters.cpp)
-+endif()
-+
-diff --git a/Primitives/interface/ReferenceCounters.h b/Primitives/interface/ReferenceCounters.h
-index 118b118c7..9c2a9d21a 100644
---- a/Primitives/interface/ReferenceCounters.h
-+++ b/Primitives/interface/ReferenceCounters.h
-@@ -40,0 +41,6 @@ typedef Int32 ReferenceCounterValueType;
-+#    if PLATFORM_ANDROID
-+#        define DILIGENT_REF_COUNTERS_API __attribute__((visibility("default")))
-+#    else
-+#        define DILIGENT_REF_COUNTERS_API
-+#    endif
-+
-@@ -44 +50 @@ typedef Int32 ReferenceCounterValueType;
--class IReferenceCounters
-+class DILIGENT_REF_COUNTERS_API IReferenceCounters
-@@ -135,0 +142,6 @@ public:
-+
-+#    if PLATFORM_ANDROID
-+protected:
-+    // Gives Android one canonical RTTI owner without changing existing method offsets.
-+    virtual void AndroidRTTIAnchor();
-+#    endif
 diff --git a/Graphics/GraphicsEngineOpenGL/src/AndroidRefCounters.cpp b/Graphics/GraphicsEngineOpenGL/src/AndroidRefCounters.cpp
 new file mode 100644
 index 000000000..3edbaa3fa
@@ -577,20 +471,225 @@ index 000000000..3edbaa3fa
 +}
 +
 +} // namespace Diligent
+diff --git a/Graphics/GraphicsEngineOpenGL/src/DLLMain.cpp b/Graphics/GraphicsEngineOpenGL/src/DLLMain.cpp
+index 3774b0ff4..c125e2149 100644
+--- a/Graphics/GraphicsEngineOpenGL/src/DLLMain.cpp
++++ b/Graphics/GraphicsEngineOpenGL/src/DLLMain.cpp
+@@ -35,7 +35,7 @@ BOOL APIENTRY DllMain(HANDLE hModule,
+     switch (ul_reason_for_call)
+     {
+         case DLL_PROCESS_ATTACH:
+-#if defined(_DEBUG) || defined(DEBUG)
++#if (defined(_DEBUG) || defined(DEBUG)) && !defined(__MINGW32__)
+             _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+ #endif
+             break;
+diff --git a/Graphics/GraphicsEngineOpenGL/src/GLContextAndroid.cpp b/Graphics/GraphicsEngineOpenGL/src/GLContextAndroid.cpp
+index 593d01772..7c33306b1 100644
+--- a/Graphics/GraphicsEngineOpenGL/src/GLContextAndroid.cpp
++++ b/Graphics/GraphicsEngineOpenGL/src/GLContextAndroid.cpp
+@@ -69,6 +69,7 @@ bool GLContext::InitEGLSurface()
+     {
+         LOG_ERROR_AND_THROW("Failed to initialise EGL");
+     }
++    owns_display_ = true;
+     LOG_INFO_MESSAGE("Initialized EGL ", egl_major_version_, '.', egl_minor_version_);
+ 
+     /*
+@@ -387,6 +388,12 @@ void GLContext::SwapBuffers(int SwapInterval)
+ 
+ void GLContext::Terminate()
+ {
++    const bool owns_context_or_surface = context_ != EGL_NO_CONTEXT || surface_ != EGL_NO_SURFACE;
++    if (owns_context_or_surface && display_ != EGL_NO_DISPLAY)
++    {
++        eglMakeCurrent(display_, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
++    }
++
+     if (context_ != EGL_NO_CONTEXT)
+     {
+         eglDestroyContext(display_, context_);
+@@ -397,15 +404,15 @@ void GLContext::Terminate()
+         eglDestroySurface(display_, surface_);
+     }
+ 
+-    if (display_ != EGL_NO_DISPLAY)
++    if (owns_display_ && display_ != EGL_NO_DISPLAY)
+     {
+-        eglMakeCurrent(display_, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+         eglTerminate(display_);
+     }
+ 
+     display_ = EGL_NO_DISPLAY;
+     context_ = EGL_NO_CONTEXT;
+     surface_ = EGL_NO_SURFACE;
++    owns_display_ = false;
+ }
+ 
+ 
+diff --git a/Graphics/GraphicsEngineVulkan/interface/EngineFactoryVk.h b/Graphics/GraphicsEngineVulkan/interface/EngineFactoryVk.h
+index 065565784..ae545bf5b 100644
+--- a/Graphics/GraphicsEngineVulkan/interface/EngineFactoryVk.h
++++ b/Graphics/GraphicsEngineVulkan/interface/EngineFactoryVk.h
+@@ -44,7 +44,7 @@
+ #    error Unsupported platform
+ #endif
+ 
+-#if DILIGENT_VK_SHARED && PLATFORM_WIN32 && defined(_MSC_VER)
++#if DILIGENT_VK_SHARED && PLATFORM_WIN32
+ #    include "../../GraphicsEngine/interface/LoadEngineDll.h"
+ #    define DILIGENT_VK_EXPLICIT_LOAD 1
+ #endif
+diff --git a/Graphics/GraphicsEngineVulkan/src/DLLMain.cpp b/Graphics/GraphicsEngineVulkan/src/DLLMain.cpp
+index 3774b0ff4..c125e2149 100644
+--- a/Graphics/GraphicsEngineVulkan/src/DLLMain.cpp
++++ b/Graphics/GraphicsEngineVulkan/src/DLLMain.cpp
+@@ -35,7 +35,7 @@ BOOL APIENTRY DllMain(HANDLE hModule,
+     switch (ul_reason_for_call)
+     {
+         case DLL_PROCESS_ATTACH:
+-#if defined(_DEBUG) || defined(DEBUG)
++#if (defined(_DEBUG) || defined(DEBUG)) && !defined(__MINGW32__)
+             _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+ #endif
+             break;
+diff --git a/Graphics/GraphicsEngineWebGPU/src/DLLMain.cpp b/Graphics/GraphicsEngineWebGPU/src/DLLMain.cpp
+index ff9425fc5..1c960835a 100644
+--- a/Graphics/GraphicsEngineWebGPU/src/DLLMain.cpp
++++ b/Graphics/GraphicsEngineWebGPU/src/DLLMain.cpp
+@@ -34,7 +34,7 @@ BOOL APIENTRY DllMain(HANDLE hModule,
+     switch (ul_reason_for_call)
+     {
+         case DLL_PROCESS_ATTACH:
+-#if defined(_DEBUG) || defined(DEBUG)
++#if (defined(_DEBUG) || defined(DEBUG)) && !defined(__MINGW32__)
+             _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+ #endif
+             break;
+diff --git a/Graphics/GraphicsTools/src/OpenXRUtilitiesGL.cpp b/Graphics/GraphicsTools/src/OpenXRUtilitiesGL.cpp
+index 5382d29af..bb99a41d1 100644
+--- a/Graphics/GraphicsTools/src/OpenXRUtilitiesGL.cpp
++++ b/Graphics/GraphicsTools/src/OpenXRUtilitiesGL.cpp
+@@ -35,7 +35,7 @@
+ 
+ #        include "WinHPreface.h"
+ #        include <Windows.h>
+-#        include <Unknwn.h>
++#        include <unknwn.h>
+ #        include "WinHPostface.h"
+ 
+ #        define XR_USE_PLATFORM_WIN32
+@@ -85,7 +85,7 @@ void GetOpenXRGraphicsBindingGL(IRenderDevice*  pDevice,
+     NativeGLContextAttribsWin32 GLCtxAttribs = pDeviceGL->GetNativeGLContextAttribs();
+ 
+     XrGraphicsBindingOpenGLWin32KHR& Binding{*pDataBlob->GetDataPtr<XrGraphicsBindingOpenGLWin32KHR>()};
+-    Binding.type  = XR_TYPE_GRAPHICS_BINDING_D3D11_KHR;
++    Binding.type  = XR_TYPE_GRAPHICS_BINDING_OPENGL_WIN32_KHR;
+     Binding.next  = nullptr;
+     Binding.hDC   = static_cast<HDC>(GLCtxAttribs.hDC);
+     Binding.hGLRC = static_cast<HGLRC>(GLCtxAttribs.hGLRC);
+diff --git a/Graphics/ShaderTools/src/DXILUtilsStub.cpp b/Graphics/ShaderTools/src/DXILUtilsStub.cpp
+index 4751211d2..4874f2ab1 100644
+--- a/Graphics/ShaderTools/src/DXILUtilsStub.cpp
++++ b/Graphics/ShaderTools/src/DXILUtilsStub.cpp
+@@ -35,4 +35,15 @@ std::unique_ptr<IDXCompiler> CreateDXCompiler(DXCompilerTarget Target, Uint32 AP
+     return {};
+ }
+ 
++bool IsDXILBytecode(const void*, size_t)
++{
++    return false;
++}
++
++void CreateDxcBlobWrapper(IDataBlob*, IDxcBlob** ppDxcBlobWrapper)
++{
++    if (ppDxcBlobWrapper != nullptr)
++        *ppDxcBlobWrapper = nullptr;
++}
++
+ } // namespace Diligent
+diff --git a/Graphics/SuperResolution/src/DLLMain.cpp b/Graphics/SuperResolution/src/DLLMain.cpp
+index bdf50328d..bf6e0affa 100644
+--- a/Graphics/SuperResolution/src/DLLMain.cpp
++++ b/Graphics/SuperResolution/src/DLLMain.cpp
+@@ -34,7 +34,7 @@ BOOL APIENTRY DllMain(HANDLE hModule,
+     switch (ul_reason_for_call)
+     {
+         case DLL_PROCESS_ATTACH:
+-#if defined(_DEBUG) || defined(DEBUG)
++#if (defined(_DEBUG) || defined(DEBUG)) && !defined(__MINGW32__)
+             _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+ #endif
+             break;
+diff --git a/Platforms/interface/Intrinsics.hpp b/Platforms/interface/Intrinsics.hpp
+index 7d551bd76..9bfd105c1 100644
+--- a/Platforms/interface/Intrinsics.hpp
++++ b/Platforms/interface/Intrinsics.hpp
+@@ -31,7 +31,7 @@
+ #    define DILIGENT_SSE_SUPPORTED 1
+ #endif
+ 
+-#if defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC)
++#if !defined(DILIGENT_DISABLE_NEON) && (defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC))
+ #    include <arm_neon.h>
+ #    define DILIGENT_NEON_SUPPORTED 1
+ #endif
+diff --git a/Primitives/interface/ReferenceCounters.h b/Primitives/interface/ReferenceCounters.h
+index 118b118c7..9c2a9d21a 100644
+--- a/Primitives/interface/ReferenceCounters.h
++++ b/Primitives/interface/ReferenceCounters.h
+@@ -38,10 +38,16 @@ typedef Int32 ReferenceCounterValueType;
+ 
+ #if DILIGENT_CPP_INTERFACE
+ 
++#    if PLATFORM_ANDROID
++#        define DILIGENT_REF_COUNTERS_API __attribute__((visibility("default")))
++#    else
++#        define DILIGENT_REF_COUNTERS_API
++#    endif
++
+ /// Base interface for a reference counter object that stores the number of strong and
+ /// weak references and the pointer to the object. It is necessary to separate reference
+ /// counters from the object to support weak pointers.
+-class IReferenceCounters
++class DILIGENT_REF_COUNTERS_API IReferenceCounters
+ {
+ public:
+     /// Increments the number of strong references by 1.
+@@ -133,6 +139,12 @@ public:
+     /// \note   In a multithreaded environment, the returned number may not be reliable
+     ///         as other threads may simultaneously change the actual value of the counter.
+     virtual ReferenceCounterValueType GetNumWeakRefs() const = 0;
++
++#    if PLATFORM_ANDROID
++protected:
++    // Gives Android one canonical RTTI owner without changing existing method offsets.
++    virtual void AndroidRTTIAnchor();
++#    endif
+ };
+ 
+ #else
 diff --git a/ThirdParty/CMakeLists.txt b/ThirdParty/CMakeLists.txt
 index 20415a970..043f600db 100644
 --- a/ThirdParty/CMakeLists.txt
 +++ b/ThirdParty/CMakeLists.txt
-@@ -63,3 +63,3 @@ if (VULKAN_SUPPORTED OR METAL_SUPPORTED OR WEBGPU_SUPPORTED OR (ARCHIVER_SUPPORT
+@@ -61,7 +61,7 @@ if (VULKAN_SUPPORTED OR METAL_SUPPORTED OR WEBGPU_SUPPORTED OR (ARCHIVER_SUPPORT
+         set_directory_root_folder("SPIRV-Tools" "DiligentCore/ThirdParty/SPIRV-Tools")
+         # We only need SPIRV-Tools-opt for glslang that also depends on SPIRV-Tools-static.
          # Exclude all other targets from the build to save build time
 -        set(SPIRV_TOOLS_EXCLUDE_TARGETS SPIRV-Tools-link SPIRV-Tools-lint SPIRV-Tools-reduce SPIRV-Tools-shared)
 +        set(SPIRV_TOOLS_EXCLUDE_TARGETS SPIRV-Tools-link SPIRV-Tools-lint SPIRV-Tools-reduce)
          set_target_properties(${SPIRV_TOOLS_EXCLUDE_TARGETS} PROPERTIES EXCLUDE_FROM_ALL 1 EXCLUDE_FROM_DEFAULT_BUILD 1)
+ 
+         set(THIRD_PARTY_LIBS SPIRV-Tools-static SPIRV-Tools-opt)
 diff --git a/ThirdParty/SPIRV-Tools/source/CMakeLists.txt b/ThirdParty/SPIRV-Tools/source/CMakeLists.txt
-index 8e918de0..08698551 100644
+index 8e918de07..086985519 100644
 --- a/ThirdParty/SPIRV-Tools/source/CMakeLists.txt
 +++ b/ThirdParty/SPIRV-Tools/source/CMakeLists.txt
-@@ -340,12 +340,12 @@ function(spirv_tools_default_target_options target)
+@@ -337,37 +337,31 @@ function(spirv_tools_default_target_options target)
+   add_dependencies(${target} core_tables extinst_tables)
+ endfunction()
+ 
 -# Always build ${SPIRV_TOOLS}-shared. This is expected distro packages, and
 -# unlike the other SPIRV_TOOLS target, defaults to hidden symbol visibility.
 -add_library(${SPIRV_TOOLS}-shared SHARED ${SPIRV_SOURCES})
@@ -614,12 +713,17 @@ index 8e918de0..08698551 100644
 -  PRIVATE SPIRV_TOOLS_IMPLEMENTATION
 -  PUBLIC SPIRV_TOOLS_SHAREDLIB
 -)
-@@ -355,3 +355,3 @@ if(SPIRV_TOOLS_BUILD_STATIC)
+ 
+ if(SPIRV_TOOLS_BUILD_STATIC)
+   add_library(${SPIRV_TOOLS}-static STATIC ${SPIRV_SOURCES})
    if (SPIRV_TOOLS_USE_MIMALLOC AND SPIRV_TOOLS_USE_MIMALLOC_IN_STATIC_BUILD)
 -    target_link_libraries(${SPIRV_TOOLS}-shared PRIVATE mimalloc-static)
 +    target_link_libraries(${SPIRV_TOOLS}-static PRIVATE mimalloc-static)
    endif()
-@@ -362,10 +362,4 @@ if(SPIRV_TOOLS_BUILD_STATIC)
+   spirv_tools_default_target_options(${SPIRV_TOOLS}-static)
+   # The static target does not have the '-static' suffix.
+   set_target_properties(${SPIRV_TOOLS}-static PROPERTIES OUTPUT_NAME "${SPIRV_TOOLS}")
+ 
 -  # Create the "${SPIRV_TOOLS}" target as an alias to either "${SPIRV_TOOLS}-static"
 -  # or "${SPIRV_TOOLS}-shared" depending on the value of BUILD_SHARED_LIBS.
 -  if(BUILD_SHARED_LIBS)
@@ -628,25 +732,9 @@ index 8e918de0..08698551 100644
 -    add_library(${SPIRV_TOOLS} ALIAS ${SPIRV_TOOLS}-static)
 -  endif()
 +  add_library(${SPIRV_TOOLS} ALIAS ${SPIRV_TOOLS}-static)
--
+ 
 -  set(SPIRV_TOOLS_TARGETS ${SPIRV_TOOLS}-static ${SPIRV_TOOLS}-shared)
-+
 +  set(SPIRV_TOOLS_TARGETS ${SPIRV_TOOLS}-static)
  else()
-diff --git a/Graphics/GraphicsTools/src/OpenXRUtilitiesGL.cpp b/Graphics/GraphicsTools/src/OpenXRUtilitiesGL.cpp
-index 885ff7750..7fef2d9a5 100644
---- a/Graphics/GraphicsTools/src/OpenXRUtilitiesGL.cpp
-+++ b/Graphics/GraphicsTools/src/OpenXRUtilitiesGL.cpp
-@@ -38 +38 @@
--#        include <Unknwn.h>
-+#        include <unknwn.h>
-@@ -88 +88 @@ void GetOpenXRGraphicsBindingGL(IRenderDevice*  pDevice,
--    Binding.type  = XR_TYPE_GRAPHICS_BINDING_D3D11_KHR;
-+    Binding.type  = XR_TYPE_GRAPHICS_BINDING_OPENGL_WIN32_KHR;
-diff --git i/Platforms/interface/Intrinsics.hpp w/Platforms/interface/Intrinsics.hpp
-index 7d551bd76..9bfd105c1 100644
---- i/Platforms/interface/Intrinsics.hpp
-+++ w/Platforms/interface/Intrinsics.hpp
-@@ -34 +34 @@
--#if defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC)
-+#if !defined(DILIGENT_DISABLE_NEON) && (defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC))
+   add_library(${SPIRV_TOOLS} ${SPIRV_TOOLS_LIBRARY_TYPE} ${SPIRV_SOURCES})
+   if (SPIRV_TOOLS_USE_MIMALLOC)
