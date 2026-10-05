@@ -268,6 +268,51 @@ public partial class RenderPipeline : Component
         }
     }
 
+    private static object? GetDirectionalShadowResolutionAttributeDefault() => new SceneProcessorSettings().DirectionalShadowSize;
+
+    [Serialized("Directional Light Shadow Resolution", DefaultSource = nameof(GetDirectionalShadowResolutionAttributeDefault))]
+    private int SerializedDirectionalShadowResolution
+    {
+        get => _settings.SceneProcessor.DirectionalShadowSize;
+        set
+        {
+            var settings = _settings.SceneProcessor;
+            settings.DirectionalShadowSize = value;
+            _settings.SceneProcessor = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetSpotShadowResolutionAttributeDefault() => new SceneProcessorSettings().SpotShadowSize;
+
+    [Serialized("Spot Light Shadow Resolution", DefaultSource = nameof(GetSpotShadowResolutionAttributeDefault))]
+    private int SerializedSpotShadowResolution
+    {
+        get => _settings.SceneProcessor.SpotShadowSize;
+        set
+        {
+            var settings = _settings.SceneProcessor;
+            settings.SpotShadowSize = value;
+            _settings.SceneProcessor = settings;
+            MarkSettingsDirty();
+        }
+    }
+
+    private static object? GetPointShadowResolutionAttributeDefault() => new SceneProcessorSettings().PointShadowSize;
+
+    [Serialized("Point Light Shadow Resolution", DefaultSource = nameof(GetPointShadowResolutionAttributeDefault))]
+    private int SerializedPointShadowResolution
+    {
+        get => _settings.SceneProcessor.PointShadowSize;
+        set
+        {
+            var settings = _settings.SceneProcessor;
+            settings.PointShadowSize = value;
+            _settings.SceneProcessor = settings;
+            MarkSettingsDirty();
+        }
+    }
+
     private static object? GetEnableShadowsAttributeDefault() => true;
 
     [Serialized("Enable Shadows", DefaultSource = nameof(GetEnableShadowsAttributeDefault))]

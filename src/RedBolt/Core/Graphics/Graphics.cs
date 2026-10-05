@@ -616,7 +616,7 @@ layout(std140) uniform Material
         var screenModeEvent = new GraphicsEvents.ScreenModeEvent
         {
             Width = Width,
-            Height = Width,
+            Height = Height,
             Fullscreen = GetFullscreen(),
             Borderless = GetBorderless(),
             Resizable = GetResizable()

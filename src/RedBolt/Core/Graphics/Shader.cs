@@ -316,10 +316,17 @@ public sealed partial class Shader : ResourceType
             {
                 var includeName = line[9..].Replace("\"", string.Empty, StringComparison.Ordinal).Trim();
                 var includedResourceName = CombineResourcePath(resourceName, includeName);
-                if (cache?.Exists(includedResourceName) == true)
+                var includeFile = cache?.Exists(includedResourceName) == true
+                    ? cache.GetFile(includedResourceName)
+                    : null;
+                if (includeFile is not null)
                 {
-                    cache.StoreResourceDependency(this, includedResourceName);
-                    ProcessSource(includedResourceName, builder, visited);
+                    using (includeFile)
+                    {
+                        cache!.StoreResourceDependency(this, includedResourceName);
+                        builder.Append("/// ").Append(includeFile.AbsoluteName).Append('\n');
+                        ProcessSource(includedResourceName, builder, visited, includeFile);
+                    }
                 }
                 else
                     builder.Append($"#error Missing include file <{includedResourceName}>\n");
