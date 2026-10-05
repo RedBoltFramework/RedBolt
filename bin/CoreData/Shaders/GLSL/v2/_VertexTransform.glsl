@@ -228,7 +228,7 @@ mat4 GetModelMatrix()
     VertexTransform GetVertexTransform()
     {
         mat4 modelMatrix = GetModelMatrix();
-        #if URHO3D_XR
+        #ifdef URHO3D_XR
             half3 up = normalize(cCameraPos[gl_InstanceID & 1].xyz - iPos.xyz);
         #else
             half3 up = normalize(cCameraPos.xyz - iPos.xyz);
